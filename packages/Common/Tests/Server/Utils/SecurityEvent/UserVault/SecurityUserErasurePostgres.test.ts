@@ -5,7 +5,21 @@ import DatabaseService from "../../../../../Server/Services/DatabaseService";
 import SecurityCaseFeedService from "../../../../../Server/Services/SecurityCaseFeedService";
 import SecurityUserErasureRequestService, {
   readErasureRequestNames,
+  readErasureRequestProgress,
 } from "../../../../../Server/Services/SecurityUserErasureRequestService";
+import AlertService from "../../../../../Server/Services/AlertService";
+import AlertStateService from "../../../../../Server/Services/AlertStateService";
+import DetectionRule from "../../../../../Models/DatabaseModels/DetectionRule";
+import DetectionFingerprint, {
+  DetectionFingerprintKind,
+} from "../../../../../Server/Utils/SecurityEvent/DetectionFingerprint";
+import DetectionRuleEvaluator from "../../../../../Server/Utils/SecurityEvent/DetectionRuleEvaluator";
+import { getEntityRiskFingerprint } from "../../../../../Server/Utils/SecurityEvent/EntityRisk/SecurityEntityRiskCases";
+import {
+  DedupedRecordOutcome,
+  openDedupedAlerts,
+} from "../../../../../Server/Utils/SecurityEvent/SecurityEventAlerting";
+import { SecurityUserErasureProgress } from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureProgress";
 import logger from "../../../../../Server/Utils/Logger";
 import SecurityUserErasureRecords, {
   RUN_CANCELLED_FOR_ERASURE_MARKDOWN,
@@ -35,6 +49,14 @@ import {
   test,
 } from "@jest/globals";
 import { DataSource } from "typeorm";
+
+/*
+ * The alert path pulls the native isolated-vm addon through its template
+ * renderer; stub it out before anything imports it.
+ */
+jest.mock("isolated-vm", () => {
+  return {};
+});
 
 /*
  * Erasing one person from Security Events' user vault (#10908), against a
@@ -98,6 +120,9 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
     "SecurityEntityRisk",
     "SecurityCaseAiAction",
     "SecurityPlaybookRun",
+    // What a detection opened, deduped by its fingerprint (#11130).
+    "Alert",
+    "Incident",
   ];
 
   beforeAll(async () => {
@@ -310,7 +335,7 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
           projectId,
           names,
         }),
-      ).toEqual([caseId.toString()]);
+      ).toEqual({ caseIds: [caseId.toString()], groupValues: [] });
 
       const detection: Record<string, unknown> = await rowOf(
         "SecurityDetection",
@@ -428,7 +453,7 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
 
       expect(
         await SecurityUserErasureRecords.unnameDetections({ projectId, names }),
-      ).toEqual([caseId.toString()]);
+      ).toEqual({ caseIds: [caseId.toString()], groupValues: [] });
       expect(
         await SecurityUserErasureRecords.unnameCases({ projectId, names }),
       ).toEqual([caseId.toString()]);
@@ -456,7 +481,7 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
       // Done again, nothing more is found.
       expect(
         await SecurityUserErasureRecords.unnameDetections({ projectId, names }),
-      ).toEqual([]);
+      ).toEqual({ caseIds: [], groupValues: [] });
       expect(
         await SecurityUserErasureRecords.unnameCases({ projectId, names }),
       ).toEqual([]);
@@ -704,6 +729,542 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
+  /*
+   * #11130: the fingerprint of the value a rule grouped on, or a feed's
+   * indicator, is carried by a detection (its own, its finding's id, the
+   * firings it took), an alert, an incident and the firings an entity's risk
+   * counted. Each of a value that named the person becomes the keyed one of
+   * the value with the names out - exactly what the rule makes when it fires
+   * on the token, so an open alert goes on taking its group's firings - and
+   * nothing stored is a fingerprint of the person, keyed or not.
+   */
+  describe("the fingerprints of what named the person (#11130)", () => {
+    const RULE_ID: ObjectID = new ObjectID(
+      "11130000-0000-4000-8000-0000000000b1",
+    );
+    const FEED_ID: ObjectID = new ObjectID(
+      "11130000-0000-4000-8000-0000000000c1",
+    );
+    const OPEN_STATE_ID: ObjectID = new ObjectID(
+      "11130000-0000-4000-8000-0000000000e1",
+    );
+    const CORRELATION: string = `${ALICE} / ${ADDRESS}`;
+
+    function keyed(value: string, kind?: DetectionFingerprintKind): string {
+      return DetectionFingerprint.of({
+        projectId,
+        kind: kind || DetectionFingerprintKind.DetectionRule,
+        value,
+      });
+    }
+
+    function legacy(value: string, kind?: DetectionFingerprintKind): string {
+      return DetectionFingerprint.legacyOf({
+        kind: kind || DetectionFingerprintKind.DetectionRule,
+        value,
+      });
+    }
+
+    function ofRule(fingerprint: string): string {
+      return `detection-rule:${RULE_ID.toString()}:${fingerprint}`;
+    }
+
+    function ofFeed(fingerprint: string): string {
+      return `threat-intel:${FEED_ID.toString()}:${fingerprint}`;
+    }
+
+    function findingUid(fingerprint: string): string {
+      return `detection:${RULE_ID.toString()}:${ofRule(fingerprint)}:run:1764000000000:each:${fingerprint}`;
+    }
+
+    function firingKey(fingerprint: string, stretch: number = 1): string {
+      return `run:${1764000000000 + stretch}:each:${fingerprint}`;
+    }
+
+    function rule(): DetectionRule {
+      const detectionRule: DetectionRule = new DetectionRule();
+
+      detectionRule._id = RULE_ID.toString();
+      detectionRule.projectId = projectId;
+
+      return detectionRule;
+    }
+
+    async function detection(row: Record<string, unknown>): Promise<ObjectID> {
+      return await insert("SecurityDetection", {
+        projectId: projectId.toString(),
+        ...row,
+      });
+    }
+
+    async function alert(
+      seriesFingerprint: string,
+      row: Record<string, unknown> = {},
+    ): Promise<ObjectID> {
+      return await insert("Alert", {
+        projectId: projectId.toString(),
+        title: `[Detection] Brute force — ${ALICE}`,
+        seriesFingerprint,
+        currentAlertStateId: OPEN_STATE_ID.toString(),
+        ...row,
+      });
+    }
+
+    async function incident(seriesFingerprint: string): Promise<ObjectID> {
+      return await insert("Incident", {
+        projectId: projectId.toString(),
+        title: `[Detection] Brute force — ${ALICE}`,
+        seriesFingerprint,
+      });
+    }
+
+    async function seriesFingerprintOf(
+      table: string,
+      id: ObjectID,
+    ): Promise<unknown> {
+      return (await rowOf(table, id))["seriesFingerprint"];
+    }
+
+    // Every row of the project's tables a fingerprint is kept in, as text.
+    async function everythingKept(): Promise<string> {
+      const kept: Array<unknown> = [];
+
+      for (const table of [
+        "SecurityDetection",
+        "SecurityCase",
+        "SecurityEntityRisk",
+      ]) {
+        kept.push(
+          ...(await database.query(
+            `SELECT * FROM "${schema}"."${table}" WHERE "projectId" = $1`,
+            [projectId.toString()],
+          )),
+        );
+      }
+
+      // An alert's and an incident's title are theirs to change: their fingerprint is not.
+      for (const table of ["Alert", "Incident"]) {
+        kept.push(
+          ...(await database.query(
+            `SELECT "seriesFingerprint" FROM "${schema}"."${table}" WHERE "projectId" = $1`,
+            [projectId.toString()],
+          )),
+        );
+      }
+
+      return JSON.stringify(kept);
+    }
+
+    test("a detection's own, its finding's id and its firings, an alert's, an incident's: each of a name becomes the token's", async () => {
+      const aliceDetection: ObjectID = await detection({
+        title: `Brute force — ${ALICE}`,
+        groupValue: ALICE,
+        entities: userEntities(ALICE),
+        fingerprint: ofRule(legacy(ALICE)),
+        eventUid: findingUid(legacy(ALICE)),
+        recentFiringKeys: [
+          firingKey(legacy(ALICE)),
+          firingKey(keyed(ALICE)),
+          firingKey(keyed(ALICE), 2),
+        ],
+      });
+      const riskDetection: ObjectID = await detection({
+        title: `High risk — ${ALICE}`,
+        groupValue: ALICE,
+        fingerprint: getEntityRiskFingerprint(ALICE),
+      });
+      const bobDetection: ObjectID = await detection({
+        title: `Brute force — ${BOB}`,
+        groupValue: BOB,
+        fingerprint: ofRule(legacy(BOB)),
+        eventUid: findingUid(legacy(BOB)),
+        recentFiringKeys: [firingKey(legacy(BOB))],
+      });
+      const ungrouped: ObjectID = await detection({
+        title: "Brute force",
+        fingerprint: ofRule(legacy("")),
+        eventUid: findingUid(legacy("")),
+      });
+
+      const openAlice: ObjectID = await alert(ofRule(legacy(ALICE)));
+      const resolvedAlice: ObjectID = await alert(ofRule(keyed(ALICE)), {
+        currentAlertStateId: ObjectID.generate().toString(),
+      });
+      const auth0Alice: ObjectID = await alert(ofRule(legacy(ALICE_IN_AUTH0)));
+      const feedAlice: ObjectID = await alert(
+        ofFeed(legacy(ALICE, DetectionFingerprintKind.ThreatIntel)),
+      );
+      const bobAlert: ObjectID = await alert(ofRule(legacy(BOB)));
+      const overflow: ObjectID = await alert(
+        `detection-rule:${RULE_ID.toString()}:overflow`,
+      );
+      const otherProject: ObjectID = await insert("Alert", {
+        projectId: otherProjectId.toString(),
+        seriesFingerprint: ofRule(legacy(ALICE)),
+      });
+      const aliceIncident: ObjectID = await incident(ofRule(keyed(ALICE)));
+      const bobIncident: ObjectID = await incident(ofRule(keyed(BOB)));
+
+      const before: Record<string, unknown> = await rowOf("Alert", openAlice);
+
+      await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+      const aliceRow: Record<string, unknown> = await rowOf(
+        "SecurityDetection",
+        aliceDetection,
+      );
+
+      expect(aliceRow["fingerprint"]).toBe(ofRule(keyed(aliceToken)));
+      expect(aliceRow["eventUid"]).toBe(findingUid(keyed(aliceToken)));
+      // Both names of the one firing are its one name now; the other firing keeps its own.
+      expect(aliceRow["recentFiringKeys"]).toEqual([
+        firingKey(keyed(aliceToken)),
+        firingKey(keyed(aliceToken), 2),
+      ]);
+      expect(
+        (await rowOf("SecurityDetection", riskDetection))["fingerprint"],
+      ).toBe(getEntityRiskFingerprint(aliceToken));
+
+      // Every alert and incident of a name, open or resolved, a rule's or a feed's.
+      expect(await seriesFingerprintOf("Alert", openAlice)).toBe(
+        ofRule(keyed(aliceToken)),
+      );
+      expect(await seriesFingerprintOf("Alert", resolvedAlice)).toBe(
+        ofRule(keyed(aliceToken)),
+      );
+      expect(await seriesFingerprintOf("Alert", auth0Alice)).toBe(
+        ofRule(keyed(`auth0|${aliceToken}`)),
+      );
+      expect(await seriesFingerprintOf("Alert", feedAlice)).toBe(
+        ofFeed(keyed(aliceToken, DetectionFingerprintKind.ThreatIntel)),
+      );
+      expect(await seriesFingerprintOf("Incident", aliceIncident)).toBe(
+        ofRule(keyed(aliceToken)),
+      );
+
+      // Nothing else about the alert changed: its title is people's, its history its own.
+      const after: Record<string, unknown> = await rowOf("Alert", openAlice);
+
+      expect({ ...after, seriesFingerprint: null }).toEqual({
+        ...before,
+        seriesFingerprint: null,
+      });
+
+      // Somebody else's, a group of nothing, an overflow, another project's: as they were.
+      expect(
+        (await rowOf("SecurityDetection", bobDetection))["fingerprint"],
+      ).toBe(ofRule(legacy(BOB)));
+      expect((await rowOf("SecurityDetection", ungrouped))["eventUid"]).toBe(
+        findingUid(legacy("")),
+      );
+      expect(await seriesFingerprintOf("Alert", bobAlert)).toBe(
+        ofRule(legacy(BOB)),
+      );
+      expect(await seriesFingerprintOf("Alert", overflow)).toBe(
+        `detection-rule:${RULE_ID.toString()}:overflow`,
+      );
+      expect(await seriesFingerprintOf("Alert", otherProject)).toBe(
+        ofRule(legacy(ALICE)),
+      );
+      expect(await seriesFingerprintOf("Incident", bobIncident)).toBe(
+        ofRule(keyed(BOB)),
+      );
+    });
+
+    test("a correlation's value: its detection, its case, its alert and the risk beside it, each with the names out", async () => {
+      const unnamedValue: string = `${aliceToken} / ${ADDRESS}`;
+      const caseId: ObjectID = await insert("SecurityCase", {
+        projectId: projectId.toString(),
+        title: `New place for an account — ${CORRELATION}`,
+        groupingKey: getEntityCaseGroupingKey(CORRELATION),
+      });
+      const correlation: ObjectID = await detection({
+        securityCaseId: caseId.toString(),
+        title: `New place for an account — ${CORRELATION}`,
+        groupValue: CORRELATION,
+        entities: userEntities(ALICE),
+        fingerprint: ofRule(legacy(CORRELATION)),
+        eventUid: findingUid(legacy(CORRELATION)),
+        recentFiringKeys: [firingKey(legacy(CORRELATION))],
+      });
+      const correlationAlert: ObjectID = await alert(
+        ofRule(keyed(CORRELATION)),
+      );
+      // The address's risk counted the firing: its row is not the person's.
+      const addressRisk: ObjectID = await insert("SecurityEntityRisk", {
+        projectId: projectId.toString(),
+        entityKey: ADDRESS,
+        entityValue: ADDRESS,
+        contributions: [
+          {
+            sourceKey: `rule:${RULE_ID.toString()}`,
+            firingKeys: [firingKey(legacy(CORRELATION)), firingKey(legacy(BOB))],
+          },
+        ],
+      });
+
+      // Found before anything changes, and kept with the names.
+      const values: Array<ErasedName> =
+        await SecurityUserErasureRecords.findCorrelationValues({
+          projectId,
+          names,
+        });
+
+      expect(values).toEqual([{ named: CORRELATION, hashed: unnamedValue }]);
+
+      /*
+       * A run that un-named the detection and stopped before its
+       * fingerprints: the detection no longer says what its value was, so
+       * the next run finds it by the value kept with the names.
+       */
+      expect(
+        await SecurityUserErasureRecords.unnameDetections({ projectId, names }),
+      ).toEqual({
+        caseIds: [caseId.toString()],
+        groupValues: [{ named: CORRELATION, hashed: unnamedValue }],
+      });
+      expect(
+        await SecurityUserErasureRecords.findCorrelationValues({
+          projectId,
+          names,
+        }),
+      ).toEqual([]);
+
+      await SecurityUserErasureRecords.unnameRecords({
+        projectId,
+        names: [...names, ...values],
+      });
+
+      const row: Record<string, unknown> = await rowOf(
+        "SecurityDetection",
+        correlation,
+      );
+
+      expect(row["groupValue"]).toBe(unnamedValue);
+      expect(row["title"]).toBe(`New place for an account — ${unnamedValue}`);
+      expect(row["fingerprint"]).toBe(ofRule(keyed(unnamedValue)));
+      expect(row["eventUid"]).toBe(findingUid(keyed(unnamedValue)));
+      expect(row["recentFiringKeys"]).toEqual([firingKey(keyed(unnamedValue))]);
+
+      const securityCase: Record<string, unknown> = await rowOf(
+        "SecurityCase",
+        caseId,
+      );
+
+      expect(securityCase["title"]).toBe(
+        `New place for an account — ${unnamedValue}`,
+      );
+      expect(securityCase["groupingKey"]).toBe(
+        getEntityCaseGroupingKey(unnamedValue),
+      );
+      expect(await seriesFingerprintOf("Alert", correlationAlert)).toBe(
+        ofRule(keyed(unnamedValue)),
+      );
+      expect(
+        (await rowOf("SecurityEntityRisk", addressRisk))["contributions"],
+      ).toEqual([
+        {
+          sourceKey: `rule:${RULE_ID.toString()}`,
+          firingKeys: [firingKey(keyed(unnamedValue)), firingKey(legacy(BOB))],
+        },
+      ]);
+    });
+
+    test("an alert open under a name takes the next firing about the token: the fingerprint is the one the rule makes", async () => {
+      const openAlice: ObjectID = await alert(ofRule(legacy(ALICE)));
+
+      jest
+        .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+        .mockResolvedValue([OPEN_STATE_ID]);
+      const create: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(AlertService, "create")
+        .mockRejectedValue(new Error("nothing should open") as never);
+
+      const fire: (groupValue: string) => Promise<Array<string>> = async (
+        groupValue: string,
+      ): Promise<Array<string>> => {
+        const seen: Array<string> = [];
+
+        expect(
+          await openDedupedAlerts({
+            projectId,
+            alertSeverityId: ObjectID.generate(),
+            logLabel: "test",
+            matches: [
+              {
+                ...DetectionRuleEvaluator.buildFingerprints(rule(), groupValue),
+                title: "t",
+                description: "d",
+                rootCause: "r",
+              },
+            ],
+            onOutcome: (outcome: DedupedRecordOutcome): void => {
+              seen.push(outcome.recordId.toString());
+            },
+          }),
+        ).toBe(0);
+
+        return seen;
+      };
+
+      // Before the erasure, across #11130: a firing about the name finds it by its unkeyed fingerprint.
+      expect(await fire(ALICE)).toEqual([openAlice.toString()]);
+
+      await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+      // After it: the rule fires on the token, and finds the same alert.
+      expect(await fire(aliceToken)).toEqual([openAlice.toString()]);
+      expect(await seriesFingerprintOf("Alert", openAlice)).toBe(
+        DetectionRuleEvaluator.buildFingerprints(rule(), aliceToken).fingerprint,
+      );
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    test("running it again changes nothing", async () => {
+      await detection({
+        title: `Brute force — ${ALICE}`,
+        groupValue: ALICE,
+        fingerprint: ofRule(legacy(ALICE)),
+        eventUid: findingUid(legacy(ALICE)),
+        recentFiringKeys: [firingKey(legacy(ALICE))],
+      });
+      await detection({
+        title: `New place — ${CORRELATION}`,
+        groupValue: CORRELATION,
+        entities: userEntities(ALICE),
+        fingerprint: ofRule(legacy(CORRELATION)),
+      });
+      await alert(ofRule(legacy(ALICE)));
+      await incident(ofRule(keyed(CORRELATION)));
+
+      await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+      const once: string = await everythingKept();
+      const versions: string = JSON.stringify(
+        await database.query(
+          `SELECT "_id", "version", "updatedAt" FROM "${schema}"."SecurityDetection" ORDER BY "_id"`,
+        ),
+      );
+
+      expect(
+        await SecurityUserErasureRecords.rewriteFingerprints({
+          projectId,
+          groupValues: [
+            ...names,
+            { named: CORRELATION, hashed: `${aliceToken} / ${ADDRESS}` },
+          ],
+        }),
+      ).toEqual({ detections: 0, alerts: 0, incidents: 0, entityRisks: 0 });
+
+      await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+      expect(await everythingKept()).toBe(once);
+      expect(
+        JSON.stringify(
+          await database.query(
+            `SELECT "_id", "version", "updatedAt" FROM "${schema}"."SecurityDetection" ORDER BY "_id"`,
+          ),
+        ),
+      ).toBe(versions);
+    });
+
+    test("nothing kept lets a guessed name be confirmed: no fingerprint of any spelling, keyed or not, of either source", async () => {
+      const caseId: ObjectID = await insert("SecurityCase", {
+        projectId: projectId.toString(),
+        title: `Brute force — ${ALICE}`,
+        groupingKey: getEntityCaseGroupingKey(ALICE),
+        entities: userEntities(ALICE),
+      });
+
+      await detection({
+        securityCaseId: caseId.toString(),
+        title: `Brute force — ${ALICE}`,
+        groupValue: ALICE,
+        entities: userEntities(ALICE),
+        fingerprint: ofRule(legacy(ALICE)),
+        eventUid: findingUid(legacy(ALICE)),
+        recentFiringKeys: [firingKey(legacy(ALICE)), firingKey(keyed(ALICE))],
+      });
+      await detection({
+        title: `High risk — ${ALICE}`,
+        groupValue: ALICE,
+        fingerprint: getEntityRiskFingerprint(ALICE),
+      });
+      await detection({
+        title: `New place — ${CORRELATION}`,
+        groupValue: CORRELATION,
+        entities: userEntities(ALICE),
+        fingerprint: ofRule(legacy(CORRELATION)),
+        eventUid: findingUid(legacy(CORRELATION)),
+        recentFiringKeys: [firingKey(legacy(CORRELATION))],
+      });
+      await alert(ofRule(legacy(ALICE)));
+      await alert(ofRule(keyed(ALICE)));
+      await alert(ofRule(legacy(ALICE_IN_AUTH0)));
+      await alert(ofRule(keyed(CORRELATION)));
+      await alert(ofFeed(legacy(ALICE, DetectionFingerprintKind.ThreatIntel)));
+      await incident(ofRule(keyed(ALICE)));
+      await insert("SecurityEntityRisk", {
+        projectId: projectId.toString(),
+        entityKey: ALICE,
+        entityValue: ALICE,
+      });
+      await insert("SecurityEntityRisk", {
+        projectId: projectId.toString(),
+        entityKey: ADDRESS,
+        entityValue: ADDRESS,
+        contributions: [
+          {
+            sourceKey: `rule:${RULE_ID.toString()}`,
+            firingKeys: [firingKey(legacy(CORRELATION))],
+          },
+        ],
+      });
+
+      const guesses: Array<string> = [
+        ALICE,
+        "Alice@Example.com",
+        "ALICE@EXAMPLE.COM",
+        ALICE_IN_AUTH0,
+        CORRELATION,
+      ];
+      const fingerprintsOf: () => Array<string> = (): Array<string> => {
+        const all: Array<string> = [];
+
+        for (const guess of guesses) {
+          for (const kind of [
+            DetectionFingerprintKind.DetectionRule,
+            DetectionFingerprintKind.ThreatIntel,
+          ]) {
+            all.push(keyed(guess, kind), legacy(guess, kind));
+          }
+        }
+
+        return all;
+      };
+
+      // Before: every one of them can be found.
+      const before: string = await everythingKept();
+
+      expect(
+        fingerprintsOf().filter((fingerprint: string): boolean => {
+          return before.includes(fingerprint);
+        }).length,
+      ).toBeGreaterThan(0);
+
+      await SecurityUserErasureRecords.unnameRecords({ projectId, names });
+
+      const after: string = await everythingKept();
+
+      for (const fingerprint of fingerprintsOf()) {
+        expect(after).not.toContain(fingerprint);
+      }
+
+      // Nor the name itself, in anything Security Events keeps of it.
+      expect(after.toLowerCase()).not.toContain(ALICE);
+    });
+  });
+
   describe("a request", () => {
     async function file(user: string): Promise<SecurityUserErasureRequest> {
       const request: SecurityUserErasureRequest =
@@ -904,6 +1465,69 @@ describePostgres("erasing a person from Security Events, in Postgres", () => {
           "namesToErase"
         ],
       ).toBeNull();
+    });
+
+    test("where the worker got to is kept as it goes and read back by the next run as it was, holding nothing of the person (#11160)", async () => {
+      const created: SecurityUserErasureRequest = await file(ALICE);
+      const progress: SecurityUserErasureProgress = {
+        toldAt: "2026-11-26T10:02:00.000Z",
+        namedEvents: 4,
+        cleanSince: "2026-11-26T10:03:00.000Z",
+        unnamedFindings: 120,
+        findings: {
+          number: 2,
+          startedAt: "2026-11-26T10:20:00.000Z",
+          after: { time: "1764151200000000123", id: ObjectID.generate().toString() },
+          changed: 0,
+          unnamed: 0,
+          isFinal: true,
+          endedAt: null,
+        },
+      };
+
+      await SecurityUserErasureRequestService.markProgress({
+        requestId: created.id!,
+        progress,
+        eventsUnnamed: 124,
+      });
+
+      const open: Array<SecurityUserErasureRequest> =
+        await SecurityUserErasureRequestService.getOpenRequests({ limit: 10 });
+
+      expect(readErasureRequestProgress(open[0]!)).toEqual(progress);
+
+      const stored: Record<string, unknown> = await rowOf(
+        "SecurityUserErasureRequest",
+        created.id!,
+      );
+
+      expect(stored["eventsUnnamed"]).toBe(124);
+      expect(stored["status"]).toBe(SecurityUserErasureRequestStatus.Pending);
+      expect(JSON.stringify(stored["progress"]).toLowerCase()).not.toContain(
+        "alice",
+      );
+
+      // A run told again keeps its progress beside its counts.
+      await SecurityUserErasureRequestService.markInProgress({
+        requestId: created.id!,
+        counts: {
+          vaultEntriesDeleted: 1,
+          eventsUnnamed: 124,
+          casesUnnamed: 0,
+          proposalsWithdrawn: 0,
+        },
+        progress: { ...progress, toldAt: "2026-11-26T10:32:00.000Z" },
+      });
+
+      expect(
+        readErasureRequestProgress(
+          (
+            await SecurityUserErasureRequestService.getOpenRequests({
+              limit: 10,
+            })
+          )[0]!,
+        ).toldAt,
+      ).toBe("2026-11-26T10:32:00.000Z");
     });
 
     test("a pasted token keeps nothing typed at all", async () => {

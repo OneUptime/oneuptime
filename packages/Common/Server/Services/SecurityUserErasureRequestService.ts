@@ -369,6 +369,29 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
+   * Who the person is named as, kept before what they name is changed: a
+   * correlation's group value a read of the findings is about to change
+   * (#11130), with every name kept before. Encrypted, and wiped once the
+   * request is over, as every name is.
+   */
+  @CaptureSpan()
+  public async markNames(data: {
+    requestId: ObjectID;
+    names: ReadonlyArray<ErasedName>;
+  }): Promise<void> {
+    await this.updateOneById({
+      id: data.requestId,
+      data: {
+        namesToErase:
+          data.names.length > 0
+            ? toStoredErasureNames(data.names)
+            : (null as unknown as string),
+      },
+      props: { isRoot: true },
+    });
+  }
+
+  /*
    * Where a run has got to (#11160), kept as it goes: a run that stops
    * after this goes on from here. Says nothing about how the run ended, so
    * why an earlier one failed stays until a run gets through.

@@ -108,6 +108,8 @@ interface World {
   progress: SecurityUserErasureProgress | null;
   eventsUnnamed: number | null;
   rewrittenFingerprints: Array<Array<ErasedName>>;
+  // The correlations' values Postgres holds that name the person.
+  correlationValues: Array<ErasedName>;
   scanError: Error | null;
   emailed: number;
 }
@@ -207,6 +209,7 @@ beforeEach(() => {
     progress: null,
     eventsUnnamed: null,
     rewrittenFingerprints: [],
+    correlationValues: [],
     scanError: null,
     emailed: 0,
   };
@@ -413,6 +416,20 @@ beforeEach(() => {
       },
     );
   jest
+    .spyOn(SecurityUserErasureRecords, "findCorrelationValues")
+    .mockImplementation(async (): Promise<Array<ErasedName>> => {
+      world.calls.push("findCorrelationValues");
+      return world.correlationValues;
+    });
+  jest
+    .spyOn(SecurityUserErasureRequestService, "markNames")
+    .mockImplementation(
+      async (data: { names: ReadonlyArray<ErasedName> }): Promise<void> => {
+        world.calls.push("keepNames");
+        world.keptNames.push([...data.names]);
+      },
+    );
+  jest
     .spyOn(ProjectService, "sendEmailToProjectOwners")
     .mockImplementation(async (): Promise<void> => {
       world.emailed++;
@@ -454,7 +471,7 @@ describe("a Pending request", () => {
     expect(world.calls).toEqual([]);
   });
 
-  test("is claimed, then Postgres first and ClickHouse after - the events, the vault, then the findings' first pass - its counts kept at each step", async () => {
+  test("is claimed, its names kept, then Postgres and ClickHouse after - the events, the vault, then the findings' first pass - its counts kept at each step", async () => {
     await SecurityUserErasure.processRequest({
       request: request(),
       now: at(STARTED_AT),
@@ -462,6 +479,13 @@ describe("a Pending request", () => {
 
     expect(world.calls).toEqual([
       "claim",
+      "findCorrelationValues",
+      `inProgress ${JSON.stringify({
+        vaultEntriesDeleted: 0,
+        eventsUnnamed: 0,
+        casesUnnamed: 0,
+        proposalsWithdrawn: 0,
+      })}`,
       "unnameRecords",
       `inProgress ${JSON.stringify({
         vaultEntriesDeleted: 0,
@@ -517,10 +541,84 @@ describe("a Pending request", () => {
     expect(world.keptNames).toHaveLength(1);
     expect(describeNames(world.keptNames[0]!)).toEqual(everyName);
     expect(firstKept).toBeGreaterThan(-1);
+    expect(firstKept).toBeLessThan(world.calls.indexOf("unnameRecords"));
     expect(firstKept).toBeLessThan(world.calls.indexOf("unnameEvents"));
     expect(firstKept).toBeLessThan(world.calls.indexOf("eraseVault"));
     expect(firstKept).toBeLessThan(world.calls.indexOf("scan from 0"));
     expect(describeNames(world.findingNames[0]!)).toEqual(everyName);
+  });
+
+  test("keeps each correlation's value that holds a name with the names, before Postgres un-names its detection (#11130)", async () => {
+    world.correlationValues = [
+      {
+        named: `${ALICE} / 203.0.113.7`,
+        hashed: `${tokenOf(ALICE)} / 203.0.113.7`,
+      },
+    ];
+
+    await SecurityUserErasure.processRequest({
+      request: request(),
+      now: at(STARTED_AT),
+    });
+
+    expect(describeNames(world.keptNames[0]!)).toContain(
+      `${ALICE} / 203.0.113.7 -> ${tokenOf(ALICE)} / 203.0.113.7`,
+    );
+    // Postgres is handed it with the names, so its fingerprints go too.
+    expect(describeNames(world.names[0]!)).toContain(
+      `${ALICE} / 203.0.113.7 -> ${tokenOf(ALICE)} / 203.0.113.7`,
+    );
+  });
+
+  test("a correlation's value a read of the findings is about to change is kept with the names before ClickHouse is told", async () => {
+    let keptBeforeQueued: boolean = false;
+
+    jest
+      .spyOn(SecurityUserErasureFindings, "scanFindings")
+      .mockImplementation(
+        async (data: {
+          after: FindingsCursor | null;
+          onChangesFound?:
+            | ((values: Array<ErasedName>) => Promise<void>)
+            | undefined;
+          onProgress: (progress: FindingsScanProgress) => Promise<void>;
+        }): Promise<FindingsScanStep> => {
+          const value: ErasedName = {
+            named: `${ALICE} / 198.51.100.4`,
+            hashed: `${tokenOf(ALICE)} / 198.51.100.4`,
+          };
+
+          await data.onChangesFound!([value]);
+          keptBeforeQueued = world.calls.includes("keepNames");
+          world.calls.push("queue");
+          await data.onProgress({
+            after: cursorOf(0),
+            changed: 1,
+            unnamed: 1,
+            correlationValues: [value],
+          });
+
+          return {
+            after: cursorOf(0),
+            isAtEnd: true,
+            changed: 1,
+            unnamed: 1,
+          };
+        },
+      );
+
+    await SecurityUserErasure.processRequest({
+      request: request(),
+      now: at(STARTED_AT),
+    });
+
+    expect(keptBeforeQueued).toBe(true);
+    expect(world.calls.indexOf("keepNames")).toBeLessThan(
+      world.calls.indexOf("queue"),
+    );
+    expect(describeNames(world.keptNames[world.keptNames.length - 1]!)).toContain(
+      `${ALICE} / 198.51.100.4 -> ${tokenOf(ALICE)} / 198.51.100.4`,
+    );
   });
 
   test("hands Postgres every name the vault knew them by, each once, with what the rule left", async () => {

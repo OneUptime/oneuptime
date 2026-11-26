@@ -643,6 +643,14 @@ export default class SecurityUserErasureFindings {
     tokens: ReadonlyArray<string>;
     after: FindingsCursor | null;
     onProgress: (progress: FindingsScanProgress) => Promise<void>;
+    /*
+     * Told the correlations' group values a batch changes before ClickHouse
+     * is told to change them: once a finding is un-named, nothing else says
+     * what its value was, so the caller keeps them first.
+     */
+    onChangesFound?:
+      | ((correlationValues: Array<ErasedName>) => Promise<void>)
+      | undefined;
     deadline?: JobDeadline | undefined;
     pageSize?: number | undefined;
     timeLimitMs?: number | undefined;
@@ -676,14 +684,19 @@ export default class SecurityUserErasureFindings {
     let unnamed: number = 0;
 
     const flush: () => Promise<void> = async (): Promise<void> => {
-      if (pending.length > 0) {
-        await this.unnameFindings({
-          projectId: data.projectId,
-          rewrites: pending,
-        });
+      const batch: Array<FindingRewrite> = pending;
+      const correlationValues: Array<ErasedName> = correlationValuesOf(batch);
+
+      if (correlationValues.length > 0 && data.onChangesFound) {
+        await data.onChangesFound(correlationValues);
       }
 
-      const batch: Array<FindingRewrite> = pending;
+      if (batch.length > 0) {
+        await this.unnameFindings({
+          projectId: data.projectId,
+          rewrites: batch,
+        });
+      }
 
       pending = [];
       committed = read;
@@ -692,7 +705,7 @@ export default class SecurityUserErasureFindings {
         after: committed,
         changed,
         unnamed,
-        correlationValues: correlationValuesOf(batch),
+        correlationValues,
       });
     };
 

@@ -261,7 +261,12 @@ function rewriteFiringKeys(
     return next;
   });
 
-  return changed ? rewritten : null;
+  // A name kept under both fingerprints of one firing is the same name now: once.
+  return changed
+    ? rewritten.filter((key: unknown, index: number): boolean => {
+        return typeof key !== "string" || rewritten.indexOf(key) === index;
+      })
+    : null;
 }
 
 // The previous fingerprints of the changes, each once.
@@ -482,6 +487,52 @@ export default class SecurityUserErasureRecords {
     });
 
     return { cases: caseIds.size, proposals };
+  }
+
+  /*
+   * The group values of the project's correlations that hold one of the
+   * names as one of their values ("alice@example.com / 203.0.113.7"), each
+   * with what it is once the names are out (#11130). Read before anything
+   * changes: once a detection is un-named, nothing says what its value was,
+   * and the alerts, incidents and risk that carry its fingerprint are found
+   * by it. The erasure keeps them with the names, encrypted, and wipes them
+   * with them.
+   */
+  public static async findCorrelationValues(data: {
+    projectId: ObjectID;
+    names: ReadonlyArray<ErasedName>;
+  }): Promise<Array<ErasedName>> {
+    const names: Array<ErasedName> = data.names.filter(
+      (name: ErasedName): boolean => {
+        return (
+          Boolean(name.named) &&
+          Boolean(name.hashed) &&
+          name.named !== name.hashed
+        );
+      },
+    );
+
+    if (names.length === 0) {
+      return [];
+    }
+
+    const rows: Array<{ groupValue: string | null }> = (await this.query(
+      `SELECT DISTINCT "groupValue" FROM "SecurityDetection" WHERE "projectId" = $1 AND strpos(COALESCE("groupValue", ''), $3) > 0 AND EXISTS (SELECT 1 FROM unnest($2::text[]) AS erased(name) WHERE strpos("groupValue", erased.name) > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
+      [data.projectId.toString(), namesOf(names), GROUP_VALUE_PART_SEPARATOR],
+    )) as unknown as Array<{ groupValue: string | null }>;
+
+    const values: Map<string, ErasedName> = new Map<string, ErasedName>();
+
+    for (const row of rows) {
+      const value: string = row.groupValue || "";
+      const unnamed: string | undefined | null = unnameGroupValue(value, names);
+
+      if (value && unnamed && unnamed !== value) {
+        values.set(value, { named: value, hashed: unnamed });
+      }
+    }
+
+    return Array.from(values.values());
   }
 
   /*

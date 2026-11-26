@@ -454,11 +454,37 @@ export default class SecurityUserErasure {
     const progress: SecurityUserErasureProgress =
       readErasureRequestProgress(request);
 
-    const names: Array<ErasedName> = await this.findNames({
+    const found: Array<ErasedName> = await this.findNames({
       projectId,
       tokens,
       userToErase: request.userToErase,
       keptNames: readErasureRequestNames(request),
+    });
+
+    /*
+     * And each correlation's group value that holds one of them (#11130):
+     * once its detection is un-named nothing else says what it was, and the
+     * alerts, incidents and risk carrying its fingerprint are found by it.
+     */
+    const names: Array<ErasedName> = distinctNames([
+      ...found,
+      ...(await SecurityUserErasureRecords.findCorrelationValues({
+        projectId,
+        names: found,
+      })),
+    ]);
+
+    const counts: SecurityUserErasureCounts = countsOf(request);
+
+    /*
+     * The names are kept before anything changes: once Postgres has, and
+     * the vault's rows and the events in ClickHouse, nothing else says who
+     * the findings name or what a correlation's value was.
+     */
+    await SecurityUserErasureRequestService.markInProgress({
+      requestId,
+      counts,
+      names,
     });
 
     const records: SecurityUserErasureRecordCounts =
@@ -469,20 +495,12 @@ export default class SecurityUserErasure {
       });
 
     // Kept at once: Postgres is done, and a retry would find nothing left to count.
-    const counts: SecurityUserErasureCounts = countsOf(request);
-
     counts.casesUnnamed += records.cases;
     counts.proposalsWithdrawn += records.proposals;
 
-    /*
-     * The names are kept with the counts before anything in ClickHouse
-     * changes: once the vault's rows and the events have, nothing else
-     * says who the findings name.
-     */
     await SecurityUserErasureRequestService.markInProgress({
       requestId,
       counts,
-      names,
     });
 
     /*
@@ -624,11 +642,14 @@ export default class SecurityUserErasure {
       });
     };
 
+    // The names the request keeps, with each correlation's value the read finds.
+    let kept: Array<ErasedName> = [...data.names];
+
     const complete: () => Promise<void> = async (): Promise<void> => {
       await save();
       await this.complete({
         request,
-        names: data.names,
+        names: kept,
         counts: {
           ...data.counts,
           eventsUnnamed: Math.max(
@@ -689,6 +710,22 @@ export default class SecurityUserErasure {
         tokens: readErasureRequestTokens(request),
         after: current.after,
         deadline: data.deadline,
+        onChangesFound: async (
+          correlationValues: Array<ErasedName>,
+        ): Promise<void> => {
+          const more: Array<ErasedName> = distinctNames([
+            ...kept,
+            ...correlationValues,
+          ]);
+
+          if (more.length > kept.length) {
+            kept = more;
+            await SecurityUserErasureRequestService.markNames({
+              requestId: request.id!,
+              names: kept,
+            });
+          }
+        },
         onProgress: async (scanned: FindingsScanProgress): Promise<void> => {
           // What else carries the fingerprint of a correlation's values the batch changed.
           if (scanned.correlationValues.length > 0) {

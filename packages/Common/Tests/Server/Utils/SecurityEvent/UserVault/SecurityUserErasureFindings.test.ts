@@ -1194,6 +1194,59 @@ describe("reading a project's findings, on from where the last read stopped (#11
     ]);
   });
 
+  test("hands them over before ClickHouse is told to change their findings: after it, nothing says what they were", async () => {
+    findings.rows.push({
+      id: "c1",
+      time: "1764000000000000001",
+      observables: [ALICE, "203.0.113.7"],
+      eventUid: runUid(unkeyed(`${ALICE} / 203.0.113.7`)),
+      groupValue: `${ALICE} / 203.0.113.7`,
+    });
+
+    const queuedWhenFound: Array<number> = [];
+
+    await SecurityUserErasureFindings.scanFindings({
+      projectId: PROJECT_ID,
+      names: NAMES,
+      tokens: TOKENS,
+      after: null,
+      onProgress,
+      onChangesFound: (values: Array<ErasedName>): Promise<void> => {
+        queuedWhenFound.push(findings.flushed.length);
+        expect(values).toEqual([
+          { named: `${ALICE} / 203.0.113.7`, hashed: `${TOKEN} / 203.0.113.7` },
+        ]);
+
+        return Promise.resolve();
+      },
+    });
+
+    expect(queuedWhenFound).toEqual([0]);
+    expect(findings.flushed).toEqual([["c1"]]);
+  });
+
+  test("a batch with no correlation's value hands nothing over", async () => {
+    findings.add(3, 1);
+
+    const handed: Array<Array<ErasedName>> = [];
+
+    await SecurityUserErasureFindings.scanFindings({
+      projectId: PROJECT_ID,
+      names: NAMES,
+      tokens: TOKENS,
+      after: null,
+      onProgress,
+      onChangesFound: (values: Array<ErasedName>): Promise<void> => {
+        handed.push(values);
+
+        return Promise.resolve();
+      },
+    });
+
+    expect(handed).toEqual([]);
+    expect(findings.flushed.flat()).toHaveLength(3);
+  });
+
   test("reads nothing for no names, and finds nothing in an empty project", async () => {
     expect(
       await SecurityUserErasureFindings.scanFindings({
