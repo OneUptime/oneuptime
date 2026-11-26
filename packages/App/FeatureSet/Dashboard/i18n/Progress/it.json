@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 8227
+    "keys": 64212,
+    "untranslated": 8237
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -632,6 +632,7 @@
     "{{rate}}/min",
     "{{rate}}/s",
     "{{size}} in {{duration}}",
+    "{{store}} in {{region}}",
     "{{up}}/{{count}} OSD up",
     "{{values}} in {{field}}",
     "{{value}} ms",

@@ -891,7 +891,7 @@ describe("the issue's three conversations each end in one card, and approved, ma
     // The preview: the stores it covers today, and which would break it.
     expect(said.changes.join(" ")).toContain("It matches 4 stores today:");
     expect(said.changes.join(" ")).toContain("3 stores would break it:");
-    expect(said.changes.join(" ")).toContain('"analytics-exports" (us-east-1)');
+    expect(said.changes.join(" ")).toContain('"analytics-exports" in "us-east-1"');
     expect(world.residencyRules.rows).toHaveLength(0);
 
     const approved: World = await approve({
