@@ -167,9 +167,12 @@ export const CISCO_FC_IF_ERROR_COLUMNS: {
   txBbCreditZeroHc: 40,
 };
 
-// FcPortTypes (CISCO-ST-TC), as fcIfOperMode reports it.
+/*
+ * FcPortTypes (CISCO-ST-TC), as fcIfOperMode reports it. auto(1) is what a
+ * port that has not come up reports - it negotiated nothing - so it is no
+ * type at all, and the type the port last came up as stays on show.
+ */
 const CISCO_FC_PORT_TYPES: Record<number, FibreChannelPortType> = {
-  1: FibreChannelPortType.Auto,
   2: FibreChannelPortType.F,
   3: FibreChannelPortType.FL,
   4: FibreChannelPortType.E,
