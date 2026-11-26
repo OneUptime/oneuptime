@@ -347,7 +347,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Hardware",
     aggregation: MetricsAggregationType.Min,
     scope: StorageArrayResourceScope.Hardware,
-    objectLabel: "node",
     unit: "",
   }),
   metric({
@@ -360,7 +359,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Hardware",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Hardware,
-    objectLabel: "node",
     unit: "%",
   }),
   metric({
@@ -373,7 +371,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Hardware",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Hardware,
-    objectLabel: "node",
     unit: "count",
   }),
   metric({
@@ -386,7 +383,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Hardware",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Hardware,
-    objectLabel: "node",
     unit: "count",
   }),
   metric({
@@ -399,7 +395,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Hardware",
     aggregation: MetricsAggregationType.Min,
     scope: StorageArrayResourceScope.Hardware,
-    objectLabel: "node",
     unit: "s",
   }),
 
@@ -413,6 +408,19 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     metricName: "netapp_svm_new_status",
     category: "Volumes",
     aggregation: MetricsAggregationType.Min,
+    objectLabel: "svm",
+    unit: "",
+  }),
+  metric({
+    id: "netapp-svm-stopped",
+    friendlyName: translationKey("Stopped SVMs"),
+    description: translationKey(
+      "One series per data SVM ONTAP reports stopped (state = stopped, type = data), value 1, while it is stopped. The SVMs ONTAP keeps for itself report no state, so they are never in it.",
+    ),
+    metricName: "netapp_svm_labels",
+    attributes: { state: "stopped", type: "data" },
+    category: "Volumes",
+    aggregation: MetricsAggregationType.Max,
     objectLabel: "svm",
     unit: "",
   }),
@@ -500,7 +508,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "%",
   }),
   metric({
@@ -513,7 +520,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "bytes",
   }),
   metric({
@@ -526,7 +532,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "bytes",
   }),
   metric({
@@ -539,7 +544,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Min,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "bytes",
   }),
   metric({
@@ -552,7 +556,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "bytes",
   }),
   metric({
@@ -565,7 +568,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "%",
   }),
   metric({
@@ -578,7 +580,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "%",
   }),
   metric({
@@ -591,7 +592,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Min,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "",
   }),
   metric({
@@ -604,7 +604,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "µs",
   }),
   metric({
@@ -617,7 +616,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "µs",
   }),
   metric({
@@ -630,7 +628,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "ops/s",
   }),
   metric({
@@ -643,7 +640,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "ops/s",
   }),
   metric({
@@ -656,7 +652,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "bytes/s",
   }),
   metric({
@@ -669,7 +664,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Volumes",
     aggregation: MetricsAggregationType.Avg,
     scope: StorageArrayResourceScope.Volume,
-    objectLabel: "volume",
     unit: "bytes/s",
   }),
 
@@ -911,7 +905,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Hardware",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Hardware,
-    objectLabel: "node",
     unit: "count",
   }),
   metric({
@@ -924,7 +917,6 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     category: "Hardware",
     aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Hardware,
-    objectLabel: "node",
     unit: "count",
   }),
 
@@ -1002,7 +994,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     ),
     metricName: "netapp_nic_rx_total_errors",
     category: "Hardware",
-    aggregation: MetricsAggregationType.Sum,
+    aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Hardware,
     objectLabel: "nic",
     unit: "count",
@@ -1054,7 +1046,7 @@ const ONTAP_METRICS: Array<StorageArrayMetricDefinition> = [
     ),
     metricName: "netapp_fcp_link_failure",
     category: "Hardware",
-    aggregation: MetricsAggregationType.Sum,
+    aggregation: MetricsAggregationType.Max,
     scope: StorageArrayResourceScope.Hardware,
     objectLabel: "port",
     unit: "count",

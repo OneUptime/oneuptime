@@ -77,6 +77,9 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
       named.push([kind, `its ${endpoint} endpoint`]);
     }
   }
+  for (const kind of platform.exporterCompletedKinds || []) {
+    named.push([kind, "its exporter's complete lists"]);
+  }
   for (const family of platform.metricFamilies) {
     if (family.kind) {
       named.push([family.kind, `its ${family.prefix} series`]);

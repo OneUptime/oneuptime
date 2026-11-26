@@ -88,6 +88,7 @@ export const ONTAP_COMPONENT_TYPES: {
   fan: string;
   temperatureSensor: string;
   voltageSensor: string;
+  currentSensor: string;
   module: string;
   sensor: string;
 } = {
@@ -96,9 +97,29 @@ export const ONTAP_COMPONENT_TYPES: {
   fan: "Fan",
   temperatureSensor: "Temperature Sensor",
   voltageSensor: "Voltage Sensor",
+  currentSensor: "Current Sensor",
   module: "Module",
   sensor: "Sensor",
 };
+
+/*
+ * What Amazon FSx for NetApp ONTAP refuses whoever asks (disks, shelves,
+ * the nodes' sensors, Fibre Channel ports: AWS runs that hardware), so a
+ * kind such an object feeds is complete without it on an FSx file system.
+ * On any other cluster an object Harvest could not read leaves its kinds
+ * incomplete: their last count stands.
+ */
+const FSX_ABSENT_OBJECTS: ReadonlyArray<HarvestObject> = [
+  "Rest:Disk",
+  "Rest:Shelf",
+  "Rest:Sensor",
+  "Rest:FCP",
+];
+
+// The kinds a batch can complete, and the Harvest objects each needs.
+export const ONTAP_KIND_SOURCES: ReadonlyArray<
+  [string, ReadonlyArray<HarvestObject>]
+> = KIND_SOURCES;
 
 // What one batch remembers between its datapoints, for finishOntapBatch.
 interface OntapBatch {
@@ -177,14 +198,32 @@ function markListed(series: StorageArraySeries, object: HarvestObject): void {
   if (object === OPEN_PROBLEMS_SOURCE) {
     series.array.sawAlerts = true;
   }
+}
+
+/*
+ * The kinds whose every source Harvest listed in this batch: their count
+ * is written (0 for one with nothing). Worked out once the batch is
+ * folded, when the cluster's name says whether it is an FSx file system:
+ * Harvest's metadata series, which say what it listed, carry no cluster.
+ */
+function markCompleteKinds(array: StorageArraySnapshotBufferEntry): void {
+  const batch: OntapBatch | undefined = batches.get(array);
+  if (!batch) {
+    return;
+  }
+  const isFsx: boolean = isFsxClusterName(array.reportedName);
   for (const [kind, sources] of KIND_SOURCES) {
+    const needed: Array<HarvestObject> = sources.filter(
+      (source: HarvestObject): boolean => {
+        return !isFsx || !FSX_ABSENT_OBJECTS.includes(source);
+      },
+    );
     if (
-      sources.includes(object) &&
-      sources.every((source: HarvestObject): boolean => {
+      needed.every((source: HarvestObject): boolean => {
         return batch.listedObjects.has(source);
       })
     ) {
-      markStorageArrayKindComplete(series.array, kind);
+      markStorageArrayKindComplete(array, kind);
     }
   }
 }
@@ -330,7 +369,8 @@ function readAggregate(series: StorageArraySeries): void {
     row.groupName = series.label("node");
     switch (metricName) {
       case "netapp_aggr_labels": {
-        row.componentType = series.label("type");
+        // ONTAP names a disk type in lowercase (ssd, fsas): as on its disks.
+        row.componentType = series.label("type")?.toUpperCase() || null;
         const state: string | null = series.label("state");
         if (state) {
           row.details["state"] = state.toLowerCase();
@@ -647,6 +687,14 @@ function readLun(series: StorageArraySeries): void {
 
 // ---------------- Disks ----------------
 
+// "1.0.7" -> shelf 1.0, bay 7; a disk named otherwise has none.
+export function parseDiskPlace(
+  disk: string,
+): { shelf: string; bay: string } | null {
+  const match: RegExpMatchArray | null = disk.match(/^(\d+\.\d+)\.(\d+)(?:\.P\d+)?$/);
+  return match ? { shelf: match[1]!, bay: match[2]! } : null;
+}
+
 function readDisk(series: StorageArraySeries): void {
   const disk: string | null = series.label("disk");
   if (!disk) {
@@ -666,13 +714,21 @@ function readDisk(series: StorageArraySeries): void {
         if (container) {
           row.details["containerType"] = container.toLowerCase();
         }
-        const shelf: string | null = series.label("shelf");
-        const bay: string | null = series.label("shelf_bay");
-        if (shelf) {
-          row.groupName = shelf;
+        /*
+         * Harvest's `shelf` label is the shelf's UID; a disk's name is its
+         * stack, shelf and bay (1.0.7: shelf 1.0, bay 7), as the Shelves
+         * table names shelves.
+         */
+        const place: { shelf: string; bay: string } | null =
+          parseDiskPlace(disk);
+        const bay: string | null = series.label("shelf_bay") || place?.bay || null;
+        if (place) {
+          row.groupName = place.shelf;
         }
-        if (shelf || bay) {
-          row.details["shelfBay"] = [shelf, bay].filter(Boolean).join(" / ");
+        if (place || bay) {
+          row.details["shelfBay"] = [place?.shelf, bay]
+            .filter(Boolean)
+            .join(" / ");
         }
         const owner: string | null =
           series.label("owner_node") || series.label("node");
@@ -729,6 +785,13 @@ const SHELF_PARTS: ReadonlyArray<{
     type: ONTAP_COMPONENT_TYPES.module,
     noun: "Module",
   },
+  // A shelf's current sensors are Harvest's shelf_sensor.
+  {
+    family: "sensor",
+    idLabel: "sensor_id",
+    type: ONTAP_COMPONENT_TYPES.currentSensor,
+    noun: "Current",
+  },
 ];
 
 function readShelf(series: StorageArraySeries): void {
@@ -778,6 +841,8 @@ function readShelf(series: StorageArraySeries): void {
           row.details["normal"] = series.value >= 1;
         } else if (metricName === "netapp_shelf_temperature_reading") {
           row.temperatureCelsius = series.value;
+        } else if (metricName.endsWith("_reading")) {
+          row.details["reading"] = String(Math.round(series.value * 100) / 100);
         } else if (metricName === "netapp_shelf_fan_rpm") {
           row.details["rpm"] = nonNegative(series.value);
         }
@@ -801,7 +866,7 @@ function readShelf(series: StorageArraySeries): void {
         }
         const moduleType: string | null = series.label("module_type");
         if (moduleType) {
-          row.details["moduleType"] = moduleType;
+          row.details["moduleType"] = moduleType.toUpperCase();
         }
         const serial: string | null = series.label("serial_number");
         if (serial) {
@@ -814,6 +879,29 @@ function readShelf(series: StorageArraySeries): void {
       }
     },
   );
+}
+
+/*
+ * A node sensor's threshold state as one word the status lists know: the
+ * REST API spells it crit_low, the CLI crit-low, another release
+ * critical_high, so any critical state is critical and any warning a
+ * warning; normal stays normal and anything else is its own word.
+ */
+export function getSensorStatus(state: string): string {
+  const word: string = state.trim().toLowerCase();
+  if (word === "normal" || word === "ok") {
+    return "normal";
+  }
+  if (word.includes("crit")) {
+    return "critical";
+  }
+  if (word.includes("warn")) {
+    return "warning";
+  }
+  if (word.includes("fail") || word.includes("fault")) {
+    return "failed";
+  }
+  return word;
 }
 
 function readSensor(series: StorageArraySeries): void {
@@ -841,10 +929,13 @@ function readSensor(series: StorageArraySeries): void {
         const state: string | null =
           series.label("threshold_state") || series.label("discrete_state");
         row.status = state
-          ? state.toLowerCase()
+          ? getSensorStatus(state)
           : series.value >= 1
             ? "normal"
             : null;
+        if (state && row.status !== "normal") {
+          row.details["thresholdState"] = state;
+        }
       } else if (metricName === "netapp_environment_sensor_threshold_value") {
         const unit: string | null = series.label("unit");
         const value: string = String(Math.round(series.value * 100) / 100);
@@ -1185,8 +1276,40 @@ function finishNode(row: StorageArrayResourceBufferEntry): void {
     (numberDetail(row, "failedFans") || 0) +
     (numberDetail(row, "failedPowerSupplies") || 0);
   row.status = failed > 0 ? "degraded" : "healthy";
-  row.statusDetail =
-    failed > 0 ? stringDetail(row, "warnings") : row.statusDetail;
+  const problems: string | null = getNodeProblems(
+    stringDetail(row, "warnings"),
+  );
+  if (failed > 0 && problems) {
+    row.statusDetail = problems;
+    row.details["statusReason"] = problems;
+  }
+}
+
+/*
+ * What is wrong with a node, from the warnings label Harvest joins with
+ * "; " out of its failed fans' message, its failed power supplies' message
+ * and its over-temperature state: ONTAP words each even when all is well
+ * ("There are no failed fans.", "normal"), so those are left out.
+ */
+export function getNodeProblems(warnings: string | null): string | null {
+  if (!warnings) {
+    return null;
+  }
+  const problems: Array<string> = warnings
+    .split(";")
+    .map((part: string): string => {
+      return part.trim();
+    })
+    .filter((part: string): boolean => {
+      const lower: string = part.toLowerCase();
+      return (
+        part !== "" &&
+        lower !== "normal" &&
+        lower !== "false" &&
+        !lower.startsWith("there are no failed")
+      );
+    });
+  return problems.length > 0 ? problems.join("; ") : null;
 }
 
 /*
@@ -1218,6 +1341,9 @@ function finishDisk(row: StorageArrayResourceBufferEntry): void {
   if (container === "broken" || healthy === false) {
     row.status = "broken";
     row.statusDetail = stringDetail(row, "outage");
+    if (row.statusDetail) {
+      row.details["statusReason"] = row.statusDetail;
+    }
     return;
   }
   if (container === "unassigned" || container === "spare") {
@@ -1226,6 +1352,22 @@ function finishDisk(row: StorageArrayResourceBufferEntry): void {
   }
   if (container || healthy === true) {
     row.status = "healthy";
+  }
+}
+
+// A node sensor past its threshold says its reading, as ONTAP states it.
+function finishSensor(row: StorageArrayResourceBufferEntry): void {
+  const state: string | null = stringDetail(row, "thresholdState");
+  if (!state) {
+    return;
+  }
+  const reading: string | null = stringDetail(row, "reading");
+  row.details["statusReason"] = reading ? `${state}, ${reading}` : state;
+}
+
+function finishSnapMirror(row: StorageArrayResourceBufferEntry): void {
+  if (row.status === "unhealthy" && row.statusDetail) {
+    row.details["statusReason"] = row.statusDetail;
   }
 }
 
@@ -1345,9 +1487,14 @@ export function finishOntapBatch(data: {
       case StorageArrayResourceKind.Hardware:
         if (row.componentType === ONTAP_COMPONENT_TYPES.shelf) {
           finishState(row, "online", "online", "offline");
-        } else if (row.componentType !== ONTAP_COMPONENT_TYPES.sensor) {
+        } else if (row.componentType === ONTAP_COMPONENT_TYPES.sensor) {
+          finishSensor(row);
+        } else {
           finishShelfPart(row);
         }
+        break;
+      case OntapKind.SnapMirror:
+        finishSnapMirror(row);
         break;
       case StorageArrayResourceKind.NetworkInterface:
         finishPort(row);
@@ -1358,6 +1505,7 @@ export function finishOntapBatch(data: {
   }
 
   finishCapacity(rows, data.array);
+  markCompleteKinds(data.array);
   return rows;
 }
 

@@ -55,7 +55,15 @@ function stateTemplate(
     aggregationType: MetricsAggregationType.Max,
     rollingTime: spec.rollingTime || RollingTime.Past10Minutes,
     fire: { filterType: FilterType.LessThan, value: 1 },
-    recover: { filterType: FilterType.GreaterThanOrEqualTo, value: 1 },
+    /*
+     * A 0/1 status recovers at exactly 1: the shared 10% dead band would
+     * put recovery at >= 1.1, which it never reaches.
+     */
+    recover: {
+      filterType: FilterType.GreaterThanOrEqualTo,
+      value: 1,
+      isBinaryMetric: true,
+    },
   };
 }
 
@@ -125,7 +133,8 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     groupByAttributeKey: "message",
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past1Hour,
-    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    // Harvest exports an event for one poll: any reading in the window.
+    fire: { filterType: FilterType.GreaterThan, value: 0, onAnyReading: true },
     recover: STORAGE_ARRAY_RECOVER_WHEN_ABSENT,
     incidentTitle: "[Storage Array] CRITICAL: Emergency EMS Event",
     incidentDescription:
@@ -148,7 +157,8 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     groupByAttributeKey: "message",
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past1Hour,
-    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    // Harvest exports an event for one poll: any reading in the window.
+    fire: { filterType: FilterType.GreaterThan, value: 0, onAnyReading: true },
     recover: STORAGE_ARRAY_RECOVER_WHEN_ABSENT,
     incidentTitle: "[Storage Array] CRITICAL: Alert EMS Event",
     incidentDescription:
@@ -171,7 +181,8 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     groupByAttributeKey: "disk",
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past1Hour,
-    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    // Harvest exports an event for one poll: any reading in the window.
+    fire: { filterType: FilterType.GreaterThan, value: 0, onAnyReading: true },
     recover: STORAGE_ARRAY_RECOVER_WHEN_ABSENT,
     incidentTitle: "[Storage Array] Disk Out of Service",
     incidentDescription:
@@ -194,7 +205,8 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     groupByAttributeKey: "node",
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past1Hour,
-    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    // Harvest exports an event for one poll: any reading in the window.
+    fire: { filterType: FilterType.GreaterThan, value: 0, onAnyReading: true },
     recover: STORAGE_ARRAY_RECOVER_WHEN_ABSENT,
     incidentTitle: "[Storage Array] CRITICAL: Node Panic",
     incidentDescription:
@@ -261,6 +273,7 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricAlias: "volume_used_percent",
     metricName: "netapp_volume_size_used_percent",
     groupByAttributeKey: "volume",
+    scopeAttributeKeys: ["svm"],
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past15Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 90 },
@@ -284,6 +297,7 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricAlias: "volume_used_percent",
     metricName: "netapp_volume_size_used_percent",
     groupByAttributeKey: "volume",
+    scopeAttributeKeys: ["svm"],
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past5Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 98 },
@@ -356,6 +370,7 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricAlias: "volume_read_latency_usec",
     metricName: "netapp_volume_read_latency",
     groupByAttributeKey: "volume",
+    scopeAttributeKeys: ["svm"],
     aggregationType: MetricsAggregationType.Avg,
     rollingTime: RollingTime.Past15Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 20000 },
@@ -533,6 +548,7 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricAlias: "ethernet_ports_down",
     metricName: "netapp_health_network_ethernet_port_alerts",
     groupByAttributeKey: "port",
+    scopeAttributeKeys: ["node"],
     incidentTitle: "[Storage Array] Ethernet Port Down",
     incidentDescription:
       "An enabled Ethernet port's link is down (the port label names it, node its node). Its LIFs fail over to another port of their failover group if there is one. Check `network port show` on the cluster, the cable, the optic and the switch port, or disable the port if it is unused.",
@@ -551,14 +567,16 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricAlias: "fc_link_failures",
     metricName: "netapp_fcp_link_failure",
     groupByAttributeKey: "port",
-    aggregationType: MetricsAggregationType.Sum,
+    scopeAttributeKeys: ["node"],
+    /*
+     * Each reading is the failures of one Harvest poll: any above 0 in the
+     * window is a failure in it. A sum would count a poll the collector
+     * scraped twice twice.
+     */
+    aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past15Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 0 },
-    recover: {
-      filterType: FilterType.LessThanOrEqualTo,
-      value: 0,
-      treatNoDataAsZero: true,
-    },
+    recover: { filterType: FilterType.LessThanOrEqualTo, value: 0 },
     incidentTitle: "[Storage Array] FC Port Link Failures",
     incidentDescription:
       "A Fibre Channel port's link failed in the last 15 minutes (the port label names it, node its node). Check `network fcp adapter show -instance` on the cluster, then the optic, the cable and the switch port's error counters: a failing optic usually shows rising loss of signal and invalid CRCs too.",
@@ -676,6 +694,7 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricAlias: "volume_online",
     metricName: "netapp_volume_new_status",
     groupByAttributeKey: "volume",
+    scopeAttributeKeys: ["svm"],
     incidentTitle: "[Storage Array] Volume Offline",
     incidentDescription:
       "A volume is not online (the volume label names it, svm its SVM). Run `volume show -volume <volume> -fields state` on the cluster; bring it back with `volume online` if it was not taken offline on purpose.",
@@ -694,6 +713,7 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     metricAlias: "lun_online",
     metricName: "netapp_lun_new_status",
     groupByAttributeKey: "lun",
+    scopeAttributeKeys: ["volume", "svm"],
     incidentTitle: "[Storage Array] CRITICAL: LUN Offline",
     incidentDescription:
       "A LUN is not online (the lun label names it, volume its volume). A LUN goes offline on its own when its volume runs out of space. Run `lun show -fields state` and `volume show -volume <volume> -fields percent-used` on the cluster, free space if it is full, then `lun online`.",
@@ -701,23 +721,30 @@ const ONTAP_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     criteriaDescription:
       "Triggers when every reading of a LUN's state in the window is not online.",
   }),
-  stateTemplate({
+  /*
+   * An SVM's state is a label of its labels series: netapp_svm_new_status
+   * is 0 for the admin and node SVMs ONTAP keeps for itself, which have
+   * no state, and would fire for them on every cluster.
+   */
+  openProblemTemplate({
     id: "netapp-svm-stopped",
     name: "SVM Stopped",
-    summary: "An SVM is not running for 10 minutes.",
+    summary: "A data SVM is stopped.",
     description:
-      "Alert when an SVM is not running for ten minutes (netapp_svm_new_status): it serves none of its volumes or LUNs. One incident per SVM; an SVM stopped on purpose (a disaster recovery one) fires it too.",
+      "Alert while a data SVM is stopped (netapp_svm_labels, state stopped and type data): it serves none of its volumes or LUNs. One incident per SVM, which resolves once it runs again; an SVM stopped on purpose (a disaster recovery one) fires it too. The SVMs ONTAP keeps for itself are never watched.",
     category: "Availability",
     severity: "Warning",
-    metricAlias: "svm_running",
-    metricName: "netapp_svm_new_status",
+    metricAlias: "stopped_svms",
+    metricName: "netapp_svm_labels",
+    attributes: { state: "stopped", type: "data" },
     groupByAttributeKey: "svm",
+    rollingTime: RollingTime.Past10Minutes,
     incidentTitle: "[Storage Array] SVM Stopped",
     incidentDescription:
-      "An SVM is not running (the svm label names it). Run `vserver show -vserver <svm> -fields state,operational-state` on the cluster; start it with `vserver start` if it was not stopped on purpose.",
-    criteriaName: "SVM Not Running",
+      "A data SVM is stopped (the svm label names it). Run `vserver show -vserver <svm> -fields state,operational-state` on the cluster; start it with `vserver start` if it was not stopped on purpose.",
+    criteriaName: "SVM Stopped",
     criteriaDescription:
-      "Triggers when every reading of an SVM's state in the window is not running.",
+      "Triggers while any data SVM is reported stopped in the window.",
   }),
 ];
 

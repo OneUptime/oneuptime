@@ -339,6 +339,9 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
     "netapp_shelf_voltage_labels",
     "netapp_shelf_module_status",
     "netapp_shelf_module_labels",
+    // A shelf's current sensors.
+    "netapp_shelf_sensor_status",
+    "netapp_shelf_sensor_labels",
     // The nodes' environment sensors
     "netapp_environment_sensor_status",
     "netapp_environment_sensor_threshold_value",
@@ -375,6 +378,18 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
    * no list of nothing.
    */
   scrapeEndpoints: {},
+  // Every kind, each once Harvest listed all its objects (OntapExtractor).
+  exporterCompletedKinds: [
+    StorageArrayResourceKind.Volume,
+    OntapKind.Aggregate,
+    OntapKind.Svm,
+    OntapKind.Lun,
+    OntapKind.SnapMirror,
+    StorageArrayResourceKind.Controller,
+    StorageArrayResourceKind.Drive,
+    StorageArrayResourceKind.Hardware,
+    StorageArrayResourceKind.NetworkInterface,
+  ],
 
   /*
    * In the order the side menu lists the cluster's own kinds after its
@@ -511,8 +526,6 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
       "broken",
       "error",
       "down",
-      "critical-low",
-      "critical-high",
       "offlined_by_system",
     ],
     warning: [
@@ -527,8 +540,8 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
       "starting",
       "stopping",
       "unassigned",
-      "warning-low",
-      "warning-high",
+      // A node sensor past its warning threshold (OntapExtractor's word).
+      "warning",
       "link_not_connected",
     ],
     healthy: ["online", "running", "up", "normal", "healthy", "spare"],
@@ -798,6 +811,7 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
         "Fan",
         "Temperature Sensor",
         "Voltage Sensor",
+        "Current Sensor",
         "Module",
       ],
       description: translationKey(

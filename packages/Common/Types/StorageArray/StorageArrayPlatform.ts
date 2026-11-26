@@ -229,9 +229,26 @@ export interface StorageArrayAlertTemplateSpec {
   metricName: string;
   attributes?: Record<string, string> | undefined;
   groupByAttributeKey?: string | undefined;
+  /*
+   * The labels that scope the object's name, where it is unique only
+   * within them: an ONTAP volume within its svm (two SVMs can each have a
+   * vol1), a port within its node. Grouped by after groupByAttributeKey,
+   * so each is one incident.
+   */
+  scopeAttributeKeys?: ReadonlyArray<string> | undefined;
   aggregationType: MetricsAggregationType;
   rollingTime: RollingTime;
-  fire: { filterType: FilterType; value: number };
+  fire: {
+    filterType: FilterType;
+    value: number;
+    /*
+     * Fire on any reading of the window past the line, for an event that is
+     * a series for a moment only (an ONTAP EMS event, exported for the one
+     * poll that collected it). Otherwise every reading of the window must
+     * be past it, which waits for the series to cover the window.
+     */
+    onAnyReading?: boolean | undefined;
+  };
   recover: {
     filterType: FilterType;
     value: number;
@@ -334,8 +351,8 @@ export interface StorageArrayLatencyReading {
   readDimension?: string | undefined;
   writeDimension?: string | undefined;
   /*
-   * Or each on a metric of its own (NetApp's netapp_cluster_read_latency
-   * and netapp_cluster_write_latency): the newest reading of each.
+   * Or each on a metric of its own (NetApp's cluster read and write
+   * latency): the newest reading of each.
    */
   readMetricName?: string | undefined;
   writeMetricName?: string | undefined;
@@ -345,7 +362,7 @@ export interface StorageArrayLatencyReading {
 
 /*
  * A series whose every datapoint at 1 is a problem the platform reports
- * open, worded by its labels (NetApp's netapp_health_disk_alerts: one
+ * open, worded by its labels (NetApp's broken disks alerts series: one
  * series per broken disk, while it is broken). The ingest counts them as
  * the array's open alerts, by severity, and the Overview's Active Alerts
  * card lists them. A platform whose open alerts are one series with a
@@ -746,6 +763,13 @@ export interface StorageArrayPlatform {
    * array's own endpoint) completes its list of open alerts.
    */
   scrapeEndpoints: Readonly<Record<string, ReadonlyArray<string>>>;
+  /*
+   * Or the kinds whose complete list its exporter itself says a batch
+   * carries, object by object (NetApp Harvest's metadata series), which
+   * its extractor marks complete: a platform whose one scrape job holds
+   * every object, read or not.
+   */
+  exporterCompletedKinds?: ReadonlyArray<string> | undefined;
 
   // ---------------- Inventory ----------------
 
