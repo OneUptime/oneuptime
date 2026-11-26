@@ -20,6 +20,8 @@ jest.mock("../../../Server/Utils/PasswordHash", () => {
 import StorageArrayResourceService, {
   CRITICAL_HARDWARE_STATUSES,
   HARDWARE_KINDS,
+  getHardwareKinds,
+  getUnhealthyHardwareStatuses,
   ParsedStorageArrayResource,
   StorageArrayInventorySummary,
   UNHEALTHY_HARDWARE_STATUSES,
@@ -841,13 +843,26 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
     // One physical part is several rows under one name — count names.
     expect(sql).toContain('COUNT(DISTINCT lower(h."externalId"))');
     expect(sql).toContain('GROUP BY "kind"');
+    // The shipped words and kinds first, then each platform's own (#11003).
     expect(params).toEqual([
       PROJECT_ID.toString(),
       ARRAY_ID.toString(),
-      UNHEALTHY_HARDWARE_STATUSES,
-      HARDWARE_KINDS,
+      getUnhealthyHardwareStatuses(),
+      getHardwareKinds(),
     ]);
     expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
+    const statuses: Array<string> = getUnhealthyHardwareStatuses();
+    expect(statuses.slice(0, UNHEALTHY_HARDWARE_STATUSES.length)).toEqual(
+      UNHEALTHY_HARDWARE_STATUSES,
+    );
+    // A PowerScale node in attention and a smartfailing drive are unhealthy.
+    expect(statuses).toEqual(
+      expect.arrayContaining(["attention", "offline", "smartfail", "dead"]),
+    );
+    const kinds: Array<string> = getHardwareKinds();
+    expect(kinds.slice(0, HARDWARE_KINDS.length)).toEqual(HARDWARE_KINDS);
+    // A PowerScale's nodes are hardware too.
+    expect(kinds).toContain("Node");
   });
 
   test("parses the text counts and the distinct unhealthy component count every row carries", async () => {

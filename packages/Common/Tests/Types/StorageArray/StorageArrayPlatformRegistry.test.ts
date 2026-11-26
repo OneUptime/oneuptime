@@ -745,6 +745,56 @@ describe("what registration refuses", () => {
       },
       "its overview charts the metric acme-capacity-used, which is not in its catalog",
     ],
+    [
+      "a list column that shows a detail without naming it",
+      {
+        kindDefinitions: [
+          {
+            ...ACME_PLATFORM.kindDefinitions![0]!,
+            listColumns: [{ shows: "detail", title: "Raid Type" }],
+          },
+        ],
+      },
+      `a column of its ${ACME_AGGREGATE_KIND} list shows a detail without naming it and how it reads`,
+    ],
+    [
+      "a list column with no title",
+      {
+        kindDefinitions: [
+          {
+            ...ACME_PLATFORM.kindDefinitions![0]!,
+            listColumns: [{ shows: "model" }],
+          },
+        ],
+      },
+      `a column of its ${ACME_AGGREGATE_KIND} list has no title`,
+    ],
+    [
+      "an overview panel that draws no line",
+      {
+        overview: {
+          ...ACME_PLATFORM.overview,
+          charts: [{ title: "Latency", description: "Latency.", lines: [] }],
+        },
+      },
+      "its overview's Latency chart draws no line",
+    ],
+    [
+      "an overview panel of a metric not in its catalog",
+      {
+        overview: {
+          ...ACME_PLATFORM.overview,
+          charts: [
+            {
+              title: "Latency",
+              description: "Latency.",
+              lines: [{ metricId: "powerscale-protocol-latency" }],
+            },
+          ],
+        },
+      },
+      "its overview charts the metric powerscale-protocol-latency, which is not in its catalog",
+    ],
   ] as Array<[string, Partial<StorageArrayPlatform>, string]>)(
     "%s",
     (
