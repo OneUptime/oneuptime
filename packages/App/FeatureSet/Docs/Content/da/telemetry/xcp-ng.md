@@ -383,7 +383,7 @@ Xen Orchestras OpenMetrics-plugin leverer metrikker, så en del af det, du holde
 
 - **Alarmer** ud over XOSTOR's, **HA-tilstanden**, **pool-masteren**, **manglende patches**, **backups** og **snapshots** samt **linktilstanden** for en værts fysiske interfaces (PIF'er). De kommer fra Xen Orchestras REST API i [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
 - **Pools uden Xen Orchestra**, eller bag en XOA uden den Premium-licens, pluginet kræver: de læses direkte via XAPI i [#10999](https://github.com/OneUptime/oneuptime/issues/10999).
-- **Forbindelse uden agent** fra en OneUptime-probe, som VMware kan: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
+- **Forbindelse uden agent** fra en OneUptime-sonde, som VMware kan: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
 
 ## Næste trin
 
