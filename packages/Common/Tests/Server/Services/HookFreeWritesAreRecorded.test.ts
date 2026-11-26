@@ -205,10 +205,6 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "stampStatusCheckedAt Monitor": Why.Bookkeeping,
     },
-  "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts":
-    {
-      "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
-    },
   /*
    * The owner notification jobs' take: a state change marked as told
    * (isOwnerNotified), by the run that tells its owners (issue #7974). And
@@ -361,6 +357,12 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * records - and when a request kept once is split.
      */
     "Service.rewriteLatestIncomingRequestForReaders Monitor": Why.Derived,
+    /*
+     * When a telemetry monitor is next evaluated, moved onto its new
+     * interval after an edit to the interval - an edit the audit log
+     * records (#11060).
+     */
+    "Service.rescheduleTelemetryMonitor Monitor": Why.Bookkeeping,
   },
   "packages/Common/Server/Services/MonitorTestService.ts": {
     "Service.claimMonitorTestsForProbing MonitorTest": Why.Bookkeeping,
@@ -698,6 +700,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       Why.Bookkeeping,
     "MonitorStatusTimelineReconciler.restoreMissingStatusTimelinesBatch MonitorStatusTimeline":
       Why.Bookkeeping,
+  },
+  /*
+   * The telemetry scheduler's stamps (MonitorTelemetryMonitor): when a
+   * monitor was last queued and is next due, and a monitor made due again
+   * when the queue refused its evaluation.
+   */
+  "packages/Common/Server/Utils/Monitor/TelemetryMonitorStamps.ts": {
+    "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
+    "returnTelemetryMonitorsNotQueued Monitor": Why.Bookkeeping,
   },
   /*
    * The hourly age-out (#6389) forgetting the Hide from map preference of
