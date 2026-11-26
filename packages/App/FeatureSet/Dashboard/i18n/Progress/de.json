@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 2749
+    "keys": 64670,
+    "untranslated": 2757
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -414,6 +414,7 @@
     "NSA/CISA Kubernetes Hardening Guide v1.2",
     "Name",
     "Name (optional)",
+    "Name in Xen Orchestra",
     "Nameserver",
     "Namespace",
     "Namespaces",
@@ -706,6 +707,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID",
     "VMID {{vmid}}",
     "VMs",
@@ -738,6 +741,9 @@
     "Workflow {{id}}",
     "Workload",
     "Workloads",
+    "XCP-ng",
+    "XOSTOR",
+    "Xen Orchestra",
     "Zone",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
@@ -854,6 +860,7 @@
     "user@company.com",
     "vApp {{name}}",
     "vCPUs",
+    "vCPUs/Threads",
     "vCenter",
     "vSphere Client",
     "warn",
