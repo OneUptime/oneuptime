@@ -20,7 +20,16 @@ const SEVERITY_READERS = OTLPBatcherModule.SEVERITY_READERS;
  * modes are held to the same lines.
  */
 const { CASES, PROSE } = require(
-  path.join(__dirname, "..", "..", "..", "Tests", "Ops", "Utils", "LogSeverityCorpus.js"),
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Tests",
+    "Ops",
+    "Utils",
+    "LogSeverityCorpus.js",
+  ),
 );
 
 // The Kubernetes pods/log API merges stdout and stderr, so LogStream always
@@ -68,7 +77,11 @@ for (const entry of CASES) {
 
     if (READER_IDS.includes(entry.reader)) {
       assert.equal(result.parsed, true, `body: ${entry.body}`);
-      assert.equal(bucket(result.number), entry.severity, `body: ${entry.body}`);
+      assert.equal(
+        bucket(result.number),
+        entry.severity,
+        `body: ${entry.body}`,
+      );
     } else {
       assert.equal(result.parsed, false, `body: ${entry.body}`);
       assert.equal(result.text, "INFO", `body: ${entry.body}`);
@@ -107,7 +120,8 @@ test("reads the issue #10972 lines, which the chain read as nothing", () => {
 
 test("the real level field beats a level word quoted inside the message", () => {
   assert.equal(
-    derive(`level=error msg="upstream returned info, aborting" component=proxy`).text,
+    derive(`level=error msg="upstream returned info, aborting" component=proxy`)
+      .text,
     "ERROR",
   );
   assert.equal(derive(`{"msg":"error, retrying","level":"info"}`).text, "INFO");
@@ -172,7 +186,11 @@ const configMapLines = () => {
 const singleQuoted = (scalar, what) => {
   const match = /^'(.*)'$/.exec(scalar);
 
-  assert.notEqual(match, null, `${what} is not a single-quoted scalar: ${scalar}`);
+  assert.notEqual(
+    match,
+    null,
+    `${what} is not a single-quoted scalar: ${scalar}`,
+  );
   assert.equal(
     match[1].includes("''"),
     false,
@@ -222,7 +240,10 @@ const unescapeGoString = (literal) => {
 
     const next = literal[index + 1];
 
-    assert.ok(next === "\\" || next === '"', `invalid char escape \\${next} in ${literal}`);
+    assert.ok(
+      next === "\\" || next === '"',
+      `invalid char escape \\${next} in ${literal}`,
+    );
     out += next;
     index++;
   }
@@ -253,8 +274,15 @@ const routerRoutes = () => {
     if (output) {
       const expr = /^\s*expr: (.*)$/.exec(lines[index + 1]);
 
-      assert.notEqual(expr, null, `route to ${output[1]} has no expr: on the next line`);
-      routes.push([output[1], singleQuoted(expr[1].trim(), `the route to ${output[1]}`)]);
+      assert.notEqual(
+        expr,
+        null,
+        `route to ${output[1]} has no expr: on the next line`,
+      );
+      routes.push([
+        output[1],
+        singleQuoted(expr[1].trim(), `the route to ${output[1]}`),
+      ]);
     }
   }
 
@@ -293,10 +321,17 @@ test("the readers are the chain's routes, in the chain's order, with its pattern
     );
 
     if (reader.level) {
-      assert.equal(fieldOfOperator(reader.id, "value"), reader.level, reader.id);
+      assert.equal(
+        fieldOfOperator(reader.id, "value"),
+        reader.level,
+        reader.id,
+      );
     } else {
       assert.equal(
-        singleQuoted(fieldOfOperator(reader.id, "regex"), `${reader.id}'s regex`),
+        singleQuoted(
+          fieldOfOperator(reader.id, "regex"),
+          `${reader.id}'s regex`,
+        ),
         reader.pattern,
         reader.id,
       );
@@ -316,7 +351,11 @@ const severityParserMapping = () => {
     return line.trim() === "id: severity-parser";
   });
 
-  assert.notEqual(start, -1, `no severity-parser operator in ${CONFIGMAP_PATH}`);
+  assert.notEqual(
+    start,
+    -1,
+    `no severity-parser operator in ${CONFIGMAP_PATH}`,
+  );
 
   const mappingIndex = lines.findIndex((line, index) => {
     return index > start && line.trim() === "mapping:";
@@ -393,7 +432,8 @@ const textsOf = (reader) => {
     return ["10", "20", "30", "40", "50", "60"];
   }
 
-  const start = reader.pattern.indexOf("(?P<severity_text>") + "(?P<severity_text>".length;
+  const start =
+    reader.pattern.indexOf("(?P<severity_text>") + "(?P<severity_text>".length;
   const end = reader.pattern.indexOf(")(?:$|", start);
 
   return reader.pattern
@@ -414,11 +454,19 @@ test("every text a reader produces gets the number the collector chain gives it"
     // built-in preset. Anything else leaves the record Unspecified.
     const level = aliases[lower] || (STANZA_BUILTIN[lower] ? lower : null);
 
-    assert.notEqual(level, null, `${text} resolves to no severity in the collector chain`);
+    assert.notEqual(
+      level,
+      null,
+      `${text} resolves to no severity in the collector chain`,
+    );
 
     const collectorNumber = STANZA_BUILTIN[level];
 
-    assert.notEqual(collectorNumber, undefined, `mapping sends ${text} to unknown level ${level}`);
+    assert.notEqual(
+      collectorNumber,
+      undefined,
+      `mapping sends ${text} to unknown level ${level}`,
+    );
     assert.equal(
       severityTextToNumber[text.toUpperCase()],
       collectorNumber,
@@ -450,6 +498,9 @@ test("every reader is linear on pathological input", () => {
 
     const elapsedMs = Number(process.hrtime.bigint() - started) / 1e6;
 
-    assert.ok(elapsedMs < 1000, `${elapsedMs} ms on ${JSON.stringify(body.slice(0, 20))}...`);
+    assert.ok(
+      elapsedMs < 1000,
+      `${elapsedMs} ms on ${JSON.stringify(body.slice(0, 20))}...`,
+    );
   }
 });

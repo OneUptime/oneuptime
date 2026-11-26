@@ -1162,7 +1162,7 @@ const CASES = [
     source: "captured",
     from: "node:26-alpine",
     stream: "stderr",
-    body: "/app/err.js:7\n  throw new Error(\"cannot connect to redis at redis:6379\");\n  ^\n",
+    body: '/app/err.js:7\n  throw new Error("cannot connect to redis at redis:6379");\n  ^\n',
     reader: "severity-unspecified",
     severity: "Unspecified",
     before: "Error",
@@ -1724,7 +1724,7 @@ const CASES = [
   // INFO, on stderr no severity.
   // ---------------------------------------------------------------------
   {
-    name: "MongoDB JSON, whose level is the one-letter \"s\" field (not read)",
+    name: 'MongoDB JSON, whose level is the one-letter "s" field (not read)',
     source: "documented",
     from: "mongo:8",
     stream: "stdout",

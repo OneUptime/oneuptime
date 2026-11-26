@@ -59,8 +59,18 @@ function allRecords() {
     }),
     ...PROSE.flatMap((body) => {
       return [
-        { name: `prose on stdout: ${body}`, stream: "stdout", body, severity: "Information" },
-        { name: `prose on stderr: ${body}`, stream: "stderr", body, severity: "Unspecified" },
+        {
+          name: `prose on stdout: ${body}`,
+          stream: "stdout",
+          body,
+          severity: "Information",
+        },
+        {
+          name: `prose on stderr: ${body}`,
+          stream: "stderr",
+          body,
+          severity: "Unspecified",
+        },
       ];
     }),
   ];
@@ -164,13 +174,18 @@ function config(target, source, dir, withFilter) {
         doc.kind === "DaemonSet" &&
         configMap &&
         (doc.spec.template.spec.volumes || []).some((volume) => {
-          return volume.configMap && volume.configMap.name === configMap.metadata.name;
+          return (
+            volume.configMap &&
+            volume.configMap.name === configMap.metadata.name
+          );
         })
       );
     });
 
     if (!configMap || !daemonSet) {
-      throw new Error("the node collector's DaemonSet or its ConfigMap is not in the render");
+      throw new Error(
+        "the node collector's DaemonSet or its ConfigMap is not in the render",
+      );
     }
 
     collector = yaml.load(configMap.data["otel-collector-config.yaml"]);
@@ -254,7 +269,8 @@ function exported(file) {
           return [attribute.key, attribute.value.stringValue];
         }),
       );
-      const id = attributes.get("k8s.pod.name") || attributes.get("container.id");
+      const id =
+        attributes.get("k8s.pod.name") || attributes.get("container.id");
 
       for (const scopeLogs of resourceLogs.scopeLogs || []) {
         for (const record of scopeLogs.logRecords || []) {
@@ -292,7 +308,9 @@ function check(casesFile, exportedFile, collectorLog, minSeverity) {
 
     if (!shouldKeep) {
       if (records.length > 0) {
-        failures.push(`${entry.name}: kept as ${severityOf(records[0])}, should have been dropped (${entry.severity})`);
+        failures.push(
+          `${entry.name}: kept as ${severityOf(records[0])}, should have been dropped (${entry.severity})`,
+        );
       }
       continue;
     }
@@ -311,11 +329,17 @@ function check(casesFile, exportedFile, collectorLog, minSeverity) {
     });
 
     if (severity !== entry.severity) {
-      failures.push(`${entry.name}: ${severity} (${record.severityText || "no text"}), wanted ${entry.severity}`);
+      failures.push(
+        `${entry.name}: ${severity} (${record.severityText || "no text"}), wanted ${entry.severity}`,
+      );
     } else if (severity === "Unspecified" && record.severityText) {
-      failures.push(`${entry.name}: no severity, but the text "${record.severityText}"`);
+      failures.push(
+        `${entry.name}: no severity, but the text "${record.severityText}"`,
+      );
     } else if (scratch) {
-      failures.push(`${entry.name}: still carries the scratch severity_text attribute`);
+      failures.push(
+        `${entry.name}: still carries the scratch severity_text attribute`,
+      );
     }
   }
 
@@ -326,7 +350,11 @@ function check(casesFile, exportedFile, collectorLog, minSeverity) {
     .readFileSync(collectorLog, "utf8")
     .split("\n")
     .filter((line) => {
-      return /severity|recombine|regex pattern does not match|field does not exist/.test(line) && /error/i.test(line);
+      return (
+        /severity|recombine|regex pattern does not match|field does not exist/.test(
+          line,
+        ) && /error/i.test(line)
+      );
     });
 
   for (const line of chainErrors.slice(0, 5)) {
@@ -341,7 +369,9 @@ function check(casesFile, exportedFile, collectorLog, minSeverity) {
     console.log(`    ... and ${failures.length - 60} more`);
   }
 
-  console.log(`    ${cases.length - failures.length} of ${cases.length} cases as they should be; ${kept} records kept`);
+  console.log(
+    `    ${cases.length - failures.length} of ${cases.length} cases as they should be; ${kept} records kept`,
+  );
 
   return failures.length === 0;
 }
@@ -379,7 +409,9 @@ function main(argv) {
     const minIndex = args.indexOf("--min-severity");
     const minSeverity = minIndex === -1 ? "" : args[minIndex + 1];
 
-    return check(positional[0], positional[1], positional[2], minSeverity) ? 0 : 1;
+    return check(positional[0], positional[1], positional[2], minSeverity)
+      ? 0
+      : 1;
   }
 
   throw new Error(`unknown command ${command}`);

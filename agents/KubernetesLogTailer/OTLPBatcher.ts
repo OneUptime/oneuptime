@@ -255,8 +255,10 @@ export const deriveSeverity: (
       return { text, number: num, parsed: true };
     }
 
-    // The collector's router hands the line to this reader alone; a text it
-    // cannot number is a drift Tests/Severity.test.js fails on.
+    /*
+     * The collector's router hands the line to this reader alone; a text it
+     * cannot number is a drift Tests/Severity.test.js fails on.
+     */
     break;
   }
 

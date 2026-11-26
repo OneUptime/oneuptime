@@ -492,7 +492,9 @@ function classify(operators, body, stream) {
   const operator = byId.get(reader);
 
   if (!operator) {
-    throw new Error(`the router sends records to ${reader}, which is no operator`);
+    throw new Error(
+      `the router sends records to ${reader}, which is no operator`,
+    );
   }
 
   if (operator.type === "noop") {
@@ -515,7 +517,9 @@ function classify(operators, body, stream) {
     if (operator.value === STREAM_GUESS_EXPR) {
       text = stream === "stderr" ? "ERROR" : "INFO";
     } else if (String(operator.value).startsWith("EXPR(")) {
-      throw new Error(`${reader} adds an expression, not a level: ${operator.value}`);
+      throw new Error(
+        `${reader} adds an expression, not a level: ${operator.value}`,
+      );
     } else {
       text = String(operator.value);
     }

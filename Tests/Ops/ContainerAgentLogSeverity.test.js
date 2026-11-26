@@ -519,16 +519,13 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    */
   test("log.iostream is populated before the router reads it", () => {
     expect(
-      comesBeforeRouter(
-        (operator) => {
-          return (
-            operator.type === "move" &&
-            operator.from === "attributes.stream" &&
-            operator.to === 'attributes["log.iostream"]'
-          );
-        },
-        /- type: move\s+id: move-stream\s+from: attributes\.stream\s+to: attributes\["log\.iostream"\]/,
-      ),
+      comesBeforeRouter((operator) => {
+        return (
+          operator.type === "move" &&
+          operator.from === "attributes.stream" &&
+          operator.to === 'attributes["log.iostream"]'
+        );
+      }, /- type: move\s+id: move-stream\s+from: attributes\.stream\s+to: attributes\["log\.iostream"\]/),
     ).toBe(true);
   });
 
@@ -539,12 +536,9 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    */
   test("body holds the log text by the time the router matches on it", () => {
     expect(
-      comesBeforeRouter(
-        (operator) => {
-          return operator.type === "move" && operator.to === "body";
-        },
-        /- type: move\s+from: attributes\.log\s+to: body/,
-      ),
+      comesBeforeRouter((operator) => {
+        return operator.type === "move" && operator.to === "body";
+      }, /- type: move\s+from: attributes\.log\s+to: body/),
     ).toBe(true);
   });
 
@@ -559,19 +553,20 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    * would admit lines the parser cannot parse (leaving them Unspecified, with
    * an error logged for each) or reject lines that carry a level.
    */
-  test.each(["parse-klog-severity", "parse-numeric-severity", "parse-severity-from-body"])(
-    "the route to %s uses its parser's pattern",
-    (id) => {
-      expect(routePattern(operators, id)).toBe(
-        parserPattern(operators, id).replace("(?P<severity_text>", "("),
-      );
-      expect(byId.get(id).parse_from).toBe("body");
-      // parse_to is left at its default (`attributes`), which MERGES the
-      // capture into the attribute map rather than replacing it, so
-      // log.iostream and log.file.path survive the parser.
-      expect(byId.get(id).parse_to).toBeUndefined();
-    },
-  );
+  test.each([
+    "parse-klog-severity",
+    "parse-numeric-severity",
+    "parse-severity-from-body",
+  ])("the route to %s uses its parser's pattern", (id) => {
+    expect(routePattern(operators, id)).toBe(
+      parserPattern(operators, id).replace("(?P<severity_text>", "("),
+    );
+    expect(byId.get(id).parse_from).toBe("body");
+    // parse_to is left at its default (`attributes`), which MERGES the
+    // capture into the attribute map rather than replacing it, so
+    // log.iostream and log.file.path survive the parser.
+    expect(byId.get(id).parse_to).toBeUndefined();
+  });
 
   test("every route's pattern compiles", () => {
     for (const route of router.routes) {
@@ -595,11 +590,13 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    */
   test("every text the chain can produce resolves to a real severity number", () => {
     const texts = [
-      ...["parse-klog-severity", "parse-numeric-severity", "parse-severity-from-body"].flatMap(
-        (id) => {
-          return severityKeywordsFromRegex(parserPattern(operators, id));
-        },
-      ),
+      ...[
+        "parse-klog-severity",
+        "parse-numeric-severity",
+        "parse-severity-from-body",
+      ].flatMap((id) => {
+        return severityKeywordsFromRegex(parserPattern(operators, id));
+      }),
       ...Object.values(ADDED_LEVELS),
     ];
 
@@ -804,9 +801,9 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
 
     test("the level field beats a level word quoted inside the message", () => {
       expect(read('{"msg":"error, retrying","level":"info"}')).toBe("info");
-      expect(read('{"error":"conn refused","level":"info","msg":"retry"}')).toBe(
-        "info",
-      );
+      expect(
+        read('{"error":"conn refused","level":"info","msg":"retry"}'),
+      ).toBe("info");
       expect(read('{"@message":"error","@level":"info"}')).toBe("info");
     });
 
@@ -848,9 +845,11 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
     test("reads a level between colour codes", () => {
       expect(read("\u001b[32mINFO\u001b[0m starting")).toBe("INFO");
       expect(read("\u001b[1;31mERROR\u001b[0m: x")).toBe("ERROR");
-      expect(read("\u001b[2m2026-11-26T04:02:18.123456Z\u001b[0m \u001b[33m WARN\u001b[0m x")).toBe(
-        "WARN",
-      );
+      expect(
+        read(
+          "\u001b[2m2026-11-26T04:02:18.123456Z\u001b[0m \u001b[33m WARN\u001b[0m x",
+        ),
+      ).toBe("WARN");
     });
 
     test("reads PostgreSQL's LOG only in capitals", () => {
@@ -878,8 +877,12 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
      * is in multiline mode, so only the FIRST line can supply a preamble level.
      */
     test("only the first line of a recombined body can carry a preamble level", () => {
-      expect(read("[INFO] request finished\n    ERROR in frame\n")).toBe("INFO");
-      expect(read("Server started\n    at Foo.bar\n    ERROR here\n")).toBeNull();
+      expect(read("[INFO] request finished\n    ERROR in frame\n")).toBe(
+        "INFO",
+      );
+      expect(
+        read("Server started\n    at Foo.bar\n    ERROR here\n"),
+      ).toBeNull();
     });
   });
 
@@ -924,14 +927,17 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
 
     test("reads the two most severe PSR-3 levels", () => {
       expect(
-        severityOf("[2026-08-31 07:25:04] app.EMERGENCY: site down\n", "stdout"),
+        severityOf(
+          "[2026-08-31 07:25:04] app.EMERGENCY: site down\n",
+          "stdout",
+        ),
       ).toBe("Fatal");
       expect(
         severityOf("[2026-08-31 07:25:04] app.ALERT: replica lag\n", "stdout"),
       ).toBe("Fatal");
-      expect(severityOf("2026/08/31 [emerg] 1#1: bind() failed\n", "stdout")).toBe(
-        "Fatal",
-      );
+      expect(
+        severityOf("2026/08/31 [emerg] 1#1: bind() failed\n", "stdout"),
+      ).toBe("Fatal");
     });
 
     test("Docker and Podman agree on a body that ends on its level", () => {
@@ -1043,7 +1049,13 @@ describe("issue #10972: what the chain as shipped in 17.0.0 did", () => {
       issueLines.map((entry) => {
         return entry.severity;
       }),
-    ).toEqual(["Information", "Information", "Warning", "Information", "Information"]);
+    ).toEqual([
+      "Information",
+      "Information",
+      "Warning",
+      "Information",
+      "Information",
+    ]);
   });
 
   test("misread most of the corpus, and in both directions", () => {
@@ -1076,11 +1088,14 @@ describe("the severity chain is identical everywhere it ships", () => {
    * text) means comments and indentation are free to differ per file while the
    * behaviour cannot.
    */
-  test.each([...CONFIGS.keys()].slice(1))("%s matches DockerAgent", (source) => {
-    expect(severityChain(source, CONFIGS.get(source))).toEqual(
-      severityChain("DockerAgent", CONFIGS.get("DockerAgent")),
-    );
-  });
+  test.each([...CONFIGS.keys()].slice(1))(
+    "%s matches DockerAgent",
+    (source) => {
+      expect(severityChain(source, CONFIGS.get(source))).toEqual(
+        severityChain("DockerAgent", CONFIGS.get("DockerAgent")),
+      );
+    },
+  );
 });
 
 describe("the helpers this suite reads the chain with", () => {
@@ -1126,9 +1141,9 @@ describe("the helpers this suite reads the chain with", () => {
       "E",
       "F",
     ]);
-    expect(severityKeywordsFromRegex('"level":(?P<severity_text>[1-6]0)[,}]')).toEqual(
-      ["10", "20", "30", "40", "50", "60"],
-    );
+    expect(
+      severityKeywordsFromRegex('"level":(?P<severity_text>[1-6]0)[,}]'),
+    ).toEqual(["10", "20", "30", "40", "50", "60"]);
     expect(() => {
       return severityKeywordsFromRegex("(?P<severity_text>IN+FO)");
     }).toThrow(/cannot list/);
