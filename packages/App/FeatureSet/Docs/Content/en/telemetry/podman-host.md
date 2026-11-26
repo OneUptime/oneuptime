@@ -150,7 +150,7 @@ To change a value, remove the agent and run its command again (Podman CLI), or e
 | Container metrics | CPU (usage, percentage, throttling), memory (usage, limit, percentage), network and block I/O, uptime, restarts and process count, per container, every 30 seconds. |
 | Container logs | The stdout and stderr of every container, from the `ctr.log` file the `k8s-file` log driver writes. |
 
-Each container's metrics and logs are filed under a service named after the container. Each log line gets a severity from the level it names, such as `[ERROR]`, `level=warn` or `{"level":"info"}`; a line that names none takes its stream's: stderr is `ERROR`, stdout is `INFO`. Lines that start with whitespace or a closing bracket join the line before, so a stack trace arrives as one record. The agent's own logs are left out.
+Each container's metrics and logs are filed under a service named after the container. Each log line gets a severity from the level it names, such as `[ERROR]`, `level=warn` or `{"level":"info"}`, and an exception's traceback counts as `ERROR`. A line that names none is `INFO` on stdout, and has no severity on stderr, where programs write every level of their diagnostics. Lines that start with whitespace or a closing bracket join the line before, so a stack trace arrives as one record. The agent's own logs are left out.
 
 [Podman Monitor](/docs/monitor/podman-monitor#collected-metrics) lists every metric and what it means.
 

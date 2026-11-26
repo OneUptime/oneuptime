@@ -150,7 +150,7 @@ Pour modifier une valeur, supprimez l'agent et exécutez de nouveau sa commande 
 | Métriques des conteneurs | CPU (utilisation, pourcentage, bridage), mémoire (utilisation, limite, pourcentage), E/S réseau et bloc, durée de fonctionnement, redémarrages et nombre de processus, par conteneur, toutes les 30 secondes. |
 | Journaux des conteneurs | stdout et stderr de chaque conteneur, depuis son fichier de journal `json-file`. |
 
-Les métriques et les journaux de chaque conteneur sont classés sous un service portant le nom du conteneur. Chaque ligne de journal reçoit une gravité d'après le niveau qu'elle mentionne, comme `[ERROR]`, `level=warn` ou `{"level":"info"}` ; une ligne qui n'en mentionne aucun prend celle de son flux : stderr vaut `ERROR`, stdout vaut `INFO`. Les lignes qui commencent par un espace ou un crochet fermant sont rattachées à la ligne précédente : une stack trace arrive donc en un seul enregistrement. Les journaux de l'agent lui-même sont ignorés.
+Les métriques et les journaux de chaque conteneur sont classés sous un service portant le nom du conteneur. Chaque ligne de journal reçoit une gravité d'après le niveau qu'elle mentionne, comme `[ERROR]`, `level=warn` ou `{"level":"info"}`, et la traceback d'une exception compte comme `ERROR`. Une ligne qui n'en mentionne aucun vaut `INFO` sur stdout, et n'a aucune gravité sur stderr, où les programmes écrivent leurs diagnostics de tous niveaux. Les lignes qui commencent par un espace ou un crochet fermant sont rattachées à la ligne précédente : une stack trace arrive donc en un seul enregistrement. Les journaux de l'agent lui-même sont ignorés.
 
 [Surveillance Docker](/docs/monitor/docker-monitor#métriques-collectées) liste chaque métrique et sa signification.
 

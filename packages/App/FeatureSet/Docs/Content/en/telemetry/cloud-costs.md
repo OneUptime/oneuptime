@@ -12,6 +12,7 @@ A connected cloud account also says what it costs and how it could cost less. On
 - [Off-hours schedules](#off-hours-schedules): Stop non-production resources at night and on weekends.
 - [AI rules for savings](#ai-rules-for-savings): Proposals for owners, or changes within a limit.
 - [Budgets](#budgets): An alert as a month's spend passes a share of its budget.
+- [Required tags](#required-tags): How much of your spend carries the tags you require, and new resources without them.
 :::
 
 ## How it works
@@ -126,7 +127,15 @@ A resource no recommender speaks for, because the recommender is not turned on, 
 - **Over-provisioned** when the size half as big, or a quarter, would still have room: on the smaller size, its CPU's 95th percentile would be at most 60%, its highest CPU reading at most 100%, and its memory's peak at most 70% when its memory is read.
 - **Under-provisioned** when its CPU's 95th percentile is 85% or more, or its memory's peak 90% or more: the size twice as big.
 
-A resource is sized once it has 6 days of readings. Its page shows its **Right-sizing** beside what it costs, and an over-provisioned one is listed under **Cloud → Spend → Savings** with OneUptime as its source. What a change saves is its share of what the resource cost over the last 30 days, so it is known once your cloud bills the resource by name: Azure and Google Cloud's detailed export do, and AWS does once Costs per resource is on. An EC2 instance reports its memory only with the CloudWatch agent, and a Compute Engine VM only with the Ops Agent: without one, it is sized by its CPU alone. Burstable sizes, such as t3, B-series and e2-micro, are never sized.
+A resource is sized once it has 6 days of readings. Its page shows its **Right-sizing** beside what it costs, and an over-provisioned one is listed under **Cloud → Spend → Savings** with OneUptime as its source. What a change saves is its share of what the resource cost over the last 30 days, so it is known once your cloud bills the resource by name: Azure and Google Cloud's detailed export do, and AWS does once Costs per resource is on. Burstable sizes, such as t3, B-series and e2-micro, are never sized.
+
+Your cloud reads a VM's memory only with an agent of its own inside the VM: the CloudWatch agent on an EC2 instance, the Ops Agent on a Compute Engine VM, and none for an Azure VM, which reports the memory left rather than the memory used. A VM that [OneUptime's host collector](/docs/telemetry/hosts) runs on is sized on the memory the host collector reads instead:
+
+- **The VM and the host are one machine** when the provider, the account, the Region and the instance ID all match: the EC2 instance ID, a Compute Engine VM's numeric ID or an Azure VM's `vmId`. A host name alone never makes a match, and a VM that two hosts claim, such as a cloned machine, is linked to neither. The VM's page names its host, and the host's page names its VM, each a link to the other.
+- **Memory is the host's used memory, without cache and buffers**, the figure the host's page charts, over the same 14 days. A busy file cache never reads as a full machine. The host needs 6 days of readings too.
+- **Where both read memory**, as a Compute Engine VM with the Ops Agent and the host collector does, the one with more readings is used. CPU is always your cloud's reading.
+
+The VM's **Right-sizing** says where its memory came from, and so does its line under **Cloud → Spend → Savings**. A VM sized by its CPU alone says so, with a link to install the host collector. The host collector stamps its cloud's identity with the `resourcedetection/cloud` step that [the Hosts guide's configuration](/docs/telemetry/host-otel-collector) carries. A host on OneUptime's default config gets the step with OneUptime's next release, and one on a config of your own needs it added. Kubernetes nodes are left to [Kubernetes Cost Observability](/docs/telemetry/kubernetes-cost), which sizes the requests of what runs on them.
 
 ### Commitments
 
@@ -256,12 +265,61 @@ After every read, each of an account's last 14 full days is held to the 14 days 
 
 Under the list, the card says what the rest came to: what is in no environment, what an environment is billed as a whole, or what does not carry the tag. Costs read before tags were kept are read again once, as far back as a first read, so their tags fill in.
 
+## Required tags
+
+Spend is only as well allocated as the tags it carries. Under **Cloud → Spend → Tags**, say which tags every resource must carry, such as `team`, `env` and `cost-center`, and see how much of your spend and of your resources carry them, which resources do not, and who created each new one without them.
+
+:::steps
+### Require a tag
+
+Select **Require a Tag** and enter its **Tag Key**. Under **Allowed Values**, list the values it may take, separated by commas, or leave it empty to take any value. Pick an **Account** to require the tag in one account only. A **Description**, under **More fields**, says what the tag is for in the emails about it.
+
+### Read the coverage
+
+The page opens on how much of the last 30 days' spend and of your resources carry every required tag. Under that are the resources that lack a tag, the costliest first, then each tag on its own, the trend over the last 12 weeks and each account.
+
+### Tag what is missing
+
+Each resource missing a tag shows the value OneUptime suggests and the command that sets it in your cloud. A resource declared in code says which code declares it: add the tag there, or the next deploy takes it off again.
+:::
+
+- **Keys match whatever their case.** `Team`, `team` and `TEAM` are one key, and a resource carries the tag when any spelling of it holds an allowed value. Values match whatever their case too, and an empty value is no value.
+- **An allowed value can be a pattern.** `*` stands for any characters and `?` for one, so `prod-*` takes `prod-eu` and `prod-us`. Patterns are not regular expressions.
+- **One account's own tags.** A tag required in one account replaces the project's tag of the same key there, and an account can require a key of its own. An account's **Tags** shows both.
+- **Nothing is changed in your cloud.** OneUptime never stops or tags a resource for a missing tag. It tells people, and suggests the value.
+
+### Coverage
+
+- **Spend Tagged** is the share of the last 30 days' costs that carry every required tag, by the tags each cost was read with. It is worked out each time you open the page, so a tag you require today is measured over the past 30 days too. AWS costs carry tags only once [Costs per resource](#costs-per-resource) is on: until then, an AWS account's spend says **Not measured** rather than 0%.
+- **Resources Tagged** is the share of the resources your connections list that carry every required tag, as they are tagged now.
+- **Coverage Over Time** shows each of the last 12 weeks: spend from the costs, and resources from the count OneUptime makes each day.
+
+### New resources
+
+A resource your connection lists after its account's first full listing is new. The connection lists every 30 minutes, so a new resource is found within the hour it is created. One that lacks a required tag is told about once:
+
+- **Who is told.** The person who created it, when the account's change log names a member of your project by their email address, and the resource's owners, from owner rules and teams. When neither can be told, the Project Owners are. Each must be able to read your cloud resources.
+- **How often.** One email an hour lists everything new for each person. Under **More settings**, **One Email for Each Resource** sends each one on its own, and **Raise an Alert** also raises an alert for each account, with the severity and on-call policies under **Where Alerts Go**.
+- **When it is tagged.** A resource tagged before the email goes is left out of it, and the **New Resources** list marks each one **Tagged** once it carries them.
+
+### Suggested values
+
+OneUptime suggests a value only when it is one the tag allows:
+
+- **A team-like key**, such as `team`, `owner` or `squad`: the team that owns the resource.
+- **An environment-like key**, such as `env`, `environment` or `stage`: the App Platforms environment of an app that runs as the resource, or for a VM, the deployment environment its host reports.
+- **Any key**: the value most of the resources beside it carry, in the same CloudFormation stack, the same Azure resource group or with the same name before their number, such as `web-1` and `web-2`. At least two must agree.
+- **A tag that allows one value**: that value.
+
+The command sets the tag in one step, from your cloud's own shell: `aws resourcegroupstaggingapi tag-resources` on AWS, `az tag update --operation Merge` on Azure, and `gcloud ... add-labels` or `--update-labels` for Compute Engine VMs and disks, Cloud Storage buckets and Cloud SQL instances on Google Cloud.
+
 ## What you see in OneUptime
 
 - **Cloud's Overview.** **Cloud → Overview** shows the month's spend against last month's by the same day, the services that cost the most and the largest ways to spend less, beside what needs attention.
 - **Every day's spend.** **Cloud → Spend → Costs** draws each of the last 30 days with the days that cost far more than usual marked, lists those days and breaks a period down by service, Region, account, resource, App Platforms environment, app or tag, billed, amortized or net. The accounts whose costs are not read are listed under it, each with why.
 - **Every commitment.** **Cloud → Spend → Commitments** lists each one with when it ends and how much of it is used, the ones ending soon with what to renew, and what to buy.
 - **An account's costs.** An account's **Costs** shows the same for the account alone, with its commitments and its ways to spend less.
+- **Required tags.** **Cloud → Spend → Tags** shows how much of the spend and of the resources carry your required tags, and an account's **Tags** shows the same for the account alone.
 - **A resource's cost.** A resource's page shows what it cost this month and in the last 30 days when its cloud bills it by name, with its ways to spend less and its right-sizing.
 - **What was saved.** **Cloud → Spend → Savings** opens on what the changes made saved this month, as the bill shows it, the changes waiting for approval and those made, and the hours schedules stopped resources for.
 

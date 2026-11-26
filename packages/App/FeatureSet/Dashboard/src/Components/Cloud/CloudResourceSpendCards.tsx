@@ -1,6 +1,8 @@
 import CloudCostRecommendation from "Common/Models/DatabaseModels/CloudCostRecommendation";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
+import { CloudVmHostJSON } from "Common/Types/Cloud/CloudHostLink";
 import {
+  CloudMemoryReading,
   CloudResourceDailyCost,
   CloudRightSizing,
   CloudRightSizingProfile,
@@ -11,9 +13,11 @@ import {
   getCloudRightSizingProfile,
   getCloudSizeSteps,
   hasCloudRightSizingChange,
+  isCloudHostVmProfile,
   isCloudRightSizingRecommendationId,
   isRecommenderSizeRecommendation,
   readCloudResourceSize,
+  withCloudMemoryReading,
 } from "Common/Types/Cloud/CloudRightSizing";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
@@ -33,6 +37,10 @@ import {
   hasCloudResourceCostToShow,
 } from "./CloudResourceCostCard";
 import CloudResourceRightSizingCard from "./CloudResourceRightSizingCard";
+import {
+  fetchHostMemoryReading,
+  fetchHostOfCloudResource,
+} from "./CloudHostLinkReads";
 import {
   fetchCloudResourceDailyCost,
   fetchCloudResourceUsage,
@@ -182,7 +190,7 @@ const CloudResourceSpendCards: FunctionComponent<ComponentProps> = (
        * Its readings only when no recommender of its cloud speaks for it:
        * its right-sizing card is not drawn then.
        */
-      const foundUsage: CloudUsageObservation | null =
+      const cloudUsage: CloudUsageObservation | null =
         canSize && profile && !isCoveredByRecommender(foundCost)
           ? await fetchCloudResourceUsage({
               projectId: props.projectId,
@@ -193,6 +201,39 @@ const CloudResourceSpendCards: FunctionComponent<ComponentProps> = (
               return null;
             })
           : null;
+
+      /*
+       * A VM OneUptime's host collector runs on is that host, which reads
+       * its memory: where its cloud reads none, it is sized on the host's,
+       * as the server sizes it (#11013).
+       */
+      const hostMemory: CloudMemoryReading | null =
+        cloudUsage && profile && isCloudHostVmProfile(profile) && resource.id
+          ? await fetchHostOfCloudResource(resource.id)
+              .then(
+                (
+                  host: CloudVmHostJSON | null,
+                ): Promise<CloudMemoryReading | null> => {
+                  return host
+                    ? fetchHostMemoryReading({
+                        projectId: props.projectId,
+                        host,
+                        now,
+                      })
+                    : Promise.resolve(null);
+                },
+              )
+              .catch((): null => {
+                return null;
+              })
+          : null;
+      const foundUsage: CloudUsageObservation | null =
+        cloudUsage && hostMemory
+          ? withCloudMemoryReading({
+              observation: cloudUsage,
+              host: hostMemory,
+            })
+          : cloudUsage;
 
       /*
        * What a change saves or costs: its cost a day, read only when there

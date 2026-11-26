@@ -150,7 +150,7 @@ Para cambiar un valor, quita el agente y vuelve a ejecutar su comando (Docker CL
 | Métricas de contenedores | CPU (uso, porcentaje, limitación), memoria (uso, límite, porcentaje), E/S de red y de bloques, tiempo de actividad, reinicios y número de procesos, por contenedor, cada 30 segundos. |
 | Logs de contenedores | stdout y stderr de cada contenedor, de su archivo de log `json-file`. |
 
-Las métricas y los logs de cada contenedor se archivan en un servicio con el nombre del contenedor. Cada línea de log recibe una severidad a partir del nivel que menciona, como `[ERROR]`, `level=warn` o `{"level":"info"}`; una línea que no menciona ninguno toma la de su flujo: stderr es `ERROR`, stdout es `INFO`. Las líneas que empiezan con un espacio en blanco o un corchete de cierre se unen a la línea anterior, así que un stack trace llega como un solo registro. Los logs del propio agente se omiten.
+Las métricas y los logs de cada contenedor se archivan en un servicio con el nombre del contenedor. Cada línea de log recibe una severidad a partir del nivel que menciona, como `[ERROR]`, `level=warn` o `{"level":"info"}`, y el traceback de una excepción cuenta como `ERROR`. Una línea que no menciona ninguno es `INFO` en stdout, y no tiene severidad en stderr, donde los programas escriben sus diagnósticos de todos los niveles. Las líneas que empiezan con un espacio en blanco o un corchete de cierre se unen a la línea anterior, así que un stack trace llega como un solo registro. Los logs del propio agente se omiten.
 
 [Monitor de Docker](/docs/monitor/docker-monitor#métricas-recopiladas) enumera cada métrica y lo que significa.
 

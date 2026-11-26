@@ -230,6 +230,7 @@
     "ops@example.com",
     "p95",
     "p95 {{latency}}",
+    "payments, search, platform-*",
     "prod, staging",
     "prod-.*",
     "prod-eu",

@@ -37,6 +37,7 @@ flowchart TB
 | **Systemd 유닛** (Linux) | `systemd` 리시버. |
 | **서비스** (Windows) | `windows_service` 리시버. |
 | 인벤토리 항목 | `resourcedetection` 프로세서와 [직접 붙이는 속성](#인벤토리-속성-ip-mac-일련번호-제조사-모델-펌웨어). |
+| 클라우드 VM으로서의 정체 | `resourcedetection/cloud` 프로세서: EC2 인스턴스, Compute Engine VM 또는 Azure VM에서 어떤 클라우드, 계정, 리전, 인스턴스인지 알려 줍니다. [클라우드 VM에서](#클라우드-vm에서)를 참고하세요. |
 | **에이전트 버전** | `resource` 프로세서의 `oneuptime.agent.version`. |
 
 `host.name`을 포함한 배치에 `hostmetrics` 또는 `process` 메트릭이나 `os.type` 속성도 함께 있으면 호스트가 등록됩니다. `resourcedetection` 프로세서가 이 모두를 설정하므로 모든 구성에서 이 프로세서를 맨 앞에 둡니다. `host.id`나 `host.arch`만으로는 호스트가 등록되지 않으며, Kubernetes ID(`k8s.cluster.name`, `k8s.node.name`, `k8s.pod.name`)를 포함한 텔레메트리는 대신 해당 클러스터 아래에 기록됩니다. Kubernetes 노드는 [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent)로 모니터링하세요.
@@ -195,6 +196,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -213,11 +231,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [journald]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 @tab macOS
@@ -293,6 +311,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -311,11 +346,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [filelog/system]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 @tab Windows
@@ -401,6 +436,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -419,19 +471,19 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, windows_service]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers:
         - windowseventlog/system
         - windowseventlog/application
         - windowseventlog/security
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 :::
 
-각 구성은 대시보드가 **제품 → 인프라 → 호스트 → 문서**에 작성하는 구성에 로그 파이프라인을 추가한 것입니다. 프로세서는 `resourcedetection`, `resource`, `batch`이고 익스포터는 `otlphttp/oneuptime`입니다. `service.name`을 설정하지 않으므로 호스트의 텔레메트리는 호스트 자체에 속하며 `host/<hostname>`으로 기록됩니다. 대신 그 이름의 텔레메트리 서비스 아래에 기록하려는 경우에만 `resource` 프로세서에 `service.name`을 추가하세요.
+각 구성은 대시보드가 **제품 → 인프라 → 호스트 → 문서**에 작성하는 구성에 로그 파이프라인을 추가한 것입니다. 프로세서는 `resourcedetection`, `resourcedetection/cloud`, `resource`, `batch`이고 익스포터는 `otlphttp/oneuptime`입니다. `service.name`을 설정하지 않으므로 호스트의 텔레메트리는 호스트 자체에 속하며 `host/<hostname>`으로 기록됩니다. 대신 그 이름의 텔레메트리 서비스 아래에 기록하려는 경우에만 `resource` 프로세서에 `service.name`을 추가하세요.
 
 ### Collector 설치 및 시작
 
@@ -648,7 +700,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics, systemd]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
 ```
 
 이 리시버는 `otelcol-contrib` v0.142.0에 처음 포함되었고, 실행할 만한 첫 릴리스는 v0.143.0입니다. 그보다 오래된 버전에서는 `systemd`를 추가하면 시작 시 `'receivers' unknown type: "systemd"`로 실패합니다. v0.142.0만은 CPU 메트릭 이름이 `systemd.unit.cpu.time`이고 모든 유닛에서 cgroup 통계를 찾기 때문에, `.service`가 아닌 유닛마다 스크레이프 오류를 기록합니다.
@@ -750,7 +802,7 @@ processors:
 service:
   pipelines:
     metrics:
-      processors: [resourcedetection, resource, resource/oneuptime-labels, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, resource/oneuptime-labels, batch]
 ```
 
 레이블은 대소문자를 구분하지 않고 일치시키므로 기존 `Production` 레이블은 중복되지 않고 재사용되며, OneUptime에서 추가한 레이블은 Collector가 절대 제거하지 않습니다.
@@ -797,7 +849,7 @@ processors:
 service:
   pipelines:
     metrics:
-      processors: [resourcedetection, resource, resource/oneuptime-hardware, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, resource/oneuptime-hardware, batch]
 ```
 
 이 줄을 기존 줄 위에 붙여 넣지 말고, 이미 있는 프로세서 목록에 `resource/oneuptime-hardware`를 추가하세요. `resource`를 빼면 호스트의 **에이전트 버전**이 사라집니다. 어느 쪽이든 `resourcedetection`은 맨 앞에 두세요. 이 프로세서가 배치를 호스트에 연결합니다.
@@ -1143,11 +1195,11 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [filter/drop-metrics, resourcedetection, resource, batch]
+      processors: [filter/drop-metrics, resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
     logs:
       receivers: [journald]
-      processors: [filter/drop-low-severity, resourcedetection, resource, batch]
+      processors: [filter/drop-low-severity, resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 
@@ -1214,6 +1266,23 @@ processors:
           enabled: true
         os.version:
           enabled: true
+  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  resourcedetection/cloud:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false
   # The collector release this config is for: the host's Agent Version.
   resource:
     attributes:
@@ -1232,7 +1301,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, resourcedetection/cloud, resource, batch]
       exporters: [otlphttp/oneuptime]
 ```
 
@@ -1240,6 +1309,15 @@ service:
 
 > [!CAUTION]
 > 무엇을 줄이는지 주의하세요. 로그 모니터는 로그가 도착해야 하므로, 심각도나 채널을 걸러 내면 그것을 감시하는 모니터가 조용해지고, Host 경고 템플릿에는 `*.utilization` 메트릭이 필요합니다. 대응에 쓰지 않는 데이터를 줄이고 모니터가 감시하는 데이터는 줄이지 말며, 다음 수단을 쓰기 전에 하루나 이틀 뒤 **프로젝트 설정 → 텔레메트리 및 APM → 사용량**에서 감소를 확인하세요(사용량은 하루 단위로 집계됩니다).
+
+## 클라우드 VM에서
+
+`resourcedetection/cloud` 프로세서는 VM 자체의 메타데이터 서비스에 어떤 클라우드, 계정, 리전, 인스턴스인지 묻고 `cloud.provider`, `cloud.account.id`, `cloud.region`, 그리고 클라우드 자체 인스턴스 ID로 설정한 `host.id`를 붙입니다. 그러면 OneUptime은 호스트를 [클라우드 연결](/docs/telemetry/cloud-accounts)이 나열하는 VM에 연결해 서로의 페이지를 링크하고, 호스트가 읽는 메모리로 VM의 크기를 판단합니다: [OneUptime 자체 측정값으로 하는 크기 적정화](/docs/telemetry/cloud-costs#oneuptime-자체-측정값으로-하는-크기-적정화)를 참고하세요.
+
+- **호스트는 이름을 유지합니다.** 각 클라우드 감지기의 `host.name`은 꺼져 있어 `host.name`은 `system` 감지기가 붙인 그대로 남고, 호스트는 자기 페이지를 유지합니다.
+- **클라우드 밖에서는 아무것도 하지 않습니다.** 클라우드에 있지 않은 머신에서는 어떤 감지기도 메타데이터 서비스를 찾지 못하고 아무것도 붙이지 않습니다.
+- **자격 증명을 읽지 않습니다.** 자격 증명이 필요 없는 메타데이터 서비스만 읽으며, VM의 태그나 레이블은 읽지 않습니다.
+- **컨테이너에서는 닿지 않을 수 있습니다.** EC2 인스턴스의 Docker 컨테이너에서 실행되는 컬렉터는 인스턴스가 두 번째 네트워크 홉을 허용할 때(`HttpPutResponseHopLimit`가 2)만 메타데이터 서비스에 닿습니다.
 
 ## 자체 호스팅 OneUptime과 프록시
 
