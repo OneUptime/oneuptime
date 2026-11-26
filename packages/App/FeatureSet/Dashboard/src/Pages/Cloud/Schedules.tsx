@@ -463,7 +463,7 @@ const CloudSchedules: FunctionComponent<
           },
           {
             field: { startTime: true },
-            title: "Start At",
+            title: "Start Time",
             stepId: "hours",
             fieldType: FormFieldSchemaType.Text,
             required: true,
@@ -478,7 +478,7 @@ const CloudSchedules: FunctionComponent<
           },
           {
             field: { stopTime: true },
-            title: "Stop At",
+            title: "Stop Time",
             stepId: "hours",
             fieldType: FormFieldSchemaType.Text,
             required: true,
