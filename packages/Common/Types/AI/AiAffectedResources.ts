@@ -51,6 +51,7 @@ export enum AiAffectedResourceKind {
   ProxmoxCluster = "ProxmoxCluster",
   OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
+  XcpNgPool = "XcpNgPool",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
   IoTFleet = "IoTFleet",
@@ -72,6 +73,7 @@ export type AiAffectedResourceRelation =
   | "proxmoxClusters"
   | "openStackClouds"
   | "vmwareVCenters"
+  | "xcpNgPools"
   | "cephClusters"
   | "storageArrays"
   | "iotFleets"
@@ -155,6 +157,17 @@ export const AI_AFFECTED_RESOURCE_KINDS: ReadonlyArray<AiAffectedResourceKindInf
       relation: "vmwareVCenters",
       noun: translationKey("VMware vCenter"),
       isFixedByOneUptimeAi: true,
+    },
+    /*
+     * Linked for its owners, its page's Incidents and Alerts tabs and the
+     * investigation's context: no AI agent acts on an XCP-ng pool yet
+     * (#10998).
+     */
+    {
+      kind: AiAffectedResourceKind.XcpNgPool,
+      relation: "xcpNgPools",
+      noun: translationKey("XCP-ng pool"),
+      isFixedByOneUptimeAi: false,
     },
     {
       kind: AiAffectedResourceKind.CephCluster,

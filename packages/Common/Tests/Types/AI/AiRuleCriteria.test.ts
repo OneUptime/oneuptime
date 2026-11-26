@@ -115,6 +115,10 @@ describe("the criteria fields", () => {
       "dataStoreEnvironments",
       "dataStoreLabels",
       "dataCategories",
+      // A saving's own (#11010).
+      "cloudSavingActionGroups",
+      "cloudSavingEnvironments",
+      "cloudSavingProviders",
     ]);
     expect(new Set(AI_RULE_CRITERIA_FIELDS).size).toBe(
       AI_RULE_CRITERIA_FIELDS.length,
@@ -158,7 +162,7 @@ describe("isAiRuleTriggerEntity", () => {
 describe("getAiRuleCriteriaProblem", () => {
   test("an unknown trigger entity type is refused, naming the allowed ones", () => {
     const expected: string =
-      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric, DataSecurityIssue.";
+      "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric, DataSecurityIssue, CloudSaving.";
 
     expect(getAiRuleCriteriaProblem({ triggerEntityType: "Monitor" })).toBe(
       expected,

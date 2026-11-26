@@ -75,6 +75,11 @@ import { AzureRateLimit, readAzureRateLimit } from "./AzureRateLimit";
  *   PATCH {arm}{resource id}?api-version=... (patch)
  *       -> one setting of one resource changed, for Data Security's
  *          response actions: only with the connection's opt-in write role.
+ *   DELETE {arm}{resource id}?api-version=... (delete), and
+ *   POST {arm}{resource id}/{action}?api-version=... (action)
+ *       -> a savings action (#11010): an idle disk, snapshot or public IP
+ *          deleted, a VM deallocated or started - only with the
+ *          connection's opt-in Savings actions role.
  *
  * Listing and metric definitions are free; Azure Monitor gives each
  * subscription its first million metric reads a month free.
@@ -710,6 +715,69 @@ export default class AzureArm {
               "Content-Type": "application/json",
             },
             body: JSON.stringify(body),
+            timeoutInMs: this.options.requestTimeoutInMs,
+            step,
+            providerTitle: PROVIDER_TITLE,
+            secretValues: [this.options.clientSecret, token],
+          })
+        ).response;
+
+        return readObject(response.bodyJson);
+      },
+    });
+  }
+
+  /*
+   * A DELETE on the management host, signed in as the app: a resource
+   * removed for a savings action (#11010) - an unattached disk, an old
+   * snapshot, an idle public IP - which Azure lets the app make only once
+   * the connection's "Savings actions" setting has given it a role that
+   * may. Held to the management host as a PATCH is. Azure answers 200, 202
+   * while it deletes, or 204 when there was nothing to delete; the
+   * answer's JSON, or {} when it has none. Asked again when Azure says not
+   * now: deleting what is gone deletes nothing more.
+   */
+  public async delete(url: string, step: string): Promise<JSONObject> {
+    return await this.writeWithoutBody("DELETE", url, step);
+  }
+
+  /*
+   * A POST of no body on the management host: an action on a resource - a
+   * VM deallocated or started (#11010) - which Azure answers 202 while it
+   * does it. Held to the management host as a PATCH is. Asked again when
+   * Azure says not now: a VM deallocated twice is deallocated once.
+   */
+  public async action(url: string, step: string): Promise<JSONObject> {
+    return await this.writeWithoutBody("POST", url, step);
+  }
+
+  private async writeWithoutBody(
+    method: "POST" | "DELETE",
+    url: string,
+    step: string,
+  ): Promise<JSONObject> {
+    this.assertManagementUrl(url, step);
+
+    return await withCloudRetries({
+      sleep: this.options.sleep,
+      call: async (): Promise<JSONObject> => {
+        if (this.options.budget && !this.options.budget.take()) {
+          throw new CloudReadBudgetSpent();
+        }
+
+        const token: string = await this.tokens.getAccessToken(
+          this.getManagementBaseUrl(),
+        );
+
+        const response: DataSourceHttpResponse = (
+          await this.send({
+            transport: this.options.transport,
+            method,
+            url,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
             timeoutInMs: this.options.requestTimeoutInMs,
             step,
             providerTitle: PROVIDER_TITLE,

@@ -287,6 +287,10 @@ describe("MonitorType keywords", () => {
       ["neutron", MonitorType.OpenStack],
       ["esxi", MonitorType.VMware],
       ["vcenter", MonitorType.VMware],
+      ["xcp-ng", MonitorType.XcpNg],
+      ["xen orchestra", MonitorType.XcpNg],
+      ["xenserver", MonitorType.XcpNg],
+      ["xapi", MonitorType.XcpNg],
       ["osd", MonitorType.Ceph],
       ["flasharray", MonitorType.StorageArray],
       ["flashblade", MonitorType.StorageArray],
@@ -326,6 +330,7 @@ describe("MonitorType keywords", () => {
       expect(results).toContain(MonitorType.Docker);
       expect(results).toContain(MonitorType.Ceph);
       expect(results).toContain(MonitorType.StorageArray);
+      expect(results).toContain(MonitorType.XcpNg);
       expect(results).not.toContain(MonitorType.Website);
     });
 

@@ -10,6 +10,7 @@ import AlertStateService from "../../../../Server/Services/AlertStateService";
 import AlertStateTimelineService from "../../../../Server/Services/AlertStateTimelineService";
 import CloudAccountService from "../../../../Server/Services/CloudAccountService";
 import CloudBudgetService from "../../../../Server/Services/CloudBudgetService";
+import CloudCostSettingService from "../../../../Server/Services/CloudCostSettingService";
 import CloudBudgetEvaluator, {
   CloudBudgetAlertState,
   CloudBudgetAnomalyDay,
@@ -24,8 +25,10 @@ import CloudBudgetEvaluator, {
 import {
   CloudAccountCostSummary,
   CloudCostAnomaly,
+  CloudCostBasisFigures,
   CloudCostState,
 } from "../../../../Types/Cloud/CloudCost";
+import { CloudCostBasis } from "../../../../Types/Cloud/CloudCostBasis";
 import OneUptimeDate from "../../../../Types/Date";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import { JSONObject } from "../../../../Types/JSON";
@@ -829,6 +832,9 @@ describe("a budget's check", () => {
   let openAlerts: Array<Alert> = [];
   let budget: CloudBudget;
   let accounts: Array<CloudAccount> = [];
+  // The cost the project watches, from its cost settings.
+  let projectBasis: CloudCostBasis = CloudCostBasis.Billed;
+  let projectBasisReads: number = 0;
 
   function makeBudget(overrides: Partial<CloudBudget> = {}): CloudBudget {
     const value: CloudBudget = new CloudBudget();
@@ -866,8 +872,16 @@ describe("a budget's check", () => {
     accounts = [
       makeAccount(summary({ monthToDate: 850, projectedMonth: 1200 })),
     ];
+    projectBasis = CloudCostBasis.Billed;
+    projectBasisReads = 0;
 
     jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+    jest
+      .spyOn(CloudCostSettingService, "getCostBasisOfProject")
+      .mockImplementation(async (): Promise<CloudCostBasis> => {
+        projectBasisReads++;
+        return projectBasis;
+      });
     jest
       .spyOn(CloudBudgetService, "findOneById")
       .mockImplementation(async (): Promise<CloudBudget | null> => {
@@ -1134,6 +1148,123 @@ describe("a budget's check", () => {
 
     expect(created).toHaveLength(0);
     expect(updates[0]).toMatchObject({ spentThisMonth: 850 });
+  });
+
+  /*
+   * Each cost of a summary read with all three: billed passes 80% and is
+   * on course to pass; amortized - the upfront fee spread over its term -
+   * does neither; net, the month's credit not yet landed, passes both.
+   */
+  function figures(
+    monthToDate: number,
+    projectedMonth: number,
+  ): CloudCostBasisFigures {
+    return {
+      monthToDate,
+      lastMonth: 0,
+      monthFullDays: 0,
+      lastMonthToDate: 0,
+      projectedMonth,
+      last30Days: monthToDate,
+      topServices: [{ service: "Amazon EC2", amount: monthToDate }],
+    };
+  }
+
+  function readOnEveryBasis(): Array<CloudAccount> {
+    return [
+      makeAccount(
+        summary({
+          monthToDate: 850,
+          projectedMonth: 1200,
+          topServices: [{ service: "Amazon EC2", amount: 850 }],
+          bases: {
+            [CloudCostBasis.Amortized]: figures(600, 900),
+            [CloudCostBasis.Net]: figures(990, 1400),
+          },
+        }),
+      ),
+    ];
+  }
+
+  test("a budget with no cost of its own watches its project's: amortized, under its thresholds", async () => {
+    accounts = readOnEveryBasis();
+    projectBasis = CloudCostBasis.Amortized;
+
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+
+    expect(projectBasisReads).toBe(1);
+    expect(created).toHaveLength(0);
+    // Its page shows the cost it watches.
+    expect(updates[0]).toMatchObject({
+      spentThisMonth: 600,
+      projectedThisMonth: 900,
+    });
+  });
+
+  test("the same budget on a project that watches billed passes 80%, and says which cost it counted", async () => {
+    accounts = readOnEveryBasis();
+    projectBasis = CloudCostBasis.Billed;
+
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+
+    expect(created).toHaveLength(2);
+    expect(created[0]!.title).toBe('Cloud budget "Production" passed 80%');
+    expect(created[0]!.description).toContain("billed cloud spend");
+    expect(updates[0]).toMatchObject({ spentThisMonth: 850 });
+  });
+
+  test("a budget's own cost wins over its project's: net passes its thresholds while amortized does not", async () => {
+    accounts = readOnEveryBasis();
+    projectBasis = CloudCostBasis.Amortized;
+    budget = makeBudget({ costBasis: CloudCostBasis.Net });
+
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+
+    // Its own basis: the project's is never read.
+    expect(projectBasisReads).toBe(0);
+    expect(created).toHaveLength(2);
+    expect(created[0]!.description).toContain("net cloud spend");
+    expect(updates[0]).toMatchObject({ spentThisMonth: 990 });
+  });
+
+  test("an account not yet read on a basis counts its billed figures there", async () => {
+    // Read before the costs were kept three ways: billed is all it has.
+    budget = makeBudget({ costBasis: CloudCostBasis.Amortized });
+
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+
+    expect(created).toHaveLength(2);
+    expect(updates[0]).toMatchObject({ spentThisMonth: 850 });
+  });
+
+  test("a stored basis OneUptime does not know is the project's", async () => {
+    accounts = readOnEveryBasis();
+    projectBasis = CloudCostBasis.Amortized;
+    budget = makeBudget({ costBasis: "blended" as never });
+
+    await CloudBudgetEvaluator.evaluateBudgetById(BUDGET_ID);
+
+    expect(projectBasisReads).toBe(1);
+    expect(created).toHaveLength(0);
+  });
+
+  test("every budget of a project reads the project's cost once", async () => {
+    accounts = readOnEveryBasis();
+    projectBasis = CloudCostBasis.Amortized;
+    jest
+      .spyOn(CloudBudgetService, "findBy")
+      .mockImplementation(async (): Promise<Array<CloudBudget>> => {
+        return [
+          makeBudget(),
+          makeBudget({ id: ObjectID.generate(), name: "Staging" }),
+          makeBudget({ id: ObjectID.generate(), name: "Data" }),
+        ];
+      });
+
+    await CloudBudgetEvaluator.evaluateProject(PROJECT);
+
+    expect(projectBasisReads).toBe(1);
+    expect(updates).toHaveLength(3);
   });
 
   test("one budget's trouble never throws", async () => {

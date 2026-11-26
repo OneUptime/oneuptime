@@ -202,6 +202,42 @@ describe("MonitorTemplateSyncFieldUtil", () => {
     ).not.toHaveProperty("description");
   });
 
+  test("an XCP-ng monitor's options are its pool, its filters, its queries and its window", (): void => {
+    const fields: Array<MonitorTemplateSyncField> =
+      MonitorTemplateSyncFieldUtil.getFields(MonitorType.XcpNg);
+    expect(
+      fields.map((field: MonitorTemplateSyncField): string => {
+        return field.path;
+      }),
+    ).toEqual([
+      "xcpNgMonitor.poolIdentifier",
+      "xcpNgMonitor.resourceFilters",
+      "xcpNgMonitor.metricViewConfig",
+      "xcpNgMonitor.rollingTime",
+    ]);
+    expect(fields[0]).toEqual({
+      path: "xcpNgMonitor.poolIdentifier",
+      label: "XCP-ng pool",
+    });
+    // The pool is one path: its UUID alone names it.
+    expect(
+      MonitorTemplateSyncFieldUtil.getPaths("xcpNgMonitor.poolIdentifier"),
+    ).toEqual(["xcpNgMonitor.poolIdentifier"]);
+    expect(
+      MonitorTemplateSyncFieldUtil.parse(
+        ["xcpNgMonitor.poolIdentifier", "xcpNgMonitor.resourceFilters"],
+        MonitorType.XcpNg,
+      ),
+    ).toEqual(["xcpNgMonitor.poolIdentifier", "xcpNgMonitor.resourceFilters"]);
+    // Another product's monitor has no pool to keep.
+    expect((): void => {
+      MonitorTemplateSyncFieldUtil.parse(
+        ["xcpNgMonitor.poolIdentifier"],
+        MonitorType.Proxmox,
+      );
+    }).toThrow("Unsupported do not sync field");
+  });
+
   test.each([
     MonitorType.Manual,
     MonitorType.IncomingRequest,

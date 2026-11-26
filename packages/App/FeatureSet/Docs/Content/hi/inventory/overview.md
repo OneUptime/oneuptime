@@ -50,7 +50,7 @@ flowchart TB
 | --- | --- |
 | पॉड, डिप्लॉयमेंट, Proxmox गेस्ट, OpenStack इंस्टेंस और VMware वर्चुअल मशीनें | 1 दिन |
 | Kubernetes नोड और नेमस्पेस, Proxmox नोड, OpenStack हाइपरवाइज़र, VMware होस्ट, क्लस्टर और डेटास्टोर, और वे डेटाबेस और रिमोट सेवाएँ जिन्हें आपके ट्रेस कॉल करते हैं | 7 दिन |
-| सेवाएँ, होस्ट, Kubernetes, Proxmox और Ceph क्लस्टर, OpenStack क्लाउड, स्टोरेज ऐरे, vCenters और Docker Swarm क्लस्टर | 30 दिन |
+| सेवाएँ, होस्ट, Kubernetes, Proxmox और Ceph क्लस्टर, OpenStack क्लाउड, स्टोरेज ऐरे, vCenters, XCP-ng पूल और Docker Swarm क्लस्टर | 30 दिन |
 
 OneUptime का खोजा हुआ कोई संबंध 30 दिन तक दोबारा न दिखने पर हटा दिया जाता है।
 

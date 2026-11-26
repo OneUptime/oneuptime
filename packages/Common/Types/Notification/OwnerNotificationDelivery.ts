@@ -84,6 +84,7 @@ export enum OwnerNotificationKind {
   ProxmoxClusterOwnerAdded = "ProxmoxClusterOwnerAdded",
   OpenStackCloudOwnerAdded = "OpenStackCloudOwnerAdded",
   VMwareVCenterOwnerAdded = "VMwareVCenterOwnerAdded",
+  XcpNgPoolOwnerAdded = "XcpNgPoolOwnerAdded",
   CephClusterOwnerAdded = "CephClusterOwnerAdded",
   StorageArrayOwnerAdded = "StorageArrayOwnerAdded",
   IoTFleetOwnerAdded = "IoTFleetOwnerAdded",

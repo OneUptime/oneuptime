@@ -17,6 +17,7 @@ import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
 import StorageArray from "../../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import { getAffectedResourceRelations } from "../../../Server/Utils/Database/AffectedResourceRelations";
 import { ProjectScopedRelation } from "../../../Server/Utils/Database/ProjectScopedReferenceValidator";
 import { ColumnAccessControl } from "../../../Types/BaseDatabase/AccessControl";
@@ -90,6 +91,12 @@ const LINKED_RELATIONS: Array<LinkedRelation> = [
     model: VMwareVCenter,
     joinTable: "MonitorVMwareVCenter",
     inverseColumn: "vmwareVCenterId",
+  },
+  {
+    column: "xcpNgPools",
+    model: XcpNgPool,
+    joinTable: "MonitorXcpNgPool",
+    inverseColumn: "xcpNgPoolId",
   },
   {
     column: "cephClusters",

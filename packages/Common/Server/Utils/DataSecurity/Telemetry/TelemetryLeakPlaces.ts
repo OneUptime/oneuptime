@@ -13,7 +13,11 @@ import {
 import { METRIC_NAME_LOCATION } from "../../../../Types/DataSecurity/TelemetryScrubTarget";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import BUILT_IN_DETECTORS from "../../../../Utils/DataSecurity/Detectors/Index";
-import { alignTelemetryLeakTemplates } from "../../../../Utils/DataSecurity/TelemetryLeakTemplate";
+import {
+  alignTelemetryLeakTemplates,
+  maskUnprovenNameParts,
+  maskUnprovenWords,
+} from "../../../../Utils/DataSecurity/TelemetryLeakTemplate";
 import UrlScrubber from "../../../../Utils/Rum/UrlScrubber";
 import {
   findSensitiveValues,
@@ -634,10 +638,39 @@ export function readLeakPlaceOfRow(data: {
 }
 
 /*
+ * A place with its texts as the records prove them (maskUnprovenWords): a
+ * text with no word of the code's left is no part of it.
+ */
+function withProvenWords(
+  place: TelemetryLeakPlace,
+  proven: {
+    template: string | undefined;
+    spanName: string | undefined;
+    page: string | undefined;
+    metricName: string | undefined;
+  },
+): TelemetryLeakPlace {
+  const kept: TelemetryLeakPlace = { ...place };
+
+  for (const field of ["template", "spanName", "page", "metricName"] as const) {
+    const text: string | undefined = proven[field];
+
+    if (text) {
+      kept[field] = text;
+    } else {
+      delete kept[field];
+    }
+  }
+
+  return kept;
+}
+
+/*
  * The places a leak's records name, each once - counted by how many of
  * its records named it, the most named first - with the templates of one
  * place read from several records aligned, so a word that differs between
- * them is masked as the value it is. At most MAX_PLACES_PER_TELEMETRY_LEAK.
+ * them is masked as the value it is, and every word no record proves is
+ * the code's masked (#11098). At most MAX_PLACES_PER_TELEMETRY_LEAK.
  */
 export function readLeakPlaces(data: {
   source: TelemetrySampleSource;
@@ -678,9 +711,15 @@ export function readLeakPlaces(data: {
   }
 
   const aligned: Map<string, Map<string, string>> = new Map();
+  // The lines read with different words: what their reads share is proven the code's.
+  const alignedLines: Set<string> = new Set();
 
   for (const [line, templates] of byLine) {
     aligned.set(line, alignTelemetryLeakTemplates(templates));
+
+    if (new Set(templates).size >= 2) {
+      alignedLines.add(line);
+    }
   }
 
   const merged: Map<string, TelemetryLeakPlace> = new Map();
@@ -690,14 +729,36 @@ export function readLeakPlaces(data: {
       place.filePath && place.lineNumber !== undefined
         ? `${place.filePath}:${place.lineNumber}`
         : "";
-    const template: string | undefined = place.template
-      ? aligned.get(line)?.get(place.template) || place.template
-      : undefined;
-    const kept: TelemetryLeakPlace = {
-      ...place,
-      ...(template ? { template } : {}),
-    };
-    const key: string = getTelemetryLeakPlaceKey(kept) || "";
+    /*
+     * Every word the records do not prove is the code's, masked (#11098):
+     * a line read once - or always alike - keeps only the words code
+     * writes log lines with; a span's name, a page and a metric's name are
+     * never aligned, so they are read so too.
+     */
+    const kept: TelemetryLeakPlace = withProvenWords(place, {
+      template: place.template
+        ? maskUnprovenWords(
+            aligned.get(line)?.get(place.template) || place.template,
+            { isAligned: alignedLines.has(line) },
+          )
+        : undefined,
+      spanName: place.spanName
+        ? maskUnprovenWords(place.spanName, { isAligned: false })
+        : undefined,
+      page: place.page
+        ? maskUnprovenWords(place.page, { isAligned: false })
+        : undefined,
+      metricName: place.metricName
+        ? maskUnprovenNameParts(place.metricName)
+        : undefined,
+    });
+    const key: string | null = getTelemetryLeakPlaceKey(kept);
+
+    // A place named by nothing but words no record proves names none.
+    if (key === null) {
+      continue;
+    }
+
     const seen: TelemetryLeakPlace | undefined = merged.get(key);
 
     if (seen) {

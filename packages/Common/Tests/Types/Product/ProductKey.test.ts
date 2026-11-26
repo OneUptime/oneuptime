@@ -19,8 +19,8 @@ describe("ProductKey", () => {
       [...Object.values(ProductKey)].sort(),
     );
     expect(new Set(PRODUCT_KEYS).size).toBe(PRODUCT_KEYS.length);
-    // 43 products, Chat, and the three entries of Settings.
-    expect(PRODUCT_KEYS).toHaveLength(47);
+    // 44 products, Chat, and the three entries of Settings.
+    expect(PRODUCT_KEYS).toHaveLength(48);
     expect(PRODUCT_KEYS[0]).toBe(ProductKey.Monitors);
     expect(PRODUCT_KEYS[PRODUCT_KEYS.length - 1]).toBe(
       ProductKey.ProjectSettings,
@@ -56,7 +56,7 @@ describe("ProductKey", () => {
       ProductKey.Teams,
       ProductKey.ProjectSettings,
     ]);
-    expect(ONBOARDED_PRODUCT_KEYS).toHaveLength(43);
+    expect(ONBOARDED_PRODUCT_KEYS).toHaveLength(44);
 
     for (const key of NOT_ONBOARDED_PRODUCT_KEYS) {
       expect(ONBOARDED_PRODUCT_KEYS).not.toContain(key);

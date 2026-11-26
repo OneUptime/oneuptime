@@ -452,7 +452,7 @@ Os nomes de série em `metrics` contêm pontos, como `oneuptime.monitor.database
 
 ### Monitores de métricas e infraestrutura
 
-Os monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Array de armazenamento e IoT Device têm uma variável própria:
+Os monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Array de armazenamento e IoT Device têm uma variável própria:
 
 | Variável | O que contém | Tipo |
 | --- | --- | --- |

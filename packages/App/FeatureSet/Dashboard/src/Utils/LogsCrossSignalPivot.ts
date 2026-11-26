@@ -450,6 +450,7 @@ const DROPPED_FIELD_LABELS: Record<string, string> = {
   proxmoxClusterId: translationKey("Proxmox clusters"),
   openStackCloudId: translationKey("OpenStack clouds"),
   vmwareVCenterId: translationKey("vCenters"),
+  xcpNgPoolId: translationKey("XCP-ng pools"),
   cephClusterId: translationKey("Ceph clusters"),
   storageArrayId: translationKey("storage arrays"),
   serverlessFunctionId: translationKey("serverless functions"),

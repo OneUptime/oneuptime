@@ -43,6 +43,7 @@ import {
   CloudCostAnomaly,
   CloudCostState,
   fromCloudCostDay,
+  getCloudAccountCostSummaryInBasis,
   projectCloudMonthCost,
   startOfUtcDay,
   startOfUtcMonth,
@@ -53,6 +54,11 @@ import {
   toCloudBudgetMonth,
   daysInUtcMonth,
 } from "../../../Types/Cloud/CloudCost";
+import {
+  CloudCostBasis,
+  isCloudCostBasis,
+  resolveCloudCostBasis,
+} from "../../../Types/Cloud/CloudCostBasis";
 import {
   CloudCostForecast,
   forecastCloudCosts,
@@ -75,6 +81,7 @@ import AlertStateTimelineService from "../../Services/AlertStateTimelineService"
 import CloudAccountService from "../../Services/CloudAccountService";
 import CloudBudgetService from "../../Services/CloudBudgetService";
 import CloudCostGroupService from "../../Services/CloudCostGroupService";
+import CloudCostSettingService from "../../Services/CloudCostSettingService";
 import ProjectService from "../../Services/ProjectService";
 import CloudBudgetNotices, {
   CloudBudgetNoticeFacts,
@@ -110,6 +117,10 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
  *
  * Its people own every alert it raises, so they hear of those too, and its
  * on-call policies are paged by them.
+ *
+ * Every figure is on the budget's cost basis (CloudCostBasis, #11007): its
+ * own, else its project's - amortized unless someone picked another, so a
+ * commitment bought up front does not pass a month's budget in a day.
  *
  * Where the figures come from:
  *
@@ -253,6 +264,15 @@ export interface CloudBudgetSpend {
 // How many services an alert names as where the money went.
 export const CLOUD_BUDGET_ALERT_SERVICES: number = 3;
 
+// Each basis as an alert says it: "This month's amortized cloud spend".
+export const CLOUD_BUDGET_BASIS_WORDS: Readonly<
+  Record<CloudCostBasis, string>
+> = {
+  [CloudCostBasis.Billed]: "billed",
+  [CloudCostBasis.Amortized]: "amortized",
+  [CloudCostBasis.Net]: "net",
+};
+
 export interface CloudBudgetDecision {
   raise: Array<CloudBudgetAlertKind>;
   state: CloudBudgetAlertState;
@@ -374,6 +394,8 @@ function amountPhrase(
 // What a budget's per-check reads share, across a run over many budgets.
 interface EvaluationRun {
   projectNames: Map<string, string>;
+  // Each project's cost basis, read once a run.
+  projectBases: Map<string, CloudCostBasis>;
 }
 
 // What a budget's check found: its window, its spend, and its unusual days.
@@ -394,6 +416,8 @@ interface CloudBudgetCheck {
   read?: CloudBudgetScopeRead | undefined;
   // The cost group's team, told with the budget's own people.
   costGroupTeamId?: ObjectID | undefined;
+  // The cost the figures are: the budget's basis.
+  basis: CloudCostBasis;
 }
 
 export default class CloudBudgetEvaluator {
@@ -815,9 +839,15 @@ export default class CloudBudgetEvaluator {
     currency: string;
     spend: CloudBudgetSpend;
     alert: CloudBudgetAlertKind;
+    // The cost the budget watches; said in its words when given.
+    basis?: CloudCostBasis | undefined;
     now: Date;
     window?: CloudBudgetDescribedWindow | undefined;
   }): { title: string; description: string; rootCause?: string | undefined } {
+    // "amortized cloud spend": which of the three costs the figures are.
+    const spendWords: string = data.basis
+      ? `${CLOUD_BUDGET_BASIS_WORDS[data.basis]} cloud spend`
+      : "cloud spend";
     const amount: string = formatCloudBudgetAmount(data.amount, data.currency);
     const spent: string = formatCloudBudgetAmount(
       data.spend.spent,
@@ -886,7 +916,7 @@ export default class CloudBudgetEvaluator {
     if (data.alert.kind === "threshold") {
       return {
         title: `Cloud budget "${data.budgetName}" passed ${data.alert.threshold}%`,
-        description: `${possessive} cloud spend for ${data.scope} is ${spent} of ${ofTheBudget} (${percent}%), with ${days} of the ${noun} to go. ${howProjected}, the ${noun} is on course for ${projected}.`,
+        description: `${possessive} ${spendWords} for ${data.scope} is ${spent} of ${ofTheBudget} (${percent}%), with ${days} of the ${noun} to go. ${howProjected}, the ${noun} is on course for ${projected}.`,
         rootCause,
       };
     }
@@ -898,7 +928,7 @@ export default class CloudBudgetEvaluator {
 
     return {
       title: `Cloud budget "${data.budgetName}" is on course to be passed`,
-      description: `${howProjected}, ${possessiveInSentence} cloud spend for ${data.scope} is on course for ${projected}, over ${ofTheBudget}. ${spent} (${percent}%) is spent so far, with ${days} to go.`,
+      description: `${howProjected}, ${possessiveInSentence} ${spendWords} for ${data.scope} is on course for ${projected}, over ${ofTheBudget}. ${spent} (${percent}%) is spent so far, with ${days} to go.`,
       rootCause,
     };
   }
@@ -962,7 +992,7 @@ export default class CloudBudgetEvaluator {
     });
 
     if (budget) {
-      await CloudBudgetEvaluator.evaluate(budget, { projectNames: new Map() });
+      await CloudBudgetEvaluator.evaluate(budget, { projectNames: new Map(), projectBases: new Map() });
     }
   }
 
@@ -976,7 +1006,7 @@ export default class CloudBudgetEvaluator {
       limit: LIMIT_PER_PROJECT,
       props: { isRoot: true },
     });
-    const run: EvaluationRun = { projectNames: new Map() };
+    const run: EvaluationRun = { projectNames: new Map(), projectBases: new Map() };
 
     for (const budget of budgets) {
       await CloudBudgetEvaluator.evaluate(budget, run);
@@ -991,7 +1021,7 @@ export default class CloudBudgetEvaluator {
    */
   @CaptureSpan()
   public static async evaluateAll(): Promise<number> {
-    const run: EvaluationRun = { projectNames: new Map() };
+    const run: EvaluationRun = { projectNames: new Map(), projectBases: new Map() };
 
     await CloudBudgetNotices.resume({
       readFacts: (data: {
@@ -1017,6 +1047,31 @@ export default class CloudBudgetEvaluator {
     return budgets.length;
   }
 
+  /*
+   * The basis a budget watches: its own, else its project's (read once per
+   * project for a run over many budgets), else the default.
+   */
+  public static async getBudgetBasis(
+    budget: CloudBudget,
+    projectBases: Map<string, CloudCostBasis>,
+  ): Promise<CloudCostBasis> {
+    if (isCloudCostBasis(budget.costBasis)) {
+      return budget.costBasis;
+    }
+
+    const projectKey: string = budget.projectId!.toString();
+    let projectBasis: CloudCostBasis | undefined = projectBases.get(projectKey);
+
+    if (!projectBasis) {
+      projectBasis = await CloudCostSettingService.getCostBasisOfProject(
+        budget.projectId!,
+      );
+      projectBases.set(projectKey, projectBasis);
+    }
+
+    return resolveCloudCostBasis(projectBasis);
+  }
+
   public static readonly BUDGET_SELECT: {
     _id: true;
     projectId: true;
@@ -1028,6 +1083,7 @@ export default class CloudBudgetEvaluator {
     filterRules: true;
     monthlyAmount: true;
     currency: true;
+    costBasis: true;
     period: true;
     fiscalYearStartMonth: true;
     planSplit: true;
@@ -1058,6 +1114,7 @@ export default class CloudBudgetEvaluator {
     filterRules: true,
     monthlyAmount: true,
     currency: true,
+    costBasis: true,
     period: true,
     fiscalYearStartMonth: true,
     planSplit: true,
@@ -1086,7 +1143,18 @@ export default class CloudBudgetEvaluator {
   private static async checkFromSummaries(
     budget: CloudBudget,
     now: Date,
+    basis: CloudCostBasis,
   ): Promise<CloudBudgetCheck> {
+    const summaryOf: (
+      account: CloudAccount,
+    ) => CloudAccountCostSummary | null = (
+      account: CloudAccount,
+    ): CloudAccountCostSummary | null => {
+      const summary: CloudAccountCostSummary | null =
+        readCloudAccountCostSummary(account.costSummary);
+
+      return summary ? getCloudAccountCostSummaryInBasis(summary, basis) : null;
+    };
     const accounts: Array<CloudAccount> = await CloudAccountService.findBy({
       query: budget.cloudAccountId
         ? { projectId: budget.projectId!, _id: budget.cloudAccountId }
@@ -1106,11 +1174,7 @@ export default class CloudBudgetEvaluator {
     const currency: string = (budget.currency || "USD").toUpperCase();
     const spend: CloudBudgetSpend = CloudBudgetEvaluator.computeSpend({
       currency,
-      summaries: accounts.map(
-        (account: CloudAccount): CloudAccountCostSummary | null => {
-          return readCloudAccountCostSummary(account.costSummary);
-        },
-      ),
+      summaries: accounts.map(summaryOf),
       now,
     });
 
@@ -1141,7 +1205,7 @@ export default class CloudBudgetEvaluator {
             return {
               id: account.id?.toString() || "",
               scope: CloudBudgetEvaluator.getAccountScope(account),
-              summary: readCloudAccountCostSummary(account.costSummary),
+              summary: summaryOf(account),
             };
           },
         ),
@@ -1151,6 +1215,7 @@ export default class CloudBudgetEvaluator {
         budget.cloudAccountId && accounts[0]
           ? CloudBudgetEvaluator.getAccountScope(accounts[0])
           : "every cloud account of the project",
+      basis,
     };
   }
 
@@ -1232,6 +1297,7 @@ export default class CloudBudgetEvaluator {
   private static async checkFromCosts(
     budget: CloudBudget,
     now: Date,
+    basis: CloudCostBasis,
   ): Promise<CloudBudgetCheck | null> {
     const scope: CloudBudgetScope = readCloudBudgetScope({
       scope: budget.scope,
@@ -1265,6 +1331,7 @@ export default class CloudBudgetEvaluator {
       cloudCostGroupId: budget.cloudCostGroupId || null,
       filterRules: CloudBudgetEvaluator.readFilterRules(budget.filterRules),
       currency,
+      basis,
       props: { isRoot: true },
       now,
     };
@@ -1336,6 +1403,7 @@ export default class CloudBudgetEvaluator {
       ...(scopeWords.costGroupTeamId
         ? { costGroupTeamId: scopeWords.costGroupTeamId }
         : {}),
+      basis,
     };
   }
 
@@ -1554,10 +1622,15 @@ export default class CloudBudgetEvaluator {
 
     try {
       const now: Date = OneUptimeDate.getCurrentDate();
+      // The cost it watches: its own basis, else the project's.
+      const basis: CloudCostBasis = await CloudBudgetEvaluator.getBudgetBasis(
+        budget,
+        run.projectBases,
+      );
       const check: CloudBudgetCheck | null =
         CloudBudgetEvaluator.isSummaryBudget(budget)
-          ? await CloudBudgetEvaluator.checkFromSummaries(budget, now)
-          : await CloudBudgetEvaluator.checkFromCosts(budget, now);
+          ? await CloudBudgetEvaluator.checkFromSummaries(budget, now, basis)
+          : await CloudBudgetEvaluator.checkFromCosts(budget, now, basis);
 
       if (!check) {
         return;
@@ -1654,6 +1727,7 @@ export default class CloudBudgetEvaluator {
             spend: check.spend,
             alert: alertKind,
             month: decision.state.month,
+            basis: check.basis,
             now,
             window: check.describedWindow,
             ownerUserIds: people.ownerUserIds,
@@ -1713,6 +1787,7 @@ export default class CloudBudgetEvaluator {
       currency: data.currency,
       spend: data.check.spend,
       alert: { kind: "threshold", threshold: data.threshold },
+      basis: data.check.basis,
       now: data.now,
       window: data.check.describedWindow,
     });
@@ -1775,6 +1850,10 @@ export default class CloudBudgetEvaluator {
     } | null = await CloudBudgetEvaluator.getScopeWords({ budget, scope });
     const isMonth: boolean = window.isPlanMonth || window.months.length === 1;
     const thisMonth: string = toCloudBudgetMonth(now);
+    const basis: CloudCostBasis = await CloudBudgetEvaluator.getBudgetBasis(
+      budget,
+      data.run.projectBases,
+    );
 
     return CloudBudgetEvaluator.toNoticeFacts({
       budget,
@@ -1809,6 +1888,7 @@ export default class CloudBudgetEvaluator {
             ? Number(budget.monthlyAmount) || 0
             : undefined,
         },
+        basis,
       },
       amount: window.amount,
       currency: (budget.currency || "USD").toUpperCase(),
@@ -1858,6 +1938,7 @@ export default class CloudBudgetEvaluator {
     spend: CloudBudgetSpend;
     alert: CloudBudgetAlertKind;
     month: string;
+    basis?: CloudCostBasis | undefined;
     now: Date;
     window?: CloudBudgetDescribedWindow | undefined;
     ownerUserIds?: Array<ObjectID> | undefined;
@@ -1909,6 +1990,7 @@ export default class CloudBudgetEvaluator {
       currency: data.currency,
       spend: data.spend,
       alert: data.alert,
+      basis: data.basis,
       now: data.now,
       window: data.window,
     });

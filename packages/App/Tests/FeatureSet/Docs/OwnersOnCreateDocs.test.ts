@@ -365,6 +365,8 @@ describe("the docs on owners told after a stop part way", () => {
       "StorageArrayOwners",
       "VMwareVCenterOwners",
       "WorkflowOwners",
+      // XCP-ng pools' (#10995), one more call of the shared owner-added job.
+      "XcpNgPoolOwners",
     ]);
 
     /*
@@ -423,8 +425,8 @@ describe("the docs on owners told after a stop part way", () => {
       }).toEqual({ job: file, resumes: true, tellsEachOnce: true });
     }
 
-    // 61, and the monitor group's and the Runner's (#9758).
-    expect(jobs).toBe(63);
+    // 61, the monitor group's and the Runner's (#9758), and the XCP-ng pool's (#10995).
+    expect(jobs).toBe(64);
     // The incident and alert jobs among them, by name.
     expect(JOBS).toHaveLength(5);
 

@@ -35,6 +35,7 @@ import { getAllPodmanMetrics } from "Common/Types/Monitor/PodmanMetricCatalog";
 import { getAllProxmoxMetrics } from "Common/Types/Monitor/ProxmoxMetricCatalog";
 import { getAllStorageArrayMetrics } from "Common/Types/Monitor/StorageArrayMetricCatalog";
 import { getAllVMwareMetrics } from "Common/Types/Monitor/VMwareMetricCatalog";
+import { getAllXcpNgMetrics } from "Common/Types/Monitor/XcpNgMetricCatalog";
 import { DASHBOARD_LANGUAGES } from "Common/Tests/Helpers/TranslatedLanguages";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
@@ -46,12 +47,12 @@ import path from "path";
  * The line under every metric picker of a monitor's form says what the
  * chosen metric is, from its catalog (Common/Types/Monitor/*MetricCatalog):
  * the VMware, OpenStack, Kubernetes, Docker, Podman, Docker Swarm, host, IoT,
- * Proxmox, Ceph and storage array pickers, a Database Health criteria's line,
- * and a Database monitor's charts and the metric it stores. Not one of the
- * 591 descriptions was a key - eight catalogs were never read by the
- * extractor, the other four marked only their names, and the OpenStack
- * catalog glued seventy of them together at run time - so every one read
- * English in every language.
+ * Proxmox, XCP-ng, Ceph and storage array pickers, a Database Health
+ * criteria's line, and a Database monitor's charts and the metric it
+ * stores. Not one of the 591 descriptions was a key - eight catalogs were
+ * never read by the extractor, the other four marked only their names, and
+ * the OpenStack catalog glued seventy of them together at run time - so
+ * every one read English in every language.
  *
  * Each catalog is a keys root now, and every description a literal it marks
  * (translationKey), as the Database catalog's words under each of its groups
@@ -135,6 +136,7 @@ const CATALOGS: ReadonlyArray<Catalog> = [
     wordFiles: filesUnder("packages/Common/Types/StorageArray/Platforms"),
   },
   { file: "VMwareMetricCatalog.ts", metrics: getAllVMwareMetrics() },
+  { file: "XcpNgMetricCatalog.ts", metrics: getAllXcpNgMetrics() },
 ];
 
 const repositoryPathOf: (catalog: Catalog) => string = (
@@ -334,6 +336,10 @@ const NAMES: ReadonlyArray<string> = [
   "vSphere",
   "vSAN",
   "ESXi",
+  "Xen Orchestra",
+  "XAPI",
+  "XOSTOR",
+  "LINSTOR",
   "Pure",
   "FlashArray",
   "FlashBlade",
@@ -365,6 +371,10 @@ const NAMES: ReadonlyArray<string> = [
   "Ethernet",
   "Fibre Channel",
   "IOPS",
+  "IPMI",
+  "DCMI",
+  "SMART",
+  "ISO",
   // A kubelet setting, beside kube-reserved.
   "system-reserved",
   // Unit symbols.

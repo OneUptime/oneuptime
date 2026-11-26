@@ -120,6 +120,7 @@ import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import Service from "../../../Models/DatabaseModels/Service";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import Route from "../../../Types/API/Route";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ObjectID from "../../../Types/ObjectID";
@@ -156,6 +157,7 @@ const RESOURCE_PROPS: Record<ResourceProp, ResourceModelType> = {
   proxmoxClusters: ProxmoxCluster,
   openStackClouds: OpenStackCloud,
   vmwareVCenters: VMwareVCenter,
+  xcpNgPools: XcpNgPool,
   cephClusters: CephCluster,
   storageArrays: StorageArray,
   dockerSwarmClusters: DockerSwarmCluster,

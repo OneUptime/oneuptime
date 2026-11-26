@@ -42,6 +42,7 @@ import RUM_APPLICATION_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/C
 import SERVERLESS_FUNCTION_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/Serverless/ServerlessFunctionShowcase";
 import STORAGE_ARRAY_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/StorageArray/StorageArrayShowcase";
 import VMWARE_VCENTER_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/VMware/VMwareVCenterShowcase";
+import XCP_NG_POOL_SHOWCASE from "../../../../App/FeatureSet/Dashboard/src/Components/XcpNg/XcpNgPoolShowcase";
 
 /*
  * EVERY PRODUCT EXPLAINS ITSELF (#6430).
@@ -104,6 +105,7 @@ const RESOURCE_SHOWCASES: Partial<Record<ProductKey, ResourceShowcase>> = {
   [ProductKey.Proxmox]: PROXMOX_CLUSTER_SHOWCASE,
   [ProductKey.OpenStack]: OPENSTACK_CLOUD_SHOWCASE,
   [ProductKey.VMware]: VMWARE_VCENTER_SHOWCASE,
+  [ProductKey.XcpNg]: XCP_NG_POOL_SHOWCASE,
   [ProductKey.Ceph]: CEPH_CLUSTER_SHOWCASE,
   [ProductKey.StorageArrays]: STORAGE_ARRAY_SHOWCASE,
   [ProductKey.IoT]: IOT_FLEET_SHOWCASE,
@@ -156,6 +158,7 @@ const LAYOUTS: Record<OnboardedProductKey, string> = {
   [ProductKey.Proxmox]: "Pages/Proxmox/Layout.tsx",
   [ProductKey.OpenStack]: "Pages/OpenStack/Layout.tsx",
   [ProductKey.VMware]: "Pages/VMware/Layout.tsx",
+  [ProductKey.XcpNg]: "Pages/XcpNg/Layout.tsx",
   [ProductKey.Ceph]: "Pages/Ceph/Layout.tsx",
   [ProductKey.StorageArrays]: "Pages/StorageArray/Layout.tsx",
   [ProductKey.Network]: "Pages/Network/Layout.tsx",
@@ -315,6 +318,10 @@ const FIRST_PAGES: Record<
   [ProductKey.VMware]: {
     file: "Pages/VMware/VCenters.tsx",
     draws: "VMWARE_VCENTER_SHOWCASE",
+  },
+  [ProductKey.XcpNg]: {
+    file: "Pages/XcpNg/Pools.tsx",
+    draws: "XCP_NG_POOL_SHOWCASE",
   },
   [ProductKey.Ceph]: {
     file: "Pages/Ceph/Clusters.tsx",

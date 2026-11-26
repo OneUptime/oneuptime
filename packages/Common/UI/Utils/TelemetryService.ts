@@ -32,7 +32,8 @@ export const UNKNOWN_RESOURCE_LABEL: string = translationKey("Unknown");
  * OpenTelemetry service, or the synthetic "Unknown Service" for the
  * unattributed bucket) — or a plain `label` for infrastructure resource
  * types (Host / DockerHost / KubernetesCluster / ProxmoxCluster /
- * CephCluster / StorageArray / VMwareVCenter / DatabaseServer) that have no
+ * CephCluster / StorageArray / VMwareVCenter / XcpNgPool / DatabaseServer)
+ * that have no
  * Service row.
  */
 export interface ResolvedTelemetryResource {
@@ -176,6 +177,7 @@ export default class TelemetryServiceUtil {
       [ServiceType.CephCluster]: translationKey("Ceph Cluster"),
       [ServiceType.StorageArray]: translationKey("Storage Array"),
       [ServiceType.VMwareVCenter]: translationKey("vCenter"),
+      [ServiceType.XcpNgPool]: translationKey("XCP-ng Pool"),
       [ServiceType.DatabaseServer]: translationKey("Database telemetry"),
     };
     const label: string | undefined = data.primaryEntityType

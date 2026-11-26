@@ -32,6 +32,10 @@ import {
   CloudBudgetScope,
   CloudBudgetUnusualDayUnit,
 } from "../../Types/Cloud/CloudBudget";
+import {
+  CLOUD_COST_BASES,
+  CloudCostBasis,
+} from "../../Types/Cloud/CloudCostBasis";
 import { CloudCostRule } from "../../Types/Cloud/CloudCostRules";
 import IconProp from "../../Types/Icon/IconProp";
 import { JSONObject } from "../../Types/JSON";
@@ -342,7 +346,7 @@ export default class CloudBudget extends BaseModel {
    * What the budget counts (CloudBudgetScope): every account, one account
    * (cloudAccountId), a cost group (cloudCostGroupId) or a filter
    * (filterRules). A budget made before scopes were is every account's, or
-   * its account's (migration 1809187721008).
+   * its account's (migration 1809187722008).
    */
   @ColumnAccessControl({
     create: createPermissions,
@@ -490,6 +494,32 @@ export default class CloudBudget extends BaseModel {
     default: "USD",
   })
   public currency?: string = undefined;
+
+  /*
+   * The cost the budget watches (CloudCostBasis): billed, amortized or
+   * net. Empty follows the project's cost basis (CloudCostSetting), which
+   * is amortized unless someone picks another.
+   */
+  @ColumnAccessControl({
+    create: createPermissions,
+    read: readPermissions,
+    update: updatePermissions,
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    allowedValues: [...CLOUD_COST_BASES],
+    title: "Cost Basis",
+    description:
+      "The cost the budget watches: billed, amortized or net. Empty follows the project's cost basis, set in Cloud settings.",
+    example: "amortized",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public costBasis?: CloudCostBasis = undefined;
 
   @ColumnAccessControl({
     create: createPermissions,

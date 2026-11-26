@@ -197,6 +197,7 @@ Hver av disse widgetene viser ressursene som en agent eller en collector rapport
 | **Podman** | **Verter**, **Containere**, **Bilder**, **Nettverk**, **Volumer** | Podman-agenten |
 | **Proxmox** | **Noder**, **Gjester** | Proxmox-agenten |
 | **VMware** | **Verter**, **Virtuelle maskiner** | VMware-agenten, eller et vCenter du kobler til |
+| **XCP-ng** | **Verter**, **VM-er** | XCP-ng-agenten |
 | **Ceph** | **OSD-er**, som en vegg farget etter tilstand, og **Pools** | Ceph-agenten |
 | **Lagringsarrayer** | **Volumer**, og **Maskinvare** som en vegg farget etter status | Lagringsarray-agenten |
 

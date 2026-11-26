@@ -2,6 +2,7 @@ import { JSONObject, JSONValue } from "../../../../Types/JSON";
 import { scrubRegExpFromBuiltIn } from "../../../../Types/Telemetry/ScrubRule";
 import PromptText from "../../../../Utils/AI/PromptText";
 import { EMAIL_ADDRESS_DETECTORS } from "../../../../Utils/DataSecurity/Detectors/ContactDetectors";
+import PercentDecodedText from "../../../../Utils/DataSecurity/PercentDecodedText";
 import {
   findDetectorRanges,
   findInEveryReading,
@@ -52,6 +53,12 @@ type RedactionRule =
       placeholder: string;
       regex: RegExp;
       replacement: string;
+      /*
+       * How much of a match's start its replacement keeps - "password="
+       * of "password=hunter2", "Bearer " - when the match is found in the
+       * text with its percent-escapes read (#11031). None when left out.
+       */
+      keeps?: ((match: RegExpMatchArray) => number) | undefined;
     }
   | {
       name: string;
@@ -63,6 +70,9 @@ type RedactionRule =
     };
 
 const PRIVATE_KEY_PLACEHOLDER: string = "[redacted-private-key]";
+
+// What a Bearer token's replacement keeps of its match: the word and its spaces.
+const BEARER_WORD: RegExp = /^Bearer\s+/i;
 
 /*
  * THE IP ADDRESSES A MODEL IS NEVER SHOWN: EXACTLY THOSE AN IP ADDRESS SCRUB
@@ -251,12 +261,18 @@ const REDACTION_RULES: Array<RedactionRule> = [
     regex:
       /(?<![A-Za-z0-9_-])(?=([A-Za-z0-9_-]*?)eyJ)\1eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/g,
     replacement: "$1[redacted-jwt]",
+    keeps: (match: RegExpMatchArray): number => {
+      return (match[1] || "").length;
+    },
   },
   {
     name: "bearer",
     placeholder: "[redacted-token]",
     regex: /Bearer\s+[A-Za-z0-9._~+/-]{16,}=*/gi,
     replacement: "Bearer [redacted-token]",
+    keeps: (match: RegExpMatchArray): number => {
+      return BEARER_WORD.exec(match[0])?.[0].length || 0;
+    },
   },
   {
     /*
@@ -336,6 +352,9 @@ const REDACTION_RULES: Array<RedactionRule> = [
     regex:
       /\b(password|passwd|secret|api[_-]?key|access[_-]?token|authorization)\b(\s*[:=]\s*)("[^"]{4,}"|'[^']{4,}'|[^\s,;&]{4,})/gi,
     replacement: "$1$2[redacted]",
+    keeps: (match: RegExpMatchArray): number => {
+      return (match[1] || "").length + (match[2] || "").length;
+    },
   },
 ];
 
@@ -408,8 +427,54 @@ export default class ToolResultSerializer {
         );
       },
     );
+    const decoded: { text: string; count: number } =
+      ToolResultSerializer.redactWithEscapesRead(result, rule);
 
-    return { text: result, count };
+    return { text: decoded.text, count: count + decoded.count };
+  }
+
+  /*
+   * A SECRET IN A PERCENT-ENCODED URL, HIDDEN AS IT IS WRITTEN (#11031).
+   *
+   * A rule's pattern reads the text as written, so a redirect's token after
+   * an encoded "=" (?next=...%3Ftoken%3Dghp_...) or "password%3Dhunter2"
+   * reached the model as it was. So each pattern rule also reads the text
+   * with its escapes read (PercentDecodedText), as Data Security's
+   * detectors and its scrub rules do, and hides what it finds there on the
+   * characters it is written with, escapes and all, keeping what its
+   * replacement keeps ("password%3D[redacted]"). What the text as written
+   * already hid is a placeholder now, never matched again.
+   */
+  private static redactWithEscapesRead(
+    text: string,
+    rule: Extract<RedactionRule, { regex: RegExp }>,
+  ): { text: string; count: number } {
+    const read: PercentDecodedText | null =
+      text.indexOf("%") === -1 ? null : PercentDecodedText.read(text);
+
+    if (!read) {
+      return { text, count: 0 };
+    }
+
+    const ranges: Array<TextRange> = [];
+    const regex: RegExp = new RegExp(rule.regex.source, rule.regex.flags);
+
+    for (const match of read.readable.matchAll(regex)) {
+      const start: number = match.index! + (rule.keeps ? rule.keeps(match) : 0);
+      const end: number = match.index! + match[0].length;
+
+      // Hidden already: the written text's own placeholder, read again.
+      if (
+        end <= start ||
+        read.readable.slice(start, end) === rule.placeholder
+      ) {
+        continue;
+      }
+
+      ranges.push(read.rangeToWritten([start, end]));
+    }
+
+    return replaceRanges(text, mergeRanges(ranges), rule.placeholder);
   }
 
   public static redact(

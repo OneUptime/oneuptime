@@ -20,6 +20,8 @@ import { OPENSTACK_DEPLOYMENT_TOOLS } from "../../../App/FeatureSet/Dashboard/sr
 import { OPENSTACK_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/Utils/DocumentationTranslations";
 import { PROXMOX_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationMarkdown";
 import { PROXMOX_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/Utils/DocumentationTranslations";
+import { XCP_NG_CONNECT_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
+import { XCP_NG_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationTranslations";
 import { VMWARE_INSTALL_METHODS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationMarkdown";
 import { VMWARE_DOCUMENTATION_TRANSLATIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/VMware/Utils/DocumentationTranslations";
 import { DATABASE_AGENT_SYSTEM_OPTIONS } from "../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
@@ -34,6 +36,7 @@ import {
   SetupGuideWay,
   getMessageQueueSetupGuideWays,
   getProxmoxSetupGuideWays,
+  getXcpNgSetupGuideWays,
   getDatabaseSetupGuideWays,
   getHostSetupGuideWays,
   getVMwareSetupGuideWays,
@@ -315,6 +318,24 @@ export const SETUP_GUIDE_DOCUMENTATION_PRODUCTS: ReadonlyArray<SetupGuideDocumen
         "Storage",
         "Backup coverage",
         "Replication",
+      ],
+    }),
+    product({
+      // #10995: one agent beside each Xen Orchestra reads every pool it manages.
+      name: "XcpNg",
+      translations: XCP_NG_DOCUMENTATION_TRANSLATIONS,
+      translationsConstant: "XCP_NG_DOCUMENTATION_TRANSLATIONS",
+      ways: getXcpNgSetupGuideWays,
+      options: XCP_NG_CONNECT_METHODS,
+      dashboardWords: [
+        "XCP-ng",
+        "Agent Version",
+        // A pool's tabs, which the collected-data table's categories are.
+        "Hosts",
+        "VMs",
+        "Storage",
+        // The guide's own topic, named from the prerequisites and Troubleshooting.
+        "Xen Orchestra's certificate",
       ],
     }),
     product({

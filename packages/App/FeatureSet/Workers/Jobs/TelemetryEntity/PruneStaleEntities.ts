@@ -88,6 +88,12 @@ const ENTITY_TTL_HOURS: ReadonlyMap<EntityType, number> = new Map<
   [EntityType.StorageArray, 30 * 24],
   [EntityType.VMwareVCenter, 30 * 24],
   /*
+   * An XCP-ng pool is a long-lived root identity like a vCenter, keyed on
+   * its XAPI UUID; its hosts, VMs and storage repositories are inventory
+   * rows, not entities.
+   */
+  [EntityType.XcpNgPool, 30 * 24],
+  /*
    * Discovered from `docker.swarm.cluster.name` on agent telemetry, so it is
    * bumped like any other discovered row and has to age out like one. It was
    * simply missed when the Docker Swarm types were added after this map, and

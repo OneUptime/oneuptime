@@ -142,7 +142,7 @@ describe("what the picker lists", () => {
     expect(types(getDashboardPickerTemplates())).not.toContain(
       DashboardTemplateType.Blank,
     );
-    expect(LISTED.length).toBe(16);
+    expect(LISTED.length).toBe(17);
   });
 
   test("a template's id is its type, which the server builds it by", () => {

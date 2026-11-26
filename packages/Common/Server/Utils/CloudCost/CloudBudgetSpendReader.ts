@@ -5,6 +5,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import { CloudBudgetScope } from "../../../Types/Cloud/CloudBudget";
+import { CloudCostBasis } from "../../../Types/Cloud/CloudCostBasis";
 import {
   addUtcDays,
   startOfUtcDay,
@@ -64,6 +65,9 @@ import {
  *     days are judged on its rules' own costs, before shared costs and line
  *     items, which are spread evenly and never spike on their own.
  *
+ * Every sum is on the read's cost basis (#11007): billed, amortized or net,
+ * as the budget watches it.
+ *
  * By the day (a window of up to three months: a month and the week before
  * it) or by the month (up to the 400 days the costs are kept).
  *
@@ -79,6 +83,11 @@ export interface CloudBudgetScopeRead {
   filterRules?: Array<CloudCostRule> | null | undefined;
   // The currency read: only costs billed in it count.
   currency: string;
+  /*
+   * The cost summed (#11007): billed, amortized or net - the budget's
+   * basis. The billed cost when absent.
+   */
+  basis?: CloudCostBasis | undefined;
   props: DatabaseCommonInteractionProps;
   // Today, for a read of the month so far (tests set it).
   now?: Date | undefined;
@@ -119,10 +128,10 @@ export function dailyServiceAmountsStatement(
   ctx: CloudCostAllocationSqlContext,
   data: { groupNumber: number; extraWhere?: Statement | undefined },
 ): Statement {
-  return SQL`SELECT bucket, key, sum(cost * weight) AS amount FROM (SELECT `
+  return SQL`SELECT bucket, key, sum(spend * weight) AS amount FROM (SELECT `
     .append(groupNumberExpression(ctx))
     .append(
-      ` AS groupNumber, toString(toDate(day, 'UTC')) AS bucket, ${SERVICE_SQL} AS key, cost, weight FROM (`,
+      ` AS groupNumber, toString(toDate(day, 'UTC')) AS bucket, ${SERVICE_SQL} AS key, spend, weight FROM (`,
     )
     .append(sourceStatement(ctx, data.extraWhere))
     .append(
@@ -203,6 +212,7 @@ export class CloudBudgetSpendReaderClass {
       where,
       groups,
       facts,
+      basis: read.basis,
     };
 
     return {
@@ -299,6 +309,7 @@ export class CloudBudgetSpendReaderClass {
       endDate: data.lastDay,
       interval: data.interval,
       currency: data.read.currency,
+      basis: data.read.basis,
       compareWithPrevious: false,
       props: data.read.props,
       now: data.read.now,
@@ -594,6 +605,7 @@ export class CloudBudgetSpendReaderClass {
         where,
         groups,
         facts,
+        basis: read.basis,
       }),
       groupNumber,
     };

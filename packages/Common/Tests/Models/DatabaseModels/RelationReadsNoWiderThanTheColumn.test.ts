@@ -423,6 +423,17 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
         "name",
         "otelCollectorStatus",
       ],
+      XcpNgPool: [
+        "agentLastSeenAt",
+        "agentVersion",
+        "description",
+        "lastSeenAt",
+        "name",
+        "otelCollectorStatus",
+        "poolIdentifier",
+        "reportedName",
+        "xenOrchestraName",
+      ],
     },
   },
   {

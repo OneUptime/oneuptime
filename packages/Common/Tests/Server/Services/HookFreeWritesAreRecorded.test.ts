@@ -488,6 +488,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
   },
+  "packages/Common/Server/Services/XcpNgPoolService.ts": {
+    "Service.attachLabels XcpNgPool": Why.Reported,
+  },
   "packages/Common/Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog.ts": {
     "AiAgentResetAuditLog.record *": Why.Recorded,
   },
@@ -540,6 +543,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    */
   "packages/Common/Server/Utils/Activation/TelemetryMilestoneBackfill.ts": {
     "(module) ProjectMilestone": Why.Migration,
+  },
+  // Each commitment as the provider reports it, kept as each read arrives (#11011).
+  "packages/Common/Server/Utils/CloudConnection/CloudCommitmentWriter.ts": {
+    "CloudCommitmentWriter.write CloudCommitment": Why.Reported,
   },
   "packages/Common/Server/Utils/CloudConnection/CloudConnectionResourceSync.ts":
     {

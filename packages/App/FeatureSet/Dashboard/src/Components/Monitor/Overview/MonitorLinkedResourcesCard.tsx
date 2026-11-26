@@ -80,6 +80,10 @@ const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
                 name: true,
                 _id: true,
               },
+              xcpNgPools: {
+                name: true,
+                _id: true,
+              },
               cephClusters: {
                 name: true,
                 _id: true,
@@ -125,6 +129,7 @@ const MonitorLinkedResourcesCard: FunctionComponent<ComponentProps> = (
                     proxmoxClusters={item.proxmoxClusters || []}
                     openStackClouds={item.openStackClouds || []}
                     vmwareVCenters={item.vmwareVCenters || []}
+                    xcpNgPools={item.xcpNgPools || []}
                     cephClusters={item.cephClusters || []}
                     storageArrays={item.storageArrays || []}
                     dockerSwarmClusters={item.dockerSwarmClusters || []}

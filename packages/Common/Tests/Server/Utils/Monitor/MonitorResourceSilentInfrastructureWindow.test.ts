@@ -448,6 +448,7 @@ describe("MonitorResourceUtil.isSilentInfrastructureWindow", () => {
       MonitorType.Proxmox,
       MonitorType.OpenStack,
       MonitorType.VMware,
+      MonitorType.XcpNg,
       MonitorType.Ceph,
       MonitorType.StorageArray,
       MonitorType.IoTDevice,

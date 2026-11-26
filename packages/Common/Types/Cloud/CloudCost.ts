@@ -3,6 +3,7 @@ import {
   CloudCommitmentSummary,
   readCloudCommitmentSummary,
 } from "./CloudCommitments";
+import { CloudCostBasis, isCloudCostBasis } from "./CloudCostBasis";
 
 /*
  * WHAT A CLOUD ACCOUNT COSTS, AND HOW TO SPEND LESS.
@@ -13,8 +14,10 @@ import {
  * where the cloud says it, resource (CloudCost, a table of their own). It
  * reads the ways to spend less from each cloud's own recommender - AWS
  * Cost Optimization Hub, Azure Advisor, Google Cloud's Recommender - as
- * CloudCostRecommendation rows. Costs are before credits and refunds: what
- * the resources cost, not what a promotion paid for.
+ * CloudCostRecommendation rows. Each cost is kept on three bases
+ * (CloudCostBasis): billed, before credits and refunds; amortized, its
+ * commitments spread over what they cover; and net, less credits, refunds
+ * and discounts.
  *
  * Shared by the server (the lanes that read them, the budgets that watch
  * them) and the Dashboard (the Cloud Overview, Costs and Savings, an
@@ -118,8 +121,110 @@ export interface CloudAccountCostSummary {
    * later.
    */
   nextReadAt?: string | undefined;
+  /*
+   * The same figures on the amortized and net bases (CloudCostBasis), from
+   * the same read: the figures above are billed. Absent from a summary
+   * written before the bases, until the account's costs are read again -
+   * its pages then show the billed figures in every basis.
+   */
+  bases?: CloudCostSummaryBases | undefined;
   // When the costs were last read.
   readAt: string;
+}
+
+/*
+ * An account's figures on one basis: what its summary says of the month,
+ * last month, the last 30 days and the services that cost the most, and
+ * its unusual days - a day that cost far more than usual on the billed
+ * basis (a commitment bought up front) may be an ordinary day amortized.
+ */
+export interface CloudCostBasisFigures {
+  monthToDate: number;
+  lastMonth: number;
+  monthFullDays: number;
+  lastMonthToDate: number;
+  projectedMonth: number;
+  last30Days: number;
+  topServices: Array<{ service: string; amount: number }>;
+  latestDay?: string | undefined;
+  anomalies?: Array<CloudCostAnomaly> | undefined;
+}
+
+// The amortized and net figures of a summary.
+export type CloudCostSummaryBases = Partial<
+  Record<CloudCostBasis.Amortized | CloudCostBasis.Net, CloudCostBasisFigures>
+>;
+
+// The figures a summary keeps for a basis, taken from a summary on it.
+export function toCloudCostBasisFigures(
+  summary: CloudAccountCostSummary,
+): CloudCostBasisFigures {
+  return {
+    monthToDate: summary.monthToDate,
+    lastMonth: summary.lastMonth,
+    monthFullDays: summary.monthFullDays,
+    lastMonthToDate: summary.lastMonthToDate,
+    projectedMonth: summary.projectedMonth,
+    last30Days: summary.last30Days,
+    topServices: summary.topServices,
+    ...(summary.latestDay ? { latestDay: summary.latestDay } : {}),
+    ...(summary.anomalies && summary.anomalies.length > 0
+      ? { anomalies: summary.anomalies }
+      : {}),
+  };
+}
+
+/*
+ * Whether a summary holds figures on a basis: billed always; amortized and
+ * net once its costs were read with them.
+ */
+export function hasCloudCostBasisFigures(
+  summary: CloudAccountCostSummary | null,
+  basis: CloudCostBasis,
+): boolean {
+  if (!summary) {
+    return false;
+  }
+
+  if (basis === CloudCostBasis.Billed) {
+    return true;
+  }
+
+  return Boolean(summary.bases?.[basis]);
+}
+
+/*
+ * A summary on one basis: its figures swapped for the basis's, where it
+ * holds them - the billed ones otherwise (a summary written before the
+ * bases), so a page and a budget always have figures to read. Everything
+ * else (its state, currency, tags) is the summary's own.
+ */
+export function getCloudAccountCostSummaryInBasis(
+  summary: CloudAccountCostSummary,
+  basis: CloudCostBasis,
+): CloudAccountCostSummary {
+  if (basis === CloudCostBasis.Billed) {
+    return summary;
+  }
+
+  const figures: CloudCostBasisFigures | undefined = summary.bases?.[basis];
+
+  if (!figures) {
+    return summary;
+  }
+
+  return {
+    ...summary,
+    monthToDate: figures.monthToDate,
+    lastMonth: figures.lastMonth,
+    monthFullDays: figures.monthFullDays,
+    lastMonthToDate: figures.lastMonthToDate,
+    projectedMonth: figures.projectedMonth,
+    last30Days: figures.last30Days,
+    topServices: figures.topServices,
+    latestDay: figures.latestDay || summary.latestDay,
+    anomalies: figures.anomalies,
+  };
 }
 
 // A tag the costs carry, and what the costs that carry it cost.
@@ -555,6 +660,37 @@ export function readCloudAccountCostSummary(
     return null;
   }
 
+  const bases: CloudCostSummaryBases | undefined = readCloudCostSummaryBases(
+    record["bases"],
+  );
+
+  return {
+    state: state as CloudCostState,
+    message:
+      typeof record["message"] === "string" && record["message"]
+        ? record["message"]
+        : undefined,
+    currency:
+      typeof record["currency"] === "string" && record["currency"]
+        ? record["currency"]
+        : CLOUD_COST_DEFAULT_CURRENCY,
+    ...readCloudCostBasisFigures(record),
+    tagKeys: readCloudCostTagKeys(record["tagKeys"]),
+    resources: readCloudResourceCostsStatus(record["resources"]),
+    nextReadAt:
+      typeof record["nextReadAt"] === "string" &&
+      Number.isFinite(Date.parse(record["nextReadAt"]))
+        ? record["nextReadAt"]
+        : undefined,
+    ...(bases ? { bases } : {}),
+    readAt: typeof record["readAt"] === "string" ? record["readAt"] : "",
+  };
+}
+
+// A summary's figures on one basis, read back from what was stored.
+function readCloudCostBasisFigures(
+  record: Record<string, unknown>,
+): CloudCostBasisFigures {
   const topServices: Array<{ service: string; amount: number }> = Array.isArray(
     record["topServices"],
   )
@@ -577,15 +713,6 @@ export function readCloudAccountCostSummary(
     : [];
 
   return {
-    state: state as CloudCostState,
-    message:
-      typeof record["message"] === "string" && record["message"]
-        ? record["message"]
-        : undefined,
-    currency:
-      typeof record["currency"] === "string" && record["currency"]
-        ? record["currency"]
-        : CLOUD_COST_DEFAULT_CURRENCY,
     monthToDate: readNumber(record["monthToDate"]),
     lastMonth: readNumber(record["lastMonth"]),
     monthFullDays: readNumber(record["monthFullDays"]),
@@ -607,15 +734,37 @@ export function readCloudAccountCostSummary(
             return anomaly as CloudCostAnomaly;
           })
       : undefined,
-    tagKeys: readCloudCostTagKeys(record["tagKeys"]),
-    resources: readCloudResourceCostsStatus(record["resources"]),
-    nextReadAt:
-      typeof record["nextReadAt"] === "string" &&
-      Number.isFinite(Date.parse(record["nextReadAt"]))
-        ? record["nextReadAt"]
-        : undefined,
-    readAt: typeof record["readAt"] === "string" ? record["readAt"] : "",
   };
+}
+
+/*
+ * A summary's amortized and net figures, read back: each well-formed one,
+ * or none - a summary written before the bases has none.
+ */
+function readCloudCostSummaryBases(
+  value: unknown,
+): CloudCostSummaryBases | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const bases: CloudCostSummaryBases = {};
+
+  for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+    if (
+      !isCloudCostBasis(key) ||
+      key === CloudCostBasis.Billed ||
+      !entry ||
+      typeof entry !== "object" ||
+      Array.isArray(entry)
+    ) {
+      continue;
+    }
+
+    bases[key] = readCloudCostBasisFigures(entry as Record<string, unknown>);
+  }
+
+  return Object.keys(bases).length > 0 ? bases : undefined;
 }
 
 // A summary's tags, read back: the well-formed ones, as they were kept.
@@ -708,6 +857,27 @@ export interface CloudCostTotals {
   accountsFailed: number;
   // Accounts whose first costs wait their turn: their cloud limits how fast they are read.
   accountsQueued: number;
+}
+
+/*
+ * Several accounts' summaries as one on a basis: each account's figures on
+ * it (its billed ones until its costs are read with the bases).
+ */
+export function totalCloudCostsInBasis(
+  summaries: Array<CloudAccountCostSummary | null>,
+  basis: CloudCostBasis,
+): CloudCostTotals {
+  return totalCloudCosts(
+    summaries.map(
+      (
+        summary: CloudAccountCostSummary | null,
+      ): CloudAccountCostSummary | null => {
+        return summary
+          ? getCloudAccountCostSummaryInBasis(summary, basis)
+          : null;
+      },
+    ),
+  );
 }
 
 export function totalCloudCosts(

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64602,
+    "keys": 65322,
     "untranslated": 8328
   },
   "sameAsEnglish": [
@@ -583,6 +583,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
@@ -703,6 +705,7 @@
     "nova-compute",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -850,6 +853,7 @@
     "{{count}} hit",
     "{{count}} hits",
     "{{count}} host",
+    "{{count}} host is offline",
     "{{count}} hosts",
     "{{count}} hunt",
     "{{count}} hunts",

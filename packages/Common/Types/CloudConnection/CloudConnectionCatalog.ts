@@ -1,4 +1,8 @@
 import { CloudProvider } from "../Cloud/CloudPlatform";
+import {
+  CloudSavingsActionsAccess,
+  getCloudSavingsActionsAccess,
+} from "../Cloud/CloudSavingsAction";
 import IconProp from "../Icon/IconProp";
 import ProviderLogo from "../ProviderLogo/ProviderLogo";
 
@@ -439,6 +443,61 @@ function resourceCostsField(): CloudConnectionField {
   };
 }
 
+/*
+ * The setting that records whether OneUptime may act on a saving through
+ * the connection, as its setup command granted it (#11010): nothing ("off",
+ * every connection until someone picks otherwise), stopping and starting
+ * instances and databases and cleaning up what is idle ("clean-up"), or
+ * that and resizing ("resize"), a restart. Each change is approved by an
+ * owner of the resource unless an AI rule for savings allows it
+ * (Types/Cloud/CloudSavingsAction); the command grants exactly what the
+ * choice needs (CloudSavingsActionsAccess).
+ */
+export const SAVINGS_ACTIONS_FIELD_KEY: string = "savingsActions";
+
+export type CloudConnectionSavingsActions = CloudSavingsActionsAccess;
+
+// A connection's choice: its setting when it is one of the levels, else off.
+export function getCloudConnectionSavingsActions(
+  value: unknown,
+): CloudSavingsActionsAccess {
+  return getCloudSavingsActionsAccess(value);
+}
+
+// Whether a connection lets OneUptime act on savings at all.
+export function isCloudConnectionSavingsActionsOn(value: unknown): boolean {
+  return getCloudSavingsActionsAccess(value) !== CloudSavingsActionsAccess.Off;
+}
+
+/*
+ * Folded under the command, as every setting that lets OneUptime write is:
+ * the connection changes nothing in the account until someone opts in.
+ */
+function savingsActionsField(): CloudConnectionField {
+  return {
+    key: SAVINGS_ACTIONS_FIELD_KEY,
+    title: "Savings actions",
+    description:
+      "Lets OneUptime act on savings an owner approves: stop idle instances, delete unattached disks, release idle addresses. The command changes with it.",
+    type: "dropdown",
+    required: false,
+    options: [
+      { label: "Off", value: CloudSavingsActionsAccess.Off },
+      {
+        label: "Stop, start and clean up",
+        value: CloudSavingsActionsAccess.CleanUp,
+      },
+      {
+        label: "Stop, start, clean up and resize",
+        value: CloudSavingsActionsAccess.Resize,
+      },
+    ],
+    defaultValue: CloudSavingsActionsAccess.Off,
+    isAdvanced: true,
+    changesSetupCommand: true,
+  };
+}
+
 function readIntervalField(defaultMinutes: number): CloudConnectionField {
   return {
     key: READ_INTERVAL_FIELD_KEY,
@@ -557,6 +616,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
       },
       readIntervalField(10),
       resourceCostsField(),
+      savingsActionsField(),
       dataSecurityField(),
       dataSecurityResponseField(),
       wafBlocklistField(),
@@ -645,6 +705,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         isAdvanced: true,
       },
       readIntervalField(5),
+      savingsActionsField(),
       dataSecurityField(),
       dataSecurityResponseField(),
       cloudWafBlocklistField({
@@ -732,6 +793,7 @@ export const CloudConnectionCatalog: Array<CloudConnectionDefinition> = [
         isAdvanced: true,
       },
       readIntervalField(5),
+      savingsActionsField(),
       dataSecurityField(),
       dataSecurityResponseField(),
       cloudWafBlocklistField({
