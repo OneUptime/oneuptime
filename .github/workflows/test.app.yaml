@@ -537,6 +537,7 @@ jobs:
               test-product-analytics-saved-views-ui
               test-feedback-questions-ui
               test-side-by-side-pages-ui
+              test-xcp-ng-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -815,6 +816,8 @@ jobs:
             output/playwright/resource-overviews-ui/test-results
             output/playwright/proxmox-pages-ui/*.png
             output/playwright/proxmox-pages-ui/test-results
+            output/playwright/xcp-ng-pages-ui/*.png
+            output/playwright/xcp-ng-pages-ui/test-results
             output/playwright/openstack-pages-ui/*.png
             output/playwright/openstack-pages-ui/test-results
             output/playwright/kubernetes-pages-ui/*.png
