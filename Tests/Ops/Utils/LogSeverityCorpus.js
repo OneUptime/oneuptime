@@ -1719,6 +1719,95 @@ const CASES = [
   },
 
   // ---------------------------------------------------------------------
+  // The corpus ContainerAgentLogSeverity.test.js carried before #10972,
+  // kept whole: every level-field name, the bracket aliases, logfmt in each
+  // position, and a level that is the last thing on the line.
+  // ---------------------------------------------------------------------
+  ...[
+    [
+      '[2026-08-31 07:25:04] app.INFO: user logged in {"id":7} []',
+      "Information",
+    ],
+    ["[2026-08-31 07:25:04] request.WARNING: slow response", "Warning"],
+    ["[2026-08-31 07:25:04] app.ERROR: connection refused", "Error"],
+    ["[2026-08-31 07:25:04] doctrine.DEBUG: SELECT 1", "Debug"],
+    ["[2026-08-31 07:25:04] php.CRITICAL: out of memory", "Error"],
+    ["[2026-08-31 07:25:04] app.ALERT: replica lag 900s", "Fatal"],
+    ["[2026-08-31 07:25:04] app.EMERGENCY: site is down", "Fatal"],
+    ["2026/08/31 07:25:04 [emerg] 1#1: bind() failed", "Fatal"],
+    ['{"level":"info","ts":1756628704.1,"msg":"started"}', "Information"],
+    ['{"level":"warn","ts":1756628704.1,"msg":"retrying"}', "Warning"],
+    ['{"level":"error","ts":1756628704.1,"msg":"conn refused"}', "Error"],
+    [
+      '{"time":"2026-08-31T07:25:04Z","level":"INFO","msg":"ready"}',
+      "Information",
+    ],
+    ["[ERROR] something bad happened", "Error"],
+    ["WARN: disk almost full", "Warning"],
+    ["2026-08-31 07:25:04 INFO starting up", "Information"],
+    ["[INFO] plugin/reload: Running configuration MD5", "Information"],
+    ["2026/08/31 07:25:04 [error] 12#12: *1 open() failed", "Error"],
+    ["2026-08-31 07:25:04,123 - myapp - INFO - ready", "Information"],
+    ["07:25:04.123 [main] INFO  c.e.App - started", "Information"],
+    ["info: Microsoft.Hosting.Lifetime[14]", "Information"],
+    ["level=info msg=ready", "Information"],
+    ["level=error msg=boom", "Error"],
+    ['level="error" msg=boom', "Error"],
+    ['time="2026-08-31T07:25:04Z" level=error msg=x', "Error"],
+    ["ts=2026-08-31T07:25:04Z caller=main.go:42 level=warn msg=x", "Warning"],
+    ["component=proxy level=error msg=x", "Error"],
+    ['{"severity":"ERROR","message":"boom"}', "Error"],
+    ['{"severity_text":"WARN","message":"x"}', "Warning"],
+    ['{"log.level":"warn","message":"x"}', "Warning"],
+    ['{"log_level":"debug","message":"x"}', "Debug"],
+    ['{"levelname":"DEBUG","msg":"x"}', "Debug"],
+    ["lvl=warn msg=x", "Warning"],
+    ["2026-08-31 07:25:04 ERROR", "Error"],
+    ["2026-08-31 07:25:04 ERROR\n", "Error"],
+    ["level=error", "Error"],
+    ["[WARN]", "Warning"],
+    ["[NOTICE] configuration reloaded", "Information"],
+    ["[CRIT] disk failing", "Error"],
+    ["[PANIC] goroutine died", "Fatal"],
+    ["[TRACE] entering handler", "Trace"],
+    ["[ERR] short alias", "Error"],
+    ["[FATAL] cannot bind port", "Fatal"],
+  ].map(([body, severity]) => {
+    return {
+      name: `before #10972: ${JSON.stringify(body)}`,
+      source: "documented",
+      from: "the corpus of ContainerAgentLogSeverity.test.js before #10972",
+      stream: "stdout",
+      body,
+      reader: "parse-severity-from-body",
+      severity,
+      before: severity,
+    };
+  }),
+  {
+    // That corpus pinned these two as unread, for want of a letter mapping
+    // and of a colour-code token. Both are read now.
+    name: "before #10972: klog, which it could not read",
+    source: "documented",
+    from: "the corpus of ContainerAgentLogSeverity.test.js before #10972",
+    stream: "stderr",
+    body: "I0831 07:25:04.123456       1 server.go:100] Serving",
+    reader: "parse-klog-severity",
+    severity: "Information",
+    before: "Error",
+  },
+  {
+    name: "before #10972: a colour-coded level, which it could not read",
+    source: "documented",
+    from: "the corpus of ContainerAgentLogSeverity.test.js before #10972",
+    stream: "stderr",
+    body: `${ESC}[32mINFO${ESC}[0m starting`,
+    reader: "parse-severity-from-body",
+    severity: "Information",
+    before: "Error",
+  },
+
+  // ---------------------------------------------------------------------
   // Formats the chain does not read, pinned so that the boundary is a
   // decision rather than an accident. On stdout they keep the stream's
   // INFO, on stderr no severity.
@@ -1801,6 +1890,26 @@ const PROSE = [
   "Thu Nov 26 04:02:18 UTC 2026 error budget recomputed",
   'thread "main" did not panic',
   "/app/x.py:3: this is not a warning category",
+  // And the lines the suite's corpus before #10972 pinned as no level: most
+  // of them ones the unanchored keyword scan once read as one.
+  "Server listening on port 8080",
+  "Listening and serving HTTP on :8080",
+  "POST /api/v1/errors 201 8.4ms",
+  "there were 3 errors",
+  "informational message",
+  "loaded config from /etc/app/warning.yaml",
+  "service.warning.example.com resolved",
+  '{"status":"ok","error":null,"took_ms":12}',
+  '{"ok":true,"errors":[],"warnings":[]}',
+  '{"event":"request.finished","status":200}',
+  "Connection error, retrying in 5s",
+  "Import finished with status: ERROR",
+  "An error occurred while doing the thing",
+  "failed to fetch: 3 errors occurred",
+  "Deprecation warning in module foo",
+  "the error rate is low",
+  "curl -sS http://x/ --level=info",
+  "npm notice New minor version of npm available!",
 ];
 
 module.exports = { CASES, PROSE };

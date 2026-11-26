@@ -401,10 +401,11 @@ validate` only proves each operator is well-formed. So the suite holds it to:
   real `LogSeverity`: stanza's built-in preset knows trace/debug/info/warn/
   warning/error/err/fatal and nothing else, and an unmapped text leaves the
   record **Unspecified** rather than erroring.
-- **Behaviour.** The corpus in `Utils/LogSeverityCorpus.js` — 165 real lines,
-  most captured from the programs themselves (Vault, the collector,
+- **Behaviour.** The corpus in `Utils/LogSeverityCorpus.js` — 209 log lines:
+  61 captured from the programs themselves (Vault, the collector,
   kube-state-metrics, PostgreSQL, Prometheus, nginx, Python, Node, Logback and
-  java.util.logging), the rest in their documented layouts — goes through each
+  java.util.logging), the rest in their documented layouts, this suite's
+  corpus from before #10972 among them — goes through each
   config's own operators the way stanza runs them (`classify` in
   `Utils/StanzaSeverity.js`), and each line must be read by the reader the
   corpus names and stored at its level. Prose that merely mentions a level word

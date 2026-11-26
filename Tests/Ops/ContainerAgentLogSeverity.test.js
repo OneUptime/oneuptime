@@ -60,7 +60,7 @@
  *   3. coverage   — every text a parser can capture, and every level an `add`
  *                   writes, resolves to a real OTel severity number;
  *   4. ingest     — every number the chain emits is a real LogSeverity;
- *   5. behaviour  — the corpus (Utils/LogSeverityCorpus.js: real lines, most
+ *   5. behaviour  — the corpus (Utils/LogSeverityCorpus.js: real lines, many
  *                   captured from the programs themselves) reads as a human
  *                   reads it, through each config's own operators, and prose
  *                   that merely mentions a level word is not read;
@@ -1389,6 +1389,37 @@ describe("agent-log-severity-behaviour.sh", () => {
     expect(helpers).toContain(
       "severity_number != SEVERITY_NUMBER_UNSPECIFIED and severity_number < SEVERITY_NUMBER_%s",
     );
+  });
+
+  test("reads only the finished lines of the exporter's file, which it writes in pieces", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "log-severity-"));
+    const file = path.join(dir, "logs.json");
+    const line = JSON.stringify({
+      resourceLogs: [
+        {
+          resource: {
+            attributes: [
+              { key: "k8s.pod.name", value: { stringValue: "case-0" } },
+            ],
+          },
+          scopeLogs: [{ logRecords: [{ severityNumber: 9 }] }],
+        },
+      ],
+    });
+
+    try {
+      // A finished line, and one the collector is still writing.
+      fs.writeFileSync(file, `${line}\n${line.slice(0, 40)}`);
+      expect(behaviour.exported(file).get("case-0")).toHaveLength(1);
+
+      // A finished line that is not JSON is a broken export, not a race.
+      fs.writeFileSync(file, `${line}\n${line.slice(0, 40)}\n`);
+      expect(() => {
+        return behaviour.exported(file);
+      }).toThrow();
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test("reads OneUptime's level off an exported record by its number, as ingest does", () => {

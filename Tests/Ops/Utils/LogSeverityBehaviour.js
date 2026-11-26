@@ -257,12 +257,20 @@ function severityOf(record) {
   return "Unspecified";
 }
 
-/** The exported records, keyed by the case id each one's resource carries. */
+/**
+ * The exported records, keyed by the case id each one's resource carries.
+ *
+ * The file exporter writes one JSON line per batch, and a long line reaches
+ * the file in pieces: read while the collector runs, the last line can be
+ * unfinished. Only finished lines are read, so the count taken while waiting
+ * never chokes on one; a finished line that is not JSON still throws.
+ */
 function exported(file) {
   const byId = new Map();
   const text = fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+  const finished = text.slice(0, text.lastIndexOf("\n") + 1);
 
-  for (const line of text.split("\n").filter(Boolean)) {
+  for (const line of finished.split("\n").filter(Boolean)) {
     for (const resourceLogs of JSON.parse(line).resourceLogs || []) {
       const attributes = new Map(
         (resourceLogs.resource.attributes || []).map((attribute) => {

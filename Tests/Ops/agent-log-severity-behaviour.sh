@@ -2,7 +2,7 @@
 #
 # Run the agents' log severity chain in the real collector, with each config
 # exactly as it ships, over the corpus of Tests/Ops/Utils/LogSeverityCorpus.js
-# (real log lines, most of them captured from the programs that write them),
+# (real log lines, many of them captured from the programs that write them),
 # and check the level every record leaves with.
 #
 # Why this exists (issue #10972): container runtimes record no severity, so
@@ -92,6 +92,9 @@ run_collector() {
     previous="${count}"
   done
 
+  # Stopped before it is judged, so the exporter has written all it holds
+  # and the file is whole.
+  docker stop --time 20 "${RUN_ID}-${label}" >/dev/null 2>&1 || true
   docker logs "${RUN_ID}-${label}" >"${dir}/collector.log" 2>&1 || true
 
   if ! node "${HELPER}" check "${dir}/logs/../cases.json" "${dir}/out/logs.json" "${dir}/collector.log" "$@"; then

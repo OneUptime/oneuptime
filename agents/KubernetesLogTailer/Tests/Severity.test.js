@@ -15,7 +15,7 @@ const severityTextToNumber = OTLPBatcherModule.severityTextToNumber;
 const SEVERITY_READERS = OTLPBatcherModule.SEVERITY_READERS;
 
 /*
- * The corpus the collector chain is tested with (real lines, most of them
+ * The corpus the collector chain is tested with (real lines, many of them
  * captured from the programs that write them), so the two Kubernetes log
  * modes are held to the same lines.
  */
