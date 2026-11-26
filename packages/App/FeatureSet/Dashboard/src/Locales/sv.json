@@ -65870,6 +65870,7 @@
   "{{amount}} at on-demand rates": "{{amount}} till on demand-priser",
   "{{count}} end within 90 days": "{{count}} upphör inom 90 dagar",
   "{{count}} end within 90 days_one": "{{count}} upphör inom 90 dagar",
+  "Another repository": "Ett annat repository",
   "Allowed Values": "Tillåtna värden",
   "An alert is raised for each account new resources without required tags are found in.": "Ett larm utlöses för varje konto där nya resurser utan obligatoriska taggar hittas.",
   "Any value": "Valfritt värde",

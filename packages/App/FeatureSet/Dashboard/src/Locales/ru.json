@@ -65870,6 +65870,7 @@
   "{{amount}} at on-demand rates": "{{amount}} по ценам по требованию",
   "{{count}} end within 90 days": "Заканчиваются в течение 90 дней: {{count}}",
   "{{count}} end within 90 days_one": "{{count}} заканчивается в течение 90 дней",
+  "Another repository": "Другой репозиторий",
   "Allowed Values": "Допустимые значения",
   "An alert is raised for each account new resources without required tags are found in.": "Оповещение создаётся для каждого аккаунта, в котором найдены новые ресурсы без обязательных тегов.",
   "Any value": "Любое значение",

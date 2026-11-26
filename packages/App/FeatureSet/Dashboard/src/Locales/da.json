@@ -65870,6 +65870,7 @@
   "{{amount}} at on-demand rates": "{{amount}} til on demand-priser",
   "{{count}} end within 90 days": "{{count}} udløber inden for 90 dage",
   "{{count}} end within 90 days_one": "{{count}} udløber inden for 90 dage",
+  "Another repository": "Et andet repository",
   "Allowed Values": "Tilladte værdier",
   "An alert is raised for each account new resources without required tags are found in.": "Der udløses en advarsel for hver konto, hvor der findes nye ressourcer uden påkrævede tags.",
   "Any value": "Enhver værdi",

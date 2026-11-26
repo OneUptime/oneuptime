@@ -65870,6 +65870,7 @@
   "{{amount}} at on-demand rates": "{{amount}} ऑन-डिमांड दरों पर",
   "{{count}} end within 90 days": "{{count}} 90 दिनों के भीतर खत्म होती हैं",
   "{{count}} end within 90 days_one": "{{count}} 90 दिनों के भीतर खत्म होती है",
+  "Another repository": "दूसरी रिपॉज़िटरी",
   "Allowed Values": "अनुमत मान",
   "An alert is raised for each account new resources without required tags are found in.": "हर उस खाते के लिए एक अलर्ट बनाया जाता है जिसमें आवश्यक टैग के बिना नए संसाधन मिलते हैं।",
   "Any value": "कोई भी मान",

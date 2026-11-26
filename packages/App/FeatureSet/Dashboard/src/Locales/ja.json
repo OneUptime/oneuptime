@@ -65870,6 +65870,7 @@
   "{{amount}} at on-demand rates": "オンデマンド料金で {{amount}}",
   "{{count}} end within 90 days": "90 日以内に終了: {{count}}",
   "{{count}} end within 90 days_one": "90 日以内に終了: {{count}}",
+  "Another repository": "別のリポジトリ",
   "Allowed Values": "許可する値",
   "An alert is raised for each account new resources without required tags are found in.": "必須タグのない新しいリソースが見つかったアカウントごとにアラートを発生させます。",
   "Any value": "任意の値",

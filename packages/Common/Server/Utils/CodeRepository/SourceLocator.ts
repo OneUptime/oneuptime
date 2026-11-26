@@ -17,6 +17,7 @@ import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import CodeRepositoryType from "../../../Types/CodeRepository/CodeRepositoryType";
 import { CodeHost } from "../../../Types/CodeRepository/CodeHost";
+import { isCodeReadableRepository } from "../../../Types/CodeRepository/CodeReadableRepository";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import ObjectID from "../../../Types/ObjectID";
 
@@ -375,16 +376,22 @@ export default class SourceLocator {
           ? summaries.get(repository.id.toString())
           : undefined;
 
+        /*
+         * The one rule of whose code OneUptime reads
+         * (CodeReadableRepository): the one Fix with AI's pickers search by,
+         * so they offer exactly what is found here (#11076). It had a copy
+         * of its own.
+         */
         return Boolean(
           repository.id &&
-            repository.organizationName &&
-            repository.repositoryName &&
             summary &&
-            summary.state === CodeHostConnectionState.Connected &&
-            summary.isReachableFromServer &&
-            CodeHost.canReadRepositoryCode({
-              type: summary.provider,
-              repositoryUrl: repository.repositoryUrl?.toString(),
+            isCodeReadableRepository({
+              organizationName: repository.organizationName,
+              repositoryName: repository.repositoryName,
+              repositoryUrl: repository.repositoryUrl,
+              provider: summary.provider,
+              isConnected: summary.state === CodeHostConnectionState.Connected,
+              isReachableFromServer: summary.isReachableFromServer,
             }),
         );
       })

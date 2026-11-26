@@ -65870,6 +65870,7 @@
   "{{amount}} at on-demand rates": "按需费率下 {{amount}}",
   "{{count}} end within 90 days": "90 天内结束：{{count}}",
   "{{count}} end within 90 days_one": "90 天内结束：{{count}}",
+  "Another repository": "另一个代码仓库",
   "Allowed Values": "允许的值",
   "An alert is raised for each account new resources without required tags are found in.": "在每个发现了缺少必需标记的新资源的账户中触发一条警报。",
   "Any value": "任意值",

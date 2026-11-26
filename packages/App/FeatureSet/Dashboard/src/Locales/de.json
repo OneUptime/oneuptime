@@ -65870,6 +65870,7 @@
   "{{amount}} at on-demand rates": "{{amount}} zu On-Demand-Preisen",
   "{{count}} end within 90 days": "{{count}} enden innerhalb von 90 Tagen",
   "{{count}} end within 90 days_one": "{{count}} endet innerhalb von 90 Tagen",
+  "Another repository": "Anderes Repository",
   "Allowed Values": "Erlaubte Werte",
   "An alert is raised for each account new resources without required tags are found in.": "Für jedes Konto, in dem neue Ressourcen ohne erforderliche Tags gefunden werden, wird eine Warnung ausgelöst.",
   "Any value": "Beliebiger Wert",
