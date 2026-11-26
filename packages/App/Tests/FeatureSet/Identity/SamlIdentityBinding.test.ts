@@ -138,6 +138,12 @@ jest.mock("../../../FeatureSet/Identity/Utils/SsoTeamMembership", () => {
       addToTeams: (...args: Array<unknown>): unknown => {
         return addToTeams(...args);
       },
+      // Every team the provider names is its project's own (#11149).
+      getProjectTeams: (data: {
+        teams?: Array<unknown> | null | undefined;
+      }): Promise<Array<unknown>> => {
+        return Promise.resolve(data.teams || []);
+      },
     },
   };
 });

@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Test this OIDC provider",
   "Attach": "Attach",
   "Attached Projects": "Attached Projects",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.",
   "No projects attached to this provider.": "No projects attached to this provider.",
   "Select Project": "Select Project",
   "Runs JavaScript steps and AI code fixes for every project.": "Runs JavaScript steps and AI code fixes for every project.",
@@ -4615,5 +4615,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects."
 }

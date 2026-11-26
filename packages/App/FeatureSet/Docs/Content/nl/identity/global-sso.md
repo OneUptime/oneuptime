@@ -78,7 +78,7 @@ flowchart TB
 
 - **Geen projecten gekoppeld (alle projecten / eerst uitnodigen):** gebruikers kunnen zich met de provider aanmelden en **elk project waar ze al lid van zijn** bereiken. Nieuwe gebruikers worden **niet** automatisch aangemaakt — een gebruiker moet eerst voor een project worden uitgenodigd. Gebruik dit voor bedrijfsbrede SSO als lidmaatschappen elders worden beheerd.
 
-- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Gekoppelde projecten** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en bij de eerste aanmelding toegevoegd aan de standaardteams. Een gekoppeld project begint met zijn ledenteam; kies andere teams als nieuwkomers met andere toegang moeten beginnen. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
+- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Gekoppelde projecten** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en toegevoegd aan de standaardteams: nieuwkomers bij hun eerste aanmelding, en wie al een account heeft, zoals een account dat u met de hand hebt aangemaakt, bij de volgende. Een gekoppeld project begint met zijn ledenteam; kies andere teams als nieuwkomers met andere toegang moeten beginnen. Een gekoppeld project zonder teams voegt niemand toe. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
 
 Wie al lid is van een gekoppeld project, houdt daar zijn teams.
 
@@ -89,7 +89,7 @@ Twee vragen op de provider veranderen dit, ingeklapt onder **Meer velden**. Elke
 | **Mensen zonder account** | **Krijgen er een bij hun eerste aanmelding**: ze worden lid van de gekoppelde projecten; is er geen gekoppeld, dan moeten ze eerst worden uitgenodigd. **Moeten eerst worden uitgenodigd**: mensen moeten voor een project zijn uitgenodigd voordat ze zich met deze provider kunnen aanmelden, ook als er projecten zijn gekoppeld. |
 | **Waar deze aanmelding als SSO telt** | **Elk project**: projecten die SSO vereisen, accepteren een aanmelding met deze provider. **Alleen gekoppelde projecten**: aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. |
 
-Met **Elk project** voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd.
+Met **Elk project** voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd: geen van beide antwoorden voegt iemand aan een project toe. Zolang er geen project met teams is gekoppeld, staat op de pagina van de provider onder **Mensen zonder account** dat nog niemand nieuw zich kan aanmelden.
 
 ## E-mailadressen die uw identiteitsprovider niet heeft geverifieerd
 
@@ -166,7 +166,7 @@ Twee wijzigingen in wie zich kan aanmelden, worden na elkaar gecontroleerd. Word
 ## Problemen oplossen
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-De persoon heeft nog geen OneUptime-account en de provider maakt er geen aan: er zijn geen projecten aan gekoppeld, of **Mensen zonder account** staat op **Moeten eerst worden uitgenodigd**. Nodig de persoon uit voor een project of koppel een project aan de provider.
+De persoon heeft nog geen OneUptime-account en de provider maakt er geen aan: er is geen project met teams aan gekoppeld, of **Mensen zonder account** staat op **Moeten eerst worden uitgenodigd**. Nodig de persoon uit voor een project of koppel een project aan de provider, met de teams waar de persoon bij komt. Het log van de server zegt welke van de twee redenen het is, zonder de persoon te noemen.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"

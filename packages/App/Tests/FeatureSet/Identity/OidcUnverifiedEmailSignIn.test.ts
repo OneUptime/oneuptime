@@ -68,6 +68,19 @@ let storedRow: Record<string, unknown> | null = null;
 
 const recordFailedSignIn: jest.Mock = jest.fn();
 
+/*
+ * The teams a sign-in adds people to are read as the project's own
+ * (SsoTeamMembership.getProjectTeams, #11149): every team a provider names
+ * here is one (./SsoProjectTeamsStandIn).
+ */
+jest.mock("Common/Server/Services/TeamService", () => {
+  return (
+    jest.requireActual(
+      "./SsoProjectTeamsStandIn",
+    ) as typeof import("./SsoProjectTeamsStandIn")
+  ).everyTeamInItsProject();
+});
+
 jest.mock("Common/Server/Utils/AuditLog/FailedSignInAuditLog", () => {
   return {
     __esModule: true,
