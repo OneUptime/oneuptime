@@ -299,10 +299,8 @@ describe("a pick that is gone, or archived", () => {
       }),
     );
 
-    const germanWords: Record<string, string> = germanLocale as Record<
-      string,
-      string
-    >;
+    const germanWords: Record<string, string> =
+      germanLocale as unknown as Record<string, string>;
 
     expect(
       withoutIsolateMarks(
