@@ -90,6 +90,7 @@ import useBulkOwnerActions from "Common/UI/Components/BulkUpdate/BulkOwnerAction
 import useBulkArchiveActions from "Common/UI/Components/BulkUpdate/BulkArchiveActions";
 import useBulkOidTemplateActions from "../../Components/NetworkDevice/useBulkOidTemplateActions";
 import useBulkCreatePingMonitors from "../../Components/NetworkDevice/useBulkCreatePingMonitors";
+import useBulkCreateDeviceMonitors from "../../Components/NetworkDevice/DeviceMonitorCreation/useBulkCreateDeviceMonitors";
 import useBulkSwitchToProbePolling from "../../Components/NetworkDevice/useBulkSwitchToProbePolling";
 import useBulkSnmpCredentialProfileActions from "../../Components/NetworkDevice/useBulkSnmpCredentialProfileActions";
 import useBulkShortenDeviceNames from "../../Components/NetworkDevice/useBulkShortenDeviceNames";
@@ -727,6 +728,17 @@ const NetworkDevices: FunctionComponent<
   } = useBulkCreatePingMonitors();
 
   /*
+   * Monitors from a template for devices already added (issue #10990):
+   * however they came in, on the server, never a second one from the same
+   * template. What turns an estate added months ago into a monitored one
+   * without deleting and rediscovering it.
+   */
+  const {
+    bulkActions: createDeviceMonitorBulkActions,
+    modals: createDeviceMonitorBulkActionModals,
+  } = useBulkCreateDeviceMonitors();
+
+  /*
    * The other way out of "No monitor", and the better one for most of the
    * fleet: switch the device to probe polling, so the probe pings it — no
    * monitor, nothing billable. There is no migration doing this (only an
@@ -1103,6 +1115,7 @@ const NetworkDevices: FunctionComponent<
             ...snmpWalkBulkActions,
             ...snmpCredentialProfileBulkActions,
             ...switchToProbePollingBulkActions,
+            ...createDeviceMonitorBulkActions,
             ...createPingMonitorBulkActions,
             ...applyNamingRulesBulkActions,
             ...shortenDeviceNameBulkActions,
@@ -2183,6 +2196,7 @@ const NetworkDevices: FunctionComponent<
       {snmpCredentialProfileBulkActionModals}
       {switchToProbePollingBulkActionModals}
       {createPingMonitorBulkActionModals}
+      {createDeviceMonitorBulkActionModals}
     </Fragment>
   );
 };
