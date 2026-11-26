@@ -325,7 +325,11 @@ describe("a new XCP-ng monitor", () => {
       saved.metricViewConfig.queryConfigs[0]?.metricQueryData.filterData
         .aggegationType,
     ).toBe(MetricsAggregationType.Count);
-    expect(saved.rollingTime).toBe(RollingTime.Past5Minutes);
+    /*
+     * The template's own window, handed through: ten minutes, as every
+     * Stopped Reporting template counts its heartbeat.
+     */
+    expect(saved.rollingTime).toBe(RollingTime.Past10Minutes);
 
     expect(onCriteria).toHaveBeenCalledTimes(1);
     const criteria: MonitorCriteria = onCriteria.mock

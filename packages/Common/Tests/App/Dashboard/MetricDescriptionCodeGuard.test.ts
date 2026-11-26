@@ -18,6 +18,7 @@ import { getAllPodmanMetrics } from "../../../Types/Monitor/PodmanMetricCatalog"
 import { getAllProxmoxMetrics } from "../../../Types/Monitor/ProxmoxMetricCatalog";
 import { getAllStorageArrayMetrics } from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import { getAllVMwareMetrics } from "../../../Types/Monitor/VMwareMetricCatalog";
+import { getAllXcpNgMetrics } from "../../../Types/Monitor/XcpNgMetricCatalog";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
 
@@ -95,6 +96,7 @@ const CATALOGS: Record<string, () => Array<CatalogEntry>> = {
   "ProxmoxMetricCatalog.ts": getAllProxmoxMetrics,
   "StorageArrayMetricCatalog.ts": getAllStorageArrayMetrics,
   "VMwareMetricCatalog.ts": getAllVMwareMetrics,
+  "XcpNgMetricCatalog.ts": getAllXcpNgMetrics,
 };
 
 // What a reader's code names a catalog by: its definition and its getters.
