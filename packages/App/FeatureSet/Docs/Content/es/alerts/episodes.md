@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > Para avisar una vez por problema en lugar de una vez por alerta, pon las políticas de guardia en tus reglas de agrupación y quítalas de las alertas: de los criterios del monitor, del formulario de creación y de tus reglas de guardia de alertas.
 
-Los propietarios del episodio también se enteran: **Episodio de alerta creado**, **El estado del episodio de alerta ha cambiado** y **Alerta añadida al episodio de alerta** están activados por correo electrónico por defecto, en **Ajustes de usuario → Ajustes de notificaciones**, en la pestaña **Alertas**. Los **Propietarios del episodio** de la regla pasan a ser propietarios de cada episodio que abre, y se les notifica como a cualquier otro propietario.
+Los propietarios del episodio también se enteran: **Episodio de alerta creado**, **El estado del episodio de alerta ha cambiado** y **Alerta añadida al episodio de alerta** están activados por correo electrónico por defecto, en **Ajustes de usuario → Ajustes de notificaciones**, en la pestaña **Alertas**. Los **Propietarios del episodio** de la regla pasan a ser propietarios de cada episodio que abre, y se les notifica como a cualquier otro propietario. Se añaden antes de que Slack y Microsoft Teams se enteren del episodio, así que una regla de notificación que pregunta quién es el propietario de un episodio publica su mensaje de creación.
 
 ## Crear un episodio a mano
 
@@ -166,7 +166,7 @@ En **Detalles del episodio**, rellena el **Título** y, si quieres, una **Graved
 
 En **Guardia y propietarios**, elige una **Política de guardia** que se ejecute cuando se cree el episodio, y sus **Propietarios**. Después haz clic en **Crear episodio**.
 
-Cada equipo del que eres miembro está a un clic bajo **Propietarios**, y el resumen lista las reglas de propietario que añadirán más.
+Cada equipo del que eres miembro está a un clic bajo **Propietarios**, y el resumen lista las reglas de propietario que añadirán más. Los propietarios que eliges, los de las reglas de propietario y las etiquetas de las reglas de etiquetas que coinciden se añaden antes de que Slack y Microsoft Teams se enteren del episodio, así que una regla de notificación que pregunta quién es el propietario de un episodio, o cómo está etiquetado, también lo publica.
 
 ### Añadir las alertas
 

@@ -84,9 +84,9 @@ Op het tabblad **Gepland onderhoud** van een host, een Kubernetes-, Proxmox-, Ce
 Op het moment dat je op **Onderhoudsgebeurtenis aanmaken** klikt, werkt OneUptime deze stappen af, in deze volgorde:
 
 1. **Ze krijgt een nummer en een status.** Het nummer komt uit een teller per project en wordt met je voorvoegsel getoond (`SM-42`). De gebeurtenis begint in je geplande status, welke status een verzoek ook noemt.
-2. **Je chattools horen ervan.** De Slack- en Microsoft Teams-regels onder **Werkruimte** plaatsen haar in hun kanalen, en een regel kan een kanaal voor de gebeurtenis aanmaken. Haar feed legt vast dat ze is aangemaakt.
-3. **Haar statustijdlijn begint.** De eerste rij van haar **Statustijdlijn** is je geplande status.
-4. **Eigenaren en labels worden toegevoegd**: die je hebt gekozen, en daarna die van de passende eigenaars- en labelregels.
+2. **Haar statustijdlijn begint.** De eerste rij van haar **Statustijdlijn** is je geplande status.
+3. **Eigenaren en labels worden toegevoegd**: die je hebt gekozen, en daarna die van de passende eigenaars- en labelregels.
+4. **Je chattools horen ervan.** De Slack- en Microsoft Teams-regels onder **Werkruimte** plaatsen haar in hun kanalen, en een regel kan een kanaal voor de gebeurtenis aanmaken. Haar feed legt vast dat ze is aangemaakt. De regels zien de eigenaren en labels waarmee de gebeurtenis is aangemaakt, dus een regel die vraagt wie eigenaar is van een gebeurtenis, of welke labels ze heeft, plaatst haar ook. Wat er intussen over de gebeurtenis is gezegd, zoals de zojuist toegevoegde eigenaren, volgt er in die kanalen op.
 5. **Runbook-regels starten** de runbooks die bij de gebeurtenis passen.
 6. **Herinneringen worden ingepland**, wanneer een herinneringsregel past, voor haar eigenaren.
 

@@ -84,9 +84,9 @@ På fanen **Planlagt vedlikehold** for en vert, en Kubernetes-, Proxmox-, Ceph- 
 I det øyeblikket du klikker på **Opprett vedlikeholdshendelse**, går OneUptime gjennom disse trinnene, i denne rekkefølgen:
 
 1. **Den får et nummer og en tilstand.** Nummeret kommer fra en teller per prosjekt og vises med prefikset ditt (`SM-42`). Hendelsen starter i den planlagte tilstanden din, uansett hvilken tilstand en forespørsel nevner.
-2. **Chatverktøyene dine får høre om den.** Slack- og Microsoft Teams-reglene under **Arbeidsområde** poster den i kanalene sine, og en regel kan opprette en kanal for hendelsen. Feeden dens registrerer at den ble opprettet.
-3. **Tilstandstidslinjen dens starter.** Den første raden i **Tilstandstidslinje** er den planlagte tilstanden din.
-4. **Eiere og etiketter legges til**: de du valgte, og deretter de fra matchende eier- og etikettregler.
+2. **Tilstandstidslinjen dens starter.** Den første raden i **Tilstandstidslinje** er den planlagte tilstanden din.
+3. **Eiere og etiketter legges til**: de du valgte, og deretter de fra matchende eier- og etikettregler.
+4. **Chatverktøyene dine får høre om den.** Slack- og Microsoft Teams-reglene under **Arbeidsområde** poster den i kanalene sine, og en regel kan opprette en kanal for hendelsen. Feeden dens registrerer at den ble opprettet. Reglene ser eierne og etikettene hendelsen ble opprettet med, så en regel som spør hvem som eier en hendelse, eller hvilke etiketter den har, poster den også. Det som er sagt om hendelsen i mellomtiden, for eksempel eierne som nettopp ble lagt til, kommer etter den i de kanalene.
 5. **Runbook-regler starter** runbookene som matcher hendelsen.
 6. **Påminnelser planlegges**, når en påminnelsesregel matcher, for eierne.
 
