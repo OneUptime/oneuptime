@@ -64,7 +64,11 @@ const CARD_GRID_ROWS: Array<[string, number]> = [
   [`${DASHBOARD}/Pages/Ceph/View/Index.tsx`, 1],
   [`${DASHBOARD}/Pages/Docker/View/Overview.tsx`, 1],
   [`${DASHBOARD}/Pages/Podman/View/Overview.tsx`, 1],
-  [`${DASHBOARD}/Pages/StorageArray/View/Index.tsx`, 2],
+  /*
+   * One row since #11086: a platform's Slowest and Largest lists, in its own
+   * words, where FlashArray's volumes and FlashBlade's file systems each had one.
+   */
+  [`${DASHBOARD}/Pages/StorageArray/View/Index.tsx`, 1],
   [`${DASHBOARD}/Components/NetworkTraffic/NetworkTrafficView.tsx`, 1],
   [`${DASHBOARD}/Components/NetworkTraffic/Meraki/MerakiTrafficView.tsx`, 1],
 ];
