@@ -160,6 +160,11 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
 
   // Rules.
   AIPostmortemRule: LeftOut.Rule,
+  /*
+   * An off-hours schedule (#11010) picks resources by a tag and acts by its
+   * hours; nothing picks a schedule by its name.
+   */
+  CloudOffHoursSchedule: LeftOut.Rule,
   AlertEpisodeLabelRule: LeftOut.Rule,
   AlertEpisodeOnCallRule: LeftOut.Rule,
   AlertEpisodeOwnerRule: LeftOut.Rule,

@@ -115,6 +115,10 @@ describe("the criteria fields", () => {
       "dataStoreEnvironments",
       "dataStoreLabels",
       "dataCategories",
+      // A saving's own (#11010).
+      "cloudSavingActionGroups",
+      "cloudSavingEnvironments",
+      "cloudSavingProviders",
     ]);
     expect(new Set(AI_RULE_CRITERIA_FIELDS).size).toBe(
       AI_RULE_CRITERIA_FIELDS.length,

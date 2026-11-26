@@ -96,11 +96,12 @@ export function getWorkingDaysText(
   );
   // A day's short name standing alone, as the reader's language writes it.
   const short: (day: DayOfWeek) => string = (day: DayOfWeek): string => {
-    const key: string =
-      WORKING_HOURS_DAY_SHORT_NAMES[CLOUD_OFF_HOURS_WEEK.indexOf(day)] || day;
-
     return writeStandAloneDayName({
-      name: translator.translateText(key) || key,
+      name:
+        translator.translateText(
+          WORKING_HOURS_DAY_SHORT_NAMES[CLOUD_OFF_HOURS_WEEK.indexOf(day)] ||
+            day,
+        ) || day,
       language: translator.language,
       context: "standAlone",
     });
@@ -310,20 +311,20 @@ const CloudSchedules: FunctionComponent<
                     hideYear: true,
                   })
                 : "";
+              const state: string = isRunning ? RUNNING : STOPPED;
+              // Translated here, every branch, so the pill draws it as written.
+              const words: string = next
+                ? translator.translateTemplate(
+                    isRunning ? RUNNING_UNTIL : STOPPED_UNTIL,
+                    { time },
+                  )
+                : translator.translateText(state) || state;
 
               return (
                 <div className="min-w-0">
                   <Pill
-                    text={
-                      next
-                        ? translator.translateTemplate(
-                            isRunning ? RUNNING_UNTIL : STOPPED_UNTIL,
-                            { time },
-                          )
-                        : isRunning
-                          ? RUNNING
-                          : STOPPED
-                    }
+                    text={words}
+                    isUserContent={true}
                     tone={isRunning ? PillTone.Success : PillTone.Paused}
                   />
                 </div>
