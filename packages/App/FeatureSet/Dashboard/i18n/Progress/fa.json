@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 63890,
+    "keys": 64815,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -288,6 +288,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
