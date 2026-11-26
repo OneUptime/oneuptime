@@ -26,7 +26,7 @@ flowchart TB
     ou --> chg["変更と<br/>ヘルス イベント"]
 ```
 
-- **アクセスは読み取りだけです。** コマンドが作成するアクセスは、リソースとその設定、メトリクス、変更内容、プロバイダーのヘルス イベント、アカウントのコストを読み取るだけで、それ以外は何もできません。AWS では下に挙げるアクション、Azure では **Monitoring Reader** と **Cost Management Reader** のロール、Google Cloud では六つの閲覧者ロールです。OneUptime がこのアクセスでデータやシークレットを読み取ることはありません。ただし、AI にアカウントのログの読み取りを許可した場合はログ行を、[データセキュリティ](#データセキュリティ) でコンテンツのサンプルをオンにした場合はそのサンプルを読み取ります。削除すれば OneUptime のアクセスを止められます。
+- **アクセスは読み取りだけです。** コマンドが作成するアクセスは、リソースとその設定、メトリクス、変更内容、プロバイダーのヘルス イベント、アカウントのコストを読み取るだけで、それ以外は何もできません。AWS では下に挙げるアクション、Azure では **Monitoring Reader** と **Cost Management Reader** のロール (グローバル管理者が付与した場合は **Reservations Reader** と **Savings plan Reader** も)、Google Cloud では六つの閲覧者ロールです。OneUptime がこのアクセスでデータやシークレットを読み取ることはありません。ただし、AI にアカウントのログの読み取りを許可した場合はログ行を、[データセキュリティ](#データセキュリティ) でコンテンツのサンプルをオンにした場合はそのサンプルを読み取ります。削除すれば OneUptime のアクセスを止められます。
 - **OneUptime は定期的に読み取ります。** 接続時に別の間隔を選ばない限り、Azure と Google Cloud は 5 分ごと、AWS は 10 分ごとです。各読み取りは前回からの変更も記録し、30 分ごとにすべてのリソースをもう一度一覧にします。
 - **リソースごとに専用のページがあります。** リソースは **クラウド → すべてのリソース** に、状態、主要なメトリクス、オーナー、ラベルとともに表示されます。一覧に載ったリソースのページには、**つながっているリソース** (どこで動いているか、どこからトラフィックが来るか)、エンドポイント、タグ、設定、そして **インシデント**、**アラート**、**変更** も表示されます。
 - **アカウントごとに専用のページがあります。** アカウントは **クラウド → アカウント** に、種類とリージョン別のリソース、**コスト**、**変更**、リソースどうしのつながりを示す **トポロジー** とともに表示されます。
@@ -84,7 +84,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | AI にアカウントのログの読み取りを許可した場合にのみ、ログ行を読み取る | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | 管理アカウントから組織のアカウントを一覧にする | `organizations:ListAccounts` |
 
-`apigateway:GET` は API 自身の定義に対してだけ許可され、キーには許可されません。また、組織のアカウントを一覧にできるのは管理アカウントのロールだけです。AWS Health が応答するのは、Business、Enterprise On-Ramp、Enterprise のいずれかのサポート プランを契約しているアカウントだけです。契約がない場合、OneUptime は一日後にもう一度問い合わせます。
+`apigateway:GET` は API 自身の定義に対してだけ許可され、キーには許可されません。また、組織のアカウントを一覧にできるのは管理アカウントのロールだけです。Cost Explorer の読み取りは、コスト、Savings Plans、予約の三つの `Get` アクションのファミリーとして許可され、どれも何も変更しません。ロールもユーザーも、コミットメントを購入、更新、返却することはできません。AWS Health が応答するのは、Business、Enterprise On-Ramp、Enterprise のいずれかのサポート プランを契約しているアカウントだけです。契約がない場合、OneUptime は一日後にもう一度問い合わせます。
 
 OneUptime は各リージョンの EC2 インスタンスとボリューム、VPC、サブネットとセキュリティグループ、NAT ゲートウェイ、Auto Scaling グループ、ロードバランサ (Application、Network、Gateway、Classic)、EKS クラスタ、ECS クラスタとサービス、Lambda 関数、RDS データベース、ElastiCache、SQS キュー、SNS トピック、DynamoDB テーブル、Kinesis ストリーム、Step Functions のステートマシン、API Gateway の API、EFS ファイルシステム、OpenSearch ドメイン、App Runner サービス、Elastic Beanstalk 環境、WAF ウェブ ACL、Network Firewall のファイアウォール、Cognito ユーザープール、AppSync の GraphQL API、SageMaker エンドポイントをタグとともに一覧にし、CloudFront ディストリビューションとそのウェブ ACL は us-east-1 で、Global Accelerator のアクセラレーターは us-west-2 で一度だけ一覧にします。それらのつながりも記録します。各リソースが動くサブネットと VPC と、それを守るセキュリティグループ、各ロードバランサがトラフィックを送る先、各 EKS クラスタのネットワークとノード インスタンスです。OneUptime がある種類を一覧にする前に作ったロールも、その種類なしで警告なく読まれます。サブネット、セキュリティグループ、EKS クラスタ、またはその後に加わったウェブ ACL、ファイアウォール、アクセラレーター、ユーザープール、GraphQL API、エンドポイントなど、その種類も一覧にするにはコマンドをもう一度実行してください。これらはメトリクスを報告する前から一覧に載るようになります。
 
@@ -102,7 +102,7 @@ OneUptime がロールにサインインするのは、そのロールの信頼�
 
 ### Azure Cloud Shell でコマンドを実行する
 
-このコマンドは、現在のサブスクリプションで **Monitoring Reader** と **Cost Management Reader** のロールを持つアプリを作成し、その詳細をシークレットの有効期限とともに出力します。
+このコマンドは、現在のサブスクリプションで **Monitoring Reader** と **Cost Management Reader** のロールを持つアプリを作成し、テナントの予約と節約プランを一覧にするためにテナントで **Reservations Reader** と **Savings plan Reader** の付与を試み (付与できるのは昇格したアクセス権を持つグローバル管理者だけで、それ以外の人の場合は付与されなかったことを表示して続行します)、アプリの詳細をシークレットの有効期限とともに出力します。
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -312,9 +312,9 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | メトリクス | 各サービスの主要なメトリクス (インスタンスの CPU、ネットワーク、ステータス チェックなど) | リソースごとに最大 20 個の主要なメトリクス | 各リソース タイプの主要なメトリクス |
 | 変更 | CloudTrail の管理イベント | アクティビティ ログの管理イベント | Admin Activity 監査ログ |
 | ヘルス イベント | AWS Health | Service Health と Resource Health | Service Health |
-| コスト | 毎日のコストを、サービスとリージョン別に、「リソースごとのコスト」がオンならリソース別にも Cost Explorer から | 毎日のコストを、リソースとサービス別に Cost Management から | 毎日のコストを、サービス、リージョン、リソース別に BigQuery への課金エクスポートから |
+| コスト | 毎日のコストを、請求額、償却コスト、純コストで、サービスとリージョン別に、「リソースごとのコスト」がオンならリソース別にも Cost Explorer から | 毎日のコストを、実際のコストと償却コストで、リソースとサービス別に Cost Management から | 毎日のコストを、クレジット込みとクレジットなしで、サービス、リージョン、リソース別に BigQuery への課金エクスポートから |
 | 支出を減らす方法 | Cost Optimization Hub | Azure Advisor | Recommender |
-| コミットメント | Savings Plans とリザーブドインスタンス: 対象範囲と使用された割合を Cost Explorer から | 節約プランと予約を Cost Management から | 確約利用割引を BigQuery への課金エクスポートから |
+| コミットメント | Savings Plans とリザーブドインスタンス: 対象範囲と使用された割合を Cost Explorer から、それぞれの終了日を Cost Explorer と Savings Plans API から | 節約プランと予約: 対象範囲を Cost Management から、それぞれの終了日を Reservations Reader と Savings plan Reader で | 確約利用割引: 対象範囲を BigQuery への課金エクスポートから、Compute Engine の各コミットメントの終了日を Cloud Asset Inventory から |
 | 読み取り間隔 | 10 分 | 5 分 | 5 分 |
 | 削除されたリソース | 完全な一覧に載らなくなるとアーカイブ | 完全な一覧に載らなくなるとアーカイブ | 完全な一覧に載らなくなるとアーカイブ |
 
@@ -325,7 +325,7 @@ OneUptime の呼び出しは、クラウドの料金でお使いのクラウド 
 | クラウド | 料金 |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: 1,000 メトリクスあたり $0.01。リソースの主要なメトリクス一つにつき、読み取りごとに一メトリクス |
-| AWS のコスト | Cost Explorer: リクエストあたり $0.01。コストの読み取り一回で数回、コミットメントで一日に四回、「リソースごとのコスト」で一日にさらに数回リクエストします |
+| AWS のコスト | Cost Explorer: リクエストあたり $0.01。コストの読み取り一回で二回か少し多く、コミットメントで一日に十回から十六回、「リソースごとのコスト」で一日にさらに数回リクエストします |
 | Azure | 各サブスクリプションで月 1,000,000 回までのメトリクス読み取りは無料。その後は 1,000 回あたり $0.01 |
 | Google Cloud | 月 1,000,000 件までの時系列の読み取りは無料。その後は百万件あたり $0.50 |
 | Google Cloud のコスト | 課金エクスポートへのクエリは BigQuery の料金です。月 1 TiB までは無料、その後は TiB あたり $6.25 |

@@ -26,7 +26,7 @@ flowchart TB
     ou --> chg["变更和<br/>健康事件"]
 ```
 
-- **访问权限只能读取。** 命令创建的访问权限只读取你的资源及其配置、它们的指标、发生的变更、提供商的健康事件和账户的成本，不做其他任何事：在 AWS 上是下面列出的操作，在 Azure 上是 **Monitoring Reader** 和 **Cost Management Reader** 角色，在 Google Cloud 上是六个查看者角色。OneUptime 从不通过它读取数据或机密：只有当你允许 AI 读取账户的日志时，才会读取日志行；只有当你为 [数据安全](#数据安全) 开启了内容样本时，才会读取这些样本。删除它即可切断 OneUptime 的访问。
+- **访问权限只能读取。** 命令创建的访问权限只读取你的资源及其配置、它们的指标、发生的变更、提供商的健康事件和账户的成本，不做其他任何事：在 AWS 上是下面列出的操作，在 Azure 上是 **Monitoring Reader** 和 **Cost Management Reader** 角色，以及全局管理员授予时的 **Reservations Reader** 和 **Savings plan Reader**，在 Google Cloud 上是六个查看者角色。OneUptime 从不通过它读取数据或机密：只有当你允许 AI 读取账户的日志时，才会读取日志行；只有当你为 [数据安全](#数据安全) 开启了内容样本时，才会读取这些样本。删除它即可切断 OneUptime 的访问。
 - **OneUptime 按计划读取。** 除非你在连接时选择其他间隔，Azure 和 Google Cloud 每 5 分钟读取一次，AWS 每 10 分钟读取一次。每次读取还会记录自上次以来的变更，并且每 30 分钟会有一次读取重新列出所有资源。
 - **每个资源都有自己的页面。** 资源会显示在 **云 → 所有资源** 中，带有其健康状况、关键指标、负责人和标签。已列出资源的页面还会显示它的 **相连的资源**（它运行在什么里面，什么向它发送流量）、它的端点、标签和设置，以及它的 **事件**、**警报** 和 **更改**。
 - **每个账户都有自己的页面。** 账户会显示在 **云 → 账户** 中，带有按类型和区域划分的资源、它们的 **成本**、它们的 **更改**，以及显示其资源如何相互关联的 **拓扑**。
@@ -84,7 +84,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | 读取日志行，仅当你允许 AI 读取账户的日志时 | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | 从组织的管理账户列出组织的账户 | `organizations:ListAccounts` |
 
-`apigateway:GET` 只允许用于 API 自身的定义，从不用于它们的密钥，并且只有管理账户的角色可以列出组织的账户。AWS Health 只响应使用 Business、Enterprise On-Ramp 或 Enterprise 支持计划的账户：没有这类计划时，OneUptime 会在一天后再次询问。
+`apigateway:GET` 只允许用于 API 自身的定义，从不用于它们的密钥，并且只有管理账户的角色可以列出组织的账户。Cost Explorer 的读取作为三个 `Get` 操作系列获得允许，分别针对成本、Savings Plans 和预留，它们不会更改任何内容：角色和用户都不能购买、续订或退还承诺。AWS Health 只响应使用 Business、Enterprise On-Ramp 或 Enterprise 支持计划的账户：没有这类计划时，OneUptime 会在一天后再次询问。
 
 OneUptime 会列出每个区域中的 EC2 实例和卷、VPC、子网和安全组、NAT 网关、Auto Scaling 组、负载均衡器（Application、Network、Gateway 和 Classic）、EKS 集群、ECS 集群和服务、Lambda 函数、RDS 数据库、ElastiCache、SQS 队列、SNS 主题、DynamoDB 表、Kinesis 数据流、Step Functions 状态机、API Gateway API、EFS 文件系统、OpenSearch 域、App Runner 服务、Elastic Beanstalk 环境、WAF Web ACL、Network Firewall 防火墙、Cognito 用户池、AppSync GraphQL API 和 SageMaker 端点，并附上它们的标签；CloudFront 分配及其 Web ACL 只在 us-east-1 中列出一次，Global Accelerator 加速器只在 us-west-2 中列出一次。它还会记录它们之间的连接：每个资源所在的子网和 VPC 以及保护它的安全组、每个负载均衡器把流量发往何处，以及每个 EKS 集群的网络和节点实例。在 OneUptime 列出某种类型之前创建的角色仍会被读取，只是不含该类型，也不会显示警告：再次运行命令即可同时列出该类型，例如子网、安全组和 EKS 集群，或之后新增的 Web ACL、防火墙、加速器、用户池、GraphQL API 和端点，它们随后会在报告指标之前就被列出。
 
@@ -102,7 +102,7 @@ OneUptime 会列出每个区域中的 EC2 实例和卷、VPC、子网和安全�
 
 ### 在 Azure Cloud Shell 中运行命令
 
-该命令会在你当前的订阅上创建一个具有 **Monitoring Reader** 和 **Cost Management Reader** 角色的应用，并输出其详细信息以及其机密的到期日期：
+该命令会在你当前的订阅上创建一个具有 **Monitoring Reader** 和 **Cost Management Reader** 角色的应用，尝试在租户上授予它 **Reservations Reader** 和 **Savings plan Reader**，以列出租户的预留和节省计划，只有拥有提升访问权限的全局管理员才能授予（对其他人，它会说明未授予并继续），然后输出应用的详细信息以及其机密的到期日期：
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -312,9 +312,9 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | 指标 | 每项服务的关键指标，例如实例的 CPU、网络和状态检查 | 每个资源最多 20 个关键指标 | 每种资源类型的关键指标 |
 | 变更 | CloudTrail 管理事件 | 活动日志的管理事件 | Admin Activity 审核日志 |
 | 健康事件 | AWS Health | Service Health 和 Resource Health | Service Health |
-| 成本 | 每天的成本，按服务和区域，开启“按资源的成本”后还按资源，来自 Cost Explorer | 每天的成本，按资源和服务，来自 Cost Management | 每天的成本，按服务、区域和资源，来自你导出到 BigQuery 的结算数据 |
+| 成本 | 每天的成本，包括计费成本、摊销成本和净成本，按服务和区域，开启“按资源的成本”后还按资源，来自 Cost Explorer | 每天的成本，包括实际成本和摊销成本，按资源和服务，来自 Cost Management | 每天的成本，含与不含抵扣额度，按服务、区域和资源，来自你导出到 BigQuery 的结算数据 |
 | 减少支出的方法 | Cost Optimization Hub | Azure Advisor | Recommender |
-| 承诺 | Savings Plans 和预留实例：覆盖了多少以及使用了多少，来自 Cost Explorer | 节省计划和预留，来自 Cost Management | 承诺使用折扣，来自你导出到 BigQuery 的结算数据 |
+| 承诺 | Savings Plans 和预留实例：覆盖了多少以及使用了多少，来自 Cost Explorer，以及每项的结束时间，来自 Cost Explorer 和 Savings Plans API | 节省计划和预留：覆盖了什么，来自 Cost Management，以及每项的结束时间，通过 Reservations Reader 和 Savings plan Reader | 承诺使用折扣：覆盖了什么，来自你导出到 BigQuery 的结算数据，以及 Compute Engine 每项承诺的结束时间，来自 Cloud Asset Inventory |
 | 读取间隔 | 10 分钟 | 5 分钟 | 5 分钟 |
 | 已删除的资源 | 完整列表中不再有它时归档 | 完整列表中不再有它时归档 | 完整列表中不再有它时归档 |
 
@@ -325,7 +325,7 @@ OneUptime 发出的调用会按你的云的价格计入你的云账户。列出�
 | 云 | 价格 |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`：每 1,000 个指标 $0.01，每个资源的每个关键指标每次读取计为一个指标 |
-| AWS 成本 | Cost Explorer：每个请求 $0.01。每次读取成本会发出几个请求，承诺每天四个，“按资源的成本”每天再多几个 |
+| AWS 成本 | Cost Explorer：每个请求 $0.01。每次读取成本会发出两个或稍多几个请求，承诺每天十到十六个，“按资源的成本”每天再多几个 |
 | Azure | 每个订阅每月的前 1,000,000 次指标读取免费，之后每 1,000 次 $0.01 |
 | Google Cloud | 每月读取的前 1,000,000 个时间序列免费，之后每百万个 $0.50 |
 | Google Cloud 成本 | BigQuery 对结算导出的查询收费：每月前 1 TiB 免费，之后每 TiB $6.25 |

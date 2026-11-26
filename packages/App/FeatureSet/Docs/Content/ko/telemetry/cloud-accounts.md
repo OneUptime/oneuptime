@@ -26,7 +26,7 @@ flowchart TB
     ou --> chg["변경 사항과<br/>상태 이벤트"]
 ```
 
-- **액세스는 읽기만 할 수 있습니다.** 명령이 만드는 액세스는 리소스와 그 설정, 메트릭, 변경 사항, 공급자의 상태 이벤트, 계정의 비용만 읽고 그 외에는 아무것도 할 수 없습니다. AWS에서는 아래에 나열된 작업, Azure에서는 **Monitoring Reader** 및 **Cost Management Reader** 역할, Google Cloud에서는 뷰어 역할 여섯 개입니다. OneUptime은 이 액세스로 데이터나 비밀을 절대 읽지 않습니다. 다만 AI가 계정의 로그를 읽도록 허용한 경우에는 로그 줄을, [데이터 보안](#데이터-보안)의 콘텐츠 샘플을 켠 경우에는 그 샘플을 읽습니다. 삭제하면 OneUptime의 액세스가 끊깁니다.
+- **액세스는 읽기만 할 수 있습니다.** 명령이 만드는 액세스는 리소스와 그 설정, 메트릭, 변경 사항, 공급자의 상태 이벤트, 계정의 비용만 읽고 그 외에는 아무것도 할 수 없습니다. AWS에서는 아래에 나열된 작업, Azure에서는 **Monitoring Reader** 및 **Cost Management Reader** 역할(전역 관리자가 부여하면 **Reservations Reader**와 **Savings plan Reader**도), Google Cloud에서는 뷰어 역할 여섯 개입니다. OneUptime은 이 액세스로 데이터나 비밀을 절대 읽지 않습니다. 다만 AI가 계정의 로그를 읽도록 허용한 경우에는 로그 줄을, [데이터 보안](#데이터-보안)의 콘텐츠 샘플을 켠 경우에는 그 샘플을 읽습니다. 삭제하면 OneUptime의 액세스가 끊깁니다.
 - **OneUptime은 일정에 따라 읽습니다.** 연결할 때 다른 간격을 고르지 않으면 Azure와 Google Cloud는 5분마다, AWS는 10분마다 읽습니다. 각 읽기는 지난 읽기 이후 바뀐 내용도 기록하며, 30분마다 모든 리소스를 다시 나열합니다.
 - **리소스마다 고유한 페이지가 있습니다.** 리소스는 **클라우드 → 모든 리소스**에 상태, 주요 메트릭, 소유자, 레이블과 함께 표시됩니다. 나열된 리소스의 페이지에는 **연결된 리소스**(실행되는 곳, 트래픽을 보내는 곳), 엔드포인트, 태그, 설정, 그리고 **인시던트**, **경고**, **변경 사항**도 표시됩니다.
 - **계정마다 고유한 페이지가 있습니다.** 계정은 **클라우드 → 계정**에 유형과 리전별 리소스, **비용**, **변경 사항**, 그리고 리소스가 어떻게 이어지는지 보여 주는 **토폴로지**와 함께 표시됩니다.
@@ -84,7 +84,7 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | AI가 계정의 로그를 읽도록 허용한 경우에만 로그 줄을 읽음 | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | 관리 계정에서 조직의 계정을 나열함 | `organizations:ListAccounts` |
 
-`apigateway:GET`은 API 자체의 정의에만 허용되고 키에는 허용되지 않으며, 조직의 계정은 관리 계정의 역할만 나열할 수 있습니다. AWS Health는 Business, Enterprise On-Ramp 또는 Enterprise 지원 플랜을 사용하는 계정에만 응답합니다. 지원 플랜이 없으면 OneUptime은 하루 뒤에 다시 묻습니다.
+`apigateway:GET`은 API 자체의 정의에만 허용되고 키에는 허용되지 않으며, 조직의 계정은 관리 계정의 역할만 나열할 수 있습니다. Cost Explorer의 읽기는 비용, Savings Plans, 예약에 대한 세 가지 `Get` 작업 계열로 허용되며, 아무것도 바꾸지 않습니다. 역할도 사용자도 약정을 구매, 갱신, 반환할 수 없습니다. AWS Health는 Business, Enterprise On-Ramp 또는 Enterprise 지원 플랜을 사용하는 계정에만 응답합니다. 지원 플랜이 없으면 OneUptime은 하루 뒤에 다시 묻습니다.
 
 OneUptime은 각 리전의 EC2 인스턴스와 볼륨, VPC, 서브넷과 보안 그룹, NAT 게이트웨이, Auto Scaling 그룹, 로드 밸런서(Application, Network, Gateway, Classic), EKS 클러스터, ECS 클러스터와 서비스, Lambda 함수, RDS 데이터베이스, ElastiCache, SQS 대기열, SNS 주제, DynamoDB 테이블, Kinesis 스트림, Step Functions 상태 머신, API Gateway API, EFS 파일 시스템, OpenSearch 도메인, App Runner 서비스, Elastic Beanstalk 환경, WAF 웹 ACL, Network Firewall 방화벽, Cognito 사용자 풀, AppSync GraphQL API, SageMaker 엔드포인트를 태그와 함께 나열하고, CloudFront 배포와 그 웹 ACL은 us-east-1에서, Global Accelerator 액셀러레이터는 us-west-2에서 한 번 나열합니다. 이들이 어떻게 연결되는지도 기록합니다. 각 리소스가 실행되는 서브넷과 VPC 및 이를 보호하는 보안 그룹, 각 로드 밸런서가 트래픽을 보내는 곳, 각 EKS 클러스터의 네트워크와 노드 인스턴스입니다. OneUptime이 어떤 유형을 나열하기 전에 만든 역할도 그 유형 없이 경고 없이 계속 읽힙니다. 서브넷, 보안 그룹, EKS 클러스터, 또는 그 뒤에 추가된 웹 ACL, 방화벽, 액셀러레이터, 사용자 풀, GraphQL API, 엔드포인트처럼 그 유형도 나열하려면 명령을 다시 실행하세요. 그러면 이들은 메트릭을 보고하기 전부터 나열됩니다.
 
@@ -102,7 +102,7 @@ OneUptime은 역할의 신뢰 정책이 명령이 작성하는 `sts:ExternalId` 
 
 ### Azure Cloud Shell에서 명령 실행
 
-이 명령은 현재 구독에 **Monitoring Reader** 및 **Cost Management Reader** 역할이 있는 앱을 만들고, 비밀이 만료되는 날짜와 함께 앱의 세부 정보를 출력합니다.
+이 명령은 현재 구독에 **Monitoring Reader** 및 **Cost Management Reader** 역할이 있는 앱을 만들고, 테넌트의 예약과 절약 플랜을 나열하도록 테넌트에서 **Reservations Reader**와 **Savings plan Reader** 부여를 시도한 뒤(권한이 상승된 전역 관리자만 부여할 수 있으며, 그 외의 사용자에게는 부여되지 않았다고 표시하고 계속 진행합니다), 비밀이 만료되는 날짜와 함께 앱의 세부 정보를 출력합니다.
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -312,9 +312,9 @@ aws iam create-access-key --user-name OneUptimeReadOnly
 | 메트릭 | 각 서비스의 주요 메트릭(예: 인스턴스의 CPU, 네트워크, 상태 검사) | 리소스당 최대 20개의 주요 메트릭 | 각 리소스 유형의 주요 메트릭 |
 | 변경 사항 | CloudTrail 관리 이벤트 | 활동 로그의 관리 이벤트 | Admin Activity 감사 로그 |
 | 상태 이벤트 | AWS Health | Service Health 및 Resource Health | Service Health |
-| 비용 | 매일의 비용을 서비스와 리전별로, 리소스별 비용이 켜져 있으면 리소스별로도 Cost Explorer에서 | 매일의 비용을 리소스와 서비스별로 Cost Management에서 | 매일의 비용을 서비스, 리전, 리소스별로 BigQuery 결제 내보내기에서 |
+| 비용 | 매일의 비용을 청구 비용, 상각 비용, 순비용으로, 서비스와 리전별로, 리소스별 비용이 켜져 있으면 리소스별로도 Cost Explorer에서 | 매일의 비용을 실제 비용과 상각 비용으로, 리소스와 서비스별로 Cost Management에서 | 매일의 비용을 크레딧 포함과 미포함으로, 서비스, 리전, 리소스별로 BigQuery 결제 내보내기에서 |
 | 지출을 줄이는 방법 | Cost Optimization Hub | Azure Advisor | Recommender |
-| 약정 | Savings Plans와 예약 인스턴스: 충당 범위와 사용된 비율을 Cost Explorer에서 | 절약 플랜과 예약을 Cost Management에서 | 약정 사용 할인을 BigQuery 결제 내보내기에서 |
+| 약정 | Savings Plans와 예약 인스턴스: 충당 범위와 사용된 비율을 Cost Explorer에서, 각각의 종료일을 Cost Explorer와 Savings Plans API에서 | 절약 플랜과 예약: 충당 범위를 Cost Management에서, 각각의 종료일을 Reservations Reader와 Savings plan Reader로 | 약정 사용 할인: 충당 범위를 BigQuery 결제 내보내기에서, 각 Compute Engine 약정의 종료일을 Cloud Asset Inventory에서 |
 | 읽기 간격 | 10분 | 5분 | 5분 |
 | 삭제된 리소스 | 전체 목록에 더 이상 없으면 보관 처리 | 전체 목록에 더 이상 없으면 보관 처리 | 전체 목록에 더 이상 없으면 보관 처리 |
 
@@ -325,7 +325,7 @@ OneUptime의 호출은 클라우드 요금으로 클라우드 계정에 청구�
 | 클라우드 | 가격 |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: 메트릭 1,000개당 $0.01이며, 리소스의 주요 메트릭 하나는 읽기마다 메트릭 하나입니다 |
-| AWS 비용 | Cost Explorer: 요청당 $0.01. 비용 읽기 한 번에 요청을 몇 번, 약정은 하루에 네 번, 리소스별 비용은 하루에 몇 번 더 보냅니다 |
+| AWS 비용 | Cost Explorer: 요청당 $0.01. 비용 읽기 한 번에 요청을 두 번 또는 조금 더, 약정은 하루에 열 번에서 열여섯 번, 리소스별 비용은 하루에 몇 번 더 보냅니다 |
 | Azure | 구독마다 매월 처음 1,000,000회의 메트릭 읽기는 무료이며, 그 이후에는 1,000회당 $0.01 |
 | Google Cloud | 매월 처음 1,000,000개의 시계열 읽기는 무료이며, 그 이후에는 백만 개당 $0.50 |
 | Google Cloud 비용 | 결제 내보내기 쿼리는 BigQuery 요금입니다. 매월 처음 1 TiB는 무료이며, 그 이후에는 TiB당 $6.25 |
