@@ -232,6 +232,14 @@ Når en evaluering tager for lang tid for sin monitor, advarer dens oversigt dig
 
 En tiendedel giver en monitor plads til at vokse ti gange, før dens kontroller løber ind i hinanden og kommer bagud, så du hører om det tidligt. Under 5 sekunder er en kontrol i orden, uanset hvor stor den er: at vurdere 16.000 serier tager omkring 2,5 sekunder. Over et minut optager den en worker og de databaser, den læser, så længe, uanset dens interval. Gør den hurtigere ved at indsnævre dens forespørgslers filtre, gruppere efter færre attributter eller kontrollere den sjældnere.
 
+## Hvornår telemetrimonitorer kontrollerer
+
+Monitorer, der læser telemetri, såsom log-, metrik-, trace-, Kubernetes-, vært- og Docker-monitorer, kontrolleres ikke alle i samme øjeblik. Hver har sit eget øjeblik i sit interval, beregnet ud fra monitorens id: En monitor, der kontrolleres hvert minut, kører i samme sekund af hvert minut, en, der kontrolleres hvert 5. minut, i samme øjeblik af hvert 5-minutters interval, og en, der kontrolleres hver time eller sjældnere, inden for de første 5 minutter af den time eller dag, som intervallet angiver. Øjeblikket forbliver det samme, når OneUptime genstarter, og på hver server, så telemetrilageret læses lidt ad gangen hen over minuttet i stedet for af alle monitorer på én gang.
+
+Hver monitor beholder sit interval: Dens kontroller ligger præcis lige så langt fra hinanden som før, og hver kontrol vurderer det vindue, der slutter, når den kører, så et vindue, der er lige så langt som intervallet, stadig dækker al tiden mellem to kontroller. Det, der flytter sig, er, hvornår i intervallet en kontrol kører: op til ét interval senere og aldrig mere end 5 minutter senere. En hændelse eller en advarsel kan åbne op til så meget senere, end hvis hver kontrol kørte i starten af sit interval, og nogle gange tidligere. Monitorens **Oversigt** viser, hvornår dens næste kontrol skal køre.
+
+En ny monitor kontrolleres få sekunder efter, at den er oprettet, og derefter i sit eget øjeblik. Når du ændrer en monitors interval, flytter dens næste kontrol til det nye interval. Lige efter en opgradering til en version af OneUptime, der spreder kontrollerne, kontrolleres hver monitor én gang til på det tidspunkt, den gamle tidsplan havde den sat til, og derefter i sit eget øjeblik.
+
 ## Ændr en monitors kriterier
 
 :::steps
