@@ -158,17 +158,17 @@ Dans tous les cas, le certificat doit nommer l'adresse à laquelle l'agent se co
 
 ### Donner à Xen Orchestra un certificat qui nomme son adresse
 
-Utilisez un certificat émis par votre propre CA ou par une CA publique, ou créez-en un autosigné qui nomme l'adresse de Xen Orchestra, en root sur la machine de Xen Orchestra, avec son nom et son adresse dans ses noms alternatifs du sujet :
+Utilisez un certificat émis par votre propre CA ou par une CA publique, ou créez-en un autosigné qui nomme l'adresse de Xen Orchestra, sur la machine de Xen Orchestra, avec son nom et son adresse dans ses noms alternatifs du sujet :
 
 ```bash
-mkdir -p /etc/ssl/xo
-openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
+sudo mkdir -p /etc/ssl/xo
+sudo openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
   -subj "/CN=xo.example.com" \
   -addext "subjectAltName=DNS:xo.example.com,IP:10.0.0.5" \
   -keyout /etc/ssl/xo/key.pem -out /etc/ssl/xo/cert.pem
 ```
 
-Pointez l'écouteur HTTPS de xo-server vers les deux fichiers, dans un fichier de configuration à part : `/etc/xo-server/config.httpscert.toml` sur une XOA, ou à côté du `config.toml` de xo-server pour un Xen Orchestra compilé depuis les sources. Les écouteurs de Xen Orchestra sont numérotés, et le deuxième, `http.listen.1`, est son écouteur HTTPS :
+Pointez l'écouteur HTTPS de xo-server vers les deux fichiers, que l'utilisateur sous lequel tourne xo-server (root par défaut) doit pouvoir lire, dans un fichier de configuration à part : `/etc/xo-server/config.httpscert.toml` sur une XOA, ou à côté du `config.toml` de xo-server pour un Xen Orchestra compilé depuis les sources. Les écouteurs de Xen Orchestra sont numérotés, et le deuxième, `http.listen.1`, est son écouteur HTTPS :
 
 ```toml
 [http.listen.1]

@@ -158,17 +158,17 @@ In jedem Fall muss das Zertifikat die Adresse nennen, mit der sich der Agent ver
 
 ### Xen Orchestra ein Zertifikat geben, das seine Adresse nennt
 
-Verwenden Sie ein Zertifikat Ihrer eigenen oder einer öffentlichen CA, oder erzeugen Sie als root auf dem Rechner von Xen Orchestra ein selbstsigniertes, das die Adresse von Xen Orchestra nennt, mit seinem Namen und seiner Adresse in seinen alternativen Antragstellernamen:
+Verwenden Sie ein Zertifikat Ihrer eigenen oder einer öffentlichen CA, oder erzeugen Sie auf dem Rechner von Xen Orchestra ein selbstsigniertes, das die Adresse von Xen Orchestra nennt, mit seinem Namen und seiner Adresse in seinen alternativen Antragstellernamen:
 
 ```bash
-mkdir -p /etc/ssl/xo
-openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
+sudo mkdir -p /etc/ssl/xo
+sudo openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
   -subj "/CN=xo.example.com" \
   -addext "subjectAltName=DNS:xo.example.com,IP:10.0.0.5" \
   -keyout /etc/ssl/xo/key.pem -out /etc/ssl/xo/cert.pem
 ```
 
-Verweisen Sie den HTTPS-Listener von xo-server auf die beiden Dateien, in einer eigenen Konfigurationsdatei: `/etc/xo-server/config.httpscert.toml` auf einer XOA oder neben der `config.toml` von xo-server bei einem aus den Quellen gebauten Xen Orchestra. Die Listener von Xen Orchestra sind nummeriert, und der zweite, `http.listen.1`, ist sein HTTPS-Listener:
+Verweisen Sie den HTTPS-Listener von xo-server auf die beiden Dateien, die der Benutzer, unter dem xo-server läuft (standardmäßig root), lesen können muss, in einer eigenen Konfigurationsdatei: `/etc/xo-server/config.httpscert.toml` auf einer XOA oder neben der `config.toml` von xo-server bei einem aus den Quellen gebauten Xen Orchestra. Die Listener von Xen Orchestra sind nummeriert, und der zweite, `http.listen.1`, ist sein HTTPS-Listener:
 
 ```toml
 [http.listen.1]

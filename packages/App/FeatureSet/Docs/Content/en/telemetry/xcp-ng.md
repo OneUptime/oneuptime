@@ -158,17 +158,17 @@ Either way, the certificate must name the address the agent connects to. The age
 
 ### Give Xen Orchestra a certificate that names its address
 
-Use a certificate from your own CA or a public one, or make a self-signed one that names Xen Orchestra's address, as root on Xen Orchestra's machine, with its name and its address in its subject alternative names:
+Use a certificate from your own CA or a public one, or make a self-signed one that names Xen Orchestra's address, on Xen Orchestra's machine, with its name and its address in its subject alternative names:
 
 ```bash
-mkdir -p /etc/ssl/xo
-openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
+sudo mkdir -p /etc/ssl/xo
+sudo openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
   -subj "/CN=xo.example.com" \
   -addext "subjectAltName=DNS:xo.example.com,IP:10.0.0.5" \
   -keyout /etc/ssl/xo/key.pem -out /etc/ssl/xo/cert.pem
 ```
 
-Point xo-server's HTTPS listener at the two files, in a configuration file of its own: `/etc/xo-server/config.httpscert.toml` on an XOA, or next to xo-server's `config.toml` for Xen Orchestra built from sources. Xen Orchestra's listeners are numbered, and the second, `http.listen.1`, is its HTTPS one:
+Point xo-server's HTTPS listener at the two files, which the user xo-server runs as (root by default) must be able to read, in a configuration file of its own: `/etc/xo-server/config.httpscert.toml` on an XOA, or next to xo-server's `config.toml` for Xen Orchestra built from sources. Xen Orchestra's listeners are numbered, and the second, `http.listen.1`, is its HTTPS one:
 
 ```toml
 [http.listen.1]

@@ -74,7 +74,7 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 | Field | Tab | What it does |
 | --- | --- | --- |
 | **XCP-ng Pool** | All | Required. Scopes every query to `resource.xcp_ng.pool.id`, the pool's UUID, so two pools with the same name never mix. |
-| **Resource Scope** | Custom Metric, Advanced | Optional. **Host**, **VM**, **Storage Repository**, **Virtual Disk**, **XOSTOR** or **Pool** — an exact match on `xcp_ng.scope`. |
+| **Resource Scope** | Custom Metric, Advanced | Optional. **Host**, **VM**, **Storage Repository**, **Virtual Disk**, **XOSTOR** or **XCP-ng Pool** — an exact match on `xcp_ng.scope`. |
 | **UUID** | Custom Metric, Advanced | Optional. Exact match on `xcp_ng.id`: the UUID of one host, VM, storage repository or virtual disk, as Xen Orchestra shows it. Pair it with a scope to target one object. |
 | **Host Name** | Custom Metric, Advanced | Optional. Exact match on Xen Orchestra's `host_name` label: the host's own series and those of the VMs running on it. |
 | **XCP-ng Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). |

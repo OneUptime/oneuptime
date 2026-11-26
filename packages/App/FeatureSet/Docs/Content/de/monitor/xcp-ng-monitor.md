@@ -74,7 +74,7 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 | Feld | Tab | Was es tut |
 | --- | --- | --- |
 | **XCP-ng-Pool** | Alle | Erforderlich. Grenzt jede Abfrage auf `resource.xcp_ng.pool.id` ein, die UUID des Pools, sodass sich zwei gleichnamige Pools nie vermischen. |
-| **Ressourcenbereich** | Custom Metric, Erweitert | Optional. **Host**, **VM**, **Speicher-Repository**, **Virtueller Datenträger**, **XOSTOR** oder **Pool** – eine exakte Übereinstimmung mit `xcp_ng.scope`. |
+| **Ressourcenbereich** | Custom Metric, Erweitert | Optional. **Host**, **VM**, **Speicher-Repository**, **Virtueller Datenträger**, **XOSTOR** oder **XCP-ng-Pool** – eine exakte Übereinstimmung mit `xcp_ng.scope`. |
 | **UUID** | Custom Metric, Erweitert | Optional. Exakte Übereinstimmung mit `xcp_ng.id`: die UUID eines Hosts, einer VM, eines Speicher-Repositorys oder eines virtuellen Datenträgers, wie Xen Orchestra sie anzeigt. Kombinieren Sie sie mit einem Bereich, um ein Objekt gezielt anzusprechen. |
 | **Host-Name** | Custom Metric, Erweitert | Optional. Exakte Übereinstimmung mit dem Label `host_name` von Xen Orchestra: die eigenen Serien des Hosts und die der VMs, die auf ihm laufen. |
 | **XCP-ng-Metrik** | Custom Metric | Eine Metrik aus dem [Katalog](#erfasste-metriken). |
