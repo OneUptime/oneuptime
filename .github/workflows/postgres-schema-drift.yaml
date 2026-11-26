@@ -5401,6 +5401,28 @@ jobs:
           Tests/Server/Utils/SecurityEvent/TurnOnRecommendedPostgres.test.ts
           --forceExit
 
+      # #10990: devices already in Network Devices get their monitors. An
+      # auto import rule's Run Now and dry run give the template's monitor to
+      # devices that have none like it - beside a monitor made by hand, one
+      # whose template was deleted, and one of another kind - and never a
+      # second; Create Monitors on the Devices list runs as a server job that
+      # stamps its creator, catches a monitor that already watches a device
+      # (through MonitorNetworkDevice's triggers, installed on the copies) and
+      # creates nothing twice. On copies of every migrated table, in a schema
+      # of their own.
+      - name: Test giving devices already in Network Devices their monitors, on migrated Postgres
+        if: matrix.shard == 5
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EXISTING_DEVICE_MONITORS_TESTS: "true"
+          EXISTING_DEVICE_MONITORS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXISTING_DEVICE_MONITORS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXISTING_DEVICE_MONITORS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ExistingDeviceMonitorsPostgres.test.ts
+          --forceExit
+
       # Entity risk on copies of the migrated User, Project,
       # SecurityEntityRisk and SecurityEntityCriticality tables, through the
       # real services: a finding writes one row and the next about the same
