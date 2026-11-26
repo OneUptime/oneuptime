@@ -203,7 +203,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
    */
   "packages/Common/Server/API/MonitorAPI.ts": {
     products: [ProductKey.Monitors],
-    leftAlone: {},
+    leftAlone: {
+      // Which monitors cover a page's recommended ones (#11074).
+      "`${new this.entityType().getCrudApiPath()?.toString()}${MONITOR_RECOMMENDATION_COVERAGE_PATH}`":
+        READ,
+    },
   },
   "packages/Common/Server/API/MonitorGroupAPI.ts": {
     products: [ProductKey.Monitors],

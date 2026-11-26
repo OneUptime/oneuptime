@@ -1106,7 +1106,7 @@ export default class MonitorRecommendationUtil {
    * made with (CloudAlertTemplates, #10028), and is still the
    * recommendation - never offered a second time.
    */
-  private static getSerializedFingerprintsForRecommendation(data: {
+  public static getSerializedFingerprintsForRecommendation(data: {
     recommendation: MonitorRecommendation;
     args: MonitorRecommendationArgs;
   }): Array<string> {
