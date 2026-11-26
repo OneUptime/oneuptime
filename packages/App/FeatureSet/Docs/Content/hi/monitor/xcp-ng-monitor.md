@@ -211,7 +211,7 @@ Xen Orchestra किसी होस्ट या VM को उसके `uuid` 
 | `xcp_vm_disk_latency_seconds` | seconds | VM की डिस्क पर रीड और राइट में औसतन कितना समय लगता है। |
 | `xcp_vm_disk_iowait` | ratio | समय का वह हिस्सा जब कोई VM अपनी किसी डिस्क की प्रतीक्षा कर रहा था, 0 से 1। |
 | `xcp_vm_disk_inflight` | count | VM की डिस्क पर वे अनुरोध जिनका अभी तक जवाब नहीं आया। |
-| `xcp_vm_disk_queue_size` | count | VM की डिस्क पर अनुरोधों की औसत कतार। |
+| `xcp_vm_disk_queue_size` | count | VM की डिस्क पर अनुरोधों की औसत क्यू। |
 
 ### नेटवर्क
 
