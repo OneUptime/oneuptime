@@ -187,7 +187,9 @@ export type StorageArrayAlertTemplateCategory =
   | "Hardware"
   | "Hosts"
   | "Replication"
-  | "File Systems";
+  | "File Systems"
+  // The alerts an array raises itself, read from the logs it sends.
+  | "Array Alerts";
 
 export type StorageArrayAlertTemplateSeverity = "Critical" | "Warning";
 
@@ -221,6 +223,42 @@ export interface StorageArrayAlertTemplateSpec {
   incidentDescription: string;
   criteriaName: string;
   criteriaDescription: string;
+}
+
+/*
+ * One alert template over the logs an array sends (its syslog), as data
+ * (StorageArrayLogAlertTemplates builds the Logs monitor step): the lines
+ * that open an alert, the attributes that tell one alert from another, and
+ * the line that closes it. For a platform whose alerts arrive as logs
+ * rather than as a metric (a PowerStore's): its agent parses the array's
+ * records into log attributes, and these name them. Every attribute is
+ * matched exactly; the builder adds the array's own name
+ * (resource.storage.array.name) to both filters, so a monitor only ever
+ * reads its array's lines. Its id is stored on every monitor made from it,
+ * so it never changes once shipped.
+ */
+export interface StorageArrayLogAlertTemplateSpec {
+  id: string;
+  name: string;
+  // One plain sentence: when it fires (see StorageArrayAlertTemplateSpec).
+  summary: string;
+  description: string;
+  category: StorageArrayAlertTemplateCategory;
+  severity: StorageArrayAlertTemplateSeverity;
+  // The attributes a line that opens (or keeps open) an alert carries.
+  attributes: Record<string, string>;
+  // One OneUptime alert per value of these: the same on open and close.
+  groupByAttributes: Array<string>;
+  // The attributes of the line that closes a group's alert.
+  resolvedByAttributes: Record<string, string>;
+  // How far back each check looks for lines that open an alert.
+  windowSeconds: number;
+  incidentTitle: string;
+  incidentDescription: string;
+  criteriaName: string;
+  criteriaDescription: string;
+  // What the monitor's healthy state says.
+  healthyDescription: string;
 }
 
 /*
@@ -346,6 +384,13 @@ export interface StorageArrayHardwareTable {
   tableId: string;
   description: string;
   noItemsMessage: string;
+  /*
+   * For a platform whose parts are named within a chassis of their own (a
+   * PowerStore's within each appliance): the title of a column, after the
+   * name, showing each row's group (StorageArrayResource.groupName), so two
+   * parts of one name read apart. A translation key.
+   */
+  groupColumnTitle?: string | undefined;
 }
 
 /*
@@ -374,12 +419,24 @@ export interface StorageArrayAgentConfig {
   // The compose profile that starts its sidecar exporter; empty for none.
   composeProfile: string;
   endpointVariable: string;
+  /*
+   * For an exporter that logs in to the array itself with a user and a
+   * password (Dell's PowerStore exporter): the variable holding the user's
+   * name. tokenVariable then holds the password, which only the exporter
+   * reads. Unset for a read-only API token the collector sends.
+   */
+  userVariable?: string | undefined;
   tokenVariable: string;
   exampleEndpoint: string;
   // The exporter sidecar it needs; null for an endpoint the array serves.
   exporterService: string | null;
   // The array kind in sentences ("FlashArray").
   arrayNoun: string;
+  /*
+   * The files it runs with besides its collector config, shipped and served
+   * next to it (an exporter's Dockerfile, a sidecar's config).
+   */
+  otherFiles?: ReadonlyArray<string> | undefined;
 }
 
 export interface StorageArrayPlatform {
@@ -448,6 +505,12 @@ export interface StorageArrayPlatform {
   heartbeat: StorageArrayHeartbeat;
   // Its alert templates, which are also what Recommendations offers.
   alertTemplates: ReadonlyArray<StorageArrayAlertTemplateSpec>;
+  /*
+   * Its alert templates over the logs its arrays send, which Recommendations
+   * offers beside those: Logs monitors, under the Array Alerts heading. For
+   * a platform whose arrays report their own alerts as logs.
+   */
+  logAlertTemplates?: ReadonlyArray<StorageArrayLogAlertTemplateSpec> | undefined;
   resourceFilters: ReadonlyArray<StorageArrayResourceFilter>;
 
   // ---------------- Pages ----------------
