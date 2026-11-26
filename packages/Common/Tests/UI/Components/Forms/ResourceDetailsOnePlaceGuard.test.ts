@@ -147,7 +147,9 @@ function describePlace(place: EditPlace): string {
  * in exactly one of them: the one AI rule - an incident's or an alert's in
  * AiRulesTable, a telemetry product's (the Profiler's) in
  * TelemetryAiRulesTable, a Data Security issue's on Data Security → AI in
- * DataSecurityAiRulesTable (#10364) - by triggerEntityType. Each table
+ * DataSecurityAiRulesTable (#10364), a cloud saving's on Cloud → Settings →
+ * Savings AI Rules in CloudSavingsAiRulesTable (#11010) - by
+ * triggerEntityType. Each table
  * reads only its own triggers, so a rule is never edited from two. Held
  * below: every table of the split reads its rows by that column.
  */
@@ -163,6 +165,7 @@ const SPLIT_MODELS: Record<string, SplitModel> = {
       "packages/App/FeatureSet/Dashboard/src/Components/AISettings/AiRulesTable.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiRulesTable.tsx",
       "packages/App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityAiRulesTable.tsx",
+      "packages/App/FeatureSet/Dashboard/src/Components/Cloud/Savings/CloudSavingsAiRulesTable.tsx",
     ],
   },
   /*

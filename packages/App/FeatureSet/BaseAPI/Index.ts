@@ -2193,10 +2193,23 @@ import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
 import CloudBudgetService, {
   Service as CloudBudgetServiceType,
 } from "Common/Server/Services/CloudBudgetService";
+import CloudCommitment from "Common/Models/DatabaseModels/CloudCommitment";
+import CloudCommitmentService, {
+  Service as CloudCommitmentServiceType,
+} from "Common/Server/Services/CloudCommitmentService";
+import CloudCostSetting from "Common/Models/DatabaseModels/CloudCostSetting";
+import CloudCostSettingService, {
+  Service as CloudCostSettingServiceType,
+} from "Common/Server/Services/CloudCostSettingService";
 import CloudCostRecommendation from "Common/Models/DatabaseModels/CloudCostRecommendation";
 import CloudCostRecommendationService, {
   Service as CloudCostRecommendationServiceType,
 } from "Common/Server/Services/CloudCostRecommendationService";
+import CloudOffHoursSchedule from "Common/Models/DatabaseModels/CloudOffHoursSchedule";
+import CloudOffHoursScheduleService, {
+  Service as CloudOffHoursScheduleServiceType,
+} from "Common/Server/Services/CloudOffHoursScheduleService";
+import CloudSavingsAPI from "Common/Server/API/CloudSavingsAPI";
 import CloudResourceFeedService, {
   Service as CloudResourceFeedServiceType,
 } from "Common/Server/Services/CloudResourceFeedService";
@@ -3994,6 +4007,24 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
+    // The connected clouds' commitments and what they cover: read only.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCommitment, CloudCommitmentServiceType>(
+        CloudCommitment,
+        CloudCommitmentService,
+      ).getRouter(),
+    );
+
+    // How Cloud shows a project's costs, and when its commitments alert.
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudCostSetting, CloudCostSettingServiceType>(
+        CloudCostSetting,
+        CloudCostSettingService,
+      ).getRouter(),
+    );
+
     /*
      * Cost views and their groups: the spend sorted into teams, products
      * and cost centers, read through /cloud-cost-view/:id/allocation and
@@ -4023,6 +4054,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudCostRecommendation, CloudCostRecommendationServiceType>(
         CloudCostRecommendation,
         CloudCostRecommendationService,
+      ).getRouter(),
+    );
+
+    /*
+     * The changes OneUptime proposes and makes for savings (#11010): read
+     * here, and asked for, approved, dismissed and undone through the
+     * savings routes; written only by those and the workers.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudSavingsAPI().getRouter(),
+    );
+
+    // Off-hours schedules that stop non-production resources (#11010).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudOffHoursSchedule, CloudOffHoursScheduleServiceType>(
+        CloudOffHoursSchedule,
+        CloudOffHoursScheduleService,
       ).getRouter(),
     );
 

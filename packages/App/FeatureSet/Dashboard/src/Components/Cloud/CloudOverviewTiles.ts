@@ -1,4 +1,5 @@
 import Route from "Common/Types/API/Route";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import {
   CLOUD_SAVING_KIND_LABELS,
   CloudCostTotals,
@@ -54,6 +55,28 @@ export const NEEDS_ATTENTION_TILE_DESCRIPTION: string = translationKey(
 export const SPEND_TILE_DESCRIPTION: string = translationKey(
   "What the accounts cost this month so far, from each cloud's own billing, before credits and refunds.",
 );
+// The same on the amortized and net bases (CloudCostBasis).
+export const SPEND_TILE_DESCRIPTION_AMORTIZED: string = translationKey(
+  "What the accounts cost this month so far, from each cloud's own billing, with commitment fees spread over what they cover, before credits and refunds.",
+);
+export const SPEND_TILE_DESCRIPTION_NET: string = translationKey(
+  "What the accounts cost this month so far, from each cloud's own billing, amortized, less credits, refunds and discounts.",
+);
+
+// The spend tile's description on a basis.
+export function getSpendTileDescription(
+  basis: CloudCostBasis | undefined,
+): string {
+  if (basis === CloudCostBasis.Amortized) {
+    return SPEND_TILE_DESCRIPTION_AMORTIZED;
+  }
+
+  if (basis === CloudCostBasis.Net) {
+    return SPEND_TILE_DESCRIPTION_NET;
+  }
+
+  return SPEND_TILE_DESCRIPTION;
+}
 export const PROJECTED_TILE_DESCRIPTION: string = translationKey(
   "This month's total if the days left cost what the last week's did.",
 );
@@ -115,6 +138,8 @@ export function getCloudOverviewTiles(data: {
     // The resources that need attention: All Resources, by its Health filter.
     attention?: Route | undefined;
   };
+  // The cost basis the costs are on: what the spend tile says it is.
+  basis?: CloudCostBasis | undefined;
 }): Array<CloudStatTile> {
   const translator: Translator = data.translator;
   const notReading: number = data.accounts.filter(
@@ -147,7 +172,7 @@ export function getCloudOverviewTiles(data: {
         return {
           key: "spend",
           title: SPEND_THIS_MONTH,
-          description: SPEND_TILE_DESCRIPTION,
+          description: getSpendTileDescription(data.basis),
           value: formatCloudMoney({
             amount: data.costs.monthToDate,
             currency: data.costs.currency,
@@ -245,6 +270,8 @@ export function getCloudCostTiles(data: {
   savings: CloudSavingsTotals;
   translator: Translator;
   savingsRoute?: Route | undefined;
+  // The cost basis the costs are on: what the spend tile says it is.
+  basis?: CloudCostBasis | undefined;
 }): Array<CloudStatTile> {
   const translator: Translator = data.translator;
   const money: (amount: number) => string = (amount: number): string => {
@@ -270,7 +297,7 @@ export function getCloudCostTiles(data: {
     {
       key: "spend",
       title: SPEND_THIS_MONTH,
-      description: SPEND_TILE_DESCRIPTION,
+      description: getSpendTileDescription(data.basis),
       value: money(data.costs.monthToDate),
       sublabel: change
         ? change.text

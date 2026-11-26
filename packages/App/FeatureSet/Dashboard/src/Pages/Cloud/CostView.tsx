@@ -41,6 +41,10 @@ import CloudCostUnallocatedCard from "../../Components/Cloud/CostGroups/CloudCos
 import useCloudCostRuleContext, {
   CloudCostRuleContext,
 } from "../../Components/Cloud/CostGroups/UseCloudCostRuleContext";
+import CloudCostBasisSwitch, {
+  CloudCostBasisChoice,
+  useCloudCostBasis,
+} from "../../Components/Cloud/CloudCostBasis";
 import { formatCloudMoney } from "../../Components/Cloud/CloudCostWords";
 import useCloudAccounts, {
   CloudAccountsRead,
@@ -122,6 +126,8 @@ const CloudCostViewPage: FunctionComponent<
   );
   const accounts: CloudAccountsRead = useCloudAccounts();
   const currency: string = accounts.totals.costs.currency;
+  // Each group's spend billed, amortized or net, as Costs shows the spend.
+  const basisChoice: CloudCostBasisChoice = useCloudCostBasis();
   const ruleContext: CloudCostRuleContext = useCloudCostRuleContext({
     accounts: accounts.accounts,
     currency,
@@ -175,7 +181,12 @@ const CloudCostViewPage: FunctionComponent<
 
     fetchCloudCostAllocation({
       viewId,
-      ask: { startDate: window.start, endDate: window.end, currency },
+      ask: {
+        startDate: window.start,
+        endDate: window.end,
+        currency,
+        basis: basisChoice.basis,
+      },
     })
       .then((found: CloudCostAllocationResult): void => {
         if (!ignore) {
@@ -191,7 +202,7 @@ const CloudCostViewPage: FunctionComponent<
     return (): void => {
       ignore = true;
     };
-  }, [viewId.toString(), period, currency, attempt]);
+  }, [viewId.toString(), period, currency, basisChoice.basis, attempt]);
 
   if (viewError) {
     return <ErrorMessage message={viewError} />;
@@ -309,10 +320,16 @@ const CloudCostViewPage: FunctionComponent<
           className="mt-4 border-t border-gray-100 pt-3"
         />
       </Card>
+      <CloudCostBasisSwitch
+        basis={basisChoice.basis}
+        onChange={basisChoice.setBasis}
+        accounts={accounts.accounts}
+      />
       <CloudCostSpendByGroupCard
         viewId={viewId}
         period={period}
         onPeriodChange={setPeriod}
+        basis={basisChoice.basis}
         allocation={allocation}
         error={allocationError}
         onRetry={() => {

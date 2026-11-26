@@ -9,6 +9,7 @@ import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import ColumnLength from "../../../Types/Database/ColumnLength";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import CloudCostRecommendationService from "../../Services/CloudCostRecommendationService";
 import CloudResourceService from "../../Services/CloudResourceService";
@@ -206,6 +207,12 @@ export default class CloudSavingsWriter {
 
       if (cloudResourceId) {
         fields.cloudResourceId = cloudResourceId;
+      }
+
+      // What a commitment it suggests would buy: its purchase plan's facts.
+      if (record.commitmentDetails) {
+        fields.commitmentDetails =
+          record.commitmentDetails as unknown as JSONObject;
       }
 
       try {

@@ -322,7 +322,10 @@ describe("each cost's tags", () => {
             };
           },
         }),
-        { costsReadAt: "2026-11-19T00:00:00.000Z", costsVersion: 2 },
+        {
+          costsReadAt: "2026-11-19T00:00:00.000Z",
+          costsVersion: CLOUD_COSTS_READ_VERSION,
+        },
       ),
     );
 
@@ -380,7 +383,50 @@ describe("a connection read by an older reading of the costs", () => {
       "2026-09-01T00:00:00.000Z",
       "2026-11-13T00:00:00.000Z",
     ]);
-    expect(CLOUD_COSTS_READ_VERSION).toBe(2);
+    expect(CLOUD_COSTS_READ_VERSION).toBe(3);
+  });
+
+  test("a connection read before costs were kept billed, amortized and net reads back as far as a first read, once", async () => {
+    jest.spyOn(CloudCostWriter, "write").mockImplementation(async () => {
+      return { seriesCount: 0, rowsWritten: 0, recordsWithoutAccount: 0 };
+    });
+
+    const starts: Array<string> = [];
+    const state: CloudConnectionPullState = {
+      costsReadAt: new Date(
+        NOW.getTime() - CLOUD_COSTS_INTERVAL_MS - 1000,
+      ).toISOString(),
+      // Read with tags (2), not yet with amortized and net costs (3).
+      costsVersion: 2,
+    };
+
+    expect(CloudConnectionLanes.isFirstCostsRead(state)).toBe(true);
+
+    await CloudConnectionLanes.runCosts(
+      lane(
+        connector({
+          readCosts: async (
+            _settings: CloudConnectionSettings,
+            options: CloudCostsOptions,
+          ): Promise<CloudCostsResult> => {
+            starts.push(options.start.toISOString());
+            return {
+              records: [],
+              accounts: [
+                { accountId: "123456789012", state: CloudCostState.Reading },
+              ],
+              warnings: [],
+              complete: true,
+            };
+          },
+        }),
+        state,
+      ),
+    );
+
+    // Its history is read again, now with each cost's amortized and net figures.
+    expect(starts).toEqual(["2026-09-01T00:00:00.000Z"]);
+    expect(state.costsVersion).toBe(3);
   });
 
   test("a read that fails stays an older one: tried again within the hour, still as far back", async () => {
@@ -435,7 +481,7 @@ describe("AWS's costs per resource", () => {
       });
     const state: CloudConnectionPullState = {
       costsReadAt: "2026-11-19T00:00:00.000Z",
-      costsVersion: 2,
+      costsVersion: CLOUD_COSTS_READ_VERSION,
     };
 
     await CloudConnectionLanes.runCosts(
@@ -480,7 +526,10 @@ describe("AWS's costs per resource", () => {
             end: new Date("2026-11-30T00:00:00.000Z"),
           },
         }),
-        { costsReadAt: "2026-11-19T00:00:00.000Z", costsVersion: 2 },
+        {
+          costsReadAt: "2026-11-19T00:00:00.000Z",
+          costsVersion: CLOUD_COSTS_READ_VERSION,
+        },
       ),
     );
 
@@ -503,7 +552,10 @@ describe("AWS's costs per resource", () => {
     await CloudConnectionLanes.runCosts(
       lane(
         reading({}),
-        { costsReadAt: "2026-11-19T00:00:00.000Z", costsVersion: 2 },
+        {
+          costsReadAt: "2026-11-19T00:00:00.000Z",
+          costsVersion: CLOUD_COSTS_READ_VERSION,
+        },
         {
           [RESOURCE_COSTS_FIELD_KEY]: "on",
         },
@@ -522,7 +574,7 @@ describe("AWS's costs per resource", () => {
     await CloudConnectionLanes.runCosts(
       lane(reading({}), {
         costsReadAt: "2026-11-19T00:00:00.000Z",
-        costsVersion: 2,
+        costsVersion: CLOUD_COSTS_READ_VERSION,
       }),
     );
 
@@ -537,7 +589,7 @@ describe("AWS's costs per resource", () => {
     });
     const state: CloudConnectionPullState = {
       costsReadAt: "2026-11-19T00:00:00.000Z",
-      costsVersion: 2,
+      costsVersion: CLOUD_COSTS_READ_VERSION,
     };
 
     await CloudConnectionLanes.runCosts(

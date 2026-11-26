@@ -23,7 +23,7 @@ flowchart TB
 
 - **O primeiro grupo que corresponde fica com o custo.** Os grupos de uma visão têm uma ordem, e cada custo vai para o primeiro grupo cujas regras correspondem a ele, então nada é contado duas vezes. Os grupos e o gasto não alocado sempre somam o total do período.
 - **As regras leem tudo o que um custo traz.** A conta, a nuvem, o serviço, a região, o recurso e suas tags, e o que o OneUptime sabe do recurso: suas equipes proprietárias, seus rótulos, seu ambiente e seu aplicativo de plataformas de aplicativos.
-- **Tudo é calculado quando você olha.** Nada é gravado por custo. Uma regra que você muda distribui de novo cada mês que o OneUptime guarda, até 400 dias atrás, sem nada para esperar.
+- **Tudo é calculado quando você olha.** Nada é gravado por custo. Uma regra que você muda distribui de novo cada mês que o OneUptime guarda, até 400 dias atrás, sem nada para esperar. Cada valor segue o seletor acima dele, faturado, amortizado ou líquido, como em [Custos da nuvem](/docs/telemetry/cloud-costs#faturado-amortizado-e-líquido), e um lançamento personalizado é o mesmo em cada base.
 - **Várias visões podem distribuir os mesmos gastos.** "Por equipe" e "Por centro de custo" distribuem tudo, cada uma do seu jeito.
 
 ## Antes de começar
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-A resposta traz o `total` de cada grupo e do que ele é feito (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), os números por dia ou por mês, o período anterior e do que é feito o gasto não alocado. `POST /cloud-cost-group/<group ID>/spend` responde por um grupo.
+A resposta traz o `total` de cada grupo e do que ele é feito (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), os números por dia ou por mês, o período anterior e do que é feito o gasto não alocado. `POST /cloud-cost-group/<group ID>/spend` responde por um grupo. Envie `basis` como `billed`, `amortized` ou `net` para valores nessa base; sem ele, ficam na do projeto, e o `basis` da resposta diz qual.
 
 ## Limites
 

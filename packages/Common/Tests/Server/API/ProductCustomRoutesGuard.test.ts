@@ -432,6 +432,32 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${path}/:groupId/spend`": READ,
     },
   },
+  /*
+   * Acting on savings (#11010): every route registers through its post
+   * helper, which refuses a change while Cloud is off, and the pull request
+   * while Code is too. Each call is decided here.
+   */
+  "packages/Common/Server/API/CloudSavingsAPI.ts": {
+    products: [ProductKey.Cloud, ProductKey.Code],
+    leftAlone: {},
+    readHelpers: {
+      post: {
+        "CLOUD_SAVINGS_API_ROUTES.offer": READ,
+        "CLOUD_SAVINGS_API_ROUTES.summary": READ,
+        'CLOUD_SAVINGS_API_ROUTES.schedulePreview(":id")': READ,
+        "CLOUD_SAVINGS_API_ROUTES.apply":
+          "Refused while Cloud is off: it asks for a change to a customer's cloud, made at once for an approver.",
+        'CLOUD_SAVINGS_API_ROUTES.approve(":id")':
+          "Refused while Cloud is off: an approval makes the change.",
+        'CLOUD_SAVINGS_API_ROUTES.dismiss(":id")':
+          "Refused while Cloud is off: it closes a change waiting for approval.",
+        'CLOUD_SAVINGS_API_ROUTES.undo(":id")':
+          "Refused while Cloud is off: it changes a customer's cloud back.",
+        "CLOUD_SAVINGS_API_ROUTES.fixInCode":
+          "Refused while Cloud or Code is off: it starts a task in Code that opens a pull request.",
+      },
+    },
+  },
   "packages/Common/Server/API/NetworkControllerConnectionAPI.ts": {
     products: [ProductKey.Network],
     leftAlone: {},

@@ -50,6 +50,11 @@ import useCloudCostRuleContext, {
 import useCloudAccounts, {
   CloudAccountsRead,
 } from "../../Components/Cloud/UseCloudAccounts";
+import CloudCostBasisSwitch, {
+  CloudCostBasisChoice,
+  CloudCostBasisPill,
+  useCloudCostBasis,
+} from "../../Components/Cloud/CloudCostBasis";
 import CloudCostGroup from "Common/Models/DatabaseModels/CloudCostGroup";
 import Route from "Common/Types/API/Route";
 import {
@@ -114,6 +119,8 @@ const CloudCostGroupPage: FunctionComponent<
   );
   const accounts: CloudAccountsRead = useCloudAccounts();
   const currency: string = accounts.totals.costs.currency;
+  // The group's spend billed, amortized or net, as Costs shows the spend.
+  const basisChoice: CloudCostBasisChoice = useCloudCostBasis();
   const ruleContext: CloudCostRuleContext = useCloudCostRuleContext({
     accounts: accounts.accounts,
     currency,
@@ -167,7 +174,12 @@ const CloudCostGroupPage: FunctionComponent<
 
     fetchCloudCostGroupSpend({
       groupId,
-      ask: { startDate: window.start, endDate: window.end, currency },
+      ask: {
+        startDate: window.start,
+        endDate: window.end,
+        currency,
+        basis: basisChoice.basis,
+      },
     })
       .then((found: CloudCostGroupSpend): void => {
         if (!ignore) {
@@ -183,7 +195,7 @@ const CloudCostGroupPage: FunctionComponent<
     return (): void => {
       ignore = true;
     };
-  }, [groupId.toString(), period, currency, attempt]);
+  }, [groupId.toString(), period, currency, basisChoice.basis, attempt]);
 
   if (groupError) {
     return <ErrorMessage message={groupError} />;
@@ -357,6 +369,11 @@ const CloudCostGroupPage: FunctionComponent<
           className="mt-4 border-t border-gray-100 pt-3"
         />
       </Card>
+      <CloudCostBasisSwitch
+        basis={basisChoice.basis}
+        onChange={basisChoice.setBasis}
+        accounts={accounts.accounts}
+      />
       <div>
         <FilterButtons
           ariaLabel="Period"
@@ -404,7 +421,13 @@ const CloudCostGroupPage: FunctionComponent<
           ) : (
             <></>
           )}
-          <Card title={GROUP_SPEND_TITLE} description={GROUP_SPEND_DESCRIPTION}>
+          <Card
+            title={GROUP_SPEND_TITLE}
+            description={GROUP_SPEND_DESCRIPTION}
+            rightElement={
+              <CloudCostBasisPill basis={spend.basis || basisChoice.basis} />
+            }
+          >
             <div data-testid="cloud-cost-group-chart">
               <CloudDailySpendChart
                 points={spend.buckets.map((bucket: string, index: number) => {
