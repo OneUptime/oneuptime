@@ -7,7 +7,7 @@ Datasäkerhet har ingen egen personsökning eller säkerhetskö. Den lämnar det
 - [Var det ett dataintrång?](#var-det-ett-dataintrång): Varje kritisk exponering bedöms: hur länge, vem som kunde läsa data, vems data det var och vilka lagar om dataintrång som kan gälla.
 - [Larm och jour](#larm-och-jour): Larma den som har jour när ett kritiskt problem öppnas.
 - [Incidenter](#incidenter): Deklarera en incident för ett intrång som din incidentprocess ska hantera.
-- [Ägare](#ägare): Vem som äger varje datalager, angivet för hand eller via regler, och e-postmeddelandet de får.
+- [Ägare](#ägare): Analysera ett problem, öppna en pull request som åtgärdar det, eller fråga Fråga AI om dina data och låt det agera, med ditt godkännande.
 - [OneUptime AI](#oneuptime-ai): Förklara ett problem, öppna en pull request som åtgärdar det, eller ställ frågor om dina data till Fråga AI.
 - [Stäng en exponering](#stäng-en-exponering): Blockera offentlig åtkomst eller sluta dela, från ett problem eller en playbook, och slå på ett skydd som saknas från ett problem.
 :::
@@ -129,7 +129,7 @@ OneUptime AI arbetar också på egen hand med varje nytt problem, som dina AI-re
 
 ### Fråga AI
 
-**Fråga AI** läser också Datasäkerhet. På vilken sida i Datasäkerhet som helst kan du fråga vilka datalager som innehåller kortnummer, vad du ska åtgärda först, eller vilka datalager en roll skulle kunna nå om den läckte; på ett datalagers eller ett problems sida läser den den posten först. Den svarar med tre läsverktyg, som körs med dina egna behörigheter:
+**Fråga AI** läser Datasäkerhet och agerar i den med ditt godkännande. På vilken sida som helst i Datasäkerhet kan du fråga vilka datalager som innehåller kortnummer, vad du ska åtgärda först eller vilka datalager en roll kunde nå om den läckte; på ett datalagers eller ett problems sida läser det först den posten. Det läser med de här verktygen, som körs med dina egna behörigheter:
 
 | Verktyg | Vad det läser |
 | --- | --- |
@@ -137,7 +137,22 @@ OneUptime AI arbetar också på egen hand med varje nytt problem, som dina AI-re
 | `query_data_security_issues` | Problemen, de mest riskfyllda först, efter status, allvarlighetsgrad, datalager eller kontroll – eller ett problem med dess bevis och åtgärden för dess moln |
 | `query_data_store_access` | Vem som kan nå ett datalager, eller varje datalager som ett huvudkonto kan nå |
 
-De läser datatyper, platser och antal, aldrig ett fynds prov, maskerade eller inte. Fråga AI ändrar ingenting i Datasäkerhet.
+De läser datatyper, platser och antal, aldrig ett fynds prov, maskerade eller inte. Två till läser det som OneUptime AI arbetar med: `query_data_security_proposals` listar vad det föreslår, och de datatyper det har hittat som genomsökningar ännu inte letar efter, var och en med hur den bevisades och fälten den finns i, aldrig ett värde; `draft_data_security_rule` skriver ett regelutkast utifrån din mening och säger vilka datalager den träffar i dag. Det sparar ingenting.
+
+Fråga AI gör det som Datasäkerhetens knappar gör, var och en genom att göra exakt den ändring som dess knapp gör, som du och med dina behörigheter:
+
+| Åtgärd | Vad den gör | Frågar dig först |
+| --- | --- | --- |
+| `scrub_data_security_finding` | **Rensa** för ett fynd i telemetrin: dess bevisade, snäva rensningsregel | I **Fråga före åtgärd**, och i alla lägen när något läser det den döljer |
+| `judge_data_security_finding` | **Bekräfta**, eller **Inte känsligt** med din motivering, och detsamma för liknande fynd | **Inte känsligt** i alla lägen; **Bekräfta** i alla lägen när ett kritiskt problem larmar någon i ditt projekt |
+| `change_data_security_issue` | **Acceptera risk** med din motivering och ett slutdatum, **Inte ett problem** med din motivering, **Öppna igen** eller **Tilldela** | **Acceptera risk** och **Inte ett problem** i alla lägen |
+| `set_data_store_owners` | Lägger till eller tar bort ett datalagers ägare | I alla lägen |
+| `save_data_security_rule` | Sparar en hemvist-, ägar- eller etikettregel skriven utifrån din mening, och tillämpar en ägar- eller etikettregel på de datalager den träffar i dag | I alla lägen |
+| `respond_on_data_store` | En responsåtgärd via datalagrets molnanslutning, som **Block Public Access** | I alla lägen |
+| `fix_data_security_issue_with_ai` | **Åtgärda med AI**: en pull request som någon granskar och slår ihop. En åtgärd som redan är på väg startas inte två gånger | I **Fråga före åtgärd** |
+| `decide_data_security_proposal` | **Godkänn** eller **Dölj** för det OneUptime AI föreslår. En hittad datatyp läggs till via dess formulär i **Inställningar → Datatyper**, så här kan den bara avvisas | I alla lägen |
+
+Varje åtgärd visar först ett kort som med enkla ord säger vad som ändras, vad som slutar fungera och vad det kostar. I **Fråga före åtgärd** tillåter eller hoppar du över varje åtgärd. I **Kör automatiskt** väntar åtgärderna ovan som frågar i alla lägen fortfarande på dig: De ändrar vem som kan nå dina data, gör att ett fynd eller ett problem slutar räknas, ändrar vem som får veta om ett datalager eller skulle låta OneUptime AI godkänna sitt eget förslag. Namn på datalager, platser för fynd och bevis kommer från dina moln och från alla som skriver till dem, så Fråga AI agerar aldrig för att sådan text ber om det, och varje åtgärd kontrolleras igen, med dina behörigheter, när den körs.
 
 ## Stäng en exponering
 
@@ -196,7 +211,7 @@ Några svar räknas ut på begäran i stället för att lagras. Vart och ett är
 
 [Terraform-providern](/docs/terraform/index) har en resurs för varje sorts post som du skapar – datalager som du lägger till själv, anpassade datatyper, kontrollinställningar, efterlevnadsinställningar, hemvistregler, ägar- och etikettregler – uppkallad efter posten, till exempel `oneuptime_residency_rule`.
 
-[MCP-servern](/docs/ai/mcp-server) har verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för de här posterna: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule och Data Security Setting. En AI-assistent kan då fråga vilka datalager som innehåller kortnummer, eller vad som är öppet på en bucket, med dina behörigheter.
+[MCP-servern](/docs/ai/mcp-server) har verktyg för att skapa, hämta, lista, uppdatera, ta bort och räkna för de här posterna: Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Custom Data Type, Check Setting, Compliance Setting, Residency Rule och Data Security Setting. En AI-assistent kan då fråga vilka datalager som innehåller kortnummer, eller vad som är öppet på en bucket, med dina behörigheter. Den har också [Fråga AI:s åtgärder](#fråga-ai), ett anrop var, och var och en gör exakt den ändring som dess knapp gör, som du. MCP-servern kan inte visa någon ett kort, så en åtgärd som Fråga AI frågar om i alla lägen avvisas där: Svaret säger varför och nämner sidan i OneUptime där du gör ändringen.
 
 ## Nästa steg
 
