@@ -359,6 +359,25 @@ curl https://oneuptime.com/mcp/tools
 
 이 도구들은 OAuth로 로그인한 나로서 동작하므로, 프로젝트 API 키로는 무언가를 만드는 여덟 가지를 쓸 수 없습니다. 클라이언트는 각 도구 전에 나에게 묻고, 그 답은 무엇이 만들어졌는지 알려 줍니다. 권한, 주소, 요금제의 여유처럼 부족한 것은 무언가를 만들기 전에 알려 줍니다.
 
+## 데이터 보안 도구
+
+서버에는 [AI에게 질문 의 데이터 보안 작업](/docs/data-security/integrations#ai에게-질문) 도 있으며, 작업마다 호출 한 번으로 사용합니다. 각 작업은 같은 검사를 거친 뒤 데이터 보안의 버튼과 똑같은 변경을 본인으로서, 본인의 권한으로 수행합니다:
+
+- **`query_data_security_proposals`**: OneUptime AI가 제안해 사람을 기다리는 항목, 위험한 것부터. `which: "data-types"` 를 주면 찾았지만 스캔이 아직 찾지 않는 데이터 유형을 보여 줍니다: 각각의 이름, 범주, 민감도, 증명 방식, 포함된 저장소와 필드이며 값은 절대 포함하지 않습니다. 아무것도 바꾸지 않습니다
+- **`draft_data_security_rule`**: "EU 개인 데이터는 EU에 남아야 한다" 같은 문장으로 만든 데이터 상주, 소유자 또는 레이블 규칙과 오늘 일치하는 저장소. 아무것도 바꾸지 않습니다
+- **`scrub_data_security_finding`**: 텔레메트리의 발견 사항에 **정리**
+- **`judge_data_security_finding`**: **확인**, 또는 이유와 함께 **민감하지 않음**, 비슷한 발견 사항에도 같은 결정
+- **`change_data_security_issue`**: **다시 열기**, **할당**, **위험 수락** 또는 **문제 아님**
+- **`set_data_store_owners`**: 저장소의 소유자 추가 또는 제거
+- **`save_data_security_rule`**: `draft_data_security_rule` 이 만든 규칙
+- **`respond_on_data_store`**: **Block Public Access** 처럼 저장소의 클라우드 연결을 통한 대응 작업
+- **`fix_data_security_issue_with_ai`**: **AI로 수정**, 누군가 검토하고 병합하는 풀 리퀘스트
+- **`decide_data_security_proposal`**: 제안을 **승인** 또는 **숨기기**
+
+AI에게 질문 은 이 중 일부에 대해 모든 모드에서, 무엇이 바뀌고 무엇이 작동을 멈추고 비용이 무엇인지 알려 주는 카드로 사람에게 먼저 묻습니다: 저장소에 대한 대응, **민감하지 않음**, **위험 수락**, **문제 아님**, 저장소의 소유자 변경, 규칙 저장, 제안 결정, 무언가 읽고 있는 정리, 그리고 심각한 이슈로 누군가를 호출하는 프로젝트의 **확인** 입니다. 이 서버는 그 카드를 보여 줄 수 없으므로 이를 거부하고, 이유와 변경을 하는 OneUptime 페이지를 알려 줍니다. 카드 없이 실행되는 일은 없습니다.
+
+나머지는 OAuth로 로그인한 본인으로서 실행됩니다: 프로젝트 API 키는 이를 사용할 수 없으며, 아무것도 바꾸지 않는 두 가지만 사용합니다. 자체 호스팅 서버에서는 `MCP_READ_ONLY=true` 로 아무것도 바꾸지 않는 도구만 남고, `MCP_ALLOW_DESTRUCTIVE=false` 는 저장소의 소유자 제거를 거부합니다. 제거하면 소유자가 삭제되기 때문입니다.
+
 ## 텔레메트리 조회하기
 
 로그, 메트릭, 트레이스(스팬), 예외, 모니터 로그 등의 텔레메트리는 읽기 전용 `list_` 및 `count_` 도구로 제공됩니다(`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` 와 각각의 `count_` 짝). 텔레메트리는 OpenTelemetry로 들어오므로 생성 도구는 없습니다.
