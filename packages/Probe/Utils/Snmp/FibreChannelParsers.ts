@@ -278,8 +278,9 @@ export function brocadePortKey(text: string | undefined): string | undefined {
 
 /*
  * The last arc of an FCMGMT row index is the port index; everything before
- * it is the connUnitId (its length, then sixteen octets, as Fabric OS
- * encodes it). One switch - one logical switch - is one connUnit.
+ * it is the connUnitId - sixteen octets, which Fabric OS fills with the
+ * switch's WWN and eight zeros. One switch - one logical switch - is one
+ * connUnit.
  */
 export function splitConnUnitPortIndex(
   rowIndex: string,
@@ -441,8 +442,9 @@ export function brocadeDownReason(
   );
 
   return (
-    (phyState !== undefined ? SW_FC_PORT_PHY_STATE_TEXT[phyState] : undefined) ||
-    SW_FC_PORT_OP_STATUS_TEXT[opStatus]
+    (phyState !== undefined
+      ? SW_FC_PORT_PHY_STATE_TEXT[phyState]
+      : undefined) || SW_FC_PORT_OP_STATUS_TEXT[opStatus]
   );
 }
 

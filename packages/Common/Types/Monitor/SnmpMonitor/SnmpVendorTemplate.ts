@@ -285,7 +285,8 @@ const CISCO_MDS: SnmpVendorTemplate = {
     {
       key: "power_supplies",
       name: "Power Supplies",
-      description: "cefcFRUPowerStatusTable, named by the switch's entity names.",
+      description:
+        "cefcFRUPowerStatusTable, named by the switch's entity names.",
       kind: SnmpTableKind.Hardware,
       rowLabelColumnOids: [ENTITY_PHYSICAL_NAME_OID],
       rowLabelsByIndex: true,
@@ -363,7 +364,8 @@ const CISCO_MDS: SnmpVendorTemplate = {
     {
       key: "fan_trays",
       name: "Fan Trays",
-      description: "cefcFanTrayStatusTable, named by the switch's entity names.",
+      description:
+        "cefcFanTrayStatusTable, named by the switch's entity names.",
       kind: SnmpTableKind.Hardware,
       rowLabelColumnOids: [ENTITY_PHYSICAL_NAME_OID],
       rowLabelsByIndex: true,
@@ -2291,10 +2293,10 @@ export const CISCO_MDS_CHASSIS_SYS_OBJECT_IDS: ReadonlySet<string> = new Set(
 /*
  * An MDS's sysDescr names its platform after the OS: "Cisco NX-OS(tm)
  * m9100, Software (m9100-s6ek9-mz), Version 8.4(2c), ..." - m9100, m9200,
- * m9250, m9300, m9700 - and "SAN-OS(tm)" before NX-OS. Nexus says n9000,
- * n7000 or nothing of the kind, and never m9.
+ * m9250, m9300, m9700, a letter after some (m9250i) - and "SAN-OS(tm)"
+ * before NX-OS. Nexus says n9000, n7000 or nothing of the kind, and never m9.
  */
-const MDS_SYS_DESCR: RegExp = /\b(?:NX-OS|SAN-OS)\(tm\) m9\d{3}\b/i;
+const MDS_SYS_DESCR: RegExp = /\b(?:NX-OS|SAN-OS)\(tm\) m9\d{3}[a-z]?\b/i;
 
 /*
  * Platforms an enterprise number alone cannot tell apart. Checked before the
