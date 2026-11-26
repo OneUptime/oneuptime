@@ -1,7 +1,8 @@
 import ProjectReferencesService from "./ProjectReferencesService";
 import Model from "../../Models/DatabaseModels/CodeRepository";
 import ObjectID from "../../Types/ObjectID";
-import LIMIT_MAX from "../../Types/Database/LimitMax";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import QueryHelper from "../Types/Database/QueryHelper";
 import CodeRepositoryType from "../../Types/CodeRepository/CodeRepositoryType";
 import { CodeHost } from "../../Types/CodeRepository/CodeHost";
 import URL from "../../Types/API/URL";
@@ -34,6 +35,31 @@ import CodeHostAccess, {
 } from "../Utils/CodeRepository/CodeHost/CodeHostAccess";
 import CodeRepositoryConnectionService from "./CodeRepositoryConnectionService";
 import DeleteBy from "../Types/Database/DeleteBy";
+
+// What a repository a fix may be resolved to is read with.
+const RESOLVABLE_REPOSITORY_SELECT: {
+  _id: true;
+  name: true;
+  organizationName: true;
+  repositoryName: true;
+  mainBranchName: true;
+  gitHubAppInstallationId: true;
+  repositoryHostedAt: true;
+} = {
+  _id: true,
+  name: true,
+  organizationName: true,
+  repositoryName: true,
+  mainBranchName: true,
+  gitHubAppInstallationId: true,
+  repositoryHostedAt: true,
+};
+
+/*
+ * How many repositories one read by id names: a long allowance goes in
+ * several reads, so no statement grows past what Postgres binds.
+ */
+export const RESOLVABLE_REPOSITORIES_READ_BY_ID_AT_ONCE: number = 500;
 
 /*
  * Why a repository may not pick an in-cluster Runner the Kubernetes agent
@@ -337,8 +363,13 @@ export class Service extends ProjectReferencesService<Model> {
     const installationRepositories: Array<GitHubRepository> =
       await GitHubUtil.listRepositoriesForInstallation(data.installationId);
 
-    // Fetch existing repositories once so we can skip duplicates and de-dupe display names.
-    const existingRepositories: Array<Model> = await this.findBy({
+    /*
+     * Every repository the project has, once, so duplicates are skipped and
+     * display names de-duped - a page at a time, in an order with no ties
+     * (#11076). The first 10,000 in no order were read: in a project with
+     * more, a repository past them was imported a second time.
+     */
+    const existingRepositories: Array<Model> = await this.findAllBy({
       query: {
         projectId: data.projectId,
       },
@@ -350,8 +381,7 @@ export class Service extends ProjectReferencesService<Model> {
         repositoryHostedAt: true,
         gitHubAppInstallationId: true,
       },
-      limit: LIMIT_MAX,
-      skip: 0,
+      sort: { _id: SortOrder.Ascending },
       props: {
         isRoot: true,
       },
@@ -534,10 +564,20 @@ export class Service extends ProjectReferencesService<Model> {
      */
     allowance?: CodeRepositoryAllowance | undefined;
   }): Promise<RepoResolution | null> {
+    /*
+     * An allowance that names its repositories - a person's pick, the ones
+     * a rule allows - is read by those ids alone, however many the project
+     * has (#11076).
+     */
     const resolvable: Array<ResolvableRepository> = keepAllowedCodeRepositories(
       {
         allowance: data.allowance,
-        repositories: await this.getResolvableRepositories(data.projectId),
+        repositories: await this.getResolvableRepositories(data.projectId, {
+          repositoryIds:
+            data.allowance && !data.allowance.isEveryRepository
+              ? data.allowance.repositoryIds
+              : undefined,
+        }),
         getId: (repository: ResolvableRepository): string => {
           return repository.id;
         },
@@ -566,30 +606,36 @@ export class Service extends ProjectReferencesService<Model> {
    * (GHSA-xx95-gmcf-7q86). A repository whose files OneUptime does not read
    * (a Git server other than Azure DevOps) is still a candidate: its name,
    * or being the only one, can still pick it.
+   *
+   * Every one of them, however many the project has (#11076): read a page
+   * at a time in an order with no ties (the id), or - `repositoryIds` -
+   * only those, by their ids. The first 10,000 in no order were read, so in
+   * a project with more, which ones a fix could be resolved to was chance:
+   * a repository a person picked past them was never found to work in.
    */
   @CaptureSpan()
   public async getResolvableRepositories(
     projectId: ObjectID,
+    options?: {
+      // Only these (in any letter case), read by their ids. Unset: every one.
+      repositoryIds?: Array<string> | undefined;
+    },
   ): Promise<Array<ResolvableRepository>> {
-    const repositories: Array<Model> = await this.findBy({
-      query: {
-        projectId: projectId,
-      },
-      select: {
-        _id: true,
-        name: true,
-        organizationName: true,
-        repositoryName: true,
-        mainBranchName: true,
-        gitHubAppInstallationId: true,
-        repositoryHostedAt: true,
-      },
-      skip: 0,
-      limit: LIMIT_MAX,
-      props: {
-        isRoot: true,
-      },
-    });
+    const repositories: Array<Model> = options?.repositoryIds
+      ? await this.findResolvableCandidatesByIds({
+          projectId,
+          repositoryIds: options.repositoryIds,
+        })
+      : await this.findAllBy({
+          query: {
+            projectId: projectId,
+          },
+          select: RESOLVABLE_REPOSITORY_SELECT,
+          sort: { _id: SortOrder.Ascending },
+          props: {
+            isRoot: true,
+          },
+        });
 
     const reachable: Set<string> =
       await CodeHostAccess.getReachableRepositoryIds({
@@ -620,6 +666,55 @@ export class Service extends ProjectReferencesService<Model> {
           repositoryHostedAt: CodeHost.readType(repository.repositoryHostedAt),
         };
       });
+  }
+
+  // The project's repositories among these ids, in batches, by id.
+  private async findResolvableCandidatesByIds(data: {
+    projectId: ObjectID;
+    repositoryIds: Array<string>;
+  }): Promise<Array<Model>> {
+    const ids: Array<string> = Array.from(
+      new Set<string>(
+        data.repositoryIds
+          .map((id: string): string => {
+            return (id || "").toString().trim().toLowerCase();
+          })
+          .filter((id: string): boolean => {
+            return ObjectID.isValidUUID(id);
+          }),
+      ),
+    ).sort();
+
+    const repositories: Array<Model> = [];
+
+    for (
+      let start: number = 0;
+      start < ids.length;
+      start += RESOLVABLE_REPOSITORIES_READ_BY_ID_AT_ONCE
+    ) {
+      const batch: Array<string> = ids.slice(
+        start,
+        start + RESOLVABLE_REPOSITORIES_READ_BY_ID_AT_ONCE,
+      );
+
+      repositories.push(
+        ...(await this.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(batch),
+          },
+          select: RESOLVABLE_REPOSITORY_SELECT,
+          sort: { _id: SortOrder.Ascending },
+          limit: batch.length,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        })),
+      );
+    }
+
+    return repositories;
   }
 
   /*
