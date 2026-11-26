@@ -1945,7 +1945,9 @@ integration("erasing a person from the user vault, against ClickHouse", () => {
       request.id = ObjectID.generate();
       request.projectId = projectId;
       // A pasted token needs nothing more: the service keeps none (SecurityUserErasureRequestService).
-      request.userToErase = isErasureToken(data.user) ? undefined : data.user;
+      if (!isErasureToken(data.user)) {
+        request.userToErase = data.user;
+      }
       request.tokens = getErasureTokens({ projectId, user: data.user });
       request.status = SecurityUserErasureRequestStatus.Pending;
       request.requestedAt = data.requestedAt;
