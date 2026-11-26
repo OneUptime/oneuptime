@@ -897,7 +897,7 @@ Après avoir ajouté le pack, choisissez les niveaux de gravité et les politiqu
 
 ## Traps SNMP
 
-L'interrogation détecte un problème à la prochaine interrogation ; les traps le détectent en quelques secondes. Chaque sonde exécute un récepteur de traps SNMP qui accepte les traps et informs v1 et v2c et les transmet à OneUptime.
+L'interrogation détecte un problème à la prochaine interrogation ; les traps le détectent en quelques secondes. Chaque sonde exécute un récepteur de traps SNMP qui accepte les traps et informs v1, v2c et v3 et les transmet à OneUptime. Il accuse réception de chaque inform, pour que l'équipement cesse de le renvoyer.
 
 ```mermaid title="D'un trap à un incident"
 flowchart TB
@@ -921,6 +921,7 @@ Le récepteur est activé par défaut et écoute sur UDP 162. Configurez-le sur 
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Mettez `false` pour désactiver le récepteur de traps. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | Le port UDP sur lequel écoute le récepteur. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | Combien de traps il transmet par minute avant d'abandonner le reste. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | L'identifiant de moteur SNMPv3 de la sonde, en hexadécimal (5 à 32 octets). Ne le définissez que pour garder l'identifiant de moteur d'un récepteur que cette sonde remplace. | Dérivé de l'identifiant de la sonde |
 
 Si la sonde tourne dans Docker, publiez le port UDP pour que les traps puissent l'atteindre :
 
@@ -936,6 +937,42 @@ Pointez ensuite la destination des traps de vos équipements vers la sonde ; sur
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### Traps et informs SNMPv3
+
+Un trap SNMPv3 est signé, et généralement chiffré, avec les clés d'un utilisateur : une sonde n'en accepte donc que d'un utilisateur qu'elle connaît, c'est-à-dire des identifiants SNMPv3 des équipements qui lui sont affectés. Les identifiants SNMP propres à chaque équipement, son profil d'identifiants et le profil par défaut de son site comptent tous : un équipement interrogé en v2c peut donc quand même envoyer ses traps en tant qu'utilisateur SNMPv3 du site. Rien n'est à configurer sur la sonde :
+
+1. Donnez à l'équipement, à son profil d'identifiants ou à son site l'utilisateur SNMPv3 sous lequel l'équipement envoie ses traps : nom d'utilisateur, niveau de sécurité, et protocoles et phrases secrètes d'authentification et de chiffrement (voir [Identifiants SNMP et profils d'identifiants](#identifiants-snmp-et-profils-didentifiants)).
+2. Dirigez les traps SNMPv3 de l'équipement vers la sonde. Sous Cisco IOS, par exemple :
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime remet à chaque sonde les utilisateurs SNMPv3 de ses propres équipements toutes les trente secondes : un identifiant modifié, un profil modifié ou un équipement déplacé vers une autre sonde est pris en compte en moins d'une minute, pendant que le récepteur continue d'écouter. Les identifiants restent chiffrés au repos, comme pour l'interrogation, et la sonde ne les garde qu'en mémoire et ne les journalise jamais. Les utilisateurs d'un projet n'atteignent jamais la sonde d'un autre projet.
+
+Le récepteur accepte les protocoles de l'interrogation : authentification MD5, SHA-1, SHA-256 et SHA-512, et chiffrement DES, AES-128 et AES-256. Un trap doit arriver avec au moins la sécurité prévue pour son utilisateur : les traps d'un utilisateur authPriv sont refusés s'ils arrivent non authentifiés ou non chiffrés.
+
+**Traps, informs et identifiant de moteur de la sonde.** Un trap est authentifié avec l'identifiant de moteur SNMP de l'équipement lui-même : il n'y a donc rien à configurer. Un inform est authentifié avec l'identifiant de moteur de la sonde, que la plupart des équipements découvrent d'eux-mêmes. Certains ont besoin qu'on le saisisse : sous Cisco IOS, saisissez `snmp-server engineID remote <probe-ip> <engine-id>` avant de créer l'utilisateur. Ouvrez **Moniteurs → Paramètres → Sondes** et choisissez la sonde : sa carte **Traps SNMP** affiche l'identifiant de moteur à copier. Il est dérivé de l'identifiant de la sonde et reste donc le même après les redémarrages, les mises à jour et entre les répliques de la sonde ; définissez `PROBE_SNMP_ENGINE_ID` pour en choisir un autre.
+
+Les informs sont acquittés, en v2c comme en v3. Un inform renvoyé parce que son accusé de réception s'est perdu est acquitté de nouveau, et enregistré une seule fois.
+
+**La fenêtre de temps.** Comme `snmptrapd` de Net-SNMP, le récepteur refuse un trap dont les boots et le temps du moteur reculent de plus de 150 secondes par rapport au dernier trap de l'équipement : une copie rejouée ou retardée, ou un équipement qui a redémarré sans compter ce redémarrage dans ses boots de moteur. Un inform doit se situer à moins de 150 secondes du temps de la sonde elle-même.
+
+**Les traps SNMPv3 refusés** ne sont jamais transmis, et rien de ce qu'ils contenaient n'est conservé ni journalisé : seulement leur provenance, l'utilisateur sous lequel ils ont été envoyés et la raison. La carte **Traps SNMP** de la sonde liste ceux du dernier jour, par exemple « 12 traps SNMPv3 de 10.20.0.5 ont échoué : utilisateur inconnu « san-monitor » », chacun avec ce qu'il faut changer. Les pages **Vue d'ensemble** et **Journaux** d'un équipement disent la même chose quand l'adresse est l'une des siennes. Un trap accepté depuis cette adresse sous cet utilisateur l'efface.
+
+| Raison | Ce qu'il faut changer |
+| --- | --- |
+| Utilisateur inconnu | Aucun équipement de la sonde n'a d'utilisateur SNMPv3 de ce nom. Ajoutez-le aux identifiants de l'équipement, à son profil d'identifiants ou au profil par défaut de son site, ou corrigez le nom sur l'équipement. |
+| Mauvaise phrase secrète ou mauvais protocole d'authentification | Rendez la phrase secrète et le protocole d'authentification de l'équipement identiques à ceux que OneUptime a pour cet utilisateur. |
+| Mauvaise phrase secrète ou mauvais protocole de chiffrement | Rendez la phrase secrète et le protocole de chiffrement de l'équipement identiques à ceux que OneUptime a pour cet utilisateur. |
+| Hors de la fenêtre de temps | L'horloge du moteur de l'équipement a reculé. Ses traps sont de nouveau acceptés dès qu'il compte un redémarrage dans ses boots de moteur. |
+| Envoyé à un autre identifiant de moteur | Un inform a été envoyé à un autre identifiant de moteur que celui de la sonde. Donnez à l'équipement l'identifiant de moteur de la sonde. |
+| Moins de sécurité que prévu pour l'utilisateur | Réglez le niveau de sécurité des traps de l'équipement sur celui que OneUptime a pour l'utilisateur. |
+
+Dans l'historique des traps, un trap SNMPv3 dit ce qui est arrivé, à côté de son OID et de ses varbinds : la version 3, l'utilisateur sous lequel il a été authentifié, s'il était aussi chiffré, et l'identifiant de moteur de l'équipement qui l'a envoyé.
+
 ### Comment les traps sont associés aux moniteurs
 
 Les traps sont associés via l'inventaire des équipements :
@@ -944,7 +981,7 @@ Les traps sont associés via l'inventaire des équipements :
 2. OneUptime cherche les équipements réseau assignés à cette sonde dont le nom d'hôte, ou l'une des **Autres adresses**, est l'adresse IP source du trap.
 3. Le trap est journalisé dans l'historique des traps de l'équipement, et chaque moniteur Équipement réseau d'un équipement correspondant l'évalue au regard de ses critères, généralement un filtre **Trap SNMP reçu (OID du trap)**.
 
-L'association se fait par adresse et non par identifiants, si bien qu'un équipement seulement pingué peut quand même recevoir des traps : un équipement pour lequel vous n'avez pas d'identifiants de lecture peut quand même en envoyer. Enregistrez l'équipement avec l'adresse depuis laquelle il envoie ses traps, ou ajoutez cette adresse à ses **Autres adresses** sur sa page **Paramètres**. Les traps génériques SNMPv1 (coldStart, linkDown, linkUp, etc.) sont convertis en leurs OID de notification SNMPv2 standard, si bien que linkDown correspond à l'OID de trap `1.3.6.1.6.3.1.1.5.3` quelle que soit la version SNMP.
+L'association se fait par adresse et non par identifiants, si bien qu'un équipement seulement pingué peut quand même recevoir des traps v1 et v2c : un équipement pour lequel vous n'avez pas d'identifiants de lecture peut quand même en envoyer. Un trap SNMPv3 a aussi besoin de l'utilisateur avec lequel il est signé (voir [Traps et informs SNMPv3](#traps-et-informs-snmpv3)), puis il est associé par son adresse de la même façon. Enregistrez l'équipement avec l'adresse depuis laquelle il envoie ses traps, ou ajoutez cette adresse à ses **Autres adresses** sur sa page **Paramètres**. Les traps génériques SNMPv1 (coldStart, linkDown, linkUp, etc.) sont convertis en leurs OID de notification SNMPv2 standard, si bien que linkDown correspond à l'OID de trap `1.3.6.1.6.3.1.1.5.3` quelle que soit la version SNMP.
 
 #### Exemple : déclencher un incident sur linkDown
 
@@ -1172,6 +1209,13 @@ Si les équipements sont tous là mais pas les moniteurs : les équipements et l
 - Publiez et autorisez UDP 162 jusqu'à la sonde, ou le port de `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Vérifiez que le nom d'hôte de l'équipement, ou l'une de ses **Autres adresses**, est l'adresse depuis laquelle il envoie ses traps : c'est ainsi que les traps sont associés aux équipements.
 - Cherchez dans les journaux de la sonde des erreurs de liaison : port déjà utilisé, ou pas de privilèges pour un port inférieur à 1024.
+:::
+
+:::details Les traps SNMPv3 sont refusés
+- Ouvrez **Moniteurs → Paramètres → Sondes** et choisissez la sonde : sa carte **Traps SNMP** liste chaque source refusée avec sa raison et ce qu'il faut changer.
+- L'utilisateur SNMPv3 doit appartenir à un équipement affecté à cette sonde : ses propres identifiants, son profil d'identifiants ou le profil par défaut de son site. Un utilisateur d'un équipement affecté à une autre sonde ne compte pas.
+- Un inform a aussi besoin de l'identifiant de moteur de la sonde, affiché sur la même carte. Un équipement qui en a reçu un mauvais est listé comme envoyant à un autre identifiant de moteur.
+- Après une modification, la sonde prend en compte les nouveaux utilisateurs en moins d'une minute.
 :::
 
 :::details Tester SNMP depuis le réseau de la sonde
