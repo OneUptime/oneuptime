@@ -83,7 +83,12 @@
 {{#if projectName}}
 {{> InfoBlock info=(ttHtml "If you did not expect this, contact the owners of {{project}}." project=projectName)}}
 {{else if @root.isSelfHosted}}
+{{!-- The server's own support address, where its admins set one (#10941). --}}
+{{#if @root.serverSupportEmail}}
+{{> InfoBlock info=(ttMailtoHtml "If you did not expect this, contact support at {{address}}." address=@root.serverSupportEmail)}}
+{{else}}
 {{> InfoBlock info=(tHtml "If you did not expect this, contact your server's admin.")}}
+{{/if}}
 {{else}}{{#unless @root.isBrandRenamed}}
 {{> InfoBlock info=(ttHtml "If you did not expect this, contact support at {{address}}." address="support@oneuptime.com")}}
 {{/unless}}{{/if}}

@@ -15,9 +15,23 @@ import {
   startOfUtcDay,
   startOfUtcMonth,
 } from "Common/Types/Cloud/CloudCost";
+import {
+  CLOUD_COST_BASES,
+  CLOUD_COST_BASIS_LABELS,
+  CloudCostBasis,
+  getCloudCostBasisColumn,
+  isCloudCostBasis,
+} from "Common/Types/Cloud/CloudCostBasis";
 import OneUptimeDate from "Common/Types/Date";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
+import {
+  COST_BASIS_SWITCH_LABEL,
+  CloudCostBasisChoice,
+  CloudCostBasisPill,
+  useCloudCostBasis,
+} from "./CloudCostBasis";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -107,6 +121,8 @@ export async function fetchCloudResourceCost(data: {
   provider: string;
   providerResourceId: string;
   now: Date;
+  // The cost basis to read (CloudCostBasis); billed when absent.
+  basis?: CloudCostBasis | undefined;
 }): Promise<CloudResourceCost> {
   const resourceKey: string = getCloudCostResourceKey(
     data.provider,
@@ -132,7 +148,7 @@ export async function fetchCloudResourceCost(data: {
             day: new InBetween<Date>(from, data.now),
           },
           aggregationType: AggregationType.Sum,
-          aggregateColumnName: "cost",
+          aggregateColumnName: getCloudCostBasisColumn(data.basis),
           aggregationTimestampColumnName: "day",
           aggregationInterval: AggregationInterval.Total,
           startTimestamp: from,
@@ -214,6 +230,12 @@ export interface ViewProps {
    * out here, so the page says it once.
    */
   recommendations?: Array<CloudCostRecommendation> | undefined;
+  /*
+   * The cost basis the figures are on, and a way to pick another: the
+   * card's own switch. With no way to pick, the basis is named only.
+   */
+  basis?: CloudCostBasis | undefined;
+  onBasisChange?: ((basis: CloudCostBasis) => void) | undefined;
 }
 
 // Whether the card has anything to show: a cost, or a way to spend less.
@@ -252,8 +274,37 @@ export const CloudResourceCostCardView: FunctionComponent<ViewProps> = (
   const heading: { title: string; description: string } =
     getCloudResourceCostCardHeading(cost);
 
+  const basis: CloudCostBasis | undefined = props.basis;
+
   return (
-    <Card title={heading.title} description={heading.description}>
+    <Card
+      title={heading.title}
+      description={heading.description}
+      rightElement={
+        basis && cost.hasCosts ? (
+          props.onBasisChange ? (
+            <FilterButtons
+              ariaLabel={COST_BASIS_SWITCH_LABEL}
+              dataTestId="cloud-resource-cost-basis"
+              selectedValue={basis}
+              options={CLOUD_COST_BASES.map((option: CloudCostBasis) => {
+                return {
+                  label: CLOUD_COST_BASIS_LABELS[option],
+                  value: option,
+                };
+              })}
+              onSelect={(value: string): void => {
+                if (isCloudCostBasis(value)) {
+                  props.onBasisChange!(value);
+                }
+              }}
+            />
+          ) : (
+            <CloudCostBasisPill basis={basis} />
+          )
+        ) : undefined
+      }
+    >
       <div
         data-testid="cloud-resource-cost"
         data-state={cost.hasCosts ? "costs" : "savings-only"}
@@ -374,6 +425,8 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const [cost, setCost] = useState<CloudResourceCost | null>(null);
+  // Billed, amortized or net: the person's pick, else the project's.
+  const basisChoice: CloudCostBasisChoice = useCloudCostBasis();
 
   useEffect(() => {
     let ignore: boolean = false;
@@ -384,6 +437,7 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
       provider: props.provider,
       providerResourceId: props.providerResourceId,
       now: OneUptimeDate.getCurrentDate(),
+      basis: basisChoice.basis,
     })
       .then((found: CloudResourceCost): void => {
         if (!ignore) {
@@ -404,13 +458,20 @@ const CloudResourceCostCard: FunctionComponent<ComponentProps> = (
     props.resourceRecordId.toString(),
     props.provider,
     props.providerResourceId,
+    basisChoice.basis,
   ]);
 
   if (!cost) {
     return <></>;
   }
 
-  return <CloudResourceCostCardView cost={cost} />;
+  return (
+    <CloudResourceCostCardView
+      cost={cost}
+      basis={basisChoice.basis}
+      onBasisChange={basisChoice.setBasis}
+    />
+  );
 };
 
 export default CloudResourceCostCard;

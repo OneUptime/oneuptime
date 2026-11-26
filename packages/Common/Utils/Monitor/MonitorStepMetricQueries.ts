@@ -37,11 +37,21 @@ import MonitorStepStorageArrayMonitor, {
 import MonitorStepVMwareMonitor, {
   VMwareResourceFilters,
 } from "../../Types/Monitor/MonitorStepVMwareMonitor";
+import MonitorStepXcpNgMonitor, {
+  XcpNgResourceFilters,
+} from "../../Types/Monitor/MonitorStepXcpNgMonitor";
 import MonitorType from "../../Types/Monitor/MonitorType";
 import { getOpenStackMetricByMetricName } from "../../Types/Monitor/OpenStackMetricCatalog";
 import { getStorageArrayObjectLabel } from "../../Types/Monitor/StorageArrayMetricCatalog";
 import RollingTime from "../../Types/RollingTime/RollingTime";
 import RollingTimeUtil from "../../Types/RollingTime/RollingTimeUtil";
+import {
+  XCP_NG_ID_ATTRIBUTE,
+  XCP_NG_POOL_ID_ATTRIBUTE,
+  XCP_NG_SCOPE_ATTRIBUTE,
+  XcpNgLabel,
+  XcpNgTelemetryUtil,
+} from "../../Types/XcpNg/XcpNgTelemetry";
 import MetricQueryServices from "../Metrics/MetricQueryServices";
 import { canonicalizeEntityValue } from "../Telemetry/EntityKey";
 
@@ -51,7 +61,7 @@ import { canonicalizeEntityValue } from "../Telemetry/EntityKey";
  * A step keeps its queries as the person wrote them, but the worker
  * (MonitorTelemetryMonitor) does not read them as written: an
  * infrastructure monitor narrows every query to its host, cluster, vCenter,
- * array or fleet, and to the resource filters on the step. A chart of the
+ * pool, array or fleet, and to the resource filters on the step. A chart of the
  * written queries alone would show every Proxmox cluster in the project on
  * the page of a monitor that watches one of them.
  *
@@ -205,6 +215,91 @@ export const applyStorageArrayResourceFilters: (input: {
     if (label) {
       input.attributes[label] = trimmed;
     }
+  }
+};
+
+/*
+ * The attribute an XCP-ng monitor scopes every query to its pool by: the
+ * pool's XAPI UUID (XcpNgPool.poolIdentifier), which the XCP-ng Agent moves
+ * from Xen Orchestra's pool_id label onto the resource (one OTLP resource
+ * per pool) and OtelMetricsIngestService stores `resource.`-prefixed. Never
+ * the pool's name: two Xen Orchestras can each manage a "Production".
+ */
+export const XCP_NG_POOL_RESOURCE_ATTRIBUTE: string = `resource.${XCP_NG_POOL_ID_ATTRIBUTE}`;
+
+// A step's pool as the worker filters on it: trimmed and lower-cased.
+export const getXcpNgStepPoolIdentifier: (value: unknown) => string = (
+  value: unknown,
+): string => {
+  return typeof value === "string"
+    ? XcpNgTelemetryUtil.normalizePoolIdentifier(value)
+    : "";
+};
+
+/*
+ * Map an XCP-ng monitor step's resource filters onto the ClickHouse
+ * attribute equalities the query runs with. Every XCP-ng datapoint carries
+ * `xcp_ng.scope` (pool | host | vm | sr | vdi | xostor) and `xcp_ng.id`
+ * (the object's XAPI UUID, lower-cased), stamped at ingest by
+ * XcpNgSeriesNormalizer, so a scope or an object is one equality whichever
+ * of Xen Orchestra's labels (uuid, sr_uuid, vdi_uuid) named it. `hostName`
+ * is Xen Orchestra's own `host_name` label: a host's own series and the
+ * series of every VM it runs (Xen Orchestra names a VM's host on each of
+ * its metrics). All three are DATAPOINT attributes, stored unprefixed. The
+ * filters are independent equalities.
+ *
+ * Read by the worker (which re-exports it for its tests) and by the
+ * dashboard's charts of a monitor's metrics; the root-cause renderer
+ * (MonitorCriteriaEvaluator.buildXcpNgRootCauseContext) surfaces the same
+ * filters.
+ */
+export const XcpNgResourceFilterAttributeKeys: Record<
+  keyof XcpNgResourceFilters,
+  string
+> = {
+  scope: XCP_NG_SCOPE_ATTRIBUTE,
+  xcpNgId: XCP_NG_ID_ATTRIBUTE,
+  hostName: XcpNgLabel.HostName,
+};
+
+export const applyXcpNgResourceFilters: (input: {
+  attributes: Dictionary<string>;
+  resourceFilters: XcpNgResourceFilters | undefined;
+}) => void = (input: {
+  attributes: Dictionary<string>;
+  resourceFilters: XcpNgResourceFilters | undefined;
+}): void => {
+  if (!input.resourceFilters || typeof input.resourceFilters !== "object") {
+    return;
+  }
+
+  for (const filterKey of Object.keys(
+    XcpNgResourceFilterAttributeKeys,
+  ) as Array<keyof XcpNgResourceFilters>) {
+    const filterValue: unknown = input.resourceFilters[filterKey];
+
+    /*
+     * `typeof` rather than truthiness: step JSON is not schema-checked,
+     * so a filter written by the API or an import can be a number or an
+     * object, and neither is an attribute equality ClickHouse can run.
+     */
+    if (typeof filterValue !== "string") {
+      continue;
+    }
+
+    const trimmed: string = filterValue.trim();
+
+    if (trimmed.length === 0) {
+      continue;
+    }
+
+    /*
+     * A scope is one of XcpNgScope's lower-case values, and ingest stores an
+     * object's UUID lower-cased: a filter written in capitals still matches.
+     * A host's name is Xen Orchestra's, kept as it is.
+     */
+    input.attributes[XcpNgResourceFilterAttributeKeys[filterKey]] =
+      filterKey === "hostName" ? trimmed : trimmed.toLowerCase();
   }
 };
 
@@ -502,6 +597,29 @@ const readVMware: ReadAttributesFunction = (
   return orNothing(attributes);
 };
 
+const readXcpNg: ReadAttributesFunction = (
+  input: ReadAttributesInput,
+): Dictionary<unknown> | undefined => {
+  const settings: MonitorStepXcpNgMonitor =
+    input.settings as MonitorStepXcpNgMonitor;
+  const attributes: Dictionary<string> = input.ownAttributes;
+
+  const poolIdentifier: string = getXcpNgStepPoolIdentifier(
+    settings.poolIdentifier,
+  );
+
+  if (poolIdentifier) {
+    attributes[XCP_NG_POOL_RESOURCE_ATTRIBUTE] = poolIdentifier;
+  }
+
+  applyXcpNgResourceFilters({
+    attributes: attributes,
+    resourceFilters: settings.resourceFilters,
+  });
+
+  return orNothing(attributes);
+};
+
 const readCeph: ReadAttributesFunction = (
   input: ReadAttributesInput,
 ): Dictionary<unknown> | undefined => {
@@ -709,6 +827,7 @@ const METRIC_BACKED_TYPES: Partial<
     read: readOpenStack,
   },
   [MonitorType.VMware]: { stepKey: "vmwareMonitor", read: readVMware },
+  [MonitorType.XcpNg]: { stepKey: "xcpNgMonitor", read: readXcpNg },
   [MonitorType.Ceph]: { stepKey: "cephMonitor", read: readCeph },
   [MonitorType.StorageArray]: {
     stepKey: "storageArrayMonitor",

@@ -57,6 +57,8 @@ import DashboardTraceListComponentUtil from "./DashboardTraceListComponent";
 import DashboardValueComponentUtil from "./DashboardValueComponent";
 import DashboardVMwareHostListComponentUtil from "./DashboardVMwareHostListComponent";
 import DashboardVMwareVirtualMachineListComponentUtil from "./DashboardVMwareVirtualMachineListComponent";
+import DashboardXcpNgHostListComponentUtil from "./DashboardXcpNgHostListComponent";
+import DashboardXcpNgVmListComponentUtil from "./DashboardXcpNgVmListComponent";
 
 export default class DashboardComponentsUtil {
   public static getComponentSettingsArguments(
@@ -358,6 +360,18 @@ export default class DashboardComponentsUtil {
       dashboardComponentType === DashboardComponentType.VMwareVirtualMachineList
     ) {
       return DashboardVMwareVirtualMachineListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.XcpNgHostList) {
+      return DashboardXcpNgHostListComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.XcpNgVmList) {
+      return DashboardXcpNgVmListComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

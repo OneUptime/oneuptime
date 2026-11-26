@@ -150,7 +150,7 @@ Para mudar um valor, remova o agente e execute o comando dele de novo (Podman CL
 | Métricas de contêineres | CPU (uso, porcentagem, throttling), memória (uso, limite, porcentagem), E/S de rede e de bloco, tempo de atividade, reinícios e número de processos, por contêiner, a cada 30 segundos. |
 | Logs de contêineres | stdout e stderr de cada contêiner, a partir do arquivo `ctr.log` que o driver de log `k8s-file` grava. |
 
-As métricas e os logs de cada contêiner são arquivados em um serviço com o nome do contêiner. Cada linha de log recebe uma severidade a partir do nível que ela cita, como `[ERROR]`, `level=warn` ou `{"level":"info"}`; uma linha que não cita nenhum fica com a do fluxo dela: stderr é `ERROR`, stdout é `INFO`. Linhas que começam com espaço em branco ou com um colchete de fechamento se juntam à linha anterior, então um stack trace chega como um único registro. Os logs do próprio agente ficam de fora.
+As métricas e os logs de cada contêiner são arquivados em um serviço com o nome do contêiner. Cada linha de log recebe uma severidade a partir do nível que ela cita, como `[ERROR]`, `level=warn` ou `{"level":"info"}`, e o traceback de uma exceção conta como `ERROR`. Uma linha que não cita nenhum é `INFO` no stdout, e não tem severidade no stderr, onde os programas escrevem seus diagnósticos de todos os níveis. Linhas que começam com espaço em branco ou com um colchete de fechamento se juntam à linha anterior, então um stack trace chega como um único registro. Os logs do próprio agente ficam de fora.
 
 [Monitor de Podman](/docs/monitor/podman-monitor#métricas-coletadas) lista cada métrica e o que ela significa.
 

@@ -150,7 +150,7 @@ For å endre en verdi, fjern agenten og kjør kommandoen på nytt (Podman CLI), 
 | Containermålinger | CPU (bruk, prosentandel, struping), minne (bruk, grense, prosentandel), nettverks- og blokk-I/O, oppetid, omstarter og antall prosesser, per container, hvert 30. sekund. |
 | Containerlogger | Stdout og stderr fra hver container, fra filen `ctr.log` som loggdriveren `k8s-file` skriver. |
 
-Målingene og loggene til hver container lagres under en tjeneste oppkalt etter containeren. Hver logglinje får en alvorlighetsgrad fra nivået den nevner, som `[ERROR]`, `level=warn` eller `{"level":"info"}`; en linje som ikke nevner noe, får strømmens: stderr er `ERROR`, stdout er `INFO`. Linjer som begynner med mellomrom eller en lukkende parentes, slås sammen med linjen før, så en stakksporing kommer inn som én post. Agentens egne logger utelates.
+Målingene og loggene til hver container lagres under en tjeneste oppkalt etter containeren. Hver logglinje får en alvorlighetsgrad fra nivået den nevner, som `[ERROR]`, `level=warn` eller `{"level":"info"}`, og et unntaks traceback teller som `ERROR`. En linje som ikke nevner noe, er `INFO` på stdout og har ingen alvorlighetsgrad på stderr, der programmer skriver diagnostikken sin på alle nivåer. Linjer som begynner med mellomrom eller en lukkende parentes, slås sammen med linjen før, så en stakksporing kommer inn som én post. Agentens egne logger utelates.
 
 [Podman-monitor](/docs/monitor/podman-monitor#innsamlede-målinger) lister hver måling og hva den betyr.
 

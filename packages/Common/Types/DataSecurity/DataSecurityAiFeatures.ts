@@ -118,6 +118,12 @@ export enum DataSecurityAiFeature {
    */
   FixTelemetryLeaks = "FixTelemetryLeaks",
   /*
+   * A residency, owner or label rule drafted from a sentence a person
+   * writes - to Ask AI, or to an agent through the MCP server (#10378) -
+   * and shown with the stores it matches today before anything is saved.
+   */
+  DraftRuleFromSentence = "DraftRuleFromSentence",
+  /*
    * An exposure's assessment written up (#10377): what it means, a notice
    * to the regulator, a notice to the people affected and an internal
    * summary, from the facts plain code worked out - the window, who could
@@ -665,6 +671,36 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
       ],
       keeps: translationKey(
         "Nothing: the draft fills the form, and nothing is saved until the person saves it.",
+      ),
+      keepsProviderErrors: false,
+      modelSource: DataSecurityAiModelSource.ProjectProvider,
+    },
+    {
+      feature: DataSecurityAiFeature.DraftRuleFromSentence,
+      title: translationKey("Rules from a sentence"),
+      startedBy: translationKey(
+        "A person who asks Ask AI for a residency, owner or label rule in their own words, or an agent connected through the MCP server.",
+      ),
+      runsOnItsOwn: false,
+      sends: [
+        translationKey("The sentence the person wrote"),
+        translationKey(
+          "The kinds of personal data and the cloud regions a rule can name",
+        ),
+        translationKey(
+          "The names of the project's labels and teams, which a rule can name",
+        ),
+      ],
+      neverSends: [
+        translationKey(
+          "A store, a finding or anything found in one: OneUptime works out which stores the draft matches, after OneUptime AI answers",
+        ),
+        translationKey(
+          "Who is in the project: people the sentence names are found by OneUptime, after OneUptime AI answers",
+        ),
+      ],
+      keeps: translationKey(
+        "Nothing: the draft is shown with the stores it matches today, and nothing is saved until the person approves it.",
       ),
       keepsProviderErrors: false,
       modelSource: DataSecurityAiModelSource.ProjectProvider,

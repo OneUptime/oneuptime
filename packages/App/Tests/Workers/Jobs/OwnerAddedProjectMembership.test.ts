@@ -285,6 +285,12 @@ jest.mock("Common/Server/Services/StorageArrayOwnerTeamService", () => {
 jest.mock("Common/Server/Services/StorageArrayOwnerUserService", () => {
   return mockOwnerRowService();
 });
+jest.mock("Common/Server/Services/XcpNgPoolOwnerTeamService", () => {
+  return mockOwnerRowService();
+});
+jest.mock("Common/Server/Services/XcpNgPoolOwnerUserService", () => {
+  return mockOwnerRowService();
+});
 jest.mock("Common/Server/Services/IoTFleetOwnerTeamService", () => {
   return mockOwnerRowService();
 });
@@ -725,6 +731,19 @@ jest.mock("Common/Server/Services/StorageArrayService", () => {
   };
 });
 
+jest.mock("Common/Server/Services/XcpNgPoolService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findOneById: jest.fn(),
+      findBy: jest.fn(async () => {
+        return [];
+      }),
+      getXcpNgPoolLinkInDashboard: jest.fn(),
+    },
+  };
+});
+
 jest.mock("Common/Server/Services/IoTFleetService", () => {
   return {
     __esModule: true,
@@ -945,6 +964,9 @@ import CephClusterService from "Common/Server/Services/CephClusterService";
 import StorageArrayOwnerTeamService from "Common/Server/Services/StorageArrayOwnerTeamService";
 import StorageArrayOwnerUserService from "Common/Server/Services/StorageArrayOwnerUserService";
 import StorageArrayService from "Common/Server/Services/StorageArrayService";
+import XcpNgPoolOwnerTeamService from "Common/Server/Services/XcpNgPoolOwnerTeamService";
+import XcpNgPoolOwnerUserService from "Common/Server/Services/XcpNgPoolOwnerUserService";
+import XcpNgPoolService from "Common/Server/Services/XcpNgPoolService";
 import IoTFleetOwnerTeamService from "Common/Server/Services/IoTFleetOwnerTeamService";
 import IoTFleetOwnerUserService from "Common/Server/Services/IoTFleetOwnerUserService";
 import IoTFleetService from "Common/Server/Services/IoTFleetService";
@@ -1008,6 +1030,7 @@ import "../../../FeatureSet/Workers/Jobs/OpenStackCloudOwners/SendOwnerAddedNoti
 import "../../../FeatureSet/Workers/Jobs/VMwareVCenterOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/CephClusterOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/StorageArrayOwners/SendOwnerAddedNotification";
+import "../../../FeatureSet/Workers/Jobs/XcpNgPoolOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/IoTFleetOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/CloudResourceOwners/SendOwnerAddedNotification";
 import "../../../FeatureSet/Workers/Jobs/ServerlessFunctionOwners/SendOwnerAddedNotification";
@@ -1300,6 +1323,13 @@ const OWNER_ADDED_CASES: Array<OwnerAddedCase> = [
     resourceService: StorageArrayService as unknown as ResourceServiceMock,
   },
   {
+    job: "XcpNgPoolOwner:SendOwnerAddedNotification",
+    teamService: XcpNgPoolOwnerTeamService as unknown as RowServiceMock,
+    userService: XcpNgPoolOwnerUserService as unknown as RowServiceMock,
+    resourceIdColumn: "xcpNgPoolId",
+    resourceService: XcpNgPoolService as unknown as ResourceServiceMock,
+  },
+  {
     job: "IoTFleetOwner:SendOwnerAddedNotification",
     teamService: IoTFleetOwnerTeamService as unknown as RowServiceMock,
     userService: IoTFleetOwnerUserService as unknown as RowServiceMock,
@@ -1474,6 +1504,7 @@ beforeEach(() => {
     VMwareVCenterService.getVMwareVCenterLinkInDashboard,
     CephClusterService.getCephClusterLinkInDashboard,
     StorageArrayService.getStorageArrayLinkInDashboard,
+    XcpNgPoolService.getXcpNgPoolLinkInDashboard,
     OnCallDutyPolicyService.getOnCallDutyPolicyLinkInDashboard,
   ]) {
     (link as jest.Mock).mockResolvedValue(RESOURCE_LINK);

@@ -8,6 +8,7 @@ import IoTFleet from "Common/Models/DatabaseModels/IoTFleet";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import Host from "Common/Models/DatabaseModels/Host";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
@@ -33,6 +34,7 @@ import IoTFleetElement from "../IoT/IoTFleetElement";
 import ProxmoxClusterElement from "../Proxmox/ProxmoxClusterElement";
 import OpenStackCloudElement from "../OpenStack/OpenStackCloudElement";
 import VMwareVCenterElement from "../VMware/VMwareVCenterElement";
+import XcpNgPoolElement from "../XcpNg/XcpNgPoolElement";
 import PodmanHostElement from "../PodmanHost/PodmanHost";
 import HostElement from "../Host/Host";
 import KubernetesClusterElement from "../KubernetesCluster/KubernetesCluster";
@@ -52,6 +54,7 @@ export interface ComponentProps {
   proxmoxClusters?: Array<ProxmoxCluster> | undefined;
   openStackClouds?: Array<OpenStackCloud> | undefined;
   vmwareVCenters?: Array<VMwareVCenter> | undefined;
+  xcpNgPools?: Array<XcpNgPool> | undefined;
   cephClusters?: Array<CephCluster> | undefined;
   storageArrays?: Array<StorageArray> | undefined;
   dockerSwarmClusters?: Array<DockerSwarmCluster> | undefined;
@@ -82,6 +85,7 @@ export interface ComponentProps {
   hideProxmoxClusters?: boolean | undefined;
   hideOpenStackClouds?: boolean | undefined;
   hideVMwareVCenters?: boolean | undefined;
+  hideXcpNgPools?: boolean | undefined;
   hideCephClusters?: boolean | undefined;
   hideStorageArrays?: boolean | undefined;
   hideDockerSwarmClusters?: boolean | undefined;
@@ -365,6 +369,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
   const proxmoxClusters: Array<ProxmoxCluster> = props.proxmoxClusters || [];
   const openStackClouds: Array<OpenStackCloud> = props.openStackClouds || [];
   const vmwareVCenters: Array<VMwareVCenter> = props.vmwareVCenters || [];
+  const xcpNgPools: Array<XcpNgPool> = props.xcpNgPools || [];
   const cephClusters: Array<CephCluster> = props.cephClusters || [];
   const storageArrays: Array<StorageArray> = props.storageArrays || [];
   const dockerSwarmClusters: Array<DockerSwarmCluster> =
@@ -391,6 +396,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !props.hideOpenStackClouds && openStackClouds.length > 0;
   const showVMware: boolean =
     !props.hideVMwareVCenters && vmwareVCenters.length > 0;
+  const showXcpNg: boolean = !props.hideXcpNgPools && xcpNgPools.length > 0;
   const showCeph: boolean = !props.hideCephClusters && cephClusters.length > 0;
   const showStorageArrays: boolean =
     !props.hideStorageArrays && storageArrays.length > 0;
@@ -417,6 +423,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     !showProxmox &&
     !showOpenStack &&
     !showVMware &&
+    !showXcpNg &&
     !showCeph &&
     !showStorageArrays &&
     !showSwarm &&
@@ -479,6 +486,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showProxmox ? proxmoxClusters.length : 0) +
     (showOpenStack ? openStackClouds.length : 0) +
     (showVMware ? vmwareVCenters.length : 0) +
+    (showXcpNg ? xcpNgPools.length : 0) +
     (showCeph ? cephClusters.length : 0) +
     (showStorageArrays ? storageArrays.length : 0) +
     (showSwarm ? dockerSwarmClusters.length : 0) +
@@ -498,6 +506,7 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
     (showProxmox ? 1 : 0) +
     (showOpenStack ? 1 : 0) +
     (showVMware ? 1 : 0) +
+    (showXcpNg ? 1 : 0) +
     (showCeph ? 1 : 0) +
     (showStorageArrays ? 1 : 0) +
     (showSwarm ? 1 : 0) +
@@ -666,6 +675,19 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             items={vmwareVCenters}
             renderItem={(vcenter: VMwareVCenter) => {
               return <VMwareVCenterElement vmwareVCenter={vcenter} />;
+            }}
+          />
+        )}
+        {showXcpNg && (
+          <CategorySection<XcpNgPool>
+            className={sectionClassName}
+            icon={IconProp.XcpNg}
+            label="XCP-ng Pools"
+            iconBgClass="bg-fuchsia-50"
+            iconColorClass="text-fuchsia-600"
+            items={xcpNgPools}
+            renderItem={(pool: XcpNgPool) => {
+              return <XcpNgPoolElement xcpNgPool={pool} />;
             }}
           />
         )}

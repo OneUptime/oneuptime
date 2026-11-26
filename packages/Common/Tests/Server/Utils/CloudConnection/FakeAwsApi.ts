@@ -355,11 +355,25 @@ export interface FakeAwsOptions {
   iam?: FakeIam | undefined;
   iamByAccount?: Record<string, FakeIam> | undefined;
   /*
-   * Cost Explorer (GetCostAndUsage, in us-east-1): each request answered by
-   * the next of these pages, the last repeating - or by the error.
+   * Cost Explorer (GetCostAndUsage, in us-east-1): each request of the
+   * billed and amortized read - the one that leaves credits and refunds
+   * out - answered by the next of these pages, the last repeating - or by
+   * the error.
    */
   costPages?: Array<JSONObject> | undefined;
   costError?: FakeResponse | undefined;
+  /*
+   * The net read's pages (GetCostAndUsage of NetAmortizedCost, with no
+   * filter), the same way. None: nothing, as an account that has had no
+   * credit or discount.
+   */
+  netCostPages?: Array<JSONObject> | undefined;
+  /*
+   * The Savings Plans API (DescribeSavingsPlans): the plans as bought, or
+   * the error. None: no plan.
+   */
+  savingsPlansDescribed?: Array<JSONObject> | undefined;
+  savingsPlansDescribeError?: FakeResponse | undefined;
   /*
    * Cost Explorer's resource-level costs (GetCostAndUsageWithResources):
    * each request answered by the next of these pages, the last repeating -
@@ -1780,13 +1794,19 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
             return options.costError;
           }
 
-          const pages: Array<JSONObject> = options.costPages || [
-            { ResultsByTime: [] },
-          ];
+          // The billed and amortized read leaves credits out; the net read counts them.
+          const isNet: boolean = !body["Filter"];
+          const pages: Array<JSONObject> = (isNet
+            ? options.netCostPages
+            : options.costPages) || [{ ResultsByTime: [] }];
           const costTurn: number =
-            costCalls.filter((call: { action: string }): boolean => {
-              return call.action === "GetCostAndUsage";
-            }).length - 1;
+            costCalls.filter(
+              (call: { action: string; body: JSONObject }): boolean => {
+                const callIsNet: boolean = !call.body["Filter"];
+
+                return call.action === "GetCostAndUsage" && callIsNet === isNet;
+              },
+            ).length - 1;
 
           return json(pages[Math.min(costTurn, pages.length - 1)]!);
         }
@@ -2461,6 +2481,28 @@ export function createFakeAws(options: FakeAwsOptions): FakeAws {
         }
 
         return answer;
+      }
+
+      /*
+       * The Savings Plans API (REST-JSON): one global endpoint, signed for
+       * us-east-1, the action in the path.
+       */
+      if (labels[0] === "savingsplans") {
+        costCalls.push({
+          service: "savingsplans",
+          action: url.pathname.replace(/^\//, ""),
+          region: signed.region,
+          body: bodyOf(request),
+        });
+
+        if (options.savingsPlansDescribeError) {
+          return options.savingsPlansDescribeError;
+        }
+
+        return json({
+          savingsPlans: (options.savingsPlansDescribed ||
+            []) as unknown as JSONValue,
+        });
       }
 
       // OpenSearch Service and EFS, at their Region.

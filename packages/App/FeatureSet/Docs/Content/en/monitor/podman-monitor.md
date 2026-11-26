@@ -199,7 +199,7 @@ The agent also tails every container's `ctr.log` file and sends each line as an 
 | `resource.container.id` | The full container ID. |
 | `resource.container.runtime` | Always `podman`. |
 | `attributes["log.iostream"]` | `stdout` or `stderr`. |
-| `severityText` / `severityNumber` | Read from a level keyword where a level sits in the line (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). A line with no level falls back to its stream: `stderr` is `ERROR`, `stdout` is `INFO`. |
+| `severityText` / `severityNumber` | Read from the level the line names, where a level sits in it (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); an exception's traceback is `ERROR`. A line with no level is `INFO` on `stdout`, and has no severity (Unspecified) on `stderr`. |
 | `body` | The line the container wrote. Lines that start with whitespace or a closing bracket, such as stack-trace frames, are joined to the line before. |
 | `time` | Podman's timestamp for the line. |
 

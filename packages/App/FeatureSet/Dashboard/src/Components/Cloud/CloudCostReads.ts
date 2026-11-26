@@ -6,6 +6,10 @@ import {
   CloudCostState,
   CloudCostTagKey,
 } from "Common/Types/Cloud/CloudCost";
+import {
+  CloudCostBasis,
+  getCloudCostBasisColumn,
+} from "Common/Types/Cloud/CloudCostBasis";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import {
   CLOUD_PLATFORM_ALL_BILLED_SERVICES,
@@ -68,6 +72,11 @@ export interface CloudCostScope {
   currency: string;
   startDate: Date;
   endDate: Date;
+  /*
+   * The cost basis the figures are on (CloudCostBasis): each is its own
+   * column of the costs. Billed when absent.
+   */
+  basis?: CloudCostBasis | undefined;
 }
 
 export interface CloudCostPoint {
@@ -176,7 +185,8 @@ export function buildCloudCostAggregateBy(data: {
   const aggregateBy: AggregateBy<CloudCost> = {
     query: buildQuery(data.scope) as AggregateBy<CloudCost>["query"],
     aggregationType: AggregationType.Sum,
-    aggregateColumnName: "cost",
+    // The column of the basis shown: cost, amortizedCost or netCost.
+    aggregateColumnName: getCloudCostBasisColumn(data.scope.basis),
     aggregationTimestampColumnName: "day",
     aggregationInterval: data.interval,
     /*
@@ -587,6 +597,8 @@ export async function fetchCloudCostBreakdown(data: {
           startDate: data.scope.startDate,
           endDate: data.scope.endDate,
           currency: data.scope.currency,
+          // Each group's spend on the basis the page shows, as every other breakdown is.
+          basis: data.scope.basis,
           cloudAccountIds: data.scope.cloudAccountIds,
         },
       });

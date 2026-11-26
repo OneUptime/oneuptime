@@ -169,9 +169,37 @@ describe("AWS: costs from Cost Explorer", () => {
       costPages: [
         {
           ResultsByTime: [
-            costPeriod("2026-11-19", [
-              [["Amazon Elastic Compute Cloud - Compute", "us-east-1"], "88.2"],
-            ]),
+            {
+              TimePeriod: { Start: "2026-11-19", End: "2026-11-19" },
+              Groups: [
+                {
+                  Keys: ["Amazon Elastic Compute Cloud - Compute", "us-east-1"],
+                  Metrics: {
+                    UnblendedCost: { Amount: "88.2", Unit: "USD" },
+                    // A Savings Plan's fee spread over the day it covered.
+                    AmortizedCost: { Amount: "61.4", Unit: "USD" },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      netCostPages: [
+        {
+          ResultsByTime: [
+            {
+              TimePeriod: { Start: "2026-11-19", End: "2026-11-19" },
+              Groups: [
+                {
+                  Keys: ["Amazon Elastic Compute Cloud - Compute", "us-east-1"],
+                  // Less the credit the account had that day.
+                  Metrics: {
+                    NetAmortizedCost: { Amount: "51.4", Unit: "USD" },
+                  },
+                },
+              ],
+            },
           ],
         },
       ],
@@ -192,16 +220,31 @@ describe("AWS: costs from Cost Explorer", () => {
         service: "Amazon Elastic Compute Cloud - Compute",
         region: "us-east-1",
         amount: 88.2,
+        amortizedAmount: 61.4,
+        netAmount: 51.4,
       }),
     ]);
-    // Who the credential is, asked once; Cost Explorer once, in us-east-1.
+    /*
+     * Cost Explorer twice, in us-east-1: billed and amortized without
+     * credits and refunds, then net with them.
+     */
     expect(fake.costCalls).toEqual([
       expect.objectContaining({
         service: "ce",
         action: "GetCostAndUsage",
         region: "us-east-1",
+        body: expect.objectContaining({
+          Metrics: ["UnblendedCost", "AmortizedCost"],
+        }),
+      }),
+      expect.objectContaining({
+        service: "ce",
+        action: "GetCostAndUsage",
+        region: "us-east-1",
+        body: expect.objectContaining({ Metrics: ["NetAmortizedCost"] }),
       }),
     ]);
+    expect(fake.costCalls[1]!.body["Filter"]).toBeUndefined();
   });
 
   test("an organization's management account reads every account at once, by account", async () => {

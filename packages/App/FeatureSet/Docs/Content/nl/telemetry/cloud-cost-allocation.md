@@ -23,7 +23,7 @@ flowchart TB
 
 - **De eerste groep die past, neemt de kosten.** De groepen van een weergave hebben een volgorde, en elke kostenpost valt in de eerste groep waarvan de regels erop van toepassing zijn, zodat niets dubbel wordt geteld. De groepen en de niet-toegewezen uitgaven tellen altijd op tot het totaal van de periode.
 - **Regels lezen alles wat een kostenpost draagt.** Het account, de cloud, de service, de regio, de resource en zijn tags, en wat OneUptime van de resource weet: zijn eigenaarsteams, zijn labels, zijn App Platforms-omgeving en app.
-- **Alles wordt berekend wanneer je kijkt.** Er wordt niets per kostenpost opgeslagen. Een regel die je wijzigt, deelt elke maand die OneUptime bewaart opnieuw in, tot 400 dagen terug, zonder te wachten.
+- **Alles wordt berekend wanneer je kijkt.** Er wordt niets per kostenpost opgeslagen. Een regel die je wijzigt, deelt elke maand die OneUptime bewaart opnieuw in, tot 400 dagen terug, zonder te wachten. Elk cijfer volgt de schakelaar erboven, gefactureerd, geamortiseerd of netto, zoals bij [Cloudkosten](/docs/telemetry/cloud-costs#gefactureerd-geamortiseerd-en-netto), en een eigen post is op elke basis gelijk.
 - **Meerdere weergaven kunnen dezelfde uitgaven indelen.** "Op team" en "Op kostenplaats" delen elk alles in, op hun eigen manier.
 
 ## Voordat je begint
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-Het antwoord bevat de `total` van elke groep en waaruit die bestaat (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), de cijfers per dag of per maand, de periode ervoor, en waaruit de niet-toegewezen uitgaven bestaan. `POST /cloud-cost-group/<group ID>/spend` antwoordt voor één groep.
+Het antwoord bevat de `total` van elke groep en waaruit die bestaat (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), de cijfers per dag of per maand, de periode ervoor, en waaruit de niet-toegewezen uitgaven bestaan. `POST /cloud-cost-group/<group ID>/spend` antwoordt voor één groep. Stuur `basis` als `billed`, `amortized` of `net` voor cijfers op die basis; zonder staan ze op die van het project, en `basis` in het antwoord zegt welke.
 
 ## Limieten
 

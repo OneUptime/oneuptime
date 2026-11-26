@@ -502,7 +502,7 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
 
     /*
      * An infrastructure monitor (Host, Kubernetes, Docker, Podman, Docker
-     * Swarm, Proxmox, VMware, Ceph, Storage Array, IoT Device) is online
+     * Swarm, Proxmox, VMware, XCP-ng, Ceph, Storage Array, IoT Device) is online
      * while its agent sends data: Has Data on the first query, whatever the
      * values. These types used to share the Metrics monitor's pair below,
      * "any value above 0 is online, any value of 0 is offline" - and a

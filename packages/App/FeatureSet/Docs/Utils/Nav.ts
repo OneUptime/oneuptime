@@ -357,6 +357,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/monitor/proxmox-monitor",
       },
       {
+        title: "XCP-ng Monitor",
+        url: "/docs/monitor/xcp-ng-monitor",
+      },
+      {
         title: "Docker Swarm Monitor",
         url: "/docs/monitor/docker-swarm-monitor",
       },
@@ -861,6 +865,10 @@ const DocsNav: NavGroup[] = [
       {
         title: "Proxmox Agent",
         url: "/docs/telemetry/proxmox",
+      },
+      {
+        title: "XCP-ng Agent",
+        url: "/docs/telemetry/xcp-ng",
       },
       {
         title: "Ceph Agent",

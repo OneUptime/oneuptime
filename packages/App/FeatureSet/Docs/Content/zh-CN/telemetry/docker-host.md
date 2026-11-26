@@ -150,7 +150,7 @@ Everything is ready. Begin running and processing data.
 | 容器指标 | 每个容器每 30 秒一次：CPU（用量、百分比、限流）、内存（用量、限制、百分比）、网络和块 I/O、运行时长、重启次数和进程数。 |
 | 容器日志 | 每个容器的 stdout 和 stderr，来自其 `json-file` 日志文件。 |
 
-每个容器的指标和日志都归入一个以该容器命名的服务下。每条日志行的严重性取自它所写明的级别，例如 `[ERROR]`、`level=warn` 或 `{"level":"info"}`；没有写明级别的行则采用其所在流的严重性：stderr 为 `ERROR`，stdout 为 `INFO`。以空白或右括号开头的行会并入前一行，因此堆栈追踪会作为一条记录到达。代理自身的日志不会被采集。
+每个容器的指标和日志都归入一个以该容器命名的服务下。每条日志行的严重性取自它所写明的级别，例如 `[ERROR]`、`level=warn` 或 `{"level":"info"}`，异常的 traceback 计为 `ERROR`。没有写明级别的行在 stdout 上为 `INFO`，而在程序写入各个级别诊断信息的 stderr 上没有严重性。以空白或右括号开头的行会并入前一行，因此堆栈追踪会作为一条记录到达。代理自身的日志不会被采集。
 
 [Docker 监控](/docs/monitor/docker-monitor#收集的指标) 列出了每个指标及其含义。
 

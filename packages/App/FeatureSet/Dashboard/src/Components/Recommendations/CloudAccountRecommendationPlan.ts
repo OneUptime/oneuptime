@@ -10,9 +10,11 @@ import {
   getCloudAlertWindow,
   readCloudTelemetryAttributes,
 } from "Common/Types/Monitor/CloudAlertTemplates";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
-import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
+import {
+  MonitorRecommendationCoverageQuestion,
+  getCoverageQuestions,
+} from "Common/Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
 import {
   MonitorRecommendation,
   MonitorRecommendationArgs,
@@ -189,6 +191,14 @@ export function getCloudAccountRecommendationArgs(data: {
   };
 }
 
+// How the server's coverage answer names one recommendation of one resource.
+export function getCloudAccountCoverageKey(
+  resourceId: string,
+  recommendationId: string,
+): string {
+  return `${resourceId}|${recommendationId}`;
+}
+
 /*
  * The coverage join reduces each step to a fingerprint of what it reads,
  * which no status or severity id is part of (MonitorRecommendationCoverage
@@ -263,19 +273,46 @@ export default class CloudAccountRecommendationPlan {
    * its catalog declares (the most important first); each row's resources
    * by name. A resource offered nothing is in no group (getGaps says why).
    */
+  /*
+   * What the account's resources ask of the server to say which of their
+   * recommendations a monitor covers already (#11074): each recommendation
+   * of each resource, named by getCloudAccountCoverageKey, fingerprinted
+   * with the args coverage reads (getFingerprintArgs).
+   */
+  public static getCoverageQuestions(
+    resources: Array<CloudAccountRecommendationResource>,
+  ): Array<MonitorRecommendationCoverageQuestion> {
+    return resources.flatMap(
+      (
+        resource: CloudAccountRecommendationResource,
+      ): Array<MonitorRecommendationCoverageQuestion> => {
+        return getCoverageQuestions({
+          recommendations: MonitorRecommendationCatalog.getRecommendations(
+            MonitorRecommendationResourceType.CloudResource,
+            resource.context,
+          ),
+          args: getFingerprintArgs(resource),
+          keyOf: (recommendation: MonitorRecommendation): string => {
+            return getCloudAccountCoverageKey(
+              resource.resourceId,
+              recommendation.recommendationId,
+            );
+          },
+        });
+      },
+    );
+  }
+
   public static buildGroups(data: {
     resources: Array<CloudAccountRecommendationResource>;
-    existingMonitors: Array<{
-      monitorId: ObjectID;
-      monitorSteps: Array<MonitorStep>;
-    }>;
+    /*
+     * The monitor that covers each recommendation of each resource, by
+     * getCloudAccountCoverageKey: the server's answer to
+     * getCoverageQuestions (#11074).
+     */
+    coveredMonitorIds: Map<string, ObjectID>;
     dismissals: Array<RecommendationDismissal>;
   }): Array<CloudAccountRecommendationGroup> {
-    const monitorIdByFingerprint: Map<string, ObjectID> =
-      MonitorRecommendationUtil.getMonitorIdByFingerprint(
-        data.existingMonitors,
-      );
-
     const dismissalsByResource: Map<
       string,
       Array<RecommendationDismissal>
@@ -324,17 +361,29 @@ export default class CloudAccountRecommendationPlan {
         continue;
       }
 
+      // This resource's covered recommendations, by recommendation id.
+      const coveredMonitorIds: Map<string, ObjectID> = new Map<
+        string,
+        ObjectID
+      >();
+
+      for (const recommendation of recommendations) {
+        const monitorId: ObjectID | undefined = data.coveredMonitorIds.get(
+          getCloudAccountCoverageKey(
+            resource.resourceId,
+            recommendation.recommendationId,
+          ),
+        );
+
+        if (monitorId) {
+          coveredMonitorIds.set(recommendation.recommendationId, monitorId);
+        }
+      }
+
       const viewModels: Array<RecommendationViewModel> =
         RecommendationFilterUtil.buildViewModels({
           recommendations: recommendations,
-          coveredMonitorIds:
-            MonitorRecommendationUtil.getCoveredRecommendationMonitorIdsByFingerprint(
-              {
-                recommendations: recommendations,
-                monitorIdByFingerprint: monitorIdByFingerprint,
-                args: getFingerprintArgs(resource),
-              },
-            ),
+          coveredMonitorIds: coveredMonitorIds,
           dismissals: dismissalsByResource.get(resource.resourceId) || [],
         });
 

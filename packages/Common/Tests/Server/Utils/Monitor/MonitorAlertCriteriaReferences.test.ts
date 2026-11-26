@@ -220,6 +220,7 @@ describe("MonitorAlert drops criteria references the project cannot use", () => 
         iotFleetIds: [],
         databaseServerIds: [],
         storageArrayIds: [],
+        xcpNgPoolIds: [],
         cloudResourceIds: [],
         networkDeviceIds: [],
       });

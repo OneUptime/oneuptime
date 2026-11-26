@@ -110,6 +110,7 @@ import {
   CloudCommitmentSummary,
 } from "../../../../Types/Cloud/CloudCommitments";
 import { readAwsCommitments } from "./AwsCommitments";
+import { readAwsCommitmentInventory } from "./AwsCommitmentInventory";
 import {
   AwsResourceCost,
   AwsResourcePlaces,
@@ -3137,6 +3138,21 @@ export default class AwsCloudConnector implements CloudConnector {
 
     if (commitments.state !== CloudCostState.Reading && commitments.message) {
       result.warnings.push(commitments.message);
+    }
+
+    // Every plan and reservation, with its term, end and use (AwsCommitmentInventory).
+    result.commitmentInventory = await readAwsCommitmentInventory({
+      credentials,
+      region,
+      options,
+      budget: options.budget,
+      now: options.now ? options.now() : new Date(),
+      readAccountId: accountId,
+      isOrganization,
+    });
+
+    if (result.commitmentInventory.message) {
+      result.warnings.push(result.commitmentInventory.message);
     }
 
     return result;

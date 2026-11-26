@@ -665,16 +665,22 @@ const ethereumDetector: DataTypeDetector = {
   specificity: 1,
 };
 
+/*
+ * An IBAN and a US routing number in every script's digits too
+ * (readsDigitsOfEveryScript, #11033), as a card is (#10960): DE٨٩ ٣٧٠٤ ...
+ * is the IBAN its mod 97 proves, and a routing number's ABA check digit
+ * proves one beside its word. The card's own detectors read so already.
+ */
 export const FINANCIAL_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   groupedCardDetector,
   grouped19DigitCardDetector,
   contiguousCardDetector,
   cardSecurityCodeDetector,
   cardExpiryDetector,
-  ibanDetector,
+  { ...ibanDetector, readsDigitsOfEveryScript: true },
   bankAccountDetector,
   bicDetector,
-  routingNumberDetector,
+  { ...routingNumberDetector, readsDigitsOfEveryScript: true },
   sortCodeDetector,
   ifscDetector,
   bsbDetector,

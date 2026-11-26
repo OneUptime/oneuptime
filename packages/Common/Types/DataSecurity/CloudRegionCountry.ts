@@ -264,3 +264,44 @@ export function getCloudRegionLocation(
 
   return null;
 }
+
+export type KnownCloudRegion = CloudRegionLocation & {
+  cloud: "aws" | "azure" | "gcp" | "multi-region";
+};
+
+/*
+ * Every region this list knows, each with where it keeps its data, cloud by
+ * cloud: what a residency rule drafted from a sentence is told it can name
+ * (#10378), so "EU personal data stays in the EU" names the regions that
+ * really are in the European Economic Area.
+ */
+export function getKnownCloudRegions(): Array<KnownCloudRegion> {
+  const regions: Array<KnownCloudRegion> = [];
+  const add: (
+    cloud: KnownCloudRegion["cloud"],
+    table: Readonly<Record<string, string>>,
+  ) => void = (
+    cloud: KnownCloudRegion["cloud"],
+    table: Readonly<Record<string, string>>,
+  ): void => {
+    for (const [region, country] of Object.entries(table)) {
+      regions.push({ cloud, region, country, isInEea: isEeaCountry(country) });
+    }
+  };
+
+  add("aws", AWS_REGION_COUNTRIES);
+  add("azure", AZURE_REGION_COUNTRIES);
+  add("gcp", GCP_REGION_COUNTRIES);
+  add("multi-region", MULTI_REGION_COUNTRIES);
+
+  for (const region of MULTI_REGION_IN_EEA) {
+    regions.push({
+      cloud: "multi-region",
+      region,
+      country: null,
+      isInEea: true,
+    });
+  }
+
+  return regions;
+}

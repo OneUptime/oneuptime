@@ -1749,9 +1749,11 @@ router.post(
  * ACL the trace explorer enforces — a user who cannot read the trace gets
  * "not found"), and the trigger's gates (AI on, a finding worth fixing, a
  * GitHub-App repository, per-trace dedupe, a fix that already did its
- * work, Code's gate, a repository to work in) fail early with a clear
- * message. Body: { traceId, repositoryId? } - the repository the person
- * picked when the suggestion listed repositories to pick from. Response:
+ * work, a repository the person may use in Code, Code's gate, a
+ * repository to work in) fail early with a clear message. Body:
+ * { traceId, repositoryId? } - the repository the person picked when the
+ * suggestion listed repositories to pick from, refused unless they may
+ * read it and ask OneUptime AI to work in it (#11075). Response:
  * { aiRunId } — the Queued CodeFix run the agent worker will claim.
  */
 router.post(
@@ -1805,6 +1807,11 @@ router.post(
       const serviceName: string | undefined =
         await FixPerformanceTaskTrigger.getServiceName(trace.dominantEntityId);
 
+      /*
+       * The repository the fix works in is held to the ones this person
+       * may use in Code - read, and ask OneUptime AI to work in - whatever
+       * the page offered (#11075).
+       */
       const run: AIRun =
         await FixPerformanceTaskTrigger.createPerformanceFixTaskFromTrace({
           projectId,
@@ -1812,6 +1819,7 @@ router.post(
           spans: trace.spans,
           serviceName,
           userId: props.userId!,
+          props,
           repositoryId,
         });
 

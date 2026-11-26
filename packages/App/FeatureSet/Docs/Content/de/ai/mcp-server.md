@@ -359,6 +359,25 @@ Der Server hat auch die Einrichtungsaktionen von KI fragen, je ein Aufruf: das, 
 
 Sie handeln als Sie, angemeldet mit OAuth: Ein API-Schlüssel eines Projekts kann die acht nicht nutzen, die etwas anlegen. Ihr Client fragt Sie vor jedem davon, und seine Antwort sagt, was angelegt wurde. Was fehlt, etwa eine Berechtigung, eine Adresse oder Platz im Tarif, wird gesagt, bevor etwas angelegt wird.
 
+## Werkzeuge für Datensicherheit
+
+Der Server hat auch [die Datensicherheitsaktionen von KI fragen](/docs/data-security/integrations#ki-fragen), je ein Aufruf. Jede nimmt genau die Änderung vor, die ihre Schaltfläche in der Datensicherheit vornimmt, als Sie und mit Ihren Berechtigungen, nach denselben Prüfungen:
+
+- **`query_data_security_proposals`**: was OneUptime AI vorschlägt und auf eine Person wartet, die riskantesten zuerst. Mit `which: "data-types"` die Datentypen, die es gefunden hat und nach denen Scans noch nicht suchen: jeweils Name, Kategorie und Sensibilität, wie er belegt wurde und die Datenspeicher und Felder, in denen er steht, nie ein Wert. Es ändert nichts
+- **`draft_data_security_rule`**: eine aus einem Satz entworfene Residenz-, Eigentümer- oder Beschriftungsregel, etwa „Personenbezogene Daten aus der EU müssen in der EU bleiben“, mit den Datenspeichern, die sie heute trifft. Es ändert nichts
+- **`scrub_data_security_finding`**: **Bereinigen** für einen Befund in der Telemetrie
+- **`judge_data_security_finding`**: **Bestätigen**, oder **Nicht sensibel** mit einer Begründung, und dasselbe für ähnliche Befunde
+- **`change_data_security_issue`**: **Wieder öffnen**, **Zuweisen**, **Risiko akzeptieren** oder **Kein Problem**
+- **`set_data_store_owners`**: die Eigentümer eines Datenspeichers, hinzugefügt oder entfernt
+- **`save_data_security_rule`**: eine Regel, die `draft_data_security_rule` entworfen hat
+- **`respond_on_data_store`**: eine Reaktionsaktion über die Cloud-Verbindung des Datenspeichers, etwa **Öffentlichen Zugriff sperren**
+- **`fix_data_security_issue_with_ai`**: **Mit KI beheben**, ein Pull Request, den jemand prüft und zusammenführt
+- **`decide_data_security_proposal`**: **Genehmigen** oder **Ausblenden** für einen Vorschlag
+
+KI fragen fragt vor einigen davon in jedem Modus eine Person, auf einer Karte, die sagt, was sich ändert, was nicht mehr funktioniert und was es kostet: eine Reaktion auf einen Datenspeicher, **Nicht sensibel**, **Risiko akzeptieren**, **Kein Problem**, das Ändern der Eigentümer eines Datenspeichers, das Speichern einer Regel, die Entscheidung über einen Vorschlag, eine Bereinigung, die etwas liest, und **Bestätigen** in einem Projekt, das bei einem kritischen Problem jemanden alarmiert. Dieser Server kann Ihnen diese Karte nicht zeigen, daher lehnt er diese ab, sagt, warum, und nennt die Seite in OneUptime, auf der Sie die Änderung vornehmen. Nichts läuft je ohne sie.
+
+Die anderen handeln als Sie, angemeldet mit OAuth: Ein Projekt-API-Schlüssel kann sie nicht verwenden und nutzt nur die beiden, die nichts ändern. Auf einem selbst gehosteten Server lässt `MCP_READ_ONLY=true` nur die Werkzeuge übrig, die nichts ändern, und `MCP_ALLOW_DESTRUCTIVE=false` lehnt das Entfernen der Eigentümer eines Datenspeichers ab, das sie löscht.
+
 ## Telemetrie abfragen
 
 Logs, Metriken, Traces (Spans), Ausnahmen, Monitor-Logs und die anderen Arten von Telemetrie gibt es als nur lesende Tools `list_` und `count_` (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` und ihre `count_`-Gegenstücke). Telemetrie kommt über OpenTelemetry herein, daher gibt es keine Tools zum Anlegen.

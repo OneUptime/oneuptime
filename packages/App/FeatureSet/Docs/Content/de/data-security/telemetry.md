@@ -111,7 +111,7 @@ Die Regel wird nach dem benannt, was sie verbirgt, etwa „Data Security: Email 
 | Jeder andere Datentyp, den ein Muster allein findet, etwa ein GitHub-Token | Eine Regel **Benutzerdefinierter Regex** aus den eigenen Mustern des Datentyps. Ein Geheimnis wird geschwärzt. |
 | Einer Ihrer eigenen Datentypen, mit einem Muster | Dieses Muster, nur in dem Attribut, in dem er gefunden wurde |
 | Ein Datentyp, der sich durch die Wörter um ihn herum unterscheidet, etwa eine Bankleitzahl | Seine Form, nur in dem Attribut, in dem er gefunden wurde |
-| Ein Datentyp, der anhand des Feldnamens gefunden wird, etwa der Name einer Person unter `customer_name`, oder ein Wert unter einem Schlüssel, der ein Geheimnis benennt | Eine Regel **Benannte Attribute**, die den ganzen Wert dieses Attributs verbirgt |
+| Ein Datentyp, der anhand des Feldnamens gefunden wird, etwa der Name einer Person unter `customer_name` oder unter dem Parameter `full_name` einer URL, oder ein Wert unter einem Schlüssel, der ein Geheimnis benennt | Eine Regel **Benannte Attribute**, die den ganzen Wert dieses Attributs verbirgt |
 | Ein Wert unter einem Schlüssel, der sensibel aussieht, wo nichts Engeres ihn verbirgt | Eine Regel **Sensible Attributschlüssel**, die den ganzen Wert jedes solchen Attributs schwärzt |
 | Jeder Datentyp im Attribut einer Metrik | Eine Metrik-Pipeline-Regel **Attribut schwärzen** für den Dienst, die die Werte des Attributs, die den Datentyp enthalten, durch `[REDACTED]` ersetzt. Für eine IP-Adresse, eine E-Mail-Adresse oder eine Kartennummer ist ihr Filter **Entspricht Mustertyp** mit diesem Typ, der findet, was eine Regel für Logs oder Traces mit diesem **Mustertyp** findet, darunter IPv6-Adressen und Werte, die prozentkodiert oder in einer anderen Schrift geschrieben sind. Für einen anderen Datentyp ist es das eigene Muster des Typs, und wo kein Muster den Datentyp findet, ersetzt die Regel jeden Wert des Attributs |
 
@@ -170,7 +170,7 @@ Bevor OneUptime AI beginnt, liest Datensicherheit die Einträge, in denen jedes 
 
 - **Ein Span oder ein KI-Aufruf**: die Datei, Zeile und Funktion, die seine Attribute `code.*` nennen, und der Name des Spans.
 - **Eine Ausnahme**: ihre eigenen obersten Frames, die im Code des Dienstes.
-- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`.
+- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`, und jedes Wort, von dem ihre Einträge nicht nachweisen, dass der Code es geschrieben hat, etwa der Name einer Person, durch `<value>` ersetzt: `Payment declined for Maria Gonzalez`, aus einem einzigen Eintrag gelesen, wird zu `Payment declined for <value>`. Der Name eines Spans und der Name einer Metrik werden auf dieselbe Weise gelesen.
 - **Eine Metrik**: der Name der Metrik.
 - **Jedes Leck**: sein Attributschlüssel, etwa `user.email`, den der Code meist unverändert schreibt.
 

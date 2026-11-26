@@ -452,7 +452,7 @@ Alerts for payments:
 
 ### मेट्रिक और इन्फ्रास्ट्रक्चर मॉनिटर
 
-Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, स्टोरेज ऐरे और IoT डिवाइस मॉनिटर में एक अपना वेरिएबल होता है:
+Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, XCP-ng, Ceph, स्टोरेज ऐरे और IoT डिवाइस मॉनिटर में एक अपना वेरिएबल होता है:
 
 | वेरिएबल | इसमें क्या है | प्रकार |
 | --- | --- | --- |

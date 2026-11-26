@@ -1,6 +1,21 @@
 <%#
    Top bar, desktop sidebar and mobile drawer. The link tree in both navs comes
    from `navSections` (Utils/Navigation.ts) rather than being spelled out here.
+
+   The top bar's Slack, Support and GitHub follow this server's Admin
+   Dashboard > Settings > Help and Support (`helpLinks`, Common/Server/Utils/
+   HelpAndSupport/DocsSiteLinks, #10940): the chat is OneUptime's community
+   Slack, the server's own chat for a signed-in reader, or none; Support its
+   own help page, or none; GitHub none once it is hidden. Rendered without
+   them, the bar links to what it always did.
+-%>
+<%
+   var referenceLinks = typeof helpLinks !== 'undefined' && helpLinks ? helpLinks : null;
+   var referenceChat = referenceLinks ? referenceLinks.chat : { url: 'https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA', kind: 'slack', isOneUptime: true };
+   var referenceChatTitle = !referenceChat ? '' : (referenceChat.kind === 'slack' ? t('ui.slack') : (referenceChat.kind === 'microsoft_teams' ? t('ui.microsoftTeams') : t('ui.chat')));
+   var referenceSupportUrl = referenceLinks ? referenceLinks.supportUrl : '/support';
+   var isReferenceSupportOwn = Boolean(referenceSupportUrl) && referenceSupportUrl !== '/support';
+   var isReferenceGitHubShown = !referenceLinks || referenceLinks.isGitHubShown !== false;
 -%>
 
 <%# ---------------------------------------------------------------- top bar -%>
@@ -39,11 +54,21 @@
       <nav class="max-xl:hidden xl:block" aria-label="<%= t('ui.siteLinksAria') %>">
          <ul role="list" class="flex items-center gap-5">
             <li><a class="text-sm font-medium text-ink-subtle transition-colors hover:text-ink" href="/"><%= t('ui.home') %></a></li>
+            <% if (referenceChat) { %>
             <li><a class="text-sm font-medium text-ink-subtle transition-colors hover:text-ink" target="_blank" rel="noreferrer"
-                  href="https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA"><%= t('ui.slack') %></a></li>
-            <li><a class="text-sm font-medium text-ink-subtle transition-colors hover:text-ink" href="/support"><%= t('ui.support') %></a></li>
+                  data-reference-chat="<%= referenceChat.isOneUptime ? 'oneuptime' : 'own' %>"
+                  href="<%= referenceChat.url %>"><%= referenceChatTitle %></a></li>
+            <% } %>
+            <% if (referenceSupportUrl) { %>
+            <li><a class="text-sm font-medium text-ink-subtle transition-colors hover:text-ink"<% if (isReferenceSupportOwn) { %> target="_blank" rel="noreferrer"<% } %>
+                  data-reference-support
+                  href="<%= referenceSupportUrl %>"><%= t('ui.support') %></a></li>
+            <% } %>
+            <% if (isReferenceGitHubShown) { %>
             <li><a class="text-sm font-medium text-ink-subtle transition-colors hover:text-ink" target="_blank" rel="noreferrer"
+                  data-reference-github
                   href="https://github.com/oneuptime/oneuptime"><%= t('ui.github') %></a></li>
+            <% } %>
          </ul>
       </nav>
 

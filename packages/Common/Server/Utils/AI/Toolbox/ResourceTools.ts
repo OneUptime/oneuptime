@@ -7,6 +7,7 @@ import DockerSwarmCluster from "../../../../Models/DatabaseModels/DockerSwarmClu
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "../../../../Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "../../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../../Models/DatabaseModels/XcpNgPool";
 import CephCluster from "../../../../Models/DatabaseModels/CephCluster";
 import StorageArray from "../../../../Models/DatabaseModels/StorageArray";
 import ServerlessFunction from "../../../../Models/DatabaseModels/ServerlessFunction";
@@ -45,6 +46,7 @@ import {
   keyForProxmoxCluster,
   keyForOpenStackCloud,
   keyForVMwareVCenter,
+  keyForXcpNgPool,
   keyForCephCluster,
   keyForStorageArray,
 } from "../../../../Utils/Telemetry/EntityKey";
@@ -56,6 +58,7 @@ import DockerSwarmClusterService from "../../../Services/DockerSwarmClusterServi
 import ProxmoxClusterService from "../../../Services/ProxmoxClusterService";
 import OpenStackCloudService from "../../../Services/OpenStackCloudService";
 import VMwareVCenterService from "../../../Services/VMwareVCenterService";
+import XcpNgPoolService from "../../../Services/XcpNgPoolService";
 import CephClusterService from "../../../Services/CephClusterService";
 import StorageArrayService from "../../../Services/StorageArrayService";
 import ServerlessFunctionService from "../../../Services/ServerlessFunctionService";
@@ -297,6 +300,31 @@ const RESOURCE_DESCRIPTORS: Record<AIResourceType, ResourceDescriptor> = {
     identifier: "name",
     attributeKey: "resource.vmware.vcenter.name",
     keyFor: keyForVMwareVCenter,
+  },
+  /*
+   * A pool's telemetry carries its XAPI UUID (xcp_ng.pool.id), never its
+   * name, so it is read by poolIdentifier.
+   */
+  [AIResourceType.XcpNgPool]: {
+    model: XcpNgPool,
+    findBy: (data: FindBy<BaseModel>) => {
+      return XcpNgPoolService.findBy(data as never);
+    },
+    fields: [
+      "poolIdentifier",
+      "xenOrchestraName",
+      "hostCount",
+      "runningHostCount",
+      "disabledHostCount",
+      "vmCount",
+      "runningVmCount",
+      "storageRepositoryCount",
+      "storageCapacityBytes",
+      "storageUsedBytes",
+    ],
+    identifier: "poolIdentifier",
+    attributeKey: "resource.xcp_ng.pool.id",
+    keyFor: keyForXcpNgPool,
   },
   [AIResourceType.CephCluster]: {
     model: CephCluster,

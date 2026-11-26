@@ -191,18 +191,22 @@ filters:
     # whole feed rather than trim it. Use the OneUptime dashboard's
     # server-side Drop Filters if you need to thin those out.
     #
-    # Severity comes from the log line itself: the agent parses a level out
-    # of the text ("[ERROR]", "WARN:", "level=info", ...). What happens to a
-    # line with no recognisable level differs by log mode, because the two
-    # modes have different information available:
+    # Severity comes from the log line itself: the agent reads the level the
+    # line names ("[ERROR]", "WARN:", "level=info", klog's "I1123 ...",
+    # PostgreSQL's "LOG:", pino's "level":30, ...), and an exception's
+    # traceback counts as ERROR. What happens to a line that names no level
+    # differs by log mode, because the two modes have different information
+    # available:
     #
     #   daemonset — the container runtime records which stream each line came
-    #     from, so an unlabelled line falls back to stderr→ERROR /
-    #     stdout→INFO. An unlabelled stdout line is therefore treated as INFO
-    #     and IS dropped by a WARN threshold.
+    #     from. An unlabelled stdout line is a program's ordinary output: it
+    #     is INFO, and IS dropped by a WARN threshold. An unlabelled stderr
+    #     line has no severity at all (it shows as Unspecified), because
+    #     programs write every level of their diagnostics to stderr, and it
+    #     is KEPT: the filter has no level to compare.
     #
     #   api — the Kubernetes pods/log API merges stdout and stderr into one
-    #     stream with no per-line marker, so that fallback is not available.
+    #     stream with no per-line marker, so the stream is not available.
     #     Rather than guess, unlabelled lines are KEPT. This mode drops
     #     strictly less; it will never silently delete a stack trace it could
     #     not classify.
@@ -515,12 +519,13 @@ logs:
   #     pod's logs twice. If `api.image.tag` pins a version, make sure it is
   #     no older than this chart's release; if a node may have cached a stale
   #     `release` tag, set `api.image.pullPolicy: Always` for the upgrade.
-  #   - `filters.logs.minSeverity` drops lines with NO recognizable severity
+  #   - `filters.logs.minSeverity` treats lines with NO recognizable severity
   #     differently on the two paths: the DaemonSet sees the stdout/stderr
-  #     marker on disk and assigns INFO/ERROR fallbacks (then filters), while
-  #     the log API strips that marker, so the tailer errs toward KEEPING
+  #     marker on disk, so it drops an unlabelled stdout line as INFO (and
+  #     keeps an unlabelled stderr line, which has no severity), while the
+  #     log API strips that marker, so the tailer errs toward KEEPING
   #     unrecognizable lines. Under a severity filter, Windows pods can ship
-  #     more keyword-less lines than Linux pods.
+  #     more unlabelled stdout lines than Linux pods.
   windowsPods:
     enabled: false
   # The OTel memory_limiter (templates/configmap-daemonset.yaml) and the

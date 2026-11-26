@@ -836,6 +836,12 @@ export default class QueryHelper {
     joinTableName: string;
     ownerColumnName: string;
     relationColumnName: string;
+    /*
+     * The related table, when a link to a deleted row of it should not
+     * count - the exact complement of anyOfEntitiesInManyToMany given the
+     * same table (LinkedTo's NoneOf, #11073).
+     */
+    relatedTable?: ManyToManyRelatedTable | null | undefined;
   }): FindWhereProperty<any> {
     const values: Array<string> = data.values.map(
       (value: string | ObjectID) => {
@@ -855,9 +861,26 @@ export default class QueryHelper {
     const ownerCol: string = data.ownerColumnName.replace(/"/g, '""');
     const relationCol: string = data.relationColumnName.replace(/"/g, '""');
 
+    // The related rows named, those not deleted when they can be.
+    let relatedIds: string = `:...${valuesRid}`;
+
+    if (data.relatedTable?.deleteDateColumnName) {
+      const relatedTable: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.tableName,
+      );
+      const relatedColumn: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.columnName,
+      );
+      const deleteDateColumn: string = QueryHelper.escapeIdentifier(
+        data.relatedTable.deleteDateColumnName,
+      );
+
+      relatedIds = `SELECT "${relatedTable}"."${relatedColumn}" FROM "${relatedTable}" WHERE "${relatedTable}"."${relatedColumn}" IN (:...${valuesRid}) AND "${relatedTable}"."${deleteDateColumn}" IS NULL`;
+    }
+
     return Raw(
       (alias: string) => {
-        return `(${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (:...${valuesRid})))`;
+        return `(${alias} NOT IN (SELECT "${joinTable}"."${ownerCol}" FROM "${joinTable}" WHERE "${joinTable}"."${relationCol}" IN (${relatedIds})))`;
       },
       {
         [valuesRid]: values,

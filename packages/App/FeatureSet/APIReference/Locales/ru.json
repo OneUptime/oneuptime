@@ -3,6 +3,8 @@
     "apiReference": "Справочник API",
     "home": "Главная",
     "slack": "Slack",
+    "microsoftTeams": "Microsoft Teams",
+    "chat": "Чат",
     "support": "Поддержка",
     "github": "GitHub",
     "signIn": "Войти",

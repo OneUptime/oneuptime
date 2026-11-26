@@ -2,6 +2,8 @@ import APIReferenceRoutes from "./FeatureSet/APIReference/Index";
 import BaseAPIRoutes from "./FeatureSet/BaseAPI/Index";
 import DocsRoutes from "./FeatureSet/Docs/Index";
 import DocsFeedbackStore from "./FeatureSet/Docs/Utils/DocsFeedbackStore";
+import DocsSiteLinks from "Common/Server/Utils/HelpAndSupport/DocsSiteLinks";
+import DocsSiteLinksStore from "Common/Server/Utils/HelpAndSupport/DocsSiteLinksStore";
 import ProductFeedbackService from "Common/Server/Services/ProductFeedbackService";
 import InstallRoutes from "./FeatureSet/Install/Index";
 import FrontendRoutes from "./FeatureSet/Frontend/Index";
@@ -20,6 +22,7 @@ import EnterpriseEdition from "Common/Server/Enterprise/EnterpriseEdition";
 import RelaxedScimTeamLocksReport from "Common/Server/Utils/RelaxedScimTeamLocksReport";
 import Express, {
   ExpressApplication,
+  ExpressRequest,
   ExpressRouter,
 } from "Common/Server/Utils/Express";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
@@ -332,6 +335,15 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * and keep nothing without it.
      */
     DocsFeedbackStore.useKeeper(ProductFeedbackService);
+    /*
+     * The docs and the API reference link to this server's own help, or
+     * leave OneUptime's GitHub and Slack out, as Admin Dashboard > Settings
+     * > Help and Support says (#10940): they read it through this, and link
+     * to what they always did without it.
+     */
+    DocsSiteLinksStore.useReader((req: ExpressRequest) => {
+      return DocsSiteLinks.getLinks(req);
+    });
     await DocsRoutes.init();
     // The agents' install scripts, at /install/<agent>.
     await InstallRoutes.init();

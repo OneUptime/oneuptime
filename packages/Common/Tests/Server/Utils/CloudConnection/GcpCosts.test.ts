@@ -165,6 +165,10 @@ describe("a project's daily costs from its billing export", () => {
           return json({
             jobComplete: true,
             rows: [
+              /*
+               * Its labels (none), then amortized - less the committed use
+               * discount's credit - and net, less the free trial's too.
+               */
               row([
                 "2026-11-18",
                 "acme-prod",
@@ -173,6 +177,9 @@ describe("a project's daily costs from its billing export", () => {
                 VM,
                 "USD",
                 "12.5",
+                "[]",
+                "9.75",
+                "8.25",
               ]),
               // A day that netted to nothing, and a row without a day.
               row([
@@ -210,6 +217,8 @@ describe("a project's daily costs from its billing export", () => {
         resourceId: VM,
         currency: "USD",
         amount: 12.5,
+        amortizedAmount: 9.75,
+        netAmount: 8.25,
       },
       {
         day: "2026-11-19",
@@ -219,6 +228,9 @@ describe("a project's daily costs from its billing export", () => {
         resourceId: "",
         currency: "USD",
         amount: 0.0425,
+        // A row without the cells counts its cost on each.
+        amortizedAmount: 0.0425,
+        netAmount: 0.0425,
       },
     ]);
     // Asked, waited for once, then its second page.

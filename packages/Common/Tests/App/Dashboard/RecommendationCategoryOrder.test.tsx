@@ -12,6 +12,7 @@ import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * A resource's Recommendations list their templates under the same headings
@@ -271,6 +272,10 @@ beforeEach(() => {
     return Promise.resolve(
       projectList((args as { modelType: unknown }).modelType),
     );
+  });
+  // No monitor covers a recommendation yet: the server's to say (#11074).
+  serveCoverageFrom(() => {
+    return [];
   });
 });
 

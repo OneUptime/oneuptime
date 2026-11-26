@@ -167,6 +167,8 @@ const FAMILY_AUDIT_LOG_PAGES: Record<string, string> = {
     "the project's OpenStack cloud rules",
   [path.join("Pages", "VMware", "Settings", "RulesAuditLogs.tsx")]:
     "the project's vCenter rules",
+  [path.join("Pages", "XcpNg", "Settings", "RulesAuditLogs.tsx")]:
+    "the project's XCP-ng pool rules",
   [path.join("Pages", "Ceph", "Settings", "RulesAuditLogs.tsx")]:
     "the project's Ceph cluster rules",
   [path.join("Pages", "StorageArray", "Settings", "RulesAuditLogs.tsx")]:

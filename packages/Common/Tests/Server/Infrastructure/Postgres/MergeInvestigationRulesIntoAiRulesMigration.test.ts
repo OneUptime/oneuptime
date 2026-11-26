@@ -356,9 +356,10 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
    * telemetry product's AI rules (the Profiler's first) came after it, each
    * with a migration of its own (AddProfileAiRules), with no investigation
    * rules to move - and so did Data Security's (AddDataSecurityAiRules,
-   * #10364).
+   * #10364), and the AI rules for cloud savings (AddCloudSavingsActions,
+   * #11010).
    */
-  test("the lanes are the AI rules' kinds of signal, but the telemetry products' and Data Security's that came after it", () => {
+  test("the lanes are the AI rules' kinds of signal, but the telemetry products', Data Security's and cloud savings' that came after it", () => {
     const telemetryTriggers: Array<AutoRemediationTriggerEntity> = [
       ...Object.values(TELEMETRY_AI_LANES).map(
         (lane: TelemetryAiLaneDefinition): AutoRemediationTriggerEntity => {
@@ -366,6 +367,7 @@ describe("MergeInvestigationRulesIntoAiRules - up()", () => {
         },
       ),
       AutoRemediationTriggerEntity.DataSecurityIssue,
+      AutoRemediationTriggerEntity.CloudSaving,
     ];
 
     expect(telemetryTriggers).toContain(AutoRemediationTriggerEntity.Profile);

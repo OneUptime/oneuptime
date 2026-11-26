@@ -52,6 +52,22 @@ const CLOUD_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Cloud/CloudPlatform.ts",
     kind: "keys",
   },
+  /*
+   * Acting on savings (#11010): what Cloud > Savings, its dialogs and the
+   * savings rules say of a change, an environment and an AI rule.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudSavingsAction.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudSavingsAi.ts",
+    kind: "keys",
+  },
   // An environment's Documentation, which draws the guide under its own title.
   {
     directory:

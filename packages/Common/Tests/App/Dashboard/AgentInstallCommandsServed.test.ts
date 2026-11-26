@@ -35,6 +35,11 @@ import {
   StorageArrayPlatform,
   getStorageArraySetupGuide,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import {
+  XCP_NG_CONNECT_METHODS,
+  XcpNgConnectMethod,
+  getXcpNgSetupGuide,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
 import { getDatabaseAgentSetupGuide } from "../../../../App/FeatureSet/Dashboard/src/Pages/Database/Utils/DocumentationMarkdown";
 import {
   DATABASE_AGENT_ENGINES,
@@ -264,6 +269,21 @@ function everyCommand(oneuptimeUrl: string): Array<Commands> {
           apiKey: KEY,
           hasApiKey: true,
           platform,
+        }),
+      ),
+    );
+  }
+
+  for (const method of keysOf<XcpNgConnectMethod>(XCP_NG_CONNECT_METHODS)) {
+    all.push(
+      guideCommands(
+        `XCP-ng guide (${method})`,
+        oneuptimeUrl,
+        getXcpNgSetupGuide({
+          oneuptimeUrl,
+          apiKey: KEY,
+          hasApiKey: true,
+          method,
         }),
       ),
     );

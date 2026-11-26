@@ -106,6 +106,8 @@ import MetricMonitorResponse, {
   CephAffectedResource,
   StorageArrayResourceBreakdown,
   StorageArrayAffectedResource,
+  XcpNgResourceBreakdown,
+  XcpNgAffectedResource,
   DockerSwarmResourceBreakdown,
   DockerSwarmAffectedResource,
   PlatformResourceBreakdownSource,
@@ -197,6 +199,7 @@ import MonitorStepCephMonitor, {
   CephResourceFilters,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
+import MonitorStepXcpNgMonitor from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
   MonitorStepDockerSwarmMonitorUtil,
@@ -210,8 +213,12 @@ import { escapeWildcards } from "Common/Types/BaseDatabase/WildcardPattern";
 import {
   StorageArrayResourceFilterScopes,
   VMwareResourceFilterAttributeKeys,
+  XCP_NG_POOL_RESOURCE_ATTRIBUTE,
+  XcpNgResourceFilterAttributeKeys,
   applyStorageArrayResourceFilters,
   applyVMwareResourceFilters,
+  applyXcpNgResourceFilters,
+  getXcpNgStepPoolIdentifier,
 } from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "Common/Types/Monitor/ProxmoxMetricCatalog";
@@ -219,6 +226,7 @@ import { getOpenStackMetricByMetricName } from "Common/Types/Monitor/OpenStackMe
 import { getVMwareMetricByMetricName } from "Common/Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "Common/Types/Monitor/CephMetricCatalog";
 import { getStorageArrayMetric } from "Common/Types/Monitor/StorageArrayMetricCatalog";
+import { getXcpNgMetricByMetricName } from "Common/Types/Monitor/XcpNgMetricCatalog";
 import { getDockerSwarmMetricByMetricName } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -242,15 +250,19 @@ import { readResourceStillReporting } from "./ResourceStillReporting";
 import { monitorPromQLMetric } from "./PromQLMetricMonitor";
 
 /*
- * How a VMware or Storage Array step's resource filters become attribute
- * equalities: shared with the dashboard's charts of a monitor's metrics, so
- * both read a step the same way. Re-exported for the worker's tests.
+ * How a VMware, Storage Array or XCP-ng step's resource filters become
+ * attribute equalities: shared with the dashboard's charts of a monitor's
+ * metrics, so both read a step the same way. Re-exported for the worker's
+ * tests.
  */
 export {
   StorageArrayResourceFilterScopes,
   VMwareResourceFilterAttributeKeys,
+  XCP_NG_POOL_RESOURCE_ATTRIBUTE,
+  XcpNgResourceFilterAttributeKeys,
   applyStorageArrayResourceFilters,
   applyVMwareResourceFilters,
+  applyXcpNgResourceFilters,
 };
 
 type TelemetryMonitorResponse =
@@ -1768,6 +1780,15 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.VMware) {
     return monitorVMware({
+      monitorStep,
+      monitorId,
+      projectId,
+      evaluateUntil,
+    });
+  }
+
+  if (monitorType === MonitorType.XcpNg) {
+    return monitorXcpNg({
       monitorStep,
       monitorId,
       projectId,
@@ -4193,6 +4214,241 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
       vmwareResourceBreakdowns.length > 0
         ? vmwareResourceBreakdowns
         : undefined,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+    nativeUnitsByMetricName: unitsByMetricName,
+  };
+};
+
+type MonitorXcpNgFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
+}) => Promise<MetricMonitorResponse>;
+
+/*
+ * One check of an XCP-ng monitor: every query of the step read for its
+ * pool alone, by the pool's XAPI UUID - the `xcp_ng.pool.id` resource
+ * attribute the XCP-ng Agent stamps (one OTLP resource per pool, since one
+ * Xen Orchestra reports many) - never by its name, which can be empty, can
+ * change, and can be the same on two Xen Orchestras. The step's resource
+ * filters narrow it further to a scope (host, VM, storage repository, ...),
+ * one object by its UUID or one host and its VMs (applyXcpNgResourceFilters,
+ * which the dashboard's charts of the monitor share).
+ */
+export const monitorXcpNg: MonitorXcpNgFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
+}): Promise<MetricMonitorResponse> => {
+  const xcpNgMonitorConfig: MonitorStepXcpNgMonitor | undefined =
+    data.monitorStep.data?.xcpNgMonitor;
+
+  if (!xcpNgMonitorConfig) {
+    throw new BadDataException(
+      "This XCP-ng monitor step has no XCP-ng settings. Edit the monitor and pick its XCP-ng pool.",
+    );
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
+
+  // One breakdown per query, in query order — see monitorKubernetes.
+  const xcpNgResourceBreakdowns: Array<XcpNgResourceBreakdown> = [];
+
+  const poolIdentifier: string = getXcpNgStepPoolIdentifier(
+    xcpNgMonitorConfig.poolIdentifier,
+  );
+
+  const queryConfigs: Array<MetricQueryConfigData> =
+    xcpNgMonitorConfig.metricViewConfig?.queryConfigs || [];
+
+  const formulaConfigs: Array<MetricFormulaConfigData> =
+    xcpNgMonitorConfig.metricViewConfig?.formulaConfigs || [];
+
+  const groupByAttributeKeys: Array<string> =
+    collectGroupByAttributeKeys(queryConfigs);
+
+  for (const queryConfig of queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    // Always the step's own pool, by its UUID.
+    if (poolIdentifier) {
+      attributes[XCP_NG_POOL_RESOURCE_ATTRIBUTE] = poolIdentifier;
+    }
+
+    applyXcpNgResourceFilters({
+      attributes: attributes,
+      resourceFilters: xcpNgMonitorConfig.resourceFilters,
+    });
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
+    });
+
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
+
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
+
+    logger.debug("XCP-ng monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
+    readAttributes.push(getReadAttributes(query));
+
+    /*
+     * The hosts, VMs and storage repositories behind the values, from the
+     * raw datapoints (xcp_ng.scope / xcp_ng.id and Xen Orchestra's name
+     * labels). Best effort: a failed scan leaves the Affected Resources
+     * list out and never fails the monitor.
+     */
+    const affectedResources: Array<XcpNgAffectedResource> | undefined =
+      await scanAffectedResources({
+        query: query,
+        projectId: data.projectId,
+        platformName: "XCP-ng",
+        getIdentity: PlatformResourceIdentity.xcpNg,
+        getIdentityKey: PlatformResourceIdentity.xcpNgKey,
+      });
+
+    if (affectedResources) {
+      xcpNgResourceBreakdowns.push({
+        poolIdentifier: poolIdentifier,
+        metricName: metricName,
+        metricFriendlyName:
+          getXcpNgMetricByMetricName(metricName)?.friendlyName || metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
+      });
+    }
+  }
+
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: queryConfigs,
+    projectId: data.projectId,
+  });
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.XcpNg,
+    queryConfigs: queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: xcpNgResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: queryConfigs,
+      formulaConfigs: formulaConfigs,
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? await buildSeriesBreakdownInSlices({
+          queryConfigs: queryConfigs,
+          formulaConfigs: formulaConfigs,
+          perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+          zeroFill: zeroFill,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: xcpNgMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: queryConfigs,
+      formulaConfigs: formulaConfigs,
+      zeroFill: zeroFill,
+    }),
+    metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
+    xcpNgResourceBreakdowns:
+      xcpNgResourceBreakdowns.length > 0 ? xcpNgResourceBreakdowns : undefined,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
     nativeUnitsByMetricName: unitsByMetricName,

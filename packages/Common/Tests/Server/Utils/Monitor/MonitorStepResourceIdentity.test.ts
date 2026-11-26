@@ -257,6 +257,12 @@ describe("MonitorStepResourceIdentity — declared infra identifiers", () => {
       "storageArrayNames",
     ],
     [
+      MonitorType.XcpNg,
+      "xcpNgMonitor",
+      "poolIdentifier",
+      "xcpNgPoolIdentifiers",
+    ],
+    [
       MonitorType.DockerSwarm,
       "dockerSwarmMonitor",
       "clusterIdentifier",
@@ -916,6 +922,104 @@ describe("MonitorStepResourceIdentity — storage arrays", () => {
     const refs: SeriesResourceRefs = MonitorStepResourceIdentity.emptyRefs();
 
     expect(refs.storageArrayNames).toEqual([]);
+  });
+});
+
+describe("MonitorStepResourceIdentity — XCP-ng pools", () => {
+  const POOL_UUID: string = "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c";
+  const OTHER_POOL_UUID: string = "2f9c8d5b-4a3e-4c7f-8b2d-1e6f8a0c3b4d";
+
+  function populatedKeys(refs: SeriesResourceRefs): Array<string> {
+    return Object.entries(refs)
+      .filter(([, values]: [string, Array<string>]): boolean => {
+        return values.length > 0;
+      })
+      .map(([key]: [string, Array<string>]): string => {
+        return key;
+      });
+  }
+
+  test("an XCP-ng monitor names its pool by its UUID, and its filters name nothing else", () => {
+    /*
+     * The host filter is Xen Orchestra's `host_name` label on the pool's
+     * datapoints: an XCP-ng host, never a OneUptime Host to link.
+     */
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.XcpNg, [
+        {
+          xcpNgMonitor: {
+            poolIdentifier: POOL_UUID,
+            resourceFilters: {
+              scope: "vm",
+              xcpNgId: "b1b2c3d4-0000-4000-8000-000000000011",
+              hostName: "xcp-host-01",
+            },
+            metricViewConfig: metricViewConfigWith({ "xcp_ng.scope": "vm" }),
+          },
+        },
+      ]),
+    );
+
+    expect(refs.xcpNgPoolIdentifiers).toEqual([POOL_UUID]);
+    expect(refs.hostNames).toEqual([]);
+    expect(refs.proxmoxClusterNames).toEqual([]);
+    expect(populatedKeys(refs)).toEqual(["xcpNgPoolIdentifiers"]);
+  });
+
+  test("a query filtered on another pool names that pool too", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.XcpNg, [
+        {
+          xcpNgMonitor: {
+            poolIdentifier: POOL_UUID,
+            resourceFilters: {},
+            metricViewConfig: metricViewConfigWith({
+              "resource.xcp_ng.pool.id": OTHER_POOL_UUID,
+            }),
+          },
+        },
+      ]),
+    );
+
+    expect(refs.xcpNgPoolIdentifiers.sort()).toEqual(
+      [OTHER_POOL_UUID, POOL_UUID].sort(),
+    );
+  });
+
+  test("a pool's name in a query filter names no pool: pools are matched on their UUID", () => {
+    const refs: SeriesResourceRefs = refsFor(
+      monitorWithSteps(MonitorType.XcpNg, [
+        {
+          xcpNgMonitor: {
+            poolIdentifier: POOL_UUID,
+            resourceFilters: {},
+            metricViewConfig: metricViewConfigWith({
+              "resource.xcp_ng.pool.name": "Production",
+            }),
+          },
+        },
+      ]),
+    );
+
+    expect(refs.xcpNgPoolIdentifiers).toEqual([POOL_UUID]);
+  });
+
+  test("a numeric or blank pool identifier from an unchecked step names nothing and does not throw", () => {
+    for (const poolIdentifier of [42, "", "   ", { id: POOL_UUID }]) {
+      const refs: SeriesResourceRefs = refsFor(
+        monitorWithSteps(MonitorType.XcpNg, [
+          { xcpNgMonitor: { poolIdentifier: poolIdentifier } },
+        ]),
+      );
+
+      expect(MonitorStepResourceIdentity.isEmpty(refs)).toBe(true);
+    }
+  });
+
+  test("the empty refs carry an empty XCP-ng pool list", () => {
+    expect(
+      MonitorStepResourceIdentity.emptyRefs().xcpNgPoolIdentifiers,
+    ).toEqual([]);
   });
 });
 

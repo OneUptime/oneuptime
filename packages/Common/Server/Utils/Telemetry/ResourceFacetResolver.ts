@@ -16,6 +16,7 @@ import OpenStackCloudService from "../../Services/OpenStackCloudService";
 import VMwareVCenterService from "../../Services/VMwareVCenterService";
 import CephClusterService from "../../Services/CephClusterService";
 import StorageArrayService from "../../Services/StorageArrayService";
+import XcpNgPoolService from "../../Services/XcpNgPoolService";
 import ServerlessFunctionService from "../../Services/ServerlessFunctionService";
 import CloudResourceService from "../../Services/CloudResourceService";
 import RumApplicationService from "../../Services/RumApplicationService";
@@ -176,6 +177,11 @@ function getResourceFacetListings(): ReadonlyMap<string, ResourceFacetListing> {
     [
       "vmwareVCenterId",
       { service: VMwareVCenterService, identifierField: null },
+    ],
+    // A pool is searched by its UUID too: its name follows Xen Orchestra.
+    [
+      "xcpNgPoolId",
+      { service: XcpNgPoolService, identifierField: "poolIdentifier" },
     ],
     ["cephClusterId", { service: CephClusterService, identifierField: "fsid" }],
     [

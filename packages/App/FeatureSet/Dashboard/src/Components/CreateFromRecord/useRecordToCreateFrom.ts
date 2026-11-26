@@ -17,6 +17,7 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import Service from "Common/Models/DatabaseModels/Service";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import Link from "Common/Types/Link";
 import ObjectID from "Common/Types/ObjectID";
 import { usePageBreadcrumbLinks } from "Common/UI/Components/Page/Page";
@@ -52,6 +53,7 @@ const MODEL_TYPES: Record<CreateFromRecordKind, { new (): BaseModel }> = {
   [CreateFromRecordKind.ProxmoxCluster]: ProxmoxCluster,
   [CreateFromRecordKind.OpenStackCloud]: OpenStackCloud,
   [CreateFromRecordKind.VMwareVCenter]: VMwareVCenter,
+  [CreateFromRecordKind.XcpNgPool]: XcpNgPool,
   [CreateFromRecordKind.CephCluster]: CephCluster,
   [CreateFromRecordKind.StorageArray]: StorageArray,
   [CreateFromRecordKind.DockerSwarmCluster]: DockerSwarmCluster,

@@ -29,14 +29,16 @@ jest.setTimeout(300000);
 /*
  * The reported bug, end to end through the shared logs viewer: on a RUM
  * application the logs' primaryEntityId is the RumApplication id, but the
- * viewer only preloads Services / hosts / clusters, so the locked chip read
+ * viewer only knew Services / hosts / clusters, so the locked chip read
  * "Service: 22222222-…", the Service column printed the UUID and the
  * details header did too.
  *
- * ModelAPI is faked per table so the preload (query `{}`) and the generic
- * resolver (query `_id IN (…)`) both hit realistic data; the chip, table
- * column, details header, sidebar and search-bar suggestion paths are
- * exercised through the real components.
+ * ModelAPI is faked per table so the viewer's reads of the services on
+ * screen (by id alone, TelemetryServicesOnPage, #11072) and the generic
+ * resolver (by id within the project) both hit realistic data; the chip,
+ * table column, details header, sidebar and search-bar suggestion paths
+ * are exercised through the real components. The viewer reads no list of
+ * the project's services, hosts or clusters.
  */
 
 const getListMock: MockFunction = getJestMockFunction();
@@ -169,7 +171,7 @@ const rowsByModel: () => Map<ModelType, Array<BaseModel>> = (): Map<
   ]);
 };
 
-const resolverCalls: () => Array<GetListArgs> = (): Array<GetListArgs> => {
+const readsById: () => Array<GetListArgs> = (): Array<GetListArgs> => {
   return getListMock.mock.calls
     .map((call: Array<unknown>): GetListArgs => {
       return call[0] as GetListArgs;
@@ -178,6 +180,26 @@ const resolverCalls: () => Array<GetListArgs> = (): Array<GetListArgs> => {
       return args.query["_id"] instanceof Includes;
     });
 };
+
+/*
+ * The entity name resolver's reads: by id, within the project. The viewer's
+ * own reads of the services on screen are by id alone.
+ */
+const resolverCalls: () => Array<GetListArgs> = (): Array<GetListArgs> => {
+  return readsById().filter((args: GetListArgs): boolean => {
+    return args.query["projectId"] !== undefined;
+  });
+};
+
+// The viewer's reads of the services on screen, by their ids.
+const serviceReadsOnScreen: () => Array<GetListArgs> =
+  (): Array<GetListArgs> => {
+    return readsById().filter((args: GetListArgs): boolean => {
+      return (
+        args.modelType === Service && args.query["projectId"] === undefined
+      );
+    });
+  };
 
 const makeLog: (
   id: string,
@@ -319,7 +341,7 @@ describe("LogsViewer names polymorphic telemetry entities", () => {
     expect(modelTypes).toEqual([RumApplication]);
   });
 
-  test("a chip for a preloaded Service keeps 'Service' and is not sent to the resolver", async () => {
+  test("a chip for a Service keeps 'Service', is read as a service by its id, and is not sent to the resolver", async () => {
     render(
       <LogsViewer
         logs={[]}
@@ -344,6 +366,7 @@ describe("LogsViewer names polymorphic telemetry entities", () => {
       expect(screen.getByText("checkout-api")).toBeInTheDocument();
     }, SETTLE);
     expect(screen.getByText("Service:")).toBeInTheDocument();
+    expect(serviceReadsOnScreen()).toHaveLength(1);
     expect(resolverCalls()).toHaveLength(0);
   });
 
@@ -553,7 +576,7 @@ describe("LogsViewer names polymorphic telemetry entities", () => {
     expect(onFieldValueSelect).toHaveBeenCalledWith("service", SERVICE_ID);
   });
 
-  test("the resolver is not consulted when every entity on screen is preloaded", async () => {
+  test("the resolver is not consulted when every entity on screen is a service the page read", async () => {
     render(
       <LogsViewer
         logs={[makeLog("log-1", SERVICE_ID, "order placed")]}
@@ -574,14 +597,23 @@ describe("LogsViewer names polymorphic telemetry entities", () => {
 
     await waitForViewer();
 
-    const chips: Array<HTMLElement> = screen.getAllByTitle(
+    const chips: Array<HTMLElement> = await screen.findAllByTitle(
       "Service: checkout-api (applied filter)",
+      undefined,
+      SETTLE,
     );
     expect(chips).toHaveLength(1);
     expect(within(chips[0]!).getByText("checkout-api")).toBeInTheDocument();
+
+    // Let any lookup effect run before asserting none was made.
+    await new Promise((resolve: (value: unknown) => void) => {
+      setTimeout(resolve, 50);
+    });
     expect(resolverCalls()).toHaveLength(0);
+    // The chip's and the row's service, read once, together.
+    expect(serviceReadsOnScreen()).toHaveLength(1);
   });
-  test("regression: an unhinted log of a preloaded host is named from the host map without a resolver request", async () => {
+  test("an unhinted log of a host is named by the resolver, with no read of the project's hosts", async () => {
     render(
       <LogsViewer
         logs={[makeLog("log-1", HOST_ID, "disk full")]}
@@ -603,10 +635,12 @@ describe("LogsViewer names polymorphic telemetry entities", () => {
     await waitForViewer();
 
     /*
-     * Named in the very render the table mounts in — the host map is
-     * already loaded, so nothing waits on (or asks) the resolver.
+     * Read as a service first (it is none), then found by the resolver's
+     * fan-out - by its id, never from a list of the project's hosts.
      */
-    expect(screen.getByTitle("Host: web-1")).toBeInTheDocument();
+    expect(
+      await screen.findByTitle("Host: web-1", undefined, SETTLE),
+    ).toBeInTheDocument();
     expect(screen.getByTitle("Remove Host: web-1")).toBeInTheDocument();
     expect(screen.queryByText(HOST_ID)).not.toBeInTheDocument();
 
@@ -621,11 +655,14 @@ describe("LogsViewer names polymorphic telemetry entities", () => {
       "Host",
     );
 
-    // Let any lookup effect run before asserting none was made.
-    await new Promise((resolve: (value: unknown) => void) => {
-      setTimeout(resolve, 50);
-    });
-    expect(resolverCalls()).toHaveLength(0);
+    for (const call of getListMock.mock.calls) {
+      expect((call[0] as GetListArgs).query["_id"]).toBeInstanceOf(Includes);
+    }
+    expect(
+      resolverCalls().some((args: GetListArgs): boolean => {
+        return args.modelType === Host;
+      }),
+    ).toBe(true);
   });
 
   test("regression: a RUM application named like a preloaded Service filters by its own id when picked", async () => {

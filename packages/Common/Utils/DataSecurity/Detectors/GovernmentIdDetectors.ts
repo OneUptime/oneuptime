@@ -2958,6 +2958,15 @@ const PASSPORT_NUMBER_DETECTOR: DataTypeDetector = {
   isTestValue: sampleValues(["C01X00T47"]),
 };
 
+/*
+ * Every government ID read in every script's digits too
+ * (readsDigitsOfEveryScript, #11033), as a card is (#10960) and a Social
+ * Security number is (#11030): a TC Kimlik in Arabic-Indic digits, a CPF
+ * in fullwidth ones, a passport number in Persian ones. A number is the
+ * same number whatever script its digits are written in - its check digit,
+ * its birth date and the words it needs around it prove it the same way -
+ * and it is placed on the very characters it is written with.
+ */
 export const GOVERNMENT_ID_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   ...NORTH_AMERICA,
   ...UNITED_KINGDOM,
@@ -2968,6 +2977,8 @@ export const GOVERNMENT_ID_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   ...ASIA,
   ...OCEANIA_AND_RUSSIA,
   PASSPORT_NUMBER_DETECTOR,
-];
+].map((detector: DataTypeDetector): DataTypeDetector => {
+  return { ...detector, readsDigitsOfEveryScript: true };
+});
 
 export default GOVERNMENT_ID_DETECTORS;

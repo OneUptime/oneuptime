@@ -17,6 +17,7 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  SAVINGS_ACTIONS_FIELD_KEY,
   SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   getCloudConnectionFieldsForMethod,
@@ -40,6 +41,7 @@ import {
   AWS_WAF_BLOCKLIST_RULE_ACTIONS,
   AWS_WAF_WEB_ACL_RESOURCE,
   AWS_WAF_WEB_ACL_UPDATE_RESOURCES,
+  AZURE_COMMITMENT_READER_ROLES,
   AZURE_COST_ROLE,
   AZURE_DATA_SECURITY_CONTENT_ROLE,
   AZURE_DATA_SECURITY_RESPONSE_ACTIONS,
@@ -580,6 +582,29 @@ function readAzureCommand(command: string): CommandGrant {
       continue;
     }
 
+    /*
+     * The commitments' readers (#11011), at the tenant-wide scope Azure
+     * lists every reservation and savings plan at: only a Global
+     * Administrator with elevated access may grant them, so a line that
+     * cannot says so and the command goes on.
+     */
+    const commitmentReader: { role: string; scope: string } | undefined =
+      AZURE_COMMITMENT_READER_ROLES.find(
+        (entry: { role: string; scope: string }): boolean => {
+          return line.startsWith(
+            `${AZURE_ASSIGNMENT}${entry.role}" --scope "${entry.scope}" > /dev/null 2>&1 || echo "`,
+          );
+        },
+      );
+
+    if (commitmentReader) {
+      expect(line.endsWith('" >&2')).toBe(true);
+      addGrant(grant, "app", [
+        `${commitmentReader.role} on ${commitmentReader.scope}`,
+      ]);
+      continue;
+    }
+
     if (line.startsWith(AZURE_ASSIGNMENT)) {
       expect(line.endsWith('" --scope "$SCOPE" > /dev/null')).toBe(true);
       addGrant(grant, "app", [`${quotedAfter(line, '--role "')} on $SCOPE`]);
@@ -886,16 +911,22 @@ function expectedGrant(
     return {
       grants: {
         app: [
-          AZURE_READ_ONLY_ROLE,
-          AZURE_COST_ROLE,
-          ...(content ? [AZURE_DATA_SECURITY_CONTENT_ROLE] : []),
-          ...(responds ? [AZURE_DATA_SECURITY_RESPONSE_ROLE] : []),
-          ...(blocks ? [AZURE_WAF_BLOCKLIST_ROLE] : []),
-        ]
-          .map((role: string): string => {
+          ...[
+            AZURE_READ_ONLY_ROLE,
+            AZURE_COST_ROLE,
+            ...(content ? [AZURE_DATA_SECURITY_CONTENT_ROLE] : []),
+            ...(responds ? [AZURE_DATA_SECURITY_RESPONSE_ROLE] : []),
+            ...(blocks ? [AZURE_WAF_BLOCKLIST_ROLE] : []),
+          ].map((role: string): string => {
             return `${role} on $SCOPE`;
-          })
-          .sort(),
+          }),
+          // Reading every reservation and savings plan: the tenant's.
+          ...AZURE_COMMITMENT_READER_ROLES.map(
+            (entry: { role: string; scope: string }): string => {
+              return `${entry.role} on ${entry.scope}`;
+            },
+          ),
+        ].sort(),
         ...(responds
           ? {
               [`custom role ${AZURE_DATA_SECURITY_RESPONSE_ROLE}`]: [
@@ -1675,7 +1706,7 @@ describe("every setting that changes a command is asked with it, and no other", 
     }
   });
 
-  test("they are what to read, Data Security's two settings and the blocklist's on every cloud, and Security case checks on AWS", () => {
+  test("they are what to read, Savings actions, Data Security's two settings and the blocklist's on every cloud, and Security case checks on AWS", () => {
     for (const definition of CloudConnectionCatalog) {
       expect({
         cloud: definition.provider,
@@ -1693,6 +1724,8 @@ describe("every setting that changes a command is asked with it, and no other", 
           DATA_SECURITY_FIELD_KEY,
           DATA_SECURITY_RESPONSE_FIELD_KEY,
           READ_SCOPE_FIELD_KEY,
+          // What OneUptime may change for savings, every cloud's (#11010).
+          SAVINGS_ACTIONS_FIELD_KEY,
           WAF_BLOCKLIST_FIELD_KEY,
           // Reading IAM users back is AWS's (#10900).
           ...(definition.provider === CloudProvider.AWS
