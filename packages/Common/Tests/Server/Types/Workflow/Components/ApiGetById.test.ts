@@ -251,7 +251,14 @@ describe("API Get By ID, the step", () => {
       metadata?.arguments.map((argument: { id: string }) => {
         return argument.id;
       }),
-    ).toEqual(["url", "id", "request-headers"]);
+    ).toEqual([
+      "url",
+      "id",
+      "request-headers",
+      // A self-hosted service's own certificate, allowed or trusted (#10440).
+      "allow-self-signed-certificates",
+      "ca-certificate",
+    ]);
     // The headers carry tokens, so they are kept out of the run's log.
     expect(
       metadata?.arguments.find((argument: { id: string }) => {

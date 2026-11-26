@@ -14,6 +14,7 @@ import Navigation from "Common/UI/Utils/Navigation";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import StatusPageSCIM from "Common/Models/DatabaseModels/StatusPageSCIM";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   Fragment,
   FunctionComponent,
@@ -383,6 +384,12 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         <ConfirmModal
           title={"Error"}
           description={resetError}
+          // What failed is the Reset Bearer Token the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Reset Bearer Token") ||
+              "Reset Bearer Token",
+          )}
           submitButtonText={"Close"}
           onSubmit={() => {
             setShowResetErrorModal(false);

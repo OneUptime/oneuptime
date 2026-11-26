@@ -74,7 +74,7 @@ Varje typ som OneUptime AI nämner är ett fynd med Låg, markerat **Föreslagen
 
 ## Namn och gatuadresser i fritext
 
-Inget mönster skiljer en persons namn från vilket annat ord som helst. Därför läses fritext - en supportanteckning, en loggrad, ett undantagsmeddelande, en prompt - också av en liten språkmodell som hittar personnamn och gatuadresser. Modellen körs inne i skannern, på OneUptimes workers och på dina prober: texten lämnar aldrig skannern, inget laddas ned medan den körs och ingen prompt skrivs. Den är inte OneUptime AI, och OneUptime AI:s reglage slår inte på eller av den: det gör **Hitta namn och gatuadresser**.
+Inget mönster skiljer en persons namn från vilket annat ord som helst. Därför läses fritext - en supportanteckning, en loggrad, ett undantagsmeddelande, en prompt - också av en liten språkmodell som hittar personnamn och gatuadresser. Modellen körs inne i skannern, på OneUptimes workers och på dina sonder: texten lämnar aldrig skannern, inget laddas ned medan den körs och ingen prompt skrivs. Den är inte OneUptime AI, och OneUptime AI:s reglage slår inte på eller av den: det gör **Hitta namn och gatuadresser**.
 
 - **Vad den läser.** Ett fält vars värden i snitt är längre än 80 tecken; ett fält vars namn säger att en person skriver fritext i det, hur korta värdena än är, till exempel `delivery_note`, `comentario`, `Lieferhinweis` eller `opmerking` (se [Korta värden](#korta-värden)); och i telemetri varje loggtext, undantagsmeddelande, stackspårning och AI-konversation, hur kort den än är. Den läser upp till 100 olika värden i ett fält, 32 KB text sammanlagt, och upp till 16 KB av ett värde.
 - **Vad den hittar.** Ett **Personnamn** (`person-name`) och en **Gatuadress** (`postal-address`): en plats som modellen läser intill ett husnummer, till exempel `14 Calle Mayor`, med postnumret och orten som följer. En ort eller ett land ensamt är ingen gatuadress.
@@ -150,11 +150,11 @@ Fältets eget namn räknas: `orders.delivery_note` läses, `notes.author` gör d
 
 ### Var den körs, och vad den kostar
 
-- **I varje avbild.** App-avbilden, som kör dina workers, och Probe-avbilden har modellen, dess ordförråd och körmiljön med sig, även luftgapade avbilder och Iron Bank-avbilder: cirka 114 MB på disk. De hämtas när avbilden byggs, från en fastlåst revision, och kontrolleras mot sin SHA-256. Inget laddas ned medan en skanning körs.
+- **I varje avbild.** App-avbilden, som kör dina workers, och sondavbilden har modellen, dess ordförråd och körmiljön med sig, även luftgapade avbilder och Iron Bank-avbilder: cirka 114 MB på disk. De hämtas när avbilden byggs, från en fastlåst revision, och kontrolleras mot sin SHA-256. Inget laddas ned medan en skanning körs.
 - **Minne.** Den läses in första gången en skanning behöver den, en gång per process: cirka 550 MB, som lämnas tillbaka efter 10 minuter utan skanning.
 - **Tid.** På en kärna mellan 30 sekunder och en minut per 1 000 värden av en loggrads längd, och cirka 9 minuter per 1 000 värden på 1 200 tecken. En innehållsskanning av ett datalager ger den upp till 2 minuter. Telemetriskanningen varje timme ger den upp till 1 minut totalt och 6 sekunder per datalager, till en ny uppsättning datalager varje timme.
 - **Turordning.** Modellen i varje innehållsskanning börjar där den förra stannade: vid den första tabellen eller containern vars fritext den inte läste, och med objekten i en bucket som den inte hann med, som läses igen före alla andra. Det den började på och inte kunde slutföra tas inte först igen, så inget håller fast dess tid skanning efter skanning, och varje tabell och varje objekt får sin tur, hur mycket fritext datalagret än har.
-- **När tiden tar slut** avslutas skanningen med det modellen hann läsa, och dess varningar säger hur många av fritextvärdena den läste, aldrig vad. En worker eller en probe utan modellen skannar som förut och säger varför:
+- **När tiden tar slut** avslutas skanningen med det modellen hann läsa, och dess varningar säger hur många av fritextvärdena den läste, aldrig vad. En worker eller en sond utan modellen skannar som förut och säger varför:
 
 ```text
 Names and street addresses were looked for in 120 of 500 free-text values: this store's 6 seconds of model time ran out.
@@ -163,7 +163,7 @@ Names and street addresses in free text were not looked for: the model's model_q
 
 En skannings detaljer visar dessa, och alla andra varningar från en innehålls- eller telemetriskanning, på läsarens språk.
 
-**Hitta namn och gatuadresser** är på i varje projekt: innehållsskanningar av buckets, databaser och BigQuery-dataset läser fritext med modellen, på workers och på prober. **Hitta namn och gatuadresser i telemetri**, under det, är av: att en gång läsa varje loggtext, undantag och konversation i ett livligt projekt med 200 tjänster tar cirka 48 minuter på en kärna, och skanningens minut i timmen läser cirka 4 % av det. Slå på det för att låta varje timskanning läsa en del av dem. Båda finns under **Datasäkerhet → Inställningar → Skanningsinställningar**, i **Vad Datasäkerhet läser**. **Testa** körs i din webbläsare, utan modellen: det modellen skulle hitta visas inte där. Modellen skulle lägga till cirka 113 MB att ladda ner, 67 MB komprimerat, och cirka 440 MB i flikens minne, så den körs bara i skannern.
+**Hitta namn och gatuadresser** är på i varje projekt: innehållsskanningar av buckets, databaser och BigQuery-dataset läser fritext med modellen, på workers och på sonder. **Hitta namn och gatuadresser i telemetri**, under det, är av: att en gång läsa varje loggtext, undantag och konversation i ett livligt projekt med 200 tjänster tar cirka 48 minuter på en kärna, och skanningens minut i timmen läser cirka 4 % av det. Slå på det för att låta varje timskanning läsa en del av dem. Båda finns under **Datasäkerhet → Inställningar → Skanningsinställningar**, i **Vad Datasäkerhet läser**. **Testa** körs i din webbläsare, utan modellen: det modellen skulle hitta visas inte där. Modellen skulle lägga till cirka 113 MB att ladda ner, 67 MB komprimerat, och cirka 440 MB i flikens minne, så den körs bara i skannern.
 
 ## Känslighet
 

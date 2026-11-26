@@ -86,6 +86,7 @@ import ToastRegion from "Common/UI/Components/Toast/ToastRegion";
 import UserUtil from "Common/UI/Utils/User";
 import EN from "../../../App/FeatureSet/Dashboard/src/Locales/en.json";
 import { localeResources } from "../../SuiteHelpers/FixtureLocales";
+import { answerUniqueNames } from "../../SuiteHelpers/UniqueNameAnswers";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000006379";
 const APP_ID = "20000000-0000-4000-8000-000000006379";
@@ -613,7 +614,18 @@ API.post = async (options) => {
 };
 
 API.get = async (options) => {
-  unexpected(`API.get ${String(options && options.url)}`);
+  const url = String(options && options.url);
+
+  /*
+   * A new key's name, asked about as it is typed (#10761): no other key of
+   * the project has it.
+   */
+  const names = answerUniqueNames({ url });
+  if (names) {
+    return new HTTPResponse(200, names, {});
+  }
+
+  unexpected(`API.get ${url}`);
   return new HTTPResponse(200, {}, {});
 };
 

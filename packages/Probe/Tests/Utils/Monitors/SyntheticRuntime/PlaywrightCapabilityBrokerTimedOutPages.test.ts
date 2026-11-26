@@ -1,6 +1,7 @@
 import { BrowserContext, Page } from "playwright";
 import PlaywrightCapabilityBroker from "../../../../Utils/Monitors/SyntheticRuntime/PlaywrightCapabilityBroker";
 import { MAX_SCREENSHOT_BYTES } from "../../../../Utils/Monitors/SyntheticRuntime/RpcProtocol";
+import SyntheticEgressProxy from "../../../../Utils/Monitors/SyntheticRuntime/SyntheticEgressProxy";
 
 /*
  * When a synthetic script runs out of time, the broker photographs every
@@ -89,6 +90,8 @@ function createBroker(data: {
     onRuntimeReady: (): void => {
       // The sandbox never starts here.
     },
+    // No request is made here, so the egress proxy is never started.
+    egress: new SyntheticEgressProxy(),
   });
 }
 

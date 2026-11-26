@@ -1,10 +1,19 @@
 import { JSONObject } from "../../../Types/JSON";
+import {
+  detectionOverflowMarkdown,
+  detectionRuleMatchMarkdown,
+  entityRiskMarkdown,
+  threatIntelMatchMarkdown,
+} from "../../../Utils/SecurityCase/SecurityCaseMarkdown";
 import { getEntityCaseGroupingKey } from "../../../Utils/SecurityCase/SecurityEntityRiskScore";
 import {
+  CORRELATION_SENTENCE_PREFIX,
   ErasedName,
   TITLE_VALUE_SEPARATOR,
+  getDescriptionNameTexts,
   getErasedRiskKeys,
   namesAnyone,
+  unnameDescription,
   unnameGroupingKey,
   unnameJson,
   unnameTitle,
@@ -79,6 +88,175 @@ describe("a title OneUptime made", () => {
   test("nothing stays nothing", () => {
     expect(unnameTitle(undefined, NAMES)).toBeUndefined();
     expect(unnameTitle(null, NAMES)).toBeNull();
+  });
+});
+
+describe("a description OneUptime wrote", () => {
+  const BOB_TOKEN: string = "[HASHED:aaaaaaaaaaaaaaab]";
+  const CAROL: ErasedName = {
+    named: "carol_smith*ops@example.com",
+    hashed: "[HASHED:cccccccccccccccc]",
+  };
+
+  // A detection rule's match, as DetectionRuleEvaluator has it written.
+  function ruleMatch(data: {
+    observables?: Array<string>;
+    correlationSummary?: string;
+    sampleMessage?: string;
+  }): string {
+    return detectionRuleMatchMarkdown({
+      ruleName: "Repeated failed sign-ins",
+      matchCount: 5,
+      windowStart: "2026-11-24T09:00:00Z",
+      windowEnd: "2026-11-24T09:15:00Z",
+      observables: data.observables || [],
+      correlationSummary: data.correlationSummary,
+      sampleMessage: data.sampleMessage,
+    }).toString();
+  }
+
+  test("the observables a detection lists: the name's code span becomes the token's, the rest stay", () => {
+    const description: string = ruleMatch({
+      observables: ["alice@example.com", "203.0.113.7", "bob"],
+    });
+
+    expect(description).toContain(
+      "Observables: `alice@example.com`, `203.0.113.7`, `bob`",
+    );
+    expect(unnameDescription(description, NAMES)).toBe(
+      description
+        .replace("`alice@example.com`", `\`${TOKEN}\``)
+        .replace("`bob`", `\`${BOB_TOKEN}\``),
+    );
+  });
+
+  test("the new values a correlation's sentence lists, escaped as the sentence escapes them", () => {
+    const description: string = ruleMatch({
+      correlationSummary:
+        "First principalUser / srcIp in 7 days: carol_smith*ops@example.com / 203.0.113.7, bob, bobby and 3 more",
+      observables: ["carol_smith*ops@example.com"],
+    });
+    const names: Array<ErasedName> = [...NAMES, CAROL];
+
+    // The sentence escapes what would restyle it; the code span does not.
+    expect(description).toContain(
+      `${CORRELATION_SENTENCE_PREFIX}First principalUser / srcIp in 7 days: carol_smith\\*ops@example.com / 203.0.113.7, bob, bobby and 3 more.`,
+    );
+
+    const unnamed: string = unnameDescription(description, names) as string;
+
+    expect(unnamed).toContain(
+      `${CORRELATION_SENTENCE_PREFIX}First principalUser / srcIp in 7 days: \\[HASHED:cccccccccccccccc\\] / 203.0.113.7, \\[HASHED:aaaaaaaaaaaaaaab\\], bobby and 3 more.`,
+    );
+    expect(unnamed).toContain("Observables: `[HASHED:cccccccccccccccc]`");
+    expect(unnamed).not.toContain("carol");
+    // Done again, nothing more changes.
+    expect(unnameDescription(unnamed, names)).toBe(unnamed);
+  });
+
+  test("the last value the sentence lists, before its full stop", () => {
+    const description: string = ruleMatch({
+      correlationSummary:
+        "First principalUser in 1 day: dave, alice@example.com",
+    });
+
+    expect(unnameDescription(description, NAMES)).toContain(
+      "First principalUser in 1 day: dave, \\[HASHED:5e29db14e508e09a\\].",
+    );
+  });
+
+  test("a threat intel indicator, an entity's risk and an overflow's groups", () => {
+    const indicator: string = threatIntelMatchMarkdown({
+      feedName: "Known bad accounts",
+      indicatorValue: "alice@example.com",
+      indicatorType: "email-addr",
+      confidence: 80,
+      matchCount: 2,
+      windowStart: "2026-11-24T09:00:00Z",
+      windowEnd: "2026-11-24T09:15:00Z",
+    }).toString();
+    const risk: string = entityRiskMarkdown({
+      entityValue: "bob",
+      entityType: "user",
+      score: 82,
+      level: "High",
+      threshold: 70,
+      windowInDays: 7,
+      sources: [],
+    }).toString();
+    const overflow: string = detectionOverflowMarkdown({
+      kind: "rule",
+      sourceName: "Repeated failed sign-ins",
+      summary: "It matched 240 groups.",
+      windowStart: "2026-11-24T09:00:00Z",
+      windowEnd: "2026-11-24T09:15:00Z",
+      examples: ["carol", "alice@example.com"],
+    }).toString();
+
+    expect(unnameDescription(indicator, NAMES)).toBe(
+      indicator.replace("`alice@example.com`", `\`${TOKEN}\``),
+    );
+    expect(unnameDescription(risk, NAMES)).toBe(
+      risk.replace("`bob`", `\`${BOB_TOKEN}\``),
+    );
+    expect(unnameDescription(overflow, NAMES)).toBe(
+      overflow.replace("`alice@example.com`", `\`${TOKEN}\``),
+    );
+  });
+
+  test("a name inside other words, or inside a longer code span, stays as written", () => {
+    for (const description of [
+      ruleMatch({ sampleMessage: "Failed sign-in for bob" }),
+      ruleMatch({ observables: ["bobby", "alice@example.com.evil"] }),
+      ruleMatch({
+        correlationSummary:
+          "Failed sign-ins (5+ events in 10 minutes), then Successful sign-in, 3 minutes apart",
+      }),
+      "Look at bob's sign-ins, and at what happened: bob, then carol.",
+      "bob",
+    ]) {
+      expect(unnameDescription(description, NAMES)).toBe(description);
+    }
+  });
+
+  test('what the rule left is placed as written, even with a "$" in it', () => {
+    const names: Array<ErasedName> = [{ named: "bob", hashed: "[MASK:$&$1]" }];
+
+    expect(
+      unnameDescription(
+        `${CORRELATION_SENTENCE_PREFIX}First user in 1 day: bob.\n\nObservables: \`bob\``,
+        names,
+      ),
+    ).toBe(
+      `${CORRELATION_SENTENCE_PREFIX}First user in 1 day: \\[MASK:$&$1\\].\n\nObservables: \`[MASK:$&$1]\``,
+    );
+  });
+
+  test("hands back the very description when nothing names anyone, and nothing stays nothing", () => {
+    const description: string = ruleMatch({ observables: ["203.0.113.7"] });
+
+    expect(unnameDescription(description, NAMES)).toBe(description);
+    expect(unnameDescription(undefined, NAMES)).toBeUndefined();
+    expect(unnameDescription(null, NAMES)).toBeNull();
+    expect(unnameDescription("", NAMES)).toBe("");
+  });
+
+  test("the texts a read finds a description naming the names by", () => {
+    expect(getDescriptionNameTexts([...NAMES, CAROL])).toEqual({
+      code: [
+        "`alice@example.com`",
+        "`auth0|alice@example.com`",
+        "`bob`",
+        "`carol_smith*ops@example.com`",
+      ],
+      text: [
+        "alice@example.com",
+        "auth0|alice@example.com",
+        "bob",
+        "carol_smith\\*ops@example.com",
+      ],
+    });
+    expect(getDescriptionNameTexts([])).toEqual({ code: [], text: [] });
   });
 });
 

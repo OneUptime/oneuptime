@@ -4,6 +4,7 @@
   "Error details": "Error details",
   "Still stuck?": "Still stuck?",
   "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.": "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before sharing it with OneUptime Support.",
+  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.",
   "Download support bundle": "Download support bundle",
   "Send it to {{email}}": "Send it to {{email}}",
   "Support bundle downloaded. Review it, then attach it to your email.": "Support bundle downloaded. Review it, then attach it to your email.",
@@ -642,6 +643,8 @@
   "The {{itemName}} was not created.": "The {{itemName}} was not created.",
   "The {{itemName}} was not saved.": "The {{itemName}} was not saved.",
   "This did not finish.": "This did not finish.",
+  "The {{itemName}} was not deleted.": "The {{itemName}} was not deleted.",
+  "“{{action}}” did not finish.": "“{{action}}” did not finish.",
   "This page ran into a problem, so this did not finish. Reload the page, then try again.": "This page ran into a problem, so this did not finish. Reload the page, then try again.",
   "This page ran into a problem.": "This page ran into a problem.",
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.": "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder and look for this reference.",
@@ -737,6 +740,5 @@
     "note": "Note",
     "tip": "Tip",
     "warning": "Warning"
-  },
-  "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it.": "Download a local diagnostics file with the error stack, component stack, scrubbed page URL, browser details, and OneUptime build. It never reads cookies, saved browser data, or form contents. Review it before you share it."
+  }
 }

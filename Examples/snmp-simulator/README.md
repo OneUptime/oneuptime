@@ -14,6 +14,7 @@ answers SNMP works as a "device". This compose file starts three:
 | `router-v3` | `172.30.99.13`  | Real `snmpd` agent, for exercising the SNMPv3 code path            | v3 user `oneuptime`, authPriv, SHA `authpass123`, AES `privpass123` (also v2c `public`) |
 | `sophos-xgs` | `172.30.99.15` | snmpsim replaying a Sophos firewall (SFOS v21): IPsec tunnel table, CPU cores, memory/disk/HA | v2c, community `public` |
 | `cambium-ap` | `172.30.99.16` | snmpsim replaying a Cambium Enterprise Wi-Fi access point: radio and SSID tables | v2c, community `public` |
+| `san-switch-v3` | `172.30.99.17` | A SAN switch that sends SNMPv3 traps and informs (Net-SNMP's `snmptrap` and `snmpinform`); it answers no polls | v3 users `san-monitor` (authPriv, SHA `authpass123`, AES `privpass123`) and `fabric-monitor` (authPriv, SHA-256 `fabricauth123`, AES-256 `fabricpriv123`) |
 
 What the fake switches serve:
 
@@ -114,6 +115,8 @@ ports and use `127.0.0.1` + that port as the device address instead.)
    (`172.30.99.1` is this bridge network's gateway, i.e. the host where the
    host-networked probe is listening.)
 
+   For SNMPv3 traps and informs, see the next section.
+
 7. **SNMP tables and the Wi-Fi tab** - register `sophos-xgs`
    (`172.30.99.15`) and `cambium-ap` (`172.30.99.16`), v2c `public`, and turn
    on **Auto-Apply Vendor Health Template** (or pick the Sophos / Cambium
@@ -130,6 +133,78 @@ ports and use `127.0.0.1` + that port as the device address instead.)
    A Network Device monitor with **SNMP Table Row Is Unhealthy** on the
    `ipsec_tunnels` table and Row `*` raises one incident for `HQ-Branch2` and
    one for `HQ-Cloud`. **Add Recommended Alerts** adds exactly that criteria.
+
+## SNMPv3 traps and informs
+
+`san-switch-v3` (`172.30.99.17`) is a SAN switch set up the way a locked-down
+network sets one up: it sends SNMPv3 notifications only, authenticated and
+encrypted. A probe takes an SNMPv3 trap only from a user of a device assigned
+to it, so the device and its users go into OneUptime first.
+
+1. **Start it** (the rest of the simulator can be running or not):
+
+   ```bash
+   docker compose up -d --build san-switch-v3
+   ```
+
+2. **Register the switch** - Network Devices -> add, hostname `172.30.99.17`,
+   your probe, and under SNMP: version v3, user `san-monitor`, security level
+   authPriv, authentication SHA with `authpass123`, privacy AES with
+   `privpass123`. It answers no polls, so it reads Down; its traps arrive
+   all the same.
+
+3. **Give its site the second user** - the switch also sends as
+   `fabric-monitor` (SHA-256 with `fabricauth123`, AES-256 with
+   `fabricpriv123`). Save that as an SNMP Credential Profile and make it the
+   default of the switch's site. A probe takes the SNMPv3 users of a device's
+   own credentials, its credential profile and its site's default alike.
+
+4. **Check the probe** - Monitors -> Settings -> Probes -> your probe: its
+   **SNMP Traps** card says
+   "2 users, from the devices on this probe" within a minute, and shows the
+   probe's SNMPv3 engine ID.
+
+5. **Send them**:
+
+   ```bash
+   docker compose exec san-switch-v3 send-v3-traps
+   ```
+
+   This sends an authPriv SHA / AES trap as `san-monitor`, an authPriv
+   SHA-256 / AES-256 trap as `fabric-monitor`, an SNMPv3 inform and a v2c
+   inform. `snmpinform` discovers the probe's engine ID by itself and prints
+   "acknowledged by the probe" once the probe answers, which is what stops a
+   device from sending it again. Each one shows on the switch's **Logs** and
+   **Events** pages, as "SNMPv3 trap" with its user and "Authenticated and
+   encrypted", and a Network Device monitor on the switch with
+   **SNMP Trap Received (Trap OID)** Equal To `1.3.6.1.6.3.1.1.5.3` raises
+   an incident, as it does for a v2c linkDown.
+
+6. **See a refused one** - a trap signed with the wrong passphrase:
+
+   ```bash
+   docker compose exec san-switch-v3 send-v3-traps wrong-key
+   ```
+
+   Nothing reaches the switch's history. Within a minute the probe's
+   **SNMP Traps** card says "1 SNMPv3 trap from 172.30.99.17 failed: wrong
+   authentication passphrase or protocol for “san-monitor”", and the switch's
+   Overview says the same, with what to change. The next trap the probe takes
+   from the switch as `san-monitor` clears it.
+
+7. **An inform with the engine ID given up front**, as Cisco IOS sends them
+   (`snmp-server engineID remote`): copy the engine ID from the probe's page,
+   then
+
+   ```bash
+   docker compose exec san-switch-v3 send-v3-traps inform-to <engine ID>
+   ```
+
+   A wrong one is refused as "informs from “san-monitor” sent to another
+   engine ID than this probe's".
+
+The probe listens on UDP 162; if yours listens elsewhere, set
+`PROBE_TRAP_PORT` on the `san-switch-v3` service.
 
 ## Simulating your own devices
 

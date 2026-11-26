@@ -16,6 +16,7 @@ import {
   SearchTokenType,
   SearchValueOperator,
   SearchValuePredicate,
+  buildSearchContainsValue,
   buildSearchTokenValue,
   compileAttributeChipValues,
   describeSearchValue,
@@ -616,5 +617,62 @@ describe("queryValueToChipValues - saved views round-trip", () => {
     expect(describeSearchValue(queryValueToChipValues(compiled)[0]!)).toBe(
       "/api/*",
     );
+  });
+});
+
+/*
+ * #11045: a Hash rule's token found inside a longer value - "auth0|[HASHED:
+ * ...]" - by the search a security event's panel links to. The value comes
+ * from the data, so every character must come back as written.
+ */
+describe("buildSearchContainsValue - text the data holds, found inside a value", () => {
+  const TOKEN: string = "[HASHED:0123456789abcdef]";
+
+  test("a token, brackets and colon and all, reads back as a contains-match of itself", () => {
+    const value: string = buildSearchContainsValue(TOKEN);
+
+    expect(value).toBe(`~"${TOKEN}"`);
+    expect(parseSearchValue(value)).toEqual({
+      operator: SearchValueOperator.Contains,
+      value: TOKEN,
+      values: [],
+    });
+  });
+
+  test("quotes, backslashes, wildcards and spaces come back exactly as written", () => {
+    for (const literal of [
+      'say "hi"',
+      "CORP\\alice",
+      "a*b?c",
+      "ends with a backslash\\",
+      "(a OR b)",
+      "-negated",
+      "~tilde",
+    ]) {
+      const predicate: SearchValuePredicate = parseSearchValue(
+        buildSearchContainsValue(literal),
+      );
+
+      expect(predicate.operator).toBe(SearchValueOperator.Contains);
+      expect(predicate.value).toBe(literal);
+    }
+  });
+
+  test("as an attribute token in a search, and as a chip, it is a contains-match on that attribute", () => {
+    const tokens: Array<SearchToken> = parseSearchQuery(
+      `@user.id:${buildSearchContainsValue(TOKEN)} severity:error`,
+    );
+
+    expect(tokens[0]!.type).toBe(SearchTokenType.Attribute);
+    expect(tokens[0]!.key).toBe("user.id");
+    expect(tokens[0]!.predicate.operator).toBe(SearchValueOperator.Contains);
+    expect(tokens[0]!.predicate.value).toBe(TOKEN);
+
+    const compiled: unknown = compileAttributeChipValues([
+      buildSearchContainsValue(TOKEN),
+    ]);
+
+    expect(compiled).toBeInstanceOf(Search);
+    expect((compiled as Search<string>).toString()).toBe(TOKEN);
   });
 });

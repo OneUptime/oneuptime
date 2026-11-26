@@ -90,7 +90,7 @@ For å slå av den medfølgende setter du `GLOBAL_RUNNER_REPLICAS=0` i Docker Co
 ## Før du begynner
 
 - **En vert med Docker** i infrastrukturen din som kan nå OneUptime-URL-en din over HTTPS og systemene trinnene dine virker på.
-- **En rolle som oppretter Runnere.** Prosjekteier, Prosjektadministrator, Prosjektmedlem og Runbook-administrator kan opprette en. Bare en Prosjekteier, Prosjektadministrator eller Runbook-administrator kan se nøkkelen til en Runner, som oppsettskommandoen inneholder.
+- **En rolle som oppretter Runnere.** Prosjekteier, Prosjektadministrator, Prosjektmedlem og Runbook-administrator kan opprette en. Bare en Prosjekteier, Prosjektadministrator eller Runbook-administrator kan se nøkkelen til en Runner, som oppsettskommandoen inneholder. Bare de kan også velge nøkkelen til en Runner: en Runner som andre oppretter, får en nøkkel som OneUptime genererer, og opprettelsen viser dem ikke nøkkelen.
 
 ## Installer en Runner
 

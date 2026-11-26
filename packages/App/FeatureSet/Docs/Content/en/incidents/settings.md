@@ -15,7 +15,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 
 | Page                     | What you do there                                                                            |
 | ------------------------ | -------------------------------------------------------------------------------------------- |
-| **Incident State**       | Add, rename, recolor and reorder the states an incident moves through.                       |
+| **Incident State**       | Add, rename, recolor and reorder the states an incident moves through, and choose whether incidents declared by hand start acknowledged. Off by default. |
 | **Incident Severity**    | Add, rename, recolor and reorder severity levels.                                            |
 | **Incident Templates**   | Pre-fill a whole incident — title, description, resources, on-call policies, owners, labels. |
 | **Note Templates**       | Reusable text for public and private notes.                                                  |

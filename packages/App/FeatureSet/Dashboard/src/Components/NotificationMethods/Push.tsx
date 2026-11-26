@@ -23,6 +23,7 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Toast from "Common/UI/Utils/Toast";
 import UserPush from "Common/Models/DatabaseModels/UserPush";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, { ReactElement, useRef, useState } from "react";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -768,6 +769,15 @@ const Push: () => JSX.Element = (): ReactElement => {
           closeButtonText="Close"
           isLoading={isSendingTestNotification}
           error={testNotificationError || undefined}
+          /*
+           * What failed is the Send Test Notification the person pressed, as its
+           * button names it: the title names no action (#7680).
+           */
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Send Test Notification") ||
+              "Send Test Notification",
+          )}
           onClose={() => {
             setRegisteredBrowser(null);
             setTestNotificationError("");

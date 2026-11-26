@@ -259,6 +259,41 @@ OneUptime 的 SSO 使用 SAML 2.0，可與任何相容的身分提供者搭配�
 6. 在為專案要求使用 SSO 之前，開啟 **SSO 登入連結** 卡片中的連結並選擇該提供者，透過它登入一次。
 :::
 
+## 身分提供者未驗證的電子郵件地址
+
+OpenID Connect 登入會依身分提供者傳送的電子郵件地址找到此人的 OneUptime 帳戶，也可能用這個地址建立帳戶。有些提供者允許使用者在自己的帳戶上填入地址，而不必證明這個地址屬於自己，並在標準的 `email_verified` 宣告中說明這一點。因此，對於提供者表示未驗證的地址，OneUptime 不會讓任何人用它登入：否則，有人可以在自己的帳戶上填入別人的地址，以對方的身分登入。
+
+| `email_verified` | 登入 |
+| --- | --- |
+| `true`，或 `"true"` 和 `1` | 繼續 |
+| 未傳送，如 Microsoft Entra ID 和 AD FS | 繼續 |
+| `false`，或 `"false"` 和 `0` | 遭拒絕 |
+| 其他任何值，例如 `"yes"` | 遭拒絕：OneUptime 無法判斷 |
+
+- 這條規則適用於每個帳戶，無論是在網頁上還是在行動應用程式中：既有的帳戶（包括管理員的帳戶），以及登入原本會建立的帳戶。遭拒絕的登入不會建立帳戶，不會把任何人加入團隊，不會接受邀請，也不會傳送電子郵件。
+- OneUptime 從地址的來源讀取 `email_verified`，也就是 ID 權杖或 userinfo 端點，而且只在地址是 `email` 宣告時才讀取。設定為在其他宣告中傳送地址的提供者，例如 `preferred_username` 或 `upn`，會像以前一樣讓人登入，因此請使用使用者無法自行變更的宣告。
+- 此人會看到 "Your identity provider did not confirm your email address."，並被要求在您的身分提供者處驗證地址，或請您在那裡將其標示為已驗證，然後重新登入。行動應用程式會顯示 `provider_email_not_verified` 以及同樣的建議。當某個帳戶使用該地址時，其所屬專案的稽核日誌會把這次嘗試記錄為一次登入失敗。
+- SAML 提供者不讀取 `email_verified`，狀態頁面、儀表板和表單的 OpenID Connect 提供者也不讀取，它們讓人以各自的私人使用者身分登入。
+
+會驗證所傳送地址的提供者，例如 Google 和 Okta，會像以前一樣讓人登入。authentik 和 Keycloak 可能需要修改：
+
+:::tabs
+@tab authentik
+authentik 2025.10 及更新版本使用預設的 `email` 範圍對應時，會為所有人把 `email_verified` 傳送為 `false`，因此在您替換該對應之前，沒有人能透過它登入，做法請見 authentik 的指南 [Verify email addresses](https://docs.goauthentik.io/add-secure-apps/providers/oauth2/verify-email-address/)：
+
+1. 在 **Customization** > **Property Mappings** 中按一下 **New Property Mapping**，選擇 **Scope Mapping**，然後按一下 **Next**。
+2. 為對應命名，將 **Scope name** 設為 `email`，輸入指南中與您的使用者地址驗證方式相符的 **Expression**，然後按一下 **Finish**。
+3. 開啟應用程式的提供者，在 **Scopes** 中用您的對應取代預設的 `email` 對應，然後儲存提供者。
+
+只要使用者能在 authentik 中自行變更地址，就不要為每個地址都傳送 `true`：這樣的對應會為任何人填在自己帳戶上的任何地址作保。2025.10 之前的版本會為每個地址傳送 `true`，因此不要讓使用者在其中自行變更地址。
+@tab Keycloak
+對於地址未經驗證的人，Keycloak 會把 `email_verified` 傳送為 `false`：管理員在 **Email verified** 關閉時建立的人，以及在 **Verify email** 關閉期間註冊或變更了地址的人。
+
+- 若要讓他們驗證地址，請在 **Realm settings** > **Login** > **Email settings** 中開啟 **Verify email**。之後 Keycloak 會在每個人下次登入時要求其透過電子郵件驗證地址，因此該 realm 需要設定好郵件伺服器。
+- 若要親自為某個人的地址作保，請在 Keycloak 中此人的頁面上開啟 **Email verified**，然後按一下 **Save**。
+- 對於來自 LDAP 或 Active Directory 的人，請在 **User federation** 中該提供者的 **Advanced settings** 裡開啟 **Trust Email**。之後 Keycloak 會在匯入某人時把其地址標示為已驗證：對於之前已匯入的人，請開啟 **Email verified**。
+:::
+
 ## 同時登出身分提供者
 
 登出 OneUptime 後，使用者在身分提供者那裡仍保持登入。因此在共用電腦上，例如 NOC 螢幕或資訊站，下一個在登入頁面選擇該提供者的人，會以離開的那個人的身分進入。在 SAML 或 OIDC 提供者的 **更多欄位** 下開啟 **同時登出身分提供者**，即可在有人登出 OneUptime 時，也結束其在提供者那裡的工作階段。此設定預設為關閉：在個人筆電上，它也會讓使用者登出所有使用該提供者的其他應用程式。它適用於開啟後在瀏覽器中登入的人；行動應用程式只登出 OneUptime。
@@ -456,6 +491,10 @@ IdP 斷言中的簽發者不是提供者的 **簽發者**。請從 IdP 重新複
 
 :::details "This account is linked to someone else."
 Microsoft Entra ID 以某個帳戶的電子郵件地址讓某人登入，而該帳戶已透過此提供者連結到另一個物件 ID：現在 Entra ID 中是另一個人持有這個地址，或此人的 Entra ID 帳戶曾被重新建立。OneUptime 會拒絕這次登入，這樣之後持有該地址的人就無法使用這個帳戶。如果帳戶確實屬於此人，請將其從專案中移除後再重新加入：其下一次登入會把帳戶連結到新的物件 ID。
+:::
+
+:::details "Your identity provider did not confirm your email address."
+您的 OpenID Connect 提供者把 `email_verified` 傳送為 `false`，或既不是 true 也不是 false 的值，因此 OneUptime 沒有讓任何人登入。請在您的身分提供者處驗證該地址，或在那裡將其標示為已驗證，然後重新登入。[身分提供者未驗證的電子郵件地址](#身分提供者未驗證的電子郵件地址) 說明了在 authentik 和 Keycloak 中要修改什麼。
 :::
 
 :::details 登入因簽章或憑證錯誤而失敗

@@ -299,6 +299,8 @@ describe("POST /cloud-connection/test", () => {
           dataSecurityResponse: "off",
           // Nor is the blocklist kept in AWS WAF (#10344).
           wafBlocklist: "off",
+          // Nor does a security case read its IAM changes back (#10900).
+          securityCaseChecks: "off",
           authMethod: CloudConnectionAuthMethod.AwsAccessKey,
         },
         secrets: { secretAccessKey: NEW_SECRET },

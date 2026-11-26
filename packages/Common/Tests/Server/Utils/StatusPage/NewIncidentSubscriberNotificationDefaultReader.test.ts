@@ -238,7 +238,7 @@ describe("NewIncidentSubscriberNotificationDefaultReader.applyToIncidentDeclared
  * Declare Incident forms write their answer through). A monitor's, a
  * workflow's, the API's or a public form's incidents keep their own value,
  * so no other server file calls it - and the Dashboard's form starts its box
- * from the same rule (useNewIncidentNotifyDefault), so the server never
+ * from the same rule (useDeclareIncidentDefaults), so the server never
  * second-guesses it.
  */
 describe("who asks", () => {

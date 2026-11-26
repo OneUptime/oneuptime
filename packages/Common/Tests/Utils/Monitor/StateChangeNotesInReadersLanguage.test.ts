@@ -1518,13 +1518,14 @@ describe("the server still writes each note as it is read (#9959)", () => {
       "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueAlerts.ts",
       "`Resolved by Data Security, as the issue it was raised for is no longer open: ${issue.why}.`",
     ],
+    // Each why by the resolution it is written for (RESOLVED_WHY).
     [
       "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts",
-      '? "its check no longer runs on the store"',
+      '[DataSecurityIssueResolution.NoLongerChecked]:\n    "its check no longer runs on the store"',
     ],
     [
       "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts",
-      ': "its check passes now"',
+      '[DataSecurityIssueResolution.CheckPassed]: "its check passes now"',
     ],
     [
       "packages/Common/Server/Utils/DataSecurity/DataSecurityIssueReconciler.ts",

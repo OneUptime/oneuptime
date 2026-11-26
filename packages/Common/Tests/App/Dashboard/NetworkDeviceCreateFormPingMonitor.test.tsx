@@ -619,7 +619,14 @@ describe("the create form's Create a Ping monitor opt-in", () => {
       expect(
         createCall.model.monitorSteps?.data?.monitorStepsInstanceArray[0]?.data?.monitorDestination?.toString(),
       ).toBe("10.0.0.7");
-      expect(createCall.miscDataProps).toEqual({ probes: ["probe-1"] });
+      /*
+       * "Ping lobby-ap-01" is a name OneUptime picked: numbered, not refused,
+       * where the project requires unique names (#10761).
+       */
+      expect(createCall.miscDataProps).toEqual({
+        probes: ["probe-1"],
+        numbersTakenName: true,
+      });
 
       expect(modelApiUpdateById).toHaveBeenCalledTimes(1);
       const bind: { id: ObjectID; data: Record<string, unknown> } =
@@ -653,7 +660,7 @@ describe("the create form's Create a Ping monitor opt-in", () => {
         modelApiCreate.mock.calls[0]![0] as {
           miscDataProps: Record<string, unknown>;
         };
-      expect(createCall.miscDataProps).toEqual({});
+      expect(createCall.miscDataProps).toEqual({ numbersTakenName: true });
     });
 
     test("accepts a probe selection that arrives as options rather than ids", async () => {
@@ -672,7 +679,10 @@ describe("the create form's Create a Ping monitor opt-in", () => {
         modelApiCreate.mock.calls[0]![0] as {
           miscDataProps: Record<string, unknown>;
         };
-      expect(createCall.miscDataProps).toEqual({ probes: ["probe-1"] });
+      expect(createCall.miscDataProps).toEqual({
+        probes: ["probe-1"],
+        numbersTakenName: true,
+      });
     });
 
     /*

@@ -7435,15 +7435,20 @@ class DatabaseService<TBaseModel extends BaseModel> extends BaseService {
     try {
       return await this._create(createBy, handedBack);
     } catch (error) {
-      // The name a refused or failed create held is free again.
-      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
-
       await this.onCreateError(
         error as Exception,
         handedBack.onCreate,
         handedBack.progress.getFailedStatement(),
       );
       throw this.getException(error as Exception);
+    } finally {
+      /*
+       * The name a refused or failed create held is free again, however
+       * the create ended: after onCreateError has been told, and even when
+       * it throws. A create that wrote its row gave the name back then
+       * (_create), so it has none left to give.
+       */
+      await this.giveBackUniqueNameOfCreate(handedBack, createBy.props);
     }
   }
 

@@ -265,6 +265,8 @@ describe("an empty view state lands each explorer on its defaults", () => {
       "setPageSize(",
       "setSearchValue(",
       "setSort(",
+      // Split by a scrub rule (#11026): off unless the view says so.
+      "setSplitByScrubRule(",
       "setStatus(",
       "setSubmittedSearch(",
       "setTimeRange(",

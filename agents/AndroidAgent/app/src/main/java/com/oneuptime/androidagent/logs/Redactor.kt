@@ -298,8 +298,20 @@ object Redactor {
      * typed with a few Arabic-Indic digits among its own (the two share most
      * of their shapes), or "４１１１ 1111 1111 1111". Looked for second, such a
      * number cannot take the place of a card in one script's digits.
+     *
+     * Most texts hold digits of one script alone, and in those, whether
+     * scripts may mix changes nothing: such a text, with no card taken out
+     * the first time, would be read the second time as it was and give up
+     * nothing more, so it is not read again. Read again, each place a card
+     * may start in a long line of numbers was looked at twice.
      */
-    internal fun redactCards(text: String): String = redactCards(redactCards(text, mixed = false), mixed = true)
+    internal fun redactCards(text: String): String {
+        val inOneScript: String = redactCards(text, mixed = false)
+        if (inOneScript === text && hasDigitsOfOneScript(text)) {
+            return text
+        }
+        return redactCards(inOneScript, mixed = true)
+    }
 
     /*
      * At each place a card may start (CARD_START), the longest card from
@@ -405,6 +417,22 @@ object Redactor {
     private fun zeroOf(char: Char): Int {
         val value: Int = Character.digit(char, 10)
         return if (value < 0) -1 else char.code - value
+    }
+
+    // Whether every digit in the text that zeroOf reads is of one script: an ASCII text's, a Persian one's.
+    private fun hasDigitsOfOneScript(text: String): Boolean {
+        var zero: Int = -1
+        for (char in text) {
+            val charZero: Int = if (char in '0'..'9') '0'.code else if (char.code < 0x80) -1 else zeroOf(char)
+            if (charZero < 0) {
+                continue
+            }
+            if (zero >= 0 && charZero != zero) {
+                return false
+            }
+            zero = charZero
+        }
+        return true
     }
 
     /*

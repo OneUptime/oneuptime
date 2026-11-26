@@ -25,6 +25,11 @@ import {
   getDatabaseMetricByMetricType,
 } from "../../../../Types/Monitor/DatabaseMetricCatalog";
 import MonitorMetricType from "../../../../Types/Monitor/MonitorMetricType";
+import {
+  DNS_ANSWER_METRIC_NAME,
+  DNS_ANSWER_TEXT_ATTRIBUTE,
+} from "../../../../Types/Monitor/DnsMonitor/DnsAnswer";
+import { DnsAnswerReading } from "../DnsAnswerFingerprint";
 import { MonitorStepSeriesScope } from "../../../../Types/Monitor/MonitorStepSeries";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -69,6 +74,12 @@ import MonitorMetricTypeUtil from "../../../../Utils/Monitor/MonitorMetricType";
  * the previous one did not. "Is Online is False" matches on the check a
  * device went down on; "Is Online is True" on the one it came back on.
  *
+ * A DNS answer (#10905) is a set of records, read as one: its fingerprint,
+ * written by each check that got an answer (DnsAnswer), is compared with the
+ * previous check's. Not Equal To matches the check whose answer changed,
+ * Equal To one whose answer did not; a check that got no answer is not
+ * compared.
+ *
  * NO PREVIOUS CHECK
  *
  * The window is how long ago the previous check may be. With none in it -
@@ -96,6 +107,11 @@ export interface PreviousCheckSource {
    * Null for a measured value, whose previous value makes the threshold.
    */
   condition: MonitorCheckCondition | null;
+  /*
+   * The attribute that says, in words, what a row's value stands for, read
+   * with it: a DNS answer beside its fingerprint (#10905).
+   */
+  textAttributeKey?: string | undefined;
 }
 
 const PROBE_ID_ATTRIBUTE: string = "probeId";
@@ -126,6 +142,25 @@ export default class PreviousCheckComparison {
      */
     stepScope?: MonitorStepSeriesScope | undefined;
   }): PreviousCheckSource | null {
+    /*
+     * A DNS answer (#10905): the fingerprint each check that got an answer
+     * writes, of the probe and the step, read with the answer itself.
+     */
+    if (
+      CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+        data.criteriaFilter.checkOn,
+      )
+    ) {
+      return {
+        metricName: DNS_ANSWER_METRIC_NAME,
+        attributes: CheckWindowCounts.getSeriesAttributes(data.stepScope),
+        groupByAttributeKeys: [PROBE_ID_ATTRIBUTE],
+        isMatchHistory: false,
+        condition: null,
+        textAttributeKey: DNS_ANSWER_TEXT_ATTRIBUTE,
+      };
+    }
+
     if (
       CriteriaFilterUtil.isJudgedCheckByCheck(
         data.criteriaFilter.checkOn,
@@ -200,6 +235,11 @@ export default class PreviousCheckComparison {
      */
     diskPaths?: Array<string> | undefined;
     reads?: PreviousCheckReads | undefined;
+    /*
+     * This check's DNS answer (DnsAnswerFingerprint.read), for a DNS Record
+     * Value compared with the previous check: null when it got none.
+     */
+    dnsAnswer?: DnsAnswerReading | null | undefined;
     // Whether this check meets the filter, judged on it alone.
     isMetOnThisCheck: () => Promise<boolean>;
     /*
@@ -295,25 +335,36 @@ export default class PreviousCheckComparison {
         }),
       );
 
-      const judgement: CheckWindowJudgement = source.condition
-        ? await PreviousCheckComparison.judgeYesOrNo({
-            criteriaFilter: data.criteriaFilter,
-            label: label,
-            condition: source.condition,
-            previous: previous,
-            checkWrittenAt: before,
-            windowInMinutes: windowInMinutes,
-            isMetOnThisCheck: data.isMetOnThisCheck,
-          })
-        : await PreviousCheckComparison.judgeValue({
-            criteriaFilter: data.criteriaFilter,
-            label: label,
-            previous: previous,
-            checkWrittenAt: before,
-            windowInMinutes: windowInMinutes,
-            diskPath: isPerDisk ? diskPath : undefined,
-            judgeThisCheck: data.judgeThisCheck,
-          });
+      const judgement: CheckWindowJudgement =
+        CriteriaFilterUtil.isComparedOnlyWithPreviousCheck(
+          data.criteriaFilter.checkOn,
+        )
+          ? await PreviousCheckComparison.judgeAnswer({
+              criteriaFilter: data.criteriaFilter,
+              previous: previous,
+              thisCheck: data.dnsAnswer,
+              checkWrittenAt: before,
+              windowInMinutes: windowInMinutes,
+            })
+          : source.condition
+            ? await PreviousCheckComparison.judgeYesOrNo({
+                criteriaFilter: data.criteriaFilter,
+                label: label,
+                condition: source.condition,
+                previous: previous,
+                checkWrittenAt: before,
+                windowInMinutes: windowInMinutes,
+                isMetOnThisCheck: data.isMetOnThisCheck,
+              })
+            : await PreviousCheckComparison.judgeValue({
+                criteriaFilter: data.criteriaFilter,
+                label: label,
+                previous: previous,
+                checkWrittenAt: before,
+                windowInMinutes: windowInMinutes,
+                diskPath: isPerDisk ? diskPath : undefined,
+                judgeThisCheck: data.judgeThisCheck,
+              });
 
       const named: CheckWindowJudgement =
         isPerDisk && diskPaths.length > 1 && diskPath
@@ -338,6 +389,79 @@ export default class PreviousCheckComparison {
         message: `${label} has no disk to compare with its previous check.`,
       }
     );
+  }
+
+  /*
+   * A DNS answer against the previous check's (#10905): Not Equal To is met
+   * when the answer changed - its records, as a set - and Equal To when it did
+   * not. Compared by fingerprint, and said with both answers in words.
+   */
+  private static async judgeAnswer(data: {
+    criteriaFilter: CriteriaFilter;
+    previous: MonitorPreviousCheckRow | undefined;
+    thisCheck: DnsAnswerReading | null | undefined;
+    checkWrittenAt: Date;
+    windowInMinutes: number;
+  }): Promise<CheckWindowJudgement> {
+    const filterType: FilterType | undefined = data.criteriaFilter.filterType;
+
+    if (
+      filterType !== FilterType.EqualTo &&
+      filterType !== FilterType.NotEqualTo
+    ) {
+      return {
+        rootCause: null,
+        message: `DNS Record Value compares the whole DNS answer with the previous check's, with Equal To or Not Equal To, and ${filterType || "no condition"} is neither, so it was not judged.`,
+      };
+    }
+
+    // A check with no answer is not compared: DNS Is Online says it failed.
+    if (!data.thisCheck) {
+      return {
+        rootCause: null,
+        message:
+          "This check got no DNS answer, so it was not compared with the previous one.",
+      };
+    }
+
+    const asksForChange: boolean = filterType === FilterType.NotEqualTo;
+    const thisAnswer: string = data.thisCheck.text;
+
+    if (!data.previous) {
+      const windowName: string = CheckWindowCounts.describeWindow(
+        data.windowInMinutes,
+      );
+
+      return PreviousCheckComparison.applyNoDataPolicy({
+        criteriaFilter: data.criteriaFilter,
+        waitingMessage: `The DNS answer has no previous check in the last ${windowName} to be compared with. This check's answer: ${thisAnswer}.`,
+        triggeredMessage: `The DNS answer has no previous check in the last ${windowName}, and its If No Data setting is Trigger. This check's answer: ${thisAnswer}.`,
+        judgeAsZero: async (): Promise<CheckWindowJudgement> => {
+          // No previous answer is an answer this one is not.
+          const message: string = `The DNS answer has no previous check in the last ${windowName}, which its If No Data setting (Treat As Zero) reads as a different answer. This check's answer: ${thisAnswer}.`;
+
+          return asksForChange
+            ? { rootCause: message, message: message }
+            : { rootCause: null, message: message };
+        },
+      });
+    }
+
+    const ago: string = PreviousCheckComparison.describeAgo(
+      data.checkWrittenAt.getTime() - data.previous.at.getTime(),
+    );
+    const hasChanged: boolean =
+      data.previous.value !== data.thisCheck.fingerprint;
+
+    const message: string = hasChanged
+      ? `The DNS answer is different from the previous check, ${ago}: it was ${
+          data.previous.text || "another answer"
+        }, and is now ${thisAnswer}.`
+      : `The DNS answer is the same as on the previous check, ${ago}: ${thisAnswer}.`;
+
+    return hasChanged === asksForChange
+      ? { rootCause: message, message: message }
+      : { rootCause: null, message: message };
   }
 
   /*
@@ -804,6 +928,7 @@ export class PreviousCheckReads {
       data.source.metricName,
       data.source.attributes,
       data.source.groupByAttributeKeys,
+      data.source.textAttributeKey || "",
       data.windowStart.getTime(),
       data.before.getTime(),
     ]);
@@ -820,6 +945,7 @@ export class PreviousCheckReads {
         before: data.before,
         attributes: data.source.attributes,
         groupByAttributeKeys: data.source.groupByAttributeKeys,
+        textAttributeKey: data.source.textAttributeKey,
       }).then((rows: Array<MonitorPreviousCheckRow>) => {
         const groups: Map<string, MonitorPreviousCheckRow> = new Map<
           string,

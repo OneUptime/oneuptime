@@ -158,6 +158,18 @@ const EXPECTED_INDEXES: ReadonlyArray<{
       '(("disableActiveMonitoring" = true) AND ("isArchived" = false) AND ("deletedAt" IS NULL))',
     isUnique: false,
   },
+  /*
+   * The project and the name as it reads, which a project that requires
+   * unique names looks a monitor's name up by (#10761:
+   * IDX_MONITOR_PROJECT_NAME_KEY, built online by AddUniqueNameIndexes
+   * 1809187640010). Its second key is an expression, which the columns read
+   * here leave out.
+   */
+  {
+    columns: "projectId",
+    predicate: '("deletedAt" IS NULL)',
+    isUnique: false,
+  },
 ];
 
 // The columns the busiest writes move, row after row.

@@ -19,9 +19,9 @@ flowchart TB
     page -->|提交| checks["保護措施和答案檢查"]
     checks --> submission["與表單一起<br/>保存的提交"]
     submission --> target{"每次提交建立"}
-    target -->|事件| incident["事件<br/>（在狀態頁面上隱藏）"]
+    target -->|事件| incident["事件<br/>（在狀態頁面<br/>上隱藏）"]
     target -->|警示| alert["警示<br/>（由其擁有者查看）"]
-    target -->|排定維護| event["維護事件<br/>（除非另行設定，否則隱藏）"]
+    target -->|排定維護| event["維護事件<br/>（除非另行設定，<br/>否則隱藏）"]
     incident --> response["待命策略和<br/>規則開始執行"]
     alert --> response
     incident --> note["私人備註：提交者<br/>和其他答案"]

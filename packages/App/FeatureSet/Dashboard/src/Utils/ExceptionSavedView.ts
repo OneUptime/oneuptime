@@ -21,10 +21,10 @@ import {
  * A saved view is the list as someone left it: its search, filters and
  * window, as the other explorers save theirs (TelemetrySavedViewState), and
  * what only the exceptions list has - its status, what counts as an issue,
- * Assigned to me and its order. Saved views belong to the project
- * (ExceptionSavedView): everyone in it sees them, and the address bar names
- * the one picked (`savedView=`), so a link opens it, as in the traces
- * explorer.
+ * Assigned to me, Split by a scrub rule and its order. Saved views belong
+ * to the project (ExceptionSavedView): everyone in it sees them, and the
+ * address bar names the one picked (`savedView=`), so a link opens it, as
+ * in the traces explorer.
  *
  * Applying a view sets everything it says, and the list's own defaults for
  * what it does not: a view saved before a field existed, or the empty state
@@ -62,6 +62,8 @@ export interface ExceptionsListViewState {
   status: ExceptionsSavedViewStatus;
   classScope: ExceptionsSavedViewClassScope;
   assignedToMe: boolean;
+  // Only the exceptions a scrub rule split (ExceptionSplitPairs, #11026).
+  splitByScrubRule: boolean;
   sort: ExceptionListSort;
 }
 
@@ -88,6 +90,7 @@ export function captureExceptionsSavedViewState(
     exceptionStatus: state.status,
     exceptionClassScope: state.classScope,
     exceptionAssignedToMe: state.assignedToMe,
+    exceptionSplitByScrubRule: state.splitByScrubRule,
     exceptionSort: state.sort,
   };
 }
@@ -126,6 +129,8 @@ export function readExceptionsSavedViewState(
       readOne(state.exceptionClassScope, CLASS_SCOPE_VALUES) ||
       defaults.classScope,
     assignedToMe: state.exceptionAssignedToMe === true,
+    // A view saved before the filter existed opens with it off.
+    splitByScrubRule: state.exceptionSplitByScrubRule === true,
     sort:
       typeof state.exceptionSort === "string"
         ? readExceptionListSort(state.exceptionSort)
@@ -138,10 +143,11 @@ export function readExceptionsSavedViewState(
  * address bar is the more recent statement, the view as it was changed
  * after it was picked. Only what the link spelled out, as the other
  * explorers do (buildUrlScopeOverrides) - the window only when the link
- * named one, and the status, what counts as an issue, Assigned to me and
- * the order only when the link set them off the list's defaults, which is
- * when the list writes them. A link that names a view and nothing else
- * opens it as saved. Undefined when the link spelled out nothing.
+ * named one, and the status, what counts as an issue, Assigned to me, Split
+ * by a scrub rule and the order only when the link set them off the list's
+ * defaults, which is when the list writes them. A link that names a view
+ * and nothing else opens it as saved. Undefined when the link spelled out
+ * nothing.
  */
 export function buildExceptionsUrlScopeOverrides(input: {
   search: string;
@@ -151,6 +157,7 @@ export function buildExceptionsUrlScopeOverrides(input: {
   status: ExceptionsSavedViewStatus | null;
   classScope: ExceptionsSavedViewClassScope | null;
   assignedToMe: boolean;
+  splitByScrubRule: boolean;
   sort: ExceptionListSort;
 }): Partial<TelemetrySavedViewState> | undefined {
   const overrides: Partial<TelemetrySavedViewState> =
@@ -172,6 +179,10 @@ export function buildExceptionsUrlScopeOverrides(input: {
 
   if (input.assignedToMe) {
     overrides.exceptionAssignedToMe = true;
+  }
+
+  if (input.splitByScrubRule) {
+    overrides.exceptionSplitByScrubRule = true;
   }
 
   if (input.sort !== DEFAULT_EXCEPTION_LIST_SORT) {

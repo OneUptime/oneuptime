@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-En innstilling som noen legger til i OneUptime i trinnene til en monitor, og som konfigurasjonen din ikke skriver, er derimot en forskjell: den neste planen viser at `monitor_steps` endres, og applyen som følger fjerner innstillingen, slik planen sier. Skriv den også i konfigurasjonen din for å beholde den.
+En innstilling som noen legger til i OneUptime i trinnene til en monitor, og som konfigurasjonen din ikke skriver, er derimot en forskjell: den neste planen viser at `monitor_steps` endres, og applyen som følger fjerner innstillingen, slik planen sier. Skriv den også i konfigurasjonen din for å beholde den. En innstilling som provideren ikke har noe attributt for, og en nøkkel som OneUptime har inne i en innstilling du skriver med `jsonencode()`, er ingen forskjell, og en apply beholder dem: se [Monitortrinn](/docs/terraform/monitor-steps).
 
 ## Etiketter og andre lister som OneUptime også legger til i
 

@@ -123,11 +123,16 @@ export const SUBSCRIPTION_COLUMNS: Array<SubscriptionColumn> = [
 
 /*
  * Finds `(p."<column>" IS NULL OR p."<column>" = ANY($n::text[]))` in the
- * statement, asserts it appears exactly once, and returns the bound array.
+ * statement, asserts it appears `occurrences` times (once unless said) and
+ * always binds the same parameter - one list, never a second one written
+ * in - and returns the bound array. The monitor claim has it twice since
+ * #10819: in the rows it claims, and in its check for the rows it stepped
+ * over.
  */
 export function getBoundStatusList(
   statement: CapturedStatement,
   column: SubscriptionColumn,
+  occurrences: number = 1,
 ): Array<string> {
   const sql: string = normalizeSql(statement.sql);
   const quotedColumn: string = escapeRegExp(`p."${column}"`);
@@ -139,7 +144,14 @@ export function getBoundStatusList(
 
   const matches: Array<RegExpMatchArray> = [...sql.matchAll(pattern)];
 
-  expect(matches).toHaveLength(1);
+  expect(matches).toHaveLength(occurrences);
+  expect(
+    new Set(
+      matches.map((match: RegExpMatchArray): string => {
+        return match[1]!;
+      }),
+    ).size,
+  ).toBe(1);
 
   const parameterIndex: number = Number(matches[0]![1]) - 1;
 
@@ -163,11 +175,13 @@ export function claimAdmitsProject(
     paymentProviderSubscriptionStatus: string | null;
     paymentProviderMeteredSubscriptionStatus: string | null;
   },
+  occurrences: number = 1,
 ): boolean {
   return SUBSCRIPTION_COLUMNS.every((column: SubscriptionColumn) => {
     const value: string | null = project[column];
     return (
-      value === null || getBoundStatusList(statement, column).includes(value)
+      value === null ||
+      getBoundStatusList(statement, column, occurrences).includes(value)
     );
   });
 }

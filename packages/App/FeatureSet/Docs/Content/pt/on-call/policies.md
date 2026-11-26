@@ -87,6 +87,16 @@ Os minutos contam a partir de cada confirmação, e uma política aciona de novo
 
 Quem é acionado de novo confirma pela mensagem, ou com **Confirmar de novo** na página do incidente ou alerta, e os minutos recomeçam; **Escalonar** passa o acionamento para o próximo nível. Resolver ou excluir o incidente ou alerta, arquivar ou excluir a política, ou escolher **Não acionar de novo** o encerra. A linha **Depois de uma confirmação** do cartão diz o que a política faz, e **Mais configurações** mostra os minutos enquanto está recolhido. **Política em resumo** na **Visão geral** e **Resumo do escalonamento** dizem o mesmo em palavras.
 
+## Dar uma função no incidente às pessoas acionadas
+
+As **Funções de incidente** de um incidente dizem quem trabalha nele. Uma política pode listar ali as pessoas que aciona: abra a página **Regras de escalonamento** dela, abra **Mais configurações** no fim e clique em **Editar** no cartão **Função no incidente**. **Editar função no incidente** pede uma **Função**: uma das funções de incidente do seu projeto, ou **Nenhuma função**, com que toda política começa.
+
+Todas as pessoas que a política acionar depois sobre um incidente ou um episódio de incidentes recebem essa função nele, em todos os níveis e sempre que aciona de novo, desde que sejam membros do projeto. Quem ela aciona como observador não recebe. Quem já tem a função a mantém como está, e uma função que aceita uma só pessoa, como **Comandante do incidente**, vai para a primeira pessoa acionada enquanto ninguém a tiver. O feed do incidente nomeia a política que a adicionou, e ela não recebe nenhuma mensagem à parte sobre a função: o acionamento já a informou do incidente.
+
+É assim que a pessoa de plantão da equipe dona de um serviço aparece nos incidentes dele. Crie uma função como "Responsável pelo serviço" em **Incidentes → Configurações → Funções de incidente**, escolha-a na política que aciona a equipe de pagamentos e faça os monitores de pagamentos executarem essa política, pelos critérios deles ou por uma regra de plantão. Quem estiver de plantão para pagamentos aparece então como "Responsável pelo serviço" do incidente, e quem mudar o estado dele primeiro, ao confirmá-lo, continua se tornando o **Comandante do incidente**, mesmo que uma política tenha lhe dado outra função ao acioná-lo.
+
+A linha **Função das pessoas acionadas** do cartão diz qual função a política dá, e **Mais configurações** a nomeia enquanto está recolhido. Arquivar a função não impede a política de dá-la, e a caixa de diálogo de arquivamento da função conta a política entre o que a usa: escolha **Nenhuma função** para parar. Excluir a função faz a política voltar a **Nenhuma função**.
+
 ## Quando várias políticas acionam
 
 Um incidente, alerta ou episódio executa cada uma das suas políticas por conta própria, ao mesmo tempo.
@@ -176,11 +186,14 @@ As políticas de plantão são o recurso `/api/on-call-duty-policy`, e o recurso
 | **Se ninguém confirmar depois do último nível** | `repeatPolicyIfNoOneAcknowledges` |
 | **Quantas vezes mais?** | `repeatPolicyIfNoOneAcknowledgesNoOfTimes` |
 | **Depois de quantos minutos?** | `acknowledgementTimeoutInMinutes` |
+| **Função** | `incidentRoleId` |
 | Arquivada | `isArchived` |
 
 `repeatPolicyIfNoOneAcknowledges` é `false` para **Parar de acionar** e `true` para **Recomeçar a partir do Level 1**. Com `true`, `repeatPolicyIfNoOneAcknowledgesNoOfTimes` precisa ser um número inteiro de 1 ou mais: o OneUptime recusa `0`. Uma política mais antiga salva com `0` nunca se repete, e o painel a mostra como **Parar de acionar**.
 
 `acknowledgementTimeoutInMinutes` é `null` para **Não acionar de novo**, e um número inteiro de minutos de 5 a 1440 para **Acionar de novo**. O OneUptime recusa qualquer outro valor.
+
+`incidentRoleId` é o ID de uma das funções de incidente do projeto, ou `null` para **Nenhuma função**.
 
 Para criar uma política com seu primeiro nível em uma única requisição, veja [Criar regras com a API ou o Terraform](/docs/on-call/escalation-rules#criar-regras-com-a-api-ou-o-terraform).
 

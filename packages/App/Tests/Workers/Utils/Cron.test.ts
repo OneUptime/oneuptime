@@ -123,7 +123,9 @@ jest.mock("Common/Server/Utils/Logger", () => {
 import Queue from "Common/Server/Infrastructure/Queue";
 import Semaphore from "Common/Server/Infrastructure/Semaphore";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
-import JobDeadline from "Common/Server/Utils/JobDeadline";
+import JobDeadline, {
+  JOB_DEADLINE_GRACE_MS,
+} from "Common/Server/Utils/JobDeadline";
 import TimeoutException from "Common/Types/Exception/TimeoutException";
 import RunCron, {
   buildCronJobFunction,
@@ -272,7 +274,7 @@ describe("a run of a scheduled job", () => {
     expect(runFunction).toHaveBeenCalledTimes(2);
   });
 
-  test("hands the run its deadline, which passes at the time limit and stops its loop", async () => {
+  test("hands the run its deadline, which passes at the time limit and stops its loop, and records the run as finished", async () => {
     let pages: number = 0;
     let stoppedBecause: Error | null = null;
     let seen: JobDeadline | null = null;
@@ -299,17 +301,18 @@ describe("a run of a scheduled job", () => {
     });
 
     const run: Promise<void> = runAsQueueJob(job);
-    const failed: Promise<void> =
-      expect(run).rejects.toBeInstanceOf(TimeoutException);
 
     await settle();
     expect(seen!.endsAt?.getTime()).toBe(startedAt + FIVE_MINUTES);
 
-    await advance(FIVE_MINUTES);
-    await failed;
-
     // The page in flight at the limit finishes, and the loop stops there.
-    await advance(60 * 1000);
+    await advance(FIVE_MINUTES);
+
+    /*
+     * It stopped at its deadline, as it was asked to: the run is not failed
+     * for it (#11017). The next run carries on with what it did not reach.
+     */
+    await expect(run).resolves.toBeUndefined();
     expect(pages).toBe(5);
     expect(stoppedBecause).toBeInstanceOf(TimeoutException);
 
@@ -317,6 +320,47 @@ describe("a run of a scheduled job", () => {
     expect(mockLeases.size).toBe(0);
     await advance(10 * 60 * 1000);
     expect(pages).toBe(5);
+  });
+
+  test("is failed when the page in flight at its limit outlasts the grace, and gives its lock back then", async () => {
+    let pages: number = 0;
+
+    const job: WorkerJobFunction = buildCronJobFunction({
+      jobName: JOB_NAME,
+      options: {},
+      runFunction: async (
+        deadline: JobDeadline = JobDeadline.none(),
+      ): Promise<void> => {
+        while (!deadline.hasPassed()) {
+          // A page every two minutes: the one in flight at 5:00 ends at 6:00.
+          await new Promise<void>((resolve: () => void) => {
+            setTimeout(resolve, 2 * 60 * 1000);
+          });
+          pages++;
+        }
+      },
+    });
+
+    const run: Promise<void> = runAsQueueJob(job);
+    let isSettled: boolean = false;
+    run.catch(() => {
+      isSettled = true;
+    });
+    const failed: Promise<void> =
+      expect(run).rejects.toBeInstanceOf(TimeoutException);
+
+    await advance(FIVE_MINUTES + CRON_LOCK_GRACE_MS - 1000);
+    expect(isSettled).toBe(false);
+    expect(mockLeases.size).toBe(1);
+
+    await advance(1000);
+    await failed;
+    // The run that ran over has given its lock back: the next may start.
+    expect(mockLeases.size).toBe(0);
+
+    // Its page in flight still finishes, and the loop stops there.
+    await advance(60 * 1000);
+    expect(pages).toBe(3);
   });
 
   test("gives the lock back after its time limit and the grace, though its work never ends", async () => {
@@ -334,6 +378,10 @@ describe("a run of a scheduled job", () => {
     });
 
     const hung: Promise<void> = runAsQueueJob(job);
+    let isFailed: boolean = false;
+    hung.catch(() => {
+      isFailed = true;
+    });
     const failed: Promise<void> =
       expect(hung).rejects.toBeInstanceOf(TimeoutException);
 
@@ -344,21 +392,26 @@ describe("a run of a scheduled job", () => {
         await runAsQueueJob(job);
       }
     }
-    await failed;
     expect(runFunction).toHaveBeenCalledTimes(1);
 
-    // Still held during the grace...
+    // Still held during the grace, and not failed yet...
     await advance(CRON_LOCK_GRACE_MS - 1000);
     await runAsQueueJob(job);
     expect(runFunction).toHaveBeenCalledTimes(1);
+    expect(isFailed).toBe(false);
 
-    // ...and given back at its end.
+    // ...and at its end the run is failed and its lock given back.
     await advance(1000);
+    await failed;
     await runAsQueueJob(job);
     expect(runFunction).toHaveBeenCalledTimes(2);
 
     hang.open();
     await settle();
+  });
+
+  test("gives the queue's grace to the lock too, so a run failed for running over holds no lock", () => {
+    expect(CRON_LOCK_GRACE_MS).toBe(JOB_DEADLINE_GRACE_MS);
   });
 
   test("whose worker died mid-run leaves a lease that lapses within one lease", async () => {

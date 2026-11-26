@@ -32,9 +32,10 @@ const StorageArrayViewLayout: FunctionComponent<
   >(undefined);
   /*
    * The array's platform decides which inventory pages the side menu
-   * offers: volumes, hosts, replication and directories on a FlashArray,
-   * file systems and buckets on a FlashBlade. Undefined until it loads, so
-   * the menu never flashes the other platform's pages.
+   * offers (its kinds): volumes, hosts, replication and directories on a
+   * FlashArray, file systems and buckets on a FlashBlade, a tab for each
+   * kind a platform has of its own. Undefined until it loads, so the menu
+   * never flashes another platform's pages.
    */
   const [storageSystem, setStorageSystem] = useState<string | undefined>(
     undefined,
@@ -89,6 +90,17 @@ const StorageArrayViewLayout: FunctionComponent<
           const v: unknown = summary[k];
           return typeof v === "number" ? v : 0;
         };
+        const byKind: Record<string, number> = {};
+        const countsByKind: unknown = summary["countsByKind"];
+        if (countsByKind && typeof countsByKind === "object") {
+          for (const [kind, count] of Object.entries(
+            countsByKind as Record<string, unknown>,
+          )) {
+            if (typeof count === "number") {
+              byKind[kind] = count;
+            }
+          }
+        }
 
         setResourceCounts({
           volumes: readNum("volumeCount"),
@@ -103,6 +115,7 @@ const StorageArrayViewLayout: FunctionComponent<
             readNum("controllerCount") +
             readNum("networkInterfaceCount"),
           unhealthyHardware: readNum("unhealthyHardwareCount"),
+          byKind: byKind,
         });
       } catch {
         // Counts are supplementary, don't fail the layout

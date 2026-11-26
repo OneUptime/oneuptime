@@ -123,6 +123,7 @@ import {
   INCIDENT_ALERT_IDS_TO_LINK_KEY,
   INCIDENT_CREATE_ALERT_IDS_QUERY_PARAM,
 } from "../../../Types/Incident/IncidentAlertLink";
+import { INCIDENT_DECLARED_BY_HAND_KEY } from "../../../Types/Incident/IncidentDeclaredByHandStart";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -195,6 +196,13 @@ async function miscDataSent(
   item.title = "Checkout is failing";
 
   await lastForm().onBeforeCreate(item, miscDataProps, { title: item.title });
+
+  /*
+   * Every declaration is sent as declared by hand (#11137): pinned here, and
+   * left out of what each test compares.
+   */
+  expect(miscDataProps[INCIDENT_DECLARED_BY_HAND_KEY]).toBe(true);
+  delete miscDataProps[INCIDENT_DECLARED_BY_HAND_KEY];
 
   return miscDataProps;
 }

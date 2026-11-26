@@ -78,7 +78,7 @@ flowchart TB
 
 - **Geen projecten gekoppeld (alle projecten / eerst uitnodigen):** gebruikers kunnen zich met de provider aanmelden en **elk project waar ze al lid van zijn** bereiken. Nieuwe gebruikers worden **niet** automatisch aangemaakt — een gebruiker moet eerst voor een project worden uitgenodigd. Gebruik dit voor bedrijfsbrede SSO als lidmaatschappen elders worden beheerd.
 
-- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Gekoppelde projecten** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en bij de eerste aanmelding toegevoegd aan de standaardteams. Een gekoppeld project begint met zijn ledenteam; kies andere teams als nieuwkomers met andere toegang moeten beginnen. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
+- **Projecten gekoppeld (auto-provisioning):** Open de provider en gebruik de tabel **Gekoppelde projecten** om een of meer projecten te koppelen, elk met een set standaardteams. Gebruikers die inloggen worden **automatisch geprovisioneerd** in die projecten en toegevoegd aan de standaardteams: nieuwkomers bij hun eerste aanmelding, en wie al een account heeft, zoals een account dat u met de hand hebt aangemaakt, bij de volgende. Een gekoppeld project begint met zijn ledenteam; kies andere teams als nieuwkomers met andere toegang moeten beginnen. Een gekoppeld project zonder teams voegt niemand toe. Voeg één project + teams tegelijk toe om de lijst op te bouwen; om een koppeling te wijzigen, verwijdert u deze en voegt u haar opnieuw toe.
 
 Wie al lid is van een gekoppeld project, houdt daar zijn teams.
 
@@ -89,7 +89,13 @@ Twee vragen op de provider veranderen dit, ingeklapt onder **Meer velden**. Elke
 | **Mensen zonder account** | **Krijgen er een bij hun eerste aanmelding**: ze worden lid van de gekoppelde projecten; is er geen gekoppeld, dan moeten ze eerst worden uitgenodigd. **Moeten eerst worden uitgenodigd**: mensen moeten voor een project zijn uitgenodigd voordat ze zich met deze provider kunnen aanmelden, ook als er projecten zijn gekoppeld. |
 | **Waar deze aanmelding als SSO telt** | **Elk project**: projecten die SSO vereisen, accepteren een aanmelding met deze provider. **Alleen gekoppelde projecten**: aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. |
 
-Met **Elk project** voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd.
+Met **Elk project** voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd: geen van beide antwoorden voegt iemand aan een project toe. Zolang er geen project met teams is gekoppeld, staat op de pagina van de provider onder **Mensen zonder account** dat nog niemand nieuw zich kan aanmelden.
+
+## E-mailadressen die uw identiteitsprovider niet heeft geverifieerd
+
+Een globale OpenID Connect-provider vindt het account dat hij aanmeldt aan de hand van het e-mailadres dat hij stuurt, net als de provider van een project, en de accounts van master-admins worden op dezelfde manier gevonden. Daarom meldt hij niemand aan met een adres waarvan de provider zegt dat hij het niet heeft geverifieerd, met een claim `email_verified` van `false` of van iets dat true noch false is. Anders kan iemand het adres van een master-admin op zijn account bij de provider zetten en zich als die persoon aanmelden bij de hele instantie. Een provider die `email_verified` als `true` stuurt, of helemaal niet, zoals Microsoft Entra ID, meldt mensen aan zoals voorheen.
+
+Via authentik 2025.10 en later meldt niemand zich aan tot u de scope-mapping voor `email` ervan wijzigt, en via Keycloak niemand van wie het het adres niet heeft geverifieerd. Wat u daar wijzigt, wat zich nog aanmeldt en wat de persoon ziet, staat op de pagina [SSO](/docs/identity/sso#e-mailadressen-die-uw-identiteitsprovider-niet-heeft-geverifieerd). Master-admins met een wachtwoord kunnen zich daar intussen mee aanmelden, op `/accounts/admin-login` zolang de hele instantie SSO verplicht.
 
 ## Ook afmelden bij de identiteitsprovider
 
@@ -160,7 +166,7 @@ Twee wijzigingen in wie zich kan aanmelden, worden na elkaar gecontroleerd. Word
 ## Problemen oplossen
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-De persoon heeft nog geen OneUptime-account en de provider maakt er geen aan: er zijn geen projecten aan gekoppeld, of **Mensen zonder account** staat op **Moeten eerst worden uitgenodigd**. Nodig de persoon uit voor een project of koppel een project aan de provider.
+De persoon heeft nog geen OneUptime-account en de provider maakt er geen aan: er is geen project met teams aan gekoppeld, of **Mensen zonder account** staat op **Moeten eerst worden uitgenodigd**. Nodig de persoon uit voor een project of koppel een project aan de provider, met de teams waar de persoon bij komt. Het log van de server zegt welke van de twee redenen het is, zonder de persoon te noemen.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"
@@ -183,6 +189,10 @@ Bij een SAML-provider is het antwoord voor een andere applicatie gemaakt: de aud
 Met elk antwoord van uw identiteitsprovider wordt maar één keer aangemeld, en alleen in de minuten nadat het is uitgegeven: daarna wordt het geweigerd met "SAML response has expired". Meld u opnieuw aan. Verlopen antwoorden steeds weer, controleer dan de klokken van deze server en van uw identiteitsprovider.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+De OpenID Connect-provider stuurde `email_verified` als `false`, of als iets dat true noch false is, dus OneUptime heeft niemand aangemeld, ook geen master-admin. Laat het adres verifiëren bij uw identiteitsprovider, of markeer het daar als geverifieerd, en meld u opnieuw aan. Zie [E-mailadressen die uw identiteitsprovider niet heeft geverifieerd](#e-mailadressen-die-uw-identiteitsprovider-niet-heeft-geverifieerd).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, een passkey, een gemailde link, Google of Microsoft, of een registratie. Meld u in plaats daarvan aan met een van de SSO-knoppen op de aanmeldpagina. Een master-admin meldt zich met zijn wachtwoord aan op `/accounts/admin-login`; om iedereen weer met een wachtwoord te laten aanmelden, zet hij **SSO vereisen om aan te melden** uit op **Single sign-on**.
 :::
@@ -193,4 +203,5 @@ De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, e
 - [SSO](/docs/identity/sso): De eigen SAML- of OIDC-provider van een project instellen.
 - [SCIM](/docs/identity/scim): Laat uw identiteitsprovider automatisch mensen toevoegen en verwijderen.
 - [Gebruikers, teams en machtigingen](/docs/permissions/index): Wat de teams waarin nieuwkomers komen hun toestaan.
+- [Hulp en ondersteuning](/docs/self-hosted/help-and-support): Mensen die een uitnodiging nodig hebben vertellen wie ze moeten vragen.
 :::

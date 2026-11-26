@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom";
 import {
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -38,6 +39,7 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import FormField from "../../../../UI/Components/Forms/Fields/FormField";
+import { loadEntityDropdown } from "../../../../UI/Components/EntityDropdown/LazyEntityDropdown";
 import Field from "../../../../UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "../../../../UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "../../../../UI/Components/Forms/Types/FormValues";
@@ -83,6 +85,14 @@ const renderField: RenderFieldFunction = (data: {
     />,
   );
 };
+
+/*
+ * A form loads its entity dropdown's file as it is drawn (FormFieldControls);
+ * the field is drawn on its own here, so the file is loaded first.
+ */
+beforeAll(async () => {
+  await loadEntityDropdown();
+});
 
 beforeEach(() => {
   setFieldValue = getJestMockFunction();

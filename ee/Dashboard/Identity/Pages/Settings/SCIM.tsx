@@ -16,6 +16,7 @@ import { IDENTITY_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectSCIM from "Common/Models/DatabaseModels/ProjectSCIM";
 import ObjectID from "Common/Types/ObjectID";
+import { getDialogWhatFailed } from "Common/UI/Utils/DialogWhatFailed";
 import React, {
   Fragment,
   FunctionComponent,
@@ -447,6 +448,12 @@ const SCIMPage: FunctionComponent<PageComponentProps> = (
         <ConfirmModal
           title="Reset Error"
           description={resetError}
+          // What failed is the Reset Bearer Token the person pressed (#7680).
+          errorWhatFailed={getDialogWhatFailed(
+            translator,
+            translator.translateText("Reset Bearer Token") ||
+              "Reset Bearer Token",
+          )}
           onSubmit={() => {
             setShowResetErrorModal(false);
             setResetError("");

@@ -65,7 +65,7 @@ Tre tillstånd skapas med projektet, i den här ordningen. Skapandet är idempot
 
 | Flagga                | Syfte                                                                                                                                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | Tillståndet som en incident får när ingen har valt något. Har inget tillstånd i projektet den här flaggan misslyckas skapandet av en incident med ett fel som ber dig lägga till ett skapandetillstånd för incidenter från inställningarna. |
+| `isCreatedState`      | Tillståndet som en incident får när ingen har valt något — utom när projektet låter incidenter som deklareras för hand börja som bekräftade och ingen jourpolicy larmar för en sådan incident: se [Incidenter som deklareras för hand](#incidenter-som-deklareras-för-hand). Har inget tillstånd i projektet den här flaggan misslyckas skapandet av en incident med ett fel som ber dig lägga till ett skapandetillstånd för incidenter från inställningarna. |
 | `isAcknowledgedState` | Markerar projektets bekräftade tillstånd: det som **Bekräfta** flyttar en incident till och som nyckeltalsrutan för bekräftelse är uppkallad efter. En incident i det, i ett senare tillstånd, eller löst, är bekräftad — **Bekräfta** erbjuds inte längre för den, jouren slutar larma för den, och dess SLA markeras som besvarad. |
 | `isResolvedState`     | Markerar projektets lösta tillstånd: det som **Lös** flyttar en incident till och som nyckeltalsrutan för lösning visar. En incident i det, eller i ett senare tillstånd, är löst — den försvinner från **Aktiva incidenter** och från den aktiva delen av en statussida, och dess SLA markeras som löst. |
 
@@ -75,6 +75,28 @@ Bara ett tillstånd per projekt förväntas ha varje flagga — uppslagen hämta
 - **De kan inte tas bort.** Deras **Ta bort** finns kvar i radens meny, låst, med orsaken. En massborttagning hoppar över dem och nämner dem som inte borttagna. API:t vägrar också att ta bort ett projekts sista skapande-, bekräftade eller lösta tillstånd.
 
 Eftersom gränssnittet läser tillståndsnamn dynamiskt ändrar ett namnbyte det du ser överallt — nyckeltalsrutorna (**Bekräftad efter** och **Löst efter** med de förskapade namnen), bekräftelsen **Markera incident som …** för ett eget tillstånd och märket i listan över incidenter följer alla namnet som du gav raden.
+
+## Incidenter som deklareras för hand
+
+Varje ny incident börjar i ditt skapandetillstånd och väntar där på att bekräftas. När du deklarerar en själv är det oftast du som tar hand om den: du blir dess Incidentansvarig när du deklarerar den, och att bekräfta den är bara ett klick till. Ett projekt kan i stället låta de incidenterna börja som bekräftade.
+
+:::steps
+1. Öppna **Incidenter → Inställningar → Incidentstatus** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Slå på **Start incidents declared by hand acknowledged** under listan över tillstånd. Det sparas så snart du slår om reglaget.
+:::
+
+Reglaget är avslaget i alla projekt tills du slår på det, så en uppgradering ändrar aldrig vem som larmas. Bara Projektägare och Projektadministratörer kan ändra det; för alla andra är reglaget låst och säger vilken behörighet som krävs.
+
+Medan det är påslaget börjar en incident som deklareras för hand — med **Deklarera incident**, var du än öppnar den, eller med incidentformuläret i Slack eller Microsoft Teams — i ditt bekräftade tillstånd när båda de här villkoren gäller:
+
+- **Inget tillstånd är valt för den**, varken av dig eller av mallen som den deklareras från. Ett valt tillstånd går före, som alltid.
+- **Ingen jourpolicy larmar för den**, varken en som du har valt eller en från dess mall. Väljer du en policy börjar incidenten i ditt skapandetillstånd, som tidigare, så att policyn larmar sina personer.
+
+När den börjar som bekräftad larmar den ingen: som för varje incident som [deklareras redan bekräftad](/docs/incidents/declaring-incidents#deklarerad-redan-bekräftad-eller-löst) körs ingen jourpolicy, inte ens en som en jourregel lägger till. Dess SLA börjar redan som besvarad, och dess tid till bekräftelse är noll, vilket räknas in i din MTTA.
+
+**Deklarera incident** säger det innan du deklarerar: under **Inledande tillstånd**, under **Jourpolicy** så länge ingen är vald, och på sammanfattningen, som då alltid nämner **Inledande tillstånd**. Formuläret fyller aldrig i **Inledande tillstånd** åt dig: ett tillstånd som väljs där går före, så jourpolicyerna som du väljer i det sista steget skulle inte larma någon. Slack och Microsoft Teams säger det under sina jourpolicyer och i meddelandet om att incidenten har skapats.
+
+Incidenter som ingen deklarerar för hand — som öppnas av monitorer eller incidentregler för larm, via API:t, Terraform, arbetsflöden eller formulär, från ett säkerhetsärende eller av OneUptime AI — börjar i ditt skapandetillstånd, som tidigare. Via API:t är reglaget projektets `startIncidentsDeclaredByHandAcknowledged`.
 
 ## Lägg till egna tillstånd
 

@@ -170,7 +170,8 @@ const BACKLOG_WORDS: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Formatting help",
     "Type your markdown here...",
     "Copy code",
-    "Something went wrong",
+    // The error card's title since it says what happened (#7270).
+    "This page stopped working",
     "Download support bundle",
   ],
   "The Campaigns page": [

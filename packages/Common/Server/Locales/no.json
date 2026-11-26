@@ -1,4 +1,5 @@
 {
+  "A Project Owner cleared the sign-in settings saved on your {{product}} account.": "En Prosjekteier har fjernet påloggingsinnstillingene som var lagret på {{product}}-kontoen din.",
   "A backup code was used to confirm it's you in your {{product}} account": "En reservekode ble brukt til å bekrefte at det er deg på {{product}}-kontoen din",
   "A backup code was used to confirm it's you.": "En reservekode ble brukt til å bekrefte at det er deg.",
   "A backup code was used to sign in to your account.": "En reservekode ble brukt til å logge på kontoen din.",
@@ -21,7 +22,6 @@
   "A note on this incident has been updated. Here is the latest version:": "Et notat om denne hendelsen er oppdatert. Her er den nyeste versjonen:",
   "A note on this scheduled event has been updated. Here is the latest version:": "Et notat om denne planlagte hendelsen er oppdatert. Her er den nyeste versjonen:",
   "A postmortem report has been published for an incident that affected services you're subscribed to.": "En hendelsesgjennomgang er publisert for en hendelse som påvirket tjenester du abonnerer på.",
-  "A project owner cleared the sign-in settings saved on your {{product}} account.": "En prosjekteier har fjernet påloggingsinnstillingene som var lagret på {{product}}-kontoen din.",
   "A server admin changed the email address of your {{product}} account from this address to a new one.": "En serveradministrator har endret e-postadressen til {{product}}-kontoen din fra denne adressen til en ny.",
   "A server admin cleared the sign-in settings saved on your {{product}} account.": "En serveradministrator har fjernet påloggingsinnstillingene som var lagret på {{product}}-kontoen din.",
   "A server admin made this the email address of your {{product}} account.": "En serveradministrator har gjort denne adressen til e-postadressen for {{product}}-kontoen din.",

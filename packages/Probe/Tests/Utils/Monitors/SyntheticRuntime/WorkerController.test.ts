@@ -12,6 +12,7 @@ import {
 } from "playwright";
 import WorkerController from "../../../../Utils/Monitors/SyntheticRuntime/WorkerController";
 import { SandboxExecutionResult } from "../../../../Utils/Monitors/SyntheticRuntime/RpcProtocol";
+import { approveOnLoopback } from "Common/Tests/Server/TestingUtils/OutboundProxyFixture";
 
 jest.setTimeout(120_000);
 
@@ -742,6 +743,13 @@ describe("SyntheticRuntime WorkerController", () => {
       throw new Error("Expected a TCP test server address.");
     }
 
+    /*
+     * The script's axios goes out through the egress proxy, which refuses
+     * loopback on every probe; the guard is told to let this test's server
+     * through as it would a public one.
+     */
+    approveOnLoopback({});
+
     try {
       const result: SandboxExecutionResult = await run({
         code: `
@@ -775,6 +783,55 @@ describe("SyntheticRuntime WorkerController", () => {
         },
       });
       expect(result.screenshots).toEqual({});
+    } finally {
+      jest.restoreAllMocks();
+      await closeServer(server);
+    }
+  });
+
+  test("holds the script's axios to public addresses when the run is given no egress proxy", async () => {
+    const server: Server = http.createServer(
+      (_request: IncomingMessage, response: ServerResponse): void => {
+        response.end("loopback-sentinel");
+      },
+    );
+    let hits: number = 0;
+    server.on("request", (): void => {
+      hits++;
+    });
+    await listen(server);
+    const address: ReturnType<Server["address"]> = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("Expected a TCP test server address.");
+    }
+
+    try {
+      const result: SandboxExecutionResult = await run({
+        code: `
+          const attempt = async (url) => {
+            try { return (await axios.get(url)).data; }
+            catch (error) { return "refused: " + error.message; }
+          };
+          return { data: {
+            loopback: await attempt("http://127.0.0.1:${address.port}/"),
+            metadata: await attempt("http://169.254.169.254/latest/meta-data/"),
+            privateNetwork: await attempt("http://10.0.0.1/"),
+          } };
+        `,
+      });
+
+      expect(result.scriptError).toBeUndefined();
+      expect(result.returnValue).toEqual({
+        data: {
+          loopback:
+            "refused: Monitor target host 127.0.0.1 is not allowed: loopback address.",
+          metadata:
+            "refused: Monitor target host 169.254.169.254 is not allowed: link-local address (cloud metadata range).",
+          privateNetwork:
+            "refused: Monitor target host 10.0.0.1 is not allowed: private network address.",
+        },
+      });
+      expect(hits).toBe(0);
     } finally {
       await closeServer(server);
     }
@@ -891,6 +948,9 @@ describe("SyntheticRuntime WorkerController", () => {
       throw new Error("Expected the test server to use a TCP address.");
     }
 
+    // Let the test's loopback server through the egress guard, as a public one.
+    approveOnLoopback({});
+
     const startedAt: number = Date.now();
     try {
       const result: SandboxExecutionResult = await run({
@@ -907,6 +967,7 @@ describe("SyntheticRuntime WorkerController", () => {
       expect(result.logMessages).toEqual(["before pending request"]);
       expect(Date.now() - startedAt).toBeLessThan(5_000);
     } finally {
+      jest.restoreAllMocks();
       await closeServer(hangingServer);
     }
   });
@@ -1293,6 +1354,8 @@ describe("SyntheticRuntime WorkerController", () => {
       throw new Error("Expected a TCP test server address.");
     }
     const inspectionUrl: string = `http://127.0.0.1:${address.port}/inspect`;
+    // The script's axios reaches the test's loopback server as a public one.
+    approveOnLoopback({});
 
     try {
       const result: SandboxExecutionResult = await WorkerController.execute({
@@ -1372,6 +1435,7 @@ describe("SyntheticRuntime WorkerController", () => {
         timings.retryPageRequestedAtInMs! - timings.abandonedCloseCalledAtInMs!,
       ).toBeLessThan(2_500);
     } finally {
+      jest.restoreAllMocks();
       releaseAbandonedClose();
       await closeServer(inspectionServer);
       await browserContext.close();

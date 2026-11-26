@@ -177,11 +177,12 @@ Jedes Element von `monitor_steps` ist eine Sache, die geprüft wird:
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet` und `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium` und `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | Wiederholungen, wenn das Skript scheitert: `0` führt es einmal aus. |
+| `do_not_sync_fields` | list(string) | Monitorvorlagen | Die Felder, die jeder aus der Vorlage erstellte Monitor als seine eigenen behält, wenn die Vorlage ihre Schritte auf ihn synchronisiert, etwa `monitorDestination` oder `dnsMonitor.queryName`: die, die ihre Karte **Einstellungen für die Vorlagensynchronisierung** auflistet. |
 | `criteria` | list (erforderlich) | Alle | Wie jedes Ergebnis beurteilt wird: siehe [Attribute eines Kriteriums](#attribute-eines-kriteriums). |
 
 ### Einstellungen jedes Monitortyps
 
-Monitortypen, bei denen mehr als eine Adresse einzustellen ist, halten ihre Einstellungen (eine Log-Abfrage, eine Datenbankverbindung, einen zu beobachtenden Cluster) in einem eigenen Attribut, als rohes JSON, geschrieben mit `jsonencode()`: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` und `probe_status_monitor`.
+Monitortypen, bei denen mehr als eine Adresse einzustellen ist, halten ihre Einstellungen (eine Log-Abfrage, eine Datenbankverbindung, einen zu beobachtenden Cluster) in einem eigenen Attribut, als rohes JSON, geschrieben mit `jsonencode()`: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor` und `probe_status_monitor`.
 
 Ihr JSON ist dasselbe wie das des Dashboards, mit Schlüsseln in camelCase. Eine ID darin wird so geschrieben, wie die API eine schreibt: `{ _type = "ObjectID", value = "..." }`. Ein Logs-Monitor, der die Fehler eines Dienstes zählt:
 
@@ -254,7 +255,7 @@ Gruppierte Metrik-Monitore sind die eine Ausnahme. Ist die Abfrage eines Metrik-
 
 ### Vorfälle und Warnungen
 
-Ein Element von `incidents` nimmt `title` und `description` (beide erforderlich), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page` und `is_private`. Ein Element von `alerts` nimmt dasselbe, mit `alert_severity_id` und `auto_resolve_alert`, und ohne `show_incident_on_status_page`.
+Ein Element von `incidents` nimmt `title` und `description` (beide erforderlich), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page` und `is_private`. Ein Element von `alerts` nimmt dasselbe, mit `alert_severity_id` und `auto_resolve_alert`, und ohne `show_incident_on_status_page` und `incident_member_roles`. `incident_member_roles` gibt Personen eine Rolle in jedem Vorfall, den das Kriterium eröffnet, etwa als Incident Commander: ein `{ role_id, user_id }` pro Person und Rolle.
 
 Dieses Kriterium setzt den Monitor auf offline, öffnet einen Vorfall, der die Bereitschaftsrichtlinie alarmiert, und löst ihn auf, wenn die Website wieder da ist:
 
@@ -479,6 +480,14 @@ Eine Prüfung, auf die keines der Kriterien passt, setzt den Monitor auf seinen 
 ## Ein Monitor ohne Schritte
 
 `monitor_steps` ist optional, aber ein ohne das Attribut angelegter Monitor hat keine Kriterien, nach denen ein Ergebnis beurteilt wird: Sonden überspringen einen Monitor ohne Schritte, und er bleibt in dem Status, in dem er begonnen hat. Ihr State hält das Attribut leer, und der Plan bleibt sauber. Ein manueller Monitor braucht nie Schritte: Sie setzen seinen Status selbst. Jeder andere Typ braucht mindestens einen Schritt, um etwas zu prüfen.
+
+## Was ein Apply behält
+
+Ein Apply, das `monitor_steps` ändert, sendet alle Schritte, und OneUptime ersetzt die Schritte, die es hält, durch sie. Eine Einstellung, die Ihre Konfiguration schreiben kann und auslässt, wird entfernt, wie der Plan es zeigt. Zwei Arten von Einstellungen werden stattdessen so behalten, wie OneUptime sie hält, weil kein Plan sie zeigen kann. Das Apply liest zuerst die Schritte, die OneUptime hält, und schlägt fehl, ohne etwas zu schreiben, wenn es das nicht kann.
+
+Eine Einstellung, für die der Provider kein Attribut hat, etwa der `snmpMonitor`, den Schritte des ausgemusterten SNMP-Monitortyps noch halten, oder eine, die ein neueres OneUptime hat und Ihre Version des Providers noch nicht kennt, bleibt an ihrem Schritt, Kriterium, Vorfall oder ihrer Warnung. Jede wird so zugeordnet, wie OneUptime sie zuordnet, um ihre IDs zu behalten: ein Schritt nach seiner Position, ein Kriterium nach seinem Namen und ein Vorfall oder eine Warnung nach dem Titel, sonst nach der Position. Nimmt Ihre Konfiguration diesen Schritt, dieses Kriterium, diesen Vorfall oder diese Warnung heraus, geht die Einstellung mit.
+
+Eine Einstellung, die Sie mit `jsonencode()` schreiben, etwa `dns_monitor`, `incident_grouping` oder die `metric_monitor_options` eines Filters, wird nach dem verglichen, was sie schreibt. OneUptime kann mehr darin halten, einen eigenen Standardwert oder einen im Dashboard gesetzten Schlüssel: Das ist keine Änderung, und ein Apply behält es. Ein Schlüssel, den Sie aus dem `jsonencode()` herausnehmen, wird entfernt. In einer Liste wird, was OneUptime mehr hält, Element für Element behalten, solange die Liste so viele Elemente hat wie die von OneUptime.
 
 ## Das Übertragungsformat
 

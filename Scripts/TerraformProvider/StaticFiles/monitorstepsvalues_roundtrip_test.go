@@ -88,6 +88,15 @@ type stepValuesAPI struct {
 	rows    map[string]map[string]map[string]interface{}
 	writes  map[string]int
 	created int
+
+	/*
+	 * What the server does with a write's steps beyond what stepValuesStore
+	 * does, given the steps it held: give them their ids, as
+	 * monitorstepsunmanaged_test.go's tests have it do (#10984). Nil: none.
+	 */
+	storeSteps func(held interface{}, sent interface{}) interface{}
+	// The records whose read fails, as a server that cannot answer does.
+	failReadsOf map[string]bool
 }
 
 func newStepValuesAPI(t *testing.T) *stepValuesAPI {
@@ -156,6 +165,9 @@ func (a *stepValuesAPI) keep(row map[string]interface{}, data map[string]interfa
 	for key, value := range data {
 		if key == "monitorSteps" {
 			value = stepValuesStore(a.t, value)
+			if a.storeSteps != nil {
+				value = a.storeSteps(row["monitorSteps"], value)
+			}
 		}
 		row[key] = value
 	}
@@ -229,6 +241,10 @@ func (a *stepValuesAPI) handle(w http.ResponseWriter, r *http.Request) {
 			}
 			switch {
 			case r.Method == http.MethodPost && strings.HasSuffix(rest, "/get-item"):
+				if a.failReadsOf[id] {
+					a.reply(w, http.StatusInternalServerError, map[string]interface{}{"message": "The database could not be read."})
+					return
+				}
 				a.reply(w, http.StatusOK, map[string]interface{}{"data": a.answer(id, row)})
 			case r.Method == http.MethodPut && id == rest:
 				a.keep(row, data)

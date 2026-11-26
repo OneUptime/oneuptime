@@ -7,7 +7,7 @@ import parseMarkdownBlocks from "Common/UI/Utils/AIChatExport/MarkdownBlocks";
  * THE COMPLIANCE PAPERWORK AS PDF (#10375): a document's Markdown drawn by
  * the AI chat's export engine - its title on the first page, every page
  * numbered. This module, the Markdown parser and jsPDF are fetched only
- * when someone exports (CompliancePaperworkExport.downloadMarkdownPdf).
+ * when someone exports (CompliancePaperworkPdfDownload.downloadMarkdownPdf).
  */
 export async function buildMarkdownPdf(data: {
   title: string;

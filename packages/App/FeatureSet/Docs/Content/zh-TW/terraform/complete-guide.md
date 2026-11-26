@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-不過，有人在 OneUptime 中為監測器的步驟新增、而你的設定沒有寫的設定值，是一種差異：下一次 plan 會顯示 `monitor_steps` 發生變化，隨後的 apply 會按 plan 所說移除該設定值。要保留它，也請在你的設定中寫上它。
+不過，有人在 OneUptime 中為監測器的步驟新增、而你的設定沒有寫的設定值，是一種差異：下一次 plan 會顯示 `monitor_steps` 發生變化，隨後的 apply 會按 plan 所說移除該設定值。要保留它，也請在你的設定中寫上它。提供者沒有對應屬性的設定值，以及 OneUptime 在你用 `jsonencode()` 撰寫的設定值中保存的鍵，都不算差異，apply 會保留它們：請參閱 [監控步驟](/docs/terraform/monitor-steps)。
 
 ## 標籤和 OneUptime 也會新增的其他清單
 

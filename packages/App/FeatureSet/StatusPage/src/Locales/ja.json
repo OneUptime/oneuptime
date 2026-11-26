@@ -532,6 +532,8 @@
   "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "送信した内容が大きすぎてサーバーが受け付けなかったため、処理は完了しませんでした。小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
   "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "送信した内容が、OneUptime が 1 回のリクエストで受け付ける 50 MB を超えているため、処理は完了しませんでした。小さいファイルにするなど、一度に送る量を減らして、もう一度お試しください。",
   "This did not finish.": "処理は完了しませんでした。",
+  "The {{itemName}} was not deleted.": "{{itemName}}は削除されませんでした。",
+  "“{{action}}” did not finish.": "「{{action}}」の処理は完了しませんでした。",
   "The server ran into a problem it could not explain.": "サーバーで原因を説明できない問題が発生しました。",
   "The OneUptime server did not answer.": "OneUptime サーバーが応答しませんでした。",
   "OneUptime could not be reached.": "OneUptime に接続できませんでした。",

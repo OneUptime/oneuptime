@@ -407,6 +407,71 @@ describe("two creates of one name at the same moment", () => {
     expect(namesStored(groupTable)).toEqual(["Production"]);
   });
 
+  /*
+   * The name is given back however the create ends: a service's
+   * onCreateError is told of the failure first (CreateLockGivenBackGuard),
+   * and a hook that throws there still frees the name.
+   */
+  test("a create whose error hook throws still gives the lock back, after the hook was told", async () => {
+    const lockKey: string = RequiredUniqueNames.getLockKey({
+      tableName: "MonitorGroup",
+      projectId: PROJECT_ID,
+      name: "Production",
+    });
+    const heldWhileTold: Array<boolean> = [];
+
+    class ThrowingErrorHookWrites extends DatabaseService<MonitorGroup> {
+      public constructor() {
+        super(MonitorGroup);
+      }
+
+      protected override async onCreateError(): Promise<never> {
+        heldWhileTold.push(locks.isHeld(lockKey, UNIQUE_NAME_LOCK_NAMESPACE));
+        throw new Error("the error hook failed too");
+      }
+    }
+
+    const throwing: ThrowingErrorHookWrites = new ThrowingErrorHookWrites();
+    const throwingTable: InMemoryTable = useInMemoryTable(throwing, []);
+    const group: MonitorGroup = new MonitorGroup();
+    group.name = "Production";
+    group.projectId = PROJECT_ID;
+
+    throwingTable.repository.save.mockRejectedValueOnce(
+      new Error("connection reset") as never,
+    );
+
+    await expect(
+      throwing.create({ data: group, props: member() }),
+    ).rejects.toThrow("the error hook failed too");
+
+    // Told while the name was still held, then the name was given back.
+    expect(heldWhileTold).toEqual([true]);
+    expect(locks.isHeld(lockKey, UNIQUE_NAME_LOCK_NAMESPACE)).toBe(false);
+    expect(throwingTable.rows).toHaveLength(0);
+
+    // And the name is free for the next create.
+    await createGroup("Production");
+    expect(namesStored(groupTable)).toEqual(["Production"]);
+  });
+
+  test("a create that writes its row gives the lock back once, not again when it returns", async () => {
+    const lockKey: string = RequiredUniqueNames.getLockKey({
+      tableName: "MonitorGroup",
+      projectId: PROJECT_ID,
+      name: "Production",
+    });
+    const fullKey: string = `${UNIQUE_NAME_LOCK_NAMESPACE}/${lockKey}`;
+
+    await createGroup("Production");
+
+    expect(
+      locks.events.filter((event: string): boolean => {
+        return event.endsWith(fullKey);
+      }),
+    ).toEqual([`lock:${fullKey}`, `release:${fullKey}`]);
+  });
+
   test("a rename holds its new name until its row is written, then gives it back", async () => {
     groupTable.rows.push(
       storedGroup("00000000-0000-4000-8000-000000000001", "Staging"),

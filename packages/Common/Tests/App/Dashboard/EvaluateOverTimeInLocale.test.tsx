@@ -15,7 +15,9 @@ import * as React from "react";
 import CriteriaFilterElement from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CriteriaFilter";
 import EventEvaluationDetails from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventEvaluationDetails";
 import { WINDOW_SENTENCE } from "../../../../App/FeatureSet/Dashboard/src/Components/EventView/EventEvaluationDetailsCopy";
-import CriteriaFilterUiUtil from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
+import CriteriaFilterUiUtil, {
+  EVALUATE_OVER_TIME_TYPE_DESCRIPTIONS,
+} from "../../../../App/FeatureSet/Dashboard/src/Utils/Form/Monitor/CriteriaFilter";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import {
   CheckOn,
@@ -44,7 +46,10 @@ import {
  * in the description under it (which named them in English beside a German
  * list until #6473, and in other words than the list's in Arabic), and in
  * the Window fact. From the shipped locale files; what is stored stays the
- * English value the engine reads.
+ * English value the engine reads. The types that came after them - a
+ * percentile, the window's checks counted (#10355), the previous check
+ * (#10821) - follow them in the dropdown, each with what it does under its
+ * name, in the reader's language too.
  */
 
 const WINDOW_TYPES: ReadonlyArray<EvaluateOverTimeType> = [
@@ -67,6 +72,38 @@ const NAMED_APART: ReadonlyArray<EvaluateOverTimeType> = [
 const CHECK_BY_CHECK: ReadonlyArray<EvaluateOverTimeType> = [
   EvaluateOverTimeType.AllValues,
   EvaluateOverTimeType.AnyValue,
+];
+
+/*
+ * What a website's checks can also be judged by over the window: their
+ * count, their share, how often they changed (#10355), and this check
+ * against the one before it (#10821). The Evaluate dropdown offers them
+ * after the six, each with what it does under its name.
+ */
+const COUNTED: ReadonlyArray<EvaluateOverTimeType> = [
+  EvaluateOverTimeType.Count,
+  EvaluateOverTimeType.Percentage,
+  EvaluateOverTimeType.StatusChanges,
+  EvaluateOverTimeType.PreviousCheck,
+];
+
+// The Evaluate dropdown of a figure's filter (a response time), in order.
+const FIGURE_OPTIONS: ReadonlyArray<EvaluateOverTimeType> = [
+  EvaluateOverTimeType.Average,
+  EvaluateOverTimeType.Sum,
+  EvaluateOverTimeType.MaximumValue,
+  EvaluateOverTimeType.MunimumValue,
+  // One figure for the window too, like Average (#10355).
+  EvaluateOverTimeType.Percentile,
+  EvaluateOverTimeType.AllValues,
+  EvaluateOverTimeType.AnyValue,
+  ...COUNTED,
+];
+
+// The Evaluate dropdown of a filter judged check by check (a body), in order.
+const CHECK_BY_CHECK_OPTIONS: ReadonlyArray<EvaluateOverTimeType> = [
+  ...CHECK_BY_CHECK,
+  ...COUNTED,
 ];
 
 const OVER_TIME_OPTIONS: string = "criteria-filter-over-time-options";
@@ -121,6 +158,20 @@ const DESCRIPTIONS: ReadonlyArray<{
 
 function drawn(language: string, type: EvaluateOverTimeType): string {
   return readDashboardLocale(language)[type] as string;
+}
+
+/*
+ * An option of the Evaluate dropdown as the reader reads it: its name, and
+ * for the newer types what it does, both in the reader's language.
+ */
+function drawnOption(language: string, type: EvaluateOverTimeType): string {
+  const description: string | undefined =
+    EVALUATE_OVER_TIME_TYPE_DESCRIPTIONS[type];
+
+  return (
+    drawn(language, type) +
+    (description ? (readDashboardLocale(language)[description] as string) : "")
+  );
 }
 
 async function inLanguage(language: string): Promise<void> {
@@ -398,11 +449,19 @@ describe("the criteria form's Evaluate dropdown, in the reader's language", () =
   test("in English, as before", async () => {
     renderFilter(TIME_FILTER);
 
-    expect(await evaluateOptions()).toEqual([...WINDOW_TYPES]);
+    expect(await evaluateOptions()).toEqual(
+      FIGURE_OPTIONS.map((type: EvaluateOverTimeType): string => {
+        return drawnOption("en", type);
+      }),
+    );
+    // The six as they always read: their names alone.
+    for (const type of WINDOW_TYPES) {
+      expect(drawnOption("en", type)).toBe(type);
+    }
   });
 
   test.each(RENDERED_LANGUAGES)(
-    "%s: the six, in order, and the description beside them",
+    "%s: the six, in order among the newer types, and the description beside them",
     async (language: string) => {
       await inLanguage(language);
       renderFilter(TIME_FILTER);
@@ -421,8 +480,8 @@ describe("the criteria form's Evaluate dropdown, in the reader's language", () =
       ).toBe(1);
 
       expect(await evaluateOptions()).toEqual(
-        WINDOW_TYPES.map((type: EvaluateOverTimeType): string => {
-          return drawn(language, type);
+        FIGURE_OPTIONS.map((type: EvaluateOverTimeType): string => {
+          return drawnOption(language, type);
         }),
       );
 
@@ -434,7 +493,7 @@ describe("the criteria form's Evaluate dropdown, in the reader's language", () =
   );
 
   test.each(RENDERED_LANGUAGES)(
-    "%s: a check-by-check filter offers its two, described in their words",
+    "%s: a check-by-check filter offers its two, described in their words, then the newer types",
     async (language: string) => {
       await inLanguage(language);
       renderFilter(BODY_FILTER);
@@ -447,8 +506,8 @@ describe("the criteria form's Evaluate dropdown, in the reader's language", () =
       expect(within(options).getByText(description)).toBeInTheDocument();
 
       expect(await evaluateOptions()).toEqual(
-        CHECK_BY_CHECK.map((type: EvaluateOverTimeType): string => {
-          return drawn(language, type);
+        CHECK_BY_CHECK_OPTIONS.map((type: EvaluateOverTimeType): string => {
+          return drawnOption(language, type);
         }),
       );
     },

@@ -76,6 +76,8 @@ describe("the periods", () => {
       ["Environments", "environment"],
       ["Apps", "app"],
       ["Tags", "tag"],
+      // A cost view's groups (#11006).
+      ["Cost groups", "group"],
     ]);
   });
 });

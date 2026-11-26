@@ -334,11 +334,32 @@ describe("GUARD: every Markdown column a status page could show is classified", 
     "utf8",
   );
 
+  /*
+   * The status page API, and the status page helpers it imports
+   * (Server/Utils/StatusPage) - it reads through them too: every incident a
+   * page shows is read by IncidentStatusPageScope, and an episode's
+   * incidents by StatusPageEpisodeIncidents (#10767).
+   */
+  const statusPageReads: string = [
+    statusPageApi,
+    ...Array.from(
+      statusPageApi.matchAll(/from "\.\.\/Utils\/StatusPage\/([A-Za-z]+)"/g),
+    ).map((match: RegExpMatchArray): string => {
+      return fs.readFileSync(
+        path.resolve(
+          __dirname,
+          `../../../../Server/Utils/StatusPage/${match[1]!}.ts`,
+        ),
+        "utf8",
+      );
+    }),
+  ].join("\n");
+
   // Every model the status page API reads, by the services it reads through.
   const readModels: Array<BaseModel> = Array.from(
     new Set<string>(
       Array.from(
-        statusPageApi.matchAll(
+        statusPageReads.matchAll(
           /([A-Za-z]+)Service\.(?:findBy|findOneBy|findOneById|findAllBy)\(/g,
         ),
       ).map((match: RegExpMatchArray): string => {

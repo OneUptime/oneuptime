@@ -868,6 +868,10 @@ On a poll where no walk ran, the criteria marked "Not evaluated" return no verdi
 
 The interface checks need **Walk Interfaces** on in the device's polling settings, which it is by default. The OID checks read the device's configured health OIDs. Administratively disabled interfaces are down on purpose and never count as failures.
 
+**SNMP Interface Utilization (in %)** also takes **Anomalously High**, **Anomalously Low** and **Anomalous**, with a **Sensitivity** and a **Baseline Window** as on a [Metrics monitor](/docs/monitor/metrics-monitor). Each interface in scope is compared with its own utilization at the same hour of the week on earlier days, as this step of the monitor polled it, so a backup link that runs full every night is judged by its own nights, not by the quiet ports beside it. The incident or alert names the interface furthest outside its range, and how many more are outside theirs. An interface is still learning, and raises nothing, until that hour of the week has two weeks of its history.
+
+Utilization polled before each step kept its own history belongs to no step. A monitor with one step reads it as its own, so it does not learn again; a monitor with several steps leaves it out, and each step learns from its own polls. An interface's history reaches back as long as monitor metrics are kept, 30 days unless a self-hosted installation changes that. If they are kept for under two weeks, a monitor with one step compares each interface with the range of all its interfaces together, and a monitor with several steps stays learning.
+
 SNMP table criteria pick a table, a column (for SNMP Table Value) and a row scope. Empty judges every row as one combined alert; `*` raises a separate alert for every row, each resolving on its own and named after its row; anything else names one row by its name or index. Numbers compare as numbers, and text compares against both the raw value and its label, so Not Equal To `active` and Not Equal To `1` both catch a Sophos tunnel that is down. A table whose walk failed on this poll is not evaluated rather than read as empty, and table criteria judge the current walk only, not a stretch of time.
 
 Transceiver criteria are scoped like the interface checks: empty judges every optic as one combined alert, `*` raises a separate alert for every port with an optic (each resolving on its own and named after its port), and anything else names one port by its name or alias. They judge the device's [transceivers](#transceivers) as of this poll, which already carry their history — how many polls an optic has been missing, a month of received power — so they are not evaluated over a stretch of time either. A poll whose transceiver read failed leaves them judging the last good read, so an open alert does not resolve on a poll that could not look.
@@ -897,7 +901,7 @@ After adding the pack, pick severities and on-call policies for each criteria as
 
 ## SNMP Traps
 
-Polling catches a problem on the next poll; traps catch it in seconds. Every probe runs an SNMP trap receiver that takes v1 and v2c traps and informs and forwards them to OneUptime.
+Polling catches a problem on the next poll; traps catch it in seconds. Every probe runs an SNMP trap receiver that takes v1, v2c and v3 traps and informs and forwards them to OneUptime. It acknowledges every inform, so the device stops sending it again.
 
 ```mermaid title="From a trap to an incident"
 flowchart TB
@@ -921,6 +925,7 @@ The receiver is on by default and listens on UDP 162. Configure it on the probe 
 | `PROBE_SNMP_TRAP_RECEIVER_ENABLED` | Set to `false` to turn the trap receiver off. | `true` |
 | `PROBE_SNMP_TRAP_RECEIVER_PORT` | The UDP port the receiver listens on. | `162` |
 | `PROBE_SNMP_TRAP_RATE_LIMIT_PER_MINUTE` | How many traps it forwards per minute before dropping the rest. | `300` |
+| `PROBE_SNMP_ENGINE_ID` | The probe's SNMPv3 engine ID, in hex (5 to 32 octets). Set it only to keep the engine ID of a receiver this probe replaces. | Derived from the probe's ID |
 
 If the probe runs in Docker, publish the UDP port so traps can reach it:
 
@@ -936,6 +941,42 @@ Then point your devices' trap destination at the probe; on Cisco IOS, for exampl
 snmp-server host <probe-ip> traps version 2c <community>
 ```
 
+### SNMPv3 Traps and Informs
+
+An SNMPv3 trap is signed, and usually encrypted, with a user's keys, so a probe takes one only from a user it knows: the SNMPv3 credentials of the devices assigned to it. Each device's own SNMP credentials, its credential profile and its site's default all count, so a device polled over v2c can still send its traps as the site's SNMPv3 user. Nothing is set up on the probe:
+
+1. Give the device, its credential profile or its site the SNMPv3 user the device sends its traps as: user name, security level, and the authentication and privacy protocols and passphrases (see [SNMP Credentials and Credential Profiles](#snmp-credentials-and-credential-profiles)).
+2. Point the device's SNMPv3 traps at the probe. On Cisco IOS, for example:
+
+   ```text
+   snmp-server group TRAPS v3 priv
+   snmp-server user san-monitor TRAPS v3 auth sha <auth-passphrase> priv aes 128 <priv-passphrase>
+   snmp-server host <probe-ip> traps version 3 priv san-monitor
+   ```
+
+OneUptime hands each probe the SNMPv3 users of its own devices every thirty seconds, so a credential changed, a profile changed or a device moved to another probe is taken within a minute, while the receiver keeps listening. The credentials stay encrypted at rest, as they do for polling, and the probe keeps them in memory only and never logs them. One project's users never reach another project's probe.
+
+The receiver takes the protocols polling uses: MD5, SHA-1, SHA-256 and SHA-512 authentication, and DES, AES-128 and AES-256 privacy. A trap must come with at least the security its user is set up for: an authPriv user's traps are refused if they arrive unauthenticated or unencrypted.
+
+**Traps, informs and the probe's engine ID.** A trap is authenticated with the device's own SNMP engine ID, so there is nothing to set up. An inform is authenticated with the probe's engine ID, which most devices discover by themselves. Some need it typed in: on Cisco IOS, enter `snmp-server engineID remote <probe-ip> <engine-id>` before you create the user. Open **Monitors → Settings → Probes** and pick the probe: its **SNMP Traps** card shows the engine ID to copy. It is derived from the probe's ID, so it stays the same across restarts, upgrades and replicas of the probe; set `PROBE_SNMP_ENGINE_ID` to choose another.
+
+Informs are acknowledged, v2c and v3 alike. An inform sent again because its acknowledgement was lost is acknowledged again, and recorded once.
+
+**The time window.** Like Net-SNMP's `snmptrapd`, the receiver refuses a trap whose engine boots and time go back past the device's last trap by more than 150 seconds: a replayed or delayed copy, or a device that restarted without counting the restart in its engine boots. An inform must be within 150 seconds of the probe's own time.
+
+**Refused SNMPv3 traps** are never forwarded, and nothing they carried is kept or logged: only where they came from, the user they were sent as and why. The probe's **SNMP Traps** card lists the last day's, such as "12 SNMPv3 traps from 10.20.0.5 failed: unknown user “san-monitor”", each with what to change. A device's **Overview** and **Logs** pages say the same when the address is one of the device's own. A trap taken from that address as that user clears it.
+
+| Reason | What to change |
+| --- | --- |
+| Unknown user | No device on the probe has an SNMPv3 user of that name. Add it to the device's credentials, its credential profile or its site's default, or correct the name on the device. |
+| Wrong authentication passphrase or protocol | Make the device's authentication passphrase and protocol the same as OneUptime's for that user. |
+| Wrong privacy passphrase or protocol | Make the device's privacy passphrase and protocol the same as OneUptime's for that user. |
+| Outside the time window | The device's engine clock went back. Its traps are taken again once it counts a restart in its engine boots. |
+| Sent to another engine ID | An inform was sent to another engine ID than the probe's. Give the device the probe's engine ID. |
+| Less security than the user is set up for | Set the device's trap security level to the one OneUptime has for the user. |
+
+In the trap history an SNMPv3 trap says what arrived, beside its OID and varbinds: version 3, the user it was authenticated as, whether it was encrypted too, and the engine ID of the device that sent it.
+
 ### How Traps Map to Monitors
 
 Traps are matched through the device inventory:
@@ -944,7 +985,7 @@ Traps are matched through the device inventory:
 2. OneUptime looks for the network devices assigned to that probe whose hostname, or one of whose **Other Addresses**, is the trap's source IP address.
 3. The trap is logged in the device's trap history, and every Network Device monitor on a matching device evaluates it against its criteria, typically an **SNMP Trap Received (Trap OID)** filter.
 
-Matching is by address, not by credentials, so a ping-only device can still receive traps: a device you hold no read credentials for can still send them. Register the device with the address it sends traps from, or add that address to its **Other Addresses** on its **Settings** page. SNMPv1 generic traps (coldStart, linkDown, linkUp and so on) are turned into their standard SNMPv2 notification OIDs, so linkDown matches trap OID `1.3.6.1.6.3.1.1.5.3` whatever the SNMP version.
+Matching is by address, not by credentials, so a ping-only device can still receive v1 and v2c traps: a device you hold no read credentials for can still send them. An SNMPv3 trap also needs the user it is signed with (see [SNMPv3 Traps and Informs](#snmpv3-traps-and-informs)), and is then matched by its address in the same way. Register the device with the address it sends traps from, or add that address to its **Other Addresses** on its **Settings** page. SNMPv1 generic traps (coldStart, linkDown, linkUp and so on) are turned into their standard SNMPv2 notification OIDs, so linkDown matches trap OID `1.3.6.1.6.3.1.1.5.3` whatever the SNMP version.
 
 #### Example: raise an incident on linkDown
 
@@ -1172,6 +1213,13 @@ When the devices are all there but the monitors are not: devices and monitors ar
 - Publish and allow UDP 162 through to the probe, or the port in `PROBE_SNMP_TRAP_RECEIVER_PORT`.
 - Check that the device's hostname, or one of its **Other Addresses**, is the address it sends traps from: that is how traps are matched to devices.
 - Check the probe's logs for bind errors: the port in use, or no privileges for a port below 1024.
+:::
+
+:::details SNMPv3 traps are refused
+- Open **Monitors → Settings → Probes** and pick the probe: its **SNMP Traps** card lists every refused source with its reason and what to change.
+- The SNMPv3 user must belong to a device assigned to that probe: its own credentials, its credential profile or its site's default. A user on a device assigned to another probe does not count.
+- An inform also needs the probe's engine ID, shown on the same card. A device that was given a wrong one is listed as sending to another engine ID.
+- After a change, the probe takes the new users within a minute.
 :::
 
 :::details Testing SNMP from the probe's network

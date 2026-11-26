@@ -288,8 +288,12 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
         WHERE n.nspname = 'public' AND t.relname = 'AuditLogExport' AND c.contype = 'f'`,
     );
 
-    // The migration made the table: no clone without it.
-    expect(foreignKeys.length).toBe(3);
+    /*
+     * The migration made the table: no clone without it. Its keys are to
+     * its project and its creator; the one to who deleted it went with that
+     * column, from every table (#10469).
+     */
+    expect(foreignKeys.length).toBe(2);
 
     await database.query(`CREATE SCHEMA "${schema}"`);
 
