@@ -57,6 +57,16 @@ enum AutoRemediationTriggerEntity {
    * approval, or done without asking (Types/DataSecurity/DataSecurityAi).
    */
   DataSecurityIssue = "DataSecurityIssue",
+  /*
+   * A cloud saving OneUptime can act on through the account's cloud
+   * connection (Cloud -> Spend -> Savings, #11010): the rule says which
+   * savings - by the kind of change, the resource's environment and its
+   * cloud - OneUptime AI proposes to the resource's owner, makes without
+   * asking up to a monthly limit, or leaves alone
+   * (Types/Cloud/CloudSavingsAi). Production is never changed without a
+   * person, under any rule.
+   */
+  CloudSaving = "CloudSaving",
 }
 
 export default AutoRemediationTriggerEntity;

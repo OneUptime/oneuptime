@@ -507,12 +507,18 @@ describe("the menu paths", () => {
         title: "Cloud",
         items: ["Overview", "Accounts", "All Resources", "Connect"],
       },
-      // What the accounts cost, how to spend less, and the budgets.
+      /*
+       * What the accounts cost and how it is shared out, how to spend less,
+       * the off-hours schedules and the budgets.
+       */
       {
         title: "Spend",
-        items: ["Costs", "Cost Groups", "Savings", "Budgets"],
+        items: ["Costs", "Cost Groups", "Savings", "Schedules", "Budgets"],
       },
-      { title: "Settings", items: ["Owner Rules", "Label Rules"] },
+      {
+        title: "Settings",
+        items: ["Owner Rules", "Label Rules", "Savings AI Rules"],
+      },
       { title: "Advanced", items: ["Archived"] },
     ]);
     expect(menuSections(APP_PLATFORMS_SIDE_MENU)).toEqual([

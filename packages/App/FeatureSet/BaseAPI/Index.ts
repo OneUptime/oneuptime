@@ -2197,6 +2197,11 @@ import CloudCostRecommendation from "Common/Models/DatabaseModels/CloudCostRecom
 import CloudCostRecommendationService, {
   Service as CloudCostRecommendationServiceType,
 } from "Common/Server/Services/CloudCostRecommendationService";
+import CloudOffHoursSchedule from "Common/Models/DatabaseModels/CloudOffHoursSchedule";
+import CloudOffHoursScheduleService, {
+  Service as CloudOffHoursScheduleServiceType,
+} from "Common/Server/Services/CloudOffHoursScheduleService";
+import CloudSavingsAPI from "Common/Server/API/CloudSavingsAPI";
 import CloudResourceFeedService, {
   Service as CloudResourceFeedServiceType,
 } from "Common/Server/Services/CloudResourceFeedService";
@@ -4023,6 +4028,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudCostRecommendation, CloudCostRecommendationServiceType>(
         CloudCostRecommendation,
         CloudCostRecommendationService,
+      ).getRouter(),
+    );
+
+    /*
+     * The changes OneUptime proposes and makes for savings (#11010): read
+     * here, and asked for, approved, dismissed and undone through the
+     * savings routes; written only by those and the workers.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudSavingsAPI().getRouter(),
+    );
+
+    // Off-hours schedules that stop non-production resources (#11010).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudOffHoursSchedule, CloudOffHoursScheduleServiceType>(
+        CloudOffHoursSchedule,
+        CloudOffHoursScheduleService,
       ).getRouter(),
     );
 

@@ -42,6 +42,12 @@ import ColumnLength from "../../Types/Database/ColumnLength";
 export enum CloudAccountFeedEventType {
   CloudAccountCreated = "CloudAccountCreated",
   CloudAccountUpdated = "CloudAccountUpdated",
+  // A change for a saving to a resource of the account (#11010), as its resource's feed says it.
+  SavingsActionProposed = "SavingsActionProposed",
+  SavingsActionApplied = "SavingsActionApplied",
+  SavingsActionFailed = "SavingsActionFailed",
+  SavingsActionDismissed = "SavingsActionDismissed",
+  SavingsActionUndone = "SavingsActionUndone",
 }
 
 @EnableDocumentation()

@@ -23,7 +23,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
@@ -36,6 +36,15 @@ import {
 } from "./CloudRightSizingText";
 import { readCloudRightSizingEvidence } from "Common/Types/Cloud/CloudRightSizing";
 import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
+import {
+  CLOUD_COMMITMENT_PURCHASE_URLS,
+  getCloudSavingsActionPlan,
+} from "Common/Types/Cloud/CloudSavingsAction";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import IconProp from "Common/Types/Icon/IconProp";
+import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import CloudSavingsApplyModal from "./Savings/CloudSavingsApplyModal";
 
 /*
  * The ways to spend less, as a table: every recommendation your clouds'
@@ -52,12 +61,37 @@ import { joinWithArrowsOn } from "Common/Types/DirectionArrow";
  * an account's Costs for it. The recommendations are the server's
  * (CloudCostRecommendation is read only), read again every day: one done
  * or dismissed in the cloud's console goes away on the next read.
+ *
+ * A saving OneUptime can make itself - one change through the account's
+ * connection (Types/Cloud/CloudSavingsAction) - has Apply, which opens
+ * what it would do and who approves it (CloudSavingsApplyModal, #11010);
+ * a commitment links to its cloud's purchase page, as OneUptime never
+ * buys one.
  */
 
 export const SAVINGS_TABLE_TITLE: string = translationKey("Ways to spend less");
 export const SAVINGS_TABLE_DESCRIPTION: string = translationKey(
-  "What your clouds' recommenders and OneUptime's own right-sizing say could be saved, the largest first. Read every day: one acted on or dismissed goes away on the next read.",
+  "What your clouds' recommenders and OneUptime's own right-sizing say could be saved, the largest first. Apply one here, or in your cloud's console.",
 );
+export const APPLY_SAVING: string = translationKey("Apply");
+export const BUY_IN_CONSOLE: string = translationKey("Buy in Console");
+
+// Whether OneUptime can make a saving's change itself: the row's Apply.
+export function canApplyCloudSaving(
+  recommendation: CloudCostRecommendation,
+): boolean {
+  return Boolean(
+    getCloudSavingsActionPlan({
+      provider: recommendation.provider,
+      kind: recommendation.kind,
+      action: recommendation.action,
+      resourceId: recommendation.resourceId,
+      region: recommendation.region,
+      currentConfiguration: recommendation.currentConfiguration,
+      recommendedConfiguration: recommendation.recommendedConfiguration,
+    }).plan,
+  );
+}
 export const SAVINGS_TABLE_EMPTY: string = translationKey(
   "No ways to spend less yet. Your clouds' recommenders are read once a day.",
 );
@@ -106,6 +140,8 @@ export interface ComponentProps {
   cloudAccountId?: ObjectID | undefined;
   // The currency a row is in when it names none.
   currency: string;
+  // After a saving was applied or asked for: the page's lists refresh.
+  onChanged?: (() => void) | undefined;
 }
 
 const CloudSavingsTable: FunctionComponent<ComponentProps> = (
@@ -113,284 +149,346 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const isOneAccount: boolean = Boolean(props.cloudAccountId);
+  const [applying, setApplying] = useState<ObjectID | null>(null);
 
   return (
-    <ModelTable<CloudCostRecommendation>
-      modelType={CloudCostRecommendation}
-      id={props.id}
-      userPreferencesKey={props.id}
-      name="Cloud > Savings"
-      isDeleteable={false}
-      isEditable={false}
-      isCreateable={false}
-      isViewable={false}
-      showRefreshButton={true}
-      query={
-        (props.cloudAccountId
-          ? { cloudAccountId: props.cloudAccountId }
-          : {}) as Query<CloudCostRecommendation>
-      }
-      sortBy="monthlySavings"
-      sortOrder={SortOrder.Descending}
-      selectMoreFields={{
-        currency: true,
-        // What an empty action is drawn as (getCloudSavingActionText).
-        kind: true,
-        resourceName: true,
-        resourceId: true,
-        resourceType: true,
-        cloudResourceId: true,
-        cloudAccountId: true,
-        currentConfiguration: true,
-        recommendedConfiguration: true,
-        region: true,
-        provider: true,
-        // What made OneUptime's own right-sizing, said under its change.
-        evidence: true,
-      }}
-      cardProps={{
-        title: SAVINGS_TABLE_TITLE,
-        description: SAVINGS_TABLE_DESCRIPTION,
-      }}
-      noItemsMessage={SAVINGS_TABLE_EMPTY}
-      filters={[
-        {
-          field: { kind: true },
-          title: "Kind",
-          type: FieldType.Dropdown,
-          filterDropdownOptions: KIND_OPTIONS,
-        },
-        ...(isOneAccount
-          ? []
-          : [
-              {
-                field: { cloudAccount: { name: true } },
-                title: "Account",
-                type: FieldType.Entity,
-                filterEntityType: CloudAccount,
-                filterDropdownField: { label: "name", value: "_id" },
-              },
-              {
-                field: { provider: true },
-                title: "Cloud",
-                type: FieldType.Dropdown,
-                filterDropdownOptions: PROVIDER_OPTIONS,
-              },
-            ]),
-        {
-          field: { resourceName: true },
-          title: "Resource",
-          type: FieldType.Text,
-        },
-        {
-          field: { region: true },
-          title: "Region",
-          type: FieldType.Text,
-        },
-      ]}
-      columns={[
-        {
-          field: { action: true },
-          title: "Recommendation",
-          type: FieldType.Element,
-          isNotCustomizable: true,
-          wrapContent: true,
-          getElement: (item: CloudCostRecommendation): ReactElement => {
-            const change: string = getSavingChangeText(
-              item,
-              translator.language,
-            );
-            const evidence: string | null = getCloudRightSizingEvidenceLine({
-              evidence: readCloudRightSizingEvidence(item.evidence),
-              translator,
-            });
-
-            return (
-              <div className="min-w-0" data-testid="cloud-saving-row">
-                <div className="break-words text-sm font-medium text-gray-900">
-                  {getCloudSavingActionText({
-                    action: item.action,
-                    kind: item.kind as CloudSavingKind | undefined,
-                    translateText: translator.translateText,
-                  })}
-                </div>
-                {change ? (
-                  <div
-                    className="mt-0.5 break-words text-xs text-gray-500"
-                    data-testid="cloud-saving-change"
-                  >
-                    {change}
-                  </div>
-                ) : (
-                  <></>
-                )}
-                {/*
-                 * OneUptime's own right-sizing says what it was judged
-                 * from, in the reader's language: a cloud's recommender
-                 * says that in its own console.
-                 */}
-                {evidence ? (
-                  <div
-                    className="mt-0.5 break-words text-xs text-gray-500"
-                    data-testid="cloud-saving-evidence"
-                  >
-                    {evidence}
-                  </div>
-                ) : (
-                  <></>
-                )}
-              </div>
-            );
+    <>
+      {applying ? (
+        <CloudSavingsApplyModal
+          cloudCostRecommendationId={applying}
+          onClose={() => {
+            setApplying(null);
+          }}
+          onDone={() => {
+            props.onChanged?.();
+          }}
+        />
+      ) : (
+        <></>
+      )}
+      <ModelTable<CloudCostRecommendation>
+        modelType={CloudCostRecommendation}
+        id={props.id}
+        userPreferencesKey={props.id}
+        name="Cloud > Savings"
+        isDeleteable={false}
+        isEditable={false}
+        isCreateable={false}
+        isViewable={false}
+        showRefreshButton={true}
+        query={
+          (props.cloudAccountId
+            ? { cloudAccountId: props.cloudAccountId }
+            : {}) as Query<CloudCostRecommendation>
+        }
+        sortBy="monthlySavings"
+        sortOrder={SortOrder.Descending}
+        selectMoreFields={{
+          currency: true,
+          // What an empty action is drawn as (getCloudSavingActionText).
+          kind: true,
+          resourceName: true,
+          resourceId: true,
+          resourceType: true,
+          cloudResourceId: true,
+          cloudAccountId: true,
+          currentConfiguration: true,
+          recommendedConfiguration: true,
+          region: true,
+          provider: true,
+          // What made OneUptime's own right-sizing, said under its change.
+          evidence: true,
+          // What Apply reads: which change the saving is.
+          action: true,
+        }}
+        actionButtons={[
+          {
+            title: APPLY_SAVING,
+            icon: IconProp.Check,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            placement: ActionButtonPlacement.Primary,
+            isVisible: (item: CloudCostRecommendation): boolean => {
+              return canApplyCloudSaving(item);
+            },
+            onClick: (
+              item: CloudCostRecommendation,
+              onCompleteAction: VoidFunction,
+            ) => {
+              if (item._id) {
+                setApplying(new ObjectID(item._id.toString()));
+              }
+              onCompleteAction();
+            },
           },
-        },
-        {
-          field: { resourceName: true },
-          title: "Resource",
-          type: FieldType.Element,
-          wrapContent: true,
-          getElement: (item: CloudCostRecommendation): ReactElement => {
-            const resource: string = item.resourceName || item.resourceId || "";
-            const where: string = [item.resourceType || "", item.region || ""]
-              .filter((part: string): boolean => {
-                return part.length > 0;
-              })
-              .join(" · ");
+          {
+            title: BUY_IN_CONSOLE,
+            icon: IconProp.ExternalLink,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            placement: ActionButtonPlacement.Primary,
+            isVisible: (item: CloudCostRecommendation): boolean => {
+              return item.kind === CloudSavingKind.Commitment;
+            },
+            onClick: (
+              item: CloudCostRecommendation,
+              onCompleteAction: VoidFunction,
+            ) => {
+              const url: string | undefined =
+                CLOUD_COMMITMENT_PURCHASE_URLS[item.provider as CloudProvider];
 
-            return (
-              <div className="min-w-0" data-testid="cloud-saving-resource">
-                {resource ? (
-                  <div className="break-all text-sm">
-                    {item.cloudResourceId ? (
+              if (url) {
+                window.open(url, "_blank", "noopener,noreferrer");
+              }
+              onCompleteAction();
+            },
+          },
+        ]}
+        cardProps={{
+          title: SAVINGS_TABLE_TITLE,
+          description: SAVINGS_TABLE_DESCRIPTION,
+        }}
+        noItemsMessage={SAVINGS_TABLE_EMPTY}
+        filters={[
+          {
+            field: { kind: true },
+            title: "Kind",
+            type: FieldType.Dropdown,
+            filterDropdownOptions: KIND_OPTIONS,
+          },
+          ...(isOneAccount
+            ? []
+            : [
+                {
+                  field: { cloudAccount: { name: true } },
+                  title: "Account",
+                  type: FieldType.Entity,
+                  filterEntityType: CloudAccount,
+                  filterDropdownField: { label: "name", value: "_id" },
+                },
+                {
+                  field: { provider: true },
+                  title: "Cloud",
+                  type: FieldType.Dropdown,
+                  filterDropdownOptions: PROVIDER_OPTIONS,
+                },
+              ]),
+          {
+            field: { resourceName: true },
+            title: "Resource",
+            type: FieldType.Text,
+          },
+          {
+            field: { region: true },
+            title: "Region",
+            type: FieldType.Text,
+          },
+        ]}
+        columns={[
+          {
+            field: { action: true },
+            title: "Recommendation",
+            type: FieldType.Element,
+            isNotCustomizable: true,
+            wrapContent: true,
+            getElement: (item: CloudCostRecommendation): ReactElement => {
+              const change: string = getSavingChangeText(
+                item,
+                translator.language,
+              );
+              const evidence: string | null = getCloudRightSizingEvidenceLine({
+                evidence: readCloudRightSizingEvidence(item.evidence),
+                translator,
+              });
+
+              return (
+                <div className="min-w-0" data-testid="cloud-saving-row">
+                  <div className="break-words text-sm font-medium text-gray-900">
+                    {getCloudSavingActionText({
+                      action: item.action,
+                      kind: item.kind as CloudSavingKind | undefined,
+                      translateText: translator.translateText,
+                    })}
+                  </div>
+                  {change ? (
+                    <div
+                      className="mt-0.5 break-words text-xs text-gray-500"
+                      data-testid="cloud-saving-change"
+                    >
+                      {change}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                  {/*
+                   * OneUptime's own right-sizing says what it was judged
+                   * from, in the reader's language: a cloud's recommender
+                   * says that in its own console.
+                   */}
+                  {evidence ? (
+                    <div
+                      className="mt-0.5 break-words text-xs text-gray-500"
+                      data-testid="cloud-saving-evidence"
+                    >
+                      {evidence}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: { resourceName: true },
+            title: "Resource",
+            type: FieldType.Element,
+            wrapContent: true,
+            getElement: (item: CloudCostRecommendation): ReactElement => {
+              const resource: string =
+                item.resourceName || item.resourceId || "";
+              const where: string = [item.resourceType || "", item.region || ""]
+                .filter((part: string): boolean => {
+                  return part.length > 0;
+                })
+                .join(" · ");
+
+              return (
+                <div className="min-w-0" data-testid="cloud-saving-resource">
+                  {resource ? (
+                    <div className="break-all text-sm">
+                      {item.cloudResourceId ? (
+                        <AppLink
+                          to={RouteUtil.populateRouteParams(
+                            RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route,
+                            {
+                              modelId: new ObjectID(
+                                item.cloudResourceId.toString(),
+                              ),
+                            },
+                          )}
+                          className="font-medium text-indigo-600 hover:text-indigo-700"
+                        >
+                          <bdi>{resource}</bdi>
+                        </AppLink>
+                      ) : (
+                        <bdi className="text-gray-900">{resource}</bdi>
+                      )}
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                  {where ? (
+                    <div className="mt-0.5 text-xs text-gray-500">
+                      <bdi>{where}</bdi>
+                    </div>
+                  ) : (
+                    <></>
+                  )}
+                </div>
+              );
+            },
+          },
+          {
+            field: { monthlySavings: true },
+            title: "Monthly Savings",
+            type: FieldType.Element,
+            getElement: (item: CloudCostRecommendation): ReactElement => {
+              /*
+               * OneUptime's own right-sizing of a resource its cloud does not
+               * bill by name has no amount yet: said so, not as nothing.
+               */
+              if (!isCloudSavingAmountKnown(item)) {
+                return (
+                  <span
+                    className="text-sm text-gray-500"
+                    data-testid="cloud-saving-amount-not-known"
+                  >
+                    {translator.translateText(SAVING_NOT_KNOWN_YET)}
+                  </span>
+                );
+              }
+
+              return (
+                <span
+                  className="text-sm font-semibold tabular-nums text-emerald-700"
+                  data-testid="cloud-saving-amount"
+                >
+                  <bdi>
+                    {formatCloudMoney({
+                      amount: Number(item.monthlySavings) || 0,
+                      currency: item.currency || props.currency,
+                      translator,
+                    })}
+                  </bdi>
+                </span>
+              );
+            },
+          },
+          ...(isOneAccount
+            ? []
+            : [
+                {
+                  field: { cloudAccount: { name: true } },
+                  title: "Account",
+                  type: FieldType.Element,
+                  hideOnMobile: true,
+                  getElement: (item: CloudCostRecommendation): ReactElement => {
+                    if (!item.cloudAccountId) {
+                      return <></>;
+                    }
+
+                    return (
                       <AppLink
                         to={RouteUtil.populateRouteParams(
-                          RouteMap[PageMap.CLOUD_RESOURCE_VIEW] as Route,
+                          RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route,
                           {
                             modelId: new ObjectID(
-                              item.cloudResourceId.toString(),
+                              item.cloudAccountId.toString(),
                             ),
                           },
                         )}
-                        className="font-medium text-indigo-600 hover:text-indigo-700"
+                        className="break-words text-sm text-gray-900 hover:underline"
                       >
-                        <bdi>{resource}</bdi>
+                        {item.cloudAccount?.name || ""}
                       </AppLink>
-                    ) : (
-                      <bdi className="text-gray-900">{resource}</bdi>
-                    )}
-                  </div>
-                ) : (
-                  <></>
-                )}
-                {where ? (
-                  <div className="mt-0.5 text-xs text-gray-500">
-                    <bdi>{where}</bdi>
-                  </div>
-                ) : (
-                  <></>
-                )}
-              </div>
-            );
-          },
-        },
-        {
-          field: { monthlySavings: true },
-          title: "Monthly Savings",
-          type: FieldType.Element,
-          getElement: (item: CloudCostRecommendation): ReactElement => {
-            /*
-             * OneUptime's own right-sizing of a resource its cloud does not
-             * bill by name has no amount yet: said so, not as nothing.
-             */
-            if (!isCloudSavingAmountKnown(item)) {
-              return (
-                <span
-                  className="text-sm text-gray-500"
-                  data-testid="cloud-saving-amount-not-known"
-                >
-                  {translator.translateText(SAVING_NOT_KNOWN_YET)}
-                </span>
-              );
-            }
-
-            return (
-              <span
-                className="text-sm font-semibold tabular-nums text-emerald-700"
-                data-testid="cloud-saving-amount"
-              >
-                <bdi>
-                  {formatCloudMoney({
-                    amount: Number(item.monthlySavings) || 0,
-                    currency: item.currency || props.currency,
-                    translator,
-                  })}
-                </bdi>
-              </span>
-            );
-          },
-        },
-        ...(isOneAccount
-          ? []
-          : [
-              {
-                field: { cloudAccount: { name: true } },
-                title: "Account",
-                type: FieldType.Element,
-                hideOnMobile: true,
-                getElement: (item: CloudCostRecommendation): ReactElement => {
-                  if (!item.cloudAccountId) {
-                    return <></>;
-                  }
-
-                  return (
-                    <AppLink
-                      to={RouteUtil.populateRouteParams(
-                        RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route,
-                        {
-                          modelId: new ObjectID(item.cloudAccountId.toString()),
-                        },
-                      )}
-                      className="break-words text-sm text-gray-900 hover:underline"
-                    >
-                      {item.cloudAccount?.name || ""}
-                    </AppLink>
-                  );
+                    );
+                  },
                 },
-              },
-            ]),
-        {
-          field: { kind: true },
-          title: "Kind",
-          type: FieldType.Element,
-          hideOnMobile: true,
-          isHiddenByDefault: true,
-          getElement: (item: CloudCostRecommendation): ReactElement => {
-            const kind: CloudSavingKind =
-              (item.kind as CloudSavingKind) || CloudSavingKind.Other;
+              ]),
+          {
+            field: { kind: true },
+            title: "Kind",
+            type: FieldType.Element,
+            hideOnMobile: true,
+            isHiddenByDefault: true,
+            getElement: (item: CloudCostRecommendation): ReactElement => {
+              const kind: CloudSavingKind =
+                (item.kind as CloudSavingKind) || CloudSavingKind.Other;
 
-            return (
-              <Pill
-                text={CLOUD_SAVING_KIND_LABELS[kind]}
-                color={CLOUD_SAVING_KIND_COLORS[kind]}
-              />
-            );
+              return (
+                <Pill
+                  text={CLOUD_SAVING_KIND_LABELS[kind]}
+                  color={CLOUD_SAVING_KIND_COLORS[kind]}
+                />
+              );
+            },
           },
-        },
-        {
-          field: { source: true },
-          title: "Source",
-          type: FieldType.Text,
-          hideOnMobile: true,
-          isHiddenByDefault: true,
-        },
-        {
-          field: { effort: true },
-          title: "Effort",
-          type: FieldType.Text,
-          hideOnMobile: true,
-          isHiddenByDefault: true,
-        },
-      ]}
-    />
+          {
+            field: { source: true },
+            title: "Source",
+            type: FieldType.Text,
+            hideOnMobile: true,
+            isHiddenByDefault: true,
+          },
+          {
+            field: { effort: true },
+            title: "Effort",
+            type: FieldType.Text,
+            hideOnMobile: true,
+            isHiddenByDefault: true,
+          },
+        ]}
+      />
+    </>
   );
 };
 

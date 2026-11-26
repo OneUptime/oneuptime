@@ -17,6 +17,7 @@ import {
   DATA_SECURITY_FIELD_KEY,
   DATA_SECURITY_RESPONSE_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
+  SAVINGS_ACTIONS_FIELD_KEY,
   SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   getCloudConnectionFieldsForMethod,
@@ -1675,7 +1676,7 @@ describe("every setting that changes a command is asked with it, and no other", 
     }
   });
 
-  test("they are what to read, Data Security's two settings and the blocklist's on every cloud, and Security case checks on AWS", () => {
+  test("they are what to read, Savings actions, Data Security's two settings and the blocklist's on every cloud, and Security case checks on AWS", () => {
     for (const definition of CloudConnectionCatalog) {
       expect({
         cloud: definition.provider,
@@ -1693,6 +1694,8 @@ describe("every setting that changes a command is asked with it, and no other", 
           DATA_SECURITY_FIELD_KEY,
           DATA_SECURITY_RESPONSE_FIELD_KEY,
           READ_SCOPE_FIELD_KEY,
+          // What OneUptime may change for savings, every cloud's (#11010).
+          SAVINGS_ACTIONS_FIELD_KEY,
           WAF_BLOCKLIST_FIELD_KEY,
           // Reading IAM users back is AWS's (#10900).
           ...(definition.provider === CloudProvider.AWS
