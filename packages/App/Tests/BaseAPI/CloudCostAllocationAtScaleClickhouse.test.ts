@@ -805,9 +805,11 @@ integration("cost groups over a year of a busy project's costs", () => {
     for (let day: number = 0; day < DAYS.length; day++) {
       const dayText: string = OneUptimeDate.toClickhouseDateTime(DAYS[day]!);
 
-      RESOURCES.forEach((resource: Resource, index: number): void => {
+      for (let index: number = 0; index < RESOURCES.length; index++) {
+        const resource: Resource = RESOURCES[index]!;
+
         if (day < resource.firstDay || day > resource.lastDay) {
-          return;
+          continue;
         }
 
         batch.push({
@@ -826,7 +828,7 @@ integration("cost groups over a year of a busy project's costs", () => {
           tags: resource.tags,
           readAt,
         });
-      });
+      }
 
       if (batch.length >= 100000) {
         await flush();
