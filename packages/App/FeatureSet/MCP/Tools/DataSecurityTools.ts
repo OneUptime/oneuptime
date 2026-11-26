@@ -75,9 +75,13 @@ const AS_THE_PERSON: string =
   "Acts as the person signed in (OAuth), with their permissions; an API key cannot.";
 
 const ASKS_A_PERSON: string =
-  "OneUptime asks a person before this in every mode, and this connection cannot show them a card: it is refused here, with the page in OneUptime where they do it.";
+  "OneUptime asks a person first, in every mode: it is refused here, with the page in OneUptime where they do it.";
 
 const STRING: JSONSchemaProperty = { type: "string" };
+
+// Which kind of rule a saved draft's field belongs to.
+const RESIDENCY_ONLY: string = "Residency rules only.";
+const OWNER_OR_LABEL_ONLY: string = "Owner and label rules only.";
 
 function arrayOfStrings(description: string): JSONSchemaProperty {
   return { type: "array", items: { type: "string" }, description };
@@ -89,7 +93,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
       name: QUERY_DATA_SECURITY_PROPOSALS_TOOL_NAME,
       title: "Query Data Security Proposals",
       description:
-        'What OneUptime AI proposes in Data Security, waiting for a person: each proposal\'s kind, title, risk and the issue or store it is about, riskiest first. which="data-types" lists the data types OneUptime AI found that scans do not look for yet: each one\'s name, category and sensitivity, how it was proven ("Matches 98% of the values in these 11 fields, and 0.1% of values elsewhere in the same stores"), the stores and fields it is in (locations only, never a value), and how many more are still being checked. Read-only.',
+        "What OneUptime AI proposes in Data Security, waiting for a person: each proposal's kind, title, risk and the issue or store it is about, riskiest first. which=\"data-types\" lists the data types OneUptime AI found that scans do not look for yet: each one's name, category and sensitivity, how it was proven, the stores and fields it is in (never a value), and how many more are still being checked. Read-only.",
       inputSchema: {
         type: "object",
         properties: {
@@ -116,7 +120,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
       name: DRAFT_DATA_SECURITY_RULE_TOOL_NAME,
       title: "Draft Data Security Rule",
       description:
-        'Draft a Data Security rule from a sentence, such as "EU personal data must stay in the EU", "the payments team owns every store named payments-" or "label every store holding card numbers PCI": OneUptime AI drafts a residency, owner or label rule - the kind the sentence asks for - and the answer says which stores it matches today, and for a residency rule which break it. Saves nothing; uses OneUptime AI. Read-only.',
+        'Draft a residency, owner or label rule from a sentence, such as "EU personal data must stay in the EU" or "the payments team owns every store named payments-": OneUptime AI drafts the kind the sentence asks for, and the answer names the stores it matches today and, for a residency rule, those that break it. Saves nothing; uses OneUptime AI. Read-only.',
       inputSchema: {
         type: "object",
         properties: {
@@ -133,7 +137,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
     {
       name: SCRUB_DATA_SECURITY_FINDING_TOOL_NAME,
       title: "Scrub Data Security Finding",
-      description: `Scrub It on a finding in telemetry: the proven, narrow scrub rule that hides the finding's data type at its place in the service's logs, spans or metrics as new data arrives, tested on the records it was found in. When a monitor, dashboard, saved view, recording rule, SLO or Security Events reads what it hides, ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
+      description: `Scrub It on a telemetry finding: a narrow scrub rule, proven on the records it was found in, that hides its data type at that place as new data arrives. When a monitor, dashboard, saved view, recording rule, SLO or Security Events reads what it hides, ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
       inputSchema: {
         type: "object",
         properties: {
@@ -213,7 +217,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
     {
       name: SET_DATA_STORE_OWNERS_TOOL_NAME,
       title: "Set Data Store Owners",
-      description: `Add or remove a store's owners: members by name or email, teams by name. Owners are emailed each new issue on the store, so ${ASKS_A_PERSON.charAt(0).toLowerCase()}${ASKS_A_PERSON.slice(1)} ${AS_THE_PERSON}`,
+      description: `Add or remove a store's owners: members by name or email, teams by name. Owners are emailed each new issue on the store. ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
       inputSchema: {
         type: "object",
         properties: {
@@ -229,41 +233,25 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
     {
       name: SAVE_DATA_SECURITY_RULE_TOOL_NAME,
       title: "Save Data Security Rule",
-      description: `Save a rule ${DRAFT_DATA_SECURITY_RULE_TOOL_NAME} drafted, its fields unchanged. A person sees what their words became, and the stores it matches, before it is saved: ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
+      description: `Save a rule ${DRAFT_DATA_SECURITY_RULE_TOOL_NAME} drafted: pass the draft's fields unchanged. A person sees what their words became, and the stores it matches, before it is saved: ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
       inputSchema: {
         type: "object",
         properties: {
-          kind: {
-            type: "string",
-            enum: ["residency", "owner", "label"],
-            description: "The draft's kind.",
-          },
-          name: { ...STRING, description: "The draft's name." },
-          description: { ...STRING, description: "The draft's description." },
-          dataCategories: arrayOfStrings(
-            "Residency: the draft's data categories.",
-          ),
-          subjectCountries: arrayOfStrings("Residency: the draft's countries."),
-          allowedRegions: arrayOfStrings(
-            "Residency: the draft's allowed regions.",
-          ),
-          nameRegexPattern: {
-            ...STRING,
-            description: "Owner or label: the draft's name pattern.",
-          },
+          kind: { type: "string", enum: ["residency", "owner", "label"] },
+          name: STRING,
+          description: STRING,
+          dataCategories: arrayOfStrings(RESIDENCY_ONLY),
+          subjectCountries: arrayOfStrings(RESIDENCY_ONLY),
+          allowedRegions: arrayOfStrings(RESIDENCY_ONLY),
+          nameRegexPattern: { ...STRING, description: OWNER_OR_LABEL_ONLY },
           descriptionRegexPattern: {
             ...STRING,
-            description: "Owner or label: the draft's description pattern.",
+            description: OWNER_OR_LABEL_ONLY,
           },
-          cloudTagPattern: {
-            ...STRING,
-            description: "Owner or label: the draft's cloud tag pattern.",
-          },
-          matchLabels: arrayOfStrings(
-            "Owner or label: labels a store must have.",
-          ),
-          owners: arrayOfStrings("Owner: the draft's owners."),
-          labelsToAdd: arrayOfStrings("Label: the labels the stores get."),
+          cloudTagPattern: { ...STRING, description: OWNER_OR_LABEL_ONLY },
+          matchLabels: arrayOfStrings(OWNER_OR_LABEL_ONLY),
+          owners: arrayOfStrings("Owner rules only."),
+          labelsToAdd: arrayOfStrings("Label rules only."),
         },
         required: ["kind", "name"],
         additionalProperties: false,
@@ -273,7 +261,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
     {
       name: RESPOND_ON_DATA_STORE_TOOL_NAME,
       title: "Respond On Data Store",
-      description: `A response action on a store through its cloud connection - ${ALL_DATA_SECURITY_RESPONSE_ACTIONS.join(", ")} - which changes the store's settings in its cloud, and can stop what reads it working. ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
+      description: `A response action on a store, such as "Block public access", through its cloud connection: it changes the store's settings in its cloud, and can stop what reads it working. ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
       inputSchema: {
         type: "object",
         properties: {
@@ -297,7 +285,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
     {
       name: FIX_DATA_SECURITY_ISSUE_WITH_AI_TOOL_NAME,
       title: "Fix Data Security Issue With AI",
-      description: `Fix with AI on an issue: OneUptime AI opens a pull request that fixes it, for someone to review and merge - nothing is merged or deployed - in a repository the person may change in Code; a leak in a service's telemetry gets one pull request for every leak of the service. A fix already on its way is not started twice. It uses OneUptime AI credits. ${AS_THE_PERSON}`,
+      description: `Fix with AI on an issue: OneUptime AI opens a pull request that fixes it, for someone to review and merge - nothing is merged or deployed - in a repository the person may change in Code; a service's or RUM application's telemetry leak gets one pull request for all its leaks. A fix on its way is not started twice. It uses OneUptime AI credits. ${AS_THE_PERSON}`,
       inputSchema: {
         type: "object",
         properties: {
