@@ -2,6 +2,7 @@ import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
 import CloudTagSetting from "Common/Models/DatabaseModels/CloudTagSetting";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
@@ -177,6 +178,8 @@ export const CloudTagSettingsCards: FunctionComponent<{
               type: AlertSeverity,
               labelField: "name",
               valueField: "_id",
+              // Most severe first, as every severity picker lists them.
+              sort: { order: SortOrder.Ascending },
             },
             required: false,
             placeholder: "Least severe",

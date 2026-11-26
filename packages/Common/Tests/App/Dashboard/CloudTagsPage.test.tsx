@@ -25,6 +25,7 @@ import ObjectID from "../../../Types/ObjectID";
 import { createTranslator, Translator } from "../../../Types/Translator";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { MORE_SETTINGS_SECTION_TITLE } from "../../../UI/Components/FoldedSection/FoldedSectionTitles";
 import { getJestSpyOn } from "../../Spy";
 import { CloudStatTile } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudStatStrip";
 import { getCloudTagTrendSeries } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudTagCoverageCards";
@@ -494,5 +495,41 @@ describe("the page, drawn", () => {
     expect(
       within(row).queryByTestId("cloud-untagged-command"),
     ).not.toBeInTheDocument();
+  });
+
+  /*
+   * Who is told, and where an alert goes, are folded under More settings:
+   * a link to either - the email's, a teammate's - opens the fold there.
+   */
+  test("More settings is folded, and a link to either card it holds opens it there", async () => {
+    answer = coverage();
+    window.history.replaceState(null, "", "/");
+
+    await draw();
+
+    const fold: () => HTMLElement = (): HTMLElement => {
+      return within(screen.getByTestId("cloud-tags-more-settings")).getByRole(
+        "button",
+        { name: MORE_SETTINGS_SECTION_TITLE },
+      );
+    };
+
+    expect(fold()).toHaveAttribute("aria-expanded", "false");
+    cleanup();
+
+    for (const key of ["who-is-told", "where-alerts-go"]) {
+      window.history.replaceState(null, "", `/#${key}`);
+
+      await draw();
+
+      expect({ key, expanded: fold().getAttribute("aria-expanded") }).toEqual({
+        key,
+        expanded: "true",
+      });
+      expect(fold()).toHaveAttribute("aria-expanded", "true");
+      cleanup();
+    }
+
+    window.history.replaceState(null, "", "/");
   });
 });
