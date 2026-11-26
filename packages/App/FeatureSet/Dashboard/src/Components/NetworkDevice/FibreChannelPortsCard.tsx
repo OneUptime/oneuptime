@@ -58,8 +58,6 @@ export interface ComponentProps {
  * Transceivers card draws nothing on one with no optics.
  */
 
-export const FIBRE_CHANNEL_PORTS_CARD_TITLE: string = "Fibre Channel Ports";
-
 // One line per port, named by the port.
 function seriesOfPort(data: AggregateModel, fallback: string): ChartSeries {
   let attributes: JSONObject | undefined = data?.["attributes"] as
@@ -195,7 +193,7 @@ const FibreChannelPortsCard: FunctionComponent<ComponentProps> = (
   return (
     <TimeRangeZoomScope timeRange={timeRange} onTimeRangeChange={setTimeRange}>
       <Card
-        title={FIBRE_CHANNEL_PORTS_CARD_TITLE}
+        title="Fibre Channel Ports"
         description="Each port's errors, discards and credit counters per second, read from the switch's own counters. Pick a counter to compare the ports on it."
         rightElement={
           <div className="flex flex-wrap items-center gap-2">

@@ -619,7 +619,7 @@ export default class TemplateVariablesCatalog {
             {
               key: "trapInterface",
               description:
-                "The interface a trap names by its index, by the name the device's last walk recorded: a link trap's, or an RMON alarm's (an MDS port-monitor alarm).",
+                "The interface a trap is about - a link trap's, or an RMON alarm's (an MDS port-monitor alarm): the name the trap carries, else the name the device's last walk recorded for its index.",
               example: "fc1/5",
             },
             {
