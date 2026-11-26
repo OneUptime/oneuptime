@@ -917,8 +917,12 @@ describe("a platform a probe reads is connected, never installed (#11004)", () =
         "StorageArrayConnectOffer.tsx",
       ),
     );
-    expect(offer).toContain("[CREATE_FORM_ADDRESS_PARAM]:CREATE_FORM_ADDRESS_VALUE,");
-    expect(offer).toContain("RouteMap[PageMap.STORAGE_ARRAYS_CONNECTIONS]asRoute");
+    expect(offer).toContain(
+      "[CREATE_FORM_ADDRESS_PARAM]:CREATE_FORM_ADDRESS_VALUE,",
+    );
+    expect(offer).toContain(
+      "RouteMap[PageMap.STORAGE_ARRAYS_CONNECTIONS]asRoute",
+    );
   });
 
   test("the connection's page edits with the same steps, tests, trusts and deletes", () => {
@@ -930,10 +934,14 @@ describe("a platform a probe reads is connected, never installed (#11004)", () =
     );
     expect(connectionView).toContain("storageArrayConnectionId:modelId,");
     expect(connectionView).toContain("<StorageArrayConnectionTestPanel");
-    expect(connectionView).toContain("trustedCertificateFingerprint:fingerprint,");
+    expect(connectionView).toContain(
+      "trustedCertificateFingerprint:fingerprint,",
+    );
     expect(connectionView).toContain("<StorageArrayConnectionStatusCard");
     expect(connectionView).toContain("<StorageArrayConnectionArraysCard");
-    expect(connectionView).toContain("<ModelDeletemodelType={StorageArrayConnection}");
+    expect(connectionView).toContain(
+      "<ModelDeletemodelType={StorageArrayConnection}",
+    );
     // Never the saved password: the test sends none, and the server uses it.
     expect(connectionView).toContain('password:"",');
     expect(connectionView).not.toContain("password:true");
@@ -955,7 +963,7 @@ describe("a platform a probe reads is connected, never installed (#11004)", () =
       readSource("Pages", "StorageArray", "View", "Index.tsx"),
     );
     expect(overview).toContain(
-      "StorageArrayProbeCollectors.isProbeCollected(storageArray.storageSystem)?(<divclassName=\"mb-5\"><StorageArrayCollectedByCard",
+      'StorageArrayProbeCollectors.isProbeCollected(storageArray.storageSystem)?(<divclassName="mb-5"><StorageArrayCollectedByCard',
     );
     expect(overview).toContain("):storageArray?(<ResourceConnectionGuideCard");
     expect(overview).toContain("systemId:true,");
@@ -966,9 +974,9 @@ describe("a platform a probe reads is connected, never installed (#11004)", () =
     expect(documentation).toContain(
       "StorageArrayProbeCollectors.getCollector(storageArray.storageSystem)",
     );
-    expect(
-      documentation.indexOf("<StorageArrayCollectedByCard"),
-    ).toBeLessThan(documentation.indexOf("<StorageArrayDocumentationCard"));
+    expect(documentation.indexOf("<StorageArrayCollectedByCard")).toBeLessThan(
+      documentation.indexOf("<StorageArrayDocumentationCard"),
+    );
   });
 
   test("the connections page is found by search", () => {

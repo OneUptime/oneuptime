@@ -3,7 +3,6 @@ import Route from "Common/Types/API/Route";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import { StorageArrayCollectionArraySummary } from "Common/Types/StorageArray/Collection/StorageArrayProbeCollection";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -26,6 +25,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
   StorageArrayCollectionStatusView,
   StorageArrayCollectionTone,
+  findArrayConnection,
   getCollector,
   getStorageArrayCollectionDescription,
   getStorageArrayCollectionStatusView,
@@ -44,30 +44,6 @@ export interface ComponentProps {
   storageSystem: string;
   // The array's own identifier (StorageArray.systemId): a Symmetrix ID.
   systemId: string | null | undefined;
-}
-
-// The connection whose last collection listed this array as its own.
-export function findArrayConnection(
-  connections: Array<StorageArrayConnection>,
-  systemId: string | null | undefined,
-): {
-  connection: StorageArrayConnection;
-  array: StorageArrayCollectionArraySummary;
-} | null {
-  if (!systemId) {
-    return null;
-  }
-  for (const connection of connections) {
-    const array: StorageArrayCollectionArraySummary | undefined = (
-      connection.collectionSummary?.arrays || []
-    ).find((candidate: StorageArrayCollectionArraySummary): boolean => {
-      return candidate.isLocal && candidate.id === systemId;
-    });
-    if (array) {
-      return { connection, array };
-    }
-  }
-  return null;
 }
 
 function badgeTypeOf(tone: StorageArrayCollectionTone): StatusBadgeType {
@@ -195,7 +171,9 @@ const StorageArrayCollectedByCard: FunctionComponent<ComponentProps> = (
         new Date(),
         BILLING_ENABLED,
       )}
-      rightElement={<StatusBadge text={view.label} type={badgeTypeOf(view.tone)} />}
+      rightElement={
+        <StatusBadge text={view.label} type={badgeTypeOf(view.tone)} />
+      }
       buttons={[
         {
           title: "View Connection",

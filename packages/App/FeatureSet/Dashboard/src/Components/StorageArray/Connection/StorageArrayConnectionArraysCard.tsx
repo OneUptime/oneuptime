@@ -192,7 +192,10 @@ const StorageArrayConnectionArraysCard: FunctionComponent<ComponentProps> = (
                           : "",
                         array.isLocal && volumes !== undefined
                           ? translator.translatePlural(
-                              { one: "{{count}} volume", other: "{{count}} volumes" },
+                              {
+                                one: "{{count}} volume",
+                                other: "{{count}} volumes",
+                              },
                               volumes,
                             )
                           : "",

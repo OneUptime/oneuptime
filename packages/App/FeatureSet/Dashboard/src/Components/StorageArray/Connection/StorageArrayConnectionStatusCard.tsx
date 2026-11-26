@@ -132,7 +132,10 @@ const StorageArrayConnectionStatusCard: FunctionComponent<ComponentProps> = (
 
         {props.trustError ? (
           <p className="text-red-700" role="alert">
-            <ErrorInSentence message={props.trustError} showWhereToLook={true} />
+            <ErrorInSentence
+              message={props.trustError}
+              showWhereToLook={true}
+            />
           </p>
         ) : (
           <></>

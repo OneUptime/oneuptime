@@ -368,6 +368,30 @@ export function getPerformanceWords(
   }
 }
 
+// The connection whose last collection listed this array as its own.
+export function findArrayConnection(
+  connections: Array<StorageArrayConnection>,
+  systemId: string | null | undefined,
+): {
+  connection: StorageArrayConnection;
+  array: StorageArrayCollectionArraySummary;
+} | null {
+  if (!systemId) {
+    return null;
+  }
+  for (const connection of connections) {
+    const array: StorageArrayCollectionArraySummary | undefined = (
+      connection.collectionSummary?.arrays || []
+    ).find((candidate: StorageArrayCollectionArraySummary): boolean => {
+      return candidate.isLocal && candidate.id === systemId;
+    });
+    if (array) {
+      return { connection, array };
+    }
+  }
+  return null;
+}
+
 // ---------------- The connection test ----------------
 
 export enum StorageArrayTestPhase {
@@ -416,7 +440,10 @@ export function getStorageArrayTestView(
       };
     case StorageArrayConnectionTestStatus.Succeeded: {
       const summary: StorageArrayCollectionSummary | undefined = test.summary;
-      const product: string = [summary?.serverProductName, summary?.serverVersion]
+      const product: string = [
+        summary?.serverProductName,
+        summary?.serverVersion,
+      ]
         .filter(Boolean)
         .join(" ");
       const arrays: Array<StorageArrayCollectionArraySummary> = [

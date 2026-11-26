@@ -244,7 +244,8 @@ const StorageArrayConnectionTestPanel: FunctionComponent<ComponentProps> = (
     setIsStarting(true);
 
     try {
-      const model: StorageArrayConnectionTest = new StorageArrayConnectionTest();
+      const model: StorageArrayConnectionTest =
+        new StorageArrayConnectionTest();
       model.storageSystem = props.input.storageSystem;
       model.address = props.input.address.trim();
       model.username = props.input.username.trim();

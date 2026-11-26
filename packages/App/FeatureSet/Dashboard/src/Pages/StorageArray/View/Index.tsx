@@ -1651,7 +1651,9 @@ const StorageArrayOverview: FunctionComponent<
        * (#11004); an agent's array, how to connect it while it is not.
        */}
       {storageArray &&
-      StorageArrayProbeCollectors.isProbeCollected(storageArray.storageSystem) ? (
+      StorageArrayProbeCollectors.isProbeCollected(
+        storageArray.storageSystem,
+      ) ? (
         <div className="mb-5">
           <StorageArrayCollectedByCard
             storageSystem={storageArray.storageSystem as string}

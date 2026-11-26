@@ -171,9 +171,7 @@ const StorageArrayRoutes: FunctionComponent<ComponentProps> = (
           }
         />
         <PageRoute
-          path={
-            StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTIONS] || ""
-          }
+          path={StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTIONS] || ""}
           element={
             <StorageArrayConnections
               {...props}

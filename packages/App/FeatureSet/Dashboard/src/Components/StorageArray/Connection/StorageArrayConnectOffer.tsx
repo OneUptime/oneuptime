@@ -61,14 +61,18 @@ const StorageArrayConnectOffer: FunctionComponent = (): ReactElement => {
               key={collector.storageSystem}
               className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600"
             >
-              <span>{translator.translateText(collector.words.offerQuestion)}</span>{" "}
+              <span>
+                {translator.translateText(collector.words.offerQuestion)}
+              </span>{" "}
               <Link
                 to={getConnectRoute(collector)}
                 className="inline-flex items-center gap-1.5 font-medium text-indigo-700 hover:text-indigo-900 hover:underline"
                 dataTestId={`storage-array-connect-offer-${collector.storageSystem}`}
               >
                 <Icon icon={IconProp.Link} className="h-4 w-4 flex-shrink-0" />
-                <span>{translator.translateText(collector.words.connectTitle)}</span>
+                <span>
+                  {translator.translateText(collector.words.connectTitle)}
+                </span>
               </Link>
             </p>
           );

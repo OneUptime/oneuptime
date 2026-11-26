@@ -100,7 +100,8 @@ export const POWERMAX_INSIGHTS_SECTIONS: Array<StorageArrayInsightsSection> = [
     ),
     icon: IconProp.Bolt,
     metricIds: [
-      IDS.storageGroupRealtimeResponseTime,
+      IDS.storageGroupRealtimeReadResponseTime,
+      IDS.storageGroupRealtimeWriteResponseTime,
       IDS.storageGroupRealtimeIops,
       IDS.storageGroupRealtimeThroughput,
     ],

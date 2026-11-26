@@ -24,7 +24,9 @@ import {
   PowerMaxPoller,
   clearPowerMaxAlertCache,
 } from "../../../../../Utils/StorageArray/Dell/PowerMax/PowerMaxPoller";
-import { resourceAttributesOf } from "./Helpers/OtlpPoints";
+import DellPowerMaxPlatform from "Common/Types/StorageArray/Platforms/Dell/PowerMax/PowerMaxPlatform";
+import { StorageArrayAlertTemplateSpec } from "Common/Types/StorageArray/StorageArrayPlatform";
+import { OtlpPoint, pointsOf, resourceAttributesOf } from "./Helpers/OtlpPoints";
 import {
   ARRAY_V3,
   ARRAY_V4,
@@ -276,5 +278,68 @@ describe("a collection that could not upload its volumes", () => {
     // Without the mark, no volume count is written: the old one stands.
     expect(ingested.counts).not.toHaveProperty(StorageArrayResourceKind.Volume);
     expect(ingested.counts).toHaveProperty(PowerMaxKind.StorageGroup, 4);
+  });
+});
+
+/*
+ * Every PowerMax alert template - and the heartbeat - watches a series a
+ * collection of Dell's documented answers writes, with the labels it
+ * filters and groups by: a template that watches a name no probe writes
+ * would never fire.
+ */
+describe("what the PowerMax alert templates watch, the probe writes", () => {
+  function pointsNamed(name: string): Array<OtlpPoint> {
+    const points: Array<OtlpPoint> = [];
+    for (const resource of report.resourceMetrics as Array<JSONObject>) {
+      points.push(...pointsOf(resource, name));
+    }
+    return points;
+  }
+
+  test("every series the PowerMax catalog charts is one a collection writes", () => {
+    const missing: Array<string> = DellPowerMaxPlatform.metrics
+      .map((metric: { metricName: string }): string => {
+        return metric.metricName;
+      })
+      .filter((name: string): boolean => {
+        return pointsNamed(name).length === 0;
+      });
+    expect(missing).toEqual([]);
+  });
+
+  test("the heartbeat is a series every collected array sends", () => {
+    expect(
+      pointsNamed(DellPowerMaxPlatform.heartbeat.metricName),
+    ).toHaveLength(2);
+  });
+
+  test.each(
+    DellPowerMaxPlatform.alertTemplates.map(
+      (
+        template: StorageArrayAlertTemplateSpec,
+      ): [string, StorageArrayAlertTemplateSpec] => {
+        return [template.id, template];
+      },
+    ),
+  )("%s", (_id: string, template: StorageArrayAlertTemplateSpec) => {
+    const matching: Array<OtlpPoint> = pointsNamed(template.metricName).filter(
+      (point: OtlpPoint): boolean => {
+        return Object.entries(template.attributes || {}).every(
+          ([key, value]: [string, string]): boolean => {
+            return point.labels[key] === value;
+          },
+        );
+      },
+    );
+
+    expect({ template: template.id, written: matching.length > 0 }).toEqual({
+      template: template.id,
+      written: true,
+    });
+    if (template.groupByAttributeKey) {
+      for (const point of matching) {
+        expect(point.labels[template.groupByAttributeKey]).toBeTruthy();
+      }
+    }
   });
 });

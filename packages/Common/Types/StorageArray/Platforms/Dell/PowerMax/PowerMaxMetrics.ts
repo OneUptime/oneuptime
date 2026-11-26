@@ -84,7 +84,8 @@ export const POWERMAX_METRIC_IDS: {
   readonly storageGroupThroughput: string;
   readonly storageGroupCapacityUsed: string;
   readonly storageGroupHostIoLimitExceeded: string;
-  readonly storageGroupRealtimeResponseTime: string;
+  readonly storageGroupRealtimeReadResponseTime: string;
+  readonly storageGroupRealtimeWriteResponseTime: string;
   readonly storageGroupRealtimeIops: string;
   readonly storageGroupRealtimeThroughput: string;
   readonly volumeResponseTime: string;
@@ -131,8 +132,10 @@ export const POWERMAX_METRIC_IDS: {
   storageGroupCapacityUsed: "powermax-storage-group-capacity-used",
   storageGroupHostIoLimitExceeded:
     "powermax-storage-group-host-io-limit-exceeded",
-  storageGroupRealtimeResponseTime:
-    "powermax-storage-group-realtime-response-time",
+  storageGroupRealtimeReadResponseTime:
+    "powermax-storage-group-realtime-read-response-time",
+  storageGroupRealtimeWriteResponseTime:
+    "powermax-storage-group-realtime-write-response-time",
   storageGroupRealtimeIops: "powermax-storage-group-realtime-iops",
   storageGroupRealtimeThroughput: "powermax-storage-group-realtime-throughput",
   volumeResponseTime: "powermax-volume-response-time",
@@ -456,13 +459,34 @@ const POWERMAX_METRIC_DEFINITIONS: Array<StorageArrayMetricDefinition> = [
     unit: "%",
     objectLabel: L.storageGroup,
   }),
+  /*
+   * Read and write apart: Unisphere's real-time categories list read and
+   * write response times; an overall one only some versions have
+   * (powermax_storage_group_realtime_response_time_usec, written when
+   * they do).
+   */
   entry({
-    id: IDS.storageGroupRealtimeResponseTime,
-    friendlyName: translationKey("Storage Group Response Time (Real Time)"),
-    description: translationKey(
-      "Response time of the storage groups registered for real-time collection in Unisphere, in microseconds, every 5 seconds. Up to 100 storage groups per array can be registered.",
+    id: IDS.storageGroupRealtimeReadResponseTime,
+    friendlyName: translationKey(
+      "Storage Group Read Response Time (Real Time)",
     ),
-    metricName: M.storageGroupRealtimeResponseTime,
+    description: translationKey(
+      "Read response time of the storage groups registered for real-time collection in Unisphere, in microseconds, every 5 seconds. Up to 100 storage groups per array can be registered.",
+    ),
+    metricName: M.storageGroupRealtimeReadResponseTime,
+    category: "Volumes",
+    unit: "µs",
+    objectLabel: L.storageGroup,
+  }),
+  entry({
+    id: IDS.storageGroupRealtimeWriteResponseTime,
+    friendlyName: translationKey(
+      "Storage Group Write Response Time (Real Time)",
+    ),
+    description: translationKey(
+      "Write response time of the storage groups registered for real-time collection in Unisphere, in microseconds, every 5 seconds.",
+    ),
+    metricName: M.storageGroupRealtimeWriteResponseTime,
     category: "Volumes",
     unit: "µs",
     objectLabel: L.storageGroup,

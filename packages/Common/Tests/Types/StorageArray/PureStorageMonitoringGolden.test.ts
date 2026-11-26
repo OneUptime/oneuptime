@@ -121,10 +121,12 @@ const PURE_KINDS: ReadonlySet<string> = new Set<string>([
   }),
 ]);
 
-function pureSystems(): Array<string> {
-  return StorageSystemUtil.getAllSystems().filter((system: string): boolean => {
-    return PURE_SYSTEMS.includes(system);
-  });
+function pureSystems(): Array<StorageSystem> {
+  return StorageSystemUtil.getAllSystems().filter(
+    (system: StorageSystem): boolean => {
+      return PURE_SYSTEMS.includes(system);
+    },
+  );
 }
 
 function pureKinds(): Array<string> {

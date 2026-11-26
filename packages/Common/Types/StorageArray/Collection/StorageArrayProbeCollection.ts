@@ -162,7 +162,8 @@ interface StorageArrayProbeReportBase {
 }
 
 // What a probe posts after collecting a connection.
-export interface StorageArrayCollectionReport extends StorageArrayProbeReportBase {
+export interface StorageArrayCollectionReport
+  extends StorageArrayProbeReportBase {
   storageArrayConnectionId: string;
   // The job's settingsVersion, echoed.
   settingsVersion: number;
@@ -179,6 +180,7 @@ export interface StorageArrayCollectionReport extends StorageArrayProbeReportBas
 }
 
 // What a probe posts after a connection test.
-export interface StorageArrayConnectionTestReport extends StorageArrayProbeReportBase {
+export interface StorageArrayConnectionTestReport
+  extends StorageArrayProbeReportBase {
   storageArrayConnectionTestId: string;
 }

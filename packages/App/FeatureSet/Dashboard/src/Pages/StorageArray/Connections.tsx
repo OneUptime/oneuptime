@@ -188,7 +188,11 @@ const StorageArrayConnections: FunctionComponent<
                 BILLING_ENABLED,
               );
             return (
-              <Pill text={view.label} isUserContent={true} tone={toneOf(view)} />
+              <Pill
+                text={view.label}
+                isUserContent={true}
+                tone={toneOf(view)}
+              />
             );
           },
         },
