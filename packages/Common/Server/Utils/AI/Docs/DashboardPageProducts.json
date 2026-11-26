@@ -1353,6 +1353,9 @@
   "/dashboard/:projectId/cloud/costs": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/cost-groups": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/savings": [
     "cloud"
   ],
