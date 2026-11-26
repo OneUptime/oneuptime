@@ -244,6 +244,7 @@
     "prod-.*",
     "prod-eu",
     "prod-vcenter",
+    "root",
     "s",
     "security-alerts",
     "storage-01 · RegionOne",

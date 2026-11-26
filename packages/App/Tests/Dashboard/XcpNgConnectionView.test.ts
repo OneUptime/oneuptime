@@ -157,7 +157,7 @@ describe("what a connection reads", () => {
 describe("getXcpNgInventoryPhrases", () => {
   test("adds up a Xen Orchestra's pools", () => {
     expect(getXcpNgInventoryPhrases(summary(), ENGLISH)).toEqual([
-      "2 pools",
+      "2 XCP-ng pools",
       "4 hosts (3 running)",
       "13 VMs (10 running)",
       "5 storage repositories",
@@ -239,7 +239,7 @@ describe("getXcpNgConnectionTestView", () => {
     expect(view.title).toBe(
       "Connected to Xen Orchestra. The account can read:",
     );
-    expect(view.inventory).toContain("2 pools");
+    expect(view.inventory).toContain("2 XCP-ng pools");
     expect(view.poolNames).toEqual(["Production", "3c1e4f70"]);
     expect(view.notices).toEqual([]);
   });

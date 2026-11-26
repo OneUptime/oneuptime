@@ -155,7 +155,13 @@ describe("the docs page on XCP-ng without an agent", () => {
         `(${AGENT_PAGE_URL})`,
         "(/docs/monitor/xcp-ng-monitor)",
         "(/docs/probe/custom-probe)",
-        `(${AGENT_PAGE_URL}#turn-on-the-openmetrics-plugin)`,
+        /*
+         * The plugin's setup, at the heading of the agent's page in this
+         * language: a translation links to its own heading's anchor.
+         */
+        lang === "en"
+          ? `(${AGENT_PAGE_URL}#turn-on-the-openmetrics-plugin)`
+          : `(${AGENT_PAGE_URL}#`,
       ]) {
         expect({ lang, link, present: page.includes(link) }).toEqual({
           lang,

@@ -151,7 +151,7 @@ export function getXcpNgInventoryPhrases(
   if (summary.connectionType !== XcpNgConnectionType.Xapi) {
     phrases.push(
       translator.translatePlural(
-        { one: "{{count}} pool", other: "{{count}} pools" },
+        { one: "{{count}} XCP-ng pool", other: "{{count}} XCP-ng pools" },
         pools.length,
       ),
     );
