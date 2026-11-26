@@ -370,7 +370,7 @@ El servidor también tiene [las acciones de Seguridad de datos de Preguntar a la
 - **`change_data_security_issue`**: **Reabrir**, **Asignar**, **Aceptar el riesgo** o **No es un problema**
 - **`set_data_store_owners`**: los propietarios de un almacén, añadidos o quitados
 - **`save_data_security_rule`**: una regla que redactó `draft_data_security_rule`
-- **`respond_on_data_store`**: una acción de respuesta a través de la conexión a la nube del almacén, como **Block Public Access**
+- **`respond_on_data_store`**: una acción de respuesta a través de la conexión a la nube del almacén, como **Bloquear el acceso público**
 - **`fix_data_security_issue_with_ai`**: **Corregir con IA**, una pull request que alguien revisa y fusiona
 - **`decide_data_security_proposal`**: **Aprobar** o **Descartar** una propuesta
 

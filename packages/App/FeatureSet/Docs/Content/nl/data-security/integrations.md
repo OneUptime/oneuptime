@@ -148,7 +148,7 @@ AI vragen doet wat de knoppen van Gegevensbeveiliging doen, elk door precies de 
 | `change_data_security_issue` | **Risico accepteren** met uw reden en een einddatum, **Geen probleem** met uw reden, **Heropenen** of **Toewijzen** | **Risico accepteren** en **Geen probleem** in elke modus |
 | `set_data_store_owners` | Voegt de eigenaren van een gegevensopslag toe of verwijdert ze | In elke modus |
 | `save_data_security_rule` | Slaat een uit uw zin opgestelde residentie-, eigenaars- of labelregel op, en past een eigenaars- of labelregel toe op de gegevensopslagen die hij vandaag dekt | In elke modus |
-| `respond_on_data_store` | Een reactieactie via de cloudverbinding van de gegevensopslag, zoals **Block Public Access** | In elke modus |
+| `respond_on_data_store` | Een reactieactie via de cloudverbinding van de gegevensopslag, zoals **Openbare toegang blokkeren** | In elke modus |
 | `fix_data_security_issue_with_ai` | **Oplossen met AI**: een pull request die iemand beoordeelt en samenvoegt. Een oplossing die al onderweg is, wordt niet twee keer gestart | In **Vragen voor actie** |
 | `decide_data_security_proposal` | **Goedkeuren** of **Verbergen** voor wat OneUptime AI voorstelt. Een gevonden gegevenstype voegt u toe via het formulier in **Instellingen → Gegevenstypen**, dus hier kan het alleen worden afgewezen | In elke modus |
 

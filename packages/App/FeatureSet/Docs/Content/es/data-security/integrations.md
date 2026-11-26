@@ -148,7 +148,7 @@ Preguntar a la IA hace lo que hacen los botones de Seguridad de datos, cada uno 
 | `change_data_security_issue` | **Aceptar el riesgo** con tu motivo y una fecha de fin, **No es un problema** con tu motivo, **Reabrir** o **Asignar** | **Aceptar el riesgo** y **No es un problema** en todos los modos |
 | `set_data_store_owners` | Añade o quita los propietarios de un almacén | En todos los modos |
 | `save_data_security_rule` | Guarda una regla de residencia, de propietario o de etiquetas redactada a partir de tu frase, y aplica una regla de propietario o de etiquetas a los almacenes que cubre hoy | En todos los modos |
-| `respond_on_data_store` | Una acción de respuesta a través de la conexión a la nube del almacén, como **Block Public Access** | En todos los modos |
+| `respond_on_data_store` | Una acción de respuesta a través de la conexión a la nube del almacén, como **Bloquear el acceso público** | En todos los modos |
 | `fix_data_security_issue_with_ai` | **Corregir con IA**: una pull request que alguien revisa y fusiona. Una corrección que ya está en camino no se inicia dos veces | En **Preguntar antes de actuar** |
 | `decide_data_security_proposal` | **Aprobar** o **Descartar** lo que propone OneUptime AI. Un tipo de datos encontrado se añade desde su formulario en **Ajustes → Tipos de datos**, así que aquí solo se puede rechazar | En todos los modos |
 

@@ -370,7 +370,7 @@ O servidor também tem [as ações de Segurança de dados do Pergunte à IA](/do
 - **`change_data_security_issue`**: **Reabrir**, **Atribuir**, **Aceitar o risco** ou **Não é um problema**
 - **`set_data_store_owners`**: os proprietários de um repositório, adicionados ou removidos
 - **`save_data_security_rule`**: uma regra que `draft_data_security_rule` redigiu
-- **`respond_on_data_store`**: uma ação de resposta pela conexão de nuvem do repositório, como **Block Public Access**
+- **`respond_on_data_store`**: uma ação de resposta pela conexão de nuvem do repositório, como **Bloquear acesso público**
 - **`fix_data_security_issue_with_ai`**: **Corrigir com IA**, um pull request que alguém revisa e mescla
 - **`decide_data_security_proposal`**: **Aprovar** ou **Dispensar** uma proposta
 

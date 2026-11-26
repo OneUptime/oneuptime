@@ -370,7 +370,7 @@ Serveren har også [Datasikkerhet-handlingene til Spør AI](/docs/data-security/
 - **`change_data_security_issue`**: **Gjenåpne**, **Tildel**, **Godta risiko** eller **Ikke et problem**
 - **`set_data_store_owners`**: eierne av et datalager, lagt til eller fjernet
 - **`save_data_security_rule`**: en regel som `draft_data_security_rule` laget
-- **`respond_on_data_store`**: en responshandling gjennom datalagerets skytilkobling, som **Block Public Access**
+- **`respond_on_data_store`**: en responshandling gjennom datalagerets skytilkobling, som **Blokker offentlig tilgang**
 - **`fix_data_security_issue_with_ai`**: **Fiks med AI**, en pull-forespørsel som noen går gjennom og fletter
 - **`decide_data_security_proposal`**: **Godkjenn** eller **Skjul** på et forslag
 

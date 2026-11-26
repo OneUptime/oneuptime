@@ -370,7 +370,7 @@ Der Server hat auch [die Datensicherheitsaktionen von KI fragen](/docs/data-secu
 - **`change_data_security_issue`**: **Wieder öffnen**, **Zuweisen**, **Risiko akzeptieren** oder **Kein Problem**
 - **`set_data_store_owners`**: die Eigentümer eines Datenspeichers, hinzugefügt oder entfernt
 - **`save_data_security_rule`**: eine Regel, die `draft_data_security_rule` entworfen hat
-- **`respond_on_data_store`**: eine Reaktionsaktion über die Cloud-Verbindung des Datenspeichers, etwa **Block Public Access**
+- **`respond_on_data_store`**: eine Reaktionsaktion über die Cloud-Verbindung des Datenspeichers, etwa **Öffentlichen Zugriff sperren**
 - **`fix_data_security_issue_with_ai`**: **Mit KI beheben**, ein Pull Request, den jemand prüft und zusammenführt
 - **`decide_data_security_proposal`**: **Genehmigen** oder **Ausblenden** für einen Vorschlag
 

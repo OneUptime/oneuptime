@@ -370,7 +370,7 @@ curl https://oneuptime.com/mcp/tools
 - **`change_data_security_issue`**: **Открыть снова**, **Назначить**, **Принять риск** или **Не проблема**
 - **`set_data_store_owners`**: владельцы хранилища, добавленные или удалённые
 - **`save_data_security_rule`**: правило, которое составил `draft_data_security_rule`
-- **`respond_on_data_store`**: действие реагирования через облачное подключение хранилища, например **Block Public Access**
+- **`respond_on_data_store`**: действие реагирования через облачное подключение хранилища, например **Заблокировать публичный доступ**
 - **`fix_data_security_issue_with_ai`**: **Исправить с ИИ**, пул-реквест, который кто-то проверяет и сливает
 - **`decide_data_security_proposal`**: **Одобрить** или **Скрыть** предложение
 

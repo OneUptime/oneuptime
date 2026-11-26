@@ -370,7 +370,7 @@ Servern har också [Fråga AI:s åtgärder för Datasäkerhet](/docs/data-securi
 - **`change_data_security_issue`**: **Öppna igen**, **Tilldela**, **Acceptera risk** eller **Inte ett problem**
 - **`set_data_store_owners`**: ett datalagers ägare, tillagda eller borttagna
 - **`save_data_security_rule`**: en regel som `draft_data_security_rule` har skrivit
-- **`respond_on_data_store`**: en responsåtgärd via datalagrets molnanslutning, som **Block Public Access**
+- **`respond_on_data_store`**: en responsåtgärd via datalagrets molnanslutning, som **Blockera offentlig åtkomst**
 - **`fix_data_security_issue_with_ai`**: **Åtgärda med AI**, en pull request som någon granskar och slår ihop
 - **`decide_data_security_proposal`**: **Godkänn** eller **Dölj** för ett förslag
 

@@ -148,7 +148,7 @@ KI fragen tut, was die Schaltflächen der Datensicherheit tun, jeweils indem es 
 | `change_data_security_issue` | **Risiko akzeptieren** mit Ihrer Begründung und einem Enddatum, **Kein Problem** mit Ihrer Begründung, **Wieder öffnen** oder **Zuweisen** | **Risiko akzeptieren** und **Kein Problem** in jedem Modus |
 | `set_data_store_owners` | Fügt die Eigentümer eines Datenspeichers hinzu oder entfernt sie | In jedem Modus |
 | `save_data_security_rule` | Speichert eine aus Ihrem Satz entworfene Residenz-, Eigentümer- oder Beschriftungsregel und wendet eine Eigentümer- oder Beschriftungsregel auf die Datenspeicher an, die sie heute trifft | In jedem Modus |
-| `respond_on_data_store` | Eine Reaktionsaktion über die Cloud-Verbindung des Datenspeichers, etwa **Block Public Access** | In jedem Modus |
+| `respond_on_data_store` | Eine Reaktionsaktion über die Cloud-Verbindung des Datenspeichers, etwa **Öffentlichen Zugriff sperren** | In jedem Modus |
 | `fix_data_security_issue_with_ai` | **Mit KI beheben**: ein Pull Request, den jemand prüft und zusammenführt. Eine bereits laufende Korrektur wird nicht ein zweites Mal gestartet | In **Vor Aktionen fragen** |
 | `decide_data_security_proposal` | **Genehmigen** oder **Ausblenden** für einen Vorschlag von OneUptime AI. Ein gefundener Datentyp wird über sein Formular in **Einstellungen → Datentypen** hinzugefügt, hier kann er also nur abgelehnt werden | In jedem Modus |
 

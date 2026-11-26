@@ -370,7 +370,7 @@ curl https://oneuptime.com/mcp/tools
 - **`change_data_security_issue`**：**重新打开**、**分配**、**接受风险** 或 **不是问题**
 - **`set_data_store_owners`**：添加或移除数据存储的所有者
 - **`save_data_security_rule`**：`draft_data_security_rule` 起草的规则
-- **`respond_on_data_store`**：通过数据存储的云连接执行的响应操作，例如 **Block Public Access**
+- **`respond_on_data_store`**：通过数据存储的云连接执行的响应操作，例如 **阻止公开访问**
 - **`fix_data_security_issue_with_ai`**：**用 AI 修复**，由某人审查并合并的拉取请求
 - **`decide_data_security_proposal`**：对提议选择 **批准** 或 **隐藏**
 

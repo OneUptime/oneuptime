@@ -148,7 +148,7 @@ Pergunte à IA faz o que os botões da Segurança de dados fazem, cada um fazend
 | `change_data_security_issue` | **Aceitar o risco** com o seu motivo e uma data final, **Não é um problema** com o seu motivo, **Reabrir** ou **Atribuir** | **Aceitar o risco** e **Não é um problema** em todos os modos |
 | `set_data_store_owners` | Adiciona ou remove os proprietários de um repositório | Em todos os modos |
 | `save_data_security_rule` | Salva uma regra de residência, de proprietário ou de rótulos redigida a partir da sua frase, e aplica uma regra de proprietário ou de rótulos aos repositórios que ela abrange hoje | Em todos os modos |
-| `respond_on_data_store` | Uma ação de resposta pela conexão de nuvem do repositório, como **Block Public Access** | Em todos os modos |
+| `respond_on_data_store` | Uma ação de resposta pela conexão de nuvem do repositório, como **Bloquear acesso público** | Em todos os modos |
 | `fix_data_security_issue_with_ai` | **Corrigir com IA**: um pull request que alguém revisa e mescla. Uma correção que já está a caminho não é iniciada duas vezes | Em **Perguntar antes de agir** |
 | `decide_data_security_proposal` | **Aprovar** ou **Dispensar** o que o OneUptime AI propõe. Um tipo de dado encontrado é adicionado pelo formulário dele em **Configurações → Tipos de dados**, então aqui ele só pode ser recusado | Em todos os modos |
 

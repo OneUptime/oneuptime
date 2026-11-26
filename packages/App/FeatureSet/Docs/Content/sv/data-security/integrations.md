@@ -148,7 +148,7 @@ Fråga AI gör det som Datasäkerhetens knappar gör, var och en genom att göra
 | `change_data_security_issue` | **Acceptera risk** med din motivering och ett slutdatum, **Inte ett problem** med din motivering, **Öppna igen** eller **Tilldela** | **Acceptera risk** och **Inte ett problem** i alla lägen |
 | `set_data_store_owners` | Lägger till eller tar bort ett datalagers ägare | I alla lägen |
 | `save_data_security_rule` | Sparar en hemvist-, ägar- eller etikettregel skriven utifrån din mening, och tillämpar en ägar- eller etikettregel på de datalager den träffar i dag | I alla lägen |
-| `respond_on_data_store` | En responsåtgärd via datalagrets molnanslutning, som **Block Public Access** | I alla lägen |
+| `respond_on_data_store` | En responsåtgärd via datalagrets molnanslutning, som **Blockera offentlig åtkomst** | I alla lägen |
 | `fix_data_security_issue_with_ai` | **Åtgärda med AI**: en pull request som någon granskar och slår ihop. En åtgärd som redan är på väg startas inte två gånger | I **Fråga före åtgärd** |
 | `decide_data_security_proposal` | **Godkänn** eller **Dölj** för det OneUptime AI föreslår. En hittad datatyp läggs till via dess formulär i **Inställningar → Datatyper**, så här kan den bara avvisas | I alla lägen |
 

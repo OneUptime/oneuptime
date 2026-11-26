@@ -370,7 +370,7 @@ curl https://oneuptime.com/mcp/tools
 - **`change_data_security_issue`**: **بازگشایی**، **تخصیص**، **پذیرش ریسک** یا **مسئله نیست**
 - **`set_data_store_owners`**: مالکان یک مخزن، اضافه یا حذف‌شده
 - **`save_data_security_rule`**: قاعده‌ای که `draft_data_security_rule` ساخته است
-- **`respond_on_data_store`**: یک اقدام واکنشی از راه اتصال ابری مخزن، مانند **Block Public Access**
+- **`respond_on_data_store`**: یک اقدام واکنشی از راه اتصال ابری مخزن، مانند **مسدود کردن دسترسی عمومی**
 - **`fix_data_security_issue_with_ai`**: **رفع با هوش مصنوعی**، یک Pull Request که کسی بازبینی و ادغامش می‌کند
 - **`decide_data_security_proposal`**: **تأیید** یا **پنهان کردن** برای یک پیشنهاد
 

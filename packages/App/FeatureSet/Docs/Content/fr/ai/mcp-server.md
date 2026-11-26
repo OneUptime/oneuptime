@@ -370,7 +370,7 @@ Le serveur dispose aussi des [actions de Sécurité des données de Demander à 
 - **`change_data_security_issue`** : **Rouvrir**, **Attribuer**, **Accepter le risque** ou **Pas un problème**
 - **`set_data_store_owners`** : les propriétaires d'un magasin, ajoutés ou retirés
 - **`save_data_security_rule`** : une règle que `draft_data_security_rule` a rédigée
-- **`respond_on_data_store`** : une action de réponse via la connexion cloud du magasin, comme **Block Public Access**
+- **`respond_on_data_store`** : une action de réponse via la connexion cloud du magasin, comme **Bloquer l'accès public**
 - **`fix_data_security_issue_with_ai`** : **Corriger avec l'IA**, une pull request que quelqu'un relit et fusionne
 - **`decide_data_security_proposal`** : **Approuver** ou **Masquer** une proposition
 

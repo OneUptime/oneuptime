@@ -370,7 +370,7 @@ curl https://oneuptime.com/mcp/tools
 - **`change_data_security_issue`**: **फिर से खोलें**, **असाइन करें**, **जोखिम स्वीकार करें** या **समस्या नहीं**
 - **`set_data_store_owners`**: किसी स्टोर के मालिक, जोड़े या हटाए गए
 - **`save_data_security_rule`**: `draft_data_security_rule` का बनाया हुआ नियम
-- **`respond_on_data_store`**: स्टोर के क्लाउड कनेक्शन से की जाने वाली प्रतिक्रिया कार्रवाई, जैसे **Block Public Access**
+- **`respond_on_data_store`**: स्टोर के क्लाउड कनेक्शन से की जाने वाली प्रतिक्रिया कार्रवाई, जैसे **सार्वजनिक एक्सेस ब्लॉक करें**
 - **`fix_data_security_issue_with_ai`**: **AI से ठीक करें**, एक पुल रिक्वेस्ट जिसकी कोई समीक्षा करके उसे मर्ज करता है
 - **`decide_data_security_proposal`**: किसी प्रस्ताव पर **स्वीकृत करें** या **छिपाएं**
 

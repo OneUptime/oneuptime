@@ -148,7 +148,7 @@ Chiedi all'IA fa ciò che fanno i pulsanti della Sicurezza dei dati, ciascuno ap
 | `change_data_security_issue` | **Accetta il rischio** con il tuo motivo e una data di fine, **Non è un problema** con il tuo motivo, **Riapri** o **Assegna** | **Accetta il rischio** e **Non è un problema** in ogni modalità |
 | `set_data_store_owners` | Aggiunge o rimuove i proprietari di un archivio | In ogni modalità |
 | `save_data_security_rule` | Salva una regola di residenza, del proprietario o delle etichette scritta dalla tua frase, e applica una regola del proprietario o delle etichette agli archivi che copre oggi | In ogni modalità |
-| `respond_on_data_store` | Un'azione di risposta tramite la connessione cloud dell'archivio, come **Block Public Access** | In ogni modalità |
+| `respond_on_data_store` | Un'azione di risposta tramite la connessione cloud dell'archivio, come **Blocca l'accesso pubblico** | In ogni modalità |
 | `fix_data_security_issue_with_ai` | **Correggi con l'IA**: una pull request che qualcuno esamina e unisce. Una correzione già in arrivo non viene avviata due volte | In **Chiedi prima di agire** |
 | `decide_data_security_proposal` | **Approva** o **Nascondi** ciò che propone OneUptime AI. Un tipo di dati trovato si aggiunge dal suo modulo in **Impostazioni → Tipi di dati**, quindi qui può solo essere rifiutato | In ogni modalità |
 

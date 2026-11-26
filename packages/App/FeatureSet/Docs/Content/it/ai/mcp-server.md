@@ -370,7 +370,7 @@ Il server ha anche [le azioni di Sicurezza dei dati di Chiedi all'IA](/docs/data
 - **`change_data_security_issue`**: **Riapri**, **Assegna**, **Accetta il rischio** o **Non è un problema**
 - **`set_data_store_owners`**: i proprietari di un archivio, aggiunti o rimossi
 - **`save_data_security_rule`**: una regola scritta da `draft_data_security_rule`
-- **`respond_on_data_store`**: un'azione di risposta tramite la connessione cloud dell'archivio, come **Block Public Access**
+- **`respond_on_data_store`**: un'azione di risposta tramite la connessione cloud dell'archivio, come **Blocca l'accesso pubblico**
 - **`fix_data_security_issue_with_ai`**: **Correggi con l'IA**, una pull request che qualcuno esamina e unisce
 - **`decide_data_security_proposal`**: **Approva** o **Nascondi** una proposta
 

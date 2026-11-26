@@ -148,7 +148,7 @@ Demander à l'IA fait ce que font les boutons de la Sécurité des données, cha
 | `change_data_security_issue` | **Accepter le risque** avec votre raison et une date de fin, **Pas un problème** avec votre raison, **Rouvrir** ou **Attribuer** | **Accepter le risque** et **Pas un problème** dans tous les modes |
 | `set_data_store_owners` | Ajoute ou retire les propriétaires d'un magasin | Dans tous les modes |
 | `save_data_security_rule` | Enregistre une règle de résidence, de propriétaire ou d'étiquettes rédigée à partir de votre phrase, et applique une règle de propriétaire ou d'étiquettes aux magasins qu'elle couvre aujourd'hui | Dans tous les modes |
-| `respond_on_data_store` | Une action de réponse via la connexion cloud du magasin, comme **Block Public Access** | Dans tous les modes |
+| `respond_on_data_store` | Une action de réponse via la connexion cloud du magasin, comme **Bloquer l'accès public** | Dans tous les modes |
 | `fix_data_security_issue_with_ai` | **Corriger avec l'IA** : une pull request que quelqu'un relit et fusionne. Une correction déjà en route n'est pas lancée deux fois | En **Demander avant d'agir** |
 | `decide_data_security_proposal` | **Approuver** ou **Masquer** ce que propose OneUptime AI. Un type de données trouvé s'ajoute depuis son formulaire dans **Paramètres → Types de données**, ici il ne peut donc qu'être refusé | Dans tous les modes |
 

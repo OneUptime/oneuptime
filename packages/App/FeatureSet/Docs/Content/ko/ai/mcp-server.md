@@ -370,7 +370,7 @@ curl https://oneuptime.com/mcp/tools
 - **`change_data_security_issue`**: **다시 열기**, **할당**, **위험 수락** 또는 **문제 아님**
 - **`set_data_store_owners`**: 저장소의 소유자 추가 또는 제거
 - **`save_data_security_rule`**: `draft_data_security_rule` 이 만든 규칙
-- **`respond_on_data_store`**: **Block Public Access** 처럼 저장소의 클라우드 연결을 통한 대응 작업
+- **`respond_on_data_store`**: **공개 액세스 차단** 처럼 저장소의 클라우드 연결을 통한 대응 작업
 - **`fix_data_security_issue_with_ai`**: **AI로 수정**, 누군가 검토하고 병합하는 풀 리퀘스트
 - **`decide_data_security_proposal`**: 제안을 **승인** 또는 **숨기기**
 

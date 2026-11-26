@@ -148,7 +148,7 @@ OneUptime AI 还会按照您的 AI 规则，自动处理每个新问题：请参
 | `change_data_security_issue` | 附上理由和结束日期 **接受风险**，附上理由标记为 **不是问题**，**重新打开** 或 **分配** | **接受风险** 和 **不是问题** 在每种模式下都询问 |
 | `set_data_store_owners` | 添加或移除数据存储的所有者 | 每种模式下 |
 | `save_data_security_rule` | 保存根据你的句子起草的数据驻留、所有者或标签规则，并将所有者规则或标签规则应用到它今天匹配的数据存储 | 每种模式下 |
-| `respond_on_data_store` | 通过数据存储的云连接执行的响应操作，例如 **Block Public Access** | 每种模式下 |
+| `respond_on_data_store` | 通过数据存储的云连接执行的响应操作，例如 **阻止公开访问** | 每种模式下 |
 | `fix_data_security_issue_with_ai` | **用 AI 修复**：由某人审查并合并的拉取请求。已在进行中的修复不会启动两次 | 在 **执行前询问** 中 |
 | `decide_data_security_proposal` | 对 OneUptime AI 的提议选择 **批准** 或 **隐藏**。发现的数据类型要在 **设置 → 数据类型** 的表单中添加，因此在这里只能拒绝 | 每种模式下 |
 

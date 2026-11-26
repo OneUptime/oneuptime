@@ -148,7 +148,7 @@ Spørg AI gør det, Datasikkerheds knapper gør, hver ved at foretage præcis de
 | `change_data_security_issue` | **Accepter risiko** med din begrundelse og en slutdato, **Ikke et problem** med din begrundelse, **Genåbn** eller **Tildel** | **Accepter risiko** og **Ikke et problem** i alle tilstande |
 | `set_data_store_owners` | Tilføjer eller fjerner et datalagers ejere | I alle tilstande |
 | `save_data_security_rule` | Gemmer en residens-, ejer- eller etiketregel lavet ud fra din sætning, og anvender en ejer- eller etiketregel på de datalagre, den rammer i dag | I alle tilstande |
-| `respond_on_data_store` | En reaktionshandling gennem datalagerets cloudforbindelse, som **Block Public Access** | I alle tilstande |
+| `respond_on_data_store` | En reaktionshandling gennem datalagerets cloudforbindelse, som **Bloker offentlig adgang** | I alle tilstande |
 | `fix_data_security_issue_with_ai` | **Ret med AI**: en pull request, som nogen gennemgår og fletter. En rettelse, der allerede er på vej, startes ikke to gange | I **Spørg før handling** |
 | `decide_data_security_proposal` | **Godkend** eller **Skjul** på det, OneUptime AI foreslår. En fundet datatype tilføjes via dens formular i **Indstillinger → Datatyper**, så her kan den kun afvises | I alle tilstande |
 

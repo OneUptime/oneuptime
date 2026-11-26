@@ -370,7 +370,7 @@ Serveren har også [Spørg AI's handlinger i Datasikkerhed](/docs/data-security/
 - **`change_data_security_issue`**: **Genåbn**, **Tildel**, **Accepter risiko** eller **Ikke et problem**
 - **`set_data_store_owners`**: et datalagers ejere, tilføjet eller fjernet
 - **`save_data_security_rule`**: en regel, som `draft_data_security_rule` har lavet
-- **`respond_on_data_store`**: en reaktionshandling gennem datalagerets cloudforbindelse, som **Block Public Access**
+- **`respond_on_data_store`**: en reaktionshandling gennem datalagerets cloudforbindelse, som **Bloker offentlig adgang**
 - **`fix_data_security_issue_with_ai`**: **Ret med AI**, en pull request, som nogen gennemgår og fletter
 - **`decide_data_security_proposal`**: **Godkend** eller **Skjul** på et forslag
 

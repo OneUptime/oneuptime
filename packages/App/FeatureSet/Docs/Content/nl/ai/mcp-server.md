@@ -370,7 +370,7 @@ De server heeft ook [de Gegevensbeveiligingsacties van AI vragen](/docs/data-sec
 - **`change_data_security_issue`**: **Heropenen**, **Toewijzen**, **Risico accepteren** of **Geen probleem**
 - **`set_data_store_owners`**: de eigenaren van een gegevensopslag, toegevoegd of verwijderd
 - **`save_data_security_rule`**: een regel die `draft_data_security_rule` heeft opgesteld
-- **`respond_on_data_store`**: een reactieactie via de cloudverbinding van de gegevensopslag, zoals **Block Public Access**
+- **`respond_on_data_store`**: een reactieactie via de cloudverbinding van de gegevensopslag, zoals **Openbare toegang blokkeren**
 - **`fix_data_security_issue_with_ai`**: **Oplossen met AI**, een pull request die iemand beoordeelt en samenvoegt
 - **`decide_data_security_proposal`**: **Goedkeuren** of **Verbergen** voor een voorstel
 

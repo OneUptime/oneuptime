@@ -370,7 +370,7 @@ curl https://oneuptime.com/mcp/tools
 - **`change_data_security_issue`**: **再オープン**、**割り当て**、**リスクを受容**、または **問題ではない**
 - **`set_data_store_owners`**: データストアの所有者の追加または削除
 - **`save_data_security_rule`**: `draft_data_security_rule` が作成したルール
-- **`respond_on_data_store`**: **Block Public Access** など、データストアのクラウド接続を通じた対応操作
+- **`respond_on_data_store`**: **パブリックアクセスをブロック** など、データストアのクラウド接続を通じた対応操作
 - **`fix_data_security_issue_with_ai`**: **AI で修正**、誰かがレビューしてマージするプルリクエスト
 - **`decide_data_security_proposal`**: 提案を **承認** または **非表示**
 

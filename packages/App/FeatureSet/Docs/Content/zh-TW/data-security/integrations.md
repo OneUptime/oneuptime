@@ -148,7 +148,7 @@ OneUptime AI 也會依照您的 AI 規則，自動處理每個新問題：請參
 | `change_data_security_issue` | 附上理由與結束日期 **接受風險**，附上理由標記為 **不是問題**，**重新開啟** 或 **指派** | **接受風險** 和 **不是問題** 在每種模式下都詢問 |
 | `set_data_store_owners` | 新增或移除資料儲存區的擁有者 | 每種模式下 |
 | `save_data_security_rule` | 儲存根據你的句子草擬的資料落地、擁有者或標籤規則，並將擁有者規則或標籤規則套用到它今天符合的資料儲存區 | 每種模式下 |
-| `respond_on_data_store` | 透過資料儲存區的雲端連線執行的回應操作，例如 **Block Public Access** | 每種模式下 |
+| `respond_on_data_store` | 透過資料儲存區的雲端連線執行的回應操作，例如 **封鎖公開存取** | 每種模式下 |
 | `fix_data_security_issue_with_ai` | **用 AI 修正**：由某人審查並合併的 Pull Request。已在進行中的修正不會啟動兩次 | 在 **執行前詢問** 中 |
 | `decide_data_security_proposal` | 對 OneUptime AI 的提議選擇 **核准** 或 **隱藏**。找到的資料類型要在 **設定 → 資料類型** 的表單中新增，因此在這裡只能拒絕 | 每種模式下 |
 
