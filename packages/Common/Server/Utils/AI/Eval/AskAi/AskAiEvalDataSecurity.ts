@@ -38,16 +38,19 @@ import type { AskAiEvalPatches } from "./AskAiEvalTurn";
  */
 
 function storeOf(project: AskAiEvalProject, id: unknown): DataStore | null {
-  const record: AskAiEvalDataStore | undefined = (project.dataStores || []).find(
-    (store: AskAiEvalDataStore): boolean => {
-      return store.id === String(id);
-    },
-  );
+  const record: AskAiEvalDataStore | undefined = (
+    project.dataStores || []
+  ).find((store: AskAiEvalDataStore): boolean => {
+    return store.id === String(id);
+  });
 
   return record ? toStore(project, record) : null;
 }
 
-function toStore(project: AskAiEvalProject, record: AskAiEvalDataStore): DataStore {
+function toStore(
+  project: AskAiEvalProject,
+  record: AskAiEvalDataStore,
+): DataStore {
   const store: DataStore = new DataStore();
   Object.assign(store as unknown as Record<string, unknown>, {
     _id: record.id,
@@ -225,9 +228,13 @@ export function answerDataSecurityFromProject(
   };
 
   patches.set(DataStoreService, "findOneBy", byId(stores));
-  patches.set(DataStoreService, "findBy", async (): Promise<Array<DataStore>> => {
-    return stores;
-  });
+  patches.set(
+    DataStoreService,
+    "findBy",
+    async (): Promise<Array<DataStore>> => {
+      return stores;
+    },
+  );
   patches.set(DataSecurityIssueService, "findOneBy", byId(issues));
   patches.set(DataSecurityIssueService, "findBy", async () => {
     return issues;

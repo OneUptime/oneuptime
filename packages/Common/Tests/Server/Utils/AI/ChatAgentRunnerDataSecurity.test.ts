@@ -72,7 +72,7 @@ import {
 } from "../../TestingUtils/InMemoryRepository";
 import { ON_HIGHEST_PLAN } from "../../TestingUtils/RequestPlan";
 import { everyServerProductIsOn } from "../../TestingUtils/ServerProductsOn";
-import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
  * ASK AI ACTS ON DATA SECURITY, THROUGH THE WHOLE CHAT TURN (#10378).
@@ -325,7 +325,9 @@ function scrubImpact(data: { isRead: boolean }): JSONObject {
                 {
                   id: MONITOR_ID,
                   name: "Checkout sign-ups",
-                  reads: [{ part: "attributes", key: "user.email", use: "filter" }],
+                  reads: [
+                    { part: "attributes", key: "user.email", use: "filter" },
+                  ],
                 },
               ],
               hiddenCount: 0,
@@ -520,7 +522,9 @@ function install(data?: {
   // A task in Code, as Fix with AI starts one: never a real one here.
   const fixStarted: SpyInstance = jest
     .spyOn(CodeTaskRuns, "start")
-    .mockRejectedValue(new Error("Fix with AI asked Code for a task.") as never);
+    .mockRejectedValue(
+      new Error("Fix with AI asked Code for a task.") as never,
+    );
 
   // A rule from a sentence: OneUptime AI's draft, as RuleFromSentence reads it.
   const ruleDraft: SpyInstance = jest
@@ -784,9 +788,7 @@ describe("the issue's three conversations each end in one card, and approved, ma
       // Made with the person's own props: their rule, never OneUptime's.
       callerProps: props,
     });
-    expect(
-      approved.findings.get(EMAIL_FINDING_ID)?.["isScrubbed"],
-    ).toBe(true);
+    expect(approved.findings.get(EMAIL_FINDING_ID)?.["isScrubbed"]).toBe(true);
     expect(lastToolActions(approved)[0]!.status).toBe(
       AIChatToolActionStatus.Executed,
     );
@@ -891,7 +893,9 @@ describe("the issue's three conversations each end in one card, and approved, ma
     // The preview: the stores it covers today, and which would break it.
     expect(said.changes.join(" ")).toContain("It matches 4 stores today:");
     expect(said.changes.join(" ")).toContain("3 stores would break it:");
-    expect(said.changes.join(" ")).toContain('"analytics-exports" in "us-east-1"');
+    expect(said.changes.join(" ")).toContain(
+      '"analytics-exports" in "us-east-1"',
+    );
     expect(world.residencyRules.rows).toHaveLength(0);
 
     const approved: World = await approve({
@@ -963,7 +967,11 @@ const MODE_CASES: Array<ModeCase> = [
   },
   {
     name: "a rule saved",
-    call: { id: "call-save", name: "save_data_security_rule", arguments: EU_RULE },
+    call: {
+      id: "call-save",
+      name: "save_data_security_rule",
+      arguments: EU_RULE,
+    },
     asksInEveryMode: true,
   },
   {
@@ -1122,7 +1130,11 @@ describe("the always-ask list, in every mode", () => {
 
   test("Auto-run makes Reopen at once, as the person: the issue counts again, and nothing else changes", async () => {
     const world: World = await turn({
-      calls: [MODE_CASES.find((c: ModeCase) => c.name === "Reopen")!.call],
+      calls: [
+        MODE_CASES.find((c: ModeCase) => {
+          return c.name === "Reopen";
+        })!.call,
+      ],
       mode: AIChatPermissionMode.AutoRun,
     });
 
@@ -1133,7 +1145,11 @@ describe("the always-ask list, in every mode", () => {
 
   test("Auto-run assigns as the mode says: only who works on it changes, and no one gains access", async () => {
     const world: World = await turn({
-      calls: [MODE_CASES.find((c: ModeCase) => c.name === "Assign")!.call],
+      calls: [
+        MODE_CASES.find((c: ModeCase) => {
+          return c.name === "Assign";
+        })!.call,
+      ],
       mode: AIChatPermissionMode.AutoRun,
     });
     const issue: StoredRow = world.issues.get(BUCKET_ISSUE_ID)!;

@@ -16,9 +16,7 @@ import LabelService from "../../../Server/Services/LabelService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
 import TeamService from "../../../Server/Services/TeamService";
-import {
-  ChangeDataSecurityIssueTool,
-} from "../../../Server/Utils/AI/Toolbox/DataSecurityIssueActionTools";
+import { ChangeDataSecurityIssueTool } from "../../../Server/Utils/AI/Toolbox/DataSecurityIssueActionTools";
 import {
   JudgeDataSecurityFindingTool,
   ScrubDataSecurityFindingTool,
@@ -360,12 +358,15 @@ async function act(tool: ObservabilityTool, args: JSONObject): Promise<void> {
   await tool.execute(prepared?.arguments || args, CTX);
 }
 
+// The columns no write chooses: when it was made, its id, its version.
+const NOT_WRITTEN: RegExp = /(At|_id|version)$/;
+
 // A row as the comparison reads it: what was written, not when or by which write.
 function written(row: StoredRow | undefined): JSONObject {
   const kept: JSONObject = {};
 
   for (const [key, value] of Object.entries(row || {})) {
-    if (/(At|_id|version)$/.test(key) || key === "_id") {
+    if (NOT_WRITTEN.test(key) || key === "_id") {
       continue;
     }
 
@@ -539,7 +540,10 @@ describe("the other buttons and their actions write the same", () => {
     rule.allowedRegions = ["eu-*", "europe-*"] as never;
     // As the form's Enabled switch starts.
     rule.isEnabled = true;
-    await ModelAPI.create({ modelType: DataSecurityResidencyRule, model: rule });
+    await ModelAPI.create({
+      modelType: DataSecurityResidencyRule,
+      model: rule,
+    });
 
     const action: World = fresh();
     await act(SaveDataSecurityRuleTool, {

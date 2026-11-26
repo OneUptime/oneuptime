@@ -113,7 +113,9 @@ function issue(id: string, status: string): StoredRow {
     _id: id,
     projectId: PROJECT_ID.toString(),
     title:
-      status === "Open" ? "Anyone on the internet can read it" : "Versioning is off",
+      status === "Open"
+        ? "Anyone on the internet can read it"
+        : "Versioning is off",
     checkId: status === "Open" ? "public-read" : "versioning-off",
     severity: "Critical",
     status,
@@ -200,7 +202,9 @@ describe("what the runner takes", () => {
     );
 
     expect(refused.type).toBe(BadDataException.name);
-    expect(refused.message).toContain('Unknown Data Security action "delete_everything"');
+    expect(refused.message).toContain(
+      'Unknown Data Security action "delete_everything"',
+    );
 
     for (const action of DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT) {
       expect(refused.message).toContain(action);

@@ -190,7 +190,9 @@ describe("the Data Security tools are listed", () => {
             return definition.name === name;
           },
         )!.description,
-      ).toContain("it is refused here, with the page in OneUptime where they do it");
+      ).toContain(
+        "it is refused here, with the page in OneUptime where they do it",
+      );
     }
   });
 
@@ -246,10 +248,11 @@ describe("a call runs Ask AI's own action through the API, as the person", () =>
   it("sends the action and its arguments as given, and answers with what changed, what stopped working and what it cost", async () => {
     const api: ApiCallSpy = spyOnApi({
       action: "fix_data_security_issue_with_ai",
-      title: 'Ask OneUptime AI to fix "Anyone on the internet can read it" in code',
+      title:
+        'Ask OneUptime AI to fix "Anyone on the internet can read it" in code',
       details: [],
       changes: [
-        "OneUptime AI writes the smallest change that fixes it and opens a pull request in \"infra\".",
+        'OneUptime AI writes the smallest change that fixes it and opens a pull request in "infra".',
       ],
       stopsWorking: [],
       costs: [
@@ -286,7 +289,7 @@ describe("a call runs Ask AI's own action through the API, as the person", () =>
       done: 'Ask OneUptime AI to fix "Anyone on the internet can read it" in code',
       details: [],
       changes: [
-        "OneUptime AI writes the smallest change that fixes it and opens a pull request in \"infra\".",
+        'OneUptime AI writes the smallest change that fixes it and opens a pull request in "infra".',
       ],
       stopsWorking: [],
       costs: [
@@ -421,18 +424,21 @@ describe("a project API key", () => {
     },
   );
 
-  it.each(READS)("may still use %s, which changes nothing", async (name: string) => {
-    const api: ApiCallSpy = spyOnApi({ details: [], message: "Read." });
+  it.each(READS)(
+    "may still use %s, which changes nothing",
+    async (name: string) => {
+      const api: ApiCallSpy = spyOnApi({ details: [], message: "Read." });
 
-    const answer: JSONObject = await handleDataSecurityTool(
-      name,
-      {},
-      "a-project-api-key",
-    );
+      const answer: JSONObject = await handleDataSecurityTool(
+        name,
+        {},
+        "a-project-api-key",
+      );
 
-    expect(api).toHaveBeenCalledTimes(1);
-    expect(answer["message"]).toBe("Read.");
-  });
+      expect(api).toHaveBeenCalledTimes(1);
+      expect(answer["message"]).toBe("Read.");
+    },
+  );
 });
 
 describe("their arguments are Ask AI's", () => {
@@ -456,15 +462,17 @@ describe("their arguments are Ask AI's", () => {
       items: items
         ? {
             type: items["type"] || null,
-            enum: items["enum"]
-              ? [...(items["enum"] as Array<string>)]
-              : null,
+            enum: items["enum"] ? [...(items["enum"] as Array<string>)] : null,
           }
         : null,
     };
   }
 
-  it.each(DATA_SECURITY_TOOL_DEFINITIONS.map((d: DataSecurityToolDefinition) => d.name))(
+  it.each(
+    DATA_SECURITY_TOOL_DEFINITIONS.map((d: DataSecurityToolDefinition) => {
+      return d.name;
+    }),
+  )(
     "%s takes exactly what Ask AI's tool takes, and requires the same",
     (name: string) => {
       const definition: DataSecurityToolDefinition =
@@ -473,8 +481,7 @@ describe("their arguments are Ask AI's", () => {
             return candidate.name === name;
           },
         )!;
-      const tool: ObservabilityTool | undefined =
-        AIToolbox.getToolByName(name);
+      const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(name);
 
       expect(tool).toBeDefined();
       // An action and a read alike, as Ask AI's.
@@ -510,9 +517,11 @@ describe("their arguments are Ask AI's", () => {
         ].sort(),
       );
       // Nothing else: what the prepare works out is never the agent's to pass.
-      expect((definition.inputSchema as unknown as JSONObject)["additionalProperties"]).toBe(
-        false,
-      );
+      expect(
+        (definition.inputSchema as unknown as JSONObject)[
+          "additionalProperties"
+        ],
+      ).toBe(false);
     },
   );
 });

@@ -24,7 +24,12 @@ export const RULE_FROM_SENTENCE_EVAL_CASES: ReadonlyArray<RuleFromSentenceEvalCa
       expect: {
         kind: DataSecurityRuleKind.Residency,
         // AWS Ireland and Frankfurt, Google's Netherlands, Azure's West Europe.
-        allowsRegions: ["eu-west-1", "eu-central-1", "europe-west4", "westeurope"],
+        allowsRegions: [
+          "eu-west-1",
+          "eu-central-1",
+          "europe-west4",
+          "westeurope",
+        ],
         // Virginia, Singapore and London are outside the EU.
         refusesRegions: ["us-east-1", "ap-southeast-1", "uksouth"],
       },
