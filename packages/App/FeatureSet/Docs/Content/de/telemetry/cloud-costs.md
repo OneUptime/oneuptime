@@ -1,11 +1,14 @@
 # Cloud-Kosten und Einsparungen
 
-Ein verbundenes Cloud-Konto sagt auch, was es kostet und wie es weniger kosten könnte. OneUptime liest die Kosten jedes Tages aus der eigenen Abrechnung Ihrer Cloud und die Empfehlungen des eigenen Empfehlungsdienstes Ihrer Cloud, zeigt sie unter **Cloud → Ausgaben → Kosten** und **Cloud → Ausgaben → Einsparungen** und warnt, bevor ein Monat mehr kostet als sein Budget unter **Cloud → Ausgaben → Budgets**.
+Ein verbundenes Cloud-Konto sagt auch, was es kostet und wie es weniger kosten könnte. OneUptime liest die Kosten jedes Tages aus der eigenen Abrechnung Ihrer Cloud und die Empfehlungen des eigenen Empfehlungsdienstes Ihrer Cloud, zeigt sie unter **Cloud → Ausgaben → Kosten** und **Cloud → Ausgaben → Einsparungen** und warnt, bevor ein Monat mehr kostet als sein Budget unter **Cloud → Ausgaben → Budgets**. Wenn Sie es zulassen, setzt es außerdem die Einsparungen um, die ein Eigentümer genehmigt, stoppt Nicht-Produktions-Ressourcen außerhalb der Arbeitszeit und prüft jede Änderung anhand der Rechnung.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer und Cost Optimization Hub, jeweils einmal eingeschaltet.
 - [Microsoft Azure](#microsoft-azure): Cost Management und Azure Advisor, mit einer weiteren Rolle.
 - [Google Cloud](#google-cloud): Ihr Abrechnungsexport nach BigQuery und der Recommender.
+- [Einsparungen umsetzen](#einsparungen-umsetzen): Eine Einsparung mit der Genehmigung ihres Eigentümers anwenden, und sie rückgängig machen.
+- [Abschaltzeitpläne](#abschaltzeitpläne): Nicht-Produktions-Ressourcen nachts und am Wochenende stoppen.
+- [KI-Regeln für Einsparungen](#ki-regeln-für-einsparungen): Vorschläge für Eigentümer, oder Änderungen bis zu einem Limit.
 - [Budgets](#budgets): Eine Warnung, sobald die Ausgaben eines Monats einen Anteil seines Budgets überschreiten.
 :::
 
@@ -85,7 +88,7 @@ Der detaillierte Export nennt die Ressource, für die jede Kostenposition anfäl
 
 ## Wege, weniger auszugeben
 
-**Cloud → Ausgaben → Einsparungen** listet jede Empfehlung auf, die größte Einsparung zuerst: was zu tun ist, bei welcher Ressource, was sich ändern würde und was sie im Monat einspart. Die Leiste darüber zählt sie zusammen, insgesamt und nach Art: eine kleinere Größe, eine Ressource im Leerlauf, eine Zusage. Eine Empfehlung verlinkt auf die Seite ihrer Ressource, wenn OneUptime die Ressource führt.
+**Cloud → Ausgaben → Einsparungen** listet jede Empfehlung auf, die größte Einsparung zuerst: was zu tun ist, bei welcher Ressource, was sich ändern würde und was sie im Monat einspart. Die Leiste darüber zählt sie zusammen, insgesamt und nach Art: eine kleinere Größe, eine Ressource im Leerlauf, eine Zusage. Eine Empfehlung verlinkt auf die Seite ihrer Ressource, wenn OneUptime die Ressource führt, und eine, die OneUptime umsetzen kann, hat **Anwenden**: siehe [Einsparungen umsetzen](#einsparungen-umsetzen).
 
 ### Größenanpassung nach den eigenen Messwerten von OneUptime
 
@@ -105,6 +108,62 @@ Eine Ressource wird bemessen, sobald sie 6 Tage an Messwerten hat. Ihre Seite ze
 - Google Cloud: Rabatte für zugesicherte Nutzung, aus Ihrem Abrechnungsexport. Der Export sagt nicht, wie viel einer Zusage ungenutzt blieb, daher wird nicht angezeigt, wie viel genutzt wird.
 
 Ein Konto ohne Zusage zeigt, was zu On-Demand-Preisen lief, das eine Zusage günstiger bezahlen würde. Die Werte jeder Art sind die ihrer Cloud, und Arten werden nie zusammengezählt: Eine Reservierung und ein Savings Plan können beide die Ausgaben derselben Maschine als ihre zu deckenden zählen.
+
+## Einsparungen umsetzen
+
+OneUptime setzt eine Einsparung über die Cloud-Verbindung des Kontos um, sobald deren Einstellung **Einsparungsaktionen** es erlaubt: [Einsparungsaktionen](/docs/telemetry/cloud-accounts#einsparungsaktionen) sagt, was jede Auswahl gewährt. Es nimmt nur Änderungen in einem Schritt vor: Es stoppt eine ungenutzte Instanz oder Datenbank, stellt ein gp2-Volume auf gp3 um, löscht einen nicht angehängten Datenträger, einen alten Snapshot oder ein ungenutztes Image, gibt eine ungenutzte Adresse frei und ändert, wenn Sie es erlauben, die Größe einer Instanz oder Datenbank auf die empfohlene. Es kauft nie eine Zusage: **In der Konsole kaufen** öffnet die Seite Ihrer Cloud dafür.
+
+:::steps
+### Anwenden wählen
+
+Wählen Sie unter **Cloud → Ausgaben → Einsparungen** bei einer Einsparung **Anwenden**. Der Dialog sagt, was sich ändert, was es im Monat einspart, wie es rückgängig gemacht wird oder dass das nicht geht, und wer es genehmigt.
+
+### Ein Eigentümer genehmigt sie
+
+Eine Person, die als Eigentümer der Ressource eingetragen ist, oder ein Mitglied eines Teams, dem sie gehört, und die sie auch bearbeiten darf, genehmigt die Änderung. Eine Ressource ohne Eigentümer genehmigt ein Projekteigentümer oder -administrator. Wenn Sie sie selbst genehmigen dürfen, setzt **Anwenden** sie sofort um, in Ihrem Namen. Andernfalls wartet sie unter **Wartet auf Genehmigung**, bis ein Eigentümer sie mit **Genehmigen** genehmigt oder mit **Ausblenden** und einem Grund verwirft.
+
+### OneUptime setzt sie um
+
+Die Änderung wird über die Verbindung vorgenommen und steht in den Zeitleisten der Ressource und des Kontos, mit der Person, die sie genehmigt hat. Von einem gelöschten Datenträger wird zuerst ein letzter Snapshot erstellt, es sei denn, Sie schalten **Zuerst einen letzten Snapshot erstellen** aus.
+:::
+
+Jede Änderung sagt, wie sie rückgängig gemacht wird: **Rückgängig** unter **Vorgenommene Änderungen** startet eine gestoppte Instanz wieder, setzt ein Volume oder eine Größe zurück oder erstellt einen gelöschten Datenträger aus seinem letzten Snapshot neu. Was endgültig löscht, etwa ein Snapshot, ein Image oder eine freigegebene Adresse, kann nicht rückgängig gemacht werden, und der Dialog sagt das, bevor Sie es anwenden. Wo das Projekt mit **Zwei Genehmigungen für riskantere Korrekturen verlangen** zwei Genehmigungen verlangt, braucht eine Änderung, die sich nicht rückgängig machen lässt, zwei Personen.
+
+Eine Ressource, deren Tags sagen, dass sie als Code verwaltet wird, etwa von Terraform oder CloudFormation, wird stattdessen in ihrem Code geändert: Der Dialog bietet **Pull Request öffnen** für das Repository, das sie deklariert, damit das nächste Apply die Einsparung nicht zurücknimmt.
+
+### Von der Rechnung belegt
+
+**Diesen Monat eingespart** zählt nur, was die Rechnung Ihrer Cloud zeigt. Sobald sich drei Tage nach einer Änderung auf der Rechnung gesetzt haben, werden die Kosten der Ressource pro Tag mit der Woche vor der Änderung verglichen: Sie ist **In der Rechnung sichtbar**, wenn die Kosten um mindestens ein Viertel des Versprochenen gefallen sind, **Nicht in der Rechnung sichtbar**, wenn nicht, und **Nicht messbar**, wenn Ihre Cloud die Ressource nicht namentlich abrechnet. **Rechnung wird geprüft** zählt die Änderungen, die noch auf diese Tage warten.
+
+## Abschaltzeitpläne
+
+Unter **Cloud → Ausgaben → Zeitpläne** stoppt ein Zeitplan Nicht-Produktions-Instanzen und -Datenbanken außerhalb der Arbeitszeit und startet sie wieder:
+
+:::steps
+### Die Ressourcen wählen
+
+Nennen Sie das Cloud-Tag, das sie auswählt, etwa `Schedule` = `office-hours`, in einem Konto oder in allen.
+
+### Sagen, wann sie laufen
+
+Wählen Sie die Arbeitstage, die Zeit, zu der sie starten, und die Zeit, zu der sie stoppen, im 24-Stunden-Format, und die Zeitzone.
+:::
+
+Wenn die Arbeitszeit endet, stoppt ein Zeitplan jede laufende Ressource, die sein Tag auswählt und die bekanntermaßen keine Produktion ist, über die Verbindung ihres Kontos, und wenn sie beginnt, startet er nur das wieder, was er gestoppt hat: Eine Ressource, die jemand von Hand gestoppt hat, bleibt gestoppt. **Ressourcen anzeigen** listet auf, was ein Zeitplan jetzt auswählt und warum er welche weiterlaufen lässt. Er stoppt EC2-Instanzen und RDS-Datenbanken auf AWS, virtuelle Maschinen auf Azure und Compute-Engine-Instanzen auf Google Cloud. AWS startet eine Datenbank, die sieben Tage gestoppt war, von selbst wieder.
+
+Ein Zeitplan stoppt nie Produktion und nie eine Ressource, deren Umgebung nichts angibt. Eine Ressource ist bekanntermaßen keine Produktion, wenn:
+
+- eines ihrer Tags das sagt, unter einem Schlüssel wie `environment`, `env`, `stage`, `tier` oder `deployment.environment`, mit einem Wort wie `dev`, `test`, `qa`, `staging` oder `sandbox`;
+- ihr Konto unter **Umgebung** in den **Einstellungen** des Kontos als **Nicht-Produktion** markiert ist;
+- oder eine ihrer Beschriftungen das sagt, etwa `Staging` oder `env: dev`.
+
+Produktion gewinnt: Ein Tag, das `prod`, `production` oder `live` sagt, oder ein als **Produktion** markiertes Konto lässt eine Ressource weiterlaufen, egal was sonst etwas sagt. Der Name einer Ressource wird dafür nie gelesen. Schalten Sie einen Zeitplan aus, stoppt er nichts mehr und startet das, was er gestoppt hat, wenn seine Arbeitszeit beginnt; löschen Sie ihn, wird das, was er gestoppt hat, sofort gestartet.
+
+## KI-Regeln für Einsparungen
+
+Mit eingeschaltetem **KI aktivieren** schlägt OneUptime AI nach jedem Lesen der Einsparungen des Kontos jede Einsparung, die es umsetzen kann, den Eigentümern der Ressource vor, und sie genehmigen oder verwerfen sie unter **Wartet auf Genehmigung**. Unter **Cloud → Einstellungen → KI-Regeln für Einsparungen** sagt eine Regel, was OneUptime AI mit den Einsparungen tut, auf die sie passt, nach Art der Änderung, Umgebung der Ressource und ihrer Cloud: **Aus**, **Dem Eigentümer vorschlagen** oder **Ohne Rückfrage handeln**, bis zu einem monatlichen Limit. Ohne Regel wird jede Einsparung vorgeschlagen und keine umgesetzt; mit Regeln nur, worauf eine Regel passt, und zwischen passenden Regeln gewinnt die vorsichtigere.
+
+Eine Regel handelt ohne Rückfrage nur bei einer Ressource, die bekanntermaßen keine Produktion ist, nur bei einer Änderung, die sich rückgängig machen lässt, nur bis zum kleinsten Limit der passenden Regeln und höchstens 10 Mal pro Stunde in einem Projekt: Alles andere wird vorgeschlagen. Eine ohne Rückfrage vorgenommene Änderung steht in den Zeitleisten mit der Regel, die sie vorgenommen hat, und ihre Eigentümer können sie rückgängig machen. Eine verworfene oder rückgängig gemachte Einsparung wird 30 Tage lang nicht erneut vorgeschlagen.
 
 ## Budgets
 
@@ -144,6 +203,7 @@ Unter der Liste sagt die Karte, worauf sich der Rest belief: was in keiner Umgeb
 - **Die Ausgaben jedes Tages.** **Cloud → Ausgaben → Kosten** zeichnet jeden der letzten 30 Tage und markiert die Tage, die weit mehr gekostet haben als üblich, listet diese Tage auf und schlüsselt einen Zeitraum nach Dienst, Region, Konto, Ressource, Umgebung der App-Plattformen, App oder Tag auf. Die Konten, deren Kosten nicht gelesen werden, sind darunter aufgeführt, jeweils mit dem Grund.
 - **Die Kosten eines Kontos.** Die Seite **Kosten** eines Kontos zeigt dasselbe nur für das Konto, mit seinen Zusagen und seinen Wegen, weniger auszugeben.
 - **Die Kosten einer Ressource.** Die Seite einer Ressource zeigt, was sie in diesem Monat und in den letzten 30 Tagen gekostet hat, wenn ihre Cloud sie namentlich abrechnet, mit ihren Wegen, weniger auszugeben, und ihrer Größenanpassung.
+- **Was eingespart wurde.** **Cloud → Ausgaben → Einsparungen** zeigt zuerst, was die vorgenommenen Änderungen diesen Monat laut Rechnung eingespart haben, die Änderungen, die auf Genehmigung warten, und die vorgenommenen, sowie die Stunden, die Zeitpläne Ressourcen gestoppt haben.
 
 ## Fehlerbehebung
 
@@ -169,6 +229,14 @@ Die Verbindung darf die Savings Plans und Reservierungen des Kontos noch nicht l
 
 :::details Die Werte lassen ein Konto aus
 Die Werte stehen in der Währung, in der die meisten Ihrer Konten abgerechnet werden. Ein Konto, das in einer anderen abgerechnet wird, ist darunter mit seiner Währung aufgeführt, und ein Budget zählt nur die Konten, die in seiner eigenen abgerechnet werden.
+:::
+
+:::details Eine Einsparung hat kein Anwenden
+OneUptime nimmt nur Änderungen in einem Schritt vor: Eine Zusage oder eine Empfehlung, die mehr als eine Sache ändert, wird in der Konsole Ihrer Cloud umgesetzt. Anwenden öffnet einen Dialog, der sagt, warum sie hier nicht umgesetzt werden kann, wenn die Verbindung des Kontos es nicht erlaubt: Schalten Sie ihre **Einsparungsaktionen** ein und führen Sie ihren Einrichtungsbefehl erneut aus.
+:::
+
+:::details Ein Zeitplan lässt eine Ressource weiterlaufen
+**Ressourcen anzeigen** sagt, warum: Sie ist Produktion, nichts sagt, dass sie keine Produktion ist, oder die Verbindung ihres Kontos erlaubt keine Einsparungsaktionen. Taggen Sie sie, zum Beispiel `environment` = `dev`, oder markieren Sie ihr Konto als **Nicht-Produktion**.
 :::
 
 :::details Dieser Monat ist niedriger als in der Konsole Ihrer Cloud

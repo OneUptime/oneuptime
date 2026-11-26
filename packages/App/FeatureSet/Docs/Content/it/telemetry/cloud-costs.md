@@ -1,11 +1,14 @@
 # Costi e risparmi del cloud
 
-Un account cloud collegato dice anche quanto costa e come potrebbe costare meno. OneUptime legge i costi di ogni giorno dalla fatturazione del tuo cloud e le raccomandazioni del motore di raccomandazione del tuo cloud, li mostra in **Cloud → Spesa → Costi** e **Cloud → Spesa → Risparmi**, e avvisa prima che un mese costi più del suo budget in **Cloud → Spesa → Budget**.
+Un account cloud collegato dice anche quanto costa e come potrebbe costare meno. OneUptime legge i costi di ogni giorno dalla fatturazione del tuo cloud e le raccomandazioni del motore di raccomandazione del tuo cloud, li mostra in **Cloud → Spesa → Costi** e **Cloud → Spesa → Risparmi**, e avvisa prima che un mese costi più del suo budget in **Cloud → Spesa → Budget**. Se glielo permetti, realizza anche i risparmi approvati da un proprietario, ferma le risorse non di produzione fuori dall'orario di lavoro e verifica ogni modifica sulla fattura.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer e Cost Optimization Hub, ciascuno attivato una volta.
 - [Microsoft Azure](#microsoft-azure): Cost Management e Azure Advisor, con un ruolo in più.
 - [Google Cloud](#google-cloud): La tua esportazione della fatturazione verso BigQuery, e il Recommender.
+- [Realizzare i risparmi](#realizzare-i-risparmi): Applica un risparmio con l'approvazione del suo proprietario, e annullalo.
+- [Pianificazioni fuori orario](#pianificazioni-fuori-orario): Ferma le risorse non di produzione di notte e nei fine settimana.
+- [Regole IA per i risparmi](#regole-ia-per-i-risparmi): Proposte per i proprietari, o modifiche entro un limite.
 - [Budget](#budget): Un avviso quando la spesa di un mese supera una quota del suo budget.
 :::
 
@@ -85,7 +88,7 @@ L'esportazione dettagliata indica la risorsa a cui si riferisce ogni costo; quel
 
 ## Modi per spendere meno
 
-**Cloud → Spesa → Risparmi** elenca ogni raccomandazione, il risparmio maggiore per primo: cosa fare, su quale risorsa, cosa cambierebbe e quanto fa risparmiare al mese. La fascia sopra le somma, in totale e per tipo: una dimensione più piccola, una risorsa inattiva, un impegno. Una raccomandazione rimanda alla pagina della sua risorsa quando OneUptime ha la risorsa.
+**Cloud → Spesa → Risparmi** elenca ogni raccomandazione, il risparmio maggiore per primo: cosa fare, su quale risorsa, cosa cambierebbe e quanto fa risparmiare al mese. La fascia sopra le somma, in totale e per tipo: una dimensione più piccola, una risorsa inattiva, un impegno. Una raccomandazione rimanda alla pagina della sua risorsa quando OneUptime ha la risorsa, e una che OneUptime può realizzare ha **Applica**: vedi [Realizzare i risparmi](#realizzare-i-risparmi).
 
 ### Ridimensionamento dalle letture di OneUptime
 
@@ -105,6 +108,62 @@ Una risorsa viene dimensionata appena ha 6 giorni di letture. La sua pagina most
 - Google Cloud: sconti per impegno di utilizzo, dalla tua esportazione della fatturazione. L'esportazione non dice quanto di un impegno è rimasto inutilizzato, quindi quanto se ne usa non viene mostrato.
 
 Un account senza impegni indica ciò che è stato eseguito a tariffe on demand e che un impegno pagherebbe a un prezzo più basso. Le cifre di ogni tipo sono quelle del suo cloud, e i tipi non vengono mai sommati: una prenotazione e un Savings Plan possono entrambi contare la spesa della stessa macchina come propria da coprire.
+
+## Realizzare i risparmi
+
+OneUptime realizza un risparmio tramite la connessione cloud dell'account non appena la sua impostazione **Azioni di risparmio** lo consente: [Azioni di risparmio](/docs/telemetry/cloud-accounts#azioni-di-risparmio) spiega cosa concede ogni scelta. Fa solo modifiche in un passaggio: ferma un'istanza o un database inattivo, passa un volume gp2 a gp3, elimina un disco non collegato, una vecchia istantanea o un'immagine inutilizzata, rilascia un indirizzo inutilizzato e, se lo consenti, ridimensiona un'istanza o un database alla dimensione consigliata. Non acquista mai un impegno: **Acquista nella console** apre la pagina del tuo cloud per farlo.
+
+:::steps
+### Scegli Applica
+
+In **Cloud → Spesa → Risparmi**, scegli **Applica** su un risparmio. La finestra di dialogo dice cosa cambia, quanto fa risparmiare al mese, come si annulla o che non si può, e chi lo approva.
+
+### Un proprietario la approva
+
+Approva la modifica una persona indicata come proprietaria della risorsa, o un membro di un team che la possiede, che possa anche modificarla. Una risorsa senza proprietario viene approvata da un proprietario o un amministratore del progetto. Se puoi approvarla tu, **Applica** la effettua subito, a tuo nome. Altrimenti attende in **In attesa di approvazione** che un proprietario scelga **Approva**, oppure **Nascondi** con un motivo.
+
+### OneUptime la effettua
+
+La modifica passa dalla connessione ed è nelle cronologie della risorsa e dell'account, con chi l'ha approvata. Di un disco eliminato viene prima creata un'istantanea finale, a meno che tu non disattivi **Crea prima un'istantanea finale**.
+:::
+
+Ogni modifica dice come si annulla: **Annulla** in **Modifiche effettuate** riavvia un'istanza fermata, riporta un volume o una dimensione a com'erano, o ricrea un disco eliminato dalla sua istantanea finale. Ciò che elimina per sempre, come un'istantanea, un'immagine o un indirizzo rilasciato, non può essere annullato, e la finestra di dialogo lo dice prima che tu lo applichi. Dove il progetto chiede due approvazioni con **Richiedi due approvazioni per le correzioni più rischiose**, una modifica che non si può annullare richiede due persone.
+
+Una risorsa i cui tag dicono che è gestita come codice, ad esempio da Terraform o CloudFormation, viene invece modificata nel suo codice: la finestra di dialogo offre **Apri pull request** verso il repository che la dichiara, così il prossimo apply non annulla il risparmio.
+
+### Dimostrato dalla fattura
+
+**Risparmiato questo mese** conta solo ciò che mostra la fattura del tuo cloud. Non appena tre giorni dopo una modifica si sono assestati sulla fattura, il costo giornaliero della risorsa viene confrontato con la settimana prima della modifica: è **Visibile nella fattura** quando il costo è sceso almeno di un quarto di quanto promesso, **Non visibile nella fattura** quando no, e **Non misurabile** quando il tuo cloud non fattura la risorsa per nome. **Verifica della fattura** conta le modifiche che attendono ancora quei giorni.
+
+## Pianificazioni fuori orario
+
+In **Cloud → Spesa → Pianificazioni**, una pianificazione ferma istanze e database non di produzione fuori dall'orario di lavoro, e li riavvia:
+
+:::steps
+### Scegli le risorse
+
+Indica il tag cloud che le sceglie, ad esempio `Schedule` = `office-hours`, in un account o in tutti.
+
+### Di' quando sono in esecuzione
+
+Scegli i giorni lavorativi, l'ora in cui si avviano e quella in cui si fermano, nel formato 24 ore, e il fuso orario.
+:::
+
+Quando finisce l'orario di lavoro, una pianificazione ferma, tramite la connessione del suo account, ogni risorsa in esecuzione che il suo tag sceglie e che è nota per non essere di produzione, e quando inizia riavvia solo ciò che ha fermato: una risorsa che qualcuno ha fermato a mano resta ferma. **Vedi le risorse** elenca cosa sceglie ora una pianificazione e perché ne lascia qualcuna in esecuzione. Ferma le istanze EC2 e i database RDS su AWS, le macchine virtuali su Azure e le istanze Compute Engine su Google Cloud. AWS riavvia da solo un database fermo da sette giorni.
+
+Una pianificazione non ferma mai la produzione, né una risorsa il cui ambiente nulla indica. Una risorsa è nota per non essere di produzione quando:
+
+- uno dei suoi tag lo dice, con una chiave come `environment`, `env`, `stage`, `tier` o `deployment.environment` e una parola come `dev`, `test`, `qa`, `staging` o `sandbox`;
+- il suo account è segnato come **Non di produzione** in **Ambiente** nelle **Impostazioni** dell'account;
+- oppure una delle sue etichette lo dice, ad esempio `Staging` o `env: dev`.
+
+Vince la produzione: un tag che dice `prod`, `production` o `live`, o un account segnato come **Produzione**, mantiene una risorsa in esecuzione, qualunque cosa dica il resto. Il nome di una risorsa non viene mai letto per questo. Disattiva una pianificazione e non ferma più nulla, e riavvia ciò che ha fermato quando inizia il suo orario di lavoro; eliminala e ciò che ha fermato viene riavviato subito.
+
+## Regole IA per i risparmi
+
+Con **Abilita IA** attivo, OneUptime AI propone ai proprietari della risorsa ogni risparmio che può realizzare, dopo ogni lettura dei risparmi dell'account, e loro lo approvano o lo rifiutano in **In attesa di approvazione**. In **Cloud → Impostazioni → Regole IA per i risparmi**, una regola dice cosa fa OneUptime AI con i risparmi che corrispondono, per tipo di modifica, ambiente della risorsa e cloud: **Disattivato**, **Proponi al proprietario** o **Agisci senza chiedere**, fino a un limite mensile. Senza regole, ogni risparmio viene proposto e nessuno effettuato; con le regole, solo ciò che corrisponde a una regola, e tra le regole che corrispondono vince la più prudente.
+
+Una regola agisce senza chiedere solo su una risorsa nota per non essere di produzione, solo per una modifica che si può annullare, solo fino al limite più basso delle regole che corrispondono, e al massimo 10 volte all'ora in un progetto: tutto il resto viene proposto. Una modifica effettuata senza chiedere è nelle cronologie con la regola che l'ha effettuata, e i suoi proprietari possono annullarla. Un risparmio rifiutato o annullato non viene proposto di nuovo per 30 giorni.
 
 ## Budget
 
@@ -144,6 +203,7 @@ Sotto l'elenco, la scheda dice a quanto è ammontato il resto: ciò che non è i
 - **La spesa di ogni giorno.** **Cloud → Spesa → Costi** disegna ciascuno degli ultimi 30 giorni segnando i giorni costati molto più del solito, elenca quei giorni e suddivide un periodo per servizio, regione, account, risorsa, ambiente delle piattaforme applicative, app o tag. Gli account i cui costi non vengono letti sono elencati sotto, ciascuno con il motivo.
 - **I costi di un account.** I **Costi** di un account mostrano lo stesso per il solo account, con i suoi impegni e i suoi modi per spendere meno.
 - **Il costo di una risorsa.** La pagina di una risorsa mostra quanto è costata questo mese e negli ultimi 30 giorni quando il suo cloud la fattura per nome, con i suoi modi per spendere meno e il suo ridimensionamento.
+- **Cosa è stato risparmiato.** **Cloud → Spesa → Risparmi** si apre su quanto le modifiche effettuate hanno fatto risparmiare questo mese, secondo la fattura, sulle modifiche in attesa di approvazione e quelle effettuate, e sulle ore in cui le pianificazioni hanno fermato le risorse.
 
 ## Risoluzione dei problemi
 
@@ -169,6 +229,14 @@ La connessione non può ancora leggere i Savings Plans e le prenotazioni dell'ac
 
 :::details Le cifre lasciano fuori un account
 Le cifre sono nella valuta in cui viene fatturata la maggior parte dei tuoi account. Un account fatturato in un'altra è elencato sotto con la sua valuta, e un budget conta solo gli account fatturati nella sua.
+:::
+
+:::details Un risparmio non ha Applica
+OneUptime fa solo modifiche in un passaggio: un impegno, o una raccomandazione che cambia più di una cosa, si fa nella console del tuo cloud. Applica apre una finestra che dice perché non si può fare da qui quando la connessione dell'account non lo consente: attiva le sue **Azioni di risparmio** ed esegui di nuovo il suo comando di configurazione.
+:::
+
+:::details Una pianificazione lascia una risorsa in esecuzione
+**Vedi le risorse** dice perché: è di produzione, nulla indica che non sia di produzione, o la connessione del suo account non consente le azioni di risparmio. Aggiungi un tag, ad esempio `environment` = `dev`, oppure segna il suo account come **Non di produzione**.
 :::
 
 :::details Questo mese è più basso che nella console del tuo cloud
