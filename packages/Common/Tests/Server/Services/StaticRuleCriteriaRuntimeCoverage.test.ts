@@ -383,7 +383,7 @@ describe("static rule criteria runtime coverage", () => {
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
   /*
-   * 83 forms and 92 models: the investigation rules' form and model went
+   * 85 forms and 94 models: the investigation rules' form and model went
    * when they became AI rules - AiRulesTable for incidents and alerts,
    * TelemetryAiRulesTable for the telemetry products and
    * DataSecurityAiRulesTable for Data Security's issues, for the one model -
@@ -391,13 +391,13 @@ describe("static rule criteria runtime coverage", () => {
    * Platforms' pages for the cloud rules' environments, the alert incident
    * rules' page (AlertIncidentRules) for its model, OpenStack's label and
    * owner rules for clouds, Data Observability's for data assets, the
-   * network devices' naming rules (issue #6619), and Data Observability's
+   * network devices' naming rules (issue #6619), Data Observability's
    * owner rules for pipelines, on the page of its table owner rules (issue
-   * #9527).
+   * #9527), and XCP-ng's label and owner rules for pools (issue #10995).
    */
-  test("all 83 static match-criteria forms route their 92 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(83);
-    expect(formsByModel.size).toBe(92);
+  test("all 85 static match-criteria forms route their 94 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(85);
+    expect(formsByModel.size).toBe(94);
     expect([...secondFormsByModel.keys()]).toEqual(
       Object.keys(SECOND_RULE_FORMS),
     );

@@ -80,6 +80,9 @@ const STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES: Array<string> = [
   "VMwareVCenterOwnerRule",
   "WorkflowLabelRule",
   "WorkflowOwnerRule",
+  // XCP-ng's pools (#10995).
+  "XcpNgPoolLabelRule",
+  "XcpNgPoolOwnerRule",
   "AlertEpisodeOnCallRule",
   "AlertEpisodePrivacyRule",
   "AlertOnCallRule",
@@ -126,8 +129,8 @@ function getRegisteredModelType(modelName: string): ModelType {
 
 describe("static match-criteria rule model inheritance", () => {
   it("keeps the explicit model inventory complete and duplicate-free", () => {
-    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(92);
-    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(92);
+    expect(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).toHaveLength(94);
+    expect(new Set(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES).size).toBe(94);
   });
 
   it.each(STATIC_MATCH_CRITERIA_RULE_MODEL_NAMES)(
