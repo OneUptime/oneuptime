@@ -272,9 +272,12 @@ const DellPowerStorePlatform: StorageArrayPlatform = {
   ],
   /*
    * Each part's path lists every object of its kinds. A kind with no object
-   * at all sends no series, so its count is written once it has one.
+   * at all sends no series, so its count is written once it has one. The
+   * cluster's own path (its name, state and Metro witnesses, read every
+   * minute as the heartbeat) lists no object of a kind.
    */
   scrapeEndpoints: {
+    cluster: [],
     appliance: [POWERSTORE_KIND.Appliance],
     capacity: [POWERSTORE_KIND.Appliance],
     hardware: [StorageArrayResourceKind.Hardware, StorageArrayResourceKind.Drive],

@@ -145,9 +145,9 @@ services:
           v1) version=v1 ;;
           *) version=v3 ;;
         esac
-        case "$${POWERSTORE_REQUEST_LIMIT:-16}" in
-          '' | *[!0-9]*) limit=16 ;;
-          *) limit="$$POWERSTORE_REQUEST_LIMIT" ;;
+        limit="$${POWERSTORE_REQUEST_LIMIT:-16}"
+        case "$$limit" in
+          *[!0-9]* | 0*) limit=16 ;;
         esac
         dir=/tmp/powerstore-exporter
         mkdir -p "$$dir/bulk"
