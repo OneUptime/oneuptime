@@ -180,7 +180,7 @@ Hver ressource, der mangler et tag, viser den værdi, OneUptime foreslår, og ko
 
 En ressource, som din forbindelse viser efter kontoens første fulde liste, er ny. Forbindelsen laver en liste hvert 30. minut, så en ny ressource findes inden for den time, den oprettes. Om en, der mangler et påkrævet tag, gives der besked én gang:
 
-- **Hvem der får besked.** Den, der oprettede den, når kontoens ændringslog nævner et medlem af dit projekt ved vedkommendes e-mailadresse, og ressourcens ejere ud fra ejerregler og teams. Kan ingen af dem få besked, får projektets ejere det. Hver af dem skal kunne læse dine cloudressourcer.
+- **Hvem der får besked.** Den, der oprettede den, når kontoens ændringslog nævner et medlem af dit projekt ved vedkommendes e-mailadresse, og ressourcens ejere ud fra ejerregler og teams. Kan ingen af dem få besked, får Projektejerne det. Hver af dem skal kunne læse dine cloudressourcer.
 - **Hvor ofte.** Én e-mail i timen samler alt nyt for hver person. Under **Yderligere indstillinger** sender **Én e-mail pr. ressource** hver for sig, og **Udløs en advarsel** udløser også en advarsel for hver konto med alvoren og vagtpolitikkerne under **Hvor advarsler sendes hen**.
 - **Når den bliver tagget.** En ressource, der tagges, før e-mailen sendes, udelades af den, og listen **Nye ressourcer** markerer hver ressource som **Tagget**, så snart den har dem.
 

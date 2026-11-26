@@ -180,7 +180,7 @@ Varje resurs som saknar en tagg visar värdet OneUptime föreslår och kommandot
 
 En resurs som din anslutning listar efter kontots första fullständiga listning är ny. Anslutningen listar var 30:e minut, så en ny resurs hittas inom den timme den skapas. Om en som saknar en obligatorisk tagg meddelas en gång:
 
-- **Vem som får veta.** Personen som skapade den, när kontots ändringslogg nämner en medlem i ditt projekt med e-postadress, och resursens ägare, utifrån ägarregler och team. Om ingen av dem kan få veta får projektets ägare det. Var och en måste kunna läsa dina molnresurser.
+- **Vem som får veta.** Personen som skapade den, när kontots ändringslogg nämner en medlem i ditt projekt med e-postadress, och resursens ägare, utifrån ägarregler och team. Om ingen av dem kan få veta får Projektägarna det. Var och en måste kunna läsa dina molnresurser.
 - **Hur ofta.** Ett e-postmeddelande i timmen samlar allt nytt för varje person. Under **Fler inställningar** skickar **Ett e-postmeddelande per resurs** var och en för sig, och **Utlös ett larm** utlöser också ett larm för varje konto, med allvarlighetsgraden och jourpolicyerna under **Vart larm skickas**.
 - **När den taggas.** En resurs som taggas innan e-postmeddelandet skickas utelämnas ur det, och listan **Nya resurser** markerar varje resurs som **Taggad** så snart den har dem.
 

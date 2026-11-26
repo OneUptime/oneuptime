@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "जब कोई संसाधन आवश्यक टैग के बिना बनता है: किसे बताया जाता है, कितनी बार, और क्या अलर्ट बनता है।",
   "Where Alerts Go": "अलर्ट कहाँ जाते हैं",
   "Who Is Told": "किसे बताया जाता है",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "खाते के बदलाव लॉग के अनुसार इसे बनाने वाले और इसके मालिकों को ईमेल जाता है। बताने के लिए कोई न हो, तो प्रोजेक्ट के मालिकों को।",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "आवश्यक टैग के बिना नए संसाधन के बारे में किसे बताया जाता है, कितनी बार, और क्या अलर्ट बनता है। डिफ़ॉल्ट रूप से इसे बनाने वाले और मालिकों को हर घंटे एक ईमेल मिलता है।",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "{{total}} में से {{covered}} संसाधन",
-  "{{value}} is not allowed": "{{value}} की अनुमति नहीं है"
+  "{{value}} is not allowed": "{{value}} की अनुमति नहीं है",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "खाते के बदलाव लॉग के अनुसार इसे बनाने वाले और इसके मालिकों को ईमेल जाता है। बताने के लिए कोई न हो, तो प्रोजेक्ट स्वामियों को।"
 }

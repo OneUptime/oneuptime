@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "عند إنشاء مورد بلا وسم مطلوب: من يُبلَّغ، وكم مرة، وهل يُنشأ تنبيه.",
   "Where Alerts Go": "وجهة التنبيهات",
   "Who Is Told": "من يُبلَّغ",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "يتلقى منشئه، بحسب سجل تغييرات حسابه، ومالكوه بريدًا. وإن لم يوجد من يُبلَّغ، يتلقاه مالكو المشروع.",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "من يُبلَّغ بمورد جديد بلا وسم مطلوب، وكم مرة، وهل يُنشأ تنبيه. افتراضيًا يتلقى منشئه ومالكوه بريدًا واحدًا كل ساعة.",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "{{covered}} من {{total}} موردًا",
-  "{{value}} is not allowed": "{{value}} غير مسموح به"
+  "{{value}} is not allowed": "{{value}} غير مسموح به",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "يتلقى منشئه، بحسب سجل تغييرات حسابه، ومالكوه بريدًا. وإن لم يوجد من يُبلَّغ، يتلقاه مالكو المشروع."
 }

@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "必須タグなしでリソースが作成されたとき、誰にどのくらいの頻度で知らせるか、アラートを発生させるかどうか。",
   "Where Alerts Go": "アラートの送り先",
   "Who Is Told": "知らせる相手",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "アカウントの変更ログからわかる作成者と、リソースの所有者にメールを送ります。知らせる人がいない場合は、プロジェクトの所有者に送ります。",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "必須タグのない新しいリソースを誰にどのくらいの頻度で知らせるか、アラートを発生させるかどうか。既定では、作成者と所有者に 1 時間に 1 通のメールが届きます。",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "{{total}} 件中 {{covered}} 件のリソース",
-  "{{value}} is not allowed": "{{value}} は許可されていません"
+  "{{value}} is not allowed": "{{value}} は許可されていません",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "アカウントの変更ログからわかる作成者と、リソースの所有者にメールを送ります。知らせる人がいない場合は、プロジェクト所有者に送ります。"
 }

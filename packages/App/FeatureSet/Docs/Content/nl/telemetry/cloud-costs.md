@@ -180,7 +180,7 @@ Elke resource die een tag mist, toont de waarde die OneUptime voorstelt en de op
 
 Een resource die je verbinding toont na de eerste volledige lijst van zijn account, is nieuw. De verbinding maakt elke 30 minuten een lijst, dus een nieuwe resource wordt gevonden binnen het uur waarin hij is aangemaakt. Over een resource die een verplichte tag mist, wordt één keer ingelicht:
 
-- **Wie wordt ingelicht.** De persoon die hem heeft aangemaakt, wanneer het wijzigingslogboek van het account een lid van je project bij zijn e-mailadres noemt, en de eigenaren van de resource, volgens eigenaarsregels en teams. Kan geen van hen worden ingelicht, dan worden de eigenaren van het project het. Ieder moet je cloudresources kunnen lezen.
+- **Wie wordt ingelicht.** De persoon die hem heeft aangemaakt, wanneer het wijzigingslogboek van het account een lid van je project bij zijn e-mailadres noemt, en de eigenaren van de resource, volgens eigenaarsregels en teams. Kan geen van hen worden ingelicht, dan worden de Projecteigenaren het. Ieder moet je cloudresources kunnen lezen.
 - **Hoe vaak.** Eén e-mail per uur somt voor elke persoon alles op wat nieuw is. Onder **Meer instellingen** stuurt **Eén e-mail per resource** elke resource apart, en **Waarschuwing geven** geeft daarnaast voor elk account een waarschuwing, met de ernst en het bereikbaarheidsbeleid onder **Waar waarschuwingen heen gaan**.
 - **Wanneer hij getagd wordt.** Een resource die getagd is voordat de e-mail verstuurd wordt, staat er niet in, en de lijst **Nieuwe resources** markeert elke resource als **Getagd** zodra hij de tags draagt.
 

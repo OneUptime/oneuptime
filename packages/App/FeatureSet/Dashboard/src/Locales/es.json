@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "Cuando se crea un recurso sin una etiqueta obligatoria: a quién se avisa, con qué frecuencia y si se genera una alerta.",
   "Where Alerts Go": "Adónde van las alertas",
   "Who Is Told": "A quién se avisa",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "Quien lo creó, según el registro de cambios de su cuenta, y sus propietarios reciben un correo. Si no hay nadie a quien avisar, lo reciben los propietarios del proyecto.",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "A quién se avisa de un recurso nuevo sin una etiqueta obligatoria, con qué frecuencia y si se genera una alerta. De forma predeterminada, su creador y sus propietarios reciben un correo por hora.",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "{{covered}} de {{total}} recursos",
-  "{{value}} is not allowed": "{{value}} no está permitido"
+  "{{value}} is not allowed": "{{value}} no está permitido",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "Quien lo creó, según el registro de cambios de su cuenta, y sus propietarios reciben un correo. Si no hay nadie a quien avisar, lo reciben los Propietarios del proyecto."
 }

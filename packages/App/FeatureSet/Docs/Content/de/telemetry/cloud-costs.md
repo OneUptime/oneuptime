@@ -180,7 +180,7 @@ Jede Ressource, der ein Tag fehlt, zeigt den Wert, den OneUptime vorschlägt, un
 
 Eine Ressource, die Ihre Verbindung nach der ersten vollständigen Auflistung ihres Kontos aufführt, ist neu. Die Verbindung listet alle 30 Minuten auf, daher wird eine neue Ressource innerhalb der Stunde gefunden, in der sie erstellt wird. Über eine, der ein erforderliches Tag fehlt, wird einmal informiert:
 
-- **Wer informiert wird.** Die Person, die sie erstellt hat, wenn das Änderungsprotokoll des Kontos ein Mitglied Ihres Projekts mit seiner E-Mail-Adresse nennt, und die Eigentümer der Ressource aus Eigentümerregeln und Teams. Kann keiner von beiden informiert werden, werden es die Eigentümer des Projekts. Jeder muss Ihre Cloud-Ressourcen lesen dürfen.
+- **Wer informiert wird.** Die Person, die sie erstellt hat, wenn das Änderungsprotokoll des Kontos ein Mitglied Ihres Projekts mit seiner E-Mail-Adresse nennt, und die Eigentümer der Ressource aus Eigentümerregeln und Teams. Kann keiner von beiden informiert werden, werden es die Projektinhaber. Jeder muss Ihre Cloud-Ressourcen lesen dürfen.
 - **Wie oft.** Eine E-Mail pro Stunde listet alles Neue für jede Person auf. Unter **Weitere Einstellungen** sendet **Eine E-Mail pro Ressource** jede einzeln, und **Warnung auslösen** löst zusätzlich für jedes Konto eine Warnung aus, mit dem Schweregrad und den Bereitschaftsrichtlinien unter **Wohin Warnungen gehen**.
 - **Wenn sie getaggt wird.** Eine Ressource, die vor dem Versand der E-Mail getaggt wird, bleibt darin weg, und die Liste **Neue Ressourcen** markiert jede als **Getaggt**, sobald sie ihre Tags trägt.
 

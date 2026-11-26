@@ -180,7 +180,7 @@ Each resource missing a tag shows the value OneUptime suggests and the command t
 
 A resource your connection lists after its account's first full listing is new. The connection lists every 30 minutes, so a new resource is found within the hour it is created. One that lacks a required tag is told about once:
 
-- **Who is told.** The person who created it, when the account's change log names a member of your project by their email address, and the resource's owners, from owner rules and teams. When neither can be told, the project's owners are. Each must be able to read your cloud resources.
+- **Who is told.** The person who created it, when the account's change log names a member of your project by their email address, and the resource's owners, from owner rules and teams. When neither can be told, the Project Owners are. Each must be able to read your cloud resources.
 - **How often.** One email an hour lists everything new for each person. Under **More settings**, **One Email for Each Resource** sends each one on its own, and **Raise an Alert** also raises an alert for each account, with the severity and on-call policies under **Where Alerts Go**.
 - **When it is tagged.** A resource tagged before the email goes is left out of it, and the **New Resources** list marks each one **Tagged** once it carries them.
 

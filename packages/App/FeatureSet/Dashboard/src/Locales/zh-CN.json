@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "创建的资源缺少必需标记时：通知谁、多久一次，以及是否触发警报。",
   "Where Alerts Go": "警报发往何处",
   "Who Is Told": "通知谁",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "根据账户变更日志找到的创建者及其所有者会收到邮件。没有可通知的人时，发给项目所有者。",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "缺少必需标记的新资源通知谁、多久一次，以及是否触发警报。默认情况下，创建者和所有者每小时收到一封邮件。",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "{{total}} 个资源中的 {{covered}} 个",
-  "{{value}} is not allowed": "{{value}} 不被允许"
+  "{{value}} is not allowed": "{{value}} 不被允许",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "根据账户变更日志找到的创建者及其所有者会收到邮件。没有可通知的人时，发给项目所有者。"
 }

@@ -180,7 +180,7 @@ Hver ressurs som mangler en tagg, viser verdien OneUptime foreslår og kommandoe
 
 En ressurs som tilkoblingen din viser etter kontoens første fullstendige liste, er ny. Tilkoblingen lager en liste hvert 30. minutt, så en ny ressurs blir funnet innen den timen den opprettes. Om en som mangler en påkrevd tagg, gis det beskjed én gang:
 
-- **Hvem som får beskjed.** Den som opprettet den, når endringsloggen til kontoen nevner et medlem av prosjektet ditt ved e-postadressen, og eierne av ressursen, ut fra eierregler og team. Kan ingen av dem få beskjed, får prosjektets eiere det. Hver av dem må kunne lese skyressursene dine.
+- **Hvem som får beskjed.** Den som opprettet den, når endringsloggen til kontoen nevner et medlem av prosjektet ditt ved e-postadressen, og eierne av ressursen, ut fra eierregler og team. Kan ingen av dem få beskjed, får Prosjekteierne det. Hver av dem må kunne lese skyressursene dine.
 - **Hvor ofte.** Én e-post i timen samler alt nytt for hver person. Under **Flere innstillinger** sender **Én e-post per ressurs** hver for seg, og **Utløs et varsel** utløser også et varsel for hver konto, med alvorlighetsgraden og vaktpolicyene under **Hvor varsler går**.
 - **Når den blir tagget.** En ressurs som tagges før e-posten sendes, utelates fra den, og listen **Nye ressurser** markerer hver som **Tagget** så snart den har dem.
 

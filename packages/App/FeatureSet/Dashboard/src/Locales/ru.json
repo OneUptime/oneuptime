@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "Когда ресурс создаётся без обязательного тега: кому сообщается, как часто и создаётся ли оповещение.",
   "Where Alerts Go": "Куда идут оповещения",
   "Who Is Told": "Кому сообщается",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "Письмо получают его создатель (по журналу изменений аккаунта) и владельцы. Если сообщить некому, его получают владельцы проекта.",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "Кому сообщается о новом ресурсе без обязательного тега, как часто и создаётся ли оповещение. По умолчанию его создатель и владельцы получают одно письмо в час.",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "Ресурсов: {{covered}} из {{total}}",
-  "{{value}} is not allowed": "{{value}} — недопустимое значение"
+  "{{value}} is not allowed": "{{value}} — недопустимое значение",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "Письмо получают его создатель (по журналу изменений аккаунта) и владельцы. Если сообщить некому, его получают Владельцы проекта."
 }

@@ -34,7 +34,7 @@ export const NOTIFY_PEOPLE_TITLE: string = translationKey(
   "Tell Who Created It and Its Owners",
 );
 export const NOTIFY_PEOPLE_ON: string = translationKey(
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.",
 );
 export const NOTIFY_PEOPLE_OFF: string = translationKey(
   "Nobody is emailed. New resources are still listed on this page.",

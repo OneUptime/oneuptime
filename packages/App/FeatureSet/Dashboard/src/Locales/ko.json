@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "필수 태그 없이 리소스가 생성될 때 누구에게 얼마나 자주 알리는지, 경고를 발생시키는지 여부입니다.",
   "Where Alerts Go": "경고를 보낼 곳",
   "Who Is Told": "알림 대상",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "계정의 변경 로그로 확인한 생성자와 리소스 소유자에게 이메일을 보냅니다. 알릴 사람이 없으면 프로젝트 소유자에게 보냅니다.",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "필수 태그가 없는 새 리소스를 누구에게 얼마나 자주 알리는지, 경고를 발생시키는지 여부입니다. 기본적으로 생성자와 소유자가 한 시간에 이메일 한 통을 받습니다.",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "리소스 {{total}}개 중 {{covered}}개",
-  "{{value}} is not allowed": "{{value}}은(는) 허용되지 않습니다"
+  "{{value}} is not allowed": "{{value}}은(는) 허용되지 않습니다",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "계정의 변경 로그로 확인한 생성자와 리소스 소유자에게 이메일을 보냅니다. 알릴 사람이 없으면 프로젝트 소유자에게 보냅니다."
 }

@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "Når en ressurs opprettes uten en påkrevd tagg: hvem som får beskjed, hvor ofte, og om det utløses et varsel.",
   "Where Alerts Go": "Hvor varsler går",
   "Who Is Told": "Hvem som får beskjed",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "Den som opprettet den, ifølge endringsloggen til kontoen, og eierne får e-post. Er det ingen å gi beskjed til, får prosjektets eiere den.",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "Hvem som får beskjed om en ny ressurs uten en påkrevd tagg, hvor ofte, og om det utløses et varsel. Som standard får den som opprettet den og eierne én e-post i timen.",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "{{covered}} av {{total}} ressurser",
-  "{{value}} is not allowed": "{{value}} er ikke tillatt"
+  "{{value}} is not allowed": "{{value}} er ikke tillatt",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "Den som opprettet den, ifølge endringsloggen til kontoen, og eierne får e-post. Er det ingen å gi beskjed til, får Prosjekteierne den."
 }

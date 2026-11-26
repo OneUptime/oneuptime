@@ -64422,9 +64422,9 @@
   "When a resource is created without a required tag: who is told, how often, and whether an alert is raised.": "وقتی منبعی بدون تگ الزامی ساخته می‌شود: چه کسی باخبر می‌شود، هر چند وقت یک بار، و آیا هشدار ایجاد می‌شود.",
   "Where Alerts Go": "مقصد هشدارها",
   "Who Is Told": "چه کسی باخبر می‌شود",
-  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the project's owners are.": "به سازندهٔ آن، بر پایهٔ گزارش تغییرات حسابش، و به مالکانش ایمیل فرستاده می‌شود. اگر کسی برای باخبر کردن نباشد، به مالکان پروژه فرستاده می‌شود.",
   "Who is told about a new resource without a required tag, how often, and whether an alert is raised. By default its creator and owners get one email an hour.": "چه کسی از منبع تازه‌ای بدون تگ الزامی باخبر می‌شود، هر چند وقت یک بار، و آیا هشدار ایجاد می‌شود. به‌طور پیش‌فرض سازنده و مالکان آن هر ساعت یک ایمیل می‌گیرند.",
   "payments, search, platform-*": "payments, search, platform-*",
   "{{covered}} of {{total}} resources": "{{covered}} از {{total}} منبع",
-  "{{value}} is not allowed": "{{value}} مجاز نیست"
+  "{{value}} is not allowed": "{{value}} مجاز نیست",
+  "Who created it, from its account's change log, and its owners are emailed. With nobody to tell, the Project Owners are.": "به سازندهٔ آن، بر پایهٔ گزارش تغییرات حسابش، و به مالکانش ایمیل فرستاده می‌شود. اگر کسی برای باخبر کردن نباشد، به مالکان پروژه فرستاده می‌شود."
 }

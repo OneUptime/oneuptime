@@ -180,7 +180,7 @@ Chaque ressource à laquelle il manque une étiquette montre la valeur que OneUp
 
 Une ressource que votre connexion liste après la première liste complète de son compte est nouvelle. La connexion liste toutes les 30 minutes, donc une nouvelle ressource est trouvée dans l'heure qui suit sa création. Une ressource à laquelle il manque une étiquette obligatoire est signalée une fois :
 
-- **Qui est informé.** La personne qui l'a créée, quand le journal des modifications du compte nomme un membre de votre projet par son adresse e-mail, et les propriétaires de la ressource, d'après les règles de propriété et les équipes. Quand personne parmi eux ne peut être informé, ce sont les propriétaires du projet. Chacun doit pouvoir lire vos ressources cloud.
+- **Qui est informé.** La personne qui l'a créée, quand le journal des modifications du compte nomme un membre de votre projet par son adresse e-mail, et les propriétaires de la ressource, d'après les règles de propriété et les équipes. Quand personne parmi eux ne peut être informé, ce sont les Propriétaires du projet. Chacun doit pouvoir lire vos ressources cloud.
 - **À quelle fréquence.** Un e-mail par heure liste toutes les nouveautés pour chaque personne. Sous **Plus de paramètres**, **Un e-mail par ressource** envoie chacune séparément, et **Déclencher une alerte** déclenche aussi une alerte pour chaque compte, avec la gravité et les politiques d'astreinte définies sous **Destination des alertes**.
 - **Quand elle est étiquetée.** Une ressource étiquetée avant l'envoi de l'e-mail n'y figure pas, et la liste **Nouvelles ressources** marque chacune **Étiquetée** dès qu'elle les porte.
 

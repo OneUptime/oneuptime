@@ -180,7 +180,7 @@ Cada recurso ao qual falta uma tag mostra o valor que o OneUptime sugere e o com
 
 Um recurso que sua conexão lista depois da primeira listagem completa da conta dele é novo. A conexão lista a cada 30 minutos, então um recurso novo é encontrado dentro da hora em que é criado. Sobre um que não tem uma tag obrigatória se avisa uma vez:
 
-- **Quem é avisado.** A pessoa que o criou, quando o registro de alterações da conta nomeia um membro do seu projeto pelo endereço de e-mail, e os proprietários do recurso, pelas regras de proprietário e pelas equipes. Quando nenhum deles pode ser avisado, os proprietários do projeto são. Cada um precisa poder ler seus recursos de nuvem.
+- **Quem é avisado.** A pessoa que o criou, quando o registro de alterações da conta nomeia um membro do seu projeto pelo endereço de e-mail, e os proprietários do recurso, pelas regras de proprietário e pelas equipes. Quando nenhum deles pode ser avisado, os Proprietários do projeto são. Cada um precisa poder ler seus recursos de nuvem.
 - **Com que frequência.** Um e-mail por hora lista tudo o que há de novo para cada pessoa. Em **Mais configurações**, **Um e-mail por recurso** envia cada um sozinho, e **Gerar um alerta** também gera um alerta para cada conta, com a severidade e as políticas de plantão de **Para onde vão os alertas**.
 - **Quando ele recebe as tags.** Um recurso marcado antes do envio do e-mail fica de fora dele, e a lista **Recursos novos** marca cada um como **Com tags** assim que ele as tem.
 
