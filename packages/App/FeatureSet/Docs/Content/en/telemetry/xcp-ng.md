@@ -179,7 +179,7 @@ key = '/etc/ssl/xo/key.pem'
 
 Then restart xo-server with `systemctl restart xo-server`, and install the agent, or run the install script again: it reads the new certificate and shows its fingerprint to check. Or let Xen Orchestra request a Let's Encrypt certificate itself, as an XOA can (see Xen Orchestra's documentation): it is publicly trusted, so the agent needs nothing set. With a certificate that names Xen Orchestra by a name other than the address in `XO_ADDRESS`, set `XO_TLS_SERVER_NAME` to that name; the install script fills it in from the certificate when it can.
 
-When a pinned certificate is renewed, its fingerprint changes and the agent stops reading Xen Orchestra until it trusts the new one: run the install script again, which shows the new fingerprint and changes nothing until you answer **y**. Installed with Docker Compose, write `xo-ca.pem` again and run `docker compose up -d --force-recreate`.
+When a pinned certificate is renewed, the agent stops reading Xen Orchestra until it trusts the new one. Run the install script again: it shows the new fingerprint and stops, changing nothing. Check that fingerprint on Xen Orchestra's machine, then run the script once more with it: `XO_TLS_FINGERPRINT=<new fingerprint> bash install.sh`. Installed with Docker Compose, write `xo-ca.pem` again and run `docker compose up -d --force-recreate`.
 
 ## Environment variables
 
@@ -350,7 +350,7 @@ Xen Orchestra answers, but its OpenMetrics plugin does not. Turn the plugin on u
 - `x509: certificate is not valid for any names`: the certificate names no address, as Xen Orchestra's own self-signed one does. [Give Xen Orchestra a certificate that names its address](#give-xen-orchestra-a-certificate-that-names-its-address).
 - `x509: certificate is valid for <names>, not <address>`: connect to one of those names, or set `XO_TLS_SERVER_NAME` to one.
 - `x509: cannot validate certificate for <IP> because it doesn't contain any IP SANs`: `XO_ADDRESS` is an IP address the certificate does not list. Set `XO_TLS_SERVER_NAME` to a name it lists, or run the install script again, which does.
-- `x509: certificate signed by unknown authority`: `xo-ca.pem` holds neither this certificate nor the CA that issued it. The certificate was renewed, or the file holds another one: run the install script again, or write the file again.
+- `x509: certificate signed by unknown authority`: `xo-ca.pem` holds neither this certificate nor the CA that issued it. The certificate was renewed, or the file holds another one: check the new fingerprint on Xen Orchestra's machine and run the install script with it, `XO_TLS_FINGERPRINT=<new fingerprint> bash install.sh`, or write the file again.
 - `unable to read CA cert`: `xo-ca.pem` is missing or cannot be read. Run the install script again.
 :::
 

@@ -179,7 +179,7 @@ key = '/etc/ssl/xo/key.pem'
 
 Depois reinicie o xo-server com `systemctl restart xo-server` e instale o agente, ou execute de novo o script de instalação: ele lê o novo certificado e mostra a sua impressão digital para conferir. Ou deixe o Xen Orchestra pedir ele mesmo um certificado Let's Encrypt, como um XOA consegue (veja a documentação do Xen Orchestra): ele é confiável publicamente, então o agente não precisa de nenhuma configuração. Com um certificado que nomeia o Xen Orchestra por um nome diferente do endereço em `XO_ADDRESS`, defina `XO_TLS_SERVER_NAME` com esse nome; o script de instalação o preenche a partir do certificado quando pode.
 
-Quando um certificado fixado é renovado, a sua impressão digital muda e o agente para de ler o Xen Orchestra até confiar no novo: execute de novo o script de instalação, que mostra a nova impressão digital e não muda nada até que você responda **y**. Se instalou com o Docker Compose, grave `xo-ca.pem` de novo e execute `docker compose up -d --force-recreate`.
+Quando um certificado fixado é renovado, o agente para de ler o Xen Orchestra até confiar no novo. Execute de novo o script de instalação: ele mostra a nova impressão digital e para, sem mudar nada. Confira essa impressão digital na máquina do Xen Orchestra e execute o script mais uma vez com ela: `XO_TLS_FINGERPRINT=<new fingerprint> bash install.sh`. Se instalou com o Docker Compose, grave `xo-ca.pem` de novo e execute `docker compose up -d --force-recreate`.
 
 ## Variáveis de ambiente
 
@@ -350,7 +350,7 @@ O Xen Orchestra responde, mas o seu plugin OpenMetrics não. Ative o plugin em *
 - `x509: certificate is not valid for any names`: o certificado não nomeia nenhum endereço, como o próprio certificado autoassinado do Xen Orchestra. [Dê ao Xen Orchestra um certificado que nomeie o seu endereço](#dar-ao-xen-orchestra-um-certificado-que-nomeie-o-seu-endereço).
 - `x509: certificate is valid for <names>, not <address>`: conecte-se a um desses nomes, ou defina `XO_TLS_SERVER_NAME` com um deles.
 - `x509: cannot validate certificate for <IP> because it doesn't contain any IP SANs`: `XO_ADDRESS` é um endereço IP que o certificado não lista. Defina `XO_TLS_SERVER_NAME` com um nome que ele lista, ou execute de novo o script de instalação, que faz isso.
-- `x509: certificate signed by unknown authority`: `xo-ca.pem` não contém nem este certificado nem a CA que o emitiu. O certificado foi renovado, ou o arquivo contém outro: execute de novo o script de instalação, ou grave o arquivo de novo.
+- `x509: certificate signed by unknown authority`: `xo-ca.pem` não contém nem este certificado nem a CA que o emitiu. O certificado foi renovado, ou o arquivo contém outro: confira a nova impressão digital na máquina do Xen Orchestra e execute o script de instalação com ela, `XO_TLS_FINGERPRINT=<new fingerprint> bash install.sh`, ou grave o arquivo de novo.
 - `unable to read CA cert`: `xo-ca.pem` está faltando ou não pode ser lido. Execute de novo o script de instalação.
 :::
 
