@@ -7,11 +7,11 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * generate-postgres-migration` wrote it: a nullable column with no default,
  * which Postgres adds without rewriting the table or scanning it.
  */
-export class AddSecurityUserErasureRequestNamesToErase1809187681044
+export class AddSecurityUserErasureRequestNamesToErase1809187691044
   implements MigrationInterface
 {
   public name: string =
-    "AddSecurityUserErasureRequestNamesToErase1809187681044";
+    "AddSecurityUserErasureRequestNamesToErase1809187691044";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
