@@ -1,11 +1,13 @@
 # Custos e economias da nuvem
 
-Uma conta de nuvem conectada também diz quanto custa e como poderia custar menos. O OneUptime lê os custos de cada dia do próprio faturamento da sua nuvem e as recomendações do próprio recomendador da sua nuvem, mostra-os em **Nuvem → Gastos → Custos** e **Nuvem → Gastos → Economias**, e alerta antes que um mês custe mais do que o orçamento em **Nuvem → Gastos → Orçamentos**.
+Uma conta de nuvem conectada também diz quanto custa e como poderia custar menos. O OneUptime lê os custos de cada dia do próprio faturamento da sua nuvem e as recomendações do próprio recomendador da sua nuvem, mostra-os em **Nuvem → Gastos → Custos** e **Nuvem → Gastos → Economias**, lista seus Savings Plans, reservas e descontos por compromisso de uso em **Nuvem → Gastos → Compromissos**, e alerta antes que um mês custe mais do que o orçamento em **Nuvem → Gastos → Orçamentos**.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer e Cost Optimization Hub, cada um ativado uma vez.
 - [Microsoft Azure](#microsoft-azure): Cost Management e Azure Advisor, com mais uma função.
 - [Google Cloud](#google-cloud): A sua exportação de faturamento para o BigQuery e o Recommender.
+- [Faturado, amortizado e líquido](#faturado-amortizado-e-líquido): Cada custo de três formas, para que compromissos e créditos caiam onde o dinheiro foi.
+- [Compromissos e renovações](#compromissos-e-renovações): Cada compromisso, alertas antes que um termine ou enquanto é pouco usado, e o que renovar ou comprar.
 - [Orçamentos](#orçamentos): Um alerta quando os gastos de um mês ultrapassam uma parte do orçamento.
 :::
 
@@ -20,7 +22,7 @@ flowchart TB
     savings --> overview
 ```
 
-- **Os custos vêm do próprio faturamento da sua nuvem.** AWS Cost Explorer, Azure Cost Management e a exportação de faturamento do Google Cloud para o BigQuery, antes de créditos e reembolsos, na moeda em que a conta é faturada. Cada valor é o de um dia, em dias UTC, como a sua nuvem os fatura.
+- **Os custos vêm do próprio faturamento da sua nuvem.** AWS Cost Explorer, Azure Cost Management e a exportação de faturamento do Google Cloud para o BigQuery, na moeda em que a conta é faturada, cada um guardado faturado, amortizado e líquido: veja [Faturado, amortizado e líquido](#faturado-amortizado-e-líquido). Cada valor é o de um dia, em dias UTC, como a sua nuvem os fatura.
 - **Uma nuvem informa o último dia ou dois com atraso.** Cada leitura retoma a última semana, e o mês passado inteiro nos primeiros dias de um mês, então o custo de um dia se firma à medida que a sua nuvem o fecha. A primeira leitura de uma conexão volta até o início do penúltimo mês.
 - **A projeção do mês segue o ritmo da última semana.** É quanto o mês custou até agora, com cada dia que falta pela média dos últimos sete dias completos.
 - **As economias vêm do próprio recomendador da sua nuvem.** AWS Cost Optimization Hub, Azure Advisor e o Recommender do Google Cloud: um tamanho menor, um recurso ocioso, um compromisso que vale a pena, cada um com quanto economizaria por mês. Uma recomendação que você aplica ou descarta no console da sua nuvem some na leitura seguinte.
@@ -31,7 +33,7 @@ flowchart TB
 
 ## Amazon Web Services
 
-A conexão lê os custos com `ce:GetCostAndUsage`, seus compromissos com `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetReservationCoverage` e `ce:GetReservationUtilization`, e as recomendações com `cost-optimization-hub:ListRecommendations`. O Cost Explorer e o Cost Optimization Hub precisam ser ativados na conta primeiro:
+A conexão lê os custos com `ce:GetCostAndUsage`, seus compromissos com `ce:GetSavingsPlansCoverage`, `ce:GetSavingsPlansUtilization`, `ce:GetSavingsPlansUtilizationDetails`, `ce:GetReservationCoverage` e `ce:GetReservationUtilization`, os Savings Plans comprados com `savingsplans:DescribeSavingsPlans`, e as recomendações com `cost-optimization-hub:ListRecommendations` e `cost-optimization-hub:GetRecommendation`. O comando de configuração concede as leituras do Cost Explorer como três famílias, `ce:GetCostAndUsage*`, `ce:GetSavingsPlans*` e `ce:GetReservation*`, todas leituras, para que o usuário de uma chave de acesso ainda caiba nos 2.048 caracteres que o IAM permite à política dele. O Cost Explorer e o Cost Optimization Hub precisam ser ativados na conta primeiro:
 
 :::steps
 ### Ativar o Cost Explorer
@@ -43,7 +45,7 @@ Abra o Cost Explorer uma vez no console AWS Billing and Cost Management: a AWS p
 Abra o Cost Optimization Hub no mesmo console e ative-o, para a organização a partir da conta de gerenciamento dela ou só para a conta. As recomendações dele chegam em até um dia.
 :::
 
-O Cost Explorer cobra $0.01 por solicitação: uma leitura dos custos faz algumas, e os compromissos são lidos com quatro por dia. O Cost Optimization Hub é gratuito.
+O Cost Explorer cobra $0.01 por solicitação: uma leitura dos custos faz duas ou algumas mais, uma para faturado e amortizado e uma para líquido, e os compromissos são lidos com quatro por dia para a cobertura e o uso deles, e mais seis a doze por dia para os de cada um. A API do Savings Plans e o Cost Optimization Hub são gratuitos.
 
 ### Custos por recurso
 
@@ -61,7 +63,16 @@ az role assignment create --assignee <APP_ID> --role "Cost Management Reader" --
 
 O Cost Management responde por cada assinatura, com o recurso a que cada custo se refere, e lê-lo não custa nada. Quando não consegue responder por uma assinatura, os **Custos** da conta dizem por quê.
 
-O Cost Management limita a rapidez com que os custos de um locatário são lidos, igual para todos que os leem: cada consulta custa uma unidade de processamento de consultas (QPU) por mês de dados que lê, e um locatário tem 12 QPU a cada 10 segundos, 60 por minuto e 600 por hora. O OneUptime lê as assinaturas de um locatário uma após a outra dentro de dois terços de cada cota, espera o tempo que o Cost Management pedir quando recusa uma consulta e continua na leitura seguinte de onde parou. Uma assinatura ainda não lida diz **Na fila**, com quando é lida; uma que já tem valores os mantém enquanto isso.
+O Cost Management limita a rapidez com que os custos de um locatário são lidos, igual para todos que os leem: cada consulta custa uma unidade de processamento de consultas (QPU) por mês de dados que lê, e um locatário tem 12 QPU a cada 10 segundos, 60 por minuto e 600 por hora. O OneUptime lê as assinaturas de um locatário uma após a outra dentro de dois terços de cada cota, espera o tempo que o Cost Management pedir quando recusa uma consulta e continua na leitura seguinte de onde parou. Uma assinatura ainda não lida diz **Na fila**, com quando é lida; uma que já tem valores os mantém enquanto isso. O custo amortizado dela é lido a cada leitura e o custo real uma vez por dia, então a primeira leitura de uma assinatura consulta o Cost Management duas vezes e gasta o dobro de unidades de consulta: os primeiros valores de um locatário grande levam algumas leituras a mais.
+
+As reservas e os planos de economia do locatário são lidos com **Reservations Reader** e **Savings plan Reader**, que o Azure concede no escopo do próprio locatário, onde só um administrador global com acesso elevado pode concedê-los. O comando de configuração tenta, e avisa quando não pode. Para concedê-los depois, como administrador global com acesso elevado:
+
+```bash
+az role assignment create --assignee <APP_ID> --role "Reservations Reader" --scope /providers/Microsoft.Capacity
+az role assignment create --assignee <APP_ID> --role "Savings plan Reader" --scope /providers/Microsoft.BillingBenefits
+```
+
+Sem eles, os custos e as recomendações são lidos como antes, e **Nuvem → Gastos → Compromissos** diz qual função conceder.
 
 ## Google Cloud
 
@@ -81,7 +92,25 @@ Dê à conta de serviço da conexão **BigQuery Data Viewer** no conjunto de dad
 Edite a conexão em **Nuvem → Conectar** e, em **Mais campos**, defina **Tabela da exportação de faturamento** com o nome completo da tabela: `<PROJECT_ID>.<DATASET>.gcp_billing_export_resource_v1_<BILLING_ACCOUNT_ID>`.
 :::
 
-A exportação detalhada indica o recurso a que cada custo se refere; a padrão diz só o serviço e a região. O BigQuery cobra a consulta: o primeiro 1 TiB por mês é gratuito, depois $6.25 por TiB, e um mês de uma exportação vai de alguns megabytes a alguns gigabytes. As recomendações de tipo de máquina e de recursos ociosos do Recommender são lidas com **Compute Recommender Viewer**, que o comando de configuração concede, e não custam nada.
+A exportação detalhada indica o recurso a que cada custo se refere; a padrão diz só o serviço e a região. O BigQuery cobra a consulta: o primeiro 1 TiB por mês é gratuito, depois $6.25 por TiB, e um mês de uma exportação vai de alguns megabytes a alguns gigabytes. As recomendações de tipo de máquina e de recursos ociosos do Recommender são lidas com **Compute Recommender Viewer**, que o comando de configuração concede, e não custam nada. Os compromissos do Compute Engine são listados pelo Cloud Asset Inventory com **Cloud Asset Viewer**, que o comando de configuração já concede: nada mais a dar.
+
+## Faturado, amortizado e líquido
+
+Cada custo é guardado de três formas, e **Nuvem → Gastos → Custos**, os **Custos** de uma conta, a visão geral da Nuvem e os orçamentos mostram a que você escolher:
+
+- **Faturado** é cada cobrança no dia em que a sua nuvem a faturou, antes de créditos e reembolsos. Um Savings Plan ou uma reserva pagos adiantado são uma única cobrança grande no dia da compra, e o uso que cobrem parece gratuito pelo resto do prazo.
+- **Amortizado** distribui as taxas de cada compromisso pelos dias e recursos que ele cobre, para que o dinheiro caia onde foi gasto. Ainda antes de créditos e reembolsos. É o que as páginas mostram, a menos que você escolha outra.
+- **Líquido** é o amortizado, menos créditos, reembolsos e descontos: o valor da fatura.
+
+| | Faturado | Amortizado | Líquido |
+|---|---|---|---|
+| AWS | O custo não combinado (unblended) do Cost Explorer | O custo amortizado do Cost Explorer | O custo amortizado líquido do Cost Explorer, com créditos e reembolsos |
+| Azure | O custo real do Cost Management | O custo amortizado do Cost Management | O custo amortizado: o Azure desconta os créditos na conta de cobrança, que a conexão de uma assinatura não lê |
+| Google Cloud | O custo da exportação | O custo menos os créditos dos descontos por compromisso de uso e das assinaturas | O custo menos todos os créditos |
+
+O seletor acima dos valores muda a base na página, e o OneUptime lembra a sua escolha neste projeto, no seu navegador. A base do próprio projeto, com a qual as páginas abrem e que os orçamentos acompanham, fica em **Nuvem → Configurações → Configurações de custos**. Um orçamento pode acompanhar uma base própria: edite-o e defina **Base de custo**.
+
+Os custos lidos antes de os três serem guardados mostram o valor faturado em todas as bases. Cada conexão lê os custos de novo uma vez, tão para trás quanto uma primeira leitura, para que cada base seja preenchida.
 
 ## Formas de gastar menos
 
@@ -104,21 +133,51 @@ Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele most
 - Azure: planos de economia e reservas, pelo Cost Management, em custo amortizado.
 - Google Cloud: descontos por compromisso de uso, pela sua exportação de faturamento. A exportação não diz quanto de um compromisso ficou sem uso, então quanto é usado não é mostrado.
 
-Uma conta sem compromissos mostra o que rodou a preços sob demanda e que um compromisso pagaria por menos. Os valores de cada tipo são os da sua nuvem, e os tipos nunca são somados: uma reserva e um Savings Plan podem contar os dois o gasto da mesma máquina como deles para cobrir.
+Uma conta sem compromissos mostra o que rodou a preços sob demanda e que um compromisso pagaria por menos. Os valores de cada tipo são os da sua nuvem, e os tipos nunca são somados: uma reserva e um Savings Plan podem contar os dois o gasto da mesma máquina como deles para cobrir. Cada compromisso isoladamente é listado em **Nuvem → Gastos → Compromissos**: veja [Compromissos e renovações](#compromissos-e-renovações).
+
+## Compromissos e renovações
+
+**Nuvem → Gastos → Compromissos** lista cada Savings Plan, reserva e desconto por compromisso de uso que as suas conexões conseguem ler, para que nenhum termine sem ser notado:
+
+- **Compromissos ativos**, no topo, conta os ativos e os que terminam em até 90 dias, **Utilização** quanto deles foi usado nos últimos 30 dias e o que ficou sem uso, e **Cobertura** quanto do gasto eles cobrem.
+- **Terminam em breve** lista os que terminam em até 90 dias e não se renovam sozinhos, cada um com o plano de renovação: o que comprar para manter o desconto (o compromisso por hora ou as instâncias, na parte que foi usada), quanto isso custa e economiza por mês, quando se paga e quanto do gasto está coberto agora e depois que ele terminar. **Renovar no console** abre a página em que a sua nuvem o renova.
+- **Todos os compromissos** é a lista completa: o que cada um é e cobre, a conta dele, quando termina, o prazo e a opção de pagamento, quanto dele foi usado nos últimos 30 dias, e o uso que ele pagou e quanto isso economizou.
+- **Planos de compra** são o que o recomendador da sua nuvem sugere comprar, cada um com quanto custaria e economizaria por mês, quando se pagaria e como a cobertura mudaria. **Comprar no console** abre a página para comprá-lo.
+- Abaixo deles, os compromissos de cada conta por tipo, como os **Custos** dela os mostram, e quando os compromissos alertam, com **Alterar alertas**.
+
+O OneUptime só planeja: nunca compra, renova ou devolve um compromisso. Você compra no console da sua nuvem.
+
+| | De onde vêm os compromissos | O que se sabe de cada um |
+|---|---|---|
+| AWS | Os Savings Plans e instâncias reservadas do Cost Explorer, cada um com o próprio uso, e a API do Savings Plans para os planos comprados, incluindo os que estão na fila para começar | O fim, o prazo, a opção de pagamento, o compromisso por hora ou as instâncias, as taxas e o uso nos últimos 30 e 7 dias |
+| Azure | As reservas e os planos de economia do locatário | O fim, o prazo, o plano de cobrança, se ele se renova sozinho, e o uso nos últimos 30 e 7 dias |
+| Google Cloud | Os compromissos do Compute Engine, pelo Cloud Asset Inventory | O fim, o plano, os recursos e se ele se renova sozinho. O Google Cloud não diz quanto de um compromisso é usado |
+
+A conta de gerenciamento de uma organização lista os de cada conta na AWS. Os descontos por compromisso de uso baseados em gastos, que o Google Cloud mantém na conta de faturamento em vez de num projeto, ainda não são listados.
+
+### Alertas de compromissos
+
+Os compromissos geram alertas, acionados pelas políticas de plantão como qualquer alerta. Em **Nuvem → Configurações → Configurações de custos**, **Alertas de compromissos** diz quando:
+
+- **Alertar antes do fim de um compromisso**: 90, 30 e 7 dias antes do fim, para começar. Um alerta no mais próximo desses dias que o compromisso atingiu, cada um mais próximo substituindo o anterior. Um compromisso que se renova sozinho, ou cuja renovação está na fila para começar quando ele terminar, não gera nenhum.
+- **Alertar quando a utilização ficar abaixo de**: 80% para começar, dos últimos 7 dias de um compromisso, depois que ele rodou uma semana. O alerta é resolvido quando o uso volta.
+- **Alertar quando a cobertura cair abaixo de**: 60% para começar, do gasto que os compromissos de um tipo de uma conta poderiam cobrir, depois de terem coberto mais. Ele é resolvido quando a cobertura volta. Vazio, a cobertura não gera alerta.
+
+**Alertar sobre compromissos** desliga todos, e **Severidade do alerta**, **Políticas de plantão** e **Proprietários** dizem quão graves eles são, quem é acionado e de quem são. Cada alerta diz o que o compromisso cobre e o que pagou, e aponta para o plano de renovação. Um alerta é resolvido sozinho quando o compromisso termina, se renova ou deixa de ser listado.
 
 ## Orçamentos
 
 :::steps
 ### Criar um orçamento
 
-Em **Nuvem → Gastos → Orçamentos**, crie um orçamento: o **Valor mensal** e a **Conta** a que ele se aplica, ou nenhuma para todas as contas.
+Em **Nuvem → Gastos → Orçamentos**, crie um orçamento: o **Valor mensal**, a **Conta** a que ele se aplica, ou nenhuma para todas as contas, e a **Base de custo** que ele conta, ou nenhuma para a do projeto.
 
 ### Escolher quando ele alerta
 
 **Alertar em** recebe as partes do orçamento em que alertar, em porcentagem: 80 e 100 para começar. **Alertar se estiver a caminho de ultrapassar** também alerta, uma vez por mês, quando o ritmo da última semana levaria o mês além do orçamento. **Alertar em dias incomuns** também alerta no dia seguinte a um dia que custou muito mais que o normal: veja [Dias incomuns](#dias-incomuns). **Severidade do alerta** e **Políticas de plantão** dizem quão graves são os alertas e quem é acionado.
 :::
 
-Um orçamento é verificado após cada leitura dos custos e a cada hora. Quando os gastos do mês passam de um limite, um alerta é gerado para ele, o mais alto quando uma leitura passa de vários de uma vez, e um mês novo resolve os alertas do mês passado. Um orçamento conta só as contas faturadas na moeda dele.
+Um orçamento é verificado após cada leitura dos custos e a cada hora. Quando os gastos do mês passam de um limite, um alerta é gerado para ele, o mais alto quando uma leitura passa de vários de uma vez, e um mês novo resolve os alertas do mês passado. Um orçamento conta só as contas faturadas na moeda dele, na base dele: um orçamento amortizado não dispara por um compromisso pago adiantado, que um faturado conta no dia da compra.
 
 Agentes de IA podem criar e alterar orçamentos pelo [servidor MCP](/docs/ai/mcp-server), e scripts com o comando `oneuptime cloud-budget` da CLI: veja [Operações de recursos](/docs/cli/resource-operations).
 
@@ -141,7 +200,8 @@ Abaixo da lista, o card diz quanto deu o restante: o que não está em nenhum am
 ## O que você vê no OneUptime
 
 - **A visão geral da Nuvem.** **Nuvem → Visão geral** mostra os gastos do mês em relação aos do mês passado até o mesmo dia, os serviços que mais custam e as maiores formas de gastar menos, ao lado do que precisa de atenção.
-- **Os gastos de cada dia.** **Nuvem → Gastos → Custos** desenha cada um dos últimos 30 dias marcando os dias que custaram muito mais que o normal, lista esses dias e detalha um período por serviço, região, conta, recurso, ambiente de plataformas de aplicativos, aplicativo ou tag. As contas cujos custos não são lidos aparecem abaixo, cada uma com o motivo.
+- **Os gastos de cada dia.** **Nuvem → Gastos → Custos** desenha cada um dos últimos 30 dias marcando os dias que custaram muito mais que o normal, lista esses dias e detalha um período por serviço, região, conta, recurso, ambiente de plataformas de aplicativos, aplicativo ou tag, faturado, amortizado ou líquido. As contas cujos custos não são lidos aparecem abaixo, cada uma com o motivo.
+- **Cada compromisso.** **Nuvem → Gastos → Compromissos** lista cada um com quando termina e quanto dele é usado, os que terminam em breve com o que renovar, e o que comprar.
 - **Os custos de uma conta.** Os **Custos** de uma conta mostram o mesmo só para a conta, com os compromissos e as formas de gastar menos dela.
 - **O custo de um recurso.** A página de um recurso mostra quanto ele custou este mês e nos últimos 30 dias quando a nuvem dele o fatura pelo nome, com as formas de gastar menos dele e o ajuste de tamanho dele.
 
@@ -164,7 +224,15 @@ Os dados no nível do recurso não estão ativados para a conta. Ative-os com gr
 :::
 
 :::details Os compromissos dizem Precisa de permissão
-A conexão ainda não pode ler os Savings Plans e as reservas da conta. Execute o comando de configuração dela de novo em **Nuvem → Conectar**: ele adiciona as quatro ações com que eles são lidos.
+A conexão ainda não pode ler os Savings Plans e as reservas da conta. Execute o comando de configuração dela de novo em **Nuvem → Conectar**: ele adiciona as ações com que eles são lidos. No Azure, um administrador global com acesso elevado concede **Reservations Reader** e **Savings plan Reader**: veja [Microsoft Azure](#microsoft-azure).
+:::
+
+:::details Amortizado e líquido mostram o mesmo que faturado
+Os custos lidos antes de os três serem guardados mostram o valor faturado em todas as bases até a próxima leitura de custos da conexão, que os lê de novo tão para trás quanto a primeira. No Azure, o líquido é sempre o custo amortizado.
+:::
+
+:::details Um compromisso termina e nenhum alerta chegou
+Um compromisso que se renova sozinho, ou cuja renovação está na fila para começar quando ele terminar, não gera nenhum, e nem um de um projeto cujos alertas de compromissos estão desligados em **Nuvem → Configurações → Configurações de custos**. Um alerta também precisa que o projeto tenha uma severidade de alerta.
 :::
 
 :::details Os valores deixam uma conta de fora
@@ -172,7 +240,7 @@ Os valores estão na moeda em que a maioria das suas contas é faturada. Uma con
 :::
 
 :::details Este mês está mais baixo do que no console da sua nuvem
-A sua nuvem informa o último dia ou dois com atraso, e os valores são antes de créditos e reembolsos. As leituras seguintes alcançam.
+A sua nuvem informa o último dia ou dois com atraso, e os valores faturados e amortizados são antes de créditos e reembolsos. As leituras seguintes alcançam. Compare com a base que o console da sua nuvem mostra: a AWS abre nos custos não combinados, que são os faturados.
 :::
 
 ## Próximos passos

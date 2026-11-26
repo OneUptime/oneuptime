@@ -26,7 +26,7 @@ flowchart TB
     ou --> chg["Alterações e eventos<br/>de integridade"]
 ```
 
-- **O acesso só pode ler.** O comando cria um acesso que lê os seus recursos e como estão configurados, as métricas deles, o que mudou, os eventos de integridade do seu provedor e quanto a conta custa, e nada mais: as ações listadas abaixo na AWS, as funções **Monitoring Reader** e **Cost Management Reader** no Azure e seis papéis de leitura no Google Cloud. O OneUptime nunca lê dados ou segredos com ele, exceto linhas de log quando você deixa a IA ler os logs de uma conta e amostras de conteúdo quando você as ativa para a [Segurança de dados](#segurança-de-dados). Exclua-o para cortar o acesso do OneUptime.
+- **O acesso só pode ler.** O comando cria um acesso que lê os seus recursos e como estão configurados, as métricas deles, o que mudou, os eventos de integridade do seu provedor e quanto a conta custa, e nada mais: as ações listadas abaixo na AWS, as funções **Monitoring Reader** e **Cost Management Reader** no Azure, com **Reservations Reader** e **Savings plan Reader** quando um administrador global as concede, e seis papéis de leitura no Google Cloud. O OneUptime nunca lê dados ou segredos com ele, exceto linhas de log quando você deixa a IA ler os logs de uma conta e amostras de conteúdo quando você as ativa para a [Segurança de dados](#segurança-de-dados). Exclua-o para cortar o acesso do OneUptime.
 - **O OneUptime lê de forma programada.** A cada 5 minutos para o Azure e o Google Cloud, e a cada 10 minutos para a AWS, a menos que você escolha outro intervalo ao conectar. Cada leitura também registra o que mudou desde a anterior, e a cada 30 minutos uma leitura lista todos os recursos de novo.
 - **Cada recurso tem uma página própria.** Os recursos aparecem em **Nuvem → Todos os recursos** com a integridade, as principais métricas, os responsáveis e os rótulos. A página de um recurso listado também mostra os **Recursos conectados** (onde ele é executado, o que lhe envia tráfego), os endpoints, tags e configurações, e os **Incidentes**, **Alertas** e **Alterações** dele.
 - **Cada conta tem uma página própria.** As contas aparecem em **Nuvem → Contas** com os recursos por tipo e região, os **Custos**, as **Alterações** e uma **Topologia** de como os recursos se encaixam.
@@ -84,7 +84,7 @@ A função e o usuário podem fazer isto, e nada mais:
 | Ler linhas de log, só quando você deixa a IA ler os logs de uma conta | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | Listar as contas da organização, a partir da conta de gerenciamento dela | `organizations:ListAccounts` |
 
-`apigateway:GET` só é permitido nas definições das próprias APIs, nunca nas chaves delas, e só a função da conta de gerenciamento pode listar as contas da organização. O AWS Health responde apenas a contas com um plano de suporte Business, Enterprise On-Ramp ou Enterprise: sem um, o OneUptime pergunta de novo um dia depois.
+`apigateway:GET` só é permitido nas definições das próprias APIs, nunca nas chaves delas, e só a função da conta de gerenciamento pode listar as contas da organização. As leituras do Cost Explorer são permitidas como três famílias de ações `Get`, de custos, Savings Plans e reservas, que não mudam nada: nem a função nem o usuário podem comprar, renovar ou devolver um compromisso. O AWS Health responde apenas a contas com um plano de suporte Business, Enterprise On-Ramp ou Enterprise: sem um, o OneUptime pergunta de novo um dia depois.
 
 Em cada região, o OneUptime lista as instâncias e volumes do EC2, as VPCs, as sub-redes e os grupos de segurança, os gateways NAT, os grupos do Auto Scaling, os balanceadores de carga (Application, Network, Gateway e Classic), os clusters do EKS, os clusters e serviços do ECS, as funções do Lambda, os bancos de dados do RDS, o ElastiCache, as filas do SQS, os tópicos do SNS, as tabelas do DynamoDB, os streams do Kinesis, as máquinas de estado do Step Functions, as APIs do API Gateway, os sistemas de arquivos do EFS, os domínios do OpenSearch, os serviços do App Runner, os ambientes do Elastic Beanstalk, as ACLs da web do WAF, os firewalls do Network Firewall, os grupos de usuários do Cognito, as APIs GraphQL do AppSync e os endpoints do SageMaker, com suas tags, as distribuições do CloudFront e as ACLs da web delas uma única vez, em us-east-1, e os aceleradores do Global Accelerator uma única vez, em us-west-2. Também registra como eles se conectam: a sub-rede e a VPC em que cada recurso é executado e os grupos de segurança que o protegem, para onde cada balanceador de carga envia o tráfego, e a rede e as instâncias de nó de cada cluster do EKS. Uma função criada antes de o OneUptime listar um tipo continua sendo lida sem ele, e sem aviso: execute o comando de novo para listar esse tipo também, como as sub-redes, os grupos de segurança e os clusters do EKS, ou as ACLs da web, os firewalls, os aceleradores, os grupos de usuários, as APIs GraphQL e os endpoints, que então passam a ser listados antes mesmo de reportarem uma métrica.
 
@@ -102,7 +102,7 @@ Vá para **Nuvem → Conectar** e escolha **Microsoft Azure**.
 
 ### Executar o comando no Azure Cloud Shell
 
-O comando cria um aplicativo com as funções **Monitoring Reader** e **Cost Management Reader** na sua assinatura atual e exibe os detalhes dele com a data em que o segredo expira:
+O comando cria um aplicativo com as funções **Monitoring Reader** e **Cost Management Reader** na sua assinatura atual, tenta dar a ele **Reservations Reader** e **Savings plan Reader** no locatário, para listar as reservas e os planos de economia dele, o que só um administrador global com acesso elevado pode conceder (para qualquer outra pessoa ele avisa que não foram concedidas e continua), e exibe os detalhes do aplicativo com a data em que o segredo expira:
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -312,9 +312,9 @@ Um caso só lê uma alteração de volta por meio de uma conexão que alcança a
 | Métricas | As principais métricas de cada serviço, como CPU, rede e verificações de status de uma instância | Até 20 métricas principais por recurso | As principais métricas de cada tipo de recurso |
 | Alterações | Os eventos de gerenciamento do CloudTrail | Os eventos administrativos do log de atividades | O log de auditoria Admin Activity |
 | Eventos de integridade | AWS Health | Service Health e Resource Health | Service Health |
-| Custos | Os de cada dia, por serviço e região, e por recurso com Custos por recurso ativado, pelo Cost Explorer | Os de cada dia, por recurso e serviço, pelo Cost Management | Os de cada dia, por serviço, região e recurso, pela sua exportação de faturamento para o BigQuery |
+| Custos | Os de cada dia, faturados, amortizados e líquidos, por serviço e região, e por recurso com Custos por recurso ativado, pelo Cost Explorer | Os de cada dia, reais e amortizados, por recurso e serviço, pelo Cost Management | Os de cada dia, com e sem os créditos, por serviço, região e recurso, pela sua exportação de faturamento para o BigQuery |
 | Formas de gastar menos | Cost Optimization Hub | Azure Advisor | O Recommender |
-| Compromissos | Savings Plans e instâncias reservadas: o que cobrem e quanto deles é usado, pelo Cost Explorer | Planos de economia e reservas, pelo Cost Management | Descontos por compromisso de uso, pela sua exportação de faturamento para o BigQuery |
+| Compromissos | Savings Plans e instâncias reservadas: o que cobrem e quanto deles é usado, pelo Cost Explorer, e cada um com o fim, pelo Cost Explorer e pela API do Savings Plans | Planos de economia e reservas: o que cobrem, pelo Cost Management, e cada um com o fim, com Reservations Reader e Savings plan Reader | Descontos por compromisso de uso: o que cobrem, pela sua exportação de faturamento para o BigQuery, e cada compromisso do Compute Engine com o fim, pelo Cloud Asset Inventory |
 | Leitura a cada | 10 minutos | 5 minutos | 5 minutos |
 | Um recurso excluído | Arquivado assim que uma listagem completa não o tem mais | Arquivado assim que uma listagem completa não o tem mais | Arquivado assim que uma listagem completa não o tem mais |
 
@@ -325,7 +325,7 @@ As chamadas que o OneUptime faz são cobradas da sua conta de nuvem, aos preços
 | Nuvem | Preço |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: $0.01 a cada 1.000 métricas, e cada métrica principal de um recurso é uma métrica por leitura |
-| Custos da AWS | Cost Explorer: $0.01 por solicitação. Uma leitura dos custos faz algumas, os compromissos quatro por dia e Custos por recurso mais algumas por dia |
+| Custos da AWS | Cost Explorer: $0.01 por solicitação. Uma leitura dos custos faz duas ou algumas mais, os compromissos dez a dezesseis por dia e Custos por recurso mais algumas por dia |
 | Azure | As primeiras 1.000.000 leituras de métricas por mês de cada assinatura são gratuitas, depois $0.01 a cada 1.000 |
 | Google Cloud | As primeiras 1.000.000 séries temporais lidas por mês são gratuitas, depois $0.50 por milhão |
 | Custos do Google Cloud | O BigQuery cobra a consulta da sua exportação de faturamento: o primeiro 1 TiB por mês é gratuito, depois $6.25 por TiB |

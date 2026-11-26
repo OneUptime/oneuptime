@@ -26,7 +26,7 @@ flowchart TB
     ou --> chg["Ändringar och<br/>hälsohändelser"]
 ```
 
-- **Åtkomsten kan bara läsa.** Kommandot skapar en åtkomst som läser dina resurser och hur de är konfigurerade, deras mätvärden, vad som ändrats, leverantörens hälsohändelser och vad kontot kostar, och inget annat: åtgärderna nedan på AWS, rollerna **Monitoring Reader** och **Cost Management Reader** på Azure och sex visningsroller på Google Cloud. OneUptime läser aldrig data eller hemligheter med den, utom loggrader när du låter AI läsa ett kontos loggar och innehållsprover när du slår på dem för [Datasäkerhet](#datasäkerhet). Ta bort den för att stänga ute OneUptime.
+- **Åtkomsten kan bara läsa.** Kommandot skapar en åtkomst som läser dina resurser och hur de är konfigurerade, deras mätvärden, vad som ändrats, leverantörens hälsohändelser och vad kontot kostar, och inget annat: åtgärderna nedan på AWS, rollerna **Monitoring Reader** och **Cost Management Reader** på Azure, med **Reservations Reader** och **Savings plan Reader** när en global administratör tilldelar dem, och sex visningsroller på Google Cloud. OneUptime läser aldrig data eller hemligheter med den, utom loggrader när du låter AI läsa ett kontos loggar och innehållsprover när du slår på dem för [Datasäkerhet](#datasäkerhet). Ta bort den för att stänga ute OneUptime.
 - **OneUptime läser enligt ett schema.** Var 5:e minut för Azure och Google Cloud, och var 10:e minut för AWS, om du inte väljer ett annat intervall när du ansluter. Varje läsning registrerar också vad som ändrats sedan den förra, och var 30:e minut listar en läsning alla resurser igen.
 - **Varje resurs får en egen sida.** Resurser visas under **Moln → Alla resurser** med sin hälsa, sina viktigaste mätvärden, ägare och etiketter. Sidan för en listad resurs visar också dess **Anslutna resurser** (vad den körs i, vad som skickar trafik till den), dess slutpunkter, taggar och inställningar, och dess **Incidenter**, **Larm** och **Ändringar**.
 - **Varje konto får en egen sida.** Konton visas under **Moln → Konton** med sina resurser efter typ och region, sina **Kostnader**, sina **Ändringar** och en **Topologi** över hur resurserna hänger ihop.
@@ -84,7 +84,7 @@ Rollen och användaren kan göra följande, och inget annat:
 | Läsa loggrader, bara när du låter AI läsa ett kontos loggar | `logs:DescribeLogGroups`, `logs:FilterLogEvents` |
 | Lista organisationens konton, från dess hanteringskonto | `organizations:ListAccounts` |
 
-`apigateway:GET` tillåts bara på API:ernas egna definitioner, aldrig på deras nycklar, och bara hanteringskontots roll får lista organisationens konton. AWS Health svarar bara konton med en supportplan av typen Business, Enterprise On-Ramp eller Enterprise: utan en sådan frågar OneUptime igen en dag senare.
+`apigateway:GET` tillåts bara på API:ernas egna definitioner, aldrig på deras nycklar, och bara hanteringskontots roll får lista organisationens konton. Cost Explorers läsningar tillåts som tre familjer av `Get`-åtgärder, för kostnader, Savings Plans och reservationer, som inte ändrar något: varken rollen eller användaren kan köpa, förnya eller lämna tillbaka ett åtagande. AWS Health svarar bara konton med en supportplan av typen Business, Enterprise On-Ramp eller Enterprise: utan en sådan frågar OneUptime igen en dag senare.
 
 I varje region listar OneUptime EC2-instanser och -volymer, VPC:er, undernät och säkerhetsgrupper, NAT-gatewayer, Auto Scaling-grupper, lastbalanserare (Application, Network, Gateway och Classic), EKS-kluster, ECS-kluster och -tjänster, Lambda-funktioner, RDS-databaser, ElastiCache, SQS-köer, SNS-ämnen, DynamoDB-tabeller, Kinesis-strömmar, Step Functions-tillståndsmaskiner, API Gateway-API:er, EFS-filsystem, OpenSearch-domäner, App Runner-tjänster, Elastic Beanstalk-miljöer, WAF-webb-ACL:er, Network Firewall-brandväggar, Cognito-användarpooler, AppSync GraphQL-API:er och SageMaker-slutpunkter med deras taggar, CloudFront-distributioner och deras webb-ACL:er en gång, i us-east-1, och Global Accelerator-acceleratorer en gång, i us-west-2. Den registrerar också hur de hänger ihop: det undernät och den VPC som varje resurs körs i och de säkerhetsgrupper som skyddar den, vart varje lastbalanserare skickar trafik, och nätverket och nodinstanserna i varje EKS-kluster. En roll som skapades innan OneUptime listade en typ läses fortfarande utan den och utan varning: kör kommandot igen för att lista även den typen, till exempel undernät, säkerhetsgrupper och EKS-kluster, eller webb-ACL:erna, brandväggarna, acceleratorerna, användarpoolerna, GraphQL-API:erna och slutpunkterna, som då listas redan innan de rapporterar ett mätvärde.
 
@@ -102,7 +102,7 @@ Gå till **Moln → Anslut** och välj **Microsoft Azure**.
 
 ### Kör kommandot i Azure Cloud Shell
 
-Kommandot skapar en app med rollerna **Monitoring Reader** och **Cost Management Reader** på din nuvarande prenumeration, och skriver ut dess uppgifter med datumet då dess hemlighet går ut:
+Kommandot skapar en app med rollerna **Monitoring Reader** och **Cost Management Reader** på din nuvarande prenumeration, försöker ge den **Reservations Reader** och **Savings plan Reader** på klientorganisationen, för att lista dess reservationer och besparingsplaner, vilket bara en global administratör med utökad åtkomst kan tilldela (för alla andra säger det att de inte tilldelades och fortsätter), och skriver ut appens uppgifter med datumet då dess hemlighet går ut:
 
 ```bash
 SCOPE="/subscriptions/$(az account show --query id --output tsv)"
@@ -312,9 +312,9 @@ Ett ärende läser en ändring bara via en anslutning som når kontot där ändr
 | Mätvärden | De viktigaste mätvärdena för varje tjänst, som en instans CPU, nätverk och statuskontroller | Upp till 20 viktiga mätvärden per resurs | De viktigaste mätvärdena för varje resurstyp |
 | Ändringar | Hanteringshändelserna i CloudTrail | Aktivitetsloggens administrativa händelser | Granskningsloggen Admin Activity |
 | Hälsohändelser | AWS Health | Service Health och Resource Health | Service Health |
-| Kostnader | Varje dags, efter tjänst och region, och efter resurs med Kostnader per resurs påslaget, från Cost Explorer | Varje dags, efter resurs och tjänst, från Cost Management | Varje dags, efter tjänst, region och resurs, från din faktureringsexport till BigQuery |
+| Kostnader | Varje dags, fakturerade, amorterade och netto, efter tjänst och region, och efter resurs med Kostnader per resurs påslaget, från Cost Explorer | Varje dags, faktiska och amorterade, efter resurs och tjänst, från Cost Management | Varje dags, med och utan sina krediter, efter tjänst, region och resurs, från din faktureringsexport till BigQuery |
 | Sätt att spendera mindre | Cost Optimization Hub | Azure Advisor | Recommender |
-| Åtaganden | Savings Plans och Reserved Instances: vad de täcker och hur mycket av dem som används, från Cost Explorer | Besparingsplaner och reservationer, från Cost Management | Rabatter för åtagen användning, från din faktureringsexport till BigQuery |
+| Åtaganden | Savings Plans och Reserved Instances: vad de täcker och hur mycket av dem som används, från Cost Explorer, och vart och ett med sitt slut, från Cost Explorer och Savings Plans API | Besparingsplaner och reservationer: vad de täcker, från Cost Management, och vart och ett med sitt slut, med Reservations Reader och Savings plan Reader | Rabatter för åtagen användning: vad de täcker, från din faktureringsexport till BigQuery, och varje Compute Engine-åtagande med sitt slut, från Cloud Asset Inventory |
 | Läses var | 10:e minut | 5:e minut | 5:e minut |
 | En borttagen resurs | Arkiveras när en fullständig listning inte längre har den | Arkiveras när en fullständig listning inte längre har den | Arkiveras när en fullständig listning inte längre har den |
 
@@ -325,7 +325,7 @@ Anropen som OneUptime gör faktureras ditt molnkonto, till molnets priser. Att l
 | Moln | Pris |
 | --- | --- |
 | AWS | CloudWatch `GetMetricData`: $0.01 per 1 000 mätvärden, och varje viktigt mätvärde för en resurs är ett mätvärde per läsning |
-| AWS-kostnader | Cost Explorer: $0.01 per begäran. En läsning av kostnaderna gör några få, åtagandena fyra om dagen och Kostnader per resurs några till om dagen |
+| AWS-kostnader | Cost Explorer: $0.01 per begäran. En läsning av kostnaderna gör två eller några få till, åtagandena tio till sexton om dagen och Kostnader per resurs några till om dagen |
 | Azure | De första 1 000 000 mätvärdesläsningarna per månad för varje prenumeration är gratis, därefter $0.01 per 1 000 |
 | Google Cloud | De första 1 000 000 lästa tidsserierna per månad är gratis, därefter $0.50 per miljon |
 | Google Cloud-kostnader | BigQuery debiterar frågan mot din faktureringsexport: den första 1 TiB per månad är gratis, därefter $6.25 per TiB |
