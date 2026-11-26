@@ -597,9 +597,11 @@ describe("what registration refuses", () => {
     [
       "a metric id a shipped platform uses",
       {
+        // The one metric no page or section of Acme's names (#11122).
         metrics: [
-          { ...ACME_PLATFORM.metrics[0]!, id: firstPureMetricId },
-          ...ACME_PLATFORM.metrics.slice(1),
+          ACME_PLATFORM.metrics[0]!,
+          { ...ACME_PLATFORM.metrics[1]!, id: firstPureMetricId },
+          ...ACME_PLATFORM.metrics.slice(2),
         ],
       },
       `the metric id ${firstPureMetricId} is taken`,
@@ -841,6 +843,7 @@ describe("what registration refuses", () => {
           aliases: ["purefa"],
           metrics: [{ ...ACME_PLATFORM.metrics[0]!, id: firstPureMetricId }],
           insightsSections: [],
+          kindPages: {},
         }),
         [],
       ),
