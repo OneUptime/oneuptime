@@ -319,6 +319,17 @@ jobs:
       # following within an interval each time - with the token never on a
       # command line. Its stand-ins run on the node image warmed above.
       - run: bash Tests/Ops/proxmox-agent-failover-behaviour.sh
+      # And for the Storage Array Agent's NetApp ONTAP chain (#11001): NetApp
+      # Harvest and the collector from agents/StorageArrayAgent/docker-compose.yml
+      # exactly as they ship (scraping every 10 seconds instead of 60), against a
+      # stand-in ONTAP 9.16.1 cluster and a stand-in Amazon FSx file system that
+      # refuses fsxadmin what Amazon does (Tests/Ops/Fixtures/NetAppOntap). What
+      # reaches OneUptime must carry the array's identity and no service.name,
+      # be named netapp_* and labelled scrape_endpoint=harvest, and hold every
+      # object with its values (KeyPerf and RestPerf rates, EMS events, SnapMirror
+      # schedules in seconds) and none of Harvest's self-timing; the password
+      # O'ne "up" #time: \ $HOME must reach the cluster exactly and be in no log.
+      - run: bash Tests/Ops/storage-array-agent-netapp-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a
