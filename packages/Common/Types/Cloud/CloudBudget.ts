@@ -1,14 +1,23 @@
 import { translationKey } from "../Translator";
 import {
+  CloudCostAnomaly,
   addUtcDays,
   addUtcMonths,
   daysInUtcMonth,
   fromCloudCostDay,
   projectCloudMonthCost,
+  roundCost,
   startOfUtcMonth,
   toCloudBudgetMonth,
   toCloudCostDay,
 } from "./CloudCost";
+import {
+  CLOUD_COST_ANOMALY_BASELINE_DAYS,
+  CLOUD_COST_ANOMALY_DAYS_JUDGED,
+  CLOUD_COST_ANOMALY_MIN_HISTORY_DAYS,
+  getCloudCostAnomalyDay,
+  getCloudCostMedian,
+} from "./CloudCostAnomaly";
 
 /*
  * WHAT A CLOUD BUDGET COVERS, AND FOR HOW LONG (#11008).
@@ -663,6 +672,121 @@ export function isCloudBudgetUnusualDay(data: {
     increase >= CLOUD_BUDGET_UNUSUAL_DAY_MIN_INCREASE &&
     (increase / data.usual) * 100 >= data.rule.threshold
   );
+}
+
+// At most this many of a day's services are named beside its scope's spike.
+export const CLOUD_BUDGET_UNUSUAL_DAY_SERVICES: number = 4;
+
+/*
+ * The unusual days of a budget's scope by its own rule, newest first: each
+ * of the last full days (the days before the newest one read, as the
+ * project-wide rule judges them) whose scope as a whole was at least the
+ * rule above its usual - the median of the 14 days before it, of the days
+ * since its first cost, with 7 of them at least - and beside it the
+ * services that rose the most that day, each above its own usual: what an
+ * alert names as where it came from.
+ */
+export function findCloudBudgetUnusualDays(data: {
+  // Each day's cost by service: "2026-11-02" -> service -> amount.
+  dailyServiceTotals: Map<string, Map<string, number>>;
+  latestDay: string | undefined;
+  rule: CloudBudgetUnusualDayRule;
+}): Array<CloudCostAnomaly> {
+  const newest: string | undefined = getCloudCostAnomalyDay(data.latestDay);
+
+  if (!newest) {
+    return [];
+  }
+
+  const dayTotal: (day: string) => number = (day: string): number => {
+    let total: number = 0;
+
+    for (const amount of (
+      data.dailyServiceTotals.get(day) || new Map<string, number>()
+    ).values()) {
+      total += amount;
+    }
+
+    return total;
+  };
+
+  let firstCostDay: string | undefined = undefined;
+
+  for (const day of data.dailyServiceTotals.keys()) {
+    if (dayTotal(day) > 0 && (!firstCostDay || day < firstCostDay)) {
+      firstCostDay = day;
+    }
+  }
+
+  const anomalies: Array<CloudCostAnomaly> = [];
+  const newestDate: Date = fromCloudCostDay(newest);
+
+  for (let back: number = 0; back < CLOUD_COST_ANOMALY_DAYS_JUDGED; back++) {
+    const judged: Date = addUtcDays(newestDate, -back);
+    const day: string = toCloudCostDay(judged);
+    const baselineDays: Array<string> = [];
+
+    for (
+      let before: number = CLOUD_COST_ANOMALY_BASELINE_DAYS;
+      before >= 1;
+      before--
+    ) {
+      const baselineDay: string = toCloudCostDay(addUtcDays(judged, -before));
+
+      if (firstCostDay && baselineDay >= firstCostDay) {
+        baselineDays.push(baselineDay);
+      }
+    }
+
+    if (baselineDays.length < CLOUD_COST_ANOMALY_MIN_HISTORY_DAYS) {
+      continue;
+    }
+
+    const amount: number = dayTotal(day);
+    const usual: number = getCloudCostMedian(baselineDays.map(dayTotal));
+
+    if (!isCloudBudgetUnusualDay({ rule: data.rule, amount, usual })) {
+      continue;
+    }
+
+    anomalies.push({
+      day,
+      service: "",
+      amount: roundCost(amount),
+      usual: roundCost(usual),
+    });
+
+    const services: Array<CloudCostAnomaly> = [];
+
+    for (const [service, serviceAmount] of data.dailyServiceTotals.get(day) ||
+      new Map<string, number>()) {
+      const serviceUsual: number = getCloudCostMedian(
+        baselineDays.map((baselineDay: string): number => {
+          return data.dailyServiceTotals.get(baselineDay)?.get(service) || 0;
+        }),
+      );
+
+      if (service && serviceAmount - serviceUsual >= 0.01) {
+        services.push({
+          day,
+          service,
+          amount: roundCost(serviceAmount),
+          usual: roundCost(serviceUsual),
+        });
+      }
+    }
+
+    services.sort((a: CloudCostAnomaly, b: CloudCostAnomaly): number => {
+      return (
+        b.amount - b.usual - (a.amount - a.usual) ||
+        a.service.localeCompare(b.service)
+      );
+    });
+
+    anomalies.push(...services.slice(0, CLOUD_BUDGET_UNUSUAL_DAY_SERVICES));
+  }
+
+  return anomalies;
 }
 
 /*

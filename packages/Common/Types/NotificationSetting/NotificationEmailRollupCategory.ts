@@ -187,6 +187,14 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
   [NotificationSettingEventType.SEND_PROBE_MAJOR_RELEASE_BEHIND_OWNER_NOTIFICATION]:
     RollupCategory.Probes,
 
+  /*
+   * A cloud budget's early threshold (#11008): filed with the cloud
+   * resources' notices, never urgent enough to skip a rollup - it is below
+   * the budget.
+   */
+  [NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION]:
+    RollupCategory.ServicesAndInfrastructure,
+
   // AI Agent Status change Notification
   [NotificationSettingEventType.SEND_AI_AGENT_STATUS_CHANGED_OWNER_NOTIFICATION]:
     RollupCategory.AIAgents,

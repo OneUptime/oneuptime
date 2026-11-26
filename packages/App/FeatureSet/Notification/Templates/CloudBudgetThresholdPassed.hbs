@@ -1,0 +1,42 @@
+{{!--
+  A cloud budget passed one of its early thresholds, below 100% (#11008;
+  Common/Server/Utils/CloudCost/CloudBudgetNotices). Sent to the people and
+  teams the budget names - and, for a cost group's budget, the group's
+  team - under their "Cloud budget passes a threshold" notification
+  setting, with no alert raised: nobody is paged for spend still within the
+  budget. Every value is a plain value written by the evaluator
+  (CloudBudgetEvaluator.describe), escaped where it is shown. rootCause
+  names what cost the most; it is empty when the scope named no service.
+--}}
+{{> Start this}}
+
+
+{{> Logo this}}
+{{> EmailTitle title=title }}
+
+{{> InfoBlock plainInfo=description }}
+
+{{> InfoBlock info="Here are the details: "}}
+
+{{> DetailBoxStart this }}
+{{> DetailBoxField title="Budget:" plainText=budgetName }}
+{{> DetailBoxField title="Threshold Passed:" plainText=threshold }}
+{{> DetailBoxField title="Project:" plainText=projectName }}
+{{> DetailBoxEnd this }}
+
+{{#if rootCause}}
+{{> TitleBlock title="Where the money went"}}
+{{> InfoBlock plainInfo=rootCause }}
+{{/if}}
+
+{{> ButtonBlock buttonUrl=budgetLink buttonText="View Budget"}}
+
+{{> InfoBlock plainInfo=(concat "No alert was raised and nobody was paged: this budget raises an alert at " alertsFrom ", and when it is on course to be passed.") }}
+
+{{> TitleBlock title="Why am I receiving this email?"}}
+{{> InfoBlock info="You are receiving this email because the budget names you, or a team you are on, as someone to tell."}}
+{{> UnsubscribeOwnerEmail this }}
+
+{{> Footer this }}
+
+{{> End this}}

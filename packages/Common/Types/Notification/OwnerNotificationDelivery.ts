@@ -111,6 +111,12 @@ export enum OwnerNotificationKind {
    * its own.
    */
   ProbeMajorReleaseBehind = "ProbeMajorReleaseBehind",
+  /*
+   * A cloud budget passed an early threshold (#11008): the people it names
+   * told once for each threshold of each of its windows, the occurrence
+   * the window's first month and the threshold (CloudBudgetNotices).
+   */
+  CloudBudgetThresholdPassed = "CloudBudgetThresholdPassed",
 }
 
 export enum OwnerNotificationDeliveryStatus {
