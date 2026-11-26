@@ -118,7 +118,7 @@ Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hv
 
 ### Evaluering over en periode
 
-**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **DNS er online** og **DNS-svartid (i ms)**. Slå det til for at bedømme et vindue af tidligere kontroller i stedet for den seneste: vælg en aggregering under **Evaluér** og et vindue, fra 2 minutter til 24 timer, under **For de seneste**.
+**Evaluér disse kriterier over en periode** er et afkrydsningsfelt under et filter, der tilbydes for **DNS er online**, **DNS-svartid (i ms)** og **DNS-postværdi**. Slå det til for at bedømme et vindue af tidligere kontroller i stedet for den seneste: vælg en aggregering under **Evaluér** og et vindue, fra 2 minutter til 24 timer, under **For de seneste**. For **DNS-postværdi** er det eneste valg **Forrige kontrol**: se [Når DNS-svaret ændrer sig](#når-dns-svaret-ændrer-sig).
 
 | Aggregering | Matcher, når |
 | --- | --- |
@@ -126,7 +126,7 @@ Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hv
 | **Alle værdier** | Hver kontrol i vinduet opfylder betingelsen. |
 | **Vilkårlig værdi** | Mindst én kontrol i vinduet opfylder betingelsen. |
 | **Antal**, **Procentdel**, **Statusskift** | Hvor mange kontroller der opfyldte betingelsen, deres andel, eller hvor ofte de skiftede mellem at opfylde den og ikke at opfylde den, sammenlignes med tallet, der er angivet nedenunder. |
-| **Forrige kontrol** | Denne kontrol sammenlignet med sondens forrige kontrol, som angivet under **Ændring fra den forrige kontrol**: fx en svartid, der ligger mere end 50 % over den. Et filter, der er sandt eller falsk, matcher ved den kontrol, der begyndte at opfylde betingelsen. |
+| **Forrige kontrol** | Denne kontrol sammenlignet med sondens forrige kontrol, som angivet under **Ændring fra den forrige kontrol**: fx en svartid, der ligger mere end 50 % over den. Et filter, der er sandt eller falsk, matcher ved den kontrol, der begyndte at opfylde betingelsen. **DNS-postværdi** sammenligner hele svaret: se nedenfor. |
 
 **Alle værdier** matcher først, når vinduet reelt er dækket af data. En monitor, der lige er oprettet, eller en, hvis kontroller ikke længere blev registreret, har ikke nok historik til at sige noget om de seneste N minutter, så kriteriet venter i stedet for at matche på den ene måling, det har. **Vilkårlig værdi** er indstillingen til "sig til, så snart en enkelt kontrol overskrider grænsen" og udløses stadig med det samme.
 
@@ -138,11 +138,26 @@ Kriterier kontrolleres fra top til bund, og det første, der matcher, afgør, hv
 | **Trigger** | De manglende data tæller som problemet. | Kontroller, hvor stilhed i sig selv er en fejl. |
 | **Treat As Zero** | Vinduet sammenlignes som et enkelt nul. | Tællere, hvor ingen hændelser reelt betyder nul. |
 
+### Når DNS-svaret ændrer sig
+
+Vil du have besked, når et navns svar ændrer sig, fx en adresse, der er flyttet, en mailserver, der er skiftet ud, eller en post, der er kommet til eller forsvundet, så sammenlign **DNS-postværdi** med den forrige kontrol:
+
+1. Tilføj et filter med **DNS-postværdi** og **Ikke lig med**.
+2. Sæt flueben i **Evaluér disse kriterier over en periode**. **Forrige kontrol** er det eneste valg under **Evaluér** for dette filter, og det skal ikke have nogen værdi.
+3. Vælg under **For de seneste**, hvor længe siden den forrige kontrol højst må være: længere end overvågningsintervallet.
+
+Svaret sammenlignes som en helhed: alle typens poster, uden deres TTL. De samme poster i en anden rækkefølge er det samme svar, og det samme gælder et navn skrevet med andre store og små bogstaver, da DNS-navne ikke skelner mellem dem. En post, der er tilføjet, fjernet eller ændret, giver et andet svar. **Lig med** matcher det modsatte, et svar, der er det samme som ved den forrige kontrol, til et kriterium, der skal gælde, så længe svaret er stabilt.
+
+Hver sondes svar sammenlignes med den samme sondes forrige svar, og hvert trins svar med trinnets eget, så et navn, der svarer forskelligt i forskellige regioner, er ikke en ændring. En kontrol, der ikke får noget svar, fordi navnet ikke kan slås op, eller forespørgslen får timeout, sammenlignes ikke: til det er filteret **DNS er online**. Den næste kontrol, der får et svar, sammenlignes med det sidste svar før den, hvis det ligger inden for **For de seneste**. Uden et forrige svar i vinduet, som ved monitorens første kontrol, afgør **Hvis ingen data** det, som ved enhver sammenligning med den forrige kontrol.
+
+Hændelsen eller advarslen siger, hvad svaret var, og hvad det er nu: "The DNS answer is different from the previous check, 2 minutes ago: it was A 93.184.216.34, and is now A 203.0.113.7."
+
 ### Eksempelkriterier
 
 | Mål | Filter | Betingelse | Værdi |
 | --- | --- | --- | --- |
 | Offline, når navnet ikke længere kan slås op | **DNS er online** | **Falsk** | — |
+| Advar, når et navns svar ændrer sig | **DNS-postværdi**, evalueret over **Forrige kontrol** | **Ikke lig med** | — |
 | Advar, når et navns eneste `A`-post ændres | **DNS-postværdi** | **Ikke lig med** | `93.184.216.34` |
 | Advar, når en `MX`-post peger uden for dit domæne | **DNS-postværdi** | **Indeholder ikke** | `example.com` |
 | Markér DNS som forringet, når det er langsomt | **DNS-svartid (i ms)** | **Større end** | `500` |
@@ -164,6 +179,10 @@ dig @8.8.8.8 example.com A
 1. Behold standardkriteriet for offline øverst: **DNS er online** / **Falsk**.
 2. Tilføj under det et kriterium med **DNS-postværdi** / **Lig med** / den forventede værdi, der markerer monitoren som **I drift**.
 3. Tilføj under det igen et kriterium med **DNS er online** / **Sand**, der markerer monitoren som **Offline** og erklærer en hændelse. Det matcher kun svar, der ikke har værdien.
+:::
+
+:::details Et kriterium, der sammenligner svaret med den forrige kontrol, udløses ved hver kontrol
+Serveren returnerer en anden del af en stor pulje af poster ved hver forespørgsel, som nogle load-balancerede navne gør. Hvert af de svar er et andet sæt poster. Spørg i **DNS-server (valgfri)** en server, der returnerer hele puljen, eller tjek i stedet for den værdi, du forventer, med **DNS-postværdi** / **Lig med**.
 :::
 
 :::details DNSSEC er gyldig matcher aldrig

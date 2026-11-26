@@ -1,4 +1,6 @@
+import SecurityUserErasureRequestService from "../../../../../Server/Services/SecurityUserErasureRequestService";
 import SecurityUserVaultService from "../../../../../Server/Services/SecurityUserVaultService";
+import SecurityUserErasedTokens from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasedTokens";
 import SecurityUserVaultLookup, {
   nameHashedUser,
 } from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserVaultLookup";
@@ -88,10 +90,20 @@ function signIn(data: {
 
 let vault: Record<string, string> = {};
 let lookups: Array<ReadonlyArray<string>> = [];
+// The tokens of the project's erasure requests (#10908).
+let erased: Set<string> = new Set<string>();
 
 beforeEach(() => {
   vault = {};
   lookups = [];
+  erased = new Set<string>();
+
+  SecurityUserErasedTokens.clearCache();
+  jest
+    .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+    .mockImplementation(async (): Promise<Set<string>> => {
+      return new Set<string>(erased);
+    });
 
   jest
     .spyOn(SecurityUserVaultService, "findUsersOfTokens")
@@ -343,5 +355,85 @@ describe("a page of events", () => {
 
     expect(event.principalUser).toBe(MALLORY);
     expect(event.attributes["enduser.id"]).toBe("someone-else");
+  });
+});
+
+/*
+ * A PERSON ERASED FROM THE VAULT ON REQUEST IS NEVER NAMED AGAIN (#10908):
+ * whatever the vault holds, a user holding a token of the project's erasure
+ * requests stays as the rule left it - even when a later event carries it.
+ */
+describe("a person erased on request", () => {
+  test("a later event carrying their token is not named, even though the vault still holds it", async () => {
+    vault = { [tokenOf(MALLORY)]: MALLORY, [tokenOf(EVE)]: EVE };
+    erased = new Set<string>([tokenOf(MALLORY)]);
+
+    const erasedEvent: NormalizedSecurityEvent = signIn({
+      principalUser: tokenOf(MALLORY),
+    });
+    const otherEvent: NormalizedSecurityEvent = signIn({
+      principalUser: tokenOf(EVE),
+    });
+
+    expect(
+      await SecurityUserVaultLookup.nameHashedUsers({
+        projectId: PROJECT_ID,
+        events: [erasedEvent, otherEvent],
+      }),
+    ).toBe(1);
+
+    expect(erasedEvent.principalUser).toBe(tokenOf(MALLORY));
+    expect(
+      readHiddenEventUser(erasedEvent, ScrubbedUserRole.Principal)?.value,
+    ).toBe(tokenOf(MALLORY));
+    expect(
+      erasedEvent.attributes[
+        HASHED_USER_ATTRIBUTES[ScrubbedUserRole.Principal]
+      ],
+    ).toBeUndefined();
+    expect(otherEvent.principalUser).toBe(EVE);
+    // The erased token is never even asked about.
+    expect(lookups).toEqual([[tokenOf(EVE)]]);
+  });
+
+  test("a user holding an erased token among others stays as the rule left it", async () => {
+    vault = { [tokenOf(MALLORY)]: MALLORY, [tokenOf(EVE)]: EVE };
+    erased = new Set<string>([tokenOf(MALLORY)]);
+
+    const event: NormalizedSecurityEvent = signIn({
+      principalUser: `${tokenOf(EVE)}|${tokenOf(MALLORY)}`,
+      targetUser: `auth0|${tokenOf(MALLORY)}`,
+    });
+
+    expect(
+      await SecurityUserVaultLookup.nameHashedUsers({
+        projectId: PROJECT_ID,
+        events: [event],
+      }),
+    ).toBe(0);
+    expect(event.principalUser).toBe(`${tokenOf(EVE)}|${tokenOf(MALLORY)}`);
+    expect(event.targetUser).toBe(`auth0|${tokenOf(MALLORY)}`);
+    expect(lookups).toHaveLength(0);
+  });
+
+  test("when the erased tokens cannot be read, nobody is named and the vault is not asked", async () => {
+    vault = { [tokenOf(EVE)]: EVE };
+    jest
+      .spyOn(SecurityUserErasureRequestService, "getErasedTokensOfProject")
+      .mockRejectedValue(new Error("Postgres is down") as never);
+    SecurityUserErasedTokens.clearCache();
+
+    const event: NormalizedSecurityEvent = signIn({
+      principalUser: tokenOf(EVE),
+    });
+
+    await expect(
+      SecurityUserVaultLookup.nameHashedUsers({
+        projectId: PROJECT_ID,
+        events: [event],
+      }),
+    ).resolves.toBe(0);
+    expect(event.principalUser).toBe(tokenOf(EVE));
+    expect(lookups).toHaveLength(0);
   });
 });

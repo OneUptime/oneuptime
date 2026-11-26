@@ -467,12 +467,14 @@ test(
      * when a large feed is spooled to a temp file. The sed passes and envsubst
      * run over the source before nginx sees it, so assert on the rendered
      * output: three copies of the location (one per server block), three of
-     * each directive, and none of them anywhere else.
+     * each directive, and none of them anywhere else. A blocklist feed's
+     * path can hold its secret too, so the location takes those (#10345), as
+     * NginxConfig.test.js's CALENDAR_FEED_LOCATION_SPEC says.
      */
     const rendered = render(baseEnvironment());
 
     const locationHeader =
-      "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project)/ {";
+      "location ~ ^/api/(on-call-calendar/(user|schedule|project)|scheduled-maintenance-calendar/project|blocklist-feed)/ {";
 
     assert.equal(rendered.split(locationHeader).length - 1, 3);
     assert.equal((rendered.match(/^\s*access_log off;/gm) || []).length, 3);

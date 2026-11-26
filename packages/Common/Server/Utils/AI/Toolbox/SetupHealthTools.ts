@@ -65,7 +65,7 @@ export const SETUP_HEALTH_FIX_PAGES: Readonly<Record<SetupHealthFix, string>> =
     [SetupHealthFix.ProjectBilling]:
       "Project Settings > Billing and Invoices > Billing",
     [SetupHealthFix.ServerSettings]:
-      "the server's Admin Dashboard (Server setup), which only its admins can open",
+      "the server's Admin Dashboard (Server Setup), which only its admins can open",
     [SetupHealthFix.StatusPageResources]: "the status page's Resources page",
     [SetupHealthFix.StatusPageDomains]: "the status page's Custom Domains page",
     [SetupHealthFix.ProjectOwners]: "Teams (the Owners team)",

@@ -31,6 +31,8 @@ import {
   isTestStreetAddress,
   UNSURE_SCORE,
 } from "Common/Utils/DataSecurity/Model/RecognizedEntity";
+import { isFreeTextFieldName } from "Common/Utils/DataSecurity/FreeTextFieldNames";
+import { readScanWarning } from "Common/Types/DataSecurity/ScanWarnings";
 import ObjectID from "Common/Types/ObjectID";
 import {
   CARD_LINE,
@@ -1433,6 +1435,203 @@ describe("Sensitive Data Types", () => {
       ).toContain('title="What Data Security Reads"');
       expect(model).toContain(
         "**Test It** runs in your browser, without the model",
+      );
+    });
+
+    /*
+     * The follow-ups of #10373 (#10926-#10931): a finding's records and
+     * proofs, a short field named for free text, the model's turns, the
+     * warnings in the reader's language, and why Test It has no model.
+     */
+    it("lists a finding's records and proves its rules with the model, in up to 20 seconds of its time", () => {
+      expect(
+        constant(
+          `${MODEL_DIRECTORY}/ModelBudget.ts`,
+          "REREAD_MODEL_TIME_IN_MS",
+        ),
+      ).toBe(20_000);
+      expect(model).toContain(
+        "they are read again with the model, up to 20 seconds of its time each time",
+      );
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Components/DataSecurity/FindingOccurrences.tsx",
+        ),
+      ).toContain("cannot run on this server just now");
+    });
+
+    it("reads a short field only when its name says a person wrote free text in it, as measured", () => {
+      type ShortRuleScores = {
+        catalogValuesRead: number;
+        catalogFalseFindings?: number;
+        falseFindingsPerThousandNegatives: number;
+        languages: Record<string, Record<string, Record<string, number>>>;
+      };
+      const short: string = section(page, "### Short values");
+      const measured: {
+        namedForFreeText: ShortRuleScores;
+        atLeastFourWords: ShortRuleScores;
+      } = JSON.parse(
+        source(
+          "Common/Tests/Server/Utils/DataSecurity/Model/ShortFreeTextBaseline.json",
+        ),
+      );
+      const set: { fields: Array<{ kind: string; values: Array<string> }> } =
+        JSON.parse(
+          source(
+            "Common/Tests/Utils/DataSecurity/Model/ShortFreeTextTestSet.json",
+          ),
+        );
+      const values: Array<string> = set.fields.flatMap(
+        (field: { values: Array<string> }): Array<string> => {
+          return field.values;
+        },
+      );
+      const marked: (mark: string) => number = (mark: string): number => {
+        return values.reduce((total: number, value: string): number => {
+          return total + value.split(mark).length - 1;
+        }, 0);
+      };
+      const ruleRow: (
+        label: string,
+        scores: ShortRuleScores,
+      ) => Array<string> = (
+        label: string,
+        scores: ShortRuleScores,
+      ): Array<string> => {
+        const all: Record<string, Record<string, number>> = scores.languages[
+          "all"
+        ] as Record<string, Record<string, number>>;
+
+        return [
+          label,
+          String(scores.catalogValuesRead),
+          (all["person-name"]?.["precision"] as number).toFixed(2),
+          (all["person-name"]?.["recall"] as number).toFixed(2),
+          (all["postal-address"]?.["precision"] as number).toFixed(2),
+          String(Math.round(scores.falseFindingsPerThousandNegatives)),
+        ];
+      };
+      const [rules, languages] = tables(short);
+
+      expect(short).toContain(
+        `on ${set.fields.length} columns of a database in the seven languages, ${values.length} values in all`,
+      );
+      expect(short).toContain(
+        `holding ${marked("[[N:")} names and ${marked("[[A:")} street addresses`,
+      );
+      expect(short).toContain(
+        `read ${measured.atLeastFourWords.catalogValuesRead} of the catalog's values and made ${measured.atLeastFourWords.catalogFalseFindings} false names of them`,
+      );
+      expect(rows(rules)).toEqual([
+        ruleRow(
+          "Fields of four or more words (not chosen)",
+          measured.atLeastFourWords,
+        ),
+        ruleRow(
+          "Fields named for free text (chosen)",
+          measured.namedForFreeText,
+        ),
+      ]);
+      expect(rows(languages)).toEqual(
+        scoreRows(measured.namedForFreeText.languages),
+      );
+
+      // Its examples: brands and characters in the catalog's values.
+      const catalog: Array<string> = set.fields
+        .filter((field: { kind: string }): boolean => {
+          return field.kind === "catalog";
+        })
+        .flatMap((field: { values: Array<string> }): Array<string> => {
+          return field.values;
+        });
+
+      for (const name of ["Ralph Lauren", "Tom Sawyer"]) {
+        expect({
+          name,
+          inCatalog: catalog.some((value: string): boolean => {
+            return value.includes(name);
+          }),
+        }).toEqual({ name, inCatalog: true });
+        expect(short).toContain(`\`${name}\``);
+      }
+
+      // And the field names it gives, read and not read as it says.
+      for (const fieldPath of [
+        "delivery_note",
+        "comentario",
+        "Lieferhinweis",
+        "opmerking",
+        "orders.delivery_note",
+      ]) {
+        expect({ fieldPath, read: isFreeTextFieldName(fieldPath) }).toEqual({
+          fieldPath,
+          read: true,
+        });
+        expect(model).toContain(`\`${fieldPath}\``);
+      }
+
+      for (const fieldPath of ["notes.author", "message_id"]) {
+        expect({ fieldPath, read: isFreeTextFieldName(fieldPath) }).toEqual({
+          fieldPath,
+          read: false,
+        });
+        expect(short).toContain(`\`${fieldPath}\``);
+      }
+    });
+
+    it("gives every table and object its turn at the model's time", () => {
+      expect(source(`${MODEL_DIRECTORY}/ModelTurns.ts`)).toContain(
+        "export function rotateForModel",
+      );
+      expect(model).toContain(
+        "every table and object takes its turn, however much free text the store holds",
+      );
+    });
+
+    it("shows a scan's warnings, these among them, in the reader's language", () => {
+      const fence: string = only(
+        scanMarkdown(model).fences.filter((item: { lang: string }) => {
+          return item.lang === "text";
+        }),
+      ).code;
+
+      for (const line of fence.trim().split("\n")) {
+        expect({ line, read: readScanWarning(line) !== null }).toEqual({
+          line,
+          read: true,
+        });
+      }
+
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Components/DataSecurity/ScanDetail.tsx",
+        ),
+      ).toContain("translateScanWarning(");
+      expect(model).toContain(
+        "every other warning of a content or telemetry scan, in the reader's language",
+      );
+    });
+
+    it("says why Test It runs without the model, and the box says it too", () => {
+      const modelBytes: number = manifest.files.reduce(
+        (total: number, file: { bytes: number }): number => {
+          return total + file.bytes;
+        },
+        0,
+      );
+
+      // The model's own files, and the runtime's WebAssembly on top.
+      expect(Math.round(modelBytes / 1_000_000)).toBeLessThan(113);
+      expect(model).toContain(
+        "The model would add about 113 MB to download, 67 MB compressed, and about 440 MB to the tab's memory, so it runs only in the scanner.",
+      );
+      expect(
+        source(
+          "App/FeatureSet/Dashboard/src/Pages/DataSecurity/Settings/DataTypes.tsx",
+        ),
+      ).toContain(
+        "It runs only in the scanner, so what it finds is not shown here.",
       );
     });
   });
@@ -3650,6 +3849,17 @@ describe("Data Security Integrations", () => {
     expect(pullRequests).toContain(
       "**Leaks Caught Before Merge**, on **Project Settings → AI → AI Results**",
     );
+    // A migration's table (#10779): its store, for a private repository alone.
+    expect(sensitiveData).toContain("(await data.isRepositoryPrivate())");
+    expect(sensitiveData).toContain("DataAssetUsageService.findBy(");
+    expect(pullRequests).toContain(
+      "For a migration, in a private repository only, it names the store the table is in, what that store holds",
+    );
+    // An exception's message is telemetry too (#10778).
+    expect(types).toContain('Exception = "Exception",');
+    expect(pullRequests).toContain(
+      "in a log, a span, a metric, an exception's message or an error tracker's report",
+    );
   });
 
   it("says what OneUptime AI does on its own as Data Security → AI names it", () => {
@@ -3978,3 +4188,81 @@ describe.each(TRANSLATED_LANGUAGES)(
     });
   },
 );
+
+/*
+ * ISSUES WITH ONE CAUSE, AFTER ITS FOLLOW-UPS (#10738-#10742): what the
+ * page says of a group's fix, its proof, its timelines and a reader held to
+ * labels is what the code does - its numbers read from the code, its
+ * resolutions the ones the page's own table names.
+ */
+describe("Issues with one cause, after #10738-#10742", () => {
+  function groups(): string {
+    return section(english(CHECKS), "## Issues with one cause");
+  }
+
+  test("a group of more than the code's cap of open issues is not told of its proposal (#10741)", () => {
+    const most: number = constant(
+      "Common/Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines.ts",
+      "MAX_TIMELINE_ISSUES",
+    );
+
+    expect(most).toBe(200);
+    expect(groups()).toContain(
+      `a group of more than ${most} open issues stays quiet`,
+    );
+    expect(groups()).toContain(
+      "A newer proposal that replaces one still waiting tells only the issues the earlier one did not",
+    );
+    expect(english(AI)).toContain(
+      "is on the timeline of each open issue it is for when it is proposed, dismissed or expires",
+    );
+    // A case's playbook asks a telemetry leak's service fix (#10740 after #10367).
+    expect(english(AI)).toContain(
+      "A security playbook's **Fix the code with AI** step asks for it on a Data Security case about the service's telemetry",
+    );
+  });
+
+  test("a group's fix is proven by the resolutions the page's own table names (#10738)", () => {
+    const named: Array<string> = rows(
+      tables(section(english(CHECKS), "### How it was resolved"))[0],
+    ).map((row: Array<string>): string => {
+      return row[0] || "";
+    });
+
+    for (const resolution of [
+      "**Fixed in infrastructure code**",
+      "**Fixed from here**",
+    ]) {
+      expect(named).toContain(resolution);
+      expect(groups()).toContain(`resolved as ${resolution}`);
+    }
+
+    expect(groups()).toContain(
+      "[AI Results](/docs/ai/ai-sre#how-well-oneuptime-ai-is-doing) counts a proven fix among the changes that worked",
+    );
+  });
+
+  test("the one approval lists each kind's own change, as Fix it from here says it (#10742)", () => {
+    expect(groups()).toContain(
+      "the change [Fix it from here](#fix-it-from-here) makes for its kind of store",
+    );
+    expect(groups()).toContain(
+      "The changes are listed kind by kind, each with what it changes, what stops working and what it costs",
+    );
+  });
+
+  test("a reader held to labels sees groups cut down to their stores, and asks for no fix (#10739)", () => {
+    expect(groups()).not.toContain(
+      "Only people who read Data Security issues across the whole project see groups",
+    );
+    expect(groups()).toContain(
+      "sees each group cut down to the stores they may read",
+    );
+    expect(groups()).toContain(
+      "A group of which they may read a single issue is not shown, and that issue stays in their list.",
+    );
+    expect(groups()).toContain(
+      "so it takes a read of Data Security issues across the whole project",
+    );
+  });
+});

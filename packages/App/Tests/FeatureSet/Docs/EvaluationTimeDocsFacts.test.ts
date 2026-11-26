@@ -7,7 +7,8 @@ import MonitorEvaluationTime, {
   SLOW_EVALUATION_SHARE_OF_INTERVAL,
 } from "Common/Utils/Monitor/MonitorEvaluationTime";
 import { CRITERIA_AND_STATUSES } from "./CriteriaGroupsPostmortemsDocsPages";
-import { readPage } from "./DocsContentSupport";
+import { DOCS_LANGUAGES, readPage } from "./DocsContentSupport";
+import { dashboardLabel } from "./DocsDashboardLabels";
 import { tables } from "./DocsPageShape";
 
 /*
@@ -108,8 +109,12 @@ describe("Criteria & Statuses: how long each check takes", () => {
     expect(section()).toContain(
       "under **View Summary** in the monitor's **Monitoring Logs** and for the latest check on its **Overview**",
     );
+    expect(section()).toContain(
+      "In **Monitoring Logs**, the **Check Duration** column shows how long each check took and marks slow checks.",
+    );
     expect(logsPage).toContain('title: "View Summary"');
     expect(logsPage).toContain('title: "Monitoring Logs"');
+    expect(logsPage).toContain('title: "Check Duration"');
 
     // The Overview draws the latest evaluation's summary.
     expect(
@@ -119,4 +124,22 @@ describe("Criteria & Statuses: how long each check takes", () => {
       ),
     ).toContain("evaluationSummary={evaluation?.latest?.summary}");
   });
+
+  test.each(DOCS_LANGUAGES)(
+    "names the Monitoring Logs column as the Dashboard draws it in %s",
+    (language: string) => {
+      const page: string = readPage(language, CRITERIA_AND_STATUSES);
+      const logTitle: string = dashboardLabel(language, "Monitoring Logs");
+      const columnTitle: string = dashboardLabel(language, "Check Duration");
+
+      expect(
+        page.split("\n").some((line: string): boolean => {
+          return (
+            line.includes(`**${logTitle}**`) &&
+            line.includes(`**${columnTitle}**`)
+          );
+        }),
+      ).toBe(true);
+    },
+  );
 });

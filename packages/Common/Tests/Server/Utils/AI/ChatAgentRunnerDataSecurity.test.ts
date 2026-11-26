@@ -516,9 +516,8 @@ function install(data?: {
   jest
     .spyOn(DataSecurityIssueCodeFix, "read")
     .mockResolvedValue({ fix: null } as never);
-  jest
-    .spyOn(TelemetryLeakFix, "serviceOfIssue")
-    .mockResolvedValue(null as never);
+  // A cloud store's issue: fixed in infrastructure code, not a telemetry plan.
+  jest.spyOn(TelemetryLeakFix, "ownerOfIssue").mockResolvedValue(null as never);
   // A task in Code, as Fix with AI starts one: never a real one here.
   const fixStarted: SpyInstance = jest
     .spyOn(CodeTaskRuns, "start")

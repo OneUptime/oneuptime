@@ -14,6 +14,7 @@ Beide verwenden denselben Monitortyp. Was sie unterscheidet, sind die Kriterien,
 - [Einen Heartbeat senden](#einen-heartbeat-senden): Aus curl, Cron, Node.js, Python oder Go.
 - [Alarmieren, wenn Aufrufe ausbleiben](#als-offline-markieren-wenn-10-minuten-kein-heartbeat-kommt-ein-totmannschalter): Den Monitor zu einem Totmannschalter machen.
 - [Warnungen empfangen](#warnungen-aus-einem-anderen-system-empfangen): Ein Vorfall pro Alertmanager- oder Grafana-Warnung.
+- [In Slack posten, ohne zu alarmieren](#in-slack-posten-ohne-jemanden-zu-alarmieren): Einen Kanal informieren und nur außerhalb der Arbeitszeit alarmieren.
 - [SNS oder Event Grid abonnieren](#amazon-sns-oder-azure-event-grid-abonnieren): Das Abonnement mit einem Klick bestätigen.
 :::
 
@@ -348,7 +349,7 @@ flowchart TB
 :::steps
 1. Öffnen Sie das Kriterium und klappen Sie **Einstellungen** auf.
 2. Schalten Sie **Vorfälle und Warnungen nach einem Payload-Feld gruppieren** ein.
-3. Füllen Sie **Einen eigenen Vorfall eröffnen pro…** aus. Damit sich jeder Vorfall selbst behebt, füllen Sie auch Feld und Wert unter **Auto-resolve each incident when…** aus (siehe unten). Speichern Sie dann den Monitor.
+3. Füllen Sie **Einen eigenen Vorfall eröffnen pro…** aus. Damit sich jeder Vorfall selbst behebt, füllen Sie auch Feld und Wert unter **Jeden Vorfall automatisch beheben, wenn…** aus (siehe unten). Speichern Sie dann den Monitor.
 :::
 
 | Feld | Beispiel | Was es bewirkt |
@@ -386,14 +387,14 @@ Ein Webhook beschreibt nur, was in dieser Nutzlast steht, deshalb behebt OneUpti
 1. **Feld, das die Erholung signalisiert** und **Wert, der „wiederhergestellt“ bedeutet** sind gesetzt und passen zur Nutzlast. Der Vergleich ist exakt und beachtet Groß- und Kleinschreibung — `Resolved` passt nicht auf `resolved`.
 2. Beim Vorfall des Kriteriums ist **Vorfall automatisch beheben** eingeschaltet, unter **Weitere Felder** im Vorfallformular. Ohne das werden passende Erholungsereignisse ignoriert und die Vorfälle bleiben offen. (Dasselbe gilt für Warnungen und **Warnung automatisch beheben**.) Beim Offline-Standardkriterium ist es von Anfang an eingeschaltet; bei einem Vorfall, den Sie einem Kriterium selbst hinzufügen, ist es zunächst ausgeschaltet.
 
-Auch eine Warnung, die Sie einem Kriterium selbst hinzufügen, beginnt mit ausgeschaltetem **Warnung automatisch beheben**, sodass eine Erholung die Warnung offen lässt, bis es eingeschaltet ist. **Auto-resolve each incident when…** zeigt, welche Vorfälle und Warnungen des Kriteriums eine Erholung behebt, und nennt alles, was sie offen lassen würde, mit einer Schaltfläche, die den zugehörigen Schalter einschaltet. Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors nennt jeden Vorfall und jede Warnung, die eine Erholung offen gelassen hat, und warum.
+Auch eine Warnung, die Sie einem Kriterium selbst hinzufügen, beginnt mit ausgeschaltetem **Warnung automatisch beheben**, sodass eine Erholung die Warnung offen lässt, bis es eingeschaltet ist. **Jeden Vorfall automatisch beheben, wenn…** zeigt, welche Vorfälle und Warnungen des Kriteriums eine Erholung behebt, und nennt alles, was sie offen lassen würde, mit einer Schaltfläche, die den zugehörigen Schalter einschaltet. Die Karte **Monitor-Zusammenfassung** in der **Übersicht** des Monitors nennt jeden Vorfall und jede Warnung, die eine Erholung offen gelassen hat, und warum.
 
 Eine Erholung behebt nur die Vorfälle und Warnungen des Kriteriums, das sie liest: des Kriteriums, dessen **Feld, das die Erholung signalisiert** und **Wert, der „wiederhergestellt“ bedeutet** zur Nutzlast passen. Die Vorfälle und Warnungen eines anderen Kriteriums für denselben Wert bleiben offen, und die eines Kriteriums, das diese Felder leer lässt, werden von Hand behoben.
 
 **Max. Vorfälle pro Anfrage** begrenzt das Auslesen, nicht nur das Erstellen. Schlüssel jenseits der Grenze sind auch für die Erholung unsichtbar, in einer Nutzlast mit mehr unterschiedlichen Schlüsseln als die Grenze schließt eine Warnung, die jenseits davon `resolved` meldet, ihren Vorfall also nicht.
 
 > [!NOTE]
-> Ein Monitor, bei dem ein Kriterium nach einem Feld der Anfrage gruppiert, prüft jede Anfrage, die er erhält, einzeln und in der Reihenfolge ihres Eingangs, sodass ein Schwall von Warnungen und Erholungen den Vorfall und die Warnung jedes Werts eröffnet und behebt. Bis zu 1.000 Anfragen oder 16 MB davon warten auf ihre Prüfung; darüber hinaus werden die ältesten wartenden übersprungen, und die Karte **Monitor-Zusammenfassung** nennt, wie viele. Ein Monitor ohne Gruppierung prüft nur die neueste der Anfragen, die auf ihn warten.
+> Ein Monitor, bei dem ein Kriterium nach einem Feld der Anfrage gruppiert, prüft jede Anfrage, die er erhält, einzeln und in der Reihenfolge ihres Eingangs, sodass ein Schwall von Warnungen und Erholungen den Vorfall und die Warnung jedes Werts eröffnet und behebt. Bis zu 1.000 Anfragen oder 16 MB davon warten auf ihre Prüfung; darüber hinaus werden die ältesten wartenden übersprungen, und die Karte **Monitor-Zusammenfassung** nennt, wie viele. Sie nennt auch die Grenze, die erreicht wurde, und eine selbst gehostete Installation kann beide ändern: siehe [Hinweise zum Selbsthosting](#hinweise-zum-selbsthosting). Ein Monitor ohne Gruppierung prüft nur die neueste der Anfragen, die auf ihn warten.
 
 > [!NOTE]
 > Enthält **Feld, das die Erholung signalisiert** ein `[*]`, **Einen eigenen Vorfall eröffnen pro…** aber nicht, hat sich eine Anfrage erst erholt, wenn jedes Element dieses Arrays das sagt. Mit `requestBody.alerts[*].status` und `resolved` wird ein nach `requestBody.groupLabels.alertname` gruppierter Vorfall behoben, sobald jede Warnung einer Anfrage behoben ist, und er bleibt offen, solange eine noch auslöst.
@@ -421,6 +422,32 @@ Die ganze Nutzlast steht daneben zur Verfügung, ein Vorfalltitel `{{alertname}}
 ### Ausgearbeitetes Beispiel
 
 Eine vollständige Alertmanager-Konfiguration finden Sie unter [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Für Grafana siehe [Grafana](/docs/integrations/grafana).
+
+## In Slack posten, ohne jemanden zu alarmieren
+
+Eine Staging-Umgebung oder ein Produkt, dessen Probleme warten können, soll eine Anfrage vielleicht in einem Chat-Kanal posten, ohne jemanden zu alarmieren. Das leistet eine Warnung, die keine Bereitschaftsrichtlinie nennt: Sie wird über die Arbeitsbereich-Regeln des Projekts in Slack, Microsoft Teams oder Mattermost gepostet und startet keine Eskalation.
+
+:::steps
+1. Öffnen Sie das Kriterium und schalten Sie unter **Aktionen** die Option **Wenn Filter übereinstimmen, eine Warnung erstellen.** ein. Lassen Sie ihre **Bereitschaftsrichtlinien** leer.
+2. Schreiben Sie in die Warnung, was die Anfrage sagt, etwa `{{requestBody.commonAnnotations.summary}}` in ihre Beschreibung. Siehe [Vorfall- & Warnmeldungsvorlagen](/docs/monitor/incident-alert-templating).
+3. Fügen Sie unter **Warnungen → Arbeitsbereich → Slack** eine Regel für die Warnungen dieses Monitors hinzu und schalten Sie **In vorhandenen Kanälen posten** ein. Slack muss zuvor [mit dem Projekt verbunden](/docs/workspace-connections/slack) sein.
+:::
+
+Eine Warnung, die keine Bereitschaftsrichtlinie nennt, kann trotzdem über die Regeln des Projekts alarmieren. Prüfen Sie, dass keine Regel unter **Warnungen → Regeln → Bereitschaftsregeln** für diese Warnungen alarmiert und keine Regel unter **Warnungen → Regeln → Vorfallsregeln** aus ihnen einen Vorfall eröffnet.
+
+Um zu posten, ohne eine Warnung zu erstellen, schalten Sie nur **Wenn Filter übereinstimmen, Monitorstatus ändern.** ein und fügen die Regel stattdessen unter **Monitore → Arbeitsbereich → Slack** hinzu. Der Kanal erfährt dann nur, dass sich der Status des Monitors geändert hat, ohne etwas aus der Anfrage, und nur wenn er sich ändert: Weitere Anfragen, während der Monitor schon in diesem Status ist, posten nichts.
+
+### Nur außerhalb der Arbeitszeit alarmieren
+
+Zwei Kriterien mit denselben Filtern teilen sich die Woche, in dieser Reihenfolge:
+
+1. Das erste postet während der Arbeitszeit. Schalten Sie in seinen **Einstellungen** die Option **Diese Kriterien nur an bestimmten Tagen und zu bestimmten Zeiten auswerten** ein und wählen Sie die Tage, die Uhrzeiten und die **Zeitzone**. Seine Warnung nennt keine Bereitschaftsrichtlinie.
+2. Das zweite alarmiert in der übrigen Zeit. Es hat keine Zeiten, und seine Warnung nennt Ihre Bereitschaftsrichtlinie.
+
+Das erste Kriterium, das auf eine Anfrage passt, entscheidet, was geschieht. Außerhalb seiner Zeiten wird das erste Kriterium übersprungen, also greift nachts und am Wochenende das zweite, und nur dann wird jemand alarmiert. Siehe [Nur an bestimmten Tagen und zu bestimmten Zeiten](/docs/monitor/criteria-and-statuses#nur-an-bestimmten-tagen-und-zu-bestimmten-zeiten).
+
+- Eine Anfrage wird bewertet, wenn sie ankommt, nach den Zeiten, die dann gelten. Ein Problem, das um 16:55 beginnt, alarmiert nach 17:00 nur, wenn der Absender es erneut sendet, wie Alertmanager es einmal pro `repeat_interval` tut.
+- Eine Warnung mit eingeschaltetem **Warnung automatisch beheben** wird behoben, wenn eine Anfrage auf ein anderes Kriterium passt. Die erste Anfrage nach Beginn der Arbeitszeit passt auf das erste Kriterium, behebt also die Warnung der Nacht und öffnet eine, die niemanden alarmiert. Lassen Sie **Warnung automatisch beheben** bei der Warnung des zweiten Kriteriums aus, damit sie offen bleibt, bis jemand sie behebt.
 
 ## Dienste, die die URL zuerst prüfen
 
@@ -521,6 +548,18 @@ Klicken Sie in der Karte **Monitor-Zusammenfassung** in der **Übersicht** des M
 :::details Der Absender bekommt 500
 Die Anfrage sagt `Content-Type: application/json`, ihr Body ist aber kein JSON-Objekt oder -Array. Senden Sie gültiges JSON oder einen anderen Content-Type.
 :::
+
+## Hinweise zum Selbsthosting
+
+Ein Monitor, der nach einem Feld der Anfrage gruppiert, hält jede Anfrage in Valkey, bis sie an der Reihe ist. Auf einer selbst gehosteten Installation begrenzen das drei Einstellungen. Mit Docker Compose setzen Sie sie in `config.env`, mit Helm unter `incomingRequests` in den Werten des Charts, die den App- und den Worker-Pods dieselben geben:
+
+| Einstellung | Helm-Wert | Standard | Bereich | Was sie begrenzt |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` bis `100000` | Die Anfragen, die ein Monitor warten lässt. Darüber hinaus werden die ältesten wartenden übersprungen. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` bis `512` | Die Megabyte an Anfragen, die ein Monitor warten lässt. Darüber hinaus werden die ältesten wartenden übersprungen. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` bis `1000` | Die Anfragen, die ein Job prüft, bevor der Job des Monitors erneut eingereiht wird, hinter jedem Job, der schon wartet. |
+
+Erhöhen Sie die ersten beiden für Absender, die in stärkeren Schüben senden, etwa ein Core-Switch, der ausfällt und auf einmal Tausende Warnungen auslöst, und senken Sie die zweite für ein kleines Valkey. Werden Anfragen übersprungen, nennt die Karte **Monitor-Zusammenfassung**, welche Grenze erreicht wurde. Ein Wert, der keine ganze Zahl in seinem Bereich ist, wird nicht verwendet: Der Standard gilt, und die App schreibt einen Hinweis ins Protokoll, der die Einstellung nennt.
 
 ## Nächste Schritte
 

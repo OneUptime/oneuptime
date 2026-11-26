@@ -45,6 +45,7 @@ Die Verbindung meldet sich mit dem Schlüssel eines Dienstkontos und der [domain
 1. Öffnen Sie in der [Google Admin-Konsole](https://admin.google.com) als Super-Administrator **Security → Access and data control → API controls → Manage domain-wide delegation** und wählen Sie **Add new**.
 2. Geben Sie die **Unique ID** des Dienstkontos als **Client ID** ein und `https://www.googleapis.com/auth/admin.reports.audit.readonly` als **OAuth scope**. Wählen Sie **Authorize**. Google kann einige Minuten brauchen, um sie anzuwenden.
 3. Damit Playbooks Benutzer sperren, entsperren und abmelden können (siehe [Eindämmung](/docs/telemetry/security-cases#eindämmung)), fügen Sie den Bereichen desselben Clients `https://www.googleapis.com/auth/admin.directory.user` und `https://www.googleapis.com/auth/admin.directory.user.security` hinzu, durch Kommas getrennt. Der Administrator, als der die Verbindung handelt, muss dann einer sein, der diese Benutzer verwaltet.
+4. Damit ein [Sicherheitsfall](/docs/telemetry/security-cases#wie-oneuptime-einen-schritt-prüft) prüfen kann, ob ein Konto, das ein Angriff einer Gruppe hinzugefügt hat, wieder aus ihr entfernt wurde, fügen Sie `https://www.googleapis.com/auth/admin.directory.group.member.readonly` auf dieselbe Weise hinzu. Dieser Bereich liest die Mitglieder einer Gruppe und sonst nichts, für einen Administrator, der Gruppen lesen darf. Ohne ihn nennt der Fall jede solche Änderung, damit Sie sie bestätigen, und sagt, welchen Bereich Sie hinzufügen müssen.
 
 ### Die Verbindung in OneUptime hinzufügen
 

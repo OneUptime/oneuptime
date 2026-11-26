@@ -278,6 +278,7 @@ export const AI_ACTION_TITLES: {
   invitePeopleUnnamed: string;
   setUpServiceMonitor: string;
   setUpServiceMonitorUnnamed: string;
+  callMcpTool: string;
 } = {
   createIncident: translationKey("Create incident: {{title}}"),
   acknowledgeIncident: translationKey("Acknowledge incident {{incident}}"),
@@ -380,6 +381,13 @@ export const AI_ACTION_TITLES: {
   setUpServiceMonitorUnnamed: translationKey(
     "Create a recommended monitor for a service",
   ),
+  /*
+   * A tool of one of the project's external MCP servers that may change
+   * something (#10879), by the tool's name and the server's, as the
+   * server and its admins named them: Ask AI calls it only once the person
+   * approves (call_mcp_tool_with_approval).
+   */
+  callMcpTool: translationKey("Call {{tool}} on MCP server {{server}}"),
 };
 
 export const AI_ACTION_PLURAL_TITLES: {
@@ -447,6 +455,8 @@ export const AI_ACTION_LINES: {
   invitedPagedOnceTheyJoin: string;
   invitedEarlierPagedOnceTheyJoin: string;
   serviceMonitorOpensAlerts: string;
+  mcpCallSendsOutside: string;
+  mcpToolDoesNotSay: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
   linkedTo: translationKey("Linked to {{resources}}."),
@@ -633,6 +643,18 @@ export const AI_ACTION_LINES: {
    */
   serviceMonitorOpensAlerts: translationKey(
     "It reads the data {{service}} sends and opens an alert for your team: alerts never appear on a status page.",
+  ),
+  /*
+   * call_mcp_tool_with_approval (#10879): where the arguments on the card
+   * go, and that a change there is the server's to undo, not OneUptime's;
+   * and, for a tool its server does not mark read-only or not, why it asks
+   * at all.
+   */
+  mcpCallSendsOutside: translationKey(
+    "Sends the arguments below to {{server}}, outside OneUptime. OneUptime cannot undo what it changes there.",
+  ),
+  mcpToolDoesNotSay: translationKey(
+    "{{server}} does not say whether {{tool}} changes anything, so OneUptime asks first.",
   ),
 };
 

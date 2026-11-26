@@ -53,7 +53,7 @@ import {
   readEventAddress,
   readScrubbedAddress,
 } from "../ScrubbedAddress";
-import { readEventUsers } from "../ScrubbedUser";
+import { locateHashedUserField, readEventUsers } from "../ScrubbedUser";
 
 /*
  * One log line as the log parsers read it: the line itself, the attributes
@@ -650,7 +650,11 @@ export function buildLogSecurityEvent(
   /*
    * A user a scrub rule hid is no user: Redact's and a mask's are none at
    * all, a Hash token stays one, and the event says which (ScrubbedUser,
-   * #10435). Every parser's user fields reach the event through here.
+   * #10435). Every parser's user fields reach the event through here. A
+   * token says where in the line it was - an attribute that is it, the
+   * body, an attribute that holds it (#11045) - so the line's records can
+   * be searched for it there, whichever field this format reads its user
+   * from.
    */
   const {
     principalUser,
@@ -660,6 +664,16 @@ export function buildLogSecurityEvent(
     targetUser: input.targetUser,
     attributes,
     signal: "log",
+    principalUserField: locateHashedUserField({
+      hashed: input.principalUser,
+      attributes: input.line.attributes,
+      body: input.line.body,
+    }),
+    targetUserField: locateHashedUserField({
+      hashed: input.targetUser,
+      attributes: input.line.attributes,
+      body: input.line.body,
+    }),
   });
 
   if (logId) {

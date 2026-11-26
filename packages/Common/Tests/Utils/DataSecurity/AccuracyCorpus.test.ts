@@ -459,6 +459,15 @@ function shapesOf(dataTypeId: string): Array<SyntaxNode> {
   const shapes: Array<SyntaxNode> = [];
 
   for (const detector of getBuiltInDetectorsOf(dataTypeId)) {
+    /*
+     * A pattern of Unicode classes (the u flag) is one LinearRegExp's parser
+     * reads as ASCII: \p{L} as the letters "p{L}". What it finds is labelled
+     * apart (READING_CASES).
+     */
+    if (detector.pattern.unicode) {
+      continue;
+    }
+
     try {
       shapes.push(
         parsePattern(detector.pattern.source, {
@@ -1142,6 +1151,421 @@ function buildCorpus(
 
 const CORPUS: Record<string, CorpusEntry> = buildCorpus(CORPUS_SEED);
 
+/*
+ * VALUES WRITTEN THE WAYS THE DETECTORS NOW READ THEM TOO.
+ *
+ * An IPv6 address right after a key's colon (peer ip:2a00:..., #10936), an
+ * email address in a percent-encoded URL (jane.doe%40acmecorp.io, #10935),
+ * an email address in another script (张伟@acmecorp.io, почта@пример.рф,
+ * #10960) and a card number in fullwidth, Arabic-Indic or Persian digits,
+ * or two scripts at once (#10960); a phone number in a percent-encoded URL
+ * or in another script's digits, and an international one in parentheses,
+ * after its trunk prefix or typeset with no-break spaces, and a Social
+ * Security number in another script's digits (#11025, #11030) - each with
+ * near misses of the same writing that are no value: a clock or a
+ * link-local address after a key, an image asset's name encoded, an
+ * address with no top-level domain, a card a check digit off, a decimal, a
+ * count, a time zone beside a date, an SSN's area no one is issued or a
+ * longer chain of groups. Labelled apart from the corpus, which draws two
+ * values of each type from its detectors' shapes, and held to a precision
+ * and a recall of 1: every value found as its type, and nothing else found.
+ * Each case draws from a stream of its own, so the corpus draws as before.
+ */
+const HAN: string = "张伟王芳李娜刘洋陈静杨磊赵敏黄勇周杰吴霞徐涛孙丽";
+const CYRILLIC: string = "абвгдежзиклмнопрстуфхцчшэюя";
+const LATIN_ACCENTED: string = "áéíóúüñçøåäöß";
+const FULLWIDTH_ZERO: number = 0xff10;
+const ARABIC_INDIC_ZERO: number = 0x0660;
+const PERSIAN_ZERO: number = 0x06f0;
+
+// A digit string written in the digits of the script whose zero is given.
+function inScript(digits: string, zero: number): string {
+  return digits.replace(/[0-9]/g, (digit: string): string => {
+    return String.fromCharCode(zero + Number(digit));
+  });
+}
+
+// A Visa number that passes the Luhn check, no test number nor placeholder.
+function drawnCard(): string {
+  for (;;) {
+    const body: string = "4" + fake(DIGITS, 14);
+
+    for (const check of DIGITS) {
+      const number: string = body + check;
+      let sum: number = 0;
+
+      for (let index: number = 0; index < 16; index++) {
+        let digit: number = Number(number[15 - index]);
+
+        if (index % 2 === 1) {
+          digit = digit * 2 > 9 ? digit * 2 - 9 : digit * 2;
+        }
+
+        sum += digit;
+      }
+
+      if (sum % 10 === 0 && findSensitiveValues(number).some(isSure)) {
+        return number;
+      }
+    }
+  }
+}
+
+// A public IPv6 address of the global range, no documentation one.
+function drawnIpv6(): string {
+  for (;;) {
+    const address: string = `2${fake(HEX, 3)}:${fake(HEX, 4)}:${fake(HEX, 4)}::${fake(HEX, 1 + random(4))}`;
+
+    if (!address.startsWith("2001:") && !address.startsWith("2002:")) {
+      return address;
+    }
+  }
+}
+
+function drawnDomain(): string {
+  return `${fake(LOWER, 5 + random(5))}.${["io", "com", "net", "de"][random(4)]}`;
+}
+
+/*
+ * A national number of `digits` digits that is no placeholder (no digit run
+ * all alike, no counting up or down) and no number set aside for fiction.
+ */
+function drawnDigitsOf(digits: number, first: string = ""): string {
+  for (;;) {
+    const drawn: string = first + fake(DIGITS, digits - first.length);
+
+    if (
+      drawn.split("").some((digit: string): boolean => {
+        return digit !== drawn[0];
+      }) &&
+      !"01234567890".includes(drawn) &&
+      !"98765432109".includes(drawn) &&
+      !drawn.startsWith("555")
+    ) {
+      return drawn;
+    }
+  }
+}
+
+// A North American exchange: 200 to 999, no N11 service code, no 555.
+function drawnExchange(): string {
+  for (;;) {
+    const exchange: string = String(200 + random(800));
+
+    if (!exchange.endsWith("11") && exchange !== "555") {
+      return exchange;
+    }
+  }
+}
+
+// A Social Security number by the SSA's rules: area, group and serial.
+function drawnSsn(): string {
+  const area: number = 1 + random(665);
+  const group: number = 1 + random(99);
+  const serial: number = 1 + random(9999);
+
+  return `${String(area).padStart(3, "0")}-${String(group).padStart(2, "0")}-${String(serial).padStart(4, "0")}`;
+}
+
+const READING_CASES_OF: Readonly<Record<string, () => CorpusEntry>> = {
+  // #11030
+  "phone-number: in a percent-encoded URL": (): CorpusEntry => {
+    const berlin: string = `%2B49%2030%20${drawnDigitsOf(8, "2")}`;
+    const paris: string = `%2B33%206%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}%20${drawnDigitsOf(2)}`;
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /callback?phone=${berlin} HTTP/1.1 200`,
+          berlin,
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/notify?mobile=${paris}&step=2", "batch": "nightly"}`,
+          paris,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /assets/${fake(LOWER, 6)}%2B2x.png HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/search?delta=%2B${10 + random(80)}.${drawnDigitsOf(6)}&step=2", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11030
+  "phone-number: in another script's digits": (): CorpusEntry => {
+    const berlin: string = inScript(
+      `+49 30 ${drawnDigitsOf(8, "2")}`,
+      ARABIC_INDIC_ZERO,
+    );
+    const london: string = inScript(
+      `+44 161 ${drawnDigitsOf(3, "3")} ${drawnDigitsOf(4)}`,
+      PERSIAN_ZERO,
+    );
+    const sanFrancisco: string = inScript(
+      `(415) ${drawnExchange()}-${drawnDigitsOf(4)}`,
+      FULLWIDTH_ZERO,
+    );
+
+    return {
+      positives: [
+        labelled("phone-number", `رقم الهاتف ${berlin}`, berlin),
+        labelled("phone-number", `شماره تلفن ${london}`, london),
+        labelled("phone-number", `電話番号：${sanFrancisco}`, sanFrancisco),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `دلتا ${inScript(`+${10 + random(80)}.${drawnDigitsOf(6)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `العدد ${inScript("+1 2 3 4 5 6 7 8", ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11025
+  "phone-number: international, as people write them": (): CorpusEntry => {
+    const inParentheses: string = `(+44) 20 ${drawnDigitsOf(4, "8")} ${drawnDigitsOf(4)}`;
+    const withTrunk: string = `+44 (0)20 ${drawnDigitsOf(4, "8")} ${drawnDigitsOf(4)}`;
+    const typeset: string = `+33\u00A06\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}\u00A0${drawnDigitsOf(2)}`;
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO sms sent to ${inParentheses} ok`,
+          inParentheses.slice(1),
+        ),
+        labelled(
+          "phone-number",
+          `{"contact": "${withTrunk}", "batch": "nightly"}`,
+          withTrunk,
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO call forwarded to ${typeset} ok`,
+          typeset,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO tick at UTC +1 2026-11-${10 + random(18)} ${10 + random(13)}:${10 + random(50)}:00 ok`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO delta +${10 + random(80)}.${drawnDigitsOf(6)} out of range`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO counted +1 2 3 4 5 6 7 8 ok`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11030
+  "us-ssn: in another script's digits": (): CorpusEntry => {
+    const arabic: string = inScript(drawnSsn(), ARABIC_INDIC_ZERO);
+    const fullwidth: string = inScript(
+      drawnSsn().split("-").join(" "),
+      FULLWIDTH_ZERO,
+    );
+
+    return {
+      positives: [
+        labelled("us-ssn", `SSN: ${arabic}`, arabic),
+        labelled(
+          "us-ssn",
+          `{"ssn": "${fullwidth}", "batch": "nightly"}`,
+          fullwidth,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "us-ssn",
+          `SSN: ${inScript(`666-${drawnSsn().slice(4)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+        labelled(
+          "us-ssn",
+          `SSN: ${inScript(`${drawnSsn()}-${drawnDigitsOf(2)}`, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #10936
+  "ip-address: right after a key's colon": (): CorpusEntry => {
+    const first: string = drawnIpv6();
+    const second: string = drawnIpv6();
+
+    return {
+      positives: [
+        labelled(
+          "ip-address",
+          `2026-10-27T10:15:02Z INFO connection accepted peer ip:${first} port=443`,
+          first,
+        ),
+        labelled(
+          "ip-address",
+          `level=info msg="accepted" remote:${second} user=svc`,
+          second,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "ip-address",
+          `2026-10-27T10:15:02Z INFO tick time:${10 + random(13)}:${10 + random(50)}:${10 + random(50)} ok`,
+          "",
+        ),
+        labelled(
+          "ip-address",
+          `level=info msg="local" peer ip:fe80::${fake(HEX, 4)} user=svc`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #10935
+  "email-address: in a percent-encoded URL": (): CorpusEntry => {
+    const first: string = `${fake(LOWER, 4 + random(4))}.${fake(LOWER, 3 + random(5))}%40${drawnDomain()}`;
+    const second: string = `${fake(LOWER, 5 + random(4))}%2Bnews%40${drawnDomain()}`;
+
+    return {
+      positives: [
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO GET /signup?email=${first} HTTP/1.1 200`,
+          first,
+        ),
+        labelled(
+          "email-address",
+          `{"url": "/welcome?to=${second}&step=2", "batch": "nightly"}`,
+          second,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO GET /assets/${fake(LOWER, 6)}%402x.png HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "email-address",
+          `{"url": "/search?q=${fake(LOWER, 6)}%40&step=2", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #10960
+  "email-address: in another script": (): CorpusEntry => {
+    const han: string = `${fake(HAN, 2 + random(2))}@${drawnDomain()}`;
+    const cyrillic: string = `${fake(CYRILLIC, 5 + random(4))}@${fake(CYRILLIC, 6 + random(4))}.рф`;
+    const latin: string = `${fake(LOWER, 3)}${fake(LATIN_ACCENTED, 1)}${fake(LOWER, 3)}@${drawnDomain()}`;
+
+    return {
+      positives: [
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO invite sent to ${han} ok`,
+          han,
+        ),
+        labelled(
+          "email-address",
+          `{"email": "${cyrillic}", "batch": "nightly"}`,
+          cyrillic,
+        ),
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO invite sent to ${latin} ok`,
+          latin,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "email-address",
+          `2026-10-27T10:15:02Z INFO mention ${fake(HAN, 2)}@${fake(HAN, 3)} ok`,
+          "",
+        ),
+        labelled(
+          "email-address",
+          `{"handle": "${fake(CYRILLIC, 5)}@${fake(CYRILLIC, 6)}.р", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #10960
+  "credit-card-number: in another script's digits": (): CorpusEntry => {
+    const card: string = drawnCard();
+    const off: string = card.slice(0, 15) + String((Number(card[15]) + 1) % 10);
+    const grouped: (digits: string, separator: string) => string = (
+      digits: string,
+      separator: string,
+    ): string => {
+      return digits.replace(/([0-9]{4})(?=[0-9])/g, `$1${separator}`);
+    };
+    const fullwidth: string = inScript(grouped(card, " "), FULLWIDTH_ZERO);
+    const arabic: string = inScript(card, ARABIC_INDIC_ZERO);
+    const persian: string = inScript(grouped(card, "-"), PERSIAN_ZERO);
+    const mixed: string =
+      inScript(card.slice(0, 4), FULLWIDTH_ZERO) +
+      " " +
+      grouped(card.slice(4), " ");
+
+    return {
+      positives: [
+        labelled("credit-card-number", `カード番号：${fullwidth}`, fullwidth),
+        labelled("credit-card-number", `رقم البطاقة ${arabic}`, arabic),
+        labelled("credit-card-number", `شماره کارت ${persian}`, persian),
+        labelled("credit-card-number", `card ${mixed} declined`, mixed),
+      ],
+      nearMisses: [
+        labelled(
+          "credit-card-number",
+          `カード番号：${inScript(grouped(off, " "), FULLWIDTH_ZERO)}`,
+          "",
+        ),
+        labelled(
+          "credit-card-number",
+          `رقم البطاقة ${inScript(off, ARABIC_INDIC_ZERO)}`,
+          "",
+        ),
+      ],
+    };
+  },
+};
+
+function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+
+  for (const [name, build] of Object.entries(READING_CASES_OF)) {
+    random = seededRandom(seedOf(corpusSeed, `readings:${name}`));
+    cases[name] = build();
+  }
+
+  return cases;
+}
+
+const READING_CASES: Record<string, CorpusEntry> =
+  buildReadingCases(CORPUS_SEED);
+
 interface Tally {
   right: number;
   wrong: Array<string>;
@@ -1381,5 +1805,54 @@ describe("the accuracy corpus", () => {
       `recall ${recall.toFixed(3)}: missed ${scores.missed.join(" | ")}`,
       recall >= 0.9,
     ]).toEqual([expect.any(String), true]);
+  });
+});
+
+describe("values written the ways the detectors now read them too", () => {
+  test("each case has values its type's own detectors take, and near misses they refuse", () => {
+    const wrong: Array<string> = [];
+
+    for (const [name, entry] of Object.entries(READING_CASES)) {
+      expect([name, entry.positives.length >= 2]).toEqual([name, true]);
+      expect([name, entry.nearMisses.length >= 2]).toEqual([name, true]);
+
+      for (const positive of entry.positives) {
+        if (!isFoundAlone(positive.dataTypeId, positive.text, positive.value)) {
+          wrong.push(`not found alone: ${positive.text}`);
+        }
+      }
+
+      for (const nearMiss of entry.nearMisses) {
+        if (!isRefusedAlone(nearMiss.dataTypeId, nearMiss.text)) {
+          wrong.push(`found alone: ${nearMiss.text}`);
+        }
+      }
+    }
+
+    expect(wrong).toEqual([]);
+  });
+
+  /*
+   * A precision and a recall of 1: every labelled value found as its type,
+   * and nothing else - no near miss, no other type - found in any of them.
+   */
+  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030)", () => {
+    const readingScores: Scores = score(READING_CASES);
+    const wrong: Array<string> = [];
+
+    for (const tally of readingScores.byType.values()) {
+      wrong.push(...tally.wrong);
+    }
+
+    expect({ wrong, missed: readingScores.missed }).toEqual({
+      wrong: [],
+      missed: [],
+    });
+    expect(readingScores.found).toBe(readingScores.positives);
+  });
+
+  test("draws each case from a stream of its own, the same for the same seed", () => {
+    expect(buildReadingCases(CORPUS_SEED)).toEqual(READING_CASES);
+    expect(buildReadingCases(CORPUS_SEED + 1)).not.toEqual(READING_CASES);
   });
 });

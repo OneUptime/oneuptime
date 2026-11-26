@@ -971,9 +971,15 @@ describe("the readers each family is held to are the ones the product uses", () 
         "RE_BOLD_ITALIC_OR_UNCLOSED",
       ],
     ],
+    [MARKDOWN_EDITOR_FOLDER + "MarkdownEditor.tsx", ["withoutTrailingRun("]],
+    /*
+     * An upload's placeholder, found by its address with indexOf (#10974):
+     * it was read off the end of the placeholder's markdown
+     * (findAddressAtEnd), and is now looked for by the address alone.
+     */
     [
-      MARKDOWN_EDITOR_FOLDER + "MarkdownEditor.tsx",
-      ["findAddressAtEnd(", "withoutTrailingRun("],
+      MARKDOWN_EDITOR_FOLDER + "MarkdownImageUploads.ts",
+      ["findUploadPlaceholder("],
     ],
   ])("%s", (file: string, calls: Array<string>) => {
     const text: string = fs.readFileSync(

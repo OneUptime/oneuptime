@@ -98,6 +98,10 @@ const PolicyChoicePicker: <TChoice extends PolicyPickerChoice>(
   const [picked, setPicked] = useState<TChoice | null>(null);
   const timerRef: MutableRefObject<number | null> = useRef<number | null>(null);
   const sequenceRef: MutableRefObject<number> = useRef<number>(0);
+  // The policies the page handed over last.
+  const policiesRef: MutableRefObject<Array<TChoice>> = useRef<Array<TChoice>>(
+    props.policies,
+  );
 
   useEffect(() => {
     return () => {
@@ -107,8 +111,17 @@ const PolicyChoicePicker: <TChoice extends PolicyPickerChoice>(
     };
   }, []);
 
-  // The page read the project's policies again: what was found is dropped.
+  /*
+   * The page read the project's policies again: what was found is dropped,
+   * and an answer still on its way is not offered. Not as the picker first
+   * draws: a search typed before then is the person's own, and is kept.
+   */
   useEffect(() => {
+    if (policiesRef.current === props.policies) {
+      return;
+    }
+
+    policiesRef.current = props.policies;
     sequenceRef.current++;
     setFound([]);
   }, [props.policies]);

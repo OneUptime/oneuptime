@@ -44,7 +44,7 @@ Open een criterium: het heeft een naam en drie secties, die elk inklappen tot ee
 | **Criterianaam** | De naam in de lijst met criteria, en in de oorzaak van elk incident en elke waarschuwing die het criterium opent. **Criteria toevoegen** noemt een nieuw criterium naar zijn filters, en de naam volgt ze tot u er zelf een typt. |
 | **Filters** | Wat de controle moet laten zien, als een of meer filters. Kubernetes- en metriekmonitoren noemen ze **Waarschuwingsregels**. |
 | **Acties** | Wat er gebeurt als de filters overeenkomen: de status wijzigen, een waarschuwing maken, een incident melden, of een combinatie daarvan. |
-| **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving**, wanneer het herstelt en wanneer het wordt beoordeeld en, bij monitors voor binnenkomende verzoeken, **Group incidents and alerts by a payload field**. |
+| **Instellingen** | **Schakel dit criterium in**, een optionele **Beschrijving**, wanneer het herstelt en wanneer het wordt beoordeeld en, bij monitors voor binnenkomende verzoeken, **Incidenten en waarschuwingen groeperen op een veld uit de payload**. |
 
 ### Filters
 
@@ -70,7 +70,7 @@ Een incident of waarschuwing vraagt om een titel, een **Ernst** en, ingeklapt, e
 
 **Schakel dit criterium in** staat aan bij elk nieuw criterium. Zet het uit om een criterium te bewaren zonder het te gebruiken: het wordt bij elke controle overgeslagen, wijzigt geen status, opent niets, en zijn kop toont **Uitgeschakeld**.
 
-**Group incidents and alerts by a payload field** opent één incident per waarde die in een inkomend verzoek wordt gevonden, zodat één webhookadres meerdere incidenten open kan houden. Zie [Incidentgroepering inschakelen](/docs/monitor/incoming-request-monitor#incidenten-groeperen-inschakelen).
+**Incidenten en waarschuwingen groeperen op een veld uit de payload** opent één incident per waarde die in een inkomend verzoek wordt gevonden, zodat één webhookadres meerdere incidenten open kan houden. Zie [Incidentgroepering inschakelen](/docs/monitor/incoming-request-monitor#incidenten-groeperen-inschakelen).
 
 **Alleen herstellen wanneer aan een eigen voorwaarde is voldaan** en **Dit criterium alleen op bepaalde dagen en tijden beoordelen** staan uit voor een nieuw criterium. Zie [Wanneer een criterium herstelt](#wanneer-een-criterium-herstelt) en [Alleen op bepaalde dagen en tijden](#alleen-op-bepaalde-dagen-en-tijden).
 
@@ -111,7 +111,7 @@ Zet bij het tweede **Alleen herstellen wanneer aan een eigen voorwaarde is volda
 
 ### Een controle met de vorige vergelijken
 
-**Vorige controle** vergelijkt elke controle met de vorige controle van dezelfde sonde, en voor de bezetting van een schijf ook van dezelfde schijf. **Voor de laatste** is hoe lang geleden die controle mag zijn, dus kies het langer dan het monitoringinterval. Het wordt aangeboden voor dezelfde filters als **Aantal**.
+**Vorige controle** vergelijkt elke controle met de vorige controle van dezelfde sonde, en voor de bezetting van een schijf ook van dezelfde schijf. **Voor de laatste** is hoe lang geleden die controle mag zijn, dus kies het langer dan het monitoringinterval. Het wordt aangeboden voor dezelfde filters als **Aantal**. Het wordt ook aangeboden voor **DNS-recordwaarde**, waar het het hele DNS-antwoord vergelijkt met dat van de vorige controle, met **Niet gelijk aan** of **Gelijk aan**: zie [Wanneer het DNS-antwoord verandert](/docs/monitor/dns-monitor#wanneer-het-dns-antwoord-verandert).
 
 Een gemeten waarde, zoals een reactietijd, voldoet wanneer die meer dan de verandering onder **Verschil met de vorige controle** boven de vorige controle ligt, met **Groter dan**, of eronder, met **Kleiner dan**. De verandering is een **Waarde in de eenheid van de controle**, zoals 200 ms, of een **Procent van de vorige controle**, zoals 50%, en 0 voldoet bij elke stijging of daling. **Gelijk aan** en **Niet gelijk aan** vergelijken met de vorige waarde zelf.
 
@@ -218,6 +218,8 @@ Geheimen en persoonsgegevens worden gemaskeerd voordat er iets wordt bewaard: he
 ## Hoe lang elke controle duurt
 
 De evaluatiesamenvatting van elke controle, onder **Samenvatting bekijken** in de **Monitoringlogboeken** van de monitor en voor de laatste controle op zijn **Overzicht**, zegt wanneer de controle is geëvalueerd, hoe lang de evaluatie duurde en, bij een monitor die elke host, container of groep afzonderlijk beoordeelt, hoeveel reeksen er zijn beoordeeld. De tijd loopt vanaf het moment dat OneUptime de gegevens van de controle begon te lezen tot het het logboek van de controle schreef: het lezen van de gegevens, het beoordelen van de criteria en het openen van incidenten en waarschuwingen.
+
+In **Monitoringlogboeken** toont de kolom **Duur van de controle** hoe lang elke controle duurde en markeert ze trage controles. Een streepje betekent dat de duur niet is vastgelegd.
 
 Als een evaluatie te lang duurt voor haar monitor, waarschuwt de samenvatting u. Te lang is meer dan een tiende van de tijd tussen de controles van de monitor, nooit minder dan 5 seconden en nooit meer dan een minuut:
 

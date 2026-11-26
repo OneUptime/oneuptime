@@ -37,6 +37,9 @@ import RecordOfProcessingDrafter, {
 } from "../Utils/AI/DataSecurity/RecordOfProcessingDrafter";
 import RecordOfProcessingReader from "../Utils/DataSecurity/RecordOfProcessingReader";
 import RecordOfProcessingWriter from "../Utils/DataSecurity/RecordOfProcessingWriter";
+import StoreChangeAccess, {
+  STORE_RECORD_CHANGE_REFUSED_MESSAGE,
+} from "../Utils/DataSecurity/StoreChangeAccess";
 import DataCategory, {
   ALL_DATA_CATEGORIES,
 } from "../../Types/DataSecurity/DataCategory";
@@ -92,13 +95,16 @@ import DataSecurityIssueAnalysisReader from "../Utils/AI/DataSecurity/DataSecuri
 import { DataSecurityIssueAnalysisView } from "../../Types/DataSecurity/DataSecurityIssueAnalysis";
 import DeclaredDataStores from "../Utils/DataSecurity/DeclaredDataStores";
 import DataSecurityResponse from "../Utils/DataSecurity/DataSecurityResponse";
-import DataSecurityIssueGroups from "../Utils/DataSecurity/DataSecurityIssueGroups";
+import DataSecurityIssueGroups, {
+  ISSUE_GROUPS_NOT_READABLE_MESSAGE,
+} from "../Utils/DataSecurity/DataSecurityIssueGroups";
 import DataSecurityIssueCodeFix from "../Utils/DataSecurity/DataSecurityIssueCodeFix";
 import TelemetryLeakFix from "../Utils/DataSecurity/TelemetryLeakFix";
 import FindingApplyToSimilar from "../Utils/DataSecurity/FindingApplyToSimilar";
 import DataSecurityIssueContainmentReader from "../Utils/DataSecurity/DataSecurityIssueContainment";
 import DataSecurityIssueGroupFix, {
   CLOUD_FIX_PERMISSIONS,
+  GROUP_FIX_HELD_READER_MESSAGE,
   GROUP_PULL_REQUEST_PERMISSIONS,
 } from "../Utils/DataSecurity/DataSecurityIssueGroupFix";
 import {
@@ -215,11 +221,13 @@ import ProductKey from "../../Types/Product/ProductKey";
  *  - Approve, Dismiss and Undo on what OneUptime AI proposed for an issue
  *    (#10364), for anyone who may read the proposal, each held to the
  *    permission the change itself takes (DataSecurityAiProposals).
- *  - Issues one mistake made (#10370): the project's groups, for a reader
- *    of its issues across the whole project (DataSecurityIssueGroups);
- *    what a group's fix would do; and the fix itself - one pull request for
- *    the stores declared as code, one approval for the stores made in the
- *    console - each part held to its own permission
+ *  - Issues one mistake made (#10370): the project's groups, each as the
+ *    reader may read it - whole for a reader of its issues across the
+ *    project, cut down to the stores they may read for one held to labels
+ *    (#10739, DataSecurityIssueGroups); what a group's fix would do; and
+ *    the fix itself, for a reader of the whole project - one pull request
+ *    for the stores declared as code, one approval for the stores made in
+ *    the console - each part held to its own permission
  *    (DataSecurityIssueGroupFix).
  *  - Apply to similar (#10372): the findings like one a person confirmed
  *    or marked not sensitive, and the same decision, with their reason, on
@@ -527,6 +535,17 @@ export default class DataSecurityAPI extends BaseAPI<
           projectId,
           props,
           dataStoreId,
+        });
+
+        /*
+         * The drafts are written into the store's record as OneUptime: only
+         * for who may change this store, by its own row - not whoever may
+         * edit some store in the project (TableHalfWriteGuard).
+         */
+        await StoreChangeAccess.assertMayChange({
+          dataStoreId,
+          props,
+          message: STORE_RECORD_CHANGE_REFUSED_MESSAGE,
         });
 
         const outcome: RecordDraftOutcome =
@@ -1256,7 +1275,8 @@ export default class DataSecurityAPI extends BaseAPI<
          * As Ask AI's fix_data_security_issue_with_ai asks it
          * (DataSecurityButtons, #10378): a service's telemetry issue
          * (#10367) gets one pull request for every open telemetry leak of
-         * the service - the plan the person was shown, held to it.
+         * the service - the plan the person was shown, held to it. A RUM
+         * application's front-end leaks are planned the same way (#10933).
          */
         return await DataSecurityButtons.fixIssueWithAi({
           projectId,
@@ -1317,8 +1337,9 @@ export default class DataSecurityAPI extends BaseAPI<
 
     /*
      * The issues one mistake made (#10370): the project's groups, for the
-     * Issues list's Group by cause - none for a reader whose read of issues
-     * is held to labels. A read, so it answers while Data Security is off.
+     * Issues list's Group by cause - for a reader whose read of issues is
+     * held to labels, each cut down to the stores they may read (#10739).
+     * A read, so it answers while Data Security is off.
      */
     this.post(
       DATA_SECURITY_API_ROUTES.issueGroups,
@@ -1338,7 +1359,11 @@ export default class DataSecurityAPI extends BaseAPI<
       },
     );
 
-    // What a group's fix would do now, for the reader: its parts, and what each leaves out.
+    /*
+     * What a group's fix would do now, for the reader: its parts, and what
+     * each leaves out - for a reader held to labels, the group cut down to
+     * the stores they may read (#10739).
+     */
     this.post(
       DATA_SECURITY_API_ROUTES.issueGroupFixPlan(":id"),
       EXPLAIN_ISSUE_PERMISSIONS,
@@ -1347,7 +1372,9 @@ export default class DataSecurityAPI extends BaseAPI<
         req: ExpressRequest,
         props: DatabaseCommonInteractionProps,
       ) => {
-        DataSecurityAPI.assertReadsIssueGroups(props);
+        if (!DataSecurityIssueGroups.canReadAny(props)) {
+          throw new NotAuthorizedException(ISSUE_GROUPS_NOT_READABLE_MESSAGE);
+        }
 
         return (await DataSecurityIssueGroupFix.plan({
           projectId,
@@ -1548,16 +1575,16 @@ export default class DataSecurityAPI extends BaseAPI<
   }
 
   /*
-   * A group's facts and stores are many stores' (#10370): only a reader of
-   * issues across the whole project reads one, as the groups' list answers.
+   * A group's fix changes every store its cause made (#10370): only a
+   * reader of issues across the whole project makes one. A reader held to
+   * labels reads groups cut down to their stores (#10739), and asks for no
+   * fix.
    */
   private static assertReadsIssueGroups(
     props: DatabaseCommonInteractionProps,
   ): void {
     if (!DataSecurityIssueGroups.canRead(props)) {
-      throw new NotAuthorizedException(
-        "Groups of issues are for those who read Data Security issues across the whole project.",
-      );
+      throw new NotAuthorizedException(GROUP_FIX_HELD_READER_MESSAGE);
     }
   }
 
@@ -1684,6 +1711,7 @@ export default class DataSecurityAPI extends BaseAPI<
           dataStoreId: true,
           sampleRecords: true,
           lastSeenAt: true,
+          isFoundByModel: true,
           dataStore: { kind: true, serviceId: true, storeKey: true },
         },
         props: { isRoot: true },
@@ -1756,6 +1784,8 @@ export default class DataSecurityAPI extends BaseAPI<
         ? OneUptimeDate.fromString(finding.lastSeenAt)
         : null,
       now,
+      // Only the model tells what it found: it reads the records again (#10926).
+      isFoundByModel: finding.isFoundByModel === true,
     });
   }
 

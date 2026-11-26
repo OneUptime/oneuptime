@@ -27,7 +27,7 @@ Voor de eigen provider van één project, zie [SSO](/docs/identity/sso).
 :::steps
 ### De lijst met providers openen
 
-Meld u aan als master-admin en open het Admin Dashboard met **Beheerdersinstellingen** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Single sign-on**. Daar staan de SAML-providers van de instantie, dan haar OpenID Connect-providers, en tot slot de kaart **SSO vereisen**.
+Meld u aan als master-admin en kies **Admin-dashboard** in uw gebruikersmenu. Ga daarna naar **Instellingen** > **Single sign-on**. Daar staan de SAML-providers van de instantie, dan haar OpenID Connect-providers, en tot slot de kaart **SSO vereisen**.
 
 ### De provider aanmaken
 
@@ -90,6 +90,12 @@ Twee vragen op de provider veranderen dit, ingeklapt onder **Meer velden**. Elke
 | **Waar deze aanmelding als SSO telt** | **Elk project**: projecten die SSO vereisen, accepteren een aanmelding met deze provider. **Alleen gekoppelde projecten**: aanmelden met deze provider voldoet alleen in de eraan gekoppelde projecten aan de SSO-plicht, dus mensen die al zijn aangemeld kunnen de toegang tot andere projecten verliezen. |
 
 Met **Elk project** voldoet aanmelden met de provider in elk project waar de persoon bij hoort aan de SSO-plicht, en bepalen gekoppelde projecten alleen waar nieuwkomers worden toegevoegd.
+
+## E-mailadressen die uw identiteitsprovider niet heeft geverifieerd
+
+Een globale OpenID Connect-provider vindt het account dat hij aanmeldt aan de hand van het e-mailadres dat hij stuurt, net als de provider van een project, en de accounts van master-admins worden op dezelfde manier gevonden. Daarom meldt hij niemand aan met een adres waarvan de provider zegt dat hij het niet heeft geverifieerd, met een claim `email_verified` van `false` of van iets dat true noch false is. Anders kan iemand het adres van een master-admin op zijn account bij de provider zetten en zich als die persoon aanmelden bij de hele instantie. Een provider die `email_verified` als `true` stuurt, of helemaal niet, zoals Microsoft Entra ID, meldt mensen aan zoals voorheen.
+
+Via authentik 2025.10 en later meldt niemand zich aan tot u de scope-mapping voor `email` ervan wijzigt, en via Keycloak niemand van wie het het adres niet heeft geverifieerd. Wat u daar wijzigt, wat zich nog aanmeldt en wat de persoon ziet, staat op de pagina [SSO](/docs/identity/sso#e-mailadressen-die-uw-identiteitsprovider-niet-heeft-geverifieerd). Master-admins met een wachtwoord kunnen zich daar intussen mee aanmelden, op `/accounts/admin-login` zolang de hele instantie SSO verplicht.
 
 ## Ook afmelden bij de identiteitsprovider
 
@@ -183,6 +189,10 @@ Bij een SAML-provider is het antwoord voor een andere applicatie gemaakt: de aud
 Met elk antwoord van uw identiteitsprovider wordt maar één keer aangemeld, en alleen in de minuten nadat het is uitgegeven: daarna wordt het geweigerd met "SAML response has expired". Meld u opnieuw aan. Verlopen antwoorden steeds weer, controleer dan de klokken van deze server en van uw identiteitsprovider.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+De OpenID Connect-provider stuurde `email_verified` als `false`, of als iets dat true noch false is, dus OneUptime heeft niemand aangemeld, ook geen master-admin. Laat het adres verifiëren bij uw identiteitsprovider, of markeer het daar als geverifieerd, en meld u opnieuw aan. Zie [E-mailadressen die uw identiteitsprovider niet heeft geverifieerd](#e-mailadressen-die-uw-identiteitsprovider-niet-heeft-geverifieerd).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, een passkey, een gemailde link, Google of Microsoft, of een registratie. Meld u in plaats daarvan aan met een van de SSO-knoppen op de aanmeldpagina. Een master-admin meldt zich met zijn wachtwoord aan op `/accounts/admin-login`; om iedereen weer met een wachtwoord te laten aanmelden, zet hij **SSO vereisen om aan te melden** uit op **Single sign-on**.
 :::
@@ -193,4 +203,5 @@ De hele instantie verplicht SSO, en dit was een aanmelding met een wachtwoord, e
 - [SSO](/docs/identity/sso): De eigen SAML- of OIDC-provider van een project instellen.
 - [SCIM](/docs/identity/scim): Laat uw identiteitsprovider automatisch mensen toevoegen en verwijderen.
 - [Gebruikers, teams en machtigingen](/docs/permissions/index): Wat de teams waarin nieuwkomers komen hun toestaan.
+- [Hulp en ondersteuning](/docs/self-hosted/help-and-support): Mensen die een uitnodiging nodig hebben vertellen wie ze moeten vragen.
 :::

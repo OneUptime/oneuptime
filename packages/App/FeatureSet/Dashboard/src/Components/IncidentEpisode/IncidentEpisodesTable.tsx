@@ -29,6 +29,8 @@ import OwnersCell from "../ResourceOwners/OwnersCell";
 import useResourceOwners from "../ResourceOwners/useResourceOwners";
 import IncidentSeverity from "Common/Models/DatabaseModels/IncidentSeverity";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -63,7 +65,13 @@ export interface ComponentProps {
 const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
+  /*
+   * What failed, in English (a key), said first in the Error dialog when
+   * nobody explained the failure: its title, "Error", names nothing (#7680).
+   */
+  const [errorWhatFailed, setErrorWhatFailed] = useState<string>("");
   const [incidentStates, setIncidentStates] = useState<IncidentState[]>([]);
 
   /*
@@ -183,6 +191,9 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
             });
           setIncidentStates(result.data);
         } catch (err) {
+          setErrorWhatFailed(
+            translationKey("The incident states could not be loaded."),
+          );
           setError(API.getFriendlyMessage(err));
         }
       };
@@ -490,6 +501,11 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
         <ConfirmModal
           title={`Error`}
           description={`${error}`}
+          errorWhatFailed={
+            errorWhatFailed
+              ? translator.translateText(errorWhatFailed) || errorWhatFailed
+              : undefined
+          }
           submitButtonText={"Close"}
           onSubmit={() => {
             return setError("");

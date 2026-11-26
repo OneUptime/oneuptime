@@ -722,6 +722,10 @@ export const DATA_SECURITY_AI_FEATURES: ReadonlyArray<DataSecurityAiFeatureInfo>
         translationKey(
           "Each attribute key and data type, how it should be fixed, and the issues the pull request fixes",
         ),
+        // A RUM application's front end (#10933): where in the browser, never a page's address.
+        translationKey(
+          "For a RUM application's front end, the path of the page each browser record was written on, each value in it masked, and the session recorder call that gave a session its user",
+        ),
         translationKey(
           "The repository's own code, which the coding agent reads to make the change",
         ),

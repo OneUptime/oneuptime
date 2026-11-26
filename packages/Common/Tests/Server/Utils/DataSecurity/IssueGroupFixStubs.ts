@@ -10,8 +10,12 @@ import DataSecurityIssueFeedService from "../../../../Server/Services/DataSecuri
 import CodeTaskAccess from "../../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import CodeTaskGate from "../../../../Server/Utils/AI/CodeTask/CodeTaskGate";
 import DataSecurityCodeTask from "../../../../Server/Utils/AI/DataSecurity/DataSecurityCodeTask";
+import DataSecurityIssueGroupFixProof from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupFixProof";
 import DataSecurityIssueGroupNaming from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupNaming";
 import DataSecurityIssueGroupProposals from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupProposals";
+import DataSecurityIssueGroupTimelines, {
+  GroupProposalExpiry,
+} from "../../../../Server/Utils/AI/DataSecurity/DataSecurityIssueGroupTimelines";
 import DeclaredCodeOwner from "../../../../Server/Utils/AI/Remediation/DeclaredCodeOwner";
 import SubjectCodeFixRun, {
   SubjectCodeFixRunInput,
@@ -92,8 +96,18 @@ export interface GroupFixCalls {
   responses: Array<{ dataStoreId: string; action: DataSecurityResponseAction }>;
   // Each issue the fix wrote on.
   feedIssueIds: Array<string>;
+  // Each line the fix wrote, by issue.
+  feedLines: Array<{ issueId: string; markdown: string }>;
   // The groups whose waiting proposals were settled, with the kinds.
   expired: Array<{ groupId: string; kinds?: Array<string> | undefined }>;
+  // ...and why, and who asked for the fix another way (#10741).
+  expiries: Array<{
+    groupId: string;
+    kinds?: Array<string> | undefined;
+    why: GroupProposalExpiry;
+    userId?: string | undefined;
+    byPlaybook?: boolean | undefined;
+  }>;
 }
 
 export interface GroupFixStubOptions {
@@ -101,6 +115,8 @@ export interface GroupFixStubOptions {
   connections?: Array<{ id: string; isEnabled?: boolean; response?: string }>;
   // A response action that fails on these stores.
   failingStoreIds?: Array<string>;
+  // A response action that finds these stores already as they should be.
+  unchangedStoreIds?: Array<string>;
   // Why the code task's gate refuses, when it does.
   gateRefusal?: string | undefined;
   // The server has Code switched off.
@@ -127,7 +143,9 @@ export function installGroupFixStubs(
     queued: [],
     responses: [],
     feedIssueIds: [],
+    feedLines: [],
     expired: [],
+    expiries: [],
   };
 
   // The grouping: no creators, the repository's tree, nothing named or proposed.
@@ -170,6 +188,18 @@ export function installGroupFixStubs(
   jest
     .spyOn(CodeTaskAccess, "canAskInRepository")
     .mockResolvedValue(true as never);
+  // Which ranked repositories the person may ask in: one read for all (#10921).
+  jest
+    .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+    .mockImplementation((async (data: {
+      repositoryIds: Array<ObjectID | string>;
+    }) => {
+      return new Set<string>(
+        data.repositoryIds.map((id: ObjectID | string): string => {
+          return id.toString().toLowerCase();
+        }),
+      );
+    }) as never);
   jest.spyOn(DeclaredCodeOwner, "findCandidates").mockResolvedValue([
     {
       repository: {
@@ -207,8 +237,15 @@ export function installGroupFixStubs(
     }) as never);
   jest
     .spyOn(DataSecurityIssueFeedService, "createDataSecurityIssueFeedItem")
-    .mockImplementation((async (data: { dataSecurityIssueId: ObjectID }) => {
+    .mockImplementation((async (data: {
+      dataSecurityIssueId: ObjectID;
+      feedInfoInMarkdown: string;
+    }) => {
       calls.feedIssueIds.push(data.dataSecurityIssueId.toString());
+      calls.feedLines.push({
+        issueId: data.dataSecurityIssueId.toString().toLowerCase(),
+        markdown: data.feedInfoInMarkdown,
+      });
     }) as never);
 
   // The cloud connections, and the response actions run through them.
@@ -240,23 +277,52 @@ export function installGroupFixStubs(
 
     calls.responses.push({ dataStoreId, action: data.action });
 
-    return { changed: true, summary: "Changed." };
+    return {
+      changed: !(options.unchangedStoreIds || []).includes(dataStoreId),
+      summary: "Changed.",
+    };
   }) as never);
 
-  // The proposals a press settles.
+  // The proposals a press, or a group that closed, settles - with its issues told (#10741).
   jest
-    .spyOn(DataSecurityAiProposalService, "expireWaitingForGroup")
+    .spyOn(DataSecurityIssueGroupTimelines, "expireWaitingForGroup")
     .mockImplementation((async (data: {
-      dataSecurityIssueGroupId: ObjectID;
+      groupId: ObjectID;
       kinds?: Array<string> | undefined;
+      why: GroupProposalExpiry;
+      userId?: ObjectID | undefined;
+      byPlaybook?: boolean | undefined;
     }) => {
       calls.expired.push({
-        groupId: data.dataSecurityIssueGroupId.toString().toLowerCase(),
+        groupId: data.groupId.toString().toLowerCase(),
         kinds: data.kinds,
+      });
+      calls.expiries.push({
+        groupId: data.groupId.toString().toLowerCase(),
+        kinds: data.kinds,
+        why: data.why,
+        userId: data.userId?.toString(),
+        byPlaybook: data.byPlaybook,
       });
 
       return 0;
     }) as never);
+  // What a proposal tells its issues, and what still waits: none here (#10741).
+  jest
+    .spyOn(DataSecurityIssueGroupTimelines, "readWaitingIssueIds")
+    .mockResolvedValue(new Set<string>() as never);
+  jest
+    .spyOn(DataSecurityIssueGroupTimelines, "onProposed")
+    .mockResolvedValue(0 as never);
+  // Each grouping's proof of what OneUptime AI fixed (#10738): proven by its own suite.
+  jest
+    .spyOn(DataSecurityIssueGroupFixProof, "proveForProject")
+    .mockResolvedValue(0 as never);
+
+  // Nothing here reads the proposals' table itself.
+  jest
+    .spyOn(DataSecurityAiProposalService, "expireWaitingForGroup")
+    .mockResolvedValue(0 as never);
 
   return calls;
 }

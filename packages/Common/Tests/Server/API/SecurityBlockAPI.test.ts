@@ -511,9 +511,14 @@ describe("lifting and extending a block", () => {
         params: { id: BLOCK_ID },
       });
 
-      // Nobody holds the permission to delete a block: it is lifted.
+      /*
+       * Nobody holds the permission to delete a block: it is lifted. Refused
+       * in the words of an operation no permission allows (#7276).
+       */
       expect(refusal).toBeInstanceOf(NotAuthorizedException);
-      expect(refusal?.message).toBe("delete on Block is not allowed.");
+      expect(refusal?.message).toBe(
+        "Block records cannot be deleted through the Dashboard or the API: OneUptime keeps them itself.",
+      );
       expect(table.get(BLOCK_ID)).toBeTruthy();
       expect(table.deletes).toEqual([]);
     },

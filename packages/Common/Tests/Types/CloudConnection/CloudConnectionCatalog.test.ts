@@ -13,6 +13,7 @@ import {
   READ_INTERVAL_FIELD_KEY,
   READ_SCOPE_FIELD_KEY,
   RESOURCE_COSTS_FIELD_KEY,
+  SECURITY_CASE_CHECKS_FIELD_KEY,
   WAF_BLOCKLIST_FIELD_KEY,
   doesCloudConnectionWafBlocklistAddRule,
   getCloudConnectionAuthMethod,
@@ -26,6 +27,7 @@ import {
   isCloudConnectionAuthMethod,
   isCloudConnectionProvider,
   isCloudConnectionResourceCostsOn,
+  isCloudConnectionSecurityCaseChecksOn,
   isCloudConnectionWafBlocklistOn,
   splitCloudConnectionList,
 } from "../../../Types/CloudConnection/CloudConnectionCatalog";
@@ -191,6 +193,8 @@ describe("the catalog", () => {
       DATA_SECURITY_RESPONSE_FIELD_KEY,
       // Writes in the account, off until someone opts in (#10344).
       WAF_BLOCKLIST_FIELD_KEY,
+      // Reads IAM users back for security cases, off until someone opts in (#10900).
+      SECURITY_CASE_CHECKS_FIELD_KEY,
     ]);
     expect(folded(CloudProvider.Azure)).toEqual([
       "subscriptionIds",
@@ -360,6 +364,72 @@ describe("the catalog", () => {
     }
   });
 
+  /*
+   * AWS alone (#10900): what a security case reads back of the IAM users
+   * an attack changed. Off until someone turns it on - OneUptime asks IAM
+   * nothing through a connection that has not granted it - and only "on"
+   * reads them.
+   */
+  test("security case checks are an AWS setting, folded with the command, off until someone turns them on", () => {
+    const field: CloudConnectionField | undefined = definitionOf(
+      CloudProvider.AWS,
+    ).configFields.find((candidate: CloudConnectionField): boolean => {
+      return candidate.key === SECURITY_CASE_CHECKS_FIELD_KEY;
+    });
+
+    expect(field).toBeDefined();
+    expect(field!.title).toBe("Security case checks");
+    expect(field!.type).toBe("dropdown");
+    expect(field!.isAdvanced).toBe(true);
+    expect(field!.changesSetupCommand).toBe(true);
+    expect(field!.required).toBe(false);
+    expect(field!.defaultValue).toBe("off");
+    // Both ways in: a role, and an access key's user.
+    expect(field!.authMethods).toBeUndefined();
+    expect(field!.description.length).toBeLessThanOrEqual(150);
+    expect(field!.description).toContain("IAM user");
+    expect(field!.description).toContain("The command changes with it.");
+    expect(
+      (field!.options || []).map(
+        (option: { label: string; value: string }): Array<string> => {
+          return [option.value, option.label];
+        },
+      ),
+    ).toEqual([
+      ["off", "Off"],
+      ["on", "On"],
+    ]);
+
+    // Azure and Google Cloud have no IAM users of AWS's to read back.
+    for (const provider of [CloudProvider.Azure, CloudProvider.GCP]) {
+      expect(keysOf(definitionOf(provider).configFields)).not.toContain(
+        SECURITY_CASE_CHECKS_FIELD_KEY,
+      );
+    }
+
+    expect(isCloudConnectionSecurityCaseChecksOn("on")).toBe(true);
+
+    // Anything else - absent, off, misspelt, another type - reads nothing.
+    for (const value of [
+      undefined,
+      null,
+      "off",
+      "",
+      "On",
+      " on ",
+      "rule",
+      true,
+      1,
+      ["on"],
+      { value: "on" },
+    ]) {
+      expect({
+        value,
+        on: isCloudConnectionSecurityCaseChecksOn(value),
+      }).toEqual({ value, on: false });
+    }
+  });
+
   test("what each resource costs is an AWS setting, folded and off until someone turns it on", () => {
     const field: CloudConnectionField | undefined = definitionOf(
       CloudProvider.AWS,
@@ -416,6 +486,7 @@ describe("fields by sign-in method", () => {
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
       WAF_BLOCKLIST_FIELD_KEY,
+      SECURITY_CASE_CHECKS_FIELD_KEY,
     ]);
     expect(
       keysOf(
@@ -440,6 +511,7 @@ describe("fields by sign-in method", () => {
       DATA_SECURITY_FIELD_KEY,
       DATA_SECURITY_RESPONSE_FIELD_KEY,
       WAF_BLOCKLIST_FIELD_KEY,
+      SECURITY_CASE_CHECKS_FIELD_KEY,
     ]);
     expect(
       keysOf(

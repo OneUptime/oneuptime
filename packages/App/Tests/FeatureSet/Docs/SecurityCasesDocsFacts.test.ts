@@ -172,9 +172,24 @@ import {
 import { CONTAINMENT_ENTITY_LIMIT } from "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookContainment";
 import { MAX_EVIDENCE_DETECTIONS } from "Common/Server/Utils/SecurityPlaybook/SecurityCaseEvidence";
 import {
+  GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE,
   GOOGLE_WORKSPACE_DIRECTORY_SECURITY_SCOPE,
   GOOGLE_WORKSPACE_DIRECTORY_USER_SCOPE,
 } from "Common/Server/Utils/SecurityEvent/Response/GoogleWorkspaceResponseClient";
+import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
+import {
+  CloudConnectionField,
+  SECURITY_CASE_CHECKS_FIELD_KEY,
+  getCloudConnectionDefinition,
+} from "Common/Types/CloudConnection/CloudConnectionCatalog";
+import {
+  AWS_SECURITY_CASE_CHECKS_ACTIONS,
+  AWS_SECURITY_CASE_CHECKS_GROUP_NAME,
+  AWS_SECURITY_CASE_CHECKS_POLICY_NAME,
+  getAwsAccessKeySetupCommand,
+  getAwsRoleSetupCommand,
+  getAwsSecurityCaseChecksPolicyDocument,
+} from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   SECURITY_PLAYBOOK_MAX_CONDITIONS_PER_STEP,
   SecurityPlaybookConditionMatch,
@@ -263,6 +278,9 @@ import SecurityCaseStepCheckState, {
   SECURITY_CASE_STEP_CHECK_STATES,
 } from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
 import {
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+  CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
   STEP_CHECK_CONFIRM,
   STEP_CHECK_DOCS_LINK,
   STEP_CHECK_HOW_WE_KNOW,
@@ -309,6 +327,19 @@ const MINUTE_IN_MS: number = 60 * 1000;
 
 function englishPage(): string {
   return readPage("en", PAGE);
+}
+
+// The AWS connection's Security case checks setting, as its form asks it (#10900).
+function securityCaseChecksField(): CloudConnectionField {
+  const field: CloudConnectionField | undefined = getCloudConnectionDefinition(
+    CloudProvider.AWS,
+  )?.configFields.find((candidate: CloudConnectionField): boolean => {
+    return candidate.key === SECURITY_CASE_CHECKS_FIELD_KEY;
+  });
+
+  expect(field).toBeDefined();
+
+  return field as CloudConnectionField;
 }
 
 function source(relative: string): string {
@@ -994,6 +1025,81 @@ describe("Security Cases and Playbooks docs", () => {
     );
   });
 
+  it("says the account changes' check reads a Google Workspace group with one more scope, and AWS IAM through the account's cloud connection with Security case checks on, as the readers ask for them (#10900, #10901)", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+    const undo: Array<string> | undefined = rowsOf(
+      "How OneUptime checks a step",
+      1,
+    ).find((row: Array<string>): boolean => {
+      return row[0] === "Undo what changed on the account";
+    });
+    const setting: string = securityCaseChecksField().title;
+    const settingAnchor: string = slugifyMarkdownHeading(setting);
+
+    // The row: every product it reads back in, and that what it cannot read comes with what to grant.
+    expect(undo).toBeDefined();
+    expect(undo![1]).toContain(
+      "each read back in Okta, Microsoft Entra ID, Google Workspace or AWS IAM",
+    );
+    expect(undo![1]).toContain(
+      "the step names one by one for you to confirm, with what to grant so it can",
+    );
+    expect(undo![1]).not.toContain("such as anything in AWS IAM");
+
+    // Google Workspace's group: the one more scope its client asks for.
+    expect(GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE).toBe(
+      "https://www.googleapis.com/auth/admin.directory.group.member.readonly",
+    );
+    expect(checks).toContain(
+      `in Google Workspace, the scopes [Containment](#containment) lists, and \`${GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE}\` for a group;`,
+    );
+
+    // AWS: the account's connection, the setting by the form's title, and the section that grants it.
+    expect(setting).toBe("Security case checks");
+    expect(checks).toContain(
+      `in AWS, the account's [cloud connection](/docs/telemetry/cloud-accounts#${settingAnchor}) with **${setting}** on.`,
+    );
+    expect(
+      scanMarkdown(readPage("en", "telemetry/cloud-accounts")).headings.some(
+        (heading: DocsHeading): boolean => {
+          return heading.level === 2 && heading.text === setting;
+        },
+      ),
+    ).toBe(true);
+    expect(checks).toContain(
+      "Each change in AWS is read only through a cloud connection that reaches the account it was made in: the one whose **Cloud audit logs** read its CloudTrail event, a role in that account, your organization's, or an access key of that account.",
+    );
+    expect(checks).toContain(
+      `A connection with **${setting}** off is asked nothing, so no refused call shows in your CloudTrail`,
+    );
+    expect(checks).toContain(
+      "each change is marked undone, still there or yours to confirm, beside how to let OneUptime read the rest.",
+    );
+
+    // The step's own lines name the setting, and the scope, as the docs do.
+    expect(CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION).toContain(
+      `with ${setting} on.`,
+    );
+    expect(CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED).toContain(
+      `turn on ${setting}, and run the command it shows.`,
+    );
+    expect(CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS).toContain(
+      "add the scope {{scope}} to the connection's domain-wide delegation",
+    );
+
+    // The Google Workspace page says where the scope is added, and why.
+    const google: string = flat(
+      readPage("en", "integrations/google-workspace"),
+    );
+
+    expect(google).toContain(
+      `4. To let a [security case](/docs/telemetry/security-cases#${slugifyMarkdownHeading("How OneUptime checks a step")}) check that an account an attack added to a group was taken out of it, add \`${GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE}\` the same way.`,
+    );
+    expect(google).toContain(
+      "Without it, the case names each such change for you to confirm, and says which scope to add.",
+    );
+  });
+
   it("names the switch that marks a case Contained once its containment is verified as the Case Statuses page titles it, and who may turn it off", () => {
     const checks: string = flat(section(page, "How OneUptime checks a step"));
     const statusesPage: string = source(
@@ -1204,6 +1310,8 @@ describe("Security Cases and Playbooks docs", () => {
       "Numbering",
       // When an entity's risk opens a case (Entity Risk's docs page).
       "Risk Scoring",
+      // A person erased on request (Security Events' Erase a person, #10908).
+      "Erasure Requests",
     ]);
     expect(settings?.startsCollapsed).toBe(true);
     expect(flat(section(page, "Case priorities and statuses"))).toContain(
@@ -2922,5 +3030,113 @@ describe("Security Cases and Playbooks docs", () => {
       "Matrix",
     );
     expect(TACTIC_LIBRARY_COUNT).toBe("+{{count}} in the Rule Library");
+  });
+});
+
+/*
+ * FIX THE CODE WITH AI ON A DATA SECURITY CASE (#10740): an issue in no
+ * group gets its own pull request, a few at most - the page's number is the
+ * step's - and the step never changes a store through its cloud connection.
+ */
+describe("Fix the code with AI on a Data Security case (#10740)", () => {
+  test("asks for each issue in no group, up to the step's own cap - a telemetry leak's service once - and changes no store through its cloud", () => {
+    const capped: RegExpMatchArray | null = source(
+      "Common/Server/Utils/SecurityPlaybook/SecurityPlaybookIssueGroupFix.ts",
+    ).match(/\bMAX_CASE_ISSUES_FIXED: number = (\d+);/);
+    const words: Record<string, string> = { "5": "five" };
+
+    expect(capped?.[1]).toBe("5");
+
+    const step: string = flat(englishPage());
+
+    expect(step).toContain(
+      `and for each other issue, up to ${words[capped?.[1] || ""]}, a pull request of its own in the repository the code that declares its store is in`,
+    );
+    // A leak in a service's telemetry: the service's one pull request (#10367).
+    expect(step).toContain(
+      "or, for a leak in a service's telemetry, the service's one pull request for its leaks, in the repository they are written in.",
+    );
+    expect(step).toContain(
+      "It never changes a store through its cloud connection (see [Issues with one cause](/docs/data-security/checks-and-issues#issues-with-one-cause)).",
+    );
+  });
+});
+
+/*
+ * Connect a Cloud Account's Security case checks section (#10900): what a
+ * security case reads of an IAM user, the policy that grants it and the
+ * commands that put it there, as the setup commands write them.
+ */
+describe("Connect a Cloud Account's Security case checks section", () => {
+  const cloudAccounts: string = readPage("en", "telemetry/cloud-accounts");
+  const field: CloudConnectionField = securityCaseChecksField();
+  const checks: string = section(cloudAccounts, field.title);
+  const blocks: Array<string> = scanMarkdown(checks)
+    .fences.filter((fence: { lang: string }): boolean => {
+      return fence.lang === "bash";
+    })
+    .map((fence: { code: string }): string => {
+      return fence.code;
+    });
+
+  it("names the setting as the form asks it: folded, off until turned on, and the command changing with it", () => {
+    expect(field.isAdvanced).toBe(true);
+    expect(field.defaultValue).toBe("off");
+    expect(field.changesSetupCommand).toBe(true);
+    expect(flat(checks)).toContain(
+      `Under **More fields**, **${field.title}** is **Off** until you turn it on, and the command the form shows changes with it.`,
+    );
+    expect(flat(checks)).toContain(
+      "Each action only reads, and none reads a secret: an access key's ID and whether it is active, never the key, and that a console password is set, never the password.",
+    );
+    expect(checks).toContain(
+      `](/docs/telemetry/security-cases#${slugifyMarkdownHeading("How OneUptime checks a step")})`,
+    );
+  });
+
+  it("lists every action the policy grants, in its order, each once", () => {
+    const table: Array<Array<string>> = tables(checks)[0] as Array<
+      Array<string>
+    >;
+
+    expect(table[0]).toEqual([
+      "What the case reads of each user its CloudTrail events name",
+      "Actions",
+    ]);
+    expect(
+      table.slice(1).flatMap((row: Array<string>): Array<string> => {
+        return codeSpans(row[1] as string);
+      }),
+    ).toEqual([...AWS_SECURITY_CASE_CHECKS_ACTIONS]);
+  });
+
+  it("shows the role's line and the access key's command word for word, as the form shows them", () => {
+    expect(blocks).toEqual([
+      `aws iam put-role-policy --role-name "$ROLE" --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME} --policy-document '${getAwsSecurityCaseChecksPolicyDocument("on")}'`,
+      getAwsAccessKeySetupCommand({ securityCaseChecks: "on" }),
+    ]);
+    // The role's own command is the project's: the page shows only the line it adds.
+    expect(
+      getAwsRoleSetupCommand({
+        trustedPrincipalArn: "arn:aws:iam::123456789012:root",
+        externalId: "oneuptime-0123456789abcdef0123456789abcdef",
+        securityCaseChecks: "on",
+      }).split("\n"),
+    ).toContain(blocks[0] as string);
+    expect(checks).toContain(
+      `With an **Access key**, the policy goes on a group of the same name, \`${AWS_SECURITY_CASE_CHECKS_GROUP_NAME}\`, that the user joins:`,
+    );
+  });
+
+  it("says a case asks IAM nothing through a connection with it off, and that Off leaves the policy in place", () => {
+    expect(flat(checks)).toContain(
+      `asks IAM nothing through a connection whose **${field.title}** is **Off**`,
+    );
+    expect(flat(checks)).toContain(
+      "**Off** adds nothing, so it leaves what an earlier command granted in place until you delete it",
+    );
+    expect(checks).toContain(
+      `\`aws iam delete-role-policy --role-name <your role> --policy-name ${AWS_SECURITY_CASE_CHECKS_POLICY_NAME}\``,
+    );
   });
 });

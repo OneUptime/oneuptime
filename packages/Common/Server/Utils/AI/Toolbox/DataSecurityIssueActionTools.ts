@@ -832,9 +832,12 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
       ? await readRepositoryName(requested, ctx)
       : "";
 
-    // A service's telemetry issue: the plan of its one pull request (#10367).
+    /*
+     * A service's telemetry issue (#10367), or a RUM application's
+     * front-end one (#10933): the plan of its one pull request.
+     */
     if (
-      await TelemetryLeakFix.serviceOfIssue({
+      await TelemetryLeakFix.ownerOfIssue({
         projectId: ctx.projectId,
         issue: named.issue,
       })

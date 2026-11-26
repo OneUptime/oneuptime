@@ -311,6 +311,13 @@ describe("the Monitor model says the same", () => {
        * AddMonitorNetworkDeviceIdIndexAndKey, partial on non-null).
        */
       "IDX_monitor_network_device",
+      /*
+       * The project and the name as it reads, which the lookup of a name
+       * the project requires to be one of its kind reads by (#10761: an
+       * expression index built by AddUniqueNameIndexes1809187640010, and
+       * declared only so the schema builder leaves it alone).
+       */
+      "IDX_MONITOR_PROJECT_NAME_KEY",
     ];
 
     expect(declared().map(nameOf).sort()).toEqual(

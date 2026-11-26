@@ -3,6 +3,8 @@ import {
   BLOCKED_ADDRESSES_TOAST,
   CAMPAIGN_OF_ADDRESS_LINE,
   CHALLENGED_ADDRESSES_TOAST,
+  CHALLENGED_NETWORK_TOAST,
+  CHALLENGED_NETWORK_UNTIL_LIFTED_TOAST,
   CHALLENGE_NETWORK_DOES,
   CHALLENGE_ONE_RANGE,
   CHALLENGE_WHOLE_ASN,
@@ -19,8 +21,16 @@ import {
   NETWORK_UNCHECKED_ASN,
   NETWORK_UNCHECKED_NEEDS_ADMIN,
   REPEAT_MANY,
+  REPEAT_MANY_NETWORK_BLOCKED,
+  REPEAT_MANY_NETWORK_BLOCKED_NO_CASE,
+  REPEAT_MANY_NETWORK_CHALLENGED,
+  REPEAT_MANY_NETWORK_CHALLENGED_NO_CASE,
   REPEAT_MANY_NO_CASE,
   REPEAT_ONCE,
+  REPEAT_ONCE_NETWORK_BLOCKED,
+  REPEAT_ONCE_NETWORK_BLOCKED_NO_CASE,
+  REPEAT_ONCE_NETWORK_CHALLENGED,
+  REPEAT_ONCE_NETWORK_CHALLENGED_NO_CASE,
   REPEAT_ONCE_NO_CASE,
   REPEAT_TWICE,
   REPEAT_TWICE_NO_CASE,
@@ -38,9 +48,11 @@ import {
   writeSecurityProtection,
 } from "../Blocklist/BlocklistWords";
 import { formatNamesInSentence } from "../../SecurityCase/Response/SecurityCaseBlockStepModel";
-import { writeCheckTime } from "../../SecurityCase/Response/SecurityCaseResponseChecks";
 import OneUptimeDate from "Common/Types/Date";
-import { SecurityRepeatOffenderSummary } from "Common/Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
+import {
+  SecurityRepeatOffenderSummary,
+  getSecurityRepeatOffenderHoldingNetwork,
+} from "Common/Types/SecurityAutomaticResponse/SecurityRepeatOffenders";
 import {
   SECURITY_BLOCK_SENTENCES,
   SecurityBlockAction,
@@ -54,6 +66,11 @@ import {
   SecurityAttackCampaign,
   SecurityAttackCampaignBlock,
 } from "Common/Types/SecurityEvent/SecurityAttackCampaign";
+import {
+  MomentRole,
+  momentPhrase,
+  writeReaderMoment,
+} from "Common/Utils/MomentPhrases";
 import {
   SecurityAttackNetwork,
   SecurityAttackNetworkKind,
@@ -153,9 +170,11 @@ export interface RowBlockPill {
 }
 
 /*
- * The pill of the block that holds a row: "Blocked until Nov 24, 10:42",
- * "Challenged", with what holds it on hover when that is a range or a
- * network around the row.
+ * The pill of the block that holds a row: "Blocked until 10:42" today,
+ * "Blocked until 24 Nov at 10:42" on another day (the moment brings its own
+ * words, #10932), "Challenged" for a block that ends when it is lifted,
+ * with what holds it on hover when that is a range or a network around the
+ * row.
  */
 export function writeRowBlockPill(data: {
   block: SecurityAttackCampaignBlock;
@@ -173,7 +192,12 @@ export function writeRowBlockPill(data: {
     expiresAt && Number.isFinite(expiresAt.getTime())
       ? translator.translateTemplate(
           isChallenge ? ROW_CHALLENGED_UNTIL : ROW_BLOCKED_UNTIL,
-          { time: writeCheckTime(expiresAt, data.now || new Date()) },
+          {
+            until: momentPhrase(
+              MomentRole.Until,
+              writeReaderMoment(expiresAt, data.now || new Date()),
+            ),
+          },
         )
       : translator.translateText(isChallenge ? ROW_CHALLENGED : ROW_BLOCKED) ||
         (isChallenge ? ROW_CHALLENGED : ROW_BLOCKED);
@@ -640,14 +664,53 @@ export function describeNetworkCheck(data: {
   }
 }
 
+/*
+ * What Challenge This Network says once it is done: "Challenged
+ * 203.0.113.0/24 until 14:25." today, "... until 27 Nov at 14:25." on
+ * another day - the moment brings its own words (#10932) - and the network
+ * alone for a challenge that ends when it is lifted, never "until" with
+ * nothing after it.
+ */
+export function writeNetworkChallengedToast(data: {
+  // What the challenge holds, and when it ends: null when it is lifted by hand.
+  challenged: { value: string; expiresAt: Date | null };
+  translator: Translator;
+  now?: Date | undefined;
+}): string {
+  const { challenged, translator } = data;
+
+  if (
+    !challenged.expiresAt ||
+    !Number.isFinite(challenged.expiresAt.getTime())
+  ) {
+    return translator.translateTemplate(CHALLENGED_NETWORK_UNTIL_LIFTED_TOAST, {
+      network: challenged.value,
+    });
+  }
+
+  return translator.translateTemplate(CHALLENGED_NETWORK_TOAST, {
+    network: challenged.value,
+    until: momentPhrase(
+      MomentRole.Until,
+      writeReaderMoment(challenged.expiresAt, data.now || new Date()),
+    ),
+  });
+}
+
 // ---------- A case's repeat offender ----------
 
 /*
  * "Blocked twice before, last on Nov 12 (case CASE-812)." - none for an
- * address never blocked before.
+ * address never blocked before. When the last block held it as part of a
+ * wider network - its whole network by its ASN (#10895), or a range around
+ * it - the line names the network and what was done to it: "Challenged
+ * once before as part of AS14061, on Nov 12 (case CASE-812)."
  */
 export function writeRepeatOffenderLine(data: {
-  summary: Pick<SecurityRepeatOffenderSummary, "offenceCount" | "last">;
+  summary: Pick<
+    SecurityRepeatOffenderSummary,
+    "value" | "offenceCount" | "last"
+  >;
   translator: Translator;
 }): string | null {
   const { summary, translator } = data;
@@ -661,6 +724,39 @@ export function writeRepeatOffenderLine(data: {
     caseNumber: summary.last.caseNumber || "",
   };
   const hasCase: boolean = Boolean(summary.last.caseNumber);
+  const network: string | null =
+    getSecurityRepeatOffenderHoldingNetwork(summary);
+
+  if (network) {
+    const isChallenge: boolean =
+      summary.last.action === SecurityBlockAction.Challenge;
+    const networkValues: Record<string, string> = { ...values, network };
+
+    if (summary.offenceCount === 1) {
+      return translator.translateTemplate(
+        isChallenge
+          ? hasCase
+            ? REPEAT_ONCE_NETWORK_CHALLENGED
+            : REPEAT_ONCE_NETWORK_CHALLENGED_NO_CASE
+          : hasCase
+            ? REPEAT_ONCE_NETWORK_BLOCKED
+            : REPEAT_ONCE_NETWORK_BLOCKED_NO_CASE,
+        networkValues,
+      );
+    }
+
+    return translator.translatePlural(
+      isChallenge
+        ? hasCase
+          ? REPEAT_MANY_NETWORK_CHALLENGED
+          : REPEAT_MANY_NETWORK_CHALLENGED_NO_CASE
+        : hasCase
+          ? REPEAT_MANY_NETWORK_BLOCKED
+          : REPEAT_MANY_NETWORK_BLOCKED_NO_CASE,
+      summary.offenceCount,
+      networkValues,
+    );
+  }
 
   if (summary.offenceCount === 1) {
     return translator.translateTemplate(

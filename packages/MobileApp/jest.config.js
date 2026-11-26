@@ -48,8 +48,10 @@ const sharedProjectConfig = {
    * sessionIdleTimeout read Common/Types/Exception/SessionEndedException).
    * Babel compiles it with this app's preset, which requires its helpers
    * from @babel/runtime; Jest looks for them from the Common file's folder,
-   * where CI installs nothing (it installs this app's node_modules only).
-   * The helpers are this app's.
+   * where they would be Common's copy, or nothing. The helpers are this
+   * app's. What a Common module itself imports is Common's: MobileApp
+   * Test installs Common's dependencies for it (moment-timezone, for
+   * unexplainedError's Common/Types/Exception/UnexplainedError).
    */
   moduleNameMapper: {
     "^@babel/runtime/(.*)$": path.join(

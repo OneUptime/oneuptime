@@ -430,15 +430,40 @@ describe("ExceptionsViewer — a facet for every resource type", () => {
     }
   });
 
-  test("the preloaded Kubernetes cluster list still names its facet values", async () => {
-    await renderViewer({ disableUrlSync: true });
+  /*
+   * The page read the project's first 10,000 hosts, Docker and Podman hosts
+   * and Kubernetes clusters to name their facets' values: a cluster past them
+   * read as its id (#10921). The server names every value it lists, read
+   * from Postgres by its id, so no list is read at all.
+   */
+  test("no resource list is read: the server names every facet value, a cluster past the first 10,000 too", async () => {
+    facetsResponse = {
+      kubernetesClusterId: [
+        { value: CLUSTER_ID, count: 4, displayName: "prod-eu" },
+      ],
+    };
 
-    await waitFor(() => {
-      expect(facetConfigFor("kubernetesClusterId")!.valueDisplayMap).toEqual({
-        [CLUSTER_ID]: "prod-eu",
-      });
-    });
+    await renderViewer({ disableUrlSync: true });
+    await waitForFacetData("kubernetesClusterId");
+
+    expect(
+      facetConfigFor("kubernetesClusterId")!.valueDisplayMap,
+    ).toBeUndefined();
     expect(facetConfigFor("cephClusterId")!.valueDisplayMap).toBeUndefined();
+
+    const listReads: Array<unknown> = getListMock.mock.calls.filter(
+      (call: Array<unknown>): boolean => {
+        const args: GetListArgs = call[0] as GetListArgs;
+
+        return (
+          args.modelType !== TelemetryException &&
+          !(args.query["_id"] instanceof Includes)
+        );
+      },
+    );
+
+    // Every service, host or cluster read is by the ids the page holds.
+    expect(listReads).toEqual([]);
   });
 
   test("REGRESSION: a Proxmox cluster picked in the sidebar reads 'Proxmox Cluster: <name>' and filters the entity id", async () => {

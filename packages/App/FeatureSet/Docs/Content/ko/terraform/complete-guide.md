@@ -308,7 +308,7 @@ resource "oneuptime_scheduled_maintenance_event" "database_upgrade" {
 }
 ```
 
-다만 누군가 OneUptime에서 모니터의 단계에 추가한 설정 중 구성에 쓰여 있지 않은 것은 차이입니다. 다음 plan에 `monitor_steps`의 변경으로 표시되고, 그 뒤의 apply는 plan대로 그 설정을 제거합니다. 남기려면 구성에도 쓰세요.
+다만 누군가 OneUptime에서 모니터의 단계에 추가한 설정 중 구성에 쓰여 있지 않은 것은 차이입니다. 다음 plan에 `monitor_steps`의 변경으로 표시되고, 그 뒤의 apply는 plan대로 그 설정을 제거합니다. 남기려면 구성에도 쓰세요. 프로바이더에 속성이 없는 설정과, `jsonencode()`로 쓰는 설정 안에 OneUptime이 보관하는 키는 차이가 아니며, apply는 그것들을 유지합니다. [모니터 단계](/docs/terraform/monitor-steps)를 참고하세요.
 
 ## 레이블과 OneUptime도 추가하는 다른 목록
 

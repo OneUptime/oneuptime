@@ -2518,6 +2518,31 @@
             },
             "additionalProperties": false
         },
+        "incomingRequests": {
+            "type": "object",
+            "description": "What a grouped Incoming Request monitor keeps waiting to be evaluated, and how many requests one job evaluates. The app refuses a value outside these bounds too, and uses its default.",
+            "properties": {
+                "maxPendingRequestsPerMonitor": {
+                    "type": "integer",
+                    "minimum": 10,
+                    "maximum": 100000,
+                    "description": "Requests one monitor keeps waiting. Past it, the oldest waiting are skipped."
+                },
+                "maxPendingMegabytesPerMonitor": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 512,
+                    "description": "Megabytes of requests one monitor keeps waiting. Past it, the oldest waiting are skipped."
+                },
+                "maxRequestsPerJob": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "description": "Requests one job evaluates before the monitor's job is queued again, behind every job already waiting."
+                }
+            },
+            "additionalProperties": false
+        },
         "products": {
             "type": "object",
             "properties": {
@@ -2786,7 +2811,7 @@
                         },
                         "allowPrivateNetworkMonitors": {
                             "type": "boolean",
-                            "description": "Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes are global probes, so this applies to monitors from every project on the instance. Loopback, link-local and cloud metadata addresses stay blocked. Ignored, with a startup warning, when billing.enabled is true."
+                            "description": "Let API, Website, External Status Page, Custom JavaScript Code and Synthetic monitors on this probe reach private network addresses (RFC-1918, CGNAT, IPv6 unique-local). Chart probes are global probes, so this applies to monitors from every project on the instance. Loopback, link-local and cloud metadata addresses stay blocked. Ignored, with a startup warning, when billing.enabled is true."
                         },
                         "syntheticMonitorScriptTimeoutInMs": {
                             "type": "integer",
@@ -4050,6 +4075,13 @@
                     ],
                     "minimum": 1
                 },
+                "probeSchedulingMaxConcurrentMonitorTestRequests": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ],
+                    "minimum": 1
+                },
                 "workerConcurrency": {
                     "type": "integer"
                 },
@@ -4218,6 +4250,10 @@
                         },
                         "cooldownPeriod": {
                             "type": "integer"
+                        },
+                        "probeSchedulingQueueDepthThreshold": {
+                            "type": "integer",
+                            "minimum": 0
                         },
                         "fallback": {
                             "type": "object",

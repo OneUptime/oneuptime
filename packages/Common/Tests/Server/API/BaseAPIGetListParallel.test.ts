@@ -109,6 +109,13 @@ jest.mock(
         getListOrder: jest.fn().mockImplementation(() => {
           return null;
         }),
+        /*
+         * Modules BaseAPI loads read a model's permission lists when they
+         * load: Data Security's issue groups take who may read them from
+         * DataSecurityIssue's read list (DataSecurityIssueGroups). This
+         * table's lists name no one.
+         */
+        readRecordPermissions: [],
       };
     });
   },
@@ -299,7 +306,7 @@ describe("BaseAPI.getList findBy/countBy parallel dispatch", () => {
       countDeferred.resolve(count);
       await pending;
 
-      // Same envelope as before: (req, res, list, count, entityType).
+      // Same envelope as before: (req, res, list, count, entityType, options).
       expect(Response.sendEntityArrayResponse).toHaveBeenCalledTimes(1);
       expect(Response.sendEntityArrayResponse).toHaveBeenCalledWith(
         request,
@@ -307,6 +314,7 @@ describe("BaseAPI.getList findBy/countBy parallel dispatch", () => {
         list,
         count,
         BaseModel,
+        { retiredColumns: [] },
       );
     });
 
@@ -502,6 +510,7 @@ describe("BaseAPI.getList findBy/countBy parallel dispatch", () => {
         list,
         count,
         BaseModel,
+        { retiredColumns: [] },
       );
     });
 

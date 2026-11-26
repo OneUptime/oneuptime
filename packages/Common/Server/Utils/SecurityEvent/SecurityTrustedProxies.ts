@@ -14,6 +14,7 @@ import logger from "../Logger";
 import SecurityEdgeRanges, {
   SecurityEdge,
 } from "../SecurityBlocklist/SecurityEdgeRanges";
+import SecurityOwnLoadBalancers from "./SecurityOwnLoadBalancers";
 
 /*
  * THE PROXIES A PROJECT TRUSTS TO SAY WHO ITS CLIENT WAS (#10416), as the
@@ -25,7 +26,17 @@ import SecurityEdgeRanges, {
  *     front of its apps, which #10338 works out (SecurityEdgeRanges: a
  *     project with a Cloudflare connection, enabled or paused, is behind
  *     Cloudflare, #10565). Behind such an edge every request comes from one
- *     of its addresses, and the client is the one it forwards.
+ *     of its addresses, and the client is the one it forwards;
+ *   - the public addresses of its own application load balancers, which
+ *     add the client they forward to X-Forwarded-For (#10546,
+ *     SecurityOwnLoadBalancers), unless it turned that off
+ *     (Project.securityTrustOwnLoadBalancers). Never its hosts, nodes or
+ *     probes: they forward nobody, and trusted, whatever ran on them could
+ *     name any client.
+ *
+ * With them, whether its access logs end with X-Forwarded-For
+ * (Project.securityReadAccessLogForwardedFor, #10548), which only the
+ * project can say.
  *
  * The private addresses every project trusts need no reading
  * (Utils/SecurityEvent/ClientAddressTrust.isTrustedProxy).
@@ -61,7 +72,11 @@ export default class SecurityTrustedProxies {
     try {
       project = await ProjectService.findOneById({
         id: projectId,
-        select: { securityTrustedProxies: true },
+        select: {
+          securityTrustedProxies: true,
+          securityTrustOwnLoadBalancers: true,
+          securityReadAccessLogForwardedFor: true,
+        },
         props: { isRoot: true },
       });
     } catch (error) {
@@ -72,9 +87,14 @@ export default class SecurityTrustedProxies {
       return NO_TRUSTED_PROXIES;
     }
 
-    const listed: TrustedProxies = toTrustedProxies(
-      project?.securityTrustedProxies,
-    );
+    // Only a project that said so has its access logs read for the header.
+    const readsAccessLogForwardedFor: boolean =
+      project?.securityReadAccessLogForwardedFor === true;
+
+    const listed: TrustedProxies = {
+      ...toTrustedProxies(project?.securityTrustedProxies),
+      readsAccessLogForwardedFor,
+    };
 
     let edgeBlocks: Array<NetworkAddressBlock>;
 
@@ -90,8 +110,31 @@ export default class SecurityTrustedProxies {
       return listed;
     }
 
-    const proxies: TrustedProxies = {
+    const withEdges: TrustedProxies = {
       blocks: [...listed.blocks, ...edgeBlocks],
+      readsAccessLogForwardedFor,
+    };
+
+    // On unless the project turned it off: a project that never said is on.
+    let ownBlocks: Array<NetworkAddressBlock> = [];
+
+    if (project?.securityTrustOwnLoadBalancers !== false) {
+      try {
+        ownBlocks = await SecurityOwnLoadBalancers.getTrustedBlocks(projectId);
+      } catch (error) {
+        logger.warn(
+          `SecurityTrustedProxies: could not read the load balancers of project ${key}; its scans trust its Trusted Proxies, its edges and private addresses until they can.`,
+        );
+        logger.warn(error);
+
+        // Not kept: the next scan reads the load balancers again.
+        return withEdges;
+      }
+    }
+
+    const proxies: TrustedProxies = {
+      blocks: [...withEdges.blocks, ...ownBlocks],
+      readsAccessLogForwardedFor,
     };
 
     cache.set(key, proxies, TRUSTED_PROXIES_CACHE_TTL_MS);
@@ -100,7 +143,7 @@ export default class SecurityTrustedProxies {
   }
 
   // The published ranges of the edges the project has connected.
-  private static async readEdgeBlocks(
+  public static async readEdgeBlocks(
     projectId: ObjectID,
   ): Promise<Array<NetworkAddressBlock>> {
     const blocks: Array<NetworkAddressBlock> = [];
@@ -124,5 +167,6 @@ export default class SecurityTrustedProxies {
   // Forget what was read, so a test reads the proxies it set up.
   public static clearCache(): void {
     cache.clear();
+    SecurityOwnLoadBalancers.clearCache();
   }
 }

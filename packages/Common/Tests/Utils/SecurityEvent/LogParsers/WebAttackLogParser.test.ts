@@ -150,6 +150,8 @@ describe("WebAttackLogParser", () => {
       target: "/login",
       status: 401,
       userAgent: "hydra",
+      // The size after the status: what the answer carried (#10912).
+      bodySize: 0,
     });
   });
 
@@ -174,6 +176,9 @@ describe("WebAttackLogParser", () => {
       target: "/a",
       status: 500,
       userAgent: "",
+      // No size or Content-Type field: neither was recorded (#10912).
+      bodySize: null,
+      contentType: "",
     });
     expect(readJsonAccessLog("{not json")).toBeNull();
     expect(readJsonAccessLog(JSON.stringify({ status: 200 }))).toBeNull();

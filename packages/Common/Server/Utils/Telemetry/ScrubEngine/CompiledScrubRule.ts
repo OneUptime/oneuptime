@@ -12,8 +12,7 @@ import {
   readScrubRuleKeys,
   ScrubRuleKeyMatcher,
 } from "../../../../Types/Telemetry/ScrubRuleKeys";
-import { readOwnValue } from "../../../../Utils/LookupTable";
-import ScrubIpAddress from "../../../../Utils/Telemetry/ScrubIpAddress";
+import { compileBuiltInScrubPattern } from "../../../../Utils/Telemetry/ScrubBuiltInPatterns";
 
 /*
  * A SCRUB RULE AS INGEST RUNS IT, COMPILED ONCE (#10366).
@@ -113,22 +112,57 @@ export function getScrubRuleRegex(rule: ScrubEngineRule): ScrubRegExp | null {
     return NO_TEXT;
   }
 
-  // What Data Security calls an IP address, found by its own detectors.
-  if (patternType === LogScrubPatternType.IPAddress) {
-    return ScrubIpAddress.toScrubRegExp();
-  }
-
   /*
-   * The saved rule's own word: a pattern type no table lists matches
-   * nothing (a plain read answered "constructor" with a function).
+   * A built-in pattern, as every place a rule runs compiles it
+   * (Utils/Telemetry/ScrubBuiltInPatterns): what Data Security calls an IP
+   * address, an email address or a card number found by its own detectors
+   * too, in the readings they read (#10935, #10936, #10960). Null for a
+   * pattern type no table lists.
    */
-  const builtIn: RegExp | undefined = readOwnValue(
-    SCRUB_RULE_BUILT_IN_PATTERNS,
-    patternType,
+  return compileBuiltInScrubPattern(patternType);
+}
+
+/*
+ * THE RULES AS THEY READ BEFORE #11030.
+ *
+ * Since #11030 a Phone Number or SSN rule hides what Data Security finds -
+ * an international number, a Social Security number set apart by dots, a
+ * number in another script's digits - beside its own pattern's matches.
+ * Before, each hid its own pattern's matches alone. An exception found in a
+ * log before #10434 was grouped by what the rules then left of it, and it
+ * is still found by that (App's ExceptionUtil, findsGroupsOfStoredText):
+ * these rules leave it as they did then, so an occurrence finds it, and the
+ * exception is moved to a private fingerprint rather than split. Null when
+ * the rules hold no Phone Number or SSN rule: they read as they did.
+ */
+export function withOwnPhoneAndSsnPatterns<TRule extends ScrubEngineRule>(
+  rules: Array<CompiledScrubRule<TRule>>,
+): Array<CompiledScrubRule<TRule>> | null {
+  let differs: boolean = false;
+
+  const earlier: Array<CompiledScrubRule<TRule>> = rules.map(
+    (compiled: CompiledScrubRule<TRule>): CompiledScrubRule<TRule> => {
+      const patternType: string = compiled.rule.patternType || "";
+
+      if (
+        patternType !== LogScrubPatternType.PhoneNumber &&
+        patternType !== LogScrubPatternType.SSN
+      ) {
+        return compiled;
+      }
+
+      differs = true;
+
+      return {
+        ...compiled,
+        regex: scrubRegExpFromBuiltIn(
+          SCRUB_RULE_BUILT_IN_PATTERNS[patternType]!,
+        ),
+      };
+    },
   );
 
-  // An instance of its own, so lastIndex is independent per use.
-  return builtIn ? scrubRegExpFromBuiltIn(builtIn) : null;
+  return differs ? earlier : null;
 }
 
 /*

@@ -111,10 +111,14 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
       entities: Entities,
       schema,
       synchronize: false,
-      // Several connections, so claims made at once are made at once.
+      /*
+       * Several connections, so claims made at once are made at once - and a
+       * test that takes them all fails in seconds, not at the run's timeout.
+       */
       extra: {
         options: `-c search_path=${schema} -c lock_timeout=${LOCK_TIMEOUT_MS}`,
         max: 8,
+        connectionTimeoutMillis: 20000,
       },
     });
     await database.initialize();
@@ -329,12 +333,26 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
   async function holdRow(
     id: ObjectID,
   ): Promise<{ release: () => Promise<void> }> {
+    return await holdRows([id]);
+  }
+
+  /*
+   * Rows held in one transaction, on one connection: the pool has eight, and
+   * the claim under test needs one of its own.
+   */
+  async function holdRows(
+    ids: Array<ObjectID>,
+  ): Promise<{ release: () => Promise<void> }> {
     const holder: QueryRunner = database.createQueryRunner();
     await holder.connect();
     await holder.startTransaction();
     await holder.query(
-      `SELECT "_id" FROM "${schema}"."MonitorProbe" WHERE "_id" = $1 FOR UPDATE`,
-      [id.toString()],
+      `SELECT "_id" FROM "${schema}"."MonitorProbe" WHERE "_id" = ANY($1::uuid[]) FOR UPDATE`,
+      [
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      ],
     );
 
     return {
@@ -589,16 +607,76 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
   });
 
   /*
-   * The read of the due rows takes no lock, so another instance can claim
-   * one of them before this claim's statement runs. By then that row's
-   * nextPingAt is in the future, and the statement re-checks it.
+   * Issue #10819. The claim used to read the due rows without a lock and
+   * claim them in a second statement, so claims for the same probe made at
+   * the same moment read the same rows and all but one came back empty - a
+   * probe reads an empty batch as "nothing is due" and waits a minute. Now
+   * each claim's one statement skips the rows another claim holds and goes
+   * on to the next ones: held here, in a transaction of its own, the oldest
+   * rows are passed over and the next ones handed out, never nothing.
    */
-  test("a row another instance claimed between this claim's read and its claim is not handed out again", async () => {
-    const taken: ObjectID = await insertMonitorProbe({
-      nextPingAt: minutesAgo(10),
-    });
-    const free: ObjectID = await insertMonitorProbe({
-      nextPingAt: minutesAgo(5),
+  test("a claim made while another holds the oldest rows hands out the next ones, never an empty batch", async () => {
+    const oldest: Array<ObjectID> = [];
+    const next: Array<ObjectID> = [];
+
+    // Two batches' worth held: as many as the old read looked at.
+    for (let index: number = 0; index < 10; index++) {
+      oldest.push(
+        await insertMonitorProbe({ nextPingAt: minutesAgo(30 + index) }),
+      );
+    }
+
+    for (let index: number = 0; index < 5; index++) {
+      next.push(
+        await insertMonitorProbe({ nextPingAt: minutesAgo(10 + index) }),
+      );
+    }
+
+    const holder: { release: () => Promise<void> } = await holdRows(oldest);
+
+    try {
+      expect(await claim(5)).toEqual(sorted(next));
+    } finally {
+      await holder.release();
+    }
+
+    // What was held is still due, for the next claim.
+    expect(await claim(10)).toEqual(sorted(oldest));
+  });
+
+  test("claims for the same probe made at once each hand out a full batch while enough is due", async () => {
+    const ids: Array<ObjectID> = [];
+
+    for (let index: number = 0; index < 120; index++) {
+      ids.push(await insertMonitorProbe({ nextPingAt: minutesAgo(index + 1) }));
+    }
+
+    // Eight at once, on eight connections: each asks for 10 of the 120 due.
+    const rounds: Array<Array<string>> = await Promise.all(
+      [1, 2, 3, 4, 5, 6, 7, 8].map((): Promise<Array<string>> => {
+        return claim(10);
+      }),
+    );
+
+    for (const round of rounds) {
+      expect(round).toHaveLength(10);
+    }
+
+    const handedOut: Array<string> = rounds.flat();
+    expect(new Set<string>(handedOut).size).toBe(80);
+  });
+
+  /*
+   * A schedule new to the process is written a minute on by the claim's
+   * statement and given its real next run right after, but only where the
+   * row still holds what the claim wrote: a monitor made due again in
+   * between (makeDueNowForMonitorProbes) stays due.
+   */
+  test("a monitor made due again between the claim and its schedule's next run stays due", async () => {
+    const madeDue: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(3),
+      // A schedule no earlier claim of this process has seen.
+      monitoringInterval: "*/7 * * * *",
     });
 
     const realQuery: (
@@ -613,27 +691,71 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
           sql: string,
           params?: Array<unknown>,
         ): Promise<unknown> => {
-          const result: unknown = await realQuery(sql, params);
           statements++;
 
-          if (statements === 1) {
-            // The other instance's claim lands now.
-            await database.query(
-              `UPDATE "${schema}"."MonitorProbe"
-               SET "nextPingAt" = now() + interval '5 minutes', "lastPingAt" = now()
-               WHERE "_id" = $1`,
-              [taken.toString()],
-            );
+          if (statements === 2) {
+            // Turned back on, say, right after its claim.
+            await MonitorProbeService.makeDueNowForMonitorProbes({
+              monitorProbeIds: [madeDue],
+            });
           }
 
-          return result;
+          return await realQuery(sql, params);
         },
       },
     } as never);
 
-    expect(await claim()).toEqual([free.toString()]);
-    // The read, the claim, and the set-aside after them.
-    expect(statements).toBe(3);
+    const before: number = Date.now();
+    expect(await claim()).toEqual(sorted([madeDue]));
+    jest.restoreAllMocks();
+
+    const { nextPingAt } = await scheduleOf(madeDue);
+    expect(nextPingAt!.getTime()).toBeLessThanOrEqual(Date.now());
+    expect(nextPingAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
+  });
+
+  /*
+   * Once the process has seen a schedule, the claim's own statement writes
+   * it: one statement hands monitors out and schedules them.
+   */
+  test("a schedule the process has seen is written by the claim's statement alone", async () => {
+    const first: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(3),
+      monitoringInterval: "*/11 * * * *",
+    });
+    expect(await claim()).toEqual(sorted([first]));
+
+    const second: ObjectID = await insertMonitorProbe({
+      nextPingAt: minutesAgo(2),
+      monitoringInterval: "*/11 * * * *",
+    });
+
+    const realQuery: (
+      sql: string,
+      params?: Array<unknown>,
+    ) => Promise<unknown> = database.manager.query.bind(database.manager);
+    let statements: number = 0;
+
+    jest.spyOn(MonitorProbeService, "getRepository").mockReturnValue({
+      manager: {
+        query: async (
+          sql: string,
+          params?: Array<unknown>,
+        ): Promise<unknown> => {
+          statements++;
+          return await realQuery(sql, params);
+        },
+      },
+    } as never);
+
+    expect(await claim()).toEqual(sorted([second]));
+    expect(statements).toBe(1);
+    jest.restoreAllMocks();
+
+    const { nextPingAt } = await scheduleOf(second);
+    expect(nextPingAt!.getUTCSeconds()).toBe(0);
+    expect(nextPingAt!.getUTCMinutes() % 11).toBe(0);
+    expect(nextPingAt!.getTime()).toBeGreaterThan(Date.now());
   });
 
   /*

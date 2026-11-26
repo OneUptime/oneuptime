@@ -1,0 +1,113 @@
+# The app pods serve the probes: every probe request for monitors to check is
+# scheduled by an app pod, at most app.probeSchedulingMaxConcurrentRequests at
+# once, and the rest wait for a slot (issue #10819). /metrics/probe-scheduling
+# adds up how many wait on every app pod (queueDepth), so KEDA can add app pods
+# while probes queue for them. Off unless asked for, in combined mode as one
+# more trigger beside the queue size, and in split mode (worker.enabled) as a
+# trigger of its own, since the app pods there drop the queue-size one.
+suite: keda app probe scheduling trigger
+templates:
+  - templates/keda-scaledobjects.yaml
+release:
+  name: ou
+  namespace: oneuptime
+tests:
+  - it: adds no probe scheduling trigger unless asked for
+    set:
+      keda.enabled: true
+      app.keda.enabled: true
+    documentSelector:
+      path: kind
+      value: ScaledObject
+    asserts:
+      - equal:
+          path: metadata.name
+          value: ou-app-scaledobject
+      - equal:
+          path: spec.triggers
+          value:
+            - type: metrics-api
+              metadata:
+                targetValue: "10"
+                url: http://ou-app:3002/metrics/queue-size
+                valueLocation: queueSize
+
+  - it: scales the app pods on the probe requests waiting for a slot, beside the queue size
+    set:
+      keda.enabled: true
+      app.keda.enabled: true
+      app.keda.probeSchedulingQueueDepthThreshold: 5
+    documentSelector:
+      path: kind
+      value: ScaledObject
+    asserts:
+      - equal:
+          path: spec.triggers
+          value:
+            - type: metrics-api
+              metadata:
+                targetValue: "10"
+                url: http://ou-app:3002/metrics/queue-size
+                valueLocation: queueSize
+            - type: metrics-api
+              metadata:
+                targetValue: "5"
+                url: http://ou-app:3002/metrics/probe-scheduling
+                valueLocation: queueDepth
+
+  - it: reads the app pods' own port
+    set:
+      keda.enabled: true
+      app.keda.enabled: true
+      app.keda.probeSchedulingQueueDepthThreshold: 5
+      app.ports.http: 4002
+    documentSelector:
+      path: kind
+      value: ScaledObject
+    asserts:
+      - contains:
+          path: spec.triggers
+          content:
+            type: metrics-api
+            metadata:
+              targetValue: "5"
+              url: http://ou-app:4002/metrics/probe-scheduling
+              valueLocation: queueDepth
+
+  # Split mode: the worker pods drain the queues, so the app pods drop the
+  # queue-size trigger, and the probe scheduling one is enough on its own.
+  - it: keeps the trigger in split mode, where it alone is enough to render
+    set:
+      keda.enabled: true
+      worker.enabled: true
+      app.keda.enabled: true
+      app.keda.probeSchedulingQueueDepthThreshold: 5
+    documentSelector:
+      path: metadata.name
+      value: ou-app-scaledobject
+    asserts:
+      - equal:
+          path: spec.triggers
+          value:
+            - type: metrics-api
+              metadata:
+                targetValue: "5"
+                url: http://ou-app:3002/metrics/probe-scheduling
+                valueLocation: queueDepth
+
+  - it: in split mode with no trigger at all, says which ones would do
+    set:
+      keda.enabled: true
+      worker.enabled: true
+      app.keda.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "or app\\.keda\\.probeSchedulingQueueDepthThreshold, so the api tier still has an autoscaling trigger"
+
+  - it: refuses a threshold below 0
+    set:
+      keda.enabled: true
+      app.keda.enabled: true
+      app.keda.probeSchedulingQueueDepthThreshold: -1
+    asserts:
+      - failedTemplate: {}

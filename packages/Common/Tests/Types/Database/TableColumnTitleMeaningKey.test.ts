@@ -123,7 +123,7 @@ describe("the three columns of a database's table", () => {
     const french: Translator = dashboardTranslator("fr");
     const english: Translator = dashboardTranslator("en");
     const template: string =
-      "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}";
+      "You don't have enough permissions to create {{columnName}} on {{itemName}}. You need one of the following permissions: {{permissions}}.";
 
     const inFrench: string = french.translateTemplate(template, {
       columnName: translatableTerm(getColumnTitleKey(column) || ""),

@@ -45,7 +45,9 @@ import { cutForSpeech } from "./CallSpeech";
  *
  * A key pressed at any moment answers the call: it is all said inside the
  * call's <Gather> (Notification service, CallService), and 1 and 2 answer
- * exactly as they always have.
+ * exactly as they always have. Any other key is answered "That key does
+ * nothing." and the prompt is said again, as often as the call asks when no
+ * key is pressed (Utils/Call/CallKeypad, #10949).
  *
  *   - Who calls: the project, by its name, which the people it pages know -
  *     an installation's product name may be one they have never heard. A
@@ -74,13 +76,16 @@ export const ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT: string = "1";
 // What a responder's call asks for: both keys, in one sentence.
 export const ON_CALL_PAGE_CALL_PROMPT: string = `Press ${ON_CALL_PAGE_CALL_ACKNOWLEDGE_DIGIT} to acknowledge, or ${ON_CALL_PAGE_CALL_PASS_ON_DIGIT} to escalate.`;
 
-// What the call says to a key it does not know, before it ends.
-export const ON_CALL_PAGE_CALL_INVALID_INPUT: string =
-  "Invalid input. Good bye";
-
 // What an observer's call says when no key was pressed: there is nothing to acknowledge.
 export const ON_CALL_OBSERVER_PAGE_CALL_NO_INPUT: string =
   "You did not press a key, so this page is not marked as heard. Good bye.";
+
+/*
+ * What an observer's call says to a wrong key once it has asked again as
+ * often as it may (Utils/Call/CallKeypad), before it ends.
+ */
+export const ON_CALL_OBSERVER_PAGE_CALL_WRONG_KEY: string =
+  "That key does nothing, so this page is not marked as heard. Good bye.";
 
 // How long a call waits for a key once it has said everything twice.
 export const ON_CALL_PAGE_CALL_TIMEOUT_IN_SECONDS: number = 10;
@@ -236,6 +241,18 @@ export function getOnCallPageCallNoInputMessage(
   return `You did not press a key, so this ${noun} is not acknowledged. Good bye.`;
 }
 
+/*
+ * What a responder's call says to a wrong key once it has asked again as
+ * often as it may (Utils/Call/CallKeypad), before it ends: the page is left
+ * as it was. A keypad route of the release before, which asks nothing
+ * again, says it to the first wrong key, as it reads it from the call.
+ */
+export function getOnCallPageCallWrongKeyMessage(
+  noun: OnCallObserverPageRecordKind,
+): string {
+  return `That key does nothing, so this ${noun} is not acknowledged. Good bye.`;
+}
+
 // What a responder's call says once 1 is pressed: as it always has.
 export function getOnCallPageCallAcknowledgedMessage(
   noun: OnCallObserverPageRecordKind,
@@ -299,8 +316,14 @@ export function buildOnCallPageCallData(
           ? ON_CALL_OBSERVER_PAGE_CALL_ANSWERED
           : getOnCallPageCallAcknowledgedMessage(record.noun),
       },
+      /*
+       * A wrong key is asked again (Utils/Call/CallKeypad); this is what
+       * the call says to one once it may ask no more.
+       */
       default: {
-        sayMessage: ON_CALL_PAGE_CALL_INVALID_INPUT,
+        sayMessage: input.isObserverPage
+          ? ON_CALL_OBSERVER_PAGE_CALL_WRONG_KEY
+          : getOnCallPageCallWrongKeyMessage(record.noun),
       },
     },
     /*

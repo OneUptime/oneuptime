@@ -14,6 +14,7 @@ Båda använder samma monitortyp. Det som skiljer dem åt är kriterierna du kon
 - [Skicka ett heartbeat](#skicka-ett-heartbeat): Från curl, cron, Node.js, Python eller Go.
 - [Larma när anropen slutar](#markera-som-offline-om-inget-heartbeat-kommit-på-10-minuter-ett-dödmansgrepp): Gör monitorn till ett dödmansgrepp.
 - [Ta emot larm](#ta-emot-larm-från-ett-annat-system): En incident per larm från Alertmanager eller Grafana.
+- [Publicera i Slack utan att kalla in någon](#publicera-i-slack-utan-att-kalla-in-någon): Meddela en kanal, och kalla in jouren bara utanför arbetstid.
 - [Prenumerera på SNS eller Event Grid](#prenumerera-på-amazon-sns-eller-azure-event-grid): Bekräfta prenumerationen med ett klick.
 :::
 
@@ -347,16 +348,16 @@ flowchart TB
 
 :::steps
 1. Öppna kriteriet och fäll ut **Inställningar**.
-2. Slå på **Group incidents and alerts by a payload field**.
-3. Fyll i **Open a separate incident for each…**. Om varje incident ska lösa sig själv fyller du också i fältet och värdet under **Auto-resolve each incident when…** (se nedan). Spara sedan monitorn.
+2. Slå på **Gruppera incidenter och larm efter ett fält i nyttolasten**.
+3. Fyll i **Öppna en separat incident för varje…**. Om varje incident ska lösa sig själv fyller du också i fältet och värdet under **Lös varje incident automatiskt när…** (se nedan). Spara sedan monitorn.
 :::
 
 | Fält | Exempel | Vad det gör |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | Sökvägen vars distinkta värden delar upp incidenterna |
-| Field that signals recovery | `requestBody.alerts[*].status` | Sökvägen som kontrolleras för att avgöra att ett larm är över |
-| Value that means recovered | `resolved` | Det exakta värde som markerar att problemet är över |
-| Max incidents per request | `100` (standard) | Säkerhetstak så att ett fält med många värden inte kan öppna ett obegränsat antal incidenter |
+| Öppna en separat incident för varje… | `requestBody.alerts[*].labels.alertname` | Sökvägen vars distinkta värden delar upp incidenterna |
+| Fält som signalerar återhämtning | `requestBody.alerts[*].status` | Sökvägen som kontrolleras för att avgöra att ett larm är över |
+| Värde som betyder återhämtad | `resolved` | Det exakta värde som markerar att problemet är över |
+| Max antal incidenter per förfrågan | `100` (standard) | Säkerhetstak så att ett fält med många värden inte kan öppna ett obegränsat antal incidenter |
 
 Grupperingen hör till det kriterium där den är påslagen. Monitorns andra kriterier grupperar inte: när ett av dem matchar en förfrågan öppnar det sin incident och sitt larm som det skulle göra på en monitor där inget kriterium grupperar.
 
@@ -383,20 +384,20 @@ Kortet **Monitor-sammanfattning** på monitorns **Översikt** visar vad varje f�
 
 En webhook beskriver bara det som finns i den nyttolasten, så OneUptime löser aldrig en incident för att dess nyckel slutade dyka upp. En incident löses bara när en nyttolast uttryckligen säger att den nyckeln är över. Två saker måste båda vara sanna:
 
-1. **Field that signals recovery** och **Value that means recovered** är ifyllda och matchar nyttolasten. Jämförelsen är exakt och skiljer på versaler och gemener — `Resolved` matchar inte `resolved`.
+1. **Fält som signalerar återhämtning** och **Värde som betyder återhämtad** är ifyllda och matchar nyttolasten. Jämförelsen är exakt och skiljer på versaler och gemener — `Resolved` matchar inte `resolved`.
 2. Kriteriets incident har **Lös incident automatiskt** påslaget, under **Fler fält** i incidentformuläret. Utan det ignoreras matchande meddelanden om att problemet är över, och incidenterna förblir öppna. (Detsamma gäller larm och **Lös larm automatiskt**.) Standardkriteriet för offline börjar med det påslaget; en incident som du själv lägger till i ett kriterium börjar med det avslaget.
 
-Ett larm som du själv lägger till i ett kriterium börjar också med **Lös larm automatiskt** avslaget, så en återhämtning lämnar larmet öppet tills det är påslaget. **Auto-resolve each incident when…** visar vilka av kriteriets incidenter och larm en återhämtning löser, och namnger var och en som den skulle lämna öppen, med en knapp som slår på den tillhörande inställningen. Kortet **Monitor-sammanfattning** på monitorns **Översikt** namnger varje incident och larm som en återhämtning lämnade öppet, och varför.
+Ett larm som du själv lägger till i ett kriterium börjar också med **Lös larm automatiskt** avslaget, så en återhämtning lämnar larmet öppet tills det är påslaget. **Lös varje incident automatiskt när…** visar vilka av kriteriets incidenter och larm en återhämtning löser, och namnger var och en som den skulle lämna öppen, med en knapp som slår på den tillhörande inställningen. Kortet **Monitor-sammanfattning** på monitorns **Översikt** namnger varje incident och larm som en återhämtning lämnade öppet, och varför.
 
-En återhämtning löser bara incidenterna och larmen för det kriterium som läser den: det vars **Field that signals recovery** och **Value that means recovered** matchar nyttolasten. Ett annat kriteriums incidenter och larm för samma värde förblir öppna, och de för ett kriterium som lämnar fälten tomma löses manuellt.
+En återhämtning löser bara incidenterna och larmen för det kriterium som läser den: det vars **Fält som signalerar återhämtning** och **Värde som betyder återhämtad** matchar nyttolasten. Ett annat kriteriums incidenter och larm för samma värde förblir öppna, och de för ett kriterium som lämnar fälten tomma löses manuellt.
 
-**Max incidents per request** begränsar uthämtningen, inte bara skapandet. Nycklar bortom taket är också osynliga för lösningen, så i en nyttolast med fler distinkta nycklar än taket stänger ett larm som rapporterar `resolved` bortom taket inte sin incident.
-
-> [!NOTE]
-> En monitor med ett kriterium som grupperar efter ett fält i innehållet utvärderar varje förfrågan den tar emot, en i taget och i den ordning de kom, så en skur av larm och återhämtningar öppnar och löser varje värdes incident och larm. Upp till 1 000 förfrågningar, eller 16 MB av dem, väntar på att utvärderas; därutöver hoppas de äldsta väntande över, och kortet **Monitor-sammanfattning** säger hur många. En monitor utan gruppering utvärderar bara den nyaste av förfrågningarna som väntar på den.
+**Max antal incidenter per förfrågan** begränsar uthämtningen, inte bara skapandet. Nycklar bortom taket är också osynliga för lösningen, så i en nyttolast med fler distinkta nycklar än taket stänger ett larm som rapporterar `resolved` bortom taket inte sin incident.
 
 > [!NOTE]
-> Om **Field that signals recovery** innehåller `[*]` men **Open a separate incident for each…** inte gör det, är en förfrågan över först när varje element i matrisen säger det. Med `requestBody.alerts[*].status` och `resolved` löses en incident grupperad efter `requestBody.groupLabels.alertname` när alla larm i en förfrågan är lösta, och den förblir öppen så länge ett fortfarande är aktivt.
+> En monitor med ett kriterium som grupperar efter ett fält i innehållet utvärderar varje förfrågan den tar emot, en i taget och i den ordning de kom, så en skur av larm och återhämtningar öppnar och löser varje värdes incident och larm. Upp till 1 000 förfrågningar, eller 16 MB av dem, väntar på att utvärderas; därutöver hoppas de äldsta väntande över, och kortet **Monitor-sammanfattning** säger hur många. Det anger också vilken gräns som nåddes, och en installation med egen drift kan ändra båda: se [Anteckningar om egen drift](#anteckningar-om-egen-drift). En monitor utan gruppering utvärderar bara den nyaste av förfrågningarna som väntar på den.
+
+> [!NOTE]
+> Om **Fält som signalerar återhämtning** innehåller `[*]` men **Öppna en separat incident för varje…** inte gör det, är en förfrågan över först när varje element i matrisen säger det. Med `requestBody.alerts[*].status` och `resolved` löses en incident grupperad efter `requestBody.groupLabels.alertname` när alla larm i en förfrågan är lösta, och den förblir öppen så länge ett fortfarande är aktivt.
 
 > [!WARNING]
 > En sökväg för lösning utan `[*]` utvärderas mot hela nyttolasten, så en `status: resolved` på nyttolastens nivå löser varje nyckel i den nyttolasten — även larm vars egen status fortfarande är aktiv.
@@ -421,6 +422,32 @@ Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{
 ### Genomarbetat exempel
 
 En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). För Grafana, se [Grafana](/docs/integrations/grafana).
+
+## Publicera i Slack utan att kalla in någon
+
+En stagingmiljö, eller en produkt vars problem kan vänta, kan vilja få en förfrågan publicerad i en chattkanal utan att kalla in någon. Ett larm som inte nämner någon jourpolicy gör just det: det publiceras i Slack, Microsoft Teams eller Mattermost via projektets arbetsyteregler och startar ingen eskalering.
+
+:::steps
+1. Öppna kriteriet och slå på **När filter matchar, skapa ett larm.** under **Åtgärder**. Lämna dess **Jourpolicyer** tomma.
+2. Skriv in det förfrågan säger i larmet, till exempel `{{requestBody.commonAnnotations.summary}}` i dess beskrivning. Se [Incident- och larmmallar](/docs/monitor/incident-alert-templating).
+3. Lägg till en regel för den här monitorns larm under **Larm → Arbetsyta → Slack** och slå på **Publicera i befintliga kanaler**. Slack måste först vara [anslutet till projektet](/docs/workspace-connections/slack).
+:::
+
+Ett larm som inte nämner någon jourpolicy kan ändå kalla in någon via projektets regler. Kontrollera att ingen regel under **Larm → Regler → Jourregler** kallar in någon för de här larmen, och att ingen regel under **Larm → Regler → Incidentregler** deklarerar en incident utifrån dem.
+
+För att publicera utan att skapa ett larm slår du bara på **När filter matchar, ändra monitorstatus.** och lägger regeln under **Monitorer → Arbetsyta → Slack** i stället. Kanalen får då bara veta att monitorns status ändrades, utan något från förfrågan, och bara när den ändras: fler förfrågningar medan monitorn redan har den statusen publicerar ingenting.
+
+### Kalla in jouren bara utanför arbetstid
+
+Två kriterier med samma filter delar veckan mellan sig, i den här ordningen:
+
+1. Det första publicerar under arbetstid. Slå på **Utvärdera det här kriteriet bara vissa dagar och tider** under dess **Inställningar**, och välj dagarna, tiderna och **Tidszon**. Dess larm nämner ingen jourpolicy.
+2. Det andra kallar in jouren resten av tiden. Det har inga tider, och dess larm nämner din jourpolicy.
+
+Det första kriteriet som matchar en förfrågan avgör vad som händer. Utanför sina tider hoppas det första kriteriet över, så det andra matchar på natten och under helger, och bara då kallas någon in. Se [Bara vissa dagar och tider](/docs/monitor/criteria-and-statuses#bara-vissa-dagar-och-tider).
+
+- En förfrågan bedöms när den kommer, efter tiderna som de är då. Ett problem som börjar kl. 16:55 kallar in någon efter kl. 17:00 bara om avsändaren skickar det igen, som Alertmanager gör en gång per `repeat_interval`.
+- Ett larm med **Lös larm automatiskt** påslaget löses när en förfrågan matchar ett annat kriterium. Den första förfrågan efter att arbetstiden börjat matchar det första kriteriet, så den löser nattens larm och öppnar ett som inte kallar in någon. Låt **Lös larm automatiskt** vara avslaget på det andra kriteriets larm för att hålla det öppet tills någon löser det.
 
 ## Tjänster som kontrollerar URL:en först
 
@@ -521,6 +548,18 @@ Klicka på **Bekräfta prenumeration** på kortet **Monitor-sammanfattning** på
 :::details Avsändaren får en 500
 Förfrågan säger `Content-Type: application/json`, men kroppen är inte ett JSON-objekt eller en JSON-matris. Skicka giltig JSON, eller en annan innehållstyp.
 :::
+
+## Anteckningar om egen drift
+
+En monitor som grupperar efter ett fält i innehållet håller varje förfrågan i Valkey tills det är dess tur. På en installation med egen drift begränsar tre inställningar det. Med Docker Compose anger du dem i `config.env`; med Helm under `incomingRequests` i chartets värden, som ger app- och worker-poddarna samma:
+
+| Inställning | Helm-värde | Standard | Intervall | Vad den begränsar |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` till `100000` | Förfrågningarna en monitor låter vänta. Därutöver hoppas de äldsta väntande över. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` till `512` | Megabyten förfrågningar en monitor låter vänta. Därutöver hoppas de äldsta väntande över. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` till `1000` | Förfrågningarna ett jobb utvärderar innan monitorns jobb köas igen, bakom varje jobb som redan väntar. |
+
+Höj de två första för avsändare som skickar i kraftigare skurar, som en kärnswitch som går ner och utlöser tusentals larm på en gång, och sänk den andra för en liten Valkey. När förfrågningar hoppas över anger kortet **Monitor-sammanfattning** vilken gräns som nåddes. Ett värde som inte är ett heltal inom sitt intervall används inte: standardvärdet används, och appen loggar ett meddelande som namnger inställningen.
 
 ## Nästa steg
 

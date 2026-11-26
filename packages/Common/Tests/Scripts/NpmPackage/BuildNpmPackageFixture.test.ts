@@ -6,6 +6,7 @@ import path from "path";
 import ts from "typescript";
 import {
   BuildReport,
+  PublishedAsBrowserTwin,
   RootExport,
 } from "../../../Scripts/NpmPackage/BuildNpmPackage";
 
@@ -303,6 +304,8 @@ function buildStandIn(
   options: {
     rootExports?: ReadonlyArray<RootExport>;
     pinnedLeftOut?: Record<string, string>;
+    // The modules published as their browser twin (default: none).
+    publishedAsBrowserTwin?: Record<string, PublishedAsBrowserTwin>;
     buildDirectory?: string;
     readExportsTimeoutMs?: number;
     // The directory the stand-in goes in (default: the suite's scratch directory).
@@ -332,6 +335,7 @@ function buildStandIn(
       buildDirectory,
       leftOut: LEFT_OUT,
       pinnedLeftOut: options.pinnedLeftOut || PINNED_LEFT_OUT,
+      publishedAsBrowserTwin: options.publishedAsBrowserTwin || {},
       rootExports: options.rootExports || ROOT_EXPORTS,
       licenseFile: path.join(sourceRoot, "LICENSE.txt"),
       readmeFile: path.join(sourceRoot, "README.md"),
@@ -837,6 +841,141 @@ describe("a build of a stand-in Common", () => {
       expect(diagnostics).toEqual([]);
     },
   );
+});
+
+/*
+ * A module that loads server code where OneUptime runs it, beside a twin of
+ * the same exports that loads none (as packages/Common/package.json's
+ * "browser" field names one), and a module that loads it.
+ */
+const ROUTED: Record<string, string> = {
+  "Utils/Routing.ts": [
+    'import Logger from "../Server/Logger";',
+    "export default class Routing {",
+    "  public static route(text: string): string {",
+    "    return Logger.prefix + text;",
+    "  }",
+    "}",
+    "",
+  ].join("\n"),
+  "Utils/Routing.browser.ts": [
+    "export default class Routing {",
+    "  public static route(text: string): string {",
+    "    return text;",
+    "  }",
+    "}",
+    "",
+  ].join("\n"),
+  "Utils/Sender.ts": [
+    'import Routing from "./Routing";',
+    "export default function send(text: string): string {",
+    "  return Routing.route(text);",
+    "}",
+    "",
+  ].join("\n"),
+};
+
+describe("a build that publishes a module as its browser twin", () => {
+  test("publishes the module as its twin, and the modules that load it, with no server code", () => {
+    const { run }: { run: BuildRun } = buildStandIn("browser-twin", ROUTED, {
+      publishedAsBrowserTwin: {
+        "Utils/Routing": {
+          twin: "Utils/Routing.browser",
+          reason: "the server's routing is the server's own",
+        },
+      },
+    });
+
+    expect(run.error).toBeUndefined();
+    expect(run.report?.publishedAsBrowserTwin).toEqual(["Utils/Routing"]);
+    expect(run.report?.published).toEqual(
+      expect.arrayContaining([
+        "Utils/Routing",
+        "Utils/Routing.browser",
+        "Utils/Sender",
+      ]),
+    );
+
+    const packageDirectory: string = run.report!.packageDirectory;
+
+    for (const extension of [".js", ".d.ts"]) {
+      expect(
+        fs.readFileSync(
+          path.join(packageDirectory, `Utils/Routing${extension}`),
+          "utf8",
+        ),
+      ).toBe(
+        fs.readFileSync(
+          path.join(packageDirectory, `Utils/Routing.browser${extension}`),
+          "utf8",
+        ),
+      );
+    }
+
+    expect(fs.existsSync(path.join(packageDirectory, "Server/Logger.js"))).toBe(
+      false,
+    );
+
+    // What loads it runs as the twin does: the server's prefix is not there.
+    const sent: string = childProcess.execFileSync(
+      process.execPath,
+      [
+        "-e",
+        `process.stdout.write(require(${JSON.stringify(
+          path.join(packageDirectory, "Utils/Sender.js"),
+        )}).default("hello"))`,
+      ],
+      { encoding: "utf8" },
+    );
+
+    expect(sent).toBe("hello");
+  });
+
+  test("without its twin, the module and what loads it drop out, and the build says so", () => {
+    const { run }: { run: BuildRun } = buildStandIn(
+      "no-browser-twin",
+      ROUTED,
+      {},
+    );
+
+    expect(run.report).toBeUndefined();
+    expect(run.error).toContain(
+      "Utils/Routing is left out now, and PINNED_LEFT_OUT does not name it: loads Server/Logger when it runs (Utils/Routing -> Server/Logger)",
+    );
+    expect(run.error).toContain(
+      "Utils/Sender is left out now, and PINNED_LEFT_OUT does not name it: loads Server/Logger when it runs (Utils/Sender -> Utils/Routing -> Server/Logger)",
+    );
+  });
+
+  test("fails when a twin is not in its module's directory, or either was not compiled", () => {
+    const apart: { run: BuildRun } = buildStandIn(
+      "browser-twin-apart",
+      ROUTED,
+      {
+        publishedAsBrowserTwin: {
+          "Utils/Routing": { twin: "Types/ObjectID", reason: "elsewhere" },
+        },
+      },
+    );
+
+    expect(apart.run.error).toBe(
+      "Utils/Routing is to be published as Types/ObjectID, which is not in its directory",
+    );
+
+    const missing: { run: BuildRun } = buildStandIn(
+      "browser-twin-missing",
+      ROUTED,
+      {
+        publishedAsBrowserTwin: {
+          "Utils/Gone": { twin: "Utils/Gone.browser", reason: "no module" },
+        },
+      },
+    );
+
+    expect(missing.run.error).toBe(
+      "Utils/Gone is to be published as Utils/Gone.browser, but Utils/Gone was not compiled",
+    );
+  });
 });
 
 describe("a build that cannot publish what it would write", () => {

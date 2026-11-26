@@ -125,13 +125,16 @@ export function isTestEmail(email: string): boolean {
   });
 }
 
+// An address in one spelling: lower case, and its accents composed (é as one character, not e and a mark).
+function normalizeEmail(value: string): string {
+  return value.normalize("NFC").toLowerCase();
+}
+
 const emailDetector: DataTypeDetector = {
   dataTypeId: "email-address",
   quickCheck: containsAny(["@"]),
   pattern: EMAIL_PATTERN,
-  normalize: (value: string): string => {
-    return value.toLowerCase();
-  },
+  normalize: normalizeEmail,
   validate: (normalized: string): boolean => {
     return isValidEmail(normalized);
   },
@@ -139,7 +142,81 @@ const emailDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.High,
   specificity: 2,
   isTestValue: isTestEmail,
+  /*
+   * An address in a percent-encoded URL: jane.doe%40acmecorp.io in
+   * /signup?email=jane.doe%40acmecorp.io, as browsers and HTTP clients
+   * write a query string (#10935). Read decoded, its "@" (%40), dots (%2E)
+   * and plus signs (%2B) are what they stand for, and the finding - and
+   * what an Email Address rule hides - is the encoded address whole.
+   */
+  readsPercentEncoded: true,
 };
+
+/*
+ * An email address in any script, as RFC 6531 allows one (#10960):
+ * josé@example.com, 张伟@example.com, user@例え.jp, почта@пример.рф, and one
+ * whose top-level domain is punycode (user@пример.xn--p1ai). EMAIL_PATTERN
+ * reads a name, a domain and a top-level domain in ASCII alone, so none of
+ * them was found. Read as the OneUptime Android agent's redactor reads one
+ * (Utils/Host/AndroidAgentRedactor.ts, EMAIL_ADDRESS, #10937), so the two
+ * agree on what an address is:
+ *
+ *  - its name is Latin, in ASCII or not (josé, müller), or in the letters
+ *    of other scripts (张伟, почта), each with digits, marks and "._%+-",
+ *    but not both: where the two meet is where an address begins, so a
+ *    letter of another script right before an ASCII address is no part of
+ *    it (邮箱jane@example.com is jane@example.com). Each starts right after
+ *    none of its own characters, and a name in another script holds at
+ *    least one of their letters;
+ *  - neither starts with a digit right after a digit and a space: that is
+ *    the next group of a number, and a card written in groups keeps its
+ *    last one (4111 1111 1111 1111é@例え.jp);
+ *  - its domain holds the letters, marks and digits of any script, or
+ *    punycode (例え is xn--r8jz45g), and its top-level domain is ASCII
+ *    letters, punycode - which always holds a letter, so "xn--4111" is none
+ *    - or another script's letters (рф, 中国);
+ *  - it ends right before no ASCII letter, digit, "_" or "-", so a letter
+ *    of another script after an ASCII top-level domain is no part of it
+ *    (jane@example.com已发送). One in another script takes in the letters
+ *    of its script written right after it: nothing tells where it ends.
+ *
+ * Where the redactor writes a domain as labels repeated without bound, this
+ * reads it as EMAIL_PATTERN does, one run of at most 253 characters with
+ * its dots, and isValidEmail judges its labels. The database cannot run
+ * Unicode classes as JavaScript reads them (DetectorPrefilter writes no u
+ * pattern), so it narrows by an "@" beside a character beyond ASCII: an
+ * address this alone finds holds one, and an ASCII one is narrowed by
+ * EMAIL_PATTERN's expression.
+ */
+const UNICODE_EMAIL_PATTERN: RegExp =
+  /(?<!\p{Nd} (?=\p{Nd}))(?:(?<![\p{sc=Latin}\p{M}\p{Nd}._%+-])[\p{sc=Latin}\p{M}\p{Nd}._%+-]{1,64}|(?<![\p{M}\p{Nd}._%+-]|[^\P{L}\p{sc=Latin}])(?=[\p{M}\p{Nd}._%+-]{0,63}[^\P{L}\p{sc=Latin}])(?:[^\P{L}\p{sc=Latin}]|[\p{M}\p{Nd}._%+-]){1,64})@[\p{L}\p{M}\p{Nd}.-]{1,253}\.(?:[A-Za-z]{2,24}|[Xx][Nn]--(?=[A-Za-z0-9-]{0,58}[A-Za-z])[A-Za-z0-9-]{1,59}|[\p{L}\p{M}]{2,24})(?![A-Za-z0-9_-])/gu;
+
+/*
+ * A character beyond ASCII, then up to an address's name of anything but
+ * "@" and a space, then "@"; or "@", then up to a domain and its top-level
+ * domain of the same, then a character beyond ASCII. Written as
+ * DetectorPrefilter writes RE2: each character as \x{...}.
+ */
+const UNICODE_EMAIL_PREFILTER: string =
+  "[^\\x{0}-\\x{7F}][^\\x{40}\\x{9}-\\x{D}\\x{20}]{0,64}\\x{40}|\\x{40}[^\\x{40}\\x{9}-\\x{D}\\x{20}]{0,280}[^\\x{0}-\\x{7F}]";
+
+const unicodeEmailDetector: DataTypeDetector = {
+  ...emailDetector,
+  pattern: UNICODE_EMAIL_PATTERN,
+  prefilter: UNICODE_EMAIL_PREFILTER,
+};
+
+/*
+ * WHAT DATA SECURITY CALLS AN EMAIL ADDRESS: an address in ASCII, and one
+ * in any script, each read percent-encoded too. An Email Address scrub rule
+ * hides what these find, as well as what its own pattern does
+ * (Utils/Telemetry/ScrubBuiltInPatterns.ts), so a finding and the rule that
+ * covers it never disagree on what an address is.
+ */
+export const EMAIL_ADDRESS_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  emailDetector,
+  unicodeEmailDetector,
+];
 
 /*
  * ITU-T E.164 country calling codes that are in use. A "+" number whose
@@ -395,12 +472,19 @@ const PHONE_KEYWORDS: ReadonlyArray<string> = [
   "contact",
 ];
 
-// "+44 20 7946 0958", "+1 (415) 555-2671": a calling code and 7 to 14 digits.
+/*
+ * "+44 20 7946 0958", "+1 (415) 555-2671": a calling code and 7 to 14
+ * digits, set apart by spaces - a no-break space too, as typeset text writes
+ * them (#11025) - hyphens, dots and parentheses.
+ */
 const INTERNATIONAL_PHONE_PATTERN: RegExp =
-  /(?<![A-Za-z0-9+])\+[1-9][0-9 ().-]{6,22}[0-9](?![0-9])/g;
+  /(?<![A-Za-z0-9+])\+[1-9][0-9 \u00A0().-]{6,22}[0-9](?![0-9])/g;
+
+// A calling code in parentheses, "(+44) 20 7946 0958": its ")" closes the "(" before the "+".
+const CALLING_CODE_IN_PARENTHESES: RegExp = /^\+[1-9][0-9]{0,2}\)/;
 
 function hasSaneSeparators(raw: string): boolean {
-  let open: number = 0;
+  let open: number = CALLING_CODE_IN_PARENTHESES.test(raw) ? 1 : 0;
   let separatorRun: number = 0;
 
   for (const character of raw) {
@@ -414,7 +498,12 @@ function hasSaneSeparators(raw: string): boolean {
       }
     }
 
-    if (character === " " || character === "-" || character === ".") {
+    if (
+      character === " " ||
+      character === "\u00A0" ||
+      character === "-" ||
+      character === "."
+    ) {
       separatorRun++;
 
       if (separatorRun > 2) {
@@ -428,6 +517,100 @@ function hasSaneSeparators(raw: string): boolean {
   return open === 0;
 }
 
+// A run of digits of a "+" number, and whether it is in parentheses.
+interface PhoneGroup {
+  digits: number;
+  inParentheses: boolean;
+  // The value of its digits, while it has at most three.
+  value: number;
+}
+
+function phoneGroupsOf(raw: string): Array<PhoneGroup> {
+  const groups: Array<PhoneGroup> = [];
+  let inParentheses: boolean = CALLING_CODE_IN_PARENTHESES.test(raw);
+  let current: PhoneGroup | null = null;
+
+  for (const character of raw) {
+    if (character >= "0" && character <= "9") {
+      if (!current) {
+        current = { digits: 0, inParentheses, value: 0 };
+        groups.push(current);
+      }
+
+      current.digits++;
+      current.value =
+        current.digits <= 3 ? current.value * 10 + Number(character) : 1000;
+      continue;
+    }
+
+    current = null;
+
+    if (character === "(") {
+      inParentheses = true;
+    } else if (character === ")") {
+      inParentheses = false;
+    }
+  }
+
+  return groups;
+}
+
+// "+192.168.10.20": a plus sign, then digits set apart by dots and nothing else.
+const DIGITS_AND_DOTS_ONLY: RegExp = /^\+[0-9.]+$/;
+
+// A date in its ISO order, 2026-11-24: what a time zone's offset is written beside.
+const ISO_DATE_PATTERN: RegExp =
+  /(?<![0-9])(?:19|20)[0-9]{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|3[01])(?![0-9])/;
+
+/*
+ * WHETHER A "+" NUMBER IS WRITTEN AS A PHONE NUMBER IS (#11025).
+ *
+ * A Phone Number scrub rule hides what this detector finds, wherever the
+ * rule runs and with no word around the value to weigh (Utils/Telemetry/
+ * ScrubBuiltInPatterns.ts), so what it finds is held to the shapes people
+ * write a phone number in - as grouping v4 holds the numbers it folds out of
+ * an exception's message (Server/Utils/Telemetry/ExceptionSanitizer.ts,
+ * foldSeparatedNumbersV4) - and the numbers that only look like one are
+ * left alone:
+ *
+ *  - its groups are set apart by spaces, hyphens and parentheses, or by
+ *    dots - two or more, beside no hyphen: one dot is a decimal or a
+ *    coordinate (+51.507217), and dots beside a hyphen are a coordinate
+ *    pair (+40.6894-074.0447). Four groups of at most three digits up to
+ *    255, by dots alone, are an IPv4 address;
+ *  - a group of one digit comes right after the calling code
+ *    (+33 1 23 45 67 89) or in parentheses (+44 (0)20 7946 0958), and
+ *    nowhere else: +1 2 3 4 5 6 7 8 is a count;
+ *  - no date is in it: +1 2026-11-24 is a time zone's offset and a date.
+ */
+function isWrittenAsPhoneNumber(raw: string): boolean {
+  const dots: number = raw.split(".").length - 1;
+
+  if (dots === 1 || (dots > 1 && raw.includes("-"))) {
+    return false;
+  }
+
+  const groups: Array<PhoneGroup> = phoneGroupsOf(raw);
+
+  if (
+    DIGITS_AND_DOTS_ONLY.test(raw) &&
+    groups.length === 4 &&
+    groups.every((group: PhoneGroup) => {
+      return group.digits <= 3 && group.value <= 255;
+    })
+  ) {
+    return false;
+  }
+
+  for (let index: number = 2; index < groups.length; index++) {
+    if (groups[index]!.digits === 1 && !groups[index]!.inParentheses) {
+      return false;
+    }
+  }
+
+  return !ISO_DATE_PATTERN.test(raw);
+}
+
 const internationalPhoneDetector: DataTypeDetector = {
   dataTypeId: "phone-number",
   quickCheck: containsAny(["+"]),
@@ -439,13 +622,21 @@ const internationalPhoneDetector: DataTypeDetector = {
       digits.length <= 15 &&
       hasCountryCallingCode(digits) &&
       !isPlaceholderDigits(digits.slice(1)) &&
-      hasSaneSeparators(raw)
+      hasSaneSeparators(raw) &&
+      isWrittenAsPhoneNumber(raw)
     );
   },
   keywords: PHONE_KEYWORDS,
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 2,
   isTestValue: isTestPhoneNumber,
+  /*
+   * In a percent-encoded URL too - /callback?phone=%2B44%2020%207946%200958
+   * - and in every script's digits (#11030): what a Phone Number rule
+   * hides, it finds in every reading (ScrubBuiltInPatterns).
+   */
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
 };
 
 /*
@@ -485,6 +676,9 @@ const nanpFormattedDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Medium,
   specificity: 2,
   isTestValue: isTestPhoneNumber,
+  // Percent-encoded, and in every script's digits, as internationalPhoneDetector.
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
 };
 
 // A UK mobile: 07 and nine more digits, often as 07xxx xxxxxx.
@@ -503,6 +697,9 @@ const ukMobileDetector: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Low,
   specificity: 1,
   isTestValue: isTestPhoneNumber,
+  // Percent-encoded, and in every script's digits, as internationalPhoneDetector.
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
 };
 
 // Any national number of 9 to 12 digits, only next to phone words.
@@ -525,7 +722,27 @@ const nationalPhoneDetector: DataTypeDetector = {
   specificity: 1,
   isTestValue: isTestPhoneNumber,
   fieldValuePattern: /^\+?[0-9][0-9 ().-]{6,22}[0-9]$/,
+  // Percent-encoded, and in every script's digits, as internationalPhoneDetector.
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
 };
+
+/*
+ * WHAT DATA SECURITY CALLS A PHONE NUMBER ON ITS OWN: an international
+ * number, a North American one written as people write it, and a UK
+ * mobile - every phone detector that needs no word around the value. A
+ * Phone Number scrub rule hides what these find, as well as what its own
+ * pattern does (Utils/Telemetry/ScrubBuiltInPatterns.ts, #11030), in every
+ * reading they ask for. A national number of no particular shape is a
+ * phone number only beside a word that says so (nationalPhoneDetector),
+ * which a rule reading one value at a time does not weigh: the rule hides
+ * it only where its own pattern does.
+ */
+export const PHONE_NUMBER_DETECTORS: ReadonlyArray<DataTypeDetector> = [
+  internationalPhoneDetector,
+  nanpFormattedDetector,
+  ukMobileDetector,
+];
 
 /*
  * A street address in the English-speaking style: a house number, a street
@@ -871,11 +1088,26 @@ function isDocumentationIpv6Value(address: string): boolean {
  * address (#10466). The other forms never take that shape: it is refused
  * at their start.
  *
+ * Where it may start (#10936): never inside a word - no letter, digit or
+ * "_" right before it, as no other detector starts inside one - nor inside
+ * a longer run of groups and colons, but right after a key's colon, as
+ * logfmt and syslog lines write one: peer ip:2a00:1450:4001:82a::200e,
+ * remote:2a00:..., addr:2001:db8::7, client_ip:2a02:... A colon ends a key
+ * when the word before it holds a letter no hex group has (g to z) or a
+ * "_" within its last 63 characters, so after "ip:", "ip6:" or "remote:"
+ * an address starts at its first group - "remote:" no longer lends it its
+ * "e", nor "node:" its "de" or "ip6:" its "6" - while inside 2001:db8::1 no
+ * candidate starts at db8, as every group before a colon there is hex. A
+ * clock, a MAC address or a ratio after a key's colon (time:12:30:45,
+ * mac:00:1a:2b:3c:4d:5e, ratio:3:1) is still no address: isIpv6AddressData
+ * judges them as anywhere else. A key of hex letters alone (cafe:2001::1)
+ * cannot be told from an address's first group, which it is read as.
+ *
  * Bounded, so a long run of colons and digits is read in time in line
  * with its length.
  */
 const IPV6_PATTERN: RegExp =
-  /(?<![0-9A-Fa-f:])(?:(?![0-9A-Fa-f]{1,4}::[0-9A-Fa-f]{1,4}(?![0-9A-Fa-f:]))(?:[0-9A-Fa-f]{1,4}:){1,7}(?:[0-9A-Fa-f]{1,4}|:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,5})?)(?![0-9A-Fa-f:])|::(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![0-9A-Fa-f:])|(?:(?:[0-9A-Fa-f]{1,4}:){1,6}|(?:[0-9A-Fa-f]{1,4}:){1,5}:(?:[0-9A-Fa-f]{1,4}:){0,4}|::(?:[0-9A-Fa-f]{1,4}:){0,5})(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|(?<![A-Za-z_.])[23][0-9A-Fa-f]{3}::[0-9A-Fa-f]{1,4}(?![A-Za-z_:]))(?![0-9]|\.[0-9])/g;
+  /(?<![0-9A-Za-z_]|(?<![G-Zg-z_][0-9A-Za-z_.-]{0,62}):)(?:(?![0-9A-Fa-f]{1,4}::[0-9A-Fa-f]{1,4}(?![0-9A-Fa-f:]))(?:[0-9A-Fa-f]{1,4}:){1,7}(?:[0-9A-Fa-f]{1,4}|:(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,5})?)(?![0-9A-Fa-f:])|::(?:[0-9A-Fa-f]{1,4}(?::[0-9A-Fa-f]{1,4}){0,6})?(?![0-9A-Fa-f:])|(?:(?:[0-9A-Fa-f]{1,4}:){1,6}|(?:[0-9A-Fa-f]{1,4}:){1,5}:(?:[0-9A-Fa-f]{1,4}:){0,4}|::(?:[0-9A-Fa-f]{1,4}:){0,5})(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])(?:\.(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])){3}|(?<![A-Za-z_.])[23][0-9A-Fa-f]{3}::[0-9A-Fa-f]{1,4}(?![A-Za-z_:]))(?![0-9]|\.[0-9])/g;
 
 const ipv6Detector: DataTypeDetector = {
   dataTypeId: "ip-address",
@@ -1098,6 +1330,7 @@ const vinDetector: DataTypeDetector = {
 
 export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   emailDetector,
+  unicodeEmailDetector,
   internationalPhoneDetector,
   nanpFormattedDetector,
   ukMobileDetector,

@@ -457,7 +457,7 @@ Docker Engine ۲۷ و نسخه‌های بعدی یک زیرشبکهٔ IPv6 بر
 ### مشکل‌های دیگر
 
 :::details پراب درست پس از راه‌اندازی متوقف می‌شود
-لاگش می‌گوید چه چیزی کم است: `PROBE_KEY is not set`، `PROBE_INGEST_URL or ONEUPTIME_URL is not set` یا `PROBE_ID or REGISTER_PROBE_KEY should be set`. وقتی هر سه تنظیم شده‌اند اما شناسه و کلید با هیچ پرابی جور نیستند، پراب ۱۰ بار با فاصلهٔ ۳۰ ثانیه تلاش می‌کند، سپس با `Unable to register probe after 10 attempts` متوقف می‌شود. شناسه و کلید را دوباره با **نمایش شناسه و کلید** کپی کنید.
+لاگش می‌گوید چه چیزی کم است: `PROBE_KEY is not set`، `Neither ONEUPTIME_URL nor PROBE_INGEST_URL is set` یا `PROBE_ID is not set`. وقتی هر سه تنظیم شده‌اند اما شناسه و کلید با هیچ پرابی جور نیستند، پراب ۱۰ بار با فاصلهٔ ۳۰ ثانیه تلاش می‌کند، سپس با `Unable to register probe after 10 attempts` متوقف می‌شود. شناسه و کلید را دوباره با **نمایش شناسه و کلید** کپی کنید.
 :::
 
 :::details پراب کار می‌کرد تا کسی کلیدش را بازنشانی کرد

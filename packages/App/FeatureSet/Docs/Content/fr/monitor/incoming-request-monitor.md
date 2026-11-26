@@ -14,6 +14,7 @@ Les deux utilisent le même type de moniteur. Ce qui les distingue, ce sont les 
 - [Envoyer un heartbeat](#envoyer-un-heartbeat): Depuis curl, cron, Node.js, Python ou Go.
 - [Alerter quand les appels cessent](#marquer-hors-ligne-sil-ny-a-pas-de-heartbeat-en-10-minutes-un-interrupteur-de-lhomme-mort): Faire du moniteur un interrupteur de l'homme mort.
 - [Recevoir des alertes](#recevoir-les-alertes-dun-autre-système): Un incident par alerte Alertmanager ou Grafana.
+- [Publier dans Slack sans appeler personne](#publier-dans-slack-sans-appeler-personne): Prévenir un canal, et n'appeler qu'en dehors des heures de travail.
 - [S'abonner à SNS ou Event Grid](#sabonner-à-amazon-sns-ou-à-azure-event-grid): Confirmer l'abonnement en un clic.
 :::
 
@@ -348,14 +349,14 @@ flowchart TB
 :::steps
 1. Ouvrez le critère et dépliez **Paramètres**.
 2. Activez **Regrouper les incidents et alertes par un champ de la charge utile**.
-3. Renseignez **Ouvrir un incident distinct pour chaque…**. Pour que chaque incident se résolve de lui-même, renseignez aussi le champ et la valeur sous **Auto-resolve each incident when…** (ci-dessous). Enregistrez ensuite le moniteur.
+3. Renseignez **Ouvrir un incident distinct pour chaque…**. Pour que chaque incident se résolve de lui-même, renseignez aussi le champ et la valeur sous **Résoudre automatiquement chaque incident quand…** (ci-dessous). Enregistrez ensuite le moniteur.
 :::
 
 | Champ | Exemple | Ce qu'il fait |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
 | Ouvrir un incident distinct pour chaque… | `requestBody.alerts[*].labels.alertname` | Le chemin dont les valeurs différentes séparent les incidents |
 | Champ qui signale le rétablissement | `requestBody.alerts[*].status` | Le chemin vérifié pour décider qu'une alerte s'est rétablie |
-| Value that means recovered | `resolved` | La valeur exacte qui marque le rétablissement |
+| Valeur qui signifie rétabli | `resolved` | La valeur exacte qui marque le rétablissement |
 | Incidents max par requête | `100` (par défaut) | Plafond de sécurité, pour qu'un champ à forte cardinalité ne puisse pas ouvrir des incidents sans limite |
 
 Le regroupement appartient au critère dans lequel il est activé. Les autres critères du moniteur ne regroupent pas : quand l'un d'eux correspond à une requête, il ouvre son incident et son alerte comme il le ferait sur un moniteur dont aucun critère ne regroupe.
@@ -383,17 +384,17 @@ La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur montre ce
 
 Un webhook ne décrit que ce que contient cette charge utile : OneUptime ne résout donc jamais un incident parce que sa clé n'apparaît plus. Un incident n'est résolu que quand une charge utile indique explicitement que cette clé s'est rétablie. Deux conditions doivent être réunies :
 
-1. **Champ qui signale le rétablissement** et **Value that means recovered** sont définis et correspondent à la charge utile. La comparaison est exacte et sensible à la casse — `Resolved` ne correspond pas à `resolved`.
+1. **Champ qui signale le rétablissement** et **Valeur qui signifie rétabli** sont définis et correspondent à la charge utile. La comparaison est exacte et sensible à la casse — `Resolved` ne correspond pas à `resolved`.
 2. L'incident du critère a **Résoudre automatiquement l'incident** activé, sous **Plus de champs** dans le formulaire d'incident. Sans cela, les événements de rétablissement correspondants sont ignorés et les incidents restent ouverts. (Il en va de même pour les alertes et **Résoudre automatiquement l'alerte**.) Le critère hors ligne par défaut l'a activé dès le départ ; un incident que vous ajoutez vous-même à un critère commence avec l'option désactivée.
 
-Une alerte que vous ajoutez vous-même à un critère commence elle aussi avec **Résoudre automatiquement l'alerte** désactivé : un rétablissement laisse donc l'alerte ouverte tant que l'option n'est pas activée. **Auto-resolve each incident when…** indique quels incidents et alertes du critère un rétablissement résout, et nomme chacun de ceux qu'il laisserait ouverts, avec un bouton qui active l'option correspondante. La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur nomme chaque incident et chaque alerte qu'un rétablissement a laissés ouverts, et pourquoi.
+Une alerte que vous ajoutez vous-même à un critère commence elle aussi avec **Résoudre automatiquement l'alerte** désactivé : un rétablissement laisse donc l'alerte ouverte tant que l'option n'est pas activée. **Résoudre automatiquement chaque incident quand…** indique quels incidents et alertes du critère un rétablissement résout, et nomme chacun de ceux qu'il laisserait ouverts, avec un bouton qui active l'option correspondante. La carte **Résumé du moniteur** de la **Vue d'ensemble** du moniteur nomme chaque incident et chaque alerte qu'un rétablissement a laissés ouverts, et pourquoi.
 
-Un rétablissement ne résout que les incidents et les alertes du critère qui le lit : celui dont **Champ qui signale le rétablissement** et **Value that means recovered** correspondent à la charge utile. Les incidents et les alertes d'un autre critère pour la même valeur restent ouverts, et ceux d'un critère qui laisse ces champs vides se résolvent à la main.
+Un rétablissement ne résout que les incidents et les alertes du critère qui le lit : celui dont **Champ qui signale le rétablissement** et **Valeur qui signifie rétabli** correspondent à la charge utile. Les incidents et les alertes d'un autre critère pour la même valeur restent ouverts, et ceux d'un critère qui laisse ces champs vides se résolvent à la main.
 
 **Incidents max par requête** plafonne l'extraction, pas seulement la création. Les clés au-delà du plafond sont aussi invisibles pour le rétablissement : dans une charge utile portant plus de clés différentes que le plafond, une alerte qui signale `resolved` au-delà de celui-ci ne fermera pas son incident.
 
 > [!NOTE]
-> Un moniteur dont un critère regroupe par un champ de la charge utile évalue chaque requête qu'il reçoit, une à la fois et dans l'ordre d'arrivée : une rafale d'alertes et de rétablissements ouvre et résout donc l'incident et l'alerte de chaque valeur. Jusqu'à 1 000 requêtes, ou 16 Mo, attendent d'être évaluées ; au-delà, les plus anciennes en attente sont sautées, et la carte **Résumé du moniteur** indique combien. Un moniteur sans regroupement n'évalue que la plus récente des requêtes qui l'attendent.
+> Un moniteur dont un critère regroupe par un champ de la charge utile évalue chaque requête qu'il reçoit, une à la fois et dans l'ordre d'arrivée : une rafale d'alertes et de rétablissements ouvre et résout donc l'incident et l'alerte de chaque valeur. Jusqu'à 1 000 requêtes, ou 16 Mo, attendent d'être évaluées ; au-delà, les plus anciennes en attente sont sautées, et la carte **Résumé du moniteur** indique combien. Elle indique aussi la limite atteinte, et une installation auto-hébergée peut modifier les deux : voir [Notes pour l'auto-hébergement](#notes-pour-lauto-hébergement). Un moniteur sans regroupement n'évalue que la plus récente des requêtes qui l'attendent.
 
 > [!NOTE]
 > Si **Champ qui signale le rétablissement** contient `[*]` mais pas **Ouvrir un incident distinct pour chaque…**, une requête n'est rétablie que lorsque chaque élément de ce tableau le dit. Avec `requestBody.alerts[*].status` et `resolved`, un incident regroupé par `requestBody.groupLabels.alertname` se résout dès que chaque alerte d'une requête est résolue, et reste ouvert tant qu'une alerte est encore déclenchée.
@@ -421,6 +422,32 @@ La charge utile complète est disponible à côté : un titre d'incident `{{aler
 ### Exemple complet
 
 Pour une configuration Alertmanager complète, voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Pour Grafana, voir [Grafana](/docs/integrations/grafana).
+
+## Publier dans Slack sans appeler personne
+
+Un environnement de préproduction, ou un produit dont les problèmes peuvent attendre, peut vouloir qu'une requête soit publiée dans un canal de discussion sans appeler personne. Une alerte qui ne nomme aucune politique d'astreinte le fait : elle est publiée dans Slack, Microsoft Teams ou Mattermost par les règles d'espace de travail du projet, et ne lance aucune escalade.
+
+:::steps
+1. Ouvrez le critère et, sous **Actions**, activez **Lorsque les filtres correspondent, créer une alerte.** Laissez ses **Politiques d'astreinte** vides.
+2. Écrivez dans l'alerte ce que dit la requête, par exemple `{{requestBody.commonAnnotations.summary}}` dans sa description. Voir [Modèles d'incident et d'alerte](/docs/monitor/incident-alert-templating).
+3. Dans **Alertes → Espace de travail → Slack**, ajoutez une règle pour les alertes de ce moniteur et activez **Publier dans des canaux existants**. Slack doit d'abord être [connecté au projet](/docs/workspace-connections/slack).
+:::
+
+Une alerte qui ne nomme aucune politique d'astreinte peut tout de même appeler quelqu'un par les règles du projet. Vérifiez qu'aucune règle dans **Alertes → Règles → Règles d'astreinte** n'appelle quelqu'un pour ces alertes, et qu'aucune règle dans **Alertes → Règles → Règles d'incident** ne déclare d'incident à partir d'elles.
+
+Pour publier sans créer d'alerte, activez seulement **Lorsque les filtres correspondent, modifier le statut du moniteur.**, et ajoutez plutôt la règle dans **Moniteurs → Espace de travail → Slack**. Le canal apprend alors seulement que le statut du moniteur a changé, sans rien de la requête, et seulement quand il change : d'autres requêtes pendant que le moniteur est déjà dans ce statut ne publient rien.
+
+### N'appeler qu'en dehors des heures de travail
+
+Deux critères avec les mêmes filtres se partagent la semaine, dans cet ordre :
+
+1. Le premier publie pendant les heures de travail. Dans ses **Paramètres**, activez **Évaluer ce critère uniquement certains jours et à certaines heures**, et choisissez les jours, les heures et le **Fuseau horaire**. Son alerte ne nomme aucune politique d'astreinte.
+2. Le second appelle le reste du temps. Il n'a pas d'heures, et son alerte nomme votre politique d'astreinte.
+
+Le premier critère qui correspond à une requête décide de ce qui se passe. En dehors de ses heures, le premier critère est ignoré, donc le second correspond la nuit et le week-end, et c'est seulement alors que quelqu'un est appelé. Voir [Seulement certains jours et à certaines heures](/docs/monitor/criteria-and-statuses#seulement-certains-jours-et-à-certaines-heures).
+
+- Une requête est jugée à son arrivée, selon les heures du moment. Un problème qui commence à 16:55 n'appelle quelqu'un après 17:00 que si l'expéditeur l'envoie de nouveau, comme Alertmanager le fait une fois par `repeat_interval`.
+- Une alerte avec **Résoudre automatiquement l'alerte** activé est résolue quand une requête correspond à un autre critère. La première requête après le début des heures de travail correspond au premier critère : elle résout donc l'alerte de la nuit et en ouvre une qui n'appelle personne. Laissez **Résoudre automatiquement l'alerte** désactivé sur l'alerte du second critère pour qu'elle reste ouverte jusqu'à ce que quelqu'un la résolve.
 
 ## Services qui vérifient d'abord l'URL
 
@@ -521,6 +548,18 @@ Cliquez sur **Confirmer l'abonnement** dans la carte **Résumé du moniteur** de
 :::details L'expéditeur reçoit un 500
 La requête annonce `Content-Type: application/json` mais son corps n'est pas un objet ou un tableau JSON. Envoyez un JSON valide, ou un autre type de contenu.
 :::
+
+## Notes pour l'auto-hébergement
+
+Un moniteur qui regroupe par un champ de la charge utile garde chaque requête dans Valkey jusqu'à son tour. Sur une installation auto-hébergée, trois paramètres le limitent. Avec Docker Compose, définissez-les dans `config.env` ; avec Helm, sous `incomingRequests` dans les valeurs du chart, qui donnent les mêmes aux pods de l'application et des workers :
+
+| Paramètre | Valeur Helm | Par défaut | Plage | Ce qu'il limite |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` à `100000` | Les requêtes qu'un moniteur garde en attente. Au-delà, les plus anciennes en attente sont sautées. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` à `512` | Les mégaoctets de requêtes qu'un moniteur garde en attente. Au-delà, les plus anciennes en attente sont sautées. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` à `1000` | Les requêtes qu'une tâche évalue avant que la tâche du moniteur soit remise en file, derrière chaque tâche déjà en attente. |
+
+Augmentez les deux premiers pour des expéditeurs qui envoient par rafales plus fortes, comme un commutateur de cœur de réseau qui tombe et déclenche des milliers d'alertes d'un coup, et baissez le deuxième pour un petit Valkey. Quand des requêtes sont sautées, la carte **Résumé du moniteur** indique la limite atteinte. Une valeur qui n'est pas un nombre entier dans sa plage n'est pas utilisée : la valeur par défaut l'est, et l'application journalise un avertissement qui nomme le paramètre.
 
 ## Prochaines étapes
 

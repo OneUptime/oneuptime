@@ -516,6 +516,15 @@ describe("the state a record starts in", () => {
     );
   });
 
+  /*
+   * Declare Incident's help says what empty means in the project it is in
+   * (#11137, IncidentDeclaredByHandStartCopy): the same sentence as always,
+   * unless the project starts incidents declared by hand acknowledged. So
+   * it is written once, in the copy, as the help the other three forms
+   * write in their source.
+   */
+  const INCIDENT_INITIAL_STATE_COPY: string = `${DASHBOARD}/Components/Incident/IncidentDeclaredByHandStartCopy.ts`;
+
   test.each(STATE_FIELDS)(
     "$shape.label: the state is optional, folded, and says what empty means",
     ({ shape, key, help }: { shape: FormShape; key: string; help: string }) => {
@@ -525,7 +534,17 @@ describe("the state a record starts in", () => {
       );
 
       expect(field).toContain('title: "Initial State",');
-      expect(field).toContain(`description: "${help}",`);
+
+      if (shape === INCIDENT_CREATE) {
+        expect(field).toContain(
+          "description: getInitialStateDescription( declareDefaults.isDeclaredByHandAcknowledged, ),",
+        );
+        expect(dense(INCIDENT_INITIAL_STATE_COPY)).toContain(
+          `export const INITIAL_STATE_DESCRIPTION: string = translationKey( "${help}", );`,
+        );
+      } else {
+        expect(field).toContain(`description: "${help}",`);
+      }
       expect(field).toContain("required: false,");
       expect(field).toContain("collapsibleSection: advancedSection,");
       // What the review step says when it is left empty.
@@ -763,10 +782,10 @@ describe("the monitors apart, and the status they change to right under them", (
      * unless the project turned that off - and its question says so.
      */
     expect(notify).toContain(
-      "defaultValue: newIncidentNotifyDefault.isTickedByDefault,",
+      "defaultValue: declareDefaults.isNotifyTickedByDefault,",
     );
     expect(notify).toContain(
-      "description: getNotifyBoxDescription( newIncidentNotifyDefault.isTickedByDefault, ),",
+      "description: getNotifyBoxDescription( declareDefaults.isNotifyTickedByDefault, ),",
     );
     // Who is emailed, and a preview, on the review even while it is folded.
     expect(notify).toContain("alwaysInSummary: true,");

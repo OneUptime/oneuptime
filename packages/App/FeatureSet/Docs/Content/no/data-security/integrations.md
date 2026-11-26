@@ -112,9 +112,9 @@ Se [Utløsere for arbeidsflyter](/docs/workflows/triggers) for feltene hver utl�
 
 ## Pull requests
 
-En lekkasje er billigst å rette før den merges. I et repositorium koblet til under **Kode** med produksjonsgjennomganger slått på har gjennomgangen av hver pull request en del **Sensitive data**, lest fra diffen: kode som skriver personopplysninger eller en hemmelighet til telemetri, infrastrukturkode som gjør et datalager offentlig eller slår av krypteringen, sikkerhetskopiene eller loggingen, og migreringer som legger til kolonner for personopplysninger, passord eller kortdata. Hvert punkt nevner datasikkerhetskontrollen endringen ville feilet når den er rullet ut, og dine egne datatyper leses ut fra navnehintene sine, slik skanningene leser dem. Se [Produksjonsgjennomgang av pull requests](/docs/ai/ai-agent#produksjonsgjennomgang-av-pull-requests).
+En lekkasje er billigst å rette før den merges. I et repositorium koblet til under **Kode** med produksjonsgjennomganger slått på har gjennomgangen av hver pull request en del **Sensitive data**, lest fra diffen: kode som skriver personopplysninger eller en hemmelighet til telemetri, i en logg, et span, en måling, meldingen til et unntak eller rapporten til en feilsporer, infrastrukturkode som gjør et datalager offentlig eller slår av krypteringen, sikkerhetskopiene eller loggingen, og migreringer som legger til kolonner for personopplysninger, passord eller kortdata. Hvert punkt nevner datasikkerhetskontrollen endringen ville feilet når den er rullet ut, og dine egne datatyper leses ut fra navnehintene sine, slik skanningene leser dem. Se [Produksjonsgjennomgang av pull requests](/docs/ai/ai-agent#produksjonsgjennomgang-av-pull-requests).
 
-Det Datasikkerhet vet, gjør disse punktene skarpere, i kommentaren til et privat repositorium og, i Kode, for dem som får lese Datasikkerhets funn: hvor tjenestens telemetri inneholdt samme type data de siste 7 dagene, rensingsregelen som maskerer dem ved inntak, og datalageret en ressurs er, med følsomheten. Et datalager merket **Offentlig med vilje** gir ikke noe punkt for å være offentlig. Kommentaren til et offentlig repositorium sier bare det diffen viser.
+Det Datasikkerhet vet, gjør disse punktene skarpere, i kommentaren til et privat repositorium og, i Kode, for dem som får lese Datasikkerhets funn: hvor tjenestens telemetri inneholdt samme type data de siste 7 dagene, rensingsregelen som maskerer dem ved inntak, og datalageret en ressurs er, med følsomheten. For en migrering, bare i et privat repositorium, nevner punktet datalageret tabellen ligger i, hva det datalageret inneholder, om datalageret kan nås utenfra eller ikke er kryptert i hvile, og kolonnene i tabellen der samme type data allerede er funnet. Et datalager merket **Offentlig med vilje** gir ikke noe punkt for å være offentlig. Kommentaren til et offentlig repositorium sier bare det diffen viser.
 
 **Lekkasjer fanget før merge** på **Prosjektinnstillinger → KI → AI-resultater** teller lekkasjene gjennomganger fanget i pull requests, rettet der eller ikke ennå, ved siden av problemene skanningene åpnet for de samme kontrollene etter at koden ble rullet ut.
 
@@ -173,7 +173,7 @@ Alt Datasikkerhet tar vare på, er en post i OneUptime-API-et, som leses med de 
 | Poster | API-sti |
 | --- | --- |
 | Datalagre, tidslinjene deres, funnene deres, hvem som kan nå dem og hver identitet som kan | `/data-store`, `/data-store-feed`, `/data-store-finding`, `/data-store-access`, `/data-security-identity` |
-| Problemer, tidslinjene deres og dataflyter | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-flow` |
+| Problemer, tidslinjene deres, de tilkoblede pull-forespørslene deres og dataflyter | `/data-security-issue`, `/data-security-issue-feed`, `/data-security-issue-pull-request`, `/data-security-flow` |
 | Skanninger | `/data-security-scan` |
 | Egendefinerte datatyper, kontrollinnstillinger, samsvarsinnstillinger og residensregler | `/data-security-custom-data-type`, `/data-security-check-setting`, `/data-security-compliance-setting`, `/data-security-residency-rule` |
 | Prosjektets innstillinger | `/data-security-setting` |

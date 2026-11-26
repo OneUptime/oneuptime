@@ -19,6 +19,9 @@ import {
   ProjectBalanceType,
 } from "Common/Utils/Project/ProjectBalance";
 import {
+  ADD_TO_BALANCE_AMOUNT_DESCRIPTIONS,
+  ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES,
+  ADD_TO_BALANCE_TITLE,
   AUTO_RECHARGE_FAILED_DESCRIPTIONS,
   MARKETPLACE_AUTO_RECHARGE_FAILED_DESCRIPTIONS,
   MARKETPLACE_RECHARGE_BILLED_TEMPLATE,
@@ -26,6 +29,7 @@ import {
   RECHARGE_BALANCE_LOCKED_TEMPLATE,
 } from "./ProjectBalanceCopy";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import { ProjectPaymentMethodsState } from "../../Utils/ProjectPaymentMethods";
 
 /*
  * Whether the signed-in person may add to one of the project's prepaid
@@ -159,6 +163,27 @@ export const getCurrentProjectBillingMarketplace: () => CloudMarketplace | null 
   };
 
 /*
+ * Whether Add to Balance says first that the project has no payment method,
+ * and where to add one, in place of asking for an amount (#11053): only
+ * when that is known - the project's payment methods were counted, and
+ * there are none (Utils/ProjectPaymentMethods) - and no cloud marketplace
+ * bills the project, which has no card and needs none. While the count is
+ * on its way, or with a payment method, the amount is asked for as it
+ * always was.
+ */
+export const isPaymentMethodNeededFirst: (data: {
+  paymentMethods: ProjectPaymentMethodsState;
+  marketplace: CloudMarketplace | null;
+}) => boolean = (data: {
+  paymentMethods: ProjectPaymentMethodsState;
+  marketplace: CloudMarketplace | null;
+}): boolean => {
+  return (
+    !data.marketplace && data.paymentMethods === ProjectPaymentMethodsState.None
+  );
+};
+
+/*
  * The Current Balance card's description for a project a marketplace bills,
  * in the reader's language: the usual words, then where its recharges are
  * billed.
@@ -219,7 +244,37 @@ export const getMarketplaceAutoRechargeFailedDescription: (data: {
   return words.translateText(whoCan) || whoCan;
 };
 
-// Why the Recharge Balance button is locked, in the reader's language.
+/*
+ * What the Add to Balance dialog says under its amount, in the reader's
+ * language (#7475): what the money is for - this project's balance, or its
+ * AI credits - and where it is charged: the project's payment method, or the
+ * cloud marketplace that bills a project with no card. "Between 20 and
+ * 1,000 USD, charged now." said neither.
+ */
+export const getAddToBalanceAmountDescription: (data: {
+  balance: ProjectBalanceType;
+  marketplace: CloudMarketplace | null;
+  translator?: Translator | undefined;
+}) => string = (data: {
+  balance: ProjectBalanceType;
+  marketplace: CloudMarketplace | null;
+  translator?: Translator | undefined;
+}): string => {
+  const words: Translator = data.translator || getGlobalTranslator();
+
+  if (data.marketplace) {
+    return words.translateTemplate(
+      ADD_TO_BALANCE_AMOUNT_MARKETPLACE_TEMPLATES[data.balance],
+      { marketplace: CloudMarketplaceUtil.getDisplayName(data.marketplace) },
+    );
+  }
+
+  const description: string = ADD_TO_BALANCE_AMOUNT_DESCRIPTIONS[data.balance];
+
+  return words.translateText(description) || description;
+};
+
+// Why the Add to Balance button is locked, in the reader's language.
 export const getRechargeBalanceLockedReason: (
   translator?: Translator | undefined,
 ) => string = (translator?: Translator | undefined): string => {
@@ -237,10 +292,11 @@ export const getRechargeBalanceLockedReason: (
 };
 
 /*
- * The Current Balance card's Recharge Balance button: working for someone
- * who may recharge, locked with the reason for someone known not to, and
- * not there while that is unknown - the rule CardModelDetail applies to its
- * own Edit button.
+ * The Current Balance card's Add to Balance button: working for someone
+ * who may add to the balance, locked with the reason for someone known not
+ * to, and not there while that is unknown - the rule CardModelDetail applies
+ * to its own Edit button. It says what the dialog it opens and that
+ * dialog's own button say (#7475).
  */
 export const getRechargeBalanceButtons: (data: {
   access: ProjectBalanceAccess;
@@ -258,7 +314,7 @@ export const getRechargeBalanceButtons: (data: {
   if (data.access === ProjectBalanceAccess.No) {
     return [
       {
-        title: "Recharge Balance",
+        title: ADD_TO_BALANCE_TITLE,
         icon: IconProp.Add,
         buttonStyle: ButtonStyleType.NORMAL,
         disabled: true,
@@ -272,7 +328,7 @@ export const getRechargeBalanceButtons: (data: {
 
   return [
     {
-      title: "Recharge Balance",
+      title: ADD_TO_BALANCE_TITLE,
       icon: IconProp.Add,
       onClick: data.onRecharge,
     },

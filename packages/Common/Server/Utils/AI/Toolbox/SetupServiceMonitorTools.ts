@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../../Types/Database/RequiredUniqueNames";
 import AlertSeverity from "../../../../Models/DatabaseModels/AlertSeverity";
 import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
@@ -593,10 +594,16 @@ export const SetUpServiceMonitorTool: ObservabilityTool = {
 
     item.monitor.projectId = ctx.projectId;
 
-    // Created as the person: their permissions, the plan's limits.
+    /*
+     * Created as the person: their permissions, the plan's limits. Its name
+     * is the recommendation's: numbered, not refused, if it is taken.
+     */
     const created: Monitor = await MonitorService.create({
       data: item.monitor,
-      miscDataProps: item.miscDataProps,
+      miscDataProps: {
+        ...(item.miscDataProps || {}),
+        ...getNumbersTakenNameData(),
+      },
       props: ctx.props,
     });
 

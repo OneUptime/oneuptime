@@ -11,11 +11,11 @@
  * suite steps marked `if: matrix.shard == N` for it.
  *
  * What would quietly undo that: a suite step with no shard (it would run in
- * every shard, three times the time), one naming a shard the matrix does not
- * have (it would run nowhere), a set-up step given a shard (the other shards
- * would test an empty database), or a suite separated from the install it
- * needs (App's and ee's installs, and the PostgreSQL client tools, are run
- * only by the shard whose suites need them).
+ * every shard, its time spent once in each), one naming a shard the matrix
+ * does not have (it would run nowhere), a set-up step given a shard (the
+ * other shards would test an empty database), or a suite separated from the
+ * install it needs (App's and ee's installs, and the PostgreSQL client
+ * tools, are run only by the shard whose suites need them).
  */
 
 const fs = require("fs");

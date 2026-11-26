@@ -111,7 +111,7 @@ Pour le deuxième, activez **Se rétablir uniquement quand une condition propre 
 
 ### Comparer une vérification à la précédente
 
-**Vérification précédente** compare chaque vérification à la vérification précédente de la même sonde, et du même disque pour l'occupation d'un disque. **Pour les dernières** indique l'ancienneté maximale de cette vérification : choisissez donc une durée plus longue que l'intervalle de surveillance. Il est proposé pour les mêmes filtres que **Comptage**.
+**Vérification précédente** compare chaque vérification à la vérification précédente de la même sonde, et du même disque pour l'occupation d'un disque. **Pour les dernières** indique l'ancienneté maximale de cette vérification : choisissez donc une durée plus longue que l'intervalle de surveillance. Il est proposé pour les mêmes filtres que **Comptage**. Il est aussi proposé pour **Valeur de l'enregistrement DNS**, où il compare la réponse DNS entière à celle de la vérification précédente, avec **Différent de** ou **Égal à** : voir [Quand la réponse DNS change](/docs/monitor/dns-monitor#quand-la-réponse-dns-change).
 
 Une valeur mesurée, comme un temps de réponse, correspond quand elle dépasse la vérification précédente de plus que l'écart réglé sous **Écart par rapport à la vérification précédente**, avec **Supérieur à**, ou lui est inférieure de plus que cet écart, avec **Inférieur à**. L'écart est une **Valeur dans l'unité de la vérification**, comme 200 ms, ou un **Pourcentage de la vérification précédente**, comme 50 %, et 0 correspond à toute hausse ou baisse. **Égal à** et **Différent de** comparent à la valeur précédente elle-même.
 
@@ -218,6 +218,8 @@ Les secrets et les données personnelles sont masqués avant que quoi que ce soi
 ## Combien de temps prend chaque vérification
 
 Le résumé d'évaluation de chaque vérification, sous **Voir le résumé** dans les **Journaux de surveillance** du moniteur et pour la dernière vérification sur sa **Vue d'ensemble**, indique quand la vérification a été évaluée, combien de temps son évaluation a pris et, pour un moniteur qui juge chaque hôte, conteneur ou groupe séparément, combien de séries elle a évaluées. Ce temps court du moment où OneUptime a commencé à lire les données que la vérification juge jusqu'à l'écriture de son journal : la lecture des données, l'évaluation des critères et l'ouverture des incidents et des alertes.
+
+Dans les **Journaux de surveillance**, la colonne **Durée de la vérification** indique le temps pris par chaque vérification et signale les vérifications lentes. Un tiret indique que la durée n'a pas été enregistrée.
 
 Quand une évaluation prend trop de temps pour son moniteur, son résumé vous avertit. Trop long, c'est plus d'un dixième du temps entre deux vérifications du moniteur, jamais moins de 5 secondes et jamais plus d'une minute :
 

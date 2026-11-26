@@ -65,7 +65,7 @@ Er worden met het project drie statussen aangemaakt, in deze volgorde. Het aanma
 
 | Vlag                  | Doel                                                                                                                                                                                                 |
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isCreatedState`      | De status die een incident krijgt als niemand er een koos. Draagt geen enkele status in het project deze vlag, dan mislukt het aanmaken van een incident met een fout die je vraagt vanuit de instellingen een aanmaakstatus voor incidenten toe te voegen. |
+| `isCreatedState`      | De status die een incident krijgt als niemand er een koos — tenzij het project met de hand gemelde incidenten al bevestigd laat beginnen en zo'n incident geen bereikbaarheidsbeleid oproept: zie [Met de hand gemelde incidenten](#met-de-hand-gemelde-incidenten). Draagt geen enkele status in het project deze vlag, dan mislukt het aanmaken van een incident met een fout die je vraagt vanuit de instellingen een aanmaakstatus voor incidenten toe te voegen. |
 | `isAcknowledgedState` | Markeert de bevestigde status van het project: de status waarnaar **Bevestigen** een incident verplaatst en waarnaar de statistiektegel voor bevestiging is genoemd. Een incident in die status, in een latere status, of opgelost, is bevestigd — **Bevestigen** wordt er niet meer voor aangeboden, de bereikbaarheidsdienst stopt met oproepen ervoor, en zijn SLA wordt als beantwoord gemarkeerd. |
 | `isResolvedState`     | Markeert de opgeloste status van het project: de status waarnaar **Oplossen** een incident verplaatst en die de statistiektegel voor oplossing toont. Een incident in die status, of in een latere status, is opgelost — het verdwijnt uit **Actieve incidenten** en uit het actieve deel van een statuspagina, en zijn SLA wordt als opgelost gemarkeerd. |
 
@@ -75,6 +75,28 @@ Per project hoort maar één status elke vlag te dragen — de opzoekingen pakke
 - **Ze kunnen niet worden verwijderd.** Hun **Verwijderen** blijft in het menu van de rij staan, vergrendeld, met de reden. Een bulkverwijdering slaat ze over en noemt ze als niet verwijderd. Ook de API weigert de laatste aanmaak-, bevestigde of opgeloste status van een project te verwijderen.
 
 Omdat de interface statusnamen dynamisch leest, verandert het hernoemen van een status wat je overal ziet — de statistiektegels (**Bevestigd na** en **Opgelost na** met de vooraf aangemaakte namen), de bevestiging **Incident markeren als …** van een eigen status en het label in de incidentenlijst volgen allemaal de naam die je de rij gaf.
+
+## Met de hand gemelde incidenten
+
+Elk nieuw incident begint in je aanmaakstatus en wacht daar tot het wordt bevestigd. Meld je er zelf een, dan ben jij meestal degene die reageert: je wordt de Incident Commander ervan zodra je het meldt, en bevestigen kost je dan nog maar één klik. Een project kan die incidenten in plaats daarvan al bevestigd laten beginnen.
+
+:::steps
+1. Open **Incidenten → Instellingen → Status incident** (`/dashboard/{projectId}/incidents/settings/state`).
+2. Zet onder de lijst met statussen **Start incidents declared by hand acknowledged** aan. Hij wordt opgeslagen zodra je hem omzet.
+:::
+
+Hij staat in elk project uit tot je hem aanzet, dus een upgrade verandert nooit wie er wordt opgeroepen. Alleen Projecteigenaars en Projectbeheerders kunnen hem wijzigen; voor alle anderen is de schakelaar vergrendeld en zegt hij welke machtiging hij nodig heeft.
+
+Zolang hij aanstaat, begint een met de hand gemeld incident — met **Incident melden**, waar je het ook opent, of met het incidentformulier in Slack of Microsoft Teams — in je bevestigde status als aan allebei deze voorwaarden is voldaan:
+
+- **Er is geen status voor gekozen**, niet door jou en niet door het sjabloon waaruit het wordt gemeld. Een gekozen status wint, zoals altijd.
+- **Het roept geen bereikbaarheidsbeleid op**, niet een dat jij kiest en niet een van zijn sjabloon. Kies je een beleid, dan begint het incident in je aanmaakstatus, zoals voorheen, zodat het beleid zijn mensen oproept.
+
+Omdat het bevestigd begint, roept het niemand op: zoals bij elk incident dat [al bevestigd wordt gemeld](/docs/incidents/declaring-incidents#al-bevestigd-of-opgelost-gemeld), wordt er geen bereikbaarheidsbeleid uitgevoerd, zelfs geen beleid dat een bereikbaarheidsregel toevoegt. Zijn SLA begint al als beantwoord, en zijn tijd tot bevestiging is nul, wat meetelt in je MTTA.
+
+**Incident melden** zegt dat al voordat je meldt: onder **Initiële status**, onder **Bereikbaarheidsbeleid** zolang er geen is gekozen, en in de samenvatting, die dan altijd **Initiële status** noemt. Het vult **Initiële status** nooit voor je in: een status die daar is gekozen, wint, dus het bereikbaarheidsbeleid dat je in de laatste stap kiest, zou dan niemand oproepen. Slack en Microsoft Teams zeggen het onder hun bereikbaarheidsbeleid en in het bericht dat het incident bevestigt.
+
+Incidenten die niemand met de hand meldt — geopend door monitoren of incidentregels van waarschuwingen, via de API, Terraform, workflows of formulieren, vanuit een beveiligingszaak of door OneUptime AI — beginnen in je aanmaakstatus, zoals voorheen. Via de API is de schakelaar het veld `startIncidentsDeclaredByHandAcknowledged` van het project.
 
 ## Eigen statussen toevoegen
 

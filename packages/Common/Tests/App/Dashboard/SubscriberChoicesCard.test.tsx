@@ -381,7 +381,7 @@ describe("the card", () => {
   test("a refused save moves the switch back, and says why under it", async () => {
     updateByIdMock.mockImplementation(async (): Promise<unknown> => {
       throw new Error(
-        "Please upgrade your plan to Scale to access this feature",
+        "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       );
     });
 
@@ -395,7 +395,7 @@ describe("the card", () => {
     await waitFor(() => {
       expect(
         within(rowFor("allowSubscribersToChooseResources")).getByText(
-          "Please upgrade your plan to Scale to access this feature",
+          "This feature needs the Scale plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
         ),
       ).toBeInTheDocument();
     });

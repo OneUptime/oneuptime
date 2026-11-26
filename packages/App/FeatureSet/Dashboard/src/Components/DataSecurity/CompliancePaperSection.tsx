@@ -71,8 +71,12 @@ export interface CompliancePaperSectionProps {
   emptyElement: ReactElement;
   canEdit: boolean;
   onSave: (words: string) => Promise<void>;
-  // Whether a person is mid-edit here, for the page to ask before it is left.
-  onEditingChange?: ((isEditing: boolean) => void) | undefined;
+  /*
+   * Whether a person is mid-edit here, with the words not saved yet: for
+   * the page to ask before it is left, and to save them with onSave if the
+   * reader says so (usePendingEdits).
+   */
+  onEditingChange?: ((isEditing: boolean, words: string) => void) | undefined;
   /*
    * Folded until opened (#10377): a breach notice is read when a person
    * opens it, so a page of three of them stays short. Its heading, byline
@@ -107,7 +111,7 @@ export const CompliancePaperSection: FunctionComponent<
   const isBodyShown: boolean = isOpen || isEditing;
 
   useEffect(() => {
-    props.onEditingChange?.(isEditing && words !== props.words);
+    props.onEditingChange?.(isEditing && words !== props.words, words);
   }, [isEditing, words]);
 
   const save: () => Promise<void> = async (): Promise<void> => {

@@ -177,11 +177,12 @@ resource "oneuptime_monitor" "website" {
 | `screen_size_types` | list(string) | Synthetic | `Mobile`, `Tablet`, `Desktop`. |
 | `browser_types` | list(string) | Synthetic | `Chromium`과 `Firefox`. |
 | `retry_count_on_error` | number | Synthetic | 스크립트가 실패할 때의 재시도 횟수. `0`이면 한 번만 실행합니다. |
+| `do_not_sync_fields` | list(string) | 모니터 템플릿 | 템플릿이 단계를 동기화할 때 템플릿으로 만든 각 모니터가 자기 값으로 유지하는 필드입니다. 예를 들어 `monitorDestination`이나 `dnsMonitor.queryName`처럼 템플릿의 **템플릿 동기화 설정** 카드에 나열된 것들입니다. |
 | `criteria` | list (필수) | 모두 | 각 결과를 판정하는 방식: [기준 속성](#기준-속성) 참조. |
 
 ### 모니터 유형별 설정
 
-주소 말고도 설정할 것이 있는 모니터 유형은 그 설정(로그 쿼리, 데이터베이스 연결, 감시할 클러스터 등)을 자체 속성에 `jsonencode()`로 쓴 원시 JSON으로 둡니다: `log_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`, `probe_status_monitor`.
+주소 말고도 설정할 것이 있는 모니터 유형은 그 설정(로그 쿼리, 데이터베이스 연결, 감시할 클러스터 등)을 자체 속성에 `jsonencode()`로 쓴 원시 JSON으로 둡니다: `log_monitor`, `security_events_monitor`, `trace_monitor`, `llm_monitor`, `metric_monitor`, `exception_monitor`, `profile_monitor`, `dns_monitor`, `domain_monitor`, `dnssec_monitor`, `sql_monitor`, `database_monitor`, `external_status_page_monitor`, `network_device_monitor`, `kubernetes_monitor`, `docker_monitor`, `docker_swarm_monitor`, `host_monitor`, `podman_monitor`, `proxmox_monitor`, `openstack_monitor`, `vmware_monitor`, `ceph_monitor`, `storage_array_monitor`, `iot_monitor`, `probe_status_monitor`.
 
 그 JSON은 대시보드의 것과 같으며 키는 camelCase입니다. 그 안의 ID는 API가 쓰는 대로 `{ _type = "ObjectID", value = "..." }`로 씁니다. 서비스 하나의 오류를 세는 Logs 모니터의 예입니다.
 
@@ -254,7 +255,7 @@ resource "oneuptime_monitor" "checkout_errors" {
 
 ### 인시던트와 경고
 
-`incidents`의 항목은 `title`과 `description`(둘 다 필수), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `show_incident_on_status_page`, `is_private`를 받습니다. `alerts`의 항목도 같은 것을 받지만, `alert_severity_id`와 `auto_resolve_alert`가 있고 `show_incident_on_status_page`는 없습니다.
+`incidents`의 항목은 `title`과 `description`(둘 다 필수), `incident_severity_id`, `auto_resolve_incident`, `remediation_notes`, `on_call_policy_ids`, `label_ids`, `owner_team_ids`, `owner_user_ids`, `incident_member_roles`, `show_incident_on_status_page`, `is_private`를 받습니다. `alerts`의 항목도 같은 것을 받지만, `alert_severity_id`와 `auto_resolve_alert`가 있고 `show_incident_on_status_page`와 `incident_member_roles`는 없습니다. `incident_member_roles`는 기준이 여는 각 인시던트에서 사람에게 역할을 줍니다. 예를 들어 인시던트 지휘관입니다. 사람과 역할마다 `{ role_id, user_id }`를 하나씩 씁니다.
 
 이 기준은 모니터를 offline으로 표시하고, 온콜 정책을 호출하는 인시던트를 열며, 사이트가 돌아오면 그 인시던트를 해결합니다.
 
@@ -479,6 +480,14 @@ monitor_steps = [{
 ## 단계가 없는 모니터
 
 `monitor_steps`는 선택 사항이지만, 이것 없이 만든 모니터에는 결과를 판정할 기준이 없습니다. 프로브는 단계가 없는 모니터를 건너뛰고, 모니터는 시작한 상태 그대로 남습니다. state에는 이 속성이 비어 있고 계획도 깨끗하게 유지됩니다. 수동 모니터에는 단계가 필요 없습니다. 상태를 직접 설정하기 때문입니다. 다른 모든 유형은 무언가를 확인하려면 단계가 최소 하나 필요합니다.
+
+## apply가 유지하는 것
+
+`monitor_steps`를 바꾸는 apply는 단계 전체를 보내고, OneUptime은 보관하던 단계를 그것으로 바꿉니다. 구성이 쓸 수 있는데 빠뜨린 설정은 plan이 보여 주는 대로 제거됩니다. 대신 두 종류의 설정은 어떤 plan도 보여 줄 수 없으므로 OneUptime이 보관한 그대로 유지됩니다. apply는 먼저 OneUptime이 보관하는 단계를 읽고, 읽지 못하면 아무것도 쓰지 않고 실패합니다.
+
+프로바이더에 속성이 없는 설정, 예를 들어 폐지된 SNMP 모니터 유형의 단계가 아직 보관하는 `snmpMonitor`나, 새 OneUptime에는 있지만 사용 중인 프로바이더 버전이 아직 모르는 설정은 자신의 단계, 기준, 인시던트 또는 경고에 남습니다. 각 설정은 OneUptime이 ID를 유지하려고 짝짓는 방식 그대로 짝지어집니다. 단계는 위치로, 기준은 이름으로, 인시던트나 경고는 제목으로 짝짓고, 그렇지 않으면 위치로 짝짓습니다. 구성에서 그 단계, 기준, 인시던트 또는 경고를 빼면 설정도 함께 사라집니다.
+
+`jsonencode()`로 쓰는 설정, 예를 들어 `dns_monitor`, `incident_grouping` 또는 필터의 `metric_monitor_options`는 쓴 내용으로 비교됩니다. OneUptime은 그 안에 더 많은 것을 보관할 수 있습니다. OneUptime 자체의 기본값이나 대시보드에서 설정한 키입니다. 이는 변경이 아니며 apply도 그것을 유지합니다. `jsonencode()`에서 뺀 키는 제거됩니다. 목록 안에서는, 목록의 항목 수가 OneUptime의 목록과 같은 동안 OneUptime이 더 보관하는 것이 항목별로 유지됩니다.
 
 ## 전송 형식
 

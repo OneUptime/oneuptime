@@ -2,16 +2,27 @@ import ProjectReferencesService from "./ProjectReferencesService";
 import RunbookLabelRuleEngineService from "./RunbookLabelRuleEngineService";
 import RunbookOwnerRuleEngineService from "./RunbookOwnerRuleEngineService";
 import Model from "../../Models/DatabaseModels/Runbook";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import HeldPermissionsUtil from "../../Types/HeldPermissions";
 import ObjectID from "../../Types/ObjectID";
+import Permission, { PermissionHelper } from "../../Types/Permission";
+import {
+  getStepsThatRunRefusal,
+  holdsStepThatRuns,
+} from "../../Types/Runbook/RunbookStepAuthoring";
 import RunbookStepType from "../../Types/Runbook/RunbookStepType";
 import { parseSingleRunbookVariableReference } from "../../Types/Runbook/RunbookVariableReference";
+import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import TablePermission from "../Types/Database/Permissions/TablePermission";
 import UpdateBy from "../Types/Database/UpdateBy";
 import { normalizeReferenceId } from "../Utils/Database/ProjectScopedReferenceRefusal";
+import ServerSetColumns from "../Utils/Database/ServerSetColumns";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
 import BadDataException from "../../Types/Exception/BadDataException";
+import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PartialEntity from "../../Types/Database/PartialEntity";
 import RunbookScheduler from "../Utils/Runbook/RunbookScheduler";
 import RunbookTriggerAccess from "../Utils/Runbook/RunbookTriggerAccess";
@@ -228,10 +239,88 @@ export class Service extends ProjectReferencesService<Model> {
     return null;
   }
 
+  /*
+   * Whether the caller may change a runbook's steps: Runbook.steps' update
+   * list, read as the column check reads it on an update (its blocks, and
+   * the operational-resource wildcard Edit All Operational Resources, which
+   * the column takes as its table does). Labels are the record's business:
+   * a create is held to the ones its create permission reaches
+   * (CreateScopePermission), and so is the runbook it makes.
+   */
+  public static mayChangeSteps(props: DatabaseCommonInteractionProps): boolean {
+    const model: Model = new Model();
+
+    return HeldPermissionsUtil.holdsColumnPermission(
+      TablePermission.getHeldPermissions(props),
+      {
+        isOperationalResource: model.isOperationalResource,
+        operation: DatabaseRequestType.Update,
+        tablePermissions: model.getUpdatePermissions(),
+        columnPermissions: Service.getStepsWriters(),
+      },
+    );
+  }
+
+  // Runbook.steps' update list: who may change what a runbook runs.
+  public static getStepsWriters(): Array<Permission> {
+    return new Model().getColumnAccessControlFor("steps")?.update || [];
+  }
+
+  /*
+   * A NEW RUNBOOK'S STEPS THAT RUN ARE WRITTEN BY THOSE WHO MAY CHANGE ITS
+   * STEPS (Types/Runbook/RunbookStepAuthoring, GHSA-rfrx-38rq-44w6).
+   *
+   * Runbook.steps' create list is the table's, Project Member and Create
+   * Runbook among it, so that whoever may create a runbook may give it a
+   * name and manual steps. A step that runs - JavaScript, HTTP request,
+   * Bash, SSH, kubectl or AI - acts for the project on its Runners or from
+   * OneUptime, with the secrets it names, so a create that writes one is
+   * refused unless the caller may change a runbook's steps (mayChangeSteps),
+   * as an update that writes one is by the column's own update list.
+   * Nothing is looked up first, so the refusal says the same whatever the
+   * steps name.
+   *
+   * Steps OneUptime's own code wrote for the person (ServerSetColumns) - a
+   * verified fix saved as a runbook (VerifiedFixRunbookSave) - are let
+   * through while the runbook is created turned off: the person wrote none
+   * of them, and nobody runs them until someone who may change the runbook
+   * reviews it and turns it on. OneUptime itself and a master admin are not
+   * asked, as no column check asks them.
+   */
+  public static assertMayWriteStepsThatRun(
+    data: Model,
+    props: DatabaseCommonInteractionProps,
+  ): void {
+    if (props.isRoot || props.isMasterAdmin) {
+      return;
+    }
+
+    if (!holdsStepThatRuns(data.steps)) {
+      return;
+    }
+
+    if (ServerSetColumns.isMarked(data, "steps") && data.isEnabled === false) {
+      return;
+    }
+
+    if (Service.mayChangeSteps(props)) {
+      return;
+    }
+
+    throw new NotAuthorizedException(
+      getStepsThatRunRefusal(
+        PermissionHelper.getPermissionTitles(Service.getStepsWriters()),
+      ),
+    );
+  }
+
   // Before the project check (the base hooks run this first). See the top of this file.
   protected override async checkCreateBeforeReferences(
     createBy: CreateBy<Model>,
   ): Promise<void> {
+    // Who may write a step that runs, before anything about the steps is read.
+    Service.assertMayWriteStepsThatRun(createBy.data, createBy.props);
+
     const secretRefusal: string | null = Service.getStepSecretFieldRefusal(
       createBy.data.steps,
     );

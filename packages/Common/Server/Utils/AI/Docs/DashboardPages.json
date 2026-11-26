@@ -162,13 +162,35 @@
       "project name",
       "rename project",
       "project id",
-      "data residency"
+      "data residency",
+      "duplicate names",
+      "same name"
     ],
     "path": "/dashboard/:projectId/settings/",
     "kind": "page"
   },
   {
     "title": "Project Details",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Project"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "setting"
+  },
+  {
+    "title": "Unique Names",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Project"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "setting"
+  },
+  {
+    "title": "Require Unique Names",
     "where": [
       "Project Settings",
       "Basic",
@@ -4751,6 +4773,16 @@
     "kind": "page"
   },
   {
+    "title": "Hourly Limit",
+    "where": [
+      "Security Events",
+      "Playbooks",
+      "Automatic Response"
+    ],
+    "path": "/dashboard/:projectId/security-events/automatic-response#hourly-limit",
+    "kind": "setting"
+  },
+  {
     "title": "Blocklist",
     "where": [
       "Security Events",
@@ -5032,6 +5064,23 @@
     "kind": "page"
   },
   {
+    "title": "Erasure Requests",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "erase person",
+      "right to erasure",
+      "gdpr",
+      "forget user",
+      "user vault",
+      "data subject request"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/erasure-requests",
+    "kind": "page"
+  },
+  {
     "title": "Overview",
     "where": [
       "Data Security"
@@ -5172,6 +5221,33 @@
     "kind": "page"
   },
   {
+    "title": "Review Drafts",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "record of processing",
+      "legal basis",
+      "retention",
+      "ropa"
+    ],
+    "path": "/dashboard/:projectId/data-security/compliance/review-drafts",
+    "kind": "page"
+  },
+  {
+    "title": "Audit Evidence",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "auditor",
+      "soc 2 evidence",
+      "gdpr evidence"
+    ],
+    "path": "/dashboard/:projectId/data-security/compliance/audit-evidence",
+    "kind": "page"
+  },
+  {
     "title": "Data Types",
     "where": [
       "Data Security",
@@ -5222,7 +5298,8 @@
     "keywords": [
       "scan schedule",
       "scanning",
-      "sampling"
+      "sampling",
+      "names and street addresses"
     ],
     "path": "/dashboard/:projectId/data-security/settings/scanning",
     "kind": "page"
@@ -5731,11 +5808,12 @@
     "kind": "page"
   },
   {
-    "title": "Topology Map",
+    "title": "Topology",
     "where": [
       "Inventory"
     ],
     "keywords": [
+      "topology map",
       "dependency map",
       "service map"
     ],

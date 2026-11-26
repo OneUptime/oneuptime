@@ -27,7 +27,7 @@
 :::steps
 ### 開啟提供者清單
 
-以主管理員身分登入，然後透過使用者選單中的 **管理員設定** 開啟 Admin Dashboard。接著前往 **設定** > **單一登入**。該頁面先列出執行個體的 SAML 提供者，接著是 OpenID Connect 提供者，最後是 **要求使用 SSO** 卡片。
+以主管理員身分登入，然後在使用者選單中選擇 **管理員儀表板**。接著前往 **設定** > **單一登入**。該頁面先列出執行個體的 SAML 提供者，接著是 OpenID Connect 提供者，最後是 **要求使用 SSO** 卡片。
 
 ### 建立提供者
 
@@ -90,6 +90,12 @@ flowchart TB
 | **此登入在哪裡算作 SSO** | **每個專案**：要求 SSO 的專案接受透過此提供者的登入。**僅限附加的專案**：使用此提供者登入只會在附加到它的專案中滿足 SSO 要求，因此已經登入的人可能會失去對其他專案的存取權限。 |
 
 選擇 **每個專案** 時，使用此提供者登入會在此人所屬的每個專案中滿足 SSO 要求，附加專案只決定新來的人被加入到哪裡。
+
+## 身分提供者未驗證的電子郵件地址
+
+全域 OpenID Connect 提供者與專案的提供者一樣，依它傳送的電子郵件地址找到要登入的帳戶，主管理員的帳戶也以同樣的方式找到。因此，對於提供者表示未驗證的地址，也就是 `email_verified` 宣告為 `false` 或既不是 true 也不是 false 的值，它不會讓任何人登入。否則，有人可以在提供者處自己的帳戶上填入主管理員的地址，以其身分登入整個執行個體。把 `email_verified` 傳送為 `true` 或不傳送它的提供者，例如 Microsoft Entra ID，會像以前一樣讓人登入。
+
+透過 authentik 2025.10 及更新版本，在您修改其 `email` 範圍對應之前沒有人能登入；透過 Keycloak，地址未經驗證的人無法登入。要在那裡修改什麼、哪些仍可登入以及此人會看到什麼，請見 [SSO](/docs/identity/sso#身分提供者未驗證的電子郵件地址) 頁面。有密碼的主管理員在此期間可以用密碼登入；當整個執行個體要求使用 SSO 時，請在 `/accounts/admin-login` 登入。
 
 ## 同時登出身分提供者
 
@@ -183,6 +189,10 @@ Okta、Microsoft Entra ID、Auth0 與 Keycloak 中這些設定的位置，請見
 您的身分提供者的每個回應只能登入一次，而且只在簽發後幾分鐘內有效：之後會以 "SAML response has expired" 被拒絕。請重新登入。如果回應不斷過期，請檢查本伺服器和您的身分提供者的時鐘。
 :::
 
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect 提供者把 `email_verified` 傳送為 `false`，或既不是 true 也不是 false 的值，因此 OneUptime 沒有讓任何人登入，主管理員也不例外。請在您的身分提供者處驗證該地址，或在那裡將其標示為已驗證，然後重新登入。請參閱 [身分提供者未驗證的電子郵件地址](#身分提供者未驗證的電子郵件地址)。
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 整個執行個體要求使用 SSO，而這是一次使用密碼、密碼金鑰、電子郵件連結、Google 或 Microsoft 的登入，或是一次註冊。請改用登入頁面上的某個 SSO 按鈕登入。主管理員在 `/accounts/admin-login` 用密碼登入；若要讓所有人重新可以用密碼登入，請在 **單一登入** 上關閉 **登入時要求使用 SSO**。
 :::
@@ -193,4 +203,5 @@ Okta、Microsoft Entra ID、Auth0 與 Keycloak 中這些設定的位置，請見
 - [SSO](/docs/identity/sso): 設定專案自己的 SAML 或 OIDC 提供者。
 - [SCIM](/docs/identity/scim): 讓身分提供者自動新增和移除人員。
 - [使用者、團隊與權限](/docs/permissions/index): 新來的人加入的團隊允許他們做什麼。
+- [說明與支援](/docs/self-hosted/help-and-support): 告訴需要邀請的人該向誰申請。
 :::

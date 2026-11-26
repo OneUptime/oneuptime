@@ -92,6 +92,12 @@ export interface PackageManifest {
   dependencies: Record<string, string>;
 }
 
+// A module the package holds as its browser twin, in its directory (PUBLISHED_AS_BROWSER_TWIN).
+export interface PublishedAsBrowserTwin {
+  twin: string;
+  reason: string;
+}
+
 export interface BuildOptions {
   sourceRoot?: string;
   // Where to build (default: <sourceRoot>/build/npm). The build deletes it first, so it refuses one not its own.
@@ -100,6 +106,8 @@ export interface BuildOptions {
   leftOut?: Record<string, string>;
   // The other modules the build must find left out (default: PINNED_LEFT_OUT).
   pinnedLeftOut?: Record<string, string>;
+  // The modules to publish as their browser twin (default: PUBLISHED_AS_BROWSER_TWIN).
+  publishedAsBrowserTwin?: Record<string, PublishedAsBrowserTwin>;
   rootExports?: ReadonlyArray<RootExport>;
   licenseFile?: string;
   readmeFile?: string;
@@ -112,6 +120,7 @@ export interface BuildReport {
   manifest: PackageManifest;
   compiled: { rootFiles: number; programFiles: number };
   published: Array<string>;
+  publishedAsBrowserTwin: Array<string>;
   leftOut: Array<LeftOutModule>;
   typeOnlyDeclarations: Array<string>;
   prunedDeclarations: Array<string>;
@@ -126,6 +135,9 @@ export const PUBLIC_DIRECTORIES: ReadonlyArray<string>;
 export const PUBLIC_FILES: ReadonlyArray<string>;
 export const LEFT_OUT: Readonly<Record<string, string>>;
 export const PINNED_LEFT_OUT: Readonly<Record<string, string>>;
+export const PUBLISHED_AS_BROWSER_TWIN: Readonly<
+  Record<string, PublishedAsBrowserTwin>
+>;
 export const ROOT_EXPORTS: ReadonlyArray<RootExport>;
 export const NODE_ENGINE: string;
 
@@ -198,6 +210,10 @@ export function packageManifest(parts: {
   files: Array<string>;
 }): PackageManifest;
 export function compileRoots(sourceRoot: string): Array<string>;
+export function writeBrowserTwins(input: {
+  compiledDirectory: string;
+  twins: Record<string, PublishedAsBrowserTwin>;
+}): Array<string>;
 export function selectModules(input: {
   candidates: Array<string>;
   requiresOf: (id: string) => ModuleReferences;

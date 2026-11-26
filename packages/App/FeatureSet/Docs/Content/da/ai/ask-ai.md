@@ -39,7 +39,7 @@ Et svar på "hvordan gør jeg" slutter med en knap, der åbner den side i dit pr
 | Enhver side | Klik på **Spørg AI** i topbjælken, eller tryk `Ctrl` + `I` (`Cmd` + `I` på en Mac). Mens du skriver i et tekstfelt eller en editor, forbliver tasterne editorens genvej til kursiv. |
 | Kommandopaletten | Tryk `Ctrl` + `K` (`Cmd` + `K` på en Mac), og vælg **Spørg AI**. |
 | Et fejlmønster i logs eller et diagrams fund | Klik på **Forklar med AI**: Spørg AI åbner med beviserne som et spørgsmål, du kan redigere, før du sender det. |
-| Produktmenuen | Åbn **Produkter → AI → Chat**. Spørg AI åbner ved siden af den side, du var på. Hver samtale har sin egen adresse, så du kan bogmærke den og vende tilbage til den. |
+| Produktmenuen | Åbn **Produkter → AI → Spørg AI**. Spørg AI åbner ved siden af den side, du var på. Hver samtale har sin egen adresse, så du kan bogmærke den og vende tilbage til den. |
 
 Spørg AI åbner i siden af vinduet, og siden gør plads til den: intet er skjult bag den, så du kan arbejde videre på siden, gå til andre sider og spørge igen. Træk i kanten for at gøre den bredere eller smallere. Tryk på `Esc` i den, eller klik på **Spørg AI** igen, for at give siden hele vinduet tilbage. Mens den er åben, går `Ctrl` + `I` (`Cmd` + `I` på en Mac) fra siden til feltet, du skriver i, og lukker den derfra. Samtalen bliver, hvor du forlod den: åbn Spørg AI igen for at fortsætte. Lukker du den, mens den stadig svarer, siger en påmindelse i hjørnet, hvornår svaret er klar, og åbner det. På en tablet eller en telefon, hvor der ikke er plads til begge, åbner den over siden, og på en telefon fylder den hele skærmen.
 
@@ -75,6 +75,14 @@ På en underside registrerer konteksten også den pod, container, VM, proces ell
 - Den kører kun de skrivebeskyttede kommandoer, som en AI-undersøgelse må køre på den slags ressource (se [AI-agenter til infrastruktur](/docs/ai/infrastructure-ai-agents)), så mange som svaret kræver, kontrolleret af OneUptime og igen af agenten, i alle tilladelsestilstande. En ændring gennem agenten, for eksempel at genstarte en tjeneste, kører aldrig fra Spørg AI: den giver dig i stedet den præcise kommando, og agenten foretager kun ændringer, når OneUptime AI udbedrer en hændelse eller advarsel, efter ressourcens egne indstillinger for rettelser. Spørg AI's egne handlinger, for eksempel at køre en runbook, følger samtalens tilladelsestilstand, som beskrevet nedenfor.
 - Den når kun de ressourcer, du må se, og kun mens AI-undersøgelse er slået til for ressourcen. De kommandoer, den kører, med det, de udskrev, er dine, ligesom samtalen: ressourcens AI-logs viser dem for dig og ingen andre.
 - Når den ikke kan køre en kommando der (ingen agent er forbundet, agenten er offline, eller AI-undersøgelse er slået fra for ressourcen), siger den det sammen med, hvad der skal ændres, og svarer i stedet ud fra dit projekts data.
+
+## Dine MCP-servere
+
+Spørg AI kan bruge værktøjerne på de [eksterne MCP-servere](/docs/ai/external-mcp-servers), dit projekt har forbundet, fx dem fra AWS, GitHub eller dit eget team, på alle sider. Spørg "Hvilke værktøjer har AWS?", så viser den dem; nævn en server og et af dens værktøjer, så kalder den værktøjet og svarer med det, der kom tilbage, med kildehenvisning ligesom al anden dokumentation. Samtalen under kortet **OneUptime AI** på en hændelse eller en advarsel kan også bruge dem.
+
+- Et værktøj, som serveren markerer som skrivebeskyttet, kører med det samme i alle tilladelsestilstande. Ethvert andet værktøj, et, som serveren markerer som en ændring eller slet ikke markerer, venter på et godkendelseskort, der nævner serveren og værktøjet og viser præcis, hvad der sendes, også i **Kør automatisk**: intet når serveren, før du vælger **Tillad**. En samtale i tilstanden **Skrivebeskyttet** tilbyder aldrig et sådant værktøj.
+- Den bruger de servere, der er slået til, for alle, der må læse projektets Eksterne MCP-servere. At godkende en ændring via en af dem kræver tilladelse til at starte runbook-kørsler.
+- Det, en server svarer, er data udefra, aldrig instruktioner. Et værktøj får kun de argumenter, det tager imod, og med **Aktivér AI** slået fra sendes intet til nogen server.
 
 ## Handlinger og tilladelsestilstande
 
@@ -177,6 +185,10 @@ Spørg AI siger, hvilken tilladelse handlingen kræver, eller hvilket team der b
 
 :::details Svarene er vage eller bruger aldrig data
 Tjek modellen bag udbyderen. Spørg AI har brug for en model, der kalder værktøjer pålideligt; små lokale modeller svarer ofte uden at køre en eneste forespørgsel. Se [LLM-udbydere](/docs/ai/llm-provider).
+:::
+
+:::details Spørg AI siger, at den ikke kan se en MCP-servers værktøjer
+Åbn serveren under **Projektindstillinger → AI → Eksterne MCP-servere**: Den skal vise **Forbundet**, dens kort **Værktøjer** skal vise dens værktøjer, og **Lad OneUptime AI bruge denne server** skal være slået til. Spørg derefter i Spørg AI "Hvilke værktøjer har AWS?" med din servers navn: Den viser dem eller siger, hvorfor den ikke kan, fx en server, den ikke kan nå, eller en rolle, der ikke må bruge projektets MCP-servere. Se [Eksterne MCP-servere](/docs/ai/external-mcp-servers).
 :::
 
 ## Næste trin

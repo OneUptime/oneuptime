@@ -111,7 +111,7 @@ For the second, turn on **Recover only when a condition of its own is met** with
 
 ### Comparing a check with the previous one
 
-**Previous Check** compares each check with the previous check of the same probe, and of the same disk for a disk's usage. **For the last** is how long ago that check may be, so make it longer than the monitoring interval. It is offered for the same filters as **Count**.
+**Previous Check** compares each check with the previous check of the same probe, and of the same disk for a disk's usage. **For the last** is how long ago that check may be, so make it longer than the monitoring interval. It is offered for the same filters as **Count**, and for **DNS Record Value**, which compares the whole DNS answer with the previous check's, with **Not Equal To** or **Equal To**: see [When the DNS answer changes](/docs/monitor/dns-monitor#when-the-dns-answer-changes).
 
 A measured value, such as a response time, matches when it is more than the change set under **Change From the Previous Check** above the previous check, with **Greater Than**, or below it, with **Less Than**. The change is an **Amount in the check's own unit**, such as 200 ms, or a **Percent of the previous check**, such as 50%, and 0 matches any rise or fall. **Equal To** and **Not Equal To** compare with the previous value itself.
 
@@ -218,6 +218,8 @@ Secrets and personal data are masked before anything is kept: headers such as `A
 ## How long each check takes
 
 Each check's evaluation summary, under **View Summary** in the monitor's **Monitoring Logs** and for the latest check on its **Overview**, says when the check was evaluated, how long its evaluation took and, on a monitor that judges each host, container or group on its own, how many series it judged. The time runs from when OneUptime began reading the data the check judges until it wrote the check's log: reading the data, judging the criteria, and opening incidents and alerts.
+
+In **Monitoring Logs**, the **Check Duration** column shows how long each check took and marks slow checks. A dash means the check's duration was not recorded.
 
 When an evaluation takes too long for its monitor, its summary warns you. Too long is more than a tenth of the time between the monitor's checks, never less than 5 seconds and never more than a minute:
 

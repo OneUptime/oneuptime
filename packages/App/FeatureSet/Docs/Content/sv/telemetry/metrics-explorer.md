@@ -194,6 +194,8 @@ Starta om collectorn. Varje tjänst vars spår passerar genom den skickar då `t
 | Maskera attribut | Ersätter ett attributs värde med en platshållare. |
 | Stickprov | Behåller en procentandel av de matchande datapunkterna. |
 
+En regel verkar på varje datapunkt, eller bara på dem som dess filter matchar. Ett filter jämför mätvärdets namn eller ett attribut med ett värde eller ett reguljärt uttryck, eller frågar med **Matchar mönstertyp** om det innehåller en e-postadress, ett kreditkortsnummer, ett socialförsäkringsnummer, ett telefonnummer eller en IP-adress, hittad så som en rensningsregel för loggar eller spår med den **Mönstertyp** hittar den. Regeln **Maskera attribut** som [Datasäkerhet](/docs/data-security/telemetry) skapar för en IP-adress, en e-postadress eller ett kortnummer i ett attribut använder det.
+
 **Mätvärden → Inställningar → Inspelningsregler** räknar ut nya mätvärden från andra mätvärden, varje minut. Se [Inspelningsregler för loggar](/docs/telemetry/log-recording-rules) för hur inspelningsregler fungerar.
 
 ## Felsökning

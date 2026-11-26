@@ -1,4 +1,5 @@
 import ProjectReferencesService from "./ProjectReferencesService";
+import RequiredUniqueNames from "../Utils/Database/RequiredUniqueNames";
 import Model from "../../Models/DatabaseModels/SecurityBlocklistFeed";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -465,6 +466,8 @@ export class Service extends ProjectReferencesService<Model> {
         createBy.data.firewall,
         SECURITY_BLOCKLIST_FEED_FIREWALL_NAMES,
       );
+      // Nobody typed it: numbered, not refused, if it is taken.
+      RequiredUniqueNames.numberTakenNameOf(createBy);
     }
 
     // What its firewall's maker documents: IPv4 for Check Point, both for the rest.
@@ -541,17 +544,19 @@ export class Service extends ProjectReferencesService<Model> {
     return onUpdate;
   }
 
+  /*
+   * The feeds the delete removes, with the delete held to exactly them
+   * (findRowsAndHoldDeleteToThem): every project that loses one has its
+   * blocks reconciled, and none that keeps its feeds does.
+   */
   @CaptureSpan()
   protected override async onBeforeDelete(
     deleteBy: DeleteBy<Model>,
   ): Promise<OnDelete<Model>> {
-    const feeds: Array<Model> = await this.findBy({
-      query: deleteBy.query,
-      select: { _id: true, projectId: true },
-      skip: 0,
-      limit: 1000,
-      props: { isRoot: true },
-    });
+    const feeds: Array<Model> = await this.findRowsAndHoldDeleteToThem(
+      deleteBy,
+      { _id: true, projectId: true },
+    );
 
     return { deleteBy, carryForward: feeds };
   }

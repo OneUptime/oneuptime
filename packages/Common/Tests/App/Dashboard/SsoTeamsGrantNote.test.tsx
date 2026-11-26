@@ -192,6 +192,7 @@ import { getSsoProviderFormSteps } from "../../../UI/Components/Sso/SsoProviderF
 import { TeamPermissionGrant } from "../../../UI/Utils/GrantablePermission";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
 import { getJestSpyOn } from "../../Spy";
 import {
   ADMIN,
@@ -357,6 +358,17 @@ beforeEach(() => {
   // Each case signs in someone else: nothing read for another case is kept.
   clearSsoTeamGrantsCache();
   getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+
+  /*
+   * An SSO provider's name is one of its kind in its project, so its form asks
+   * the server, a moment after a name is typed, whether another provider has it
+   * (DuplicateNameNotice, #10761): none has it here.
+   */
+  getJestSpyOn(UniqueNamesApi, "check").mockResolvedValue({
+    isRequired: false,
+    takenBy: null,
+    isTakenByUnreadable: false,
+  });
 });
 
 afterEach(() => {

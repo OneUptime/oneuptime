@@ -128,7 +128,7 @@ describe("the Current Balance card on a marketplace-billed project", () => {
             access === ProjectBalanceAccess.Yes
               ? PROJECT_BALANCE_CARD_DESCRIPTIONS[balance].forPeopleWhoMayAdd
               : PROJECT_BALANCE_CARD_DESCRIPTIONS[balance].forEveryoneElse
-          } Recharges and Auto Recharge are billed through AWS Marketplace, not a card.`,
+          } Adding to the balance and Auto Recharge are billed through AWS Marketplace, not a card.`,
         );
       }
     },
@@ -144,7 +144,7 @@ describe("the Auto Recharge failure on a marketplace-billed project", () => {
         marketplace: CloudMarketplace.Azure,
       }),
     ).toBe(
-      "It tries again within an hour. Check that this project's subscription on Microsoft Marketplace is active, or recharge the balance now.",
+      "It tries again within an hour. Check that this project's subscription on Microsoft Marketplace is active, or add to the balance now.",
     );
     expect(
       getMarketplaceAutoRechargeFailedDescription({

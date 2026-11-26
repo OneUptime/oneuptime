@@ -278,6 +278,8 @@ export function applyRequestAssessment(
           role: ScrubbedUserRole.Principal,
           scrubbed: user.scrubbed,
           signal: "trace",
+          // Which of the server span's user attributes held it (#11045).
+          field: assessment.userField,
         });
       }
     } else if (userId) {

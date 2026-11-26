@@ -1690,10 +1690,11 @@ describe("when a criteria's incidents and alerts open and close", () => {
     /*
      * The probes' claim hands out only the monitor probes its one rule
      * (MonitorProbeService.getProbeableSql) says may be probed, and the
-     * maintenance pause flag is in it.
+     * maintenance pause flag is in it: the rows its one statement takes
+     * (#10819) are read under that rule.
      */
     expect(MONITOR_PROBE_SERVICE).toContain(
-      '          AND ${Service.getProbeableSql("$4")}\n        ORDER BY mp."nextPingAt" ASC',
+      '            AND ${Service.getProbeableSql("$4")}\n          ORDER BY mp."nextPingAt" ASC\n          LIMIT $3\n          FOR NO KEY UPDATE OF mp SKIP LOCKED',
     );
     expect(MONITOR_PROBE_SERVICE).toContain(
       '`m."disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false`,',

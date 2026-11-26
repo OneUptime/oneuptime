@@ -76,6 +76,7 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
+import DataSecurityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
 import DataStoreSettings from "../../../../App/FeatureSet/Dashboard/src/Pages/DataSecurity/StoreView/Settings";
 import DataStore from "../../../Models/DatabaseModels/DataStore";
 import Probe from "../../../Models/DatabaseModels/Probe";
@@ -164,6 +165,10 @@ beforeEach(() => {
   getItemMock.mockImplementation(async (): Promise<unknown> => {
     return storeOf();
   });
+  // Settings' record of processing (#10375): this store is not in it.
+  jest
+    .spyOn(DataSecurityApi, "getRecordOfProcessing")
+    .mockResolvedValue({ rows: [] });
 });
 
 afterEach(() => {

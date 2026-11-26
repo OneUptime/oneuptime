@@ -673,13 +673,14 @@ describe("a metric attribute's rule, proven on its data points", () => {
   });
 
   /*
-   * A metric rule tells the values it hides by the type's pattern alone,
-   * and Scrub It's pattern for an IP address holds its IPv4 detector only:
-   * the IPv6 one does not fit the 500 characters a scrub pattern is made
-   * in beside it (TelemetryScrubCoverage.buildScrubPatternForDataType), on
-   * main before #10466 as since. So the rule leaves every IPv6 address -
-   * and the proof says so: a rule that leaves data at its place is never
-   * proven, and never made without a person.
+   * A metric rule told the values it hides by the type's pattern alone, and
+   * Scrub It's pattern for an IP address held its IPv4 detector only: the
+   * IPv6 one does not fit the 500 characters a scrub pattern is made in
+   * beside it. So the rule left every IPv6 address, the proof said so, and
+   * the rule was never made without a person. Since #10934 it matches the
+   * IP Address pattern type - what an IP Address log or trace rule hides,
+   * found by Data Security's own detectors - so it is proven where the
+   * attribute holds IPv6 addresses too, and may be made on its own again.
    */
   test("the rule Scrub It makes for an IP address, proven where the attribute holds IPv4 addresses alone", async () => {
     const outcome: ScrubProofOutcome = await proveMetric({
@@ -705,7 +706,7 @@ describe("a metric attribute's rule, proven on its data points", () => {
     });
   });
 
-  test("not proven where the attribute holds IPv6 addresses - of the shapes #10466 finds too - which its pattern leaves", async () => {
+  test("proven where the attribute holds IPv6 addresses - of the shapes #10466 finds too, and right after a key's colon (#10936) - which it hides since #10934", async () => {
     const outcome: ScrubProofOutcome = await proveMetric({
       rule: scrubItRule("attributes.peer", "ip-address"),
       location: "attributes.peer",
@@ -715,6 +716,7 @@ describe("a metric attribute's rule, proven on its data points", () => {
         [
           metricRow([["peer", "81.2.69.160"]]),
           metricRow([["peer", "2a00:1450:4001:82a::200e"]]),
+          metricRow([["peer", "remote:2606:4700:4700::1111"]]),
           // A clock and a scope of hex digits: no address, as the scan reads them.
           metricRow([["peer", "12::30"]]),
         ],
@@ -723,21 +725,22 @@ describe("a metric attribute's rule, proven on its data points", () => {
 
     expect(outcome.failure).toBeUndefined();
     expect(outcome.proof).toMatchObject({
-      valuesWithData: 3,
-      // The IPv4 address hidden; both IPv6 ones left.
-      valuesStillWithData: 2,
+      valuesWithData: 4,
+      // Each address hidden, IPv4 and IPv6 alike.
+      valuesStillWithData: 0,
       otherValues: 1,
       otherValuesChanged: 0,
     });
-    expect(outcome.covers).toBe(false);
+    expect(outcome).toMatchObject({ covers: true, overreach: 0 });
   });
 
   /*
-   * And a metric rule reads the value as written: an address written only
-   * percent-encoded (#10467) is found by the scan, which reads such text
-   * decoded too, but not by the pattern. Not proven either.
+   * And the IP Address pattern reads a value with its percent-escapes read
+   * (#10467), as the scan does: an address written only percent-encoded
+   * is hidden, where the pattern frozen into the rule before #10934 read
+   * the value as written and left it.
    */
-  test("not proven where the address is written only percent-encoded, which its pattern cannot read", async () => {
+  test("proven where the address is written only percent-encoded, which the pattern type reads", async () => {
     const outcome: ScrubProofOutcome = await proveMetric({
       rule: scrubItRule("attributes.url.full", "ip-address"),
       location: "attributes.url.full",
@@ -749,12 +752,106 @@ describe("a metric attribute's rule, proven on its data points", () => {
             "https://checkout.example.com/geo?client=81%2E2%2E69%2E160",
           ],
         ]),
+        metricRow([
+          [
+            "url.full",
+            "https://checkout.example.com/geo?client=2606%3A4700%3A%3A1111",
+          ],
+        ]),
       ]),
     });
 
-    expect(outcome.proof.valuesWithData).toBe(1);
-    expect(outcome.proof.valuesStillWithData).toBe(1);
-    expect(outcome.covers).toBe(false);
+    expect(outcome.proof.valuesWithData).toBe(2);
+    expect(outcome.proof.valuesStillWithData).toBe(0);
+    expect(outcome.covers).toBe(true);
+  });
+
+  /*
+   * An address of no one - private, loopback, link-local - is no finding,
+   * and the IP Address pattern keeps it, where the frozen IPv4 pattern
+   * redacted every dotted quad: the rule changes none of the attribute's
+   * other values.
+   */
+  test("keeps the attribute's private addresses, which the frozen IPv4 pattern redacted", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: scrubItRule("attributes.peer", "ip-address"),
+      location: "attributes.peer",
+      dataTypeId: "ip-address",
+      readRows: reader(
+        [metricRow([["peer", "81.2.69.160"]])],
+        [
+          metricRow([["peer", "10.0.0.12"]]),
+          metricRow([["peer", "fe80::1"]]),
+          metricRow([["peer", "127.0.0.1"]]),
+        ],
+      ),
+    });
+
+    expect(outcome.proof).toMatchObject({
+      valuesWithData: 1,
+      valuesStillWithData: 0,
+      otherValues: 3,
+      otherValuesChanged: 0,
+    });
+    expect(outcome).toMatchObject({ covers: true, overreach: 0 });
+  });
+
+  /*
+   * #10935 and #10960: Scrub It's rule for an email address matches the
+   * Email Address pattern type, which hides an address in a percent-encoded
+   * URL and one in any script, as the scan finds them; and its rule for a
+   * card the Credit Card Number pattern type, which hides one in any
+   * script's digits.
+   */
+  test("the rule for an email address is proven where an address is percent-encoded or in another script", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: scrubItRule("attributes.http.target", "email-address"),
+      location: "attributes.http.target",
+      dataTypeId: "email-address",
+      readRows: reader(
+        [metricRow([["http.target", "/signup?email=jane.doe%40acmecorp.io"]])],
+        [
+          metricRow([["http.target", "/invite?to=张伟@acmecorp.io"]]),
+          metricRow([["http.target", "/invite?to=почта@пример.рф"]]),
+          metricRow([["http.target", "/orders/:id"]]),
+        ],
+      ),
+    });
+
+    expect(outcome.failure).toBeUndefined();
+    expect(outcome.proof).toMatchObject({
+      valuesWithData: 3,
+      valuesStillWithData: 0,
+      otherValues: 1,
+      otherValuesChanged: 0,
+    });
+    expect(outcome.covers).toBe(true);
+  });
+
+  test("the rule for a card number is proven where a card is in fullwidth, Arabic-Indic or Persian digits", async () => {
+    const outcome: ScrubProofOutcome = await proveMetric({
+      rule: scrubItRule("attributes.payment.card", "credit-card-number"),
+      location: "attributes.payment.card",
+      dataTypeId: "credit-card-number",
+      readRows: reader(
+        [metricRow([["payment.card", "４５３２ ０１５１ １２８３ ０３６６"]])],
+        [
+          metricRow([["payment.card", "٤٥٣٢٠١٥١١٢٨٣٠٣٦٦"]]),
+          metricRow([["payment.card", "۴۵۳۲-۰۱۵۱-۱۲۸۳-۰۳۶۶"]]),
+          metricRow([["payment.card", "4532 0151 1283 0366"]]),
+          metricRow([["payment.card", "none"]]),
+        ],
+      ),
+    });
+
+    expect(outcome.failure).toBeUndefined();
+    expect(outcome.proof).toMatchObject({
+      valuesWithData: 4,
+      valuesStillWithData: 0,
+      otherValues: 1,
+      otherValuesChanged: 0,
+    });
+    expect(outcome.covers).toBe(true);
   });
 
   test("a label that is the data by its name: Scrub It's rule hides every value, and the proof counts the others it changes", async () => {

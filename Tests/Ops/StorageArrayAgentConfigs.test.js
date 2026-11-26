@@ -168,22 +168,58 @@ function shellFunction(script, name) {
 }
 
 /*
- * install.sh's `case "$STORAGE_ARRAY_COLLECTOR_CONFIG" in` table: config →
- * the STORAGE_SYSTEM and COMPOSE_PROFILES it sets.
+ * install.sh's PLATFORMS table (#11000): one line per collector config, its
+ * fields separated by |, in the order the script reads them.
  */
-function installMapping() {
+function installPlatforms() {
   const script = read(`${AGENT_DIR}/install.sh`);
-  const table = script.match(
-    /case "\$STORAGE_ARRAY_COLLECTOR_CONFIG" in\n([\s\S]*?)\nesac/,
-  );
+  const table = script.match(/^PLATFORMS="\n([\s\S]*?)\n"$/m);
   expect(table).not.toBeNull();
+  return table[1]
+    .split("\n")
+    .filter((line) => {
+      return line.trim() !== "";
+    })
+    .map((line) => {
+      const fields = line.split("|");
+      expect({ line, fields: fields.length }).toEqual({ line, fields: 9 });
+      return {
+        config: fields[0],
+        system: fields[1],
+        profile: fields[2] === "-" ? "" : fields[2],
+        endpointVariable: fields[3],
+        tokenVariable: fields[4],
+        tlsToArray: fields[5],
+        noun: fields[6],
+        menu: fields[7],
+        readHow: fields[8],
+      };
+    });
+}
+
+/* The table's config → the STORAGE_SYSTEM and COMPOSE_PROFILES it sets. */
+function installMapping() {
   const mapping = {};
-  for (const arm of table[1].matchAll(
-    /^\s{4}(otel-collector-config[a-z.-]*\.yaml)\)\n\s+STORAGE_SYSTEM="([^"]*)"\n\s+COMPOSE_PROFILES="([^"]*)"/gm,
-  )) {
-    mapping[arm[1]] = { system: arm[2], profile: arm[3] };
+  for (const platform of installPlatforms()) {
+    mapping[platform.config] = {
+      system: platform.system,
+      profile: platform.profile,
+    };
   }
   return mapping;
+}
+
+/* Every address and token variable of the table, each once, in order. */
+function installPlatformVariables() {
+  const names = [];
+  for (const platform of installPlatforms()) {
+    for (const name of [platform.endpointVariable, platform.tokenVariable]) {
+      if (!names.includes(name)) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
 }
 
 describe("agents/StorageArrayAgent collector configs", () => {
@@ -375,26 +411,42 @@ describe("agents/StorageArrayAgent collector configs", () => {
 
   test("label every endpoint ingest knows to read as a complete list", () => {
     /*
-     * StorageArraySnapshotScan.markScrapedEndpoint turns a batch's
-     * scrape_endpoint into "this batch is the complete list of these
-     * objects". Directories have no count of their own, so they are the one
-     * endpoint ingest does not need to know.
+     * The extractors' markScrapedEndpoint turns a batch's scrape_endpoint
+     * into "this batch is the complete list of these objects": `array` (the
+     * array's own endpoint: its open alerts) for every platform, and each
+     * other endpoint as its platform's StorageArrayPlatform.scrapeEndpoints
+     * names it (#11000).
      */
-    const scan = read(
-      "packages/Common/Server/Utils/Telemetry/StorageArraySnapshotScan.ts",
+    const extractor = read(
+      "packages/Common/Server/Utils/Telemetry/StorageArray/StorageArrayExtractor.ts",
     );
-    expect(scan).toContain('SCRAPE_ENDPOINT_LABEL: string = "scrape_endpoint"');
+    expect(extractor).toContain(
+      'SCRAPE_ENDPOINT_LABEL: string = "scrape_endpoint"',
+    );
+    expect(extractor).toContain('value === "array"');
+    const platforms = [
+      read(
+        "packages/Common/Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform.ts",
+      ),
+      read(
+        "packages/Common/Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform.ts",
+      ),
+    ];
     const endpoints = new Set();
     for (const name of CONFIG_NAMES) {
       for (const job of scrapeConfigs(name)) {
         endpoints.add(job.static_configs[0].labels.scrape_endpoint);
       }
     }
-    endpoints.delete("directories");
+    endpoints.delete("array");
     for (const endpoint of endpoints) {
       expect({
         endpoint,
-        known: scan.includes(`value === "${endpoint}"`),
+        known: platforms.some((platform) => {
+          return platform.includes(
+            `    ${endpoint}: [StorageArrayResourceKind.`,
+          );
+        }),
       }).toEqual({ endpoint, known: true });
     }
   });
@@ -478,6 +530,36 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     }
   });
 
+  test("asks for each platform of its table, one line per config", () => {
+    const platforms = installPlatforms();
+    expect(
+      platforms.map((platform) => {
+        return platform.config;
+      }),
+    ).toEqual(CONFIG_NAMES);
+    for (const platform of platforms) {
+      const expected = CONFIGS[platform.config];
+      // The variables the config itself reads its address and token from.
+      expect(expected.token).toBe(`\${env:${platform.tokenVariable}}`);
+      expect([expected.target, expected.endpointParam]).toContain(
+        `\${env:${platform.endpointVariable}}`,
+      );
+      // Only a config whose collector talks TLS to the array asks about it.
+      expect(platform.tlsToArray).toBe(expected.endpointParam ? "no" : "yes");
+      expect(platform.menu).not.toBe("");
+      expect(platform.readHow).not.toBe("");
+    }
+  });
+
+  test("downloads the compose file and the table's configs, each once", () => {
+    expect(script).toMatch(
+      /^AGENT_FILES="docker-compose.yml \$PLATFORM_CONFIGS"$/m,
+    );
+    expect(script).toContain(
+      `PLATFORM_CONFIGS="$(platform_lines | cut -d '|' -f 1 | awk '!seen[$0]++' | tr '\\n' ' ')"`,
+    );
+  });
+
   test("downloads the compose file and every config from this directory", () => {
     // From the OneUptime the agent reports to, or this folder on GitHub for an older one.
     expect(script).toContain('AGENT_FILES_PATH="install/storage-array-agent"');
@@ -486,10 +568,18 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     );
     const files = script.match(/^AGENT_FILES="([^"]+)"$/m);
     expect(files).not.toBeNull();
-    expect(files[1].split(" ").sort()).toEqual(
+    // The table's configs stand in its place.
+    const downloaded = files[1].split(" ").flatMap((file) => {
+      return file === "$PLATFORM_CONFIGS"
+        ? installPlatforms().map((platform) => {
+            return platform.config;
+          })
+        : [file];
+    });
+    expect([...downloaded].sort()).toEqual(
       ["docker-compose.yml", ...CONFIG_NAMES].sort(),
     );
-    for (const file of files[1].split(" ")) {
+    for (const file of downloaded) {
       expect(fs.existsSync(path.join(REPO_ROOT, AGENT_DIR, file))).toBe(true);
     }
   });
@@ -499,19 +589,29 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
     );
     expect(heredoc).not.toBeNull();
-    const written = heredoc[1].split("\n").map((line) => {
-      return line.split("=")[0];
-    });
-    expect([...written].sort()).toEqual([...CONFIG_ENV, ...COMPOSE_ENV].sort());
+    // The table's address and token variables are written by a function.
+    expect(heredoc[1]).toContain("\n$(platform_env_lines)\n");
+    const platformLines = shellFunction(script, "platform_env_lines");
+    expect(platformLines).toContain("for name in $PLATFORM_VARIABLES; do");
+    expect(platformLines).toContain(
+      `printf '%s=%s\\n' "$name" "$(compose_env_quote "\${!name}")"`,
+    );
+    const written = heredoc[1]
+      .split("\n")
+      .filter((line) => {
+        return line !== "$(platform_env_lines)";
+      })
+      .map((line) => {
+        return line.split("=")[0];
+      });
+    expect([...written, ...installPlatformVariables()].sort()).toEqual(
+      [...CONFIG_ENV, ...COMPOSE_ENV].sort(),
+    );
 
     for (const name of [
       "ONEUPTIME_URL",
       "ONEUPTIME_TELEMETRY_INGESTION_KEY",
       "STORAGE_ARRAY_NAME",
-      "PURE_FA_ENDPOINT",
-      "PURE_FA_API_TOKEN",
-      "PURE_FB_ENDPOINT",
-      "PURE_FB_API_TOKEN",
     ]) {
       expect(heredoc[1]).toContain(`${name}=$(compose_env_quote "$${name}")`);
     }
@@ -532,7 +632,16 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     );
     const reused = script.match(/for name in ([\s\S]*?); do\n/);
     expect(reused).not.toBeNull();
-    const names = reused[1].replace(/\\\n/g, " ").split(/\s+/).filter(Boolean);
+    const names = reused[1]
+      .replace(/\\\n/g, " ")
+      .split(/\s+/)
+      .filter(Boolean)
+      .flatMap((name) => {
+        // The table's address and token variables, by name.
+        return name === "$PLATFORM_VARIABLES"
+          ? installPlatformVariables()
+          : [name];
+      });
     // COMPOSE_PROFILES always follows from the config, so it is never reused.
     expect(names.sort()).toEqual(
       [...CONFIG_ENV, "STORAGE_ARRAY_COLLECTOR_CONFIG"].sort(),

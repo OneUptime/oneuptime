@@ -27,7 +27,7 @@ Für den eigenen Anbieter eines einzelnen Projekts siehe [SSO](/docs/identity/ss
 :::steps
 ### Die Anbieterliste öffnen
 
-Melden Sie sich als Master-Admin an und öffnen Sie das Admin Dashboard über **Admin-Einstellungen** in Ihrem Benutzermenü. Gehen Sie dann zu **Einstellungen** > **Single Sign-On**. Dort stehen die SAML-Anbieter der Instanz, darunter ihre OpenID-Connect-Anbieter und zuletzt die Karte **SSO erfordern**.
+Melden Sie sich als Master-Admin an und wählen Sie in Ihrem Benutzermenü **Admin-Dashboard**. Gehen Sie dann zu **Einstellungen** > **Single Sign-On**. Dort stehen die SAML-Anbieter der Instanz, darunter ihre OpenID-Connect-Anbieter und zuletzt die Karte **SSO erfordern**.
 
 ### Den Anbieter anlegen
 
@@ -90,6 +90,12 @@ Zwei Fragen am Anbieter ändern das, eingeklappt unter **Weitere Felder**. Jede 
 | **Wo diese Anmeldung als SSO zählt** | **Jedes Projekt**: Projekte, die SSO verlangen, akzeptieren eine Anmeldung mit diesem Anbieter. **Nur zugewiesene Projekte**: Die Anmeldung mit diesem Anbieter erfüllt die SSO-Pflicht nur in den ihm zugewiesenen Projekten, sodass bereits angemeldete Personen den Zugriff auf andere Projekte verlieren können. |
 
 Mit **Jedes Projekt** erfüllt die Anmeldung mit dem Anbieter die SSO-Pflicht in jedem Projekt, zu dem die Person gehört, und zugewiesene Projekte bestimmen nur, wohin Neue kommen.
+
+## E-Mail-Adressen, die Ihr Identitätsanbieter nicht verifiziert hat
+
+Ein globaler OpenID-Connect-Anbieter findet das Konto, das er anmeldet, über die E-Mail-Adresse, die er sendet, wie der Anbieter eines Projekts, und die Konten von Master-Admins werden genauso gefunden. Deshalb meldet er niemanden mit einer Adresse an, die der Anbieter als nicht verifiziert ausweist, mit einem Claim `email_verified` von `false` oder von etwas, das weder true noch false ist. Sonst könnte jemand die Adresse eines Master-Admins in sein Konto beim Anbieter eintragen und sich als dieser bei der ganzen Instanz anmelden. Ein Anbieter, der `email_verified` als `true` oder gar nicht sendet, wie Microsoft Entra ID, meldet Personen wie bisher an.
+
+Über authentik ab 2025.10 meldet sich niemand an, bis Sie dessen Scope-Zuordnung für `email` ändern, und über Keycloak niemand, dessen Adresse es nicht verifiziert hat. Was Sie dort ändern, was sich weiterhin anmeldet und was die Person sieht, steht auf der Seite [SSO](/docs/identity/sso#e-mail-adressen-die-ihr-identitätsanbieter-nicht-verifiziert-hat). Master-Admins mit Passwort können sich währenddessen damit anmelden, unter `/accounts/admin-login`, solange die ganze Instanz SSO verlangt.
 
 ## Auch beim Identitätsanbieter abmelden
 
@@ -183,6 +189,10 @@ Bei einem SAML-Anbieter ist die Audience der Antwort nicht die **Issuer (Entity 
 Jede Antwort Ihres Identitätsanbieters gilt für genau eine Anmeldung, und nur wenige Minuten nach ihrer Ausstellung: Danach wird sie mit "SAML response has expired" abgelehnt. Melden Sie sich erneut an. Laufen Antworten immer wieder ab, prüfen Sie die Uhren dieses Servers und Ihres Identitätsanbieters.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+Der OpenID-Connect-Anbieter hat `email_verified` als `false` gesendet oder als etwas, das weder true noch false ist, daher hat OneUptime niemanden angemeldet, auch keinen Master-Admin. Lassen Sie die Adresse bei Ihrem Identitätsanbieter verifizieren oder markieren Sie sie dort als verifiziert, und melden Sie sich erneut an. Siehe [E-Mail-Adressen, die Ihr Identitätsanbieter nicht verifiziert hat](#e-mail-adressen-die-ihr-identitätsanbieter-nicht-verifiziert-hat).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 Die ganze Instanz verlangt SSO, und dies war eine Anmeldung mit Passwort, Passkey, einem per E-Mail gesendeten Link, Google oder Microsoft oder eine Registrierung. Melden Sie sich stattdessen über eine der SSO-Schaltflächen der Anmeldeseite an. Ein Master-Admin meldet sich mit seinem Passwort unter `/accounts/admin-login` an; damit sich alle wieder mit Passwort anmelden können, schaltet er **SSO für die Anmeldung erfordern** auf **Single Sign-On** aus.
 :::
@@ -193,4 +203,5 @@ Die ganze Instanz verlangt SSO, und dies war eine Anmeldung mit Passwort, Passke
 - [SSO](/docs/identity/sso): Den eigenen SAML- oder OIDC-Anbieter eines Projekts einrichten.
 - [SCIM](/docs/identity/scim): Ihren Identitätsanbieter Personen automatisch hinzufügen und entfernen lassen.
 - [Benutzer, Teams & Berechtigungen](/docs/permissions/index): Was die Teams, in die Neue kommen, ihnen erlauben.
+- [Hilfe und Support](/docs/self-hosted/help-and-support): Personen, die eine Einladung brauchen, sagen, wen sie fragen.
 :::

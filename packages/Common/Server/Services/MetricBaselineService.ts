@@ -104,6 +104,13 @@ export interface MetricBaselineQuery {
   scope?: MetricBaselineScope | undefined;
   // How long the window it judges is: what its hours stay in use for.
   windowInMs?: number | undefined;
+  /*
+   * Never judged by the hourly rollup's cell of samples, which keys on the
+   * metric and its service alone: when the cell holds samples this query must
+   * not be judged by - another step's, on a monitor with several (#10985) - a
+   * series whose own rows cannot say yet is learning, not judged by the cell.
+   */
+  readsOnlyItsOwnRows?: boolean | undefined;
 }
 
 /*
@@ -991,6 +998,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         interval: read.query?.interval,
         isNarrowedByAttributes: read.query?.isNarrowedByAttributes,
         scope: read.query?.scope,
+        readsOnlyItsOwnRows: read.query?.readsOnlyItsOwnRows,
       }),
     );
 
@@ -1080,6 +1088,9 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       isDistribution,
     });
 
+    // Whether the cell of samples may judge what the query's own rows cannot.
+    const mayReadCell: boolean = isOnSamplesScale && !query.readsOnlyItsOwnRows;
+
     const source: MetricBaselineSource | null = MetricHourBaseline.getSource({
       isTotal:
         query.aggregationType === AggregationType.Sum ||
@@ -1095,7 +1106,8 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
     if (!source || source === MetricBaselineSource.Samples) {
       return {
         series: {},
-        readsCell: source === MetricBaselineSource.Samples,
+        readsCell:
+          source === MetricBaselineSource.Samples && !query.readsOnlyItsOwnRows,
       };
     }
 
@@ -1119,7 +1131,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
       } as LogAttributes);
       logger.error(err);
 
-      return { series: {}, readsCell: isOnSamplesScale, readFailed: true };
+      return { series: {}, readsCell: mayReadCell, readFailed: true };
     }
 
     const baselines: DataPointBaselines = { series: {}, readsCell: false };
@@ -1131,7 +1143,20 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
         judgedDay: read.judgedDay,
       });
 
+      /*
+       * Rows of other days of the week, and none of this hour's own: with a
+       * retention under a week a series never holds one. It cannot hold the
+       * weeks either, so it is judged by the cell as below, not left learning
+       * for ever (#10985).
+       */
       if (!cell) {
+        baselines.readsCell =
+          baselines.readsCell ||
+          (mayReadCell &&
+            !MetricHourBaseline.keepsWeeksNeeded({
+              rows,
+              windowDays: read.windowDays,
+            }));
         continue;
       }
 
@@ -1162,7 +1187,7 @@ export class MetricBaselineService extends AnalyticsDatabaseService<MetricBaseli
        */
       baselines.readsCell =
         baselines.readsCell ||
-        (isOnSamplesScale &&
+        (mayReadCell &&
           !reading.isReliable &&
           !MetricHourBaseline.keepsWeeksNeeded({
             rows,

@@ -1,4 +1,5 @@
 import { higherConfidence } from "../../../../Types/DataSecurity/DataConfidence";
+import { writeScanWarning } from "../../../../Types/DataSecurity/ScanWarnings";
 import { JSONObject } from "../../../../Types/JSON";
 import { FieldClassification } from "../../../../Utils/DataSecurity/FieldClassifier";
 import {
@@ -36,6 +37,8 @@ import {
   classifyContentWithModel,
   ContentClassification,
 } from "./ContentClassifier";
+import { ModelStoreBudget } from "../Model/ModelBudget";
+import { CONTENT_STORE_KEY } from "../Model/ModelScan";
 
 /*
  * A BUCKET, SAMPLED BY KIND.
@@ -60,6 +63,13 @@ import {
  * counting it - and reads the next one of its pattern instead. What could
  * not be done - a list or read that failed, the deadline, the byte budget -
  * is a warning, and the result says it is not complete.
+ *
+ * With the names-and-addresses model on, an object read while the model
+ * had no time left for its free text is not skipped next time as unchanged:
+ * it stays due (modelPending), and the next scan reads it again before any
+ * other, so the model's time goes to it then (#10928). Not the first object
+ * the model started on in a scan, which the model's whole time could not
+ * finish: it would take that time again every scan.
  */
 
 // How many names are listed for each object the scan may read.
@@ -91,8 +101,12 @@ export const LOCATION_SEPARATOR: string = " › ";
 
 const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 
-// Formats known by their extension that no reader reads: not even fetched.
-const UNREAD_EXTENSIONS: ReadonlyMap<string, string> = new Map([
+/*
+ * Formats known by their extension that no reader reads: not even fetched.
+ * Each is named as a scan's warning names it: one of SCAN_FORMAT_NAMES
+ * (Types/DataSecurity/ScanWarnings), drawn translated.
+ */
+export const UNREAD_EXTENSIONS: ReadonlyMap<string, string> = new Map([
   ["png", "PNG image"],
   ["jpg", "JPEG image"],
   ["jpeg", "JPEG image"],
@@ -193,6 +207,8 @@ function describeError(error: unknown): string {
 interface StateEntry {
   etag: string;
   readAt: number;
+  // Read while the model had no time for its free text: due again, first (#10928).
+  modelPending?: boolean | undefined;
 }
 
 // What the last scan left: the etag of each object it read, and when.
@@ -224,6 +240,9 @@ export function readPreviousEtags(
         entries.set(key, {
           etag: entry.etag,
           readAt: Number.isFinite(readAt) ? readAt : 0,
+          ...((value as { modelPending?: unknown }).modelPending === true
+            ? { modelPending: true }
+            : {}),
         });
       }
     }
@@ -459,8 +478,14 @@ export async function sampleObjectStore(
       isComplete = false;
       warn(
         error instanceof ScanDeadlineError
-          ? `The scan reached its time limit while listing ${reader.description}, after ${listed} objects.`
-          : `Could not list the objects of ${reader.description}: ${describeError(error)}`,
+          ? writeScanWarning("objectsTimeLimitWhileListing", {
+              store: reader.description,
+              count: listed,
+            })
+          : writeScanWarning("objectsCouldNotList", {
+              store: reader.description,
+              error: describeError(error),
+            }),
       );
       break;
     }
@@ -531,7 +556,10 @@ export async function sampleObjectStore(
 
     if (listed >= maxListed) {
       warn(
-        `Listed the first ${listed} objects of ${reader.description}; the patterns of the objects after them were not sampled.`,
+        writeScanWarning("objectsListedFirst", {
+          count: listed,
+          store: reader.description,
+        }),
       );
       break;
     }
@@ -541,7 +569,12 @@ export async function sampleObjectStore(
     group.objects.sort(byRecency);
 
     for (const [format] of group.unreadFormats) {
-      warn(`${group.pattern}: not scanned: ${format} is not supported yet`);
+      warn(
+        writeScanWarning("patternFormatNotSupported", {
+          pattern: group.pattern,
+          format,
+        }),
+      );
     }
   }
 
@@ -560,6 +593,27 @@ export async function sampleObjectStore(
   const picks: Array<Pick> = [];
   const unchangedKeys: Set<string> = new Set();
   const maxObjects: number = Math.max(0, limits.maxObjects);
+  const pickedKeys: Set<string> = new Set();
+
+  /*
+   * First, the objects the model had no time for last scan, while they are
+   * still here: its time goes to them before any other's (#10928).
+   */
+  if (options.model) {
+    for (const group of ordered) {
+      for (const object of group.objects) {
+        if (picks.length >= maxObjects) {
+          break;
+        }
+
+        if (previous.get(object.key)?.modelPending) {
+          picks.push({ object, group });
+          pickedKeys.add(object.key);
+          group.picked++;
+        }
+      }
+    }
+  }
 
   for (let round: number = 0; round < SAMPLES_PER_PATTERN; round++) {
     let pickedThisRound: boolean = false;
@@ -575,9 +629,14 @@ export async function sampleObjectStore(
 
         group.cursor++;
 
+        if (pickedKeys.has(object.key)) {
+          continue;
+        }
+
         const isUnchanged: boolean =
           Boolean(object.etag) &&
           last !== undefined &&
+          !last.modelPending &&
           last.etag === object.etag &&
           now - last.readAt < REREAD_AFTER_DAYS * DAY_IN_MS;
 
@@ -605,7 +664,10 @@ export async function sampleObjectStore(
   if (unsampled > 0) {
     isComplete = false;
     warn(
-      `${unsampled} patterns were not sampled: the scan reads at most ${maxObjects} objects.`,
+      writeScanWarning("objectsPatternsNotSampled", {
+        count: unsampled,
+        max: maxObjects,
+      }),
     );
   }
 
@@ -620,6 +682,11 @@ export async function sampleObjectStore(
   // What the drafts run in shadow would find, by each pattern's fields (#10371).
   const shadowCounts: ShadowCounts = {};
   const readNow: Map<string, StateEntry> = new Map();
+  // The model's time for this store, and whether it has started on an object yet.
+  const modelBudget: ModelStoreBudget | null = options.model
+    ? options.model.budget.forStore(CONTENT_STORE_KEY)
+    : null;
+  let hasModelStarted: boolean = false;
 
   for (let index: number = 0; index < picks.length; index++) {
     const pick: Pick = picks[index]!;
@@ -628,7 +695,10 @@ export async function sampleObjectStore(
     if (Date.now() >= deadline.getTime()) {
       isComplete = false;
       warn(
-        `The scan reached its time limit after reading ${result.objectsRead} of ${picks.length} objects.`,
+        writeScanWarning("objectsTimeLimitAfterObjects", {
+          read: result.objectsRead,
+          total: picks.length,
+        }),
       );
       break;
     }
@@ -638,7 +708,11 @@ export async function sampleObjectStore(
     if (budgetLeft <= 0) {
       isComplete = false;
       warn(
-        `The scan read its ${limits.maxBytesTotal} bytes after ${result.objectsRead} of ${picks.length} objects.`,
+        writeScanWarning("objectsBytesAfterObjects", {
+          bytes: limits.maxBytesTotal,
+          read: result.objectsRead,
+          total: picks.length,
+        }),
       );
       break;
     }
@@ -659,12 +733,20 @@ export async function sampleObjectStore(
 
       if (error instanceof ScanDeadlineError) {
         warn(
-          `The scan reached its time limit after reading ${result.objectsRead} of ${picks.length} objects.`,
+          writeScanWarning("objectsTimeLimitAfterObjects", {
+            read: result.objectsRead,
+            total: picks.length,
+          }),
         );
         break;
       }
 
-      warn(`Could not read ${key}: ${describeError(error)}`);
+      warn(
+        writeScanWarning("objectsCouldNotRead", {
+          key,
+          error: describeError(error),
+        }),
+      );
       continue;
     }
 
@@ -686,6 +768,9 @@ export async function sampleObjectStore(
 
     const isTruncated: boolean = pick.object.sizeInBytes > bytes.length;
     let classification: ContentClassification;
+    const modelBefore: { read: number; toRead: number } | null = modelBudget
+      ? { read: modelBudget.valuesRead, toRead: modelBudget.valuesToRead }
+      : null;
 
     try {
       classification = await classifyContentWithModel({
@@ -697,8 +782,33 @@ export async function sampleObjectStore(
       });
     } catch (error) {
       isComplete = false;
-      warn(`Could not classify ${key}: ${describeError(error)}`);
+      warn(
+        writeScanWarning("objectsCouldNotClassify", {
+          key,
+          error: describeError(error),
+        }),
+      );
       continue;
+    }
+
+    /*
+     * Its free text the model had no time for: due again next scan, first -
+     * unless it is the first the model started on, which its whole time
+     * could not finish (#10928).
+     */
+    if (modelBudget && modelBefore && !modelBudget.unavailableReason) {
+      const handed: number = modelBudget.valuesToRead - modelBefore.toRead;
+      const read: number = modelBudget.valuesRead - modelBefore.read;
+
+      if (handed > 0) {
+        const entry: StateEntry | undefined = readNow.get(key);
+
+        if (read < handed && hasModelStarted && entry) {
+          readNow.set(key, { ...entry, modelPending: true });
+        }
+
+        hasModelStarted = true;
+      }
     }
 
     for (const warning of classification.warnings) {
@@ -842,8 +952,36 @@ function buildNextState(data: {
     etags[key] = {
       etag: entry.etag,
       readAt: new Date(entry.readAt).toISOString(),
+      ...(entry.modelPending ? { modelPending: true } : {}),
     };
   }
 
   return { etags };
+}
+
+/*
+ * A store's state cut to its `maxEntries` most recently read objects: a
+ * storage account keeps each of its containers' state, and all of them
+ * together no more than one bucket's.
+ */
+export function capObjectStoreState(
+  state: JSONObject | undefined,
+  maxEntries: number,
+): JSONObject | undefined {
+  const etags: unknown = state?.["etags"];
+
+  if (!state || !etags || typeof etags !== "object" || Array.isArray(etags)) {
+    return state;
+  }
+
+  const kept: JSONObject = {};
+
+  for (const [key, entry] of Object.entries(etags as JSONObject).slice(
+    0,
+    Math.max(0, maxEntries),
+  )) {
+    kept[key] = entry;
+  }
+
+  return { ...state, etags: kept };
 }

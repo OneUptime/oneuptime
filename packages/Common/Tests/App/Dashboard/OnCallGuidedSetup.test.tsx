@@ -163,6 +163,10 @@ jest.mock(
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceAccess",
   () => {
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceAccess",
+    ) as Record<string, unknown>;
+
     return {
       __esModule: true,
       canAddProjectBalance: (): boolean => {
@@ -171,6 +175,11 @@ jest.mock(
       getCurrentProjectBillingMarketplace: (): string | null => {
         return marketplace;
       },
+      // What the Add to Balance dialog says, as the page words it (#7475).
+      getAddToBalanceAmountDescription:
+        actual["getAddToBalanceAmountDescription"],
+      // Whether it says a payment method is needed first (#11053).
+      isPaymentMethodNeededFirst: actual["isPaymentMethodNeededFirst"],
     };
   },
 );
@@ -290,18 +299,39 @@ jest.mock(
   },
 );
 
-// The recharge dialog: its form is the real one's; here one press sends 20.
+/*
+ * The Add to Balance dialog: its form is the real one's; here one press
+ * sends 20. It draws what the real one is handed - its title, what its
+ * amount says and its button's words - for the words the step's button
+ * opens it with (#7475).
+ */
 jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
   return {
     __esModule: true,
     default: (props: {
       title: string;
+      submitButtonText?: string;
       onSubmit: (item: Record<string, unknown>) => void;
-      formProps: { error?: string };
+      formProps: {
+        error?: string;
+        fields?: Array<{ title?: string; description?: unknown }>;
+      };
     }) => {
       return (
         <div data-testid="recharge-dialog">
-          <span>{props.title}</span>
+          <span data-testid="recharge-title">{props.title}</span>
+          {(props.formProps.fields || []).map(
+            (
+              field: { title?: string; description?: unknown },
+              index: number,
+            ) => {
+              return (
+                <p key={index} data-testid="recharge-field">
+                  {field.title}: {field.description as React.ReactNode}
+                </p>
+              );
+            },
+          )}
           {props.formProps.error ? <p>{props.formProps.error}</p> : <></>}
           <button
             type="button"
@@ -310,7 +340,7 @@ jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
               props.onSubmit({ amount: 20 });
             }}
           >
-            Recharge
+            {props.submitButtonText}
           </button>
         </div>
       );
@@ -578,6 +608,11 @@ import {
   helpAndSupportWith,
   setSignedInHelpAndSupport,
 } from "../../Helpers/HelpAndSupportEnvironment";
+import type { SpyInstance } from "jest-mock";
+import ProjectPaymentMethods from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectPaymentMethods";
+import { NO_PAYMENT_METHOD_DESCRIPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectBalance/ProjectBalanceCopy";
+import Navigation from "../../../UI/Utils/Navigation";
+import { ProjectBalanceType } from "../../../Utils/Project/ProjectBalance";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006805";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -738,6 +773,8 @@ const sent: (name: ProductEventName) => Array<Record<string, unknown>> = (
 beforeEach(() => {
   guidedSetupRunServer.reset();
   window.localStorage.clear();
+  // Whether the project has a payment method: not counted yet, as before #11053.
+  ProjectPaymentMethods.reset();
   billingEnabled = true;
   maySecondLevel = true;
   mayChangeChannels = true;
@@ -1145,6 +1182,38 @@ describe("how should we reach you", () => {
     expect(screen.getByTestId("on-call-setup-phone")).toBeInTheDocument();
   });
 
+  test("Add to Balance says what the money is for and what it is charged to, and adds with the same words", async () => {
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    // The step's button, the dialog's title and the dialog's own button: one verb.
+    expect(screen.getByTestId("on-call-setup-add-balance")).toHaveTextContent(
+      "Add to Balance",
+    );
+
+    await press("on-call-setup-add-balance");
+
+    expect(screen.getByTestId("recharge-title")).toHaveTextContent(
+      "Add to Balance",
+    );
+    expect(screen.getByTestId("recharge-submit")).toHaveTextContent(
+      "Add to Balance",
+    );
+    expect(screen.getByTestId("recharge-field")).toHaveTextContent(
+      "Amount (USD): Between 20 and 1,000 USD, added to this project's balance and charged now to its payment method.",
+    );
+    expect(screen.getByTestId("recharge-dialog")).not.toHaveTextContent(
+      "Between 20 and 1,000 USD, charged now.",
+    );
+    expect(screen.getByTestId("recharge-dialog")).not.toHaveTextContent(
+      "Recharge",
+    );
+  });
+
   test("a recharge the server refuses keeps the dialog open with its reason", async () => {
     api["loadProjectPhoneFacts"]!.mockResolvedValue({
       isSmsOn: true,
@@ -1165,6 +1234,137 @@ describe("how should we reach you", () => {
   });
 
   test("a project a cloud marketplace bills is sent to Notification Settings to add balance", async () => {
+    marketplace = "aws";
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    expect(screen.queryByTestId("on-call-setup-add-balance")).toBeNull();
+    expect(
+      screen.getByTestId("on-call-setup-add-balance-link"),
+    ).toHaveAttribute("href", expect.stringContaining("notification-settings"));
+  });
+
+  /*
+   * A project known to have no payment method (#11053): Add to Balance says
+   * one is needed first, and where it is added, before it asks for any
+   * amount - the amount used to come first, and the missing card only once
+   * it was in, in the server's refusal.
+   */
+  test("no payment method yet: Add to Balance says one is needed first, and where, before any amount", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 0 });
+    const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    // The step's button keeps its words (#7475).
+    expect(screen.getByTestId("on-call-setup-add-balance")).toHaveTextContent(
+      "Add to Balance",
+    );
+
+    await press("on-call-setup-add-balance");
+
+    // No amount is asked for.
+    expect(screen.queryByTestId("recharge-dialog")).toBeNull();
+
+    const dialog: HTMLElement = screen.getByRole("dialog");
+
+    expect(dialog).toHaveTextContent(
+      NO_PAYMENT_METHOD_DESCRIPTIONS[ProjectBalanceType.SmsOrCall],
+    );
+    expect(dialog).toHaveTextContent(
+      "Project Settings > Billing and Invoices > Billing",
+    );
+
+    await act(async () => {
+      fireEvent.click(
+        within(dialog).getByRole("button", { name: "Add Payment Method" }),
+      );
+    });
+
+    // It takes the person to where a payment method is added.
+    expect(navigateSpy).toHaveBeenCalledTimes(1);
+    expect(navigateSpy.mock.calls[0]![0].toString()).toContain(
+      `/dashboard/${PROJECT_ID}/settings/billing`,
+    );
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(api["rechargeBalance"]).not.toHaveBeenCalled();
+  });
+
+  test("no payment method yet: Cancel leaves the person in the step, and nothing is charged", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 0 });
+    const navigateSpy: SpyInstance<typeof Navigation.navigate> = jest
+      .spyOn(Navigation, "navigate")
+      .mockImplementation((): void => {});
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+    await press("on-call-setup-add-balance");
+
+    await act(async () => {
+      fireEvent.click(
+        within(screen.getByRole("dialog")).getByRole("button", {
+          name: "Cancel",
+        }),
+      );
+    });
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(navigateSpy).not.toHaveBeenCalled();
+    expect(api["rechargeBalance"]).not.toHaveBeenCalled();
+    expect(screen.getByTestId("on-call-setup-add-balance")).toBeInTheDocument();
+  });
+
+  test("with a payment method, Add to Balance asks for the amount as before", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 1 });
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+    await press("on-call-setup-add-balance");
+
+    expect(screen.getByTestId("recharge-dialog")).toBeInTheDocument();
+    expect(screen.getByTestId("recharge-field")).toHaveTextContent(
+      "Amount (USD)",
+    );
+    expect(screen.queryByText("Add Payment Method")).toBeNull();
+  });
+
+  test("a payment method added while the step is open: the amount is asked for at once", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 0 });
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    // The Billing page counted again, in another tab of this app.
+    await act(async () => {
+      ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 1 });
+    });
+
+    await press("on-call-setup-add-balance");
+
+    expect(screen.getByTestId("recharge-dialog")).toBeInTheDocument();
+  });
+
+  test("a project a cloud marketplace bills, with no card, is still sent to Notification Settings", async () => {
+    ProjectPaymentMethods.setCount({ projectId: PROJECT_ID, count: 0 });
     marketplace = "aws";
     api["loadProjectPhoneFacts"]!.mockResolvedValue({
       isSmsOn: true,

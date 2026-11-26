@@ -32,10 +32,15 @@ import DeviceMonitorTemplateUtil, {
 } from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import MonitorTemplateSyncUtil from "../../Utils/Monitor/MonitorTemplateSyncUtil";
 import {
+  getFieldNotSyncableRefusal,
   getMonitorTypeMismatchRefusal,
   MONITOR_IN_ANOTHER_PROJECT_REFUSAL,
   MONITOR_NOT_FOUND_REFUSAL,
   MONITOR_NOT_LINKED_REFUSAL,
+  SYNC_SETTINGS_WITHOUT_TYPE_REFUSAL,
+  TEMPLATE_NOT_FOUND_REFUSAL,
+  TEMPLATE_WITHOUT_PROJECT_REFUSAL,
+  TEMPLATE_WITHOUT_TYPE_REFUSAL,
 } from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import QueryHelper from "../Types/Database/QueryHelper";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
@@ -112,9 +117,7 @@ export class Service extends ProjectReferencesService<Model> {
           monitorType,
         );
       if (fields?.length && !monitorType) {
-        throw new BadDataException(
-          "Monitor type is required to configure template sync fields",
-        );
+        throw new BadDataException(SYNC_SETTINGS_WITHOUT_TYPE_REFUSAL);
       }
     }
   }
@@ -545,9 +548,7 @@ export class Service extends ProjectReferencesService<Model> {
     const allowed: Set<string> = new Set(SYNCABLE_FIELDS);
     for (const field of fields) {
       if (!allowed.has(field)) {
-        throw new BadDataException(
-          `Field "${field}" is not syncable from a monitor template`,
-        );
+        throw new BadDataException(getFieldNotSyncableRefusal(field));
       }
     }
     return fields as Array<SyncableTemplateField>;
@@ -628,7 +629,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (MonitorTemplateSyncUtil.hasExcludedFields(monitorSteps)) {
       if (!template.monitorType) {
-        throw new BadDataException("Monitor template is missing monitorType");
+        throw new BadDataException(TEMPLATE_WITHOUT_TYPE_REFUSAL);
       }
       monitorSteps = MonitorTemplateSyncUtil.buildSyncedMonitorSteps({
         templateMonitorSteps: monitorSteps,
@@ -711,11 +712,11 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (!template) {
-      throw new BadDataException("Monitor template not found");
+      throw new BadDataException(TEMPLATE_NOT_FOUND_REFUSAL);
     }
 
     if (!template.projectId) {
-      throw new BadDataException("Monitor template is missing projectId");
+      throw new BadDataException(TEMPLATE_WITHOUT_PROJECT_REFUSAL);
     }
 
     const totalLinkedMonitors: number = await this.countLinkedMonitors({
@@ -1022,11 +1023,11 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (!template) {
-      throw new BadDataException("Monitor template not found");
+      throw new BadDataException(TEMPLATE_NOT_FOUND_REFUSAL);
     }
 
     if (!template.projectId) {
-      throw new BadDataException("Monitor template is missing projectId");
+      throw new BadDataException(TEMPLATE_WITHOUT_PROJECT_REFUSAL);
     }
 
     const monitor: Monitor | null = await MonitorService.findOneById({
@@ -1111,13 +1112,13 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     if (!template) {
-      throw new BadDataException("Monitor template not found");
+      throw new BadDataException(TEMPLATE_NOT_FOUND_REFUSAL);
     }
     if (!template.projectId) {
-      throw new BadDataException("Monitor template is missing projectId");
+      throw new BadDataException(TEMPLATE_WITHOUT_PROJECT_REFUSAL);
     }
     if (!template.monitorType) {
-      throw new BadDataException("Monitor template is missing monitorType");
+      throw new BadDataException(TEMPLATE_WITHOUT_TYPE_REFUSAL);
     }
 
     const monitor: Monitor | null = await MonitorService.findOneById({

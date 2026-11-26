@@ -14,6 +14,7 @@ Both use the same monitor type. What separates them is the criteria you configur
 - [Send a heartbeat](#sending-a-heartbeat): From curl, cron, Node.js, Python or Go.
 - [Alert when pings stop](#mark-as-offline-if-no-heartbeat-in-10-minutes-a-dead-mans-switch): Turn the monitor into a dead-man's switch.
 - [Receive alerts](#receiving-alerts-from-another-system): One incident per Alertmanager or Grafana alert.
+- [Post to Slack without paging](#posting-to-slack-without-paging-anyone): Notify a channel, and page only after hours.
 - [Subscribe to SNS or Event Grid](#subscribing-to-amazon-sns-or-azure-event-grid): Confirm the subscription in one click.
 :::
 
@@ -393,7 +394,7 @@ A recovery resolves only the incidents and alerts of the criteria that reads it:
 **Max incidents per request** caps extraction, not just creation. Keys past the cap are invisible to recovery as well, so in a payload carrying more distinct keys than the cap, an alert reporting `resolved` beyond it will not close its incident.
 
 > [!NOTE]
-> A monitor with a criteria that groups by a payload field evaluates every request it receives, one at a time and in the order they arrived, so a burst of alerts and recoveries opens and resolves each value's incident and alert. Up to 1,000 requests, or 16 MB of them, wait to be evaluated; past that, the oldest waiting are skipped, and the **Monitor Summary** card says how many. A monitor without grouping evaluates only the newest of the requests waiting for it.
+> A monitor with a criteria that groups by a payload field evaluates every request it receives, one at a time and in the order they arrived, so a burst of alerts and recoveries opens and resolves each value's incident and alert. Up to 1,000 requests, or 16 MB of them, wait to be evaluated; past that, the oldest waiting are skipped, and the **Monitor Summary** card says how many. It names the limit that was reached, and a self-hosted installation can change both: see [Self-hosted notes](#self-hosted-notes). A monitor without grouping evaluates only the newest of the requests waiting for it.
 
 > [!NOTE]
 > If **Field that signals recovery** contains `[*]` but **Open a separate incident for each…** does not, a request has recovered only when every element of that array says so. With `requestBody.alerts[*].status` and `resolved`, an incident grouped by `requestBody.groupLabels.alertname` resolves once every alert of a request is resolved, and stays open while one still fires.
@@ -421,6 +422,32 @@ The full payload is available alongside it, so an incident title of `{{alertname
 ### Worked example
 
 For a full Alertmanager configuration, see [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, see [Grafana](/docs/integrations/grafana).
+
+## Posting to Slack without paging anyone
+
+A staging environment, or a product whose problems can wait, may want a request posted in a chat channel without paging anyone. An alert that names no on-call policy does this: it posts to Slack, Microsoft Teams or Mattermost through the project's workspace rules, and starts no escalation.
+
+:::steps
+1. Open the criteria and, under **Actions**, turn on **When filters match, create an alert.** Leave its **On-Call Policies** empty.
+2. Write what the request says into the alert, such as `{{requestBody.commonAnnotations.summary}}` in its description. See [Incident & Alert Dynamic Templating](/docs/monitor/incident-alert-templating).
+3. In **Alerts → Workspace → Slack**, add a rule for this monitor's alerts and turn on **Post to existing channels**. Slack must be [connected to the project](/docs/workspace-connections/slack) first.
+:::
+
+An alert that names no on-call policy can still page through the project's rules. Check that no rule in **Alerts → Rules → On-Call Rules** pages for these alerts, and that no rule in **Alerts → Rules → Incident Rules** declares an incident from them.
+
+To post without creating an alert, turn on only **When filters match, change monitor status.**, and add the rule in **Monitors → Workspace → Slack** instead. The channel then hears only that the monitor's status changed, with nothing from the request, and only when it changes: more requests while the monitor is already in that status post nothing.
+
+### Paging only outside working hours
+
+Two criteria with the same filters split the week between them, in this order:
+
+1. The first posts during working hours. Under its **Settings**, turn on **Judge this criteria only on certain days and times**, and pick the days, the hours and the **Timezone**. Its alert names no on-call policy.
+2. The second pages the rest of the time. It has no hours, and its alert names your on-call policy.
+
+The first criteria that matches a request decides what happens. Outside its hours the first criteria is skipped, so the second one matches at night and at weekends, and only then is anyone paged. See [Only on certain days and times](/docs/monitor/criteria-and-statuses#only-on-certain-days-and-times).
+
+- A request is judged when it arrives, by the hours as they are then. A problem that starts at 16:55 pages after 17:00 only when the sender sends it again, as Alertmanager does once every `repeat_interval`.
+- An alert with **Auto Resolve Alert** on resolves when a request matches another criteria. The first request after working hours begin matches the first criteria, so it resolves the night's alert and opens one that pages nobody. Leave **Auto Resolve Alert** off on the second criteria's alert to keep it open until someone resolves it.
 
 ## Services that check the URL first
 
@@ -521,6 +548,18 @@ Click **Confirm Subscription** in the **Monitor Summary** card on the monitor's 
 :::details The sender gets a 500
 The request says `Content-Type: application/json` but its body is not a JSON object or array. Send valid JSON, or a different content type.
 :::
+
+## Self-hosted notes
+
+A monitor that groups by a payload field keeps each request in Valkey until its turn comes. On a self-hosted installation, three settings bound that. With Docker Compose, set them in `config.env`; with Helm, under `incomingRequests` in the chart's values, which gives the app and worker pods the same ones:
+
+| Setting | Helm value | Default | Range | What it bounds |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` to `100000` | The requests one monitor keeps waiting. Past it, the oldest waiting are skipped. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` to `512` | The megabytes of requests one monitor keeps waiting. Past it, the oldest waiting are skipped. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` to `1000` | The requests one job evaluates before the monitor's job is queued again, behind every job already waiting. |
+
+Raise the first two for senders that burst harder, such as a core switch that goes down and fires thousands of alerts at once, and lower the second for a small Valkey. When requests are skipped, the **Monitor Summary** card says which limit was reached. A value that is not a whole number in its range is not used: the default is, and the app logs a warning that names the setting.
 
 ## Next steps
 

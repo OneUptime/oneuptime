@@ -177,7 +177,9 @@ describe("the kinds about findings and scans", () => {
       DataSecurityAiProposalKind.AddScanExclusion,
     ]);
     expect(
-      DATA_SECURITY_AI_PROPOSAL_KINDS[DataSecurityAiProposalKind.ConfirmFindings],
+      DATA_SECURITY_AI_PROPOSAL_KINDS[
+        DataSecurityAiProposalKind.ConfirmFindings
+      ],
     ).toEqual({
       kind: DataSecurityAiProposalKind.ConfirmFindings,
       work: DataSecurityAiWork.Judge,
@@ -258,9 +260,8 @@ describe("the kinds about findings and scans", () => {
 
 describe("OneUptime AI's own confirmations", () => {
   test("its plan names the findings, and the same set is the same change", () => {
-    const change: DataSecurityAiPlannedChange = planConfirmFindings(
-      confirmPlan(),
-    );
+    const change: DataSecurityAiPlannedChange =
+      planConfirmFindings(confirmPlan());
 
     expect(change.title).toBe("Confirm 2 findings of orders-eu");
     expect(readConfirmFindingsPlan(change.plan)).toEqual(confirmPlan());
@@ -303,7 +304,9 @@ describe("OneUptime AI's own confirmations", () => {
     });
     // Never a mark of not sensitive.
     for (const call of [...updateSpy.mock.calls, ...writeSpy.mock.calls]) {
-      expect((call[0] as { data: JSONObject }).data["isSuppressed"]).toBeUndefined();
+      expect(
+        (call[0] as { data: JSONObject }).data["isSuppressed"],
+      ).toBeUndefined();
     }
     // The store is evaluated again with them.
     expect(
@@ -385,8 +388,8 @@ describe("OneUptime AI's own confirmations", () => {
     const person: DatabaseCommonInteractionProps = personWith([
       Permission.EditDataStoreFinding,
     ]);
-    const undone: { summaryMarkdown: string } = await ConfirmFindingsAction.undo(
-      {
+    const undone: { summaryMarkdown: string } =
+      await ConfirmFindingsAction.undo({
         projectId: PROJECT_ID,
         proposal: proposalOf(planConfirmFindings(confirmPlan()), {
           result: {
@@ -395,8 +398,7 @@ describe("OneUptime AI's own confirmations", () => {
           },
         }),
         actor: { props: person, userId: USER_ID },
-      },
-    );
+      });
 
     expect(updateSpy).toHaveBeenCalledTimes(1);
     expect(updateSpy.mock.calls[0]![0]).toMatchObject({

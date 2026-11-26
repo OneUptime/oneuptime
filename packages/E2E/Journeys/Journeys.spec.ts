@@ -400,9 +400,9 @@ journey(
     await person.openProduct("Project Settings");
     await person.sideMenu("Notification Channels", "Notifications");
     await person.toggle(/^Phone Calls/);
-    await person.press("Recharge Balance");
+    await person.press("Add to Balance");
     await person.type(/Amount/, "20");
-    await person.submit("Recharge");
+    await person.submit("Add to Balance");
     await person.openFromBar("User Settings");
     await person.press("Add Phone Number for Calls");
     await person.type("Phone Number", "+15550100123");
@@ -461,9 +461,9 @@ journey(
     await person.press("Continue");
     await person.press(/Set up an on-call policy/);
     await person.press("Turn on SMS and phone calls");
-    await person.press("Add balance");
+    await person.press("Add to Balance");
     await person.type(/Amount/, "20");
-    await person.submit("Recharge");
+    await person.submit("Add to Balance");
     await person.type("Your phone number", "+15550100123");
     await person.submit("Text me a code");
     await person.type(/code/i, VERIFICATION_CODE);

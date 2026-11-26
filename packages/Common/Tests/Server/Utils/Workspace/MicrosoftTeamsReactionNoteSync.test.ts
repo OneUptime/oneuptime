@@ -1319,7 +1319,7 @@ describe("MicrosoftTeamsReactionNoteSync.processReaction", () => {
     [
       "the plan",
       new PaymentRequiredException(
-        "Please upgrade your plan to Growth to access this feature",
+        "This feature needs the Growth plan or above. Upgrade the project's plan in Project Settings > Billing and Invoices > Billing, then try again.",
       ),
     ],
   ])(

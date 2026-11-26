@@ -1,6 +1,6 @@
 {
-  "Something went wrong": "Noget gik galt",
-  "An unexpected error has occurred. Please reload the page to continue": "Der opstod en uventet fejl. Genindlæs siden for at fortsætte",
+  "This page stopped working": "Denne side holdt op med at virke",
+  "Part of this page ran into a problem. Reload the page to continue.": "En del af denne side stødte på et problem. Genindlæs siden for at fortsætte.",
   "Error details": "Fejldetaljer",
   "a11y": {
     "skipToMainContent": "Spring til hovedindhold",
@@ -524,5 +524,29 @@
     "sessionExpired": "Sessionen er udløbet. Log ind igen.",
     "signedOut": "Du er logget ud. Log ind igen.",
     "magicLinkTurnedOff": "Links til at logge ind er slået fra for denne statusside. Log ind med din e-mail og adgangskode."
-  }
+  },
+  "The server ran into a problem it could not explain, so this did not finish. Try again, and if it keeps failing, give this reference to your administrator or OneUptime support: {{reference}}.": "Serveren stødte på et problem, den ikke kunne forklare, så handlingen blev ikke fuldført. Prøv igen, og hvis det bliver ved med at fejle, så giv denne reference til din administrator eller OneUptime-support: {{reference}}.",
+  "The server ran into a problem it could not explain, so this did not finish. Try again in a moment.": "Serveren stødte på et problem, den ikke kunne forklare, så handlingen blev ikke fuldført. Prøv igen om et øjeblik.",
+  "OneUptime could not be reached, so this did not finish. Check your internet connection, then try again.": "OneUptime kunne ikke nås, så handlingen blev ikke fuldført. Tjek din internetforbindelse, og prøv så igen.",
+  "This page ran into a problem, so this did not finish. Reload the page, then try again.": "Denne side stødte på et problem, så handlingen blev ikke fuldført. Genindlæs siden, og prøv så igen.",
+  "What was sent was too large for the server to accept, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request, so this did not finish. Try again with less at once, such as a smaller file.": "Det, der blev sendt, er større end de 50 MB, OneUptime tager imod i én forespørgsel, så handlingen blev ikke fuldført. Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "This did not finish.": "Handlingen blev ikke fuldført.",
+  "The {{itemName}} was not deleted.": "{{itemName}} blev ikke slettet.",
+  "“{{action}}” did not finish.": "Handlingen \"{{action}}\" blev ikke fuldført.",
+  "The server ran into a problem it could not explain.": "Serveren stødte på et problem, den ikke kunne forklare.",
+  "The OneUptime server did not answer.": "OneUptime-serveren svarede ikke.",
+  "OneUptime could not be reached.": "OneUptime kunne ikke nås.",
+  "This page ran into a problem.": "Denne side stødte på et problem.",
+  "What was sent was too large for the server to accept.": "Det, der blev sendt, var for stort til, at serveren kunne tage imod det.",
+  "What was sent is larger than the 50 MB OneUptime takes in one request.": "Det, der blev sendt, er større end de 50 MB, OneUptime tager imod i én forespørgsel.",
+  "Try again in a moment.": "Prøv igen om et øjeblik.",
+  "It may be starting or restarting. Try again in a few minutes.": "Den er måske ved at starte eller genstarte. Prøv igen om et par minutter.",
+  "Check your internet connection, then try again.": "Tjek din internetforbindelse, og prøv så igen.",
+  "Reload the page, then try again.": "Genindlæs siden, og prøv så igen.",
+  "Try again with less at once, such as a smaller file.": "Prøv igen med mindre ad gangen, for eksempel en mindre fil.",
+  "The {{itemName}} was not created.": "{{itemName}} blev ikke oprettet.",
+  "The {{itemName}} was not saved.": "{{itemName}} blev ikke gemt.",
+  "The {{itemName}} could not be loaded.": "{{itemName}} kunne ikke indlæses.",
+  "Page Did Not Load": "Siden blev ikke indlæst"
 }

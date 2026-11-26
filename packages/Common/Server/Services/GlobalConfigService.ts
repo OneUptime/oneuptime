@@ -33,6 +33,10 @@ import SsoRequirementChanges from "../Utils/SsoRequirementChanges";
 import Exception from "../../Types/Exception/Exception";
 import TwilioPhoneNumbers from "../../Types/CallAndSMS/TwilioPhoneNumbers";
 import TwilioConfigUses from "../../Types/CallAndSMS/TwilioConfigUse";
+import {
+  getCallVoiceError,
+  toStoredCallVoice,
+} from "../../Types/Call/CallVoice";
 import TwilioConfigWrite, {
   TwilioUseAndNumbers,
 } from "../../Types/CallAndSMS/TwilioConfigWrite";
@@ -1783,6 +1787,32 @@ export class Service extends DatabaseService<Model> {
   }
 
   /*
+   * The voice the server's calls speak with (#10948) is one from
+   * OneUptime's list (Types/Call/CallVoice), or none - left out, null or
+   * empty - for the account's default voice: a voice the list does not hold
+   * is refused, so a typo through the API says so. An empty one is stored
+   * as none. Not one of the account's columns: it is chosen here even while
+   * the GLOBAL_TWILIO_ environment variables set the account.
+   */
+  private assertTwilioCallVoiceIsValid(
+    data: CreateBy<Model>["data"] | UpdateBy<Model>["data"],
+  ): void {
+    const columns: { twilioCallVoice?: unknown } = data as {
+      twilioCallVoice?: unknown;
+    };
+    const value: unknown = columns.twilioCallVoice;
+    const error: string | null = getCallVoiceError(value);
+
+    if (error) {
+      throw new BadDataException(error);
+    }
+
+    if (value !== undefined) {
+      columns.twilioCallVoice = toStoredCallVoice(value);
+    }
+  }
+
+  /*
    * What the server's Twilio account is used for (calls and SMS, SMS only
    * or calls only - Types/CallAndSMS/TwilioConfigUse) must be one of the
    * uses.
@@ -2051,6 +2081,7 @@ export class Service extends DatabaseService<Model> {
     );
     this.assertTwilioSmsNumbersAreValid(createBy.data);
     this.assertTwilioUseIsValid(createBy.data);
+    this.assertTwilioCallVoiceIsValid(createBy.data);
     this.assertCallAndSmsProviderIsValid(createBy.data);
     Service.assertSessionLengthsAreValid(createBy.data);
     Service.applyTelemetryIngestionBudgetRules(
@@ -2096,6 +2127,7 @@ export class Service extends DatabaseService<Model> {
     );
     this.assertTwilioSmsNumbersAreValid(updateBy.data);
     this.assertTwilioUseIsValid(updateBy.data);
+    this.assertTwilioCallVoiceIsValid(updateBy.data);
     await this.assertTwilioNumbersKeptForUse(updateBy);
     this.assertCallAndSmsProviderIsValid(updateBy.data);
     Service.assertSessionLengthsAreValid(updateBy.data);

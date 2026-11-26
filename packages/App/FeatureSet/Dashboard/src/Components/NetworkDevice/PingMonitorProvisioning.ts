@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "Common/Types/Database/RequiredUniqueNames";
 import PingMonitorSeedIds from "./PingMonitorSeedIds";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
@@ -185,7 +186,14 @@ export async function provisionPingMonitorForDevice(
   > = await ModelAPI.create<Monitor>({
     model: monitor,
     modelType: Monitor,
-    miscDataProps: probeMiscDataProps(data.probeIds),
+    /*
+     * "Ping <device>": numbered, not refused, where the project requires
+     * unique names and another monitor has it.
+     */
+    miscDataProps: {
+      ...probeMiscDataProps(data.probeIds),
+      ...getNumbersTakenNameData(),
+    },
   });
 
   /*

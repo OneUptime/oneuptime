@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react-native";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import LoginScreen from "./LoginScreen";
 import type { LoginResponse } from "../../api/auth";
+import { UNREACHABLE_SENTENCE } from "../../utils/error";
 import type { MockedFunction } from "jest-mock";
 
 /*
@@ -394,7 +395,8 @@ describe("A password step the server refuses", () => {
     /*
      * A rejection with no response at all is the offline case. Reporting it as
      * a credential problem sends an on-call engineer hunting for a password
-     * that was never the issue.
+     * that was never the issue. The app's sentence for it names the
+     * connection and the server URL instead.
      */
     mockLogin.mockRejectedValue({
       isAxiosError: true,
@@ -404,7 +406,7 @@ describe("A password step the server refuses", () => {
     await renderScreen();
     await signIn();
 
-    expect(await screen.findByText(/network error/i)).toBeTruthy();
+    expect(await screen.findByText(UNREACHABLE_SENTENCE)).toBeTruthy();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

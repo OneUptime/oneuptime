@@ -31,12 +31,15 @@ import {
 import CodeRepositoryService, {
   Service as CodeRepositoryServiceClass,
 } from "../../Services/CodeRepositoryService";
-import DataSecurityAiProposalService from "../../Services/DataSecurityAiProposalService";
 import DataSecurityIssueGroupService from "../../Services/DataSecurityIssueGroupService";
 import DataSecurityIssueService from "../../Services/DataSecurityIssueService";
 import DataStoreService from "../../Services/DataStoreService";
 import QueryHelper from "../../Types/Database/QueryHelper";
+import DataSecurityIssueGroupFixProof from "../AI/DataSecurity/DataSecurityIssueGroupFixProof";
 import DataSecurityIssueGroupNaming from "../AI/DataSecurity/DataSecurityIssueGroupNaming";
+import DataSecurityIssueGroupTimelines, {
+  GroupProposalExpiry,
+} from "../AI/DataSecurity/DataSecurityIssueGroupTimelines";
 import DataSecurityIssueGroupProposals from "../AI/DataSecurity/DataSecurityIssueGroupProposals";
 import DeclaredCodeOwner, {
   DeclaredCodeOwnerCandidate,
@@ -79,6 +82,10 @@ import DataSecurityStoreCreators, {
  *     says when (fixedAt), and is open again if one reopens.
  *  6. A group nothing holds any more - fewer than two issues of any status,
  *     and no fix of its own - is deleted.
+ *  7. Each group fix OneUptime AI made is proven once every issue it fixed
+ *     was closed by it, as each one's own check said (#10738,
+ *     DataSecurityIssueGroupFixProof): never by an issue accepted, set
+ *     aside or closed some other way.
  *
  * Then OneUptime AI names the groups whose facts changed, and proposes
  * their fix as the project's AI rules say (DataSecurityIssueGroupNaming,
@@ -532,12 +539,25 @@ export default class DataSecurityIssueGrouper {
         outcome.openGroups++;
         openGroupIds.push(group.id);
       } else if ((group.openIssueCount || 0) > 0) {
-        await DataSecurityAiProposalService.expireWaitingForGroup({
-          dataSecurityIssueGroupId: group.id,
+        // What still waited is no longer needed, and each issue it was for says so (#10741).
+        await DataSecurityIssueGroupTimelines.expireWaitingForGroup({
+          projectId,
+          groupId: group.id,
           at: now,
+          why: GroupProposalExpiry.NoLongerNeeded,
         });
       }
     }
+
+    /*
+     * 7. Each group fix OneUptime AI made whose every issue its own check
+     * proved fixed by it is proven (#10738): AI Results counts it among the
+     * changes that worked. Every run, not only when a group closes - an
+     * issue a pull request fixed reads Fixed in infrastructure code only
+     * once its production check upgrades it, after the group closed
+     * (DataSecurityIssueGroupFixProof, which never throws).
+     */
+    await DataSecurityIssueGroupFixProof.proveForProject({ projectId, now });
 
     /*
      * OneUptime AI names each open group whose name is not of its facts as

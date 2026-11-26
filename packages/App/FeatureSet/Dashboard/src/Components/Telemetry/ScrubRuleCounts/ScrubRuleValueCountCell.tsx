@@ -13,6 +13,7 @@ import {
   VERSION_HEADING,
 } from "./ScrubRuleCountWords";
 import OneUptimeDate from "Common/Types/Date";
+import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import {
   ScrubRuleValueCountOfRule,
   ScrubRuleValueCountOfService,
@@ -23,6 +24,11 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import InlineValueSkeleton from "Common/UI/Components/Skeleton/InlineValueSkeleton";
+import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
+import useResizableColumns, {
+  ResizableColumns,
+} from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -61,6 +67,21 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   /*
+   * The By Service dialog's columns, as wide as a person makes them
+   * (Common's Table/ColumnResize): a service's name and a version can be
+   * long, a count or a time never gives way.
+   */
+  const serviceColumns: ResizableColumns = useResizableColumns({
+    tableKey: "scrub-rule-values-by-service-table",
+    columns: [
+      { id: "service", cellNumber: 1 },
+      { id: "version", cellNumber: 2 },
+      { id: "count", cellNumber: 3 },
+      { id: "lastChanged", cellNumber: 4 },
+    ],
+  });
+
+  /*
    * The counts are still being read: the shape of the value that comes,
    * announced as loading - not a dash, which says the rule changed
    * nothing (Docs/ux/README.md#loading).
@@ -93,7 +114,7 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
       data-testid={props.dataTestId}
     >
       <span className="text-sm font-medium text-gray-900 tabular-nums">
-        {count.valueCount.toLocaleString()}
+        {count.valueCount.toLocaleString(getReaderNumberLocale())}
       </span>
       <Button
         title={BY_SERVICE}
@@ -116,21 +137,58 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
           }}
         >
           <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
+            {serviceColumns.styles}
+            <table
+              className={`${serviceColumns.getTableWidthClassName("min-w-full")} text-sm`}
+              {...serviceColumns.tableAttributes}
+            >
               <thead>
                 <tr className="text-start text-gray-500">
-                  <th className="py-2 pe-4 text-start font-medium">
-                    {translator.translateText(SERVICE_HEADING)}
-                  </th>
-                  <th className="py-2 pe-4 text-start font-medium">
-                    {translator.translateText(VERSION_HEADING)}
-                  </th>
-                  <th className="py-2 pe-4 text-end font-medium">
-                    {translator.translateText(COUNT_HEADING)}
-                  </th>
-                  <th className="py-2 text-start font-medium">
-                    {translator.translateText(LAST_CHANGED_HEADING)}
-                  </th>
+                  <ResizableHeaderCell
+                    className="py-2 pe-4 text-start font-medium"
+                    resize={serviceColumns.getResize(
+                      "service",
+                      translator.translateText(SERVICE_HEADING) ||
+                        SERVICE_HEADING,
+                      ColumnWidthKind.Name,
+                    )}
+                  >
+                    <span>{translator.translateText(SERVICE_HEADING)}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="py-2 pe-4 text-start font-medium"
+                    resize={serviceColumns.getResize(
+                      "version",
+                      translator.translateText(VERSION_HEADING) ||
+                        VERSION_HEADING,
+                      ColumnWidthKind.Text,
+                    )}
+                  >
+                    <span>{translator.translateText(VERSION_HEADING)}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="py-2 pe-4 text-end font-medium"
+                    resize={serviceColumns.getResize(
+                      "count",
+                      translator.translateText(COUNT_HEADING) || COUNT_HEADING,
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>{translator.translateText(COUNT_HEADING)}</span>
+                  </ResizableHeaderCell>
+                  <ResizableHeaderCell
+                    className="py-2 text-start font-medium"
+                    resize={serviceColumns.getResize(
+                      "lastChanged",
+                      translator.translateText(LAST_CHANGED_HEADING) ||
+                        LAST_CHANGED_HEADING,
+                      ColumnWidthKind.Whole,
+                    )}
+                  >
+                    <span>
+                      {translator.translateText(LAST_CHANGED_HEADING)}
+                    </span>
+                  </ResizableHeaderCell>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -156,7 +214,9 @@ const ScrubRuleValueCountCell: FunctionComponent<ComponentProps> = (
                             translator.translateText(NO_VERSION)}
                         </td>
                         <td className="py-2 pe-4 text-end tabular-nums text-gray-900">
-                          {service.valueCount.toLocaleString()}
+                          {service.valueCount.toLocaleString(
+                            getReaderNumberLocale(),
+                          )}
                         </td>
                         <td className="py-2 text-gray-700">
                           {whenOf(service.lastChangedAt) || <TableEmptyValue />}

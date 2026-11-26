@@ -27,7 +27,7 @@ För ett enskilt projekts egen leverantör, se [SSO](/docs/identity/sso).
 :::steps
 ### Öppna listan över leverantörer
 
-Logga in som master admin och öppna Admin Dashboard med **Admin-inställningar** i användarmenyn. Gå sedan till **Inställningar** > **Enkel inloggning**. Sidan listar instansens SAML-leverantörer, sedan dess OpenID Connect-leverantörer och sist kortet **Kräv SSO**.
+Logga in som master admin och välj **Administratörspanel** i användarmenyn. Gå sedan till **Inställningar** > **Enkel inloggning**. Sidan listar instansens SAML-leverantörer, sedan dess OpenID Connect-leverantörer och sist kortet **Kräv SSO**.
 
 ### Skapa leverantören
 
@@ -90,6 +90,12 @@ Två frågor på leverantören ändrar detta, hopfällda under **Fler fält**. V
 | **Var den här inloggningen räknas som SSO** | **Alla projekt**: projekt som kräver SSO godtar en inloggning med den här leverantören. **Bara anslutna projekt**: inloggning med den här leverantören uppfyller SSO-kravet bara i de projekt som är anslutna till den, så personer som redan är inloggade kan förlora åtkomsten till andra projekt. |
 
 Med **Alla projekt** uppfyller inloggning med leverantören SSO-kravet i alla projekt personen tillhör, och anslutna projekt avgör bara var nya personer läggs till.
+
+## E-postadresser som din identitetsleverantör inte har verifierat
+
+En global OpenID Connect-leverantör hittar kontot som den loggar in utifrån den e-postadress den skickar, precis som ett projekts leverantör, och master admins konton hittas på samma sätt. Därför loggar den inte in någon med en adress som leverantören säger att den inte har verifierat, med ett anspråk `email_verified` som är `false` eller något som varken är true eller false. Annars kunde någon lägga en master admins adress på sitt konto hos leverantören och logga in på hela instansen som hen. En leverantör som skickar `email_verified` som `true`, eller inte skickar det, som Microsoft Entra ID, loggar in folk som förut.
+
+Via authentik 2025.10 och senare loggar ingen in förrän du ändrar dess omfattningsmappning för `email`, och via Keycloak ingen vars adress den inte har verifierat. Vad du ska ändra där, vad som fortfarande loggar in och vad personen ser finns på sidan [SSO](/docs/identity/sso#e-postadresser-som-din-identitetsleverantör-inte-har-verifierat). Master admins med ett lösenord kan logga in med det under tiden, på `/accounts/admin-login` så länge hela instansen kräver SSO.
 
 ## Logga även ut från identitetsleverantören
 
@@ -183,6 +189,10 @@ För en SAML-leverantör är svarets audience inte leverantörens **Issuer (Enti
 Varje svar från din identitetsleverantör loggar in en enda gång, och bara inom några minuter efter att det utfärdades: därefter avvisas det med "SAML response has expired". Logga in igen. Om svaren fortsätter att gå ut, kontrollera klockorna på den här servern och hos din identitetsleverantör.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+OpenID Connect-leverantören skickade `email_verified` som `false`, eller som något som varken är true eller false, så OneUptime loggade inte in någon, inte heller en master admin. Låt verifiera adressen hos din identitetsleverantör, eller markera den som verifierad där, och logga in igen. Se [E-postadresser som din identitetsleverantör inte har verifierat](#e-postadresser-som-din-identitetsleverantör-inte-har-verifierat).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 Hela instansen kräver SSO, och det här var en inloggning med lösenord, passnyckel, en länk via e-post, Google eller Microsoft, eller en registrering. Logga in med en av SSO-knapparna på inloggningssidan i stället. En master admin loggar in med sitt lösenord på `/accounts/admin-login`; för att låta alla logga in med lösenord igen stänger personen av **Kräv SSO för inloggning** på **Enkel inloggning**.
 :::
@@ -193,4 +203,5 @@ Hela instansen kräver SSO, och det här var en inloggning med lösenord, passny
 - [SSO](/docs/identity/sso): Konfigurera ett projekts egen SAML- eller OIDC-leverantör.
 - [SCIM](/docs/identity/scim): Låt din identitetsleverantör lägga till och ta bort personer automatiskt.
 - [Användare, team och behörigheter](/docs/permissions/index): Vad teamen som nya personer går med i låter dem göra.
+- [Hjälp och support](/docs/self-hosted/help-and-support): Berätta för personer som behöver en inbjudan vem de ska fråga.
 :::

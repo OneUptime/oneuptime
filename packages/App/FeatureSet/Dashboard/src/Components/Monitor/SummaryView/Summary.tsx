@@ -325,6 +325,7 @@ const Summary: FunctionComponent<ComponentProps> = (
           isHeartbeatCheckOnSchedule={props.isHeartbeatCheckOnSchedule}
           evaluationSummary={selectedEvaluationSummary}
           probeStatusMonitorResponse={props.probeStatusMonitorResponse}
+          monitorId={props.monitorId}
         />
         {otherEvaluationProbeName ? (
           <p

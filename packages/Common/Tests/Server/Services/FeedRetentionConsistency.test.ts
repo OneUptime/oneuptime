@@ -69,6 +69,12 @@ const CONFIGURATION_FEED_SERVICE_NAMES: ReadonlyArray<string> = [
   "OnCallDutyPolicyScheduleCalendarFeedService",
   "ProjectOnCallCalendarFeedService",
   "ScheduledMaintenanceCalendarFeedService",
+  /*
+   * A project's blocklist feed (#10345): the secret URL its firewalls read
+   * the blocklist from, with its settings. Age-expiring one would cut every
+   * firewall that reads it off the blocklist.
+   */
+  "SecurityBlocklistFeedService",
   "ThreatIntelFeedService",
   "UserOnCallCalendarFeedService",
 ];

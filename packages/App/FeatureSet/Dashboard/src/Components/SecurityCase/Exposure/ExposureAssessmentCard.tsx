@@ -108,6 +108,7 @@ import {
   formatList,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
@@ -141,7 +142,7 @@ const SECTION_CLASS_NAME: string = "space-y-3 border-t border-gray-100 pt-5";
 
 const DOT: ReactElement = (
   <span aria-hidden="true" className="text-gray-400">
-    ·
+    <InlineSeparator markOnly />
   </span>
 );
 

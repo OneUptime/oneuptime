@@ -14,6 +14,7 @@ Os dois usam o mesmo tipo de monitor. O que os separa são os critérios que voc
 - [Enviar um heartbeat](#enviar-um-heartbeat): Pelo curl, cron, Node.js, Python ou Go.
 - [Alertar quando as chamadas param](#marcar-como-offline-se-não-houver-heartbeat-em-10-minutos-um-interruptor-de-homem-morto): Transforme o monitor em um interruptor de homem morto.
 - [Receber alertas](#receber-alertas-de-outro-sistema): Um incidente por alerta do Alertmanager ou do Grafana.
+- [Publicar no Slack sem acionar ninguém](#publicar-no-slack-sem-acionar-ninguém): Avisar um canal e acionar o plantão só fora do expediente.
 - [Assinar o SNS ou o Event Grid](#assinar-o-amazon-sns-ou-o-azure-event-grid): Confirme a assinatura com um clique.
 :::
 
@@ -347,16 +348,16 @@ flowchart TB
 
 :::steps
 1. Abra o critério e expanda **Configurações**.
-2. Ligue **Group incidents and alerts by a payload field**.
-3. Preencha **Open a separate incident for each…**. Para que cada incidente se resolva sozinho, preencha também o campo e o valor em **Auto-resolve each incident when…** (abaixo). Depois, salve o monitor.
+2. Ligue **Agrupar incidentes e alertas por um campo da carga útil**.
+3. Preencha **Abrir um incidente separado para cada…**. Para que cada incidente se resolva sozinho, preencha também o campo e o valor em **Resolver automaticamente cada incidente quando…** (abaixo). Depois, salve o monitor.
 :::
 
 | Campo | Exemplo | O que faz |
 | ---------------------------------- | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Open a separate incident for each… | `requestBody.alerts[*].labels.alertname` | O caminho cujos valores distintos separam os incidentes |
-| Field that signals recovery | `requestBody.alerts[*].status` | O caminho verificado para decidir que um alerta se recuperou |
-| Value that means recovered | `resolved` | O valor exato que marca a recuperação |
-| Max incidents per request | `100` (padrão) | Limite de segurança para que um campo com muitos valores não abra incidentes sem limite |
+| Abrir um incidente separado para cada… | `requestBody.alerts[*].labels.alertname` | O caminho cujos valores distintos separam os incidentes |
+| Campo que sinaliza a recuperação | `requestBody.alerts[*].status` | O caminho verificado para decidir que um alerta se recuperou |
+| Valor que significa recuperado | `resolved` | O valor exato que marca a recuperação |
+| Máximo de incidentes por requisição | `100` (padrão) | Limite de segurança para que um campo com muitos valores não abra incidentes sem limite |
 
 O agrupamento pertence ao critério em que está ligado. Os outros critérios do monitor não agrupam: quando um deles corresponde a uma solicitação, abre o seu incidente e o seu alerta como faria em um monitor em que nenhum critério agrupa.
 
@@ -383,20 +384,20 @@ O cartão **Resumo do monitor** na **Visão geral** do monitor mostra o que cada
 
 Um webhook descreve apenas o que está naquele payload, então o OneUptime nunca resolve um incidente porque a chave dele deixou de aparecer. Um incidente só é resolvido quando um payload diz explicitamente que aquela chave se recuperou. As duas coisas precisam ser verdadeiras:
 
-1. **Field that signals recovery** e **Value that means recovered** estão definidos e correspondem ao payload. A comparação é exata e diferencia maiúsculas de minúsculas: `Resolved` não corresponde a `resolved`.
+1. **Campo que sinaliza a recuperação** e **Valor que significa recuperado** estão definidos e correspondem ao payload. A comparação é exata e diferencia maiúsculas de minúsculas: `Resolved` não corresponde a `resolved`.
 2. O incidente do critério tem **Resolver incidente automaticamente** ligado, em **Mais campos** no formulário do incidente. Sem isso, os eventos de recuperação correspondentes são ignorados e os incidentes ficam abertos. (O mesmo vale para alertas e **Resolver alerta automaticamente**.) O critério offline padrão já começa com isso ligado; um incidente que você mesmo adiciona a um critério começa com a opção desligada.
 
-Um alerta que você mesmo adiciona a um critério também começa com **Resolver alerta automaticamente** desligado, então uma recuperação deixa o alerta aberto até que a opção seja ligada. **Auto-resolve each incident when…** mostra quais incidentes e alertas do critério uma recuperação resolve e nomeia cada um que ela deixaria aberto, com um botão que liga a opção correspondente. O cartão **Resumo do monitor** na **Visão geral** do monitor nomeia cada incidente e alerta que uma recuperação deixou aberto, e o motivo.
+Um alerta que você mesmo adiciona a um critério também começa com **Resolver alerta automaticamente** desligado, então uma recuperação deixa o alerta aberto até que a opção seja ligada. **Resolver automaticamente cada incidente quando…** mostra quais incidentes e alertas do critério uma recuperação resolve e nomeia cada um que ela deixaria aberto, com um botão que liga a opção correspondente. O cartão **Resumo do monitor** na **Visão geral** do monitor nomeia cada incidente e alerta que uma recuperação deixou aberto, e o motivo.
 
-Uma recuperação resolve apenas os incidentes e alertas do critério que a lê: aquele cujos **Field that signals recovery** e **Value that means recovered** correspondem ao payload. Os incidentes e alertas de outro critério para o mesmo valor continuam abertos, e os de um critério que deixa esses campos em branco são resolvidos manualmente.
+Uma recuperação resolve apenas os incidentes e alertas do critério que a lê: aquele cujos **Campo que sinaliza a recuperação** e **Valor que significa recuperado** correspondem ao payload. Os incidentes e alertas de outro critério para o mesmo valor continuam abertos, e os de um critério que deixa esses campos em branco são resolvidos manualmente.
 
-**Max incidents per request** limita a extração, não só a criação. As chaves além do limite também ficam invisíveis para a recuperação, então, em um payload com mais chaves distintas que o limite, um alerta que informe `resolved` além dele não vai fechar o incidente dele.
-
-> [!NOTE]
-> Um monitor com um critério que agrupa por um campo do payload avalia cada requisição que recebe, uma de cada vez e na ordem em que chegaram, então uma rajada de alertas e recuperações abre e resolve o incidente e o alerta de cada valor. Até 1.000 requisições, ou 16 MB delas, esperam para ser avaliadas; além disso, as mais antigas em espera são puladas, e o cartão **Resumo do monitor** diz quantas. Um monitor sem agrupamento avalia apenas a mais recente das requisições que o esperam.
+**Máximo de incidentes por requisição** limita a extração, não só a criação. As chaves além do limite também ficam invisíveis para a recuperação, então, em um payload com mais chaves distintas que o limite, um alerta que informe `resolved` além dele não vai fechar o incidente dele.
 
 > [!NOTE]
-> Se **Field that signals recovery** contém `[*]` mas **Open a separate incident for each…** não, uma solicitação só se recuperou quando todos os elementos daquele array dizem isso. Com `requestBody.alerts[*].status` e `resolved`, um incidente agrupado por `requestBody.groupLabels.alertname` é resolvido quando todos os alertas de uma solicitação estão resolvidos, e continua aberto enquanto algum ainda estiver disparado.
+> Um monitor com um critério que agrupa por um campo do payload avalia cada requisição que recebe, uma de cada vez e na ordem em que chegaram, então uma rajada de alertas e recuperações abre e resolve o incidente e o alerta de cada valor. Até 1.000 requisições, ou 16 MB delas, esperam para ser avaliadas; além disso, as mais antigas em espera são puladas, e o cartão **Resumo do monitor** diz quantas. Ele também indica o limite atingido, e uma instalação auto-hospedada pode alterar os dois: veja [Notas para instalações auto-hospedadas](#notas-para-instalações-auto-hospedadas). Um monitor sem agrupamento avalia apenas a mais recente das requisições que o esperam.
+
+> [!NOTE]
+> Se **Campo que sinaliza a recuperação** contém `[*]` mas **Abrir um incidente separado para cada…** não, uma solicitação só se recuperou quando todos os elementos daquele array dizem isso. Com `requestBody.alerts[*].status` e `resolved`, um incidente agrupado por `requestBody.groupLabels.alertname` é resolvido quando todos os alertas de uma solicitação estão resolvidos, e continua aberto enquanto algum ainda estiver disparado.
 
 > [!WARNING]
 > Um caminho de recuperação sem `[*]` é avaliado no payload inteiro, então um `status: resolved` no nível do payload resolve todas as chaves daquele payload, inclusive alertas cujo próprio status ainda está disparado.
@@ -421,6 +422,32 @@ O payload completo fica disponível ao lado dela, então funcionam tanto um tít
 ### Exemplo completo
 
 Para uma configuração completa do Alertmanager, veja [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Para o Grafana, veja [Grafana](/docs/integrations/grafana).
+
+## Publicar no Slack sem acionar ninguém
+
+Um ambiente de staging, ou um produto cujos problemas podem esperar, pode querer que uma requisição seja publicada em um canal de chat sem acionar ninguém. Um alerta que não nomeia nenhuma política de plantão faz isso: ele é publicado no Slack, Microsoft Teams ou Mattermost pelas regras de espaço de trabalho do projeto e não inicia nenhuma escalação.
+
+:::steps
+1. Abra o critério e, em **Ações**, ative **Quando os filtros corresponderem, criar um alerta.** Deixe suas **Políticas de plantão** vazias.
+2. Escreva no alerta o que a requisição diz, como `{{requestBody.commonAnnotations.summary}}` na descrição. Veja [Modelos de incidentes e alertas](/docs/monitor/incident-alert-templating).
+3. Em **Alertas → Espaço de trabalho → Slack**, adicione uma regra para os alertas deste monitor e ative **Publicar em canais existentes**. Antes, o Slack precisa estar [conectado ao projeto](/docs/workspace-connections/slack).
+:::
+
+Um alerta que não nomeia nenhuma política de plantão ainda pode acionar alguém pelas regras do projeto. Verifique se nenhuma regra em **Alertas → Regras → Regras de plantão** aciona alguém por esses alertas e se nenhuma regra em **Alertas → Regras → Regras de incidentes** declara um incidente a partir deles.
+
+Para publicar sem criar um alerta, ative apenas **Quando os filtros corresponderem, alterar o status do monitor.** e adicione a regra em **Monitores → Espaço de trabalho → Slack**. O canal fica sabendo então apenas que o status do monitor mudou, sem nada da requisição, e só quando ele muda: novas requisições enquanto o monitor já está nesse status não publicam nada.
+
+### Acionar só fora do expediente
+
+Dois critérios com os mesmos filtros dividem a semana entre si, nesta ordem:
+
+1. O primeiro publica durante o expediente. Em suas **Configurações**, ative **Avaliar este critério apenas em certos dias e horários** e escolha os dias, os horários e o **Fuso horário**. O alerta dele não nomeia nenhuma política de plantão.
+2. O segundo aciona o plantão no resto do tempo. Ele não tem horários, e o alerta dele nomeia sua política de plantão.
+
+O primeiro critério que corresponde a uma requisição decide o que acontece. Fora dos seus horários, o primeiro critério é ignorado, então o segundo corresponde à noite e nos fins de semana, e só então alguém é acionado. Veja [Apenas em certos dias e horários](/docs/monitor/criteria-and-statuses#apenas-em-certos-dias-e-horários).
+
+- Uma requisição é avaliada quando chega, pelos horários daquele momento. Um problema que começa às 16:55 aciona alguém depois das 17:00 só se o remetente o enviar de novo, como o Alertmanager faz uma vez a cada `repeat_interval`.
+- Um alerta com **Resolver alerta automaticamente** ativado é resolvido quando uma requisição corresponde a outro critério. A primeira requisição depois que o expediente começa corresponde ao primeiro critério, então resolve o alerta da noite e abre um que não aciona ninguém. Deixe **Resolver alerta automaticamente** desativado no alerta do segundo critério para mantê-lo aberto até alguém resolvê-lo.
 
 ## Serviços que verificam a URL primeiro
 
@@ -521,6 +548,18 @@ Clique em **Confirmar assinatura** no cartão **Resumo do monitor** na **Visão 
 :::details O remetente recebe 500
 A requisição diz `Content-Type: application/json`, mas o corpo dela não é um objeto nem um array JSON. Envie um JSON válido, ou um tipo de conteúdo diferente.
 :::
+
+## Notas para instalações auto-hospedadas
+
+Um monitor que agrupa por um campo do payload mantém cada requisição no Valkey até chegar a sua vez. Em uma instalação auto-hospedada, três configurações limitam isso. Com Docker Compose, defina-as em `config.env`; com Helm, em `incomingRequests` nos valores do chart, que dá as mesmas aos pods do app e dos workers:
+
+| Configuração | Valor do Helm | Padrão | Intervalo | O que limita |
+| --- | --- | --- | --- | --- |
+| `INCOMING_REQUEST_MAX_PENDING_REQUESTS_PER_MONITOR` | `incomingRequests.maxPendingRequestsPerMonitor` | `1000` | `10` a `100000` | As requisições que um monitor mantém em espera. Além disso, as mais antigas em espera são puladas. |
+| `INCOMING_REQUEST_MAX_PENDING_MEGABYTES_PER_MONITOR` | `incomingRequests.maxPendingMegabytesPerMonitor` | `16` | `1` a `512` | Os megabytes de requisições que um monitor mantém em espera. Além disso, as mais antigas em espera são puladas. |
+| `INCOMING_REQUEST_MAX_REQUESTS_PER_JOB` | `incomingRequests.maxRequestsPerJob` | `100` | `1` a `1000` | As requisições que um job avalia antes de o job do monitor voltar à fila, atrás de cada job que já espera. |
+
+Aumente as duas primeiras para remetentes que enviam rajadas mais fortes, como um switch de núcleo que cai e dispara milhares de alertas de uma vez, e diminua a segunda para um Valkey pequeno. Quando requisições são puladas, o cartão **Resumo do monitor** diz qual limite foi atingido. Um valor que não é um número inteiro dentro do seu intervalo não é usado: o padrão é, e o app registra um aviso que nomeia a configuração.
 
 ## Próximos passos
 

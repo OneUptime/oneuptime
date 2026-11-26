@@ -376,25 +376,8 @@ export function downloadMarkdown(data: {
   });
 }
 
-// A document's Markdown as a PDF: the engine is fetched only now, when someone exports.
-export async function downloadMarkdownPdf(data: {
-  title: string;
-  markdown: string;
-  label: string;
-  exportedAt: Date;
-}): Promise<void> {
-  const { buildMarkdownPdf } = await import("./CompliancePaperworkPdf");
-  const blob: Blob = await buildMarkdownPdf({
-    title: data.title,
-    markdown: data.markdown,
-  });
-
-  downloadFile({
-    content: blob,
-    filename: getExportFilename({
-      label: data.label,
-      extension: "pdf",
-      exportedAt: data.exportedAt,
-    }),
-  });
-}
+/*
+ * The same Markdown as a PDF is CompliancePaperworkPdfDownload's: this
+ * module stays free of the PDF engine, so App's tests, which read its
+ * Markdown, compile without jsPDF, a Dashboard dependency only.
+ */

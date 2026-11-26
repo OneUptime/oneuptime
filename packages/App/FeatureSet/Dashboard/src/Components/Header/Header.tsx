@@ -849,8 +849,8 @@ const DashboardHeader: FunctionComponent<ComponentProps> = (
              * Ask AI, the bell, Help, the profile button.
              *
              * - Search and Help from md (768px). Below md the phone's menu
-             *   carries them both (NavBar's mobileMenuTop and
-             *   mobileMenuBottom, #6816), and that menu is drawn only below
+             *   carries them both, at its top (NavBar's mobileMenuTop,
+             *   #6816, #7473), and that menu is drawn only below
              *   md, so from md the header has to (#7037): between 768 and
              *   1023px they were in neither, and Search, Help, How OneUptime
              *   works and the Glossary could not be reached at all on a

@@ -227,6 +227,8 @@ La finalità di ciascuno è «Sicurezza delle reti e dell'informazione (consider
 
 Un archivio è elencato finché il tuo progetto ne conserva i dati: la cassaforte degli indirizzi, finché una regola di indirizzo IP attiva applica l'hash ai log o alle tracce che legge Eventi di sicurezza, la cassaforte degli utenti, finché lo fa una regola attiva di qualsiasi altro modello, e ciascuna per altri 31 giorni (vedi [Mascherare i dati sensibili](/docs/telemetry/drop-filters-and-scrub-rules#mascherare-i-dati-sensibili)). Quando i suoi dati non ci sono più, l'archivio viene messo tra quelli archiviati, e torna con la tua finalità e la tua conservazione se tornano i dati.
 
+Per cancellare una persona da «Cassaforte utenti di sicurezza», e dagli eventi e dai casi che la nominano tramite esso, invia una richiesta di cancellazione: vedi [Cancellare una persona](/docs/telemetry/security-events#cancellare-una-persona).
+
 ## Valutazioni d'impatto
 
 L'articolo 35 del GDPR richiede una valutazione d'impatto sulla protezione dei dati prima di un trattamento che può presentare un rischio elevato. Sicurezza dei dati indica quali archivi ne hanno bisogno: un archivio che contiene categorie particolari di dati, come i dati sanitari, dati su molte persone (circa 100.000 record o più), o dati che lasciano i paesi dei suoi interessati.

@@ -967,7 +967,7 @@ export const formatDateText: (data: {
     return null;
   }
 
-  const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+  const format: ReaderDateTimeFormat | null = getDateTimeFormat({
     locale: data.locale,
     timezones: data.timezones,
     options: getDateTimeOptions(data.shape),

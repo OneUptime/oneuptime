@@ -19,13 +19,17 @@ import {
   readLogFunction,
 } from "../LogParsers/SecurityLogLine";
 import {
+  RESPONSE_CONTENT_TYPE_KEYS,
+  RESPONSE_SIZE_KEYS,
   WEB_ATTACK_KIND_ATTRIBUTE,
-  WEB_SENSITIVE_FILE_PATH_ATTRIBUTE,
   WEB_ATTACK_MARKERS,
   WEB_HTTP_ACTIVITY_CLASS_UID,
   WebAttackKind,
   buildWebAttackMessage,
+  markSensitiveFileRequest,
+  outcomeForSensitiveFile,
   readWebAttackKind,
+  severityForSensitiveFile,
   severityForWebAttack,
 } from "../LogParsers/WebAttackLogParser";
 import {
@@ -34,7 +38,12 @@ import {
 } from "../RequestOutcome";
 import {
   SENSITIVE_FILE_PROBE_WORDS,
-  readSensitiveFileProbe,
+  SENSITIVE_FILE_SECRET_WORDS,
+  SensitiveFileAnswer,
+  SensitiveFileRequest,
+  readBodySize,
+  readContentType,
+  readSensitiveFileRequest,
 } from "../SensitiveFileProbe";
 import {
   CLIENT_ADDRESS_ATTRIBUTE_KEYS,
@@ -49,8 +58,9 @@ import {
   ScrubbedAddressPlace,
   markClientAddressScrubbed,
 } from "../ScrubbedAddress";
-import { pickEventUser } from "../ScrubbedUser";
+import { locateHashedUserField, pickEventUser } from "../ScrubbedUser";
 import { isSharedScrubPlaceholder } from "../../../Types/Telemetry/ScrubRule";
+import { LlmUserIdAttributeKeys } from "../../../Types/Telemetry/LlmConventions";
 import {
   buildTelemetrySecurityEvent,
   cutTelemetryText,
@@ -66,7 +76,9 @@ import {
  *     nothing about its requests is still covered;
  *   - a request for a well-known sensitive file or admin page - /.env,
  *     /.git/config, /wp-admin - that the app refused or does not have, its
- *     answer a 4xx status (#10745, SensitiveFileProbe);
+ *     answer a 4xx status (#10745, SensitiveFileProbe), or a file that
+ *     holds secrets it answered, read for what it sent: the file itself,
+ *     a leak, or its own page (#10912);
  *   - a request whose URL names a cloud metadata address
  *     (169.254.169.254, metadata.google.internal ...): somebody trying to
  *     make the server fetch its own credentials (server-side request
@@ -171,6 +183,8 @@ export const TRACE_SCAN_ATTRIBUTE_KEYS: {
   userAgent: ReadonlyArray<string>;
   userId: ReadonlyArray<string>;
   serverAddress: ReadonlyArray<string>;
+  responseBodySize: ReadonlyArray<string>;
+  responseContentType: ReadonlyArray<string>;
 } = {
   url: ["url.full", "http.url", "url.original"],
   path: ["url.path", "http.target"],
@@ -192,6 +206,12 @@ export const TRACE_SCAN_ATTRIBUTE_KEYS: {
   userAgent: ["user_agent.original", "http.user_agent"],
   userId: ["enduser.id", "user.id"],
   serverAddress: ["server.address", "net.peer.name", "http.host"],
+  /*
+   * What the answer carried (#10912), when the instrumentation records it:
+   * what tells a sensitive file the app served from its own page.
+   */
+  responseBodySize: RESPONSE_SIZE_KEYS,
+  responseContentType: RESPONSE_CONTENT_TYPE_KEYS,
 };
 
 /*
@@ -222,8 +242,30 @@ export const TRACE_SCAN_ATTRIBUTES_READ: ReadonlyArray<string> = Array.from(
       },
     ),
     ...TRACE_SCAN_OWNER_ATTRIBUTES,
+    /*
+     * The attributes an AI call's user (llmUserId) is copied from, so an
+     * event can say which one held it when a Hash rule hid it (#11045).
+     */
+    ...LlmUserIdAttributeKeys,
   ]),
 );
+
+/*
+ * Where a span held its user, when that is what a Hash rule left
+ * (ScrubbedUser.locateHashedUserField): `attributes.<key>` of the first of
+ * `keys` whose value it is, as the trace scan read it (#11045).
+ */
+export function locateSpanUserField(
+  span: Pick<TraceScanSpan, "attributes">,
+  user: string,
+  keys: ReadonlyArray<string> = TRACE_SCAN_ATTRIBUTE_KEYS.userId,
+): string {
+  return locateHashedUserField({
+    hashed: user,
+    attributes: span.attributes,
+    preferredKeys: keys,
+  });
+}
 
 // The attributes a server span's URL is read from, for the scan's prefilter.
 export const TRACE_SCAN_URL_ATTRIBUTES: ReadonlyArray<string> = [
@@ -251,6 +293,15 @@ export function getTraceScanUrlMarkers(): Array<string> {
  */
 export function getTraceScanSensitiveFileWords(): Array<string> {
   return [...SENSITIVE_FILE_PROBE_WORDS];
+}
+
+/*
+ * The words of a path that holds secrets in a server span's URL (#10912):
+ * read with a 2xx, so a request for /.env the app answered is read for
+ * what it sent - and still never a WordPress site's own admin pages.
+ */
+export function getTraceScanSecretFileWords(): Array<string> {
+  return [...SENSITIVE_FILE_SECRET_WORDS];
 }
 
 export function readTraceAttribute(
@@ -393,6 +444,8 @@ interface SpanRequest {
   scrubbedClientAddress: ScrubbedAddress | null;
   userAgent: string;
   userId: string;
+  // Where the span held its user, when a Hash rule left it (#11045).
+  userField: string;
   route: string;
   outcome: SecurityEventRequestOutcome | undefined;
   attributes: JSONObject;
@@ -497,6 +550,7 @@ function readSpanRequest(
     scrubbedClientAddress,
     userAgent,
     userId,
+    userField: locateSpanUserField(span, userId),
     route,
     outcome: requestOutcomeFromStatusCode(statusCode),
     attributes,
@@ -530,18 +584,37 @@ export function buildTraceWebAttackEvent(
   }
 
   const attackKind: WebAttackKind | null = readWebAttackKind(request.target);
-  const sensitivePath: string | null = attackKind
+  /*
+   * No attack string: a request for a sensitive file, refused or not there
+   * (#10745), or for a file that holds secrets, read for what the app sent
+   * (#10912) - its size and its type, when the span records them.
+   */
+  const response: { bodySize: number | null; contentType: string } = {
+    bodySize: readBodySize(
+      readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.responseBodySize),
+    ),
+    contentType: readContentType(
+      readTraceAttribute(span, TRACE_SCAN_ATTRIBUTE_KEYS.responseContentType),
+    ),
+  };
+  const sensitive: SensitiveFileRequest | null = attackKind
     ? null
-    : readSensitiveFileProbe({
+    : readSensitiveFileRequest({
         target: request.target,
         statusCode: request.statusCode,
+        ...response,
       });
 
-  if (!attackKind && !sensitivePath) {
+  if (!attackKind && !sensitive) {
     return null;
   }
 
   const kind: WebAttackKind = attackKind || WebAttackKind.SensitiveFile;
+  const sensitiveAttributes: JSONObject = {};
+
+  if (sensitive) {
+    markSensitiveFileRequest(sensitiveAttributes, sensitive, response);
+  }
 
   return buildTelemetrySecurityEvent({
     kind: SecurityTelemetrySourceKind.Traces,
@@ -551,27 +624,31 @@ export function buildTraceWebAttackEvent(
     classUid: WEB_HTTP_ACTIVITY_CLASS_UID,
     activityName: request.method,
     statusName: statusNameOf(request.statusCode),
-    severity: severityForWebAttack(kind, request.outcome),
+    severity: sensitive
+      ? severityForSensitiveFile(sensitive.answer)
+      : severityForWebAttack(kind, request.outcome),
     message: buildWebAttackMessage({
       kind,
       method: request.method,
       target: request.target,
       statusCode: request.statusCode,
+      isServed: sensitive?.answer === SensitiveFileAnswer.File,
     }),
     principalIp: request.clientIp,
     principalUser: request.userId,
+    principalUserField: request.userField,
     targetResource: request.target,
     attributes: {
       ...request.attributes,
       [WEB_ATTACK_KIND_ATTRIBUTE]: kind,
-      ...(sensitivePath
-        ? { [WEB_SENSITIVE_FILE_PATH_ATTRIBUTE]: sensitivePath }
-        : {}),
+      ...sensitiveAttributes,
     },
     traceId: span.traceId,
     spanId: span.spanId,
     sessionId: span.sessionId,
-    requestOutcome: request.outcome,
+    requestOutcome: sensitive
+      ? outcomeForSensitiveFile(sensitive.answer, request.outcome)
+      : request.outcome,
     resourceId: span.serviceId,
     resourceType: span.serviceType,
   });
@@ -619,6 +696,7 @@ export function buildTraceSsrfEvent(
     }`,
     principalIp: request.clientIp,
     principalUser: request.userId,
+    principalUserField: request.userField,
     targetHost: marker.startsWith("%") ? "169.254.169.254" : marker,
     targetResource: request.target,
     attributes: {
@@ -753,6 +831,14 @@ export function buildPromptInjectionEvent(
     severity: OcsfSeverity.Medium,
     message: `Prompt injection attempt${model ? ` on ${model}` : ""}: "${excerpt}"`,
     principalUser: userId,
+    /*
+     * The AI call's user is copied from the first of its user attributes
+     * (LlmSpan): that one, as the column was, else the request's.
+     */
+    principalUserField: locateSpanUserField(span, userId, [
+      ...LlmUserIdAttributeKeys,
+      ...TRACE_SCAN_ATTRIBUTE_KEYS.userId,
+    ]),
     targetResource: model,
     attributes,
     traceId: span.traceId,

@@ -376,8 +376,9 @@ export default class DataSecurityButtons {
       issueId: data.issueId,
     });
 
+    // A service's telemetry issue, or a RUM application's front-end one (#10933).
     if (
-      await TelemetryLeakFix.serviceOfIssue({
+      await TelemetryLeakFix.ownerOfIssue({
         projectId: data.projectId,
         issue,
       })

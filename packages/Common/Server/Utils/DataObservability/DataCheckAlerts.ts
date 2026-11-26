@@ -1,3 +1,4 @@
+import { getNumbersTakenNameData } from "../../../Types/Database/RequiredUniqueNames";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
@@ -139,6 +140,8 @@ export default class DataCheckAlerts {
       await MonitorService.updateOneById({
         id: liveMonitorId,
         data: { name: monitorName, monitorSteps: steps } as never,
+        // A name OneUptime picked: numbered, not refused, if it is taken.
+        miscDataProps: getNumbersTakenNameData(),
         props: data.props,
       });
 
@@ -154,6 +157,8 @@ export default class DataCheckAlerts {
 
     const created: Monitor = await MonitorService.create({
       data: monitor,
+      // A name OneUptime picked: numbered, not refused, if it is taken.
+      miscDataProps: getNumbersTakenNameData(),
       props: data.props,
     });
 

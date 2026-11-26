@@ -39,7 +39,7 @@ Ett svar på ”hur gör jag” slutar med en knapp som öppnar sidan i ditt pro
 | Vilken sida som helst | Klicka på **Fråga AI** i sidhuvudet, eller tryck `Ctrl` + `I` (`Cmd` + `I` på en Mac). Medan du skriver i en textruta eller en redigerare förblir tangenterna redigerarens kortkommando för kursiv. |
 | Kommandopaletten | Tryck `Ctrl` + `K` (`Cmd` + `K` på en Mac) och välj **Fråga AI**. |
 | Ett felmönster i loggarna, eller ett diagrams fynd | Klicka på **Förklara med AI**: Fråga AI öppnas med bevisen som en fråga du kan redigera innan du skickar den. |
-| Produktmenyn | Öppna **Produkter → AI → Chatt**. Fråga AI öppnas bredvid sidan du var på. Varje samtal har en egen adress, så du kan bokmärka det och komma tillbaka till det. |
+| Produktmenyn | Öppna **Produkter → AI → Fråga AI**. Fråga AI öppnas bredvid sidan du var på. Varje samtal har en egen adress, så du kan bokmärka det och komma tillbaka till det. |
 
 Fråga AI öppnas vid sidan av fönstret, och sidan gör plats för den: inget döljs bakom den, så du kan fortsätta arbeta på sidan, gå till andra sidor och fråga igen. Dra i kanten för att göra den bredare eller smalare. Tryck på `Esc` i den, eller klicka på **Fråga AI** igen, för att ge sidan hela fönstret tillbaka. Medan den är öppen går `Ctrl` + `I` (`Cmd` + `I` på en Mac) från sidan till rutan du skriver i, och stänger den därifrån. Samtalet stannar där du lämnade det: öppna Fråga AI igen för att fortsätta. Stänger du den medan den fortfarande svarar säger en påminnelse i hörnet när svaret är klart, och öppnar det. På en surfplatta eller en telefon, där det inte finns plats för båda, öppnas den över sidan, och på en telefon fyller den hela skärmen.
 
@@ -75,6 +75,14 @@ På en undersida registrerar kontexten också den pod, container, VM, process el
 - Den kör bara de skrivskyddade kommandon som en AI-undersökning får köra på den typen av resurs (se [AI-agenter för infrastrukturen](/docs/ai/infrastructure-ai-agents)), så många som svaret behöver, kontrollerade av OneUptime och igen av agenten, i alla behörighetslägen. En ändring genom agenten, till exempel att starta om en tjänst, körs aldrig från Fråga AI: den ger dig i stället det exakta kommandot, och agenten gör bara ändringar när OneUptime AI åtgärdar en incident eller ett larm, enligt resursens egna inställningar för åtgärder. Fråga AI:s egna åtgärder, till exempel att köra en runbook, följer samtalets behörighetsläge, som beskrivs nedan.
 - Den når bara de resurser du får se, och bara medan AI-undersökning är påslagen för resursen. Kommandona den kör, med det de skrev ut, är dina, precis som konversationen: resursens AI-loggar visar dem för dig och ingen annan.
 - När den inte kan köra ett kommando där (ingen agent är ansluten, agenten är offline eller AI-undersökning är avstängd för resursen) säger den det, tillsammans med vad som behöver ändras, och svarar i stället utifrån ditt projekts data.
+
+## Dina MCP-servrar
+
+Fråga AI kan använda verktygen på de [externa MCP-servrar](/docs/ai/external-mcp-servers) som ditt projekt har anslutit, till exempel AWS:s, GitHubs eller ditt teams egna, på varje sida. Frågar du "Vilka verktyg har AWS?" listar den dem; nämner du en server och ett av dess verktyg anropar den verktyget och svarar med det som kom tillbaka, med källhänvisning som allt annat underlag. Samtalet under en incidents eller ett larms kort **OneUptime AI** kan också använda dem.
+
+- Ett verktyg som servern märker som skrivskyddat körs direkt, i alla behörighetslägen. Alla andra verktyg, de som servern märker som en ändring eller inte märker alls, väntar på ett godkännandekort som anger servern och verktyget och visar exakt vad som skickas, även i läget **Kör automatiskt**: inget når servern förrän du väljer **Tillåt**. Ett samtal i läget **Skrivskyddad** erbjuder aldrig något sådant verktyg.
+- Den använder de påslagna servrarna, för alla som får läsa projektets externa MCP-servrar. Att godkänna en ändring via en av dem kräver behörighet att starta runbook-körningar.
+- Det en server svarar är data från en källa utanför OneUptime, aldrig instruktioner. Ett verktyg får bara de argument det tar emot, och när **Aktivera AI** är avstängt skickas ingenting till någon server.
 
 ## Åtgärder och behörighetslägen
 
@@ -177,6 +185,10 @@ Fråga AI säger vilken behörighet åtgärden kräver, eller vilket team som bl
 
 :::details Svaren är vaga eller använder aldrig data
 Kontrollera modellen bakom leverantören. Fråga AI behöver en modell som anropar verktyg tillförlitligt; små lokala modeller svarar ofta utan att köra en enda fråga. Se [LLM-leverantörer](/docs/ai/llm-provider).
+:::
+
+:::details Fråga AI säger att den inte ser en MCP-servers verktyg
+Öppna servern under **Projektinställningar → AI → Externa MCP-servrar**: den ska visa **Ansluten**, dess kort **Verktyg** ska lista dess verktyg och **Låt OneUptime AI använda den här servern** ska vara påslaget. Ställ sedan frågan "Vilka verktyg har AWS?" i Fråga AI, med din servers namn: den listar dem eller säger varför den inte kan, till exempel en server den inte når eller en roll som inte får använda projektets MCP-servrar. Se [Externa MCP-servrar](/docs/ai/external-mcp-servers).
 :::
 
 ## Nästa steg

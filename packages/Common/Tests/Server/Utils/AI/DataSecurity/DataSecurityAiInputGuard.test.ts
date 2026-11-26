@@ -724,13 +724,15 @@ describe("A: every Data Security AI feature is listed, with the file that makes 
       (file: SourceFile): boolean => {
         return (
           DATA_SECURITY_FILE.test(file.file) &&
-          ["start", "startForOneUptime"].some((method: string): boolean => {
-            return findCalls(file, method).some(
-              (call: ts.CallExpression): boolean => {
-                return receiverOf(call, file.source) === "CodeTaskRuns";
-              },
-            );
-          })
+          ["start", "startForOneUptime", "startForDataSecurityIssue"].some(
+            (method: string): boolean => {
+              return findCalls(file, method).some(
+                (call: ts.CallExpression): boolean => {
+                  return receiverOf(call, file.source) === "CodeTaskRuns";
+                },
+              );
+            },
+          )
         );
       },
     ).map((file: SourceFile): string => {

@@ -94,6 +94,25 @@ interface CatalogMetric {
 interface Catalog {
   file: string;
   metrics: Array<CatalogMetric>;
+  /*
+   * The files that hold its words, when the catalog file does not: the
+   * storage array catalog reads each platform's own (#11000).
+   */
+  wordFiles?: Array<string>;
+}
+
+// Every file under a directory of the repository, by its repository path.
+function filesUnder(directory: string): Array<string> {
+  return fs
+    .readdirSync(path.join(REPOSITORY_ROOT, directory), { withFileTypes: true })
+    .flatMap((entry: fs.Dirent): Array<string> => {
+      const child: string = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) {
+        return filesUnder(child);
+      }
+      return entry.name.endsWith(".ts") ? [child] : [];
+    })
+    .sort();
 }
 
 const CATALOGS: ReadonlyArray<Catalog> = [
@@ -113,6 +132,7 @@ const CATALOGS: ReadonlyArray<Catalog> = [
   {
     file: "StorageArrayMetricCatalog.ts",
     metrics: getAllStorageArrayMetrics(),
+    wordFiles: filesUnder("packages/Common/Types/StorageArray/Platforms"),
   },
   { file: "VMwareMetricCatalog.ts", metrics: getAllVMwareMetrics() },
 ];
@@ -493,14 +513,18 @@ describe("a monitor metric catalog's descriptions are keys", () => {
     const unmarked: Array<string> = [];
 
     for (const catalog of CATALOGS) {
-      const file: string = repositoryPathOf(catalog);
+      const files: Array<string> = catalog.wordFiles || [
+        repositoryPathOf(catalog),
+      ];
       const marked: Set<string> = new Set<string>(
-        scanSourceText(
-          file,
-          fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"),
-          { kind: "keys" },
-        ).strings.map((entry: ExtractedString): string => {
-          return entry.text;
+        files.flatMap((file: string): Array<string> => {
+          return scanSourceText(
+            file,
+            fs.readFileSync(path.join(REPOSITORY_ROOT, file), "utf8"),
+            { kind: "keys" },
+          ).strings.map((entry: ExtractedString): string => {
+            return entry.text;
+          });
         }),
       );
       const texts: Array<string> = catalog.metrics.map(

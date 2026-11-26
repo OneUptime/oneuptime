@@ -111,7 +111,7 @@ Schalten Sie beim zweiten **Nur erholen, wenn eine eigene Bedingung erfüllt ist
 
 ### Eine Prüfung mit der vorherigen vergleichen
 
-**Vorherige Prüfung** vergleicht jede Prüfung mit der vorherigen Prüfung derselben Sonde, bei der Belegung eines Datenträgers auch desselben Datenträgers. **Für die letzten** gibt an, wie lange diese Prüfung zurückliegen darf; wählen Sie den Zeitraum daher länger als das Überwachungsintervall. Angeboten wird es für dieselben Filter wie **Anzahl**.
+**Vorherige Prüfung** vergleicht jede Prüfung mit der vorherigen Prüfung derselben Sonde, bei der Belegung eines Datenträgers auch desselben Datenträgers. **Für die letzten** gibt an, wie lange diese Prüfung zurückliegen darf; wählen Sie den Zeitraum daher länger als das Überwachungsintervall. Angeboten wird es für dieselben Filter wie **Anzahl**. Außerdem wird es für **DNS-Eintragswert** angeboten, wo es die ganze DNS-Antwort mit der der vorherigen Prüfung vergleicht, mit **Ungleich** oder **Gleich**: siehe [Wenn sich die DNS-Antwort ändert](/docs/monitor/dns-monitor#wenn-sich-die-dns-antwort-ändert).
 
 Ein gemessener Wert, etwa eine Antwortzeit, trifft zu, wenn er um mehr als die unter **Änderung gegenüber der vorherigen Prüfung** eingestellte Änderung über der vorherigen Prüfung liegt (mit **Größer als**) oder darunter (mit **Kleiner als**). Die Änderung ist ein **Wert in der Einheit der Prüfung**, etwa 200 ms, oder ein **Prozent der vorherigen Prüfung**, etwa 50 %, und 0 trifft bei jedem Anstieg oder Rückgang zu. **Gleich** und **Ungleich** vergleichen mit dem vorherigen Wert selbst.
 
@@ -218,6 +218,8 @@ Geheimnisse und personenbezogene Daten werden maskiert, bevor etwas behalten wir
 ## Wie lange jede Prüfung dauert
 
 Die Auswertungszusammenfassung jeder Prüfung, unter **Zusammenfassung anzeigen** auf der Seite **Überwachungsprotokolle** des Monitors und für die letzte Prüfung auf seiner **Übersicht**, sagt, wann die Prüfung ausgewertet wurde, wie lange ihre Auswertung dauerte und, bei einem Monitor, der jeden Host, jeden Container oder jede Gruppe für sich beurteilt, wie viele Reihen sie beurteilt hat. Die Zeit läuft ab dem Moment, in dem OneUptime begann, die Daten der Prüfung zu lesen, bis es das Protokoll der Prüfung schrieb: das Lesen der Daten, das Beurteilen der Kriterien und das Öffnen von Vorfällen und Warnungen.
+
+In den **Überwachungsprotokolle** zeigt die Spalte **Prüfdauer**, wie lange jede Prüfung dauerte, und markiert langsame Prüfungen. Ein Strich bedeutet, dass die Prüfdauer nicht aufgezeichnet wurde.
 
 Wenn eine Auswertung für ihren Monitor zu lange dauert, warnt Sie ihre Zusammenfassung. Zu lange ist mehr als ein Zehntel der Zeit zwischen den Prüfungen des Monitors, nie weniger als 5 Sekunden und nie mehr als eine Minute:
 

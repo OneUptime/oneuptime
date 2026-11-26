@@ -13,6 +13,7 @@ import {
 } from "../../../Server/Utils/AI/ResourceAccess/ResourceAccessToolNames";
 import {
   CALL_MCP_TOOL_TOOL_NAME,
+  CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
   LIST_MCP_TOOLS_TOOL_NAME,
 } from "../../../Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import {
@@ -76,6 +77,7 @@ const EXTRA_TOOL_NAME_CONSTANTS: Record<string, string> = {
   LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
   LIST_MCP_TOOLS_TOOL_NAME,
   CALL_MCP_TOOL_TOOL_NAME,
+  CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
   ROLL_BACK_CHANGE_TOOL_NAME,
   READ_TOOL_OUTPUT_TOOL_NAME,
   EXPLAIN_NO_FIX_TOOL_NAME,
@@ -188,6 +190,8 @@ describe("every tool a run can call is checked", () => {
         LIST_INFRASTRUCTURE_ACCESS_TOOL_NAME,
         LIST_MCP_TOOLS_TOOL_NAME,
         CALL_MCP_TOOL_TOOL_NAME,
+        // Ask AI's and a conversation's MCP change, once approved (#10879).
+        CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME,
         ROLL_BACK_CHANGE_TOOL_NAME,
         READ_TOOL_OUTPUT_TOOL_NAME,
         "list_command_targets",

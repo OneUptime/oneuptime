@@ -111,7 +111,7 @@ Para el segundo, active **Recuperarse solo cuando se cumpla una condición propi
 
 ### Comparar una comprobación con la anterior
 
-**Comprobación anterior** compara cada comprobación con la comprobación anterior de la misma sonda, y del mismo disco para el uso de un disco. **En el último período de** indica cuánto tiempo atrás puede estar esa comprobación, así que hazlo más largo que el intervalo de monitorización. Se ofrece para los mismos filtros que **Recuento**.
+**Comprobación anterior** compara cada comprobación con la comprobación anterior de la misma sonda, y del mismo disco para el uso de un disco. **En el último período de** indica cuánto tiempo atrás puede estar esa comprobación, así que hazlo más largo que el intervalo de monitorización. Se ofrece para los mismos filtros que **Recuento**. También se ofrece para **Valor del registro DNS**, donde compara la respuesta DNS entera con la de la comprobación anterior, con **Distinto de** o **Igual a**: consulte [Cuando cambia la respuesta DNS](/docs/monitor/dns-monitor#cuando-cambia-la-respuesta-dns).
 
 Un valor medido, como un tiempo de respuesta, coincide cuando supera la comprobación anterior en más que el cambio definido en **Cambio respecto a la comprobación anterior**, con **Mayor que**, o queda por debajo en más que ese cambio, con **Menor que**. El cambio es un **Valor en la unidad de la comprobación**, como 200 ms, o un **Porcentaje de la comprobación anterior**, como 50 %, y 0 coincide con cualquier subida o bajada. **Igual a** y **Distinto de** comparan con el propio valor anterior.
 
@@ -218,6 +218,8 @@ Los secretos y los datos personales se enmascaran antes de conservar nada: encab
 ## Cuánto tarda cada comprobación
 
 El resumen de evaluación de cada comprobación, en **Ver resumen** dentro de los **Registros de monitoreo** del monitor y, para la última comprobación, en su **Vista general**, indica cuándo se evaluó la comprobación, cuánto tardó su evaluación y, en un monitor que juzga cada host, contenedor o grupo por separado, cuántas series evaluó. El tiempo va desde que OneUptime empezó a leer los datos que la comprobación juzga hasta que escribió su registro: la lectura de los datos, la evaluación de los criterios y la apertura de incidentes y alertas.
+
+En **Registros de monitoreo**, la columna **Duración de la comprobación** muestra cuánto tardó cada comprobación y marca las comprobaciones lentas. Un guion indica que no se registró su duración.
 
 Cuando una evaluación tarda demasiado para su monitor, su resumen le avisa. Demasiado es más de una décima parte del tiempo entre las comprobaciones del monitor, nunca menos de 5 segundos y nunca más de un minuto:
 

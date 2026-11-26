@@ -1,11 +1,13 @@
 import ProductionReviewComposer, {
   fenceFor,
   getSensitiveDataPostingOf,
+  LineSuggestionFormat,
   PRODUCTION_REVIEW_CHECK_TITLES,
   ProductionReviewCheckRunText,
   ProductionReviewCommentInput,
   suggestionDiff,
 } from "../../../../../Server/Utils/CodeRepository/ProductionReview/ProductionReviewComposer";
+import { DataStoreExposure } from "../../../../../Types/DataSecurity/DataStorePosture";
 import GitHubCommandParser from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCommandParser";
 import { GitHubCheckConclusion } from "../../../../../Server/Utils/CodeRepository/GitHub/GitHubCheckRuns";
 import { GitHubCommandSurface } from "../../../../../Types/CodeRepository/GitHubCommand";
@@ -19,6 +21,7 @@ import {
 import {
   ProductionReviewLeakJSON,
   ProductionReviewSensitiveDataJSON,
+  SensitiveDataColumn,
   SensitiveDataLeakKind,
   SensitiveDataPosting,
   SensitiveDataSink,
@@ -547,5 +550,396 @@ describe("words from a pull request are text", () => {
     expect(comment).not.toMatch(/(^|[^`])@octocat/);
     expect(comment).not.toContain("https://evil.example");
     expect(comment).not.toContain("www.evil.example");
+  });
+});
+
+/*
+ * A SUGGESTED CHANGE ON ITS LINE, IN EACH HOST'S OWN WORDS (#10777): a
+ * block its author can apply on GitHub, on GitLab (`suggestion:-0+0`, the
+ * line the thread is on) and on Forgejo from 18 - and, on Gitea and an
+ * older Forgejo, which apply none, the change as a diff to make by hand.
+ */
+describe("a suggested change, in each host's own syntax (#10777)", () => {
+  test("GitLab's names the line the thread is on", () => {
+    const suggestion: string = ProductionReviewComposer.composeSuggestion(
+      telemetryPoint(),
+      LineSuggestionFormat.GitLabSuggestion,
+    );
+
+    expect(suggestion).toContain("**Sensitive data** · Email address");
+    expect(suggestion).toContain("Writes an email address to a log");
+    expect(suggestion).toContain("Fix: Leave `email` out");
+    expect(suggestion).toContain(
+      '```suggestion:-0+0\n  logger.info("signup");\n```',
+    );
+    expect(suggestion).not.toContain("```suggestion\n");
+  });
+
+  test("GitHub's and Forgejo's: a suggestion block, the default", () => {
+    expect(
+      ProductionReviewComposer.composeSuggestion(
+        telemetryPoint(),
+        LineSuggestionFormat.Suggestion,
+      ),
+    ).toBe(ProductionReviewComposer.composeSuggestion(telemetryPoint()));
+  });
+
+  test("where the host applies none: the line as it is and as it would be, as a diff", () => {
+    const suggestion: string = ProductionReviewComposer.composeSuggestion(
+      telemetryPoint(),
+      LineSuggestionFormat.Diff,
+    );
+
+    expect(suggestion).toContain(
+      '```diff\n-   logger.info("signup", { email });\n+   logger.info("signup");\n```',
+    );
+    expect(suggestion).not.toContain("```suggestion");
+    expect(suggestion).toContain("Fix: Leave `email` out");
+  });
+
+  test("a change that removes the line: an empty block, or only the line removed", () => {
+    const removes: ProductionReviewLeakJSON = telemetryPoint({
+      suggestion: {
+        startLine: 11,
+        endLine: 11,
+        original: ['  logger.info("signup", { email });'],
+        replacement: [],
+        isByAi: true,
+      },
+    });
+
+    expect(
+      ProductionReviewComposer.composeSuggestion(
+        removes,
+        LineSuggestionFormat.GitLabSuggestion,
+      ),
+    ).toContain("```suggestion:-0+0\n```");
+    expect(
+      ProductionReviewComposer.composeSuggestion(
+        removes,
+        LineSuggestionFormat.Diff,
+      ),
+    ).toContain('```diff\n-   logger.info("signup", { email });\n```');
+  });
+
+  test("code that holds backticks gets a fence it cannot close, in GitLab's block too", () => {
+    const suggestion: string = ProductionReviewComposer.composeSuggestion(
+      telemetryPoint({
+        suggestion: {
+          startLine: 11,
+          endLine: 11,
+          original: ["const a = ```x``` + email;"],
+          replacement: ["const a = ```x```;"],
+          isByAi: false,
+        },
+      }),
+      LineSuggestionFormat.GitLabSuggestion,
+    );
+
+    expect(suggestion).toContain(
+      "````suggestion:-0+0\nconst a = ```x```;\n````",
+    );
+  });
+
+  test("the review they are posted in says whether each can be committed", () => {
+    expect(
+      ProductionReviewComposer.composeSuggestionsBody(
+        input(leakyReport()),
+        1,
+        LineSuggestionFormat.Suggestion,
+      ),
+    ).toBe(
+      "**Sensitive data** · OneUptime's production review suggests 1 change on the lines below, each one you can commit.",
+    );
+    expect(
+      ProductionReviewComposer.composeSuggestionsBody(
+        input(leakyReport()),
+        2,
+        LineSuggestionFormat.Diff,
+      ),
+    ).toBe(
+      "**Sensitive data** · OneUptime's production review suggests 2 changes on the lines below.",
+    );
+  });
+
+  test.each([
+    LineSuggestionFormat.Suggestion,
+    LineSuggestionFormat.GitLabSuggestion,
+    LineSuggestionFormat.Diff,
+  ])(
+    "%s names no store, no place of production and nothing production holds",
+    (format: LineSuggestionFormat) => {
+      const text: string = ProductionReviewComposer.getSuggestedPoints(
+        leakyReport([telemetryPoint(), bucketPoint(), migrationPoint()]),
+      )
+        .map((point: ProductionReviewLeakJSON): string => {
+          return ProductionReviewComposer.composeSuggestion(point, format);
+        })
+        .join("\n");
+
+      for (const word of [...PRODUCTION_WORDS, ...TABLE_WORDS]) {
+        expect({ word, isSaid: text.includes(word) }).toEqual({
+          word,
+          isSaid: false,
+        });
+      }
+    },
+  );
+});
+
+/*
+ * WHAT DATA SECURITY KNOWS OF A MIGRATION'S TABLE (#10779): on a private
+ * repository's comment, the store the table is in and what it holds, what
+ * of the store the new column inherits, and the table's columns that
+ * already hold the same data. Never on a public repository's comment, its
+ * check or its suggestions, and never in a link-only comment.
+ */
+
+// What Data Security knows of the table: never on a public repository's comment.
+const TABLE_WORDS: Array<string> = [
+  "orders-db",
+  "public.customers.ssn_last4",
+  "The table",
+  "Data Security found",
+  "more store",
+  "connections from the internet",
+  "not encrypted at rest",
+  "That store",
+];
+
+function migrationPoint(
+  change: Partial<ProductionReviewLeakJSON> = {},
+): ProductionReviewLeakJSON {
+  return {
+    key: "7e6d5c4b3a291807",
+    kind: SensitiveDataLeakKind.Migration,
+    checkId: "new-personal-data-column",
+    column: SensitiveDataColumn.PersonalData,
+    path: "db/migrations/20261124_add_customer_ssn.sql",
+    line: 1,
+    subject: "customer_ssn",
+    where: "customers",
+    dataTypeIds: ["us-ssn"],
+    dataTypeNames: ["US Social Security number"],
+    sensitivity: DataSensitivity.Restricted,
+    severity: SecuritySeverity.High,
+    isBlocking: false,
+    failsCheck: false,
+    text: "Adds the column `customer_ssn` to `customers`, whose name says it holds a US Social Security number.",
+    fix: "Store it only if you must, encrypted or tokenized, and say in your record of processing what it is for.",
+    isAiWorded: false,
+    production: {
+      store: {
+        dataStoreId: "5d1c2b3a-0000-4000-8000-0000000000c1",
+        name: "orders-db",
+        sensitivity: DataSensitivity.Restricted,
+        dataTypeNames: ["US Social Security number", "Email address"],
+        exposure: DataStoreExposure.InternetReachable,
+        isNotEncryptedAtRest: true,
+      },
+      table: {
+        name: "public.customers",
+        dataTypeNames: ["US Social Security number", "Email address"],
+        sameData: [
+          {
+            location: "public.customers.ssn_last4",
+            dataTypeName: "US Social Security number",
+            lastSeenAt: "2026-10-20T10:00:00.000Z",
+          },
+        ],
+        otherStoreCount: 1,
+      },
+    },
+    ...change,
+  };
+}
+
+describe("a migration's point on a private repository's comment (#10779)", () => {
+  const comment: string = ProductionReviewComposer.compose(
+    input(leakyReport([migrationPoint()])),
+  );
+
+  test("the store its table is in, and what that store holds", () => {
+    expect(comment).toContain(
+      "The table `public.customers` is in the store **orders-db**, which holds Restricted data: US Social Security number, Email address.",
+    );
+  });
+
+  test("what of the store the new column inherits", () => {
+    expect(comment).toContain(
+      "That store accepts connections from the internet, and the new column would be in it.",
+    );
+    expect(comment).toContain(
+      "That store is not encrypted at rest, so the new column would not be either.",
+    );
+  });
+
+  test("the column that already holds the same data, and when it was found", () => {
+    expect(comment).toContain(
+      "Data Security found a US Social Security number in `public.customers.ssn_last4` 2 days ago: the new column copies what the table already holds.",
+    );
+  });
+
+  test("how many more of the project's stores hold a table of this name", () => {
+    expect(comment).toContain(
+      "1 more store of the project holds a table of this name.",
+    );
+    expect(
+      ProductionReviewComposer.compose(
+        input(
+          leakyReport([
+            migrationPoint({
+              production: {
+                ...migrationPoint().production,
+                table: {
+                  ...migrationPoint().production!.table!,
+                  otherStoreCount: 3,
+                },
+              },
+            }),
+          ]),
+        ),
+      ),
+    ).toContain("3 more stores of the project hold a table of this name.");
+  });
+
+  test("each exposure in its own words", () => {
+    for (const [exposure, words] of [
+      [
+        DataStoreExposure.Public,
+        "Anyone on the internet can read that store, so they could read the new column too.",
+      ],
+      [
+        DataStoreExposure.OtherAccounts,
+        "Accounts outside yours can reach that store, so they could reach the new column too.",
+      ],
+    ] as Array<[DataStoreExposure, string]>) {
+      expect(
+        ProductionReviewComposer.compose(
+          input(
+            leakyReport([
+              migrationPoint({
+                production: {
+                  ...migrationPoint().production,
+                  store: {
+                    ...migrationPoint().production!.store!,
+                    exposure,
+                  },
+                },
+              }),
+            ]),
+          ),
+        ),
+      ).toContain(words);
+    }
+  });
+
+  test("a table holding other data than the new column's: what it holds, never as the same data", () => {
+    const other: string = ProductionReviewComposer.compose(
+      input(
+        leakyReport([
+          migrationPoint({
+            production: {
+              store: {
+                dataStoreId: "5d1c2b3a-0000-4000-8000-0000000000c1",
+                name: "orders-db",
+                sensitivity: DataSensitivity.Confidential,
+                dataTypeNames: [],
+              },
+              table: {
+                name: "public.customers",
+                dataTypeNames: ["Email address", "Phone number"],
+                sameData: [],
+                otherStoreCount: 0,
+              },
+            },
+          }),
+        ]),
+      ),
+    );
+
+    expect(other).toContain(
+      "The table `public.customers` is in the store **orders-db**, which holds Confidential data.",
+    );
+    expect(other).toContain(
+      "Data Security found Email address, Phone number in its columns.",
+    );
+    expect(other).not.toContain("copies");
+    expect(other).not.toContain("more store");
+    expect(other).not.toContain("internet");
+    expect(other).not.toContain("encrypted at rest");
+  });
+
+  test("an infrastructure point's store is still the store it is", () => {
+    expect(
+      ProductionReviewComposer.compose(input(leakyReport([bucketPoint()]))),
+    ).toContain(
+      "It is the store **acme-card-exports**, which holds Restricted data: Card number.",
+    );
+  });
+});
+
+describe("a migration's point on a public repository says only what the diff shows (#10779)", () => {
+  test.each([
+    [
+      "the comment",
+      (data: ProductionReviewCommentInput): string => {
+        return ProductionReviewComposer.compose(data);
+      },
+    ],
+    [
+      "the check",
+      (data: ProductionReviewCommentInput): string => {
+        return ProductionReviewComposer.composeCheckRun(data).summary;
+      },
+    ],
+  ])(
+    "%s names no store, no column of production and nothing the table holds",
+    (
+      _what: string,
+      compose: (data: ProductionReviewCommentInput) => string,
+    ) => {
+      for (const isPublic of [true, null]) {
+        const text: string = compose(
+          input(leakyReport([migrationPoint()]), {
+            isPublicRepository: isPublic,
+            sensitiveDataPosting: ProductionReviewUtil.getSensitiveDataPosting({
+              content: ProductionReviewPullRequestContent.ReviewEvenIfPublic,
+              isPublic,
+            }),
+          }),
+        );
+
+        expect(text).toContain("Adds the column `customer_ssn` to `customers`");
+
+        for (const word of TABLE_WORDS) {
+          expect({ isPublic, word, isSaid: text.includes(word) }).toEqual({
+            isPublic,
+            word,
+            isSaid: false,
+          });
+        }
+      }
+    },
+  );
+
+  test("a link-only comment shows none of it", () => {
+    const comment: string = ProductionReviewComposer.compose(
+      input(leakyReport([migrationPoint()]), {
+        posting: ProductionReviewPosting.Link,
+        isPublicRepository: false,
+        sensitiveDataPosting: ProductionReviewUtil.getSensitiveDataPosting({
+          content: ProductionReviewPullRequestContent.Link,
+          isPublic: false,
+        }),
+      }),
+    );
+
+    for (const word of [...TABLE_WORDS, "customer_ssn"]) {
+      expect({ word, isSaid: comment.includes(word) }).toEqual({
+        word,
+        isSaid: false,
+      });
+    }
   });
 });

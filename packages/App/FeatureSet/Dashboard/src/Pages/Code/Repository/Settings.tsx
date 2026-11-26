@@ -2,6 +2,7 @@ import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import PermissionGate from "Common/UI/Utils/PermissionGate";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import CodeRepository from "Common/Models/DatabaseModels/CodeRepository";
@@ -529,6 +530,19 @@ const CodeRepositorySettings: FunctionComponent<
             id: CodeRepositorySetting.Runner,
           }}
           isEditable={true}
+          /*
+           * Picking the Runner decides what runs on the project's Runners,
+           * so it takes what writing a runbook step that runs takes - the
+           * Runner columns' own update list, narrower than the repository's
+           * (Common/Types/CodeRepository/CodeRepositoryRunnerAuthoring).
+           * The form's one field is a choice of its own, which the card
+           * cannot weigh by its columns, so Edit is locked here, naming
+           * who may, rather than opening an empty form.
+           */
+          editLock={PermissionGate.checkColumnUpdate(
+            new CodeRepository(),
+            "runnerId",
+          )}
           editButtonText="Edit"
           editModalTitle={CodeRepositoryRunnerCopy.fieldTitle}
           formFields={[

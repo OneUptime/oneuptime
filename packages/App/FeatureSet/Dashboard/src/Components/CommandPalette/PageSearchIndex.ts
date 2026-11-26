@@ -560,9 +560,14 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "rename project",
               "project id",
               "data residency",
+              // Require Unique Names (#10761), by what people ask for.
+              "duplicate names",
+              "same name",
             ],
             settings: [
               "Project Details",
+              "Unique Names",
+              "Require Unique Names",
               {
                 name: "Customer Support Access",
                 gate: PageSearchGate.Billing,
@@ -1435,7 +1440,18 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.INCIDENTS_SETTINGS_STATE,
             title: "Incident State",
             icon: IconProp.ArrowCircleRight,
-            keywords: ["acknowledged", "resolved", "incident status"],
+            keywords: [
+              "acknowledged",
+              "resolved",
+              "incident status",
+              // Where a new incident starts, and the card that says so.
+              "initial state",
+              "starting state",
+              "incidents declared by hand",
+              "manually declared incidents",
+              "auto acknowledge",
+            ],
+            settings: ["Start incidents declared by hand acknowledged"],
           },
           {
             page: PageMap.INCIDENTS_SETTINGS_SEVERITY,
@@ -2962,6 +2978,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "risk cases",
             ],
           },
+          {
+            page: PageMap.SECURITY_EVENTS_SETTINGS_ERASURE_REQUESTS,
+            title: "Erasure Requests",
+            icon: IconProp.UserMinus,
+            keywords: [
+              "erase person",
+              "right to erasure",
+              "gdpr",
+              "forget user",
+              "user vault",
+              "data subject request",
+            ],
+          },
         ],
       },
     ],
@@ -3453,9 +3482,10 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.TOPOLOGY,
-            title: "Topology Map",
+            title: "Topology",
             icon: IconProp.FlowDiagram,
-            keywords: ["dependency map", "service map"],
+            // "Topology Map", the Inventory menu's old name for it, still finds it (#7474).
+            keywords: ["topology map", "dependency map", "service map"],
           },
           {
             page: PageMap.INVENTORY_ITEMS,

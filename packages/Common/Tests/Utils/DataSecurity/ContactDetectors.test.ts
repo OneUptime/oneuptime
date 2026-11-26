@@ -22,6 +22,8 @@ import {
   findSensitiveValues,
   TextMatch,
 } from "../../../Utils/DataSecurity/TextScanner";
+import AndroidAgentRedactor from "../../../Utils/Host/AndroidAgentRedactor";
+import { INTERNATIONAL_PHONE_NUMBERS } from "../../Helpers/InternationalPhoneNumbers";
 
 /*
  * CONTACT AND IDENTITY, AS THE SCANNER FINDS THEM.
@@ -172,6 +174,292 @@ describe("email-address", () => {
   });
 });
 
+interface EmailFinding {
+  written: string;
+  normalized: string;
+  confidence: DataConfidence;
+  isTestValue: boolean;
+}
+
+function emailFindings(text: string): Array<EmailFinding> {
+  return findSensitiveValues(text, { detectors: CONTACT_DETECTORS })
+    .filter((match: TextMatch) => {
+      return match.dataTypeId === "email-address";
+    })
+    .map((match: TextMatch) => {
+      return {
+        written: text.slice(match.start, match.end),
+        normalized: match.normalized,
+        confidence: match.confidence,
+        isTestValue: match.isTestValue,
+      };
+    });
+}
+
+/*
+ * #10935: an email address in a percent-encoded URL - jane.doe%40acmecorp.io
+ * in /signup?email=..., as browsers and HTTP clients write a query string -
+ * was never found. It is read with its escapes read now, found on the
+ * characters it is written with, as the address it reads as.
+ */
+describe("email-address: in a percent-encoded URL (#10935)", () => {
+  test.each([
+    [
+      "the query string of the issue",
+      "GET /signup?email=jane.doe%40acmecorp.io HTTP/1.1",
+      "jane.doe%40acmecorp.io",
+      "jane.doe@acmecorp.io",
+    ],
+    [
+      "its plus sign encoded",
+      "u=jane.doe%2Bnews%40acmecorp.io&n=1",
+      "jane.doe%2Bnews%40acmecorp.io",
+      "jane.doe+news@acmecorp.io",
+    ],
+    [
+      "its dots encoded",
+      "to=jane%2Edoe%40acmecorp%2Eio",
+      "jane%2Edoe%40acmecorp%2Eio",
+      "jane.doe@acmecorp.io",
+    ],
+    [
+      "in capitals, read in lower case",
+      "u=Jane.Doe%40AcmeCorp.IO",
+      "Jane.Doe%40AcmeCorp.IO",
+      "jane.doe@acmecorp.io",
+    ],
+    [
+      "in lower-case escapes",
+      "u=jane%40acmecorp.io",
+      "jane%40acmecorp.io",
+      "jane@acmecorp.io",
+    ],
+    [
+      "encoded twice, in a URL inside a query string",
+      "next=%2Fsignup%3Femail%3Djane%2540acmecorp.io",
+      "jane%2540acmecorp.io",
+      "jane@acmecorp.io",
+    ],
+    [
+      "in a JSON body's URL",
+      '{"url":"/welcome?to=jane%40acmecorp.io","n":1}',
+      "jane%40acmecorp.io",
+      "jane@acmecorp.io",
+    ],
+  ])(
+    "finds %s on its written characters: %s",
+    (_label: string, text: string, written: string, normalized: string) => {
+      expect(emailFindings(text)).toEqual([
+        { written, normalized, confidence: H, isTestValue: false },
+      ]);
+    },
+  );
+
+  test("counts an encoded address of a documentation domain as a test value", () => {
+    expect(emailFindings("u=jane%40example.com")).toEqual([
+      {
+        written: "jane%40example.com",
+        normalized: "jane@example.com",
+        confidence: H,
+        isTestValue: true,
+      },
+    ]);
+  });
+
+  test("an address found as written and as its escapes read is one finding", () => {
+    expect(emailFindings("u=jane@acmecorp.io&q=a%20b")).toEqual([
+      {
+        written: "jane@acmecorp.io",
+        normalized: "jane@acmecorp.io",
+        confidence: H,
+        isTestValue: false,
+      },
+    ]);
+  });
+
+  test("refuses what an encoded text of no address reads as", () => {
+    expectNothingOf("email-address", [
+      "GET /assets/logo%402x.png HTTP/1.1",
+      "GET /search?q=jane%40&n=1",
+      "u=%40acmecorp.io",
+      "100%40 off",
+      "u=jane%40acmecorp",
+      "u=jane..doe%40acmecorp.io",
+      "cpu 100% busy",
+    ]);
+  });
+
+  test("finds an encoded address wherever a window of a long text cuts it", () => {
+    const written: string = "jane.doe%40acmecorp.io";
+
+    for (const at of [61_430, 61_440, 61_450, 65_520, 65_530, 65_536]) {
+      const text: string =
+        "a".repeat(at) + " u=" + written + " " + "b".repeat(8_000);
+      const found: Array<EmailFinding> = emailFindings(text);
+
+      expect([at, found.length]).toEqual([at, 1]);
+      expect(found[0]!.written).toBe(written);
+      expect(found[0]!.normalized).toBe("jane.doe@acmecorp.io");
+    }
+  });
+});
+
+/*
+ * #10960: an email address in another script - 张伟@example.com,
+ * josé@example.com, user@例え.jp, почта@пример.рф - and one with a punycode
+ * top-level domain were never found. A second detector reads them as the
+ * Android agent's redactor does (#10937): a Latin name or another script's,
+ * never both; a domain in any script's letters or punycode.
+ */
+describe("email-address: in any script (#10960)", () => {
+  test.each([
+    [
+      "a name in Han letters",
+      "email 张伟@acmecorp.io sent",
+      "张伟@acmecorp.io",
+    ],
+    [
+      "a Latin name with accents",
+      "email josé.garcía@acmecorp.io sent",
+      "josé.garcía@acmecorp.io",
+    ],
+    ["a domain in Japanese", "email user@例え.jp sent", "user@例え.jp"],
+    [
+      "a name and a domain in Cyrillic",
+      "email почта@пример.рф sent",
+      "почта@пример.рф",
+    ],
+    [
+      "a punycode top-level domain",
+      "email user@пример.xn--p1ai sent",
+      "user@пример.xn--p1ai",
+    ],
+    [
+      "a name in Devanagari, its marks among its letters",
+      "ईमेल मोहन@उदाहरण.भारत भेजा",
+      "मोहन@उदाहरण.भारत",
+    ],
+    ["a name in Greek", "email θέμα@acmecorp.io sent", "θέμα@acmecorp.io"],
+  ])("finds %s: %s", (_label: string, text: string, written: string) => {
+    const found: Array<EmailFinding> = emailFindings(text);
+
+    expect(
+      found.map((finding: EmailFinding) => {
+        return finding.written;
+      }),
+    ).toEqual([written]);
+    expect(found[0]!.confidence).toBe(H);
+    expect(found[0]!.isTestValue).toBe(false);
+  });
+
+  test("the issue's table: each address found, a documentation domain's as a test value", () => {
+    for (const [text, written] of [
+      ["email jane.doe@example.com", "jane.doe@example.com"],
+      ["email 张伟@example.com", "张伟@example.com"],
+      ["email josé.garcia@example.com", "josé.garcia@example.com"],
+      ["email user@例え.jp", "user@例え.jp"],
+      ["email user@xn--r8jz45g.jp", "user@xn--r8jz45g.jp"],
+      ["email почта@пример.рф", "почта@пример.рф"],
+    ]) {
+      expect([
+        text,
+        emailFindings(text!).map((finding: EmailFinding) => {
+          return finding.written;
+        }),
+      ]).toEqual([text, [written]]);
+    }
+  });
+
+  test("a name is Latin or another script's, never both: where they meet an address begins", () => {
+    expect(emailFindings("邮箱jane@acmecorp.io")).toEqual([
+      {
+        written: "jane@acmecorp.io",
+        normalized: "jane@acmecorp.io",
+        confidence: H,
+        isTestValue: false,
+      },
+    ]);
+    expect(
+      emailFindings("jane张伟@acmecorp.io").map((finding: EmailFinding) => {
+        return finding.written;
+      }),
+    ).toEqual(["张伟@acmecorp.io"]);
+  });
+
+  test("a letter of another script after an ASCII top-level domain is no part of it", () => {
+    expect(
+      emailFindings("jane@acmecorp.io已发送").map((finding: EmailFinding) => {
+        return finding.written;
+      }),
+    ).toEqual(["jane@acmecorp.io"]);
+  });
+
+  test("is read in one spelling: lower case, its accents composed", () => {
+    expect(emailFindings("email Josée@AcmeCorp.IO")[0]!.normalized).toBe(
+      "josée@acmecorp.io",
+    );
+    // "é" written as "e" and a combining accent reads as the one character.
+    expect(emailFindings("email josé@acmecorp.io")[0]!.normalized).toBe(
+      "josé@acmecorp.io",
+    );
+  });
+
+  test("refuses what no address in any script is", () => {
+    expectNothingOf("email-address", [
+      "@用户 你好",
+      "联系 张伟@ 已发送",
+      "张伟@微信",
+      "почта@пример.р",
+      "user@пример.xn--4111",
+      "4111 1111 1111 1111é@例え.jp",
+      "logo@2x.png",
+    ]);
+  });
+
+  test("agrees with the Android agent's redactor on what an address in any script is", () => {
+    for (const text of [
+      "email 张伟@acmecorp.io sent",
+      "email josé.garcía@acmecorp.io sent",
+      "email user@例え.jp sent",
+      "email почта@пример.рф sent",
+      "email user@пример.xn--p1ai sent",
+      "邮箱jane@acmecorp.io已发送",
+      "4111 1111 1111 1111é@例え.jp",
+      "@用户 你好",
+    ]) {
+      const redacted: string = AndroidAgentRedactor.redact(text);
+      const found: Array<EmailFinding> = emailFindings(text);
+      let rewritten: string = text;
+
+      for (const finding of [...found].reverse()) {
+        const at: number = rewritten.lastIndexOf(finding.written);
+
+        rewritten =
+          rewritten.slice(0, at) +
+          "[email]" +
+          rewritten.slice(at + finding.written.length);
+      }
+
+      // A card the redactor takes out is no address's business here.
+      expect([text, rewritten]).toEqual([
+        text,
+        redacted.replace("[card number]", "4111 1111 1111 1111"),
+      ]);
+    }
+  });
+
+  test("finds an address in another script wherever a window of a long text cuts it", () => {
+    for (const at of [61_430, 61_440, 61_450, 65_520, 65_536]) {
+      const text: string =
+        "a".repeat(at) + " to 张伟@acmecorp.io " + "b".repeat(8_000);
+      const found: Array<EmailFinding> = emailFindings(text);
+
+      expect([at, found.length]).toEqual([at, 1]);
+      expect(found[0]!.written).toBe("张伟@acmecorp.io");
+    }
+  });
+});
+
 describe("phone-number", () => {
   test("is found in international format, Medium alone and High next to phone words", () => {
     expectFound("+81 3-1234-5678", [
@@ -229,6 +517,114 @@ describe("phone-number", () => {
   test("takes a bare national number only next to phone words", () => {
     expectFound("tel 0201234567", [found("phone-number", "0201234567", H)]);
     expectNothingOf("phone-number", ["id 0201234567", "0201234567"]);
+  });
+
+  /*
+   * #11025: a Phone Number scrub rule hides what these find with no word
+   * beside the value, so every international number grouping v4 takes for
+   * one is found whole - in parentheses, after a no-break space - and what
+   * only looks like one is not.
+   */
+  test.each(
+    INTERNATIONAL_PHONE_NUMBERS.map((phone: string) => {
+      return [phone];
+    }),
+  )("finds an international number as people write it: %s", (phone: string) => {
+    const matches: Array<Found> = scan(
+      `SMS to ${phone} was not delivered`,
+    ).filter((match: Found) => {
+      return match.dataTypeId === "phone-number";
+    });
+
+    expect(matches).toHaveLength(1);
+    // Whole: every digit of it, the "(" a calling code opens left aside.
+    expect(matches[0]!.value).toBe(phone.replace(/^\(/, ""));
+    expect(matches[0]!.confidence).not.toBe(L);
+  });
+
+  test("refuses what only looks like an international number", () => {
+    expectNothingOf("phone-number", [
+      // A decimal, a coordinate, a pair of them, an address.
+      "delta +51.507217 out of range",
+      "delta +12.345678",
+      "at +40.6894-074.0447/",
+      "at +48.8584 2.2945",
+      "at +51.507217, -0.127758",
+      "peer +192.168.100.200",
+      // A time zone's offset beside a date.
+      "at UTC +1 2026-11-24 10:15:00",
+      "at GMT +12 2026-11-24",
+      "at GMT+5 1999-12-31 23:59",
+      // A count, and groups of one.
+      "call +1 2 3 4 5 6 7 8 failed",
+      "call +44 20 7 9 4 6 0 9 5 8",
+      // Too short, or too long to be one.
+      "balance +1 000 000 left",
+      "call +44 2079",
+      "call +44 20 7946 0958 12 34",
+    ]);
+  });
+
+  test("a group of one is a phone number's right after the calling code, or in parentheses", () => {
+    expectFound("+33 1 23 45 67 89", [
+      found("phone-number", "+33 1 23 45 67 89", M),
+    ]);
+    expectFound("+44 (0) 20 7946 0123", [
+      found("phone-number", "+44 (0) 20 7946 0123", M),
+    ]);
+    expectFound("+81 (3) 1234-5678", [
+      found("phone-number", "+81 (3) 1234-5678", M),
+    ]);
+  });
+
+  test("dots set a number's groups apart only two or more at a time, and never beside a hyphen", () => {
+    expectFound("+44.20.8123.4567", [
+      found("phone-number", "+44.20.8123.4567", M),
+    ]);
+    expectFound("+1.415.555.2671", [
+      found("phone-number", "+1.415.555.2671", M),
+    ]);
+    expectNothingOf("phone-number", ["+44.2081234567", "+44.20.8123-4567"]);
+  });
+
+  test("a calling code in parentheses is found with the number, its closing one too", () => {
+    expectFound("(+44) 20 8123 4567", [
+      found("phone-number", "+44) 20 8123 4567", M),
+    ]);
+    // A ")" anywhere else is still unbalanced.
+    expectNothingOf("phone-number", [
+      "+44 20) 7946 0123",
+      "+44) 20) 7946 0123",
+    ]);
+  });
+
+  test("is found in a percent-encoded URL, placed on the characters it is written with (#11030)", () => {
+    expectFound("GET /callback?phone=%2B49%2030%2012345678&step=2", [
+      found("phone-number", "%2B49%2030%2012345678", H),
+    ]);
+    expectFound("/notify?to=%28415%29%20555-2671", [
+      found("phone-number", "%28415%29%20555-2671", M),
+    ]);
+    expectNothingOf("phone-number", [
+      "/assets/logo%2B2x.png",
+      "delta %2B51.507217",
+    ]);
+  });
+
+  test("is found in every script's digits, each read by its value (#11030)", () => {
+    expectFound("هاتف +٤٩ ٣٠ ١٢٣٤٥٦٧٨", [
+      found("phone-number", "+٤٩ ٣٠ ١٢٣٤٥٦٧٨", M),
+    ]);
+    expectFound("شماره +۴۹ ۳۰ ۱۲۳۴۵۶۷۸", [
+      found("phone-number", "+۴۹ ۳۰ ۱۲۳۴۵۶۷۸", M),
+    ]);
+    expectFound("電話 +８１ ３-１２３４-５６７８", [
+      found("phone-number", "+８１ ３-１２３４-５６７８", M),
+    ]);
+    expectFound("هاتف ٤١٥-٥٥٥-٢٦٧١", [
+      found("phone-number", "٤١٥-٥٥٥-٢٦٧١", M),
+    ]);
+    expectNothingOf("phone-number", ["دلتا +٥١.٥٠٧٢١٧", "+١ ٢ ٣ ٤ ٥ ٦ ٧ ٨"]);
   });
 
   test("refuses placeholder digit runs", () => {
@@ -949,6 +1345,270 @@ describe("ip-address: in a percent-encoded URL (#10467)", () => {
       expect(text.slice(found[0]!.start, found[0]!.end)).toBe(address);
       expect(found[0]!.normalized).toBe("2606:4700:4700::1111");
     }
+  });
+});
+
+/*
+ * #10936: an IPv6 address right after a key's colon, as logfmt and syslog
+ * lines write one - peer ip:2a00:..., addr:2001:db8::7, client_ip:2a02:...
+ * - was neither found nor hidden: no candidate could start right after a
+ * colon. After a key that ends in hex letters or digits (remote, node, src,
+ * id, ip6) it was found with the key's end glued on - "e:2a00:..." - a
+ * value no address is, whose token no plain address shares, and
+ * "c:2001:db8::7" was no documentation address. Now a candidate starts
+ * right after a key's colon, and never inside a word or a run of groups.
+ */
+describe("ip-address: right after a key's colon (#10936)", () => {
+  interface KeyedFinding {
+    written: string;
+    normalized: string;
+    confidence: DataConfidence;
+    isTestValue: boolean;
+  }
+
+  function ipFindings(text: string): Array<KeyedFinding> {
+    return findSensitiveValues(text, { detectors: CONTACT_DETECTORS })
+      .filter((match: TextMatch) => {
+        return match.dataTypeId === "ip-address";
+      })
+      .map((match: TextMatch) => {
+        return {
+          written: text.slice(match.start, match.end),
+          normalized: match.normalized,
+          confidence: match.confidence,
+          isTestValue: match.isTestValue,
+        };
+      });
+  }
+
+  function keyed(
+    written: string,
+    confidence: DataConfidence,
+    isTestValue: boolean = false,
+  ): KeyedFinding {
+    return { written, normalized: written, confidence, isTestValue };
+  }
+
+  test.each([
+    [
+      "the line of the issue",
+      "peer ip:2a00:1450:4001:82a::200e connected",
+      keyed("2a00:1450:4001:82a::200e", H),
+    ],
+    [
+      "a key that ends in a hex letter",
+      "remote:2a00:1450:4001:82a::200e",
+      keyed("2a00:1450:4001:82a::200e", H),
+    ],
+    [
+      "a documentation address",
+      "addr:2001:db8::7",
+      keyed("2001:db8::7", M, true),
+    ],
+    [
+      "a key with an underscore",
+      "client_ip:2a02:6b8::feed:0ff",
+      keyed("2a02:6b8::feed:0ff", H),
+    ],
+    ["src, which lent its c", "src:2001:db8::7", keyed("2001:db8::7", M, true)],
+    [
+      "node, which lent its de",
+      "node:2a00:1450:4001:82a::200e",
+      keyed("2a00:1450:4001:82a::200e", M),
+    ],
+    ["id, which lent its d", "id:2606:4700::1111", keyed("2606:4700::1111", M)],
+    // "ip6" is no word "ip", so nothing around it says what it is.
+    [
+      "a key that ends in a digit",
+      "ip6:2a00:1450::1",
+      keyed("2a00:1450::1", M),
+    ],
+    [
+      "another one",
+      "peer1:2606:4700:4700::1111",
+      keyed("2606:4700:4700::1111", M),
+    ],
+    [
+      "a key in capitals",
+      "IP:2A00:1450:4001:82A::200E",
+      keyed("2A00:1450:4001:82A::200E", H),
+    ],
+    [
+      "a dotted key",
+      "net.peer.ip:2606:4700:4700::1111",
+      keyed("2606:4700:4700::1111", H),
+    ],
+    [
+      "a hyphenated key",
+      "x-forwarded-for:2a00:1450:4001:82a::200e",
+      keyed("2a00:1450:4001:82a::200e", H),
+    ],
+    ["one group each side of ::", "ip:2001::1", keyed("2001::1", H)],
+    [
+      "an address that starts with ::",
+      "client:::ffff:81.2.69.142",
+      keyed("::ffff:81.2.69.142", H),
+    ],
+    [
+      "an address that ends in an IPv4 address",
+      "upstream:64:ff9b::81.2.69.142",
+      keyed("64:ff9b::81.2.69.142", M),
+    ],
+    [
+      "a logfmt line",
+      'level=info msg="accepted" remote:2a00:1450:4001:82a::200e user=svc',
+      keyed("2a00:1450:4001:82a::200e", H),
+    ],
+    [
+      "a syslog line",
+      "<38>1 2026-11-24T10:15:02Z bastion sshd 4242 - - Accepted publickey for deploy from addr:2001:db8::7 port 52344",
+      keyed("2001:db8::7", M, true),
+    ],
+    [
+      "a key inside JSON",
+      '{"msg":"peer ip:2a00:1450::1 closed"}',
+      keyed("2a00:1450::1", H),
+    ],
+  ])(
+    "finds the address after %s, on its own characters: %s",
+    (_label: string, text: string, expected: KeyedFinding) => {
+      expect(ipFindings(text)).toEqual([expected]);
+    },
+  );
+
+  test("finds every address of a line of keys, each whole", () => {
+    expect(
+      ipFindings(
+        "src:2a00:1450:4001:82a::200e dst:2606:4700:4700::1111 via:2001::1",
+      ).map((finding: KeyedFinding) => {
+        return finding.written;
+      }),
+    ).toEqual(["2a00:1450:4001:82a::200e", "2606:4700:4700::1111", "2001::1"]);
+  });
+
+  test("finds an address whose key's colon is percent-encoded, on its written characters", () => {
+    expect(ipFindings("q=ip%3A2a00%3A1450%3A4001%3A82a%3A%3A200e")).toEqual([
+      {
+        written: "2a00%3A1450%3A4001%3A82a%3A%3A200e",
+        normalized: "2a00:1450:4001:82a::200e",
+        confidence: H,
+        isTestValue: false,
+      },
+    ]);
+  });
+
+  test("never starts inside an address: one finding, the address whole", () => {
+    for (const text of [
+      "ip:2001:db8::1",
+      "addr:2001:0db8:85a3::8a2e:370:7334",
+      "remote:2a00:1450:4001:082b:0000:0000:0000:200e",
+      "ip:2a00:1450:4001:82a::200e",
+    ]) {
+      const address: string = text.slice(text.indexOf(":") + 1);
+
+      expect([
+        text,
+        ipFindings(text).map((f: KeyedFinding) => {
+          return f.written;
+        }),
+      ]).toEqual([text, [address]]);
+    }
+  });
+
+  test("starts at no group of a run too long to be an address, after a key or not", () => {
+    expectNothingOf("ip-address", [
+      "k:1:2:3:4:5:6:7:8:9",
+      "key:a:b:c:d:e:f:1:2:3",
+      "ip:2a00:1450:4001:82a:1:2:3:4:5",
+    ]);
+  });
+
+  test("refuses what no address is, right after a key's colon", () => {
+    expectNothingOf("ip-address", [
+      "time:12:30:45",
+      "at:23:59:59.123",
+      "uptime:1:02:03:04",
+      "duration:00:01:30",
+      "mac:00:1a:2b:3c:4d:5e",
+      "hw:00:1A:2B:3C:4D:5E:6F:70",
+      "ratio:3:1",
+      "aspect:16:9",
+      "type:std::vector<int>",
+      "fn:Foo::Bar::baz",
+      "ns:Abc::Def",
+      "key:value:other",
+      "id:abc:def",
+      "user:1234:profile",
+      "session:abcd:ef01:2345",
+      "image:nginx:1.25",
+      "host:8080",
+      "localhost:3000:3001",
+      "db:5432",
+      "urn:isbn:0451450523",
+      "level:debug:2001",
+      "Release:2024::Beta",
+      "build:2001::1.5",
+      "x:2001::",
+      "x:::2001",
+      "ts:2024-01-01T12:30:45Z",
+      "sha:dead:beef:cafe:babe:f00d:1234:5678",
+    ]);
+  });
+
+  test("refuses an address of no one right after a key's colon", () => {
+    expectNothingOf("ip-address", [
+      "ip:fe80::1",
+      "ip:fd00::1",
+      "ip:ff02::1",
+      "ipv6:::1",
+      "client:::ffff:10.0.0.1",
+      "ip:10.0.0.1",
+      "ip:169.254.169.254",
+    ]);
+  });
+
+  test("never starts inside a word", () => {
+    expectNothingOf("ip-address", [
+      "ip2001:db8::1",
+      "zz2001:db8::1",
+      "addr2a00:1450::1",
+      "_2a00:1450::1",
+      "v62606:4700::1111",
+    ]);
+  });
+
+  test("an IPv4 address after a key's colon is found as before", () => {
+    expectFound("client:81.2.69.142", [found("ip-address", "81.2.69.142", H)]);
+    expectFound("src:81.2.69.142", [found("ip-address", "81.2.69.142", H)]);
+  });
+
+  test("finds an address after a key's colon wherever a window of a long text cuts it", () => {
+    const line: string = "peer ip:2a00:1450:4001:82a::200e";
+
+    for (const at of [61_430, 61_436, 61_440, 61_450, 65_530, 65_536]) {
+      const text: string =
+        "a".repeat(at) + " " + line + " " + "b".repeat(8_000);
+      const found: Array<TextMatch> = findSensitiveValues(text, {
+        detectors: CONTACT_DETECTORS,
+      }).filter((match: TextMatch) => {
+        return match.dataTypeId === "ip-address";
+      });
+
+      expect([at, found.length]).toEqual([at, 1]);
+      expect(text.slice(found[0]!.start, found[0]!.end)).toBe(
+        "2a00:1450:4001:82a::200e",
+      );
+    }
+  });
+
+  test("is found in a column whose values are key: address", () => {
+    expect(
+      classified(
+        "peer",
+        ["ip:2a00:1450::1", "ip:2606:4700::1111", "ip:2001::1"],
+        "ip-address",
+      ),
+    ).toMatchObject({ matchCount: 3 });
   });
 });
 

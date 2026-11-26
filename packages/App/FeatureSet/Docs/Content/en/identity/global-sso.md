@@ -27,7 +27,7 @@ For a single project's own provider, see [SSO](/docs/identity/sso).
 :::steps
 ### Open the provider list
 
-Sign in as a master admin and open the Admin Dashboard with **Admin Settings** in your user menu. Then go to **Settings** > **Single Sign-On**. It lists the instance's SAML providers, then its OpenID Connect providers, and ends with the **Require SSO** card.
+Sign in as a master admin and choose **Admin Dashboard** in your user menu. Then go to **Settings** > **Single Sign-On**. It lists the instance's SAML providers, then its OpenID Connect providers, and ends with the **Require SSO** card.
 
 ### Create the provider
 
@@ -90,6 +90,12 @@ Two questions on the provider change this, folded under **More fields**. Each st
 | **Where this sign-in counts as SSO** | **Every project**: projects that require SSO accept a sign-in with this provider. **Attached projects only**: signing in with this provider meets SSO enforcement only in its attached projects, so people already signed in can lose access to the others. |
 
 With **Every project**, signing in with the provider meets SSO enforcement in every project the person belongs to, and attached projects only decide where newcomers are added.
+
+## Email addresses your identity provider has not verified
+
+A global OpenID Connect provider finds the account it signs in by the email address it sends, as a project's provider does, and master admins' accounts are found the same way. So it signs nobody in with an address the provider says it has not verified, with an `email_verified` claim of `false` or of something that is neither true nor false. Otherwise someone could put a master admin's address on their account at the provider, and sign in to the whole instance as them. A provider that sends `email_verified` as `true`, or sends none, as Microsoft Entra ID does, signs people in as before.
+
+Through authentik 2025.10 and later, nobody signs in until you change its `email` scope mapping, and through Keycloak, nobody whose address it has not verified. What to change there, what still signs in and what the person sees are on the [SSO](/docs/identity/sso#email-addresses-your-identity-provider-has-not-verified) page. Master admins with a password can sign in with it while you do, at `/accounts/admin-login` while the whole instance requires SSO.
 
 ## Signing out of the identity provider too
 
@@ -183,6 +189,10 @@ For a SAML provider, the response was made for another application: its audience
 Each response from your identity provider signs someone in once, and only within minutes of being issued: after that it is refused with "SAML response has expired". Sign in again. If responses keep expiring, check the clocks of this server and of your identity provider.
 :::
 
+:::details "Your identity provider did not confirm your email address."
+The OpenID Connect provider sent `email_verified` as `false`, or as something that is neither true nor false, so OneUptime signed nobody in, a master admin included. Have the address verified at your identity provider, or mark it verified there, and sign in again. See [Email addresses your identity provider has not verified](#email-addresses-your-identity-provider-has-not-verified).
+:::
+
 :::details "This server requires single sign-on (SSO). Sign in with SSO instead."
 The whole instance requires SSO, and this was a sign-in with a password, a passkey, an emailed link, Google or Microsoft, or a sign-up. Sign in with one of the SSO buttons on the sign-in page instead. A master admin signs in with their password at `/accounts/admin-login`; to let everyone sign in with a password again, they turn off **Require SSO to Sign In** on **Single Sign-On**.
 :::
@@ -193,4 +203,5 @@ The whole instance requires SSO, and this was a sign-in with a password, a passk
 - [SSO](/docs/identity/sso): Set up a project's own SAML or OIDC provider.
 - [SCIM](/docs/identity/scim): Let your identity provider add and remove people automatically.
 - [Users, Teams & Permissions](/docs/permissions/index): What the teams newcomers join let them do.
+- [Help and Support](/docs/self-hosted/help-and-support): Tell people who need an invitation whom to ask.
 :::

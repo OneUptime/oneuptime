@@ -107,9 +107,9 @@ function linkTitles(menu: HTMLElement): Array<string> {
 }
 
 /*
- * The rows that fold a category of products. Help, at the bottom of the
- * phone's menu, folds too, but holds no products: it is pinned in
- * DashboardPhoneMenuSearchAndHelp (#6816).
+ * The rows that fold a category of products. Help, right under Search at
+ * the top of the phone's menu, folds too, but holds no products: it is
+ * pinned in DashboardPhoneMenuSearchAndHelp (#6816, #7473).
  */
 function sectionToggles(menu: HTMLElement): Array<HTMLElement> {
   return within(menu)

@@ -16,6 +16,7 @@ import {
   AIChatWidget,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import { CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME } from "Common/Types/AI/ExternalMcpServer/ExternalMcpToolNames";
 import { JSONObject } from "Common/Types/JSON";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
 import { translationKey, Translator } from "Common/Types/Translator";
@@ -344,6 +345,15 @@ export const TOOL_ARGUMENT_LABELS: {
 } = {
   post_incident_status_update: {
     note: translationKey("Status update"),
+  },
+  /*
+   * A call of an external MCP server's tool (#10879): what the server is
+   * sent, and why the call is made - which never leaves OneUptime. The
+   * title names the server and the tool.
+   */
+  [CALL_MCP_TOOL_WITH_APPROVAL_TOOL_NAME]: {
+    arguments: translationKey("Sent to the server"),
+    rationale: translationKey("Why"),
   },
 };
 

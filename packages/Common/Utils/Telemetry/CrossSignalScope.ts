@@ -11,7 +11,10 @@ import MetricExplorerUrl, {
   MetricExplorerUrlParam,
   SerializedMetricQuery,
 } from "../Metrics/MetricExplorerUrl";
-import { buildSearchTokenValue } from "../../Types/Telemetry/TelemetrySearchQuery";
+import {
+  buildSearchContainsValue,
+  buildSearchTokenValue,
+} from "../../Types/Telemetry/TelemetrySearchQuery";
 
 /*
  * Matches any whitespace, double-quote, or colon — the characters that break a
@@ -99,6 +102,13 @@ export interface TelemetryCrossSignalScope {
   resourceFacetSelections?: ResourceEntityFacetSelections | undefined;
   /** Exact-match telemetry attribute filters. Keys may contain dots. */
   attributes?: Dictionary<string> | undefined;
+  /**
+   * Telemetry attribute filters whose value must CONTAIN the text, as the
+   * search grammar's `@key:~"text"` reads it (buildSearchContainsValue): a
+   * Hash rule's token found inside a longer value. Keys may contain dots.
+   * Metrics report it as dropped.
+   */
+  attributesContaining?: Dictionary<string> | undefined;
   traceIds?: Array<string> | undefined;
   spanIds?: Array<string> | undefined;
   /**
@@ -302,7 +312,8 @@ function resolveTimeWindow(
  * -> `severityText` (canonicalized casing), traceIds -> `traceId`, spanIds
  * -> `spanId`, attributes -> `attributes.<key>` tuples (values escaped with
  * the search grammar's buildSearchTokenValue, because the explorer re-parses
- * a chip value as grammar), bodyContains -> `body` (a contains-match chip),
+ * a chip value as grammar), attributesContaining -> the same tuples holding
+ * a contains value (`~"text"`), bodyContains -> `body` (a contains-match chip),
  * startTime+endTime -> `range=Custom` + `start`/`end`, logId (+ logTime)
  * -> `log` (+ `logTime`), the line it opens. Every scope field is
  * expressible in the logs grammar, so `dropped` only ever reports a lone
@@ -370,6 +381,13 @@ export function toLogsExplorerQueryParams(
      * has always given its chips.
      */
     tuples.push([`attributes.${key}`, [buildSearchTokenValue(value)]]);
+  }
+
+  // The same chip, read by the grammar as a contains-match of the literal text.
+  for (const [key, value] of sanitizeAttributeEntries(
+    scope.attributesContaining,
+  )) {
+    tuples.push([`attributes.${key}`, [buildSearchContainsValue(value)]]);
   }
 
   const bodyContains: string = sanitizeBodyContains(scope.bodyContains);
@@ -455,7 +473,8 @@ function buildTraceSearchTokenValue(value: string): string | null {
  *
  * Field support: traceIds/spanIds -> `trace:`/`span:` search tokens (chip
  * fallback for values the DSL cannot carry), attributes -> `@key:value`
- * search tokens (chip fallback likewise), serviceIds -> `primaryEntityId`
+ * search tokens (chip fallback likewise), attributesContaining ->
+ * `@key:~"text"` (chip fallback likewise), serviceIds -> `primaryEntityId`
  * filter chips (chips display the service NAME via the facet's
  * valueDisplayMap, where a `service:` token would show the raw ObjectID),
  * startTime+endTime -> `range=Custom` + `start`/`end`.
@@ -506,6 +525,17 @@ export function toTracesExplorerQueryParams(
        * wildcard matching far more than the scope asked for.
        */
       filterTuples.push([`attributes.${key}`, buildSearchTokenValue(value)]);
+    }
+  }
+
+  // A contains-match: `@key:~"text"`, or the same value in a chip for a key no token can carry.
+  for (const [key, value] of sanitizeAttributeEntries(
+    scope.attributesContaining,
+  )) {
+    if (isTraceTokenSafeKey(key) && !PERCENT.test(value)) {
+      searchTokens.push(`@${key}:${buildSearchContainsValue(value)}`);
+    } else {
+      filterTuples.push([`attributes.${key}`, buildSearchContainsValue(value)]);
     }
   }
 
@@ -612,6 +642,11 @@ export function toMetricsExplorerQueryParams(
 
   if (scopedServiceIds.length > 0) {
     params[MetricExplorerUrlParam.Services] = JSON.stringify(scopedServiceIds);
+  }
+
+  // A metric's attribute filters compare whole values: none contains.
+  if (sanitizeAttributeEntries(scope.attributesContaining).length > 0) {
+    dropped.push("attributesContaining");
   }
 
   const window: ResolvedTimeWindow = resolveTimeWindow(scope);

@@ -15,9 +15,11 @@ import {
   isWorkerStartEnvelope,
 } from "./WorkerProtocol";
 import { SandboxExecutionResult } from "./RpcProtocol";
+import SyntheticEgressProxy from "./SyntheticEgressProxy";
 
 let hasHandledMessage: boolean = false;
 let activeBrowser: Browser | null = null;
+let activeEgress: SyntheticEgressProxy | null = null;
 let isShuttingDown: boolean = false;
 
 for (const signal of ["SIGTERM", "SIGINT"] as const) {
@@ -78,9 +80,12 @@ async function runAndReply(
      * the answer already in hand.
      */
     const browser: Browser | null = activeBrowser;
+    const egress: SyntheticEgressProxy | null = activeEgress;
     activeBrowser = null;
+    activeEgress = null;
     if (browser) {
-      await SyntheticBrowser.close({ browser });
+      // The egress proxy after the browser, whose connections it carries.
+      await SyntheticBrowser.close(egress ? { browser, egress } : { browser });
     }
     process.disconnect?.();
   }
@@ -112,7 +117,13 @@ async function executeMonitor(
       activeBrowser = browser;
     },
   });
+  activeEgress = session.egress;
 
+  /*
+   * The script's axios goes out through the same egress proxy as the
+   * browser, so one policy - the probe's, from config.egressPolicy - holds
+   * every request the check can make.
+   */
   const execution: SandboxExecutionResult = await WorkerController.execute({
     browserContext: session.browserContext,
     page: session.page,
@@ -122,6 +133,7 @@ async function executeMonitor(
     args: config.args,
     timeoutInMs: config.timeoutInMs,
     totpSecrets: config.totpSecrets,
+    egress: session.egress,
   });
 
   const screenshots: Record<string, string> = {};
