@@ -374,6 +374,15 @@ import {
   readKeptRunValues,
 } from "./GuidedSetupRunServerMock";
 import { GuidedSetupResourceStatus } from "../../../Types/GuidedSetup/GuidedSetupRun";
+import {
+  HelpChoice,
+  HelpItem,
+} from "../../../Types/HelpAndSupport/HelpAndSupport";
+import {
+  forgetHelpAndSupport,
+  helpAndSupportWith,
+  setSignedInHelpAndSupport,
+} from "../../Helpers/HelpAndSupportEnvironment";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006804";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -1107,6 +1116,53 @@ describe("2. Who should be told?", () => {
 
     expect(screen.queryByTestId("guided-setup-no-email")).toBeNull();
   });
+
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10945): what still reaches the person
+   * is SMS and a phone call, and the app is not named.
+   */
+  describe("on a server without the mobile app (#10945)", () => {
+    beforeEach(() => {
+      setSignedInHelpAndSupport(
+        helpAndSupportWith({
+          [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+        }),
+      );
+    });
+
+    afterEach(() => {
+      forgetHelpAndSupport();
+    });
+
+    test("a member is told SMS and a phone call still reach them, never the app", async () => {
+      canSendEmail = false;
+      await toWhoIsTold();
+
+      const warning: HTMLElement = screen.getByTestId("guided-setup-no-email");
+
+      expect(warning).toHaveTextContent(WEBSITE_DOWN_COPY.noEmailWithoutApp);
+      expect(warning).not.toHaveTextContent("mobile app");
+      expect(screen.queryByTestId("guided-setup-set-up-email")).toBeNull();
+    });
+
+    test("a master admin is told the same, and offered the server's email setup", async () => {
+      canSendEmail = false;
+      jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
+      await toWhoIsTold();
+
+      const warning: HTMLElement = screen.getByTestId("guided-setup-no-email");
+
+      expect(warning).toHaveTextContent(
+        WEBSITE_DOWN_COPY.noEmailForAdminWithoutApp,
+      );
+      expect(warning).not.toHaveTextContent("mobile app");
+      expect(screen.getByTestId("guided-setup-set-up-email")).toHaveAttribute(
+        "href",
+        expect.stringMatching(/\/admin\/setup$/) as unknown as string,
+      );
+    });
+  });
 });
 
 const toTest: () => Promise<void> = async (): Promise<void> => {
@@ -1177,6 +1233,32 @@ describe("3. Send a test", () => {
       WEBSITE_DOWN_COPY.testDidNotGetItHelp,
     );
     expect(sent(ProductEventName.GuidedSetupFinished)).toEqual([]);
+  });
+
+  test("on a server without the mobile app, what to check names the email and the phone only (#10945)", async () => {
+    setSignedInHelpAndSupport(
+      helpAndSupportWith({
+        [HelpItem.MobileApp]: { choice: HelpChoice.Hidden, value: null },
+      }),
+    );
+
+    try {
+      await toTest();
+      await press("send-test-page");
+      await act(async () => {
+        reportTestResult(result(OnCallTestPageStatus.Paging));
+      });
+      await press("guided-setup-did-not-get-it");
+
+      const help: HTMLElement = screen.getByTestId("guided-setup-not-received");
+
+      expect(help).toHaveTextContent(
+        WEBSITE_DOWN_COPY.testDidNotGetItHelpWithoutApp,
+      );
+      expect(help).not.toHaveTextContent("mobile app");
+    } finally {
+      forgetHelpAndSupport();
+    }
   });
 
   test("skipping it shows the summary, says it is not tested, and is not a finish", async () => {

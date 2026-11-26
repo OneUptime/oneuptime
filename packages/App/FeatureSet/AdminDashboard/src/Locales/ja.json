@@ -76,7 +76,7 @@
   },
   "help": {
     "supportEmail": "サポートメール",
-    "chatSlack": "Slackでチャット",
+    "chatSlack": "Slack でチャット",
     "requestDemo": "デモをリクエスト"
   },
   "userProfile": {
@@ -88,11 +88,11 @@
     "helpSupport": "ヘルプとサポート",
     "legal": "法的情報",
     "version": "バージョン",
-    "versionModalTitle": "OneUptimeバージョン",
+    "versionModalTitle": "OneUptime バージョン",
     "versionLabel": "バージョン",
     "commitLabel": "コミット",
-    "versionUnavailable": "バージョンデータは利用できません",
-    "versionUnavailableWithError": "バージョンデータは利用できません: {{error}}"
+    "versionUnavailable": "バージョン情報が利用できません",
+    "versionUnavailableWithError": "バージョン情報が利用できません: {{error}}"
   },
   "navbar": {
     "users": "ユーザー",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Microsoft Teams でチャット",
   "Chat with Support": "サポートとチャット",
   "Show it": "表示する",
+  "From this server's configuration": "このサーバーの構成から",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "以下の一部の設定は、ここに何も保存されていなかった間に、このサーバーの構成 (Helm の値または config.env) から設定されました。ここで行った変更は保持され、再起動で元に戻ることはありません。",
+  "Set from {{variable}} in this server's configuration.": "このサーバーの構成の {{variable}} から設定されました。",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "このサーバーの構成の {{variable}} は使われませんでした: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "この設定は非表示にできません。OneUptime の既定のままにするには空欄にしてください。",
+  "Use \"shown\" or \"hidden\".": "\"shown\" または \"hidden\" を使ってください。",
   "Support Email": "サポートメール",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "ヘルプ › サポートメール、「ページが見つかりません」の「サポートに問い合わせる」、エラー画面がサポート用のバンドルの送信先として示すアドレスです。",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "ヘルプ › サポートメール、「ページが見つかりません」の「サポートに問い合わせる」、アカウントに関するメール、エラー画面がサポート用のバンドルの送信先として示すアドレスです。",
   "Chat": "チャット",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "ヘルプ › Slack でチャット。独自のリンクには、開くチャットに合わせて Slack、Microsoft Teams、「サポートとチャット」のいずれかの名前が付きます。",
   "Request Demo": "デモをリクエスト",

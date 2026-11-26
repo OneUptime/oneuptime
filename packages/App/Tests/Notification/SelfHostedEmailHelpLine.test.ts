@@ -12,6 +12,7 @@ import Path from "path";
 import Handlebars from "handlebars";
 import {
   decodeHtmlEntities,
+  htmlAsText,
   markupAsSpacesWithOutlookContent,
 } from "Common/Tests/Helpers/HtmlText";
 import { ProductBranding } from "Common/Types/Branding/ProductBranding";
@@ -52,6 +53,14 @@ import { templateVariables } from "./Fixtures/EmailTemplateVariables";
  * and no sender can say otherwise. The templates are rendered with the
  * production helpers and partials (Utils/Handlebars.ts, imported above),
  * and through MailService.render itself.
+ *
+ * A SERVER'S OWN SUPPORT ADDRESS (#10941). Where a self-hosted server's
+ * admins set one (Admin Dashboard > Settings > Help and Support > Support
+ * Email), every one of these emails names it in place of its admin, as a
+ * mailto: link - "Need help? Write to it-help@example.com." - and so do the
+ * changed-address and cleared-sign-in emails and the self-hosted welcome.
+ * On OneUptime's default or hidden they say what they always did, and on
+ * OneUptime Cloud no address of a server's ever reaches an email.
  */
 
 jest.mock("../../FeatureSet/Notification/Config", () => {
@@ -454,8 +463,277 @@ describe("the kind of server, as an email's variables", () => {
     });
   });
 
-  test("the variable is reserved", () => {
-    expect([...SERVER_KIND_VARIABLE_NAMES]).toEqual(["isSelfHosted"]);
+  test("the variables are reserved", () => {
+    expect([...SERVER_KIND_VARIABLE_NAMES]).toEqual([
+      "isSelfHosted",
+      "serverSupportEmail",
+    ]);
+  });
+
+  test("a self-hosted server with an address of its own carries it", () => {
+    expect(getEmailServerKindVariables(false, "it-help@example.com")).toEqual({
+      isSelfHosted: "true",
+      serverSupportEmail: "it-help@example.com",
+    });
+    expect(
+      getEmailServerKindVariables(false, "  it-help@example.com "),
+    ).toEqual({
+      isSelfHosted: "true",
+      serverSupportEmail: "it-help@example.com",
+    });
+  });
+
+  test("no address, or an empty one, carries nothing more", () => {
+    for (const address of [null, undefined, "", "   "]) {
+      expect(getEmailServerKindVariables(false, address)).toEqual({
+        isSelfHosted: "true",
+      });
+    }
+  });
+
+  test("OneUptime Cloud never carries an address, whatever it is handed", () => {
+    expect(getEmailServerKindVariables(true, "it-help@example.com")).toEqual(
+      {},
+    );
+  });
+});
+
+/*
+ * A SELF-HOSTED SERVER'S OWN SUPPORT ADDRESS (#10941), template by
+ * template: every email with a help line names it, as a link, and nobody
+ * else.
+ */
+const OWN_ADDRESS: string = "it-help@example.com";
+const OWN: Record<string, string> = {
+  isSelfHosted: "true",
+  serverSupportEmail: OWN_ADDRESS,
+};
+const OWN_LINE: string = `Need help? Write to ${OWN_ADDRESS}.`;
+const OWN_LINK: string = `<a href="mailto:${OWN_ADDRESS}"`;
+
+/*
+ * The email's words with its markup taken out, not made a space: a
+ * sentence whose address is a link reads whole ("Write to
+ * it-help@example.com."), where textOf reads the link apart from its
+ * full stop.
+ */
+const sentencesOf: (html: string) => string = (html: string): string => {
+  return htmlAsText(html).replace(WHITESPACE_RUN, " ");
+};
+
+describe.each([...TEMPLATES_WITH_A_HELP_LINE])(
+  "%s, on a self-hosted server with its own support address (#10941)",
+  (name: string) => {
+    test("names the server's own address, as a mailto: link", () => {
+      const html: string = render(name, OWN);
+
+      expect(sentencesOf(html)).toContain(OWN_LINE);
+      expect(html).toContain(OWN_LINK);
+      expect(html).toContain(`>${OWN_ADDRESS}</a>`);
+    });
+
+    test("names neither the server's admin nor OneUptime's support", () => {
+      const html: string = render(name, OWN);
+
+      expect(textOf(html)).not.toContain(ADMIN_LINE);
+      expect(html).not.toContain(SUPPORT_ADDRESS);
+      expect(textOf(html)).not.toContain("Contact support");
+    });
+
+    test("says it once", () => {
+      expect(textOf(render(name, OWN)).split("Need help?").length - 1).toBe(1);
+    });
+
+    test("renamed, it names the address too", () => {
+      const html: string = render(name, { ...OWN, ...RENAMED });
+
+      expect(sentencesOf(html)).toContain(OWN_LINE);
+      expect(html).not.toContain(SUPPORT_ADDRESS);
+    });
+
+    test("on OneUptime Cloud an address handed to the email is never named", () => {
+      const html: string = render(name, { serverSupportEmail: OWN_ADDRESS });
+
+      expect(html).toContain(SUPPORT_LINK);
+      expect(html).not.toContain(OWN_ADDRESS);
+    });
+  },
+);
+
+describe("a self-hosted server's own support address in the other account emails (#10941)", () => {
+  test("an invitation that names who made it: ask them, or write to the address", () => {
+    const html: string = render("InviteMember", { ...INVITER, ...OWN });
+
+    expect(sentencesOf(html)).toContain(
+      `Need help? Ask Ada Walker, who invited you, or write to ${OWN_ADDRESS}.`,
+    );
+    expect(html).toContain(OWN_LINK);
+    expect(textOf(html)).not.toContain(INVITER_LINE);
+    expect(textOf(html).split("Need help?").length - 1).toBe(1);
+  });
+
+  test("the inviter's name stays their words, never HTML, beside the link", () => {
+    const html: string = render("InviteMember", {
+      ...OWN,
+      inviterLabel: '<a href="https://evil.example">Ada</a> (ada@walk.example)',
+      inviterName: '<a href="https://evil.example">Ada</a>',
+    });
+
+    expect(html).not.toContain('<a href="https://evil.example">');
+    expect(html).toContain(OWN_LINK);
+  });
+
+  test("the address is printed as an address, escaped, never as markup", () => {
+    const html: string = render("ForgotPassword", {
+      isSelfHosted: "true",
+      serverSupportEmail: '"><script>alert(1)</script>@example.com',
+    });
+
+    expect(html).not.toContain("<script>");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  test("the SMTP test still offers no help line: it reaches whoever set email up", () => {
+    const html: string = render(SMTP_TEST, OWN);
+
+    expect(html).not.toContain(OWN_ADDRESS);
+    expect(textOf(html)).not.toContain("Need help?");
+  });
+
+  test("the self-hosted welcome names the address for anyone but the server's first admin", () => {
+    const welcome: string = render("SignupAccountReadyEmail", {
+      ...OWN,
+      isMasterAdmin: "false",
+    });
+
+    expect(sentencesOf(welcome)).toContain(OWN_LINE);
+    expect(welcome).toContain(OWN_LINK);
+    expect(textOf(welcome)).not.toContain(ADMIN_LINE);
+
+    const adminsWelcome: string = render("SignupAccountReadyEmail", {
+      ...OWN,
+      isMasterAdmin: "true",
+    });
+
+    expect(adminsWelcome).not.toContain(OWN_ADDRESS);
+    expect(textOf(adminsWelcome)).toContain("You are this server's admin");
+  });
+
+  test("the self-hosted welcome without an address of its own asks its admin, as before", () => {
+    const welcome: string = render("SignupAccountReadyEmail", {
+      ...SELF_HOSTED,
+      isMasterAdmin: "false",
+    });
+
+    expect(textOf(welcome)).toContain(ADMIN_LINE);
+  });
+
+  test("a changed address, changed by its owner: write to the address right away", () => {
+    const html: string = render("EmailAddressChanged", {
+      ...OWN,
+      changedByAccountOwner: "true",
+      changedByServerAdmin: "",
+      changedByIdentityProvider: "",
+    });
+
+    expect(sentencesOf(html)).toContain(
+      `Contact support at ${OWN_ADDRESS} right away, from this address: they can move your account back to it.`,
+    );
+    expect(html).toContain(OWN_LINK);
+    expect(textOf(html)).not.toContain("Contact your server's admin");
+    expect(html).not.toContain(SUPPORT_ADDRESS);
+  });
+
+  test("a changed address, changed by a server admin: if you did not expect it, the address", () => {
+    const html: string = render("EmailAddressChanged", {
+      ...OWN,
+      changedByAccountOwner: "",
+      changedByServerAdmin: "true",
+      changedByIdentityProvider: "",
+    });
+
+    expect(sentencesOf(html)).toContain(
+      `If you did not expect this, contact support at ${OWN_ADDRESS}.`,
+    );
+    expect(textOf(html)).not.toContain("contact your server's admin");
+  });
+
+  test("a changed address on a server without an address of its own asks its admin, as before", () => {
+    const html: string = render("EmailAddressChanged", {
+      ...SELF_HOSTED,
+      changedByAccountOwner: "true",
+      changedByServerAdmin: "",
+      changedByIdentityProvider: "",
+    });
+
+    expect(textOf(html)).toContain(
+      "Contact your server's admin right away: they can move your account back to this address.",
+    );
+  });
+
+  test("an identity provider's change still sends the reader to their organization's admin", () => {
+    const html: string = render("EmailAddressChanged", {
+      ...OWN,
+      changedByAccountOwner: "",
+      changedByServerAdmin: "",
+      changedByIdentityProvider: "true",
+    });
+
+    expect(textOf(html)).toContain(
+      "If you did not expect this, contact your organization's admin.",
+    );
+    expect(html).not.toContain(OWN_LINK);
+  });
+
+  test("cleared sign-in settings, by a server admin: if you did not expect it, the address", () => {
+    const html: string = render("SignInSettingsCleared", {
+      ...OWN,
+      clearedByProjectOwner: "",
+      projectName: "",
+    });
+
+    expect(sentencesOf(html)).toContain(
+      `If you did not expect this, contact support at ${OWN_ADDRESS}.`,
+    );
+    expect(html).toContain(OWN_LINK);
+    expect(textOf(html)).not.toContain("contact your server's admin");
+  });
+
+  test("cleared sign-in settings, by a project's owners: its owners, address or not", () => {
+    const html: string = render("SignInSettingsCleared", {
+      ...OWN,
+      clearedByProjectOwner: "true",
+      projectName: "Acme Production",
+    });
+
+    expect(textOf(html)).toContain(
+      "If you did not expect this, contact the owners of Acme Production.",
+    );
+    expect(html).not.toContain(OWN_LINK);
+  });
+
+  test("in the reader's language: German names the address in a German sentence", () => {
+    const html: string = render("ForgotPassword", {
+      ...OWN,
+      emailLanguage: "de",
+    });
+
+    expect(sentencesOf(html)).toContain(
+      `Brauchen Sie Hilfe? Schreiben Sie an ${OWN_ADDRESS}.`,
+    );
+    expect(html).toContain(OWN_LINK);
+  });
+
+  test("in Persian, the address is still the link, its words read from the right", () => {
+    const html: string = render("ForgotPassword", {
+      ...OWN,
+      emailLanguage: "fa",
+      emailDirection: "rtl",
+      isEmailRightToLeft: "true",
+    });
+
+    expect(html).toContain(OWN_LINK);
+    expect(textOf(html)).toContain("به کمک نیاز دارید؟");
   });
 });
 
@@ -547,5 +825,98 @@ describe("MailService.render", () => {
     await MailService.render(message);
 
     expect(message.vars).not.toHaveProperty("isSelfHosted");
+  });
+
+  describe("with the server's own support address read (#10941)", () => {
+    afterEach(() => {
+      MailService.nameServerSupportAddressWith(null);
+    });
+
+    test("on a self-hosted server, names the address the reader answers", async () => {
+      environment.IsBillingEnabled = false;
+      MailService.nameServerSupportAddressWith(async () => {
+        return OWN_ADDRESS;
+      });
+
+      const rendered: RenderedEmail = await MailService.render(passwordReset());
+
+      expect(sentencesOf(rendered.body)).toContain(OWN_LINE);
+      expect(rendered.body).toContain(OWN_LINK);
+      expect(textOf(rendered.body)).not.toContain(ADMIN_LINE);
+    });
+
+    test("on OneUptime Cloud, never asks, and names OneUptime's support", async () => {
+      environment.IsBillingEnabled = true;
+      let reads: number = 0;
+      MailService.nameServerSupportAddressWith(
+        async (): Promise<string | null> => {
+          reads++;
+          return OWN_ADDRESS;
+        },
+      );
+
+      const rendered: RenderedEmail = await MailService.render(passwordReset());
+
+      expect(reads).toBe(0);
+      expect(rendered.body).toContain(SUPPORT_LINK);
+      expect(rendered.body).not.toContain(OWN_ADDRESS);
+    });
+
+    test("no address of the server's own: the admin, as before", async () => {
+      environment.IsBillingEnabled = false;
+      MailService.nameServerSupportAddressWith(async () => {
+        return null;
+      });
+
+      const rendered: RenderedEmail = await MailService.render(passwordReset());
+
+      expect(textOf(rendered.body)).toContain(ADMIN_LINE);
+    });
+
+    test("a read that fails never holds the email up: it names the admin", async () => {
+      environment.IsBillingEnabled = false;
+      MailService.nameServerSupportAddressWith(async () => {
+        throw new Error("The database went away.");
+      });
+
+      const rendered: RenderedEmail = await MailService.render(passwordReset());
+
+      expect(textOf(rendered.body)).toContain(ADMIN_LINE);
+      expect(rendered.body).not.toContain(OWN_ADDRESS);
+    });
+
+    test("a sender's serverSupportEmail is replaced by the server's answer", async () => {
+      environment.IsBillingEnabled = false;
+      MailService.nameServerSupportAddressWith(async () => {
+        return null;
+      });
+
+      const rendered: RenderedEmail = await MailService.render(
+        passwordReset({ serverSupportEmail: "attacker@evil.example" }),
+      );
+
+      expect(rendered.body).not.toContain("attacker@evil.example");
+      expect(textOf(rendered.body)).toContain(ADMIN_LINE);
+    });
+
+    test("the welcome a new member gets names the address too", async () => {
+      environment.IsBillingEnabled = false;
+      MailService.nameServerSupportAddressWith(async () => {
+        return OWN_ADDRESS;
+      });
+
+      const rendered: RenderedEmail = await MailService.render({
+        subject: "Welcome",
+        isSubjectLiteral: true,
+        templateType: EmailTemplateType.SignupAccountReadyEmail,
+        vars: {
+          dashboardLink: "https://oneuptime.example.test/dashboard",
+          adminDashboardLink: "https://oneuptime.example.test/admin",
+          isMasterAdmin: "false",
+        },
+      });
+
+      expect(sentencesOf(rendered.body)).toContain(OWN_LINE);
+    });
   });
 });
