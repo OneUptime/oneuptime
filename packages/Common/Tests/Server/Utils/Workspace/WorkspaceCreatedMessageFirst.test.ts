@@ -12,6 +12,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * A RECORD'S CREATED MESSAGE IS THE FIRST THING ITS CHANNELS HEAR OF IT
@@ -56,7 +57,7 @@ async function settleMicrotasks(count: number = 20): Promise<void> {
   }
 }
 
-let errorsLogged: jest.SpiedFunction<typeof logger.error>;
+let errorsLogged: SpyInstance<typeof logger.error>;
 
 beforeEach(() => {
   held = [];
@@ -424,7 +425,7 @@ describe("nothing waits for good", () => {
     jest.useFakeTimers();
 
     const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
-    const post: jest.Mock<KeptPost> = jest.fn<KeptPost>(async () => {
+    const post: Mock<KeptPost> = jest.fn<KeptPost>(async () => {
       // posted
     });
 
@@ -441,22 +442,22 @@ describe("nothing waits for good", () => {
   });
 
   test("the hold's timer never keeps the process running: it is unref'd", async () => {
-    const unref: jest.Mock<() => void> = jest.fn<() => void>();
-    const timeouts: jest.SpiedFunction<typeof setTimeout> = jest
-      .spyOn(global, "setTimeout")
-      .mockImplementation((() => {
-        return { unref: unref };
-      }) as never);
+    const unref: Mock<() => void> = jest.fn<() => void>();
+    const delays: Array<number | undefined> = [];
+    jest.spyOn(global, "setTimeout").mockImplementation(((
+      _handler: () => void,
+      delay?: number,
+    ) => {
+      delays.push(delay);
+      return { unref: unref };
+    }) as never);
     jest.spyOn(global, "clearTimeout").mockImplementation((() => {
       // the stand-in timer above is nothing to clear
     }) as never);
 
     const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
 
-    expect(timeouts).toHaveBeenCalledTimes(1);
-    expect(timeouts.mock.calls[0]![1]).toBe(
-      WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS,
-    );
+    expect(delays).toEqual([WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS]);
     expect(unref).toHaveBeenCalledTimes(1);
 
     await WorkspaceCreatedMessageFirst.postHeld(alert);

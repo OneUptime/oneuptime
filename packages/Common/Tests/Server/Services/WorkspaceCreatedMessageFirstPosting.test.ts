@@ -31,6 +31,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -348,9 +349,7 @@ describe("the feed services say which message announces its record", () => {
 describe("hasRulesWithOwnerCondition", () => {
   let rules: Array<WorkspaceNotificationRule> = [];
   let connected: boolean = true;
-  let ruleReads: jest.SpiedFunction<
-    typeof WorkspaceNotificationRuleService.findBy
-  >;
+  let ruleReads: SpyInstance<typeof WorkspaceNotificationRuleService.findBy>;
 
   function rule(
     filters: Array<NotificationRuleCondition>,

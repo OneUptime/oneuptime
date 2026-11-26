@@ -17,6 +17,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * A NOTIFICATION RULE THAT ASKS WHO OWNS A RECORD IS MATCHED ON ALL OF ITS
@@ -40,11 +41,11 @@ const INCIDENT_ID: ObjectID = new ObjectID(
 );
 
 let rulesAskWhoOwns: boolean = true;
-let ruleReads: jest.SpiedFunction<
+let ruleReads: SpyInstance<
   typeof WorkspaceNotificationRuleService.hasRulesWithOwnerCondition
 >;
-let warnings: jest.SpiedFunction<typeof logger.warn>;
-let errorsLogged: jest.SpiedFunction<typeof logger.error>;
+let warnings: SpyInstance<typeof logger.warn>;
+let errorsLogged: SpyInstance<typeof logger.error>;
 
 // A create as a monitor makes it: its creator's owners and the monitor's own.
 function monitorsCreate(): CreateBy<Alert> {

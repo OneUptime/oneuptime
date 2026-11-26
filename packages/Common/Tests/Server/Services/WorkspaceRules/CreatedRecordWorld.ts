@@ -58,6 +58,7 @@ import AlertWorkspaceMessages from "../../../../Server/Utils/Workspace/Workspace
 import IncidentWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/Incident";
 import URL from "../../../../Types/API/URL";
 import OneUptimeDate from "../../../../Types/Date";
+import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
@@ -369,7 +370,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
     const createBy: CreateBy<Alert> = {
       data: this.alertModel(),
       props: { isRoot: true },
-      miscDataProps: this.ownersAsMiscData(options.ownersPicked),
+      ...this.ownersAsMiscData(options.ownersPicked),
     };
 
     CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);
@@ -415,7 +416,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
     const createBy: CreateBy<Incident> = {
       data: this.incidentModel(),
       props: { isRoot: true },
-      miscDataProps: this.ownersAsMiscData(options.ownersPicked),
+      ...this.ownersAsMiscData(options.ownersPicked),
     };
 
     CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);
@@ -637,16 +638,19 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
     return label;
   }
 
-  private ownersAsMiscData(
-    owners: Owners | undefined,
-  ): Record<string, Array<ObjectID>> | undefined {
+  // The owners picked on the create, as its misc data hands them over.
+  private ownersAsMiscData(owners: Owners | undefined): {
+    miscDataProps?: JSONObject;
+  } {
     if (!owners) {
-      return undefined;
+      return {};
     }
 
     return {
-      ...(owners.users ? { ownerUsers: owners.users } : {}),
-      ...(owners.teams ? { ownerTeams: owners.teams } : {}),
+      miscDataProps: {
+        ...(owners.users ? { ownerUsers: owners.users } : {}),
+        ...(owners.teams ? { ownerTeams: owners.teams } : {}),
+      } as unknown as JSONObject,
     };
   }
 

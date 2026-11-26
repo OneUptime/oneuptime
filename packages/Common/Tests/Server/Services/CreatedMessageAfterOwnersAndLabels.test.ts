@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -117,7 +118,7 @@ function step(
     done?: () => void;
     run?: () => Promise<void>;
   },
-): jest.SpiedFunction<(...args: Array<unknown>) => Promise<unknown>> {
+): SpyInstance<(...args: Array<unknown>) => Promise<unknown>> {
   return jest
     .spyOn(
       target as Record<string, (...args: Array<unknown>) => Promise<unknown>>,
@@ -193,12 +194,8 @@ afterEach(async () => {
 });
 
 describe("an alert's create chain", () => {
-  let waitForOwners: jest.SpiedFunction<
-    (...args: Array<unknown>) => Promise<unknown>
-  >;
-  let alertCreated: jest.SpiedFunction<
-    (...args: Array<unknown>) => Promise<unknown>
-  >;
+  let waitForOwners: SpyInstance<(...args: Array<unknown>) => Promise<unknown>>;
+  let alertCreated: SpyInstance<(...args: Array<unknown>) => Promise<unknown>>;
 
   function standIn(options: { createdResolved?: boolean } = {}): Promise<void> {
     const { ended, end } = chainEnd();
@@ -414,15 +411,11 @@ describe("an alert's create chain", () => {
 });
 
 describe("an incident's create chain", () => {
-  let waitForOwners: jest.SpiedFunction<
+  let waitForOwners: SpyInstance<(...args: Array<unknown>) => Promise<unknown>>;
+  let incidentCreated: SpyInstance<
     (...args: Array<unknown>) => Promise<unknown>
   >;
-  let incidentCreated: jest.SpiedFunction<
-    (...args: Array<unknown>) => Promise<unknown>
-  >;
-  let declaredFrom: jest.SpiedFunction<
-    (...args: Array<unknown>) => Promise<unknown>
-  >;
+  let declaredFrom: SpyInstance<(...args: Array<unknown>) => Promise<unknown>>;
   let finishLinking: () => void = (): void => {
     // replaced while linking waits
   };
@@ -731,14 +724,14 @@ describe("when a record's feed starts", () => {
       )
       .mockResolvedValue(undefined as never);
 
-    const counter: jest.SpiedFunction<
+    const counter: SpyInstance<
       typeof ProjectService.incrementAndGetAlertCounter
     > = jest
       .spyOn(ProjectService, "incrementAndGetAlertCounter")
       .mockResolvedValue({ counter: 7, prefix: undefined } as never);
 
     let clock: number = FEED_STARTS_AT.getTime();
-    const reads: jest.SpiedFunction<typeof OneUptimeDate.getCurrentDate> = jest
+    const reads: SpyInstance<typeof OneUptimeDate.getCurrentDate> = jest
       .spyOn(OneUptimeDate, "getCurrentDate")
       .mockImplementation((): Date => {
         clock += 1;
