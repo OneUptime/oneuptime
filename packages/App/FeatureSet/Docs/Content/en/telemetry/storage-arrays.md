@@ -91,7 +91,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-The script asks which array this is (a FlashArray serving native metrics, a FlashArray on an older Purity//FA, or a FlashBlade), then for your OneUptime URL, the ingestion key, a name for the array, the array's management address and the read-only user's API token (read without echo). It installs to `/opt/oneuptime-storage-array-agent`, downloads the Compose file and every collector config, writes a `0600` `.env` file with the matching config and Compose profile, and starts the agent with Docker Compose. It quotes every value for Docker Compose as you typed it. Running it again reuses everything in an existing `.env` instead of prompting again, and keeps a file you edited as `<file>.bak.<timestamp>` before replacing it.
+The script asks which array this is (a FlashArray serving native metrics, a FlashArray on an older Purity//FA, a FlashBlade, or a PowerScale cluster), then for your OneUptime URL, the ingestion key, a name for the array, the array's management address and the read-only user's API token (read without echo). It installs to `/opt/oneuptime-storage-array-agent`, downloads the Compose file and every collector config, writes a `0600` `.env` file with the matching config and Compose profile, and starts the agent with Docker Compose. It quotes every value for Docker Compose as you typed it. Running it again reuses everything in an existing `.env` instead of prompting again, and keeps a file you edited as `<file>.bak.<timestamp>` before replacing it.
 @tab Docker Compose
 Download `docker-compose.yml` and the three `otel-collector-config*.yaml` files from your OneUptime into a new folder:
 
