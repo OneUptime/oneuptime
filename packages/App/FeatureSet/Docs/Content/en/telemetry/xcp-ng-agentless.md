@@ -70,7 +70,7 @@ The name defaults to Xen Orchestra's host name, and every pool it reads shows it
 ## Connect a pool without Xen Orchestra
 
 :::steps
-### Open Connections
+### Start from Connections
 In OneUptime, open **XCP-ng → Connections** and click **Connect XCP-ng**.
 
 ### Choose the pool
@@ -82,7 +82,7 @@ Enter the **User Name** and **Password**: `root`, or an Active Directory user wi
 ### Test the connection and trust the master's certificate
 Click **Test connection**. Each XCP-ng host signs its own certificate, so the test shows the master's: check its fingerprint, then click **Trust this certificate**. The result says which XCP-ng the master runs and what the account can read, and warns you when the account can change the pool.
 
-### Name it and connect
+### Name the pool and connect
 Click **Connect XCP-ng**, and the connection's page opens.
 :::
 
