@@ -679,6 +679,7 @@ import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectio
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import CloudBudgetAPI from "Common/Server/API/CloudBudgetAPI";
 import CloudCostGroupAPI from "Common/Server/API/CloudCostGroupAPI";
 import CloudCostViewAPI from "Common/Server/API/CloudCostViewAPI";
 import CloudCostLineItem from "Common/Models/DatabaseModels/CloudCostLineItem";
@@ -2189,10 +2190,6 @@ import CloudAccountFeed from "Common/Models/DatabaseModels/CloudAccountFeed";
 import CloudAccountFeedService, {
   Service as CloudAccountFeedServiceType,
 } from "Common/Server/Services/CloudAccountFeedService";
-import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
-import CloudBudgetService, {
-  Service as CloudBudgetServiceType,
-} from "Common/Server/Services/CloudBudgetService";
 import CloudCommitment from "Common/Models/DatabaseModels/CloudCommitment";
 import CloudCommitmentService, {
   Service as CloudCommitmentServiceType,
@@ -3998,13 +3995,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // Monthly budgets for what the connected clouds cost, and their alerts.
+    /*
+     * Budgets for what the connected clouds cost, and their alerts: a
+     * budget's page and the forecasts of any scope too (#11008).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<CloudBudget, CloudBudgetServiceType>(
-        CloudBudget,
-        CloudBudgetService,
-      ).getRouter(),
+      new CloudBudgetAPI().getRouter(),
     );
 
     // The connected clouds' commitments and what they cover: read only.

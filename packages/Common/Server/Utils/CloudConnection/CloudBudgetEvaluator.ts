@@ -15,12 +15,10 @@ import {
   CloudBudgetScope,
   CloudBudgetUnusualDayRule,
   CloudBudgetUnusualDayUnit,
-  CloudBudgetWindowSpend,
   findCloudBudgetUnusualDays,
   getCloudBudgetCheckWindow,
   getCloudBudgetWindowNoun,
   isCloudBudgetNoticeOnly,
-  projectCloudBudgetWindow,
   readCloudBudgetPeriod,
   readCloudBudgetScope,
   readCloudBudgetUnusualDayRule,
@@ -37,16 +35,13 @@ import {
   groupCloudCostAnomaliesByDay,
 } from "../../../Types/Cloud/CloudCostAnomaly";
 import {
-  CLOUD_COST_HISTORY_DAYS,
   addUtcDays,
   CloudAccountCostSummary,
   CloudCostAnomaly,
   CloudCostState,
   fromCloudCostDay,
   getCloudAccountCostSummaryInBasis,
-  projectCloudMonthCost,
   startOfUtcDay,
-  startOfUtcMonth,
   toCloudCostDay,
   getPassedCloudBudgetThresholds,
   readCloudAccountCostSummary,
@@ -59,11 +54,6 @@ import {
   isCloudCostBasis,
   resolveCloudCostBasis,
 } from "../../../Types/Cloud/CloudCostBasis";
-import {
-  CloudCostForecast,
-  forecastCloudCosts,
-  getCloudCostForecastByMonth,
-} from "../../../Types/Cloud/CloudCostForecast";
 import {
   CloudCostRule,
   readCloudCostRules,
@@ -83,13 +73,15 @@ import CloudBudgetService from "../../Services/CloudBudgetService";
 import CloudCostGroupService from "../../Services/CloudCostGroupService";
 import CloudCostSettingService from "../../Services/CloudCostSettingService";
 import ProjectService from "../../Services/ProjectService";
+import CloudBudgetFigures, {
+  CloudBudgetFiguresRead,
+} from "../CloudCost/CloudBudgetFigures";
 import CloudBudgetNotices, {
   CloudBudgetNoticeFacts,
 } from "../CloudCost/CloudBudgetNotices";
 import CloudBudgetSpendReader, {
   CloudBudgetDailyServiceTotals,
   CloudBudgetScopeRead,
-  CloudBudgetSpendReaderClass,
 } from "../CloudCost/CloudBudgetSpendReader";
 import logger from "../Logger";
 import { OwnerNotificationDelivery } from "../Notification/OwnerNotificationDeliveries";
@@ -992,7 +984,10 @@ export default class CloudBudgetEvaluator {
     });
 
     if (budget) {
-      await CloudBudgetEvaluator.evaluate(budget, { projectNames: new Map(), projectBases: new Map() });
+      await CloudBudgetEvaluator.evaluate(budget, {
+        projectNames: new Map(),
+        projectBases: new Map(),
+      });
     }
   }
 
@@ -1006,7 +1001,10 @@ export default class CloudBudgetEvaluator {
       limit: LIMIT_PER_PROJECT,
       props: { isRoot: true },
     });
-    const run: EvaluationRun = { projectNames: new Map(), projectBases: new Map() };
+    const run: EvaluationRun = {
+      projectNames: new Map(),
+      projectBases: new Map(),
+    };
 
     for (const budget of budgets) {
       await CloudBudgetEvaluator.evaluate(budget, run);
@@ -1021,7 +1019,10 @@ export default class CloudBudgetEvaluator {
    */
   @CaptureSpan()
   public static async evaluateAll(): Promise<number> {
-    const run: EvaluationRun = { projectNames: new Map(), projectBases: new Map() };
+    const run: EvaluationRun = {
+      projectNames: new Map(),
+      projectBases: new Map(),
+    };
 
     await CloudBudgetNotices.resume({
       readFacts: (data: {
@@ -1335,11 +1336,11 @@ export default class CloudBudgetEvaluator {
       props: { isRoot: true },
       now,
     };
-    const figures: {
-      period: CloudBudgetWindowSpend;
-      window: CloudBudgetWindowSpend;
-      hasData: boolean;
-    } = await CloudBudgetEvaluator.readWindowSpend({ read, window, now });
+    const figures: CloudBudgetFiguresRead = await CloudBudgetFigures.read({
+      read,
+      window,
+      now,
+    });
 
     const rule: CloudBudgetUnusualDayRule | null =
       readCloudBudgetUnusualDayRule({
@@ -1404,124 +1405,6 @@ export default class CloudBudgetEvaluator {
         ? { costGroupTeamId: scopeWords.costGroupTeamId }
         : {}),
       basis,
-    };
-  }
-
-  /*
-   * A window's and its period's figures, from the scope's costs: this
-   * month's days and the week before it (the spend so far and the pace),
-   * the period's earlier months, and - a period that runs past this month -
-   * the full months kept, for the forecast of the months after this one.
-   */
-  public static async readWindowSpend(data: {
-    read: CloudBudgetScopeRead;
-    window: CloudBudgetCheckWindow;
-    now: Date;
-  }): Promise<{
-    period: CloudBudgetWindowSpend;
-    window: CloudBudgetWindowSpend;
-    hasData: boolean;
-    forecast?: CloudCostForecast | undefined;
-    pastMonths: Map<string, number>;
-  }> {
-    const today: Date = startOfUtcDay(data.now);
-    const monthStart: Date = startOfUtcMonth(data.now);
-    const weekBack: Date = addUtcDays(today, -8);
-    const dailyTotals: Map<string, number> =
-      await CloudBudgetSpendReader.readDays(
-        data.read,
-        weekBack.getTime() < monthStart.getTime() ? weekBack : monthStart,
-        today,
-      );
-    const thisMonth: string = toCloudBudgetMonth(data.now);
-    const period: { start: Date; months: Array<string> } = data.window.period;
-    const hasEarlierMonths: boolean = period.months.some(
-      (month: string): boolean => {
-        return month < thisMonth;
-      },
-    );
-    const hasLaterMonths: boolean = period.months.some(
-      (month: string): boolean => {
-        return month > thisMonth;
-      },
-    );
-    const lastMonthEnd: Date = addUtcDays(monthStart, -1);
-    const history: { start: Date; lastDay: Date } | null = hasLaterMonths
-      ? CloudBudgetSpendReaderClass.getHistoryWindow({
-          now: data.now,
-          keptDays: CLOUD_COST_HISTORY_DAYS,
-        })
-      : null;
-    let pastMonths: Map<string, number> = new Map();
-
-    if (hasEarlierMonths || history) {
-      const start: Date =
-        history && history.start.getTime() < period.start.getTime()
-          ? history.start
-          : period.start;
-
-      if (start.getTime() <= lastMonthEnd.getTime()) {
-        pastMonths = await CloudBudgetSpendReader.readMonths(
-          data.read,
-          start,
-          lastMonthEnd,
-        );
-      }
-    }
-
-    let laterMonths: Map<string, number> | undefined = undefined;
-    let forecast: CloudCostForecast | undefined = undefined;
-
-    if (hasLaterMonths) {
-      const month: {
-        monthToDate: number;
-        projectedMonth: number;
-        dailyPace?: number;
-      } = projectCloudMonthCost({ dailyTotals, now: data.now });
-
-      forecast = forecastCloudCosts({
-        history: Array.from(pastMonths.entries()).map(
-          ([key, amount]: [string, number]) => {
-            return { month: key, amount };
-          },
-        ),
-        current: {
-          month: thisMonth,
-          spent: month.monthToDate,
-          projected: month.projectedMonth,
-          dailyPace: month.dailyPace || 0,
-        },
-      });
-      laterMonths = getCloudCostForecastByMonth(forecast);
-    }
-
-    const periodSpend: CloudBudgetWindowSpend = projectCloudBudgetWindow({
-      window: data.window.period,
-      now: data.now,
-      pastMonths,
-      dailyTotals,
-      laterMonths,
-    });
-    const windowSpend: CloudBudgetWindowSpend = data.window.isPlanMonth
-      ? projectCloudBudgetWindow({
-          window: data.window,
-          now: data.now,
-          pastMonths,
-          dailyTotals,
-        })
-      : periodSpend;
-    const periodMonthsRead: boolean = Array.from(pastMonths.keys()).some(
-      (key: string): boolean => {
-        return data.window.months.includes(key);
-      },
-    );
-
-    return {
-      period: periodSpend,
-      window: windowSpend,
-      hasData: dailyTotals.size > 0 || periodMonthsRead,
-      forecast,
-      pastMonths,
     };
   }
 
