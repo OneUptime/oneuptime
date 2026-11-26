@@ -817,6 +817,7 @@
     "p95 {{latency}}",
     "p99 (ms)",
     "payment-.*",
+    "payments, search, platform-*",
     "prod, staging",
     "prod-.*",
     "prod-eu",
