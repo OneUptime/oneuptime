@@ -13,6 +13,7 @@ import CloudAccountService from "Common/Server/Services/CloudAccountService";
 import CloudCostGroupService from "Common/Server/Services/CloudCostGroupService";
 import CloudCostLineItemService from "Common/Server/Services/CloudCostLineItemService";
 import CloudCostService from "Common/Server/Services/CloudCostService";
+import CloudCostSettingService from "Common/Server/Services/CloudCostSettingService";
 import CloudCostViewService from "Common/Server/Services/CloudCostViewService";
 import KubernetesCostAllocationService from "Common/Server/Services/KubernetesCostAllocationService";
 import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementGenerator";
@@ -30,6 +31,7 @@ import {
   CloudCostLineItemRecurrence,
   CloudCostSharedSplit,
 } from "Common/Types/Cloud/CloudCostAllocation";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import {
   CloudCostRule,
   CloudCostRuleField,
@@ -380,6 +382,119 @@ function namespaceRows(): Array<JSONObject> {
   return rows;
 }
 
+/*
+ * EACH COST ON THREE BASES (#11007), in a project of its own so the
+ * figures above stay as they are. A November of:
+ *
+ *   series       account  service        tags            billed  amortized  net
+ *   pay-api      prod     Amazon EC2     team=payments     10        7        6   a day
+ *   data-lake    data     Amazon S3      -                  5        5        4   a day
+ *   support      shared   AWS Support    -                  3        3        3   a day
+ *   plan fee     prod     Savings Plans  -                300        0        0   on the 1st
+ *
+ * The Savings Plan bought up front is billed on the 1st, and amortized
+ * into the usage it covers: pay-api's billed 10 a day ran at 7 under it.
+ * Net takes the credits off too.
+ */
+const BASES_PROJECT: ObjectID = new ObjectID(
+  "0192f1a0-1100-7000-8000-000000011007",
+);
+
+function basesRows(): Array<JSONObject> {
+  const rows: Array<JSONObject> = [];
+  const row: (data: {
+    day: Date;
+    account: string;
+    service: string;
+    resourceId: string;
+    tags: Record<string, string>;
+    cost: number;
+    amortizedCost: number;
+    netCost: number;
+  }) => JSONObject = (data: {
+    day: Date;
+    account: string;
+    service: string;
+    resourceId: string;
+    tags: Record<string, string>;
+    cost: number;
+    amortizedCost: number;
+    netCost: number;
+  }): JSONObject => {
+    return {
+      _id: ObjectID.generate().toString(),
+      projectId: BASES_PROJECT.toString(),
+      cloudAccountId: data.account,
+      cloudConnectionId: CONNECTION.toString(),
+      provider: "aws",
+      accountId: AWS_ACCOUNT[data.account]!,
+      day: OneUptimeDate.toClickhouseDateTime(data.day),
+      service: data.service,
+      region: "us-east-1",
+      resourceId: data.resourceId,
+      cost: data.cost,
+      amortizedCost: data.amortizedCost,
+      netCost: data.netCost,
+      currency: "USD",
+      tags: data.tags,
+      readAt: OneUptimeDate.toClickhouseDateTime(NOW),
+    };
+  };
+
+  for (const day of utcDays("2026-11-01", "2026-11-30")) {
+    rows.push(
+      row({
+        day,
+        account: PROD,
+        service: "Amazon EC2",
+        resourceId: "i-0bases0pay",
+        tags: { team: "payments" },
+        cost: 10,
+        amortizedCost: 7,
+        netCost: 6,
+      }),
+      row({
+        day,
+        account: DATA,
+        service: "Amazon S3",
+        resourceId: "bases-data-bucket",
+        tags: {},
+        cost: 5,
+        amortizedCost: 5,
+        netCost: 4,
+      }),
+      row({
+        day,
+        account: SHARED,
+        service: SUPPORT_SERVICE,
+        resourceId: "",
+        tags: {},
+        cost: 3,
+        amortizedCost: 3,
+        netCost: 3,
+      }),
+    );
+  }
+
+  rows.push(
+    row({
+      day: new Date("2026-11-01T00:00:00Z"),
+      account: PROD,
+      service: "Savings Plans for AWS Compute usage",
+      resourceId: "",
+      tags: {},
+      cost: 300,
+      amortizedCost: 0,
+      netCost: 0,
+    }),
+  );
+
+  return rows;
+}
+
+// The basis the project shows, as its Cost Settings would answer.
+let projectBasis: CloudCostBasis = CloudCostBasis.Billed;
+
 // The view's groups, as the test sets them, in order.
 let groups: Array<CloudCostGroup> = [];
 let lineItems: Array<CloudCostLineItem> = [];
@@ -569,7 +684,7 @@ integration("cost groups against ClickHouse", () => {
 
     await client.insert({
       table: `${database}.${new CloudCost().tableName}`,
-      values: costRows([...SERIES, CLUSTER_NODES]),
+      values: [...costRows([...SERIES, CLUSTER_NODES]), ...basesRows()],
       format: "JSONEachRow",
       clickhouse_settings: { async_insert: 0 },
     });
@@ -604,8 +719,14 @@ integration("cost groups against ClickHouse", () => {
     jest.restoreAllMocks();
     groups = byTeam();
     lineItems = [];
+    projectBasis = CloudCostBasis.Billed;
 
     // What Postgres would answer, from the fixtures.
+    jest
+      .spyOn(CloudCostSettingService, "getCostBasisOfProject")
+      .mockImplementation(async () => {
+        return projectBasis;
+      });
     jest
       .spyOn(CloudCostViewService, "findOneBy")
       .mockImplementation(async () => {
@@ -1117,6 +1238,162 @@ integration("cost groups against ClickHouse", () => {
     expect(parted.unallocated.topOwnerTeams).toEqual(
       whole.unallocated.topOwnerTeams,
     );
+  });
+
+  describe("on each cost basis (#11007)", () => {
+    const SAVINGS_PLAN_FEE: string = "Savings Plans for AWS Compute usage";
+
+    const supportGroup: () => CloudCostGroup = (): CloudCostGroup => {
+      return group({
+        id: SUPPORT,
+        name: "Support",
+        order: 4,
+        isShared: true,
+        sharedSplit: CloudCostSharedSplit.Proportional,
+        rules: [
+          makeCloudCostRule({
+            field: CloudCostRuleField.Service,
+            value: SUPPORT_SERVICE,
+          }),
+        ],
+      });
+    };
+
+    const readBases: (
+      overrides?: Partial<Parameters<typeof CloudCostAllocation.read>[0]>,
+    ) => Promise<CloudCostAllocationResult> = (
+      overrides: Partial<Parameters<typeof CloudCostAllocation.read>[0]> = {},
+    ): Promise<CloudCostAllocationResult> => {
+      return read({
+        projectId: BASES_PROJECT,
+        compareWithPrevious: false,
+        ...overrides,
+      });
+    };
+
+    test("each basis sums its own column: the plan's fee is billed on the 1st, and amortized into the usage it paid for", async () => {
+      const billed: CloudCostAllocationResult = await readBases({
+        basis: CloudCostBasis.Billed,
+      });
+      const amortized: CloudCostAllocationResult = await readBases({
+        basis: CloudCostBasis.Amortized,
+      });
+      const net: CloudCostAllocationResult = await readBases({
+        basis: CloudCostBasis.Net,
+      });
+
+      expect([billed.basis, amortized.basis, net.basis]).toEqual([
+        CloudCostBasis.Billed,
+        CloudCostBasis.Amortized,
+        CloudCostBasis.Net,
+      ]);
+
+      // Billed: pay-api's 10 a day, and the plan's 300 nobody's rule takes.
+      expect(byName(billed, "Payments").total).toBe(300);
+      expect(byName(billed, "Data").total).toBe(150);
+      expect(billed.unallocated.total).toBe(300 + 90);
+      expect(billed.total).toBe(840);
+      expect(billed.unallocated.topServices).toEqual([
+        { key: SAVINGS_PLAN_FEE, amount: 300 },
+        { key: SUPPORT_SERVICE, amount: 90 },
+      ]);
+
+      // Amortized: the fee is in the usage it covered, 7 a day, and gone from the 1st.
+      expect(byName(amortized, "Payments").total).toBe(210);
+      expect(byName(amortized, "Data").total).toBe(150);
+      expect(amortized.unallocated.total).toBe(90);
+      expect(amortized.total).toBe(450);
+      expect(amortized.unallocated.topServices).toEqual([
+        { key: SUPPORT_SERVICE, amount: 90 },
+      ]);
+      expect(byName(amortized, "Payments").series[0]).toBe(7);
+      expect(byName(billed, "Payments").series[0]).toBe(10);
+
+      // Net: the credits off too.
+      expect(byName(net, "Payments").total).toBe(180);
+      expect(byName(net, "Data").total).toBe(120);
+      expect(net.total).toBe(390);
+
+      for (const result of [billed, amortized, net]) {
+        expect(sumOfTotals(result)).toBeCloseTo(result.total, 6);
+      }
+    });
+
+    test("a shared group splits by each group's spend on the same basis", async () => {
+      groups = [...byTeam(), supportGroup()];
+
+      const billed: CloudCostAllocationResult = await readBases({
+        basis: CloudCostBasis.Billed,
+      });
+      const amortized: CloudCostAllocationResult = await readBases({
+        basis: CloudCostBasis.Amortized,
+      });
+      const net: CloudCostAllocationResult = await readBases({
+        basis: CloudCostBasis.Net,
+      });
+
+      // Support's 90: Payments 300 of 450 billed, 210 of 360 amortized, 180 of 300 net.
+      expect(byName(billed, "Payments").sharedIn).toBeCloseTo(60, 6);
+      expect(byName(billed, "Data").sharedIn).toBeCloseTo(30, 6);
+      expect(byName(amortized, "Payments").sharedIn).toBeCloseTo(52.5, 6);
+      expect(byName(amortized, "Data").sharedIn).toBeCloseTo(37.5, 6);
+      expect(byName(net, "Payments").sharedIn).toBeCloseTo(54, 6);
+      expect(byName(net, "Data").sharedIn).toBeCloseTo(36, 6);
+
+      expect(byName(billed, "Payments").total).toBeCloseTo(360, 6);
+      expect(byName(amortized, "Payments").total).toBeCloseTo(262.5, 6);
+      expect(byName(net, "Payments").total).toBeCloseTo(234, 6);
+      expect(byName(amortized, "Support").total).toBeCloseTo(0, 6);
+
+      // The split moves spend between groups; the month's total stays the basis's own.
+      expect(billed.total).toBe(840);
+      expect(amortized.total).toBe(450);
+      expect(net.total).toBe(390);
+    });
+
+    test("asked for none, a read is on the project's basis", async () => {
+      projectBasis = CloudCostBasis.Net;
+
+      const result: CloudCostAllocationResult = await readBases();
+
+      expect(result.basis).toBe(CloudCostBasis.Net);
+      expect(byName(result, "Payments").total).toBe(180);
+      expect(CloudCostSettingService.getCostBasisOfProject).toHaveBeenCalled();
+    });
+
+    test("asked for one, the project's is not read", async () => {
+      projectBasis = CloudCostBasis.Net;
+
+      const result: CloudCostAllocationResult = await readBases({
+        basis: CloudCostBasis.Amortized,
+      });
+
+      expect(result.basis).toBe(CloudCostBasis.Amortized);
+      expect(byName(result, "Payments").total).toBe(210);
+      expect(
+        CloudCostSettingService.getCostBasisOfProject,
+      ).not.toHaveBeenCalled();
+    });
+
+    test("one group's own spend is on the basis asked", async () => {
+      const own: {
+        allocation: CloudCostAllocationResult;
+        group: CloudCostAllocationGroupResult;
+      } = await CloudCostAllocation.readGroup({
+        projectId: BASES_PROJECT,
+        groupId: new ObjectID(PAYMENTS),
+        ...NOVEMBER,
+        currency: "USD",
+        basis: CloudCostBasis.Amortized,
+        compareWithPrevious: false,
+        props: { isRoot: true },
+        now: NOW,
+      });
+
+      expect(own.allocation.basis).toBe(CloudCostBasis.Amortized);
+      expect(own.group.total).toBe(210);
+      expect(own.group.series[0]).toBe(7);
+    });
   });
 });
 

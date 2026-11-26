@@ -16,15 +16,15 @@ import {
 } from "../../LlmObservability/LlmProviderHttp";
 import { CloudCostRecord, CloudSavingRecord } from "../CloudConnectorTypes";
 import AzureArm from "./AzureArm";
-import { AzureCostReader } from "./AzureCostManagement";
+import { AzureCostReader, getAzureCostQueryQpu } from "./AzureCostManagement";
 
 /*
  * WHAT AN AZURE SUBSCRIPTION COSTS, AND HOW TO SPEND LESS IN IT.
  *
  *   Cost Management Query (POST {management}/subscriptions/{id}/providers/
  *   Microsoft.CostManagement/query?api-version=2023-11-01):
- *     { type: "ActualCost", timeframe: "Custom", timePeriod: { from, to },
- *       dataset: { granularity: "Daily",
+ *     { type: "AmortizedCost" | "ActualCost", timeframe: "Custom",
+ *       timePeriod: { from, to }, dataset: { granularity: "Daily",
  *         aggregation: { totalCost: { name: "Cost", function: "Sum" } },
  *         grouping: [ResourceId, ServiceName] } }
  *     -> { properties: { columns: [{ name }], rows: [[cost, 20261102,
@@ -33,6 +33,9 @@ import { AzureCostReader } from "./AzureCostManagement";
  *   resource's Region is the one OneUptime holds for it. Needs Cost
  *   Management Reader on the subscription. Every page is a query of its
  *   own, asked at the pace the tenant's quotas allow (AzureCostManagement).
+ *   Amortized cost is read at every read and actual cost once a day
+ *   (isAzureActualCostDue), so the bases cost the tenant half again its
+ *   query units, not twice.
  *
  *   Azure Advisor (GET {management}/subscriptions/{id}/providers/
  *   Microsoft.Advisor/recommendations?api-version=2023-01-01&$filter=
@@ -64,6 +67,120 @@ export function readAzureUsageDate(value: unknown): string {
   return `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`;
 }
 
+/*
+ * The cost datasets Cost Management answers a query from: actual cost, as
+ * billed - a reservation paid up front on the day it was bought - and
+ * amortized cost, its purchase spread over the days and resources it
+ * covered, with what it left unused as charges of their own.
+ */
+export type AzureCostType = "ActualCost" | "AmortizedCost";
+
+/*
+ * How long after a subscription's actual cost was read it is read again:
+ * once a day, every other read (#11007). Its amortized cost is read at
+ * every read - the basis the pages show by default - so the tenant's
+ * query units are not spent twice over.
+ */
+export const AZURE_ACTUAL_COSTS_INTERVAL_MS: number = 20 * 60 * 60 * 1000;
+
+// Whether a subscription's actual cost is due on this read.
+export function isAzureActualCostDue(data: {
+  lastReadAt?: string | undefined;
+  now: Date;
+}): boolean {
+  const last: number = Date.parse(data.lastReadAt || "");
+
+  return (
+    !Number.isFinite(last) ||
+    data.now.getTime() - last >= AZURE_ACTUAL_COSTS_INTERVAL_MS
+  );
+}
+
+/*
+ * One subscription's records on each basis, from its amortized rows and -
+ * when they were read - its actual ones: one record per day, resource,
+ * service and currency. Azure takes credits and prepayment off at the
+ * billing account, which a subscription's connection cannot read, so a
+ * subscription's net cost is its amortized cost. Without actual rows the
+ * billed figure is nothing, and the read says it did not bring it.
+ */
+export function mergeAzureCostRecords(data: {
+  amortized: Array<CloudCostRecord>;
+  actual?: Array<CloudCostRecord> | undefined;
+}): Array<CloudCostRecord> {
+  const merged: Map<string, CloudCostRecord> = new Map();
+  const keyOf: (record: CloudCostRecord) => string = (
+    record: CloudCostRecord,
+  ): string => {
+    return JSON.stringify([
+      record.accountId.toLowerCase(),
+      record.day,
+      record.resourceId,
+      record.service,
+      record.region,
+      record.currency,
+    ]);
+  };
+  const entryOf: (record: CloudCostRecord) => CloudCostRecord = (
+    record: CloudCostRecord,
+  ): CloudCostRecord => {
+    const key: string = keyOf(record);
+    const existing: CloudCostRecord | undefined = merged.get(key);
+
+    if (existing) {
+      return existing;
+    }
+
+    const entry: CloudCostRecord = {
+      accountId: record.accountId,
+      day: record.day,
+      service: record.service,
+      region: record.region,
+      resourceId: record.resourceId,
+      currency: record.currency,
+      amount: 0,
+      amortizedAmount: 0,
+      netAmount: 0,
+    };
+
+    merged.set(key, entry);
+    return entry;
+  };
+
+  for (const record of data.actual || []) {
+    entryOf(record).amount += record.amount;
+  }
+
+  for (const record of data.amortized) {
+    const entry: CloudCostRecord = entryOf(record);
+    entry.amortizedAmount = (entry.amortizedAmount || 0) + record.amount;
+    entry.netAmount = (entry.netAmount || 0) + record.amount;
+  }
+
+  return Array.from(merged.values());
+}
+
+// The period a query of the days from start to before end asks for.
+export function getAzureCostPeriod(data: { start: Date; end: Date }): {
+  from: string;
+  to: string;
+} {
+  const lastDay: Date = new Date(data.end.getTime() - 1000);
+
+  return {
+    from: `${toCloudCostDay(data.start)}T00:00:00Z`,
+    to: `${toCloudCostDay(lastDay)}T23:59:59Z`,
+  };
+}
+
+// The query units a query of those days costs: one for each month it touches.
+export function getAzureCostWindowQpu(data: {
+  start: Date;
+  end: Date;
+}): number {
+  return getAzureCostQueryQpu({ timePeriod: getAzureCostPeriod(data) });
+}
+
 export async function readAzureCosts(data: {
   costs: AzureCostReader;
   subscriptionId: string;
@@ -71,16 +188,14 @@ export async function readAzureCosts(data: {
   end: Date;
   // A resource's id (as getCloudCostResourceKey keeps it) -> its Region.
   regionsByResource: Map<string, string>;
+  // Actual cost unless told: each row's amount is the dataset's cost.
+  type?: AzureCostType | undefined;
 }): Promise<{ records: Array<CloudCostRecord>; complete: boolean }> {
   const records: Array<CloudCostRecord> = [];
-  const lastDay: Date = new Date(data.end.getTime() - 1000);
   const body: JSONObject = {
-    type: "ActualCost",
+    type: data.type || "ActualCost",
     timeframe: "Custom",
-    timePeriod: {
-      from: `${toCloudCostDay(data.start)}T00:00:00Z`,
-      to: `${toCloudCostDay(lastDay)}T23:59:59Z`,
-    },
+    timePeriod: getAzureCostPeriod(data),
     dataset: {
       granularity: "Daily",
       aggregation: { totalCost: { name: "Cost", function: "Sum" } },
@@ -95,7 +210,7 @@ export async function readAzureCosts(data: {
     scope: `/subscriptions/${encodeURIComponent(data.subscriptionId)}`,
     apiVersion: AZURE_COST_MANAGEMENT_API_VERSION,
     body,
-    step: "cost query",
+    step: data.type === "AmortizedCost" ? "amortized cost query" : "cost query",
     maxPages: AZURE_COST_MAX_PAGES,
     onPage: (properties: JSONObject): void => {
       const columns: Array<string> = readArray(properties["columns"]).map(

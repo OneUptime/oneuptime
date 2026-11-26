@@ -509,8 +509,8 @@ describe("the menu paths", () => {
       },
       /*
        * What the accounts cost and how it is shared out, how to spend less,
-       * the off-hours schedules, the budgets, and the tags the spend is
-       * told apart by (#11012).
+       * the commitments, the off-hours schedules, the budgets, and the tags
+       * the spend is told apart by (#11012).
        */
       {
         title: "Spend",
@@ -518,14 +518,21 @@ describe("the menu paths", () => {
           "Costs",
           "Cost Groups",
           "Savings",
+          "Commitments",
           "Schedules",
           "Budgets",
           "Tags",
         ],
       },
+      // The cost basis and commitment alerts, then what OneUptime AI may do with a saving.
       {
         title: "Settings",
-        items: ["Owner Rules", "Label Rules", "Savings AI Rules"],
+        items: [
+          "Owner Rules",
+          "Label Rules",
+          "Cost Settings",
+          "Savings AI Rules",
+        ],
       },
       { title: "Advanced", items: ["Archived"] },
     ]);
@@ -545,6 +552,8 @@ describe("the menu paths", () => {
     expect(isMenuPath("Cloud", ["Label Rules"])).toBe(false);
     expect(isMenuPath("Cloud", ["Spend", "Costs"])).toBe(true);
     expect(isMenuPath("Cloud", ["Costs"])).toBe(false);
+    expect(isMenuPath("Cloud", ["Spend", "Commitments"])).toBe(true);
+    expect(isMenuPath("Cloud", ["Settings", "Cost Settings"])).toBe(true);
     expect(isMenuPath("Cloud", ["Spend", "Tags"])).toBe(true);
     expect(isMenuPath("Cloud", ["Overview"])).toBe(true);
     expect(

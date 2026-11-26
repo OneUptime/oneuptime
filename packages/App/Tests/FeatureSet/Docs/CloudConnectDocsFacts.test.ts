@@ -173,6 +173,7 @@ import {
   getAzureSetupCommand,
   getCloudConnectionSetupCommand,
   getGcpSetupCommand,
+  isAwsActionGranted,
 } from "Common/Types/CloudConnection/CloudConnectionSetupCommands";
 import {
   ROLE_CHECK_PASS_MS,
@@ -1413,10 +1414,25 @@ describe("Cloud Costs and Savings", () => {
 
     for (const action of [
       "ce:GetCostAndUsage",
+      "savingsplans:DescribeSavingsPlans",
       "cost-optimization-hub:ListRecommendations",
+      "cost-optimization-hub:GetRecommendation",
     ]) {
-      expect(AWS_READ_ONLY_ACTIONS).toContain(action);
+      expect({ action, granted: isAwsActionGranted(action) }).toEqual({
+        action,
+        granted: true,
+      });
       expect(aws).toContain(`\`${action}\``);
+    }
+
+    // Cost Explorer's reads, granted as the three families the page names.
+    for (const family of [
+      "ce:GetCostAndUsage*",
+      "ce:GetSavingsPlans*",
+      "ce:GetReservation*",
+    ]) {
+      expect(AWS_READ_ONLY_ACTIONS).toContain(family);
+      expect(aws).toContain(`\`${family}\``);
     }
   });
 
@@ -1672,8 +1688,9 @@ describe("Cloud Costs and Savings", () => {
       ).toBe(false);
     }
 
-    // The action, as the access gets it.
-    expect(AWS_READ_ONLY_ACTIONS).toContain("ce:GetCostAndUsageWithResources");
+    // The action, as the access gets it: in Cost Explorer's GetCostAndUsage family.
+    expect(isAwsActionGranted("ce:GetCostAndUsageWithResources")).toBe(true);
+    expect(AWS_READ_ONLY_ACTIONS).toContain("ce:GetCostAndUsage*");
     expect(aws).toContain("`ce:GetCostAndUsageWithResources`");
     expect(read).toContain(
       'AWS_RESOURCE_COST_ACTION: string =\n  "ce:GetCostAndUsageWithResources";',
@@ -1720,21 +1737,32 @@ describe("Cloud Costs and Savings", () => {
     );
     const card: string = source("commitmentsCard");
 
-    // Read with the four actions the access gets, four requests a day.
+    /*
+     * Read with the actions the access gets, in Cost Explorer's families:
+     * four requests a day for their coverage and use, and six to twelve
+     * for each commitment's own (AwsCommitmentInventory).
+     */
     expect(source("awsCommitments")).toContain(
       'export const AWS_COMMITMENT_ACTIONS: ReadonlyArray<string> = [\n  "ce:GetSavingsPlansCoverage",\n  "ce:GetSavingsPlansUtilization",\n  "ce:GetReservationCoverage",\n  "ce:GetReservationUtilization",\n];',
     );
     for (const action of [
       "ce:GetSavingsPlansCoverage",
       "ce:GetSavingsPlansUtilization",
+      "ce:GetSavingsPlansUtilizationDetails",
       "ce:GetReservationCoverage",
       "ce:GetReservationUtilization",
+      "savingsplans:DescribeSavingsPlans",
     ]) {
-      expect(AWS_READ_ONLY_ACTIONS).toContain(action);
+      expect({ action, granted: isAwsActionGranted(action) }).toEqual({
+        action,
+        granted: true,
+      });
       expect(aws).toContain(`\`${action}\``);
     }
-    expect(aws).toContain("the commitments are read with four a day");
-    expect(COSTS_PAGE).toContain("it adds the four actions they are read with");
+    expect(aws).toContain(
+      "the commitments are read with four a day for their coverage and use, and six to twelve more a day for each one's own",
+    );
+    expect(COSTS_PAGE).toContain("it adds the actions they are read with");
 
     // Over the last 30 days, on Savings and an account's Costs.
     expect(CLOUD_COMMITMENT_WINDOW_DAYS).toBe(30);
@@ -1846,12 +1874,18 @@ describe("Cloud Costs and Savings", () => {
     expect(where).toContain(
       "Under the list, the card says what the rest came to: what is in no environment, what an environment is billed as a whole, or what does not carry the tag.",
     );
-    // Read again once, as far back as a first read.
+    /*
+     * Read again once, as far back as a first read: for their tags (2),
+     * then for their amortized and net figures (3).
+     */
     expect(source("lanes")).toContain(
-      "export const CLOUD_COSTS_READ_VERSION: number = 2;",
+      "export const CLOUD_COSTS_READ_VERSION: number = 3;",
     );
     expect(where).toContain(
       "Costs read before tags were kept are read again once, as far back as a first read, so their tags fill in.",
+    );
+    expect(costsSection("Billed, amortized and net")).toContain(
+      "Each connection reads its costs again once, as far back as a first read, so each basis fills in.",
     );
   });
 
@@ -1861,21 +1895,10 @@ describe("Cloud Costs and Savings", () => {
     expect(budgets).toContain("[MCP server](/docs/ai/mcp-server)");
     expect(budgets).toContain("`oneuptime cloud-budget`");
     expect(source("cliReadme")).toContain("`cloud-budget`");
-
-    // Among the Cloud records the MCP Server page lists, with the others Cloud's pages add.
-    const cloudRow: string =
-      readPage("en", "ai/mcp-server")
-        .split("\n")
-        .find((line: string): boolean => {
-          return line.startsWith("| Cloud | ");
-        }) || "";
-
-    expect(
-      cloudRow
-        .replace(/^\| Cloud \| /, "")
-        .replace(/ \|$/, "")
-        .split(", "),
-    ).toContain("Cloud Budget");
+    // The MCP page's Cloud row: budgets, with the cost groups' records beside them.
+    expect(readPage("en", "ai/mcp-server")).toMatch(
+      /^\| Cloud \| [^\n]*\bCloud Budget\b[^\n]* \|$/m,
+    );
   });
 
   it("names Cloud's pages as the side menu draws them: the Spend pages under their section", () => {

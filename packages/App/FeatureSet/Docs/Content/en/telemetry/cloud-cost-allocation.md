@@ -23,7 +23,7 @@ flowchart TB
 
 - **The first group that matches takes the cost.** A view's groups are in order, and every cost falls into the first group whose rules match it, so nothing is counted twice. The groups and the unallocated spend always add up to the period's total.
 - **Rules read everything a cost carries.** The account, the cloud, the service, the Region, the resource and its tags, and what OneUptime knows of the resource: its owner teams, its labels, its App Platforms environment and app.
-- **Everything is worked out when you look.** Nothing is written per cost. A rule you change sorts every month OneUptime keeps again, up to 400 days back, with nothing to wait for.
+- **Everything is worked out when you look.** Nothing is written per cost. A rule you change sorts every month OneUptime keeps again, up to 400 days back, with nothing to wait for. Every figure follows the switch above it, billed, amortized or net, as on [Cloud Costs](/docs/telemetry/cloud-costs#billed-amortized-and-net), and a custom line item is the same on each.
 - **Several views can sort the same spend.** "By team" and "By cost center" each sort all of it, their own way.
 
 ## Before you begin
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-The answer has each group's `total` and what it is made of (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), its figures by day or by month, the period before, and what the unallocated spend is made of. `POST /cloud-cost-group/<group ID>/spend` answers for one group.
+The answer has each group's `total` and what it is made of (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), its figures by day or by month, the period before, and what the unallocated spend is made of. `POST /cloud-cost-group/<group ID>/spend` answers for one group. Send `basis` as `billed`, `amortized` or `net` for figures on that basis; without it they are on the project's, and the answer's `basis` says which.
 
 ## Limits
 

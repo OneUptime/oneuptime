@@ -420,6 +420,7 @@ import "./Jobs/Cloud/ReadCloudConnections";
 // Azure connections' streams: their event hubs read every minute.
 import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
+import "./Jobs/Cloud/EvaluateCloudCommitments";
 import "./Jobs/Cloud/MakeCloudCostGroups";
 // Changes for savings stepped, and off-hours schedules run (#11010).
 import "./Jobs/Cloud/CloudSavingsJobs";
