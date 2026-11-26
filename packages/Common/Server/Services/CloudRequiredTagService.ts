@@ -10,8 +10,12 @@ import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import UpdateBy from "../Types/Database/UpdateBy";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import ProjectReferencesService from "./ProjectReferencesService";
+
+// The account a rule is for, under either name a write may give it.
+const CLOUD_ACCOUNT_KEYS: Array<string> = ["cloudAccountId", "cloudAccount"];
 
 /*
  * A tag every resource of a project's clouds must carry (CloudRequiredTag,
@@ -101,12 +105,18 @@ export class Service extends ProjectReferencesService<Model> {
 
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
+    // Its account under either name, kept in the id column for the check and the row.
+    const cloudAccountId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+      createBy.data as unknown as Record<string, unknown>,
+      CLOUD_ACCOUNT_KEYS,
+      "Cloud Account",
+    );
 
     if (projectId) {
       await this.assertKeyIsFree({
         projectId,
         tagKey: normalizeCloudTagKey(createBy.data.tagKey),
-        cloudAccountId: createBy.data.cloudAccountId || null,
+        cloudAccountId,
       });
     }
 
@@ -127,7 +137,22 @@ export class Service extends ProjectReferencesService<Model> {
 
     const changesKey: boolean =
       updateBy.data.tagKey !== undefined && updateBy.data.tagKey !== null;
-    const changesAccount: boolean = updateBy.data.cloudAccountId !== undefined;
+    // The account under either name a write may give it.
+    const changesAccount: boolean = CLOUD_ACCOUNT_KEYS.some(
+      (key: string): boolean => {
+        return (
+          (updateBy.data as unknown as Record<string, unknown>)[key] !==
+          undefined
+        );
+      },
+    );
+    const writtenAccountId: ObjectID | null = changesAccount
+      ? RelationIdUtil.readIntoIdColumn(
+          updateBy.data as unknown as Record<string, unknown>,
+          CLOUD_ACCOUNT_KEYS,
+          "Cloud Account",
+        )
+      : null;
 
     if (changesKey) {
       updateBy.data.tagKey = normalizeRequiredTagKey(
@@ -151,7 +176,7 @@ export class Service extends ProjectReferencesService<Model> {
           ? (updateBy.data.tagKey as unknown as string)
           : row.tagKey || "";
         const accountValue: unknown = changesAccount
-          ? updateBy.data.cloudAccountId
+          ? writtenAccountId
           : row.cloudAccountId;
         const cloudAccountId: ObjectID | null =
           accountValue instanceof ObjectID

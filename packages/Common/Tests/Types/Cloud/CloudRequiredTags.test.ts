@@ -77,9 +77,10 @@ describe("a tag's key and value, as they are compared", () => {
   test("an empty or blank value is no value, and a spelling that holds one is used instead", () => {
     expect(findCloudTagValue({ team: "" }, "team")).toBeNull();
     expect(findCloudTagValue({ team: "   " }, "team")).toBeNull();
-    expect(findCloudTagValue({ team: " ", Team: "payments" }, "team")).toEqual(
-      { key: "Team", value: "payments" },
-    );
+    expect(findCloudTagValue({ team: " ", Team: "payments" }, "team")).toEqual({
+      key: "Team",
+      value: "payments",
+    });
     // Values are kept as written, trimmed.
     expect(findCloudTagValue({ team: "  Payments  " }, "team")).toEqual({
       key: "team",
@@ -130,9 +131,12 @@ describe("a pattern", () => {
     ["dev.env", "dev.env", true],
     ["devxenv", "dev.env", false],
     ["Équipe-A", "équipe-*", true],
-  ])("%s against %s: %s", (value: string, pattern: string, matches: boolean) => {
-    expect(matchesCloudTagPattern(value, pattern)).toBe(matches);
-  });
+  ])(
+    "%s against %s: %s",
+    (value: string, pattern: string, matches: boolean) => {
+      expect(matchesCloudTagPattern(value, pattern)).toBe(matches);
+    },
+  );
 
   /*
    * The walk against a regular expression built from the same pattern
@@ -150,14 +154,14 @@ describe("a pattern", () => {
       let text: string = "";
       const length: number = random(longest + 1);
 
-      for (let index = 0; index < length; index++) {
+      for (let index: number = 0; index < length; index++) {
         text += letters[random(letters.length)];
       }
 
       return text;
     };
 
-    for (let index = 0; index < 20000; index++) {
+    for (let index: number = 0; index < 20000; index++) {
       const value: string = draw(alphabet, 8);
       const pattern: string = draw(patternAlphabet, 6);
       const expected: boolean = new RegExp(
@@ -178,8 +182,11 @@ describe("a pattern", () => {
         "is",
       ).test(value);
 
-      expect({ value, pattern, matches: matchesCloudTagPattern(value, pattern) })
-        .toEqual({ value, pattern, matches: expected });
+      expect({
+        value,
+        pattern,
+        matches: matchesCloudTagPattern(value, pattern),
+      }).toEqual({ value, pattern, matches: expected });
     }
   });
 
@@ -229,9 +236,12 @@ describe("a value a tag allows", () => {
     ]);
     expect(parseCloudTagAllowedValues(undefined)).toEqual([]);
 
-    const many: string = Array.from({ length: 250 }, (_v: unknown, i: number) => {
-      return `v${i}`;
-    }).join(",");
+    const many: string = Array.from(
+      { length: 250 },
+      (_v: unknown, i: number) => {
+        return `v${i}`;
+      },
+    ).join(",");
     expect(parseCloudTagAllowedValues(many)).toHaveLength(
       CLOUD_REQUIRED_TAG_MAX_ALLOWED_VALUES,
     );
@@ -329,7 +339,10 @@ describe("an account's required tags", () => {
   test("of two project tags with one key, the first is the one", () => {
     expect(
       getCloudRequiredTagsForAccount(
-        [rule("team", ["a"], null, "first"), rule("TEAM", ["b"], null, "second")],
+        [
+          rule("team", ["a"], null, "first"),
+          rule("TEAM", ["b"], null, "second"),
+        ],
         null,
       ).map((entry: CloudRequiredTagRule): string => {
         return entry.id;
@@ -388,7 +401,10 @@ describe("a name as a tag value", () => {
       fitCloudTagValue({ name: "SEARCH", allowedValues: ["Search"] }),
     ).toBe("Search");
     expect(
-      fitCloudTagValue({ name: "platform core", allowedValues: ["platform-*"] }),
+      fitCloudTagValue({
+        name: "platform core",
+        allowedValues: ["platform-*"],
+      }),
     ).toBe("platform-core");
     expect(
       fitCloudTagValue({ name: "Billing", allowedValues: ["payments"] }),
@@ -397,9 +413,9 @@ describe("a name as a tag value", () => {
   });
 
   test("when any value goes: the name itself, or its slug on Google Cloud, whose labels allow only lower case", () => {
-    expect(
-      fitCloudTagValue({ name: "Payments Team", allowedValues: [] }),
-    ).toBe("Payments Team");
+    expect(fitCloudTagValue({ name: "Payments Team", allowedValues: [] })).toBe(
+      "Payments Team",
+    );
     expect(
       fitCloudTagValue({
         name: "Payments Team",
@@ -478,7 +494,11 @@ describe("the value the resources beside one agree on", () => {
           {
             relation: CloudTagNeighbourRelation.ResourceGroup,
             name: "rg",
-            tags: [{ team: "unknown" }, { team: "unknown" }, { team: "unknown" }],
+            tags: [
+              { team: "unknown" },
+              { team: "unknown" },
+              { team: "unknown" },
+            ],
           },
         ],
       }),

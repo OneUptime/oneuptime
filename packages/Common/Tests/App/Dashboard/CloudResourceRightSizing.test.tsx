@@ -939,7 +939,9 @@ describe("the reads", () => {
 
   async function draw(given: CloudResource): Promise<void> {
     await act(async () => {
-      renderInRouter(<CloudResourceSpendCards projectId={PROJECT} resource={given} />);
+      renderInRouter(
+        <CloudResourceSpendCards projectId={PROJECT} resource={given} />,
+      );
     });
   }
 

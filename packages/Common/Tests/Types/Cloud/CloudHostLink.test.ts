@@ -156,9 +156,10 @@ describe("each cloud's VMs", () => {
       CloudProvider.GCP,
       CloudProvider.Azure,
     ]) {
-      expect({ provider, ok: isCloudInstanceId(provider, machineId) }).toEqual(
-        { provider, ok: false },
-      );
+      expect({ provider, ok: isCloudInstanceId(provider, machineId) }).toEqual({
+        provider,
+        ok: false,
+      });
     }
   });
 });
@@ -175,19 +176,21 @@ describe("a VM's own instance ID, each cloud's way", () => {
     ).toBe(AWS_INSTANCE);
     expect(
       getCloudVmInstanceId(
-        awsVm({ providerResourceId: `arn:aws:ec2:eu-west-1:${AWS_ACCOUNT}:volume/vol-1` }),
+        awsVm({
+          providerResourceId: `arn:aws:ec2:eu-west-1:${AWS_ACCOUNT}:volume/vol-1`,
+        }),
       ),
     ).toBeNull();
   });
 
   test("Compute Engine: the numeric ID its telemetry carries, not its name", () => {
     expect(getCloudVmInstanceId(gceVm())).toBe(GCE_ID);
-    expect(
-      getCloudVmInstanceId(gceVm({ telemetryAttributes: {} })),
-    ).toBeNull();
+    expect(getCloudVmInstanceId(gceVm({ telemetryAttributes: {} }))).toBeNull();
     expect(
       getCloudVmInstanceId(
-        gceVm({ telemetryAttributes: { [GCE_INSTANCE_ID_ATTRIBUTE]: "web-1" } }),
+        gceVm({
+          telemetryAttributes: { [GCE_INSTANCE_ID_ATTRIBUTE]: "web-1" },
+        }),
       ),
     ).toBeNull();
   });
@@ -208,17 +211,24 @@ describe("a VM's own instance ID, each cloud's way", () => {
 describe("a host and a VM, as one machine", () => {
   test.each([
     ["AWS", awsHost(), awsVm()],
-    ["Azure, whose location the inventory may spell as its display name", azureHost(), azureVm()],
+    [
+      "Azure, whose location the inventory may spell as its display name",
+      azureHost(),
+      azureVm(),
+    ],
     ["Google Cloud", gceHost(), gceVm()],
-  ])("%s: all four parts agree", (_label: string, host: CloudHostFacts, vm: CloudVmFacts) => {
-    expect(isCloudHostOfVm(host, vm)).toBe(true);
+  ])(
+    "%s: all four parts agree",
+    (_label: string, host: CloudHostFacts, vm: CloudVmFacts) => {
+      expect(isCloudHostOfVm(host, vm)).toBe(true);
 
-    const identity: CloudMachineIdentity | null = getCloudHostIdentity(host);
-    expect(identity).not.toBeNull();
-    expect(getCloudMachineKey(identity!)).toBe(
-      getCloudMachineKey(getCloudVmIdentity(vm)!),
-    );
-  });
+      const identity: CloudMachineIdentity | null = getCloudHostIdentity(host);
+      expect(identity).not.toBeNull();
+      expect(getCloudMachineKey(identity!)).toBe(
+        getCloudMachineKey(getCloudVmIdentity(vm)!),
+      );
+    },
+  );
 
   test.each([
     ["another account", awsHost({ cloudAccountId: "210987654321" })],
@@ -227,7 +237,10 @@ describe("a host and a VM, as one machine", () => {
     ["another cloud", awsHost({ cloudProvider: "gcp" })],
     ["no Region stamped", awsHost({ cloudRegion: "" })],
     ["no account stamped", awsHost({ cloudAccountId: null })],
-    ["the system's machine-id, off a cloud", awsHost({ hostId: "4d5c0e9a2b1f4e7c8a3b6d9e0f1a2b3c" })],
+    [
+      "the system's machine-id, off a cloud",
+      awsHost({ hostId: "4d5c0e9a2b1f4e7c8a3b6d9e0f1a2b3c" }),
+    ],
     ["a Kubernetes node", awsHost({ kubernetesClusterId: "cluster-1" })],
     ["an archived host", awsHost({ isArchived: true })],
   ])("never with %s", (_label: string, host: CloudHostFacts) => {

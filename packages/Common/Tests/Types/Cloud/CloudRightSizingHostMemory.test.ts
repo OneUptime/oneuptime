@@ -149,9 +149,9 @@ describe("choosing between the cloud's memory and the host's", () => {
 
   test("the one usable, or the one with more readings, the cloud's on a tie", () => {
     expect(chooseCloudMemoryReading({ cloud, host: null })).toBe(cloud);
-    expect(chooseCloudMemoryReading({ cloud: null, host: hostReading() })).toEqual(
-      hostReading(),
-    );
+    expect(
+      chooseCloudMemoryReading({ cloud: null, host: hostReading() }),
+    ).toEqual(hostReading());
     expect(
       chooseCloudMemoryReading({
         cloud,
@@ -189,7 +189,10 @@ describe("choosing between the cloud's memory and the host's", () => {
 describe("an observation with the memory it is sized by", () => {
   test("a VM its cloud reads no memory of, sized on its host's", () => {
     expect(
-      withCloudMemoryReading({ observation: observation(), host: hostReading() }),
+      withCloudMemoryReading({
+        observation: observation(),
+        host: hostReading(),
+      }),
     ).toEqual({
       ...observation(),
       memoryPeakPercent: 30,
@@ -334,9 +337,9 @@ describe("a right-sizing's evidence, as Savings keeps it", () => {
     expect(evidence.memorySource).toBe(CloudMemorySource.Host);
     expect(evidence.memoryHostName).toBe("web-1");
     expect(evidence.memoryPeakPercent).toBe(12.3);
-    expect(readCloudRightSizingEvidence(JSON.parse(JSON.stringify(evidence)))).toEqual(
-      evidence,
-    );
+    expect(
+      readCloudRightSizingEvidence(JSON.parse(JSON.stringify(evidence))),
+    ).toEqual(evidence);
   });
 
   test(`a host's name is kept to ${CLOUD_RIGHT_SIZING_HOST_NAME_MAX_LENGTH} characters, whoever wrote it`, () => {

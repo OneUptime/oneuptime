@@ -1,5 +1,6 @@
 import { mockRouter } from "../../API/Helpers";
 import PostgresListRouteHarness from "../../API/PostgresListRouteHarness";
+import CloudAccount from "../../../../Models/DatabaseModels/CloudAccount";
 import CloudRequiredTag from "../../../../Models/DatabaseModels/CloudRequiredTag";
 import ChangeEventService from "../../../../Server/Services/ChangeEventService";
 import CloudCostService from "../../../../Server/Services/CloudCostService";
@@ -133,9 +134,12 @@ jest.mock("../../../../Server/Utils/Response", () => {
 });
 
 // The data source is the harness's; the app's own needs no migrations.
-jest.mock("../../../../Server/Infrastructure/Postgres/DataSourceOptions", () => {
-  return {};
-});
+jest.mock(
+  "../../../../Server/Infrastructure/Postgres/DataSourceOptions",
+  () => {
+    return {};
+  },
+);
 
 jest.setTimeout(240000);
 
@@ -243,7 +247,12 @@ function rule(
   key: string,
   allowedValues: Array<string> = [],
 ): CloudRequiredTagRule {
-  return { id: `${key}|${allowedValues.join(",")}`, key, allowedValues, cloudAccountId: null };
+  return {
+    id: `${key}|${allowedValues.join(",")}`,
+    key,
+    allowedValues,
+    cloudAccountId: null,
+  };
 }
 
 describePostgres("required tags and host links on migrated Postgres", () => {
@@ -297,7 +306,7 @@ describePostgres("required tags and host links on migrated Postgres", () => {
     const ids: Array<ObjectID> = [];
 
     beforeAll(async () => {
-      for (let index = 0; index < TAGS.length; index++) {
+      for (let index: number = 0; index < TAGS.length; index++) {
         ids.push(
           await insertResource({
             name: `tags-${index}`,
@@ -307,7 +316,10 @@ describePostgres("required tags and host links on migrated Postgres", () => {
       }
     });
 
-    async function carrying(condition: string, params: Array<unknown>): Promise<Array<string>> {
+    async function carrying(
+      condition: string,
+      params: Array<unknown>,
+    ): Promise<Array<string>> {
       const rows: Array<{ id: string }> = (await harness.query(
         `SELECT r."_id" AS "id" FROM "${harness.schema}"."CloudResource" r WHERE r."projectId" = $1 AND r."name" LIKE 'tags-%' AND ${condition}`,
         params,
@@ -320,7 +332,9 @@ describePostgres("required tags and host links on migrated Postgres", () => {
         .sort();
     }
 
-    function expected(carries: (tags: Record<string, unknown> | null) => boolean): Array<string> {
+    function expected(
+      carries: (tags: Record<string, unknown> | null) => boolean,
+    ): Array<string> {
       return TAGS.map((tags: unknown, index: number): string | null => {
         const map: Record<string, unknown> | null =
           tags && typeof tags === "object" && !Array.isArray(tags)
@@ -404,7 +418,11 @@ describePostgres("required tags and host links on migrated Postgres", () => {
       });
     });
 
-    function tag(key: string, cloudAccountId?: ObjectID, allowed?: Array<string>): CloudRequiredTag {
+    function tag(
+      key: string,
+      cloudAccountId?: ObjectID,
+      allowed?: Array<string>,
+    ): CloudRequiredTag {
       const model: CloudRequiredTag = new CloudRequiredTag();
       model.projectId = PROJECT;
       model.tagKey = key;
@@ -463,6 +481,20 @@ describePostgres("required tags and host links on migrated Postgres", () => {
         await refusal(
           CloudRequiredTagService.create({
             data: tag(" Owner", ACCOUNT_ROW),
+            props: { isRoot: true },
+          }),
+        ),
+      ).toBe(CLOUD_REQUIRED_TAG_DUPLICATE_ERROR);
+
+      // The account named by the relation instead of its id is the same place.
+      const byRelation: CloudRequiredTag = tag("OWNER");
+      byRelation.cloudAccount = Object.assign(new CloudAccount(), {
+        _id: ACCOUNT_ROW.toString(),
+      });
+      expect(
+        await refusal(
+          CloudRequiredTagService.create({
+            data: byRelation,
             props: { isRoot: true },
           }),
         ),
@@ -624,15 +656,19 @@ describePostgres("required tags and host links on migrated Postgres", () => {
           accountId: row["cloudAccountId"] as string,
           region: row["cloudRegion"] as string,
           providerResourceId: row["providerResourceId"] as string,
-          telemetryAttributes: row["telemetryAttributes"] as Record<string, unknown>,
+          telemetryAttributes: row["telemetryAttributes"] as Record<
+            string,
+            unknown
+          >,
           properties: row["cloudProperties"] as JSONObject,
         });
       }
 
-      const links: Map<string, CloudLinkedHost> = await CloudHostLinks.hostsOfVms({
-        projectId: PROJECT,
-        vms: facts,
-      });
+      const links: Map<string, CloudLinkedHost> =
+        await CloudHostLinks.hostsOfVms({
+          projectId: PROJECT,
+          vms: facts,
+        });
 
       expect(
         Object.fromEntries(
@@ -713,7 +749,9 @@ describePostgres("required tags and host links on migrated Postgres", () => {
     const ACCOUNT_ROW: ObjectID = new ObjectID(
       "11012000-0000-4000-8000-00000000b001",
     );
-    const OWNER: ObjectID = new ObjectID("11012000-0000-4000-8000-00000000e001");
+    const OWNER: ObjectID = new ObjectID(
+      "11012000-0000-4000-8000-00000000e001",
+    );
     const LISTED_AT: Date = new Date("2026-11-20T08:00:00.000Z");
     const FIRST_RUN: Date = new Date("2026-11-20T10:00:00.000Z");
     const SECOND_RUN: Date = new Date("2026-11-20T11:00:00.000Z");
@@ -740,7 +778,11 @@ describePostgres("required tags and host links on migrated Postgres", () => {
       });
 
       for (const [key, allowed, description] of [
-        ["team", ["payments", "search"], "The team that pays for the resource."],
+        [
+          "team",
+          ["payments", "search"],
+          "The team that pays for the resource.",
+        ],
         ["env", [], null],
       ] as Array<[string, Array<string>, string | null]>) {
         await harness.insert("CloudRequiredTag", {
@@ -815,9 +857,11 @@ describePostgres("required tags and host links on migrated Postgres", () => {
           };
         }) as never,
       );
-      getJestSpyOn(MailService, "sendMail").mockImplementation((async (
-        mail: { toEmail: unknown; subject?: string; vars: JSONObject },
-      ): Promise<void> => {
+      getJestSpyOn(MailService, "sendMail").mockImplementation((async (mail: {
+        toEmail: unknown;
+        subject?: string;
+        vars: JSONObject;
+      }): Promise<void> => {
         mails.push({
           to: String(mail.toEmail),
           subject: String(mail.subject || ""),
@@ -870,9 +914,15 @@ describePostgres("required tags and host links on migrated Postgres", () => {
       const rows: Array<Record<string, unknown>> = await findings();
       expect(rows).toHaveLength(2);
 
-      const newOne: Record<string, unknown> | undefined = findingOf(rows, "new");
+      const newOne: Record<string, unknown> | undefined = findingOf(
+        rows,
+        "new",
+      );
       expect(newOne?.["missingTags"]).toEqual([
-        expect.objectContaining({ key: "team", problem: CloudTagProblem.Missing }),
+        expect.objectContaining({
+          key: "team",
+          problem: CloudTagProblem.Missing,
+        }),
       ]);
       expect(newOne?.["creatorActor"]).toBe(
         `AWSReservedSSO_Admin_0abc/${OWNER.toString()}@example.com`,
@@ -882,9 +932,15 @@ describePostgres("required tags and host links on migrated Postgres", () => {
       expect(newOne?.["notifiedAt"]).not.toBeNull();
 
       // No creator yet: it waits for the change log, untold.
-      const envless: Record<string, unknown> | undefined = findingOf(rows, "envless");
+      const envless: Record<string, unknown> | undefined = findingOf(
+        rows,
+        "envless",
+      );
       expect(envless?.["missingTags"]).toEqual([
-        expect.objectContaining({ key: "env", problem: CloudTagProblem.Missing }),
+        expect.objectContaining({
+          key: "env",
+          problem: CloudTagProblem.Missing,
+        }),
       ]);
       expect(envless?.["notifiedAt"]).toBeNull();
 
@@ -927,7 +983,10 @@ describePostgres("required tags and host links on migrated Postgres", () => {
       changeRows = [];
       await harness.query(
         `UPDATE "${harness.schema}"."CloudResource" SET "cloudTags" = $1 WHERE "_id" = $2`,
-        [JSON.stringify({ team: "payments", env: "prod" }), ids["new"]!.toString()],
+        [
+          JSON.stringify({ team: "payments", env: "prod" }),
+          ids["new"]!.toString(),
+        ],
       );
 
       const result: CloudTagWatchResult = await CloudTagWatcher.runForProject({
@@ -1012,9 +1071,11 @@ describePostgres("required tags and host links on migrated Postgres", () => {
           return resource.name === "web-old";
         });
       expect(
-        old?.missing.map((missing: { key: string }): string => {
-          return missing.key;
-        }).sort(),
+        old?.missing
+          .map((missing: { key: string }): string => {
+            return missing.key;
+          })
+          .sort(),
       ).toEqual(["env", "team"]);
     });
   });

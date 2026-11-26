@@ -155,7 +155,12 @@ function rule(
   allowedValues: Array<string> = [],
   cloudAccountId: string | null = null,
 ): CloudRequiredTagRule {
-  return { id: `${key}|${allowedValues.join(",")}`, key, allowedValues, cloudAccountId };
+  return {
+    id: `${key}|${allowedValues.join(",")}`,
+    key,
+    allowedValues,
+    cloudAccountId,
+  };
 }
 
 // The resources (by their resourceId) whose costs carry what the condition asks.
@@ -340,7 +345,7 @@ integration("required tags on ClickHouse", () => {
       let text: string = "";
       const length: number = random(longest + 1);
 
-      for (let index = 0; index < length; index++) {
+      for (let index: number = 0; index < length; index++) {
         text += alphabet[random(alphabet.length)];
       }
 
@@ -348,11 +353,11 @@ integration("required tags on ClickHouse", () => {
     };
     const drawn: Array<Record<string, string>> = [];
 
-    for (let index = 0; index < 300; index++) {
+    for (let index: number = 0; index < 300; index++) {
       const tags: Record<string, string> = {};
       const count: number = random(4);
 
-      for (let tag = 0; tag < count; tag++) {
+      for (let tag: number = 0; tag < count; tag++) {
         tags[keys[random(keys.length)]!] = drawText(4, letters);
       }
 
@@ -371,11 +376,11 @@ integration("required tags on ClickHouse", () => {
       }),
     );
 
-    for (let index = 0; index < 60; index++) {
+    for (let index: number = 0; index < 60; index++) {
       const allowed: Array<string> = [];
       const valueCount: number = random(3);
 
-      for (let value = 0; value < valueCount; value++) {
+      for (let value: number = 0; value < valueCount; value++) {
         allowed.push(drawText(3, [...letters, "*", "?"]));
       }
 
@@ -492,7 +497,10 @@ integration("required tags on ClickHouse", () => {
 
     for (const row of result) {
       // The hand and drawn rows of the earlier tests are on 2026-11-19, after the period.
-      byAccount.set(`${String(row["account"])}|${String(row["currencyCode"])}`, row);
+      byAccount.set(
+        `${String(row["account"])}|${String(row["currencyCode"])}`,
+        row,
+      );
     }
 
     // What code says, over the same rows.
@@ -545,7 +553,9 @@ integration("required tags on ClickHouse", () => {
       [ACCOUNT_A, "EUR"],
       [ACCOUNT_B, "USD"],
     ] as Array<[string, string]>) {
-      const row: JSONObject | undefined = byAccount.get(`${account}|${currency}`);
+      const row: JSONObject | undefined = byAccount.get(
+        `${account}|${currency}`,
+      );
       const expected: JSONObject = expectFor(account, currency);
       const got: JSONObject = {};
 
@@ -570,12 +580,36 @@ integration("required tags on ClickHouse", () => {
     const rules: Array<CloudRequiredTagRule> = [rule("team", ["payments"])];
     const rows: Array<CostRow> = [
       // The week of Monday 2026-08-03: one covered, one not.
-      { account: ACCOUNT_A, day: "2026-08-03", cost: 10, resourceId: "trend-1", tags: { team: "payments" } },
-      { account: ACCOUNT_A, day: "2026-08-09", cost: 5, resourceId: "trend-2", tags: {} },
+      {
+        account: ACCOUNT_A,
+        day: "2026-08-03",
+        cost: 10,
+        resourceId: "trend-1",
+        tags: { team: "payments" },
+      },
+      {
+        account: ACCOUNT_A,
+        day: "2026-08-09",
+        cost: 5,
+        resourceId: "trend-2",
+        tags: {},
+      },
       // The week of Monday 2026-08-10, on its Sunday.
-      { account: ACCOUNT_A, day: "2026-08-16", cost: 8, resourceId: "trend-3", tags: { TEAM: "Payments" } },
+      {
+        account: ACCOUNT_A,
+        day: "2026-08-16",
+        cost: 8,
+        resourceId: "trend-3",
+        tags: { TEAM: "Payments" },
+      },
       // The week of Monday 2026-08-17.
-      { account: ACCOUNT_B, day: "2026-08-17", cost: 4, resourceId: "trend-4", tags: { team: "search" } },
+      {
+        account: ACCOUNT_B,
+        day: "2026-08-17",
+        cost: 4,
+        resourceId: "trend-4",
+        tags: { team: "search" },
+      },
     ];
 
     await insertCosts(rows);

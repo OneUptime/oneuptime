@@ -283,9 +283,9 @@ describe("what the email says", () => {
         "AWS::EC2::Instance"
       }, ${getCloudProviderLabel("aws")} account prod)`,
     );
-    expect(
-      describeCloudTagResource(notice({ accountName: "" })),
-    ).toContain(`, ${getCloudProviderLabel("aws")})`);
+    expect(describeCloudTagResource(notice({ accountName: "" }))).toContain(
+      `, ${getCloudProviderLabel("aws")})`,
+    );
 
     expect(
       describeCloudTagMissing([
@@ -310,9 +310,9 @@ describe("what the email says", () => {
     expect(getCloudTagEmailSubject([notice()])).toBe(
       "A new cloud resource is missing required tags: web-4",
     );
-    expect(
-      getCloudTagEmailSubject([notice(), notice(), notice()]),
-    ).toBe(`3${NO_BREAK_SPACE}new cloud resources are missing required tags`);
+    expect(getCloudTagEmailSubject([notice(), notice(), notice()])).toBe(
+      `3${NO_BREAK_SPACE}new cloud resources are missing required tags`,
+    );
   });
 
   test("every value it holds is escaped: a resource named to inject HTML is only text", () => {
@@ -325,12 +325,15 @@ describe("what the email says", () => {
             {
               key: "team",
               problem: CloudTagProblem.Missing,
-              command: "aws resourcegroupstaggingapi tag-resources --tags 'team=<x>'",
+              command:
+                "aws resourcegroupstaggingapi tag-resources --tags 'team=<x>'",
             },
           ],
         }),
       ],
-      tagsLink: URL.fromString("https://oneuptime.example.com/dashboard/p/cloud/tags"),
+      tagsLink: URL.fromString(
+        "https://oneuptime.example.com/dashboard/p/cloud/tags",
+      ),
     });
 
     expect(html).not.toContain("<img");
@@ -370,7 +373,10 @@ describe("what the email says", () => {
         return notice({ resourceName: `vm-${index}` });
       },
     );
-    const html: string = getCloudTagEmailHtml({ notices: many, tagsLink: null });
+    const html: string = getCloudTagEmailHtml({
+      notices: many,
+      tagsLink: null,
+    });
 
     expect(html).toContain(`vm-${CLOUD_TAG_EMAIL_MAX_RESOURCES - 1}`);
     expect(html).not.toContain(`vm-${CLOUD_TAG_EMAIL_MAX_RESOURCES} `);
@@ -437,13 +443,20 @@ describe("what the email says", () => {
         accountRowId: ACCOUNT_ROW,
         now: new Date("2026-11-20T12:59:59.000Z"),
       }),
-    ).toBe(CloudTagNotifier.getAlertFingerprint({ accountRowId: ACCOUNT_ROW, now }));
+    ).toBe(
+      CloudTagNotifier.getAlertFingerprint({ accountRowId: ACCOUNT_ROW, now }),
+    );
   });
 });
 
 describe("the required tags a page names", () => {
   const rules: Array<CloudRequiredTagRule> = [
-    { id: "a", key: "Team", allowedValues: ["platform"], cloudAccountId: "acc-a" },
+    {
+      id: "a",
+      key: "Team",
+      allowedValues: ["platform"],
+      cloudAccountId: "acc-a",
+    },
     { id: "p", key: "team", allowedValues: ["payments"], cloudAccountId: null },
     { id: "b", key: "owner", allowedValues: [], cloudAccountId: "acc-b" },
   ];

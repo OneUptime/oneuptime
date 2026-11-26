@@ -256,7 +256,7 @@ describe("every resource a change names", () => {
   test(`keeps the first ${CLOUD_CHANGE_RESOURCE_IDS_KEPT}, so a huge call stays one small attribute`, () => {
     const resources: Array<{ id: string; type: string }> = [];
 
-    for (let index = 0; index < 50; index++) {
+    for (let index: number = 0; index < 50; index++) {
       resources.push({ id: `r-${index}`, type: "x" });
     }
 

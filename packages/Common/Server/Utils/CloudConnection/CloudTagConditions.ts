@@ -151,11 +151,15 @@ export function getResourceTagConditionSql(data: {
   const value: string = `(t.j #>> '{}')`;
 
   if (exact.length > 0) {
-    valueConditions.push(`lower(btrim(${value})) = ANY(${next(exact)}::text[])`);
+    valueConditions.push(
+      `lower(btrim(${value})) = ANY(${next(exact)}::text[])`,
+    );
   }
 
   if (patterns.length > 0) {
-    valueConditions.push(`btrim(${value}) ILIKE ANY(${next(patterns)}::text[])`);
+    valueConditions.push(
+      `btrim(${value}) ILIKE ANY(${next(patterns)}::text[])`,
+    );
   }
 
   return `EXISTS (SELECT 1 FROM jsonb_each(CASE WHEN jsonb_typeof(${data.tagsColumn}) = 'object' THEN ${data.tagsColumn} ELSE '{}'::jsonb END) AS t(k, j) WHERE jsonb_typeof(t.j) = 'string' AND lower(t.k) = ${keyParam} AND btrim(${value}) <> ''${
