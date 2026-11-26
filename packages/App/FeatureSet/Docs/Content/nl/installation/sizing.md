@@ -106,6 +106,51 @@ Elk daarvan draait op Node.js, dat zijn heap afstemt op de geheugenlimiet van zi
 
 De chart levert **KEDA** mee, zodat de app, workers, sondes en de globale Runner kunnen schalen op hun wachtrijachterstand. Zet `keda.enabled` aan samen met de eigen `keda.enabled` van elke dienst (bijvoorbeeld `app.keda.enabled`). Op een cluster zonder KEDA heeft de eerste installatie een extra ronde nodig: zie de [KEDA-handleiding](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Docs/Keda.md) van de chart. Diensten die KEDA niet beheert, kunnen in plaats daarvan een autoscaler op CPU of geheugen gebruiken (`autoscaling`).
 
+## Veel monitors draaien
+
+Elke worker van elke sonde vraagt de app-pods per batch om de monitors die aan de beurt zijn, en elke monitor die aan de beurt is gaat naar precies één van hen. Alle monitors die elke minuut controleren, zijn samen aan de beurt aan het begin van elke minuut, dus telt hoe snel de monitors van een hele minuut worden uitgedeeld. De getallen hieronder zijn gemeten met 39.700 monitors (28.200 elke minuut gecontroleerd en 11.500 elke vijf minuten) op één sonde met 20 replica's, waarbij elke databaseopdracht 50 of 100 ms trager was dan op een onbelaste machine, zoals op een drukke database.
+
+### Monitors in grotere batches uitdelen
+
+Verhoog de ophaallimiet van elke sonde (`monitorFetchLimit` in de Helm-chart, anders `PROBE_MONITOR_FETCH_LIMIT`) van 10 naar 50. Elk verzoek deelt dan vijf keer zoveel monitors uit voor ongeveer dezelfde kosten. Met drie app-pods en opdrachten die 50 ms trager waren, werden de 28.200 monitors van elke minuut binnen 19 seconden uitgedeeld, tegenover 44 met een limiet van 10, en de 39.700 die elke vijf minuten aan de beurt zijn binnen 19 seconden, tegenover 57. Een replica van de sonde voert dan tot workers × ophaallimiet controles tegelijk uit, 150 met 3 workers: geef hem daar het geheugen voor, of voeg replica's toe.
+
+```yaml
+probes:
+  one:
+    monitoringWorkers: 3
+    monitorFetchLimit: 50
+```
+
+### De planningslimiet op de standaardwaarde laten
+
+`PROBE_SCHEDULING_MAX_CONCURRENT_REQUESTS` (`app.probeSchedulingMaxConcurrentRequests`) is hoeveel sondeverzoeken elke app-pod tegelijk afhandelt: een vijfde van zijn databasepool, 10 van 50. Elke pod heeft er een eigen, dus app-pods die u toevoegt, brengen de hunne mee. Met alle 39.700 tegelijk aan de beurt en opdrachten die 100 ms trager waren, kreeg één sonde 313 monitors per seconde van één app-pod, 659 van drie en 763 van zes, en de limiet verhogen naar 20 leverde 7% op. Een sonde alleen mag elke plek van een pod gebruiken, en sondes die concurreren, delen ze eerlijk. Test Monitor-runs hebben 2 eigen plekken, zodat een test een sonde binnen zijn tik van tien seconden bereikt, hoe druk de monitors ook zijn. Verhoog de limiet alleen als sondeverzoeken steeds op een plek wachten terwijl de database nog ruimte heeft, en verhoog de databasepool van de pod mee.
+
+### Eén sonde of veel
+
+Zet elke monitor op de sondes van waaruit hij moet controleren. Elke monitor die aan de beurt is gaat naar één replica van zijn sonde, hoeveel replica's er ook tegelijk vragen, dus één sonde met veel replica's houdt het net zo goed bij als veel sondes. Als monitors te laat zijn en geen verzoek op een plek wacht, zijn er te weinig sondes: voeg replica's toe, of laat KEDA elke sonde schalen op de monitors die aan de beurt zijn.
+
+### Automatisch schalen op waar sondes op wachten
+
+`/metrics/probe-scheduling`, op de poort van de app, telt het beeld van elke app-pod over de laatste minuut op. Schaal de app-pods met KEDA op de `queueDepth` ervan, naast CPU en geheugen, en geef een melding als monitors te laat worden uitgedeeld:
+
+```yaml
+keda:
+  enabled: true
+app:
+  keda:
+    enabled: true
+    probeSchedulingQueueDepthThreshold: 5
+```
+
+| Veld | Wat het zegt |
+| --- | --- |
+| `queueDepth` | Sondeverzoeken die nu op een plek wachten, op alle app-pods. Minutenlang boven 0: voeg app-pods toe. |
+| `slotWaitP95Ms` | Hoe lang verzoeken op een plek wachtten, op de drukste app-pod. |
+| `refusalsPerMinute` | Sondeverzoeken die als bezet zijn beantwoord. |
+| `dispatchLagP95Seconds` | Hoe laat monitors werden uitgedeeld, na het moment waarop hun interval ze aan de beurt maakte. Dicht bij uw kortste interval terwijl geen verzoek wacht: voeg sondereplica's toe. |
+| `monitorsLateByAnIntervalPerMinute` | Monitors die een heel interval te laat werden uitgedeeld: controles die zijn overgeslagen. |
+| `monitorTestWaitP95Seconds` | Hoe lang Test Monitor-runs op een sonde wachtten. |
+
 ## Startniveaus
 
 Kies het niveau dat het dichtst bij uw omgeving ligt als vertrekpunt, volg daarna het echte gebruik (`kubectl top pods`, de schijfgroei van ClickHouse en PostgreSQL) en stel bij.
