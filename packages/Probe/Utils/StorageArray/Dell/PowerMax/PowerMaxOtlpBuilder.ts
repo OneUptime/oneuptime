@@ -56,6 +56,35 @@ function bytesPerSec(value: number | undefined): number | null {
   return typeof value === "number" && value >= 0 ? value * MB : null;
 }
 
+/*
+ * The response time of all I/O, in milliseconds: Unisphere's own where it
+ * has one, else its read and write response times weighed by the reads
+ * and writes. A real-time storage group may have only the two.
+ */
+export function getOverallResponseTimeMs(
+  m: Record<string, number>,
+): number | undefined {
+  if (typeof m["ResponseTime"] === "number") {
+    return m["ResponseTime"];
+  }
+  const read: number | undefined = m["ReadResponseTime"];
+  const write: number | undefined = m["WriteResponseTime"];
+  const reads: number | undefined = m["HostReads"];
+  const writes: number | undefined = m["HostWrites"];
+  if (
+    typeof read !== "number" ||
+    typeof write !== "number" ||
+    typeof reads !== "number" ||
+    typeof writes !== "number" ||
+    reads < 0 ||
+    writes < 0 ||
+    reads + writes <= 0
+  ) {
+    return undefined;
+  }
+  return (read * reads + write * writes) / (reads + writes);
+}
+
 function byId(
   instances: Array<UnispherePerformanceInstance>,
 ): Map<string, UnispherePerformanceInstance> {
@@ -365,7 +394,7 @@ export default class PowerMaxOtlpBuilder {
         const at: number = point.timestampMs;
         resource.gauge(
           M.storageGroupRealtimeResponseTime,
-          usec(m["ResponseTime"]),
+          usec(getOverallResponseTimeMs(m)),
           labels,
           at,
         );
@@ -439,7 +468,8 @@ export default class PowerMaxOtlpBuilder {
         labels,
         at,
       );
-      resource.gauge(M.volumeIops, m["HostIOs"], labels, at);
+      // IoRate is a volume's IOPS (/performance/Volume/metrics).
+      resource.gauge(M.volumeIops, m["IoRate"] ?? m["HostIOs"], labels, at);
       resource.gauge(M.volumeThroughput, bytesPerSec(m["HostMBs"]), labels, at);
     }
   }

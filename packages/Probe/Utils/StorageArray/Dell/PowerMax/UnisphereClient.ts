@@ -21,6 +21,7 @@ import { JSONArray, JSONObject, JSONValue } from "Common/Types/JSON";
  *   /univmax/restapi/{v}/system/symmetrix/{id}/alert[/{alertId}]
  *   /univmax/restapi/{v}/system/symmetrix/{id}/director[/{dir}]
  *   /univmax/restapi/performance/Array/registrationdetails/{id}
+ *   /univmax/restapi/performance/realtime/help/{id}/{category}/metrics
  *   /univmax/restapi/performance/realtime/metrics  (POST)
  *   /univmax/restapi/performance/Volume/metrics    (POST)
  *   /univmax/rest/v1/systems/{id}/{storage-groups|volumes|directors|ports|rdf-groups}
@@ -151,6 +152,9 @@ export function toQueryString(
   return parts.length ? `?${parts.join("&")}` : "";
 }
 
+// A REST API version as Unisphere lists one: "101", "92".
+const API_VERSION_PATTERN: RegExp = /^\d{2,3}$/;
+
 /*
  * "T10.1.0.468" -> 101; "V9.2.1.4" -> 92. Null for anything else.
  */
@@ -159,7 +163,7 @@ export function readApiVersionNumber(value: unknown): number | null {
   if (!text) {
     return null;
   }
-  if (/^\d{2,3}$/.test(text)) {
+  if (API_VERSION_PATTERN.test(text)) {
     return Number(text);
   }
   const match: RegExpMatchArray | null = text.match(/^[A-Za-z]?(\d+)\.(\d+)/);
@@ -298,7 +302,7 @@ export default class UnisphereClient {
         return toText(entry);
       })
       .filter((entry: string | null): entry is string => {
-        return entry !== null && /^\d{2,3}$/.test(entry);
+        return entry !== null && API_VERSION_PATTERN.test(entry);
       });
     return {
       version: version,
@@ -536,6 +540,26 @@ export default class UnisphereClient {
       });
     }
     return result;
+  }
+
+  /*
+   * The metrics a real-time category has on an array, as Unisphere lists
+   * them: a real-time query naming one it lacks is refused whole, and
+   * Dell's documents list each category's only by asking (PyU4V's
+   * get_category_metrics reads the same).
+   */
+  public async listRealtimeMetrics(
+    symmetrixId: string,
+    category: string,
+  ): Promise<Array<string>> {
+    const body: JSONObject = this.object(
+      await this.get(
+        `${UNISPHERE_REST_BASE}/performance/realtime/help/${encodeURIComponent(
+          symmetrixId,
+        )}/${encodeURIComponent(category)}/metrics`,
+      ),
+    );
+    return this.textList(body["metricName"]);
   }
 
   /*

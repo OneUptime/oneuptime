@@ -57,6 +57,9 @@ import {
 } from "Common/Types/StorageArray/Collection/StorageArrayProbeCollection";
 import POWERMAX_PROBE_COLLECTOR from "Common/Types/StorageArray/Platforms/Dell/PowerMax/PowerMaxProbeCollector";
 import {
+  POWERMAX_ENDPOINTS,
+  POWERMAX_LABELS,
+  POWERMAX_METRICS,
   POWERMAX_METRIC_PREFIX,
   POWERMAX_PERFORMANCE_CATEGORIES,
   PowerMaxKind,
@@ -181,15 +184,38 @@ const SRDF_SELECT: Array<string> = [
   "rdfa_properties",
   "ports",
 ];
-const REALTIME_METRICS: Array<string> = [
+/*
+ * What a collection asks of a real-time storage group: those of these the
+ * array's StorageGroups category has (listRealtimeMetrics), since a query
+ * naming one it lacks is refused whole. The reads and writes weigh the
+ * read and write response times into one where the category has no
+ * ResponseTime of its own.
+ */
+export const REALTIME_STORAGE_GROUP_METRICS: ReadonlyArray<string> = [
+  "HostIOs",
+  "HostMBs",
+  "ResponseTime",
+  "ReadResponseTime",
+  "WriteResponseTime",
+  "HostReads",
+  "HostWrites",
+];
+// The ones every array's real-time categories have, when it cannot be asked.
+export const REALTIME_STORAGE_GROUP_FALLBACK_METRICS: ReadonlyArray<string> = [
   "HostIOs",
   "HostMBs",
   "ReadResponseTime",
   "WriteResponseTime",
 ];
-const VOLUME_METRICS: Array<string> = [
-  "HostIOs",
+export const REALTIME_STORAGE_GROUP_CATEGORY: string = "StorageGroups";
+/*
+ * Volume metrics, as /performance/Volume/metrics names them (Dell's
+ * OpenAPI enumerates them: IoRate, not HostIOs, is a volume's IOPS).
+ */
+export const VOLUME_METRICS: ReadonlyArray<string> = [
+  "IoRate",
   "HostMBs",
+  "ResponseTime",
   "ReadResponseTime",
   "WriteResponseTime",
 ];
@@ -305,13 +331,19 @@ export class PowerMaxPoller implements StorageArrayPoller {
     context: PollContext,
   ): Promise<StorageArrayCollectionSummary> {
     const arrays: Array<StorageArrayCollectionArraySummary> = [];
+    const forbidden: Map<string, StorageArrayCollectionError> = new Map();
     const warnings: Array<string> = [];
 
     for (const symmetrixId of await this.listArrays(context)) {
-      const details: JSONObject = await this.readArrayDetails(
+      const details: JSONObject | null = await this.readArrayDetailsOrSkip(
         context,
         symmetrixId,
+        arrays,
+        forbidden,
       );
+      if (!details) {
+        continue;
+      }
       const entry: StorageArrayCollectionArraySummary = this.arraySummary(
         symmetrixId,
         details,
@@ -382,7 +414,7 @@ export class PowerMaxPoller implements StorageArrayPoller {
       }
     }
 
-    this.assertSomeLocalArray(arrays);
+    this.assertSomeLocalArray(arrays, forbidden);
 
     if (context.apiVersion < UNISPHERE_API_VERSION_WITH_HARDWARE) {
       warnings.push(
@@ -449,6 +481,7 @@ export class PowerMaxPoller implements StorageArrayPoller {
     summary: StorageArrayCollectionSummary;
   }> {
     const arrays: Array<StorageArrayCollectionArraySummary> = [];
+    const forbidden: Map<string, StorageArrayCollectionError> = new Map();
     const resources: Array<{
       summary: StorageArrayCollectionArraySummary;
       resource: StorageArrayOtlpResource;
@@ -456,10 +489,15 @@ export class PowerMaxPoller implements StorageArrayPoller {
     const warnings: Array<string> = [];
 
     for (const symmetrixId of await this.listArrays(context)) {
-      const details: JSONObject = await this.readArrayDetails(
+      const details: JSONObject | null = await this.readArrayDetailsOrSkip(
         context,
         symmetrixId,
+        arrays,
+        forbidden,
       );
+      if (!details) {
+        continue;
+      }
       const entry: StorageArrayCollectionArraySummary = this.arraySummary(
         symmetrixId,
         details,
@@ -495,7 +533,7 @@ export class PowerMaxPoller implements StorageArrayPoller {
       });
     }
 
-    this.assertSomeLocalArray(arrays);
+    this.assertSomeLocalArray(arrays, forbidden);
 
     if (context.apiVersion < UNISPHERE_API_VERSION_WITH_HARDWARE) {
       warnings.push(
@@ -560,15 +598,30 @@ export class PowerMaxPoller implements StorageArrayPoller {
     const bySize: Array<{
       summary: StorageArrayCollectionArraySummary;
       resource: StorageArrayOtlpResource;
-    }> = [...resources].sort((a, b) => {
-      return b.resource.getDatapointCount() - a.resource.getDatapointCount();
-    });
+    }> = [...resources].sort(
+      (
+        a: { resource: StorageArrayOtlpResource },
+        b: { resource: StorageArrayOtlpResource },
+      ): number => {
+        return b.resource.getDatapointCount() - a.resource.getDatapointCount();
+      },
+    );
 
     for (const entry of bySize) {
       const dropped: number = entry.resource.dropMetrics(
         `${POWERMAX_METRIC_PREFIX}volume_`,
       );
       if (dropped > 0) {
+        /*
+         * Its volume list is no longer complete in this upload: without
+         * the mark the server keeps the volumes it has, instead of reading
+         * an empty list as every volume deleted.
+         */
+        entry.resource.dropDatapoints(
+          POWERMAX_METRICS.inventoryListed,
+          POWERMAX_LABELS.scrapeEndpoint,
+          POWERMAX_ENDPOINTS.volumes,
+        );
         const warning: string = `The volumes of ${entry.summary.id} were left out of this collection: all of it is larger than one probe upload may be. Read this Unisphere less often, or connect its arrays through more than one Unisphere.`;
         entry.summary.warnings.push(warning);
         warnings.push(warning);
@@ -966,6 +1019,25 @@ export class PowerMaxPoller implements StorageArrayPoller {
         MAX_REALTIME_STORAGE_GROUPS,
       );
 
+    let metrics: Array<string> = [...REALTIME_STORAGE_GROUP_FALLBACK_METRICS];
+    try {
+      const available: Array<string> = await context.client.listRealtimeMetrics(
+        symmetrixId,
+        REALTIME_STORAGE_GROUP_CATEGORY,
+      );
+      const wanted: Array<string> = REALTIME_STORAGE_GROUP_METRICS.filter(
+        (metric: string): boolean => {
+          return available.includes(metric);
+        },
+      );
+      if (wanted.length > 0) {
+        metrics = wanted;
+      }
+    } catch (error) {
+      this.rethrowFatal(error);
+      // An older Unisphere's help: the metrics every array's category has.
+    }
+
     // Each group's 5-second samples since the last collection.
     for (const groupId of groups) {
       try {
@@ -975,7 +1047,7 @@ export class PowerMaxPoller implements StorageArrayPoller {
             storageGroupId: groupId,
             startMs: endMs - 5 * 60_000,
             endMs: endMs,
-            metrics: REALTIME_METRICS,
+            metrics: metrics,
           });
         if (points.length > 0) {
           reading.realtimeStorageGroups.set(groupId, points);
@@ -998,7 +1070,7 @@ export class PowerMaxPoller implements StorageArrayPoller {
         storageGroupIds: groups,
         startMs: endMs - 15 * 60_000,
         endMs: endMs,
-        metrics: VOLUME_METRICS,
+        metrics: [...VOLUME_METRICS],
       });
       for (const volume of volumes) {
         const newest: UnisphereTimedPoint | undefined =
@@ -1194,6 +1266,39 @@ export class PowerMaxPoller implements StorageArrayPoller {
     }
   }
 
+  /*
+   * One array's details, or null when the account may not read that array:
+   * Unisphere gives roles per array, so an array out of reach is listed
+   * with why, and the others are read. Only when it may read none does the
+   * collection fail (assertSomeLocalArray).
+   */
+  private async readArrayDetailsOrSkip(
+    context: PollContext,
+    symmetrixId: string,
+    arrays: Array<StorageArrayCollectionArraySummary>,
+    forbidden: Map<string, StorageArrayCollectionError>,
+  ): Promise<JSONObject | null> {
+    try {
+      return await this.readArrayDetails(context, symmetrixId);
+    } catch (error) {
+      if (
+        error instanceof StorageArrayCollectionError &&
+        error.code === StorageArrayCollectionErrorCode.MissingRole
+      ) {
+        forbidden.set(symmetrixId, error);
+        arrays.push({
+          id: symmetrixId,
+          isLocal: true,
+          isCollected: false,
+          counts: {},
+          warnings: [error.message],
+        });
+        return null;
+      }
+      throw error;
+    }
+  }
+
   private arraySummary(
     symmetrixId: string,
     details: JSONObject,
@@ -1217,12 +1322,21 @@ export class PowerMaxPoller implements StorageArrayPoller {
 
   private assertSomeLocalArray(
     arrays: Array<StorageArrayCollectionArraySummary>,
+    forbidden: Map<string, StorageArrayCollectionError>,
   ): void {
-    if (
-      !arrays.some((entry: StorageArrayCollectionArraySummary): boolean => {
-        return entry.isLocal;
-      })
-    ) {
+    const isReadableLocal: (
+      entry: StorageArrayCollectionArraySummary,
+    ) => boolean = (entry: StorageArrayCollectionArraySummary): boolean => {
+      return entry.isLocal && !forbidden.has(entry.id);
+    };
+    if (!arrays.some(isReadableLocal)) {
+      // Every array it manages is out of the account's reach: its role.
+      const first: StorageArrayCollectionError | undefined = forbidden
+        .values()
+        .next().value;
+      if (first) {
+        throw first;
+      }
       throw new StorageArrayCollectionError(
         StorageArrayCollectionErrorCode.NoArrays,
         arrays.length === 0

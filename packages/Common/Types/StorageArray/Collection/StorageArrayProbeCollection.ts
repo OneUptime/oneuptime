@@ -170,9 +170,10 @@ export interface StorageArrayCollectionReport extends StorageArrayProbeReportBas
   collectedAt: string;
   /*
    * The collection as OTLP/JSON resourceMetrics, one resource per array,
-   * present when it succeeded. Each resource carries `storage.system` and
-   * the array's identifier (the platform's identity attribute); the server
-   * stamps `storage.array.name` itself, from the array's row in OneUptime.
+   * present when it succeeded. Each resource carries the array's
+   * identifier (the platform's identity attribute); the server stamps
+   * `storage.system` from the connection and `storage.array.name` from
+   * the array's row in OneUptime (StorageArrayProbeMetrics).
    */
   resourceMetrics?: JSONArray | undefined;
 }

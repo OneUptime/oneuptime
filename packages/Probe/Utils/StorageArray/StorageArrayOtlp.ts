@@ -98,6 +98,40 @@ export default class StorageArrayOtlpResource {
     return dropped;
   }
 
+  /*
+   * Drops the datapoints of one metric that carry a label's value - one
+   * endpoint's "listed in full" mark, for a list the upload no longer
+   * carries in full.
+   */
+  public dropDatapoints(name: string, label: string, value: string): number {
+    const bucket: MetricBucket | undefined = this.metrics.get(name);
+    if (!bucket) {
+      return 0;
+    }
+    const kept: JSONArray = bucket.dataPoints.filter(
+      (point: JSONArray[number]): boolean => {
+        const attributes: JSONArray =
+          ((point as JSONObject)["attributes"] as JSONArray | undefined) || [];
+        return !attributes.some((attribute: JSONArray[number]): boolean => {
+          const entry: JSONObject = attribute as JSONObject;
+          return (
+            entry["key"] === label &&
+            (entry["value"] as JSONObject | undefined)?.["stringValue"] ===
+              value
+          );
+        });
+      },
+    );
+    const dropped: number = bucket.dataPoints.length - kept.length;
+    if (kept.length === 0) {
+      this.metrics.delete(name);
+    } else {
+      bucket.dataPoints = kept;
+    }
+    this.datapoints -= dropped;
+    return dropped;
+  }
+
   public build(scopeVersion: string): JSONObject {
     const metrics: JSONArray = Array.from(this.metrics.values()).map(
       (bucket: MetricBucket): JSONObject => {
