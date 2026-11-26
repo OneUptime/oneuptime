@@ -2161,6 +2161,60 @@ export default class NetworkDevice extends BaseModel {
   })
   public snmpV3PrivKey?: string = undefined;
 
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  /*
+   * Which SNMPv3 context the device is polled in. Not a credential: it names
+   * the device, not who reads it. A Brocade chassis with Virtual Fabrics
+   * answers each logical switch only in its own context ("VF:128"), so each
+   * logical switch is a device of its own, at the chassis's address, with
+   * its context here. It applies whichever credential the device's SNMPv3
+   * user comes from (its own, its credential profile or its site's), and
+   * only to SNMPv3: v1 and v2c have no context. Empty, the agent's default
+   * context.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "SNMP v3 Context",
+    description:
+      "SNMPv3 context the device is polled in, such as VF:128 for a Brocade logical switch. Empty for the agent's default context.",
+    example: "VF:128",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public snmpV3ContextName?: string = undefined;
+
   /*
    * --- Polling configuration ---
    * The device owns its own polling: the assigned probe walks every

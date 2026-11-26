@@ -46,6 +46,7 @@ import {
   SNMP_WALK_MAX_OIDS,
   SNMP_WALK_MAX_REPETITIONS,
   SNMP_WALK_NO_CREDENTIALS_MESSAGE,
+  SNMP_WALK_CONTEXT_PROBE_UPGRADE_MESSAGE,
   SNMP_WALK_PAUSE_BETWEEN_REQUESTS_IN_MS,
   SNMP_WALK_PROBE_UPGRADE_MESSAGE,
   SNMP_WALK_REQUEST_TIMEOUT_IN_MS,
@@ -242,6 +243,8 @@ function buildSnmpWalkJob(data: {
   walk: ClaimedDiagnostic;
   device: NetworkDevice | undefined;
   credentials: ResolvedSnmpCredentialsForBatch;
+  // Whether the probe walks in the SNMPv3 context a device names.
+  probeSupportsV3Context: boolean;
 }): NetworkDeviceDiagnosticJob | { reason: string } {
   const deviceId: string = data.walk.networkDeviceId.toString();
 
@@ -266,6 +269,20 @@ function buildSnmpWalkJob(data: {
 
   if (!resolved || resolved.pollMode !== "snmp") {
     return { reason: SNMP_WALK_NO_CREDENTIALS_MESSAGE };
+  }
+
+  const snmpV3ContextName: string | undefined =
+    NetworkDeviceHydrationUtil.getSnmpV3ContextName({
+      snmpVersion: resolved.carrier.snmpVersion,
+      snmpV3ContextName: data.device.snmpV3ContextName,
+    });
+
+  /*
+   * An older probe would walk the agent's default context, not the one the
+   * device is in: another logical switch's objects, shown as this one's.
+   */
+  if (snmpV3ContextName && !data.probeSupportsV3Context) {
+    return { reason: SNMP_WALK_CONTEXT_PROBE_UPGRADE_MESSAGE };
   }
 
   let start: SnmpWalkStart;
@@ -301,6 +318,7 @@ function buildSnmpWalkJob(data: {
       credentials: resolved.carrier,
       oids: [],
       monitorInterfaces: false,
+      snmpV3ContextName: snmpV3ContextName,
     }),
     timeout: SNMP_WALK_REQUEST_TIMEOUT_IN_MS,
   };
@@ -404,6 +422,11 @@ router.post(
         ProbeCapability.SnmpWalk,
       );
 
+      const probeSupportsV3Context: boolean = ProbeCapabilityUtil.has(
+        ProbeCapabilityUtil.parse(req.body["probeCapabilities"]),
+        ProbeCapability.SnmpV3Context,
+      );
+
       const claimed: Array<ClaimedDiagnostic> = [];
 
       for (const row of rows) {
@@ -500,6 +523,7 @@ router.post(
                   entry.networkDeviceId.toString(),
                 ),
                 credentials: walkCredentials.credentials,
+                probeSupportsV3Context: probeSupportsV3Context,
               })
             : { reason: SNMP_WALK_CREDENTIALS_UNREADABLE_MESSAGE };
 

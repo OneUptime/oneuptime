@@ -1194,6 +1194,7 @@ import { AddProjectRequireUniqueNames1809187640000 } from "./1809187640000-AddPr
 import { AddUniqueNameIndexes1809187640010 } from "./1809187640010-AddUniqueNameIndexes";
 import { AddSecurityUserErasureRequest1809187650908 } from "./1809187650908-AddSecurityUserErasureRequest";
 import { AddDataSecurityIssuePullRequest1809187660831 } from "./1809187660831-AddDataSecurityIssuePullRequest";
+import { AddSanSwitchFibreChannelColumns1809187690000 } from "./1809187690000-AddSanSwitchFibreChannelColumns";
 
 export default [
   InitialMigration,
@@ -2392,4 +2393,5 @@ export default [
   AddUniqueNameIndexes1809187640010,
   AddSecurityUserErasureRequest1809187650908,
   AddDataSecurityIssuePullRequest1809187660831,
+  AddSanSwitchFibreChannelColumns1809187690000,
 ];

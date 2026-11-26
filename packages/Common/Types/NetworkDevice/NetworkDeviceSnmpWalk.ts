@@ -99,6 +99,9 @@ export const SNMP_WALK_ALREADY_RUNNING_MESSAGE: string =
 export const SNMP_WALK_PROBE_UPGRADE_MESSAGE: string =
   "This device's probe runs a version that cannot walk SNMP. Update the probe to the latest version, then walk again.";
 
+export const SNMP_WALK_CONTEXT_PROBE_UPGRADE_MESSAGE: string =
+  "This device is polled in an SNMPv3 context, which its probe's version does not support: it would walk the agent's default context instead. Update the probe to the latest version, then walk again.";
+
 // Why a walk stopped.
 export enum SnmpWalkStopReason {
   // Every OID under the starting OID was read.
