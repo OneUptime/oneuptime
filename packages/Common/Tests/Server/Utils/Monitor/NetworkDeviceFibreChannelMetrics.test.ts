@@ -100,6 +100,7 @@ describe("NetworkDeviceMetricUtil: Fibre Channel counters", () => {
       projectId: PROJECT_ID,
       networkDeviceId: DEVICE_ID,
       deviceName: "fabric-b-mds-01",
+      probeId: undefined,
       snmpResponse: snmpResponse,
       responseTimeInMs: 42,
       isOnline: true,
@@ -108,7 +109,9 @@ describe("NetworkDeviceMetricUtil: Fibre Channel counters", () => {
 
   function fibreChannelRows(): Array<JSONObject> {
     return insertedRows.filter((row: JSONObject) => {
-      return row["name"] === MonitorMetricType.SnmpInterfaceFibreChannelPerSecond;
+      return (
+        row["name"] === MonitorMetricType.SnmpInterfaceFibreChannelPerSecond
+      );
     });
   }
 

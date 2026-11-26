@@ -44,6 +44,8 @@ function port(
   return {
     interfaceIndex: 1,
     name: name,
+    isOperationallyUp: true,
+    isAdministrativelyUp: true,
     fibreChannel: ratesPerSecond ? { ratesPerSecond: ratesPerSecond } : {},
   };
 }
@@ -100,17 +102,19 @@ describe("SnmpFibreChannelCriteria.evaluate", () => {
   });
 
   test("every comparison a numeric criterion has", () => {
-    const evaluate: (filterType: FilterType, value: string) => string | null =
-      (filterType: FilterType, value: string): string | null => {
-        return SnmpFibreChannelCriteria.evaluate({
-          interfaces: PORTS,
-          criteriaFilter: filter(
-            FibreChannelCounter.CreditLoss,
-            filterType,
-            value,
-          ),
-        });
-      };
+    const evaluate: (filterType: FilterType, value: string) => string | null = (
+      filterType: FilterType,
+      value: string,
+    ): string | null => {
+      return SnmpFibreChannelCriteria.evaluate({
+        interfaces: PORTS,
+        criteriaFilter: filter(
+          FibreChannelCounter.CreditLoss,
+          filterType,
+          value,
+        ),
+      });
+    };
 
     expect(evaluate(FilterType.GreaterThanOrEqualTo, "0.05")).not.toBeNull();
     expect(evaluate(FilterType.LessThan, "1")).not.toBeNull();
@@ -170,6 +174,8 @@ describe("SnmpFibreChannelCriteria.evaluate", () => {
           {
             interfaceIndex: 16793600,
             name: "",
+            isOperationallyUp: true,
+            isAdministrativelyUp: true,
             fibreChannel: {
               ratesPerSecond: { [FibreChannelCounter.CreditLoss]: 1 },
             },
@@ -208,7 +214,14 @@ describe("SnmpFibreChannelCriteria.describeObservation", () => {
     ).toMatch(/No Fibre Channel counter is chosen/);
     expect(
       SnmpFibreChannelCriteria.describeObservation({
-        interfaces: [{ interfaceIndex: 1, name: "eth0" }],
+        interfaces: [
+          {
+            interfaceIndex: 1,
+            name: "eth0",
+            isOperationallyUp: true,
+            isAdministrativelyUp: true,
+          },
+        ],
         criteriaFilter: filter(
           FibreChannelCounter.CreditLoss,
           FilterType.GreaterThan,

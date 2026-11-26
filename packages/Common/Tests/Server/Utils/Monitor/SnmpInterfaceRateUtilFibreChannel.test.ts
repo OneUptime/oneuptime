@@ -30,6 +30,8 @@ function port(
   return {
     interfaceIndex: interfaceIndex,
     name: `fc1/${interfaceIndex}`,
+    isOperationallyUp: true,
+    isAdministrativelyUp: true,
     ...(counters
       ? {
           fibreChannel: {

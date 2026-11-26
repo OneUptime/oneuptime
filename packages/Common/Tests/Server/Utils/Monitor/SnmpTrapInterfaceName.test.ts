@@ -9,6 +9,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import { getSnmpTrapInterfaceLabel } from "../../../../Utils/NetworkEvent/SnmpTrapEvent";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 
 /*
  * The interface a trap is about, as an alert's title says it. A link trap
@@ -97,7 +98,7 @@ describe("SnmpTrapInterfaceName.findForDevice", () => {
   });
 
   test("the name the device's walk recorded for the index, on that device", async () => {
-    const findOneBy: jest.SpiedFunction<typeof NetworkInterfaceService.findOneBy> =
+    const findOneBy: SpyInstance<typeof NetworkInterfaceService.findOneBy> =
       jest.spyOn(NetworkInterfaceService, "findOneBy").mockResolvedValue({
         name: " fc1/5 ",
       } as NetworkInterface);
@@ -118,7 +119,7 @@ describe("SnmpTrapInterfaceName.findForDevice", () => {
   });
 
   test("no lookup at all for a trap that names no interface by index", async () => {
-    const findOneBy: jest.SpiedFunction<typeof NetworkInterfaceService.findOneBy> =
+    const findOneBy: SpyInstance<typeof NetworkInterfaceService.findOneBy> =
       jest.spyOn(NetworkInterfaceService, "findOneBy");
 
     expect(
