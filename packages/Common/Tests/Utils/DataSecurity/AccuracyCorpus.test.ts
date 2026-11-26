@@ -1473,6 +1473,50 @@ const READING_CASES_OF: Readonly<Record<string, () => CorpusEntry>> = {
       ],
     };
   },
+  // #11032
+  "email-address: its characters' UTF-8 bytes percent-encoded":
+    (): CorpusEntry => {
+      const accented: string = `${fake(LOWER, 3)}${encodeURIComponent(fake(LATIN_ACCENTED, 1))}${fake(LOWER, 3)}%40${drawnDomain()}`;
+      const han: string = `${encodeURIComponent(fake(HAN, 2 + random(2)))}%40${drawnDomain()}`;
+      const domain: string = `${fake(LOWER, 5)}@${encodeURIComponent(fake(HAN, 2 + random(2)))}.jp`;
+
+      return {
+        positives: [
+          labelled(
+            "email-address",
+            `2026-10-27T10:15:02Z INFO GET /signup?email=${accented} HTTP/1.1 200`,
+            accented,
+          ),
+          labelled(
+            "email-address",
+            `{"url": "/invite?to=${han}&step=2", "batch": "nightly"}`,
+            han,
+          ),
+          labelled(
+            "email-address",
+            `2026-10-27T10:15:02Z INFO GET /verify?address=${domain} HTTP/1.1 200`,
+            domain,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "email-address",
+            `2026-10-27T10:15:02Z INFO GET /assets/${encodeURIComponent(fake(HAN, 2))}%402x.png HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "email-address",
+            `{"url": "/search?q=${encodeURIComponent(fake(HAN, 3))}%40&step=2", "batch": "nightly"}`,
+            "",
+          ),
+          labelled(
+            "email-address",
+            `2026-10-27T10:15:02Z INFO GET /q?name=caf%C3%A9%40%C3 HTTP/1.1 200`,
+            "",
+          ),
+        ],
+      };
+    },
   // #10960
   "email-address: in another script": (): CorpusEntry => {
     const han: string = `${fake(HAN, 2 + random(2))}@${drawnDomain()}`;

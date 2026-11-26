@@ -333,13 +333,29 @@ describe("a data type's expression", () => {
         "GET /health returned 200 in 12ms for the checkout service",
       ),
     ).toBe(false);
-    // An escape of a byte beyond ASCII is none the reading reads.
-    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("caf%C3%A9")).toBe(
-      false,
-    );
+    // An escape of a byte beyond ASCII is one the reading reads, as UTF-8 (#11032).
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("caf%C3%A9")).toBe(true);
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("%EF%BC%94")).toBe(true);
     expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("cpu 100% busy")).toBe(
       false,
     );
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("%zz %g1 x%4")).toBe(
+      false,
+    );
+  });
+
+  test("a text whose only escapes spell a character beyond ASCII is taken: what the reading finds there, the search hands over (#11032)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "email-address",
+    })!;
+    const text: string = "/signup?email=jos%C3%A9%40example.com";
+
+    expect(
+      findSensitiveValues(text, {
+        detectors: getBuiltInDetectorsOf("email-address"),
+      }).length,
+    ).toBeGreaterThan(0);
+    expect(asJavaScript(expression).test(text)).toBe(true);
   });
 
   /*

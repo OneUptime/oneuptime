@@ -7,11 +7,14 @@ import PercentDecodedText from "./PercentDecodedText";
  *
  * A detector reads a text as it is written. One that asks also reads it
  * with its percent-escapes read (readsPercentEncoded, #10467: an address in
- * an encoded URL), or with every script's digits read by their values
- * (readsDigitsOfEveryScript, #10960: a card in fullwidth or Arabic-Indic
- * digits). A match found in a reading is placed on the characters the text
- * writes it with, so what it finds - and what a scrub rule hides - is the
- * value as written, escapes and all.
+ * an encoded URL; a character's UTF-8 bytes each escaped too, #11032), or
+ * with every script's digits read by their values (readsDigitsOfEveryScript,
+ * #10960: a card in fullwidth or Arabic-Indic digits) - and one that asks
+ * for both, with every script's digits read in the text as its escapes
+ * read as well (a fullwidth digit escaped, %EF%BC%94). A match found in a
+ * reading is placed on the characters the text writes it with, so what it
+ * finds - and what a scrub rule hides - is the value as written, escapes
+ * and all.
  *
  * Data Security's scanner (TextScanner.ts) reads each window so, for the
  * detectors that ask; and every scrub rule built on the detectors finds its
@@ -56,6 +59,7 @@ export class TextReadings {
   public readonly written: TextReading;
   private percentDecoded: TextReading | null | undefined = undefined;
   private digitReadings: Array<TextReading> | undefined = undefined;
+  private decodedDigitReadings: Array<TextReading> | undefined = undefined;
 
   public constructor(text: string) {
     this.written = { text: text, toWritten: samePosition };
@@ -98,6 +102,29 @@ export class TextReadings {
     return this.digitReadings;
   }
 
+  /*
+   * The text with its percent-escapes read, then each script's digits read
+   * as getDigitsOfEveryScript reads them: a digit of another script
+   * escaped in UTF-8 (%EF%BC%94 is ４, #11032) is read by its value too.
+   * None when the reading holds no digit beyond ASCII. Each placed as the
+   * reading of the escapes places it.
+   */
+  public getDigitsOfEveryScriptPercentDecoded(): Array<TextReading> {
+    if (this.decodedDigitReadings === undefined) {
+      const decoded: TextReading | null = this.getPercentDecoded();
+
+      this.decodedDigitReadings = decoded
+        ? readDigitsOfEveryScript(decoded.text).map(
+            (reading: string): TextReading => {
+              return { text: reading, toWritten: decoded.toWritten };
+            },
+          )
+        : [];
+    }
+
+    return this.decodedDigitReadings;
+  }
+
   // Every reading a detector reads, the text as written first.
   public readingsFor(needs: ReadingNeeds): Array<TextReading> {
     const readings: Array<TextReading> = [this.written];
@@ -112,6 +139,12 @@ export class TextReadings {
 
     if (needs.readsDigitsOfEveryScript) {
       for (const reading of this.getDigitsOfEveryScript()) {
+        readings.push(reading);
+      }
+    }
+
+    if (needs.readsPercentEncoded && needs.readsDigitsOfEveryScript) {
+      for (const reading of this.getDigitsOfEveryScriptPercentDecoded()) {
         readings.push(reading);
       }
     }

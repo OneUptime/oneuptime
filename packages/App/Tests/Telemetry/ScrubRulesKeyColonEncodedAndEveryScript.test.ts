@@ -149,6 +149,25 @@ const WRITTEN: Array<Written> = [
     reads: "jane+news@acmecorp.io",
     mask: "j***@***.io",
   },
+  // #11032
+  {
+    label: "an email address whose accented name's bytes are percent-encoded",
+    patternType: LogScrubPatternType.Email,
+    dataTypeId: "email-address",
+    before: "GET /signup?email=",
+    written: "jos%C3%A9%40acmecorp.io",
+    reads: "josé@acmecorp.io",
+    mask: "j***@***.io",
+  },
+  {
+    label: "an email address whose domain in another script is percent-encoded",
+    patternType: LogScrubPatternType.Email,
+    dataTypeId: "email-address",
+    before: "GET /verify?address=",
+    written: "jane%40%E4%BE%8B%E3%81%88.jp",
+    reads: "jane@例え.jp",
+    mask: "j***@***.jp",
+  },
   {
     label: "an email address in Han letters",
     patternType: LogScrubPatternType.Email,
@@ -258,6 +277,16 @@ const WRITTEN: Array<Written> = [
     reads: "+49 30 81234567",
     mask: "***-***-4567",
   },
+  // #11032: each fullwidth digit's UTF-8 bytes percent-encoded.
+  {
+    label: "a phone number in fullwidth digits, percent-encoded",
+    patternType: LogScrubPatternType.PhoneNumber,
+    dataTypeId: "phone-number",
+    before: "GET /callback?phone=",
+    written: encodeURIComponent("+４９ ３０ ８１２３４５６７"),
+    reads: "+49 30 81234567",
+    mask: "***-***-4567",
+  },
   {
     label: "a North American number in fullwidth digits",
     patternType: LogScrubPatternType.PhoneNumber,
@@ -308,6 +337,9 @@ const KEPT: Array<[string, string]> = [
   [LogScrubPatternType.IPAddress, "ip:fe80::1"],
   [LogScrubPatternType.Email, "GET /search?q=jane%40&n=1"],
   [LogScrubPatternType.Email, "@用户 你好"],
+  // UTF-8 escapes that spell no address (#11032).
+  [LogScrubPatternType.Email, "GET /assets/%E5%BC%A0%402x.png"],
+  [LogScrubPatternType.Email, "GET /q?name=caf%C3%A9%40%C3"],
   [LogScrubPatternType.CreditCard, "order ４１１１ １１１１"],
   [LogScrubPatternType.CreditCard, "رقم ٤٢"],
   // What only looks like a phone or Social Security number (#11025, #11030).
