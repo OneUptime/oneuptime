@@ -13,6 +13,7 @@ import logger from "../Logger";
 import { writeOwnValue } from "../../../Utils/LookupTable";
 import {
   SCRAPE_ENDPOINT_LABEL,
+  StorageArrayExtractor,
   StorageArrayResourceBufferEntry,
   StorageArraySeries,
   StorageArraySnapshotBufferEntry,
@@ -464,6 +465,27 @@ export function foldStorageArrayResourceSnapshot(data: {
 }
 
 /*
+ * A batch's rows once its platform's extractor has finished it
+ * (StorageArrayExtractor.finishBatch): what its series say together, which
+ * no one of them does. A platform without the hook, and a batch no
+ * platform read, keep the rows as folded.
+ */
+export function finishStorageArrayBatch(
+  rows: Array<StorageArrayResourceBufferEntry>,
+  snap: StorageArraySnapshotBufferEntry | undefined,
+): Array<StorageArrayResourceBufferEntry> {
+  if (!snap || !snap.storageSystem) {
+    return rows;
+  }
+  const extractor: StorageArrayExtractor | null =
+    StorageArrayExtractors.getExtractor(snap.storageSystem);
+  if (!extractor || !extractor.finishBatch) {
+    return rows;
+  }
+  return extractor.finishBatch({ rows: rows, array: snap });
+}
+
+/*
  * The inventory rows of one folded batch, with the connection counts from
  * the hosts' connections (recordHostVolumeConnection) applied: a host's
  * count is its connected volumes, a volume's count is the hosts it is
@@ -476,9 +498,11 @@ export function foldStorageArrayResourceSnapshot(data: {
  * scrape set.
  */
 export function getStorageArrayResourceRows(
-  entries: Array<StorageArrayResourceBufferEntry>,
+  folded: Array<StorageArrayResourceBufferEntry>,
   snap: StorageArraySnapshotBufferEntry | undefined,
 ): Array<StorageArrayResourceBufferEntry> {
+  const entries: Array<StorageArrayResourceBufferEntry> =
+    finishStorageArrayBatch(folded, snap);
   if (!snap || !snap.connectionsObservedAt) {
     return entries;
   }

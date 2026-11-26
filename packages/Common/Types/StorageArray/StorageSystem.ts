@@ -26,6 +26,8 @@
 enum StorageSystem {
   PureStorageFlashArray = "purestorage.flasharray",
   PureStorageFlashBlade = "purestorage.flashblade",
+  // NetApp ONTAP, and Amazon FSx for NetApp ONTAP, read through Harvest.
+  NetAppOntap = "netapp.ontap",
 }
 
 export default StorageSystem;

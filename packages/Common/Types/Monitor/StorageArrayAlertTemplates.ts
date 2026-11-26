@@ -18,6 +18,7 @@ import StorageSystemUtil from "../StorageArray/StorageSystemUtil";
 import StorageArrayPlatformRegistry from "../StorageArray/StorageArrayPlatformRegistry";
 import {
   StorageArrayAlertTemplateCategory,
+  StorageArrayAlertTemplateRatio,
   StorageArrayAlertTemplateSeverity,
   StorageArrayAlertTemplateSpec,
   StorageArrayPlatform,
@@ -171,6 +172,11 @@ export function buildStorageArrayMonitorConfig(args: {
    * reads values in the same catalog units, so nothing is rescaled.
    */
   legendUnit?: string | undefined;
+  /*
+   * A second query of the same objects, and the quotient the criteria
+   * read instead (StorageArrayAlertTemplateSpec.ratioTo).
+   */
+  ratioTo?: StorageArrayAlertTemplateRatio | undefined;
 }): MonitorStepStorageArrayMonitor {
   const legendUnit: string | undefined =
     args.legendUnit ??
@@ -179,6 +185,88 @@ export function buildStorageArrayMonitorConfig(args: {
       metricName: args.metricName,
       attributes: args.attributes,
     });
+
+  const queryConfig: (query: {
+    metricAlias: string;
+    metricName: string;
+    attributes?: Record<string, string> | undefined;
+    aggregationType: MetricsAggregationType;
+    legendUnit: string | undefined;
+  }) => MonitorStepStorageArrayMonitor["metricViewConfig"]["queryConfigs"][number] =
+    (query: {
+      metricAlias: string;
+      metricName: string;
+      attributes?: Record<string, string> | undefined;
+      aggregationType: MetricsAggregationType;
+      legendUnit: string | undefined;
+    }): MonitorStepStorageArrayMonitor["metricViewConfig"]["queryConfigs"][number] => {
+      return {
+        metricAliasData: {
+          metricVariable: query.metricAlias,
+          title: query.metricAlias,
+          description: query.metricAlias,
+          legend: query.metricAlias,
+          legendUnit: query.legendUnit,
+        },
+        metricQueryData: {
+          filterData: {
+            metricName: query.metricName,
+            attributes: query.attributes || {},
+            aggegationType: query.aggregationType,
+            aggregateBy: {},
+          },
+          ...(args.groupByAttributeKey
+            ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+            : {}),
+        },
+      };
+    };
+
+  if (args.ratioTo) {
+    const ratio: StorageArrayAlertTemplateRatio = args.ratioTo;
+    return {
+      arrayIdentifier: args.arrayIdentifier,
+      storageSystem: args.storageSystem,
+      resourceFilters: {},
+      metricViewConfig: {
+        queryConfigs: [
+          queryConfig({
+            metricAlias: args.metricAlias,
+            metricName: args.metricName,
+            attributes: args.attributes,
+            aggregationType: args.aggregationType,
+            legendUnit: legendUnit,
+          }),
+          queryConfig({
+            metricAlias: ratio.metricAlias,
+            metricName: ratio.metricName,
+            attributes: ratio.attributes,
+            aggregationType: ratio.aggregationType,
+            legendUnit: PlatformMetricUnitUtil.getMetricUnit({
+              platform: "storageArray",
+              metricName: ratio.metricName,
+              attributes: ratio.attributes,
+            }),
+          }),
+        ],
+        formulaConfigs: [
+          {
+            metricAliasData: {
+              metricVariable: ratio.formulaAlias,
+              title: ratio.formulaAlias,
+              description: ratio.formulaAlias,
+              legend: ratio.formulaAlias,
+              legendUnit: ratio.unit || undefined,
+            },
+            metricFormulaData: {
+              metricFormula: `${args.metricAlias} / ${ratio.metricAlias}`,
+            },
+          },
+        ],
+      },
+      rollingTime: args.rollingTime,
+    };
+  }
 
   return {
     arrayIdentifier: args.arrayIdentifier,
@@ -236,13 +324,15 @@ function singleQueryTemplate(
           aggregationType: spec.aggregationType,
           ...(spec.attributes ? { attributes: spec.attributes } : {}),
           groupByAttributeKey: spec.groupByAttributeKey,
+          ratioTo: spec.ratioTo,
         }),
         offlineCriteriaInstance: buildStorageArrayOfflineCriteriaInstance({
           offlineMonitorStatusId: args.offlineMonitorStatusId,
           incidentSeverityId: args.defaultIncidentSeverityId,
           alertSeverityId: args.defaultAlertSeverityId,
           monitorName: args.monitorName,
-          metricAlias: spec.metricAlias,
+          // A ratio template's criteria read the quotient.
+          metricAlias: spec.ratioTo?.formulaAlias || spec.metricAlias,
           filterType: spec.fire.filterType,
           value: spec.fire.value,
           incidentTitle: `${spec.incidentTitle} - ${args.monitorName}`,
@@ -252,7 +342,7 @@ function singleQueryTemplate(
         }),
         onlineCriteriaInstance: buildStorageArrayOnlineCriteriaInstance({
           onlineMonitorStatusId: args.onlineMonitorStatusId,
-          metricAlias: spec.metricAlias,
+          metricAlias: spec.ratioTo?.formulaAlias || spec.metricAlias,
           filterType: spec.recover.filterType,
           value: spec.recover.value,
           isBinaryMetric: spec.recover.isBinaryMetric,
