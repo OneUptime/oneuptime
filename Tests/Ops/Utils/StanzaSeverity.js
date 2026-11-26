@@ -6,14 +6,20 @@
  * does.
  *
  * The three container agents (DockerAgent, PodmanAgent, DockerSwarmAgent) and
- * the Kubernetes agent's DaemonSet ConfigMap all carry the SAME five-operator
- * chain inside `receivers.filelog.operators`:
+ * the Kubernetes agent's DaemonSet ConfigMap all carry the SAME chain inside
+ * `receivers.filelog.operators`:
  *
- *   router(severity-router)                 body has a level keyword?
- *     -> regex_parser(parse-severity-from-body)   yes: lift it out of the body
- *     -> add(add-fallback-severity)               no:  stderr -> ERROR, else INFO
- *   both -> severity_parser(severity-parser)  text -> LogRecord severity number
+ *   router(severity-router), the first route that holds:
+ *     -> regex_parser(parse-klog-severity)       klog's I/W/E/F letter
+ *     -> add(add-exception-severity)             an exception's header: ERROR
+ *     -> add(add-warning-severity)               a Python/Node warning: WARN
+ *     -> regex_parser(parse-numeric-severity)    pino/bunyan's "level":30
+ *     -> regex_parser(parse-severity-from-body)  a level word where one sits
+ *     -> add(add-fallback-severity)              nothing read, stdout: INFO
+ *     default -> noop(severity-unspecified)      nothing read, stderr: none
+ *   then -> severity_parser(severity-parser)  text -> LogRecord severity number
  *        -> remove(remove-severity-attr)      drop the scratch attribute
+ *        -> noop(severity-unspecified)        where the default joins them
  *
  * Everything in here is derived from opentelemetry-collector-contrib v0.165.0,
  * which is the collector the three agent images are built FROM (see
@@ -283,19 +289,253 @@ function compileRe2AsJs(pattern) {
 }
 
 /**
- * The alternatives of the first capturing group in the severity regex — i.e.
- * every keyword the chain can lift off a log body.
+ * The source of the group that opens at `start` (the index of its "("), read
+ * to its balanced ")" — escaped parentheses and character classes skipped —
+ * without the parentheses themselves.
+ */
+function balancedGroupBody(pattern, start) {
+  let depth = 0;
+  let inClass = false;
+
+  for (let index = start; index < pattern.length; index++) {
+    const char = pattern[index];
+
+    if (char === "\\") {
+      index++;
+      continue;
+    }
+
+    if (inClass) {
+      if (char === "]") {
+        inClass = false;
+      }
+      continue;
+    }
+
+    if (char === "[") {
+      inClass = true;
+    } else if (char === "(") {
+      depth++;
+    } else if (char === ")") {
+      depth--;
+
+      if (depth === 0) {
+        return pattern.slice(start + 1, index);
+      }
+    }
+  }
+
+  throw new Error(`unbalanced group at offset ${start}: ${pattern}`);
+}
+
+/** `source` split on the "|" that are not inside a group or a class. */
+function topLevelAlternatives(source) {
+  const alternatives = [];
+  let depth = 0;
+  let inClass = false;
+  let current = "";
+
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index];
+
+    if (char === "\\") {
+      current += char + (source[index + 1] || "");
+      index++;
+      continue;
+    }
+
+    if (inClass) {
+      inClass = char !== "]";
+    } else if (char === "[") {
+      inClass = true;
+    } else if (char === "(") {
+      depth++;
+    } else if (char === ")") {
+      depth--;
+    } else if (char === "|" && depth === 0) {
+      alternatives.push(current);
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  alternatives.push(current);
+
+  return alternatives;
+}
+
+/**
+ * The texts one alternative of a severity_text group can capture. The groups
+ * in these configs use three shapes, and anything else is refused rather than
+ * guessed at:
+ *
+ *   WORD          a literal keyword ("WARNING");
+ *   (?-i:WORD)    a keyword matched in this case only ("LOG");
+ *   [CLASS]tail   one character of a class, then a literal: klog's [IWEF] and
+ *                 pino's [1-6]0.
+ */
+function expandSeverityAlternative(alternative) {
+  if (/^[A-Za-z0-9]+$/.test(alternative)) {
+    return [alternative];
+  }
+
+  const caseOnly = /^\(\?-i:([A-Za-z0-9|]+)\)$/.exec(alternative);
+
+  if (caseOnly) {
+    return caseOnly[1].split("|");
+  }
+
+  const classed = /^\[([^\]]+)\]([A-Za-z0-9]*)$/.exec(alternative);
+
+  if (classed) {
+    const members = [];
+    const body = classed[1];
+
+    for (let index = 0; index < body.length; index++) {
+      if (body[index + 1] === "-" && body[index + 2] !== undefined) {
+        for (
+          let code = body.charCodeAt(index);
+          code <= body.charCodeAt(index + 2);
+          code++
+        ) {
+          members.push(String.fromCharCode(code));
+        }
+        index += 2;
+      } else {
+        members.push(body[index]);
+      }
+    }
+
+    return members.map((member) => {
+      return member + classed[2];
+    });
+  }
+
+  throw new Error(
+    `cannot list what this severity_text alternative captures: ${alternative}`,
+  );
+}
+
+/**
+ * Every text the severity_text capture group of a regex_parser's pattern can
+ * lift off a log body: the keywords of the body reader, klog's four letters,
+ * pino's six numbers.
  */
 function severityKeywordsFromRegex(pattern) {
-  const group = /\(\?P<severity_text>([^)]+)\)/.exec(pattern);
+  const start = pattern.indexOf("(?P<severity_text>");
 
-  if (!group) {
+  if (start === -1) {
     throw new Error(
       `severity regex has no (?P<severity_text>…) capture group: ${pattern}`,
     );
   }
 
-  return group[1].split("|");
+  const body = balancedGroupBody(pattern, start).slice(
+    "?P<severity_text>".length,
+  );
+
+  return topLevelAlternatives(body).flatMap(expandSeverityAlternative);
+}
+
+/** The one stream route the chain has: an unread line on stdout. */
+const STDOUT_ROUTE_EXPR = 'attributes["log.iostream"] != "stderr"';
+
+/**
+ * The fallback the chain had until issue #10972: an `add` whose value was an
+ * expression of the stream. The only expression the chain ever computed a
+ * level with, so `classify` can walk a config from before the fix and show
+ * what it did; anything else that starts EXPR( is refused.
+ */
+const STREAM_GUESS_EXPR =
+  'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")';
+
+/**
+ * Whether a router route sends this record its way, decided as stanza does:
+ * a route is one expr-lang boolean over the entry. The chain uses exactly two
+ * forms, `body matches "<RE2>"` and the stdout test, so anything else throws
+ * rather than being evaluated wrongly.
+ */
+function routeMatches(expr, body, stream) {
+  if (expr === STDOUT_ROUTE_EXPR) {
+    return stream !== "stderr";
+  }
+
+  return compileRe2AsJs(extractMatchesPattern(expr)).test(body);
+}
+
+/**
+ * What the chain does with one record, walked operator by operator the way
+ * stanza runs it: the router hands it to the FIRST route whose expression
+ * holds (or to its default), that operator lifts or adds the level text, and
+ * the severity parser turns the text into a number.
+ *
+ * Returns the operator that read it (`reader`), the text, the OTel severity
+ * number and the LogSeverity OneUptime stores. A route whose parser cannot
+ * parse what the route admitted throws: in the collector that record would
+ * leave Unspecified with an error logged, which is the router/parser drift
+ * the escaping tests exist to catch.
+ */
+function classify(operators, body, stream) {
+  const byId = indexOperatorsById(operators);
+  const router = byId.get("severity-router");
+
+  if (!router) {
+    throw new Error("no severity-router operator");
+  }
+
+  const route = (router.routes || []).find((candidate) => {
+    return routeMatches(candidate.expr, body, stream);
+  });
+  const reader = route ? route.output : router.default;
+  const operator = byId.get(reader);
+
+  if (!operator) {
+    throw new Error(
+      `the router sends records to ${reader}, which is no operator`,
+    );
+  }
+
+  if (operator.type === "noop") {
+    return { reader, text: null, number: 0, severity: "Unspecified" };
+  }
+
+  let text;
+
+  if (operator.type === "regex_parser") {
+    const match = compileRe2AsJs(operator.regex).exec(body);
+
+    if (!match) {
+      throw new Error(
+        `${reader} cannot parse a body its route admitted: ${JSON.stringify(body)}`,
+      );
+    }
+
+    text = match.groups.severity_text;
+  } else if (operator.type === "add") {
+    if (operator.value === STREAM_GUESS_EXPR) {
+      text = stream === "stderr" ? "ERROR" : "INFO";
+    } else if (String(operator.value).startsWith("EXPR(")) {
+      throw new Error(
+        `${reader} adds an expression, not a level: ${operator.value}`,
+      );
+    } else {
+      text = String(operator.value);
+    }
+  } else {
+    throw new Error(`${reader} is a ${operator.type}, which reads no level`);
+  }
+
+  const severityParser = byId.get(operator.output);
+
+  if (!severityParser || severityParser.type !== "severity_parser") {
+    throw new Error(`${reader} does not hand its text to the severity parser`);
+  }
+
+  const number = resolveSeverityNumber(text, severityParser);
+
+  return { reader, text, number, severity: oneUptimeLogSeverity(number) };
 }
 
 /**
@@ -348,7 +588,10 @@ function outputTargets(operator) {
 module.exports = {
   OTEL_COLLECTOR_VERSION,
   SEVERITY_NUMBER,
+  STDOUT_ROUTE_EXPR,
+  STREAM_GUESS_EXPR,
   buildBuiltinDefaultPreset,
+  classify,
   compileRe2AsJs,
   extractMatchesPattern,
   indexOperatorsById,
@@ -356,5 +599,6 @@ module.exports = {
   outputTargets,
   resolveSeverityNumber,
   severityKeywordsFromRegex,
+  topLevelAlternatives,
   unescapeGoStringLiteral,
 };
