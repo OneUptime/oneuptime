@@ -1,15 +1,30 @@
 import { describe, expect, test } from "@jest/globals";
+import AzureArm from "../../../../Server/Utils/CloudConnection/Azure/AzureArm";
 import {
   buildAzureInventoryQuery,
   buildAzureSubnetQuery,
 } from "../../../../Server/Utils/CloudConnection/Azure/AzureInventory";
+import { kql } from "../../../../Server/Utils/CloudConnection/Azure/AzureKql";
 import { AZURE_DATA_SECURITY_QUERY } from "../../../../Server/Utils/DataSecurity/Cloud/Azure/AzureDataSecurityReader";
+import { DataSourceHttpRequest } from "../../../../Server/Utils/DataSource/HttpFetch";
+import { JSONObject } from "../../../../Types/JSON";
+import {
+  FakeProviderApi,
+  FakeResponse,
+  bodyOf,
+  createFakeProviderApi,
+  json,
+} from "../LlmObservability/FakeProviderApi";
 import {
   RESOURCE_GRAPH_MAX_MV_EXPAND_ROW_LIMIT,
   kqlSyntaxProblems,
   operatorsOf,
   resourceGraphProblems,
 } from "./AzureKqlGrammar";
+import {
+  RECORDED_PARSER_FAILURE,
+  strictResourceGraph,
+} from "./StrictResourceGraph";
 
 /*
  * EVERY RESOURCE GRAPH QUERY AN AZURE CONNECTION SENDS, READ BY MICROSOFT'S
@@ -161,6 +176,156 @@ describe("every Resource Graph query OneUptime builds is one Resource Graph runs
   });
 });
 
+describe("a Resource Graph that reads its queries (StrictResourceGraph)", () => {
+  const ROWS: Array<JSONObject> = [{ id: "row-1" }];
+
+  async function send(query: string): Promise<FakeResponse> {
+    const request: DataSourceHttpRequest = {
+      method: "POST",
+      url: "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2022-10-01",
+      body: JSON.stringify({
+        subscriptions: ["aaaaaaaa-0000-4000-8000-000000000001"],
+        query,
+        options: { $top: 1000, resultFormat: "objectArray" },
+      }),
+    };
+
+    return await strictResourceGraph((): FakeResponse => {
+      return json({ data: ROWS });
+    })(request, new URL(request.url));
+  }
+
+  function detailsOf(response: FakeResponse): Array<JSONObject> {
+    return ((response.body as JSONObject)["error"] as JSONObject)[
+      "details"
+    ] as Array<JSONObject>;
+  }
+
+  test("refuses the subnet query of 16.0.0 as Azure did: HTTP 400, the query invalid, a ParserFailure on line 3", async () => {
+    const response: FakeResponse = await send(SHIPPED_SUBNET_QUERY);
+    const recorded: Array<JSONObject> = (
+      RECORDED_PARSER_FAILURE["error"] as JSONObject
+    )["details"] as Array<JSONObject>;
+
+    expect(response.status).toBe(400);
+    expect(detailsOf(response)[0]).toEqual({
+      code: "InvalidQuery",
+      message: recorded[0]!["message"],
+    });
+    expect(detailsOf(response)[1]).toMatchObject({
+      code: "ParserFailure",
+      message: "ParserFailure",
+      line: recorded[1]!["line"],
+    });
+    expect(recorded[1]!["line"]).toBe(3);
+  });
+
+  test("answers the subnet query OneUptime sends now with its rows", async () => {
+    const response: FakeResponse = await send(String(buildAzureSubnetQuery()));
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ data: ROWS });
+  });
+
+  test("refuses a query that parses but that Resource Graph would not run, saying why", async () => {
+    const response: FakeResponse = await send(
+      "Resources | mv-expand z = zones | project id",
+    );
+
+    expect(response.status).toBe(400);
+    expect(detailsOf(response)[1]).toEqual({
+      code: "InvalidQuery",
+      message:
+        "line 1, character 12: mv-expand states no row limit, and Resource Graph expands 128 rows of a row unless it does.",
+    });
+  });
+});
+
+describe("what AzureArm.queryResourceGraph sends", () => {
+  const TENANT: string = "00000000-0000-4000-8000-000000000001";
+  const PRODUCTION: string = "aaaaaaaa-0000-4000-8000-000000000001";
+  const STAGING: string = "AAAAAAAA-0000-4000-8000-000000000002";
+
+  function fakeAzure(): { api: FakeProviderApi; bodies: Array<JSONObject> } {
+    const bodies: Array<JSONObject> = [];
+    const api: FakeProviderApi = createFakeProviderApi([
+      {
+        host: "login.microsoftonline.com",
+        path: `/${TENANT}/oauth2/v2.0/token`,
+        method: "POST",
+        respond: (): FakeResponse => {
+          return json({ access_token: "arm-token", expires_in: 3599 });
+        },
+      },
+      {
+        host: "management.azure.com",
+        path: "/providers/Microsoft.ResourceGraph/resources",
+        method: "POST",
+        respond: strictResourceGraph(
+          (request: DataSourceHttpRequest): FakeResponse => {
+            bodies.push(bodyOf(request));
+            return json({ data: [{ id: "row-1" }] });
+          },
+        ),
+      },
+    ]);
+
+    return { api, bodies };
+  }
+
+  function armOf(api: FakeProviderApi): AzureArm {
+    return new AzureArm({
+      tenantId: TENANT,
+      clientId: "00000000-0000-4000-8000-000000000002",
+      clientSecret: "secret-value-123",
+      cloud: "public",
+      transport: api.transport,
+      sleep: async (): Promise<void> => {
+        return undefined;
+      },
+    });
+  }
+
+  test("the query's own text, and the subscriptions in the request beside it - never in the query", async () => {
+    const { api, bodies } = fakeAzure();
+    const result: { rows: Array<JSONObject>; complete: boolean } = await armOf(
+      api,
+    ).queryResourceGraph({
+      subscriptionIds: [` ${PRODUCTION} `, STAGING],
+      query: buildAzureSubnetQuery(),
+    });
+
+    expect(result).toEqual({ rows: [{ id: "row-1" }], complete: true });
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0]!["query"]).toBe(buildAzureSubnetQuery().toString());
+    expect(bodies[0]!["subscriptions"]).toEqual([PRODUCTION, STAGING]);
+    expect(String(bodies[0]!["query"])).not.toContain(PRODUCTION);
+  });
+
+  test.each([
+    "",
+    "not-a-guid",
+    `${PRODUCTION}' | take 1`,
+    "aaaaaaaa-0000-4000-\n8000-000000000001",
+    "../../providers/Microsoft.Authorization",
+  ])(
+    "refuses the subscription %j before anything is sent",
+    async (subscriptionId: string) => {
+      const { api } = fakeAzure();
+
+      await expect(
+        armOf(api).queryResourceGraph({
+          subscriptionIds: [PRODUCTION, subscriptionId],
+          query: kql`Resources | project id`,
+        }),
+      ).rejects.toThrow(
+        "Each subscription must be a GUID such as 00000000-0000-0000-0000-000000000000.",
+      );
+      expect(api.requests).toEqual([]);
+    },
+  );
+});
+
 describe("the reading of a query is strict enough to have caught it", () => {
   test("a column the Resources table does not have", () => {
     expect(
@@ -181,9 +346,9 @@ describe("the reading of a query is strict enough to have caught it", () => {
 
   test("an operator KQL has but Resource Graph does not run", () => {
     expect(
-      resourceGraphProblems(
-        "Resources | evaluate bag_unpack(properties)",
-      ).join("\n"),
+      resourceGraphProblems("Resources | evaluate bag_unpack(properties)").join(
+        "\n",
+      ),
     ).toContain(
       "EvaluateOperator is not one of Resource Graph's tabular operators.",
     );
@@ -236,9 +401,7 @@ describe("the reading of a query is strict enough to have caught it", () => {
           "| project id",
         ].join("\n"),
       ),
-    ).toEqual([
-      "The query holds 4 mv-expand; Resource Graph runs 3 at most.",
-    ]);
+    ).toEqual(["The query holds 4 mv-expand; Resource Graph runs 3 at most."]);
     expect(
       resourceGraphProblems(
         [

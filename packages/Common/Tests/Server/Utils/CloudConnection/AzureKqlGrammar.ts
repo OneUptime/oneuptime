@@ -148,27 +148,28 @@ const RESOURCES_COLUMNS: ReadonlyArray<[string, string]> = [
  * A Log Analytics workspace, as a resource's logs reach it: tables of
  * their own, each with its TimeGenerated.
  */
-const WORKSPACE_TABLES: ReadonlyArray<[string, ReadonlyArray<[string, string]>]> =
+const WORKSPACE_TABLES: ReadonlyArray<
+  [string, ReadonlyArray<[string, string]>]
+> = [
   [
+    "AzureDiagnostics",
     [
-      "AzureDiagnostics",
-      [
-        ["TimeGenerated", "datetime"],
-        ["Category", "string"],
-        ["ResultDescription", "string"],
-        ["ResourceId", "string"],
-      ],
+      ["TimeGenerated", "datetime"],
+      ["Category", "string"],
+      ["ResultDescription", "string"],
+      ["ResourceId", "string"],
     ],
+  ],
+  [
+    "AzureActivity",
     [
-      "AzureActivity",
-      [
-        ["TimeGenerated", "datetime"],
-        ["OperationNameValue", "string"],
-        ["ActivityStatusValue", "string"],
-        ["ResourceId", "string"],
-      ],
+      ["TimeGenerated", "datetime"],
+      ["OperationNameValue", "string"],
+      ["ActivityStatusValue", "string"],
+      ["ResourceId", "string"],
     ],
-  ];
+  ],
+];
 
 function tableSymbol(
   name: string,
@@ -237,11 +238,34 @@ export const RESOURCE_GRAPH_MAX_MV_EXPAND_ROW_LIMIT: number = 2000;
 export const RESOURCE_GRAPH_MAX_MV_EXPANDS: number = 3;
 export const RESOURCE_GRAPH_MAX_JOINS_AND_UNIONS: number = 3;
 
-// A position as Resource Graph says one: "line 3, character 18".
-export function positionOf(text: string, offset: number): string {
+// Where in a query, as Resource Graph says it: the line from 1, the character within it from 0.
+export interface KqlPosition {
+  line: number;
+  character: number;
+}
+
+// What a query has that would be refused, and where, when it is at one place.
+export interface KqlProblem {
+  position: KqlPosition | null;
+  message: string;
+  // The grammar refuses it, as against binding or Resource Graph's limits.
+  isSyntax: boolean;
+}
+
+export function positionOf(text: string, offset: number): KqlPosition {
   const before: Array<string> = text.slice(0, offset).split("\n");
 
-  return `line ${before.length}, character ${before[before.length - 1]!.length}`;
+  return {
+    line: before.length,
+    character: before[before.length - 1]!.length,
+  };
+}
+
+// A problem as a line: "line 3, character 11: ...".
+export function describeKqlProblem(problem: KqlProblem): string {
+  return problem.position
+    ? `line ${problem.position.line}, character ${problem.position.character}: ${problem.message}`
+    : problem.message;
 }
 
 function listOf<ItemType>(list: KustoList<ItemType>): Array<ItemType> {
@@ -254,13 +278,21 @@ function listOf<ItemType>(list: KustoList<ItemType>): Array<ItemType> {
   return items;
 }
 
-function errorsOf(code: KustoCode, text: string): Array<string> {
+function errorsOf(
+  code: KustoCode,
+  text: string,
+  isSyntax: boolean,
+): Array<KqlProblem> {
   return listOf(code.GetDiagnostics())
     .filter((diagnostic: KustoDiagnostic): boolean => {
       return diagnostic.Severity === "Error";
     })
-    .map((diagnostic: KustoDiagnostic): string => {
-      return `${positionOf(text, diagnostic.Start)}: ${diagnostic.Message} (${diagnostic.Code})`;
+    .map((diagnostic: KustoDiagnostic): KqlProblem => {
+      return {
+        position: positionOf(text, diagnostic.Start),
+        message: `${diagnostic.Message} (${diagnostic.Code})`,
+        isSyntax,
+      };
     });
 }
 
@@ -290,22 +322,25 @@ export function parseKql(text: string): KustoCode {
 }
 
 // What KQL's grammar refuses in the text: nothing for a query that parses.
-export function kqlSyntaxProblems(text: string): Array<string> {
-  return errorsOf(parseKql(text), text);
+export function kqlSyntaxErrors(text: string): Array<KqlProblem> {
+  return errorsOf(parseKql(text), text, true);
 }
 
 // What Resource Graph's documented limits refuse in a query that parses.
-function resourceGraphRuleProblems(text: string): Array<string> {
-  const problems: Array<string> = [];
+function resourceGraphRuleErrors(text: string): Array<KqlProblem> {
+  const problems: Array<KqlProblem> = [];
   let mvExpands: number = 0;
   let joinsAndUnions: number = 0;
 
   for (const element of elementsOf(parseKql(text).Syntax)) {
     const kind: string = kindName(element);
-    const at: string = positionOf(text, element.TextStart);
+    const at: KqlPosition = positionOf(text, element.TextStart);
+    const refuse: (message: string) => void = (message: string): void => {
+      problems.push({ position: at, message, isSyntax: false });
+    };
 
     if (kind.endsWith("Statement") && kind !== "ExpressionStatement") {
-      problems.push(`${at}: Resource Graph runs one query, not a ${kind}.`);
+      refuse(`Resource Graph runs one query, not a ${kind}.`);
     }
 
     if (!kind.endsWith("Operator")) {
@@ -313,9 +348,7 @@ function resourceGraphRuleProblems(text: string): Array<string> {
     }
 
     if (!RESOURCE_GRAPH_OPERATORS.has(kind)) {
-      problems.push(
-        `${at}: ${kind} is not one of Resource Graph's tabular operators.`,
-      );
+      refuse(`${kind} is not one of Resource Graph's tabular operators.`);
       continue;
     }
 
@@ -338,30 +371,34 @@ function resourceGraphRuleProblems(text: string): Array<string> {
         : NaN;
 
     if (!limit) {
-      problems.push(
-        `${at}: mv-expand states no row limit, and Resource Graph expands 128 rows of a row unless it does.`,
+      refuse(
+        "mv-expand states no row limit, and Resource Graph expands 128 rows of a row unless it does.",
       );
     } else if (
       !Number.isInteger(rows) ||
       rows < 1 ||
       rows > RESOURCE_GRAPH_MAX_MV_EXPAND_ROW_LIMIT
     ) {
-      problems.push(
-        `${at}: mv-expand's row limit is ${String(rows)}; Resource Graph takes a whole number up to ${RESOURCE_GRAPH_MAX_MV_EXPAND_ROW_LIMIT}.`,
+      refuse(
+        `mv-expand's row limit is ${String(rows)}; Resource Graph takes a whole number up to ${RESOURCE_GRAPH_MAX_MV_EXPAND_ROW_LIMIT}.`,
       );
     }
   }
 
   if (mvExpands > RESOURCE_GRAPH_MAX_MV_EXPANDS) {
-    problems.push(
-      `The query holds ${mvExpands} mv-expand; Resource Graph runs ${RESOURCE_GRAPH_MAX_MV_EXPANDS} at most.`,
-    );
+    problems.push({
+      position: null,
+      message: `The query holds ${mvExpands} mv-expand; Resource Graph runs ${RESOURCE_GRAPH_MAX_MV_EXPANDS} at most.`,
+      isSyntax: false,
+    });
   }
 
   if (joinsAndUnions > RESOURCE_GRAPH_MAX_JOINS_AND_UNIONS) {
-    problems.push(
-      `The query holds ${joinsAndUnions} join and union; Resource Graph runs ${RESOURCE_GRAPH_MAX_JOINS_AND_UNIONS} at most.`,
-    );
+    problems.push({
+      position: null,
+      message: `The query holds ${joinsAndUnions} join and union; Resource Graph runs ${RESOURCE_GRAPH_MAX_JOINS_AND_UNIONS} at most.`,
+      isSyntax: false,
+    });
   }
 
   return problems;
@@ -369,10 +406,11 @@ function resourceGraphRuleProblems(text: string): Array<string> {
 
 /*
  * Everything Microsoft's parser and Resource Graph's page would refuse in a
- * Resource Graph query: nothing for one Resource Graph runs.
+ * Resource Graph query: nothing for one Resource Graph runs. A query that
+ * does not parse is not bound: its syntax is all that is said of it.
  */
-export function resourceGraphProblems(text: string): Array<string> {
-  const syntax: Array<string> = kqlSyntaxProblems(text);
+export function resourceGraphErrors(text: string): Array<KqlProblem> {
+  const syntax: Array<KqlProblem> = kqlSyntaxErrors(text);
 
   if (syntax.length > 0) {
     return syntax;
@@ -382,14 +420,15 @@ export function resourceGraphProblems(text: string): Array<string> {
     ...errorsOf(
       KUSTO.KustoCode.ParseAndAnalyze(text, RESOURCE_GRAPH_GLOBALS),
       text,
+      false,
     ),
-    ...resourceGraphRuleProblems(text),
+    ...resourceGraphRuleErrors(text),
   ];
 }
 
 // What the grammar, and binding against a workspace's tables, refuse in a Log Analytics query.
-export function logAnalyticsProblems(text: string): Array<string> {
-  const syntax: Array<string> = kqlSyntaxProblems(text);
+export function logAnalyticsErrors(text: string): Array<KqlProblem> {
+  const syntax: Array<KqlProblem> = kqlSyntaxErrors(text);
 
   if (syntax.length > 0) {
     return syntax;
@@ -398,7 +437,21 @@ export function logAnalyticsProblems(text: string): Array<string> {
   return errorsOf(
     KUSTO.KustoCode.ParseAndAnalyze(text, LOG_ANALYTICS_GLOBALS),
     text,
+    false,
   );
+}
+
+// The same readings, each problem as a line.
+export function kqlSyntaxProblems(text: string): Array<string> {
+  return kqlSyntaxErrors(text).map(describeKqlProblem);
+}
+
+export function resourceGraphProblems(text: string): Array<string> {
+  return resourceGraphErrors(text).map(describeKqlProblem);
+}
+
+export function logAnalyticsProblems(text: string): Array<string> {
+  return logAnalyticsErrors(text).map(describeKqlProblem);
 }
 
 // The operators of a query, in order, by the names Resource Graph's page gives them.
@@ -431,9 +484,7 @@ export function stringLiteralValuesOf(text: string): Array<string> {
  * not.
  */
 export function shapeOf(text: string): string {
-  return elementsOf(parseKql(text).Syntax)
-    .map(kindName)
-    .join(" ");
+  return elementsOf(parseKql(text).Syntax).map(kindName).join(" ");
 }
 
 // Microsoft's own reading of a literal's value, and its own single-quoted literal of a text.
