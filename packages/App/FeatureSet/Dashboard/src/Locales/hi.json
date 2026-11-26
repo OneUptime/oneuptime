@@ -64583,7 +64583,7 @@
   "Download two files, write a .env file and Xen Orchestra's certificate, and start the agent yourself.": "दो फ़ाइलें डाउनलोड करें, एक .env फ़ाइल और Xen Orchestra का प्रमाणपत्र लिखें, और एजेंट को ख़ुद शुरू करें।",
   "Each host's state and load at its latest report, and the VMs it runs. Halted hosts come first.": "आख़िरी रिपोर्ट के समय हर होस्ट की स्थिति और लोड, और उस पर चलने वाले VM। बंद होस्ट सबसे पहले आते हैं।",
   "Every host and VM": "हर होस्ट और VM",
-  "Every series of the OpenMetrics plugin for each pool, and the health series OneUptime adds.": "हर पूल के लिए OpenMetrics प्लगइन की हर सीरीज़, और OneUptime द्वारा जोड़ी गई हेल्थ सीरीज़।",
+  "Every series of the OpenMetrics plugin for each pool, and the health series OneUptime adds.": "हर पूल के लिए OpenMetrics प्लगइन की हर सीरीज़, और OneUptime द्वारा जोड़ी गई स्वास्थ्य सीरीज़।",
   "Every setting the agent reads from the .env file.": "एजेंट .env फ़ाइल से जो भी सेटिंग पढ़ता है।",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, and every change since.": "इस XCP-ng पूल के साथ जो कुछ भी हुआ है - इसे कैसे और क्यों बनाया गया, इसका स्वामी कौन है, और तब से हर बदलाव।",
   "Filter XCP-ng pools by labels. Leave empty to skip the filter.": "XCP-ng पूल को लेबल से फ़िल्टर करें। फ़िल्टर छोड़ने के लिए ख़ाली रखें।",

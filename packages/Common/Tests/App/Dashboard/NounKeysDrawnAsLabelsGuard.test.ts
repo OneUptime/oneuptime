@@ -329,6 +329,11 @@ const SITES: Readonly<Record<string, NounSite>> = {
   [`${DASHBOARD}/Pages/Rum/View/Settings.tsx`]: MORE_SETTINGS,
   [`${DASHBOARD}/Pages/Settings/McpServer.tsx`]: LINK_IN_A_SENTENCE,
   [`${DASHBOARD}/Pages/StatusPages/View/Mcp.tsx`]: LINK_IN_A_SENTENCE,
+  // XCP-ng's pools (#10995), as OpenStack's and Proxmox's pages draw theirs.
+  [`${DASHBOARD}/Pages/XcpNg/Settings/LabelRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/XcpNg/Settings/OwnerRules.tsx`]: RULE_HELP,
+  [`${DASHBOARD}/Pages/XcpNg/View/Owners.tsx`]: OWNERS_CARD,
+  [`${DASHBOARD}/Pages/XcpNg/View/Settings.tsx`]: MORE_SETTINGS,
   [`${DASHBOARD}/Utils/InvestigationEvidenceFormat.ts`]: {
     inSentence: 'The page an evidence row opens, in "Open in {{page}}".',
   },
@@ -368,6 +373,7 @@ const SITES: Readonly<Record<string, NounSite>> = {
   "packages/Common/Types/Monitor/OpenStackAlertTemplates.ts": ALERT_TEMPLATE,
   "packages/Common/Types/Monitor/PodmanAlertTemplates.ts": ALERT_TEMPLATE,
   "packages/Common/Types/Monitor/ProxmoxAlertTemplates.ts": ALERT_TEMPLATE,
+  "packages/Common/Types/Monitor/XcpNgAlertTemplates.ts": ALERT_TEMPLATE,
   "packages/Common/Types/OpenStack/OpenStackBlastRadius.ts": {
     inSentence: 'A count\'s noun, after its number: "3 DNS zones".',
   },
