@@ -56,6 +56,8 @@ function row(overrides: Partial<InterfaceUpdateRow>): InterfaceUpdateRow {
     outRateMbps: 1200,
     utilizationPercent: 79.5,
     errorsPerSecond: 0,
+    fibreChannelPortType: null,
+    downReason: null,
     lastSeenAt: new Date("2026-11-14T10:00:00.000Z"),
     ...overrides,
   };
