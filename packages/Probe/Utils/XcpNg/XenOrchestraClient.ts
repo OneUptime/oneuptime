@@ -350,6 +350,7 @@ export default class XenOrchestraClient {
     if (userRecord["permission"] === "admin") {
       summary.isReadOnly = false;
       summary.canReadAlarms = true;
+      summary.canReadMessages = true;
       summary.canReadBackupLogs = true;
       summary.errorCode = XcpNgCollectionErrorCode.TokenNotReadOnly;
       summary.errorMessage = `The API token belongs to ${
@@ -404,6 +405,7 @@ export default class XenOrchestraClient {
       },
     );
     summary.canReadAlarms = reads("alarm");
+    summary.canReadMessages = reads("message");
     summary.canReadBackupLogs = reads("backup-log");
 
     if (!summary.isReadOnly) {
@@ -423,9 +425,14 @@ export default class XenOrchestraClient {
       return summary;
     }
 
-    if (!summary.canReadAlarms || !summary.canReadBackupLogs) {
+    if (
+      !summary.canReadAlarms ||
+      !summary.canReadMessages ||
+      !summary.canReadBackupLogs
+    ) {
       const missing: Array<string> = [
         ...(summary.canReadAlarms ? [] : ["alarms"]),
+        ...(summary.canReadMessages ? [] : ["messages"]),
         ...(summary.canReadBackupLogs ? [] : ["backup logs"]),
       ];
 

@@ -47,6 +47,7 @@ import {
   XcpNgConnectionTestReport,
   XcpNgMessageWatermark,
   XcpNgPoolMessage,
+  XcpNgPoolState,
   XcpNgXapiAccountSummary,
   XcpNgXapiPoolHost,
 } from "Common/Types/XcpNg/XcpNgProbeCollection";
@@ -596,6 +597,55 @@ async function readPoolRecords(data: {
   };
 }
 
+// A whole number XAPI wrote (as a string, before XAPI 23.31), or undefined.
+function readWholeNumber(value: unknown): number | undefined {
+  const number: number = Number(value);
+  return value !== undefined && value !== null && value !== "" && Number.isInteger(number) && number >= 0
+    ? number
+    : undefined;
+}
+
+/*
+ * The pool's high availability and master, from its record (#10997 reads
+ * them): XAPI is the one path that has the HA plan itself.
+ */
+export function describePoolState(data: {
+  pool: XapiPoolRecord;
+  hosts: Record<string, XapiHostRecord>;
+}): XcpNgPoolState {
+  const state: XcpNgPoolState = {
+    poolId: data.pool.uuid.toLowerCase(),
+    haEnabled: data.pool.ha_enabled === true,
+  };
+
+  const toTolerate: number | undefined = readWholeNumber(
+    data.pool.ha_host_failures_to_tolerate,
+  );
+  const planExistsFor: number | undefined = readWholeNumber(
+    data.pool.ha_plan_exists_for,
+  );
+
+  if (toTolerate !== undefined) {
+    state.haHostFailuresToTolerate = toTolerate;
+  }
+
+  if (planExistsFor !== undefined) {
+    state.haPlanExistsFor = planExistsFor;
+  }
+
+  if (typeof data.pool.ha_overcommitted === "boolean") {
+    state.haOvercommitted = data.pool.ha_overcommitted;
+  }
+
+  const master: XapiHostRecord | undefined = data.hosts[data.pool.master];
+
+  if (master?.uuid) {
+    state.masterHostUuid = master.uuid.toLowerCase();
+  }
+
+  return state;
+}
+
 // The pool's hosts as the next collection needs them.
 function describePoolHosts(records: PoolRecords): Array<XcpNgXapiPoolHost> {
   const pool: XapiPoolRecord | undefined = Object.values(
@@ -1097,6 +1147,12 @@ export default class XapiCollector {
             report.xapiPoolHosts = describePoolHosts(records);
             report.messages = messages.messages;
             report.messageWatermark = messages.watermark;
+            report.poolStates = [
+              describePoolState({
+                pool: pool,
+                hosts: records.snapshot.hosts,
+              }),
+            ];
           } finally {
             try {
               await session.client.logout(session.session);

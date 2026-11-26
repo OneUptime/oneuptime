@@ -45,6 +45,10 @@ export interface XapiPoolRecord {
   uuid: string;
   name_label: string;
   master: string;
+  ha_enabled?: boolean | undefined;
+  ha_host_failures_to_tolerate?: string | number | undefined;
+  ha_plan_exists_for?: string | number | undefined;
+  ha_overcommitted?: boolean | undefined;
 }
 
 export interface XapiHostRecord {
