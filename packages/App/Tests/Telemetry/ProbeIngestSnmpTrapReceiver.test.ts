@@ -4,6 +4,7 @@ import SnmpTrapReceiverUsers from "Common/Server/Utils/Monitor/SnmpTrapReceiverU
 import Probe from "Common/Models/DatabaseModels/Probe";
 import Response from "Common/Server/Utils/Response";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import ProbeConnectionRefusals from "Common/Types/Probe/ProbeConnectionRefusals";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SnmpAuthProtocol from "Common/Types/Monitor/SnmpMonitor/SnmpAuthProtocol";
@@ -299,7 +300,7 @@ describe("refused", () => {
 
     expect(
       (responseUtil.sendErrorResponse.mock.calls[0]![2] as Error).message,
-    ).toBe("Probe not found");
+    ).toBe(ProbeConnectionRefusals.unknownProbe);
     expect(recordReport).not.toHaveBeenCalled();
   });
 

@@ -40,7 +40,10 @@ import {
   DetectionRuleDefinition,
   SigmaRuleReferenceResolver,
 } from "../../../Types/SecurityEvent/SigmaCorrelation";
-import MetricSeriesFingerprint from "../../../Utils/Metrics/MetricSeriesFingerprint";
+import DetectionFingerprint, {
+  DetectionFingerprintKind,
+  DetectionFingerprints,
+} from "./DetectionFingerprint";
 import CorrelationRuleMatcher, {
   CorrelationKeptEvents,
   CorrelationMatchResult,
@@ -482,17 +485,54 @@ export interface DetectionRuleFiring {
   mayRepeat: boolean;
 }
 
-// The name of one group's firing (DetectionRuleFiring): its stretch, its window, its group.
+// What names a firing's stretch and window, before the group's fingerprint.
+function firingKeyPrefixOf(data: {
+  stretchStart: Date;
+  windowStart?: Date | undefined;
+}): string {
+  return `run:${data.stretchStart.getTime()}:${
+    data.windowStart ? data.windowStart.getTime() : "each"
+  }:`;
+}
+
+/*
+ * The name of one group's firing (DetectionRuleFiring): its stretch, its
+ * window, and its group's fingerprint in its project (DetectionFingerprint,
+ * #11130).
+ */
 export function getDetectionFiringKey(data: {
+  projectId: ObjectID;
   stretchStart: Date;
   windowStart?: Date | undefined;
   groupValue: string;
 }): string {
-  return `run:${data.stretchStart.getTime()}:${
-    data.windowStart ? data.windowStart.getTime() : "each"
-  }:${MetricSeriesFingerprint.computeFingerprint({
-    groupValue: data.groupValue || "",
+  return `${firingKeyPrefixOf(data)}${DetectionFingerprint.of({
+    projectId: data.projectId,
+    kind: DetectionFingerprintKind.DetectionRule,
+    value: data.groupValue,
   })}`;
+}
+
+/*
+ * The names the same firing had before #11130, with the unkeyed
+ * fingerprint: a stretch judged again across the change finds the firings
+ * it took under them. None for a group of nothing, whose name never changed.
+ */
+export function getDetectionFormerFiringKeys(data: {
+  projectId: ObjectID;
+  stretchStart: Date;
+  windowStart?: Date | undefined;
+  groupValue: string;
+}): Array<string> {
+  const current: string = getDetectionFiringKey(data);
+  const legacy: string = `${firingKeyPrefixOf(data)}${DetectionFingerprint.legacyOf(
+    {
+      kind: DetectionFingerprintKind.DetectionRule,
+      value: data.groupValue,
+    },
+  )}`;
+
+  return legacy === current ? [] : [legacy];
 }
 
 // The name of the firing a stretch's overflow is: one a window.
@@ -2002,16 +2042,27 @@ export default class DetectionRuleEvaluator {
       ? undefined
       : read.firing;
     const firingKeys: Map<string, string> = new Map();
+    // The names each firing had before #11130: what it took then is taken.
+    const formerFiringKeys: Map<string, Array<string>> = new Map();
 
     if (firing) {
       for (const matchGroup of split.recorded) {
-        firingKeys.set(
+        const firingOf: {
+          projectId: ObjectID;
+          stretchStart: Date;
+          windowStart?: Date | undefined;
+          groupValue: string;
+        } = {
+          projectId: rule.projectId!,
+          stretchStart: firing.stretchStart,
+          windowStart: firing.windowStart,
+          groupValue: matchGroup.groupValue,
+        };
+
+        firingKeys.set(matchGroup.groupValue, getDetectionFiringKey(firingOf));
+        formerFiringKeys.set(
           matchGroup.groupValue,
-          getDetectionFiringKey({
-            stretchStart: firing.stretchStart,
-            windowStart: firing.windowStart,
-            groupValue: matchGroup.groupValue,
-          }),
+          getDetectionFormerFiringKeys(firingOf),
         );
       }
     }
@@ -2060,6 +2111,7 @@ export default class DetectionRuleEvaluator {
                 : undefined,
             firing,
             firingKeys,
+            formerFiringKeys,
           });
         findingEventUids = findings.eventUids;
         findingsWritten = findings.written;
@@ -2098,6 +2150,7 @@ export default class DetectionRuleEvaluator {
           startTime: coveredFrom,
           endTime: coveredUntil,
           firingKeys,
+          formerFiringKeys,
         });
 
         if (overflowNotice && !setupTest) {
@@ -2153,6 +2206,7 @@ export default class DetectionRuleEvaluator {
             matchedGroups: split.opened,
             seenAt: coveredUntil,
             firingKeys,
+            formerFiringKeys,
           }),
         );
       }
@@ -2407,6 +2461,8 @@ export default class DetectionRuleEvaluator {
     endTime: Date;
     // Each group's firing, by its value: a scheduled run's (#10489).
     firingKeys?: Map<string, string> | undefined;
+    // The names each firing had before #11130, by its value.
+    formerFiringKeys?: Map<string, Array<string>> | undefined;
   }): Array<SecurityDetectionSignal> {
     const { rule, parsedRule } = data;
     const severity: OcsfSeverity =
@@ -2414,10 +2470,20 @@ export default class DetectionRuleEvaluator {
 
     return data.matchedGroups.map(
       (matchGroup: DetectionMatchGroup): SecurityDetectionSignal => {
+        const fingerprints: DetectionFingerprints = this.buildFingerprints(
+          rule,
+          matchGroup.groupValue,
+        );
+        const formerFiringKeys: Array<string> =
+          data.formerFiringKeys?.get(matchGroup.groupValue) || [];
+
         return {
           projectId: rule.projectId!,
           source: SecurityDetectionSource.DetectionRule,
-          fingerprint: this.buildFingerprint(rule.id!, matchGroup.groupValue),
+          fingerprint: fingerprints.fingerprint,
+          ...(fingerprints.formerFingerprints.length > 0
+            ? { formerFingerprints: fingerprints.formerFingerprints }
+            : {}),
           title: matchGroup.groupValue
             ? `${rule.name} — ${matchGroup.groupValue}`
             : rule.name || parsedRule.title,
@@ -2455,6 +2521,7 @@ export default class DetectionRuleEvaluator {
           ...(data.firingKeys?.has(matchGroup.groupValue)
             ? { firingKey: data.firingKeys.get(matchGroup.groupValue) }
             : {}),
+          ...(formerFiringKeys.length > 0 ? { formerFiringKeys } : {}),
         };
       },
     );
@@ -2591,9 +2658,10 @@ export default class DetectionRuleEvaluator {
     /*
      * Dedupe: one open alert per (rule, group value). Fingerprints are
      * stable across cycles, so a still-firing rule updates nothing and a
-     * resolved alert can re-open as a fresh one. The fingerprint-scoped
-     * dedupe and per-create guarding live in SecurityEventAlerting,
-     * shared with the threat-intel matcher.
+     * resolved alert can re-open as a fresh one. An alert opened under the
+     * unkeyed fingerprint before #11130 is found by it too. The
+     * fingerprint-scoped dedupe and per-create guarding live in
+     * SecurityEventAlerting, shared with the threat-intel matcher.
      */
     return openDedupedAlerts({
       projectId,
@@ -2603,7 +2671,7 @@ export default class DetectionRuleEvaluator {
       matches: matchedGroups.map(
         (matchGroup: DetectionMatchGroup): AlertableMatch => {
           return {
-            fingerprint: this.buildFingerprint(rule.id!, matchGroup.groupValue),
+            ...this.buildFingerprints(rule, matchGroup.groupValue),
             title: this.buildMatchTitle(rule, matchGroup),
             description: this.buildMatchDescription({
               rule,
@@ -2670,7 +2738,7 @@ export default class DetectionRuleEvaluator {
       matches: matchedGroups.map(
         (matchGroup: DetectionMatchGroup): AlertableMatch => {
           return {
-            fingerprint: this.buildFingerprint(rule.id!, matchGroup.groupValue),
+            ...this.buildFingerprints(rule, matchGroup.groupValue),
             title: this.buildMatchTitle(rule, matchGroup),
             description: this.buildMatchDescription({
               rule,
@@ -2763,16 +2831,17 @@ export default class DetectionRuleEvaluator {
     firing?: DetectionRuleFiring | undefined;
     // Each group's firing, by its value.
     firingKeys?: Map<string, string> | undefined;
+    // The names each firing had before #11130, by its value.
+    formerFiringKeys?: Map<string, Array<string>> | undefined;
   }): Promise<{ eventUids: Map<string, string>; written: number }> {
     const { rule, parsedRule, matchedGroups } = data;
     const projectId: ObjectID = rule.projectId!;
     const findingUidOf: (matchGroup: DetectionMatchGroup) => string = (
       matchGroup: DetectionMatchGroup,
     ): string => {
-      const prefix: string = `detection:${rule.id!.toString()}:${this.buildFingerprint(
-        rule.id!,
-        matchGroup.groupValue,
-      )}`;
+      const prefix: string = `detection:${rule.id!.toString()}:${
+        this.buildFingerprints(rule, matchGroup.groupValue).fingerprint
+      }`;
       const firingKey: string | undefined = data.firingKeys?.get(
         matchGroup.groupValue,
       );
@@ -2782,20 +2851,62 @@ export default class DetectionRuleEvaluator {
         : `${prefix}:${OneUptimeDate.getCurrentDateAsUnixNano()}`;
     };
 
+    /*
+     * The id the same firing's finding had before #11130, made with the
+     * unkeyed fingerprint: a stretch judged again across the change finds
+     * the finding its first pass wrote under it. None for a group of
+     * nothing, or a firing with no name, whose id never changed.
+     */
+    const formerFindingUidOf: (
+      matchGroup: DetectionMatchGroup,
+    ) => string | null = (matchGroup: DetectionMatchGroup): string | null => {
+      const formerFingerprint: string | undefined = this.buildFingerprints(
+        rule,
+        matchGroup.groupValue,
+      ).formerFingerprints[0];
+      const formerFiringKey: string | undefined = data.formerFiringKeys?.get(
+        matchGroup.groupValue,
+      )?.[0];
+
+      return formerFingerprint && formerFiringKey
+        ? `detection:${rule.id!.toString()}:${formerFingerprint}:${formerFiringKey}`
+        : null;
+    };
+
     const eventUids: Map<string, string> = new Map();
+    const formerEventUids: Map<string, string> = new Map();
 
     for (const matchGroup of matchedGroups) {
       eventUids.set(matchGroup.groupValue, findingUidOf(matchGroup));
+
+      const formerUid: string | null = formerFindingUidOf(matchGroup);
+
+      if (formerUid) {
+        formerEventUids.set(matchGroup.groupValue, formerUid);
+      }
     }
 
     const written: Set<string> =
       data.firing?.mayRepeat && data.firingKeys && data.firingKeys.size > 0
         ? await this.readWrittenFindings({
             projectId,
-            eventUids: Array.from(eventUids.values()),
+            eventUids: [
+              ...Array.from(eventUids.values()),
+              ...Array.from(formerEventUids.values()),
+            ],
             writtenAfter: data.firing.stretchStart,
           })
         : new Set();
+
+    /*
+     * A firing written under its former id keeps it: its case detection
+     * points at the finding that is there.
+     */
+    for (const [groupValue, formerUid] of formerEventUids) {
+      if (written.has(formerUid) && !written.has(eventUids.get(groupValue)!)) {
+        eventUids.set(groupValue, formerUid);
+      }
+    }
 
     const toWrite: Array<DetectionMatchGroup> = matchedGroups.filter(
       (matchGroup: DetectionMatchGroup): boolean => {
@@ -2995,15 +3106,22 @@ export default class DetectionRuleEvaluator {
     return Math.max(1, rule.matchCountThreshold || 1);
   }
 
-  private static buildFingerprint(
-    ruleId: ObjectID,
+  /*
+   * "detection-rule:<rule id>:<fingerprint>", the fingerprint of the group's
+   * value keyed in the rule's project (DetectionFingerprint, #11130), with
+   * the unkeyed one the same group had before: what was opened under it
+   * still dedupes.
+   */
+  public static buildFingerprints(
+    rule: DetectionRule,
     groupValue: string,
-  ): string {
-    return `detection-rule:${ruleId.toString()}:${MetricSeriesFingerprint.computeFingerprint(
-      {
-        groupValue: groupValue || "",
-      },
-    )}`;
+  ): DetectionFingerprints {
+    return DetectionFingerprint.ofSource({
+      projectId: rule.projectId!,
+      kind: DetectionFingerprintKind.DetectionRule,
+      sourceId: rule.id!,
+      value: groupValue || "",
+    });
   }
 
   /*

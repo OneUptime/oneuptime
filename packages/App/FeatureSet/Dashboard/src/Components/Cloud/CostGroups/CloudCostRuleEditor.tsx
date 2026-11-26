@@ -31,8 +31,8 @@ import React, {
   useState,
 } from "react";
 import {
-  FIELD_LABELS,
   FIELD_ORDER,
+  getFieldLabel,
   OPERATOR_LABELS,
   RULE_EDITOR_ADD_CONDITION,
   RULE_EDITOR_ADD_RULE,
@@ -74,6 +74,32 @@ import {
  * What it hands back is the rules exactly as the server keeps them
  * (CloudCostRules), so the form's check and the server's are one check.
  */
+
+/*
+ * The records a condition's value can be picked from, by name: an archived
+ * one (a label archived since) is never a new pick, but one the condition
+ * already holds stays, so it is still drawn and can be taken off
+ * (Common/Utils/ArchivableValues).
+ */
+export function getPickableRecords(data: {
+  names: Map<string, string>;
+  archived: Set<string>;
+  values: Array<string>;
+}): Array<[string, string]> {
+  const held: Set<string> = new Set(
+    data.values.map((value: string): string => {
+      return value.toLowerCase();
+    }),
+  );
+
+  return Array.from(data.names.entries())
+    .filter(([id]: [string, string]): boolean => {
+      return !data.archived.has(id) || held.has(id);
+    })
+    .sort((a: [string, string], b: [string, string]): number => {
+      return a[1].localeCompare(b[1]);
+    });
+}
 
 export interface CloudCostRuleOptions {
   // The accounts' tags, the costliest first.
@@ -182,7 +208,7 @@ const ConditionRow: FunctionComponent<{
 
   const fieldOptions: Array<DropdownOption> = FIELD_ORDER.map(
     (field: CloudCostRuleField): DropdownOption => {
-      return { value: field, label: FIELD_LABELS[field] };
+      return { value: field, label: getFieldLabel(field, translator) };
     },
   );
   const operatorOptions: Array<DropdownOption> = CLOUD_COST_FIELD_OPERATORS[
@@ -207,13 +233,13 @@ const ConditionRow: FunctionComponent<{
     );
 
     if (names) {
-      return Array.from(names.entries())
-        .sort((a: [string, string], b: [string, string]): number => {
-          return a[1].localeCompare(b[1]);
-        })
-        .map(([id, name]: [string, string]): DropdownOption => {
-          return { value: id, label: name, isUserContent: true };
-        });
+      return getPickableRecords({
+        names,
+        archived: props.names.archived,
+        values: condition.values,
+      }).map(([id, name]: [string, string]): DropdownOption => {
+        return { value: id, label: name, isUserContent: true };
+      });
     }
 
     if (condition.field === CloudCostRuleField.Provider) {
@@ -288,7 +314,9 @@ const ConditionRow: FunctionComponent<{
     >
       <div className="w-full sm:w-48">
         <Dropdown
-          ariaLabel={FIELD_LABELS[condition.field]}
+          // The field's label, in the reader's words already (getFieldLabel).
+          ariaLabel={getFieldLabel(condition.field, translator)}
+          isAriaLabelTranslated={true}
           dataTestId="cloud-cost-condition-field"
           options={fieldOptions}
           value={fieldOptions.find((option: DropdownOption): boolean => {
@@ -363,7 +391,7 @@ const ConditionRow: FunctionComponent<{
         />
       </div>
       {isValueless ? (
-        <div className="hidden sm:block sm:min-w-0 sm:flex-1" />
+        <div className="max-sm:hidden sm:block sm:min-w-0 sm:flex-1" />
       ) : (
         <div className="w-full min-w-0 sm:min-w-[12rem] sm:flex-1">
           <Dropdown

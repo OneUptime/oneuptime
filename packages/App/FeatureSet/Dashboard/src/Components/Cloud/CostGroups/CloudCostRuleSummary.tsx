@@ -15,7 +15,7 @@ import {
   CONDITION_OR,
   CONDITION_SENTENCES,
   EMPTY_VALUE,
-  FIELD_LABELS,
+  getFieldLabel,
   GROUP_RULES_NONE,
   RULE_EDITOR_AND,
   RULE_EDITOR_OR,
@@ -39,6 +39,11 @@ export interface CloudCostRuleNames {
   clusters: Map<string, string>;
   environments: Map<string, string>;
   apps: Map<string, string>;
+  /*
+   * The IDs, in lower case, of values archived since (a label): still
+   * named where a rule names them, never offered for a new pick.
+   */
+  archived: Set<string>;
 }
 
 export function emptyCloudCostRuleNames(): CloudCostRuleNames {
@@ -49,6 +54,7 @@ export function emptyCloudCostRuleNames(): CloudCostRuleNames {
     clusters: new Map(),
     environments: new Map(),
     apps: new Map(),
+    archived: new Set(),
   };
 }
 
@@ -120,8 +126,7 @@ export const CloudCostConditionSentence: FunctionComponent<{
       ? translator.translateTemplate(TAG_FIELD, {
           key: props.condition.key || "",
         })
-      : translator.translateText(FIELD_LABELS[props.condition.field]) ||
-        FIELD_LABELS[props.condition.field];
+      : getFieldLabel(props.condition.field, translator);
   const isValueless: boolean =
     props.condition.operator === CloudCostRuleOperator.Exists ||
     props.condition.operator === CloudCostRuleOperator.DoesNotExist;

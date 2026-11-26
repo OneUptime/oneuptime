@@ -7,6 +7,7 @@ import {
   DataSecurityRuleDraft,
   getDataSecurityRuleDraftProblem,
 } from "../../../../../Types/DataSecurity/DataSecurityRuleDraft";
+import RulePatternMatchUtil from "../../../../../Utils/Rules/RulePatternMatchUtil";
 import { buildRuleFromSentencePrompt } from "../../DataSecurity/DataSecurityAiInput";
 import {
   readRuleDraftAnswer,
@@ -58,7 +59,13 @@ export function ruleDraftCall(
   };
 }
 
-// Whether a name pattern matches a store's name, as the owner and label rules read it.
+/*
+ * Whether a name pattern matches a store's name, as the owner and label
+ * rules read it: with RulePatternMatchUtil, which runs a pattern in linear
+ * time, case-insensitively. A pattern the rules cannot run matches nothing,
+ * and one a backtracking engine would take minutes over takes no longer
+ * here than it would on a store.
+ */
 function nameMatches(draft: DataSecurityRuleDraft, name: string): boolean {
   if (!draft.nameRegexPattern) {
     // No name condition: every store's name matches.
@@ -66,7 +73,7 @@ function nameMatches(draft: DataSecurityRuleDraft, name: string): boolean {
   }
 
   try {
-    return new RegExp(draft.nameRegexPattern, "i").test(name);
+    return RulePatternMatchUtil.testRegex(draft.nameRegexPattern, name);
   } catch {
     return false;
   }

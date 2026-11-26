@@ -13,6 +13,7 @@ import TableColumnType from "../../Types/Database/TableColumnType";
 import TableMetadata from "../../Types/Database/TableMetadata";
 import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
+import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import { SecurityUserErasureRequestStatus } from "../../Types/SecurityEvent/SecurityUserErasure";
@@ -89,6 +90,7 @@ const CREATE_PERMISSIONS: Array<Permission> = [
 const WORKER_COLUMNS: Array<string> = [
   "userToErase",
   "namesToErase",
+  "progress",
   "status",
   "completedAt",
   "attempts",
@@ -249,6 +251,36 @@ export default class SecurityUserErasureRequest extends BaseModel {
     type: ColumnType.VeryLongText,
   })
   public namesToErase?: string = undefined;
+
+  /*
+   * Where the worker has got to (#11160): when it last told ClickHouse to
+   * put the token back, since when nothing there names the person, and how
+   * far it has read the project's Detection Findings - so a project too
+   * large to read in one run is read over several, each run going on where
+   * the last one stopped (Server/Utils/SecurityEvent/UserVault/
+   * SecurityUserErasureProgress). Written by the worker alone, as the
+   * server, and read by nobody: times, counts and a finding's _id, nothing
+   * of the person.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    computed: true,
+    type: TableColumnType.JSON,
+    canReadOnRelationQuery: false,
+    title: "Progress",
+    description:
+      "How far the erasure worker has got, so a long erasure goes on where its last run stopped. Written by the worker; never returned.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public progress?: JSONObject = undefined;
 
   /*
    * computed: the service works them out of userToErase in onBeforeCreate,
