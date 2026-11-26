@@ -17,6 +17,7 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import { LIMIT_PER_PROJECT } from "../../../Types/Database/LimitMax";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
+import { getJestSpyOn } from "../../Spy";
 import ProjectUtil from "../../../UI/Utils/Project";
 import {
   TelemetryServicesOnPage,
@@ -134,9 +135,11 @@ describe("useTelemetryServicesOnPage", () => {
   });
 
   test("a failed read has not answered, says why, and Try again reads it again", async () => {
-    const getList: jest.SpiedFunction<typeof ModelAPI.getList> = jest
-      .spyOn(ModelAPI, "getList")
-      .mockRejectedValueOnce(new Error("The services could not be read."));
+    // ModelAPI.getList is generic: its spy is held as the codebase holds one.
+    const getList: ReturnType<typeof getJestSpyOn> = getJestSpyOn(
+      ModelAPI,
+      "getList",
+    ).mockRejectedValueOnce(new Error("The services could not be read."));
     const hook: RenderHookResult<TelemetryServicesOnPage, unknown> =
       renderServices();
 

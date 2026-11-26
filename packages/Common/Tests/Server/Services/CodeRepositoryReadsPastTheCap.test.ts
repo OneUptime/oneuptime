@@ -284,11 +284,12 @@ describe("the repositories a fix may be resolved to, past the project's first 10
   });
 
   test("connecting GitHub again imports no repository a second time - not one past the project's first 10,000", async () => {
-    const create: SpyInstance = jest.spyOn(CodeRepositoryService, "create");
-    const update: SpyInstance = jest.spyOn(
+    const create: SpyInstance<typeof CodeRepositoryService.create> = jest.spyOn(
       CodeRepositoryService,
-      "updateOneById",
+      "create",
     );
+    const update: SpyInstance<typeof CodeRepositoryService.updateOneById> =
+      jest.spyOn(CodeRepositoryService, "updateOneById");
     const last: CodeRepository = rowOf(REPOSITORY_COUNT);
     const listed: Array<GitHubRepository> = [
       {
@@ -320,7 +321,7 @@ describe("the repositories a fix may be resolved to, past the project's first 10
   });
 
   test("a new repository past them is still imported - under a name none of the 10,050 has", async () => {
-    const create: SpyInstance = jest
+    const create: SpyInstance<typeof CodeRepositoryService.create> = jest
       .spyOn(CodeRepositoryService, "create")
       .mockResolvedValue(new CodeRepository() as never);
     jest
