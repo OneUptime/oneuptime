@@ -518,7 +518,9 @@ describe("the recommended alert pack: a switch back from one unreachable poll is
 
     expect(status()).toBe("Online");
     expect(openIncidents()).toEqual([]);
-    expect(openAlerts()).toEqual(["Transceiver not detected"]);
+    expect(openAlerts()).toEqual([
+      "Transceiver not detected - Interface: Te1/1/1",
+    ]);
     expect(
       tables.alerts.filter(isOpenAlert).map((alert: Alert) => {
         return Boolean(alert.seriesFingerprint);
@@ -538,7 +540,9 @@ describe("the recommended alert pack: a switch back from one unreachable poll is
 
     expect(status()).toBe("Online");
     expect(openIncidents()).toEqual([]);
-    expect(openAlerts()).toEqual(["Transceiver past its alarm threshold"]);
+    expect(openAlerts()).toEqual([
+      "Transceiver past its alarm threshold - Interface: Te1/1/1",
+    ]);
   });
 
   it("back with a fan failed: Online, with the per-row alert", async () => {
@@ -548,7 +552,9 @@ describe("the recommended alert pack: a switch back from one unreachable poll is
 
     expect(status()).toBe("Online");
     expect(openIncidents()).toEqual([]);
-    expect(openAlerts()).toEqual(["Fans: row unhealthy"]);
+    expect(openAlerts()).toEqual([
+      "Fans: row unhealthy - Row: Fan 2 | Row Index: 2",
+    ]);
 
     await poll(HEALTHY);
 
@@ -556,13 +562,17 @@ describe("the recommended alert pack: a switch back from one unreachable poll is
     expect(status()).toBe("Online");
   });
 
+  /*
+   * A whole-device alert, a per-port one and a per-row one at once. (Two of
+   * the pack's whole-device alerts on one poll open one alert, as two bands
+   * of one host do: the first claims the device - unchanged here.)
+   */
   it("back with everything that only alerts at once: Online, with each alert", async () => {
     await poll(HEALTHY);
     await poll(UNREACHABLE);
     await poll(
       devicePoll({
         uplinkUtilizationPercent: 92,
-        uplinkErrorsPerSecond: 40,
         optic: optic({ isPastAlarm: true }),
         fanStates: [4, 1],
       }),
@@ -571,11 +581,16 @@ describe("the recommended alert pack: a switch back from one unreachable poll is
     expect(status()).toBe("Online");
     expect(openIncidents()).toEqual([]);
     expect(openAlerts()).toEqual([
-      "Fans: row unhealthy",
-      "Interface errors",
+      "Fans: row unhealthy - Row: Fan 1 | Row Index: 1",
       "Interface saturated",
-      "Transceiver past its alarm threshold",
+      "Transceiver past its alarm threshold - Interface: Te1/1/1",
     ]);
+
+    // Everything quiet again: each alert resolves, the switch stays Online.
+    await poll(HEALTHY);
+
+    expect(openAlerts()).toEqual([]);
+    expect(status()).toBe("Online");
   });
 
   /*

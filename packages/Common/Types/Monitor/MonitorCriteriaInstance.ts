@@ -143,6 +143,20 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
   }
 
   /*
+   * A criteria changes the monitor's status when it is switched on to and
+   * names the status (MonitorStatusTimelineUtil moves the monitor only
+   * then). Only such a criteria decides a monitor's status (#11238): one
+   * that changes none - an alert-only criteria - opens what it opens and
+   * leaves the status to the criteria that change it, or to the monitor's
+   * default status when none of them matches.
+   */
+  public static changesMonitorStatus(
+    criteria: MonitorCriteriaInstanceType | undefined,
+  ): boolean {
+    return Boolean(criteria?.changeMonitorStatus && criteria.monitorStatusId);
+  }
+
+  /*
    * Keyword the out-of-the-box criteria for the two incoming monitor types
    * (Incoming Request and Incoming Email) look for in the payload body.
    *

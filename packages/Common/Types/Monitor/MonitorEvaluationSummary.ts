@@ -35,7 +35,20 @@ export type MonitorEvaluationEventType =
 
 export type MonitorEvaluationCriteriaSkipCause =
   | "disabled"
+  // An earlier criteria matched and set the status: evaluation stopped there.
   | "earlier-criterion-matched"
+  /*
+   * The first criteria that matched changes no status, so a criteria after
+   * it that changes the status was judged for it, matched and set it:
+   * evaluation stopped there (#11238).
+   */
+  | "status-already-set"
+  /*
+   * An earlier criteria matched but changes no status, and this one changes
+   * none either: it has nothing to decide, so it was not judged, while the
+   * criteria that change the status were (#11238).
+   */
+  | "changes-no-status"
   // Judged only during its active hours, and the check was outside them.
   | "outside-active-hours";
 
