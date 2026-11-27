@@ -261,6 +261,44 @@ oneuptime <resource> add-note <id> --note <markdown> [--public]
 | `--note <markdown>` | Sì | La nota, in Markdown |
 | `--public` | No | La pubblica sulle pagine di stato del record, dove i suoi iscritti vengono avvisati. Solo incidenti, i loro episodi e manutenzioni programmate |
 
+### `oneuptime <resource> breakdown`
+
+Solo `cloud-cost`. Quanto sono costati i cloud in un periodo, dettagliato come lo dettaglia **Cloud → Spesa → Costi**, con il periodo precedente accanto a ogni riga: per servizio, regione, account, risorsa, ambiente App Platforms, app, valore di un tag o gruppi di una vista dei costi. Legge come la chiave può leggere i costi. Vedi [Report ed esportazioni](/docs/telemetry/cloud-costs#report-ed-esportazioni).
+
+```bash
+oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
+```
+
+| Opzione | Obbligatorio | Che cos'è | Predefinito |
+| --- | --- | --- | --- |
+| `--by <dimension>` | No | Per cosa dettagliare la spesa: `service`, `region`, `account`, `resource`, `environment`, `app`, `tag` o `group` | `service` |
+| `--tag-key <key>` | Con `--by tag` | Il tag per i cui valori si dettaglia la spesa, ad esempio `team` | |
+| `--view <id>` | Con `--by group` | La vista dei costi per i cui gruppi si dettaglia la spesa | |
+| `--period <period>` | No | I giorni da leggere: `this-month`, `last-month`, `last-week` o `last-30-days`, secondo il calendario UTC | `this-month` |
+| `--start-date <date>` | No | Il primo giorno, ad esempio `2026-11-01`, al posto di `--period` | |
+| `--end-date <date>` | No | L'ultimo giorno, ad esempio `2026-11-30`, con `--start-date` | |
+| `--account <id>` | No | Solo i costi di questo account cloud; ripetilo per più account | Tutti gli account |
+| `--currency <code>` | No | La valuta, ad esempio `USD` | Quella della maggior parte dei tuoi account |
+| `--basis <basis>` | No | La base di costo: `billed`, `amortized` o `net` | Quella del progetto |
+| `--no-compare` | No | Esclude il periodo precedente | |
+| `--csv` | No | Stampa il CSV che dà **Scarica CSV** nella pagina Costi | |
+
+### `oneuptime <resource> export`
+
+Solo `cloud-cost`. Ogni costo di un periodo come file FOCUS 1.2, per gli strumenti finanziari che leggono FOCUS. Al massimo 93 giorni alla volta. Vedi [FOCUS](/docs/telemetry/cloud-costs#focus).
+
+```bash
+oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id>] [--file <path>]
+```
+
+| Opzione | Obbligatorio | Che cos'è | Predefinito |
+| --- | --- | --- | --- |
+| `--period <period>` | No | I giorni da esportare: `this-month`, `last-month`, `last-week` o `last-30-days` | `last-month` |
+| `--start-date <date>` | No | Il primo giorno, ad esempio `2026-10-01`, al posto di `--period` | |
+| `--end-date <date>` | No | L'ultimo giorno, ad esempio `2026-12-31`, con `--start-date` | |
+| `--account <id>` | No | Solo i costi di questo account cloud; ripetilo per più account | Tutti gli account |
+| `--file <path>` | No | Scrive il file qui | L'output standard |
+
 ### Risorse
 
 Ogni risorsa dell'API di OneUptime è un comando, con le operazioni che l'API accetta per essa, `fields` e le azioni dei record che ne hanno:

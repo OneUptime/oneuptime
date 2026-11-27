@@ -256,11 +256,79 @@ Na elke leesbeurt wordt elk van de laatste 14 volle dagen van een account vergel
 
 Onder de lijst zegt de kaart waar de rest op uitkwam: wat in geen enkele omgeving zit, wat aan een omgeving als geheel wordt gefactureerd, of wat de tag niet heeft. Kosten die zijn gelezen voordat tags werden bewaard, worden één keer opnieuw gelezen, zo ver terug als een eerste leesbeurt, zodat hun tags worden aangevuld.
 
+## Rapporten en exports
+
+### Kostenrapporten
+
+**Cloud → Uitgaven → Rapporten** stuurt volgens een schema wat de clouds kosten, per e-mail en naar Slack- of Microsoft Teams-kanalen, zodat wie de cijfers nodig heeft ze krijgt zonder OneUptime te openen. Een rapport heeft:
+
+- **Dekt**: alle accounts, één account, een kostengroep of een kostenweergave met al haar groepen.
+- **Periode**: vorige week (maandag tot zondag), vorige maand of de maand tot nu toe. Elke periode wordt vergeleken met de periode ervoor: de week ervoor, de maand ervoor of vorige maand tot dezelfde dag.
+- **Kostenbasis**: gefactureerd, geamortiseerd of netto. Leeg is het die van het project, waarmee Kosten opent. Het rapport zegt altijd op welke basis het staat.
+- **Schema**: elke week of elke maand, op een dag en tijd in een tijdzone, volgens dezelfde regels als de samenvattingen in Slack en Microsoft Teams. Een nieuw wekelijks rapport gaat volgende maandag om 09:00 in uw tijdzone uit, een maandelijks op de 1e, en latere rapporten houden die dag en tijd het hele jaar.
+
+De e-mail zegt wat de periode kostte tegenover de periode ervoor, de budgetten waarop ze telt (elke maand tot nu toe, op de eigen basis van het budget), de services die het sterkst stegen en daalden, de groepen van een kostenweergave en wat geen groep opneemt, de ongewone dagen, de grootste openstaande besparingen en hoeveel van de uitgaven toezeggingen dekken. De cijfers zijn als CSV bijgevoegd. **Kosten openen** opent **Kosten** op precies de dagen, de basis en de weergave van het rapport, zodat de cijfers van het rapport en die van de pagina dezelfde zijn. Accounts die in een andere valuta worden gefactureerd, blijven buiten de cijfers, en het rapport noemt ze.
+
+Een Slack- of Microsoft Teams-kanaal krijgt een kort bericht: het totaal en de verandering, het budget, de eerste regels van de lijsten van het rapport en **Kosten openen**.
+
+### Wie een rapport krijgt
+
+- Mensen en teams van het project krijgen het per e-mail, via hun meldingsinstellingen, waar ieder cloudkostenrapporten kan uitzetten. Ieder krijgt de cijfers die hij mag lezen: wie alleen via labels toegang heeft, krijgt alleen zijn accounts, en wie de cloudkosten van het project niet meer mag lezen, wordt weggelaten.
+- **E-mailadressen** buiten het project, zoals dat van uw accountant, en Slack- en Microsoft Teams-kanalen vereisen de machtiging Cloudbeheerder, of Projectbeheerder of Projecteigenaar, omdat OneUptime niet kan weten wie ze leest. Ze krijgen het rapport zoals de persoon die ze toevoegde het mag lezen, en krijgen het niet meer als die persoon de machtiging verliest. Een API-sleutel kan ze niet instellen.
+- Wie de andere Cloud-records mag maken, vanaf Cloudlid, kan rapporten maken, wijzigen en verwijderen. Een Cloudkijker kan ze lezen.
+
+Een rapport gaat naar hoogstens 200 mensen, 25 adressen en 10 kanalen van elk soort. **Laatste verzending** zegt wanneer het voor het laatst uitging, en wie het wegliet en waarom.
+
+### Een deel voor elk team
+
+Een rapport van een kostenweergave kan elke groep haar eigen deel sturen met **Het team van elke groep zijn deel sturen**. De leden van het team van elke groep, dat op de groep staat, krijgen de uitgaven van hun groep tegenover de periode ervoor, de services daarin die het sterkst stegen en daalden, en haar ongewone dagen. Een gedeelde groep heeft geen eigen deel: haar kosten zitten in de groepen waarover ze wordt verdeeld. De eigen mensen, teams en adressen van het rapport krijgen alle groepen. Wie in de teams van twee groepen zit, krijgt beide delen. Eén maandelijks rapport van een kostenweergave op deze manier is de showback van de maand.
+
+### Voorbeeld en Stuur mij een kopie
+
+**Voorbeeld** toont wat een rapport nu zegt, zoals u het mag lezen en zoals de e-mail het weergeeft, en wie de laatste verzending wegliet en waarom. **Stuur mij een kopie** mailt het u nu.
+
+### CSV downloaden
+
+**CSV downloaden** bewaart wat een kaart toont: **Waar het geld naartoe gaat** op **Kosten**, in elke uitsplitsing en tegenover de periode ervoor, de uitgaven per dag, de aanbevelingen van **Besparingen** en de pagina van een kostengroep. De bestandsnaam zegt wat erin staat, waarnaar het is uitgesplitst, de weergave en het account, de kostenbasis en de dagen, zoals `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Cijfers zijn gewone getallen, en een tekst die een spreadsheet als formule zou lezen, begint met een apostrof.
+
+### FOCUS
+
+**FOCUS exporteren** op **Kosten** downloadt alle kosten van de periode als een FOCUS 1.2-bestand, de FinOps Open Cost and Usage Specification in versie 1.2, die financiële tools lezen. Eén bestand bevat hoogstens 93 dagen, en elke valuta waarin de accounts worden gefactureerd, elke regel in die van zichzelf.
+
+Het bestand heeft elke kolom die FOCUS 1.2 verplicht stelt, en de voorwaardelijke waarvoor OneUptime de gegevens heeft: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` en `Tags`. Het heeft een regel voor elke kostenpost die OneUptime bijhoudt: een dag, een account, een service, een regio en, waar de cloud die noemt, een resource.
+
+- `BilledCost` is wat de cloud factureerde, en `EffectiveCost` wat het kostte met toezeggingen verdeeld over wat ze dekken.
+- Wat de cloud aftrok, zijn tegoeden, terugbetalingen en kortingen, is een eigen regel, met een `ChargeCategory` van `Credit`. De `EffectiveCost` van het bestand, opgeteld, is de nettokost.
+- `ChargeCategory` is `Tax` voor de kosten die AWS onder zijn Tax-service factureert, en `Usage` voor de rest.
+- `BillingAccountId` is het account waaruit de verbinding de factuur leest: het beheeraccount van een AWS-organisatie, een Google Cloud-factureringsaccount of het Azure-abonnement, omdat het Azure-factureringsaccount niet wordt gelezen. `SubAccountId` is het AWS-account, het Azure-abonnement of het Google Cloud-project.
+- Datums zijn hele UTC-dagen, waarbij het einde van de kostenperiode en van de factureringsperiode niet is inbegrepen. De factureringsperiode is de kalendermaand.
+
+Wat FOCUS 1.2 vraagt maar OneUptime niet leest, blijft leeg of wordt gelijkgesteld zoals de specificatie toestaat. `PricingQuantity` en `PricingUnit` zijn leeg, omdat de kosten worden gelezen per dag, service, regio en resource, niet per gebruikstype. `ListCost` en `ContractedCost` zijn gelijk aan `BilledCost`, zoals FOCUS vraagt als eenheidsprijzen niet bekend zijn. Een aankoop, zoals de vooruitbetaling van een reservering, is het gebruik van de service waarvoor ze is gekocht. Er zijn geen kolommen voor SKU's, toezeggingskortingen, capaciteitsreserveringen of facturen. FOCUS 1.3 en 1.4 voegen kolommen toe waar een lezer van 1.2 zonder kan.
+
+### Vanuit de API en de CLI
+
+De API geeft een uitsplitsing, niet alleen de regels van de kosten, zodat een financieel systeem de doorbelasting van de maand kan ophalen:
+
+- `POST /api/cloud-cost/breakdown` met `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` met een `tagKey`, of `group` met een `cloudCostViewId`), een `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) of een `startDate` en een `endDate`, en eventueel `cloudAccountIds`, `currency`, `basis` en `compareWithPrevious`. Het antwoord is het totaal van de periode en elk aandeel, met de periode ervoor ernaast, of met `"format": "csv"` de CSV die **CSV downloaden** geeft.
+- `POST /api/cloud-cost/export` met een `period`, of een `startDate` en een `endDate`, geeft het FOCUS-bestand.
+
+Beide lezen zoals de sleutel de kosten mag lezen. Vanuit de [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### Op een dashboard
+
+De widget **Cloudkosten** zet een totaal, een uitsplitsing of een trend van de uitgaven naast de services die ze maken. Zie [Dashboardwidgets](/docs/dashboards/widgets#cloudkosten).
+
 ## Wat je in OneUptime ziet
 
 - **Het overzicht van Cloud.** **Cloud → Overzicht** toont de uitgaven van de maand tegenover die van vorige maand op dezelfde dag, de duurste diensten en de grootste manieren om minder uit te geven, naast wat aandacht nodig heeft.
 - **De uitgaven van elke dag.** **Cloud → Uitgaven → Kosten** tekent elk van de laatste 30 dagen en markeert de dagen die veel meer kostten dan gewoonlijk, toont die dagen en splitst een periode uit per dienst, regio, account, resource, omgeving van de app-platforms, app of tag, gefactureerd, geamortiseerd of netto. De accounts waarvan de kosten niet worden gelezen, staan eronder, elk met de reden.
 - **Elke toezegging.** **Cloud → Uitgaven → Toezeggingen** toont elke toezegging met wanneer ze eindigt en hoeveel ervan wordt gebruikt, de binnenkort eindigende met wat te verlengen, en wat te kopen.
+- **Rapporten.** **Cloud → Uitgaven → Rapporten** toont elk gepland rapport met wat het dekt, wanneer het de volgende keer uitgaat en hoe de laatste verzending ging.
 - **De kosten van een account.** De pagina **Kosten** van een account toont hetzelfde voor alleen dat account, met de toezeggingen en de manieren om minder uit te geven.
 - **De kosten van een resource.** De pagina van een resource toont wat die deze maand en in de laatste 30 dagen heeft gekost als de cloud haar op naam factureert, met de manieren om minder uit te geven en haar groottebepaling.
 - **Wat er is bespaard.** **Cloud → Uitgaven → Besparingen** opent met wat de doorgevoerde wijzigingen deze maand volgens de rekening hebben bespaard, de wijzigingen die op goedkeuring wachten en de doorgevoerde, en de uren dat schema's resources hebben gestopt.

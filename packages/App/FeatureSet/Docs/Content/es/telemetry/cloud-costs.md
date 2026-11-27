@@ -256,11 +256,79 @@ Tras cada lectura, cada uno de los últimos 14 días completos de una cuenta se 
 
 Debajo de la lista, la tarjeta dice a cuánto ascendió el resto: lo que no está en ningún entorno, lo que se factura a un entorno en conjunto o lo que no tiene la etiqueta. Los costos leídos antes de que se guardaran las etiquetas se vuelven a leer una vez, tan atrás como una primera lectura, para que se completen sus etiquetas.
 
+## Informes y exportaciones
+
+### Informes de costos
+
+**Nube → Gasto → Informes** envía según una programación lo que cuestan las nubes, por correo y a canales de Slack o Microsoft Teams, para que quienes necesitan las cifras las reciban sin abrir OneUptime. Un informe tiene:
+
+- **Cubre**: todas las cuentas, una cuenta, un grupo de costos o una vista de costos con todos sus grupos.
+- **Periodo**: la semana pasada (de lunes a domingo), el mes pasado o el mes en curso. Cada uno se compara con el período anterior: la semana anterior, el mes anterior o el mes pasado hasta el mismo día.
+- **Base de costo**: facturado, amortizado o neto. Vacío, es la del proyecto, con la que se abre Costos. El informe siempre dice en qué base está.
+- **Programación**: cada semana o cada mes, un día y a una hora en una zona horaria, con las mismas reglas que los resúmenes de Slack y Microsoft Teams. Un informe semanal nuevo sale el próximo lunes a las 09:00 en tu zona horaria, uno mensual el día 1, y los informes siguientes mantienen ese día y esa hora todo el año.
+
+El correo dice lo que costó el período frente al período anterior, los presupuestos a los que cuenta (cada mes en curso, en la base propia del presupuesto), los servicios que más subieron y más bajaron, los grupos de una vista de costos y lo que ningún grupo asume, los días inusuales, los mayores ahorros pendientes y cuánto del gasto cubren los compromisos. Sus cifras van adjuntas en CSV. **Abrir Costos** abre **Costos** exactamente en los días, la base y la vista del informe, para que las cifras del informe y las de la página sean las mismas. Las cuentas facturadas en otra moneda quedan fuera de las cifras, y el informe las nombra.
+
+Un canal de Slack o Microsoft Teams recibe un mensaje breve: el total y su cambio, el presupuesto, las primeras líneas de las listas del informe y **Abrir Costos**.
+
+### Quién recibe un informe
+
+- Las personas y los equipos del proyecto lo reciben por correo, según sus ajustes de notificaciones, donde cada persona puede desactivar los informes de costos de nube. Cada persona recibe las cifras que puede leer: alguien cuyo acceso está limitado por etiquetas recibe solo sus cuentas, y alguien que ya no puede leer los costos de nube del proyecto queda fuera.
+- Las **Direcciones de correo** fuera del proyecto, como la de tu contable, y los canales de Slack y Microsoft Teams requieren el permiso Administrador de la nube, o Administrador del proyecto o Propietario del proyecto, porque OneUptime no puede saber quién los lee. Reciben el informe tal como puede leerlo la persona que los añadió, y dejan de recibirlo si esa persona pierde el permiso. Una clave de API no puede definirlos.
+- Quien puede crear los demás registros de Nube, desde Miembro de la nube, puede crear, cambiar y eliminar informes. Un Visor de la nube puede leerlos.
+
+Un informe llega como máximo a 200 personas, 25 direcciones y 10 canales de cada tipo. **Último envío** dice cuándo salió por última vez, y a quién dejó fuera y por qué.
+
+### Una sección para cada equipo
+
+Un informe de una vista de costos puede enviar a cada grupo su propia sección con **Enviar a cada equipo de grupo su sección**. Los miembros del equipo de cada grupo, indicado en el grupo, reciben el gasto de su grupo frente al período anterior, los servicios que más subieron y bajaron en él y sus días inusuales. Un grupo compartido no tiene sección propia: sus costos están en los grupos entre los que se reparte. Las personas, equipos y direcciones del propio informe reciben todos los grupos. Quien está en los equipos de dos grupos recibe ambas secciones. Un informe mensual de una vista de costos así es el showback del mes.
+
+### Vista previa y Enviarme una copia
+
+**Vista previa** muestra lo que dice un informe ahora, tal como puedes leerlo y como lo presenta el correo, y a quién dejó fuera su último envío y por qué. **Enviarme una copia** te lo envía por correo ahora.
+
+### Descargar CSV
+
+**Descargar CSV** guarda lo que muestra una tarjeta: **Adónde va el dinero** en **Costos**, en cualquier desglose y frente al período anterior, el gasto de cada día, las recomendaciones de **Ahorros** y la página de un grupo de costos. El nombre del archivo dice lo que contiene, por qué se desglosa, la vista y la cuenta, la base de costo y los días, por ejemplo `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Las cifras son números simples, y un texto que una hoja de cálculo leería como una fórmula empieza con un apóstrofo.
+
+### FOCUS
+
+**Exportar FOCUS** en **Costos** descarga cada costo del período como un archivo FOCUS 1.2, la FinOps Open Cost and Usage Specification en su versión 1.2, que leen las herramientas financieras. Un archivo contiene como máximo 93 días, y cada moneda en la que se facturan las cuentas, cada fila en la suya.
+
+El archivo tiene cada columna que FOCUS 1.2 hace obligatoria, y las condicionales para las que OneUptime tiene los datos: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` y `Tags`. Tiene una fila por cada costo que OneUptime guarda: un día, una cuenta, un servicio, una región y, donde la nube lo nombra, un recurso.
+
+- `BilledCost` es lo que facturó la nube, y `EffectiveCost` lo que costó con los compromisos repartidos sobre lo que cubren.
+- Lo que la nube descontó, sus créditos, reembolsos y descuentos, es una fila propia, con una `ChargeCategory` de `Credit`. El `EffectiveCost` del archivo, sumado, es el costo neto.
+- `ChargeCategory` es `Tax` para los costos que AWS factura bajo su servicio Tax, y `Usage` para el resto.
+- `BillingAccountId` es la cuenta de la que la conexión lee la factura: la cuenta de administración de una organización de AWS, una cuenta de facturación de Google Cloud o la suscripción de Azure, ya que la cuenta de facturación de Azure no se lee. `SubAccountId` es la cuenta de AWS, la suscripción de Azure o el proyecto de Google Cloud.
+- Las fechas son días UTC enteros, sin incluir el final del período del cargo ni el del período de facturación. El período de facturación es el mes natural.
+
+Lo que FOCUS 1.2 pide y OneUptime no lee queda vacío o se iguala como la especificación lo permite. `PricingQuantity` y `PricingUnit` quedan vacíos, porque los costos se leen por día, servicio, región y recurso, no por tipo de uso. `ListCost` y `ContractedCost` son iguales a `BilledCost`, como pide FOCUS cuando no se conocen los precios unitarios. Una compra, como el pago por adelantado de una reserva, es el uso del servicio para el que se compró. No hay columnas de SKU, descuentos por compromiso, reservas de capacidad ni facturas. FOCUS 1.3 y 1.4 añaden columnas de las que prescinde un lector de 1.2.
+
+### Desde la API y la CLI
+
+La API responde con un desglose, no solo con las filas de los costos, para que un sistema financiero pueda traer la refacturación del mes:
+
+- `POST /api/cloud-cost/breakdown` con `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` con una `tagKey`, o `group` con un `cloudCostViewId`), un `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) o una `startDate` y una `endDate`, y de forma opcional `cloudAccountIds`, `currency`, `basis` y `compareWithPrevious`. Responde con el total del período y cada parte, con el período anterior al lado, o con `"format": "csv"` el CSV que da **Descargar CSV**.
+- `POST /api/cloud-cost/export` con un `period`, o una `startDate` y una `endDate`, responde con el archivo FOCUS.
+
+Ambas leen como la clave puede leer los costos. Desde la [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### En un panel
+
+El widget **Costo de nube** pone un total, un desglose o una tendencia del gasto junto a los servicios que lo generan. Consulta [Widgets del panel](/docs/dashboards/widgets#costos-de-nube).
+
 ## Qué ves en OneUptime
 
 - **La vista general de Nube.** **Nube → Vista general** muestra el gasto del mes frente al del mes pasado hasta el mismo día, los servicios que más cuestan y las mayores formas de gastar menos, junto a lo que necesita atención.
 - **El gasto de cada día.** **Nube → Gasto → Costos** dibuja cada uno de los últimos 30 días con los días que costaron mucho más de lo habitual marcados, muestra esos días y desglosa un periodo por servicio, región, cuenta, recurso, entorno de plataformas de aplicaciones, aplicación o etiqueta, facturado, amortizado o neto. Las cuentas cuyos costos no se leen aparecen debajo, cada una con el motivo.
 - **Cada compromiso.** **Nube → Gasto → Compromisos** lista cada uno con cuándo termina y cuánto de él se usa, los que terminan pronto con qué renovar, y qué comprar.
+- **Informes.** **Nube → Gasto → Informes** lista cada informe programado con lo que cubre, cuándo sale la próxima vez y cómo fue su último envío.
 - **Los costos de una cuenta.** Los **Costos** de una cuenta muestran lo mismo solo para la cuenta, con sus compromisos y sus formas de gastar menos.
 - **El costo de un recurso.** La página de un recurso muestra lo que costó este mes y en los últimos 30 días cuando su nube lo factura por su nombre, con sus formas de gastar menos y su ajuste de tamaño.
 - **Lo que se ahorró.** **Nube → Gasto → Ahorros** empieza por lo que ahorraron este mes los cambios realizados, según la factura, los cambios que esperan aprobación y los realizados, y las horas durante las que las programaciones detuvieron recursos.

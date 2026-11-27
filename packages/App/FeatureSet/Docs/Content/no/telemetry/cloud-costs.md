@@ -256,11 +256,79 @@ Etter hver lesing holdes hver av en kontos siste 14 hele dager opp mot de 14 dag
 
 Under listen sier kortet hva resten utgjorde: det som ikke er i noe miljø, det som faktureres til et miljø som helhet, eller det som ikke har taggen. Kostnader som ble lest før tagger ble tatt vare på, leses på nytt én gang, så langt tilbake som en første lesing, slik at taggene deres fylles inn.
 
+## Rapporter og eksporter
+
+### Kostnadsrapporter
+
+**Sky → Forbruk → Rapporter** sender etter en tidsplan hva skyene koster, på e-post og til Slack- eller Microsoft Teams-kanaler, slik at de som trenger tallene får dem uten å åpne OneUptime. En rapport har:
+
+- **Dekker**: alle kontoer, én konto, en kostnadsgruppe eller en kostnadsvisning med alle gruppene.
+- **Periode**: forrige uke (mandag til søndag), forrige måned eller måneden til dato. Hver sammenlignes med perioden før: uken før, måneden før eller forrige måned til samme dag.
+- **Kostnadsgrunnlag**: fakturert, amortisert eller netto. Tomt er det prosjektets, som Kostnader åpner med. Rapporten sier alltid hvilket grunnlag den bruker.
+- **Tidsplan**: hver uke eller hver måned, på en dag og et klokkeslett i en tidssone, etter de samme reglene som sammendragene i Slack og Microsoft Teams. En ny ukentlig rapport sendes neste mandag kl. 09:00 i din tidssone, en månedlig den 1., og senere rapporter beholder den dagen og det klokkeslettet hele året.
+
+E-posten sier hva perioden kostet mot perioden før, budsjettene den teller mot (hver måned til dato, på budsjettets eget grunnlag), tjenestene som steg og falt mest, gruppene i en kostnadsvisning og det ingen gruppe tar, de uvanlige dagene, de største ventende besparelsene og hvor mye av forbruket forpliktelser dekker. Tallene er vedlagt som CSV. **Åpne Kostnader** åpner **Kostnader** på nøyaktig rapportens dager, grunnlag og visning, slik at tallene i rapporten og på siden er de samme. Kontoer som faktureres i en annen valuta, holdes utenfor tallene, og rapporten nevner dem.
+
+En Slack- eller Microsoft Teams-kanal får en kort melding: summen og endringen, budsjettet, de første linjene i rapportens lister og **Åpne Kostnader**.
+
+### Hvem som får en rapport
+
+- Personer og team i prosjektet får den på e-post, gjennom varslingsinnstillingene sine, der hver person kan slå av skykostnadsrapporter. Hver person får tallene de kan lese: den som har tilgang begrenset av etiketter, får bare sine kontoer, og den som ikke lenger kan lese prosjektets skykostnader, utelates.
+- **E-postadresser** utenfor prosjektet, for eksempel regnskapsførerens, og Slack- og Microsoft Teams-kanaler krever tillatelsen Skyadministrator, eller Prosjektadministrator eller Prosjekteier, fordi OneUptime ikke kan vite hvem som leser dem. De får rapporten slik personen som la dem til, kan lese den, og slutter å få den hvis personen mister tillatelsen. En API-nøkkel kan ikke angi dem.
+- Den som kan opprette de andre Sky-postene, fra Skymedlem og opp, kan opprette, endre og slette rapporter. En Skyleser kan lese dem.
+
+En rapport går til høyst 200 personer, 25 adresser og 10 kanaler av hvert slag. **Siste utsendelse** viser når den sist ble sendt, og hvem den utelot og hvorfor.
+
+### En del for hvert team
+
+En rapport over en kostnadsvisning kan sende hver gruppe sin egen del med **Send hver gruppes team sin del**. Medlemmene av teamet til hver gruppe, angitt på gruppen, får gruppens forbruk mot perioden før, tjenestene i den som steg og falt mest, og de uvanlige dagene. En delt gruppe har ingen egen del: kostnadene ligger i gruppene den fordeles mellom. Rapportens egne personer, team og adresser får alle gruppene. Den som er med i to gruppers team, får begge delene. Én månedlig rapport over en kostnadsvisning på denne måten er månedens showback.
+
+### Forhåndsvisning og Send meg en kopi
+
+**Forhåndsvisning** viser hva en rapport sier nå, slik du kan lese den og slik e-posten viser den, og hvem den siste utsendelsen utelot og hvorfor. **Send meg en kopi** sender den til deg på e-post nå.
+
+### Last ned CSV
+
+**Last ned CSV** lagrer det et kort viser: **Hvor pengene går** på **Kostnader**, i enhver oppdeling og mot perioden før, hver dags forbruk, anbefalingene under **Besparelser** og siden til en kostnadsgruppe. Filnavnet sier hva den inneholder, hva den er delt opp etter, visningen og kontoen, kostnadsgrunnlaget og dagene, for eksempel `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Tall er vanlige tall, og en tekst som et regneark ville lese som en formel, begynner med en apostrof.
+
+### FOCUS
+
+**Eksporter FOCUS** på **Kostnader** laster ned alle periodens kostnader som en FOCUS 1.2-fil, FinOps Open Cost and Usage Specification i versjon 1.2, som økonomiverktøy leser. En fil har høyst 93 dager, og hver valuta kontoene faktureres i, hver linje i sin egen.
+
+Filen har hver kolonne FOCUS 1.2 gjør obligatorisk, og de betingede som OneUptime har data for: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` og `Tags`. Den har en linje for hver kostnad OneUptime lagrer: en dag, en konto, en tjeneste, en region og, der skyen nevner den, en ressurs.
+
+- `BilledCost` er det skyen fakturerte, og `EffectiveCost` det det kostet med forpliktelser fordelt over det de dekker.
+- Det skyen trakk fra, kredittene, refusjonene og rabattene, er en egen linje med `ChargeCategory` satt til `Credit`. Filens `EffectiveCost` lagt sammen er nettokostnaden.
+- `ChargeCategory` er `Tax` for kostnadene AWS fakturerer under Tax-tjenesten sin, og `Usage` for resten.
+- `BillingAccountId` er kontoen tilkoblingen leser regningen fra: administrasjonskontoen til en AWS-organisasjon, en Google Cloud-faktureringskonto eller Azure-abonnementet, siden Azure-faktureringskontoen ikke leses. `SubAccountId` er AWS-kontoen, Azure-abonnementet eller Google Cloud-prosjektet.
+- Datoer er hele UTC-dager, der slutten av belastningsperioden og av faktureringsperioden ikke er med. Faktureringsperioden er kalendermåneden.
+
+Det FOCUS 1.2 ber om, men OneUptime ikke leser, står tomt eller settes lik slik spesifikasjonen tillater. `PricingQuantity` og `PricingUnit` er tomme, fordi kostnadene leses per dag, tjeneste, region og ressurs, ikke per brukstype. `ListCost` og `ContractedCost` er lik `BilledCost`, slik FOCUS ber om når enhetspriser ikke er kjent. Et kjøp, for eksempel forhåndsbetalingen for en reservasjon, er bruken av tjenesten det ble kjøpt for. Det finnes ingen kolonner for SKU-er, forpliktelsesrabatter, kapasitetsreservasjoner eller fakturaer. FOCUS 1.3 og 1.4 legger til kolonner som en leser av 1.2 klarer seg uten.
+
+### Fra API-et og CLI-en
+
+API-et svarer med en oppdeling, ikke bare kostnadenes linjer, slik at et økonomisystem kan hente månedens viderefakturering:
+
+- `POST /api/cloud-cost/breakdown` med `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` med en `tagKey`, eller `group` med en `cloudCostViewId`), en `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) eller en `startDate` og en `endDate`, og eventuelt `cloudAccountIds`, `currency`, `basis` og `compareWithPrevious`. Svaret er periodens sum og hver andel, med perioden før ved siden av, eller med `"format": "csv"` den CSV-en som **Last ned CSV** gir.
+- `POST /api/cloud-cost/export` med en `period`, eller en `startDate` og en `endDate`, svarer med FOCUS-filen.
+
+Begge leser slik nøkkelen kan lese kostnadene. Fra [CLI-en](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### På et dashbord
+
+Widgeten **Skykostnad** setter en sum, en oppdeling eller en trend for forbruket ved siden av tjenestene som bruker pengene. Se [Dashbordwidgeter](/docs/dashboards/widgets#skykostnader).
+
 ## Det du ser i OneUptime
 
 - **Oversikten i Sky.** **Sky → Oversikt** viser månedens forbruk mot forrige måneds på samme dag, de dyreste tjenestene og de største måtene å bruke mindre på, ved siden av det som trenger oppmerksomhet.
 - **Forbruket hver dag.** **Sky → Forbruk → Kostnader** tegner hver av de siste 30 dagene og markerer dagene som kostet langt mer enn vanlig, viser de dagene og deler en periode opp etter tjeneste, region, konto, ressurs, miljø i app-plattformer, app eller tagg, fakturert, amortisert eller netto. Kontoene der kostnadene ikke leses, er listet under, hver med årsaken.
 - **Hver forpliktelse.** **Sky → Forbruk → Forpliktelser** viser hver med når den utløper og hvor mye av den som brukes, dem som snart utløper med hva som skal fornyes, og hva som skal kjøpes.
+- **Rapporter.** **Sky → Forbruk → Rapporter** viser hver planlagte rapport med det den dekker, når den sendes neste gang og hvordan den siste utsendelsen gikk.
 - **Kostnadene til en konto.** **Kostnader** for en konto viser det samme for kontoen alene, med forpliktelsene og måtene den kan bruke mindre på.
 - **Kostnaden til en ressurs.** Siden til en ressurs viser hva den har kostet denne måneden og de siste 30 dagene når skyen fakturerer den ved navn, med måtene den kan bruke mindre på og størrelsestilpasningen sin.
 - **Hva som ble spart.** **Sky → Forbruk → Besparelser** åpner med hva de gjennomførte endringene har spart denne måneden ifølge regningen, endringene som venter på godkjenning, og de gjennomførte, og timene tidsplaner har stoppet ressurser.

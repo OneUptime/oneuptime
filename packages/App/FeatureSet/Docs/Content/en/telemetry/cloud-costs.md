@@ -273,8 +273,8 @@ A Slack or Microsoft Teams channel gets a short message: the total and its chang
 
 ### Who gets a report
 
-- **People and teams** of the project get it through their notification settings, by email, as **Send the cloud cost reports sent to me or to a team I am on**. Each person gets the figures they may read: someone whose access is limited by labels gets their accounts only, and someone who may no longer read the project's cloud costs is left out.
-- **Email Addresses** outside the project, such as your accountant's, and **Slack** and **Microsoft Teams** channels need the Cloud Admin permission, or Project Admin or Owner, because OneUptime can't tell who reads them. They get the report as the person who added them may read it, and stop getting it if that person loses the permission. An API key can't set them.
+- People and teams of the project get it by email, through their notification settings, where each person can turn cloud cost reports off. Each person gets the figures they may read: someone whose access is limited by labels gets their accounts only, and someone who may no longer read the project's cloud costs is left out.
+- **Email Addresses** outside the project, such as your accountant's, and Slack and Microsoft Teams channels need the Cloud Admin permission, or Project Admin or Owner, because OneUptime can't tell who reads them. They get the report as the person who added them may read it, and stop getting it if that person loses the permission. An API key can't set them.
 - Anyone who may make the other Cloud records, Cloud Member and up, can make, change and delete reports. A Cloud Viewer can read them.
 
 A report goes to at most 200 people, 25 addresses and 10 channels of each kind. **Last Send** says when it last went out, and who it left out and why.

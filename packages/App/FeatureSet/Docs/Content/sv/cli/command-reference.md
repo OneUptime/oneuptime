@@ -261,6 +261,44 @@ oneuptime <resource> add-note <id> --note <markdown> [--public]
 | `--note <markdown>` | Ja | Anteckningen i Markdown |
 | `--public` | Nej | Publicerar den på postens statussidor, där dess prenumeranter får besked. Bara incidenter, deras episoder och schemalagt underhåll |
 
+### `oneuptime <resource> breakdown`
+
+Endast `cloud-cost`. Vad molnen kostade under en period, uppdelat så som **Moln → Utgifter → Kostnader** delar upp det, med perioden innan bredvid varje rad: efter tjänst, region, konto, resurs, App Platforms-miljö, app, en taggs värde eller en kostnadsvys grupper. Den läser så som nyckeln får läsa kostnaderna. Se [Rapporter och exporter](/docs/telemetry/cloud-costs#rapporter-och-exporter).
+
+```bash
+oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
+```
+
+| Alternativ | Krävs | Vad det är | Standard |
+| --- | --- | --- | --- |
+| `--by <dimension>` | Nej | Vad utgifterna delas upp efter: `service`, `region`, `account`, `resource`, `environment`, `app`, `tag` eller `group` | `service` |
+| `--tag-key <key>` | Med `--by tag` | Taggen vars värden utgifterna delas upp efter, till exempel `team` | |
+| `--view <id>` | Med `--by group` | Kostnadsvyn vars grupper utgifterna delas upp efter | |
+| `--period <period>` | Nej | Dagarna som läses: `this-month`, `last-month`, `last-week` eller `last-30-days`, enligt UTC-kalendern | `this-month` |
+| `--start-date <date>` | Nej | Den första dagen, till exempel `2026-11-01`, i stället för `--period` | |
+| `--end-date <date>` | Nej | Den sista dagen, till exempel `2026-11-30`, tillsammans med `--start-date` | |
+| `--account <id>` | Nej | Bara det här molnkontots kostnader; upprepa för fler | Alla konton |
+| `--currency <code>` | Nej | Valutan, till exempel `USD` | Den som de flesta av dina konton faktureras i |
+| `--basis <basis>` | Nej | Kostnadsbasen: `billed`, `amortized` eller `net` | Projektets |
+| `--no-compare` | Nej | Utelämnar perioden innan | |
+| `--csv` | Nej | Skriver ut den CSV som **Ladda ner CSV** på sidan Kostnader ger | |
+
+### `oneuptime <resource> export`
+
+Endast `cloud-cost`. Alla kostnader under en period som en FOCUS 1.2-fil, för ekonomiverktyg som läser FOCUS. Högst 93 dagar åt gången. Se [FOCUS](/docs/telemetry/cloud-costs#focus).
+
+```bash
+oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id>] [--file <path>]
+```
+
+| Alternativ | Krävs | Vad det är | Standard |
+| --- | --- | --- | --- |
+| `--period <period>` | Nej | Dagarna som exporteras: `this-month`, `last-month`, `last-week` eller `last-30-days` | `last-month` |
+| `--start-date <date>` | Nej | Den första dagen, till exempel `2026-10-01`, i stället för `--period` | |
+| `--end-date <date>` | Nej | Den sista dagen, till exempel `2026-12-31`, tillsammans med `--start-date` | |
+| `--account <id>` | Nej | Bara det här molnkontots kostnader; upprepa för fler | Alla konton |
+| `--file <path>` | Nej | Skriver filen hit | Standardutdata |
+
 ### Resurser
 
 Varje resurs i OneUptimes API är ett kommando, med de operationer som API:et tar för den, `fields` och åtgärderna för de poster som har sådana:
