@@ -134,11 +134,33 @@ export default class MonitorNotEvaluated {
   }
 
   /*
+   * Whether this is OneUptime's own re-read of what arrived last - a
+   * heartbeat sweep's or an online check's, which passes the last arrival
+   * along rather than anything new - so nothing was sent: there is nothing
+   * to list. One reaches a monitor that is not checked only when the pause
+   * began between the sweep's read and the evaluation's.
+   */
+  public static isOwnCheck(dataToProcess: DataToProcess): boolean {
+    const check: {
+      onlyCheckForIncomingRequestReceivedAt?: boolean | undefined;
+      onlyCheckForIncomingEmailReceivedAt?: boolean | undefined;
+      onlyCheckRequestReceivedAt?: boolean | undefined;
+    } = dataToProcess as never;
+
+    return (
+      check.onlyCheckForIncomingRequestReceivedAt === true ||
+      check.onlyCheckForIncomingEmailReceivedAt === true ||
+      check.onlyCheckRequestReceivedAt === true
+    );
+  }
+
+  /*
    * Lists a result that reached the monitor while it was not being checked
    * in its Logs, as not evaluated and why, and keeps when it arrived. Only
-   * for a type whose results are sent from outside; read the monitor with
-   * MONITOR_NOT_EVALUATED_SELECT. Best effort: it never throws, so a
-   * refusal stays the refusal it was.
+   * for a type whose results are sent from outside, and only for what was
+   * sent - never OneUptime's own re-read of it (isOwnCheck); read the
+   * monitor with MONITOR_NOT_EVALUATED_SELECT. Best effort: it never throws,
+   * so a refusal stays the refusal it was.
    */
   public static async record(data: {
     monitor: Monitor;
@@ -150,7 +172,8 @@ export default class MonitorNotEvaluated {
     if (
       !monitor.id ||
       !monitor.projectId ||
-      !MonitorNotEvaluated.isSentFromOutside(monitor.monitorType)
+      !MonitorNotEvaluated.isSentFromOutside(monitor.monitorType) ||
+      MonitorNotEvaluated.isOwnCheck(data.dataToProcess)
     ) {
       return;
     }

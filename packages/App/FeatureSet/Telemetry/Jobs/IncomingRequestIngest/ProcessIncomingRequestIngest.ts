@@ -416,9 +416,12 @@ async function evaluateNewestRequest(secretKeyHash: string): Promise<void> {
 /*
  * A request whose evaluation threw.
  *
- *   - The monitor refused it (isNonActionableIngestError): it refuses every
- *     request waiting for it alike, so they are all removed, and the job
- *     completes (ProcessTelemetry) - as a job of its own would.
+ *   - It was refused for good (isNonActionableIngestError) - its key finds
+ *     no monitor: every request waiting for it is refused alike, so they are
+ *     all removed, and the job completes (ProcessTelemetry) - as a job of its
+ *     own would. A monitor that is not being checked never gets here: its
+ *     request was listed as not evaluated, and is done with
+ *     (processIncomingRequestFromQueue, #11141).
  *   - It has now failed MAX_ATTEMPTS_PER_REQUEST times: skipped (`skip`), and
  *     the job goes on.
  *   - Otherwise it stays waiting, counted, and the job fails for BullMQ to
@@ -509,9 +512,9 @@ export async function processIncomingRequestJobFromQueue(
     /*
      * A failure the worker retries leaves the request stored, so the retry
      * evaluates it - or anything newer - again. One it completes the job on
-     * (an unknown monitor, or one that is archived, disabled, or paused by a
-     * manually created incident or a maintenance event) is final, so clear
-     * it.
+     * (an unknown monitor) is final, so clear it. A monitor that is archived,
+     * turned off or paused lists the request as not evaluated and returns
+     * (#11141), and the request is cleared below, as one evaluated is.
      */
     if (isNonActionableIngestError(err)) {
       await IncomingRequestLatestPayloadStore.clearIfUnchanged({

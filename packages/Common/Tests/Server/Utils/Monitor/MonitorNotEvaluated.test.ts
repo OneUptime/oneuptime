@@ -261,7 +261,7 @@ describe("record: listed in the monitor's Logs, its arrival kept", () => {
     expect(reportArrivals).not.toHaveBeenCalled();
   });
 
-  test("a heartbeat check's re-read is no arrival", async () => {
+  test("a heartbeat check's re-read is no arrival, and nothing was sent: nothing is listed", async () => {
     await MonitorNotEvaluated.record({
       monitor: monitorOfType(MonitorType.IncomingRequest),
       dataToProcess: webhookRequest({
@@ -271,7 +271,38 @@ describe("record: listed in the monitor's Logs, its arrival kept", () => {
     });
 
     expect(requestArrivals).not.toHaveBeenCalled();
+    // OneUptime's own check, racing the pause: not something sent.
+    expect(saved).not.toHaveBeenCalled();
   });
+
+  test("an Incoming Email monitor's heartbeat check is not listed either", async () => {
+    await MonitorNotEvaluated.record({
+      monitor: monitorOfType(MonitorType.IncomingEmail),
+      dataToProcess: {
+        projectId: PROJECT_ID,
+        monitorId: MONITOR_ID,
+        onlyCheckForIncomingEmailReceivedAt: true,
+      } as unknown as DataToProcess,
+      reason: MonitorPauseReason.ScheduledMaintenance,
+    });
+
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    [{ onlyCheckForIncomingRequestReceivedAt: true }, true],
+    [{ onlyCheckForIncomingEmailReceivedAt: true }, true],
+    [{ onlyCheckRequestReceivedAt: true }, true],
+    [{ onlyCheckForIncomingRequestReceivedAt: false }, false],
+    [{}, false],
+  ])(
+    "isOwnCheck(%j) is %s",
+    (check: Record<string, boolean>, expected: boolean) => {
+      expect(
+        MonitorNotEvaluated.isOwnCheck(check as unknown as DataToProcess),
+      ).toBe(expected);
+    },
+  );
 
   test("a Server monitor's report is listed, and its arrival kept so the agent is not judged silent once checks resume", async () => {
     const report: ServerMonitorResponse = {
@@ -308,6 +339,7 @@ describe("record: listed in the monitor's Logs, its arrival kept", () => {
     });
 
     expect(reportArrivals).not.toHaveBeenCalled();
+    expect(saved).not.toHaveBeenCalled();
   });
 
   test("an Incoming Email monitor's email is listed; its arrival is kept by its own ingest", async () => {
@@ -341,7 +373,7 @@ describe("record: listed in the monitor's Logs, its arrival kept", () => {
 
   test("a monitor read without its id or project lists nothing", async () => {
     const monitor: Monitor = monitorOfType(MonitorType.IncomingRequest);
-    monitor.projectId = undefined;
+    delete (monitor as { projectId?: ObjectID }).projectId;
 
     await MonitorNotEvaluated.record({
       monitor: monitor,
