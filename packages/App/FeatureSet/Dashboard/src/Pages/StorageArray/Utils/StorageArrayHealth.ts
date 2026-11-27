@@ -193,11 +193,13 @@ const STATUS_WORDS: Record<string, string> = {
   stopped: translationKey("Stopped"),
   starting: translationKey("Starting"),
   stopping: translationKey("Stopping"),
-  up: translationKey("Up"),
-  down: translationKey("Down"),
+  // An Ethernet port's link, never a machine that is down (MeaningKeys).
+  up: translationKey("Up (port link)"),
+  down: translationKey("Down (port link)"),
   broken: translationKey("Broken"),
   spare: translationKey("Spare"),
-  unassigned: translationKey("Unassigned"),
+  // A disk no node owns yet, never a case nobody has taken (MeaningKeys).
+  unassigned: translationKey("Unassigned (disk not owned by a node)"),
   normal: translationKey("Normal"),
   error: translationKey("Error"),
   "critical-low": translationKey("Critical Low"),

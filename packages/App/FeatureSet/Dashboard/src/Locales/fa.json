@@ -64627,7 +64627,7 @@
   "Latency, IOPS, bandwidth and space of this volume, as the array reports them.": "تأخیر، IOPS، پهنای باند و فضای این حجم، آن‌طور که آرایه گزارش می‌کند.",
   "Latency, operations and bandwidth across the whole cluster, as clients see them.": "تأخیر، عملیات و پهنای باند در کل خوشه، آن‌طور که کلاینت‌ها می‌بینند.",
   "Latency, space and object count of this bucket, as the array reports them.": "تأخیر، فضا و تعداد اشیای این باکت، آن‌طور که آرایه گزارش می‌کند.",
-  "License {{name}} is {{state}}": "مجوز {{name}}: {{state}}",
+  "License {{name}} is {{state}}": "پروانه {{name}}: {{state}}",
   "Link Not Connected": "لینک وصل نیست",
   "Link failures each Fibre Channel port counted since Harvest's previous poll (every minute). Any above zero is a flapping link: a failing optic, cable or switch port, and paths to the hosts going up and down.": "خرابی‌های لینکی که هر پورت Fibre Channel از نظرسنجی قبلی Harvest (هر دقیقه) شمرده است. هر مقدار بالای صفر یعنی لینکی ناپایدار: ماژول نوری، کابل یا پورت سوئیچی که از کار می‌افتد و مسیرهایی به میزبان‌ها که قطع و وصل می‌شوند.",
   "Managed directories of this array's file services, with the space they use and their latest performance.": "دایرکتوری‌های مدیریت‌شده سرویس‌های فایل این آرایه، با فضای مصرفی و تازه‌ترین کارایی‌شان.",
@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "خوشه ONTAP",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "اسکریپت نصب را روی میزبانی اجرا کنید که به {{noun}} دسترسی دارد و {{option}} را انتخاب کنید.",
   "Aggregate (disk aggregate)": "اگریگیت",
-  "Aggregates (disk aggregates)": "اگریگیت‌ها"
+  "Aggregates (disk aggregates)": "اگریگیت‌ها",
+  "Down (port link)": "قطع",
+  "Unassigned (disk not owned by a node)": "تخصیص‌نیافته",
+  "Up (port link)": "متصل"
 }

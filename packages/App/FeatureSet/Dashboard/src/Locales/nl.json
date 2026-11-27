@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "ONTAP-cluster",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "Voer het installatiescript uit op een host die het {{noun}} kan bereiken, en kies {{option}}.",
   "Aggregate (disk aggregate)": "Aggregaat",
-  "Aggregates (disk aggregates)": "Aggregaten"
+  "Aggregates (disk aggregates)": "Aggregaten",
+  "Down (port link)": "Verbroken",
+  "Unassigned (disk not owned by a node)": "Niet toegewezen",
+  "Up (port link)": "Verbonden"
 }

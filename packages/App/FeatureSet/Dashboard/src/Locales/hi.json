@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "ONTAP क्लस्टर",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "ऐसे होस्ट पर इंस्टॉल स्क्रिप्ट चलाएँ जो {{noun}} तक पहुँच सके, और {{option}} चुनें।",
   "Aggregate (disk aggregate)": "एग्रीगेट",
-  "Aggregates (disk aggregates)": "एग्रीगेट"
+  "Aggregates (disk aggregates)": "एग्रीगेट",
+  "Down (port link)": "लिंक बंद",
+  "Unassigned (disk not owned by a node)": "अनअसाइन्ड",
+  "Up (port link)": "लिंक चालू"
 }

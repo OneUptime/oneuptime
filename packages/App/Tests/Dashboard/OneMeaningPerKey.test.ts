@@ -742,6 +742,54 @@ describe("one meaning per key", () => {
   });
 
   /*
+   * #11001: an ONTAP disk no node owns is "Unassigned", which the bare key
+   * words as a case or an exception nobody has taken - "no one in charge"
+   * in Japanese, Chinese and Persian; a port's link is "Up" or "Down",
+   * which the bare keys word as a machine that crashed (宕机, "Ausgefallen").
+   */
+  test("an unassigned ONTAP disk and a port's link are keys of their own, worded for a disk and a link", () => {
+    for (const [key, word, differIn] of [
+      [
+        "Unassigned (disk not owned by a node)",
+        "Unassigned",
+        ["ja", "zh-CN", "zh-TW", "fa"],
+      ],
+      ["Up (port link)", "Up", ["zh-CN", "zh-TW", "de"]],
+      ["Down (port link)", "Down", ["zh-CN", "zh-TW", "de"]],
+    ] as Array<[string, string, Array<string>]>) {
+      expect(MEANING_KEYS).toContain(key);
+      expect({ key, files: filesLookingUp(key) }).toEqual({
+        key,
+        files: ["Pages/StorageArray/Utils/StorageArrayHealth.ts"],
+      });
+      expect({
+        word,
+        storage: filesLookingUp(word).filter((file: string): boolean => {
+          return file.includes("StorageArray");
+        }),
+      }).toEqual({ word, storage: [] });
+      for (const language of LANGUAGES.filter((code: string): boolean => {
+        return code !== "en";
+      })) {
+        const locale: Record<string, string> = readLocale(language);
+        expect({
+          language,
+          key,
+          worded: Boolean(locale[key]) && locale[key] !== key,
+        }).toEqual({ language, key, worded: true });
+      }
+      for (const language of differIn) {
+        const locale: Record<string, string> = readLocale(language);
+        expect({
+          language,
+          key,
+          same: locale[key] === locale[word],
+        }).toEqual({ language, key, same: false });
+      }
+    }
+  });
+
+  /*
    * #8078: Paid, Void and Uncollectible are worded for an invoice - Spanish
    * "Pagada", "Anulada", as a factura is - so a new place that looks one up
    * is checked to mean an invoice too.

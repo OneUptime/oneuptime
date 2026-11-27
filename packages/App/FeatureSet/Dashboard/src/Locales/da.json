@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "ONTAP-klynge",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "Kør installationsscriptet på en vært, der kan nå denne {{noun}}, og vælg {{option}}.",
   "Aggregate (disk aggregate)": "Aggregat",
-  "Aggregates (disk aggregates)": "Aggregater"
+  "Aggregates (disk aggregates)": "Aggregater",
+  "Down (port link)": "Afbrudt",
+  "Unassigned (disk not owned by a node)": "Ikke tildelt",
+  "Up (port link)": "Forbundet"
 }

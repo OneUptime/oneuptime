@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "ONTAP 클러스터",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "{{noun}}에 연결할 수 있는 호스트에서 설치 스크립트를 실행하고 {{option}}을(를) 선택하세요.",
   "Aggregate (disk aggregate)": "애그리게이트",
-  "Aggregates (disk aggregates)": "애그리게이트"
+  "Aggregates (disk aggregates)": "애그리게이트",
+  "Down (port link)": "링크 다운",
+  "Unassigned (disk not owned by a node)": "미할당",
+  "Up (port link)": "링크 업"
 }

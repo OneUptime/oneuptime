@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "عنقود ONTAP",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "شغّل نص التثبيت على مضيف يصل إلى {{noun}}، واختر {{option}}.",
   "Aggregate (disk aggregate)": "تجميع الأقراص",
-  "Aggregates (disk aggregates)": "تجميعات الأقراص"
+  "Aggregates (disk aggregates)": "تجميعات الأقراص",
+  "Down (port link)": "منقطع",
+  "Unassigned (disk not owned by a node)": "غير مُعيَّن",
+  "Up (port link)": "متصل"
 }

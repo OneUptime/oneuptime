@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "кластера ONTAP",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "Запустите скрипт установки на хосте, который может достучаться до {{noun}}, и выберите {{option}}.",
   "Aggregate (disk aggregate)": "Агрегат",
-  "Aggregates (disk aggregates)": "Агрегаты"
+  "Aggregates (disk aggregates)": "Агрегаты",
+  "Down (port link)": "Отключено",
+  "Unassigned (disk not owned by a node)": "Не назначено",
+  "Up (port link)": "Подключено"
 }

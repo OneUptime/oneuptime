@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "ONTAP cluster",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.",
   "Aggregate (disk aggregate)": "Aggregate (disk aggregate)",
-  "Aggregates (disk aggregates)": "Aggregates (disk aggregates)"
+  "Aggregates (disk aggregates)": "Aggregates (disk aggregates)",
+  "Down (port link)": "Down (port link)",
+  "Unassigned (disk not owned by a node)": "Unassigned (disk not owned by a node)",
+  "Up (port link)": "Up (port link)"
 }

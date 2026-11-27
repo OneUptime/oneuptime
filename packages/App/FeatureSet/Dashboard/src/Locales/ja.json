@@ -64859,5 +64859,8 @@
   "ONTAP cluster": "ONTAP クラスター",
   "Run the install script on a host that can reach the {{noun}}, and choose {{option}}.": "{{noun}} に到達できるホストでインストールスクリプトを実行し、{{option}} を選択します。",
   "Aggregate (disk aggregate)": "アグリゲート",
-  "Aggregates (disk aggregates)": "アグリゲート"
+  "Aggregates (disk aggregates)": "アグリゲート",
+  "Down (port link)": "リンクダウン",
+  "Unassigned (disk not owned by a node)": "未割り当て",
+  "Up (port link)": "リンクアップ"
 }
