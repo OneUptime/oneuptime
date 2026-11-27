@@ -1572,6 +1572,25 @@ jobs:
           Tests/Server/Services/CloudCostGroupsPostgres.test.ts
           --forceExit
 
+      # Clones the cloud budgets' tables, the notices' deliveries and settings,
+      # and the records the reference checks read into an isolated schema: a
+      # scope with what it needs and nothing another scope needs, filters and
+      # people only of the project, a year split by month, an update checked
+      # as it will be stored, the migration's defaults and its update of an
+      # account's budget, and a threshold told once to each person (#11008).
+      - name: Test cloud budgets against Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_BUDGET_TESTS: "true"
+          CLOUD_BUDGET_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_BUDGET_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CLOUD_BUDGET_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/CloudBudgetsPostgres.test.ts
+          --forceExit
+
       # Clones the migrated CloudConnection into an isolated schema and makes
       # a connection's stream keys at the same moment, every one held at its
       # read until all have read: the compare-and-set over the jsonb

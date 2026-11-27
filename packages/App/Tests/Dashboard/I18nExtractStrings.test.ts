@@ -1906,6 +1906,7 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Monitor/KubernetesMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/PodmanMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
+      "keys packages/Common/Types/Monitor/XcpNgMetricCatalog.ts",
       // What a monitor's evaluation says, worded for each reader (#6542).
       "keys packages/Common/Types/Monitor/CriteriaFilterTerms.ts",
       "keys packages/Common/Server/Utils/Monitor/Criteria/CompareCriteria.ts",
