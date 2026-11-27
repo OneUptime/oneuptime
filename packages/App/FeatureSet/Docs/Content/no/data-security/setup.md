@@ -1,11 +1,12 @@
 # Sett opp Datasikkerhet
 
-Datasikkerhet leser bare det du tillater. Hver skytilkobling leses på ett av tre nivåer, en database du drifter selv leses med en tilkoblingsstreng du gir den, og telemetri trenger ingenting. Denne siden forteller hva hvert valg lar OneUptime lese, nøyaktig hvilke tillatelser det gir, og hva OneUptime tar vare på av det den leser.
+Datasikkerhet leser bare det du tillater. Hver skytilkobling leses på ett av tre nivåer, en database eller en søkeklynge du drifter selv leses med en tilkoblingsstreng du gir den, og telemetri trenger ingenting. Denne siden forteller hva hvert valg lar OneUptime lese, nøyaktig hvilke tillatelser det gir, og hva OneUptime tar vare på av det den leser.
 
 :::cards
 - [Velg et nivå](#velg-et-nivå-for-hver-tilkobling): Av, Bare konfigurasjon, eller Konfigurasjon og innholdsprøver.
 - [Hva hvert nivå gir tilgang til](#hva-hvert-nivå-gir-tilgang-til): AWS-handlingene, og rollene i Azure og Google Cloud.
-- [Skann en database du drifter selv](#skann-en-database-du-drifter-selv): En skrivebeskyttet tilkoblingsstreng, eller en sonde i nettverket ditt.
+- [Skann et datalager du drifter selv](#skann-et-datalager-du-drifter-selv): En skrivebeskyttet tilkoblingsstreng, eller en sonde i nettverket ditt.
+- [Hva OneUptime kontrollerer på et datalager du drifter selv](#hva-oneuptime-kontrollerer-på-et-datalager-du-drifter-selv): Om det svarer uten påloggingsinformasjon, spurt fra der skanningen kjører.
 - [Hva OneUptime tar vare på](#hva-oneuptime-tar-vare-på): Tellinger, plasseringer og maskerte prøver, aldri en verdi.
 - [La Datasikkerhet lukke en eksponering](#la-datasikkerhet-lukke-en-eksponering): De eneste skrivetilgangene en tilkobling kan få, av til du slår dem på.
 :::
@@ -173,17 +174,75 @@ En skanning leser litt av et datalager, innenfor prosjektets grenser, og stopper
 - **Bucketer og containere** prøvetas etter type, ikke etter antall. Objektnavn listes først, høyst ti ganger så mange som skanningen kan lese og aldri mer enn 200 000. Hvert navn blir til mønsteret sitt, med datoer, UUID-er, lange heksadesimale rekker og tall gjort om til `*`, så `exports/2026-10-27/users-0001.csv` blir `exports/*/users-*.csv`. De nyeste objektene for hvert mønster leses, ett av hvert før et andre av noe mønster, og høyst 5 av ett mønster. Hvert objekt leses fra starten: høyst **Byte per objekt** av det, og **Byte per skanning** til sammen. En skanning prøvetar høyst 10 containere i en Azure-lagringskonto.
 - **Filer leses som det de er.** CSV og TSV etter kolonne, JSON og JSON lines etter sti, `.env`, `.ini`, `.properties`, TOML og YAML etter nøkkel, XML og HTML som tekst, Word-, Excel- og PowerPoint-filer etter tekst og celler, og alt annet som fritekst. En gzip-fil pakkes ut først. Bilder, Parquet, Avro, PDF og andre binærformater leses ikke, og skanningen sier fra om det.
 - **Datasett og databaser** leses tabell for tabell: høyst **Tabeller per skanning** tabeller, og **Rader per tabell** rader fra hver.
+- **Søkeklynger** leses indeks for indeks, slik en database leses tabell for tabell: høyst **Tabeller per skanning** indekser, og **Rader per tabell** dokumenter fra hver, de nyeste først der indeksen har et `@timestamp`. En datastrøm leses som én indeks, og indekser der navnene bare skiller seg i datoer eller tall, som `logs-2026.11.26` og `logs-2026.11.27`, som én, ved den nyeste som inneholder dokumenter. Klyngens egne indekser, der navnet begynner med et punktum, leses ikke. Hver forespørsel er en GET, så skanningen kan ikke skrive til klyngen, uansett hva brukeren dens har lov til.
 
 Hver skanning fører en oversikt over hva den leste, etter navn: objektene, tabellene eller tjenestene, aldri innholdet. Det den ikke kunne lese – en forespørsel skyen avviste, tidsfristen, bytebudsjettet – blir en advarsel på skanningen, og skanningen merkes **Delvis vellykket**.
 
 Et datalagers **Oversikt** sier når innholdet skannes neste gang. **Neste innholdsskanning** er tidspunktet noe skanner det, **Står for tur nå** mens det venter på tur, og **Forsinket** når det har stått for tur i en time. Ellers sier den hvorfor ingenting vil skanne det: **Av** mens **Skann innhold** er slått av for datalageret eller prosjektet, eller mens datalageret ikke lenger blir funnet; **Skannes ikke** når OneUptime ikke kan ta prøver av denne typen datalager, eller sonden dets ikke kan skanne det; og **Venter** mens sonden dets er frakoblet. En tjenestes telemetri skannes **Hver time**, med prosjektets telemetriskanning. **Skann nå** er slått av, med årsaken, for et datalager som ingenting ville skanne. En skanning som pågår når innholdsskanning slås av, eller når prosjektet suspenderes, beholder ingenting av det den fant.
 
-## Skann en database du drifter selv
+## Skann et datalager du drifter selv
 
-Datasikkerhet tar prøver av PostgreSQL-, MySQL- og SQL Server-databaser, på én av to måter. En database som Database-produktet overvåker, eller som tjenestene dine snakker med på tjenestekartet, er allerede et datalager. En database ingen skanning finner, legger du selv til som et datalager.
+Datasikkerhet tar prøver av PostgreSQL-, MySQL- og SQL Server-databaser, og av Elasticsearch- og OpenSearch-klynger, på én av to måter. En database som Database-produktet overvåker, eller som tjenestene dine snakker med på tjenestekartet, er allerede et datalager. Legg til alle andre selv, med **Legg til et datalager du drifter selv** under **Datalagre**: Så snart du velger **Type**, sier skjemaet hva OneUptime vil kontrollere på det og hva det ikke kan, og spør bare om det den typen leser. En type OneUptime ikke tar prøver av, som MongoDB eller Redis, tar ingen tilkoblingsstreng: Den vises med eiere, etiketter og sensitivitet, og eksponeringen viser **Kan ikke kontrolleres**.
 
-- **Fra OneUptimes workers.** I datalagerets **Innstillinger** setter du **Tilkoblingsstreng** til en som bare kan lese, som `postgresql://reader:password@db.internal:5432/app`. Den krypteres ved lagring og returneres aldri av API-et. Gi den en databasebruker som kan lese og ikke noe annet.
-- **Fra en sonde i nettverket ditt.** Velg sonden under **Skann fra sonde**, og skriv inn i **Tilkoblingsvariabel for sonde** navnet på miljøvariabelen på sonden som inneholder tilkoblingsstrengen. Sonden leser databasen fra innsiden av nettverket ditt og sender bare tilbake det den fant: tilkoblingsstrengen når aldri OneUptime. Se [Egendefinerte sonder](/docs/probe/custom-probe) for å kjøre en sonde.
+- **Fra OneUptimes workers.** I datalagerets **Innstillinger** setter du **Tilkoblingsstreng** til en som bare kan lese, som `postgresql://reader:password@db.internal:5432/app`, eller `https://reader:password@search.internal:9200` for en søkeklynge. Den krypteres ved lagring og returneres aldri av API-et. Gi den en bruker som kan lese og ikke noe annet. I OneUptime Cloud når workerne bare adresser på internett.
+- **Fra en sonde i nettverket ditt.** Velg sonden under **Skann fra sonde**, og skriv inn i **Tilkoblingsvariabel for sonde** navnet på miljøvariabelen på sonden som inneholder tilkoblingsstrengen. Sonden leser datalageret fra innsiden av nettverket ditt og sender bare tilbake det den fant: tilkoblingsstrengen når aldri OneUptime. Se [Egendefinerte sonder](/docs/probe/custom-probe) for å kjøre en sonde. En sonde fra en tidligere utgivelse får bare databaser: Oppdater den for å skanne en søkeklynge.
+
+### Tilkoblingsstrengen til en søkeklynge
+
+Elasticsearch og OpenSearch har ingen egen tilkoblingsstreng, så OneUptime tar adressen til klyngen, slik curl når den, med en skrivebeskyttet bruker i den, eller en Elasticsearch-API-nøkkel etter den, skrevet som `id:key` eller som den kodede verdien Elasticsearch gir ut:
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` godtar et sertifikat ingen utsteder har signert, som det Elasticsearch lager første gang den starter: Bruk det bare på et nettverk du stoler på. Ingenting annet kan følge etter adressen. For en klynge der din egen utsteder har signert sertifikatet, oppgir du adressen som JSON, med sertifikatet til den utstederen:
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` erstatter `username` og `password`, og `"verifyCertificate": false` erstatter sertifikatet.
+
+Gi brukeren en rolle som kan lese og ikke noe annet. På Elasticsearch:
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+På OpenSearch, med sikkerhetspluginen:
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Gi deretter en bruker den rollen, og bare den rollen. Begrens `*` til indeksene som skal skannes.
+
+### Hva OneUptime kontrollerer på et datalager du drifter selv
+
+Et datalager i en skykonto kontrolleres ut fra innstillingene skyen tar vare på. Et datalager du drifter selv, har ingen som OneUptime kan lese, så en Elasticsearch- eller OpenSearch-klynge kontrolleres ut fra det den svarer på sin egen adresse. Ved hver innholdsskanning blir den spurt uten påloggingsinformasjon fra der skanningen kjører:
+
+| Spurt | Hva det viser |
+| --- | --- |
+| Hvem som spør: `/_security/_authenticate` på Elasticsearch, `/_plugins/_security/authinfo` på OpenSearch | Om den i det hele tatt ber om påloggingsinformasjon |
+| Et søk som ikke returnerer dokumenter, bare om det finnes noen | Om alle som når den, kan lese dokumentene dens |
+| Adressen over vanlig HTTP, når tilkoblingsstrengen er HTTPS | Om den tar imot tilkoblinger uten TLS |
+
+Ingenting skrives til den, så en klynge med brukere og roller kan ikke spørres om den anonyme brukeren kan skrive: Den linjen i **Konfigurasjon** viser **Kan ikke kontrolleres**. En klynge uten noen tilgangskontroll tar imot alle forespørsler, også skrivinger. En klynge som svarer alle, feiler [Alle som når det, kan lese det uten påloggingsinformasjon](/docs/data-security/checks-and-issues#eksponering).
+
+Hvor skanningen kjører, avgjør hva annet som kan vites. Workerne i OneUptime Cloud når bare adresser på internett, så en klynge de skanner, kan nås fra internett, og eksponeringen sier det. Fra en sonde, eller fra en OneUptime du hoster selv, kjører skanningen inne i et nettverk, og om internett når klyngen, kan ikke avgjøres derfra: Eksponeringen viser **Ukjent**, og **Oversikt** sier hvorfor. Krypteringen ved lagring, sikkerhetskopiene og tilgangsloggingen tilhører serverne dens, er ikke synlige fra adressen og kontrolleres ikke.
+
+En database du drifter selv, prøvetas, den spørres ikke, og hvordan den kan nås, kontrolleres ikke: Eksponeringen viser **Kan ikke kontrolleres**, det samme gjør den for en type OneUptime ikke tar prøver av. Til et datalager kontrolleres første gang, viser eksponeringen **Ikke kontrollert ennå**, så et datalager som venter på sin første kontroll, aldri forveksles med et som ikke kan kontrolleres.
 
 ## Hva OneUptime tar vare på
 
@@ -244,11 +303,15 @@ Innstillingene for Datasikkerhet er ett sett per prosjekt, i seksjonen **Innstil
 ## Feilsøking
 
 :::details Et datalager sier at innholdet ikke ble skannet
-Skanningen sier hvorfor: «Innholdsskanning krever tilkoblingens innholdstillatelse, eller en tilkoblingsstreng for en database.» Sett tilkoblingen til datalageret til **Konfigurasjon og innholdsprøver** og kjør kommandoen på nytt, eller gi databasen en tilkoblingsstreng. Sjekk også at **Skann innhold** er på for datalageret og i prosjektets innstillinger.
+Skanningen sier hvorfor: «Innholdsskanning krever tilkoblingens innholdstillatelse, eller en tilkoblingsstreng for et datalager du drifter selv.» Sett tilkoblingen til datalageret til **Konfigurasjon og innholdsprøver** og kjør kommandoen på nytt, eller gi datalageret du drifter selv en tilkoblingsstreng. Sjekk også at **Skann innhold** er på for datalageret og i prosjektets innstillinger.
 :::
 
 :::details En kontroll sier at den ikke kan avgjøre det
 En opplysning leseren ikke kunne lese – en tillatelse rollen ikke har, et API som ikke er slått på – er ukjent, aldri gjettet. Kontrollen rapporterer at den ikke kan avgjøre det, og et problem den har åpnet, forblir åpent: ingen kan slutte at et problem er løst fordi OneUptime ikke kunne se. Advarslene fra konfigurasjonslesingen sier hva den ikke kunne lese. Kjør tilkoblingens kommando på nytt for å gi det som mangler.
+:::
+
+:::details Eksponeringen til et datalager viser Kan ikke kontrolleres
+OneUptime har ingen måte å lese hvordan et datalager av den typen kan nås: en database du drifter selv, eller en type det ikke tar prøver av. Det er ikke en feil, og det åpnes ikke noe problem for det. **Innstillinger** for datalageret viser under **Hva OneUptime kontrollerer** hva som kontrolleres på det. Et datalager der eksponeringen viser **Ikke kontrollert ennå**, er et OneUptime kan kontrollere og ikke har kontrollert ennå: en søkeklynge før sin første innholdsskanning, eller et datalager i en skykonto før konfigurasjonen til tilkoblingen leses første gang.
 :::
 
 :::details Ingen S3-bucketer eller BigQuery-datasett vises

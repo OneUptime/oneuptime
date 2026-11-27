@@ -177,9 +177,9 @@ afterEach(() => {
 });
 
 const UNSAMPLED: string =
-  "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.";
+  "OneUptime cannot sample this kind of store's content yet.";
 const NOT_FROM_A_PROBE: string =
-  "A probe scans PostgreSQL, MySQL and SQL Server databases only. Scan this store from OneUptime's workers in its Settings.";
+  "A probe scans only stores you run: PostgreSQL, MySQL, SQL Server, Elasticsearch and OpenSearch. Scan this store from OneUptime's workers in its Settings.";
 
 describe("a data store's Settings: Scan Content", () => {
   test("the card reads what decides it: the store's kind, provider and scan probe", async () => {
@@ -257,10 +257,21 @@ describe("a data store's Settings: Scan Content", () => {
       UNSAMPLED,
     ],
     [
+      // Nothing samples it, a probe no more than a worker (#11140).
       "a MongoDB database set to scan from a probe",
       {
         kind: DataStoreKind.MongoDb,
         provider: DataStoreProvider.SelfManaged,
+        scanProbeId: new ObjectID(PROBE_ID),
+        isContentScanEnabled: true,
+      },
+      UNSAMPLED,
+    ],
+    [
+      "an S3 bucket set to scan from a probe",
+      {
+        kind: DataStoreKind.AwsS3Bucket,
+        provider: DataStoreProvider.Aws,
         scanProbeId: new ObjectID(PROBE_ID),
         isContentScanEnabled: true,
       },

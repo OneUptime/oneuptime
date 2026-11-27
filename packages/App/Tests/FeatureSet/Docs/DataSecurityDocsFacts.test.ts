@@ -532,7 +532,7 @@ describe("Data Security overview", () => {
       ["AWS", DataStoreProvider.Aws],
       ["Azure", DataStoreProvider.Azure],
       ["Google Cloud", DataStoreProvider.Gcp],
-      ["Databases you run", DataStoreProvider.SelfManaged],
+      ["Stores you run", DataStoreProvider.SelfManaged],
       ["OneUptime", DataStoreProvider.OneUptime],
     ];
 
@@ -877,7 +877,7 @@ describe("Set Up Data Security", () => {
     );
   });
 
-  it("says which databases are sampled, and how", () => {
+  it("says which stores you run are sampled, and how", () => {
     const service: string = source(
       "Common/Server/Services/DataStoreService.ts",
     );
@@ -892,11 +892,13 @@ describe("Set Up Data Security", () => {
       return info.kind;
     });
 
-    // From OneUptime's workers and from a probe alike (OneUptime issue #8322).
+    // From OneUptime's workers and from a probe alike (#8322, and the search clusters #11140).
     expect(scannable).toEqual([
       DataStoreKind.PostgreSql,
       DataStoreKind.MySql,
       DataStoreKind.SqlServer,
+      DataStoreKind.Elasticsearch,
+      DataStoreKind.OpenSearch,
     ]);
     expect([...WORKER_CLAIMED_DATA_STORE_KINDS]).toEqual(
       expect.arrayContaining(scannable),
@@ -904,12 +906,18 @@ describe("Set Up Data Security", () => {
     expect([...PROBE_SCANNABLE_DATA_STORE_KINDS].sort()).toEqual(
       [...scannable].sort(),
     );
-    expect(section(page, "## Scan a database you run")).toContain(
-      "Data Security samples PostgreSQL, MySQL and SQL Server databases",
+    expect(section(page, "## Scan a store you run")).toContain(
+      "Data Security samples PostgreSQL, MySQL and SQL Server databases, and Elasticsearch and OpenSearch clusters",
     );
-    expect(service).toContain(
-      "/^(postgres|postgresql|mysql|mariadb|mssql|sqlserver):\\/\\//i",
-    );
+    // Each kind's own scheme, and a search cluster's address read as one.
+    for (const scheme of [
+      "/^(postgres|postgresql):\\/\\//i",
+      "/^(mysql|mariadb):\\/\\//i",
+      "/^(mssql|sqlserver):\\/\\//i",
+    ]) {
+      expect(service).toContain(scheme);
+    }
+    expect(service).toContain("readSearchConnection(trimmed)");
 
     const store: string = source("Common/Models/DatabaseModels/DataStore.ts");
 
@@ -1039,9 +1047,93 @@ describe("Set Up Data Security", () => {
     }
   });
 
+  it("gives a search cluster's connection string as the connection reader reads it", () => {
+    const reader: string = source(
+      "Common/Server/Utils/DataSecurity/Content/SearchStoreConnection.ts",
+    );
+    const connection: string = section(
+      page,
+      "### A search cluster's connection string",
+    );
+
+    expect(reader).toContain('const API_KEY_PARAMETER: string = "api_key";');
+    expect(reader).toContain(
+      'const VERIFY_CERTIFICATE_PARAMETER: string = "verify_certificate";',
+    );
+    expect(connection).toContain("?api_key=");
+    expect(connection).toContain("?verify_certificate=false");
+
+    // The JSON form's keys, every one the reader takes and no other.
+    for (const key of [
+      "url",
+      "username",
+      "password",
+      "apiKey",
+      "caCertificate",
+      "verifyCertificate",
+    ]) {
+      expect(reader).toContain(`"${key}",`);
+      expect(connection).toContain(`${key}`);
+    }
+
+    // The example the form shows under the field is the page's.
+    expect(reader).toContain('"https://reader:password@search.internal:9200";');
+    expect(connection).toContain(
+      "https://reader:password@search.internal:9200",
+    );
+    // The roles the live clusters were scanned with (SearchStoreSamplerClusters).
+    expect(connection).toContain(
+      '"privileges":["read","view_index_metadata","monitor"]',
+    );
+    expect(connection).toContain(
+      '"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]',
+    );
+  });
+
+  it("says what is asked of a store you run, as the endpoint check asks it, and that nothing is written", () => {
+    const check: string = source(
+      "Common/Server/Utils/DataSecurity/Content/SearchEndpointCheck.ts",
+    );
+    const asked: string = section(
+      page,
+      "### What OneUptime checks on a store you run",
+    );
+
+    expect(check).toContain('elasticsearch: "/_security/_authenticate",');
+    expect(check).toContain('opensearch: "/_plugins/_security/authinfo",');
+    expect(asked).toContain("`/_security/_authenticate` on Elasticsearch");
+    expect(asked).toContain("`/_plugins/_security/authinfo` on OpenSearch");
+    expect(check).toContain('"/_search?size=0&track_total_hits=1"');
+    expect(asked).toContain(
+      "A search that returns no documents, only whether there are any",
+    );
+    expect(asked).toContain("Nothing is written to it");
+    // Every request the sampler sends is a GET.
+    expect(
+      source("Common/Server/Utils/DataSecurity/Content/SearchStoreSampler.ts"),
+    ).toContain('method: "GET";');
+    // A probe or a OneUptime someone hosts asks from inside a network.
+    expect(
+      source("Common/Server/Utils/DataSecurity/Content/SearchStoreHttp.ts"),
+    ).toContain(
+      "return isBillingEnabled\n    ? DataStorePostureReadFrom.Internet\n    : DataStorePostureReadFrom.Network;",
+    );
+    expect(asked).toContain(
+      "whether the internet reaches the cluster can't be known from there",
+    );
+    // The three exposures that say OneUptime does not know, told apart.
+    for (const exposure of [
+      DataStoreExposure.Unknown,
+      DataStoreExposure.NotChecked,
+      DataStoreExposure.CannotBeChecked,
+    ]) {
+      expect(asked).toContain(`**${exposure}**`);
+    }
+  });
+
   it("quotes the reason a store's content was not scanned as the scan gives it", () => {
     const quoted: string =
-      "Content scanning needs the connection's content permission, or a connection string for a database.";
+      "Content scanning needs the connection's content permission, or a connection string for a store you run.";
 
     expect(source(`${SERVER}/DataSecurityRunner.ts`)).toContain(`"${quoted}"`);
     expect(page).toContain(`"${quoted}"`);
@@ -2134,8 +2226,15 @@ describe("Data Security Checks and Issues", () => {
       return Math.round(10 * DATA_STORE_EXPOSURE_WEIGHT[value]);
     };
 
+    // The three it does not know weigh alike (#11140): not checked yet, can't be, or could not tell.
+    expect(exposure(DataStoreExposure.NotChecked)).toBe(
+      exposure(DataStoreExposure.Unknown),
+    );
+    expect(exposure(DataStoreExposure.CannotBeChecked)).toBe(
+      exposure(DataStoreExposure.Unknown),
+    );
     expect(points("Exposure")).toBe(
-      `${exposure(DataStoreExposure.Public)} for Public, ${exposure(DataStoreExposure.OtherAccounts)} for Other accounts, ${exposure(DataStoreExposure.InternetReachable)} for Internet reachable, ${exposure(DataStoreExposure.Unknown)} for Unknown, ${exposure(DataStoreExposure.Private)} for Private`,
+      `${exposure(DataStoreExposure.Public)} for Public, ${exposure(DataStoreExposure.OtherAccounts)} for Other accounts, ${exposure(DataStoreExposure.InternetReachable)} for Internet reachable, ${exposure(DataStoreExposure.Unknown)} for Unknown, Not checked yet or Can't be checked, ${exposure(DataStoreExposure.Private)} for Private`,
     );
 
     const volume: (records: number) => number = (records: number): number => {

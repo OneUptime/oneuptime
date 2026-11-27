@@ -18,7 +18,10 @@ import { useOutletContext, useParams } from "react-router-dom";
  * fetching it.
  */
 
-// The columns the layout reads for every page.
+/*
+ * The columns the layout reads for every page: whether a probe scans it
+ * too, which says what can be checked of it from there (#11140).
+ */
 export const DATA_STORE_VIEW_SELECT: {
   _id: true;
   name: true;
@@ -27,6 +30,7 @@ export const DATA_STORE_VIEW_SELECT: {
   family: true;
   isArchived: true;
   isContentScanEnabled: true;
+  scanProbeId: true;
 } = {
   _id: true,
   name: true,
@@ -35,6 +39,7 @@ export const DATA_STORE_VIEW_SELECT: {
   family: true,
   isArchived: true,
   isContentScanEnabled: true,
+  scanProbeId: true,
 };
 
 export interface DataStoreViewOutletContext {
