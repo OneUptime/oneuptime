@@ -1208,7 +1208,8 @@ import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSav
 import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
 import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
 import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
-import { AddCloudCostReports1809187751009 } from "./1809187751009-AddCloudCostReports";
+import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-AddKeepMonitoringDuringIncidents";
+import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostReports";
 
 export default [
   InitialMigration,
@@ -2421,5 +2422,6 @@ export default [
   AddCloudCostBasesAndCommitments1809187721011,
   AddSanSwitchFibreChannelColumns1809187731166,
   AddSecurityUserErasureRequestProgress1809187741160,
-  AddCloudCostReports1809187751009,
+  AddKeepMonitoringDuringIncidents1809187751141,
+  AddCloudCostReports1809187761009,
 ];

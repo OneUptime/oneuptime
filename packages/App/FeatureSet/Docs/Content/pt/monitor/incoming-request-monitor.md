@@ -423,6 +423,12 @@ O payload completo fica disponível ao lado dela, então funcionam tanto um tít
 
 Para uma configuração completa do Alertmanager, veja [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Para o Grafana, veja [Grafana](/docs/integrations/grafana).
 
+### Mantê-lo verificado durante incidentes
+
+Um incidente que alguém declara neste monitor — a partir de um dos alertas dele, por exemplo, com **Declarar incidente** — pausa as verificações dele até que o incidente seja resolvido, então as requisições que chegam nesse meio-tempo não são avaliadas: elas não abrem nem resolvem alertas. Cada uma ainda é listada nos **Registros de monitoramento** do monitor, como chegou, com o motivo de não ter sido avaliada.
+
+Para um monitor para o qual outros sistemas enviam seus alertas, um incidente sobre um alerta não deveria impedi-lo de ler o próximo. Abra as **Configurações** do monitor e, em **Durante incidentes**, ligue **Manter o monitoramento durante incidentes**: os incidentes declarados nele passam a deixá-lo sendo verificado, inclusive os que já estão abertos. Para mantê-lo verificado durante um único incidente, desmarque **Pausar o monitoramento** ao declará-lo. Veja [Monitoramento enquanto um incidente está aberto](/docs/incidents/declaring-incidents#monitoramento-enquanto-um-incidente-está-aberto).
+
 ## Publicar no Slack sem acionar ninguém
 
 Um ambiente de staging, ou um produto cujos problemas podem esperar, pode querer que uma requisição seja publicada em um canal de chat sem acionar ninguém. Um alerta que não nomeia nenhuma política de plantão faz isso: ele é publicado no Slack, Microsoft Teams ou Mattermost pelas regras de espaço de trabalho do projeto e não inicia nenhuma escalação.
@@ -506,11 +512,16 @@ O Event Grid valida um endpoint que lhe devolve um código, ou cujo dono abre o 
 3. **Use POST com `Content-Type: application/json`**: tudo o que lê dentro do corpo depende disso.
 4. **Não misture os dois trabalhos em um monitor**: um monitor que recebe alertas orientados a eventos não tem uma cadência regular, então um critério "Não recebido em minutos" nele ficaria oscilando. Use um monitor separado para o interruptor de homem morto.
 5. **Monitore o monitor**: garanta que o serviço que envia as requisições trate bem os erros, para que requisições que falharam não passem despercebidas.
+6. **Mantenha um receptor de eventos verificado durante incidentes**: em um monitor que recebe alertas de outro sistema, ligue **Manter o monitoramento durante incidentes** nas **Configurações** dele, para que um incidente declarado nele não o pause. Veja [Mantê-lo verificado durante incidentes](#mantê-lo-verificado-durante-incidentes).
 
 ## Solução de problemas
 
 :::details Meu remetente recebe 200, mas nada aparece no monitor
 O `200` é enviado antes de a requisição ser validada, então não prova que ela foi aceita. Confira se a chave secreta da URL corresponde à **Heartbeat URL** do monitor, e se o monitor não está desativado. Depois, olhe a linha do tempo do monitor para ver se as requisições estão chegando.
+:::
+
+:::details As requisições chegam, mas o monitor não abre alertas enquanto um incidente está aberto
+Um incidente declarado manualmente no monitor pausa as verificações dele, então as requisições dele são listadas nos **Registros de monitoramento** dele como **Não avaliado: o monitoramento está pausado por um incidente**, e o banner nas páginas dele diz isso. Ligue **Manter o monitoramento durante incidentes** nas **Configurações** dele: as verificações dele recomeçam na hora, e as próximas requisições são avaliadas. As requisições listadas enquanto ele estava pausado não são avaliadas depois. Veja [Mantê-lo verificado durante incidentes](#mantê-lo-verificado-durante-incidentes).
 :::
 
 :::details Meu remetente recebe um 401

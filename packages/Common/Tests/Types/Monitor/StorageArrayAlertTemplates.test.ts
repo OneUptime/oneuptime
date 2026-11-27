@@ -62,6 +62,22 @@ import { describe, expect, test } from "@jest/globals";
 
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
+const PS: StorageSystem = StorageSystem.DellPowerStore;
+
+// Every shipped platform, with what its template ids and texts are made of.
+const PLATFORMS: Array<{
+  system: StorageSystem;
+  templatePrefix: string;
+  words: RegExp;
+}> = [
+  { system: FA, templatePrefix: "purefa-", words: /FlashArray|purefa_/ },
+  { system: FB, templatePrefix: "purefb-", words: /FlashBlade|purefb_/ },
+  {
+    system: PS,
+    templatePrefix: "powerstore-",
+    words: /PowerStore|powerstore_/,
+  },
+];
 
 /*
  * The labels of every series a template reads, from the exporters'
@@ -172,6 +188,59 @@ const SERIES_LABELS: Record<string, Record<string, Array<string> | null>> = {
       "provisioned",
     ],
   },
+  /*
+   * Dell's powerstore-metrics-exporter v1.0.3 (its prometheus.NewDesc calls,
+   * as packages/Common/Tests/Fixtures/DellPowerStoreExporter records them):
+   * every series also carries the cluster's address as IP. The two percents
+   * are the agent's own, divided from Dell's used and total series with
+   * their labels.
+   */
+  powerstore_cluster: {
+    IP: null,
+    global_id: null,
+    management_address: null,
+    master_appliance_id: null,
+    name: null,
+  },
+  powerstore_cap_physical_used_percent: { IP: null, appliance_id: null },
+  powerstore_perf_avg_read_latency: {
+    IP: null,
+    appliance_id: null,
+    appliance_name: null,
+  },
+  powerstore_perf_avg_write_latency: {
+    IP: null,
+    appliance_id: null,
+    appliance_name: null,
+  },
+  powerstore_hardware_Drive_state: { IP: null, appliance_id: null, name: null },
+  powerstore_hardware_node_state: {
+    IP: null,
+    appliance_id: null,
+    name: null,
+    serial_number: null,
+    state: null,
+  },
+  powerstore_hardware_Power_Supply_state: {
+    IP: null,
+    appliance_id: null,
+    name: null,
+  },
+  powerstore_hardware_Fan_state: { IP: null, appliance_id: null, name: null },
+  powerstore_hardware_Battery_state: {
+    IP: null,
+    appliance_id: null,
+    name: null,
+  },
+  powerstore_wear_metrics_by_drive: {
+    IP: null,
+    appliance_id: null,
+    name: null,
+  },
+  powerstore_nas_server_operational_status: { IP: null, name: null },
+  powerstore_volume_state: { IP: null, appliance_id: null, name: null },
+  powerstore_filesystem_logical_used_percent: { IP: null, name: null },
+  powerstore_metro_witness_status: { IP: null, name: null, witness_addr: null },
 };
 
 /*
@@ -195,6 +264,19 @@ const STATE_IN_A_LABEL_METRICS: Set<string> = new Set<string>([
  */
 const BINARY_FLAG_METRICS: Set<string> = new Set<string>([
   "purefb_hardware_health",
+  /*
+   * Dell's state series: 1 while the part, volume or NAS server is in its
+   * healthy state, 0 in any other (the node's after the agent reads its
+   * state label). A dead band would put recovery at an unreachable 1.1.
+   */
+  "powerstore_hardware_Drive_state",
+  "powerstore_hardware_node_state",
+  "powerstore_hardware_Power_Supply_state",
+  "powerstore_hardware_Fan_state",
+  "powerstore_hardware_Battery_state",
+  "powerstore_nas_server_operational_status",
+  "powerstore_volume_state",
+  "powerstore_cluster",
 ]);
 
 interface Threshold {
@@ -266,6 +348,13 @@ function capacityTemplate(
   };
 }
 
+// Each platform's identity series: its heartbeat.
+const HEARTBEAT_METRIC: Record<string, string> = {
+  [FA]: "purefa_info",
+  [FB]: "purefb_info",
+  [PS]: "powerstore_cluster",
+};
+
 // The heartbeat: the platform's identity series, counted over the whole array.
 function stoppedReportingTemplate(
   id: string,
@@ -279,7 +368,7 @@ function stoppedReportingTemplate(
     rollingTime: RollingTime.Past10Minutes,
     aggregation: MetricsAggregationType.Count,
     alias: "samples_received",
-    metricName: system === FA ? "purefa_info" : "purefb_info",
+    metricName: HEARTBEAT_METRIC[system]!,
     attributes: {},
     groupBy: null,
     // A count is never negative: this fires only through its no-data policy.
@@ -453,7 +542,175 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     recoverFilterType: FilterType.GreaterThanOrEqualTo,
     treatNoDataAsZero: false,
   },
+  ...getPowerStoreTemplates(),
 ];
+
+/*
+ * Dell PowerStore's: one incident per appliance for its space and latency,
+ * per part, volume, NAS server, file system and witness for theirs.
+ * PowerStore samples every five minutes, so every window holds two samples
+ * or more. Its own alerts arrive as logs (StorageArrayLogAlertTemplates).
+ */
+function getPowerStoreTemplates(): Array<TemplateExpectation> {
+  const perAppliance: (
+    id: string,
+    data: Partial<TemplateExpectation>,
+  ) => TemplateExpectation = (
+    id: string,
+    data: Partial<TemplateExpectation>,
+  ): TemplateExpectation => {
+    return {
+      id,
+      system: PS,
+      category: "Capacity",
+      severity: "Warning",
+      rollingTime: RollingTime.Past15Minutes,
+      aggregation: MetricsAggregationType.Max,
+      alias: "",
+      metricName: "",
+      attributes: {},
+      groupBy: "appliance_id",
+      fire: { filterType: FilterType.GreaterThan, value: 0 },
+      recoverFilterType: FilterType.LessThanOrEqualTo,
+      treatNoDataAsZero: false,
+      ...data,
+    };
+  };
+  // A 1-while-healthy state, one incident per object.
+  const unhealthy: (
+    id: string,
+    data: Partial<TemplateExpectation>,
+  ) => TemplateExpectation = (
+    id: string,
+    data: Partial<TemplateExpectation>,
+  ): TemplateExpectation => {
+    return {
+      id,
+      system: PS,
+      category: "Hardware",
+      severity: "Warning",
+      rollingTime: RollingTime.Past10Minutes,
+      aggregation: MetricsAggregationType.Min,
+      alias: "",
+      metricName: "",
+      attributes: {},
+      groupBy: "name",
+      fire: { filterType: FilterType.LessThan, value: 1 },
+      recoverFilterType: FilterType.GreaterThanOrEqualTo,
+      treatNoDataAsZero: false,
+      ...data,
+    };
+  };
+  return [
+    stoppedReportingTemplate("powerstore-array-stopped-reporting", PS),
+    perAppliance("powerstore-capacity-high", {
+      alias: "capacity_used_percent",
+      metricName: "powerstore_cap_physical_used_percent",
+      fire: { filterType: FilterType.GreaterThan, value: 80 },
+    }),
+    perAppliance("powerstore-capacity-critical", {
+      severity: "Critical",
+      alias: "capacity_used_percent",
+      metricName: "powerstore_cap_physical_used_percent",
+      fire: { filterType: FilterType.GreaterThan, value: 90 },
+    }),
+    perAppliance("powerstore-read-latency-high", {
+      category: "Performance",
+      aggregation: MetricsAggregationType.Avg,
+      alias: "read_latency_usec",
+      metricName: "powerstore_perf_avg_read_latency",
+      // 5 ms, in the series' own microseconds.
+      fire: { filterType: FilterType.GreaterThan, value: 5000 },
+    }),
+    perAppliance("powerstore-write-latency-high", {
+      category: "Performance",
+      aggregation: MetricsAggregationType.Avg,
+      alias: "write_latency_usec",
+      metricName: "powerstore_perf_avg_write_latency",
+      fire: { filterType: FilterType.GreaterThan, value: 5000 },
+    }),
+    unhealthy("powerstore-drive-unhealthy", {
+      severity: "Critical",
+      alias: "drive_healthy",
+      metricName: "powerstore_hardware_Drive_state",
+    }),
+    unhealthy("powerstore-node-unhealthy", {
+      severity: "Critical",
+      alias: "node_healthy",
+      metricName: "powerstore_hardware_node_state",
+    }),
+    unhealthy("powerstore-power-supply-unhealthy", {
+      alias: "power_supply_healthy",
+      metricName: "powerstore_hardware_Power_Supply_state",
+    }),
+    unhealthy("powerstore-fan-unhealthy", {
+      alias: "fan_healthy",
+      metricName: "powerstore_hardware_Fan_state",
+    }),
+    unhealthy("powerstore-battery-unhealthy", {
+      alias: "battery_healthy",
+      metricName: "powerstore_hardware_Battery_state",
+    }),
+    unhealthy("powerstore-drive-endurance-low", {
+      rollingTime: RollingTime.Past15Minutes,
+      alias: "endurance_remaining_percent",
+      metricName: "powerstore_wear_metrics_by_drive",
+      // Below 10% of its rated endurance left.
+      fire: { filterType: FilterType.LessThan, value: 10 },
+    }),
+    unhealthy("powerstore-nas-server-not-started", {
+      category: "File Systems",
+      aggregation: MetricsAggregationType.Max,
+      alias: "nas_server_started",
+      metricName: "powerstore_nas_server_operational_status",
+    }),
+    unhealthy("powerstore-volume-not-ready", {
+      category: "Array Health",
+      rollingTime: RollingTime.Past15Minutes,
+      aggregation: MetricsAggregationType.Max,
+      alias: "volume_ready",
+      metricName: "powerstore_volume_state",
+    }),
+    {
+      id: "powerstore-file-system-near-full",
+      system: PS,
+      category: "File Systems",
+      severity: "Warning",
+      rollingTime: RollingTime.Past15Minutes,
+      aggregation: MetricsAggregationType.Max,
+      alias: "file_system_used_percent",
+      metricName: "powerstore_filesystem_logical_used_percent",
+      attributes: {},
+      groupBy: "name",
+      fire: { filterType: FilterType.GreaterThan, value: 90 },
+      recoverFilterType: FilterType.LessThanOrEqualTo,
+      treatNoDataAsZero: false,
+    },
+    unhealthy("powerstore-cluster-not-configured", {
+      category: "Array Health",
+      aggregation: MetricsAggregationType.Max,
+      alias: "cluster_configured",
+      metricName: "powerstore_cluster",
+      groupBy: null,
+    }),
+    {
+      id: "powerstore-metro-witness-not-ok",
+      system: PS,
+      category: "Replication",
+      severity: "Warning",
+      rollingTime: RollingTime.Past10Minutes,
+      aggregation: MetricsAggregationType.Min,
+      alias: "witness_state",
+      metricName: "powerstore_metro_witness_status",
+      attributes: {},
+      groupBy: "name",
+      // 0 is OK; any other state, held for the whole window, fires.
+      fire: { filterType: FilterType.GreaterThan, value: 0 },
+      recoverFilterType: FilterType.EqualTo,
+      treatNoDataAsZero: false,
+    },
+  ];
+}
 
 function buildArgs(): StorageArrayAlertTemplateArgs {
   return {
@@ -555,6 +812,7 @@ const TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
 const STOPPED_REPORTING_IDS: Array<string> = [
   "purefa-array-stopped-reporting",
   "purefb-array-stopped-reporting",
+  "powerstore-array-stopped-reporting",
 ];
 
 const PER_OBJECT_TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
@@ -579,30 +837,37 @@ describe("StorageArrayAlertTemplates - registry", () => {
     );
   });
 
-  test("ships twenty templates: twelve FlashArray, eight FlashBlade, each led by its heartbeat", () => {
-    expect(ALL_TEMPLATES).toHaveLength(20);
+  test("ships thirty-six templates: twelve FlashArray, eight FlashBlade, sixteen PowerStore, each led by its heartbeat", () => {
+    expect(ALL_TEMPLATES).toHaveLength(36);
     expect(getStorageArrayAlertTemplatesForSystem(FA)).toHaveLength(12);
     expect(getStorageArrayAlertTemplatesForSystem(FB)).toHaveLength(8);
+    expect(getStorageArrayAlertTemplatesForSystem(PS)).toHaveLength(16);
     expect(getStorageArrayAlertTemplatesForSystem(FA)[0]!.id).toBe(
       "purefa-array-stopped-reporting",
     );
     expect(getStorageArrayAlertTemplatesForSystem(FB)[0]!.id).toBe(
       "purefb-array-stopped-reporting",
     );
+    expect(getStorageArrayAlertTemplatesForSystem(PS)[0]!.id).toBe(
+      "powerstore-array-stopped-reporting",
+    );
   });
 
   test("every template id carries its platform's prefix", () => {
     for (const template of ALL_TEMPLATES) {
-      expect(template.id).toMatch(
-        systemOf(template) === FA
-          ? /^purefa-[a-z0-9-]+$/
-          : /^purefb-[a-z0-9-]+$/,
+      const platform: { templatePrefix: string } | undefined = PLATFORMS.find(
+        (candidate: { system: StorageSystem }): boolean => {
+          return candidate.system === systemOf(template);
+        },
       );
+      expect(platform).toBeDefined();
+      expect(template.id.startsWith(platform!.templatePrefix)).toBe(true);
+      expect(template.id).toMatch(/^[a-z0-9-]+$/);
     }
   });
 
   test("template names are unique within a platform", () => {
-    for (const system of [FA, FB]) {
+    for (const system of [FA, FB, PS]) {
       const names: Array<string> = getStorageArrayAlertTemplatesForSystem(
         system,
       ).map((t: StorageArrayAlertTemplate) => {
@@ -650,7 +915,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
   });
 
   test("getStorageArrayAlertTemplatesForSystem returns only that platform's templates", () => {
-    for (const system of [FA, FB]) {
+    for (const system of [FA, FB, PS]) {
       for (const template of getStorageArrayAlertTemplatesForSystem(system)) {
         expect(template.storageSystems).toEqual([system]);
       }
@@ -688,6 +953,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
     expect(new Set(names).size).toBe(names.length);
     expect(names).toContain("Capacity Above 80% (FlashArray)");
     expect(names).toContain("Capacity Above 80% (FlashBlade)");
+    expect(names).toContain("Capacity Above 80% (PowerStore)");
     // The platform's own list keeps the plain names.
     expect(
       getStorageArrayAlertTemplatesForSystem(FA).map(
@@ -702,8 +968,8 @@ describe("StorageArrayAlertTemplates - registry", () => {
     );
   });
 
-  test("both platforms cover alerts, capacity, latency and hardware", () => {
-    for (const system of [FA, FB]) {
+  test("every platform covers alerts, capacity, latency and hardware", () => {
+    for (const system of [FA, FB, PS]) {
       const categories: Set<string> = new Set(
         getStorageArrayAlertTemplatesForSystem(system).map(
           (t: StorageArrayAlertTemplate) => {
@@ -1120,11 +1386,18 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
         fireInstance.data?.name || "",
         fireInstance.data?.description || "",
       ];
-      const otherPlatform: RegExp =
-        systemOf(template) === FA ? /FlashBlade|purefb_/ : /FlashArray|purefa_/;
+      const otherPlatforms: Array<RegExp> = PLATFORMS.filter(
+        (platform: { system: StorageSystem }): boolean => {
+          return platform.system !== systemOf(template);
+        },
+      ).map((platform: { words: RegExp }): RegExp => {
+        return platform.words;
+      });
 
       for (const text of texts) {
-        expect(text).not.toMatch(otherPlatform);
+        for (const otherPlatform of otherPlatforms) {
+          expect(text).not.toMatch(otherPlatform);
+        }
         // Cloned from Ceph: no Ceph, Proxmox or vSphere vocabulary.
         expect(text).not.toMatch(/ceph|proxmox|pve|vcenter|vsphere|osd\b/i);
       }
@@ -1258,8 +1531,13 @@ describe("StorageArrayAlertTemplates - FlashBlade hardware health code (regressi
     expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual(["name"]);
   });
 
-  test("it is the only binary-coded template, and the only `< 1` threshold", () => {
-    for (const other of ALL_TEMPLATES) {
+  test("it is Pure's only binary-coded template, and Pure's only `< 1` threshold", () => {
+    // Dell's state series are binary too: their rows above pin them.
+    for (const other of ALL_TEMPLATES.filter(
+      (template: StorageArrayAlertTemplate): boolean => {
+        return systemOf(template) !== PS;
+      },
+    )) {
       const step: MonitorStep = other.getMonitorStep(buildArgs());
       const usesLessThanOne: boolean = filtersOf(
         getCriteriaInstances(step)[0]!,

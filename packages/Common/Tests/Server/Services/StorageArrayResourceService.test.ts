@@ -23,6 +23,7 @@ import StorageArrayResourceService, {
   ParsedStorageArrayResource,
   StorageArrayInventorySummary,
   UNHEALTHY_HARDWARE_STATUSES,
+  getUnhealthyHardwareStatuses,
 } from "../../../Server/Services/StorageArrayResourceService";
 import {
   isCriticalComponentStatus,
@@ -841,11 +842,28 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
     // One physical part is several rows under one name — count names.
     expect(sql).toContain('COUNT(DISTINCT lower(h."externalId"))');
     expect(sql).toContain('GROUP BY "kind"');
+    /*
+     * Every registered platform's words for a part that is not well: the
+     * shipped ones first, then those a platform declares of its own
+     * (PowerStore's node states, and a NAS server not started).
+     */
+    const statuses: Array<string> = getUnhealthyHardwareStatuses();
     expect(params).toEqual([
       PROJECT_ID.toString(),
       ARRAY_ID.toString(),
-      UNHEALTHY_HARDWARE_STATUSES,
+      statuses,
       HARDWARE_KINDS,
+    ]);
+    expect(statuses.slice(0, UNHEALTHY_HARDWARE_STATUSES.length)).toEqual(
+      UNHEALTHY_HARDWARE_STATUSES,
+    );
+    expect(statuses.slice(UNHEALTHY_HARDWARE_STATUSES.length)).toEqual([
+      "prepare_failed",
+      "disconnected",
+      "uninitialized",
+      "initializing",
+      "trigger_update",
+      "not started",
     ]);
     expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
   });

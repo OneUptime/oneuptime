@@ -423,6 +423,12 @@ The full payload is available alongside it, so an incident title of `{{alertname
 
 For a full Alertmanager configuration, see [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, see [Grafana](/docs/integrations/grafana).
 
+### Keep it checked during incidents
+
+An incident someone declares on this monitor - from one of its alerts, say, with **Declare Incident** - pauses its checks until the incident is resolved, so the requests that arrive meanwhile are not evaluated: they open and resolve no alerts. Each one is still listed in the monitor's **Monitoring Logs**, as it came, with why it was not evaluated.
+
+For a monitor that other systems post their alerts to, an incident about one alert should not stop it reading the next. Open the monitor's **Settings** and, under **During Incidents**, turn on **Keep monitoring during incidents**: incidents declared on it then leave it checked, including any already open. To keep it checked for one incident only, untick **Pause Monitoring** when you declare it. See [Monitoring while an incident is open](/docs/incidents/declaring-incidents#monitoring-while-an-incident-is-open).
+
 ## Posting to Slack without paging anyone
 
 A staging environment, or a product whose problems can wait, may want a request posted in a chat channel without paging anyone. An alert that names no on-call policy does this: it posts to Slack, Microsoft Teams or Mattermost through the project's workspace rules, and starts no escalation.
@@ -506,11 +512,16 @@ Event Grid validates an endpoint that echoes a code back to it, or whose owner o
 3. **Use POST with `Content-Type: application/json`** — anything that reads inside the body depends on it.
 4. **Don't mix the two jobs on one monitor** — a monitor receiving event-driven alerts has no regular cadence, so a "Not Recieved In Minutes" criteria on it will flap. Use a separate monitor for the dead-man's switch.
 5. **Monitor the monitor** — Ensure the service sending requests has proper error handling so failed requests don't go unnoticed.
+6. **Keep an event receiver checked during incidents** — on a monitor that receives alerts from another system, turn on **Keep monitoring during incidents** in its **Settings**, so an incident declared on it does not pause it. See [Keep it checked during incidents](#keep-it-checked-during-incidents).
 
 ## Troubleshooting
 
 :::details My sender gets a 200, but nothing shows on the monitor
 The `200` is sent before the request is validated, so it does not prove the request was accepted. Check that the secret key in the URL matches the monitor's **Heartbeat URL**, and that the monitor is not disabled. Then look at the monitor's timeline to see whether requests are landing.
+:::
+
+:::details Requests arrive, but the monitor opens no alerts while an incident is open
+An incident declared by hand on the monitor pauses its checks, so its requests are listed in its **Monitoring Logs** as **Not evaluated: monitoring is paused by an incident**, and the banner across its pages says so. Turn on **Keep monitoring during incidents** in its **Settings**: its checks start again at once, and the next requests are evaluated. The requests listed while it was paused are not evaluated afterwards. See [Keep it checked during incidents](#keep-it-checked-during-incidents).
 :::
 
 :::details My sender gets a 401

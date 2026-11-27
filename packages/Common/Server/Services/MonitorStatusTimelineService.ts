@@ -112,6 +112,19 @@ export { FIRST_MEASURED_AT_UPTIME_HISTORY_MIGRATION_NAME };
  */
 const monitoringSwitchCreates: WeakSet<CreateBy<MonitorStatusTimeline>> =
   new WeakSet<CreateBy<MonitorStatusTimeline>>();
+
+/*
+ * The status events an incident declared by hand marks, rather than the
+ * monitor's own switch (issue #11141): monitoring paused by an incident
+ * that puts no status on the monitor, which leaves the time out as time
+ * with monitoring off is, and the end of that. Such a row is marked as its
+ * create says, whatever the monitor's switch says - the switch stays as it
+ * is (recordMonitoringSwitch, MonitorIncidentPause).
+ */
+const monitoringOffSetByCreate: WeakMap<
+  CreateBy<MonitorStatusTimeline>,
+  boolean
+> = new WeakMap<CreateBy<MonitorStatusTimeline>, boolean>();
 const monitoringSwitchRowIdByCreate: WeakMap<
   CreateBy<MonitorStatusTimeline>,
   string
@@ -1821,6 +1834,14 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * status event already says what the switch says, nor for a monitor with
    * no status yet: its first status event takes the switch as it is
    * (buildOnCreate). Returns the status event written, or null.
+   *
+   * An incident declared by hand marks time the same way (issue #11141):
+   * one that pauses the monitor and puts no status on it leaves its status
+   * as the last check saw it, so that time is left out as well, until the
+   * pause ends or something puts a status on the monitor
+   * (MonitorIncidentPause). It passes the row's `rootCause`, and the row is
+   * marked as `isMonitoringOff` says, whatever the monitor's own switch -
+   * which is not turned - says.
    */
   @CaptureSpan()
   public async recordMonitoringSwitch(data: {
@@ -1828,6 +1849,12 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     isMonitoringOff: boolean;
     // Who turned the switch, when a person did: named in the root cause.
     switchedByUserId?: ObjectID | null | undefined;
+    /*
+     * Why the time is left out from here, or counted again, when an
+     * incident declared by hand says so rather than the monitor's switch:
+     * the row is then marked as isMonitoringOff says.
+     */
+    rootCause?: string | undefined;
   }): Promise<MonitorStatusTimeline | null> {
     const latest: MonitorStatusTimeline | null = await this.findOneBy({
       query: {
@@ -1869,22 +1896,31 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     statusEvent.startsAt = OneUptimeDate.getCurrentDate();
     // The status did not change: nobody is told it did.
     statusEvent.isOwnerNotified = true;
-    statusEvent.rootCause = Service.getMonitoringSwitchRootCause({
-      isMonitoringOff: data.isMonitoringOff,
-      switchedBy: switchedBy,
-    });
+    statusEvent.rootCause =
+      data.rootCause ||
+      Service.getMonitoringSwitchRootCause({
+        isMonitoringOff: data.isMonitoringOff,
+        switchedBy: switchedBy,
+      });
 
     if (data.switchedByUserId) {
       statusEvent.createdByUserId = data.switchedByUserId;
     }
 
+    const createBy: CreateBy<MonitorStatusTimeline> = {
+      data: statusEvent,
+      props: {
+        isRoot: true,
+      },
+    };
+
+    // Marked as the incident says, not as the monitor's switch does.
+    if (data.rootCause) {
+      monitoringOffSetByCreate.set(createBy, data.isMonitoringOff);
+    }
+
     try {
-      return await this.create({
-        data: statusEvent,
-        props: {
-          isRoot: true,
-        },
-      });
+      return await this.create(createBy);
     } catch (error) {
       /*
        * Another write marked the switch first, under the monitor's lock:
@@ -2196,12 +2232,22 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       },
     });
 
-    // Whether the monitor's monitoring is off for the time this row covers.
-    const isMonitoringOff: boolean = await this.isMonitoringOffForNewRow({
-      monitorId: monitorId,
-      stateBeforeThis: stateBeforeThis,
-      stateAfterThis: stateAfterThis,
-    });
+    /*
+     * Whether the monitor's monitoring is off for the time this row covers:
+     * as an incident declared by hand marked it, for the row that marks it
+     * (recordMonitoringSwitch's rootCause), when nothing comes after the row.
+     */
+    const isMonitoringOffSetByCreate: boolean | undefined =
+      monitoringOffSetByCreate.get(createBy);
+
+    const isMonitoringOff: boolean =
+      isMonitoringOffSetByCreate !== undefined && !stateAfterThis
+        ? isMonitoringOffSetByCreate
+        : await this.isMonitoringOffForNewRow({
+            monitorId: monitorId,
+            stateBeforeThis: stateBeforeThis,
+            stateAfterThis: stateAfterThis,
+          });
 
     createBy.data.isMonitoringOff = isMonitoringOff;
 

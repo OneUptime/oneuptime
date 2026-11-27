@@ -236,11 +236,17 @@ describe("getDisabledMessage", () => {
     expect(getDisabledMessage(DISABLED)).toContain(
       "Nothing checks this monitor while monitoring is off",
     );
+    // Until the incident is resolved, and how to keep it checked (#11141).
     expect(
       getDisabledMessage(
         monitorWith({ disableActiveMonitoringBecauseOfManualIncident: true }),
       ),
-    ).toContain("resolve the incident");
+    ).toContain("until it is resolved");
+    expect(
+      getDisabledMessage(
+        monitorWith({ disableActiveMonitoringBecauseOfManualIncident: true }),
+      ),
+    ).toContain("turn on Keep monitoring during incidents in Settings");
     // The record is a maintenance event (#6817), as the pages around it say.
     expect(
       getDisabledMessage(

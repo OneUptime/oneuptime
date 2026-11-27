@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddCloudCostReports1809187751009 implements MigrationInterface {
-  public name = "AddCloudCostReports1809187751009";
+export class AddCloudCostReports1809187761009 implements MigrationInterface {
+  public name = "AddCloudCostReports1809187761009";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

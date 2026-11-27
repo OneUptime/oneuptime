@@ -265,7 +265,7 @@ describe("the form's words", () => {
 
   test("the Monitors field says what a pick there does", () => {
     expect(WORKSPACE_AFFECTED_RESOURCES_TEXT.monitorsHint).toBe(
-      "A monitor you pick here pauses its checks until the incident is resolved.",
+      "A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
     );
   });
 
