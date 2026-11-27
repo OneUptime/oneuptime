@@ -37,6 +37,13 @@ import ProxmoxGuestTaskReporter, {
   GUEST_TASKS_INTERVAL_ENV,
 } from "./ProxmoxGuestTasks";
 import { AgentIdentity, AgentSession } from "./Registration";
+import DataObservabilityCollector from "./DataObservability/DataObservabilityCollector";
+import {
+  DATA_OBSERVABILITY_ENV,
+  DataObservabilitySettings,
+  getDataObservabilityPosture,
+  resolveDataObservabilitySettings,
+} from "./DataObservability/DataObservabilitySettings";
 import { SleepFunction, sleep as defaultSleep } from "./Sleep";
 import AiResourceType, {
   AI_RESOURCE_TYPE_INFO,
@@ -162,6 +169,13 @@ export default class ResourceAiAgent {
   private jobLoop: JobLoop | null = null;
   // A Proxmox cluster's: who or what stopped each stopped guest (#10017).
   private guestTasks: ProxmoxGuestTaskReporter | null = null;
+  /*
+   * A database server's: whether, and with which logins, it reads its
+   * databases for Data Observability (#11148) - read once, reported in the
+   * posture - and the loop that does it while it is on.
+   */
+  private readonly dataObservabilitySettings: DataObservabilitySettings | null;
+  private dataObservability: DataObservabilityCollector | null = null;
   private healthServer: http.Server | null = null;
   private shuttingDown: Promise<void> | null = null;
   // Asking the executor for the resource's name again, after a failure.
@@ -193,6 +207,15 @@ export default class ResourceAiAgent {
     this.status.resourceType = this.config.resourceType;
     this.status.resourceIdentifier = this.config.resourceIdentifier;
     this.status.agentVersion = this.config.agentVersion;
+
+    this.dataObservabilitySettings =
+      this.config.resourceType === AiResourceType.DatabaseServer
+        ? resolveDataObservabilitySettings(options.env)
+        : null;
+  }
+
+  public getDataObservability(): DataObservabilityCollector | null {
+    return this.dataObservability;
   }
 
   public getHealthServer(): http.Server | null {
@@ -240,6 +263,13 @@ export default class ResourceAiAgent {
       resourceType,
       resourceIdentifier,
       probe,
+      ...(this.dataObservabilitySettings
+        ? {
+            dataObservability: getDataObservabilityPosture(
+              this.dataObservabilitySettings,
+            ),
+          }
+        : {}),
     });
   }
 
@@ -372,6 +402,33 @@ export default class ResourceAiAgent {
       } else {
         Logger.info(
           `Not reading the guests' task log: ${GUEST_TASKS_INTERVAL_ENV} is 0.`,
+        );
+      }
+    }
+
+    /*
+     * A database server's agent also reads its databases for Data
+     * Observability when OneUptime hands it one and its owner turned that on
+     * (DataObservability/DataObservabilityCollector): reads only, with its
+     * own statements and logins, whatever OneUptime AI may do.
+     */
+    if (resourceType === AiResourceType.DatabaseServer) {
+      this.dataObservability = new DataObservabilityCollector({
+        env: this.options.env,
+        client: this.client,
+        session: this.session,
+        logger: Logger,
+      });
+
+      if (this.dataObservability.isEnabled()) {
+        this.dataObservability.start();
+      } else if (this.dataObservability.settings.offReason) {
+        Logger.warn(
+          `Not reading databases for Data Observability: ${this.dataObservability.settings.offReason}`,
+        );
+      } else {
+        Logger.info(
+          `Not reading databases for Data Observability: ${DATA_OBSERVABILITY_ENV} is not true.`,
         );
       }
     }
@@ -568,6 +625,10 @@ export default class ResourceAiAgent {
         this.session ? this.session.stop(graceMs) : Promise.resolve(true),
         // A round of reads left unfinished is read again by the next agent.
         this.guestTasks ? this.guestTasks.stop(graceMs) : Promise.resolve(true),
+        // A database left unread is claimed again once its claim runs out.
+        this.dataObservability
+          ? this.dataObservability.stop(graceMs)
+          : Promise.resolve(true),
       ]);
 
     if (!jobFinished) {

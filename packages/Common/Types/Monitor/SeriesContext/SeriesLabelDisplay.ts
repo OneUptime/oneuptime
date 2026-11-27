@@ -215,6 +215,19 @@ const FriendlyLabelNames: Record<string, string> = {
   "xen_orchestra.name": "Xen Orchestra",
   "xcp_ng.scope": "Object Type",
   "xcp_ng.id": "Object UUID",
+  /*
+   * #10997: what the pool's alarm and backup records carry, which the
+   * XcpNgEventAlertTemplates group by - the object or the job by name
+   * first, the UUIDs after.
+   */
+  "xcp_ng.object.name": "Object",
+  "xcp_ng.object.uuid": "Object UUID",
+  "xcp_ng.object.type": "Object Type",
+  "xcp_ng.message.name": "Message",
+  "xcp_ng.alarm.variable": "Alarm",
+  "xcp_ng.backup.job.name": "Backup Job",
+  "xcp_ng.backup.failed_vms": "Failed VMs",
+  "xcp_ng.backup.job.id": "Backup Job ID",
   host_name: "Host",
   host_id: "Host UUID",
   vm_name: "VM",
@@ -248,7 +261,8 @@ const FriendlyLabelNames: Record<string, string> = {
    * labels (stored unprefixed): `name` on volumes, pods, directories and
    * every FlashBlade object, `host` on FlashArray hosts, `component_name`
    * on FlashArray hardware and drives, `local_pod` on pod replica links,
-   * `summary` on open alerts. The agent stamps `storage.array.name` and
+   * `summary` on open alerts; a Dell PowerStore names its appliances by
+   * `appliance_id`. The agent stamps `storage.array.name` and
    * `storage.system` on the resource.
    */
   "storage.array.name": "Storage Array",
@@ -258,6 +272,7 @@ const FriendlyLabelNames: Record<string, string> = {
   component_name: "Component",
   local_pod: "Pod",
   summary: "Alert Summary",
+  appliance_id: "Appliance",
 
   // --- IoT ---
   "iot.fleet.name": "Fleet",
@@ -422,6 +437,7 @@ const LabelPriority: Record<string, number> = {
   component_name: 25,
   local_pod: 25,
   summary: 25,
+  appliance_id: 25,
   host: 30,
   "device.id": 25,
   "device.name": 25,
@@ -460,6 +476,14 @@ const LabelPriority: Record<string, number> = {
   sr: 27,
   host_name: 30,
   "xcp_ng.id": 31,
+  "xcp_ng.object.name": 25,
+  "xcp_ng.backup.job.name": 25,
+  "xcp_ng.backup.failed_vms": 26,
+  "xcp_ng.message.name": 27,
+  "xcp_ng.alarm.variable": 28,
+  "xcp_ng.object.uuid": 32,
+  "xcp_ng.backup.job.id": 33,
+  "xcp_ng.object.type": 55,
   "xcp_ng.scope": 55,
   "xcp_ng.pool.name": 75,
   "xen_orchestra.name": 80,

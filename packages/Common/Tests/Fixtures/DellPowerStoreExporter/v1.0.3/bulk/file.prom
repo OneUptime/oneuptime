@@ -1,0 +1,75 @@
+# HELP powerstore_filesystem_logical_provisioned Last logical provisioned space during the period.
+# TYPE powerstore_filesystem_logical_provisioned gauge
+powerstore_filesystem_logical_provisioned{IP="fake-powerstore",name="fs-archive"} 2.199023255552e+13
+powerstore_filesystem_logical_provisioned{IP="fake-powerstore",name="fs-home"} 2.199023255552e+12
+powerstore_filesystem_logical_provisioned{IP="fake-powerstore",name="fs-projects"} 1.099511627776e+13
+# HELP powerstore_filesystem_logical_used Last logical used space during the period.
+# TYPE powerstore_filesystem_logical_used gauge
+powerstore_filesystem_logical_used{IP="fake-powerstore",name="fs-archive"} 9.895604649984e+12
+powerstore_filesystem_logical_used{IP="fake-powerstore",name="fs-home"} 2.078076976497e+12
+powerstore_filesystem_logical_used{IP="fake-powerstore",name="fs-projects"} 4.507997673882e+12
+# HELP powerstore_filesystem_thin_savings Last thin savings ratio during the period.
+# TYPE powerstore_filesystem_thin_savings gauge
+powerstore_filesystem_thin_savings{IP="fake-powerstore",name="fs-archive"} 1.2
+powerstore_filesystem_thin_savings{IP="fake-powerstore",name="fs-home"} 1.4
+powerstore_filesystem_thin_savings{IP="fake-powerstore",name="fs-projects"} 2.1
+# HELP powerstore_metricFilesystem_avg_latency Average read and write latency in microseconds,unit is ms
+# TYPE powerstore_metricFilesystem_avg_latency gauge
+powerstore_metricFilesystem_avg_latency{IP="fake-powerstore",name="fs-archive"} 567
+powerstore_metricFilesystem_avg_latency{IP="fake-powerstore",name="fs-home"} 1219
+powerstore_metricFilesystem_avg_latency{IP="fake-powerstore",name="fs-projects"} 843
+# HELP powerstore_metricFilesystem_avg_read_bandwidth Read rate in bytes per second,unit is bps
+# TYPE powerstore_metricFilesystem_avg_read_bandwidth gauge
+powerstore_metricFilesystem_avg_read_bandwidth{IP="fake-powerstore",name="fs-archive"} 5.292032e+07
+powerstore_metricFilesystem_avg_read_bandwidth{IP="fake-powerstore",name="fs-home"} 4.2729472e+07
+powerstore_metricFilesystem_avg_read_bandwidth{IP="fake-powerstore",name="fs-projects"} 4.7808512e+07
+# HELP powerstore_metricFilesystem_avg_read_iops Total read operations per second,unit is iops
+# TYPE powerstore_metricFilesystem_avg_read_iops gauge
+powerstore_metricFilesystem_avg_read_iops{IP="fake-powerstore",name="fs-archive"} 1615
+powerstore_metricFilesystem_avg_read_iops{IP="fake-powerstore",name="fs-home"} 1304
+powerstore_metricFilesystem_avg_read_iops{IP="fake-powerstore",name="fs-projects"} 1459
+# HELP powerstore_metricFilesystem_avg_read_latency Average read latency in microseconds,unit is ms
+# TYPE powerstore_metricFilesystem_avg_read_latency gauge
+powerstore_metricFilesystem_avg_read_latency{IP="fake-powerstore",name="fs-archive"} 321
+powerstore_metricFilesystem_avg_read_latency{IP="fake-powerstore",name="fs-home"} 947
+powerstore_metricFilesystem_avg_read_latency{IP="fake-powerstore",name="fs-projects"} 1084
+# HELP powerstore_metricFilesystem_avg_read_size Average read size in bytes.unit is bytes
+# TYPE powerstore_metricFilesystem_avg_read_size gauge
+powerstore_metricFilesystem_avg_read_size{IP="fake-powerstore",name="fs-archive"} 32768
+powerstore_metricFilesystem_avg_read_size{IP="fake-powerstore",name="fs-home"} 32768
+powerstore_metricFilesystem_avg_read_size{IP="fake-powerstore",name="fs-projects"} 32768
+# HELP powerstore_metricFilesystem_avg_size Average size of read and write operations in bytes.unit is bytes
+# TYPE powerstore_metricFilesystem_avg_size gauge
+powerstore_metricFilesystem_avg_size{IP="fake-powerstore",name="fs-archive"} 24576
+powerstore_metricFilesystem_avg_size{IP="fake-powerstore",name="fs-home"} 24576
+powerstore_metricFilesystem_avg_size{IP="fake-powerstore",name="fs-projects"} 24576
+# HELP powerstore_metricFilesystem_avg_total_bandwidth Total data transfer rate in bytes per second,unit is bps
+# TYPE powerstore_metricFilesystem_avg_total_bandwidth gauge
+powerstore_metricFilesystem_avg_total_bandwidth{IP="fake-powerstore",name="fs-archive"} 7.4416128e+07
+powerstore_metricFilesystem_avg_total_bandwidth{IP="fake-powerstore",name="fs-home"} 6.0768256e+07
+powerstore_metricFilesystem_avg_total_bandwidth{IP="fake-powerstore",name="fs-projects"} 6.7567616e+07
+# HELP powerstore_metricFilesystem_avg_total_iops Total read and write operations per second,unit is iops
+# TYPE powerstore_metricFilesystem_avg_total_iops gauge
+powerstore_metricFilesystem_avg_total_iops{IP="fake-powerstore",name="fs-archive"} 2927
+powerstore_metricFilesystem_avg_total_iops{IP="fake-powerstore",name="fs-home"} 2405
+powerstore_metricFilesystem_avg_total_iops{IP="fake-powerstore",name="fs-projects"} 2665
+# HELP powerstore_metricFilesystem_avg_write_bandwidth Write rate in bytes per second,unit is bps
+# TYPE powerstore_metricFilesystem_avg_write_bandwidth gauge
+powerstore_metricFilesystem_avg_write_bandwidth{IP="fake-powerstore",name="fs-archive"} 2.1495808e+07
+powerstore_metricFilesystem_avg_write_bandwidth{IP="fake-powerstore",name="fs-home"} 1.8038784e+07
+powerstore_metricFilesystem_avg_write_bandwidth{IP="fake-powerstore",name="fs-projects"} 1.9759104e+07
+# HELP powerstore_metricFilesystem_avg_write_iops Total write operations per second,unit is iops
+# TYPE powerstore_metricFilesystem_avg_write_iops gauge
+powerstore_metricFilesystem_avg_write_iops{IP="fake-powerstore",name="fs-archive"} 1312
+powerstore_metricFilesystem_avg_write_iops{IP="fake-powerstore",name="fs-home"} 1101
+powerstore_metricFilesystem_avg_write_iops{IP="fake-powerstore",name="fs-projects"} 1206
+# HELP powerstore_metricFilesystem_avg_write_latency Average write latency in microseconds,unit is ms
+# TYPE powerstore_metricFilesystem_avg_write_latency gauge
+powerstore_metricFilesystem_avg_write_latency{IP="fake-powerstore",name="fs-archive"} 813
+powerstore_metricFilesystem_avg_write_latency{IP="fake-powerstore",name="fs-home"} 1491
+powerstore_metricFilesystem_avg_write_latency{IP="fake-powerstore",name="fs-projects"} 602
+# HELP powerstore_metricFilesystem_avg_write_size Average write size in bytes.unit is bytes
+# TYPE powerstore_metricFilesystem_avg_write_size gauge
+powerstore_metricFilesystem_avg_write_size{IP="fake-powerstore",name="fs-archive"} 16384
+powerstore_metricFilesystem_avg_write_size{IP="fake-powerstore",name="fs-home"} 16384
+powerstore_metricFilesystem_avg_write_size{IP="fake-powerstore",name="fs-projects"} 16384

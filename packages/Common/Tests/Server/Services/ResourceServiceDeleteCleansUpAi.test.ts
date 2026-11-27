@@ -1,6 +1,7 @@
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DatabaseService from "../../../Server/Services/DatabaseService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
@@ -119,6 +120,11 @@ const WIRING: Array<ServiceWiring> = [
     resourceType: AiResourceType.OpenStackCloud,
     service: asService(OpenStackCloudService),
     resourceInNote: 'the OpenStack cloud "web-1"',
+  },
+  {
+    resourceType: AiResourceType.XcpNgPool,
+    service: asService(XcpNgPoolService),
+    resourceInNote: 'the XCP-ng pool "web-1"',
   },
   {
     resourceType: AiResourceType.DatabaseServer,

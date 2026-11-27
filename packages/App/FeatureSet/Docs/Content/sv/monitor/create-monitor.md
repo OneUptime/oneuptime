@@ -63,7 +63,7 @@ Klicka på **Nästa**. Inget på det här steget markeras som saknat förrän du
 
 ### Så utvärderas kriterier
 
-Resultatet av varje kontroll går igenom kriterierna uppifrån och ned, och det första som matchar avgör vad som händer. Det kriteriet kan ändra monitorns status, deklarera en incident, skapa ett larm eller valfri kombination av de tre. När inget matchar visar monitorn sin **Standardstatus för övervakning**, som ställs in under **Fler fält** under kriterierna (**Fungerar**, om du inte väljer en annan).
+Resultatet av varje kontroll går igenom kriterierna uppifrån och ned, och det första som matchar avgör vad som händer. Det kriteriet kan ändra monitorns status, deklarera en incident, skapa ett larm eller valfri kombination av de tre. Ett som inte ändrar någon status avgör ingen: det första kriteriet under det som matchar och ändrar statusen sätter den. När inget matchar visar monitorn sin **Standardstatus för övervakning**, som ställs in under **Fler fält** under kriterierna (**Fungerar**, om du inte väljer en annan).
 
 ```mermaid title="Från en kontroll till en status, en incident eller ett larm"
 flowchart TB

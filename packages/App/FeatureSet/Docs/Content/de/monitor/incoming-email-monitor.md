@@ -117,7 +117,7 @@ Schließen Sie die Bestätigung so ab, wie es die E-Mail beschreibt.
 Ist seitdem eine weitere E-Mail eingetroffen, zeigt die Karte die Bestätigungs-E-Mail nicht mehr. Öffnen Sie **Überwachungsprotokolle**, suchen Sie die Bestätigungs-E-Mail anhand ihres Betreffs in der Spalte **E-Mail** und klicken Sie in dieser Zeile auf **Zusammenfassung anzeigen**.
 
 > [!IMPORTANT]
-> **Auch Ihre Kriterien sehen sie.** Die Bestätigungs-E-Mail wird wie jede andere E-Mail geprüft. Eine Formulierung wie "if you received this in error" trifft auf das Standardkriterium `error` zu und markiert den Monitor als offline. Um das zu vermeiden, schalten Sie während der Bestätigung **Diesen Monitor prüfen** in der Karte **Überwachung** auf der Seite **Einstellungen** des Monitors aus (Sie werden um Bestätigung gebeten). Ein Monitor mit ausgeschalteter Überwachung speichert die E-Mail trotzdem, und die Karte **Monitor-Zusammenfassung** zeigt sie weiterhin. Er prüft aber nichts, die E-Mail bekommt also keine Zeile in **Überwachungsprotokolle**: Lesen Sie sie, bevor eine weitere E-Mail eintrifft. Wenn Sie fertig sind, klicken Sie im Banner oben auf den Seiten des Monitors auf **Überwachung einschalten**, oder schalten Sie den Schalter wieder ein.
+> **Auch Ihre Kriterien sehen sie.** Die Bestätigungs-E-Mail wird wie jede andere E-Mail geprüft. Eine Formulierung wie "if you received this in error" trifft auf das Standardkriterium `error` zu und markiert den Monitor als offline. Um das zu vermeiden, schalten Sie während der Bestätigung **Diesen Monitor prüfen** in der Karte **Überwachung** auf der Seite **Einstellungen** des Monitors aus (Sie werden um Bestätigung gebeten). Ein Monitor mit ausgeschalteter Überwachung speichert die E-Mail trotzdem, und die Karte **Monitor-Zusammenfassung** zeigt sie weiterhin. Er prüft aber nichts: Die Zeile der E-Mail in **Überwachungsprotokolle** sagt, dass sie nicht ausgewertet wurde, und **Zusammenfassung anzeigen** darin zeigt die ganze E-Mail. Wenn Sie fertig sind, klicken Sie im Banner oben auf den Seiten des Monitors auf **Überwachung einschalten**, oder schalten Sie den Schalter wieder ein.
 
 **Die Bestätigung gehört zur Adresse.** Wenn Sie [die Adresse zurücksetzen oder anpassen](#die-e-mail-adresse-zurücksetzen-oder-anpassen), sieht der Dienst einen neuen Empfänger, und Sie müssen erneut bestätigen.
 
@@ -186,6 +186,8 @@ Die eigene Adresse des Monitors wird maskiert, bevor ein Kriterium die E-Mail li
 Alle diese Vergleiche beachten die Groß- und Kleinschreibung nicht. Ein Filter mit leerem Wert trifft nie zu.
 
 ### Zeitbasierte Filter (E-Mail empfangen)
+
+Das englische Dashboard schreibt diese Bedingungen „Recieved“.
 
 | Filterbedingung | Beschreibung | Beispiel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Klicken Sie auf **Weitere Details anzeigen**, um den Rest zu sehen:
 
 ### Frühere E-Mails
 
-Die Karte zeigt nur die neueste E-Mail. Jede E-Mail, die der Monitor prüft, wird außerdem in **Überwachungsprotokolle** geschrieben: Die Spalte **E-Mail** zeigt ihren Betreff und Absender, und **Zusammenfassung anzeigen** in ihrer Zeile zeigt die ganze E-Mail so wie die Karte. Ein Monitor mit ausgeschalteter Überwachung prüft nichts, die E-Mails, die er erhält, bekommen also keine Zeilen. Prüft eines Ihrer Kriterien **E-Mail empfangen**, schreibt der Monitor außerdem bei jeder Prüfung auf fehlende E-Mails eine Zeile. Die Spalte **E-Mail** zeigt in diesen Zeilen "Scheduled check", und ihre **Zusammenfassung anzeigen** zeigt die zum Zeitpunkt der Prüfung neueste E-Mail oder "No email yet", falls keine eingetroffen war. Überwachungsprotokolle werden standardmäßig einen Tag lang aufbewahrt. Auf einem selbst gehosteten Server kann ein Administrator das mit **Aufbewahrung der Überwachungsprotokolle (Tage)** in den Einstellungen des Admin-Dashboards ändern.
+Die Karte zeigt nur die neueste E-Mail. Jede E-Mail, die der Monitor prüft, wird außerdem in **Überwachungsprotokolle** geschrieben: Die Spalte **E-Mail** zeigt ihren Betreff und Absender, und **Zusammenfassung anzeigen** in ihrer Zeile zeigt die ganze E-Mail so wie die Karte. Ein Monitor, der nicht geprüft wird – seine Überwachung ausgeschaltet oder durch einen Vorfall oder ein Wartungsereignis pausiert –, prüft nichts, daher bekommt jede E-Mail, die er erhält, eine Zeile, die sagt, dass sie nicht ausgewertet wurde, und warum. Prüft eines Ihrer Kriterien **E-Mail empfangen**, schreibt der Monitor außerdem bei jeder Prüfung auf fehlende E-Mails eine Zeile. Die Spalte **E-Mail** zeigt in diesen Zeilen "Scheduled check", und ihre **Zusammenfassung anzeigen** zeigt die zum Zeitpunkt der Prüfung neueste E-Mail oder "No email yet", falls keine eingetroffen war.
+
+Überwachungsprotokolle werden standardmäßig einen Tag lang aufbewahrt. Auf einem selbst gehosteten Server kann ein Administrator das mit **Aufbewahrung der Überwachungsprotokolle (Tage)** in den Einstellungen des Admin-Dashboards ändern.
 
 ## Selbst gehostete Einrichtung
 

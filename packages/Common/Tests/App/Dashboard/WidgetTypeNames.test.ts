@@ -54,6 +54,7 @@ const EXPECTED_NAMES: Record<DashboardComponentType, string> = {
   [DashboardComponentType.SecurityEventsFlow]: "Security Events Flow",
   [DashboardComponentType.ProductAnalyticsFunnel]: "Funnel",
   [DashboardComponentType.ProductAnalyticsRetention]: "User Retention",
+  [DashboardComponentType.CloudCost]: "Cloud Cost",
   [DashboardComponentType.TraceList]: "Trace List",
   [DashboardComponentType.TraceChart]: "Trace Chart",
   [DashboardComponentType.TraceTable]: "Trace Table",

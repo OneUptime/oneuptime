@@ -1,13 +1,12 @@
 import { describe, expect, test } from "@jest/globals";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddIncidentSeverityToIncidentFeed1809187750000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187750000-AddIncidentSeverityToIncidentFeed";
+import { AddIncidentSeverityToIncidentFeed1809187781400 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187781400-AddIncidentSeverityToIncidentFeed";
 import IncidentFeed from "../../../../Models/DatabaseModels/IncidentFeed";
 
-const MIGRATION_TIMESTAMP: string = "1809187750000";
+const MIGRATION_TIMESTAMP: string = "1809187781400";
 const MIGRATION_CLASS_NAME: string = `AddIncidentSeverityToIncidentFeed${MIGRATION_TIMESTAMP}`;
-const PREVIOUS_MIGRATION: string =
-  "AddSecurityUserErasureRequestProgress1809187741160";
+const PREVIOUS_MIGRATION: string = "AddStorageArrayConnections1809187781104";
 
 async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   const statements: Array<string> = [];
@@ -17,7 +16,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
   const migration: MigrationInterface =
-    new AddIncidentSeverityToIncidentFeed1809187750000();
+    new AddIncidentSeverityToIncidentFeed1809187781400();
 
   if (direction === "up") {
     await migration.up(runner);

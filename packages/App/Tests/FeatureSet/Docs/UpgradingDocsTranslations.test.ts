@@ -355,6 +355,10 @@ const PROSE_LEADS: Array<string> = [
   "Take the credentials 16 no longer gives out of your API scripts' reads.",
   "Update your Runners with the server.",
   "Replace every server of 15 soon, and roll back only within a day.",
+  // What you need to do for 18.
+  "If a synthetic monitor checks an app inside your network, let its probe reach private addresses.",
+  "If your OpenID Connect provider says an address is not verified, change it before you upgrade.",
+  "Give the API keys, Terraform configurations and workflows that write runbooks, code repositories, Runners or the project's secrets the permissions those writes take now.",
   // What you need to do for 17.
   "If an API script moves a row by writing its `order`, have it send the move request instead.",
   "If an API script adds a row in the middle of a list, have it create the row, then move it.",
@@ -474,13 +478,16 @@ const PROSE_LEADS: Array<string> = [
   "From the release after 16.0.0, webhook addresses and SNMP credentials are encrypted a day after the upgrade, so a server of 15 keeps using them while it rolls out.",
   "A new on-call rule made through the API or with Terraform starts on Key updates only.",
   "The background check of Incoming Request monitors reads only the request as it came.",
+  // Other changes in 18.
+  "A synthetic monitor's browser reaches a private address only on a probe that allows it, and never loopback, link-local or cloud metadata addresses.",
+  "Creating a runbook with steps that run takes the permission to change a runbook's steps.",
+  "OpenID Connect sign-in refuses an email address the identity provider says it has not verified.",
+  "Workflows that run with the default permissions no longer change runbook variables, monitor secrets, BI tool connections or threat intel feeds.",
+  "Only those who may write a runbook's steps that run set a code repository's commands or pick its Runner, and only those who may read a Runner's key choose one.",
   // Other changes in 17.
   "Rows that share a number are read in the order of their IDs, and a gap in the numbers changes nothing.",
   "A recurring maintenance template keeps its events' time of day when the clocks change, and a monthly one keeps its day of the month.",
   "Network sites have owners, and the `Owned` scope narrows them.",
-  "OpenID Connect sign-in refuses an email address the identity provider says it has not verified.",
-  "Workflows that run with the default permissions no longer change runbook variables, monitor secrets, BI tool connections or threat intel feeds.",
-  "Only those who may write a runbook's steps that run set a code repository's commands or pick its Runner, and only those who may read a Runner's key choose one.",
   "re-open each IPv6 Ping, Port and SSL monitor after the upgrade and save it again",
   "Upgrade the OneUptime server before the chart.",
   "Mirror the image, or opt out, if your upgrades wait.",
@@ -1355,15 +1362,16 @@ describe.each(LANGUAGES)("the %s upgrade guide", (language: string) => {
 
   /*
    * Every note of "Other changes in 14", "Other changes in 15", "Other
-   * changes in 16" and "Other changes in 17", in the English order: the same
-   * code, the same pages linked and the same numbers, note by note, so no
-   * note is dropped, merged or cut short.
+   * changes in 16", "Other changes in 17" and "Other changes in 18", in the
+   * English order: the same code, the same pages linked and the same
+   * numbers, note by note, so no note is dropped, merged or cut short.
    */
   it.each([
     [13, 14],
     [14, 15],
     [15, 16],
     [16, 17],
+    [17, 18],
   ])(
     "carries every note of the %i → %i changes, in order, with its code, links and numbers",
     (_from: number, to: number) => {

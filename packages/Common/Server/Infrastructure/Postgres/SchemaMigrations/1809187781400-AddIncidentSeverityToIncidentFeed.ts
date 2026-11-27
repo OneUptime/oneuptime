@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddIncidentSeverityToIncidentFeed1809187750000
+export class AddIncidentSeverityToIncidentFeed1809187781400
   implements MigrationInterface
 {
-  public name = "AddIncidentSeverityToIncidentFeed1809187750000";
+  public name = "AddIncidentSeverityToIncidentFeed1809187781400";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

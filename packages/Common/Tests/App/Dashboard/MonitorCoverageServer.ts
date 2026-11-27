@@ -1,11 +1,8 @@
 import MonitorRecommendationCoverageApi from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import MonitorRecommendationCreateUtil from "../../../Types/Monitor/Recommendation/MonitorRecommendationCreateUtil";
-import {
-  MonitorRecommendationCoverageMatcher,
-  MonitorRecommendationCoverageQuestion,
-} from "../../../Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
+import { MonitorRecommendationCoverageQuestion } from "../../../Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
 import ObjectID from "../../../Types/ObjectID";
+import { answerCoverage } from "./MonitorCoverageAnswer";
 import { jest } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
 
@@ -18,56 +15,12 @@ import type { SpyInstance } from "jest-mock";
  * project's monitors. A test hands this the monitors its project has, and
  * each question is answered from them as MonitorRecommendationCoverageQuery
  * answers it: the monitors of the question's type, in the order given (the
- * server reads them by name), matched by the server's own matcher.
+ * server reads them by name), matched by the server's own matcher
+ * (MonitorCoverageAnswer). A suite that hands none is
+ * answered from the monitors its ModelAPI stands in for (jest.setup.ts).
  */
 
-export function answerCoverage(data: {
-  questions: Array<MonitorRecommendationCoverageQuestion>;
-  monitors: Array<Monitor>;
-}): Map<string, ObjectID> {
-  const covered: Map<string, ObjectID> = new Map<string, ObjectID>();
-  const types: Set<string> = new Set<string>(
-    data.questions.map(
-      (question: MonitorRecommendationCoverageQuestion): string => {
-        return question.monitorType;
-      },
-    ),
-  );
-
-  for (const monitorType of types) {
-    const matcher: MonitorRecommendationCoverageMatcher =
-      new MonitorRecommendationCoverageMatcher(
-        data.questions.filter(
-          (question: MonitorRecommendationCoverageQuestion): boolean => {
-            return question.monitorType === monitorType;
-          },
-        ),
-      );
-
-    for (const monitor of data.monitors) {
-      const monitorId: string = (monitor.id || monitor._id || "").toString();
-
-      // A monitor with no type of its own is read as any type's, as a list's fake answered it.
-      if (
-        !monitorId ||
-        (monitor.monitorType && monitor.monitorType !== monitorType)
-      ) {
-        continue;
-      }
-
-      matcher.addMonitor(
-        monitorId,
-        MonitorRecommendationCreateUtil.getExistingMonitorSteps([monitor]),
-      );
-    }
-
-    for (const [key, monitorId] of matcher.getAnswer()) {
-      covered.set(key, new ObjectID(monitorId));
-    }
-  }
-
-  return covered;
-}
+export { answerCoverage };
 
 /*
  * Every coverage question a page asks, answered from `getMonitors()`

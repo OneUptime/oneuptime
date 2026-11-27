@@ -1421,7 +1421,7 @@ describe("Scan Now and Check Now", () => {
         storeRow = workerStore();
         storeRow.kind = DataStoreKind.AwsDynamoDbTable;
       },
-      "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+      "OneUptime cannot sample this kind of store's content yet.",
     ],
     [
       "a service's telemetry, which the hourly telemetry scan reads",

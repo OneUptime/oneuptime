@@ -44,12 +44,15 @@ The **Overview** says how your data stands now. Until the project is set up, it 
 
 ## Connect a database
 
-Use a **read-only login**. On the Overview or on Databases, choose **Connect a Database**, then either:
+Use a **read-only login**. On the Overview or on Databases, choose **Connect a Database**, then one of:
 
 - **OneUptime connects**: paste a connection string. It is stored encrypted and never shown again.
 - **A probe in my network connects**: pick one of this project's probes and name the probe's environment variable that holds the connection string (for example \`ORDERS_DB_URL\`). The connection string never leaves your network. Update the probe to the latest version first.
+- **My Database Agent connects**: pick the database server whose Database Agent runs beside it, and name the database on it to read. The agent reads it with logins of its own, so none is saved in OneUptime. It reads PostgreSQL, MySQL and MariaDB once its owner sets \`ONEUPTIME_DATA_OBSERVABILITY=true\` where it runs.
 
 A database already connected for Data Security is watched too.
+
+A database's **Settings**, in its menu, renames it (**Edit Details**), gives it another login, probe or Database Agent (**Change Connection**), stops reading it and forgets its tables and checks while Data Security keeps it (**Remove from Data Observability**), or deletes it from OneUptime (**Delete Database**). While Data Security relies on a database, only someone who may delete Data Security's data stores can delete it.
 
 **Databases You Could Connect**, on the same page, lists what your project already knows of and nobody has connected: databases your traces talk to, ones in your cloud accounts, and ones Database Monitoring watches. **Connect** starts the form from what is known of each. Nothing is read until you connect it.
 

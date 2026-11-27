@@ -180,6 +180,8 @@ ENV_ARGS=(
   -e "PURE_FB_ENDPOINT=flashblade.example.com"
   -e "PURE_FB_API_TOKEN=validate-only"
   -e "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true"
+  # A PowerStore's address names the cluster in every path its config scrapes.
+  -e "POWERSTORE_ENDPOINT=powerstore.example.com"
   # The XCP-ng Agent (a prometheus receiver scraping Xen Orchestra's
   # OpenMetrics plugin). The scheme has to be http or https and the target
   # parse as host:port - so give them the shapes install.sh writes. Its
@@ -366,18 +368,70 @@ fi
 
 # The Storage Array Agent ships one config per way of reading an array:
 # docker-compose.yml mounts the one STORAGE_ARRAY_COLLECTOR_CONFIG names (the
-# FlashArray's native endpoint, or Pure's FlashArray / FlashBlade exporter).
-# Every one of them is validated.
+# FlashArray's native endpoint, Pure's FlashArray / FlashBlade exporter, or
+# NetApp Harvest for an ONTAP cluster). Every one of them is validated.
 STORAGE_ARRAY_AGENT_CONFIGS=(
   otel-collector-config.yaml
   otel-collector-config.flasharray-exporter.yaml
   otel-collector-config.flashblade.yaml
+  otel-collector-config.netapp-ontap.yaml
 )
 
 for config in "${STORAGE_ARRAY_AGENT_CONFIGS[@]}"; do
   cp "${REPO_ROOT}/agents/StorageArrayAgent/${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
   validate "StorageArrayAgent / ${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
 done
+
+# Dell PowerStore (#11002): its collector config, which scrapes Dell's
+# exporter, and the config of its syslog collector (the powerstore-syslog
+# service), which publishes the syslog port itself - so neither carries the
+# commented-out syslog option the loop further down uncomments. The syslog
+# config's TLS receiver ships commented out instead: uncommented as the
+# config says, with a certificate made here where the compose file mounts
+# one, it must start too.
+for config in otel-collector-config.powerstore.yaml powerstore-syslog.yaml; do
+  cp "${REPO_ROOT}/agents/StorageArrayAgent/${config}" "${WORK_DIR}/StorageArrayAgent-${config}"
+  validate "StorageArrayAgent / ${config}" "${WORK_DIR}/StorageArrayAgent-${config}" \
+    -e "STORAGE_SYSTEM=dell.powerstore"
+done
+openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=validate-only" \
+  -keyout "${WORK_DIR}/powerstore-syslog-tls.key" \
+  -out "${WORK_DIR}/powerstore-syslog-tls.crt" >/dev/null 2>&1
+chmod 0644 "${WORK_DIR}/powerstore-syslog-tls.key" "${WORK_DIR}/powerstore-syslog-tls.crt"
+node -e '
+const fs = require("fs");
+const yaml = require("js-yaml");
+
+const [source, out] = process.argv.slice(1);
+const lines = [];
+let inBlock = false;
+for (const line of fs.readFileSync(source, "utf8").split("\n")) {
+  if (line === "  # syslog/tls:") {
+    inBlock = true;
+    lines.push("  syslog/tls:");
+    continue;
+  }
+  if (inBlock && line.startsWith("  #   ")) {
+    lines.push("  " + line.slice(4));
+    continue;
+  }
+  inBlock = false;
+  lines.push(line);
+}
+const config = yaml.load(lines.join("\n"));
+const tls = config.receivers["syslog/tls"];
+if (!tls || !tls.tcp || !tls.tcp.tls || tls.tcp.listen_address !== "0.0.0.0:6514") {
+  throw new Error(`${source}: uncommenting found no syslog/tls receiver`);
+}
+config.service.pipelines.logs.receivers.push("syslog/tls");
+fs.writeFileSync(out, yaml.dump(config));
+' "${REPO_ROOT}/agents/StorageArrayAgent/powerstore-syslog.yaml" \
+  "${WORK_DIR}/StorageArrayAgent-powerstore-syslog-tls.yaml"
+validate "StorageArrayAgent / powerstore-syslog.yaml, with its TLS receiver uncommented" \
+  "${WORK_DIR}/StorageArrayAgent-powerstore-syslog-tls.yaml" \
+  -e "STORAGE_SYSTEM=dell.powerstore" \
+  -v "${WORK_DIR}/powerstore-syslog-tls.crt":/etc/otelcol-contrib/powerstore-syslog-tls.crt:ro \
+  -v "${WORK_DIR}/powerstore-syslog-tls.key":/etc/otelcol-contrib/powerstore-syslog-tls.key:ro
 
 # STORAGE_ARRAY_NAME is stamped as storage.array.name by the resource
 # processor, which refuses to start on an empty value — so an agent whose

@@ -92,6 +92,13 @@ describe("XcpNgTelemetry - the names", () => {
       "xcp_ng.host.enabled",
       "xcp_ng.vm.running",
       "xcp_ng.vm.stopped_after_running",
+      // #10997: what a probe reads beyond the metrics.
+      "xcp_ng.pool.ha.enabled",
+      "xcp_ng.pool.ha.can_tolerate_host_failure",
+      "xcp_ng.pool.ha.host_failures_to_tolerate",
+      "xcp_ng.pool.ha.plan_exists_for",
+      "xcp_ng.vm.backup_overdue",
+      "xcp_ng.host.missing_patches",
     ]);
     for (const name of Object.values(XcpNgDerivedSeries)) {
       expect(name.startsWith("xcp_ng.")).toBe(true);

@@ -336,6 +336,70 @@ The status shows whether the agent registered with OneUptime and — in its post
 | `lacks a privilege` / `may not kill other users' connections` / `NOPERM` | Grant the login what [The login is the hard limit](#the-login-is-the-hard-limit) lists. |
 | `this agent is read-only (ONEUPTIME_AI_ALLOW_WRITES …)` | Set `ONEUPTIME_AI_ALLOW_WRITES=true` in `.env`, then `docker compose up -d`. |
 
+## Data Observability
+
+The same `oneuptime-database-ai-agent` container can read this server's databases for [Data Observability](https://oneuptime.com/docs/data-observability/connect#through-a-database-agent): their tables and columns, row counts, sizes and when they last changed, schema changes, and the data checks and reconciliations you set up on them. A database this agent already reaches then needs no connection string in OneUptime and no probe: the agent reads it with logins of its own environment, and nothing it reads with leaves it.
+
+It is off until you turn it on. Add to `.env` and run `docker compose up -d`:
+
+```bash
+ONEUPTIME_DATA_OBSERVABILITY=true
+```
+
+Then, in OneUptime, open **Data Observability → Databases → Connect a Database**, choose **My Database Agent connects**, pick this database server and name the database on it to read (on MySQL and MariaDB, the database is the schema). A database you connected another way switches over in its **Settings → Change Connection**.
+
+**What it runs.** OneUptime tells the agent which database to read and which checks are due - each check as its type and the table and columns it reads - never a statement and never a login. The agent builds every statement itself, from the same fixed shapes OneUptime's own collectors use, copied into the agent:
+
+- the catalog, with fixed statements: tables and views, their columns, row estimates, sizes, read and write counters, and which views read which tables;
+- each due check, only when every table and column it names is in the catalog the agent has just read. Names are quoted the way the engine quotes a name, and every value a check compares with (accepted values, a pattern) is a bound parameter;
+- a table's freshness column, judged and built the same way.
+
+Every statement runs in a read-only transaction of its own (`BEGIN READ ONLY` on PostgreSQL; a read-only session and `START TRANSACTION READ ONLY` on MySQL and MariaDB), with a 30-second statement limit and a 5-second lock limit, and is rolled back. A check sends back one number; no row ever leaves the database. **Custom SQL** and **Failing Rows** checks are the one kind a person writes, so the agent runs them only when you allow it with `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true` - and then still one statement that only reads, in a read-only transaction. Without it, those checks say so on their page and every other check runs.
+
+**Logins, one per job.** Give each the least it needs, and the agent uses each only for its job:
+
+| Job | Variables | Without them |
+| --- | --- | --- |
+| Reading the catalog | `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` / `_PASSWORD` | The collector's `DATABASE_USERNAME` / `DATABASE_PASSWORD` (never the AI agent's own login, which may end sessions) |
+| Running checks and freshness columns, which read rows | `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` / `_PASSWORD` | The catalog login |
+
+These two are read as written: no `$$` doubling, like the AI agent's own login.
+
+PostgreSQL - the catalog needs only `CONNECT` on the database and `USAGE` on its schemas; checks need `SELECT` on the tables they read:
+
+```sql
+CREATE USER oneuptime_catalog WITH PASSWORD 'a-strong-password';
+GRANT CONNECT ON DATABASE orders TO oneuptime_catalog;
+GRANT USAGE ON SCHEMA public TO oneuptime_catalog;
+
+CREATE USER oneuptime_checks WITH PASSWORD 'another-strong-password';
+GRANT CONNECT ON DATABASE orders TO oneuptime_checks;
+GRANT USAGE ON SCHEMA public TO oneuptime_checks;
+GRANT SELECT ON orders, customers TO oneuptime_checks;
+```
+
+MySQL and MariaDB - the catalog lists the tables a login has some privilege on, so give it `SHOW VIEW` and `REFERENCES`, which read no row, and `SELECT` on `performance_schema.table_io_waits_summary_by_table` for the write counters. MySQL shows which tables a view reads only to a login that may `SELECT` the view; MariaDB keeps no such record. Checks need `SELECT` on the tables they read:
+
+```sql
+CREATE USER 'oneuptime_catalog'@'%' IDENTIFIED BY 'a-strong-password';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_catalog'@'%';
+GRANT SELECT ON performance_schema.table_io_waits_summary_by_table TO 'oneuptime_catalog'@'%';
+
+CREATE USER 'oneuptime_checks'@'%' IDENTIFIED BY 'another-strong-password';
+GRANT SHOW VIEW, REFERENCES ON orders.* TO 'oneuptime_checks'@'%';
+GRANT SELECT ON orders.orders TO 'oneuptime_checks'@'%';
+```
+
+| Variable | Description |
+| --- | --- |
+| `ONEUPTIME_DATA_OBSERVABILITY` | `true` turns reading databases for Data Observability on. Anything else leaves it off (default) |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` / `_PASSWORD` | The catalog's login. Default: the collector's |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` / `_PASSWORD` | The checks' login. Default: the catalog's |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `false` runs no check at all: the catalog alone |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `true` runs Custom SQL and Failing Rows checks. Default: off |
+
+It reads PostgreSQL, MySQL and MariaDB databases. The agent asks OneUptime for work every minute and reports each database it read; the database's page in OneUptime shows how the last read went, and says what stands in the way when the agent cannot read it (**Database Agent not ready**). The agent's log says why it is off when you asked for it: `docker compose logs oneuptime-database-ai-agent | grep "Data Observability"`.
+
 ## Alert on the database
 
 The database's **Recommendations** tab in OneUptime offers ready-made monitors for its engine once the agent's metrics arrive. To build your own: the agent's data carries `oneuptime.database.server.id`, and a **Metrics** monitor over an engine metric that filters on that attribute (or groups by it) attaches its alerts and incidents to the database, and the database's scheduled maintenance applies to them.

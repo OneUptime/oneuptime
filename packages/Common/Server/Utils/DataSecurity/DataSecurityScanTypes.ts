@@ -1,3 +1,4 @@
+import { DataStorePostureFacts } from "../../../Types/DataSecurity/DataStorePosture";
 import { FindingSampleRecord } from "../../../Types/DataSecurity/FindingSampleRecord";
 import { JSONObject } from "../../../Types/JSON";
 import { FieldClassification } from "../../../Utils/DataSecurity/FieldClassifier";
@@ -129,6 +130,14 @@ export interface ContentScanResult {
    * proposals (DataTypeProving), never as findings.
    */
   shadowCounts?: ShadowCounts | undefined;
+  /*
+   * How exposed the store is, as its own endpoint answered without
+   * credentials (#11140, Content/SearchEndpointCheck): a self-managed
+   * search cluster's scan only. Written as the store's posture, so its
+   * exposure is worked out from it. Absent for every other scan, which
+   * leaves a store's posture as it is.
+   */
+  posture?: DataStorePostureFacts | undefined;
 }
 
 // The most entries a scan's read log keeps.

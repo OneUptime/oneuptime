@@ -146,6 +146,20 @@ export const CLI_ACTIONS: ReadonlyArray<CliAction> = [
 ];
 
 /*
+ * The commands a resource has of its own, after its operations, fields and
+ * actions: the cloud's spend broken down and exported as FOCUS (#11009).
+ */
+export const CLI_RESOURCE_OWN_COMMANDS: Readonly<
+  Record<string, ReadonlyArray<string>>
+> = {
+  "cloud-cost": ["breakdown", "export"],
+};
+
+export function getCliResourceOwnCommands(resourceName: string): Array<string> {
+  return [...(CLI_RESOURCE_OWN_COMMANDS[resourceName] || [])];
+}
+
+/*
  * NAMES
  */
 

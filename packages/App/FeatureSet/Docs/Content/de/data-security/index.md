@@ -6,7 +6,7 @@ Sie beantwortet vier Fragen:
 
 :::cards
 - [Wo sind unsere sensiblen Daten?](/docs/data-security/data-types): 143 Datentypen, von Kartennummern und nationalen Ausweisnummern bis zu API-Schlüsseln, gefunden in Buckets, Tabellen und Telemetrie.
-- [Sind sie exponiert?](/docs/data-security/checks-and-issues): 34 Prüfungen jedes Datenspeichers: öffentlicher Zugriff, Verschlüsselung, Backups, Protokollierung, Geheimnisse und Kopien.
+- [Sind sie exponiert?](/docs/data-security/checks-and-issues): 35 Prüfungen jedes Datenspeichers: öffentlicher Zugriff, Verschlüsselung, Backups, Protokollierung, Geheimnisse und Kopien.
 - [Wer kann sie erreichen, und wohin gelangen sie?](/docs/data-security/flows-access-residency): Jede Identität, die einen Datenspeicher erreichen kann, die riskanteste zuerst, welche Dienste ihn nutzen und welche KI-Anbieter und Hosts seine Daten erreichen.
 - [Entsprechen sie unseren Regeln?](/docs/data-security/compliance): Residenzregeln und neun Compliance-Rahmenwerke, bewertet anhand dessen, was die Scans gefunden haben.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Bevor Sie beginnen
 
 - **Eine Rolle, die sie einrichten darf.** Projektinhaber, Projektadministratoren und Sicherheits-Administratoren ändern die Einstellungen der Datensicherheit. Sicherheits-Mitglieder bearbeiten Probleme und scannen Datenspeicher, und Sicherheits-Betrachter lesen, was sie gefunden hat. Andere Rollen sehen nichts davon, sofern ihr Team nicht die entsprechenden Berechtigungen erhält: Welche Buckets Kartennummern enthalten, ist genau das, was ein Angreifer wissen will. Siehe [Rollen](/docs/permissions/reference#rollen).
-- **Ein Cloud-Konto zum Lesen oder eine Datenbank.** Datensicherheit liest ein Cloud-Konto über eine [Cloud-Verbindung](/docs/telemetry/cloud-accounts) und eine Datenbank, die Sie betreiben, über eine schreibgeschützte Verbindungszeichenfolge. Telemetrie braucht nichts: Sie wird jede Stunde gescannt.
+- **Ein Cloud-Konto zum Lesen oder ein Datenspeicher, den Sie betreiben.** Datensicherheit liest ein Cloud-Konto über eine [Cloud-Verbindung](/docs/telemetry/cloud-accounts) und eine Datenbank oder einen Such-Cluster, die Sie betreiben, über eine schreibgeschützte Verbindungszeichenfolge. Telemetrie braucht nichts: Sie wird jede Stunde gescannt.
 
 ## Schnellstart
 
@@ -69,10 +69,10 @@ Setzen Sie unter **Weitere Felder** die Option **Datensicherheit** auf **Nur Kon
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Datenbanken, die Sie betreiben | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Datenspeicher, die Sie betreiben | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen, Metriken, Sicherheitsereignisse, Netzwerk-Flows, Sicherheits-Adresstresor, Sicherheits-Benutzertresor | Protokolle, Traces, Ausnahmen, Sitzungswiedergaben, KI-Unterhaltungen, Metriken |
 
-Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten. Ein Datenspeicher, von dessen Inhalt sich keine Stichproben nehmen lassen, wird trotzdem geprüft: Ein öffentlicher Bucket oder eine unverschlüsselte Datenbank ist ein Problem, egal was darin liegt. Sicherheitsereignisse, Netzwerk-Flows und Sicherheits-Adresstresor sind OneUptimes eigene, für Ihre Sicherheit geführt: deklariert, nie gescannt und nie geprüft (siehe [Datenspeicher, die OneUptime für Ihre Sicherheit führt](/docs/data-security/compliance#datenspeicher-die-oneuptime-für-ihre-sicherheit-führt)).
+Jeder Datenspeicher erhält die Prüfungen, die für seine Art gelten, nach dem, was OneUptime von ihm lesen kann. Ein Datenspeicher in einem Cloud-Konto wird aus den eigenen Einstellungen seiner Cloud gelesen und daher geprüft, ob sich von seinem Inhalt Stichproben nehmen lassen oder nicht: Ein öffentlicher Bucket oder eine unverschlüsselte Datenbank ist ein Problem, egal was darin liegt. Ein Datenspeicher, den Sie betreiben, hat keine solchen Einstellungen, die OneUptime lesen könnte: Ein Elasticsearch- oder OpenSearch-Cluster wird bei jedem Inhaltsscan an seiner eigenen Adresse gefragt, ob er ohne Anmeldedaten antwortet, und wie die anderen Arten erreichbar sind, wird nicht geprüft (siehe [Was OneUptime bei einem Datenspeicher prüft, den Sie betreiben](/docs/data-security/setup#was-oneuptime-bei-einem-datenspeicher-prüft-den-sie-betreiben)). Die **Einstellungen** jedes Datenspeichers sagen unter **Was OneUptime prüft**, was an ihm geprüft wird und was nicht. Sicherheitsereignisse, Netzwerk-Flows und Sicherheits-Adresstresor sind OneUptimes eigene, für Ihre Sicherheit geführt: deklariert, nie gescannt und nie geprüft (siehe [Datenspeicher, die OneUptime für Ihre Sicherheit führt](/docs/data-security/compliance#datenspeicher-die-oneuptime-für-ihre-sicherheit-führt)).
 
 Ein Datenspeicher wird mit seinem Verlauf archiviert, sobald seine Quelle ihn nicht mehr aufführt, und seine offenen Probleme werden behoben: **Archivierte Datenspeicher**, am Ende des Menüs der Datensicherheit, bewahrt ihn auf. Er kehrt von selbst zurück, wenn seine Quelle ihn wieder aufführt, und ein Problem, dessen Prüfung noch fehlschlägt, öffnet sich erneut.
 
@@ -86,9 +86,10 @@ Die **Zeitachse** eines Datenspeichers sagt, was mit ihm geschah und wer es geta
 | Die Konfiguration einer Cloud-Verbindung lesen | Einmal am Tag, und innerhalb einer Stunde, nachdem CloudTrail eine Änderung an Zugriff, Verschlüsselung, Backups oder Freigabe eines AWS-Datenspeichers aufgezeichnet hat |
 | Stichproben vom Inhalt eines Datenspeichers nehmen | Alle 24 Stunden, oder so oft, wie **Scan-Intervall (Stunden)** angibt |
 | Stichproben von der Telemetrie jedes Dienstes nehmen | Jede Stunde, aus der jeweils letzten Stunde |
+| Einen Such-Cluster, den Sie betreiben, fragen, ob er ohne Anmeldedaten antwortet | Bei jedem seiner Inhaltsscans |
 | Jeden Datenspeicher erneut prüfen | Nach jedem Lesen und jedem Scan, nachdem Sie etwas ändern, wovon eine Prüfung abhängt, und einmal am Tag |
 
-**Jetzt scannen** an einem Datenspeicher nimmt sofort Stichproben seines Inhalts, und **Jetzt prüfen** liest seine Konfiguration erneut.
+**Jetzt scannen** an einem Datenspeicher nimmt sofort Stichproben seines Inhalts und fragt einen Such-Cluster, den Sie betreiben, erneut, ob er ohne Anmeldedaten antwortet. **Jetzt prüfen** liest die Konfiguration eines Datenspeichers in einem Cloud-Konto erneut und führt die Prüfungen des Datenspeichers erneut aus.
 
 ## Nächste Schritte
 

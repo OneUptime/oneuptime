@@ -1206,9 +1206,20 @@ import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeS
 import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
 import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSavingsActions";
 import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
+import { AddXcpNgConnections1809187730000 } from "./1809187730000-AddXcpNgConnections";
+import { AddXcpNgPoolConnectionKey1809187730010 } from "./1809187730010-AddXcpNgPoolConnectionKey";
 import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
-import { AddIncidentSeverityToIncidentFeed1809187750000 } from "./1809187750000-AddIncidentSeverityToIncidentFeed";
+import { AddDataStoreDataObservabilityRemovalAndAgent1809187741147 } from "./1809187741147-AddDataStoreDataObservabilityRemovalAndAgent";
+import { AddDataStoreDatabaseAgentIndexAndKey1809187741148 } from "./1809187741148-AddDataStoreDatabaseAgentIndexAndKey";
 import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
+import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-AddKeepMonitoringDuringIncidents";
+import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostReports";
+import { AddCloudBudgetScopesPeriodsAndPlans1809187771008 } from "./1809187771008-AddCloudBudgetScopesPeriodsAndPlans";
+import { AddCloudBudgetCostGroupIndexAndKey1809187771018 } from "./1809187771018-AddCloudBudgetCostGroupIndexAndKey";
+import { AddXcpNgPoolAiAccess1809187772000 } from "./1809187772000-AddXcpNgPoolAiAccess";
+import { AddXcpNgPoolEventsAndBackups1809187780997 } from "./1809187780997-AddXcpNgPoolEventsAndBackups";
+import { AddStorageArrayConnections1809187781104 } from "./1809187781104-AddStorageArrayConnections";
+import { AddIncidentSeverityToIncidentFeed1809187781400 } from "./1809187781400-AddIncidentSeverityToIncidentFeed";
 
 export default [
   InitialMigration,
@@ -2419,7 +2430,18 @@ export default [
   AddXcpNgPoolTables1809187720000,
   AddCloudSavingsActions1809187721010,
   AddCloudCostBasesAndCommitments1809187721011,
+  AddXcpNgConnections1809187730000,
+  AddXcpNgPoolConnectionKey1809187730010,
   AddSanSwitchFibreChannelColumns1809187731166,
+  AddDataStoreDataObservabilityRemovalAndAgent1809187741147,
+  AddDataStoreDatabaseAgentIndexAndKey1809187741148,
   AddSecurityUserErasureRequestProgress1809187741160,
-  AddIncidentSeverityToIncidentFeed1809187750000,
+  AddKeepMonitoringDuringIncidents1809187751141,
+  AddCloudCostReports1809187761009,
+  AddCloudBudgetScopesPeriodsAndPlans1809187771008,
+  AddCloudBudgetCostGroupIndexAndKey1809187771018,
+  AddXcpNgPoolAiAccess1809187772000,
+  AddXcpNgPoolEventsAndBackups1809187780997,
+  AddStorageArrayConnections1809187781104,
+  AddIncidentSeverityToIncidentFeed1809187781400,
 ];

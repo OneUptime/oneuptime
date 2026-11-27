@@ -454,8 +454,19 @@ Database Agent の `docker-compose.yml` は **データベース AI エージェ
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | コンテナーにマウントした PEM 形式の CA バンドル (`oneuptime-database-ai-agent` のコメントアウトされた `volumes` を参照)。`DATABASE_TLS_INSECURE=false` のとき、サーバーの証明書をこれで検証します |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Collector の ID | AI エージェントを Collector とは別のデータベースとして登録します。OneUptime での ID または `<engine>\|<address>:<port>` を指定します。空のままにしてください |
 | `LOG_LEVEL` | `info` | AI エージェントのログレベル: `debug`、`info`、`warn`、`error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` でエージェントがこのサーバーのデータベースをデータオブザーバビリティ用に読み取れるようになります。それ以外の値ではオフのままです |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | 監視用ログイン | データオブザーバビリティがカタログを読み取るログイン。そのまま書きます。`$` は二重にしません |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | そのログインのパスワード。単一引用符で囲みます |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` ではデータチェックを実行せず、カタログだけを読み取ります |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | カタログのログイン | データチェックが行を読み取るログイン |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | そのログインのパスワード。単一引用符で囲みます |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` でカスタム SQL と失敗した行のチェックを実行します |
 
 実行できるコマンド、修正の仕組み、トラブルシューティングの方法: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#データベースサーバー)。
+
+### 同じエージェントによるデータオブザーバビリティ
+
+同じエージェントで、このサーバーの PostgreSQL、MySQL、MariaDB のデータベースを [データオブザーバビリティ](/docs/data-observability/index) 用に読み取ることもできます: テーブルと列、鮮度とボリューム、スキーマの変更、設定したチェックです。エージェントは自身の環境のログインと自分で組み立てたステートメントで読み取り専用に読み取り、行もログインも返しません。同じ `.env` に `ONEUPTIME_DATA_OBSERVABILITY=true` を設定するまではオフです。エージェントの選び方と付与するログインについては、 [データベースを接続する](/docs/data-observability/connect#database-agent-経由) を参照してください。
 
 ## Kubernetes
 

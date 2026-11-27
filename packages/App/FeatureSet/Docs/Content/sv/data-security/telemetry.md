@@ -170,7 +170,7 @@ Innan OneUptime AI börjar läser Datasäkerhet om posterna som varje läcka set
 
 - **Ett span eller ett AI-anrop**: filen, raden och funktionen som dess attribut `code.*` nämner, och spannets namn.
 - **Ett undantag**: dess egna översta ramar, de i tjänstens kod.
-- **En loggrad**: filen, raden och funktionen som dess attribut nämner, när den har dem, dess loggare och raden som mall, där varje värde ersatts av namnet på sin typ, till exempel `User <Email address> signed up`, och varje ord som dess poster inte bevisar att koden skrev, till exempel en persons namn, av `<value>`: `Payment declined for Maria Gonzalez`, läst från en enda post, blir `Payment declined for <value>`. Ett spans namn och ett mätvärdes namn läses på samma sätt.
+- **En loggrad**: filen, raden och funktionen som dess attribut nämner, när den har dem, dess loggare och raden som mall, där varje värde ersatts av namnet på sin typ, till exempel `User <Email address> signed up`, och varje ord som inte är ett av de ord som kod skriver loggrader med, till exempel en persons namn eller ett användarnamn, av `<value>`, hur många av dess poster som än delar ordet: `Payment declined for Maria Gonzalez` blir `Payment declined for <value>`, och `Ticket assigned to jdoe`, läst från alla radens poster, blir `Ticket assigned to <value>`. Ett spans namn och ett mätvärdes namn läses på samma sätt.
 - **Ett mätvärde**: mätvärdets namn.
 - **Varje läcka**: dess attributnyckel, till exempel `user.email`, som koden oftast skriver som den är.
 

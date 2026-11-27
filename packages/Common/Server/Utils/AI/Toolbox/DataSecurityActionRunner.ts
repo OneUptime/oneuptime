@@ -3,8 +3,8 @@ import {
   AIActionSentence,
   describeAIActionSentence,
 } from "../../../../Types/AI/AIActionWords";
+import { getAsksInEveryModeRefusal } from "../../../../Types/AI/AIAlwaysAskChanges";
 import {
-  ASKS_IN_EVERY_MODE_REFUSAL_PREFIX,
   DATA_SECURITY_ACTIONS_RUN_OUTSIDE_CHAT,
   DataSecurityActionRunResult,
   getDataSecurityActionApiKeyRefusal,
@@ -76,22 +76,12 @@ export const READ_ONLY_DATA_SECURITY_CONNECTION_REFUSAL: string =
 
 /*
  * Why an action that asks in every mode is refused outside the chat, and
- * where to do it: the card's reason, then the page. Its opening is
- * ASKS_IN_EVERY_MODE_REFUSAL_PREFIX, which the MCP server reads to tell its
- * agent what to do next.
+ * where to do it: the card's reason, then the page. Written once, beside
+ * the list of what asks in every mode (Types/AI/AIAlwaysAskChanges), since
+ * the MCP server refuses a record's write that makes the same change in
+ * the same sentence (#11177).
  */
-export function getAsksInEveryModeRefusal(data: {
-  action: string;
-  reason: string | undefined;
-  pageUrl: string | null;
-}): string {
-  const reason: string = data.reason ? ` ${data.reason}` : "";
-  const where: string = data.pageUrl
-    ? ` Do it in OneUptime, on ${data.pageUrl}, with the page's own button or with Ask AI there, which shows the change on a card for the person to approve.`
-    : " Do it in OneUptime, with Data Security's own button or with Ask AI, which shows the change on a card for the person to approve.";
-
-  return `${ASKS_IN_EVERY_MODE_REFUSAL_PREFIX}${reason} An MCP client shows no card OneUptime can wait on, so ${data.action} is not run here.${where}`;
-}
+export { getAsksInEveryModeRefusal };
 
 // A card's sentences, in English.
 function inEnglish(

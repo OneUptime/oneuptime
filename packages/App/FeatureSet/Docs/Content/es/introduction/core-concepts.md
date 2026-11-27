@@ -44,7 +44,7 @@ Las personas están en un proyecto a través de **equipos**, y los permisos de u
 
 Un **monitor** comprueba una cosa que ejecutas y decide si funciona. La mayoría de los monitores los comprueban **sondas**: máquinas que ejecutan la comprobación según una programación, como pedir una página, llamar a una API, hacer ping a un host o consultar una base de datos. OneUptime Cloud ejecuta sondas en varias regiones, una instalación autoalojada ejecuta las suyas, y puedes añadir sondas personalizadas dentro de tu red. Otros monitores leen en cambio lo que envías: la telemetría de tus aplicaciones, o los datos que informa un agente desde tus servidores, tus clústeres de Kubernetes y el resto de tu infraestructura.
 
-Los **criterios** de un monitor deciden qué significa cada resultado. Se evalúan en orden, y el primero que coincide puede cambiar el estado del monitor, declarar un incidente, crear una alerta o las tres cosas. Cada proyecto nuevo tiene tres estados de monitor: **Operativo**, **Degradado** y **Sin conexión**.
+Los **criterios** de un monitor deciden qué significa cada resultado. Se evalúan en orden, y el primero que coincide puede cambiar el estado del monitor, declarar un incidente, crear una alerta o las tres cosas. Uno que no cambia ningún estado deja el estado al siguiente criterio que coincide y lo cambia. Cada proyecto nuevo tiene tres estados de monitor: **Operativo**, **Degradado** y **Sin conexión**.
 
 :::cards
 - [Crear un monitor](/docs/monitor/create-monitor): Elegir un tipo, decir qué comprobar y con qué frecuencia.

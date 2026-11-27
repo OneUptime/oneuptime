@@ -1,11 +1,12 @@
 # Konfigurer Datasikkerhed
 
-Datasikkerhed læser kun det, du tillader. Hver cloudforbindelse læses på et af tre niveauer, en database, du selv driver, læses med en forbindelsesstreng, du giver den, og telemetri kræver intet. Denne side fortæller, hvad hvert valg lader OneUptime læse, præcis hvilke tilladelser det giver, og hvad OneUptime gemmer af det, den læser.
+Datasikkerhed læser kun det, du tillader. Hver cloudforbindelse læses på et af tre niveauer, en database eller en søgeklynge, du selv driver, læses med en forbindelsesstreng, du giver den, og telemetri kræver intet. Denne side fortæller, hvad hvert valg lader OneUptime læse, præcis hvilke tilladelser det giver, og hvad OneUptime gemmer af det, den læser.
 
 :::cards
 - [Vælg et niveau](#vælg-et-niveau-for-hver-forbindelse): Fra, Kun konfiguration eller Konfiguration og indholdsprøver.
 - [Hvad hvert niveau giver adgang til](#hvad-hvert-niveau-giver-adgang-til): AWS-handlingerne og rollerne i Azure og Google Cloud.
-- [Scan en database, du selv driver](#scan-en-database-du-selv-driver): En skrivebeskyttet forbindelsesstreng eller en sonde i dit netværk.
+- [Scan et datalager, du selv driver](#scan-et-datalager-du-selv-driver): En skrivebeskyttet forbindelsesstreng eller en sonde i dit netværk.
+- [Hvad OneUptime kontrollerer på et datalager, du selv driver](#hvad-oneuptime-kontrollerer-på-et-datalager-du-selv-driver): Om det svarer uden loginoplysninger, spurgt fra der, hvor dets scanning kører.
 - [Hvad OneUptime gemmer](#hvad-oneuptime-gemmer): Antal, placeringer og maskerede prøver, aldrig en værdi.
 - [Lad Datasikkerhed lukke en eksponering](#lad-datasikkerhed-lukke-en-eksponering): De eneste skriveadgange, en forbindelse kan få, slået fra, indtil du slår dem til.
 :::
@@ -173,17 +174,75 @@ En scanning læser lidt af et datalager inden for projektets grænser og stopper
 - **Buckets og containere** prøvetages efter slags, ikke efter antal. Objektnavnene oplistes først, højst ti gange så mange, som scanningen må læse, og aldrig flere end 200.000. Hvert navn bliver til sit mønster, hvor datoer, UUID'er, lange hex-sekvenser og tal gøres til `*`, så `exports/2026-10-27/users-0001.csv` bliver til `exports/*/users-*.csv`. De nyeste objekter for hvert mønster læses, ét af hvert mønster, før der læses et andet af noget mønster, og højst 5 af ét mønster. Hvert objekt læses fra begyndelsen: højst **Byte pr. objekt** af det og **Byte pr. scanning** i alt. En scanning tager prøver af højst 10 containere i en Azure-lagerkonto.
 - **Filer læses som det, de er.** CSV og TSV efter kolonne, JSON og JSON Lines efter sti, `.env`, `.ini`, `.properties`, TOML og YAML efter nøgle, XML og HTML som deres tekst, Word-, Excel- og PowerPoint-filer efter deres tekst og celler og alt andet som fritekst. En gzip-fil pakkes først ud. Billeder, Parquet, Avro, PDF og andre binære formater læses ikke, og scanningen siger det.
 - **Datasæt og databaser** læses tabel for tabel: højst **Tabeller pr. scanning** tabeller og **Rækker pr. tabel** rækker fra hver.
+- **Søgeklynger** læses indeks for indeks, som en database læses tabel for tabel: højst **Tabeller pr. scanning** indekser og **Rækker pr. tabel** dokumenter fra hvert, de nyeste først, hvor indekset har et `@timestamp`. En datastrøm læses som ét indeks, og indekser, hvis navne kun er forskellige i datoer eller tal, f.eks. `logs-2026.11.26` og `logs-2026.11.27`, som ét, ved det nyeste, der indeholder dokumenter. Klyngens egne indekser, hvis navne begynder med et punktum, læses ikke. Hver forespørgsel er en GET, så scanningen kan ikke skrive til klyngen, uanset hvad dens bruger må.
 
 Hver scanning gemmer en oversigt over det, den læste, efter navn: objekterne, tabellerne eller tjenesterne, aldrig deres indhold. Det, den ikke kunne læse - en forespørgsel, som cloud-tjenesten afviste, tidsfristen, bytebudgettet - er en advarsel på scanningen, og scanningen markeres som **Delvist gennemført**.
 
 Et datalagers **Oversigt** siger, hvornår dets indhold scannes næste gang. **Næste indholdsscanning** er tidspunktet, hvor noget scanner det, **Står for tur nu**, mens det venter på sin tur, og **Forsinket**, når det har stået for tur i en time. Ellers siger den, hvorfor intet vil scanne det: **Fra**, mens **Scan indhold** er slået fra for datalageret eller projektet, eller mens datalageret ikke længere findes; **Scannes ikke**, når OneUptime ikke kan tage prøver af denne slags datalager, eller dets sonde ikke kan scanne det; og **Venter**, mens dets sonde er afbrudt. En tjenestes telemetri scannes **Hver time** med projektets telemetriscanning. **Scan nu** er slået fra, med årsagen, for et datalager, som intet ville scanne. En scanning, der er i gang, når indholdsscanning slås fra, eller når projektet suspenderes, gemmer intet af det, den fandt.
 
-## Scan en database, du selv driver
+## Scan et datalager, du selv driver
 
-Datasikkerhed tager prøver af PostgreSQL-, MySQL- og SQL Server-databaser på en af to måder. En database, som produktet Database overvåger, eller en, som dine tjenester taler med på tjenestekortet, er allerede et datalager. En database, som ingen scanning finder, tilføjer du selv som et datalager.
+Datasikkerhed tager prøver af PostgreSQL-, MySQL- og SQL Server-databaser samt af Elasticsearch- og OpenSearch-klynger på en af to måder. En database, som produktet Database overvåger, eller en, som dine tjenester taler med på tjenestekortet, er allerede et datalager. Tilføj ethvert andet selv med **Tilføj et datalager, du selv driver** under **Datalagre**: Så snart du vælger dets **Type**, fortæller formularen, hvad OneUptime vil kontrollere på det, og hvad det ikke kan, og spørger kun om det, den type læser. En type, OneUptime ikke tager prøver af, f.eks. MongoDB eller Redis, tager ingen forbindelsesstreng: Den vises med sine ejere, etiketter og følsomhed, og dens eksponering viser **Kan ikke kontrolleres**.
 
-- **Fra OneUptimes workers.** Sæt **Forbindelsesstreng** i datalagerets **Indstillinger** til en, der kun kan læse, f.eks. `postgresql://reader:password@db.internal:5432/app`. Den krypteres i hvile og returneres aldrig af API'et. Giv den en databasebruger, der kan læse og intet andet.
-- **Fra en sonde i dit netværk.** Vælg sonden under **Scan fra sonde**, og angiv i **Forbindelsesvariabel for sonde** navnet på den miljøvariabel på sonden, der indeholder forbindelsesstrengen. Sonden læser databasen inde fra dit netværk og sender kun det tilbage, den fandt: forbindelsesstrengen når aldrig OneUptime. Se [Brugerdefinerede sonder](/docs/probe/custom-probe) for at køre en sonde.
+- **Fra OneUptimes workers.** Sæt **Forbindelsesstreng** i datalagerets **Indstillinger** til en, der kun kan læse, f.eks. `postgresql://reader:password@db.internal:5432/app` eller `https://reader:password@search.internal:9200` for en søgeklynge. Den krypteres i hvile og returneres aldrig af API'et. Giv den en bruger, der kan læse og intet andet. I OneUptime Cloud når workerne kun adresser på internettet.
+- **Fra en sonde i dit netværk.** Vælg sonden under **Scan fra sonde**, og angiv i **Forbindelsesvariabel for sonde** navnet på den miljøvariabel på sonden, der indeholder forbindelsesstrengen. Sonden læser datalageret inde fra dit netværk og sender kun det tilbage, den fandt: forbindelsesstrengen når aldrig OneUptime. Se [Brugerdefinerede sonder](/docs/probe/custom-probe) for at køre en sonde. En sonde fra en tidligere udgivelse får kun databaser: Opdater den, så den kan scanne en søgeklynge.
+
+### En søgeklynges forbindelsesstreng
+
+Elasticsearch og OpenSearch har ingen forbindelsesstreng af deres egen, så OneUptime tager klyngens adresse, som curl når den, med en skrivebeskyttet bruger i eller en Elasticsearch-API-nøgle efter, skrevet som `id:key` eller som den kodede værdi, Elasticsearch udleverer:
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` accepterer et certifikat, som ingen udsteder har signeret, f.eks. det, Elasticsearch laver, første gang den starter: Brug det kun på et netværk, du stoler på. Intet andet må følge efter adressen. For en klynge, hvis certifikat din egen udsteder har signeret, angives adressen som JSON med den udsteders certifikat:
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` træder i stedet for `username` og `password`, og `"verifyCertificate": false` i stedet for certifikatet.
+
+Giv brugeren en rolle, der kan læse og intet andet. På Elasticsearch:
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+På OpenSearch, med dets sikkerhedsplugin:
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Giv derefter en bruger den rolle, og kun den rolle. Begræns `*` til de indekser, der skal scannes.
+
+### Hvad OneUptime kontrollerer på et datalager, du selv driver
+
+Et datalager i en cloud-konto kontrolleres ud fra de indstillinger, dets cloud gemmer. Et datalager, du selv driver, har ingen, som OneUptime kan læse, så en Elasticsearch- eller OpenSearch-klynge kontrolleres ud fra det, den svarer på sin egen adresse. Ved hver indholdsscanning bliver den spurgt uden loginoplysninger fra der, hvor scanningen kører:
+
+| Spurgt | Hvad det viser |
+| --- | --- |
+| Hvem der spørger: `/_security/_authenticate` på Elasticsearch, `/_plugins/_security/authinfo` på OpenSearch | Om den overhovedet kræver loginoplysninger |
+| En søgning, der ikke returnerer dokumenter, kun om der er nogen | Om alle, der når den, kan læse dens dokumenter |
+| Dens adresse over almindelig HTTP, når dens forbindelsesstreng er HTTPS | Om den tager imod forbindelser uden TLS |
+
+Der skrives intet til den, så en klynge med brugere og roller kan ikke spørges, om dens anonyme bruger må skrive: Den linje i dens **Konfiguration** viser **Kan ikke kontrolleres**. En klynge helt uden adgangskontrol tager imod enhver forespørgsel, også skrivninger. En klynge, der svarer alle, fejler [Alle, der kan nå det, kan læse det uden loginoplysninger](/docs/data-security/checks-and-issues#eksponering).
+
+Hvor scanningen kører, afgør, hvad der ellers kan vides. Workerne i OneUptime Cloud når kun adresser på internettet, så en klynge, de scanner, kan nås fra internettet, og dens eksponering siger det. Fra en sonde, eller fra en OneUptime, du selv hoster, kører scanningen inde i et netværk, og om internettet når klyngen, kan ikke afgøres derfra: Dens eksponering viser **Ukendt**, og dens **Oversigt** siger hvorfor. Dens kryptering i hvile, backups og adgangslogning hører til dens servere, er ikke synlige fra dens adresse og kontrolleres ikke.
+
+Der tages prøver af en database, du selv driver, den bliver ikke spurgt, og hvordan den kan nås, kontrolleres ikke: Dens eksponering viser **Kan ikke kontrolleres**, ligesom for en type, OneUptime ikke tager prøver af. Indtil et datalager kontrolleres første gang, viser dets eksponering **Ikke kontrolleret endnu**, så et datalager, der venter på sin første kontrol, aldrig forveksles med et, der ikke kan kontrolleres.
 
 ## Hvad OneUptime gemmer
 
@@ -244,11 +303,15 @@ Datasikkerheds indstillinger er ét sæt pr. projekt i sektionen **Indstillinger
 ## Fejlfinding
 
 :::details Et datalager siger, at dets indhold ikke blev scannet
-Scanningen siger hvorfor: "Indholdsscanning kræver forbindelsens indholdstilladelse eller en forbindelsesstreng til en database." Sæt datalagerets forbindelse til **Konfiguration og indholdsprøver**, og kør dens kommando igen, eller giv databasen en forbindelsesstreng. Tjek også, at **Scan indhold** er slået til for datalageret og i projektets indstillinger.
+Scanningen siger hvorfor: "Indholdsscanning kræver forbindelsens indholdstilladelse eller en forbindelsesstreng til et datalager, du selv driver." Sæt datalagerets forbindelse til **Konfiguration og indholdsprøver**, og kør dens kommando igen, eller giv datalageret, du selv driver, en forbindelsesstreng. Tjek også, at **Scan indhold** er slået til for datalageret og i projektets indstillinger.
 :::
 
 :::details En kontrol siger, at den ikke kan afgøre det
 En oplysning, som læseren ikke kunne læse - en tilladelse, rollen ikke har, et API, der ikke er slået til - er ukendt og gættes aldrig. Dens kontrol rapporterer, at den ikke kan afgøre det, og et problem, den har åbnet, forbliver åbent: ingen må konkludere, at et problem er løst, fordi OneUptime ikke kunne se efter. Konfigurationslæsningens advarsler siger, hvad den ikke kunne læse. Kør forbindelsens kommando igen for at give det, der mangler.
+:::
+
+:::details Et datalagers eksponering viser Kan ikke kontrolleres
+OneUptime har ingen måde at læse, hvordan et datalager af dets type kan nås: en database, du selv driver, eller en type, det ikke tager prøver af. Det er ikke en fejl, og der åbnes intet problem for det. Dets **Indstillinger** viser under **Hvad OneUptime kontrollerer**, hvad der kontrolleres på det. Et datalager, hvis eksponering viser **Ikke kontrolleret endnu**, er et, OneUptime kan kontrollere og endnu ikke har kontrolleret: en søgeklynge før dens første indholdsscanning eller et datalager i en cloud-konto før den første læsning af dets forbindelses konfiguration.
 :::
 
 :::details Der vises ingen S3-buckets eller BigQuery-datasæt

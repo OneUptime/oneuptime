@@ -795,7 +795,7 @@ describe("prepare: what the agent never changes", () => {
     assert.deepStrictEqual(built.docker.calls, []);
   });
 
-  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware, Storage Array and database agents", () => {
+  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware, XCP-ng, Storage Array and database agents", () => {
     const built: Built = build({ config: WRITES });
 
     for (const name of [
@@ -807,6 +807,11 @@ describe("prepare: what the agent never changes", () => {
       "oneuptime-proxmox-ai-agent",
       "oneuptime-vmware-agent",
       "oneuptime-vmware-ai-agent",
+      "oneuptime-xcp-ng-agent",
+      "oneuptime-xcp-ng-ai-agent",
+      // A second Xen Orchestra's collector and a second pool's AI agent, renamed.
+      "oneuptime-xcp-ng-agent-lab",
+      "oneuptime-xcp-ng-ai-agent-lab-pool",
       "oneuptime-storage-array-agent",
       // A second array's agent, renamed in a folder of its own.
       "oneuptime-storage-array-agent-fb",

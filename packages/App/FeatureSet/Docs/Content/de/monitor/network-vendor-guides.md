@@ -156,7 +156,7 @@ cnMaestro kann seine Alarme, etwa einen Access Point, der offline geht, an einen
 | Der Status des Switches, seine Sensoren und seine austauschbaren Einheiten (FRUs), Zeile für Zeile | Die Tabellen `switch_status`, `sensors` und `frus` der Vorlage |
 | Typ jedes Fibre-Channel-Ports, warum ein ausgefallener Port ausgefallen ist, und seine Fehler, verworfenen Frames und Credit-Wartezeiten pro Sekunde | SW-MIB und FCMGMT-MIB, auf der Seite **Schnittstellen** des Geräts |
 | Sende- und Empfangsleistung, Temperatur, Spannung und Bias-Strom jeder Optik | FA-EXT-MIB, auf der Karte **Transceiver** |
-| Ein ausgefallener Inter-Switch-Link, eine geteilte oder neu konfigurierte Fabric, eine Zoning-Änderung, ein MAPS-Alarm, eine geänderte FRU | SNMPv3-Traps |
+| Ein ausgefallener Inter-Switch-Link, eine geteilte oder neu konfigurierte Fabric, eine Zoning-Änderung, eine MAPS-Warnung, eine geänderte FRU | SNMPv3-Traps |
 
 Jeder Switch und Director mit Fabric OS meldet eine System-Objekt-ID unter `1.3.6.1.4.1.1588.2.1.1`, sodass die Vorlage für alle gilt und für nichts anderes von Brocade: VDX- und SLX-Switches behalten ihre Vorlage.
 

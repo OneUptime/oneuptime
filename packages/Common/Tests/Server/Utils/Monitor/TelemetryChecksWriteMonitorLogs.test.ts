@@ -686,3 +686,77 @@ describe("a check's row says how long its evaluation took", () => {
     expect(evaluation.seriesJudged).toBeUndefined();
   });
 });
+
+/*
+ * WHICH WINDOW IT JUDGED (#11248): a telemetry check judges the window that
+ * ends when it was due, however late it ran, so its row says which - as the
+ * evaluation job handed it over - and View Summary shows it beside when it
+ * was evaluated.
+ */
+describe("a check's row says which window of telemetry it judged", () => {
+  const startsAt: Date = new Date("2026-11-27T10:00:07.250Z");
+  const endsAt: Date = new Date("2026-11-27T10:01:07.250Z");
+
+  test("the window the evaluation job judged, read back as its log keeps it", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]), {
+      judgedWindow: { startsAt, endsAt },
+    });
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    expect(evaluation.judgedWindow).toBeDefined();
+    expect(new Date(evaluation.judgedWindow!.startsAt).toISOString()).toBe(
+      startsAt.toISOString(),
+    );
+    expect(new Date(evaluation.judgedWindow!.endsAt).toISOString()).toBe(
+      endsAt.toISOString(),
+    );
+  });
+
+  test("a check that matched nothing says it too", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([40, 41, 42]), {
+      judgedWindow: { startsAt, endsAt },
+    });
+
+    expect(
+      evaluationOf(readBack((await loggedRows())[0]!)).judgedWindow,
+    ).toBeDefined();
+  });
+
+  test("a check handed no window - a probe's, a request's - says none", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]));
+
+    expect(
+      evaluationOf(readBack((await loggedRows())[0]!)).judgedWindow,
+    ).toBeUndefined();
+  });
+
+  test("the window is a copy: changing what was handed over afterwards changes nothing", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    const handed: { startsAt: Date; endsAt: Date } = {
+      startsAt: new Date(startsAt),
+      endsAt: new Date(endsAt),
+    };
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]), {
+      judgedWindow: handed,
+    });
+
+    handed.endsAt.setTime(0);
+
+    expect(
+      new Date(
+        evaluationOf(readBack((await loggedRows())[0]!)).judgedWindow!.endsAt,
+      ).toISOString(),
+    ).toBe(endsAt.toISOString());
+  });
+});

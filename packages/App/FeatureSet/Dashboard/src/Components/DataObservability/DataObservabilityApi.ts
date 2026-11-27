@@ -20,6 +20,9 @@ import {
   DataObservabilityCollectNowResponse,
   DataObservabilityConnectStoreRequest,
   DataObservabilityConnectStoreResponse,
+  DataObservabilityDatabaseAgent,
+  DataObservabilityStoreSettings,
+  DataObservabilityStoreUpdateRequest,
   DataObservabilityDataProductBadgeResetResponse,
   DataObservabilityDataProductSyncResponse,
   DataObservabilityIssuesRequest,
@@ -529,6 +532,56 @@ export default class DataObservabilityApi {
       DATA_OBSERVABILITY_API_ROUTES.connectStore,
       request as unknown as JSONObject,
     )) as unknown as DataObservabilityConnectStoreResponse;
+  }
+
+  /*
+   * A database's settings (#11147): how it is reached - never its connection
+   * string - what else uses it, and what the reader may change.
+   */
+  public static async getStoreSettings(
+    dataStoreId: ObjectID,
+  ): Promise<DataObservabilityStoreSettings> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.storeSettings(dataStoreId.toString()),
+    )) as unknown as DataObservabilityStoreSettings;
+  }
+
+  // A new name, a new way in, or both.
+  public static async updateStore(
+    dataStoreId: ObjectID,
+    request: DataObservabilityStoreUpdateRequest,
+  ): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.storeUpdate(dataStoreId.toString()),
+      request as unknown as JSONObject,
+    );
+  }
+
+  // Data Observability forgets it; Data Security keeps it.
+  public static async removeStore(dataStoreId: ObjectID): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.storeRemove(dataStoreId.toString()),
+    );
+  }
+
+  // Deleted from OneUptime, Data Security's part with it.
+  public static async deleteStore(dataStoreId: ObjectID): Promise<void> {
+    await post(
+      DATA_OBSERVABILITY_API_ROUTES.storeDelete(dataStoreId.toString()),
+    );
+  }
+
+  // The Database Agents a database can be read through (#11148).
+  public static async getDatabaseAgents(): Promise<
+    Array<DataObservabilityDatabaseAgent>
+  > {
+    const body: JSONObject = await post(
+      DATA_OBSERVABILITY_API_ROUTES.databaseAgents,
+    );
+
+    return Array.isArray(body["agents"])
+      ? (body["agents"] as unknown as Array<DataObservabilityDatabaseAgent>)
+      : [];
   }
 
   // How a pipeline's circuit breaker stands: its page's status card (#6548).

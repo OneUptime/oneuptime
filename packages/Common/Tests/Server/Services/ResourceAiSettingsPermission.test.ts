@@ -2,6 +2,10 @@ import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import { OpenStackCloudFeedEventType } from "../../../Models/DatabaseModels/OpenStackCloudFeed";
 import OpenStackCloudFeedService from "../../../Server/Services/OpenStackCloudFeedService";
 import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
+import { XcpNgPoolFeedEventType } from "../../../Models/DatabaseModels/XcpNgPoolFeed";
+import XcpNgPoolFeedService from "../../../Server/Services/XcpNgPoolFeedService";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import CephClusterFeedService from "../../../Server/Services/CephClusterFeedService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
@@ -261,6 +265,19 @@ const WIRING: Array<ServiceWiring> = [
     linkMethod: "getOpenStackCloudMarkdownLink",
     editPermission: Permission.EditOpenStackCloud,
     readPermission: Permission.ReadOpenStackCloud,
+  },
+  {
+    resourceType: AiResourceType.XcpNgPool,
+    service: XcpNgPoolService,
+    modelType: XcpNgPool,
+    feedService: XcpNgPoolFeedService,
+    feedMethod: "createXcpNgPoolFeedItem",
+    idKey: "xcpNgPoolId",
+    eventKey: "xcpNgPoolFeedEventType",
+    updatedEvent: XcpNgPoolFeedEventType.XcpNgPoolUpdated,
+    linkMethod: "getXcpNgPoolMarkdownLink",
+    editPermission: Permission.EditXcpNgPool,
+    readPermission: Permission.ReadXcpNgPool,
   },
 ];
 

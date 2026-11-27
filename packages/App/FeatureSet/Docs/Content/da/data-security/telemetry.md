@@ -170,7 +170,7 @@ Før OneUptime AI går i gang, læser Datasikkerhed de poster, hvert læk blev s
 
 - **Et span eller et AI-kald**: filen, linjen og funktionen, som dets attributter `code.*` nævner, og spannets navn.
 - **En undtagelse**: dens egne øverste frames, dem i tjenestens kode.
-- **En loglinje**: filen, linjen og funktionen, som dens attributter nævner, hvis den har dem, dens logger og linjen som skabelon, hvor hver værdi er erstattet af navnet på sin type, f.eks. `User <Email address> signed up`, og hvert ord, dens poster ikke beviser, at koden skrev, f.eks. en persons navn, af `<value>`: `Payment declined for Maria Gonzalez`, læst fra én post, bliver til `Payment declined for <value>`. Et spans navn og en metriks navn læses på samme måde.
+- **En loglinje**: filen, linjen og funktionen, som dens attributter nævner, hvis den har dem, dens logger og linjen som skabelon, hvor hver værdi er erstattet af navnet på sin type, f.eks. `User <Email address> signed up`, og hvert ord, der ikke er et af de ord, kode skriver loglinjer med, f.eks. en persons navn eller et brugernavn, af `<value>`, uanset hvor mange af dens poster der deler ordet: `Payment declined for Maria Gonzalez` bliver til `Payment declined for <value>`, og `Ticket assigned to jdoe`, læst fra alle linjens poster, bliver til `Ticket assigned to <value>`. Et spans navn og en metriks navn læses på samme måde.
 - **En metrik**: metrikkens navn.
 - **Ethvert læk**: dets attributnøgle, f.eks. `user.email`, som koden som regel skriver, som den er.
 

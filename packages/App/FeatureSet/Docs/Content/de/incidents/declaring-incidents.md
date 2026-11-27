@@ -85,6 +85,7 @@ Die Monitore kommen zuerst und für sich, weil Statusseiten einen Vorfall über 
 
 - **Monitore** – ein Suchfeld, das die vom Vorfall betroffenen Monitore anhängt; sein Reiter **Beschriftungen** fügt alle Monitore mit einer Beschriftung auf einmal hinzu. Eine Statusseite zeigt einen Vorfall und benachrichtigt ihre Abonnenten darüber, wenn sie einen der Monitore des Vorfalls führt; diese bestimmen also, welche Statusseiten davon erfahren (`monitors` am Vorfall).
 - **Monitor-Status ändern in** – optional und erst sichtbar, wenn mindestens ein Monitor gewählt ist. Wählt einen Monitorstatus, der auf jeden an diesen Vorfall gehängten Monitor angewendet wird, sodass Vorfall melden und Monitore als beeinträchtigt markieren eine Aktion statt zwei ist. Beim Melden aus einer Vorlage, die einen Status setzt, beginnt das Feld mit dem Status der Vorlage, sichtbar, sobald Sie einen Monitor wählen. Ohne gewählten Monitor wird kein Status gespeichert, auch nicht der der Vorlage; entfernen Sie den letzten Monitor, verschwindet das Feld, bis Sie einen anderen wählen, der Ihre Wahl zurückbringt. Der Status eines Monitors gilt für jede Statusseite, die ihn führt; haben Sie unter **Weitere Felder** Statusseiten gewählt, erinnert das Formular Sie daran, dass die Änderung auch auf den nicht gewählten Seiten erscheint.
+- **Überwachung pausieren** – erst sichtbar, wenn mindestens ein Monitor gewählt ist, und angehakt. Angehakt pausiert der Vorfall die Prüfungen seiner Monitore, bis er behoben ist, sodass der Status oben auf ihnen bleibt. Entfernen Sie den Haken, damit sie geprüft werden, solange der Vorfall offen ist: Ihre Prüfungen setzen weiter ihren Status und eröffnen weiter Vorfälle und Warnungen. Ein Monitor, der während Vorfällen weiter überwacht wird, wird nie pausiert, ob angehakt oder nicht (`pauseMonitoring` am Vorfall). Siehe [Überwachung, während ein Vorfall offen ist](#überwachung-während-ein-vorfall-offen-ist).
 - **Andere betroffene Ressourcen** – ein zweites Suchfeld für alles andere, was der Vorfall betrifft: Hosts, Netzwerkgeräte, Kubernetes-Cluster, Docker- und Podman-Hosts, Proxmox-, Ceph- und Docker-Swarm-Cluster, vCenter, Speicher-Arrays, IoT-Flotten, Datenbanken, Cloud-Ressourcen und Dienste – alles außer Monitoren, was die Karte **Betroffene Ressourcen** des Vorfalls anbietet. Intern sind das getrennte Relationen am Vorfall (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` und mehr), aber das Formular fasst sie in einer Auswahl zusammen.
 
 **Andere betroffene Ressourcen** durchsucht alle angebotenen Arten auf einmal. Eine Ressource wird über ihren Namen oder ihre Beschreibung gefunden, ein Netzwerkgerät auch über die Adresse, unter der es abgefragt wird, oder seinen DNS-Namen, und ein Host über den Namen, den sein Agent meldet, oder eine seiner IP-Adressen. Die Ergebnisse sind nach ihrer Art gruppiert, die Adresse eines Geräts steht neben seinem Namen. Sobald sie mehr als eine Art enthalten, beschränkt eine Zeile darüber die Liste auf eine Art und zeigt, wie viele von jeder passen, und eine Art mit mehr Treffern, als Platz haben, bietet an, weitere anzuzeigen. Archivierte Ressourcen werden nicht angeboten. Passt die Suche auch auf Monitore, sagt eine Zeile unter den Ergebnissen, wie viele es sind und dass Monitore unter **Monitore** gewählt werden.
@@ -280,7 +281,7 @@ Der Reihe nach:
 9. **Abonnenten werden eingereiht**, wenn **Statusseiten-Abonnenten benachrichtigen** eingeschaltet blieb und der Vorfall auf der Statusseite sichtbar ist. Die Zustellung übernimmt ein Hintergrundjob, nicht Ihre Anfrage selbst, und sie geht an die Statusseiten, die der Vorfall erreicht: die, die seine Monitore führen, eingeengt durch **Auf diese Statusseiten beschränken**, und ohne die Seiten, die nur auf sie beschränkte Vorfälle zeigen, wenn er nicht beschränkt ist. Eine archivierte Statusseite sendet nichts. Der Fortschritt erscheint als **Abonnenten-Benachrichtigungsstatus** auf der **Übersicht** des Vorfalls: was auf jeder Statusseite gesendet wurde und was fehlschlug, und **Wiederholen** oder **Erneut senden**, sobald es abgeschlossen ist. Siehe [Abonnenten & Ankündigungen](/docs/status-pages/subscribers#prüfen-was-gesendet-wurde).
 10. **Workflows starten.** Der Trigger **Bei Erstellung: Vorfall** startet jeden Workflow, der darauf aufbaut. Siehe [Workflows – Übersicht](/docs/workflows/index).
 
-Ab da ist der Vorfall live: Er zählt zum Badge **Aktive Vorfälle** im Seitenmenü Vorfälle (jeder Status über Ihrem behobenen Status zählt als aktiv), er erscheint auf den Statusseiten, die einen seiner Monitore führen (nur auf den gewählten, wenn Sie ihn beschränkt haben), und seine **Zustands-Zeitachse** beginnt aufzuzeichnen.
+Ab da ist der Vorfall live: Er zählt zum Badge **Aktive Vorfälle** im Seitenmenü Vorfälle (jeder Status über Ihrem behobenen Status zählt als aktiv), er erscheint auf den Statusseiten, die einen seiner Monitore führen (nur auf den gewählten, wenn Sie ihn beschränkt haben), und seine **Zustands-Zeitachse** beginnt aufzuzeichnen. Seine Monitore werden in seinen Status **Monitor-Status ändern in** gesetzt, und – von Hand gemeldet – ihre Prüfungen werden pausiert, bis er behoben ist: siehe [Überwachung, während ein Vorfall offen ist](#überwachung-während-ein-vorfall-offen-ist).
 
 ### Bereits bestätigt oder behoben gemeldet
 
@@ -306,10 +307,43 @@ flowchart TB
 
 Warnungen, Warnungsepisoden und Vorfallsepisoden folgen derselben Regel: Was bereits bestätigt angelegt wird, alarmiert niemanden, und was behoben angelegt wird, wird außerdem nicht gruppiert, nicht automatisch behoben, nicht von der KI untersucht und erhält keinen eigenen Kanal. Ein Vorfall oder eine Warnung im Erstellungsstatus – dem Standard, und jede, die ein Monitor öffnet – löst wie bisher alles aus.
 
+## Überwachung, während ein Vorfall offen ist
+
+Ein von Hand gemeldeter Vorfall pausiert die Prüfungen der Monitore, die er aufführt, bis er behoben ist. So ändert ihre nächste Prüfung den Status, in den er sie gesetzt hat, nicht, während daran gearbeitet wird. Von Hand gemeldet heißt alles außer OneUptime selbst: **Vorfall melden** im Dashboard (aus einer Warnung, aus dem Tab **Vorfälle** eines Monitors oder von Grund auf), Slack, Microsoft Teams, die API, Terraform, ein Workflow, [Ask AI](/docs/ai/ask-ai), die mobile App und ein Formular. Wird einem solchen Vorfall, während er offen ist, ein Monitor hinzugefügt, pausiert er auch diesen Monitor.
+
+Nichts anderes pausiert die Prüfungen eines Monitors auf diese Weise. Ein Vorfall, den die Kriterien eines Monitors melden, einer, den die Vorfallregel einer Warnung meldet, und einer, den ein SLO meldet, lassen ihre Monitore geprüft, ebenso jede Warnung, ob von einem Monitor oder von Hand erstellt.
+
+```mermaid title="Ob ein offener Vorfall die Prüfungen eines Monitors pausiert"
+flowchart TB
+    declared{"Von Hand gemeldet?"} -->|Nein| checked["Prüfungen laufen weiter"]
+    declared -->|Ja| ticked{"Überwachung pausieren<br/>angehakt?"}
+    ticked -->|Nein| checked
+    ticked -->|Ja| setting{"Monitor wird während<br/>Vorfällen weiter überwacht?"}
+    setting -->|Ja| checked
+    setting -->|Nein| paused["Prüfungen pausiert,<br/>bis er behoben ist"]
+```
+
+**Einen Monitor geprüft halten.** Zwei Schalter entscheiden, und jeder davon hält ihn geprüft:
+
+- **Während Vorfällen weiter überwachen** auf der Seite **Einstellungen** des Monitors, auf der Karte **Während Vorfällen**. Schalten Sie es für einen Monitor ein, der Ereignisse empfängt, etwa einen [Eingehende-Anfrage-Monitor](/docs/monitor/incoming-request-monitor), an den ein anderes System seine Warnungen sendet: Ein Vorfall zu einem Ereignis hält ihn dann nicht mehr davon ab, das nächste zu lesen. Es gilt sofort, auch für bereits offene Vorfälle: Wird es eingeschaltet, während ein Vorfall den Monitor pausiert, starten seine Prüfungen sofort wieder. Standardmäßig aus.
+- **Überwachung pausieren** dort, wo der Vorfall gemeldet wird, unter **Monitor-Status ändern in**. Entfernen Sie den Haken, damit alle Monitore des Vorfalls geprüft bleiben. Es lässt sich ändern, solange der Vorfall offen ist, auf seiner Karte **Betroffene Ressourcen**: Ohne Haken werden die Monitore sofort wieder geprüft.
+
+Ein Monitor, der geprüft bleibt, setzt weiter seinen eigenen Status: Seine nächste Prüfung ersetzt den Status, in den der Vorfall ihn gesetzt hat, und seine Kriterien eröffnen und beheben weiter ihre eigenen Vorfälle und Warnungen.
+
+**Was ein pausierter Monitor noch tut.** Seine Prüfungen stoppen: Sonden prüfen ihn nicht mehr, ein Heartbeat, eine E-Mail oder ein Agent, der nichts mehr sendet, fällt nicht auf, und ein Telemetrie-Monitor wird nicht ausgewertet. Was ihm von außen gesendet wird, kommt weiter an: Jede Anfrage, die ein [Eingehende-Anfrage-Monitor](/docs/monitor/incoming-request-monitor) bekommt, jede E-Mail, die ein Eingehende-E-Mail-Monitor bekommt, und jeder Bericht, den der Agent eines Server-Monitors sendet, wird in **Überwachungsprotokolle** aufgeführt, so wie er ankam, mit **Nicht ausgewertet: Die Überwachung ist durch einen Vorfall pausiert**. Nichts, was ein pausierter Monitor empfängt, eröffnet oder behebt einen Vorfall oder eine Warnung oder ändert seinen Status, und der Absender bekommt wie gewohnt eine Antwort. Ein Banner auf den Seiten des Monitors sagt, dass er pausiert ist und wie er geprüft bleibt.
+
+**Wozu pausierte Zeit zählt.** Ein pausierter Monitor behält den Status, den er hat, und seine Verfügbarkeit, seine Statusseiten und SLOs zählen diesen Status, wenn ein Vorfall den Monitor mit **Monitor-Status ändern in** hineingesetzt hat: Das ist der Status, den jemand gemeldet hat. Hat kein pausierender Vorfall einen Status gesetzt, ist der Status nur, was die letzte Prüfung des Monitors vor der Pause sah, daher wird diese Zeit aus seiner Verfügbarkeit, seinen Statusseiten und SLOs herausgelassen, wie Zeit mit ausgeschalteter Überwachung. Seine **Status-Zeitachse** markiert, wo diese Zeit beginnt und endet, und die Verfügbarkeit in seiner **Übersicht** sagt, dass sie pausierte Zeit herauslässt.
+
+**Wann die Pause endet.** Den Vorfall beheben, den Monitor von ihm entfernen oder ihn löschen setzt die Prüfungen des Monitors fort und setzt ihn auf betriebsbereit zurück, sofern nicht ein anderer offener Vorfall noch auf ihm liegt; danach setzen seine Prüfungen seinen Status. Ein Monitor, den ein anderer offener, von Hand gemeldeter Vorfall noch pausiert, bleibt pausiert. Ein Vorfall, der seitdem behoben und wieder eröffnet wurde, hält nichts, er pausiert also nichts und hält nichts pausiert.
+
 ## Fehlerbehebung
 
 :::details Das Melden schlägt fehl und verlangt einen Erstellungsstatus für Vorfälle
 Hat Ihr Projekt keinen Status mit dem Flag `isCreatedState`, schlägt der Erstellungsaufruf fehl und fordert Sie auf, in den Einstellungen einen Erstellungsstatus für Vorfälle hinzuzufügen. Das passiert normalerweise nur in einem Projekt, dessen Status stark bearbeitet wurden – siehe [Vorfallstatus & Schweregrade](/docs/incidents/states-and-severities).
+:::
+
+:::details Ein Monitor eröffnete keine Warnungen mehr, nachdem für ihn ein Vorfall gemeldet wurde
+Ein von Hand gemeldeter Vorfall pausiert die Prüfungen seiner Monitore, bis er behoben ist, daher wird, was sie in der Zwischenzeit erreicht, in **Überwachungsprotokolle** aufgeführt, aber nicht ausgewertet. Schalten Sie **Während Vorfällen weiter überwachen** in den **Einstellungen** des Monitors ein, damit er während dieses und der nächsten Vorfälle geprüft bleibt, oder entfernen Sie für die Monitore dieses Vorfalls den Haken bei **Überwachung pausieren** auf seiner Karte **Betroffene Ressourcen**. Siehe [Überwachung, während ein Vorfall offen ist](#überwachung-während-ein-vorfall-offen-ist).
 :::
 
 :::details Der Vorfall wurde gemeldet, aber kein Statusseiten-Abonnent hat davon erfahren

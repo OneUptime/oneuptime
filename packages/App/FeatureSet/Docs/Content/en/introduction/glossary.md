@@ -40,7 +40,7 @@ See [Creating a Monitor](/docs/monitor/create-monitor).
 
 ### Criteria
 
-A monitor's rules: what each check result means. They are checked in order, and the first one that matches can change the monitor's status, declare an incident, create an alert, or all three.
+A monitor's rules: what each check result means. They are checked in order, and the first one that matches can change the monitor's status, declare an incident, create an alert, or all three. One that changes no status leaves the status to the next criteria that matches and changes it.
 
 Also called: **Monitoring Criteria**, **Monitor Criteria**, **Monitor Steps**. See [Criteria & Statuses](/docs/monitor/criteria-and-statuses).
 

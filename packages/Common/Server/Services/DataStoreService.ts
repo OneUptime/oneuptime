@@ -39,10 +39,23 @@ import DataStoreEnvironment, {
   ALL_DATA_STORE_ENVIRONMENTS,
 } from "../../Types/DataSecurity/DataStoreEnvironment";
 import {
+  DataStoreKind,
   DataStoreKindInfo,
   DataStoreProvider,
   getDataStoreKindInfo,
+  isSearchEngineDataStoreKind,
 } from "../../Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreExposure,
+  DataStorePostureFacts,
+  getDataStoreExposure,
+} from "../../Types/DataSecurity/DataStorePosture";
+import { DATA_OBSERVABILITY_KINDS } from "../Utils/DataObservability/DataObservabilityEngines";
+import {
+  readSearchConnection,
+  SEARCH_CONNECTION_EXAMPLE,
+  SearchConnectionError,
+} from "../Utils/DataSecurity/Content/SearchStoreConnection";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import {
@@ -76,9 +89,30 @@ interface DeletedStores {
   openIssues: Array<DataSecurityIssue>;
 }
 
-// The engines a worker can sample, by the scheme of their connection strings.
-const SCANNABLE_CONNECTION_STRING: RegExp =
-  /^(postgres|postgresql|mysql|mariadb|mssql|sqlserver):\/\//i;
+/*
+ * The databases Data Security samples with a driver, by the scheme of
+ * their connection strings: each kind's own, so a MySQL string saved on a
+ * PostgreSQL store is refused now rather than failing every scan later.
+ */
+const DATABASE_CONNECTION_SCHEMES: Readonly<
+  Partial<Record<string, { scheme: RegExp; refusal: string }>>
+> = {
+  [DataStoreKind.PostgreSql]: {
+    scheme: /^(postgres|postgresql):\/\//i,
+    refusal:
+      "Enter a PostgreSQL connection string, such as postgresql://reader:password@db.internal:5432/app.",
+  },
+  [DataStoreKind.MySql]: {
+    scheme: /^(mysql|mariadb):\/\//i,
+    refusal:
+      "Enter a MySQL or MariaDB connection string, such as mysql://reader:password@db.internal:3306/app.",
+  },
+  [DataStoreKind.SqlServer]: {
+    scheme: /^(mssql|sqlserver):\/\//i,
+    refusal:
+      "Enter a SQL Server connection string, such as mssql://reader:password@db.internal:1433/app.",
+  },
+};
 
 // The two names a store's scan probe is written by (RelationIdUtil).
 const SCAN_PROBE_KEYS: Array<string> = ["scanProbeId", "scanProbe"];
@@ -163,11 +197,23 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * A database a person adds is scanned with a read-only connection string
-   * for one of the engines the scanners read; anything else is refused now
-   * rather than failing every scan later.
+   * A store a person adds is scanned with a read-only connection string
+   * its kind's sampler reads: a database's by its engine's scheme, a search
+   * cluster's by its address (SearchStoreConnection, #11140). Anything else
+   * is refused now rather than failing every scan later, and so is a
+   * connection string for a kind nothing in OneUptime reads one for: it
+   * would be saved and never used. The warehouses and databases only Data
+   * Observability reads take theirs as its engine reads them, checked when
+   * it connects.
+   *
+   * OneUptime's own writes - Data Observability connecting a store it
+   * found - are trimmed and kept: its engines say what they read.
    */
-  public static readConnectionString(value: unknown): string | null {
+  public static readConnectionString(
+    value: unknown,
+    kind?: string | null | undefined,
+    props?: { isRoot?: boolean | undefined } | undefined,
+  ): string | null {
     if (value === null || value === undefined || value === "") {
       return null;
     }
@@ -178,13 +224,51 @@ export class Service extends ProjectReferencesService<Model> {
 
     const trimmed: string = value.trim();
 
-    if (!SCANNABLE_CONNECTION_STRING.test(trimmed)) {
-      throw new BadDataException(
-        "Enter a PostgreSQL, MySQL or SQL Server connection string, such as postgresql://reader:password@db.internal:5432/app.",
-      );
+    if (!trimmed) {
+      return null;
     }
 
-    return trimmed;
+    if (props?.isRoot) {
+      return trimmed;
+    }
+
+    const database: { scheme: RegExp; refusal: string } | undefined = kind
+      ? DATABASE_CONNECTION_SCHEMES[kind]
+      : undefined;
+
+    if (database) {
+      if (!database.scheme.test(trimmed)) {
+        throw new BadDataException(database.refusal);
+      }
+
+      return trimmed;
+    }
+
+    if (isSearchEngineDataStoreKind(kind)) {
+      try {
+        readSearchConnection(trimmed);
+      } catch (error) {
+        throw new BadDataException(
+          error instanceof SearchConnectionError
+            ? error.message
+            : `Enter the cluster's address with a read-only user, such as ${SEARCH_CONNECTION_EXAMPLE}.`,
+        );
+      }
+
+      return trimmed;
+    }
+
+    if (kind && DATA_OBSERVABILITY_KINDS.includes(kind as DataStoreKind)) {
+      return trimmed;
+    }
+
+    const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(kind);
+
+    throw new BadDataException(
+      `OneUptime cannot sample ${
+        info ? `a ${info.kind} store's` : "this kind of store's"
+      } content yet, so it takes no connection string. Leave it empty: the store is still tracked.`,
+    );
   }
 
   @CaptureSpan()
@@ -192,6 +276,22 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * What a new store's exposure is before anything reads it (#11140):
+     * Not checked yet, or Can't be checked for a kind nothing reads -
+     * never the Unknown of a read that could not tell. A store found with
+     * its configuration is worked out from it; one declared keeps its own.
+     */
+    if (
+      !createBy.data.exposure ||
+      createBy.data.exposure === DataStoreExposure.Unknown
+    ) {
+      createBy.data.exposure = getDataStoreExposure(
+        createBy.data.posture as DataStorePostureFacts | undefined,
+        createBy.data.kind,
+      );
+    }
 
     if (createBy.props.isRoot) {
       return { createBy: createBy, carryForward: undefined };
@@ -244,6 +344,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     const connectionString: string | null = Service.readConnectionString(
       createBy.data.connectionString,
+      info.kind,
     );
 
     if (connectionString) {
@@ -450,10 +551,40 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    if (data["connectionString"] !== undefined) {
-      data["connectionString"] = Service.readConnectionString(
-        data["connectionString"],
-      );
+    /*
+     * A person's connection string is one Data Security can sample with,
+     * read for the kind of each store it is saved on (#11140): a search
+     * cluster's address on a PostgreSQL store is refused like any other.
+     * OneUptime's own writes are Data Observability's (DataObservabilityAPI):
+     * Snowflake's, BigQuery's or Databricks' JSON, a ClickHouse or MongoDB
+     * URL - read by its workers, never sampled by Data Security, and refused
+     * here before, so connecting a known Snowflake store failed.
+     */
+    let rowsOfConnection: Array<Model> | null = null;
+
+    if (data["connectionString"] !== undefined && !updateBy.props.isRoot) {
+      rowsOfConnection = await this.findRowsAndHoldUpdateToThem(updateBy, {
+        _id: true,
+        projectId: true,
+        kind: true,
+      });
+
+      let connectionString: string | null = null;
+
+      for (const row of rowsOfConnection) {
+        connectionString = Service.readConnectionString(
+          data["connectionString"],
+          row.kind,
+        );
+      }
+
+      // Held to no row, the update writes nothing: the text is only trimmed.
+      data["connectionString"] =
+        rowsOfConnection.length > 0
+          ? connectionString
+          : Service.readConnectionString(data["connectionString"], undefined, {
+              isRoot: true,
+            });
     }
 
     if (data["watchedPaths"] !== undefined) {
@@ -481,10 +612,12 @@ export class Service extends ProjectReferencesService<Model> {
       return { updateBy, carryForward: [] };
     }
 
-    const rows: Array<Model> = await this.findRowsAndHoldUpdateToThem(
-      updateBy,
-      { _id: true, projectId: true },
-    );
+    const rows: Array<Model> =
+      rowsOfConnection ||
+      (await this.findRowsAndHoldUpdateToThem(updateBy, {
+        _id: true,
+        projectId: true,
+      }));
 
     return {
       updateBy,

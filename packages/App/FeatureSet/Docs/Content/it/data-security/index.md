@@ -6,7 +6,7 @@ Risponde a quattro domande:
 
 :::cards
 - [Dove sono i nostri dati sensibili?](/docs/data-security/data-types): 143 tipi di dati, dai numeri di carta e dai codici identificativi nazionali alle chiavi API, trovati in bucket, tabelle e telemetria.
-- [Sono esposti?](/docs/data-security/checks-and-issues): 34 controlli su ogni archivio: accesso pubblico, cifratura, backup, logging, segreti e copie.
+- [Sono esposti?](/docs/data-security/checks-and-issues): 35 controlli su ogni archivio: accesso pubblico, cifratura, backup, logging, segreti e copie.
 - [Chi può raggiungerli, e dove vanno?](/docs/data-security/flows-access-residency): Ogni identità che può raggiungere ciascun archivio, la più rischiosa per prima, quali servizi lo usano e quali provider di IA e host raggiungono i suoi dati.
 - [Rispettano le nostre regole?](/docs/data-security/compliance): Regole di residenza, e nove framework valutati in base a ciò che hanno trovato le scansioni.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Prima di iniziare
 
 - **Un ruolo che può configurarla.** I Proprietari del progetto, gli Amministratori del progetto e gli Amministratori della sicurezza modificano le impostazioni di Sicurezza dei dati. I Membri della sicurezza gestiscono i problemi e scansionano gli archivi, e i Visualizzatori della sicurezza leggono ciò che ha trovato. Gli altri ruoli non ne vedono nulla, a meno che al loro team non vengano dati i suoi permessi: sapere quali bucket contengono numeri di carta è esattamente ciò che vuole un attaccante. Vedi [Ruoli](/docs/permissions/reference#ruoli).
-- **Un account cloud da leggere, o un database.** Sicurezza dei dati legge un account cloud tramite una [connessione cloud](/docs/telemetry/cloud-accounts), e un database che gestisci tramite una stringa di connessione di sola lettura. La telemetria non richiede nulla: viene scansionata ogni ora.
+- **Un account cloud da leggere, o un archivio che gestisci.** Sicurezza dei dati legge un account cloud tramite una [connessione cloud](/docs/telemetry/cloud-accounts), e un database o un cluster di ricerca che gestisci tramite una stringa di connessione di sola lettura. La telemetria non richiede nulla: viene scansionata ogni ora.
 
 ## Avvio rapido
 
@@ -69,10 +69,10 @@ Apri **Sicurezza dei dati**. Gli archivi compaiono in **Archivi dati** man mano 
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Database che gestisci | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Archivi che gestisci | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA, Metriche, Eventi di sicurezza, Network Flows, Cassaforte indirizzi di sicurezza, Cassaforte utenti di sicurezza | Log, Tracce, Eccezioni, Session Replays, Conversazioni IA, Metriche |
 
-Ogni archivio riceve i controlli che si applicano al suo tipo. Un archivio il cui contenuto non può essere campionato viene comunque controllato: un bucket pubblico o un database non cifrato è un problema qualunque cosa contenga. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
+Ogni archivio riceve i controlli che si applicano al suo tipo, in base a ciò che OneUptime riesce a leggerne. Un archivio di un account cloud viene letto dalle impostazioni del suo cloud, quindi viene controllato che il suo contenuto possa essere campionato o no: un bucket pubblico o un database non cifrato è un problema qualunque cosa contenga. Un archivio che gestisci non ha impostazioni del genere che OneUptime possa leggere: a un cluster Elasticsearch o OpenSearch viene chiesto al suo indirizzo, a ogni scansione del contenuto, se risponde senza credenziali, e come si possono raggiungere gli altri tipi non viene controllato (vedi [Cosa verifica OneUptime su un archivio che gestisci](/docs/data-security/setup#cosa-verifica-oneuptime-su-un-archivio-che-gestisci)). Le **Impostazioni** di ogni archivio dicono, in **Cosa verifica OneUptime**, cosa viene controllato e cosa no. Eventi di sicurezza, Network Flows e Cassaforte indirizzi di sicurezza sono di OneUptime, che li conserva per la tua sicurezza: dichiarati, mai scansionati né controllati (vedi [Archivi che OneUptime conserva per la tua sicurezza](/docs/data-security/compliance#archivi-che-oneuptime-conserva-per-la-tua-sicurezza)).
 
 Un archivio viene archiviato, con la sua cronologia, quando la sua origine non lo elenca più, e i suoi problemi aperti vengono risolti: **Archivi dati archiviati**, in fondo al menu di Sicurezza dei dati, lo conserva. Torna da solo se la sua origine lo elenca di nuovo, e un problema il cui controllo continua a non essere superato si riapre.
 
@@ -86,9 +86,10 @@ La **Cronologia** di un archivio dice cosa gli è successo, e chi l'ha fatto: qu
 | Leggere la configurazione di una connessione cloud | Una volta al giorno, ed entro un'ora dopo che CloudTrail registra una modifica all'accesso, alla cifratura, ai backup o alla condivisione di un archivio AWS |
 | Campionare il contenuto di un archivio | Ogni 24 ore, o con la frequenza indicata da **Scansiona ogni (ore)** |
 | Campionare la telemetria di ogni servizio | Ogni ora, sull'ultima ora |
+| Chiedere a un cluster di ricerca che gestisci se risponde senza credenziali | A ogni sua scansione del contenuto |
 | Controllare di nuovo ogni archivio | Dopo ogni lettura e scansione, dopo che modifichi qualcosa da cui dipende un controllo, e una volta al giorno |
 
-**Scansiona ora** su un archivio ne campiona subito il contenuto, e **Controlla ora** ne rilegge la configurazione.
+**Scansiona ora** su un archivio ne campiona subito il contenuto, e chiede di nuovo a un cluster di ricerca che gestisci se risponde senza credenziali. **Controlla ora** rilegge la configurazione di un archivio di un account cloud, e ne esegue di nuovo i controlli.
 
 ## Passaggi successivi
 
