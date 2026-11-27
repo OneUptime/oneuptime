@@ -134,6 +134,7 @@ Lassen Sie den Abschnitt eingeklappt, und das Gerät wird nur angepingt: Der ein
 | SNMP-v3-Authentifizierungsschlüssel | Die Authentifizierungs-Passphrase. | Mit Authentifizierung |
 | SNMP-v3-Privacy-Protokoll | DES, AES oder AES-256. | Mit Verschlüsselung |
 | SNMP-v3-Privacy-Schlüssel | Die Passphrase für die Verschlüsselung. | Mit Verschlüsselung |
+| SNMP-v3-Kontext | Nur für einen Agenten, der mehrere Geräte unter einer Adresse beantwortet, jedes in einem eigenen Kontext: `VF:128` eines logischen Brocade-Switches. | Nein |
 :::
 
 Auf dem Gerät eingegebene Anmeldedaten haben Vorrang vor einem daneben gewählten Anmeldedatenprofil, und der Standort des Geräts kann ebenfalls ein Standardprofil tragen. Anmeldedaten in einem Profil werden verschlüsselt gespeichert. Auf einem Gerät eingegebene Anmeldedaten werden ebenfalls verschlüsselt gespeichert und sind durch dieselben Leseberechtigungen geschützt.
@@ -146,11 +147,14 @@ Ein Erkennungsscan im Netzwerk eines Kunden bringt Dutzende Geräte, die zu eine
 | --- | --- |
 | **Standort festlegen** / **Standort entfernen** | Verschiebt jedes ausgewählte Gerät in den gewählten Standort, wo es zur Integrität des Standorts zählt; ein Gerät ohne eigene Sonde übernimmt die Standardsonde des Standorts. **Standort entfernen** nimmt die Geräte aus ihren Standorten. Ein Gerät, auf das eine Standortzuweisungsregel passt, kehrt bei seiner nächsten Abfrage zum Standort der Regel zurück; für Geräte, die die Erkennung immer wieder findet, legen Sie deshalb besser eine Regel unter **Netzwerk → Regeln → Standortzuweisungsregeln** an; der Dialog **Standort festlegen** verlinkt dorthin. |
 | **Geräterolle festlegen** / **Geräterolle entfernen** | Gibt jedem ausgewählten Gerät eine Rolle, etwa den zwanzig Switches, die alle „Access Switch“ sind. Rollen sind die des Projekts, unter **Netzwerk → Einstellungen → Geräterollen**, wohin der Dialog verlinkt. **Geräterolle entfernen** ermittelt die Rolle jedes Geräts erneut aus seiner SNMP-Identität. |
+| **Monitore erstellen** | Gibt jedem ausgewählten Gerät einen Monitor aus der gewählten Vorlage, wie es ein Import tut: Der Monitor einer Netzwerkgerät-Vorlage wertet die Abfragen des Geräts aus, und der Monitor einer Ping-, IP-, Port- oder NTP-Vorlage prüft die eigene Adresse des Geräts. Ein Gerät, das schon einen Monitor aus dieser Vorlage hat oder einen derselben Art, der dasselbe prüft, behält ihn und bekommt keinen zweiten. |
 | **Hersteller-Vorlage anwenden** | Fügt jedem ausgewählten Gerät die Integritäts-OIDs und SNMP-Tabellen einer [Hersteller-Vorlage](#hersteller-integritätsvorlagen) hinzu. **Hersteller jedes Geräts erkennen**, die erste Auswahl im Dialog, wählt für jedes Gerät die eigene Vorlage anhand dessen, was sein SNMP-Walk meldet, sodass eine gemischte Auswahl überall die richtige bekommt; oder wählen Sie eine Vorlage für alle. |
 
 Jede Aktion ist ein Dialog und ein Speichern für die ganze Auswahl, und jedes Gerät durchläuft dieselben Prüfungen wie eine Bearbeitung auf seiner eigenen Einstellungen-Seite: Berechtigungen, den Beschriftungs- und Eigentümerbereich Ihrer Rolle und die Grenzen dessen, was ein Gerät erfassen darf.
 
 **Hersteller-Vorlage anwenden** zeigt vorher, was passieren wird: wie viele Geräte welche Vorlage bekommen und wie viele es unverändert lässt, und warum. Es ergänzt, was jedes Gerät bereits erfasst, und entfernt nichts, und ein Gerät, das schon alles aus der Vorlage hat, wird nicht erneut geschrieben. Es lässt ein monitorgestütztes Gerät unverändert (nichts fragt es ab), ein Gerät, das mit einer [OID-Erfassungsvorlage](#oid-erfassungsvorlagen) verknüpft ist (die Vorlage bestimmt, was es erfasst, fügen Sie die OIDs des Herstellers also dort hinzu), und beim Abgleichen ein Gerät, das noch nicht per SNMP abgefragt wurde oder dessen Hersteller keine Vorlage hat.
+
+**Monitore erstellen** läuft auf dem Server, für bis zu 5.000 Geräte auf einmal, und das Schließen seines Dialogs hält den Lauf nicht an. Der Dialog zählt die Monitore mit, während jeder erstellt wird, schon vorhanden ist oder fehlschlägt, und **Stoppen** hält den Lauf nach dem Gerät an, das gerade seinen Monitor erhält. **Wiederholen** versucht nur die fehlgeschlagenen Geräte erneut, und ein erneuter Lauf für dieselben Geräte erstellt nichts doppelt. Ein Gerät, das seinen Status von einem an es gebundenen Monitor erhält, bekommt keinen Netzwerkgerät-Monitor, weil nichts es abfragt. Jeder Monitor zählt für Ihren Tarif: Ein Tarif ohne freien Platz verweigert den Start, und wenn er sich unterwegs füllt, werden die übrigen Geräte mit dem Grund als Geräte aufgeführt, denen kein Monitor gegeben wurde, damit Sie es erneut versuchen können, sobald wieder Platz ist.
 
 Wenn eine Aktion fertig ist, listet sie, wie viele Geräte sich geändert haben, welche fehlgeschlagen sind und warum — ein Gerät, das Ihre Rolle nicht bearbeiten darf, eine Liste über ihrer Grenze — und welche sie nicht geändert hat und warum: ein Gerät, das schon in diesem Standort oder dieser Rolle ist, oder eines, das die Hersteller-Vorlage unverändert lässt.
 
@@ -181,6 +185,8 @@ Ein Gerät, das auf Ping antwortet, dessen Walk aber fehlschlägt, ist **Up** un
 - SNMP schlägt fehl, weil seine Schnittstellen, sein Inventar und seine Integritäts-OIDs nicht mehr aktualisiert werden, fast immer wegen der Anmeldedaten, eines abgeschalteten SNMP-Agenten oder einer ACL. Nichts anderes auf der Seite würde Ihnen sagen, dass die Zahlen eingefroren sind.
 
 Ein Gerät, bei dem Ping und Walk beide fehlschlagen, ist schlicht **Ausgefallen**, die Markierung steht also immer nur neben einem grünen Status.
+
+Monitore unterscheiden die beiden auf dieselbe Weise. **Gerät ist erreichbar (ICMP)** beurteilt den Ping der Abfrage für sich allein, und ein neuer Netzwerkgerät-Monitor löst eine Warnung statt eines Vorfalls aus und bleibt online, wenn SNMP auf einem Gerät fehlschlägt, das auf Ping antwortet: siehe [Die Kriterien eines neuen Monitors](#die-kriterien-eines-neuen-monitors).
 
 ### Den Status eines Geräts lesen
 
@@ -250,6 +256,12 @@ Wählen Sie Geräte in der Liste **Geräte** aus und verwenden Sie:
 
 Die Seite **Geräte** zeigt ein Banner, wenn das Projekt Geräte mit der Überschreibung mit gebundenem Monitor ohne gebundenen Monitor hat — Geräte, die nichts abfragt und über die nichts berichtet —, und verlinkt auf die Auswahl, die sie behebt.
 
+### SNMPv3-Kontexte
+
+Ein Agent kann mehrere Geräte unter einer Adresse beantworten, jedes in einem eigenen SNMPv3-Kontext: Ein Brocade-Chassis mit Virtual Fabrics beantwortet jeden logischen Switch im Kontext `VF:` und seiner Fabric-ID. Fügen Sie pro logischem Switch ein Gerät unter dieser Adresse mit SNMP v3 hinzu und setzen Sie für jedes den **SNMP-v3-Kontext** auf seiner Seite **Einstellungen**; ein Gerät ohne Kontext wird im Standardkontext des Agenten abgefragt. Der Kontext gehört zum Gerät, nicht zu seinen Zugangsdaten, und gilt daher mit jedem Zugangsdaten-Profil, das das Gerät verwendet.
+
+Eine Sonde von vor den SNMPv3-Kontexten würde stattdessen den Standardkontext abfragen, daher pingt sie ein solches Gerät nur, bis sie aktualisiert ist. Auch jeder SNMPv3-Trap nennt seinen Kontext und wird nur auf dem Gerät ausgelöst, das in diesem Kontext abgefragt wird; ein Trap in einem Kontext, in dem kein Gerät abgefragt wird, wird als nicht zugeordnet protokolliert.
+
 ## Überwachungsstandards des Standorts
 
 Ein [Netzwerkstandort](/docs/monitor/network-sites#überwachungsstandards) trägt zwei Standards für die Geräte darin. Seine **Standardsonde** wird auf ein Gerät kopiert, das ohne eigene Sonde im Standort angelegt oder dorthin verschoben wird. Sein **Standard-SNMP-Anmeldedatenprofil** wird bei jeder Abfrage eines Geräts im Standort gelesen, das keine eigenen Anmeldedaten hat. Legen Sie beide an einem Standort fest, und ein Gerät dort lässt sich allein mit seiner Adresse hinzufügen und wird ab der ersten Abfrage angepingt und abgefragt. Die Anleitung zu Standorten sagt, wie weit jeder Standard den Standortbaum hinunterreicht.
@@ -303,9 +315,11 @@ Im Editor **Integritäts-OIDs** wendet **Integritätsvorlage des Herstellers** e
 | --- | --- | --- |
 | Generic (Host Resources MIB) | CPU-Last, gesamter und verfügbarer RAM, Load Average | CPU-Kerne (eine Zeile pro Kern, wie auch immer die Plattform sie nummeriert) |
 | Arista EOS | CPU-Last, Load Average, gesamter und verfügbarer RAM | — |
+| Brocade Fabric OS (SAN switches) | Switch-Zustand, Firmware-Version, CPU, Speicher | Switch-Status, Sensoren (Temperatur, Lüfter, Netzteile), austauschbare Einheiten (FRUs) |
 | Cambium Networks cnMatrix | CPU, RAM, Flash, Temperatur, Versorgungsspannung | Lüfter, PoE-Ports, redundantes Netzteil |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, freier Speicher, WLAN-Clients, cnMaestro-Verbindung | WLAN-Funkmodule (Band, Kanal, Breite, Sendeleistung, Clients, Grundrauschen, Airtime, Zustand), SSIDs |
 | Cisco IOS / IOS-XE | CPU, belegter und freier Speicher, Temperatur, Lüfterzustand, Netzteilzustand | — |
+| Cisco MDS 9000 (SAN switches) | CPU, Speicher | Netzteile, Module, Lüftereinschübe, VSANs |
 | Dell Force10 / OS9 | CPU, Speicher | — |
 | Extreme Networks EXOS / Switch Engine | CPU, Temperatur, Übertemperaturalarm, Stromzustand | Netzteile, Lüfter, Speicher pro Steckplatz, Stack-Mitglieder |
 | Extreme Networks Fabric Engine / VOSS | vIST-Sitzung, Anzahl der I-SIDs | Fabric-Nachbarschaften (IS-IS), nach Nachbar benannt, CPU und Speicher pro Steckplatz, Temperatursensoren, Lüfter, Netzteile |
@@ -513,6 +527,7 @@ Die `sysObjectID` des Geräts bestimmt, woher die Messwerte kommen: zuerst aus d
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Ja |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), mit Flags für Signalverlust und Senderfehler | Nein |
 | Cambium Networks cnMatrix (4.5 und neuer) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | Nein |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), als Text gelesen: `-inf` heißt kein Licht | Nein |
 | Jedes andere Gerät | ENTITY-SENSOR-MIB (RFC 3433), über ENTITY-MIB den Ports zugeordnet | Nein |
 
 Die erste Abfrage liest alles. Spätere Abfragen lesen nur, was sich ändert — die Messwerte und die Seriennummern, an denen eine getauschte Optik zu erkennen ist —, und der Rest (Schwellenwerte, Identität, welche Optik in welchem Port steckt) wird erneut gelesen, wenn eine Optik eingesteckt, entfernt oder getauscht wird, und mindestens einmal pro Stunde. Ein Gerät ohne eine dieser MIBs kostet eine Anfrage pro versuchter MIB. Das Lesen hat sein eigenes Budget von 20 Sekunden, und ein Lesen, das in eine Zeitüberschreitung läuft oder abgebrochen wird, behält die letzten guten Optiken des Geräts, statt sie als verschwunden zu melden.
@@ -731,7 +746,7 @@ Um die Geräte, die Sie schon haben, an die Konvention anzupassen, klicken Sie a
 
 ### Automatisch importieren mit Regeln für den automatischen Import
 
-Jeden Scan von Hand zu prüfen, skaliert nicht über die ersten paar Subnetze hinaus. Unter **Netzwerk → Regeln → Regeln für automatischen Import** schreiben Sie den Import einmal fest: Eine Regel sagt, welche erkannten Hosts sie übernimmt (einen IP-Bereich und optionale Muster für Systemname, Beschreibung und `sysObjectID`) und optional, welche Monitor-Vorlage und welche [OID-Erfassungsvorlage](#oid-erfassungsvorlagen) die importierten Geräte bekommen. Der Monitor einer Netzwerkgerät-Vorlage wertet die Abfragen jedes Geräts aus, der Monitor einer Ping-, IP-, Port- oder NTP-Vorlage prüft die eigene Adresse jedes Geräts, und der Monitor einer Website-, API- oder SSL-Zertifikat-Vorlage prüft die URL der Vorlage mit der Adresse jedes Geräts als Host. Ein Gerät bekommt nie einen zweiten Monitor derselben Art. Eine als Ausschluss markierte Regel übernimmt nichts und legt gegen die anderen ein Veto ein: So werden Drucker und Telefone aus einer breiten Subnetzregel herausgenommen.
+Jeden Scan von Hand zu prüfen, skaliert nicht über die ersten paar Subnetze hinaus. Unter **Netzwerk → Regeln → Regeln für automatischen Import** schreiben Sie den Import einmal fest: Eine Regel sagt, welche erkannten Hosts sie übernimmt (einen IP-Bereich und optionale Muster für Systemname, Beschreibung und `sysObjectID`) und optional, welche Monitor-Vorlage und welche [OID-Erfassungsvorlage](#oid-erfassungsvorlagen) die importierten Geräte bekommen. Der Monitor einer Netzwerkgerät-Vorlage wertet die Abfragen jedes Geräts aus, der Monitor einer Ping-, IP-, Port- oder NTP-Vorlage prüft die eigene Adresse jedes Geräts, und der Monitor einer Website-, API- oder SSL-Zertifikat-Vorlage prüft die URL der Vorlage mit der Adresse jedes Geräts als Host. Auch ein Gerät, das das Projekt schon hat, bekommt den Monitor der Vorlage, außer es hat bereits einen: einen Monitor aus derselben Vorlage oder einen derselben Art, der dasselbe prüft, sofern er für das Gerät angelegt wurde, ihm zugeordnet ist, an es gebunden ist oder es überwacht. Ein Monitor einer anderen Art oder ein Netzwerkgerät-Monitor aus einer anderen oder keiner Vorlage verhindert das nie, sodass ein Gerät nie denselben Monitor zweimal bekommt und nie den verpasst, den die Regel vergibt. Eine als Ausschluss markierte Regel übernimmt nichts und legt gegen die anderen ein Veto ein: So werden Drucker und Telefone aus einer breiten Subnetzregel herausgenommen.
 
 Das **Prüfintervall** einer Regel legt fest, wie oft die Sonde des Scans jedes Gerät abfragt, das die Regel importiert, so wie das **Prüfintervall** beim Import aus **Ergebnisse prüfen**; leer bleibt es bei alle 5 Minuten. Eine Regel mit **Reine Ping-Hosts einbeziehen** importiert auch Hosts, die nur auf Ping geantwortet haben, darunter jeden Host, den ein [ICMP-Scan](#icmp-scans) findet, und gibt auch ihnen ihre Monitorvorlage: Die Sonde pingt sie an, also wirken die Prüfungen der Vorlage darauf, ob ein Gerät erreichbar ist, und auf die Traps, die es sendet, sofort, und ihre Prüfungen, die einen SNMP-Walk lesen, sobald das Gerät Anmeldedaten hat.
 
@@ -815,7 +830,7 @@ Um einen stattdessen unter **Monitore** anzulegen:
 
 Ein Netzwerkgerät-Monitor hat kein eigenes Intervall: Er wird jedes Mal ausgewertet, wenn die Abfrageergebnisse des Geräts eintreffen, und jedes Mal, wenn ein Trap vom Gerät eintrifft.
 
-Wenn die Abfragen ausbleiben, wird der Monitor trotzdem ausgewertet. Sobald ein Gerät drei Abfrageintervalle lang, mindestens aber zehn Minuten, nicht abgefragt wurde, werden seine Monitore einmal pro Ausbleiben der Abfragen wie eine Abfrage ausgewertet, die das Gerät nicht erreichen konnte (eine Prüfung läuft alle fünf Minuten): Ein Kriterium, das auf **SNMP-Gerät ist online** gleich False passt, etwa **Device unreachable**, löst aus, und der Vorfall nennt den Grund, warum keine Abfrage kam, zum Beispiel dass die Sonde ausgefallen ist oder das Gerät keine Sonde hat. Ein Gerät mit ausgeschalteter Abfrage oder mit der [Überschreibung mit gebundenem Monitor](#die-überschreibung-mit-gebundenem-monitor) bleibt unberührt. Die nächste Abfrage wertet den Monitor wie gewohnt aus.
+Wenn die Abfragen ausbleiben, wird der Monitor trotzdem ausgewertet. Sobald ein Gerät drei Abfrageintervalle lang, mindestens aber zehn Minuten, nicht abgefragt wurde, werden seine Monitore einmal pro Ausbleiben der Abfragen wie eine Abfrage ausgewertet, die das Gerät nicht erreichen konnte (eine Prüfung läuft alle fünf Minuten): Ein Kriterium, das auf **SNMP-Gerät ist online** oder **Gerät ist erreichbar (ICMP)** gleich False passt, etwa **Device unreachable**, löst aus, und der Vorfall nennt den Grund, warum keine Abfrage kam, zum Beispiel dass die Sonde ausgefallen ist oder das Gerät keine Sonde hat. Ein Gerät mit ausgeschalteter Abfrage oder mit der [Überschreibung mit gebundenem Monitor](#die-überschreibung-mit-gebundenem-monitor) bleibt unberührt. Die nächste Abfrage wertet den Monitor wie gewohnt aus.
 
 Ein Monitor, den Sie für ein Gerät anlegen, ist diesem Gerät zugeordnet: einer, den Sie über die Karte erstellen, und einer, den Sie unter **Monitore** für die Adresse eines Geräts erstellen, das seine Sonden kennen, so ermittelt wie bei den Hosts eines Scans: ein Gerät, das sie abfragen, sonst das eine mit dieser Adresse an einem Standort, an dem sie Geräte abfragen oder Standardsonde sind. Sonden, die nichts abfragen und an keinem Standort Standardsonde sind, ordnen ihn nur einem Gerät ohne Standort zu, das als einziges im Projekt die Adresse hat, sodass ein Monitor nie auf Verdacht dem Gerät eines anderen Standorts zugeordnet wird. In allen anderen Fällen wählen Sie das Gerät im Formular im Feld **Netzwerkgerät** unter **Weitere Felder** aus, oder ändern Sie es später in der Karte **Details** des Monitors. **Bestehenden Monitor hinzufügen** in der Karte des Geräts ordnet ihm einen Monitor zu, den Sie früher angelegt haben. Ein zugeordneter Monitor wird auf den Seiten des Geräts aufgeführt, was er auslöst, wird mit dem Gerät verknüpft, und ein Import oder eine Regel für automatischen Import zählt ihn mit, sodass das Gerät nie einen zweiten Monitor derselben Art bekommt. **Entfernen** in der Zeile eines zugeordneten Monitors hebt die Zuordnung nach Ihrer Bestätigung auf: Er wird nicht mehr beim Gerät aufgeführt, was er ab dann auslöst, wird nicht mit dem Gerät verknüpft, und Importe und Regeln für automatischen Import zählen ihn nicht mehr mit. Der Monitor selbst prüft unverändert weiter. Ein Monitor, den das Gerät aus einem anderen Grund aufführt, etwa einer, den ein Import für es angelegt hat, oder der Monitor, an den es gebunden ist, hat kein **Entfernen**. Ändern sich die Sonden eines Monitors, ermittelt OneUptime seine Zuordnung auf dieselbe Weise neu. Ein Monitor, der keinem Gerät zugeordnet ist, wird dem Gerät zugeordnet, das seine Sonden nun sehen. Eine Zuordnung, die OneUptime vorgenommen hat, wechselt zu diesem Gerät oder wird aufgehoben, wenn sie keines sehen oder zwei nicht unterscheiden können. Eine Zuordnung, die Sie festgelegt oder aufgehoben haben, bleibt, wie Sie sie hinterlassen haben, ebenso eine, die entstand, bevor OneUptime festhielt, wer sie festgelegt hat. Jede Änderung wird im Feed des Monitors vermerkt. Unter den Monitoren des Geräts listet seine Karte die Monitore auf, die seine Adresse prüfen, aber keinem Gerät zugeordnet sind. **Hinzufügen** ordnet einen zu, dessen Sonden dieses Gerät sehen. Einer, dessen Sonden es nicht von einem anderen Gerät mit der Adresse unterscheiden können oder die kein Gerät abfragen und an keinem Standort Standardsonde sind, sagt, warum, und nennt die anderen Geräte: Wenn er dieses Gerät prüft, ordnen Sie ihn mit **Bestehenden Monitor hinzufügen** zu.
 
@@ -844,7 +859,10 @@ Kriterien prüfen jedes Abfrageergebnis und jeden Trap und eröffnen Vorfälle o
 
 | Filtertyp | Was er prüft | Bei einer reinen Ping-Abfrage |
 | --- | --- | --- |
-| SNMP Device Is Online | Ob das Gerät erreichbar ist, per Ping oder SNMP: dasselbe Urteil wie sein Status. | Ausgewertet |
+| SNMP Device Is Online | Ob das Gerät erreichbar ist, per Ping oder SNMP: dasselbe Urteil wie sein Status. Anders als der Name vermuten lässt, ist ein Gerät, das auf Ping antwortet, online, auch wenn sein SNMP fehlschlägt. | Ausgewertet |
+| Device Is Reachable (ICMP) | Ob das Gerät bei dieser Abfrage auf den Ping seiner Sonde geantwortet hat, unabhängig davon, was SNMP tat. | Ausgewertet |
+| ICMP Response Time (in ms) | Die durchschnittliche Round-Trip-Zeit des Pings der Abfrage. Kein Urteil bei einer Abfrage, deren Ping kein Echo zurückbekam. | Ausgewertet |
+| ICMP Packet Loss (in %) | Der Anteil der Echos des Pings, auf die das Gerät nicht geantwortet hat. | Ausgewertet |
 | SNMP Walk Is Succeeding | Ob der letzte SNMP-Walk erfolgreich war. Falsch ist der Zustand „SNMP schlägt fehl“: erreichbar, aber Schnittstellen und Inventar werden nicht mehr aktualisiert. | Nicht ausgewertet |
 | SNMP Response Time (in ms) | Die Antwortzeit des Walks in Millisekunden, nie die des Pings. | Nicht ausgewertet |
 | SNMP OID Value | Der Wert, den eine OID zurückgegeben hat. | Nicht ausgewertet |
@@ -853,6 +871,7 @@ Kriterien prüfen jedes Abfrageergebnis und jeden Trap und eröffnen Vorfälle o
 | SNMP Interface Is Down | Wahr, wenn eine administrativ aktivierte Schnittstelle betrieblich ausgefallen ist. | Nicht ausgewertet |
 | SNMP Interface Utilization (in %) | Die Verbindungsauslastung der am stärksten belasteten Schnittstelle. | Nicht ausgewertet |
 | SNMP Interface Errors (per second) | Die Fehlerrate der schlechtesten Schnittstelle. | Nicht ausgewertet |
+| SNMP Fibre Channel Counter (per second) | Ein Fibre-Channel-Zähler der Ports eines SAN-Switches — CRC-Fehler, verworfene Frames, Credit-Verlust und die übrigen — pro Sekunde, am schlechtesten Port im Bereich; `*` löst eine Warnung pro Port aus. | Nicht ausgewertet |
 | SNMP Transceiver Not Detected | Wahr, wenn ein Port, der eine Optik hatte, zwei Abfragen in Folge keine gemeldet hat, während der Port aktiviert ist. | Nicht ausgewertet |
 | SNMP Transceiver Past Alarm Threshold | Wahr, wenn ein Messwert einer Optik auf oder über einem Alarmschwellenwert liegt, den das Gerät meldet, oder das Gerät einen Signalverlust oder einen Senderfehler meldet. | Nicht ausgewertet |
 | SNMP Transceiver Past Warning Threshold | Dasselbe für die Warnschwellenwerte; eine Optik über einem Alarmschwellenwert zählt ebenfalls. | Nicht ausgewertet |
@@ -866,6 +885,8 @@ Kriterien prüfen jedes Abfrageergebnis und jeden Trap und eröffnen Vorfälle o
 
 Bei einer Abfrage ohne Walk liefern die als „Nicht ausgewertet“ markierten Kriterien kein Urteil statt eines fehlschlagenden. Ein Kriterium, das bei zu hoher SNMP-Antwortzeit einen Vorfall eröffnet, kann bei einem nur angepingten Gerät nicht auslösen, ein nur angepingtes Gerät mit Walk-basierten Kriterien löst also nie einen Fehlalarm aus.
 
+Die ICMP-Prüfungen lesen den Ping, den jede Abfrage ohnehin von der Sonde des Geräts aus sendet, neben seinem SNMP-Walk, und brauchen daher weder einen Ping-Monitor noch ein Update der Sonde. Sie können über einen Zeitraum beurteilt werden, wie die Prüfungen der Antwortzeit. Eine Abfrage von einer Sonde, die zu alt zum Pingen ist, liefert für sie kein Urteil.
+
 Die Schnittstellenprüfungen brauchen **Schnittstellen abfragen** an in den Abfrageeinstellungen des Geräts, was standardmäßig der Fall ist. Die OID-Prüfungen lesen die konfigurierten Integritäts-OIDs des Geräts. Administrativ deaktivierte Schnittstellen sind absichtlich aus und zählen nie als Fehler.
 
 **SNMP-Schnittstellenauslastung (in %)** nimmt auch **Anomal hoch**, **Anomal niedrig** und **Anomal**, mit **Empfindlichkeit** und **Baseline-Fenster** wie bei der [Metriken-Überwachung](/docs/monitor/metrics-monitor). Jede Schnittstelle im Geltungsbereich wird mit ihrer eigenen Auslastung zur selben Stunde der Woche an früheren Tagen verglichen, so wie dieser Schritt des Monitors sie abgefragt hat, eine Backup-Leitung, die jede Nacht voll ausgelastet ist, wird also an ihren eigenen Nächten gemessen, nicht an den ruhigen Ports daneben. Der Vorfall oder die Warnung nennt die Schnittstelle, die am weitesten außerhalb ihres Bereichs liegt, und wie viele weitere außerhalb ihres eigenen liegen. Eine Schnittstelle lernt noch und löst nichts aus, solange diese Stunde der Woche keine zwei Wochen ihres Verlaufs hat.
@@ -876,6 +897,24 @@ Kriterien für SNMP-Tabellen wählen eine Tabelle, eine Spalte (für SNMP Table 
 
 Transceiver-Kriterien haben einen Geltungsbereich wie die Schnittstellenprüfungen: leer beurteilt jede Optik als eine kombinierte Warnung, `*` löst für jeden Port mit Optik eine eigene Warnung aus (die sich jeweils selbst auflöst und nach ihrem Port benannt ist), und alles andere nennt einen Port nach Name oder Alias. Sie beurteilen die [Transceiver](#transceiver) des Geräts zum Stand dieser Abfrage, die ihre Geschichte schon mitbringen — wie viele Abfragen eine Optik gefehlt hat, einen Monat Empfangsleistung —, sie werden also auch nicht über einen Zeitraum ausgewertet. Eine Abfrage, deren Transceiver-Lesen fehlgeschlagen ist, lässt sie das letzte gute Lesen beurteilen, eine offene Warnung löst sich also nicht bei einer Abfrage auf, die nicht nachsehen konnte.
 
+### Die Kriterien eines neuen Monitors
+
+Ein neuer Netzwerkgerät-Monitor beginnt mit drei Kriterien. Sie werden der Reihe nach geprüft, und das erste, das zutrifft, setzt den Status des Monitors:
+
+| Kriterium | Trifft zu, wenn | Status | Löst aus |
+| --- | --- | --- | --- |
+| Offline | Das Gerät antwortet weder auf Ping noch auf SNMP: **SNMP-Gerät ist online** steht auf Falsch. | Offline | Einen Vorfall |
+| SNMP schlägt fehl | Das Gerät antwortet auf Ping, **Gerät ist erreichbar (ICMP)** steht auf Wahr, während sein Walk fehlschlägt, **SNMP-Walk ist erfolgreich** steht auf Falsch. | Online | Eine Warnung, mit dem Warn-Schweregrad des Projekts |
+| Online | Das Gerät antwortet auf Ping oder SNMP. | Online | Nichts |
+
+Dass SNMP fehlschlägt, heißt nicht, dass das Gerät offline ist. Ein geänderter Community-String, ein gestoppter SNMP-Agent oder eine ACL stoppt den Walk auf jedem betroffenen Gerät, während jedes davon weiter auf Ping antwortet und Verkehr weiterleitet. Ein Problem mit den Anmeldedaten auf 3.000 Switches ergibt 3.000 Warnungen, die melden, dass SNMP fehlschlägt, und eine einzige Sache, die zu beheben ist, statt 3.000 ausgefallener Geräte auf Ihren Statusseiten. Die Warnung löst sich bei der ersten Abfrage auf, deren Walk gelingt.
+
+Das Kriterium „SNMP schlägt fehl“ setzt den Status auf Online, statt ihn zu lassen, wie er war, weil nur nach dem ersten zutreffenden Kriterium gehandelt wird: Ein Gerät, das für eine Abfrage offline war und mit weiterhin fehlschlagendem SNMP zurückkam, bliebe sonst offline, solange SNMP fehlschlägt.
+
+Offline verlangt, dass beides fehlschlägt, nicht nur der Ping, weil Geräte hinter einer ACL, die ICMP von der Sonde verwirft, weiterhin auf SNMP antworten und erreichbar sind. Wenn jedes Gerät, das Sie überwachen, auf Ping antwortet, können Sie stattdessen **Gerät ist erreichbar (ICMP)** gleich Falsch als Ihr Offline-Kriterium verwenden und Kriterien mit **ICMP-Antwortzeit (in ms)** oder **ICMP-Paketverlust (in %)** für eine langsame oder verlustbehaftete Verbindung hinzufügen. Einem Gerät, das nur angepingt wird, wird nie gemeldet, dass sein SNMP fehlschlägt: Ohne Walk wird dieses Kriterium nicht ausgewertet.
+
+Monitore, die davor erstellt wurden, behalten ihre Kriterien. Um einem davon die neuen Kriterien zu geben, fügen Sie sie im Kriterienformular des Monitors hinzu, oder in der Vorlage, aus der die Monitore erstellt werden, und verwenden Sie dann **Aus Vorlage synchronisieren**.
+
 ### Empfohlenes Warnungspaket
 
 Klicken Sie im Kriterienformular auf **Empfohlene Warnungen hinzufügen**, um einen vorgefertigten Satz von Kriterien hinzuzufügen: die Warnungen, die die meisten Netzwerkbetreiber wollen, ohne sie jedes Mal von Hand zu bauen. Das Paket ist ausgefüllt, wenn Sie einen Monitor von der Geräteseite aus anlegen, und es ist das, was die Vorlage der empfohlenen Warnungsrichtlinie trägt.
@@ -883,7 +922,7 @@ Klicken Sie im Kriterienformular auf **Empfohlene Warnungen hinzufügen**, um ei
 | Kriterium | Löst aus, wenn | Erzeugt |
 | --- | --- | --- |
 | Device unreachable | Das Gerät antwortet weder auf Ping noch auf SNMP. | Vorfall |
-| SNMP walk failing | Das Gerät antwortet auf Ping, aber sein SNMP-Walk schlägt fehl. | Warnung |
+| SNMP walk failing | Das Gerät antwortet auf Ping, aber sein SNMP-Walk schlägt fehl. Es hält den Monitor online. | Warnung |
 | Interface down | Eine administrativ aktivierte Schnittstelle fällt betrieblich aus. | Vorfall |
 | Interface saturated | Eine Schnittstelle läuft über 80% Auslastung. | Warnung |
 | Interface errors | Eine Schnittstelle protokolliert mehr als 1 Fehler pro Sekunde. | Warnung |
@@ -893,7 +932,9 @@ Klicken Sie im Kriterienformular auf **Empfohlene Warnungen hinzufügen**, um ei
 
 Wenn das Gerät [SNMP-Tabellen](#snmp-tabellen) abfragt, die gesunde Werte deklarieren, fügt das Paket außerdem ein Kriterium **SNMP-Tabellenzeile ist fehlerhaft** pro solcher Tabelle hinzu, mit Row `*`: einen Vorfall pro Zeile für Tunnel, Routing-Nachbarn und die Access Points eines Controllers („IPsec Tunnels: row unhealthy“, oder „Access Points: row unhealthy“ für einen Access Point, der von seinem Controller verschwunden ist), und eine Warnung pro Zeile für Hardwaretabellen und Funkmodule.
 
-SNMP walk failing ist bewusst eine Warnung statt eines Vorfalls: Das Gerät ist nicht ausgefallen, jemanden um 2 Uhr nachts deswegen zu wecken, wäre also falsch, aber sein Inventar wird nicht mehr aktualisiert, und jemand sollte die Anmeldedaten in Ordnung bringen. Bei einem nur angepingten Gerät löst es nie aus, weil das Kriterium nicht ausgewertet wird, wenn kein Walk lief.
+SNMP walk failing ist bewusst eine Warnung statt eines Vorfalls: Das Gerät ist nicht ausgefallen, jemanden um 2 Uhr nachts deswegen zu wecken, wäre also falsch, aber sein Inventar wird nicht mehr aktualisiert, und jemand sollte die Anmeldedaten in Ordnung bringen. Bei einem nur angepingten Gerät löst es nie aus, weil das Kriterium nicht ausgewertet wird, wenn kein Walk lief, und auch nicht bei einem Gerät, das auf nichts antwortet, denn das ist ein Fall für **Device unreachable**: Es prüft auch **Gerät ist erreichbar (ICMP)**.
+
+Es setzt außerdem den Status des Monitors auf online, wenn es zutrifft. Nur das erste zutreffende Kriterium setzt den Status, daher blieb ein Gerät, das für eine Abfrage ausfiel und mit weiterhin fehlschlagendem SNMP zurückkam, früher offline, solange SNMP fehlschlug, mit behobenem Vorfall und roter Statusseite. Seine Warnung löst sich bei der ersten Abfrage auf, deren Walk gelingt. Vorlagen und Monitore, die zuvor aus dem Paket erstellt wurden, behalten ihre Kriterien. Um eine Vorlage oder einen Monitor zu ändern, fügen Sie dem Kriterium **SNMP walk failing** die Bedingung **Gerät ist erreichbar (ICMP)** gleich Wahr hinzu und lassen Sie es den Status auf Ihren Online-Status setzen; verwenden Sie dann **Aus Vorlage synchronisieren** für die Monitore der Vorlage. Die Monitore einer Warnungsrichtlinie folgen ihrer Vorlage von selbst.
 
 Die drei Transceiver-Kriterien lösen eine Warnung pro Port aus (`*`) und sind aus demselben Grund Warnungen statt Vorfälle: Eine dunkle Optik nimmt ihre Schnittstelle bereits außer Betrieb, und Interface down alarmiert dafür, während diese sagen, warum, oder warnen, bevor es passiert. 2 dB sind etwa ein Drittel des Lichts: deutlich mehr als die wenigen Zehntel dB, um die eine gesunde Verbindung von Tag zu Tag schwankt, und früh genug, um einen Stecker zu reinigen, bevor die Verbindung ihre Reserve verliert. Keines von ihnen kann bei einem Gerät auslösen, das keine Optiken meldet.
 
@@ -1028,6 +1069,9 @@ Vorlagen für Vorfälle und Warnungen eines Netzwerkgerät-Monitors können dies
 | `{{trapOid}}` | Die Trap-OID, bei Prüfungen, die ein Trap ausgelöst hat |
 | `{{trapSourceIp}}` | Die Adresse, von der der Trap kam, bei Prüfungen, die ein Trap ausgelöst hat |
 | `{{trapVarbinds}}` | Die Varbinds, die der Trap trug, jeder mit `oid` und `value` |
+| `{{trapInterface}}` | Die Schnittstelle, um die es in einem Trap geht: der Name, den er mitbringt, oder der, den der Walk des Geräts für ihren Index erfasst hat |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | Bei einem RMON-Alarm (einem MDS-Port-Monitor-Alarm) der Zähler, der seinen Schwellenwert überschritten hat, und `rising` oder `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | Bei einem RMON-Alarm der Wert des Zählers und der überschrittene Schwellenwert |
 | `{{tables.<key>.rowCount}}` | Die in einer [SNMP-Tabelle](#snmp-tabellen) abgefragten Zeilen, nach ihrem Schlüssel: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | Die Zeilen mit einem Status außerhalb ihrer gesunden Werte, jede mit `name`, `index` und `values.<column>` |
 | `{{tables.<key>.rows}}` | Jede Zeile (bis zu 50), jede mit `name`, `index` und `values.<column>`, mit Spaltennamen in Kleinbuchstaben und Leerzeichen als `_` |

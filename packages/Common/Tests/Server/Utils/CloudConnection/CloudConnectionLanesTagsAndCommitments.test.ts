@@ -613,7 +613,7 @@ describe("each account's commitments, with the savings", () => {
       };
     });
     jest.spyOn(CloudRightSizingWriter, "run").mockImplementation(async () => {
-      return { judged: 0, kept: 0, removed: 0 };
+      return { judged: 0, sizedOnHostMemory: 0, kept: 0, removed: 0 };
     });
     jest
       .spyOn(CloudSavingsWriter, "loadSavingsByAccount")

@@ -25,7 +25,7 @@ Beide nemen tot 100 geselecteerde incidenten. Het resultaat meldt hoeveel er zij
 
 ## Wat toevoegen doet
 
-- **Eén item in de feed van de episode** noemt elk toegevoegd incident: de eerste 20 met nummer en titel, daarna hoeveel er nog meer zijn. Het wordt één keer in het Slack- of Microsoft Teams-kanaal van de episode geplaatst, niet één keer per incident. Een privé-incident wordt alleen bij zijn nummer genoemd.
+- **Eén item in de feed van de episode** noemt elk toegevoegd incident: de eerste 20 met nummer en titel, daarna hoeveel er nog meer zijn. Het wordt één keer in het Slack- of Microsoft Teams-kanaal van de episode geplaatst, niet één keer per incident, en bij een episode die met de incidenten is aangemaakt, volgt het daar op het aanmaakbericht van de episode. Een privé-incident wordt alleen bij zijn nummer genoemd.
 - **De eigen feed van elk incident** meldt aan welke episode het is toegevoegd.
 - **De ernst van de episode** wordt verhoogd tot die van het ernstigste incident dat aan een bestaande episode wordt toegevoegd, en nooit verlaagd. Een nieuwe episode begint met de ernst die u kiest.
 - **Een opgeloste episode blijft opgelost.** Toevoegen heropent haar niet, en toevoegen verandert nooit de status van een incident.

@@ -170,6 +170,19 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.ChartBar,
         },
+        /*
+         * The tags every resource must carry, how much of the spend carries
+         * them, and the new resources created without them (#11012).
+         */
+        {
+          link: {
+            title: "Tags",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_TAGS] as Route,
+            ),
+          },
+          icon: IconProp.Tag,
+        },
       ],
     },
     {

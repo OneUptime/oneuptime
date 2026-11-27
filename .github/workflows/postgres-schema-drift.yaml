@@ -5288,7 +5288,15 @@ jobs:
       # Insights' scope - services, hosts, clusters and the other resources
       # telemetry names - searched by name or identifier and named by id;
       # and Fix with AI's repository choices searched, each held to the
-      # repositories its fix accepts.
+      # repositories its fix accepts, and a trace's fix started only in a
+      # repository the member may use (#11075). #11073: the Affected
+      # Resources chip answered in the list's own query - a monitor's
+      # 10,050 incidents listed and counted, a monitor or a host OR'd,
+      # "is not" keeping the incidents on nothing, an alert's monitor
+      # column, a label's reader kept to their incidents, and a saved pick
+      # named by its id, archived or gone. #11074: which recommended
+      # monitors a resource has, answered past the project's 10,000th
+      # monitor.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 5
         working-directory: packages/Common
@@ -5315,7 +5323,30 @@ jobs:
           Tests/Server/API/LowerPickersSearchPostgres.test.ts
           Tests/Server/API/TelemetryResourceScopeSearchPostgres.test.ts
           Tests/Server/API/FixWithAiRepositorySearchPostgres.test.ts
+          Tests/Server/API/AffectedResourceFilterPostgres.test.ts
+          Tests/Server/API/MonitorRecommendationCoveragePostgres.test.ts
           --forceExit
+
+      # #11012 and #11013: required cloud tags and the host a VM is, on
+      # copies of the migrated tables. "Carries the tag" as SQL over a
+      # resource's jsonb tags means what it means in code, edge by edge; a
+      # required tag's key is one per place whatever its case; a host is
+      # linked to its VM by the ID each cloud keeps (an EC2 ARN, a Compute
+      # Engine VM's numeric ID and an Azure VM's vmId read from their JSON
+      # columns), a clone and a Kubernetes node to none; and the watcher,
+      # run whole twice an hour apart, finds new resources without a tag,
+      # tells who created one, counts the day and closes a tagged one.
+      - name: Test required cloud tags and host links on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_TAGS_TESTS: "true"
+          PICKER_SEARCH_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PICKER_SEARCH_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PICKER_SEARCH_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/CloudConnection/CloudTagsAndHostLinksPostgres.test.ts --forceExit
 
       # The LLM provider an AI rule picks, on migrated Postgres: the two
       # migrations on copies of the rule tables that already hold rules (the
@@ -5418,6 +5449,28 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/SecurityEvent/TurnOnRecommendedPostgres.test.ts
+          --forceExit
+
+      # #10990: devices already in Network Devices get their monitors. An
+      # auto import rule's Run Now and dry run give the template's monitor to
+      # devices that have none like it - beside a monitor made by hand, one
+      # whose template was deleted, and one of another kind - and never a
+      # second; Create Monitors on the Devices list runs as a server job that
+      # stamps its creator, catches a monitor that already watches a device
+      # (through MonitorNetworkDevice's triggers, installed on the copies) and
+      # creates nothing twice. On copies of every migrated table, in a schema
+      # of their own.
+      - name: Test giving devices already in Network Devices their monitors, on migrated Postgres
+        if: matrix.shard == 5
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_EXISTING_DEVICE_MONITORS_TESTS: "true"
+          EXISTING_DEVICE_MONITORS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXISTING_DEVICE_MONITORS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXISTING_DEVICE_MONITORS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ExistingDeviceMonitorsPostgres.test.ts
           --forceExit
 
       # Entity risk on copies of the migrated User, Project,

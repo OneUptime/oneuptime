@@ -346,7 +346,7 @@ export default class CloudBudget extends BaseModel {
    * What the budget counts (CloudBudgetScope): every account, one account
    * (cloudAccountId), a cost group (cloudCostGroupId) or a filter
    * (filterRules). A budget made before scopes were is every account's, or
-   * its account's (migration 1809187722008).
+   * its account's (migration 1809187751008).
    */
   @ColumnAccessControl({
     create: createPermissions,

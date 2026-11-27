@@ -1,5 +1,16 @@
 import { SnmpTableRows } from "./EndpointTableParsers";
 import {
+  CONN_UNIT_PORT_COLUMNS,
+  CONN_UNIT_PORT_TABLE_OID,
+  SW_SFP_STAT_COLUMNS,
+  SW_SFP_STAT_TABLE_OID,
+  parseBrocadeSfpTransceivers,
+} from "./BrocadeTransceiverParser";
+import {
+  SW_FC_PORT_COLUMNS,
+  SW_FC_PORT_TABLE_OID,
+} from "./FibreChannelParsers";
+import {
   ARISTA_ENT_SENSOR_THRESHOLD_COLUMNS,
   ARISTA_ENT_SENSOR_THRESHOLD_TABLE_OID,
   CISCO_ENT_SENSOR_THRESHOLD_COLUMNS,
@@ -568,6 +579,8 @@ export default class TransceiverWalker {
           ...data,
           flavor: "standard",
         });
+      case TransceiverMibSource.BrocadeSfpStat:
+        return TransceiverWalker.collectBrocadeSfp(data);
       default: {
         const spec: PortTableSpec | undefined = PORT_TABLE_SPECS[data.source];
         return spec
@@ -915,6 +928,125 @@ export default class TransceiverWalker {
       rows: mergeTableRows(pollRows, statics["columns"]),
       laneRows: laneRows,
       interfaces: data.interfaces,
+    });
+  }
+
+  /*
+   * Brocade Fabric OS: swSfpStatTable's readings, with the optic's identity
+   * (connUnitPortTable) and the port specifiers that join a row to its
+   * interface (swFCPortTable) read once and cached, like every source's
+   * static part. The optics' serial numbers are read on every poll, so a
+   * swapped optic re-reads its identity at once rather than within the
+   * hour. The tables are indexed by connUnitId and port index, not by
+   * ifIndex (BrocadeTransceiverParser).
+   */
+  private static async collectBrocadeSfp(data: {
+    source: TransceiverMibSource;
+    input: TransceiverWalkInput;
+  }): Promise<Array<SnmpTransceiverResult> | undefined> {
+    const access: TransceiverSnmpAccess = data.input.access;
+
+    const keyRows: SnmpTableRows | undefined =
+      await TransceiverWalker.probeColumn({
+        input: data.input,
+        source: data.source,
+        tableOid: SW_SFP_STAT_TABLE_OID,
+        column: SW_SFP_STAT_COLUMNS.temperature,
+        maxRows: MAX_PORT_TABLE_ROWS,
+      });
+
+    if (!keyRows) {
+      return undefined;
+    }
+
+    if (rowCount(keyRows) === 0) {
+      return [];
+    }
+
+    const pollRows: SnmpTableRows = mergeTableRows(
+      keyRows,
+      await access.walkColumns(
+        SW_SFP_STAT_TABLE_OID,
+        [
+          SW_SFP_STAT_COLUMNS.voltage,
+          SW_SFP_STAT_COLUMNS.current,
+          SW_SFP_STAT_COLUMNS.rxPower,
+          SW_SFP_STAT_COLUMNS.txPower,
+        ],
+        MAX_PORT_TABLE_ROWS,
+      ),
+    );
+    TransceiverWalker.assertUnderCap(
+      pollRows,
+      MAX_PORT_TABLE_ROWS,
+      SW_SFP_STAT_TABLE_OID,
+    );
+
+    // Optional: FCMGMT-MIB names who made each optic.
+    const serialRows: SnmpTableRows = await TransceiverWalker.optionalWalk({
+      access: access,
+      tableOid: CONN_UNIT_PORT_TABLE_OID,
+      columns: [CONN_UNIT_PORT_COLUMNS.serialNumber],
+      maxRows: MAX_PORT_TABLE_ROWS,
+    });
+
+    const signature: string = fingerprint(
+      Object.keys(pollRows)
+        .sort()
+        .map((rowIndex: string) => {
+          return `${rowIndex}:${textOf(
+            serialRows[rowIndex]?.[
+              CONN_UNIT_PORT_COLUMNS.serialNumber.toString()
+            ],
+          )}`;
+        }),
+    );
+
+    const nowMs: number = data.input.nowMs ?? Date.now();
+
+    let statics: Record<string, SnmpTableRows> | undefined =
+      TransceiverWalker.cache.get({
+        key: data.input.cacheKey,
+        source: data.source,
+        signature: signature,
+        nowMs: nowMs,
+      });
+
+    if (!statics) {
+      statics = {
+        identity: await TransceiverWalker.optionalWalk({
+          access: access,
+          tableOid: CONN_UNIT_PORT_TABLE_OID,
+          columns: [
+            CONN_UNIT_PORT_COLUMNS.transmitterType,
+            CONN_UNIT_PORT_COLUMNS.moduleType,
+            CONN_UNIT_PORT_COLUMNS.revision,
+            CONN_UNIT_PORT_COLUMNS.vendor,
+          ],
+          maxRows: MAX_PORT_TABLE_ROWS,
+        }),
+        portSpecifiers: await TransceiverWalker.optionalWalk({
+          access: access,
+          tableOid: SW_FC_PORT_TABLE_OID,
+          columns: [SW_FC_PORT_COLUMNS.specifier],
+          maxRows: MAX_PORT_TABLE_ROWS,
+        }),
+      };
+
+      TransceiverWalker.cache.set({
+        key: data.input.cacheKey,
+        source: data.source,
+        signature: signature,
+        nowMs: nowMs,
+        statics: statics,
+      });
+    }
+
+    return parseBrocadeSfpTransceivers({
+      sfpRows: pollRows,
+      portRows: statics["portSpecifiers"] || {},
+      unitPortRows: mergeTableRows(serialRows, statics["identity"]),
+      interfaces: data.input.interfaces,
     });
   }
 

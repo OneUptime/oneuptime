@@ -471,14 +471,14 @@ Les événements Kubernetes ne sont pas filtrés par namespace au niveau de l'ag
 
 Il accepte `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` et `FATAL`. `WARN` conserve WARN, ERROR et FATAL et supprime INFO, DEBUG et TRACE ; la valeur par défaut (`""`) conserve tout. Il s'applique dans les deux modes de journaux (via le collecteur en mode `daemonset`, dans le lecteur de journaux en mode `api`), si bien qu'un preset ne le désactive jamais à votre insu.
 
-Les runtimes de conteneurs n'enregistrent aucune gravité : l'agent la lit donc dans le texte du journal lui-même (`[ERROR]`, `WARN:`, `"level":"info"`, …). Ce qu'il advient d'une ligne sans niveau reconnaissable dépend du mode de journaux, car les deux modes ne savent pas les mêmes choses :
+Les runtimes de conteneurs n'enregistrent aucune gravité, l'agent lit donc le niveau que chaque ligne mentionne : un mot de niveau (`[ERROR]`, `WARN:`, `"level":"info"`, …), la première lettre d'une ligne klog (`I`, `W`, `E`, `F`), le `LOG:` de PostgreSQL ou le `"level":30` de pino. La traceback d'une exception ou un panic compte comme ERROR. Ce qu'il advient d'une ligne qui ne mentionne aucun niveau dépend du mode de journaux, car les deux modes ne savent pas les mêmes choses :
 
 | Mode | Une ligne sans niveau | Pourquoi |
 | --- | --- | --- |
-| `daemonset` | `stderr` compte comme ERROR (conservée), `stdout` comme INFO (supprimée par un seuil WARN) | Le runtime de conteneurs enregistre de quel flux provient chaque ligne. |
+| `daemonset` | `stdout` compte comme INFO (supprimée par un seuil WARN) ; `stderr` n'a aucune gravité, s'affiche comme Non spécifié et est conservée | Le runtime de conteneurs enregistre de quel flux provient chaque ligne. stdout est la sortie ordinaire d'un programme, mais les programmes écrivent leurs diagnostics de tous niveaux sur stderr : une ligne stderr ne dit donc rien de son niveau. |
 | `api` | Toujours conservée | L'API `pods/log` de Kubernetes fusionne stdout et stderr en un seul flux sans marqueur par ligne : plutôt que de deviner, l'agent conserve la ligne. |
 
-Le mode `api` supprime donc strictement moins que le mode `daemonset`, et c'est voulu : une traceback Python ou un `npm ERR!` ne porte aucun mot-clé de gravité, et le supprimer en silence est précisément l'erreur dont un seuil doit vous protéger. En mode hybride (`logs.windowsPods.enabled`), les deux lignes s'appliquent, selon le système du nœud : les pods Linux suivent `daemonset`, les pods Windows `api`.
+Le mode `api` supprime donc strictement moins que le mode `daemonset`, et c'est voulu : il ne peut pas distinguer une ligne stderr qui ne mentionne aucun niveau, comme un `npm ERR!`, d'une sortie ordinaire, et la supprimer en silence est précisément l'erreur dont un seuil doit vous protéger. En mode hybride (`logs.windowsPods.enabled`), les deux lignes s'appliquent, selon le système du nœud : les pods Linux suivent `daemonset`, les pods Windows `api`.
 
 Les événements sur plusieurs lignes sont reconstitués avant le filtrage dans les deux modes : une stack trace Java est donc jugée sur sa première ligne et conservée ou supprimée en entier.
 

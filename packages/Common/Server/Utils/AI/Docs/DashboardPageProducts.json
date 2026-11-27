@@ -1371,6 +1371,9 @@
   "/dashboard/:projectId/cloud/forecast": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/tags": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/settings/owner-rules": [
     "cloud"
   ],

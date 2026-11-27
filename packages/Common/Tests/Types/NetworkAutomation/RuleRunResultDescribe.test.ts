@@ -159,9 +159,92 @@ describe("RuleRunResultUtil.describeAutoImportRun", () => {
       "Created 1 active monitor from the selected Monitor Template.",
     );
     expect(summary).toContain(
-      "2 requested active monitors were skipped because the device already had one: from the same template, a monitor of the same kind that checks the same thing, or a Network Device monitor configured by hand.",
+      "2 requested active monitors were skipped because the device already had one: from the same template, or of the same kind and checking the same thing.",
     );
     expect(summary).not.toContain("active Network Device");
+  });
+
+  /*
+   * ISSUE #10990. A hand-made Network Device monitor, or one whose template
+   * was deleted, is no reason to skip a device any more, so the report no
+   * longer offers it as one.
+   */
+  it("never says a monitor made by hand is why a device was skipped", () => {
+    const summary: string = describe_({
+      hostsMatched: 2,
+      hostsSkippedAlreadyRegistered: 2,
+      monitorsSkippedAlreadyExisting: 2,
+    });
+
+    expect(summary).not.toContain("by hand");
+  });
+
+  /*
+   * ISSUE #10990. A dry run over hosts that are all devices already is about
+   * their monitors, and its first sentence says so: "This rule would import
+   * nothing" read as "there is nothing to do" right above the monitors it
+   * would make.
+   */
+  it("a dry run over devices that need only their monitors leads with the monitors", () => {
+    const summary: string = describe_({
+      isDryRun: true,
+      hostsEvaluated: 2940,
+      hostsMatched: 2856,
+      hostsSkippedAlreadyRegistered: 2856,
+      monitorsWouldCreate: 500,
+    });
+
+    expect(summary).toContain(
+      "This rule would import no new network devices: the 2856 hosts it matched are devices already. Nothing was written — this was a dry run.",
+    );
+    expect(summary).toContain(
+      "It would create 500 active monitors from the selected Monitor Template.",
+    );
+    expect(summary).not.toContain("would import nothing");
+    expect(summary).not.toContain("also create");
+  });
+
+  it("a dry run that imports and monitors says it would also create the monitors", () => {
+    const summary: string = describe_({
+      isDryRun: true,
+      hostsMatched: 2937,
+      hostsSkippedAlreadyRegistered: 2856,
+      monitorsWouldCreate: 500,
+    });
+
+    expect(summary).toContain("This rule would import 81 hosts");
+    expect(summary).toContain(
+      "It would also create 500 active monitors from the selected Monitor Template.",
+    );
+  });
+
+  it("a dry run with nothing to import and nothing to monitor still says it would import nothing", () => {
+    const summary: string = describe_({
+      isDryRun: true,
+      hostsEvaluated: 4,
+      hostsMatched: 3,
+      hostsSkippedAlreadyRegistered: 3,
+      monitorsSkippedAlreadyExisting: 3,
+    });
+
+    expect(summary).toContain("This rule would import nothing.");
+    expect(summary).not.toContain("devices already. Nothing");
+  });
+
+  it("says a monitor-backed device takes its status from its bound monitor, not that it lacks SNMP", () => {
+    expect(
+      describe_({ hostsMatched: 1, monitorsSkippedUnsupportedHost: 1 }),
+    ).toContain(
+      "1 active monitor was not made because the device takes its status from a monitor bound to it, which a Network Device monitor cannot read.",
+    );
+
+    const several: string = describe_({
+      hostsMatched: 3,
+      monitorsSkippedUnsupportedHost: 3,
+    });
+
+    expect(several).toContain("3 active monitors were not made because");
+    expect(several).not.toContain("SNMP-capable");
   });
 
   it("reports exclusions, already-registered hosts, and failures", () => {

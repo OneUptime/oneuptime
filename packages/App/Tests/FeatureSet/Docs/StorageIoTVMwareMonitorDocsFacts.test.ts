@@ -48,6 +48,7 @@ import {
   getVMwareDefaultAlertTemplateId,
 } from "Common/Types/Monitor/VMwareAlertTemplates";
 import ObjectID from "Common/Types/ObjectID";
+import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DEFAULT_VMWARE_COLLECTION_INTERVAL_IN_MINUTES } from "Common/Utils/VMware/VMwareCollectionSettings";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -490,11 +491,20 @@ describe("creating a storage array, IoT device or VMware monitor", () => {
   it.each(CREATE_FACTS)(
     "$page: the monitor is checked every minute, with the other telemetry monitors",
     (facts: CreateFacts) => {
+      /*
+       * The scheduler runs every 10 seconds and queues each evaluation at
+       * its monitor's own moment of its interval (#11060); a monitor with no
+       * interval of its own is evaluated every minute.
+       */
       expect(
         source(
           "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations.ts",
         ),
-      ).toContain("{ schedule: EVERY_MINUTE, runOnStartup: false }");
+      ).toContain("{ schedule: EVERY_TEN_SECONDS, runOnStartup: false }");
+      expect(TelemetryMonitorSchedule.read(undefined)).toMatchObject({
+        cron: "* * * * *",
+        cadenceInMs: 60 * 1000,
+      });
       // The worker schedules every telemetry monitor type, from the one list.
       expect(
         source(

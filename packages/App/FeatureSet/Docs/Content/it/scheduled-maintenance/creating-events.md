@@ -84,9 +84,9 @@ Nella scheda **Manutenzione programmata** di un host, un cluster Kubernetes, Pro
 Nel momento in cui fate clic su **Crea evento di manutenzione**, OneUptime esegue questi passi, in quest'ordine:
 
 1. **Riceve un numero e uno stato.** Il numero viene da un contatore per progetto, mostrato con il vostro prefisso (`SM-42`). L'evento parte nel vostro stato programmato, qualunque stato indichi una richiesta.
-2. **I vostri strumenti di chat lo vengono a sapere.** Le regole Slack e Microsoft Teams in **Area di lavoro** lo pubblicano nei loro canali, e una regola può creare un canale per l'evento. Il suo feed registra che è stato creato.
-3. **Inizia la sua cronologia di stato.** La prima riga della sua **Cronologia stato** è il vostro stato programmato.
-4. **Vengono aggiunti proprietari ed etichette**: quelli che avete scelto, poi quelli delle regole del proprietario e delle etichette che corrispondono.
+2. **Inizia la sua cronologia di stato.** La prima riga della sua **Cronologia stato** è il vostro stato programmato.
+3. **Vengono aggiunti proprietari ed etichette**: quelli che avete scelto, poi quelli delle regole del proprietario e delle etichette che corrispondono.
+4. **I vostri strumenti di chat lo vengono a sapere.** Le regole Slack e Microsoft Teams in **Area di lavoro** lo pubblicano nei loro canali, e una regola può creare un canale per l'evento. Il suo feed registra che è stato creato. Le regole vedono i proprietari e le etichette con cui l'evento è stato creato, così anche una regola che chiede chi è il proprietario di un evento, o come è etichettato, lo pubblica. Ciò che è stato detto sull'evento nel frattempo, come i proprietari appena aggiunti, lo segue in quei canali.
 5. **Le regole di runbook avviano** i runbook che corrispondono all'evento.
 6. **Vengono pianificati i promemoria**, quando corrisponde una regola di promemoria, per i suoi proprietari.
 

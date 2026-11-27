@@ -90,6 +90,8 @@ describe("the Cloud product menu", () => {
       { title: "Budgets", href: `${CLOUD}/budgets` },
       // What the spend is on course to cost, beside what it may (#11008).
       { title: "Forecast", href: `${CLOUD}/forecast` },
+      // The required tags and how much of the spend carries them (#11012).
+      { title: "Tags", href: `${CLOUD}/tags` },
     ]);
     // The rules, then the cost basis the pages open on and when commitments alert.
     expect(linksIn("Settings")).toEqual([
@@ -251,6 +253,8 @@ describe("a cloud account's menu", () => {
         href: `${ACCOUNT_PATH}/recommendations`,
       },
       { title: "Costs", href: `${ACCOUNT_PATH}/costs` },
+      // Its required tags, the project's and its own (#11012).
+      { title: "Tags", href: `${ACCOUNT_PATH}/tags` },
     ]);
     // What AI did first, its agent last, as every resource's AI section.
     expect(linksIn("AI")).toEqual([

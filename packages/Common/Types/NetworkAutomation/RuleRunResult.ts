@@ -103,15 +103,17 @@ export interface AutoImportRuleRunResult {
   monitorsCreated: number;
   /*
    * Matched devices left alone because they already have the monitor: one
-   * from the same template, one of the same kind that checks the same thing
-   * (issue #9509), or - for a Network Device template - a Network Device
-   * monitor configured by hand. Automation must never add a duplicate simply
-   * because it did not create the first one.
+   * from the same template, or - for a Ping, IP, Port, NTP, Website, API or
+   * SSL Certificate template - one of the same kind that checks the same
+   * thing (issue #9509), however the device came to have it. Automation must
+   * never add a duplicate simply because it did not create the first one. A
+   * monitor of another template, or of none, is no duplicate (issue #10990).
    */
   monitorsSkippedAlreadyExisting: number;
   /*
-   * Matched hosts that can become inventory records but cannot be backed by a
-   * Network Device monitor, such as a ping-only discovery result.
+   * Matched devices a Network Device template's monitor cannot watch: they
+   * take their status from a monitor bound to them, so nothing polls them
+   * and the monitor would have nothing to read.
    */
   monitorsSkippedUnsupportedHost: number;
   // Monitor creates that failed after the device was available.
@@ -389,6 +391,18 @@ export class RuleRunResultUtil {
             wouldImport,
           )} as network devices. Nothing was written — this was a dry run.`,
         );
+      } else if (result.monitorsWouldCreate > 0) {
+        /*
+         * Every host it matched is a device already, and the run is about
+         * their monitors (issue #10990): "This rule would import nothing"
+         * read as "there is nothing to do" right above the monitors it
+         * would make.
+         */
+        lines.push(
+          `This rule would import no new network devices: the ${hosts(
+            result.hostsMatched,
+          )} it matched are devices already. Nothing was written — this was a dry run.`,
+        );
       } else {
         lines.push(
           `This rule would import nothing. It matched ${hosts(
@@ -428,8 +442,11 @@ export class RuleRunResultUtil {
      * dry run predicts monitor work without claiming anything was written.
      */
     if (result.isDryRun && result.monitorsWouldCreate > 0) {
+      const wouldImportAny: boolean =
+        result.hostsMatched - result.hostsSkippedAlreadyRegistered > 0;
+
       lines.push(
-        `It would also create ${activeMonitors(
+        `It would ${wouldImportAny ? "also " : ""}create ${activeMonitors(
           result.monitorsWouldCreate,
         )} from the selected Monitor Template.`,
       );
@@ -450,15 +467,15 @@ export class RuleRunResultUtil {
       lines.push(
         `${skippedRequestedMonitors} ${
           result.monitorsSkippedAlreadyExisting === 1 ? "was" : "were"
-        } skipped because the device already had one: from the same template, a monitor of the same kind that checks the same thing, or a Network Device monitor configured by hand.`,
+        } skipped because the device already had one: from the same template, or of the same kind and checking the same thing.`,
       );
     }
 
     if (result.monitorsSkippedUnsupportedHost > 0) {
       lines.push(
-        `${activeMonitors(
-          result.monitorsSkippedUnsupportedHost,
-        )} could not be provisioned because the discovery result was not SNMP-capable (for example, a ping-only host).`,
+        `${activeMonitors(result.monitorsSkippedUnsupportedHost)} ${
+          result.monitorsSkippedUnsupportedHost === 1 ? "was" : "were"
+        } not made because the device takes its status from a monitor bound to it, which a Network Device monitor cannot read.`,
       );
     }
 

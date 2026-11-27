@@ -51,6 +51,7 @@ import RunbookStepType from "../../../../Types/Runbook/RunbookStepType";
 import {
   DeclaredCodeChangeState,
   DeclaredCodeKind,
+  DeclaredCodeOwnerCandidateJSON,
   DeclaredCodeOwnerJSON,
   DeclaredCodeOwnerReason,
 } from "../../../../Utils/AiRemediation/DeclaredCodeChange";
@@ -208,6 +209,7 @@ describe("DeclaredCodeChanges", () => {
     typeof CodeTaskAccess.listReadableRepositoriesByIds
   >;
   let canAsk: SpyInstance<typeof CodeTaskAccess.canAskInRepository>;
+  let askable: SpyInstance<typeof CodeTaskAccess.listAskableRepositoryIds>;
   let getRepository: SpyInstance<typeof CodeTaskAccess.getReadableRepository>;
   let gate: SpyInstance<typeof CodeTaskGate.assertCanStart>;
   let contextBuild: SpyInstance<typeof CodeTaskContextBuilder.build>;
@@ -288,6 +290,24 @@ describe("DeclaredCodeChanges", () => {
       .mockImplementation(
         async (data: { repositoryId: ObjectID }): Promise<boolean> => {
           return data.repositoryId.toString() === REPOSITORY_ID;
+        },
+      );
+    // The same rule, for many repositories at once (#11076).
+    askable = jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockImplementation(
+        async (data: {
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Set<string>> => {
+          return new Set<string>(
+            data.repositoryIds
+              .map((id: ObjectID | string): string => {
+                return id.toString().toLowerCase();
+              })
+              .filter((id: string): boolean => {
+                return id === REPOSITORY_ID.toLowerCase();
+              }),
+          );
         },
       );
     getRepository = jest
@@ -530,6 +550,11 @@ describe("DeclaredCodeChanges", () => {
         sequence: 1,
       });
 
+      /*
+       * Only the ones something points to (#11076): checkout-app, which
+       * nothing does, is the dialog's search's to find - and there is a
+       * repository to search for.
+       */
       expect(owner).toEqual({
         sequence: 1,
         managedAsCode: "Terraform",
@@ -546,16 +571,8 @@ describe("DeclaredCodeChanges", () => {
             isBest: true,
             canAsk: true,
           },
-          {
-            repositoryId: OTHER_REPOSITORY_ID,
-            name: "checkout-app",
-            fullName: "acme/checkout-app",
-            reason: DeclaredCodeOwnerReason.NoEvidence,
-            matchedPaths: [],
-            isBest: false,
-            canAsk: false,
-          },
         ],
+        hasRepository: true,
       });
       // The resource's own name and tags, and the code its tags name.
       expect(candidates.mock.calls[0]![0]).toMatchObject({
@@ -565,13 +582,17 @@ describe("DeclaredCodeChanges", () => {
           tags: { team: "payments", "managed-by": "terraform" },
         },
       });
-      // Whether they may ask, for each repository they may read - with their own props.
-      expect(
-        canAsk.mock.calls.map((call: Array<unknown>): string => {
-          return String((call[0] as { repositoryId: ObjectID }).repositoryId);
-        }),
-      ).toEqual([REPOSITORY_ID, OTHER_REPOSITORY_ID]);
-      expect(canAsk.mock.calls[0]![0]).toMatchObject({ props: PROPS });
+      /*
+       * Whether they may ask, for the offered ones they may read - with
+       * their own props, in one read, never one repository at a time.
+       */
+      expect(askable).toHaveBeenCalledTimes(1);
+      expect(askable.mock.calls[0]![0]).toMatchObject({
+        props: PROPS,
+        projectId: PROJECT_ID,
+        repositoryIds: [REPOSITORY_ID],
+      });
+      expect(canAsk).not.toHaveBeenCalled();
       // Read with the reader's own permissions.
       expect(userRead.mock.calls[0]![0]).toMatchObject({ props: PROPS });
       expect(readable.mock.calls[0]![0]).toMatchObject({ props: PROPS });
@@ -645,6 +666,115 @@ describe("DeclaredCodeChanges", () => {
         expect(candidates).not.toHaveBeenCalled();
       },
     );
+
+    /*
+     * #11076: every connected repository was listed - nothing pointing to
+     * most of them - and asked about one at a time, three reads each.
+     */
+    test("of thousands of repositories nothing points to, none is listed or asked about: the dialog's search finds them", async () => {
+      const unremarkable: Array<DeclaredCodeOwnerCandidate> = Array.from(
+        { length: 10050 },
+        (_: unknown, index: number): DeclaredCodeOwnerCandidate => {
+          return candidate(
+            `11076000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+            `service-${index + 1}`,
+            DeclaredCodeOwnerReason.NoEvidence,
+            0,
+          );
+        },
+      );
+      candidates.mockResolvedValue([
+        candidate(
+          REPOSITORY_ID,
+          "platform",
+          DeclaredCodeOwnerReason.HasNamedFile,
+          65,
+        ),
+        ...unremarkable,
+      ]);
+      readable.mockImplementation(
+        async (data: {
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Array<CodeRepository>> => {
+          return data.repositoryIds.map(
+            (id: ObjectID | string): CodeRepository => {
+              return codeRepository(id.toString(), "any");
+            },
+          );
+        },
+      );
+
+      const owner: DeclaredCodeOwnerJSON = await DeclaredCodeChanges.getOwner({
+        props: PROPS,
+        tenantId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID.toString(),
+        sequence: 1,
+      });
+
+      expect(
+        owner.candidates.map(
+          (offered: DeclaredCodeOwnerCandidateJSON): string => {
+            return offered.repositoryId;
+          },
+        ),
+      ).toEqual([REPOSITORY_ID]);
+      expect(owner.hasRepository).toBe(true);
+      expect(askable).toHaveBeenCalledTimes(1);
+      expect(
+        (askable.mock.calls[0]![0] as { repositoryIds: Array<string> })
+          .repositoryIds,
+      ).toEqual([REPOSITORY_ID]);
+      expect(canAsk).not.toHaveBeenCalled();
+    });
+
+    test("nothing points to any repository the reader may read: none offered, and still one to search for", async () => {
+      candidates.mockResolvedValue([
+        candidate(
+          OTHER_REPOSITORY_ID,
+          "checkout-app",
+          DeclaredCodeOwnerReason.NoEvidence,
+          0,
+        ),
+      ]);
+
+      const owner: DeclaredCodeOwnerJSON = await DeclaredCodeChanges.getOwner({
+        props: PROPS,
+        tenantId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID.toString(),
+        sequence: 1,
+      });
+
+      expect(owner.candidates).toEqual([]);
+      expect(owner.hasRepository).toBe(true);
+    });
+
+    test("no connected repository the reader may read: none offered, and none to search for", async () => {
+      readable.mockResolvedValue([]);
+
+      const owner: DeclaredCodeOwnerJSON = await DeclaredCodeChanges.getOwner({
+        props: PROPS,
+        tenantId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID.toString(),
+        sequence: 1,
+      });
+
+      expect(owner.candidates).toEqual([]);
+      expect(owner.hasRepository).toBe(false);
+    });
+
+    test("an offered repository the reader may not ask AI in is offered as one they may not ask in", async () => {
+      askable.mockResolvedValue(new Set<string>());
+
+      const owner: DeclaredCodeOwnerJSON = await DeclaredCodeChanges.getOwner({
+        props: PROPS,
+        tenantId: PROJECT_ID,
+        suggestionId: SUGGESTION_ID.toString(),
+        sequence: 1,
+      });
+
+      expect(owner.candidates).toHaveLength(1);
+      expect(owner.candidates[0]!.canAsk).toBe(false);
+    });
 
     test("a fix the reader may not read reads as missing", async () => {
       userRead.mockResolvedValue(null);

@@ -25,7 +25,7 @@ Beide nehmen bis zu 100 ausgewählte Vorfälle. Das Ergebnis sagt, wie viele hin
 
 ## Was das Hinzufügen bewirkt
 
-- **Ein Eintrag im Feed der Episode** nennt jeden hinzugefügten Vorfall: die ersten 20 mit Nummer und Titel, dann wie viele noch. Er wird einmal in den Slack- oder Microsoft-Teams-Kanal der Episode gepostet, nicht einmal pro Vorfall. Ein privater Vorfall wird nur mit seiner Nummer genannt.
+- **Ein Eintrag im Feed der Episode** nennt jeden hinzugefügten Vorfall: die ersten 20 mit Nummer und Titel, dann wie viele noch. Er wird einmal in den Slack- oder Microsoft-Teams-Kanal der Episode gepostet, nicht einmal pro Vorfall, und bei einer Episode, die mit den Vorfällen erstellt wird, folgt er dort auf die Erstellungsnachricht der Episode. Ein privater Vorfall wird nur mit seiner Nummer genannt.
 - **Der eigene Feed jedes Vorfalls** sagt, zu welcher Episode er hinzugefügt wurde.
 - **Der Schweregrad der Episode** wird auf den schwersten Vorfall angehoben, der einer bestehenden Episode hinzugefügt wird, und nie gesenkt. Eine neue Episode beginnt mit dem Schweregrad, den Sie wählen.
 - **Eine behobene Episode bleibt behoben.** Hinzufügen öffnet sie nicht wieder, und Hinzufügen ändert nie den Status eines Vorfalls.

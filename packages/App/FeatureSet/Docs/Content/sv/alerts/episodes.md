@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > För att larma en gång per problem i stället för en gång per larm lägger du jourpolicyer på dina grupperingsregler och håller dem borta från larmen: från monitorns kriterier, från formuläret för att skapa och från dina jourregler för larm.
 
-Episodens ägare får också veta det: **Larmepisod skapad**, **Tillstånd för larmepisod ändrades** och **Larm tillagt i larmepisod** är påslagna via e-post som standard, under **Användarinställningar → Aviseringsinställningar**, på fliken **Larm**. Regelns **Episodägare** blir ägare till varje episod som den öppnar, och meddelas som alla andra ägare.
+Episodens ägare får också veta det: **Larmepisod skapad**, **Tillstånd för larmepisod ändrades** och **Larm tillagt i larmepisod** är påslagna via e-post som standard, under **Användarinställningar → Aviseringsinställningar**, på fliken **Larm**. Regelns **Episodägare** blir ägare till varje episod som den öppnar, och meddelas som alla andra ägare. De är på plats innan Slack och Microsoft Teams får veta om episoden, så att en aviseringsregel som frågar vem som äger en episod publicerar dess skapandemeddelande.
 
 ## Skapa en episod manuellt
 
@@ -166,7 +166,7 @@ I **Episoddetaljer** fyller du i **Titel** och, om du vill, en **Larmallvar** oc
 
 I **Jour och ägare** väljer du en **Jourpolicy** som ska köras när episoden skapas, och dess **Ägare**. Klicka sedan på **Skapa episod**.
 
-Varje team du är medlem i är ett klick bort under **Ägare**, och sammanfattningen nämner ägarreglerna som lägger till fler.
+Varje team du är medlem i är ett klick bort under **Ägare**, och sammanfattningen nämner ägarreglerna som lägger till fler. Ägarna du väljer, de som ägarreglerna lägger till och etiketterna från matchande etikettregler är på plats innan Slack och Microsoft Teams får veta om episoden, så att en aviseringsregel som frågar vem som äger en episod, eller vilka etiketter den har, också publicerar den.
 
 ### Lägg till larmen
 

@@ -14,11 +14,13 @@ import CloudResourceService from "../../../../Server/Services/CloudResourceServi
 import CloudChangeRecorder, {
   CLOUD_CHANGE_CLAIM_NAMESPACE,
   CLOUD_CHANGE_CLAIM_SECONDS,
+  CLOUD_CHANGE_RESOURCE_IDS_KEPT,
   CloudChangeRecordOutcome,
   buildCloudChangeEntry,
   classifyCloudChange,
   getCloudChangeClaimKey,
   getCloudChangeDedupToken,
+  getCloudChangeResourceIds,
 } from "../../../../Server/Utils/CloudConnection/CloudChangeRecorder";
 import { CloudChange } from "../../../../Server/Utils/CloudConnection/CloudConnectorTypes";
 import logger from "../../../../Server/Utils/Logger";
@@ -216,6 +218,64 @@ describe("what kind of change an operation is", () => {
   });
 });
 
+/*
+ * EVERY RESOURCE A CALL NAMES (#11012). A call that creates several
+ * resources at once - RunInstances with a count, a stack's create - names
+ * each; the required-tags watcher finds who created a resource by any of
+ * them, not only the first, from this one attribute.
+ */
+describe("every resource a change names", () => {
+  test("each id once, in lower case, one a line, in the order the call names them", () => {
+    expect(
+      getCloudChangeResourceIds(
+        change({
+          resources: [
+            { id: "i-0AAA", type: "AWS::EC2::Instance" },
+            { id: "i-0bbb", type: "AWS::EC2::Instance" },
+            { id: " I-0aaa ", type: "AWS::EC2::Instance" },
+            { id: "", type: "AWS::EC2::Volume" },
+          ],
+        }),
+      ),
+    ).toBe("i-0aaa\ni-0bbb");
+  });
+
+  test("an id can never break into two lines, and a long one is cut", () => {
+    const value: string = getCloudChangeResourceIds(
+      change({
+        resources: [
+          { id: "first\nsecond", type: "x" },
+          { id: "a".repeat(1000), type: "x" },
+        ],
+      }),
+    );
+
+    expect(value.split("\n")).toEqual(["first second", "a".repeat(300)]);
+  });
+
+  test(`keeps the first ${CLOUD_CHANGE_RESOURCE_IDS_KEPT}, so a huge call stays one small attribute`, () => {
+    const resources: Array<{ id: string; type: string }> = [];
+
+    for (let index: number = 0; index < 50; index++) {
+      resources.push({ id: `r-${index}`, type: "x" });
+    }
+
+    const ids: Array<string> = getCloudChangeResourceIds(
+      change({ resources }),
+    ).split("\n");
+
+    expect(ids).toHaveLength(CLOUD_CHANGE_RESOURCE_IDS_KEPT);
+    expect(ids[0]).toBe("r-0");
+    expect(ids[CLOUD_CHANGE_RESOURCE_IDS_KEPT - 1]).toBe(
+      `r-${CLOUD_CHANGE_RESOURCE_IDS_KEPT - 1}`,
+    );
+  });
+
+  test("a change that names no resource writes none", () => {
+    expect(getCloudChangeResourceIds(change({ resources: [] }))).toBe("");
+  });
+});
+
 describe("one change as a change event", () => {
   test("names the operation, the resource and who ran it, tied to the resource and the account", () => {
     const entry: ReturnType<typeof buildCloudChangeEntry> =
@@ -242,6 +302,8 @@ describe("one change as a change event", () => {
       [ChangeEventAttribute.CloudActor]: "deploy-bot",
       [ChangeEventAttribute.CloudEventId]: "evt-1",
       [ChangeEventAttribute.CloudResourceId]: "resize",
+      // Every resource the call names, a line each (#11012): here, one.
+      [ChangeEventAttribute.CloudResourceIds]: "resize",
       [ChangeEventAttribute.ResourceType]: "CloudResource",
       [ChangeEventAttribute.ResourceId]: RESOURCE_ID.toString(),
       [ChangeEventAttribute.CloudResourceName]: "resize",

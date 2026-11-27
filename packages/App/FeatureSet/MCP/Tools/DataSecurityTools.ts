@@ -100,8 +100,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
           which: {
             type: "string",
             enum: ["waiting", "data-types"],
-            description:
-              'Which proposals: "waiting" (default) or "data-types".',
+            description: 'Default "waiting".',
           },
           dataSecurityIssueId: {
             ...STRING,
@@ -141,7 +140,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
       inputSchema: {
         type: "object",
         properties: {
-          dataStoreFindingId: { ...STRING, description: "The finding's ID." },
+          dataStoreFindingId: STRING,
         },
         required: ["dataStoreFindingId"],
         additionalProperties: false,
@@ -151,15 +150,14 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
     {
       name: JUDGE_DATA_SECURITY_FINDING_TOOL_NAME,
       title: "Judge Data Security Finding",
-      description: `Confirm a finding ("confirm": it counts for certain) or mark it not sensitive ("not-sensitive", with reason). alsoSimilar applies the same decision to the findings like it. Not Sensitive, and Confirm in a project that pages someone for a Critical issue: ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
+      description: `Confirm a finding ("confirm": it counts for certain) or mark it not sensitive ("not-sensitive", with reason). Not Sensitive, and Confirm in a project that pages someone for a Critical issue: ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
       inputSchema: {
         type: "object",
         properties: {
-          dataStoreFindingId: { ...STRING, description: "The finding's ID." },
+          dataStoreFindingId: STRING,
           decision: {
             type: "string",
             enum: ["confirm", "not-sensitive"],
-            description: "Confirm it, or mark it not sensitive.",
           },
           reason: {
             ...STRING,
@@ -178,11 +176,11 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
     {
       name: CHANGE_DATA_SECURITY_ISSUE_TOOL_NAME,
       title: "Change Data Security Issue",
-      description: `Change an issue: "reopen" (it counts again), "assign" (assignee, a member by name or email or a team by name), "unassign", "accept-risk" (until acceptedUntil, with reason) or "not-an-issue" (with reason). Accept Risk and Not an Issue stop an issue counting: ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
+      description: `Change an issue: "reopen" (it counts again), "assign", "unassign", "accept-risk" or "not-an-issue". Accept Risk and Not an Issue stop an issue counting: ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
       inputSchema: {
         type: "object",
         properties: {
-          dataSecurityIssueId: { ...STRING, description: "The issue's ID." },
+          dataSecurityIssueId: STRING,
           change: {
             type: "string",
             enum: [
@@ -192,7 +190,6 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
               "assign",
               "unassign",
             ],
-            description: "What to change.",
           },
           reason: {
             ...STRING,
@@ -221,9 +218,9 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
       inputSchema: {
         type: "object",
         properties: {
-          dataStoreId: { ...STRING, description: "The store's ID." },
-          add: arrayOfStrings("Members and teams to add as owners."),
-          remove: arrayOfStrings("Owners to remove."),
+          dataStoreId: STRING,
+          add: { type: "array", items: STRING },
+          remove: { type: "array", items: STRING },
         },
         required: ["dataStoreId"],
         additionalProperties: false,
@@ -265,11 +262,10 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
       inputSchema: {
         type: "object",
         properties: {
-          dataStoreId: { ...STRING, description: "The store's ID." },
+          dataStoreId: STRING,
           action: {
             type: "string",
             enum: [...ALL_DATA_SECURITY_RESPONSE_ACTIONS],
-            description: "The response action.",
           },
           dataSecurityIssueId: {
             ...STRING,
@@ -289,7 +285,7 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
       inputSchema: {
         type: "object",
         properties: {
-          dataSecurityIssueId: { ...STRING, description: "The issue's ID." },
+          dataSecurityIssueId: STRING,
           codeRepositoryId: {
             ...STRING,
             description:
@@ -305,18 +301,14 @@ export const DATA_SECURITY_TOOL_DEFINITIONS: ReadonlyArray<DataSecurityToolDefin
     {
       name: DECIDE_DATA_SECURITY_PROPOSAL_TOOL_NAME,
       title: "Decide Data Security Proposal",
-      description: `Approve or dismiss one of OneUptime AI's proposals ("approve", or "dismiss" with reason). A person decides what OneUptime AI proposes: ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
+      description: `Approve or dismiss one of OneUptime AI's proposals. A person decides what OneUptime AI proposes: ${ASKS_A_PERSON} ${AS_THE_PERSON}`,
       inputSchema: {
         type: "object",
         properties: {
-          dataSecurityAiProposalId: {
-            ...STRING,
-            description: "The proposal's ID.",
-          },
+          dataSecurityAiProposalId: STRING,
           decision: {
             type: "string",
             enum: ["approve", "dismiss"],
-            description: "Approve or dismiss it.",
           },
           reason: {
             ...STRING,

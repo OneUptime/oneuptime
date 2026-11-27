@@ -43,7 +43,9 @@ const FAST_PATH_MONITOR_COLUMNS: Array<string> = [
  *       Monitor.incomingRequestMonitorHeartbeatCheckedAt
  *   - App/FeatureSet/Workers/Jobs/IncomingEmailMonitor/CheckOnlineStatus.ts
  *       Monitor.incomingEmailMonitorHeartbeatCheckedAt
- *   - App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts
+ *   - Common/Server/Utils/Monitor/TelemetryMonitorStamps.ts (the telemetry
+ *     scheduler, App/FeatureSet/Workers/Jobs/TelemetryMonitor), and
+ *     MonitorService.rescheduleTelemetryMonitor after an interval edit
  *       Monitor.telemetryMonitorLastMonitorAt + telemetryMonitorNextMonitorAt
  *
  * Those conversions are behavior-preserving only under the model-decorator

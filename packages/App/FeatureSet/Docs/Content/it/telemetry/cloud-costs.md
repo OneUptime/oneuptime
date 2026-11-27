@@ -13,6 +13,7 @@ Un account cloud collegato dice anche quanto costa e come potrebbe costare meno.
 - [Regole IA per i risparmi](#regole-ia-per-i-risparmi): Proposte per i proprietari, o modifiche entro un limite.
 - [Budget](#budget): Il budget di un mese, di un trimestre o di un anno per qualsiasi account, gruppo di costi o servizio.
 - [Previsioni](#previsioni): Quanto i prossimi 12 mesi sono in rotta per costare, e con quanta certezza.
+- [Tag obbligatori](#tag-obbligatori): Quanta parte della tua spesa porta i tag che richiedi, e le nuove risorse che non li hanno.
 :::
 
 ## Come funziona
@@ -129,7 +130,15 @@ Una risorsa di cui nessun motore di raccomandazione si occupa, perché non è at
 - **Sovradimensionato** quando la dimensione grande la metà, o un quarto, avrebbe ancora margine: sulla dimensione più piccola, il 95° percentile della sua CPU sarebbe al massimo del 60%, la sua lettura di CPU più alta al massimo del 100% e il picco della sua memoria al massimo del 70%, quando la sua memoria viene letta.
 - **Sottodimensionato** quando il 95° percentile della sua CPU è all'85% o più, o il picco della sua memoria al 90% o più: la dimensione grande il doppio.
 
-Una risorsa viene dimensionata appena ha 6 giorni di letture. La sua pagina mostra il suo **Ridimensionamento** accanto a quanto costa, e una sovradimensionata compare in **Cloud → Spesa → Risparmi**, con OneUptime come fonte. Quanto fa risparmiare una modifica è la sua quota di quanto la risorsa è costata negli ultimi 30 giorni, quindi si conosce appena il tuo cloud fattura la risorsa per nome: l'esportazione dettagliata di Azure e di Google Cloud lo fa, e AWS anche, una volta attivato Costi per risorsa. Un'istanza EC2 riporta la sua memoria solo con l'agente CloudWatch, e una VM di Compute Engine solo con l'Ops Agent: senza, viene dimensionata solo in base alla CPU. Le dimensioni burstable, come t3, la serie B ed e2-micro, non vengono mai dimensionate.
+Una risorsa viene dimensionata appena ha 6 giorni di letture. La sua pagina mostra il suo **Ridimensionamento** accanto a quanto costa, e una sovradimensionata compare in **Cloud → Spesa → Risparmi**, con OneUptime come fonte. Quanto fa risparmiare una modifica è la sua quota di quanto la risorsa è costata negli ultimi 30 giorni, quindi si conosce appena il tuo cloud fattura la risorsa per nome: l'esportazione dettagliata di Azure e di Google Cloud lo fa, e AWS anche, una volta attivato Costi per risorsa. Le dimensioni burstable, come t3, la serie B ed e2-micro, non vengono mai dimensionate.
+
+Il tuo cloud legge la memoria di una VM solo con un agente proprio dentro la VM: l'agente CloudWatch su un'istanza EC2, l'Ops Agent su una VM di Compute Engine, e nessuno per una VM di Azure, che riporta la memoria libera invece di quella usata. Una VM su cui gira [il collector dell'host di OneUptime](/docs/telemetry/hosts) viene invece dimensionata sulla memoria che legge il collector dell'host:
+
+- **La VM e l'host sono la stessa macchina** quando provider, account, regione e ID dell'istanza coincidono tutti: l'ID dell'istanza EC2, l'ID numerico di una VM di Compute Engine o il `vmId` di una VM di Azure. Un nome host da solo non basta mai, e una VM rivendicata da due host, come una macchina clonata, non viene collegata a nessuno dei due. La pagina della VM nomina il suo host, e la pagina dell'host nomina la sua VM, ciascuna con un link all'altra.
+- **La memoria è la memoria usata dell'host, senza cache e buffer**, il valore che la pagina dell'host mostra nel grafico, sugli stessi 14 giorni. Una cache dei file piena non viene mai letta come una macchina piena. Anche l'host ha bisogno di 6 giorni di letture.
+- **Quando entrambi leggono la memoria**, come per una VM di Compute Engine con l'Ops Agent e il collector dell'host, si usa quello con più letture. La CPU è sempre la lettura del tuo cloud.
+
+Il **Ridimensionamento** della VM dice da dove viene la sua memoria, come la sua riga in **Cloud → Spesa → Risparmi**. Una VM dimensionata solo sulla CPU lo dice, con un link per installare il collector dell'host. Il collector dell'host applica l'identità del suo cloud con il passaggio `resourcedetection/cloud` che contiene [la configurazione della guida degli host](/docs/telemetry/host-otel-collector). Un host con la configurazione predefinita di OneUptime riceve il passaggio con la prossima release di OneUptime, e uno con una configurazione tua deve aggiungerlo. I nodi Kubernetes sono lasciati all'[Osservabilità dei costi di Kubernetes](/docs/telemetry/kubernetes-cost), che dimensiona le richieste di ciò che vi gira.
 
 ### Impegni
 
@@ -305,12 +314,61 @@ Il `forecast` della risposta ha il suo `method` (`pace`, `trend` o `trendAndSeas
 
 Sotto l'elenco, la scheda dice a quanto è ammontato il resto: ciò che non è in nessun ambiente, ciò che è addebitato a un ambiente nel suo insieme o ciò che non ha il tag. I costi letti prima che i tag venissero conservati vengono riletti una volta, fin dove arriva una prima lettura, così che i loro tag si completino.
 
+## Tag obbligatori
+
+La spesa è ripartita bene solo quanto i tag che porta. In **Cloud → Spesa → Tag**, indica quali tag deve portare ogni risorsa, come `team`, `env` e `cost-center`, e vedi quanta parte della tua spesa e delle tue risorse li porta, quali risorse no, e chi ha creato ogni nuova risorsa senza di essi.
+
+:::steps
+### Richiedere un tag
+
+Seleziona **Richiedi un tag** e inserisci la sua **Chiave del tag**. In **Valori consentiti**, elenca i valori che può assumere, separati da virgole, oppure lascia vuoto per accettare qualsiasi valore. Scegli un **Account** per richiedere il tag solo in quell'account. Una **Descrizione**, in **Altri campi**, dice nelle email a cosa serve il tag.
+
+### Leggere la copertura
+
+La pagina si apre su quanta parte della spesa degli ultimi 30 giorni e delle tue risorse porta tutti i tag obbligatori. Sotto ci sono le risorse a cui manca un tag, le più costose prima, poi ogni tag da solo, l'andamento delle ultime 12 settimane e ogni account.
+
+### Aggiungere i tag mancanti
+
+Ogni risorsa a cui manca un tag mostra il valore suggerito da OneUptime e il comando che lo imposta nel tuo cloud. Una risorsa dichiarata nel codice dice quale codice la dichiara: aggiungi lì il tag, altrimenti il prossimo deploy lo toglie di nuovo.
+:::
+
+- **Le chiavi corrispondono senza distinzione tra maiuscole e minuscole.** `Team`, `team` e `TEAM` sono una sola chiave, e una risorsa porta il tag quando una qualsiasi grafia ha un valore consentito. Anche i valori corrispondono senza distinzione tra maiuscole e minuscole, e un valore vuoto non è un valore.
+- **Un valore consentito può essere un modello.** `*` sta per qualsiasi carattere e `?` per uno solo, quindi `prod-*` accetta `prod-eu` e `prod-us`. I modelli non sono espressioni regolari.
+- **I tag propri di un account.** Un tag richiesto in un account sostituisce lì il tag del progetto con la stessa chiave, e un account può richiedere una chiave tutta sua. I **Tag** di un account mostrano entrambi.
+- **Nel tuo cloud non cambia nulla.** OneUptime non ferma né tagga mai una risorsa per un tag mancante. Avvisa le persone e suggerisce il valore.
+
+### Copertura
+
+- **Spesa con tag** è la quota dei costi degli ultimi 30 giorni che porta tutti i tag obbligatori, secondo i tag con cui è stato letto ciascun costo. Viene calcolata ogni volta che apri la pagina, quindi un tag che richiedi oggi viene misurato anche sugli ultimi 30 giorni. I costi AWS portano tag solo una volta attivato [Costi per risorsa](#costi-per-risorsa): fino ad allora, la spesa di un account AWS indica **Non misurato** invece di 0%.
+- **Risorse con tag** è la quota delle risorse elencate dalle tue connessioni che portano tutti i tag obbligatori, così come sono taggate ora.
+- **Copertura nel tempo** mostra ognuna delle ultime 12 settimane: la spesa dai costi, e le risorse dal conteggio che OneUptime fa ogni giorno.
+
+### Nuove risorse
+
+Una risorsa che la tua connessione elenca dopo il primo elenco completo del suo account è nuova. La connessione elenca ogni 30 minuti, quindi una nuova risorsa viene trovata entro l'ora in cui viene creata. Di una a cui manca un tag obbligatorio si avvisa una volta:
+
+- **Chi viene informato.** La persona che l'ha creata, quando il registro delle modifiche dell'account nomina un membro del tuo progetto con il suo indirizzo email, e i proprietari della risorsa, dalle regole di proprietà e dai team. Quando non si può informare nessuno dei due, vengono informati i Proprietari del progetto. Ognuno deve poter leggere le tue risorse cloud.
+- **Con quale frequenza.** Un'email all'ora elenca tutte le novità per ogni persona. In **Altre impostazioni**, **Un'email per ogni risorsa** invia ciascuna da sola, e **Genera un avviso** genera anche un avviso per ogni account, con la gravità e le policy di reperibilità in **Dove vanno gli avvisi**.
+- **Quando viene taggata.** Una risorsa taggata prima dell'invio dell'email ne resta fuori, e l'elenco **Nuove risorse** segna ciascuna **Con tag** appena li porta.
+
+### Valori suggeriti
+
+OneUptime suggerisce un valore solo quando il tag lo consente:
+
+- **Una chiave di tipo team**, come `team`, `owner` o `squad`: il team proprietario della risorsa.
+- **Una chiave di tipo ambiente**, come `env`, `environment` o `stage`: l'ambiente App Platforms di un'app che gira come la risorsa, oppure per una VM, l'ambiente di deployment che riporta il suo host.
+- **Qualsiasi chiave**: il valore che porta la maggior parte delle risorse accanto, nello stesso stack CloudFormation, nello stesso gruppo di risorse Azure o con lo stesso nome prima del numero, come `web-1` e `web-2`. Almeno due devono concordare.
+- **Un tag che consente un solo valore**: quel valore.
+
+Il comando imposta il tag in un solo passaggio, dalla shell del tuo cloud: `aws resourcegroupstaggingapi tag-resources` su AWS, `az tag update --operation Merge` su Azure, e `gcloud ... add-labels` o `--update-labels` per VM e dischi di Compute Engine, bucket di Cloud Storage e istanze di Cloud SQL su Google Cloud.
+
 ## Cosa vedi in OneUptime
 
 - **La panoramica di Cloud.** **Cloud → Panoramica** mostra la spesa del mese rispetto a quella del mese scorso allo stesso giorno, i servizi che costano di più e i modi maggiori per spendere meno, accanto a ciò che richiede attenzione.
 - **La spesa di ogni giorno.** **Cloud → Spesa → Costi** disegna ciascuno degli ultimi 30 giorni segnando i giorni costati molto più del solito, elenca quei giorni e suddivide un periodo per servizio, regione, account, risorsa, ambiente delle piattaforme applicative, app o tag, fatturato, ammortizzato o netto. Gli account i cui costi non vengono letti sono elencati sotto, ciascuno con il motivo.
 - **Ogni impegno.** **Cloud → Spesa → Impegni** elenca ciascuno con quando termina e quanto ne viene usato, quelli in scadenza con cosa rinnovare, e cosa acquistare.
 - **I costi di un account.** I **Costi** di un account mostrano lo stesso per il solo account, con i suoi impegni e i suoi modi per spendere meno.
+- **Tag obbligatori.** **Cloud → Spesa → Tag** mostra quanta parte della spesa e delle risorse porta i tuoi tag obbligatori, e i **Tag** di un account mostrano lo stesso per quel solo account.
 - **Il costo di una risorsa.** La pagina di una risorsa mostra quanto è costata questo mese e negli ultimi 30 giorni quando il suo cloud la fattura per nome, con i suoi modi per spendere meno e il suo ridimensionamento.
 - **Ogni budget.** **Cloud → Spesa → Budget** elenca ogni budget con ciò che conta, il suo periodo e il periodo finora, e ognuno apre la sua pagina.
 - **I prossimi mesi.** **Cloud → Spesa → Previsione** disegna i mesi da cui è stata fatta una previsione, questo mese in rotta e i prossimi 12, con come è stata fatta.

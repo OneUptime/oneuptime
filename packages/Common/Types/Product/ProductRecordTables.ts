@@ -383,6 +383,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "DataSecurityIdentity",
     "DataSecurityIssue",
     "DataSecurityIssueFeed",
+    // A pull request a person linked to an issue as its fix (#10831).
+    "DataSecurityIssuePullRequest",
     // The issues one mistake made, fixed once (#10370).
     "DataSecurityIssueGroup",
     "DataSecurityAiProposal",
@@ -626,7 +628,19 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "CloudAccount",
     "CloudAccountFeed",
     "CloudBudget",
+    // Required tags (#11012).
+    "CloudRequiredTag",
+    "CloudTagCoverageDay",
+    "CloudTagFinding",
+    "CloudTagSetting",
     "CloudConnection",
+    // Cost views, their groups and line items (#11006).
+    "CloudCostView",
+    "CloudCostGroup",
+    "CloudCostLineItem",
+    // Commitments, and the cost bases' setting (#11007).
+    "CloudCommitment",
+    "CloudCostSetting",
     "CloudCostRecommendation",
     "CloudOffHoursSchedule",
     "CloudSavingsAction",

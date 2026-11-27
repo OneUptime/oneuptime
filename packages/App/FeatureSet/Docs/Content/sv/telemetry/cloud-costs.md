@@ -13,6 +13,7 @@ Ett anslutet molnkonto säger också vad det kostar och hur det kunde kosta mind
 - [AI-regler för besparingar](#ai-regler-för-besparingar): Förslag till ägare, eller ändringar inom en gräns.
 - [Budgetar](#budgetar): En månads, ett kvartals eller ett års budget för valfritt konto, kostnadsgrupp eller tjänst.
 - [Prognoser](#prognoser): Vad de kommande 12 månaderna är på väg att kosta, och hur säkert det är.
+- [Obligatoriska taggar](#obligatoriska-taggar): Hur mycket av dina utgifter som har taggarna du kräver, och nya resurser utan dem.
 :::
 
 ## Så fungerar det
@@ -129,7 +130,15 @@ En resurs som ingen rekommendationstjänst uttalar sig om, eftersom den inte är
 - **Överprovisionerad** när storleken som är hälften så stor, eller en fjärdedel, fortfarande skulle ha utrymme: på den mindre storleken skulle CPU:ns 95:e percentil vara högst 60 %, dess högsta CPU-mätvärde högst 100 % och minnets topp högst 70 %, när minnet läses.
 - **Underprovisionerad** när CPU:ns 95:e percentil är 85 % eller mer, eller minnets topp 90 % eller mer: storleken som är dubbelt så stor.
 
-En resurs bedöms så snart den har 6 dagars mätvärden. Dess sida visar dess **Storleksanpassning** bredvid vad den kostar, och en överprovisionerad listas under **Moln → Utgifter → Besparingar** med OneUptime som källa. Det en ändring sparar är dess andel av vad resursen kostade de senaste 30 dagarna, så det är känt så snart ditt moln fakturerar resursen med namn: Azures och Google Clouds detaljerade export gör det, och AWS gör det när Kostnader per resurs är påslaget. En EC2-instans rapporterar sitt minne bara med CloudWatch-agenten och en Compute Engine-VM bara med Ops Agent: utan den bedöms den enbart utifrån sin CPU. Burstable storlekar som t3, B-serien och e2-micro bedöms aldrig.
+En resurs bedöms så snart den har 6 dagars mätvärden. Dess sida visar dess **Storleksanpassning** bredvid vad den kostar, och en överprovisionerad listas under **Moln → Utgifter → Besparingar** med OneUptime som källa. Det en ändring sparar är dess andel av vad resursen kostade de senaste 30 dagarna, så det är känt så snart ditt moln fakturerar resursen med namn: Azures och Google Clouds detaljerade export gör det, och AWS gör det när Kostnader per resurs är påslaget. Burstable storlekar som t3, B-serien och e2-micro bedöms aldrig.
+
+Ditt moln läser en VM:s minne bara med en egen agent inne i VM:en: CloudWatch-agenten på en EC2-instans, Ops Agent på en Compute Engine-VM och ingen för en Azure-VM, som rapporterar ledigt minne i stället för använt minne. En VM som [OneUptimes värdinsamlare](/docs/telemetry/hosts) körs på bedöms i stället utifrån minnet som värdinsamlaren läser:
+
+- **VM:en och värden är en och samma maskin** när leverantör, konto, region och instans-ID alla stämmer: EC2-instans-ID:t, en Compute Engine-VM:s numeriska ID eller en Azure-VM:s `vmId`. Ett värdnamn ensamt ger aldrig en träff, och en VM som två värdar gör anspråk på, som en klonad maskin, kopplas inte till någon av dem. VM:ens sida nämner dess värd och värdens sida dess VM, var och en med en länk till den andra.
+- **Minne är värdens använda minne, utan cache och buffertar**, siffran som värdens sida visar i diagrammet, över samma 14 dagar. En upptagen filcache läses aldrig som en full maskin. Värden behöver också 6 dagars mätvärden.
+- **Där båda läser minnet**, som på en Compute Engine-VM med Ops Agent och värdinsamlaren, används den med flest mätvärden. CPU är alltid ditt molns mätvärde.
+
+VM:ens **Storleksanpassning** säger var dess minne kom ifrån, och det gör även dess rad under **Moln → Utgifter → Besparingar**. En VM som bara bedöms utifrån sin CPU säger det, med en länk för att installera värdinsamlaren. Värdinsamlaren stämplar sitt molns identitet med steget `resourcedetection/cloud` som [konfigurationen i guiden för värdar](/docs/telemetry/host-otel-collector) innehåller. En värd med OneUptimes standardkonfiguration får steget med OneUptimes nästa version, och en värd med en egen konfiguration behöver lägga till det. Kubernetes-noder lämnas till [Kostnadsobservability för Kubernetes](/docs/telemetry/kubernetes-cost), som bedömer förfrågningarna för det som körs på dem.
 
 ### Åtaganden
 
@@ -305,12 +314,61 @@ Svarets `forecast` har sin `method` (`pace`, `trend` eller `trendAndSeason`), de
 
 Under listan anger kortet vad resten uppgick till: det som inte finns i någon miljö, det som faktureras till en miljö som helhet, eller det som inte har taggen. Kostnader som lästes innan taggar sparades läses igen en gång, så långt tillbaka som en första läsning, så att deras taggar fylls i.
 
+## Obligatoriska taggar
+
+Utgifter är bara så väl fördelade som taggarna de har. Under **Moln → Utgifter → Taggar** anger du vilka taggar alla resurser måste ha, till exempel `team`, `env` och `cost-center`, och ser hur mycket av dina utgifter och resurser som har dem, vilka resurser som inte har det, och vem som skapade varje ny resurs utan dem.
+
+:::steps
+### Kräv en tagg
+
+Välj **Kräv en tagg** och ange dess **Taggnyckel**. Under **Tillåtna värden** listar du värdena den får ha, separerade med kommatecken, eller lämnar fältet tomt för att tillåta alla värden. Välj ett **Konto** för att kräva taggen bara i det kontot. En **Beskrivning** under **Fler fält** säger i e-postmeddelandena vad taggen är till för.
+
+### Läs täckningen
+
+Sidan börjar med hur mycket av de senaste 30 dagarnas utgifter och av dina resurser som har alla obligatoriska taggar. Under det finns resurserna som saknar en tagg, de dyraste först, sedan varje tagg för sig, trenden de senaste 12 veckorna och varje konto.
+
+### Tagga det som saknas
+
+Varje resurs som saknar en tagg visar värdet OneUptime föreslår och kommandot som sätter det i ditt moln. En resurs som deklareras i kod säger vilken kod som deklarerar den: lägg till taggen där, annars tar nästa driftsättning bort den igen.
+:::
+
+- **Nycklar matchar oavsett versaler och gemener.** `Team`, `team` och `TEAM` är en nyckel, och en resurs har taggen när någon stavning av den har ett tillåtet värde. Värden matchar också oavsett versaler och gemener, och ett tomt värde är inget värde.
+- **Ett tillåtet värde kan vara ett mönster.** `*` står för valfria tecken och `?` för ett, så `prod-*` matchar `prod-eu` och `prod-us`. Mönster är inte reguljära uttryck.
+- **Ett kontos egna taggar.** En tagg som krävs i ett konto ersätter där projektets tagg med samma nyckel, och ett konto kan kräva en egen nyckel. Ett kontos **Taggar** visar båda.
+- **Inget ändras i ditt moln.** OneUptime stoppar eller taggar aldrig en resurs på grund av en saknad tagg. Den meddelar personer och föreslår värdet.
+
+### Täckning
+
+- **Utgifter med taggar** är andelen av de senaste 30 dagarnas kostnader som har alla obligatoriska taggar, enligt taggarna varje kostnad lästes med. Den beräknas varje gång du öppnar sidan, så en tagg du kräver i dag mäts också över de senaste 30 dagarna. AWS-kostnader har taggar först när [Kostnader per resurs](#kostnader-per-resurs) är påslaget: tills dess visar ett AWS-kontos utgifter **Inte mätt** i stället för 0 %.
+- **Resurser med taggar** är andelen av resurserna som dina anslutningar listar som har alla obligatoriska taggar, så som de är taggade nu.
+- **Täckning över tid** visar var och en av de senaste 12 veckorna: utgifter utifrån kostnaderna och resurser utifrån räkningen som OneUptime gör varje dag.
+
+### Nya resurser
+
+En resurs som din anslutning listar efter kontots första fullständiga listning är ny. Anslutningen listar var 30:e minut, så en ny resurs hittas inom den timme den skapas. Om en som saknar en obligatorisk tagg meddelas en gång:
+
+- **Vem som får veta.** Personen som skapade den, när kontots ändringslogg nämner en medlem i ditt projekt med e-postadress, och resursens ägare, utifrån ägarregler och team. Om ingen av dem kan få veta får Projektägarna det. Var och en måste kunna läsa dina molnresurser.
+- **Hur ofta.** Ett e-postmeddelande i timmen samlar allt nytt för varje person. Under **Fler inställningar** skickar **Ett e-postmeddelande per resurs** var och en för sig, och **Utlös ett larm** utlöser också ett larm för varje konto, med allvarlighetsgraden och jourpolicyerna under **Vart larm skickas**.
+- **När den taggas.** En resurs som taggas innan e-postmeddelandet skickas utelämnas ur det, och listan **Nya resurser** markerar varje resurs som **Taggad** så snart den har dem.
+
+### Föreslagna värden
+
+OneUptime föreslår bara ett värde när taggen tillåter det:
+
+- **En teamliknande nyckel**, till exempel `team`, `owner` eller `squad`: teamet som äger resursen.
+- **En miljöliknande nyckel**, till exempel `env`, `environment` eller `stage`: App Platforms-miljön för en app som körs som resursen, eller för en VM driftsättningsmiljön som dess värd rapporterar.
+- **Vilken nyckel som helst**: värdet som de flesta resurser bredvid har, i samma CloudFormation-stack, samma Azure-resursgrupp eller med samma namn före sitt nummer, till exempel `web-1` och `web-2`. Minst två måste vara överens.
+- **En tagg som tillåter ett värde**: det värdet.
+
+Kommandot sätter taggen i ett steg, från ditt molns eget skal: `aws resourcegroupstaggingapi tag-resources` på AWS, `az tag update --operation Merge` på Azure och `gcloud ... add-labels` eller `--update-labels` för Compute Engine-VM:ar och -diskar, Cloud Storage-buckets och Cloud SQL-instanser på Google Cloud.
+
 ## Det du ser i OneUptime
 
 - **Molns översikt.** **Moln → Översikt** visar månadens utgifter mot förra månadens på samma dag, de dyraste tjänsterna och de största sätten att spendera mindre, bredvid det som behöver uppmärksamhet.
 - **Varje dags utgifter.** **Moln → Utgifter → Kostnader** ritar var och en av de senaste 30 dagarna och markerar de dagar som kostade långt mer än vanligt, listar de dagarna och delar upp en period efter tjänst, region, konto, resurs, miljö i appplattformar, app eller tagg, fakturerad, amorterad eller netto. De konton vars kostnader inte läses listas nedanför, var och en med orsaken.
 - **Varje åtagande.** **Moln → Utgifter → Åtaganden** listar vart och ett med när det upphör och hur mycket av det som används, dem som snart upphör med vad som ska förnyas, och vad som ska köpas.
 - **Ett kontos kostnader.** Ett kontos **Kostnader** visar samma sak för kontot ensamt, med dess åtaganden och dess sätt att spendera mindre.
+- **Obligatoriska taggar.** **Moln → Utgifter → Taggar** visar hur mycket av utgifterna och resurserna som har dina obligatoriska taggar, och ett kontos **Taggar** visar detsamma för bara det kontot.
 - **En resurs kostnad.** En resurs sida visar vad den har kostat den här månaden och de senaste 30 dagarna när dess moln fakturerar den med namn, med dess sätt att spendera mindre och dess storleksanpassning.
 - **Varje budget.** **Moln → Utgifter → Budgetar** listar varje budget med vad den räknar, dess period och perioden hittills, och var och en öppnar sin sida.
 - **De kommande månaderna.** **Moln → Utgifter → Prognos** ritar de månader en prognos gjordes från, den här månaden på väg och de kommande 12, med hur den gjordes.

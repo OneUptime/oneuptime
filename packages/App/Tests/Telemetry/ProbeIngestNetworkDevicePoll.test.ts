@@ -1943,3 +1943,156 @@ describe("POST /probe/network-device/response/ingest: when OneUptime received th
     );
   });
 });
+
+/*
+ * A device polled in an SNMPv3 context of its own (#11014): a logical
+ * switch of a Brocade chassis with Virtual Fabrics, "VF:20". A probe that
+ * does not declare ProbeCapability.SnmpV3Context would ignore the context
+ * and walk the agent's default one - on a Brocade chassis, another logical
+ * switch - and report its ports as this device's. So such a probe only
+ * pings the device, and the batch says why, once.
+ */
+describe("POST /probe/network-device/list: devices polled in an SNMPv3 context", () => {
+  const probeId: ObjectID = ObjectID.generate();
+  const projectId: ObjectID = ObjectID.generate();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    deviceService.claimDevicesForPolling.mockResolvedValue([] as never);
+    deviceService.findBy.mockResolvedValue([] as never);
+    oidTemplateService.findBy.mockResolvedValue([] as never);
+  });
+
+  function logicalSwitch(
+    id: ObjectID,
+    snmpV3ContextName: string | undefined,
+    snmpVersion: string = "V3",
+  ): NetworkDevice {
+    const device: NetworkDevice = makeDevice({
+      id: id,
+      projectId: projectId,
+      hostname: "10.20.0.5",
+      snmpVersion: snmpVersion,
+      snmpCommunityString: snmpVersion === "V3" ? undefined : "public",
+      ...(snmpVersion === "V3" ? { snmpV3Username: "oneuptime" } : {}),
+    });
+
+    if (snmpV3ContextName !== undefined) {
+      device.snmpV3ContextName = snmpV3ContextName;
+    }
+
+    return device;
+  }
+
+  const CONTEXT_CAPABLE_BODY: JSONObject = {
+    probeCapabilities: ["networkDevicePing", "snmpV3Context"],
+  };
+
+  test("the device's context is handed out with its poll config", async () => {
+    const id: ObjectID = ObjectID.generate();
+    deviceService.claimDevicesForPolling.mockResolvedValue([id] as never);
+    deviceService.findBy.mockResolvedValue([
+      logicalSwitch(id, " VF:20 "),
+    ] as never);
+
+    await callListEndpoint(
+      makeRequest({ probeId, body: CONTEXT_CAPABLE_BODY }),
+    );
+
+    const devices: Array<JSONObject> = respondedDevices();
+    expect(devices).toHaveLength(1);
+    expect(devices[0]!["pollMode"]).toBe("snmp");
+    expect(
+      (devices[0]!["snmpMonitor"] as unknown as MonitorStepSnmpMonitor)
+        .snmpV3Auth?.contextName,
+    ).toBe("VF:20");
+    expect(loggerMock.warn).not.toHaveBeenCalled();
+  });
+
+  test("a probe without the capability only pings it, and the batch says why once", async () => {
+    const inContext: ObjectID = ObjectID.generate();
+    const alsoInContext: ObjectID = ObjectID.generate();
+    const defaultContext: ObjectID = ObjectID.generate();
+    deviceService.claimDevicesForPolling.mockResolvedValue([
+      inContext,
+      alsoInContext,
+      defaultContext,
+    ] as never);
+    deviceService.findBy.mockResolvedValue([
+      logicalSwitch(inContext, "VF:20"),
+      logicalSwitch(alsoInContext, "VF:30"),
+      logicalSwitch(defaultContext, undefined),
+    ] as never);
+
+    await callListEndpoint(makeRequest({ probeId, body: PING_CAPABLE_BODY }));
+
+    const devices: Array<JSONObject> = respondedDevices();
+    expect(
+      devices.map((device: JSONObject) => {
+        return [device["networkDeviceId"], device["pollMode"]];
+      }),
+    ).toEqual([
+      [inContext.toString(), "ping"],
+      [alsoInContext.toString(), "ping"],
+      [defaultContext.toString(), "snmp"],
+    ]);
+    // A pinged device carries no credentials.
+    expect(devices[0]).not.toHaveProperty("snmpMonitor");
+
+    const warnings: Array<string> = loggerMock.warn.mock.calls.map(
+      (call: Array<unknown>) => {
+        return String(call[0]);
+      },
+    );
+    const contextWarnings: Array<string> = warnings.filter(
+      (warning: string) => {
+        return warning.includes("snmpV3Context");
+      },
+    );
+
+    expect(contextWarnings).toHaveLength(1);
+    expect(contextWarnings[0]).toContain(probeId.toString());
+    expect(contextWarnings[0]).toContain("2 network device(s)");
+  });
+
+  test("a probe that cannot even ping is handed none of them", async () => {
+    const inContext: ObjectID = ObjectID.generate();
+    deviceService.claimDevicesForPolling.mockResolvedValue([
+      inContext,
+    ] as never);
+    deviceService.findBy.mockResolvedValue([
+      logicalSwitch(inContext, "VF:20"),
+    ] as never);
+
+    // No probeCapabilities at all: an older probe still.
+    await callListEndpoint(makeRequest({ probeId, body: {} }));
+
+    expect(respondedDevices()).toEqual([]);
+  });
+
+  test("a blank context, or one on a v2c device, is no context: walked by any probe", async () => {
+    const blank: ObjectID = ObjectID.generate();
+    const v2c: ObjectID = ObjectID.generate();
+    deviceService.claimDevicesForPolling.mockResolvedValue([
+      blank,
+      v2c,
+    ] as never);
+    deviceService.findBy.mockResolvedValue([
+      logicalSwitch(blank, "   "),
+      logicalSwitch(v2c, "VF:20", "V2c"),
+    ] as never);
+
+    await callListEndpoint(makeRequest({ probeId, body: PING_CAPABLE_BODY }));
+
+    const devices: Array<JSONObject> = respondedDevices();
+    expect(
+      devices.map((device: JSONObject) => {
+        return device["pollMode"];
+      }),
+    ).toEqual(["snmp", "snmp"]);
+    expect(
+      (devices[1]!["snmpMonitor"] as unknown as MonitorStepSnmpMonitor)
+        .snmpV3Auth?.contextName,
+    ).toBeUndefined();
+  });
+});

@@ -379,9 +379,12 @@ describe("the host collector guide stamps the pin and says how to upgrade, in ev
         language,
         "telemetry/host-otel-collector.md",
       ) as string;
-      // The page's configs are the dashboard's: the filter goes into that pipeline.
+      /*
+       * The page's configs are the dashboard's: the filter goes into that
+       * pipeline, ahead of the two detection steps (the cloud one, #11013).
+       */
       expect(guide).toContain(
-        "      processors: [filter/drop-metrics, resourcedetection, resource, batch]",
+        "      processors: [filter/drop-metrics, resourcedetection, resourcedetection/cloud, resource, batch]",
       );
       expect(guide).toContain("      exporters: [otlphttp/oneuptime]");
       expect(guide).not.toContain(

@@ -471,14 +471,14 @@ Kubernetes events are not filtered by namespace at the agent: it sends every one
 
 It accepts `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` and `FATAL`. `WARN` keeps WARN, ERROR and FATAL and drops INFO, DEBUG and TRACE; the default (`""`) keeps everything. It applies in both log modes (through the collector in `daemonset` mode, inside the log tailer in `api` mode), so a preset never turns it off under you.
 
-Container runtimes record no severity, so the agent reads one from the log text itself (`[ERROR]`, `WARN:`, `"level":"info"`, …). What happens to a line with no recognisable level depends on the log mode, because the two modes know different things:
+Container runtimes record no severity, so the agent reads the level each line names: a level word (`[ERROR]`, `WARN:`, `"level":"info"`, …), the first letter of a klog line (`I`, `W`, `E`, `F`), PostgreSQL's `LOG:` or pino's `"level":30`. An exception's traceback or a panic counts as ERROR. What happens to a line that names no level depends on the log mode, because the two modes know different things:
 
 | Mode | A line with no level | Why |
 | --- | --- | --- |
-| `daemonset` | `stderr` counts as ERROR (kept), `stdout` as INFO (dropped by a WARN threshold) | The container runtime records which stream each line came from. |
+| `daemonset` | `stdout` counts as INFO (dropped by a WARN threshold); `stderr` has no severity, shows as Unspecified, and is kept | The container runtime records which stream each line came from. stdout is a program's ordinary output, but programs write every level of their diagnostics to stderr, so a stderr line says nothing about its level. |
 | `api` | Always kept | The Kubernetes `pods/log` API merges stdout and stderr into one stream with no per-line marker, so rather than guess, the agent keeps the line. |
 
-So `api` mode drops strictly less than `daemonset` mode, on purpose: a Python traceback or an `npm ERR!` carries no severity keyword, and silently deleting it is the failure a threshold should protect you from. In hybrid mode (`logs.windowsPods.enabled`) both rows apply, by node OS: Linux pods follow `daemonset`, Windows pods `api`.
+So `api` mode drops strictly less than `daemonset` mode, on purpose: it cannot tell a stderr line that names no level, such as an `npm ERR!`, from ordinary output, and silently deleting it is the failure a threshold should protect you from. In hybrid mode (`logs.windowsPods.enabled`) both rows apply, by node OS: Linux pods follow `daemonset`, Windows pods `api`.
 
 Multi-line events are put back together before filtering in both modes, so a Java stack trace is judged on its first line and kept or dropped whole.
 

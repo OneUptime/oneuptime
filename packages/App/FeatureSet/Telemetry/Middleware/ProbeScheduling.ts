@@ -3,6 +3,7 @@ import { KeyedConcurrencyRelease } from "Common/Server/Utils/KeyedConcurrencyLim
 import ProbeSchedulingLimiterInstance, {
   PROBE_SCHEDULING_BUSY_MESSAGE,
   PROBE_SCHEDULING_BUSY_RETRY_AFTER_SECONDS,
+  PROBE_SCHEDULING_MAX_SLOT_HOLD_MS,
   ProbeSchedulingAbandonedError,
   ProbeSchedulingBusyError,
   ProbeSchedulingLimiter,
@@ -12,6 +13,7 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
+import logger from "Common/Server/Utils/Logger";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeCapability, {
   ProbeCapabilityUtil,
@@ -30,6 +32,13 @@ import ProbeSchedulingLane from "Common/Server/Utils/Probe/ProbeSchedulingLane";
  * keeps the slot until its answer has gone, and a request the limiter
  * refuses is answered busy here and never reaches the handler, so it claims
  * nothing - what it would have been handed stays due for the next request.
+ *
+ * A request whose probe has hung up already - it was authenticated after
+ * the probe's own deadline, on a slow database or Valkey - takes no slot and
+ * never reaches the handler either. Its "close" has been and gone, so
+ * nothing would ever give a slot taken for it back: once every slot of a
+ * process went that way, that process answered every probe busy, and handed
+ * none of them a monitor, until it was restarted.
  *
  * Busy is a 429 with Retry-After to a probe whose fetch of the endpoint
  * reads it as "ask again at the next tick": one that declares the
@@ -65,11 +74,33 @@ export interface ProbeSchedulingLimitOptions {
   limiter?: ProbeSchedulingLimiter | undefined;
   // The limit's lane: the work lane unless said.
   lane?: ProbeSchedulingLane | undefined;
+  /*
+   * Longest a request keeps its slot with neither its answer gone nor its
+   * probe hung up: PROBE_SCHEDULING_MAX_SLOT_HOLD_MS unless said.
+   */
+  maxSlotHoldMs?: number | undefined;
 }
 
 interface ResponseEvents {
   once?: (event: string, listener: () => void) => void;
   writableFinished?: boolean;
+  // Node sets both just before the response's "close", and never clears them.
+  destroyed?: boolean;
+  closed?: boolean;
+}
+
+/*
+ * Whether the probe hung up before its answer was complete, and the
+ * response's "close" has been and gone: nothing more will ever be heard of
+ * this response, so a listener added now never fires.
+ */
+export function hasProbeHungUp(res: ExpressResponse): boolean {
+  const events: ResponseEvents = res as unknown as ResponseEvents;
+
+  return Boolean(
+    (events.destroyed === true || events.closed === true) &&
+      !events.writableFinished,
+  );
 }
 
 /*
@@ -91,21 +122,45 @@ function abandonedWhenClientLeaves(res: ExpressResponse): AbortSignal {
   return controller.signal;
 }
 
-// Gives the slot back once the answer has gone, or the client has.
-function releaseWhenAnswered(
-  res: ExpressResponse,
-  release: KeyedConcurrencyRelease,
-): void {
-  const events: ResponseEvents = res as unknown as ResponseEvents;
+/*
+ * Gives the slot back once the answer has gone, or the client has - or,
+ * should both be missed, once it has been held `maxSlotHoldMs`
+ * (PROBE_SCHEDULING_MAX_SLOT_HOLD_MS), saying so in the log.
+ */
+function releaseWhenAnswered(data: {
+  req: ExpressRequest;
+  res: ExpressResponse;
+  release: KeyedConcurrencyRelease;
+  probeId: string;
+  maxSlotHoldMs: number;
+}): void {
+  const events: ResponseEvents = data.res as unknown as ResponseEvents;
 
   if (typeof events.once !== "function") {
     // Nothing to listen to (a unit test's bare object): do not keep it.
-    release();
+    data.release();
     return;
   }
 
-  events.once("finish", release);
-  events.once("close", release);
+  const takenAt: number = Date.now();
+
+  const timer: ReturnType<typeof setTimeout> = setTimeout((): void => {
+    logger.error(
+      `Probe scheduling: a slot taken for ${data.req.originalUrl || data.req.url || "a request"} of probe ${data.probeId} was still held ${Date.now() - takenAt} ms later, with no answer sent and no hang-up seen. It is given back now; kept, it would be one slot fewer for every probe until this process restarts.`,
+    );
+    data.release();
+  }, data.maxSlotHoldMs);
+
+  // The timer must never keep the process up on its own.
+  (timer as { unref?: () => void }).unref?.();
+
+  const giveBack: () => void = (): void => {
+    clearTimeout(timer);
+    data.release();
+  };
+
+  events.once("finish", giveBack);
+  events.once("close", giveBack);
 }
 
 export default class ProbeSchedulingMiddleware {
@@ -158,6 +213,8 @@ export default class ProbeSchedulingMiddleware {
       options.retriesWhenBusy === undefined
         ? ProbeCapability.RetryWhenBusy
         : options.retriesWhenBusy;
+    const maxSlotHoldMs: number =
+      options.maxSlotHoldMs ?? PROBE_SCHEDULING_MAX_SLOT_HOLD_MS;
 
     return async (
       req: ExpressRequest,
@@ -170,6 +227,16 @@ export default class ProbeSchedulingMiddleware {
       // The handler answers a request with no probe, as it always has.
       if (!probeId) {
         return next();
+      }
+
+      /*
+       * The probe hung up while its request was on its way here: there is
+       * nobody to answer, and a slot taken now would never be given back
+       * (see the comment at the top). Nothing is claimed: what it would
+       * have been handed stays due for its next request.
+       */
+      if (hasProbeHungUp(res)) {
+        return;
       }
 
       let release: KeyedConcurrencyRelease;
@@ -197,7 +264,19 @@ export default class ProbeSchedulingMiddleware {
         return next(error);
       }
 
-      releaseWhenAnswered(res, release);
+      // Handed the slot as its probe hung up: give it straight back.
+      if (hasProbeHungUp(res)) {
+        release();
+        return;
+      }
+
+      releaseWhenAnswered({
+        req: req,
+        res: res,
+        release: release,
+        probeId: probeId.toString(),
+        maxSlotHoldMs: maxSlotHoldMs,
+      });
       return next();
     };
   }

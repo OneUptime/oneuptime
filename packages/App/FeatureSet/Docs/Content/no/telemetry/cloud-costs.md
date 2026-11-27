@@ -13,6 +13,7 @@ En tilkoblet skykonto sier også hva den koster, og hvordan den kunne kostet min
 - [AI-regler for besparelser](#ai-regler-for-besparelser): Forslag til eiere, eller endringer innenfor en grense.
 - [Budsjetter](#budsjetter): En måneds, et kvartals eller et års budsjett for hvilken som helst konto, kostnadsgruppe eller tjeneste.
 - [Prognoser](#prognoser): Hva de neste 12 månedene ligger an til å koste, og hvor sikkert det er.
+- [Påkrevde tagger](#påkrevde-tagger): Hvor mye av forbruket ditt som har taggene du krever, og nye ressurser uten dem.
 :::
 
 ## Slik fungerer det
@@ -129,7 +130,15 @@ En ressurs som ingen anbefalingstjeneste uttaler seg om, fordi den ikke er slåt
 - **Overprovisjonert** når størrelsen som er halvparten så stor, eller en firedel, fortsatt ville hatt plass: på den mindre størrelsen ville CPU-ens 95. persentil vært høyst 60 %, den høyeste CPU-målingen høyst 100 % og minnetoppen høyst 70 %, når minnet leses.
 - **Underprovisjonert** når CPU-ens 95. persentil er 85 % eller mer, eller minnetoppen 90 % eller mer: størrelsen som er dobbelt så stor.
 
-En ressurs vurderes så snart den har 6 dager med målinger. Siden dens viser **Størrelsestilpasning** ved siden av hva den koster, og en overprovisjonert står under **Sky → Forbruk → Besparelser** med OneUptime som kilde. Det en endring sparer, er dens andel av det ressursen kostet de siste 30 dagene, så det er kjent så snart skyen fakturerer ressursen ved navn: den detaljerte eksporten til Azure og Google Cloud gjør det, og AWS gjør det når Kostnader per ressurs er slått på. En EC2-instans rapporterer minnet bare med CloudWatch-agenten, og en Compute Engine-VM bare med Ops Agent: uten den vurderes den bare ut fra CPU-en. Burstable størrelser som t3, B-serien og e2-micro vurderes aldri.
+En ressurs vurderes så snart den har 6 dager med målinger. Siden dens viser **Størrelsestilpasning** ved siden av hva den koster, og en overprovisjonert står under **Sky → Forbruk → Besparelser** med OneUptime som kilde. Det en endring sparer, er dens andel av det ressursen kostet de siste 30 dagene, så det er kjent så snart skyen fakturerer ressursen ved navn: den detaljerte eksporten til Azure og Google Cloud gjør det, og AWS gjør det når Kostnader per ressurs er slått på. Burstable størrelser som t3, B-serien og e2-micro vurderes aldri.
+
+Skyen din leser minnet til en VM bare med en egen agent inne i VM-en: CloudWatch-agenten på en EC2-instans, Ops Agent på en Compute Engine-VM og ingen for en Azure-VM, som rapporterer ledig minne i stedet for brukt minne. En VM som [OneUptimes vertsinnsamler](/docs/telemetry/hosts) kjører på, vurderes i stedet ut fra minnet vertsinnsamleren leser:
+
+- **VM-en og verten er én maskin** når leverandør, konto, region og instans-ID alle stemmer: EC2-instans-ID-en, den numeriske ID-en til en Compute Engine-VM eller `vmId` til en Azure-VM. Et vertsnavn alene gir aldri treff, og en VM som to verter gjør krav på, som en klonet maskin, knyttes ikke til noen av dem. Siden til VM-en nevner verten, og siden til verten nevner VM-en, hver med en lenke til den andre.
+- **Minne er vertens brukte minne, uten hurtigbuffer og buffere**, tallet vertens side viser i diagrammet, over de samme 14 dagene. En travel filhurtigbuffer leses aldri som en full maskin. Verten trenger også 6 dager med målinger.
+- **Der begge leser minnet**, som på en Compute Engine-VM med Ops Agent og vertsinnsamleren, brukes den med flest målinger. CPU er alltid skyens måling.
+
+**Størrelsestilpasning** for VM-en sier hvor minnet kom fra, og det gjør også linjen dens under **Sky → Forbruk → Besparelser**. En VM som bare vurderes ut fra CPU-en, sier det, med en lenke for å installere vertsinnsamleren. Vertsinnsamleren stempler skyens identitet med trinnet `resourcedetection/cloud`, som [konfigurasjonen i vertsveiledningen](/docs/telemetry/host-otel-collector) har med. En vert med OneUptimes standardkonfigurasjon får trinnet med OneUptimes neste utgivelse, og en vert med egen konfigurasjon må få det lagt til. Kubernetes-noder overlates til [Kubernetes-kostnadsobservability](/docs/telemetry/kubernetes-cost), som vurderer forespørslene til det som kjører på dem.
 
 ### Forpliktelser
 
@@ -305,12 +314,61 @@ Svarets `forecast` har sin `method` (`pace`, `trend` eller `trendAndSeason`), m�
 
 Under listen sier kortet hva resten utgjorde: det som ikke er i noe miljø, det som faktureres til et miljø som helhet, eller det som ikke har taggen. Kostnader som ble lest før tagger ble tatt vare på, leses på nytt én gang, så langt tilbake som en første lesing, slik at taggene deres fylles inn.
 
+## Påkrevde tagger
+
+Forbruk er bare så godt fordelt som taggene det har. Under **Sky → Forbruk → Tagger** angir du hvilke tagger alle ressurser må ha, for eksempel `team`, `env` og `cost-center`, og ser hvor mye av forbruket og ressursene dine som har dem, hvilke ressurser som ikke har det, og hvem som opprettet hver nye ressurs uten dem.
+
+:::steps
+### Krev en tagg
+
+Velg **Krev en tagg** og skriv inn **Taggnøkkel**. Under **Tillatte verdier** lister du verdiene den kan ha, skilt med komma, eller lar feltet stå tomt for å tillate alle verdier. Velg en **Konto** for å kreve taggen bare i den kontoen. En **Beskrivelse** under **Flere felt** forteller i e-postene hva taggen er til.
+
+### Les dekningen
+
+Siden åpner med hvor mye av forbruket de siste 30 dagene og av ressursene dine som har alle påkrevde tagger. Under det står ressursene som mangler en tagg, de dyreste først, så hver tagg for seg, utviklingen de siste 12 ukene og hver konto.
+
+### Tagg det som mangler
+
+Hver ressurs som mangler en tagg, viser verdien OneUptime foreslår og kommandoen som setter den i skyen din. En ressurs som er deklarert i kode, sier hvilken kode som deklarerer den: legg til taggen der, ellers fjerner neste utrulling den igjen.
+:::
+
+- **Nøkler samsvarer uavhengig av store og små bokstaver.** `Team`, `team` og `TEAM` er én nøkkel, og en ressurs har taggen når en hvilken som helst skrivemåte av den har en tillatt verdi. Verdier samsvarer også uavhengig av store og små bokstaver, og en tom verdi er ingen verdi.
+- **En tillatt verdi kan være et mønster.** `*` står for vilkårlige tegn og `?` for ett, så `prod-*` passer på `prod-eu` og `prod-us`. Mønstre er ikke regulære uttrykk.
+- **En kontos egne tagger.** En tagg som kreves i én konto, erstatter der prosjektets tagg med samme nøkkel, og en konto kan kreve en egen nøkkel. **Tagger** for en konto viser begge.
+- **Ingenting endres i skyen din.** OneUptime stopper eller tagger aldri en ressurs på grunn av en manglende tagg. Den gir personer beskjed og foreslår verdien.
+
+### Dekning
+
+- **Forbruk med tagger** er andelen av kostnadene de siste 30 dagene som har alle påkrevde tagger, etter taggene hver kostnad ble lest med. Den beregnes hver gang du åpner siden, så en tagg du krever i dag, måles også over de siste 30 dagene. AWS-kostnader har først tagger når [Kostnader per ressurs](#kostnader-per-ressurs) er slått på: til da viser forbruket til en AWS-konto **Ikke målt** i stedet for 0 %.
+- **Ressurser med tagger** er andelen av ressursene tilkoblingene dine viser som har alle påkrevde tagger, slik de er tagget nå.
+- **Dekning over tid** viser hver av de siste 12 ukene: forbruk fra kostnadene og ressurser fra tellingen OneUptime gjør hver dag.
+
+### Nye ressurser
+
+En ressurs som tilkoblingen din viser etter kontoens første fullstendige liste, er ny. Tilkoblingen lager en liste hvert 30. minutt, så en ny ressurs blir funnet innen den timen den opprettes. Om en som mangler en påkrevd tagg, gis det beskjed én gang:
+
+- **Hvem som får beskjed.** Den som opprettet den, når endringsloggen til kontoen nevner et medlem av prosjektet ditt ved e-postadressen, og eierne av ressursen, ut fra eierregler og team. Kan ingen av dem få beskjed, får Prosjekteierne det. Hver av dem må kunne lese skyressursene dine.
+- **Hvor ofte.** Én e-post i timen samler alt nytt for hver person. Under **Flere innstillinger** sender **Én e-post per ressurs** hver for seg, og **Utløs et varsel** utløser også et varsel for hver konto, med alvorlighetsgraden og vaktpolicyene under **Hvor varsler går**.
+- **Når den blir tagget.** En ressurs som tagges før e-posten sendes, utelates fra den, og listen **Nye ressurser** markerer hver som **Tagget** så snart den har dem.
+
+### Foreslåtte verdier
+
+OneUptime foreslår bare en verdi når taggen tillater den:
+
+- **En teamaktig nøkkel**, for eksempel `team`, `owner` eller `squad`: teamet som eier ressursen.
+- **En miljøaktig nøkkel**, for eksempel `env`, `environment` eller `stage`: App Platforms-miljøet til en app som kjører som ressursen, eller for en VM utrullingsmiljøet verten rapporterer.
+- **Enhver nøkkel**: verdien de fleste ressursene ved siden av har, i samme CloudFormation-stakk, samme Azure-ressursgruppe eller med samme navn før nummeret, for eksempel `web-1` og `web-2`. Minst to må være enige.
+- **En tagg som tillater én verdi**: den verdien.
+
+Kommandoen setter taggen i ett trinn, fra skyens eget skall: `aws resourcegroupstaggingapi tag-resources` på AWS, `az tag update --operation Merge` på Azure og `gcloud ... add-labels` eller `--update-labels` for Compute Engine-VM-er og -disker, Cloud Storage-bøtter og Cloud SQL-instanser på Google Cloud.
+
 ## Det du ser i OneUptime
 
 - **Oversikten i Sky.** **Sky → Oversikt** viser månedens forbruk mot forrige måneds på samme dag, de dyreste tjenestene og de største måtene å bruke mindre på, ved siden av det som trenger oppmerksomhet.
 - **Forbruket hver dag.** **Sky → Forbruk → Kostnader** tegner hver av de siste 30 dagene og markerer dagene som kostet langt mer enn vanlig, viser de dagene og deler en periode opp etter tjeneste, region, konto, ressurs, miljø i app-plattformer, app eller tagg, fakturert, amortisert eller netto. Kontoene der kostnadene ikke leses, er listet under, hver med årsaken.
 - **Hver forpliktelse.** **Sky → Forbruk → Forpliktelser** viser hver med når den utløper og hvor mye av den som brukes, dem som snart utløper med hva som skal fornyes, og hva som skal kjøpes.
 - **Kostnadene til en konto.** **Kostnader** for en konto viser det samme for kontoen alene, med forpliktelsene og måtene den kan bruke mindre på.
+- **Påkrevde tagger.** **Sky → Forbruk → Tagger** viser hvor mye av forbruket og ressursene som har de påkrevde taggene dine, og **Tagger** for en konto viser det samme for kontoen alene.
 - **Kostnaden til en ressurs.** Siden til en ressurs viser hva den har kostet denne måneden og de siste 30 dagene når skyen fakturerer den ved navn, med måtene den kan bruke mindre på og størrelsestilpasningen sin.
 - **Hvert budsjett.** **Sky → Forbruk → Budsjetter** lister hvert budsjett med hva det teller, perioden og perioden så langt, og hvert åpner siden sin.
 - **De kommende månedene.** **Sky → Forbruk → Prognose** tegner månedene en prognose ble laget fra, denne måneden slik den ligger an og de neste 12, med hvordan den ble laget.

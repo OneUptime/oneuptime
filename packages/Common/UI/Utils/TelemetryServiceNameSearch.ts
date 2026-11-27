@@ -217,6 +217,44 @@ export const searchServicesForNamePredicates: (data: {
   return Array.from(byId.values());
 };
 
+/*
+ * The id of the service a typed name names, its case aside: the first by
+ * name of the services the server's search finds for it (#11072, the logs
+ * explorer's `service:` name). Undefined when no service has that name -
+ * an id typed in matches itself, and needs no read. A failed search
+ * throws: the caller says so rather than filter by the name.
+ */
+export const findServiceIdByName: (data: {
+  name: string;
+  modelAPI?: typeof ModelAPI | undefined;
+}) => Promise<string | undefined> = async (data: {
+  name: string;
+  modelAPI?: typeof ModelAPI | undefined;
+}): Promise<string | undefined> => {
+  const name: string = data.name.trim();
+
+  if (!name) {
+    return undefined;
+  }
+
+  const services: Array<Service> = await searchServicesForNamePredicates({
+    predicates: [
+      { operator: SearchValueOperator.Equals, value: name, values: [] },
+    ],
+    modelAPI: data.modelAPI,
+  });
+
+  const named: Service | undefined = services.find(
+    (service: Service): boolean => {
+      return (
+        (service.name || "").toString().toLowerCase() === name.toLowerCase()
+      );
+    },
+  );
+
+  return (named?.id || named?._id)?.toString() || undefined;
+};
+
 // One empty list, so a page's memos keyed on the services hold still.
 const NO_SERVICES: Array<Service> = [];
 

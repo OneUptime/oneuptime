@@ -68,6 +68,8 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -360,6 +362,12 @@ const CloudCostGroupPage: FunctionComponent<
             <></>
           )}
         </div>
+        {/* The group's line: its ID, who created it and who last changed it. */}
+        <RecordActivityLine
+          modelType={CloudCostGroup}
+          recordId={groupId}
+          className="mt-4 border-t border-gray-100 pt-3"
+        />
       </Card>
       <CloudCostBasisSwitch
         basis={basisChoice.basis}
@@ -432,26 +440,30 @@ const CloudCostGroupPage: FunctionComponent<
               />
             </div>
           </Card>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <Card title={GROUP_TOP_SERVICES} fillHeight={true}>
+          <CardGrid
+            columns={3}
+            cardWidth="narrow"
+            dataTestId="cloud-cost-group-top"
+          >
+            <Card title={GROUP_TOP_SERVICES}>
               <RankedBars
                 emptyText={GROUP_TOP_EMPTY}
                 items={toItems(spend.group.topServices, "service")}
               />
             </Card>
-            <Card title={GROUP_TOP_RESOURCES} fillHeight={true}>
+            <Card title={GROUP_TOP_RESOURCES}>
               <RankedBars
                 emptyText={GROUP_TOP_EMPTY}
                 items={toItems(spend.group.topResources, "resourceId")}
               />
             </Card>
-            <Card title={GROUP_TOP_ACCOUNTS} fillHeight={true}>
+            <Card title={GROUP_TOP_ACCOUNTS}>
               <RankedBars
                 emptyText={GROUP_TOP_EMPTY}
                 items={toItems(spend.group.topAccounts, "cloudAccountId")}
               />
             </Card>
-          </div>
+          </CardGrid>
         </Fragment>
       )}
       <Card

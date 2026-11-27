@@ -7,6 +7,7 @@ import CloudAccountRecommendationPlan, {
   CloudAccountRecommendationResource,
   CloudAccountRecommendationRow,
   CloudAccountRecommendationTarget,
+  getCloudAccountCoverageKey,
   getCloudAccountRecommendationArgs,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/CloudAccountRecommendationPlan";
 import { readCloudResourceRecommendationContext } from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/RecommendationResourceRegistry";
@@ -22,6 +23,11 @@ import { CLOUD_ALERT_MONITORING_INTERVAL } from "../../../Types/Monitor/CloudAle
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorRecommendationCatalog from "../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
+import MonitorRecommendationUtil from "../../../Types/Monitor/Recommendation/MonitorRecommendationUtil";
+import {
+  MonitorRecommendationCoverageMatcher,
+  MonitorRecommendationCoverageQuestion,
+} from "../../../Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
 import {
   MonitorRecommendation,
   MonitorRecommendationNotificationMode,
@@ -185,6 +191,45 @@ function monitorOf(
   };
 }
 
+/*
+ * Which of the resources' recommendations these monitors cover, as the
+ * server answers the page's questions (#11074): the server's own matcher,
+ * over the monitors in the order given.
+ */
+function coveredBy(
+  resources: Array<CloudAccountRecommendationResource>,
+  monitors: Array<{ monitorId: ObjectID; monitorSteps: Array<MonitorStep> }>,
+): Map<string, ObjectID> {
+  const questions: Array<MonitorRecommendationCoverageQuestion> =
+    CloudAccountRecommendationPlan.getCoverageQuestions(resources);
+  const covered: Map<string, ObjectID> = new Map<string, ObjectID>();
+
+  for (const monitorType of new Set<string>(
+    questions.map((question: MonitorRecommendationCoverageQuestion) => {
+      return question.monitorType;
+    }),
+  )) {
+    const matcher: MonitorRecommendationCoverageMatcher =
+      new MonitorRecommendationCoverageMatcher(
+        questions.filter(
+          (question: MonitorRecommendationCoverageQuestion): boolean => {
+            return question.monitorType === monitorType;
+          },
+        ),
+      );
+
+    for (const monitor of monitors) {
+      matcher.addMonitor(monitor.monitorId.toString(), monitor.monitorSteps);
+    }
+
+    for (const [key, monitorId] of matcher.getAnswer()) {
+      covered.set(key, new ObjectID(monitorId));
+    }
+  }
+
+  return covered;
+}
+
 function dismissalOf(
   target: CloudAccountRecommendationResource,
   templateId: string,
@@ -206,7 +251,7 @@ function groupsOf(
 ): Array<CloudAccountRecommendationGroup> {
   return CloudAccountRecommendationPlan.buildGroups({
     resources: ALL,
-    existingMonitors: data.monitors || [],
+    coveredMonitorIds: coveredBy(ALL, data.monitors || []),
     dismissals: data.dismissals || [],
   });
 }
@@ -427,7 +472,7 @@ describe("getGaps", () => {
     const groups: Array<CloudAccountRecommendationGroup> =
       CloudAccountRecommendationPlan.buildGroups({
         resources,
-        existingMonitors: [],
+        coveredMonitorIds: coveredBy(resources, []),
         dismissals: [],
       });
 
@@ -755,7 +800,7 @@ describe("Connections Near the Limit and Certificate Expiring on an account's Re
   ): Array<CloudAccountRecommendationGroup> {
     return CloudAccountRecommendationPlan.buildGroups({
       resources: ACCOUNT,
-      existingMonitors: data.monitors || [],
+      coveredMonitorIds: coveredBy(ACCOUNT, data.monitors || []),
       dismissals: data.dismissals || [],
     });
   }
@@ -895,7 +940,10 @@ describe("Connections Near the Limit and Certificate Expiring on an account's Re
     const groups: Array<CloudAccountRecommendationGroup> =
       CloudAccountRecommendationPlan.buildGroups({
         resources: [resized],
-        existingMonitors: [monitorOf(ORDERS, CONNECTIONS)],
+        coveredMonitorIds: coveredBy(
+          [resized],
+          [monitorOf(ORDERS, CONNECTIONS)],
+        ),
         dismissals: [],
       });
 
@@ -975,7 +1023,7 @@ describe("an account read less often than its cloud's default", () => {
   ): Array<CloudAccountRecommendationGroup> {
     return CloudAccountRecommendationPlan.buildGroups({
       resources,
-      existingMonitors: monitors,
+      coveredMonitorIds: coveredBy(resources, monitors),
       dismissals: [],
     });
   }
@@ -1044,5 +1092,86 @@ describe("an account read less often than its cloud's default", () => {
     expect(row.targets[0]!.monitorId?.toString()).toBe(
       made.monitorId.toString(),
     );
+  });
+});
+
+/*
+ * #11074: what the page asks the server, to learn which of its resources'
+ * recommendations a monitor covers already. It read the project's first
+ * 10,000 Metrics monitors and compared them here.
+ */
+describe("getCoverageQuestions", () => {
+  test("one question per recommendation of each resource, named by the resource and the recommendation", () => {
+    const questions: Array<MonitorRecommendationCoverageQuestion> =
+      CloudAccountRecommendationPlan.getCoverageQuestions([WEB_1, CHECKOUT]);
+
+    const expected: Array<string> = [WEB_1, CHECKOUT].flatMap(
+      (resource: CloudAccountRecommendationResource): Array<string> => {
+        return MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.CloudResource,
+          resource.context,
+        ).map((recommendation: MonitorRecommendation): string => {
+          return getCloudAccountCoverageKey(
+            resource.resourceId,
+            recommendation.recommendationId,
+          );
+        });
+      },
+    );
+
+    expect(
+      questions.map((question: MonitorRecommendationCoverageQuestion) => {
+        return question.key;
+      }),
+    ).toEqual(expected);
+    expect(expected.length).toBeGreaterThan(0);
+  });
+
+  test("each is asked with its monitor's type and its own fingerprint first, as the resource's own tab asks it", () => {
+    const [first]: Array<MonitorRecommendationCoverageQuestion> =
+      CloudAccountRecommendationPlan.getCoverageQuestions([WEB_1]);
+    const recommendation: MonitorRecommendation =
+      MonitorRecommendationCatalog.getRecommendations(
+        MonitorRecommendationResourceType.CloudResource,
+        WEB_1.context,
+      )[0]!;
+
+    expect(first!.monitorType).toBe(recommendation.monitorType);
+    expect(first!.fingerprints[0]).toBe(
+      MonitorRecommendationUtil.serializeFingerprint(
+        MonitorRecommendationUtil.getFingerprintFromMonitorStep(
+          monitorOf(WEB_1, recommendation.templateId).monitorSteps[0]!,
+        )!,
+      ),
+    );
+  });
+
+  test("a resource offered nothing asks nothing", () => {
+    expect(
+      CloudAccountRecommendationPlan.getCoverageQuestions([PROD_VPC]),
+    ).toEqual([]);
+  });
+
+  test("the answer for one resource never covers another's: each answer is named by its resource", () => {
+    const made: { monitorId: ObjectID; monitorSteps: Array<MonitorStep> } =
+      monitorOf(WEB_1, "cloud-aws-ec2-high-cpu");
+    const covered: Map<string, ObjectID> = coveredBy([WEB_1, WEB_2], [made]);
+
+    expect(
+      covered.get(
+        getCloudAccountCoverageKey(
+          WEB_1.resourceId,
+          "CloudResource:cloud-aws-ec2-high-cpu",
+        ),
+      ),
+    ).toEqual(made.monitorId);
+    expect(
+      covered.get(
+        getCloudAccountCoverageKey(
+          WEB_2.resourceId,
+          "CloudResource:cloud-aws-ec2-high-cpu",
+        ),
+      ),
+    ).toBeUndefined();
   });
 });

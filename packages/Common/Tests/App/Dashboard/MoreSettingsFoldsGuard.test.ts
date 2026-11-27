@@ -102,6 +102,11 @@ const COVERED: Record<string, Coverage> = {
     suites: [MORE_SETTINGS_ONE_CARD],
     drawnBy: "Pages/Settings/UsageHistory",
   },
+  // Cloud > Tags: who is told of a new resource without a tag (#11012).
+  "packages/App/FeatureSet/Dashboard/src/Components/Cloud/CloudTagsView.tsx": {
+    suites: ["CloudTagsPage.test.tsx"],
+    drawnBy: "Components/Cloud/CloudTagsView",
+  },
   "packages/App/FeatureSet/Dashboard/src/Pages/Code/Repository/Settings.tsx": {
     suites: ["CodeRepositorySettingsPage.test.tsx"],
     drawnBy: "Pages/Code/Repository/Settings",
