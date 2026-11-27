@@ -55,6 +55,7 @@ import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import KubernetesCluster from "Common/Models/DatabaseModels/KubernetesCluster";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import DockerHost from "Common/Models/DatabaseModels/DockerHost";
@@ -1341,6 +1342,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       vmwareVCenters={
                         values.vmwareVCenters as Array<VMwareVCenter>
                       }
+                      xcpNgPools={values.xcpNgPools as Array<XcpNgPool>}
                       cephClusters={values.cephClusters as Array<CephCluster>}
                       storageArrays={
                         values.storageArrays as Array<StorageArray>
@@ -1365,6 +1367,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         "ProxmoxCluster",
                         "OpenStackCloud",
                         "VMwareVCenter",
+                        "XcpNgPool",
                         "CephCluster",
                         "StorageArray",
                         "DockerSwarmCluster",
@@ -1399,6 +1402,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters: payload.proxmoxClusters,
                         openStackClouds: payload.openStackClouds,
                         vmwareVCenters: payload.vmwareVCenters,
+                        xcpNgPools: payload.xcpNgPools,
                         cephClusters: payload.cephClusters,
                         storageArrays: payload.storageArrays,
                         dockerSwarmClusters: payload.dockerSwarmClusters,
@@ -1471,6 +1475,15 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
               },
               {
                 field: { vmwareVCenters: true },
+                title: "",
+                fieldType: FormFieldSchemaType.Text,
+                required: false,
+                showIf: () => {
+                  return false;
+                },
+              },
+              {
+                field: { xcpNgPools: true },
                 title: "",
                 fieldType: FormFieldSchemaType.Text,
                 required: false,
@@ -1592,6 +1605,10 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                       name: true,
                       _id: true,
                     },
+                    xcpNgPools: {
+                      name: true,
+                      _id: true,
+                    },
                     cephClusters: {
                       name: true,
                       _id: true,
@@ -1648,6 +1665,7 @@ const AlertView: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         proxmoxClusters={item.proxmoxClusters || []}
                         openStackClouds={item.openStackClouds || []}
                         vmwareVCenters={item.vmwareVCenters || []}
+                        xcpNgPools={item.xcpNgPools || []}
                         cephClusters={item.cephClusters || []}
                         storageArrays={item.storageArrays || []}
                         dockerSwarmClusters={item.dockerSwarmClusters || []}

@@ -22,6 +22,10 @@ import SnmpMonitorResponse, {
 } from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import SnmpTableTemplateUtil from "./SnmpTableTemplateUtil";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import RmonAlarmTrapUtil, {
+  RmonAlarm,
+} from "../../../Utils/NetworkEvent/RmonAlarmTrap";
+import { getSnmpTrapInterfaceLabel } from "../../../Utils/NetworkEvent/SnmpTrapEvent";
 import SnmpTrap, {
   SnmpTrapVarbind,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpTrap";
@@ -492,6 +496,36 @@ export default class MonitorTemplateUtil {
               };
             },
           );
+
+          /*
+           * An RMON alarm (an MDS port-monitor policy's): which counter, on
+           * which interface, at what value past which threshold - so a
+           * title can say "{{trapAlarmCounter}} on {{trapInterface}}".
+           * Empty for any other trap, so a template renders blank rather
+           * than a raw placeholder. {{trapInterface}} also names the
+           * interface of any other trap that carries IF-MIB varbinds - a
+           * link down, Cisco's cieLinkDown - as the trap or the device's
+           * walk names it.
+           */
+          const alarm: RmonAlarm | null =
+            RmonAlarmTrapUtil.decode(snmpTrapResponse);
+
+          storageMap["trapInterface"] =
+            (alarm
+              ? RmonAlarmTrapUtil.describeInterface(
+                  alarm,
+                  snmpTrapResponse.interfaceName,
+                )
+              : getSnmpTrapInterfaceLabel(
+                  snmpTrapResponse,
+                  snmpTrapResponse.interfaceName,
+                )) || "";
+          storageMap["trapAlarmCounter"] = alarm
+            ? alarm.counterName || alarm.variableOid || ""
+            : "";
+          storageMap["trapAlarmValue"] = alarm?.value || "";
+          storageMap["trapAlarmThreshold"] = alarm?.threshold || "";
+          storageMap["trapAlarmDirection"] = alarm?.direction || "";
         }
       }
 

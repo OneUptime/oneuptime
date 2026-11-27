@@ -62,6 +62,7 @@ import RUM_APPLICATION_SHOWCASE from "../Rum/RumApplicationShowcase";
 import SERVERLESS_FUNCTION_SHOWCASE from "../Serverless/ServerlessFunctionShowcase";
 import STORAGE_ARRAY_SHOWCASE from "../StorageArray/StorageArrayShowcase";
 import VMWARE_VCENTER_SHOWCASE from "../VMware/VMwareVCenterShowcase";
+import XCP_NG_POOL_SHOWCASE from "../XcpNg/XcpNgPoolShowcase";
 
 /*
  * Every product's explanation (ProductOnboarding.ts): the page the products
@@ -323,6 +324,12 @@ export const PRODUCT_ONBOARDINGS: Record<
     name: translationKey("VMware"),
     showcase: VMWARE_VCENTER_SHOWCASE,
     docsRoute: docs("telemetry/vmware"),
+  },
+  [ProductKey.XcpNg]: {
+    page: PageMap.XCP_NG_POOLS,
+    name: translationKey("XCP-ng"),
+    showcase: XCP_NG_POOL_SHOWCASE,
+    docsRoute: docs("telemetry/xcp-ng"),
   },
   [ProductKey.Ceph]: {
     page: PageMap.CEPH_CLUSTERS,

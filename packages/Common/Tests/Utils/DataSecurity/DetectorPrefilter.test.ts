@@ -333,13 +333,29 @@ describe("a data type's expression", () => {
         "GET /health returned 200 in 12ms for the checkout service",
       ),
     ).toBe(false);
-    // An escape of a byte beyond ASCII is none the reading reads.
-    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("caf%C3%A9")).toBe(
-      false,
-    );
+    // An escape of a byte beyond ASCII is one the reading reads, as UTF-8 (#11032).
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("caf%C3%A9")).toBe(true);
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("%EF%BC%94")).toBe(true);
     expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("cpu 100% busy")).toBe(
       false,
     );
+    expect(asJavaScript(PERCENT_ESCAPE_PREFILTER).test("%zz %g1 x%4")).toBe(
+      false,
+    );
+  });
+
+  test("a text whose only escapes spell a character beyond ASCII is taken: what the reading finds there, the search hands over (#11032)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "email-address",
+    })!;
+    const text: string = "/signup?email=jos%C3%A9%40example.com";
+
+    expect(
+      findSensitiveValues(text, {
+        detectors: getBuiltInDetectorsOf("email-address"),
+      }).length,
+    ).toBeGreaterThan(0);
+    expect(asJavaScript(expression).test(text)).toBe(true);
   });
 
   /*
@@ -437,8 +453,26 @@ describe("a data type's expression", () => {
     ).toBe(false);
   });
 
+  test("a secret's type takes a text holding an escape: a token after an encoded = (#11031)", () => {
+    const expression: string = getDataTypePrefilter({
+      dataTypeId: "github-token",
+    })!;
+    const token: string = ["ghp", "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ"].join(
+      "_",
+    );
+    const text: string = `/login?next=https%3A%2F%2Fapp.example.com%2Fcb%3Ftoken%3D${token}`;
+
+    expect(expression.includes(PERCENT_ESCAPE_PREFILTER)).toBe(true);
+    expect(asJavaScript(expression).test(text)).toBe(true);
+    expect(
+      findSensitiveValues(text, {
+        detectors: getBuiltInDetectorsOf("github-token"),
+      }).length,
+    ).toBe(1);
+  });
+
   test("a type whose detectors read only what is written takes no escape alone", () => {
-    for (const dataTypeId of ["credit-card-number", "github-token"]) {
+    for (const dataTypeId of ["credit-card-number", "mac-address"]) {
       const expression: string = getDataTypePrefilter({ dataTypeId })!;
 
       expect([

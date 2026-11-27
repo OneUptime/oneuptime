@@ -61,7 +61,7 @@ Rules need no schedule: they run on scan results, which OneUptime checks for eve
 - **When you create or change a rule.** The project's recent scan results are offered to it again, so a rule you write today applies to hosts found today.
 - **When you select Run Now.**
 
-Results older than 24 hours are not imported by themselves: only **Run Now** imports them. A host whose address already has a network device is skipped, so repeating a scan or a rule never makes a duplicate.
+Results older than 24 hours are not imported by themselves: only **Run Now** imports them. A host whose address already has a network device is not imported again, so repeating a scan or a rule never makes a duplicate device - but a rule with a **Monitor Template** still gives that device the template's monitor when it has none like it.
 
 ## Match Criteria
 
@@ -85,7 +85,7 @@ Pick a **Monitor Template** to give each imported device a monitor too, made fro
 - A host that only answers ping gets a monitor too: a Network Device template's reachability check fires, and its SNMP checks wait until the device has credentials.
 - A monitor is named after the device (its sysName, or its address). A template's **Default Monitor Name** is added after it (\`UN0660WANRTR01 - Unit Router\`), which tells two templates apart on one device.
 - A device never gets a second monitor of the same kind. A device that already has a monitor from the template, or a monitor of the template's kind that checks the same thing - a Ping or IP monitor, a Port or NTP monitor on the same port, a Website or API monitor of the same scheme, port, path and query, an SSL Certificate monitor on the same port - from another template, bound to it, or made by hand and tied to it, is counted as already monitored. A monitor of another kind is still added: a Ping monitor beside a Network Device one.
-- Running a rule again adds a missing monitor, even for a device an earlier scan added, and leaves an existing Network Device monitor alone. Rules that pick the same template make one monitor; different Network Device templates make one each.
+- Running a rule again adds a missing monitor, even for a device an earlier scan added or someone added by hand. A monitor the device already has is never changed, and only one like the template's counts as the template's: a Network Device monitor made by hand, or from another template, does not stop a rule giving the device its template's monitor. Rules that pick the same template make one monitor; different Network Device templates make one each.
 - Changing a rule's template never deletes or rewrites the monitors it made before. Delete the old monitor and let the rule make the new one.
 
 SNMP health OIDs, interface walking and endpoint collection stay settings of the device itself.

@@ -50,7 +50,7 @@ OneUptime 每 3 小時移除一次靜默時間超過其類別時間範圍的探�
 | --- | --- |
 | Pod、Deployment、Proxmox 客體、OpenStack 執行個體和 VMware 虛擬機器 | 1 天 |
 | Kubernetes 節點和命名空間、Proxmox 節點、OpenStack 虛擬化主機、VMware 主機、叢集和資料存放區，以及你的追蹤所呼叫的資料庫和遠端服務 | 7 天 |
-| 服務、主機、Kubernetes、Proxmox 和 Ceph 叢集、OpenStack 雲端、儲存陣列、vCenter 和 Docker Swarm 叢集 | 30 天 |
+| 服務、主機、Kubernetes、Proxmox 和 Ceph 叢集、OpenStack 雲端、儲存陣列、vCenter、XCP-ng 資源池和 Docker Swarm 叢集 | 30 天 |
 
 OneUptime 探索到的關係如果 30 天內沒有再次出現，就會被移除。
 

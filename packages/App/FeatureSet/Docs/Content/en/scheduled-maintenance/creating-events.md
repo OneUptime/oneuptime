@@ -75,7 +75,7 @@ Two things fill the form in for you as you go:
 
 ## Start from a resource or a template
 
-On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
+On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an XCP-ng pool, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**, and the tab lists the events that affect it. An inventory item's tab picks the host, service or Kubernetes cluster the item points at.
 
 **Create from Template**, beside the create button, asks you to **Select Scheduled Maintenance Template**, then opens the form filled in from the template. See [Templates & Recurring Events](/docs/scheduled-maintenance/templates).
 
@@ -84,9 +84,9 @@ On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or D
 The moment you click **Create Maintenance Event**, OneUptime works through these steps, in this order:
 
 1. **It gets a number and a state.** The number comes from a per-project counter, shown with your prefix (`SM-42`). The event starts in your scheduled state, whatever state a request names.
-2. **Your chat tools hear of it.** The Slack and Microsoft Teams rules under **Workspace** post it to their channels, and a rule can create a channel for the event. Its feed records that it was created.
-3. **Its state timeline starts.** The first row of its **State Timeline** is your scheduled state.
-4. **Owners and labels are added**: the ones you picked, then those of matching owner and label rules.
+2. **Its state timeline starts.** The first row of its **State Timeline** is your scheduled state.
+3. **Owners and labels are added**: the ones you picked, then those of matching owner and label rules.
+4. **Your chat tools hear of it.** The Slack and Microsoft Teams rules under **Workspace** post it to their channels, and a rule can create a channel for the event. Its feed records that it was created. The rules see the owners and labels the event was created with, so a rule that asks who owns an event, or how it is labelled, posts it too. Whatever was said about the event meanwhile, such as the owners just added, follows it in those channels.
 5. **Runbook rules start** the runbooks that match the event.
 6. **Reminders are scheduled**, when a reminder rule matches, for its owners.
 

@@ -78,7 +78,7 @@ flowchart TB
 
 - **Ingen projekter tilknyttet (alle projekter / invitation først):** Brugere kan logge ind med udbyderen og nå **ethvert projekt, de allerede er medlem af**. Nye brugere oprettes **ikke** automatisk — en bruger skal først inviteres til et projekt. Brug det til virksomhedsdækkende SSO, hvor medlemskaber styres andetsteds.
 
-- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Tilknyttede projekter** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene ved første login. Et projekt, du tilknytter, starter med sit medlemsteam; vælg andre teams, hvis nye brugere skal starte med en anden adgang. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
+- **Projekter tilknyttet (automatisk klargøring):** Åbn udbyderen og brug tabellen **Tilknyttede projekter** til at tilknytte et eller flere projekter, hver med et sæt standardteams. Brugere, der logger ind, **klargøres automatisk** i disse projekter og tilføjes til standardteamene: en ny person ved sit første login, og en person, der allerede har en konto, for eksempel en, du har oprettet manuelt, ved sit næste. Et projekt, du tilknytter, starter med sit medlemsteam; vælg andre teams, hvis nye brugere skal starte med en anden adgang. Et tilknyttet projekt uden teams tilføjer ingen. Tilføj ét projekt + teams ad gangen for at opbygge listen; for at ændre en tilknytning skal du slette den og tilføje den igen.
 
 En person, der allerede er medlem af et tilknyttet projekt, beholder sine teams der.
 
@@ -89,7 +89,7 @@ To spørgsmål på udbyderen ændrer dette, foldet sammen under **Flere felter**
 | **Personer uden en konto** | **Får en ved deres første login**: de bliver medlem af de tilknyttede projekter; er ingen tilknyttet, skal de først inviteres. **Skal inviteres først**: personer skal være inviteret til et projekt, før de kan logge ind med denne udbyder, også når der er tilknyttede projekter. |
 | **Hvor dette login tæller som SSO** | **Alle projekter**: projekter, der kræver SSO, accepterer et login med denne udbyder. **Kun tilknyttede projekter**: login med denne udbyder opfylder kun SSO-kravet i de projekter, der er tilknyttet den, så personer, der allerede er logget ind, kan miste adgangen til andre projekter. |
 
-Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter, personen hører til, og tilknyttede projekter afgør kun, hvor nye personer tilføjes.
+Med **Alle projekter** opfylder login med udbyderen SSO-kravet i alle projekter, personen hører til, og tilknyttede projekter afgør kun, hvor nye personer tilføjes: ingen af de to svar føjer nogen til et projekt. Så længe der ikke er tilknyttet noget projekt med teams, står der på udbyderens side under **Personer uden en konto**, at ingen nye kan logge ind endnu.
 
 ## E-mailadresser, som din identitetsudbyder ikke har bekræftet
 
@@ -166,7 +166,7 @@ To ændringer af, hvem der kan logge ind, kontrolleres efter hinanden. Gemmes de
 ## Fejlfinding
 
 :::details "You must be invited to a project on this OneUptime instance before you can sign in with SSO"
-Personen har endnu ingen OneUptime-konto, og udbyderen opretter ingen: enten er der ingen projekter tilknyttet den, eller **Personer uden en konto** står på **Skal inviteres først**. Invitér personen til et projekt, eller tilknyt et projekt til udbyderen.
+Personen har endnu ingen OneUptime-konto, og udbyderen opretter ingen: enten er der intet projekt med teams tilknyttet den, eller **Personer uden en konto** står på **Skal inviteres først**. Invitér personen til et projekt, eller tilknyt et projekt til udbyderen med de teams, personen kommer med i. Serverens log viser, hvilken af de to grunde det er, uden at nævne personen.
 :::
 
 :::details "This SSO provider does not grant access to any project you are a member of"

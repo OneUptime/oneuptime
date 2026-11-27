@@ -104,6 +104,7 @@ export const ChangeEventAttribute: {
   readonly CloudAccountId: string;
   readonly CloudRegion: string;
   readonly CloudResourceId: string;
+  readonly CloudResourceIds: string;
   readonly CloudResourceName: string;
   readonly CloudOperation: string;
   readonly CloudActor: string;
@@ -151,6 +152,14 @@ export const ChangeEventAttribute: {
   CloudAccountId: "cloud.account.id",
   CloudRegion: "cloud.region",
   CloudResourceId: "cloud.resource_id",
+  /*
+   * Every resource the change names, as the cloud names them, in lower
+   * case, one a line (at most CLOUD_CHANGE_RESOURCE_IDS_KEPT): an EC2
+   * RunInstances names the instance it made beside its security groups and
+   * subnet, in any order, and cloud.resource_id keeps only the first. Read
+   * to tell who created a resource (#11012).
+   */
+  CloudResourceIds: "oneuptime.cloud.resource_ids",
   /*
    * The name OneUptime holds the changed resource by (its Cloud Resource's),
    * which the change's title names: the title is worded from it in the

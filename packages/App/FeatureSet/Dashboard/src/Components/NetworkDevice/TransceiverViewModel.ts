@@ -88,6 +88,7 @@ export const TRANSCEIVER_SOURCE_LABELS: Record<TransceiverMibSource, string> = {
   [TransceiverMibSource.H3cTransceiver]: "HH3C-TRANSCEIVER-INFO-MIB",
   [TransceiverMibSource.HpIcfTransceiver]: "HP-ICF-TRANSCEIVER-MIB",
   [TransceiverMibSource.CambiumTransceiver]: "CAMBIUM-NETWORKS-TRANSCEIVER-MIB",
+  [TransceiverMibSource.BrocadeSfpStat]: "FA-EXT-MIB",
 };
 
 export function hasReadings(transceiver: NetworkDeviceTransceiver): boolean {

@@ -532,6 +532,10 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   "OneUptime Cloud",
   // A record's model, as the MCP Server page's table names it in every language.
   "Cloud Budget",
+  // And the cost groups' models beside it, in Cloud's row (#11006).
+  "Cloud Cost Group",
+  "Cloud Cost Line Item",
+  "Cloud Cost View",
   "OneUptime AI",
   "OneUptime",
   "OpenTelemetry",

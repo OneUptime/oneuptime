@@ -111,7 +111,7 @@ De regel wordt genoemd naar wat hij verbergt, zoals "Data Security: Email addres
 | Elk ander gegevenstype dat een patroon zelf vindt, zoals een GitHub-token | Een regel **Aangepaste reguliere expressie**, gemaakt van de eigen patronen van het gegevenstype. Een geheim wordt weggelakt. |
 | Een van je eigen gegevenstypen, met een patroon | Dat patroon, alleen in het attribuut waarin het is gevonden |
 | Een gegevenstype dat door de woorden eromheen te onderscheiden is, zoals een routingnummer | Zijn vorm, alleen in het attribuut waarin het is gevonden |
-| Een gegevenstype dat op de naam van het veld wordt gevonden, zoals de naam van een persoon onder `customer_name`, of een waarde onder een sleutel die een geheim noemt | Een regel **Benoemde attributen**, die de hele waarde van dat attribuut verbergt |
+| Een gegevenstype dat op de naam van het veld wordt gevonden, zoals de naam van een persoon onder `customer_name` of onder de parameter `full_name` van een URL, of een waarde onder een sleutel die een geheim noemt | Een regel **Benoemde attributen**, die de hele waarde van dat attribuut verbergt |
 | Een waarde onder een sleutel die gevoelig lijkt, waar niets smallers haar verbergt | Een regel **Gevoelige attribuutsleutels**, die de hele waarde van elk zulk attribuut weglakt |
 | Elk gegevenstype in het attribuut van een metriek | Een pipelineregel **Kenmerk weglakken** voor de metrieken van de service, die de waarden van het attribuut die het gegevenstype bevatten vervangt door `[REDACTED]`. Voor een IP-adres, een e-mailadres of een kaartnummer is het filter **Komt overeen met patroontype** met dat type, dat vindt wat een regel voor logs of traces met dat **Patroontype** vindt, waaronder IPv6-adressen en waarden die procentgecodeerd of in een ander schrift staan. Voor een ander gegevenstype is het het eigen patroon van het type, en wanneer geen patroon het gegevenstype vindt, vervangt de regel elke waarde van het attribuut |
 
@@ -170,7 +170,7 @@ Voordat OneUptime AI begint, leest Gegevensbeveiliging de records waarin elk lek
 
 - **Een span of een AI-aanroep**: het bestand, de regel en de functie die zijn attributen `code.*` noemen, en de naam van de span.
 - **Een uitzondering**: zijn eigen bovenste frames, die in de code van de service.
-- **Een logregel**: het bestand, de regel en de functie die zijn attributen noemen, als die er zijn, zijn logger, en de regel als sjabloon, elke waarde vervangen door de naam van zijn type, zoals `User <Email address> signed up`.
+- **Een logregel**: het bestand, de regel en de functie die zijn attributen noemen, als die er zijn, zijn logger, en de regel als sjabloon, elke waarde vervangen door de naam van zijn type, zoals `User <Email address> signed up`, en elk woord waarvan zijn records niet bewijzen dat de code het schreef, zoals de naam van een persoon, door `<value>`: `Payment declined for Maria Gonzalez`, gelezen uit één record, wordt `Payment declined for <value>`. De naam van een span en de naam van een metriek worden op dezelfde manier gelezen.
 - **Een metriek**: de naam van de metriek.
 - **Elk lek**: zijn attribuutsleutel, zoals `user.email`, die de code meestal letterlijk schrijft.
 

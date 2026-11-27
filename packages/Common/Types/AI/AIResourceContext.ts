@@ -14,6 +14,7 @@ export enum AIResourceType {
   ProxmoxCluster = "ProxmoxCluster",
   OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
+  XcpNgPool = "XcpNgPool",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
   ServerlessFunction = "ServerlessFunction",
@@ -58,6 +59,7 @@ export enum AIResourceSubresourceKind {
   Directory = "Directory",
   FileSystem = "FileSystem",
   Bucket = "Bucket",
+  StorageRepository = "StorageRepository",
   Device = "Device",
   Process = "Process",
   WindowsService = "WindowsService",
@@ -86,6 +88,7 @@ const RESOURCE_FACET_KEYS: Record<AIResourceType, string> = {
   [AIResourceType.ProxmoxCluster]: "proxmoxClusterId",
   [AIResourceType.OpenStackCloud]: "openStackCloudId",
   [AIResourceType.VMwareVCenter]: "vmwareVCenterId",
+  [AIResourceType.XcpNgPool]: "xcpNgPoolId",
   [AIResourceType.CephCluster]: "cephClusterId",
   [AIResourceType.StorageArray]: "storageArrayId",
   [AIResourceType.ServerlessFunction]: "serverlessFunctionId",
@@ -194,6 +197,16 @@ export const AI_RESOURCE_SUBRESOURCE_KINDS: Readonly<
     AIResourceSubresourceKind.VirtualMachine,
     AIResourceSubresourceKind.Datastore,
     AIResourceSubresourceKind.Cluster,
+  ],
+  /*
+   * The pool's own pages: its hosts, VMs and storage repositories, each
+   * keyed by its XAPI UUID (XcpNgResource.externalId). Virtual disks have
+   * no page of their own.
+   */
+  [AIResourceType.XcpNgPool]: [
+    AIResourceSubresourceKind.Host,
+    AIResourceSubresourceKind.VirtualMachine,
+    AIResourceSubresourceKind.StorageRepository,
   ],
   [AIResourceType.CephCluster]: [
     AIResourceSubresourceKind.Osd,

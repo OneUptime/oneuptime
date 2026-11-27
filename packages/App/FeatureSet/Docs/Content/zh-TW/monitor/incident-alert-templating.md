@@ -416,6 +416,11 @@ Alerts for payments:
 | `trapOid` | Trap 的 OID。僅在 SNMP trap 觸發檢查時。 | `string` |
 | `trapSourceIp` | Trap 的來源位址。僅在 SNMP trap 觸發檢查時。 | `string` |
 | `trapVarbinds` | Trap 的 varbind，每個形如 `{oid, value}`。僅在 SNMP trap 觸發檢查時。 | `Array<Object>` |
+| `trapInterface` | Trap 所涉及的介面：trap 攜帶的名稱，否則為裝置上次走訪為其索引記錄的名稱。僅在 SNMP trap 觸發檢查時。 | `string` |
+| `trapAlarmCounter` | 在 RMON 警報 trap（MDS 連接埠監控警報）中，越過臨界值的計數器。其他 trap 為空。 | `string` |
+| `trapAlarmDirection` | 在 RMON 警報 trap 中，為 `rising` 或 `falling`。其他 trap 為空。 | `string` |
+| `trapAlarmValue` | 在 RMON 警報 trap 中，計數器越過臨界值時的值。其他 trap 為空。 | `string` |
+| `trapAlarmThreshold` | 在 RMON 警報 trap 中，計數器越過的臨界值。其他 trap 為空。 | `string` |
 
 網路設備在每次輪詢時都會被 ping，只有在有認證資訊時才會透過 SNMP 走訪，因此 **在上面的變數中，僅支援 ping 的設備只會填入 `isOnline`**：其他所有變數都來自 SNMP 走訪，沒有走訪時會原樣保留。在可能用於沒有認證資訊之設備的範本中，請以 `{{isOnline}}` 和設備的名稱開頭。每種輪詢收集哪些內容，請參閱 [網路設備監測器](/docs/monitor/network-device-monitor#一次輪詢實際做了什麼)。
 
@@ -452,7 +457,7 @@ Alerts for payments:
 
 ### 指標和基礎設施監測器
 
-Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、Ceph、儲存陣列 和 IoT 裝置 監測器各有一個自己的變數：
+Metrics、Kubernetes、Docker、Host、Podman、Docker Swarm、Proxmox、OpenStack、VMware、XCP-ng、Ceph、儲存陣列 和 IoT 裝置 監測器各有一個自己的變數：
 
 | 變數 | 內容 | 類型 |
 | --- | --- | --- |

@@ -232,6 +232,14 @@ Cuando una evaluación tarda demasiado para su monitor, su resumen le avisa. Dem
 
 Una décima parte deja a un monitor margen para crecer diez veces antes de que sus comprobaciones se solapen y se retrasen, así que usted se entera pronto. Por debajo de 5 segundos, una comprobación está bien por grande que sea: evaluar 16.000 series lleva unos 2,5 segundos. Por encima de un minuto, ocupa un worker y las bases de datos que lee durante todo ese tiempo, sea cual sea su intervalo. Para acelerarla, acote los filtros de sus consultas, agrupe por menos atributos o compruébela con menos frecuencia.
 
+## Cuándo comprueban los monitores de telemetría
+
+Los monitores que leen telemetría, como los monitores de registros, de métricas, de trazas, de Kubernetes, de host y de Docker, no se comprueban todos en el mismo momento. Cada uno tiene su propio momento en su intervalo, calculado a partir del ID del monitor: un monitor que se comprueba cada minuto se ejecuta en el mismo segundo de cada minuto, uno que se comprueba cada 5 minutos en el mismo momento de cada 5 minutos, y uno que se comprueba cada hora o con menos frecuencia dentro de los primeros 5 minutos de la hora o del día que indica su intervalo. El momento se mantiene cuando OneUptime se reinicia y en cada servidor, de modo que el almacén de telemetría se lee poco a poco a lo largo del minuto en lugar de por todos los monitores a la vez.
+
+Cada monitor conserva su intervalo: sus comprobaciones están exactamente igual de separadas que antes, y cada una juzga la ventana que termina cuando se ejecuta, así que una ventana tan larga como el intervalo sigue cubriendo todo el tiempo entre dos comprobaciones. Lo que cambia es en qué momento de su intervalo se ejecuta una comprobación: hasta un intervalo más tarde, y nunca más de 5 minutos más tarde. Un incidente o una alerta puede abrirse hasta ese tiempo más tarde que si cada comprobación se ejecutara al comienzo de su intervalo, y a veces antes. La **Vista general** del monitor muestra cuándo toca su próxima comprobación.
+
+Un monitor nuevo se comprueba a los pocos segundos de crearse, y después en su propio momento. Cuando cambia el intervalo de un monitor, su próxima comprobación pasa al nuevo intervalo. Justo después de actualizar a una versión de OneUptime que reparte las comprobaciones, cada monitor se comprueba una vez más a la hora que le daba la programación anterior, y a partir de entonces en su propio momento.
+
 ## Cambiar los criterios de un monitor
 
 :::steps

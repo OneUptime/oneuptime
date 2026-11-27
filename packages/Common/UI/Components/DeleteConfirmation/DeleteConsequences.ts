@@ -436,6 +436,12 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
         code: "public async findOrCreateByName(",
       },
     },
+    XcpNgPool: {
+      addedBackBy: {
+        service: "XcpNgPoolService",
+        code: "public async findOrCreateByIdentifier(",
+      },
+    },
     CephCluster: {
       addedBackBy: {
         service: "CephClusterService",

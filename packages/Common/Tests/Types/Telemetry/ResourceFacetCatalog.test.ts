@@ -80,6 +80,13 @@ const EXPECTED_CATALOG: Array<CatalogRow> = [
     IconProp.VMware,
   ],
   [
+    "xcpNgPoolId",
+    ServiceType.XcpNgPool,
+    "XCP-ng Pool",
+    "XCP-ng Pools",
+    IconProp.XcpNg,
+  ],
+  [
     "cephClusterId",
     ServiceType.CephCluster,
     "Ceph Cluster",
@@ -138,8 +145,8 @@ const EXPECTED_KEYS: Array<string> = EXPECTED_CATALOG.map(
 
 describe("ResourceFacetCatalog", () => {
   describe("contents", () => {
-    test("lists exactly the fifteen non-Service resource types, in sidebar order", () => {
-      expect(RESOURCE_FACET_CATALOG).toHaveLength(15);
+    test("lists exactly the sixteen non-Service resource types, in sidebar order", () => {
+      expect(RESOURCE_FACET_CATALOG).toHaveLength(16);
       expect([...RESOURCE_FACET_CATALOG_KEYS]).toEqual(EXPECTED_KEYS);
     });
 

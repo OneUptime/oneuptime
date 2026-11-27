@@ -75,9 +75,9 @@
     "userProfile": "使用者個人資料"
   },
   "help": {
-    "supportEmail": "支援電子郵件",
+    "supportEmail": "支援信箱",
     "chatSlack": "在 Slack 上聊天",
-    "requestDemo": "申請示範"
+    "requestDemo": "請求示範"
   },
   "userProfile": {
     "exitAdmin": "退出管理員",
@@ -91,8 +91,8 @@
     "versionModalTitle": "OneUptime 版本",
     "versionLabel": "版本",
     "commitLabel": "提交",
-    "versionUnavailable": "版本資料無法使用",
-    "versionUnavailableWithError": "版本資料無法使用：{{error}}"
+    "versionUnavailable": "版本資料無法取得",
+    "versionUnavailableWithError": "版本資料無法取得：{{error}}"
   },
   "navbar": {
     "users": "使用者",
@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "測試此 OIDC 提供者",
   "Attach": "新增附件",
   "Attached Projects": "已連結的專案",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "此提供者讓使用者登入的專案，以及新使用者加入的團隊。未連結任何專案時，它適用於使用者已加入的每個專案。",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "透過此提供者登入的人員會加入這些專案，進入為每個專案選定的團隊。未連結任何專案時，新使用者無法登入。",
   "No projects attached to this provider.": "此提供者未連結任何專案。",
   "Select Project": "選取專案",
   "Runs JavaScript steps and AI code fixes for every project.": "為所有專案執行 JavaScript 步驟和 AI 程式碼修正。",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "在 Microsoft Teams 上聊天",
   "Chat with Support": "與支援團隊聊天",
   "Show it": "顯示它",
+  "From this server's configuration": "來自此伺服器的設定",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "下方部分設定是在此處尚未儲存任何內容時，依據此伺服器的設定（Helm 值或 config.env）設定的。你在此處所做的變更會被保留：重新啟動絕不會將其改回。",
+  "Set from {{variable}} in this server's configuration.": "依據此伺服器設定中的 {{variable}} 設定。",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "未使用此伺服器設定中的 {{variable}}：{{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "此設定無法隱藏。留空即可保留 OneUptime 的預設值。",
+  "Use \"shown\" or \"hidden\".": "請使用 \"shown\" 或 \"hidden\"。",
   "Support Email": "支援信箱",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "說明 › 支援信箱、「找不到頁面」上的「聯絡支援團隊」，以及錯誤畫面請使用者傳送支援套件的地址。",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "說明 › 支援信箱、「找不到頁面」上的「聯絡支援團隊」、帳戶相關郵件，以及錯誤畫面請使用者傳送支援套件的地址。",
   "Chat": "聊天",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "說明 › 在 Slack 上聊天。您自己的連結以它開啟的聊天工具命名：Slack、Microsoft Teams 或「與支援團隊聊天」。",
   "Request Demo": "請求示範",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "此監測器範本不屬於任何專案，因此無法將監測器連結到它。請在此專案中重新建立該範本。",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "此監測器範本沒有監測器類型，因此無法同步其監測器。請使用監測器類型重新建立該範本。",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "範本同步設定需要範本的監測器類型。請先選擇監測器類型，然後重新選擇同步設定。",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "監測器範本無法同步「{{field}}」。請從範本提供的範本同步設定中選擇，然後重新儲存。"
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "監測器範本無法同步「{{field}}」。請從範本提供的範本同步設定中選擇，然後重新儲存。",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "目前還沒有新使用者可以登入。請在「已連結的專案」中連結一個專案，並選擇他們加入的團隊。"
 }

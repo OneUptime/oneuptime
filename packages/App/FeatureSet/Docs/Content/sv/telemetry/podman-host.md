@@ -150,7 +150,7 @@ För att ändra ett värde tar du bort agenten och kör dess kommando igen (Podm
 | Containermätvärden | CPU (användning, procent, strypning), minne (användning, gräns, procent), nätverks- och block-I/O, drifttid, omstarter och antal processer, per container, var 30:e sekund. |
 | Containerloggar | Stdout och stderr från varje container, från filen `ctr.log` som loggdrivrutinen `k8s-file` skriver. |
 
-Varje containers mätvärden och loggar arkiveras under en tjänst som är uppkallad efter containern. Varje loggrad får en allvarlighetsgrad från den nivå den anger, som `[ERROR]`, `level=warn` eller `{"level":"info"}`; en rad som inte anger någon får sin ströms: stderr är `ERROR`, stdout är `INFO`. Rader som börjar med blanksteg eller en avslutande hakparentes slås ihop med raden före, så en stackspårning kommer in som en enda post. Agentens egna loggar utelämnas.
+Varje containers mätvärden och loggar arkiveras under en tjänst som är uppkallad efter containern. Varje loggrad får en allvarlighetsgrad från den nivå den anger, som `[ERROR]`, `level=warn` eller `{"level":"info"}`, och ett undantags traceback räknas som `ERROR`. En rad som inte anger någon är `INFO` på stdout och har ingen allvarlighetsgrad på stderr, dit program skriver sin diagnostik på alla nivåer. Rader som börjar med blanksteg eller en avslutande hakparentes slås ihop med raden före, så en stackspårning kommer in som en enda post. Agentens egna loggar utelämnas.
 
 [Podman-övervakning](/docs/monitor/podman-monitor#insamlade-mätvärden) listar varje mätvärde och vad det betyder.
 

@@ -48,6 +48,47 @@ services:
       snmpsim:
         ipv4_address: 172.30.99.16
 
+  # A Brocade G620 SAN switch (Fabric OS 9.2) with Virtual Fabrics on: the
+  # default logical switch (FID 128) over v2c `public`, and logical switch
+  # FID 20 over SNMPv3 in the context "VF:20", as Fabric OS serves it.
+  # snmpsim serves a v3 recording in the context its file is named after,
+  # and a file name with a colon cannot be checked out everywhere, so the
+  # recording is copied to that name when the container starts.
+  brocade-g620:
+    build: .
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ./data/brocade-g620:/data:ro
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        mkdir -p /tmp/snmpsim-data &&
+        cp /data/public.snmprec /tmp/snmpsim-data/public.snmprec &&
+        cp /data/fid20.snmprec "/tmp/snmpsim-data/VF:20.snmprec" &&
+        exec snmpsim-command-responder --data-dir=/tmp/snmpsim-data
+        --cache-dir=/tmp/snmpsim-cache --agent-udpv4-endpoint=0.0.0.0:161
+        --v3-user=oneuptime --v3-auth-key=authpass123 --v3-auth-proto=SHA
+        --v3-priv-key=privpass123 --v3-priv-proto=AES
+        --process-user=snmpsim --process-group=snmpsim
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.18
+
+  # A Cisco MDS 9396S SAN switch (NX-OS 9.4): one fc interface taking CRC
+  # errors, one losing credit to a slow-draining host, VSANs, and a power
+  # supply with no input power.
+  cisco-mds:
+    build: .
+    image: oneuptime-snmp-simulator:local
+    restart: unless-stopped
+    volumes:
+      - ./data/cisco-mds:/data:ro
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.19
+
   # Real net-snmp agent for exercising the SNMPv3 path (snmpsim only answers
   # v3 requests that carry a context name, which the probe does not send).
   router-v3:
@@ -59,6 +100,24 @@ services:
     networks:
       snmpsim:
         ipv4_address: 172.30.99.13
+
+  # A SAN switch set up for SNMPv3 notifications: sends authenticated,
+  # encrypted SNMPv3 traps and informs to the probe with Net-SNMP's own
+  # snmptrap and snmpinform (send-v3-traps.sh, "SNMPv3 traps and informs"
+  # in the README).
+  san-switch-v3:
+    build:
+      context: .
+      dockerfile: Dockerfile.traps
+    image: oneuptime-snmp-simulator-traps:local
+    restart: unless-stopped
+    environment:
+      # Where the host-networked probe listens: this bridge's gateway.
+      PROBE_ADDRESS: "172.30.99.1"
+      PROBE_TRAP_PORT: "162"
+    networks:
+      snmpsim:
+        ipv4_address: 172.30.99.17
 
 networks:
   snmpsim:

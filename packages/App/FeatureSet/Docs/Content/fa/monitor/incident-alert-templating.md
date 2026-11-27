@@ -416,6 +416,11 @@ Alerts for payments:
 | `trapOid` | OID مربوط به trap. فقط وقتی یک trap در SNMP بررسی را راه انداخت. | `string` |
 | `trapSourceIp` | نشانی‌ای که trap از آن آمد. فقط وقتی یک trap در SNMP بررسی را راه انداخت. | `string` |
 | `trapVarbinds` | varbindهای trap، هر کدام به‌صورت `{oid, value}`. فقط وقتی یک trap در SNMP بررسی را راه انداخت. | `Array<Object>` |
+| `trapInterface` | رابطی که trap درباره آن است: نامی که trap با خود دارد، وگرنه نامی که آخرین پیمایش دستگاه برای اندیس آن ثبت کرده است. فقط وقتی یک trap در SNMP بررسی را راه انداخت. | `string` |
+| `trapAlarmCounter` | در trap هشدار RMON (هشدار port-monitor در MDS)، شمارنده‌ای که از آستانه‌اش گذشت. برای هر trap دیگری خالی است. | `string` |
+| `trapAlarmDirection` | در trap هشدار RMON، `rising` یا `falling`. برای هر trap دیگری خالی است. | `string` |
+| `trapAlarmValue` | در trap هشدار RMON، مقدار شمارنده وقتی از آستانه‌اش گذشت. برای هر trap دیگری خالی است. | `string` |
+| `trapAlarmThreshold` | در trap هشدار RMON، آستانه‌ای که شمارنده از آن گذشت. برای هر trap دیگری خالی است. | `string` |
 
 یک دستگاه شبکه در هر سرکشی ping می‌شود و فقط وقتی اعتبارنامه دارد از راه SNMP پیمایش می‌شود، پس **`isOnline` تنها متغیر بالاست که دستگاهی که فقط ping می‌شود پر می‌کند**: هر متغیر دیگر از پیمایش SNMP می‌آید و بدون آن همان‌طور که نوشته شده می‌ماند. در قالب‌هایی که ممکن است برای دستگاه‌های بدون اعتبارنامه به کار روند، با `{{isOnline}}` و نام دستگاه شروع کنید. برای اینکه هر نوع سرکشی چه چیزی جمع می‌کند، [مانیتور دستگاه شبکه](/docs/monitor/network-device-monitor#یک-سرکشی-واقعاً-چه-میکند) را ببینید.
 
@@ -452,7 +457,7 @@ Alerts for payments:
 
 ### مانیتورهای متریک و زیرساخت
 
-مانیتورهای Metrics، Kubernetes، Docker، Host، Podman، Docker Swarm، Proxmox، OpenStack، VMware، Ceph، آرایه ذخیره‌سازی و دستگاه IoT یک متغیر مخصوص به خود دارند:
+مانیتورهای Metrics، Kubernetes، Docker، Host، Podman، Docker Swarm، Proxmox، OpenStack، VMware، XCP-ng، Ceph، آرایه ذخیره‌سازی و دستگاه IoT یک متغیر مخصوص به خود دارند:
 
 | متغیر | چه نگه می‌دارد | نوع |
 | --- | --- | --- |

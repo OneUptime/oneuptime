@@ -59,9 +59,13 @@ jest.mock("../../../FeatureSet/MCP/Utils/MCPLogger");
 const API_REFERENCE: string = "api-reference/api-reference";
 const MCP_SERVER: string = "ai/mcp-server";
 
-// The paragraph each page added, by its line: the same line in every language.
+/*
+ * The paragraph each page added, by its line: the same line in every
+ * language. The MCP server page's moved 19 lines down when the Data
+ * Security tools' section came above it (#10378), in every language alike.
+ */
 const API_REFERENCE_SORT_LINE: number = 98;
-const MCP_SERVER_SORT_LINE: number = 382;
+const MCP_SERVER_SORT_LINE: number = 401;
 
 // The sorts and values the paragraphs quote, as inline code.
 const BY_DECLARED_NULLS_LAST: string =

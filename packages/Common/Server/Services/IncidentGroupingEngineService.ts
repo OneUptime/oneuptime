@@ -2,6 +2,10 @@ import ObjectID from "../../Types/ObjectID";
 import IncidentGroupingRule from "../../Models/DatabaseModels/IncidentGroupingRule";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import CreateBy from "../Types/Database/CreateBy";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Utils/Notification/CreatedNotificationHold";
 import IncidentEpisodeMember, {
   IncidentEpisodeMemberAddedBy,
 } from "../../Models/DatabaseModels/IncidentEpisodeMember";
@@ -1547,39 +1551,59 @@ class IncidentGroupingEngineServiceClass {
       newEpisode.labels = episodeLabels;
     }
 
-    try {
-      const createdEpisode: IncidentEpisode =
-        await IncidentEpisodeService.create({
-          data: newEpisode,
-          props: {
-            isRoot: true,
-          },
-        });
+    const createBy: CreateBy<IncidentEpisode> = {
+      data: newEpisode,
+      props: {
+        isRoot: true,
+      },
+    };
 
-      /*
-       * The rule's Episode Owners become owners of the episode - only the
-       * project's own teams and members, as when owners are added by hand
-       * (see GroupingRuleEpisodeOwners). Each one added is notified like any
-       * owner.
-       */
-      if (createdEpisode.id) {
-        try {
-          await GroupingRuleEpisodeOwners.addOwnersToEpisode({
-            projectId: incident.projectId!,
-            episodeId: createdEpisode.id,
-            episodeIdColumn: "incidentEpisodeId",
-            ownerUserService: IncidentEpisodeOwnerUserService,
-            ownerTeamService: IncidentEpisodeOwnerTeamService,
-            users: rule.episodeOwnerUsers,
-            teams: rule.episodeOwnerTeams,
-            ruleName: rule.name || rule.id?.toString(),
-          });
-        } catch (ownerError) {
-          logger.error(
-            `Error adding the grouping rule's owners to episode ${createdEpisode.id.toString()}: ${ownerError}`,
-            { projectId: incident.projectId?.toString() } as LogAttributes,
-          );
+    /*
+     * The rule's Episode Owners are added once the episode exists, right
+     * after its create returns: its notification rules wait a moment for
+     * them before they are matched, so a rule that asks who owns an
+     * incident episode posts its "Episode Created"
+     * (WorkspaceRuleOwnersOnCreate, #11188). Told once they are in - also
+     * when the create fails.
+     */
+    CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+
+    try {
+      let createdEpisode: IncidentEpisode;
+
+      try {
+        createdEpisode = await IncidentEpisodeService.create(createBy);
+
+        /*
+         * The rule's Episode Owners become owners of the episode - only the
+         * project's own teams and members, as when owners are added by hand
+         * (see GroupingRuleEpisodeOwners). Each one added is notified like
+         * any owner.
+         */
+        if (createdEpisode.id) {
+          try {
+            await GroupingRuleEpisodeOwners.addOwnersToEpisode({
+              projectId: incident.projectId!,
+              episodeId: createdEpisode.id,
+              episodeIdColumn: "incidentEpisodeId",
+              ownerUserService: IncidentEpisodeOwnerUserService,
+              ownerTeamService: IncidentEpisodeOwnerTeamService,
+              users: rule.episodeOwnerUsers,
+              teams: rule.episodeOwnerTeams,
+              ruleName: rule.name || rule.id?.toString(),
+            });
+          } catch (ownerError) {
+            logger.error(
+              `Error adding the grouping rule's owners to episode ${createdEpisode.id.toString()}: ${ownerError}`,
+              { projectId: incident.projectId?.toString() } as LogAttributes,
+            );
+          }
         }
+      } finally {
+        await CreatedNotificationHold.ownersAreIn(
+          createBy,
+          OwnersAddedBy.Caller,
+        );
       }
 
       // Add episode member role assignments from rule

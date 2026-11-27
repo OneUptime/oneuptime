@@ -38,6 +38,7 @@ import {
   getRumAlertTemplates,
 } from "../../../../Types/Monitor/RumAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../../Types/Monitor/VMwareAlertTemplates";
+import { getAllXcpNgAlertTemplates } from "../../../../Types/Monitor/XcpNgAlertTemplates";
 import {
   StorageArrayAlertTemplate,
   getAllStorageArrayAlertTemplates,
@@ -240,6 +241,13 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
     templateCount: getAllVMwareAlertTemplates().length,
     contextFreeTemplateCount: getAllVMwareAlertTemplates().length,
     identifierFieldName: "vcenterIdentifier",
+  },
+  {
+    resourceType: MonitorRecommendationResourceType.XcpNg,
+    monitorTypes: [MonitorType.XcpNg],
+    templateCount: getAllXcpNgAlertTemplates().length,
+    contextFreeTemplateCount: getAllXcpNgAlertTemplates().length,
+    identifierFieldName: "poolIdentifier",
   },
   {
     resourceType: MonitorRecommendationResourceType.Ceph,

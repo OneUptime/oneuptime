@@ -66,6 +66,8 @@ interface RecommendationMonitorStepConfig {
   hostIdentifier?: string | undefined;
   fleetIdentifier?: string | undefined;
   arrayIdentifier?: string | undefined;
+  // An XCP-ng pool's XAPI UUID.
+  poolIdentifier?: string | undefined;
   telemetryServiceIds?: Array<ObjectID | string> | undefined;
   metricViewConfig?: MetricsViewConfig | undefined;
   rollingTime?: unknown;
@@ -434,6 +436,7 @@ export default class MonitorRecommendationUtil {
       config.hostIdentifier ||
       config.fleetIdentifier ||
       config.arrayIdentifier ||
+      config.poolIdentifier ||
       this.getTelemetryResourceIdentifier(config) ||
       this.getAttributeScopedResourceIdentifier(config) ||
       this.getEventScopedResourceIdentifier(config) ||
@@ -514,6 +517,7 @@ export default class MonitorRecommendationUtil {
       "proxmoxMonitor",
       "openstackMonitor",
       "vmwareMonitor",
+      "xcpNgMonitor",
       "cephMonitor",
       "storageArrayMonitor",
       "iotMonitor",
@@ -1106,7 +1110,7 @@ export default class MonitorRecommendationUtil {
    * made with (CloudAlertTemplates, #10028), and is still the
    * recommendation - never offered a second time.
    */
-  private static getSerializedFingerprintsForRecommendation(data: {
+  public static getSerializedFingerprintsForRecommendation(data: {
     recommendation: MonitorRecommendation;
     args: MonitorRecommendationArgs;
   }): Array<string> {

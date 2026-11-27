@@ -76,8 +76,8 @@
   },
   "help": {
     "supportEmail": "E-mail de suporte",
-    "chatSlack": "Conversar no Slack",
-    "requestDemo": "Solicitar demonstração"
+    "chatSlack": "Chat no Slack",
+    "requestDemo": "Solicitar demo"
   },
   "userProfile": {
     "exitAdmin": "Sair do admin",
@@ -91,8 +91,8 @@
     "versionModalTitle": "Versão do OneUptime",
     "versionLabel": "Versão",
     "commitLabel": "Commit",
-    "versionUnavailable": "Dados de versão não disponíveis",
-    "versionUnavailableWithError": "Dados de versão não disponíveis: {{error}}"
+    "versionUnavailable": "Os dados da versão não estão disponíveis",
+    "versionUnavailableWithError": "Os dados da versão não estão disponíveis: {{error}}"
   },
   "navbar": {
     "users": "Usuários",
@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Testar este provedor OIDC",
   "Attach": "Anexar",
   "Attached Projects": "Projetos vinculados",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "Os projetos em que este provedor faz o login das pessoas, e as equipes em que os recém-chegados entram. Sem projetos vinculados, ele funciona para todo projeto do qual a pessoa já faz parte.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Quem entra com este provedor passa a fazer parte destes projetos, nas equipes escolhidas para cada um. Sem projetos vinculados, ninguém novo pode entrar.",
   "No projects attached to this provider.": "Nenhum projeto está vinculado a este provedor.",
   "Select Project": "Selecionar projeto",
   "Runs JavaScript steps and AI code fixes for every project.": "Executa etapas em JavaScript e correções de código por IA para todos os projetos.",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Chat no Microsoft Teams",
   "Chat with Support": "Chat com o suporte",
   "Show it": "Mostrar",
+  "From this server's configuration": "Da configuração deste servidor",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Algumas configurações abaixo foram definidas a partir da configuração deste servidor (valores do Helm ou config.env) enquanto nada estava salvo aqui. Uma alteração feita aqui é mantida: uma reinicialização nunca a desfaz.",
+  "Set from {{variable}} in this server's configuration.": "Definido a partir de {{variable}} na configuração deste servidor.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} na configuração deste servidor não foi usado: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Esta configuração não pode ser ocultada. Deixe-a vazia para manter o padrão do OneUptime.",
+  "Use \"shown\" or \"hidden\".": "Use \"shown\" ou \"hidden\".",
   "Support Email": "E-mail de suporte",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Ajuda › E-mail de suporte, “Falar com o suporte” em “Página não encontrada” e o endereço para o qual uma tela de erro pede que as pessoas enviem um pacote de suporte.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Ajuda › E-mail de suporte, “Falar com o suporte” em “Página não encontrada”, os e-mails sobre a conta e o endereço para o qual uma tela de erro pede que as pessoas enviem um pacote de suporte.",
   "Chat": "Chat",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Ajuda › Chat no Slack. Um link próprio recebe o nome do chat que abre: Slack, Microsoft Teams ou “Chat com o suporte”.",
   "Request Demo": "Solicitar demo",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Este modelo de monitor não pertence a nenhum projeto, então nenhum monitor pode ser vinculado a ele. Crie o modelo novamente neste projeto.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Este modelo de monitor não tem tipo de monitor, então os monitores dele não podem ser sincronizados. Crie o modelo novamente com um tipo de monitor.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "As configurações de sincronização do modelo precisam do tipo de monitor do modelo. Escolha primeiro o tipo de monitor e depois escolha as configurações de sincronização novamente.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Um modelo de monitor não pode sincronizar \"{{field}}\". Escolha entre as configurações de sincronização que o modelo oferece e salve novamente."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Um modelo de monitor não pode sincronizar \"{{field}}\". Escolha entre as configurações de sincronização que o modelo oferece e salve novamente.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Ninguém novo pode entrar ainda. Vincule um projeto, com as equipes em que as pessoas entram, em “Projetos vinculados”."
 }

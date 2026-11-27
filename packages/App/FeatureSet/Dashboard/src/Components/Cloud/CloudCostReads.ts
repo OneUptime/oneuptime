@@ -5,7 +5,12 @@ import {
   CloudAccountCostSummary,
   CloudCostState,
   CloudCostTagKey,
+  roundCost,
 } from "Common/Types/Cloud/CloudCost";
+import {
+  CloudCostBasis,
+  getCloudCostBasisColumn,
+} from "Common/Types/Cloud/CloudCostBasis";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import {
   CLOUD_PLATFORM_ALL_BILLED_SERVICES,
@@ -33,6 +38,11 @@ import Timezone from "Common/Types/Timezone";
 import GroupBy from "Common/Server/Types/Database/GroupBy";
 import AnalyticsModelAPI from "Common/UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import {
+  CloudCostAllocationGroupResult,
+  CloudCostAllocationResult,
+} from "Common/Types/Cloud/CloudCostAllocation";
+import { fetchCloudCostAllocation } from "./CostGroups/CloudCostAllocationReads";
 
 /*
  * WHAT THE CLOUD PAGES READ OF THE COSTS THEMSELVES.
@@ -63,6 +73,11 @@ export interface CloudCostScope {
   currency: string;
   startDate: Date;
   endDate: Date;
+  /*
+   * The cost basis the figures are on (CloudCostBasis): each is its own
+   * column of the costs. Billed when absent.
+   */
+  basis?: CloudCostBasis | undefined;
 }
 
 export interface CloudCostPoint {
@@ -91,7 +106,9 @@ export type CloudCostDimension =
   | CloudCostColumnDimension
   | "environment"
   | "app"
-  | "tag";
+  | "tag"
+  // A cost view's groups (CloudCostView): read through its allocation.
+  | "group";
 
 export function isCloudCostColumnDimension(
   dimension: CloudCostDimension,
@@ -112,7 +129,9 @@ export function isCloudCostColumnDimension(
 export type CloudCostRestKind =
   | "not-in-environment"
   | "not-one-app"
-  | "without-tag";
+  | "without-tag"
+  // A cost view's unallocated spend: what no group's rules match.
+  | "not-in-group";
 
 export interface CloudCostRest {
   kind: CloudCostRestKind;
@@ -126,6 +145,8 @@ export interface CloudCostBreakdownResult {
   rest: Array<CloudCostRest>;
   // The period's spend: the shares and the rest.
   total: number;
+  // By cost group: each group as the view's allocation read it.
+  groups?: Array<CloudCostAllocationGroupResult> | undefined;
 }
 
 // The App Platforms environments and apps a breakdown names.
@@ -165,7 +186,8 @@ export function buildCloudCostAggregateBy(data: {
   const aggregateBy: AggregateBy<CloudCost> = {
     query: buildQuery(data.scope) as AggregateBy<CloudCost>["query"],
     aggregationType: AggregationType.Sum,
-    aggregateColumnName: "cost",
+    // The column of the basis shown: cost, amortizedCost or netCost.
+    aggregateColumnName: getCloudCostBasisColumn(data.scope.basis),
     aggregationTimestampColumnName: "day",
     aggregationInterval: data.interval,
     /*
@@ -540,6 +562,12 @@ function toShares(
  * or app (with what no environment, or no one app, is billed), or by a
  * tag's value (with the costs that do not carry it). The shares and the
  * rest add up to the period's spend.
+ *
+ * That spend is rounded as the accounts' summaries round their month
+ * (roundCost), so it is the figure the strip above it shows: added up as
+ * floating point, a month whose cents come to $15,556.50 is
+ * 15556.499999999998, which reads "$15,556" under a strip that says
+ * "$15,557".
  */
 export async function fetchCloudCostBreakdown(data: {
   scope: CloudCostScope;
@@ -548,6 +576,8 @@ export async function fetchCloudCostBreakdown(data: {
   tagKey?: string | undefined;
   // The environments and apps, for a breakdown by either.
   lists?: CloudCostPlatformLists | undefined;
+  // The cost view, for a breakdown by its groups.
+  viewId?: ObjectID | undefined;
 }): Promise<CloudCostBreakdownResult> {
   const sumOf: (shares: Array<{ amount: number }>) => number = (
     shares: Array<{ amount: number }>,
@@ -557,13 +587,53 @@ export async function fetchCloudCostBreakdown(data: {
     }, 0);
   };
 
+  /*
+   * By cost group: what the view's allocation charged each group - its
+   * share of shared groups included, so a shared group that split all its
+   * costs away is left out - and what no group takes, said under the list.
+   */
+  if (data.dimension === "group") {
+    if (!data.viewId) {
+      return { shares: [], rest: [], total: 0, groups: [] };
+    }
+
+    const allocation: CloudCostAllocationResult =
+      await fetchCloudCostAllocation({
+        viewId: data.viewId,
+        ask: {
+          startDate: data.scope.startDate,
+          endDate: data.scope.endDate,
+          currency: data.scope.currency,
+          // Each group's spend on the basis the page shows, as every other breakdown is.
+          basis: data.scope.basis,
+          cloudAccountIds: data.scope.cloudAccountIds,
+        },
+      });
+
+    return {
+      shares: sortCloudCostShares(
+        allocation.groups.map(
+          (group: CloudCostAllocationGroupResult): CloudCostShare => {
+            return { key: group.id, amount: group.total };
+          },
+        ),
+      ),
+      rest:
+        Math.abs(allocation.unallocated.total) >= 0.005
+          ? [{ kind: "not-in-group", amount: allocation.unallocated.total }]
+          : [],
+      total: allocation.total,
+      groups: allocation.groups,
+    };
+  }
+
   if (isCloudCostColumnDimension(data.dimension)) {
     const shares: Array<CloudCostShare> = await fetchCloudCostShares({
       scope: data.scope,
       dimension: data.dimension,
     });
 
-    return { shares, rest: [], total: sumOf(shares) };
+    return { shares, rest: [], total: roundCost(sumOf(shares)) };
   }
 
   if (data.dimension === "tag") {
@@ -593,7 +663,7 @@ export async function fetchCloudCostBreakdown(data: {
         Math.abs(without) >= 0.005
           ? [{ kind: "without-tag", amount: without }]
           : [],
-      total: sumOf(shares) + without,
+      total: roundCost(sumOf(shares) + without),
     };
   }
 
@@ -653,7 +723,7 @@ export async function fetchCloudCostBreakdown(data: {
   return {
     shares: toShares(assigned.shares),
     rest,
-    total: assigned.total,
+    total: roundCost(assigned.total),
   };
 }
 

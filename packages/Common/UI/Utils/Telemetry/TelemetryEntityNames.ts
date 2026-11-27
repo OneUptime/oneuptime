@@ -27,6 +27,7 @@ import ServerlessFunction from "../../../Models/DatabaseModels/ServerlessFunctio
 import Service from "../../../Models/DatabaseModels/Service";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import Query from "../../../Types/BaseDatabase/Query";
@@ -135,6 +136,11 @@ export const TELEMETRY_ENTITY_TYPES: Record<
   [ServiceType.VMwareVCenter]: {
     label: "vCenter",
     modelType: VMwareVCenter,
+    nameFields: ["name"],
+  },
+  [ServiceType.XcpNgPool]: {
+    label: "XCP-ng Pool",
+    modelType: XcpNgPool,
     nameFields: ["name"],
   },
   /*
@@ -264,6 +270,7 @@ export const TELEMETRY_ENTITY_RESOLUTION_ORDER: Array<ServiceType> = [
   ServiceType.StorageArray,
   ServiceType.DockerSwarmCluster,
   ServiceType.VMwareVCenter,
+  ServiceType.XcpNgPool,
   ServiceType.NetworkDevice,
   ServiceType.Monitor,
   ServiceType.Incident,

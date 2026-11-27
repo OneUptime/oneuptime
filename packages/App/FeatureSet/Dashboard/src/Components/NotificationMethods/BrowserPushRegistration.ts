@@ -66,6 +66,46 @@ export const BROWSER_PUSH_PROBLEM_MESSAGES: Record<BrowserPushProblem, string> =
     ),
   };
 
+/*
+ * The two problems whose way out names the OneUptime On-Call app, as they
+ * read where the server's admins took the mobile app away (Admin Dashboard
+ * > Settings > Help and Support, #10945): the browser's own way out, and
+ * nothing about an app the server does not offer.
+ */
+export const BROWSER_PUSH_PROBLEM_MESSAGES_WITHOUT_APP: Readonly<
+  Partial<Record<BrowserPushProblem, string>>
+> = {
+  [BrowserPushProblem.NeedsHomeScreen]: translationKey(
+    "On iPhone and iPad, push notifications work once OneUptime is on your Home Screen. In Safari, tap Share, then Add to Home Screen, open OneUptime from your Home Screen and register it there.",
+  ),
+  [BrowserPushProblem.NotSupported]: translationKey(
+    "This browser cannot receive push notifications here. Use a regular (not private) window of a recent Chrome, Edge, Firefox or Safari.",
+  ),
+};
+
+/*
+ * What a problem says, as a key of the Dashboard's locales: the app is
+ * offered as a way out only where the server offers the app.
+ */
+export const getBrowserPushProblemMessage: (
+  problem: BrowserPushProblem,
+  isMobileAppOffered: boolean,
+) => string = (
+  problem: BrowserPushProblem,
+  isMobileAppOffered: boolean,
+): string => {
+  if (!isMobileAppOffered) {
+    const withoutApp: string | undefined =
+      BROWSER_PUSH_PROBLEM_MESSAGES_WITHOUT_APP[problem];
+
+    if (withoutApp) {
+      return withoutApp;
+    }
+  }
+
+  return BROWSER_PUSH_PROBLEM_MESSAGES[problem];
+};
+
 export class BrowserPushError extends Error {
   public readonly problem: BrowserPushProblem;
 

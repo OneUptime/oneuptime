@@ -45,7 +45,7 @@ export const EXTERNAL_MCP_SERVERS_PAGE_COPY: {
 } = {
   title: translationKey("External MCP Servers"),
   description: translationKey(
-    "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and while it investigates and fixes, such as AWS, Azure or GitHub.",
+    "MCP servers outside OneUptime whose tools OneUptime AI may use in Ask AI and as it investigates and fixes, such as AWS, Azure or GitHub.",
   ),
   ownServerNote: translationKey(
     "To connect an AI assistant to OneUptime instead, use {{mcpServerLink}}.",

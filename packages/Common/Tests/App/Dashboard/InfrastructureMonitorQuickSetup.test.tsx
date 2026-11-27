@@ -38,6 +38,7 @@ import { MonitorStepKubernetesMonitorUtil } from "../../../Types/Monitor/Monitor
 import { MonitorStepProxmoxMonitorUtil } from "../../../Types/Monitor/MonitorStepProxmoxMonitor";
 import { MonitorStepOpenStackMonitorUtil } from "../../../Types/Monitor/MonitorStepOpenStackMonitor";
 import { MonitorStepVMwareMonitorUtil } from "../../../Types/Monitor/MonitorStepVMwareMonitor";
+import { MonitorStepXcpNgMonitorUtil } from "../../../Types/Monitor/MonitorStepXcpNgMonitor";
 import { MonitorStepCephMonitorUtil } from "../../../Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepStorageArrayMonitorUtil } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import { MonitorStepIoTMonitorUtil } from "../../../Types/Monitor/MonitorStepIoTMonitor";
@@ -73,6 +74,10 @@ import {
   getAllVMwareAlertTemplates,
   getVMwareDefaultAlertTemplateId,
 } from "../../../Types/Monitor/VMwareAlertTemplates";
+import {
+  getAllXcpNgAlertTemplates,
+  getXcpNgDefaultAlertTemplateId,
+} from "../../../Types/Monitor/XcpNgAlertTemplates";
 import {
   getAllCephAlertTemplates,
   getCephDefaultAlertTemplateId,
@@ -134,6 +139,7 @@ import KubernetesMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/
 import ProxmoxMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/ProxmoxMonitor/ProxmoxMonitorStepForm";
 import OpenStackMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/OpenStackMonitor/OpenStackMonitorStepForm";
 import VMwareMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/VMwareMonitor/VMwareMonitorStepForm";
+import XcpNgMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/XcpNgMonitor/XcpNgMonitorStepForm";
 import CephMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CephMonitor/CephMonitorStepForm";
 import StorageArrayMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/StorageArrayMonitor/StorageArrayMonitorStepForm";
 import IoTMonitorStepForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/IoTMonitor/IoTMonitorStepForm";
@@ -278,6 +284,21 @@ const FORM_CASES: Array<FormCase> = [
       renderForm(
         <VMwareMonitorStepForm
           monitorStepVMwareMonitor={MonitorStepVMwareMonitorUtil.getDefault()}
+          onChange={onChange}
+          onMonitorCriteriaChange={onCriteria}
+        />,
+      );
+    },
+  },
+  {
+    name: "XCP-ng",
+    templates: getAllXcpNgAlertTemplates(),
+    // Pool Disconnected: the one alert still heard when nothing else is.
+    defaultTemplateId: getXcpNgDefaultAlertTemplateId(),
+    render: (onChange: MockFunction, onCriteria: MockFunction): void => {
+      renderForm(
+        <XcpNgMonitorStepForm
+          monitorStepXcpNgMonitor={MonitorStepXcpNgMonitorUtil.getDefault()}
           onChange={onChange}
           onMonitorCriteriaChange={onCriteria}
         />,

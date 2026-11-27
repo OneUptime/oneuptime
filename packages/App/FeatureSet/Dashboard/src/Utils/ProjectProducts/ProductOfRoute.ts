@@ -70,6 +70,7 @@ export const PRODUCT_ROOT_PAGES: Readonly<
   [ProductKey.Proxmox]: [PageMap.PROXMOX_ROOT],
   [ProductKey.OpenStack]: [PageMap.OPENSTACK_ROOT],
   [ProductKey.VMware]: [PageMap.VMWARE_ROOT],
+  [ProductKey.XcpNg]: [PageMap.XCP_NG_ROOT],
   [ProductKey.Ceph]: [PageMap.CEPH_ROOT],
   [ProductKey.StorageArrays]: [PageMap.STORAGE_ARRAYS_ROOT],
   [ProductKey.Network]: [

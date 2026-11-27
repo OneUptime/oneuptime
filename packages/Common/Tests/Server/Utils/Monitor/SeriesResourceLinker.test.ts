@@ -220,6 +220,7 @@ function emptyResourceContext(): SeriesResolvedResourceIds {
     iotFleetIds: [],
     databaseServerIds: [],
     storageArrayIds: [],
+    xcpNgPoolIds: [],
     cloudResourceIds: [],
     networkDeviceIds: [],
   };
@@ -732,6 +733,7 @@ describe("SeriesResourceLinker.resolveResourcesFromSeriesLabels", () => {
     expect(resolved).toEqual({
       ...emptyResourceContext(),
       storageArrayIds: ["array-1"],
+      xcpNgPoolIds: [],
     });
 
     // Matched by the array's name column, project-scoped, exactly.
@@ -985,6 +987,7 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
         dockerSwarmClusterIds: ["swarm-1"],
         iotFleetIds: ["fleet-1"],
         storageArrayIds: ["array-1"],
+        xcpNgPoolIds: [],
       },
     });
 
@@ -1112,6 +1115,7 @@ describe("SeriesResourceLinker.attachResolvedResources", () => {
       resolved: {
         ...emptyResourceContext(),
         storageArrayIds: ["array-from-label", "array-from-step-config"],
+        xcpNgPoolIds: [],
       },
     });
 

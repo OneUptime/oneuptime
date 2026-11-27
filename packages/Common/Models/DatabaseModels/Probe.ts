@@ -13,6 +13,7 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
 import TableColumnType from "../../Types/Database/TableColumnType";
@@ -22,6 +23,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import { PacketCaptureCapability } from "../../Types/PacketCapture/PacketCaptureCapability";
+import { SnmpTrapReceiverReport } from "../../Types/Probe/SnmpTrapReceiver";
 import Permission from "../../Types/Permission";
 import Version from "../../Types/Version";
 import {
@@ -866,6 +868,44 @@ export default class Probe extends BaseModel {
     nullable: true,
   })
   public packetCaptureCapability?: PacketCaptureCapability = undefined;
+
+  /*
+   * What the probe last said about its SNMP trap receiver (#11005;
+   * Types/Probe/SnmpTrapReceiver): whether it is on and on which port, its
+   * SNMPv3 engine ID - which a device sending informs needs - how many
+   * SNMPv3 users it accepts, and the SNMPv3 traps it refused, counted by
+   * source address, reason and user name. Written by the probe's report,
+   * never by a request; empty for a probe older than SNMPv3 traps. Only
+   * project probes keep one: a global probe's refusals would be other
+   * projects' addresses and user names.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: PROBE_READERS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "SNMP Trap Receiver",
+    description:
+      "What the probe last reported about its SNMP trap receiver: whether it is on and its UDP port, its SNMPv3 engine ID, how many SNMPv3 users it accepts traps from, and the SNMPv3 traps it refused in the last day, by source address, reason and user name. Managed by the probe.",
+    /*
+     * A network device's Overview reads its probe's report through the
+     * device (NetworkDevice.probe), to say when the device's own SNMPv3
+     * traps are refused. Every relation holds it to the read list above
+     * (#11234): who reads an alert, an incident, a data store or a monitor
+     * test reads which probe it came from, not the addresses and user names
+     * that probe refused.
+     */
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public snmpTrapReceiver?: SnmpTrapReceiverReport = undefined;
 
   @ColumnAccessControl({
     create: [

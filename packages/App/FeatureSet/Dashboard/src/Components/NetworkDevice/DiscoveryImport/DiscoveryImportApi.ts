@@ -22,6 +22,7 @@ import BadDataException from "Common/Types/Exception/BadDataException";
 export const DISCOVERY_IMPORT_ROUTES: {
   start: string;
   startFromDiscoveredDevices: string;
+  startFromDevices: string;
   active: string;
   import: (importId: string) => string;
   latestForScan: (scanId: string) => string;
@@ -31,6 +32,7 @@ export const DISCOVERY_IMPORT_ROUTES: {
   start: "/network-device-discovery-import/start",
   startFromDiscoveredDevices:
     "/network-device-discovery-import/start-from-discovered-devices",
+  startFromDevices: "/network-device-discovery-import/start-from-devices",
   active: "/network-device-discovery-import/active",
   import: (importId: string): string => {
     return `/network-device-discovery-import/import/${encodeURIComponent(importId)}`;
@@ -124,6 +126,26 @@ export async function startDiscoveredDeviceImport(data: {
     {
       endpointIds: data.endpointIds,
       settings: data.settings as unknown as JSONObject,
+    },
+  );
+
+  return readImport(body);
+}
+
+/*
+ * Create Monitors on the Devices list (issue #10990): devices already
+ * added, each given a monitor from the template - the same runner and
+ * progress as an import, with nothing imported.
+ */
+export async function startDeviceMonitorCreation(data: {
+  deviceIds: Array<string>;
+  monitorTemplateId: string;
+}): Promise<DiscoveryImportView> {
+  const body: JSONObject = await postJson(
+    DISCOVERY_IMPORT_ROUTES.startFromDevices,
+    {
+      deviceIds: data.deviceIds,
+      monitorTemplateId: data.monitorTemplateId,
     },
   );
 

@@ -416,6 +416,11 @@ För att visa skärmbilden från varje misslyckad körning lägger du bilden i e
 | `trapOid` | Trapens OID. Bara när en SNMP-trap utlöste kontrollen. | `string` |
 | `trapSourceIp` | Adressen som trapen kom från. Bara när en SNMP-trap utlöste kontrollen. | `string` |
 | `trapVarbinds` | Trapens varbinds, var och en som `{oid, value}`. Bara när en SNMP-trap utlöste kontrollen. | `Array<Object>` |
+| `trapInterface` | Gränssnittet som trapen gäller: namnet som trapen bär, annars det som enhetens senaste walk registrerade för dess index. Bara när en SNMP-trap utlöste kontrollen. | `string` |
+| `trapAlarmCounter` | Vid en RMON-larmtrap (ett MDS-port-monitor-larm) räknaren som passerade sitt tröskelvärde. Tom för varje annan trap. | `string` |
+| `trapAlarmDirection` | Vid en RMON-larmtrap `rising` eller `falling`. Tom för varje annan trap. | `string` |
+| `trapAlarmValue` | Vid en RMON-larmtrap räknarens värde när den passerade sitt tröskelvärde. Tom för varje annan trap. | `string` |
+| `trapAlarmThreshold` | Vid en RMON-larmtrap tröskelvärdet som räknaren passerade. Tom för varje annan trap. | `string` |
 
 En nätverksenhet pingas vid varje avsökning och gås bara igenom via SNMP när den har inloggningsuppgifter, så **`isOnline` är den enda variabeln ovan som en enhet med bara ping fyller i**: alla andra kommer från SNMP-genomgången och blir kvar som de skrevs utan den. Börja med `{{isOnline}}` och enhetens namn i mallar som kan användas för enheter utan inloggningsuppgifter. Se [Nätverksenhets-övervakning](/docs/monitor/network-device-monitor#vad-en-avsökning-faktiskt-gör) för vad varje typ av avsökning samlar in.
 
@@ -452,7 +457,7 @@ Serienamnen i `metrics` innehåller punkter, som `oneuptime.monitor.database.con
 
 ### Mätvärdes- och infrastrukturmonitorer
 
-Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, Ceph-, Lagringsarray- och IoT-enhet-monitorer har en egen variabel:
+Metrics-, Kubernetes-, Docker-, Host-, Podman-, Docker Swarm-, Proxmox-, OpenStack-, VMware-, XCP-ng-, Ceph-, Lagringsarray- och IoT-enhet-monitorer har en egen variabel:
 
 | Variabel | Vad den innehåller | Typ |
 | --- | --- | --- |

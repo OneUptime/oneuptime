@@ -48,6 +48,7 @@ const SIGN_IN_FILES: ReadonlyArray<string> = [
   "Utils/ProjectSsoSignInConfirmation.ts",
   "Utils/ProjectSsoIdentityBinding.ts",
   "Utils/SsoTeamMembership.ts",
+  "Utils/GlobalSsoProvisioning.ts",
   "Utils/MobileSso.ts",
 ];
 

@@ -1,8 +1,8 @@
 /*
  * EVERY ENTRY OF THE PRODUCTS MENU, BY A NAME THAT NEVER CHANGES (#6814).
  *
- * The products menu (the Dashboard's Utils/NavigationItems) lists 47
- * entries: 43 products, Chat (Ask AI) and the three entries of Settings.
+ * The products menu (the Dashboard's Utils/NavigationItems) lists 48
+ * entries: 44 products, Chat (Ask AI) and the three entries of Settings.
  * Each carries one of these values as its `key`, so the menu, Search, Home,
  * Project Settings > Products and the server name a product the same way in
  * every language - a title is translated, a key is not.
@@ -13,7 +13,7 @@
  * reuse one for another product. A product added to the menu gets a new
  * value here, at the end of its category in PRODUCT_KEYS.
  *
- * The first 43 are the products that explain themselves
+ * The first 44 are the products that explain themselves
  * (Components/ProductOnboarding, ONBOARDED_PRODUCT_KEYS): the same values
  * the "How it works" registry always used. Chat, Users, Teams and Project
  * Settings have no first page to explain.
@@ -61,6 +61,7 @@ enum ProductKey {
   Proxmox = "proxmox",
   OpenStack = "openstack",
   VMware = "vmware",
+  XcpNg = "xcp-ng",
   Ceph = "ceph",
   StorageArrays = "storage-arrays",
   Network = "network",
@@ -117,6 +118,7 @@ export const PRODUCT_KEYS: ReadonlyArray<ProductKey> = [
   ProductKey.Proxmox,
   ProductKey.OpenStack,
   ProductKey.VMware,
+  ProductKey.XcpNg,
   ProductKey.Ceph,
   ProductKey.StorageArrays,
   ProductKey.Network,

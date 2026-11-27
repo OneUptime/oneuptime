@@ -19,6 +19,7 @@ import NotWildcard from "./BaseDatabase/NotWildcard";
 import OnWatchlist from "./BaseDatabase/OnWatchlist";
 import NotOnWatchlist from "./BaseDatabase/NotOnWatchlist";
 import OwnedBy from "./BaseDatabase/OwnedBy";
+import LinkedTo from "./BaseDatabase/LinkedTo";
 import IsNull from "./BaseDatabase/IsNull";
 import LessThan from "./BaseDatabase/LessThan";
 import LessThanOrEqual from "./BaseDatabase/LessThanOrEqual";
@@ -199,6 +200,9 @@ const SerializableObjectDictionary: Dictionary<any> = {
   },
   get [ObjectType.OwnedBy](): any {
     return OwnedBy;
+  },
+  get [ObjectType.LinkedTo](): any {
+    return LinkedTo;
   },
   get [ObjectType.NotNull](): any {
     return NotNull;

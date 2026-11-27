@@ -101,6 +101,7 @@ import {
   SustainedEvaluation,
 } from "Common/Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
 import ObjectID from "Common/Types/ObjectID";
+import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { KUBERNETES_TEMPLATE_CATEGORIES } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
@@ -2592,11 +2593,21 @@ describe("the criteria of the telemetry-backed monitors", () => {
 
 describe("when the telemetry-backed monitors are checked", () => {
   it("every minute", () => {
+    /*
+     * The scheduler runs every 10 seconds and queues each evaluation at its
+     * monitor's own moment of its interval (#11060); a monitor with no
+     * interval of its own, as the create page makes these, is evaluated
+     * every minute.
+     */
     expect(
       source(
         "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations.ts",
       ),
-    ).toContain("{ schedule: EVERY_MINUTE, runOnStartup: false }");
+    ).toContain("{ schedule: EVERY_TEN_SECONDS, runOnStartup: false }");
+    expect(TelemetryMonitorSchedule.read(undefined)).toMatchObject({
+      cron: "* * * * *",
+      cadenceInMs: 60 * 1000,
+    });
 
     for (const page of [DOCKER, HOST, PODMAN, PROXMOX, SWARM]) {
       expect(englishPage(page)).toContain(
@@ -2765,18 +2776,28 @@ describe("the agents the pages describe", () => {
     ["agents/DockerAgent/otel-collector-config.yaml", DOCKER],
     ["agents/PodmanAgent/otel-collector-config.yaml", PODMAN],
   ])(
-    "%s reads a level where one sits in the line, and falls back to the stream",
+    "%s reads a level where one sits in the line, and claims none for an unread stderr line",
     (configPath: string, page: string) => {
       const config: string = source(configPath);
 
+      // Only an unread stdout line takes the stream's INFO; an unread stderr
+      // line goes to the router's default, which sets no severity (#10972).
       expect(config).toContain(
-        'value: \'EXPR(attributes["log.iostream"] == "stderr" ? "ERROR" : "INFO")\'',
+        "- output: add-fallback-severity\n            expr: 'attributes[\"log.iostream\"] != \"stderr\"'\n        default: severity-unspecified",
+      );
+      expect(config).toContain(
+        "id: add-fallback-severity\n        field: attributes.severity_text\n        value: INFO\n",
+      );
+      expect(config).toContain("- type: noop\n        id: severity-unspecified");
+      expect(config).not.toContain('"stderr" ? "ERROR"');
+      expect(config).toContain(
+        "id: add-exception-severity\n        field: attributes.severity_text\n        value: ERROR\n",
       );
       expect(config).toContain(
         "is_first_entry: 'body matches \"^[^\\\\s\\\\}\\\\)\\\\]]\"'",
       );
       expect(englishPage(page)).toContain(
-        "A line with no level falls back to its stream: `stderr` is `ERROR`, `stdout` is `INFO`.",
+        "an exception's traceback is `ERROR`. A line with no level is `INFO` on `stdout`, and has no severity (Unspecified) on `stderr`.",
       );
     },
   );

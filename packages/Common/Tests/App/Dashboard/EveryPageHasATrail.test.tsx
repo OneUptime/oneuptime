@@ -57,6 +57,7 @@ import { getTracesBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/U
 import { getUserSettingsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/UserSettingsBreadcrumbs";
 import { getUsersBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/UsersBreadcrumbs";
 import { getVMwareBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/VMwareBreadcrumbs";
+import { getXcpNgBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/XcpNgBreadcrumbs";
 import { getWorkflowsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/WorkflowsBreadcrumbs";
 import { getNetworkDeviceBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkDevice/Utils/Breadcrumbs";
 import { getNetworkSiteBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/Utils/Breadcrumbs";
@@ -105,6 +106,7 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
   ProxmoxRoutePath: getProxmoxBreadcrumbs,
   OpenStackRoutePath: getOpenStackBreadcrumbs,
   VMwareRoutePath: getVMwareBreadcrumbs,
+  XcpNgRoutePath: getXcpNgBreadcrumbs,
   IoTRoutePath: getIoTBreadcrumbs,
   DockerSwarmRoutePath: getDockerSwarmBreadcrumbs,
   CephRoutePath: getCephBreadcrumbs,

@@ -28,6 +28,13 @@ import { CloudEndpointSuggestion } from "../../Types/Cloud/CloudEndpointMatch";
 import { JSONObject } from "../../Types/JSON";
 import CloudEndpointSuggestions from "../Utils/CloudConnection/CloudEndpointSuggestions";
 import MonitorLatestArrivals from "../Utils/Monitor/MonitorLatestArrivals";
+import MonitorRecommendationCoverageQuery from "../Utils/Monitor/MonitorRecommendationCoverageQuery";
+import {
+  MONITOR_RECOMMENDATION_COVERAGE_PATH,
+  MonitorRecommendationCoverageAnswerJSON,
+  MonitorRecommendationCoverageQuestion,
+  readCoverageQuestions,
+} from "../../Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
@@ -100,6 +107,69 @@ export default class MonitorAPI extends BaseAPI<Monitor, MonitorServiceType> {
           });
         } catch (error) {
           next(error);
+        }
+      },
+    );
+
+    /*
+     * POST /monitor/recommendation-coverage
+     *
+     * Which of the project's monitors covers each recommended monitor a
+     * page asks about (#11074): its fingerprints in, a monitor id out for
+     * each covered one (MonitorRecommendationCoverageQuery). A page read
+     * the first 10,000 monitors of each type, every step of each, and
+     * compared them in the browser, so a monitor past them was never seen
+     * to cover anything.
+     *
+     * For a member of the project who may read its monitors; only the
+     * monitors they may read are weighed, as their list was.
+     */
+    this.router.post(
+      `${new this.entityType().getCrudApiPath()?.toString()}${MONITOR_RECOMMENDATION_COVERAGE_PATH}`,
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertCanReadTable({
+            modelType: Monitor,
+            props,
+            errorMessage:
+              "You do not have permission to read this project's monitors.",
+          });
+
+          const questions: Array<MonitorRecommendationCoverageQuestion> =
+            readCoverageQuestions(req.body);
+
+          const covered: Map<string, ObjectID> =
+            await MonitorRecommendationCoverageQuery.findCoveringMonitors({
+              projectId,
+              props,
+              questions,
+            });
+
+          const answer: MonitorRecommendationCoverageAnswerJSON = {
+            covered: {},
+          };
+
+          for (const [key, monitorId] of covered) {
+            answer.covered[key] = monitorId.toString();
+          }
+
+          // A monitor made or deleted a moment later changes the answer.
+          Response.setNoCacheHeaders(res);
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            answer as unknown as JSONObject,
+          );
+        } catch (e) {
+          next(e);
         }
       },
     );

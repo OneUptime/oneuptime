@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 8227
+    "keys": 65322,
+    "untranslated": 8245
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -387,6 +387,7 @@
     "TX",
     "Tablet",
     "Tag",
+    "Tag {{key}}",
     "Task · 31% CPU · 380 MB",
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",
@@ -429,6 +430,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
@@ -511,6 +514,7 @@
     "nova-compute",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -524,6 +528,7 @@
     "p95 {{latency}}",
     "p99 (ms)",
     "passkey",
+    "payments, search, platform-*",
     "per GB",
     "persistent volume claim",
     "pod",
@@ -643,6 +648,7 @@
     "{{rate}}/min",
     "{{rate}}/s",
     "{{size}} in {{duration}}",
+    "{{store}} in {{region}}",
     "{{up}}/{{count}} OSD up",
     "{{values}} in {{field}}",
     "{{value}} ms",

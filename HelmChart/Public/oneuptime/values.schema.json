@@ -2552,6 +2552,43 @@
             },
             "additionalProperties": false
         },
+        "helpAndSupport": {
+            "type": "object",
+            "description": "Where this server sends its people for help (Admin Dashboard > Settings > Help and Support), set while nothing is saved on that page yet.",
+            "properties": {
+                "supportEmail": {
+                    "type": "string"
+                },
+                "chat": {
+                    "type": "string"
+                },
+                "requestDemo": {
+                    "type": [
+                        "string",
+                        "boolean"
+                    ]
+                },
+                "giveFeedback": {
+                    "type": "string"
+                },
+                "helpLink": {
+                    "type": "string"
+                },
+                "gitHub": {
+                    "type": [
+                        "string",
+                        "boolean"
+                    ]
+                },
+                "mobileApp": {
+                    "type": "string"
+                },
+                "inviteMessage": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
         "sourceMaps": {
             "type": "object",
             "properties": {

@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Diesen OIDC-Anbieter testen",
   "Attach": "Anhängen",
   "Attached Projects": "Verknüpfte Projekte",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "Die Projekte, bei denen dieser Anbieter Personen anmeldet, und die Teams, denen Neue beitreten. Ohne verknüpfte Projekte gilt er für jedes Projekt, zu dem eine Person bereits gehört.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Personen, die sich mit diesem Anbieter anmelden, treten diesen Projekten bei, in den jeweils dafür gewählten Teams. Ohne verknüpfte Projekte kann sich niemand Neues anmelden.",
   "No projects attached to this provider.": "Mit diesem Anbieter sind keine Projekte verknüpft.",
   "Select Project": "Projekt auswählen",
   "Runs JavaScript steps and AI code fixes for every project.": "Führt JavaScript-Schritte und KI-Codekorrekturen für jedes Projekt aus.",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Chat auf Microsoft Teams",
   "Chat with Support": "Chat mit dem Support",
   "Show it": "Anzeigen",
+  "From this server's configuration": "Aus der Konfiguration dieses Servers",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Einige Einstellungen unten wurden aus der Konfiguration dieses Servers (Helm-Werte oder config.env) gesetzt, solange hier nichts gespeichert war. Eine Änderung, die Sie hier vornehmen, bleibt erhalten: Ein Neustart setzt sie nie zurück.",
+  "Set from {{variable}} in this server's configuration.": "Aus {{variable}} in der Konfiguration dieses Servers gesetzt.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} in der Konfiguration dieses Servers wurde nicht verwendet: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Diese Einstellung kann nicht ausgeblendet werden. Lassen Sie sie leer, um die Voreinstellung von OneUptime zu behalten.",
+  "Use \"shown\" or \"hidden\".": "Verwenden Sie \"shown\" oder \"hidden\".",
   "Support Email": "Support-E-Mail",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Hilfe › Support-E-Mail, „Support kontaktieren“ auf der Seite „Seite nicht gefunden“ und die Adresse, an die Personen auf einem Fehlerbildschirm ein Support-Paket senden sollen.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Hilfe › Support-E-Mail, „Support kontaktieren“ auf der Seite „Seite nicht gefunden“, E-Mails zum Konto und die Adresse, an die Personen auf einem Fehlerbildschirm ein Support-Paket senden sollen.",
   "Chat": "Chat",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Hilfe › Chat auf Slack. Ein eigener Link wird nach dem Chat benannt, den er öffnet: Slack, Microsoft Teams oder „Chat mit dem Support“.",
   "Request Demo": "Demo anfordern",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Diese Monitorvorlage gehört zu keinem Projekt, daher kann kein Monitor mit ihr verknüpft werden. Erstellen Sie die Vorlage in diesem Projekt neu.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Diese Monitorvorlage hat keinen Monitortyp, daher können ihre Monitore nicht synchronisiert werden. Erstellen Sie die Vorlage mit einem Monitortyp neu.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Die Einstellungen für die Vorlagensynchronisierung brauchen den Monitortyp der Vorlage. Wählen Sie zuerst den Monitortyp und dann die Synchronisierungseinstellungen erneut.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Eine Monitorvorlage kann „{{field}}“ nicht synchronisieren. Wählen Sie aus den Einstellungen für die Vorlagensynchronisierung, die die Vorlage anbietet, und speichern Sie dann erneut."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Eine Monitorvorlage kann „{{field}}“ nicht synchronisieren. Wählen Sie aus den Einstellungen für die Vorlagensynchronisierung, die die Vorlage anbietet, und speichern Sie dann erneut.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Neue Personen können sich noch nicht anmelden. Verknüpfen Sie unter „Verknüpfte Projekte“ ein Projekt mit den Teams, denen sie beitreten."
 }

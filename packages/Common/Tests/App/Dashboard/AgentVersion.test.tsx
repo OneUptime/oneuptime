@@ -104,6 +104,11 @@ import {
   getStorageArrayAgentDownloadCommand,
   getStorageArrayAgentUpgradeCommand,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Utils/DocumentationMarkdown";
+import {
+  XCP_NG_AGENT_RECREATE_COMMAND,
+  getXcpNgAgentDownloadCommand,
+  getXcpNgAgentUpgradeCommand,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/Utils/DocumentationMarkdown";
 import Route from "../../../Types/API/Route";
 
 /*
@@ -714,7 +719,7 @@ describe("the hero chip", () => {
 });
 
 /*
- * Hosts, Proxmox, Ceph, VMware and storage arrays: their agents now report
+ * Hosts, Proxmox, Ceph, VMware, storage arrays and XCP-ng pools: their agents now report
  * the release their files pin, so an older one gets the sign, compared with
  * the pin whatever the server's own version is, and the dialog shows that
  * agent's own upgrade, taken from its setup guide. The pin is the collector's
@@ -738,6 +743,7 @@ describe("the agents that report the collector they pin", () => {
     [AgentKind.CephAgent, COLLECTOR_RELEASE],
     [AgentKind.VMwareAgent, COLLECTOR_RELEASE],
     [AgentKind.StorageArrayAgent, COLLECTOR_RELEASE],
+    [AgentKind.XcpNgAgent, COLLECTOR_RELEASE],
   ];
 
   test.each(PINS)(
@@ -773,6 +779,7 @@ describe("the agents that report the collector they pin", () => {
     [AgentKind.CephAgent],
     [AgentKind.VMwareAgent],
     [AgentKind.StorageArrayAgent],
+    [AgentKind.XcpNgAgent],
   ])(
     "%s: an install from before the pin reports nothing, which reads Not reported, never outdated",
     (kind: AgentKind) => {
@@ -811,6 +818,14 @@ describe("the agents that report the collector they pin", () => {
       getCephAgentUpgradeCommand(READER_URL),
       getCephAgentDownloadCommand(READER_URL),
       CEPH_AGENT_RECREATE_COMMAND,
+    ],
+    [
+      AgentKind.XcpNgAgent,
+      COLLECTOR_RELEASE,
+      "Upgrade the OneUptime XCP-ng Agent",
+      getXcpNgAgentUpgradeCommand(READER_URL),
+      getXcpNgAgentDownloadCommand(READER_URL),
+      XCP_NG_AGENT_RECREATE_COMMAND,
     ],
   ])(
     "%s: the install script again, which keeps the .env, or the files and a recreate",

@@ -199,7 +199,7 @@ Der Agent liest außerdem die Datei `ctr.log` jedes Containers mit und sendet je
 | `resource.container.id` | Die vollständige Container-ID. |
 | `resource.container.runtime` | Immer `podman`. |
 | `attributes["log.iostream"]` | `stdout` oder `stderr`. |
-| `severityText` / `severityNumber` | Aus einem Level-Schlüsselwort gelesen, wo in der Zeile ein Level steht (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). Eine Zeile ohne Level fällt auf ihren Stream zurück: `stderr` ist `ERROR`, `stdout` ist `INFO`. |
+| `severityText` / `severityNumber` | Aus der Stufe gelesen, die die Zeile nennt, wo in ihr ein Level steht (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); der Traceback einer Exception ist `ERROR`. Eine Zeile ohne Level ist auf `stdout` `INFO` und hat auf `stderr` keinen Schweregrad (Nicht angegeben). |
 | `body` | Die Zeile, die der Container geschrieben hat. Zeilen, die mit Leerraum oder einer schließenden Klammer beginnen, etwa Stacktrace-Zeilen, werden an die vorherige Zeile angehängt. |
 | `time` | Der Zeitstempel von Podman für die Zeile. |
 

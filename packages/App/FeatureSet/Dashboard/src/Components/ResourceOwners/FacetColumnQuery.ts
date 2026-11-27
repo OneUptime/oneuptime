@@ -4,6 +4,9 @@ import { buildFacetDateRangeQuery } from "./FacetDateRange";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import IncludesNoneOrNull from "Common/Types/BaseDatabase/IncludesNoneOrNull";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
+import LinkedTo, {
+  LINKED_TO_QUERY_KEY,
+} from "Common/Types/BaseDatabase/LinkedTo";
 import NotEqualOrNull from "Common/Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import ObjectID from "Common/Types/ObjectID";
@@ -205,6 +208,22 @@ export const buildFacetColumnQuery: BuildFacetColumnQueryFunction = (data: {
 
   const isValueless: boolean =
     operator === "is_empty" || operator === "is_not_empty";
+
+  /*
+   * A facet over several relations at once (the "Affected Resources"
+   * chip) writes one LinkedTo under "linkedTo", which the server answers
+   * in the list's own query (#11073). It takes picks, so "is empty" and
+   * "is not empty" ask nothing of it.
+   */
+  if (facet.toLinkedTo) {
+    if (isValueless || values.length === 0) {
+      return null;
+    }
+
+    const linkedTo: LinkedTo | null = facet.toLinkedTo(values, operator);
+
+    return linkedTo ? { field: LINKED_TO_QUERY_KEY, value: linkedTo } : null;
+  }
 
   if (isValueless && !facet.handlesValuelessOperators) {
     return {

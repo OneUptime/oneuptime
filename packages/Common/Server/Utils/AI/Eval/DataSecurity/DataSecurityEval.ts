@@ -149,6 +149,7 @@ import {
   exposureAssessmentCall,
   scoreExposureAssessment,
 } from "./DataSecurityExposureEval";
+import { ruleDraftCall, scoreRuleDraft } from "./DataSecurityRuleDraftEval";
 
 /*
  * THE DATA SECURITY EVAL (npm run ai-data-security-eval, #10365): EVERY
@@ -269,6 +270,12 @@ export const DATA_SECURITY_EVAL_THRESHOLDS: Readonly<
    */
   [DataSecurityAiFeature.DraftDataTypes]: 0.75,
   [DataSecurityAiFeature.DescribeDataType]: 0.75,
+  /*
+   * A rule from a sentence is shown with the stores it matches before
+   * anyone saves it, and saved only on a person's approval: three in four
+   * drafts must be the rule the sentence asks for (#10378).
+   */
+  [DataSecurityAiFeature.DraftRuleFromSentence]: 0.75,
   /*
    * An exposure's write-up (#10377): every part is held to its facts - no
    * number and no law the facts do not hold - before it is read, and must
@@ -1397,6 +1404,8 @@ export function buildEvalCall(
     case DataSecurityAiFeature.DraftExposureAssessment:
     case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
       return exposureAssessmentCall(testCase);
+    case DataSecurityAiFeature.DraftRuleFromSentence:
+      return ruleDraftCall(testCase);
   }
 }
 
@@ -1472,6 +1481,8 @@ export function scoreAnswer(
     case DataSecurityAiFeature.DraftExposureAssessment:
     case DataSecurityAiFeature.DraftExposureAssessmentOnRequest:
       return scoreExposureAssessment(testCase, answer);
+    case DataSecurityAiFeature.DraftRuleFromSentence:
+      return scoreRuleDraft(testCase, answer);
   }
 }
 

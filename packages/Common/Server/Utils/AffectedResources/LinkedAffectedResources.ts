@@ -56,6 +56,7 @@ export enum LinkedAffectedResourceType {
   ProxmoxCluster = "ProxmoxCluster",
   OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
+  XcpNgPool = "XcpNgPool",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
@@ -162,6 +163,12 @@ export const LINKED_AFFECTED_RESOURCE_RELATIONS: ReadonlyArray<LinkedAffectedRes
       type: LinkedAffectedResourceType.VMwareVCenter,
       label: "VMware vCenter",
       dashboardRoute: "vmware",
+    },
+    {
+      column: "xcpNgPools",
+      type: LinkedAffectedResourceType.XcpNgPool,
+      label: "XCP-ng Pool",
+      dashboardRoute: "xcp-ng",
     },
     {
       column: "cephClusters",

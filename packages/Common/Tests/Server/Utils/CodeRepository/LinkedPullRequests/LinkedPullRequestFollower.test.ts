@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import CodeRepository from "../../../../../Models/DatabaseModels/CodeRepository";
 import FixProductionVerifier, {
   FixDeploy,
@@ -265,7 +266,7 @@ describe("one link, followed", () => {
       time: NOW,
       commitSha: MERGE_SHA,
     };
-    const deploys: jest.SpiedFunction<
+    const deploys: SpyInstance<
       typeof FixProductionVerifier.findDeployContainingFix
     > = jest.spyOn(FixProductionVerifier, "findDeployContainingFix");
 

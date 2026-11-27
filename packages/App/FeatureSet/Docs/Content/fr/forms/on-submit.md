@@ -75,7 +75,7 @@ Un incident déclaré via un formulaire est un incident ordinaire, avec quelques
 
 - **Masqué des pages de statut.** **Visible sur la page de statut** est désactivé, de même que **Notifier les abonnés de la page de statut**. Tant qu'un intervenant ne le publie pas, rien de l'incident n'atteint une page de statut ou un abonné — hormis le changement d'état de moniteur d'un modèle, plus haut.
 - **Déclaré par personne.** La personne qui soumet n'est pas un utilisateur de OneUptime, donc aucun utilisateur n'est enregistré comme ayant déclaré l'incident.
-- **Ses propriétaires sont informés.** Les propriétaires que nomment les paramètres et le modèle sont ajoutés dès que les canaux Slack et Microsoft Teams de l'incident existent, et sont notifiés — la notification **Incident créé** de l'incident attend qu'ils en soient propriétaires, pour leur parvenir à eux plutôt qu'aux Propriétaires du projet.
+- **Ses propriétaires sont informés.** Les propriétaires que nomment les paramètres et le modèle sont ajoutés avant que les canaux Slack et Microsoft Teams de l'incident ne soient créés, si bien que vos règles de notification les voient, et sont notifiés — la notification **Incident créé** de l'incident attend qu'ils en soient propriétaires, pour leur parvenir à eux plutôt qu'aux Propriétaires du projet.
 - **Une note privée consigne la soumission** — voir [La note privée](#la-note-privée).
 
 Tout ce qui s'exécute pour un nouvel incident s'exécute aussi pour ceux-ci : les règles de confidentialité, de propriétaires, d'étiquettes, d'astreinte et de runbooks, les politiques d'astreinte, et les flux de travail **À la création : Incident**. Les règles d'astreinte correspondent aux incidents d'un formulaire comme aux autres — y compris sur leur titre et leur description, écrits par la personne qui soumet.
@@ -117,7 +117,7 @@ Comme l'incident a été déclaré avec **Notifier les abonnés de la page de st
 
 Une alerte créée via un formulaire est une alerte ordinaire, produite de la même façon qu'une alerte créée à la main avec **Créer une alerte** :
 
-- **Ses propriétaires sont informés, une seule fois.** Les propriétaires que nomment les paramètres sont ajoutés dès que les canaux Slack et Microsoft Teams de l'alerte existent, et la notification **Alerte créée** de l'alerte attend qu'ils en soient propriétaires, pour leur parvenir à eux plutôt qu'aux Propriétaires du projet — et c'est le seul avis qu'ils en reçoivent.
+- **Ses propriétaires sont informés, une seule fois.** Les propriétaires que nomment les paramètres sont ajoutés avant que les canaux Slack et Microsoft Teams de l'alerte ne soient créés, si bien que vos règles de notification les voient, et la notification **Alerte créée** de l'alerte attend qu'ils en soient propriétaires, pour leur parvenir à eux plutôt qu'aux Propriétaires du projet — et c'est le seul avis qu'ils en reçoivent.
 - **Elle démarre là où vous le dites.** Dans l'état de départ habituel, sauf si le paramètre **État initial** en nomme un ultérieur. Une alerte qui démarre prise en compte ou résolue n'alerte personne : un formulaire pour des signalements qui ne demandent qu'un coup d'œil peut le prévoir.
 - **Créée par personne, et pas privée.** La personne qui soumet n'est pas un utilisateur de OneUptime, donc aucun utilisateur n'est enregistré comme l'ayant créée. Une règle de confidentialité peut tout de même la rendre privée.
 - **Une note privée consigne la soumission** — voir [La note privée](#la-note-privée).

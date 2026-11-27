@@ -52,8 +52,9 @@ jest.mock("../../../Server/Utils/Logger");
  *     and keep one the create names;
  *   - add them once the episode exists - after its privacy rules ran, and
  *     before the create answers, so the episode the person opens lists them;
- *   - name them in one feed entry after "Episode Created" (and the note on
- *     who a new channel could not add), not one per record.
+ *   - name them in one feed entry, not one per record, whose message
+ *     follows "Episode Created" (and the note on who a new channel could
+ *     not add) in the episode's channels (#11188).
  *
  * The episode services' own hooks run; the member services' adds, and every
  * other service the hooks call out to, are stand-ins.
@@ -541,26 +542,31 @@ describe.each(KINDS)(
       await waitForChain();
     });
 
-    test("one entry names them, after Episode Created and the channel note, before the rules run", async () => {
+    test("one entry names them, before the owner rules run - its message waits for Episode Created (#11188)", async () => {
       standIn();
 
       await created({ tenantId: PROJECT_ID, userId: PERSON_ID }, ids);
       await waitForChain();
 
-      // The chain's own steps, in order: the entry right after the note.
+      /*
+       * The chain's own steps, in order: the entry right after the first
+       * state, before the owners and labels its rules match on. Its message
+       * is held until Episode Created and the note are out
+       * (WorkspaceCreatedMessageFirst), and follows them in the channels.
+       */
       expect(
         steps.filter((name: string): boolean => {
           return name !== "added";
         }),
       ).toEqual([
         "privacy",
-        "workspace",
         "first state",
-        "Episode Created",
-        "note",
         "one entry",
         "owners",
         "labels",
+        "workspace",
+        "Episode Created",
+        "note",
         "on-call",
         "paging",
       ]);

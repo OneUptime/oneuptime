@@ -36,6 +36,7 @@ export const CLOUD_OTHER_PLATFORMS: string = "telemetry/cloud-other-platforms";
 export const CLOUD_TROUBLESHOOTING: string = "telemetry/cloud-troubleshooting";
 export const CLOUD_ACCOUNTS: string = "telemetry/cloud-accounts";
 export const CLOUD_COSTS: string = "telemetry/cloud-costs";
+export const CLOUD_COST_ALLOCATION: string = "telemetry/cloud-cost-allocation";
 export const CLOUD_RESOURCES: string = "telemetry/cloud-resources";
 export const CLOUD_STREAMING: string = "telemetry/cloud-streaming";
 export const CLOUD_STREAMING_AZURE: string = "telemetry/cloud-streaming-azure";
@@ -74,6 +75,7 @@ export const CLOUD_DOCS_PAGES: ReadonlyArray<CloudDocsPage> = [
   },
   { page: CLOUD_ARMOR_BLOCKLIST, navTitle: "Block Addresses in Cloud Armor" },
   { page: CLOUD_COSTS, navTitle: "Cloud Costs and Savings" },
+  { page: CLOUD_COST_ALLOCATION, navTitle: "Cloud Cost Allocation" },
   { page: CLOUD_RESOURCES, navTitle: "Cloud Resources (IaaS & PaaS)" },
 ];
 
@@ -218,6 +220,11 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
      * each language's Dashboard draws them.
      */
     "Storage Blob Data Reader",
+    // The tenant's readers of its reservations and savings plans (#11011).
+    "Reservations Reader",
+    "Savings plan Reader",
+    // The Azure role the connection's Savings actions grant (#11010).
+    "OneUptime Savings Actions",
   ],
   [CLOUD_COSTS]: [
     "Cost Management Reader",
@@ -225,6 +232,10 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, Array<string>>> = {
     "BigQuery Data Viewer",
     "BigQuery Job User",
     "Compute Recommender Viewer",
+    "Reservations Reader",
+    "Savings plan Reader",
+    // What lists Compute Engine's commitments, which the command grants already.
+    "Cloud Asset Viewer",
   ],
   [CLOUD_RESOURCES]: [
     "Monitoring Reader",
@@ -359,8 +370,47 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A connected account.",
     "Cloud's Overview.",
     "Every day's spend.",
+    "Every commitment.",
     "An account's costs.",
     "A resource's cost.",
+    // Right-sizing on the memory OneUptime's host collector reads (#11013).
+    "The VM and the host are one machine",
+    "Memory is the host's used memory, without cache and buffers",
+    "Where both read memory",
+    // Required tags (#11012).
+    "Keys match whatever their case.",
+    "An allowed value can be a pattern.",
+    "One account's own tags.",
+    "Nothing is changed in your cloud.",
+    "Who is told.",
+    "How often.",
+    "When it is tagged.",
+    "A team-like key",
+    "An environment-like key",
+    "Any key",
+    "A tag that allows one value",
+    "Required tags.",
+    "What was saved.",
+  ],
+  // Cost groups (#11006): an example group's name is a lead too.
+  [CLOUD_COST_ALLOCATION]: [
+    "cost view",
+    "cost groups",
+    "The first group that matches takes the cost.",
+    "Rules read everything a cost carries.",
+    "Everything is worked out when you look.",
+    "Several views can sort the same spend.",
+    "Costs that are read.",
+    "Tags or owners, if you want them.",
+    "any",
+    "all",
+    "or",
+    "Payments",
+    "Once or every month.",
+    "On an account or a group.",
+    "Always apart.",
+    "A view's page",
+    "A group's page",
   ],
   [CLOUD_RESOURCES]: [
     "The provider already measures your resources.",

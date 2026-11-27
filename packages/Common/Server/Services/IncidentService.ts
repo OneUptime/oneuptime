@@ -175,6 +175,9 @@ import IncidentWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/Inci
 import ChannelMembersNotAddedNotice, {
   ChannelMembersNotAdded,
 } from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
+import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceRuleOwnersOnCreate from "../Utils/Workspace/WorkspaceRuleOwnersOnCreate";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import VideoCallRuleExecutor from "../Utils/VideoCall/VideoCallRuleExecutor";
 import WorkspaceType from "../../Types/Workspace/WorkspaceType";
 import {
@@ -376,6 +379,16 @@ type IncidentCreateCarryForward =
        * Owners field holds them already - said false. False without alerts.
        */
       carryOverAlertOwners: boolean;
+      /*
+       * The moment the incident's create began, taken before it is
+       * written - so before anything about it can be: its creator made an
+       * owner, the roles the Dashboard gives as the declarer lands on it,
+       * its owners and its rules. Its "Incident Created" entry is filed at
+       * it, and the alerts it was declared from a millisecond before, so
+       * those are the first two lines of its feed, in that order, however
+       * the steps that write them race the rest (#10911).
+       */
+      feedStartsAt: Date;
     })
   | null;
 
@@ -542,11 +555,12 @@ export class Service extends ProjectReferencesService<Model> {
    * The owners of the template an incident is declared from through
    * createFromTemplate become the incident's owners, handed over as the
    * dashboard hands over the owners its declare form fills in from a
-   * template: onCreateSuccess adds them once the incident's channels exist,
-   * quietly, as the caller (a user's create never asks for its owners to be
-   * notified). Read as the caller, once the template is known to be one
-   * they may declare from; owners the create already hands over are kept,
-   * and each one is handed over once.
+   * template: onCreateSuccess adds them before the incident's channels are
+   * opened, so its notification rules match on them, quietly, as the caller
+   * (a user's create never asks for its owners to be notified). Read as the
+   * caller, once the template is known to be one they may declare from;
+   * owners the create already hands over are kept, and each one is handed
+   * over once.
    */
   private async handOverTemplateOwners(data: {
     createBy: CreateBy<Model>;
@@ -2835,6 +2849,13 @@ export class Service extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(createBy);
 
     /*
+     * When the incident's feed starts (IncidentCreateCarryForward): now,
+     * before the incident is written and so before any entry about it can
+     * be.
+     */
+    const feedStartsAt: Date = OneUptimeDate.getCurrentDate();
+
+    /*
      * The check that opened the incident, without a Synthetic monitor's
      * screenshots, as its state timeline keeps it: they are megabytes a row,
      * and nothing shows them - the incident's monitor summary is its own
@@ -2888,9 +2909,9 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * An incident gets its owners after it is written: from
-     * onCreateSuccess's chain (the owners handed over with the create, once
-     * its Slack / Microsoft Teams channels exist, and the project's owner
-     * rules), from its create as it returns (its creator), and from the
+     * onCreateSuccess's chain (the owners handed over with the create and
+     * the project's owner rules, before its Slack / Microsoft Teams channels
+     * are opened), from its create as it returns (its creator), and from the
      * code that made it once the create returns (a monitor's criteria, the
      * network device the monitor watches). The owners' "Incident Created"
      * notification is sent by a job that runs every minute and takes every
@@ -3522,6 +3543,7 @@ export class Service extends ProjectReferencesService<Model> {
         alertIdsToLink: validatedAlertIds,
       }),
       carryOverAlertOwners: carryOverAlertOwners,
+      feedStartsAt: feedStartsAt,
     };
 
     /*
@@ -3788,87 +3810,57 @@ export class Service extends ProjectReferencesService<Model> {
       },
     );
 
+    /*
+     * When the incident's feed starts (IncidentCreateCarryForward): its
+     * "Incident Created" entry is filed at it, and the alerts it was
+     * declared from a moment before - the first two lines of its feed,
+     * whenever the steps below write them (#10911).
+     */
+    const feedStartsAt: Date | undefined = this.getFeedStartsAt(onCreate);
+
+    /*
+     * The incident's Slack, Microsoft Teams and Mattermost messages. Its
+     * rules are matched - its channels opened, its "Incident Created"
+     * posted - once its owners and labels are in, so a rule that asks who
+     * owns it or how it is labelled matches it (#11146): the owners of the
+     * alerts it was declared from, those handed over with its create and
+     * its owner rules', its label rules' labels, and the owners its creator
+     * and the code that made it add. Every other message about it - the
+     * alerts it was declared from, "Added team Platform to the Incident as
+     * the owner" - waits for "Incident Created" until then, and follows it
+     * in the order it was made (WorkspaceCreatedMessageFirst): its channels
+     * hear of the incident first, then of what happened to it, then its
+     * pages. Held on every App server before the create returns, so a
+     * message made on another one waits too: the Incident Commander role
+     * the Dashboard gives the declarer as the incident's page opens (#11198).
+     */
+    await WorkspaceCreatedMessageFirst.hold({ incidentId: createdItem.id });
+
+    /*
+     * The alerts it is declared from are linked once the privacy rules have
+     * run (linkAlertsDeclaredWithIncident): waited for before this hook
+     * returns, and by the first state of an incident declared already
+     * acknowledged or resolved, which carries that state over to them.
+     * Never rejects.
+     */
+    const alertsLinked: Promise<void> = this.linkAlertsDeclaredWithIncident(
+      onCreate,
+      createdItem,
+      privacyRulesApplied,
+    );
+
     // Execute operations sequentially with error handling
     privacyRulesApplied
       .then(async () => {
         /*
-         * No channel is opened for an incident declared resolved. Its
-         * created feed entry still goes to the channels the workspace rules
-         * name.
-         */
-        try {
-          if (createdItem.projectId && createdItem.id && isOngoing) {
-            membersNotAddedToNewChannels =
-              await this.handleIncidentWorkspaceOperationsAsync(createdItem);
-          }
-          return Promise.resolve();
-        } catch (error) {
-          logger.error(
-            `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-              userId: createdItem.createdByUserId?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        try {
-          return await this.createIncidentFeedAsync(
-            incident,
-            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
-          );
-        } catch (error) {
-          logger.error(
-            `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-              userId: createdItem.createdByUserId?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        // Under "Incident Created": who could not be added to the new channels.
-        await ChannelMembersNotAddedNotice.noteAll({
-          projectId: createdItem.projectId,
-          membersNotAdded: membersNotAddedToNewChannels,
-        });
-      })
-      .then(() => {
-        /*
-         * The video calls the workspace rules ask for, posted after
-         * "Incident Created" in the channels the rules just created. Not
-         * waited on: a meeting provider that is slow to answer must never
-         * hold up paging the on-call below. No call for an incident declared
-         * resolved.
-         */
-        if (createdItem.projectId && createdItem.id && isOngoing) {
-          VideoCallRuleExecutor.startCallsForIncident({
-            projectId: createdItem.projectId,
-            incidentId: createdItem.id,
-          }).catch((error: unknown) => {
-            logger.error(
-              `Starting video calls failed in IncidentService.onCreateSuccess: ${error}`,
-              {
-                projectId: createdItem.projectId?.toString(),
-                incidentId: createdItem.id?.toString(),
-              } as LogAttributes,
-            );
-          });
-        }
-      })
-      .then(async () => {
-        /*
-         * Declared from alerts: announce the alerts once, here - after
-         * "Incident Created" and after the incident's Slack / Microsoft
-         * Teams channels exist - rather than once per alert as each link is
-         * written (see linkAlertsDeclaredWithIncident). Uses the validated
-         * ids, so it does not wait for the links.
+         * Declared from alerts: the alerts are announced once, here,
+         * rather than once per alert as each link is written (see
+         * linkAlertsDeclaredWithIncident). Declaring the incident from them
+         * is what made it, so the entry is filed a moment before "Incident
+         * Created": the first line of its feed (#10911), wherever the other
+         * steps' entries land. Its message follows "Incident Created" in the
+         * incident's channels, as every message about it made before that
+         * does. Uses the validated ids, so it does not wait for the links.
          */
         try {
           const alertIds: Array<ObjectID> =
@@ -3885,6 +3877,9 @@ export class Service extends ProjectReferencesService<Model> {
               ),
               declaredByRuleName:
                 this.getAlertIncidentRuleNameDeclaredWith(onCreate),
+              ...(feedStartsAt
+                ? { postedAt: this.getDeclaredFromAlertsAt(feedStartsAt) }
+                : {}),
             });
           }
         } catch (error) {
@@ -3899,6 +3894,39 @@ export class Service extends ProjectReferencesService<Model> {
       })
       .then(async () => {
         /*
+         * Its first state, which its feed lists right under "Incident
+         * Created", ahead of its owners. Not posted to Slack and Microsoft
+         * Teams: "Incident Created" names it (WorkspaceStateChangePosting).
+         * Declared already acknowledged or resolved, it carries that state
+         * over to the alerts it was declared from
+         * (IncidentAlertService.cascadeIncidentStateToLinkedAlerts), so it
+         * waits for them to be linked - such an incident pages nobody.
+         * Declared open, it carries nothing over, and its pages do not wait
+         * for the links.
+         */
+        try {
+          if (!StartingStageUtil.pagesOnCall(startingStage)) {
+            await alertsLinked;
+          }
+
+          return await this.handleIncidentStateChangeAsync(
+            createdItem,
+            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+          );
+        } catch (error) {
+          logger.error(
+            `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        /*
          * An incident declared from alerts gets the alerts' owners as its
          * owners (#10867), private or not - unless the declaration said
          * otherwise: the dashboard's Owners field holds them already, as
@@ -3906,13 +3934,14 @@ export class Service extends ProjectReferencesService<Model> {
          * For a private one - private from the form or made private by a
          * privacy rule above - it is also what lets the people who could
          * see the alerts see the incident. Here rather than before the
-         * request returns: the owners' own hooks invite them to the
-         * incident's Slack / Microsoft Teams channels, which exist only
-         * from the workspace step above, and their "owner added" entries
-         * belong after "Incident Created". And before the owner rules and
-         * the release of the held "Incident Created" notification below
-         * (CreatedNotificationHold), so they are told of the incident once,
-         * by it, as every owner it starts with is.
+         * request returns, and before its channels are opened and
+         * "Incident Created" is posted: its rules match on them, the
+         * channels' setup invites them, and their "owner added" messages
+         * follow "Incident Created" (WorkspaceCreatedMessageFirst). And
+         * before the owner rules and the release of the held "Incident
+         * Created" notification below (CreatedNotificationHold), so they
+         * are told of the incident once, by it, as every owner it starts
+         * with is.
          */
         try {
           const alertIds: Array<ObjectID> =
@@ -3936,32 +3965,13 @@ export class Service extends ProjectReferencesService<Model> {
         }
       })
       .then(async () => {
-        try {
-          return await this.handleIncidentStateChangeAsync(
-            createdItem,
-            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
-          );
-        } catch (error) {
-          logger.error(
-            `Handle incident state change failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-              userId: createdItem.createdByUserId?.toString(),
-            } as LogAttributes,
-          );
-          return Promise.resolve();
-        }
-      })
-      .then(async () => {
         /*
          * Owners handed over with the create: a template's owners, from the
          * dashboard's Declare Incident page or from an incident form. Added
-         * here - after the incident's Slack / Microsoft Teams channels
-         * exist, which is when the owners' own hooks can invite them to
-         * those channels, and after "Incident Created" - rather than by the
-         * caller once the create returns, while this chain may still be
-         * creating the channels.
+         * here, in the chain - before its channels are opened and
+         * "Incident Created" is posted, so its rules match on them and the
+         * channels' setup invites them - rather than by the caller once the
+         * create returns, when its channels may be opening already.
          *
          * Whether they are notified is the caller's to say, but only an
          * internal (root) caller's: an incident form asks for its
@@ -4005,6 +4015,153 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Apply owner rules: add matched owner users/teams to the incident.
+        try {
+          await IncidentOwnerRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident owner rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+
+        /*
+         * Every owner this chain adds is in - or could not be added, and it
+         * will not try again: the "Incident Created" notification may go
+         * out once the others' are. Not waited for: paging the on-call
+         * below never waits on it.
+         */
+        CreatedNotificationHold.ownersAreIn(
+          onCreate.createBy,
+          OwnersAddedBy.Chain,
+        );
+      })
+      .then(async () => {
+        /*
+         * Apply label rules: attach matched labels (and optionally inherited
+         * monitor / host labels) to the incident. Runs before the on-call
+         * fan-out so notifications can include the inherited labels, and
+         * before its channels are opened so its rules match on them.
+         */
+        try {
+          await IncidentLabelRuleEngineService.applyRulesToIncident(
+            createdItem,
+          );
+        } catch (error) {
+          logger.error(
+            `Apply incident label rules failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+            } as LogAttributes,
+          );
+        }
+      })
+      .then(async () => {
+        /*
+         * Its rules are matched from here on, on what it ends up with: the
+         * owners and labels this chain adds are in. Those its creator and
+         * the code that made it add - a monitor's criteria's - are waited
+         * for a moment, in a project with a rule that asks who owns an
+         * incident (WorkspaceRuleOwnersOnCreate). Never throws.
+         */
+        await WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate({
+          createBy: onCreate.createBy,
+          projectId: createdItem.projectId!,
+          eventType: NotificationRuleEventType.Incident,
+          recordId: createdItem.id!,
+        });
+      })
+      .then(async () => {
+        /*
+         * No channel is opened for an incident declared resolved. Its
+         * created feed entry still goes to the channels the workspace rules
+         * name.
+         */
+        try {
+          if (createdItem.projectId && createdItem.id && isOngoing) {
+            membersNotAddedToNewChannels =
+              await this.handleIncidentWorkspaceOperationsAsync(createdItem);
+          }
+          return Promise.resolve();
+        } catch (error) {
+          logger.error(
+            `Workspace operations failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        try {
+          return await this.createIncidentFeedAsync(
+            incident,
+            FeedApiKeyActorUtil.fromProps(onCreate.createBy.props),
+            feedStartsAt,
+          );
+        } catch (error) {
+          logger.error(
+            `Create incident feed failed in IncidentService.onCreateSuccess: ${error}`,
+            {
+              projectId: createdItem.projectId?.toString(),
+              incidentId: createdItem.id?.toString(),
+              userId: createdItem.createdByUserId?.toString(),
+            } as LogAttributes,
+          );
+          return Promise.resolve();
+        }
+      })
+      .then(async () => {
+        // Under "Incident Created": who could not be added to the new channels.
+        await ChannelMembersNotAddedNotice.noteAll({
+          projectId: createdItem.projectId,
+          membersNotAdded: membersNotAddedToNewChannels,
+        });
+      })
+      .then(async () => {
+        /*
+         * Then what waited for "Incident Created", in the order it was
+         * made: the alerts it was declared from, the owners added above -
+         * "Added team Platform to the Incident as the owner" - and anything
+         * else posted about the incident meanwhile. Never throws.
+         */
+        await WorkspaceCreatedMessageFirst.postHeld({
+          incidentId: createdItem.id!,
+        });
+      })
+      .then(() => {
+        /*
+         * The video calls the workspace rules ask for, posted after
+         * "Incident Created" in the channels the rules just created. Not
+         * waited on: a meeting provider that is slow to answer must never
+         * hold up paging the on-call below. No call for an incident declared
+         * resolved.
+         */
+        if (createdItem.projectId && createdItem.id && isOngoing) {
+          VideoCallRuleExecutor.startCallsForIncident({
+            projectId: createdItem.projectId,
+            incidentId: createdItem.id,
+          }).catch((error: unknown) => {
+            logger.error(
+              `Starting video calls failed in IncidentService.onCreateSuccess: ${error}`,
+              {
+                projectId: createdItem.projectId?.toString(),
+                incidentId: createdItem.id?.toString(),
+              } as LogAttributes,
+            );
+          });
         }
       })
       .then(async () => {
@@ -4062,53 +4219,6 @@ export class Service extends ProjectReferencesService<Model> {
             } as LogAttributes,
           );
           return Promise.resolve();
-        }
-      })
-      .then(async () => {
-        // Apply owner rules: add matched owner users/teams to the incident.
-        try {
-          await IncidentOwnerRuleEngineService.applyRulesToIncident(
-            createdItem,
-          );
-        } catch (error) {
-          logger.error(
-            `Apply incident owner rules failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
-        }
-
-        /*
-         * Every owner this chain adds is in - or could not be added, and it
-         * will not try again: the "Incident Created" notification may go
-         * out once the others' are. Not waited for: paging the on-call
-         * below never waits on it.
-         */
-        CreatedNotificationHold.ownersAreIn(
-          onCreate.createBy,
-          OwnersAddedBy.Chain,
-        );
-      })
-      .then(async () => {
-        /*
-         * Apply label rules: attach matched labels (and optionally inherited
-         * monitor / host labels) to the incident. Runs before the on-call
-         * fan-out so notifications can include the inherited labels.
-         */
-        try {
-          await IncidentLabelRuleEngineService.applyRulesToIncident(
-            createdItem,
-          );
-        } catch (error) {
-          logger.error(
-            `Apply incident label rules failed in IncidentService.onCreateSuccess: ${error}`,
-            {
-              projectId: createdItem.projectId?.toString(),
-              incidentId: createdItem.id?.toString(),
-            } as LogAttributes,
-          );
         }
       })
       .then(async () => {
@@ -4357,15 +4467,40 @@ export class Service extends ProjectReferencesService<Model> {
           onCreate.createBy,
           OwnersAddedBy.Chain,
         );
+
+        /*
+         * Maybe of "Incident Created" too: what waited for it goes out now,
+         * rather than once its hold runs out. Never throws.
+         */
+        void WorkspaceCreatedMessageFirst.postHeld({
+          incidentId: createdItem.id!,
+        });
       });
 
-    await this.linkAlertsDeclaredWithIncident(
-      onCreate,
-      createdItem,
-      privacyRulesApplied,
-    );
+    // The page the declarer lands on lists the alerts it was declared from.
+    await alertsLinked;
 
     return createdItem;
+  }
+
+  // When the incident's feed starts, as onBeforeCreate handed it over.
+  private getFeedStartsAt(onCreate: OnCreate<Model>): Date | undefined {
+    const carryForward: IncidentCreateCarryForward =
+      (onCreate.carryForward as IncidentCreateCarryForward) || null;
+
+    return carryForward?.feedStartsAt instanceof Date
+      ? carryForward.feedStartsAt
+      : undefined;
+  }
+
+  /*
+   * When the entry naming the alerts an incident was declared from is filed:
+   * a millisecond before its feed starts, where "Incident Created" is filed,
+   * so it is the first line of the feed and "Incident Created" the second
+   * (#10911).
+   */
+  private getDeclaredFromAlertsAt(feedStartsAt: Date): Date {
+    return new Date(feedStartsAt.getTime() - 1);
   }
 
   /*
@@ -4473,8 +4608,8 @@ export class Service extends ProjectReferencesService<Model> {
    *
    * The privacy rules run first: each link's entry on its alert leaves out
    * the incident's title when the incident is private, and a rule can make
-   * it private after it was saved. (The alerts' owners are added to a private
-   * incident later in the chain, once its workspace channels exist.)
+   * it private after it was saved. (The alerts' owners are added later in
+   * the chain, before its workspace channels are opened.)
    *
    * When the declaration asked for it, the alerts are then acknowledged as
    * the declaring user, which stops their on-call escalation at the
@@ -4781,11 +4916,20 @@ export class Service extends ProjectReferencesService<Model> {
     return markdown;
   }
 
+  /*
+   * The incident's "Incident Created" entry, posted to its Slack, Microsoft
+   * Teams and Mattermost channels as the message that announces it - ahead
+   * of the messages its create held back until it
+   * (WorkspaceCreatedMessageFirst). Filed at `postedAt` when given - when
+   * the incident's feed starts - so it leads the feed whenever it is
+   * written, after only the alerts it was declared from.
+   */
   @CaptureSpan()
   private async createIncidentFeedAsync(
     incident: Model,
     // The API key that declared it, when one did (Utils/Feed/FeedApiKeyActor).
     apiKeyActor?: FeedApiKeyActor | undefined,
+    postedAt?: Date | undefined,
   ): Promise<void> {
     try {
       const createdByUserId: ObjectID | undefined | null =
@@ -4895,9 +5039,11 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
         feedInfoInMarkdown: feedInfoInMarkdown,
         userId: createdByUserId || undefined,
         apiKeyActor: apiKeyActor,
+        ...(postedAt ? { postedAt: postedAt } : {}),
         workspaceNotification: {
           appendMessageBlocks: incidentCreateMessageBlocks,
           sendWorkspaceNotification: true,
+          announcesRecord: true,
         },
       });
     } catch (error) {

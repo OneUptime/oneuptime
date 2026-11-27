@@ -1,4 +1,5 @@
 import {
+  DiscoveryImportSource,
   DiscoveryImportView,
   isDiscoveryImportActive,
 } from "Common/Types/NetworkDevice/DiscoveryImport";
@@ -38,6 +39,25 @@ export function getActiveDiscoveredDeviceImports(
   imports: ReadonlyArray<DiscoveryImportView>,
 ): Array<DiscoveryImportView> {
   return imports.filter((view: DiscoveryImportView): boolean => {
-    return !view.scanId && isDiscoveryImportActive(view.status);
+    return (
+      !view.scanId &&
+      view.source === DiscoveryImportSource.DiscoveredDevices &&
+      isDiscoveryImportActive(view.status)
+    );
+  });
+}
+
+/*
+ * The runs of Create Monitors on the Devices list still going (issue
+ * #10990), oldest first: no scan, and not the Discovered Devices list's.
+ */
+export function getActiveDeviceMonitorCreations(
+  imports: ReadonlyArray<DiscoveryImportView>,
+): Array<DiscoveryImportView> {
+  return imports.filter((view: DiscoveryImportView): boolean => {
+    return (
+      view.source === DiscoveryImportSource.Devices &&
+      isDiscoveryImportActive(view.status)
+    );
   });
 }

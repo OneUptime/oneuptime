@@ -95,6 +95,8 @@ export default class NetworkAlertPolicyBootstrapUtil {
     const criteriaInstances: Array<MonitorCriteriaInstance> =
       NetworkDeviceAlertPackUtil.buildCriteriaInstances({
         downMonitorStatusId: data.offlineMonitorStatusId,
+        // SNMP failing on a device that answers ping is up (issue #11071).
+        upMonitorStatusId: data.onlineMonitorStatusId,
       });
 
     for (const criteriaInstance of criteriaInstances) {

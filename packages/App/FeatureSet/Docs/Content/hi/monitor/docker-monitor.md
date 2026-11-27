@@ -203,7 +203,7 @@ flowchart TB
 | `resource.container.id` | पूरा कंटेनर ID। |
 | `resource.container.runtime` | हमेशा `docker`। |
 | `attributes["log.iostream"]` | `stdout` या `stderr`। |
-| `severityText` / `severityNumber` | पंक्ति में जहाँ लेवल हो, वहाँ के लेवल कीवर्ड से पढ़ा जाता है (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`)। बिना लेवल वाली पंक्ति अपनी स्ट्रीम पर निर्भर करती है: `stderr` का मतलब `ERROR`, `stdout` का मतलब `INFO`। |
+| `severityText` / `severityNumber` | पंक्ति जो लेवल बताती है, जहाँ उसमें लेवल हो, उसी से पढ़ा जाता है (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); किसी एक्सेप्शन का ट्रेसबैक `ERROR` है। बिना लेवल वाली पंक्ति `stdout` पर `INFO` है, और `stderr` पर उसकी कोई गंभीरता नहीं होती (अनिर्दिष्ट)। |
 | `body` | कंटेनर द्वारा लिखी गई पंक्ति। व्हाइटस्पेस या बंद ब्रैकेट से शुरू होने वाली पंक्तियाँ, जैसे स्टैक-ट्रेस फ़्रेम, पिछली पंक्ति से जोड़ दी जाती हैं। |
 | `time` | पंक्ति के लिए Docker डेमन का टाइमस्टैम्प। |
 

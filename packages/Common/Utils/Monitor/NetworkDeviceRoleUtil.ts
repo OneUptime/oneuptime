@@ -1,4 +1,6 @@
 import { NetworkTopologyDeviceRole } from "../../Types/Monitor/SnmpMonitor/NetworkTopology";
+import SnmpOidListUtil from "../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
+import { CISCO_MDS_CHASSIS_SYS_OBJECT_IDS } from "../../Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 
 /*
  * Works out what a node on the network topology map DOES — router, switch,
@@ -212,6 +214,15 @@ const PRODUCT_RULES: ReadonlyArray<RoleRule> = [
     role: "router",
     pattern: /\b(?:catalyst 8\d{3}|c8\d{3})/,
   },
+  /*
+   * Cisco MDS 9000: NX-OS (or SAN-OS before it) on an m9 platform -
+   * "Cisco NX-OS(tm) m9100, Software (m9100-s6ek9-mz) ..." - which never
+   * calls itself a switch.
+   */
+  {
+    role: "switch",
+    pattern: /\b(?:nx-os|san-os)\(tm\) m9\d{3}|\bmds ?9\d{3}/,
+  },
   {
     role: "switch",
     pattern:
@@ -305,6 +316,12 @@ const OPERATING_SYSTEM_RULES: ReadonlyArray<RoleRule> = [
   },
 ];
 
+// Brocade's Fibre Channel switch arc (Brocade-REG-MIB fcSwitch).
+const BROCADE_FIBRE_CHANNEL_ARC: string = "1.3.6.1.4.1.1588.2.1.1";
+
+// An MDS model newer than the list: "cisco nx-os(tm) m9300, software ...".
+const MDS_SYS_DESCR: RegExp = /\b(?:nx-os|san-os)\(tm\) m9\d{3}/;
+
 /*
  * Tier 2 — sysObjectId enterprise arcs, for vendors that only make one
  * kind of box. Deliberately short: a vendor with a mixed catalogue (Cisco,
@@ -346,6 +363,12 @@ const SYS_OBJECT_ID_RULES: ReadonlyArray<{
   { prefix: "1.3.6.1.4.1.14823.1.2", role: "wirelessAccessPoint" }, // Aruba access points (apProducts)
   { prefix: "1.3.6.1.4.1.4329.15", role: "wirelessAccessPoint" }, // Extreme wireless controllers (HiPath)
   // Switching / routing houses.
+  /*
+   * Brocade's Fibre Channel switches and directors (fcSwitch). Not the
+   * whole of 1588, whose VDX and SLX arcs are Ethernet switches (and
+   * switches all the same, but say so in their own sysDescr).
+   */
+  { prefix: BROCADE_FIBRE_CHANNEL_ARC, role: "switch" },
   { prefix: "1.3.6.1.4.1.30065", role: "switch" }, // Arista
   { prefix: "1.3.6.1.4.1.6027", role: "switch" }, // Force10 / Dell
   { prefix: "1.3.6.1.4.1.17713.24", role: "switch" }, // Cambium cnMatrix
@@ -517,6 +540,7 @@ export function classifyDeviceRole(
   return (
     firstMatch(PRODUCT_RULES, model, vendorText) ??
     firstMatch(PRODUCT_RULES, sysDescr, vendorText) ??
+    (isFibreChannelSwitch(signals) ? "switch" : undefined) ??
     roleForSysObjectId(signals.sysObjectId, SYS_OBJECT_ID_RULES) ??
     firstMatch(GENERIC_RULES, sysDescr, vendorText) ??
     roleForNameText(signals.sysName) ??
@@ -527,6 +551,29 @@ export function classifyDeviceRole(
     ) ??
     firstMatch(OPERATING_SYSTEM_RULES, sysDescr, vendorText) ??
     "unknown"
+  );
+}
+
+/**
+ * Whether a device is a Fibre Channel (SAN) switch: a Brocade Fabric OS
+ * switch or director, or a Cisco MDS 9000, by its sysObjectID - and, for an
+ * MDS model newer than OneUptime knows, its sysDescr. Either is a switch,
+ * though its description seldom says so (an MDS's never does).
+ */
+export function isFibreChannelSwitch(signals: DeviceRoleSignals): boolean {
+  const sysObjectId: string = SnmpOidListUtil.normalizeOid(signals.sysObjectId);
+
+  if (
+    sysObjectId === BROCADE_FIBRE_CHANNEL_ARC ||
+    sysObjectId.startsWith(`${BROCADE_FIBRE_CHANNEL_ARC}.`) ||
+    CISCO_MDS_CHASSIS_SYS_OBJECT_IDS.has(sysObjectId)
+  ) {
+    return true;
+  }
+
+  return (
+    sysObjectId.startsWith("1.3.6.1.4.1.9.") &&
+    MDS_SYS_DESCR.test(normalize(signals.sysDescr))
   );
 }
 

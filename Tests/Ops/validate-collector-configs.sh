@@ -180,6 +180,16 @@ ENV_ARGS=(
   -e "PURE_FB_ENDPOINT=flashblade.example.com"
   -e "PURE_FB_API_TOKEN=validate-only"
   -e "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true"
+  # The XCP-ng Agent (a prometheus receiver scraping Xen Orchestra's
+  # OpenMetrics plugin). The scheme has to be http or https and the target
+  # parse as host:port - so give them the shapes install.sh writes. Its
+  # xo-ca.pem is mounted where the config reads it (XCP_NG_AGENT_MOUNTS
+  # below).
+  -e "XO_SCHEME=https"
+  -e "XO_ADDRESS=xo.example.com:443"
+  -e "XO_OPENMETRICS_SECRET=validate-only"
+  -e "XO_NAME=validate-only"
+  -e "XO_TLS_SERVER_NAME="
   # The Database Agent (one config per engine under agents/DatabaseAgent/
   # configs). The postgresql receiver splits the endpoint as host:port and
   # refuses an empty username or password, the TLS flags and the two event
@@ -382,6 +392,33 @@ if docker run --rm "${ENV_ARGS[@]}" -e "STORAGE_ARRAY_NAME=" "${STUB_MOUNTS[@]}"
 else
   echo "==> StorageArrayAgent refuses an empty STORAGE_ARRAY_NAME: ok"
 fi
+
+# The XCP-ng Agent: one config, and the certificates it trusts for Xen
+# Orchestra mounted where it reads them, as install.sh and docker-compose.yml
+# leave them (`validate` does not read the file, the collector started below
+# to look for aliases does; any certificate the Go x509 parser accepts will
+# do, nothing connects).
+XCP_NG_AGENT_MOUNTS=(-v "${WORK_DIR}/serviceaccount/ca.crt":/etc/oneuptime/xo-ca.pem:ro)
+cp "${REPO_ROOT}/agents/XcpNgAgent/otel-collector-config.yaml" "${WORK_DIR}/XcpNgAgent.yaml"
+validate "XcpNgAgent" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}"
+# A lab's http://, an IPv6 Xen Orchestra, and a certificate checked against
+# another name than the address (XO_TLS_SERVER_NAME): the shapes install.sh
+# writes for each.
+validate "XcpNgAgent / http:// in a lab" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}" \
+  -e "XO_SCHEME=http" -e "XO_ADDRESS=xo.example.com:80"
+validate "XcpNgAgent / an IPv6 address" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}" \
+  -e "XO_ADDRESS=[fd00::5]:443"
+validate "XcpNgAgent / XO_TLS_SERVER_NAME" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}" \
+  -e "XO_ADDRESS=10.0.0.5:8443" -e "XO_TLS_SERVER_NAME=xo.example.com"
+# It names its exporter otlp_http, not the otlphttp alias collector 0.165.0
+# warns about on every start (and a later release refuses).
+check_no_deprecated_alias "XcpNgAgent" "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}"
+# Values a person types, which the collector would read as YAML were they a
+# ${env:...} on their own (XcpNgAgentConfigs.test.js): the config must load
+# with each of them.
+validate "XcpNgAgent / a secret and a name YAML reads as a list and a map" \
+  "${WORK_DIR}/XcpNgAgent.yaml" "${XCP_NG_AGENT_MOUNTS[@]}" \
+  -e "XO_OPENMETRICS_SECRET=[x] a: b {c}" -e "XO_NAME=XO: lab [2026]"
 
 # The Database Agent ships one config per receiver; install.sh downloads the
 # chosen one as otel-collector-config.yaml. Every one of them is validated.

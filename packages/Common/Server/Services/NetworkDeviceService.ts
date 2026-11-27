@@ -4108,6 +4108,75 @@ export class Service extends ProjectReferencesService<Model> {
     return oldest;
   }
 
+  /*
+   * The devices whose SNMPv3 users a probe's trap receiver takes (OneUptime
+   * issue #11005): the devices assigned to the probe - held to the claim's
+   * tenancy backstop and to a project that is served, as polling is - that
+   * carry an SNMPv3 credential anywhere: their own, the credential profile
+   * they name, or their site's. Only their IDs: the credentials themselves
+   * are read through the service, which decrypts them, and only for these
+   * devices, so a fleet polled over v2c costs one statement and decrypts
+   * nothing.
+   *
+   * Polling switched off or a monitor-backed device still counts: neither
+   * stops a device's traps from being matched to it. A profile of another
+   * project is let through here and dropped by the hydration's tenancy check
+   * (NetworkDeviceHydrationUtil.resolveSnmpV3Carriers), loudly.
+   *
+   * The version columns are free text: "V3" as forms write it, "3" as the
+   * enum spells it (SnmpVersionUtil.parse reads both).
+   */
+  @CaptureSpan()
+  public async findDeviceIdsWithSnmpV3OnProbe(data: {
+    probeId: ObjectID;
+    limit: number;
+  }): Promise<Array<ObjectID>> {
+    const rows: unknown = await this.getRepository().manager.query(
+      `
+        SELECT nd."_id"::text AS "id"
+        FROM "NetworkDevice" nd
+        INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
+        INNER JOIN "Project" p ON nd."projectId" = p."_id"
+        LEFT JOIN "NetworkSnmpCredentialProfile" dp
+          ON dp."_id" = nd."snmpCredentialProfileId" AND dp."deletedAt" IS NULL
+        LEFT JOIN "NetworkSite" s
+          ON s."_id" = nd."siteId" AND s."deletedAt" IS NULL
+        LEFT JOIN "NetworkSnmpCredentialProfile" sp
+          ON sp."_id" = s."snmpCredentialProfileId" AND sp."deletedAt" IS NULL
+        WHERE nd."probeId" = $1
+          AND nd."deletedAt" IS NULL
+          AND (pr."isGlobalProbe" = true OR pr."projectId" = nd."projectId")
+          AND p."deletedAt" IS NULL
+          AND p."isBlocked" = false
+          AND (p."paymentProviderSubscriptionStatus" IS NULL OR p."paymentProviderSubscriptionStatus" = ANY($2::text[]))
+          AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL OR p."paymentProviderMeteredSubscriptionStatus" = ANY($2::text[]))
+          AND (
+            lower(btrim(coalesce(nd."snmpVersion", ''))) IN ('3', 'v3')
+            OR lower(btrim(coalesce(dp."snmpVersion", ''))) IN ('3', 'v3')
+            OR lower(btrim(coalesce(sp."snmpVersion", ''))) IN ('3', 'v3')
+          )
+        ORDER BY nd."_id"
+        LIMIT $3
+      `,
+      [
+        data.probeId.toString(),
+        SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
+        Math.max(0, Math.floor(data.limit)),
+      ],
+    );
+
+    return (Array.isArray(rows) ? rows : [])
+      .map((row: unknown): string => {
+        return String((row as { id?: unknown }).id || "");
+      })
+      .filter((id: string): boolean => {
+        return ObjectID.isValidUUID(id);
+      })
+      .map((id: string): ObjectID => {
+        return new ObjectID(id);
+      });
+  }
+
   private static toDate(value: Date | string | null | undefined): Date | null {
     if (!value) {
       return null;

@@ -42,6 +42,7 @@ import ServiceLevelObjective from "../../Models/DatabaseModels/ServiceLevelObjec
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StorageArray from "../../Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../Models/DatabaseModels/XcpNgPool";
 import Workflow from "../../Models/DatabaseModels/Workflow";
 import CloudResource from "../../Models/DatabaseModels/CloudResource";
 import DataStore from "../../Models/DatabaseModels/DataStore";
@@ -182,6 +183,7 @@ export const PRODUCT_RECORD_MODELS: Readonly<
   [ProductKey.StorageArrays]: StorageArray,
   [ProductKey.Network]: NetworkDevice,
   [ProductKey.IoT]: IoTFleet,
+  [ProductKey.XcpNg]: XcpNgPool,
   [ProductKey.Cloud]: CloudConnection,
   [ProductKey.Serverless]: ServerlessFunction,
   [ProductKey.Dashboards]: Dashboard,

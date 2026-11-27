@@ -150,7 +150,7 @@ For at ændre en værdi skal du fjerne agenten og køre dens kommando igen (Dock
 | Containermetrikker | CPU (forbrug, procent, throttling), hukommelse (forbrug, limit, procent), netværks- og blok-I/O, oppetid, genstarter og antal processer, pr. container, hvert 30. sekund. |
 | Containerlogs | stdout og stderr fra hver container, fra dens `json-file`-logfil. |
 
-Hver containers metrikker og logs arkiveres under en tjeneste opkaldt efter containeren. Hver loglinje får en alvorlighed ud fra det niveau, den nævner, såsom `[ERROR]`, `level=warn` eller `{"level":"info"}`; en linje, der ikke nævner noget, får sin strøms: stderr er `ERROR`, stdout er `INFO`. Linjer, der starter med mellemrum eller en lukkende parentes, sættes sammen med linjen før, så en stack trace ankommer som én post. Agentens egne logs udelades.
+Hver containers metrikker og logs arkiveres under en tjeneste opkaldt efter containeren. Hver loglinje får en alvorlighed ud fra det niveau, den nævner, såsom `[ERROR]`, `level=warn` eller `{"level":"info"}`, og en undtagelses traceback tæller som `ERROR`. En linje, der ikke nævner noget, er `INFO` på stdout og har ingen alvorlighed på stderr, hvor programmer skriver deres diagnostik på alle niveauer. Linjer, der starter med mellemrum eller en lukkende parentes, sættes sammen med linjen før, så en stack trace ankommer som én post. Agentens egne logs udelades.
 
 [Docker-monitor](/docs/monitor/docker-monitor#indsamlede-metrikker) viser hver metrik, og hvad den betyder.
 

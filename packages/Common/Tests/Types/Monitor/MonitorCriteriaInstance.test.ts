@@ -1,4 +1,5 @@
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
@@ -505,6 +506,141 @@ describe("MonitorCriteriaInstance", () => {
           monitorName: "Acme",
         }),
       ).toBeNull();
+    });
+
+    /*
+     * ISSUE #11071. A Network Device that answers ping while its SNMP walk
+     * fails is up, with an alert that says SNMP is failing - never offline
+     * over a credential problem.
+     */
+    describe("a Network Device's SNMP failing (#11071)", () => {
+      const onlineStatusId: ObjectID = ObjectID.generate();
+
+      const build: () => MonitorCriteriaInstance | null =
+        (): MonitorCriteriaInstance | null => {
+          return MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance(
+            {
+              monitorType: MonitorType.NetworkDevice,
+              alertSeverityId,
+              monitorName: "UN1782LANSWI03",
+              onlineMonitorStatusId: onlineStatusId,
+            },
+          );
+        };
+
+      test("is met when the device answers ping and its walk fails, both", () => {
+        const instance: MonitorCriteriaInstance = build()!;
+
+        expect(instance.data?.filterCondition).toBe(FilterCondition.All);
+        expect(instance.data?.filters).toEqual([
+          {
+            checkOn: CheckOn.IcmpIsReachable,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+          {
+            checkOn: CheckOn.SnmpWalkIsSucceeding,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        ]);
+      });
+
+      test("keeps the monitor online, so a device back from offline with SNMP still failing is not left offline", () => {
+        const instance: MonitorCriteriaInstance = build()!;
+
+        expect(instance.data?.changeMonitorStatus).toBe(true);
+        expect(instance.data?.monitorStatusId?.toString()).toBe(
+          onlineStatusId.toString(),
+        );
+      });
+
+      test("raises an alert, never an incident, that says SNMP is failing and what to check", () => {
+        const instance: MonitorCriteriaInstance = build()!;
+
+        expect(instance.data?.createIncidents).toBe(false);
+        expect(instance.data?.incidents).toEqual([]);
+        expect(instance.data?.createAlerts).toBe(true);
+        expect(instance.data?.alerts).toHaveLength(1);
+        expect(instance.data?.alerts[0]).toMatchObject({
+          title: "SNMP is failing on UN1782LANSWI03",
+          alertSeverityId: alertSeverityId,
+          autoResolveAlert: true,
+        });
+        expect(instance.data?.alerts[0]!.description).toContain(
+          "check the SNMP credentials, the agent or an ACL",
+        );
+        expect(instance.data?.name).toBe(
+          "Check if SNMP is failing on UN1782LANSWI03",
+        );
+      });
+
+      test("is left out without an online status to keep the monitor in", () => {
+        expect(
+          MonitorCriteriaInstance.getDefaultWarningMonitorCriteriaInstance({
+            monitorType: MonitorType.NetworkDevice,
+            alertSeverityId,
+            monitorName: "UN1782LANSWI03",
+          }),
+        ).toBeNull();
+      });
+
+      test("comes between offline and online in a new Network Device monitor's criteria", () => {
+        const offlineStatusId: ObjectID = ObjectID.generate();
+        const warningSeverityId: ObjectID = ObjectID.generate();
+        const criteria: MonitorCriteria =
+          MonitorCriteria.getDefaultMonitorCriteria({
+            monitorType: MonitorType.NetworkDevice,
+            monitorName: "UN1782LANSWI03",
+            onlineMonitorStatusId: onlineStatusId,
+            offlineMonitorStatusId: offlineStatusId,
+            defaultIncidentSeverityId: ObjectID.generate(),
+            defaultAlertSeverityId: alertSeverityId,
+            warningAlertSeverityId: warningSeverityId,
+          });
+        const instances: Array<MonitorCriteriaInstance> =
+          criteria.data!.monitorCriteriaInstanceArray;
+
+        expect(instances).toHaveLength(3);
+
+        // Offline: neither ping nor SNMP answered.
+        expect(instances[0]!.data?.filters).toEqual([
+          {
+            checkOn: CheckOn.SnmpIsOnline,
+            filterType: FilterType.False,
+            value: undefined,
+          },
+        ]);
+        expect(instances[0]!.data?.monitorStatusId?.toString()).toBe(
+          offlineStatusId.toString(),
+        );
+        expect(instances[0]!.data?.incidents[0]!.description).toBe(
+          "UN1782LANSWI03 answers neither ping (ICMP) nor SNMP.",
+        );
+
+        // SNMP failing: online, with the warning severity's alert.
+        expect(instances[1]!.data?.filters?.[0]?.checkOn).toBe(
+          CheckOn.IcmpIsReachable,
+        );
+        expect(instances[1]!.data?.monitorStatusId?.toString()).toBe(
+          onlineStatusId.toString(),
+        );
+        expect(instances[1]!.data?.alerts[0]!.alertSeverityId).toBe(
+          warningSeverityId,
+        );
+
+        // Online: ping or SNMP answered.
+        expect(instances[2]!.data?.filters).toEqual([
+          {
+            checkOn: CheckOn.SnmpIsOnline,
+            filterType: FilterType.True,
+            value: undefined,
+          },
+        ]);
+        expect(instances[2]!.data?.description).toBe(
+          "This criteria checks if UN1782LANSWI03 answers ping (ICMP) or SNMP",
+        );
+      });
     });
   });
 

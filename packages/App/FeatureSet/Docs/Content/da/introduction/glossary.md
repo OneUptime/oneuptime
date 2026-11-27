@@ -162,7 +162,7 @@ Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
 
 ### Infrastruktur
 
-Menuens gruppe for de maskiner og platforme, du kører: Værter, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Lagerarrays, Netværk og IoT. En agent eller en forbindelse fylder hver af dem, og hver viser, hvordan hver maskine, klynge eller enhed i den har det.
+Menuens gruppe for de maskiner og platforme, du kører: Værter, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Lagerarrays, Netværk og IoT. En agent eller en forbindelse fylder hver af dem, og hver viser, hvordan hver maskine, klynge eller enhed i den har det.
 
 Se [Værter](/docs/telemetry/hosts).
 

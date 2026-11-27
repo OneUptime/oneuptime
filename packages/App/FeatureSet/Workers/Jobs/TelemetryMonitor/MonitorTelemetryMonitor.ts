@@ -33,7 +33,12 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
 } from "Common/Utils/Monitor/MonitorPauseState";
-import { Service as MonitorProbeService } from "Common/Server/Services/MonitorProbeService";
+import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
+import {
+  TelemetryMonitorStamp,
+  returnTelemetryMonitorsNotQueued,
+  stampTelemetryMonitorsScheduled,
+} from "Common/Server/Utils/Monitor/TelemetryMonitorStamps";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import LogMonitorResponse from "Common/Types/Monitor/LogMonitor/LogMonitorResponse";
 import SecurityEventsMonitorResponse from "Common/Types/Monitor/SecurityEventsMonitor/SecurityEventsMonitorResponse";
@@ -106,6 +111,8 @@ import MetricMonitorResponse, {
   CephAffectedResource,
   StorageArrayResourceBreakdown,
   StorageArrayAffectedResource,
+  XcpNgResourceBreakdown,
+  XcpNgAffectedResource,
   DockerSwarmResourceBreakdown,
   DockerSwarmAffectedResource,
   PlatformResourceBreakdownSource,
@@ -197,6 +204,7 @@ import MonitorStepCephMonitor, {
   CephResourceFilters,
 } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
+import MonitorStepXcpNgMonitor from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 import MonitorStepDockerSwarmMonitor, {
   DockerSwarmResourceFilters,
   MonitorStepDockerSwarmMonitorUtil,
@@ -210,8 +218,12 @@ import { escapeWildcards } from "Common/Types/BaseDatabase/WildcardPattern";
 import {
   StorageArrayResourceFilterScopes,
   VMwareResourceFilterAttributeKeys,
+  XCP_NG_POOL_RESOURCE_ATTRIBUTE,
+  XcpNgResourceFilterAttributeKeys,
   applyStorageArrayResourceFilters,
   applyVMwareResourceFilters,
+  applyXcpNgResourceFilters,
+  getXcpNgStepPoolIdentifier,
 } from "Common/Utils/Monitor/MonitorStepMetricQueries";
 import { getKubernetesMetricByMetricName } from "Common/Types/Monitor/KubernetesMetricCatalog";
 import { getProxmoxMetricByMetricName } from "Common/Types/Monitor/ProxmoxMetricCatalog";
@@ -219,6 +231,7 @@ import { getOpenStackMetricByMetricName } from "Common/Types/Monitor/OpenStackMe
 import { getVMwareMetricByMetricName } from "Common/Types/Monitor/VMwareMetricCatalog";
 import { getCephMetricByMetricName } from "Common/Types/Monitor/CephMetricCatalog";
 import { getStorageArrayMetric } from "Common/Types/Monitor/StorageArrayMetricCatalog";
+import { getXcpNgMetricByMetricName } from "Common/Types/Monitor/XcpNgMetricCatalog";
 import { getDockerSwarmMetricByMetricName } from "Common/Types/Monitor/DockerSwarmMetricCatalog";
 import { JSONObject } from "Common/Types/JSON";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -242,15 +255,19 @@ import { readResourceStillReporting } from "./ResourceStillReporting";
 import { monitorPromQLMetric } from "./PromQLMetricMonitor";
 
 /*
- * How a VMware or Storage Array step's resource filters become attribute
- * equalities: shared with the dashboard's charts of a monitor's metrics, so
- * both read a step the same way. Re-exported for the worker's tests.
+ * How a VMware, Storage Array or XCP-ng step's resource filters become
+ * attribute equalities: shared with the dashboard's charts of a monitor's
+ * metrics, so both read a step the same way. Re-exported for the worker's
+ * tests.
  */
 export {
   StorageArrayResourceFilterScopes,
   VMwareResourceFilterAttributeKeys,
+  XCP_NG_POOL_RESOURCE_ATTRIBUTE,
+  XcpNgResourceFilterAttributeKeys,
   applyStorageArrayResourceFilters,
   applyVMwareResourceFilters,
+  applyXcpNgResourceFilters,
 };
 
 type TelemetryMonitorResponse =
@@ -263,33 +280,52 @@ type TelemetryMonitorResponse =
   | ProfileMonitorResponse;
 
 /*
- * How many due telemetry monitors one page of the scheduler reads, stamps
- * with one UPDATE and queues; and how many of a page's evaluation jobs are
- * queued at once.
+ * How many due telemetry monitors one page of the scheduler reads, and how
+ * many of a step's evaluation jobs are queued at once.
  */
 export const TELEMETRY_SCHEDULE_PAGE_SIZE: number = 500;
 export const TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY: number = 25;
 
-// When a telemetry monitor is next due, from the moment it was scheduled.
+/*
+ * How often the scheduler runs (ScheduleTelemetryMonitorEvaluations,
+ * EVERY_TEN_SECONDS): each run queues the evaluations due before the next
+ * one, each at the moment it is due.
+ */
+export const TELEMETRY_SCHEDULE_TICK_MS: number = 10 * 1000;
+
+/*
+ * How long before the next run's tick a run stops queueing, so it has
+ * finished and let go of its lock (CronLock) when the next run starts:
+ * what is due in that last half second, the next run queues as it starts.
+ */
+export const TELEMETRY_SCHEDULE_DISPATCH_MARGIN_MS: number = 500;
+
+/*
+ * How close together due times are queued as one step: one UPDATE stamps a
+ * step, and its jobs are queued together, at the latest due time in it -
+ * never before any of them is due.
+ */
+export const TELEMETRY_SCHEDULE_DISPATCH_STEP_MS: number = 100;
+
+/*
+ * When a telemetry monitor is next due: its first run after `after`, at its
+ * own moment of its interval (TelemetryMonitorSchedule) - the same moment
+ * of every interval, on every replica and after every restart.
+ */
 export const getTelemetryMonitorNextMonitorAt: (data: {
   monitor: Monitor;
-  now: Date;
-}) => Date = (data: { monitor: Monitor; now: Date }): Date => {
-  const oneMinuteLater: Date = OneUptimeDate.addRemoveMinutes(data.now, 1);
-
-  /*
-   * Same reading of the column as the probe scheduler uses, so a telemetry
-   * monitor storing a human cadence ("5m") is not quietly pinned to a
-   * 1-minute poll the way probe monitors were.
-   */
-  if (!data.monitor.monitoringInterval) {
-    return oneMinuteLater;
-  }
-
-  return MonitorProbeService.resolveNextPingAt({
-    monitoringInterval: data.monitor.monitoringInterval as string,
-    fallback: oneMinuteLater,
-    onUnreadable: () => {
+  after: Date;
+}) => Date = (data: { monitor: Monitor; after: Date }): Date => {
+  return TelemetryMonitorSchedule.getNextRunAt({
+    monitorId: data.monitor.id!,
+    monitoringInterval: data.monitor.monitoringInterval,
+    after: data.after,
+    /*
+     * Same reading of the column as the probe scheduler uses, so a
+     * telemetry monitor storing a human cadence ("5m") is not quietly
+     * pinned to a 1-minute poll the way probe monitors were.
+     */
+    onUnreadable: (): void => {
       logger.error(
         `MonitorTelemetryMonitor: monitoringInterval "${data.monitor.monitoringInterval}" cannot be read as a schedule; falling back to a 1-minute cadence.`,
         {
@@ -302,53 +338,176 @@ export const getTelemetryMonitorNextMonitorAt: (data: {
 };
 
 /*
- * Stamps a page of due telemetry monitors as scheduled: when they were last
- * scheduled (now) and when each is next due. One UPDATE per next-due time -
- * nearly always one for the whole page, as most monitors check every minute
- * - where the scheduler used to send one UPDATE per monitor, every minute,
- * all at once.
- *
- * Scheduler bookkeeping, so a single statement with no hooks: the full
- * update pipeline would cost ~4 statements per monitor and - because
- * Monitor has @EnableWorkflow + @EnableAuditLog - an on-update workflow
- * trigger and an audit entry per monitor per minute. updatedAt is refreshed,
- * as the write it replaces refreshed it.
+ * Where a run that started at `runStartedAt` stops queueing: just before
+ * the next run's tick. Never before the run started, so a run that starts
+ * late still queues what is due by then.
  */
-export const stampTelemetryMonitorsScheduled: (data: {
-  lastMonitorAt: Date;
-  monitors: Array<{ id: ObjectID; nextMonitorAt: Date }>;
+export const getTelemetryDispatchWindowEnd: (runStartedAt: Date) => Date = (
+  runStartedAt: Date,
+): Date => {
+  const startedAtMs: number = runStartedAt.getTime();
+  const nextTickMs: number =
+    (Math.floor(startedAtMs / TELEMETRY_SCHEDULE_TICK_MS) + 1) *
+    TELEMETRY_SCHEDULE_TICK_MS;
+
+  return new Date(
+    Math.max(startedAtMs, nextTickMs - TELEMETRY_SCHEDULE_DISPATCH_MARGIN_MS),
+  );
+};
+
+// A due monitor, and when its evaluation is to be queued.
+interface TelemetryDispatch {
+  monitor: Monitor;
+  /*
+   * Its next due time; the run's start for one never scheduled, or due
+   * before the run started (the scheduler was stopped, or a run skipped).
+   */
+  dueAtMs: number;
+}
+
+/*
+ * Waits until `atMs`, or until the deadline passes, whichever is first.
+ * Returns at once for a time already past.
+ */
+const waitUntil: (data: {
+  atMs: number;
+  deadline: JobDeadline;
 }) => Promise<void> = async (data: {
-  lastMonitorAt: Date;
-  monitors: Array<{ id: ObjectID; nextMonitorAt: Date }>;
+  atMs: number;
+  deadline: JobDeadline;
 }): Promise<void> => {
-  const idsByNextMonitorAt: Map<number, Array<string>> = new Map();
+  const waitMs: number = data.atMs - OneUptimeDate.getCurrentDate().getTime();
 
-  for (const monitor of data.monitors) {
-    const nextMonitorAtMs: number = monitor.nextMonitorAt.getTime();
-    const ids: Array<string> = idsByNextMonitorAt.get(nextMonitorAtMs) || [];
-    ids.push(monitor.id.toString());
-    idsByNextMonitorAt.set(nextMonitorAtMs, ids);
+  if (waitMs <= 0 || data.deadline.hasPassed()) {
+    return;
   }
 
-  for (const [nextMonitorAtMs, ids] of idsByNextMonitorAt) {
-    await MonitorService.getRepository().manager.query(
-      `UPDATE "Monitor" SET "telemetryMonitorLastMonitorAt" = $1, "telemetryMonitorNextMonitorAt" = $2, "updatedAt" = CURRENT_TIMESTAMP WHERE "_id" = ANY($3::uuid[])`,
-      [data.lastMonitorAt, new Date(nextMonitorAtMs), ids],
-    );
-  }
+  await new Promise<void>((resolve: () => void) => {
+    let stopListening: () => void = (): void => {
+      // Replaced once the deadline is listened to, below.
+    };
+
+    const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+      stopListening();
+      resolve();
+    }, waitMs);
+
+    stopListening = data.deadline.onPassed((): void => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
 };
 
 /*
- * THE TELEMETRY MONITOR SCHEDULER, every minute: every telemetry monitor
- * that is due is stamped with when it is next due and has its evaluation
- * queued (processTelemetryMonitorEvaluationFromQueue).
+ * Queues one step's evaluations: stamps its monitors (those another run
+ * has queued since are left out), queues the evaluation of each one
+ * stamped, and makes due again any whose job the queue refused.
+ */
+const dispatchTelemetryStep: (
+  step: Array<TelemetryDispatch>,
+) => Promise<number> = async (
+  step: Array<TelemetryDispatch>,
+): Promise<number> => {
+  const dispatchedAt: Date = OneUptimeDate.getCurrentDate();
+
+  const stamps: Map<string, TelemetryMonitorStamp> = new Map();
+
+  for (const entry of step) {
+    stamps.set(entry.monitor.id!.toString().toLowerCase(), {
+      id: entry.monitor.id!,
+      dueAt: new Date(entry.dueAtMs),
+      /*
+       * After the time it was due and after now, whichever is later: a
+       * monitor is never due again at a time already past.
+       */
+      nextMonitorAt: getTelemetryMonitorNextMonitorAt({
+        monitor: entry.monitor,
+        after: new Date(Math.max(dispatchedAt.getTime(), entry.dueAtMs)),
+      }),
+    });
+  }
+
+  const stamped: Set<string> = await stampTelemetryMonitorsScheduled({
+    lastMonitorAt: dispatchedAt,
+    monitors: Array.from(stamps.values()),
+  });
+
+  const toQueue: Array<TelemetryDispatch> = step.filter(
+    (entry: TelemetryDispatch): boolean => {
+      return stamped.has(entry.monitor.id!.toString().toLowerCase());
+    },
+  );
+
+  const notQueued: Array<TelemetryMonitorStamp> = [];
+
+  // The evaluation job skips a monitor without steps (see the select below).
+  await forEachWithConcurrency<TelemetryDispatch>({
+    items: toQueue,
+    concurrency: TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY,
+    work: (entry: TelemetryDispatch): Promise<void> => {
+      return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
+        monitorId: entry.monitor.id!,
+        projectId: entry.monitor.projectId!,
+      });
+    },
+    onError: (entry: TelemetryDispatch, error: unknown): void => {
+      const attrs: LogAttributes = {
+        projectId: entry.monitor.projectId?.toString(),
+      };
+      logger.error(
+        `Error while enqueueing telemetry monitor evaluation: ${entry.monitor.id?.toString()}`,
+        attrs,
+      );
+      logger.error(error, attrs);
+
+      const stamp: TelemetryMonitorStamp | undefined = stamps.get(
+        entry.monitor.id!.toString().toLowerCase(),
+      );
+
+      if (stamp) {
+        notQueued.push(stamp);
+      }
+    },
+  });
+
+  if (notQueued.length > 0) {
+    try {
+      await returnTelemetryMonitorsNotQueued(notQueued);
+    } catch (error) {
+      logger.error(
+        `Could not make ${notQueued.length} telemetry monitors due again after their evaluations could not be queued; each is evaluated at its next due time.`,
+        { service: "workers" },
+      );
+      logger.error(error, { service: "workers" });
+    }
+  }
+
+  return toQueue.length - notQueued.length;
+};
+
+/*
+ * THE TELEMETRY MONITOR SCHEDULER, every 10 seconds: every telemetry
+ * monitor due before the next run has its evaluation queued
+ * (processTelemetryMonitorEvaluationFromQueue) at the moment it is due -
+ * its own moment of its interval (TelemetryMonitorSchedule), so the
+ * evaluations of an installation start spread over each minute instead of
+ * all in its first seconds (issue #11060) - and is stamped with when it is
+ * next due as it is queued.
  *
- * A page at a time, in _id order (forEachKeysetPage): each page is read,
- * stamped with one UPDATE, and its jobs queued a few at a time, before the
- * next is read. The scheduler used to read every due monitor, then send one
- * UPDATE per monitor and queue every job, all at the same moment. It stops
- * between pages at its deadline: the monitors it did not reach are still
- * due, and the next run starts with them.
+ * The due monitors are read a page at a time, in _id order
+ * (forEachKeysetPage), then queued in the order they are due, a step at a
+ * time (TELEMETRY_SCHEDULE_DISPATCH_STEP_MS): each step stamped with one
+ * UPDATE and its jobs queued a few at a time, at the latest due time in it.
+ * A monitor never scheduled, or due before the run started, is queued at
+ * once. The run stops before the next run's tick, and at its deadline: the
+ * monitors it did not reach are still due, and the next run starts with
+ * them.
+ *
+ * Nothing waits in the queue for its time: a job is added when its
+ * evaluation is due, so the queue's backlog - which KEDA scales workers on
+ * and which says how far behind ingest is (TelemetryIngestBacklog) - holds
+ * no evaluation that is merely waiting for its moment.
  */
 export const enqueueDueTelemetryMonitorEvaluationJobs: (
   deadline?: JobDeadline,
@@ -359,7 +518,9 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
     service: "workers",
   });
 
-  const now: Date = OneUptimeDate.getCurrentDate();
+  const runStartedAt: Date = OneUptimeDate.getCurrentDate();
+  const dispatchUntil: Date = getTelemetryDispatchWindowEnd(runStartedAt);
+  const due: Array<TelemetryDispatch> = [];
 
   const result: KeysetPagesResult = await forEachKeysetPage<Monitor>({
     jobName: "TelemetryMonitor:MonitorTelemetryMonitor",
@@ -376,8 +537,9 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
           monitorType: DatabaseQueryHelper.any(
             MonitorTypeHelper.getTelemetryMonitorTypes(),
           ),
+          // Due before this run stops queueing, or never scheduled.
           telemetryMonitorNextMonitorAt:
-            DatabaseQueryHelper.lessThanEqualToOrNull(now),
+            DatabaseQueryHelper.lessThanEqualToOrNull(dispatchUntil),
           /*
            * Not a project a master admin blocked: its monitors wait, due,
            * until it is unblocked (MonitorResource refuses any that slip
@@ -400,15 +562,15 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
          * skips such a monitor itself
          * (processTelemetryMonitorEvaluationFromQueue). So every due monitor
          * is queued, and a monitor without steps (made through the API
-         * without any, as the Dashboard never makes one) costs one job a
-         * minute that ends at its first check.
+         * without any, as the Dashboard never makes one) costs one job an
+         * interval that ends at its first check.
          */
         select: {
           _id: true,
-          createdAt: true,
           monitoringInterval: true,
           monitorType: true,
           projectId: true,
+          telemetryMonitorNextMonitorAt: true,
         },
         sort: {
           _id: SortOrder.Ascending,
@@ -418,48 +580,73 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
       });
     },
     onPage: async (telemetryMonitors: Array<Monitor>): Promise<void> => {
-      await stampTelemetryMonitorsScheduled({
-        lastMonitorAt: now,
-        monitors: telemetryMonitors.map(
-          (monitor: Monitor): { id: ObjectID; nextMonitorAt: Date } => {
-            return {
-              id: monitor.id!,
-              nextMonitorAt: getTelemetryMonitorNextMonitorAt({
-                monitor: monitor,
-                now: now,
-              }),
-            };
-          },
-        ),
-      });
+      for (const monitor of telemetryMonitors) {
+        const nextMonitorAtMs: number = monitor.telemetryMonitorNextMonitorAt
+          ? new Date(monitor.telemetryMonitorNextMonitorAt).getTime()
+          : Number.NaN;
 
-      // The evaluation job skips a monitor without steps (see the select above).
-      await forEachWithConcurrency<Monitor>({
-        items: telemetryMonitors,
-        concurrency: TELEMETRY_SCHEDULE_ENQUEUE_CONCURRENCY,
-        work: (monitor: Monitor): Promise<void> => {
-          return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
-            monitorId: monitor.id!,
-            projectId: monitor.projectId!,
-          });
-        },
-        onError: (monitor: Monitor, error: unknown): void => {
-          const attrs: LogAttributes = {
-            projectId: monitor.projectId?.toString(),
-          };
-          logger.error(
-            `Error while enqueueing telemetry monitor evaluation: ${monitor.id?.toString()}`,
-            attrs,
-          );
-          logger.error(error, attrs);
-        },
-      });
+        due.push({
+          monitor: monitor,
+          dueAtMs: Number.isFinite(nextMonitorAtMs)
+            ? Math.max(nextMonitorAtMs, runStartedAt.getTime())
+            : runStartedAt.getTime(),
+        });
+      }
     },
   });
 
+  // A run whose deadline passed may have lost its lock to another: it stops.
+  if (result.stoppedAtDeadline || deadline.hasPassed()) {
+    logger.debug(
+      `Read ${result.rows} due telemetry monitors in ${result.pages} pages, and stopped at the job's deadline before queueing them.`,
+      { service: "workers" },
+    );
+    return;
+  }
+
+  due.sort((a: TelemetryDispatch, b: TelemetryDispatch): number => {
+    return a.dueAtMs - b.dueAtMs;
+  });
+
+  let queued: number = 0;
+  let steps: number = 0;
+  let index: number = 0;
+
+  while (index < due.length) {
+    const stepStartsAtMs: number = due[index]!.dueAtMs;
+    const step: Array<TelemetryDispatch> = [];
+
+    /*
+     * At most a page of monitors a step, so a step's UPDATE stays the size
+     * of a page's however many are due at once (a run after the scheduler
+     * was stopped, the first run after an upgrade).
+     */
+    while (
+      index < due.length &&
+      step.length < TELEMETRY_SCHEDULE_PAGE_SIZE &&
+      due[index]!.dueAtMs < stepStartsAtMs + TELEMETRY_SCHEDULE_DISPATCH_STEP_MS
+    ) {
+      step.push(due[index]!);
+      index++;
+    }
+
+    // Never before any monitor of the step is due.
+    await waitUntil({
+      atMs: step[step.length - 1]!.dueAtMs,
+      deadline: deadline,
+    });
+
+    if (deadline.hasPassed()) {
+      break;
+    }
+
+    queued += await dispatchTelemetryStep(step);
+    steps++;
+  }
+
   logger.debug(
-    `Scheduled ${result.rows} telemetry monitors in ${result.pages} pages${
-      result.stoppedAtDeadline ? ", stopped at the job's deadline" : ""
+    `Queued ${queued} of ${due.length} due telemetry monitor evaluations in ${steps} steps (read in ${result.pages} pages)${
+      deadline.hasPassed() ? ", stopped at the job's deadline" : ""
     }`,
     { service: "workers" },
   );
@@ -1768,6 +1955,15 @@ const monitorTelemetryMonitor: MonitorTelemetryMonitorFunction = async (data: {
 
   if (monitorType === MonitorType.VMware) {
     return monitorVMware({
+      monitorStep,
+      monitorId,
+      projectId,
+      evaluateUntil,
+    });
+  }
+
+  if (monitorType === MonitorType.XcpNg) {
+    return monitorXcpNg({
       monitorStep,
       monitorId,
       projectId,
@@ -4193,6 +4389,241 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
       vmwareResourceBreakdowns.length > 0
         ? vmwareResourceBreakdowns
         : undefined,
+    seriesBreakdown: seriesBreakdown,
+    monitorId: data.monitorId,
+    nativeUnitsByMetricName: unitsByMetricName,
+  };
+};
+
+type MonitorXcpNgFunction = (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
+}) => Promise<MetricMonitorResponse>;
+
+/*
+ * One check of an XCP-ng monitor: every query of the step read for its
+ * pool alone, by the pool's XAPI UUID - the `xcp_ng.pool.id` resource
+ * attribute the XCP-ng Agent stamps (one OTLP resource per pool, since one
+ * Xen Orchestra reports many) - never by its name, which can be empty, can
+ * change, and can be the same on two Xen Orchestras. The step's resource
+ * filters narrow it further to a scope (host, VM, storage repository, ...),
+ * one object by its UUID or one host and its VMs (applyXcpNgResourceFilters,
+ * which the dashboard's charts of the monitor share).
+ */
+export const monitorXcpNg: MonitorXcpNgFunction = async (data: {
+  monitorStep: MonitorStep;
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  evaluateUntil?: Date | undefined;
+}): Promise<MetricMonitorResponse> => {
+  const xcpNgMonitorConfig: MonitorStepXcpNgMonitor | undefined =
+    data.monitorStep.data?.xcpNgMonitor;
+
+  if (!xcpNgMonitorConfig) {
+    throw new BadDataException(
+      "This XCP-ng monitor step has no XCP-ng settings. Edit the monitor and pick its XCP-ng pool.",
+    );
+  }
+
+  const startAndEndDate: InBetween<Date> =
+    RollingTimeUtil.convertToStartAndEndDate(
+      xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
+      data.evaluateUntil,
+    );
+
+  const finalResult: Array<AggregatedResult> = [];
+
+  // When each query's series got their data, where that was read.
+  const perQueryArrivals: Array<QueryArrivals | null> = [];
+  const judgesFreshness: boolean = stepJudgesFreshness(data.monitorStep);
+
+  // What each query was read with, for what it is judged against.
+  const readAttributes: Array<Dictionary<unknown> | undefined> = [];
+
+  // Where a read was cut at its row limit - see getCutReadCompleteFrom.
+  let dataCompleteFrom: Date | undefined = undefined;
+
+  // One breakdown per query, in query order — see monitorKubernetes.
+  const xcpNgResourceBreakdowns: Array<XcpNgResourceBreakdown> = [];
+
+  const poolIdentifier: string = getXcpNgStepPoolIdentifier(
+    xcpNgMonitorConfig.poolIdentifier,
+  );
+
+  const queryConfigs: Array<MetricQueryConfigData> =
+    xcpNgMonitorConfig.metricViewConfig?.queryConfigs || [];
+
+  const formulaConfigs: Array<MetricFormulaConfigData> =
+    xcpNgMonitorConfig.metricViewConfig?.formulaConfigs || [];
+
+  const groupByAttributeKeys: Array<string> =
+    collectGroupByAttributeKeys(queryConfigs);
+
+  for (const queryConfig of queryConfigs) {
+    const metricName: string =
+      (queryConfig.metricQueryData.filterData.metricName as string) || "";
+
+    const query: Query<Metric> = {
+      projectId: data.projectId,
+      time: startAndEndDate,
+      name: metricName,
+    };
+
+    // Start with any user-defined attribute filters
+    const attributes: Dictionary<string> = {};
+
+    if (
+      queryConfig.metricQueryData &&
+      queryConfig.metricQueryData.filterData &&
+      queryConfig.metricQueryData.filterData.attributes &&
+      Object.keys(queryConfig.metricQueryData.filterData.attributes).length > 0
+    ) {
+      Object.assign(
+        attributes,
+        queryConfig.metricQueryData.filterData.attributes,
+      );
+    }
+
+    // Always the step's own pool, by its UUID.
+    if (poolIdentifier) {
+      attributes[XCP_NG_POOL_RESOURCE_ATTRIBUTE] = poolIdentifier;
+    }
+
+    applyXcpNgResourceFilters({
+      attributes: attributes,
+      resourceFilters: xcpNgMonitorConfig.resourceFilters,
+    });
+
+    if (Object.keys(attributes).length > 0) {
+      query.attributes = attributes;
+    }
+
+    const aggregationType: MetricsAggregationType =
+      (queryConfig.metricQueryData.filterData
+        .aggegationType as MetricsAggregationType) ||
+      MetricsAggregationType.Avg;
+
+    const dataPoints: QueryDataPoints = await readQueryDataPoints({
+      query: query,
+      aggregationType: aggregationType,
+      groupByAttributeKeys: groupByAttributeKeys,
+      groupBy: queryConfig.metricQueryData.groupBy,
+      startAndEndDate: startAndEndDate,
+      judgesFreshness: judgesFreshness,
+    });
+
+    const aggregatedResults: AggregatedResult = dataPoints.aggregatedResult;
+
+    dataCompleteFrom = getLaterDate(dataCompleteFrom, dataPoints.completeFrom);
+
+    logger.debug("XCP-ng monitor aggregated results", {
+      service: "workers",
+      projectId: data.projectId.toString(),
+    });
+
+    finalResult.push(aggregatedResults);
+    perQueryArrivals.push(dataPoints.arrivals);
+    readAttributes.push(getReadAttributes(query));
+
+    /*
+     * The hosts, VMs and storage repositories behind the values, from the
+     * raw datapoints (xcp_ng.scope / xcp_ng.id and Xen Orchestra's name
+     * labels). Best effort: a failed scan leaves the Affected Resources
+     * list out and never fails the monitor.
+     */
+    const affectedResources: Array<XcpNgAffectedResource> | undefined =
+      await scanAffectedResources({
+        query: query,
+        projectId: data.projectId,
+        platformName: "XCP-ng",
+        getIdentity: PlatformResourceIdentity.xcpNg,
+        getIdentityKey: PlatformResourceIdentity.xcpNgKey,
+      });
+
+    if (affectedResources) {
+      xcpNgResourceBreakdowns.push({
+        poolIdentifier: poolIdentifier,
+        metricName: metricName,
+        metricFriendlyName:
+          getXcpNgMetricByMetricName(metricName)?.friendlyName || metricName,
+        affectedResources: affectedResources,
+        attributes: attributes,
+        metricAlias: queryConfig.metricAliasData?.metricVariable,
+      });
+    }
+  }
+
+  const metricCatalog: QueryMetricCatalog = await loadQueryMetricCatalog({
+    queryConfigs: queryConfigs,
+    projectId: data.projectId,
+  });
+
+  const nativeUnitsByMetricName: Map<string, string> =
+    metricCatalog.nativeUnitsByMetricName;
+
+  // How the step's formulas read a count with no point in a step.
+  const zeroFill: MetricZeroFillOptions = getFormulaZeroFill({
+    metricTypes: metricCatalog.metricTypes,
+    startAndEndDate: startAndEndDate,
+  });
+
+  const unitsByMetricName: Dictionary<string> = buildNativeUnitsByMetricName({
+    monitorType: MonitorType.XcpNg,
+    queryConfigs: queryConfigs,
+    declaredUnitsByMetricName: nativeUnitsByMetricName,
+  });
+
+  tagBreakdownsWithMetricUnit({
+    breakdowns: xcpNgResourceBreakdowns,
+    unitsByMetricName: unitsByMetricName,
+  });
+
+  const resultsInDisplayUnit: Array<AggregatedResult> =
+    MetricResultUnitConverter.convertQueryResultsToDisplayUnit({
+      queryConfigs: queryConfigs,
+      results: finalResult,
+      nativeUnitByMetricName: nativeUnitsByMetricName,
+    });
+
+  const resultsWithFormulas: Array<AggregatedResult> =
+    await appendFormulaResultsInSlices({
+      queryConfigs: queryConfigs,
+      formulaConfigs: formulaConfigs,
+      aggregatedResults: resultsInDisplayUnit,
+      projectId: data.projectId,
+      zeroFill: zeroFill,
+    });
+
+  const seriesBreakdown: Array<MetricSeriesResult> | undefined =
+    groupByAttributeKeys.length > 0
+      ? await buildSeriesBreakdownInSlices({
+          queryConfigs: queryConfigs,
+          formulaConfigs: formulaConfigs,
+          perQueryResults: resultsInDisplayUnit,
+          perQueryArrivals: perQueryArrivals,
+          attributeKeys: groupByAttributeKeys,
+          projectId: data.projectId,
+          zeroFill: zeroFill,
+        })
+      : undefined;
+
+  return {
+    projectId: data.projectId,
+    metricViewConfig: xcpNgMonitorConfig.metricViewConfig,
+    startAndEndDate: startAndEndDate,
+    dataCompleteFrom: dataCompleteFrom,
+    metricResultArrivals: getSlotArrivals({
+      perQueryArrivals: perQueryArrivals,
+      queryConfigs: queryConfigs,
+      formulaConfigs: formulaConfigs,
+      zeroFill: zeroFill,
+    }),
+    metricResult: resultsWithFormulas,
+    queryAttributes: readAttributes,
+    xcpNgResourceBreakdowns:
+      xcpNgResourceBreakdowns.length > 0 ? xcpNgResourceBreakdowns : undefined,
     seriesBreakdown: seriesBreakdown,
     monitorId: data.monitorId,
     nativeUnitsByMetricName: unitsByMetricName,

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 63890,
-    "untranslated": 4740
+    "keys": 65322,
+    "untranslated": 4753
   },
   "sameAsEnglish": [
     " incidents",
@@ -392,6 +392,7 @@
     "Nauru",
     "Nav",
     "Navigation",
+    "Net",
     "NetApp ONTAP",
     "NetFlow v5",
     "New York",
@@ -596,6 +597,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
@@ -690,6 +693,7 @@
     "namespace",
     "nova-compute",
     "ns",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -703,6 +707,7 @@
     "p95 {{latency}}",
     "p99 (ms)",
     "pages",
+    "payments, search, platform-*",
     "persistent volume claim",
     "pod",
     "pods",

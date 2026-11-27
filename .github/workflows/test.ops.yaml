@@ -218,6 +218,18 @@ jobs:
       # namespaces) must leave as WARN, Normal Events and resource specs as
       # INFO, none dropped.
       - run: bash Tests/Ops/agent-event-severity-behaviour.sh
+      # And for pod and container logs (issue #10972): the severity chain of
+      # the Kubernetes agent's DaemonSet (on the collector the chart pins and
+      # on 0.96.0, with and without filters.logs.minSeverity=ERROR) and of the
+      # Docker, Docker Swarm and Podman agents, each config exactly as it
+      # ships, over the log lines of Tests/Ops/Utils/LogSeverityCorpus.js
+      # written as each runtime writes them to disk. Every line must leave at
+      # the level it names (hclog behind a time ending in Z, klog's letter,
+      # PostgreSQL's LOG, Spring Boot 3, pino's numbers, an exception's
+      # header), a line that names none on stderr with no severity rather
+      # than ERROR, none dropped or doubled, nothing below ERROR kept under
+      # the filter, and no error logged by the chain.
+      - run: bash Tests/Ops/agent-log-severity-behaviour.sh
       # And for a host's journal (issue #9748): the journald operators of
       # OneUptime's default host collector config, as the server sends it,
       # on the release the host installers pin, fed entries as journalctl
@@ -330,6 +342,20 @@ jobs:
       # schedules in seconds) and none of Harvest's self-timing; the password
       # O'ne "up" #time: \ $HOME must reach the cluster exactly and be in no log.
       - run: bash Tests/Ops/storage-array-agent-netapp-behaviour.sh
+      # And for the XCP-ng Agent's scrape of Xen Orchestra (#10995): its
+      # collector exactly as it ships (scraping every 5 seconds instead of 60)
+      # against a stand-in Xen Orchestra serving the recorded OpenMetrics
+      # scrape over HTTPS, exporting through a stand-in OneUptime into an
+      # OTLP sink. Each pool must arrive as one resource carrying its
+      # identity, every served sample with its value and the second Xen
+      # Orchestra served, the eight rate series it types counter as gauges,
+      # nothing without a pool and nothing but xcp_*; a wrong secret, a
+      # certificate that is not the pinned one, and Xen Orchestra's own
+      # self-signed certificate (which names no host) must each send
+      # nothing. The run is also held to the OTLP fixtures the ingest tests
+      # read (packages/Common/Tests/Server/Utils/Telemetry/Fixtures/XcpNg).
+      # Its stand-ins run on the node image warmed above.
+      - run: bash Tests/Ops/xcp-ng-agent-scrape-behaviour.sh
       # The VMware agent without Docker, end to end: the install, upgrade and
       # uninstall commands of the docs page, run as written by a sudo user in
       # a systemd container (root umask 077) against a vCenter simulator and a

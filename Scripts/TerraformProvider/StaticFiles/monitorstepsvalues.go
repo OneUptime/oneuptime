@@ -101,6 +101,7 @@ var monitorStepsRollingTimeSettings = []struct {
 	{"proxmoxMonitor", "Proxmox"},
 	{"openstackMonitor", "OpenStack"},
 	{"vmwareMonitor", "VMware"},
+	{"xcpNgMonitor", "XCP-ng"},
 	{"cephMonitor", "Ceph"},
 	{"storageArrayMonitor", "Storage Array"},
 	{"iotMonitor", "IoT Device"},

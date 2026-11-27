@@ -32,6 +32,7 @@ export enum AffectedResourceKind {
   ProxmoxCluster = "ProxmoxCluster",
   OpenStackCloud = "OpenStackCloud",
   VMwareVCenter = "VMwareVCenter",
+  XcpNgPool = "XcpNgPool",
   CephCluster = "CephCluster",
   StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",

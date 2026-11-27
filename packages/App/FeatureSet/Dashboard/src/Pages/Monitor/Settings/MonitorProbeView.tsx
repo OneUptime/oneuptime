@@ -40,6 +40,7 @@ import ProbeBehindUtil, {
 } from "Common/Types/Probe/ProbeBehind";
 import CustomProbeDocumentation from "../../../Components/Probe/CustomProbeDocumentation";
 import ProbePacketCaptures from "../../../Components/PacketCapture/ProbePacketCaptures";
+import ProbeSnmpTraps from "../../../Components/Probe/ProbeSnmpTraps";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { CardButtonSchema } from "Common/UI/Components/Card/Card";
@@ -390,6 +391,13 @@ const ProbeView: FunctionComponent<PageComponentProps> = (
           modelId: modelId,
         }}
       />
+
+      {/*
+       * Its SNMP trap receiver (#11005): the SNMPv3 engine ID a device that
+       * sends informs needs, the SNMPv3 users it takes traps from, and the
+       * SNMPv3 traps it refused, with what to change.
+       */}
+      <ProbeSnmpTraps probeId={modelId} />
 
       {/*
        * Captures of the traffic this probe sees, started here and downloaded

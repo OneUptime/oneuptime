@@ -41,7 +41,7 @@ flowchart TB
 - **排定維護**：建立和管理維護事件。
 - **遙測**：查詢日誌、指標、追蹤、例外、監測器日誌、安全性事件等，唯讀。
 
-有針對 55 種記錄的建立、取得、列出、更新、刪除和計數工具，有針對 9 種遙測的列出和計數工具，還有專為事件應變打造的工具。像事件與警示之間的關聯這樣、建立後沒有任何欄位可以變更的記錄類型，沒有更新工具。唯讀工具帶有 `readOnlyHint`，每個會變更內容的工具都帶有 `destructiveHint`，因此用戶端可以自行執行唯讀呼叫，並在做出任何變更之前詢問您。`openWorldHint` 標示那些會觸及您的專案之外的工具：公開狀態頁工具；會顯示在狀態頁上並傳送給其訂閱者的變更，例如新事件、事件狀態的變化或公開備註；透過電子郵件寄給尚不必是專案成員之人的邀請；以及建立或變更監測器、資料儲存或 BI 工具的工具，因為之後 OneUptime 會存取您提供的位址。失敗的工具呼叫會以工具結果（`isError: true`）傳回，其中包含 `statusCode`、詳細資料和建議，而不是以 MCP 通訊協定錯誤傳回，因此代理程式可以讀取失敗原因並自行修正。
+有針對 59 種記錄的建立、取得、列出、更新、刪除和計數工具，有針對 9 種遙測的列出和計數工具，還有專為事件應變打造的工具。像事件與警示之間的關聯這樣、建立後沒有任何欄位可以變更的記錄類型，沒有更新工具。唯讀工具帶有 `readOnlyHint`，每個會變更內容的工具都帶有 `destructiveHint`，因此用戶端可以自行執行唯讀呼叫，並在做出任何變更之前詢問您。`openWorldHint` 標示那些會觸及您的專案之外的工具：公開狀態頁工具；會顯示在狀態頁上並傳送給其訂閱者的變更，例如新事件、事件狀態的變化或公開備註；透過電子郵件寄給尚不必是專案成員之人的邀請；以及建立或變更監測器、資料儲存或 BI 工具的工具，因為之後 OneUptime 會存取您提供的位址。失敗的工具呼叫會以工具結果（`isError: true`）傳回，其中包含 `statusCode`、詳細資料和建議，而不是以 MCP 通訊協定錯誤傳回，因此代理程式可以讀取失敗原因並自行修正。
 
 ## 開始之前
 
@@ -359,6 +359,25 @@ curl https://oneuptime.com/mcp/tools
 
 它們以透過 OAuth 登入的你的身分執行：專案 API 金鑰無法使用其中會建立內容的八個工具。你的用戶端會在每個工具之前詢問你，其回答會說明建立了什麼。缺少的內容，例如權限、位址或方案中的餘裕，會在建立任何內容之前說明。
 
+## 資料安全工具
+
+伺服器也提供 [詢問 AI 的資料安全操作](/docs/data-security/integrations#詢問-ai)，每項一次呼叫。每項都在相同的檢查之後，以你的身分與權限，進行與資料安全中其按鈕完全相同的變更：
+
+- **`query_data_security_proposals`**：OneUptime AI 提議並等待人處理的內容，風險最高的排在最前。使用 `which: "data-types"` 時，會傳回它找到但掃描尚未尋找的資料類型：每個的名稱、類別與敏感度、證明方式，以及所在的資料儲存區與欄位，絕不包含值。它不會變更任何內容
+- **`draft_data_security_rule`**：根據句子草擬的資料落地、擁有者或標籤規則，例如「歐盟的個人資料必須留在歐盟」，以及它今天符合的資料儲存區。它不會變更任何內容
+- **`scrub_data_security_finding`**：對遙測中的發現執行 **清除**
+- **`judge_data_security_finding`**：**確認**，或附上理由標記為 **不敏感**，並對類似的發現做出相同決定
+- **`change_data_security_issue`**：**重新開啟**、**指派**、**接受風險** 或 **不是問題**
+- **`set_data_store_owners`**：新增或移除資料儲存區的擁有者
+- **`save_data_security_rule`**：`draft_data_security_rule` 草擬的規則
+- **`respond_on_data_store`**：透過資料儲存區的雲端連線執行的回應操作，例如 **封鎖公開存取**
+- **`fix_data_security_issue_with_ai`**：**用 AI 修正**，由某人審查並合併的 Pull Request
+- **`decide_data_security_proposal`**：對提議選擇 **核准** 或 **隱藏**
+
+對其中一些操作，詢問 AI 會在每種模式下先以卡片詢問人，卡片會說明會變更什麼、什麼會停止運作，以及成本是什麼：對資料儲存區執行回應、**不敏感**、**接受風險**、**不是問題**、變更資料儲存區的擁有者、儲存規則、決定提議、有項目在讀取的清除，以及在會因嚴重問題呼叫某人的專案中執行 **確認**。此伺服器無法向你顯示這張卡片，因此會拒絕這些操作、說明原因，並指出你在 OneUptime 中進行變更的頁面。沒有卡片就絕不會執行。
+
+其他操作會以你透過 OAuth 登入的身分執行：專案 API 金鑰無法使用它們，只能使用不會變更任何內容的那兩個。在自架伺服器上，`MCP_READ_ONLY=true` 只會保留不會變更任何內容的工具，而 `MCP_ALLOW_DESTRUCTIVE=false` 會拒絕移除資料儲存區的擁有者，因為這會刪除他們。
+
 ## 查詢遙測
 
 日誌、指標、追蹤（span）、例外、監測器日誌和其他種類的遙測以唯讀的 `list_` 和 `count_` 工具提供（`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs` 及其對應的 `count_` 工具）。遙測透過 OpenTelemetry 傳入，因此沒有建立工具。
@@ -509,7 +528,7 @@ MCP 伺服器是無狀態的：它既不核發也不追蹤工作階段 ID，因�
 | 安全性 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | 資料安全 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | 資料可觀測性 | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| 雲端 | Cloud Budget |
+| 雲端 | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View, Required Tag |
 
 | 領域 | 只有列出和計數工具的遙測 |
 | --- | --- |

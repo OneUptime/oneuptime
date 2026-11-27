@@ -261,8 +261,11 @@ export interface ResumeToolDecision {
 
 /*
  * What a prepared mutation says on its approval card: its title, when the
- * prepare names the record better than buildActionTitle can, and its line
- * (PreparedMutation).
+ * prepare names the record better than buildActionTitle can, its line and
+ * its effects (PreparedMutation) - and whether the call asks for approval
+ * in every mode, Auto-run included (AIToolbox.asksInEveryMode, #10378),
+ * decided from what the prepare read, or without it when the prepare
+ * failed.
  */
 type PreparedActionWords = Pick<
   PreparedMutation,
@@ -271,7 +274,8 @@ type PreparedActionWords = Pick<
   | "namedArguments"
   | "describedArguments"
   | "notRunWithoutApproval"
->;
+  | "effects"
+> & { asksInEveryMode?: boolean | undefined };
 
 /*
  * A turn is not rationed: it makes as many calls as the question needs,
@@ -1501,12 +1505,18 @@ export default class ChatAgentRunner {
             : undefined;
 
           /*
-           * Asked for approval: every action in Ask to act, and a setup
-           * action (#6829) in every mode - it makes something that pages
-           * people or that customers see, so Auto-run asks for it too - as
-           * an extra tool that always asks does: a change through one of
-           * the project's external MCP servers (#10879), in a system
-           * outside OneUptime that OneUptime can neither see nor undo.
+           * Asked for approval: every action in Ask to act, and in every
+           * mode - Auto-run asks for these too:
+           *  - a setup action (#6829): it makes something that pages people
+           *    or that customers see;
+           *  - an action its tool says asks in every mode (#10378): a
+           *    response on a data store, a finding marked not sensitive, a
+           *    risk accepted, and any other that text an attacker wrote (a
+           *    store's name, a finding's evidence) could have talked the
+           *    model into;
+           *  - an extra tool that always asks: a change through one of the
+           *    project's external MCP servers (#10879), in a system outside
+           *    OneUptime that OneUptime can neither see nor undo.
            */
           const extraTool: ChatExtraTool | undefined = this.getExtraTool(
             request,
@@ -1514,11 +1524,15 @@ export default class ChatAgentRunner {
           );
           const isSetupAction: boolean =
             isMutation && AIToolbox.isSetupAction(toolCall.name);
+          const asksInEveryMode: boolean =
+            isMutation &&
+            (isSetupAction ||
+              actionWords?.asksInEveryMode === true ||
+              extraTool?.alwaysAsksForApproval === true);
           const asksForApproval: boolean =
             isMutation &&
             (request.permissionMode === AIChatPermissionMode.AskForApproval ||
-              isSetupAction ||
-              extraTool?.alwaysAsksForApproval === true);
+              asksInEveryMode);
 
           // The card's words, with the lines an extra tool's preparation adds.
           let cardWords: PreparedActionWords | undefined = actionWords;
@@ -2161,19 +2175,41 @@ export default class ChatAgentRunner {
       toolCall.name,
     );
 
-    if (!tool?.prepareMutation || toolCall.argumentsParseError) {
+    if (!tool || toolCall.argumentsParseError) {
       return undefined;
     }
 
     /*
-     * A setup action takes from the model only what its schema takes
-     * (#10041), as the route that runs them outside the chat does: what its
-     * prepare works out - the record each name stands for, by id, the team
-     * an invitation joins - is never the model's to hand it, even where
-     * the prepare finds nothing and leaves the arguments as they were. An
-     * approved card runs the arguments persisted here, prepared once.
+     * Whether the call asks in every mode, from what the prepare read - or,
+     * when there is no prepare or it failed, without it: a tool whose
+     * answer rests on a read then asks (AIToolbox.asksInEveryMode).
      */
-    if (AIToolbox.isSetupAction(toolCall.name)) {
+    const asks: (prepared: PreparedMutation | undefined) => boolean = (
+      prepared: PreparedMutation | undefined,
+    ): boolean => {
+      return AIToolbox.asksInEveryMode({
+        name: toolCall.name,
+        args: toolCall.arguments || {},
+        prepared,
+      });
+    };
+
+    if (!tool.prepareMutation) {
+      return asks(undefined) ? { asksInEveryMode: true } : undefined;
+    }
+
+    /*
+     * A setup action, and an action that takes only what its schema takes
+     * (ObservabilityTool.takesOnlyItsSchema - the Data Security actions,
+     * #10378), takes from the model only what its schema takes (#10041), as
+     * the routes that run them outside the chat do: what its prepare works
+     * out - the record each name stands for, by id, the team an invitation
+     * joins, the findings like one, the plan a fix was shown - is never the
+     * model's to hand it, even where the prepare finds nothing and leaves
+     * the arguments as they were. An approved card runs the arguments
+     * persisted here, prepared once.
+     */
+    if (AIToolbox.isSetupAction(toolCall.name) || tool.takesOnlyItsSchema) {
       toolCall.arguments = readArgumentsTheSchemaTakes(
         tool,
         toolCall.arguments || {},
@@ -2189,6 +2225,8 @@ export default class ChatAgentRunner {
       toolCall.arguments = prepared.arguments;
 
       return {
+        ...(asks(prepared) ? { asksInEveryMode: true } : {}),
+        ...(prepared.effects ? { effects: prepared.effects } : {}),
         ...(prepared.title ? { title: prepared.title } : {}),
         ...(prepared.description && prepared.description.length > 0
           ? { description: prepared.description }
@@ -2214,7 +2252,7 @@ export default class ChatAgentRunner {
           error instanceof Error ? error.message : String(error)
         }`,
       );
-      return undefined;
+      return asks(undefined) ? { asksInEveryMode: true } : undefined;
     }
   }
 
@@ -2307,6 +2345,8 @@ export default class ChatAgentRunner {
           ...(descriptionSentences.length > 0
             ? { description: descriptionSentences }
             : {}),
+          // What changes, stops working and costs, and why it asks (#10378).
+          ...(words?.effects ? { effects: words.effects } : {}),
           ...(reason ? { reason } : {}),
           ...(words?.title && words.namedArguments
             ? { namedArguments: words.namedArguments }

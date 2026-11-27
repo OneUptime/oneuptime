@@ -95,7 +95,7 @@ Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren
 
 ### De monitor maken
 
-Klik op **Monitor maken**. De pagina van de nieuwe monitor opent. Om later de sondes of het interval te wijzigen, opent u **Configuratie → Sondes en interval** op die pagina.
+Klik op **Monitor maken**. De pagina van de nieuwe monitor opent. Slack en Microsoft Teams horen van de monitor zodra zijn eigenaren en labels zijn toegevoegd, zodat een meldingsregel die vraagt wie eigenaar is van een monitor, of welke labels hij heeft, zijn aanmaakbericht plaatst, en zijn eerste status volgt op dat bericht. Om later de sondes of het interval te wijzigen, opent u **Configuratie → Sondes en interval** op die pagina.
 :::
 
 Alle andere types behalve Manual worden vanuit de stap **Criteria** gemaakt.

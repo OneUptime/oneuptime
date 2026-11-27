@@ -96,6 +96,22 @@ export const TOOL_PRODUCTS: Readonly<
   query_data_stores: [ProductKey.DataSecurity],
   query_data_security_issues: [ProductKey.DataSecurity],
   query_data_store_access: [ProductKey.DataSecurity],
+  /*
+   * Data Security's buttons as actions (#10378), and what OneUptime AI
+   * proposes (#10889): refused while Data Security is off, as each button's
+   * route is.
+   */
+  scrub_data_security_finding: [ProductKey.DataSecurity],
+  judge_data_security_finding: [ProductKey.DataSecurity],
+  change_data_security_issue: [ProductKey.DataSecurity],
+  set_data_store_owners: [ProductKey.DataSecurity],
+  draft_data_security_rule: [ProductKey.DataSecurity],
+  save_data_security_rule: [ProductKey.DataSecurity],
+  respond_on_data_store: [ProductKey.DataSecurity],
+  query_data_security_proposals: [ProductKey.DataSecurity],
+  decide_data_security_proposal: [ProductKey.DataSecurity],
+  // Fix with AI starts a task in Code, so it is refused while Code is off too.
+  fix_data_security_issue_with_ai: [ProductKey.DataSecurity, ProductKey.Code],
 
   // Insights.
   query_ai_insights: [ProductKey.AIInsights],

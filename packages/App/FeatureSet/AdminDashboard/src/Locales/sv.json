@@ -86,7 +86,7 @@
   "footer": {
     "copyright": "HackerBay, Inc.",
     "helpSupport": "Hjälp och support",
-    "legal": "Juridik",
+    "legal": "Juridiskt",
     "version": "Version",
     "versionModalTitle": "OneUptime-version",
     "versionLabel": "Version",
@@ -3346,7 +3346,7 @@
   "Test this OIDC provider": "Testa den här OIDC-leverantören",
   "Attach": "Bifoga",
   "Attached Projects": "Kopplade projekt",
-  "The projects this provider signs people in to, and the teams newcomers join. With none attached, it works for every project a person already belongs to.": "De projekt som den här leverantören loggar in folk i, och de team som nykomlingar går med i. Utan kopplade projekt fungerar den för alla projekt som en person redan tillhör.",
+  "People who sign in with this provider join these projects, in the teams picked for each. With none attached, nobody new can sign in.": "Personer som loggar in med den här leverantören går med i de här projekten, i de team som valts för vart och ett. Utan kopplade projekt kan inga nya logga in.",
   "No projects attached to this provider.": "Inga projekt är kopplade till den här leverantören.",
   "Select Project": "Välj projekt",
   "Runs JavaScript steps and AI code fixes for every project.": "Kör JavaScript-steg och AI-kodkorrigeringar för alla projekt.",
@@ -4545,8 +4545,14 @@
   "Chat on Microsoft Teams": "Chatta på Microsoft Teams",
   "Chat with Support": "Chatta med support",
   "Show it": "Visa den",
+  "From this server's configuration": "Från den här serverns konfiguration",
+  "Some settings below were set from this server's configuration (Helm values or config.env) while nothing was saved here. A change you make here is kept: a restart never sets it back.": "Vissa inställningar nedan sattes från den här serverns konfiguration (Helm-värden eller config.env) medan inget var sparat här. En ändring du gör här behålls: en omstart återställer den aldrig.",
+  "Set from {{variable}} in this server's configuration.": "Satt från {{variable}} i den här serverns konfiguration.",
+  "{{variable}} in this server's configuration was not used: {{problem}}": "{{variable}} i den här serverns konfiguration användes inte: {{problem}}",
+  "This setting cannot be hidden. Leave it empty to keep OneUptime's default.": "Den här inställningen kan inte döljas. Lämna den tom för att behålla OneUptimes standard.",
+  "Use \"shown\" or \"hidden\".": "Använd \"shown\" eller \"hidden\".",
   "Support Email": "Support-e-post",
-  "Help › Support Email, Contact Support on Page not found, and the address an error screen asks people to send a support bundle to.": "Hjälp › Support-e-post, ”Kontakta support” på ”Sidan hittades inte” och adressen som en felskärm ber folk skicka ett supportpaket till.",
+  "Help › Support Email, Contact Support on Page not found, account emails, and the address an error screen asks people to send a support bundle to.": "Hjälp › Support-e-post, ”Kontakta support” på ”Sidan hittades inte”, mejl om kontot och adressen som en felskärm ber folk skicka ett supportpaket till.",
   "Chat": "Chatt",
   "Help › Chat on Slack. A link of your own is named for the chat it opens: Slack, Microsoft Teams, or Chat with Support.": "Hjälp › Chatta på Slack. En egen länk får namn efter chatten den öppnar: Slack, Microsoft Teams eller ”Chatta med support”.",
   "Request Demo": "Begär demo",
@@ -4615,5 +4621,6 @@
   "This monitor template is in no project, so no monitor can be linked to it. Create the template again in this project.": "Den här monitormallen hör inte till något projekt, så ingen monitor kan kopplas till den. Skapa mallen igen i det här projektet.",
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Den här monitormallen har ingen monitortyp, så dess monitorer kan inte synkroniseras. Skapa mallen igen med en monitortyp.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Inställningarna för mallsynkronisering behöver mallens monitortyp. Välj monitortypen först och välj sedan synkroniseringsinställningarna igen.",
-  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "En monitormall kan inte synkronisera \"{{field}}\". Välj bland de inställningar för mallsynkronisering som mallen erbjuder och spara sedan igen."
+  "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "En monitormall kan inte synkronisera \"{{field}}\". Välj bland de inställningar för mallsynkronisering som mallen erbjuder och spara sedan igen.",
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Inga nya kan logga in än. Koppla ett projekt, med de team de går med i, under Kopplade projekt."
 }

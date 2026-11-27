@@ -40,6 +40,10 @@ import IncidentOnCallRuleService from "../../../../../Server/Services/IncidentOn
 import IncidentSeverityService from "../../../../../Server/Services/IncidentSeverityService";
 import MonitorProbeService from "../../../../../Server/Services/MonitorProbeService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
+import CreateBy from "../../../../../Server/Types/Database/CreateBy";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../../../../../Server/Utils/Notification/CreatedNotificationHold";
 import MonitorStatusService from "../../../../../Server/Services/MonitorStatusService";
 import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
 import {
@@ -1141,6 +1145,76 @@ describe("set_up_website_monitoring", () => {
     );
   });
 
+  /*
+   * The master admin is made the owner once the monitor exists, after its
+   * create returns: the monitor's create chain waits a moment for that
+   * before its notification rules are matched, so a rule that asks who owns
+   * the monitor posts its "Monitor Created" (WorkspaceRuleOwnersOnCreate,
+   * #11188). Its create is told so, and told when they are in.
+   */
+  test("REGRESSION (#11188): approved by a master admin, the monitor's create is told its owner comes after it, until they are in", async () => {
+    stubSeeds();
+    stubLocations();
+
+    let created: CreateBy<Monitor> | null = null;
+    const addingOwners: Array<string> = [];
+
+    jest.spyOn(MonitorService, "create").mockImplementation((async (
+      args: CreateBy<Monitor>,
+    ): Promise<Monitor> => {
+      created = args;
+      addingOwners.push(
+        `create: ${CreatedNotificationHold.isAddingOwners(args, [OwnersAddedBy.Caller])}`,
+      );
+      args.data._id = MONITOR_ID;
+      return args.data;
+    }) as never);
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    jest
+      .spyOn(MonitorService, "addOwners")
+      .mockImplementation((async (): Promise<void> => {
+        addingOwners.push(
+          `owner added: ${CreatedNotificationHold.isAddingOwners(created!, [OwnersAddedBy.Caller])}`,
+        );
+      }) as never);
+
+    await SetUpWebsiteMonitoringTool.execute(
+      { address: "example.com" },
+      { ...ctx, props: { ...ctx.props, isMasterAdmin: true } },
+    );
+
+    expect(addingOwners).toEqual(["create: true", "owner added: true"]);
+    expect(
+      CreatedNotificationHold.isAddingOwners(created!, [OwnersAddedBy.Caller]),
+    ).toBe(false);
+  });
+
+  test("approved by anyone else, the monitor's create waits for no owner of the action's", async () => {
+    stubSeeds();
+    stubLocations();
+
+    const addingOwners: Array<boolean> = [];
+
+    jest.spyOn(MonitorService, "create").mockImplementation((async (
+      args: CreateBy<Monitor>,
+    ): Promise<Monitor> => {
+      addingOwners.push(
+        CreatedNotificationHold.isAddingOwners(args, [OwnersAddedBy.Caller]),
+      );
+      args.data._id = MONITOR_ID;
+      return args.data;
+    }) as never);
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+
+    await SetUpWebsiteMonitoringTool.execute({ address: "example.com" }, ctx);
+
+    expect(addingOwners).toEqual([false]);
+  });
+
   test("approved by anyone else, the server made them the owner already: nothing more is added", async () => {
     stubSeeds();
     stubLocations();
@@ -1575,6 +1649,54 @@ describe("set_up_paging", () => {
     expect(line(prepared.description)).toBe(
       "Pages you for every new incident and alert. You have no verified phone number for texts yet. Add one in Notification Methods, and pages reach you by SMS too. You have no verified phone number for calls yet. Add one in Notification Methods, and pages can call you too. The mobile app is not set up for you yet. Set it up from Notification Methods to get push notifications.",
     );
+  });
+
+  /*
+   * A server whose admins took the mobile app away (Admin Dashboard >
+   * Settings > Help and Support, #10945): a push that cannot reach the
+   * person names this browser, never the app.
+   */
+  test("push not set up, on a server without the mobile app: this browser, never the app", () => {
+    const without: Array<string> = describeReachForPerson({
+      asked: [SetupReachMethod.Push],
+      readiness: readiness({ verified: [] }),
+      isMobileAppOffered: false,
+    }).map((sentence: AIActionSentence): string => {
+      return actionTitleText(sentence) || "";
+    });
+
+    expect(without).toEqual([
+      "Push notifications are not set up for you yet. Register this browser in Notification Methods to get them.",
+    ]);
+    expect(without.join(" ")).not.toContain("mobile app");
+  });
+
+  test("push not set up, where the server offers the app or does not say: the app, as before", () => {
+    for (const isMobileAppOffered of [true, undefined]) {
+      expect(
+        describeReachForPerson({
+          asked: [SetupReachMethod.Push],
+          readiness: readiness({ verified: [] }),
+          isMobileAppOffered: isMobileAppOffered,
+        }).map((sentence: AIActionSentence) => {
+          return actionTitleText(sentence);
+        }),
+      ).toEqual([
+        "The mobile app is not set up for you yet. Set it up from Notification Methods to get push notifications.",
+      ]);
+    }
+  });
+
+  test("a verified push device says nothing, whether or not the server offers the app", () => {
+    for (const isMobileAppOffered of [true, false]) {
+      expect(
+        describeReachForPerson({
+          asked: [SetupReachMethod.Push],
+          readiness: readiness({ verified: [ReadinessMethodType.Push] }),
+          isMobileAppOffered: isMobileAppOffered,
+        }),
+      ).toEqual([]);
+    }
   });
 
   test("a verified number says nothing; nothing at all reaching you is said", () => {

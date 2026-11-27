@@ -403,6 +403,16 @@ export const PUBLIC_DASHBOARD_WIDGET_SETTINGS: Readonly<
     "powerStateFilter",
     "templateFilter",
   ]),
+  [DashboardComponentType.XcpNgHostList]: drawn([
+    ...LIST,
+    "xcpNgPoolIds",
+    "statusFilter",
+  ]),
+  [DashboardComponentType.XcpNgVmList]: drawn([
+    ...LIST,
+    "xcpNgPoolIds",
+    "statusFilter",
+  ]),
   [DashboardComponentType.DockerSwarmNodeList]: drawn([
     ...LIST,
     "dockerSwarmClusterIds",
