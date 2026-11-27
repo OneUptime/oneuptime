@@ -66656,5 +66656,10 @@
   "Where Social Security numbers were disclosed, offer credit monitoring at no cost for at least 18 months.": "社会保障番号が開示された場合は、信用モニタリングを少なくとも 18 か月間無料で提供してください。",
   "With the date the people are expected to be told, so before they are.": "人々に伝える予定日を添えて、つまり伝える前に。",
   "Within {{count}} business days of telling the people": "人々に伝えてから {{count}} 営業日以内",
-  "Within {{count}} business days of telling the people_one": "人々に伝えてから {{count}} 営業日以内"
+  "Within {{count}} business days of telling the people_one": "人々に伝えてから {{count}} 営業日以内",
+  "After the people are told.": "人々に伝えた後に。",
+  "Not owed by an organization subject to the Gramm-Leach-Bliley Act.": "グラム・リーチ・ブライリー法 (Gramm-Leach-Bliley Act) の対象となる組織には求められません。",
+  "Tell the consumer reporting agencies": "信用情報機関に伝える",
+  "The nationwide consumer reporting agencies, with the notices' timing, distribution and content": "全国規模の信用情報機関に、通知の時期、配布、内容を添えて",
+  "The three largest nationwide consumer reporting agencies": "全国規模の 3 大信用情報機関"
 }

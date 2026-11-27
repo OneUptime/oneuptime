@@ -66656,5 +66656,10 @@
   "Where Social Security numbers were disclosed, offer credit monitoring at no cost for at least 18 months.": "Er personnumre fra Social Security blevet videregivet, så tilbyd gratis kreditovervågning i mindst 18 måneder.",
   "With the date the people are expected to be told, so before they are.": "Med den dato, hvor de registrerede ventes at få besked, altså før de får det.",
   "Within {{count}} business days of telling the people": "Inden for {{count}} hverdage efter at de registrerede har fået besked",
-  "Within {{count}} business days of telling the people_one": "Inden for {{count}} hverdag efter at de registrerede har fået besked"
+  "Within {{count}} business days of telling the people_one": "Inden for {{count}} hverdag efter at de registrerede har fået besked",
+  "After the people are told.": "Efter at de registrerede har fået besked.",
+  "Not owed by an organization subject to the Gramm-Leach-Bliley Act.": "Ikke påkrævet for en organisation, der er omfattet af Gramm-Leach-Bliley Act.",
+  "Tell the consumer reporting agencies": "Giv kreditoplysningsbureauerne besked",
+  "The nationwide consumer reporting agencies, with the notices' timing, distribution and content": "De landsdækkende kreditoplysningsbureauer, med meddelelsernes tidspunkt, udsendelse og indhold",
+  "The three largest nationwide consumer reporting agencies": "De tre største landsdækkende kreditoplysningsbureauer"
 }

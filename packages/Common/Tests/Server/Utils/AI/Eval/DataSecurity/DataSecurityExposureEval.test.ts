@@ -280,6 +280,8 @@ describe("every exposure of the eval set lists the obligations it should", () =>
     ).toEqual([
       BreachLawFamily.Hawaii,
       BreachLawFamily.Hawaii,
+      BreachLawFamily.Hawaii,
+      BreachLawFamily.Indiana,
       BreachLawFamily.Indiana,
       BreachLawFamily.Indiana,
     ]);

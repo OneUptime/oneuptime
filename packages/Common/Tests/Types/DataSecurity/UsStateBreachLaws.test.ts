@@ -60,7 +60,8 @@ import { describe, expect, test } from "@jest/globals";
 // When every example exposure was found: a Monday, 09:00 UTC.
 const FOUND_AT: Date = new Date("2026-11-23T09:00:00.000Z");
 const NOW: Date = new Date("2026-11-24T12:00:00.000Z");
-const DAY: number = 24 * 60 * 60 * 1000;
+const HOUR: number = 60 * 60 * 1000;
+const DAY: number = 24 * HOUR;
 
 const SSN: BreachDataElement = BreachDataElement.SocialSecurityNumber;
 const DL: BreachDataElement = BreachDataElement.DriversLicense;
@@ -1009,9 +1010,320 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     start: FOUND,
     host: "www.nmonesource.com",
   },
+  /*
+   * The consumer reporting agencies' notices, each statute's own: owed once
+   * more than a number of residents are told, as the statute counts them.
+   * Florida's and New York's were read again for theirs.
+   */
+  {
+    id: BreachLawId.AlabamaConsumerReportingAgencies,
+    family: BreachLawFamily.Alabama,
+    place: BreachPlace.Alabama,
+    law: "Code of Alabama 1975",
+    provision: "8-38-7",
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, LOGIN],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.SubstantialHarm],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "alison.legislature.state.al.us",
+  },
+  {
+    id: BreachLawId.AlaskaConsumerReportingAgencies,
+    family: BreachLawFamily.Alaska,
+    place: BreachPlace.Alaska,
+    law: "Alaska Statutes",
+    provision: "45.48.040",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.LikelyHarm],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.akleg.gov",
+  },
+  {
+    id: BreachLawId.ArizonaConsumerReportingAgencies,
+    family: BreachLawFamily.Arizona,
+    place: BreachPlace.Arizona,
+    law: "Arizona Revised Statutes",
+    provision: "18-552(B)(2)(a)",
+    elements: [SSN, DL, PASSPORT, TAX_ID, ACCOUNT, MEDICAL, INSURANCE, BIOMETRIC, LOGIN],
+    needsName: true,
+    nameFree: [LOGIN],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.SubstantialEconomicLoss],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "www.azleg.gov",
+  },
+  {
+    id: BreachLawId.DistrictOfColumbiaConsumerReportingAgencies,
+    family: BreachLawFamily.DistrictOfColumbia,
+    place: BreachPlace.DistrictOfColumbia,
+    law: "D.C. Code",
+    provision: "28-3852(c)",
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, BIOMETRIC, GENETIC, LOGIN],
+    needsName: false,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.LikelyHarmAfterConsulting],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "code.dccouncil.gov",
+  },
+  {
+    id: BreachLawId.GeorgiaConsumerReportingAgencies,
+    family: BreachLawFamily.Georgia,
+    place: BreachPlace.Georgia,
+    law: "Official Code of Georgia",
+    provision: "10-1-912(d)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: false,
+    nameFree: [],
+    minimumPeople: { count: 10000, isMoreThan: true },
+    conditions: [BreachCondition.InformationBrokerOrAgency],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.legis.ga.gov",
+  },
+  {
+    id: BreachLawId.HawaiiConsumerReportingAgencies,
+    family: BreachLawFamily.Hawaii,
+    place: BreachPlace.Hawaii,
+    law: "Hawaii Revised Statutes",
+    provision: "487N-2(f)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.LikelyIllegalUse],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "data.capitol.hawaii.gov",
+  },
+  {
+    id: BreachLawId.IndianaConsumerReportingAgencies,
+    family: BreachLawFamily.Indiana,
+    place: BreachPlace.Indiana,
+    law: "Indiana Code",
+    provision: "24-4.9-3-1(b)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [SSN],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "iga.in.gov",
+  },
+  {
+    id: BreachLawId.KansasConsumerReportingAgencies,
+    family: BreachLawFamily.Kansas,
+    place: BreachPlace.Kansas,
+    law: "Kansas Statutes Annotated",
+    provision: "50-7a02(f)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.LikelyMisuse],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.ksrevisor.gov",
+  },
+  {
+    id: BreachLawId.KentuckyConsumerReportingAgencies,
+    family: BreachLawFamily.Kentucky,
+    place: BreachPlace.Kentucky,
+    law: "Kentucky Revised Statutes",
+    provision: "365.732(7)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "apps.legislature.ky.gov",
+  },
+  {
+    id: BreachLawId.MaineConsumerReportingAgencies,
+    family: BreachLawFamily.Maine,
+    place: BreachPlace.Maine,
+    law: "Maine Revised Statutes, Title 10",
+    provision: "1348(4)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: false,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.PossibleMisuse],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "legislature.maine.gov",
+  },
+  {
+    id: BreachLawId.MarylandConsumerReportingAgencies,
+    family: BreachLawFamily.Maryland,
+    place: BreachPlace.Maryland,
+    law: "Maryland Code, Commercial Law",
+    provision: "14-3506(a)",
+    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, BIOMETRIC, GENETIC, LOGIN],
+    needsName: true,
+    nameFree: [LOGIN],
+    minimumPeople: { count: 1000, isMoreThan: false },
+    conditions: [BreachCondition.LikelyMisuse],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "mgaleg.maryland.gov",
+  },
+  {
+    id: BreachLawId.MichiganConsumerReportingAgencies,
+    family: BreachLawFamily.Michigan,
+    place: BreachPlace.Michigan,
+    law: "Michigan Compiled Laws",
+    provision: "445.72(8)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.SubstantialLossOrIdentityTheft],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.legislature.mi.gov",
+  },
+  {
+    id: BreachLawId.MinnesotaConsumerReportingAgencies,
+    family: BreachLawFamily.Minnesota,
+    place: BreachPlace.Minnesota,
+    law: "Minnesota Statutes",
+    provision: "325E.61, subdivision 2",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [],
+    unit: BreachDeadlineUnit.Hours,
+    amount: 48,
+    start: FOUND,
+    host: "www.revisor.mn.gov",
+  },
+  {
+    id: BreachLawId.MissouriConsumerReportingAgencies,
+    family: BreachLawFamily.Missouri,
+    place: BreachPlace.Missouri,
+    law: "Revised Statutes of Missouri",
+    provision: "407.1500.2(8)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IdentityTheftOrFraudInWriting],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "revisor.mo.gov",
+  },
+  {
+    id: BreachLawId.NevadaConsumerReportingAgencies,
+    family: BreachLawFamily.Nevada,
+    place: BreachPlace.Nevada,
+    law: "Nevada Revised Statutes",
+    provision: "603A.220(6)",
+    elements: [SSN, DL, ACCOUNT, INSURANCE, LOGIN],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.leg.state.nv.us",
+  },
+  {
+    id: BreachLawId.NewHampshireConsumerReportingAgencies,
+    family: BreachLawFamily.NewHampshire,
+    place: BreachPlace.NewHampshire,
+    law: "New Hampshire Revised Statutes",
+    provision: "359-C:20, VI(a)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.MisuseOrUndetermined],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.gencourt.state.nh.us",
+  },
+  {
+    id: BreachLawId.NewJerseyConsumerReportingAgencies,
+    family: BreachLawFamily.NewJersey,
+    place: BreachPlace.NewJersey,
+    law: "New Jersey Statutes",
+    provision: "56:8-163(f)",
+    elements: [SSN, DL, ACCOUNT, LOGIN],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.MisuseNotPossibleInWriting],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "lis.njleg.state.nj.us",
+  },
+  {
+    id: BreachLawId.NewMexicoConsumerReportingAgencies,
+    family: BreachLawFamily.NewMexico,
+    place: BreachPlace.NewMexico,
+    law: "New Mexico Statutes Annotated 1978",
+    provision: "57-12C-10",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.SignificantRiskOfIdentityTheft],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "www.nmonesource.com",
+  },
+  {
+    id: BreachLawId.FloridaConsumerReportingAgencies,
+    family: BreachLawFamily.Florida,
+    place: BreachPlace.Florida,
+    law: "Florida Statutes",
+    provision: "501.171(5)",
+    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, BIOMETRIC, GEOLOCATION, LOGIN],
+    needsName: true,
+    nameFree: [LOGIN],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IdentityTheftOrFinancialHarm],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.leg.state.fl.us",
+  },
+  {
+    id: BreachLawId.NewYorkConsumerReportingAgencies,
+    family: BreachLawFamily.NewYork,
+    place: BreachPlace.NewYork,
+    law: "New York General Business Law",
+    provision: "899-aa(8)(b)",
+    elements: [SSN, DL, ACCOUNT, BIOMETRIC, MEDICAL, INSURANCE, LOGIN],
+    needsName: false,
+    nameFree: [],
+    minimumPeople: { count: 5000, isMoreThan: true },
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 0,
+    start: RESIDENTS,
+    afterRule: BreachLawId.NewYorkResidents,
+    host: "www.nysenate.gov",
+  },
 ];
 
-// The rows #10377 read first: their tests are in BreachLaws.test.ts.
+// The states #10377 read first, and their rows: those rows' tests are in BreachLaws.test.ts.
 const FIRST_STATE_FAMILIES: ReadonlyArray<BreachLawFamily> = [
   BreachLawFamily.California,
   BreachLawFamily.Colorado,
@@ -1019,6 +1331,21 @@ const FIRST_STATE_FAMILIES: ReadonlyArray<BreachLawFamily> = [
   BreachLawFamily.NewYork,
   BreachLawFamily.Texas,
   BreachLawFamily.Washington,
+];
+
+const FIRST_STATE_ROWS: ReadonlyArray<BreachLawId> = [
+  BreachLawId.CaliforniaResidents,
+  BreachLawId.CaliforniaAttorneyGeneral,
+  BreachLawId.ColoradoResidents,
+  BreachLawId.ColoradoAttorneyGeneral,
+  BreachLawId.FloridaIndividuals,
+  BreachLawId.FloridaDepartment,
+  BreachLawId.NewYorkResidents,
+  BreachLawId.NewYorkAgencies,
+  BreachLawId.TexasIndividuals,
+  BreachLawId.TexasAttorneyGeneral,
+  BreachLawId.WashingtonConsumers,
+  BreachLawId.WashingtonAttorneyGeneral,
 ];
 
 // A store's facts: what it holds (catalog data type ids) and where a person said the people live.
@@ -1190,7 +1517,7 @@ describe("every US state, the District of Columbia and Puerto Rico is a place", 
 describe("the other US states' rows, as a set", () => {
   const STATE_ROWS: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
     (rule: BreachLawRule): boolean => {
-      return isUsStateRule(rule) && !FIRST_STATE_FAMILIES.includes(rule.family);
+      return isUsStateRule(rule) && !FIRST_STATE_ROWS.includes(rule.id);
     },
   );
 
@@ -1227,9 +1554,44 @@ describe("the other US states' rows, as a set", () => {
     }
   });
 
-  test("notices only to the people and to a state office: none to the consumer reporting agencies, which the assessment says it leaves out", () => {
-    for (const rule of STATE_ROWS) {
-      expect(rule.recipient.toLowerCase()).not.toContain("reporting agenc");
+  test("a notice to the consumer reporting agencies is owed only past a number of people, as each statute counts them", () => {
+    const agencies: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
+      (rule: BreachLawRule): boolean => {
+        return (
+          isUsStateRule(rule) && rule.id.endsWith("-consumer-reporting-agencies")
+        );
+      },
+    );
+
+    expect(agencies.length).toBeGreaterThan(0);
+
+    for (const rule of agencies) {
+      expect({ id: rule.id, threshold: Boolean(rule.minimumPeople) }).toEqual({
+        id: rule.id,
+        threshold: true,
+      });
+      // Each of the state's: the same data and the same test as the people's own notice.
+      const residents: BreachLawRule = BREACH_LAW_RULES.find(
+        (candidate: BreachLawRule): boolean => {
+          return (
+            candidate.family === rule.family &&
+            candidate.action === BREACH_LAW_RULES.find(
+              (first: BreachLawRule): boolean => {
+                return first.id === BreachLawId.AlabamaResidents;
+              },
+            )!.action
+          );
+        },
+      )!;
+
+      expect({ id: rule.id, elements: rule.dataElements }).toEqual({
+        id: rule.id,
+        elements: residents.dataElements,
+      });
+      expect({ id: rule.id, conditions: rule.conditions }).toEqual({
+        id: rule.id,
+        conditions: residents.conditions,
+      });
     }
   });
 });
@@ -1328,7 +1690,14 @@ describe.each(
       );
     } else {
       expect(obligation.dueAt).toBe(
-        new Date(FOUND_AT.getTime() + statute.amount! * DAY).toISOString(),
+        (statute.unit === BreachDeadlineUnit.BusinessDays
+          ? addBusinessDays(FOUND_AT, statute.amount!)
+          : new Date(
+              FOUND_AT.getTime() +
+                statute.amount! *
+                  (statute.unit === BreachDeadlineUnit.Hours ? HOUR : DAY),
+            )
+        ).toISOString(),
       );
     }
   });

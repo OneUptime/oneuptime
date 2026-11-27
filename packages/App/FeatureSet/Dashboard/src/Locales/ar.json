@@ -66656,5 +66656,10 @@
   "Where Social Security numbers were disclosed, offer credit monitoring at no cost for at least 18 months.": "إذا كُشفت أرقام الضمان الاجتماعي، فقدّم مراقبة ائتمانية مجانية لمدة 18 شهرًا على الأقل.",
   "With the date the people are expected to be told, so before they are.": "مع الموعد المتوقع لإبلاغ الأشخاص، أي قبل إبلاغهم.",
   "Within {{count}} business days of telling the people": "خلال أيام العمل التالية لإبلاغ الأشخاص: {{count}}",
-  "Within {{count}} business days of telling the people_one": "خلال يوم عمل واحد ({{count}}) من إبلاغ الأشخاص"
+  "Within {{count}} business days of telling the people_one": "خلال يوم عمل واحد ({{count}}) من إبلاغ الأشخاص",
+  "After the people are told.": "بعد إبلاغ الأشخاص.",
+  "Not owed by an organization subject to the Gramm-Leach-Bliley Act.": "لا يجب على مؤسسة خاضعة لقانون غرام-ليتش-بلايلي (Gramm-Leach-Bliley Act).",
+  "Tell the consumer reporting agencies": "إبلاغ وكالات تقارير المستهلكين",
+  "The nationwide consumer reporting agencies, with the notices' timing, distribution and content": "وكالات تقارير المستهلكين على المستوى الوطني، مع توقيت الإشعارات وطريقة توزيعها ومحتواها",
+  "The three largest nationwide consumer reporting agencies": "أكبر ثلاث وكالات وطنية لتقارير المستهلكين"
 }

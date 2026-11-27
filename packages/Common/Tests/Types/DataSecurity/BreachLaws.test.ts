@@ -149,14 +149,23 @@ const TABLE_CHECK_DAYS: ReadonlyArray<string> = [
   US_STATE_LAWS_CHECKED_ON,
 ];
 
-// The US states #10377 read first; the others' rows are #10952's (UsStateBreachLaws.test.ts).
-const FIRST_STATE_FAMILIES: ReadonlyArray<BreachLawFamily> = [
-  BreachLawFamily.California,
-  BreachLawFamily.Colorado,
-  BreachLawFamily.Florida,
-  BreachLawFamily.NewYork,
-  BreachLawFamily.Texas,
-  BreachLawFamily.Washington,
+/*
+ * The US states' rows #10377 read first; every other state row is #10952's
+ * (UsStateBreachLaws.test.ts), the first states' agencies' notices among them.
+ */
+const FIRST_STATE_ROWS: ReadonlyArray<BreachLawId> = [
+  BreachLawId.CaliforniaResidents,
+  BreachLawId.CaliforniaAttorneyGeneral,
+  BreachLawId.ColoradoResidents,
+  BreachLawId.ColoradoAttorneyGeneral,
+  BreachLawId.FloridaIndividuals,
+  BreachLawId.FloridaDepartment,
+  BreachLawId.NewYorkResidents,
+  BreachLawId.NewYorkAgencies,
+  BreachLawId.TexasIndividuals,
+  BreachLawId.TexasAttorneyGeneral,
+  BreachLawId.WashingtonConsumers,
+  BreachLawId.WashingtonAttorneyGeneral,
 ];
 
 function after(ms: number): string {
@@ -213,7 +222,7 @@ describe("every row of the table", () => {
       if (isUsStateRule(rule)) {
         expect({ id: rule.id, checkedOn: rule.checkedOn }).toEqual({
           id: rule.id,
-          checkedOn: FIRST_STATE_FAMILIES.includes(rule.family)
+          checkedOn: FIRST_STATE_ROWS.includes(rule.id)
             ? BREACH_LAWS_CHECKED_ON
             : US_STATE_LAWS_CHECKED_ON,
         });

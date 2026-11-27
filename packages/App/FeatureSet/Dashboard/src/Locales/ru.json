@@ -66656,5 +66656,10 @@
   "Where Social Security numbers were disclosed, offer credit monitoring at no cost for at least 18 months.": "Если раскрыты номера социального страхования, предложите бесплатный кредитный мониторинг минимум на 18 месяцев.",
   "With the date the people are expected to be told, so before they are.": "С датой, когда людям планируется сообщить, то есть заранее.",
   "Within {{count}} business days of telling the people": "В течение рабочих дней после уведомления людей: {{count}}",
-  "Within {{count}} business days of telling the people_one": "В течение {{count}} рабочего дня после уведомления людей"
+  "Within {{count}} business days of telling the people_one": "В течение {{count}} рабочего дня после уведомления людей",
+  "After the people are told.": "После уведомления людей.",
+  "Not owed by an organization subject to the Gramm-Leach-Bliley Act.": "Не требуется от организации, на которую распространяется закон Грэмма — Лича — Блайли (Gramm-Leach-Bliley Act).",
+  "Tell the consumer reporting agencies": "Сообщить кредитным бюро",
+  "The nationwide consumer reporting agencies, with the notices' timing, distribution and content": "Общенациональные кредитные бюро, со сроками, рассылкой и содержанием уведомлений",
+  "The three largest nationwide consumer reporting agencies": "Три крупнейших общенациональных кредитных бюро"
 }

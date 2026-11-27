@@ -183,6 +183,14 @@ const OTHER_GOVERNMENT_ID_STATES: Array<BreachLawId> = [
   BreachLawId.NewHampshireAttorneyGeneral,
   BreachLawId.NewMexicoResidents,
   BreachLawId.NewMexicoAttorneyGeneral,
+  // Their notices to the consumer reporting agencies, which cover the same data.
+  BreachLawId.AlabamaConsumerReportingAgencies,
+  BreachLawId.DistrictOfColumbiaConsumerReportingAgencies,
+  BreachLawId.FloridaConsumerReportingAgencies,
+  BreachLawId.MarylandConsumerReportingAgencies,
+  BreachLawId.MissouriConsumerReportingAgencies,
+  BreachLawId.NewHampshireConsumerReportingAgencies,
+  BreachLawId.NewMexicoConsumerReportingAgencies,
 ];
 
 /*
@@ -618,6 +626,8 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
       mayApplyKnown: [
         BreachLawId.NewYorkResidents,
         BreachLawId.NewYorkAgencies,
+        // More than 5,000 New Yorkers: a person counts them.
+        BreachLawId.NewYorkConsumerReportingAgencies,
       ],
       mayApplyIfPlace: [],
       notYetInForce: NOT_YET,
@@ -657,6 +667,7 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
         BreachLawId.ColoradoAttorneyGeneral,
         BreachLawId.FloridaIndividuals,
         BreachLawId.FloridaDepartment,
+        BreachLawId.FloridaConsumerReportingAgencies,
       ],
       mayApplyIfPlace: [],
       notYetInForce: NOT_YET,
@@ -882,8 +893,10 @@ export const EXPOSURE_EVAL_EXPOSURES: Array<ExposureEvalExposure> = [
       mayApplyKnown: [
         BreachLawId.HawaiiResidents,
         BreachLawId.HawaiiConsumerProtection,
+        BreachLawId.HawaiiConsumerReportingAgencies,
         BreachLawId.IndianaResidents,
         BreachLawId.IndianaAttorneyGeneral,
+        BreachLawId.IndianaConsumerReportingAgencies,
       ],
       mayApplyIfPlace: [],
       notYetInForce: NOT_YET,

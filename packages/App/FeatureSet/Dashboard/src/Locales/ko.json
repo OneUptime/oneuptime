@@ -66656,5 +66656,10 @@
   "Where Social Security numbers were disclosed, offer credit monitoring at no cost for at least 18 months.": "사회보장번호가 공개되었다면 신용 모니터링을 최소 18개월간 무료로 제공하세요.",
   "With the date the people are expected to be told, so before they are.": "사람들에게 알릴 예정일과 함께, 즉 알리기 전에.",
   "Within {{count}} business days of telling the people": "사람들에게 알린 후 영업일 기준 {{count}}일 이내",
-  "Within {{count}} business days of telling the people_one": "사람들에게 알린 후 영업일 기준 {{count}}일 이내"
+  "Within {{count}} business days of telling the people_one": "사람들에게 알린 후 영업일 기준 {{count}}일 이내",
+  "After the people are told.": "사람들에게 알린 후에.",
+  "Not owed by an organization subject to the Gramm-Leach-Bliley Act.": "그램-리치-블라일리법(Gramm-Leach-Bliley Act)의 적용을 받는 조직에는 요구되지 않습니다.",
+  "Tell the consumer reporting agencies": "신용평가기관에 알리기",
+  "The nationwide consumer reporting agencies, with the notices' timing, distribution and content": "전국 규모의 신용평가기관에, 통지의 시기, 배포 방식, 내용과 함께",
+  "The three largest nationwide consumer reporting agencies": "전국 규모의 3대 신용평가기관"
 }

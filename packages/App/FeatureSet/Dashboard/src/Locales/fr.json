@@ -66656,5 +66656,10 @@
   "Where Social Security numbers were disclosed, offer credit monitoring at no cost for at least 18 months.": "Si des numéros de sécurité sociale ont été divulgués, proposez une surveillance du crédit gratuite pendant au moins 18 mois.",
   "With the date the people are expected to be told, so before they are.": "Avec la date à laquelle les personnes concernées devraient être informées, donc avant qu'elles le soient.",
   "Within {{count}} business days of telling the people": "Dans les {{count}} jours ouvrables suivant l'information des personnes",
-  "Within {{count}} business days of telling the people_one": "Dans le {{count}} jour ouvrable suivant l'information des personnes"
+  "Within {{count}} business days of telling the people_one": "Dans le {{count}} jour ouvrable suivant l'information des personnes",
+  "After the people are told.": "Après l'information des personnes concernées.",
+  "Not owed by an organization subject to the Gramm-Leach-Bliley Act.": "Non due par une organisation soumise au Gramm-Leach-Bliley Act.",
+  "Tell the consumer reporting agencies": "Informer les agences d'évaluation du crédit",
+  "The nationwide consumer reporting agencies, with the notices' timing, distribution and content": "Les agences nationales d'évaluation du crédit, avec le calendrier, la diffusion et le contenu des notifications",
+  "The three largest nationwide consumer reporting agencies": "Les trois plus grandes agences nationales d'évaluation du crédit"
 }
