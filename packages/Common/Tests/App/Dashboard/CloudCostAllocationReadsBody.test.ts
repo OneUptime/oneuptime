@@ -68,7 +68,10 @@ afterEach(() => {
 
 describe("the body a cost view's allocation and a group's spend send", () => {
   test("with only a period: the period, and nothing the page did not set", async () => {
-    const sent: Array<Sent> = await bothReads({ startDate: START, endDate: END });
+    const sent: Array<Sent> = await bothReads({
+      startDate: START,
+      endDate: END,
+    });
 
     expect(sent).toHaveLength(2);
     expect(sent[0]!.url).toContain(
