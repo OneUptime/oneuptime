@@ -9,6 +9,7 @@ import {
   COUNTED_FROM,
   DUE_FIRST,
   EARLIER_PERIODS,
+  EXPOSURE_CARD_PLACE,
   EXPOSURE_TEST_IDS,
   HOW_LONG,
   IF_PEOPLE_LIVE_ELSEWHERE,
@@ -580,7 +581,11 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
   );
 
   return (
-    <Card title={WAS_IT_A_BREACH} description={WAS_IT_A_BREACH_DESCRIPTION}>
+    <Card
+      id={EXPOSURE_CARD_PLACE}
+      title={WAS_IT_A_BREACH}
+      description={WAS_IT_A_BREACH_DESCRIPTION}
+    >
       <div className="space-y-5" data-testid={EXPOSURE_TEST_IDS.card}>
         <p
           className="text-xs text-gray-600"

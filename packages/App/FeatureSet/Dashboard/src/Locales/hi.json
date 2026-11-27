@@ -66495,5 +66495,7 @@
   "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "वह प्रोब जो इस कनेक्शन को पढ़ता है। उसे TCP 443 पर पते तक पहुँचना होता है, इसलिए आम तौर पर यह उसी नेटवर्क में आपका चलाया कोई प्रोब होता है।",
   "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Xen Orchestra के OpenMetrics प्लगइन का रहस्य, Settings > Plugins > openmetrics में। एन्क्रिप्टेड, फिर कभी नहीं दिखाया जाता, और सिर्फ़ आपके प्रोब को भेजा जाता है।",
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "टोकन OneUptime से हटा दिया जाता है। मेट्रिक्स OpenMetrics रहस्य के ज़रिए आते रहते हैं। अगर कोई और इसे इस्तेमाल नहीं करता, तो Xen Orchestra में भी इसे रद्द करें।",
-  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, या XAPI की read-only भूमिका वाला पूल का Active Directory उपयोगकर्ता। XAPI में केवल पढ़ने वाला कोई स्थानीय खाता नहीं है।"
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, या XAPI की read-only भूमिका वाला पूल का Active Directory उपयोगकर्ता। XAPI में केवल पढ़ने वाला कोई स्थानीय खाता नहीं है।",
+  "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "'उल्लंघन सूचनाएँ' में दिया आंतरिक सारांश बताता है कि क्या उजागर हुआ, कितने समय तक और किसके सामने।",
+  "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "'उल्लंघन सूचनाएँ' में आंतरिक सारांश लिखें, या OneUptime AI से इसका ड्राफ़्ट बनवाएँ।"
 }

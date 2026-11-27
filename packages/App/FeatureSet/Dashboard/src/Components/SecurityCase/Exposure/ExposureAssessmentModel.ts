@@ -7,7 +7,9 @@ import {
   ANSWER_SAY_WHERE,
   ANSWER_SECRETS,
   ANSWER_SUMMARY_DRAFTED,
+  ANSWER_SUMMARY_DRAFTED_ON_NOTICES,
   ANSWER_SUMMARY_TO_WRITE,
+  ANSWER_SUMMARY_TO_WRITE_ON_NOTICES,
   DUE_ON,
   DUE_ON_AT_THE_LATEST,
   IF_AT_LEAST_PEOPLE,
@@ -384,12 +386,17 @@ export function describeRecords(
     : translator.translatePlural(ABOUT_RECORDS, records);
 }
 
-// Each line of the case's checklist, answered by the assessment.
+/*
+ * Each line of the case's checklist, answered by the assessment: on the
+ * card, or under its task on the case's Tasks page (isOnTasksPage), where
+ * the Breach Notices card is not below it.
+ */
 export function answerChecklistItem(data: {
   item: ExposureChecklistItem;
   view: ExposureAssessmentView;
   assessment: StoredExposureAssessment | null;
   translator: Translator;
+  isOnTasksPage?: boolean | undefined;
 }): string {
   const translator: Translator = data.translator;
 
@@ -434,12 +441,24 @@ export function answerChecklistItem(data: {
             data.view.secretsToRotate.length,
           )
         : say(translator, ANSWER_NO_SECRETS);
-    default:
+    default: {
+      const isWritten: boolean = Boolean(
+        data.assessment?.sections[ExposureDraftPart.InternalSummary]?.markdown,
+      );
+
+      if (data.isOnTasksPage) {
+        return say(
+          translator,
+          isWritten
+            ? ANSWER_SUMMARY_DRAFTED_ON_NOTICES
+            : ANSWER_SUMMARY_TO_WRITE_ON_NOTICES,
+        );
+      }
+
       return say(
         translator,
-        data.assessment?.sections[ExposureDraftPart.InternalSummary]?.markdown
-          ? ANSWER_SUMMARY_DRAFTED
-          : ANSWER_SUMMARY_TO_WRITE,
+        isWritten ? ANSWER_SUMMARY_DRAFTED : ANSWER_SUMMARY_TO_WRITE,
       );
+    }
   }
 }

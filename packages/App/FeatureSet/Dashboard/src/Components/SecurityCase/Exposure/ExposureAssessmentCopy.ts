@@ -12,6 +12,13 @@ import {
  * fact a draft rests on the compliance facts' (ComplianceDraftsCopy).
  */
 
+/*
+ * The Was It a Breach? card's place on the case's Overview (Card's id,
+ * Utils/PageAnchor): a link that names it after its "#" - each checklist
+ * task's answer on the Tasks page - lands on the card.
+ */
+export const EXPOSURE_CARD_PLACE: string = "was-it-a-breach";
+
 export const EXPOSURE_TEST_IDS: {
   card: string;
   notAssessed: string;
@@ -36,6 +43,7 @@ export const EXPOSURE_TEST_IDS: {
   draft: string;
   part: string;
   partToggle: string;
+  taskAnswer: string;
 } = {
   card: "security-case-exposure-assessment",
   notAssessed: "security-case-exposure-not-assessed",
@@ -60,6 +68,8 @@ export const EXPOSURE_TEST_IDS: {
   draft: "security-case-exposure-draft",
   part: "security-case-exposure-part",
   partToggle: "security-case-exposure-part-toggle",
+  // A checklist task's answer, under the task on the case's Tasks page (#10954).
+  taskAnswer: "security-case-task-exposure-answer",
 };
 
 // The card.
@@ -350,6 +360,13 @@ export const ANSWER_SUMMARY_DRAFTED: string = translationKey(
 );
 export const ANSWER_SUMMARY_TO_WRITE: string = translationKey(
   "Write the internal summary below, or have OneUptime AI draft it.",
+);
+// The same, under the task on the case's Tasks page, where the summary is not below (#10954).
+export const ANSWER_SUMMARY_DRAFTED_ON_NOTICES: string = translationKey(
+  "The internal summary in Breach Notices says what was exposed, for how long and to whom.",
+);
+export const ANSWER_SUMMARY_TO_WRITE_ON_NOTICES: string = translationKey(
+  "Write the internal summary in Breach Notices, or have OneUptime AI draft it.",
 );
 
 // The notices.

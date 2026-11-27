@@ -84,6 +84,7 @@ import SecurityCaseExposureAssessment, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/SecurityCaseExposureAssessment";
 import {
   DRAFT_NOT_LEGAL_ADVICE,
+  EXPOSURE_CARD_PLACE,
   NOT_LEGAL_ADVICE,
   READS_NOT_LOGGED,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
@@ -318,6 +319,28 @@ describe("which cases have it", () => {
     ).not.toBeInTheDocument();
     expect(isCaseAboutAStore(ABOUT_A_STORE)).toBe(true);
     expect(isCaseAboutAStore(undefined)).toBe(false);
+  });
+
+  test("the card is the Overview's place was-it-a-breach, assessed or not, so a link to it lands on it (#10954)", async () => {
+    await renderCards();
+
+    expect(EXPOSURE_CARD_PLACE).toBe("was-it-a-breach");
+    expect(document.getElementById(EXPOSURE_CARD_PLACE)).toHaveTextContent(
+      "Was It a Breach?",
+    );
+    expect(
+      document
+        .getElementById(EXPOSURE_CARD_PLACE)!
+        .querySelector('[data-testid="security-case-exposure-assessment"]'),
+    ).not.toBeNull();
+
+    cleanup();
+    reads.mockResolvedValue(answerOf(NOT_ASSESSED));
+    await renderCards();
+
+    expect(document.getElementById(EXPOSURE_CARD_PLACE)).toHaveTextContent(
+      "Not assessed yet",
+    );
   });
 
   test("a reader the server refuses - one who may not read the store's findings - sees nothing", async () => {

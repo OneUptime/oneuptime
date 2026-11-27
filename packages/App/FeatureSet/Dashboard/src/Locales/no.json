@@ -66495,5 +66495,7 @@
   "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "Sonden som leser denne tilkoblingen. Den må nå adressen på TCP 443, så det er vanligvis en du kjører i samme nettverk.",
   "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Hemmeligheten i OpenMetrics-programtillegget i Xen Orchestra, under Settings > Plugins > openmetrics. Kryptert, vises aldri igjen, sendes bare til sonden din.",
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "Tokenet slettes fra OneUptime. Målingene fortsetter å komme via OpenMetrics-hemmeligheten. Tilbakekall det i Xen Orchestra også hvis ingenting annet bruker det.",
-  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, eller en Active Directory-bruker i poolen med XAPIs rolle read-only. XAPI har ingen lokal konto som bare leser."
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, eller en Active Directory-bruker i poolen med XAPIs rolle read-only. XAPI har ingen lokal konto som bare leser.",
+  "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "Det interne sammendraget i Meldinger om sikkerhetsbrudd sier hva som ble eksponert, hvor lenge og for hvem.",
+  "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "Skriv det interne sammendraget i Meldinger om sikkerhetsbrudd, eller la OneUptime AI skrive et utkast til det."
 }
