@@ -62,7 +62,9 @@ export function asTheProbeSendsIt(
         (resource["resource"] as JSONObject)["attributes"] as JSONArray
       ).filter((attribute: unknown): boolean => {
         const key: unknown = (attribute as JSONObject)["key"];
-        return key !== "oneuptime.agent.version" && key !== "xen_orchestra.name";
+        return (
+          key !== "oneuptime.agent.version" && key !== "xen_orchestra.name"
+        );
       });
 
       return {

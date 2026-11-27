@@ -4173,6 +4173,20 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "XCP-ng",
         pages: [
           allListPage(PageMap.XCP_NG_POOLS, "All Pools"),
+          {
+            page: PageMap.XCP_NG_CONNECTIONS,
+            title: "Connections",
+            icon: IconProp.Link,
+            keywords: [
+              "xen orchestra",
+              "xapi",
+              "pool master",
+              "probe",
+              "without an agent",
+              "agentless",
+              "connect xen orchestra",
+            ],
+          },
           documentation(PageMap.XCP_NG_DOCUMENTATION),
         ],
       },

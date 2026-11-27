@@ -10,6 +10,12 @@ import {
 import XcpNgCollectionErrorCode from "Common/Types/XcpNg/XcpNgCollectionError";
 import { XcpNgApiTokenSummary } from "Common/Types/XcpNg/XcpNgProbeCollection";
 
+// Where /rest/v0/users/me sends the probe: the user's own address.
+const USER_LOCATION: RegExp = /^\/rest\/v0\/users\/[A-Za-z0-9-]+$/;
+
+// A Xen Orchestra object id, as the probe may put one in a path.
+const XO_ID: RegExp = /^[A-Za-z0-9-]+$/;
+
 /*
  * What a probe reads of a Xen Orchestra, and how it reads what Xen
  * Orchestra answers - from xo-server and its OpenMetrics plugin
@@ -144,10 +150,7 @@ export default class XenOrchestraClient {
       throw this.notXenOrchestra(response.status);
     }
 
-    if (
-      response.status >= 500 &&
-      response.body.includes(XO_PROXY_ERROR_TEXT)
-    ) {
+    if (response.status >= 500 && response.body.includes(XO_PROXY_ERROR_TEXT)) {
       throw this.pluginNotLoaded();
     }
 
@@ -191,10 +194,7 @@ export default class XenOrchestraClient {
       );
     }
 
-    if (
-      response.status >= 500 &&
-      response.body.includes(XO_PROXY_ERROR_TEXT)
-    ) {
+    if (response.status >= 500 && response.body.includes(XO_PROXY_ERROR_TEXT)) {
       throw this.pluginNotLoaded();
     }
 
@@ -265,7 +265,7 @@ export default class XenOrchestraClient {
     if (response.status >= 300 && response.status < 400) {
       const location: string = readHeader(response, "location");
 
-      if (!/^\/rest\/v0\/users\/[A-Za-z0-9-]+$/.test(location)) {
+      if (!USER_LOCATION.test(location)) {
         return {
           errorCode: XcpNgCollectionErrorCode.ApiError,
           errorMessage: `Xen Orchestra at ${this.where} sent /rest/v0/users/me somewhere the probe does not follow.`,
@@ -310,7 +310,7 @@ export default class XenOrchestraClient {
       summary.userName = userName.trim().substring(0, 200);
     }
 
-    if (!/^[A-Za-z0-9-]+$/.test(userId)) {
+    if (!XO_ID.test(userId)) {
       return {
         ...summary,
         errorCode: XcpNgCollectionErrorCode.ApiError,
@@ -350,6 +350,7 @@ export default class XenOrchestraClient {
     if (userRecord["permission"] === "admin") {
       summary.isReadOnly = false;
       summary.canReadAlarms = true;
+      summary.canReadMessages = true;
       summary.canReadBackupLogs = true;
       summary.errorCode = XcpNgCollectionErrorCode.TokenNotReadOnly;
       summary.errorMessage = `The API token belongs to ${
@@ -387,7 +388,9 @@ export default class XenOrchestraClient {
         };
       });
 
-    const reads: (resource: string) => boolean = (resource: string): boolean => {
+    const reads: (resource: string) => boolean = (
+      resource: string,
+    ): boolean => {
       return allowed.some(
         (privilege: { action: string; resource: string }): boolean => {
           return (
@@ -404,6 +407,7 @@ export default class XenOrchestraClient {
       },
     );
     summary.canReadAlarms = reads("alarm");
+    summary.canReadMessages = reads("message");
     summary.canReadBackupLogs = reads("backup-log");
 
     if (!summary.isReadOnly) {
@@ -423,9 +427,14 @@ export default class XenOrchestraClient {
       return summary;
     }
 
-    if (!summary.canReadAlarms || !summary.canReadBackupLogs) {
+    if (
+      !summary.canReadAlarms ||
+      !summary.canReadMessages ||
+      !summary.canReadBackupLogs
+    ) {
       const missing: Array<string> = [
         ...(summary.canReadAlarms ? [] : ["alarms"]),
+        ...(summary.canReadMessages ? [] : ["messages"]),
         ...(summary.canReadBackupLogs ? [] : ["backup logs"]),
       ];
 

@@ -130,6 +130,7 @@ const EVENT_TYPE_WORDS: Array<{ word: string; label: string }> = [
   { word: "VMware", label: "VMware" },
   { word: "VCenter", label: "vCenter" },
   { word: "OpenStack", label: "OpenStack" },
+  // "XcpNgPoolCreated" read "Xcp Ng Pool Created".
   { word: "XcpNg", label: "XCP-ng" },
   { word: "OnCallDuty", label: "On-Call" },
   { word: "OnCall", label: "On-Call" },

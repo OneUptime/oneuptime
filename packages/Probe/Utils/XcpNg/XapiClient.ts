@@ -259,7 +259,11 @@ export function parseXapiDateTime(value: unknown): Date | null {
     const zone: string = compact[7] || "Z";
     date = new Date(
       `${compact[1]}-${compact[2]}-${compact[3]}T${compact[4]}:${compact[5]}:${compact[6]}${
-        zone === "Z" ? "Z" : zone.includes(":") ? zone : `${zone.slice(0, 3)}:${zone.slice(3)}`
+        zone === "Z"
+          ? "Z"
+          : zone.includes(":")
+            ? zone
+            : `${zone.slice(0, 3)}:${zone.slice(3)}`
       }`,
     );
   } else {

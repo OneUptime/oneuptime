@@ -105,10 +105,7 @@ export function createXcpNgTransport(data: {
 }
 
 // A response header, as one string (the first of several).
-export function readHeader(
-  response: XcpNgHttpResponse,
-  name: string,
-): string {
+export function readHeader(response: XcpNgHttpResponse, name: string): string {
   const value: string | Array<string> | undefined =
     response.headers[name.toLowerCase()];
 

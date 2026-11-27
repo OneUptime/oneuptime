@@ -77,7 +77,7 @@ enum XcpNgCollectionErrorCode {
    * beyond reading: OneUptime holds only read-only tokens.
    */
   TokenNotReadOnly = "TokenNotReadOnly",
-  // The token reads, but not alarms or backup logs.
+  // The token reads, but not alarms, messages or backup logs.
   TokenCannotReadAlarms = "TokenCannotReadAlarms",
   // Xen Orchestra (or XAPI) reports no pool at all.
   NoPools = "NoPools",
@@ -210,9 +210,9 @@ const ADVICE: Record<XcpNgCollectionErrorCode, XcpNgCollectionErrorAdvice> = {
       "OneUptime holds only read-only tokens. Create one for a user holding a copy of the built-in Read only role, and no other role.",
   },
   [XcpNgCollectionErrorCode.TokenCannotReadAlarms]: {
-    title: "The API token cannot read alarms or backups",
+    title: "The API token cannot read alarms, messages or backups",
     nextStep:
-      "Give the token's user a copy of Xen Orchestra's built-in Read only role, which reads alarms and backup logs.",
+      "Give the token's user a copy of Xen Orchestra's built-in Read only role, which reads alarms, messages and backup logs.",
   },
   [XcpNgCollectionErrorCode.NoPools]: {
     title: "No pool is connected",

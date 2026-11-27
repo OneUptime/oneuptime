@@ -82,6 +82,8 @@ import XcpNgPool from "./XcpNgPool";
 import XcpNgPoolOwnerTeam from "./XcpNgPoolOwnerTeam";
 import XcpNgPoolOwnerUser from "./XcpNgPoolOwnerUser";
 import XcpNgResource from "./XcpNgResource";
+import XcpNgConnection from "./XcpNgConnection";
+import XcpNgConnectionTest from "./XcpNgConnectionTest";
 import VMwareVCenter from "./VMwareVCenter";
 import VMwareVCenterOwnerTeam from "./VMwareVCenterOwnerTeam";
 import VMwareVCenterOwnerUser from "./VMwareVCenterOwnerUser";
@@ -1371,6 +1373,8 @@ const AllModelTypes: Array<{
   XcpNgPoolOwnerTeam,
   XcpNgPoolOwnerUser,
   XcpNgResource,
+  XcpNgConnection,
+  XcpNgConnectionTest,
   VMwareVCenter,
   VMwareVCenterOwnerTeam,
   VMwareVCenterOwnerUser,

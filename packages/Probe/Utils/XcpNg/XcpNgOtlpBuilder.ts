@@ -437,7 +437,12 @@ export default class XcpNgOtlpBuilder {
       let pool: PoolCounts | undefined = pools.get(poolId);
 
       if (!pool) {
-        pool = { poolName: "", hosts: new Map(), vms: new Map(), srs: new Set() };
+        pool = {
+          poolName: "",
+          hosts: new Map(),
+          vms: new Map(),
+          srs: new Set(),
+        };
         pools.set(poolId, pool);
       }
 
@@ -462,12 +467,12 @@ export default class XcpNgOtlpBuilder {
       if (sample.name === XcpNgSeries.HostStatus && uuid) {
         pool.hosts.set(
           uuid,
-          (pool.hosts.get(uuid) || false) || powerState === "Running",
+          pool.hosts.get(uuid) || false || powerState === "Running",
         );
       } else if (sample.name === XcpNgSeries.VmStatus && uuid) {
         pool.vms.set(
           uuid,
-          (pool.vms.get(uuid) || false) || powerState === "Running",
+          pool.vms.get(uuid) || false || powerState === "Running",
         );
       } else if (sample.name === XcpNgSeries.SrPhysicalSizeBytes) {
         const srUuid: string = (

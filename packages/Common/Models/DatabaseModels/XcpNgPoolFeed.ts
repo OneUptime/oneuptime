@@ -39,8 +39,14 @@ export enum XcpNgPoolFeedEventType {
   OwnerTeamRemoved = "OwnerTeamRemoved",
   OwnerRuleExecuted = "OwnerRuleExecuted",
   LabelRuleExecuted = "LabelRuleExecuted",
-  // #10996 / #10997: what XAPI and Xen Orchestra say of the pool.
+  /*
+   * A message XAPI wrote for the pool (message.get_since): a VM that
+   * crashed, a host HA lost, a storage repository that failed to plug, a
+   * threshold ALARM. Read through a pool's own XAPI (#10999); #10997 turns
+   * them into alerts.
+   */
   XcpNgPoolMessage = "XcpNgPoolMessage",
+  // #10997: the master moving, HA changing, a backup job failing.
   XcpNgPoolMasterChanged = "XcpNgPoolMasterChanged",
   XcpNgPoolHaChanged = "XcpNgPoolHaChanged",
   XcpNgPoolBackupFailed = "XcpNgPoolBackupFailed",

@@ -542,6 +542,8 @@ export const XcpNgRoutePath: Dictionary<string> = {
   [PageMap.XCP_NG_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.XCP_NG_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.XCP_NG_POOLS_ARCHIVED]: `archived`,
+  [PageMap.XCP_NG_CONNECTIONS]: `connections`,
+  [PageMap.XCP_NG_CONNECTION_VIEW]: `connections/${RouteParams.ModelID}`,
 };
 
 export const IoTRoutePath: Dictionary<string> = {
@@ -6008,6 +6010,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.XCP_NG_POOLS_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
       XcpNgRoutePath[PageMap.XCP_NG_POOLS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_CONNECTIONS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_CONNECTION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_CONNECTION_VIEW]
     }`,
   ),
 

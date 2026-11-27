@@ -389,6 +389,7 @@
     "production, staging",
     "pve-production",
     "resolved",
+    "root",
     "s",
     "security-alerts",
     "sensor-001",
