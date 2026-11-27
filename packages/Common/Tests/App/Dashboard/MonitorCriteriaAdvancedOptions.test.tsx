@@ -86,15 +86,40 @@ const DROPDOWNS: {
   userDropdownOptions: [],
 };
 
-function renderIncidentForm(initialValue?: CriteriaIncident): void {
+function renderIncidentForm(
+  initialValue?: CriteriaIncident,
+  allowSeverityEscalation: boolean = false,
+): void {
   render(
     <MonitorCriteriaIncidentForm
       initialValue={initialValue}
       incidentSeverityDropdownOptions={[]}
+      allowSeverityEscalation={allowSeverityEscalation}
       {...DROPDOWNS}
     />,
   );
 }
+
+describe("monitor criteria severity escalation settings", () => {
+  test("are available only to standard monitor criteria and start folded", () => {
+    renderIncidentForm(undefined, true);
+
+    const section: HTMLElement = screen.getByTestId(
+      "monitor-criteria-severity-escalation",
+    );
+
+    expect(section).toBeInTheDocument();
+    expect(section).toHaveAttribute("data-collapsed", "true");
+  });
+
+  test("are not shown when the incident form is used without monitor criteria", () => {
+    renderIncidentForm();
+
+    expect(
+      screen.queryByTestId("monitor-criteria-severity-escalation"),
+    ).not.toBeInTheDocument();
+  });
+});
 
 function renderAlertForm(initialValue?: CriteriaAlert): void {
   render(
