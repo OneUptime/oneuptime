@@ -81,6 +81,13 @@ const os = require("os");
 const path = require("path");
 const yaml = require("js-yaml");
 
+const {
+  AGENTS,
+  KUBERNETES_CONFIGMAP_PATH,
+  KUBERNETES_SOURCE,
+  REPO_ROOT,
+  readChainConfigs,
+} = require("./Utils/AgentLogSeverityConfigs.js");
 const behaviour = require("./Utils/LogSeverityBehaviour.js");
 const { CASES, PROSE } = require("./Utils/LogSeverityCorpus.js");
 const {
@@ -95,25 +102,6 @@ const {
   severityKeywordsFromRegex,
   unescapeGoStringLiteral,
 } = require("./Utils/StanzaSeverity.js");
-
-const REPO_ROOT = path.resolve(__dirname, "..", "..");
-
-/** The three agents whose `filelog` receiver carries the severity chain. */
-const AGENTS = ["DockerAgent", "PodmanAgent", "DockerSwarmAgent"];
-
-/**
- * The Kubernetes agent grew this chain first. It lives in a Helm template, so
- * it cannot be parsed as YAML wholesale — the block itself is plain YAML and is
- * lifted out textually below.
- */
-const KUBERNETES_CONFIGMAP_PATH = path.join(
-  REPO_ROOT,
-  "HelmChart",
-  "Public",
-  "kubernetes-agent",
-  "templates",
-  "configmap-daemonset.yaml",
-);
 
 /** The chain, in the order the operators must appear in the list. */
 const SEVERITY_CHAIN_IDS = [
@@ -169,72 +157,6 @@ const ADDED_LEVELS = {
 /** The scratch attribute the chain writes and must clean up again. */
 const SCRATCH_ATTRIBUTE = "attributes.severity_text";
 
-function readAgentOperators(agent) {
-  const configPath = path.join(
-    REPO_ROOT,
-    "agents",
-    agent,
-    "otel-collector-config.yaml",
-  );
-  const config = yaml.load(fs.readFileSync(configPath, "utf8"));
-  const operators = config.receivers.filelog.operators;
-
-  if (!Array.isArray(operators) || operators.length === 0) {
-    throw new Error(`${agent}: receivers.filelog.operators is empty`);
-  }
-
-  return operators;
-}
-
-/**
- * Lift the severity chain out of the Kubernetes agent's Helm template as text
- * and parse just that block.
- *
- * Deliberately strict: if a `{{ … }}` action ever appears inside the block the
- * extraction stops and the lockstep test fails loudly, rather than quietly
- * comparing half a chain.
- */
-function readKubernetesOperators() {
-  const lines = fs.readFileSync(KUBERNETES_CONFIGMAP_PATH, "utf8").split("\n");
-  const start = lines.findIndex((line, index) => {
-    return (
-      /^\s*- type: router\s*$/.test(line) &&
-      /^\s*id: severity-router\s*$/.test(lines[index + 1] || "")
-    );
-  });
-
-  if (start === -1) {
-    throw new Error(
-      `${KUBERNETES_CONFIGMAP_PATH}: no 'severity-router' operator found`,
-    );
-  }
-
-  const markerIndent = lines[start].length - lines[start].trimStart().length;
-  const block = [];
-
-  for (let index = start; index < lines.length; index++) {
-    const line = lines[index];
-
-    if (line.trim() === "") {
-      continue;
-    }
-
-    if (line.includes("{{")) {
-      break;
-    }
-
-    const indent = line.length - line.trimStart().length;
-
-    if (indent < markerIndent) {
-      break;
-    }
-
-    block.push(line.slice(markerIndent));
-  }
-
-  return yaml.load(block.join("\n"));
-}
-
 /**
  * The chain's operators, in chain order, or a hard error naming what is
  * missing. Loud on purpose: every test below reaches into these, and "cannot
@@ -258,18 +180,11 @@ function severityChain(source, operators) {
   });
 }
 
-const KUBERNETES_SOURCE = "the Kubernetes agent's DaemonSet";
-
 /**
  * Every config the chain ships in: an agent's whole operator list, or the
  * Kubernetes agent's chain on its own.
  */
-const CONFIGS = new Map([
-  ...AGENTS.map((agent) => {
-    return [agent, readAgentOperators(agent)];
-  }),
-  [KUBERNETES_SOURCE, readKubernetesOperators()],
-]);
+const CONFIGS = readChainConfigs();
 
 /** The pattern a regex_parser of the chain uses. */
 function parserPattern(operators, id) {

@@ -423,6 +423,33 @@ validate` only proves each operator is well-formed. So the suite holds it to:
 `agent-log-severity-behaviour.sh` runs the same corpus through the real
 collector.
 
+### `LogSeverityOneTable.test.js`
+
+A level word is turned into a stored severity in more than one place, and the
+same word must land on the same severity in all of them (issue #11228: the
+agents stored `critical` as an Error and `alert` and `panic` as Fatal, while
+OneUptime's ingest did the opposite). The table is `LOG_SEVERITY_NUMBER_BY_TEXT`
+in `packages/Common/Types/Log/LogSeverity.ts`, loaded as the module it is
+(`loadCommonModule` in `Utils/AgentLogSeverityConfigs.js`), and the suite
+holds every copy to it, number for number:
+
+- the four configs' `severity-parser`: every alias of its mapping block, and
+  every text its readers lift;
+- the API-mode tailer's `severityTextToNumber`, which must also number exactly
+  the texts the DaemonSet's readers lift;
+- syslog's eight severities by number, through their RFC 5424 keywords:
+  OneUptime's syslog ingest (`SyslogSeverity.ts`) and the host collector's
+  journald priority mapping;
+- CloudWatch Logs' first-word and RDS database reads.
+
+A text that is no word a sender writes in a level field, only a mark in one
+format's own position (klog's letter, pino's number, PostgreSQL's `LOG` in
+capitals), is a reader token, listed with the number it names; the chain may
+map nothing else the table does not know. Vendor vocabularies whose meaning
+the vendor defines (Datadog's statuses, Google Cloud Logging's severities) are
+read as the vendor says and are not held here. A last block keeps the copies
+as they were before #11228 and shows the words they disagreed on.
+
 ### `validate-collector-configs.sh`
 
 Not part of `npm test`, because it needs docker and helm. It runs
