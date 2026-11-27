@@ -102,7 +102,14 @@ function getProbesPageRoute(): Route {
   );
 }
 
-// The words of each kind's fields, the same on Connect and Edit Connection.
+/*
+ * The words of each kind's fields, the same on Connect and Edit Connection.
+ * Each sits under the key the Dashboard's string extraction reads.
+ */
+interface FieldWords {
+  description: string;
+}
+
 const WORDS: {
   xenOrchestraAddress: {
     title: string;
@@ -110,13 +117,13 @@ const WORDS: {
     description: string;
   };
   xapiAddress: { title: string; placeholder: string; description: string };
-  probe: string;
-  openMetricsSecret: string;
-  apiToken: string;
-  username: string;
-  password: string;
-  certificate: string;
-  interval: string;
+  probe: FieldWords;
+  openMetricsSecret: FieldWords;
+  apiToken: FieldWords;
+  username: FieldWords;
+  password: FieldWords;
+  certificate: FieldWords;
+  interval: FieldWords;
 } = {
   xenOrchestraAddress: {
     title: "Xen Orchestra Address",
@@ -130,20 +137,34 @@ const WORDS: {
     description:
       "The management address of the pool's master. When another host becomes master, the probe follows it.",
   },
-  probe:
-    "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.",
-  openMetricsSecret:
-    "The secret set in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, and sent only to the probe you picked.",
-  apiToken:
-    "Optional. A token of a Xen Orchestra user with the Read only role: OneUptime checks that it only reads, warns you before it expires, and reads the REST API with it. Encrypted, never shown again.",
-  username:
-    "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.",
-  password:
-    "Encrypted, never shown again, and sent only to the probe you picked.",
-  certificate:
-    "Leave empty if the probe trusts the certificate. Xen Orchestra and XCP-ng sign their own by default: test the connection to see it and trust it.",
-  interval:
-    "From 1 to 60 minutes. Every minute matches the XCP-ng Agent; read a large Xen Orchestra less often to go easier on it.",
+  probe: {
+    description:
+      "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.",
+  },
+  openMetricsSecret: {
+    description:
+      "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.",
+  },
+  apiToken: {
+    description:
+      "Optional. A token of a Xen Orchestra user with the Read only role: OneUptime checks it only reads and warns before it expires. Encrypted.",
+  },
+  username: {
+    description:
+      "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.",
+  },
+  password: {
+    description:
+      "Encrypted, never shown again, and sent only to the probe you picked.",
+  },
+  certificate: {
+    description:
+      "Leave empty if the probe trusts the certificate. Xen Orchestra and XCP-ng sign their own by default: test the connection to see it and trust it.",
+  },
+  interval: {
+    description:
+      "From 1 to 60 minutes. Every minute matches the XCP-ng Agent; read a large Xen Orchestra less often to go easier on it.",
+  },
 };
 
 // "Test connection" under the certificate, and "Trust this certificate" filling it in.
@@ -182,7 +203,7 @@ function getProbeField(
     fieldType: FormFieldSchemaType.Dropdown,
     required: true,
     placeholder: "Probe",
-    description: WORDS.probe,
+    description: WORDS.probe.description,
     sideLink: {
       text: "Add a probe",
       url: getProbesPageRoute(),
@@ -260,7 +281,7 @@ function getSignInFields(data: {
         ...showIfXenOrchestra,
         fieldType: FormFieldSchemaType.Password,
         required: data.isCreate,
-        description: WORDS.openMetricsSecret,
+        description: WORDS.openMetricsSecret.description,
         autoComplete: "new-password",
       },
       {
@@ -272,7 +293,7 @@ function getSignInFields(data: {
         ...showIfXenOrchestra,
         fieldType: FormFieldSchemaType.Password,
         required: false,
-        description: WORDS.apiToken,
+        description: WORDS.apiToken.description,
         autoComplete: "new-password",
       },
     );
@@ -290,7 +311,7 @@ function getSignInFields(data: {
         fieldType: FormFieldSchemaType.Text,
         required: true,
         placeholder: "root",
-        description: WORDS.username,
+        description: WORDS.username.description,
         autoComplete: "off",
       },
       {
@@ -302,7 +323,7 @@ function getSignInFields(data: {
         ...showIfXapi,
         fieldType: FormFieldSchemaType.Password,
         required: data.isCreate,
-        description: WORDS.password,
+        description: WORDS.password.description,
         autoComplete: "new-password",
       },
     );
@@ -326,7 +347,7 @@ function getCertificateField(
     fieldType: FormFieldSchemaType.Text,
     required: false,
     placeholder: "AB:CD:EF:...",
-    description: WORDS.certificate,
+    description: WORDS.certificate.description,
     customValidation: (values: FormValues<XcpNgConnection>): string | null => {
       return validateXcpNgTrustedCertificate(
         (values as Record<string, unknown>)["trustedCertificateFingerprint"],
@@ -359,7 +380,7 @@ function getIntervalField(
       ? { defaultValue: DEFAULT_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES }
       : {}),
     // The bounds and default of XcpNgCollectionSettings.
-    description: WORDS.interval,
+    description: WORDS.interval.description,
     validation: {
       minValue: MIN_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES,
       maxValue: MAX_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES,

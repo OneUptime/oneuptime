@@ -65913,7 +65913,6 @@
   "Its metrics are larger than one probe upload may be. Use the XCP-ng Agent for it.": "इसके मेट्रिक्स प्रोब के एक अपलोड की सीमा से बड़े हैं। इसके लिए XCP-ng एजेंट इस्तेमाल करें।",
   "Loopback, link-local and cloud metadata addresses are never used. Enter the host name or IP address it answers on in your network.": "लूपबैक, लिंक-लोकल और क्लाउड मेटाडेटा पते कभी इस्तेमाल नहीं होते। वह होस्ट नाम या IP पता दर्ज करें जिस पर यह आपके नेटवर्क में जवाब देता है।",
   "Message Watermark": "संदेश पढ़ने की स्थिति",
-  "Name of this connection in OneUptime: the Xen Orchestra, or the pool, it reads. Defaults to the host name of its address. For a Xen Orchestra, every pool it reports shows it as the Xen Orchestra it is read from.": "OneUptime में इस कनेक्शन का नाम: वह Xen Orchestra या पूल जिसे यह पढ़ता है। डिफ़ॉल्ट रूप से इसके पते का होस्ट नाम। Xen Orchestra के लिए, उसका बताया हर पूल यह नाम उस Xen Orchestra के रूप में दिखाता है जिससे वह पढ़ा जाता है।",
   "No OpenMetrics secret is saved for this connection.": "इस कनेक्शन के लिए कोई OpenMetrics रहस्य सहेजा नहीं गया है।",
   "No connection reads this pool yet. Connect its Xen Orchestra, or the pool itself, and come back once the first read finds it.": "अभी कोई कनेक्शन इस पूल को नहीं पढ़ता। इसका Xen Orchestra या खुद पूल कनेक्ट करें, और पहली रीड में इसके मिलने के बाद वापस आएँ।",
   "No password is saved for this connection.": "इस कनेक्शन के लिए कोई पासवर्ड सहेजा नहीं गया है।",
@@ -65978,8 +65977,6 @@
   "The probe reads the connection with its saved settings and secrets, and reports what it found. Nothing is changed.": "प्रोब सहेजी गई सेटिंग्स और रहस्यों से कनेक्शन पढ़ता है, और जो मिला उसकी रिपोर्ट देता है। कुछ भी बदला नहीं जाता।",
   "The probe reads this connection with its new settings within a minute.": "प्रोब एक मिनट के भीतर नई सेटिंग्स से इस कनेक्शन को पढ़ेगा।",
   "The probe stops reading it. Its pools keep their data and history: connect them again, or install the XCP-ng Agent, and they carry on where they stopped.": "प्रोब इसे पढ़ना बंद कर देता है। इसके पूल अपना डेटा और इतिहास रखते हैं: उन्हें फिर से कनेक्ट करें, या XCP-ng एजेंट इंस्टॉल करें, और वे वहीं से आगे बढ़ेंगे जहाँ रुके थे।",
-  "The probe's reads of this pool are dropped from now on, and the XCP-ng Agent's are kept. Start the agent next to Xen Orchestra first, so nothing is missed.": "अब से इस पूल की प्रोब द्वारा की गई रीड छोड़ दी जाएँगी, और XCP-ng एजेंट का डेटा रखा जाएगा। पहले Xen Orchestra के बगल में एजेंट शुरू करें, ताकि कुछ न छूटे।",
-  "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke the token in Xen Orchestra too if nothing else uses it.": "टोकन OneUptime से हटा दिया जाता है। मेट्रिक्स OpenMetrics रहस्य के ज़रिए आते रहते हैं। अगर कोई और इसे इस्तेमाल नहीं करता, तो Xen Orchestra में भी टोकन रद्द करें।",
   "The token is wrong or has expired. Create a new one for the read-only user and save it here.": "टोकन गलत है या समाप्त हो गया। केवल पढ़ने वाले उपयोगकर्ता के लिए नया टोकन बनाएँ और उसे यहाँ सहेजें।",
   "This Xen Orchestra has no OpenMetrics plugin": "इस Xen Orchestra में OpenMetrics प्लगइन नहीं है",
   "This address is not Xen Orchestra": "यह पता Xen Orchestra नहीं है",
@@ -66426,5 +66423,14 @@
   "XCP-ng Pool Message": "XCP-ng पूल संदेश",
   "XCP-ng Pool Master Changed": "XCP-ng पूल का मास्टर बदला",
   "XCP-ng Pool High Availability Changed": "XCP-ng पूल की हाई अवेलेबिलिटी बदली",
-  "XCP-ng Pool Backup Failed": "XCP-ng पूल का बैकअप विफल"
+  "XCP-ng Pool Backup Failed": "XCP-ng पूल का बैकअप विफल",
+  "From 1 to 60 minutes. Every minute matches the XCP-ng Agent; read a large Xen Orchestra less often to go easier on it.": "1 से 60 मिनट। हर मिनट XCP-ng एजेंट के बराबर है; बड़े Xen Orchestra पर कम भार डालने के लिए उसे कम बार पढ़ें।",
+  "From now on the probe's reads of this pool are dropped and the XCP-ng Agent's kept. Start the agent next to Xen Orchestra first, so nothing is missed.": "अब से इस पूल की प्रोब द्वारा की गई रीड छोड़ दी जाएँगी, और XCP-ng एजेंट का डेटा रखा जाएगा। पहले Xen Orchestra के बगल में एजेंट शुरू करें, ताकि कुछ न छूटे।",
+  "Leave empty if the probe trusts the certificate. Xen Orchestra and XCP-ng sign their own by default: test the connection to see it and trust it.": "अगर प्रोब प्रमाणपत्र पर भरोसा करता है, तो खाली छोड़ें। Xen Orchestra और XCP-ng डिफ़ॉल्ट रूप से अपना प्रमाणपत्र खुद साइन करते हैं: उसे देखने और उस पर भरोसा करने के लिए कनेक्शन जाँचें।",
+  "Name of this connection in OneUptime, shown on every pool it reads. Defaults to the host name of its address.": "OneUptime में इस कनेक्शन का नाम, जो इसके पढ़े हर पूल पर दिखता है। डिफ़ॉल्ट रूप से इसके पते का होस्ट नाम।",
+  "Optional. A token of a Xen Orchestra user with the Read only role: OneUptime checks it only reads and warns before it expires. Encrypted.": "वैकल्पिक। Read only भूमिका वाले Xen Orchestra उपयोगकर्ता का टोकन: OneUptime जाँचता है कि वह सिर्फ़ पढ़ता है, और उसके समाप्त होने से पहले चेतावनी देता है। एन्क्रिप्टेड।",
+  "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "वह प्रोब जो इस कनेक्शन को पढ़ता है। उसे TCP 443 पर पते तक पहुँचना होता है, इसलिए आम तौर पर यह उसी नेटवर्क में आपका चलाया कोई प्रोब होता है।",
+  "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Xen Orchestra के OpenMetrics प्लगइन का रहस्य, Settings > Plugins > openmetrics में। एन्क्रिप्टेड, फिर कभी नहीं दिखाया जाता, और सिर्फ़ आपके प्रोब को भेजा जाता है।",
+  "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "टोकन OneUptime से हटा दिया जाता है। मेट्रिक्स OpenMetrics रहस्य के ज़रिए आते रहते हैं। अगर कोई और इसे इस्तेमाल नहीं करता, तो Xen Orchestra में भी इसे रद्द करें।",
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, या XAPI की read-only भूमिका वाला पूल का Active Directory उपयोगकर्ता। XAPI में केवल पढ़ने वाला कोई स्थानीय खाता नहीं है।"
 }

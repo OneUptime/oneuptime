@@ -65913,7 +65913,6 @@
   "Its metrics are larger than one probe upload may be. Use the XCP-ng Agent for it.": "메트릭이 프로브 업로드 한 번의 한도보다 큽니다. 이 연결에는 XCP-ng 에이전트를 사용하세요.",
   "Loopback, link-local and cloud metadata addresses are never used. Enter the host name or IP address it answers on in your network.": "루프백, 링크 로컬, 클라우드 메타데이터 주소는 사용되지 않습니다. 네트워크에서 응답하는 호스트 이름이나 IP 주소를 입력하세요.",
   "Message Watermark": "메시지 읽기 위치",
-  "Name of this connection in OneUptime: the Xen Orchestra, or the pool, it reads. Defaults to the host name of its address. For a Xen Orchestra, every pool it reports shows it as the Xen Orchestra it is read from.": "OneUptime에서 이 연결의 이름으로, 읽는 Xen Orchestra 또는 풀을 나타냅니다. 기본값은 주소의 호스트 이름입니다. Xen Orchestra의 경우 보고되는 각 풀에 읽어 오는 Xen Orchestra로 이 이름이 표시됩니다.",
   "No OpenMetrics secret is saved for this connection.": "이 연결에 저장된 OpenMetrics 시크릿이 없습니다.",
   "No connection reads this pool yet. Connect its Xen Orchestra, or the pool itself, and come back once the first read finds it.": "아직 이 풀을 읽는 연결이 없습니다. 풀의 Xen Orchestra나 풀 자체를 연결한 뒤, 첫 읽기에서 풀을 찾으면 다시 오세요.",
   "No password is saved for this connection.": "이 연결에 저장된 비밀번호가 없습니다.",
@@ -65978,8 +65977,6 @@
   "The probe reads the connection with its saved settings and secrets, and reports what it found. Nothing is changed.": "프로브가 저장된 설정과 시크릿으로 연결을 읽고 찾은 내용을 보고합니다. 아무것도 변경되지 않습니다.",
   "The probe reads this connection with its new settings within a minute.": "프로브가 1분 안에 새 설정으로 이 연결을 읽습니다.",
   "The probe stops reading it. Its pools keep their data and history: connect them again, or install the XCP-ng Agent, and they carry on where they stopped.": "프로브가 이 연결 읽기를 멈춥니다. 풀의 데이터와 기록은 유지됩니다. 다시 연결하거나 XCP-ng 에이전트를 설치하면 멈춘 곳에서 이어집니다.",
-  "The probe's reads of this pool are dropped from now on, and the XCP-ng Agent's are kept. Start the agent next to Xen Orchestra first, so nothing is missed.": "이제부터 프로브가 읽은 이 풀의 데이터는 버리고 XCP-ng 에이전트의 데이터를 유지합니다. 놓치는 것이 없도록 먼저 Xen Orchestra 옆에서 에이전트를 시작하세요.",
-  "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke the token in Xen Orchestra too if nothing else uses it.": "토큰이 OneUptime에서 삭제됩니다. 메트릭은 OpenMetrics 시크릿으로 계속 들어옵니다. 다른 곳에서 쓰지 않는다면 Xen Orchestra에서도 토큰을 취소하세요.",
   "The token is wrong or has expired. Create a new one for the read-only user and save it here.": "토큰이 잘못되었거나 만료되었습니다. 읽기 전용 사용자의 새 토큰을 만들어 여기에 저장하세요.",
   "This Xen Orchestra has no OpenMetrics plugin": "이 Xen Orchestra에는 OpenMetrics 플러그인이 없습니다",
   "This address is not Xen Orchestra": "이 주소는 Xen Orchestra가 아닙니다",
@@ -66426,5 +66423,14 @@
   "XCP-ng Pool Message": "XCP-ng 풀 메시지",
   "XCP-ng Pool Master Changed": "XCP-ng 풀 마스터 변경됨",
   "XCP-ng Pool High Availability Changed": "XCP-ng 풀 고가용성 변경됨",
-  "XCP-ng Pool Backup Failed": "XCP-ng 풀 백업 실패"
+  "XCP-ng Pool Backup Failed": "XCP-ng 풀 백업 실패",
+  "From 1 to 60 minutes. Every minute matches the XCP-ng Agent; read a large Xen Orchestra less often to go easier on it.": "1~60분. 1분마다는 XCP-ng 에이전트와 같습니다. 큰 Xen Orchestra는 부담을 줄이도록 덜 자주 읽으세요.",
+  "From now on the probe's reads of this pool are dropped and the XCP-ng Agent's kept. Start the agent next to Xen Orchestra first, so nothing is missed.": "이제부터 프로브가 읽은 이 풀의 데이터는 버리고 XCP-ng 에이전트의 데이터를 유지합니다. 놓치는 것이 없도록 먼저 Xen Orchestra 옆에서 에이전트를 시작하세요.",
+  "Leave empty if the probe trusts the certificate. Xen Orchestra and XCP-ng sign their own by default: test the connection to see it and trust it.": "프로브가 인증서를 신뢰하면 비워 두세요. Xen Orchestra와 XCP-ng는 기본적으로 자체 발급한 인증서를 사용하므로, 연결을 테스트해 인증서를 확인하고 신뢰하세요.",
+  "Name of this connection in OneUptime, shown on every pool it reads. Defaults to the host name of its address.": "OneUptime에서 이 연결의 이름으로, 읽는 모든 풀에 표시됩니다. 기본값은 주소의 호스트 이름입니다.",
+  "Optional. A token of a Xen Orchestra user with the Read only role: OneUptime checks it only reads and warns before it expires. Encrypted.": "선택 사항. Read only 역할을 가진 Xen Orchestra 사용자의 토큰입니다. OneUptime은 읽기만 하는지 확인하고 만료 전에 알려 줍니다. 암호화됩니다.",
+  "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "이 연결을 읽는 프로브입니다. TCP 443으로 주소에 접근해야 하므로 보통 같은 네트워크에서 실행하는 프로브입니다.",
+  "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Xen Orchestra OpenMetrics 플러그인의 시크릿(Settings > Plugins > openmetrics). 암호화되어 다시 표시되지 않으며, 선택한 프로브에게만 전송됩니다.",
+  "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "토큰이 OneUptime에서 삭제됩니다. 메트릭은 OpenMetrics 시크릿으로 계속 들어옵니다. 다른 곳에서 쓰지 않는다면 Xen Orchestra에서도 취소하세요.",
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root 또는 XAPI read-only 역할을 가진 풀의 Active Directory 사용자입니다. XAPI에는 읽기 전용 로컬 계정이 없습니다."
 }

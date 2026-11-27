@@ -65913,7 +65913,6 @@
   "Its metrics are larger than one probe upload may be. Use the XCP-ng Agent for it.": "メトリクスが、プローブの 1 回のアップロードの上限を超えています。この接続には XCP-ng エージェントを使用してください。",
   "Loopback, link-local and cloud metadata addresses are never used. Enter the host name or IP address it answers on in your network.": "ループバック、リンクローカル、クラウドメタデータのアドレスは使用されません。ネットワーク内で応答するホスト名または IP アドレスを入力してください。",
   "Message Watermark": "メッセージの読み取り位置",
-  "Name of this connection in OneUptime: the Xen Orchestra, or the pool, it reads. Defaults to the host name of its address. For a Xen Orchestra, every pool it reports shows it as the Xen Orchestra it is read from.": "OneUptime でのこの接続の名前で、読み取る Xen Orchestra またはプールを表します。既定ではアドレスのホスト名です。Xen Orchestra の場合、報告される各プールに、読み取り元の Xen Orchestra としてこの名前が表示されます。",
   "No OpenMetrics secret is saved for this connection.": "この接続には OpenMetrics シークレットが保存されていません。",
   "No connection reads this pool yet. Connect its Xen Orchestra, or the pool itself, and come back once the first read finds it.": "このプールを読み取る接続はまだありません。プールの Xen Orchestra またはプール自体を接続し、最初の読み取りでプールが見つかったら戻ってきてください。",
   "No password is saved for this connection.": "この接続にはパスワードが保存されていません。",
@@ -65978,8 +65977,6 @@
   "The probe reads the connection with its saved settings and secrets, and reports what it found. Nothing is changed.": "プローブは保存済みの設定とシークレットで接続を読み取り、見つかったものを報告します。何も変更されません。",
   "The probe reads this connection with its new settings within a minute.": "プローブは 1 分以内に新しい設定でこの接続を読み取ります。",
   "The probe stops reading it. Its pools keep their data and history: connect them again, or install the XCP-ng Agent, and they carry on where they stopped.": "プローブはこの接続の読み取りを停止します。プールのデータと履歴は残ります。もう一度接続するか XCP-ng エージェントをインストールすると、止まったところから続きます。",
-  "The probe's reads of this pool are dropped from now on, and the XCP-ng Agent's are kept. Start the agent next to Xen Orchestra first, so nothing is missed.": "今後、プローブによるこのプールの読み取りは破棄され、XCP-ng エージェントのデータが保持されます。何も欠けないよう、先に Xen Orchestra の横でエージェントを起動してください。",
-  "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke the token in Xen Orchestra too if nothing else uses it.": "トークンは OneUptime から削除されます。メトリクスは OpenMetrics シークレットを通じて引き続き届きます。ほかで使っていなければ、Xen Orchestra でもトークンを失効させてください。",
   "The token is wrong or has expired. Create a new one for the read-only user and save it here.": "トークンが間違っているか、期限が切れています。読み取り専用ユーザーの新しいトークンを作成し、ここに保存してください。",
   "This Xen Orchestra has no OpenMetrics plugin": "この Xen Orchestra には OpenMetrics プラグインがありません",
   "This address is not Xen Orchestra": "このアドレスは Xen Orchestra ではありません",
@@ -66426,5 +66423,14 @@
   "XCP-ng Pool Message": "XCP-ng プールのメッセージ",
   "XCP-ng Pool Master Changed": "XCP-ng プールのマスター変更",
   "XCP-ng Pool High Availability Changed": "XCP-ng プールの高可用性変更",
-  "XCP-ng Pool Backup Failed": "XCP-ng プールのバックアップ失敗"
+  "XCP-ng Pool Backup Failed": "XCP-ng プールのバックアップ失敗",
+  "From 1 to 60 minutes. Every minute matches the XCP-ng Agent; read a large Xen Orchestra less often to go easier on it.": "1 ～ 60 分。1 分ごとが XCP-ng エージェントと同じです。大規模な Xen Orchestra は、負荷を抑えるために読み取りの頻度を下げてください。",
+  "From now on the probe's reads of this pool are dropped and the XCP-ng Agent's kept. Start the agent next to Xen Orchestra first, so nothing is missed.": "今後、プローブによるこのプールの読み取りは破棄され、XCP-ng エージェントのデータが保持されます。何も欠けないよう、先に Xen Orchestra の横でエージェントを起動してください。",
+  "Leave empty if the probe trusts the certificate. Xen Orchestra and XCP-ng sign their own by default: test the connection to see it and trust it.": "プローブが証明書を信頼している場合は空欄にします。Xen Orchestra と XCP-ng は既定で自身が発行した証明書を使います。接続をテストして証明書を確認し、信頼してください。",
+  "Name of this connection in OneUptime, shown on every pool it reads. Defaults to the host name of its address.": "OneUptime でのこの接続の名前で、読み取る各プールに表示されます。既定ではアドレスのホスト名です。",
+  "Optional. A token of a Xen Orchestra user with the Read only role: OneUptime checks it only reads and warns before it expires. Encrypted.": "任意。Read only ロールを持つ Xen Orchestra ユーザーのトークンです。OneUptime は読み取り専用であることを確認し、有効期限が切れる前に警告します。暗号化されます。",
+  "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "この接続を読み取るプローブ。TCP 443 でアドレスに到達する必要があるため、通常は同じネットワーク内で実行しているプローブです。",
+  "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Xen Orchestra の OpenMetrics プラグインのシークレット（Settings > Plugins > openmetrics）。暗号化され、再表示されず、選択したプローブにのみ送信されます。",
+  "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "トークンは OneUptime から削除されます。メトリクスは OpenMetrics シークレットを通じて引き続き届きます。ほかで使っていなければ、Xen Orchestra でも失効させてください。",
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root、または XAPI の read-only ロールを持つプールの Active Directory ユーザー。XAPI には読み取り専用のローカルアカウントがありません。"
 }

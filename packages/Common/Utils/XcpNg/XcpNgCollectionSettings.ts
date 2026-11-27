@@ -60,7 +60,7 @@ export default class XcpNgCollectionSettings {
       value < MIN_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES ||
       value > MAX_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES
     ) {
-      return `Collect every ${MIN_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES} to ${MAX_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES} minutes, in whole minutes.`;
+      return `Collect every ${MIN_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES} to ${MAX_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES}\u00a0minutes, in whole minutes.`;
     }
 
     return null;

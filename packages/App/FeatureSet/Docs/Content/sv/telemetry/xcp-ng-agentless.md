@@ -1,6 +1,6 @@
 # XCP-ng utan agent
 
-Övervaka XCP-ng-pooler utan att installera något: en OneUptime-sond läser dem, antingen via den Xen Orchestra som hanterar dem eller, för en pool utan Xen Orchestra, direkt från XAPI på poolens master. Varje pool får samma sidor, [XCP-ng-övervakare](/docs/monitor/xcp-ng-monitor) och mallar som en pool som [XCP-ng-agenten](/docs/telemetry/xcp-ng) skickar. Det finns ingen agent att installera, uppgradera eller hålla igång.
+Övervaka XCP-ng-pooler utan att installera något: en OneUptime-sond läser dem, antingen via den Xen Orchestra som hanterar dem eller, för en pool utan Xen Orchestra, direkt från XAPI på poolens master. Varje pool får samma sidor, [XCP-ng-monitorer](/docs/monitor/xcp-ng-monitor) och mallar som en pool som [XCP-ng-agenten](/docs/telemetry/xcp-ng) skickar. Det finns ingen agent att installera, uppgradera eller hålla igång.
 
 :::cards
 - [Innan du börjar](#innan-du-börjar): En sond som når Xen Orchestra eller poolen, och skrivskyddad åtkomst.
@@ -17,7 +17,7 @@ flowchart TB
     P -->|"HTTPS,<br/>OpenMetrics-pluginet"| XO["Xen Orchestra"]
     P -->|"HTTPS, XAPI,<br/>bara läsning"| M["Poolmaster<br/>och dess värdar"]
     P -->|"mätvärden, så som<br/>XCP-ng-agenten<br/>skickar dem"| OU
-    OU --> V["XCP-ng-sidor,<br/>övervakare och larm"]
+    OU --> V["XCP-ng-sidor,<br/>monitorer och larm"]
 ```
 
 Varje minut läser sonden varje anslutning och skickar det den läste till OneUptime:
@@ -199,7 +199,7 @@ Dess mätvärden är större än en uppladdning från en sond får vara. Använd
 ## Nästa steg
 
 :::cards
-- [XCP-ng-övervakare](/docs/monitor/xcp-ng-monitor): Larma om pooler, värdar, VM:ar och lagringsrepositorier.
+- [XCP-ng-monitorer](/docs/monitor/xcp-ng-monitor): Larma om pooler, värdar, VM:ar och lagringsrepositorier.
 - [Anpassad sond](/docs/probe/custom-probe): Kör en sond i poolernas nätverk.
 - [XCP-ng-agent](/docs/telemetry/xcp-ng): Läs Xen Orchestra med agenten i stället.
 :::

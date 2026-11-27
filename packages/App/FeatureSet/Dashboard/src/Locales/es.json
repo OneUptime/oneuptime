@@ -65913,7 +65913,6 @@
   "Its metrics are larger than one probe upload may be. Use the XCP-ng Agent for it.": "Sus métricas superan el tamaño de una carga de la sonda. Use el agente de XCP-ng para ella.",
   "Loopback, link-local and cloud metadata addresses are never used. Enter the host name or IP address it answers on in your network.": "Nunca se usan direcciones de bucle invertido, de enlace local ni de metadatos de la nube. Introduzca el nombre de host o la dirección IP en la que responde en su red.",
   "Message Watermark": "Progreso de lectura de mensajes",
-  "Name of this connection in OneUptime: the Xen Orchestra, or the pool, it reads. Defaults to the host name of its address. For a Xen Orchestra, every pool it reports shows it as the Xen Orchestra it is read from.": "Nombre de esta conexión en OneUptime: el Xen Orchestra, o el pool, que lee. De forma predeterminada, el nombre de host de su dirección. Para un Xen Orchestra, cada pool que informa lo muestra como el Xen Orchestra del que se lee.",
   "No OpenMetrics secret is saved for this connection.": "No hay ningún secreto de OpenMetrics guardado para esta conexión.",
   "No connection reads this pool yet. Connect its Xen Orchestra, or the pool itself, and come back once the first read finds it.": "Ninguna conexión lee todavía este pool. Conecte su Xen Orchestra, o el propio pool, y vuelva cuando la primera lectura lo encuentre.",
   "No password is saved for this connection.": "No hay ninguna contraseña guardada para esta conexión.",
@@ -65978,8 +65977,6 @@
   "The probe reads the connection with its saved settings and secrets, and reports what it found. Nothing is changed.": "La sonda lee la conexión con su configuración y sus secretos guardados, e informa de lo que encontró. No se cambia nada.",
   "The probe reads this connection with its new settings within a minute.": "La sonda lee esta conexión con su nueva configuración en menos de un minuto.",
   "The probe stops reading it. Its pools keep their data and history: connect them again, or install the XCP-ng Agent, and they carry on where they stopped.": "La sonda deja de leerla. Sus pools conservan sus datos y su historial: vuelva a conectarlos, o instale el agente de XCP-ng, y continúan donde se quedaron.",
-  "The probe's reads of this pool are dropped from now on, and the XCP-ng Agent's are kept. Start the agent next to Xen Orchestra first, so nothing is missed.": "Las lecturas de este pool por la sonda se descartan a partir de ahora, y se conservan las del agente de XCP-ng. Inicie primero el agente junto a Xen Orchestra, para no perder nada.",
-  "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke the token in Xen Orchestra too if nothing else uses it.": "El token se elimina de OneUptime. Las métricas siguen llegando a través del secreto de OpenMetrics. Revoque también el token en Xen Orchestra si nada más lo usa.",
   "The token is wrong or has expired. Create a new one for the read-only user and save it here.": "El token es incorrecto o venció. Cree uno nuevo para el usuario de solo lectura y guárdelo aquí.",
   "This Xen Orchestra has no OpenMetrics plugin": "Este Xen Orchestra no tiene plugin OpenMetrics",
   "This address is not Xen Orchestra": "Esta dirección no es Xen Orchestra",
@@ -66426,5 +66423,14 @@
   "XCP-ng Pool Message": "Mensaje del pool de XCP-ng",
   "XCP-ng Pool Master Changed": "Maestro del pool de XCP-ng cambiado",
   "XCP-ng Pool High Availability Changed": "Alta disponibilidad del pool de XCP-ng cambiada",
-  "XCP-ng Pool Backup Failed": "Copia de seguridad del pool de XCP-ng fallida"
+  "XCP-ng Pool Backup Failed": "Copia de seguridad del pool de XCP-ng fallida",
+  "From 1 to 60 minutes. Every minute matches the XCP-ng Agent; read a large Xen Orchestra less often to go easier on it.": "De 1 a 60 minutos. Cada minuto coincide con el agente de XCP-ng; lea un Xen Orchestra grande con menos frecuencia para no sobrecargarlo.",
+  "From now on the probe's reads of this pool are dropped and the XCP-ng Agent's kept. Start the agent next to Xen Orchestra first, so nothing is missed.": "A partir de ahora se descartan las lecturas de este pool por la sonda y se conservan las del agente de XCP-ng. Inicie primero el agente junto a Xen Orchestra, para no perder nada.",
+  "Leave empty if the probe trusts the certificate. Xen Orchestra and XCP-ng sign their own by default: test the connection to see it and trust it.": "Déjelo vacío si la sonda confía en el certificado. Xen Orchestra y XCP-ng firman el suyo propio de forma predeterminada: pruebe la conexión para verlo y confiar en él.",
+  "Name of this connection in OneUptime, shown on every pool it reads. Defaults to the host name of its address.": "Nombre de esta conexión en OneUptime, que se muestra en cada pool que lee. De forma predeterminada, el nombre de host de su dirección.",
+  "Optional. A token of a Xen Orchestra user with the Read only role: OneUptime checks it only reads and warns before it expires. Encrypted.": "Opcional. Un token de un usuario de Xen Orchestra con el rol Read only: OneUptime comprueba que solo lee y avisa antes de que caduque. Cifrado.",
+  "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "La sonda que lee esta conexión. Debe alcanzar la dirección por TCP 443, por lo que suele ser una que usted ejecuta en la misma red.",
+  "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "El secreto del plugin OpenMetrics de Xen Orchestra, en Settings > Plugins > openmetrics. Cifrado, nunca se vuelve a mostrar y se envía solo a su sonda.",
+  "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "El token se elimina de OneUptime. Las métricas siguen llegando a través del secreto de OpenMetrics. Revóquelo también en Xen Orchestra si nada más lo usa.",
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, o un usuario de Active Directory del pool con el rol read-only de XAPI. XAPI no tiene una cuenta local de solo lectura."
 }

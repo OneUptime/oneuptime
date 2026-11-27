@@ -1,6 +1,6 @@
 # 免代理程式的 XCP-ng
 
-無需安裝任何東西即可監控 XCP-ng 資源池：由 OneUptime 探測器讀取它們，要麼透過管理它們的 Xen Orchestra，要麼對於沒有 Xen Orchestra 的資源池，直接從資源池主節點上的 XAPI 讀取。每個資源池都會獲得與 [XCP-ng 代理程式](/docs/telemetry/xcp-ng) 傳送的資源池相同的頁面、[XCP-ng 監控器](/docs/monitor/xcp-ng-monitor) 與範本。沒有需要安裝、升級或保持執行的代理程式。
+無需安裝任何東西即可監控 XCP-ng 資源池：由 OneUptime 探測器讀取它們，要麼透過管理它們的 Xen Orchestra，要麼對於沒有 Xen Orchestra 的資源池，直接從資源池主節點上的 XAPI 讀取。每個資源池都會獲得與 [XCP-ng 代理程式](/docs/telemetry/xcp-ng) 傳送的資源池相同的頁面、[XCP-ng 監測器](/docs/monitor/xcp-ng-monitor) 與範本。沒有需要安裝、升級或保持執行的代理程式。
 
 :::cards
 - [開始之前](#開始之前)：一個能連到 Xen Orchestra 或資源池的探測器，以及唯讀存取權限。
@@ -17,7 +17,7 @@ flowchart TB
     P -->|"HTTPS，<br/>OpenMetrics 外掛程式"| XO["Xen Orchestra"]
     P -->|"HTTPS，XAPI<br/>唯讀"| M["資源池主節點<br/>及其主機"]
     P -->|"與 XCP-ng 代理程式<br/>傳送的相同<br/>指標"| OU
-    OU --> V["XCP-ng 頁面、<br/>監控器與警報"]
+    OU --> V["XCP-ng 頁面、<br/>監測器與警報"]
 ```
 
 探測器每分鐘讀取每個連線，並將讀取到的內容傳送到 OneUptime：
@@ -199,7 +199,7 @@ OneUptime 只保存唯讀權杖。請為一位只擁有內建 **Read only** 角�
 ## 後續步驟
 
 :::cards
-- [XCP-ng 監控器](/docs/monitor/xcp-ng-monitor)：針對資源池、主機、虛擬機器與儲存庫發出警報。
+- [XCP-ng 監測器](/docs/monitor/xcp-ng-monitor)：針對資源池、主機、虛擬機器與儲存庫發出警報。
 - [自訂探測器](/docs/probe/custom-probe)：在資源池所在網路中執行探測器。
 - [XCP-ng 代理程式](/docs/telemetry/xcp-ng)：改用代理程式讀取 Xen Orchestra。
 :::

@@ -363,7 +363,7 @@ const XcpNgPoolDataCollectionCard: FunctionComponent<ComponentProps> = (
       {isConfirmingAgent ? (
         <ConfirmModal
           title="Use the XCP-ng Agent"
-          description="The probe's reads of this pool are dropped from now on, and the XCP-ng Agent's are kept. Start the agent next to Xen Orchestra first, so nothing is missed."
+          description="From now on the probe's reads of this pool are dropped and the XCP-ng Agent's kept. Start the agent next to Xen Orchestra first, so nothing is missed."
           submitButtonText="Use the XCP-ng Agent"
           isLoading={isSaving}
           error={saveError || undefined}
