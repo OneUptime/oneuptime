@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "یک مقصد وارد کنید: پیوند یا مسیر پیمایش.",
+  "Navigation Path": "مسیر پیمایش",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "برای افزودن یک زبانه، /incidents، /announcements یا /scheduled-events را وارد کنید. فیلد پیوند را خالی بگذارید.",
+  "Use a status page path such as /incidents?category=security.": "از مسیری برای صفحهٔ وضعیت مانند /incidents?category=security استفاده کنید.",
   "common": {
     "save": "ذخیره",
     "cancel": "انصراف",

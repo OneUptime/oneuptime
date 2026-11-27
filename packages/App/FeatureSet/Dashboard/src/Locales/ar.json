@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "أدخل وجهة واحدة: رابط أو مسار تنقل.",
+  "Navigation Path": "مسار التنقل",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "لإضافة علامة تبويب، أدخل /incidents أو /announcements أو /scheduled-events. اترك حقل الرابط فارغًا.",
+  "Use a status page path such as /incidents?category=security.": "استخدم مسارًا لصفحة الحالة مثل /incidents?category=security.",
   "common": {
     "save": "حفظ",
     "cancel": "إلغاء",

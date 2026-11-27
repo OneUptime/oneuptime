@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "リンクまたはナビゲーションパスのいずれか1つの遷移先を入力してください。",
+  "Navigation Path": "ナビゲーションパス",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "タブを追加するには、/incidents、/announcements、または /scheduled-events を入力してください。リンク欄は空にします。",
+  "Use a status page path such as /incidents?category=security.": "/incidents?category=security のようなステータスページのパスを使用してください。",
   "common": {
     "save": "保存",
     "cancel": "キャンセル",

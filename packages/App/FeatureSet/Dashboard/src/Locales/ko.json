@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "링크 또는 탐색 경로 중 하나의 대상을 입력하세요.",
+  "Navigation Path": "탐색 경로",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "탭을 추가하려면 /incidents, /announcements 또는 /scheduled-events를 입력하세요. 링크를 비워 두세요.",
+  "Use a status page path such as /incidents?category=security.": "/incidents?category=security와 같은 상태 페이지 경로를 사용하세요.",
   "common": {
     "save": "저장",
     "cancel": "취소",

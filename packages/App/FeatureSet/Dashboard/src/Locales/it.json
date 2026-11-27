@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "Inserisci una destinazione: un collegamento o un percorso di navigazione.",
+  "Navigation Path": "Percorso di navigazione",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "Inserisci /incidents, /announcements o /scheduled-events per aggiungere una scheda. Lascia vuoto il campo Collegamento.",
+  "Use a status page path such as /incidents?category=security.": "Usa un percorso della pagina di stato come /incidents?category=security.",
   "common": {
     "save": "Salva",
     "cancel": "Annulla",

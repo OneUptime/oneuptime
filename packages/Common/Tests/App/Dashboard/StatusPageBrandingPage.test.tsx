@@ -1,3 +1,4 @@
+import URL from "../../../Types/API/URL";
 import "@testing-library/jest-dom";
 import {
   afterEach,
@@ -808,13 +809,34 @@ describe("the cards people set", () => {
         item: StatusPageHeaderLink,
       ) => Promise<StatusPageHeaderLink>;
 
-      const created: StatusPageHeaderLink = await onBeforeCreate(
-        new StatusPageHeaderLink(),
-      );
+      const item: StatusPageHeaderLink = new StatusPageHeaderLink();
+      item.link = URL.fromString("https://example.com");
+      const created: StatusPageHeaderLink = await onBeforeCreate(item);
 
       expect(created.statusPageId?.toString()).toBe(STATUS_PAGE_ID);
       expect(created.projectId?.toString()).toBe(PROJECT_ID);
     }
+  });
+
+  test("the header link editor accepts a filtered navigation path and clears the external link", async () => {
+    await renderPage();
+
+    const prepareLink: (
+      item: StatusPageHeaderLink,
+    ) => Promise<StatusPageHeaderLink> = propsOf("Status Page > Header Links")[
+      "onBeforeUpdate"
+    ] as (item: StatusPageHeaderLink) => Promise<StatusPageHeaderLink>;
+
+    const view: StatusPageHeaderLink = new StatusPageHeaderLink();
+    view.navigationPath = " /incidents?category=security ";
+    const prepared: StatusPageHeaderLink = await prepareLink(view);
+    expect(prepared.navigationPath).toBe("/incidents?category=security");
+    expect(prepared.link).toBeNull();
+
+    view.link = URL.fromString("https://example.com");
+    expect(() => {
+      return prepareLink(view);
+    }).toThrow("Enter one destination");
   });
 
   /*

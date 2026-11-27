@@ -137,7 +137,6 @@ describe("the dashboard", () => {
     expect(indexingCard).not.toContain("FormFieldSchemaType.Toggle");
     // The page itself no longer edits it with a toggle in a form.
     expect(brandingPage).not.toContain("enableSearchEngineIndexing: true");
-    expect(brandingPage).not.toContain("FormFieldSchemaType.Toggle");
   });
 
   test("shows the current setting: it reads the column, and on unless it is false", () => {

@@ -37,11 +37,13 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import StatusPageFooterLink from "Common/Models/DatabaseModels/StatusPageFooterLink";
-import StatusPageHeaderLink from "Common/Models/DatabaseModels/StatusPageHeaderLink";
+import StatusPageHeaderLink, {
+  STATUS_PAGE_NAVIGATION_PATH,
+} from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import React, {
   Fragment,
@@ -92,6 +94,31 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const modelId: ObjectID = Navigation.getLastParamAsObjectID(1);
+
+  const prepareHeaderLink: (
+    item: StatusPageHeaderLink,
+  ) => Promise<StatusPageHeaderLink> = (item: StatusPageHeaderLink) => {
+    const path: string = item.navigationPath?.trim() || "";
+    if (Boolean(path) === Boolean(item.link)) {
+      throw new BadDataException(
+        translator.translateText(
+          translationKey("Enter one destination: a link or a navigation path."),
+        )!,
+      );
+    }
+    if (path && !STATUS_PAGE_NAVIGATION_PATH.test(path)) {
+      throw new BadDataException(
+        translator.translateText(
+          translationKey(
+            "Use a status page path such as /incidents?category=security.",
+          ),
+        )!,
+      );
+    }
+    item.navigationPath = path || null!;
+    item.link = item.link || null!;
+    return Promise.resolve(item);
+  };
 
   // What the cards under Advanced hold, as each one loads or saves it.
   const [advancedValues, setAdvancedValues] = useState<BrandingAdvancedValues>(
@@ -329,8 +356,9 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
           }
           item.statusPageId = modelId;
           item.projectId = new ObjectID(props.currentProject._id);
-          return Promise.resolve(item);
+          return prepareHeaderLink(item);
         }}
+        onBeforeUpdate={prepareHeaderLink}
         singularName={StatusPageBrandingCopy.headerLink}
         pluralName={StatusPageBrandingCopy.headerLinks}
         createVerb="Add"
@@ -359,11 +387,26 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             },
             title: "Link",
             fieldType: FormFieldSchemaType.URL,
-            required: true,
             placeholder: "https://link.com",
             // "URL to a website or any other resource" says no more.
             hideColumnDescription: true,
             disableSpellCheck: true,
+          },
+          {
+            field: { navigationPath: true },
+            title: "Navigation Path",
+            fieldType: FormFieldSchemaType.Text,
+            placeholder: "/incidents?category=security",
+            description:
+              "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.",
+            hideColumnDescription: true,
+            disableSpellCheck: true,
+          },
+          {
+            field: { isHidden: true },
+            title: "Hidden",
+            fieldType: FormFieldSchemaType.Toggle,
+            hideColumnDescription: true,
           },
         ]}
         showRefreshButton={true}
@@ -399,6 +442,16 @@ const StatusPageBranding: FunctionComponent<PageComponentProps> = (
             title: "Link",
             type: FieldType.URL,
             hideOnMobile: true,
+          },
+          {
+            field: { navigationPath: true },
+            title: "Navigation Path",
+            type: FieldType.Text,
+          },
+          {
+            field: { isHidden: true },
+            title: "Hidden",
+            type: FieldType.Boolean,
           },
         ]}
       />

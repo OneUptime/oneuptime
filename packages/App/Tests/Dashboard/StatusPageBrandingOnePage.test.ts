@@ -363,7 +363,7 @@ describe("the Branding page", () => {
   });
 
   test("search engine indexing is a switch, not a card with an Edit dialog holding one toggle", () => {
-    expect(branding).not.toContain("FormFieldSchemaType.Toggle");
+    expect(branding).not.toContain("enableSearchEngineIndexing: true");
     expect(branding).not.toContain(
       "Status Page > Branding > Search Engine Indexing",
     );

@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "輸入一個目的地：連結或導覽路徑。",
+  "Navigation Path": "導覽路徑",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "輸入 /incidents、/announcements 或 /scheduled-events 以新增分頁。請將連結留空。",
+  "Use a status page path such as /incidents?category=security.": "使用狀態頁面路徑，例如 /incidents?category=security。",
   "common": {
     "save": "儲存",
     "cancel": "取消",

@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "Skriv inn ett mål: en lenke eller en navigasjonssti.",
+  "Navigation Path": "Navigasjonssti",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "Skriv inn /incidents, /announcements eller /scheduled-events for å legge til en fane. La Link stå tomt.",
+  "Use a status page path such as /incidents?category=security.": "Bruk en status sidesti som /incidents?category=security.",
   "common": {
     "save": "Lagre",
     "cancel": "Avbryt",

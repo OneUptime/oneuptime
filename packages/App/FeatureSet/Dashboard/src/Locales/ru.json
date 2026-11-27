@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "Укажите одно место назначения: ссылку или путь навигации.",
+  "Navigation Path": "Путь навигации",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "Введите /incidents, /announcements или /scheduled-events, чтобы добавить вкладку. Оставьте поле «Ссылка» пустым.",
+  "Use a status page path such as /incidents?category=security.": "Используйте путь страницы статуса, например /incidents?category=security.",
   "common": {
     "save": "Сохранить",
     "cancel": "Отмена",
