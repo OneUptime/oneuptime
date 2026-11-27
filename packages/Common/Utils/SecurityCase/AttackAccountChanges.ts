@@ -862,10 +862,7 @@ function getChangeKey(item: AccountChange): string {
   ].join("|");
 }
 
-function byTime(
-  left: { time: string },
-  right: { time: string },
-): number {
+function byTime(left: { time: string }, right: { time: string }): number {
   return (Date.parse(left.time) || 0) - (Date.parse(right.time) || 0);
 }
 

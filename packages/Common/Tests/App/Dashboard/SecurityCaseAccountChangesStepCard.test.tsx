@@ -593,10 +593,7 @@ function factLinks(step: HTMLElement): Array<[string, string]> {
   return within(step)
     .queryAllByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkFactLink)
     .map((link: HTMLElement): [string, string] => {
-      return [
-        (link.textContent || "").trim(),
-        link.getAttribute("href") || "",
-      ];
+      return [(link.textContent || "").trim(), link.getAttribute("href") || ""];
     });
 }
 

@@ -82,8 +82,12 @@ describe("a policy's text, read", () => {
   });
 
   test("with a + for a space, as a form encodes one, and a + of its own as %2B", () => {
-    const policy: JSONObject = trust({ AWS: "arn:aws:iam::444455556666:role/a+b" });
-    const formEncoded: string = encodeURIComponent(JSON.stringify(policy, null, 1))
+    const policy: JSONObject = trust({
+      AWS: "arn:aws:iam::444455556666:role/a+b",
+    });
+    const formEncoded: string = encodeURIComponent(
+      JSON.stringify(policy, null, 1),
+    )
       .split("%20")
       .join("+");
 
@@ -173,7 +177,10 @@ describe("the outside accounts a trust policy trusts", () => {
     ["*", [AWS_EVERY_ACCOUNT]],
     [{ AWS: "*" }, [AWS_EVERY_ACCOUNT]],
     // Services and identity providers are no account of AWS's.
-    [{ Service: ["ecs.amazonaws.com", "elasticloadbalancing.amazonaws.com"] }, []],
+    [
+      { Service: ["ecs.amazonaws.com", "elasticloadbalancing.amazonaws.com"] },
+      [],
+    ],
     [{ Federated: "cognito-identity.amazonaws.com" }, []],
     [{ Federated: "accounts.google.com" }, []],
     [
@@ -183,21 +190,21 @@ describe("the outside accounts a trust policy trusts", () => {
       },
       [],
     ],
-    [{ Federated: "arn:aws:iam::444455556666:saml-provider/provider-name" }, []],
+    [
+      { Federated: "arn:aws:iam::444455556666:saml-provider/provider-name" },
+      [],
+    ],
     // A principal deleted since, written as its unique id, lets nobody in.
     [{ AWS: "AROADBQP57FF2AEXAMPLE" }, []],
     [{ AWS: "AIDACKCEVSQ6C2EXAMPLE" }, []],
     // The role's own account is not outside it.
     [{ AWS: "arn:aws:iam::123456789012:root" }, []],
     [{ AWS: "arn:aws:iam::123456789012:user/deploy-bot" }, []],
-  ])(
-    "%j trusts %j",
-    (principal: unknown, outside: Array<string>) => {
-      expect(getAwsTrustedOutsideAccounts(trust(principal), OWN)).toEqual(
-        outside,
-      );
-    },
-  );
+  ])("%j trusts %j", (principal: unknown, outside: Array<string>) => {
+    expect(getAwsTrustedOutsideAccounts(trust(principal), OWN)).toEqual(
+      outside,
+    );
+  });
 
   test("over every statement, in the order the policy names them, each once", () => {
     expect(
@@ -294,7 +301,9 @@ describe("whether two trust policies grant the same", () => {
     expect(
       isSameAwsPolicy(
         readAwsPolicyDocument(CREATE_ROLE_RECORDED_POLICY)!,
-        readAwsPolicyDocument(asGetRoleWritesIt(GET_ROLE_SAMPLE_POLICY.trim()))!,
+        readAwsPolicyDocument(
+          asGetRoleWritesIt(GET_ROLE_SAMPLE_POLICY.trim()),
+        )!,
       ),
     ).toBe(true);
   });
@@ -303,9 +312,9 @@ describe("whether two trust policies grant the same", () => {
     expect(isSameAwsPolicy(trust({ AWS: "444455556666" }), ATTACKER)).toBe(
       true,
     );
-    expect(
-      isSameAwsPolicy(trust({ AWS: ["444455556666"] }), ATTACKER),
-    ).toBe(true);
+    expect(isSameAwsPolicy(trust({ AWS: ["444455556666"] }), ATTACKER)).toBe(
+      true,
+    );
   });
 
   test("statements in another order, a Sid, an action's case, a list's order: the same", () => {

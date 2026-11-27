@@ -1274,9 +1274,8 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
       };
     };
     const first: string = BACKDOOR_TRUST;
-    const second: string = BACKDOOR_TRUST.split("444455556666").join(
-      "555555555555",
-    );
+    const second: string =
+      BACKDOOR_TRUST.split("444455556666").join("555555555555");
 
     const changes: Array<AccountChange> = getAttackAccountChanges({
       matches: null,

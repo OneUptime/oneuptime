@@ -1019,9 +1019,24 @@ const NOT_GRANTED: AccountChangeFacts = {
 
 describe("an IAM role's change is said as a role's (#11038)", () => {
   test.each([
-    [ROLE_MADE, CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL, CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE, CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM],
-    [ROLE_TRUST, CHECK_ACCOUNT_CHANGE_TRUST_STILL, CHECK_ACCOUNT_CHANGE_TRUST_UNDONE, CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM],
-    [ROLE_POLICY, CHECK_ACCOUNT_CHANGE_ROLE_POLICY_STILL, CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE, CHECK_ACCOUNT_CHANGE_ROLE_POLICY_CONFIRM],
+    [
+      ROLE_MADE,
+      CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+      CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE,
+      CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM,
+    ],
+    [
+      ROLE_TRUST,
+      CHECK_ACCOUNT_CHANGE_TRUST_STILL,
+      CHECK_ACCOUNT_CHANGE_TRUST_UNDONE,
+      CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM,
+    ],
+    [
+      ROLE_POLICY,
+      CHECK_ACCOUNT_CHANGE_ROLE_POLICY_STILL,
+      CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE,
+      CHECK_ACCOUNT_CHANGE_ROLE_POLICY_CONFIRM,
+    ],
   ])(
     "%#: still there, undone and to confirm, each marked, the role and what it gave named",
     (item: AccountChange, still: string, undone: string, confirm: string) => {
@@ -1074,12 +1089,10 @@ describe("an IAM role's change is said as a role's (#11038)", () => {
         .template,
     ).toBe(CHECK_ACCOUNT_CHANGE_ROLE_GONE);
     expect(
-      decide([answer(ROLE_TRUST, { facts: gone })]).evidence.facts[0]!
-        .template,
+      decide([answer(ROLE_TRUST, { facts: gone })]).evidence.facts[0]!.template,
     ).toBe(CHECK_ACCOUNT_CHANGE_ROLE_GONE);
     expect(
-      decide([answer(ROLE_MADE, { facts: gone })]).evidence.facts[0]!
-        .template,
+      decide([answer(ROLE_MADE, { facts: gone })]).evidence.facts[0]!.template,
     ).toBe(CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE);
   });
 
@@ -1101,7 +1114,10 @@ describe("an IAM role's change is said as a role's (#11038)", () => {
     expect(
       decide([
         answer(userPolicy, {
-          facts: { ...awsFacts(AccountChangeState.Undone), isAccountGone: true },
+          facts: {
+            ...awsFacts(AccountChangeState.Undone),
+            isAccountGone: true,
+          },
         }),
       ]).evidence.facts[0]!.template,
     ).toBe(CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE);
@@ -1174,7 +1190,9 @@ describe("whom a role trusts, under its line (#11038)", () => {
       describeRoleTrust({
         change: ROLE_TRUST,
         outcome: "Undone" as never,
-        facts: awsFacts(AccountChangeState.Undone, { trusted: ["444455556666"] }),
+        facts: awsFacts(AccountChangeState.Undone, {
+          trusted: ["444455556666"],
+        }),
       }),
     ).toBeNull();
     expect(
@@ -1356,11 +1374,9 @@ describe("the lines that say what to grant link to where it is granted (#11039)"
     ]);
 
     expect(
-      howToCheck(result).map(
-        (fact: SecurityCaseStepCheckSentence): unknown => {
-          return [fact.template, fact.link];
-        },
-      ),
+      howToCheck(result).map((fact: SecurityCaseStepCheckSentence): unknown => {
+        return [fact.template, fact.link];
+      }),
     ).toEqual([
       [
         CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
@@ -1379,9 +1395,7 @@ describe("the lines that say what to grant link to where it is granted (#11039)"
     ]);
     const stored: unknown = JSON.parse(JSON.stringify(result.evidence));
 
-    expect(readStepCheckEvidence(stored)?.facts).toEqual(
-      result.evidence.facts,
-    );
+    expect(readStepCheckEvidence(stored)?.facts).toEqual(result.evidence.facts);
     expect(
       readStepCheckSentence({
         template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,

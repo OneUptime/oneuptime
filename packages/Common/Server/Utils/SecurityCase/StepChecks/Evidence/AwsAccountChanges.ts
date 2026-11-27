@@ -257,21 +257,20 @@ export default class AwsAccountChanges {
 
     const options: AwsAccountChangesOptions = data.options || {};
     const readers: Array<AwsReader> = await findReaders(data.projectId);
-    const accountReaders: Map<string, Set<string>> =
-      readers.length > 0
-        ? await findAccountReaders({
-            projectId: data.projectId,
-            accountIds: Array.from(
-              new Set(
-                changes
-                  .map((change: AccountChange): string => {
-                    return change.cloudAccountId;
-                  })
-                  .filter(Boolean),
-              ),
+    const accountReaders: Map<string, Set<string>> = readers.length > 0
+      ? await findAccountReaders({
+          projectId: data.projectId,
+          accountIds: Array.from(
+            new Set(
+              changes
+                .map((change: AccountChange): string => {
+                  return change.cloudAccountId;
+                })
+                .filter(Boolean),
             ),
-          })
-        : new Map();
+          ),
+        })
+      : new Map();
     const openSession: NonNullable<AwsAccountChangesOptions["openSession"]> =
       options.openSession || openAwsIamSession;
     const readChange: NonNullable<AwsAccountChangesOptions["readChange"]> =

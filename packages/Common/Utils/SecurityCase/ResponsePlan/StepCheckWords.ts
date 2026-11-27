@@ -670,10 +670,9 @@ export const CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS: PluralTemplate = {
     "The role {{account}} trusts {{count}} AWS accounts outside {{cloudAccount}}, {{trusted}} among them.",
 };
 // Its trust policy trusts "*": every AWS account.
-export const CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT: string =
-  translationKey(
-    "Anyone in AWS may assume the role {{account}}: its trust policy trusts every AWS account.",
-  );
+export const CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT: string = translationKey(
+  "Anyone in AWS may assume the role {{account}}: its trust policy trusts every AWS account.",
+);
 
 // Why OneUptime cannot read the changes in a product back, said once for it.
 export const CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION: string = translationKey(
@@ -701,10 +700,9 @@ export const CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED: string =
  * read all the same: its command was not run again since the setting came
  * to grant more - the role reads (#11038) - or what it granted was removed.
  */
-export const CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN: string =
-  translationKey(
-    "AWS refused OneUptime's read of IAM in the account {{cloudAccount}}, though its AWS connection has Security case checks on. Edit the connection under Cloud → Connect and run the command it shows again.",
-  );
+export const CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN: string = translationKey(
+  "AWS refused OneUptime's read of IAM in the account {{cloudAccount}}, though its AWS connection has Security case checks on. Edit the connection under Cloud → Connect and run the command it shows again.",
+);
 /*
  * The links after the lines that say what to change (#11039): the AWS
  * connection's form on Cloud → Connect, for a reader who may change it, or

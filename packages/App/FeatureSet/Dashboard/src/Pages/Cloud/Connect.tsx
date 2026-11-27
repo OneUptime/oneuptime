@@ -202,7 +202,9 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
 
           setFormState(
             (
-              current: { provider: CloudProvider; connection?: CloudConnection } | undefined,
+              current:
+                | { provider: CloudProvider; connection?: CloudConnection }
+                | undefined,
             ) => {
               return current || { provider, connection };
             },

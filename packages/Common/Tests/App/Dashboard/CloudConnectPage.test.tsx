@@ -661,26 +661,40 @@ describe("a link naming a connection (#11039)", () => {
     );
   });
 
-  test("an id that is no connection's, a connection gone since, or one that cannot be read, opens nothing", async () => {
+  // The page, opened on a link to the connection, once it has asked for it.
+  async function openOnTheLink(): Promise<void> {
+    goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=${LINKED_ID}`);
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(getItemSpy).toHaveBeenCalledTimes(1);
+    });
+  }
+
+  test("an id that is no connection's opens nothing, and asks for nothing", async () => {
     goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=not-an-id`);
 
     await openPage();
 
     expect(getItemSpy).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
+  });
 
-    for (const answer of [null, new Error("Not found")]) {
-      cleanup();
-      linkedForTest = answer;
-      goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=${LINKED_ID}`);
+  test("a connection gone since opens nothing", async () => {
+    linkedForTest = null;
 
-      await openPage();
+    await openOnTheLink();
 
-      await waitFor(() => {
-        expect(getItemSpy).toHaveBeenCalled();
-      });
-      expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
-      getItemSpy.mockClear();
-    }
+    expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
+  });
+
+  test("a connection that cannot be read opens nothing", async () => {
+    linkedForTest = new Error("Not found");
+
+    await openOnTheLink();
+
+    expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
   });
 
   test("a link naming a cloud as well opens that cloud's form, and the connection waits", async () => {

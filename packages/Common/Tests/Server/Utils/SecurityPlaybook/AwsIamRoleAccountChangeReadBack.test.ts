@@ -279,7 +279,9 @@ function trusting(...principals: Array<string>): JSONObject {
     Statement: [
       {
         Effect: "Allow",
-        Principal: { AWS: principals.length === 1 ? principals[0]! : principals },
+        Principal: {
+          AWS: principals.length === 1 ? principals[0]! : principals,
+        },
         Action: "sts:AssumeRole",
       },
     ],
@@ -448,7 +450,10 @@ describe("a role the attack made (CreateRole)", () => {
     expect(
       await readBack(made, {
         roles: {
-          TestRole: { roleId: "AROAREMADEAFTEREXAMPLE", trustPolicy: EC2_TRUST },
+          TestRole: {
+            roleId: "AROAREMADEAFTEREXAMPLE",
+            trustPolicy: EC2_TRUST,
+          },
         },
       }),
     ).toEqual({
@@ -616,7 +621,11 @@ describe("a trust policy the attack set (UpdateAssumeRolePolicy)", () => {
       `arn:aws:iam::${ATTACKER}:root`,
     );
     const cut: AccountChange = changeOf(
-      attackTrustRecord({ roleName: "Deploy", policy: long, eventID: "attack-long" }),
+      attackTrustRecord({
+        roleName: "Deploy",
+        policy: long,
+        eventID: "attack-long",
+      }),
     );
 
     expect(cut.trustPolicies[0]!.length).toBe(1000);
@@ -665,15 +674,19 @@ describe("a trust policy the attack set (UpdateAssumeRolePolicy)", () => {
       });
     };
 
-    expect(await read(trusting("arn:aws:iam::555555555555:root"))).toMatchObject({
+    expect(
+      await read(trusting("arn:aws:iam::555555555555:root")),
+    ).toMatchObject({
       state: AccountChangeState.StillThere,
       trusted: ["555555555555"],
     });
     // The first, though not the last: its account is still let in.
-    expect(await read(trusting(`arn:aws:iam::${ATTACKER}:root`))).toMatchObject({
-      state: AccountChangeState.Unknown,
-      trusted: [ATTACKER],
-    });
+    expect(await read(trusting(`arn:aws:iam::${ATTACKER}:root`))).toMatchObject(
+      {
+        state: AccountChangeState.Unknown,
+        trusted: [ATTACKER],
+      },
+    );
     expect(await read(EC2_TRUST)).toMatchObject({
       state: AccountChangeState.Undone,
     });
@@ -696,7 +709,10 @@ describe("a policy the attack gave the role (AttachRolePolicy, PutRolePolicy)", 
     expect(
       await readBack(attached, {
         roles: {
-          ReadOnlyRole: { roleId: "AROAREADONLYEXAMPLE", trustPolicy: EC2_TRUST },
+          ReadOnlyRole: {
+            roleId: "AROAREADONLYEXAMPLE",
+            trustPolicy: EC2_TRUST,
+          },
         },
         answers: {
           ListAttachedRolePolicies: LIST_ATTACHED_ROLE_POLICIES_SAMPLE_RESPONSE,

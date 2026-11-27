@@ -3144,7 +3144,10 @@ describe("Connect a Cloud Account's Security case checks section", () => {
     ).toEqual([...AWS_SECURITY_CASE_CHECKS_ACTIONS]);
     // A role's (#11038): the role and whom it trusts, then its two lists.
     expect(table.slice(-2)).toEqual([
-      ["The role, whom its trust policy trusts, or that it is gone", "`iam:GetRole`"],
+      [
+        "The role, whom its trust policy trusts, or that it is gone",
+        "`iam:GetRole`",
+      ],
       [
         "The role's managed policies, and its inline policies' names",
         "`iam:ListAttachedRolePolicies`, `iam:ListRolePolicies`",

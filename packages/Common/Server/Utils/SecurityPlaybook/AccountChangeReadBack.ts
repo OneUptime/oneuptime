@@ -1148,9 +1148,7 @@ export default class AccountChangeReadBack {
     }
 
     // Every account, now, is each of the attack's too.
-    const stillTrusted: Array<string> = outsideNow.includes(
-      AWS_EVERY_ACCOUNT,
-    )
+    const stillTrusted: Array<string> = outsideNow.includes(AWS_EVERY_ACCOUNT)
       ? [AWS_EVERY_ACCOUNT]
       : outsideNow.filter((account: string): boolean => {
           return attackOutside.includes(account);
