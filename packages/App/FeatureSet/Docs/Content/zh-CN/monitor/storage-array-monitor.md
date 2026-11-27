@@ -4,6 +4,8 @@
 
 它也适用于 Dell PowerStore（`dell.powerstore`），基于 Dell 的 `powerstore_*` 序列。
 
+它也适用于 Dell PowerScale（`dell.powerscale`），基于 Dell 的 `powerscale_*` 序列。
+
 :::cards
 - [创建监视器](#创建存储阵列监视器): 在仪表板中的六个步骤。
 - [模板](#预置警报模板): 现成的警报，每个卷、主机、专用设备或组件一个事件。
@@ -13,7 +15,7 @@
 
 ## 工作原理
 
-OneUptime Storage Array Agent 运行在能够访问阵列管理接口的机器上。它使用只读 API 令牌读取阵列的指标，为指标打上阵列的名称 `storage.array.name` 和平台 `storage.system` 标签，并通过 OTLP 发送到 OneUptime。第一批数据到达时会注册该阵列。
+OneUptime Storage Array Agent 运行在能够访问阵列管理接口的机器上。它使用只读 API 令牌读取阵列的指标(PowerScale 的指标则通过 SNMP 读取，使用只读团体字符串或 SNMPv3 用户)，为指标打上阵列的名称 `storage.array.name` 和平台 `storage.system` 标签，并通过 OTLP 发送到 OneUptime。第一批数据到达时会注册该阵列。
 
 Dell PowerMax (`dell.powermax`) 无需代理：OneUptime 探测器每 5 分钟使用只读帐户登录一次 Unisphere for PowerMax，并以同样的方式发送它管理的每个阵列，阵列在你重命名之前以其 Symmetrix ID 命名([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
 
@@ -82,15 +84,15 @@ flowchart TB
 | **卷** | Custom Metric、高级 | 一个卷：在 FlashArray 上按 `name` 标签，例如 `vol-db-01`(Pod 或卷组中的卷命名为 `pod::volume` 或 `group/volume`)；在 ONTAP 上按 `volume` 标签，两个 SVM 可以共用同一个卷名；在 PowerMax 上按 `volume` 标签，即其设备 ID，例如 `00847`。 |
 | **主机** | Custom Metric、高级 | 仅限 FlashArray。阵列所知的一台主机，按 `host` 标签，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、高级 | 仅限 FlashArray。一个 ActiveCluster 或 ActiveDR Pod，按 `name` 标签，在副本链接序列上则按 `local_pod`。 |
-| **硬件组件** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`，在 ONTAP 上则是其序列用来命名它的标签(`node`、`disk`、`shelf` 或 `port`)，在 PowerMax 上是 `component`，即导向器(例如 `FA-1D`)或端口(例如 `FA-1D:4`)。 |
-| **文件系统** | Custom Metric、高级 | 仅限 FlashBlade。一个文件系统，按 `name` 标签。 |
+| **硬件组件** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`，在 ONTAP 上则是其序列用来命名它的标签(`node`、`disk`、`shelf` 或 `port`)，在 PowerMax 上是 `component`，即导向器(例如 `FA-1D`)或端口(例如 `FA-1D:4`)；在 PowerScale 上是 `node`，即节点(例如 `ps-prod-2`)。 |
+| **文件系统** | Custom Metric、高级 | FlashBlade 和 PowerScale。在 FlashBlade 上是一个文件系统，按 `name` 标签；在 PowerScale 上是一个配额，按 `quota` 标签，例如 `/ifs/data/home`。 |
 | **存储桶** | Custom Metric、高级 | 仅限 FlashBlade。一个对象存储桶，按 `name` 标签。 |
 | **Storage Array Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。表单会添加赋予其含义的标签过滤器，并按它描述的对象分组，因此每个卷、主机或组件都会单独判断。 |
 | **聚合** | Custom Metric | 如何合并样本：**平均值**、**最大值**、**最小值**、**总和** 或 **计数**。从该指标的常用聚合开始。 |
 | **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **过去 5 分钟** 开始；文件系统或存储桶的自定义指标从 **过去 15 分钟** 开始；模板会设置自己的值。 |
 | **选择指标** | 高级 | 查询构建器：**指标**、**聚合方式**、**按属性过滤**、**分组依据**，以及用于合并查询的 **添加指标** 和 **添加公式**。 |
 
-代理每 60 秒读取一次阵列端点，每 2 分钟读取一次卷、主机和 Pod，因此 5 分钟的窗口中总会有样本。它每 5 分钟读取一次 FlashBlade 的文件系统和存储桶(所以用 15 分钟)，每 30 分钟读取一次 FlashArray 目录：请给目录监视器设置 60 分钟的窗口。在 ONTAP 上，Harvest 每分钟读取一次集群的性能，每 3 分钟读取一次其配置、状态和 EMS 事件，因此 5 分钟的窗口中总会有样本。
+代理每 60 秒读取一次阵列端点，每 2 分钟读取一次卷、主机和 Pod，因此 5 分钟的窗口中总会有样本。它每 5 分钟读取一次 FlashBlade 的文件系统和存储桶(所以用 15 分钟)，每 30 分钟读取一次 FlashArray 目录：请给目录监视器设置 60 分钟的窗口。在 ONTAP 上，Harvest 每分钟读取一次集群的性能，每 3 分钟读取一次其配置、状态和 EMS 事件，因此 5 分钟的窗口中总会有样本。它每 60 秒轮询一次 PowerScale 集群及其每个节点，每 5 分钟轮询一次其配额：请给配额监视器设置 15 分钟的窗口。
 
 它每 5 分钟读取一次 PowerStore，每 60 秒读取一次其集群状态：为 PowerStore 监视器设置 15 分钟的窗口。
 
@@ -114,7 +116,7 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 
 PowerMax 的每个序列只包含一个数值，并以该数值命名：`powermax_array_response_time_usec` 用 `operation` 区分读取和写入。它的状态序列同样只在出现问题时存在：`powermax_alert_open` 在 Unisphere 有未关闭的警报时存在，`powermax_director_offline` 在导向器不在线时存在，`powermax_port_offline` 在有人依赖的端口宕机时存在，`powermax_srdf_group_not_healthy` 在 SRDF 组挂起或离线时存在。
 
-在监视器过滤器和分组键中，代理的属性以 `resource.` 开头(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的标签不以它开头(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)，PowerMax 的标签也不以它开头(`storage_group`、`volume`、`director`、`port_id`、`srdf_group`)。
+在监视器过滤器和分组键中，代理的属性以 `resource.` 开头(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的标签不以它开头(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)，PowerMax 的标签也不以它开头(`storage_group`、`volume`、`director`、`port_id`、`srdf_group`)，PowerScale 的标签也一样(`node`、`quota`、`drive`、`protocol`)。
 
 ## PowerStore 序列的结构
 
@@ -136,7 +138,7 @@ ONTAP 的状态有三种表示方式：
 
 ## 预置警报模板
 
-OneUptime 提供 80 个模板——12 个用于 FlashArray，8 个用于 FlashBlade，16 个用于 PowerStore，31 个用于 ONTAP，13 个用于 PowerMax——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 提供 93 个模板——12 个用于 FlashArray，8 个用于 FlashBlade，16 个用于 PowerStore，31 个用于 ONTAP，13 个用于 PowerMax，13 个用于 PowerScale——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
 只有当条件对窗口中的 **每个** 值都成立时，条件才会触发，但 ONTAP EMS 模板的条件除外：Harvest 只在一次轮询中导出某个事件，因此一个读数就够了。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。警报、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。
 
@@ -255,11 +257,29 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | SRDF Group Suspended or Offline | 复制 | 严重 | `powermax_srdf_group_not_healthy`，按 `srdf_group` 取 Max，过去 10 分钟 | > 0 — 组的链路离线，或其配对处于挂起、拆分或故障切换状态，因此远程副本无法保持最新。每个组一个事件；重新同步时恢复 |
 | SRDF/A Lag Above 2 Minutes | 复制 | 警告 | `powermax_srdf_group_lag_seconds`，按 `srdf_group` 取 Avg，过去 15 分钟 | > 120 (2 分钟) — 此时故障切换会丢失比计划更多的近期写入。每个组一个事件；≤ 108 时恢复 |
 
+### PowerScale
+
+| 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 严重 | `powerscale_cluster_health`，Count，过去 10 分钟 | 整个窗口内都没有数据 — Storage Array Agent 已停止、失去了通往 OneUptime 的路由或令牌被撤销，或者集群不再响应它的轮询；再次收到数据时恢复 |
+| Cluster Needs Attention | 阵列健康状况 | 警告 | `powerscale_cluster_health`，Max，过去 5 分钟 | > 0 — OneFS 报告集群需要关注、宕机或无效，`isi event groups list` 会说明原因；≤ 0 时恢复 |
+| Cluster Down | 阵列健康状况 | 严重 | `powerscale_cluster_health`，Max，过去 5 分钟 | ≥ 2 — OneFS 报告集群宕机或无效；< 2 时恢复 |
+| Node Offline | 硬件 | 严重 | `powerscale_cluster_offline_nodes`，Max，过去 5 分钟 | > 0 — 集群的某个节点离线，`offline_nodes` 会列出是哪个；≤ 0 时恢复 |
+| Node Needs Attention | 硬件 | 警告 | `powerscale_node_health`，按 `node` 取 Max，过去 5 分钟 | > 0 — 某个节点报告需要关注、宕机或无效。每个节点一个事件；≤ 0 时恢复 |
+| Node Read-Only | 硬件 | 警告 | `powerscale_node_read_only`，按 `node` 取 Max，过去 5 分钟 | > 0 — 某个节点处于只读模式，连接到它的客户端无法写入。每个节点一个事件；≤ 0 时恢复 |
+| Drive Failed | 硬件 | 严重 | `powerscale_drive_size_bytes` 过滤到 `status=DEAD`，按 `drive` 取 Count，过去 5 分钟 | > 0 — 某个驱动器已失效，OneFS 正在其余驱动器上重新保护其数据。每个驱动器一个事件；它报告其他状态时恢复 |
+| Drive Smartfailed | 硬件 | 警告 | `powerscale_drive_size_bytes` 过滤到 `status=SMARTFAIL`，按 `drive` 取 Count，过去 5 分钟 | > 0 — OneFS 正在把即将故障的驱动器上的数据迁出，之后再更换该驱动器。每个驱动器一个事件；它报告其他状态时恢复 |
+| Capacity Above 80% | 容量 | 警告 | `powerscale_ifs_used_percent`，Max，过去 15 分钟 | > 80，包括为虚拟热备预留的空间；≤ 72 时恢复 |
+| Capacity Above 90% | 容量 | 严重 | `powerscale_ifs_used_percent`，Max，过去 5 分钟 | > 90 — 集群即将拒绝写入；≤ 81 时恢复 |
+| Quota Near Its Limit | 容量 | 警告 | `powerscale_quota_used_percent`，按 `quota` 取 Max，过去 15 分钟 | > 90，相对其硬限制，没有硬限制时相对其软限制。每个配额一个事件；≤ 81 时恢复 |
+| Quota Full | 容量 | 严重 | `powerscale_quota_used_percent`，按 `quota` 取 Max，过去 5 分钟 | ≥ 100 — 在硬限制下，配额路径下的写入会失败。每个配额一个事件；< 90 时恢复 |
+| High Protocol Latency | 性能 | 警告 | `powerscale_protocol_latency_microseconds`，按 `protocol` 取 Max，过去 10 分钟 | > 20000 µs (20 ms)，在最慢的节点上。每个协议一个事件；≤ 18000 时恢复 |
+
 **严重程度** 是选择器显示的标签。模板创建的事件和警报以项目中最严重的事件和警报严重程度开始；可以在条件中修改。
 
-- **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`，代理采集的每个端点在每次采集时都会导出该序列；或 `powermax_array_info`，每次 PowerMax 采集都会写入该序列)。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
+- **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`，代理采集的每个端点在每次采集时都会导出该序列；或 `powermax_array_info`，每次 PowerMax 采集都会写入该序列)；PowerScale 的标识序列是 `powerscale_cluster_health`，代理对集群的轮询每分钟发送一次。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 - **未关闭的警报和硬件状态使用 Max**，因为这类序列只在警报未关闭或组件处于该状态时才存在，所以状态在整个 5 分钟窗口内都出现后才会越过阈值。
-- **每个按对象的模板都按对象自身的标签分组**(`summary`、`component_name`、`host`、`local_pod`、`name`，在 PowerMax 上还有 `description`、`component`、`srp`、`srdf_group` 和 `storage_group`)，因此每个受影响的对象各触发一个事件，并且事件中会写出该对象。
+- **每个按对象的模板都按对象自身的标签分组**(`summary`、`component_name`、`host`、`local_pod`、`name`，在 PowerMax 上还有 `description`、`component`、`srp`、`srdf_group` 和 `storage_group`，以及 PowerScale 的 `node`、`drive`、`quota` 和 `protocol`)，因此每个受影响的对象各触发一个事件，并且事件中会写出该对象。
 - **延迟模板使用 Avg**，对阵列自身计算的每次操作平均值取平均；容量模板对阵列自身的利用率百分比取 **最大**。延迟固定以微秒为单位，容量固定以百分比为单位。
 - **Hardware Component Unhealthy 按组件使用 Min**：组件健康时其健康值为 1，不健康时降到 0。
 
@@ -283,6 +303,8 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `powermax_alert_open` | — | PowerMax | `count` | Unisphere 为该阵列打开的每个警报对应一个序列(值为 1)：未确认、未清除且严重程度为 Minor 或更高。其 severity 标签为 critical(Critical 和 Fatal)或 warning(Warning 和 Minor)；其 alert_type、object 和 description 标签说明警报内容。在 Unisphere 中确认该警报后，序列即消失 |
 | `powermax_array_health_score` | — | PowerMax | `score` | Unisphere 给出的阵列健康评分，范围 0 到 100，按 health_metric 区分：总体评分，以及其评分的每个方面(容量、配置、性能、服务级别合规性) |
 | `powermax_array_performance_collection` | — | PowerMax | `count` | Unisphere 正在为该阵列采集 5 分钟性能数据时为 1，否则为 0。关闭时，OneUptime 仍会列出该阵列的清单和警报，但不会绘制任何性能图表。请在 Unisphere 的 Settings > Performance > System Registrations 中开启 |
+| `powerscale_cluster_health` | — | PowerScale | — | OneFS 报告的集群健康状况：0 表示 OK，1 表示需要关注，2 表示宕机，3 表示无效。取最大值即可看到任何变化 |
+| `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | 集群中离线的节点数；`offline_nodes` 标签列出它们的逻辑节点编号 |
 
 ### 容量
 
@@ -318,6 +340,12 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | 主机写入的数据是其经过压缩和重复数据删除后所占空间的多少倍，以 Unisphere 报告的为准 |
 | `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | 每个存储资源池可用容量中已使用的比例(百分比)，按其 srp 标签区分。存储池写满后，将不再为其中的任何存储组接受新的写入 |
 | `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | 每个存储资源池已使用的可用容量，以字节为单位，按其 srp 标签区分 |
+| `powerscale_ifs_used_percent` | — | PowerScale | `%` | 集群容量中已不能再用于写入的占比：已用的部分，加上 OneFS 为虚拟热备预留的空间 |
+| `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | `/ifs` 上仍可用于写入的空间 |
+| `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | 按 OneFS 的统计，`/ifs` 上已用的空间 |
+| `powerscale_ifs_total_bytes` | — | PowerScale | `bytes` | 整个集群 `/ifs` 的大小 |
+| `powerscale_quota_used_percent` | — | PowerScale | `%` | 每个配额的用量占其硬限制的比例，没有硬限制时则占其软限制的比例(`limit` 标签说明是哪一种)——按 `quota` 分组 |
+| `powerscale_quota_usage_bytes` | — | PowerScale | `bytes` | 每个配额的用量，按 OneFS 计入该配额的数值 |
 
 ### 性能
 
@@ -375,6 +403,16 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `powermax_array_backend_busy_percent` | — | PowerMax | `%` | 为驱动器提供服务的导向器的繁忙程度(百分比) |
 | `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | 向其他阵列复制数据的导向器的繁忙程度(百分比) |
 | `powermax_srp_response_time_usec` | — | PowerMax | `µs` | 每个存储资源池中 I/O 的平均耗时，以微秒为单位，按其 srp 标签区分 |
+| `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | 整个集群每秒从 `/ifs` 读取的字节数 |
+| `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | 整个集群每秒写入 `/ifs` 的字节数 |
+| `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | 集群前端端口每秒接收的字节数 |
+| `powerscale_cluster_network_out_bytes_per_second` | — | PowerScale | `bytes/s` | 集群前端端口每秒发送的字节数 |
+| `powerscale_cluster_cpu_busy_percent` | — | PowerScale | `%` | CPU 时间的使用占比，按集群各节点取平均 |
+| `powerscale_protocol_latency_microseconds` | — | PowerScale | `µs` | 每个节点上按协议(NFS、SMB、HDFS……)统计的操作平均耗时；最大值即最慢的节点——按 `protocol` 或 `node` 分组 |
+| `powerscale_protocol_latency_max_microseconds` | — | PowerScale | `µs` | 每个节点上各协议最慢的单次操作 |
+| `powerscale_protocol_operations_per_second` | — | PowerScale | `ops/s` | 每个节点上各协议每秒的操作数；最大值即最繁忙的节点 |
+| `powerscale_protocol_in_bytes_per_second` | — | PowerScale | `bytes/s` | 客户端通过各协议发送到每个节点的每秒字节数：写入和请求 |
+| `powerscale_protocol_out_bytes_per_second` | — | PowerScale | `bytes/s` | 每个节点通过各协议发送给客户端的每秒字节数：读取和应答 |
 
 ### 卷
 
@@ -532,6 +570,16 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `powermax_port_busy_percent` | — | PowerMax | `%` | 每个端口的繁忙程度(百分比)，按其 component 标签区分(例如 FA-1D:4) |
 | `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | 每秒通过每个端口读取的字节数，按其 component 标签区分 |
 | `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | 每个光端口接收的光功率，以毫瓦为单位，按其 component 标签区分。数值下降表示光模块或线缆正在劣化。需要 Unisphere 10.3 或更高版本 |
+| `powerscale_node_health` | — | PowerScale | — | 每个节点报告的健康状况：0 表示 OK，1 表示需要关注，2 表示宕机，3 表示无效——按 `node` 分组 |
+| `powerscale_node_read_only` | — | PowerScale | — | 节点处于只读模式时为 1，否则为 0——按 `node` 分组 |
+| `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | 每个节点 CPU 时间的使用占比——按 `node` 分组 |
+| `powerscale_node_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | 经由每个节点每秒从 `/ifs` 读取的字节数 |
+| `powerscale_node_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | 经由每个节点每秒写入 `/ifs` 的字节数 |
+| `powerscale_drive_size_bytes` | — | PowerScale | `bytes` | 每个驱动器托架一个序列，值为驱动器的大小，带有标签 `status`(`HEALTHY`、`SMARTFAIL`、`DEAD`……)、`model` 和 `serial` |
+| `powerscale_drive_operations_per_second` | — | PowerScale | `ops/s` | 每个驱动器每秒处理的操作数——按 `drive` 分组 |
+| `powerscale_temperature_celsius` | — | PowerScale | `°C` | 每个节点上每个温度传感器的读数；每个节点的最大值就是其温度最高的传感器 |
+| `powerscale_fan_speed_rpm` | — | PowerScale | `rpm` | 每个节点上每个风扇的转速；最小值可找出正在变慢的风扇 |
+| `powerscale_interface_status` | — | PowerScale | — | 每个节点端口的状态：1 表示连通，2 表示断开，7 表示端口下层断开(无链路)；对于应处于连通状态的端口，`admin_status` 为 1 |
 
 ### 文件系统
 

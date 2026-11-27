@@ -4,6 +4,8 @@
 
 它也適用於 Dell PowerStore（`dell.powerstore`），依據 Dell 的 `powerstore_*` 序列。
 
+它也適用於 Dell PowerScale（`dell.powerscale`），依據 Dell 的 `powerscale_*` 序列。
+
 :::cards
 - [建立監測器](#建立儲存陣列監測器): 在儀表板中的六個步驟。
 - [範本](#預建警示範本): 現成的警示，每個磁碟區、主機、專用設備或元件一個事件。
@@ -13,7 +15,7 @@
 
 ## 運作原理
 
-OneUptime Storage Array Agent 執行在能夠連線到陣列管理介面的機器上。它使用唯讀 API 權杖讀取陣列的指標，為指標加上陣列的名稱 `storage.array.name` 和平台 `storage.system` 標籤，並透過 OTLP 傳送到 OneUptime。第一批資料送達時會註冊該陣列。
+OneUptime Storage Array Agent 執行在能夠連線到陣列管理介面的機器上。它使用唯讀 API 權杖讀取陣列的指標(PowerScale 的指標則透過 SNMP 讀取，使用唯讀社群字串或 SNMPv3 使用者)，為指標加上陣列的名稱 `storage.array.name` 和平台 `storage.system` 標籤，並透過 OTLP 傳送到 OneUptime。第一批資料送達時會註冊該陣列。
 
 Dell PowerMax (`dell.powermax`) 無需代理程式：OneUptime 探測器每 5 分鐘會使用唯讀帳戶登入一次 Unisphere for PowerMax，並以同樣的方式傳送它管理的每個陣列，陣列在你重新命名之前會以其 Symmetrix ID 命名([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
 
@@ -82,15 +84,15 @@ flowchart TB
 | **磁碟區** | Custom Metric、進階 | 一個磁碟區：在 FlashArray 上依 `name` 標籤，例如 `vol-db-01`(Pod 或磁碟區群組中的磁碟區命名為 `pod::volume` 或 `group/volume`)；在 ONTAP 上依 `volume` 標籤，兩個 SVM 可以共用同一個磁碟區名稱；在 PowerMax 上依 `volume` 標籤，即其裝置 ID，例如 `00847`。 |
 | **主機** | Custom Metric、進階 | 僅限 FlashArray。陣列所知的一台主機，依 `host` 標籤，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、進階 | 僅限 FlashArray。一個 ActiveCluster 或 ActiveDR Pod，依 `name` 標籤，在複本連結序列上則依 `local_pod`。 |
-| **硬體元件** | Custom Metric、進階 | 一個硬體元件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 標籤，在 FlashBlade 上是 `name`，在 ONTAP 上則是其序列用來命名它的標籤(`node`、`disk`、`shelf` 或 `port`)，在 PowerMax 上是 `component`，即導向器(例如 `FA-1D`)或連接埠(例如 `FA-1D:4`)。 |
-| **檔案系統** | Custom Metric、進階 | 僅限 FlashBlade。一個檔案系統，依 `name` 標籤。 |
+| **硬體元件** | Custom Metric、進階 | 一個硬體元件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 標籤，在 FlashBlade 上是 `name`，在 ONTAP 上則是其序列用來命名它的標籤(`node`、`disk`、`shelf` 或 `port`)，在 PowerMax 上是 `component`，即導向器(例如 `FA-1D`)或連接埠(例如 `FA-1D:4`)；在 PowerScale 上是 `node`，即節點(例如 `ps-prod-2`)。 |
+| **檔案系統** | Custom Metric、進階 | FlashBlade 和 PowerScale。在 FlashBlade 上是一個檔案系統，依 `name` 標籤；在 PowerScale 上是一個配額，依 `quota` 標籤，例如 `/ifs/data/home`。 |
 | **儲存貯體** | Custom Metric、進階 | 僅限 FlashBlade。一個物件儲存貯體，依 `name` 標籤。 |
 | **Storage Array Metric** | Custom Metric | [目錄](#收集的指標) 中的一個指標。表單會加入賦予其意義的標籤篩選器，並依它描述的物件分組，因此每個磁碟區、主機或元件都會單獨判斷。 |
 | **彙總** | Custom Metric | 如何合併樣本：**平均**、**最大值**、**最小值**、**總和** 或 **計數**。從該指標的常用彙總開始。 |
 | **時間範圍** | 全部 | 查詢讀取的滾動視窗，從 **Past 1 Minute** 到 **Past 365 Days**。新監測器從 **過去 5 分鐘** 開始；檔案系統或儲存貯體的自訂指標從 **過去 15 分鐘** 開始；範本會設定自己的值。 |
 | **選擇指標** | 進階 | 查詢建構器：**指標**、**彙總方式**、**依屬性篩選**、**分組依據**，以及用於合併查詢的 **新增指標** 和 **新增公式**。 |
 
-代理程式每 60 秒讀取一次陣列端點，每 2 分鐘讀取一次磁碟區、主機和 Pod，因此 5 分鐘的視窗中一定會有樣本。它每 5 分鐘讀取一次 FlashBlade 的檔案系統和儲存貯體(所以用 15 分鐘)，每 30 分鐘讀取一次 FlashArray 目錄：請給目錄監測器設定 60 分鐘的視窗。在 ONTAP 上，Harvest 每分鐘讀取一次叢集的效能，每 3 分鐘讀取一次其設定、狀態和 EMS 事件，因此 5 分鐘的視窗中一定會有樣本。
+代理程式每 60 秒讀取一次陣列端點，每 2 分鐘讀取一次磁碟區、主機和 Pod，因此 5 分鐘的視窗中一定會有樣本。它每 5 分鐘讀取一次 FlashBlade 的檔案系統和儲存貯體(所以用 15 分鐘)，每 30 分鐘讀取一次 FlashArray 目錄：請給目錄監測器設定 60 分鐘的視窗。在 ONTAP 上，Harvest 每分鐘讀取一次叢集的效能，每 3 分鐘讀取一次其設定、狀態和 EMS 事件，因此 5 分鐘的視窗中一定會有樣本。它每 60 秒輪詢一次 PowerScale 叢集及其每個節點，每 5 分鐘輪詢一次其配額：請給配額監測器設定 15 分鐘的視窗。
 
 它每 5 分鐘讀取一次 PowerStore，每 60 秒讀取一次其叢集狀態：請為 PowerStore 監測器設定 15 分鐘的視窗。
 
@@ -114,7 +116,7 @@ Pure 把多個數值放在 **一個** 指標名稱上，並用一個標籤區分
 
 PowerMax 的每個序列只包含一個數值，並以該數值命名：`powermax_array_response_time_usec` 用 `operation` 區分讀取和寫入。它的狀態序列同樣只在出現問題時存在：`powermax_alert_open` 在 Unisphere 有未關閉的警示時存在，`powermax_director_offline` 在導向器未上線時存在，`powermax_port_offline` 在有人依賴的連接埠停擺時存在，`powermax_srdf_group_not_healthy` 在 SRDF 群組暫停或離線時存在。
 
-在監測器篩選器和分組鍵中，代理程式的屬性以 `resource.` 開頭(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的標籤不以它開頭(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)，PowerMax 的標籤也不以它開頭(`storage_group`、`volume`、`director`、`port_id`、`srdf_group`)。
+在監測器篩選器和分組鍵中，代理程式的屬性以 `resource.` 開頭(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的標籤不以它開頭(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)，PowerMax 的標籤也不以它開頭(`storage_group`、`volume`、`director`、`port_id`、`srdf_group`)，PowerScale 的標籤也一樣(`node`、`quota`、`drive`、`protocol`)。
 
 ## PowerStore 序列的結構
 
@@ -136,7 +138,7 @@ ONTAP 的狀態有三種表示方式：
 
 ## 預建警示範本
 
-OneUptime 提供 80 個範本——12 個用於 FlashArray，8 個用於 FlashBlade，16 個用於 PowerStore，31 個用於 ONTAP，13 個用於 PowerMax——**告警內容** 清單會提供適用於陣列平台的那些範本。每個範本都會建構一個完整的監測器：指標查詢、其標籤篩選器、依物件自身標籤的分組、一個觸發條件和一個復原條件。臨界值是可以編輯的起點。
+OneUptime 提供 93 個範本——12 個用於 FlashArray，8 個用於 FlashBlade，16 個用於 PowerStore，31 個用於 ONTAP，13 個用於 PowerMax，13 個用於 PowerScale——**告警內容** 清單會提供適用於陣列平台的那些範本。每個範本都會建構一個完整的監測器：指標查詢、其標籤篩選器、依物件自身標籤的分組、一個觸發條件和一個復原條件。臨界值是可以編輯的起點。
 
 只有當條件對視窗中的 **每個** 值都成立時，條件才會觸發，但 ONTAP EMS 範本的條件除外：Harvest 只在一次輪詢中匯出某個事件，因此一個讀數就夠了。在容量、延遲、落後或比率臨界值上觸發的監測器，只有超過臨界值 10% 之後才會復原，因此在臨界值附近徘徊的值不會來回切換。警示、硬體和連線範本在某個狀態在其整個 5 分鐘視窗內都出現後才會觸發，並在狀態消失約 5 分鐘後復原。
 
@@ -255,11 +257,29 @@ PowerStore 自己的警示以日誌形式送達，因此其範本是 **日誌** 
 | SRDF Group Suspended or Offline | 複寫 | 嚴重 | `powermax_srdf_group_not_healthy`，依 `srdf_group` 取 Max，過去 10 分鐘 | > 0 — 群組的鏈路離線，或其配對處於暫停、分離或容錯移轉狀態，因此遠端副本無法保持最新。每個群組一個事件；重新同步時復原 |
 | SRDF/A Lag Above 2 Minutes | 複寫 | 警告 | `powermax_srdf_group_lag_seconds`，依 `srdf_group` 取 Avg，過去 15 分鐘 | > 120 (2 分鐘) — 此時容錯移轉會遺失比計畫更多的近期寫入。每個群組一個事件；≤ 108 時復原 |
 
+### PowerScale
+
+| 範本 | 類別 | 嚴重程度 | 監看內容 | 觸發條件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 嚴重 | `powerscale_cluster_health`，Count，過去 10 分鐘 | 整個視窗內都沒有資料 — Storage Array Agent 已停止、失去通往 OneUptime 的路由或權杖被撤銷，或者叢集不再回應它的輪詢；資料再次送達時復原 |
+| Cluster Needs Attention | 陣列健康狀況 | 警告 | `powerscale_cluster_health`，Max，過去 5 分鐘 | > 0 — OneFS 回報叢集需要注意、停機或無效，`isi event groups list` 會說明原因；≤ 0 時復原 |
+| Cluster Down | 陣列健康狀況 | 嚴重 | `powerscale_cluster_health`，Max，過去 5 分鐘 | ≥ 2 — OneFS 回報叢集停機或無效；< 2 時復原 |
+| Node Offline | 硬體 | 嚴重 | `powerscale_cluster_offline_nodes`，Max，過去 5 分鐘 | > 0 — 叢集的某個節點離線，`offline_nodes` 會列出是哪一個；≤ 0 時復原 |
+| Node Needs Attention | 硬體 | 警告 | `powerscale_node_health`，依 `node` 取 Max，過去 5 分鐘 | > 0 — 某個節點回報需要注意、停機或無效。每個節點一個事件；≤ 0 時復原 |
+| Node Read-Only | 硬體 | 警告 | `powerscale_node_read_only`，依 `node` 取 Max，過去 5 分鐘 | > 0 — 某個節點處於唯讀模式，連線到它的用戶端無法寫入。每個節點一個事件；≤ 0 時復原 |
+| Drive Failed | 硬體 | 嚴重 | `powerscale_drive_size_bytes` 篩選到 `status=DEAD`，依 `drive` 取 Count，過去 5 分鐘 | > 0 — 某個磁碟機已失效，OneFS 正在其餘磁碟機上重新保護其資料。每個磁碟機一個事件；它回報其他狀態時復原 |
+| Drive Smartfailed | 硬體 | 警告 | `powerscale_drive_size_bytes` 篩選到 `status=SMARTFAIL`，依 `drive` 取 Count，過去 5 分鐘 | > 0 — OneFS 正在把即將故障的磁碟機上的資料移出，之後再更換該磁碟機。每個磁碟機一個事件；它回報其他狀態時復原 |
+| Capacity Above 80% | 容量 | 警告 | `powerscale_ifs_used_percent`，Max，過去 15 分鐘 | > 80，包括為虛擬熱備援預留的空間；≤ 72 時復原 |
+| Capacity Above 90% | 容量 | 嚴重 | `powerscale_ifs_used_percent`，Max，過去 5 分鐘 | > 90 — 叢集即將拒絕寫入；≤ 81 時復原 |
+| Quota Near Its Limit | 容量 | 警告 | `powerscale_quota_used_percent`，依 `quota` 取 Max，過去 15 分鐘 | > 90，相對其硬限制，沒有硬限制時相對其軟限制。每個配額一個事件；≤ 81 時復原 |
+| Quota Full | 容量 | 嚴重 | `powerscale_quota_used_percent`，依 `quota` 取 Max，過去 5 分鐘 | ≥ 100 — 在硬限制下，配額路徑下的寫入會失敗。每個配額一個事件；< 90 時復原 |
+| High Protocol Latency | 效能 | 警告 | `powerscale_protocol_latency_microseconds`，依 `protocol` 取 Max，過去 10 分鐘 | > 20000 µs (20 ms)，在最慢的節點上。每個通訊協定一個事件；≤ 18000 時復原 |
+
 **嚴重程度** 是選擇器顯示的標籤。範本建立的事件和警示會以專案中最嚴重的事件和警示嚴重程度開始；可以在條件中修改。
 
-- **Array Stopped Reporting** 計算平台的識別序列(`purefa_info` 或 `purefb_info`，代理程式收集的每個端點在每次收集時都會匯出該序列；或 `powermax_array_info`，每次 PowerMax 收集都會寫入該序列)。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
+- **Array Stopped Reporting** 計算平台的識別序列(`purefa_info` 或 `purefb_info`，代理程式收集的每個端點在每次收集時都會匯出該序列；或 `powermax_array_info`，每次 PowerMax 收集都會寫入該序列)；PowerScale 的識別序列是 `powerscale_cluster_health`，代理程式對叢集的輪詢每分鐘傳送一次。資料中斷時，其他範本沒有可比較的資料，會維持最後的狀態，因此要靠這個範本告訴你。
 - **未關閉的警示和硬體狀態使用 Max**，因為這類序列只在警示未關閉或元件處於該狀態時才存在，所以狀態在整個 5 分鐘視窗內都出現後才會超過臨界值。
-- **每個依物件的範本都依物件自身的標籤分組**(`summary`、`component_name`、`host`、`local_pod`、`name`，在 PowerMax 上還有 `description`、`component`、`srp`、`srdf_group` 和 `storage_group`)，因此每個受影響的物件各觸發一個事件，並且事件中會寫出該物件。
+- **每個依物件的範本都依物件自身的標籤分組**(`summary`、`component_name`、`host`、`local_pod`、`name`，在 PowerMax 上還有 `description`、`component`、`srp`、`srdf_group` 和 `storage_group`，以及 PowerScale 的 `node`、`drive`、`quota` 和 `protocol`)，因此每個受影響的物件各觸發一個事件，並且事件中會寫出該物件。
 - **延遲範本使用 Avg**，對陣列自身計算的每次作業平均值取平均；容量範本對陣列自身的使用率百分比取 **最大**。延遲固定以微秒為單位，容量固定以百分比為單位。
 - **Hardware Component Unhealthy 依元件使用 Min**：元件健康時其健康值為 1，不健康時降到 0。
 
@@ -283,6 +303,8 @@ PowerStore 自己的警示以日誌形式送達，因此其範本是 **日誌** 
 | `powermax_alert_open` | — | PowerMax | `count` | Unisphere 為該陣列開啟的每個警示對應一個序列(值為 1)：未確認、未清除且嚴重程度為 Minor 或更高。其 severity 標籤為 critical(Critical 和 Fatal)或 warning(Warning 和 Minor)；其 alert_type、object 和 description 標籤說明警示內容。在 Unisphere 中確認該警示後，序列即消失 |
 | `powermax_array_health_score` | — | PowerMax | `score` | Unisphere 給出的陣列健康分數，範圍 0 到 100，依 health_metric 區分：整體分數，以及其評分的每個面向(容量、組態、效能、服務等級合規性) |
 | `powermax_array_performance_collection` | — | PowerMax | `count` | Unisphere 正在為該陣列收集 5 分鐘效能資料時為 1，否則為 0。關閉時，OneUptime 仍會列出該陣列的清單和警示，但不會繪製任何效能圖表。請在 Unisphere 的 Settings > Performance > System Registrations 中開啟 |
+| `powerscale_cluster_health` | — | PowerScale | — | OneFS 回報的叢集健康狀況：0 表示 OK，1 表示需要注意，2 表示停機，3 表示無效。取最大值即可看到任何變化 |
+| `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | 叢集中離線的節點數；`offline_nodes` 標籤列出它們的邏輯節點編號 |
 
 ### 容量
 
@@ -318,6 +340,12 @@ PowerStore 自己的警示以日誌形式送達，因此其範本是 **日誌** 
 | `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | 主機寫入的資料是其經過壓縮和重複資料刪除後所占空間的多少倍，以 Unisphere 回報的為準 |
 | `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | 每個儲存資源池可用容量中已使用的比例(百分比)，依其 srp 標籤區分。儲存池寫滿後，將不再為其中的任何儲存群組接受新的寫入 |
 | `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | 每個儲存資源池已使用的可用容量，以位元組為單位，依其 srp 標籤區分 |
+| `powerscale_ifs_used_percent` | — | PowerScale | `%` | 叢集容量中已不能再用於寫入的比例：已用的部分，加上 OneFS 為虛擬熱備援預留的空間 |
+| `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | `/ifs` 上仍可用於寫入的空間 |
+| `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | 依 OneFS 的統計，`/ifs` 上已用的空間 |
+| `powerscale_ifs_total_bytes` | — | PowerScale | `bytes` | 整個叢集 `/ifs` 的大小 |
+| `powerscale_quota_used_percent` | — | PowerScale | `%` | 每個配額的用量相對其硬限制的比例，沒有硬限制時則相對其軟限制(`limit` 標籤說明是哪一種)——依 `quota` 分組 |
+| `powerscale_quota_usage_bytes` | — | PowerScale | `bytes` | 每個配額的用量，依 OneFS 計入該配額的數值 |
 
 ### 效能
 
@@ -375,6 +403,16 @@ PowerStore 自己的警示以日誌形式送達，因此其範本是 **日誌** 
 | `powermax_array_backend_busy_percent` | — | PowerMax | `%` | 為磁碟機提供服務的導向器的忙碌程度(百分比) |
 | `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | 向其他陣列複寫資料的導向器的忙碌程度(百分比) |
 | `powermax_srp_response_time_usec` | — | PowerMax | `µs` | 每個儲存資源池中 I/O 的平均耗時，以微秒為單位，依其 srp 標籤區分 |
+| `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | 整個叢集每秒從 `/ifs` 讀取的位元組數 |
+| `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | 整個叢集每秒寫入 `/ifs` 的位元組數 |
+| `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | 叢集前端連接埠每秒接收的位元組數 |
+| `powerscale_cluster_network_out_bytes_per_second` | — | PowerScale | `bytes/s` | 叢集前端連接埠每秒傳送的位元組數 |
+| `powerscale_cluster_cpu_busy_percent` | — | PowerScale | `%` | CPU 時間的使用比例，依叢集各節點取平均 |
+| `powerscale_protocol_latency_microseconds` | — | PowerScale | `µs` | 每個節點上依通訊協定(NFS、SMB、HDFS……)統計的作業平均耗時；最大值即最慢的節點——依 `protocol` 或 `node` 分組 |
+| `powerscale_protocol_latency_max_microseconds` | — | PowerScale | `µs` | 每個節點上各通訊協定最慢的單次作業 |
+| `powerscale_protocol_operations_per_second` | — | PowerScale | `ops/s` | 每個節點上各通訊協定每秒的作業數；最大值即最繁忙的節點 |
+| `powerscale_protocol_in_bytes_per_second` | — | PowerScale | `bytes/s` | 用戶端透過各通訊協定傳送到每個節點的每秒位元組數：寫入和要求 |
+| `powerscale_protocol_out_bytes_per_second` | — | PowerScale | `bytes/s` | 每個節點透過各通訊協定傳送給用戶端的每秒位元組數：讀取和回應 |
 
 ### 磁碟區
 
@@ -532,6 +570,16 @@ PowerStore 自己的警示以日誌形式送達，因此其範本是 **日誌** 
 | `powermax_port_busy_percent` | — | PowerMax | `%` | 每個連接埠的忙碌程度(百分比)，依其 component 標籤區分(例如 FA-1D:4) |
 | `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | 每秒透過每個連接埠讀取的位元組數，依其 component 標籤區分 |
 | `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | 每個光纖連接埠接收的光功率，以毫瓦為單位，依其 component 標籤區分。數值下降表示光模組或纜線正在劣化。需要 Unisphere 10.3 或更新版本 |
+| `powerscale_node_health` | — | PowerScale | — | 每個節點回報的健康狀況：0 表示 OK，1 表示需要注意，2 表示停機，3 表示無效——依 `node` 分組 |
+| `powerscale_node_read_only` | — | PowerScale | — | 節點處於唯讀模式時為 1，否則為 0——依 `node` 分組 |
+| `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | 每個節點 CPU 時間的使用比例——依 `node` 分組 |
+| `powerscale_node_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | 經由每個節點每秒從 `/ifs` 讀取的位元組數 |
+| `powerscale_node_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | 經由每個節點每秒寫入 `/ifs` 的位元組數 |
+| `powerscale_drive_size_bytes` | — | PowerScale | `bytes` | 每個磁碟機插槽一個序列，值為磁碟機的大小，帶有標籤 `status`(`HEALTHY`、`SMARTFAIL`、`DEAD`……)、`model` 和 `serial` |
+| `powerscale_drive_operations_per_second` | — | PowerScale | `ops/s` | 每個磁碟機每秒處理的作業數——依 `drive` 分組 |
+| `powerscale_temperature_celsius` | — | PowerScale | `°C` | 每個節點上每個溫度感測器的讀數；每個節點的最大值就是其溫度最高的感測器 |
+| `powerscale_fan_speed_rpm` | — | PowerScale | `rpm` | 每個節點上每個風扇的轉速；最小值可找出正在變慢的風扇 |
+| `powerscale_interface_status` | — | PowerScale | — | 每個節點連接埠的狀態：1 表示連通，2 表示中斷，7 表示連接埠下層中斷(無連結)；對於應處於連通狀態的連接埠，`admin_status` 為 1 |
 
 ### 檔案系統
 

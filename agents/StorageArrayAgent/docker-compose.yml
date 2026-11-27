@@ -28,6 +28,8 @@ services:
       #   otel-collector-config.netapp-ontap.yaml         NetApp ONTAP or
       #       Amazon FSx for NetApp ONTAP, through the netapp-harvest
       #       service below
+      #   otel-collector-config.powerscale.yaml           Dell PowerScale,
+      #       polled over SNMP by the collector itself (no exporter)
       - ./${STORAGE_ARRAY_COLLECTOR_CONFIG:-otel-collector-config.yaml}:/etc/otelcol-contrib/config.yaml:ro
     # Uncomment (together with the syslog receivers and the logs pipeline in
     # the collector config) to accept the syslog the array forwards to
@@ -45,8 +47,8 @@ services:
     environment:
       # Defaults for the two optional settings (an empty value in .env
       # counts as unset). The platform, stamped as storage.system:
-      # purestorage.flasharray, purestorage.flashblade, dell.powerstore or
-      # netapp.ontap.
+      # purestorage.flasharray, purestorage.flashblade, dell.powerstore,
+      # netapp.ontap or dell.powerscale.
       - STORAGE_SYSTEM=${STORAGE_SYSTEM:-purestorage.flasharray}
       # Arrays ship a self-signed certificate, so the collector does not
       # verify the native endpoint's certificate unless this is "false".

@@ -55,6 +55,7 @@ import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArray
 import {
   StorageArrayGoldenCharts,
   StorageArrayOpenProblemSeries,
+  StorageArrayOverviewChart,
   StorageArrayPlatform,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
 import {
@@ -275,9 +276,49 @@ export function getGoldenChartQueries(data: {
   storageSystem: string | null | undefined;
   arrayName: string;
 }): Array<MetricQueryConfigData> {
-  const charts: StorageArrayGoldenCharts | undefined =
-    StorageArrayPlatformRegistry.getPlatform(data.storageSystem)?.overview
-      .goldenCharts;
+  const overview: StorageArrayPlatform["overview"] | undefined =
+    StorageArrayPlatformRegistry.getPlatform(data.storageSystem)?.overview;
+
+  /*
+   * A platform whose figures are not read and write pairs draws panels of
+   * its own (overview.charts): a PowerScale's protocols, throughput,
+   * busiest nodes and capacity. Each panel is its lines overlaid, a line
+   * split by the label it names.
+   */
+  if (overview?.charts) {
+    return StorageArrayResourceUtils.buildCatalogQueries(
+      overview.charts.flatMap(
+        (
+          chart: StorageArrayOverviewChart,
+        ): Array<
+          Parameters<typeof StorageArrayResourceUtils.buildCatalogQuery>[0]
+        > => {
+          return chart.lines.map(
+            (
+              line: StorageArrayOverviewChart["lines"][number],
+              index: number,
+            ): Parameters<
+              typeof StorageArrayResourceUtils.buildCatalogQuery
+            >[0] => {
+              return {
+                metricId: line.metricId,
+                arrayName: data.arrayName,
+                ...(index === 0
+                  ? { title: chart.title, description: chart.description }
+                  : { overlayWithPreviousQuery: true }),
+                ...(line.legend ? { legend: line.legend } : {}),
+                ...(line.groupByLabel
+                  ? { groupByAttributeKeys: [line.groupByLabel] }
+                  : {}),
+              };
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  const charts: StorageArrayGoldenCharts | undefined = overview?.goldenCharts;
 
   if (!charts) {
     return [];
@@ -1785,7 +1826,11 @@ const StorageArrayOverview: FunctionComponent<
       <div className="mb-6">
         <EmbeddedMetricCard
           title="Golden Signals"
-          description="Read and write latency, IOPS and bandwidth as hosts see them, and capacity used, for this array."
+          description={
+            platform?.overview.chartsDescription
+              ? translator.translateText(platform.overview.chartsDescription)
+              : "Read and write latency, IOPS and bandwidth as hosts see them, and capacity used, for this array."
+          }
           queryConfigs={queryConfigs}
           timeRange={chartTimeRange}
           onTimeRangeChange={handleChartTimeRangeChange}

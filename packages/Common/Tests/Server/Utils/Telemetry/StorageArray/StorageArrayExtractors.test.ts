@@ -16,6 +16,8 @@ import PowerStoreExtractor from "../../../../../Server/Utils/Telemetry/StorageAr
 import OntapExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/NetApp/OntapExtractor";
 import NetAppOntapPlatform from "../../../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
 import PowerMaxExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/Dell/PowerMaxExtractor";
+import PowerScaleExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/Dell/PowerScaleExtractor";
+import DellPowerScalePlatform from "../../../../../Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform";
 import {
   STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
   deriveStorageArrayCountsByKind,
@@ -83,18 +85,22 @@ function row(
 }
 
 describe("the shipped extractors", () => {
-  test("are FlashArray's, FlashBlade's, PowerStore's, ONTAP's and PowerMax's, one for each shipped platform", () => {
+  test("are FlashArray's, FlashBlade's, PowerStore's, ONTAP's, PowerMax's and PowerScale's, one for each shipped platform", () => {
     expect(StorageArrayExtractors.getExtractors()).toEqual([
       FlashArrayExtractor,
       FlashBladeExtractor,
       PowerStoreExtractor,
       OntapExtractor,
       PowerMaxExtractor,
+      PowerScaleExtractor,
     ]);
     expect(FlashArrayExtractor.storageSystem).toBe(FLASHARRAY);
     expect(FlashBladeExtractor.storageSystem).toBe(FLASHBLADE);
     expect(PowerStoreExtractor.storageSystem).toBe(POWERSTORE);
     expect(OntapExtractor.storageSystem).toBe(ONTAP);
+    expect(PowerScaleExtractor.storageSystem).toBe(
+      StorageSystem.DellPowerScale,
+    );
     // Only ONTAP works out what a batch's series say together.
     expect(FlashArrayExtractor.finishBatch).toBeUndefined();
     expect(FlashBladeExtractor.finishBatch).toBeUndefined();
@@ -136,6 +142,7 @@ describe("the ingest's gate", () => {
       ...DellPowerStorePlatform.snapshotMetricNames,
       ...NetAppOntapPlatform.snapshotMetricNames,
       ...DellPowerMaxPlatform.snapshotMetricNames,
+      ...DellPowerScalePlatform.snapshotMetricNames,
     ];
     expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
       [...names].sort(),

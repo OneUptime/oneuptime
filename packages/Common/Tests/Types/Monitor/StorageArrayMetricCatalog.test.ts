@@ -13,6 +13,10 @@ import {
 import { StorageArrayResourceScope } from "../../../Types/Monitor/MonitorStepStorageArrayMonitor";
 import { STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES } from "../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import {
+  POWERSCALE_SERIES,
+  PowerScaleSeriesLabels,
+} from "../../Helpers/StorageArray/PowerScale/PowerScaleCapture";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
@@ -36,6 +40,8 @@ import { getRecordedSeriesLabels } from "../../Helpers/StorageArray/NetAppHarves
  * calls (pure-fa-openmetrics-exporter, which Purity//FA's native endpoint
  * mirrors, and pure-fb-openmetrics-exporter): label name -> the values the
  * exporter emits, or null for a free-form label (an object's name).
+ * POWERSCALE_SERIES is Dell PowerScale's, from the agent's collector config
+ * and ISILON-MIB, held to the recorded capture (PowerScaleCapture.test.ts).
  */
 
 type SeriesLabels = Record<string, Array<string> | null>;
@@ -523,14 +529,16 @@ const POWERMAX_SERIES: Record<string, SeriesLabels> = {
 
 /*
  * Every shipped platform's series, label by label: Pure's and Dell
- * PowerStore's from their exporters, ONTAP's from Harvest, and Dell
- * PowerMax's as its probe writes them.
+ * PowerStore's from their exporters, ONTAP's from Harvest, Dell
+ * PowerMax's as its probe writes them, and Dell PowerScale's from the
+ * agent's collector config.
  */
-const SERIES: Record<string, SeriesLabels> = {
+const SERIES: Record<string, SeriesLabels | PowerScaleSeriesLabels> = {
   ...PURE_SERIES,
   ...POWERSTORE_SERIES,
   ...getOntapSeries(),
   ...POWERMAX_SERIES,
+  ...POWERSCALE_SERIES,
 };
 
 const ALL_METRICS: Array<StorageArrayMetricDefinition> =
@@ -542,6 +550,7 @@ const PS: StorageSystem = StorageSystem.DellPowerStore;
 const ONTAP: StorageSystem = StorageSystem.NetAppOntap;
 // Read by a probe from Unisphere (#11004).
 const PM: StorageSystem = StorageSystem.DellPowerMax;
+const POWERSCALE: StorageSystem = StorageSystem.DellPowerScale;
 
 // Each platform's catalog ids and series names start with these.
 const PREFIXES: Record<string, { id: string; series: string }> = {
@@ -550,6 +559,7 @@ const PREFIXES: Record<string, { id: string; series: string }> = {
   [PS]: { id: "powerstore-", series: "powerstore_" },
   [ONTAP]: { id: "netapp-", series: "netapp_" },
   [PM]: { id: "powermax-", series: "powermax_" },
+  [POWERSCALE]: { id: "powerscale-", series: "powerscale_" },
 };
 
 // Pure's entries: the ones whose names follow Pure's unit suffixes.
@@ -898,11 +908,44 @@ describe("StorageArrayMetricCatalog - every entry", () => {
         // 1 healthy, 2 unused, 0 unhealthy: a state code, not a quantity.
         return undefined;
       }
+      // Dell PowerScale's names say their unit the OpenTelemetry way.
+      if (name.endsWith("_bytes_per_second")) {
+        return "bytes/s";
+      }
+      if (name.endsWith("_operations_per_second")) {
+        return "ops/s";
+      }
+      if (name.endsWith("_microseconds")) {
+        return "µs";
+      }
+      if (name.endsWith("_percent")) {
+        return "%";
+      }
+      if (name.endsWith("_rpm")) {
+        return "rpm";
+      }
+      if (
+        [
+          "powerscale_cluster_health",
+          "powerscale_node_health",
+          "powerscale_node_read_only",
+          "powerscale_interface_status",
+        ].includes(name)
+      ) {
+        // OneFS's health, a read-only flag, IF-MIB's port state: codes.
+        return undefined;
+      }
       return "count";
     };
 
-    // ONTAP's follow Harvest's names (NetAppOntapCatalog.test.ts).
-    for (const metric of PURE_METRICS) {
+    /*
+     * ONTAP's follow Harvest's names (NetAppOntapCatalog.test.ts). And
+     * PowerScale's, whose names end in their units as Pure's do.
+     */
+    for (const metric of [
+      ...PURE_METRICS,
+      ...getStorageArrayMetricsForSystem(POWERSCALE),
+    ]) {
       expect({ id: metric.id, unit: metric.unit }).toEqual({
         id: metric.id,
         unit: expectedUnit(metric),
@@ -1138,9 +1181,9 @@ describe("StorageArrayMetricCatalog - getStorageArrayMetric (filter-aware lookup
 });
 
 describe("StorageArrayMetricCatalog - per-platform picker", () => {
-  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerStore PowerStore's, an ONTAP cluster ONTAP's, a PowerMax PowerMax's", () => {
+  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerStore PowerStore's, an ONTAP cluster ONTAP's, a PowerMax PowerMax's, a PowerScale PowerScale's", () => {
     let total: number = 0;
-    for (const system of [FA, FB, PS, ONTAP, PM]) {
+    for (const system of [FA, FB, PS, ONTAP, PM, POWERSCALE]) {
       const metrics: Array<StorageArrayMetricDefinition> =
         getStorageArrayMetricsForSystem(system);
       expect(metrics.length).toBeGreaterThan(0);
@@ -1155,6 +1198,8 @@ describe("StorageArrayMetricCatalog - per-platform picker", () => {
     expect(total).toBe(ALL_METRICS.length);
     // ONTAP's catalog: every series the docs' tables name.
     expect(getStorageArrayMetricsForSystem(ONTAP)).toHaveLength(87);
+    // PowerScale's catalog: every series its templates and pages read.
+    expect(getStorageArrayMetricsForSystem(POWERSCALE)).toHaveLength(28);
   });
 
   test.each([

@@ -1334,7 +1334,8 @@ describe("the Storage Array page against the form and the agent", () => {
       ["Host", [flashArray], "FlashArray only."],
       ["Pod", [flashArray], "FlashArray only."],
       ["Hardware Component", [flashArray, flashBlade, ontap], ""],
-      ["File System", [flashBlade], "FlashBlade only."],
+      // A PowerScale's quotas take it too, so it is not FlashBlade's only.
+      ["File System", [flashBlade], ""],
       ["Bucket", [flashBlade], "FlashBlade only."],
     ] as Array<[string, Array<StorageSystem>, string]>) {
       // The form's title for a filter, by the filter's key...

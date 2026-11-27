@@ -39,8 +39,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- 是否验证阵列的证书：除非阵列装有你信任的 CA 签发的证书，否则回答 **N**（阵列出厂时带有自签名证书）",
   "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the API token) and starts the agent with Docker Compose.":
     "它会安装到 `/opt/oneuptime-storage-array-agent`，写入一个只有你能读取的 `.env` 文件（其中包含 API 令牌），并用 Docker Compose 启动代理。",
-  "Download the compose file and the three collector configs from this OneUptime into a new folder:":
-    "从此 OneUptime 下载 compose 文件和三份收集器配置到一个新文件夹：",
+  "Download the compose file and the collector configs from this OneUptime into a new folder:":
+    "从此 OneUptime 下载 compose 文件和收集器配置到一个新文件夹：",
   "Create a `.env` file next to them:": "在它们旁边创建一个 `.env` 文件：",
   "- Replace `my-storage-array` with a name for this array, such as `fa-prod-01`. It is how the array appears in OneUptime, so keep it stable: a new name registers a new storage array.":
     "- 将 `my-storage-array` 替换为此阵列的名称，例如 `fa-prod-01`。阵列在 OneUptime 中就以此名称显示，所以请保持不变：新名称会注册一个新的存储阵列。",
@@ -124,8 +124,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "**升级**——收集器镜像固定在 `docker-compose.yml` 中，其配置是旁边的文件，所以仅拉取镜像并不会让代理更新。请再次运行安装脚本。它会沿用你现有 `.env` 中的每个值（不会再询问任何内容），下载最新的 `docker-compose.yml` 和收集器配置（你编辑过的文件会以 `<file>.bak.<timestamp>` 保留在新文件旁边），并用它们重新创建代理：",
   "An agent installed outside `/opt/oneuptime-storage-array-agent` (a second array's, say) needs its folder: `INSTALL_DIR=<folder> bash install.sh`.":
     "安装在 `/opt/oneuptime-storage-array-agent` 之外的代理（例如第二个阵列的代理）需要指定其文件夹：`INSTALL_DIR=<folder> bash install.sh`。",
-  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
-    "改用 Docker Compose 安装的？在代理的文件夹中重新下载 compose 文件和三份收集器配置；你的 `.env` 会保留，而你对其中任何文件所做的更改都需要重新做一遍：",
+  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
+    "改用 Docker Compose 安装的？在代理的文件夹中重新下载 compose 文件和收集器配置；你的 `.env` 会保留，而你对其中任何文件所做的更改都需要重新做一遍：",
   "Then pull the images and recreate the agent, so the collector reads its new config:":
     "然后拉取镜像并重新创建代理，让收集器读取新配置：",
   "The config reports the collector version it pins as the array's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.":
@@ -205,6 +205,76 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **文件系统**（`/metrics/filesystems`） | 每个文件系统的空间、数据缩减和性能 |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":
     "| **对象存储**（`/metrics/objectstore`） | 每个存储桶的空间、配额、对象数和性能 |",
+  "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that reaches every node of the cluster on UDP 161 (SNMP)":
+    "Docker Engine 20.10 或更高版本及 Docker Compose v2 插件，所在机器能通过 UDP 161（SNMP）访问集群的每个节点",
+  "An administrator account on the cluster, to turn on SNMP and set the agent's read-only community or SNMPv3 user":
+    "集群上的管理员账户，用于启用 SNMP 并为代理设置只读团体名或 SNMPv3 用户",
+  "SSH to any node as an administrator: OneFS applies SNMP settings to the whole cluster. If the cluster already answers SNMP for another tool, give the agent the same community or user and skip this step. Otherwise, turn on SNMP v2c with a read-only community of your own, not OneFS's default `I$ilonpublic`:":
+    "以管理员身份通过 SSH 登录任意节点：OneFS 会将 SNMP 设置应用到整个集群。如果集群已经为其他工具响应 SNMP，请为代理提供相同的团体名或用户，并跳过此步骤。否则，请使用你自己的只读团体名启用 SNMP v2c，不要使用 OneFS 默认的 `I$ilonpublic`：",
+  "Or turn on SNMPv3, which authenticates and encrypts every poll. OneFS has one SNMPv3 read-only user, `general` until you rename it: give it passwords of at least eight characters, without spaces:":
+    "或者启用 SNMPv3，它会对每次轮询进行认证和加密。OneFS 只有一个 SNMPv3 只读用户，在你重命名之前名为 `general`：为它设置至少八个字符且不含空格的密码：",
+  "`isi snmp settings view` shows the settings, with the user's authentication and privacy protocols. Allow UDP 161 from the agent's machine to every node, and list the nodes' addresses with `isi network interfaces list`.":
+    "`isi snmp settings view` 会显示设置，包括该用户的认证协议和隐私协议。允许从代理所在机器到每个节点的 UDP 161，并用 `isi network interfaces list` 列出各节点的地址。",
+  "- **every node's address**, separated by commas: each node's own address, never the SmartConnect zone name, since a node answers only for its own drives, sensors and ports":
+    "- **每个节点的地址**，以逗号分隔：每个节点自己的地址，而不是 SmartConnect 区域名称，因为节点只会为它自己的驱动器、传感器和端口应答",
+  "- the **SNMP version**, then the read-only **community**, or the SNMPv3 **user** and its two passwords, each read without echo":
+    "- **SNMP 版本**，然后是只读**团体名**，或 SNMPv3 **用户**及其两个密码，脚本读取时均不会回显",
+  "A user whose protocols are not SHA and AES needs `POWERSCALE_SNMP_AUTH_PROTOCOL` and `POWERSCALE_SNMP_PRIVACY_PROTOCOL` in front of `bash install.sh`, and a user without privacy `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.":
+    "如果用户的协议不是 SHA 和 AES，需要在 `bash install.sh` 前加上 `POWERSCALE_SNMP_AUTH_PROTOCOL` 和 `POWERSCALE_SNMP_PRIVACY_PROTOCOL`；不使用隐私保护的用户则需要加上 `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`。",
+  "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the community or the SNMPv3 passwords), with one poll per node, and starts the agent with Docker Compose. When the cluster gains a node, add its address to `POWERSCALE_NODES` in that file and run `bash install.sh` again.":
+    "它会安装到 `/opt/oneuptime-storage-array-agent`，写入一个只有你能读取的 `.env` 文件（其中包含团体名或 SNMPv3 密码），每个节点一项轮询，并用 Docker Compose 启动代理。集群新增节点时，请将其地址添加到该文件的 `POWERSCALE_NODES` 中，然后再次运行 `bash install.sh`。",
+  "- Replace `my-storage-array` with a name for this cluster, such as `ps-prod`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new storage array.":
+    "- 将 `my-storage-array` 替换为此集群的名称，例如 `ps-prod`。集群在 OneUptime 中就以此名称显示，所以请保持不变：新名称会注册一个新的存储阵列。",
+  "- List every node in `POWERSCALE_NODES` and give each its own `POWERSCALE_NODE_<n>` and `snmp/node-<n>` in `POWERSCALE_SNMP_RECEIVERS`, up to 252, after `snmp/cluster` and `snmp/quotas`. An IPv6 address goes in brackets, such as `[fd00::11]`.":
+    "- 在 `POWERSCALE_NODES` 中列出每个节点，并为每个节点分配各自的 `POWERSCALE_NODE_<n>`，以及在 `POWERSCALE_SNMP_RECEIVERS` 中 `snmp/cluster` 和 `snmp/quotas` 之后的各自的 `snmp/node-<n>`，最多 252 个。IPv6 地址要放在方括号中，例如 `[fd00::11]`。",
+  "- For SNMPv3, set `POWERSCALE_SNMP_VERSION=v3`, `POWERSCALE_SNMP_USER`, `POWERSCALE_SNMP_AUTH_PASSWORD` and `POWERSCALE_SNMP_PRIVACY_PASSWORD` instead of the community. Run `chmod 600 .env`: it holds the community or the passwords.":
+    "- 对于 SNMPv3，请设置 `POWERSCALE_SNMP_VERSION=v3`、`POWERSCALE_SNMP_USER`、`POWERSCALE_SNMP_AUTH_PASSWORD` 和 `POWERSCALE_SNMP_PRIVACY_PASSWORD`，而不是团体名。运行 `chmod 600 .env`：该文件包含团体名或密码。",
+  "| `STORAGE_ARRAY_NAME` | Yes | The name this cluster registers under in OneUptime, stamped on every metric as `storage.array.name`. Keep it stable — changing it registers a new storage array |":
+    "| `STORAGE_ARRAY_NAME` | 是 | 此集群在 OneUptime 中注册所用的名称，作为 `storage.array.name` 标记在每个指标上。请保持不变：更改它会注册一个新的存储阵列 |",
+  "| `STORAGE_SYSTEM` | Yes | `dell.powerscale` |":
+    "| `STORAGE_SYSTEM` | 是 | `dell.powerscale` |",
+  "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Yes | `otel-collector-config.powerscale.yaml` |":
+    "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | 是 | `otel-collector-config.powerscale.yaml` |",
+  "| `POWERSCALE_NODES` | Yes | Every node's address, separated by commas. The install script writes the polls below from it |":
+    "| `POWERSCALE_NODES` | 是 | 每个节点的地址，以逗号分隔。安装脚本据此写入下面的轮询 |",
+  "| `POWERSCALE_ENDPOINT` | Yes | The node the cluster's own health, capacity and quotas are read through: the first in `POWERSCALE_NODES` |":
+    "| `POWERSCALE_ENDPOINT` | 是 | 读取集群自身健康状况、容量和配额所经由的节点：`POWERSCALE_NODES` 中的第一个 |",
+  "| `POWERSCALE_SNMP_RECEIVERS` | Yes | The polls the collector runs: `snmp/cluster`, `snmp/quotas`, then `snmp/node-<n>` for each node |":
+    "| `POWERSCALE_SNMP_RECEIVERS` | 是 | 收集器运行的轮询：`snmp/cluster`、`snmp/quotas`，然后是每个节点的 `snmp/node-<n>` |",
+  "| `POWERSCALE_NODE_<n>` | Yes | Node `<n>`'s address, from 1 to 252 |":
+    "| `POWERSCALE_NODE_<n>` | 是 | 节点 `<n>` 的地址，从 1 到 252 |",
+  "| `POWERSCALE_SNMP_VERSION` | No | `v2c` (default) or `v3` |":
+    "| `POWERSCALE_SNMP_VERSION` | 否 | `v2c`（默认）或 `v3` |",
+  "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | The cluster's read-only community |":
+    "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | 集群的只读团体名 |",
+  "| `POWERSCALE_SNMP_USER` | SNMPv3 | The cluster's SNMPv3 read-only user |":
+    "| `POWERSCALE_SNMP_USER` | SNMPv3 | 集群的 SNMPv3 只读用户 |",
+  "| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |":
+    "| `POWERSCALE_SNMP_SECURITY_LEVEL` | 否 | `auth_priv`（默认）、`auth_no_priv` 或 `no_auth_no_priv` |",
+  "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | No | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512` |":
+    "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | 否 | `SHA`（默认）、`MD5`、`SHA224`、`SHA256`、`SHA384` 或 `SHA512` |",
+  "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | The SNMPv3 user's authentication password |":
+    "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 用户的认证密码 |",
+  "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | No | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C` |":
+    "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | 否 | `AES`（默认）、`DES`、`AES192`、`AES256`、`AES192C` 或 `AES256C` |",
+  "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | The SNMPv3 user's privacy password |":
+    "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 用户的隐私密码 |",
+  "- **One collector, no exporter.** The collector's own SNMP receiver reads Dell's ISILON-MIB; nothing else runs beside it.":
+    "- **一个收集器，没有导出器。** 收集器自带的 SNMP 接收器读取 Dell 的 ISILON-MIB；旁边不运行任何其他组件。",
+  "- **The cluster's objects once, through `POWERSCALE_ENDPOINT`:** its health, capacity, throughput and node counts every 60 seconds (`snmp/cluster`), and its SmartQuotas every 5 minutes (`snmp/quotas`).":
+    "- **集群的对象通过 `POWERSCALE_ENDPOINT` 读取一次：** 每 60 秒读取其健康状况、容量、吞吐量和节点数（`snmp/cluster`），每 5 分钟读取其 SmartQuotas（`snmp/quotas`）。",
+  "- **Each node's from the node:** its health, CPU, protocol performance, drives, sensors and ports every 60 seconds (`snmp/node-<n>`).":
+    "- **每个节点的对象从该节点本身读取：** 每 60 秒读取其健康状况、CPU、协议性能、驱动器、传感器和端口（`snmp/node-<n>`）。",
+  "- **Every poll labels its series `scrape_endpoint: <poll>`**, so OneUptime knows which objects a batch is the complete list of — that is how a deleted quota leaves the inventory. Keep the labels as shipped.":
+    "- **每次轮询都给自己的序列加上标签 `scrape_endpoint: <poll>`**，这样 OneUptime 就知道一个批次是哪些对象的完整列表——已删除的配额正是这样离开资产清单的。请保持标签与随附时一致。",
+  "The full config, one SNMP receiver per node slot, is `otel-collector-config.powerscale.yaml` in the agent's folder:":
+    "完整配置为代理文件夹中的 `otel-collector-config.powerscale.yaml`，每个节点槽位一个 SNMP 接收器：",
+  "Then turn SNMP off on the cluster, or change the agent's community or SNMPv3 passwords, if nothing else polls it.":
+    "如果没有其他工具轮询该集群，再在集群上关闭 SNMP，或更改代理的团体名或 SNMPv3 密码。",
+  "`troubleshoot.sh` checks the whole chain — the container runtime, the node addresses and the community or SNMPv3 user in `.env`, each node with `snmpget` when the machine has it, array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key.":
+    "`troubleshoot.sh` 会检查整条链路（容器运行时、`.env` 中的节点地址和团体名或 SNMPv3 用户、机器上有 `snmpget` 时用它检查每个节点、阵列名称标记、收集器自身指标），并直接询问 OneUptime 是否接受你的摄取密钥。",
+  "`Error scraping metrics` with `request timeout` in `docker logs oneuptime-storage-array-agent` names a node that does not answer SNMP from this machine: SNMP is off for the version the agent uses, the community or SNMPv3 user is not the cluster's, or UDP 161 is blocked on the way. A node that answers but is missing from the cluster's nodes is not in `POWERSCALE_NODES`: add it and run `bash install.sh` again.":
+    "`docker logs oneuptime-storage-array-agent` 中带有 `request timeout` 的 `Error scraping metrics` 指出了一个对来自这台机器的 SNMP 没有响应的节点：代理所用版本的 SNMP 已关闭、团体名或 SNMPv3 用户不属于该集群，或者 UDP 161 在途中被阻断。能响应却不在集群节点中的节点，就是不在 `POWERSCALE_NODES` 中：添加它，然后再次运行 `bash install.sh`。",
 };
 
 export default TRANSLATION;

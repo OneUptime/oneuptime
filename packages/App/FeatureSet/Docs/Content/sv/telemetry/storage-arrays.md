@@ -4,6 +4,7 @@ OneUptimes Lagringsarray-agent övervakar lagringsarrayer: kapacitet och datared
 
 :::cards
 - [Installera agenten](#installera-agenten): En skrivskyddad användare, sedan installationsskriptet eller Docker Compose.
+- [Dell PowerScale](#dell-powerscale): SNMP på klustret, varje nod avfrågad, och vad dess sidor visar.
 - [Vad agenten samlar in](#vad-agenten-samlar-in): Varje slutpunkt och de sidor som byggs av den.
 - [Övervaka flera arrayer](#övervaka-flera-arrayer): En agent per array, på en maskin.
 - [Dell PowerMax](#dell-powermax): Ingen agent: en sond läser varje array bakom Unisphere.
@@ -21,12 +22,15 @@ Storage Arrays är en produkt som fungerar likadant för alla leverantörer. Den
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pures FlashBlade OpenMetrics-exportör, som samma Compose-fil kör som tjänsten `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | Dells PowerStore Metrics Exporter, som samma Compose-fil bygger och kör som tjänsten `powerstore-exporter`; klustrets larm kommer via syslog till dess tjänst `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 och senare (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP) samt **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, som samma Compose-fil kör som tjänsten `netapp-harvest`: den loggar in i klustrets REST-API med en skrivskyddad användare och ett lösenord | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 och senare | `dell.powerscale` | Varje nod över SNMP (Dells ISILON-MIB), med collectorns egen SNMP-mottagare: inget körs bredvid collectorn | `otel-collector-config.powerscale.yaml` |
 
 ONTAP har ingen egen slutpunkt för mätvärden, så agenten kör NetApps exportör med öppen källkod, Harvest, bredvid collectorn. Harvest läser klustrets REST-API och serverar det den har läst på Compose-nätverket, där varje serie heter `netapp_<object>_<counter>`; collectorn skrapar den och skickar det vidare. Harvest skriver aldrig till klustret, och dess AutoSupport-rapport till NetApp är avstängd.
 
 **Dell PowerMax** (`dell.powermax`) behöver ingen agent: en OneUptime-sond läser med ett skrivskyddat konto varje array som en Unisphere for PowerMax hanterar. Se [Dell PowerMax](#dell-powermax).
 
 Pure Storage bytte namn till **Everpure** i februari 2026. FlashArray, FlashBlade och Purity behöll sina namn, liksom mätvärdena `purefa_*` och `purefb_*`, så allt på den här sidan gäller arrayer som säljs under båda namnen.
+
+Ett **Dell PowerScale**-kluster läses på ett annat sätt: agenten avfrågar var och en av dess noder över SNMP, med en skrivskyddad community eller SNMPv3-användare och utan API-token. [Dell PowerScale](#dell-powerscale) tar dig från att slå på SNMP till vad dess sidor visar; installationsstegen nedan gäller Pure Storage.
 
 ```mermaid title="Från arrayen till OneUptime"
 flowchart TB
@@ -146,6 +150,8 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 POWERSTORE_ENDPOINT=
 POWERSTORE_PASSWORD=
@@ -246,6 +252,18 @@ Installationsskriptet skriver dessa till `/opt/oneuptime-storage-array-agent/.en
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | Klustrets administrationsadress (på FSx filsystemets administrationsslutpunkt): ett värdnamn eller en IP, utan `https://`. |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | Den skrivskyddade REST-användaren, till exempel `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | Dess lösenord. Bara Harvest läser det, exakt som det är skrivet. |
+| `POWERSCALE_NODES` | PowerScale | Alla noders adresser, avgränsade med kommatecken, aldrig SmartConnect-zonens namn. Installationsskriptet skriver avfrågningarna nedan utifrån den. |
+| `POWERSCALE_ENDPOINT` | PowerScale | Noden som klustrets egen hälsa, kapacitet och kvoter läses genom: den första i `POWERSCALE_NODES`. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Avfrågningarna som collectorn kör: `snmp/cluster`, `snmp/quotas`, sedan `snmp/node-1` och framåt, en per nod. |
+| `POWERSCALE_NODE_<n>` | PowerScale | Adressen till nod `<n>`, från `1` till `252`. En IPv6-adress skrivs inom hakparenteser, till exempel `[fd00::11]`. |
+| `POWERSCALE_SNMP_VERSION` | Nej | `v2c` eller `v3`. Standard är `v2c`. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | Klustrets skrivskyddade community. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | Klustrets skrivskyddade SNMPv3-användare. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | Nej | `auth_priv`, `auth_no_priv` eller `no_auth_no_priv`. Standard är `auth_priv`. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | Nej | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` eller `SHA512`, så som `isi snmp settings view` visar det. Standard är `SHA`. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3-användarens autentiseringslösenord. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | Nej | `DES`, `AES`, `AES192`, `AES256`, `AES192C` eller `AES256C`. Standard är `AES`. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3-användarens sekretesslösenord, på nivån `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nej | `true` godtar arrayens självsignerade certifikat på den inbyggda slutpunkten och i Harvest; `false` verifierar det. Standard är `true`. Pures exportörer verifierar aldrig arrayens certifikat, så det gäller inte för dem. |
 
 ## Så skrapar agenten
@@ -278,6 +296,9 @@ Pures semantiska konventioner delas av den inbyggda FlashArray-slutpunkten och b
 | ONTAP, via Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | Klustrets namn, version och UUID; dess kapacitet (summan av dess dataaggregat) och datareduktion; sidan **Volymer**; sidorna **Aggregat**, **SVM:ar**, **LUN:ar** och **SnapMirror**, en sida per objekt |
 | ONTAP-hårdvara, via Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | Sidan **Hårdvara**: noder, diskar, hyllor, deras nätaggregat, fläktar, moduler och sensorer, nodernas sensorer samt Ethernet- och Fibre Channel-portar |
 | ONTAP:s öppna problem och händelser | `netapp_health_*`, `netapp_ems_events` | Antalet öppna larm och kortet **Aktiva larm** (trasiga diskar, hyllfel, HA-takeover, portar nere, larm om systemhälsa), samt EMS-mallarna |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | Klustrets namn, OneFS-version, hälsa och antal noder; kapaciteten för `/ifs`; genomströmning, nätverk och CPU över hela klustret |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | Sidan **Kvoter**: varje kvots användning, dess gränser och hur nära den är dem |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | Sidan **Noder**: varje nods hälsa, CPU, genomströmning och protokollprestanda; sidan **Hårdvara**: dess diskar, sensorer och portar |
 
 På ONTAP är varje serie Harvests: ett objekt namnges av sina etiketter (`volume` inom sin `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` för en SnapMirror-relation), ett tillstånd är en `netapp_*_new_status` på 1 eller 0 eller en serie `netapp_*_labels` vars etiketter anger det, och varje öppet problem är en serie `netapp_health_*_alerts` som finns så länge problemet består.
 
@@ -375,6 +396,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -440,6 +462,73 @@ Sonden läser Unispheres dokumenterade REST-slutpunkter: det klassiska `/univmax
 - **Upp till 5,000 lagringsgrupper och 10,000 volymer per array**, och 200 nya larm per insamling (resten kommer i nästa). En lista som har kortats av anges som sådan på anslutningens sida.
 - **Unisphere 10.1 och 10.2** visar inga portar eller SRDF-grupper för ett skrivskyddat konto: sonden läser directorerna en i taget, hämtar SRDF-grupperna från lagringsgrupperna och säger till om det.
 
+## Dell PowerScale
+
+Agenten läser ett Dell PowerScale-kluster (Isilon) över SNMP, från Dells ISILON-MIB, med collectorns egen SNMP-mottagare: ingen API-token, och inget körs bredvid collectorn. Ett kluster är en lagringsarray, och dess noder, kvoter, diskar, sensorer och portar är dess inventarie.
+
+- **Varje nod avfrågas på sin egen adress.** En nod svarar på SNMP bara för sina egna diskar, sensorer och portar, så agenten avfrågar varje nod via dess adress på det nätverk som agenten når, aldrig via SmartConnect-zonens namn, som skickar varje avfrågning vidare till den nod den själv väljer. Ett kluster har upp till 252 noder.
+- **Klustrets egna objekt läses en gång, genom den första noden:** dess hälsa, kapacitet, genomströmning, CPU och antal noder var 60:e sekund (`snmp/cluster`), och dess SmartQuotas var 5:e minut (`snmp/quotas`). Varje nods hälsa, CPU, protokollprestanda (NFS, SMB, S3, HDFS och resten), diskar, sensorer och portar läses från noden själv var 60:e sekund (`snmp/node-<n>`).
+- **Avläsningar som OneFS ger som text eller i andra enheter** (sensoravläsningar, CPU i tiondels procent, genomströmning i bitar) omvandlas till tal av collectorn innan den skickar dem, så att varje diagram och varje mall läser en enkel gauge.
+
+### Slå på SNMP på klustret
+
+Anslut till valfri nod med SSH som administratör: OneFS tillämpar SNMP-inställningar på hela klustret. Om klustret redan svarar på SNMP för ett annat verktyg ger du agenten samma skrivskyddade community eller SNMPv3-användare och hoppar över det här steget. Annars slår du på SNMP-tjänsten och SNMP v2c med en egen skrivskyddad community, inte OneFS standard-community `I$ilonpublic`:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+Eller slå på SNMPv3, som autentiserar och krypterar varje avfrågning. OneFS har en skrivskyddad SNMPv3-användare, `general` tills du byter namn på den: ge den lösenord på minst åtta tecken, utan mellanslag:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` visar inställningarna, med användarens autentiserings- och sekretessprotokoll. Tillåt UDP 161 från agentens maskin till varje nod och lista nodernas adresser med `isi network interfaces list`.
+
+### Installera agenten på ett PowerScale-kluster
+
+Kör installationsskriptet med PowerScale-konfigurationen:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+Skriptet frågar efter din OneUptime-URL, intagningsnyckeln och ett namn på klustret, sedan efter alla noders adresser, avgränsade med kommatecken, och SNMP-versionen, sedan efter den skrivskyddade communityn, eller SNMPv3-användaren och dess två lösenord, som vart och ett läses utan eko. En användare vars protokoll inte är SHA och AES behöver `POWERSCALE_SNMP_AUTH_PROTOCOL` och `POWERSCALE_SNMP_PRIVACY_PROTOCOL` före `bash install.sh`, och en användare utan sekretess `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`. Skriptet skriver en avfrågning per nod i `.env`:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+När klustret får en ny nod lägger du till dess adress i `POWERSCALE_NODES` i `.env` och kör `install.sh` igen: det skriver nodens avfrågning och återskapar agenten. Med Docker Compose laddar du ned `docker-compose.yml` och `otel-collector-config.powerscale.yaml` och lägger de här raderna i snabbstartens `.env` i stället för dess rader `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG` och `POWERSCALE_*`. `troubleshoot.sh` frågar varje nod efter klustrets namn med `snmpget` när maskinen har det.
+
+### Vad en PowerScales sidor visar
+
+Klustrets **Översikt** hämtar sin hälsa från den som OneFS själv rapporterar, räknar dess noder och kvoter och ritar varje protokolls latens och belastning, genomströmning, de mest belastade noderna och använd kapacitet. **Noder** listar varje nod med dess hälsa, modell, OneFS-version, CPU och genomströmning; **Kvoter** listar varje kvot med hur mycket av sin gräns den använder, den största först; **Hårdvara** listar varje nods diskar, dess fläktar och dess temperatur- och strömsensorer med deras avläsningar, och dess portar. Kapaciteten är den för `/ifs`, och utrymmet som OneFS håller undan för virtuella hot spares räknas som använt: det är inte tillgängligt för skrivningar.
+
+### Vad agenten inte läser än
+
+- **OneFS händelser och dess lagringspooler.** SNMP bär ingen av dem: de kommer från OneFS API, som en OneUptime-sond ska läsa ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). Till dess skickar du händelserna som SNMP-traps till en [anpassad sond](/docs/probe/custom-probe) och lägger till klustrets noder i den som [nätverksenheter](/docs/monitor/network-device-monitor): trapsen kommer in på UDP 162, och kriterierna **SNMP-trap mottagen (trap-OID)** larmar på dem. För SNMPv3-traps ger du nätverksenheterna klustrets SNMPv3-användare ([SNMPv3-traps och -informs](/docs/monitor/network-device-monitor#snmpv3-traps-och-informs)). Skapa kanalen på klustret och skicka ett larm till den:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **Datareduktion**, som OneFS bara rapporterar över sitt API, kommer med samma sond.
+
 ## Felsökning
 
 :::details Kör diagnosskriptet först
@@ -485,6 +574,10 @@ Läs Harvests logg: `docker compose logs netapp-harvest`. En `401` eller `Unauth
 
 :::details En PowerStore skickar ingenting
 Läs exportörens logg med `docker compose logs powerstore-exporter`: en `401` betyder fel användarnamn eller lösenord, och en `403` på `latest_five_min_metrics` betyder att användarens roll inte kan slå på arkivet med massmätvärden (ge den **Storage Operator**, eller sätt `POWERSTORE_BULK_METRICS=false` på en PowerStoreOS äldre än 4.1). Exportören behöver en minut efter starten innan den svarar. Inga larm på sidan **Loggar**: kontrollera klustrets inställningar för _Remote Logging_, brandväggen på port 5514 och `docker compose logs powerstore-syslog`.
+:::
+
+:::details Ett PowerScale-kluster eller en PowerScale-nod skickar inget
+`Error scraping metrics` med `request timeout` i collectorns logg pekar ut en nod som inte svarar på SNMP från agentens maskin: SNMP är avslaget för versionen som agenten använder, communityn eller SNMPv3-användaren är inte klustrets, eller UDP 161 blockeras. `bash troubleshoot.sh` frågar varje nod med `snmpget`. En nod som svarar men saknas under **Noder** finns inte i `POWERSCALE_NODES`: lägg till den och kör `install.sh` igen.
 :::
 
 :::details Borttagna volymer eller värdar blir kvar i inventariet
