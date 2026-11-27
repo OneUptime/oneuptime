@@ -18,6 +18,7 @@ import { getAllPodmanAlertTemplates } from "../../../Types/Monitor/PodmanAlertTe
 import { getAllProxmoxAlertTemplates } from "../../../Types/Monitor/ProxmoxAlertTemplates";
 import { getAllProxmoxNotificationAlertTemplates } from "../../../Types/Monitor/ProxmoxNotificationAlertTemplates";
 import { getAllStorageArrayAlertTemplates } from "../../../Types/Monitor/StorageArrayAlertTemplates";
+import { getAllStorageArrayLogAlertTemplates } from "../../../Types/Monitor/StorageArrayLogAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../Types/Monitor/VMwareAlertTemplates";
 import MonitorRecommendationCatalog from "../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
 import {
@@ -120,7 +121,11 @@ const CATALOGS: Array<Catalog> = [
   {
     name: "Storage Array",
     resourceType: MonitorRecommendationResourceType.StorageArray,
-    templates: getAllStorageArrayAlertTemplates(),
+    // Its metric templates and the Logs monitors on a PowerStore's own alerts (#11002).
+    templates: [
+      ...getAllStorageArrayAlertTemplates(),
+      ...getAllStorageArrayLogAlertTemplates(),
+    ],
   },
   {
     name: "IoT",

@@ -99,8 +99,18 @@ const ALL_SOURCES: Array<string> = listSources(DASHBOARD_SRC);
 const IMPORTS_THE_LIST: RegExp =
   /import MonitoringInterval[\s,][^;]*MonitorIntervalDropdownOptions/;
 
-// The old page's path segment, as a route would spell it.
-const NAMES_THE_INTERVAL_PATH: RegExp = /["'`/]interval["'`]/;
+/*
+ * The old page's path, wherever a route can name it (#11298): a route's own
+ * path (path="interval", path={"interval"}), a constant named for a path
+ * or a route that is set to it, or a URL that ends with the segment
+ * ("/interval", `${base}/interval`). Never a request body's key, a select
+ * field or a query parameter that is called interval too (body["interval"],
+ * { interval: ... }): the check used to read any quoted "interval" as the
+ * old page, and its author had to work round the check rather than fix
+ * anything (#11094's cost allocation body).
+ */
+const NAMES_THE_INTERVAL_PATH: RegExp =
+  /\bpath\s*=\s*\{?\s*["'`]interval["'`]|\b\w*(?:PATH|Path|ROUTE|Route)\w*\s*(?::\s*\w+\s*)?=\s*["'`]interval["'`]|\/interval["'`]/;
 
 describe("the Probes & Interval page", () => {
   const page: string = readDashboard("Pages/Monitor/View/Probes.tsx");
@@ -364,6 +374,37 @@ describe("the old Interval page", () => {
     ).map(relative);
 
     expect(naming).toEqual(["Routes/MonitorsRoutes.tsx"]);
+  });
+
+  test("the check finds every way a route names the old page, and nothing else called interval", () => {
+    for (const named of [
+      '<PageRoute path="interval" element={<OldPage />} />',
+      "<PageRoute path={'interval'} element={<OldPage />} />",
+      'export const MOVED_MONITOR_INTERVAL_PATH: string = "interval";',
+      "const intervalRoute = 'interval';",
+      "const url: string = `/dashboard/${projectId}/monitors/${id}/interval`;",
+      "Navigation.navigate(new Route('/monitors/1/interval'));",
+    ]) {
+      expect({ named, found: NAMES_THE_INTERVAL_PATH.test(named) }).toEqual({
+        named,
+        found: true,
+      });
+    }
+
+    for (const unnamed of [
+      'body["interval"] = ask.interval;',
+      "const body: JSONObject = { interval: ask.interval };",
+      'select: { "interval": true }',
+      'query.set("interval", "1d");',
+      'const field: string = "interval";',
+      'path="/monitors/intervals"',
+      "monitor.monitoringInterval",
+    ]) {
+      expect({
+        unnamed,
+        found: NAMES_THE_INTERVAL_PATH.test(unnamed),
+      }).toEqual({ unnamed, found: false });
+    }
   });
 
   test("the menu has one entry for the page, only for a monitor that probes check", () => {

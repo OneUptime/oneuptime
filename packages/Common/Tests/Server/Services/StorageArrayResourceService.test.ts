@@ -857,7 +857,17 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
     expect(statuses.slice(0, UNHEALTHY_HARDWARE_STATUSES.length)).toEqual(
       UNHEALTHY_HARDWARE_STATUSES,
     );
-    expect(statuses.slice(UNHEALTHY_HARDWARE_STATUSES.length)).toEqual([
+    /*
+     * The platforms' own words follow in the order they are registered:
+     * Pure's add none, then PowerStore's, then ONTAP's (an ONTAP disk is
+     * broken, a shelf part in error).
+     */
+    expect(
+      statuses.slice(
+        UNHEALTHY_HARDWARE_STATUSES.length,
+        UNHEALTHY_HARDWARE_STATUSES.length + 6,
+      ),
+    ).toEqual([
       "prepare_failed",
       "disconnected",
       "uninitialized",
@@ -866,15 +876,15 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
       "not started",
     ]);
     expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
-    // The shared words first, then every platform's own: an ONTAP disk is broken, a shelf part in error.
-    const statuses: Array<string> = getUnhealthyHardwareStatuses();
-    expect(statuses.slice(0, UNHEALTHY_HARDWARE_STATUSES.length)).toEqual(
-      UNHEALTHY_HARDWARE_STATUSES,
-    );
-    for (const word of ["broken", "error", "down", "offline"]) {
+    for (const word of ["broken", "error", "offline"]) {
       expect(statuses).toContain(word);
     }
-    for (const word of ["healthy", "normal", "online", "spare", "up"]) {
+    /*
+     * A port that is down is no problem by itself on any platform (a
+     * PowerStore's uncabled ports are down): ONTAP's health monitor raises
+     * the ones that matter (#11189).
+     */
+    for (const word of ["healthy", "normal", "online", "spare", "up", "down"]) {
       expect(statuses).not.toContain(word);
     }
   });

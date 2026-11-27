@@ -139,9 +139,13 @@ export class Service extends ProjectReferencesService<Model> {
       query: {
         connectionType: XcpNgConnectionType.XenOrchestra,
         isApiTokenSet: true,
+        // A length of time: the warning window is as long in every zone.
         apiTokenExpiresAt: QueryHelper.inBetween(
           now,
-          OneUptimeDate.addRemoveDays(now, XCP_NG_API_TOKEN_WARNING_DAYS),
+          OneUptimeDate.addRemoveDurationInDays(
+            now,
+            XCP_NG_API_TOKEN_WARNING_DAYS,
+          ),
         ),
         apiTokenExpiryWarnedAt: QueryHelper.isNull(),
       },

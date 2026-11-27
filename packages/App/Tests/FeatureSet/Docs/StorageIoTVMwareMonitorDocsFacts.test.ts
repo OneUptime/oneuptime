@@ -1360,9 +1360,12 @@ describe("the Storage Array page against the form and the agent", () => {
         title,
         platforms: platforms
           .filter((system: string): boolean => {
-            return [flashArray, flashBlade, ontap].includes(
-              system as StorageSystem,
-            );
+            /*
+             * As StorageSystem: each const above narrows to its own member,
+             * and an array of the three would take no other.
+             */
+            const held: Array<StorageSystem> = [flashArray, flashBlade, ontap];
+            return held.includes(system as StorageSystem);
           })
           .sort(),
       }).toEqual({

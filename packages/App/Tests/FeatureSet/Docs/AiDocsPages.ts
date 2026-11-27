@@ -543,6 +543,8 @@ export const PRODUCT_NAMES: ReadonlyArray<string> = [
   // And the cost groups' models beside it, in Cloud's row (#11006).
   "Cloud Cost Group",
   "Cloud Cost Line Item",
+  // And the cost reports' model (#11229).
+  "Cloud Cost Report",
   "Cloud Cost View",
   "OneUptime AI",
   "OneUptime",

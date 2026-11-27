@@ -387,6 +387,7 @@ const NAMES: Record<string, Array<string>> = {
   [STORAGE_ARRAYS]: [
     "Pure Storage FlashArray",
     "Pure Storage FlashBlade",
+    "Dell PowerStore",
     "Everpure",
     "NetApp ONTAP",
     "Amazon FSx for NetApp ONTAP",
@@ -698,6 +699,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Every job labels its series `scrape_endpoint: <endpoint>`.",
     "Per-volume and per-host latency keeps three dimensions.",
     "The API token is a Bearer token.",
+    "A PowerStore every 5 minutes.",
     "No `send_batch_max_size`.",
     "datapoint labels",
     // What the array's pages show, part by part.
