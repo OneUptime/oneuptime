@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66171,
     "untranslated": 8259
   },
   "sameAsEnglish": [
@@ -300,12 +300,14 @@
     "Pods",
     "Pool",
     "Pools",
+    "Pools: {{names}}",
     "Port",
     "Portugal (+351)",
     "Position",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "PowerStore",
     "Powered by OneUptime",
     "Principal",
     "Problem",
@@ -561,6 +563,7 @@
     "recordsets",
     "resident set size",
     "rollbacks",
+    "root",
     "router",
     "s",
     "samples",

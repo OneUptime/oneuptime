@@ -255,8 +255,10 @@ section "2. Array endpoint & API token"
 #   otel-collector-config.yaml                     https://<array>/metrics/*?namespace=purefa
 #   otel-collector-config.flasharray-exporter.yaml http://pure-fa-exporter:9490/metrics/*?endpoint=<array>
 #   otel-collector-config.flashblade.yaml          http://pure-fb-exporter:9491/metrics/*?endpoint=<array>
+#   otel-collector-config.powerstore.yaml          http://powerstore-exporter:9010/metrics/<array>/*
 # The probe below asks the array endpoint the same way, with the same API
-# token, from the collector's own network namespace.
+# token, from the collector's own network namespace. Dell's PowerStore
+# exporter logs in to the cluster itself, so its probe carries no credential.
 CONFIG_NAME=$(agent_env STORAGE_ARRAY_COLLECTOR_CONFIG)
 [ -z "$CONFIG_NAME" ] && CONFIG_NAME="otel-collector-config.yaml"
 CONFIG_FILE="$DIR/$CONFIG_NAME"
@@ -274,9 +276,11 @@ case "$CONFIG_NAME" in
     MODE="fa-exporter"; NEED_PROFILE="flasharray-exporter"; EXPECT_SYSTEM="purestorage.flasharray"; INFO_METRIC="purefa_info"; PLATFORM="FlashArray" ;;
   otel-collector-config.flashblade.yaml)
     MODE="fb-exporter"; NEED_PROFILE="flashblade"; EXPECT_SYSTEM="purestorage.flashblade"; INFO_METRIC="purefb_info"; PLATFORM="FlashBlade" ;;
+  otel-collector-config.powerstore.yaml)
+    MODE="powerstore"; NEED_PROFILE="powerstore"; EXPECT_SYSTEM="dell.powerstore"; INFO_METRIC="powerstore_cluster"; PLATFORM="PowerStore" ;;
   *)
     warn "STORAGE_ARRAY_COLLECTOR_CONFIG='$CONFIG_NAME' is not one of the shipped configs — skipping the array probe."
-    add_finding "STORAGE_ARRAY_COLLECTOR_CONFIG should name one of the shipped configs: otel-collector-config.yaml (FlashArray, native), otel-collector-config.flasharray-exporter.yaml (older FlashArray) or otel-collector-config.flashblade.yaml (FlashBlade)."
+    add_finding "STORAGE_ARRAY_COLLECTOR_CONFIG should name one of the shipped configs: otel-collector-config.yaml (FlashArray, native), otel-collector-config.flasharray-exporter.yaml (older FlashArray), otel-collector-config.flashblade.yaml (FlashBlade) or otel-collector-config.powerstore.yaml (Dell PowerStore)."
     ARRAY_VERDICT="MISCONFIGURED" ;;
 esac
 
@@ -285,6 +289,7 @@ if [ -n "$MODE" ]; then
     native)      info "Mode: $PLATFORM, native OpenMetrics on the array ($CONFIG_NAME)" ;;
     fa-exporter) info "Mode: $PLATFORM through Pure's exporter, the pure-fa-exporter service ($CONFIG_NAME)" ;;
     fb-exporter) info "Mode: $PLATFORM through Pure's exporter, the pure-fb-exporter service ($CONFIG_NAME)" ;;
+    powerstore)  info "Mode: $PLATFORM through Dell's exporter, the powerstore-exporter service ($CONFIG_NAME)" ;;
   esac
 
   if [ -d "$DIR" ] && [ ! -f "$CONFIG_FILE" ]; then
@@ -314,6 +319,8 @@ if [ -n "$MODE" ]; then
 
   if [ "$MODE" = "fb-exporter" ]; then
     ENDPOINT_VAR="PURE_FB_ENDPOINT"; TOKEN_VAR="PURE_FB_API_TOKEN"
+  elif [ "$MODE" = "powerstore" ]; then
+    ENDPOINT_VAR="POWERSTORE_ENDPOINT"; TOKEN_VAR="POWERSTORE_PASSWORD"
   else
     ENDPOINT_VAR="PURE_FA_ENDPOINT"; TOKEN_VAR="PURE_FA_API_TOKEN"
   fi
@@ -339,7 +346,16 @@ if [ -n "$MODE" ]; then
       add_finding "$ENDPOINT_VAR must be the array's management address, reachable from a container: its DNS name or IP, never localhost."
       ARRAY_VERDICT="MISCONFIGURED" ;;
   esac
-  if [ -z "$ARRAY_TOKEN" ]; then
+  if [ "$MODE" = "powerstore" ]; then
+    # Dell's exporter logs in with a user and a password, never shown here.
+    if [ -z "$(agent_env POWERSTORE_USERNAME)" ] || [ -z "$ARRAY_TOKEN" ]; then
+      fail "POWERSTORE_USERNAME or POWERSTORE_PASSWORD is not set — Dell's exporter cannot log in to the PowerStore."
+      add_finding "Set POWERSTORE_USERNAME and POWERSTORE_PASSWORD in $ENV_FILE to the PowerStore user README.md describes, then: cd $DIR && docker compose up -d --force-recreate powerstore-exporter"
+      ARRAY_VERDICT="MISCONFIGURED"
+    else
+      pass "POWERSTORE_USERNAME and POWERSTORE_PASSWORD are set."
+    fi
+  elif [ -z "$ARRAY_TOKEN" ]; then
     fail "$TOKEN_VAR is not set — the array refuses every scrape without an API token."
     add_finding "Create an API token for a $PLATFORM user with the readonly role (README.md) and set $TOKEN_VAR in $ENV_FILE, then restart the agent."
     ARRAY_VERDICT="MISCONFIGURED"
@@ -367,6 +383,37 @@ if [ -n "$MODE" ]; then
           add_finding "Set STORAGE_ARRAY_INSECURE_SKIP_VERIFY to exactly true or false in $ENV_FILE and restart the agent."
           ARRAY_VERDICT="MISCONFIGURED" ;;
     esac
+  fi
+
+  if [ "$ARRAY_VERDICT" = "UNKNOWN" ] && [ "$MODE" = "powerstore" ]; then
+    # The exporter names the cluster in the path, and holds the credential.
+    PROBE_URL="http://powerstore-exporter:9010/metrics/$ENDPOINT/cluster"
+    info "Probing $PROBE_URL as the collector does (Dell's exporter logs in itself)."
+    PROBE_OUT=$(agent_netns_curl -sS -m 120 -w $'\nOUSTATUS:%{http_code}' "$PROBE_URL")
+    PROBE_EXIT=$?
+    PROBE_CODE=$(printf '%s\n' "$PROBE_OUT" | sed -n 's/^OUSTATUS:\([0-9]\{3\}\).*/\1/p' | head -1)
+    PROBE_BODY=$(printf '%s\n' "$PROBE_OUT" | sed '/^OUSTATUS:/,$d')
+    [ -z "$PROBE_CODE" ] && PROBE_CODE="000"
+    PROBE_HEAD=$(printf '%s' "$PROBE_BODY" | tr '\n' ' ' | head -c 220)
+    if [ "$PROBE_EXIT" != "0" ] || [ "$PROBE_CODE" = "000" ]; then
+      fail "No answer from $PROBE_URL (curl exit $PROBE_EXIT)."
+      detail "curl: $PROBE_HEAD"
+      ARRAY_VERDICT="EXPORTER_DOWN"
+      add_finding "Dell's exporter does not answer. It needs COMPOSE_PROFILES=powerstore in $ENV_FILE, and its image is built the first time it starts (that needs quay.io and github.com); with the bulk archive on, it waits a minute after it starts before it answers. Check: cd $DIR && docker compose ps, and docker compose logs powerstore-exporter"
+    elif [ "$PROBE_CODE" = "200" ] && printf '%s\n' "$PROBE_BODY" | grep -q "^$INFO_METRIC{"; then
+      ARRAY_VERDICT="OK"
+      INFO_NAME=$(metric_label "$INFO_METRIC" name "$PROBE_BODY")
+      pass "The cluster answers through Dell's exporter: ${INFO_NAME:-?} (PowerStoreOS)."
+    elif [ "$PROBE_CODE" = "200" ]; then
+      fail "Dell's exporter answered without $INFO_METRIC: it could not log in to the PowerStore, or reach it."
+      ARRAY_VERDICT="TOKEN"
+      add_finding "Its log says which: cd $DIR && docker compose logs powerstore-exporter. Check $ENDPOINT_VAR, POWERSTORE_USERNAME and POWERSTORE_PASSWORD in $ENV_FILE and the user's role (README.md), then: docker compose up -d --force-recreate powerstore-exporter"
+    else
+      fail "$PROBE_URL answered HTTP $PROBE_CODE."
+      ARRAY_VERDICT="MISCONFIGURED"
+      add_finding "The exporter serves the cluster named in its config, which the agent writes from $ENDPOINT_VAR when the exporter starts. After changing $ENDPOINT_VAR, recreate it: cd $DIR && docker compose up -d --force-recreate"
+      detail "Response head: $PROBE_HEAD"
+    fi
   fi
 
   if [ "$ARRAY_VERDICT" = "UNKNOWN" ]; then
@@ -709,13 +756,22 @@ elif [ "$EGRESS" = "FAIL" ]; then
 elif [ "$ARRAY_VERDICT" != "OK" ] && [ "$ARRAY_VERDICT" != "UNKNOWN" ]; then
   case "$ARRAY_VERDICT" in
     TOKEN)
-      printf "%s%sROOT CAUSE: the array rejects the API token.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
-      printf "Create a new API token for the read-only user (see Section 2) and restart the agent.\n" ;;
+      if [ "$MODE" = "powerstore" ]; then
+        printf "%s%sROOT CAUSE: Dell's exporter cannot log in to the PowerStore, or reach it.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+        printf "Its log says which (see Section 2): fix the user, password or address in .env and recreate it.\n"
+      else
+        printf "%s%sROOT CAUSE: the array rejects the API token.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+        printf "Create a new API token for the read-only user (see Section 2) and restart the agent.\n"
+      fi ;;
     NO_NATIVE)
       printf "%s%sROOT CAUSE: the FlashArray has no native OpenMetrics endpoint (Purity//FA < 6.7).%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
       printf "Switch to the exporter config (see Section 2).\n" ;;
     EXPORTER_DOWN)
-      printf "%s%sROOT CAUSE: Pure's exporter service is not running.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+      if [ "$MODE" = "powerstore" ]; then
+        printf "%s%sROOT CAUSE: Dell's exporter service does not answer.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+      else
+        printf "%s%sROOT CAUSE: Pure's exporter service is not running.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
+      fi
       printf "COMPOSE_PROFILES must match STORAGE_ARRAY_COLLECTOR_CONFIG (see Section 2).\n" ;;
     TLS)
       printf "%s%sROOT CAUSE: the collector does not trust the array's TLS certificate.%s\n" "$C_BOLD" "$C_RED" "$C_OFF"
@@ -743,7 +799,7 @@ elif [ "$TOKEN_VERDICT" = "VALID" ]; then
   printf "  2. Look for a %sNEW%s array entry named '%s' — if you changed the array name,\n" "$C_BOLD" "$C_OFF" "${ARRAY_NAME:-?}"
   printf "     the OLD entry stays Disconnected (that's expected; it's stale).\n"
   printf "  3. Volumes, hosts and pods arrive every 2 minutes, directories every 30 minutes,\n"
-  printf "     FlashBlade file systems and buckets every 5 minutes.\n"
+  printf "     FlashBlade file systems and buckets and every part of a PowerStore every 5 minutes.\n"
 else
   printf "%sInconclusive from this machine.%s Next steps:\n" "$C_BOLD" "$C_OFF"
   printf "  • On the OneUptime server, search ingest logs for: \"Invalid service token\".\n"

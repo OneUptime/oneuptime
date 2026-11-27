@@ -1,0 +1,80 @@
+# HELP powerstore_cap_last_data_physical_used Last physical used space for data during the period,unit is B
+# TYPE powerstore_cap_last_data_physical_used gauge
+powerstore_cap_last_data_physical_used{IP="fake-powerstore",appliance_id="A1"} 6.517e+13
+powerstore_cap_last_data_physical_used{IP="fake-powerstore",appliance_id="A2"} 8.01e+13
+# HELP powerstore_cap_last_data_reduction Last data reduction space during the period.unit is B
+# TYPE powerstore_cap_last_data_reduction gauge
+powerstore_cap_last_data_reduction{IP="fake-powerstore",appliance_id="A1"} 3.4
+powerstore_cap_last_data_reduction{IP="fake-powerstore",appliance_id="A2"} 2.9
+# HELP powerstore_cap_last_efficiency_ratio Last efficiency ratio during the period.
+# TYPE powerstore_cap_last_efficiency_ratio gauge
+powerstore_cap_last_efficiency_ratio{IP="fake-powerstore",appliance_id="A1"} 6.12
+powerstore_cap_last_efficiency_ratio{IP="fake-powerstore",appliance_id="A2"} 4.81
+# HELP powerstore_cap_last_logical_provisioned Last logical total space during the period,unit is B
+# TYPE powerstore_cap_last_logical_provisioned gauge
+powerstore_cap_last_logical_provisioned{IP="fake-powerstore",appliance_id="A1"} 2.88230376151711e+14
+powerstore_cap_last_logical_provisioned{IP="fake-powerstore",appliance_id="A2"} 2.11106232532992e+14
+# HELP powerstore_cap_last_logical_used Last logical used space during the period,unit is B
+# TYPE powerstore_cap_last_logical_used gauge
+powerstore_cap_last_logical_used{IP="fake-powerstore",appliance_id="A1"} 2.21589e+14
+powerstore_cap_last_logical_used{IP="fake-powerstore",appliance_id="A2"} 2.3229e+14
+# HELP powerstore_cap_last_physical_total Last physical total space during the period,unit is B
+# TYPE powerstore_cap_last_physical_total gauge
+powerstore_cap_last_physical_total{IP="fake-powerstore",appliance_id="A1"} 9.2363213692928e+13
+powerstore_cap_last_physical_total{IP="fake-powerstore",appliance_id="A2"} 9.2363213692928e+13
+# HELP powerstore_cap_last_physical_used Last physical used space during the period,unit is B
+# TYPE powerstore_cap_last_physical_used gauge
+powerstore_cap_last_physical_used{IP="fake-powerstore",appliance_id="A1"} 7.1124373159117e+13
+powerstore_cap_last_physical_used{IP="fake-powerstore",appliance_id="A2"} 8.506151899136e+13
+# HELP powerstore_cap_last_shared_logical_used Last shared logical used during the period,unit is B
+# TYPE powerstore_cap_last_shared_logical_used gauge
+powerstore_cap_last_shared_logical_used{IP="fake-powerstore",appliance_id="A1"} 1.8e+14
+powerstore_cap_last_shared_logical_used{IP="fake-powerstore",appliance_id="A2"} 1.9e+14
+# HELP powerstore_cap_last_snapshot_savings Last snapshot savings space during the period.
+# TYPE powerstore_cap_last_snapshot_savings gauge
+powerstore_cap_last_snapshot_savings{IP="fake-powerstore",appliance_id="A1"} 1.31
+powerstore_cap_last_snapshot_savings{IP="fake-powerstore",appliance_id="A2"} 1.12
+# HELP powerstore_cap_last_thin_savings Last thin savings ratio during the period.
+# TYPE powerstore_cap_last_thin_savings gauge
+powerstore_cap_last_thin_savings{IP="fake-powerstore",appliance_id="A1"} 1.37
+powerstore_cap_last_thin_savings{IP="fake-powerstore",appliance_id="A2"} 1.48
+# HELP powerstore_cap_max_data_physical_used Maximum physical used space for data during the period,unit is B
+# TYPE powerstore_cap_max_data_physical_used gauge
+powerstore_cap_max_data_physical_used{IP="fake-powerstore",appliance_id="A1"} 6.517e+13
+powerstore_cap_max_data_physical_used{IP="fake-powerstore",appliance_id="A2"} 8.01e+13
+# HELP powerstore_cap_max_data_reduction Maximum data reduction space during the period,unit is B
+# TYPE powerstore_cap_max_data_reduction gauge
+powerstore_cap_max_data_reduction{IP="fake-powerstore",appliance_id="A1"} 3.4
+powerstore_cap_max_data_reduction{IP="fake-powerstore",appliance_id="A2"} 2.9
+# HELP powerstore_cap_max_efficiency_ratio Maximum efficiency ratio during the period.
+# TYPE powerstore_cap_max_efficiency_ratio gauge
+powerstore_cap_max_efficiency_ratio{IP="fake-powerstore",appliance_id="A1"} 6.12
+powerstore_cap_max_efficiency_ratio{IP="fake-powerstore",appliance_id="A2"} 4.81
+# HELP powerstore_cap_max_logical_provisioned Maxiumum logical total space during the period,unit is B
+# TYPE powerstore_cap_max_logical_provisioned gauge
+powerstore_cap_max_logical_provisioned{IP="fake-powerstore",appliance_id="A1"} 2.88230376151711e+14
+powerstore_cap_max_logical_provisioned{IP="fake-powerstore",appliance_id="A2"} 2.11106232532992e+14
+# HELP powerstore_cap_max_logical_used Maxiumum logical used space during the period,unit is B
+# TYPE powerstore_cap_max_logical_used gauge
+powerstore_cap_max_logical_used{IP="fake-powerstore",appliance_id="A1"} 2.21589e+14
+powerstore_cap_max_logical_used{IP="fake-powerstore",appliance_id="A2"} 2.3229e+14
+# HELP powerstore_cap_max_physical_total Maximum physical total space during the period,unit is B
+# TYPE powerstore_cap_max_physical_total gauge
+powerstore_cap_max_physical_total{IP="fake-powerstore",appliance_id="A1"} 9.2363213692928e+13
+powerstore_cap_max_physical_total{IP="fake-powerstore",appliance_id="A2"} 9.2363213692928e+13
+# HELP powerstore_cap_max_physical_used Maximum physical used space during the period,unit is B
+# TYPE powerstore_cap_max_physical_used gauge
+powerstore_cap_max_physical_used{IP="fake-powerstore",appliance_id="A1"} 7.1124373159117e+13
+powerstore_cap_max_physical_used{IP="fake-powerstore",appliance_id="A2"} 8.506151899136e+13
+# HELP powerstore_cap_max_shared_logical_used Max shared logical used during the period,unit is B
+# TYPE powerstore_cap_max_shared_logical_used gauge
+powerstore_cap_max_shared_logical_used{IP="fake-powerstore",appliance_id="A1"} 1.8e+14
+powerstore_cap_max_shared_logical_used{IP="fake-powerstore",appliance_id="A2"} 1.9e+14
+# HELP powerstore_cap_max_snapshot_savings Maximum snapshot savings space during the period.
+# TYPE powerstore_cap_max_snapshot_savings gauge
+powerstore_cap_max_snapshot_savings{IP="fake-powerstore",appliance_id="A1"} 1.31
+powerstore_cap_max_snapshot_savings{IP="fake-powerstore",appliance_id="A2"} 1.12
+# HELP powerstore_cap_max_thin_savings Maximum thin savings ratio during the period.
+# TYPE powerstore_cap_max_thin_savings gauge
+powerstore_cap_max_thin_savings{IP="fake-powerstore",appliance_id="A1"} 1.37
+powerstore_cap_max_thin_savings{IP="fake-powerstore",appliance_id="A2"} 1.48

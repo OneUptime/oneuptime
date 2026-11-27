@@ -152,6 +152,8 @@ import XcpNgPoolLabelRuleService from "./XcpNgPoolLabelRuleService";
 import XcpNgPoolOwnerRuleService from "./XcpNgPoolOwnerRuleService";
 import XcpNgPoolOwnerTeamService from "./XcpNgPoolOwnerTeamService";
 import XcpNgPoolOwnerUserService from "./XcpNgPoolOwnerUserService";
+import XcpNgConnectionService from "./XcpNgConnectionService";
+import XcpNgConnectionTestService from "./XcpNgConnectionTestService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
@@ -843,6 +845,8 @@ const services: Array<BaseService> = [
   XcpNgPoolOwnerRuleService,
   XcpNgPoolOwnerTeamService,
   XcpNgPoolOwnerUserService,
+  XcpNgConnectionService,
+  XcpNgConnectionTestService,
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,

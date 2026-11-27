@@ -2731,7 +2731,7 @@ export default class Monitor extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Disable Monitoring because of Manual Incident",
     description:
-      "Disable Monitoring because of Incident which is creeated manually by user.",
+      "True while an open incident declared by hand pauses this monitor's checks: one that lists it and pauses monitoring, on a monitor that does not keep monitoring during incidents. Set by OneUptime; it cannot be written.",
     defaultValue: false,
   })
   @Column({
@@ -2740,6 +2740,65 @@ export default class Monitor extends BaseModel {
     default: false,
   })
   public disableActiveMonitoringBecauseOfManualIncident?: boolean = undefined;
+
+  /*
+   * Whether an incident declared by hand leaves this monitor's checks
+   * running (issue #11141). Off - the default, and every monitor from
+   * before it - such an incident pauses them until it is resolved
+   * (disableActiveMonitoringBecauseOfManualIncident), so the status the
+   * incident put the monitor in stays. On, the checks keep running while
+   * the incident is open: they keep setting the monitor's status and
+   * opening its incidents and alerts, and the requests an Incoming Request
+   * monitor receives keep being evaluated. Turned on while an incident
+   * pauses the monitor, the checks resume at once; turned off while one is
+   * open, they pause (MonitorIncidentPause). Incidents OneUptime declares,
+   * and alerts, never pause a monitor.
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.CreateProjectMonitor,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.EditProjectMonitor,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: true,
+    isDefaultValueColumn: true,
+    canReadOnRelationQuery: true,
+    title: "Keep Monitoring During Incidents",
+    description:
+      "Keep checking this monitor while an incident declared by hand is open on it. Off, such an incident pauses its checks until the incident is resolved.",
+    defaultValue: false,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public keepMonitoringDuringIncidents?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [

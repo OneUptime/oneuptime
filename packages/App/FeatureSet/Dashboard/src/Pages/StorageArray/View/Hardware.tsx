@@ -38,7 +38,10 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  *     (kind=Drive), controllers (kind=Controller) and network interfaces
  *     (kind=NetworkInterface);
  *   - a FlashBlade: blades, fabric modules, power supplies and fans
- *     (kind=Hardware), laid out by slot and health.
+ *     (kind=Hardware), laid out by slot and health;
+ *   - a PowerStore: nodes, fans, power supplies and batteries
+ *     (kind=Hardware), drives (kind=Drive) and front-end ports
+ *     (kind=NetworkInterface), each with the appliance it is in.
  *
  * The columns are this page's, by kind: a kind it has no columns for (one
  * a platform declares for itself) gets its type, status and model.
@@ -301,7 +304,28 @@ function getHardwareTableWords(kind: string): HardwareTableWords {
   };
 }
 
+/*
+ * A table whose parts belong to a group of the array (a PowerStore's
+ * appliances, whose parts are named alike on every appliance) shows the
+ * group first, under the platform's word for it.
+ */
 function getHardwareColumns(
+  table: StorageArrayHardwareTable,
+): Columns<StorageArrayResource> {
+  const columns: Columns<StorageArrayResource> = getKindColumns(table);
+  if (!table.groupColumnTitle) {
+    return columns;
+  }
+  return [
+    StorageArrayResourceColumns.getTextColumn({
+      field: "groupName",
+      title: table.groupColumnTitle,
+    }),
+    ...columns,
+  ];
+}
+
+function getKindColumns(
   table: StorageArrayHardwareTable,
 ): Columns<StorageArrayResource> {
   if (

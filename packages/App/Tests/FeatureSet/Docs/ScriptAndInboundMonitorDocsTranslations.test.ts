@@ -243,6 +243,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Use POST with `Content-Type: application/json`",
     "Don't mix the two jobs on one monitor",
     "Monitor the monitor",
+    "Keep an event receiver checked during incidents",
   ],
   [INCOMING_EMAIL_MONITOR]: [
     "The old address stops working immediately",

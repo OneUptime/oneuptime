@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66171,
     "untranslated": 8328
   },
   "sameAsEnglish": [
@@ -399,10 +399,12 @@
     "Pool",
     "Pool {{name}}",
     "Pools",
+    "Pools: {{names}}",
     "Portugal (+351)",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "PowerStore",
     "Powered by OneUptime",
     "Principal",
     "Privacy",
@@ -746,6 +748,7 @@
     "resource",
     "resources",
     "rollbacks",
+    "root",
     "route",
     "router",
     "routers",

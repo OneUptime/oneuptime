@@ -18,6 +18,7 @@ Storage Arrays は、どのベンダーでも同じように動作する製品�
 | **Pure Storage FlashArray**、Purity//FA 6.7 以降 | `purestorage.flasharray` | アレイ自身の OpenMetrics エンドポイント (`https://<array>/metrics/...?namespace=purefa`)。Collector の横では何も動きません | `otel-collector-config.yaml` (既定) |
 | **Pure Storage FlashArray**、古い Purity//FA | `purestorage.flasharray` | Pure の FlashArray OpenMetrics エクスポーター。同じ Compose ファイルが `pure-fa-exporter` サービスとして実行します | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure の FlashBlade OpenMetrics エクスポーター。同じ Compose ファイルが `pure-fb-exporter` サービスとして実行します | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Dell の PowerStore Metrics Exporter。同じ Compose ファイルが `powerstore-exporter` サービスとしてビルドして実行します。クラスターのアラートは syslog でその `powerstore-syslog` サービスに届きます | `otel-collector-config.powerstore.yaml` |
 
 Pure Storage は 2026 年 2 月に社名を **Everpure** に変更しました。FlashArray、FlashBlade、Purity は名前を変えず、`purefa_*` と `purefb_*` のメトリクスも同じなので、このページの内容はどちらの名前で販売されたアレイにも当てはまります。
 
@@ -27,6 +28,10 @@ flowchart TB
     collector -->|"古い FlashArray、<br/>FlashBlade"| exporter["Pure のエクスポーター"]
     exporter -->|"API トークン"| array
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 1 つのエージェントが監視するのは 1 つのアレイです。アレイごとにエージェントを 1 つ実行してください ([複数のアレイを監視する](#複数のアレイを監視する) を参照)。アレイは最初のデータで自身を登録します。その名前は、エージェントがすべてのメトリクスに `storage.array.name` として付与するものです。
@@ -35,6 +40,7 @@ flowchart TB
 
 - Docker Engine 20.10 以降と Docker Compose v2 プラグイン。マシンは HTTPS (TCP 443) でアレイの管理インターフェイスに到達できる必要があります。
 - アレイの管理者アカウント。組み込みの **readonly** ロールを持つユーザーと、その API トークンを作成するために使います。
+- Dell PowerStore の場合は、x86-64 マシン (Dell はエクスポーターを x86-64 向けにのみビルドしています) と、エージェント用の PowerStore ユーザー。[Dell PowerStore](#dell-powerstore) を参照してください。
 - 取り込みキー。**プロジェクト設定 → テレメトリと APM → 取り込みキー** で作成し、その値をコピーします。
 
 ### エージェントを実行する場所
@@ -112,7 +118,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+Dell PowerStore の場合は、`otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile`、`powerstore-syslog.yaml` もダウンロードし、`STORAGE_SYSTEM=dell.powerstore`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml`、`COMPOSE_PROFILES=powerstore` を設定して、`POWERSTORE_ENDPOINT`、`POWERSTORE_USERNAME`、`POWERSTORE_PASSWORD` を入力します。パスワードは単一引用符で囲みます。
 
 古い Purity//FA の FlashArray では、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` と `COMPOSE_PROFILES=flasharray-exporter` を設定します。FlashBlade では、`STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml`、`COMPOSE_PROFILES=flashblade` を設定し、`PURE_FB_ENDPOINT` と `PURE_FB_API_TOKEN` を入力します (`PURE_FA_*` の組の代わりに)。エージェントを起動します:
 
@@ -139,6 +154,16 @@ Everything is ready. Begin running and processing data.
 **製品 → インフラストラクチャ → ストレージアレイ → すべてのストレージアレイ** を開きます。最初のスクレイプの後 (約 1 分)、アレイが容量、パフォーマンス、未解決のアラート、ハードウェアとともに表示されます。ボリューム、ホスト、ポッドは 2 分以内に、FlashBlade のファイルシステムとバケットは 5 分以内に、FlashArray のディレクトリは 30 分以内に続きます。アレイの **トポロジー** ページは、ホスト、ボリューム、ファイルシステム、ハードウェアを 1 つのマップに描きます。[トポロジー](/docs/telemetry/topology#リソースごとのマップを開く) を参照してください。
 :::
 
+## Dell PowerStore
+
+エージェントは Dell の PowerStore Metrics Exporter (リリース `powerstore-metrics-exporter_v1.0.3`) を通じて PowerStore クラスターを読み取ります。Dell はこれをイメージではなくバイナリとして公開しているため、`powerstore-exporter` サービスは初回起動時に Dell が文書化しているイメージを `powerstore-exporter.Dockerfile` からビルドし、バイナリの SHA-256 を検証します。このビルドには一度だけ `quay.io` と `github.com` への接続が必要です。
+
+PowerStore には API トークンがないため、Dell のエクスポーターはユーザー名とパスワードでログインします。PowerStore Manager の _Settings → Users_ で、エージェント専用のローカルユーザーを **Storage Operator** ロールで追加してください。エクスポーターは PowerStore の 5 分間の一括メトリクスアーカイブからパフォーマンスを読み取ります。このアーカイブはエクスポーター自身が有効にし、PowerStoreOS 4.1 以降では必須ですが、Dell の README によると Operator ロールでは有効にできません。古い PowerStoreOS では、`POWERSTORE_BULK_METRICS=false` にすれば読み取り専用の **Operator** ロールで十分です。パスワードを `.env` から読むのはエクスポーターだけです。
+
+Dell のエクスポーターはアラートを読み取らないため、クラスターが自分で送ります。`powerstore-syslog` サービスがリモート syslog をポート 5514 の TCP と UDP で受信し、各行をアレイの **ログ** ページに記録します。PowerStore のレコードは属性 (`powerstore.alert.id`、`powerstore.alert.state`、`powerstore.event.code`) に、Dell のイベントコードに基づく重大度は (`powerstore.alert.severity`) に入ります。PowerStore Manager で _Settings → Security → Remote Logging_ を開き、このマシンをポート 5514 で追加して、ファイアウォールでそのポートを開いてください。ポート 6514 での TLS 経由の syslog については `powerstore-syslog.yaml` で説明しています。
+
+Dell のエクスポーターはホストもレプリケーションセッションも報告しないため、このバージョンにはどちらもありません。
+
 ## 環境変数
 
 インストールスクリプトはこれらを `/opt/oneuptime-storage-array-agent/.env` に書き込みます。Docker Compose でのインストールでは、`.env` (`docker-compose.yml` の横にあるもの) から読み取ります。値を変更したら、そのフォルダーで `docker compose up -d` を実行します。
@@ -155,6 +180,13 @@ Everything is ready. Begin running and processing data.
 | `PURE_FA_API_TOKEN` | FlashArray | readonly ロールを持つ FlashArray ユーザーの API トークン。 |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade の管理アドレス。ホスト名または IP で、`https://` は付けません。 |
 | `PURE_FB_API_TOKEN` | FlashBlade | readonly ロールを持つ FlashBlade ユーザーの API トークン。 |
+| `POWERSTORE_ENDPOINT` | PowerStore | PowerStore クラスターの管理アドレス。ホスト名または IP で、`https://` は付けません。 |
+| `POWERSTORE_USERNAME` | PowerStore | Dell のエクスポーターがログインに使う PowerStore ユーザー。 |
+| `POWERSTORE_PASSWORD` | PowerStore | そのユーザーのパスワード。読み取るのはエクスポーターだけです。 |
+| `POWERSTORE_BULK_METRICS` | いいえ | `true` は PowerStore の一括メトリクスアーカイブからパフォーマンスを読み取り、`false` は各オブジェクトを個別に読み取ります。既定は `true` です。 |
+| `POWERSTORE_API_VERSION` | いいえ | PowerStoreOS 3.6 以降では `v3`、それ以外は `v1`。既定は `v3` です。 |
+| `POWERSTORE_REQUEST_LIMIT` | いいえ | エクスポーターがクラスターに同時に送るリクエストの数。既定は `16` です。 |
+| `POWERSTORE_SYSLOG_PORT` | いいえ | このマシンがクラスターの syslog を TCP と UDP で受信するポート。既定は `5514` です。 |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | いいえ | `true` はネイティブエンドポイントでアレイの自己署名証明書を受け入れ、`false` は検証します。既定は `true` です。Pure のエクスポーターはアレイの証明書を検証しないため、エクスポーターには関係しません。 |
 
 ## エージェントのスクレイプ方法
@@ -163,6 +195,7 @@ Everything is ready. Begin running and processing data.
 - **各ジョブはそのシリーズに `scrape_endpoint: <endpoint>` のラベルを付けます**。各エンドポイントは `purefa_info` または `purefb_info` もエクスポートするため、OneUptime はバッチがどのファミリーの完全な一覧なのかを把握できます。こうして、削除されたボリューム、ホスト、ポッド、ファイルシステム、バケットは残り続けずにインベントリから消えます。ラベルは同梱のままにしてください。
 - **ボリュームごととホストごとのレイテンシは 3 つのディメンションを残します**。各ボリュームとホストは、最大 16 の `dimension` に分けてレイテンシをエクスポートします。`metric_relabel_configs` ルールが `usec_per_read_op`、`usec_per_write_op`、`usec_per_mirrored_write_op` を残し、QoS のレート制限、キュー、SAN、サービス時間の内訳を落とします。この内訳は大きなアレイのシリーズ数を何倍にもするためです。`purefa_array_performance_latency_usec` のアレイ全体の内訳は残ります。ボリュームごとの内訳も残すには、このルールを削除します。
 - **API トークンは Bearer トークンです**。ネイティブの設定はそれをアレイ自体に送ります。エクスポーターの設定は Compose ネットワーク上でのみエクスポーターに送り、エクスポーターのポートが公開されることはありません。
+- **PowerStore は 5 分ごと**。Dell のエクスポーターはクラスターの各パーツを `/metrics/<cluster>/<part>` で提供します。設定は `cluster` (ハートビート) を 60 秒ごとに、`appliance`、`capacity`、`hardware`、`port`、`volume`、`volumeGroup`、`nas`、`file` を 5 分ごとに読み取ります。PowerStore がこれらを 5 分間のサンプルで算出するためです。
 - **`send_batch_max_size` はありません**。OneUptime はリクエストごとに 1 回のスクレイプ全体からインベントリを再構築するため、同梱の `batch` プロセッサーはスクレイプを複数のエクスポートに分割しません。batch の設定は同梱のままにしてください。
 
 ## エージェントが収集するもの
@@ -179,8 +212,13 @@ Pure のセマンティック規約は、FlashArray のネイティブエンド�
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade の名前、Purity のバージョン、システム ID。容量とデータ削減。未解決のアラート数。アレイのヘルス。**ハードウェア** ページ |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **ファイルシステム** ページ: ファイルシステムごとのプロビジョニング容量と使用容量、データ削減、レイテンシ、IOPS、帯域幅 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **バケット** ページ: バケットごとの容量、クォータ、オブジェクト数、パフォーマンス。アカウントごとにグループ化 |
+| PowerStore `cluster`、`appliance`、`capacity` | `powerstore_cluster`、`powerstore_metro_*`、`powerstore_appliance`、`powerstore_perf_*`、`powerstore_cap_*` | クラスターの名前と状態。**アプライアンス** ページ: 各アプライアンスの容量、データ削減、レイテンシ、IOPS、帯域幅 |
+| PowerStore `hardware`、`port` | `powerstore_hardware_*`、`powerstore_wear_metrics_by_drive`、`powerstore_fc_port_*`、`powerstore_eth_port_*`、`powerstore_metricFcPort_*`、`powerstore_metricEthPort_*` | **ハードウェア** ページ: ノード、ファン、電源装置、バッテリー、ドライブ、フロントエンドポート。それぞれにアプライアンスを示します |
+| PowerStore `volume`、`volumeGroup`、`nas`、`file` | `powerstore_volume_*`、`powerstore_metricVolume_*`、`powerstore_volumegroup_*`、`powerstore_metricVg_*`、`powerstore_nas_server_operational_status`、`powerstore_metricNas_*`、`powerstore_filesystem_*`、`powerstore_metricFilesystem_*` | **ボリューム**、**ボリュームグループ**、**NAS サーバー**、**ファイルシステム** ページ |
 
 **すべてのストレージアレイ** の **ヘルス** 列は、アレイの最新データにあるアレイ自身のアラートとハードウェアを読み取ります。未解決の重大なアラート、または重大、故障、欠落、異常の状態にあるハードウェアコンポーネント、ドライブ、コントローラーを報告している間は **重大**、未解決の警告アラート、または劣化や不明の状態のコンポーネントを報告している間は **警告**、それ以外は **OK**、エージェントが切断されている間は **不明** です。アレイの **概要** は次のセクションのとおり、さらに多くを判断します。モニターの条件では、アレイの属性には `resource.` の接頭辞が付き (`resource.storage.array.name`、`resource.storage.system`)、データポイントラベルは接頭辞なしのままです (`name`、`host`、`dimension`、`space`)。
+
+PowerStore のアラートはログとして届くため、PowerStore のヘルスはそのハードウェアのヘルスです。エージェントは `powerstore_cap_physical_used_percent` と `powerstore_filesystem_logical_used_percent` を自分で算出し、ノードの状態は Healthy の間 1 として読み取ります。
 
 ## アレイのページに表示される内容
 
@@ -194,7 +232,11 @@ Pure のセマンティック規約は、FlashArray のネイティブエンド�
 
 **ホスト**、**レプリケーション**、**ファイルシステム** の一覧は、同じルールで各部分の状態を示し、その下に理由を表示します。ホストとファイルシステムの個別ページは、注意が必要なものと、それを監視するアレイのアラートを示し、残りを有効にする操作も 1 回で済みます。ボリュームやバケットを含むすべての部分のページは、未解決の項目を示します。エージェントが切断されている間、ヘルスは **ヘルス: 不明** になります。アレイの最後の報告はもう正しくないためです。上の各しきい値は、[ストレージアレイモニター](/docs/monitor/storage-array-monitor)に一覧があるとおり、それぞれのアラートテンプレートが発火する水準です。
 
+PowerStore では、**アプライアンス**、**ボリュームグループ**、**NAS サーバー** タブに PowerStore にしかないパーツが表示され、**ハードウェア** ページには各パーツのアプライアンスが表示されます。どのアプライアンスもパーツに同じ名前を付けるためです。
+
 ## オプション — アレイの syslog を送信する
+
+PowerStore の syslog コレクターは同梱のまま動作します ([Dell PowerStore](#dell-powerstore) を参照)。このセクションは Pure のアレイ向けです。
 
 既定ではエージェントはメトリクスだけを送信するため、アレイの **ログ** ページは空のままです。アレイはアラートと監査イベントを syslog として転送します。同梱のすべての Collector 設定には、コメントアウトされた `syslog` レシーバーのペア (ポート 5514 の TCP と UDP、RFC 3164) があり、コメントアウトされた `logs` パイプラインにつながっています。このパイプラインが `storage.array.name` を付与するので、ログはアレイに届きます。
 
@@ -237,6 +279,8 @@ Collector は起動時にしか設定を読み込みません。`docker compose 
 
 1 つのエージェントが読み取るのは 1 つのアレイです。同じマシンから複数を監視するには、それぞれを専用の `.env` を持つ専用のフォルダーにインストールし (例: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`)、それぞれに専用の `container_name` を与えます (`docker-compose.yml` 内。例: `oneuptime-storage-array-agent-fa02`)。2 つのコンテナーが同じ名前を持つことはできません。フォルダーは `-d` で診断スクリプトに渡します。
 
+2 台目の PowerStore エージェントにも専用の syslog ポートが必要です。`POWERSTORE_SYSLOG_PORT` を、たとえば `5515` に、その `.env` で設定してください。
+
 ## systemd サービスとして実行する
 
 マシンとともにエージェントを起動し、失敗時に再起動するには、その systemd ユニットをインストールします。ユニットは、インストールスクリプトが配置する `/opt/oneuptime-storage-array-agent` にエージェントがあることを前提としています:
@@ -269,6 +313,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+PowerStore エージェントは `otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile`、`powerstore-syslog.yaml` も再ダウンロードします。新しいリリースでタグが変わると、`docker compose up` がエクスポーターのイメージを再ビルドします。
+
 ## エージェントのアンインストール
 
 ```bash
@@ -277,6 +323,8 @@ docker compose down
 ```
 
 その後、不要になった場合はアレイで読み取り専用ユーザーとその API トークンを削除します。
+
+PowerStore では `docker compose --profile powerstore down` を実行して、エクスポーターと syslog コレクターも停止させてください。
 
 ## トラブルシューティング
 
@@ -315,6 +363,10 @@ OneUptime がアレイから 15 分間何も受信しないと、アレイは切
 
 :::details pure-fa-exporter または pure-fb-exporter が名前解決できない
 エクスポーターが動いていません。`COMPOSE_PROFILES` は `STORAGE_ARRAY_COLLECTOR_CONFIG` と一致している必要があります (`flasharray-exporter` は FlashArray のエクスポーター設定用、`flashblade` は FlashBlade の設定用)。`.env` を修正して `docker compose up -d` を実行すると、`docker compose ps` にエクスポーターが表示されます。
+:::
+
+:::details PowerStore から何も届かない
+`docker compose logs powerstore-exporter` でエクスポーターのログを確認してください。`401` はユーザー名またはパスワードの誤り、`403` が `latest_five_min_metrics` で返る場合はユーザーのロールが一括メトリクスアーカイブを有効にできないことを意味します (**Storage Operator** を付与するか、4.1 より古い PowerStoreOS では `POWERSTORE_BULK_METRICS=false` を設定します)。エクスポーターは起動してから応答するまでに 1 分かかります。**ログ** ページにアラートがない場合は、クラスターの _Remote Logging_ 設定、ポート 5514 のファイアウォール、`docker compose logs powerstore-syslog` を確認してください。
 :::
 
 :::details 削除したボリュームやホストがインベントリに残る

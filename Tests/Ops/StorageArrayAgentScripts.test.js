@@ -166,6 +166,14 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       PURE_FA_API_TOKEN: `'${FA_TOKEN}'`,
       PURE_FB_ENDPOINT: "''",
       PURE_FB_API_TOKEN: "''",
+      // Every other platform's settings stay empty: switching is an .env edit.
+      POWERSTORE_ENDPOINT: "''",
+      POWERSTORE_PASSWORD: "''",
+      POWERSTORE_USERNAME: "''",
+      POWERSTORE_BULK_METRICS: "''",
+      POWERSTORE_API_VERSION: "''",
+      POWERSTORE_REQUEST_LIMIT: "''",
+      POWERSTORE_SYSLOG_PORT: "''",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
     });
     // It holds the array's API token.
@@ -176,7 +184,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(run.output).not.toContain(FA_TOKEN);
   });
 
-  test("downloads the compose file and all three configs, so switching the array type is an .env edit", () => {
+  test("downloads the compose file and every platform's files, so switching the array type is an .env edit", () => {
     const dir = scratch();
     const run = install(dir, {
       env: {
@@ -196,6 +204,9 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerstore.yaml",
+      "powerstore-exporter.Dockerfile",
+      "powerstore-syslog.yaml",
     ]) {
       expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
         fs.readFileSync(path.join(AGENT_DIR, file), "utf8"),
@@ -233,6 +244,9 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       `${served}/otel-collector-config.yaml`,
       `${served}/otel-collector-config.flasharray-exporter.yaml`,
       `${served}/otel-collector-config.flashblade.yaml`,
+      `${served}/otel-collector-config.powerstore.yaml`,
+      `${served}/powerstore-exporter.Dockerfile`,
+      `${served}/powerstore-syslog.yaml`,
     ]);
     expect(run.output).toContain(
       `If nothing shows up: curl -fsSL ${served}/troubleshoot.sh | bash -s -- -d ${run.installDir}`,
@@ -302,7 +316,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(calls).toEqual([
       {
         cwd: installDir,
-        args: "compose --profile flasharray-exporter --profile flashblade down --remove-orphans",
+        args: "compose --profile flasharray-exporter --profile flashblade --profile powerstore down --remove-orphans",
       },
       { cwd: installDir, args: "compose up -d --force-recreate" },
     ]);
@@ -537,6 +551,9 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       "otel-collector-config.yaml",
       "otel-collector-config.flasharray-exporter.yaml",
       "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.powerstore.yaml",
+      "powerstore-exporter.Dockerfile",
+      "powerstore-syslog.yaml",
     ];
     const CONFIGS = AGENT_FILES.filter((file) => {
       return file.startsWith("otel-collector-config");

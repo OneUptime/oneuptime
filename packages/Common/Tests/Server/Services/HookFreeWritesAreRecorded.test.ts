@@ -490,6 +490,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
   },
+  "packages/Common/Server/Services/XcpNgConnectionService.ts": {
+    /*
+     * The server-only columns a connection's save decides - which address,
+     * probe and certificate its secrets are bound to, the settings version
+     * probes compare - beside the save the audit log records (#10996).
+     */
+    "Service.writeConnectionServerColumns XcpNgConnection": Why.FollowOn,
+  },
   "packages/Common/Server/Services/XcpNgPoolService.ts": {
     "Service.attachLabels XcpNgPool": Why.Reported,
   },
@@ -952,6 +960,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/VMware/VMwareProbeCollectionStore.ts": {
     "VMwareProbeCollectionStore.recordCollectionReport *": Why.Reported,
+  },
+  "packages/Common/Server/Utils/XcpNg/XcpNgProbeCollectionStore.ts": {
+    "XcpNgProbeCollectionStore.recordCollectionReport *": Why.Reported,
   },
 };
 

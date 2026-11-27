@@ -37,11 +37,23 @@ const FLASHBLADE_ALIASES: Array<string> = [
   "flashblade",
 ];
 
+const POWERSTORE_ALIASES: Array<string> = [
+  "dell.powerstore",
+  "dell_powerstore",
+  "dell-powerstore",
+  "dellemc.powerstore",
+  "dellemc_powerstore",
+  "dellemc-powerstore",
+  "emc.powerstore",
+  "powerstore",
+];
+
 describe("StorageSystem enum", () => {
-  test("carries exactly the two launch platforms with vendor.product values", () => {
+  test("carries the two launch platforms and Dell PowerStore, with vendor.product values", () => {
     expect(Object.entries(StorageSystem)).toEqual([
       ["PureStorageFlashArray", "purestorage.flasharray"],
       ["PureStorageFlashBlade", "purestorage.flashblade"],
+      ["DellPowerStore", "dell.powerstore"],
     ]);
   });
 
@@ -49,6 +61,7 @@ describe("StorageSystem enum", () => {
     expect(StorageSystemUtil.getAllSystems()).toEqual([
       StorageSystem.PureStorageFlashArray,
       StorageSystem.PureStorageFlashBlade,
+      StorageSystem.DellPowerStore,
     ]);
   });
 
@@ -105,6 +118,15 @@ describe("StorageSystemUtil.normalize", () => {
     },
   );
 
+  test.each(POWERSTORE_ALIASES)(
+    "PowerStore alias %p normalizes to dell.powerstore",
+    (alias: string) => {
+      expect(StorageSystemUtil.normalize(alias)).toBe(
+        StorageSystem.DellPowerStore,
+      );
+    },
+  );
+
   test.each([
     ["PureFA", StorageSystem.PureStorageFlashArray],
     ["  purefa  ", StorageSystem.PureStorageFlashArray],
@@ -112,6 +134,8 @@ describe("StorageSystemUtil.normalize", () => {
     ["PURESTORAGE.FLASHBLADE", StorageSystem.PureStorageFlashBlade],
     [" FlashBlade ", StorageSystem.PureStorageFlashBlade],
     ["Pure-FlashBlade", StorageSystem.PureStorageFlashBlade],
+    [" Dell.PowerStore ", StorageSystem.DellPowerStore],
+    ["DELLEMC-POWERSTORE", StorageSystem.DellPowerStore],
   ])(
     "ignores case and surrounding whitespace: %p -> %p",
     (raw: string, expected: string) => {
@@ -130,7 +154,7 @@ describe("StorageSystemUtil.normalize", () => {
 
   test.each([
     ["NetApp.ONTAP", "netapp.ontap"],
-    ["dell.powerstore", "dell.powerstore"],
+    ["Dell.PowerMax", "dell.powermax"],
     ["hpe_alletra-9000", "hpe_alletra-9000"],
     ["  IBM.FlashSystem  ", "ibm.flashsystem"],
     ["x", "x"],
@@ -173,11 +197,13 @@ describe("StorageSystemUtil.normalize", () => {
     expect(StorageSystemUtil.normalize(undefined)).toBeNull();
   });
 
-  test("no alias belongs to both platforms", () => {
-    const shared: Array<string> = FLASHARRAY_ALIASES.filter((alias: string) => {
-      return FLASHBLADE_ALIASES.includes(alias);
-    });
-    expect(shared).toEqual([]);
+  test("no alias belongs to two platforms", () => {
+    const all: Array<string> = [
+      ...FLASHARRAY_ALIASES,
+      ...FLASHBLADE_ALIASES,
+      ...POWERSTORE_ALIASES,
+    ];
+    expect(new Set(all).size).toBe(all.length);
   });
 });
 
@@ -192,6 +218,9 @@ describe("StorageSystemUtil.fromMetricName", () => {
     ["purefb_info", StorageSystem.PureStorageFlashBlade],
     ["purefb_hardware_health", StorageSystem.PureStorageFlashBlade],
     ["purefb_buckets_object_count", StorageSystem.PureStorageFlashBlade],
+    ["powerstore_cluster", StorageSystem.DellPowerStore],
+    ["powerstore_volume_logical_used", StorageSystem.DellPowerStore],
+    ["powerstore_metricFcPort_avg_read_iops", StorageSystem.DellPowerStore],
   ])("%s belongs to %s", (metricName: string, expected: StorageSystem) => {
     expect(StorageSystemUtil.fromMetricName(metricName)).toBe(expected);
   });
@@ -222,13 +251,16 @@ describe("StorageSystemUtil.fromMetricName", () => {
     }
   });
 
-  test("getMetricPrefix is purefa_ / purefb_", () => {
+  test("getMetricPrefix is purefa_ / purefb_ / powerstore_", () => {
     expect(
       StorageSystemUtil.getMetricPrefix(StorageSystem.PureStorageFlashArray),
     ).toBe("purefa_");
     expect(
       StorageSystemUtil.getMetricPrefix(StorageSystem.PureStorageFlashBlade),
     ).toBe("purefb_");
+    expect(
+      StorageSystemUtil.getMetricPrefix(StorageSystem.DellPowerStore),
+    ).toBe("powerstore_");
   });
 });
 
@@ -246,9 +278,23 @@ describe("StorageSystemUtil display helpers", () => {
     expect(
       StorageSystemUtil.getShortName(StorageSystem.PureStorageFlashBlade),
     ).toBe("FlashBlade");
-    for (const system of StorageSystemUtil.getAllSystems()) {
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.DellPowerStore)).toBe(
+      "Dell PowerStore",
+    );
+    expect(StorageSystemUtil.getShortName(StorageSystem.DellPowerStore)).toBe(
+      "PowerStore",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerStore)).toBe(
+      "Dell",
+    );
+    for (const system of [
+      StorageSystem.PureStorageFlashArray,
+      StorageSystem.PureStorageFlashBlade,
+    ]) {
       // Product names are unchanged by the Everpure rename.
       expect(StorageSystemUtil.getVendorName(system)).toBe("Pure Storage");
+    }
+    for (const system of StorageSystemUtil.getAllSystems()) {
       expect(StorageSystemUtil.getDisplayName(system)).toContain(
         StorageSystemUtil.getShortName(system),
       );
@@ -285,7 +331,14 @@ describe("StorageSystemUtil display helpers", () => {
       StorageSystemUtil.isFlashBlade(StorageSystem.PureStorageFlashArray),
     ).toBe(false);
 
-    for (const value of [null, undefined, "", "purefa", "netapp.ontap"]) {
+    for (const value of [
+      null,
+      undefined,
+      "",
+      "purefa",
+      "netapp.ontap",
+      StorageSystem.DellPowerStore,
+    ]) {
       expect(StorageSystemUtil.isFlashArray(value)).toBe(false);
       expect(StorageSystemUtil.isFlashBlade(value)).toBe(false);
     }

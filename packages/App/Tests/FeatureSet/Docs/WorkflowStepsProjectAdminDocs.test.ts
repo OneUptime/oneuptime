@@ -385,28 +385,28 @@ describe("the upgrade notes say what changes", () => {
 });
 
 /*
- * The 16 -> 17 notes, among the other changes in 17, say what changes for a
+ * The 17 -> 18 notes, among the other changes in 18, say what changes for a
  * workflow that changed the project's secrets, and how to keep it working;
  * the Runbook Variables page says a workflow changes variables only when it
  * runs with more than the default permissions.
  */
 describe("the pages say a default workflow no longer changes the project's secrets", () => {
-  test("the upgrade notes for 17 say what changes and what to do", () => {
-    const seventeen: string = section(
+  test("the upgrade notes for 18 say what changes and what to do", () => {
+    const eighteen: string = section(
       read("en", "installation/upgrading"),
-      "## Upgrading from OneUptime 16 → 17",
+      "## Upgrading from OneUptime 17 → 18",
     ).replace(/\s+/g, " ");
 
-    expect(seventeen).toContain(
+    expect(eighteen).toContain(
       "**Workflows that run with the default permissions no longer change runbook variables, monitor secrets, BI tool connections or threat intel feeds.**",
     );
-    expect(seventeen).toContain(
+    expect(eighteen).toContain(
       "The step is refused now: it takes its Error output, and the run log names the permission the change takes.",
     );
-    expect(seventeen).toContain(
+    expect(eighteen).toContain(
       "in its Settings, have it run as Project Owner, or as a custom role that holds that permission.",
     );
-    expect(seventeen).toContain(LINK);
+    expect(eighteen).toContain(LINK);
   });
 
   test("the Runbook Variables page says who changes variables, workflows included, and that a value is filled in as written", () => {

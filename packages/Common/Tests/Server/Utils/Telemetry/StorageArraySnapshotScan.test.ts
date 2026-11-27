@@ -23,6 +23,10 @@ import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import { JSONObject } from "../../../../Types/JSON";
 import { readOwnValue } from "../../../../Utils/LookupTable";
 import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
+import {
+  getPureSnapshotMetricNames,
+  isLaterMetricName,
+} from "../../../Helpers/StorageArray/PureSlice";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -529,22 +533,35 @@ afterEach(() => {
 });
 
 describe("StorageArraySnapshotScan - the allow-list (the ingest gate)", () => {
-  test("every allow-listed family is a real Pure exporter series", () => {
-    for (const metricName of STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES) {
+  /*
+   * Pure's families. A platform registered since adds its own to the gate
+   * (Dell PowerStore's: PowerStoreIngest.test.ts holds them to what Dell's
+   * exporter sends).
+   */
+  test("every allow-listed Pure family is a real Pure exporter series", () => {
+    const pure: Array<string> = getPureSnapshotMetricNames();
+    expect(pure.length).toBeGreaterThan(0);
+    for (const metricName of pure) {
+      expect(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(true);
       expect(PURE_LABELS[metricName]).toBeDefined();
       expect(metricName).toMatch(/^pure(fa|fb)_[a-z0-9_]+$/);
     }
+    // Every other family on the gate is a later platform's own.
+    for (const metricName of STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES) {
+      expect({
+        metricName,
+        pureOrLater: pure.includes(metricName) || isLaterMetricName(metricName),
+      }).toEqual({ metricName, pureOrLater: true });
+    }
   });
 
-  test("allow-lists exactly the families the scan maps", () => {
+  test("allow-lists exactly the Pure families the scan maps", () => {
     const expected: Array<string> = Object.keys(PURE_LABELS).filter(
       (metricName: string) => {
         return !NOT_ALLOW_LISTED.includes(metricName);
       },
     );
-    expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
-      [...expected].sort(),
-    );
+    expect(getPureSnapshotMetricNames()).toEqual([...expected].sort());
   });
 
   test("chart-only performance families stay out of the Postgres mirror", () => {
