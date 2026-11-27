@@ -456,7 +456,7 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     expect(offlineIncidentRequests()).toBe(1);
   });
 
-  test("a matching linked outage rule has the same lifecycle scope for resolution and creation", async () => {
+  test("the picked base rule and linked outage rule have the same lifecycle scope for resolution and creation", async () => {
     const { monitor, step } = websiteMonitor();
     const probeId: ObjectID = addProbe();
     const [offline, slow]: Array<MonitorCriteriaInstance> =
@@ -469,10 +469,19 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
           title: "Website performance",
           description: "",
           incidentSeverityId: ObjectID.generate(),
-          incidentLifecycleKey: "website",
         },
       ];
     }
+
+    offline!.data!.incidents![0]!.linkedIncidentActionId =
+      slow!.data!.incidents![0]!.id;
+    const slowResponse: ProbeApiIngestResponse = await ingest({
+      monitor,
+      step,
+      probeId,
+      body: HEALTHY_PAGE,
+    });
+    expect(slowResponse.criteriaMetId).toBe("online");
 
     jest.mocked(MonitorService.findOneById).mockResolvedValue(monitor);
     const response: ProbeApiIngestResponse =
@@ -489,7 +498,13 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
     };
     expect(
       MonitorIncident.checkOpenIncidentsAndCloseIfResolved,
-    ).toHaveBeenCalledWith(
+    ).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ linkedIncidentCriteriaById: scope }),
+    );
+    expect(
+      MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus,
+    ).toHaveBeenLastCalledWith(
       expect.objectContaining({ linkedIncidentCriteriaById: scope }),
     );
     expect(
