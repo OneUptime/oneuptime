@@ -261,6 +261,7 @@ import UserOnCallShiftReminderLogService from "./UserOnCallShiftReminderLogServi
 import OnCallDutyPolicyService from "./OnCallDutyPolicyService";
 import ProbeService from "./ProbeService";
 import ProbeOwnerTeamService from "./ProbeOwnerTeamService";
+import GlobalProbeSnmpTrapReportService from "./GlobalProbeSnmpTrapReportService";
 import ProbeOwnerUserService from "./ProbeOwnerUserService";
 import AIAgentService from "./AIAgentService";
 import AIAgentOwnerUserService from "./AIAgentOwnerUserService";
@@ -926,6 +927,7 @@ const services: Array<BaseService> = [
   ProjectSmtpConfigService,
   ProbeService,
   ProbeOwnerTeamService,
+  GlobalProbeSnmpTrapReportService,
   ProbeOwnerUserService,
   AIAgentService,
   AIAgentOwnerUserService,

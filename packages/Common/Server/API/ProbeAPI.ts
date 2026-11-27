@@ -24,6 +24,9 @@ import { JSONObject, JSONValue } from "../../Types/JSON";
 import JSONFunctions from "../../Types/JSONFunctions";
 import PositiveNumber from "../../Types/PositiveNumber";
 import Probe from "../../Models/DatabaseModels/Probe";
+import SnmpTrapReceiverUtil, {
+  SnmpTrapReceiverReport,
+} from "../../Types/Probe/SnmpTrapReceiver";
 
 // What a caller that asks for no fields in particular gets back.
 const DEFAULT_GLOBAL_PROBE_SELECT: Select<Probe> = {
@@ -53,6 +56,15 @@ const GLOBAL_PROBE_FIELDS: Array<string> = [
    */
   "isGlobalProbe",
 ];
+
+/*
+ * Fields a caller may read but never filter or sort on. A global probe's
+ * SNMP trap receiver report says whether its receiver is on, its port and
+ * its SNMPv3 engine ID, which a device sending it informs needs (#11173);
+ * it is handed back as only that (SnmpTrapReceiverUtil.toSharedReport),
+ * whatever the row holds, so no project reads another's refused traps.
+ */
+const GLOBAL_PROBE_SELECT_ONLY_FIELDS: Array<string> = ["snmpTrapReceiver"];
 
 export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
   public constructor() {
@@ -112,15 +124,19 @@ export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
             body["sort"] as JSONObject,
           );
 
-          const probes: Array<Probe> = await ProbeService.findBy({
-            query,
-            select,
-            sort,
-            props: {
-              isRoot: true,
-            },
-            skip,
-            limit,
+          const probes: Array<Probe> = (
+            await ProbeService.findBy({
+              query,
+              select,
+              sort,
+              props: {
+                isRoot: true,
+              },
+              skip,
+              limit,
+            })
+          ).map((probe: Probe): Probe => {
+            return ProbeAPI.withSharedSnmpTrapReceiver(probe);
           });
 
           const count: PositiveNumber = await ProbeService.countBy({
@@ -206,7 +222,11 @@ export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
     const requested: Dictionary<boolean> = {};
 
     for (const key in select) {
-      if (!GLOBAL_PROBE_FIELDS.includes(key) || !select[key]) {
+      if (
+        (!GLOBAL_PROBE_FIELDS.includes(key) &&
+          !GLOBAL_PROBE_SELECT_ONLY_FIELDS.includes(key)) ||
+        !select[key]
+      ) {
         continue;
       }
 
@@ -227,6 +247,27 @@ export default class ProbeAPI extends BaseAPI<Probe, ProbeServiceType> {
     }
 
     return requested as Select<Probe>;
+  }
+
+  /*
+   * A global probe's SNMP trap receiver report as any project may read it:
+   * what belongs to no project, and nothing else.
+   */
+  private static withSharedSnmpTrapReceiver(probe: Probe): Probe {
+    if (probe.snmpTrapReceiver === undefined) {
+      return probe;
+    }
+
+    const report: SnmpTrapReceiverReport | null =
+      SnmpTrapReceiverUtil.parseReport(probe.snmpTrapReceiver);
+
+    if (report) {
+      probe.snmpTrapReceiver = SnmpTrapReceiverUtil.toSharedReport(report);
+    } else {
+      delete probe.snmpTrapReceiver;
+    }
+
+    return probe;
   }
 
   private static getSort(sort: JSONObject | undefined): Sort<Probe> {
