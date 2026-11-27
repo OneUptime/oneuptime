@@ -353,6 +353,17 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "The edit dialog of a person's own Basic Info card, one page: the email, the name, the time zone and the language the card lists - four short fields, two of them pickers. Someone who opens Edit User came to change one of them; as steps they would first have to find which, and the time zone and the language, read together on the card, would sit apart.",
   },
+  /*
+   * #11012: a required tag's dialog, drawn on Cloud > Tags and on an
+   * account's Tags; its title names Require a Tag or Edit Required Tag, so
+   * it is counted by its place in the file.
+   */
+  {
+    file: `${DASHBOARD}/Components/Cloud/CloudRequiredTagsCard.tsx`,
+    form: "BasicFormModal #1",
+    reason:
+      "A required tag is three things to say - its key, the values it allows and the account it is for (empty: every account) - then one folded More fields header with the line that says what it is for. The account is asked only on Cloud > Tags: an account's own Tags page fixes it, and its dialog is three rows. As steps, that dialog would walk to a step holding only the folded description.",
+  },
 ];
 
 /*
