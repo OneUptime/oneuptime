@@ -188,6 +188,7 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import Toast from "../../../UI/Utils/Toast";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import UniqueNamesApi from "../../../UI/Utils/UniqueNamesApi";
+import { getJestSpyOn } from "../../Spy";
 
 type MockedFn = ReturnType<typeof jest.fn>;
 
@@ -358,9 +359,10 @@ beforeEach(() => {
   api.readDetectionRuleChoices.mockResolvedValue([] as never);
 
   // No two policies share a name, unless a test says so (#11021).
-  readSharedNames = jest
-    .spyOn(UniqueNamesApi, "readSharedNames")
-    .mockResolvedValue({ groups: [], createdAt: {} });
+  readSharedNames = getJestSpyOn(
+    UniqueNamesApi,
+    "readSharedNames",
+  ).mockResolvedValue({ groups: [], createdAt: {} });
 });
 
 afterEach(() => {

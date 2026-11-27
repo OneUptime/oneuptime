@@ -3,6 +3,7 @@ import { getHeldServiceOfTable } from "../../../Server/API/SharedNamesAPI";
 import { getRequiredUniqueNameServices } from "../../../Server/API/UniqueNamesAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import ApiKeyService from "../../../Server/Services/ApiKeyService";
+import DatabaseService from "../../../Server/Services/DatabaseService";
 import Services from "../../../Server/Services/Index";
 import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
 import LabelService from "../../../Server/Services/LabelService";
@@ -20,6 +21,7 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import {
   SharedNameKind,
@@ -337,7 +339,7 @@ describe("GET /shared-names/:kind", () => {
 
     test("every kind the setting holds is asked for by its table's name, and no other kind is", () => {
       const held: Array<string> = getRequiredUniqueNameServices(Services).map(
-        (service: { getModel: () => { tableName?: string | undefined } }) => {
+        (service: DatabaseService<BaseModel>): string => {
           return service.getModel().tableName || "";
         },
       );
