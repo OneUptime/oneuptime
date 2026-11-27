@@ -54,25 +54,33 @@ describe("which '+' written in a text a query string means a space by", () => {
     ["at the text's end", "x+", 1],
     ["at a value's start, before a letter", "q=+foo", 2],
     ["before a percent sign alone", "5+%", 1],
+    // A form's "07 - 2027": the "+" after the dash is its second space, no sign.
+    ["after a dash, before a digit", "07+-+2027", 4],
+    ["after a full stop, before a digit", "No.+5", 3],
+    ["after a currency sign, before a digit", "€+5", 1],
   ])("%s: %s", (_label: string, text: string, at: number) => {
     expect(text[at]).toBe("+");
     expect(isWrittenPlusASpace(text, at)).toBe(true);
   });
 
   /*
-   * A number's own sign - a digit after it, and nothing of a value before
-   * it - and a "+" of a run of them, which no form writes for one space.
+   * A number's own sign - a digit after it, and before it the text's
+   * start, a space or what a value starts after - and a "+" of a run of
+   * them, which no form writes for one space.
    */
   test.each([
     ["at the text's start", "+44 20 7946 0958", 0],
     ["at a value's start, after its key", "phone=+44", 6],
     ["after an opening parenthesis", "(+44)", 1],
     ["after an opening bracket", "[+1]", 1],
+    ["after an opening brace", "{+1}", 1],
     ["after a quote", '"+44 20"', 1],
     ["after a space", "call +44", 5],
     ["after a colon", "tz=+05:30", 3],
     ["after a comma", "a,+5", 2],
-    ["after a currency sign", "€+5", 1],
+    ["after a semicolon", "a;+5", 2],
+    ["after an ampersand", "a&+5", 2],
+    ["after a query's start", "?+5", 1],
     ["before a digit of another script", "+٤٤", 0],
     ["the first of a run", "C++", 1],
     ["the last of a run", "C++", 2],

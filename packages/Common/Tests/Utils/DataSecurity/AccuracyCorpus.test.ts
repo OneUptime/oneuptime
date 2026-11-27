@@ -1309,9 +1309,166 @@ function ibanInGroups(value: string, separator: string): string {
   return value.replace(/(.{4})(?=.)/g, `$1${separator}`);
 }
 
+// A plausible birth date's parts: a year from 1950 to 2000, a month, a day every month has.
+function drawnBirthDate(): { year: string; month: string; day: string } {
+  return {
+    year: String(1950 + random(51)),
+    month: String(1 + random(12)).padStart(2, "0"),
+    day: String(1 + random(28)).padStart(2, "0"),
+  };
+}
+
+// A UK postcode: an area, a district digit, a space, a digit and two of the letters an inward code takes.
+function drawnUkPostcode(): string {
+  return `${fake("ABCDEFGHKLMNOPRSTUWYZ", 1 + random(2))}${random(10)} ${random(10)}${fake("ABDEFGHJLNPQRSTUWXYZ", 2)}`;
+}
+
+const MONTH_NAMES: ReadonlyArray<string> = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 const READING_CASES_OF: Readonly<
   Record<string, (corpus: Record<string, CorpusEntry>) => CorpusEntry>
 > = {
+  /*
+   * #11199, #11200: a date of birth in a URL - its slashes escaped, its
+   * words before it typed into a form, its month's name and spaces "+" -
+   * and in Arabic-Indic digits typed into one; and what is none written
+   * so: no real date, a date with no word that says it is a birth.
+   */
+  "date-of-birth: in a URL, its slashes escaped or its words typed into a form":
+    (): CorpusEntry => {
+      const first: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const second: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const third: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const escaped: string = `${first.day}%2F${first.month}%2F${first.year}`;
+      const iso: string = `${second.year}-${second.month}-${second.day}`;
+      const written: string = `${Number(third.day)}+${MONTH_NAMES[Number(third.month) - 1]}+${third.year}`;
+      // The date's own digits in Arabic-Indic ones, its escaped slashes as a URL writes them.
+      const arabic: string = [third.day, third.month, third.year]
+        .map((part: string): string => {
+          return inScript(part, ARABIC_INDIC_ZERO);
+        })
+        .join("%2F");
+
+      return {
+        positives: [
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=${escaped}&step=2 HTTP/1.1 200`,
+            escaped,
+          ),
+          labelled(
+            "date-of-birth",
+            `{"url": "/apply?date+of+birth=${iso}&source=form", "batch": "nightly"}`,
+            iso,
+          ),
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /signup?born=${written}&step=2 HTTP/1.1 200`,
+            written,
+          ),
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=${arabic}&step=2 HTTP/1.1 200`,
+            arabic,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=31%2F02%2F${first.year}&step=2 HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "date-of-birth",
+            `{"url": "/search?q=${iso}&source=form", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  // #11199, #11200: a UK postcode typed into a form, and with %20 for its space.
+  "postal-code: typed into a form, or with %20 for its space":
+    (): CorpusEntry => {
+      const typed: string = drawnUkPostcode().replace(" ", "+");
+      const escaped: string = drawnUkPostcode().replace(" ", "%20");
+
+      return {
+        positives: [
+          labelled(
+            "postal-code",
+            `2026-10-27T10:15:02Z INFO GET /lookup?postcode=${typed}&step=2 HTTP/1.1 200`,
+            typed,
+          ),
+          labelled(
+            "postal-code",
+            `{"url": "/stores?near=${escaped}&radius=5", "batch": "nightly"}`,
+            escaped,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "postal-code",
+            `2026-10-27T10:15:02Z INFO GET /lookup?postcode=${typed.slice(0, -1)}C&step=2 HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "postal-code",
+            `{"url": "/stores?near=${escaped.slice(0, -1)}&radius=5", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  // #11199: a street address a form wrote, its words apart by "+" or %20.
+  "postal-address: typed into a form, or with %20 between its words":
+    (): CorpusEntry => {
+      const name: string = `${fake(UPPER, 1)}${fake(LOWER, 4 + random(5))}`;
+      const typed: string = `${10 + random(900)}+${name}+Street`;
+      const escaped: string = `${10 + random(900)}%20${fake(UPPER, 1)}${fake(LOWER, 5)}%20Avenue`;
+
+      return {
+        positives: [
+          labelled(
+            "postal-address",
+            `2026-10-27T10:15:02Z INFO GET /delivery?address=${typed}&step=2 HTTP/1.1 200`,
+            typed,
+          ),
+          labelled(
+            "postal-address",
+            `{"url": "/checkout?ship_to=${escaped}&step=3", "batch": "nightly"}`,
+            escaped,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "postal-address",
+            `2026-10-27T10:15:02Z INFO GET /search?q=${10 + random(90)}+apples+on+${name}+shelves HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "postal-address",
+            `{"url": "/checkout?ship_to=${10 + random(900)}%20${name.toLowerCase()}%20street&step=3", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
   /*
    * #11199: a card in a URL's query string, its groups apart by an
    * escaped space, by the "+" a form writes a space as, or by that "+"
@@ -2436,6 +2593,13 @@ describe("values written the ways the detectors now read them too", () => {
         "in-aadhaar",
         "uk-nhs-number",
         "passport-number",
+        "date-of-birth",
+        "postal-code",
+        "postal-address",
+        "bank-account-number",
+        "uk-sort-code",
+        "card-verification-code",
+        "card-expiration-date",
       ]),
     );
 
@@ -2471,7 +2635,7 @@ describe("values written the ways the detectors now read them too", () => {
     }
   });
 
-  test("writes every type read in every script's digits in another script's digits (#11033)", () => {
+  test("writes every type read in every script's digits in another script's digits (#11033, #11200)", () => {
     expect(EVERY_SCRIPT_TYPES).toEqual(
       expect.arrayContaining([
         "iban",
@@ -2486,6 +2650,16 @@ describe("values written the ways the detectors now read them too", () => {
         "uk-nhs-number",
         "us-npi",
         "passport-number",
+        // #11200
+        "date-of-birth",
+        "postal-code",
+        "bank-account-number",
+        "uk-sort-code",
+        "au-bsb",
+        "swift-bic",
+        "in-ifsc",
+        "card-verification-code",
+        "card-expiration-date",
       ]),
     );
 

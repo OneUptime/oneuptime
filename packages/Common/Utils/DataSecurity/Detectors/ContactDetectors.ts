@@ -6,6 +6,7 @@ import {
   digitsOnly,
   hasDigit,
   isPlaceholderDigits,
+  withEveryReading,
 } from "../Detector";
 import { isRealDate } from "../Validators";
 import { isTestStreetAddress } from "../Model/RecognizedEntity";
@@ -1340,6 +1341,15 @@ const vinDetector: DataTypeDetector = {
   specificity: 2,
 };
 
+/*
+ * A postal code and a date of birth read however they are written
+ * (withEveryReading), as a phone number is: in every script's digits
+ * (#11200) - ١٩٨٥-٠٣-١٢ beside "date of birth" is the date it is, a UK
+ * postcode's digits in fullwidth ones its own - and in a URL (#11199):
+ * postcode=SW1A+2AA, dob=12%2F03%2F1985, date+of+birth=... And a street
+ * address, whose words a URL writes apart by %20 or "+" too:
+ * address=10+Downing+Street.
+ */
 export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   emailDetector,
   unicodeEmailDetector,
@@ -1347,12 +1357,16 @@ export const CONTACT_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   nanpFormattedDetector,
   ukMobileDetector,
   nationalPhoneDetector,
-  streetAddressDetector,
-  ukPostcodeDetector,
-  canadaPostalCodeDetector,
-  usZipDetector,
-  numericBirthDateDetector,
-  writtenBirthDateDetector,
+  {
+    ...streetAddressDetector,
+    readsPercentEncoded: true,
+    readsPlusAsSpace: true,
+  },
+  withEveryReading(ukPostcodeDetector),
+  withEveryReading(canadaPostalCodeDetector),
+  withEveryReading(usZipDetector),
+  withEveryReading(numericBirthDateDetector),
+  withEveryReading(writtenBirthDateDetector),
   ipv4Detector,
   ipv6Detector,
   macDetector,

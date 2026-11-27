@@ -515,6 +515,72 @@ const WRITTEN: Array<Written> = [
     mask: maskKeepingEnds("2345 6789 0124"),
     customRegex: scrubItPatternOf("in-aadhaar"),
   },
+  /*
+   * #11200: a postcode, a card's code and its expiry, and a bank's code in
+   * another script's digits - and #11199, in a URL - by the Custom Regex
+   * rules Scrub It makes for them, which read every reading the
+   * detectors do.
+   */
+  {
+    label: "a UK postcode with fullwidth digits (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "postal-code",
+    before: "Postcode: ",
+    written: "EC１A １BB",
+    reads: "EC1A 1BB",
+    mask: maskKeepingEnds("EC1A 1BB"),
+    customRegex: scrubItPatternOf("postal-code"),
+  },
+  {
+    label: "a UK postcode typed into a form (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "postal-code",
+    before: "GET /lookup?postcode=",
+    written: "EC1A+1BB",
+    reads: "EC1A 1BB",
+    mask: maskKeepingEnds("EC1A 1BB"),
+    customRegex: scrubItPatternOf("postal-code"),
+  },
+  {
+    label: "a card's security code in Arabic-Indic digits (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "card-verification-code",
+    before: "cvv: ",
+    written: "٤٨٢",
+    reads: "482",
+    mask: maskKeepingEnds("482"),
+    customRegex: scrubItPatternOf("card-verification-code"),
+  },
+  {
+    label: "a card's expiry in a URL, its slash escaped (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "card-expiration-date",
+    before: "GET /pay?exp=",
+    written: "04%2F27",
+    reads: "04/27",
+    mask: maskKeepingEnds("04/27"),
+    customRegex: scrubItPatternOf("card-expiration-date"),
+  },
+  {
+    label: "a card's expiry in Persian digits (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "card-expiration-date",
+    before: "expiry: ",
+    written: "۰۴/۲۷",
+    reads: "04/27",
+    mask: maskKeepingEnds("04/27"),
+    customRegex: scrubItPatternOf("card-expiration-date"),
+  },
+  {
+    label: "an IFSC with its branch in Persian digits (Scrub It's rule)",
+    patternType: LogScrubPatternType.Custom,
+    dataTypeId: "in-ifsc",
+    before: "IFSC ",
+    written: "HDFC۰۰۰۰۱۲۳",
+    reads: "HDFC0000123",
+    mask: maskKeepingEnds("HDFC0000123"),
+    customRegex: scrubItPatternOf("in-ifsc"),
+  },
 ];
 
 const ACTIONS: Array<string> = [

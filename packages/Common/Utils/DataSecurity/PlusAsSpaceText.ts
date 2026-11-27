@@ -18,12 +18,13 @@ import PercentDecodedText from "./PercentDecodedText";
  * This reads such a text as a query string is read:
  *
  *   1. each "+" written in it is a space - as a form writes every space,
- *      beside a value's groups (4111+1111) and beside punctuation alike
- *      (%3A+%22, a form's ": \"") - but for a number's own sign, a "+"
- *      with a digit of any script after it and nothing of a value before
- *      it (the text's start, a space, "=", "(", a quote...), and a "+" of
- *      a run of them (C++, ++44): phone=+44+20+7946+0958 reads
- *      phone=+44 20 7946 0958, and (+44), tz=+05:30 and ++41 keep theirs;
+ *      beside a value's groups (4111+1111), beside a dash (07+-+2027) and
+ *      beside punctuation alike (%3A+%22, a form's ": \"") - but for a
+ *      number's own sign, a "+" with a digit of any script after it and,
+ *      before it, the text's start, a space or what a value starts after
+ *      (= : , ; & ? ( [ { < > or a quote), and a "+" of a run of them
+ *      (C++, ++44): phone=+44+20+7946+0958 reads phone=+44 20 7946 0958,
+ *      and (+44), tz=+05:30 and ++41 keep theirs;
  *   2. then its escapes are read, as PercentDecodedText reads them - so in
  *      a text a form wrote, an escaped "+" (%2B) is the "+" it escaped:
  *      phone=%2B44+20+7946+0958 reads +44 20 7946 0958, and a centenarian's
@@ -124,10 +125,23 @@ function codePointAfter(text: string, at: number): number {
   return at + 1 < text.length ? text.codePointAt(at + 1)! : NONE;
 }
 
+// What a number's sign may follow: a key's end, an opening bracket, a quote, a list's comma.
+const BEFORE_A_SIGN: string = "=:,;&?([{<>\"'`";
+
+// Whether a "+" after this may be a number's sign: the text's start, a space, or what a value starts after.
+function startsAValueAfter(codePoint: number): boolean {
+  return (
+    codePoint === NONE ||
+    String.fromCodePoint(codePoint).trim() === "" ||
+    BEFORE_A_SIGN.includes(String.fromCodePoint(codePoint))
+  );
+}
+
 /*
  * Whether the "+" written at `at` is the space a query string writes one
  * as (step 1 of the module comment): any but a number's own sign - a digit
- * after it, nothing that ends a value before it - and one of a run of "+"s.
+ * after it, and before it what a value starts after - and one of a run of
+ * "+"s.
  */
 export function isWrittenPlusASpace(text: string, at: number): boolean {
   if (at < 0 || at >= text.length || text.charCodeAt(at) !== PLUS_CODE) {
@@ -141,7 +155,7 @@ export function isWrittenPlusASpace(text: string, at: number): boolean {
     return false;
   }
 
-  return !(isDecimalDigit(after) && !endsAValue(before));
+  return !(isDecimalDigit(after) && startsAValueAfter(before));
 }
 
 /*
