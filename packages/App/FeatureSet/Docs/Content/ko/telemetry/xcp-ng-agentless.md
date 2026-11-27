@@ -18,7 +18,7 @@ flowchart TB
     P -->|"HTTPS,<br/>OpenMetrics 플러그인"| XO["Xen Orchestra"]
     P -->|"HTTPS, XAPI<br/>읽기 전용"| M["풀 마스터와<br/>그 호스트"]
     P -->|"XCP-ng 에이전트가<br/>보내는 것과 같은<br/>메트릭"| OU
-    OU --> V["XCP-ng 페이지,<br/>모니터와 알림"]
+    OU --> V["XCP-ng 페이지,<br/>모니터와 경고"]
 ```
 
 프로브는 1분마다 각 연결을 읽고 읽은 내용을 OneUptime으로 보냅니다.
@@ -219,7 +219,7 @@ Active Directory 사용자에게 풀의 read-only 역할을 부여하거나, 그
 ## 다음 단계
 
 :::cards
-- [XCP-ng 모니터](/docs/monitor/xcp-ng-monitor): 풀, 호스트, VM, 스토리지 리포지토리에 대해 알림을 보냅니다.
+- [XCP-ng 모니터](/docs/monitor/xcp-ng-monitor): 풀, 호스트, VM, 스토리지 리포지토리에 대해 경고를 보냅니다.
 - [사용자 지정 프로브](/docs/probe/custom-probe): 풀의 네트워크에서 프로브를 실행합니다.
 - [XCP-ng 에이전트](/docs/telemetry/xcp-ng): 대신 에이전트로 Xen Orchestra를 읽습니다.
 :::

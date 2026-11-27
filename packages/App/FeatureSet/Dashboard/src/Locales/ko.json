@@ -66665,7 +66665,7 @@
   "VM started": "VM 시작됨",
   "VM suspended": "VM 일시 보류됨",
   "VM unpaused": "VM 일시 중지 해제됨",
-  "VMs a scheduled backup job backs up that have had no good backup for longer than the longest gap between that job's runs, plus a quarter of it (an hour at least). The VM Not Backed Up alert fires on the same rule.": "예약된 백업 작업이 백업하는 VM 중, 그 작업 실행 사이의 가장 긴 간격과 그 4분의 1(최소 1시간)보다 오래 성공한 백업이 없는 VM입니다. VM Not Backed Up 알림도 같은 규칙으로 발생합니다.",
+  "VMs a scheduled backup job backs up that have had no good backup for longer than the longest gap between that job's runs, plus a quarter of it (an hour at least). The VM Not Backed Up alert fires on the same rule.": "예약된 백업 작업이 백업하는 VM 중, 그 작업 실행 사이의 가장 긴 간격과 그 4분의 1(최소 1시간)보다 오래 성공한 백업이 없는 VM입니다. VM Not Backed Up 경고도 같은 규칙으로 발생합니다.",
   "VMs no backup job with an enabled schedule has backed up since OneUptime started reading this pool's backups. A VM only backed up by hand, or not at all, is counted here.": "OneUptime이 이 풀의 백업을 읽기 시작한 이후, 일정이 활성화된 어떤 백업 작업으로도 백업되지 않은 VM입니다. 수동으로만 백업되거나 전혀 백업되지 않는 VM이 여기에 포함됩니다.",
   "VMs whose last backup by a Xen Orchestra backup job succeeded, as Xen Orchestra's backup logs say. Control domains are never backed up and are left out.": "Xen Orchestra의 백업 로그에 따르면 Xen Orchestra 백업 작업에 의한 마지막 백업이 성공한 VM입니다. 제어 도메인은 백업되지 않으므로 제외됩니다.",
   "VMs whose last backup failed or was interrupted. Each one is listed with Xen Orchestra's words for why, and its job; the VM is backed up again on the job's next run.": "마지막 백업이 실패했거나 중단된 VM입니다. 각 VM이 Xen Orchestra가 밝힌 이유와 해당 작업과 함께 나열되며, 작업이 다음에 실행될 때 다시 백업됩니다.",

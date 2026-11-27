@@ -131,7 +131,7 @@ Xen Orchestra는 호스트나 VM을 `uuid` 레이블로, 스토리지 리포지�
 - **VM Starved of CPU** 템플릿은 전체 경합을 읽습니다. VM의 모든 vCPU가 실행할 준비가 되었지만 물리 CPU를 기다린 시간의 비율입니다. 그 호스트에는 CPU 스레드보다 실행 가능한 vCPU가 많아서, VM은 자체 CPU 사용량이 보여 주는 것보다 느리게 실행됩니다.
 - **Storage Repository Slow** 템플릿은 `sr`로 그룹화합니다. 이는 호스트의 모든 디스크 계열에 있는 Xen Orchestra의 스토리지 리포지토리 짧은 ID입니다. 따라서 스토리지 리포지토리마다 인시던트 하나를 받으며, 그 지연 시간은 읽고 쓰는 호스트 전체에 대해 평균됩니다.
 
-**HA Cannot Tolerate a Host Failure**와 **VM Not Backed Up**은 프로브가 풀을 읽을 때 더해지는 계열을 읽으므로, 프로브에서 연결한 풀이 필요합니다. XCP-ng 에이전트가 읽는 플러그인은 HA 상태도 백업도 보고하지 않습니다. 프로브가 읽는 풀은 충돌한 VM이나 HA가 잃은 호스트 같은 XAPI 메시지와 알람, 실패한 백업 작업에 대해서도 알림을 보낼 수 있습니다. [에이전트 없는 XCP-ng](/docs/telemetry/xcp-ng-agentless)에서 설명하듯이 풀의 **권장 사항**에서 그 템플릿을 켜세요.
+**HA Cannot Tolerate a Host Failure**와 **VM Not Backed Up**은 프로브가 풀을 읽을 때 더해지는 계열을 읽으므로, 프로브에서 연결한 풀이 필요합니다. XCP-ng 에이전트가 읽는 플러그인은 HA 상태도 백업도 보고하지 않습니다. 프로브가 읽는 풀은 충돌한 VM이나 HA가 잃은 호스트 같은 XAPI 메시지와 알람, 실패한 백업 작업에 대해서도 경고를 보낼 수 있습니다. [에이전트 없는 XCP-ng](/docs/telemetry/xcp-ng-agentless)에서 설명하듯이 풀의 **권장 사항**에서 그 템플릿을 켜세요.
 
 ## 수집되는 메트릭
 
