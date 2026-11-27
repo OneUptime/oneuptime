@@ -125,8 +125,13 @@ export class TelemetryQueueModel {
 
   public constructor(
     private readonly options: QueueModelOptions,
+    /*
+     * The real evaluation job, handed what the queue's job holds (or less,
+     * dataForEvaluation) and the job as the scheduler queued it.
+     */
     private readonly evaluate: (
       data: TelemetryMonitorEvaluationJobData,
+      queued: TelemetryMonitorEvaluationJobData,
     ) => Promise<void>,
   ) {}
 
@@ -248,6 +253,7 @@ export class TelemetryQueueModel {
         this.options.dataForEvaluation
           ? this.options.dataForEvaluation(job.data)
           : job.data,
+        job.data,
       );
     } catch (error) {
       failure = error;
