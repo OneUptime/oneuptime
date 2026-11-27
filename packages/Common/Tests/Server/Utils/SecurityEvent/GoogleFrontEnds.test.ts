@@ -948,6 +948,7 @@ describe("a forged X-Forwarded-For through Google's front ends", () => {
       ownLoadBalancers: blocks(OWN_LOAD_BALANCER),
       googleFrontEnds: blocks(...GOOGLE_FRONT_END_RANGES),
       readsAccessLogForwardedFor: false,
+      accessLogFormat: null,
     });
 
     // The forgery a TCP proxy passes on would be named: what readGoogleFrontEnds keeps from happening.

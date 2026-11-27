@@ -15,6 +15,7 @@ import {
   readScrubbedAddress,
   readScrubbedValue,
 } from "./ScrubbedAddress";
+import type { AccessLogFormat } from "./LogParsers/AccessLogFormat";
 
 /*
  * WHICH ADDRESS A REQUEST CAME FROM, AND WHETHER ITS SENDER COULD HAVE
@@ -215,6 +216,14 @@ export interface TrustedProxies {
    * say what its fields are, so it is never read unless the project says so.
    */
   readsAccessLogForwardedFor?: boolean | undefined;
+  /*
+   * The project's own access log format, when it gave one (#11048,
+   * Project.securityAccessLogFormat): a line in it is read field by field,
+   * X-Forwarded-For from wherever the format puts it
+   * (LogParsers/AccessLogFormat). Absent: lines are read as the combined
+   * format, the switch above deciding their last field.
+   */
+  accessLogFormat?: AccessLogFormat | null | undefined;
 }
 
 // Only what every project trusts: addresses that are nobody's on the internet.

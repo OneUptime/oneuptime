@@ -338,6 +338,8 @@ describe("SecurityTrustedProxies: what the scans read", () => {
         securityTrustedProxies: true,
         securityTrustOwnLoadBalancers: true,
         securityReadAccessLogForwardedFor: true,
+        // The format the project's access logs are written in (#11048).
+        securityAccessLogFormat: true,
       },
       props: { isRoot: true },
     });

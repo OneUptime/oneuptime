@@ -121,8 +121,9 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * (securityAutomaticResponseMaxBlocksPerHour, #10746) and Security
    * Events' Trusted Proxies: the list (securityTrustedProxies, #11049),
    * whether the project's own load balancers are trusted
-   * (securityTrustOwnLoadBalancers, #10546) and whether its access logs end
-   * with X-Forwarded-For (securityReadAccessLogForwardedFor, #10548).
+   * (securityTrustOwnLoadBalancers, #10546), whether its access logs end
+   * with X-Forwarded-For (securityReadAccessLogForwardedFor, #10548) and
+   * the format they are written in (securityAccessLogFormat, #11048).
    */
   update: [
     Permission.ProjectOwner,
@@ -3331,6 +3332,51 @@ export default class Project extends TenantModel {
     default: false,
   })
   public securityReadAccessLogForwardedFor?: boolean = undefined;
+
+  /*
+   * The format the project's web servers write their access logs in, when
+   * it gives it (#11048): an nginx log_format, as nginx.conf writes it -
+   * the directive, or its strings - or a known one it picked on Access
+   * Logs (nginx's main, ingress-nginx's upstreaminfo). Security Events then
+   * reads each line in that format field by field, X-Forwarded-For from
+   * wherever $http_x_forwarded_for is, only behind a proxy the project
+   * trusts; a line not in it is read as before
+   * (Utils/SecurityEvent/LogParsers/AccessLogFormat). Kept as given, at most
+   * MAX_ACCESS_LOG_FORMAT_LENGTH; the server refuses one it cannot read a
+   * line by, with why. Set as the switch beside it is, by a Project Owner,
+   * a Project Admin or a Security Admin.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Access Log Format",
+    description:
+      "The nginx log_format your web servers write their access logs in, so Security Events reads X-Forwarded-For wherever the format puts it. Empty unless given.",
+    example:
+      'log_format main \'$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_time\';',
+  })
+  @Column({
+    type: ColumnType.VeryLongText,
+    nullable: true,
+  })
+  public securityAccessLogFormat?: string = undefined;
 
   /*
    * The most automatic blocks the project's automatic response policies

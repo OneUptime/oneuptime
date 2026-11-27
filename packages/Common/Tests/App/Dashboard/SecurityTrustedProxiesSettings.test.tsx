@@ -26,6 +26,10 @@ import {
   countTrustedProxies,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityTrustedProxiesCard";
 import {
+  ACCESS_LOG_FORMAT_FIELD_DESCRIPTION,
+  ACCESS_LOG_FORMAT_FIELD_TITLE,
+  ACCESS_LOG_FORMAT_GIVEN,
+  ACCESS_LOG_FORMAT_TITLE,
   ACCESS_LOGS_DESCRIPTION,
   ACCESS_LOGS_OFF,
   ACCESS_LOGS_ON,
@@ -82,6 +86,10 @@ import {
   OWN_LOAD_BALANCER_PRODUCT_NAMES,
   OwnLoadBalancerKind,
 } from "../../../Utils/SecurityEvent/OwnLoadBalancers";
+import {
+  KNOWN_ACCESS_LOG_FORMATS,
+  KnownAccessLogFormat,
+} from "../../../Utils/SecurityEvent/LogParsers/AccessLogFormat";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
@@ -208,6 +216,8 @@ const BASE_PERMISSIONS: Array<Permission> = [
 
 // The project's Trusted Proxies as the server holds them.
 let stored: string | null = null;
+// The project's access log format as the server holds it (#11048).
+let storedFormat: string | null = null;
 let updates: Array<JSONObject> = [];
 
 // The two switches as the server holds them: undefined for never set.
@@ -276,6 +286,10 @@ function projectOf(): Project {
     project.securityReadAccessLogForwardedFor = readsAccessLogForwardedFor;
   }
 
+  if (storedFormat) {
+    project.securityAccessLogFormat = storedFormat;
+  }
+
   return project;
 }
 
@@ -285,6 +299,7 @@ beforeEach(() => {
   PermissionGate.clearPermissionPropsCache();
   grant([...BASE_PERMISSIONS, Permission.ProjectOwner]);
   stored = null;
+  storedFormat = null;
   updates = [];
   trustsOwnLoadBalancers = undefined;
   readsAccessLogForwardedFor = undefined;
@@ -311,6 +326,13 @@ beforeEach(() => {
     const change: JSONObject = {
       securityTrustedProxies: args.model.securityTrustedProxies ?? null,
     };
+
+    // The Log Format dialog saves the format alone (#11048).
+    if (args.model.securityAccessLogFormat !== undefined) {
+      change["securityAccessLogFormat"] =
+        args.model.securityAccessLogFormat ?? null;
+      storedFormat = args.model.securityAccessLogFormat || null;
+    }
 
     updates.push(change);
 
@@ -1197,4 +1219,238 @@ describe("Access Logs", () => {
     await settle();
     expect(switchSaves).toEqual([]);
   });
+});
+
+/*
+ * #11048: Log Format, under the Access Logs switch - the nginx log_format
+ * the project's access logs are written in. It says what is read of a line
+ * in it, or that none is given; Edit opens a dialog with one field, a menu
+ * of known formats to start from, and what will be read under the box.
+ */
+describe("Access Logs: Log Format", () => {
+  const NGINX_MAIN: string = KNOWN_ACCESS_LOG_FORMATS[0]!.text;
+
+  function formatRow(): HTMLElement {
+    return within(accessLogsCard()).getByTestId(
+      TRUSTED_PROXIES_TEST_IDS.accessLogFormat,
+    );
+  }
+
+  async function shownFormatRow(): Promise<HTMLElement> {
+    return await within(accessLogsCard()).findByTestId(
+      TRUSTED_PROXIES_TEST_IDS.accessLogFormat,
+    );
+  }
+
+  function formatEdit(): HTMLButtonElement {
+    return within(accessLogsCard()).getByTestId(
+      TRUSTED_PROXIES_TEST_IDS.accessLogFormatEdit,
+    ) as HTMLButtonElement;
+  }
+
+  async function openFormatDialog(): Promise<HTMLElement> {
+    await renderPage(ACCESS_LOGS_CARD_KEY);
+    await shownFormatRow();
+    fireEvent.click(formatEdit());
+
+    return await screen.findByRole("dialog");
+  }
+
+  async function formatBox(dialog: HTMLElement): Promise<HTMLElement> {
+    return await within(dialog).findByTestId(
+      `${TRUSTED_PROXIES_TEST_IDS.accessLogFormatField}-input`,
+    );
+  }
+
+  test("a project that never gave one is told when to give it", async () => {
+    await renderPage(ACCESS_LOGS_CARD_KEY);
+
+    const row: HTMLElement = await shownFormatRow();
+
+    expect(row).toHaveTextContent(ACCESS_LOG_FORMAT_TITLE);
+    expect(row).toHaveTextContent(
+      "Not given. Give it if your lines put X-Forwarded-For anywhere but last, such as before $request_time.",
+    );
+    expect(
+      within(row).queryByTestId(
+        `${TRUSTED_PROXIES_TEST_IDS.accessLogFormat}-text`,
+      ),
+    ).toBeNull();
+  });
+
+  test("a format given: what is read of a line in it, and the format as given", async () => {
+    storedFormat = NGINX_MAIN;
+
+    await renderPage(ACCESS_LOGS_CARD_KEY);
+
+    const row: HTMLElement = await shownFormatRow();
+
+    await waitFor(() => {
+      expect(row).toHaveTextContent(
+        "Each line in it is read field by field: the address that connected from $remote_addr, X-Forwarded-For from $http_x_forwarded_for.",
+      );
+    });
+    expect(
+      within(row).getByTestId(
+        `${TRUSTED_PROXIES_TEST_IDS.accessLogFormat}-text`,
+      ).textContent,
+    ).toBe(NGINX_MAIN);
+  });
+
+  test("a format that logs no X-Forwarded-For says so, and what to add", async () => {
+    storedFormat = KNOWN_ACCESS_LOG_FORMATS[1]!.text;
+
+    await renderPage(ACCESS_LOGS_CARD_KEY);
+
+    await waitFor(() => {
+      expect(formatRow()).toHaveTextContent(
+        `It logs no X-Forwarded-For, so each line's client is its $remote_addr. Add "$http_x_forwarded_for" to read the client your load balancer forwarded.`,
+      );
+    });
+  });
+
+  test("the fold names a given format", async () => {
+    storedFormat = NGINX_MAIN;
+
+    const fold: HTMLElement = await renderPage();
+
+    await waitFor(() => {
+      expect(setChips(fold)).toEqual([
+        `${ACCESS_LOGS_TITLE}: ${ACCESS_LOG_FORMAT_GIVEN}`,
+      ]);
+    });
+  });
+
+  test("a known format fills the box, and what will be read is said under it", async () => {
+    const dialog: HTMLElement = await openFormatDialog();
+    const box: HTMLElement = await formatBox(dialog);
+
+    expect(dialog).toHaveTextContent(ACCESS_LOG_FORMAT_FIELD_TITLE);
+    expect(dialog).toHaveTextContent(ACCESS_LOG_FORMAT_FIELD_DESCRIPTION);
+
+    fireEvent.click(
+      within(dialog).getByTestId(
+        `${TRUSTED_PROXIES_TEST_IDS.accessLogFormatField}-known`,
+      ),
+    );
+
+    const menu: HTMLElement = await screen.findByRole("menu");
+
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item: HTMLElement): string => {
+          return item.textContent || "";
+        }),
+    ).toEqual(
+      KNOWN_ACCESS_LOG_FORMATS.map((known: KnownAccessLogFormat): string => {
+        return known.name;
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByTestId(
+        `${TRUSTED_PROXIES_TEST_IDS.accessLogFormatField}-known-nginx-main`,
+      ),
+    );
+
+    await waitFor(() => {
+      expect(box).toHaveValue(NGINX_MAIN);
+    });
+    expect(
+      within(dialog).getByTestId(
+        `${TRUSTED_PROXIES_TEST_IDS.accessLogFormatField}-reads`,
+      ),
+    ).toHaveTextContent(
+      "Each line in it is read field by field: the address that connected from $remote_addr, X-Forwarded-For from $http_x_forwarded_for.",
+    );
+  });
+
+  test("a Project Owner saves a format: the card and the fold say it at once", async () => {
+    const format: string = `log_format timed '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_time';`;
+    const dialog: HTMLElement = await openFormatDialog();
+    const box: HTMLElement = await formatBox(dialog);
+
+    fireEvent.change(box, { target: { value: format } });
+    fireEvent.blur(box);
+    fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(updates).toEqual([
+        expect.objectContaining({ securityAccessLogFormat: format }),
+      ]);
+    });
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
+    expect(formatRow()).toHaveTextContent(
+      "Each line in it is read field by field",
+    );
+    expect(
+      within(formatRow()).getByTestId(
+        `${TRUSTED_PROXIES_TEST_IDS.accessLogFormat}-text`,
+      ).textContent,
+    ).toBe(format);
+  });
+
+  test.each([
+    [
+      "no field",
+      "combined",
+      "This is no nginx log format: it names no field, such as $remote_addr.",
+    ],
+    [
+      "an X-Forwarded-For whose end cannot be told",
+      '$remote_addr "$request" $http_user_agent $http_x_forwarded_for $http_referer',
+      'OneUptime can\'t tell where $http_x_forwarded_for ends in your log format. Put it in quotes, as "$http_x_forwarded_for".',
+    ],
+    [
+      "no address that connected",
+      '"$request" "$http_x_forwarded_for"',
+      "Your log format must log the address that connected, $remote_addr, so OneUptime can tell whether it was a proxy you trust.",
+    ],
+  ])(
+    "a format with %s is refused before it is sent, with why",
+    async (_what: string, format: string, why: string) => {
+      const dialog: HTMLElement = await openFormatDialog();
+      const box: HTMLElement = await formatBox(dialog);
+
+      fireEvent.change(box, { target: { value: format } });
+      fireEvent.blur(box);
+      fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
+
+      expect(await within(dialog).findByText(why)).toBeInTheDocument();
+
+      await settle();
+      expect(updates).toEqual([]);
+    },
+  );
+
+  test("a Security Admin may give it as well", async () => {
+    grant([...BASE_PERMISSIONS, Permission.SecurityAdmin]);
+
+    await renderPage(ACCESS_LOGS_CARD_KEY);
+    await shownFormatRow();
+
+    expect(formatEdit()).not.toBeDisabled();
+  });
+
+  test.each([Permission.SecurityMember, Permission.ProjectMember])(
+    "%s sees Edit locked, and is told who may give it",
+    async (permission: Permission) => {
+      grant([...BASE_PERMISSIONS, permission]);
+
+      await renderPage(ACCESS_LOGS_CARD_KEY);
+      await shownFormatRow();
+
+      expect(formatEdit()).toBeDisabled();
+      expect(
+        getProjectColumnsUpdatePermissions(["securityAccessLogFormat"]),
+      ).toEqual([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.SecurityAdmin,
+      ]);
+    },
+  );
 });

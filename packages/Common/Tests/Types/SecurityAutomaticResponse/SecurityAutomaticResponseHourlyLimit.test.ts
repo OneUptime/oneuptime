@@ -157,13 +157,15 @@ describe("the project's column", () => {
 
     /*
      * Beside it, Security Events' Trusted Proxies, which a Security Admin
-     * sets: the list (#11049) and its two switches (#10546, #10548) -
-     * whether the project's own load balancers are trusted, and whether its
-     * access logs end with X-Forwarded-For.
+     * sets: the list (#11049), its two switches (#10546, #10548) - whether
+     * the project's own load balancers are trusted, and whether its access
+     * logs end with X-Forwarded-For - and the format those logs are written
+     * in (#11048).
      */
     expect(named.sort()).toEqual(
       [
         column,
+        "securityAccessLogFormat",
         "securityReadAccessLogForwardedFor",
         "securityTrustOwnLoadBalancers",
         "securityTrustedProxies",

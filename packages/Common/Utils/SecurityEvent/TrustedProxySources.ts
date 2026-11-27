@@ -6,6 +6,7 @@ import {
   getSecurityAddressScope,
 } from "../SecurityCase/SecurityConnectionMatch";
 import { TrustedProxies } from "./ClientAddressTrust";
+import { AccessLogFormat } from "./LogParsers/AccessLogFormat";
 
 /*
  * WHERE EACH PROXY A PROJECT TRUSTS COMES FROM (#11046), kept apart so the
@@ -64,6 +65,8 @@ export interface TrustedProxySources {
   googleFrontEnds: ReadonlyArray<NetworkAddressBlock>;
   // Whether its access logs are read for X-Forwarded-For (#10548).
   readsAccessLogForwardedFor: boolean;
+  // Its own access log format, read (#11048); null when it gave none.
+  accessLogFormat: AccessLogFormat | null;
 }
 
 // Only what every project trusts: addresses that are nobody's on the internet.
@@ -73,6 +76,7 @@ export const NO_TRUSTED_PROXY_SOURCES: TrustedProxySources = {
   ownLoadBalancers: [],
   googleFrontEnds: [],
   readsAccessLogForwardedFor: false,
+  accessLogFormat: null,
 };
 
 /*
@@ -92,6 +96,7 @@ export function trustedProxiesOf(sources: TrustedProxySources): TrustedProxies {
       ...sources.googleFrontEnds,
     ],
     readsAccessLogForwardedFor: sources.readsAccessLogForwardedFor,
+    accessLogFormat: sources.accessLogFormat,
   };
 }
 

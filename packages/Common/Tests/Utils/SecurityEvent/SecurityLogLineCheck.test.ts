@@ -440,6 +440,7 @@ describe("each source of trust, and why it is trusted", () => {
     expect(trustedProxiesOf(NO_TRUSTED_PROXY_SOURCES)).toEqual({
       blocks: [],
       readsAccessLogForwardedFor: false,
+      accessLogFormat: null,
     });
   });
 });

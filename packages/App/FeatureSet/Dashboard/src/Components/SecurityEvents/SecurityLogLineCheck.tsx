@@ -1,4 +1,4 @@
-import { FORWARDED_BY } from "./ClaimedClientAddressCopy";
+import { FORWARDED_BY, getForwardedByReason } from "./ClaimedClientAddressCopy";
 import { SECURITY_LOG_FORMAT_TEXTS } from "./SecurityConnectionsCopy";
 import {
   SecurityEventDetailField,
@@ -35,7 +35,6 @@ import API from "Common/UI/Utils/API/API";
 import { isPageRightToLeft } from "Common/UI/Utils/PageLanguage";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { TrustedProxySource } from "Common/Utils/SecurityEvent/TrustedProxySources";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -70,6 +69,12 @@ export {
   splitPastedLogLines,
 } from "Common/Types/SecurityEvent/SecurityLogLineCheck";
 
+export {
+  FORWARDED_BY_EDGE_REASON,
+  FORWARDED_BY_REASONS,
+  getForwardedByReason,
+} from "./ClaimedClientAddressCopy";
+
 // Under the folded section's title: what it is for.
 export const LOG_LINE_CHECK_SUMMARY: string = translationKey(
   "Paste a line from your logs to see the security event OneUptime makes of it.",
@@ -79,44 +84,6 @@ export const LOG_LINE_CHECK_SUMMARY: string = translationKey(
 export const LOG_LINE_CHECK_PRIVACY: string = translationKey(
   "OneUptime reads it as its scans read your logs, with your trusted proxies, and saves nothing.",
 );
-
-/*
- * Why each proxy a checked event came through is trusted, after its
- * address under Forwarded By.
- */
-export const FORWARDED_BY_REASONS: Readonly<
-  Record<Exclude<TrustedProxySource, TrustedProxySource.Edge>, string>
-> = {
-  [TrustedProxySource.Private]: translationKey("Private address"),
-  [TrustedProxySource.Listed]: translationKey("In your Trusted Proxies"),
-  [TrustedProxySource.OwnLoadBalancer]: translationKey(
-    "One of your load balancers",
-  ),
-  [TrustedProxySource.GoogleFrontEnd]: translationKey(
-    "One of Google's front ends",
-  ),
-};
-
-// An edge's range, by the edge's name: "In Cloudflare's published ranges".
-export const FORWARDED_BY_EDGE_REASON: string = translationKey(
-  "In {{edge}}'s published ranges",
-);
-
-// Why a proxy is trusted, in the reader's language.
-export function getForwardedByReason(
-  proxy: CheckedTrustedProxy,
-  translator: Translator,
-): string {
-  if (proxy.source === TrustedProxySource.Edge) {
-    return translator.translateTemplate(FORWARDED_BY_EDGE_REASON, {
-      edge: proxy.edgeName,
-    });
-  }
-
-  const reason: string = FORWARDED_BY_REASONS[proxy.source];
-
-  return translator.translateText(reason) || reason;
-}
 
 // The menu at the end of the box's label row: a line of each kind, checked at once.
 export const LOG_LINE_CHECK_EXAMPLES: string = translationKey("Try an example");

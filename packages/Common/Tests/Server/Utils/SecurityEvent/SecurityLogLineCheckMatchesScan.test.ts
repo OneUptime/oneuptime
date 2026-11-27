@@ -546,3 +546,44 @@ describe("Google's front ends", () => {
     expect(stored.principalIp).toBe(GOOGLE_FRONT_END);
   });
 });
+
+// A line in the project's own log format is read field by field (#11048).
+describe("the project's own log format", () => {
+  const TIMED: string = `log_format timed '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $request_time';`;
+
+  function timedLine(first: string, forwardedFor: string): string {
+    return `${first} - - [10/Oct/2026:13:55:36 +0000] "GET /?id=1' OR '1'='1 HTTP/1.1" 200 512 "-" "curl/8.0" "${forwardedFor}" 0.004`;
+  }
+
+  test("X-Forwarded-For before $request_time: both name the client it forwarded", async () => {
+    useProject({ project: { securityAccessLogFormat: TIMED } });
+
+    const { stored } = await bothName(
+      timedLine(PRIVATE_PROXY, `${INNOCENT}, ${CLIENT}`),
+    );
+
+    expect(stored).toEqual({
+      principalIp: CLIENT,
+      trust: "trusted-proxy",
+      claimed: INNOCENT,
+      forwardedBy: PRIVATE_PROXY,
+    });
+  });
+
+  test("not given: both name the proxy, as the combined format is read", async () => {
+    useProject({ project: { securityReadAccessLogForwardedFor: true } });
+
+    const { stored } = await bothName(timedLine(PRIVATE_PROXY, CLIENT));
+
+    expect(stored.principalIp).toBe(PRIVATE_PROXY);
+  });
+
+  test("a forged header from a first field nobody trusts: both keep the first field", async () => {
+    useProject({ project: { securityAccessLogFormat: TIMED } });
+
+    const { stored } = await bothName(timedLine(UNTRUSTED_HOST, INNOCENT));
+
+    expect(stored.principalIp).toBe(UNTRUSTED_HOST);
+    expect(stored.trust).toBe("peer");
+  });
+});

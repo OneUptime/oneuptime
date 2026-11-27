@@ -8,6 +8,7 @@ import {
   TrustedProxies,
   toTrustedProxies,
 } from "../../../Utils/SecurityEvent/ClientAddressTrust";
+import { readAccessLogFormat } from "../../../Utils/SecurityEvent/LogParsers/AccessLogFormat";
 import {
   NO_TRUSTED_PROXY_SOURCES,
   TrustedEdgeRanges,
@@ -48,8 +49,9 @@ import SecurityOwnLoadBalancers, {
  *     SecurityOwnLoadBalancers.readGoogleFrontEnds).
  *
  * With them, whether its access logs end with X-Forwarded-For
- * (Project.securityReadAccessLogForwardedFor, #10548), which only the
- * project can say.
+ * (Project.securityReadAccessLogForwardedFor, #10548), and the format they
+ * are written in, when it gave it (Project.securityAccessLogFormat,
+ * #11048), which only the project can say.
  *
  * The private addresses every project trusts need no reading
  * (Utils/SecurityEvent/ClientAddressTrust.isTrustedProxy).
@@ -129,6 +131,7 @@ export default class SecurityTrustedProxies {
           securityTrustedProxies: true,
           securityTrustOwnLoadBalancers: true,
           securityReadAccessLogForwardedFor: true,
+          securityAccessLogFormat: true,
         },
         props: { isRoot: true },
       });
@@ -140,12 +143,18 @@ export default class SecurityTrustedProxies {
       return null;
     }
 
-    // Only a project that said so has its access logs read for the header.
+    /*
+     * Only a project that said so has its access logs read for the header:
+     * its lines' last field (#10548), or where its own format puts it
+     * (#11048). A format the server would refuse now is read as none.
+     */
     const listed: TrustedProxySources = {
       ...NO_TRUSTED_PROXY_SOURCES,
       listed: toTrustedProxies(project?.securityTrustedProxies).blocks,
       readsAccessLogForwardedFor:
         project?.securityReadAccessLogForwardedFor === true,
+      accessLogFormat: readAccessLogFormat(project?.securityAccessLogFormat)
+        .format,
     };
 
     let edges: Array<TrustedEdgeRanges>;

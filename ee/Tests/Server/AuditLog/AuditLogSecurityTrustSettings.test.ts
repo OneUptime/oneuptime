@@ -84,6 +84,7 @@ const TRUSTED_PROXY_COLUMNS: ReadonlyArray<string> = [
   "securityTrustedProxies",
   "securityTrustOwnLoadBalancers",
   "securityReadAccessLogForwardedFor",
+  "securityAccessLogFormat",
 ];
 
 const SECURITY_ADMIN: DatabaseCommonInteractionProps = {
@@ -245,6 +246,23 @@ describe("a Security Admin's change of Trusted Proxies is recorded, with who mad
       });
     },
   );
+
+  test("the access log format, before and after (#11048)", async () => {
+    const before: string = '$remote_addr "$request" "$http_x_forwarded_for"';
+    const after: string =
+      '$remote_addr "$request" "$http_x_forwarded_for" $request_time';
+    const entry: AuditLog = await recordChange(
+      { securityAccessLogFormat: before },
+      { securityAccessLogFormat: after },
+    );
+
+    expect(entry.userId?.toString()).toBe(SECURITY_ADMIN_ID.toString());
+    expect(changeFor(entry, "securityAccessLogFormat")).toEqual({
+      field: "securityAccessLogFormat",
+      oldValue: before,
+      newValue: after,
+    });
+  });
 
   test("a save that changes nothing adds no entry", async () => {
     await recorder.recordUpdate({
