@@ -214,7 +214,8 @@ const FriendlyLabelNames: Record<string, string> = {
    * labels (stored unprefixed): `name` on volumes, pods, directories and
    * every FlashBlade object, `host` on FlashArray hosts, `component_name`
    * on FlashArray hardware and drives, `local_pod` on pod replica links,
-   * `summary` on open alerts. The agent stamps `storage.array.name` and
+   * `summary` on open alerts; a Dell PowerStore names its appliances by
+   * `appliance_id`. The agent stamps `storage.array.name` and
    * `storage.system` on the resource.
    */
   "storage.array.name": "Storage Array",
@@ -224,6 +225,7 @@ const FriendlyLabelNames: Record<string, string> = {
   component_name: "Component",
   local_pod: "Pod",
   summary: "Alert Summary",
+  appliance_id: "Appliance",
 
   // --- IoT ---
   "iot.fleet.name": "Fleet",
@@ -388,6 +390,7 @@ const LabelPriority: Record<string, number> = {
   component_name: 25,
   local_pod: 25,
   summary: 25,
+  appliance_id: 25,
   host: 30,
   "device.id": 25,
   "device.name": 25,

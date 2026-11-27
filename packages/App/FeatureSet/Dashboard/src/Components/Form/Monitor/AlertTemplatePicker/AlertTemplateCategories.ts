@@ -358,6 +358,24 @@ export const STORAGE_ARRAY_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+/*
+ * A storage array's Recommendations: Quick Setup's headings, with Array
+ * Alerts after Availability - the alerts an array raises itself and sends
+ * as logs (a PowerStore's syslog, StorageArrayLogAlertTemplates), Logs
+ * monitors a Storage Array monitor's Quick Setup cannot build and so never
+ * lists. Where a FlashArray's open alerts sit (Array Health, second).
+ */
+export const STORAGE_ARRAY_RECOMMENDATION_CATEGORIES: Array<AlertTemplateCategory> =
+  [
+    STORAGE_ARRAY_TEMPLATE_CATEGORIES[0]!,
+    {
+      category: "Array Alerts",
+      label: "Array Alerts",
+      icon: IconProp.Bell,
+    },
+    ...STORAGE_ARRAY_TEMPLATE_CATEGORIES.slice(1),
+  ];
+
 // IoT.
 export const IOT_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
@@ -498,7 +516,7 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   [MonitorRecommendationResourceType.VMware]: VMWARE_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Ceph]: CEPH_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.StorageArray]:
-    STORAGE_ARRAY_TEMPLATE_CATEGORIES,
+    STORAGE_ARRAY_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.IoTDevice]: IOT_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.CloudResource]:
     CLOUD_RESOURCE_TEMPLATE_CATEGORIES,

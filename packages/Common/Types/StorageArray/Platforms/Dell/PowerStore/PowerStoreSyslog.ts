@@ -91,7 +91,8 @@ const POWERSTORE_LOG_ALERT_TEMPLATES: Array<StorageArrayLogAlertTemplateSpec> =
       criteriaName: "Critical alert raised",
       criteriaDescription:
         "The PowerStore raised a Critical alert it has not cleared since.",
-      healthyDescription: "Every Critical alert the PowerStore raised is cleared.",
+      healthyDescription:
+        "Every Critical alert the PowerStore raised is cleared.",
     },
     {
       id: "powerstore-major-alert",
@@ -120,7 +121,7 @@ const POWERSTORE_LOG_ALERT_TEMPLATES: Array<StorageArrayLogAlertTemplateSpec> =
       summary:
         "A port the PowerStore uses loses its link: one alert per port, until it is back.",
       description:
-        "Alert when the PowerStore reports that the link of a Fibre Channel or Ethernet port it uses is down (event 0x00307404, Port link is down). PowerStore raises it only for ports in use, never for a port nothing is cabled to. One alert per port, which resolves when the link is back. Needs the PowerStore's remote syslog sent to the agent. It is a Logs monitor over the lines the agent's syslog collector reads.",
+        "Alert when the PowerStore reports that the link of a Fibre Channel or Ethernet port it uses is down (event 0x00307404, Port link is down). PowerStore raises it only for ports in use, never for a port nothing is cabled to. One alert per port, which resolves when the link is back. A port link down is a Major alert too, so Major Array Alert already covers it: choose this one to watch the ports alone. Needs the PowerStore's remote syslog sent to the agent. It is a Logs monitor over the lines the agent's syslog collector reads.",
       category: "Array Alerts",
       severity: "Warning",
       attributes: {
@@ -136,7 +137,8 @@ const POWERSTORE_LOG_ALERT_TEMPLATES: Array<StorageArrayLogAlertTemplateSpec> =
       criteriaName: "Port link down",
       criteriaDescription:
         "The PowerStore reported a port link down that has not come back since.",
-      healthyDescription: "Every port link the PowerStore reported down is back.",
+      healthyDescription:
+        "Every port link the PowerStore reported down is back.",
     },
   ];
 

@@ -206,7 +206,9 @@ function getPlatformLogTemplates(
     const storageSystem: StorageSystem =
       platform.storageSystem as StorageSystem;
     templates = (platform.logAlertTemplates || []).map(
-      (spec: StorageArrayLogAlertTemplateSpec): StorageArrayLogAlertTemplate => {
+      (
+        spec: StorageArrayLogAlertTemplateSpec,
+      ): StorageArrayLogAlertTemplate => {
         return {
           id: spec.id,
           name: spec.name,
@@ -215,7 +217,9 @@ function getPlatformLogTemplates(
           category: spec.category,
           severity: spec.severity,
           storageSystems: [storageSystem],
-          getMonitorStep: (args: StorageArrayAlertTemplateArgs): MonitorStep => {
+          getMonitorStep: (
+            args: StorageArrayAlertTemplateArgs,
+          ): MonitorStep => {
             return buildStorageArrayLogAlertMonitorStep({ spec, args });
           },
         };

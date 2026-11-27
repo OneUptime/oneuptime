@@ -510,7 +510,9 @@ export interface StorageArrayPlatform {
    * offers beside those: Logs monitors, under the Array Alerts heading. For
    * a platform whose arrays report their own alerts as logs.
    */
-  logAlertTemplates?: ReadonlyArray<StorageArrayLogAlertTemplateSpec> | undefined;
+  logAlertTemplates?:
+    | ReadonlyArray<StorageArrayLogAlertTemplateSpec>
+    | undefined;
   resourceFilters: ReadonlyArray<StorageArrayResourceFilter>;
 
   // ---------------- Pages ----------------

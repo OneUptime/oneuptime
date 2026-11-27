@@ -94,10 +94,7 @@ function wholeBytes(value: number): number {
   return Math.max(0, Math.trunc(value));
 }
 
-function stateWord(
-  value: number,
-  words: { on: string; off: string },
-): string {
+function stateWord(value: number, words: { on: string; off: string }): string {
   return value >= 1 ? words.on : words.off;
 }
 
@@ -451,7 +448,8 @@ function driveType(raw: string | null): {
   if (!raw) {
     return { type: null, protocol: null };
   }
-  const match: RegExpExecArray | null = /^(NVMe|SAS)_(.+)$/.exec(raw);
+  const typePattern: RegExp = /^(NVMe|SAS)_(.+)$/;
+  const match: RegExpExecArray | null = typePattern.exec(raw);
   return {
     type: raw.replace(/_/g, " "),
     protocol: match ? match[1]! : null,
@@ -477,9 +475,7 @@ function readHardware(series: StorageArraySeries): void {
         row.componentType = "Node";
         // The state label is the node's lifecycle state, whatever the value.
         const state: string | null = series.label("state");
-        row.status = state
-          ? state.toLowerCase()
-          : stateWord(value, HEALTHY);
+        row.status = state ? state.toLowerCase() : stateWord(value, HEALTHY);
         const serialNumber: string | null = series.label("serial_number");
         if (serialNumber) {
           setDetail(row, "serialNumber", serialNumber);
@@ -593,9 +589,9 @@ function readPort(series: StorageArraySeries): void {
     ? FC_ERROR_DETAILS[metricName]
     : ETH_ERROR_DETAILS[metricName];
 
-  const apply: ((row: StorageArrayResourceBufferEntry) => void) | null = ((): ((
-    row: StorageArrayResourceBufferEntry,
-  ) => void) | null => {
+  const apply: ((row: StorageArrayResourceBufferEntry) => void) | null = (():
+    | ((row: StorageArrayResourceBufferEntry) => void)
+    | null => {
     if (
       metricName === "powerstore_fc_port_is_link_up" ||
       metricName === "powerstore_eth_port_is_link_up"
@@ -678,7 +674,9 @@ function readVolume(series: StorageArraySeries): void {
   const isPerformance: boolean = metricName.startsWith(
     "powerstore_metricVolume_",
   );
-  const name: string | null = series.label(isPerformance ? "volume_id" : "name");
+  const name: string | null = series.label(
+    isPerformance ? "volume_id" : "name",
+  );
   if (!name) {
     return;
   }

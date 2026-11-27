@@ -39,11 +39,15 @@ import POWERSTORE_LOG_ALERT_TEMPLATES from "./PowerStoreSyslog";
  */
 
 // The kinds only PowerStore has, with the words the pages use for them.
-export const POWERSTORE_KIND = {
+export const POWERSTORE_KIND: {
+  readonly Appliance: "Appliance";
+  readonly VolumeGroup: "VolumeGroup";
+  readonly NasServer: "NasServer";
+} = {
   Appliance: "Appliance",
   VolumeGroup: "VolumeGroup",
   NasServer: "NasServer",
-} as const;
+};
 
 export const POWERSTORE_VENDOR_NAME: string = "Dell";
 
@@ -280,7 +284,10 @@ const DellPowerStorePlatform: StorageArrayPlatform = {
     cluster: [],
     appliance: [POWERSTORE_KIND.Appliance],
     capacity: [POWERSTORE_KIND.Appliance],
-    hardware: [StorageArrayResourceKind.Hardware, StorageArrayResourceKind.Drive],
+    hardware: [
+      StorageArrayResourceKind.Hardware,
+      StorageArrayResourceKind.Drive,
+    ],
     port: [StorageArrayResourceKind.NetworkInterface],
     volume: [StorageArrayResourceKind.Volume],
     volumegroup: [POWERSTORE_KIND.VolumeGroup],
