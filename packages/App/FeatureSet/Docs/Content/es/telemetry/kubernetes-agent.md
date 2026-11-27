@@ -471,14 +471,14 @@ Los eventos de Kubernetes no se filtran por namespace en el agente: los envía t
 
 Acepta `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` y `FATAL`. `WARN` conserva WARN, ERROR y FATAL y descarta INFO, DEBUG y TRACE; el valor predeterminado (`""`) lo conserva todo. Se aplica en ambos modos de logs (a través del colector en el modo `daemonset`, dentro del lector de logs en el modo `api`), así que un preset nunca lo desactiva a tus espaldas.
 
-Los runtimes de contenedores no registran ninguna severidad, así que el agente la lee del propio texto del log (`[ERROR]`, `WARN:`, `"level":"info"`, …). Qué pasa con una línea sin un nivel reconocible depende del modo de logs, porque los dos modos saben cosas distintas:
+Los runtimes de contenedores no registran ninguna severidad, así que el agente lee el nivel que menciona cada línea: una palabra de nivel (`[ERROR]`, `WARN:`, `"level":"info"`, …), la primera letra de una línea de klog (`I`, `W`, `E`, `F`), el `LOG:` de PostgreSQL o el `"level":30` de pino. El traceback de una excepción o un panic cuenta como ERROR. Qué pasa con una línea que no menciona ningún nivel depende del modo de logs, porque los dos modos saben cosas distintas:
 
 | Modo | Una línea sin nivel | Por qué |
 | --- | --- | --- |
-| `daemonset` | `stderr` cuenta como ERROR (se conserva), `stdout` como INFO (lo descarta un umbral WARN) | El runtime de contenedores registra de qué flujo vino cada línea. |
+| `daemonset` | `stdout` cuenta como INFO (lo descarta un umbral WARN); `stderr` no tiene severidad, se muestra como Sin especificar y se conserva | El runtime de contenedores registra de qué flujo vino cada línea. stdout es la salida ordinaria de un programa, pero los programas escriben en stderr sus diagnósticos de todos los niveles, así que una línea de stderr no dice nada de su nivel. |
 | `api` | Se conserva siempre | La API `pods/log` de Kubernetes une stdout y stderr en un solo flujo sin marca por línea, así que, en lugar de adivinar, el agente conserva la línea. |
 
-Así que el modo `api` descarta estrictamente menos que el modo `daemonset`, a propósito: un traceback de Python o un `npm ERR!` no lleva ninguna palabra clave de severidad, y borrarlo en silencio es justo el fallo del que debería protegerte un umbral. En el modo híbrido (`logs.windowsPods.enabled`) se aplican ambas filas, según el SO del nodo: los pods de Linux siguen `daemonset`, los de Windows `api`.
+Así que el modo `api` descarta estrictamente menos que el modo `daemonset`, a propósito: no puede distinguir una línea de stderr que no menciona ningún nivel, como un `npm ERR!`, de la salida ordinaria, y borrarla en silencio es justo el fallo del que debería protegerte un umbral. En el modo híbrido (`logs.windowsPods.enabled`) se aplican ambas filas, según el SO del nodo: los pods de Linux siguen `daemonset`, los de Windows `api`.
 
 Los eventos de varias líneas se vuelven a unir antes de filtrar en ambos modos, así que un stack trace de Java se juzga por su primera línea y se conserva o se descarta entero.
 

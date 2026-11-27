@@ -199,7 +199,7 @@ Agenten følger også hver containers fil `ctr.log` og sender hver linje som en 
 | `resource.container.id` | Det fulde container-ID. |
 | `resource.container.runtime` | Altid `podman`. |
 | `attributes["log.iostream"]` | `stdout` eller `stderr`. |
-| `severityText` / `severityNumber` | Læst fra et niveaunøgleord, hvor et niveau står i linjen (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). En linje uden niveau falder tilbage på sin strøm: `stderr` er `ERROR`, `stdout` er `INFO`. |
+| `severityText` / `severityNumber` | Læst fra det niveau, linjen nævner, hvor et niveau står i den (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); en undtagelses traceback er `ERROR`. En linje uden niveau er `INFO` på `stdout` og har ingen alvorlighed (Uspecificeret) på `stderr`. |
 | `body` | Den linje, containeren skrev. Linjer, der starter med blanktegn eller en afsluttende parentes, som linjer i en stakspore, føjes til linjen før. |
 | `time` | Podmans tidsstempel for linjen. |
 

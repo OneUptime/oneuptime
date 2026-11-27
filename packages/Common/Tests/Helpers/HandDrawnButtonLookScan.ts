@@ -161,14 +161,21 @@ export interface LockedLookSource {
   text: string;
 }
 
-// A `disabled:` utility, whatever comes before it (md:disabled:opacity-50).
+/*
+ * A `disabled:` utility, whatever comes before it (md:disabled:opacity-50).
+ * A word that ends a clause with a colon - "The host is disabled: XAPI
+ * starts no VM on it" - has no utility after it, so it is none: Tailwind
+ * makes no class of a variant alone.
+ */
 export const isDisabledVariantClass: (token: string) => boolean = (
   token: string,
 ): boolean => {
   const parts: Array<string> = token.split(":");
 
   // The last part is the utility itself; the rest are its variants.
-  return parts.slice(0, -1).includes("disabled");
+  return (
+    Boolean(parts[parts.length - 1]) && parts.slice(0, -1).includes("disabled")
+  );
 };
 
 // The not-allowed cursor with no variant before it.

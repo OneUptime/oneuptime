@@ -420,6 +420,23 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     leftAlone: {},
   },
   /*
+   * Cost views (#11006): Make Groups writes a view's missing groups as the
+   * server (CloudCostViewSync), so it names Cloud; the allocation reads.
+   */
+  "packages/Common/Server/API/CloudCostViewAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:viewId/allocation`": READ,
+    },
+  },
+  // A cost group's page reads its spend (#11006).
+  "packages/Common/Server/API/CloudCostGroupAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:groupId/spend`": READ,
+    },
+  },
+  /*
    * Acting on savings (#11010): every route registers through its post
    * helper, which refuses a change while Cloud is off, and the pull request
    * while Code is too. Each call is decided here.
@@ -591,6 +608,14 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
         READ,
     },
   },
+  // Required tags' coverage (#11012): Cloud > Tags and an account's Tags read it.
+  "packages/Common/Server/API/CloudRequiredTagAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${new this.entityType().getCrudApiPath()?.toString()}/${CLOUD_TAG_COVERAGE_ROUTE}`":
+        READ,
+    },
+  },
   "packages/Common/Server/API/XcpNgResourceAPI.ts": {
     products: [ProductKey.XcpNg],
     leftAlone: {
@@ -602,6 +627,11 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
     products: [ProductKey.Hosts],
     leftAlone: {
       "`${new this.entityType().getCrudApiPath()?.toString()}/needs-attention`":
+        READ,
+      // The cloud VM a host is, and the host a VM is (#11013).
+      "`${new this.entityType().getCrudApiPath()?.toString()}/:id/${HOST_CLOUD_MACHINE_ROUTE}`":
+        READ,
+      "`${new this.entityType().getCrudApiPath()?.toString()}/${HOST_OF_CLOUD_RESOURCE_ROUTE}/:cloudResourceId`":
         READ,
     },
   },
@@ -1444,6 +1474,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/PacketCapture.ts": 3,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Probe.ts": 6,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Register.ts": 1,
+        // Its SNMP trap receiver's report, for its devices' SNMPv3 users (#11005).
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Syslog.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts": 3,
         "packages/Probe/API/IncomingRequestIngress.ts": 2,

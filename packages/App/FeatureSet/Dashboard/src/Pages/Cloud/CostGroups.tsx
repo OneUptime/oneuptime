@@ -48,8 +48,7 @@ import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
-import PermissionUtil from "Common/UI/Utils/Permission";
+import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import React, {
   Fragment,
   FunctionComponent,
@@ -86,19 +85,14 @@ const RECURRENCE_OPTIONS: Array<DropdownOption> = Object.values(
   return { value: recurrence, label: LINE_ITEM_RECURRENCE_LABELS[recurrence] };
 });
 
-// Who may create views and groups: those who may create cloud resources.
+/*
+ * Who may start a view (Quick Start creates one, and its groups follow):
+ * whoever the server lets create a cost view, by its own rule - a team's
+ * block row refuses, as it refuses the create (PermissionGate).
+ */
 function canCreateCostViews(): boolean {
-  return PermissionHelper.doesPermissionsIntersect(
-    PermissionUtil.getAllPermissions(),
-    [
-      Permission.ProjectOwner,
-      Permission.ProjectAdmin,
-      Permission.ProjectMember,
-      Permission.SettingsAdmin,
-      Permission.SettingsMember,
-      Permission.CreateCloudResource,
-    ],
-  );
+  return PermissionGate.check(new CloudCostView(), ModelAction.Create)
+    .isAllowed;
 }
 
 const CloudCostGroups: FunctionComponent<

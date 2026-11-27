@@ -232,6 +232,14 @@ When an evaluation takes too long for its monitor, its summary warns you. Too lo
 
 A tenth leaves a monitor room to grow tenfold before its checks run into each other and fall behind, so you hear of it early. Under 5 seconds, a check is fine however large it is: judging 16,000 series takes about 2.5 seconds. Over a minute, it holds a worker and the databases it reads that long, whatever its interval. To speed it up, narrow its queries' filters, group by fewer attributes, or check it less often.
 
+## When telemetry monitors check
+
+Monitors that read telemetry, such as logs, metrics, traces, Kubernetes, host and Docker monitors, are not all checked at the same moment. Each one has its own moment in its interval, worked out from the monitor's ID: a monitor checked every minute runs at the same second of every minute, one checked every 5 minutes at the same moment of every 5 minutes, and one checked every hour or less often within the first 5 minutes of the hour or day its interval names. The moment stays the same when OneUptime restarts and on every server, so the telemetry store is read a little at a time through the minute instead of by every monitor at once.
+
+Each monitor keeps its interval: its checks are exactly as far apart as before, and each one judges the window that ends when it runs, so a window as long as the interval still covers all the time between two checks. What moves is when in its interval a check runs: up to one interval later, and never more than 5 minutes later. An incident or an alert can open up to that much later than if every check ran at the start of its interval, and sometimes sooner. The monitor's **Overview** shows when its next check is due.
+
+A new monitor is checked within seconds of being created, and then at its own moment. When you change a monitor's interval, its next check moves to the new interval. Right after you upgrade to a version of OneUptime that spreads checks out, each monitor is checked once more at the time the old schedule had it due, and from then on at its own moment.
+
 ## Change a monitor's criteria
 
 :::steps

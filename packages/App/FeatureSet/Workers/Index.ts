@@ -430,6 +430,7 @@ import "./Jobs/Cloud/EvaluateCloudCommitments";
 import "./Jobs/Cloud/MakeCloudCostGroups";
 // Changes for savings stepped, and off-hours schedules run (#11010).
 import "./Jobs/Cloud/CloudSavingsJobs";
+import "./Jobs/Cloud/WatchCloudTags";
 // What still reads a metric its cloud deprecates, moved again every hour.
 import "./Jobs/Cloud/MoveOffRetiredCloudMetrics";
 import "./Jobs/DataSecurity/DataSecurityJobs";

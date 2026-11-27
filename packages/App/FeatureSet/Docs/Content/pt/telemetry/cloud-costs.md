@@ -12,6 +12,7 @@ Uma conta de nuvem conectada também diz quanto custa e como poderia custar meno
 - [Agendamentos fora do horário](#agendamentos-fora-do-horário): Pare recursos que não são de produção à noite e nos fins de semana.
 - [Regras de IA para economias](#regras-de-ia-para-economias): Propostas para os proprietários, ou alterações dentro de um limite.
 - [Orçamentos](#orçamentos): Um alerta quando os gastos de um mês ultrapassam uma parte do orçamento.
+- [Tags obrigatórias](#tags-obrigatórias): Quanto dos seus gastos tem as tags que você exige, e os recursos novos sem elas.
 :::
 
 ## Como funciona
@@ -126,7 +127,15 @@ Um recurso de que nenhum recomendador cuida, porque ele não está ativado, não
 - **Superprovisionado** quando o tamanho com metade, ou um quarto, ainda teria folga: no tamanho menor, o percentil 95 da CPU ficaria em no máximo 60%, a leitura de CPU mais alta em no máximo 100% e o pico da memória em no máximo 70%, quando a memória é lida.
 - **Subprovisionado** quando o percentil 95 da CPU fica em 85% ou mais, ou o pico da memória em 90% ou mais: o tamanho com o dobro.
 
-Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele mostra o **Ajuste de tamanho** ao lado de quanto custa, e um superprovisionado aparece em **Nuvem → Gastos → Economias**, com o OneUptime como origem. O que uma mudança economiza é a parte dela no que o recurso custou nos últimos 30 dias, então isso é conhecido assim que sua nuvem fatura o recurso pelo nome: a exportação detalhada do Azure e do Google Cloud faz isso, e a AWS também, depois que Custos por recurso é ativado. Uma instância EC2 informa a memória só com o agente do CloudWatch, e uma VM do Compute Engine só com o Ops Agent: sem ele, é dimensionada apenas pela CPU. Tamanhos com burst, como t3, a série B e e2-micro, nunca são dimensionados.
+Um recurso é dimensionado assim que tem 6 dias de leituras. A página dele mostra o **Ajuste de tamanho** ao lado de quanto custa, e um superprovisionado aparece em **Nuvem → Gastos → Economias**, com o OneUptime como origem. O que uma mudança economiza é a parte dela no que o recurso custou nos últimos 30 dias, então isso é conhecido assim que sua nuvem fatura o recurso pelo nome: a exportação detalhada do Azure e do Google Cloud faz isso, e a AWS também, depois que Custos por recurso é ativado. Tamanhos com burst, como t3, a série B e e2-micro, nunca são dimensionados.
+
+Sua nuvem só lê a memória de uma VM com um agente próprio dentro da VM: o agente do CloudWatch em uma instância EC2, o Ops Agent em uma VM do Compute Engine, e nenhum em uma VM do Azure, que informa a memória livre em vez da memória usada. Uma VM em que roda [o coletor de host do OneUptime](/docs/telemetry/hosts) é dimensionada, em vez disso, pela memória que o coletor de host lê:
+
+- **A VM e o host são a mesma máquina** quando o provedor, a conta, a região e o ID da instância coincidem: o ID da instância EC2, o ID numérico de uma VM do Compute Engine ou o `vmId` de uma VM do Azure. Um nome de host sozinho nunca basta, e uma VM que dois hosts reivindicam, como uma máquina clonada, não é vinculada a nenhum. A página da VM nomeia seu host, e a página do host nomeia sua VM, cada uma com um link para a outra.
+- **A memória é a memória usada do host, sem cache e buffers**, o valor que a página do host mostra no gráfico, nos mesmos 14 dias. Um cache de arquivos cheio nunca é lido como uma máquina cheia. O host também precisa de 6 dias de leituras.
+- **Quando ambos leem a memória**, como em uma VM do Compute Engine com o Ops Agent e o coletor de host, vale o que tem mais leituras. A CPU é sempre a leitura da sua nuvem.
+
+O **Ajuste de tamanho** da VM diz de onde veio a memória dela, e a linha dela em **Nuvem → Gastos → Economias** também. Uma VM dimensionada só pela CPU diz isso, com um link para instalar o coletor de host. O coletor de host marca a identidade da nuvem dele com a etapa `resourcedetection/cloud` que [a configuração do guia de hosts](/docs/telemetry/host-otel-collector) traz. Um host com a configuração padrão do OneUptime recebe a etapa com a próxima versão do OneUptime, e um com uma configuração sua precisa adicioná-la. Os nós do Kubernetes ficam com a [Observabilidade de custos do Kubernetes](/docs/telemetry/kubernetes-cost), que dimensiona as requisições do que roda neles.
 
 ### Compromissos
 
@@ -256,12 +265,61 @@ Após cada leitura, cada um dos últimos 14 dias completos de uma conta é compa
 
 Abaixo da lista, o card diz quanto deu o restante: o que não está em nenhum ambiente, o que é cobrado de um ambiente como um todo ou o que não tem a tag. Os custos lidos antes de as tags serem mantidas são lidos de novo uma vez, até onde vai uma primeira leitura, para que as tags deles sejam preenchidas.
 
+## Tags obrigatórias
+
+Os gastos só são bem alocados quanto as tags que têm. Em **Nuvem → Gastos → Tags**, diga quais tags todo recurso deve ter, como `team`, `env` e `cost-center`, e veja quanto dos seus gastos e dos seus recursos as tem, quais recursos não têm, e quem criou cada recurso novo sem elas.
+
+:::steps
+### Exigir uma tag
+
+Selecione **Exigir uma tag** e informe a **Chave da tag**. Em **Valores permitidos**, liste os valores que ela pode ter, separados por vírgulas, ou deixe vazio para aceitar qualquer valor. Escolha uma **Conta** para exigir a tag só naquela conta. Uma **Descrição**, em **Mais campos**, diz nos e-mails para que serve a tag.
+
+### Ler a cobertura
+
+A página abre com quanto dos gastos dos últimos 30 dias e dos seus recursos tem todas as tags obrigatórias. Abaixo vêm os recursos aos quais falta uma tag, os mais caros primeiro, depois cada tag sozinha, a tendência das últimas 12 semanas e cada conta.
+
+### Marcar o que falta
+
+Cada recurso ao qual falta uma tag mostra o valor que o OneUptime sugere e o comando que o aplica na sua nuvem. Um recurso declarado em código diz qual código o declara: adicione a tag lá, ou o próximo deploy a remove de novo.
+:::
+
+- **As chaves coincidem sem diferenciar maiúsculas e minúsculas.** `Team`, `team` e `TEAM` são uma só chave, e um recurso tem a tag quando qualquer grafia dela tem um valor permitido. Os valores também coincidem sem diferenciar maiúsculas e minúsculas, e um valor vazio não é valor.
+- **Um valor permitido pode ser um padrão.** `*` representa quaisquer caracteres e `?` um só, então `prod-*` aceita `prod-eu` e `prod-us`. Os padrões não são expressões regulares.
+- **As tags próprias de uma conta.** Uma tag exigida em uma conta substitui nela a tag do projeto com a mesma chave, e uma conta pode exigir uma chave própria. As **Tags** de uma conta mostram as duas.
+- **Nada muda na sua nuvem.** O OneUptime nunca para nem marca um recurso por uma tag ausente. Ele avisa as pessoas e sugere o valor.
+
+### Cobertura
+
+- **Gastos com tags** é a parcela dos custos dos últimos 30 dias que tem todas as tags obrigatórias, pelas tags com que cada custo foi lido. É calculada sempre que você abre a página, então uma tag que você exige hoje também é medida nos últimos 30 dias. Os custos da AWS só têm tags depois que [Custos por recurso](#custos-por-recurso) é ativado: até lá, os gastos de uma conta da AWS mostram **Não medido** em vez de 0%.
+- **Recursos com tags** é a parcela dos recursos listados pelas suas conexões que têm todas as tags obrigatórias, como estão marcados agora.
+- **Cobertura ao longo do tempo** mostra cada uma das últimas 12 semanas: os gastos pelos custos, e os recursos pela contagem que o OneUptime faz todo dia.
+
+### Recursos novos
+
+Um recurso que sua conexão lista depois da primeira listagem completa da conta dele é novo. A conexão lista a cada 30 minutos, então um recurso novo é encontrado dentro da hora em que é criado. Sobre um que não tem uma tag obrigatória se avisa uma vez:
+
+- **Quem é avisado.** A pessoa que o criou, quando o registro de alterações da conta nomeia um membro do seu projeto pelo endereço de e-mail, e os proprietários do recurso, pelas regras de proprietário e pelas equipes. Quando nenhum deles pode ser avisado, os Proprietários do projeto são. Cada um precisa poder ler seus recursos de nuvem.
+- **Com que frequência.** Um e-mail por hora lista tudo o que há de novo para cada pessoa. Em **Mais configurações**, **Um e-mail por recurso** envia cada um sozinho, e **Gerar um alerta** também gera um alerta para cada conta, com a severidade e as políticas de plantão de **Para onde vão os alertas**.
+- **Quando ele recebe as tags.** Um recurso marcado antes do envio do e-mail fica de fora dele, e a lista **Recursos novos** marca cada um como **Com tags** assim que ele as tem.
+
+### Valores sugeridos
+
+O OneUptime só sugere um valor quando a tag o permite:
+
+- **Uma chave de tipo equipe**, como `team`, `owner` ou `squad`: a equipe dona do recurso.
+- **Uma chave de tipo ambiente**, como `env`, `environment` ou `stage`: o ambiente do App Platforms de um app que roda como o recurso, ou, para uma VM, o ambiente de implantação que o host dela informa.
+- **Qualquer chave**: o valor que a maioria dos recursos ao lado tem, na mesma stack do CloudFormation, no mesmo grupo de recursos do Azure ou com o mesmo nome antes do número, como `web-1` e `web-2`. Pelo menos dois precisam concordar.
+- **Uma tag que permite um só valor**: esse valor.
+
+O comando aplica a tag em uma etapa, no próprio shell da sua nuvem: `aws resourcegroupstaggingapi tag-resources` na AWS, `az tag update --operation Merge` no Azure, e `gcloud ... add-labels` ou `--update-labels` para VMs e discos do Compute Engine, buckets do Cloud Storage e instâncias do Cloud SQL no Google Cloud.
+
 ## O que você vê no OneUptime
 
 - **A visão geral da Nuvem.** **Nuvem → Visão geral** mostra os gastos do mês em relação aos do mês passado até o mesmo dia, os serviços que mais custam e as maiores formas de gastar menos, ao lado do que precisa de atenção.
 - **Os gastos de cada dia.** **Nuvem → Gastos → Custos** desenha cada um dos últimos 30 dias marcando os dias que custaram muito mais que o normal, lista esses dias e detalha um período por serviço, região, conta, recurso, ambiente de plataformas de aplicativos, aplicativo ou tag, faturado, amortizado ou líquido. As contas cujos custos não são lidos aparecem abaixo, cada uma com o motivo.
 - **Cada compromisso.** **Nuvem → Gastos → Compromissos** lista cada um com quando termina e quanto dele é usado, os que terminam em breve com o que renovar, e o que comprar.
 - **Os custos de uma conta.** Os **Custos** de uma conta mostram o mesmo só para a conta, com os compromissos e as formas de gastar menos dela.
+- **Tags obrigatórias.** **Nuvem → Gastos → Tags** mostra quanto dos gastos e dos recursos tem suas tags obrigatórias, e as **Tags** de uma conta mostram o mesmo só para aquela conta.
 - **O custo de um recurso.** A página de um recurso mostra quanto ele custou este mês e nos últimos 30 dias quando a nuvem dele o fatura pelo nome, com as formas de gastar menos dele e o ajuste de tamanho dele.
 - **O que foi economizado.** **Nuvem → Gastos → Economias** começa pelo que as alterações feitas economizaram neste mês, conforme a fatura, pelas alterações aguardando aprovação e as feitas, e pelas horas em que os agendamentos pararam recursos.
 

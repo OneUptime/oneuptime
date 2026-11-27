@@ -108,6 +108,10 @@ import CloudCommitment from "./CloudCommitment";
 import CloudCostGroup from "./CloudCostGroup";
 import CloudCostLineItem from "./CloudCostLineItem";
 import CloudCostView from "./CloudCostView";
+import CloudRequiredTag from "./CloudRequiredTag";
+import CloudTagCoverageDay from "./CloudTagCoverageDay";
+import CloudTagFinding from "./CloudTagFinding";
+import CloudTagSetting from "./CloudTagSetting";
 import CloudCostRecommendation from "./CloudCostRecommendation";
 import CloudCostSetting from "./CloudCostSetting";
 import CloudOffHoursSchedule from "./CloudOffHoursSchedule";
@@ -1398,6 +1402,10 @@ const AllModelTypes: Array<{
   CloudCostView,
   CloudCostGroup,
   CloudCostLineItem,
+  CloudRequiredTag,
+  CloudTagCoverageDay,
+  CloudTagFinding,
+  CloudTagSetting,
   CloudCostRecommendation,
   CloudCostSetting,
   CloudOffHoursSchedule,

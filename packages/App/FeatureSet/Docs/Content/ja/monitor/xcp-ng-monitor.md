@@ -1,6 +1,6 @@
 # XCP-ng モニター
 
-XCP-ng モニターは 1 つの XCP-ng プール (そのホスト、VM、ストレージリポジトリ、仮想ディスク) を監視し、Xen Orchestra がプールを見失ったとき、ホストがオフラインになったか無効のままのとき、実行中だった VM が停止したか CPU 不足になったとき、ストレージリポジトリがいっぱいになるか遅くなったときに知らせます。OneUptime の XCP-ng エージェントが収集する Xen Orchestra の OpenMetrics プラグインの `xcp_*` 系列と、OneUptime がそこから導き出す健全性の系列を読み取るため、外部から何かを調べることはありません。
+XCP-ng モニターは 1 つの XCP-ng プール (そのホスト、VM、ストレージリポジトリ、仮想ディスク) を監視し、Xen Orchestra がプールを見失ったとき、ホストがオフラインになったか無効のままのとき、実行中だった VM が停止したか CPU 不足になったとき、ストレージリポジトリがいっぱいになるか遅くなったときに知らせます。OneUptime の XCP-ng エージェントが収集する Xen Orchestra の OpenMetrics プラグインの `xcp_*` 系列と、OneUptime がそこから導き出すヘルスの系列を読み取るため、外部から何かを調べることはありません。
 
 :::cards
 - [モニターを作成する](#xcp-ng-モニターを作成する): ダッシュボードでの 6 つのステップ。
@@ -232,14 +232,14 @@ XOSTOR (LINSTOR をベースにした Vates のレプリケーションストレ
 
 | メトリクス | 単位 | 説明 |
 | --- | --- | --- |
-| `xcp_xostor_up` | — | Xen Orchestra が XOSTOR クラスターの健全性を読み取れたときは 1、読み取れなかったときは 0。 |
+| `xcp_xostor_up` | — | Xen Orchestra が XOSTOR クラスターのヘルスを読み取れたときは 1、読み取れなかったときは 0。 |
 | `xcp_xostor_node_status` | count | XOSTOR クラスターのすべてのノードで常に 1。役割と状態は `role` と `state` のラベルにあります。 |
 | `xcp_xostor_resource_total` | count | XOSTOR クラスターが定義する LINSTOR リソース。 |
 | `xcp_xostor_resource_state_count` | count | 各ディスク状態にある XOSTOR クラスターのリソースレプリカ。どの状態かは `state` ラベルでわかります。 |
 | `xcp_xostor_alarms_up` | — | Xen Orchestra が XOSTOR クラスターのアラームを読み取れたときは 1、読み取れなかったときは 0。 |
 | `xcp_xostor_alarms_count` | count | XOSTOR のストレージリポジトリまたはそのホストで有効な XAPI のアラーム (`alarm_name` と `target_type` ごと)。発生していなければ存在しません。 |
 | `xcp_xostor_smart_up` | — | Xen Orchestra が XOSTOR 用にホストの SMART データを読み取れたときは 1、読み取れなかったときは 0。 |
-| `xcp_xostor_disk_smart_status` | count | XOSTOR ホストのすべてのディスクで常に 1。SMART の健全性は `status` ラベルにあります。 |
+| `xcp_xostor_disk_smart_status` | count | XOSTOR ホストのすべてのディスクで常に 1。SMART のヘルスは `status` ラベルにあります。 |
 | `xcp_xostor_updates_up` | — | ホストの XOSTOR の更新チェックが応答したときは 1、失敗したときは 0。 |
 | `xcp_xostor_package_update_available` | count | ホストで更新を待っている XOSTOR パッケージごとに 1。どのパッケージかは `package` ラベルでわかります。 |
 

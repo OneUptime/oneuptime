@@ -40,6 +40,10 @@ import IncidentOnCallRuleService from "../../../../../Server/Services/IncidentOn
 import IncidentSeverityService from "../../../../../Server/Services/IncidentSeverityService";
 import MonitorProbeService from "../../../../../Server/Services/MonitorProbeService";
 import MonitorService from "../../../../../Server/Services/MonitorService";
+import CreateBy from "../../../../../Server/Types/Database/CreateBy";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../../../../../Server/Utils/Notification/CreatedNotificationHold";
 import MonitorStatusService from "../../../../../Server/Services/MonitorStatusService";
 import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
 import {
@@ -1139,6 +1143,76 @@ describe("set_up_website_monitoring", () => {
     expect(result.dataForLlm).toContain(
       "The person owns it, so they are emailed when its status changes.",
     );
+  });
+
+  /*
+   * The master admin is made the owner once the monitor exists, after its
+   * create returns: the monitor's create chain waits a moment for that
+   * before its notification rules are matched, so a rule that asks who owns
+   * the monitor posts its "Monitor Created" (WorkspaceRuleOwnersOnCreate,
+   * #11188). Its create is told so, and told when they are in.
+   */
+  test("REGRESSION (#11188): approved by a master admin, the monitor's create is told its owner comes after it, until they are in", async () => {
+    stubSeeds();
+    stubLocations();
+
+    let created: CreateBy<Monitor> | null = null;
+    const addingOwners: Array<string> = [];
+
+    jest.spyOn(MonitorService, "create").mockImplementation((async (
+      args: CreateBy<Monitor>,
+    ): Promise<Monitor> => {
+      created = args;
+      addingOwners.push(
+        `create: ${CreatedNotificationHold.isAddingOwners(args, [OwnersAddedBy.Caller])}`,
+      );
+      args.data._id = MONITOR_ID;
+      return args.data;
+    }) as never);
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+    jest
+      .spyOn(MonitorService, "addOwners")
+      .mockImplementation((async (): Promise<void> => {
+        addingOwners.push(
+          `owner added: ${CreatedNotificationHold.isAddingOwners(created!, [OwnersAddedBy.Caller])}`,
+        );
+      }) as never);
+
+    await SetUpWebsiteMonitoringTool.execute(
+      { address: "example.com" },
+      { ...ctx, props: { ...ctx.props, isMasterAdmin: true } },
+    );
+
+    expect(addingOwners).toEqual(["create: true", "owner added: true"]);
+    expect(
+      CreatedNotificationHold.isAddingOwners(created!, [OwnersAddedBy.Caller]),
+    ).toBe(false);
+  });
+
+  test("approved by anyone else, the monitor's create waits for no owner of the action's", async () => {
+    stubSeeds();
+    stubLocations();
+
+    const addingOwners: Array<boolean> = [];
+
+    jest.spyOn(MonitorService, "create").mockImplementation((async (
+      args: CreateBy<Monitor>,
+    ): Promise<Monitor> => {
+      addingOwners.push(
+        CreatedNotificationHold.isAddingOwners(args, [OwnersAddedBy.Caller]),
+      );
+      args.data._id = MONITOR_ID;
+      return args.data;
+    }) as never);
+    jest
+      .spyOn(MonitorProbeService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+
+    await SetUpWebsiteMonitoringTool.execute({ address: "example.com" }, ctx);
+
+    expect(addingOwners).toEqual([false]);
   });
 
   test("approved by anyone else, the server made them the owner already: nothing more is added", async () => {

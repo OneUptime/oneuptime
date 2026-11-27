@@ -84,9 +84,9 @@ Auf dem Tab **Geplante Wartung** eines Hosts, eines Kubernetes-, Proxmox-, Ceph-
 In dem Moment, in dem Sie auf **Wartungsereignis erstellen** klicken, arbeitet OneUptime diese Schritte in dieser Reihenfolge ab:
 
 1. **Es erhält eine Nummer und einen Status.** Die Nummer stammt aus einem Zähler pro Projekt und wird mit Ihrem Präfix angezeigt (`SM-42`). Das Ereignis beginnt in Ihrem geplanten Status, egal welchen Status eine Anfrage nennt.
-2. **Ihre Chat-Tools erfahren davon.** Die Slack- und Microsoft-Teams-Regeln unter **Arbeitsbereich** posten es in ihre Kanäle, und eine Regel kann einen Kanal für das Ereignis erstellen. Sein Feed hält fest, dass es erstellt wurde.
-3. **Seine Zustands-Zeitachse beginnt.** Die erste Zeile seiner **Zustands-Zeitachse** ist Ihr geplanter Status.
-4. **Eigentümer und Beschriftungen werden hinzugefügt**: die, die Sie gewählt haben, dann die der passenden Eigentümer- und Beschriftungsregeln.
+2. **Seine Zustands-Zeitachse beginnt.** Die erste Zeile seiner **Zustands-Zeitachse** ist Ihr geplanter Status.
+3. **Eigentümer und Beschriftungen werden hinzugefügt**: die, die Sie gewählt haben, dann die der passenden Eigentümer- und Beschriftungsregeln.
+4. **Ihre Chat-Tools erfahren davon.** Die Slack- und Microsoft-Teams-Regeln unter **Arbeitsbereich** posten es in ihre Kanäle, und eine Regel kann einen Kanal für das Ereignis erstellen. Sein Feed hält fest, dass es erstellt wurde. Die Regeln sehen die Eigentümer und Beschriftungen, mit denen das Ereignis erstellt wurde, sodass auch eine Regel, die nach den Eigentümern oder Beschriftungen eines Ereignisses fragt, es postet. Was in der Zwischenzeit über das Ereignis gesagt wurde, etwa die gerade hinzugefügten Eigentümer, folgt ihm in diesen Kanälen.
 5. **Runbook-Regeln starten** die Runbooks, die zum Ereignis passen.
 6. **Erinnerungen werden geplant**, wenn eine Erinnerungsregel passt, für seine Eigentümer.
 

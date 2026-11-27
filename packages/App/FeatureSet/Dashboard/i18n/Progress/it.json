@@ -520,6 +520,7 @@
     "p95 {{latency}}",
     "p99 (ms)",
     "passkey",
+    "payments, search, platform-*",
     "per GB",
     "persistent volume claim",
     "pod",

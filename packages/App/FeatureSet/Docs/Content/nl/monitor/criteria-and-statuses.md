@@ -232,6 +232,14 @@ Als een evaluatie te lang duurt voor haar monitor, waarschuwt de samenvatting u.
 
 Een tiende laat een monitor ruimte om tienvoudig te groeien voordat zijn controles elkaar in de weg zitten en achterlopen, zodat u het vroeg merkt. Onder 5 seconden is een controle in orde, hoe groot ook: 16.000 reeksen beoordelen duurt ongeveer 2,5 seconden. Boven een minuut bezet ze zo lang een worker en de databases die ze leest, wat haar interval ook is. Om haar sneller te maken, maakt u de filters van haar query's nauwer, groepeert u op minder attributen of controleert u minder vaak.
 
+## Wanneer telemetriemonitors controleren
+
+Monitors die telemetrie lezen, zoals logs-, metrics-, traces-, Kubernetes-, host- en Docker-monitors, worden niet allemaal op hetzelfde moment gecontroleerd. Elke monitor heeft zijn eigen moment in zijn interval, berekend uit de ID van de monitor: een monitor die elke minuut wordt gecontroleerd, draait op dezelfde seconde van elke minuut, een die elke 5 minuten wordt gecontroleerd op hetzelfde moment van elke 5 minuten, en een die elk uur of minder vaak wordt gecontroleerd binnen de eerste 5 minuten van het uur of de dag die zijn interval noemt. Het moment blijft hetzelfde als OneUptime opnieuw opstart en op elke server, zodat de telemetrieopslag in de loop van de minuut beetje bij beetje wordt gelezen in plaats van door alle monitors tegelijk.
+
+Elke monitor behoudt zijn interval: zijn controles liggen precies even ver uit elkaar als eerder, en elke controle beoordeelt het venster dat eindigt wanneer ze draait, zodat een venster dat even lang is als het interval nog steeds alle tijd tussen twee controles dekt. Wat verschuift, is wanneer in zijn interval een controle draait: tot één interval later, en nooit meer dan 5 minuten later. Een incident of een waarschuwing kan tot zoveel later openen dan wanneer elke controle aan het begin van haar interval zou draaien, en soms eerder. Het **Overzicht** van de monitor toont wanneer zijn volgende controle gepland is.
+
+Een nieuwe monitor wordt binnen enkele seconden na het aanmaken gecontroleerd, en daarna op zijn eigen moment. Wanneer u het interval van een monitor wijzigt, gaat zijn volgende controle naar het nieuwe interval. Direct na de upgrade naar een versie van OneUptime die controles spreidt, wordt elke monitor nog één keer gecontroleerd op het tijdstip dat het oude schema voor hem had, en daarna op zijn eigen moment.
+
 ## De criteria van een monitor wijzigen
 
 :::steps

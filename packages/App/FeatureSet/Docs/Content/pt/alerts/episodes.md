@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > Para acionar uma vez por problema em vez de uma vez por alerta, coloque as políticas de plantão nas suas regras de agrupamento e tire-as dos alertas: dos critérios do monitor, do formulário de criação e das suas regras de plantão de alertas.
 
-Os proprietários do episódio também ficam sabendo: **Episódio de alerta criado**, **Estado do episódio de alerta alterado** e **Alerta adicionado ao episódio de alerta** ficam ativados por e-mail por padrão, em **Configurações do usuário → Configurações de notificação**, na aba **Alertas**. Os **Proprietários do episódio** da regra passam a ser proprietários de cada episódio que ela abre, e são notificados como qualquer outro proprietário.
+Os proprietários do episódio também ficam sabendo: **Episódio de alerta criado**, **Estado do episódio de alerta alterado** e **Alerta adicionado ao episódio de alerta** ficam ativados por e-mail por padrão, em **Configurações do usuário → Configurações de notificação**, na aba **Alertas**. Os **Proprietários do episódio** da regra passam a ser proprietários de cada episódio que ela abre, e são notificados como qualquer outro proprietário. Eles são adicionados antes de o Slack e o Microsoft Teams ficarem sabendo do episódio, então uma regra de notificação que pergunta quem é o proprietário de um episódio publica a mensagem de criação dele.
 
 ## Criar um episódio manualmente
 
@@ -166,7 +166,7 @@ Em **Detalhes do episódio**, preencha o **Título** e, se quiser, uma **Severid
 
 Em **Plantão e proprietários**, escolha uma **Política de plantão** a executar quando o episódio for criado, e seus **Proprietários**. Depois clique em **Criar episódio**.
 
-Cada equipe da qual você é membro está a um clique abaixo de **Proprietários**, e o resumo lista as regras de proprietário que vão adicionar mais.
+Cada equipe da qual você é membro está a um clique abaixo de **Proprietários**, e o resumo lista as regras de proprietário que vão adicionar mais. Os proprietários que você escolhe, os que as regras de proprietário adicionam e os rótulos das regras de rótulos que correspondem já estão no episódio antes de o Slack e o Microsoft Teams ficarem sabendo dele, então uma regra de notificação que pergunta quem é o proprietário de um episódio, ou como ele está rotulado, também o publica.
 
 ### Adicionar os alertas
 

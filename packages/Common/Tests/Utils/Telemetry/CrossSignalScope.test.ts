@@ -999,11 +999,14 @@ describe("attributesContaining", () => {
     expect(tokens).toHaveLength(1);
     expect(tokens[0]!.type).toBe(SearchTokenType.Attribute);
     expect(tokens[0]!.key).toBe("user.id");
-    expect(tokens[0]!.predicate).toEqual<SearchValuePredicate>({
+    // Typed, as @jest/globals' toEqual takes no type argument.
+    const predicate: SearchValuePredicate = {
       operator: SearchValueOperator.Contains,
       value: TOKEN,
       values: [],
-    });
+    };
+
+    expect(tokens[0]!.predicate).toEqual(predicate);
   });
 
   test("traces: a key no token can carry, or a value with a percent, rides a chip with the same contains value", () => {

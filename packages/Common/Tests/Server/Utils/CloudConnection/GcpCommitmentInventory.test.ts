@@ -18,6 +18,7 @@ import {
 } from "../../../../Types/Cloud/CloudCommitmentInventory";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { JSONObject } from "../../../../Types/JSON";
+import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -64,7 +65,7 @@ describe("a Google Cloud commitment, read", () => {
       kind: CloudCommitmentKind.CommittedUseDiscounts,
       name: "e2-commitment-web",
       commitmentType: "GENERAL_PURPOSE_E2",
-      covers: "96 vCPU, 384 GB memory",
+      covers: `96${NO_BREAK_SPACE}vCPU, 384${NO_BREAK_SPACE}GB memory`,
       region: "us-central1",
       termMonths: 36,
       paymentOption: CloudCommitmentPaymentOption.NoUpfront,
@@ -108,7 +109,10 @@ describe("a Google Cloud commitment, read", () => {
           { type: "VCPU", amount: "0" },
         ],
       }),
-    ).toBe("8 vCPU, 32 GB memory, 375 GB local SSD, 2 × nvidia-tesla-t4");
+    ).toBe(
+      // Each number held to its unit, for the page that draws it.
+      `8${NO_BREAK_SPACE}vCPU, 32${NO_BREAK_SPACE}GB memory, 375${NO_BREAK_SPACE}GB local SSD, 2 × nvidia-tesla-t4`,
+    );
     expect(
       describeGcpCommitmentResources({
         category: "LICENSE",

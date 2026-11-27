@@ -5,6 +5,7 @@ import {
   SnmpTrapRefusalReason,
 } from "Common/Types/Probe/SnmpTrapReceiver";
 import IpCanonicalUtil from "Common/Utils/IpCanonicalUtil";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 
 /*
  * The SNMPv3 traps the probe's receiver refused, counted per source
@@ -32,8 +33,9 @@ interface RefusalEntry {
 }
 
 export default class SnmpTrapRefusals {
-  // Least recently seen first.
-  private readonly entries: Map<string, RefusalEntry> = new Map();
+  // Least recently seen first, answered in constant time.
+  private readonly entries: OldestKeyMap<string, RefusalEntry> =
+    new OldestKeyMap();
 
   /*
    * Counts one refusal. Returns true when it is the first of its source,
@@ -73,9 +75,7 @@ export default class SnmpTrapRefusals {
     });
 
     while (this.entries.size > MAX_TRACKED_REFUSALS) {
-      const oldest: string | undefined = this.entries.keys().next().value as
-        | string
-        | undefined;
+      const oldest: string | undefined = this.entries.oldestKey();
 
       if (oldest === undefined) {
         break;

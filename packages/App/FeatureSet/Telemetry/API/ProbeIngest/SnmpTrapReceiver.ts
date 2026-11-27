@@ -15,6 +15,7 @@ import SnmpTrapReceiverUtil, {
   SnmpTrapReceiverReport,
   SnmpTrapReceiverUser,
 } from "Common/Types/Probe/SnmpTrapReceiver";
+import ProbeConnectionRefusals from "Common/Types/Probe/ProbeConnectionRefusals";
 
 /*
  * A probe's SNMP trap receiver, every thirty seconds (OneUptime issue
@@ -58,10 +59,11 @@ router.post(
       const probeId: ObjectID | null = req.probe?.id || null;
 
       if (!probeId) {
+        // What every probe route says when its key check named no probe.
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(ProbeConnectionRefusals.unknownProbe),
         );
       }
 

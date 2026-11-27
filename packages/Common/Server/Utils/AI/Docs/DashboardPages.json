@@ -7736,6 +7736,24 @@
     "kind": "page"
   },
   {
+    "title": "Tags",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "required tags",
+      "tag coverage",
+      "tag compliance",
+      "tag policy",
+      "untagged resources",
+      "cost allocation tags",
+      "labels"
+    ],
+    "path": "/dashboard/:projectId/cloud/tags",
+    "kind": "page"
+  },
+  {
     "title": "Owner Rules",
     "where": [
       "Cloud",

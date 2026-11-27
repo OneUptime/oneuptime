@@ -1,11 +1,13 @@
 # 網路設備廠商指南(Sophos、Extreme、Cambium)
 
-如何用 OneUptime 端對端監控三種常見環境：帶有 IPsec 通道、WAN 連結和 SD-WAN 的 Sophos Firewall（XGS、SFOS）；帶有 Fabric 的 Extreme Networks 交換器（EXOS / Switch Engine 和 Fabric Engine / VOSS）；以及 Cambium Networks cnMatrix 交換器和 Enterprise Wi-Fi 存取點，細到每個射頻的頻道和發射功率。
+如何用 OneUptime 端對端監控三種常見環境：帶有 IPsec 通道、WAN 連結和 SD-WAN 的 Sophos Firewall（XGS、SFOS）；帶有 Fabric 的 Extreme Networks 交換器（EXOS / Switch Engine 和 Fabric Engine / VOSS）；以及 Cambium Networks cnMatrix 交換器和 Enterprise Wi-Fi 存取點，細到每個射頻的頻道和發射功率。這些指南也涵蓋 SAN 交換器（Brocade Fabric OS 和 Cisco MDS 9000），細到每個 Fibre Channel 連接埠的錯誤。
 
 :::cards
 - [Sophos Firewall](#sophos-firewall-xgs-sfos): 通道、WAN 連結、閘道和 SD-WAN。
 - [Extreme Networks](#extreme-networks-exos-switch-engine-和-fabric-engine-voss): 交換器、Fabric 及其硬體。
 - [Cambium Networks](#cambium-networks-enterprise-wi-fi-和-cnmatrix): 細到每個射頻的存取點，以及 cnMatrix 交換器。
+- [Brocade Fabric OS](#brocade-fabric-os): Fibre Channel 連接埠、光學模組、感測器和 Fabric 事件。
+- [Cisco MDS 9000](#cisco-mds-9000): Fibre Channel 介面、VSAN、慢速排空和連接埠監控警報。
 :::
 
 ## 運作方式
@@ -145,6 +147,76 @@ Cambium 只從韌體 6.5.3 起回報用戶端總數；更早的韌體會傳回 0
 ### cnMaestro 警報
 
 cnMaestro 可以把它的警報（例如存取點離線）傳送到 HTTPS Webhook。把它指向一個 [Incoming Request 監測器](/docs/monitor/incoming-request-monitor)，即可把這些警報變成與 SNMP 資料並列的 OneUptime 事件。
+
+## Brocade Fabric OS
+
+| 你想看到的 | 來自哪裡 |
+| --- | --- |
+| 交換器狀態、韌體、CPU 和記憶體 | SNMP，使用廠商範本 **Brocade Fabric OS (SAN switches)** |
+| 交換器的狀態、感測器和可更換元件（FRU），逐列顯示 | 範本的表格 `switch_status`、`sensors` 和 `frus` |
+| 每個 Fibre Channel 連接埠的類型、中斷的連接埠中斷的原因，以及每秒的錯誤、捨棄的訊框和額度等待 | SW-MIB 和 FCMGMT-MIB，在裝置的 **介面** 頁面 |
+| 每個光學模組的接收和發送功率、溫度、電壓和偏壓電流 | FA-EXT-MIB，在 **收發器** 卡片上 |
+| 交換器間連結中斷、Fabric 分裂或重新設定、分區變更、MAPS 警示、FRU 變更 | SNMPv3 trap |
+
+每台執行 Fabric OS 的交換器和導向器都回報 `1.3.6.1.4.1.1588.2.1.1` 下的系統物件 ID，因此範本適用於這些裝置，而不適用於 Brocade 的其他產品：VDX 和 SLX 交換器保留原有範本。
+
+### 在 Fabric OS 上設定 SNMP
+
+:::steps
+1. 新增一個具備驗證和加密（SHA 和 AES）的 SNMPv3 使用者：`snmpconfig --set snmpv3` 會詢問使用者、通訊協定和密語。
+2. 用 `snmpconfig --set mibCapability` 開啟 FA-MIB。它包含每個連接埠的 64 位元錯誤計數器及其光學模組；沒有它，連接埠只以 32 位元計數器回報 CRC 錯誤、編碼錯誤、捨棄的第 3 類訊框和額度等待。
+3. 在 OneUptime 中，用交換器的管理位址和該使用者新增交換器。開啟 **Auto-Apply Vendor Health Template** 時，第一次輪詢會套用範本 **Brocade Fabric OS (SAN switches)**；否則在裝置的 **設定** 頁面的 **Vendor Health Template** 中套用。
+:::
+
+之後，裝置的 **介面** 頁面會為每個 Fibre Channel 連接埠標出類型（例如 E-Port 或 F-Port），並像 `switchshow` 一樣說明中斷的連接埠中斷的原因：No light、No module、Disabled。它的 **Fibre Channel 連接埠** 卡片依秒繪製每個連接埠的錯誤、捨棄的訊框和額度計數器。
+
+連接埠的 CRC 錯誤、無效傳輸字組、連結故障以及同步和訊號遺失就是它的錯誤：**SNMP 介面錯誤（每秒）** 據此發出警示，建議的警示包含 **Fibre Channel port errors**，在十秒超過一個錯誤時觸發。捨棄的訊框和額度等待不是錯誤；要依其中之一發出警示，請使用 **SNMP Fibre Channel 計數器（每秒）**。
+
+### Virtual Fabrics
+
+啟用 Virtual Fabrics 的機箱在各自的 SNMPv3 內容中回應每個邏輯交換器：`VF:` 加上邏輯交換器的 Fabric ID。為每個邏輯交換器新增一台裝置，都使用機箱的管理位址，並為每台設定 **SNMP v3 內容**（`VF:128`、`VF:20`）；沒有內容的裝置讀取預設邏輯交換器。
+
+### Brocade trap
+
+Fabric OS 透過 SNMPv3 傳送 trap。用 `snmpconfig --set snmpv3` 把探測器新增為 OneUptime 輪詢所用使用者的 trap 接收端，UDP 連接埠 162：探測器接收它所輪詢裝置的使用者傳來的 SNMPv3 trap（請參閱 [SNMPv3 trap 和 inform](/docs/monitor/network-device-monitor#snmpv3-trap-和-inform)），每個邏輯交換器的 trap 都帶有它的內容，因此只在它的裝置上觸發。Fabric OS 升級可能會重新關閉個別 trap：升級後用 `snmpconfig --show mibCapability` 檢查，並用 `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn` 重新開啟。
+
+Brocade 交換器的建議警示為每個重要的 Fabric 事件各包含一項：**Inter-switch link down**（E-Port 離線）、**Fabric segmented**、**Fabric reconfigured**、**Zone configuration changed**、**MAPS alert** 和 **Field-replaceable unit changed**。
+
+## Cisco MDS 9000
+
+| 你想看到的 | 來自哪裡 |
+| --- | --- |
+| CPU 和記憶體 | SNMP，使用廠商範本 **Cisco MDS 9000 (SAN switches)** |
+| 電源供應器、模組和風扇托盤，逐列顯示 | 範本的表格 `power_supplies`、`modules` 和 `fan_trays` |
+| 每個 VSAN 及其狀態 | 範本的表格 `vsans` |
+| 每個 fc 介面的類型、中斷的介面中斷的原因，以及每秒的錯誤、捨棄的訊框、額度遺失和額度等待 | CISCO-FC-FE-MIB，在裝置的 **介面** 頁面 |
+| 每個光學模組的讀數和警報臨界值 | CISCO-ENTITY-SENSOR-MIB，在 **收發器** 卡片上 |
+| 連接埠監控警報、連結中斷、分區、VSAN、Fabric 和 FRU 變更 | Trap |
+
+MDS 與所有其他 Cisco 裝置共用 Cisco 的企業編號，因此 OneUptime 透過型號或以 `Cisco NX-OS(tm) m9` 開頭的系統描述辨識它：IOS、IOS-XE 和 Nexus 交換器保留原有的 Cisco 範本。
+
+### 在 NX-OS 上設定 SNMP
+
+:::steps
+1. 新增一個唯讀 SNMPv3 使用者：`snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`。`network-operator` 角色只能讀取，不能變更任何內容。
+2. 以該使用者向探測器傳送 trap：`snmp-server host <probe-address> traps version 3 priv oneuptime`。
+3. 開啟預設關閉的 trap：`snmp-server enable traps zone`、`snmp-server enable traps vsan`、`snmp-server enable traps fcdomain`、`snmp-server enable traps fspf`，以及用於光學模組的 `snmp-server enable traps link cisco-xcvr-mon-status-chg`。
+4. 在 OneUptime 中，用交換器的管理位址和該使用者新增交換器：範本 **Cisco MDS 9000 (SAN switches)** 以相同方式套用。
+:::
+
+MDS 的建議警示包含 **Credit loss (slow drain)** 和 **Timeout discards (slow drain)**，每個介面一次：不再歸還緩衝區額度的主機或儲存陣列會拖慢其後的每個流量，而這些計數器最先顯示出來。
+
+### 連接埠監控警報
+
+MDS 的連接埠監控原則在連接埠計數器越過臨界值時觸發 RMON 警報。建議的警示包含 **Port monitor alarm**，其警示會寫明計數器和介面，例如 "Port monitor: Credit loss rising on fc1/5"。一個監視慢速排空的原則：
+
+```text
+port-monitor name slow-drain
+  logical-type edge
+  counter credit-loss-reco poll-interval 1 delta rising-threshold 1 event 4 falling-threshold 0 event 4
+  counter timeout-discards poll-interval 60 delta rising-threshold 200 event 4 falling-threshold 10 event 4
+port-monitor activate slow-drain
+```
 
 ## 疑難排解
 

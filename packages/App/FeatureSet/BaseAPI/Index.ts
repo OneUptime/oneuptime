@@ -2198,6 +2198,19 @@ import CloudAccountFeedService, {
   Service as CloudAccountFeedServiceType,
 } from "Common/Server/Services/CloudAccountFeedService";
 import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
+import CloudRequiredTagAPI from "Common/Server/API/CloudRequiredTagAPI";
+import CloudTagCoverageDay from "Common/Models/DatabaseModels/CloudTagCoverageDay";
+import CloudTagCoverageDayService, {
+  Service as CloudTagCoverageDayServiceType,
+} from "Common/Server/Services/CloudTagCoverageDayService";
+import CloudTagFinding from "Common/Models/DatabaseModels/CloudTagFinding";
+import CloudTagFindingService, {
+  Service as CloudTagFindingServiceType,
+} from "Common/Server/Services/CloudTagFindingService";
+import CloudTagSetting from "Common/Models/DatabaseModels/CloudTagSetting";
+import CloudTagSettingService, {
+  Service as CloudTagSettingServiceType,
+} from "Common/Server/Services/CloudTagSettingService";
 import CloudBudgetService, {
   Service as CloudBudgetServiceType,
 } from "Common/Server/Services/CloudBudgetService";
@@ -4053,6 +4066,41 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<CloudCostLineItem, CloudCostLineItemServiceType>(
         CloudCostLineItem,
         CloudCostLineItemService,
+      ).getRouter(),
+    );
+
+    /*
+     * Required tags (#11012): the tags the clouds' resources must carry,
+     * how the project is told about a new resource without one, the new
+     * resources found, and each account's daily count. The last two are
+     * the watcher's: read only.
+     */
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudRequiredTagAPI().getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudTagSetting, CloudTagSettingServiceType>(
+        CloudTagSetting,
+        CloudTagSettingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudTagFinding, CloudTagFindingServiceType>(
+        CloudTagFinding,
+        CloudTagFindingService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<CloudTagCoverageDay, CloudTagCoverageDayServiceType>(
+        CloudTagCoverageDay,
+        CloudTagCoverageDayService,
       ).getRouter(),
     );
 

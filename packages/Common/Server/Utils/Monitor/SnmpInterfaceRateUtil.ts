@@ -1,5 +1,9 @@
 import { JSONObject } from "../../../Types/JSON";
 import SnmpInterface from "../../../Types/Monitor/SnmpMonitor/SnmpInterface";
+import SnmpFibreChannelUtil, {
+  FIBRE_CHANNEL_COUNTERS,
+  FibreChannelCounterValues,
+} from "../../../Types/Monitor/SnmpMonitor/SnmpFibreChannel";
 import SnmpMonitorResponse from "../../../Types/Monitor/SnmpMonitor/SnmpMonitorResponse";
 import OneUptimeDate from "../../../Types/Date";
 import logger from "../Logger";
@@ -12,6 +16,14 @@ import logger from "../Logger";
  * Probes stay stateless — the delta is computed here, on ingest, before the
  * walk is persisted. Negative deltas (counter wrap or device reboot) are
  * skipped for that interface; rates resume on the following walk.
+ *
+ * A Fibre Channel port's own counters (SnmpInterface.fibreChannel) are rated
+ * the same way, each on its own: one that went backwards - a 32-bit counter
+ * that wrapped, or a `statsclear` on the switch - has no rate this poll,
+ * never a negative one and never a spike. Its error counters' rates are the
+ * port's errorsPerSecond, in place of ifInErrors and ifOutErrors: Brocade
+ * leaves those empty on a Fibre Channel port, and where a switch fills them
+ * they count the same frames, which would count them twice.
  */
 export default class SnmpInterfaceRateUtil {
   public static attachInterfaceRates(data: {
@@ -110,6 +122,14 @@ export default class SnmpInterfaceRateUtil {
       return Math.round(value * 100) / 100;
     };
 
+    /*
+     * Errors are rare events: one CRC error in a five-minute poll is 0.0033
+     * a second, which two decimals would round to none at all.
+     */
+    const roundRate: (value: number) => number = (value: number) => {
+      return SnmpInterfaceRateUtil.roundErrorRate(value);
+    };
+
     const previousByIndex: Map<number, JSONObject> = new Map();
     for (const previousInterface of previousInterfaces) {
       const index: unknown = previousInterface["interfaceIndex"];
@@ -172,8 +192,26 @@ export default class SnmpInterfaceRateUtil {
         previousInterface["outErrors"],
       );
 
-      if (inErrorsDelta !== undefined || outErrorsDelta !== undefined) {
-        currentInterface.errorsPerSecond = round(
+      const fibreChannelRates: FibreChannelCounterValues | undefined =
+        SnmpInterfaceRateUtil.getFibreChannelRates({
+          current: currentInterface.fibreChannel?.counters,
+          previous: (
+            previousInterface["fibreChannel"] as JSONObject | undefined
+          )?.["counters"],
+          elapsedSeconds: elapsedSeconds,
+        });
+
+      if (fibreChannelRates && currentInterface.fibreChannel) {
+        currentInterface.fibreChannel.ratesPerSecond = fibreChannelRates;
+      }
+
+      const fibreChannelErrorRate: number | undefined =
+        SnmpFibreChannelUtil.sumErrorRates(fibreChannelRates);
+
+      if (fibreChannelErrorRate !== undefined) {
+        currentInterface.errorsPerSecond = roundRate(fibreChannelErrorRate);
+      } else if (inErrorsDelta !== undefined || outErrorsDelta !== undefined) {
+        currentInterface.errorsPerSecond = roundRate(
           ((inErrorsDelta || 0) + (outErrorsDelta || 0)) / elapsedSeconds,
         );
       }
@@ -182,5 +220,61 @@ export default class SnmpInterfaceRateUtil {
     logger.debug(
       `Attached SNMP interface rates over ${round(elapsedSeconds)}s window`,
     );
+  }
+
+  // An error rate, to four decimals.
+  public static roundErrorRate(value: number): number {
+    return Math.round(value * 10000) / 10000;
+  }
+
+  /*
+   * Each Fibre Channel counter's growth per second since the previous
+   * poll, for the counters both polls read and that did not go backwards.
+   * Undefined when none has a rate.
+   */
+  public static getFibreChannelRates(data: {
+    current: FibreChannelCounterValues | undefined;
+    previous: unknown;
+    elapsedSeconds: number;
+  }): FibreChannelCounterValues | undefined {
+    if (
+      !data.current ||
+      !data.previous ||
+      typeof data.previous !== "object" ||
+      !Number.isFinite(data.elapsedSeconds) ||
+      data.elapsedSeconds <= 0
+    ) {
+      return undefined;
+    }
+
+    const previous: JSONObject = data.previous as JSONObject;
+    const rates: FibreChannelCounterValues = {};
+
+    for (const counter of FIBRE_CHANNEL_COUNTERS) {
+      const currentValue: number | undefined = data.current[counter];
+      const previousValue: unknown = previous[counter];
+
+      if (
+        typeof currentValue !== "number" ||
+        !Number.isFinite(currentValue) ||
+        typeof previousValue !== "number" ||
+        !Number.isFinite(previousValue)
+      ) {
+        continue;
+      }
+
+      const delta: number = currentValue - previousValue;
+
+      // Went backwards: a wrap or a reset. No rate, never a negative one.
+      if (delta < 0) {
+        continue;
+      }
+
+      rates[counter] = SnmpInterfaceRateUtil.roundErrorRate(
+        delta / data.elapsedSeconds,
+      );
+    }
+
+    return Object.keys(rates).length > 0 ? rates : undefined;
   }
 }

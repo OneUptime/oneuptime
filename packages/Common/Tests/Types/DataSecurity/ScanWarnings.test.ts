@@ -3,9 +3,11 @@ import { BINARY_SIGNATURES } from "../../../Server/Utils/DataSecurity/Content/Co
 import { UNREAD_EXTENSIONS } from "../../../Server/Utils/DataSecurity/Content/ObjectStoreSampler";
 import {
   describeScanDuration,
+  readScanDuration,
+} from "../../../Types/DataSecurity/ScanWarningDuration";
+import {
   formatScanDuration,
   MAX_READ_SCAN_WARNING_LENGTH,
-  readScanDuration,
   ReadScanWarning,
   readScanWarning,
   SCAN_FORMAT_NAMES,

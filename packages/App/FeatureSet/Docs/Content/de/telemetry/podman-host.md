@@ -150,7 +150,7 @@ Um einen Wert zu ändern, entfernen Sie den Agent und führen seinen Befehl erne
 | Container-Metriken | CPU (Nutzung, Prozentsatz, Drosselung), Speicher (Nutzung, Limit, Prozentsatz), Netzwerk- und Block-I/O, Betriebszeit, Neustarts und Prozessanzahl, pro Container, alle 30 Sekunden. |
 | Container-Logs | stdout und stderr jedes Containers, aus der Datei `ctr.log`, die der Log-Treiber `k8s-file` schreibt. |
 
-Die Metriken und Logs jedes Containers werden unter einem Dienst abgelegt, der nach dem Container benannt ist. Jede Logzeile erhält einen Schweregrad aus der Stufe, die sie nennt, etwa `[ERROR]`, `level=warn` oder `{"level":"info"}`; eine Zeile ohne Stufe übernimmt die ihres Streams: stderr ist `ERROR`, stdout ist `INFO`. Zeilen, die mit Leerraum oder einer schließenden Klammer beginnen, werden an die vorherige Zeile angehängt, sodass ein Stacktrace als ein Datensatz ankommt. Die eigenen Logs des Agents werden weggelassen.
+Die Metriken und Logs jedes Containers werden unter einem Dienst abgelegt, der nach dem Container benannt ist. Jede Logzeile erhält einen Schweregrad aus der Stufe, die sie nennt, etwa `[ERROR]`, `level=warn` oder `{"level":"info"}`, und der Traceback einer Exception zählt als `ERROR`. Eine Zeile ohne Stufe ist auf stdout `INFO` und hat auf stderr keinen Schweregrad, denn dorthin schreiben Programme ihre Diagnosen jeder Stufe. Zeilen, die mit Leerraum oder einer schließenden Klammer beginnen, werden an die vorherige Zeile angehängt, sodass ein Stacktrace als ein Datensatz ankommt. Die eigenen Logs des Agents werden weggelassen.
 
 [Podman-Überwachung](/docs/monitor/podman-monitor#erfasste-metriken) listet jede Metrik und ihre Bedeutung auf.
 
