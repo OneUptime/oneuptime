@@ -5549,6 +5549,23 @@ jobs:
           Tests/Server/Services/XcpNgResourceWritesPostgres.test.ts
           --forceExit
 
+      # The telemetry scheduler's stamps (#11060), on a "Monitor" table of
+      # the columns its statements touch, in a schema of its own: every row
+      # still due stamped once with its own next due time, by two schedulers
+      # at once too, a refused job made due again, the stamp a HOT update,
+      # and an interval edit moving the next due time.
+      - name: Test the telemetry scheduler's stamps on Postgres
+        if: matrix.shard == 5
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TELEMETRY_STAMP_TESTS: "true"
+          TELEMETRY_STAMP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TELEMETRY_STAMP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Monitor/TelemetryMonitorStampsPostgres.test.ts
+          --forceExit
+
       # A project's cloud commitments and cost settings (#11007, #11011), on
       # copies of the migrated tables, through the services: the settings
       # row made with its defaults once, by three callers at once too; each
