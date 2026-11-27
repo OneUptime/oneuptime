@@ -170,7 +170,7 @@ Voordat OneUptime AI begint, leest Gegevensbeveiliging de records waarin elk lek
 
 - **Een span of een AI-aanroep**: het bestand, de regel en de functie die zijn attributen `code.*` noemen, en de naam van de span.
 - **Een uitzondering**: zijn eigen bovenste frames, die in de code van de service.
-- **Een logregel**: het bestand, de regel en de functie die zijn attributen noemen, als die er zijn, zijn logger, en de regel als sjabloon, elke waarde vervangen door de naam van zijn type, zoals `User <Email address> signed up`, en elk woord waarvan zijn records niet bewijzen dat de code het schreef, zoals de naam van een persoon, door `<value>`: `Payment declined for Maria Gonzalez`, gelezen uit één record, wordt `Payment declined for <value>`. De naam van een span en de naam van een metriek worden op dezelfde manier gelezen.
+- **Een logregel**: het bestand, de regel en de functie die zijn attributen noemen, als die er zijn, zijn logger, en de regel als sjabloon, elke waarde vervangen door de naam van zijn type, zoals `User <Email address> signed up`, en elk woord dat niet een van de woorden is waarmee code logregels schrijft, zoals de naam van een persoon of een gebruikersnaam, door `<value>`, hoeveel van zijn records het woord ook delen: `Payment declined for Maria Gonzalez` wordt `Payment declined for <value>`, en `Ticket assigned to jdoe`, gelezen uit alle records van de regel, wordt `Ticket assigned to <value>`. De naam van een span en de naam van een metriek worden op dezelfde manier gelezen.
 - **Een metriek**: de naam van de metriek.
 - **Elk lek**: zijn attribuutsleutel, zoals `user.email`, die de code meestal letterlijk schrijft.
 
