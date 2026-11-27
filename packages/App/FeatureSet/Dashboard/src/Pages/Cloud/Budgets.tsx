@@ -174,7 +174,8 @@ const CloudBudgets: FunctionComponent<
       userPreferencesKey="cloud-budgets-table"
       name="Cloud > Budgets"
       isDeleteable={true}
-      isEditable={true}
+      // A budget is edited in one place: Edit on its own page (Budget.tsx).
+      isEditable={false}
       isCreateable={true}
       isViewable={true}
       onViewPage={async (item: CloudBudget): Promise<Route> => {

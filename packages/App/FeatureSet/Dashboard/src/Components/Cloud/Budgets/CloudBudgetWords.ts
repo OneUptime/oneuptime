@@ -338,6 +338,8 @@ export function getFiscalMonthOptions(
     return {
       label: formatCalendarMonthName(monthNumber, translator),
       value: monthNumber,
+      // In the reader's language already: never looked up again.
+      isUserContent: true,
     };
   });
 }
