@@ -46,7 +46,7 @@ services:
       - XO_OPENMETRICS_SECRET=${XO_OPENMETRICS_SECRET}
       # What to call this Xen Orchestra in OneUptime, stamped as
       # xen_orchestra.name on every pool it reads. Defaults to its address.
-      - XO_NAME=${XO_NAME:-${XO_ADDRESS}}
+      - XO_NAME=${XO_NAME:-${XO_ADDRESS:-}}
       # The name Xen Orchestra's certificate is checked against when XO_URL
       # uses an address the certificate does not list. Empty: XO_ADDRESS's
       # host.

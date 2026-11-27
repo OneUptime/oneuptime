@@ -64,3 +64,38 @@ configure({ asyncUtilTimeout: 5000 });
 refuseRealRequests({
   census: process.env[CENSUS_ENVIRONMENT_VARIABLE] === "1",
 });
+
+/*
+ * THE RECOMMENDATION COVERAGE ROUTE IS ANSWERED IN EVERY SUITE (#11170).
+ *
+ * Every resource's side menu, a part's alerts card, a cloud account's
+ * recommendations and the telemetry guided setup ask the server which
+ * recommended monitors exist (POST /monitor/recommendation-coverage). They
+ * read the project's monitors through ModelAPI before, which every page
+ * suite stands in for; since #11170 each suite that draws one sent the
+ * request, and the rule above failed it (StorageArrayPages and the rest).
+ *
+ * So the Dashboard's coverage client answers every suite as the server
+ * would, from the monitors the suite's ModelAPI stands in for
+ * (Tests/App/Dashboard/MonitorCoverageAnswer), and sends nothing. A suite that
+ * answers coverage itself - MonitorCoverageServer.serveCoverageFrom, or a
+ * jest.spyOn of findCoveringMonitors - still does, and the client's own
+ * suite tests the real request with jest.unmock. The module is loaded only
+ * by a suite that draws one of those pages.
+ */
+jest.mock(
+  "../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi",
+  () => {
+    const client: { default: { findCoveringMonitors: unknown } } =
+      jest.requireActual(
+        "../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi",
+      ) as { default: { findCoveringMonitors: unknown } };
+    const standIn: { answerCoverageFromModelApi: unknown } = jest.requireActual(
+      "./App/Dashboard/MonitorCoverageAnswer",
+    ) as { answerCoverageFromModelApi: unknown };
+
+    client.default.findCoveringMonitors = standIn.answerCoverageFromModelApi;
+
+    return client;
+  },
+);

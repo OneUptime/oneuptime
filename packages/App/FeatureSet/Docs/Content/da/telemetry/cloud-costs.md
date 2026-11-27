@@ -272,7 +272,7 @@ Forbrug er kun så godt fordelt som de tags, det har. Under **Cloud → Forbrug 
 :::steps
 ### Kræv et tag
 
-Vælg **Kræv et tag**, og angiv dets **Tag-nøgle**. Under **Tilladte værdier** angiver du de værdier, det må have, adskilt med kommaer, eller lader feltet stå tomt for at tillade enhver værdi. Vælg en **Konto** for kun at kræve tagget i den konto. En **Beskrivelse** under **Flere felter** fortæller i e-mailene, hvad tagget er til.
+Vælg **Kræv et tag**, og angiv dets **Mærkenøgle**. Under **Tilladte værdier** angiver du de værdier, det må have, adskilt med kommaer, eller lader feltet stå tomt for at tillade enhver værdi. Vælg en **Konto** for kun at kræve tagget i den konto. En **Beskrivelse** under **Flere felter** fortæller i e-mailene, hvad tagget er til.
 
 ### Læs dækningen
 

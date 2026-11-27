@@ -272,7 +272,7 @@ El gasto solo está bien repartido si lleva las etiquetas correctas. En **Nube �
 :::steps
 ### Exigir una etiqueta
 
-Elige **Exigir una etiqueta** e introduce su **Clave de etiqueta**. En **Valores permitidos**, enumera los valores que puede tomar, separados por comas, o déjalo vacío para aceptar cualquier valor. Elige una **Cuenta** para exigir la etiqueta solo en esa cuenta. Una **Descripción**, en **Más campos**, dice en los correos para qué sirve la etiqueta.
+Elige **Exigir una etiqueta** e introduce su **Clave de la etiqueta**. En **Valores permitidos**, enumera los valores que puede tomar, separados por comas, o déjalo vacío para aceptar cualquier valor. Elige una **Cuenta** para exigir la etiqueta solo en esa cuenta. Una **Descripción**, en **Más campos**, dice en los correos para qué sirve la etiqueta.
 
 ### Leer la cobertura
 
