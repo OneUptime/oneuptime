@@ -290,6 +290,13 @@
       "failed": "Das Abbestellen ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "loadFailed": "Dieser Abbestelllink konnte nicht geladen werden. Bitte versuchen Sie es später erneut."
     },
+    "incidentCategories": {
+      "group": "Vorfallkategorien",
+      "all": "Alle Vorfallkategorien",
+      "allDescription": "Erhalten Sie Vorfallupdates aus allen Kategorien.",
+      "select": "Vorfallkategorien auswählen",
+      "selectDescription": "Vorfälle ohne Kategorie werden automatisch aufgenommen."
+    },
     "preferences": {
       "title": "Einstellungen",
       "description": "Wählen Sie, worüber Sie informiert werden.",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "Sie erhalten nur Updates der ausgewählten Ereignistypen.",
         "pickedResourcesAndEventTypes": "Sie erhalten nur Updates zu den ausgewählten Ressourcen und Ereignistypen.",
         "noResources": "Sie haben noch keine Ressourcen ausgewählt.",
-        "noEventTypes": "Sie haben noch keine Ereignistypen ausgewählt."
+        "noEventTypes": "Sie haben noch keine Ereignistypen ausgewählt.",
+        "pickedIncidentCategories": "Sie erhalten Updates zu den ausgewählten Kategorien und zu Vorfällen ohne Kategorie.",
+        "noIncidentCategories": "Sie erhalten Vorfallupdates nur zu Vorfällen ohne Kategorie."
       }
     }
   },

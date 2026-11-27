@@ -290,6 +290,13 @@
       "failed": "无法取消订阅，请重试。",
       "loadFailed": "无法加载此取消订阅链接，请稍后重试。"
     },
+    "incidentCategories": {
+      "group": "事件类别",
+      "all": "所有事件类别",
+      "allDescription": "接收所有类别的事件更新。",
+      "select": "选择事件类别",
+      "selectDescription": "没有类别的事件会自动包含。"
+    },
     "preferences": {
       "title": "偏好设置",
       "description": "选择您要接收的更新内容。",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "您将仅收到所选事件类型的更新。",
         "pickedResourcesAndEventTypes": "您将仅收到所选资源和事件类型的更新。",
         "noResources": "您尚未选择任何资源。",
-        "noEventTypes": "您尚未选择任何事件类型。"
+        "noEventTypes": "您尚未选择任何事件类型。",
+        "pickedIncidentCategories": "您将收到所选类别和没有类别的事件更新。",
+        "noIncidentCategories": "您只会收到没有类别的事件更新。"
       }
     }
   },

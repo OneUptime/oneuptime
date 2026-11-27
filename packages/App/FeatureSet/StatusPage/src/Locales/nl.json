@@ -290,6 +290,13 @@
       "failed": "Afmelden is mislukt. Probeer het opnieuw.",
       "loadFailed": "Deze afmeldlink kon niet worden geladen. Probeer het later opnieuw."
     },
+    "incidentCategories": {
+      "group": "Incidentcategorieën",
+      "all": "Alle incidentcategorieën",
+      "allDescription": "Ontvang incidentupdates uit elke categorie.",
+      "select": "Kies incidentcategorieën",
+      "selectDescription": "Incidenten zonder categorie worden automatisch opgenomen."
+    },
     "preferences": {
       "title": "Voorkeuren",
       "description": "Kies waarover u op de hoogte wordt gehouden.",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "U ontvangt alleen updates van de gebeurtenistypen die u hebt gekozen.",
         "pickedResourcesAndEventTypes": "U ontvangt alleen updates over de bronnen en gebeurtenistypen die u hebt gekozen.",
         "noResources": "U hebt nog geen bronnen gekozen.",
-        "noEventTypes": "U hebt nog geen gebeurtenistypen gekozen."
+        "noEventTypes": "U hebt nog geen gebeurtenistypen gekozen.",
+        "pickedIncidentCategories": "U ontvangt updates over de categorieën die u hebt gekozen en incidenten zonder categorie.",
+        "noIncidentCategories": "U ontvangt alleen incidentupdates voor incidenten zonder categorie."
       }
     }
   },

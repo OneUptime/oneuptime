@@ -290,6 +290,13 @@
       "failed": "Impossibile annullare l'iscrizione. Riprova.",
       "loadFailed": "Impossibile caricare questo link per annullare l'iscrizione. Riprova più tardi."
     },
+    "incidentCategories": {
+      "group": "Categorie di incidenti",
+      "all": "Tutte le categorie di incidenti",
+      "allDescription": "Ricevi aggiornamenti sugli incidenti di tutte le categorie.",
+      "select": "Scegli le categorie di incidenti",
+      "selectDescription": "Gli incidenti senza categoria vengono inclusi automaticamente."
+    },
     "preferences": {
       "title": "Preferenze",
       "description": "Scegli di cosa vuoi essere informato.",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "Riceverai solo gli aggiornamenti dei tipi di eventi che hai scelto.",
         "pickedResourcesAndEventTypes": "Riceverai solo gli aggiornamenti sulle risorse e sui tipi di eventi che hai scelto.",
         "noResources": "Non hai ancora scelto nessuna risorsa.",
-        "noEventTypes": "Non hai ancora scelto nessun tipo di evento."
+        "noEventTypes": "Non hai ancora scelto nessun tipo di evento.",
+        "pickedIncidentCategories": "Riceverai aggiornamenti sulle categorie selezionate e sugli incidenti senza categoria.",
+        "noIncidentCategories": "Riceverai aggiornamenti solo sugli incidenti senza categoria."
       }
     }
   },

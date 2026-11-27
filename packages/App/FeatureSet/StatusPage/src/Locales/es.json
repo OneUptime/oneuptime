@@ -290,6 +290,13 @@
       "failed": "No se pudo cancelar la suscripción. Inténtelo de nuevo.",
       "loadFailed": "No se pudo cargar este enlace para cancelar la suscripción. Inténtelo de nuevo más tarde."
     },
+    "incidentCategories": {
+      "group": "Categorías de incidentes",
+      "all": "Todas las categorías de incidentes",
+      "allDescription": "Recibe actualizaciones de incidentes de todas las categorías.",
+      "select": "Elige categorías de incidentes",
+      "selectDescription": "Los incidentes sin categoría se incluyen automáticamente."
+    },
     "preferences": {
       "title": "Preferencias",
       "description": "Elija sobre qué desea recibir actualizaciones.",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "Solo recibirá actualizaciones de los tipos de eventos que eligió.",
         "pickedResourcesAndEventTypes": "Solo recibirá actualizaciones de los recursos y tipos de eventos que eligió.",
         "noResources": "Todavía no ha elegido ningún recurso.",
-        "noEventTypes": "Todavía no ha elegido ningún tipo de evento."
+        "noEventTypes": "Todavía no ha elegido ningún tipo de evento.",
+        "pickedIncidentCategories": "Recibirás actualizaciones sobre las categorías que elijas y sobre los incidentes sin categoría.",
+        "noIncidentCategories": "Solo recibirás actualizaciones de incidentes sin categoría."
       }
     }
   },
