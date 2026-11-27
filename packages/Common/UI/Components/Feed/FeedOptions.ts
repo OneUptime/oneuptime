@@ -115,18 +115,20 @@ const EVENT_TYPE_LABELS: Map<string, string> = new Map<string, string>([
 /*
  * Runs that camel-case splitting would get wrong, matched before any other
  * word: "VMware" would split into "V Mware", "OpenStack" into "Open Stack",
- * "OnCall" should read "On-Call", and the SLO feed's
- * "ServiceLevelObjective" prefix is written "SLO" everywhere else in the
- * dashboard. "OnCallDuty" is the stored name of on-call policies and
- * schedules: the product calls them "On-Call" since "On-Call Duty" was
- * retired (#6817), so "OnCallDutyScheduleAdded" reads "On-Call Schedule
- * Added". It comes before "OnCall", which would otherwise match first.
+ * "XcpNg" into "Xcp Ng" (the product is XCP-ng), "OnCall" should read
+ * "On-Call", and the SLO feed's "ServiceLevelObjective" prefix is written
+ * "SLO" everywhere else in the dashboard. "OnCallDuty" is the stored name
+ * of on-call policies and schedules: the product calls them "On-Call" since
+ * "On-Call Duty" was retired (#6817), so "OnCallDutyScheduleAdded" reads
+ * "On-Call Schedule Added". It comes before "OnCall", which would otherwise
+ * match first.
  */
 const EVENT_TYPE_WORDS: Array<{ word: string; label: string }> = [
   { word: "ServiceLevelObjective", label: "SLO" },
   { word: "VMware", label: "VMware" },
   { word: "VCenter", label: "vCenter" },
   { word: "OpenStack", label: "OpenStack" },
+  { word: "XcpNg", label: "XCP-ng" },
   { word: "OnCallDuty", label: "On-Call" },
   { word: "OnCall", label: "On-Call" },
 ];
