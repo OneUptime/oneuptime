@@ -27,6 +27,14 @@
  * out, as the plugin leaves out a pool it is no longer connected to), and
  * `noPools` answers as a Xen Orchestra connected to no pool.
  *
+ * Its REST API (@xen-orchestra/rest-api, which the XCP-ng AI agent reads)
+ * answers the one request the installer makes of it: GET
+ * /rest/v0/users/me with the token in the `authenticationToken` cookie, a
+ * 307 to /rest/v0/users/<id> for a token of `restTokens` (token -> user
+ * id) and a 401 {"error":"invalid credentials"} for any other. `rest:
+ * "absent"` answers as a Xen Orchestra older than its REST API: xo-server's
+ * own 404 page. A request record says whether a token came, never which.
+ *
  * Used in-process by the agent's jest suites, and as a script by
  * xcp-ng-agent-scrape-behaviour.sh, which runs it in a container with its
  * settings in the environment (XO_SECRET, XO_CERT, XO_KEY, XO_PORT,
@@ -71,6 +79,8 @@ function createFakeXenOrchestra(options = {}) {
     noPools: false,
     plugin: "on",
     log: null,
+    restTokens: {},
+    rest: "on",
     ...options,
   };
   const requests = [];
@@ -81,6 +91,10 @@ function createFakeXenOrchestra(options = {}) {
       method: request.method,
       url: request.url,
       authorization: request.headers["authorization"] || null,
+      // Whether a token came in the cookie, never the token.
+      token: /(?:^|;\s*)authenticationToken=/.test(request.headers["cookie"] || "")
+        ? "present"
+        : null,
       verdict: "",
     };
     requests.push(record);
@@ -99,6 +113,22 @@ function createFakeXenOrchestra(options = {}) {
     };
 
     const url = request.url || "/";
+    if (url.startsWith("/rest/v0/") && settings.rest !== "absent") {
+      const cookie = request.headers["cookie"] || "";
+      const match = /(?:^|;\s*)authenticationToken=([^;]*)/.exec(cookie);
+      const userId = match
+        ? settings.restTokens[decodeURIComponent(match[1])]
+        : undefined;
+      if (!userId) {
+        return json(401, { error: "invalid credentials" }, "rest-refused");
+      }
+      if (url === "/rest/v0/users/me" && request.method === "GET") {
+        record.verdict = "rest-me";
+        response.writeHead(307, { Location: `/rest/v0/users/${userId}` });
+        return response.end();
+      }
+      return json(404, { error: "no such object" }, "rest-not-found");
+    }
     if (!url.startsWith("/openmetrics/")) {
       return done(
         404,

@@ -42,6 +42,7 @@ enum AiResourceType {
   AzureSubscription = "AzureSubscription",
   GoogleCloudProject = "GoogleCloudProject",
   OpenStackCloud = "OpenStackCloud",
+  XcpNgPool = "XcpNgPool",
 }
 
 export default AiResourceType;
@@ -50,8 +51,8 @@ export default AiResourceType;
  * Every type, in declaration order. This is also the priority order in
  * which a remediation round picks among several resources linked to one
  * incident or alert, so reordering it changes which resource AI fixes first.
- * The cloud accounts come after the rest, appended, and an OpenStack cloud
- * after them, so no existing priority changes.
+ * The cloud accounts come after the rest, appended, then an OpenStack cloud
+ * and an XCP-ng pool after them, so no existing priority changes.
  */
 export const ALL_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
   AiResourceType.DockerHost,
@@ -66,6 +67,7 @@ export const ALL_AI_RESOURCE_TYPES: ReadonlyArray<AiResourceType> = [
   AiResourceType.AzureSubscription,
   AiResourceType.GoogleCloudProject,
   AiResourceType.OpenStackCloud,
+  AiResourceType.XcpNgPool,
 ];
 
 // The cloud accounts, in ALL_AI_RESOURCE_TYPES order.
@@ -371,15 +373,44 @@ export const AI_RESOURCE_TYPE_INFO: Readonly<
     identityEnvVars: ["OPENSTACK_CLOUD_NAME"],
     defaultIdentityPlaceholders: ["openstack"],
   },
+  /*
+   * There is no xo-cli in the agent either: "xo-cli rest" is parsed by the
+   * policy and executed as one call to Xen Orchestra's REST API (/rest/v0),
+   * a read with a token of a user holding Xen Orchestra's Read only role, a
+   * fix with a second token of its own. One agent serves one pool, by its
+   * XAPI UUID - the identity the XCP-ng Agent's collector reports
+   * (xcp_ng.pool.id). XCP_NG_POOL_ID names it; unset, the agent asks Xen
+   * Orchestra and serves the one pool it manages. A UUID is unique, so
+   * there is no placeholder to warn about.
+   */
+  [AiResourceType.XcpNgPool]: {
+    type: AiResourceType.XcpNgPool,
+    displayName: "XCP-ng pool",
+    sentenceName: "XCP-ng pool",
+    agentDisplayName: "XCP-ng AI agent",
+    agentAlias: "xcp-ng",
+    programs: ["xo-cli"],
+    testCommands: [
+      "xo-cli rest get pools fields=name_label,master,HA_enabled",
+      "xo-cli rest get hosts fields=name_label,power_state,enabled",
+    ],
+    identityEnvVars: ["XCP_NG_POOL_ID"],
+    defaultIdentityPlaceholders: [],
+  },
 };
 
 /*
  * Whether the agent finds its identity itself when no variable names it: a
- * Host reads its own hostname, a cloud agent asks its cloud
+ * Host reads its own hostname, a cloud agent asks its cloud, an XCP-ng
+ * agent asks Xen Orchestra for the one pool it manages
  * (ResourceExecutor.resolveResourceIdentifier).
  */
 export function isIdentityResolvedByAgent(type: AiResourceType): boolean {
-  return type === AiResourceType.Host || isCloudAiResourceType(type);
+  return (
+    type === AiResourceType.Host ||
+    type === AiResourceType.XcpNgPool ||
+    isCloudAiResourceType(type)
+  );
 }
 
 export function getAiResourceTypeInfo(
@@ -398,13 +429,16 @@ const EXTRA_AGENT_ALIASES: Readonly<Record<string, AiResourceType>> = {
   vcenter: AiResourceType.VMwareVCenter,
   db: AiResourceType.DatabaseServer,
   "google-cloud": AiResourceType.GoogleCloudProject,
+  xcpng: AiResourceType.XcpNgPool,
+  "xen-orchestra": AiResourceType.XcpNgPool,
 };
 
 /*
  * Read a resource type from configuration or a request: an enum value in
  * any case ("DockerHost", "dockerhost"), or an agent alias ("docker",
  * "podman", "docker-swarm"/"swarm", "proxmox", "vmware"/"vcenter", "ceph",
- * "database"/"db", "host", "aws", "azure", "gcp"/"google-cloud", "openstack").
+ * "database"/"db", "host", "aws", "azure", "gcp"/"google-cloud", "openstack",
+ * "xcp-ng"/"xcpng"/"xen-orchestra").
  * Anything else is null — never a guess.
  */
 export function parseAiResourceType(value: unknown): AiResourceType | null {

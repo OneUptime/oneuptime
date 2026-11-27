@@ -80,6 +80,9 @@ import GoldenMetricTile, {
 } from "../../../Components/Infrastructure/GoldenMetricTile";
 import { XCP_NG_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/XcpNgMetricDescriptions";
 import { XCP_NG_PAGE_DESCRIPTIONS } from "../../../Components/XcpNg/XcpNgPageDescriptions";
+import ResourceAiAgentStatusSummaryCard from "../../../Components/ResourceAiAgent/ResourceAiAgentStatusSummaryCard";
+import { getResourceAiAgentDescriptor } from "../../../Components/ResourceAiAgent/ResourceAiAgentDescriptors";
+import AiResourceType from "Common/Types/ResourceAiAgent/AiResourceType";
 import XcpNgBusiestCard, {
   XCP_NG_BUSIEST_SHOWN,
 } from "../../../Components/XcpNg/XcpNgBusiestCard";
@@ -1200,6 +1203,16 @@ const XcpNgPoolOverview: FunctionComponent<
             },
           },
         ]}
+      />
+
+      {/*
+       * Last on the page: the XCP-ng AI agent's connection, whether AI may
+       * investigate, and how fixes run, linking to AI → AI agent.
+       */}
+      <ResourceAiAgentStatusSummaryCard
+        descriptor={getResourceAiAgentDescriptor(AiResourceType.XcpNgPool)}
+        resourceId={modelId}
+        refreshToken={lastRefreshedAt ? lastRefreshedAt.getTime() : undefined}
       />
     </div>
   );

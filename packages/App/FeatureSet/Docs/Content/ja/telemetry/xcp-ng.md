@@ -197,6 +197,17 @@ key = '/etc/ssl/xo/key.pem'
 | `XO_TLS_FINGERPRINT` | インストールスクリプト | Xen Orchestra 自身の証明書の SHA-256 フィンガープリント。`openssl x509 -fingerprint -sha256` が表示する形式で、コロンは省略できます。エージェントがその証明書だけを信頼する場合に使います。インストールスクリプトは一致しない証明書を拒否します。 |
 | `XO_CA_FILE` | インストールスクリプト | Xen Orchestra の証明書を発行した CA バンドル。インストールスクリプトは証明書をこれで検証し、`xo-ca.pem` にコピーします。 |
 | `XO_TLS_SERVER_NAME` | いいえ | `XO_ADDRESS` が証明書に記載されていないアドレスの場合に、Xen Orchestra の証明書を検証する名前。空の場合は `XO_ADDRESS` のホスト。 |
+| `ONEUPTIME_AI_XO_READ_TOKEN` | いいえ | 組み込みの **Read only** ロールのコピーだけを持つ Xen Orchestra ユーザーのトークン。設定すると [AI エージェント](#ai-エージェント) が動作し、これで読み取ります。 |
+| `ONEUPTIME_AI_XO_WRITE_TOKEN` | いいえ | 修正専用: 修正を許可するロールを持つ別のユーザーのトークン。これがないと、AI エージェントは何も変更しません。 |
+| `XCP_NG_POOL_ID` | いいえ | AI エージェントが担当するプールの XAPI UUID。空の場合は、読み取りトークンから見える唯一のプール。 |
+| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | いいえ | AI エージェントが登録に使うプールとして `XCP_NG_POOL_ID` を上書きします。 |
+| `ONEUPTIME_AI_INVESTIGATION` | いいえ | `true` または `false`: OneUptime AI が調査中に AI エージェントの読み取り専用コマンドを実行してよいかどうか。空の場合は有効。 |
+| `ONEUPTIME_AI_FIXES` | いいえ | `off`、`ask-for-approval`、`automatic`、`bypass-approval` のいずれか: OneUptime AI が修正をどう適用してよいか。空の場合は、書き込みが許可されていれば `ask-for-approval`、そうでなければ `off`。 |
+| `ONEUPTIME_AI_ALLOW_WRITES` | いいえ | `true` にすると、AI エージェントは変更用のトークンで修正を適用できます。それ以外の値では読み取り専用のままです。 |
+| `ONEUPTIME_AI_WRITE_TARGETS` | いいえ | 修正が触れてよい `vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>`、`schedule/<uuid>` をカンマ区切りで指定。`*` は任意の文字列に一致します。空の場合はすべて。 |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | いいえ | 同様に、誰が承認しても OneUptime AI が決して変更してはならないもの: AI エージェントが動作する VM と、Xen Orchestra 自身の VM。 |
+| `LOG_LEVEL` | いいえ | AI エージェントのログレベル: `debug`、`info` (既定)、`warn`、`error`。 |
+| `COMPOSE_PROFILES` | いいえ | `xcp-ng-ai-agent` で AI エージェントが起動します。インストールスクリプトは、読み取りトークンが設定されているとこれを書き込み、設定されていないと取り除きます。 |
 
 ## エージェントが収集するもの
 
@@ -285,6 +296,19 @@ processors:
 1 つのエージェントは 1 つの Xen Orchestra と、それが管理するすべてのプールを読み取ります。同じマシンから 2 つ目の Xen Orchestra を読み取るには、2 つ目のエージェントを別のフォルダーに別の `.env` でインストールし (`INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh` など)、独自の `container_name` をその `docker-compose.yml` で付けます (`oneuptime-xcp-ng-agent-lab` など)。2 つのコンテナは同じ名前を共有できません。それぞれに別の `XO_NAME` を付けると、各プールの **設定** にどの Xen Orchestra が読み取っているかが表示されます。診断スクリプトには `-d` でフォルダーを渡します。
 
 同じプールを管理する 2 つの Xen Orchestra を通じて、2 つのエージェントに同じプールを読み取らせないでください。OneUptime では UUID によって 1 つのプールになり、二重に報告されてしまいます。
+
+## AI エージェント
+
+エージェントの `docker-compose.yml` には **XCP-ng AI エージェント** `oneuptime-xcp-ng-ai-agent` (イメージは `oneuptime/resource-ai-agent:release`) もあり、`xcp-ng-ai-agent` プロファイルの下に置かれています。OneUptime AI がプールのインシデントやアラートを調査している間、これを通じて読み取り専用の `xo-cli` REST コマンド (`xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted` や `xo-cli rest get pbds fields=attached,host,SR filter=!attached?` など) を実行し、許可した場合に限り、VM の起動やストレージリポジトリの PBD の接続などの修正を適用します。中に `xo-cli` のバイナリはありません。各コマンドは、コレクターが使うのと同じアドレスと `xo-ca.pem` を使った、Xen Orchestra の REST API へのちょうど 1 回の呼び出しになります。OneUptime ではプールの **AI エージェント** ページに表示されます。
+
+- **専用の読み取り専用トークンが必要です**。OpenMetrics シークレットはメトリクスしか読まないため、AI エージェントは Xen Orchestra の REST API (Xen Orchestra 6.9 以降) を `ONEUPTIME_AI_XO_READ_TOKEN` で読み取ります。これは、組み込みの **Read only** ロールのコピーだけを持つ Xen Orchestra ユーザーのトークンです。これを設定して `install.sh` を実行するか、初回インストールで尋ねられたときに入力してください。スクリプトは Xen Orchestra にそのトークンを知っているか問い合わせ、モード 600 の `.env` に保存して、AI エージェントを起動します。エージェントは何かを実行する前と 5 分ごとに、トークンが読み取りしかできないことを確認します。管理者のトークンや、ロールが変更を許可するトークンでは、何も実行しません。
+- **AI エージェント 1 つにつき 1 プール**。`XCP_NG_POOL_ID` は担当するプールで、プールの **設定** に表示される XAPI UUID です。空のままにすると、トークンから見える唯一のプールを担当します。複数のプールを持つ Xen Orchestra では、プールごとにもう 1 つ実行する方法がエージェントの README に記載されています。プローブが読み取るプールには XCP-ng エージェントは不要です。そのプール用に同じ `docker-compose.yml` から AI エージェントだけを実行する方法も README に記載されています。
+- **AI 調査はデフォルトで有効です**。エージェントが接続すると、OneUptime AI はこれを使ってプールのインシデントやアラートを調査し、プールの **概要** にエージェントの状態が表示されます。止めるには、エージェントを実行している場所で `ONEUPTIME_AI_INVESTIGATION=false` を設定する (AI エージェントのページの **AI に許可する操作** の下にある **変更** で方法が表示されます) か、トークンを省きます。
+- **修正には 2 つ目のトークンが必要です**。`ONEUPTIME_AI_ALLOW_WRITES=true` と `ONEUPTIME_AI_XO_WRITE_TOKEN` を設定しない限り、エージェントは読み取り専用です。後者は、修正を許可するロール (**VMs power state manager** ロールのコピーに、エージェントの README に記載された権限を加えたもの) を持つ別のユーザーのトークンで、変更そのものにだけ使われます。`ONEUPTIME_AI_WRITE_TARGETS` (`vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>`、`schedule/<uuid>`) で修正が触れてよい対象を制限します。エージェントが動作する VM と Xen Orchestra 自身の VM の UUID は `ONEUPTIME_AI_PROTECTED_TARGETS` に入れてください。`ONEUPTIME_AI_FIXES` (同じ `.env` にあります) で修正の実行方法を指定します。`ask-for-approval` (人が 1 件ずつ承認)、`automatic`、`bypass-approval` のいずれかで、AI エージェントのページには読み取り専用で表示されます ([エージェントが設定する、AI に許可する操作](/docs/ai/infrastructure-ai-agents#ai-に許可することエージェントで設定))。
+- **コレクターと同じように Xen Orchestra の証明書を確認します**。subjectAltName を見て、`xo-ca.pem` だけを基準に検証するので、Xen Orchestra が自分用に作る証明書はここでも拒否されます ([Xen Orchestra の証明書](#xen-orchestra-の証明書))。`http://` で Xen Orchestra を読み取ることは決してありません。トークンが暗号化されずにネットワークを流れてしまうからです。
+- UID 1000 で、ケーパビリティなし、読み取り専用のルートファイルシステムで実行され、Xen Orchestra のユーザー、ロール、サーバー、プラグイン、リモートを読み取ることはなく、シークレットを持つプロパティでフィルターすることもなく、何かを編集、削除、復元、複製することもありません。
+
+実行できるコマンド、修正の仕組み、トラブルシューティングについては、[Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#xcp-ng-プール) を参照してください。両方のトークンのロールと権限は、エージェントの README にあります。
 
 ## systemd サービスとして実行する
 

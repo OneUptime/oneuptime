@@ -1,6 +1,6 @@
 # 基础设施 AI 代理
 
-OneUptime AI 在调查事件或警报时，能看到的不只是您的遥测数据。安装在您某个资源旁边的小型代理——Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器或 Linux 主机——会运行 OneUptime AI 请求的只读命令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，并把输出发回，因此根本原因分析会引用资源本身给出的信息。如果您允许，同一个代理还会应用修复——重启容器、启动虚拟机、把 OSD 重新标记为 in——每项修复都由命令策略划入某个级别，并且除非您另作选择，都要先由人批准。在资源页面上打开的询问 AI，也会在您提出请求时运行同样的只读命令（请参阅[询问 AI](/docs/ai/ask-ai)）。
+OneUptime AI 在调查事件或警报时，能看到的不只是您的遥测数据。安装在您某个资源旁边的小型代理——Docker 或 Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、XCP-ng 资源池、数据库服务器或 Linux 主机——会运行 OneUptime AI 请求的只读命令，例如 `docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30` 或 `journalctl -u nginx -n 200 --no-pager`，并把输出发回，因此根本原因分析会引用资源本身给出的信息。如果您允许，同一个代理还会应用修复——重启容器、启动虚拟机、把 OSD 重新标记为 in——每项修复都由命令策略划入某个级别，并且除非您另作选择，都要先由人批准。在资源页面上打开的询问 AI，也会在您提出请求时运行同样的只读命令（请参阅[询问 AI](/docs/ai/ask-ai)）。
 
 AWS 账户、Azure 订阅或 Google Cloud 项目无需代理即可接受调查：OneUptime 会通过连接它时所用的只读连接实时读取它。只有它的修复才需要代理，即云 AI 代理，它运行在该账户自身之中，只需在账户页面上运行一条命令即可完成设置（参见 [在云账户中](#在云账户中)）。
 
@@ -13,7 +13,7 @@ AWS 账户、Azure 订阅或 Google Cloud 项目无需代理即可接受调查�
 资源的 **概览** 末尾有一张 **AI 代理** 卡片，汇总 AI 代理页面的内容：代理是否已连接、调查是否开启、修复如何运行（**关闭**、**请求批准**、**自动** 或 **跳过批准**）以及需要关注的事项，并附有指向 AI 代理页面的链接，可在那里更改这些设置。
 
 :::cards
-- [支持的资源](#支持的资源): 十一种资源，一个镜像。
+- [支持的资源](#支持的资源): 十三种资源，一个镜像。
 - [安装 AI 代理](#安装-ai-代理): 在您已经运行的采集器旁边、在 Linux 主机上，或通过一条命令在云账户中。
 - [修复的工作方式](#修复的工作方式): 什么可以自行运行，什么需要等待人，什么永远不会运行。
 - [安全模型](#安全模型): 每条命令都有三重检查，且不会从 OneUptime 获得任何凭据。
@@ -44,7 +44,7 @@ Kubernetes 集群有自己的代理，即 Kubernetes AI 代理，由 Kubernetes 
 
 不同之处：
 
-- **所有资源共用一个镜像。** `oneuptime/resource-ai-agent` 服务全部十一种资源，`ONEUPTIME_AI_AGENT_RESOURCE_TYPE` 指明代理服务的是哪一种。它作为资源采集器旁边的又一个容器运行，或运行在它所服务的云账户中，而不是来自 Helm chart。
+- **所有资源共用一个镜像。** `oneuptime/resource-ai-agent` 服务全部十三种资源，`ONEUPTIME_AI_AGENT_RESOURCE_TYPE` 指明代理服务的是哪一种。它作为资源采集器旁边的又一个容器运行，或运行在它所服务的云账户中，而不是来自 Helm chart。
 - **写入权限是一个环境变量。** 只有代理上设置了 `ONEUPTIME_AI_ALLOW_WRITES=true`，它才能应用修复，而 `ONEUPTIME_AI_WRITE_TARGETS` 限制修复可以触及哪些容器、服务、虚拟机、OSD、会话或单元。在集群上，这由 chart 的 RBAC 和 `aiAgent.remediation.namespaces` 负责。
 
 与 Kubernetes AI 代理一样，资源 AI 代理不是 Runner。它从不出现在 运行手册 → Runbook 代理 下，也从不被用作运行手册的 Bash 或 SSH 主机。
@@ -65,6 +65,7 @@ Kubernetes 集群有自己的代理，即 Kubernetes AI 代理，由 Kubernetes 
 | Azure 订阅 | `azure` | 云 AI 代理 | `AZURE_SUBSCRIPTION_ID`（由其设置命令设置） | `cloud`——固定目录中的一项操作，从不执行 `az` 命令 | Azure Resource Manager，以其 Container App 的托管标识访问 |
 | Google Cloud 项目 | `gcp`（或 `google-cloud`） | 云 AI 代理 | `GOOGLE_CLOUD_PROJECT`（为空时使用它所运行的项目） | `cloud`——固定目录中的一项操作，从不执行 `gcloud` 命令 | Google Cloud API，以它自己的服务账号访问 |
 | OpenStack 云 | `openstack` | OpenStack AI 代理 | `OPENSTACK_CLOUD_NAME` | `openstack` 命令（代理中没有 `openstack` 二进制文件）。在您选择启用[修复](#openstack-云上的修复)之前，它只读取 | 云的 API，使用 `clouds.yaml` 中的应用凭据 |
+| XCP-ng 资源池 | `xcp-ng`（或 `xcpng`、`xen-orchestra`） | XCP-ng AI 代理 | `XCP_NG_POOL_ID`（为空时：其读取令牌能看到的唯一资源池） | `xo-cli` REST 命令（代理中没有 `xo-cli` 二进制文件）。在您允许[修复](#xcp-ng-资源池上的修复)之前，它只读取 | Xen Orchestra 的 REST API，使用只读 Xen Orchestra 用户的令牌 |
 
 数据库服务器：数据库 AI 代理提供针对 PostgreSQL、MySQL（以及 MariaDB 和 Percona Server）、Redis（以及 Valkey、KeyDB 和 Dragonfly）和 MongoDB 的诊断。对于任何其他引擎，它不运行任何内容，并在数据库的 AI 代理页面上说明这一点。
 
@@ -84,6 +85,7 @@ AI 代理页面上代理状态旁边 **⋯** 菜单中的 **测试连接** 会�
 | Azure 订阅 | `cloud whoami` |
 | Google Cloud 项目 | `cloud whoami` |
 | OpenStack 云 | `openstack endpoint list`、`openstack compute service list` |
+| XCP-ng 资源池 | `xo-cli rest get pools fields=name_label,master,HA_enabled`、`xo-cli rest get hosts fields=name_label,power_state,enabled` |
 
 在 Docker Swarm 的工作节点上，`docker node ls` 会失败：Docker Swarm AI 代理必须在管理节点上运行。在工作节点上启动的代理在其节点成为管理节点之前不会注册到集群，而 Docker Swarm 安装程序会在不是管理节点的节点上省略它。
 
@@ -95,7 +97,7 @@ AI 代理页面上代理状态旁边 **⋯** 菜单中的 **测试连接** 会�
 
 ### 在采集器旁边
 
-对于 Docker、Podman、Docker Swarm、Proxmox、VMware、Ceph、OpenStack 和数据库服务器，代理运行在您已用于该资源的采集器旁边，并共享其 `.env`：它已经有 `ONEUPTIME_URL`、摄取密钥和资源名称。每个采集器的 `docker-compose.yml` 都把代理作为又一个服务一并提供，其 `install.sh` 会启动它。
+对于 Docker、Podman、Docker Swarm、Proxmox、VMware、Ceph、OpenStack、XCP-ng 和数据库服务器，代理运行在您已用于该资源的采集器旁边，并共享其 `.env`：它已经有 `ONEUPTIME_URL`、摄取密钥和资源名称。每个采集器的 `docker-compose.yml` 都把代理作为又一个服务一并提供，其 `install.sh` 会启动它。
 
 | 资源 | 采集器 | AI 代理服务（及容器） | 设置位置 |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -107,8 +109,9 @@ AI 代理页面上代理状态旁边 **⋯** 菜单中的 **测试连接** 会�
 | Ceph 集群 | [Ceph 代理](/docs/telemetry/ceph#ai-代理) | `oneuptime-ceph-ai-agent` | `agents/CephAgent/docker-compose.yml`，代理专用的 Ceph 客户端位于 `./ceph` |
 | 数据库服务器 | [数据库代理](/docs/telemetry/databases#ai-代理) | `oneuptime-database-ai-agent` | `agents/DatabaseAgent/docker-compose.yml` |
 | OpenStack 云 | [OpenStack 代理](/docs/telemetry/openstack#ai-代理) | `oneuptime-openstack-ai-agent` | `agents/OpenStackAgent/docker-compose.yml`，凭据位于 `clouds.yaml` |
+| XCP-ng 资源池 | [XCP-ng 代理](/docs/telemetry/xcp-ng#ai-代理) | `oneuptime-xcp-ng-ai-agent` | `agents/XcpNgAgent/docker-compose.yml`，位于 `xcp-ng-ai-agent` profile 下；当您给 `install.sh` 提供只读的 Xen Orchestra 令牌时，它会启用该 profile |
 
-在 AI 代理出现之前安装的采集器还不会运行它。重新运行其 `install.sh`：现在它也会启动 AI 代理（Proxmox、VMware、Ceph、OpenStack、数据库和 Docker Swarm 的安装程序会下载当前的 `docker-compose.yml`，其中包含 AI 代理服务）。如果您自己管理这些文件，请把采集器 `docker-compose.yml` 中的该服务添加到您自己的文件中，然后运行 `docker compose up -d`。资源的 AI 代理页面会显示该资源对应的确切服务，并已填好其名称。
+在 AI 代理出现之前安装的采集器还不会运行它。重新运行其 `install.sh`：现在它也会启动 AI 代理（Proxmox、VMware、Ceph、OpenStack、XCP-ng、数据库和 Docker Swarm 的安装程序会下载当前的 `docker-compose.yml`，其中包含 AI 代理服务；XCP-ng 的安装程序会在拿到只读的 Xen Orchestra 令牌后启动它）。如果您自己管理这些文件，请把采集器 `docker-compose.yml` 中的该服务添加到您自己的文件中，然后运行 `docker compose up -d`。资源的 AI 代理页面会显示该资源对应的确切服务，并已填好其名称。
 
 不使用安装程序时，Docker AI 代理只需一条 `docker run`：
 
@@ -173,7 +176,7 @@ AWS 账户、Azure 订阅或 Google Cloud 项目旁边没有可供代理依附�
 
 ### 连接到 OneUptime
 
-代理使用 **与采集器上报的相同标识** 进行注册——`DOCKER_HOST_NAME`、`PROXMOX_CLUSTER_NAME`、`CEPH_CLUSTER_NAME`、`OPENSTACK_CLOUD_NAME`……（可用 `ONEUPTIME_AI_AGENT_RESOURCE_NAME` 覆盖）——因此它服务的正是采集器遥测数据所创建的资源。如果 OneUptime 中还没有该名称的资源，注册会创建它，所以与采集器不同的名称会让您得到第二个空资源，而不是一个错误。数据库在设置了 `DATABASE_SERVER_ID` 时按它注册，否则按其引擎、地址和端口注册；不是本项目数据库的 `DATABASE_SERVER_ID` 会被拒绝。
+代理使用 **与采集器上报的相同标识** 进行注册——`DOCKER_HOST_NAME`、`PROXMOX_CLUSTER_NAME`、`CEPH_CLUSTER_NAME`、`OPENSTACK_CLOUD_NAME`……（可用 `ONEUPTIME_AI_AGENT_RESOURCE_NAME` 覆盖）——因此它服务的正是采集器遥测数据所创建的资源。如果 OneUptime 中还没有该名称的资源，注册会创建它，所以与采集器不同的名称会让您得到第二个空资源，而不是一个错误。数据库在设置了 `DATABASE_SERVER_ID` 时按它注册，否则按其引擎、地址和端口注册；不是本项目数据库的 `DATABASE_SERVER_ID` 会被拒绝。XCP-ng 资源池按其 XAPI UUID `XCP_NG_POOL_ID`（即其遥测数据携带的标识）注册；该值为空时，则按其读取令牌能看到的唯一资源池注册。不是 UUID 的标识会被拒绝，能看到多个资源池的令牌需要设置 `XCP_NG_POOL_ID`。
 
 如果采集器仍在使用默认名称（`docker-host`、`podman-host`、`docker-swarm`、`proxmox-cluster`、`vmware-vcenter`、`ceph`、`openstack`），那么使用该默认值安装的每个资源都会上报到 OneUptime 中的同一个资源，发给它的命令可能会到达其中任何一个。代理会在日志中对此发出警告；请在采集器和代理上为每个资源设置唯一的名称。
 
@@ -267,6 +270,20 @@ Podman 主机通过 Podman 的 Docker 兼容 API 运行相同的 `docker` CLI �
 
 之后它会沿着一个请求追查。`server event list` 会打印每个操作的请求 ID，而 `search_logs` 把该 ID 作为属性（`openstack.request_root_id`）来读取每个服务写下的与之相关的内容。报告会引用它运行的每条命令及其输出，就像对 `kubectl` 所做的那样。日志需要[服务日志](/docs/telemetry/openstack#服务日志)配置，变更需要[生命周期事件](/docs/telemetry/openstack#生命周期事件)：没有它们，这些读取会返回空结果。
 
+### XCP-ng 资源池
+
+代理中没有 `xo-cli` 二进制文件，也没有 shell。命令按 xo-cli 的 REST 语法（xo-cli 0.32）书写：`rest get`、Xen Orchestra REST API 的一个路径，然后是形如 `name=value` 的选项。代理会把它转换成恰好一个 `GET`，发往 `/rest/v0`（Xen Orchestra 6.9 或更高版本），使用的是持有内置 **Read only** 角色副本的 Xen Orchestra 用户的令牌。在运行任何内容之前，以及此后每 5 分钟，它都会向 Xen Orchestra 询问该令牌属于谁、该用户可以做什么：管理员的令牌，或其角色允许任何更改的用户的令牌，什么都不会运行。资源池对象的列表会被筛选到此资源池，另一个资源池的对象永远不会被打印。`fields=` 选择属性，`filter=` 用 Xen Orchestra 自己的筛选语法缩小列表，`limit=` 限制其数量。
+
+- 资源池及其主机：`xo-cli rest get pools`、`xo-cli rest get pools/b7569d99-30f8-178a-7d94-801de3e29b5b`、`xo-cli rest get hosts fields=name_label,power_state,enabled,version`、`xo-cli rest get hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/missing_patches` 和 `xo-cli rest get hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/stats granularity=minutes`。
+- 虚拟机：`xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted`、`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`、`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/stats granularity=seconds`、`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/vdis`，以及其快照（`xo-cli rest get vm-snapshots`）和模板。
+- 存储：`xo-cli rest get srs fields=name_label,SR_type,physical_usage,size`、`xo-cli rest get pbds fields=attached,host,SR filter=!attached?`（列出存储库中未能接入的 PBD）、`xo-cli rest get vdis` 和 `xo-cli rest get vbds`。
+- 出了什么问题：`xo-cli rest get alarms`、`xo-cli rest get messages fields=name,body,time limit=50`、`xo-cli rest get tasks filter=status:failure`，以及对象自己的告警、消息和任务（`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/alarms`）。
+- 备份：`xo-cli rest get backup-jobs`、`xo-cli rest get backup-logs filter=status:failure limit=20`、`xo-cli rest get restore-logs` 和 `xo-cli rest get schedules`。
+- 网络：`xo-cli rest get networks`、`xo-cli rest get pifs` 和 `xo-cli rest get vifs`。
+- 从不允许：Xen Orchestra 的用户、组、角色和权限，它的服务器、插件、代理服务器、远程存储和备份存储库，下载（虚拟机的导出、主机的日志），查询字符串，或对保存机密或自由格式数据的属性使用的 `filter`（`other_config`、`xenStoreData`、`device_config`，以及任何名称像密码、令牌或密钥的属性），这样筛选就永远无法一次一个答案地读出机密；以及 xo-cli 自己的选项（`--url`、`--allowUnauthorized`、…）。
+
+答案以缩进的 JSON 返回，每次返回完整的条目。虚拟机的 cloud-init 数据、PBD 的 `device_config` 密码、URL 中备份远程存储的密码、预共享密钥和裸露的 Xen Orchestra 令牌，在输出到达模型或日志之前都会被遮盖。
+
 ### Ceph 集群
 
 - 集群：`ceph status`（或 `ceph -s`）、`ceph health detail`、`ceph df detail`、`ceph versions`、`ceph progress`、`ceph quorum_status`、`ceph log last 100`。
@@ -329,7 +346,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 
 修复运行后，OneUptime 会观察事件或警报的监视器。如果它们没有恢复，计划的回滚就会运行，OneUptime AI 会参考失败的尝试再制定一个计划——每个事件或警报最多两轮。在 **自动** 模式下，第二轮会请求批准；在 **跳过批准** 模式下，它同样会自行运行。无人值守的修复设有每个资源每小时三次的熔断：超过这个次数，或者在 OneUptime AI 的另一轮无人值守修复仍在更改或验证同一资源时，本轮会提出其计划以供批准，而不是直接运行。
 
-一个事件或警报只会获得一条 AI 修复通道。当它关联到已开启修复的 Kubernetes 集群时，运行的是该集群的修复轮次，而不是任何资源的轮次。否则，第一个已开启修复且代理就绪的关联资源会获得该轮次，顺序为：Docker 主机、Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器、主机、AWS 账户、Azure 订阅、Google Cloud 项目、OpenStack 云。该轮次只会更改这一个资源。
+一个事件或警报只会获得一条 AI 修复通道。当它关联到已开启修复的 Kubernetes 集群时，运行的是该集群的修复轮次，而不是任何资源的轮次。否则，第一个已开启修复且代理就绪的关联资源会获得该轮次，顺序为：Docker 主机、Podman 主机、Docker Swarm 集群、Proxmox 集群、VMware vCenter、Ceph 集群、数据库服务器、主机、AWS 账户、Azure 订阅、Google Cloud 项目、OpenStack 云、XCP-ng 资源池。该轮次只会更改这一个资源。
 
 ### 安全、风险较高和从不允许
 
@@ -412,6 +429,19 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 
 与其他资源不同，这里的修复默认关闭，直到您两次选择开启：仅设置 `ONEUPTIME_AI_ALLOW_WRITES=true` 会让 **AI 可以执行的操作** 保持关闭，并且在有了用于更改的凭据之前，它什么也做不了。[OpenStack 代理指南](/docs/telemetry/openstack#用于更改的凭据)说明了如何针对云的每种部署方式，创建权限最小的该凭据。
 
+### XCP-ng 资源池上的修复
+
+一项修复就是 `rest post` 加上一个对象的一个操作，例如 `vms/<uuid>/actions/start`：对 Xen Orchestra REST API 的一次 `POST`，使用第二个令牌 `ONEUPTIME_AI_XO_WRITE_TOKEN`（属于其角色允许这些修复的用户），且不使用其他任何东西。用读取令牌代替它会被拒绝。在更改之前，代理会用读取令牌读取该对象：另一个资源池的对象会被拒绝，已经完成的更改（启动一台正在运行的虚拟机）不会再做一次，而对象状态不允许的更改会说明应改为运行什么。随后它会在命令的时间限制内跟进 Xen Orchestra 的任务直到结束，并再次读取该对象，因此修复的输出以更改后的状态结尾。
+
+|                     | 命令 |
+| ------------------- | -------- |
+| **安全**            | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/start`（用 `hostId=<uuid>` 在指定主机上启动它）、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/resume`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/unpause`、`xo-cli rest post pbds/4d3c2b1a-9f8e-4d7c-8b6a-5f4e3d2c1b0a/actions/plug`、`xo-cli rest post schedules/cf7249f8-d20b-494f-97f4-b1f32f94e780/actions/run`——一台虚拟机、一个 PBD 或一个备份计划 |
+| **风险较高**        | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/hard_reboot`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_shutdown`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/hard_shutdown`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/suspend`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/pause`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/snapshot name_label=before-fix`、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/enable` |
+| **始终需要人**      | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/migrate hostId=a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b`（迁移到同一资源池的另一台主机，存储保持不变）、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/restart_toolstack` |
+| **从不允许**        | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/revert_snapshot`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clone`、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/disable`、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/evacuate`、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/clean_shutdown`、`xo-cli rest post pbds/4d3c2b1a-9f8e-4d7c-8b6a-5f4e3d2c1b0a/actions/unplug`、`xo-cli rest delete vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`、`xo-cli rest patch vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`、`xo-cli rest get users`、`xo-cli vm.stop id=613f541c-4bed-fc77-7ca8-2db6b68f079c`，以及此处未列出的所有操作，包括资源池或存储库的操作 |
+
+启动可以用关机撤销，挂起可以用恢复撤销，暂停可以用取消暂停撤销，修复的回滚就使用这些。快照会一直保留，直到有人删除它；迁移、接入 PBD、启用主机和重启工具栈都没有代理可以运行的撤销操作。写入令牌的 Xen Orchestra 角色是不可逾越的上限：[XCP-ng 代理的 README](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent#fixes) 列出了每项修复所需的权限。
+
 ### 数据库服务器上的修复
 
 下面的 `12345` 是 `db sessions` 打印出的会话 ID：PostgreSQL 的 pid、MySQL 的 processlist ID、Redis 的客户端 ID 或 MongoDB 的 opid。代理会先查找该会话，并且从不触碰自己的连接、服务器或复制线程，也不触碰不存在的会话。
@@ -473,9 +503,10 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 - 在目标位置使用 `*` 的条目——`docker stop *` 会预先批准停止 **所有** 容器——会在保存前要求您确认。
 - Proxmox 路径是一个词，因此不能包含 `*`：请为每个客户机写一个条目，例如 `pvesh create /nodes/pve1/qemu/100/status/shutdown`。
 - 在 OpenStack 云上，撤离（evacuation）的条目在保存时会被拒绝：它始终需要人批准，因此不会预先批准任何内容。
+- XCP-ng 路径也是一个词：请为每台虚拟机写一个条目，例如 `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot`。迁移或重启工具栈的条目在保存时会被拒绝，因为两者始终需要人批准。
 - 允许列表中的任何内容都不能凌驾于始终需要人的更改或策略拒绝的命令之上。
 
-每种资源的一个有效条目：`docker stop web`（Docker 和 Podman）、`docker service update --image nginx:1.27 web`（Docker Swarm）、`pvesh create /nodes/pve1/qemu/100/status/shutdown`（Proxmox）、`govc vm.power -off web-01`（VMware）、`ceph osd out 3`（Ceph）、`db terminate-session 12345`（数据库）、`systemctl stop nginx`（主机）、`cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`（AWS）、`cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`（Azure）、`cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`（Google Cloud）、`openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`（OpenStack 云）。
+每种资源的一个有效条目：`docker stop web`（Docker 和 Podman）、`docker service update --image nginx:1.27 web`（Docker Swarm）、`pvesh create /nodes/pve1/qemu/100/status/shutdown`（Proxmox）、`govc vm.power -off web-01`（VMware）、`ceph osd out 3`（Ceph）、`db terminate-session 12345`（数据库）、`systemctl stop nginx`（主机）、`cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`（AWS）、`cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`（Azure）、`cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`（Google Cloud）、`openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`（OpenStack 云）、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot`（XCP-ng 资源池）。
 
 ### 谁可以更改它
 
@@ -510,6 +541,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 | 主机 | 完整的单元名称（`nginx.service`）、表示进程的 `pid:<pid>`、表示日志清理的 `journal` | `nginx.service,app-*` |
 | 云账户 | 资源的 ID：ARN、小写的 Azure 资源 ID，或 Google Cloud 完整资源名称 | `arn:aws:ecs:*:123456789012:service/prod/*` |
 | OpenStack 云 | 更改所指明对象的 `instance:<id>`、`host:<name>` 和 `agent:<id>`，以及迁移目的地的 `destination:<name>`。条目是 `project:<id>`、`host:<name>` 或 `instance:<id>`，且仅限这些：其他任何内容都会让代理保持只读。代理会在更改实例之前，读取该实例所在的项目和主机 |
+| XCP-ng 资源池 | 更改所指明的那一个对象的 `vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>` 和 `schedule/<uuid>`；单独的 UUID 可匹配其中任意一种 | `vm/613f541c-*,host/*` |
 
 ### 代理自行保护的内容
 
@@ -521,6 +553,7 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 - **主机：** 每个 OneUptime 单元（`oneuptime-*`，包括主机 AI 代理自己的单元）、OpenTelemetry 采集器（`otelcol-contrib.service`、`otelcol.service`）、代理运行所在的 Docker 引擎（`docker.service`、`docker.socket`、`containerd.service`），以及代理自己的进程和其上层进程。
 - **Proxmox：** 代理无法判断自己运行在哪个客户机中。如果它运行在同一集群的虚拟机或容器中，请把该 VMID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`；对 VMware 上代理所在的虚拟机也这样做。
 - **OpenStack 云：** 代理无法判断自己运行在哪个实例中。如果它运行在同一个云上，请把该实例以 `instance:<id>` 的形式加入 `ONEUPTIME_AI_PROTECTED_TARGETS`。在云上，这个列表由您决定，它优先于其他所有设置，包括人的批准。
+- **XCP-ng 资源池：** 代理无法判断自己运行在哪台虚拟机中，也无法判断 Xen Orchestra 运行在哪台虚拟机中。如果其中任何一台运行在此资源池上，请把它的 UUID 加入 `ONEUPTIME_AI_PROTECTED_TARGETS`，形式为 `vm/<uuid>` 或单独的 UUID。
 - **云账户：** 其设置命令创建的一切：在 AWS 上是 `oneuptime-ai-agent` 堆栈（在组织的成员账户中，是组织的 StackSet 创建的 `StackSet-oneuptime-ai-agent-*` 堆栈）、其 ECS 集群和服务，以及角色 `OneUptimeAiAgentTask` 和 `OneUptimeAiAgentWrite`；在 Azure 上是 `oneuptime-ai-agent` 资源组，以及其中的写入标识 `oneuptime-ai-agent-write`；在 Google Cloud 上是 `oneuptime-ai-agent` 虚拟机或 Cloud Run 服务及其服务账号 `oneuptime-ai-agent` 和 `oneuptime-ai-agent-write`。
 
 ## 凭据与最小权限
@@ -537,8 +570,9 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 | 主机 | 无：它在主机的命名空间中以 root 身份特权运行 | 不要设置 `ONEUPTIME_AI_ALLOW_WRITES` | 用 `ONEUPTIME_AI_WRITE_TARGETS` 指定 AI 可以更改的单元 |
 | 云账户 | 其运行所在位置的身份：在 AWS 上是其 ECS 任务的角色，该角色只能代入 `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 中的写入角色；在 Azure 上是其 Container App 自身的托管标识，只能读取，以及附加到同一 Container App 的 `ONEUPTIME_AI_AZURE_WRITE_IDENTITY` 中的写入标识；在 Google Cloud 上是其虚拟机或 Cloud Run 服务运行时使用的服务账号，该服务账号只能读取，以及请求 `ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT` 中写入服务账号的令牌 | 无：OneUptime 通过账户的只读连接读取账户 | 其设置命令写出的角色：已开启更改的权限及其所需的读取权限，仅此而已。在 AWS 上，每项更改都会代入 `OneUptimeAiAgentWrite`，并附带只针对该资源上这一项更改的会话策略；在 Google Cloud 上，每项更改都以 `oneuptime-ai-agent-write` 的身份运行，使用仅用于该项更改、有效期 15 分钟的令牌；在 Azure 上，每项更改都以 `oneuptime-ai-agent-write` 的身份运行，代理只为该项更改以它的身份登录。Azure 不会给托管标识比其角色范围更窄或有效期更短的令牌，而通过 Privileged Identity Management 进行的限时访问需要 Microsoft Entra ID P2，因此进行更改的常设权限放在代理只用于更改的身份上，绝不放在它用于读取的身份上 |
 | OpenStack 云 | 用于更改：`ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` 和 `_SECRET`，一个专属的应用凭据：[指南](/docs/telemetry/openstack#用于更改的凭据)说明了如何创建。用于读取：采集器的导出器所读取的 `clouds.yaml` 中的应用凭据（`OS_CLIENT_CONFIG_FILE`、`OPENSTACK_EXPORTER_CLOUDS`，或用 `ONEUPTIME_AI_OPENSTACK_CLOUD` 指定另一个条目），或在设置时使用 `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` 并配合 `OPENSTACK_AUTH_URL`；`ONEUPTIME_AI_OPENSTACK_REGION`、`ONEUPTIME_AI_OPENSTACK_INTERFACE`、`ONEUPTIME_AI_OPENSTACK_CA_FILE` |
+| XCP-ng 资源池 | `ONEUPTIME_AI_XO_READ_TOKEN`（一个 Xen Orchestra 令牌，用于每次读取）和 `ONEUPTIME_AI_XO_WRITE_TOKEN`（另一个用户的令牌，用于更改）；来自采集器的 `XO_SCHEME`、`XO_ADDRESS` 和 `XO_TLS_SERVER_NAME`，以及采集器的 `xo-ca.pem`。从不使用采集器的 OpenMetrics 密钥 | 一个只持有内置 **Read only** 角色副本的用户，绝不是管理员：代理在运行任何内容之前都会检查 | 一个持有 **VMs power state manager** 角色副本、并添加了其他修复所用权限（`vm:snapshot`、`host:enable`、`pbd:plug`、`schedule:run`、…）的用户，作用于 AI 可以修复的资源池 |
 
-各采集器的 README 中有确切的命令：用于 Proxmox 修复令牌的 `pveum` 命令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)）、vSphere 修复角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)）、Ceph 的读取和修复 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)），以及各引擎的数据库授权（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)）。云 AI 代理的角色由其设置命令写出：关闭某项更改并再次运行该命令，其权限就会从角色中移除。
+各采集器的 README 中有确切的命令：用于 Proxmox 修复令牌的 `pveum` 命令（[ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)）、vSphere 修复角色（[VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)）、Ceph 的读取和修复 caps（[CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)）、各引擎的数据库授权（[DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)），以及读取令牌和修复令牌所需的 Xen Orchestra 角色和权限（[XcpNgAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent)）。云 AI 代理的角色由其设置命令写出：关闭某项更改并再次运行该命令，其权限就会从角色中移除。
 
 ## 安全模型
 
@@ -555,8 +589,8 @@ OneUptime 会通过账户的只读连接，亲自实时读取 AWS 账户、Azure
 - 一个程序，以参数列表的形式运行，从不通过 shell：管道、重定向、`;`、`&&` 和 `$(…)` 在任何内容运行之前就会被拒绝，`sudo` 也一样。
 - 为这一条命令构建的环境：代理自己的任何东西——无论是其摄取密钥还是代理服务器设置——都不会传给程序，并且 `docker`、`govc` 和 `ceph` 会为这一条命令获得 `/tmp` 下一个私有的空主目录。`docker` CLI 会获得一个空的私有 `DOCKER_CONFIG`，因此任何上下文或凭据助手都无法改变它的指向；`govc` 通过环境获得凭据，从不通过命令行；`ceph` 获得代理自己的 `--conf`、`--keyring` 和 `--id`，命令不能选择其他值。
 - 时间限制（最多 2 分钟），超时后程序会被终止；输出上限为 50 KB。
-- 输出中的机密——`docker inspect` 中的环境变量值、Proxmox cloud-init 密码、OpenStack 的 `user_data`，以及日志和命令行中的密钥、令牌和密码——会在输出离开代理之前在代理上遮盖，并在存储或展示给模型之前由 OneUptime 再次遮盖。
-- 容器以只读根文件系统运行。Proxmox、VMware、Ceph 和数据库 AI 代理以 UID 1000 运行，不具备任何 capability。OpenStack AI 代理以 `clouds.yaml` 的所有者（`OPENSTACK_EXPORTER_USER`）身份运行，同样不具备任何 capability。
+- 输出中的机密——`docker inspect` 中的环境变量值、Proxmox cloud-init 密码、OpenStack 的 `user_data`、XCP-ng 虚拟机的 cloud-init 数据，以及日志和命令行中的密钥、令牌和密码——会在输出离开代理之前在代理上遮盖，并在存储或展示给模型之前由 OneUptime 再次遮盖。
+- 容器以只读根文件系统运行。Proxmox、VMware、Ceph、XCP-ng 和数据库 AI 代理以 UID 1000 运行，不具备任何 capability。OpenStack AI 代理以 `clouds.yaml` 的所有者（`OPENSTACK_EXPORTER_USER`）身份运行，同样不具备任何 capability。
 - 云 AI 代理根本不启动任何程序：`cloud` 指定其目录中的一项操作，代理会以其运行所在位置的凭据，把它作为对应的那一个 API 调用来执行。读取在 OneUptime 上通过账户的只读连接运行。
 
 ### Docker 套接字和主机 AI 代理等同于主机上的 root
@@ -583,7 +617,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-请使用您资源的容器名称：`oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`（用 `podman` 代替 `docker`）、`oneuptime-docker-swarm-ai-agent`、`oneuptime-openstack-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。数据库代理的服务没有固定的容器名称，因此请在 `/opt/oneuptime-database-agent` 中使用 `docker compose logs --tail=100 oneuptime-database-ai-agent` 和 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status`。主机 AI 代理使用主机的网络，因此 `curl -s http://127.0.0.1:3877/status` 可以直接在主机上运行。
+请使用您资源的容器名称：`oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`（用 `podman` 代替 `docker`）、`oneuptime-docker-swarm-ai-agent`、`oneuptime-openstack-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-xcp-ng-ai-agent`、`oneuptime-host-ai-agent`。数据库代理的服务没有固定的容器名称，因此请在 `/opt/oneuptime-database-agent` 中使用 `docker compose logs --tail=100 oneuptime-database-ai-agent` 和 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status`。主机 AI 代理使用主机的网络，因此 `curl -s http://127.0.0.1:3877/status` 可以直接在主机上运行。
 
 云 AI 代理运行在其云中，没有可以 `exec` 进入的容器：请在云平台的 Shell 中用 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100`（在专用虚拟机上为 `az vm run-command invoke --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --command-id RunShellScript --scripts "docker logs --tail 100 oneuptime-ai-agent" --query "value[0].message" --output tsv`） 或 `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（在 Cloud Run 上为 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） 读取其日志，并在账户的 **AI 代理** 页面上查看其状态，该页面也会显示同样的命令。
 
@@ -611,12 +645,14 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `pipes and redirects are not supported; run one command` | 这是预期行为：命令从不通过 shell 运行。该拒绝会告诉 OneUptime AI 一次运行一条命令。 |
 | `Killed (timeout …)` | 资源没有及时应答；如果完全没有输出，说明代理无法访问它——请检查两者之间的网络。 |
 | Proxmox、vCenter、Ceph 或数据库报出缺少某项权限、角色或 cap 的错误 | 凭据是不可逾越的上限：授予消息中指出的内容（参见 [凭据与最小权限](#凭据与最小权限)），或把该更改留给人处理。 |
+| XCP-ng 资源池的代理什么都不运行，因为其读取令牌属于 Xen Orchestra 管理员（`belongs to a Xen Orchestra administrator`），或属于其角色允许更改的用户 | 只给该令牌的用户一个内置 **Read only** 角色的副本。修复使用 `ONEUPTIME_AI_XO_WRITE_TOKEN`，即另一个用户的令牌。 |
+| XCP-ng 资源池的代理无法连接 Xen Orchestra，因为证书没有写明地址（`the certificate names no address`） | Xen Orchestra 使用它为自己生成的证书，无论是否固定，任何 TLS 客户端都无法校验：请为它配置写明其地址的证书（[Xen Orchestra 的证书](/docs/telemetry/xcp-ng#xen-orchestra-的证书)），然后再次运行 XCP-ng 代理的 `install.sh`。 |
 | `The Cloud AI agent could not check its cloud: …` | 它的角色、托管标识或服务账号已不存在或缺少某项权限，或者它无法访问其云的 API：请从账户页面再次运行设置命令。 |
 | `The agent could not ask … to sign in as the write …` | 在 Azure 上，写入标识 `oneuptime-ai-agent-write` 没有附加到代理运行的位置，或已不存在；在 Google Cloud 上，代理自身的服务账号还不能请求 `oneuptime-ai-agent-write` 的令牌（新的授权可能需要几分钟才会生效），或该账号已不存在。请在账户的 **AI 代理** 页面上通过 **更改** 再次运行设置命令。 |
 | `cloud … is not one of the changes this agent may make` | 在 **让 AI 修复问题** 的 **更多字段** 下开启该更改，然后再次运行命令：这也会为代理的角色授予该更改的权限。 |
 | `the agent only changes resources that carry the …` | 为资源加上 `oneuptime-ai=allow` 标签（在 Google Cloud 上为 label），或重新设置代理但不使用该标签。 |
 
-[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent) 和 [数据库](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) 代理的 README，以及 [主机 AI 代理](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent) 的 README，都有针对其自身连接错误的故障排除表。
+[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)、[XCP-ng](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent) 和 [数据库](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) 代理的 README，以及 [主机 AI 代理](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent) 的 README，都有针对其自身连接错误的故障排除表。
 
 ## 不涵盖的内容
 

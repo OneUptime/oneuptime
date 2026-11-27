@@ -38,7 +38,8 @@ import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
  * while being wrong: a leftover `/proxmox-...` route shadows the Proxmox API,
  * a permission a model names but the catalogue lacks can never be granted, a
  * bigint column without its transformer overflows past 2^53, and a copied
- * AI-agent column offers a feature this product does not have yet (#10998).
+ * column of the cloned product's means nothing here (the AI agent's columns
+ * are the pool's own, #10998).
  *
  * Pinned here, all of it only failing in production otherwise:
  *
@@ -556,22 +557,29 @@ describe("XCP-ng database models", () => {
       }
     });
 
-    test("has NO AI-agent columns yet (#10998), nor the cloned product's own", () => {
+    test("has the AI agent's columns (#10998), and none of the cloned product's own", () => {
       const columns: Array<string> = new XcpNgPool().getTableColumns().columns;
-
-      for (const column of [
+      const aiColumns: Array<string> = [
         "isAiInvestigationEnabled",
         "aiRemediationMode",
         "aiCommandAllowlist",
         "aiAccessLastVerifiedAt",
         "aiAccessLastError",
         "aiAccessConfiguredAt",
-      ]) {
-        expect(columns).not.toContain(column);
+        "aiAgentResetAt",
+      ];
+
+      for (const column of aiColumns) {
+        expect(columns).toContain(column);
       }
-      for (const column of columns) {
-        expect(column).not.toMatch(/^ai[A-Z]|^isAi|Ai[A-Z]/);
-      }
+      // Those seven, and no other AI column.
+      const aiColumnPattern: RegExp = /^ai[A-Z]|^isAi|Ai[A-Z]/;
+
+      expect(
+        columns.filter((column: string): boolean => {
+          return aiColumnPattern.test(column);
+        }),
+      ).toEqual(aiColumns);
 
       for (const column of [
         "nodeCount",

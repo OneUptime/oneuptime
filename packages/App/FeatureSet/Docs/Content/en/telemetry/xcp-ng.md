@@ -197,6 +197,17 @@ The install script writes these to `/opt/oneuptime-xcp-ng-agent/.env`; a Docker 
 | `XO_TLS_FINGERPRINT` | Install script | The SHA-256 fingerprint of Xen Orchestra's own certificate, as `openssl x509 -fingerprint -sha256` prints it, colons optional, when the agent trusts that certificate and nothing else. The install script refuses a certificate that does not match it. |
 | `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the install script checks the certificate against and copies to `xo-ca.pem`. |
 | `XO_TLS_SERVER_NAME` | No | The name Xen Orchestra's certificate is checked against, when `XO_ADDRESS` is an address the certificate does not list. Empty: the host of `XO_ADDRESS`. |
+| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the [AI agent](#ai-agent) runs when it is set, and reads with it. |
+| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it. |
+| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves. Empty: the one pool its read token can see. |
+| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as. |
+| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates. Empty: on. |
+| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix. Empty: `ask-for-approval` when writes are allowed, else `off`. |
+| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only. |
+| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated, `*` for any run of characters. Empty: all. |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change, whoever approves it: the VM the AI agent runs in, and Xen Orchestra's own. |
+| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (the default), `warn` or `error`. |
+| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent. The install script writes it when the read token is set, and takes it out when it is not. |
 
 ## What the agent collects
 
@@ -285,6 +296,19 @@ The collector reads its config only when it starts: run `docker compose restart 
 One agent reads one Xen Orchestra and every pool it manages. To read a second Xen Orchestra from the same machine, install a second agent into its own folder with its own `.env`, such as `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`, and give it its own `container_name` in its `docker-compose.yml` (such as `oneuptime-xcp-ng-agent-lab`): two containers cannot share a name. Give each its own `XO_NAME`, so each pool's **Settings** says which Xen Orchestra reads it, and pass the folder to the diagnostic script with `-d`.
 
 Never let two agents read the same pool, through two Xen Orchestras that both manage it: it is one pool in OneUptime, by its UUID, and it would be reported twice.
+
+## AI agent
+
+The agent's `docker-compose.yml` also has the **XCP-ng AI agent**, `oneuptime-xcp-ng-ai-agent` (image `oneuptime/resource-ai-agent:release`), under the `xcp-ng-ai-agent` profile. While OneUptime AI investigates an incident or alert on a pool, it runs read-only `xo-cli` REST commands through it, such as `xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted` or `xo-cli rest get pbds fields=attached,host,SR filter=!attached?`, and, only if you allow it, applies fixes such as starting a VM or plugging a storage repository's PBD. There is no `xo-cli` binary in it: each command becomes exactly one call to Xen Orchestra's REST API, at the address and with the `xo-ca.pem` the collector uses. It shows up on the pool's **AI agent** page in OneUptime.
+
+- **It needs a token of its own, read-only.** The OpenMetrics secret only reads metrics, so the AI agent reads Xen Orchestra's REST API (Xen Orchestra 6.9 or later) with `ONEUPTIME_AI_XO_READ_TOKEN`, a token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else. Run `install.sh` with it set, or type it when a first install asks: the script asks Xen Orchestra whether it knows the token, keeps it in the mode-600 `.env`, and starts the AI agent. Before the agent runs anything, and every 5 minutes, it checks that the token can only read: an administrator's token, or one whose roles allow a change, runs nothing.
+- **One pool per AI agent.** `XCP_NG_POOL_ID` is the pool it serves, its XAPI UUID as the pool's **Settings** shows it. Left empty, it serves the one pool its token can see. For a Xen Orchestra with several pools, the agent's README shows how to run one more per pool. A pool a probe reads needs no XCP-ng Agent: the README also shows how to run the AI agent alone for it, from the same `docker-compose.yml`.
+- **AI investigations are on by default.** Once the agent connects, OneUptime AI investigates incidents and alerts on the pool with it, and the pool's **Overview** shows the agent's status. To stop, set `ONEUPTIME_AI_INVESTIGATION=false` where the agent runs (**Change** under **What AI may do** on the AI agent page shows how), or leave the token out.
+- **Fixes take a second token.** The agent is read-only unless you set `ONEUPTIME_AI_ALLOW_WRITES=true` and `ONEUPTIME_AI_XO_WRITE_TOKEN`, a token of another user whose role allows the fixes (a copy of the **VMs power state manager** role, with the privileges the agent's README lists added). It is used for the change itself and nothing else. `ONEUPTIME_AI_WRITE_TARGETS` (`vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>`, `schedule/<uuid>`) limits what a fix may touch; put the UUIDs of the VM the agent runs in, and of Xen Orchestra's own VM, in `ONEUPTIME_AI_PROTECTED_TARGETS`. `ONEUPTIME_AI_FIXES` in the same `.env` says how fixes run — `ask-for-approval` (a person approves each one), `automatic` or `bypass-approval` — and the AI agent page shows it read-only ([What AI may do, set by the agent](/docs/ai/infrastructure-ai-agents#what-ai-may-do-set-by-the-agent)).
+- **It checks Xen Orchestra's certificate as the collector does**, by its subjectAltName and against `xo-ca.pem` alone, so the certificate Xen Orchestra makes for itself is refused here too ([Xen Orchestra's certificate](#xen-orchestras-certificate)). It never reads Xen Orchestra over `http://`: its tokens would cross the network in clear.
+- It runs as UID 1000 with no capabilities and a read-only root filesystem, and never reads Xen Orchestra's users, roles, servers, plugins or remotes, never filters on a property that holds secrets, and never edits, deletes, reverts or clones anything.
+
+What it may run, how fixes work and how to troubleshoot it: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#xcp-ng-pools). The agent's README has the roles and privileges for both tokens.
 
 ## Run as a systemd service
 
