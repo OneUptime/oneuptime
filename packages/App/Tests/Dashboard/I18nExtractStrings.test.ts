@@ -1694,6 +1694,10 @@ describe("the real source roots", () => {
       "ui packages/Common/Types/LlmObservability",
       // Each cloud's title, its sign in methods, its shell and its fields.
       "ui packages/Common/Types/CloudConnection",
+      // Acting on savings: each change, a resource's environment and what an AI savings rule does (#11010).
+      "keys packages/Common/Types/Cloud/CloudSavingsAction.ts",
+      "keys packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
+      "keys packages/Common/Types/Cloud/CloudSavingsAi.ts",
       // A managed device's status, as Inventory > Managed Devices draws it - not the server's.
       "keys packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts",
       // The monitor pages' shared helpers: hero, uptime, metric groups.
@@ -1870,6 +1874,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Server/Utils/AI/Toolbox",
       // What an AI action's approval card says, and the kinds of resource it names.
       "keys packages/Common/Types/AI/AIActionWords.ts",
+      // What Ask AI's Data Security actions say on their approval cards (#10378).
+      "keys packages/Common/Types/AI/AIDataSecurityActionWords.ts",
       // What Ask AI's tables and Sources chips say beside their data.
       "keys packages/Common/Types/AI/AIReadTableWords.ts",
       "keys packages/Common/Types/AI/AiAffectedResources.ts",
@@ -1899,6 +1905,7 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Monitor/KubernetesMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/PodmanMetricCatalog.ts",
       "keys packages/Common/Types/Monitor/VMwareMetricCatalog.ts",
+      "keys packages/Common/Types/Monitor/XcpNgMetricCatalog.ts",
       // What a monitor's evaluation says, worded for each reader (#6542).
       "keys packages/Common/Types/Monitor/CriteriaFilterTerms.ts",
       // A SAN switch's Fibre Channel counters and port types (#11014, #11015).
