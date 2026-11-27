@@ -79,11 +79,11 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | Felt | Fane | Hvad det gør |
 | --- | --- | --- |
 | **Lagerarray** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.storage.array.name`, så to arrays, der begge har et volumen ved navn `vol-01`, aldrig blandes. |
-| **Volumen** | Custom Metric, Avanceret | Kun FlashArray og PowerMax. Ét volumen: via labelen `name` på et FlashArray, som `vol-db-01` (et volumen i en pod eller en volumengruppe hedder `pod::volume` eller `group/volume`), og via labelen `volume` på en PowerMax, dets enheds-ID som `00847`. |
+| **Volumen** | Custom Metric, Avanceret | Kun FlashArray, PowerStore og PowerMax. Ét volumen: via labelen `name` på et FlashArray, som `vol-db-01` (et volumen i en pod eller en volumengruppe hedder `pod::volume` eller `group/volume`), og via labelen `volume` på en PowerMax, dets enheds-ID som `00847`. |
 | **Vært** | Custom Metric, Avanceret | Kun FlashArray. Én vært, som arrayet kender den, via labelen `host`, som `esxi-01`. |
 | **Pod** | Custom Metric, Avanceret | Kun FlashArray. Én ActiveCluster- eller ActiveDR-pod, via labelen `name`, eller `local_pod` på serier for replikalinks. |
 | **Hardwarekomponent** | Custom Metric, Avanceret | Én hardwarekomponent, som `CH0.BAY1` eller `CT0`: labelen `component_name` på et FlashArray, `name` på et FlashBlade og `component` på en PowerMax, en director som `FA-1D` eller en port som `FA-1D:4`. |
-| **Filsystem** | Custom Metric, Avanceret | Kun FlashBlade. Ét filsystem, via labelen `name`. |
+| **Filsystem** | Custom Metric, Avanceret | Kun FlashBlade og PowerStore. Ét filsystem, via labelen `name`. |
 | **Bucket** | Custom Metric, Avanceret | Kun FlashBlade. Én bucket til objektlager, via labelen `name`. |
 | **Storage Array Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). Formularen tilføjer det labelfilter, der giver den dens betydning, og grupperer den efter det objekt, den beskriver, så hvert volumen, hver vært eller hver komponent bedømmes for sig. |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gennemsnit**, **Maksimum**, **Minimum**, **Sum** eller **Antal**. Starter ved metrikkens sædvanlige aggregering. |

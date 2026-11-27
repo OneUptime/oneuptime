@@ -79,11 +79,11 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | Campo | Scheda | Cosa fa |
 | --- | --- | --- |
 | **Array di storage** | Tutte | Obbligatorio. Limita ogni query a `resource.storage.array.name`, così due array che hanno entrambi un volume chiamato `vol-01` non si mescolano mai. |
-| **Volume** | Custom Metric, Avanzato | Solo FlashArray e PowerMax. Un volume: tramite l'etichetta `name` su un FlashArray, come `vol-db-01` (un volume in un pod o in un gruppo di volumi si chiama `pod::volume` o `group/volume`), e tramite l'etichetta `volume` su un PowerMax, il suo ID di dispositivo, come `00847`. |
+| **Volume** | Custom Metric, Avanzato | Solo FlashArray, PowerStore e PowerMax. Un volume: tramite l'etichetta `name` su un FlashArray, come `vol-db-01` (un volume in un pod o in un gruppo di volumi si chiama `pod::volume` o `group/volume`), e tramite l'etichetta `volume` su un PowerMax, il suo ID di dispositivo, come `00847`. |
 | **Host** | Custom Metric, Avanzato | Solo FlashArray. Un host come lo conosce l'array, tramite l'etichetta `host`, come `esxi-01`. |
 | **Pod** | Custom Metric, Avanzato | Solo FlashArray. Un pod ActiveCluster o ActiveDR, tramite l'etichetta `name`, oppure `local_pod` sulle serie dei collegamenti di replica. |
 | **Componente hardware** | Custom Metric, Avanzato | Un componente hardware, come `CH0.BAY1` o `CT0`: l'etichetta `component_name` su un FlashArray, `name` su un FlashBlade e `component` su un PowerMax, un director come `FA-1D` o una porta come `FA-1D:4`. |
-| **File system** | Custom Metric, Avanzato | Solo FlashBlade. Un file system, tramite l'etichetta `name`. |
+| **File system** | Custom Metric, Avanzato | Solo FlashBlade e PowerStore. Un file system, tramite l'etichetta `name`. |
 | **Bucket** | Custom Metric, Avanzato | Solo FlashBlade. Un bucket di object storage, tramite l'etichetta `name`. |
 | **Storage Array Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). Il modulo aggiunge il filtro sull'etichetta che le dà il suo significato, e la raggruppa per l'oggetto che descrive, così ogni volume, host o componente viene valutato separatamente. |
 | **Aggregazione** | Custom Metric | Come vengono combinati i campioni: **Media**, **Massimo**, **Minimo**, **Somma** o **Conteggio**. Parte dall'aggregazione abituale della metrica. |

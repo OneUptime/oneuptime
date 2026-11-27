@@ -79,11 +79,11 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 | Champ | Onglet | Ce qu'il fait |
 | --- | --- | --- |
 | **Baie de stockage** | Tous | Obligatoire. Limite chaque requête à `resource.storage.array.name`, de sorte que deux baies qui ont toutes deux un volume nommé `vol-01` ne se mélangent jamais. |
-| **Volume** | Custom Metric, Avancé | FlashArray et PowerMax uniquement. Un volume : par le label `name` sur un FlashArray, comme `vol-db-01` (un volume dans un pod ou un groupe de volumes est nommé `pod::volume` ou `group/volume`), et par le label `volume` sur un PowerMax, son ID de périphérique comme `00847`. |
+| **Volume** | Custom Metric, Avancé | FlashArray, PowerStore et PowerMax uniquement. Un volume : par le label `name` sur un FlashArray, comme `vol-db-01` (un volume dans un pod ou un groupe de volumes est nommé `pod::volume` ou `group/volume`), et par le label `volume` sur un PowerMax, son ID de périphérique comme `00847`. |
 | **Hôte** | Custom Metric, Avancé | FlashArray uniquement. Un hôte tel que la baie le connaît, par le label `host`, comme `esxi-01`. |
 | **Pod** | Custom Metric, Avancé | FlashArray uniquement. Un pod ActiveCluster ou ActiveDR, par le label `name`, ou `local_pod` sur les séries de liens de réplication. |
 | **Composant matériel** | Custom Metric, Avancé | Un composant matériel, comme `CH0.BAY1` ou `CT0` : le label `component_name` sur un FlashArray, `name` sur un FlashBlade, et `component` sur un PowerMax, un directeur comme `FA-1D` ou un port comme `FA-1D:4`. |
-| **Système de fichiers** | Custom Metric, Avancé | FlashBlade uniquement. Un système de fichiers, par le label `name`. |
+| **Système de fichiers** | Custom Metric, Avancé | FlashBlade et PowerStore uniquement. Un système de fichiers, par le label `name`. |
 | **Bucket** | Custom Metric, Avancé | FlashBlade uniquement. Un bucket de stockage objet, par le label `name`. |
 | **Storage Array Metric** | Custom Metric | Une métrique du [catalogue](#métriques-collectées). Le formulaire ajoute le filtre de label qui lui donne son sens, et la regroupe par l'objet qu'elle décrit, de sorte que chaque volume, hôte ou composant est jugé séparément. |
 | **Agrégation** | Custom Metric | La façon dont les échantillons sont combinés : **Moyenne**, **Maximum**, **Minimum**, **Somme** ou **Comptage**. Commence à l'agrégation habituelle de la métrique. |

@@ -133,6 +133,7 @@ const RESOURCE_FILTER_LABELS: Record<
     label: "`name`",
     storageSystems: [
       StorageSystem.PureStorageFlashArray,
+      StorageSystem.DellPowerStore,
       StorageSystem.DellPowerMax,
     ],
   },
@@ -149,12 +150,16 @@ const RESOURCE_FILTER_LABELS: Record<
     storageSystems: [
       StorageSystem.PureStorageFlashArray,
       StorageSystem.PureStorageFlashBlade,
+      StorageSystem.DellPowerStore,
       StorageSystem.DellPowerMax,
     ],
   },
   fileSystemName: {
     label: "`name`",
-    storageSystems: [StorageSystem.PureStorageFlashBlade],
+    storageSystems: [
+      StorageSystem.PureStorageFlashBlade,
+      StorageSystem.DellPowerStore,
+    ],
   },
   bucketName: {
     label: "`name`",
@@ -180,6 +185,10 @@ function filterLabelOn(
 ): string {
   if (storageSystem === StorageSystem.DellPowerMax) {
     return POWERMAX_FILTER_LABELS[key] as string;
+  }
+  // A PowerStore names its volumes, parts and file systems by `name` (#11002).
+  if (storageSystem === StorageSystem.DellPowerStore) {
+    return "`name`";
   }
   return RESOURCE_FILTER_LABELS[key].label;
 }
@@ -246,6 +255,7 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
       for (const system of [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
+        StorageSystem.DellPowerStore,
         StorageSystem.DellPowerMax,
       ]) {
         expect({ key, system, offered: offeredOn.includes(system) }).toEqual({
@@ -310,7 +320,10 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
     }
     // The hardware field names both of Pure's platforms' labels.
     for (const offering of filterOfferings("componentName")) {
-      if (offering.storageSystem !== StorageSystem.DellPowerMax) {
+      if (
+        offering.storageSystem === StorageSystem.PureStorageFlashArray ||
+        offering.storageSystem === StorageSystem.PureStorageFlashBlade
+      ) {
         expect(offering.description).toContain("`name` on a FlashBlade");
       }
     }

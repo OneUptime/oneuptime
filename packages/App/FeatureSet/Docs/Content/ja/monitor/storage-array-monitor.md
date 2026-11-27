@@ -79,11 +79,11 @@ flowchart TB
 | フィールド | タブ | 動作 |
 | --- | --- | --- |
 | **ストレージアレイ** | すべて | 必須。すべてのクエリを `resource.storage.array.name` に限定するため、どちらも `vol-01` という名前のボリュームを持つ 2 つのアレイが混ざることはありません。 |
-| **ボリューム** | Custom Metric、詳細 | FlashArray と PowerMax のみ。1 つのボリューム。FlashArray では `name` ラベル (`vol-db-01` など。Pod やボリュームグループ内のボリュームは `pod::volume` や `group/volume` という名前になります)、PowerMax では `volume` ラベル (`00847` などのデバイス ID) で指定します。 |
+| **ボリューム** | Custom Metric、詳細 | FlashArray、PowerStore と PowerMax のみ。1 つのボリューム。FlashArray では `name` ラベル (`vol-db-01` など。Pod やボリュームグループ内のボリュームは `pod::volume` や `group/volume` という名前になります)、PowerMax では `volume` ラベル (`00847` などのデバイス ID) で指定します。 |
 | **ホスト** | Custom Metric、詳細 | FlashArray のみ。アレイが認識している 1 つのホストを `host` ラベルで (`esxi-01` など)。 |
 | **Pod** | Custom Metric、詳細 | FlashArray のみ。1 つの ActiveCluster または ActiveDR Pod を `name` ラベルで、レプリカリンクのシリーズでは `local_pod` で。 |
 | **ハードウェアコンポーネント** | Custom Metric、詳細 | 1 つのハードウェアコンポーネント (`CH0.BAY1` や `CT0` など)。FlashArray では `component_name` ラベル、FlashBlade では `name`、PowerMax では `component` (`FA-1D` などのディレクター、または `FA-1D:4` などのポート)。 |
-| **ファイルシステム** | Custom Metric、詳細 | FlashBlade のみ。`name` ラベルで 1 つのファイルシステム。 |
+| **ファイルシステム** | Custom Metric、詳細 | FlashBlade と PowerStore のみ。`name` ラベルで 1 つのファイルシステム。 |
 | **バケット** | Custom Metric、詳細 | FlashBlade のみ。`name` ラベルで 1 つのオブジェクトストアのバケット。 |
 | **Storage Array Metric** | Custom Metric | [カタログ](#収集されるメトリクス) の 1 つのメトリクス。フォームはその意味を決めるラベルフィルターを追加し、説明するオブジェクトでグループ化するため、各ボリューム、ホスト、コンポーネントが個別に判定されます。 |
 | **集計** | Custom Metric | サンプルの組み合わせ方: **平均**、**最大**、**最小**、**合計**、**カウント**。メトリクスの通常の集計から始まります。 |

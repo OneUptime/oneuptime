@@ -1320,11 +1320,11 @@ describe("the Storage Array page against the form and the agent", () => {
 
     for (const [title, onlyOn] of [
       // A PowerMax volume too (#11004): by its `volume` label.
-      ["Volume", "FlashArray and PowerMax only."],
+      ["Volume", "FlashArray, PowerStore and PowerMax only."],
       ["Host", "FlashArray only."],
       ["Pod", "FlashArray only."],
       ["Hardware Component", ""],
-      ["File System", "FlashBlade only."],
+      ["File System", "FlashBlade and PowerStore only."],
       ["Bucket", "FlashBlade only."],
     ] as Array<[string, string]>) {
       // The form's title for a filter, by the filter's key...

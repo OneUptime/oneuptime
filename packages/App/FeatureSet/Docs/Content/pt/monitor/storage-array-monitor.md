@@ -79,11 +79,11 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | Campo | Aba | O que faz |
 | --- | --- | --- |
 | **Array de armazenamento** | Todas | Obrigatório. Restringe cada consulta a `resource.storage.array.name`, então dois arrays que têm um volume chamado `vol-01` nunca se misturam. |
-| **Volume** | Custom Metric, Avançado | Só FlashArray e PowerMax. Um volume: pelo rótulo `name` em um FlashArray, como `vol-db-01` (um volume em um pod ou em um grupo de volumes se chama `pod::volume` ou `group/volume`), e pelo rótulo `volume` em um PowerMax, o seu ID de dispositivo, como `00847`. |
+| **Volume** | Custom Metric, Avançado | Só FlashArray, PowerStore e PowerMax. Um volume: pelo rótulo `name` em um FlashArray, como `vol-db-01` (um volume em um pod ou em um grupo de volumes se chama `pod::volume` ou `group/volume`), e pelo rótulo `volume` em um PowerMax, o seu ID de dispositivo, como `00847`. |
 | **Host** | Custom Metric, Avançado | Só FlashArray. Um host como o array o conhece, pelo rótulo `host`, como `esxi-01`. |
 | **Pod** | Custom Metric, Avançado | Só FlashArray. Um pod do ActiveCluster ou do ActiveDR, pelo rótulo `name`, ou `local_pod` nas séries de links de réplica. |
 | **Componente de hardware** | Custom Metric, Avançado | Um componente de hardware, como `CH0.BAY1` ou `CT0`: o rótulo `component_name` em um FlashArray, `name` em um FlashBlade, e `component` em um PowerMax, um diretor como `FA-1D` ou uma porta como `FA-1D:4`. |
-| **Sistema de arquivos** | Custom Metric, Avançado | Só FlashBlade. Um sistema de arquivos, pelo rótulo `name`. |
+| **Sistema de arquivos** | Custom Metric, Avançado | Só FlashBlade e PowerStore. Um sistema de arquivos, pelo rótulo `name`. |
 | **Bucket** | Custom Metric, Avançado | Só FlashBlade. Um bucket de armazenamento de objetos, pelo rótulo `name`. |
 | **Storage Array Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). O formulário adiciona o filtro de rótulo que lhe dá significado, e a agrupa pelo objeto que ela descreve, então cada volume, host ou componente é avaliado separadamente. |
 | **Agregação** | Custom Metric | Como as amostras são combinadas: **Média**, **Máximo**, **Mínimo**, **Soma** ou **Contagem**. Começa na agregação usual da métrica. |

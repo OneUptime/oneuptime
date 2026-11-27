@@ -79,11 +79,11 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
 | **Lagringsarray** | Alla | Krävs. Begränsar varje fråga till `resource.storage.array.name`, så två arrayer som båda har en volym som heter `vol-01` blandas aldrig ihop. |
-| **Volym** | Custom Metric, Avancerad | Bara FlashArray och PowerMax. En volym: via etiketten `name` på en FlashArray, som `vol-db-01` (en volym i en podd eller en volymgrupp heter `pod::volume` eller `group/volume`), och via etiketten `volume` på en PowerMax, dess enhets-ID, som `00847`. |
+| **Volym** | Custom Metric, Avancerad | Bara FlashArray, PowerStore och PowerMax. En volym: via etiketten `name` på en FlashArray, som `vol-db-01` (en volym i en podd eller en volymgrupp heter `pod::volume` eller `group/volume`), och via etiketten `volume` på en PowerMax, dess enhets-ID, som `00847`. |
 | **Värd** | Custom Metric, Avancerad | Bara FlashArray. En värd så som arrayen känner den, via etiketten `host`, som `esxi-01`. |
 | **Podd** | Custom Metric, Avancerad | Bara FlashArray. En ActiveCluster- eller ActiveDR-podd, via etiketten `name`, eller `local_pod` på serier för replikalänkar. |
 | **Maskinvarukomponent** | Custom Metric, Avancerad | En hårdvarukomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på en FlashArray, `name` på en FlashBlade och `component` på en PowerMax, en director som `FA-1D` eller en port som `FA-1D:4`. |
-| **Filsystem** | Custom Metric, Avancerad | Bara FlashBlade. Ett filsystem, via etiketten `name`. |
+| **Filsystem** | Custom Metric, Avancerad | Bara FlashBlade och PowerStore. Ett filsystem, via etiketten `name`. |
 | **Bucket** | Custom Metric, Avancerad | Bara FlashBlade. En bucket för objektlagring, via etiketten `name`. |
 | **Storage Array Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). Formuläret lägger till etikettfiltret som ger det dess betydelse och grupperar det efter objektet det beskriver, så varje volym, värd eller komponent bedöms för sig. |
 | **Aggregering** | Custom Metric | Hur stickprov kombineras: **Genomsnitt**, **Maximum**, **Minimum**, **Summa** eller **Antal**. Börjar på mätvärdets vanliga aggregering. |

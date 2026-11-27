@@ -79,11 +79,11 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 | Campo | Pestaña | Qué hace |
 | --- | --- | --- |
 | **Cabina de almacenamiento** | Todas | Obligatorio. Limita cada consulta a `resource.storage.array.name`, así que dos cabinas que tienen ambas un volumen llamado `vol-01` nunca se mezclan. |
-| **Volumen** | Custom Metric, Avanzado | Solo FlashArray y PowerMax. Un volumen: por la etiqueta `name` en un FlashArray, como `vol-db-01` (un volumen dentro de un pod o de un grupo de volúmenes se llama `pod::volume` o `group/volume`), y por la etiqueta `volume` en un PowerMax, su ID de dispositivo, como `00847`. |
+| **Volumen** | Custom Metric, Avanzado | Solo FlashArray, PowerStore y PowerMax. Un volumen: por la etiqueta `name` en un FlashArray, como `vol-db-01` (un volumen dentro de un pod o de un grupo de volúmenes se llama `pod::volume` o `group/volume`), y por la etiqueta `volume` en un PowerMax, su ID de dispositivo, como `00847`. |
 | **Host** | Custom Metric, Avanzado | Solo FlashArray. Un host tal como lo conoce la cabina, por la etiqueta `host`, como `esxi-01`. |
 | **Pod** | Custom Metric, Avanzado | Solo FlashArray. Un pod de ActiveCluster o ActiveDR, por la etiqueta `name`, o `local_pod` en las series de enlaces de réplica. |
 | **Componente de hardware** | Custom Metric, Avanzado | Un componente de hardware, como `CH0.BAY1` o `CT0`: la etiqueta `component_name` en un FlashArray, `name` en un FlashBlade, y `component` en un PowerMax, un director como `FA-1D` o un puerto como `FA-1D:4`. |
-| **Sistema de archivos** | Custom Metric, Avanzado | Solo FlashBlade. Un sistema de archivos, por la etiqueta `name`. |
+| **Sistema de archivos** | Custom Metric, Avanzado | Solo FlashBlade y PowerStore. Un sistema de archivos, por la etiqueta `name`. |
 | **Bucket** | Custom Metric, Avanzado | Solo FlashBlade. Un bucket de almacenamiento de objetos, por la etiqueta `name`. |
 | **Storage Array Metric** | Custom Metric | Una métrica del [catálogo](#métricas-recogidas). El formulario añade el filtro de etiqueta que le da su significado, y la agrupa por el objeto que describe, así que cada volumen, host o componente se juzga por separado. |
 | **Agregación** | Custom Metric | Cómo se combinan las muestras: **Promedio**, **Máximo**, **Mínimo**, **Suma** o **Recuento**. Empieza en la agregación habitual de la métrica. |

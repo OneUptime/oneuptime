@@ -79,11 +79,11 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 | Veld | Tabblad | Wat het doet |
 | --- | --- | --- |
 | **Opslagarray** | Alle | Verplicht. Beperkt elke query tot `resource.storage.array.name`, zodat twee arrays die allebei een volume `vol-01` hebben nooit door elkaar lopen. |
-| **Volume** | Custom Metric, Geavanceerd | Alleen FlashArray en PowerMax. Eén volume: via het label `name` op een FlashArray, zoals `vol-db-01` (een volume in een pod of een volumegroep heet `pod::volume` of `group/volume`), en via het label `volume` op een PowerMax, zijn apparaat-ID, zoals `00847`. |
+| **Volume** | Custom Metric, Geavanceerd | Alleen FlashArray, PowerStore en PowerMax. Eén volume: via het label `name` op een FlashArray, zoals `vol-db-01` (een volume in een pod of een volumegroep heet `pod::volume` of `group/volume`), en via het label `volume` op een PowerMax, zijn apparaat-ID, zoals `00847`. |
 | **Host** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén host zoals de array hem kent, via het label `host`, zoals `esxi-01`. |
 | **Pod** | Custom Metric, Geavanceerd | Alleen FlashArray. Eén ActiveCluster- of ActiveDR-pod, via het label `name`, of `local_pod` op reeksen van replicakoppelingen. |
 | **Hardwarecomponent** | Custom Metric, Geavanceerd | Eén hardwarecomponent, zoals `CH0.BAY1` of `CT0`: het label `component_name` op een FlashArray, `name` op een FlashBlade en `component` op een PowerMax, een director zoals `FA-1D` of een poort zoals `FA-1D:4`. |
-| **Bestandssysteem** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén bestandssysteem, via het label `name`. |
+| **Bestandssysteem** | Custom Metric, Geavanceerd | Alleen FlashBlade en PowerStore. Eén bestandssysteem, via het label `name`. |
 | **Bucket** | Custom Metric, Geavanceerd | Alleen FlashBlade. Eén objectopslagbucket, via het label `name`. |
 | **Storage Array Metric** | Custom Metric | Eén metriek uit de [catalogus](#verzamelde-metrieken). Het formulier voegt het labelfilter toe dat haar betekenis geeft, en groepeert haar op het object dat ze beschrijft, zodat elk volume, elke host of elk component afzonderlijk wordt beoordeeld. |
 | **Aggregatie** | Custom Metric | Hoe monsters worden gecombineerd: **Gemiddelde**, **Maximum**, **Minimum**, **Som** of **Aantal**. Begint bij de gebruikelijke aggregatie van de metriek. |
