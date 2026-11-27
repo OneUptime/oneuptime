@@ -15,7 +15,7 @@ Dell PowerStore (`dell.powerstore`) にも、Dell の `powerstore_*` シリー�
 
 OneUptime Storage Array Agent は、アレイの管理インターフェイスに到達できるマシンで動作します。読み取り専用の API トークンでアレイのメトリクスを読み取り、アレイの名前 `storage.array.name` とプラットフォーム `storage.system` のラベルを付けて、OTLP で OneUptime に送信します。最初のデータでアレイが登録されます。
 
-Dell PowerMax にはエージェントが不要です。OneUptime のプローブが 5 分ごとに読み取り専用アカウントで Unisphere for PowerMax にログインし、Unisphere が管理するすべてのアレイを同じように送信します。アレイの名前は、変更するまで Symmetrix ID になります ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
+Dell PowerMax (`dell.powermax`) にはエージェントが不要です。OneUptime のプローブが 5 分ごとに読み取り専用アカウントで Unisphere for PowerMax にログインし、Unisphere が管理するすべてのアレイを同じように送信します。アレイの名前は、変更するまで Symmetrix ID になります ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
 
 ストレージアレイ モニターは 1 つのアレイに結び付いています。毎分、そのアレイのメトリクスに対してクエリを実行し、結果を条件と比較します。
 

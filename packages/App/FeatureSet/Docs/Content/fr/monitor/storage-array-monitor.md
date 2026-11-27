@@ -15,7 +15,7 @@ Il fonctionne aussi avec Dell PowerStore (`dell.powerstore`), à partir des sér
 
 Le OneUptime Storage Array Agent tourne sur une machine qui peut joindre l'interface de gestion de la baie. Il lit les métriques de la baie avec un jeton d'API en lecture seule, les étiquette avec le nom de la baie, `storage.array.name`, et sa plateforme, `storage.system`, et les envoie à OneUptime via OTLP. Les premières données enregistrent la baie.
 
-Un Dell PowerMax n'a besoin d'aucun agent : une sonde OneUptime se connecte toutes les 5 minutes à Unisphere for PowerMax avec un compte en lecture seule et envoie de la même façon chaque baie qu'il gère, nommée d'après son Symmetrix ID jusqu'à ce que vous la renommiez ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
+Un Dell PowerMax (`dell.powermax`) n'a besoin d'aucun agent : une sonde OneUptime se connecte toutes les 5 minutes à Unisphere for PowerMax avec un compte en lecture seule et envoie de la même façon chaque baie qu'il gère, nommée d'après son Symmetrix ID jusqu'à ce que vous la renommiez ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
 Un moniteur de baie de stockage est lié à une baie. Chaque minute, il exécute sa requête sur les métriques de cette baie et compare le résultat à ses critères.
 

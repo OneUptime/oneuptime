@@ -15,7 +15,7 @@ Den fungerer også med Dell PowerStore (`dell.powerstore`), ud fra Dells serier 
 
 OneUptime Storage Array Agent kører på en maskine, der kan nå arrayets administrationsgrænseflade. Den læser arrayets metrikker med et skrivebeskyttet API-token, mærker dem med arrayets navn, `storage.array.name`, og dets platform, `storage.system`, og sender dem til OneUptime over OTLP. De første data registrerer arrayet.
 
-En Dell PowerMax kræver ingen agent: en OneUptime-sonde logger hvert 5. minut ind på Unisphere for PowerMax med en skrivebeskyttet konto og sender hvert array, den administrerer, på samme måde, navngivet efter sit Symmetrix ID, indtil du omdøber det ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
+En Dell PowerMax (`dell.powermax`) kræver ingen agent: en OneUptime-sonde logger hvert 5. minut ind på Unisphere for PowerMax med en skrivebeskyttet konto og sender hvert array, den administrerer, på samme måde, navngivet efter sit Symmetrix ID, indtil du omdøber det ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
 En lagerarray-monitor er knyttet til ét array. Hvert minut kører den sin forespørgsel på det arrays metrikker og sammenligner resultatet med sine kriterier.
 

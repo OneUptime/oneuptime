@@ -15,7 +15,7 @@
 
 OneUptime Storage Array Agent 執行在能夠連線到陣列管理介面的機器上。它使用唯讀 API 權杖讀取陣列的指標，為指標加上陣列的名稱 `storage.array.name` 和平台 `storage.system` 標籤，並透過 OTLP 傳送到 OneUptime。第一批資料送達時會註冊該陣列。
 
-Dell PowerMax 無需代理程式：OneUptime 探測器每 5 分鐘會使用唯讀帳戶登入一次 Unisphere for PowerMax，並以同樣的方式傳送它管理的每個陣列，陣列在你重新命名之前會以其 Symmetrix ID 命名([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
+Dell PowerMax (`dell.powermax`) 無需代理程式：OneUptime 探測器每 5 分鐘會使用唯讀帳戶登入一次 Unisphere for PowerMax，並以同樣的方式傳送它管理的每個陣列，陣列在你重新命名之前會以其 Symmetrix ID 命名([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
 
 儲存陣列監測器繫結到一個陣列。它每分鐘對該陣列的指標執行一次查詢，並將結果與其條件比較。
 

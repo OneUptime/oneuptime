@@ -15,7 +15,7 @@
 
 OneUptime Storage Array Agent ऐसी मशीन पर चलता है जो ऐरे के मैनेजमेंट इंटरफ़ेस तक पहुँच सकती है। यह केवल-पढ़ने वाले API टोकन से ऐरे के मेट्रिक्स पढ़ता है, उन पर ऐरे का नाम `storage.array.name` और उसका प्लेटफ़ॉर्म `storage.system` लेबल करता है, और उन्हें OTLP पर OneUptime को भेजता है। पहला डेटा ऐरे को पंजीकृत करता है।
 
-Dell PowerMax को किसी एजेंट की ज़रूरत नहीं है: एक OneUptime प्रोब हर 5 मिनट में केवल-पढ़ने वाले खाते से Unisphere for PowerMax में लॉग इन करता है और उसके प्रबंधित हर ऐरे को उसी तरह भेजता है, जिसका नाम तब तक उसका Symmetrix ID रहता है जब तक आप उसे बदल नहीं देते ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))।
+Dell PowerMax (`dell.powermax`) को किसी एजेंट की ज़रूरत नहीं है: एक OneUptime प्रोब हर 5 मिनट में केवल-पढ़ने वाले खाते से Unisphere for PowerMax में लॉग इन करता है और उसके प्रबंधित हर ऐरे को उसी तरह भेजता है, जिसका नाम तब तक उसका Symmetrix ID रहता है जब तक आप उसे बदल नहीं देते ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))।
 
 स्टोरेज ऐरे मॉनिटर एक ऐरे से जुड़ा होता है। हर मिनट वह उस ऐरे के मेट्रिक्स पर अपनी क्वेरी चलाता है और परिणाम की तुलना अपने मानदंड से करता है।
 

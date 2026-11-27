@@ -1342,21 +1342,18 @@ describe("the Storage Array page against the form and the agent", () => {
         `(\\w+): \\{\\s*title: "${title}",`,
       ).exec(form)?.[1];
       // ...offered on the platforms that declare that filter (#11000).
-      const platforms: Array<StorageArrayPlatform> =
-        StorageArrayPlatformRegistry.getPlatforms().filter(
-          (platform: StorageArrayPlatform): boolean => {
+      const platforms: Array<string> =
+        StorageArrayPlatformRegistry.getPlatforms()
+          .filter((platform: StorageArrayPlatform): boolean => {
             return platform.resourceFilters.some(
               (filter: StorageArrayResourceFilter): boolean => {
                 return filter.key === key;
               },
             );
-          },
-        );
-      const names: Array<string> = platforms.map(
-        (platform: StorageArrayPlatform): string => {
-          return platform.shortName;
-        },
-      );
+          })
+          .map((platform: StorageArrayPlatform): string => {
+            return platform.storageSystem;
+          });
 
       expect(key).toBeDefined();
       expect({

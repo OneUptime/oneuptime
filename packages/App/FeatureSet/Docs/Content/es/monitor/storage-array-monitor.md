@@ -15,7 +15,7 @@ También funciona con Dell PowerStore (`dell.powerstore`), a partir de las serie
 
 El OneUptime Storage Array Agent se ejecuta en una máquina que puede llegar a la interfaz de gestión de la cabina. Lee las métricas de la cabina con un token de API de solo lectura, las etiqueta con el nombre de la cabina, `storage.array.name`, y su plataforma, `storage.system`, y las envía a OneUptime por OTLP. Los primeros datos registran la cabina.
 
-Un Dell PowerMax no necesita agente: una sonda de OneUptime inicia sesión en Unisphere for PowerMax con una cuenta de solo lectura cada 5 minutos y envía de la misma forma cada cabina que este gestiona, con el nombre de su Symmetrix ID hasta que usted le cambie el nombre ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
+Un Dell PowerMax (`dell.powermax`) no necesita agente: una sonda de OneUptime inicia sesión en Unisphere for PowerMax con una cuenta de solo lectura cada 5 minutos y envía de la misma forma cada cabina que este gestiona, con el nombre de su Symmetrix ID hasta que usted le cambie el nombre ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
 Un monitor de cabina de almacenamiento está ligado a una cabina. Cada minuto ejecuta su consulta sobre las métricas de esa cabina y compara el resultado con sus criterios.
 
