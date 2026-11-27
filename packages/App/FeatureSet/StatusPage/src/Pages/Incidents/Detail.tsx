@@ -44,6 +44,7 @@ import { StatusPageApiRoute } from "Common/ServiceRoute";
 import { EventDetailSkeleton } from "../../Components/Skeleton/PageSkeletons";
 import Navigation from "Common/UI/Utils/Navigation";
 import Incident from "Common/Models/DatabaseModels/Incident";
+import IncidentFeed from "Common/Models/DatabaseModels/IncidentFeed";
 import IncidentPostmortemPublication from "Common/Types/StatusPage/IncidentPostmortemPublication";
 import IncidentPublicNote from "Common/Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "Common/Models/DatabaseModels/IncidentState";
@@ -74,6 +75,7 @@ type GetIncidentEventItemFunctionProps = {
   incident: Incident;
   incidentPublicNotes: Array<IncidentPublicNote>;
   incidentStateTimelines: Array<IncidentStateTimeline>;
+  incidentSeverityChanges?: Array<IncidentFeed> | undefined;
   /*
    * The project's incident states: a timeline row in the project's resolved
    * state, or in one placed after it, shows the resolved check
@@ -180,6 +182,7 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
     incident,
     incidentPublicNotes,
     incidentStateTimelines,
+    incidentSeverityChanges = [],
     incidentStates,
     statusPageResources,
     monitorsInGroup,
@@ -338,6 +341,34 @@ export const getIncidentEventItem: GetIncidentEventItemFunction = (
       if (isSummary) {
         break;
       }
+    }
+  }
+
+  for (const severityChange of incidentSeverityChanges) {
+    if (
+      severityChange.incidentId?.toString() === incident.id?.toString() &&
+      severityChange.incidentSeverityChangedToName
+    ) {
+      timeline.push({
+        title: i18n.t("incidents.severityChanged", {
+          from: translateStatusName(
+            StateListType.IncidentSeverity,
+            severityChange.incidentSeverityChangedFromName || "Unknown",
+          ),
+          to: translateStatusName(
+            StateListType.IncidentSeverity,
+            severityChange.incidentSeverityChangedToName,
+          ),
+          defaultValue: "Severity changed from {{from}} to {{to}}",
+        }),
+        date:
+          severityChange.postedAt ||
+          (severityChange.createdAt as Date) ||
+          OneUptimeDate.getCurrentDate(),
+        type: TimelineItemType.Note,
+        icon: IconProp.Alert,
+        iconColor: Red,
+      });
     }
   }
 
@@ -845,6 +876,9 @@ const Detail: FunctionComponent<PageComponentProps> = (
   const [incidentStateTimelines, setIncidentStateTimelines] = useState<
     Array<IncidentStateTimeline>
   >([]);
+  const [incidentSeverityChanges, setIncidentSeverityChanges] = useState<
+    Array<IncidentFeed>
+  >([]);
 
   // Episode state
   const [episodePublicNotes, setEpisodePublicNotes] = useState<
@@ -965,6 +999,12 @@ const Detail: FunctionComponent<PageComponentProps> = (
               setIncident(incident);
               setStatusPageResources(statusPageResources);
               setIncidentStateTimelines(incidentStateTimelines);
+              setIncidentSeverityChanges(
+                BaseModel.fromJSONArray(
+                  (data["incidentSeverityChanges"] as JSONArray) || [],
+                  IncidentFeed,
+                ),
+              );
               setPartOfEpisodes(readPartOfEpisodes(data));
             }
           }
@@ -1107,6 +1147,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
           incident,
           incidentPublicNotes,
           incidentStateTimelines,
+          incidentSeverityChanges,
           incidentStates,
           statusPageResources,
           monitorsInGroup,
@@ -1122,6 +1163,7 @@ const Detail: FunctionComponent<PageComponentProps> = (
     episode,
     isEpisode,
     incidentStates,
+    incidentSeverityChanges,
     partOfEpisodes,
     episodeIncidents,
     i18nInstance.resolvedLanguage,
