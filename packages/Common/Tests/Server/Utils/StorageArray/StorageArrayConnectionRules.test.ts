@@ -228,7 +228,7 @@ describe("connecting a new Unisphere", () => {
         collectionProbeId: PROBE,
         collectionIntervalInMinutes: 1,
       },
-      "Collect every 5 to 10 minutes, in whole minutes.",
+      "Collect every 5 to 10\u00a0minutes, in whole minutes.",
     ],
     [
       "a fingerprint that is not one",

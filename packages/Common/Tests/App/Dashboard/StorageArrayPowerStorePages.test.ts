@@ -246,7 +246,9 @@ describe("the Inventory page lists a PowerStore's own kinds in their own words",
 
   test("every title and description it gives is in the Dashboard's words, and German has its own", () => {
     const given: Array<string> = [];
-    for (const definition of DellPowerStorePlatform.kindDefinitions) {
+    // A platform's own kinds are optional on the type; PowerStore has some.
+    expect(DellPowerStorePlatform.kindDefinitions?.length).toBeGreaterThan(0);
+    for (const definition of DellPowerStorePlatform.kindDefinitions || []) {
       const columns: StorageArrayInventoryColumns | undefined =
         definition.inventoryColumns;
       expect(columns).toBeDefined();

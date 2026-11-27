@@ -188,7 +188,7 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 | Battery Unhealthy | Maskinvare | Advarsel | `powerstore_hardware_Battery_state`, Min per `name`, siste 10 minutter | < 1 — en batteribackupmodul har feil; gjenopprettes ved ≥ 1 |
 | Drive Wearing Out | Maskinvare | Advarsel | `powerstore_wear_metrics_by_drive`, Min per `name`, siste 15 minutter | < 10 — en disk har under 10 % av utholdenheten igjen; gjenopprettes ved ≥ 11 |
 | NAS Server Not Started | Filsystemer | Advarsel | `powerstore_nas_server_operational_status`, Max per `name`, siste 10 minutter | < 1 — en NAS-server er stoppet eller svekket; gjenopprettes ved ≥ 1 |
-| Volume Not Ready | Arrayets helse | Advarsel | `powerstore_volume_state`, Max per `name`, siste 15 minutter | < 1 — et volum er frakoblet; gjenopprettes ved ≥ 1 |
+| Volume Not Ready | Arrayets helse | Advarsel | `powerstore_volume_state`, Max per `name`, siste 15 minutter | < 1 — et volum er offline; gjenopprettes ved ≥ 1 |
 | File System Near Full | Filsystemer | Advarsel | `powerstore_filesystem_logical_used_percent`, Max per `name`, siste 15 minutter | > 90 — et filsystem er nesten fullt; gjenopprettes ved ≤ 81 |
 | Cluster Not Configured | Arrayets helse | Advarsel | `powerstore_cluster`, Max, siste 10 minutter | < 1 — klyngen er ikke Configured; gjenopprettes ved ≥ 1 |
 | Metro Witness Not Connected | Replikering | Advarsel | `powerstore_metro_witness_status`, Min per `name`, siste 10 minutter | > 0 — et Metro-vitne er ikke tilkoblet; gjenopprettes når det er OK igjen |
@@ -209,7 +209,7 @@ De egne varslene til en PowerStore kommer som logger, så malene deres er monito
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | Tilgjengelighet | Kritisk | `netapp_cluster_new_status`, Count, siste 10 minutter | Ingen data i hele vinduet — agenten eller Harvest har stoppet, eller klyngen sluttet å svare Harvest; gjenoppretter når data kommer inn igjen |
 | Cluster Not Healthy | Arrayets helse | Advarsel | `netapp_cluster_new_status`, Max, siste 10 minutter | < 1 — ONTAP rapporterer klyngen som ikke sunn; gjenoppretter ved ≥ 1 |
-| System Health Alert | Arrayets helse | Advarsel | `netapp_health_support_alerts`, Max per `name`, siste 5 minutter | > 0 — ONTAPs overvåking av systemhelse har utløst et varsel (en manglende sti til en diskhylle, et tilkoblingsproblem på en node). Én hendelse per varsel; gjenoppretter når ONTAP fjerner det |
+| System Health Alert | Arrayets helse | Advarsel | `netapp_health_support_alerts`, Max per `name`, siste 5 minutter | > 0 — ONTAPs systemhelsemonitor har utløst et varsel (en manglende sti til en diskhylle, et tilkoblingsproblem på en node). Én hendelse per varsel; gjenoppretter når ONTAP fjerner det |
 | Emergency EMS Event | Arrayets helse | Kritisk | `netapp_ems_events` filtrert til `severity=emergency`, Max per `message`, siste 1 time, én verdi er nok | > 0 — ONTAP har logget en hendelse av typen emergency. Én hendelse per EMS-hendelse; gjenoppretter når det går en time uten en ny |
 | Alert EMS Event | Arrayets helse | Kritisk | `netapp_ems_events` filtrert til `severity=alert`, Max per `message`, siste 1 time, én verdi er nok | > 0 — ONTAP har logget en hendelse av typen alert (en vifte har sviktet); gjenoppretter når det går en time uten en ny |
 | Disk Out of Service | Maskinvare | Advarsel | `netapp_ems_events` filtrert til `message=disk.outOfService`, Max per `disk`, siste 1 time, én verdi er nok | > 0 — ONTAP har tatt en disk ut av drift; gjenoppretter når det går en time uten en ny |
@@ -298,7 +298,7 @@ Agenten sender alt arrayet eksporterer, og en sonde alt den leser fra en PowerMa
 | `powerstore_cluster` | — | PowerStore | `count` | 1 mens PowerStore-klyngen er Configured (dannet og i drift), 0 i enhver annen tilstand: Configuring, Expanding, Removing, Clustering_Failed eller Unconfigured. |
 | `netapp_cluster_new_status` | — | ONTAP | — | 1 så lenge ONTAP rapporterer klyngen som sunn; viser også at agenten fortsatt leser den |
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | Åpne varsler i hvert av ONTAPs helsedelsystemer, etter `subsystem` |
-| `netapp_health_support_alerts` | — | ONTAP | `count` | Én serie per varsel som ONTAPs overvåking av systemhelse har åpent, så lenge det er åpent |
+| `netapp_health_support_alerts` | — | ONTAP | `count` | Én serie per varsel som ONTAPs systemhelsemonitor har åpent, så lenge det er åpent |
 | `netapp_ems_events` | — | ONTAP | `count` | Én serie per EMS-hendelse, i innsamlingen som hentet den; når en paret hendelse opphører, eksporteres den én gang til som 0 |
 | `powermax_alert_open` | — | PowerMax | `count` | Én serie per varsel Unisphere har åpent for arrayet (verdi 1): ikke bekreftet, ikke fjernet og Minor eller verre. Etiketten severity er critical (Critical og Fatal) eller warning (Warning og Minor); etikettene alert_type, object og description forteller hva det gjelder. Bekreft varselet i Unisphere, så forsvinner serien |
 | `powermax_array_health_score` | — | PowerMax | `score` | Unispheres helsescore for arrayet, fra 0 til 100, per health_metric: samlet og for hvert område den vurderer (kapasitet, konfigurasjon, ytelse, samsvar med tjenestenivå) |

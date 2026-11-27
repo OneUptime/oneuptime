@@ -513,9 +513,10 @@ describe("an ONTAP cluster", () => {
     });
     expect(fan.details).toMatchObject({
       sensorType: "fan",
-      reading: "1200 RPM",
+      // The figure and its unit joined by a no-break space, as a page draws them.
+      reading: "1200\u00A0RPM",
       thresholdState: "crit_low",
-      statusReason: "crit_low, 1200 RPM",
+      statusReason: "crit_low, 1200\u00A0RPM",
     });
     for (const sensor of sensors) {
       if (sensor !== fan) {

@@ -235,10 +235,13 @@ services:
       - "${POWERSTORE_SYSLOG_PORT:-5514}:5514/udp"
       # Uncomment for syslog over TLS.
       # - "6514:6514/tcp"
+    # Only what powerstore-syslog.yaml reads, never the PowerStore's password.
+    # The first three are required, as they are for the agent above: no
+    # default, so a missing one is as plain here as there.
     environment:
-      - ONEUPTIME_URL=${ONEUPTIME_URL:-}
-      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY:-}
-      - STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME:-}
+      - ONEUPTIME_URL=${ONEUPTIME_URL}
+      - ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}
+      - STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME}
       - STORAGE_SYSTEM=${STORAGE_SYSTEM:-dell.powerstore}
     read_only: true
     cap_drop:

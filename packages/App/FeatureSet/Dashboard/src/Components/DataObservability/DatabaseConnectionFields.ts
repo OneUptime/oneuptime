@@ -96,7 +96,7 @@ export function getDatabaseConnectionFields(data: {
           value: DataObservabilityCollector.DatabaseAgent,
           title: "My Database Agent connects",
           description:
-            "The Database Agent beside the database reads it with its own logins. No login is saved in OneUptime.",
+            "The Database Agent beside the database reads it with its own logins. No connection string or password is saved in OneUptime.",
         },
       ],
       required: true,

@@ -59,6 +59,7 @@ import useCloudBudgetFormContext, {
 } from "../../Components/Cloud/Budgets/UseCloudBudgetFormContext";
 import { getBudgetRowStatus, CLOUD_BUDGET_TONE_COLORS } from "./Budgets";
 import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
@@ -454,6 +455,12 @@ const CloudBudgetPage: FunctionComponent<
             {money(Number(budget.monthlyAmount) || 0)}
           </div>
         </div>
+        {/* The budget's line: its ID, who created it and who last changed it. */}
+        <RecordActivityLine
+          modelType={CloudBudget}
+          recordId={budgetId}
+          className="mt-4 border-t border-gray-100 pt-3"
+        />
       </Card>
       {pageError ? (
         <ErrorMessage

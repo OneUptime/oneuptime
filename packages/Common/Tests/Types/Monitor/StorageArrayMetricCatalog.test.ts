@@ -607,6 +607,7 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     );
     expect(new Set(ids).size).toBe(ids.length);
 
+    // Each platform's prefix is PREFIXES', PowerStore's and ONTAP's among them.
     for (const metric of ALL_METRICS) {
       const prefix: string = PREFIXES[onlySystem(metric)]!.id;
       expect(metric.id).toMatch(/^[a-z]+-[a-z0-9-]+$/);

@@ -381,7 +381,7 @@ Een Slack- of Microsoft Teams-kanaal krijgt een kort bericht: het totaal en de v
 
 - Mensen en teams van het project krijgen het per e-mail, via hun meldingsinstellingen, waar ieder cloudkostenrapporten kan uitzetten. Ieder krijgt de cijfers die hij mag lezen: wie alleen via labels toegang heeft, krijgt alleen zijn accounts, en wie de cloudkosten van het project niet meer mag lezen, wordt weggelaten.
 - **E-mailadressen** buiten het project, zoals dat van uw accountant, en Slack- en Microsoft Teams-kanalen vereisen de machtiging Cloudbeheerder, of Projectbeheerder of Projecteigenaar, omdat OneUptime niet kan weten wie ze leest. Ze krijgen het rapport zoals de persoon die ze toevoegde het mag lezen, en krijgen het niet meer als die persoon de machtiging verliest. Een API-sleutel kan ze niet instellen.
-- Wie de andere Cloud-records mag maken, vanaf Cloudlid, kan rapporten maken, wijzigen en verwijderen. Een Cloudkijker kan ze lezen.
+- Wie de andere Cloud-records mag maken, vanaf Cloudlid, kan rapporten maken, wijzigen en verwijderen. Wie Cloud op het niveau Kijker heeft, kan ze lezen.
 
 Een rapport gaat naar hoogstens 200 mensen, 25 adressen en 10 kanalen van elk soort. **Laatste verzending** zegt wanneer het voor het laatst uitging, en wie het wegliet en waarom.
 

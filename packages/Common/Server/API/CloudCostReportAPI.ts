@@ -6,6 +6,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import ProductKey from "../../Types/Product/ProductKey";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CloudCostReportService, {
   Service as CloudCostReportServiceType,
@@ -17,6 +18,7 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 
@@ -31,6 +33,9 @@ import CommonAPI from "./CommonAPI";
  *   POST /cloud-cost-report/:reportId/send-copy
  *     Sends the caller a copy now, as they may read it, to the address
  *     they sign in with - the email and its CSV everyone it names gets.
+ *     Refused while the server has switched Cloud off
+ *     (ServerProductRoutes), before anything is read: it sends a report,
+ *     where the preview only reads one.
  *
  * Both need a person who may read the report and the costs: a report's
  * figures are never read for someone who may not read them.
@@ -59,6 +64,7 @@ export default class CloudCostReportAPI extends BaseAPI<
     this.router.post(
       `${path}/:reportId/send-copy`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.sendCopy(req, res);
