@@ -203,7 +203,7 @@ Agenten følger også hver containers fil `*-json.log` og sender hver linje som 
 | `resource.container.id` | Den fullstendige container-ID-en. |
 | `resource.container.runtime` | Alltid `docker`. |
 | `attributes["log.iostream"]` | `stdout` eller `stderr`. |
-| `severityText` / `severityNumber` | Lest fra et nivånøkkelord der et nivå står i linjen (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). En linje uten nivå faller tilbake på strømmen sin: `stderr` er `ERROR`, `stdout` er `INFO`. |
+| `severityText` / `severityNumber` | Lest fra nivået linjen nevner, der et nivå står i den (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`); et unntaks traceback er `ERROR`. En linje uten nivå er `INFO` på `stdout` og har ingen alvorlighetsgrad (Uspesifisert) på `stderr`. |
 | `body` | Linjen containeren skrev. Linjer som starter med mellomrom eller en avsluttende parentes, som linjer i en stakksporing, føyes til linjen før. |
 | `time` | Docker-daemonens tidsstempel for linjen. |
 

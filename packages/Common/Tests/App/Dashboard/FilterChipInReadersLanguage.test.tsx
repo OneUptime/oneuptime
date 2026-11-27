@@ -58,6 +58,9 @@ const CHIP_WORDS: ReadonlyArray<string> = [
   "Nothing to show",
   "No options available",
   "Try a different search term",
+  // A pick whose record is gone, and an archived one (#11073).
+  "No longer available",
+  "{{name}} (archived)",
 ];
 
 const instances: Record<string, i18n> = {};
@@ -247,6 +250,93 @@ describe("the chip's popover", () => {
       screen.getByText(persianLocale["No options available"]),
     ).toBeInTheDocument();
     expect(screen.queryByText("Nothing to show")).toBeNull();
+  });
+});
+
+/*
+ * A pick a link or a saved view holds whose record is gone - deleted, or
+ * out of the reader's reach - reads "No longer available", in the reader's
+ * words, never as its key ("host:3fa1..."); an archived record reads as
+ * archived. Both on the chip and in its list (#11073).
+ */
+describe("a pick that is gone, or archived", () => {
+  const GONE: FilterChipDropdownOption = {
+    value: "host:3fa1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    label: "host:3fa1c2d4-5e6f-4a7b-8c9d-0e1f2a3b4c5d",
+    icon: IconProp.Server,
+    group: "Hosts",
+    isNotFound: true,
+  };
+  const ARCHIVED: FilterChipDropdownOption = {
+    value: "host:4b20d3e5-6f70-4b8c-9dae-1f2a3b4c5d6e",
+    label: "old-web",
+    icon: IconProp.Server,
+    group: "Hosts",
+    isArchived: true,
+  };
+
+  test("a gone one says so on the chip, never its key", () => {
+    render(
+      accountChip({
+        language: "en",
+        value: [GONE.value],
+        options: [GONE, ...OPTIONS],
+      }),
+    );
+
+    expect(screen.getByTestId("filter-chip-value").textContent).toBe(
+      "No longer available",
+    );
+    expect(chipButton().textContent).not.toContain("3fa1c2d4");
+  });
+
+  test("in the reader's language", () => {
+    render(
+      accountChip({
+        language: "de",
+        value: [GONE.value, ARCHIVED.value],
+        options: [GONE, ARCHIVED],
+      }),
+    );
+
+    const germanWords: Record<string, string> =
+      germanLocale as unknown as Record<string, string>;
+
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("filter-chip-value").textContent || "",
+      ),
+    ).toBe(
+      `${germanWords["No longer available"]}, ${withoutIsolateMarks(
+        germanWords["{{name}} (archived)"]!.replace("{{name}}", "old-web"),
+      )}`,
+    );
+  });
+
+  test("an archived one is named as archived, on the chip and in the list", async () => {
+    render(
+      accountChip({
+        language: "en",
+        value: [ARCHIVED.value],
+        options: [ARCHIVED, ...OPTIONS],
+      }),
+    );
+
+    expect(
+      withoutIsolateMarks(
+        screen.getByTestId("filter-chip-value").textContent || "",
+      ),
+    ).toBe("old-web (archived)");
+
+    await act(async () => {
+      await userEvent.click(chipButton());
+    });
+
+    expect(
+      screen.getAllByRole("option").map((option: HTMLElement): string => {
+        return withoutIsolateMarks(option.textContent || "");
+      }),
+    ).toEqual(["old-web (archived)", ACCOUNT, "acme-prod"]);
   });
 });
 

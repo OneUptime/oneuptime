@@ -84,9 +84,9 @@ Dans l'onglet **Maintenance planifiée** d'un hôte, d'un cluster Kubernetes, Pr
 Au moment où vous cliquez sur **Créer un événement de maintenance**, OneUptime enchaîne ces étapes, dans cet ordre :
 
 1. **Il reçoit un numéro et un état.** Le numéro vient d'un compteur par projet, affiché avec votre préfixe (`SM-42`). L'événement commence dans votre état planifié, quel que soit l'état indiqué par une requête.
-2. **Vos outils de chat en sont informés.** Les règles Slack et Microsoft Teams sous **Espace de travail** le publient dans leurs canaux, et une règle peut créer un canal pour l'événement. Son fil d'activité enregistre sa création.
-3. **Sa chronologie d'état commence.** La première ligne de sa **Chronologie d'état** est votre état planifié.
-4. **Les propriétaires et étiquettes sont ajoutés** : ceux que vous avez choisis, puis ceux des règles de propriétaire et d'étiquettes qui correspondent.
+2. **Sa chronologie d'état commence.** La première ligne de sa **Chronologie d'état** est votre état planifié.
+3. **Les propriétaires et étiquettes sont ajoutés** : ceux que vous avez choisis, puis ceux des règles de propriétaire et d'étiquettes qui correspondent.
+4. **Vos outils de chat en sont informés.** Les règles Slack et Microsoft Teams sous **Espace de travail** le publient dans leurs canaux, et une règle peut créer un canal pour l'événement. Son fil d'activité enregistre sa création. Les règles voient les propriétaires et les étiquettes avec lesquels l'événement a été créé, si bien qu'une règle qui porte sur le propriétaire ou les étiquettes d'un événement le publie aussi. Tout ce qui a été dit sur l'événement entre-temps, comme les propriétaires tout juste ajoutés, le suit dans ces canaux.
 5. **Les règles de runbook démarrent** les runbooks qui correspondent à l'événement.
 6. **Les rappels sont planifiés**, quand une règle de rappel correspond, pour ses propriétaires.
 

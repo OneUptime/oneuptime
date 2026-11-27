@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddStorageArrayConnections1809187740000
+export class AddStorageArrayConnections1809187751104
   implements MigrationInterface
 {
-  public name = "AddStorageArrayConnections1809187740000";
+  public name = "AddStorageArrayConnections1809187751104";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

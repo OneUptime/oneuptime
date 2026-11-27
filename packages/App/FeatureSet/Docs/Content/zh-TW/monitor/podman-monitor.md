@@ -199,7 +199,7 @@ flowchart TB
 | `resource.container.id` | 完整的容器 ID。 |
 | `resource.container.runtime` | 一律為 `podman`。 |
 | `attributes["log.iostream"]` | `stdout` 或 `stderr`。 |
-| `severityText` / `severityNumber` | 如果行中有層級，就從層級關鍵字讀取（`[ERROR]`、`app.INFO:`、`{"level":"warn"}`、`level=error`）。沒有層級的行會依其串流決定：`stderr` 為 `ERROR`，`stdout` 為 `INFO`。 |
+| `severityText` / `severityNumber` | 如果行中有層級，就從該行寫明的層級讀取（`[ERROR]`、`app.INFO:`、`{"level":"warn"}`、`level=error`）；例外的 traceback 為 `ERROR`。沒有層級的行在 `stdout` 上為 `INFO`，在 `stderr` 上則沒有嚴重程度（未指定）。 |
 | `body` | 容器寫入的那一行。以空白或右括號開頭的行（例如堆疊追蹤的框架）會接到上一行。 |
 | `time` | Podman 為該行記錄的時間戳記。 |
 

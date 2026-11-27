@@ -7701,6 +7701,25 @@
     "kind": "page"
   },
   {
+    "title": "Commitments",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "savings plans",
+      "reserved instances",
+      "reservations",
+      "committed use discounts",
+      "expiring commitments",
+      "commitment renewal",
+      "commitment utilization",
+      "commitment coverage"
+    ],
+    "path": "/dashboard/:projectId/cloud/commitments",
+    "kind": "page"
+  },
+  {
     "title": "Budgets",
     "where": [
       "Cloud",
@@ -7714,6 +7733,24 @@
       "cost alerts"
     ],
     "path": "/dashboard/:projectId/cloud/budgets",
+    "kind": "page"
+  },
+  {
+    "title": "Tags",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "required tags",
+      "tag coverage",
+      "tag compliance",
+      "tag policy",
+      "untagged resources",
+      "cost allocation tags",
+      "labels"
+    ],
+    "path": "/dashboard/:projectId/cloud/tags",
     "kind": "page"
   },
   {
@@ -7740,6 +7777,22 @@
       "auto label"
     ],
     "path": "/dashboard/:projectId/cloud/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Cost Settings",
+    "where": [
+      "Cloud",
+      "Settings"
+    ],
+    "keywords": [
+      "cost basis",
+      "amortized costs",
+      "net costs",
+      "billed costs",
+      "commitment alerts"
+    ],
+    "path": "/dashboard/:projectId/cloud/settings/costs",
     "kind": "page"
   },
   {

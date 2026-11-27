@@ -61,6 +61,9 @@ export const DISCOVERY_IMPORT_TRANSLATED_REASONS: ReadonlyArray<string> = [
   translationKey(
     "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.",
   ),
+  translationKey(
+    "The device was deleted or archived since it was selected, so it was given no monitor.",
+  ),
 ];
 
 export enum DiscoveryImportIssueKind {

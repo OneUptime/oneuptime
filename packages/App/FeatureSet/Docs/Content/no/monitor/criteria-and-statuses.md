@@ -232,6 +232,14 @@ Når en evaluering tar for lang tid for monitoren sin, varsler sammendraget deg.
 
 En tidel gir en monitor rom til å vokse ti ganger før sjekkene går inn i hverandre og kommer på etterskudd, så du får vite det tidlig. Under 5 sekunder er en sjekk i orden, uansett hvor stor den er: å vurdere 16 000 serier tar omtrent 2,5 sekunder. Over ett minutt holder den en worker og databasene den leser like lenge, uansett intervall. Gjør den raskere ved å snevre inn filtrene i spørringene, gruppere etter færre attributter eller sjekke den sjeldnere.
 
+## Når telemetrimonitorer sjekker
+
+Monitorer som leser telemetri, som logg-, målings-, sporings-, Kubernetes-, vert- og Docker-monitorer, sjekkes ikke alle i samme øyeblikk. Hver har sitt eget øyeblikk i intervallet sitt, beregnet ut fra monitorens ID: En monitor som sjekkes hvert minutt, kjører i samme sekund av hvert minutt, en som sjekkes hvert 5. minutt, i samme øyeblikk av hvert 5-minuttersintervall, og en som sjekkes hver time eller sjeldnere, innen de første 5 minuttene av timen eller dagen intervallet angir. Øyeblikket forblir det samme når OneUptime starter på nytt, og på hver server, så telemetrilageret leses litt om gangen gjennom minuttet i stedet for av alle monitorer på én gang.
+
+Hver monitor beholder intervallet sitt: Sjekkene ligger nøyaktig like langt fra hverandre som før, og hver sjekk vurderer vinduet som slutter når den kjører, så et vindu som er like langt som intervallet, fortsatt dekker all tiden mellom to sjekker. Det som flytter seg, er når i intervallet en sjekk kjører: opptil ett intervall senere og aldri mer enn 5 minutter senere. En hendelse eller et varsel kan åpnes opptil så mye senere enn om hver sjekk kjørte i starten av intervallet sitt, og noen ganger tidligere. Monitorens **Oversikt** viser når neste sjekk skal kjøre.
+
+En ny monitor sjekkes noen sekunder etter at den er opprettet, og deretter i sitt eget øyeblikk. Når du endrer intervallet til en monitor, flytter neste sjekk til det nye intervallet. Rett etter en oppgradering til en versjon av OneUptime som sprer sjekkene, sjekkes hver monitor én gang til på tidspunktet den gamle tidsplanen hadde satt for den, og deretter i sitt eget øyeblikk.
+
 ## Endre en monitors kriterier
 
 :::steps

@@ -278,6 +278,18 @@ export const DECLARED_CODE_DIALOG_MAY_NOT_ASK: string = translationKey(
   "You may not ask AI to work in it.",
 );
 /*
+ * The search for a repository nothing pointed to (#11076): any connected
+ * one the reader may ask AI to work in, searched on the server.
+ */
+export const DECLARED_CODE_DIALOG_ANOTHER_REPOSITORY: string =
+  translationKey("Another repository");
+export const DECLARED_CODE_DIALOG_PICK_REPOSITORY: string =
+  translationKey("Pick a repository");
+export const DECLARED_CODE_DIALOG_NO_ASKABLE_REPOSITORY: string =
+  translationKey(
+    "No connected repository you may ask OneUptime AI to work in.",
+  );
+/*
  * Who reads the pull request, said before it is opened (#9165): everyone
  * with access to the repository, whoever may read the fix - and, for a fix
  * of a private record, that the pull request leaves the record out.

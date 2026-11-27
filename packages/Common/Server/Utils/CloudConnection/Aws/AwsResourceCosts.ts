@@ -32,13 +32,17 @@ import { AwsCredentials, awsErrorCodeOf, sendAwsRequest } from "./AwsApi";
  * Management preferences, for the last 14 days only:
  *
  *   GetCostAndUsageWithResources (AWS JSON 1.1, us-east-1, $0.01 a request)
- *     { TimePeriod, Granularity: "DAILY", Metrics: ["UnblendedCost"],
- *       Filter: SERVICE in the services the account was billed for, and no
- *       credits or refunds (as the account's own read leaves them out),
- *       GroupBy: [SERVICE, RESOURCE_ID], NextPageToken }
+ *     { TimePeriod, Granularity: "DAILY", Metrics: ["UnblendedCost",
+ *       "AmortizedCost", "NetAmortizedCost"], Filter: SERVICE in the
+ *       services the account was billed for, and no credits or refunds (a
+ *       credit is the account's, never a resource's: the account's own net
+ *       read counts it, in the rest), GroupBy: [SERVICE, RESOURCE_ID],
+ *       NextPageToken }
  *     -> { ResultsByTime: [{ TimePeriod: { Start }, Groups: [{ Keys:
- *          [service, resource], Metrics: { UnblendedCost } }] }],
- *          NextPageToken }
+ *          [service, resource], Metrics: { UnblendedCost, AmortizedCost,
+ *          NetAmortizedCost } }] }], NextPageToken }
+ *   One request reads every basis (CloudCostBasis): an instance a Savings
+ *   Plan covers is billed nothing and costs its share of the plan amortized.
  *
  * A cost no resource is named for (a service whose resource-level data is
  * not turned on, data transfer, a fee) answers as "NoResourceId".
@@ -94,15 +98,25 @@ const COST_FILTER_EXCLUDED_RECORD_TYPES: ReadonlyArray<string> = [
   "Refund",
 ];
 
-// One day's cost of one resource, as Cost Explorer names them.
+// One day's cost of one resource, as Cost Explorer names them, on each basis.
 export interface AwsResourceCost {
   day: string;
   service: string;
   // Cost Explorer's own id for it: an ARN, or an instance's, volume's or bucket's id.
   resourceId: string;
   currency: string;
+  // Billed, amortized and net.
   amount: number;
+  amortizedAmount: number;
+  netAmount: number;
 }
+
+// Cost Explorer's metrics of the three bases, read in one request.
+export const AWS_RESOURCE_COST_METRICS: ReadonlyArray<string> = [
+  "UnblendedCost",
+  "AmortizedCost",
+  "NetAmortizedCost",
+];
 
 // Whether Cost Explorer's key names a resource.
 export function isAwsResourceKey(key: string): boolean {
@@ -184,7 +198,7 @@ export async function readAwsResourceCosts(data: {
         End: toCloudCostDay(data.end),
       },
       Granularity: "DAILY",
-      Metrics: ["UnblendedCost"],
+      Metrics: [...AWS_RESOURCE_COST_METRICS],
       Filter: {
         And: [
           {
@@ -246,13 +260,24 @@ export async function readAwsResourceCosts(data: {
             return readText(key);
           },
         );
-        const metric: JSONObject = readObject(
-          readObject(group["Metrics"])["UnblendedCost"],
+        const metrics: JSONObject = readObject(group["Metrics"]);
+        const billed: JSONObject = readObject(metrics["UnblendedCost"]);
+        const amortized: JSONObject = readObject(metrics["AmortizedCost"]);
+        const amount: number = readAmount(billed["Amount"]);
+        const amortizedAmount: number = readAmount(amortized["Amount"]);
+        const netAmount: number = readAmount(
+          readObject(metrics["NetAmortizedCost"])["Amount"],
         );
-        const amount: number = readAmount(metric["Amount"]);
         const resourceId: string = (keys[1] || "").trim();
 
-        if (amount === 0 || !isAwsResourceKey(resourceId)) {
+        /*
+         * Nothing on every basis is nothing: an instance a plan covers is
+         * billed nothing, and costs its share of the plan amortized.
+         */
+        if (
+          (amount === 0 && amortizedAmount === 0 && netAmount === 0) ||
+          !isAwsResourceKey(resourceId)
+        ) {
           continue;
         }
 
@@ -260,8 +285,13 @@ export async function readAwsResourceCosts(data: {
           day,
           service: keys[0] || "",
           resourceId,
-          currency: readText(metric["Unit"]) || CLOUD_COST_DEFAULT_CURRENCY,
+          currency:
+            readText(billed["Unit"]) ||
+            readText(amortized["Unit"]) ||
+            CLOUD_COST_DEFAULT_CURRENCY,
           amount,
+          amortizedAmount,
+          netAmount,
         });
       }
     }
@@ -296,9 +326,18 @@ export function getAwsResourceCostServices(data: {
       continue;
     }
 
+    /*
+     * What it cost billed or amortized, whichever is more: a service a
+     * Savings Plan covers is billed next to nothing, and costs its share of
+     * the plan amortized.
+     */
     totals.set(
       record.service,
-      (totals.get(record.service) || 0) + Math.abs(record.amount),
+      (totals.get(record.service) || 0) +
+        Math.max(
+          Math.abs(record.amount),
+          Math.abs(record.amortizedAmount ?? 0),
+        ),
     );
   }
 
@@ -439,6 +478,11 @@ export class AwsResourcePlaces {
  * counted twice. The rest is never below nothing: when the resources come
  * to more than a figure read a little earlier, they are the newer figure.
  *
+ * Each basis is split the same way (CloudCostBasis). The net rest is the
+ * amortized rest with the figure's credits, refunds and discounts that are
+ * no resource's taken off - so it may be below nothing, as a month of
+ * credits is - and the parts of a figure add up to it on every basis.
+ *
  * A figure of a day it did not cover is the whole of its service and
  * Region (isServiceTotal): what it was split into before is kept, and the
  * rest is brought in line.
@@ -484,7 +528,16 @@ export function splitAwsCostsByResource(data: {
     figures.set(
       key,
       existing
-        ? { ...existing, amount: existing.amount + record.amount }
+        ? {
+            ...existing,
+            amount: existing.amount + record.amount,
+            amortizedAmount:
+              (existing.amortizedAmount ?? existing.amount) +
+              (record.amortizedAmount ?? record.amount),
+            netAmount:
+              (existing.netAmount ?? existing.amount) +
+              (record.netAmount ?? record.amount),
+          }
         : { ...record },
     );
 
@@ -502,8 +555,8 @@ export function splitAwsCostsByResource(data: {
     );
   }
 
-  // Each figure's resources, by where they go.
-  const resourcesOf: Map<string, Map<string, number>> = new Map();
+  // Each figure's resources, by where they go, on each basis.
+  const resourcesOf: Map<string, Map<string, AwsResourceAmounts>> = new Map();
 
   for (const cost of data.resourceCosts) {
     if (!data.coveredDays.has(cost.day)) {
@@ -541,11 +594,18 @@ export function splitAwsCostsByResource(data: {
       key = groupKey(place.accountId, cost.day, cost.service, regions[0]!);
     }
 
-    const resources: Map<string, number> = resourcesOf.get(key) || new Map();
-    resources.set(
-      place.resourceKey,
-      (resources.get(place.resourceKey) || 0) + cost.amount,
-    );
+    const resources: Map<string, AwsResourceAmounts> =
+      resourcesOf.get(key) || new Map();
+    const amounts: AwsResourceAmounts = resources.get(place.resourceKey) || {
+      amount: 0,
+      amortizedAmount: 0,
+      netAmount: 0,
+    };
+
+    amounts.amount += cost.amount;
+    amounts.amortizedAmount += cost.amortizedAmount;
+    amounts.netAmount += cost.netAmount;
+    resources.set(place.resourceKey, amounts);
     resourcesOf.set(key, resources);
   }
 
@@ -558,15 +618,26 @@ export function splitAwsCostsByResource(data: {
   }
 
   for (const [key, figure] of figures) {
-    const resources: Map<string, number> = resourcesOf.get(key) || new Map();
-    let placed: number = 0;
+    const resources: Map<string, AwsResourceAmounts> =
+      resourcesOf.get(key) || new Map();
+    const placed: AwsResourceAmounts = {
+      amount: 0,
+      amortizedAmount: 0,
+      netAmount: 0,
+    };
 
-    for (const [resourceKey, amount] of resources) {
-      if (amount === 0) {
+    for (const [resourceKey, amounts] of resources) {
+      if (
+        amounts.amount === 0 &&
+        amounts.amortizedAmount === 0 &&
+        amounts.netAmount === 0
+      ) {
         continue;
       }
 
-      placed += amount;
+      placed.amount += amounts.amount;
+      placed.amortizedAmount += amounts.amortizedAmount;
+      placed.netAmount += amounts.netAmount;
       records.push({
         accountId: figure.accountId,
         day: figure.day,
@@ -574,19 +645,49 @@ export function splitAwsCostsByResource(data: {
         region: figure.region,
         resourceId: resourceKey,
         currency: figure.currency,
-        amount,
+        amount: amounts.amount,
+        amortizedAmount: amounts.amortizedAmount,
+        netAmount: amounts.netAmount,
       });
     }
 
+    const figureAmortized: number = figure.amortizedAmount ?? figure.amount;
+    const figureNet: number = figure.netAmount ?? figure.amount;
     // Exact, not rounded: the parts add up to the figure.
-    const rest: number = Math.max(0, figure.amount - placed);
+    const rest: number = Math.max(0, figure.amount - placed.amount);
+    const amortizedRest: number = Math.max(
+      0,
+      figureAmortized - placed.amortizedAmount,
+    );
+    // The amortized rest, less what the figure's credits and discounts took that no resource's did.
+    const netRest: number =
+      amortizedRest +
+      (figureNet - figureAmortized) -
+      (placed.netAmount - placed.amortizedAmount);
 
-    if (rest >= AWS_RESOURCE_COST_EPSILON) {
-      records.push({ ...figure, resourceId: "", amount: rest });
+    if (
+      rest >= AWS_RESOURCE_COST_EPSILON ||
+      amortizedRest >= AWS_RESOURCE_COST_EPSILON ||
+      Math.abs(netRest) >= AWS_RESOURCE_COST_EPSILON
+    ) {
+      records.push({
+        ...figure,
+        resourceId: "",
+        amount: rest,
+        amortizedAmount: amortizedRest,
+        netAmount: netRest,
+      });
     }
   }
 
   return records;
+}
+
+// A resource's figures on the three bases, as they are added up.
+interface AwsResourceAmounts {
+  amount: number;
+  amortizedAmount: number;
+  netAmount: number;
 }
 
 /*

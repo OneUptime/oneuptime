@@ -125,6 +125,7 @@ export const AUDIT_LOG_TYPED_VALUE_READINGS: Readonly<
   [ObjectType.OnWatchlist]: AuditLogTypedValueReading.Json,
   [ObjectType.NotOnWatchlist]: AuditLogTypedValueReading.Json,
   [ObjectType.OwnedBy]: AuditLogTypedValueReading.Json,
+  [ObjectType.LinkedTo]: AuditLogTypedValueReading.Json,
 };
 
 // What a typed value holds that people read: its text, number or switch.

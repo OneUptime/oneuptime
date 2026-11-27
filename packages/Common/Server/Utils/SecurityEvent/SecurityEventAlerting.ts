@@ -35,7 +35,9 @@ import logger from "../Logger";
  * Semantics preserved from the Sigma engine:
  *  - one open alert/incident per fingerprint: dedupe is a findBy scoped
  *    to THIS source's candidate fingerprints against unresolved state,
- *    never a scan of every open alert;
+ *    never a scan of every open alert. A match also finds the one still
+ *    open under a fingerprint it had before (formerFingerprints: a
+ *    detection's was unkeyed until #11130), so nothing opens twice;
  *  - per-item try/catch on create, so one failing create cannot sink the
  *    rest of the batch (incident creates are heavy and consume
  *    user-visible incident numbers);
@@ -54,6 +56,12 @@ import logger from "../Logger";
 export interface AlertableMatch {
   // Stable dedupe key, e.g. "detection-rule:<id>:<hash>".
   fingerprint: string;
+  /*
+   * The keys the same match had before (#11130: a detection's fingerprint
+   * was unkeyed): an alert or incident still open under one of them is this
+   * match's, so nothing opens twice across the change. Never written.
+   */
+  formerFingerprints?: Array<string> | undefined;
   title: string;
   description: string;
   rootCause: string;
@@ -131,6 +139,56 @@ export type DedupedRecordOutcomeHandler = (
   outcome: DedupedRecordOutcome,
 ) => void;
 
+// Every key a batch's open records are looked up by: each match's, and the ones it had before.
+export function getMatchLookupFingerprints(
+  matches: ReadonlyArray<AlertableMatch>,
+): Array<string> {
+  const fingerprints: Set<string> = new Set<string>();
+
+  for (const match of matches) {
+    fingerprints.add(match.fingerprint);
+
+    for (const former of match.formerFingerprints || []) {
+      fingerprints.add(former);
+    }
+  }
+
+  return Array.from(fingerprints);
+}
+
+/*
+ * The open record a match already has: the one under its key, else one
+ * still under a key it had before (#11130).
+ */
+export function findOpenRecordOfMatch<
+  TRecord extends { seriesFingerprint?: string | undefined },
+>(data: {
+  match: AlertableMatch;
+  openRecords: ReadonlyArray<TRecord>;
+}): TRecord | undefined {
+  const underKey: TRecord | undefined = data.openRecords.find(
+    (record: TRecord): boolean => {
+      return record.seriesFingerprint === data.match.fingerprint;
+    },
+  );
+
+  if (underKey) {
+    return underKey;
+  }
+
+  const formers: Array<string> = data.match.formerFingerprints || [];
+
+  if (formers.length === 0) {
+    return undefined;
+  }
+
+  return data.openRecords.find((record: TRecord): boolean => {
+    return Boolean(
+      record.seriesFingerprint && formers.includes(record.seriesFingerprint),
+    );
+  });
+}
+
 export async function openDedupedAlerts(data: {
   projectId: ObjectID;
   alertSeverityId: ObjectID;
@@ -142,16 +200,10 @@ export async function openDedupedAlerts(data: {
   // The window the matches' events are in: the run's, for a detection.
   eventWindow?: SecurityConnectionWindow | undefined;
 }): Promise<number> {
-  const fingerprints: Array<string> = data.matches.map(
-    (match: AlertableMatch): string => {
-      return match.fingerprint;
-    },
-  );
-
   const openAlerts: Array<Alert> = await AlertService.findBy({
     query: {
       projectId: data.projectId,
-      seriesFingerprint: new Includes(fingerprints),
+      seriesFingerprint: new Includes(getMatchLookupFingerprints(data.matches)),
       // Open: above the project's resolved state (Common/Utils/ResolvedState).
       currentAlertStateId: new Includes(
         await AlertStateService.getUnresolvedAlertStateIds(data.projectId),
@@ -168,27 +220,16 @@ export async function openDedupedAlerts(data: {
     },
   });
 
-  const openFingerprints: Set<string> = new Set<string>(
-    openAlerts
-      .map((alert: Alert): string => {
-        return alert.seriesFingerprint || "";
-      })
-      .filter((fingerprint: string): boolean => {
-        return Boolean(fingerprint);
-      }),
-  );
-
   let created: number = 0;
 
   for (const match of data.matches) {
-    if (openFingerprints.has(match.fingerprint)) {
-      const open: Alert | undefined = openAlerts.find(
-        (alert: Alert): boolean => {
-          return alert.seriesFingerprint === match.fingerprint;
-        },
-      );
+    const open: Alert | undefined = findOpenRecordOfMatch({
+      match,
+      openRecords: openAlerts,
+    });
 
-      if (open?.id) {
+    if (open) {
+      if (open.id) {
         data.onOutcome?.({
           fingerprint: match.fingerprint,
           recordId: open.id,
@@ -261,16 +302,10 @@ export async function openDedupedIncidents(data: {
   // The window the matches' events are in: the run's, for a detection.
   eventWindow?: SecurityConnectionWindow | undefined;
 }): Promise<number> {
-  const fingerprints: Array<string> = data.matches.map(
-    (match: AlertableMatch): string => {
-      return match.fingerprint;
-    },
-  );
-
   const openIncidents: Array<Incident> = await IncidentService.findBy({
     query: {
       projectId: data.projectId,
-      seriesFingerprint: new Includes(fingerprints),
+      seriesFingerprint: new Includes(getMatchLookupFingerprints(data.matches)),
       // Open: above the project's resolved state (Common/Utils/ResolvedState).
       currentIncidentStateId: new Includes(
         await IncidentStateService.getUnresolvedIncidentStateIds(
@@ -289,27 +324,16 @@ export async function openDedupedIncidents(data: {
     },
   });
 
-  const openFingerprints: Set<string> = new Set<string>(
-    openIncidents
-      .map((incident: Incident): string => {
-        return incident.seriesFingerprint || "";
-      })
-      .filter((fingerprint: string): boolean => {
-        return Boolean(fingerprint);
-      }),
-  );
-
   let created: number = 0;
 
   for (const match of data.matches) {
-    if (openFingerprints.has(match.fingerprint)) {
-      const open: Incident | undefined = openIncidents.find(
-        (incident: Incident): boolean => {
-          return incident.seriesFingerprint === match.fingerprint;
-        },
-      );
+    const open: Incident | undefined = findOpenRecordOfMatch({
+      match,
+      openRecords: openIncidents,
+    });
 
-      if (open?.id) {
+    if (open) {
+      if (open.id) {
         data.onOutcome?.({
           fingerprint: match.fingerprint,
           recordId: open.id,

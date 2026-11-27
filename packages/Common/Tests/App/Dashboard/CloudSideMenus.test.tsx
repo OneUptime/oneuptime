@@ -76,18 +76,26 @@ describe("the Cloud product menu", () => {
       { title: "All Resources", href: `${CLOUD}/resources` },
       { title: "Connect", href: `${CLOUD}/connect` },
     ]);
-    // Who spent it - the cost groups - right under what it cost.
+    /*
+     * Who spent it - the cost groups - right under what it cost; the
+     * commitments that paid for some of it beside the ways to spend less.
+     */
     expect(linksIn("Spend")).toEqual([
       { title: "Costs", href: `${CLOUD}/costs` },
       { title: "Cost Groups", href: `${CLOUD}/cost-groups` },
       { title: "Savings", href: `${CLOUD}/savings` },
+      { title: "Commitments", href: `${CLOUD}/commitments` },
       // Non-production resources stopped outside working hours (#11010).
       { title: "Schedules", href: `${CLOUD}/schedules` },
       { title: "Budgets", href: `${CLOUD}/budgets` },
+      // The required tags and how much of the spend carries them (#11012).
+      { title: "Tags", href: `${CLOUD}/tags` },
     ]);
+    // The rules, then the cost basis the pages open on and when commitments alert.
     expect(linksIn("Settings")).toEqual([
       { title: "Owner Rules", href: `${CLOUD}/settings/owner-rules` },
       { title: "Label Rules", href: `${CLOUD}/settings/label-rules` },
+      { title: "Cost Settings", href: `${CLOUD}/settings/costs` },
       // What OneUptime AI may do with a saving on its own (#11010).
       {
         title: "Savings AI Rules",
@@ -243,6 +251,8 @@ describe("a cloud account's menu", () => {
         href: `${ACCOUNT_PATH}/recommendations`,
       },
       { title: "Costs", href: `${ACCOUNT_PATH}/costs` },
+      // Its required tags, the project's and its own (#11012).
+      { title: "Tags", href: `${ACCOUNT_PATH}/tags` },
     ]);
     // What AI did first, its agent last, as every resource's AI section.
     expect(linksIn("AI")).toEqual([

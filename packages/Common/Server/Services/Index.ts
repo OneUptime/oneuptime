@@ -633,10 +633,16 @@ import TeamOwnerUserService from "./TeamOwnerUserService";
 import CloudAccountService from "./CloudAccountService";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import CloudBudgetService from "./CloudBudgetService";
+import CloudCommitmentService from "./CloudCommitmentService";
 import CloudCostGroupService from "./CloudCostGroupService";
 import CloudCostLineItemService from "./CloudCostLineItemService";
 import CloudCostViewService from "./CloudCostViewService";
+import CloudRequiredTagService from "./CloudRequiredTagService";
+import CloudTagCoverageDayService from "./CloudTagCoverageDayService";
+import CloudTagFindingService from "./CloudTagFindingService";
+import CloudTagSettingService from "./CloudTagSettingService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
+import CloudCostSettingService from "./CloudCostSettingService";
 import CloudOffHoursScheduleService from "./CloudOffHoursScheduleService";
 import CloudSavingsActionService from "./CloudSavingsActionService";
 import CloudConnectionService from "./CloudConnectionService";
@@ -1268,10 +1274,16 @@ const services: Array<BaseService> = [
   CloudAccountService,
   CloudAccountFeedService,
   CloudBudgetService,
+  CloudCommitmentService,
   CloudCostViewService,
   CloudCostGroupService,
   CloudCostLineItemService,
+  CloudRequiredTagService,
+  CloudTagCoverageDayService,
+  CloudTagFindingService,
+  CloudTagSettingService,
   CloudCostRecommendationService,
+  CloudCostSettingService,
   CloudOffHoursScheduleService,
   CloudSavingsActionService,
   CloudConnectionService,

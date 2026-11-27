@@ -232,6 +232,14 @@ Quando uma avaliação demora demais para o seu monitor, o seu resumo avisa voc�
 
 Um décimo deixa a um monitor espaço para crescer dez vezes antes que as suas verificações se sobreponham e fiquem para trás, então você fica sabendo cedo. Abaixo de 5 segundos, uma verificação está bem, por maior que seja: avaliar 16.000 séries leva cerca de 2,5 segundos. Acima de um minuto, ela ocupa um worker e os bancos de dados que lê durante todo esse tempo, seja qual for o seu intervalo. Para acelerá-la, restrinja os filtros das suas consultas, agrupe por menos atributos ou verifique-a com menos frequência.
 
+## Quando os monitores de telemetria verificam
+
+Os monitores que leem telemetria, como os monitores de logs, de métricas, de traces, de Kubernetes, de host e de Docker, não são todos verificados no mesmo momento. Cada um tem seu próprio momento no seu intervalo, calculado a partir do ID do monitor: um monitor verificado a cada minuto é executado no mesmo segundo de cada minuto, um verificado a cada 5 minutos no mesmo momento de cada 5 minutos, e um verificado a cada hora ou com menos frequência dentro dos primeiros 5 minutos da hora ou do dia que seu intervalo indica. O momento continua o mesmo quando o OneUptime reinicia e em cada servidor, de modo que o armazenamento de telemetria é lido aos poucos ao longo do minuto, em vez de por todos os monitores ao mesmo tempo.
+
+Cada monitor mantém seu intervalo: suas verificações ficam exatamente tão espaçadas quanto antes, e cada uma avalia a janela que termina quando ela é executada, então uma janela tão longa quanto o intervalo continua cobrindo todo o tempo entre duas verificações. O que muda é em que momento do intervalo uma verificação é executada: até um intervalo mais tarde, e nunca mais de 5 minutos mais tarde. Um incidente ou um alerta pode abrir até esse tempo mais tarde do que se cada verificação fosse executada no início do seu intervalo, e às vezes mais cedo. A **Visão geral** do monitor mostra quando sua próxima verificação está prevista.
+
+Um monitor novo é verificado poucos segundos depois de ser criado, e depois no seu próprio momento. Quando você altera o intervalo de um monitor, a próxima verificação passa para o novo intervalo. Logo depois de atualizar para uma versão do OneUptime que distribui as verificações, cada monitor é verificado mais uma vez no horário que o agendamento antigo previa para ele, e a partir daí no seu próprio momento.
+
 ## Alterar os critérios de um monitor
 
 :::steps

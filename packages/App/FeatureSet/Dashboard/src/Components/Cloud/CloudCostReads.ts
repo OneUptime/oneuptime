@@ -5,7 +5,12 @@ import {
   CloudAccountCostSummary,
   CloudCostState,
   CloudCostTagKey,
+  roundCost,
 } from "Common/Types/Cloud/CloudCost";
+import {
+  CloudCostBasis,
+  getCloudCostBasisColumn,
+} from "Common/Types/Cloud/CloudCostBasis";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import {
   CLOUD_PLATFORM_ALL_BILLED_SERVICES,
@@ -68,6 +73,11 @@ export interface CloudCostScope {
   currency: string;
   startDate: Date;
   endDate: Date;
+  /*
+   * The cost basis the figures are on (CloudCostBasis): each is its own
+   * column of the costs. Billed when absent.
+   */
+  basis?: CloudCostBasis | undefined;
 }
 
 export interface CloudCostPoint {
@@ -176,7 +186,8 @@ export function buildCloudCostAggregateBy(data: {
   const aggregateBy: AggregateBy<CloudCost> = {
     query: buildQuery(data.scope) as AggregateBy<CloudCost>["query"],
     aggregationType: AggregationType.Sum,
-    aggregateColumnName: "cost",
+    // The column of the basis shown: cost, amortizedCost or netCost.
+    aggregateColumnName: getCloudCostBasisColumn(data.scope.basis),
     aggregationTimestampColumnName: "day",
     aggregationInterval: data.interval,
     /*
@@ -551,6 +562,12 @@ function toShares(
  * or app (with what no environment, or no one app, is billed), or by a
  * tag's value (with the costs that do not carry it). The shares and the
  * rest add up to the period's spend.
+ *
+ * That spend is rounded as the accounts' summaries round their month
+ * (roundCost), so it is the figure the strip above it shows: added up as
+ * floating point, a month whose cents come to $15,556.50 is
+ * 15556.499999999998, which reads "$15,556" under a strip that says
+ * "$15,557".
  */
 export async function fetchCloudCostBreakdown(data: {
   scope: CloudCostScope;
@@ -587,6 +604,8 @@ export async function fetchCloudCostBreakdown(data: {
           startDate: data.scope.startDate,
           endDate: data.scope.endDate,
           currency: data.scope.currency,
+          // Each group's spend on the basis the page shows, as every other breakdown is.
+          basis: data.scope.basis,
           cloudAccountIds: data.scope.cloudAccountIds,
         },
       });
@@ -614,7 +633,7 @@ export async function fetchCloudCostBreakdown(data: {
       dimension: data.dimension,
     });
 
-    return { shares, rest: [], total: sumOf(shares) };
+    return { shares, rest: [], total: roundCost(sumOf(shares)) };
   }
 
   if (data.dimension === "tag") {
@@ -644,7 +663,7 @@ export async function fetchCloudCostBreakdown(data: {
         Math.abs(without) >= 0.005
           ? [{ kind: "without-tag", amount: without }]
           : [],
-      total: sumOf(shares) + without,
+      total: roundCost(sumOf(shares) + without),
     };
   }
 
@@ -704,7 +723,7 @@ export async function fetchCloudCostBreakdown(data: {
   return {
     shares: toShares(assigned.shares),
     rest,
-    total: assigned.total,
+    total: roundCost(assigned.total),
   };
 }
 

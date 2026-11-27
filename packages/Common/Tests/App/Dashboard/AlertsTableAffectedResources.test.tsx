@@ -179,7 +179,9 @@ import AlertsTable, {
   getAlertAffectedResources,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Alert/AlertsTable";
 import { getAffectedResourceNames } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourceNames";
+import { NO_RESOURCE_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/buildAffectedResourcesFacet";
 import { ResourceFacet } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/ResourceFacet";
+import LinkedTo, { LinkedToMatch } from "../../../Types/BaseDatabase/LinkedTo";
 import {
   FilterChipDropdownOption,
   FilterOperator,
@@ -1072,18 +1074,36 @@ describe("the alerts list's filters", () => {
     expect(groups).toContain("SLOs");
   });
 
-  test("a monitor key reaching the Affected Resources chip is not looked up", async () => {
+  test("a monitor key reaching the Affected Resources chip is not looked up, and matches nothing", async () => {
     await renderTable();
     getListMock.mockClear();
 
-    const ids: Array<string> = await facet("affectedResources")
-      .computeMatchingResourceIds!(
-      new ObjectID(PROJECT_ID),
+    // The alerts' monitors are the Monitor chip's: this chip names none.
+    const linkedTo: LinkedTo | null = facet("affectedResources").toLinkedTo!(
       [`monitor:${MONITOR_ID}`],
       "is",
     );
 
-    expect(ids).toEqual([]);
+    expect(Object.keys(linkedTo!.relations)).not.toContain("monitorId");
+    expect(Object.values(linkedTo!.relations)).toEqual([[NO_RESOURCE_ID]]);
+    expect(getListMock).not.toHaveBeenCalled();
+  });
+
+  test("the Affected Resources chip's picks go in the alerts' own query, as one filter", async () => {
+    await renderTable();
+    getListMock.mockClear();
+
+    const linkedTo: LinkedTo | null = facet("affectedResources").toLinkedTo!(
+      [`host:${MONITOR_ID}`, `serviceLevelObjective:${MONITOR_ID}`],
+      "is",
+    );
+
+    expect(linkedTo?.match).toBe(LinkedToMatch.AnyOf);
+    expect(linkedTo?.relations).toEqual({
+      hosts: [MONITOR_ID],
+      serviceLevelObjectives: [MONITOR_ID],
+    });
+    // Nothing is read to narrow the list: the server answers it.
     expect(getListMock).not.toHaveBeenCalled();
   });
 

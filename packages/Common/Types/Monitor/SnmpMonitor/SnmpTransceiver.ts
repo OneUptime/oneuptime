@@ -139,6 +139,11 @@ export enum TransceiverMibSource {
   HpIcfTransceiver = "HP-ICF-TRANSCEIVER-MIB",
   // Cambium Networks cnMatrix switches (firmware 4.5 and later).
   CambiumTransceiver = "CAMBIUM-NETWORKS-TRANSCEIVER-MIB",
+  /*
+   * Brocade Fabric OS: swSfpStatTable, as text, with the optic's identity
+   * from FCMGMT-MIB's connUnitPortTable. No thresholds.
+   */
+  BrocadeSfpStat = "FA-EXT-MIB",
 }
 
 // Who made the optic and what it is - all best effort, all optional.

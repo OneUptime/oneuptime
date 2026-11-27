@@ -1,7 +1,5 @@
-import {
-  describeScanDuration,
-  writeScanWarning,
-} from "../../../../Types/DataSecurity/ScanWarnings";
+import { describeScanDuration } from "../../../../Types/DataSecurity/ScanWarningDuration";
+import { writeScanWarning } from "../../../../Types/DataSecurity/ScanWarnings";
 
 /*
  * HOW MUCH MODEL TIME A SCAN MAY SPEND, AND WHAT IT SAYS WHEN IT RAN OUT.

@@ -69,6 +69,7 @@ export default class MonitorCriteria extends DatabaseProperty {
         alertSeverityId:
           arg.warningAlertSeverityId || arg.defaultAlertSeverityId,
         monitorName: arg.monitorName,
+        onlineMonitorStatusId: arg.onlineMonitorStatusId,
         translator: arg.translator,
       });
 

@@ -4,9 +4,13 @@ import SecurityUserErasureRequestService, {
   SecurityUserErasureCounts,
   toStoredErasureNames,
 } from "../../../../../Server/Services/SecurityUserErasureRequestService";
-import JobDeadline from "../../../../../Server/Utils/JobDeadline";
+import JobDeadline, {
+  JOB_DEADLINE_GRACE_MS,
+} from "../../../../../Server/Utils/JobDeadline";
 import SecurityUserVaultService from "../../../../../Server/Services/SecurityUserVaultService";
+import { SECURITY_PROJECT_WORK_JOB_TIMEOUT_IN_MS } from "../../../../../Server/Utils/SecurityEvent/SecurityProjectWork";
 import SecurityUserErasure, {
+  DETECTION_TURN_SETTLE_MS,
   MAX_ERASURE_ATTEMPTS,
   RESUBMIT_AFTER_MS,
   RETRY_BACKOFF_MS,
@@ -14,9 +18,15 @@ import SecurityUserErasure, {
 } from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasure";
 import SecurityUserErasureEvents from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureEvents";
 import SecurityUserErasureFindings, {
-  FindingRewrite,
-  FindingsScanResult,
+  FindingsCursor,
+  FindingsScanProgress,
+  FindingsScanStep,
 } from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureFindings";
+import {
+  SecurityUserErasureProgress,
+  readErasureProgress,
+  toStoredErasureProgress,
+} from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureProgress";
 import SecurityUserErasureRecords from "../../../../../Server/Utils/SecurityEvent/UserVault/SecurityUserErasureRecords";
 import ScrubHashToken from "../../../../../Server/Utils/Telemetry/ScrubHashToken";
 import ObjectID from "../../../../../Types/ObjectID";
@@ -50,10 +60,13 @@ jest.mock("../../../../../Server/Utils/Logger", () => {
  * themselves run on a real ClickHouse in SecurityUserErasureClickhouse, and
  * Postgres's half on a real Postgres in SecurityUserErasurePostgres.
  *
- * And #11044's: the names a run keeps on the request, the Detection
- * Findings it reads and changes by them, the check that none names the
- * person any more, the last pass over Postgres as the request completes,
- * and a run that runs out of its time.
+ * And #11044's: the names a run keeps on the request, and the Detection
+ * Findings it reads and changes by them. And #11160's: a project with more
+ * findings than one run reads is read over several runs, each on from where
+ * the last one stopped, in passes from the first finding to the last - and
+ * the request reads Erased only once a pass that started after nothing
+ * else named the person, for as long as a detection could still be writing
+ * about them, found nothing left to change.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -67,18 +80,37 @@ function tokenOf(value: string): string {
 
 const ALICE: string = "alice@example.com";
 
+/*
+ * A project's findings as the read sees them: each names the person or not,
+ * read `findingsPerRun` a run. A change is applied when the next run starts
+ * (`applyLag`), as ClickHouse applies a mutation a while after it holds it.
+ */
+interface FindingsWorld {
+  naming: Array<boolean>;
+  perRun: number;
+  // Changes queued and not yet applied.
+  queued: Set<number>;
+  applyLag: boolean;
+  reads: Array<FindingsCursor | null>;
+  changedTotal: number;
+}
+
 interface World {
   vaultRows: number;
   namedEvents: number;
-  // The project's own findings that still name the person.
-  namingFindings: number;
+  findings: FindingsWorld;
   claimed: boolean;
   calls: Array<string>;
   names: Array<Array<ErasedName>>;
-  // The names each markInProgress kept on the request, when it kept any.
   keptNames: Array<Array<ErasedName>>;
-  // The names each read of the findings looked for.
   findingNames: Array<Array<ErasedName>>;
+  // The request as the worker keeps it: progress and counts, written as it goes.
+  progress: SecurityUserErasureProgress | null;
+  eventsUnnamed: number | null;
+  rewrittenFingerprints: Array<Array<ErasedName>>;
+  // The correlations' values Postgres holds that name the person.
+  correlationValues: Array<ErasedName>;
+  scanError: Error | null;
   emailed: number;
 }
 
@@ -92,13 +124,24 @@ function describeNames(names: ReadonlyArray<ErasedName>): Array<string> {
     .sort();
 }
 
-function findingRewrite(index: number): FindingRewrite {
+function cursorOf(index: number): FindingsCursor {
+  return { time: String(1764000000000000000 + index), id: `f${index}` };
+}
+
+function indexOf(cursor: FindingsCursor | null): number {
+  return cursor ? Number(cursor.id.slice(1)) + 1 : 0;
+}
+
+function findingsWorld(count: number, namingEvery: number): FindingsWorld {
   return {
-    id: `finding-${index}`,
-    time: String(1764000000000000000 + index),
-    replacements: [
-      { position: 1, prefixBytes: 0, token: tokenOf(ALICE), suffixBytes: 0 },
-    ],
+    naming: Array.from({ length: count }, (_v: unknown, index: number) => {
+      return namingEvery > 0 && index % namingEvery === 0;
+    }),
+    perRun: 1000,
+    queued: new Set<number>(),
+    applyLag: false,
+    reads: [],
+    changedTotal: 0,
   };
 }
 
@@ -125,62 +168,128 @@ function request(
   return model;
 }
 
+// The request as the worker left it: what the next run reads.
+function kept(
+  model: SecurityUserErasureRequest,
+  overrides: Partial<Record<string, unknown>> = {},
+): SecurityUserErasureRequest {
+  return request({
+    id: model.id,
+    status: SecurityUserErasureRequestStatus.InProgress,
+    userToErase: model.userToErase,
+    tokens: model.tokens,
+    namesToErase: world.keptNames.length
+      ? toStoredErasureNames(world.keptNames[world.keptNames.length - 1]!)
+      : undefined,
+    progress: world.progress
+      ? toStoredErasureProgress(world.progress)
+      : undefined,
+    eventsUnnamed: world.eventsUnnamed || 0,
+    ...overrides,
+  });
+}
+
 function at(milliseconds: number): Date {
   return new Date(FILED_AT.getTime() + milliseconds);
 }
+
+const STARTED_AT: number = SUPPRESSION_SETTLE_MS;
+const MINUTE: number = 60 * 1000;
 
 beforeEach(() => {
   world = {
     vaultRows: 1,
     namedEvents: 2,
-    namingFindings: 1,
+    findings: findingsWorld(3, 3),
     claimed: true,
     calls: [],
     names: [],
     keptNames: [],
     findingNames: [],
+    progress: null,
+    eventsUnnamed: null,
+    rewrittenFingerprints: [],
+    correlationValues: [],
+    scanError: null,
     emailed: 0,
   };
 
   jest
-    .spyOn(SecurityUserErasureFindings, "findNamingFindings")
+    .spyOn(SecurityUserErasureFindings, "scanFindings")
     .mockImplementation(
       async (data: {
         names: ReadonlyArray<ErasedName>;
-      }): Promise<FindingsScanResult> => {
-        world.calls.push("findFindings");
+        after: FindingsCursor | null;
+        onProgress: (progress: FindingsScanProgress) => Promise<void>;
+      }): Promise<FindingsScanStep> => {
+        const findings: FindingsWorld = world.findings;
+
+        world.calls.push(`scan from ${indexOf(data.after)}`);
         world.findingNames.push([...data.names]);
+        findings.reads.push(data.after);
+
+        if (world.scanError) {
+          throw world.scanError;
+        }
+
+        // What ClickHouse held since the last run is applied now.
+        if (findings.applyLag) {
+          for (const index of findings.queued) {
+            findings.naming[index] = false;
+          }
+
+          findings.queued.clear();
+        }
+
+        let index: number = indexOf(data.after);
+        let changed: number = 0;
+        const end: number = Math.min(
+          findings.naming.length,
+          index + findings.perRun,
+        );
+
+        for (; index < end; index++) {
+          if (findings.naming[index] && !findings.queued.has(index)) {
+            changed++;
+
+            if (findings.applyLag) {
+              findings.queued.add(index);
+            } else {
+              findings.naming[index] = false;
+            }
+          } else if (findings.naming[index] && findings.applyLag) {
+            // Still waiting on ClickHouse: queued again, which changes nothing more.
+            changed++;
+          }
+        }
+
+        findings.changedTotal += changed;
+
+        const after: FindingsCursor | null =
+          index > 0 ? cursorOf(index - 1) : data.after;
+
+        await data.onProgress({
+          after,
+          changed,
+          unnamed: changed,
+          correlationValues:
+            changed > 0
+              ? [
+                  {
+                    named: `${ALICE} / 203.0.113.7`,
+                    hashed: `${tokenOf(ALICE)} / 203.0.113.7`,
+                  },
+                ]
+              : [],
+        });
 
         return {
-          rewrites: Array.from(
-            { length: world.namingFindings },
-            (_value: unknown, index: number): FindingRewrite => {
-              return findingRewrite(index);
-            },
-          ),
-          isCapped: false,
-        };
-      },
-    );
-  jest
-    .spyOn(SecurityUserErasureFindings, "unnameFindings")
-    .mockImplementation(
-      async (data: {
-        rewrites: ReadonlyArray<FindingRewrite>;
-      }): Promise<number> => {
-        world.calls.push("unnameFindings");
-
-        return data.rewrites.length;
-      },
-    );
-  jest
-    .spyOn(SecurityUserErasureFindings, "isAnyFindingNaming")
-    .mockImplementation(
-      async (data: { names: ReadonlyArray<ErasedName> }): Promise<boolean> => {
-        world.calls.push("checkFindings");
-        world.findingNames.push([...data.names]);
-
-        return world.namingFindings > 0;
+          after,
+          isAtEnd: index >= findings.naming.length,
+          changed,
+          unnamed: changed,
+          ...(index >= findings.naming.length ? {} : { stoppedBy: "time" }),
+        } as FindingsScanStep;
       },
     );
 
@@ -199,11 +308,36 @@ beforeEach(() => {
       async (data: {
         counts: SecurityUserErasureCounts;
         names?: ReadonlyArray<ErasedName> | undefined;
+        progress?: SecurityUserErasureProgress | undefined;
       }): Promise<void> => {
         world.calls.push(`inProgress ${JSON.stringify(data.counts)}`);
 
         if (data.names) {
           world.keptNames.push([...data.names]);
+        }
+
+        if (data.progress) {
+          world.progress = readErasureProgress(
+            JSON.parse(JSON.stringify(data.progress)),
+          );
+        }
+
+        world.eventsUnnamed = data.counts.eventsUnnamed;
+      },
+    );
+  jest
+    .spyOn(SecurityUserErasureRequestService, "markProgress")
+    .mockImplementation(
+      async (data: {
+        progress: SecurityUserErasureProgress;
+        eventsUnnamed?: number | undefined;
+      }): Promise<void> => {
+        world.progress = readErasureProgress(
+          JSON.parse(JSON.stringify(data.progress)),
+        );
+
+        if (data.eventsUnnamed !== undefined) {
+          world.eventsUnnamed = data.eventsUnnamed;
         }
       },
     );
@@ -274,6 +408,28 @@ beforeEach(() => {
       return { cases: 2, proposals: 1 };
     });
   jest
+    .spyOn(SecurityUserErasureRecords, "rewriteFingerprints")
+    .mockImplementation(
+      async (data: { groupValues: ReadonlyArray<ErasedName> }) => {
+        world.rewrittenFingerprints.push([...data.groupValues]);
+        return { detections: 0, alerts: 0, incidents: 0, entityRisks: 0 };
+      },
+    );
+  jest
+    .spyOn(SecurityUserErasureRecords, "findCorrelationValues")
+    .mockImplementation(async (): Promise<Array<ErasedName>> => {
+      world.calls.push("findCorrelationValues");
+      return world.correlationValues;
+    });
+  jest
+    .spyOn(SecurityUserErasureRequestService, "markNames")
+    .mockImplementation(
+      async (data: { names: ReadonlyArray<ErasedName> }): Promise<void> => {
+        world.calls.push("keepNames");
+        world.keptNames.push([...data.names]);
+      },
+    );
+  jest
     .spyOn(ProjectService, "sendEmailToProjectOwners")
     .mockImplementation(async (): Promise<void> => {
       world.emailed++;
@@ -282,6 +438,27 @@ beforeEach(() => {
 
 afterEach(() => {
   jest.restoreAllMocks();
+});
+
+// One run of the worker on the request as it was last kept, at `now`.
+async function runAt(
+  model: SecurityUserErasureRequest,
+  now: number,
+  overrides: Partial<Record<string, unknown>> = {},
+): Promise<void> {
+  await SecurityUserErasure.processRequest({
+    request: kept(model, overrides),
+    now: at(now),
+  });
+}
+
+describe("how long a final check waits", () => {
+  test("as long as a detection turn that read the name may still be writing", () => {
+    expect(DETECTION_TURN_SETTLE_MS).toBe(
+      SECURITY_PROJECT_WORK_JOB_TIMEOUT_IN_MS + JOB_DEADLINE_GRACE_MS,
+    );
+    expect(DETECTION_TURN_SETTLE_MS).toBeLessThan(RESUBMIT_AFTER_MS);
+  });
 });
 
 describe("a Pending request", () => {
@@ -294,14 +471,21 @@ describe("a Pending request", () => {
     expect(world.calls).toEqual([]);
   });
 
-  test("is claimed, then Postgres first and ClickHouse after - the findings, the events, the vault - its counts kept at each step", async () => {
+  test("is claimed, its names kept, then Postgres and ClickHouse after - the events, the vault, then the findings' first pass - its counts kept at each step", async () => {
     await SecurityUserErasure.processRequest({
       request: request(),
-      now: at(SUPPRESSION_SETTLE_MS),
+      now: at(STARTED_AT),
     });
 
     expect(world.calls).toEqual([
       "claim",
+      "findCorrelationValues",
+      `inProgress ${JSON.stringify({
+        vaultEntriesDeleted: 0,
+        eventsUnnamed: 0,
+        casesUnnamed: 0,
+        proposalsWithdrawn: 0,
+      })}`,
       "unnameRecords",
       `inProgress ${JSON.stringify({
         vaultEntriesDeleted: 0,
@@ -309,24 +493,39 @@ describe("a Pending request", () => {
         casesUnnamed: 2,
         proposalsWithdrawn: 1,
       })}`,
-      "findFindings",
-      "unnameFindings",
       "unnameEvents",
       "eraseVault",
-      // Two events and one Detection Finding.
       `inProgress ${JSON.stringify({
         vaultEntriesDeleted: 1,
-        eventsUnnamed: 3,
+        eventsUnnamed: 2,
         casesUnnamed: 2,
         proposalsWithdrawn: 1,
       })}`,
+      "scan from 0",
     ]);
+    // Two events and one Detection Finding.
+    expect(world.eventsUnnamed).toBe(3);
+    expect(world.progress).toEqual({
+      toldAt: at(STARTED_AT).toISOString(),
+      namedEvents: 2,
+      cleanSince: null,
+      unnamedFindings: 1,
+      findings: {
+        number: 1,
+        startedAt: at(STARTED_AT).toISOString(),
+        after: cursorOf(2),
+        changed: 1,
+        unnamed: 1,
+        isFinal: false,
+        endedAt: expect.any(String),
+      },
+    });
   });
 
   test("keeps every name it found on the request before anything in ClickHouse changes, and reads the findings by them (#11044)", async () => {
     await SecurityUserErasure.processRequest({
       request: request({ userToErase: "Alice@Example.com" }),
-      now: at(SUPPRESSION_SETTLE_MS),
+      now: at(STARTED_AT),
     });
 
     const everyName: Array<string> = [
@@ -335,49 +534,100 @@ describe("a Pending request", () => {
       `auth0|${ALICE} -> auth0|${tokenOf(ALICE)}`,
     ].sort();
 
-    // Kept with the first counts: before the findings, the events and the vault.
-    const kept: number = world.calls.findIndex((call: string): boolean => {
+    const firstKept: number = world.calls.findIndex((call: string): boolean => {
       return call.startsWith("inProgress");
     });
 
     expect(world.keptNames).toHaveLength(1);
     expect(describeNames(world.keptNames[0]!)).toEqual(everyName);
-    expect(kept).toBeGreaterThan(-1);
-    expect(kept).toBeLessThan(world.calls.indexOf("findFindings"));
-    expect(kept).toBeLessThan(world.calls.indexOf("unnameEvents"));
-    expect(kept).toBeLessThan(world.calls.indexOf("eraseVault"));
+    expect(firstKept).toBeGreaterThan(-1);
+    expect(firstKept).toBeLessThan(world.calls.indexOf("unnameRecords"));
+    expect(firstKept).toBeLessThan(world.calls.indexOf("unnameEvents"));
+    expect(firstKept).toBeLessThan(world.calls.indexOf("eraseVault"));
+    expect(firstKept).toBeLessThan(world.calls.indexOf("scan from 0"));
     expect(describeNames(world.findingNames[0]!)).toEqual(everyName);
   });
 
-  test("finds no finding about the person: counts the events alone", async () => {
-    world.namingFindings = 0;
+  test("keeps each correlation's value that holds a name with the names, before Postgres un-names its detection (#11130)", async () => {
+    world.correlationValues = [
+      {
+        named: `${ALICE} / 203.0.113.7`,
+        hashed: `${tokenOf(ALICE)} / 203.0.113.7`,
+      },
+    ];
 
     await SecurityUserErasure.processRequest({
       request: request(),
-      now: at(SUPPRESSION_SETTLE_MS),
+      now: at(STARTED_AT),
     });
 
-    expect(world.calls[world.calls.length - 1]).toBe(
-      `inProgress ${JSON.stringify({
-        vaultEntriesDeleted: 1,
-        eventsUnnamed: 2,
-        casesUnnamed: 2,
-        proposalsWithdrawn: 1,
-      })}`,
+    expect(describeNames(world.keptNames[0]!)).toContain(
+      `${ALICE} / 203.0.113.7 -> ${tokenOf(ALICE)} / 203.0.113.7`,
     );
+    // Postgres is handed it with the names, so its fingerprints go too.
+    expect(describeNames(world.names[0]!)).toContain(
+      `${ALICE} / 203.0.113.7 -> ${tokenOf(ALICE)} / 203.0.113.7`,
+    );
+  });
+
+  test("a correlation's value a read of the findings is about to change is kept with the names before ClickHouse is told", async () => {
+    let keptBeforeQueued: boolean = false;
+
+    jest
+      .spyOn(SecurityUserErasureFindings, "scanFindings")
+      .mockImplementation(
+        async (data: {
+          after: FindingsCursor | null;
+          onChangesFound?:
+            | ((values: Array<ErasedName>) => Promise<void>)
+            | undefined;
+          onProgress: (progress: FindingsScanProgress) => Promise<void>;
+        }): Promise<FindingsScanStep> => {
+          const value: ErasedName = {
+            named: `${ALICE} / 198.51.100.4`,
+            hashed: `${tokenOf(ALICE)} / 198.51.100.4`,
+          };
+
+          await data.onChangesFound!([value]);
+          keptBeforeQueued = world.calls.includes("keepNames");
+          world.calls.push("queue");
+          await data.onProgress({
+            after: cursorOf(0),
+            changed: 1,
+            unnamed: 1,
+            correlationValues: [value],
+          });
+
+          return {
+            after: cursorOf(0),
+            isAtEnd: true,
+            changed: 1,
+            unnamed: 1,
+          };
+        },
+      );
+
+    await SecurityUserErasure.processRequest({
+      request: request(),
+      now: at(STARTED_AT),
+    });
+
+    expect(keptBeforeQueued).toBe(true);
+    expect(world.calls.indexOf("keepNames")).toBeLessThan(
+      world.calls.indexOf("queue"),
+    );
+    expect(
+      describeNames(world.keptNames[world.keptNames.length - 1]!),
+    ).toContain(`${ALICE} / 198.51.100.4 -> ${tokenOf(ALICE)} / 198.51.100.4`);
   });
 
   test("hands Postgres every name the vault knew them by, each once, with what the rule left", async () => {
     await SecurityUserErasure.processRequest({
       request: request({ userToErase: "  Alice@Example.com " }),
-      now: at(SUPPRESSION_SETTLE_MS),
+      now: at(STARTED_AT),
     });
 
-    expect(
-      world.names[0]!.map((name: ErasedName): string => {
-        return `${name.named} -> ${name.hashed}`;
-      }).sort(),
-    ).toEqual(
+    expect(describeNames(world.names[0]!)).toEqual(
       [
         `Alice@Example.com -> ${tokenOf("Alice@Example.com")}`,
         `${ALICE} -> ${tokenOf(ALICE)}`,
@@ -389,7 +639,7 @@ describe("a Pending request", () => {
   test("a pasted token: nothing typed to name, the vault and the events name them", async () => {
     await SecurityUserErasure.processRequest({
       request: request({ userToErase: undefined }),
-      now: at(SUPPRESSION_SETTLE_MS),
+      now: at(STARTED_AT),
     });
 
     expect(
@@ -399,75 +649,72 @@ describe("a Pending request", () => {
     ).toEqual([ALICE, `auth0|${ALICE}`]);
   });
 
+  test("a pasted token nobody was named by: nothing to look for, no finding read, and done as soon as ClickHouse is", async () => {
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+
+    await SecurityUserErasure.processRequest({
+      request: request({ userToErase: undefined }),
+      now: at(STARTED_AT),
+    });
+
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("scan");
+      }),
+    ).toBe(false);
+    expect(world.calls[world.calls.length - 1]).toMatch(/^completed /);
+  });
+
   test("claimed by another worker first: this one does nothing", async () => {
     world.claimed = false;
 
     await SecurityUserErasure.processRequest({
       request: request(),
-      now: at(SUPPRESSION_SETTLE_MS),
+      now: at(STARTED_AT),
     });
 
     expect(world.calls).toEqual(["claim"]);
   });
 });
 
-describe("an InProgress request", () => {
-  const started: Partial<Record<string, unknown>> = {
-    status: SecurityUserErasureRequestStatus.InProgress,
-    vaultEntriesDeleted: 1,
-    eventsUnnamed: 2,
-    casesUnnamed: 2,
-    proposalsWithdrawn: 1,
-  };
+describe("a project with more findings than one run reads (#11160)", () => {
+  test("is read over several runs, each on from where the last one stopped, never failing for its size", async () => {
+    // 2,000 findings, every 7th about the person, 300 read a run.
+    world.findings = findingsWorld(2000, 7);
+    world.findings.perRun = 300;
 
-  test("is Completed once nothing in ClickHouse names the person, with the counts it showed", async () => {
-    world.vaultRows = 0;
-    world.namedEvents = 0;
-    world.namingFindings = 0;
-    // The last pass over Postgres finds nothing more.
-    jest
-      .spyOn(SecurityUserErasureRecords, "unnameRecords")
-      .mockImplementation(async () => {
-        world.calls.push("unnameRecords");
-        return { cases: 0, proposals: 0 };
-      });
+    const model: SecurityUserErasureRequest = request();
 
     await SecurityUserErasure.processRequest({
-      request: request(started),
-      now: at(SUPPRESSION_SETTLE_MS + 60000),
+      request: model,
+      now: at(STARTED_AT),
     });
 
-    expect(world.calls).toEqual([
-      "checkFindings",
-      "unnameRecords",
-      `completed ${JSON.stringify({
-        vaultEntriesDeleted: 1,
-        eventsUnnamed: 2,
-        casesUnnamed: 2,
-        proposalsWithdrawn: 1,
-      })}`,
+    // The vault and the events are done a minute later.
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+
+    let now: number = STARTED_AT;
+
+    for (let run: number = 0; run < 6; run++) {
+      now += MINUTE;
+      await runAt(model, now);
+    }
+
+    // Each run started where the last one stopped: 0, 300, 600 ... 1800.
+    expect(world.findings.reads.map(indexOf)).toEqual([
+      0, 300, 600, 900, 1200, 1500, 1800,
     ]);
-  });
-
-  test("a finding that still names the person keeps it InProgress, though the vault and the events are done (#11044)", async () => {
-    world.vaultRows = 0;
-    world.namedEvents = 0;
-    world.namingFindings = 1;
-
-    await SecurityUserErasure.processRequest({
-      request: request({ ...started, updatedAt: at(SUPPRESSION_SETTLE_MS) }),
-      now: at(SUPPRESSION_SETTLE_MS + 60000),
-    });
-
-    expect(world.calls).toEqual(["checkFindings"]);
-
-    // Told again once it has had long enough: the finding a rule wrote late is changed.
-    await SecurityUserErasure.processRequest({
-      request: request({ ...started, updatedAt: at(SUPPRESSION_SETTLE_MS) }),
-      now: at(SUPPRESSION_SETTLE_MS + RESUBMIT_AFTER_MS),
-    });
-
-    expect(world.calls).toContain("unnameFindings");
+    expect(world.progress?.findings?.endedAt).toBeTruthy();
+    expect(world.progress?.findings?.number).toBe(1);
+    expect(world.findings.naming.some(Boolean)).toBe(false);
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("attemptFailed") || call.startsWith("failed");
+      }),
+    ).toBe(false);
+    // Never Erased off the first pass, which started before nothing named them.
     expect(
       world.calls.some((call: string): boolean => {
         return call.startsWith("completed");
@@ -475,156 +722,282 @@ describe("an InProgress request", () => {
     ).toBe(false);
   });
 
-  test("reads no finding while the vault or the events still name the person: the cheap checks first", async () => {
-    for (const still of [
-      { vaultRows: 1, namedEvents: 0 },
-      { vaultRows: 0, namedEvents: 3 },
-    ]) {
-      world.vaultRows = still.vaultRows;
-      world.namedEvents = still.namedEvents;
-      world.calls = [];
+  test("is Erased once a final pass, started after the settle, reads every finding and changes none", async () => {
+    world.findings = findingsWorld(900, 5);
+    world.findings.perRun = 400;
 
-      expect(await SecurityUserErasure.isErased(request(started))).toBe(false);
-      expect(world.calls).not.toContain("checkFindings");
-    }
-  });
-
-  test("checks the findings for the names it kept and each spelling typed, though the vault and the events no longer hold them", async () => {
-    world.vaultRows = 0;
-    world.namedEvents = 0;
-    world.namingFindings = 0;
-
-    const kept: Array<ErasedName> = [
-      { named: `auth0|${ALICE}`, hashed: `auth0|${tokenOf(ALICE)}` },
-    ];
-
-    expect(
-      await SecurityUserErasure.isErased(
-        request({
-          ...started,
-          userToErase: "Alice@Example.com",
-          namesToErase: toStoredErasureNames(kept),
-        }),
-      ),
-    ).toBe(true);
-    expect(describeNames(world.findingNames[0]!)).toEqual(
-      [
-        `Alice@Example.com -> ${tokenOf("Alice@Example.com")}`,
-        `${ALICE} -> ${tokenOf(ALICE)}`,
-        `auth0|${ALICE} -> auth0|${tokenOf(ALICE)}`,
-      ].sort(),
-    );
-  });
-
-  test("a pasted token that named nobody: nothing to look for, so no finding is read", async () => {
-    world.vaultRows = 0;
-    world.namedEvents = 0;
-
-    expect(
-      await SecurityUserErasure.isErased(
-        request({ ...started, userToErase: undefined }),
-      ),
-    ).toBe(true);
-    expect(world.calls).not.toContain("checkFindings");
-  });
-
-  test("its last pass over Postgres, as it completes, takes out a detection written from the events before they lost the name, and counts it", async () => {
-    world.vaultRows = 0;
-    world.namedEvents = 0;
-    world.namingFindings = 0;
-    jest
-      .spyOn(SecurityUserErasureRecords, "unnameRecords")
-      .mockImplementation(
-        async (data: { names: ReadonlyArray<ErasedName> }) => {
-          world.names.push([...data.names]);
-          return { cases: 1, proposals: 1 };
-        },
-      );
-
-    const kept: Array<ErasedName> = [
-      { named: `auth0|${ALICE}`, hashed: `auth0|${tokenOf(ALICE)}` },
-    ];
+    const model: SecurityUserErasureRequest = request();
 
     await SecurityUserErasure.processRequest({
-      request: request({
-        ...started,
-        namesToErase: toStoredErasureNames(kept),
-      }),
-      now: at(SUPPRESSION_SETTLE_MS + 60000),
+      request: model,
+      now: at(STARTED_AT),
     });
 
-    expect(describeNames(world.names[0]!)).toEqual(
-      [
-        `${ALICE} -> ${tokenOf(ALICE)}`,
-        `auth0|${ALICE} -> auth0|${tokenOf(ALICE)}`,
-      ].sort(),
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+
+    // The first pass ends; the vault and events have been clean since STARTED_AT + 1 minute.
+    await runAt(model, STARTED_AT + MINUTE);
+    await runAt(model, STARTED_AT + 2 * MINUTE);
+
+    const cleanSince: number = STARTED_AT + MINUTE;
+
+    expect(world.progress?.cleanSince).toBe(at(cleanSince).toISOString());
+    expect(world.progress?.findings?.endedAt).toBeTruthy();
+
+    // Too soon for a final check: nothing is read.
+    const readsBefore: number = world.findings.reads.length;
+
+    await runAt(model, cleanSince + DETECTION_TURN_SETTLE_MS - 1);
+    expect(world.findings.reads).toHaveLength(readsBefore);
+
+    // The final pass, over three runs.
+    await runAt(model, cleanSince + DETECTION_TURN_SETTLE_MS);
+    expect(world.progress?.findings).toEqual(
+      expect.objectContaining({ number: 2, isFinal: true, endedAt: null }),
     );
+    await runAt(model, cleanSince + DETECTION_TURN_SETTLE_MS + MINUTE);
+    expect(world.calls[world.calls.length - 1]).not.toMatch(/^completed/);
+    await runAt(model, cleanSince + DETECTION_TURN_SETTLE_MS + 2 * MINUTE);
+
     expect(world.calls[world.calls.length - 1]).toBe(
       `completed ${JSON.stringify({
-        vaultEntriesDeleted: 1,
-        eventsUnnamed: 2,
-        casesUnnamed: 3,
-        proposalsWithdrawn: 2,
-      })}`,
-    );
-  });
-
-  test("a later run looks for the names an earlier one kept, though the vault and the events no longer name them", async () => {
-    world.vaultRows = 0;
-    world.namedEvents = 0;
-
-    const kept: Array<ErasedName> = [
-      { named: `auth0|${ALICE}`, hashed: `auth0|${tokenOf(ALICE)}` },
-      { named: ALICE, hashed: tokenOf(ALICE) },
-    ];
-
-    await SecurityUserErasure.processRequest({
-      request: request({
-        ...started,
-        userToErase: undefined,
-        namesToErase: toStoredErasureNames(kept),
-        updatedAt: at(SUPPRESSION_SETTLE_MS),
-      }),
-      now: at(SUPPRESSION_SETTLE_MS + RESUBMIT_AFTER_MS),
-    });
-
-    expect(describeNames(world.names[0]!)).toEqual(describeNames(kept));
-    expect(describeNames(world.findingNames[0]!)).toEqual(describeNames(kept));
-    expect(describeNames(world.keptNames[0]!)).toEqual(describeNames(kept));
-  });
-
-  test("still named, and not long since it ran: waits for ClickHouse", async () => {
-    await SecurityUserErasure.processRequest({
-      request: request({ ...started, updatedAt: at(SUPPRESSION_SETTLE_MS) }),
-      now: at(SUPPRESSION_SETTLE_MS + RESUBMIT_AFTER_MS - 1),
-    });
-
-    expect(world.calls).toEqual([]);
-  });
-
-  test("still named after a long wait: told again, its counts never added twice", async () => {
-    // Postgres was done the first time: nothing more names the person there.
-    jest
-      .spyOn(SecurityUserErasureRecords, "unnameRecords")
-      .mockResolvedValue({ cases: 0, proposals: 0 });
-    // The findings were changed the first time: the events are still waiting.
-    world.namingFindings = 0;
-
-    await SecurityUserErasure.processRequest({
-      request: request({ ...started, updatedAt: at(SUPPRESSION_SETTLE_MS) }),
-      now: at(SUPPRESSION_SETTLE_MS + RESUBMIT_AFTER_MS),
-    });
-
-    expect(world.calls).toContain("unnameEvents");
-    expect(world.calls).toContain("eraseVault");
-    // What is still there is counted again, and the larger kept: never the sum.
-    expect(world.calls[world.calls.length - 1]).toBe(
-      `inProgress ${JSON.stringify({
-        vaultEntriesDeleted: 1,
-        eventsUnnamed: 2,
+        vaultEntriesDeleted: 0,
+        // Two events, and the 180 findings the first pass un-named.
+        eventsUnnamed: 2 + 180,
         casesUnnamed: 2,
         proposalsWithdrawn: 1,
       })}`,
+    );
+    expect(world.findings.reads.slice(-3).map(indexOf)).toEqual([0, 400, 800]);
+  });
+
+  test("a final pass that still finds something changes it, and another checks again: Erased only after one that finds nothing", async () => {
+    world.findings = findingsWorld(10, 2);
+    // ClickHouse applies a change a run after it holds it.
+    world.findings.applyLag = true;
+
+    const model: SecurityUserErasureRequest = request();
+
+    await SecurityUserErasure.processRequest({
+      request: model,
+      now: at(STARTED_AT),
+    });
+
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+    // A finding a rule wrote from the events before they lost the name, after the first pass read past it.
+    world.findings.naming.push(true);
+
+    await runAt(model, STARTED_AT + MINUTE);
+
+    const settled: number = STARTED_AT + MINUTE + DETECTION_TURN_SETTLE_MS;
+
+    await runAt(model, settled);
+    expect(world.progress?.findings).toEqual(
+      expect.objectContaining({ number: 2, isFinal: true, changed: 1 }),
+    );
+    expect(world.calls[world.calls.length - 1]).not.toMatch(/^completed/);
+
+    await runAt(model, settled + MINUTE);
+    expect(world.progress?.findings).toEqual(
+      expect.objectContaining({ number: 3, isFinal: true, changed: 0 }),
+    );
+    expect(world.calls[world.calls.length - 1]).toMatch(/^completed /);
+  });
+
+  test("keeps its counts across passes as the most one counted, never their sum", async () => {
+    world.findings = findingsWorld(10, 2);
+    world.findings.applyLag = true;
+
+    const model: SecurityUserErasureRequest = request();
+
+    await SecurityUserErasure.processRequest({
+      request: model,
+      now: at(STARTED_AT),
+    });
+
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+
+    const settled: number = STARTED_AT + MINUTE + DETECTION_TURN_SETTLE_MS;
+
+    await runAt(model, STARTED_AT + MINUTE);
+    await runAt(model, settled);
+    await runAt(model, settled + MINUTE);
+
+    // Two events, and five findings: the second pass queued none of them again.
+    expect(world.eventsUnnamed).toBe(2 + 5);
+  });
+
+  test("a run that fails keeps where its read got to: the retry goes on from there", async () => {
+    world.findings = findingsWorld(1000, 4);
+    world.findings.perRun = 250;
+
+    const model: SecurityUserErasureRequest = request();
+
+    await SecurityUserErasure.processRequest({
+      request: model,
+      now: at(STARTED_AT),
+    });
+    await runAt(model, STARTED_AT + MINUTE);
+
+    world.scanError = new Error("ClickHouse is away");
+    await runAt(model, STARTED_AT + 2 * MINUTE);
+    expect(world.calls[world.calls.length - 1]).toBe(
+      "attemptFailed 1 InProgress ClickHouse is away",
+    );
+
+    world.scanError = null;
+    // Its backoff over, the request is told again and reads on from 500.
+    await runAt(model, STARTED_AT + 2 * MINUTE + RETRY_BACKOFF_MS, {
+      attempts: 1,
+      failureReason: "ClickHouse is away",
+      updatedAt: at(STARTED_AT + 2 * MINUTE),
+    });
+
+    expect(world.findings.reads.map(indexOf)).toEqual([0, 250, 500, 500]);
+    expect(world.calls).toContain("unnameEvents");
+  });
+
+  test("a run that runs out of its time stops in the read, counts no attempt, and the next run goes on", async () => {
+    world.findings = findingsWorld(600, 3);
+    world.findings.perRun = 200;
+
+    const model: SecurityUserErasureRequest = request();
+
+    await SecurityUserErasure.processRequest({
+      request: model,
+      now: at(STARTED_AT),
+    });
+
+    const deadline: JobDeadline = new JobDeadline();
+
+    world.scanError = Object.assign(new Error("out of time"), {});
+    deadline.end();
+
+    await SecurityUserErasure.processRequest({
+      request: kept(model),
+      now: at(STARTED_AT + MINUTE),
+      deadline,
+    });
+
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("attemptFailed");
+      }),
+    ).toBe(false);
+
+    world.scanError = null;
+    await runAt(model, STARTED_AT + 2 * MINUTE);
+    expect(world.findings.reads.map(indexOf)).toEqual([0, 200, 200]);
+  });
+
+  test("hands Postgres the correlations' values each batch changed, for what else carries their fingerprint", async () => {
+    await SecurityUserErasure.processRequest({
+      request: request(),
+      now: at(STARTED_AT),
+    });
+
+    expect(world.rewrittenFingerprints).toEqual([
+      [
+        {
+          named: `${ALICE} / 203.0.113.7`,
+          hashed: `${tokenOf(ALICE)} / 203.0.113.7`,
+        },
+      ],
+    ]);
+  });
+});
+
+describe("an InProgress request", () => {
+  test("is not Erased while the vault or the events still name the person, and starts no new pass", async () => {
+    const model: SecurityUserErasureRequest = request();
+
+    await SecurityUserErasure.processRequest({
+      request: model,
+      now: at(STARTED_AT),
+    });
+
+    const reads: number = world.findings.reads.length;
+
+    for (let minute: number = 1; minute < 20; minute++) {
+      await runAt(model, STARTED_AT + minute * MINUTE);
+    }
+
+    expect(world.findings.reads).toHaveLength(reads);
+    expect(
+      world.calls.some((call: string): boolean => {
+        return call.startsWith("completed");
+      }),
+    ).toBe(false);
+  });
+
+  test("still named a while after ClickHouse was told: told again, its counts never added twice", async () => {
+    const model: SecurityUserErasureRequest = request();
+
+    await SecurityUserErasure.processRequest({
+      request: model,
+      now: at(STARTED_AT),
+    });
+
+    world.calls = [];
+    await runAt(model, STARTED_AT + RESUBMIT_AFTER_MS - 1);
+    expect(world.calls).not.toContain("unnameEvents");
+
+    await runAt(model, STARTED_AT + RESUBMIT_AFTER_MS);
+    expect(world.calls).toContain("unnameEvents");
+    expect(world.calls).toContain("eraseVault");
+    // The larger count of two tells, never their sum.
+    expect(world.progress?.namedEvents).toBe(2);
+    expect(world.progress?.toldAt).toBe(
+      at(STARTED_AT + RESUBMIT_AFTER_MS).toISOString(),
+    );
+  });
+
+  test("one started before #11160 kept no progress: it was told when it last ran, and its read starts from the first finding", async () => {
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+
+    await SecurityUserErasure.processRequest({
+      request: request({
+        status: SecurityUserErasureRequestStatus.InProgress,
+        updatedAt: at(STARTED_AT),
+        namesToErase: toStoredErasureNames([
+          { named: ALICE, hashed: tokenOf(ALICE) },
+        ]),
+      }),
+      now: at(STARTED_AT + MINUTE),
+    });
+
+    expect(world.calls).not.toContain("unnameEvents");
+    expect(world.calls).toContain("scan from 0");
+    expect(world.progress?.findings?.number).toBe(1);
+  });
+
+  test("its last pass over Postgres, as it completes, goes through the names it kept", async () => {
+    world.findings = findingsWorld(3, 0);
+
+    const model: SecurityUserErasureRequest = request();
+
+    await SecurityUserErasure.processRequest({
+      request: model,
+      now: at(STARTED_AT),
+    });
+
+    world.vaultRows = 0;
+    world.namedEvents = 0;
+    world.names = [];
+
+    await runAt(model, STARTED_AT + MINUTE);
+    await runAt(model, STARTED_AT + MINUTE + DETECTION_TURN_SETTLE_MS);
+
+    expect(world.calls[world.calls.length - 1]).toMatch(/^completed /);
+    expect(describeNames(world.names[world.names.length - 1]!)).toEqual(
+      [
+        `${ALICE} -> ${tokenOf(ALICE)}`,
+        `auth0|${ALICE} -> auth0|${tokenOf(ALICE)}`,
+      ].sort(),
     );
   });
 
@@ -632,57 +1005,54 @@ describe("an InProgress request", () => {
     world.vaultRows = 0;
     world.namedEvents = 0;
 
-    const failed: SecurityUserErasureRequest = request({
-      ...started,
+    const failed: Partial<Record<string, unknown>> = {
+      status: SecurityUserErasureRequestStatus.InProgress,
       attempts: 2,
-      failureReason: "ClickHouse is down",
-      updatedAt: at(SUPPRESSION_SETTLE_MS),
-    });
+      failureReason: "ClickHouse is away",
+      updatedAt: at(STARTED_AT),
+    };
 
     await SecurityUserErasure.processRequest({
-      request: failed,
-      now: at(SUPPRESSION_SETTLE_MS + 2 * RETRY_BACKOFF_MS - 1),
+      request: request(failed),
+      now: at(STARTED_AT + 2 * RETRY_BACKOFF_MS - 1),
     });
     expect(world.calls).toEqual([]);
 
     await SecurityUserErasure.processRequest({
-      request: failed,
-      now: at(SUPPRESSION_SETTLE_MS + 2 * RETRY_BACKOFF_MS),
+      request: request(failed),
+      now: at(STARTED_AT + 2 * RETRY_BACKOFF_MS),
     });
     expect(world.calls).toContain("unnameRecords");
-    expect(
-      world.calls.some((call: string): boolean => {
-        return call.startsWith("completed");
-      }),
-    ).toBe(false);
+    expect(world.calls).toContain("unnameEvents");
   });
 });
 
 describe("a run that fails", () => {
   test("is retried while attempts remain, why it failed kept on the request", async () => {
-    jest
-      .spyOn(SecurityUserErasureEvents, "countNamedEvents")
-      .mockRejectedValue(new Error("ClickHouse is down") as never);
+    world.scanError = new Error("ClickHouse is away");
 
     await SecurityUserErasure.processRequest({
-      request: request({ attempts: 1 }),
-      now: at(SUPPRESSION_SETTLE_MS),
+      request: request(),
+      now: at(STARTED_AT),
     });
 
     expect(world.calls[world.calls.length - 1]).toBe(
-      `attemptFailed 2 ${SecurityUserErasureRequestStatus.InProgress} ClickHouse is down`,
+      "attemptFailed 1 InProgress ClickHouse is away",
     );
     expect(world.emailed).toBe(0);
   });
 
   test("on its last attempt, the request fails and the project's owners are told", async () => {
-    jest
-      .spyOn(SecurityUserErasureRecords, "unnameRecords")
-      .mockRejectedValue(new Error("Postgres is down") as never);
+    world.scanError = new Error("ClickHouse is away");
 
     await SecurityUserErasure.processRequest({
-      request: request({ attempts: MAX_ERASURE_ATTEMPTS - 1 }),
-      now: at(SUPPRESSION_SETTLE_MS),
+      request: request({
+        status: SecurityUserErasureRequestStatus.InProgress,
+        attempts: MAX_ERASURE_ATTEMPTS - 1,
+        failureReason: "ClickHouse is away",
+        updatedAt: at(0),
+      }),
+      now: at(STARTED_AT + MAX_ERASURE_ATTEMPTS * RETRY_BACKOFF_MS),
     });
 
     expect(world.calls[world.calls.length - 1]).toBe(
@@ -691,160 +1061,104 @@ describe("a run that fails", () => {
     expect(world.emailed).toBe(1);
   });
 
-  test("a read of the findings that takes longer than an erasure run has is a failed attempt, retried, then told to the owners (#11044)", async () => {
-    jest
-      .spyOn(SecurityUserErasureFindings, "findNamingFindings")
-      .mockRejectedValue(
-        new Error(
-          "Security Events could not read all of the project's Detection Findings in the time an erasure run has. It is tried again.",
-        ) as never,
-      );
-
-    await SecurityUserErasure.processRequest({
-      request: request({ attempts: 0 }),
-      now: at(SUPPRESSION_SETTLE_MS),
-    });
-
-    expect(world.calls[world.calls.length - 1]).toMatch(
-      /^attemptFailed 1 InProgress Security Events could not read all of the project's Detection Findings/,
-    );
-    // Nothing in ClickHouse was told before the findings could be read.
-    expect(world.calls).not.toContain("unnameEvents");
-    expect(world.calls).not.toContain("eraseVault");
-  });
-
   test("an email that cannot be sent, or a failure that cannot be kept, never throws", async () => {
-    jest
-      .spyOn(SecurityUserErasureRecords, "unnameRecords")
-      .mockRejectedValue(new Error("Postgres is down") as never);
+    world.scanError = new Error("ClickHouse is away");
     jest
       .spyOn(ProjectService, "sendEmailToProjectOwners")
-      .mockRejectedValue(new Error("No mail server") as never);
+      .mockRejectedValue(new Error("no mail"));
 
     await expect(
       SecurityUserErasure.processRequest({
-        request: request({ attempts: MAX_ERASURE_ATTEMPTS - 1 }),
-        now: at(SUPPRESSION_SETTLE_MS),
+        request: request({
+          status: SecurityUserErasureRequestStatus.InProgress,
+          attempts: MAX_ERASURE_ATTEMPTS - 1,
+          failureReason: "x",
+          updatedAt: at(0),
+        }),
+        now: at(STARTED_AT + MAX_ERASURE_ATTEMPTS * RETRY_BACKOFF_MS),
       }),
     ).resolves.toBeUndefined();
 
     jest
       .spyOn(SecurityUserErasureRequestService, "markAttemptFailed")
-      .mockRejectedValue(new Error("Postgres is down") as never);
+      .mockRejectedValue(new Error("no database"));
 
     await expect(
       SecurityUserErasure.processRequest({
-        request: request({ attempts: 0 }),
-        now: at(SUPPRESSION_SETTLE_MS),
+        request: request(),
+        now: at(STARTED_AT),
       }),
     ).resolves.toBeUndefined();
   });
 });
 
-describe("a run that runs out of its time (#11044)", () => {
+describe("a run that runs out of its time", () => {
   test("stops between requests: the rest wait for the next run", async () => {
-    const order: Array<string> = [];
     const deadline: JobDeadline = new JobDeadline();
+    const first: SecurityUserErasureRequest = request();
+    const second: SecurityUserErasureRequest = request();
+    const order: Array<string> = [];
 
     jest
       .spyOn(SecurityUserErasureRequestService, "getOpenRequests")
-      .mockResolvedValue([request(), request(), request()]);
+      .mockResolvedValue([first, second]);
     jest
       .spyOn(SecurityUserErasure, "processRequest")
       .mockImplementation(
         async (data: {
           request: SecurityUserErasureRequest;
-          deadline?: JobDeadline | undefined;
         }): Promise<void> => {
           order.push(data.request.id!.toString());
-          expect(data.deadline).toBe(deadline);
-          // The first request takes the run's last moment.
           deadline.end();
         },
       );
 
-    await SecurityUserErasure.processOpenRequests(
-      at(SUPPRESSION_SETTLE_MS),
-      deadline,
-    );
+    await SecurityUserErasure.processOpenRequests(at(STARTED_AT), deadline);
 
-    expect(order).toHaveLength(1);
+    expect(order).toEqual([first.id!.toString()]);
+  });
+});
+
+describe("whether a final check may start", () => {
+  const progress: SecurityUserErasureProgress = readErasureProgress({
+    cleanSince: at(STARTED_AT).toISOString(),
   });
 
-  test("stopped while it reads the findings: no attempt is counted, nothing in ClickHouse was told, and a later run does it all", async () => {
-    const deadline: JobDeadline = new JobDeadline();
-
-    jest
-      .spyOn(SecurityUserErasureFindings, "findNamingFindings")
-      .mockImplementationOnce(async (): Promise<FindingsScanResult> => {
-        world.calls.push("findFindings");
-        // The run runs out of time between two pages.
-        deadline.end();
-        deadline.throwIfPassed();
-
-        return { rewrites: [], isCapped: false };
-      });
-
-    await SecurityUserErasure.processRequest({
-      request: request({ attempts: 0 }),
-      now: at(SUPPRESSION_SETTLE_MS),
-      deadline,
-    });
-
+  test("only once nothing has named the person for the settle", () => {
     expect(
-      world.calls.some((call: string): boolean => {
-        return call.startsWith("attemptFailed") || call.startsWith("failed");
+      SecurityUserErasure.canStartFinalPass({
+        progress,
+        isClean: true,
+        now: at(STARTED_AT + DETECTION_TURN_SETTLE_MS),
+      }),
+    ).toBe(true);
+    expect(
+      SecurityUserErasure.canStartFinalPass({
+        progress,
+        isClean: true,
+        now: at(STARTED_AT + DETECTION_TURN_SETTLE_MS - 1),
       }),
     ).toBe(false);
-    expect(world.calls).not.toContain("unnameEvents");
-    expect(world.calls).not.toContain("eraseVault");
-    expect(world.emailed).toBe(0);
-
-    // Run again as any request still not done is, with time of its own: it does it all.
-    world.calls = [];
-
-    await SecurityUserErasure.processRequest({
-      request: request({
-        status: SecurityUserErasureRequestStatus.InProgress,
-        updatedAt: at(SUPPRESSION_SETTLE_MS),
+    expect(
+      SecurityUserErasure.canStartFinalPass({
+        progress,
+        isClean: false,
+        now: at(STARTED_AT + DETECTION_TURN_SETTLE_MS),
       }),
-      now: at(SUPPRESSION_SETTLE_MS + RESUBMIT_AFTER_MS),
-      deadline: new JobDeadline(),
-    });
-
-    expect(world.calls).toContain("unnameEvents");
-    expect(world.calls).toContain("eraseVault");
-  });
-
-  test("stopped while it checks the findings: neither Completed nor failed", async () => {
-    world.vaultRows = 0;
-    world.namedEvents = 0;
-
-    const deadline: JobDeadline = new JobDeadline();
-
-    jest
-      .spyOn(SecurityUserErasureFindings, "isAnyFindingNaming")
-      .mockImplementation(async (): Promise<boolean> => {
-        world.calls.push("checkFindings");
-        deadline.end();
-        deadline.throwIfPassed();
-
-        return false;
-      });
-
-    await SecurityUserErasure.processRequest({
-      request: request({ status: SecurityUserErasureRequestStatus.InProgress }),
-      now: at(SUPPRESSION_SETTLE_MS + 60000),
-      deadline,
-    });
-
-    expect(world.calls).toEqual(["checkFindings"]);
+    ).toBe(false);
+    expect(
+      SecurityUserErasure.canStartFinalPass({
+        progress: readErasureProgress(null),
+        isClean: true,
+        now: at(STARTED_AT + DETECTION_TURN_SETTLE_MS),
+      }),
+    ).toBe(false);
   });
 });
 
 describe("the names a request goes on looking for (#11044)", () => {
   test("each spelling typed, with its own token, and every name a run kept - each once", () => {
-    const kept: Array<ErasedName> = [
+    const keptNames: Array<ErasedName> = [
       { named: ALICE, hashed: tokenOf(ALICE) },
       { named: `auth0|${ALICE}`, hashed: `auth0|${tokenOf(ALICE)}` },
     ];
@@ -854,7 +1168,7 @@ describe("the names a request goes on looking for (#11044)", () => {
         SecurityUserErasure.getKeptNames(
           request({
             userToErase: "Alice@Example.com",
-            namesToErase: toStoredErasureNames(kept),
+            namesToErase: toStoredErasureNames(keptNames),
           }),
         ),
       ),
@@ -899,11 +1213,10 @@ describe("what the worker leaves alone", () => {
     ]) {
       await SecurityUserErasure.processRequest({
         request: request({ status }),
-        now: at(SUPPRESSION_SETTLE_MS + RESUBMIT_AFTER_MS),
+        now: at(STARTED_AT + RESUBMIT_AFTER_MS),
       });
     }
 
-    // Never saved: no id. And one that names no project.
     const noId: SecurityUserErasureRequest = new SecurityUserErasureRequest();
 
     noId.projectId = PROJECT_ID;
@@ -918,16 +1231,18 @@ describe("what the worker leaves alone", () => {
     for (const unsaved of [noId, noProject]) {
       await SecurityUserErasure.processRequest({
         request: unsaved,
-        now: at(SUPPRESSION_SETTLE_MS),
+        now: at(STARTED_AT),
       });
     }
 
     expect(world.calls).toEqual([]);
   });
 
-  test("a request with no token of today's form is erased as soon as it is checked", async () => {
+  test("a request with no token of today's form has nothing left in the vault or the events", async () => {
     expect(
-      await SecurityUserErasure.isErased(request({ tokens: ["alice"] })),
+      await SecurityUserErasure.isVaultAndEventsClean(
+        request({ tokens: ["alice"] }),
+      ),
     ).toBe(true);
   });
 
@@ -949,7 +1264,7 @@ describe("what the worker leaves alone", () => {
         },
       );
 
-    await SecurityUserErasure.processOpenRequests(at(SUPPRESSION_SETTLE_MS));
+    await SecurityUserErasure.processOpenRequests(at(STARTED_AT));
 
     expect(order).toEqual([first.id!.toString(), second.id!.toString()]);
   });
