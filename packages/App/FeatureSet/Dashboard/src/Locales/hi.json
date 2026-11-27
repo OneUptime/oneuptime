@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} टेबल, उसके इतिहास और स्कीमा परिवर्तनों के साथ",
   "{{name}} deleted": "{{name}} हटा दिया गया",
   "{{name}} removed from Data Observability": "{{name}} को डेटा अवलोकनीयता से हटा दिया गया",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} पर कोई Database Agent कनेक्ट नहीं है। उसके पास Database Agent इंस्टॉल करें, या कनेक्ट करने का कोई और तरीका चुनें।"
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} पर कोई Database Agent कनेक्ट नहीं है। उसके पास Database Agent इंस्टॉल करें, या कनेक्ट करने का कोई और तरीका चुनें।",
+  "Data from {{start}} to {{end}}": "डेटा: {{start}} से {{end}} तक"
 }

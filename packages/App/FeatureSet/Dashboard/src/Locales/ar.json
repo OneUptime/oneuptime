@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} جدول، مع سجله وتغييرات مخططه",
   "{{name}} deleted": "تم حذف {{name}}",
   "{{name}} removed from Data Observability": "تمت إزالة {{name}} من قابلية ملاحظة البيانات",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "لا يوجد وكيل قاعدة بيانات متصل لدى {{server}}. ثبّت وكيل قاعدة البيانات بجواره، أو اختر طريقة أخرى للاتصال."
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "لا يوجد وكيل قاعدة بيانات متصل لدى {{server}}. ثبّت وكيل قاعدة البيانات بجواره، أو اختر طريقة أخرى للاتصال.",
+  "Data from {{start}} to {{end}}": "البيانات: من {{start}} إلى {{end}}"
 }

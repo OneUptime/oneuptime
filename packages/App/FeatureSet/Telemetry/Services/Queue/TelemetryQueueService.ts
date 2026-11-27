@@ -310,10 +310,24 @@ export interface IncomingRequestPendingJobData {
   secretKeyHash: string;
 }
 
+/*
+ * One telemetry monitor's check, as the scheduler queues it
+ * (MonitorTelemetryMonitor). Its dates arrive as the ISO text the queue
+ * keeps them in.
+ */
 export interface TelemetryMonitorEvaluationJobData {
   monitorId: string;
   projectId?: string | undefined;
-  queuedAt: Date;
+  queuedAt: Date | string;
+  /*
+   * When the check was due: the end of the window it judges, however late
+   * it runs - its workers were busy, a refused job was queued by the next
+   * run, a failed one was tried again - so a monitor's windows follow on
+   * from one another exactly (issue #11248). A job queued before this was
+   * carried has none: its window ends when it was queued (queuedAt), which
+   * the scheduler does at the moment the check is due.
+   */
+  dueAt?: Date | string | undefined;
 }
 
 export interface KubernetesCostIngestJobData {
@@ -1764,6 +1778,8 @@ export default class TelemetryQueueService {
   public static async addTelemetryMonitorEvaluationJob(data: {
     monitorId: ObjectID;
     projectId?: ObjectID | undefined;
+    // When the check was due: the end of the window it judges.
+    dueAt?: Date | undefined;
   }): Promise<void> {
     try {
       const monitorId: string = data.monitorId.toString();
@@ -1772,6 +1788,10 @@ export default class TelemetryQueueService {
         monitorId,
         queuedAt: OneUptimeDate.getCurrentDate(),
       };
+
+      if (data.dueAt) {
+        telemetryMonitorEvaluation.dueAt = data.dueAt;
+      }
 
       const jobData: TelemetryIngestJobData = {
         type: TelemetryType.TelemetryMonitorEvaluation,

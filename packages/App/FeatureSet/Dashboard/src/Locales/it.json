@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} tabella, con la sua cronologia e le modifiche allo schema",
   "{{name}} deleted": "{{name}} eliminato",
   "{{name}} removed from Data Observability": "{{name}} rimosso dall'Osservabilità dei dati",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "Nessun Database Agent è connesso a {{server}}. Installa il Database Agent accanto a esso, oppure scegli un altro modo di collegarti."
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "Nessun Database Agent è connesso a {{server}}. Installa il Database Agent accanto a esso, oppure scegli un altro modo di collegarti.",
+  "Data from {{start}} to {{end}}": "Dati: da {{start}} a {{end}}"
 }

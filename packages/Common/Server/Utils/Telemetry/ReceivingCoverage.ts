@@ -67,14 +67,15 @@ export const TELEMETRY_EVALUATION_MAX_DEFERRAL_MS: number = 15 * 60_000;
 export interface TelemetryEvaluationPlan {
   evaluate: boolean;
   /*
-   * The end of the window to read: now, or the time of the oldest job still
-   * waiting while the ingest queue is behind, so the window holds data that
-   * has been read.
+   * The end of the window to read: when the check was due (windowEndsAt,
+   * now when none is given), or the time of the oldest job still waiting
+   * while the ingest queue is more than a minute behind that, so the window
+   * holds data that has been read.
    */
   evaluateUntil: Date;
   /*
-   * True when evaluateUntil is earlier than now because the ingest queue is
-   * behind; false when the window simply ends now.
+   * True when evaluateUntil is earlier than the window's end because the
+   * ingest queue is behind; false when the window ends where it was due to.
    */
   isIngestBehind: boolean;
   // Set when the check waits: what OneUptime was doing during its window.
@@ -212,9 +213,16 @@ export default class ReceivingCoverage {
    * Whether a telemetry check over a window of `windowInMs` can be judged
    * now, and up to when.
    *
-   * - While the ingest queue is behind, the window ends where the queue is
-   *   (its oldest waiting job) instead of now: the check judges data that has
-   *   been read, a little late, rather than missing data, on time.
+   * - The window ends at `windowEndsAt`: when the check was due, however
+   *   late it runs (issue #11248), so a monitor's windows follow on from one
+   *   another exactly. Never later than now; now when none is given.
+   * - While the ingest queue is more than a minute behind that end, the
+   *   window ends where the queue is (its oldest waiting job) instead: the
+   *   check judges data that has been read, a little late, rather than
+   *   missing data, on time. How far behind is measured from the window's
+   *   end, not from now - a check that runs late was due when the data it
+   *   reads had more time to be read - so a window holds at most the same
+   *   minute of data still waiting to be read as a check that runs on time.
    * - When the window holds time OneUptime was not receiving (or was just
    *   back and reconnecting), the check waits: no status change, no incident
    *   or alert opened, none resolved. It waits until that time is behind the
@@ -226,9 +234,19 @@ export default class ReceivingCoverage {
   public static async planTelemetryEvaluation(data: {
     windowInMs: number;
     now?: Date | undefined;
+    windowEndsAt?: Date | undefined;
   }): Promise<TelemetryEvaluationPlan> {
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
     const nowMs: number = now.getTime();
+
+    const dueAtMs: number = data.windowEndsAt
+      ? new Date(data.windowEndsAt).getTime()
+      : Number.NaN;
+
+    // A due time to come (another server's clock ahead of this one's) is now.
+    const windowEndsAtMs: number = Number.isFinite(dueAtMs)
+      ? Math.min(dueAtMs, nowMs)
+      : nowMs;
 
     const backlog: CachedBacklog = await this.readBacklog(now);
     const backlogSinceMs: number | null =
@@ -236,9 +254,11 @@ export default class ReceivingCoverage {
 
     const isIngestBehind: boolean =
       backlogSinceMs !== null &&
-      nowMs - backlogSinceMs > INGEST_BACKLOG_ALLOWANCE_MS;
+      windowEndsAtMs - backlogSinceMs > INGEST_BACKLOG_ALLOWANCE_MS;
 
-    const evaluateUntilMs: number = isIngestBehind ? backlogSinceMs! : nowMs;
+    const evaluateUntilMs: number = isIngestBehind
+      ? backlogSinceMs!
+      : windowEndsAtMs;
 
     const evaluateUntil: Date = new Date(evaluateUntilMs);
     const windowStart: Date = new Date(

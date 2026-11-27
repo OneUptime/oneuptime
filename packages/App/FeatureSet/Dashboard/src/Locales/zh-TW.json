@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} 個資料表及其歷程記錄和結構描述變更",
   "{{name}} deleted": "已刪除 {{name}}",
   "{{name}} removed from Data Observability": "已將 {{name}} 從資料可觀測性中移除",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} 未連接任何 Database Agent。請在其旁邊安裝 Database Agent，或選擇其他連線方式。"
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} 未連接任何 Database Agent。請在其旁邊安裝 Database Agent，或選擇其他連線方式。",
+  "Data from {{start}} to {{end}}": "資料期間：{{start}} 至 {{end}}"
 }

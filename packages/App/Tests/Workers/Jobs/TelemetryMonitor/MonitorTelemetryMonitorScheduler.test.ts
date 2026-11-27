@@ -120,6 +120,8 @@ import {
   TELEMETRY_SCHEDULE_TICK_MS,
   enqueueDueTelemetryMonitorEvaluationJobs,
   getTelemetryDispatchWindowEnd,
+  getTelemetryEvaluationDueAt,
+  getTelemetryEvaluationWindowEnd,
   getTelemetryMonitorNextMonitorAt,
   processTelemetryMonitorEvaluationFromQueue,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
@@ -1127,5 +1129,304 @@ describe("TelemetryMonitor scheduler (enqueueDueTelemetryMonitorEvaluationJobs)"
       onTheClock(enqueueDueTelemetryMonitorEvaluationJobs),
     ).rejects.toThrow("statement timeout");
     expect(enqueueJobMock).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Issue #11248: each job carries when its check was due - the end of the
+   * window it judges - so a check that runs late judges the window it was
+   * due to, and a monitor's windows follow on from one another exactly.
+   */
+  describe("when each check was due, carried on its job (#11248)", () => {
+    // The due time each queued job carries, by monitor.
+    function dueAtsOf(monitorId: ObjectID): Array<number> {
+      return enqueueJobMock.mock.calls
+        .map((args: Array<unknown>) => {
+          return args[0] as { monitorId: ObjectID; dueAt?: Date };
+        })
+        .filter((job: { monitorId: ObjectID }) => {
+          return job.monitorId.toString() === monitorId.toString();
+        })
+        .map((job: { dueAt?: Date }): number => {
+          expect(job.dueAt).toBeInstanceOf(Date);
+          return job.dueAt!.getTime();
+        });
+    }
+
+    // A monitor's own moment of its interval: the first after `after`.
+    function slotOf(
+      monitorId: ObjectID,
+      monitoringInterval: string | undefined,
+      after: number,
+    ): number {
+      return TelemetryMonitorSchedule.getNextRunAt({
+        monitorId,
+        monitoringInterval,
+        after: new Date(after),
+      }).getTime();
+    }
+
+    test("an on-time check carries its own moment, not the moment its step was queued", async () => {
+      // One step: A is queued with B, 60 ms after A was due.
+      serveMonitors([
+        makeMonitor({ id: MONITOR_A_ID, nextMonitorAt: new Date(NOW + 1000) }),
+        makeMonitor({ id: MONITOR_B_ID, nextMonitorAt: new Date(NOW + 1060) }),
+      ]);
+
+      await onTheClock(enqueueDueTelemetryMonitorEvaluationJobs);
+
+      expect(queuedTimesOf(MONITOR_A_ID)).toEqual([NOW + 1060]);
+      expect(dueAtsOf(MONITOR_A_ID)).toEqual([NOW + 1000]);
+      expect(dueAtsOf(MONITOR_B_ID)).toEqual([NOW + 1060]);
+      expect(stampFor(MONITOR_A_ID).dueAt.getTime()).toBe(NOW + 1000);
+    });
+
+    test("a check the run before should have queued - it died - carries the moment it was due, and its next is an interval after that", async () => {
+      const slot: number = slotOf(MONITOR_A_ID, undefined, NOW);
+
+      // The run that should have queued it died; the next starts 7 s late.
+      jest.setSystemTime(slot + 7000);
+      serveMonitors([
+        makeMonitor({ id: MONITOR_A_ID, nextMonitorAt: new Date(slot) }),
+      ]);
+
+      await onTheClock(enqueueDueTelemetryMonitorEvaluationJobs);
+
+      const stamp: MonitorStamp = stampFor(MONITOR_A_ID);
+
+      // Queued at once, judging the window that ends when it was due.
+      expect(queuedTimesOf(MONITOR_A_ID)).toEqual([slot + 7000]);
+      expect(dueAtsOf(MONITOR_A_ID)).toEqual([slot]);
+      // Stamped only while still due by then, and next due a minute after it.
+      expect(stamp.dueAt.getTime()).toBe(slot);
+      expect(stamp.nextMonitorAt.getTime()).toBe(slot + MINUTE_MS);
+    });
+
+    test("a monitor checked every 5 minutes keeps the moment it was due when it is queued 4 minutes late", async () => {
+      const slot: number = slotOf(MONITOR_B_ID, "*/5 * * * *", NOW);
+
+      jest.setSystemTime(slot + 4 * MINUTE_MS);
+      serveMonitors([
+        makeMonitor({
+          id: MONITOR_B_ID,
+          monitoringInterval: "*/5 * * * *",
+          nextMonitorAt: new Date(slot),
+        }),
+      ]);
+
+      await onTheClock(enqueueDueTelemetryMonitorEvaluationJobs);
+
+      expect(dueAtsOf(MONITOR_B_ID)).toEqual([slot]);
+      expect(stampFor(MONITOR_B_ID).nextMonitorAt.getTime()).toBe(
+        slot + 5 * MINUTE_MS,
+      );
+    });
+
+    test("a refused job is made due again at the moment it was due, and the next run queues it with that moment", async () => {
+      const slot: number = slotOf(MONITOR_A_ID, undefined, NOW);
+      const tick: number =
+        Math.floor(slot / TELEMETRY_SCHEDULE_TICK_MS) *
+        TELEMETRY_SCHEDULE_TICK_MS;
+      const monitor: Monitor = makeMonitor({
+        id: MONITOR_A_ID,
+        nextMonitorAt: new Date(slot),
+      });
+
+      serveMonitors([monitor]);
+      enqueueJobMock.mockRejectedValueOnce(new Error("redis connection reset"));
+
+      // The run of the tick it is due in - or, in its last half second, the next.
+      jest.setSystemTime(tick);
+      await onTheClock(enqueueDueTelemetryMonitorEvaluationJobs);
+
+      if (returnStatements().length === 0) {
+        jest.setSystemTime(tick + TELEMETRY_SCHEDULE_TICK_MS);
+        await onTheClock(enqueueDueTelemetryMonitorEvaluationJobs);
+      }
+
+      // Made due again at its moment, not at the run's start.
+      expect(returnStatements()).toEqual([
+        {
+          ids: [MONITOR_A_ID.toString()],
+          dueAts: [new Date(slot)],
+          nextMonitorAts: [new Date(slot + MINUTE_MS)],
+        },
+      ]);
+
+      // What the return wrote, as the database holds it now.
+      monitor.telemetryMonitorNextMonitorAt = new Date(slot);
+      mockQuery.mockClear();
+      enqueueJobMock.mockClear();
+      sentAt.length = 0;
+
+      jest.setSystemTime(
+        Math.floor(Date.now() / TELEMETRY_SCHEDULE_TICK_MS) *
+          TELEMETRY_SCHEDULE_TICK_MS +
+          TELEMETRY_SCHEDULE_TICK_MS +
+          37,
+      );
+      await onTheClock(enqueueDueTelemetryMonitorEvaluationJobs);
+
+      // The same check, judging the same window: due at its moment.
+      expect(dueAtsOf(MONITOR_A_ID)).toEqual([slot]);
+      expect(stampFor(MONITOR_A_ID).dueAt.getTime()).toBe(slot);
+      expect(stampFor(MONITOR_A_ID).nextMonitorAt.getTime()).toBe(
+        slot + MINUTE_MS,
+      );
+    });
+
+    test("a monitor never scheduled - a new one - is checked at once, judging the window that ends as the run starts", async () => {
+      jest.setSystemTime(NOW + 2468);
+      serveMonitors([makeMonitor({ id: MONITOR_A_ID })]);
+
+      await onTheClock(enqueueDueTelemetryMonitorEvaluationJobs);
+
+      expect(dueAtsOf(MONITOR_A_ID)).toEqual([NOW + 2468]);
+      expect(stampFor(MONITOR_A_ID).dueAt.getTime()).toBe(NOW + 2468);
+    });
+
+    test("a monitor whose runs went by while it was not checked - it was off, or the scheduler was - judges the window that ends as it is queued", async () => {
+      const now: number = NOW + 7 * MINUTE_MS + 3000;
+
+      jest.setSystemTime(now);
+      serveMonitors([
+        makeMonitor({ id: MONITOR_A_ID, nextMonitorAt: new Date(NOW + 21000) }),
+      ]);
+
+      await onTheClock(enqueueDueTelemetryMonitorEvaluationJobs);
+
+      expect(dueAtsOf(MONITOR_A_ID)).toEqual([now]);
+      expect(stampFor(MONITOR_A_ID).nextMonitorAt.getTime()).toBe(
+        slotOf(MONITOR_A_ID, undefined, now),
+      );
+    });
+
+    test("a monitor due again exactly an interval after it was due is late by its whole interval: its run went by", () => {
+      const nextMonitorAtMs: number = NOW - MINUTE_MS;
+
+      expect(
+        getTelemetryEvaluationDueAt({
+          nextMonitorAtMs,
+          queueAtMs: NOW,
+          runAfterNextMonitorAtMs: NOW,
+          dispatchedAt: new Date(NOW),
+        }),
+      ).toBe(NOW);
+    });
+
+    test.each([
+      {
+        name: "never scheduled: the run's start",
+        nextMonitorAtMs: null,
+        runAfterNextMonitorAtMs: null,
+        dispatchedAtMs: NOW + 5,
+        expected: NOW,
+      },
+      {
+        name: "on time: its own moment",
+        nextMonitorAtMs: NOW + 4321,
+        runAfterNextMonitorAtMs: NOW + 4321 + MINUTE_MS,
+        dispatchedAtMs: NOW + 4330,
+        expected: NOW + 4321,
+      },
+      {
+        name: "late by less than its interval: its own moment",
+        nextMonitorAtMs: NOW - 59000,
+        runAfterNextMonitorAtMs: NOW + 1000,
+        dispatchedAtMs: NOW + 20,
+        expected: NOW - 59000,
+      },
+      {
+        name: "its next run came while the run read it: the run's start",
+        nextMonitorAtMs: NOW - 59990,
+        runAfterNextMonitorAtMs: NOW + 10,
+        dispatchedAtMs: NOW + 25,
+        expected: NOW,
+      },
+      {
+        name: "late by many intervals: the run's start",
+        nextMonitorAtMs: NOW - 3 * MINUTE_MS,
+        runAfterNextMonitorAtMs: NOW - 2 * MINUTE_MS,
+        dispatchedAtMs: NOW,
+        expected: NOW,
+      },
+    ])(
+      "getTelemetryEvaluationDueAt - $name",
+      (data: {
+        nextMonitorAtMs: number | null;
+        runAfterNextMonitorAtMs: number | null;
+        dispatchedAtMs: number;
+        expected: number;
+      }) => {
+        expect(
+          getTelemetryEvaluationDueAt({
+            nextMonitorAtMs: data.nextMonitorAtMs,
+            queueAtMs: Math.max(data.nextMonitorAtMs ?? NOW, NOW),
+            runAfterNextMonitorAtMs: data.runAfterNextMonitorAtMs,
+            dispatchedAt: new Date(data.dispatchedAtMs),
+          }),
+        ).toBe(data.expected);
+      },
+    );
+
+    test.each([
+      {
+        name: "the due time it carries, as a date",
+        job: { dueAt: new Date(NOW - 5000), queuedAt: new Date(NOW - 4900) },
+        expected: NOW - 5000,
+      },
+      {
+        name: "the due time it carries, as the ISO text the queue keeps",
+        job: {
+          dueAt: new Date(NOW - 5000).toISOString(),
+          queuedAt: new Date(NOW - 4900).toISOString(),
+        },
+        expected: NOW - 5000,
+      },
+      {
+        name: "a job queued before due times were carried: when it was queued",
+        job: { queuedAt: new Date(NOW - 4900).toISOString() },
+        expected: NOW - 4900,
+      },
+      {
+        name: "a due time that cannot be read: when it was queued",
+        job: { dueAt: "yesterday", queuedAt: new Date(NOW - 4900) },
+        expected: NOW - 4900,
+      },
+      {
+        name: "an empty due time: when it was queued",
+        job: { dueAt: "", queuedAt: new Date(NOW - 4900) },
+        expected: NOW - 4900,
+      },
+      {
+        name: "the start of the epoch is no due time",
+        job: { dueAt: new Date(0), queuedAt: new Date(NOW - 4900) },
+        expected: NOW - 4900,
+      },
+      {
+        name: "neither: now",
+        job: { queuedAt: "not a date" },
+        expected: NOW,
+      },
+      {
+        name: "a due time to come - another server's clock ahead: now",
+        job: { dueAt: new Date(NOW + 900), queuedAt: new Date(NOW + 900) },
+        expected: NOW,
+      },
+    ])(
+      "getTelemetryEvaluationWindowEnd - $name",
+      (data: { job: Record<string, unknown>; expected: number }) => {
+        expect(
+          getTelemetryEvaluationWindowEnd({
+            job: {
+              monitorId: MONITOR_A_ID.toString(),
+              ...data.job,
+            } as unknown as Parameters<
+              typeof getTelemetryEvaluationWindowEnd
+            >[0]["job"],
+            now: new Date(NOW),
+          }).getTime(),
+        ).toBe(data.expected);
+      },
+    );
   });
 });

@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} tabel med dens historik og skemaændringer",
   "{{name}} deleted": "{{name}} slettet",
   "{{name}} removed from Data Observability": "{{name}} fjernet fra Dataobservabilitet",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "Der er ingen Database Agent forbundet til {{server}}. Installer Database Agent ved siden af den, eller vælg en anden måde at forbinde på."
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "Der er ingen Database Agent forbundet til {{server}}. Installer Database Agent ved siden af den, eller vælg en anden måde at forbinde på.",
+  "Data from {{start}} to {{end}}": "Data: {{start}} til {{end}}"
 }

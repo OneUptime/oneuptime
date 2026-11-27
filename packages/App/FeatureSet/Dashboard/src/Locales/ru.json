@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} таблица с её историей и изменениями схемы",
   "{{name}} deleted": "База данных «{{name}}» удалена",
   "{{name}} removed from Data Observability": "База данных «{{name}}» убрана из Наблюдаемости данных",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "Для {{server}} не подключён ни один Database Agent. Установите Database Agent рядом с ним или выберите другой способ подключения."
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "Для {{server}} не подключён ни один Database Agent. Установите Database Agent рядом с ним или выберите другой способ подключения.",
+  "Data from {{start}} to {{end}}": "Данные: с {{start}} по {{end}}"
 }
