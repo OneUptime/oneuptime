@@ -309,6 +309,7 @@
   "New incident episode assigned to you": "あなた宛ての新しいインシデントエピソード",
   "New note has been added to an incident": "インシデントに新しいメモが追加されました",
   "No": "いいえ",
+  "No commitments": "コミットメントなし",
   "No longer waiting for approval.": "承認待ちではなくなりました。",
   "No longer waiting for approval: the run was cancelled.": "承認待ちではなくなりました：実行はキャンセルされました。",
   "No resources have been added to this status page yet, so there is nothing to report this period.": "このステータスページにはまだリソースが追加されていないため、この期間に報告する内容はありません。",
