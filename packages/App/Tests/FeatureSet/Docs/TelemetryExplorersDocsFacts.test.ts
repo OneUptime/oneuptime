@@ -1783,9 +1783,9 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     ]);
     expect(engine).toContain("HIDING_RULE_TYPES.has(rule.ruleType");
     expect(page).toContain(
-      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, as a form writes a URL's query string, with a plus sign for each space, and with every script's digits read as ASCII digits. The other rules match the value as it is written.",
+      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, as a form writes a URL's query string, with a plus sign for each space, with every script's digits read as ASCII digits, and with a number's fullwidth signs and separators read as ASCII ones. The other rules match the value as it is written.",
     );
-    // The readings those rules try a value in, the query string's among them (#11199).
+    // The readings those rules try a value in, the query string's and the fullwidth forms' among them (#11199, #11115).
     const readings: string = between(
       engine,
       "const PATTERN_READINGS: ReadingNeeds = {",
@@ -1795,6 +1795,28 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     expect(readings).toContain("readsPercentEncoded: true");
     expect(readings).toContain("readsPlusAsSpace: true");
     expect(readings).toContain("readsDigitsOfEveryScript: true");
+    expect(readings).toContain("readsFullwidthForms: true");
+  });
+
+  // #11112: the rule Data Security makes for a phone or a Social Security number matches its Pattern Type too.
+  it("names the types whose Data Security rule matches a Pattern Type, as the code maps them", () => {
+    const coverage: string = readPackageFile(
+      "Common/Server/Utils/DataSecurity/Telemetry/TelemetryScrubCoverage.ts",
+    );
+
+    for (const mapping of [
+      '["ip-address", LogScrubPatternType.IPAddress]',
+      '["email-address", LogScrubPatternType.Email]',
+      '["credit-card-number", LogScrubPatternType.CreditCard]',
+      '["phone-number", LogScrubPatternType.PhoneNumber]',
+      '["us-ssn", LogScrubPatternType.SSN]',
+    ]) {
+      expect(coverage).toContain(mapping);
+    }
+
+    expect(page).toContain(
+      "The **Redact Attribute** rule [Data Security](/docs/data-security/telemetry) makes for an IP address, an email address, a card number, a phone number or a Social Security number in an attribute uses it.",
+    );
   });
 
   it("opens the metric list on the past hour", () => {
