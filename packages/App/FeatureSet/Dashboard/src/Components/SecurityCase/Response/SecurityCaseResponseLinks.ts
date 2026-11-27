@@ -1,6 +1,7 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { withRouteQueryParams } from "../../../Utils/TelemetryTabScope";
+import { getCloudConnectRoute } from "../../Cloud/Connect/CloudConnectRoutes";
 import { getHiddenAddressRulesRoute } from "../../SecurityEvents/HiddenClientAddressRoute";
 import { getSecurityEventsTimeRangeLinkParams } from "../../SecurityEvents/SecurityEventsTimeRange";
 import Route from "Common/Types/API/Route";
@@ -18,9 +19,10 @@ import { toTracesExplorerQueryParams } from "Common/Utils/Telemetry/CrossSignalS
  * (Common/Types/SecurityCase/SecurityCaseResponseLink), built the same on
  * the server and here; this is the one place they become the Dashboard's
  * routes: the Traces explorer on the traces, the Security Events explorer
- * on what the events name, the Scrub Rules that hid an address. A link
- * into another product (a user in Okta) is an address outside OneUptime,
- * not a route.
+ * on what the events name, the Scrub Rules that hid an address, Cloud >
+ * Connect on the connection a step's line means (#11039). A link into
+ * another product (a user in Okta) is an address outside OneUptime, not a
+ * route.
  */
 
 function readTime(value: string | undefined): Date | null {
@@ -83,6 +85,10 @@ export function getResponseLinkRoute(
       return RouteUtil.populateRouteParams(
         RouteMap[PageMap.SECURITY_BLOCKLIST] as Route,
       ) as Route;
+
+    // Cloud > Connect, on the connection's form when the link names one (#11039).
+    case ResponseLinkKind.OpenCloudConnection:
+      return getCloudConnectRoute(link.connectionId);
 
     default:
       return null;
