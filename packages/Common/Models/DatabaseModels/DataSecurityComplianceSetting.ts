@@ -214,8 +214,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Resource Type",
-    description:
-      "The kind of resource that turned the framework off.",
+    description: "The kind of resource that turned the framework off.",
   })
   @Column({
     type: ColumnType.ShortText,

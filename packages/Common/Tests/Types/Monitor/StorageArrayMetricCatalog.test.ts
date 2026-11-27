@@ -445,8 +445,10 @@ function getOntapSeries(): Record<string, SeriesLabels> {
   return series;
 }
 
-// Every shipped platform's series, label by label: Pure's and Dell's from
-// their exporters, ONTAP's from Harvest.
+/*
+ * Every shipped platform's series, label by label: Pure's and Dell's from
+ * their exporters, ONTAP's from Harvest.
+ */
 const SERIES: Record<string, SeriesLabels> = {
   ...PURE_SERIES,
   ...POWERSTORE_SERIES,
