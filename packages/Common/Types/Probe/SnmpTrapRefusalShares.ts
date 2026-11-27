@@ -65,12 +65,16 @@ export default class SnmpTrapRefusalShares {
     devices: Array<SnmpTrapRefusalShareDevice>;
     userNamesByProject: Map<string, ReadonlySet<string>>;
   }): Map<string, Array<SnmpTrapRefusal>> {
-    const projectsByAddress: Map<string, Set<string>> =
-      SnmpTrapRefusalShares.getProjectsByAddress(data.devices);
+    const projectsByAddress: Map<
+      string,
+      Set<string>
+    > = SnmpTrapRefusalShares.getProjectsByAddress(data.devices);
 
     // By project, then by what a row says: source, reason and user.
-    const sharesByProject: Map<string, Map<string, SnmpTrapRefusal>> =
-      new Map();
+    const sharesByProject: Map<
+      string,
+      Map<string, SnmpTrapRefusal>
+    > = new Map();
 
     for (const refusal of data.refusals) {
       const projects: Set<string> | undefined = projectsByAddress.get(

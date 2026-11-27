@@ -17,7 +17,9 @@ import SnmpMonitor from "../../../../Utils/Monitors/MonitorTypes/SnmpMonitor";
  */
 
 function sessionWith(securityParameters: unknown): snmp.Session {
-  return { msgSecurityParameters: securityParameters } as unknown as snmp.Session;
+  return {
+    msgSecurityParameters: securityParameters,
+  } as unknown as snmp.Session;
 }
 
 describe("readDiscoveredEngineId", () => {

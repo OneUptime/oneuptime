@@ -1518,12 +1518,13 @@ export default class SnmpMonitor {
   public static readDiscoveredEngineId(
     session: snmp.Session,
   ): string | undefined {
-    const securityParameters: { msgAuthoritativeEngineID?: unknown } | undefined =
-      (
-        session as unknown as {
-          msgSecurityParameters?: { msgAuthoritativeEngineID?: unknown };
-        }
-      ).msgSecurityParameters;
+    const securityParameters:
+      | { msgAuthoritativeEngineID?: unknown }
+      | undefined = (
+      session as unknown as {
+        msgSecurityParameters?: { msgAuthoritativeEngineID?: unknown };
+      }
+    ).msgSecurityParameters;
 
     const engineId: unknown = securityParameters?.msgAuthoritativeEngineID;
 

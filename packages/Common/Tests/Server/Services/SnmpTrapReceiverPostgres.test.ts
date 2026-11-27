@@ -280,7 +280,9 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
     await database.query(`DELETE FROM "NetworkDevice"`);
     await database.query(`UPDATE "Probe" SET "snmpTrapReceiver" = NULL`);
     await database.query(`DELETE FROM "GlobalProbeSnmpTrapReport"`);
-    await database.query(`DELETE FROM "NetworkSite" WHERE "name" LIKE 'test %'`);
+    await database.query(
+      `DELETE FROM "NetworkSite" WHERE "name" LIKE 'test %'`,
+    );
     await database.query(
       `DELETE FROM "NetworkSnmpCredentialProfile" WHERE "name" LIKE 'test %'`,
     );
@@ -956,7 +958,9 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
     });
 
     test("a site is named only when it is that project's and names that probe", async () => {
-      const acmes: ObjectID = await addSite({ probeId: GLOBAL_PROBE.toString() });
+      const acmes: ObjectID = await addSite({
+        probeId: GLOBAL_PROBE.toString(),
+      });
       const globexs: ObjectID = await addSite({
         projectId: OTHER_PROJECT.toString(),
         probeId: GLOBAL_PROBE.toString(),
@@ -996,7 +1000,12 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
     }
 
     async function shares(): Promise<
-      Array<{ projectId: string; probeId: string; refusals: unknown; xmin: string }>
+      Array<{
+        projectId: string;
+        probeId: string;
+        refusals: unknown;
+        xmin: string;
+      }>
     > {
       return await database.query(
         `SELECT "projectId"::text AS "projectId", "probeId"::text AS "probeId", "refusals", xmin::text AS xmin
@@ -1180,17 +1189,20 @@ describePostgres("a probe's SNMP trap receiver, on Postgres", () => {
         }),
       ]);
 
-      const acmeText: string = JSON.stringify(byProject.get(PROJECT.toString()));
+      const acmeText: string = JSON.stringify(
+        byProject.get(PROJECT.toString()),
+      );
       expect(acmeText).not.toContain("198.51.100.20");
       expect(acmeText).not.toContain("globex-user");
       expect(JSON.stringify(rows)).not.toContain("192.0.2.77");
       expect(JSON.stringify(rows)).not.toContain("scanner");
 
       // On the probe: what belongs to no project.
-      const probeRow: Array<{ snmpTrapReceiver: unknown }> = await database.query(
-        `SELECT "snmpTrapReceiver" FROM "Probe" WHERE "_id" = $1`,
-        [GLOBAL_PROBE.toString()],
-      );
+      const probeRow: Array<{ snmpTrapReceiver: unknown }> =
+        await database.query(
+          `SELECT "snmpTrapReceiver" FROM "Probe" WHERE "_id" = $1`,
+          [GLOBAL_PROBE.toString()],
+        );
       expect(probeRow[0]!.snmpTrapReceiver).toEqual({
         isEnabled: true,
         port: 162,

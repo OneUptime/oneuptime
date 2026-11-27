@@ -1094,7 +1094,10 @@ describe("who signed it is sent back with it (#11172)", () => {
     expect(
       accepted(
         processor.process(
-          buildTestV3Message({ credential: BLADE_1, engineId: DEVICE_ENGINE_ID }),
+          buildTestV3Message({
+            credential: BLADE_1,
+            engineId: DEVICE_ENGINE_ID,
+          }),
           DEVICE,
         ),
       ).signedBy,

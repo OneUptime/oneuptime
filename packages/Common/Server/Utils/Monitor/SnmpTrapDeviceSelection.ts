@@ -118,11 +118,10 @@ export default class SnmpTrapDeviceSelection {
 
     const signers: SnmpV3CredentialHolders | null =
       SnmpTrapDeviceSelection.getSigners(trap);
-    const engineId: string | null = SnmpTrapDeviceSelection.isAuthenticatedSnmpV3(
-      trap,
-    )
-      ? SnmpTrapReceiverUtil.normalizeEngineId(trap.engineId)
-      : null;
+    const engineId: string | null =
+      SnmpTrapDeviceSelection.isAuthenticatedSnmpV3(trap)
+        ? SnmpTrapReceiverUtil.normalizeEngineId(trap.engineId)
+        : null;
 
     // Nothing but its address says who sent it: as before.
     if (!signers && !engineId) {

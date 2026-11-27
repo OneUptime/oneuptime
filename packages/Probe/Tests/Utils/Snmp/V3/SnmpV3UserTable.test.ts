@@ -178,19 +178,19 @@ describe("who holds each user (#11172)", () => {
     ]);
 
     expect(
-      table
-        .getCandidates(name("san-monitor"), "x")
-        .map((user: UsmUser) => {
-          return user.heldBy;
-        }),
+      table.getCandidates(name("san-monitor"), "x").map((user: UsmUser) => {
+        return user.heldBy;
+      }),
     ).toEqual([HELD_BY, other]);
   });
 
   test("who holds a user is no part of its credential: the same keys keep their derived keys", () => {
     const table: SnmpV3UserTable = new SnmpV3UserTable();
     table.replace([{ ...SAN, heldBy: HELD_BY }]);
-    const fingerprint: string = table.getCandidates(name("san-monitor"), "x")[0]!
-      .fingerprint;
+    const fingerprint: string = table.getCandidates(
+      name("san-monitor"),
+      "x",
+    )[0]!.fingerprint;
 
     table.replace([
       {
@@ -199,9 +199,9 @@ describe("who holds each user (#11172)", () => {
       },
     ]);
 
-    expect(
-      table.getCandidates(name("san-monitor"), "x")[0]!.fingerprint,
-    ).toBe(fingerprint);
+    expect(table.getCandidates(name("san-monitor"), "x")[0]!.fingerprint).toBe(
+      fingerprint,
+    );
   });
 });
 

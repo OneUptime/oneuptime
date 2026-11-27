@@ -36,7 +36,10 @@ const OTHER_SITE: ObjectID = new ObjectID(
   "11740000-0000-4000-8000-000000000502",
 );
 
-function probe(fields: { isGlobalProbe: boolean; projectId?: ObjectID }): Probe {
+function probe(fields: {
+  isGlobalProbe: boolean;
+  projectId?: ObjectID;
+}): Probe {
   const model: Probe = new Probe(PROBE);
   model.isGlobalProbe = fields.isGlobalProbe;
 
@@ -109,7 +112,10 @@ beforeEach(() => {
     .mockResolvedValue(null as never) as unknown as MockFunction;
   findProbeUse = jest
     .spyOn(NetworkDeviceService, "findProbeUseByProject")
-    .mockResolvedValue({ isUsed: false, siteIds: [] } as never) as unknown as MockFunction;
+    .mockResolvedValue({
+      isUsed: false,
+      siteIds: [],
+    } as never) as unknown as MockFunction;
 });
 
 afterEach(() => {

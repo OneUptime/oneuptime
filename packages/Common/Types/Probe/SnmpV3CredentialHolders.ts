@@ -66,10 +66,11 @@ export default class SnmpV3CredentialHolderUtil {
 
     const record: Record<string, unknown> = value as Record<string, unknown>;
 
-    const projectIds: Array<string> | undefined = SnmpV3CredentialHolderUtil.readIds(
-      record["projectIds"],
-      MAX_SNMP_V3_CREDENTIAL_HOLDER_PROJECTS,
-    );
+    const projectIds: Array<string> | undefined =
+      SnmpV3CredentialHolderUtil.readIds(
+        record["projectIds"],
+        MAX_SNMP_V3_CREDENTIAL_HOLDER_PROJECTS,
+      );
 
     if (!projectIds || projectIds.length === 0) {
       return null;

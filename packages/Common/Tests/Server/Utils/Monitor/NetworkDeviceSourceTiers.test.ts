@@ -69,7 +69,9 @@ function probeHas(data: {
   fallback.mockResolvedValue((data.fallback || []) as never);
 }
 
-async function tiersAt(address: string): Promise<Record<string, Array<string>>> {
+async function tiersAt(
+  address: string,
+): Promise<Record<string, Array<string>>> {
   const found: SnmpTrapSourceTiers =
     await NetworkDeviceHydrationUtil.findDeviceTiersByProbeAndSource({
       probeId: PROBE,
@@ -242,7 +244,10 @@ describe("cached, as the address lookup is", () => {
   test("a second trap from the address reads nothing, and gets devices of its own", async () => {
     probeHas({
       byHostname: [
-        device("switch", { hostname: "203.0.113.7", snmpEngineId: "80000009030000000001" }),
+        device("switch", {
+          hostname: "203.0.113.7",
+          snmpEngineId: "80000009030000000001",
+        }),
       ],
     });
 

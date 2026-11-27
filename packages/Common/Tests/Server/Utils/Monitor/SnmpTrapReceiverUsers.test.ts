@@ -718,35 +718,37 @@ describe("a site's default credential profile, for the probe that is its Default
       profiles: [profile(SITE_PROFILE, V3_COLUMNS)],
     });
 
-    expect(
-      heldBy(await SnmpTrapReceiverUsers.getUsersForProbe(PROBE)),
-    ).toEqual([
-      {
-        projectIds: [PROJECT.toString()],
-        deviceIds: [],
-        siteIds: [SITE.toString(), otherSite.toString()],
-      },
-    ]);
+    expect(heldBy(await SnmpTrapReceiverUsers.getUsersForProbe(PROBE))).toEqual(
+      [
+        {
+          projectIds: [PROJECT.toString()],
+          deviceIds: [],
+          siteIds: [SITE.toString(), otherSite.toString()],
+        },
+      ],
+    );
   });
 });
 
 test("getUserNamesByProject: each project's own user names, as a refusal shows them", () => {
-  const names: Map<string, Set<string>> =
-    SnmpTrapReceiverUsers.getUserNamesByProject([
-      {
-        ...SAN_MONITOR,
-        heldBy: { projectIds: [PROJECT.toString()] },
+  const names: Map<
+    string,
+    Set<string>
+  > = SnmpTrapReceiverUsers.getUserNamesByProject([
+    {
+      ...SAN_MONITOR,
+      heldBy: { projectIds: [PROJECT.toString()] },
+    },
+    {
+      ...SAN_MONITOR,
+      userName: "shared\u0007name",
+      heldBy: {
+        projectIds: [PROJECT.toString(), OTHER_PROJECT.toString()],
       },
-      {
-        ...SAN_MONITOR,
-        userName: "shared\u0007name",
-        heldBy: {
-          projectIds: [PROJECT.toString(), OTHER_PROJECT.toString()],
-        },
-      },
-      // Held by nothing known: counted for nobody.
-      { ...SAN_MONITOR, userName: "unknown-holders" },
-    ]);
+    },
+    // Held by nothing known: counted for nobody.
+    { ...SAN_MONITOR, userName: "unknown-holders" },
+  ]);
 
   expect(Array.from(names.get(PROJECT.toString()) || []).sort()).toEqual([
     "san-monitor",

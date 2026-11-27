@@ -143,7 +143,8 @@ export default class SnmpTrapUnmatchedHome {
       return cached;
     }
 
-    const use: ProbeUse = await NetworkDeviceService.findProbeUseByProject(data);
+    const use: ProbeUse =
+      await NetworkDeviceService.findProbeUseByProject(data);
 
     SnmpTrapUnmatchedHome.probeUseCache.set(key, use, PROBE_USE_CACHE_TTL_MS);
 

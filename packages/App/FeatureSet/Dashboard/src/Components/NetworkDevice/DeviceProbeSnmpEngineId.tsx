@@ -80,7 +80,8 @@ const DeviceProbeSnmpEngineId: FunctionComponent<ComponentProps> = (
 
       setEngineId(report?.isEnabled ? report.engineId : undefined);
       setIsTakingInforms(
-        Boolean(device?.probeId || device?.probe) && report?.isEnabled !== false,
+        Boolean(device?.probeId || device?.probe) &&
+          report?.isEnabled !== false,
       );
       setIsLoaded(true);
     };

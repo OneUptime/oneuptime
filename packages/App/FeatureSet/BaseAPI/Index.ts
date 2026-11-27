@@ -4642,7 +4642,10 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<
         GlobalProbeSnmpTrapReport,
         GlobalProbeSnmpTrapReportServiceType
-      >(GlobalProbeSnmpTrapReport, GlobalProbeSnmpTrapReportService).getRouter(),
+      >(
+        GlobalProbeSnmpTrapReport,
+        GlobalProbeSnmpTrapReportService,
+      ).getRouter(),
     );
 
     app.use(

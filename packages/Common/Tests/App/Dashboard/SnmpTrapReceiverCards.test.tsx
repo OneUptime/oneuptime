@@ -975,7 +975,9 @@ describe("a device on a global probe's refused SNMPv3 traps", () => {
   });
 });
 
-async function renderProbeEngineId(language: string = "en"): Promise<HTMLElement> {
+async function renderProbeEngineId(
+  language: string = "en",
+): Promise<HTMLElement> {
   await act(async () => {
     await i18next.changeLanguage(language);
   });

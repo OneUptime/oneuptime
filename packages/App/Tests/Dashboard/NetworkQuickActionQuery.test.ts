@@ -195,12 +195,9 @@ describe("readAddDevicePrefill", () => {
       ["a site id with more after it", `?site=${SITE_ID}x`],
       ["markup in the site", "?site=%3Cimg%20src%3Dx%3E"],
       ["an empty site", "?site="],
-    ])(
-      "%s fills in nothing",
-      (_label: string, search: string): void => {
-        expect(readAddDevicePrefill(search)).toEqual({});
-      },
-    );
+    ])("%s fills in nothing", (_label: string, search: string): void => {
+      expect(readAddDevicePrefill(search)).toEqual({});
+    });
   });
 
   test.each([

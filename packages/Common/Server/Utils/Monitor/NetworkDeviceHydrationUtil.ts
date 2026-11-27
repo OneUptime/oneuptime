@@ -1569,8 +1569,6 @@ export default class NetworkDeviceHydrationUtil {
   private static sourceTierCache: InMemoryTTLCache<SourceMatchedTiers> =
     new InMemoryTTLCache(SOURCE_MATCH_CACHE_MAX_ENTRIES);
 
-  private static sourceTiersInFlight: Map<
-    string,
-    Promise<SourceMatchedTiers>
-  > = new Map();
+  private static sourceTiersInFlight: Map<string, Promise<SourceMatchedTiers>> =
+    new Map();
 }

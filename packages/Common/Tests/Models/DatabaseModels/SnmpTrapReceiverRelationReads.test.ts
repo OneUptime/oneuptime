@@ -137,9 +137,7 @@ describe("a project's share of a global probe's refusals", () => {
   });
 
   test("is a project's own: its tenant column is the project, so a project lists only its own rows", () => {
-    expect(new GlobalProbeSnmpTrapReport().getTenantColumn()).toBe(
-      "projectId",
-    );
+    expect(new GlobalProbeSnmpTrapReport().getTenantColumn()).toBe("projectId");
   });
 
   test("its refusals are read through no relation", () => {
@@ -165,9 +163,9 @@ describe("a project's share of a global probe's refusals", () => {
     expect(() => {
       relationSelect(
         GlobalProbeSnmpTrapReport,
-        { probe: { _id: true, snmpTrapReceiver: true } } as Select<
-          GlobalProbeSnmpTrapReport
-        >,
+        {
+          probe: { _id: true, snmpTrapReceiver: true },
+        } as Select<GlobalProbeSnmpTrapReport>,
         as([Permission.ReadProjectProbe]),
       );
     }).not.toThrow();
@@ -194,7 +192,9 @@ describe("a probe's own report (#11194, kept)", () => {
     expect(() => {
       relationSelect(
         NetworkDevice,
-        { probe: { _id: true, snmpTrapReceiver: true } } as Select<NetworkDevice>,
+        {
+          probe: { _id: true, snmpTrapReceiver: true },
+        } as Select<NetworkDevice>,
         as([Permission.ReadNetworkDevice]),
       );
     }).toThrow();
@@ -204,7 +204,9 @@ describe("a probe's own report (#11194, kept)", () => {
     expect(() => {
       relationSelect(
         NetworkDevice,
-        { probe: { _id: true, snmpTrapReceiver: true } } as Select<NetworkDevice>,
+        {
+          probe: { _id: true, snmpTrapReceiver: true },
+        } as Select<NetworkDevice>,
         as([Permission.ProjectMember]),
       );
     }).not.toThrow();
@@ -216,7 +218,9 @@ describe("a device's SNMP engine ID", () => {
     const device: NetworkDevice = new NetworkDevice();
 
     expect(
-      [...(device.getColumnAccessControlFor("snmpEngineId")?.read || [])].sort(),
+      [
+        ...(device.getColumnAccessControlFor("snmpEngineId")?.read || []),
+      ].sort(),
     ).toEqual(
       [...(device.getColumnAccessControlFor("sysObjectId")?.read || [])].sort(),
     );

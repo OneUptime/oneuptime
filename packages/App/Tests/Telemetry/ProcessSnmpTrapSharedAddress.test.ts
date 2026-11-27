@@ -181,7 +181,9 @@ function recordedTrapOf(key: SharedAddressDeviceKey): Partial<SnmpTrap> {
 }
 
 // As a probe older than #11172 forwards the same trap: no holders.
-function asAnOlderProbeForwards(key: SharedAddressDeviceKey): Partial<SnmpTrap> {
+function asAnOlderProbeForwards(
+  key: SharedAddressDeviceKey,
+): Partial<SnmpTrap> {
   const trap: Partial<SnmpTrap> = { ...forwardedSharedAddressTrap(key) };
   delete trap.signedBy;
   return trap;
@@ -311,7 +313,10 @@ beforeEach(() => {
 
   findProbeUse = jest
     .spyOn(NetworkDeviceService, "findProbeUseByProject")
-    .mockResolvedValue({ isUsed: true, siteIds: [] } as never) as unknown as AnyMock;
+    .mockResolvedValue({
+      isUsed: true,
+      siteIds: [],
+    } as never) as unknown as AnyMock;
 });
 
 afterEach(() => {

@@ -128,7 +128,9 @@ describe("isAuthenticatedSnmpV3", () => {
       ),
     ).toBe(true);
     expect(
-      SnmpTrapDeviceSelection.isAuthenticatedSnmpV3(trap({ snmpVersion: "v3" })),
+      SnmpTrapDeviceSelection.isAuthenticatedSnmpV3(
+        trap({ snmpVersion: "v3" }),
+      ),
     ).toBe(true);
   });
 
@@ -155,21 +157,22 @@ describe("devices behind one NAT address, signed by different users", () => {
       hostname: [switchA, switchB],
     });
 
-    expect(
-      select(behindNat, trap({ signedBy: signedBy([switchA]) })),
-    ).toEqual(["switch-a"]);
-    expect(
-      select(behindNat, trap({ signedBy: signedBy([switchB]) })),
-    ).toEqual(["switch-b"]);
+    expect(select(behindNat, trap({ signedBy: signedBy([switchA]) }))).toEqual([
+      "switch-a",
+    ]);
+    expect(select(behindNat, trap({ signedBy: signedBy([switchB]) }))).toEqual([
+      "switch-b",
+    ]);
   });
 
   test("the old match: without who signed it (a probe older than #11172), both get both traps", () => {
     const switchA: NetworkDevice = device("switch-a");
     const switchB: NetworkDevice = device("switch-b");
 
-    expect(
-      select(tiers({ hostname: [switchA, switchB] }), trap()),
-    ).toEqual(["switch-a", "switch-b"]);
+    expect(select(tiers({ hostname: [switchA, switchB] }), trap())).toEqual([
+      "switch-a",
+      "switch-b",
+    ]);
   });
 
   test("a NAT gateway registered at the address no longer takes the traps of the devices behind it", () => {
@@ -352,7 +355,9 @@ describe("the engine it was sent as, read from each device's SNMPv3 polls", () =
     const polled: NetworkDevice = device("polled", { snmpEngineId: ENGINE_A });
     const notYet: NetworkDevice = device("not-yet");
     const shared: SnmpV3CredentialHolders = signedBy([polled, notYet]);
-    const atNat: SnmpTrapSourceTiers = tiers({ otherAddress: [polled, notYet] });
+    const atNat: SnmpTrapSourceTiers = tiers({
+      otherAddress: [polled, notYet],
+    });
 
     expect(
       select(atNat, trap({ signedBy: shared, engineId: ENGINE_B })),
@@ -429,7 +434,11 @@ describe("the SNMPv3 context still comes first", () => {
     expect(
       select(
         chassis,
-        trap({ signedBy: credential, engineId: ENGINE_A, contextName: "VF:20" }),
+        trap({
+          signedBy: credential,
+          engineId: ENGINE_A,
+          contextName: "VF:20",
+        }),
       ),
     ).toEqual(["fid-20"]);
     expect(
@@ -487,9 +496,9 @@ describe("v1, v2c and what nothing tells apart: as before", () => {
   });
 
   test("no device at the address is none", () => {
-    expect(select(tiers({}), trap({ signedBy: signedBy([device("x")]) }))).toEqual(
-      [],
-    );
+    expect(
+      select(tiers({}), trap({ signedBy: signedBy([device("x")]) })),
+    ).toEqual([]);
     expect(select(tiers({}), trap({ snmpVersion: "2c" }))).toEqual([]);
   });
 
@@ -515,9 +524,9 @@ describe("getSigners and withoutSigners", () => {
   test("who signed it is read only from an authenticated SNMPv3 trap", () => {
     const holders: SnmpV3CredentialHolders = signedBy([device("a")]);
 
-    expect(SnmpTrapDeviceSelection.getSigners(trap({ signedBy: holders }))).toEqual(
-      holders,
-    );
+    expect(
+      SnmpTrapDeviceSelection.getSigners(trap({ signedBy: holders })),
+    ).toEqual(holders);
     expect(
       SnmpTrapDeviceSelection.getSigners(
         trap({

@@ -255,9 +255,7 @@ describe("Global Probes: each one's SNMPv3 engine ID", () => {
 
     expect(engineIdHeaders()).toHaveLength(1);
     expect(
-      within(rowOf("Data centre")).queryByTestId(
-        "global-probe-snmp-engine-id",
-      ),
+      within(rowOf("Data centre")).queryByTestId("global-probe-snmp-engine-id"),
     ).not.toBeInTheDocument();
   });
 

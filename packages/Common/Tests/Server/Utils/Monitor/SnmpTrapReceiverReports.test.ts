@@ -13,7 +13,14 @@ import {
   SnmpTrapRefusalReason,
 } from "../../../../Types/Probe/SnmpTrapReceiver";
 import { MockFunction } from "../../../MockType";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * WHERE A PROBE'S RECEIVER REPORT IS KEPT, AND FOR WHOM (#11173).
@@ -81,7 +88,10 @@ let findDevices: MockFunction;
 beforeEach(() => {
   recordOnProbe = jest
     .spyOn(ProbeService, "recordSnmpTrapReceiverReport")
-    .mockResolvedValue({ isKept: true, isGlobalProbe: false } as never) as unknown as MockFunction;
+    .mockResolvedValue({
+      isKept: true,
+      isGlobalProbe: false,
+    } as never) as unknown as MockFunction;
   recordShares = jest
     .spyOn(GlobalProbeSnmpTrapReportService, "recordShares")
     .mockResolvedValue(undefined as never) as unknown as MockFunction;
@@ -195,7 +205,10 @@ describe("a global probe", () => {
 });
 
 test("a probe that keeps no report splits nothing", async () => {
-  recordOnProbe.mockResolvedValue({ isKept: false, isGlobalProbe: false } as never);
+  recordOnProbe.mockResolvedValue({
+    isKept: false,
+    isGlobalProbe: false,
+  } as never);
 
   expect(
     await SnmpTrapReceiverReports.record({

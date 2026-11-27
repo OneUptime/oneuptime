@@ -538,9 +538,8 @@ export default class NetworkInventoryUtil {
        * every poll, so a replaced device's new ID is taken at its next one;
        * a v1 or v2c poll carries none and leaves the last one as it was.
        */
-      const snmpEngineId: string | null = SnmpTrapReceiverUtil.normalizeEngineId(
-        systemInfo?.snmpEngineId,
-      );
+      const snmpEngineId: string | null =
+        SnmpTrapReceiverUtil.normalizeEngineId(systemInfo?.snmpEngineId);
 
       if (snmpEngineId) {
         deviceUpdate["snmpEngineId"] = snmpEngineId;

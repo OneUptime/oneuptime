@@ -45,18 +45,20 @@ function split(data: {
   devices: Array<SnmpTrapRefusalShareDevice>;
   userNamesByProject?: Record<string, Array<string>>;
 }): Record<string, Array<SnmpTrapRefusal>> {
-  const shares: Map<string, Array<SnmpTrapRefusal>> =
-    SnmpTrapRefusalShares.split({
-      refusals: data.refusals,
-      devices: data.devices,
-      userNamesByProject: new Map(
-        Object.entries(data.userNamesByProject || {}).map(
-          ([projectId, names]: [string, Array<string>]) => {
-            return [projectId, new Set(names)];
-          },
-        ),
+  const shares: Map<
+    string,
+    Array<SnmpTrapRefusal>
+  > = SnmpTrapRefusalShares.split({
+    refusals: data.refusals,
+    devices: data.devices,
+    userNamesByProject: new Map(
+      Object.entries(data.userNamesByProject || {}).map(
+        ([projectId, names]: [string, Array<string>]) => {
+          return [projectId, new Set(names)];
+        },
       ),
-    });
+    ),
+  });
 
   return Object.fromEntries(shares);
 }
@@ -165,9 +167,7 @@ describe("the reason, as the project would see it", () => {
         userNamesByProject: { [GLOBEX]: ["monitor"] },
       });
 
-      expect(shares[ACME]?.[0]?.reason).toBe(
-        SnmpTrapRefusalReason.UnknownUser,
-      );
+      expect(shares[ACME]?.[0]?.reason).toBe(SnmpTrapRefusalReason.UnknownUser);
     }
   });
 
@@ -249,7 +249,9 @@ test("each share is the most recent first, at most a report's worth", () => {
     ] || [];
 
   expect(share).toHaveLength(MAX_REPORTED_SNMP_TRAP_REFUSALS);
-  expect(share[0]?.userName).toBe(`user-${MAX_REPORTED_SNMP_TRAP_REFUSALS + 9}`);
+  expect(share[0]?.userName).toBe(
+    `user-${MAX_REPORTED_SNMP_TRAP_REFUSALS + 9}`,
+  );
 
   for (let index: number = 1; index < share.length; index++) {
     expect(share[index - 1]!.lastSeenAt >= share[index]!.lastSeenAt).toBe(true);

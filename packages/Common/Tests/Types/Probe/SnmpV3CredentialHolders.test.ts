@@ -186,16 +186,16 @@ describe("merge", () => {
 test("isHeldByProject compares IDs however they are cased", () => {
   const holders: SnmpV3CredentialHolders = { projectIds: [PROJECT_A] };
 
-  expect(
-    SnmpV3CredentialHolderUtil.isHeldByProject(holders, PROJECT_A),
-  ).toBe(true);
+  expect(SnmpV3CredentialHolderUtil.isHeldByProject(holders, PROJECT_A)).toBe(
+    true,
+  );
   expect(
     SnmpV3CredentialHolderUtil.isHeldByProject(
       holders,
       PROJECT_A.toUpperCase(),
     ),
   ).toBe(true);
-  expect(
-    SnmpV3CredentialHolderUtil.isHeldByProject(holders, PROJECT_B),
-  ).toBe(false);
+  expect(SnmpV3CredentialHolderUtil.isHeldByProject(holders, PROJECT_B)).toBe(
+    false,
+  );
 });

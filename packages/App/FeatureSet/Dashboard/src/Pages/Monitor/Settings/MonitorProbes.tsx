@@ -257,8 +257,9 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               disableSort: true,
               getElement: (item: Probe): ReactElement => {
                 const engineId: string | undefined =
-                  SnmpTrapReceiverUtil.parseReport(item.snmpTrapReceiver)
-                    ?.engineId;
+                  SnmpTrapReceiverUtil.parseReport(
+                    item.snmpTrapReceiver,
+                  )?.engineId;
 
                 return engineId ? (
                   <SnmpEngineIdValue
