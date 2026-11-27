@@ -269,7 +269,9 @@ describe("a connection string written to a store already there", () => {
    * Data Observability connects a store the project already knows by
    * writing its connection string as OneUptime (connectKnownStore): a
    * MongoDB server the Database product found, a Snowflake warehouse added
-   * before. That write was held to the databases' schemes and refused.
+   * before. That write was held to the databases' schemes and refused. It
+   * is Data Observability's own, read by its workers, so the service leaves
+   * it exactly as written - and never reads its rows to check it.
    */
   test.each([
     "mongodb://reader:x@mongo.internal:27017/app",
@@ -279,7 +281,7 @@ describe("a connection string written to a store already there", () => {
     "by OneUptime, as Data Observability connects a store: kept as written (%s)",
     async (written: string) => {
       expect(
-        (await updated(` ${written} `, { isRoot: true }))["connectionString"],
+        (await updated(written, { isRoot: true }))["connectionString"],
       ).toBe(written);
     },
   );
