@@ -134,6 +134,7 @@ Déjalo plegado y el dispositivo solo recibe ping: la sección plegada lo dice e
 | Clave de autenticación SNMP v3 | La frase de contraseña de autenticación. | Con autenticación |
 | Protocolo de privacidad SNMP v3 | DES, AES o AES-256. | Con privacidad |
 | Clave de privacidad SNMP v3 | La frase de contraseña de privacidad (cifrado). | Con privacidad |
+| Contexto SNMP v3 | Solo para un agente que responde por varios dispositivos en una misma dirección, cada uno en su propio contexto: el `VF:128` de un switch lógico de Brocade. | No |
 :::
 
 Las credenciales escritas en el dispositivo prevalecen sobre un perfil de credenciales elegido a su lado, y el sitio del dispositivo también puede llevar un perfil predeterminado. Las credenciales de un perfil se cifran en reposo. Las credenciales escritas en un dispositivo también se cifran en reposo, y están protegidas por los mismos permisos de lectura.
@@ -146,11 +147,14 @@ Un escaneo de descubrimiento de la red de un cliente trae docenas de dispositivo
 | --- | --- |
 | **Definir sitio** / **Quitar del sitio** | Mueve cada dispositivo seleccionado al sitio que elijas, donde cuenta para la salud del sitio; un dispositivo sin sonda propia toma la sonda predeterminada del sitio. **Quitar del sitio** los saca de sus sitios. Un dispositivo que coincide con una regla de asignación de sitios vuelve al sitio de la regla en su siguiente sondeo, así que para los dispositivos que el descubrimiento sigue encontrando, añade mejor una regla en **Red → Reglas → Reglas de asignación de sitios**; el diálogo **Definir sitio** enlaza a ella. |
 | **Definir rol del dispositivo** / **Quitar rol del dispositivo** | Da un mismo rol a cada dispositivo seleccionado, como los veinte switches que son todos «Access Switch». Los roles son los del proyecto, en **Red → Ajustes → Roles de dispositivo**, a los que enlaza el diálogo. **Quitar rol del dispositivo** vuelve a deducir el rol de cada dispositivo a partir de su identidad SNMP. |
+| **Crear monitores** | Da a cada dispositivo seleccionado un monitor de la plantilla que elijas, como hace una importación: el monitor de una plantilla de dispositivo de red lee los sondeos del dispositivo, y el de una plantilla Ping, IP, Puerto o NTP comprueba la dirección propia del dispositivo. Un dispositivo que ya tiene un monitor de esa plantilla, o uno del mismo tipo que comprueba lo mismo, lo conserva y no recibe un segundo. |
 | **Aplicar plantilla del fabricante** | Añade los OID de salud y las tablas SNMP de una [plantilla del fabricante](#plantillas-de-salud-de-fabricantes) a cada dispositivo seleccionado. **Según el fabricante de cada dispositivo**, la primera opción del diálogo, elige la plantilla de cada dispositivo según lo que informa su recorrido SNMP, de modo que una selección mezclada recibe la correcta en todas partes; o elige una sola plantilla para todos. |
 
 Cada acción es un diálogo y un guardado para toda la selección, y cada dispositivo pasa por las mismas comprobaciones que una edición en su propia página de Ajustes: los permisos, el alcance de etiquetas y de propietario de tu rol, y los límites de lo que un dispositivo puede recopilar.
 
 **Aplicar plantilla del fabricante** muestra lo que va a hacer antes de hacer nada: cuántos dispositivos reciben qué plantilla y cuántos deja sin cambios, y por qué. Añade a lo que cada dispositivo ya recopila y no quita nada, y un dispositivo que ya tiene todo lo de la plantilla no se vuelve a escribir. Deja sin cambios un dispositivo respaldado por un monitor (nada lo sondea), un dispositivo vinculado a una [plantilla de recopilación de OID](#plantillas-de-recopilación-de-oid) (la plantilla decide lo que recopila, así que añade allí los OID del fabricante) y, al hacer coincidir, un dispositivo aún no recorrido por SNMP o cuyo fabricante no tiene plantilla.
+
+**Crear monitores** se ejecuta en el servidor, hasta 5.000 dispositivos a la vez, y cerrar su diálogo no lo detiene. El diálogo cuenta los monitores a medida que cada uno se crea, se encuentra ya creado o falla, y **Detener** detiene la ejecución tras el dispositivo que está recibiendo su monitor. **Reintentar** vuelve a intentar solo los dispositivos que fallaron, y volver a ejecutarlo sobre los mismos dispositivos no crea nada dos veces. Un dispositivo que toma su estado de un monitor vinculado a él no recibe un monitor de dispositivo de red, porque nada lo sondea. Cada monitor cuenta para tu plan: un plan sin espacio libre se niega a empezar, y cuando se llena a mitad de camino, los dispositivos que quedan se listan como sin monitor, con el motivo, para volver a intentarlo cuando haya espacio.
 
 Cuando una acción termina, indica cuántos dispositivos cambiaron, cuáles fallaron y por qué — un dispositivo que tu rol no puede editar, una lista por encima de su límite — y cuáles no cambió y por qué: un dispositivo que ya estaba en ese sitio o rol, o uno que la plantilla del fabricante deja sin cambios.
 
@@ -181,6 +185,8 @@ Un dispositivo que responde al ping pero cuyo recorrido falla está **Activo**, 
 - SNMP falla porque sus interfaces, su inventario y sus OID de salud han dejado de actualizarse, casi siempre por las credenciales, un agente SNMP desactivado o una ACL. Nada más en la página te diría que los números están congelados.
 
 Un dispositivo cuyo ping y cuyo recorrido fallan los dos está simplemente **Caído**, así que la marca solo aparece junto a un estado verde.
+
+Los monitores distinguen los dos casos de la misma manera. **Dispositivo accesible (ICMP)** juzga el ping del sondeo por sí solo, y un monitor de dispositivo de red nuevo genera una alerta, no un incidente, y sigue en línea cuando SNMP falla en un dispositivo que responde al ping: consulta [Los criterios de un monitor nuevo](#los-criterios-de-un-monitor-nuevo).
 
 ### Leer el estado de un dispositivo
 
@@ -250,6 +256,12 @@ Selecciona dispositivos en la lista **Dispositivos** y usa:
 
 La página **Dispositivos** muestra un aviso cuando el proyecto tiene dispositivos con la anulación con monitor vinculado sin nada vinculado — dispositivos que nada sondea y de los que nada informa — y enlaza a la selección que los corrige.
 
+### Contextos SNMPv3
+
+Un agente puede responder por varios dispositivos en una misma dirección, cada uno en su propio contexto SNMPv3: un chasis Brocade con Virtual Fabrics responde por cada switch lógico en el contexto `VF:` y su ID de fabric. Añade un dispositivo por switch lógico en esa dirección, con SNMP v3, y define en cada uno su **Contexto SNMP v3** en su página **Ajustes**; un dispositivo sin contexto se sondea en el contexto predeterminado del agente. El contexto es del dispositivo, no de sus credenciales, así que vale con cualquier perfil de credenciales que use el dispositivo.
+
+Una sonda anterior a los contextos SNMPv3 sondearía el contexto predeterminado en su lugar, así que hasta que se actualice solo hace ping a ese dispositivo. Cada trap SNMPv3 también nombra su contexto y solo se dispara en el dispositivo sondeado en ese contexto; un trap en un contexto en el que no se sondea ningún dispositivo se registra como no asociado.
+
 ## Valores predeterminados de monitoreo del sitio
 
 Un [sitio de red](/docs/monitor/network-sites#valores-predeterminados-de-monitoreo) lleva dos valores predeterminados para sus dispositivos. Su **Sonda predeterminada** se copia en un dispositivo creado en el sitio, o movido a él, sin sonda propia. Su **Perfil de credenciales SNMP predeterminado** se lee en cada sondeo de un dispositivo del sitio que no tiene credenciales propias. Define los dos en un sitio y un dispositivo de ese sitio se puede añadir solo con su dirección, y recibe ping y se recorre desde su primer sondeo. La guía de sitios explica hasta dónde baja cada valor predeterminado por el árbol de sitios.
@@ -303,9 +315,11 @@ En el editor **OID de salud**, **Plantilla de salud del fabricante** aplica un c
 | --- | --- | --- |
 | Generic (Host Resources MIB) | Carga de CPU, RAM total y disponible, carga media | Núcleos de CPU (una fila por núcleo, como sea que la plataforma los numere) |
 | Arista EOS | Carga de CPU, carga media, RAM total y disponible | — |
+| Brocade Fabric OS (SAN switches) | Estado del switch, versión del firmware, CPU, memoria | Estado del switch, sensores (temperatura, ventiladores, fuentes de alimentación), unidades reemplazables (FRU) |
 | Cambium Networks cnMatrix | CPU, RAM, flash, temperatura, tensión de alimentación | Ventiladores, puertos PoE, fuente de alimentación redundante |
 | Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH) | CPU, memoria libre, clientes Wi-Fi, conexión con cnMaestro | Radios Wi-Fi (banda, canal, ancho, potencia de transmisión, clientes, ruido de fondo, tiempo de aire, estado), SSID |
 | Cisco IOS / IOS-XE | CPU, memoria usada y libre, temperatura, estado de los ventiladores, estado de las fuentes | — |
+| Cisco MDS 9000 (SAN switches) | CPU, memoria | Fuentes de alimentación, módulos, bandejas de ventiladores, VSAN |
 | Dell Force10 / OS9 | CPU, memoria | — |
 | Extreme Networks EXOS / Switch Engine | CPU, temperatura, alarma de sobretemperatura, estado de la alimentación | Fuentes de alimentación, ventiladores, memoria por ranura, miembros de la pila |
 | Extreme Networks Fabric Engine / VOSS | Sesión vIST, número de I-SID | Adyacencias de fabric (IS-IS) nombradas por vecino, CPU y memoria por ranura, sensores de temperatura, ventiladores, fuentes de alimentación |
@@ -513,6 +527,7 @@ El `sysObjectID` del dispositivo elige de dónde vienen las lecturas: primero la
 | HPE Aruba ProCurve / ArubaOS-Switch | HP-ICF-TRANSCEIVER-MIB | Sí |
 | MikroTik RouterOS | MIKROTIK-MIB (`mtxrOpticalTable`), con indicadores de pérdida de señal y fallo del transmisor | No |
 | Cambium Networks cnMatrix (4.5 y posteriores) | CAMBIUM-NETWORKS-TRANSCEIVER-MIB | No |
+| Brocade Fabric OS | FA-EXT-MIB (`swSfpStatTable`), leído como texto: `-inf` significa que no hay luz | No |
 | Cualquier otro dispositivo | ENTITY-SENSOR-MIB (RFC 3433), asociado a los puertos mediante ENTITY-MIB | No |
 
 El primer sondeo lo lee todo. Los siguientes solo leen lo que cambia — las lecturas, y los números de serie que distinguen un óptico sustituido —, y el resto (umbrales, identidad, qué óptico está en qué puerto) se vuelve a leer cuando se inserta, se retira o se sustituye un óptico, y al menos una vez por hora. Un dispositivo sin ninguna de estas MIB cuesta una solicitud por MIB probada. La lectura tiene su propio presupuesto de 20 segundos, y una lectura que agota el tiempo o se corta conserva los últimos ópticos buenos del dispositivo en lugar de darlos por desaparecidos.
@@ -731,7 +746,7 @@ Para que los dispositivos que ya tienes sigan la convención, pulsa **Aplicar a 
 
 ### Importar automáticamente con reglas de importación automática
 
-Revisar cada escaneo a mano no escala más allá de las primeras subredes. **Red → Reglas → Reglas de importación automática** es donde dejas escrita la importación una vez: una regla dice qué hosts descubiertos reclama (un rango de IP, y patrones opcionales de nombre de sistema, descripción y `sysObjectID`) y, opcionalmente, qué plantilla de monitor y qué [plantilla de recopilación de OID](#plantillas-de-recopilación-de-oid) reciben los dispositivos que importa. El monitor de una plantilla de dispositivo de red lee los sondeos de cada dispositivo, el de una plantilla Ping, IP, Puerto o NTP comprueba la dirección propia de cada dispositivo, y el de una plantilla Sitio web, API o Certificado SSL comprueba la URL de la plantilla con la dirección de cada dispositivo como host. Un dispositivo nunca recibe un segundo monitor del mismo tipo. Una regla marcada como exclusión no reclama nada y veta a las demás: así se apartan impresoras y teléfonos de una regla de subred amplia.
+Revisar cada escaneo a mano no escala más allá de las primeras subredes. **Red → Reglas → Reglas de importación automática** es donde dejas escrita la importación una vez: una regla dice qué hosts descubiertos reclama (un rango de IP, y patrones opcionales de nombre de sistema, descripción y `sysObjectID`) y, opcionalmente, qué plantilla de monitor y qué [plantilla de recopilación de OID](#plantillas-de-recopilación-de-oid) reciben los dispositivos que importa. El monitor de una plantilla de dispositivo de red lee los sondeos de cada dispositivo, el de una plantilla Ping, IP, Puerto o NTP comprueba la dirección propia de cada dispositivo, y el de una plantilla Sitio web, API o Certificado SSL comprueba la URL de la plantilla con la dirección de cada dispositivo como host. Un dispositivo que el proyecto ya tiene también recibe el monitor de la plantilla, salvo que ya tenga uno: un monitor de la misma plantilla, o del mismo tipo que comprueba lo mismo, creado para él, asociado a él, vinculado a él o que lo vigila. Un monitor de otro tipo, o un monitor de dispositivo de red de otra plantilla o de ninguna, nunca lo impide, así que un dispositivo nunca recibe el mismo monitor dos veces, y nunca se queda sin el que da la regla. Una regla marcada como exclusión no reclama nada y veta a las demás: así se apartan impresoras y teléfonos de una regla de subred amplia.
 
 En una regla, **Comprobar cada** fija con qué frecuencia la sonda del escaneo sondea cada dispositivo que importa la regla, igual que **Comprobar cada** al importar desde **Revisar resultados**; si se deja vacío, es cada 5 minutos. Una regla con **Incluir hosts solo con ping** activado también importa los hosts que solo respondieron al ping, entre ellos cada host que encuentra un [escaneo ICMP](#escaneos-icmp), y les da también su plantilla de monitor: la sonda les hace ping, así que las comprobaciones de la plantilla sobre si un dispositivo está activo y sobre los traps que envía funcionan para ellos de inmediato, y sus comprobaciones que leen un recorrido SNMP, en cuanto el dispositivo tiene credenciales.
 
@@ -815,7 +830,7 @@ Para crear uno desde **Monitores**:
 
 Un monitor de dispositivo de red no tiene intervalo propio: se evalúa cada vez que llegan los resultados de sondeo del dispositivo, y cada vez que llega un trap del dispositivo.
 
-Cuando los sondeos se detienen, el monitor se sigue evaluando. Cuando un dispositivo lleva tres intervalos de sondeo, y al menos diez minutos, sin un sondeo, sus monitores se evalúan una vez, cada vez que se detienen los sondeos, como un sondeo que no pudo alcanzarlo (una comprobación se ejecuta cada cinco minutos): se dispara un criterio que coincide con **Dispositivo SNMP en línea** en False, como **Device unreachable**, y el incidente dice por qué no llegó ningún sondeo, por ejemplo que la sonda está caída o que el dispositivo no tiene sonda. Un dispositivo con el sondeo desactivado, o con la [anulación con monitor vinculado](#la-anulación-con-monitor-vinculado), se deja tal cual. El siguiente sondeo evalúa el monitor como siempre.
+Cuando los sondeos se detienen, el monitor se sigue evaluando. Cuando un dispositivo lleva tres intervalos de sondeo, y al menos diez minutos, sin un sondeo, sus monitores se evalúan una vez, cada vez que se detienen los sondeos, como un sondeo que no pudo alcanzarlo (una comprobación se ejecuta cada cinco minutos): se dispara un criterio que coincide con **Dispositivo SNMP en línea** o **Dispositivo accesible (ICMP)** en False, como **Device unreachable**, y el incidente dice por qué no llegó ningún sondeo, por ejemplo que la sonda está caída o que el dispositivo no tiene sonda. Un dispositivo con el sondeo desactivado, o con la [anulación con monitor vinculado](#la-anulación-con-monitor-vinculado), se deja tal cual. El siguiente sondeo evalúa el monitor como siempre.
 
 Un monitor que creas para un dispositivo queda asociado a él: el que creas desde la tarjeta, y el que creas desde **Monitores** para la dirección de un dispositivo que conocen sus sondas, encontrado como los hosts de un escaneo: un dispositivo que sondean, o si no, el único con esa dirección en un sitio donde sondean dispositivos o son la sonda predeterminada. Las sondas que no sondean nada y no son la sonda predeterminada de ningún sitio solo lo asocian a un dispositivo sin sitio que sea el único del proyecto con esa dirección, así que un monitor nunca se asocia por suposición al dispositivo de otro sitio. En cualquier otro caso, elige el dispositivo en **Dispositivo de red**, en la sección **Más campos** del formulario, o cámbialo después en la tarjeta **Detalles** del monitor. **Añadir monitor existente**, en la tarjeta del dispositivo, asocia uno que creaste antes. Un monitor asociado aparece en las páginas del dispositivo, lo que genera se vincula al dispositivo, y una importación o una regla de importación automática lo cuenta, así que el dispositivo nunca recibe un segundo monitor igual. **Eliminar**, en la fila de un monitor asociado, lo desasocia cuando confirmas: deja de aparecer en el dispositivo, lo que genere a partir de entonces no se vincula al dispositivo, y las importaciones y las reglas de importación automática dejan de contarlo. El monitor en sí sigue comprobando, sin cambios. Un monitor que el dispositivo muestra por otro motivo, como uno que una importación creó para él o el monitor al que está vinculado, no tiene **Eliminar**. Cuando cambian las sondas de un monitor, OneUptime vuelve a calcular su asociación de la misma manera. Un monitor sin dispositivo asociado se asocia al dispositivo que sus sondas ven ahora. Una asociación que hizo OneUptime pasa a ese dispositivo, o se quita cuando no ven ninguno o no pueden distinguir dos. Una asociación que hiciste o quitaste se queda como la dejaste, y también una hecha antes de que OneUptime empezara a registrar quién la hizo. Cada cambio queda anotado en el feed del monitor. Debajo de los monitores del dispositivo, su tarjeta lista los monitores que comprueban su dirección pero no están asociados a ningún dispositivo. **Añadir** asocia uno cuyas sondas ven este dispositivo. Uno cuyas sondas no pueden distinguirlo de otro dispositivo con esa dirección, o que no sondean ningún dispositivo y no son la sonda predeterminada de ningún sitio, dice por qué y nombra los demás dispositivos: si comprueba este dispositivo, asócialo con **Añadir monitor existente**.
 
@@ -844,7 +859,10 @@ Los criterios revisan cada resultado de sondeo y cada trap, y abren incidentes o
 
 | Tipo de filtro | Qué comprueba | En un sondeo solo con ping |
 | --- | --- | --- |
-| SNMP Device Is Online | Si el dispositivo es accesible, por ping o SNMP: el mismo veredicto que su estado. | Se evalúa |
+| SNMP Device Is Online | Si el dispositivo es accesible, por ping o SNMP: el mismo veredicto que su estado. A pesar de su nombre, un dispositivo que responde al ping está en línea aunque su SNMP falle. | Se evalúa |
+| Device Is Reachable (ICMP) | Si el dispositivo respondió al ping de su sonda en este sondeo, hiciera lo que hiciera SNMP. | Se evalúa |
+| ICMP Response Time (in ms) | El tiempo medio de ida y vuelta del ping del sondeo. Sin veredicto en un sondeo cuyo ping no recibió ningún eco. | Se evalúa |
+| ICMP Packet Loss (in %) | La proporción de ecos del ping que el dispositivo no respondió. | Se evalúa |
 | SNMP Walk Is Succeeding | Si el último recorrido SNMP fue correcto. Falso es el estado «SNMP fallando»: accesible, pero las interfaces y el inventario dejaron de actualizarse. | No se evalúa |
 | SNMP Response Time (in ms) | El tiempo de respuesta del recorrido en milisegundos, nunca el del ping. | No se evalúa |
 | SNMP OID Value | El valor que devolvió un OID. | No se evalúa |
@@ -853,6 +871,7 @@ Los criterios revisan cada resultado de sondeo y cada trap, y abren incidentes o
 | SNMP Interface Is Down | Verdadero cuando una interfaz habilitada administrativamente está caída operativamente. | No se evalúa |
 | SNMP Interface Utilization (in %) | El uso del enlace de la interfaz más cargada. | No se evalúa |
 | SNMP Interface Errors (per second) | La tasa de errores de la peor interfaz. | No se evalúa |
+| SNMP Fibre Channel Counter (per second) | Un contador Fibre Channel de los puertos de un switch SAN — errores de CRC, tramas descartadas, pérdida de crédito y el resto — por segundo, en el peor puerto del alcance; `*` lanza una alerta por puerto. | No se evalúa |
 | SNMP Transceiver Not Detected | Verdadero cuando un puerto que tenía un óptico no ha informado ninguno durante dos sondeos seguidos, mientras el puerto está habilitado. | No se evalúa |
 | SNMP Transceiver Past Alarm Threshold | Verdadero cuando una lectura de un óptico alcanza o supera un umbral de alarma que informa el dispositivo, o el dispositivo señala una pérdida de señal o un fallo del transmisor. | No se evalúa |
 | SNMP Transceiver Past Warning Threshold | Lo mismo con los umbrales de advertencia; un óptico que supera un umbral de alarma también cuenta. | No se evalúa |
@@ -866,6 +885,8 @@ Los criterios revisan cada resultado de sondeo y cada trap, y abren incidentes o
 
 En un sondeo sin recorrido, los criterios marcados «No se evalúa» no devuelven veredicto en lugar de uno fallido. Un criterio que abre un incidente cuando el tiempo de respuesta SNMP es demasiado alto no puede dispararse en un dispositivo que solo recibe ping, así que un dispositivo solo con ping vigilado por criterios basados en el recorrido nunca genera falsas alarmas.
 
+Las comprobaciones ICMP leen el ping que cada sondeo ya envía desde la sonda del dispositivo, junto a su recorrido SNMP, así que no necesitan ningún monitor de ping ni actualizar la sonda. Se pueden juzgar sobre un periodo, como las comprobaciones del tiempo de respuesta. Un sondeo de una sonda demasiado antigua para hacer ping no da ningún veredicto sobre ellas.
+
 Las comprobaciones de interfaces necesitan **Recorrer interfaces** activado en los ajustes de sondeo del dispositivo, como lo está por defecto. Las comprobaciones de OID leen los OID de salud configurados del dispositivo. Las interfaces deshabilitadas administrativamente están caídas a propósito y nunca cuentan como fallos.
 
 **Utilización de la interfaz SNMP (en %)** también admite **Anómalamente alto**, **Anómalamente bajo** y **Anómalo**, con **Sensibilidad** y **Ventana de referencia** como en un [Monitor de métricas](/docs/monitor/metrics-monitor). Cada interfaz en el alcance se compara con su propia utilización a la misma hora de la semana en días anteriores, tal como la sondeó este paso del monitor, así que un enlace de respaldo que va al máximo cada noche se juzga por sus propias noches, no por los puertos tranquilos de al lado. El incidente o la alerta nombra la interfaz que más se sale de su rango, y cuántas más se salen del suyo. Una interfaz sigue aprendiendo, y no genera nada, hasta que esa hora de la semana tiene dos semanas de su historial.
@@ -876,6 +897,24 @@ Los criterios de tablas SNMP eligen una tabla, una columna (para SNMP Table Valu
 
 Los criterios de transceptores tienen alcance como las comprobaciones de interfaces: vacío juzga todos los ópticos como una sola alerta combinada, `*` genera una alerta aparte por cada puerto con un óptico (que se resuelve sola y lleva el nombre de su puerto), y cualquier otra cosa nombra un puerto por su nombre o su alias. Juzgan los [transceptores](#transceptores) del dispositivo tal como están en este sondeo, que ya llevan su historial — cuántos sondeos lleva un óptico ausente, un mes de potencia recibida —, así que tampoco se evalúan sobre un periodo. Un sondeo cuya lectura de transceptores falló los deja juzgando la última lectura buena, así que una alerta abierta no se resuelve en un sondeo que no pudo mirar.
 
+### Los criterios de un monitor nuevo
+
+Un monitor de dispositivo de red nuevo empieza con tres criterios. Se comprueban en orden, y el primero que coincide fija el estado del monitor:
+
+| Criterio | Coincide cuando | Estado | Genera |
+| --- | --- | --- | --- |
+| Sin conexión | El dispositivo no responde ni al ping ni a SNMP: **Dispositivo SNMP en línea** está en Falso. | Sin conexión | Un incidente |
+| SNMP falla | El dispositivo responde al ping, **Dispositivo accesible (ICMP)** está en Verdadero, mientras su recorrido falla, **Recorrido SNMP correcto** está en Falso. | En línea | Una alerta, con la gravedad de advertencia del proyecto |
+| En línea | El dispositivo responde al ping o a SNMP. | En línea | Nada |
+
+Que SNMP falle no significa estar sin conexión. Una cadena de comunidad cambiada, un agente SNMP detenido o una ACL detiene el recorrido en cada dispositivo al que afecta, mientras cada uno de ellos sigue respondiendo al ping y reenviando tráfico. Un problema de credenciales en 3.000 switches se traduce en 3.000 alertas que dicen que SNMP falla, con una sola cosa que arreglar, en lugar de 3.000 dispositivos caídos en tus páginas de estado. La alerta se resuelve en el primer sondeo cuyo recorrido funciona.
+
+El criterio «SNMP falla» fija el estado en En línea en lugar de dejarlo como estaba, porque solo se actúa según el primer criterio que coincide: un dispositivo que estuvo sin conexión durante un sondeo y volvió con SNMP todavía fallando seguiría, si no, sin conexión mientras SNMP fallara.
+
+Sin conexión exige que fallen los dos, no solo el ping, porque un equipo detrás de una ACL que descarta el ICMP de la sonda sigue respondiendo a SNMP, y está activo. Si todos los dispositivos que vigilas responden al ping, puedes usar en su lugar **Dispositivo accesible (ICMP)** en Falso como tu criterio Sin conexión, y añadir criterios de **Tiempo de respuesta ICMP (en ms)** o **Pérdida de paquetes ICMP (en %)** para un enlace lento o con pérdidas. A un dispositivo que solo recibe ping nunca se le dice que su SNMP falla: sin recorrido, ese criterio no se evalúa.
+
+Los monitores creados antes de esto conservan sus criterios. Para dar a uno los nuevos criterios, añádelos en el formulario de criterios del monitor, o en la plantilla a partir de la que se crean los monitores y usa **Sincronizar desde la plantilla**.
+
 ### Paquete de alertas recomendado
 
 Haz clic en **Añadir alertas recomendadas** en el formulario de criterios para añadir un conjunto de criterios predefinido: las alertas que quieren la mayoría de los operadores de red, sin construirlas a mano cada vez. El paquete viene relleno cuando creas un monitor desde la página del dispositivo, y es lo que lleva la plantilla de la política de alertas recomendada.
@@ -883,7 +922,7 @@ Haz clic en **Añadir alertas recomendadas** en el formulario de criterios para 
 | Criterio | Se dispara cuando | Crea |
 | --- | --- | --- |
 | Device unreachable | El dispositivo deja de responder al ping y a SNMP. | Incidente |
-| SNMP walk failing | El dispositivo responde al ping pero su recorrido SNMP falla. | Alerta |
+| SNMP walk failing | El dispositivo responde al ping pero su recorrido SNMP falla. Mantiene el monitor en línea. | Alerta |
 | Interface down | Una interfaz habilitada administrativamente cae operativamente. | Incidente |
 | Interface saturated | Una interfaz funciona por encima del 80% de uso. | Alerta |
 | Interface errors | Una interfaz registra más de 1 error por segundo. | Alerta |
@@ -893,7 +932,9 @@ Haz clic en **Añadir alertas recomendadas** en el formulario de criterios para 
 
 Cuando el dispositivo recorre [tablas SNMP](#tablas-snmp) que declaran valores sanos, el paquete también añade un criterio **Fila de la tabla SNMP con problemas** por cada tabla así, con Row `*`: un incidente por fila para los túneles, los vecinos de enrutamiento y los puntos de acceso de un controlador («IPsec Tunnels: row unhealthy», o «Access Points: row unhealthy» para un punto de acceso que desapareció de su controlador), y una alerta por fila para las tablas de hardware y las radios.
 
-SNMP walk failing es una alerta y no un incidente a propósito: el dispositivo no está caído, así que despertar a alguien a las 2 de la madrugada por eso sería un error, pero su inventario dejó de actualizarse y alguien debería arreglar las credenciales. Nunca se dispara en un dispositivo solo con ping, porque el criterio no se evalúa cuando no hubo recorrido.
+SNMP walk failing es una alerta y no un incidente a propósito: el dispositivo no está caído, así que despertar a alguien a las 2 de la madrugada por eso sería un error, pero su inventario dejó de actualizarse y alguien debería arreglar las credenciales. Nunca se dispara en un dispositivo solo con ping, porque el criterio no se evalúa cuando no hubo recorrido, ni en un dispositivo que no responde a nada, que es cosa de **Device unreachable**: también comprueba **Dispositivo accesible (ICMP)**.
+
+También fija el estado del monitor en línea cuando coincide. Solo el primer criterio que coincide fija el estado, así que un dispositivo que se cayó durante un sondeo y volvió con su SNMP todavía fallando seguía antes sin conexión mientras SNMP fallaba, con su incidente resuelto y su página de estado en rojo. Su alerta se resuelve en el primer sondeo cuyo recorrido funciona. Una plantilla o un monitor creados antes a partir del paquete conservan sus criterios: para cambiar uno, añade **Dispositivo accesible (ICMP)** en Verdadero a su criterio **SNMP walk failing** y haz que cambie el estado a tu estado en línea; después usa **Sincronizar desde la plantilla** en los monitores de la plantilla. Los monitores de una política de alertas siguen su plantilla por sí solos.
 
 Los tres criterios de transceptores generan una alerta por puerto (`*`), y son alertas y no incidentes por la misma razón: un óptico apagado ya hace caer su interfaz, e Interface down avisa por eso, mientras que estos dicen por qué, o avisan antes de que ocurra. 2 dB es aproximadamente un tercio de la luz perdida: muy por encima de las pocas décimas de dB que oscila un enlace sano de un día a otro, y lo bastante pronto para limpiar un conector antes de que el enlace pierda su margen. Ninguno puede dispararse en un dispositivo que no informa ningún óptico.
 
@@ -1028,6 +1069,9 @@ Las plantillas de incidentes y alertas de un monitor de dispositivo de red puede
 | `{{trapOid}}` | El OID del trap, en las comprobaciones que disparó un trap |
 | `{{trapSourceIp}}` | La dirección de la que vino el trap, en las comprobaciones que disparó un trap |
 | `{{trapVarbinds}}` | Las varbinds que llevaba el trap, cada una con `oid` y `value` |
+| `{{trapInterface}}` | La interfaz de la que trata un trap: el nombre que lleva, o el que el recorrido del dispositivo registró para su índice |
+| `{{trapAlarmCounter}}` / `{{trapAlarmDirection}}` | En una alarma RMON (una alarma de port-monitor de MDS), el contador que superó su umbral, y `rising` o `falling` |
+| `{{trapAlarmValue}}` / `{{trapAlarmThreshold}}` | En una alarma RMON, el valor del contador y el umbral que superó |
 | `{{tables.<key>.rowCount}}` | Las filas recorridas en una [tabla SNMP](#tablas-snmp), por su clave: `{{tables.ipsec_tunnels.rowCount}}` |
 | `{{tables.<key>.unhealthyRowCount}}` / `{{tables.<key>.unhealthyRows}}` | Las filas con un estado fuera de sus valores sanos, cada una con `name`, `index` y `values.<column>` |
 | `{{tables.<key>.rows}}` | Cada fila (hasta 50), cada una con `name`, `index` y `values.<column>`, con los nombres de columna en minúsculas y los espacios como `_` |

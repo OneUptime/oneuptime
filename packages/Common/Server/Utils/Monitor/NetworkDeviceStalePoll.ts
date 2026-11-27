@@ -132,7 +132,12 @@ export default class NetworkDeviceStalePoll {
       return (instance.data?.filters || []).some(
         (filter: CriteriaFilter): boolean => {
           return (
-            filter.checkOn === CheckOn.SnmpIsOnline &&
+            (filter.checkOn === CheckOn.SnmpIsOnline ||
+              /*
+               * "No answer to ping is Offline" (issue #11071): a device
+               * no poll reaches answers no ping either.
+               */
+              filter.checkOn === CheckOn.IcmpIsReachable) &&
             filter.filterType === FilterType.False
           );
         },

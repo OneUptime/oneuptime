@@ -36,6 +36,8 @@ import MonitorPauseState, {
 import { MONITOR_NOT_EVALUATED_SELECT } from "Common/Server/Utils/Monitor/MonitorNotEvaluated";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import SnmpTrapInterfaceName from "Common/Server/Utils/Monitor/SnmpTrapInterfaceName";
+import SnmpTrapContextRouting from "Common/Server/Utils/Monitor/SnmpTrapContextRouting";
 import NetworkDeviceHydrationUtil, {
   NetworkDevicePollMode,
 } from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
@@ -411,13 +413,25 @@ export async function processSnmpTrapFromQueue(
    * match by referencing one of those devices. Resolved before the monitor
    * lookup so trap persistence happens even when the probe has no monitors.
    */
-  const matchingDevices: Array<NetworkDevice> =
+  const devicesAtSource: Array<NetworkDevice> =
     await NetworkDeviceHydrationUtil.findDevicesByProbeAndSource({
       probeId: probeId,
       sourceIpAddress: snmpTrap.sourceIpAddress,
       select: {
         name: true,
+        snmpV3ContextName: true,
       },
+    });
+
+  /*
+   * Devices that share an address - the logical switches of one Brocade
+   * chassis - are told apart by the SNMPv3 context the trap names. A trap
+   * that names none goes to every device at the address.
+   */
+  const matchingDevices: Array<NetworkDevice> =
+    SnmpTrapContextRouting.devicesForTrap({
+      devices: devicesAtSource,
+      contextName: snmpTrap.contextName,
     });
 
   // Persist trap history first — it must not depend on monitor matching.
@@ -457,7 +471,9 @@ export async function processSnmpTrapFromQueue(
 
   if (matchingDeviceIds.size === 0) {
     logger.debug(
-      `SNMP trap from ${snmpTrap.sourceIpAddress}: no NetworkDevice on probe ${probeId.toString()} matches this source. Trap logged as unmatched where possible.`,
+      devicesAtSource.length > 0
+        ? `SNMP trap from ${snmpTrap.sourceIpAddress} in SNMPv3 context "${snmpTrap.contextName}": none of the ${devicesAtSource.length} NetworkDevice(s) at this address on probe ${probeId.toString()} is polled in that context. Trap logged as unmatched where possible.`
+        : `SNMP trap from ${snmpTrap.sourceIpAddress}: no NetworkDevice on probe ${probeId.toString()} matches this source. Trap logged as unmatched where possible.`,
     );
     return;
   }
@@ -496,6 +512,38 @@ export async function processSnmpTrapFromQueue(
 
   let matchedSteps: number = 0;
 
+  /*
+   * The interface the trap names by its index alone (a link trap, an MDS
+   * port-monitor's RMON alarm), by its name on each matched device: what
+   * the alerts say. Looked up once per device, and only for such a trap.
+   */
+  const interfaceNameByDevice: Map<string, string | undefined> = new Map();
+
+  const trapForDevice: (deviceId: string) => Promise<SnmpTrap> = async (
+    deviceId: string,
+  ): Promise<SnmpTrap> => {
+    if (SnmpTrapInterfaceName.getInterfaceIndex(snmpTrap) === null) {
+      return snmpTrap;
+    }
+
+    if (!interfaceNameByDevice.has(deviceId)) {
+      interfaceNameByDevice.set(
+        deviceId,
+        await SnmpTrapInterfaceName.findForDevice({
+          trap: snmpTrap,
+          networkDeviceId: new ObjectID(deviceId),
+        }),
+      );
+    }
+
+    const interfaceName: string | undefined =
+      interfaceNameByDevice.get(deviceId);
+
+    return interfaceName
+      ? { ...snmpTrap, interfaceName: interfaceName }
+      : snmpTrap;
+  };
+
   for (const monitor of monitors) {
     if (MonitorPauseState.isPaused(monitor)) {
       continue;
@@ -523,7 +571,7 @@ export async function processSnmpTrapFromQueue(
         monitorId: monitor.id,
         monitorStepId: monitorStep.id,
         probeId: probeId,
-        snmpTrapResponse: snmpTrap,
+        snmpTrapResponse: await trapForDevice(referencedDeviceId),
         failureCause: "",
         monitoredAt: OneUptimeDate.getCurrentDate(),
         ingestedAt: OneUptimeDate.getCurrentDate(),

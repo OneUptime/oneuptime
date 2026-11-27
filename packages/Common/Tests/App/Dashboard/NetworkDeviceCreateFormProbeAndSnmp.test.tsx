@@ -832,6 +832,8 @@ describe("the create form's SNMP fold", () => {
       "snmpV3AuthKey",
       "snmpV3PrivProtocol",
       "snmpV3PrivKey",
+      // The logical switch a v3 device answers as (a Virtual Fabric's VF:128).
+      "snmpV3ContextName",
       "snmpPort",
       "snmpCredentialProfile",
     ]);

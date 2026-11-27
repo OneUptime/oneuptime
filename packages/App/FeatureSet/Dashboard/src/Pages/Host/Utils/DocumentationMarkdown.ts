@@ -9,7 +9,10 @@ import {
 } from "../../../Components/SetupGuide/SetupGuide";
 import { getKubernetesSetupGuide } from "../../Kubernetes/Utils/DocumentationMarkdown";
 import { HOST_COLLECTOR_VERSION } from "../../../Components/AgentVersion/AgentKind";
-import { HOST_COLLECTOR_FILESYSTEM_EXCLUSION } from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
+import {
+  HOST_COLLECTOR_FILESYSTEM_EXCLUSION,
+  getHostCollectorCloudDetection,
+} from "Common/Utils/HostCollector/HostCollectorDefaultConfig";
 import { getHostAiAgentInstallCommand } from "../../../Components/ResourceAiAgent/ResourceAiAgentInstall";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -169,6 +172,13 @@ const MACOS_PLIST_PATH: string =
 
 const WINDOWS_INSTALL_DIR: string = "C:\\Program Files\\otelcol-contrib";
 
+/*
+ * The guide's config spells the collector's types the way most configs in
+ * the wild do (resourcedetection), so its cloud step does too: the same
+ * detectors as OneUptime's default (getHostCollectorCloudDetection).
+ */
+const HOST_GUIDE_CLOUD_DETECTION_PROCESSOR: string = "resourcedetection/cloud";
+
 /**
  * The collector config every install method except Kubernetes runs, filled
  * in with the reader's OneUptime URL and ingestion key.
@@ -243,6 +253,7 @@ processors:
           enabled: true
         os.version:
           enabled: true
+${getHostCollectorCloudDetection(HOST_GUIDE_CLOUD_DETECTION_PROCESSOR)}
   # The collector release this config is for. OneUptime shows it as the
   # host's agent version, with a sign beside it once a newer one is out.
   # Change it only together with the collector you install.
@@ -263,7 +274,7 @@ service:
   pipelines:
     metrics:
       receivers: [hostmetrics]
-      processors: [resourcedetection, resource, batch]
+      processors: [resourcedetection, ${HOST_GUIDE_CLOUD_DETECTION_PROCESSOR}, resource, batch]
       exporters: [otlphttp/oneuptime]`;
 }
 

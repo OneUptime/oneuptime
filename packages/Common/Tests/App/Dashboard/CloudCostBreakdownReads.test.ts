@@ -761,4 +761,82 @@ describe("a breakdown", () => {
       total: 40,
     });
   });
+
+  /*
+   * The services of a month whose cents come to $15,556.50, the costliest
+   * first, as Costs read them on 2026-11-26: added up as floating point
+   * they are 15556.499999999998, which reads "$15,556" under a strip that
+   * says "$15,557".
+   */
+  const HALF_DOLLAR_MONTH: Array<number> = [
+    4240.22, 2774, 2249.88, 1077.32, 1015.27, 917.74, 769.71, 667.4, 663.88,
+    548.61, 364.67, 267.8,
+  ];
+
+  test("the period's spend is rounded as the accounts' month is: cents that come to a half dollar are a half dollar, not a hair under one", async () => {
+    expect(
+      HALF_DOLLAR_MONTH.reduce((sum: number, amount: number): number => {
+        return sum + amount;
+      }, 0),
+    ).toBe(15556.499999999998);
+    stubAggregate({
+      service: HALF_DOLLAR_MONTH.map(
+        (value: number, index: number): Record<string, unknown> => {
+          return { service: `Service ${index + 1}`, value };
+        },
+      ),
+    });
+
+    expect(
+      (await fetchCloudCostBreakdown({ scope: scope(), dimension: "service" }))
+        .total,
+    ).toBe(15556.5);
+  });
+
+  test("so is the spend broken down by a tag, and by environment", async () => {
+    stubAggregate({
+      // The cheapest costs carry no team: they are the rest.
+      "tag:team": HALF_DOLLAR_MONTH.map(
+        (value: number, index: number): Record<string, unknown> => {
+          return {
+            attributes: {
+              team:
+                index === HALF_DOLLAR_MONTH.length - 1
+                  ? ""
+                  : `team-${index + 1}`,
+            },
+            value,
+          };
+        },
+      ),
+      "accountId,region,service": HALF_DOLLAR_MONTH.map(
+        (value: number, index: number): Record<string, unknown> => {
+          return {
+            accountId: "1",
+            region: "us-east-1",
+            service: `Service ${index + 1}`,
+            value,
+          };
+        },
+      ),
+    });
+
+    expect(
+      (
+        await fetchCloudCostBreakdown({
+          scope: scope(),
+          dimension: "tag",
+          tagKey: "team",
+        })
+      ).total,
+    ).toBe(15556.5);
+    expect(
+      (
+        await fetchCloudCostBreakdown({
+          scope: scope(),
+          dimension: "environment",
+        })
+      ).total,
+    ).toBe(15556.5);
+  });
 });

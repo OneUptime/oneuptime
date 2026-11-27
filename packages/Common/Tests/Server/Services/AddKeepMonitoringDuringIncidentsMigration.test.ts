@@ -1,4 +1,4 @@
-import { AddKeepMonitoringDuringIncidents1809187731141 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187731141-AddKeepMonitoringDuringIncidents";
+import { AddKeepMonitoringDuringIncidents1809187751141 } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187751141-AddKeepMonitoringDuringIncidents";
 import SchemaMigrations from "../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
@@ -41,7 +41,7 @@ const MIGRATION_DIRECTORY: string = path.join(
   "../../../Server/Infrastructure/Postgres/SchemaMigrations",
 );
 
-const MIGRATION_TIMESTAMP: string = "1809187731141";
+const MIGRATION_TIMESTAMP: string = "1809187751141";
 
 const MIGRATION_NAME: string = `AddKeepMonitoringDuringIncidents${MIGRATION_TIMESTAMP}`;
 
@@ -98,7 +98,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   test("up() adds exactly the two columns, each with the default that keeps what is stored as it was", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddKeepMonitoringDuringIncidents1809187731141().up(runner);
+    await new AddKeepMonitoringDuringIncidents1809187751141().up(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "Monitor" ADD "keepMonitoringDuringIncidents" boolean NOT NULL DEFAULT false`,
@@ -109,7 +109,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   test("nothing is backfilled: no UPDATE of the monitors or incidents already stored", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddKeepMonitoringDuringIncidents1809187731141().up(runner);
+    await new AddKeepMonitoringDuringIncidents1809187751141().up(runner);
 
     for (const sql of statements) {
       expect(sql).not.toMatch(/\bUPDATE\b/i);
@@ -119,7 +119,7 @@ describe(`${MIGRATION_NAME} - SQL contract`, () => {
   test("down() drops exactly what up() added, in reverse", async () => {
     const { runner, statements } = makeQueryRunner();
 
-    await new AddKeepMonitoringDuringIncidents1809187731141().down(runner);
+    await new AddKeepMonitoringDuringIncidents1809187751141().down(runner);
 
     expect(statements).toEqual([
       `ALTER TABLE "Incident" DROP COLUMN "pauseMonitoring"`,
@@ -155,10 +155,10 @@ describe("registration", () => {
   });
 
   test("its declared name matches its class name", () => {
-    expect(new AddKeepMonitoringDuringIncidents1809187731141().name).toBe(
+    expect(new AddKeepMonitoringDuringIncidents1809187751141().name).toBe(
       MIGRATION_NAME,
     );
-    expect(AddKeepMonitoringDuringIncidents1809187731141.name).toBe(
+    expect(AddKeepMonitoringDuringIncidents1809187751141.name).toBe(
       MIGRATION_NAME,
     );
   });

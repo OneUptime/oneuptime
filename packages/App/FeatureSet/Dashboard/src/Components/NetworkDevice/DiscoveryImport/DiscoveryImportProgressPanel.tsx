@@ -78,8 +78,45 @@ function monitorRoute(monitorId: string): Route {
 export function getIssueGroupTitle(
   translator: Translator,
   group: DiscoveryImportIssueGroup,
+  source?: DiscoveryImportSource | undefined,
 ): string {
   const count: number = group.hosts.length;
+
+  /*
+   * Create Monitors (issue #10990) imports nothing: its devices exist, and
+   * what can go wrong is their monitors.
+   */
+  if (source === DiscoveryImportSource.Devices) {
+    switch (group.kind) {
+      case DiscoveryImportIssueKind.NotReached:
+        return translator.translatePlural(
+          {
+            one: "{{count}} device was not reached",
+            other: "{{count}} devices were not reached",
+          },
+          count,
+          { count: translator.formatNumber(count) },
+        );
+      case DiscoveryImportIssueKind.MonitorSkipped:
+        return translator.translatePlural(
+          {
+            one: "{{count}} device was given no monitor",
+            other: "{{count}} devices were given no monitor",
+          },
+          count,
+          { count: translator.formatNumber(count) },
+        );
+      default:
+        return translator.translatePlural(
+          {
+            one: "{{count}} device got no monitor",
+            other: "{{count}} devices got no monitor",
+          },
+          count,
+          { count: translator.formatNumber(count) },
+        );
+    }
+  }
 
   switch (group.kind) {
     case DiscoveryImportIssueKind.DeviceFailed:
@@ -139,7 +176,11 @@ export function getIssueHostLabel(host: DiscoveryImportIssueHost): string {
  */
 const IssueGroup: FunctionComponent<{
   group: DiscoveryImportIssueGroup;
-}> = (props: { group: DiscoveryImportIssueGroup }): ReactElement => {
+  source: DiscoveryImportSource;
+}> = (props: {
+  group: DiscoveryImportIssueGroup;
+  source: DiscoveryImportSource;
+}): ReactElement => {
   const translator: Translator = useTranslator();
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   // Set by a press, until focus has moved to the button that undoes it.
@@ -187,7 +228,7 @@ const IssueGroup: FunctionComponent<{
         />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-gray-900">
-            {getIssueGroupTitle(translator, group)}
+            {getIssueGroupTitle(translator, group, props.source)}
           </p>
           {group.reason && (
             <p
@@ -394,7 +435,41 @@ const ResultsList: FunctionComponent<{
 export function getPhaseTitle(
   translator: Translator,
   model: DiscoveryImportProgressModel,
+  source?: DiscoveryImportSource | undefined,
 ): string {
+  // Create Monitors (issue #10990): devices already added, given monitors.
+  if (source === DiscoveryImportSource.Devices) {
+    switch (model.phase) {
+      case DiscoveryImportPhase.Starting:
+        return translator.translateText("Starting…") as string;
+      case DiscoveryImportPhase.Waiting:
+        return translator.translateText(
+          "Waiting for an import in this project to finish",
+        ) as string;
+      case DiscoveryImportPhase.Running:
+        return translator.translatePlural(
+          {
+            one: "Creating monitors for {{count}} device…",
+            other: "Creating monitors for {{count}} devices…",
+          },
+          model.hostCount,
+          { count: translator.formatNumber(model.hostCount) },
+        );
+      case DiscoveryImportPhase.Stopping:
+        return translator.translateText(
+          "Stopping after the device being given its monitor now…",
+        ) as string;
+      case DiscoveryImportPhase.Finished:
+        return translator.translateText("Monitors created") as string;
+      case DiscoveryImportPhase.Stopped:
+        return translator.translateText("Stopped") as string;
+      default:
+        return translator.translateText(
+          "The monitors could not all be created",
+        ) as string;
+    }
+  }
+
   switch (model.phase) {
     case DiscoveryImportPhase.Starting:
       return translator.translateText("Starting the import…") as string;
@@ -434,6 +509,10 @@ export function getPhaseDescription(
   model: DiscoveryImportProgressModel,
   view: DiscoveryImportView,
 ): string {
+  if (view.source === DiscoveryImportSource.Devices) {
+    return getDeviceMonitorCreationDescription(translator, model, view);
+  }
+
   if (model.phase === DiscoveryImportPhase.Waiting) {
     return translator.translateText(
       "Imports in a project run one at a time, so the same address is never imported twice. This one starts as soon as the one before it finishes.",
@@ -483,6 +562,55 @@ export function getPhaseDescription(
   }
 
   return translator.translateText("Every host is in the inventory.") as string;
+}
+
+/*
+ * The line under the headline of Create Monitors (issue #10990): nothing is
+ * imported, so it speaks of the devices' monitors.
+ */
+function getDeviceMonitorCreationDescription(
+  translator: Translator,
+  model: DiscoveryImportProgressModel,
+  view: DiscoveryImportView,
+): string {
+  if (model.phase === DiscoveryImportPhase.Waiting) {
+    return translator.translateText(
+      "Imports and monitor creation in a project run one at a time. This one starts as soon as the one before it finishes.",
+    ) as string;
+  }
+
+  if (model.phase === DiscoveryImportPhase.Stopping) {
+    return translator.translateText(
+      "The monitors it has created so far stay.",
+    ) as string;
+  }
+
+  if (model.isActive) {
+    return translator.translateText(
+      "You can close this window: the monitors keep being created on the server.",
+    ) as string;
+  }
+
+  if (model.retryableCount > 0) {
+    return model.phase === DiscoveryImportPhase.Stopped
+      ? (translator.translateText(
+          "The monitors it created before it stopped stay. Retry tries the rest again, and none is created twice.",
+        ) as string)
+      : (translator.translateText(
+          "Fix what is listed below, then retry: only those devices are tried again, and none is created twice.",
+        ) as string);
+  }
+
+  if (view.monitorTemplateName && model.progress.monitorsSkipped === 0) {
+    return translator.translateTemplate(
+      "Every device has its monitor from “{{template}}”.",
+      { template: view.monitorTemplateName },
+    );
+  }
+
+  return translator.translateText(
+    "Every device that can have one has its monitor.",
+  ) as string;
 }
 
 const DiscoveryImportProgressPanel: FunctionComponent<
@@ -574,6 +702,8 @@ const DiscoveryImportProgressPanel: FunctionComponent<
   }
 
   const isDone: boolean = !model.isActive;
+  const isDeviceMonitorCreation: boolean =
+    props.view.source === DiscoveryImportSource.Devices;
 
   return (
     <div className="space-y-5" data-testid="discovery-import-progress">
@@ -610,7 +740,7 @@ const DiscoveryImportProgressPanel: FunctionComponent<
             role="status"
             aria-live="polite"
           >
-            {getPhaseTitle(translator, model)}
+            {getPhaseTitle(translator, model, props.view.source)}
           </h4>
           <p className="mt-0.5 text-sm text-gray-500">
             {getPhaseDescription(translator, model, props.view)}
@@ -628,27 +758,33 @@ const DiscoveryImportProgressPanel: FunctionComponent<
 
       {/*
        * Side by side when there are monitors to count too; the devices bar
-       * alone takes the width rather than half of it.
+       * alone takes the width rather than half of it. Create Monitors
+       * (issue #10990) imports nothing, so its monitors bar is the whole
+       * story and takes the width itself.
        */}
       <div
         className={`grid grid-cols-1 gap-5 ${
-          model.monitorsRequested > 0 ? "md:grid-cols-2" : ""
+          model.monitorsRequested > 0 && !isDeviceMonitorCreation
+            ? "md:grid-cols-2"
+            : ""
         }`}
       >
-        <div data-testid="discovery-import-devices-progress">
-          <ProgressBar
-            count={model.devicesReached}
-            totalCount={model.hostCount}
-            suffix="Devices"
-            size={ProgressBarSize.Small}
-          />
-          <p
-            className="mt-2 text-xs text-gray-500"
-            data-testid="discovery-import-devices-counts"
-          >
-            {deviceParts.join(" · ")}
-          </p>
-        </div>
+        {!isDeviceMonitorCreation && (
+          <div data-testid="discovery-import-devices-progress">
+            <ProgressBar
+              count={model.devicesReached}
+              totalCount={model.hostCount}
+              suffix="Devices"
+              size={ProgressBarSize.Small}
+            />
+            <p
+              className="mt-2 text-xs text-gray-500"
+              data-testid="discovery-import-devices-counts"
+            >
+              {deviceParts.join(" · ")}
+            </p>
+          </div>
+        )}
         {model.monitorsRequested > 0 ? (
           <div data-testid="discovery-import-monitors-progress">
             <ProgressBar
@@ -678,7 +814,11 @@ const DiscoveryImportProgressPanel: FunctionComponent<
             {model.issueGroups.map(
               (group: DiscoveryImportIssueGroup, index: number) => {
                 return (
-                  <IssueGroup key={`${group.kind}-${index}`} group={group} />
+                  <IssueGroup
+                    key={`${group.kind}-${index}`}
+                    group={group}
+                    source={props.view.source}
+                  />
                 );
               },
             )}

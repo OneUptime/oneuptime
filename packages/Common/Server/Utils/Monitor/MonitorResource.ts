@@ -2740,6 +2740,38 @@ export default class MonitorResourceUtil {
             });
           }
         }
+      } else if (
+        !response.criteriaMetId &&
+        !isSnmpTrapEvent &&
+        !MonitorResourceUtil.isSilentInfrastructureWindow({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+        }) &&
+        monitorSteps.data.defaultMonitorStatusId &&
+        monitor.currentMonitorStatusId?.toString() ===
+          monitorSteps.data.defaultMonitorStatusId.toString()
+      ) {
+        /*
+         * No criteria matched a monitor already on its default status: what
+         * a criteria that changes no status raised - an alert-only criteria
+         * - resolves now, as it does when the monitor goes back to its
+         * default status from another one. It stayed open for as long as
+         * the monitor stayed on its default status, which on a monitor
+         * whose healthy state matches nothing is for ever: a Network Device
+         * monitor from the recommended alert pack kept "SNMP walk failing"
+         * open on a switch whose SNMP had been fixed (issue #11071).
+         */
+        await MonitorResourceUtil.resolveWhatNoCriteriaHolds({
+          monitor: monitor,
+          monitorStep: monitorStep,
+          dataToProcess: dataToProcess,
+          evaluationSummary: evaluationSummary,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          keepEvaluationLock: keepEvaluationLock,
+        });
       }
 
       /*
@@ -2951,6 +2983,94 @@ export default class MonitorResourceUtil {
    * matched: each incident and alert whose criteria resolves it on its own.
    * The evaluation log says the status was kept, and for which criteria.
    */
+  /*
+   * A monitor already on its default status, on a check no criteria
+   * matched: it stays there, and what its criteria raised and resolve on
+   * their own - an alert-only criteria's alert - resolves, exactly as when
+   * the monitor goes back to its default status from another one. The
+   * monitor's open records are read only when some may be open
+   * (MonitorOpenRecords), so a healthy check of a monitor with nothing open
+   * reads nothing.
+   */
+  public static async resolveWhatNoCriteriaHolds(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    dataToProcess: DataToProcess;
+    evaluationSummary: MonitorEvaluationSummary;
+    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    >;
+    autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+    keepEvaluationLock: () => Promise<void>;
+  }): Promise<void> {
+    const rootCause: string = "No monitoring criteria met.";
+
+    const openRecords: MonitorOpenRecordsReading =
+      await MonitorResourceUtil.readWhatIsKnownOfOpenRecords({
+        monitor: input.monitor,
+        opensIncidents: false,
+        opensAlerts: false,
+      });
+
+    await input.keepEvaluationLock();
+
+    const disableSeriesAbsenceResolution: boolean =
+      MonitorResourceUtil.isSeriesResolvedExplicitly({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+      });
+
+    await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+      monitor: input.monitor,
+      kind: MonitorRecordKind.Incident,
+      reading: openRecords,
+      opensRecords: false,
+      read: (): Promise<Array<Incident>> => {
+        return MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          rootCause: rootCause,
+          criteriaInstance: null,
+          dataToProcess: input.dataToProcess,
+          evaluationSummary: input.evaluationSummary,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+          keepEvaluationLock: input.keepEvaluationLock,
+          disableSeriesAbsenceResolution: disableSeriesAbsenceResolution,
+        });
+      },
+    });
+
+    await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+      monitor: input.monitor,
+      kind: MonitorRecordKind.Alert,
+      reading: openRecords,
+      opensRecords: false,
+      read: (): Promise<Array<Alert>> => {
+        return MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          rootCause: rootCause,
+          criteriaInstance: null,
+          dataToProcess: input.dataToProcess,
+          evaluationSummary: input.evaluationSummary,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+          keepEvaluationLock: input.keepEvaluationLock,
+          disableSeriesAbsenceResolution: disableSeriesAbsenceResolution,
+        });
+      },
+    });
+  }
+
   public static async keepStatusUntilRecovered(input: {
     monitor: Monitor;
     monitorStep: MonitorStep;

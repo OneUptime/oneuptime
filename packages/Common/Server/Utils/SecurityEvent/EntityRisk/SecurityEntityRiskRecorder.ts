@@ -232,6 +232,9 @@ export default class SecurityEntityRiskRecorder {
             securityEventConnectionId:
               finding.securityEventConnectionId?.toString(),
             ...(finding.firingKey ? { firingKey: finding.firingKey } : {}),
+            ...(finding.formerFiringKeys?.length
+              ? { formerFiringKeys: finding.formerFiringKeys }
+              : {}),
           });
         }
       }

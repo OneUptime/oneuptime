@@ -155,9 +155,14 @@ function repository(): CodeRepository {
   return row;
 }
 
-function linkRow(
-  overrides: Partial<DataSecurityIssuePullRequest> = {},
-): DataSecurityIssuePullRequest {
+// A link's fields, any of them cleared with undefined (one not read yet).
+type LinkRowFields = {
+  [K in keyof DataSecurityIssuePullRequest]?:
+    | DataSecurityIssuePullRequest[K]
+    | undefined;
+};
+
+function linkRow(overrides: LinkRowFields = {}): DataSecurityIssuePullRequest {
   return Object.assign(new DataSecurityIssuePullRequest(LINK_ID), {
     projectId: PROJECT_ID,
     dataSecurityIssueId: ISSUE_ID,
@@ -543,9 +548,10 @@ describe("scenario: a person's own fix of a store's configuration", () => {
     const applied: jest.SpyInstance = jest
       .spyOn(DataSecurityIssueResolutions, "markFixedInInfrastructureCode")
       .mockResolvedValue([ISSUE_ID]);
+    // Resolves to how many it emailed: none, as it is never sent here.
     const notice: jest.SpyInstance = jest
       .spyOn(DataSecurityFixNotAppliedNotice, "send")
-      .mockResolvedValue();
+      .mockResolvedValue(0);
     const row: DataSecurityIssuePullRequest = linkRow({
       productionCheck: FixProductionCheck.StoreConfiguration,
       pullRequestUrl: URL.fromString("https://github.com/acme/infra/pull/57"),

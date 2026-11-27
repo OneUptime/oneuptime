@@ -232,6 +232,14 @@ Quando una valutazione dura troppo per il suo monitor, il suo riepilogo ti avvis
 
 Un decimo lascia a un monitor lo spazio per crescere di dieci volte prima che i suoi controlli si sovrappongano e restino indietro, così lo sai presto. Sotto i 5 secondi, un controllo va bene per quanto sia grande: valutare 16.000 serie richiede circa 2,5 secondi. Oltre un minuto, occupa un worker e i database che legge per tutto quel tempo, qualunque sia il suo intervallo. Per velocizzarlo, restringi i filtri delle sue query, raggruppa per meno attributi o controllalo meno spesso.
 
+## Quando controllano i monitor di telemetria
+
+I monitor che leggono la telemetria, come i monitor di log, metriche, tracce, Kubernetes, host e Docker, non vengono controllati tutti nello stesso momento. Ognuno ha il proprio momento nel suo intervallo, calcolato dall'ID del monitor: un monitor controllato ogni minuto viene eseguito allo stesso secondo di ogni minuto, uno controllato ogni 5 minuti nello stesso momento di ogni 5 minuti, e uno controllato ogni ora o meno spesso entro i primi 5 minuti dell'ora o del giorno indicati dal suo intervallo. Il momento resta lo stesso quando OneUptime si riavvia e su ogni server, così l'archivio della telemetria viene letto un po' alla volta nel corso del minuto invece che da tutti i monitor insieme.
+
+Ogni monitor mantiene il suo intervallo: i suoi controlli sono distanziati esattamente come prima, e ognuno valuta la finestra che termina quando viene eseguito, quindi una finestra lunga quanto l'intervallo copre ancora tutto il tempo tra due controlli. Ciò che si sposta è il momento dell'intervallo in cui un controllo viene eseguito: fino a un intervallo dopo, e mai più di 5 minuti dopo. Un incidente o un avviso può aprirsi fino a quel tempo più tardi rispetto a se ogni controllo venisse eseguito all'inizio del suo intervallo, e a volte prima. La **Panoramica** del monitor mostra quando è previsto il suo prossimo controllo.
+
+Un monitor nuovo viene controllato pochi secondi dopo la creazione, e poi nel suo momento. Quando si modifica l'intervallo di un monitor, il suo prossimo controllo passa al nuovo intervallo. Subito dopo l'aggiornamento a una versione di OneUptime che distribuisce i controlli, ogni monitor viene controllato ancora una volta all'ora prevista dalla vecchia pianificazione, e da allora in poi nel suo momento.
+
 ## Modificare i criteri di un monitor
 
 :::steps

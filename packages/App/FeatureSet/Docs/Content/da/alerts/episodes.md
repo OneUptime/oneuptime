@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > For at tilkalde én gang pr. problem i stedet for én gang pr. advarsel lægger du vagtpolitikker på dine grupperingsregler og lader dem være væk fra advarslerne: fra monitorens kriterier, oprettelsesformularen og dine vagtregler for advarsler.
 
-Episodens ejere hører også om det: **Advarselsepisode oprettet**, **Tilstand for advarselsepisode ændret** og **Advarsel tilføjet til advarselsepisode** er slået til via e-mail som standard under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**. Reglens **Episodeejere** bliver ejere af hver episode, den åbner, og får besked som enhver anden ejer.
+Episodens ejere hører også om det: **Advarselsepisode oprettet**, **Tilstand for advarselsepisode ændret** og **Advarsel tilføjet til advarselsepisode** er slået til via e-mail som standard under **Brugerindstillinger → Notifikationsindstillinger** på fanen **Advarsler**. Reglens **Episodeejere** bliver ejere af hver episode, den åbner, og får besked som enhver anden ejer. De er på plads, før Slack og Microsoft Teams hører om episoden, så en notifikationsregel, der spørger, hvem der ejer en episode, slår dens oprettelsesbesked op.
 
 ## Opret en episode i hånden
 
@@ -166,7 +166,7 @@ På **Episodedetaljer** udfylder du **Titel** og, hvis du vil, en **Advarselsalv
 
 På **Vagt og ejere** vælger du en **Vagtpolitik**, der skal køre, når episoden oprettes, og dens **Ejere**. Klik derefter på **Opret episode**.
 
-Hvert team, du er medlem af, er et enkelt klik væk under **Ejere**, og oversigten nævner de ejerregler, der tilføjer flere.
+Hvert team, du er medlem af, er et enkelt klik væk under **Ejere**, og oversigten nævner de ejerregler, der tilføjer flere. De ejere, du vælger, dem, ejerreglerne tilføjer, og etiketterne fra matchende etiketregler er på plads, før Slack og Microsoft Teams hører om episoden, så en notifikationsregel, der spørger, hvem der ejer en episode, eller hvilke etiketter den har, også slår den op.
 
 ### Tilføj advarslerne
 

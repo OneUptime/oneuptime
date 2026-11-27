@@ -552,7 +552,7 @@ export const ScrubDataSecurityFindingTool: ObservabilityTool = {
 
     if (!findingId) {
       throw new BadDataException(
-        "dataStoreFindingId must be a finding's ID. Read the store's findings with query_data_stores first.",
+        "The dataStoreFindingId given is not a finding's ID. Read the store's findings with query_data_stores first.",
       );
     }
 

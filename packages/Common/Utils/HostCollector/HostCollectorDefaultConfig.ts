@@ -229,6 +229,49 @@ const SYSTEMD_RECEIVER: string = `  # The Systemd Units page: the state of every
         enabled: false`;
 
 /*
+ * On a cloud VM, which cloud, account, Region and instance the host is
+ * (#11013): the EC2, Compute Engine and Azure resource detectors stamp
+ * cloud.provider, cloud.account.id and cloud.region, and set host.id to the
+ * cloud's own instance ID - the ID the semantic conventions ask a cloud
+ * host's host.id to be. That is what links the host to the VM its cloud
+ * connection lists (Types/Cloud/CloudHostLink), so each page links to the
+ * other and right-sizing reads the VM's memory from the host.
+ *
+ * A step of its own after the host's identity, so the system detector's
+ * work is never held up by it, and it overrides only what it finds: the
+ * host's name stays the one the system detector stamps (host.name is off
+ * in each cloud detector), so no host gets a second page. Off a cloud each
+ * detector finds no metadata and stamps nothing. None reads the cloud's
+ * tags or labels, which would need the host's cloud credentials.
+ */
+export const HOST_COLLECTOR_CLOUD_DETECTION_PROCESSOR: string =
+  "resource_detection/cloud";
+
+export function getHostCollectorCloudDetection(
+  processorId: string = HOST_COLLECTOR_CLOUD_DETECTION_PROCESSOR,
+): string {
+  return `  # On a cloud VM, stamps which cloud, account, Region and instance this
+  # host is, so the VM's page and this host's link to each other. Keeps the
+  # host's name; off a cloud it finds nothing and changes nothing.
+  ${processorId}:
+    detectors: [ec2, gcp, azure]
+    ec2:
+      resource_attributes:
+        host.name:
+          enabled: false
+    gcp:
+      resource_attributes:
+        host.name:
+          enabled: false
+    azure:
+      resource_attributes:
+        host.name:
+          enabled: false`;
+}
+
+const HOST_COLLECTOR_CLOUD_DETECTION: string = getHostCollectorCloudDetection();
+
+/*
  * Stamps host.name, host.id and os.type on everything the host sends: that
  * is how OneUptime files the telemetry under the host, so every config keeps
  * it.
@@ -257,7 +300,20 @@ const PROCESSORS: string = `processors:
           enabled: true
         os.version:
           enabled: true
+${HOST_COLLECTOR_CLOUD_DETECTION}
   batch:`;
+
+/*
+ * Every pipeline's processors: the host's identity, then its cloud's, then
+ * the batch.
+ */
+export const HOST_COLLECTOR_PIPELINE_PROCESSORS: ReadonlyArray<string> = [
+  "resource_detection",
+  HOST_COLLECTOR_CLOUD_DETECTION_PROCESSOR,
+  "batch",
+];
+
+const PIPELINE_PROCESSORS: string = `[${HOST_COLLECTOR_PIPELINE_PROCESSORS.join(", ")}]`;
 
 const EXPORTERS: string = `exporters:
   # Sends to the OneUptime this host was installed with, with its key.
@@ -283,7 +339,7 @@ function getLinuxDefaultConfig(features: HostCollectorHostFeatures): string {
     ? `
     logs:
       receivers: [journald]
-      processors: [resource_detection, batch]
+      processors: ${PIPELINE_PROCESSORS}
       exporters: [otlp_http/oneuptime]`
     : "";
 
@@ -299,7 +355,7 @@ service:
   pipelines:
     metrics:
       receivers: [${metricsReceivers.join(", ")}]
-      processors: [resource_detection, batch]
+      processors: ${PIPELINE_PROCESSORS}
       exporters: [otlp_http/oneuptime]${logsPipeline}
 `;
 }
@@ -371,7 +427,7 @@ service:
   pipelines:
     metrics:
       receivers: [host_metrics, windows_service]
-      processors: [resource_detection, batch]
+      processors: ${PIPELINE_PROCESSORS}
       exporters: [otlp_http/oneuptime]
     logs:
       receivers:
@@ -383,7 +439,7 @@ ${WINDOWS_SECURITY_TOOL_CHANNELS.map(
     return `        - ${tool.receiver}`;
   },
 ).join("\n")}
-      processors: [resource_detection, batch]
+      processors: ${PIPELINE_PROCESSORS}
       exporters: [otlp_http/oneuptime]
 `;
 
@@ -405,11 +461,11 @@ service:
   pipelines:
     metrics:
       receivers: [host_metrics]
-      processors: [resource_detection, batch]
+      processors: ${PIPELINE_PROCESSORS}
       exporters: [otlp_http/oneuptime]
     logs:
       receivers: [file_log/system]
-      processors: [resource_detection, batch]
+      processors: ${PIPELINE_PROCESSORS}
       exporters: [otlp_http/oneuptime]
 `;
 
@@ -430,7 +486,7 @@ service:
   pipelines:
     metrics:
       receivers: [host_metrics]
-      processors: [resource_detection, batch]
+      processors: ${PIPELINE_PROCESSORS}
       exporters: [otlp_http/oneuptime]
 `;
 

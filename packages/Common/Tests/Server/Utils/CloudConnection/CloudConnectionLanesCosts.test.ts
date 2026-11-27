@@ -403,7 +403,7 @@ describe("the savings lane", () => {
       .spyOn(CloudRightSizingWriter, "run")
       .mockImplementation(async () => {
         order.push("right-sizing");
-        return { judged: 3, kept: 1, removed: 0 };
+        return { judged: 3, sizedOnHostMemory: 0, kept: 1, removed: 0 };
       });
     /*
      * What each account holds after both: the read one its recommender's

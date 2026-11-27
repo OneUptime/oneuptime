@@ -1410,9 +1410,11 @@ export class Service extends ProjectReferencesService<Model> {
      * team Platform to the Alert as the owner" - waits for "Alert Created"
      * until then, and follows it in the order it was made
      * (WorkspaceCreatedMessageFirst): its channels hear of the alert first,
-     * then of what happened to it, then its pages.
+     * then of what happened to it, then its pages. Held on every App server
+     * before the create returns, so a message made on another one - by a
+     * page opened on the alert, the API, a probe - waits too (#11198).
      */
-    WorkspaceCreatedMessageFirst.hold({ alertId: createdItem.id });
+    await WorkspaceCreatedMessageFirst.hold({ alertId: createdItem.id });
 
     // Execute operations sequentially with error handling
     Promise.resolve()

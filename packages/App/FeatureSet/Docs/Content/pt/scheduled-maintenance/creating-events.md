@@ -84,9 +84,9 @@ Na aba **Manutenção programada** de um host, um cluster Kubernetes, Proxmox, C
 No momento em que você clica em **Criar evento de manutenção**, o OneUptime percorre estes passos, nesta ordem:
 
 1. **Ele recebe um número e um estado.** O número vem de um contador por projeto e aparece com o seu prefixo (`SM-42`). O evento começa no seu estado agendado, qualquer que seja o estado indicado por uma requisição.
-2. **Suas ferramentas de chat ficam sabendo.** As regras do Slack e do Microsoft Teams em **Espaço de trabalho** o publicam nos canais delas, e uma regra pode criar um canal para o evento. O feed dele registra que foi criado.
-3. **Sua linha do tempo de estado começa.** A primeira linha da **Linha do tempo de estado** dele é o seu estado agendado.
-4. **Proprietários e rótulos são adicionados**: os que você escolheu, depois os das regras de proprietário e de rótulos que correspondem.
+2. **Sua linha do tempo de estado começa.** A primeira linha da **Linha do tempo de estado** dele é o seu estado agendado.
+3. **Proprietários e rótulos são adicionados**: os que você escolheu, depois os das regras de proprietário e de rótulos que correspondem.
+4. **Suas ferramentas de chat ficam sabendo.** As regras do Slack e do Microsoft Teams em **Espaço de trabalho** o publicam nos canais delas, e uma regra pode criar um canal para o evento. O feed dele registra que foi criado. As regras veem os proprietários e os rótulos com que o evento foi criado, então uma regra que pergunta quem é o proprietário de um evento, ou como ele está rotulado, também o publica. O que foi dito sobre o evento nesse meio-tempo, como os proprietários que acabaram de ser adicionados, vem depois dele nesses canais.
 5. **As regras de runbook iniciam** os runbooks que correspondem ao evento.
 6. **Os lembretes são agendados**, quando uma regra de lembrete corresponde, para os proprietários dele.
 

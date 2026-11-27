@@ -9,10 +9,12 @@ import logger from "Common/Server/Utils/Logger";
  * Security Events' erasure requests (#10908), carried out: each minute,
  * every open request is moved on as far as it can go - started once every
  * process refuses the person's tokens, checked done once ClickHouse has
- * applied what it was told (SecurityUserErasure says how). A request is
- * usually Completed a few minutes after it is filed. The run stops between
- * requests, and between pages of a project's Detection Findings (#11044),
- * when its time runs out: a later run carries on.
+ * applied what it was told and a last read of the project's Detection
+ * Findings finds nothing to change (SecurityUserErasure says how). A
+ * request is usually Completed a quarter of an hour after it is filed. The
+ * run stops between requests, and between pages of a project's Detection
+ * Findings, when its time runs out: the request keeps where the read got to
+ * (#11160), and a later run carries on from there.
  */
 RunCron(
   "SecurityEvents:EraseUsers",

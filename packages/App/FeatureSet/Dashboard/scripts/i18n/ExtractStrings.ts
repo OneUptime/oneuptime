@@ -1341,6 +1341,16 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Types/Monitor/CriteriaFilterTerms.ts",
     kind: "keys",
   },
+  /*
+   * A SAN switch's Fibre Channel counters and port types - their names and
+   * what each counter means - as the Interfaces page's chart and the
+   * criteria form's counter picker draw them. Only the marked words are
+   * read: the server keeps its own English.
+   */
+  {
+    directory: "packages/Common/Types/Monitor/SnmpMonitor/SnmpFibreChannel.ts",
+    kind: "keys",
+  },
   {
     directory:
       "packages/Common/Server/Utils/Monitor/Criteria/CompareCriteria.ts",

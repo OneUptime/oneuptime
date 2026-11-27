@@ -1,11 +1,13 @@
 # ネットワークベンダー別ガイド (Sophos、Extreme、Cambium)
 
-OneUptime で 3 つの一般的な環境を最初から最後まで監視する方法です。IPsec トンネル、WAN リンク、SD-WAN を持つ Sophos Firewall(XGS、SFOS)、ファブリックを持つ Extreme Networks のスイッチ(EXOS / Switch Engine と Fabric Engine / VOSS)、そして各無線のチャネルと送信出力まで含めた Cambium Networks の cnMatrix スイッチとエンタープライズ Wi-Fi アクセスポイントです。
+OneUptime で 3 つの一般的な環境を最初から最後まで監視する方法です。IPsec トンネル、WAN リンク、SD-WAN を持つ Sophos Firewall(XGS、SFOS)、ファブリックを持つ Extreme Networks のスイッチ(EXOS / Switch Engine と Fabric Engine / VOSS)、そして各無線のチャネルと送信出力まで含めた Cambium Networks の cnMatrix スイッチとエンタープライズ Wi-Fi アクセスポイントです。SAN スイッチ（Brocade Fabric OS と Cisco MDS 9000）も、各 Fibre Channel ポートのエラーまで扱います。
 
 :::cards
 - [Sophos Firewall](#sophos-firewall-xgs-sfos): トンネル、WAN リンク、ゲートウェイ、SD-WAN。
 - [Extreme Networks](#extreme-networks-exos-switch-engine-と-fabric-engine-voss): スイッチ、ファブリック、そのハードウェア。
 - [Cambium Networks](#cambium-networks-エンタープライズ-wi-fi-と-cnmatrix): 各無線までのアクセスポイントと、cnMatrix スイッチ。
+- [Brocade Fabric OS](#brocade-fabric-os): Fibre Channel ポート、光モジュール、センサー、ファブリックのイベント。
+- [Cisco MDS 9000](#cisco-mds-9000): Fibre Channel インターフェース、VSAN、スロードレイン、ポートモニターのアラーム。
 :::
 
 ## 仕組み
@@ -145,6 +147,76 @@ Cambium がクライアントの総数を報告するのはファームウェア
 ### cnMaestro のアラーム
 
 cnMaestro は、アクセスポイントのオフラインなどのアラームを HTTPS の Webhook に送れます。それを [受信リクエストモニター](/docs/monitor/incoming-request-monitor) に向けると、それらのアラームが SNMP のデータと並ぶ OneUptime のインシデントになります。
+
+## Brocade Fabric OS
+
+| 見たいもの | 取得元 |
+| --- | --- |
+| スイッチの状態、ファームウェア、CPU、メモリ | SNMP と、ベンダーテンプレート **Brocade Fabric OS (SAN switches)** |
+| スイッチのステータス、センサー、交換可能ユニット（FRU）を行ごとに | テンプレートのテーブル `switch_status`、`sensors`、`frus` |
+| 各 Fibre Channel ポートの種類、ダウンしたポートがダウンしている理由、毎秒のエラー、破棄されたフレーム、クレジット待ち | SW-MIB と FCMGMT-MIB、デバイスの **インターフェース** ページ |
+| 各光モジュールの受信・送信パワー、温度、電圧、バイアス電流 | FA-EXT-MIB、**トランシーバー** カード |
+| スイッチ間リンクのダウン、ファブリックの分断や再構成、ゾーニングの変更、MAPS のアラート、FRU の変更 | SNMPv3 トラップ |
+
+Fabric OS のスイッチとディレクターはすべて `1.3.6.1.4.1.1588.2.1.1` 配下のシステムオブジェクト ID を報告するので、テンプレートはそのすべてに適用され、Brocade のほかの製品には適用されません。VDX と SLX のスイッチは今のテンプレートのままです。
+
+### Fabric OS で SNMP を設定する
+
+:::steps
+1. 認証と暗号化（SHA と AES）を使う SNMPv3 ユーザーを追加します。`snmpconfig --set snmpv3` がユーザー、プロトコル、パスフレーズを尋ねます。
+2. `snmpconfig --set mibCapability` で FA-MIB を有効にします。各ポートの 64 ビットのエラーカウンターと光モジュールはここにあります。無効だと、ポートは CRC エラー、符号化エラー、クラス 3 の破棄フレーム、クレジット待ちだけを 32 ビットのカウンターで報告します。
+3. OneUptime で、管理アドレスとそのユーザーでスイッチを追加します。**ベンダーのヘルステンプレートを自動適用** がオンなら最初のポーリングでテンプレート **Brocade Fabric OS (SAN switches)** が適用されます。オフなら、デバイスの **設定** ページの **ベンダーのヘルステンプレート** から適用します。
+:::
+
+これでデバイスの **インターフェース** ページは、各 Fibre Channel ポートに E-Port や F-Port などの種類を付け、ダウンしたポートの理由を `switchshow` と同じ言葉（No light、No module、Disabled）で示します。**Fibre Channel ポート** カードは、各ポートのエラー、破棄されたフレーム、クレジットのカウンターを 1 秒あたりでグラフにします。
+
+ポートの CRC エラー、無効な伝送ワード、リンク障害、同期と信号の喪失がそのポートのエラーです。**SNMP インターフェースのエラー（1 秒あたり）** がそれでアラートを出し、推奨アラートには 10 秒に 1 回を超えるエラーで発生する **Fibre Channel port errors** が含まれます。破棄されたフレームとクレジット待ちはエラーではありません。そのどれかでアラートを出すには **SNMP Fibre Channel カウンター（1 秒あたり）** を使います。
+
+### Virtual Fabrics
+
+Virtual Fabrics を使うシャーシは、論理スイッチごとに独自の SNMPv3 コンテキスト（`VF:` と論理スイッチのファブリック ID）で応答します。論理スイッチごとに 1 台のデバイスを、すべてシャーシの管理アドレスで追加し、それぞれに **SNMP v3 のコンテキスト**（`VF:128`、`VF:20`）を設定します。コンテキストのないデバイスは既定の論理スイッチを読み取ります。
+
+### Brocade のトラップ
+
+Fabric OS はトラップを SNMPv3 で送ります。`snmpconfig --set snmpv3` で、OneUptime がポーリングに使うユーザーのトラップの宛先として、UDP ポート 162 のプローブを追加します。プローブは、ポーリングするデバイスのユーザーの SNMPv3 トラップを受け付けます（[SNMPv3 のトラップと inform](/docs/monitor/network-device-monitor#snmpv3-のトラップと-inform) を参照）。各論理スイッチのトラップはそのコンテキストを名乗るので、その論理スイッチのデバイスでだけ発生します。Fabric OS のアップグレードで個々のトラップがまたオフになることがあります。アップグレード後に `snmpconfig --show mibCapability` で確認し、`snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn` でオンに戻します。
+
+Brocade スイッチの推奨アラートには、重要なファブリックのイベントごとに 1 つずつ含まれます。**Inter-switch link down**（E-Port のオフライン）、**Fabric segmented**、**Fabric reconfigured**、**Zone configuration changed**、**MAPS alert**、**Field-replaceable unit changed** です。
+
+## Cisco MDS 9000
+
+| 見たいもの | 取得元 |
+| --- | --- |
+| CPU とメモリ | SNMP と、ベンダーテンプレート **Cisco MDS 9000 (SAN switches)** |
+| 電源、モジュール、ファントレイを行ごとに | テンプレートのテーブル `power_supplies`、`modules`、`fan_trays` |
+| すべての VSAN とその状態 | テンプレートのテーブル `vsans` |
+| 各 fc インターフェースの種類、ダウンしたインターフェースがダウンしている理由、毎秒のエラー、破棄されたフレーム、クレジットロス、クレジット待ち | CISCO-FC-FE-MIB、デバイスの **インターフェース** ページ |
+| 各光モジュールの測定値とアラームのしきい値 | CISCO-ENTITY-SENSOR-MIB、**トランシーバー** カード |
+| ポートモニターのアラーム、リンクのダウン、ゾーン、VSAN、ファブリック、FRU の変更 | トラップ |
+
+MDS は Cisco のエンタープライズ番号をほかのすべての Cisco デバイスと共有するため、OneUptime はモデル、または `Cisco NX-OS(tm) m9` で始まるシステムの説明で MDS を見分けます。IOS、IOS-XE、Nexus のスイッチは今の Cisco テンプレートのままです。
+
+### NX-OS で SNMP を設定する
+
+:::steps
+1. 読み取り専用の SNMPv3 ユーザーを追加します: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`。`network-operator` ロールは読み取るだけで、何も変更できません。
+2. そのユーザーでトラップをプローブに送ります: `snmp-server host <probe-address> traps version 3 priv oneuptime`。
+3. 既定でオフのトラップをオンにします: `snmp-server enable traps zone`、`snmp-server enable traps vsan`、`snmp-server enable traps fcdomain`、`snmp-server enable traps fspf`、そして光モジュール用に `snmp-server enable traps link cisco-xcvr-mon-status-chg`。
+4. OneUptime で、管理アドレスとそのユーザーでスイッチを追加します。テンプレート **Cisco MDS 9000 (SAN switches)** は同じように適用されます。
+:::
+
+MDS の推奨アラートには、インターフェースごとに 1 回の **Credit loss (slow drain)** と **Timeout discards (slow drain)** が含まれます。バッファークレジットを返さなくなったホストやアレイは、その後ろのすべてのフローを遅くし、これらのカウンターが最初にそれを示します。
+
+### ポートモニターのアラーム
+
+MDS のポートモニターのポリシーは、ポートのカウンターがしきい値を超えると RMON アラームを発生させます。推奨アラートには **Port monitor alarm** が含まれ、そのアラートは "Port monitor: Credit loss rising on fc1/5" のようにカウンターとインターフェースを名指しします。スロードレインを監視するポリシーの例です:
+
+```text
+port-monitor name slow-drain
+  logical-type edge
+  counter credit-loss-reco poll-interval 1 delta rising-threshold 1 event 4 falling-threshold 0 event 4
+  counter timeout-discards poll-interval 60 delta rising-threshold 200 event 4 falling-threshold 10 event 4
+port-monitor activate slow-drain
+```
 
 ## トラブルシューティング
 

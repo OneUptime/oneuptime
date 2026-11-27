@@ -92,6 +92,19 @@ jest.mock("../../../Server/Services/MonitorTemplateService", () => {
   };
 });
 
+/*
+ * The monitors whose steps watch a device (issue #10990), which the shared
+ * duplicate check reads beside the ones made for, tied to and bound to it.
+ */
+jest.mock("../../../Server/Services/MonitorNetworkDeviceService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findMonitorIdsWatching: jest.fn(),
+    },
+  };
+});
+
 jest.mock("../../../Server/Infrastructure/Semaphore", () => {
   return {
     __esModule: true,
@@ -135,6 +148,7 @@ import NetworkDeviceDiscoveryScanService from "../../../Server/Services/NetworkD
 import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorTemplateService from "../../../Server/Services/MonitorTemplateService";
+import MonitorNetworkDeviceService from "../../../Server/Services/MonitorNetworkDeviceService";
 import Semaphore from "../../../Server/Infrastructure/Semaphore";
 import logger from "../../../Server/Utils/Logger";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
@@ -223,6 +237,8 @@ const monitorFindByMock: jest.Mock =
   MonitorService.findBy as unknown as jest.Mock;
 const monitorFindOneByMock: jest.Mock =
   MonitorService.findOneBy as unknown as jest.Mock;
+const monitorsWatchingMock: jest.Mock =
+  MonitorNetworkDeviceService.findMonitorIdsWatching as unknown as jest.Mock;
 const monitorTemplateFindByMock: jest.Mock =
   MonitorTemplateService.findBy as unknown as jest.Mock;
 const scanFindOneByMock: jest.Mock =
@@ -412,6 +428,118 @@ function provisionedMonitor(callIndex: number): Monitor {
   return monitorCreateMock.mock.calls[callIndex]![0].data as Monitor;
 }
 
+/*
+ * The monitors a project has, as each read asks for them (issue #10990):
+ * the project's snapshot of its Network Device monitors, the ones made for
+ * a device (autoProvisionedNetworkDeviceId), the ones tied to it
+ * (networkDeviceId), and the ones read by id - the monitors watching it,
+ * whose ids MonitorNetworkDevice lists. Each answers only for the device it
+ * names, as the database would.
+ */
+interface ProjectMonitors {
+  snapshot?: Array<Monitor>;
+  madeFor?: Array<Monitor>;
+  tiedTo?: Array<Monitor>;
+  watching?: Array<Monitor>;
+}
+
+// Whether a monitor's steps name the device, as MonitorNetworkDevice records.
+function watchesDevice(monitor: Monitor, deviceId: string): boolean {
+  return (monitor.monitorSteps?.data?.monitorStepsInstanceArray || []).some(
+    (step: MonitorStep): boolean => {
+      return step.data?.networkDeviceMonitor?.networkDeviceId === deviceId;
+    },
+  );
+}
+
+function answerMonitorReads(monitors: ProjectMonitors): void {
+  /*
+   * The ids the last watching lookup answered with: the read by id that
+   * follows it names exactly those.
+   */
+  let lastWatchingIds: Array<string> = [];
+
+  monitorsWatchingMock.mockImplementation(
+    async (data: { deviceIds: Array<string> }): Promise<Array<string>> => {
+      lastWatchingIds = (monitors.watching || [])
+        .filter((monitor: Monitor): boolean => {
+          return data.deviceIds.some((deviceId: string): boolean => {
+            return watchesDevice(monitor, deviceId);
+          });
+        })
+        .map((monitor: Monitor): string => {
+          return monitor.id!.toString();
+        });
+
+      return lastWatchingIds;
+    },
+  );
+
+  monitorFindByMock.mockImplementation(
+    async (data: {
+      query: Record<string, unknown>;
+    }): Promise<Array<Monitor>> => {
+      const query: Record<string, unknown> = data.query;
+
+      if (query["autoProvisionedNetworkDeviceId"]) {
+        const deviceId: string = String(
+          query["autoProvisionedNetworkDeviceId"],
+        );
+
+        return (monitors.madeFor || []).filter((monitor: Monitor): boolean => {
+          return (
+            monitor.autoProvisionedNetworkDeviceId?.toString() === deviceId
+          );
+        });
+      }
+
+      if (query["networkDeviceId"]) {
+        const deviceId: string = String(query["networkDeviceId"]);
+
+        return (monitors.tiedTo || []).filter((monitor: Monitor): boolean => {
+          return monitor.networkDeviceId?.toString() === deviceId;
+        });
+      }
+
+      if (query["_id"]) {
+        return (monitors.watching || []).filter((monitor: Monitor): boolean => {
+          return lastWatchingIds.includes(monitor.id!.toString());
+        });
+      }
+
+      return monitors.snapshot || [];
+    },
+  );
+}
+
+// A Network Device monitor watching the device, as a person might make one.
+function makeDeviceMonitor(data: {
+  deviceId: ObjectID;
+  monitorTemplateId?: ObjectID | undefined;
+  madeForDeviceId?: ObjectID | undefined;
+  tiedToDeviceId?: ObjectID | undefined;
+}): Monitor {
+  const monitor: Monitor = new Monitor();
+  monitor.id = ObjectID.generate();
+  monitor.name = "core-switch-01 CPU";
+  monitor.monitorType = MonitorType.NetworkDevice;
+  monitor.monitorSteps = makeMonitorSteps(data.deviceId.toString());
+
+  if (data.monitorTemplateId) {
+    monitor.monitorTemplateId = data.monitorTemplateId;
+  }
+
+  if (data.madeForDeviceId) {
+    monitor.autoProvisionedNetworkDeviceId = data.madeForDeviceId;
+  }
+
+  if (data.tiedToDeviceId) {
+    monitor.networkDeviceId = data.tiedToDeviceId;
+  }
+
+  return monitor;
+}
+
 // Enough unique in-target addresses to overrun the attempt budget.
 function makeHostsBeyondTheCap(): Array<DiscoveredNetworkDevice> {
   const hosts: Array<DiscoveredNetworkDevice> = [];
@@ -512,6 +640,7 @@ beforeEach(() => {
   );
   monitorFindByMock.mockResolvedValue([]);
   monitorFindOneByMock.mockResolvedValue(null);
+  monitorsWatchingMock.mockResolvedValue([]);
   monitorTemplateFindByMock.mockResolvedValue([]);
   monitorCreateMock.mockImplementation(
     ({ data }: { data: Monitor }): Promise<Monitor> => {
@@ -977,20 +1106,96 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       ).toBe(existingDevice.id?.toString());
     });
 
-    it("does not duplicate a manually configured monitor already watching the device", async () => {
+    /*
+     * ISSUE #10990. A device that already has a Network Device monitor a
+     * person made - for one OID, say - has no monitor from the rule's
+     * template, and gets one. The engine used to count ANY Network Device
+     * monitor watching the device as "already monitored" and skip every
+     * template for it, unlike the rest of the product, where only the same
+     * template is a duplicate (DeviceMonitorDuplicates).
+     */
+    it("gives a device the template's monitor beside a monitor a person made with no template (#10990)", async () => {
       const existingDevice: NetworkDevice = makeExistingDevice();
-      const manualMonitor: Monitor = new Monitor();
-      manualMonitor.id = ObjectID.generate();
-      manualMonitor.monitorType = MonitorType.NetworkDevice;
-      manualMonitor.monitorSteps = makeMonitorSteps(
-        existingDevice.id!.toString(),
-      );
+      const handMade: Monitor = makeDeviceMonitor({
+        deviceId: existingDevice.id!,
+      });
 
       scanFindOneByMock.mockResolvedValue(
         makeScan({ discoveredDevices: [makeHost()] }),
       );
       deviceFindByMock.mockResolvedValue([existingDevice]);
-      monitorFindByMock.mockResolvedValue([manualMonitor]);
+      answerMonitorReads({ snapshot: [handMade], watching: [handMade] });
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        hostsSkippedAlreadyRegistered: 1,
+        devicesCreated: 0,
+        monitorsCreated: 1,
+        monitorsSkippedAlreadyExisting: 0,
+      });
+      expect(monitorCreateMock).toHaveBeenCalledTimes(1);
+      expect(
+        provisionedMonitor(0).autoProvisionedNetworkDeviceId?.toString(),
+      ).toBe(existingDevice.id!.toString());
+      expect(provisionedMonitor(0).monitorTemplateId?.toString()).toBe(
+        TEMPLATE_ID.toString(),
+      );
+      // Read by the device, through MonitorNetworkDevice.
+      expect(monitorsWatchingMock).toHaveBeenCalledWith({
+        projectId: PROJECT_ID,
+        deviceIds: [existingDevice.id!.toString()],
+      });
+    });
+
+    it("never duplicates a monitor a person made from the same template that watches the device (#10990)", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      // Create from template on the Monitors page: linked, never "made for".
+      const fromTheTemplate: Monitor = makeDeviceMonitor({
+        deviceId: existingDevice.id!,
+        monitorTemplateId: TEMPLATE_ID,
+      });
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      answerMonitorReads({
+        snapshot: [fromTheTemplate],
+        watching: [fromTheTemplate],
+      });
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+        monitorsFailed: 0,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
+
+    it("never duplicates a monitor from the same template a person tied to the device (#10990)", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const tied: Monitor = makeDeviceMonitor({
+        deviceId: existingDevice.id!,
+        monitorTemplateId: TEMPLATE_ID,
+        tiedToDeviceId: existingDevice.id!,
+      });
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      answerMonitorReads({ tiedTo: [tied] });
       ruleFindByMock.mockResolvedValue([
         makeRule({ monitorTemplateId: TEMPLATE_ID }),
       ]);
@@ -1003,7 +1208,105 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
         monitorsSkippedAlreadyExisting: 1,
       });
       expect(monitorCreateMock).not.toHaveBeenCalled();
-      expect(monitorFindByMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("never duplicates the template's monitor bound to the device as its status monitor (#10990)", async () => {
+      const boundMonitor: Monitor = makeDeviceMonitor({
+        deviceId: new ObjectID("44444444-4444-4444-8444-444444444444"),
+        monitorTemplateId: TEMPLATE_ID,
+      });
+      const existingDevice: NetworkDevice = makeExistingDevice({
+        monitorId: boundMonitor.id,
+      });
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      answerMonitorReads({});
+      monitorFindOneByMock.mockResolvedValue(boundMonitor);
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 0,
+        monitorsSkippedAlreadyExisting: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
+    });
+
+    it("gives a device a Network Device template's monitor beside its Ping monitor (#10990)", async () => {
+      const ping: Monitor = new Monitor();
+      ping.id = ObjectID.generate();
+      ping.name = "core-switch-01";
+      ping.monitorType = MonitorType.Ping;
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      ping.networkDeviceId = existingDevice.id!;
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      answerMonitorReads({ tiedTo: [ping] });
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 1,
+        monitorsSkippedAlreadyExisting: 0,
+      });
+    });
+
+    it("lets a dry run predict the monitor a hand-made one does not stop, and skip the one the template already made (#10990)", async () => {
+      const handMadeDevice: NetworkDevice = makeExistingDevice();
+      const monitoredDevice: NetworkDevice = makeExistingDevice({
+        id: new ObjectID("55555555-5555-4555-8555-555555555555"),
+        name: "core-switch-02",
+        hostname: "10.0.0.6",
+      });
+
+      mockRunNowScans([
+        makeScan({
+          discoveredDevices: [
+            makeHost(),
+            makeHost({ ipAddress: "10.0.0.6", sysName: "core-switch-02" }),
+          ],
+        }),
+      ]);
+      deviceFindByMock.mockResolvedValue([handMadeDevice, monitoredDevice]);
+      answerMonitorReads({
+        watching: [makeDeviceMonitor({ deviceId: handMadeDevice.id! })],
+        madeFor: [
+          makeDeviceMonitor({
+            deviceId: monitoredDevice.id!,
+            monitorTemplateId: TEMPLATE_ID,
+            madeForDeviceId: monitoredDevice.id!,
+          }),
+        ],
+      });
+      ruleFindOneByMock.mockResolvedValue(
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      );
+      ruleFindByMock.mockResolvedValue([]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult = await runRule(true);
+
+      expect(result).toMatchObject({
+        isDryRun: true,
+        hostsSkippedAlreadyRegistered: 2,
+        monitorsWouldCreate: 1,
+        monitorsSkippedAlreadyExisting: 1,
+      });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
     });
 
     it("uses provenance to skip an automatic monitor that already exists", async () => {
@@ -1228,21 +1531,24 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       expect(monitorCreateMock).not.toHaveBeenCalled();
     });
 
-    it("sees a manual monitor created after the initial project snapshot", async () => {
+    /*
+     * The project's snapshot is read once per sweep; a monitor a person made
+     * from the template after it is seen all the same, because the device's
+     * own monitors are read right before anything is made for it.
+     */
+    it("sees a monitor from the template a person made after the project's snapshot", async () => {
       const existingDevice: NetworkDevice = makeExistingDevice();
-      const manualMonitor: Monitor = new Monitor();
-      manualMonitor.monitorType = MonitorType.NetworkDevice;
-      manualMonitor.monitorSteps = makeMonitorSteps(
-        existingDevice.id!.toString(),
-      );
+      const madeLater: Monitor = makeDeviceMonitor({
+        deviceId: existingDevice.id!,
+        monitorTemplateId: TEMPLATE_ID,
+      });
 
       scanFindOneByMock.mockResolvedValue(
         makeScan({ discoveredDevices: [makeHost()] }),
       );
       deviceFindByMock.mockResolvedValue([existingDevice]);
-      monitorFindByMock
-        .mockResolvedValueOnce([])
-        .mockResolvedValueOnce([manualMonitor]);
+      // Not in the snapshot: made after it was read.
+      answerMonitorReads({ snapshot: [], watching: [madeLater] });
       ruleFindByMock.mockResolvedValue([
         makeRule({ monitorTemplateId: TEMPLATE_ID }),
       ]);
@@ -1255,8 +1561,23 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
         monitorsSkippedAlreadyExisting: 1,
       });
       expect(monitorCreateMock).not.toHaveBeenCalled();
-      expect(monitorFindByMock).toHaveBeenCalledTimes(2);
-      expect(monitorFindByMock.mock.calls[1]![0].select.monitorType).toBe(true);
+      // The monitors read by id are read with what tells a duplicate.
+      const readById: { select: Record<string, unknown> } | undefined =
+        monitorFindByMock.mock.calls
+          .map((call: Array<unknown>) => {
+            return call[0] as {
+              query: Record<string, unknown>;
+              select: Record<string, unknown>;
+            };
+          })
+          .find((call: { query: Record<string, unknown> }): boolean => {
+            return Boolean(call.query["_id"]);
+          });
+      expect(readById?.select).toMatchObject({
+        monitorType: true,
+        monitorTemplateId: true,
+        monitorSteps: true,
+      });
     });
 
     it("reports a conflicting drifted provenance row instead of treating it as a successful race winner", async () => {
@@ -1274,7 +1595,11 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
         makeScan({ discoveredDevices: [makeHost()] }),
       );
       deviceFindByMock.mockResolvedValue([existingDevice]);
-      monitorFindByMock.mockResolvedValue([driftedMonitor]);
+      /*
+       * In the project's snapshot, and not yet among the device's own
+       * monitors when they were read: another writer made it in between.
+       */
+      answerMonitorReads({ snapshot: [driftedMonitor] });
       monitorCreateMock.mockRejectedValue(new Error("duplicate key"));
       monitorFindOneByMock.mockResolvedValue(driftedMonitor);
       ruleFindByMock.mockResolvedValue([
@@ -1329,20 +1654,58 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       });
     });
 
-    it("treats an automatic monitor orphaned from its template as an existing operator-managed monitor", async () => {
+    /*
+     * ISSUE #10990. Deleting a template unlinks its monitors (the foreign key
+     * sets monitorTemplateId to NULL), and the engine used to read such a
+     * monitor as one a person configured - so every device an old template
+     * had monitored was skipped by every new template, for good.
+     */
+    it("gives a device whose earlier template was deleted the rule's template's monitor (#10990)", async () => {
       const existingDevice: NetworkDevice = makeExistingDevice();
-      const orphanedMonitor: Monitor = new Monitor();
-      orphanedMonitor.monitorType = MonitorType.NetworkDevice;
-      orphanedMonitor.autoProvisionedNetworkDeviceId = existingDevice.id!;
-      orphanedMonitor.monitorSteps = makeMonitorSteps(
-        existingDevice.id!.toString(),
-      );
+      const orphanedMonitor: Monitor = makeDeviceMonitor({
+        deviceId: existingDevice.id!,
+        madeForDeviceId: existingDevice.id!,
+      });
 
       scanFindOneByMock.mockResolvedValue(
         makeScan({ discoveredDevices: [makeHost()] }),
       );
       deviceFindByMock.mockResolvedValue([existingDevice]);
-      monitorFindByMock.mockResolvedValue([orphanedMonitor]);
+      answerMonitorReads({
+        snapshot: [orphanedMonitor],
+        madeFor: [orphanedMonitor],
+        watching: [orphanedMonitor],
+      });
+      ruleFindByMock.mockResolvedValue([
+        makeRule({ monitorTemplateId: TEMPLATE_ID }),
+      ]);
+      monitorTemplateFindByMock.mockResolvedValue([makeTemplate()]);
+
+      const result: AutoImportRuleRunResult | null = await processScan();
+
+      expect(result).toMatchObject({
+        monitorsCreated: 1,
+        monitorsSkippedAlreadyExisting: 0,
+      });
+      expect(provisionedMonitor(0).monitorTemplateId?.toString()).toBe(
+        TEMPLATE_ID.toString(),
+      );
+    });
+
+    it("still skips a device that has the template's monitor made for it", async () => {
+      const existingDevice: NetworkDevice = makeExistingDevice();
+      const fromTheTemplate: Monitor = makeDeviceMonitor({
+        deviceId: existingDevice.id!,
+        monitorTemplateId: TEMPLATE_ID,
+        madeForDeviceId: existingDevice.id!,
+      });
+
+      scanFindOneByMock.mockResolvedValue(
+        makeScan({ discoveredDevices: [makeHost()] }),
+      );
+      deviceFindByMock.mockResolvedValue([existingDevice]);
+      // A sweep's snapshot of another project, or one read before it was made.
+      answerMonitorReads({ snapshot: [], madeFor: [fromTheTemplate] });
       ruleFindByMock.mockResolvedValue([
         makeRule({ monitorTemplateId: TEMPLATE_ID }),
       ]);
@@ -1354,6 +1717,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
         monitorsCreated: 0,
         monitorsSkippedAlreadyExisting: 1,
       });
+      expect(monitorCreateMock).not.toHaveBeenCalled();
     });
 
     it("attempts one failed device-template key only once per run even when the host is duplicated", async () => {
@@ -2074,7 +2438,7 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
     ).toBe(false);
   });
 
-  it("does not run a per-device monitor JSON search after the inherited monitor budget is exhausted", async () => {
+  it("does not read a device's monitors after the inherited monitor budget is exhausted", async () => {
     const existingDevice: NetworkDevice = makeExistingDevice();
     scanFindOneByMock.mockResolvedValue(
       makeScan({ discoveredDevices: [makeHost()] }),
@@ -2107,8 +2471,9 @@ describe("NetworkDeviceAutoImportRuleEngineService.processCompletedScan", () => 
       monitorsFailed: 0,
       isTruncated: true,
     });
-    // One project snapshot only; no second JSON-search refresh for the host.
+    // One project snapshot only; the host's own monitors are never read.
     expect(monitorFindByMock).toHaveBeenCalledTimes(1);
+    expect(monitorsWatchingMock).not.toHaveBeenCalled();
     expect(monitorCreateMock).not.toHaveBeenCalled();
     expect(scanUpdateMock).not.toHaveBeenCalled();
   });
@@ -3194,9 +3559,29 @@ describe("a capped run reports the remainder (issue #3642)", () => {
         return Promise.resolve(data);
       },
     );
-    monitorFindByMock.mockImplementation((): Promise<Array<Monitor>> => {
-      return Promise.resolve(provisioned);
-    });
+    monitorFindByMock.mockImplementation(
+      (data: { query: Record<string, unknown> }): Promise<Array<Monitor>> => {
+        const madeFor: unknown = data.query["autoProvisionedNetworkDeviceId"];
+
+        // A device's own read names the device; the snapshot names none.
+        if (madeFor) {
+          return Promise.resolve(
+            provisioned.filter((monitor: Monitor): boolean => {
+              return (
+                monitor.autoProvisionedNetworkDeviceId?.toString() ===
+                String(madeFor)
+              );
+            }),
+          );
+        }
+
+        if (data.query["networkDeviceId"] || data.query["_id"]) {
+          return Promise.resolve([]);
+        }
+
+        return Promise.resolve(provisioned);
+      },
+    );
 
     ruleFindOneByMock.mockResolvedValue(
       makeRule({ ipMatchTarget: "10.0.0.0/8", monitorTemplateId: TEMPLATE_ID }),
@@ -3323,11 +3708,16 @@ describe("a capped run reports the remainder (issue #3642)", () => {
     await processScan();
 
     /*
-     * One project-wide snapshot plus one race-check per device the run
-     * actually attempted — and none for the 100 it merely counted.
+     * One project-wide snapshot plus one read of each attempted device's own
+     * monitors (DeviceMonitorDuplicateCheck: the ones made for it and the
+     * ones tied to it, two indexed reads, and the ones watching it, one
+     * lookup) — and none for the 100 it merely counted.
      */
     expect(monitorFindByMock).toHaveBeenCalledTimes(
-      1 + MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+      1 + 2 * MAX_MONITORS_PER_AUTO_IMPORT_RUN,
+    );
+    expect(monitorsWatchingMock).toHaveBeenCalledTimes(
+      MAX_MONITORS_PER_AUTO_IMPORT_RUN,
     );
   });
 

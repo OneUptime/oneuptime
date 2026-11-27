@@ -18,10 +18,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Both columns have a constant default, so they are added without
  * rewriting a row.
  */
-export class AddKeepMonitoringDuringIncidents1809187731141
+export class AddKeepMonitoringDuringIncidents1809187751141
   implements MigrationInterface
 {
-  public name: string = "AddKeepMonitoringDuringIncidents1809187731141";
+  public name: string = "AddKeepMonitoringDuringIncidents1809187751141";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

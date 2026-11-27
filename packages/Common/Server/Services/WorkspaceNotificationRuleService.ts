@@ -2110,8 +2110,9 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    * record is being created, a message that does not announce it waits for
    * the one that does - its Created message - and is posted right after it,
    * in the order it was made (WorkspaceCreatedMessageFirst): the record's
-   * channels hear of the record first, then of what happened to it. Asked
-   * before anything else, so the messages keep the order they were made in.
+   * channels hear of the record first, then of what happened to it - on
+   * whichever App server the message is made (#11198). Asked before
+   * anything else, so the messages keep the order they were made in.
    */
   @CaptureSpan()
   public async sendWorkspaceMarkdownNotification(
@@ -2119,12 +2120,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   ): Promise<void> {
     if (
       !data.workspaceNotification.announcesRecord &&
-      WorkspaceCreatedMessageFirst.keep({
+      (await WorkspaceCreatedMessageFirst.keep({
         record: data.notificationFor,
         post: (): Promise<void> => {
           return this.postWorkspaceMarkdownNotification(data);
         },
-      })
+      }))
     ) {
       return;
     }

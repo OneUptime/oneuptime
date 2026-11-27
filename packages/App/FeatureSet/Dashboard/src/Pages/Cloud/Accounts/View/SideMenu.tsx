@@ -90,6 +90,20 @@ const CloudAccountSideMenu: FunctionComponent<ComponentProps> = (
           }}
           icon={IconProp.Billing}
         />
+        {/*
+         * Its required tags, how much of its spend and resources carry
+         * them, and its resources that lack one (#11012).
+         */}
+        <SideMenuItem
+          link={{
+            title: "Tags",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_TAGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Tag}
+        />
       </SideMenuSection>
 
       {/*

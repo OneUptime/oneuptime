@@ -65,6 +65,11 @@ class MonitorMetricTypeUtil {
         return AggregationType.Avg;
       case MonitorMetricType.Jitter:
         return AggregationType.Avg;
+      // Reachable only when every poll in the bucket was, like IsOnline.
+      case MonitorMetricType.IcmpIsReachable:
+        return AggregationType.Min;
+      case MonitorMetricType.IcmpResponseTime:
+        return AggregationType.Avg;
       case MonitorMetricType.DnsLookupTime:
       case MonitorMetricType.TcpConnectTime:
       case MonitorMetricType.TlsHandshakeTime:
@@ -177,6 +182,17 @@ class MonitorMetricTypeUtil {
       case CheckOn.ExternalStatusPageResponseTime:
       case CheckOn.NtpResponseTime:
         return MonitorMetricType.ResponseTime;
+      /*
+       * A network device's ping on its own (issue #11071): series of their
+       * own, and the Ping monitor's packet loss, which a device's poll
+       * writes too.
+       */
+      case CheckOn.IcmpIsReachable:
+        return MonitorMetricType.IcmpIsReachable;
+      case CheckOn.IcmpResponseTime:
+        return MonitorMetricType.IcmpResponseTime;
+      case CheckOn.IcmpPacketLossPercent:
+        return MonitorMetricType.PacketLossPercent;
       default:
         break;
     }
@@ -348,6 +364,9 @@ class MonitorMetricTypeUtil {
       return [
         MonitorMetricType.IsOnline,
         MonitorMetricType.ResponseTime,
+        MonitorMetricType.IcmpIsReachable,
+        MonitorMetricType.IcmpResponseTime,
+        MonitorMetricType.PacketLossPercent,
         MonitorMetricType.SnmpInterfaceOperStatus,
         MonitorMetricType.SnmpInterfaceInBitsPerSecond,
         MonitorMetricType.SnmpInterfaceOutBitsPerSecond,
@@ -528,8 +547,15 @@ class MonitorMetricTypeUtil {
       return [
         {
           title: "Availability",
-          description: "Device reachability and SNMP response time.",
-          metrics: [MonitorMetricType.IsOnline, MonitorMetricType.ResponseTime],
+          description:
+            "Device reachability, its ping on its own, and SNMP response time.",
+          metrics: [
+            MonitorMetricType.IsOnline,
+            MonitorMetricType.ResponseTime,
+            MonitorMetricType.IcmpIsReachable,
+            MonitorMetricType.IcmpResponseTime,
+            MonitorMetricType.PacketLossPercent,
+          ],
         },
         {
           title: "Interfaces",
@@ -619,6 +645,10 @@ class MonitorMetricTypeUtil {
         return translationKey("Packet Loss");
       case MonitorMetricType.Jitter:
         return translationKey("Jitter");
+      case MonitorMetricType.IcmpIsReachable:
+        return translationKey("Reachable by Ping (ICMP)");
+      case MonitorMetricType.IcmpResponseTime:
+        return translationKey("ICMP Response Time");
       case MonitorMetricType.DnsLookupTime:
         return translationKey("DNS Lookup Time");
       case MonitorMetricType.TcpConnectTime:
@@ -754,6 +784,10 @@ class MonitorMetricTypeUtil {
         return "%";
       case MonitorMetricType.Jitter:
         return "ms";
+      case MonitorMetricType.IcmpIsReachable:
+        return "";
+      case MonitorMetricType.IcmpResponseTime:
+        return "ms";
       case MonitorMetricType.DnsLookupTime:
       case MonitorMetricType.TcpConnectTime:
       case MonitorMetricType.TlsHandshakeTime:
@@ -875,6 +909,14 @@ class MonitorMetricTypeUtil {
       case MonitorMetricType.Jitter:
         return translationKey(
           "Variation in round-trip time across the packets sent in each check (standard deviation). High jitter degrades real-time traffic like VoIP and video even when average latency looks healthy.",
+        );
+      case MonitorMetricType.IcmpIsReachable:
+        return translationKey(
+          "Whether the device answered its probe's ping on each poll (1) or not (0), whatever its SNMP walk did. A device that answers ping while its walk fails is up, with SNMP failing.",
+        );
+      case MonitorMetricType.IcmpResponseTime:
+        return translationKey(
+          "Average round-trip time of the ping the probe sends the device on each poll. Never the SNMP walk's time, which is the response time series.",
         );
       case MonitorMetricType.DnsLookupTime:
         return translationKey(
