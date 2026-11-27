@@ -10,7 +10,6 @@ import {
   TELEMETRY_LEAK_EVAL_SET,
   TelemetryLeakEvalCase,
 } from "../../../../../../Server/Utils/AI/Eval/DataSecurity/TelemetryLeakEvalSet";
-import { DataStoreKind } from "../../../../../../Types/DataSecurity/DataStoreKind";
 import { SensitiveDataCandidate } from "../../../../../../Server/Utils/CodeRepository/ProductionReview/SensitiveData/SensitiveDataCandidate";
 import SensitiveDataRules, {
   SensitiveDataRulesResult,
@@ -24,6 +23,10 @@ import {
 } from "../../../../../../Types/CodeRepository/ProductionReviewSensitiveData";
 import { getDataSecurityCheck } from "../../../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import DataSensitivity from "../../../../../../Types/DataSecurity/DataSensitivity";
+import {
+  TelemetryLeakSignal,
+  getTelemetryLeakSignalOf,
+} from "../../../../../../Types/DataSecurity/TelemetryLeakFix";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -404,15 +407,47 @@ describe("what the rules read, and how much", () => {
  * Had that code come in a pull request, its review's rules would have
  * given a point on that line (or the lines of the call it starts), under
  * the same check and for the same kind of telemetry.
+ *
+ * A RUM application's leaks joined the set with its fix (#10933): a
+ * browser's log and span are written by the same calls a service's are,
+ * so a review catches them too. A session's details are not: identify()
+ * writes no log, span, metric, exception or prompt, the calls a review
+ * reads, so a session identified by an email is found once it ships.
  */
-describe("every leak Data Security locates in a service's code, the review of the pull request that added it catches", () => {
-  const SINK_OF_STORE: Partial<Record<DataStoreKind, SensitiveDataSink>> = {
-    [DataStoreKind.TelemetryLogs]: SensitiveDataSink.Log,
-    [DataStoreKind.TelemetryTraces]: SensitiveDataSink.Span,
-    [DataStoreKind.TelemetryExceptions]: SensitiveDataSink.Exception,
-    [DataStoreKind.TelemetryMetrics]: SensitiveDataSink.Metric,
-    [DataStoreKind.TelemetryAiConversations]: SensitiveDataSink.AiPrompt,
+describe("every leak Data Security locates in code, the review of the pull request that added it catches, if it writes a log, a span, a metric, an exception or a prompt", () => {
+  // The kind of telemetry a review's point is for, by where the finding was seen.
+  const SINK_OF_SIGNAL: Partial<
+    Record<TelemetryLeakSignal, SensitiveDataSink>
+  > = {
+    [TelemetryLeakSignal.Logs]: SensitiveDataSink.Log,
+    [TelemetryLeakSignal.Spans]: SensitiveDataSink.Span,
+    [TelemetryLeakSignal.Exceptions]: SensitiveDataSink.Exception,
+    [TelemetryLeakSignal.Metrics]: SensitiveDataSink.Metric,
+    [TelemetryLeakSignal.AiCalls]: SensitiveDataSink.AiPrompt,
+    [TelemetryLeakSignal.RumLogs]: SensitiveDataSink.Log,
+    [TelemetryLeakSignal.RumSpans]: SensitiveDataSink.Span,
   };
+
+  function sinkOf(
+    finding: RecordedTelemetryLeakFinding,
+  ): SensitiveDataSink | undefined {
+    const signal: TelemetryLeakSignal | null = getTelemetryLeakSignalOf(
+      finding.storeKind,
+      finding.location,
+    );
+
+    return signal ? SINK_OF_SIGNAL[signal] : undefined;
+  }
+
+  // The cases whose every leak is written by a call a review reads.
+  const REVIEWED_CASES: Array<TelemetryLeakEvalCase> =
+    TELEMETRY_LEAK_EVAL_SET.filter((evalCase: TelemetryLeakEvalCase) => {
+      return evalCase.findings.every(
+        (finding: RecordedTelemetryLeakFinding): boolean => {
+          return sinkOf(finding) !== undefined;
+        },
+      );
+    });
 
   // The pull request that added the service's code: every file, every line.
   function addedFiles(evalCase: TelemetryLeakEvalCase): Array<EvalDiffFile> {
@@ -435,13 +470,13 @@ describe("every leak Data Security locates in a service's code, the review of th
         candidate.line >= place.line &&
         candidate.line <= place.line + 3 &&
         candidate.checkId === finding.checkId &&
-        candidate.sink === SINK_OF_STORE[finding.storeKind]
+        candidate.sink === sinkOf(finding)
       );
     });
   }
 
   test.each(
-    TELEMETRY_LEAK_EVAL_SET.map(
+    REVIEWED_CASES.map(
       (evalCase: TelemetryLeakEvalCase): [string, TelemetryLeakEvalCase] => {
         return [evalCase.id, evalCase];
       },
@@ -487,6 +522,37 @@ describe("every leak Data Security locates in a service's code, the review of th
     expect(result.candidates.length + result.moreCount).toBeGreaterThanOrEqual(
       writes,
     );
+  });
+
+  /*
+   * Every case but one is held to the review: a new case that writes none
+   * of what a review reads is a decision here, never a case left out
+   * unseen.
+   */
+  test("every case is held to it, a browser's log too, but a session identified by an email: identify() is no call a review reads", () => {
+    expect(
+      REVIEWED_CASES.map((evalCase: TelemetryLeakEvalCase): string => {
+        return evalCase.id;
+      }),
+    ).toContain("browser-log-email-found-through-a-source-map");
+
+    const unreviewed: Array<TelemetryLeakEvalCase> =
+      TELEMETRY_LEAK_EVAL_SET.filter((evalCase: TelemetryLeakEvalCase) => {
+        return !REVIEWED_CASES.includes(evalCase);
+      });
+
+    expect(
+      unreviewed.map((evalCase: TelemetryLeakEvalCase): string => {
+        return evalCase.id;
+      }),
+    ).toEqual(["session-identified-by-the-customers-email"]);
+    // Its leak is a session's user, which identify() gave it.
+    expect(
+      getTelemetryLeakSignalOf(
+        unreviewed[0]!.findings[0]!.storeKind,
+        unreviewed[0]!.findings[0]!.location,
+      ),
+    ).toBe(TelemetryLeakSignal.RumSessions);
   });
 
   test("a key in an exception's message: a secret, which can fail the check - the shape only the exceptions sink reads", () => {
