@@ -394,9 +394,9 @@ describe("the HTTPS transport", { skip: NEEDS_CERTIFICATES }, () => {
         );
 
         assert.strictEqual(refused.kind, "tls");
-        assert.match(
+        assert.ok(
+          refused.message.includes(CERTIFICATE_NAMES_NO_ADDRESS),
           refused.message,
-          new RegExp(CERTIFICATE_NAMES_NO_ADDRESS.replace(/[()]/g, "\\$&")),
         );
       }
     } finally {

@@ -1604,14 +1604,11 @@ describe("no password, key or token reaches the model, or a log", () => {
     const pools: ExecResult = await run(h, "xo-cli rest get pools fields=*");
 
     assert.match(pbds.output, /nas01\.example\.lan\/isos/);
-    assert.doesNotMatch(
-      pbds.output,
-      new RegExp(CIFS_PASSWORD.replace(/[!]/g, "\\!")),
-    );
+    assert.strictEqual(pbds.output.includes(CIFS_PASSWORD), false);
     assert.match(vm.output, /"name_label": "app-02"/);
-    assert.doesNotMatch(vm.output, new RegExp(CLOUD_INIT_ROOT_PASSWORD));
+    assert.strictEqual(vm.output.includes(CLOUD_INIT_ROOT_PASSWORD), false);
     assert.match(pools.output, /"name_label": "Production"/);
-    assert.doesNotMatch(pools.output, new RegExp(XSCONTAINER_SECRET));
+    assert.strictEqual(pools.output.includes(XSCONTAINER_SECRET), false);
   });
 
   test("no token appears in any output, error, posture or log, whatever happens", async () => {

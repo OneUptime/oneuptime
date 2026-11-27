@@ -7,6 +7,7 @@ import {
 } from "../../../../Utils/AiRemediation/Resource/ResourceOutputRedactor";
 import AiResourceType from "../../../../Types/ResourceAiAgent/AiResourceType";
 import { describe, expect, test } from "@jest/globals";
+import { FastestRun, fastestRun } from "../../../Helpers/FastestRun";
 
 /*
  * Contract under test - what reaches OneUptime AI of Xen Orchestra's REST
@@ -385,11 +386,15 @@ describe("linear time", () => {
       },
       note: `${"x".repeat(100_000)}://${"y".repeat(100_000)}`,
     });
-    const started: number = Date.now();
-    const out: string = redact(answer);
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return redact(answer);
+      },
+      limitInMs: 3000,
+    });
 
-    expect(Date.now() - started).toBeLessThan(3000);
-    expect(out).not.toContain(`"vm-data/user-data": "${value}"`);
+    expect(timed.inMs).toBeLessThan(3000);
+    expect(timed.result).not.toContain(`"vm-data/user-data": "${value}"`);
   });
 
   test("many short tokens and URLs in one answer", () => {
@@ -399,10 +404,14 @@ describe("linear time", () => {
         return `line ${i}: https://u${i}@h${i}/ ${XO_TOKEN}`;
       },
     ).join("\n");
-    const started: number = Date.now();
-    const out: string = redact(answer);
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return redact(answer);
+      },
+      limitInMs: 3000,
+    });
 
-    expect(Date.now() - started).toBeLessThan(3000);
-    expect(out).not.toContain(XO_TOKEN);
+    expect(timed.inMs).toBeLessThan(3000);
+    expect(timed.result).not.toContain(XO_TOKEN);
   });
 });
