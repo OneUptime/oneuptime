@@ -65912,7 +65912,7 @@
   "OneUptime has this user set up to authenticate, or to authenticate and encrypt, and the device sent its traps without. Set the device's trap security level to match.": "OneUptime 將此使用者設定為需要驗證，或需要驗證並加密，但裝置傳送 trap 時沒有這樣做。請將裝置的 trap 安全等級設定為一致。",
   "Only savings that match conditions": "僅符合條件的節省",
   "Open on this {{kind}}": "此 {{kind}} 上未解決的項目",
-  "Open problem details are unavailable right now. Run system health alert show on the cluster, or open System Manager's dashboard, for the full list.": "目前無法取得未解決問題的詳細資料。請在叢集上執行 system health alert show，或開啟 System Manager 的儀表板，查看完整清單。",
+  "Open problem details are unavailable right now. Run system health alert show on the cluster, or open System Manager's dashboard, for the full list.": "目前無法取得未解決問題的詳細資料。請在叢集上執行 system health alert show，或開啟 System Manager 的儀表板，查看系統健康警示的完整清單。",
   "Outstanding alerts of each of ONTAP's health subsystems (the subsystem label: SAS connect, environment, switch health, ...), as system health subsystem show counts them.": "ONTAP 每個健康子系統的未處理警示（subsystem 標籤：SAS connect、environment、switch health……），以 system health subsystem show 的計數為準。",
   "Path": "路徑",
   "Policy Type": "原則類型",

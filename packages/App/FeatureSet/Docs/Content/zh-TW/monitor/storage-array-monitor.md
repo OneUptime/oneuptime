@@ -89,7 +89,7 @@ flowchart TB
 
 代理程式每 60 秒讀取一次陣列端點，每 2 分鐘讀取一次磁碟區、主機和 Pod，因此 5 分鐘的視窗中一定會有樣本。它每 5 分鐘讀取一次 FlashBlade 的檔案系統和儲存貯體(所以用 15 分鐘)，每 30 分鐘讀取一次 FlashArray 目錄：請給目錄監測器設定 60 分鐘的視窗。在 ONTAP 上，Harvest 每分鐘讀取一次叢集的效能，每 3 分鐘讀取一次其設定、狀態和 EMS 事件，因此 5 分鐘的視窗中一定會有樣本。
 
-它每 5 分鐘讀取一次 PowerStore，每 60 秒讀取一次其叢集狀態：請為 PowerStore 監視器設定 15 分鐘的視窗。
+它每 5 分鐘讀取一次 PowerStore，每 60 秒讀取一次其叢集狀態：請為 PowerStore 監測器設定 15 分鐘的視窗。
 
 ## Pure 序列的結構
 
@@ -113,7 +113,7 @@ Pure 把多個數值放在 **一個** 指標名稱上，並用一個標籤區分
 
 ## PowerStore 序列的結構
 
-Dell 的匯出器每個指標名稱只寫入一個值，因此 PowerStore 序列不需要標籤篩選。其標籤標示物件：`appliance_id` 是專用設備，`name` 是元件、磁碟區或檔案系統，而 `volume_id`、`fc_port_id`、`eth_port_id`、`nas_id` 或 `volume_group_id` 是效能序列的物件。其狀態序列在健康時為 1，否則為 0，因此範本在低於 1 時觸發。它自己的警示透過 syslog 送達，其範本（日誌監視器）列在下方表格之後。
+Dell 的匯出器每個指標名稱只寫入一個值，因此 PowerStore 序列不需要標籤篩選。其標籤標示物件：`appliance_id` 是專用設備，`name` 是元件、磁碟區或檔案系統，而 `volume_id`、`fc_port_id`、`eth_port_id`、`nas_id` 或 `volume_group_id` 是效能序列的物件。其狀態序列在健康時為 1，否則為 0，因此範本在低於 1 時觸發。它自己的警示透過 syslog 送達，其範本（日誌監測器）列在下方表格之後。
 
 ## ONTAP 序列的結構
 
@@ -188,7 +188,7 @@ OneUptime 提供 67 個範本——12 個用於 FlashArray，8 個用於 FlashBl
 
 ### 透過 syslog 的 PowerStore 警示
 
-PowerStore 自己的警示以日誌形式送達，因此其範本是 **日誌** 監視器，在陣列的 **建議** 頁面的 **陣列警示** 下提供。每個範本為每則 PowerStore 警示開啟一則警示，依 `powerstore.resource.name` 和 `powerstore.alert.id` 分組，並在 PowerStore 清除該警示時將其解決：
+PowerStore 自己的警示以日誌形式送達，因此其範本是 **日誌** 監測器，在陣列的 **建議** 頁面的 **陣列警示** 下提供。每個範本為每則 PowerStore 警示開啟一則警示，依 `powerstore.resource.name` 和 `powerstore.alert.id` 分組，並在 PowerStore 清除該警示時將其解決：
 
 | 範本 | 嚴重性 | 在包含以下內容的行上開啟 | 在以下內容上解決 |
 | --- | --- | --- | --- |

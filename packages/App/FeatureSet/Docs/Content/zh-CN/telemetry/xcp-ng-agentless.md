@@ -17,7 +17,7 @@ flowchart TB
     P -->|"HTTPS，<br/>OpenMetrics 插件"| XO["Xen Orchestra"]
     P -->|"HTTPS，XAPI<br/>只读"| M["资源池主节点<br/>及其主机"]
     P -->|"与 XCP-ng 代理<br/>发送的相同<br/>指标"| OU
-    OU --> V["XCP-ng 页面、<br/>监视器和告警"]
+    OU --> V["XCP-ng 页面、<br/>监视器和警报"]
 ```
 
 探测器每分钟读取每个连接，并将读取到的内容发送到 OneUptime：
@@ -199,7 +199,7 @@ OneUptime 只保存只读令牌。请为一个只拥有内置 **Read only** 角�
 ## 后续步骤
 
 :::cards
-- [XCP-ng 监视器](/docs/monitor/xcp-ng-monitor)：针对资源池、主机、虚拟机和存储库发出告警。
+- [XCP-ng 监视器](/docs/monitor/xcp-ng-monitor)：针对资源池、主机、虚拟机和存储库发出警报。
 - [自定义探测器](/docs/probe/custom-probe)：在资源池所在网络中运行探测器。
 - [XCP-ng 代理](/docs/telemetry/xcp-ng)：改用代理读取 Xen Orchestra。
 :::

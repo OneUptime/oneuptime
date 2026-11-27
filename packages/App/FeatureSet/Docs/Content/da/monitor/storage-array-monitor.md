@@ -202,7 +202,7 @@ En PowerStores egne advarsler kommer som protokoller, så deres skabeloner er mo
 | --- | --- | --- | --- | --- |
 | Array Stopped Reporting | Tilgængelighed | Kritisk | `netapp_cluster_new_status`, Count, seneste 10 minutter | Ingen data i hele vinduet — agenten eller Harvest er stoppet, eller klyngen er holdt op med at svare Harvest; genopretter, når data kommer igen |
 | Cluster Not Healthy | Arrayets sundhed | Advarsel | `netapp_cluster_new_status`, Max, seneste 10 minutter | < 1 — ONTAP rapporterer klyngen som ikke sund; genopretter ved ≥ 1 |
-| System Health Alert | Arrayets sundhed | Advarsel | `netapp_health_support_alerts`, Max pr. `name`, seneste 5 minutter | > 0 — ONTAPs overvågning af systemsundhed har udløst en advarsel (en manglende sti til en diskhylde, et forbindelsesproblem på en node). Én hændelse pr. advarsel; genopretter, når ONTAP rydder den |
+| System Health Alert | Arrayets sundhed | Advarsel | `netapp_health_support_alerts`, Max pr. `name`, seneste 5 minutter | > 0 — ONTAPs systemsundhedsmonitor har udløst en advarsel (en manglende sti til en diskhylde, et forbindelsesproblem på en node). Én hændelse pr. advarsel; genopretter, når ONTAP rydder den |
 | Emergency EMS Event | Arrayets sundhed | Kritisk | `netapp_ems_events` filtreret til `severity=emergency`, Max pr. `message`, seneste 1 time, én værdi er nok | > 0 — ONTAP har logget en begivenhed af typen emergency. Én hændelse pr. begivenhed; genopretter, når der går en time uden en ny |
 | Alert EMS Event | Arrayets sundhed | Kritisk | `netapp_ems_events` filtreret til `severity=alert`, Max pr. `message`, seneste 1 time, én værdi er nok | > 0 — ONTAP har logget en begivenhed af typen alert (en blæser er svigtet); genopretter, når der går en time uden en ny |
 | Disk Out of Service | Hardware | Advarsel | `netapp_ems_events` filtreret til `message=disk.outOfService`, Max pr. `disk`, seneste 1 time, én værdi er nok | > 0 — ONTAP har taget en disk ud af drift; genopretter, når der går en time uden en ny |
@@ -255,7 +255,7 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `powerstore_cluster` | — | PowerStore | `count` | 1, mens PowerStore-klyngen er Configured (dannet og i drift), 0 i enhver anden tilstand: Configuring, Expanding, Removing, Clustering_Failed eller Unconfigured. |
 | `netapp_cluster_new_status` | — | ONTAP | — | 1, mens ONTAP rapporterer klyngen som sund; viser også, at agenten stadig læser den |
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | Åbne advarsler i hvert af ONTAPs sundhedsdelsystemer, efter `subsystem` |
-| `netapp_health_support_alerts` | — | ONTAP | `count` | Én serie pr. advarsel, som ONTAPs overvågning af systemsundhed har åben, så længe den er åben |
+| `netapp_health_support_alerts` | — | ONTAP | `count` | Én serie pr. advarsel, som ONTAPs systemsundhedsmonitor har åben, så længe den er åben |
 | `netapp_ems_events` | — | ONTAP | `count` | Én serie pr. EMS-begivenhed, i den indsamling, der hentede den; når en parret begivenhed ophører, eksporteres den én gang til som 0 |
 
 ### Kapacitet

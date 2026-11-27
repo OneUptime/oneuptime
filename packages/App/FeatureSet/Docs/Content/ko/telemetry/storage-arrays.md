@@ -211,9 +211,9 @@ Everything is ready. Begin running and processing data.
 
 에이전트는 Dell의 PowerStore Metrics Exporter(릴리스 `powerstore-metrics-exporter_v1.0.3`)를 통해 PowerStore 클러스터를 읽습니다. Dell은 이를 이미지가 아닌 바이너리로 배포하므로, `powerstore-exporter` 서비스는 처음 시작할 때 Dell이 문서화한 이미지를 `powerstore-exporter.Dockerfile`로 빌드하고 바이너리의 SHA-256을 확인합니다. 이 빌드에는 한 번만 `quay.io`와 `github.com`이 필요합니다.
 
-PowerStore에는 API 토큰이 없으므로 Dell의 익스포터는 사용자 이름과 비밀번호로 로그인합니다. PowerStore Manager의 _Settings → Users_에서 에이전트 전용 로컬 사용자를 **Storage Operator** 역할로 추가하세요. 익스포터는 PowerStore의 5분 단위 대량 메트릭 아카이브에서 성능을 읽는데, 이 아카이브는 익스포터가 직접 켜고 PowerStoreOS 4.1 이상에서는 필수이며, Dell의 README에 따르면 Operator 역할로는 켤 수 없습니다. 이전 PowerStoreOS에서는 `POWERSTORE_BULK_METRICS=false`와 함께 읽기 전용 **Operator** 역할로 충분합니다. 비밀번호는 익스포터만 `.env`에서 읽습니다.
+PowerStore에는 API 토큰이 없으므로 Dell의 익스포터는 사용자 이름과 비밀번호로 로그인합니다. PowerStore Manager의 *Settings → Users*에서 에이전트 전용 로컬 사용자를 **Storage Operator** 역할로 추가하세요. 익스포터는 PowerStore의 5분 단위 대량 메트릭 아카이브에서 성능을 읽는데, 이 아카이브는 익스포터가 직접 켜고 PowerStoreOS 4.1 이상에서는 필수이며, Dell의 README에 따르면 Operator 역할로는 켤 수 없습니다. 이전 PowerStoreOS에서는 `POWERSTORE_BULK_METRICS=false`와 함께 읽기 전용 **Operator** 역할로 충분합니다. 비밀번호는 익스포터만 `.env`에서 읽습니다.
 
-Dell의 익스포터는 경고를 읽지 않으므로 클러스터가 직접 보냅니다. `powerstore-syslog` 서비스가 포트 5514에서 TCP와 UDP로 원격 syslog를 받아 각 줄을 어레이의 **로그** 페이지에 기록하며, PowerStore의 레코드는 속성(`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`)에, Dell의 이벤트 코드에 따른 심각도는 (`powerstore.alert.severity`)에 담습니다. PowerStore Manager에서 _Settings → Security → Remote Logging_을 열고 이 머신을 포트 5514로 추가한 뒤 방화벽에서 그 포트를 여세요. 포트 6514의 TLS syslog는 `powerstore-syslog.yaml`에 설명되어 있습니다.
+Dell의 익스포터는 경고를 읽지 않으므로 클러스터가 직접 보냅니다. `powerstore-syslog` 서비스가 포트 5514에서 TCP와 UDP로 원격 syslog를 받아 각 줄을 어레이의 **로그** 페이지에 기록하며, PowerStore의 레코드는 속성(`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`)에, Dell의 이벤트 코드에 따른 심각도는 (`powerstore.alert.severity`)에 담습니다. PowerStore Manager에서 *Settings → Security → Remote Logging*을 열고 이 머신을 포트 5514로 추가한 뒤 방화벽에서 그 포트를 여세요. 포트 6514의 TLS syslog는 `powerstore-syslog.yaml`에 설명되어 있습니다.
 
 Dell의 익스포터는 호스트도 복제 세션도 보고하지 않으므로 이 버전에는 둘 다 없습니다.
 

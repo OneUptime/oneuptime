@@ -306,7 +306,7 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all`     | FlashBlade | `ops/s`   | Schreiboperationen pro Sekunde über alle Protokolle                                                          |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Gelesene Bytes pro Sekunde über alle Protokolle                                                              |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Geschriebene Bytes pro Sekunde über alle Protokolle                                                         |
-| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Lesevorgangs auf jeder Appliance, in Mikrosekunden, über die letzte Fünf-Minuten-Probe von PowerStore. Lesevorgänge auf PowerStore sind meist deutlich unter 1 ms abgeschlossen. |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Lesevorgangs auf jeder Appliance, in Mikrosekunden, über die letzte Fünf-Minuten-Stichprobe von PowerStore. Lesevorgänge auf PowerStore sind meist deutlich unter 1 ms abgeschlossen. |
 | `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | Durchschnittliche Latenz eines Schreibvorgangs auf jeder Appliance, in Mikrosekunden. |
 | `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | Leseoperationen pro Sekunde auf jeder Appliance. |
 | `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | Schreiboperationen pro Sekunde auf jeder Appliance. |

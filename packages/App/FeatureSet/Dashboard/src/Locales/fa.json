@@ -65912,7 +65912,7 @@
   "OneUptime has this user set up to authenticate, or to authenticate and encrypt, and the device sent its traps without. Set the device's trap security level to match.": "در OneUptime این کاربر برای احراز هویت، یا احراز هویت و رمزگذاری، تنظیم شده است و دستگاه trapهایش را بدون آن فرستاد. سطح امنیت trapهای دستگاه را با آن یکی کنید.",
   "Only savings that match conditions": "فقط آن دسته از صرفه‌جویی‌ها که با شرط‌ها مطابقت دارند",
   "Open on this {{kind}}": "باز روی این مورد ({{kind}})",
-  "Open problem details are unavailable right now. Run system health alert show on the cluster, or open System Manager's dashboard, for the full list.": "جزئیات مشکل‌های باز اکنون در دسترس نیست. برای فهرست کامل، system health alert show را روی خوشه اجرا کنید یا داشبورد System Manager را باز کنید.",
+  "Open problem details are unavailable right now. Run system health alert show on the cluster, or open System Manager's dashboard, for the full list.": "جزئیات مشکل‌های باز اکنون در دسترس نیست. برای فهرست کامل هشدارهای سلامت سامانه، system health alert show را روی خوشه اجرا کنید یا داشبورد System Manager را باز کنید.",
   "Outstanding alerts of each of ONTAP's health subsystems (the subsystem label: SAS connect, environment, switch health, ...), as system health subsystem show counts them.": "هشدارهای معوق هر یک از زیرسامانه‌های سلامت ONTAP (برچسب subsystem: SAS connect، environment، switch health، ...)، آن‌طور که system health subsystem show می‌شمارد.",
   "Path": "مسیر",
   "Policy Type": "نوع سیاست",

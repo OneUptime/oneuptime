@@ -65912,7 +65912,7 @@
   "OneUptime has this user set up to authenticate, or to authenticate and encrypt, and the device sent its traps without. Set the device's trap security level to match.": "OneUptime에서는 이 사용자가 인증, 또는 인증과 암호화를 하도록 설정되어 있는데 디바이스가 그 없이 트랩을 보냈습니다. 디바이스의 트랩 보안 수준을 맞추세요.",
   "Only savings that match conditions": "조건과 일치하는 절감만",
   "Open on this {{kind}}": "이 {{kind}}에서 열린 항목",
-  "Open problem details are unavailable right now. Run system health alert show on the cluster, or open System Manager's dashboard, for the full list.": "지금은 열린 문제의 세부 정보를 볼 수 없습니다. 전체 목록을 보려면 클러스터에서 system health alert show를 실행하거나 System Manager의 대시보드를 여세요.",
+  "Open problem details are unavailable right now. Run system health alert show on the cluster, or open System Manager's dashboard, for the full list.": "지금은 열린 문제의 세부 정보를 볼 수 없습니다. 시스템 상태 경고의 전체 목록을 보려면 클러스터에서 system health alert show를 실행하거나 System Manager의 대시보드를 여세요.",
   "Outstanding alerts of each of ONTAP's health subsystems (the subsystem label: SAS connect, environment, switch health, ...), as system health subsystem show counts them.": "system health subsystem show가 세는, ONTAP 각 상태 하위 시스템의 미해결 경고입니다(subsystem 레이블: SAS connect, environment, switch health, ...).",
   "Path": "경로",
   "Policy Type": "정책 유형",
