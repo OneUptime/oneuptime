@@ -43,7 +43,8 @@ export const MonitorMoreFieldsTitles: {
   autoResolveIncident: string;
   showIncidentOnStatusPage: string;
   privateIncident: string;
-  incidentLifecycleKey: string;
+  linkedIncidentAction: string;
+  legacyIncidentLifecycleKey: string;
   autoResolveAlert: string;
   privateAlert: string;
   remediationNotes: string;
@@ -63,7 +64,8 @@ export const MonitorMoreFieldsTitles: {
   autoResolveIncident: translationKey("Auto Resolve Incident"),
   showIncidentOnStatusPage: translationKey("Show Incident on Status Page"),
   privateIncident: translationKey("Private Incident"),
-  incidentLifecycleKey: translationKey("Incident lifecycle key"),
+  linkedIncidentAction: translationKey("Link to incident action"),
+  legacyIncidentLifecycleKey: translationKey("Legacy incident lifecycle key"),
   autoResolveAlert: translationKey("Auto Resolve Alert"),
   privateAlert: translationKey("Private Alert"),
   remediationNotes: translationKey("Remediation Notes"),
@@ -250,6 +252,7 @@ export const getIncidentMoreFieldsItems: (
     | "showIncidentOnStatusPage"
     | "isPrivate"
     | "incidentLifecycleKey"
+    | "linkedIncidentActionId"
   >,
   includeIncidentLifecycleKey?: boolean | undefined,
 ) => Array<FoldedSectionItem> = (
@@ -260,6 +263,7 @@ export const getIncidentMoreFieldsItems: (
     | "showIncidentOnStatusPage"
     | "isPrivate"
     | "incidentLifecycleKey"
+    | "linkedIncidentActionId"
   >,
   includeIncidentLifecycleKey?: boolean | undefined,
 ): Array<FoldedSectionItem> => {
@@ -290,12 +294,20 @@ export const getIncidentMoreFieldsItems: (
 
   if (includeIncidentLifecycleKey) {
     items.push(
-      foldedSectionItem(MonitorMoreFieldsTitles.incidentLifecycleKey, {
-        key: "incidentLifecycleKey",
-        isSet: Boolean(incident.incidentLifecycleKey?.trim()),
-        value: incident.incidentLifecycleKey?.trim(),
+      foldedSectionItem(MonitorMoreFieldsTitles.linkedIncidentAction, {
+        key: "linkedIncidentActionId",
+        isSet: Boolean(incident.linkedIncidentActionId),
       }),
     );
+
+    if (incident.incidentLifecycleKey?.trim()) {
+      items.push(
+        foldedSectionItem(MonitorMoreFieldsTitles.legacyIncidentLifecycleKey, {
+          key: "incidentLifecycleKey",
+          isSet: true,
+        }),
+      );
+    }
   }
 
   return items;

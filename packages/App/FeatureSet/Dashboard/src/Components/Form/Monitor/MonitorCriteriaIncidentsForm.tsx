@@ -5,6 +5,7 @@ import { CriteriaIncident } from "Common/Types/Monitor/CriteriaIncident";
 import ObjectID from "Common/Types/ObjectID";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import React, { FunctionComponent, ReactElement, useEffect } from "react";
 
 export interface ComponentProps {
@@ -16,6 +17,8 @@ export interface ComponentProps {
   monitorType?: MonitorType | undefined;
   seriesAttributeKeys?: Array<string> | undefined;
   allowSeverityEscalation?: boolean | undefined;
+  criteriaInstances?: Array<MonitorCriteriaInstance> | undefined;
+  currentCriteriaId?: string | undefined;
 }
 
 const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
@@ -57,6 +60,8 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
             }
             userDropdownOptions={props.userDropdownOptions}
             incidentRoleOptions={props.incidentRoleOptions}
+            criteriaInstances={props.criteriaInstances}
+            currentCriteriaId={props.currentCriteriaId}
             monitorType={props.monitorType}
             seriesAttributeKeys={props.seriesAttributeKeys}
             allowSeverityEscalation={props.allowSeverityEscalation}
