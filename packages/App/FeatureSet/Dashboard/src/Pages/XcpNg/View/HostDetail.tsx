@@ -126,6 +126,8 @@ const XcpNgPoolHostDetail: FunctionComponent<
           xcpNgPoolId: modelId,
           kind: XcpNgResourceKind.Host,
           externalId: externalId,
+          // The updates Xen Orchestra says it misses (#10997).
+          extraSelect: { missingPatches: true },
         }),
         fetchXcpNgRowsOnHost({
           xcpNgPoolId: modelId,
@@ -159,6 +161,8 @@ const XcpNgPoolHostDetail: FunctionComponent<
         select: {
           name: true,
           poolIdentifier: true,
+          // Whether this host is the pool master, as a probe read it.
+          masterHostExternalId: true,
         },
       });
       setPool(item);
@@ -272,6 +276,11 @@ const XcpNgPoolHostDetail: FunctionComponent<
           onShowVms={showVms}
           now={now}
           refreshToken={refreshToken}
+          isPoolMaster={
+            Boolean(pool.masterHostExternalId) &&
+            (pool.masterHostExternalId || "").toLowerCase() ===
+              externalId.toLowerCase()
+          }
         />
       ),
     },

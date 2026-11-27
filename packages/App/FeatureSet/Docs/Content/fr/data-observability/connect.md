@@ -1,6 +1,6 @@
 # Connecter une base de données
 
-Observabilité des données lit chaque base de données avec un compte qui ne lit que son catalogue : les tables et les vues qu'elle contient, leurs colonnes, leurs lignes et leur taille, et le moment où elles ont changé. Cette page indique le minimum dont chaque moteur a besoin, et comment garder la chaîne de connexion dans votre réseau grâce à une sonde.
+Observabilité des données lit chaque base de données avec un compte qui ne lit que son catalogue : les tables et les vues qu'elle contient, leurs colonnes, leurs lignes et leur taille, et le moment où elles ont changé. Cette page indique le minimum dont chaque moteur a besoin, comment garder la chaîne de connexion dans votre réseau grâce à une sonde ou au Database Agent que vous exécutez déjà, et comment modifier, retirer ou supprimer une base de données par la suite.
 
 ## Avant de commencer
 
@@ -13,12 +13,21 @@ Dans **Observabilité des données > Bases de données**, choisissez **Connecter
 
 - **OneUptime se connecte** : collez une chaîne de connexion. Elle est stockée chiffrée, utilisée uniquement par les workers de OneUptime, et n'est plus jamais affichée.
 - **Une sonde de mon réseau se connecte** : choisissez l'une de vos sondes et indiquez la variable d'environnement de la sonde qui contient la chaîne de connexion, comme `ORDERS_DB_URL`. La chaîne de connexion ne quitte jamais votre réseau. Voir [Sondes personnalisées](/docs/probe/custom-probe).
+- **Mon Database Agent se connecte** : choisissez le serveur de base de données à côté duquel son [Database Agent](/docs/telemetry/databases) s'exécute déjà, et indiquez la base de données à lire sur ce serveur. L'agent la lit avec des comptes de son propre environnement, si bien qu'aucun compte n'est enregistré dans OneUptime. Voir [Via un Database Agent](#via-un-database-agent).
 
 Une base de données déjà connectée pour Sécurité des données est elle aussi surveillée, sans rien connecter, tout comme chaque jeu de données BigQuery trouvé par votre [connexion cloud](/docs/telemetry/cloud-accounts).
 
 ## Bases de données que vous pourriez connecter
 
 **Bases de données que vous pourriez connecter**, sous **Bases de données**, liste ce que votre projet connaît déjà et que personne n'a connecté : les bases de données avec lesquelles vos traces communiquent, celles de vos comptes cloud, et celles que Database Monitoring surveille. **Connecter** démarre le formulaire à partir de ce que l'on sait de chacune, avec une chaîne de connexion à renseigner. **Masquer** l'empêche de revenir. Rien n'est lu tant que vous ne la connectez pas.
+
+## Via un Database Agent
+
+Un Database Agent atteint déjà son serveur de base de données et en envoie les métriques. Il peut aussi lire les bases de données PostgreSQL, MySQL et MariaDB de ce serveur pour Observabilité des données, une fois que son propriétaire l'active : ajoutez `ONEUPTIME_DATA_OBSERVABILITY=true` au `.env` de l'agent et exécutez `docker compose up -d`. D'ici là, l'agent est listé avec **Observabilité des données désactivée**, et une base de données connectée par son intermédiaire indique quoi faire.
+
+OneUptime indique à l'agent quelle base de données lire et quels contrôles sont dus, chacun avec son type, ainsi que la table et les colonnes qu'il lit. Il n'envoie jamais d'instruction ni de compte. L'agent construit lui-même chaque instruction, à partir des mêmes formes fixes qu'utilisent les collecteurs de OneUptime, et exécute chacune dans une transaction en lecture seule limitée à 30 secondes. Il n'exécute un contrôle que lorsque chaque table et chaque colonne qu'il nomme figurent dans le catalogue qu'il vient de lire, lie chaque valeur à laquelle le contrôle compare, et renvoie un nombre par contrôle, jamais une ligne. Les contrôles **SQL personnalisé** et **Lignes en échec** ne s'exécutent que là où le propriétaire de l'agent définit `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true` ; ailleurs, ils le signalent, et tous les autres contrôles s'exécutent.
+
+L'agent lit le catalogue avec `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME`, ou le compte du collecteur, et exécute les contrôles avec `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME`, ou le compte du catalogue : n'accordez à chacun que ce que les onglets ci-dessous listent pour lui. Le README de l'agent liste toutes les variables.
 
 ## Un compte en lecture seule, par moteur
 
@@ -162,6 +171,18 @@ Les contrôles s'exécutent comme du SQL en lecture seule sur le point de termin
 
 Chaque instruction s'exécute en lecture seule, avec un délai d'expiration d'instruction et de verrou là où le moteur en dispose. Une requête que Snowflake, Databricks, BigQuery, Athena, ClickHouse ou Dataverse refuse ou fait échouer un instant, avec un 429, un 503 ou une réponse propre au service indiquant qu'il est trop occupé, est renvoyée, deux fois au plus et dans la limite d'une minute d'attente par collecte, et jamais d'une manière qui pourrait exécuter une instruction deux fois. La chaîne de connexion n'est jamais journalisée et elle est retirée de chaque message d'erreur. Une statistique que le compte n'a pas le droit de lire est omise, avec un avertissement sur la base de données, et ne fait jamais échouer la collecte. Les connexions vers des adresses privées sont refusées sur OneUptime Cloud : utilisez une sonde.
 
+## Gérer une base de données
+
+Chaque base de données a une page **Paramètres** : choisissez **Paramètres** sur sa ligne sous **Bases de données**, ou dans son menu.
+
+- **Modifier les détails** la renomme. Sécurité des données affiche le même nom.
+- **Modifier la connexion** lui donne un nouveau compte, une autre sonde ou un Database Agent. Une chaîne de connexion enregistrée n'est plus jamais affichée : laissez le champ vide pour la conserver. Passer une base de données à un Database Agent supprime sa chaîne de connexion enregistrée, sauf si Sécurité des données s'en sert pour échantillonner le contenu de la base.
+- **Arrêter la surveillance**, dans sa **Vue d'ensemble**, cesse de la lire pendant un temps et conserve ses tables et leur historique. **Surveiller à nouveau** reprend la lecture.
+- **Retirer de l'Observabilité des données** cesse de la lire et oublie ses tables, leurs contrôles et leur historique. Sécurité des données conserve la base de données, sa connexion et ce que ses analyses ont trouvé, et elle est de nouveau proposée sous **Bases de données que vous pourriez connecter**.
+- **Supprimer la base de données** la supprime de OneUptime, avec ce qu'Observabilité des données et Sécurité des données en conservent. La confirmation liste d'abord ce qui disparaît.
+
+Une base de données ici est aussi un magasin de données de Sécurité des données. Tant que Sécurité des données s'appuie sur elle (elle a trouvé la base de données, quelqu'un l'y a ajoutée, ou elle contient des détections, des problèmes, des analyses, des propriétaires ou un registre des traitements qui la concernent), seule une personne autorisée à supprimer les magasins de données de Sécurité des données peut la supprimer, et seule une personne autorisée à les modifier peut changer la connexion avec laquelle Sécurité des données échantillonne le contenu. Les paramètres l'indiquent à côté du bouton concerné. Les moniteurs qui surveillent une base de données sont conservés quand elle disparaît : supprimez-les dans **Moniteurs**.
+
 ## Réplicas en lecture
 
 Un réplica en lecture PostgreSQL ou SQL Server ne fait pas avancer ses compteurs d'écriture, si bien qu'une table peut y sembler inchangée alors qu'elle change. OneUptime voit que c'est un réplica, écarte les compteurs, le signale sur la base de données, et se rabat sur la taille et les lignes de la table. Connectez le primaire quand vous le pouvez, ou nommez une [colonne de fraîcheur](/docs/data-observability/table-health) pour les tables qui comptent.
@@ -174,6 +195,7 @@ Chaque chemin apparaît alors sous **Tables** : son objet le plus récent est sa
 
 ## Dépannage
 
+- **La base de données affiche le statut Database Agent non prêt.** L'agent ne peut pas la lire pour l'instant, et la page de la base de données indique pourquoi : son serveur n'a aucun Database Agent connecté, ou l'agent est désactivé pour Observabilité des données (`ONEUPTIME_DATA_OBSERVABILITY=true` l'active), ne s'est pas manifesté, est trop ancien (exécutez de nouveau son `install.sh`), ou se trouve sur un serveur qui n'est ni PostgreSQL ni MySQL.
 - **La base de données affiche le statut Échec.** Son message indique pourquoi : un hôte que OneUptime ne peut pas joindre, un compte refusé, un mode TLS que le serveur n'accepte pas. Pour une base de données à l'intérieur de votre réseau, connectez-la via une sonde. Pour Snowflake, Databricks, BigQuery, Athena, ClickHouse et Dataverse, ce message indique ce qui était en cours de lecture, le code et le message d'erreur propres au service, et l'identifiant de demande ou de requête que son support peut retracer, quand le service en fournit un. **Collecter maintenant** réessaie immédiatement, et la page en affiche le résultat.
 - **Les tables n'affichent aucune dernière modification.** Le compte ne peut pas lire les statistiques du moteur : accordez ce que liste l'onglet de votre moteur, ou attendez que les lignes d'une table aient changé deux fois.
 - **Une table manque.** Elle se trouve dans un schéma que le compte ne peut pas utiliser, ou elle est exclue sur la base de données. Accordez `USAGE` sur son schéma, ou supprimez l'exclusion.

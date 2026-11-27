@@ -1,13 +1,13 @@
 # स्टोरेज ऐरे मॉनिटर
 
-स्टोरेज ऐरे मॉनिटर एक स्टोरेज ऐरे पर नज़र रखता है और आपको तब बताता है जब ऐरे खुद अलर्ट उठाता है, उसकी जगह खत्म होती है, वह धीमा होता है, हार्डवेयर या होस्ट पाथ खोता है, या रेप्लिकेशन में पीछे रह जाता है। यह Pure Storage FlashArray और Pure Storage FlashBlade के साथ काम करता है, और वे मेट्रिक्स पढ़ता है जो ऐरे खुद एक्सपोर्ट करता है - Pure की `purefa_*` और `purefb_*` सीरीज़ - जिन्हें OneUptime Storage Array Agent इकट्ठा करता है।
+स्टोरेज ऐरे मॉनिटर एक स्टोरेज ऐरे पर नज़र रखता है और आपको तब बताता है जब ऐरे खुद अलर्ट उठाता है, उसकी जगह खत्म होती है, वह धीमा होता है, हार्डवेयर या होस्ट पाथ खोता है, या रेप्लिकेशन में पीछे रह जाता है। यह Pure Storage FlashArray, Pure Storage FlashBlade और NetApp ONTAP (Amazon FSx for NetApp ONTAP समेत) के साथ काम करता है, और वे मेट्रिक्स पढ़ता है जो OneUptime Storage Array Agent इकट्ठा करता है: Pure की `purefa_*` और `purefb_*` सीरीज़, और वे `netapp_*` सीरीज़ जो NetApp Harvest किसी ONTAP क्लस्टर से पढ़ता है।
 
 यह Dell PowerStore (`dell.powerstore`) के साथ भी काम करता है, Dell की `powerstore_*` सीरीज़ से।
 
 :::cards
 - [मॉनिटर बनाएँ](#स्टोरेज-ऐरे-मॉनिटर-बनाएँ): डैशबोर्ड में छह चरण।
 - [टेम्पलेट](#पहले-से-बने-अलर्ट-टेम्पलेट): तैयार अलर्ट, हर वॉल्यूम, होस्ट, अप्लायंस या कंपोनेंट के लिए एक घटना।
-- [Pure की सीरीज़ कैसे काम करती हैं](#pure-की-सीरीज़-का-ढाँचा): एक मेट्रिक नाम, कई आँकड़े।
+- [Pure की सीरीज़ कैसे काम करती हैं](#pure-की-सीरीज़-का-ढाँचा): एक मेट्रिक नाम, कई आँकड़े। ONTAP की सीरीज़ का [अपना अलग सेक्शन है](#ontap-की-सीरीज़-का-ढाँचा)।
 - [मेट्रिक्स](#इकट्ठा-किए-गए-मेट्रिक्स): हर सीरीज़ जिस पर मॉनिटर अलर्ट कर सकता है।
 :::
 
@@ -33,7 +33,7 @@ flowchart TB
 
 ## शुरू करने से पहले
 
-- **Storage Array Agent इंस्टॉल करें**, ऐसी जगह जहाँ से वह HTTPS पर ऐरे तक पहुँच सके, ऐसे उपयोगकर्ता के API टोकन के साथ जिसके पास ऐरे की **readonly** भूमिका हो। [Storage Array Agent गाइड](/docs/telemetry/storage-arrays) उपयोगकर्ता, टोकन और इंस्टॉल को कवर करती है, `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, और ऐरे के पते और टोकन (`PURE_FA_ENDPOINT` और `PURE_FA_API_TOKEN`, या `PURE_FB_ENDPOINT` और `PURE_FB_API_TOKEN`) के ज़रिए।
+- **Storage Array Agent इंस्टॉल करें**, ऐसी जगह जहाँ से वह HTTPS पर ऐरे तक पहुँच सके, ऐसे उपयोगकर्ता के API टोकन के साथ जिसके पास ऐरे की **readonly** भूमिका हो। [Storage Array Agent गाइड](/docs/telemetry/storage-arrays) उपयोगकर्ता, टोकन और इंस्टॉल को कवर करती है, `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, और ऐरे के पते और टोकन (`PURE_FA_ENDPOINT` और `PURE_FA_API_TOKEN`, या `PURE_FB_ENDPOINT` और `PURE_FB_API_TOKEN`) के ज़रिए, या ONTAP के लिए क्लस्टर के पते और एक केवल-पढ़ने वाले REST उपयोगकर्ता (`NETAPP_ONTAP_ENDPOINT`, `NETAPP_ONTAP_USERNAME` और `NETAPP_ONTAP_PASSWORD`) के ज़रिए।
 - **जाँचें कि ऐरे पंजीकृत है।** पहली स्क्रेप के लगभग एक मिनट बाद यह एजेंट के `STORAGE_ARRAY_NAME` के नाम से **उत्पाद → बुनियादी ढांचा → स्टोरेज ऐरे → सभी स्टोरेज ऐरे** के अंतर्गत दिखता है।
 
 ## स्टोरेज ऐरे मॉनिटर बनाएँ
@@ -76,10 +76,10 @@ flowchart TB
 | फ़ील्ड | टैब | यह क्या करता है |
 | --- | --- | --- |
 | **स्टोरेज ऐरे** | सभी | ज़रूरी। हर क्वेरी को `resource.storage.array.name` तक सीमित करता है, इसलिए दो ऐरे जिनमें दोनों में `vol-01` नाम का वॉल्यूम है, कभी आपस में नहीं मिलते। |
-| **वॉल्यूम** | Custom Metric, उन्नत | केवल FlashArray। एक वॉल्यूम, `name` लेबल से, जैसे `vol-db-01`। पॉड या वॉल्यूम समूह में वॉल्यूम का नाम `pod::volume` या `group/volume` होता है। |
+| **वॉल्यूम** | Custom Metric, उन्नत | एक वॉल्यूम: FlashArray पर `name` लेबल से, जैसे `vol-db-01` (पॉड या वॉल्यूम समूह में वॉल्यूम का नाम `pod::volume` या `group/volume` होता है); ONTAP पर `volume` लेबल से, जो दो SVM में एक जैसा हो सकता है। |
 | **होस्ट** | Custom Metric, उन्नत | केवल FlashArray। एक होस्ट जैसा ऐरे उसे जानता है, `host` लेबल से, जैसे `esxi-01`। |
 | **पॉड** | Custom Metric, उन्नत | केवल FlashArray। एक ActiveCluster या ActiveDR पॉड, `name` लेबल से, या रेप्लिका लिंक सीरीज़ पर `local_pod` से। |
-| **हार्डवेयर कंपोनेंट** | Custom Metric, उन्नत | एक हार्डवेयर कंपोनेंट, जैसे `CH0.BAY1` या `CT0`: FlashArray पर `component_name` लेबल, FlashBlade पर `name`। |
+| **हार्डवेयर कंपोनेंट** | Custom Metric, उन्नत | एक हार्डवेयर कंपोनेंट, जैसे `CH0.BAY1` या `CT0`: FlashArray पर `component_name` लेबल, FlashBlade पर `name`, और ONTAP पर वह लेबल जिससे उसकी सीरीज़ उसे नाम देती है (`node`, `disk`, `shelf` या `port`)। |
 | **फ़ाइल सिस्टम** | Custom Metric, उन्नत | केवल FlashBlade। एक फ़ाइल सिस्टम, `name` लेबल से। |
 | **बकेट** | Custom Metric, उन्नत | केवल FlashBlade। एक ऑब्जेक्ट स्टोर बकेट, `name` लेबल से। |
 | **Storage Array Metric** | Custom Metric | [कैटलॉग](#इकट्ठा-किए-गए-मेट्रिक्स) से एक मेट्रिक। फ़ॉर्म वह लेबल फ़िल्टर जोड़ता है जो उसे उसका अर्थ देता है, और उसे उस ऑब्जेक्ट से समूहित करता है जिसका वह वर्णन करता है, इसलिए हर वॉल्यूम, होस्ट या कंपोनेंट को अलग से आँका जाता है। |
@@ -87,7 +87,7 @@ flowchart TB
 | **समय सीमा** | सभी | क्वेरी जो रोलिंग विंडो पढ़ती है, **Past 1 Minute** से **Past 365 Days** तक। नया मॉनिटर **पिछले 5 मिनट** से शुरू होता है; किसी फ़ाइल सिस्टम या बकेट का कस्टम मेट्रिक **पिछले 15 मिनट** से; टेम्पलेट अपना मान सेट करते हैं। |
 | **मेट्रिक्स चुनें** | उन्नत | क्वेरी बिल्डर: **मेट्रिक**, **इसके अनुसार एकत्र करें**, **एट्रिब्यूट से फ़िल्टर करें**, **इसके अनुसार समूहित करें**, साथ ही क्वेरी मिलाने के लिए **मेट्रिक जोड़ें** और **सूत्र जोड़ें**। |
 
-एजेंट ऐरे एंडपॉइंट को हर 60 सेकंड में, और वॉल्यूम, होस्ट और पॉड को हर 2 मिनट में पढ़ता है, इसलिए 5 मिनट की विंडो में हमेशा एक सैंपल होता है। FlashBlade के फ़ाइल सिस्टम और बकेट वह हर 5 मिनट में पढ़ता है, इसलिए 15, और FlashArray डायरेक्टरी हर 30 मिनट में: डायरेक्टरी मॉनिटर को 60 मिनट की विंडो दें।
+एजेंट ऐरे एंडपॉइंट को हर 60 सेकंड में, और वॉल्यूम, होस्ट और पॉड को हर 2 मिनट में पढ़ता है, इसलिए 5 मिनट की विंडो में हमेशा एक सैंपल होता है। FlashBlade के फ़ाइल सिस्टम और बकेट वह हर 5 मिनट में पढ़ता है, इसलिए 15, और FlashArray डायरेक्टरी हर 30 मिनट में: डायरेक्टरी मॉनिटर को 60 मिनट की विंडो दें। ONTAP पर Harvest क्लस्टर का प्रदर्शन हर मिनट और उसका कॉन्फ़िगरेशन, स्थिति और EMS इवेंट हर 3 मिनट में पढ़ता है, इसलिए 5 मिनट की विंडो में हमेशा एक सैंपल होता है।
 
 यह PowerStore को हर 5 मिनट और उसके क्लस्टर की स्थिति को हर 60 सेकंड पढ़ता है: PowerStore मॉनिटर को 15 मिनट की विंडो दें।
 
@@ -115,11 +115,25 @@ Pure **एक** मेट्रिक नाम पर कई आँकड़े
 
 Dell का एक्सपोर्टर हर मेट्रिक नाम के लिए एक मान लिखता है, इसलिए PowerStore सीरीज़ को किसी लेबल फ़िल्टर की ज़रूरत नहीं होती। उसके लेबल ऑब्जेक्ट का नाम बताते हैं: `appliance_id` एक अप्लायंस, `name` एक हिस्सा, वॉल्यूम या फ़ाइल सिस्टम, और `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id` या `volume_group_id` किसी प्रदर्शन सीरीज़ का ऑब्जेक्ट। उसकी स्थिति सीरीज़ स्वस्थ रहने तक 1 और वरना 0 होती हैं, इसलिए टेम्पलेट 1 से नीचे ट्रिगर होते हैं। उसके अपने अलर्ट syslog से आते हैं, और उनके टेम्पलेट, लॉग मॉनिटर, नीचे उसकी तालिका के बाद दिए गए हैं।
 
+## ONTAP की सीरीज़ का ढाँचा
+
+NetApp Harvest हर सीरीज़ को `netapp_<object>_<counter>` नाम देता है और ऑब्जेक्ट को उसके लेबल से पहचानता है: वॉल्यूम को `volume` से (अपने `svm` के भीतर), एग्रीगेट को `aggr` से, LUN को `lun` से (अपने `volume` और `svm` के भीतर), नोड को `node` से, डिस्क को `disk` से, शेल्फ़ को `shelf` से, SnapMirror संबंध को `destination_location` से। लेटेंसी प्रति ऑपरेशन माइक्रोसेकंड में होती है, `_ops` प्रति सेकंड ऑपरेशन और `_data` प्रति सेकंड बाइट।
+
+ONTAP की स्थितियाँ तीन तरह से आती हैं:
+
+| सीरीज़ | स्थिति | हर एक के लिए एक सीरीज़ |
+| --- | --- | --- |
+| `netapp_*_new_status` | 1 स्वस्थ, ऑनलाइन, चालू या चल रहा, 0 नहीं | ऑब्जेक्ट, हर पोल पर |
+| `netapp_health_*_alerts` | मान 1, लेबल में `severity` (`error` या `warning`) और कारण के साथ | खुली समस्या: ख़राब डिस्क, शेल्फ़ की ख़राबी, अपने पार्टनर का काम न संभाल सकने वाला नोड, बंद पोर्ट, सिस्टम हेल्थ अलर्ट |
+| `netapp_ems_events` | मान 1, `message`, `severity` और इवेंट के पैरामीटर के साथ | EMS इवेंट, सिर्फ़ उस एक पोल के लिए जिसने उसे इकट्ठा किया; जोड़ी वाले इवेंट के क्लियर होने पर उसे एक बार फिर 0 के रूप में एक्सपोर्ट किया जाता है |
+
+संख्या के रूप में स्थिति तब ट्रिगर होती है जब विंडो की हर रीडिंग 1 से कम हो, और कोई रीडिंग फिर से 1 होते ही रिकवर होती है। खुली समस्या तब तक ट्रिगर रहती है जब तक उसकी सीरीज़ मौजूद है, और उसके गायब होते ही रिकवर होती है, बशर्ते `netapp_cluster_new_status` अब भी आ रहा हो, इसलिए रुका हुआ एजेंट कुछ भी बंद नहीं करता। EMS इवेंट अपनी एक रीडिंग पर ट्रिगर होता है और जब तक वह टेम्पलेट के घंटे के भीतर है, खुला रहता है; बिना किसी और इवेंट के एक घंटा बीतने पर वह रिकवर होता है।
+
 ## पहले से बने अलर्ट टेम्पलेट
 
-OneUptime 36 टेम्पलेट देता है — 12 FlashArray के लिए, 8 FlashBlade के लिए और 16 PowerStore के लिए — और **किस पर अलर्ट करना है** सेक्शन ऐरे के प्लेटफ़ॉर्म वाले टेम्पलेट देता है। हर एक पूरा मॉनिटर बनाता है: मेट्रिक क्वेरी, उसके लेबल फ़िल्टर, ऑब्जेक्ट के अपने लेबल पर ग्रुप-बाय, एक मानदंड जो ट्रिगर करता है और एक जो रिकवर करता है। थ्रेशोल्ड शुरुआती बिंदु हैं जिन्हें आप संपादित कर सकते हैं।
+OneUptime 67 टेम्पलेट देता है — 12 FlashArray के लिए, 8 FlashBlade के लिए, 16 PowerStore के लिए और 31 ONTAP के लिए — और **किस पर अलर्ट करना है** सेक्शन ऐरे के प्लेटफ़ॉर्म वाले टेम्पलेट देता है। हर एक पूरा मॉनिटर बनाता है: मेट्रिक क्वेरी, उसके लेबल फ़िल्टर, ऑब्जेक्ट के अपने लेबल पर ग्रुप-बाय, एक मानदंड जो ट्रिगर करता है और एक जो रिकवर करता है। थ्रेशोल्ड शुरुआती बिंदु हैं जिन्हें आप संपादित कर सकते हैं।
 
-मानदंड तभी ट्रिगर होता है जब शर्त विंडो के **हर** मान के लिए सही हो। जो मॉनिटर क्षमता, लेटेंसी, लैग या अनुपात के थ्रेशोल्ड पर ट्रिगर हुआ, वह उससे 10% आगे जाने पर ही रिकवर होता है, इसलिए थ्रेशोल्ड के आसपास मँडराता मान बार-बार बदलाव नहीं करता। अलर्ट, हार्डवेयर और कनेक्टिविटी टेम्पलेट तब ट्रिगर होते हैं जब कोई स्थिति उनकी पूरी 5 मिनट की विंडो में दिखी हो, और उसके हटने के लगभग 5 मिनट बाद रिकवर होते हैं।
+मानदंड तभी ट्रिगर होता है जब शर्त विंडो के **हर** मान के लिए सही हो, सिवाय ONTAP के EMS टेम्पलेट के: Harvest किसी इवेंट को एक ही पोल के लिए एक्सपोर्ट करता है, इसलिए एक रीडिंग काफ़ी है। जो मॉनिटर क्षमता, लेटेंसी, लैग या अनुपात के थ्रेशोल्ड पर ट्रिगर हुआ, वह उससे 10% आगे जाने पर ही रिकवर होता है, इसलिए थ्रेशोल्ड के आसपास मँडराता मान बार-बार बदलाव नहीं करता। अलर्ट, हार्डवेयर और कनेक्टिविटी टेम्पलेट तब ट्रिगर होते हैं जब कोई स्थिति उनकी पूरी 5 मिनट की विंडो में दिखी हो, और उसके हटने के लगभग 5 मिनट बाद रिकवर होते हैं।
 
 ### FlashArray
 
@@ -182,6 +196,42 @@ PowerStore के अपने अलर्ट लॉग के रूप मे
 | Major Array Alert | चेतावनी | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
 | Port Link Down | चेतावनी | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
+### ONTAP
+
+| टेम्पलेट | श्रेणी | गंभीरता | किस पर नज़र | कब ट्रिगर होता है |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | उपलब्धता | गंभीर | `netapp_cluster_new_status`, Count, पिछले 10 मिनट | पूरी विंडो में कोई डेटा नहीं — एजेंट या Harvest रुक गया, या क्लस्टर ने Harvest को जवाब देना बंद कर दिया; डेटा फिर से आने पर रिकवर |
+| Cluster Not Healthy | ऐरे स्वास्थ्य | चेतावनी | `netapp_cluster_new_status`, Max, पिछले 10 मिनट | < 1 — ONTAP क्लस्टर को स्वस्थ नहीं बताता; ≥ 1 पर रिकवर |
+| System Health Alert | ऐरे स्वास्थ्य | चेतावनी | `netapp_health_support_alerts`, `name` के अनुसार Max, पिछले 5 मिनट | > 0 — ONTAP के सिस्टम हेल्थ मॉनिटर ने एक अलर्ट उठाया (किसी शेल्फ़ तक का गायब पाथ, नोड की कनेक्टिविटी समस्या)। हर अलर्ट के लिए एक घटना; ONTAP के उसे क्लियर करने पर रिकवर |
+| Emergency EMS Event | ऐरे स्वास्थ्य | गंभीर | `netapp_ems_events` को `severity=emergency` पर फ़िल्टर, `message` के अनुसार Max, पिछले 1 घंटे, कोई भी रीडिंग | > 0 — ONTAP ने emergency स्तर का इवेंट लॉग किया। हर इवेंट के लिए एक घटना; बिना किसी और इवेंट के एक घंटा बीतने पर रिकवर |
+| Alert EMS Event | ऐरे स्वास्थ्य | गंभीर | `netapp_ems_events` को `severity=alert` पर फ़िल्टर, `message` के अनुसार Max, पिछले 1 घंटे, कोई भी रीडिंग | > 0 — ONTAP ने alert स्तर का इवेंट लॉग किया (कोई पंखा ख़राब हुआ); बिना किसी और इवेंट के एक घंटा बीतने पर रिकवर |
+| Disk Out of Service | हार्डवेयर | चेतावनी | `netapp_ems_events` को `message=disk.outOfService` पर फ़िल्टर, `disk` के अनुसार Max, पिछले 1 घंटे, कोई भी रीडिंग | > 0 — ONTAP ने एक डिस्क को सेवा से बाहर किया; बिना किसी और इवेंट के एक घंटा बीतने पर रिकवर |
+| Node Panic | हार्डवेयर | गंभीर | `netapp_ems_events` को `message=sk.panic` पर फ़िल्टर, `node` के अनुसार Max, पिछले 1 घंटे, कोई भी रीडिंग | > 0 — एक नोड पैनिक होकर रीबूट हुआ, और उसके पार्टनर ने उसका स्टोरेज संभाल लिया; बिना किसी और इवेंट के एक घंटा बीतने पर रिकवर |
+| Aggregate Above 80% | क्षमता | चेतावनी | `netapp_aggr_space_used_percent`, `aggr` के अनुसार Max, पिछले 15 मिनट | > 80; ≤ 72 पर रिकवर |
+| Aggregate Above 90% | क्षमता | गंभीर | `netapp_aggr_space_used_percent`, `aggr` के अनुसार Max, पिछले 5 मिनट | > 90 — उस पर के वॉल्यूम अब बढ़ नहीं सकते; ≤ 81 पर रिकवर |
+| Volume Above 90% | क्षमता | चेतावनी | `netapp_volume_size_used_percent`, `volume` और `svm` के अनुसार Max, पिछले 15 मिनट | > 90; ≤ 81 पर रिकवर |
+| Volume Above 98% | क्षमता | गंभीर | `netapp_volume_size_used_percent`, `volume` और `svm` के अनुसार Max, पिछले 5 मिनट | > 98 — क्लाइंट को जगह खत्म होने की त्रुटियाँ मिलती हैं, और उसमें रखा LUN ऑफ़लाइन हो सकता है; ≤ 88.2 पर रिकवर |
+| High Read Latency | प्रदर्शन | चेतावनी | `netapp_cluster_read_latency`, Avg, पिछले 15 मिनट | > 10000 µs (10 ms); ≤ 9000 पर रिकवर |
+| High Write Latency | प्रदर्शन | चेतावनी | `netapp_cluster_write_latency`, Avg, पिछले 15 मिनट | > 10000 µs (10 ms); ≤ 9000 पर रिकवर |
+| Volume Latency Above 20 ms | प्रदर्शन | चेतावनी | `netapp_volume_read_latency`, `volume` और `svm` के अनुसार Avg, पिछले 15 मिनट | > 20000 µs; ≤ 18000 पर रिकवर |
+| Node Not Healthy | हार्डवेयर | गंभीर | `netapp_node_new_status`, `node` के अनुसार Max, पिछले 10 मिनट | < 1 — ONTAP नोड को स्वस्थ नहीं बताता; ≥ 1 पर रिकवर |
+| Takeover Not Possible | हार्डवेयर | गंभीर | `netapp_health_ha_alerts`, `node` के अनुसार Max, पिछले 5 मिनट | > 0 — एक नोड अपने HA पार्टनर का काम नहीं संभाल सकता, इसलिए किसी विफलता से उस पार्टनर का स्टोरेज ऑफ़लाइन हो जाएगा; फिर से संभाल सकने पर रिकवर |
+| Disk Failed | हार्डवेयर | गंभीर | `netapp_health_disk_alerts` को `container_type=broken` पर फ़िल्टर, `disk` के अनुसार Max, पिछले 5 मिनट | > 0 — एक डिस्क ख़राब है; बदले जाने पर रिकवर |
+| Shelf Fault | हार्डवेयर | गंभीर | `netapp_health_shelf_alerts` को `severity=error` पर फ़िल्टर, `shelf` के अनुसार Max, पिछले 5 मिनट | > 0 — ONTAP किसी डिस्क शेल्फ़ पर त्रुटि बताता है (पावर सप्लाई, मॉड्यूल, पाथ); ONTAP के उसे क्लियर करने पर रिकवर |
+| Node Fan Failed | हार्डवेयर | चेतावनी | `netapp_node_failed_fan`, `node` के अनुसार Max, पिछले 10 मिनट | > 0 ख़राब पंखे; ≤ 0 पर रिकवर |
+| Node Power Supply Failed | हार्डवेयर | गंभीर | `netapp_node_failed_power`, `node` के अनुसार Max, पिछले 10 मिनट | > 0 ख़राब पावर सप्लाई; ≤ 0 पर रिकवर |
+| Shelf Power Supply Failed | हार्डवेयर | गंभीर | `netapp_shelf_psu_status`, `shelf` के अनुसार Max, पिछले 10 मिनट | < 1 — किसी शेल्फ़ की पावर सप्लाई सामान्य नहीं है; ≥ 1 पर रिकवर |
+| Shelf Fan Failed | हार्डवेयर | चेतावनी | `netapp_shelf_fan_status`, `shelf` के अनुसार Max, पिछले 10 मिनट | < 1 — किसी शेल्फ़ का पंखा सामान्य नहीं है; ≥ 1 पर रिकवर |
+| Ethernet Port Down | हार्डवेयर | चेतावनी | `netapp_health_network_ethernet_port_alerts`, `port` और `node` के अनुसार Max, पिछले 5 मिनट | > 0 — एक सक्षम Ethernet पोर्ट बंद है; उसका लिंक फिर से चालू होने पर रिकवर |
+| FC Port Link Failures | हार्डवेयर | चेतावनी | `netapp_fcp_link_failure`, `port` और `node` के अनुसार Max, पिछले 15 मिनट | > 0 — विंडो के दौरान किसी Fibre Channel पोर्ट का लिंक विफल हुआ; ≤ 0 पर रिकवर |
+| SnapMirror Behind Schedule | रेप्लिकेशन | चेतावनी | `netapp_snapmirror_lag_time` को `netapp_snapmirror_schedule_seconds` से भाग देकर, `destination_location` के अनुसार Max, पिछले 15 मिनट | > 1.5 — कोई संबंध अपने शेड्यूल के डेढ़ अंतराल से ज़्यादा पीछे है (घंटे भर वाले शेड्यूल पर 90 मिनट); ≤ 1.35 पर रिकवर |
+| SnapMirror Relationship Unhealthy | रेप्लिकेशन | गंभीर | `netapp_snapmirror_labels` को `healthy=false` पर फ़िल्टर, `destination_location` के अनुसार Max, पिछले 5 मिनट | > 0 — ONTAP संबंध को अस्वस्थ बताता है, कारण उसके `unhealthy_reason` लेबल में; ONTAP के उसे स्वस्थ बताने पर रिकवर |
+| SnapMirror Lag Above 1 Day | रेप्लिकेशन | चेतावनी | `netapp_snapmirror_lag_time`, `destination_location` के अनुसार Max, पिछले 15 मिनट | > 86400 s, उसका शेड्यूल जो भी हो; ≤ 77760 पर रिकवर |
+| Aggregate Offline | उपलब्धता | गंभीर | `netapp_aggr_new_status`, `aggr` के अनुसार Max, पिछले 10 मिनट | < 1 — कोई एग्रीगेट ऑनलाइन नहीं है, इसलिए उसके किसी भी वॉल्यूम तक नहीं पहुँचा जा सकता; ≥ 1 पर रिकवर |
+| Volume Offline | उपलब्धता | चेतावनी | `netapp_volume_new_status`, `volume` और `svm` के अनुसार Max, पिछले 10 मिनट | < 1 — कोई वॉल्यूम ऑनलाइन नहीं है; ≥ 1 पर रिकवर |
+| LUN Offline | उपलब्धता | गंभीर | `netapp_lun_new_status`, `lun`, `volume` और `svm` के अनुसार Max, पिछले 10 मिनट | < 1 — कोई LUN ऑनलाइन नहीं है, और उसके होस्ट वह डिस्क खो चुके हैं; ≥ 1 पर रिकवर |
+| SVM Stopped | उपलब्धता | चेतावनी | `netapp_svm_labels` को `state=stopped` और `type=data` पर फ़िल्टर, `svm` के अनुसार Max, पिछले 10 मिनट | > 0 — कोई डेटा SVM रुका हुआ है; फिर से चलने पर रिकवर। ONTAP जिन SVM को अपने लिए रखता है, उन पर कभी नज़र नहीं रखी जाती |
+
 **गंभीरता** वह लेबल है जो पिकर दिखाता है। टेम्पलेट जो घटना और अलर्ट बनाता है, वे आपके प्रोजेक्ट की सबसे गंभीर घटना और अलर्ट गंभीरता से शुरू होते हैं; उन्हें मानदंड में बदलें।
 
 - **Array Stopped Reporting** प्लेटफ़ॉर्म की पहचान सीरीज़ (`purefa_info` या `purefb_info`) गिनता है, जिसे एजेंट द्वारा स्क्रेप किया जाने वाला हर एंडपॉइंट हर स्क्रेप पर एक्सपोर्ट करता है। जब डेटा रुक जाता है, तो बाकी टेम्पलेट के पास तुलना करने के लिए कुछ नहीं होता और वे अपनी आखिरी स्थिति बनाए रखते हैं, इसलिए यही टेम्पलेट आपको बताता है।
@@ -190,7 +240,7 @@ PowerStore के अपने अलर्ट लॉग के रूप मे
 - **लेटेंसी टेम्पलेट Avg का उपयोग करते हैं**, ऐरे के अपने प्रति-ऑपरेशन औसत का, और क्षमता टेम्पलेट उसके अपने उपयोग प्रतिशत का **अधिकतम**। लेटेंसी माइक्रोसेकंड में और क्षमता प्रतिशत में पिन है।
 - **Hardware Component Unhealthy हर कंपोनेंट के लिए Min का उपयोग करता है**: स्वस्थ होने पर उसका स्वास्थ्य 1 होता है और न होने पर 0 पर गिर जाता है।
 
-हर वॉल्यूम की लेटेंसी के लिए कोई टेम्पलेट नहीं है, क्योंकि सही थ्रेशोल्ड वर्कलोड पर निर्भर करता है: इसे कैटलॉग से `name` पर ग्रुप-बाय के साथ बनाएँ। क्षमता के पूर्वानुमान को थ्रेशोल्ड के बजाय वृद्धि के रुझान की ज़रूरत होती है, और ड्राइव के घिसाव के लिए अलर्ट करने लायक कोई सीरीज़ नहीं है।
+हर वॉल्यूम की लेटेंसी के लिए कोई FlashArray टेम्पलेट नहीं है, क्योंकि सही थ्रेशोल्ड वर्कलोड पर निर्भर करता है: इसे कैटलॉग से `name` पर ग्रुप-बाय के साथ बनाएँ। क्षमता के पूर्वानुमान को थ्रेशोल्ड के बजाय वृद्धि के रुझान की ज़रूरत होती है, और ड्राइव के घिसाव के लिए अलर्ट करने लायक कोई सीरीज़ नहीं है।
 
 ## इकट्ठा किए गए मेट्रिक्स
 
@@ -203,6 +253,10 @@ PowerStore के अपने अलर्ट लॉग के रूप मे
 | `purefa_alerts_open` | — | FlashArray | `count` | ऐरे पर हर खुले अलर्ट के लिए एक सीरीज़ (मान 1), लेबल `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` और `summary` के साथ |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade पर हर खुले अलर्ट के लिए एक सीरीज़ (मान 1), लेबल `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` और `kburl` (Pure का नॉलेज-बेस लेख) के साथ |
 | `powerstore_cluster` | — | PowerStore | `count` | जब तक PowerStore क्लस्टर Configured (बना हुआ और सेवा दे रहा) है तब तक 1, किसी भी दूसरी स्थिति में 0: Configuring, Expanding, Removing, Clustering_Failed या Unconfigured। |
+| `netapp_cluster_new_status` | — | ONTAP | — | जब तक ONTAP क्लस्टर को स्वस्थ बताता है तब तक 1; यही यह भी बताता है कि एजेंट अब भी उसे पढ़ रहा है |
+| `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | ONTAP के हर हेल्थ सबसिस्टम में खुले अलर्ट, `subsystem` के अनुसार |
+| `netapp_health_support_alerts` | — | ONTAP | `count` | ONTAP के सिस्टम हेल्थ मॉनिटर के हर खुले अलर्ट के लिए एक सीरीज़, जब तक वह खुला है |
+| `netapp_ems_events` | — | ONTAP | `count` | हर EMS इवेंट के लिए एक सीरीज़, उस पोल के लिए जिसने उसे इकट्ठा किया; जोड़ी वाले इवेंट के क्लियर होने पर उसे एक बार फिर 0 के रूप में एक्सपोर्ट किया जाता है |
 
 ### क्षमता
 
@@ -223,6 +277,14 @@ PowerStore के अपने अलर्ट लॉग के रूप मे
 | `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | होस्ट द्वारा हर अप्लायंस में लिखा गया डेटा बाइट में, डीडुप्लिकेशन और कम्प्रेशन से पहले। |
 | `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | हर अप्लायंस पर डीडुप्लिकेशन और कम्प्रेशन, उदाहरण के लिए 3.4:1 के लिए 3.4। लगातार गिरावट का मतलब है कि नया लिखा गया डेटा ठीक से कम नहीं हो रहा: एन्क्रिप्टेड या पहले से कम्प्रेस किया गया डेटा। |
 | `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | हर अप्लायंस की कुल दक्षता: डेटा रिडक्शन के साथ स्नैपशॉट और थिन प्रोविज़निंग से हुई बचत। |
+| `netapp_aggr_space_used_percent` | — | ONTAP | `%` | हर एग्रीगेट की उपयोग योग्य जगह का उपयोग में हिस्सा — `aggr` से समूहित करें |
+| `netapp_aggr_space_total` | — | ONTAP | `bytes` | हर एग्रीगेट की उपयोग योग्य जगह; क्लस्टर की क्षमता इनका योग है |
+| `netapp_aggr_space_used` | — | ONTAP | `bytes` | हर एग्रीगेट की उपयोग में या आरक्षित जगह |
+| `netapp_aggr_space_available` | — | ONTAP | `bytes` | हर एग्रीगेट पर बची जगह — वह कब भरेगा, इसका अनुमान लगाने के लिए इसका रुझान देखें |
+| `netapp_aggr_inode_used_percent` | — | ONTAP | `%` | हर एग्रीगेट की फ़ाइलों (inode) का उपयोग में हिस्सा |
+| `netapp_aggr_new_status` | — | ONTAP | — | जब तक एग्रीगेट ऑनलाइन है तब तक 1 |
+| `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | स्टोरेज एफ़िशिएंसी के बिना हर एग्रीगेट का डेटा कितनी जगह लेता, स्नैपशॉट और FlexClone को छोड़कर |
+| `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | स्टोरेज एफ़िशिएंसी के बाद हर एग्रीगेट का डेटा डिस्क पर कितनी जगह लेता है |
 
 ### प्रदर्शन
 
@@ -251,6 +313,23 @@ PowerStore के अपने अलर्ट लॉग के रूप मे
 | `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | हर अप्लायंस पर प्रति सेकंड पढ़े गए बाइट। |
 | `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | हर अप्लायंस पर प्रति सेकंड लिखे गए बाइट। |
 | `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | हर अप्लायंस द्वारा स्टोरेज I/O के लिए रखे गए CPU कोर में से व्यस्त हिस्सा, प्रतिशत में। लगातार ऊँचे मान का मतलब है कि अप्लायंस उस लोड के करीब है जिसे वह संभाल सकता है। |
+| `netapp_cluster_read_latency` | — | ONTAP | `µs` | पूरे क्लस्टर में औसत रीड लेटेंसी |
+| `netapp_cluster_write_latency` | — | ONTAP | `µs` | पूरे क्लस्टर में औसत राइट लेटेंसी |
+| `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | पूरे क्लस्टर में प्रति सेकंड रीड ऑपरेशन |
+| `netapp_cluster_write_ops` | — | ONTAP | `ops/s` | पूरे क्लस्टर में प्रति सेकंड राइट ऑपरेशन |
+| `netapp_cluster_total_ops` | — | ONTAP | `ops/s` | पूरे क्लस्टर में प्रति सेकंड हर तरह के ऑपरेशन, मेटाडेटा समेत |
+| `netapp_cluster_read_data` | — | ONTAP | `bytes/s` | पूरे क्लस्टर में प्रति सेकंड पढ़े गए बाइट |
+| `netapp_cluster_write_data` | — | ONTAP | `bytes/s` | पूरे क्लस्टर में प्रति सेकंड लिखे गए बाइट |
+| `netapp_aggr_read_latency` | — | ONTAP | `µs` | हर एग्रीगेट पर औसत रीड लेटेंसी |
+| `netapp_aggr_write_latency` | — | ONTAP | `µs` | हर एग्रीगेट पर औसत राइट लेटेंसी |
+| `netapp_aggr_read_ops` | — | ONTAP | `ops/s` | हर एग्रीगेट पर प्रति सेकंड रीड ऑपरेशन |
+| `netapp_aggr_write_ops` | — | ONTAP | `ops/s` | हर एग्रीगेट पर प्रति सेकंड राइट ऑपरेशन |
+| `netapp_svm_vol_read_latency` | — | ONTAP | `µs` | हर SVM के वॉल्यूम पर औसत रीड लेटेंसी |
+| `netapp_svm_vol_write_latency` | — | ONTAP | `µs` | हर SVM के वॉल्यूम पर औसत राइट लेटेंसी |
+| `netapp_svm_vol_read_ops` | — | ONTAP | `ops/s` | हर SVM के वॉल्यूम पर प्रति सेकंड रीड ऑपरेशन |
+| `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | हर SVM के वॉल्यूम पर प्रति सेकंड राइट ऑपरेशन |
+| `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | हर SVM के वॉल्यूम से प्रति सेकंड पढ़े गए बाइट |
+| `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | हर SVM के वॉल्यूम में प्रति सेकंड लिखे गए बाइट |
 
 ### वॉल्यूम
 
@@ -279,6 +358,32 @@ PowerStore के अपने अलर्ट लॉग के रूप मे
 | `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | हर वॉल्यूम समूह के वॉल्यूम पर औसत रीड लेटेंसी, माइक्रोसेकंड में। volume_group_id के अनुसार समूहित करें, जिसमें समूह का नाम होता है। |
 | `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | हर वॉल्यूम समूह के वॉल्यूम पर औसत राइट लेटेंसी, माइक्रोसेकंड में। |
 | `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | हर वॉल्यूम समूह के वॉल्यूम पर प्रति सेकंड रीड और राइट ऑपरेशन। |
+| `netapp_svm_new_status` | — | ONTAP | — | जब तक SVM चल रहा है तब तक 1 — `svm` से समूहित करें |
+| `netapp_svm_labels` | `state=stopped`, `type=data` | ONTAP | — | हर रुके हुए डेटा SVM के लिए एक सीरीज़ |
+| `netapp_volume_size_used_percent` | — | ONTAP | `%` | हर वॉल्यूम की जगह का उपयोग में हिस्सा, जैसा `volume show` बताता है — `volume` और `svm` से समूहित करें |
+| `netapp_volume_size_total` | — | ONTAP | `bytes` | हर वॉल्यूम का उपयोग योग्य आकार, उसके स्नैपशॉट रिज़र्व को छोड़कर |
+| `netapp_volume_size_used` | — | ONTAP | `bytes` | हर वॉल्यूम की उपयोग में जगह |
+| `netapp_volume_size_available` | — | ONTAP | `bytes` | हर वॉल्यूम में बची जगह |
+| `netapp_volume_snapshots_size_used` | — | ONTAP | `bytes` | हर वॉल्यूम के स्नैपशॉट जितनी जगह लेते हैं |
+| `netapp_volume_inode_used_percent` | — | ONTAP | `%` | हर वॉल्यूम की फ़ाइलों (inode) का उपयोग में हिस्सा |
+| `netapp_volume_sis_total_saved_percent` | — | ONTAP | `%` | हर वॉल्यूम के डेटा का वह हिस्सा जो डीडुप्लिकेशन और कम्प्रेशन बचाते हैं |
+| `netapp_volume_new_status` | — | ONTAP | — | जब तक वॉल्यूम ऑनलाइन है तब तक 1 |
+| `netapp_volume_read_latency` | — | ONTAP | `µs` | हर वॉल्यूम पर औसत रीड लेटेंसी |
+| `netapp_volume_write_latency` | — | ONTAP | `µs` | हर वॉल्यूम पर औसत राइट लेटेंसी |
+| `netapp_volume_read_ops` | — | ONTAP | `ops/s` | हर वॉल्यूम पर प्रति सेकंड रीड ऑपरेशन |
+| `netapp_volume_write_ops` | — | ONTAP | `ops/s` | हर वॉल्यूम पर प्रति सेकंड राइट ऑपरेशन |
+| `netapp_volume_read_data` | — | ONTAP | `bytes/s` | हर वॉल्यूम से प्रति सेकंड पढ़े गए बाइट |
+| `netapp_volume_write_data` | — | ONTAP | `bytes/s` | हर वॉल्यूम में प्रति सेकंड लिखे गए बाइट |
+| `netapp_lun_size_used_percent` | — | ONTAP | `%` | हर LUN के आकार का वह हिस्सा जो उसके होस्ट ने लिखा है |
+| `netapp_lun_size` | — | ONTAP | `bytes` | वह आकार जो हर LUN अपने होस्ट को दिखाता है |
+| `netapp_lun_size_used` | — | ONTAP | `bytes` | हर LUN अपने वॉल्यूम में जितनी जगह उपयोग करता है |
+| `netapp_lun_new_status` | — | ONTAP | — | जब तक LUN ऑनलाइन है तब तक 1 |
+| `netapp_lun_avg_read_latency` | — | ONTAP | `µs` | हर LUN पर औसत रीड लेटेंसी |
+| `netapp_lun_avg_write_latency` | — | ONTAP | `µs` | हर LUN पर औसत राइट लेटेंसी |
+| `netapp_lun_read_ops` | — | ONTAP | `ops/s` | हर LUN पर प्रति सेकंड रीड ऑपरेशन |
+| `netapp_lun_write_ops` | — | ONTAP | `ops/s` | हर LUN पर प्रति सेकंड राइट ऑपरेशन |
+| `netapp_lun_read_data` | — | ONTAP | `bytes/s` | हर LUN से प्रति सेकंड पढ़े गए बाइट |
+| `netapp_lun_write_data` | — | ONTAP | `bytes/s` | हर LUN में प्रति सेकंड लिखे गए बाइट |
 
 ### होस्ट
 
@@ -299,6 +404,12 @@ PowerStore के अपने अलर्ट लॉग के रूप मे
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | हर पॉड का रेप्लिकेशन ट्रैफ़िक, लेबल `direction` और `dimension` के साथ |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | हर ActiveCluster पॉड की औसत मिरर्ड राइट लेटेंसी |
 | `powerstore_metro_witness_status` | — | PowerStore | `count` | हर Metro Witness की स्थिति: 0 OK, 1 आंशिक रूप से कनेक्टेड, 2 डिस्कनेक्टेड, 3 हटाया जा रहा, 4 इनिशियलाइज़ हो रहा। 0 से ऊपर होने पर Metro सेशन शायद अपने आप फ़ेलओवर न करे। |
+| `netapp_snapmirror_lag_time` | — | ONTAP | `s` | हर SnapMirror संबंध का गंतव्य अपने स्रोत से कितना पीछे है |
+| `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | हर संबंध का शेड्यूल कितनी-कितनी देर में ट्रांसफ़र करता है; एजेंट इसे शेड्यूल के नाम से लिखता है |
+| `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | हर संबंध के आख़िरी ट्रांसफ़र में कितना समय लगा |
+| `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | हर संबंध के आख़िरी ट्रांसफ़र ने कितना भेजा |
+| `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | हर संबंध के कितने अपडेट विफल हुए हैं; यह सिर्फ़ बढ़ता है |
+| `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | हर उस संबंध के लिए एक सीरीज़ जिसे ONTAP अस्वस्थ बताता है, कारण `unhealthy_reason` में |
 
 ### हार्डवेयर
 
@@ -326,6 +437,32 @@ PowerStore के अपने अलर्ट लॉग के रूप मे
 | `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | हर Ethernet पोर्ट पर प्रति सेकंड प्राप्त बाइट। |
 | `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | हर Ethernet पोर्ट पर प्रति सेकंड भेजे गए बाइट। |
 | `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | हर Ethernet पोर्ट पर प्रति सेकंड CRC त्रुटि के साथ प्राप्त पैकेट। लगातार त्रुटियों का मतलब आमतौर पर खराब केबल, ऑप्टिक या स्विच पोर्ट होता है। |
+| `netapp_node_new_status` | — | ONTAP | — | जब तक ONTAP नोड को स्वस्थ बताता है तब तक 1 — `node` से समूहित करें |
+| `netapp_node_avg_processor_busy` | — | ONTAP | `%` | हर नोड के प्रोसेसर कितने व्यस्त हैं |
+| `netapp_node_failed_fan` | — | ONTAP | `count` | हर नोड के ख़राब पंखे |
+| `netapp_node_failed_power` | — | ONTAP | `count` | हर नोड की ख़राब पावर सप्लाई |
+| `netapp_node_uptime` | — | ONTAP | `s` | हर नोड कितनी देर से चल रहा है; गिरावट का मतलब रीबूट या गिवबैक है |
+| `netapp_disk_new_status` | — | ONTAP | — | जब तक डिस्क कोई आउटेज नहीं बताती तब तक 1 — `disk` से समूहित करें |
+| `netapp_health_disk_alerts` | — | ONTAP | `count` | हर उस डिस्क के लिए एक सीरीज़ जिसे ONTAP ख़राब या अनअसाइन्ड बताता है, जब तक ऐसा है |
+| `netapp_shelf_new_status` | — | ONTAP | — | जब तक डिस्क शेल्फ़ ऑनलाइन है तब तक 1 |
+| `netapp_health_shelf_alerts` | — | ONTAP | `count` | किसी डिस्क शेल्फ़ पर ONTAP की बताई हर ख़राबी के लिए एक सीरीज़, जब तक वह बनी रहती है |
+| `netapp_shelf_psu_status` | — | ONTAP | — | जब तक शेल्फ़ की पावर सप्लाई सामान्य है तब तक 1 |
+| `netapp_shelf_fan_status` | — | ONTAP | — | जब तक शेल्फ़ का पंखा सामान्य है तब तक 1 |
+| `netapp_shelf_temperature_status` | — | ONTAP | — | जब तक शेल्फ़ का तापमान सेंसर अपनी सीमाओं के भीतर है तब तक 1 |
+| `netapp_shelf_temperature_reading` | — | ONTAP | `°C` | हर शेल्फ़ तापमान सेंसर की रीडिंग |
+| `netapp_environment_sensor_status` | — | ONTAP | — | जब तक नोड का एनवायरनमेंट सेंसर अपनी सीमाओं के भीतर है तब तक 1 |
+| `netapp_health_node_alerts` | — | ONTAP | `count` | हर उस नोड के लिए एक सीरीज़ जिसे ONTAP अस्वस्थ बताता है, जब तक ऐसा है |
+| `netapp_health_ha_alerts` | — | ONTAP | `count` | हर उस नोड के लिए एक सीरीज़ जो अपने HA पार्टनर का काम नहीं संभाल सकता, जब तक नहीं संभाल सकता |
+| `netapp_net_port_status` | — | ONTAP | — | जब तक Ethernet पोर्ट का लिंक चालू है तब तक 1 |
+| `netapp_health_network_ethernet_port_alerts` | — | ONTAP | `count` | हर उस सक्षम Ethernet पोर्ट के लिए एक सीरीज़ जो बंद है, जब तक ऐसा है |
+| `netapp_nic_rx_bytes` | — | ONTAP | `bytes/s` | हर Ethernet पोर्ट प्रति सेकंड जितने बाइट प्राप्त करता है |
+| `netapp_nic_tx_bytes` | — | ONTAP | `bytes/s` | हर Ethernet पोर्ट प्रति सेकंड जितने बाइट भेजता है |
+| `netapp_nic_util_percent` | — | ONTAP | `%` | हर Ethernet पोर्ट की गति का कितना हिस्सा उपयोग में है |
+| `netapp_nic_rx_total_errors` | — | ONTAP | `count` | हर Ethernet पोर्ट ने पिछले एक मिनट में जितनी प्राप्ति त्रुटियाँ गिनीं |
+| `netapp_fcp_read_data` | — | ONTAP | `bytes/s` | हर Fibre Channel पोर्ट से प्रति सेकंड पढ़े गए बाइट |
+| `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | हर Fibre Channel पोर्ट से प्रति सेकंड लिखे गए बाइट |
+| `netapp_fcp_util_percent` | — | ONTAP | `%` | हर Fibre Channel पोर्ट की गति का कितना हिस्सा उपयोग में है |
+| `netapp_fcp_link_failure` | — | ONTAP | `count` | हर Fibre Channel पोर्ट ने पिछले एक मिनट में जितनी लिंक विफलताएँ गिनीं |
 
 ### फ़ाइल सिस्टम
 
@@ -420,7 +557,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` ऐरे का `storage.array.name` है - वह `STORAGE_ARRAY_NAME` जिसके साथ एजेंट शुरू किया गया था - न कि उसकी OneUptime ID। `storageSystem` `purestorage.flasharray` या `purestorage.flashblade` है। यह तय करता है कि फ़ॉर्म कौन सा कैटलॉग और टेम्पलेट दिखाता है, और हार्डवेयर फ़िल्टर `component_name` पढ़ता है या `name`।
+`arrayIdentifier` ऐरे का `storage.array.name` है - वह `STORAGE_ARRAY_NAME` जिसके साथ एजेंट शुरू किया गया था - न कि उसकी OneUptime ID। `storageSystem` `purestorage.flasharray`, `purestorage.flashblade` या `netapp.ontap` है। यह तय करता है कि फ़ॉर्म कौन सा कैटलॉग और टेम्पलेट दिखाता है, और वॉल्यूम या हार्डवेयर फ़िल्टर कौन सा लेबल पढ़ता है।
 
 ## समस्या निवारण
 
@@ -434,6 +571,10 @@ monitor_steps = [{
 
 :::details लेटेंसी मॉनिटर गलत पढ़ता है
 Pure रीड, राइट, मिरर्ड-राइट, SAN, क्यू और QoS आँकड़े एक ही मेट्रिक नाम पर रखता है, जिन्हें केवल `dimension` लेबल अलग करता है, और `dimension` फ़िल्टर के बिना क्वेरी उन सभी का औसत निकालती है। एक डाइमेंशन पर फ़िल्टर करें, जैसे टेम्पलेट और फ़ॉर्म का कैटलॉग करते हैं। प्रति-वॉल्यूम और प्रति-होस्ट सीरीज़ केवल `usec_per_read_op`, `usec_per_write_op` और `usec_per_mirrored_write_op` रखती हैं: एजेंट सीरीज़ बचाने के लिए बाकी हटा देता है, और केवल ऐरे-स्तर का `purefa_array_performance_latency_usec` सभी रखता है।
+:::
+
+:::details EMS इवेंट वाला ONTAP टेम्पलेट कभी ट्रिगर नहीं होता
+EMS टेम्पलेट तभी ट्रिगर होता है जब उसकी तरह का कोई इवेंट उसकी विंडो में हो: Harvest किसी इवेंट को एक ही बार एक्सपोर्ट करता है, उस पोल के लिए जिसने उसे इकट्ठा किया। जाँचें कि एजेंट का Harvest `Ems` कलेक्टर चलाता है (साथ आने वाली फ़ाइलों में चलाता है), और कि इवेंट Harvest की डिफ़ॉल्ट सूची में है: `sk.panic`, `disk.outOfService` और alert और emergency इवेंट उसमें हैं। ONTAP की जो ख़राबी बनी रहती है (ख़राब डिस्क, शेल्फ़ की त्रुटि, अपने पार्टनर का काम न संभाल सकने वाला नोड), उस पर उसका खुली-समस्या वाला टेम्पलेट भी नज़र रखता है, जो ONTAP के उसे क्लियर करने तक खुला रहता है।
 :::
 
 :::details 1 मिनट की विंडो कोई डेटा नहीं दिखाती

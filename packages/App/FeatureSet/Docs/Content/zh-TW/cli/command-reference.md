@@ -261,6 +261,44 @@ oneuptime <resource> add-note <id> --note <markdown> [--public]
 | `--note <markdown>` | 是 | 以 Markdown 撰寫的備註 |
 | `--public` | 否 | 在記錄的狀態頁面上發布備註，並通知其訂閱者。僅限事件、它們的片段和排定維護 |
 
+### `oneuptime <resource> breakdown`
+
+僅限 `cloud-cost`。某個期間內各個雲端的成本，依 **雲端 → 支出 → 成本** 的方式拆分，每一列旁邊並列上一時段：依服務、區域、帳戶、資源、應用程式平台環境、應用程式、標記的值或成本檢視的群組。它依金鑰有權讀取成本的方式讀取。請參閱 [報告與匯出](/docs/telemetry/cloud-costs#報告與匯出)。
+
+```bash
+oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
+```
+
+| 選項 | 必要 | 說明 | 預設值 |
+| --- | --- | --- | --- |
+| `--by <dimension>` | 否 | 依什麼拆分支出：`service`、`region`、`account`、`resource`、`environment`、`app`、`tag` 或 `group` | `service` |
+| `--tag-key <key>` | 搭配 `--by tag` 時 | 依其值拆分支出的標記，例如 `team` | |
+| `--view <id>` | 搭配 `--by group` 時 | 依其群組拆分支出的成本檢視 | |
+| `--period <period>` | 否 | 要讀取的日期：`this-month`、`last-month`、`last-week` 或 `last-30-days`，依 UTC 日曆 | `this-month` |
+| `--start-date <date>` | 否 | 第一天，例如 `2026-11-01`，取代 `--period` | |
+| `--end-date <date>` | 否 | 最後一天，例如 `2026-11-30`，搭配 `--start-date` 使用 | |
+| `--account <id...>` | 否 | 僅限此雲端帳戶的成本；可重複以指定多個 | 所有帳戶 |
+| `--currency <code>` | 否 | 幣別，例如 `USD` | 大多數帳戶的計費幣別 |
+| `--basis <basis>` | 否 | 成本基準：`billed`、`amortized` 或 `net` | 專案的基準 |
+| `--no-compare` | 否 | 不顯示上一時段 | |
+| `--csv` | 否 | 輸出「成本」頁面上 **下載 CSV** 提供的 CSV | |
+
+### `oneuptime <resource> export`
+
+僅限 `cloud-cost`。某個期間的所有成本，作為 FOCUS 1.2 檔案，供讀取 FOCUS 的財務工具使用。一次最多 93 天。請參閱 [FOCUS](/docs/telemetry/cloud-costs#focus)。
+
+```bash
+oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--file <path>]
+```
+
+| 選項 | 必要 | 說明 | 預設值 |
+| --- | --- | --- | --- |
+| `--period <period>` | 否 | 要匯出的日期：`this-month`、`last-month`、`last-week` 或 `last-30-days` | `last-month` |
+| `--start-date <date>` | 否 | 第一天，例如 `2026-10-01`，取代 `--period` | |
+| `--end-date <date>` | 否 | 最後一天，例如 `2026-12-31`，搭配 `--start-date` 使用 | |
+| `--account <id...>` | 否 | 僅限此雲端帳戶的成本；可重複以指定多個 | 所有帳戶 |
+| `--file <path>` | 否 | 把檔案寫到這裡 | 標準輸出 |
+
 ### 資源
 
 OneUptime API 的每個資源都是一個命令，帶有 API 為它接受的操作、`fields`，以及具備動作的記錄的那些動作：

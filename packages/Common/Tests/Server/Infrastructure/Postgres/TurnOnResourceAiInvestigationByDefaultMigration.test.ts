@@ -62,13 +62,19 @@ type MigratedType = Exclude<
   | AiResourceType.AzureSubscription
   | AiResourceType.GoogleCloudProject
   | AiResourceType.OpenStackCloud
+  | AiResourceType.XcpNgPool
 >;
 
 const MIGRATED_TYPES: Array<MigratedType> = ALL_AI_RESOURCE_TYPES.filter(
   (type: AiResourceType): type is MigratedType => {
-    // An OpenStack cloud got its AI columns later, in AddOpenStackCloudAiAccess.
+    /*
+     * An OpenStack cloud got its AI columns later, in AddOpenStackCloudAiAccess,
+     * and an XCP-ng pool in AddXcpNgPoolAiAccess.
+     */
     return (
-      !isCloudAiResourceType(type) && type !== AiResourceType.OpenStackCloud
+      !isCloudAiResourceType(type) &&
+      type !== AiResourceType.OpenStackCloud &&
+      type !== AiResourceType.XcpNgPool
     );
   },
 );

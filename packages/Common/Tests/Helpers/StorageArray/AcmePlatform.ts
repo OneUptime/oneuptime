@@ -24,8 +24,9 @@ import {
  *
  * The smallest complete StorageArrayPlatform: two kinds - the shared
  * Volume and an Aggregate of its own - three metrics, a heartbeat, one
- * alert template, a resource filter and an agent config, with the
- * extractor that reads its series. The tests register it at runtime
+ * alert template, a resource filter, its volumes' list and page in its own
+ * words (#11122) and an agent config, with the extractor that reads its
+ * series. The tests register it at runtime
  * (registerAcme) and follow it from ingest to its tabs, counts, monitor
  * template and alert, so they prove a platform plugs in without a shipped
  * file changing. It is also the shortest example of what a new platform
@@ -200,6 +201,39 @@ export const ACME_PLATFORM: StorageArrayPlatform = {
     },
   ],
   hardwareTables: [],
+
+  /*
+   * Its volumes' list and page, in its own words and on its own metric
+   * (#11122): what a platform writes so the shared pages say nothing of
+   * Pure's.
+   */
+  kindPages: {
+    [StorageArrayResourceKind.Volume]: {
+      description: "The volumes of this Acme array and how much each holds.",
+      noItemsMessage:
+        "No Acme volumes yet. They appear once the agent reads the array.",
+      columns: [
+        { type: "status", title: "Status" },
+        {
+          type: "value",
+          id: "used",
+          title: "Used",
+          value: { column: "usedBytes", format: "bytes" },
+        },
+        { type: "lastSeen" },
+      ],
+      part: {
+        labels: [{ label: "volume", from: "name" }],
+        charts: [{ metricId: ACME_METRIC_IDS.volumeUsed }],
+        metricsDescription: "How much this volume holds, as Acme reports it.",
+        detailsDescription: "What Acme reports about this volume.",
+        fields: [
+          { title: "Volume", value: { column: "name", format: "text" } },
+          { title: "Used", value: { column: "usedBytes", format: "bytes" } },
+        ],
+      },
+    },
+  },
 
   agentConfigs: [
     {

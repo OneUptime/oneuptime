@@ -16,6 +16,7 @@ import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import ResourceAiAgent from "../../../Models/DatabaseModels/ResourceAiAgent";
 import RunnerJob from "../../../Models/DatabaseModels/RunnerJob";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
@@ -84,6 +85,7 @@ const RESOURCE_MODELS: Record<AiResourceType, ModelType> = {
   [AiResourceType.AzureSubscription]: CloudAccount,
   [AiResourceType.GoogleCloudProject]: CloudAccount,
   [AiResourceType.OpenStackCloud]: OpenStackCloud,
+  [AiResourceType.XcpNgPool]: XcpNgPool,
 };
 
 // The distinct models, each once.

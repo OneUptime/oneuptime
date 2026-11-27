@@ -871,6 +871,10 @@ const DocsNav: NavGroup[] = [
         url: "/docs/telemetry/xcp-ng",
       },
       {
+        title: "XCP-ng Without an Agent",
+        url: "/docs/telemetry/xcp-ng-agentless",
+      },
+      {
         title: "Ceph Agent",
         url: "/docs/telemetry/ceph",
       },

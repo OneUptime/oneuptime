@@ -27,6 +27,7 @@ Start from the question the tile has to answer:
 | Do people get through a flow, and come back? | **Funnel** or **User Retention** |
 | What state are our clusters and hosts in? | A widget of the Infrastructure group |
 | Where in the world is our network, and what is down? | **Network Map** |
+| What do our clouds cost, and which team spends it? | **Cloud Cost** |
 | A heading, a note, the time in another office? | **Text** or **Clock** |
 | Data kept outside OneUptime? | A widget of the External Data Sources group |
 | Something no widget covers? | **HTML**, once you are sure no other widget does it |
@@ -200,8 +201,9 @@ Each of these lists the resources that an agent or a collector reports to OneUpt
 | **XCP-ng** | **Hosts**, **VMs** | The XCP-ng Agent |
 | **Ceph** | **OSDs**, as a wall colored by state, and **Pools** | The Ceph Agent |
 | **Storage Arrays** | **Volumes**, and **Hardware** as a wall colored by status | The Storage Array Agent |
+| **Cloud Costs** | **Cloud Cost**, a total, a breakdown or a trend of the spend | The costs your [cloud accounts](/docs/telemetry/cloud-accounts) report |
 
-Use them for one page that mixes the state of your infrastructure with the telemetry of the workloads on it.
+Use them for one page that mixes the state of your infrastructure with the telemetry of the workloads on it. The Cloud Cost widget is no list: see [Cloud costs](#cloud-costs).
 
 ### Network Map
 
@@ -214,6 +216,19 @@ Above the map it prints how many sites are down, because a two-pixel red dot amo
 **Settings**: title, map or list view, maximum sites drawn, whether to print site names, and filters by site type and by status. Site names come off automatically when the map gets too busy for them to be readable; the tooltip still names every marker.
 
 A site only appears if it has coordinates. Add latitude and longitude on the site (or import them from CSV) to pin it.
+
+## Cloud costs
+
+### Cloud Cost
+
+What your clouds cost, beside the services that spend it, for the dashboard's time range. It reads the same figures as **Cloud → Spend → Costs** and a cost group's page, on the same days.
+
+- **Covers**: every account, one **Account**, a **Cost Group** or a **Cost View**. Pick the account, group or view in the setting below it.
+- **Show**: a total against the period before, a breakdown of its biggest parts, or a trend of each day's spend.
+- **Break Down By**: services, Regions, accounts or resources. A cost view's breakdown lists its groups, and what no group takes.
+- **Cost Basis**: billed, amortized or net. Empty, it is the project's, as Costs opens on.
+
+The figures are in the currency most of your accounts are billed in. Seeing it takes what seeing Costs takes: each viewer sees what they may read. A public dashboard shows only its title. See [Cloud Costs and Savings](/docs/telemetry/cloud-costs#reports-and-exports) for reports and exports of the same figures.
 
 ## External data sources
 
@@ -250,7 +265,7 @@ Through the API and Terraform, the order is the widget's `arguments.sort`: a col
 
 A [public dashboard](/docs/dashboards/sharing) draws most widgets for its visitors, each showing only what it was set up to show. A few cannot be shown without a signed-in session:
 
-- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events**, **Security Events Flow**, **Funnel** and **User Retention** say in their place that they are not available on public dashboards.
+- **Log Chart**, **Trace Chart**, **Trace Table**, **Security Events**, **Security Events Flow**, **Funnel**, **User Retention** and **Cloud Cost** say in their place that they are not available on public dashboards.
 - The External Data Sources widgets show their data when they read **This project's metrics (PromQL)**, never their queries. A widget on an external data source is left out of a public dashboard altogether.
 
 ## When a widget can't be shown

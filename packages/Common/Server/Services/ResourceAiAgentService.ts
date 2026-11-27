@@ -21,6 +21,8 @@ import TelemetryIngestionKeyService from "./TelemetryIngestionKeyService";
 import UserService from "./UserService";
 import VMwareVCenterFeedService from "./VMwareVCenterFeedService";
 import VMwareVCenterService from "./VMwareVCenterService";
+import XcpNgPoolFeedService from "./XcpNgPoolFeedService";
+import XcpNgPoolService from "./XcpNgPoolService";
 import { CephClusterFeedEventType } from "../../Models/DatabaseModels/CephClusterFeed";
 import DatabaseBaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
@@ -35,6 +37,8 @@ import { ProxmoxClusterFeedEventType } from "../../Models/DatabaseModels/Proxmox
 import Model from "../../Models/DatabaseModels/ResourceAiAgent";
 import TelemetryIngestionKey from "../../Models/DatabaseModels/TelemetryIngestionKey";
 import { VMwareVCenterFeedEventType } from "../../Models/DatabaseModels/VMwareVCenterFeed";
+import { XcpNgPoolFeedEventType } from "../../Models/DatabaseModels/XcpNgPoolFeed";
+import { XcpNgTelemetryUtil } from "../../Types/XcpNg/XcpNgTelemetry";
 import CloudAccountFeedService from "./CloudAccountFeedService";
 import { getResourceSentenceName } from "../../Types/AI/ResourceAiAccessPermissions";
 import { CloudAccountFeedEventType } from "../../Models/DatabaseModels/CloudAccountFeed";
@@ -583,6 +587,38 @@ export function getResourceAiAgentResourceBinding(
             projectId: item.projectId,
             openStackCloudFeedEventType:
               OpenStackCloudFeedEventType.OpenStackCloudUpdated,
+            feedInfoInMarkdown: item.feedInfoInMarkdown,
+            moreInformationInMarkdown: item.moreInformationInMarkdown,
+            displayColor: item.displayColor,
+            userId: item.userId,
+          });
+        },
+      };
+    /*
+     * An XCP-ng pool is matched on its XAPI UUID (poolIdentifier), the
+     * identity its telemetry carries: found by it, or created as on first
+     * contact.
+     */
+    case AiResourceType.XcpNgPool:
+      return {
+        resourceType,
+        getService: (): DatabaseService<DatabaseBaseModel> => {
+          return asService(XcpNgPoolService);
+        },
+        findOrCreateByIdentity: async (data: {
+          projectId: ObjectID;
+          identifier: string;
+        }): Promise<DatabaseBaseModel> => {
+          return await XcpNgPoolService.findOrCreateByIdentifier({
+            projectId: data.projectId,
+            poolIdentifier: data.identifier,
+          });
+        },
+        writeFeedItem: async (item: ResourceAiAgentFeedItem): Promise<void> => {
+          await XcpNgPoolFeedService.createXcpNgPoolFeedItem({
+            xcpNgPoolId: item.resourceId,
+            projectId: item.projectId,
+            xcpNgPoolFeedEventType: XcpNgPoolFeedEventType.XcpNgPoolUpdated,
             feedInfoInMarkdown: item.feedInfoInMarkdown,
             moreInformationInMarkdown: item.moreInformationInMarkdown,
             displayColor: item.displayColor,
@@ -1972,6 +2008,25 @@ export class Service extends DatabaseService<Model> {
           data.resourceType,
         )} identity is ${identifier.length} characters long; the limit is ${limit}. Set a shorter ${variables} on the agent.`,
       });
+    }
+
+    /*
+     * An XCP-ng pool is matched on its XAPI UUID, which its telemetry
+     * carries in lower case: an identity of any other shape would make a
+     * pool no telemetry ever reaches.
+     */
+    if (data.resourceType === AiResourceType.XcpNgPool) {
+      if (!UUID_PATTERN.test(identifier)) {
+        throw new ResourceAiAgentRegistrationRefusedException({
+          reason: "resource_identifier_invalid",
+          message: `The ${info.agentDisplayName} said it serves the pool "${identifier.substring(
+            0,
+            64,
+          )}", which is not a pool's UUID. Set ${variables} on the agent to the XAPI UUID of the pool it serves (on the pool's Settings in OneUptime), or leave it unset when Xen Orchestra manages one pool.`,
+        });
+      }
+
+      return XcpNgTelemetryUtil.normalizePoolIdentifier(identifier);
     }
 
     return identifier;

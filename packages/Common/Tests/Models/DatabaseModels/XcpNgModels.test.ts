@@ -4,6 +4,8 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import XcpNgConnection from "../../../Models/DatabaseModels/XcpNgConnection";
+import XcpNgConnectionTest from "../../../Models/DatabaseModels/XcpNgConnectionTest";
 import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import XcpNgPoolFeed, {
   XcpNgPoolFeedEventType,
@@ -36,7 +38,8 @@ import { ValueTransformer } from "typeorm/decorator/options/ValueTransformer";
  * while being wrong: a leftover `/proxmox-...` route shadows the Proxmox API,
  * a permission a model names but the catalogue lacks can never be granted, a
  * bigint column without its transformer overflows past 2^53, and a copied
- * AI-agent column offers a feature this product does not have yet (#10998).
+ * column of the cloned product's means nothing here (the AI agent's columns
+ * are the pool's own, #10998).
  *
  * Pinned here, all of it only failing in production otherwise:
  *
@@ -108,6 +111,19 @@ const XCP_NG_MODELS: Array<XcpNgModelSpec> = [
     modelType: XcpNgPoolOwnerUser,
     tableName: "XcpNgPoolOwnerUser",
     crudApiPath: "/xcp-ng-pool-owner-user",
+  },
+  // A Xen Orchestra or a pool's XAPI a probe reads, and a test of one (#10996, #10999).
+  {
+    name: "XcpNgConnection",
+    modelType: XcpNgConnection,
+    tableName: "XcpNgConnection",
+    crudApiPath: "/xcp-ng-connection",
+  },
+  {
+    name: "XcpNgConnectionTest",
+    modelType: XcpNgConnectionTest,
+    tableName: "XcpNgConnectionTest",
+    crudApiPath: "/xcp-ng-connection-test",
   },
 ];
 
@@ -322,8 +338,8 @@ function findIndex(
 }
 
 describe("XCP-ng database models", () => {
-  test("the product has the seven models of the design", () => {
-    expect(XCP_NG_MODELS.length).toBe(7);
+  test("the product has the nine models of the design", () => {
+    expect(XCP_NG_MODELS.length).toBe(9);
   });
 
   describe("registration and identity", () => {
@@ -541,22 +557,29 @@ describe("XCP-ng database models", () => {
       }
     });
 
-    test("has NO AI-agent columns yet (#10998), nor the cloned product's own", () => {
+    test("has the AI agent's columns (#10998), and none of the cloned product's own", () => {
       const columns: Array<string> = new XcpNgPool().getTableColumns().columns;
-
-      for (const column of [
+      const aiColumns: Array<string> = [
         "isAiInvestigationEnabled",
         "aiRemediationMode",
         "aiCommandAllowlist",
         "aiAccessLastVerifiedAt",
         "aiAccessLastError",
         "aiAccessConfiguredAt",
-      ]) {
-        expect(columns).not.toContain(column);
+        "aiAgentResetAt",
+      ];
+
+      for (const column of aiColumns) {
+        expect(columns).toContain(column);
       }
-      for (const column of columns) {
-        expect(column).not.toMatch(/^ai[A-Z]|^isAi|Ai[A-Z]/);
-      }
+      // Those seven, and no other AI column.
+      const aiColumnPattern: RegExp = /^ai[A-Z]|^isAi|Ai[A-Z]/;
+
+      expect(
+        columns.filter((column: string): boolean => {
+          return aiColumnPattern.test(column);
+        }),
+      ).toEqual(aiColumns);
 
       for (const column of [
         "nodeCount",
@@ -802,6 +825,12 @@ describe("XCP-ng database models", () => {
           "OwnerTeamRemoved",
           "OwnerRuleExecuted",
           "LabelRuleExecuted",
+          // What XAPI tells a pool's operators, read by a probe (#10999).
+          "XcpNgPoolMessage",
+          // #10997: the master moving, HA changing, a backup job failing.
+          "XcpNgPoolMasterChanged",
+          "XcpNgPoolHaChanged",
+          "XcpNgPoolBackupFailed",
         ].sort(),
       );
     });

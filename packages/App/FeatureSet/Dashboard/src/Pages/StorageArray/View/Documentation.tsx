@@ -15,6 +15,9 @@ import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import StorageArrayDocumentationCard from "../../../Components/StorageArray/DocumentationCard";
+import StorageArrayPlatformGuideCard from "../../../Components/StorageArray/PlatformGuideCard";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { getStorageArrayPlatformForSystem } from "../Utils/DocumentationMarkdown";
 
 const StorageArrayDocumentation: FunctionComponent<
   PageComponentProps
@@ -59,6 +62,22 @@ const StorageArrayDocumentation: FunctionComponent<
 
   if (!storageArray) {
     return <ErrorMessage message="Storage array not found." />;
+  }
+
+  /*
+   * An array of a platform the in-app guide has no steps for yet (NetApp
+   * ONTAP, #11123) is pointed at its own steps, never Pure's.
+   */
+  if (
+    storageArray.storageSystem &&
+    StorageArrayPlatformRegistry.getPlatform(storageArray.storageSystem) &&
+    !getStorageArrayPlatformForSystem(storageArray.storageSystem)
+  ) {
+    return (
+      <StorageArrayPlatformGuideCard
+        storageSystem={storageArray.storageSystem}
+      />
+    );
   }
 
   return (

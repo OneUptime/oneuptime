@@ -5,6 +5,7 @@ import HttpMailApi, {
 import InlineImageAttachments, {
   PostmarkInlineAttachment,
 } from "./InlineImageAttachments";
+import FileAttachments, { PostmarkFileAttachment } from "./FileAttachments";
 import InlineImageRefusal from "./InlineImageRefusal";
 import formatMailbox, { toOneLine } from "./MailboxAddress";
 import MailProvider, { MailProviderSendOptions } from "./MailProvider";
@@ -49,7 +50,7 @@ export interface PostmarkSendEmailRequest {
   Subject: string;
   HtmlBody: string;
   TextBody?: string;
-  Attachments?: Array<PostmarkInlineAttachment>;
+  Attachments?: Array<PostmarkInlineAttachment | PostmarkFileAttachment>;
 }
 
 // Postmark's answer to a refusal: {"ErrorCode": 300, "Message": "..."}.
@@ -92,9 +93,14 @@ export default class PostmarkMailProvider implements MailProvider {
       Subject: toOneLine(data.mail.subject || ""),
       HtmlBody: html,
       ...(text ? { TextBody: text } : {}),
-      ...(data.inlineImages.length > 0
+      // Its inline images, then the files it carries (FileAttachments).
+      ...(data.inlineImages.length > 0 ||
+      FileAttachments.of(data.mail).length > 0
         ? {
-            Attachments: InlineImageAttachments.forPostmark(data.inlineImages),
+            Attachments: [
+              ...InlineImageAttachments.forPostmark(data.inlineImages),
+              ...FileAttachments.forPostmark(FileAttachments.of(data.mail)),
+            ],
           }
         : {}),
     };

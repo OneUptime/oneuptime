@@ -1,0 +1,20 @@
+# NetApp Harvest's KeyPerf collector, limited to the objects OneUptime reads:
+# the latency, operations and throughput ONTAP keeps for the cluster, each
+# node, aggregate, volume and LUN. KeyPerf reads them from the statistics of
+# ONTAP's REST objects, so it works on Amazon FSx for NetApp ONTAP too, and
+# it is Harvest's own choice for volume performance since 25.11.
+# docker-compose.yml mounts this file as conf/keyperf/oneuptime.yaml in the
+# netapp-harvest service. Keep it as shipped: install.sh replaces it on every
+# re-run.
+collector: KeyPerf
+
+schedule:
+  - counter: 24h
+  - data: 1m
+
+objects:
+  Cluster: cluster.yaml
+  SystemNode: system_node.yaml
+  Aggregate: aggr.yaml
+  Volume: volume.yaml
+  Lun: lun.yaml

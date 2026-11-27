@@ -454,8 +454,19 @@ Database Agent의 `docker-compose.yml`은 **데이터베이스 AI 에이전트**
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | 컨테이너에 마운트한 PEM CA 번들(`oneuptime-database-ai-agent`의 주석 처리된 `volumes` 참조)로, `DATABASE_TLS_INSECURE=false`일 때 서버 인증서를 이것으로 검증합니다 |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Collector의 ID | AI 에이전트를 Collector와 다른 데이터베이스로 등록합니다. OneUptime에서의 ID 또는 `<engine>\|<address>:<port>`를 씁니다. 비워 두세요 |
 | `LOG_LEVEL` | `info` | AI 에이전트의 로그 수준: `debug`, `info`, `warn`, `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true`이면 에이전트가 이 서버의 데이터베이스를 데이터 옵저버빌리티용으로 읽을 수 있습니다. 그 밖의 값은 꺼진 상태로 둡니다 |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | 모니터링 로그인 | 데이터 옵저버빌리티가 카탈로그를 읽는 로그인. 그대로 씁니다. `$`를 두 번 쓰지 않습니다 |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | 그 로그인의 비밀번호. 작은따옴표로 감싸세요 |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false`이면 데이터 검사를 실행하지 않고 카탈로그만 읽습니다 |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | 카탈로그 로그인 | 데이터 검사가 행을 읽는 로그인 |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | 그 로그인의 비밀번호. 작은따옴표로 감싸세요 |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true`이면 사용자 지정 SQL 및 실패한 행 검사를 실행합니다 |
 
 실행할 수 있는 작업, 수정이 작동하는 방식, 문제 해결 방법: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#데이터베이스-서버).
+
+### 같은 에이전트를 통한 데이터 옵저버빌리티
+
+같은 에이전트로 이 서버의 PostgreSQL, MySQL, MariaDB 데이터베이스를 [데이터 옵저버빌리티](/docs/data-observability/index)용으로 읽을 수도 있습니다. 테이블과 열, 최신성과 볼륨, 스키마 변경, 그리고 설정한 검사입니다. 에이전트는 자체 환경의 로그인과 직접 만든 문으로 읽기 전용으로 읽으며, 행이나 로그인은 돌려보내지 않습니다. 같은 `.env`에 `ONEUPTIME_DATA_OBSERVABILITY=true`를 설정하기 전까지는 꺼져 있습니다. 에이전트를 고르는 방법과 부여할 로그인은 [데이터베이스 연결](/docs/data-observability/connect#database-agent를-통해)에서 설명합니다.
 
 ## Kubernetes
 

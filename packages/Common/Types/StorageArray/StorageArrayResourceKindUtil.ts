@@ -79,26 +79,40 @@ export class StorageArrayResourceKindUtil {
    * kind this one does not know) is shown under its raw kind rather than
    * crashing the page that renders it.
    */
+  /*
+   * A kind's words. Two platforms can have a kind of one name in words of
+   * their own (an ONTAP aggregate's, a key that names its meaning, #11001):
+   * given the array's platform, its words win.
+   */
   public static getSingularLabel(
     kind: StorageArrayResourceKind | string,
+    storageSystem?: string | null | undefined,
   ): string {
-    return StorageArrayResourceKindUtil.getLabels(kind)?.singular || kind;
+    return (
+      StorageArrayResourceKindUtil.getLabels(kind, storageSystem)?.singular ||
+      kind
+    );
   }
 
   public static getPluralLabel(
     kind: StorageArrayResourceKind | string,
+    storageSystem?: string | null | undefined,
   ): string {
-    return StorageArrayResourceKindUtil.getLabels(kind)?.plural || kind;
+    return (
+      StorageArrayResourceKindUtil.getLabels(kind, storageSystem)?.plural ||
+      kind
+    );
   }
 
   private static getLabels(
     kind: string,
+    storageSystem?: string | null | undefined,
   ): { singular: string; plural: string } | undefined {
     if (Object.prototype.hasOwnProperty.call(KIND_LABELS, kind)) {
       return KIND_LABELS[kind as StorageArrayResourceKind];
     }
     const definition: StorageArrayKindDefinition | null =
-      StorageArrayPlatformRegistry.getKindDefinition(kind);
+      StorageArrayPlatformRegistry.getKindDefinition(kind, storageSystem);
     if (definition) {
       return {
         singular: definition.singularLabel,

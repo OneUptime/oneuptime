@@ -1,11 +1,18 @@
 import DataObservabilityApi from "./DataObservabilityApi";
+import {
+  getDatabaseConnectionFields,
+  readDatabaseConnection,
+} from "./DatabaseConnectionFields";
+import useDatabaseConnectionChoices, {
+  DatabaseConnectionChoices,
+} from "./UseDatabaseConnectionChoices";
 import WatchedTablesCost from "./WatchedTablesCost";
-import Probe from "Common/Models/DatabaseModels/Probe";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import {
+  DataObservabilityAgentState,
   DataObservabilityCollector,
   DataObservabilityConnectStoreResponse,
+  DataObservabilityDatabaseAgent,
   DataObservabilitySourceSuggestion,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import { JSONObject } from "Common/Types/JSON";
@@ -15,16 +22,12 @@ import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import { FormStep } from "Common/UI/Components/Forms/Types/FormStep";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
 import API from "Common/UI/Utils/API/API";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -37,9 +40,10 @@ export interface ComponentProps {
 }
 
 /*
- * Four or five rows (the connection string, or the probe and its variable,
- * by who connects), so the form walks two steps: the database, then how
- * OneUptime reaches it (LongFormStepsGuard).
+ * Four or five rows (the connection string, the probe and its variable, or
+ * the Database Agent and its database, by who connects), so the form walks
+ * two steps: the database, then how OneUptime reaches it
+ * (LongFormStepsGuard).
  */
 const DATABASE_STEP_ID: string = "database";
 const CONNECTION_STEP_ID: string = "connection";
@@ -65,14 +69,37 @@ const KIND_OPTIONS: Array<DropdownOption> = [
 ];
 
 /*
- * Connect a database to Data Observability. Two ways in, the second for a
- * database only the customer's network can reach:
+ * The way in a form starts from: the Database Agent that already monitors a
+ * database Database Monitoring found, when it can read one (#11148) -
+ * nothing to type but the database's name - else OneUptime connecting.
+ */
+function getStartingCollector(
+  suggestion: DataObservabilitySourceSuggestion | undefined,
+  agents: Array<DataObservabilityDatabaseAgent>,
+): DataObservabilityCollector {
+  const serverId: string | null | undefined = suggestion?.databaseServerId;
+  const agent: DataObservabilityDatabaseAgent | undefined = serverId
+    ? agents.find((candidate: DataObservabilityDatabaseAgent): boolean => {
+        return candidate.databaseServerId === serverId;
+      })
+    : undefined;
+
+  return agent && agent.state !== DataObservabilityAgentState.EngineNotSupported
+    ? DataObservabilityCollector.DatabaseAgent
+    : DataObservabilityCollector.OneUptime;
+}
+
+/*
+ * Connect a database to Data Observability. Three ways in, the last two for
+ * a database only the customer's network can reach:
  *
  *  - OneUptime connects, with a connection string saved (encrypted) on the
  *    store;
- *  - a probe in the customer's network connects, with the connection string
- *    in an environment variable of that probe - it never leaves the
- *    network.
+ *  - a probe in the customer's network connects, with the connection
+ *    string in an environment variable of that probe - it never leaves the
+ *    network;
+ *  - the Database Agent the customer already runs beside the database
+ *    connects, with logins of its own environment (#11148).
  *
  * Either way only the catalog is read, and the login should be read-only. The form asks for the little that is needed and nothing more.
  */
@@ -82,54 +109,12 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [error, setError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [probeOptions, setProbeOptions] = useState<Array<DropdownOption>>([]);
   const isSavingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
-
-  useEffect(() => {
-    let isCurrent: boolean = true;
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-
-    ModelAPI.getList<Probe>({
-      modelType: Probe,
-      query: projectId ? { projectId: projectId } : {},
-      select: { _id: true, name: true },
-      limit: 100,
-      skip: 0,
-      sort: { name: SortOrder.Ascending },
-    })
-      .then((result: ListResult<Probe>): void => {
-        if (!isCurrent) {
-          return;
-        }
-
-        setProbeOptions(
-          result.data
-            .filter((probe: Probe): boolean => {
-              return Boolean(probe.id);
-            })
-            .map((probe: Probe): DropdownOption => {
-              return {
-                value: probe.id!.toString(),
-                label: probe.name || probe.id!.toString(),
-                isUserContent: true,
-              };
-            }),
-        );
-      })
-      .catch((): void => {
-        // Without probes, OneUptime connecting is the one way in.
-      })
-      .finally((): void => {
-        if (isCurrent) {
-          setIsLoading(false);
-        }
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, []);
+  const choices: DatabaseConnectionChoices = useDatabaseConnectionChoices();
+  const startingCollector: DataObservabilityCollector = getStartingCollector(
+    props.suggestion,
+    choices.agents,
+  );
 
   return (
     <BasicFormModal<JSONObject>
@@ -138,7 +123,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
       name="Data Observability > Connect a Database"
       beforeFormElement={<WatchedTablesCost />}
       submitButtonText="Connect"
-      isLoading={isLoading}
+      isLoading={choices.isLoading}
       isSubmitting={isSaving}
       error={error || undefined}
       onClose={props.onClose}
@@ -147,7 +132,10 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
         initialValues: {
           name: props.suggestion?.name || "",
           kind: props.suggestion?.kind || DataStoreKind.PostgreSql,
-          collector: DataObservabilityCollector.OneUptime,
+          collector: startingCollector,
+          ...(startingCollector === DataObservabilityCollector.DatabaseAgent
+            ? { databaseServerId: props.suggestion?.databaseServerId || "" }
+            : {}),
         },
         steps: STEPS,
         fields: [
@@ -168,79 +156,15 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
             required: true,
             stepId: DATABASE_STEP_ID,
           },
-          {
-            field: { collector: true },
-            title: "Who Connects",
-            fieldType: FormFieldSchemaType.RadioButton,
+          ...getDatabaseConnectionFields({
             stepId: CONNECTION_STEP_ID,
-            radioButtonOptions: [
-              {
-                value: DataObservabilityCollector.OneUptime,
-                title: "OneUptime connects",
-                description:
-                  "The connection string is saved on the store, encrypted, and is never shown again.",
-              },
-              {
-                value: DataObservabilityCollector.Probe,
-                title: "A probe in my network connects",
-                description:
-                  "The connection string stays in an environment variable of your probe and never leaves your network.",
-              },
-            ],
-            required: true,
-          },
-          {
-            field: { connectionString: true },
-            title: "Connection String",
-            stepId: CONNECTION_STEP_ID,
-            // Documentation shows every engine's format in full, with examples.
-            description: props.suggestion?.connectionExample
-              ? translator.translateTemplate("For this database: {{example}}", {
-                  example: props.suggestion.connectionExample,
-                })
-              : "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks, Athena or Dataverse. Docs show each format.",
-            fieldType: FormFieldSchemaType.Password,
-            required: (values: FormValues<JSONObject>): boolean => {
-              return (
-                values["collector"] === DataObservabilityCollector.OneUptime
-              );
-            },
-            showIf: (values: FormValues<JSONObject>): boolean => {
-              return (
-                values["collector"] === DataObservabilityCollector.OneUptime
-              );
-            },
-          },
-          {
-            field: { probeId: true },
-            title: "Probe",
-            stepId: CONNECTION_STEP_ID,
-            description:
-              "One of this project's own probes, running where it can reach the database.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: probeOptions,
-            required: (values: FormValues<JSONObject>): boolean => {
-              return values["collector"] === DataObservabilityCollector.Probe;
-            },
-            showIf: (values: FormValues<JSONObject>): boolean => {
-              return values["collector"] === DataObservabilityCollector.Probe;
-            },
-          },
-          {
-            field: { probeConnectionVariable: true },
-            title: "Environment Variable",
-            stepId: CONNECTION_STEP_ID,
-            description:
-              "The probe's environment variable that holds the connection string: upper-case letters, digits and underscores.",
-            placeholder: "ORDERS_DB_URL",
-            fieldType: FormFieldSchemaType.Text,
-            required: (values: FormValues<JSONObject>): boolean => {
-              return values["collector"] === DataObservabilityCollector.Probe;
-            },
-            showIf: (values: FormValues<JSONObject>): boolean => {
-              return values["collector"] === DataObservabilityCollector.Probe;
-            },
-          },
+            probeOptions: choices.probeOptions,
+            agentOptions: choices.agentOptions,
+            // A database Data Security keeps a connection string for may keep it.
+            hasSavedConnection: props.suggestion?.hasSavedConnection === true,
+            connectionExample: props.suggestion?.connectionExample,
+            translator,
+          }),
         ],
       }}
       onSubmit={async (values: FormValues<JSONObject>) => {
@@ -253,8 +177,7 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
         setIsSaving(true);
 
         try {
-          const isProbe: boolean =
-            values["collector"] === DataObservabilityCollector.Probe;
+          const { collector, ...connection } = readDatabaseConnection(values);
           const result: DataObservabilityConnectStoreResponse =
             await DataObservabilityApi.connectStore({
               name: String(values["name"] || ""),
@@ -262,16 +185,10 @@ const ConnectDatabaseModal: FunctionComponent<ComponentProps> = (
               ...(props.suggestion?.dataStoreId
                 ? { dataStoreId: props.suggestion.dataStoreId }
                 : {}),
-              ...(isProbe
-                ? {
-                    probeId: String(values["probeId"] || ""),
-                    probeConnectionVariable: String(
-                      values["probeConnectionVariable"] || "",
-                    ).trim(),
-                  }
-                : {
-                    connectionString: String(values["connectionString"] || ""),
-                  }),
+              ...(collector === DataObservabilityCollector.OneUptime &&
+              !connection.connectionString
+                ? {}
+                : connection),
             });
 
           props.onConnected(new ObjectID(result.dataStoreId));

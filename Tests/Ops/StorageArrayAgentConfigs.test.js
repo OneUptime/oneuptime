@@ -4,8 +4,9 @@
  * The Storage Array Agent (agents/StorageArrayAgent): its collector configs
  * — a FlashArray's native OpenMetrics endpoint, Pure's FlashArray exporter
  * for an older Purity//FA, Pure's FlashBlade exporter, Dell's PowerStore
- * exporter (with its syslog collector beside it) — the compose file that
- * runs one of them, and the scripts and unit that install it.
+ * exporter (with its syslog collector beside it), and NetApp Harvest for an
+ * ONTAP cluster (#11001) — the compose file that runs one of them, Harvest's
+ * own config, and the scripts and unit that install it.
  *
  * OneUptime registers and inventories an array from what these configs
  * stamp and how they scrape, so their shape is part of the product:
@@ -26,7 +27,11 @@
  *    with `endpoint=<array>`, all with the read-only user's API token as a
  *    Bearer token; the PowerStore config scrapes Dell's exporter at
  *    /metrics/<cluster>/<part> with no credential, since Dell's exporter
- *    logs in to the cluster itself;
+ *    logs in to the cluster itself; the ONTAP config scrapes Harvest, which
+ *    logs in to the cluster with the read-only user and its password, so no
+ *    credential travels from the collector either, and ingest learns which
+ *    objects a scrape is the complete list of from Harvest's own metadata
+ *    series;
  *  - docker-compose.yml mounts the config STORAGE_ARRAY_COLLECTOR_CONFIG
  *    names and starts the exporter that config scrapes only under its
  *    profile, and install.sh writes the two consistently and recreates the
@@ -160,6 +165,38 @@ const CONFIGS = {
       ["powerstore-file", "file", "300s"],
     ],
   },
+  "otel-collector-config.netapp-ontap.yaml": {
+    system: "netapp.ontap",
+    profile: "netapp-ontap",
+    exporterService: "netapp-harvest",
+    scheme: "http",
+    target: "netapp-harvest:12990",
+    // Harvest serves every object on one path, and logs in to the cluster itself.
+    harvest: true,
+    metricsPath: "/metrics",
+    // SnapMirror Behind Schedule's divisor: each relationship's schedule in seconds.
+    processors: [
+      "batch",
+      "filter/snapmirror-schedule",
+      "memory_limiter",
+      "resource",
+      "transform/snapmirror-schedule",
+    ],
+    pipelines: {
+      metrics: {
+        receivers: ["prometheus"],
+        processors: [
+          "memory_limiter",
+          "transform/snapmirror-schedule",
+          "filter/snapmirror-schedule",
+          "resource",
+          "batch",
+        ],
+        exporters: ["otlphttp"],
+      },
+    },
+    jobs: [["netapp-harvest", "harvest", "60s"]],
+  },
 };
 const CONFIG_NAMES = Object.keys(CONFIGS);
 
@@ -168,7 +205,10 @@ const CONFIG_NAMES = Object.keys(CONFIGS);
  * table, field 11), and the .env settings only the compose file reads (the
  * PowerStore exporter's login and options, the syslog port).
  */
-const OTHER_FILES = ["powerstore-exporter.Dockerfile", "powerstore-syslog.yaml"];
+const OTHER_FILES = [
+  "powerstore-exporter.Dockerfile",
+  "powerstore-syslog.yaml",
+];
 const PLATFORM_COMPOSE_ENV = [
   "POWERSTORE_USERNAME",
   "POWERSTORE_PASSWORD",
@@ -180,14 +220,52 @@ const PLATFORM_COMPOSE_ENV = [
 
 /* A job's path after its config's prefix: the part it scrapes. */
 function endpointOf(name, job) {
+  // Harvest serves every object of the cluster on one path.
+  if (CONFIGS[name].harvest && job.metrics_path === CONFIGS[name].metricsPath) {
+    return "harvest";
+  }
   const prefix = CONFIGS[name].pathPrefix || "/metrics/";
-  expect({ path: job.metrics_path, prefixed: job.metrics_path.startsWith(prefix) }).toEqual({
+  expect({
+    path: job.metrics_path,
+    prefixed: job.metrics_path.startsWith(prefix),
+  }).toEqual({
     path: job.metrics_path,
     prefixed: true,
   });
   return job.metrics_path.slice(prefix.length);
 }
 
+/* Harvest's own config and the templates of its collectors, which install.sh downloads too. */
+const HARVEST_FILES = [
+  "netapp-harvest.yml",
+  "netapp-harvest-rest.yaml",
+  "netapp-harvest-keyperf.yaml",
+  "netapp-harvest-restperf.yaml",
+];
+
+/*
+ * Harvest's measurements of itself, and the per-disk sums RestPerf's disk
+ * template works out besides each shelf's parts: no page reads them.
+ */
+const HARVEST_DROPS = [
+  {
+    source_labels: ["__name__"],
+    regex:
+      "netapp_(poller_.*|metadata_(exporter_.*|component_count|target_goroutines|target_ping|collector_(api_time|bytesRx|calc_time|metrics|numCalls|numPartials|parse_time|pluginInstances|plugin_time|poll_time|skips|task_time)))",
+    action: "drop",
+  },
+  {
+    source_labels: ["__name__"],
+    regex: "netapp_(aggr|node|plex|raid)_disk_.*",
+    action: "drop",
+  },
+];
+
+/*
+ * The endpoint a job reads, as its scrape_endpoint label must name it: the
+ * last segment of a Pure metrics path, or `harvest` for the one path
+ * Harvest serves every object of a cluster on.
+ */
 /* The per-volume / per-host latency breakdown the volumes and hosts jobs drop. */
 const LATENCY_BREAKDOWN_DROP = {
   source_labels: ["__name__", "dimension"],
@@ -211,6 +289,12 @@ const CONFIG_ENV = [
 ];
 /* The compose-level variables .env carries besides those. */
 const COMPOSE_ENV = ["STORAGE_ARRAY_COLLECTOR_CONFIG", "COMPOSE_PROFILES"];
+/* What the compose file hands Harvest besides: the cluster and its read-only user. */
+const HARVEST_ENV = [
+  "NETAPP_ONTAP_ENDPOINT",
+  "NETAPP_ONTAP_USERNAME",
+  "NETAPP_ONTAP_PASSWORD",
+];
 
 function read(relativePath) {
   return fs.readFileSync(path.join(REPO_ROOT, relativePath), "utf8");
@@ -377,6 +461,14 @@ describe("agents/StorageArrayAgent collector configs", () => {
           expect(job).not.toHaveProperty("tls_config");
           continue;
         }
+        if (expected.harvest) {
+          // Harvest holds the login to the cluster: the collector sends nothing.
+          expect(job.metrics_path).toBe(expected.metricsPath);
+          expect(job).not.toHaveProperty("authorization");
+          expect(job).not.toHaveProperty("params");
+          expect(job).not.toHaveProperty("tls_config");
+          continue;
+        }
         expect(job.authorization).toEqual({
           type: "Bearer",
           credentials: expected.token,
@@ -400,7 +492,12 @@ describe("agents/StorageArrayAgent collector configs", () => {
       const lines = text.split("\n").filter((line) => {
         return /insecure_skip_verify:/.test(line) && !/^\s*#/.test(line);
       });
-      if (expected.endpointParam || expected.exporterLogsIn) {
+      if (
+        expected.endpointParam ||
+        expected.exporterLogsIn ||
+        expected.harvest
+      ) {
+        // An exporter's own TLS to the array is its business (Harvest's below).
         expect(lines).toEqual([]);
       } else {
         expect(lines.length).toBe(expected.jobs.length);
@@ -412,10 +509,12 @@ describe("agents/StorageArrayAgent collector configs", () => {
       }
     });
 
-    test("drops only the per-volume and per-host latency breakdown", () => {
+    test("drops only what no page reads: a FlashArray's per-volume and per-host latency breakdown, Harvest's measurements of itself", () => {
       for (const job of scrapeConfigs(name)) {
         const endpoint = endpointOf(name, job);
-        if (
+        if (expected.harvest) {
+          expect(job.metric_relabel_configs).toEqual(HARVEST_DROPS);
+        } else if (
           expected.system === "purestorage.flasharray" &&
           (endpoint === "volumes" || endpoint === "hosts")
         ) {
@@ -558,12 +657,23 @@ describe("agents/StorageArrayAgent collector configs", () => {
       });
     expect(platforms.length).toBeGreaterThanOrEqual(3);
     const endpoints = new Set();
-    for (const name of CONFIG_NAMES) {
+    for (const name of CONFIG_NAMES.filter((config) => {
+      return !CONFIGS[config].harvest;
+    })) {
       for (const job of scrapeConfigs(name)) {
         endpoints.add(job.static_configs[0].labels.scrape_endpoint);
       }
     }
     endpoints.delete("array");
+    /*
+     * ONTAP's one endpoint is no complete list: Harvest's metadata series
+     * say which objects it listed in full (exporterCompletedKinds).
+     */
+    const ontap = read(
+      "packages/Common/Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform.ts",
+    );
+    expect(ontap).toContain("  scrapeEndpoints: {},\n");
+    expect(ontap).toContain("  exporterCompletedKinds: [\n");
     for (const endpoint of endpoints) {
       // `<endpoint>: [<kinds>]` in scrapeEndpoints (`[]` for an endpoint
       // that lists no object of a kind), its kinds on the line or, as
@@ -581,13 +691,14 @@ describe("agents/StorageArrayAgent collector configs", () => {
 });
 
 describe("agents/StorageArrayAgent/docker-compose.yml", () => {
-  test("runs the collector, Pure's two exporters, and Dell's exporter with PowerStore's syslog collector, nothing else", () => {
+  test("runs the collector, Pure's two exporters, Dell's exporter with PowerStore's syslog collector, and NetApp Harvest, nothing else", () => {
     expect(Object.keys(compose().services)).toEqual([
       COLLECTOR_SERVICE,
       "pure-fa-exporter",
       "pure-fb-exporter",
       "powerstore-exporter",
       "powerstore-syslog",
+      "netapp-harvest",
     ]);
   });
 
@@ -605,9 +716,12 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
     for (const variable of referenced) {
       expect({
         variable,
-        known: [...CONFIG_ENV, ...COMPOSE_ENV, ...PLATFORM_COMPOSE_ENV].includes(
-          variable,
-        ),
+        known: [
+          ...CONFIG_ENV,
+          ...COMPOSE_ENV,
+          ...PLATFORM_COMPOSE_ENV,
+          ...HARVEST_ENV,
+        ].includes(variable),
       }).toEqual({ variable, known: true });
     }
   });
@@ -638,7 +752,11 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
    */
   test.each(
     CONFIG_NAMES.filter((name) => {
-      return CONFIGS[name].exporterService && !CONFIGS[name].exporterLogsIn;
+      return (
+        CONFIGS[name].exporterService &&
+        !CONFIGS[name].exporterLogsIn &&
+        !CONFIGS[name].harvest
+      );
     }),
   )(
     "starts the exporter %s scrapes, pinned, unpublished and credential-free, only under its profile",
@@ -661,6 +779,44 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
       expect(service.security_opt).toEqual(["no-new-privileges:true"]);
     },
   );
+
+  test("starts NetApp Harvest only under the ONTAP profile: pinned, unpublished, read-only, with only the cluster's address and user", () => {
+    const expected = CONFIGS["otel-collector-config.netapp-ontap.yaml"];
+    const service = compose().services[expected.exporterService];
+
+    expect(service.profiles).toEqual([expected.profile]);
+    expect(service.image).toMatch(
+      /^ghcr\.io\/netapp\/harvest:\d+\.\d+\.\d+-\d+$/,
+    );
+    expect(service.command).toEqual([
+      "--poller",
+      "ontap",
+      "--config",
+      "/opt/harvest/harvest.yml",
+    ]);
+    expect(service.expose).toEqual([expected.target.split(":")[1]]);
+    expect(service).not.toHaveProperty("ports");
+    // Never .env as a whole: Harvest never sees the ingestion key.
+    expect(service).not.toHaveProperty("env_file");
+    expect(service.environment).toEqual([
+      "STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME}",
+      "NETAPP_ONTAP_ENDPOINT=${NETAPP_ONTAP_ENDPOINT}",
+      "NETAPP_ONTAP_USERNAME=${NETAPP_ONTAP_USERNAME}",
+      "NETAPP_ONTAP_PASSWORD=${NETAPP_ONTAP_PASSWORD}",
+      "STORAGE_ARRAY_INSECURE_SKIP_VERIFY=${STORAGE_ARRAY_INSECURE_SKIP_VERIFY:-true}",
+    ]);
+    // Its config and its collectors' templates, read-only, where Harvest looks.
+    expect(service.volumes).toEqual([
+      "./netapp-harvest.yml:/opt/harvest/harvest.yml:ro",
+      "./netapp-harvest-rest.yaml:/opt/harvest/conf/rest/oneuptime.yaml:ro",
+      "./netapp-harvest-keyperf.yaml:/opt/harvest/conf/keyperf/oneuptime.yaml:ro",
+      "./netapp-harvest-restperf.yaml:/opt/harvest/conf/restperf/oneuptime.yaml:ro",
+    ]);
+    expect(service.read_only).toBe(true);
+    expect(service.tmpfs).toEqual(["/tmp"]);
+    expect(service.cap_drop).toEqual(["ALL"]);
+    expect(service.security_opt).toEqual(["no-new-privileges:true"]);
+  });
 
   test("names every shipped config where it explains the choice", () => {
     const text = read(`${AGENT_DIR}/docker-compose.yml`);
@@ -695,6 +851,22 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     const services = compose().services;
     for (const platform of platforms) {
       const expected = CONFIGS[platform.config];
+      if (expected.harvest) {
+        // Harvest reads the address, the user and its password; the collector none.
+        const harvest = read(`${AGENT_DIR}/netapp-harvest.yml`);
+        for (const variable of [
+          platform.endpointVariable,
+          platform.userVariable,
+          platform.tokenVariable,
+        ]) {
+          expect(harvest).toContain(`\${${variable}}`);
+          expect(configText(platform.config)).not.toContain(variable);
+        }
+        expect(platform.otherFiles).toEqual(HARVEST_FILES);
+        expect(platform.tlsToArray).toBe("yes");
+        expect(platform.noun).toBe("ONTAP cluster");
+        continue;
+      }
       if (expected.exporterLogsIn) {
         /*
          * The exporter logs in with a user and a password: they are the
@@ -765,27 +937,30 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     const files = script.match(/^AGENT_FILES="([^"]+)"$/m);
     expect(files).not.toBeNull();
     // The table's configs and other files stand in their places.
-    const downloaded = files[1]
-      .split(" ")
-      .flatMap((file) => {
-        if (file === "$PLATFORM_CONFIGS") {
-          return installPlatforms().map((platform) => {
-            return platform.config;
-          });
-        }
-        if (file === "$PLATFORM_FILES") {
-          return [
-            ...new Set(
-              installPlatforms().flatMap((platform) => {
-                return platform.otherFiles;
-              }),
-            ),
-          ];
-        }
-        return [file];
-      });
+    const downloaded = files[1].split(" ").flatMap((file) => {
+      if (file === "$PLATFORM_CONFIGS") {
+        return installPlatforms().map((platform) => {
+          return platform.config;
+        });
+      }
+      if (file === "$PLATFORM_FILES") {
+        return [
+          ...new Set(
+            installPlatforms().flatMap((platform) => {
+              return platform.otherFiles;
+            }),
+          ),
+        ];
+      }
+      return [file];
+    });
     expect([...downloaded].sort()).toEqual(
-      ["docker-compose.yml", ...CONFIG_NAMES, ...OTHER_FILES].sort(),
+      [
+        "docker-compose.yml",
+        ...CONFIG_NAMES,
+        ...OTHER_FILES,
+        ...HARVEST_FILES,
+      ].sort(),
     );
     for (const file of downloaded) {
       expect(fs.existsSync(path.join(REPO_ROOT, AGENT_DIR, file))).toBe(true);
@@ -813,7 +988,12 @@ describe("agents/StorageArrayAgent/install.sh", () => {
         return line.split("=")[0];
       });
     expect([...written, ...installPlatformVariables()].sort()).toEqual(
-      [...CONFIG_ENV, ...COMPOSE_ENV, ...PLATFORM_COMPOSE_ENV].sort(),
+      [
+        ...CONFIG_ENV,
+        ...COMPOSE_ENV,
+        ...PLATFORM_COMPOSE_ENV,
+        ...HARVEST_ENV,
+      ].sort(),
     );
 
     for (const name of [
@@ -856,6 +1036,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
         ...CONFIG_ENV,
         "STORAGE_ARRAY_COLLECTOR_CONFIG",
         ...PLATFORM_COMPOSE_ENV,
+        ...HARVEST_ENV,
       ].sort(),
     );
   });
@@ -884,6 +1065,103 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(read(`${AGENT_DIR}/troubleshoot.sh`)).toContain(
       `DIR="${INSTALL_DIR}"`,
     );
+  });
+});
+
+describe("agents/StorageArrayAgent/netapp-harvest.yml", () => {
+  const harvest = yaml.load(read(`${AGENT_DIR}/netapp-harvest.yml`));
+  const template = (file) => {
+    return yaml.load(read(`${AGENT_DIR}/${file}`));
+  };
+  // How often a template's collector polls: its schedule's `data` step.
+  const pollEvery = (file) => {
+    return template(file).schedule.find((step) => {
+      return "data" in step;
+    }).data;
+  };
+
+  test("polls the one cluster .env names, as its read-only user, verifying TLS only when asked", () => {
+    expect(Object.keys(harvest.Pollers)).toEqual(["ontap"]);
+    expect(harvest.Pollers.ontap).toMatchObject({
+      // The array's name, so Harvest's datacenter label says which array.
+      datacenter: "${STORAGE_ARRAY_NAME}",
+      addr: "${NETAPP_ONTAP_ENDPOINT}",
+      auth_style: "basic_auth",
+      username: "${NETAPP_ONTAP_USERNAME}",
+      password: "${NETAPP_ONTAP_PASSWORD}",
+      use_insecure_tls: "${STORAGE_ARRAY_INSECURE_SKIP_VERIFY}",
+    });
+    // A literal block, so a password's # or : reaches Harvest as typed.
+    expect(read(`${AGENT_DIR}/netapp-harvest.yml`)).toContain(
+      "    password: |2-\n      ${NETAPP_ONTAP_PASSWORD}\n",
+    );
+  });
+
+  test("serves netapp_* series, with the meta tags ingest reads, on the port the collector scrapes, and never phones home", () => {
+    expect(harvest.Exporters).toEqual({
+      prometheus: {
+        exporter: "Prometheus",
+        port: Number(
+          CONFIGS["otel-collector-config.netapp-ontap.yaml"].target.split(
+            ":",
+          )[1],
+        ),
+        global_prefix: "netapp_",
+        add_meta_tags: true,
+      },
+    });
+    expect(harvest.Pollers.ontap.exporters).toEqual(["prometheus"]);
+    // AutoSupport would send NetApp a report about the install.
+    expect(harvest.Tools).toEqual({ autosupport_disabled: true });
+  });
+
+  test("runs the shipped template of each collector, mounted where Harvest reads it, at the intervals the docs give", () => {
+    expect(harvest.Pollers.ontap.collectors).toEqual([
+      { Rest: ["oneuptime.yaml"] },
+      { KeyPerf: ["oneuptime.yaml"] },
+      { RestPerf: ["oneuptime.yaml"] },
+      "Ems",
+    ]);
+    const volumes = compose().services["netapp-harvest"].volumes;
+    for (const [collector, file] of [
+      ["Rest", "netapp-harvest-rest.yaml"],
+      ["KeyPerf", "netapp-harvest-keyperf.yaml"],
+      ["RestPerf", "netapp-harvest-restperf.yaml"],
+    ]) {
+      expect(template(file).collector).toBe(collector);
+      expect(volumes).toContain(
+        `./${file}:/opt/harvest/conf/${collector.toLowerCase()}/oneuptime.yaml:ro`,
+      );
+    }
+    // Configuration and state every 3 minutes, performance every minute.
+    expect(pollEvery("netapp-harvest-rest.yaml")).toBe("3m");
+    expect(pollEvery("netapp-harvest-keyperf.yaml")).toBe("1m");
+    expect(pollEvery("netapp-harvest-restperf.yaml")).toBe("1m");
+  });
+
+  test("reads every object the ONTAP pages and alerts are built from", () => {
+    expect(Object.keys(template("netapp-harvest-rest.yaml").objects)).toEqual([
+      "Status",
+      "Subsystem",
+      "Node",
+      "Aggregate",
+      "SVM",
+      "Volume",
+      "Lun",
+      "Disk",
+      "Shelf",
+      "Sensor",
+      "NetPort",
+      "FCP",
+      "SnapMirror",
+      "Health",
+    ]);
+    expect(
+      Object.keys(template("netapp-harvest-keyperf.yaml").objects),
+    ).toEqual(["Cluster", "SystemNode", "Aggregate", "Volume", "Lun"]);
+    expect(
+      Object.keys(template("netapp-harvest-restperf.yaml").objects),
+    ).toEqual(["NicCommon", "FcpPort", "Disk"]);
   });
 });
 
@@ -922,7 +1200,8 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
 
   test("never prints an array's token or password, nor hands it to a probe that does not need it", () => {
     // Read once, tested for being set and for its shape, and sent once: to
-    // curl's stdin, for Pure's probes. Dell's exporter holds the password.
+    // curl's stdin, for Pure's probes. Dell's exporter and NetApp Harvest
+    // hold the password.
     const uses = script
       .split("\n")
       .filter((line) => {
@@ -934,6 +1213,7 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
     expect(uses).toEqual([
       'ARRAY_TOKEN=$(agent_env "$TOKEN_VAR")',
       'if [ -z "$(agent_env POWERSTORE_USERNAME)" ] || [ -z "$ARRAY_TOKEN" ]; then',
+      'if [ -z "$ARRAY_TOKEN" ]; then',
       'elif [ -z "$ARRAY_TOKEN" ]; then',
       'if [[ "$ARRAY_TOKEN" =~ ^T-$TOKEN_UUID$ ]]; then',
       'if [[ "$ARRAY_TOKEN" =~ ^$TOKEN_UUID$ ]]; then',
@@ -941,13 +1221,19 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
     ]);
     // The PowerStore probe comes before Pure's and carries no credential.
     const powerstoreProbe = script.slice(
-      script.indexOf('if [ "$ARRAY_VERDICT" = "UNKNOWN" ] && [ "$MODE" = "powerstore" ]; then'),
+      script.indexOf(
+        'if [ "$ARRAY_VERDICT" = "UNKNOWN" ] && [ "$MODE" = "powerstore" ]; then',
+      ),
       script.indexOf("declare -a PROBE_ARGS=()"),
     );
     expect(powerstoreProbe).toContain(
       `PROBE_OUT=$(agent_netns_curl -sS -m 120 -w $'\\nOUSTATUS:%{http_code}' "$PROBE_URL")`,
     );
-    expect(powerstoreProbe).not.toMatch(/\$\{?ARRAY_TOKEN|-H |DOCKER_RUN_EXTRA/);
+    expect(powerstoreProbe).not.toMatch(
+      /\$\{?ARRAY_TOKEN|-H |DOCKER_RUN_EXTRA/,
+    );
+    // Harvest serves the cluster on the compose network, with no credential.
+    expect(script).toContain('PROBE_URL="http://netapp-harvest:12990/metrics"');
   });
 
   test("hands the array's API token to curl on stdin, never on a command line", () => {

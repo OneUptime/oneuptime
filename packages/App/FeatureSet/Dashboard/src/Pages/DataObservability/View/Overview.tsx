@@ -18,10 +18,8 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import { StoreViewOutletContext, useStoreView } from "./StoreViewContext";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
-import {
-  DataObservabilityCollector,
-  DataObservabilityStoreSummary,
-} from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { DataObservabilityStoreSummary } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { getStoreCollectorLine } from "../../../Components/DataObservability/StoreCollectorWords";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -197,13 +195,7 @@ const StoreOverviewPage: FunctionComponent<
             <StoreStatusPill store={store} isCollecting={isCollecting} />
             <span className="text-gray-500">{store.kind}</span>
           </div>
-          <p>
-            {store.collector === DataObservabilityCollector.Probe
-              ? translator.translateTemplate("Collected by probe {{probe}}", {
-                  probe: store.probeName || "",
-                })
-              : translator.translateText("Collected by OneUptime")}
-          </p>
+          <p>{getStoreCollectorLine(store, translator)}</p>
           <StoreCollectionMessage
             store={store}
             isCollecting={isCollecting}

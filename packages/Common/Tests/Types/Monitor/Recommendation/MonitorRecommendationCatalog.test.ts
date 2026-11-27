@@ -39,6 +39,7 @@ import {
 } from "../../../../Types/Monitor/RumAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../../Types/Monitor/VMwareAlertTemplates";
 import { getAllXcpNgAlertTemplates } from "../../../../Types/Monitor/XcpNgAlertTemplates";
+import { getAllXcpNgEventAlertTemplates } from "../../../../Types/Monitor/XcpNgEventAlertTemplates";
 import {
   StorageArrayAlertTemplate,
   getAllStorageArrayAlertTemplates,
@@ -249,9 +250,14 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.XcpNg,
-    monitorTypes: [MonitorType.XcpNg],
-    templateCount: getAllXcpNgAlertTemplates().length,
-    contextFreeTemplateCount: getAllXcpNgAlertTemplates().length,
+    // Metric templates, and the Logs monitors over what XCP-ng says (#10997).
+    monitorTypes: [MonitorType.XcpNg, MonitorType.Logs],
+    templateCount:
+      getAllXcpNgAlertTemplates().length +
+      getAllXcpNgEventAlertTemplates().length,
+    contextFreeTemplateCount:
+      getAllXcpNgAlertTemplates().length +
+      getAllXcpNgEventAlertTemplates().length,
     identifierFieldName: "poolIdentifier",
   },
   {
@@ -1370,13 +1376,13 @@ describe("MonitorRecommendationCatalog", () => {
     });
 
     it("offers nothing to an array of a platform OneUptime ships no templates for", () => {
-      expect(
-        storageArrayTemplateIds({ storageSystem: "netapp.ontap" }),
-      ).toEqual([]);
+      expect(storageArrayTemplateIds({ storageSystem: "hitachi.vsp" })).toEqual(
+        [],
+      );
       // The module itself would hand such a platform every template.
-      expect(
-        getStorageArrayAlertTemplatesForSystem("netapp.ontap").length,
-      ).toBe(getAllStorageArrayAlertTemplates().length);
+      expect(getStorageArrayAlertTemplatesForSystem("hitachi.vsp").length).toBe(
+        getAllStorageArrayAlertTemplates().length,
+      );
     });
 
     it("the platforms' sets partition the whole catalog", () => {
@@ -1384,6 +1390,7 @@ describe("MonitorRecommendationCatalog", () => {
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
         StorageSystem.DellPowerStore,
+        StorageSystem.NetAppOntap,
       ].map((storageSystem: StorageSystem): Array<string> => {
         return storageArrayTemplateIds({ storageSystem });
       });
@@ -1392,6 +1399,14 @@ describe("MonitorRecommendationCatalog", () => {
       // No template is two platforms'.
       expect(new Set(all).size).toBe(all.length);
       expect([...all].sort()).toEqual([...everyTemplateId()].sort());
+      // An ONTAP cluster is offered ONTAP's own, its heartbeat first.
+      const ontap: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.NetAppOntap,
+      });
+      expect(ontap[0]).toBe("netapp-cluster-stopped-reporting");
+      for (const id of ontap) {
+        expect(id.startsWith("netapp-")).toBe(true);
+      }
     });
 
     it("ignores context meant for other resource types", () => {

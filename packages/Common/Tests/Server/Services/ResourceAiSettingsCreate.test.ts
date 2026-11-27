@@ -1,5 +1,7 @@
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
 import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
@@ -123,6 +125,12 @@ const WIRING: Array<CreateWiring> = [
     service: OpenStackCloudService,
     modelType: OpenStackCloud,
     editPermission: Permission.EditOpenStackCloud,
+  },
+  {
+    resourceType: AiResourceType.XcpNgPool,
+    service: XcpNgPoolService,
+    modelType: XcpNgPool,
+    editPermission: Permission.EditXcpNgPool,
   },
 ];
 

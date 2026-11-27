@@ -110,6 +110,9 @@ const ALLOWED_HOOK_WRITES: Record<string, string> = {
     "Detaches the card being deleted at the payment provider, which refuses to detach a project's last card. DatabaseService has already narrowed the delete to the cards the caller may delete.",
   "DatabaseServerService.ts#onBeforeCreate":
     "A read: hasKubernetesClusters runs a SELECT through the repository's manager.",
+  // How an XCP-ng pool is read: by the agent, or by a probe connection (#10996, #10999).
+  "XcpNgPoolService.ts#onBeforeUpdate":
+    "A read: assertConnectionCanReadPool runs a SELECT through the repository's manager, to refuse a connection that cannot read the pool.",
   "NetworkSiteService.ts#onBeforeCreate":
     "Heals the stored materialized path of the parent site (checked to be in the same project first): it writes only the value the parent chain already implies.",
   "NetworkSiteService.ts#onBeforeUpdate":

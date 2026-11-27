@@ -6,6 +6,8 @@ import CloudAccountService from "../../../Server/Services/CloudAccountService";
 import CloudAccountFeedService from "../../../Server/Services/CloudAccountFeedService";
 import { CloudAccountFeedEventType } from "../../../Models/DatabaseModels/CloudAccountFeed";
 import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
+import XcpNgPoolFeedService from "../../../Server/Services/XcpNgPoolFeedService";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import DatabaseServerFeedService from "../../../Server/Services/DatabaseServerFeedService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
@@ -238,6 +240,17 @@ const TYPE_FIXTURES: Array<TypeFixture> = [
     feedIdKey: "openStackCloudId",
     feedEventKey: "openStackCloudFeedEventType",
     feedEvent: "OpenStackCloudUpdated",
+  },
+  {
+    resourceType: AiResourceType.XcpNgPool,
+    service: XcpNgPoolService as unknown as AnyObject,
+    findOrCreateMethod: "findOrCreateByIdentifier",
+    findOrCreateIdentityKey: "poolIdentifier",
+    feedService: XcpNgPoolFeedService as unknown as AnyObject,
+    feedMethod: "createXcpNgPoolFeedItem",
+    feedIdKey: "xcpNgPoolId",
+    feedEventKey: "xcpNgPoolFeedEventType",
+    feedEvent: "XcpNgPoolUpdated",
   },
 ];
 

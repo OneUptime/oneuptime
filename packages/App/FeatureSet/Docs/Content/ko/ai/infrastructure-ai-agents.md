@@ -1,6 +1,6 @@
 # 인프라 AI 에이전트
 
-OneUptime AI는 인시던트나 경고를 조사하는 동안 텔레메트리 너머까지 살펴볼 수 있습니다. 리소스(Docker 또는 Podman 호스트, Docker Swarm 클러스터, Proxmox 클러스터, VMware vCenter, Ceph 클러스터, 데이터베이스 서버, Linux 호스트) 옆에 설치한 작은 에이전트가 `docker logs --tail 200 web`, `pvesh get /cluster/status`, `ceph health detail`, `db long-queries --min-seconds 30`, `journalctl -u nginx -n 200 --no-pager` 처럼 OneUptime AI가 요청하는 읽기 전용 명령을 실행하고 출력을 돌려보내므로, 근본 원인 분석은 리소스 자체가 알려 주는 내용을 인용합니다. 허용하면 같은 에이전트가 수정도 적용합니다(컨테이너 재시작, VM 시작, OSD를 다시 in으로 표시 등). 각 수정은 명령 정책에 따라 단계가 정해지며, 다르게 선택하지 않는 한 먼저 사람이 승인합니다. 리소스 페이지에서 연 AI에게 질문도 요청하면 같은 읽기 전용 명령을 실행합니다([AI에게 질문](/docs/ai/ask-ai) 참고).
+OneUptime AI는 인시던트나 경고를 조사하는 동안 텔레메트리 너머까지 살펴볼 수 있습니다. 리소스(Docker 또는 Podman 호스트, Docker Swarm 클러스터, Proxmox 클러스터, VMware vCenter, Ceph 클러스터, XCP-ng 풀, 데이터베이스 서버, Linux 호스트) 옆에 설치한 작은 에이전트가 `docker logs --tail 200 web`, `pvesh get /cluster/status`, `ceph health detail`, `db long-queries --min-seconds 30`, `journalctl -u nginx -n 200 --no-pager` 처럼 OneUptime AI가 요청하는 읽기 전용 명령을 실행하고 출력을 돌려보내므로, 근본 원인 분석은 리소스 자체가 알려 주는 내용을 인용합니다. 허용하면 같은 에이전트가 수정도 적용합니다(컨테이너 재시작, VM 시작, OSD를 다시 in으로 표시 등). 각 수정은 명령 정책에 따라 단계가 정해지며, 다르게 선택하지 않는 한 먼저 사람이 승인합니다. 리소스 페이지에서 연 AI에게 질문도 요청하면 같은 읽기 전용 명령을 실행합니다([AI에게 질문](/docs/ai/ask-ai) 참고).
 
 AWS 계정, Azure 구독 또는 Google Cloud 프로젝트는 조사에 에이전트가 필요 없습니다. OneUptime이 연결할 때 사용한 읽기 전용 연결을 통해 실시간으로 읽기 때문입니다. 에이전트가 필요한 것은 수정뿐이며, 그 에이전트가 클라우드 AI 에이전트입니다. 클라우드 AI 에이전트는 계정 자체에서 실행되며 계정 페이지에서 명령 하나로 설정합니다([클라우드 계정에서](#클라우드-계정에서) 참조).
 
@@ -13,7 +13,7 @@ AWS 계정, Azure 구독 또는 Google Cloud 프로젝트는 조사에 에이전
 리소스의 **개요** 는 AI 에이전트 페이지를 요약하는 **AI 에이전트** 카드로 끝납니다. 에이전트가 연결되어 있는지, 조사가 켜져 있는지, 수정이 어떻게 실행되는지(**꺼짐**, **승인 요청**, **자동**, **승인 건너뛰기**), 주의가 필요한 것이 무엇인지 보여 주며, 이를 변경하는 AI 에이전트 페이지로 가는 링크가 있습니다.
 
 :::cards
-- [지원되는 리소스](#지원되는-리소스): 열한 종류의 리소스, 하나의 이미지.
+- [지원되는 리소스](#지원되는-리소스): 열세 종류의 리소스, 하나의 이미지.
 - [AI 에이전트 설치](#ai-에이전트-설치): 이미 실행 중인 수집기 옆, Linux 호스트, 또는 명령 하나로 클라우드 계정에.
 - [수정의 작동 방식](#수정의-작동-방식): 스스로 실행될 수 있는 것, 사람을 기다리는 것, 절대 실행되지 않는 것.
 - [보안 모델](#보안-모델): 모든 명령에 대한 세 번의 검사, 그리고 OneUptime에서 오는 자격 증명은 없음.
@@ -44,7 +44,7 @@ Kubernetes 클러스터에는 자체 에이전트인 Kubernetes AI 에이전트�
 
 다른 점:
 
-- **모든 리소스에 하나의 이미지.** `oneuptime/resource-ai-agent` 가 열한 종류의 리소스를 모두 담당하고, `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` 이 에이전트가 담당하는 종류를 지정합니다. Helm 차트가 아니라 리소스의 수집기 옆에서 컨테이너 하나로 더 실행되거나, 담당하는 클라우드 계정 안에서 실행됩니다.
+- **모든 리소스에 하나의 이미지.** `oneuptime/resource-ai-agent` 가 열세 종류의 리소스를 모두 담당하고, `ONEUPTIME_AI_AGENT_RESOURCE_TYPE` 이 에이전트가 담당하는 종류를 지정합니다. Helm 차트가 아니라 리소스의 수집기 옆에서 컨테이너 하나로 더 실행되거나, 담당하는 클라우드 계정 안에서 실행됩니다.
 - **쓰기 액세스는 환경 변수입니다.** 에이전트에 `ONEUPTIME_AI_ALLOW_WRITES=true` 가 있어야만 수정을 적용할 수 있고, `ONEUPTIME_AI_WRITE_TARGETS` 는 수정이 건드릴 수 있는 컨테이너, 서비스, VM, OSD, 세션, 유닛을 제한합니다. 클러스터에서는 차트의 RBAC와 `aiAgent.remediation.namespaces` 가 이 역할을 합니다.
 
 Kubernetes AI 에이전트와 마찬가지로 리소스 AI 에이전트는 Runner가 아닙니다. 런북 → Runbook 에이전트 아래에 나타나지 않으며, 런북의 Bash 또는 SSH 호스트로 사용되지도 않습니다.
@@ -65,6 +65,7 @@ Kubernetes AI 에이전트와 마찬가지로 리소스 AI 에이전트는 Runne
 | Azure 구독 | `azure` | 클라우드 AI 에이전트 | `AZURE_SUBSCRIPTION_ID`(설정 명령이 지정) | `cloud` — 고정된 카탈로그의 작업 하나, `az` 명령은 절대 아님 | Azure Resource Manager, Container App의 관리 ID로 |
 | Google Cloud 프로젝트 | `gcp`(또는 `google-cloud`) | 클라우드 AI 에이전트 | `GOOGLE_CLOUD_PROJECT`(비어 있으면 실행 중인 프로젝트) | `cloud` — 고정된 카탈로그의 작업 하나, `gcloud` 명령은 절대 아님 | Google Cloud API, 자체 서비스 계정으로 |
 | OpenStack 클라우드 | `openstack` | OpenStack AI 에이전트 | `OPENSTACK_CLOUD_NAME` | `openstack` 명령(에이전트에는 `openstack` 바이너리가 없음). [수정](#openstack-클라우드의-수정)을 켜기 전에는 읽기만 합니다 | 클라우드의 API, `clouds.yaml`의 애플리케이션 자격 증명 사용 |
+| XCP-ng 풀 | `xcp-ng`(또는 `xcpng`, `xen-orchestra`) | XCP-ng AI 에이전트 | `XCP_NG_POOL_ID`(비어 있으면 읽기 토큰이 볼 수 있는 유일한 풀) | `xo-cli` REST 명령(에이전트에는 `xo-cli` 바이너리가 없음). [수정](#xcp-ng-풀의-수정)을 허용하기 전에는 읽기만 합니다 | Xen Orchestra의 REST API, 읽기 전용 Xen Orchestra 사용자의 토큰 사용 |
 
 데이터베이스 서버: 데이터베이스 AI 에이전트에는 PostgreSQL, MySQL(및 MariaDB와 Percona Server), Redis(및 Valkey, KeyDB, Dragonfly), MongoDB용 진단이 있습니다. 그 밖의 엔진에서는 아무것도 실행하지 않으며, 데이터베이스의 AI 에이전트 페이지에 그렇게 표시합니다.
 
@@ -84,6 +85,7 @@ AI 에이전트 페이지에서 에이전트 상태 옆 **⋯** 메뉴에 있는
 | Azure 구독 | `cloud whoami` |
 | Google Cloud 프로젝트 | `cloud whoami` |
 | OpenStack 클라우드 | `openstack endpoint list`, `openstack compute service list` |
+| XCP-ng 풀 | `xo-cli rest get pools fields=name_label,master,HA_enabled`, `xo-cli rest get hosts fields=name_label,power_state,enabled` |
 
 Docker Swarm 워커에서는 `docker node ls` 가 실패합니다. Docker Swarm AI 에이전트는 매니저 노드에서 실행해야 합니다. 워커에서 시작한 에이전트는 그 노드가 매니저가 될 때까지 클러스터에 등록되지 않으며, Docker Swarm 설치 프로그램은 매니저가 아닌 노드에서는 에이전트를 제외합니다.
 
@@ -95,7 +97,7 @@ Docker Swarm 워커에서는 `docker node ls` 가 실패합니다. Docker Swarm 
 
 ### 수집기 옆에서
 
-Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, OpenStack, 데이터베이스 서버의 경우 에이전트는 해당 리소스에 이미 사용 중인 수집기 옆에서 실행되며 그 `.env` 를 공유합니다. 에이전트에는 이미 `ONEUPTIME_URL`, 수집 키, 리소스 이름이 있습니다. 각 수집기의 `docker-compose.yml` 에는 에이전트가 서비스 하나로 더 포함되어 있고, 그 `install.sh` 가 에이전트를 시작합니다.
+Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, OpenStack, XCP-ng, 데이터베이스 서버의 경우 에이전트는 해당 리소스에 이미 사용 중인 수집기 옆에서 실행되며 그 `.env` 를 공유합니다. 에이전트에는 이미 `ONEUPTIME_URL`, 수집 키, 리소스 이름이 있습니다. 각 수집기의 `docker-compose.yml` 에는 에이전트가 서비스 하나로 더 포함되어 있고, 그 `install.sh` 가 에이전트를 시작합니다.
 
 | 리소스 | 수집기 | AI 에이전트 서비스(및 컨테이너) | 설정 위치 |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -107,8 +109,9 @@ Docker, Podman, Docker Swarm, Proxmox, VMware, Ceph, OpenStack, 데이터베이�
 | Ceph 클러스터 | [Ceph 에이전트](/docs/telemetry/ceph#ai-에이전트) | `oneuptime-ceph-ai-agent` | `agents/CephAgent/docker-compose.yml`, 에이전트 전용 Ceph 클라이언트를 `./ceph` 에 둠 |
 | 데이터베이스 서버 | [데이터베이스 에이전트](/docs/telemetry/databases#ai-에이전트) | `oneuptime-database-ai-agent` | `agents/DatabaseAgent/docker-compose.yml` |
 | OpenStack 클라우드 | [OpenStack 에이전트](/docs/telemetry/openstack#ai-에이전트) | `oneuptime-openstack-ai-agent` | `agents/OpenStackAgent/docker-compose.yml`, 자격 증명은 `clouds.yaml` 에 둠 |
+| XCP-ng 풀 | [XCP-ng 에이전트](/docs/telemetry/xcp-ng#ai-에이전트) | `oneuptime-xcp-ng-ai-agent` | `agents/XcpNgAgent/docker-compose.yml`, `xcp-ng-ai-agent` 프로필 아래에 있으며, 읽기 전용 Xen Orchestra 토큰을 주면 `install.sh` 가 이 프로필을 켭니다 |
 
-AI 에이전트가 생기기 전에 설치한 수집기는 아직 에이전트를 실행하지 않습니다. 그 `install.sh` 를 다시 실행하면 이제 AI 에이전트도 시작합니다(Proxmox, VMware, Ceph, OpenStack, 데이터베이스, Docker Swarm 설치 프로그램은 AI 에이전트 서비스가 포함된 최신 `docker-compose.yml` 을 내려받습니다). 파일을 직접 관리한다면 수집기의 `docker-compose.yml` 에서 서비스를 가져와 자신의 파일에 추가하고 `docker compose up -d` 를 실행하세요. 리소스의 AI 에이전트 페이지에는 해당 리소스에 맞는 정확한 서비스가 이름이 이미 채워진 상태로 표시됩니다.
+AI 에이전트가 생기기 전에 설치한 수집기는 아직 에이전트를 실행하지 않습니다. 그 `install.sh` 를 다시 실행하면 이제 AI 에이전트도 시작합니다(Proxmox, VMware, Ceph, OpenStack, XCP-ng, 데이터베이스, Docker Swarm 설치 프로그램은 AI 에이전트 서비스가 포함된 최신 `docker-compose.yml` 을 내려받습니다. XCP-ng 설치 프로그램은 읽기 전용 Xen Orchestra 토큰을 받으면 에이전트를 시작합니다). 파일을 직접 관리한다면 수집기의 `docker-compose.yml` 에서 서비스를 가져와 자신의 파일에 추가하고 `docker compose up -d` 를 실행하세요. 리소스의 AI 에이전트 페이지에는 해당 리소스에 맞는 정확한 서비스가 이름이 이미 채워진 상태로 표시됩니다.
 
 설치 프로그램 없이도 Docker AI 에이전트는 `docker run` 한 번으로 실행할 수 있습니다:
 
@@ -173,7 +176,7 @@ AWS 계정, Azure 구독 또는 Google Cloud 프로젝트에는 에이전트를 
 
 ### OneUptime에 연결
 
-에이전트는 **수집기가 보고하는 것과 같은 식별자** (`DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, `OPENSTACK_CLOUD_NAME`, …. `ONEUPTIME_AI_AGENT_RESOURCE_NAME` 으로 재정의 가능)로 등록하므로, 수집기의 텔레메트리가 만든 바로 그 리소스를 담당합니다. OneUptime에 아직 그 이름의 리소스가 없으면 등록할 때 만들어지므로, 수집기와 다른 이름을 쓰면 오류 대신 비어 있는 두 번째 리소스가 생깁니다. 데이터베이스는 `DATABASE_SERVER_ID` 가 설정되어 있으면 그것으로, 아니면 엔진, 주소, 포트로 등록합니다. 이 프로젝트의 데이터베이스가 아닌 `DATABASE_SERVER_ID` 는 거부됩니다.
+에이전트는 **수집기가 보고하는 것과 같은 식별자** (`DOCKER_HOST_NAME`, `PROXMOX_CLUSTER_NAME`, `CEPH_CLUSTER_NAME`, `OPENSTACK_CLOUD_NAME`, …. `ONEUPTIME_AI_AGENT_RESOURCE_NAME` 으로 재정의 가능)로 등록하므로, 수집기의 텔레메트리가 만든 바로 그 리소스를 담당합니다. OneUptime에 아직 그 이름의 리소스가 없으면 등록할 때 만들어지므로, 수집기와 다른 이름을 쓰면 오류 대신 비어 있는 두 번째 리소스가 생깁니다. 데이터베이스는 `DATABASE_SERVER_ID` 가 설정되어 있으면 그것으로, 아니면 엔진, 주소, 포트로 등록합니다. 이 프로젝트의 데이터베이스가 아닌 `DATABASE_SERVER_ID` 는 거부됩니다. XCP-ng 풀은 텔레메트리가 담고 있는 식별자인 XAPI UUID `XCP_NG_POOL_ID` 로 등록하며, 이 값이 비어 있으면 읽기 토큰이 볼 수 있는 유일한 풀로 등록합니다. UUID가 아닌 식별자는 거부되며, 여러 풀을 볼 수 있는 토큰에는 `XCP_NG_POOL_ID` 가 필요합니다.
 
 수집기가 여전히 기본 이름(`docker-host`, `podman-host`, `docker-swarm`, `proxmox-cluster`, `vmware-vcenter`, `ceph`, `openstack`)을 사용하면, 그 기본값으로 설치한 모든 리소스가 OneUptime의 같은 리소스로 보고하며, 그 리소스를 위한 명령이 그중 어느 것에든 도달할 수 있습니다. 에이전트는 로그에서 이를 경고합니다. 수집기와 에이전트 모두에서 각 리소스에 고유한 이름을 지정하세요.
 
@@ -267,6 +270,20 @@ Podman 호스트는 Podman의 Docker 호환 API를 통해 같은 `docker` CLI와
 
 거기서부터 요청을 따라갑니다. `server event list` 는 각 작업의 요청 ID를 출력하고, `search_logs` 는 그 ID를 속성(`openstack.request_root_id`)으로 받아 모든 서비스가 그 요청에 대해 기록한 것을 읽습니다. 보고서는 `kubectl` 과 마찬가지로 실행한 각 명령을 그 출력과 함께 인용합니다. 로그에는 [서비스 로그](/docs/telemetry/openstack#서비스-로그) 프로필이, 변경 내역에는 [수명 주기 이벤트](/docs/telemetry/openstack#라이프사이클-이벤트)가 필요합니다. 없으면 해당 읽기는 빈 결과로 돌아옵니다.
 
+### XCP-ng 풀
+
+에이전트에는 `xo-cli` 바이너리도 셸도 없습니다. 명령은 xo-cli의 REST 문법(xo-cli 0.32)으로 작성합니다. `rest get`, Xen Orchestra REST API의 경로 하나, 그다음 `name=value` 형식의 옵션입니다. 에이전트는 이를 정확히 하나의 `GET` 로 바꿔 `/rest/v0`(Xen Orchestra 6.9 이상)에 보내며, 기본 제공 **Read only** 역할의 사본을 가진 Xen Orchestra 사용자의 토큰을 사용합니다. 무엇이든 실행하기 전에, 그리고 그 후 5분마다 다시, 에이전트는 Xen Orchestra에 그 토큰이 누구의 것이고 그 사용자가 무엇을 할 수 있는지 묻습니다. 관리자의 토큰이나, 역할이 어떤 변경이든 허용하는 사용자의 토큰으로는 아무것도 실행하지 않습니다. 풀의 객체 목록은 이 풀로 필터링되며, 다른 풀의 객체는 절대 출력되지 않습니다. `fields=` 는 속성을 고르고, `filter=` 는 Xen Orchestra 자체의 필터 문법으로 목록을 좁히며, `limit=` 는 개수를 제한합니다.
+
+- 풀과 그 호스트: `xo-cli rest get pools`, `xo-cli rest get pools/b7569d99-30f8-178a-7d94-801de3e29b5b`, `xo-cli rest get hosts fields=name_label,power_state,enabled,version`, `xo-cli rest get hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/missing_patches`, `xo-cli rest get hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/stats granularity=minutes`.
+- VM: `xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted`, `xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`, `xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/stats granularity=seconds`, `xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/vdis`, 그리고 VM의 스냅숏(`xo-cli rest get vm-snapshots`)과 템플릿.
+- 스토리지: `xo-cli rest get srs fields=name_label,SR_type,physical_usage,size`, `xo-cli rest get pbds fields=attached,host,SR filter=!attached?`(연결되지 않은 스토리지 리포지토리의 PBD를 나열합니다), `xo-cli rest get vdis`, `xo-cli rest get vbds`.
+- 무엇이 잘못되었는지: `xo-cli rest get alarms`, `xo-cli rest get messages fields=name,body,time limit=50`, `xo-cli rest get tasks filter=status:failure`, 그리고 객체 자체의 알람, 메시지, 작업(`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/alarms`).
+- 백업: `xo-cli rest get backup-jobs`, `xo-cli rest get backup-logs filter=status:failure limit=20`, `xo-cli rest get restore-logs`, `xo-cli rest get schedules`.
+- 네트워크: `xo-cli rest get networks`, `xo-cli rest get pifs`, `xo-cli rest get vifs`.
+- 절대 불가: Xen Orchestra의 사용자, 그룹, 역할, 권한, 서버, 플러그인, 프록시, 원격 저장소, 백업 리포지토리, 다운로드(VM 내보내기, 호스트 로그), 쿼리 문자열, 시크릿이나 자유 형식 데이터를 담는 속성에 대한 `filter`(`other_config`, `xenStoreData`, `device_config`, 비밀번호, 토큰, 키 같은 이름의 모든 것. 필터로 한 번에 한 응답씩 시크릿을 읽어 낼 수 없도록 하기 위함입니다), 그리고 xo-cli 자체 옵션(`--url`, `--allowUnauthorized`, …).
+
+응답은 들여쓰기된 JSON으로, 항목 단위로 돌아옵니다. VM의 cloud-init 데이터, PBD의 `device_config` 비밀번호, URL에 있는 백업 원격 저장소의 비밀번호, 사전 공유 키, 그대로 드러난 Xen Orchestra 토큰은 출력이 모델이나 로그에 도달하기 전에 마스킹됩니다.
+
 ### Ceph 클러스터
 
 - 클러스터: `ceph status`(또는 `ceph -s`), `ceph health detail`, `ceph df detail`, `ceph versions`, `ceph progress`, `ceph quorum_status`, `ceph log last 100`.
@@ -329,7 +346,7 @@ OneUptime은 AWS 계정, Azure 구독 또는 Google Cloud 프로젝트를 계정
 
 수정이 실행된 후 OneUptime은 인시던트나 경고의 모니터를 지켜봅니다. 모니터가 회복되지 않으면 계획의 롤백이 실행되고, OneUptime AI는 실패한 시도를 앞에 두고 계획을 하나 더 만듭니다. 인시던트나 경고당 최대 두 라운드입니다. **자동** 모드에서는 그 두 번째 라운드가 승인을 요청하고, **승인 건너뛰기** 에서는 그것도 자동으로 실행됩니다. 무인 수정에는 리소스당 시간당 세 건의 서킷 브레이커가 있습니다. 이를 넘거나, OneUptime AI의 다른 무인 라운드가 같은 리소스를 아직 변경하거나 검증하는 동안에는 라운드가 계획을 실행하지 않고 승인을 위해 제안합니다.
 
-인시던트나 경고 하나에는 AI 수정 레인이 하나만 주어집니다. 수정이 켜진 Kubernetes 클러스터에 연결되어 있으면 클러스터의 라운드가 실행되고 리소스 라운드는 실행되지 않습니다. 그렇지 않으면 수정이 켜져 있고 준비된 에이전트가 있는 첫 번째 연결 리소스가 다음 순서로 라운드를 받습니다: Docker 호스트, Podman 호스트, Docker Swarm 클러스터, Proxmox 클러스터, VMware vCenter, Ceph 클러스터, 데이터베이스 서버, 호스트, AWS 계정, Azure 구독, Google Cloud 프로젝트, OpenStack 클라우드. 라운드는 그 리소스만 변경합니다.
+인시던트나 경고 하나에는 AI 수정 레인이 하나만 주어집니다. 수정이 켜진 Kubernetes 클러스터에 연결되어 있으면 클러스터의 라운드가 실행되고 리소스 라운드는 실행되지 않습니다. 그렇지 않으면 수정이 켜져 있고 준비된 에이전트가 있는 첫 번째 연결 리소스가 다음 순서로 라운드를 받습니다: Docker 호스트, Podman 호스트, Docker Swarm 클러스터, Proxmox 클러스터, VMware vCenter, Ceph 클러스터, 데이터베이스 서버, 호스트, AWS 계정, Azure 구독, Google Cloud 프로젝트, OpenStack 클라우드, XCP-ng 풀. 라운드는 그 리소스만 변경합니다.
 
 ### 안전함, 더 위험함, 절대 불가
 
@@ -412,6 +429,19 @@ OneUptime은 AWS 계정, Azure 구독 또는 Google Cloud 프로젝트를 계정
 
 다른 리소스와 달리 여기의 수정은 두 번 옵트인할 때까지 꺼져 있습니다. `ONEUPTIME_AI_ALLOW_WRITES=true` 만으로는 **AI가 할 수 있는 작업** 이 꺼짐에 머물며, 변경용 자격 증명이 있어야 비로소 무언가를 합니다. [OpenStack 에이전트 가이드](/docs/telemetry/openstack#변경용-자격-증명)는 클라우드를 배포하는 각 방식에서 필요한 최소 권한으로 그 자격 증명을 만드는 방법을 설명합니다.
 
+### XCP-ng 풀의 수정
+
+수정은 `rest post` 와 한 객체의 한 동작으로, 예를 들어 `vms/<uuid>/actions/start` 입니다. 이는 Xen Orchestra REST API에 보내는 `POST` 하나이며, 수정을 허용하는 역할을 가진 사용자의 두 번째 토큰 `ONEUPTIME_AI_XO_WRITE_TOKEN` 로만 수행됩니다. 그 자리에 읽기 토큰을 쓰면 거부됩니다. 변경 전에 에이전트는 읽기 토큰으로 객체를 읽습니다. 다른 풀의 객체는 거부되고, 이미 이루어진 변경(실행 중인 VM 시작)은 다시 하지 않으며, 객체의 상태가 허용하지 않는 변경은 대신 무엇을 실행해야 하는지 알려 줍니다. 그다음 명령의 제한 시간 안에서 Xen Orchestra의 작업이 끝날 때까지 따라가고 객체를 다시 읽으므로, 수정의 출력은 변경 후의 상태로 끝납니다.
+
+| | 명령 |
+| ------------------- | -------- |
+| **안전함** | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/start`(특정 호스트에서 시작하려면 `hostId=<uuid>`), `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/resume`, `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/unpause`, `xo-cli rest post pbds/4d3c2b1a-9f8e-4d7c-8b6a-5f4e3d2c1b0a/actions/plug`, `xo-cli rest post schedules/cf7249f8-d20b-494f-97f4-b1f32f94e780/actions/run` — VM, PBD, 백업 일정 중 하나 |
+| **더 위험함** | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot`, `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/hard_reboot`, `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_shutdown`, `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/hard_shutdown`, `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/suspend`, `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/pause`, `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/snapshot name_label=before-fix`, `xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/enable` |
+| **항상 사람이 필요** | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/migrate hostId=a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b`(같은 풀의 다른 호스트로, 스토리지는 그대로), `xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/restart_toolstack` |
+| **절대 불가** | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/revert_snapshot`, `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clone`, `xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/disable`, `xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/evacuate`, `xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/clean_shutdown`, `xo-cli rest post pbds/4d3c2b1a-9f8e-4d7c-8b6a-5f4e3d2c1b0a/actions/unplug`, `xo-cli rest delete vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`, `xo-cli rest patch vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`, `xo-cli rest get users`, `xo-cli vm.stop id=613f541c-4bed-fc77-7ca8-2db6b68f079c`, 그리고 여기에 나열되지 않은 모든 동작(풀이나 스토리지 리포지토리의 동작 포함) |
+
+시작은 종료로, 일시 중단은 재개로, 일시 정지는 일시 정지 해제로 되돌릴 수 있으며, 수정의 롤백은 이를 사용합니다. 스냅숏은 사람이 삭제할 때까지 남고, 마이그레이션, PBD 연결, 호스트 활성화, 툴스택 재시작에는 에이전트가 실행할 수 있는 되돌리기가 없습니다. 쓰기 토큰의 Xen Orchestra 역할이 넘을 수 없는 한계입니다. [XCP-ng 에이전트의 README](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent#fixes)에 각 수정에 필요한 권한이 나열되어 있습니다.
+
 ### 데이터베이스 서버의 수정
 
 아래의 `12345` 는 `db sessions` 가 출력하는 세션 ID로, PostgreSQL의 pid, MySQL의 processlist ID, Redis의 클라이언트 ID, MongoDB의 opid입니다. 에이전트는 먼저 세션을 조회하며, 자신의 연결, 서버 또는 복제 스레드, 존재하지 않는 세션은 절대 건드리지 않습니다.
@@ -473,9 +503,10 @@ OneUptime은 AWS 계정, Azure 구독 또는 Google Cloud 프로젝트를 계정
 - 대상 자리에 `*` 가 있는 항목(`docker stop *` 은 **모든** 컨테이너의 중지를 사전 승인함)은 저장하기 전에 확인을 요청합니다.
 - Proxmox 경로는 단어 하나이므로 `*` 를 넣을 수 없습니다. `pvesh create /nodes/pve1/qemu/100/status/shutdown` 처럼 게스트마다 항목을 하나씩 쓰세요.
 - OpenStack 클라우드에서는 대피 항목이 저장될 때 거부됩니다. 대피는 항상 사람에게 묻기 때문에 아무것도 사전 승인하지 못하기 때문입니다.
+- XCP-ng 경로도 단어 하나입니다. `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot` 처럼 VM마다 항목을 하나씩 쓰세요. 마이그레이션이나 툴스택 재시작 항목은 둘 다 항상 사람에게 묻기 때문에 저장할 때 거부됩니다.
 - 허용 목록의 어떤 항목도 항상 사람이 필요한 변경이나 정책이 거부하는 명령을 무시하게 할 수 없습니다.
 
-리소스별 유효한 항목 예시: `docker stop web`(Docker와 Podman), `docker service update --image nginx:1.27 web`(Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown`(Proxmox), `govc vm.power -off web-01`(VMware), `ceph osd out 3`(Ceph), `db terminate-session 12345`(데이터베이스), `systemctl stop nginx`(호스트), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`(AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`(Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`(Google Cloud), `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`(OpenStack 클라우드).
+리소스별 유효한 항목 예시: `docker stop web`(Docker와 Podman), `docker service update --image nginx:1.27 web`(Docker Swarm), `pvesh create /nodes/pve1/qemu/100/status/shutdown`(Proxmox), `govc vm.power -off web-01`(VMware), `ceph osd out 3`(Ceph), `db terminate-session 12345`(데이터베이스), `systemctl stop nginx`(호스트), `cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`(AWS), `cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`(Azure), `cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`(Google Cloud), `openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`(OpenStack 클라우드), `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot`(XCP-ng 풀).
 
 ### 변경할 수 있는 사람
 
@@ -510,6 +541,7 @@ AI 에이전트 페이지에 무엇이 표시되든, 에이전트 자체는 쓰�
 | 호스트 | 전체 유닛 이름(`nginx.service`), 프로세스에는 `pid:<pid>`, 저널 정리에는 `journal` | `nginx.service,app-*` |
 | 클라우드 계정 | 리소스의 ID: ARN, 소문자로 쓴 Azure 리소스 ID, 또는 Google Cloud 전체 리소스 이름 | `arn:aws:ecs:*:123456789012:service/prod/*` |
 | OpenStack 클라우드 | 변경이 지정하는 것에는 `instance:<id>`, `host:<name>`, `agent:<id>`, 이동이 도착하는 곳에는 `destination:<name>`. 항목은 `project:<id>`, `host:<name>`, `instance:<id>` 이며 이것들뿐입니다. 그 밖의 것은 에이전트를 읽기 전용으로 유지합니다. 에이전트는 변경 직전에 인스턴스가 어느 프로젝트와 호스트에 있는지 읽습니다 |
+| XCP-ng 풀 | 변경이 지정하는 객체 하나에 대해 `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>`, `schedule/<uuid>`. UUID만 쓰면 그중 어느 것과도 일치합니다 | `vm/613f541c-*,host/*` |
 
 ### 에이전트가 스스로 보호하는 것
 
@@ -521,6 +553,7 @@ AI 에이전트 페이지에 무엇이 표시되든, 에이전트 자체는 쓰�
 - **호스트:** 모든 OneUptime 유닛(호스트 AI 에이전트 자신의 유닛을 포함한 `oneuptime-*`), OpenTelemetry 수집기(`otelcol-contrib.service`, `otelcol.service`), 에이전트가 실행되는 Docker 엔진(`docker.service`, `docker.socket`, `containerd.service`), 그리고 에이전트 자신의 프로세스와 그 위의 프로세스.
 - **Proxmox:** 에이전트는 자신이 어느 게스트에서 실행되는지 알 수 없습니다. 같은 클러스터의 VM이나 컨테이너에서 실행된다면 그 VMID를 `ONEUPTIME_AI_PROTECTED_TARGETS` 에 넣으세요. VMware의 에이전트 VM도 마찬가지입니다.
 - **OpenStack 클라우드:** 에이전트는 자신이 어느 인스턴스에서 실행되는지 알 수 없습니다. 같은 클라우드에서 실행된다면 그 인스턴스를 `instance:<id>` 형식으로 `ONEUPTIME_AI_PROTECTED_TARGETS` 에 넣으세요. 클라우드에서는 이 목록이 사용자의 것이며, 사람의 승인을 포함한 다른 모든 설정보다 우선합니다.
+- **XCP-ng 풀:** 에이전트는 자신이 어느 VM에서 실행되는지, Xen Orchestra가 어느 VM에서 실행되는지 알 수 없습니다. 둘 중 하나가 이 풀에서 실행된다면 그 UUID를 `ONEUPTIME_AI_PROTECTED_TARGETS` 에 `vm/<uuid>` 또는 UUID만의 형식으로 넣으세요.
 - **클라우드 계정:** 설정 명령이 만든 모든 것. AWS에서는 `oneuptime-ai-agent` 스택(조직의 멤버 계정에서는 조직의 StackSet이 만든 `StackSet-oneuptime-ai-agent-*` 스택), 그 ECS 클러스터와 서비스, `OneUptimeAiAgentTask` 와 `OneUptimeAiAgentWrite` 역할, Azure에서는 `oneuptime-ai-agent` 리소스 그룹과 그 안의 쓰기 ID `oneuptime-ai-agent-write`, Google Cloud에서는 `oneuptime-ai-agent` VM 또는 Cloud Run 서비스와 그 서비스 계정 `oneuptime-ai-agent` 와 `oneuptime-ai-agent-write`.
 
 ## 자격 증명과 최소 권한
@@ -537,8 +570,9 @@ AI 에이전트 페이지에 무엇이 표시되든, 에이전트 자체는 쓰�
 | 호스트 | 없음. 호스트의 네임스페이스에서 root로 특권 실행됨 | `ONEUPTIME_AI_ALLOW_WRITES` 는 설정하지 않음 | `ONEUPTIME_AI_WRITE_TARGETS` 에 AI가 변경할 수 있는 유닛을 지정 |
 | 클라우드 계정 | 실행되는 곳의 ID. AWS에서는 ECS 태스크의 역할이며, `ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` 의 쓰기 역할만 맡을 수 있음. Azure에서는 Container App 자체의 관리 ID로 읽기만 할 수 있으며, 같은 Container App에 연결된 `ONEUPTIME_AI_AZURE_WRITE_IDENTITY` 의 쓰기 ID가 함께 있음. Google Cloud에서는 VM 또는 Cloud Run 서비스가 실행되는 서비스 계정. 이 서비스 계정은 읽기와 `ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT` 의 쓰기 서비스 계정 토큰 요청만 할 수 있음 | 없음. OneUptime이 읽기 전용 연결을 통해 계정을 읽음 | 설정 명령이 작성하는 역할: 켜진 변경의 권한과 그 변경에 필요한 읽기만, 그 밖에는 없음. AWS에서는 변경마다 그 리소스 하나에 대한 그 변경 하나만 허용하는 세션 정책과 함께 `OneUptimeAiAgentWrite` 를 맡음. Google Cloud에서는 변경마다 그 변경에만 쓰이는 15분짜리 토큰으로 `oneuptime-ai-agent-write` 로 실행됨. Azure에서는 변경마다 에이전트가 그 변경을 위해 로그인하는 `oneuptime-ai-agent-write` 로 실행됨. Azure는 관리 ID에 그 역할보다 좁거나 수명이 짧은 토큰을 주지 않고, Privileged Identity Management를 통한 기한부 액세스에는 Microsoft Entra ID P2가 필요하므로, 변경을 위한 상시 액세스는 에이전트가 변경에만 쓰는 ID에 두고 읽기에 쓰는 ID에는 절대 두지 않음 |
 | OpenStack 클라우드 | 변경에는 에이전트 전용 애플리케이션 자격 증명인 `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` 와 `_SECRET`: [가이드](/docs/telemetry/openstack#변경용-자격-증명)에 만드는 방법이 있습니다. 읽기에는 수집기의 익스포터가 읽는 `clouds.yaml` 의 애플리케이션 자격 증명(`OS_CLIENT_CONFIG_FILE`, `OPENSTACK_EXPORTER_CLOUDS`, 다른 항목을 쓰려면 `ONEUPTIME_AI_OPENSTACK_CLOUD`), 또는 설정된 경우 `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` 와 `OPENSTACK_AUTH_URL`. 그리고 `ONEUPTIME_AI_OPENSTACK_REGION`, `ONEUPTIME_AI_OPENSTACK_INTERFACE`, `ONEUPTIME_AI_OPENSTACK_CA_FILE` |
+| XCP-ng 풀 | 모든 읽기에는 Xen Orchestra 토큰인 `ONEUPTIME_AI_XO_READ_TOKEN`, 변경에는 다른 사용자의 토큰인 `ONEUPTIME_AI_XO_WRITE_TOKEN`. 수집기의 `XO_SCHEME`, `XO_ADDRESS`, `XO_TLS_SERVER_NAME`, 그리고 수집기의 `xo-ca.pem`. 수집기의 OpenMetrics 시크릿은 절대 쓰지 않음 | 기본 제공 **Read only** 역할의 사본만 가진 사용자. 관리자는 절대 안 되며, 에이전트는 무엇이든 실행하기 전에 이를 확인합니다 | **VMs power state manager** 역할의 사본에 다른 수정이 쓰는 권한(`vm:snapshot`, `host:enable`, `pbd:plug`, `schedule:run`, …)을 더한 것을 가진 사용자. AI가 수정할 수 있는 풀에 부여 |
 
-수집기의 README에는 정확한 명령이 있습니다. Proxmox 수정용 토큰을 위한 `pveum` 명령([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)), vSphere 수정용 역할([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)), Ceph의 읽기용과 수정용 caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)), 엔진별 데이터베이스 권한([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent))입니다. 클라우드 AI 에이전트의 역할은 설정 명령이 작성합니다. 변경을 끄고 명령을 다시 실행하면 그 권한이 역할에서 빠집니다.
+수집기의 README에는 정확한 명령이 있습니다. Proxmox 수정용 토큰을 위한 `pveum` 명령([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)), vSphere 수정용 역할([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)), Ceph의 읽기용과 수정용 caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)), 엔진별 데이터베이스 권한([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent)), 읽기 토큰과 수정 토큰을 위한 Xen Orchestra 역할과 권한([XcpNgAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent))입니다. 클라우드 AI 에이전트의 역할은 설정 명령이 작성합니다. 변경을 끄고 명령을 다시 실행하면 그 권한이 역할에서 빠집니다.
 
 ## 보안 모델
 
@@ -555,8 +589,8 @@ AI 에이전트 페이지에 무엇이 표시되든, 에이전트 자체는 쓰�
 - 프로그램 하나를 인수 목록으로 실행하며 셸을 거치지 않습니다. 파이프, 리디렉션, `;`, `&&`, `$(…)` 는 무엇이든 실행되기 전에 거부되며, `sudo` 도 마찬가지입니다.
 - 그 명령 하나를 위해 만든 환경. 에이전트 자신의 것(수집 키도, 프록시 설정도)은 프로그램에 전달되지 않으며, `docker`, `govc`, `ceph` 는 그 명령 하나를 위해 `/tmp` 아래에 비어 있는 개인 홈 디렉터리를 받습니다. `docker` CLI는 비어 있는 개인 `DOCKER_CONFIG` 를 받으므로 컨텍스트나 자격 증명 도우미가 CLI의 대상을 바꿀 수 없습니다. `govc` 는 자격 증명을 명령줄이 아니라 환경으로 받습니다. `ceph` 는 에이전트 자신의 `--conf`, `--keyring`, `--id` 를 받으며, 명령이 다른 것을 고를 수 없습니다.
 - 시간 제한(최대 2분)이 있으며, 지나면 프로그램이 종료됩니다. 출력은 50 KB로 제한됩니다.
-- 출력에 있는 비밀 값(`docker inspect` 의 환경 변수 값, Proxmox cloud-init 비밀번호, OpenStack `user_data`, 로그와 명령줄의 키, 토큰, 비밀번호)은 출력이 에이전트를 떠나기 전에 에이전트에서 마스킹되며, 저장되거나 모델에 표시되기 전에 OneUptime에서 다시 마스킹됩니다.
-- 컨테이너는 읽기 전용 루트 파일 시스템으로 실행됩니다. Proxmox, VMware, Ceph, 데이터베이스 AI 에이전트는 capability 없이 UID 1000으로 실행됩니다. OpenStack AI 에이전트는 `clouds.yaml` 의 소유자(`OPENSTACK_EXPORTER_USER`)로 실행되며, 마찬가지로 capability가 없습니다.
+- 출력에 있는 비밀 값(`docker inspect` 의 환경 변수 값, Proxmox cloud-init 비밀번호, OpenStack `user_data`, XCP-ng VM의 cloud-init 데이터, 로그와 명령줄의 키, 토큰, 비밀번호)은 출력이 에이전트를 떠나기 전에 에이전트에서 마스킹되며, 저장되거나 모델에 표시되기 전에 OneUptime에서 다시 마스킹됩니다.
+- 컨테이너는 읽기 전용 루트 파일 시스템으로 실행됩니다. Proxmox, VMware, Ceph, XCP-ng, 데이터베이스 AI 에이전트는 capability 없이 UID 1000으로 실행됩니다. OpenStack AI 에이전트는 `clouds.yaml` 의 소유자(`OPENSTACK_EXPORTER_USER`)로 실행되며, 마찬가지로 capability가 없습니다.
 - 클라우드 AI 에이전트는 프로그램을 전혀 시작하지 않습니다. `cloud` 는 카탈로그의 작업 하나를 가리키며, 에이전트는 이를 대응하는 API 호출 하나로, 실행되는 곳의 자격 증명으로 수행합니다. 읽기는 계정의 읽기 전용 연결을 통해 OneUptime에서 실행됩니다.
 
 ### Docker 소켓과 호스트 AI 에이전트는 호스트의 root와 같다
@@ -583,7 +617,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-리소스의 컨테이너 이름을 사용하세요: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent`(`docker` 대신 `podman` 사용), `oneuptime-docker-swarm-ai-agent`, `oneuptime-openstack-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-host-ai-agent`. 데이터베이스 에이전트의 서비스에는 고정된 컨테이너 이름이 없으므로 `/opt/oneuptime-database-agent` 에서 `docker compose logs --tail=100 oneuptime-database-ai-agent` 와 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` 를 사용하세요. 호스트 AI 에이전트는 호스트의 네트워크를 쓰므로 `curl -s http://127.0.0.1:3877/status` 가 호스트에서 바로 동작합니다.
+리소스의 컨테이너 이름을 사용하세요: `oneuptime-docker-ai-agent`, `oneuptime-podman-ai-agent`(`docker` 대신 `podman` 사용), `oneuptime-docker-swarm-ai-agent`, `oneuptime-openstack-ai-agent`, `oneuptime-proxmox-ai-agent`, `oneuptime-vmware-ai-agent`, `oneuptime-ceph-ai-agent`, `oneuptime-xcp-ng-ai-agent`, `oneuptime-host-ai-agent`. 데이터베이스 에이전트의 서비스에는 고정된 컨테이너 이름이 없으므로 `/opt/oneuptime-database-agent` 에서 `docker compose logs --tail=100 oneuptime-database-ai-agent` 와 `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` 를 사용하세요. 호스트 AI 에이전트는 호스트의 네트워크를 쓰므로 `curl -s http://127.0.0.1:3877/status` 가 호스트에서 바로 동작합니다.
 
 클라우드 AI 에이전트는 클라우드에서 실행되므로 `exec` 할 컨테이너가 없습니다. 로그는 클라우드 셸에서 `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`, `az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100` (전용 VM에서는 `az vm run-command invoke --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --command-id RunShellScript --scripts "docker logs --tail 100 oneuptime-ai-agent" --query "value[0].message" --output tsv`) 또는 `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"` (Cloud Run에서는 `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`) 명령으로 읽고, 상태는 계정의 **AI 에이전트** 페이지에서 확인합니다. 이 페이지에도 같은 명령이 표시됩니다.
 
@@ -611,12 +645,14 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `pipes and redirects are not supported; run one command` | 예상된 동작입니다. 명령은 셸을 거쳐 실행되지 않습니다. 이 거부는 OneUptime AI에게 명령을 하나씩 실행하라고 알립니다. |
 | `Killed (timeout …)` | 리소스가 제때 응답하지 않았습니다. 출력이 전혀 없다면 에이전트가 리소스에 도달하지 못하는 것이니 둘 사이의 네트워크를 확인합니다. |
 | 권한, 역할, cap이 없다는 Proxmox, vCenter, Ceph, 데이터베이스 오류 | 자격 증명이 넘을 수 없는 한계입니다. 메시지가 가리키는 것을 부여하거나([자격 증명과 최소 권한](#자격-증명과-최소-권한) 참조) 그 변경을 사람에게 맡깁니다. |
+| XCP-ng 풀의 에이전트가 아무것도 실행하지 않음. 읽기 토큰이 Xen Orchestra 관리자의 것(`belongs to a Xen Orchestra administrator`)이거나, 역할이 변경을 허용하는 사용자의 것이기 때문 | 토큰의 사용자에게 기본 제공 **Read only** 역할의 사본만 주세요. 수정에는 다른 사용자의 토큰인 `ONEUPTIME_AI_XO_WRITE_TOKEN` 를 씁니다. |
+| XCP-ng 풀의 에이전트가 Xen Orchestra에 연결하지 못함. 인증서에 주소가 없기 때문(`the certificate names no address`) | Xen Orchestra는 스스로 만든 인증서를 쓰는데, 고정 여부와 관계없이 어떤 TLS 클라이언트도 이를 검사할 수 없습니다. 주소를 명시한 인증서를 주고([Xen Orchestra의 인증서](/docs/telemetry/xcp-ng#xen-orchestra의-인증서)) XCP-ng 에이전트의 `install.sh` 를 다시 실행하세요. |
 | `The Cloud AI agent could not check its cloud: …` | 역할, 관리 ID 또는 서비스 계정이 없어졌거나 권한이 부족하거나, 클라우드의 API에 연결할 수 없습니다. 계정 페이지에서 설정 명령을 다시 실행하세요. |
 | `The agent could not ask … to sign in as the write …` | Azure에서는 쓰기 ID `oneuptime-ai-agent-write` 가 에이전트가 실행되는 곳에 연결되어 있지 않거나 삭제되었습니다. Google Cloud에서는 에이전트 자체 서비스 계정이 아직 `oneuptime-ai-agent-write` 의 토큰을 요청할 수 없거나(새 권한 부여가 적용되기까지 몇 분 걸릴 수 있음) 계정이 삭제되었습니다. 계정의 **AI 에이전트** 페이지에서 **변경** 으로 설정 명령을 다시 실행하세요. |
 | `cloud … is not one of the changes this agent may make` | **AI가 문제를 해결하도록 허용** 의 **추가 필드** 에서 그 변경을 켜고 명령을 다시 실행하세요. 그러면 에이전트의 역할에도 그 변경의 권한이 부여됩니다. |
 | `the agent only changes resources that carry the …` | 리소스에 `oneuptime-ai=allow` 태그(Google Cloud에서는 레이블)를 붙이거나, 태그 없이 에이전트를 다시 설정하세요. |
 
-[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent), [VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent), [Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent), [데이터베이스](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) 에이전트의 README와 [호스트 AI 에이전트](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent)의 README에는 각자의 연결 오류에 대한 문제 해결 표가 있습니다.
+[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent), [VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent), [Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent), [XCP-ng](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent), [데이터베이스](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) 에이전트의 README와 [호스트 AI 에이전트](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent)의 README에는 각자의 연결 오류에 대한 문제 해결 표가 있습니다.
 
 ## 다루지 않는 것
 

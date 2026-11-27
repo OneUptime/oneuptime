@@ -214,6 +214,7 @@ import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCata
 import { getStorageArrayMetric } from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
 import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
@@ -238,6 +239,7 @@ import FeedMarkdown, {
   mdText,
   MarkdownValue,
 } from "../../../Utils/Markdown/FeedMarkdown";
+import TelemetryJudgedWindow from "../../../Utils/Monitor/TelemetryJudgedWindow";
 /**
  * A cross-signal deep link into a telemetry explorer, plus the scope
  * fields that could not be carried into that explorer's URL grammar
@@ -905,10 +907,25 @@ ${incomingRequestGrouping.rootCauseNote}
       }
 
       /*
+       * The window of telemetry a telemetry check judged (#11248): the one
+       * it was due to, however late it ran, so its logs, metrics or spans
+       * are found where the check found them.
+       */
+      const judgedWindow: string | null = TelemetryJudgedWindow.describe(
+        input.evaluationSummary.judgedWindow,
+      );
+
+      if (judgedWindow) {
+        renderedRootCause = mdText`${renderedRootCause}
+**Window Judged**: ${judgedWindow}
+`;
+      }
+
+      /*
        * What this criteria acts on. One that judges the whole monitor on a
        * monitor that alerts per entity acts on the whole monitor as one
        * entity of its own, with the criteria's root cause; the rest act on
-       * the series they matched.
+       * the series they matched, each saying the window judged too.
        */
       const criteriaMatches: Array<PerSeriesCriteriaMatch> =
         judgesWholeMonitor && criteriaInstance.data?.id
@@ -918,7 +935,19 @@ ${incomingRequestGrouping.rootCauseNote}
                 rootCause: renderedRootCause.toString(),
               }),
             ]
-          : perSeriesMatches;
+          : judgedWindow
+            ? perSeriesMatches.map(
+                (match: PerSeriesCriteriaMatch): PerSeriesCriteriaMatch => {
+                  return {
+                    ...match,
+                    rootCause:
+                      mdText`${FeedMarkdown.asMarkdown(match.rootCause)}
+
+**Window Judged**: ${judgedWindow}`.toString(),
+                  };
+                },
+              )
+            : perSeriesMatches;
 
       /*
        * The monitor has exactly one status, and the FIRST matching
@@ -7705,8 +7734,14 @@ ${incomingRequestGrouping.rootCauseNote}
       );
       name = AffectedResourceList.code(resource.hostName);
     } else if (resource.objectName) {
+      /*
+       * A kind's word, as English reads it: an ONTAP aggregate's label is a
+       * key that names its meaning (Common/Types/MeaningKeys).
+       */
       kind = objectKind
-        ? StorageArrayResourceKindUtil.getSingularLabel(objectKind)
+        ? withMeaningKeyAsItsWord(
+            StorageArrayResourceKindUtil.getSingularLabel(objectKind),
+          )
         : "Object";
       name = AffectedResourceList.code(resource.objectName);
     }
