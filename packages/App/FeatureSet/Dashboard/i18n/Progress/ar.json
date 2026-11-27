@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66270,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -263,6 +263,7 @@
     "Traceroute",
     "UID",
     "UTC",
+    "Unisphere",
     "Up & In",
     "Up & Out",
     "Up + In",

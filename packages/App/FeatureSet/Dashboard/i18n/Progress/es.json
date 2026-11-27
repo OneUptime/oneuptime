@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66270,
     "untranslated": 2320
   },
   "sameAsEnglish": [
@@ -149,6 +149,7 @@
     "Daemons",
     "DeploymentConfigs",
     "Digital",
+    "Director",
     "Docker CLI",
     "Docker Compose",
     "Docker {{version}}",
@@ -464,6 +465,7 @@
     "USD",
     "UTC",
     "Uganda",
+    "Unisphere",
     "Up & In",
     "Up & Out",
     "Up + In",
@@ -695,6 +697,7 @@
     "{{count}} cursor",
     "{{count}} deployment",
     "{{count}} deployments",
+    "{{count}} director",
     "{{count}} error",
     "{{count}} host",
     "{{count}} hosts",

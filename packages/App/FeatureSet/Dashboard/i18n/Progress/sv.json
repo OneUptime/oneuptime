@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66270,
     "untranslated": 8303
   },
   "sameAsEnglish": [
@@ -88,6 +88,7 @@
     "DeploymentConfigs",
     "Diagram",
     "Digital",
+    "Director",
     "Disk",
     "Disk %",
     "Disk {{path}}",
@@ -355,6 +356,7 @@
     "UID",
     "USD",
     "UTC",
+    "Unisphere",
     "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
@@ -503,12 +505,14 @@
     "{{count}} VM",
     "{{count}} app",
     "{{count}} appliance",
+    "{{count}} array",
     "{{count}} bucket",
     "{{count}} buckets",
     "{{count}} byte",
     "{{count}} commit",
     "{{count}} commits",
     "{{count}} datacenter",
+    "{{count}} director",
     "{{count}} filter",
     "{{count}} filter ({{condition}})",
     "{{count}} hunt",

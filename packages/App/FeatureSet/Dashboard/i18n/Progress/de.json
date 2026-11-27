@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66270,
     "untranslated": 2766
   },
   "sameAsEnglish": [
@@ -80,6 +80,7 @@
     "Appliances",
     "Apps",
     "Array",
+    "Arrays",
     "Aruba",
     "Assets",
     "Atmosphere",
@@ -210,6 +211,7 @@
     "Detail (in Markdown)",
     "Details",
     "Digital",
+    "Director",
     "Docker CLI",
     "Docker Compose",
     "Dominica",
@@ -697,6 +699,7 @@
     "Ukraine",
     "Undersized PGs",
     "Undersized Placement Groups",
+    "Unisphere",
     "Up",
     "Up & In",
     "Up & Out",
