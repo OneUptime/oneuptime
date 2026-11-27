@@ -6,7 +6,7 @@ import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
 import CloudCostGroup from "Common/Models/DatabaseModels/CloudCostGroup";
 import CloudCostView from "Common/Models/DatabaseModels/CloudCostView";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
-import OwnerNotificationDelivery from "Common/Models/DatabaseModels/OwnerNotificationDelivery";
+import { OwnerNotificationDelivery } from "Common/Server/Utils/Notification/OwnerNotificationDeliveries";
 import Project from "Common/Models/DatabaseModels/Project";
 import Team from "Common/Models/DatabaseModels/Team";
 import User from "Common/Models/DatabaseModels/User";
@@ -1268,9 +1268,10 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
             windowKey: string;
             threshold: number;
             people: Array<User>;
-          }) => {
+          }): Promise<OwnerNotificationDelivery> => {
             planned.push({ threshold: data.threshold, people: data.people });
-            return new OwnerNotificationDelivery();
+            // Telling is a stand-in too, so the plan it is handed is never read.
+            return {} as unknown as OwnerNotificationDelivery;
           },
         );
       jest.spyOn(CloudBudgetNotices, "tell").mockImplementation(async () => {
