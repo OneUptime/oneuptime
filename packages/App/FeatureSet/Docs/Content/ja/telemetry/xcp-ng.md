@@ -1,6 +1,6 @@
 # XCP-ng エージェント
 
-OneUptime の XCP-ng エージェントは、Xen Orchestra が管理する XCP-ng プールと、そのホスト、VM、ストレージリポジトリ、仮想ディスクを監視します。これは標準の OpenTelemetry Collector で、Xen Orchestra 自身の OpenMetrics プラグインをプラグインのシークレットで読み取り、読み取った内容を OneUptime に送ります。OneUptime では各プールがそのインベントリとともに表示されます。プールや Xen Orchestra のパスワードがエージェントに渡ることはありません。届いたデータには [XCP-ng モニター](/docs/monitor/xcp-ng-monitor) でアラートを出せます。
+OneUptime の XCP-ng エージェントは、Xen Orchestra が管理する XCP-ng プールと、そのホスト、VM、ストレージリポジトリ、仮想ディスクを監視します。これは標準の OpenTelemetry Collector で、Xen Orchestra 自身の OpenMetrics プラグインをプラグインのシークレットで読み取り、読み取った内容を OneUptime に送ります。OneUptime では各プールがそのインベントリとともに表示されます。プールや Xen Orchestra のパスワードがエージェントに渡ることはありません。届いたデータには [XCP-ng モニター](/docs/monitor/xcp-ng-monitor) でアラートを出せます。 何もインストールせずに OneUptime のプローブで同じプールを読み取るには、[エージェントなしの XCP-ng](/docs/telemetry/xcp-ng-agentless) を参照してください。
 
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): プラグインを有効にしてから、インストールスクリプトか Docker Compose を使います。
@@ -406,8 +406,8 @@ Xen Orchestra は接続しているプールだけを報告し、エージェン
 Xen Orchestra の OpenMetrics プラグインはメトリクスを提供するため、XCP-ng プールで注意すべきことの一部はまだ含まれていません。
 
 - XOSTOR 以外の **アラーム**、**HA の状態**、**プールマスター**、**未適用のパッチ**、**バックアップ**、**スナップショット**、ホストの物理インターフェース (PIF) の **リンク状態**。これらは Xen Orchestra の REST API から取得します ([#10997](https://github.com/OneUptime/oneuptime/issues/10997))。
-- Xen Orchestra のない **プール**、またはプラグインに必要な Premium ライセンスのない XOA の背後にあるプール。これらは XAPI から直接読み取ります ([#10999](https://github.com/OneUptime/oneuptime/issues/10999))。
-- VMware でできるような、OneUptime のプローブからの **エージェントなしの接続**: [#10996](https://github.com/OneUptime/oneuptime/issues/10996)。
+- Xen Orchestra のない **プール**、またはプラグインに必要な Premium ライセンスのない XOA の背後にあるプール。OneUptime のプローブがこれらを XAPI から直接読み取ります ([#10999](https://github.com/OneUptime/oneuptime/issues/10999))。[エージェントなしの XCP-ng](/docs/telemetry/xcp-ng-agentless) を参照してください。
+- VMware と同じく、OneUptime のプローブが Xen Orchestra のプラグインを自分で読み取る **エージェントなしの接続** ([#10996](https://github.com/OneUptime/oneuptime/issues/10996))。同じページで説明しています。
 
 ## 次のステップ
 

@@ -24,6 +24,7 @@ import StorageArrayReplication from "../Pages/StorageArray/View/Replication";
 import StorageArrayHardware from "../Pages/StorageArray/View/Hardware";
 import StorageArrayDirectories from "../Pages/StorageArray/View/Directories";
 import StorageArrayInventory from "../Pages/StorageArray/View/Inventory";
+import StorageArrayInventoryPart from "../Pages/StorageArray/View/InventoryPart";
 import StorageArrayFileSystems from "../Pages/StorageArray/View/FileSystems";
 import StorageArrayFileSystemDetail from "../Pages/StorageArray/View/FileSystemDetail";
 import StorageArrayBuckets from "../Pages/StorageArray/View/Buckets";
@@ -309,6 +310,22 @@ const StorageArrayRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.STORAGE_ARRAY_VIEW_INVENTORY] as Route
+              }
+            />
+          }
+        />
+
+        {/* One part of such a kind: a NetApp aggregate, SVM or LUN */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART,
+            3,
+          )}
+          element={
+            <StorageArrayInventoryPart
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART] as Route
               }
             />
           }

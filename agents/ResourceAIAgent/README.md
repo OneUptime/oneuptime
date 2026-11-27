@@ -105,6 +105,7 @@ All calls are HTTPS `POST`s to `<ONEUPTIME_URL>/resource-ai-agent-ingest/*`:
 | `heartbeat` | Every 30 seconds. Keeps the agent "connected" and reports what it may do and whether it can reach the resource. |
 | `claim-next-job` | Every 3 seconds. One command at a time. |
 | `job/<id>/heartbeat`, `job/<id>/result` | While a command runs, and to report its output. |
+| `data-observability/work`, `data-observability/result` | A database server's agent with Data Observability on, every minute: the databases it should read, and what each read. |
 | `disconnect` | On shutdown, so the next container can take over at once. |
 
 It needs the same OneUptime version as the image, or newer. With an older server it logs `This OneUptime server does not have the resource AI agent API …` once and checks again every 5 minutes.
@@ -193,6 +194,7 @@ Each type below lists the service that runs it, the settings it reads (all from 
 - **Engines:** PostgreSQL, MySQL (MariaDB, Percona Server), Redis (Valkey, KeyDB, Dragonfly) and MongoDB, through the engine's own Node driver (`pg`, `mysql2`, `ioredis`, `mongodb`). For any other `DATABASE_SYSTEM` (SQL Server, Oracle, Elasticsearch / OpenSearch, Memcached) it runs nothing and says so.
 - **Runs** `db` — not a program, but one operation from a fixed catalog (`db sessions`, `db long-queries`, `db locks`, `db blocking`, `db replication`, `db connections`, sizes, `db top-statements`, `db settings`, and engine reports) — in a read-only session with a statement timeout. Free SQL never runs. Credential settings are never listed, and query text comes back with every literal replaced by `?`.
 - **Fixes:** `db cancel-query ID` (SafeWrite) and `db terminate-session ID` (RiskyWrite), one session each (target `session:ID`), never the agent's own session. The login's grants are the hard limit (`pg_signal_backend` on PostgreSQL, `CONNECTION_ADMIN` on MySQL 8, `+client|kill` for a Redis ACL user, `killop` on MongoDB).
+- **Data Observability** (PostgreSQL, MySQL, MariaDB; off unless `ONEUPTIME_DATA_OBSERVABILITY=true`): every minute it asks for the databases of its server that are due (`DataObservability/DataObservabilityCollector`), reads each one's catalog and runs its due checks, and reports catalog facts and one number per check. OneUptime names what to read, never a statement or a login: the statements are the agent's own, from its copy of `Common/Utils/DataObservability/DatabaseAgent`, each check judged against the catalog it has just read, every value bound, each statement in a read-only transaction of its own with a time limit. It reads with `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` (else the collector's login, never the AI agent's) and runs checks with `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` (else the catalog's). Custom SQL checks run only with `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true`. Its posture says which of these are on. See [agents/DatabaseAgent/README.md](../DatabaseAgent/README.md#data-observability).
 
 ### Host
 

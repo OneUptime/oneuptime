@@ -4,6 +4,8 @@ import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/Database
 import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import XcpNgConnection from "../../../Models/DatabaseModels/XcpNgConnection";
+import XcpNgConnectionTest from "../../../Models/DatabaseModels/XcpNgConnectionTest";
 import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import XcpNgPoolFeed, {
   XcpNgPoolFeedEventType,
@@ -109,6 +111,19 @@ const XCP_NG_MODELS: Array<XcpNgModelSpec> = [
     modelType: XcpNgPoolOwnerUser,
     tableName: "XcpNgPoolOwnerUser",
     crudApiPath: "/xcp-ng-pool-owner-user",
+  },
+  // A Xen Orchestra or a pool's XAPI a probe reads, and a test of one (#10996, #10999).
+  {
+    name: "XcpNgConnection",
+    modelType: XcpNgConnection,
+    tableName: "XcpNgConnection",
+    crudApiPath: "/xcp-ng-connection",
+  },
+  {
+    name: "XcpNgConnectionTest",
+    modelType: XcpNgConnectionTest,
+    tableName: "XcpNgConnectionTest",
+    crudApiPath: "/xcp-ng-connection-test",
   },
 ];
 
@@ -323,8 +338,8 @@ function findIndex(
 }
 
 describe("XCP-ng database models", () => {
-  test("the product has the seven models of the design", () => {
-    expect(XCP_NG_MODELS.length).toBe(7);
+  test("the product has the nine models of the design", () => {
+    expect(XCP_NG_MODELS.length).toBe(9);
   });
 
   describe("registration and identity", () => {
@@ -810,6 +825,8 @@ describe("XCP-ng database models", () => {
           "OwnerTeamRemoved",
           "OwnerRuleExecuted",
           "LabelRuleExecuted",
+          // What XAPI tells a pool's operators, read by a probe (#10999).
+          "XcpNgPoolMessage",
         ].sort(),
       );
     });

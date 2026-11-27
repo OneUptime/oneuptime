@@ -1,6 +1,6 @@
 # Coûts et économies du cloud
 
-Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coûter moins. OneUptime lit les coûts de chaque jour dans la facturation de votre cloud et les recommandations du propre moteur de recommandation de votre cloud, les affiche dans **Cloud → Dépenses → Coûts** et **Cloud → Dépenses → Économies**, liste vos Savings Plans, réservations et remises sur engagement d'utilisation dans **Cloud → Dépenses → Engagements**, et alerte avant qu'un mois ne coûte plus que son budget dans **Cloud → Dépenses → Budgets**. Si vous le lui permettez, il réalise aussi les économies qu'un propriétaire approuve, arrête les ressources hors production en dehors des heures de travail et vérifie chaque modification sur la facture.
+Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coûter moins. OneUptime lit les coûts de chaque jour dans la facturation de votre cloud et les recommandations du propre moteur de recommandation de votre cloud, les affiche dans **Cloud → Dépenses → Coûts** et **Cloud → Dépenses → Économies**, liste vos Savings Plans, réservations et remises sur engagement d'utilisation dans **Cloud → Dépenses → Engagements**, vous prévient dans **Cloud → Dépenses → Budgets** avant qu'un mois, un trimestre ou une année coûte plus que son budget, et prévoit les mois à venir dans **Cloud → Dépenses → Prévision**. Si vous le lui permettez, il réalise aussi les économies qu'un propriétaire approuve, arrête les ressources hors production en dehors des heures de travail et vérifie chaque modification sur la facture.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer et Cost Optimization Hub, chacun activé une fois.
@@ -11,7 +11,8 @@ Un compte cloud connecté dit aussi ce qu'il coûte et comment il pourrait coût
 - [Appliquer des économies](#appliquer-des-économies): Appliquer une économie avec l'approbation de son propriétaire, et l'annuler.
 - [Plannings hors heures](#plannings-hors-heures): Arrêter les ressources hors production la nuit et le week-end.
 - [Règles IA d'économies](#règles-ia-déconomies): Des propositions aux propriétaires, ou des modifications dans une limite.
-- [Budgets](#budgets): Une alerte quand les dépenses d'un mois dépassent une part de son budget.
+- [Budgets](#budgets): Le budget d'un mois, d'un trimestre ou d'une année pour n'importe quel compte, groupe de coûts ou service.
+- [Prévisions](#prévisions): Ce que les 12 prochains mois sont en route pour coûter, et avec quelle certitude.
 - [Étiquettes obligatoires](#étiquettes-obligatoires): Quelle part de vos dépenses porte les étiquettes que vous exigez, et les nouvelles ressources qui ne les ont pas.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Facturation du cloud,<br/>lue deux fois par jour"] --> costs["Coûts"]
     rec["Recommandations du cloud,<br/>lues une fois par jour"] --> savings["Économies"]
     costs --> budgets["Budgets qui alertent"]
+    costs --> forecast["Prévisions"]
+    forecast --> budgets
     costs --> overview["Vue d'ensemble de Cloud"]
     savings --> overview
 ```
@@ -238,14 +241,26 @@ Une règle n'agit sans demander que sur une ressource connue comme hors producti
 :::steps
 ### Créer un budget
 
-Dans **Cloud → Dépenses → Budgets**, créez un budget : son **Montant mensuel**, le **Compte** concerné, ou aucun pour tous les comptes, et la **Base de coût** qu'il compte, ou aucune pour celle du projet.
+Dans **Cloud → Dépenses → Budgets**, créez un budget et choisissez à quoi il **S'applique à** : tous les comptes, un **Compte**, un **Groupe de coûts** tel que ses règles répartissent les dépenses, ou les services, régions et étiquettes qu'un **Filtre** nomme, écrit comme les règles d'un groupe de coûts. Laissez sa **Base de coût** vide pour compter celle du projet.
+
+### Dire ce qu'il peut coûter
+
+Sa **Période** est un mois, un trimestre ou une année, et son **Montant** est ce qu'une période peut coûter. Les trimestres et les années commencent au **Premier mois de l'année** : à partir d'avril, une année va d'avril à mars. Le **Plan budgétaire** d'une année peut répartir son montant également sur ses mois, ou donner à chaque mois le sien dans un **Plan mensuel**. Chaque mois est alors tenu à sa propre part : un mois calme n'est jamais alerté pour les dépenses d'un mois chargé.
 
 ### Choisir quand il alerte
 
-**Alerter à** prend les parts du budget auxquelles alerter, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par mois, quand le rythme de la dernière semaine ferait dépasser le budget au mois. **Alerter en cas de jour inhabituel** alerte aussi le lendemain d'un jour qui a coûté bien plus que d'habitude : voir [Jours inhabituels](#jours-inhabituels). **Gravité de l'alerte** et **Politiques d'astreinte** disent la gravité des alertes et qui est prévenu.
+**Alerter à** prend les parts du budget auxquelles agir, en pourcentage : 80 et 100 pour commencer. **Alerter si un dépassement se profile** alerte aussi, une fois par période, quand la période est en route pour coûter plus que le budget. **Alerter en cas de jour inhabituel** alerte aussi le lendemain d'une journée qui a coûté bien plus que d'habitude : voir [Jours inhabituels](#jours-inhabituels). **Gravité de l'alerte** dit la gravité de ses alertes.
+
+### Choisir qui est prévenu
+
+Les personnes et équipes à **Notifier** sont prévenues par e-mail et par chat quand les dépenses franchissent une part en dessous de 100 %, sans alerte : personne n'est alerté pour des dépenses dans le budget. **Prévenir l'équipe du groupe de coûts** prévient aussi l'équipe à laquelle appartient le groupe de coûts. À partir de 100 %, une alerte est créée, elles en sont propriétaires, et les **Politiques d'astreinte** sont alertées. Un budget sans personne à prévenir crée une alerte à chaque part.
 :::
 
-Un budget est vérifié après chaque lecture des coûts et toutes les heures. Quand les dépenses du mois franchissent un seuil, une alerte est levée pour lui, la plus haute si une lecture en franchit plusieurs à la fois, et un nouveau mois résout les alertes du mois précédent. Un budget ne compte que les comptes facturés dans sa devise, sur sa base : un budget amorti n'est pas déclenché par un engagement acheté d'avance, qu'un budget facturé compte le jour de son achat.
+Un budget est vérifié après chaque lecture des coûts et toutes les heures. Quand les dépenses de la période franchissent une part, les personnes à prévenir sont prévenues, ou à partir de 100 % une alerte est créée, une fois pour la plus haute quand une lecture en franchit plusieurs à la fois, et une nouvelle période résout les alertes de la précédente. Une année répartie par mois est vérifiée un mois à la fois, par rapport à la part de ce mois. Un budget ne compte que les comptes facturés dans sa devise, sur sa base : un budget amorti n'est pas déclenché par un engagement acheté d'avance, qu'un budget facturé compte le jour de son achat.
+
+Une période est en route pour dépasser le budget quand ce qu'elle a coûté jusqu'ici, le reste de ce mois au rythme de la dernière semaine complète, et les mois suivants d'un trimestre ou d'une année selon la [prévision](#prévisions) dépassent ensemble le budget.
+
+La ligne de chaque budget dit ce qu'il compte, sa période et la période jusqu'ici : pour une année répartie par mois, ce mois-ci par rapport à sa part, avec l'année à côté. Sa page montre la période mois par mois par rapport à la part de chaque mois, ce mois-ci jour par jour, ce qui a le plus coûté, et qui est prévenu. La page d'un budget annuel peut enregistrer sa prévision comme son plan.
 
 Les agents d'IA peuvent créer et modifier des budgets via le [serveur MCP](/docs/ai/mcp-server), et les scripts avec la commande `oneuptime cloud-budget` de la CLI : voir [Opérations sur les ressources](/docs/cli/resource-operations).
 
@@ -253,7 +268,41 @@ Les agents d'IA peuvent créer et modifier des budgets via le [serveur MCP](/doc
 
 Après chaque lecture, chacun des 14 derniers jours complets d'un compte est comparé aux 14 jours qui le précèdent. Un jour est inhabituel quand un service a coûté le double de sa journée habituelle ou plus, ou le compte entier une fois et demie sa journée habituelle ou plus. Dans les deux cas, il faut au moins 10 de plus que d'habitude, dans la devise du compte, et au moins 5 % de la journée habituelle du compte, pour que quelques centimes ne passent jamais pour un pic. La valeur habituelle d'un jour est la médiane des 14 jours qui le précèdent, si bien qu'un pic isolé la fait peu bouger, et un compte n'est jugé qu'une fois qu'il a une semaine de coûts.
 
-**Cloud → Dépenses → Coûts** marque les jours inhabituels sur les dépenses quotidiennes, au-dessus de leurs barres, et les liste en dessous. Sur tous les comptes, chaque marque ouvre les **Coûts** de son compte. Un budget qui inclut le compte lève une alerte pour chaque compte et chaque jour, le lendemain, en nommant chaque service qui a coûté trop. Un pic qui dure plusieurs jours est signalé le jour où il a commencé, et un jour vieux de plus d'une semaine n'est pas signalé. Un budget créé avant ces alertes ne les lève pas tant que vous ne le modifiez pas pour les activer.
+**Cloud → Dépenses → Coûts** marque les jours inhabituels sur les dépenses quotidiennes, au-dessus de leurs barres, et les liste en dessous. Sur tous les comptes, chaque marque ouvre les **Coûts** de son compte. Un budget mensuel pour tous les comptes ou un seul crée une alerte pour chaque compte et chaque jour, le lendemain, en nommant chaque service qui a dépassé. Tout autre budget tient ce qu'il compte à sa propre journée habituelle de la même façon. Une hausse qui dure plusieurs jours est signalée le jour où elle a commencé, et un jour de plus d'une semaine n'est pas signalé. Un budget créé avant ces alertes ne les crée pas tant que vous ne le modifiez pas pour les activer.
+
+## Prévisions
+
+**Cloud → Dépenses → Prévision** dit ce que les dépenses sont en route pour coûter dans chacun des 12 prochains mois, pour tout, un compte, un groupe de coûts ou un service, sur la base de coût que vous choisissez. Elle dit comment chaque prévision est établie, à partir des mois complets de coûts que OneUptime conserve, un an ou un peu plus :
+
+- **Ce mois-ci**, c'est ce qu'il a coûté jusqu'ici, avec chaque jour restant à la moyenne des sept derniers jours complets, comme un budget le projette.
+- **Avec moins de 3 mois complets**, chaque mois à venir prolonge ce rythme, sans fourchette probable : trop peu a été lu pour distinguer une tendance d'un accident.
+- **À partir de 3 mois complets**, une tendance passe par la journée moyenne de chaque mois : la médiane des pentes entre chaque paire de mois, si bien qu'un mois atypique la bouge à peine.
+- **À partir de 12 mois complets**, chaque mois du calendrier garde aussi son écart au-dessus ou en dessous de la tendance l'an dernier, si bien qu'un pic de décembre est aussi prévu pour le décembre suivant.
+
+Chaque mois à venir a une fourchette probable, où il devrait tomber 8 fois sur 10, tirée de l'écart des mois passés à leur tendance, et jamais plus étroite que 5 % de part et d'autre. Elle s'élargit à mesure qu'un mois est lointain, et que la prévision repose sur peu de mois. À partir de 12 mois complets, chaque fourchette est encore plus large, car une année ne montre chaque mois du calendrier qu'une fois. Une prévision n'est pas une promesse : un nouveau service, une migration ou un changement de prix fait bouger les mois à venir d'une façon qu'aucun mois passé ne montre.
+
+**Simulation** fait croître ou décroître chaque mois à venir à partir du mois choisi, de la part que vous saisissez, par exemple 20 % dès janvier. **Enregistrer comme plan budgétaire** fait des douze prochains mois le plan d'un budget annuel, dans un nouveau budget ou un budget existant, chaque mois tenu à sa part prévue.
+
+## Budgets et prévisions dans l'API
+
+Les budgets sont une ressource de l'API (`cloud-budget`), avec des commandes CLI et des outils MCP comme toute ressource. Le `scope` d'un budget est `allAccounts`, `account` (avec `cloudAccountId`), `costGroup` (avec `cloudCostGroupId`) ou `filter` (avec `filterRules`, écrit comme les règles d'un groupe de coûts). Sa `period` est `month`, `quarter` ou `year`, à partir de `fiscalYearStartMonth`, de 1 à 12. Le `planSplit` d'une année est `none`, `equal` ou `byMonth`, avec ses douze mois dans `monthlyPlan`, dans l'ordre de l'exercice.
+
+Pour lire la période d'un budget mois par mois, les jours de ce mois-ci et ce qui a le plus coûté, comme sa page :
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Pour prévoir une portée, de 1 à 24 mois à l'avance, avec une simulation facultative :
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+Le `forecast` de la réponse contient sa `method` (`pace`, `trend` ou `trendAndSeason`), les mois dont elle est tirée, et chaque mois avec son `amount` et, pour les mois à venir, son `low` et son `high`. Envoyez `basis` en `billed`, `amortized` ou `net` pour prévoir sur cette base ; sans lui, la prévision est sur celle du projet, et le `basis` de la réponse dit laquelle. Les dépenses d'un budget sont sur sa propre base.
 
 ## Où va l'argent
 
@@ -272,7 +321,7 @@ Les dépenses ne sont bien réparties que si elles portent les bonnes étiquette
 :::steps
 ### Exiger une étiquette
 
-Choisissez **Exiger une étiquette** et saisissez sa **Clé d'étiquette**. Sous **Valeurs autorisées**, listez les valeurs qu'elle peut prendre, séparées par des virgules, ou laissez vide pour accepter n'importe quelle valeur. Choisissez un **Compte** pour n'exiger l'étiquette que dans ce compte. Une **Description**, sous **Plus de champs**, dit dans les e-mails à quoi sert l'étiquette.
+Choisissez **Exiger une étiquette** et saisissez sa **Clé de balise**. Sous **Valeurs autorisées**, listez les valeurs qu'elle peut prendre, séparées par des virgules, ou laissez vide pour accepter n'importe quelle valeur. Choisissez un **Compte** pour n'exiger l'étiquette que dans ce compte. Une **Description**, sous **Plus de champs**, dit dans les e-mails à quoi sert l'étiquette.
 
 ### Lire la couverture
 
@@ -313,14 +362,84 @@ OneUptime ne suggère une valeur que si l'étiquette l'autorise :
 
 La commande pose l'étiquette en une étape, depuis le shell de votre cloud : `aws resourcegroupstaggingapi tag-resources` sur AWS, `az tag update --operation Merge` sur Azure, et `gcloud ... add-labels` ou `--update-labels` pour les VM et disques Compute Engine, les buckets Cloud Storage et les instances Cloud SQL sur Google Cloud.
 
+## Rapports et exports
+
+### Rapports de coûts
+
+**Cloud → Dépenses → Rapports** envoie selon une planification ce que coûtent les clouds, par e-mail et dans des canaux Slack ou Microsoft Teams, pour que les personnes qui ont besoin des chiffres les reçoivent sans ouvrir OneUptime. Un rapport a :
+
+- **Couvre** : tous les comptes, un compte, un groupe de coûts, ou une vue de coûts avec tous ses groupes.
+- **Période** : la semaine dernière (du lundi au dimanche), le mois dernier, ou le mois en cours. Chacune est comparée à la période précédente : la semaine précédente, le mois précédent, ou le mois dernier au même jour.
+- **Base de coût** : facturé, amorti ou net. Vide, c'est celle du projet, sur laquelle Coûts s'ouvre. Le rapport dit toujours sur quelle base il est.
+- **Planification** : chaque semaine ou chaque mois, à un jour et une heure dans un fuseau horaire, selon les mêmes règles que les résumés Slack et Microsoft Teams. Un nouveau rapport hebdomadaire part lundi prochain à 09:00 dans votre fuseau horaire, un mensuel le 1er, et les rapports suivants gardent ce jour et cette heure toute l'année.
+
+L'e-mail dit ce que la période a coûté face à la période précédente, les budgets qu'elle entame (chaque mois en cours, sur la base propre au budget), les services qui ont le plus augmenté et le plus baissé, les groupes d'une vue de coûts et ce qu'aucun groupe ne prend, les jours inhabituels, les plus grandes économies en attente et la part des dépenses que couvrent les engagements. Ses chiffres sont joints en CSV. **Ouvrir Coûts** ouvre **Coûts** sur exactement les jours, la base et la vue du rapport, pour que les chiffres du rapport et ceux de la page soient les mêmes. Les comptes facturés dans une autre devise sont laissés hors des chiffres, et le rapport les nomme.
+
+Un canal Slack ou Microsoft Teams reçoit un court message : le total et son évolution, le budget, les premières lignes des listes du rapport, et **Ouvrir Coûts**.
+
+### Qui reçoit un rapport
+
+- Les personnes et les équipes du projet le reçoivent par e-mail, selon leurs paramètres de notification, où chacun peut désactiver les rapports de coûts cloud. Chaque personne reçoit les chiffres qu'elle peut lire : quelqu'un dont l'accès est limité par des étiquettes ne reçoit que ses comptes, et quelqu'un qui ne peut plus lire les coûts cloud du projet est laissé de côté.
+- Les **Adresses e-mail** hors du projet, comme celle de votre comptable, et les canaux Slack et Microsoft Teams exigent la permission Administrateur du cloud, ou Administrateur du projet ou Propriétaire du projet, car OneUptime ne peut pas savoir qui les lit. Ils reçoivent le rapport tel que la personne qui les a ajoutés peut le lire, et ne le reçoivent plus si cette personne perd la permission. Une clé d'API ne peut pas les définir.
+- Quiconque peut créer les autres enregistrements Cloud, à partir de Membre du cloud, peut créer, modifier et supprimer des rapports. Un Lecteur du cloud peut les lire.
+
+Un rapport va au plus à 200 personnes, 25 adresses et 10 canaux de chaque sorte. **Dernier envoi** dit quand il est parti pour la dernière fois, qui il a laissé de côté et pourquoi.
+
+### Une section pour chaque équipe
+
+Un rapport d'une vue de coûts peut envoyer à chaque groupe sa propre section avec **Envoyer à l'équipe de chaque groupe sa section**. Les membres de l'équipe de chaque groupe, indiquée sur le groupe, reçoivent les dépenses de leur groupe face à la période précédente, les services qui y ont le plus augmenté et le plus baissé, et ses jours inhabituels. Un groupe partagé n'a pas de section à lui : ses coûts sont dans les groupes entre lesquels il est réparti. Les personnes, équipes et adresses du rapport lui-même reçoivent tous les groupes. Quelqu'un qui fait partie des équipes de deux groupes reçoit les deux sections. Un rapport mensuel d'une vue de coûts ainsi fait le showback du mois.
+
+### Aperçu et M'envoyer une copie
+
+**Aperçu** montre ce que dit un rapport maintenant, tel que vous pouvez le lire et tel que l'e-mail le présente, et qui son dernier envoi a laissé de côté et pourquoi. **M'envoyer une copie** vous l'envoie par e-mail maintenant.
+
+### Télécharger le CSV
+
+**Télécharger le CSV** enregistre ce qu'affiche une carte : **Où va l'argent** sur **Coûts**, dans n'importe quelle répartition et face à la période précédente, les dépenses de chaque jour, les recommandations de **Économies**, et la page d'un groupe de coûts. Le nom du fichier dit ce qu'il contient, selon quoi il est réparti, la vue et le compte, la base de coût et les jours, par exemple `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Les chiffres sont des nombres simples, et un texte qu'un tableur lirait comme une formule commence par une apostrophe.
+
+### FOCUS
+
+**Exporter FOCUS** sur **Coûts** télécharge chaque coût de la période sous forme de fichier FOCUS 1.2, la FinOps Open Cost and Usage Specification en version 1.2, que lisent les outils financiers. Un fichier contient au plus 93 jours, et chaque devise dans laquelle les comptes sont facturés, chaque ligne dans la sienne.
+
+Le fichier a chaque colonne que FOCUS 1.2 rend obligatoire, et les colonnes conditionnelles pour lesquelles OneUptime a les données : `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` et `Tags`. Il a une ligne pour chaque coût que OneUptime conserve : un jour, un compte, un service, une région et, quand le cloud le nomme, une ressource.
+
+- `BilledCost` est ce que le cloud a facturé, et `EffectiveCost` ce que cela a coûté avec les engagements répartis sur ce qu'ils couvrent.
+- Ce que le cloud a déduit, ses crédits, remboursements et remises, est une ligne à part, avec une `ChargeCategory` à `Credit`. L'`EffectiveCost` du fichier, additionné, donne le coût net.
+- `ChargeCategory` vaut `Tax` pour les coûts qu'AWS facture sous son service Tax, et `Usage` pour le reste.
+- `BillingAccountId` est le compte dont la connexion lit la facture : le compte de gestion d'une organisation AWS, un compte de facturation Google Cloud, ou l'abonnement Azure, car le compte de facturation Azure n'est pas lu. `SubAccountId` est le compte AWS, l'abonnement Azure ou le projet Google Cloud.
+- Les dates sont des jours UTC entiers, la fin de la période de facturation de la charge et celle de la période de facturation n'étant pas incluses. La période de facturation est le mois civil.
+
+Ce que FOCUS 1.2 demande et que OneUptime ne lit pas est laissé vide ou rempli comme la spécification le permet. `PricingQuantity` et `PricingUnit` sont vides, car les coûts sont lus par jour, service, région et ressource, pas par type d'usage. `ListCost` et `ContractedCost` valent `BilledCost`, comme FOCUS le demande quand les prix unitaires ne sont pas connus. Un achat, comme le paiement initial d'une réservation, est l'usage du service pour lequel il a été acheté. Il n'y a pas de colonnes de SKU, de remise d'engagement, de réservation de capacité ni de facture. FOCUS 1.3 et 1.4 ajoutent des colonnes dont un lecteur de 1.2 se passe.
+
+### Depuis l'API et la CLI
+
+L'API répond par une répartition, pas seulement par les lignes des coûts, pour qu'un système financier puisse récupérer la refacturation du mois :
+
+- `POST /api/cloud-cost/breakdown` avec `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` avec une `tagKey`, ou `group` avec un `cloudCostViewId`), une `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) ou une `startDate` et une `endDate`, et en option `cloudAccountIds`, `currency`, `basis` et `compareWithPrevious`. La réponse donne le total de la période et chaque part, avec la période précédente à côté, ou avec `"format": "csv"` le CSV que donne **Télécharger le CSV**.
+- `POST /api/cloud-cost/export` avec une `period`, ou une `startDate` et une `endDate`, répond par le fichier FOCUS.
+
+Les deux lisent comme la clé peut lire les coûts. Depuis la [CLI](/docs/cli/command-reference) :
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### Sur un tableau de bord
+
+Le widget **Coût cloud** place un total, une répartition ou une tendance des dépenses à côté des services qui les engagent. Voir [Widgets de tableau de bord](/docs/dashboards/widgets#coûts-cloud).
+
 ## Ce que vous voyez dans OneUptime
 
 - **La vue d'ensemble de Cloud.** **Cloud → Vue d'ensemble** montre les dépenses du mois face à celles du mois dernier au même jour, les services qui coûtent le plus et les plus gros moyens de dépenser moins, à côté de ce qui demande votre attention.
 - **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours en marquant ceux qui ont coûté bien plus que d'habitude, liste ces jours et ventile une période par service, région, compte, ressource, environnement des plateformes d'applications, application ou étiquette, facturé, amorti ou net. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
 - **Chaque engagement.** **Cloud → Dépenses → Engagements** liste chacun avec sa date de fin et sa part utilisée, ceux qui se terminent bientôt avec ce qu'il faut renouveler, et ce qu'il faut acheter.
+- **Rapports.** **Cloud → Dépenses → Rapports** liste chaque rapport planifié avec ce qu'il couvre, quand il part la prochaine fois et comment s'est passé son dernier envoi.
 - **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses engagements et ses moyens de dépenser moins.
 - **Étiquettes obligatoires.** **Cloud → Dépenses → Étiquettes** montre quelle part des dépenses et des ressources porte vos étiquettes obligatoires, et les **Étiquettes** d'un compte montrent la même chose pour ce seul compte.
 - **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins et son redimensionnement.
+- **Chaque budget.** **Cloud → Dépenses → Budgets** liste chaque budget avec ce qu'il compte, sa période et la période jusqu'ici, et chacun ouvre sa page.
+- **Les mois à venir.** **Cloud → Dépenses → Prévision** trace les mois dont une prévision est tirée, ce mois-ci en route et les 12 prochains, avec la façon dont elle est établie.
 - **Ce qui a été économisé.** **Cloud → Dépenses → Économies** s'ouvre sur ce que les modifications effectuées ont économisé ce mois-ci, selon la facture, les modifications en attente d'approbation et celles effectuées, et les heures pendant lesquelles les plannings ont arrêté des ressources.
 
 ## Dépannage
@@ -363,6 +482,14 @@ OneUptime ne fait que des modifications en une étape : un engagement, ou une re
 
 :::details Un planning laisse une ressource en marche
 **Voir les ressources** dit pourquoi : c'est de la production, rien n'indique que ce n'est pas de la production, ou la connexion de son compte ne permet pas les actions d'économie. Balisez-la, par exemple `environment` = `dev`, ou marquez son compte **Hors production**.
+:::
+
+:::details Une prévision n'a pas de fourchette probable
+Elle a été établie à partir de moins de 3 mois complets de coûts : chaque mois à venir prolonge le rythme de la dernière semaine complète, et aucune fourchette n'est donnée. La fourchette arrive dès que le troisième mois complet est lu. La première lecture d'une connexion remonte au début de l'avant-dernier mois.
+:::
+
+:::details Quelqu'un a été prévenu d'un budget mais aucune alerte n'est venue
+En dessous de 100 %, un budget qui nomme des personnes ou des équipes à prévenir les prévient et ne crée pas d'alerte : personne n'est alerté. À partir de 100 %, il crée une alerte, et ses politiques d'astreinte sont alertées. Un budget sans personne à prévenir crée une alerte à chaque part.
 :::
 
 :::details Ce mois est plus bas que dans la console de votre cloud

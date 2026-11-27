@@ -216,6 +216,17 @@ export function getXcpNgBreadcrumbs(path: string): Array<Link> | undefined {
       "XCP-ng",
       "Archived",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_CONNECTIONS, [
+      "Project",
+      "XCP-ng",
+      "Connections",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.XCP_NG_CONNECTION_VIEW, [
+      "Project",
+      "XCP-ng",
+      "Connections",
+      "View Connection",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

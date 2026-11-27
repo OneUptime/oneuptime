@@ -586,7 +586,7 @@ describe("charts are built from the metric catalog", () => {
       getGoldenChartQueries({ storageSystem: undefined, arrayName: "a" }),
     ).toEqual([]);
     expect(
-      getGoldenChartQueries({ storageSystem: "netapp.ontap", arrayName: "a" }),
+      getGoldenChartQueries({ storageSystem: "hitachi.vsp", arrayName: "a" }),
     ).toEqual([]);
   });
 
@@ -706,7 +706,7 @@ describe("the array side menu", () => {
   test("an array without a known platform lists no inventory page", () => {
     expect(pagesFor(undefined)).toEqual([]);
     expect(pagesFor("")).toEqual([]);
-    expect(pagesFor("netapp.ontap")).toEqual([]);
+    expect(pagesFor("hitachi.vsp")).toEqual([]);
   });
 
   test("every inventory page appears once", () => {

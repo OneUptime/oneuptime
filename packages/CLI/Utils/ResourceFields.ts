@@ -19,6 +19,7 @@ import {
   getCliDatabaseOperations,
   getCliFieldFlags,
   getCliResourceName,
+  getCliResourceOwnCommands,
   isCliServerSetColumn,
 } from "Common/Utils/DeveloperDocs/CliCommands";
 import {
@@ -74,7 +75,12 @@ export interface ResourceDescription {
 
 // The subcommands of a resource, in the order it has them.
 export function getResourceSubcommands(resource: ResourceInfo): Array<string> {
-  return [...resource.operations, CLI_FIELDS_SUBCOMMAND, ...resource.actions];
+  return [
+    ...resource.operations,
+    CLI_FIELDS_SUBCOMMAND,
+    ...resource.actions,
+    ...getCliResourceOwnCommands(resource.name),
+  ];
 }
 
 const LINE_BREAKS: RegExp = /\s+/g;

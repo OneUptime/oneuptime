@@ -13,8 +13,12 @@ import WorkspaceNotificationRuleService, {
 import CreateBy from "../../../Server/Types/Database/CreateBy";
 import FeedWorkspaceNotificationUtil from "../../../Server/Utils/Feed/FeedWorkspaceNotification";
 import WorkspaceCreatedMessageFirst from "../../../Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceMarkdownNotificationJSON from "../../../Server/Utils/Workspace/WorkspaceMarkdownNotificationJSON";
 import { WorkspaceRecord } from "../../../Server/Utils/Workspace/WorkspaceRecordPeople";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { NotificationRuleUpdateKind } from "../../../Types/Workspace/NotificationRules/NotificationRuleUpdates";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleCondition, {
@@ -225,6 +229,144 @@ describe("sendWorkspaceMarkdownNotification while a record is created", () => {
     await WorkspaceCreatedMessageFirst.postHeld(alert);
 
     expect(postedMarkdown()).toEqual(["Added Jane"]);
+  });
+});
+
+describe("a kept message is stored with what it says, for another App server to post (#11235)", () => {
+  type KeepInput = Parameters<typeof WorkspaceCreatedMessageFirst.keep>[0];
+
+  // What the hold is handed, as each message is kept.
+  function keptInto(kept: Array<KeepInput>): void {
+    jest.spyOn(WorkspaceCreatedMessageFirst, "keep").mockImplementation((async (
+      data: KeepInput,
+    ): Promise<boolean> => {
+      kept.push(data);
+      return true;
+    }) as never);
+  }
+
+  // As Valkey keeps it: JSON text, read back.
+  function throughValkey(stored: JSONObject): JSONObject {
+    return JSON.parse(JSON.stringify(stored)) as JSONObject;
+  }
+
+  test("sendWorkspaceMarkdownNotification hands the hold the message as it was sent, which the server that takes it over reads back", async () => {
+    const kept: Array<KeepInput> = [];
+    keptInto(kept);
+
+    const sent: WorkspaceMarkdownNotification = messageAbout(
+      { incidentId: ObjectID.generate() },
+      "👤 Added **Valeria** to the Incident as **Incident Commander**.",
+      {
+        authorUserId: ObjectID.generate(),
+        updateKinds: [NotificationRuleUpdateKind.Owners],
+        exceptChannel: {
+          workspaceType: WorkspaceType.Slack,
+          channelId: "C0EXIST",
+        },
+      },
+    );
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+      sent,
+    );
+
+    expect(posted).toEqual([]);
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.record).toBe(sent.notificationFor);
+    expect(
+      WorkspaceMarkdownNotificationJSON.fromJSON(
+        throughValkey(kept[0]!.stored!()),
+      ),
+    ).toEqual(sent);
+  });
+
+  test("what the server that made it would be told of where it went is not stored with it", async () => {
+    const kept: Array<KeepInput> = [];
+    keptInto(kept);
+
+    const sent: WorkspaceMarkdownNotification = messageAbout(
+      { incidentId: ObjectID.generate() },
+      "What OneUptime AI read in the call",
+      {
+        onPosted: (): void => {
+          // told on the server that made it, only
+        },
+      },
+    );
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+      sent,
+    );
+
+    const readBack: WorkspaceMarkdownNotification =
+      WorkspaceMarkdownNotificationJSON.fromJSON(
+        throughValkey(kept[0]!.stored!()),
+      );
+
+    expect(readBack.workspaceNotification.onPosted).toBeUndefined();
+    expect(readBack.feedInfoInMarkdown).toBe(
+      "What OneUptime AI read in the call",
+    );
+  });
+
+  test("the message that announces its record is never kept, so never stored", async () => {
+    const kept: Array<KeepInput> = [];
+    keptInto(kept);
+
+    await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
+      messageAbout(
+        { incidentId: ObjectID.generate() },
+        "#### 🚨 Incident INC-4 Created",
+        { announcesRecord: true },
+      ),
+    );
+
+    expect(kept).toEqual([]);
+    expect(postedMarkdown()).toEqual(["#### 🚨 Incident INC-4 Created"]);
+  });
+
+  test("postStoredWorkspaceMarkdownNotification posts what was stored, exactly as it was sent", async () => {
+    const sent: WorkspaceMarkdownNotification = messageAbout(
+      { alertId: ObjectID.generate() },
+      "Added team Platform to the Alert as the owner.",
+      {
+        authorUserId: ObjectID.generate(),
+        updateKinds: [NotificationRuleUpdateKind.Owners],
+      },
+    );
+
+    await WorkspaceNotificationRuleService.postStoredWorkspaceMarkdownNotification(
+      throughValkey(WorkspaceMarkdownNotificationJSON.toJSON(sent)),
+    );
+
+    expect(posted).toEqual([sent]);
+  });
+
+  test("a stored message is posted in its turn, not kept again, while its record is still held here", async () => {
+    const incident: WorkspaceRecord = await hold({
+      incidentId: ObjectID.generate(),
+    });
+    const sent: WorkspaceMarkdownNotification = messageAbout(
+      incident,
+      "Added Valeria as Incident Commander",
+    );
+
+    await WorkspaceNotificationRuleService.postStoredWorkspaceMarkdownNotification(
+      throughValkey(WorkspaceMarkdownNotificationJSON.toJSON(sent)),
+    );
+
+    expect(postedMarkdown()).toEqual(["Added Valeria as Incident Commander"]);
+  });
+
+  test("what was stored, when it is not a message, is not posted: it throws, for the line to log", async () => {
+    await expect(
+      WorkspaceNotificationRuleService.postStoredWorkspaceMarkdownNotification({
+        workspaceMarkdownNotification: { feedInfoInMarkdown: "no project" },
+      }),
+    ).rejects.toThrow(BadDataException);
+
+    expect(posted).toEqual([]);
   });
 });
 

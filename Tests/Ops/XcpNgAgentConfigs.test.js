@@ -524,7 +524,7 @@ describe("agents/XcpNgAgent/docker-compose.yml", () => {
       "XO_SCHEME=${XO_SCHEME:-https}",
       "XO_ADDRESS=${XO_ADDRESS}",
       "XO_OPENMETRICS_SECRET=${XO_OPENMETRICS_SECRET}",
-      "XO_NAME=${XO_NAME:-${XO_ADDRESS}}",
+      "XO_NAME=${XO_NAME:-${XO_ADDRESS:-}}",
       "XO_TLS_SERVER_NAME=${XO_TLS_SERVER_NAME:-}",
     ]);
   });

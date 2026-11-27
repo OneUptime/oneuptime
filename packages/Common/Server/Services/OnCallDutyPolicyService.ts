@@ -979,20 +979,19 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
   protected override async onBeforeCreate(
     createBy: CreateBy<OnCallDutyPolicy>,
   ): Promise<OnCreate<OnCallDutyPolicy>> {
-    const onCreate: OnCreate<OnCallDutyPolicy> = await super.onBeforeCreate(
-      createBy,
-    );
+    await super.onBeforeCreate(createBy);
 
     /*
      * When the policy's feed starts (OnCallDutyPolicyCreateCarryForward):
      * now, before the policy is written and so before any entry about it
-     * can be.
+     * can be. The base hook checks the create's references to the project
+     * and hands the same createBy back.
      */
     const carryForward: OnCallDutyPolicyCreateCarryForward = {
       feedStartsAt: OneUptimeDate.getCurrentDate(),
     };
 
-    return { createBy: onCreate.createBy, carryForward: carryForward };
+    return { createBy: createBy, carryForward: carryForward };
   }
 
   // When the policy's feed starts, as onBeforeCreate handed it over.

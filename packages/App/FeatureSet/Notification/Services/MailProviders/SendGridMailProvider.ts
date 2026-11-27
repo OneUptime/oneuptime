@@ -1,4 +1,5 @@
 import { SendGridConfig } from "../../Config";
+import FileAttachments from "./FileAttachments";
 import InlineImageAttachments from "./InlineImageAttachments";
 import InlineImageRefusal, {
   InlineImageRefusalFlag,
@@ -181,8 +182,14 @@ export default class SendGridMailProvider {
       subject: mail.subject,
       ...(text ? { text: text } : {}),
       html: html,
-      ...(inlineImages.length > 0
-        ? { attachments: InlineImageAttachments.forSendgrid(inlineImages) }
+      // Its inline images, then the files it carries (FileAttachments).
+      ...(inlineImages.length > 0 || FileAttachments.of(mail).length > 0
+        ? {
+            attachments: [
+              ...InlineImageAttachments.forSendgrid(inlineImages),
+              ...FileAttachments.forSendgrid(FileAttachments.of(mail)),
+            ],
+          }
         : {}),
     };
   }

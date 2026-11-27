@@ -454,8 +454,19 @@ Dess egna variabler, i samma `.env` (compose-filen skickar dem bara till AI-agen
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | Ett PEM-CA-paket, monterat i containern (se de utkommenterade `volumes` för `oneuptime-database-ai-agent`), som serverns certifikat verifieras mot när `DATABASE_TLS_INSECURE=false` |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | collectorns identitet | Registrerar AI-agenten som en annan databas än collectorns: dess id i OneUptime eller `<engine>\|<address>:<port>`. Lämna den tom |
 | `LOG_LEVEL` | `info` | AI-agentens loggnivå: `debug`, `info`, `warn` eller `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` låter agenten läsa serverns databaser för Dataobserverbarhet; allt annat lämnar det avstängt |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | övervakningsinloggningen | Inloggningen som Dataobserverbarhet läser katalogen med. Skrivs som den är: dess `$` dubbleras inte |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | Lösenordet för den inloggningen; sätt det inom enkla citattecken |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` kör ingen datakontroll: bara katalogen |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | kataloginloggningen | Inloggningen som datakontroller läser rader med |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | Lösenordet för den inloggningen; sätt det inom enkla citattecken |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` kör kontroller av typen Anpassad SQL och Rader som misslyckas |
 
 Vad den får köra, hur åtgärder fungerar och hur du felsöker den: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#databasservrar).
+
+### Dataobserverbarhet via samma agent
+
+Samma agent kan läsa serverns PostgreSQL-, MySQL- och MariaDB-databaser för [Dataobserverbarhet](/docs/data-observability/index): deras tabeller och kolumner, aktualitet och volym, schemaändringar och de kontroller du konfigurerar. Den läser med enbart läsbehörighet, med inloggningar från sin egen miljö och satser som den bygger själv, och skickar ingen rad och ingen inloggning tillbaka. Den är avstängd tills du anger `ONEUPTIME_DATA_OBSERVABILITY=true` i samma `.env`. [Anslut en databas](/docs/data-observability/connect#via-en-database-agent) beskriver hur du väljer agenten och vilka inloggningar du ska ge den.
 
 ## Kubernetes
 

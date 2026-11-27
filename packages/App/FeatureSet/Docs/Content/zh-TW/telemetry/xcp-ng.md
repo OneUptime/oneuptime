@@ -1,6 +1,6 @@
 # XCP-ng 代理程式
 
-OneUptime 的 XCP-ng 代理程式監控由 Xen Orchestra 管理的 XCP-ng 資源池：它們的主機、虛擬機器、儲存庫和虛擬磁碟。它是一個標準的 OpenTelemetry Collector，使用外掛程式的密鑰讀取 Xen Orchestra 內建的 OpenMetrics 外掛程式，並把讀到的內容傳送到 OneUptime，每個資源池都會連同其清冊出現在那裡。資源池或 Xen Orchestra 的任何密碼都不會到達代理程式。[XCP-ng 監測器](/docs/monitor/xcp-ng-monitor) 會針對傳入的資料發出警示。
+OneUptime 的 XCP-ng 代理程式監控由 Xen Orchestra 管理的 XCP-ng 資源池：它們的主機、虛擬機器、儲存庫和虛擬磁碟。它是一個標準的 OpenTelemetry Collector，使用外掛程式的密鑰讀取 Xen Orchestra 內建的 OpenMetrics 外掛程式，並把讀到的內容傳送到 OneUptime，每個資源池都會連同其清冊出現在那裡。資源池或 Xen Orchestra 的任何密碼都不會到達代理程式。[XCP-ng 監測器](/docs/monitor/xcp-ng-monitor) 會針對傳入的資料發出警示。 若要無需安裝任何東西、由 OneUptime 探測器讀取同樣的資源池，請參閱[免代理程式的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
 
 :::cards
 - [安裝代理程式](#安裝代理程式): 啟用外掛程式，然後使用安裝指令碼或 Docker Compose。
@@ -406,8 +406,8 @@ Xen Orchestra 只回報它所連線的資源池，而代理程式只讀取這個
 Xen Orchestra 的 OpenMetrics 外掛程式提供的是指標，因此你在 XCP-ng 資源池中關注的部分內容還不在其中：
 
 - 除 XOSTOR 之外的 **警報**、**HA 狀態**、**資源池主節點**、**缺少的修補程式**、**備份** 和 **快照**，以及主機實體介面（PIF）的 **連結狀態**。它們來自 Xen Orchestra 的 REST API，見 [#10997](https://github.com/OneUptime/oneuptime/issues/10997)。
-- **沒有 Xen Orchestra 的資源池**，或位於沒有外掛程式所需 Premium 授權的 XOA 之後的資源池：它們直接透過 XAPI 讀取，見 [#10999](https://github.com/OneUptime/oneuptime/issues/10999)。
-- **不需代理程式即可連線**，從 OneUptime 探測器連線，就像 VMware 那樣：[#10996](https://github.com/OneUptime/oneuptime/issues/10996)。
+- **沒有 Xen Orchestra 的資源池**，或位於沒有外掛程式所需 Premium 授權的 XOA 之後的資源池：OneUptime 探測器直接透過 XAPI 讀取它們（[#10999](https://github.com/OneUptime/oneuptime/issues/10999)），請參閱[免代理程式的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
+- **不需代理程式即可連線**：OneUptime 探測器自己讀取 Xen Orchestra 的外掛程式，就像 VMware 那樣（[#10996](https://github.com/OneUptime/oneuptime/issues/10996)），見同一頁面。
 
 ## 後續步驟
 

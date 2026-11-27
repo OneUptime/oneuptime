@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddXcpNgPoolAiAccess1809187741998 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187741998-AddXcpNgPoolAiAccess";
+import { AddXcpNgPoolAiAccess1809187772000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187772000-AddXcpNgPoolAiAccess";
 import { AddXcpNgPoolTables1809187720000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187720000-AddXcpNgPoolTables";
 import XcpNgPool from "../../../../Models/DatabaseModels/XcpNgPool";
 import ProxmoxCluster from "../../../../Models/DatabaseModels/ProxmoxCluster";
@@ -24,7 +24,7 @@ import { ResourceAiRemediationMode } from "../../../../Types/ResourceAiAgent/Res
  * the model; this test holds them to what each column means.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809187741998";
+const MIGRATION_TIMESTAMP: string = "1809187772000";
 const MIGRATION_BASE_NAME: string = "AddXcpNgPoolAiAccess";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -60,7 +60,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
       statements.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: MigrationInterface = new AddXcpNgPoolAiAccess1809187741998();
+  const migration: MigrationInterface = new AddXcpNgPoolAiAccess1809187772000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -71,7 +71,7 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
   return statements;
 }
 
-describe("AddXcpNgPoolAiAccess1809187741998", () => {
+describe("AddXcpNgPoolAiAccess1809187772000", () => {
   test("adds the seven AI access columns to the XCP-ng pool table", async () => {
     expect(await statementsOf("up")).toEqual(UP);
   });
@@ -143,7 +143,7 @@ describe("AddXcpNgPoolAiAccess1809187741998", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddXcpNgPoolAiAccess1809187741998().name).toBe(
+    expect(new AddXcpNgPoolAiAccess1809187772000().name).toBe(
       MIGRATION_CLASS_NAME,
     );
     expect(names.indexOf(MIGRATION_CLASS_NAME)).toBeGreaterThan(

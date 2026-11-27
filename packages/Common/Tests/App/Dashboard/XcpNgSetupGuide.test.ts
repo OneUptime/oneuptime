@@ -280,7 +280,7 @@ const composeVariables: () => Map<string, string | null> = (): Map<
     composeFile()["services"] as Record<string, { environment: Array<string> }>,
   )) {
     for (const entry of service.environment) {
-      // The outer reference of `${XO_NAME:-${XO_ADDRESS}}` is XO_NAME.
+      // The outer reference of `${XO_NAME:-${XO_ADDRESS:-}}` is XO_NAME.
       const match: RegExpMatchArray | null = entry.match(
         /^[A-Z0-9_]+=\$\{([A-Z0-9_]+)(?::-(.*))?\}$/,
       );
@@ -1258,7 +1258,7 @@ describe("the environment variables table", () => {
     // The defaults the table states are the compose file's.
     expect(composeVariables().get("XO_SCHEME")).toBe("https");
     expect(rows.get("XO_SCHEME")!.description).toMatch(/^`https` \(default\)/);
-    expect(composeVariables().get("XO_NAME")).toBe("${XO_ADDRESS}");
+    expect(composeVariables().get("XO_NAME")).toBe("${XO_ADDRESS:-}");
     expect(rows.get("XO_NAME")!.description).toContain(
       "(default: its address)",
     );

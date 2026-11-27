@@ -61,15 +61,23 @@ function labels(items: Array<{ label: string }>): Array<string> {
 }
 
 describe("the real copy list", () => {
-  test("names the two policy directories and the five single files", () => {
+  test("names the three policy directories and the seven single files", () => {
     assert.deepStrictEqual(SyncCommon.loadCopyList(), {
       commonPolicyDirectories: [
         "Types/ResourceAiAgent",
         "Utils/AiRemediation/Resource",
+        /*
+         * A Database Agent reads databases for Data Observability with the
+         * shapes the server builds work for, byte for byte (#11148).
+         */
+        "Utils/DataObservability/DatabaseAgent",
       ],
       commonPolicyFiles: [
         "Types/AI/AgentAiSettings.ts",
         "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
+        // The kinds of table and of check those shapes name (#11148).
+        "Types/DataObservability/DataAssetKind.ts",
+        "Types/DataObservability/DataCheckType.ts",
         "Types/Runbook/RunnerJobOrigin.ts",
         // The agents read Retry-After as Common does, byte for byte (#8928).
         "Utils/RetryAfter.ts",
@@ -103,6 +111,11 @@ describe("the real copy list", () => {
       "Types/Runbook/RunnerJobOrigin.ts",
       "Utils/RetryAfter.ts",
       "Utils/Proxmox/ProxmoxGuestPowerTask.ts",
+      "Utils/DataObservability/DatabaseAgent/DatabaseAgentWork.ts",
+      "Utils/DataObservability/DatabaseAgent/DatabaseAgentStatements.ts",
+      "Utils/DataObservability/DatabaseAgent/DatabaseAgentRows.ts",
+      "Types/DataObservability/DataCheckType.ts",
+      "Types/DataObservability/DataAssetKind.ts",
     ]) {
       assert.ok(paths.includes(expected), expected);
     }
@@ -156,6 +169,9 @@ describe("against a scratch repository", () => {
     write("Types/Runbook/RunnerJobOrigin.ts", "o\n");
     write("Utils/RetryAfter.ts", "r\n");
     write("Utils/Proxmox/ProxmoxGuestPowerTask.ts", "g\n");
+    write("Types/DataObservability/DataAssetKind.ts", "k\n");
+    write("Types/DataObservability/DataCheckType.ts", "t\n");
+    write("Utils/DataObservability/DatabaseAgent/DatabaseAgentWork.ts", "w\n");
     // Not in the list: never copied.
     write("Types/Other.ts", "x\n");
   });
@@ -168,24 +184,27 @@ describe("against a scratch repository", () => {
     assert.deepStrictEqual(SyncCommon.getCommonRelativePaths(roots), [
       "Types/AI/AgentAiSettings.ts",
       "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
+      "Types/DataObservability/DataAssetKind.ts",
+      "Types/DataObservability/DataCheckType.ts",
       "Types/ResourceAiAgent/AiResourceType.ts",
       "Types/Runbook/RunnerJobOrigin.ts",
       "Utils/AiRemediation/Resource/Database/Catalog.ts",
       "Utils/AiRemediation/Resource/ResourceCommandPolicy.ts",
+      "Utils/DataObservability/DatabaseAgent/DatabaseAgentWork.ts",
       "Utils/Proxmox/ProxmoxGuestPowerTask.ts",
       "Utils/RetryAfter.ts",
     ]);
   });
 
   test("missing copies drift; sync copies them byte for byte; then nothing drifts", () => {
-    assert.strictEqual(SyncCommon.findDrift(roots).length, 8);
+    assert.strictEqual(SyncCommon.findDrift(roots).length, 11);
 
     const result: {
       copied: Array<Copy>;
       removed: Array<{ label: string; target: string }>;
     } = SyncCommon.sync(roots);
 
-    assert.strictEqual(result.copied.length, 8);
+    assert.strictEqual(result.copied.length, 11);
     assert.deepStrictEqual(result.removed, []);
     assert.deepStrictEqual(SyncCommon.findDrift(roots), []);
 
@@ -287,6 +306,8 @@ describe("against a scratch repository", () => {
       [
         "AI/AgentAiSettings.ts",
         "AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
+        "DataObservability/DataAssetKind.ts",
+        "DataObservability/DataCheckType.ts",
         "Other.ts",
         "ResourceAiAgent/AiResourceType.ts",
         "Runbook/RunnerJobOrigin.ts",

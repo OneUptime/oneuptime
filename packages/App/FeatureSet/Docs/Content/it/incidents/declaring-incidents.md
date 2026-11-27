@@ -85,6 +85,7 @@ I monitor vengono per primi, a sé, perché le pagine di stato vedono un inciden
 
 - **Monitor** — un campo di ricerca che collega i monitor interessati dall'incidente; la sua scheda **Etichette** aggiunge in una volta ogni monitor con un'etichetta. Una pagina di stato mostra un incidente, e ne informa i suoi iscritti, quando elenca uno dei monitor dell'incidente, quindi sono questi a decidere quali pagine di stato ne vengono informate (`monitors` sull'incidente).
 - **Cambia lo stato del monitor in** — facoltativo, e mostrato solo una volta scelto almeno un monitor. Sceglie uno stato del monitor che viene applicato a ogni monitor collegato a questo incidente, così dichiarare l'incidente e segnare i monitor come degradati è un'unica azione anziché due. Dichiarare da un modello che ne imposta uno parte con lo stato del modello, mostrato non appena scegliete un monitor. Senza monitor scelti non viene salvato alcuno stato, nemmeno quello del modello; togliete l'ultimo monitor e il campo scompare finché non ne scegliete un altro, che riporta la vostra scelta. Lo stato di un monitor è condiviso da ogni pagina di stato che lo elenca, quindi con delle pagine di stato scelte sotto **Altri campi**, il modulo vi ricorda che il cambiamento compare anche sulle pagine che non avete scelto.
+- **Metti in pausa il monitoraggio** — mostrato non appena è scelto almeno un monitor, e spuntato. Spuntato, l'incidente mette in pausa i controlli dei suoi monitor finché non viene risolto, così lo stato qui sopra resta su di essi. Toglietene la spunta perché restino controllati mentre l'incidente è aperto: i loro controlli continuano a impostarne lo stato, e ad aprire incidenti e avvisi. Un monitor impostato per continuare il monitoraggio durante gli incidenti non viene mai messo in pausa, spuntato o no (`pauseMonitoring` sull'incidente). Vedete [Monitoraggio mentre un incidente è aperto](#monitoraggio-mentre-un-incidente-è-aperto).
 - **Altre risorse interessate** — un secondo campo di ricerca per tutto il resto interessato dall'incidente: host, dispositivi di rete, cluster Kubernetes, host Docker e Podman, cluster Proxmox, Ceph e Docker Swarm, vCenter, storage array, flotte IoT, database, risorse cloud e servizi — tutto ciò che, oltre ai monitor, offre la scheda **Risorse interessate** dell'incidente stesso. Dietro le quinte si tratta di relazioni separate sull'incidente (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` e altre), ma il modulo le riunisce in un unico selettore.
 
 **Altre risorse interessate** cerca contemporaneamente in tutti i tipi che offre. Una risorsa si trova per nome o descrizione, un dispositivo di rete anche per l'indirizzo a cui viene interrogato o per il suo nome DNS, e un host per il nome che il suo agente riporta o per uno dei suoi indirizzi IP. I risultati sono raggruppati per tipo, con l'indirizzo di un dispositivo accanto al nome. Non appena contengono più di un tipo, una riga sopra di essi restringe l'elenco a un solo tipo e indica quanti ne corrispondono per ciascuno, e un tipo con più corrispondenze di quante ne entrino offre di mostrarne altre. Le risorse archiviate non vengono proposte. Quando la ricerca corrisponde anche a dei monitor, una riga sotto i risultati dice quanti sono, e che i monitor si scelgono in **Monitor**.
@@ -280,7 +281,7 @@ In ordine:
 9. **Gli iscritti vengono messi in coda**, se **Notifica gli iscritti alla pagina di stato** è rimasta attiva e l'incidente è visibile sulla pagina di stato. L'invio viene gestito da un'attività in background, non all'interno della vostra richiesta, e va alle pagine di stato che l'incidente raggiunge: quelle che elencano i suoi monitor, ristrette da **Limita a queste pagine di stato**, e senza le pagine che mostrano solo gli incidenti limitati a esse quando l'incidente non è limitato. Una pagina di stato archiviata non invia nulla. Il suo avanzamento compare come **Stato notifica iscritto** nella **Panoramica** dell'incidente: che cosa è stato inviato e che cosa è fallito su ogni pagina di stato, e **Riprova** o **Invia di nuovo** una volta concluso. Vedete [Iscritti e annunci](/docs/status-pages/subscribers#verificare-che-cosa-è-stato-inviato).
 10. **I flussi di lavoro scattano.** Il trigger **Alla creazione: Incidente** avvia qualsiasi flusso di lavoro costruito su di esso. Vedete [Panoramica dei flussi di lavoro](/docs/workflows/index).
 
-Da lì l'incidente è attivo: conta per il badge **Incidenti attivi** nel menu laterale di Incidenti (qualsiasi stato sopra il vostro stato risolto conta come attivo), compare sulle pagine di stato che portano uno dei suoi monitor (solo quelle scelte, se lo avete limitato), e la sua **Cronologia stato** inizia a registrare.
+Da lì l'incidente è attivo: conta per il badge **Incidenti attivi** nel menu laterale di Incidenti (qualsiasi stato sopra il vostro stato risolto conta come attivo), compare sulle pagine di stato che portano uno dei suoi monitor (solo quelle scelte, se lo avete limitato), e la sua **Cronologia stato** inizia a registrare. I suoi monitor vengono messi nel suo stato **Cambia lo stato del monitor in** e, se dichiarato a mano, i loro controlli vengono messi in pausa finché non viene risolto: vedete [Monitoraggio mentre un incidente è aperto](#monitoraggio-mentre-un-incidente-è-aperto).
 
 ### Dichiarato già riconosciuto o risolto
 
@@ -306,10 +307,43 @@ flowchart TB
 
 Avvisi, episodi di avvisi ed episodi di incidenti seguono la stessa regola: ciò che viene creato già riconosciuto non avvisa nessuno, e ciò che viene creato risolto in più non viene raggruppato, rimediato o esaminato dall'IA, e non riceve un proprio canale. Un incidente o un avviso nello stato di creazione — quello predefinito, e quello di ogni incidente aperto da un monitor — mette in moto tutto come prima.
 
+## Monitoraggio mentre un incidente è aperto
+
+Un incidente dichiarato a mano mette in pausa i controlli dei monitor che elenca, finché non viene risolto. Così il loro controllo successivo non cambia lo stato in cui li ha messi mentre ci si lavora. Dichiarato a mano vuol dire tutto tranne OneUptime stesso: **Dichiara incidente** nella dashboard (da un avviso, dalla scheda **Incidenti** di un monitor o da zero), Slack, Microsoft Teams, l'API, Terraform, un flusso di lavoro, [Ask AI](/docs/ai/ask-ai), l'app mobile e un modulo. Aggiungere un monitor a un incidente del genere mentre è aperto mette in pausa anche quel monitor.
+
+Nient'altro mette in pausa i controlli di un monitor in questo modo. Un incidente dichiarato dai criteri di un monitor, uno dichiarato dalla regola degli incidenti di un avviso e uno dichiarato da uno SLO lasciano controllati i loro monitor, e così ogni avviso, creato da un monitor o a mano.
+
+```mermaid title="Se un incidente aperto mette in pausa i controlli di un monitor"
+flowchart TB
+    declared{"Dichiarato a mano?"} -->|No| checked["I controlli continuano"]
+    declared -->|Sì| ticked{"Metti in pausa il monitoraggio<br/>spuntato?"}
+    ticked -->|No| checked
+    ticked -->|Sì| setting{"Monitor impostato per continuare<br/>il monitoraggio durante gli incidenti?"}
+    setting -->|Sì| checked
+    setting -->|No| paused["Controlli in pausa<br/>finché non viene risolto"]
+```
+
+**Mantenere controllato un monitor.** Decidono due impostazioni, e ciascuna lo mantiene controllato:
+
+- **Continua il monitoraggio durante gli incidenti**, nella pagina **Impostazioni** del monitor, sotto **Durante gli incidenti**. Attivatelo per un monitor che riceve eventi, come un [monitor richieste in arrivo](/docs/monitor/incoming-request-monitor) a cui un altro sistema invia i suoi avvisi: un incidente su un evento non gli impedisce più di leggere il successivo. Si applica subito, anche agli incidenti già aperti: attivato mentre un incidente mette in pausa il monitor, i suoi controlli ripartono subito. Disattivato per impostazione predefinita.
+- **Metti in pausa il monitoraggio**, dove si dichiara l'incidente, sotto **Cambia lo stato del monitor in**. Toglietene la spunta per mantenere controllati tutti i monitor dell'incidente. Si può cambiare mentre l'incidente è aperto, nella sua scheda **Risorse interessate**: senza spunta, i monitor tornano subito a essere controllati.
+
+Un monitor mantenuto controllato continua a impostare il proprio stato: il suo controllo successivo sostituisce lo stato in cui l'ha messo l'incidente, e i suoi criteri continuano ad aprire e risolvere i propri incidenti e avvisi.
+
+**Cosa fa ancora un monitor in pausa.** I suoi controlli si fermano: le sonde smettono di controllarlo, un heartbeat, un'email o un agent che smette di inviare non viene notato, e un monitor di telemetria non viene valutato. Ciò che gli viene inviato dall'esterno viene ancora ricevuto: ogni richiesta che riceve un [monitor richieste in arrivo](/docs/monitor/incoming-request-monitor), ogni email che riceve un monitor email in arrivo e ogni report che invia l'agent di un monitor server viene elencato nei suoi **Log di monitoraggio**, così come è arrivato, con **Non valutato: il monitoraggio è in pausa a causa di un incidente**. Niente di ciò che riceve un monitor in pausa apre o risolve un incidente o un avviso, né ne cambia lo stato, e il mittente riceve la risposta come sempre. Un banner sulle pagine del monitor dice che è in pausa, e come mantenerlo controllato.
+
+**Come conta il tempo in pausa.** Un monitor in pausa mantiene lo stato che ha, e la sua disponibilità, le sue pagine di stato e i suoi SLO contano quello stato quando un incidente vi ha messo il monitor con **Cambia lo stato del monitor in**: è lo stato che qualcuno ha dichiarato. Quando nessun incidente che lo mette in pausa ha impostato uno stato, lo stato è solo quello che l'ultimo controllo del monitor ha visto prima della pausa, quindi quel tempo viene escluso dalla sua disponibilità, dalle sue pagine di stato e dai suoi SLO, come il tempo con il monitoraggio disattivato. La sua **Cronologia di stato** segna dove quel tempo inizia e finisce, e la disponibilità nella sua **Panoramica** dice che esclude il tempo in pausa.
+
+**Quando finisce la pausa.** Risolvere l'incidente, togliervi il monitor o eliminarlo riprende i controlli del monitor e lo riporta a operativo, a meno che un altro incidente aperto lo riguardi ancora; poi sono i suoi controlli a impostarne lo stato. Un monitor che un altro incidente aperto dichiarato a mano mette ancora in pausa resta in pausa. Un incidente risolto e poi riaperto non trattiene nulla, quindi non mette in pausa nulla e non tiene nulla in pausa.
+
 ## Risoluzione dei problemi
 
 :::details La dichiarazione fallisce e chiede uno stato di creazione dell'incidente
 Se il vostro progetto non ha alcuno stato con il flag `isCreatedState`, la chiamata di creazione fallisce e vi chiede di aggiungere uno stato di creazione dell'incidente dalle impostazioni. Di norma succede solo in un progetto i cui stati sono stati pesantemente modificati — vedete [Stati e gravità degli incidenti](/docs/incidents/states-and-severities).
+:::
+
+:::details Un monitor ha smesso di aprire avvisi da quando è stato dichiarato un incidente su di esso
+Un incidente dichiarato a mano mette in pausa i controlli dei suoi monitor finché non viene risolto, quindi ciò che li raggiunge nel frattempo viene elencato nei loro **Log di monitoraggio**, ma non valutato. Attivate **Continua il monitoraggio durante gli incidenti** nelle **Impostazioni** del monitor per mantenerlo controllato durante questo incidente e i successivi, oppure togliete la spunta a **Metti in pausa il monitoraggio** nella scheda **Risorse interessate** dell'incidente per i monitor di questo incidente. Vedete [Monitoraggio mentre un incidente è aperto](#monitoraggio-mentre-un-incidente-è-aperto).
 :::
 
 :::details L'incidente è stato dichiarato, ma nessun iscritto alla pagina di stato ne è stato informato

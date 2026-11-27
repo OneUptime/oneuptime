@@ -1,4 +1,5 @@
 import Redis from "../../../../Server/Infrastructure/Redis";
+import WorkspaceNotificationRuleService from "../../../../Server/Services/WorkspaceNotificationRuleService";
 import logger from "../../../../Server/Utils/Logger";
 import WorkspaceCreatedMessageFirst from "../../../../Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
 import type WorkspaceCreatedMessageLineType from "../../../../Server/Utils/Workspace/WorkspaceCreatedMessageLine";
@@ -30,7 +31,10 @@ import { jest } from "@jest/globals";
  * Incident Commander role, rule matching and posting), with the database in
  * this process's memory, as each App server has its own connections. The
  * hold every server shares is the real one, in the Valkey the test names
- * (VALKEY_HOST, VALKEY_PORT), as App servers share it.
+ * (VALKEY_HOST, VALKEY_PORT), as App servers share it. And each one posts
+ * the messages of a server that was killed before posting them, from what
+ * that server stored in Valkey, as App/Index.ts starts every App server to
+ * (#11235).
  *
  * Every message posted to Slack is told to the test as it is posted, and
  * answered once the test has it, so the test hears the posts of all its
@@ -103,6 +107,23 @@ function sharedLine(): typeof WorkspaceCreatedMessageLineType | null {
 // What the code before the shared line had of the hold: no shutdown of its own.
 interface HoldOnShutdown {
   postEverythingHeldHere?: (() => Promise<void>) | undefined;
+}
+
+/*
+ * What the code before #11235 had of the hold: no server posted another's
+ * messages. These servers run that code too, to show what it fixed.
+ */
+interface HoldTakingOver {
+  takeOverForStoppedServers?:
+    | ((post: (stored: JSONObject) => Promise<void>) => void)
+    | undefined;
+}
+
+// What a stored message is posted with on this server, when the code has it.
+interface StoredMessagePoster {
+  postStoredWorkspaceMarkdownNotification?:
+    | ((stored: JSONObject) => Promise<void>)
+    | undefined;
 }
 
 let world: CreatedRecordWorld | null = null;
@@ -216,6 +237,7 @@ async function setUp(args: JSONObject): Promise<JSONObject> {
     tune(line, "STALLED_AFTER_MS", args["stalledAfterMs"]);
     tune(line, "ASKED_EVERY_MS", 20);
     tune(line, "KEPT_EVERY_MS", 300);
+    tune(line, "LOOKED_AFTER_EVERY_MS", 200);
     tune(line, "KEY_PREFIX", args["keyPrefix"]);
   }
 
@@ -223,7 +245,34 @@ async function setUp(args: JSONObject): Promise<JSONObject> {
     await Redis.connect();
   }
 
-  return { replica: NAME };
+  /*
+   * As App/Index.ts starts every App server: posting the messages of a
+   * server that was killed before posting them (#11235), when the code has
+   * it.
+   */
+  const takingOver: HoldTakingOver =
+    WorkspaceCreatedMessageFirst as unknown as HoldTakingOver;
+  const poster: StoredMessagePoster =
+    WorkspaceNotificationRuleService as unknown as StoredMessagePoster;
+
+  if (
+    takingOver.takeOverForStoppedServers &&
+    poster.postStoredWorkspaceMarkdownNotification
+  ) {
+    takingOver.takeOverForStoppedServers(
+      (stored: JSONObject): Promise<void> => {
+        return poster.postStoredWorkspaceMarkdownNotification!.call(
+          WorkspaceNotificationRuleService,
+          stored,
+        );
+      },
+    );
+  }
+
+  return {
+    replica: NAME,
+    takesOver: Boolean(takingOver.takeOverForStoppedServers),
+  };
 }
 
 async function createIncident(args: JSONObject): Promise<JSONObject> {
@@ -237,6 +286,23 @@ async function createIncident(args: JSONObject): Promise<JSONObject> {
         });
       }
     : null;
+
+  if (args["pauseBeforeCreated"]) {
+    /*
+     * The chain has added the owners picked on create - "Added team
+     * Platform to the Incident as the owner" waits in the line - and waits
+     * for the owners added outside it: it pauses there, before "Incident
+     * Created", until it is told to go on.
+     */
+    jest
+      .spyOn(WorkspaceRuleOwnersOnCreate, "waitForOwnersOfCreate")
+      .mockImplementation((async (): Promise<void> => {
+        await new Promise<void>((resolve: () => void) => {
+          resumeChain = resolve;
+          send({ event: "paused", replica: NAME });
+        });
+      }) as never);
+  }
 
   if (args["failBeforeCreated"]) {
     // The chain stops short of "Incident Created": its .catch lets the held messages go.

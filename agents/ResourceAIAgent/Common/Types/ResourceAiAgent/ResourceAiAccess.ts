@@ -22,6 +22,10 @@ import {
   AgentAiSettingsSource,
   parseReportedAgentAiSettings,
 } from "../AI/AgentAiSettings";
+import {
+  DatabaseAgentDataObservabilityPosture,
+  readDatabaseAgentDataObservabilityPosture,
+} from "../../Utils/DataObservability/DatabaseAgent/DatabaseAgentWork";
 
 /*
  * The tier the resource command policy assigns to one command. Tiers are the
@@ -328,6 +332,14 @@ export interface ResourceAiAgentPosture {
    * these settings existed.
    */
   aiSettings?: AgentAiSettings | undefined;
+  /*
+   * A Database Agent's Data Observability (#11148): whether its owner turned
+   * it on (ONEUPTIME_DATA_OBSERVABILITY), whether it runs checks and Custom
+   * SQL, and the version of the work it speaks
+   * (Utils/DataObservability/DatabaseAgent/DatabaseAgentWork). Absent from
+   * every other agent, and from a Database Agent older than it.
+   */
+  dataObservability?: DatabaseAgentDataObservabilityPosture | undefined;
 }
 
 // Bounds parseResourceAiAgentPosture holds every posture to.
@@ -529,6 +541,16 @@ export function parseResourceAiAgentPosture(
 
   if (aiSettings) {
     posture.aiSettings = aiSettings;
+  }
+
+  // Read as strictly: on only for the boolean true (readDatabaseAgentDataObservabilityPosture).
+  const dataObservability: DatabaseAgentDataObservabilityPosture | null =
+    resourceType === AiResourceType.DatabaseServer
+      ? readDatabaseAgentDataObservabilityPosture(raw["dataObservability"])
+      : null;
+
+  if (dataObservability) {
+    posture.dataObservability = dataObservability;
   }
 
   return posture;

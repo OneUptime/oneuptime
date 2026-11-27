@@ -564,7 +564,7 @@ describe("Infrastructure Stopped Reporting templates", () => {
   });
 
   test("a storage array whose platform is not known yet starts on the FlashArray heartbeat", () => {
-    for (const system of [undefined, null, "", "netapp.ontap"]) {
+    for (const system of [undefined, null, "", "hitachi.vsp"]) {
       expect(getStorageArrayDefaultAlertTemplateId(system)).toBe(
         "purefa-array-stopped-reporting",
       );

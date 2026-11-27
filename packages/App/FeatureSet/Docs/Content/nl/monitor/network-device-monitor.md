@@ -260,7 +260,7 @@ De pagina **Apparaten** toont een banner als het project apparaten bevat met de 
 
 Een agent kan voor meerdere apparaten op één adres antwoorden, elk in een eigen SNMPv3-context: een Brocade-chassis met Virtual Fabrics antwoordt voor elke logische switch in de context `VF:` en zijn fabric-ID. Voeg per logische switch een apparaat op dat adres toe, met SNMP v3, en stel voor elk de **SNMP v3-context** in op zijn pagina **Instellingen**; een apparaat zonder context wordt gepolld in de standaardcontext van de agent. De context hoort bij het apparaat, niet bij zijn referenties, en geldt dus met elk referentieprofiel dat het apparaat gebruikt.
 
-Een probe van vóór de SNMPv3-contexten zou in plaats daarvan de standaardcontext pollen, dus tot hij is bijgewerkt pingt hij zo'n apparaat alleen. Elke SNMPv3-trap noemt ook zijn context en gaat alleen af op het apparaat dat in die context wordt gepolld; een trap in een context waarin geen apparaat wordt gepolld, wordt als niet gekoppeld gelogd.
+Een sonde van vóór de SNMPv3-contexten zou in plaats daarvan de standaardcontext pollen, dus tot hij is bijgewerkt pingt hij zo'n apparaat alleen. Elke SNMPv3-trap noemt ook zijn context en gaat alleen af op het apparaat dat in die context wordt gepolld; een trap in een context waarin geen apparaat wordt gepolld, wordt als niet gekoppeld gelogd.
 
 ## Standaardinstellingen voor monitoring van een locatie
 

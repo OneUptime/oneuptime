@@ -1,6 +1,6 @@
 # XCP-ng एजेंट
 
-OneUptime का XCP-ng एजेंट उन XCP-ng पूल की निगरानी करता है जिन्हें एक Xen Orchestra प्रबंधित करता है: उनके होस्ट, VM, स्टोरेज रिपॉजिटरी और वर्चुअल डिस्क। यह एक मानक OpenTelemetry Collector है जो प्लगइन के सीक्रेट से Xen Orchestra के अपने OpenMetrics प्लगइन को पढ़ता है और जो पढ़ता है उसे OneUptime को भेजता है, जहाँ हर पूल अपनी इन्वेंटरी के साथ दिखता है। किसी पूल या Xen Orchestra का कोई पासवर्ड कभी एजेंट तक नहीं पहुँचता। [XCP-ng मॉनिटर](/docs/monitor/xcp-ng-monitor) आने वाले डेटा पर अलर्ट करते हैं।
+OneUptime का XCP-ng एजेंट उन XCP-ng पूल की निगरानी करता है जिन्हें एक Xen Orchestra प्रबंधित करता है: उनके होस्ट, VM, स्टोरेज रिपॉजिटरी और वर्चुअल डिस्क। यह एक मानक OpenTelemetry Collector है जो प्लगइन के सीक्रेट से Xen Orchestra के अपने OpenMetrics प्लगइन को पढ़ता है और जो पढ़ता है उसे OneUptime को भेजता है, जहाँ हर पूल अपनी इन्वेंटरी के साथ दिखता है। किसी पूल या Xen Orchestra का कोई पासवर्ड कभी एजेंट तक नहीं पहुँचता। [XCP-ng मॉनिटर](/docs/monitor/xcp-ng-monitor) आने वाले डेटा पर अलर्ट करते हैं। कुछ भी इंस्टॉल किए बिना, OneUptime प्रोब से उन्हीं पूल को पढ़ने के लिए [एजेंट के बिना XCP-ng](/docs/telemetry/xcp-ng-agentless) देखें।
 
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): प्लगइन चालू करें, फिर इंस्टॉल स्क्रिप्ट या Docker Compose का उपयोग करें।
@@ -406,8 +406,8 @@ Xen Orchestra केवल उन्हीं पूल की रिपोर�
 Xen Orchestra का OpenMetrics प्लगइन मेट्रिक्स देता है, इसलिए XCP-ng पूल में आप जिन चीज़ों पर नज़र रखते हैं उनमें से कुछ अभी उसमें नहीं हैं:
 
 - XOSTOR के अलावा **अलार्म**, **HA स्थिति**, **पूल मास्टर**, **छूटे पैच**, **बैकअप** और **स्नैपशॉट**, और होस्ट के फ़िज़िकल इंटरफ़ेस (PIF) की **लिंक स्थिति**। ये Xen Orchestra के REST API से आते हैं, [#10997](https://github.com/OneUptime/oneuptime/issues/10997) में।
-- **बिना Xen Orchestra वाले पूल**, या ऐसे XOA के पीछे के पूल जिसके पास प्लगइन के लिए ज़रूरी Premium लाइसेंस नहीं है: इन्हें सीधे XAPI से पढ़ा जाता है, [#10999](https://github.com/OneUptime/oneuptime/issues/10999) में।
-- **बिना एजेंट के जुड़ना**, OneUptime प्रोब से, जैसा VMware के साथ हो सकता है: [#10996](https://github.com/OneUptime/oneuptime/issues/10996)।
+- **बिना Xen Orchestra वाले पूल**, या ऐसे XOA के पीछे के पूल जिसके पास प्लगइन के लिए ज़रूरी Premium लाइसेंस नहीं है: OneUptime प्रोब इन्हें सीधे XAPI से पढ़ता है ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), [एजेंट के बिना XCP-ng](/docs/telemetry/xcp-ng-agentless) देखें।
+- **बिना एजेंट के जुड़ना**: OneUptime प्रोब खुद Xen Orchestra का प्लगइन पढ़ता है, जैसा VMware के साथ हो सकता है ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), उसी पेज पर।
 
 ## अगले चरण
 

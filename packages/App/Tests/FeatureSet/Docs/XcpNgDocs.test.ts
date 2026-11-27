@@ -393,7 +393,7 @@ function composeVariables(): Array<string> {
           return match[1] as string;
         })
         .filter((name: string): boolean => {
-          // ${XO_NAME:-${XO_ADDRESS}} reads XO_ADDRESS again: one variable.
+          // ${XO_NAME:-${XO_ADDRESS:-}} reads XO_ADDRESS again: one variable.
           return name.length > 0;
         }),
     ),
@@ -815,10 +815,17 @@ describe("XCP-ng docs", (): void => {
       ).toEqual([
         `XCP-ng Agent -> /docs/${TELEMETRY_PAGE}`,
         `XCP-ng Monitor -> /docs/${MONITOR_PAGE}`,
+        // Reading the same pools from a probe (#10996, #10999).
+        "XCP-ng Without an Agent -> /docs/telemetry/xcp-ng-agentless",
       ]);
     });
 
-    it("resolves only to its own page from either URL (the nav matches pages by substring)", (): void => {
+    /*
+     * The docs route finds a page's nav link by its whole URL (Docs/Index.ts,
+     * isCurrentPage), so telemetry/xcp-ng-agentless beside telemetry/xcp-ng
+     * is its own page, as vmware-agentless is beside vmware.
+     */
+    it("resolves only to its own page from either URL", (): void => {
       for (const page of OWNED_PAGES) {
         const matching: Array<string> = DocsNav.flatMap(
           (group: NavGroup): Array<NavLink> => {
@@ -826,7 +833,7 @@ describe("XCP-ng docs", (): void => {
           },
         )
           .filter((link: NavLink): boolean => {
-            return link.url.toLowerCase().includes(page);
+            return link.url.toLowerCase() === `/docs/${page}`;
           })
           .map((link: NavLink): string => {
             return link.url;

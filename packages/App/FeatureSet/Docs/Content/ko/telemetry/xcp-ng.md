@@ -1,6 +1,6 @@
 # XCP-ng 에이전트
 
-OneUptime XCP-ng 에이전트는 Xen Orchestra가 관리하는 XCP-ng 풀과 그 호스트, VM, 스토리지 리포지토리, 가상 디스크를 감시합니다. 표준 OpenTelemetry Collector로, Xen Orchestra 자체의 OpenMetrics 플러그인을 플러그인의 시크릿으로 읽고 읽은 내용을 OneUptime으로 보내며, OneUptime에서는 각 풀이 인벤토리와 함께 나타납니다. 풀이나 Xen Orchestra의 비밀번호는 에이전트에 절대 전달되지 않습니다. 들어오는 데이터에는 [XCP-ng 모니터](/docs/monitor/xcp-ng-monitor)로 경고를 보낼 수 있습니다.
+OneUptime XCP-ng 에이전트는 Xen Orchestra가 관리하는 XCP-ng 풀과 그 호스트, VM, 스토리지 리포지토리, 가상 디스크를 감시합니다. 표준 OpenTelemetry Collector로, Xen Orchestra 자체의 OpenMetrics 플러그인을 플러그인의 시크릿으로 읽고 읽은 내용을 OneUptime으로 보내며, OneUptime에서는 각 풀이 인벤토리와 함께 나타납니다. 풀이나 Xen Orchestra의 비밀번호는 에이전트에 절대 전달되지 않습니다. 들어오는 데이터에는 [XCP-ng 모니터](/docs/monitor/xcp-ng-monitor)로 경고를 보낼 수 있습니다. 아무것도 설치하지 않고 OneUptime 프로브로 같은 풀을 읽으려면 [에이전트 없는 XCP-ng](/docs/telemetry/xcp-ng-agentless)를 참조하세요.
 
 :::cards
 - [에이전트 설치](#에이전트-설치): 플러그인을 켠 다음 설치 스크립트나 Docker Compose를 사용합니다.
@@ -406,8 +406,8 @@ Xen Orchestra는 연결된 풀만 보고하고, 에이전트는 그 Xen Orchestr
 Xen Orchestra의 OpenMetrics 플러그인은 메트릭을 제공하므로, XCP-ng 풀에서 지켜볼 것 중 일부는 아직 없습니다.
 
 - XOSTOR 외의 **알람**, **HA 상태**, **풀 마스터**, **누락된 패치**, **백업**, **스냅숏**, 호스트 물리 인터페이스(PIF)의 **링크 상태**. 이들은 Xen Orchestra의 REST API에서 가져옵니다([#10997](https://github.com/OneUptime/oneuptime/issues/10997)).
-- Xen Orchestra가 없는 **풀**, 또는 플러그인에 필요한 Premium 라이선스가 없는 XOA 뒤의 풀. 이들은 XAPI에서 직접 읽습니다([#10999](https://github.com/OneUptime/oneuptime/issues/10999)).
-- VMware처럼 OneUptime 프로브에서 하는 **에이전트 없는 연결**: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
+- Xen Orchestra가 없는 **풀**, 또는 플러그인에 필요한 Premium 라이선스가 없는 XOA 뒤의 풀. OneUptime 프로브가 이들을 XAPI에서 직접 읽습니다([#10999](https://github.com/OneUptime/oneuptime/issues/10999)). [에이전트 없는 XCP-ng](/docs/telemetry/xcp-ng-agentless)를 참조하세요.
+- VMware처럼 OneUptime 프로브가 Xen Orchestra의 플러그인을 직접 읽는 **에이전트 없는 연결**([#10996](https://github.com/OneUptime/oneuptime/issues/10996)). 같은 페이지에서 설명합니다.
 
 ## 다음 단계
 

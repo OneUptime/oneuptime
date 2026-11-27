@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { SummaryField } from "../../../Components/Infrastructure/ResourceOverviewTab";
 import StorageArrayResourceDetail from "../../../Components/StorageArray/StorageArrayResourceDetail";
@@ -93,34 +92,6 @@ const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   ];
 };
 
-const getQueryConfigs: (data: {
-  arrayName: string;
-  externalId: string;
-}) => Array<MetricQueryConfigData> = (data: {
-  arrayName: string;
-  externalId: string;
-}): Array<MetricQueryConfigData> => {
-  const objectFilters: Record<string, string> = { name: data.externalId };
-
-  return StorageArrayResourceUtils.buildCatalogQueries([
-    {
-      metricId: "purefb-bucket-read-latency",
-      arrayName: data.arrayName,
-      objectFilters: objectFilters,
-    },
-    {
-      metricId: "purefb-bucket-physical",
-      arrayName: data.arrayName,
-      objectFilters: objectFilters,
-    },
-    {
-      metricId: "purefb-bucket-object-count",
-      arrayName: data.arrayName,
-      objectFilters: objectFilters,
-    },
-  ]);
-};
-
 const StorageArrayBucketDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -128,12 +99,11 @@ const StorageArrayBucketDetail: FunctionComponent<
     <StorageArrayResourceDetail
       kind={StorageArrayResourceKind.Bucket}
       getSummaryFields={getSummaryFields}
-      getQueryConfigs={getQueryConfigs}
       emptyMessageTemplate={translationKey(
-        "Bucket {{name}} is not in the inventory yet. It appears here a few minutes after the Storage Array Agent starts scraping the FlashBlade's object store.",
+        "Bucket {{name}} is not in the inventory yet. It appears here a few minutes after the Storage Array Agent starts scraping the array.",
       )}
       metricsTitleTemplate={translationKey("Bucket Metrics: {{name}}")}
-      description="Latency, space and object count of this bucket, as the FlashBlade reports them."
+      description="Latency, space and object count of this bucket, as the array reports them."
       storage={{
         description:
           "What the bucket stores, before data reduction, against its quota.",

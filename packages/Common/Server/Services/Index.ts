@@ -152,6 +152,8 @@ import XcpNgPoolLabelRuleService from "./XcpNgPoolLabelRuleService";
 import XcpNgPoolOwnerRuleService from "./XcpNgPoolOwnerRuleService";
 import XcpNgPoolOwnerTeamService from "./XcpNgPoolOwnerTeamService";
 import XcpNgPoolOwnerUserService from "./XcpNgPoolOwnerUserService";
+import XcpNgConnectionService from "./XcpNgConnectionService";
+import XcpNgConnectionTestService from "./XcpNgConnectionTestService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
@@ -641,6 +643,7 @@ import CloudTagFindingService from "./CloudTagFindingService";
 import CloudTagSettingService from "./CloudTagSettingService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
 import CloudCostSettingService from "./CloudCostSettingService";
+import CloudCostReportService from "./CloudCostReportService";
 import CloudOffHoursScheduleService from "./CloudOffHoursScheduleService";
 import CloudSavingsActionService from "./CloudSavingsActionService";
 import CloudConnectionService from "./CloudConnectionService";
@@ -843,6 +846,8 @@ const services: Array<BaseService> = [
   XcpNgPoolOwnerRuleService,
   XcpNgPoolOwnerTeamService,
   XcpNgPoolOwnerUserService,
+  XcpNgConnectionService,
+  XcpNgConnectionTestService,
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
@@ -1280,6 +1285,7 @@ const services: Array<BaseService> = [
   CloudTagSettingService,
   CloudCostRecommendationService,
   CloudCostSettingService,
+  CloudCostReportService,
   CloudOffHoursScheduleService,
   CloudSavingsActionService,
   CloudConnectionService,

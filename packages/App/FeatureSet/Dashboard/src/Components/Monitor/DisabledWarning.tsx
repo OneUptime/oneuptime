@@ -21,6 +21,7 @@ import MonitoringSwitchCopy, {
   TURN_MONITORING_ON_ERROR_TEST_ID,
 } from "./MonitoringSwitchCopy";
 import useTurnMonitoringOn, { TurnMonitoringOn } from "./useTurnMonitoringOn";
+import { KEEP_MONITORING_DURING_INCIDENTS_COLUMN } from "./KeepMonitoringDuringIncidentsCopy";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -87,12 +88,18 @@ export const getMonitoringOffNotice: (
     };
   }
 
+  /*
+   * What the pause does and how to keep the monitor checked (issue #11141):
+   * the requests, emails and reports that reach it meanwhile are listed in
+   * its Logs, not evaluated, and Keep monitoring during incidents (Settings)
+   * resumes it now and keeps it checked during the next one.
+   */
   if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
     return {
       reason: MonitoringOffReason.ManualIncident,
       title: PAUSED_TITLE,
       message: translationKey(
-        "We are not monitoring this monitor since it is disabled because of an active incident. To enable active monitoring, please resolve the incident.",
+        "An incident declared by hand paused this monitor's checks until it is resolved. What reaches it meanwhile is listed in Monitoring Logs, not evaluated. To keep it checked during incidents, turn on Keep monitoring during incidents in Settings.",
       ),
     };
   }
@@ -209,10 +216,23 @@ const DisabledWarning: FunctionComponent<ComponentProps> = (
       onSaved: reload,
     });
 
+    /*
+     * And when Keep monitoring during incidents is switched on this page:
+     * the server resumes a monitor an incident paused, or pauses it, as it
+     * saves it.
+     */
+    const unsubscribeKeepMonitoring: () => void = subscribeToModelSwitchSaved({
+      modelType: Monitor,
+      modelId: props.monitorId,
+      column: KEEP_MONITORING_DURING_INCIDENTS_COLUMN,
+      onSaved: reload,
+    });
+
     return () => {
       cancelled = true;
       unsubscribeArchive();
       unsubscribeMonitoring();
+      unsubscribeKeepMonitoring();
     };
   }, [monitorIdString, props.refreshToggle]);
 

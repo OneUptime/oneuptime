@@ -15,6 +15,7 @@ import DockerSwarmClusterService from "../../../../Server/Services/DockerSwarmCl
 import ProxmoxClusterService from "../../../../Server/Services/ProxmoxClusterService";
 import OpenStackCloudService from "../../../../Server/Services/OpenStackCloudService";
 import VMwareVCenterService from "../../../../Server/Services/VMwareVCenterService";
+import XcpNgPoolService from "../../../../Server/Services/XcpNgPoolService";
 import CephClusterService from "../../../../Server/Services/CephClusterService";
 import StorageArrayService from "../../../../Server/Services/StorageArrayService";
 import IoTFleetService from "../../../../Server/Services/IoTFleetService";
@@ -134,6 +135,16 @@ const SERVICES: Array<{
     facetKeys: ["storageArrayId"],
     identifierField: "systemId",
   },
+  /*
+   * An XCP-ng pool joins on its XAPI UUID, never on its name, which follows
+   * Xen Orchestra's: the UUID is searched too.
+   */
+  {
+    name: "XcpNgPool",
+    service: XcpNgPoolService as any,
+    facetKeys: ["xcpNgPoolId"],
+    identifierField: "poolIdentifier",
+  },
   // `name` IS the ingest join key — no second column to search.
   {
     name: "ProxmoxCluster",
@@ -219,6 +230,7 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     "proxmoxClusterId",
     "openStackCloudId",
     "vmwareVCenterId",
+    "xcpNgPoolId",
     "cephClusterId",
     "storageArrayId",
     "iotFleetId",
@@ -259,8 +271,8 @@ describe("ResourceFacetResolver.isResourceFacet", () => {
     },
   );
 
-  test("the exported key set has exactly the seventeen supported keys, each routed to a service", () => {
-    expect(RESOURCE_FACET_KEYS.size).toBe(17);
+  test("the exported key set has exactly the eighteen supported keys, each routed to a service", () => {
+    expect(RESOURCE_FACET_KEYS.size).toBe(18);
     const routed: Array<string> = SERVICES.flatMap(
       (entry: { facetKeys: Array<string> }) => {
         return entry.facetKeys;

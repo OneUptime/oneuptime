@@ -172,6 +172,24 @@ enum NotificationSettingEventType {
   SEND_SECURITY_HUNT_FOUND_NOTIFICATION = "Send notification when a scheduled hunt that names me or my team finds security events",
 
   /*
+   * A cloud budget that names the person, or a team they are on - a cost
+   * group's budget names the group's team too - passes one of its early
+   * thresholds, below 100% (CloudBudgetNotices, #11008): told with no alert
+   * raised, so nobody is paged for spend that is still within the budget.
+   * From 100% the budget raises an alert, and they hear of it as its owners.
+   */
+  SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION = "Send notification when a cloud budget that names me or my team passes a threshold",
+
+  /*
+   * A scheduled cloud cost report (CloudCostReportSender, #11009) that
+   * names the person or a team they are on, or that sends a cost group's
+   * section to its team: the report itself, read as they may read the
+   * costs, by email with its CSV unless they choose otherwise. Never held
+   * back in a rollup: it carries a file, and goes out once a week or month.
+   */
+  SEND_CLOUD_COST_REPORT_NOTIFICATION = "Send the cloud cost reports sent to me or to a team I am on",
+
+  /*
    * Public note approval (PublicNoteApprovalNotifications). A public note on
    * an incident, an episode or a scheduled maintenance event waits for the
    * person - named on the approval step it waits for, or on a team the step

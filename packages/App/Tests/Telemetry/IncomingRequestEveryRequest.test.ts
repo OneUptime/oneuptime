@@ -83,6 +83,7 @@ import logger from "Common/Server/Utils/Logger";
 import { expressErrorHandler } from "Common/Server/Utils/StartServer";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
 import MonitorEvaluationLock from "Common/Server/Utils/Monitor/MonitorEvaluationLock";
+import MonitorHeartbeatState from "Common/Server/Utils/Monitor/MonitorHeartbeatState";
 import MonitorLogUtil from "Common/Server/Utils/Monitor/MonitorLogUtil";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import MonitorSecretKeyCache from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
@@ -111,6 +112,7 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import { MonitorPauseReason } from "Common/Utils/Monitor/MonitorPauseState";
 import {
   afterAll,
   afterEach,
@@ -999,5 +1001,158 @@ describe("a flood past what a monitor keeps", () => {
       }),
     ).toEqual([]);
     expect(tables.alerts.map(alertActiveIdOf)).toEqual(["48501", "48502"]);
+  });
+});
+
+/*
+ * #11141: while a monitor is not being checked - an incident declared by
+ * hand or a maintenance event paused it, its monitoring is turned off, or
+ * it is archived - what its sender keeps posting used to be dropped without
+ * a trace, every request of a burst with its newest. Each request it would
+ * have evaluated is now listed in its Logs as not evaluated, and why, in
+ * the order it arrived; nothing opens or resolves.
+ *
+ * The key was kept before the pause, so MonitorResource lists each request
+ * as it refuses it.
+ */
+describe("a monitor that is not being checked", () => {
+  function pause(monitor: Monitor, reason: MonitorPauseReason): void {
+    monitor.isArchived = reason === MonitorPauseReason.Archived;
+    monitor.disableActiveMonitoring = reason === MonitorPauseReason.Disabled;
+    monitor.disableActiveMonitoringBecauseOfManualIncident =
+      reason === MonitorPauseReason.ManualIncident;
+    monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent =
+      reason === MonitorPauseReason.ScheduledMaintenance;
+  }
+
+  // Each log row was one of a result not evaluated, for this reason.
+  function expectEachListedAsNotEvaluated(reason: MonitorPauseReason): void {
+    const calls: Array<Array<unknown>> = (
+      MonitorLogUtil.saveMonitorLog as unknown as jest.Mock
+    ).mock.calls;
+
+    expect(calls.length).toBeGreaterThan(0);
+
+    for (const call of calls) {
+      expect((call[0] as { isNotEvaluated?: boolean }).isNotEvaluated).toBe(
+        true,
+      );
+    }
+
+    for (const evaluation of evaluations()) {
+      expect(evaluation.summary.criteriaResults).toEqual([]);
+      expect(evaluation.summary.events).toEqual([
+        expect.objectContaining({
+          type: "not-evaluated",
+          notEvaluatedReason: reason,
+        }),
+      ]);
+    }
+  }
+
+  beforeEach(() => {
+    // Kept for the monitor's page; not left behind in the shared Redis.
+    jest
+      .spyOn(MonitorHeartbeatState, "recordIncomingRequest")
+      .mockResolvedValue(undefined);
+  });
+
+  test.each(Object.values(MonitorPauseReason))(
+    "a burst to a grouped monitor paused as %s: every request is listed as not evaluated, in the order it arrived, and nothing opens",
+    async (reason: MonitorPauseReason) => {
+      pause(monitorUnderTest, reason);
+      const kept: Array<JSONObject> = spyOnKeptOrder();
+
+      for (const id of ["48601", "48602", "48603"]) {
+        expect(await post(orionTrigger(id))).toBe(200);
+      }
+
+      expect(await post(orionReset("48602"))).toBe(200);
+
+      startWorker();
+      await settled();
+
+      // Every request, once, in the order the endpoint kept them.
+      expect(
+        evaluations().map((evaluation: { body: JSONObject }) => {
+          return evaluation.body;
+        }),
+      ).toEqual(kept);
+      expect(kept).toHaveLength(4);
+      expectEachListedAsNotEvaluated(reason);
+
+      // Each one's arrival is kept.
+      expect(MonitorHeartbeatState.recordIncomingRequest).toHaveBeenCalledTimes(
+        4,
+      );
+
+      expect(tables.alerts).toEqual([]);
+      expect(tables.incidents).toEqual([]);
+    },
+  );
+
+  /*
+   * A monitor without grouping evaluates only its newest request, paused or
+   * not: the newest is listed, and supersedes the older ones as before.
+   */
+  test("a burst to a paused monitor without grouping: only its newest request is listed", async () => {
+    monitorUnderTest = monitorWith([downCriteria()], secretKey);
+    pause(monitorUnderTest, MonitorPauseReason.ManualIncident);
+
+    for (const status of ["down", "down", "up"]) {
+      expect(await post({ status: status })).toBe(200);
+    }
+
+    startWorker();
+    await settled();
+
+    expect(
+      evaluations().map((evaluation: { body: JSONObject }) => {
+        return evaluation.body;
+      }),
+    ).toEqual([{ status: "up" }]);
+    expectEachListedAsNotEvaluated(MonitorPauseReason.ManualIncident);
+    expect(tables.alerts).toEqual([]);
+  });
+
+  // Once the incident is resolved, the next burst is evaluated as before.
+  test("once the pause ends, the next burst is evaluated again", async () => {
+    pause(monitorUnderTest, MonitorPauseReason.ManualIncident);
+
+    expect(await post(orionTrigger("48611"))).toBe(200);
+    expect(await post(orionTrigger("48612"))).toBe(200);
+
+    startWorker();
+    await settled();
+
+    expectEachListedAsNotEvaluated(MonitorPauseReason.ManualIncident);
+    expect(tables.alerts).toEqual([]);
+
+    (MonitorLogUtil.saveMonitorLog as unknown as jest.Mock).mockClear();
+    monitorUnderTest.disableActiveMonitoringBecauseOfManualIncident = false;
+
+    expect(await post(orionTrigger("48613"))).toBe(200);
+    await settled();
+
+    expect(tables.alerts.map(alertActiveIdOf)).toEqual(["48613"]);
+
+    const [evaluated]: Array<{
+      body: JSONObject;
+      summary: MonitorEvaluationSummary;
+    }> = evaluations();
+
+    expect(evaluations()).toHaveLength(1);
+    expect(evaluated!.body).toEqual(orionTrigger("48613"));
+    expect(
+      evaluated!.summary.events.map((event: MonitorEvaluationEvent) => {
+        return event.type;
+      }),
+    ).not.toContain("not-evaluated");
+    expect(
+      (
+        (MonitorLogUtil.saveMonitorLog as unknown as jest.Mock).mock
+          .calls[0]![0] as { isNotEvaluated?: boolean }
+      ).isNotEvaluated,
+    ).toBeFalsy();
   });
 });
