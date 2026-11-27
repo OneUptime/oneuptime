@@ -2,6 +2,7 @@ import ProbeCapability from "Common/Types/Probe/ProbeCapability";
 import ProbeFetchMoments from "Common/Utils/Probe/ProbeFetchMoments";
 // One seeded stream, so two runs ask alike.
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
+import http from "http";
 
 /*
  * THE PROBES OF THE PROBE DISPATCH BENCHMARK (issue #10819).
@@ -28,6 +29,15 @@ import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
  * measures handing monitors out, not checking them. Each request goes to an
  * App replica picked at random, as a Kubernetes Service spreads new
  * connections.
+ *
+ * Or, with `keepAliveOrigin` (issue #11121), every request goes to that one
+ * origin - a Service's cluster IP (ConnectionBalancer), or an nginx in front
+ * of it - over connections kept alive as a probe keeps them: each replica
+ * has an http.Agent of its own with the settings of Node's global agent,
+ * which the probe's HTTP client uses (keep-alive, the most recently freed
+ * socket first, a free socket closed after 5 s). With `postResults`, each
+ * check sends its result before giving its slot back, as the probe's
+ * monitor jobs do, on the same connections.
  */
 
 export interface SimulatedProbeFleetOptions {
@@ -44,6 +54,13 @@ export interface SimulatedProbeFleetOptions {
    */
   staggerMaxMs: number;
   appOrigins: Array<string>;
+  /*
+   * The one origin every request goes to, over kept-alive connections, in
+   * place of an App replica picked per request; null: per request.
+   */
+  keepAliveOrigin?: string | null | undefined;
+  // Whether each check sends its result, as the probe's monitor jobs do.
+  postResults?: boolean | undefined;
   // The probe's API timeout (PROBE_API_REQUEST_TIMEOUT_IN_MS).
   requestTimeoutMs: number;
   testPollEveryMs: number;
@@ -85,6 +102,24 @@ const DEFAULT_BUSY_BACK_OFF_MS: number = 10_000;
 const MAX_BUSY_BACK_OFF_MS: number = 60_000;
 const MONITOR_TEST_FETCH_LIMIT: number = 100;
 const MINUTE_MS: number = 60_000;
+
+/*
+ * Node's global agent, which a probe's HTTP client sends on when no proxy
+ * is set (Node 19 and later): connections kept alive, the most recently
+ * freed one used first, one left free for 5 s closed.
+ */
+export const PROBE_AGENT_OPTIONS: http.AgentOptions = {
+  keepAlive: true,
+  scheduling: "lifo",
+  timeout: 5000,
+};
+
+// A check's result, as sent: a monitor log of a couple of kilobytes.
+const RESULT_BODY: string = JSON.stringify({
+  isOnline: true,
+  responseTimeInMs: 123,
+  responseBody: "x".repeat(2048),
+});
 
 // MonitorCheckSlots, as the probe has it.
 class CheckSlots {
@@ -313,9 +348,15 @@ class SimulatedProbeReplica {
           options.checkMs.min +
           this.fleet.random() * (options.checkMs.max - options.checkMs.min);
 
-        void this.sleep(duration).then((): void => {
-          this.slots.release(1);
-        });
+        void this.sleep(duration)
+          .then(async (): Promise<void> => {
+            if (options.postResults && !this.stopped) {
+              await this.fleet.postResult(this.probe, this.replica);
+            }
+          })
+          .finally((): void => {
+            this.slots.release(1);
+          });
       }
 
       if (handed < room) {
@@ -461,42 +502,185 @@ export default class SimulatedProbeFleet {
     this.handedOutPerSecond[second]! += count;
   }
 
+  /*
+   * Each probe replica's own connections, when they are kept alive: the
+   * agent a probe process's HTTP client sends on (Node's global agent, as
+   * the probe uses it with no proxy set).
+   */
+  private agents: Map<string, http.Agent> = new Map<string, http.Agent>();
+
+  private agentOf(probe: number, replica: number): http.Agent {
+    const key: string = `${probe}:${replica}`;
+    let agent: http.Agent | undefined = this.agents.get(key);
+
+    if (!agent) {
+      agent = new http.Agent(PROBE_AGENT_OPTIONS);
+      this.agents.set(key, agent);
+    }
+
+    return agent;
+  }
+
+  // The connections the probes' agents hold open now.
+  public openConnections(): number {
+    let open: number = 0;
+
+    for (const agent of this.agents.values()) {
+      for (const sockets of [
+        ...Object.values(agent.sockets),
+        ...Object.values(agent.freeSockets),
+      ]) {
+        open += sockets?.length || 0;
+      }
+    }
+
+    return open;
+  }
+
+  public destroyConnections(): void {
+    for (const agent of this.agents.values()) {
+      agent.destroy();
+    }
+
+    this.agents.clear();
+  }
+
+  /*
+   * One request, as the probe sends it: to an App replica picked at
+   * random (fetch, a connection of its own each time), or to the one
+   * origin over the replica's kept-alive connections.
+   */
+  private async send(
+    path: string,
+    probe: number,
+    replica: number,
+    body: string,
+  ): Promise<{
+    status: number;
+    retryAfter: string | null;
+    body: unknown;
+  }> {
+    if (!this.options.keepAliveOrigin) {
+      const origin: string =
+        this.options.appOrigins[
+          Math.floor(this.random() * this.options.appOrigins.length)
+        ]!;
+
+      const response: globalThis.Response = await fetch(`${origin}${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: body,
+        signal: AbortSignal.timeout(this.options.requestTimeoutMs),
+      });
+
+      return {
+        status: response.status,
+        retryAfter: response.headers.get("retry-after"),
+        body: await response.json().catch((): null => {
+          return null;
+        }),
+      };
+    }
+
+    const url: URL = new URL(`${this.options.keepAliveOrigin}${path}`);
+    const agent: http.Agent = this.agentOf(probe, replica);
+
+    return await new Promise<{
+      status: number;
+      retryAfter: string | null;
+      body: unknown;
+    }>(
+      (
+        resolve: (answer: {
+          status: number;
+          retryAfter: string | null;
+          body: unknown;
+        }) => void,
+        reject: (error: Error) => void,
+      ): void => {
+        const request: http.ClientRequest = http.request(
+          {
+            host: url.hostname,
+            port: url.port,
+            path: url.pathname,
+            method: "POST",
+            agent: agent,
+            headers: {
+              "content-type": "application/json",
+              "content-length": Buffer.byteLength(body),
+            },
+            timeout: this.options.requestTimeoutMs,
+          },
+          (response: http.IncomingMessage): void => {
+            const chunks: Array<Buffer> = [];
+
+            response.on("data", (chunk: Buffer): void => {
+              chunks.push(chunk);
+            });
+            response.on("error", reject);
+            response.on("end", (): void => {
+              let parsed: unknown = null;
+
+              try {
+                parsed = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+              } catch {
+                // Not JSON: an error page.
+              }
+
+              const retryAfter: string | string[] | undefined =
+                response.headers["retry-after"];
+
+              resolve({
+                status: response.statusCode || 0,
+                retryAfter: Array.isArray(retryAfter)
+                  ? retryAfter[0] || null
+                  : retryAfter || null,
+                body: parsed,
+              });
+            });
+          },
+        );
+
+        request.on("timeout", (): void => {
+          const timeout: Error = new Error("timed out");
+          timeout.name = "TimeoutError";
+          request.destroy(timeout);
+        });
+        request.on("error", reject);
+        request.end(body);
+      },
+    );
+  }
+
   public async post(
     route: string,
     probe: number,
     replica: number,
     limit: number,
   ): Promise<Answer> {
-    const origin: string =
-      this.options.appOrigins[
-        Math.floor(this.random() * this.options.appOrigins.length)
-      ]!;
     const startedAt: number = Date.now();
     let answer: Answer;
 
     try {
-      const response: globalThis.Response = await fetch(
-        `${origin}/probe-ingest${route}`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            probeKey: "benchmark",
-            probeId: this.options.probeIds[probe],
-            probeCapabilities: PROBE_FLEET_CAPABILITIES,
-            probeVersion: "benchmark",
-            limit: limit,
-          }),
-          signal: AbortSignal.timeout(this.options.requestTimeoutMs),
-        },
+      const response: {
+        status: number;
+        retryAfter: string | null;
+        body: unknown;
+      } = await this.send(
+        `/probe-ingest${route}`,
+        probe,
+        replica,
+        JSON.stringify({
+          probeKey: "benchmark",
+          probeId: this.options.probeIds[probe],
+          probeCapabilities: PROBE_FLEET_CAPABILITIES,
+          probeVersion: "benchmark",
+          limit: limit,
+        }),
       );
 
-      const body: unknown = await response.json().catch((): null => {
-        return null;
-      });
-
       if (response.status === 429) {
-        const retryAfter: number = Number(response.headers.get("retry-after"));
+        const retryAfter: number = Number(response.retryAfter);
         answer = {
           outcome: "busy",
           retryAfterMs:
@@ -508,10 +692,11 @@ export default class SimulatedProbeFleet {
               : null,
           items: [],
         };
-      } else if (!response.ok) {
+      } else if (response.status < 200 || response.status >= 300) {
         answer = { outcome: "error", retryAfterMs: null, items: [] };
       } else {
-        const data: unknown = (body as { data?: unknown } | null)?.data;
+        const data: unknown = (response.body as { data?: unknown } | null)
+          ?.data;
         answer = {
           outcome: "ok",
           retryAfterMs: null,
@@ -547,5 +732,36 @@ export default class SimulatedProbeFleet {
     }
 
     return answer;
+  }
+
+  /*
+   * A check's result, as the probe's monitor jobs send one: a monitor
+   * log of a couple of kilobytes. Its answer is not measured; a failed
+   * one is counted.
+   */
+  public resultsPosted: number = 0;
+  public resultsFailed: number = 0;
+
+  public async postResult(probe: number, replica: number): Promise<void> {
+    try {
+      const response: { status: number } = await this.send(
+        "/probe-ingest/probe/response/ingest",
+        probe,
+        replica,
+        JSON.stringify({
+          probeKey: "benchmark",
+          probeId: this.options.probeIds[probe],
+          probeMonitorResponse: RESULT_BODY,
+        }),
+      );
+
+      if (response.status >= 200 && response.status < 300) {
+        this.resultsPosted++;
+      } else {
+        this.resultsFailed++;
+      }
+    } catch {
+      this.resultsFailed++;
+    }
   }
 }
