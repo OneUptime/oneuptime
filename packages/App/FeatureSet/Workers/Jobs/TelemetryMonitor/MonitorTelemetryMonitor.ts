@@ -385,7 +385,7 @@ interface TelemetryDispatch {
  *     that ends as it is queued, and its next is at its own moment after
  *     that.
  *
- * `runAfterNextMonitorAt` is the run after its next due time
+ * `runAfterNextMonitorAtMs` is the run after its next due time
  * (getTelemetryMonitorNextMonitorAt), which says whether another has gone
  * by since.
  */

@@ -121,7 +121,6 @@ import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/Monitor
 import TelemetryMonitorSchedule from "../../../../Server/Utils/Monitor/TelemetryMonitorSchedule";
 import { SeriesResolvedResourceIds } from "../../../../Server/Utils/Monitor/SeriesResourceLinker";
 import OneUptimeDate from "../../../../Types/Date";
-import { JSONObject } from "../../../../Types/JSON";
 import MonitorCriteria from "../../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "../../../../Types/Monitor/MonitorStep";
