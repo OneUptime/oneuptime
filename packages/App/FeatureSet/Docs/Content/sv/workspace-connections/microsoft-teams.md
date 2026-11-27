@@ -193,7 +193,7 @@ Skriv till boten i en personlig chatt, eller nämn OneUptime med @ i en kanal el
 | `maintenance [title]` | Öppnar formuläret för schemalagt underhåll med titeln ifylld. |
 | `oncall` | Visar vem som har jour just nu i varje jourschema du kan se, till när, och vem som är nästa. |
 | `page [who] [message]` | Larmar personerna du nämner med @ om ditt meddelande, eller skickar ett kort där du väljer vem som ska larmas. Se [Larma någon från Microsoft Teams](#larma-någon-från-microsoft-teams). |
-| `ask [question]`, eller vilken fråga som helst på vanligt språk | OneUptime AI svarar om dina loggar, traces, mätvärden, incidenter och monitorer, till exempel "vilka monitorer är nere just nu?". Svar läser bara: ber du om en ändring säger den hur du gör den här, till exempel med `incident` eller knapparna på OneUptimes kort, eller länkar till Fråga AI för allt annat. I en incidents eller ett larms egen kanal svarar den om den incidenten eller det larmet. |
+| `ask [question]`, eller vilken fråga som helst på vanligt språk | OneUptime AI svarar om dina loggar, traces, mätvärden, incidenter och monitorer, till exempel "vilka monitorer är nere just nu?". Svar läser bara: ber du om en ändring säger den hur du gör den här, till exempel med `incident` eller knapparna på OneUptimes kort, eller länkar till Fråga AI för allt annat. I en incidents eller ett larms egen kanal svarar den om den incidenten eller det larmet. Den kan också läsa med ditt projekts [externa MCP-servrar](/docs/ai/external-mcp-servers#i-slack-och-microsoft-teams), bara med deras verktyg som läser. |
 | `show active incidents`, `show active alerts` | Visar det som är öppet nu. |
 | `show scheduled maintenance`, `show ongoing maintenance` | Visar kommande, eller pågående, underhållshändelser. |
 
