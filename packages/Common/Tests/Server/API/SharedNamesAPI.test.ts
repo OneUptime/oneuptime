@@ -1,10 +1,17 @@
 import CommonAPI from "../../../Server/API/CommonAPI";
-import "../../../Server/API/SharedNamesAPI";
+import { getHeldServiceOfTable } from "../../../Server/API/SharedNamesAPI";
+import { getRequiredUniqueNameServices } from "../../../Server/API/UniqueNamesAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
+import ApiKeyService from "../../../Server/Services/ApiKeyService";
+import Services from "../../../Server/Services/Index";
+import IncidentTemplateService from "../../../Server/Services/IncidentTemplateService";
 import LabelService from "../../../Server/Services/LabelService";
+import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
+import MonitorService from "../../../Server/Services/MonitorService";
 import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import TeamService from "../../../Server/Services/TeamService";
+import RequiredUniqueNames from "../../../Server/Utils/Database/RequiredUniqueNames";
 import UniqueNameInProject from "../../../Server/Utils/Database/UniqueNameInProject";
 import {
   ExpressRequest,
@@ -14,7 +21,10 @@ import {
 import Response from "../../../Server/Utils/Response";
 import { mockRouter } from "./Helpers";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import { SharedNameKind } from "../../../Types/Database/SharedNames";
+import {
+  SharedNameKind,
+  SharedNamesAnswer,
+} from "../../../Types/Database/SharedNames";
 import Dictionary from "../../../Types/Dictionary";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
@@ -229,20 +239,179 @@ describe("GET /shared-names/:kind", () => {
     expect(findSpy).toHaveBeenCalledTimes(1);
   });
 
-  test.each(["labels", "Label", "Team", "users", ""])(
+  test.each([
+    "labels",
+    // Unique always, not held by the setting: asked for by their own words.
+    "Label",
+    "Team",
+    "users",
+    "",
+    // Kinds whose names repeat freely.
+    "Incident",
+    "TableView",
+    // A table's name as the model writes it, and no other way.
+    "monitor",
+    "MONITOR",
+    "Monitors",
+    "constructor",
+    "__proto__",
+  ])(
     "a kind it does not know (%j) is no list, and nothing is read",
     async (kind: string) => {
+      const twinsSpy: jest.SpyInstance = jest.spyOn(
+        RequiredUniqueNames,
+        "findTwinsOfKind",
+      );
+
       const result: RouteCallResult = await callRoute(kind);
 
       expect(result.thrownToNext).toBeInstanceOf(NotFoundException);
       // It names the kinds there are.
       expect((result.thrownToNext as Error).message).toBe(
-        "There is no list of records with names of their own by that name. Ask for team, label, on-call-policy or on-call-schedule.",
+        "There is no list of records with names of their own by that name. Ask for team, label, on-call-policy or on-call-schedule, or for a kind a project can require unique names for by its table's name, such as Monitor.",
       );
       expect(findSpy).not.toHaveBeenCalled();
+      expect(twinsSpy).not.toHaveBeenCalled();
       expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
     },
   );
+
+  /*
+   * Every kind Require Unique Names holds, by its table's name (#11021):
+   * its own service finds the twins, with the caller's own props, and the
+   * answer says when each was made.
+   */
+  describe("a kind Require Unique Names holds, by its table's name", () => {
+    const TWINS: SharedNamesAnswer = {
+      groups: [[TENANTS_A, TENANTS_B]],
+      createdAt: {
+        [TENANTS_A]: "2026-11-05T05:14:00.000Z",
+        [TENANTS_B]: "2026-11-07T09:30:00.000Z",
+      },
+    };
+
+    let twinsSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      twinsSpy = jest
+        .spyOn(RequiredUniqueNames, "findTwinsOfKind")
+        .mockResolvedValue(TWINS);
+    });
+
+    test.each([
+      ["Monitor", MonitorService],
+      ["MonitorGroup", MonitorGroupService],
+      ["ApiKey", ApiKeyService],
+      ["IncidentTemplate", IncidentTemplateService],
+    ])(
+      "for %s, answers the twins its own service finds, read with the caller's own props, uncached",
+      async (tableName: string, service: unknown) => {
+        const result: RouteCallResult = await callRoute(tableName);
+
+        expect(result.nextCallCount).toBe(0);
+        expect(twinsSpy).toHaveBeenCalledTimes(1);
+        // Never the four kinds' query.
+        expect(findSpy).not.toHaveBeenCalled();
+
+        const call: {
+          service: unknown;
+          projectId: ObjectID;
+          props: DatabaseCommonInteractionProps;
+        } = twinsSpy.mock.calls[0]![0];
+
+        expect(call.service).toBe(service);
+        expect(call.projectId.toString()).toBe(projectId.toString());
+        expect(call.props.userId?.toString()).toBe(userId.toString());
+        expect(call.props.isRoot).toBeFalsy();
+
+        expect(Response.setNoCacheHeaders).toHaveBeenCalledWith(result.res);
+        expect(
+          (Response.sendJsonObjectResponse as unknown as jest.Mock).mock
+            .calls[0]![2] as JSONObject,
+        ).toEqual({
+          groups: [[TENANTS_A, TENANTS_B]],
+          createdAt: TWINS.createdAt,
+        });
+      },
+    );
+
+    test("every kind the setting holds is asked for by its table's name, and no other kind is", () => {
+      const held: Array<string> = getRequiredUniqueNameServices(Services).map(
+        (service: { getModel: () => { tableName?: string | undefined } }) => {
+          return service.getModel().tableName || "";
+        },
+      );
+
+      expect(held.length).toBeGreaterThan(40);
+
+      for (const tableName of held) {
+        expect({
+          tableName,
+          isAnswered: Boolean(getHeldServiceOfTable(tableName)),
+        }).toEqual({ tableName, isAnswered: true });
+      }
+
+      for (const tableName of [
+        "Team",
+        "Label",
+        "OnCallDutyPolicy",
+        "Incident",
+        "",
+      ]) {
+        expect(getHeldServiceOfTable(tableName)).toBeNull();
+      }
+      expect(getHeldServiceOfTable(undefined)).toBeNull();
+      expect(getHeldServiceOfTable(7)).toBeNull();
+    });
+
+    test("someone who is not a member of the request's project is refused, and nothing is read", async () => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue(
+          buildProps({
+            projectId,
+            userId,
+            permissions: [Permission.ProjectMember],
+            accessTo: ObjectID.generate(),
+          }),
+        );
+
+      const result: RouteCallResult = await callRoute("Monitor");
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(twinsSpy).not.toHaveBeenCalled();
+    });
+
+    test("a project API key may ask too", async () => {
+      jest
+        .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
+        .mockResolvedValue(
+          buildProps({
+            projectId,
+            userType: UserType.API,
+            permissions: [Permission.ProjectMember],
+          }),
+        );
+
+      const result: RouteCallResult = await callRoute("Monitor");
+
+      expect(result.nextCallCount).toBe(0);
+      expect(twinsSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test("a read the service refuses is the route's answer", async () => {
+      twinsSpy.mockRejectedValue(
+        new NotAuthorizedException(
+          "You do not have permission to read monitors.",
+        ),
+      );
+
+      const result: RouteCallResult = await callRoute("Monitor");
+
+      expect(result.thrownToNext).toBeInstanceOf(NotAuthorizedException);
+      expect(Response.sendJsonObjectResponse).not.toHaveBeenCalled();
+    });
+  });
 
   test("someone who is not a member of the request's project is refused, and nothing is read", async () => {
     jest
