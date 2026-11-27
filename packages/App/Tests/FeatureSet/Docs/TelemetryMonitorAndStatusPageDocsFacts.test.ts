@@ -700,9 +700,16 @@ describe("how often a telemetry monitor is checked", () => {
 // #4626
 describe("OneUptime's own downtime is not silence", () => {
   it("the worker plans each check from the monitor's own window, and skips it while that window holds a gap", () => {
-    const plan: number = TELEMETRY_JOB.indexOf(
-      "await ReceivingCoverage.planTelemetryEvaluation({ windowInMs: TelemetryMonitorWindow.getWindowInMs({",
+    // The window is the step's, ending when the check was due (#11248).
+    const window: number = TELEMETRY_JOB.indexOf(
+      "const windowInMs: number = TelemetryMonitorWindow.getWindowInMs({ monitorType: monitor.monitorType!, monitorStep, });",
     );
+    const plan: number = TELEMETRY_JOB.indexOf(
+      "await ReceivingCoverage.planTelemetryEvaluation({ windowInMs: windowInMs, windowEndsAt: getTelemetryEvaluationWindowEnd({",
+    );
+
+    expect(window).toBeGreaterThan(-1);
+    expect(plan).toBeGreaterThan(window);
     const skip: number = TELEMETRY_JOB.indexOf("if (!plan.evaluate) {");
     // With when the evaluation began, which its log entry times (#10809).
     const check: number = TELEMETRY_JOB.indexOf(
