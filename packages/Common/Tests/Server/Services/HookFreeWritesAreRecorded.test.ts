@@ -205,10 +205,6 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "stampStatusCheckedAt Monitor": Why.Bookkeeping,
     },
-  "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts":
-    {
-      "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
-    },
   /*
    * The owner notification jobs' take: a state change marked as told
    * (isOwnerNotified), by the run that tells its owners (issue #7974). And
@@ -361,6 +357,12 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * records - and when a request kept once is split.
      */
     "Service.rewriteLatestIncomingRequestForReaders Monitor": Why.Derived,
+    /*
+     * When a telemetry monitor is next evaluated, moved onto its new
+     * interval after an edit to the interval - an edit the audit log
+     * records (#11060).
+     */
+    "Service.rescheduleTelemetryMonitor Monitor": Why.Bookkeeping,
   },
   "packages/Common/Server/Services/MonitorTestService.ts": {
     "Service.claimMonitorTestsForProbing MonitorTest": Why.Bookkeeping,
@@ -488,6 +490,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
   },
+  "packages/Common/Server/Services/XcpNgConnectionService.ts": {
+    /*
+     * The server-only columns a connection's save decides - which address,
+     * probe and certificate its secrets are bound to, the settings version
+     * probes compare - beside the save the audit log records (#10996).
+     */
+    "Service.writeConnectionServerColumns XcpNgConnection": Why.FollowOn,
+  },
   "packages/Common/Server/Services/XcpNgPoolService.ts": {
     "Service.attachLabels XcpNgPool": Why.Reported,
   },
@@ -581,6 +591,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataObservability/DataCheckIngest.ts": {
     "DataCheckIngest.recordResults DataCheck": Why.Reported,
   },
+  /*
+   * A database's Settings in Data Observability (#11147): a rename, a new
+   * connection, and Remove from Data Observability, each recorded as the
+   * person who made it.
+   */
+  "packages/Common/Server/Utils/DataObservability/DataObservabilityStoreSettings.ts":
+    {
+      "DataObservabilityStoreSettings.remove DataStore": Why.Recorded,
+      "DataObservabilityStoreSettings.update DataStore": Why.Recorded,
+    },
   "packages/Common/Server/Utils/DataObservability/DataProductCheck.ts": {
     "DataProductCheck.checkProduct DataProduct": Why.Reported,
   },
@@ -698,6 +718,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       Why.Bookkeeping,
     "MonitorStatusTimelineReconciler.restoreMissingStatusTimelinesBatch MonitorStatusTimeline":
       Why.Bookkeeping,
+  },
+  /*
+   * The telemetry scheduler's stamps (MonitorTelemetryMonitor): when a
+   * monitor was last queued and is next due, and a monitor made due again
+   * when the queue refused its evaluation.
+   */
+  "packages/Common/Server/Utils/Monitor/TelemetryMonitorStamps.ts": {
+    "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
+    "returnTelemetryMonitorsNotQueued Monitor": Why.Bookkeeping,
   },
   /*
    * The hourly age-out (#6389) forgetting the Hide from map preference of
@@ -931,6 +960,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/VMware/VMwareProbeCollectionStore.ts": {
     "VMwareProbeCollectionStore.recordCollectionReport *": Why.Reported,
+  },
+  "packages/Common/Server/Utils/XcpNg/XcpNgProbeCollectionStore.ts": {
+    "XcpNgProbeCollectionStore.recordCollectionReport *": Why.Reported,
   },
 };
 

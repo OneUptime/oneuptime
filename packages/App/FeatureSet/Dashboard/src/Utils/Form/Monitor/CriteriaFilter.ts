@@ -73,6 +73,32 @@ export const PROFILE_CHECK_ON_LABELS: ReadonlyArray<string> = [
  * criteria are these two: offline while its agent sends nothing, online
  * while it sends.
  */
+/*
+ * What a Network Device monitor's reachability checks read (issue #11071),
+ * under each in the check picker: one reads the device's ping, one the
+ * ping or the SNMP walk, one the walk alone - and a credential problem
+ * fails only the last.
+ */
+export const NETWORK_DEVICE_CHECK_DESCRIPTIONS: Partial<
+  Record<CheckOn, string>
+> = {
+  [CheckOn.SnmpIsOnline]: translationKey(
+    "True when the device answers its probe's ping or its SNMP walk.",
+  ),
+  [CheckOn.IcmpIsReachable]: translationKey(
+    "True when the device answers its probe's ping, whatever SNMP does.",
+  ),
+  [CheckOn.IcmpResponseTime]: translationKey(
+    "The average round trip of the device's ping. Not checked when no echo came back.",
+  ),
+  [CheckOn.IcmpPacketLossPercent]: translationKey(
+    "The share of the ping's echoes the device did not answer.",
+  ),
+  [CheckOn.SnmpWalkIsSucceeding]: translationKey(
+    "False when the SNMP walk was tried and failed: credentials, the agent or an ACL.",
+  ),
+};
+
 export const METRIC_HAS_NO_DATA_LABEL: string = translationKey("Has No Data");
 export const METRIC_HAS_DATA_LABEL: string = translationKey("Has Data");
 
@@ -1016,6 +1042,7 @@ export default class CriteriaFilterUtil {
       criteriaFilter?.checkOn === CheckOn.SwapUsagePercent ||
       criteriaFilter?.checkOn === CheckOn.CPUIoWaitPercent ||
       criteriaFilter?.checkOn === CheckOn.PacketLossPercent ||
+      criteriaFilter?.checkOn === CheckOn.IcmpPacketLossPercent ||
       criteriaFilter?.checkOn === CheckOn.SnmpInterfaceUtilizationPercent ||
       criteriaFilter?.checkOn === CheckOn.LlmBadAnswerPercent ||
       criteriaFilter?.checkOn === CheckOn.SessionsWithExceptionsPercent ||
@@ -1023,6 +1050,7 @@ export default class CriteriaFilterUtil {
 
     const isMilliseconds: boolean =
       criteriaFilter?.checkOn === CheckOn.ResponseTime ||
+      criteriaFilter?.checkOn === CheckOn.IcmpResponseTime ||
       criteriaFilter?.checkOn === CheckOn.Jitter ||
       criteriaFilter?.checkOn === CheckOn.PortDnsLookupTime ||
       criteriaFilter?.checkOn === CheckOn.PortTcpConnectTime ||
@@ -1913,6 +1941,14 @@ export default class CriteriaFilterUtil {
         return (
           i.value === CheckOn.SnmpIsOnline ||
           /*
+           * The device's ping on its own (issue #11071), beside the walk:
+           * "answers ping, SNMP failing" is not "down", and a fleet that
+           * always answers ping can say Offline from the ping alone.
+           */
+          i.value === CheckOn.IcmpIsReachable ||
+          i.value === CheckOn.IcmpResponseTime ||
+          i.value === CheckOn.IcmpPacketLossPercent ||
+          /*
            * Offered beside "Is Online" because the two now mean different
            * things: a device is online when it answers ping OR its walk
            * succeeds, so a switch whose SNMP agent has stopped answering is
@@ -1944,6 +1980,18 @@ export default class CriteriaFilterUtil {
           i.value === CheckOn.SnmpTrapReceived ||
           i.value === CheckOn.SnmpTrapVarbindValue
         );
+      });
+
+      /*
+       * Which path each reachability check reads (issue #11071), said where
+       * they are picked: "SNMP Device Is Online" kept its name from before
+       * ping-first polling, and reads as SNMP alone without this.
+       */
+      options = options.map((i: DropdownOption): DropdownOption => {
+        const description: string | undefined =
+          NETWORK_DEVICE_CHECK_DESCRIPTIONS[i.value as CheckOn];
+
+        return description ? { ...i, description: description } : i;
       });
     }
 
@@ -2526,6 +2574,7 @@ export default class CriteriaFilterUtil {
 
     if (
       checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.IcmpIsReachable ||
       /*
        * "Is False" on the walk means the walk was ATTEMPTED and failed. A
        * poll that ran no walk at all — a device with no credentials, which
@@ -2685,7 +2734,10 @@ export default class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.SnmpResponseTime ||
       // A rate is a number: above or below a threshold.
-      checkOn === CheckOn.SnmpOidRatePerSecond
+      checkOn === CheckOn.SnmpOidRatePerSecond ||
+      // The device's ping on its own (issue #11071): milliseconds, percent.
+      checkOn === CheckOn.IcmpResponseTime ||
+      checkOn === CheckOn.IcmpPacketLossPercent
     ) {
       options = options.filter((i: DropdownOption) => {
         return (
@@ -3500,6 +3552,14 @@ export default class CriteriaFilterUtil {
 
     if (checkOn === CheckOn.SnmpResponseTime) {
       return "5000";
+    }
+
+    if (checkOn === CheckOn.IcmpResponseTime) {
+      return "200";
+    }
+
+    if (checkOn === CheckOn.IcmpPacketLossPercent) {
+      return "20";
     }
 
     if (checkOn === CheckOn.SnmpOidValue) {

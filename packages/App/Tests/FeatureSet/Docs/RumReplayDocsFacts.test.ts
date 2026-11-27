@@ -83,6 +83,7 @@ const SOURCES: Record<string, string> = {
   listSearchQuery: `${DASHBOARD}/Components/SessionReplay/SessionReplaySearchQuery.ts`,
   listTable: `${DASHBOARD}/Components/SessionReplay/SessionReplayTable.tsx`,
   filterChip: `${DASHBOARD}/Components/ResourceOwners/FilterChipDropdown.tsx`,
+  filterChipTypes: `${DASHBOARD}/Components/ResourceOwners/FilterChipDropdownTypes.ts`,
   facetFilterBar: `${DASHBOARD}/Components/ResourceOwners/FacetFilterBar.tsx`,
   moreMenuItem: "packages/Common/UI/Components/MoreMenu/MoreMenuItem.tsx",
   tableHeaderControls:
@@ -1244,10 +1245,22 @@ describe("Session Replay: the session list's filters", () => {
     const chip: string = source("filterChip");
     const table: string = source("listTable");
 
-    // The option list and the chosen value both show the option's own label.
-    expect(chip).toContain("{option.label}");
-    expect(chip).toContain("return selectedOptions[0]!.label;");
+    /*
+     * The option list and the chosen value both show the option's own label,
+     * through getFilterChipOptionLabel (#11170): a record's name as written,
+     * never looked up - only a pick whose record is gone ("No longer
+     * available") or archived ("{{name}} (archived)") is put in words.
+     */
+    expect(chip).toContain("{getFilterChipOptionLabel(option, translator)}");
+    expect(chip).toContain(
+      "return getFilterChipOptionLabel(selectedOptions[0]!, translator);",
+    );
     expect(chip).not.toMatch(/translate\w*\(\s*option\.label/);
+    const chipLabel: string = source("filterChipTypes");
+    expect(chipLabel).toMatch(
+      /export const getFilterChipOptionLabel[\s\S]*?\n {2}return option\.label;\n\};/,
+    );
+    expect(chipLabel).not.toMatch(/translate\w*\(\s*option\.label/);
     // The order is a ticked item per option in the Sort section of the ⋯.
     expect(table).toContain('<MoreMenuSection key="sort" title="Sort">');
     expect(table).toContain("{SESSION_REPLAY_SORT_OPTIONS.map(");

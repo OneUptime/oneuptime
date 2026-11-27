@@ -29,6 +29,23 @@ const FLASHBLADE_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/${FLASH
 const ACME_ID: string = "58000000-0000-4000-8000-000000000003";
 const ACME_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/${ACME_ID}`;
 const ACME_INVENTORY_PATH: string = `${ACME_PATH}/inventory/Aggregate`;
+// A Dell PowerStore cluster of two appliances (#11002).
+const POWERSTORE_ID: string = "58000000-0000-4000-8000-000000000004";
+const POWERSTORE_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/${POWERSTORE_ID}`;
+// What its Overview says needs attention on the trouble day, in order.
+const POWERSTORE_ATTENTION: Array<string> = [
+  "Hardware:A2/BaseEnclosure-NodeB-Fan1",
+  "Hardware:A1/BaseEnclosure-NodeB-PowerSupply",
+  "Drive:A1/Drive_0_0_2",
+];
+/*
+ * A NetApp ONTAP cluster and an Amazon FSx file system (#11001), as
+ * OneUptime keeps what the real NetApp Harvest served for them.
+ */
+const ONTAP_ID: string = "58000000-0000-4000-8000-000000000006";
+const ONTAP_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/${ONTAP_ID}`;
+const FSX_ID: string = "58000000-0000-4000-8000-000000000007";
+const FSX_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/${FSX_ID}`;
 
 const PHONE: { width: number; height: number } = { width: 390, height: 844 };
 const TABLET: { width: number; height: number } = { width: 768, height: 1024 };
@@ -708,6 +725,568 @@ test.describe("a platform no page knows: Acme's tab, counts and inventory page",
     await expect(page.getByText("aggr1").first()).toBeVisible();
     await expectNoSidewaysScroll(page);
     await screenshot(page, "acme-inventory-persian-390");
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * A Dell PowerStore (#11002)
+ * ---------------------------------------------------------------------------
+ */
+test.describe("a Dell PowerStore: its appliances, each part with its appliance, and its alerts in the logs", () => {
+  test("the Overview counts its appliances, volumes and file systems, puts its failed parts first and says its alerts are in the logs", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "", POWERSTORE_PATH);
+    await waitForHealth(page, "Unhealthy");
+
+    const hero: Locator = page.getByTestId("resource-hero-identity");
+    await expect(hero).toContainText("ps-prod-01");
+    await expect(page.locator("body")).toContainText("Dell PowerStore");
+    for (const count of ["2 appliances", "6 volumes", "3 file systems"]) {
+      await expect(page.getByText(count).first()).toBeVisible();
+    }
+
+    // Its failed parts, named as PowerStore names them, the most urgent first.
+    const card: Locator = page.getByTestId("storage-array-needs-attention");
+    await expect(card).toBeVisible();
+    await expandAttention(page, "storage-array-needs-attention");
+    expect(await attentionKeys(page, "storage-array-needs-attention")).toEqual(
+      POWERSTORE_ATTENTION,
+    );
+    for (const name of [
+      "BaseEnclosure-NodeB-Fan1",
+      "BaseEnclosure-NodeB-PowerSupply",
+      "Drive_0_0_2",
+    ]) {
+      await expect(card).toContainText(name);
+    }
+
+    // A PowerStore sends its alerts by syslog: no count, but where they are.
+    await expect(page.getByText("In the logs").first()).toBeVisible();
+    await expect(page.locator("body")).not.toContainText(
+      "0 critical, 0 warning",
+    );
+    await expect(page.locator("body")).not.toContainText(
+      /FlashArray|FlashBlade|Purity/,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-overview-1280");
+
+    await page.setViewportSize(PHONE);
+    await openOverview(page, "", POWERSTORE_PATH);
+    await waitForHealth(page, "Unhealthy");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-overview-390");
+  });
+
+  test("a calm cluster: Healthy, and no Needs attention card", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "array=calm", POWERSTORE_PATH);
+    await waitForHealth(page, "Healthy");
+    await expect(page.getByTestId("storage-array-needs-attention")).toHaveCount(
+      0,
+    );
+    await expect(page.getByText("In the logs").first()).toBeVisible();
+  });
+
+  test("its own tabs: each appliance in physical capacity, each volume group in what its volumes were given, each NAS server started or not", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "", POWERSTORE_PATH);
+
+    // Each kind of its own has a tab with its count, from the array's counts.
+    for (const [tabName, count] of [
+      ["Appliances", "2"],
+      ["Volume Groups", "2"],
+      ["NAS Servers", "2"],
+    ]) {
+      await expect(
+        page.getByRole("link", { name: new RegExp(tabName as string) }).first(),
+      ).toContainText(count as string);
+    }
+
+    await page
+      .getByRole("link", { name: /Appliances/ })
+      .first()
+      .click();
+    await expect(page).toHaveURL(
+      new RegExp(`${POWERSTORE_PATH}/inventory/Appliance$`),
+    );
+    const appliances: Locator = page.locator("table").first();
+    for (const header of [
+      "ID",
+      "Physical Capacity Used",
+      "Physical Capacity",
+      "Data Reduction",
+      "Read Latency",
+      "Write Latency",
+    ]) {
+      await expect(
+        appliances.getByRole("columnheader", { name: header, exact: true }),
+      ).toBeVisible();
+    }
+    /*
+     * An appliance has no state of its own and its size is not provisioned;
+     * its IOPS wait in the column picker, as its names need the room.
+     */
+    for (const header of ["Status", "Provisioned", "Physical", "Read IOPS"]) {
+      await expect(
+        appliances.getByRole("columnheader", { name: header, exact: true }),
+      ).toHaveCount(0);
+    }
+    /*
+     * The two names differ only at their end, where a narrow name column
+     * cuts them: each appliance's id beside it - A1, A2, as the Hardware
+     * page's Appliance column names it - tells them apart.
+     */
+    for (const [name, id] of [
+      ["ps-prod-01-appliance-1", "A1"],
+      ["ps-prod-01-appliance-2", "A2"],
+    ]) {
+      const row: Locator = listRow(page, name as string);
+      await expect(row).toBeVisible();
+      await expect(row.locator("td").nth(1)).toHaveText(id as string);
+    }
+    // How full each is: the nearly full one red, the other calm.
+    const full: Locator = listRow(page, "ps-prod-01-appliance-2");
+    await expect(full).toContainText("92");
+    await expect(
+      full.getByTestId("storage-usage-fill").first(),
+    ).toHaveAttribute("data-level", "critical");
+    await expect(
+      listRow(page, "ps-prod-01-appliance-1")
+        .getByTestId("storage-usage-fill")
+        .first(),
+    ).toHaveAttribute("data-level", "normal");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-appliances-1280");
+
+    await page.goto(`${POWERSTORE_PATH}/inventory/VolumeGroup`);
+    for (const header of [
+      "Logical Capacity Used",
+      "Provisioned Capacity",
+      "Read IOPS",
+    ]) {
+      await expect(
+        page.getByRole("columnheader", { name: header, exact: true }),
+      ).toBeVisible();
+    }
+    for (const name of ["erp-vg", "vmfs-vg"]) {
+      await expect(listRow(page, name)).toBeVisible();
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-volume-groups-1280");
+
+    await page.goto(`${POWERSTORE_PATH}/inventory/NasServer`);
+    // A NAS server not started needs attention; started, it is fine.
+    const stopped: Locator = listRow(page, "nas-files-02");
+    await expect(stopped).toContainText("Not Started");
+    await expect(stopped.locator('[data-tone="warning"]')).toBeVisible();
+    const started: Locator = listRow(page, "nas-prod-01");
+    await expect(started).toContainText("Started");
+    await expect(started.locator('[data-tone="success"]')).toBeVisible();
+    // It has no size: no size columns.
+    await expect(
+      page.getByRole("columnheader", { name: "Provisioned", exact: true }),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-nas-servers-1280");
+  });
+
+  test("Hardware: each part with its appliance, the failed drive, power supply and fan red, the port that is down grey", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await page.goto(`${POWERSTORE_PATH}/hardware`);
+
+    // Its parts, its drives and its ports, in that order.
+    const parts: Locator = page.locator("table").nth(0);
+    const drives: Locator = page.locator("table").nth(1);
+    const ports: Locator = page.locator("table").nth(2);
+    await expect(parts).toContainText("BaseEnclosure-NodeA");
+    await expect(drives).toContainText("Drive_0_0_2");
+    await expect(ports).toContainText("FEPort");
+
+    // Every table names the appliance first: each appliance names its parts alike.
+    for (const [table, name] of [
+      [parts, "parts"],
+      [drives, "drives"],
+      [ports, "ports"],
+    ] as Array<[Locator, string]>) {
+      const headers: Array<string> = (
+        await table.getByRole("columnheader").allInnerTexts()
+      ).map((header: string): string => {
+        return header.trim();
+      });
+      expect({ name, first: headers.slice(0, 2) }).toEqual({
+        name,
+        first: ["Name", "Appliance"],
+      });
+    }
+
+    // The same name on both appliances is two rows, each with its appliance.
+    const nodes: Locator = parts.locator("tr", {
+      hasText: /BaseEnclosure-NodeA(?!-)/,
+    });
+    await expect(nodes).toHaveCount(2);
+
+    // Drive_0_0_2, not Drive_0_0_23.
+    const driveTwo: RegExp = /Drive_0_0_2(?!\d)/;
+    const failed: Locator = drives
+      .locator("tr", { hasText: driveTwo })
+      .filter({ hasText: "A1" });
+    await expect(failed).toContainText("Unhealthy");
+    await expect(failed.locator('[data-tone="danger"]')).toBeVisible();
+    await expect(
+      drives
+        .locator("tr", { hasText: driveTwo })
+        .filter({ hasText: "A2" })
+        .locator('[data-tone="success"]'),
+    ).toBeVisible();
+
+    const down: Locator = ports
+      .locator("tr", { hasText: "Down" })
+      .filter({ hasText: "A2" });
+    await expect(down).toHaveCount(1);
+    await expect(down.locator('[data-tone="neutral"]')).toBeVisible();
+    await expect(ports.locator('[data-tone="success"]')).toHaveCount(5);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-hardware-1280");
+
+    await page.setViewportSize(PHONE);
+    await page.goto(`${POWERSTORE_PATH}/hardware`);
+    await expect(page.getByText("Drive_0_0_2").first()).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-hardware-390");
+  });
+
+  test("dark, German and right to left", async ({ page }: { page: Page }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "theme=dark", POWERSTORE_PATH);
+    await waitForHealth(page, "Unhealthy");
+    await screenshot(page, "powerstore-overview-dark-1280");
+    await page.goto(withQuery(`${POWERSTORE_PATH}/hardware`, "theme=dark"));
+    await expect(page.getByText("Drive_0_0_2").first()).toBeVisible();
+    await screenshot(page, "powerstore-hardware-dark-1280");
+
+    await page.goto(
+      withQuery(`${POWERSTORE_PATH}/inventory/Appliance`, "lang=de"),
+    );
+    await expect(listRow(page, "ps-prod-01-appliance-1")).toBeVisible();
+    for (const header of ["Physical Capacity Used", "Physical Capacity"]) {
+      await expect(
+        page.getByRole("columnheader", { name: GERMAN[header]!, exact: true }),
+      ).toBeVisible();
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-appliances-german-1280");
+
+    await page.goto(withQuery(`${POWERSTORE_PATH}/hardware`, "lang=de"));
+    await expect(
+      page
+        .locator("table")
+        .first()
+        .getByRole("columnheader", { name: GERMAN["Appliance"]!, exact: true }),
+    ).toBeVisible();
+    await screenshot(page, "powerstore-hardware-german-1280");
+
+    await openOverview(page, "lang=de", POWERSTORE_PATH);
+    await expect(page.getByText(GERMAN["In the logs"]!).first()).toBeVisible();
+
+    await openOverview(page, "lang=fa", POWERSTORE_PATH);
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+    await expect(page.getByText(PERSIAN["In the logs"]!).first()).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-overview-persian-1280");
+
+    await page.setViewportSize(PHONE);
+    await openOverview(page, "lang=fa", POWERSTORE_PATH);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-overview-persian-390");
+    await page.goto(
+      withQuery(`${POWERSTORE_PATH}/inventory/Appliance`, "lang=fa"),
+    );
+    await expect(
+      page.getByText("ps-prod-01-appliance-1").first(),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "powerstore-appliances-persian-390");
+  });
+});
+
+test.describe("a NetApp ONTAP cluster, as Harvest reports it (#11001)", () => {
+  test("the Overview: its own counts and words, and the problems Harvest reports open", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "", ONTAP_PATH);
+    await expect(page.getByTestId("resource-hero-identity")).toContainText(
+      "ontap-prod-01",
+    );
+    await expect(page.getByText("8 volumes").first()).toBeVisible();
+    await expect(page.getByText("2 aggregates").first()).toBeVisible();
+    await expect(page.getByText("4 SVMs").first()).toBeVisible();
+    // What Harvest's health checks report open, worded by their labels.
+    const body: Locator = page.locator("body");
+    await expect(body).toContainText("Disk 1.0.7 is broken");
+    await expect(body).toContainText("Shelf 1.0: Power supply 2 failed");
+    await expect(body).toContainText("Port e0c on ontap-prod-01-01 is down");
+    // Nothing of Pure's is said about it.
+    await expect(body).not.toContainText(/FlashArray|FlashBlade|Purity/);
+    // A key that names its meaning reads as its word.
+    await expect(body).not.toContainText("(disk aggregate");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-overview-1280");
+
+    await page.setViewportSize(PHONE);
+    await openOverview(page, "", ONTAP_PATH);
+    await expect(body).toContainText("Disk 1.0.7 is broken");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-overview-390");
+  });
+
+  test("a kind of its own is a tab, and each part of it a page: an aggregate, a LUN", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "", ONTAP_PATH);
+    const tab: Locator = page.getByRole("link", { name: /Aggregates/ }).first();
+    await expect(tab).toContainText("2");
+    await tab.click();
+    await expect(page).toHaveURL(
+      new RegExp(`${ONTAP_PATH}/inventory/Aggregate$`),
+    );
+    await expect(listRow(page, "aggr1_n01")).toBeVisible();
+    await expect(listRow(page, "aggr1_n02")).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("(disk aggregate");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-aggregates-1280");
+
+    await listRow(page, "aggr1_n02").getByRole("link").first().click();
+    await expect(page).toHaveURL(
+      new RegExp(`${ONTAP_PATH}/inventory/Aggregate/aggr1_n02$`),
+    );
+    await expect(page.getByTestId("storage-array-part-page")).toBeVisible();
+    await expect(page.locator("body")).toContainText(
+      "What ONTAP reports about this aggregate.",
+    );
+    await expect(page.locator("body")).toContainText("Aggregate alerts");
+    await expect(page.locator("body")).not.toContainText("(disk aggregate");
+    // The trail leads back through the aggregates to the cluster.
+    const breadcrumbs: Locator = page.getByRole("navigation", {
+      name: "Breadcrumb",
+    });
+    await expect(
+      breadcrumbs.getByRole("link", { name: "Inventory" }),
+    ).toHaveAttribute("href", `${ONTAP_PATH}/inventory/Aggregate`);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-aggregate-1280");
+
+    await openPart(
+      page,
+      `${ONTAP_PATH}/inventory/Lun/${encodeURIComponent("svm_san:/vol/vol_db/lun_db02")}`,
+    );
+    await expect(page.locator("body")).toContainText(
+      "What ONTAP reports about this LUN.",
+    );
+    await screenshot(page, "ontap-lun-offline-1280");
+
+    await page.goto(`${ONTAP_PATH}/inventory/SnapMirror`);
+    await expect(listRow(page, "vol_erp_dr")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-snapmirror-1280");
+
+    await page.setViewportSize(PHONE);
+    await page.goto(`${ONTAP_PATH}/inventory/Aggregate/aggr1_n02`);
+    await expect(page.getByTestId("storage-array-part-page")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-aggregate-390");
+  });
+
+  test("Volumes: ONTAP's columns, and a volume's page in ONTAP's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await page.goto(`${ONTAP_PATH}/volumes`);
+    await expect(listRow(page, "vol_projects")).toBeVisible();
+    await expect(listRow(page, "vol_logs")).toBeVisible();
+    await expect(page.locator("body")).not.toContainText("Pod / Group");
+    await expect(page.locator("body")).not.toContainText("(disk aggregate");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-volumes-1280");
+
+    await openPart(
+      page,
+      `${ONTAP_PATH}/volumes/${encodeURIComponent("svm_nas:vol_projects")}`,
+    );
+    await expect(page.locator("body")).toContainText(
+      "What ONTAP reports about this volume.",
+    );
+    await expect(page.locator("body")).toContainText("Volume alerts");
+    await expect(page.locator("body")).not.toContainText("(disk aggregate");
+    await screenshot(page, "ontap-volume-1280");
+
+    await page.setViewportSize(PHONE);
+    await page.goto(`${ONTAP_PATH}/volumes`);
+    await expect(page.getByText("vol_projects").first()).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-volumes-390");
+  });
+
+  test("Hardware: its nodes, disks, shelves, their parts, sensors and ports", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await page.goto(`${ONTAP_PATH}/hardware`);
+    for (const title of [
+      "Nodes",
+      "Disks",
+      "Shelves",
+      "Shelf Parts",
+      "Node Sensors",
+      "Ports",
+    ]) {
+      await expect(
+        page.getByRole("heading", { name: title, exact: true }),
+      ).toBeVisible();
+    }
+    await expect(listRow(page, "1.0.7")).toBeVisible();
+    await expect(
+      page.getByTestId("storage-array-hardware-managed-note"),
+    ).toHaveCount(0);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-hardware-1280");
+  });
+
+  test("Amazon FSx: the parts AWS runs are left out, and the page says why", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "", FSX_PATH);
+    await expect(page.getByTestId("resource-hero-identity")).toContainText(
+      "fsx-files-eu",
+    );
+    await expect(page.getByText("3 volumes").first()).toBeVisible();
+    await screenshot(page, "fsx-overview-1280");
+
+    await page.goto(`${FSX_PATH}/hardware`);
+    await expect(
+      page.getByTestId("storage-array-hardware-managed-note"),
+    ).toContainText("hardware AWS manages");
+    await expect(
+      page.getByRole("heading", { name: "Nodes", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Ports", exact: true }),
+    ).toBeVisible();
+    for (const title of ["Disks", "Shelves", "Shelf Parts", "Node Sensors"]) {
+      await expect(
+        page.getByRole("heading", { name: title, exact: true }),
+      ).toHaveCount(0);
+    }
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "fsx-hardware-1280");
+  });
+
+  test("the Documentation tab gives the cluster's own steps", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await page.goto(`${ONTAP_PATH}/documentation`);
+    const guide: Locator = page.getByTestId("storage-array-platform-guide");
+    await expect(guide).toContainText(
+      "Create a read-only user for the agent on the ONTAP cluster.",
+    );
+    await expect(page.locator("body")).not.toContainText(
+      /FlashArray|API token/,
+    );
+    await screenshot(page, "ontap-documentation-1280");
+  });
+
+  test("dark, German and Persian, at a laptop's width and a phone's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openOverview(page, "theme=dark", ONTAP_PATH);
+    await expect(page.locator("body")).toContainText("Disk 1.0.7 is broken");
+    await screenshot(page, "ontap-overview-dark-1280");
+    await page.goto(
+      withQuery(`${ONTAP_PATH}/inventory/Aggregate`, "theme=dark"),
+    );
+    await expect(listRow(page, "aggr1_n02")).toBeVisible();
+    await screenshot(page, "ontap-aggregates-dark-1280");
+
+    await openOverview(page, "lang=de", ONTAP_PATH);
+    // The broken disk, in German's own sentence.
+    await expect(page.locator("body")).toContainText("1.0.7");
+    await expect(page.locator("body")).not.toContainText(
+      "Disk 1.0.7 is broken",
+    );
+    await screenshot(page, "ontap-overview-german-1280");
+    await page.goto(
+      withQuery(`${ONTAP_PATH}/inventory/Aggregate/aggr1_n02`, "lang=de"),
+    );
+    await expect(page.locator("body")).toContainText(
+      GERMAN["What ONTAP reports about this aggregate."]!,
+    );
+    await screenshot(page, "ontap-aggregate-german-1280");
+    await page.goto(withQuery(`${ONTAP_PATH}/hardware`, "lang=de"));
+    await expect(listRow(page, "1.0.7")).toBeVisible();
+    await screenshot(page, "ontap-hardware-german-1280");
+
+    await openOverview(page, "lang=fa", ONTAP_PATH);
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-overview-persian-1280");
+    await page.goto(
+      withQuery(`${ONTAP_PATH}/inventory/Aggregate/aggr1_n02`, "lang=fa"),
+    );
+    await expect(page.locator("body")).toContainText(
+      PERSIAN["What ONTAP reports about this aggregate."]!,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-aggregate-persian-1280");
+
+    await page.setViewportSize(PHONE);
+    await page.goto(withQuery(`${ONTAP_PATH}/volumes`, "lang=fa"));
+    await expect(page.getByText("vol_projects").first()).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "ontap-volumes-persian-390");
   });
 });
 

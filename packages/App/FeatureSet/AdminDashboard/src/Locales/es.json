@@ -4622,5 +4622,14 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Esta plantilla de monitor no tiene tipo de monitor, así que sus monitores no se pueden sincronizar. Vuelva a crear la plantilla con un tipo de monitor.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Los ajustes de sincronización de la plantilla necesitan el tipo de monitor de la plantilla. Elija primero el tipo de monitor y luego vuelva a elegir los ajustes de sincronización.",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Una plantilla de monitor no puede sincronizar \"{{field}}\". Elija entre los ajustes de sincronización que ofrece la plantilla y vuelva a guardar.",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Todavía no puede iniciar sesión nadie nuevo. Vincula un proyecto, con los equipos a los que se unen, en «Proyectos vinculados»."
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Todavía no puede iniciar sesión nadie nuevo. Vincula un proyecto, con los equipos a los que se unen, en «Proyectos vinculados».",
+  "This issue does not exist, or you cannot read it.": "Este problema no existe, o no puedes leerlo.",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "Este problema ya tiene 10 pull requests vinculadas. Quita una antes de vincular otra.",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Este problema se dejó de lado: su riesgo se aceptó, o no es un problema. Vuelve a abrirlo para vincular la pull request que lo corrige.",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} ya está vinculada a este problema.",
+  "All XCP-ng pools": "Todos los pools de XCP-ng",
+  "Only XCP-ng pools that match conditions": "Solo los pools de XCP-ng que cumplen las condiciones",
+  "All savings": "Todos los ahorros",
+  "Only savings that match conditions": "Solo los ahorros que cumplen las condiciones",
+  "XCP-ng Pool": "Pool de XCP-ng"
 }

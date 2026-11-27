@@ -42,7 +42,11 @@ import Incident from "../../../Models/DatabaseModels/Incident";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import ProbeMonitorResponse from "../../../Types/Probe/ProbeMonitorResponse";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
-import { MONITOR_PAUSE_FLAGS_SELECT } from "../../../Utils/Monitor/MonitorPauseState";
+import {
+  MONITOR_PAUSE_FLAGS_SELECT,
+  MonitorPauseReason,
+} from "../../../Utils/Monitor/MonitorPauseState";
+import MonitorNotEvaluated from "./MonitorNotEvaluated";
 import MonitorProbe, {
   MonitorStepProbeResponse,
 } from "../../../Models/DatabaseModels/MonitorProbe";
@@ -828,6 +832,12 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} Monitor is archived. Unarchive it to start monitoring again.`,
         );
 
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.Archived,
+        });
+
         throw new BadDataException(ExceptionMessages.MonitorArchived);
       }
 
@@ -836,12 +846,24 @@ export default class MonitorResourceUtil {
           `${dataToProcess.monitorId.toString()} Monitor is disabled. Please enable it to start monitoring again.`,
         );
 
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.Disabled,
+        });
+
         throw new BadDataException(ExceptionMessages.MonitorDisabled);
       }
       if (monitor.disableActiveMonitoringBecauseOfManualIncident) {
         logger.debug(
           `${dataToProcess.monitorId.toString()} Monitor is disabled because an incident which is created manually is not resolved. Please resolve the incident to start monitoring again.`,
         );
+
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.ManualIncident,
+        });
 
         throw new BadDataException(
           ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
@@ -852,6 +874,12 @@ export default class MonitorResourceUtil {
         logger.debug(
           `${dataToProcess.monitorId.toString()} Monitor is disabled because one of the maintenance events this monitor is attached to has not ended. Please end that maintenance event to start monitoring again.`,
         );
+
+        await MonitorResourceUtil.listNotEvaluated({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+          reason: MonitorPauseReason.ScheduledMaintenance,
+        });
 
         throw new BadDataException(
           ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
@@ -2712,6 +2740,38 @@ export default class MonitorResourceUtil {
             });
           }
         }
+      } else if (
+        !response.criteriaMetId &&
+        !isSnmpTrapEvent &&
+        !MonitorResourceUtil.isSilentInfrastructureWindow({
+          monitor: monitor,
+          dataToProcess: dataToProcess,
+        }) &&
+        monitorSteps.data.defaultMonitorStatusId &&
+        monitor.currentMonitorStatusId?.toString() ===
+          monitorSteps.data.defaultMonitorStatusId.toString()
+      ) {
+        /*
+         * No criteria matched a monitor already on its default status: what
+         * a criteria that changes no status raised - an alert-only criteria
+         * - resolves now, as it does when the monitor goes back to its
+         * default status from another one. It stayed open for as long as
+         * the monitor stayed on its default status, which on a monitor
+         * whose healthy state matches nothing is for ever: a Network Device
+         * monitor from the recommended alert pack kept "SNMP walk failing"
+         * open on a switch whose SNMP had been fixed (issue #11071).
+         */
+        await MonitorResourceUtil.resolveWhatNoCriteriaHolds({
+          monitor: monitor,
+          monitorStep: monitorStep,
+          dataToProcess: dataToProcess,
+          evaluationSummary: evaluationSummary,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          keepEvaluationLock: keepEvaluationLock,
+        });
       }
 
       /*
@@ -2923,6 +2983,94 @@ export default class MonitorResourceUtil {
    * matched: each incident and alert whose criteria resolves it on its own.
    * The evaluation log says the status was kept, and for which criteria.
    */
+  /*
+   * A monitor already on its default status, on a check no criteria
+   * matched: it stays there, and what its criteria raised and resolve on
+   * their own - an alert-only criteria's alert - resolves, exactly as when
+   * the monitor goes back to its default status from another one. The
+   * monitor's open records are read only when some may be open
+   * (MonitorOpenRecords), so a healthy check of a monitor with nothing open
+   * reads nothing.
+   */
+  public static async resolveWhatNoCriteriaHolds(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+    dataToProcess: DataToProcess;
+    evaluationSummary: MonitorEvaluationSummary;
+    autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    >;
+    autoResolveCriteriaInstanceIdAlertIdsDictionary: Dictionary<Array<string>>;
+    keepEvaluationLock: () => Promise<void>;
+  }): Promise<void> {
+    const rootCause: string = "No monitoring criteria met.";
+
+    const openRecords: MonitorOpenRecordsReading =
+      await MonitorResourceUtil.readWhatIsKnownOfOpenRecords({
+        monitor: input.monitor,
+        opensIncidents: false,
+        opensAlerts: false,
+      });
+
+    await input.keepEvaluationLock();
+
+    const disableSeriesAbsenceResolution: boolean =
+      MonitorResourceUtil.isSeriesResolvedExplicitly({
+        monitor: input.monitor,
+        dataToProcess: input.dataToProcess,
+      });
+
+    await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+      monitor: input.monitor,
+      kind: MonitorRecordKind.Incident,
+      reading: openRecords,
+      opensRecords: false,
+      read: (): Promise<Array<Incident>> => {
+        return MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary:
+            input.autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          rootCause: rootCause,
+          criteriaInstance: null,
+          dataToProcess: input.dataToProcess,
+          evaluationSummary: input.evaluationSummary,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+          keepEvaluationLock: input.keepEvaluationLock,
+          disableSeriesAbsenceResolution: disableSeriesAbsenceResolution,
+        });
+      },
+    });
+
+    await MonitorResourceUtil.readOpenRecordsUnlessNoneOpen({
+      monitor: input.monitor,
+      kind: MonitorRecordKind.Alert,
+      reading: openRecords,
+      opensRecords: false,
+      read: (): Promise<Array<Alert>> => {
+        return MonitorAlert.checkOpenAlertsAndCloseIfResolved({
+          monitorId: input.monitor.id!,
+          projectId: input.monitor.projectId!,
+          autoResolveCriteriaInstanceIdAlertIdsDictionary:
+            input.autoResolveCriteriaInstanceIdAlertIdsDictionary,
+          rootCause: rootCause,
+          criteriaInstance: null,
+          dataToProcess: input.dataToProcess,
+          evaluationSummary: input.evaluationSummary,
+          keepResponseContent: MonitorRecordEvidence.keepsResponseContent(
+            input.monitor,
+          ),
+          monitorStep: input.monitorStep,
+          keepEvaluationLock: input.keepEvaluationLock,
+          disableSeriesAbsenceResolution: disableSeriesAbsenceResolution,
+        });
+      },
+    });
+  }
+
   public static async keepStatusUntilRecovered(input: {
     monitor: Monitor;
     monitorStep: MonitorStep;
@@ -3078,6 +3226,37 @@ export default class MonitorResourceUtil {
    * written at most every so often (MonitorAPI.onBeforeSendRecords, issue
    * #8123). Never throws.
    */
+  /*
+   * A request, an email or an agent's report that reached a monitor that is
+   * not being checked, listed in its Logs as not evaluated and why, with its
+   * arrival kept (MonitorNotEvaluated, #11141), before it is refused: it
+   * used to be dropped without a trace. Not for a blocked project, which
+   * records nothing of what reaches it. Never throws.
+   */
+  public static async listNotEvaluated(data: {
+    monitor: Monitor;
+    dataToProcess: DataToProcess;
+    reason: MonitorPauseReason;
+  }): Promise<void> {
+    if (
+      !data.monitor.projectId ||
+      !MonitorNotEvaluated.isSentFromOutside(data.monitor.monitorType)
+    ) {
+      return;
+    }
+
+    try {
+      if (await ProjectService.isProjectBlocked(data.monitor.projectId)) {
+        return;
+      }
+    } catch (error) {
+      logger.error(error);
+      return;
+    }
+
+    await MonitorNotEvaluated.record(data);
+  }
+
   public static async keepIncomingRequestArrival(input: {
     monitorId: ObjectID;
     dataToProcess: IncomingMonitorRequest;

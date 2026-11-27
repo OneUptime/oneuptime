@@ -4,6 +4,8 @@ import StorageSystemUtil from "../../../../Types/StorageArray/StorageSystemUtil"
 import { StorageArrayExtractor } from "./StorageArrayExtractor";
 import FlashArrayExtractor from "./PureStorage/FlashArrayExtractor";
 import FlashBladeExtractor from "./PureStorage/FlashBladeExtractor";
+import PowerStoreExtractor from "./Dell/PowerStoreExtractor";
+import OntapExtractor from "./NetApp/OntapExtractor";
 
 /*
  * EVERY PLATFORM'S EXTRACTOR, AND WHICH ONE READS A DATAPOINT (#11000).
@@ -35,6 +37,8 @@ import FlashBladeExtractor from "./PureStorage/FlashBladeExtractor";
 const BUILT_IN_EXTRACTORS: ReadonlyArray<StorageArrayExtractor> = [
   FlashArrayExtractor,
   FlashBladeExtractor,
+  PowerStoreExtractor,
+  OntapExtractor,
 ];
 
 export interface ResolvedStorageArrayExtractor {

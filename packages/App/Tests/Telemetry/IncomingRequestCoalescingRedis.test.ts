@@ -792,15 +792,15 @@ describe("a monitor that groups by a payload field evaluates every request, in o
   }, 45000);
 
   /*
-   * A monitor that is not being monitored - deleted, archived, disabled,
-   * paused - refuses every request alike: one refusal settles them all, and
+   * A key that no longer finds its monitor - the monitor deleted, or its key
+   * rotated - refuses every request alike: one refusal settles them all, and
    * the job completes, as a job of its own did.
    */
-  test("a monitor that refuses a request refuses every request waiting for it", async () => {
+  test("a monitor that is not found refuses every request waiting for it with one refusal", async () => {
     const secretKey: string = newMonitor({ grouped: true });
     failOnce.set(
       `${secretKey}:1`,
-      new BadDataException(ExceptionMessages.MonitorDisabled),
+      new BadDataException(ExceptionMessages.MonitorNotFound),
     );
 
     await sendAll(secretKey, 1, 5);
@@ -809,6 +809,35 @@ describe("a monitor that groups by a payload field evaluates every request, in o
     await settled(secretKey);
 
     expect(startsOf(secretKey)).toEqual([1]);
+    expect(evaluationsOf(secretKey)).toEqual([]);
+    expect(await isAnythingKept(secretKey)).toBe(false);
+  });
+
+  /*
+   * #11141: a monitor archived, turned off or paused since its key was kept
+   * used to refuse one request and settle every other with it, dropped
+   * without a trace. MonitorResource lists each request as not evaluated
+   * before it refuses it, so each one reaches it in turn, in order, and the
+   * job completes with nothing left waiting.
+   */
+  test("a monitor that is not being checked refuses each request on its own: every one reaches the evaluation, in order", async () => {
+    const secretKey: string = newMonitor({ grouped: true });
+
+    for (const sequence of range(1, 5)) {
+      failAlways.set(
+        `${secretKey}:${sequence}`,
+        new BadDataException(
+          ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+        ),
+      );
+    }
+
+    await sendAll(secretKey, 1, 5);
+
+    startWorker();
+    await settled(secretKey);
+
+    expect(startsOf(secretKey)).toEqual([1, 2, 3, 4, 5]);
     expect(evaluationsOf(secretKey)).toEqual([]);
     expect(await isAnythingKept(secretKey)).toBe(false);
   });

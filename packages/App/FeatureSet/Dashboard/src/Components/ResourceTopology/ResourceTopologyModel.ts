@@ -94,6 +94,11 @@ export interface ResourceTopologyLinkTarget {
   modelId: string;
   subModelId?: string | undefined;
   /*
+   * A third level, where the page has one (RouteParams.PartID): a storage
+   * array part of a kind only its platform has, under its kind.
+   */
+  partId?: string | undefined;
+  /*
    * What the page's address says besides: a Kubernetes object's
    * namespace, as names repeat across namespaces.
    */

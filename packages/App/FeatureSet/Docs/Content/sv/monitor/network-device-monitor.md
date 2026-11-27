@@ -147,11 +147,14 @@ En discovery-skanning av en kunds nätverk tar in dussintals enheter som hör ti
 | --- | --- |
 | **Ange plats** / **Rensa plats** | Flyttar varje markerad enhet till den plats du väljer, där den räknas in i platsens hälsa; en enhet utan egen sond tar platsens standardsond. **Rensa plats** tar bort dem från deras platser. En enhet som en platstilldelningsregel matchar går tillbaka till regelns plats vid nästa avsökning, så för enheter som discovery fortsätter att hitta lägger du hellre till en regel under **Nätverk → Regler → Regler för platstilldelning**; dialogrutan **Ange plats** länkar dit. |
 | **Ange enhetsroll** / **Rensa enhetsroll** | Ger varje markerad enhet samma roll, som de tjugo switchar som alla är "Access Switch". Rollerna är projektets egna, under **Nätverk → Inställningar → Enhetsroller**, som dialogrutan länkar till. **Rensa enhetsroll** härleder varje enhets roll från dess SNMP-identitet igen. |
+| **Skapa monitorer** | Ger varje markerad enhet en monitor från den mall du väljer, som en import gör: monitorn från en mall för nätverksenheter läser enhetens avfrågningar, och monitorn från en Ping-, IP-, Port- eller NTP-mall kontrollerar enhetens egen adress. En enhet som redan har en monitor från den mallen, eller en av samma typ som kontrollerar samma sak, behåller den och får ingen till. |
 | **Tillämpa tillverkarmall** | Lägger till en [tillverkarmalls](#tillverkarnas-hälsomallar) hälso-OID:er och SNMP-tabeller på varje markerad enhet. **Matcha varje enhets tillverkare**, dialogrutans första val, väljer varje enhets egen mall utifrån vad dess SNMP-walk rapporterar, så att ett blandat urval får rätt mall överallt; eller välj en mall för alla. |
 
 Varje åtgärd är en dialogruta och en sparning för hela urvalet, och varje enhet går igenom samma kontroller som en redigering på dess egen sida Inställningar: behörigheter, din rolls etikett- och ägaromfattning och gränserna för vad en enhet får samla in.
 
 **Tillämpa tillverkarmall** visar vad den kommer att göra innan den gör något: hur många enheter som får vilken mall, och hur många den lämnar orörda och varför. Den lägger till det som varje enhet redan samlar in och tar inte bort något, och en enhet som redan har allt i mallen skrivs inte om. Den lämnar orörd en enhet med bunden monitor (inget avsöker den), en enhet som är kopplad till en [OID Collection Template](#mallar-för-oid-insamling) (mallen bestämmer vad den samlar in, så lägg till tillverkarens OID:er där) och, vid matchning, en enhet som ännu inte har walkats via SNMP eller vars tillverkare saknar mall.
+
+**Skapa monitorer** körs på servern, upp till 5 000 enheter i taget, och den stoppas inte när du stänger dialogrutan. Dialogrutan räknar monitorerna allteftersom var och en skapas, redan finns där eller misslyckas, och **Stoppa** stoppar körningen efter den enhet som just nu får sin monitor. **Försök igen** försöker bara igen med de enheter som misslyckades, och att köra den igen på samma enheter skapar ingenting två gånger. En enhet som får sin status från en monitor som är bunden till den får ingen nätverksenhetsmonitor, eftersom inget avsöker den. Varje monitor räknas mot din plan: en plan utan plats kvar vägrar att starta, och när den fylls upp halvvägs listas de återstående enheterna bland dem som inte tilldelades någon monitor, med orsaken, så att de kan försökas igen när det finns plats.
 
 När en åtgärd är klar listar den hur många enheter som ändrades, vilka som misslyckades och varför — en enhet som din roll inte får redigera, en lista över sin gräns — och vilka den inte ändrade och varför: en enhet som redan fanns på den platsen eller hade den rollen, eller en som tillverkarmallen lämnar orörd.
 
@@ -182,6 +185,8 @@ En enhet som svarar på ping men vars walk misslyckas är **Uppe**, markerad med
 - Den är SNMP failing eftersom dess gränssnitt, inventarium och hälso-OID:er har slutat uppdateras, nästan alltid på grund av autentiseringsuppgifter, en avstängd SNMP-agent eller en ACL. Inget annat på sidan skulle tala om för dig att siffrorna har frusit.
 
 En enhet vars ping och walk båda misslyckas är helt enkelt **Nere**, så markeringen visas bara någonsin bredvid en grön status.
+
+Monitorer skiljer de två åt på samma sätt. **Enhet är nåbar (ICMP)** bedömer avsökningens ping för sig, och en ny nätverksenhetsmonitor utlöser ett larm, inte en incident, och förblir online när SNMP misslyckas på en enhet som svarar på ping: se [En ny monitors kriterier](#en-ny-monitors-kriterier).
 
 ### Läsa en enhets status
 
@@ -255,7 +260,7 @@ Sidan **Enheter** visar en banderoll när projektet har enheter med åsidosättn
 
 En agent kan svara för flera enheter på en adress, var och en i sin egen SNMPv3-kontext: ett Brocade-chassi med Virtual Fabrics svarar för varje logisk switch i kontexten `VF:` och dess fabric-ID. Lägg till en enhet per logisk switch på den adressen, med SNMP v3, och ange för var och en dess **SNMP v3-kontext** på dess sida **Inställningar**; en enhet utan kontext frågas i agentens standardkontext. Kontexten hör till enheten, inte till dess inloggningsuppgifter, så den gäller med vilken inloggningsprofil enheten än använder.
 
-En prob från före SNMPv3-kontexter skulle fråga standardkontexten i stället, så tills den är uppdaterad pingar den bara en sådan enhet. Varje SNMPv3-trap nämner också sin kontext och utlöses bara på den enhet som frågas i den kontexten; en trap i en kontext där ingen enhet frågas loggas som omatchad.
+En sond från före SNMPv3-kontexter skulle fråga standardkontexten i stället, så tills den är uppdaterad pingar den bara en sådan enhet. Varje SNMPv3-trap nämner också sin kontext och utlöses bara på den enhet som frågas i den kontexten; en trap i en kontext där ingen enhet frågas loggas som omatchad.
 
 ## Platsens standardvärden för övervakning
 
@@ -741,7 +746,7 @@ För att få de enheter du redan har i linje med reglerna trycker du på **Till�
 
 ### Importera automatiskt med regler för automatisk import
 
-Att granska varje skanning för hand skalar inte förbi de första subnäten. **Nätverk → Regler → Regler för automatisk import** är där du skriver ner importen en gång: en regel anger vilka upptäckta värdar den gör anspråk på (ett IP-intervall och valfria mönster för systemnamn, beskrivning och `sysObjectID`) och, valfritt, vilken monitormall och vilken [OID Collection Template](#mallar-för-oid-insamling) de enheter den importerar får. Monitorn från en mall för nätverksenheter läser varje enhets avfrågningar, monitorn från en Ping-, IP-, Port- eller NTP-mall kontrollerar varje enhets egen adress, och monitorn från en Webbplats-, API- eller SSL-certifikatmall kontrollerar mallens URL med varje enhets adress som värd. En enhet får aldrig en andra monitor av samma typ. En regel som är markerad som undantag gör inte anspråk på något och lägger in veto mot de andra: så skärs skrivare och telefoner ut ur en bred subnätsregel.
+Att granska varje skanning för hand skalar inte förbi de första subnäten. **Nätverk → Regler → Regler för automatisk import** är där du skriver ner importen en gång: en regel anger vilka upptäckta värdar den gör anspråk på (ett IP-intervall och valfria mönster för systemnamn, beskrivning och `sysObjectID`) och, valfritt, vilken monitormall och vilken [OID Collection Template](#mallar-för-oid-insamling) de enheter den importerar får. Monitorn från en mall för nätverksenheter läser varje enhets avfrågningar, monitorn från en Ping-, IP-, Port- eller NTP-mall kontrollerar varje enhets egen adress, och monitorn från en Webbplats-, API- eller SSL-certifikatmall kontrollerar mallens URL med varje enhets adress som värd. En enhet som projektet redan har får också mallens monitor, om den inte redan har en: en monitor från samma mall, eller en av samma typ som kontrollerar samma sak, som har skapats för den, är kopplad till den, är bunden till den eller bevakar den. En monitor av en annan typ, eller en nätverksenhetsmonitor från en annan mall eller utan mall, hindrar det aldrig, så en enhet får aldrig samma monitor två gånger och går aldrig miste om den som regeln ger. En regel som är markerad som undantag gör inte anspråk på något och lägger in veto mot de andra: så skärs skrivare och telefoner ut ur en bred subnätsregel.
 
 I en regel bestämmer **Kontrollera var** hur ofta skanningens sond avsöker varje enhet som regeln importerar, precis som **Kontrollera var** när du importerar från **Granska resultat**; tomt är det var 5:e minut. En regel med **Ta med värdar med bara ping** påslaget importerar också värdar som bara svarade på ping, bland dem varje värd som en [ICMP-skanning](#icmp-skanningar) hittar, och ger även dem sin monitormall: sonden pingar dem, så mallens kontroller av om en enhet är uppe och av de traps den skickar fungerar för dem direkt, och dess kontroller som läser en SNMP-walk så snart enheten har autentiseringsuppgifter.
 
@@ -825,7 +830,7 @@ För att i stället skapa en från **Monitorer**:
 
 En nätverksenhetsmonitor har inget eget intervall: den utvärderas varje gång enhetens avsökningsresultat kommer in, och varje gång en trap från enheten kommer in.
 
-När avsökningarna slutar utvärderas monitorn ändå. När en enhet har gått tre avsökningsintervall, och minst tio minuter, utan avsökning utvärderas dess monitorer en gång, varje gång avsökningarna slutar, som en avsökning som inte nådde den (en kontroll körs var femte minut): ett kriterium som matchar att **SNMP-enhet är online** är False, till exempel **Device unreachable**, utlöses, och incidenten säger varför ingen avsökning kom, till exempel att sonden är nere eller att enheten saknar sond. En enhet med avsökning avstängd, eller med [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor), lämnas i fred. Nästa avsökning utvärderar monitorn som vanligt.
+När avsökningarna slutar utvärderas monitorn ändå. När en enhet har gått tre avsökningsintervall, och minst tio minuter, utan avsökning utvärderas dess monitorer en gång, varje gång avsökningarna slutar, som en avsökning som inte nådde den (en kontroll körs var femte minut): ett kriterium som matchar att **SNMP-enhet är online** eller **Enhet är nåbar (ICMP)** är False, till exempel **Device unreachable**, utlöses, och incidenten säger varför ingen avsökning kom, till exempel att sonden är nere eller att enheten saknar sond. En enhet med avsökning avstängd, eller med [åsidosättningen med bunden monitor](#åsidosättningen-med-bunden-monitor), lämnas i fred. Nästa avsökning utvärderar monitorn som vanligt.
 
 En monitor som du skapar för en enhet är kopplad till den: en som du skapar från kortet, och en som du skapar från **Monitorer** på adressen till en enhet som dess sonder känner till, hittad så som värdarna från en skanning: en enhet de avsöker, annars den enda med adressen på en plats där de avsöker enheter eller är standardsond. Sonder som inte avsöker något och inte är standardsond för någon plats kopplar den bara till en enhet utan plats som är den enda i projektet med adressen, så att en monitor aldrig kopplas till en enhet på en annan plats på en gissning. I alla andra fall väljer du enheten under **Nätverksenhet** i formulärets **Fler fält**, eller ändrar den senare på monitorns kort **Detaljer**. **Lägg till befintlig monitor**, på enhetens kort, kopplar en monitor som du har skapat tidigare till enheten. En kopplad monitor visas på enhetens sidor, det den utlöser länkas till enheten, och en import eller en regel för automatisk import räknar med den, så att enheten aldrig får en andra monitor av samma slag. **Ta bort**, på raden för en kopplad monitor, tar bort kopplingen när du bekräftar: den visas inte längre på enheten, det den utlöser från och med då länkas inte till enheten, och importer och regler för automatisk import slutar räkna med den. Själva monitorn fortsätter att kontrollera, oförändrad. En monitor som enheten visar av ett annat skäl, till exempel en som en import har skapat för den eller monitorn som enheten är bunden till, har ingen **Ta bort**. När en monitors sonder ändras räknar OneUptime ut dess koppling på nytt på samma sätt. En monitor som inte är kopplad till någon enhet kopplas till den enhet som dess sonder nu ser. En koppling som OneUptime har gjort flyttas till den enheten, eller tas bort när de inte ser någon eller inte kan skilja två åt. En koppling som du själv har gjort eller tagit bort förblir som du lämnade den, och det gör även en koppling från innan OneUptime började registrera vem som gjorde den. Varje ändring noteras i monitorns flöde. Under enhetens egna monitorer listar dess kort de monitorer som kontrollerar dess adress men inte är kopplade till någon enhet. **Lägg till** kopplar en vars sonder ser den här enheten. En vars sonder inte kan skilja den från en annan enhet med adressen, eller som inte avsöker någon enhet och inte är standardsond för någon plats, säger varför och nämner de andra enheterna: om den kontrollerar den här enheten kopplar du den med **Lägg till befintlig monitor**.
 
@@ -854,7 +859,10 @@ Kriterier kontrollerar varje avsökningsresultat och varje trap, och skapar inci
 
 | Filtertyp | Vad den kontrollerar | Vid en avsökning med bara ping |
 | --- | --- | --- |
-| SNMP Device Is Online | Om enheten går att nå, via ping eller SNMP: samma utslag som dess status. | Utvärderas |
+| SNMP Device Is Online | Om enheten går att nå, via ping eller SNMP: samma utslag som dess status. Trots namnet är en enhet som svarar på ping online medan dess SNMP misslyckas. | Utvärderas |
+| Device Is Reachable (ICMP) | Om enheten svarade på sin sonds ping vid den här avsökningen, oavsett vad SNMP gjorde. | Utvärderas |
+| ICMP Response Time (in ms) | Den genomsnittliga tur-och-retur-tiden för avsökningens ping. Inget utslag vid en avsökning vars ping inte fick något eko tillbaka. | Utvärderas |
+| ICMP Packet Loss (in %) | Andelen av pingens ekon som enheten inte besvarade. | Utvärderas |
 | SNMP Walk Is Succeeding | Om den senaste SNMP-walken lyckades. Falskt är tillståndet "SNMP failing": nåbar, men gränssnitt och inventarium har slutat uppdateras. | Utvärderas inte |
 | SNMP Response Time (in ms) | Walkens svarstid i millisekunder, aldrig pingens. | Utvärderas inte |
 | SNMP OID Value | Värdet som en OID returnerade. | Utvärderas inte |
@@ -877,6 +885,8 @@ Kriterier kontrollerar varje avsökningsresultat och varje trap, och skapar inci
 
 Vid en avsökning där ingen walk kördes ger kriterierna markerade "Utvärderas inte" inget utslag i stället för ett negativt. Ett kriterium som skapar en incident när SNMP-svarstiden är för hög kan inte utlösas på en enhet som bara pingas, så en enhet med bara ping som bevakas av walkbaserade kriterier ger aldrig falsklarm.
 
+ICMP-kontrollerna läser den ping som varje avsökning redan skickar från enhetens sond, bredvid dess SNMP-walk, så de behöver ingen Ping-monitor och ingen uppdatering av sonden. De kan bedömas över ett tidsintervall, precis som svarstidskontrollerna. En avsökning från en sond som är för gammal för att pinga ger inget utslag för dem.
+
 Gränssnittskontrollerna kräver **Walk Interfaces** påslaget i enhetens avsökningsinställningar, vilket det är som standard. OID-kontrollerna läser enhetens konfigurerade hälso-OID:er. Administrativt avaktiverade gränssnitt är nere med avsikt och räknas aldrig som fel.
 
 **SNMP-gränssnittsanvändning (i %)** tar också **Onormalt hög**, **Onormalt låg** och **Avvikande**, med **Känslighet** och **Baslinjefönster** som på en [Metrikövervakning](/docs/monitor/metrics-monitor). Varje gränssnitt i omfattningen jämförs med sitt eget utnyttjande under samma timme i veckan tidigare dagar, så som det här steget i monitorn har avsökt det, så en reservlänk som går fullt varje natt bedöms efter sina egna nätter, inte efter de lugna portarna bredvid. Incidenten eller larmet nämner det gränssnitt som ligger längst utanför sitt intervall, och hur många fler som ligger utanför sina. Ett gränssnitt lär sig fortfarande, och utlöser ingenting, tills den timmen i veckan har två veckors historik för det.
@@ -887,6 +897,24 @@ Kriterier för SNMP-tabeller väljer en tabell, en kolumn (för SNMP Table Value
 
 Transceiverkriterier har omfattning som gränssnittskontrollerna: tomt bedömer varje modul som ett sammanslaget larm, `*` ger ett separat larm för varje port med en modul (var och en löses för sig och är namngiven efter sin port), och allt annat namnger en port efter namn eller alias. De bedömer enhetens [transceivrar](#transceivrar) så som de är vid den här avsökningen, som redan bär sin historik — hur många avsökningar en modul har saknats, en månads mottagen effekt — så inte heller de utvärderas över ett tidsintervall. En avsökning vars läsning av transceivrar misslyckades låter dem bedöma den senaste bra läsningen, så ett öppet larm löses inte vid en avsökning som inte kunde titta.
 
+### En ny monitors kriterier
+
+En ny nätverksenhetsmonitor börjar med tre kriterier. De kontrolleras i ordning, och det första som matchar sätter monitorns status:
+
+| Kriterium | Matchar när | Status | Utlöser |
+| --- | --- | --- | --- |
+| Offline | Enheten svarar varken på ping eller SNMP: **SNMP-enhet är online** är Falskt. | Offline | En incident |
+| SNMP misslyckas | Enheten svarar på ping, **Enhet är nåbar (ICMP)** är Sant, medan dess walk misslyckas, **SNMP-walk lyckas** är Falskt. | Online | Ett larm med projektets varningsgrad |
+| Online | Enheten svarar på ping eller SNMP. | Online | Inget |
+
+Att SNMP misslyckas betyder inte att enheten är offline. En ändrad community string, en stoppad SNMP-agent eller en ACL stoppar walken på varje enhet den berör, medan var och en av dem fortfarande svarar på ping och vidarebefordrar trafik. Ett problem med autentiseringsuppgifter över 3 000 switchar blir 3 000 larm som säger att SNMP misslyckas, med en sak att åtgärda, i stället för 3 000 enheter som är nere på dina statussidor. Larmet löses vid den första avsökningen vars walk lyckas.
+
+Kriteriet "SNMP misslyckas" sätter statusen till Online i stället för att lämna den som den var, eftersom bara det första kriteriet som matchar tillämpas: en enhet som var offline under en avsökning och kom tillbaka med SNMP som fortfarande misslyckades skulle annars förbli offline så länge SNMP misslyckades.
+
+Offline kräver att båda misslyckas, inte bara pingen, eftersom utrustning bakom en ACL som blockerar ICMP från sonden fortfarande svarar på SNMP och är uppe. Om alla enheter du bevakar svarar på ping kan du i stället låta ditt Offline-kriterium vara **Enhet är nåbar (ICMP)** är Falskt, och lägga till kriterier med **ICMP-svarstid (i ms)** eller **ICMP-paketförlust (i %)** för en långsam länk eller en länk med paketförlust. För en enhet som bara pingas meddelas det aldrig att dess SNMP misslyckas: utan walk utvärderas inte det kriteriet.
+
+Monitorer som skapades före detta behåller de kriterier de har. För att ge en av dem de nya kriterierna lägger du till dem i monitorns kriterieformulär, eller i mallen som monitorerna skapas från, och använder **Synkronisera från mall**.
+
 ### Rekommenderat larmpaket
 
 Klicka på **Add Recommended Alerts** i kriterieformuläret för att lägga till en färdig uppsättning kriterier: de larm som de flesta nätverksoperatörer vill ha, utan att bygga dem för hand varje gång. Paketet fylls i när du skapar en monitor från enhetens sida, och det är det som mallen i den rekommenderade larmpolicyn bär.
@@ -894,7 +922,7 @@ Klicka på **Add Recommended Alerts** i kriterieformuläret för att lägga till
 | Kriterium | Utlöses när | Skapar |
 | --- | --- | --- |
 | Device unreachable | Enheten slutar svara på ping och SNMP. | Incident |
-| SNMP walk failing | Enheten svarar på ping men dess SNMP-walk misslyckas. | Larm |
+| SNMP walk failing | Enheten svarar på ping men dess SNMP-walk misslyckas. Den håller monitorn online. | Larm |
 | Interface down | Ett administrativt aktiverat gränssnitt går ner i drift. | Incident |
 | Interface saturated | Ett gränssnitt går över 80 % utnyttjande. | Larm |
 | Interface errors | Ett gränssnitt registrerar mer än 1 fel per sekund. | Larm |
@@ -904,7 +932,9 @@ Klicka på **Add Recommended Alerts** i kriterieformuläret för att lägga till
 
 När enheten walkar [SNMP-tabeller](#snmp-tabeller) som anger friska värden lägger paketet också till ett kriterium **SNMP-tabellrad är ej felfri** per sådan tabell, med Row `*`: en incident per rad för tunnlar, routinggrannar och en kontrollers accesspunkter ("IPsec Tunnels: row unhealthy", eller "Access Points: row unhealthy" för en accesspunkt som har försvunnit från sin kontroller), och ett larm per rad för hårdvarutabeller och radior.
 
-SNMP walk failing är med avsikt ett larm och inte en incident: enheten är inte nere, så att väcka någon klockan 2 på natten för det vore fel, men dess inventarium har slutat uppdateras och någon borde rätta autentiseringsuppgifterna. Den utlöses aldrig på en enhet med bara ping, eftersom kriteriet inte utvärderas när ingen walk kördes.
+SNMP walk failing är med avsikt ett larm och inte en incident: enheten är inte nere, så att väcka någon klockan 2 på natten för det vore fel, men dess inventarium har slutat uppdateras och någon borde rätta autentiseringsuppgifterna. Den utlöses aldrig på en enhet med bara ping, eftersom kriteriet inte utvärderas när ingen walk kördes, och inte heller på en enhet som inte svarar på något, vilket är **Device unreachable**: den kontrollerar också **Enhet är nåbar (ICMP)**.
+
+Den sätter också monitorns status till online när den matchar. Bara det första kriteriet som matchar sätter statusen, så en enhet som gick ner under en avsökning och kom tillbaka med sin SNMP som fortfarande misslyckades förblev tidigare offline så länge SNMP misslyckades, med sin incident löst och sin statussida röd. Dess larm löses vid den första avsökningen vars walk lyckas. En mall eller monitor som tidigare skapats från paketet behåller sina kriterier: för att ändra en lägger du till **Enhet är nåbar (ICMP)** är Sant i dess kriterium **SNMP walk failing** och låter det ändra statusen till din online-status, och använder sedan **Synkronisera från mall** på mallens monitorer; en larmpolicys monitorer följer dess mall av sig själva.
 
 De tre transceiverkriterierna ger ett larm per port (`*`), och är larm i stället för incidenter av samma skäl: en mörk modul tar redan ner sitt gränssnitt, och Interface down kallar ut jouren för det, medan dessa säger varför, eller varnar innan det händer. 2 dB är ungefär en tredjedel av ljuset borta: långt över de få tiondelar av en dB som en frisk länk svajar med från dag till dag, och tidigt nog att rengöra en kontakt innan länken förlorar sin marginal. Ingen av dem kan utlösas på en enhet som inte rapporterar någon optik.
 

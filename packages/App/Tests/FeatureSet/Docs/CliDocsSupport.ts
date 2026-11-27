@@ -62,6 +62,8 @@ const COMMANDS_MODULE_PREFIX: string = "./Commands/";
 export const CLI_RESOURCE_SOURCES: ReadonlyArray<string> = [
   "Commands/ResourceCommands.ts",
   "Commands/ActionCommands.ts",
+  // A resource's own commands: cloud costs broken down and exported (#11009).
+  "Commands/CloudCostCommands.ts",
 ];
 
 // What Commander adds to every program built with .version() and help on.
@@ -715,6 +717,12 @@ export const ACTION_REGISTER_FUNCTIONS: ReadonlyArray<string> = [
   "registerAddNoteCommand",
 ];
 
+// The functions that register a resource's own commands (#11009).
+export const RESOURCE_OWN_REGISTER_FUNCTIONS: ReadonlyArray<string> = [
+  "registerCloudCostBreakdownCommand",
+  "registerCloudCostExportCommand",
+];
+
 // Every subcommand of a resource, "<resource> list" to "<resource> add-note".
 function resourceCommands(): Array<CliCommand> {
   const sources: Array<ts.SourceFile> = CLI_RESOURCE_SOURCES.map(parse);
@@ -724,6 +732,7 @@ function resourceCommands(): Array<CliCommand> {
     ...Object.values(operations),
     FIELDS_REGISTER_FUNCTION,
     ...ACTION_REGISTER_FUNCTIONS,
+    ...RESOURCE_OWN_REGISTER_FUNCTIONS,
   ].flatMap((name: string): Array<CliCommand> => {
     return subcommandsOf(functionNamed(sources, name));
   });

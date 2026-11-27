@@ -44,6 +44,8 @@ enum EmailTemplateType {
    * ProbeMajorReleaseNotice).
    */
   ProbeMajorReleaseBehind = "ProbeMajorReleaseBehind.hbs",
+  // A cloud budget passed an early threshold (#11008).
+  CloudBudgetThresholdPassed = "CloudBudgetThresholdPassed.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",
   AIAgentOwnerAdded = "AIAgentOwnerAdded.hbs",
   ConfirmStatusPageSubscription = "ConfirmStatusPageSubscription.hbs",
@@ -224,6 +226,13 @@ enum EmailTemplateType {
    * person copied (Server/Utils/ProductFeedback/GiveFeedbackEmail.ts).
    */
   GiveFeedback = "GiveFeedback.hbs",
+
+  /*
+   * A scheduled cloud cost report (#11009): what the clouds cost in its
+   * period, with its figures as a CSV (Server/Utils/CloudCost/
+   * CloudCostReportSender.ts).
+   */
+  CloudCostReport = "CloudCostReport.hbs",
 }
 
 export default EmailTemplateType;

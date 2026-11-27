@@ -117,7 +117,7 @@ Rond het verifiëren af zoals de e-mail u vertelt.
 Is er sindsdien een andere e-mail binnengekomen, dan toont de kaart de verificatie-e-mail niet meer. Open **Monitoringlogboeken**, zoek de verificatie-e-mail op zijn onderwerp in de kolom **E-mail**, en klik op **Samenvatting bekijken** in die rij.
 
 > [!IMPORTANT]
-> **Uw criteria zien hem ook.** De verificatie-e-mail wordt getoetst zoals elke andere e-mail. Een formulering als "if you received this in error" komt overeen met het standaardcriterium `error` en markeert de monitor als offline. Om dat te voorkomen, zet u tijdens het verifiëren **Deze monitor controleren** uit in de kaart **Bewaking** op de pagina **Instellingen** van de monitor (u wordt om bevestiging gevraagd). Een monitor met bewaking uit slaat de e-mail toch op, en de kaart **Monitorsamenvatting** toont hem nog steeds. Hij toetst alleen niets, dus de e-mail krijgt geen rij in **Monitoringlogboeken**: lees hem voordat er een andere e-mail binnenkomt. Bent u klaar, klik dan op **Bewaking aanzetten** in de banner boven aan de pagina's van de monitor, of zet de schakelaar weer aan.
+> **Uw criteria zien hem ook.** De verificatie-e-mail wordt getoetst zoals elke andere e-mail. Een formulering als "if you received this in error" komt overeen met het standaardcriterium `error` en markeert de monitor als offline. Om dat te voorkomen, zet u tijdens het verifiëren **Deze monitor controleren** uit in de kaart **Bewaking** op de pagina **Instellingen** van de monitor (u wordt om bevestiging gevraagd). Een monitor met bewaking uit slaat de e-mail toch op, en de kaart **Monitorsamenvatting** toont hem nog steeds. Hij toetst alleen niets: de rij van de e-mail in **Monitoringlogboeken** zegt dat hij niet is getoetst, en **Samenvatting bekijken** daarin toont de hele e-mail. Bent u klaar, klik dan op **Bewaking aanzetten** in de banner boven aan de pagina's van de monitor, of zet de schakelaar weer aan.
 
 **Verificatie hoort bij het adres.** Als u [het adres opnieuw instelt of aanpast](#het-e-mailadres-opnieuw-instellen-of-aanpassen), ziet de dienst een nieuwe ontvanger en moet u opnieuw verifiëren.
 
@@ -186,6 +186,8 @@ Het eigen adres van de monitor wordt gemaskeerd voordat een criterium de e-mail 
 Bij al deze vergelijkingen tellen hoofdletters niet. Een filter met een lege waarde komt nooit overeen.
 
 ### Tijdgebaseerde filters (E-mail ontvangen)
+
+Het Engelse dashboard spelt deze voorwaarden als "Recieved".
 
 | Filtervoorwaarde | Beschrijving | Voorbeeld |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Klik op **Meer details weergeven** om de rest te zien:
 
 ### Eerdere e-mails
 
-De kaart toont alleen de nieuwste e-mail. Elke e-mail die de monitor toetst, wordt ook naar **Monitoringlogboeken** geschreven: de kolom **E-mail** toont het onderwerp en de afzender, en **Samenvatting bekijken** in de rij toont de hele e-mail op dezelfde manier als de kaart. Een monitor met bewaking uit toetst niets, dus de e-mails die hij ontvangt, krijgen geen rijen. Controleert een van uw criteria **E-mail ontvangen**, dan schrijft de monitor ook een rij telkens als hij op ontbrekende e-mail controleert. De kolom **E-mail** zegt in die rijen "Scheduled check", en hun **Samenvatting bekijken** toont de nieuwste e-mail op het moment van de controle, of "No email yet" als er nog geen was binnengekomen. Monitoringlogboeken worden standaard één dag bewaard. Op een zelf gehoste server kan een beheerder dat wijzigen met **Logbewaring van monitor (dagen)** in de instellingen van het beheerdashboard.
+De kaart toont alleen de nieuwste e-mail. Elke e-mail die de monitor toetst, wordt ook naar **Monitoringlogboeken** geschreven: de kolom **E-mail** toont het onderwerp en de afzender, en **Samenvatting bekijken** in de rij toont de hele e-mail op dezelfde manier als de kaart. Een monitor die niet wordt gecontroleerd — zijn bewaking uit, of gepauzeerd door een incident of een onderhoudsgebeurtenis — toetst niets, dus elke e-mail die hij ontvangt, krijgt een rij die zegt dat hij niet is getoetst, en waarom. Controleert een van uw criteria **E-mail ontvangen**, dan schrijft de monitor ook een rij telkens als hij op ontbrekende e-mail controleert. De kolom **E-mail** zegt in die rijen "Scheduled check", en hun **Samenvatting bekijken** toont de nieuwste e-mail op het moment van de controle, of "No email yet" als er nog geen was binnengekomen.
+
+Monitoringlogboeken worden standaard één dag bewaard. Op een zelf gehoste server kan een beheerder dat wijzigen met **Logbewaring van monitor (dagen)** in de instellingen van het beheerdashboard.
 
 ## Zelf gehoste installatie
 

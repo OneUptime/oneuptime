@@ -2188,6 +2188,62 @@ export default class Incident extends BaseModel {
   public changeMonitorStatusToId?: ObjectID = undefined;
 
   /*
+   * Whether this incident, declared by hand, pauses the checks of its
+   * monitors while it is open (issue #11141): on by default, as every
+   * incident declared by hand always did, so the status it put them in
+   * stays. Declared with it off - or switched off while the incident is
+   * open - its monitors keep being checked, and their checks keep setting
+   * their status. A monitor set to keep monitoring during incidents
+   * (Monitor.keepMonitoringDuringIncidents) is never paused whatever this
+   * says, and an incident OneUptime declares never pauses its monitors
+   * (MonitorIncidentPause).
+   */
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.CreateProjectIncident,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.IncidentViewer,
+      Permission.ReadProjectIncident,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.IncidentAdmin,
+      Permission.IncidentMember,
+      Permission.EditProjectIncident,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    required: true,
+    title: "Pause Monitoring",
+    description:
+      "Whether this incident, declared by hand, pauses the checks of its monitors until it is resolved. Monitors set to keep monitoring during incidents are never paused, and incidents OneUptime declares pause nothing.",
+    defaultValue: true,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: true,
+  })
+  public pauseMonitoring?: boolean = undefined;
+
+  /*
    * Whether the subscribers of the incident's status pages were told it was
    * declared, and how it went (subscriberNotificationStatusMessage below):
    * OneUptime's record of the notification, so nobody may give a new incident

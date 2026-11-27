@@ -552,46 +552,39 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     /*
-     * Read for the kind of each store it is saved on (#11140): a search
+     * A person's connection string is one Data Security can sample with,
+     * read for the kind of each store it is saved on (#11140): a search
      * cluster's address on a PostgreSQL store is refused like any other.
+     * OneUptime's own writes are Data Observability's (DataObservabilityAPI):
+     * Snowflake's, BigQuery's or Databricks' JSON, a ClickHouse or MongoDB
+     * URL - read by its workers, never sampled by Data Security, and refused
+     * here before, so connecting a known Snowflake store failed.
      */
     let rowsOfConnection: Array<Model> | null = null;
 
-    if (data["connectionString"] !== undefined) {
-      if (updateBy.props.isRoot) {
-        data["connectionString"] = Service.readConnectionString(
+    if (data["connectionString"] !== undefined && !updateBy.props.isRoot) {
+      rowsOfConnection = await this.findRowsAndHoldUpdateToThem(updateBy, {
+        _id: true,
+        projectId: true,
+        kind: true,
+      });
+
+      let connectionString: string | null = null;
+
+      for (const row of rowsOfConnection) {
+        connectionString = Service.readConnectionString(
           data["connectionString"],
-          undefined,
-          { isRoot: true },
+          row.kind,
         );
-      } else {
-        rowsOfConnection = await this.findRowsAndHoldUpdateToThem(updateBy, {
-          _id: true,
-          projectId: true,
-          kind: true,
-        });
-
-        let connectionString: string | null = null;
-
-        for (const row of rowsOfConnection) {
-          connectionString = Service.readConnectionString(
-            data["connectionString"],
-            row.kind,
-          );
-        }
-
-        // Held to no row, the update writes nothing: the text is only trimmed.
-        data["connectionString"] =
-          rowsOfConnection.length > 0
-            ? connectionString
-            : Service.readConnectionString(
-                data["connectionString"],
-                undefined,
-                {
-                  isRoot: true,
-                },
-              );
       }
+
+      // Held to no row, the update writes nothing: the text is only trimmed.
+      data["connectionString"] =
+        rowsOfConnection.length > 0
+          ? connectionString
+          : Service.readConnectionString(data["connectionString"], undefined, {
+              isRoot: true,
+            });
     }
 
     if (data["watchedPaths"] !== undefined) {

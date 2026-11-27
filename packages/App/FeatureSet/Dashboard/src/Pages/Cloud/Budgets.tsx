@@ -1,10 +1,11 @@
 import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import AppLink from "../../Components/AppLink/AppLink";
 import {
+  CloudBudgetRowFigures,
   CloudBudgetStatus,
   CloudBudgetTone,
+  getCloudBudgetRowFigures,
   getCloudBudgetStatus,
 } from "../../Components/Cloud/CloudBudgetStatus";
 import { formatCloudMoney } from "../../Components/Cloud/CloudCostWords";
@@ -13,31 +14,41 @@ import {
   useCloudCostBasis,
 } from "../../Components/Cloud/CloudCostBasis";
 import {
-  CLOUD_COST_BASES,
-  CLOUD_COST_BASIS_LABELS,
-  CloudCostBasis,
-  resolveCloudCostBasis,
-} from "Common/Types/Cloud/CloudCostBasis";
-import useCloudAccounts, {
-  CloudAccountsRead,
-} from "../../Components/Cloud/UseCloudAccounts";
-import AlertSeverity from "Common/Models/DatabaseModels/AlertSeverity";
+  ALERT_AT_NOT_PERCENTS,
+  CLOUD_BUDGET_FORM_STEPS,
+  getAlertAtProblem,
+  getCloudBudgetCreateInitialValues,
+  getCloudBudgetFormFields,
+} from "../../Components/Cloud/Budgets/CloudBudgetForm";
+import CloudBudgetScopeCell from "../../Components/Cloud/Budgets/CloudBudgetScopeCell";
+import {
+  ALL_ACCOUNTS_LABEL,
+  APPLIES_TO_TITLE,
+  BUDGETS_PERIOD_COLUMN,
+  BUDGETS_THIS_PERIOD_COLUMN,
+  THIS_MONTH_OF_SHARE,
+  THIS_YEAR_OF_AMOUNT,
+  getCloudBudgetPeriodLine,
+} from "../../Components/Cloud/Budgets/CloudBudgetWords";
+import useCloudBudgetFormContext, {
+  CloudBudgetFormContext,
+} from "../../Components/Cloud/Budgets/UseCloudBudgetFormContext";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
 import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
-import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
 import {
-  CLOUD_BUDGET_DEFAULT_THRESHOLDS,
-  isCloudBudgetThresholdsText,
-} from "Common/Types/Cloud/CloudCost";
+  CLOUD_BUDGET_PERIOD_LABELS,
+  CLOUD_BUDGET_PERIODS,
+  CloudBudgetPeriod,
+} from "Common/Types/Cloud/CloudBudget";
+import {
+  CLOUD_COST_BASIS_LABELS,
+  resolveCloudCostBasis,
+} from "Common/Types/Cloud/CloudCostBasis";
 import Color from "Common/Types/Color";
-import ObjectID from "Common/Types/ObjectID";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
-import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
+import OneUptimeDate from "Common/Types/Date";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -47,49 +58,34 @@ import React, { FunctionComponent, ReactElement } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
- * Cloud > Budgets: what a month may cost - for one account or every one -
- * and an alert as its spend passes each threshold (80% and 100% unless
- * told otherwise), and one when the month is on course to pass it, before
- * it does. Each budget is checked after every read of the costs and every
- * hour (CloudBudgetEvaluator); its row says what the month has cost so far
- * against it, where it is heading, and how it is doing.
+ * Cloud > Budgets (#11008): what a month, a quarter or a year may cost -
+ * for every account, one account, a cost group, or a filter of services,
+ * Regions and tags - and who hears as its spend passes each threshold:
+ * below 100% the people it names are told and nobody is paged; at 100%,
+ * and when the period is on course to pass it, an alert pages its on-call
+ * policies. Each budget is checked after every read of the costs and every
+ * hour (CloudBudgetEvaluator); its row says what it counts, its period,
+ * what the period has cost so far against it, where it is heading and how
+ * it is doing - a yearly budget split by month, this month against its
+ * share. A row opens the budget's own page.
  */
 
 export const BUDGETS_TITLE: string = translationKey("Budgets");
 export const BUDGETS_DESCRIPTION: string = translationKey(
-  "What a month may cost, for one account or all of them. OneUptime alerts as the month's spend passes each threshold, when the month is on course to pass the budget, and on a day that costs far more than usual.",
+  "What a month, quarter or year may cost: for every account, one, a cost group, or services and tags. Its people hear at each threshold, and it alerts when spent.",
 );
 export const BUDGETS_EMPTY: string = translationKey(
-  "No budgets yet. Create one to be alerted before a month costs more than it should.",
+  "No budgets yet. Create one to be told before a month, a quarter or a year costs more than it should.",
 );
-export const ALL_ACCOUNTS: string = translationKey("All accounts");
+export const ALL_ACCOUNTS: string = ALL_ACCOUNTS_LABEL;
 export const SPENT_OF_BUDGET: string = translationKey(
   "{{spent}} of {{amount}}",
 );
 export const ON_COURSE_FOR_AMOUNT: string = translationKey(
   "On course for {{amount}}",
 );
-/*
- * Alert At that is not a list of percents: said before it is saved, rather
- * than the budget quietly alerting at 80% and 100% instead.
- */
-export const ALERT_AT_NOT_PERCENTS: string = translationKey(
-  "Write each as a percent of the budget from 1 to 1000, such as 80, 100.",
-);
 
-// Alert At's problem as the form shows it, or null when it reads.
-export function getAlertAtProblem(
-  value: unknown,
-  translator: Translator,
-): string | null {
-  if (typeof value === "string" && isCloudBudgetThresholdsText(value)) {
-    return null;
-  }
-
-  return (
-    translator.translateText(ALERT_AT_NOT_PERCENTS) || ALERT_AT_NOT_PERCENTS
-  );
-}
+export { ALERT_AT_NOT_PERCENTS, getAlertAtProblem };
 
 export const CLOUD_BUDGET_TONE_COLORS: Readonly<
   Record<CloudBudgetTone, Color>
@@ -107,17 +103,50 @@ const BAR_CLASS_NAMES: Readonly<Record<CloudBudgetTone, string>> = {
   neutral: "bg-gray-300",
 };
 
+// A budget's row figures, from what the server last worked out for it.
+export function getBudgetRowFigures(
+  item: CloudBudget,
+  now: Date,
+): CloudBudgetRowFigures {
+  return getCloudBudgetRowFigures({
+    period: item.period,
+    fiscalYearStartMonth: item.fiscalYearStartMonth,
+    monthlyAmount: item.monthlyAmount,
+    planSplit: item.planSplit,
+    monthlyPlan: item.monthlyPlan,
+    spentThisMonth: item.spentThisMonth,
+    projectedThisMonth: item.projectedThisMonth,
+    spentThisPeriod: item.spentThisPeriod,
+    projectedThisPeriod: item.projectedThisPeriod,
+    now,
+  });
+}
+
+// How a budget is doing, as its row says it: its window's figures.
+export function getBudgetRowStatus(
+  item: CloudBudget,
+  figures: CloudBudgetRowFigures,
+): CloudBudgetStatus {
+  return getCloudBudgetStatus({
+    isEnabled: item.isEnabled !== false,
+    amount: figures.amount,
+    spent: figures.spent,
+    projected: figures.projected,
+    thresholds: item.alertThresholds,
+    lastCheckedAt: item.lastCheckedAt,
+  });
+}
+
 const CloudBudgets: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
-  const read: CloudAccountsRead = useCloudAccounts();
+  const context: CloudBudgetFormContext = useCloudBudgetFormContext();
   // The project's cost basis: what a budget with none of its own watches.
   const basisChoice: CloudCostBasisChoice = useCloudCostBasis();
   // A new budget is in the currency most accounts are billed in.
-  const currency: string = read.totals.costs.currency;
-  const moreFields: FormFieldCollapsibleSection<CloudBudget> =
-    getAdvancedFormSection<CloudBudget>();
+  const currency: string = context.currency;
+  const now: Date = OneUptimeDate.getCurrentDate();
 
   /*
    * A budget's figures: its amount as it was set ("$500", not "$500.00"),
@@ -147,7 +176,13 @@ const CloudBudgets: FunctionComponent<
       isDeleteable={true}
       isEditable={true}
       isCreateable={true}
-      isViewable={false}
+      isViewable={true}
+      onViewPage={async (item: CloudBudget): Promise<Route> => {
+        return RouteUtil.populateRouteParams(
+          RouteMap[PageMap.CLOUD_BUDGET_VIEW] as Route,
+          { modelId: item.id! },
+        );
+      }}
       showRefreshButton={true}
       rowSwitch={{ column: "isEnabled" }}
       sortBy="name"
@@ -157,20 +192,24 @@ const CloudBudgets: FunctionComponent<
         description: BUDGETS_DESCRIPTION,
       }}
       noItemsMessage={BUDGETS_EMPTY}
-      createInitialValues={{
-        currency,
-        alertThresholds: CLOUD_BUDGET_DEFAULT_THRESHOLDS.join(","),
-        alertOnProjection: true,
-        alertOnAnomaly: true,
-        isEnabled: true,
-      }}
+      createInitialValues={getCloudBudgetCreateInitialValues(currency)}
       selectMoreFields={{
         currency: true,
         description: true,
         isEnabled: true,
         alertThresholds: true,
+        scope: true,
+        filterRules: true,
+        cloudCostGroupId: true,
+        cloudCostGroup: { name: true, cloudCostViewId: true },
+        period: true,
+        fiscalYearStartMonth: true,
+        planSplit: true,
+        monthlyPlan: true,
         spentThisMonth: true,
         projectedThisMonth: true,
+        spentThisPeriod: true,
+        projectedThisPeriod: true,
         lastCheckedAt: true,
         cloudAccountId: true,
         costBasis: true,
@@ -180,6 +219,19 @@ const CloudBudgets: FunctionComponent<
           field: { name: true },
           title: "Name",
           type: FieldType.Text,
+        },
+        {
+          field: { period: true },
+          title: BUDGETS_PERIOD_COLUMN,
+          type: FieldType.Dropdown,
+          filterDropdownOptions: CLOUD_BUDGET_PERIODS.map(
+            (period: CloudBudgetPeriod) => {
+              return {
+                label: CLOUD_BUDGET_PERIOD_LABELS[period],
+                value: period,
+              };
+            },
+          ),
         },
         {
           field: { cloudAccount: { name: true } },
@@ -227,58 +279,62 @@ const CloudBudgets: FunctionComponent<
         },
         {
           field: { cloudAccount: { name: true } },
-          title: "Applies To",
+          title: APPLIES_TO_TITLE,
+          type: FieldType.Element,
+          hideOnMobile: true,
+          disableSort: true,
+          getElement: (item: CloudBudget): ReactElement => {
+            return (
+              <CloudBudgetScopeCell
+                budget={item}
+                ruleNames={context.ruleContext.names}
+              />
+            );
+          },
+        },
+        {
+          field: { period: true },
+          title: BUDGETS_PERIOD_COLUMN,
           type: FieldType.Element,
           hideOnMobile: true,
           getElement: (item: CloudBudget): ReactElement => {
-            if (!item.cloudAccountId) {
-              return (
-                <span className="text-sm text-gray-700">
-                  {translator.translateText(ALL_ACCOUNTS)}
-                </span>
-              );
-            }
-
             return (
-              <AppLink
-                to={RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.CLOUD_ACCOUNT_VIEW_COSTS] as Route,
-                  { modelId: new ObjectID(item.cloudAccountId.toString()) },
-                )}
-                className="break-words text-sm text-gray-900 hover:underline"
+              <span
+                className="text-sm text-gray-700"
+                data-testid="cloud-budget-period"
               >
-                {item.cloudAccount?.name || ""}
-              </AppLink>
+                {getCloudBudgetPeriodLine({
+                  period: item.period,
+                  fiscalYearStartMonth: item.fiscalYearStartMonth,
+                  planSplit: item.planSplit,
+                  translator,
+                  labels: CLOUD_BUDGET_PERIOD_LABELS,
+                })}
+              </span>
             );
           },
         },
         {
           field: { monthlyAmount: true },
-          title: "This Month",
+          title: BUDGETS_THIS_PERIOD_COLUMN,
           type: FieldType.Element,
           getElement: (item: CloudBudget): ReactElement => {
-            const status: CloudBudgetStatus = getCloudBudgetStatus({
-              isEnabled: item.isEnabled !== false,
-              amount: Number(item.monthlyAmount) || 0,
-              spent: item.spentThisMonth,
-              projected: item.projectedThisMonth,
-              thresholds: item.alertThresholds,
-              lastCheckedAt: item.lastCheckedAt,
-            });
+            const figures: CloudBudgetRowFigures = getBudgetRowFigures(
+              item,
+              now,
+            );
+            const status: CloudBudgetStatus = getBudgetRowStatus(item, figures);
+            const values: { spent: string; amount: string } = {
+              spent: money(figures.spent, item.currency),
+              amount: money(figures.amount, item.currency),
+            };
 
             return (
               <div className="min-w-[10rem]" data-testid="cloud-budget-month">
                 <div className="text-sm text-gray-900">
-                  {translator.translateTemplate(SPENT_OF_BUDGET, {
-                    spent: money(
-                      Number(item.spentThisMonth) || 0,
-                      item.currency,
-                    ),
-                    amount: money(
-                      Number(item.monthlyAmount) || 0,
-                      item.currency,
-                    ),
-                  })}
+                  {figures.isPlanMonth
+                    ? translator.translateTemplate(THIS_MONTH_OF_SHARE, values)
+                    : translator.translateTemplate(SPENT_OF_BUDGET, values)}
                 </div>
                 <div
                   className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gray-100"
@@ -292,16 +348,26 @@ const CloudBudgets: FunctionComponent<
                   />
                 </div>
                 {/*
-                 * Where the month is heading, once it has been checked. A
+                 * Where the window is heading, once it has been checked. A
                  * paused budget is not checked: what it last said is old.
                  */}
                 {item.lastCheckedAt && item.isEnabled !== false ? (
                   <div className="mt-1 text-xs text-gray-500">
                     {translator.translateTemplate(ON_COURSE_FOR_AMOUNT, {
-                      amount: money(
-                        Number(item.projectedThisMonth) || 0,
-                        item.currency,
-                      ),
+                      amount: money(figures.projected, item.currency),
+                    })}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {figures.isPlanMonth && item.lastCheckedAt ? (
+                  <div
+                    className="mt-0.5 text-xs text-gray-500"
+                    data-testid="cloud-budget-year-line"
+                  >
+                    {translator.translateTemplate(THIS_YEAR_OF_AMOUNT, {
+                      spent: money(figures.periodSpent, item.currency),
+                      amount: money(figures.periodAmount, item.currency),
                     })}
                   </div>
                 ) : (
@@ -339,14 +405,10 @@ const CloudBudgets: FunctionComponent<
           type: FieldType.Element,
           disableSort: true,
           getElement: (item: CloudBudget): ReactElement => {
-            const status: CloudBudgetStatus = getCloudBudgetStatus({
-              isEnabled: item.isEnabled !== false,
-              amount: Number(item.monthlyAmount) || 0,
-              spent: item.spentThisMonth,
-              projected: item.projectedThisMonth,
-              thresholds: item.alertThresholds,
-              lastCheckedAt: item.lastCheckedAt,
-            });
+            const status: CloudBudgetStatus = getBudgetRowStatus(
+              item,
+              getBudgetRowFigures(item, now),
+            );
 
             return (
               <span data-testid="cloud-budget-status" data-tone={status.tone}>
@@ -368,149 +430,12 @@ const CloudBudgets: FunctionComponent<
         },
       ]}
       /*
-       * Two steps: what the budget is (its name, what a month may cost and
-       * for which account) and when it alerts. The currency and a
-       * description wait under More fields.
+       * Four steps of what most people set: what the budget counts, what it
+       * may cost and for how long, when it tells someone, and who hears
+       * (CloudBudgetForm). The rest folds under More fields.
        */
-      formSteps={[
-        { title: "Budget", id: "budget" },
-        { title: "Alerts", id: "alerts" },
-      ]}
-      formFields={[
-        {
-          field: { name: true },
-          title: "Name",
-          stepId: "budget",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "Production",
-          validation: { minLength: 2 },
-        },
-        {
-          field: { monthlyAmount: true },
-          title: "Monthly Amount",
-          stepId: "budget",
-          fieldType: FormFieldSchemaType.PositiveNumber,
-          required: true,
-          placeholder: "5000",
-          description:
-            "What a calendar month may cost, on the budget's cost basis: the project's unless you pick one under More fields.",
-        },
-        {
-          field: { cloudAccount: true },
-          title: "Account",
-          stepId: "budget",
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownModal: {
-            type: CloudAccount,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "All accounts",
-          description: "Leave empty for a budget over every account.",
-        },
-        {
-          field: { costBasis: true },
-          title: "Cost Basis",
-          stepId: "budget",
-          collapsibleSection: moreFields,
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownOptions: CLOUD_COST_BASES.map((basis: CloudCostBasis) => {
-            return { label: CLOUD_COST_BASIS_LABELS[basis], value: basis };
-          }),
-          required: false,
-          placeholder: "The project's cost basis",
-          description:
-            "The cost the budget watches: billed, amortized or net. Leave empty to follow the project's, set in Cloud settings.",
-        },
-        {
-          field: { currency: true },
-          title: "Currency",
-          stepId: "budget",
-          collapsibleSection: moreFields,
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "USD",
-          description:
-            "The currency your accounts are billed in, as three letters: USD, EUR, GBP. Only accounts billed in it count toward the budget.",
-          validation: { minLength: 3, maxLength: 3 },
-        },
-        {
-          field: { description: true },
-          title: "Description",
-          stepId: "budget",
-          collapsibleSection: moreFields,
-          fieldType: FormFieldSchemaType.LongText,
-          required: false,
-          placeholder: "What this budget is for.",
-        },
-        {
-          field: { alertThresholds: true },
-          title: "Alert At",
-          stepId: "alerts",
-          fieldType: FormFieldSchemaType.Text,
-          required: true,
-          placeholder: "80,100",
-          description:
-            "The shares of the budget to alert at, in percent, separated by commas: an alert as the month's spend passes each.",
-          customValidation: (
-            values: FormValues<CloudBudget>,
-          ): string | null => {
-            return getAlertAtProblem(values.alertThresholds, translator);
-          },
-        },
-        {
-          field: { alertOnProjection: true },
-          title: "Alert When On Course To Pass",
-          stepId: "alerts",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          defaultValue: true,
-          description:
-            "Also alert, once a month, when the month is on course to cost more than the budget at the last week's pace - before it does.",
-        },
-        {
-          field: { alertOnAnomaly: true },
-          title: "Alert On Unusual Days",
-          stepId: "alerts",
-          fieldType: FormFieldSchemaType.Toggle,
-          required: false,
-          defaultValue: true,
-          description:
-            "Also alert, the next day, when a day costs far more than usual: a service at twice its usual day, or an account at one and a half times.",
-        },
-        {
-          field: { alertSeverity: true },
-          title: "Alert Severity",
-          stepId: "alerts",
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownModal: {
-            type: AlertSeverity,
-            labelField: "name",
-            valueField: "_id",
-            sort: { order: SortOrder.Ascending },
-          },
-          required: false,
-          placeholder: "The project's least severe",
-          description:
-            "How severe the budget's alerts are. Leave empty for the project's least severe.",
-        },
-        {
-          field: { onCallDutyPolicies: true },
-          title: "On-Call Policies",
-          stepId: "alerts",
-          fieldType: FormFieldSchemaType.MultiSelectDropdown,
-          dropdownModal: {
-            type: OnCallDutyPolicy,
-            labelField: "name",
-            valueField: "_id",
-          },
-          required: false,
-          placeholder: "Select On-Call Policies",
-          description: "Who is paged when the budget alerts.",
-        },
-      ]}
+      formSteps={CLOUD_BUDGET_FORM_STEPS}
+      formFields={getCloudBudgetFormFields({ context, translator })}
     />
   );
 };

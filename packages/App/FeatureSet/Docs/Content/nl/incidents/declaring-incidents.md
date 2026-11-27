@@ -85,6 +85,7 @@ De monitoren komen eerst, apart, omdat statuspagina's een incident via zijn moni
 
 - **Monitoren** — een zoekvak dat de monitoren toevoegt die het incident treft; het tabblad **Labels** voegt in één keer elke monitor met een label toe. Een statuspagina toont een incident, en laat haar abonnees ervan weten, als ze een van de monitoren van het incident toont, dus deze bepalen welke statuspagina's ervan horen (`monitors` op het incident).
 - **Monitorstatus wijzigen naar** — optioneel, en alleen getoond zodra er minstens één monitor is gekozen. Kiest een monitorstatus die wordt toegepast op elke monitor die aan dit incident hangt, zodat het incident melden en de monitoren als verminderd markeren één handeling is in plaats van twee. Meld je vanuit een sjabloon dat er een instelt, dan begint het veld met de status van het sjabloon, getoond zodra je een monitor kiest. Zonder gekozen monitor wordt er geen status opgeslagen, ook die van het sjabloon niet; haal je de laatste monitor weg, dan verdwijnt het veld tot je een andere kiest, wat je keuze terugbrengt. De status van een monitor wordt gedeeld door elke statuspagina die hem toont, dus als er statuspagina's zijn gekozen onder **Meer velden**, herinnert het formulier je eraan dat de wijziging ook verschijnt op de pagina's die je niet koos.
+- **Bewaking pauzeren** — getoond zodra er minstens één monitor is gekozen, en aangevinkt. Aangevinkt pauzeert het incident de controles van zijn monitoren tot het is opgelost, zodat de status hierboven op ze blijft staan. Vink het uit om ze gecontroleerd te houden terwijl het incident open is: hun controles blijven hun status instellen, en blijven incidenten en waarschuwingen openen. Een monitor die tijdens incidenten bewaakt blijft, wordt nooit gepauzeerd, aangevinkt of niet (`pauseMonitoring` op het incident). Zie [Bewaking terwijl een incident open is](#bewaking-terwijl-een-incident-open-is).
 - **Andere getroffen resources** — een tweede zoekvak voor al het andere dat het incident treft: hosts, netwerkapparaten, Kubernetes-clusters, Docker- en Podman-hosts, Proxmox-, Ceph- en Docker Swarm-clusters, vCenters, opslagarrays, IoT-vloten, databases, cloudresources en services — alles naast monitoren wat de kaart **Getroffen resources** van het incident zelf aanbiedt. Onder de motorkap zijn dit aparte relaties op het incident (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` en meer), maar het formulier vat ze samen in één kiezer.
 
 **Andere getroffen resources** doorzoekt alle soorten die het aanbiedt tegelijk. Een middel wordt gevonden op zijn naam of beschrijving, een netwerkapparaat ook op het adres waarop het wordt gepold of op zijn DNS-naam, en een host op de naam die zijn agent meldt of op een van zijn IP-adressen. De resultaten zijn gegroepeerd per soort, met het adres van een apparaat naast zijn naam. Zodra ze meer dan één soort bevatten, beperkt een rij erboven de lijst tot één soort en laat zien hoeveel er van elke soort overeenkomen, en een soort met meer treffers dan er passen, biedt aan er meer te tonen. Gearchiveerde middelen worden niet aangeboden. Als de zoekopdracht ook monitoren vindt, zegt een regel onder de resultaten hoeveel, en dat monitoren onder **Monitoren** worden gekozen.
@@ -280,7 +281,7 @@ Op volgorde:
 9. **Abonnees komen in de wachtrij**, als **Statuspagina-abonnees op de hoogte stellen** aan bleef staan en het incident zichtbaar is op de statuspagina. De bezorging gebeurt door een achtergrondtaak, niet binnen je verzoek, en gaat naar de statuspagina's die het incident bereikt: die welke zijn monitoren tonen, ingeperkt door **Beperken tot deze statuspagina's**, en zonder de pagina's die alleen incidenten tonen die tot hen beperkt zijn als het incident niet beperkt is. Een gearchiveerde statuspagina verstuurt niets. De voortgang verschijnt als **Meldingsstatus abonnee** op het **Overzicht** van het incident: wat er per statuspagina is verstuurd en wat er mislukte, en **Opnieuw proberen** of **Opnieuw verzenden** zodra het is afgerond. Zie [Abonnees en aankondigingen](/docs/status-pages/subscribers#controleren-wat-er-is-verzonden).
 10. **Workflows gaan af.** De trigger **Bij aanmaken: Incident** start elke workflow die erop is gebouwd. Zie [Workflows – Overzicht](/docs/workflows/index).
 
-Vanaf dan is het incident live: het telt mee voor de badge **Actieve incidenten** in het zijmenu van Incidenten (elke status boven je opgeloste status telt als actief), het verschijnt op de statuspagina's die een van zijn monitoren dragen (alleen de gekozen pagina's, als je het hebt beperkt), en zijn **Statustijdlijn** begint met vastleggen.
+Vanaf dan is het incident live: het telt mee voor de badge **Actieve incidenten** in het zijmenu van Incidenten (elke status boven je opgeloste status telt als actief), het verschijnt op de statuspagina's die een van zijn monitoren dragen (alleen de gekozen pagina's, als je het hebt beperkt), en zijn **Statustijdlijn** begint met vastleggen. Zijn monitoren worden in zijn status van **Monitorstatus wijzigen naar** gezet en, als het met de hand is gemeld, worden hun controles gepauzeerd tot het is opgelost: zie [Bewaking terwijl een incident open is](#bewaking-terwijl-een-incident-open-is).
 
 ### Al bevestigd of opgelost gemeld
 
@@ -306,10 +307,43 @@ flowchart TB
 
 Waarschuwingen, waarschuwingsepisodes en incidentepisodes volgen dezelfde regel: een die al bevestigd wordt aangemaakt, roept niemand op, en een die opgelost wordt aangemaakt, wordt bovendien niet gegroepeerd, hersteld of door AI onderzocht, en krijgt geen eigen kanaal. Een incident of waarschuwing in de aanmaakstatus — de standaard, en elk incident dat een monitor opent — zet alles in gang zoals voorheen.
 
+## Bewaking terwijl een incident open is
+
+Een incident dat met de hand wordt gemeld, pauzeert de controles van de monitoren die het noemt, tot het is opgelost. Zo verandert hun volgende controle de status waarin het ze zette niet terwijl mensen eraan werken. Met de hand gemeld betekent alles behalve OneUptime zelf: **Incident melden** in het dashboard (vanuit een waarschuwing, vanuit het tabblad **Incidenten** van een monitor of vanaf nul), Slack, Microsoft Teams, de API, Terraform, een workflow, [Ask AI](/docs/ai/ask-ai), de mobiele app en een formulier. Een monitor toevoegen aan zo'n incident terwijl het open is, pauzeert ook die monitor.
+
+Niets anders pauzeert de controles van een monitor op deze manier. Een incident dat de criteria van een monitor melden, een dat de incidentregel van een waarschuwing meldt en een dat een SLO meldt, laten hun monitoren gecontroleerd, net als elke waarschuwing, aangemaakt door een monitor of met de hand.
+
+```mermaid title="Of een open incident de controles van een monitor pauzeert"
+flowchart TB
+    declared{"Met de hand gemeld?"} -->|Nee| checked["Controles blijven lopen"]
+    declared -->|Ja| ticked{"Bewaking pauzeren<br/>aangevinkt?"}
+    ticked -->|Nee| checked
+    ticked -->|Ja| setting{"Monitor ingesteld om tijdens<br/>incidenten bewaakt te blijven?"}
+    setting -->|Ja| checked
+    setting -->|Nee| paused["Controles gepauzeerd<br/>tot het is opgelost"]
+```
+
+**Een monitor gecontroleerd houden.** Twee schakelaars beslissen, en elk van beide houdt hem gecontroleerd:
+
+- **Bewaking voortzetten tijdens incidenten**, op de pagina **Instellingen** van de monitor, onder **Tijdens incidenten**. Zet het aan voor een monitor die gebeurtenissen ontvangt, zoals een [inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor) waar een ander systeem zijn waarschuwingen naartoe stuurt: een incident over één gebeurtenis houdt hem dan niet meer tegen de volgende te lezen. Het geldt meteen, ook voor incidenten die al open zijn: aangezet terwijl een incident de monitor pauzeert, starten zijn controles meteen weer. Standaard uit.
+- **Bewaking pauzeren**, waar het incident wordt gemeld, onder **Monitorstatus wijzigen naar**. Vink het uit om alle monitoren van het incident gecontroleerd te houden. Het kan worden gewijzigd terwijl het incident open is, op zijn kaart **Getroffen resources**: uitgevinkt worden de monitoren meteen weer gecontroleerd.
+
+Een monitor die gecontroleerd blijft, blijft zijn eigen status instellen: zijn volgende controle vervangt de status waarin het incident hem zette, en zijn criteria blijven hun eigen incidenten en waarschuwingen openen en oplossen.
+
+**Wat een gepauzeerde monitor nog doet.** Zijn controles stoppen: sondes controleren hem niet meer, een heartbeat, e-mail of agent die stopt met sturen valt niet op, en een telemetriemonitor wordt niet getoetst. Wat hem van buitenaf wordt gestuurd, komt nog steeds binnen: elk verzoek dat een [inkomende-verzoek-monitor](/docs/monitor/incoming-request-monitor) krijgt, elke e-mail die een inkomende-e-mail-monitor krijgt en elk rapport dat de agent van een servermonitor stuurt, staat in zijn **Monitoringlogboeken**, zoals het binnenkwam, met **Niet geëvalueerd: monitoring is gepauzeerd door een incident**. Niets wat een gepauzeerde monitor ontvangt, opent of lost een incident of een waarschuwing op, of verandert zijn status, en de afzender krijgt zoals gewoonlijk antwoord. Een banner op de pagina's van de monitor zegt dat hij gepauzeerd is, en hoe hij gecontroleerd blijft.
+
+**Waarvoor gepauzeerde tijd telt.** Een gepauzeerde monitor houdt de status die hij heeft, en zijn uptime, statuspagina's en SLO's tellen die status als een incident de monitor erin zette met **Monitorstatus wijzigen naar**: dat is de status die iemand heeft gemeld. Als geen pauzerend incident een status instelde, is de status alleen wat de laatste controle van de monitor vóór de pauze zag, dus wordt die tijd weggelaten uit zijn uptime, statuspagina's en SLO's, zoals tijd met bewaking uit. Zijn **Statustijdlijn** markeert waar die tijd begint en eindigt, en de uptime op zijn **Overzicht** zegt dat die gepauzeerde tijd weglaat.
+
+**Wanneer de pauze eindigt.** Het incident oplossen, de monitor ervan afhalen of het verwijderen hervat de controles van de monitor en zet hem terug op operationeel, tenzij er nog een ander open incident op hem staat; daarna stellen zijn controles zijn status in. Een monitor die een ander open, met de hand gemeld incident nog pauzeert, blijft gepauzeerd. Een incident dat sindsdien is opgelost en heropend, houdt niets vast, dus pauzeert het niets en houdt het niets gepauzeerd.
+
 ## Problemen oplossen
 
 :::details Melden mislukt en vraagt om een aanmaakstatus voor incidenten
 Heeft je project geen status met de vlag `isCreatedState`, dan mislukt de aanmaakaanroep en zegt hij dat je vanuit de instellingen een aanmaakstatus voor incidenten moet toevoegen. Dat gebeurt normaal alleen in een project waarvan de statussen flink zijn bewerkt — zie [Incidentstatussen en ernstniveaus](/docs/incidents/states-and-severities).
+:::
+
+:::details Een monitor opende geen waarschuwingen meer nadat er een incident op werd gemeld
+Een incident dat met de hand wordt gemeld, pauzeert de controles van zijn monitoren tot het is opgelost, dus wat hen in de tussentijd bereikt, staat in hun **Monitoringlogboeken**, maar wordt niet getoetst. Zet **Bewaking voortzetten tijdens incidenten** aan in de **Instellingen** van de monitor om hem gecontroleerd te houden tijdens dit incident en de volgende, of vink **Bewaking pauzeren** uit op de kaart **Getroffen resources** van het incident voor de monitoren van dit incident. Zie [Bewaking terwijl een incident open is](#bewaking-terwijl-een-incident-open-is).
 :::
 
 :::details Het incident is gemeld, maar geen enkele abonnee van de statuspagina hoorde ervan

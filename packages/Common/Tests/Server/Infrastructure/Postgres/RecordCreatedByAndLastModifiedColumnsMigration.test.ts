@@ -136,6 +136,56 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
     table: "DataSecurityIssuePullRequest",
     migration: "1809187660831-AddDataSecurityIssuePullRequest.ts",
   },
+  // A request to erase one person from Security Events' user vault (#10908).
+  {
+    table: "SecurityUserErasureRequest",
+    migration: "1809187650908-AddSecurityUserErasureRequest.ts",
+  },
+  // Cloud cost views, the groups they make and their line items (#11006).
+  ...["CloudCostView", "CloudCostGroup", "CloudCostLineItem"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187711006-AddCloudCostViewsGroupsAndLineItems.ts",
+      };
+    },
+  ),
+  // Required cloud tags, their findings, daily coverage and settings (#11012).
+  ...[
+    "CloudRequiredTag",
+    "CloudTagFinding",
+    "CloudTagCoverageDay",
+    "CloudTagSetting",
+  ].map((table: string): { table: string; migration: string } => {
+    return { table, migration: "1809187711012-AddCloudRequiredTags.ts" };
+  }),
+  // XCP-ng pools, their resources, feed and label and owner rules (#10995).
+  ...[
+    "XcpNgPool",
+    "XcpNgResource",
+    "XcpNgPoolFeed",
+    "XcpNgPoolLabelRule",
+    "XcpNgPoolOwnerRule",
+    "XcpNgPoolOwnerTeam",
+    "XcpNgPoolOwnerUser",
+  ].map((table: string): { table: string; migration: string } => {
+    return { table, migration: "1809187720000-AddXcpNgPoolTables.ts" };
+  }),
+  // Acting on cloud savings, and off-hours schedules (#11010).
+  ...["CloudSavingsAction", "CloudOffHoursSchedule"].map(
+    (table: string): { table: string; migration: string } => {
+      return { table, migration: "1809187721010-AddCloudSavingsActions.ts" };
+    },
+  ),
+  // A project's cloud commitments and cost settings (#11007, #11011).
+  ...["CloudCommitment", "CloudCostSetting"].map(
+    (table: string): { table: string; migration: string } => {
+      return {
+        table,
+        migration: "1809187721011-AddCloudCostBasesAndCommitments.ts",
+      };
+    },
+  ),
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

@@ -107,6 +107,7 @@ oneuptime resources
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Работает с одним видом записей | [Операции с ресурсами](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Выводит поля ресурса и флаги, которые их задают | [Операции с ресурсами](/docs/cli/resource-operations#поля-ресурса) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Делает то же, что кнопки панели управления для инцидентов, оповещений и плановых обслуживаний | [Операции с ресурсами](/docs/cli/resource-operations#подтвердить-устранить-и-добавить-заметки) |
+| `oneuptime <resource> breakdown`, `export` | Разбивает облачные расходы за период или экспортирует их файлом FOCUS 1.2, для `cloud-cost` | [Отчёты и экспорт](/docs/telemetry/cloud-costs#отчёты-и-экспорт) |
 | `oneuptime resources` | Выводит виды записей с их командами | [Справочник команд](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Выводит версию CLI | [Справочник команд](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Показывает справку по команде | [Получение справки](#получение-справки) |

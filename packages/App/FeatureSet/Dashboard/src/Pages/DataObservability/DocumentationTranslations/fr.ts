@@ -28,12 +28,15 @@ La **Vue d'ensemble** indique où en sont vos données. Tant que le projet n'est
 
 ## Connecter une base de données
 
-Utilisez un **identifiant en lecture seule**. Dans la vue d'ensemble ou dans Bases de données, choisissez **Connecter une base de données**, puis l'une des deux options :
+Utilisez un **identifiant en lecture seule**. Dans la vue d'ensemble ou dans Bases de données, choisissez **Connecter une base de données**, puis l'une des options suivantes :
 
 - **OneUptime se connecte** : collez une chaîne de connexion. Elle est stockée chiffrée et n'est plus jamais affichée.
 - **Une sonde de mon réseau se connecte** : choisissez l'une des sondes de ce projet et indiquez la variable d'environnement de la sonde qui contient la chaîne de connexion (par exemple \`ORDERS_DB_URL\`). La chaîne de connexion ne quitte jamais votre réseau. Mettez d'abord la sonde à jour vers la dernière version.
+- **Mon Database Agent se connecte** : choisissez le serveur de base de données à côté duquel s'exécute son Database Agent, et indiquez la base de données à lire sur ce serveur. L'agent la lit avec ses propres identifiants, si bien qu'aucun n'est enregistré dans OneUptime. Il lit PostgreSQL, MySQL et MariaDB dès que son propriétaire définit \`ONEUPTIME_DATA_OBSERVABILITY=true\` là où il s'exécute.
 
 Une base de données déjà connectée pour la Sécurité des données est également surveillée.
+
+Les **Paramètres** d'une base de données, dans son menu, permettent de la renommer (**Modifier les détails**), de lui donner un autre identifiant, une autre sonde ou un Database Agent (**Modifier la connexion**), de cesser de la lire en oubliant ses tables et ses vérifications tandis que la Sécurité des données la conserve (**Retirer de l'Observabilité des données**), ou de la supprimer de OneUptime (**Supprimer la base de données**). Tant que la Sécurité des données s'appuie sur une base de données, seule une personne autorisée à supprimer les magasins de données de la Sécurité des données peut la supprimer.
 
 **Bases de données que vous pourriez connecter**, sur la même page, liste ce que votre projet connaît déjà et que personne n'a connecté : les bases de données auxquelles parlent vos traces, celles de vos comptes cloud et celles que surveille la Surveillance des bases de données. **Connecter** pré-remplit le formulaire avec ce que l'on sait de chacune. Rien n'est lu tant que vous ne la connectez pas.
 

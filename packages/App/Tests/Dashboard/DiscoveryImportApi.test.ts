@@ -55,6 +55,7 @@ import {
   getLatestDiscoveryImport,
   listActiveDiscoveryImports,
   retryDiscoveryImport,
+  startDeviceMonitorCreation,
   startDiscoveryImport,
   stopDiscoveryImport,
 } from "../../FeatureSet/Dashboard/src/Components/NetworkDevice/DiscoveryImport/DiscoveryImportApi";
@@ -112,6 +113,48 @@ beforeEach(() => {
   postMock.mockReset();
   getCommonHeadersMock.mockReset();
   getCommonHeadersMock.mockReturnValue(TENANT_HEADERS);
+});
+
+/*
+ * Create Monitors on the Devices list (issue #10990): the devices and the
+ * template, to the route of its own, with the project's headers.
+ */
+describe("asking for monitors for devices already added", () => {
+  test("posts the device ids and the template to start-from-devices, and reads the import back", async () => {
+    postMock.mockResolvedValue(
+      ok({ import: importBody({ scanId: "", source: "devices" }) }),
+    );
+
+    const view: DiscoveryImportView = await startDeviceMonitorCreation({
+      deviceIds: ["aa100000-0000-4000-8000-000000000001"],
+      monitorTemplateId: "ff000000-0000-4000-8000-000000000001",
+    });
+
+    const call: CallOptions = lastCall(postMock);
+
+    expect(call.url.toString()).toBe(
+      `http://localhost/api${DISCOVERY_IMPORT_ROUTES.startFromDevices}`,
+    );
+    expect(DISCOVERY_IMPORT_ROUTES.startFromDevices).toBe(
+      "/network-device-discovery-import/start-from-devices",
+    );
+    expect(call.data).toEqual({
+      deviceIds: ["aa100000-0000-4000-8000-000000000001"],
+      monitorTemplateId: "ff000000-0000-4000-8000-000000000001",
+    });
+    expect(call.headers).toEqual(TENANT_HEADERS);
+    expect(view.source).toBe("devices");
+  });
+
+  test("a refusal is thrown with the server's words", async () => {
+    postMock.mockResolvedValue(
+      refused(400, "Select the devices to create monitors for."),
+    );
+
+    await expect(
+      startDeviceMonitorCreation({ deviceIds: [], monitorTemplateId: "" }),
+    ).rejects.toBeInstanceOf(HTTPErrorResponse);
+  });
 });
 
 describe("asking for an import", () => {

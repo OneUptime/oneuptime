@@ -391,6 +391,15 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A tag that allows one value",
     "Required tags.",
     "What was saved.",
+    // Budgets and forecasts (#11008): the list of what you see, and how a forecast is made.
+    "Every budget.",
+    "The months ahead.",
+    "This month",
+    "With fewer than 3 full months",
+    "From 3 full months",
+    "From 12 full months",
+    // The scheduled cost reports (#11009).
+    "Reports.",
   ],
   // Cost groups (#11006): an example group's name is a lead too.
   [CLOUD_COST_ALLOCATION]: [
