@@ -140,6 +140,20 @@ import OnCallDutyPolicyWorkspaceMessages from "../../../../Server/Utils/Workspac
 import ScheduledMaintenanceWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
+import DatabaseRequestType from "../../../../Server/Types/BaseDatabase/DatabaseRequestType";
+import TablePermission from "../../../../Server/Types/Database/Permissions/TablePermission";
+import RequiredUniqueNames from "../../../../Server/Utils/Database/RequiredUniqueNames";
+import PublishedImages from "../../../../Server/Utils/File/PublishedImages";
+import ProjectUsageCache from "../../../../Server/Utils/ProjectProducts/ProjectUsageCache";
+import RuleSetCache from "../../../../Server/Utils/Rules/RuleSetCache";
+import WorkflowListeners from "../../../../Server/Utils/Workflow/WorkflowListeners";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
+import Permission, {
+  PermissionHelper,
+  UserPermission,
+} from "../../../../Types/Permission";
+import UserType from "../../../../Types/UserType";
 import WorkspaceRuleWorld, {
   ALERT_ID,
   CREATED_STATE_ID,
@@ -340,6 +354,99 @@ const RECORD_KINDS: ReadonlyArray<RecordKind> = [
   "monitor",
   "onCallPolicy",
 ];
+
+/*
+ * Every kind of record created here, alerts and incidents with the rest:
+ * every kind whose create posts a Created message.
+ */
+export type CreatedKind = "alert" | "incident" | RecordKind;
+
+export const CREATED_KINDS: ReadonlyArray<CreatedKind> = [
+  "alert",
+  "incident",
+  ...RECORD_KINDS,
+];
+
+/*
+ * A person whose role lets them create records of `modelType` only as
+ * their own: a member of the project whose every permission to create one
+ * is scoped to Owned, as an Owned-scope custom role gives it
+ * (DatabaseService.createReliesOnOwnership).
+ */
+export function ownedScopeCreator(
+  modelType: { new (): BaseModel },
+  userId: ObjectID,
+): DatabaseCommonInteractionProps {
+  const permissions: Array<UserPermission> = TablePermission.getTablePermission(
+    modelType,
+    DatabaseRequestType.Create,
+  )
+    .filter((permission: Permission): boolean => {
+      return PermissionHelper.isScopeApplicable(permission);
+    })
+    .map((permission: Permission): UserPermission => {
+      return {
+        _type: "UserPermission",
+        permission: permission,
+        labelIds: [],
+        isBlockPermission: false,
+        scope: PermissionScope.Owned,
+      };
+    });
+
+  return {
+    userId: userId,
+    userType: UserType.User,
+    tenantId: PROJECT_ID,
+    userTenantAccessPermission: {
+      [PROJECT_ID.toString()]: {
+        _type: "UserTenantAccessPermission",
+        projectId: PROJECT_ID,
+        permissions: permissions,
+      },
+    },
+  } as DatabaseCommonInteractionProps;
+}
+
+export interface OwnedCreateOptions {
+  // Picked on the create form, a workflow's step or the API (misc data).
+  ownersPicked?: Owners | undefined;
+  // The creator's owner row is not written, and they do not own the record.
+  ownerRowFails?: boolean | undefined;
+}
+
+// What a create by a person whose role creates only what they own did.
+export interface OwnedCreate {
+  // What the create was made with: the person, their create scoped to Owned.
+  props: DatabaseCommonInteractionProps;
+  /*
+   * Whether DatabaseService read the create as one that relies on its
+   * creator owning the record (createReliesOnOwnership): its own reading of
+   * the props, not one a test stood in.
+   */
+  reliesOnOwnership: boolean;
+  // The record, as its messages name it.
+  record: WorkspaceRecord;
+  // What the create failed with, when it did.
+  error: Error | null;
+  /*
+   * What the create did, in order: "insert", the creator's "owner row",
+   * the "create hook", the record "taken out" again - each marked "(held)"
+   * when the record's messages were held as it happened.
+   */
+  steps: Array<string>;
+}
+
+// What a create of one kind runs through: its service, its record, its owners.
+interface CreateOf {
+  service: unknown;
+  record: WorkspaceRecord;
+  recordId: ObjectID;
+  model: () => BaseModel;
+  ownerUserService: AnyService;
+  ownerUsers: () => Array<ObjectID>;
+  addOwners: (owners: Owners) => Promise<void>;
+}
 
 function emptyRecord(): KindRecord {
   return {
@@ -602,11 +709,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
 
     const onCreate: OnCreate<Alert> = {
       createBy: createBy,
-      carryForward: {
-        startingStage: options.startingStage || StartingStage.Open,
-        // Taken in onBeforeCreate, before the alert is written.
-        feedStartsAt: this.tick(),
-      },
+      carryForward: this.carryForwardOf("alert", options),
     };
 
     await hookOf(AlertService, "onCreateSuccess")(onCreate, this.alertModel());
@@ -648,16 +751,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
 
     const onCreate: OnCreate<Incident> = {
       createBy: createBy,
-      carryForward: {
-        startingStage: options.startingStage || StartingStage.Open,
-        alertIdsToLink: options.declaredFromAlerts ? [DECLARED_ALERT_ID] : [],
-        acknowledgedAlertStateId: null,
-        alertIdsToAcknowledge: [],
-        declaredByAlertIncidentRuleName: null,
-        carryOverAlertOwners: Boolean(options.declaredFromAlerts),
-        // Taken in onBeforeCreate, before the incident is written.
-        feedStartsAt: this.tick(),
-      },
+      carryForward: this.carryForwardOf("incident", options),
     };
 
     await hookOf(IncidentService, "onCreateSuccess")(
@@ -1130,12 +1224,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
       model: (): BaseModel => {
         return this.incidentEpisodeModel();
       },
-      carryForward: {
-        startingStage: options.startingStage || StartingStage.Open,
-        incidentIdsToAdd: options.withMembers ? [INCIDENT_ID] : [],
-        // Taken in onBeforeCreate, before the episode is written.
-        feedStartsAt: this.tick(),
-      },
+      carryForward: this.carryForwardOf("incidentEpisode", options),
       isCreatorMadeOwner: false,
       chainRunsOn: true,
       options: options,
@@ -1150,12 +1239,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
       model: (): BaseModel => {
         return this.alertEpisodeModel();
       },
-      carryForward: {
-        startingStage: options.startingStage || StartingStage.Open,
-        // ALT-6, as the alerts the world reads say.
-        alertIdsToAdd: options.withMembers ? [DECLARED_ALERT_ID] : [],
-        feedStartsAt: this.tick(),
-      },
+      carryForward: this.carryForwardOf("alertEpisode", options),
       isCreatorMadeOwner: false,
       chainRunsOn: true,
       options: options,
@@ -1175,9 +1259,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
       model: (): BaseModel => {
         return this.scheduledMaintenanceModel();
       },
-      carryForward: {
-        feedStartsAt: this.tick(),
-      },
+      carryForward: this.carryForwardOf("scheduledMaintenance", options),
       isCreatorMadeOwner: true,
       chainRunsOn: true,
       options: options,
@@ -1195,9 +1277,7 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
       model: (): BaseModel => {
         return this.monitorModel();
       },
-      carryForward: {
-        feedStartsAt: this.tick(),
-      },
+      carryForward: this.carryForwardOf("monitor", options),
       isCreatorMadeOwner: true,
       chainRunsOn: true,
       options: options,
@@ -1219,13 +1299,411 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
       model: (): BaseModel => {
         return this.onCallPolicyModel();
       },
-      carryForward: {
-        feedStartsAt: this.tick(),
-      },
+      carryForward: this.carryForwardOf("onCallPolicy", options),
       isCreatorMadeOwner: true,
       chainRunsOn: true,
       options: options,
     });
+  }
+
+  /*
+   * A record of `kind` is created by `creator`, a person whose role creates
+   * only what they own (#11352), through its service's real create() -
+   * DatabaseService's own steps, in their own order: the INSERT, then the
+   * creator made the record's owner before anything else happens to it
+   * (makeCreatorOwnerOrUndo), then its create chain (onCreateSuccess) and
+   * the rest. Their owner row is written as every owner row here is: the
+   * row, then its service's own hook, which posts "Added Ana Lee ... as the
+   * owner". What reads or writes the database around the INSERT is stood in
+   * (standInCreateSteps). Settles once the create has returned or failed,
+   * and the chain it set off has run to its end.
+   */
+  public async createAsOwnedCreator(
+    kind: CreatedKind,
+    creator: ObjectID,
+    options: OwnedCreateOptions = {},
+  ): Promise<OwnedCreate> {
+    const created: CreateOf = this.createOf(kind);
+    const steps: Array<string> = [];
+
+    const ended: Promise<void> = new Promise<void>((resolve: () => void) => {
+      this.chainEnded = resolve;
+    });
+
+    const data: BaseModel = created.model();
+    // A create names no id of its own: its INSERT gives the record one.
+    data._id = undefined;
+
+    const props: DatabaseCommonInteractionProps = ownedScopeCreator(
+      data.constructor as { new (): BaseModel },
+      creator,
+    );
+
+    const createBy: CreateBy<BaseModel> = {
+      data: data,
+      props: props,
+      ...this.ownersAsMiscData(options.ownersPicked),
+    };
+
+    this.standInCreateSteps({
+      created: created,
+      carryForward: this.carryForwardOf(kind, {}),
+      steps: steps,
+    });
+    this.standInCreatorOwnerRow({
+      created: created,
+      steps: steps,
+      fails: Boolean(options.ownerRowFails),
+    });
+
+    let error: Error | null = null;
+
+    try {
+      await (
+        created.service as {
+          create: (createBy: CreateBy<BaseModel>) => Promise<BaseModel>;
+        }
+      ).create(createBy);
+    } catch (failure) {
+      error = failure as Error;
+    }
+
+    if (!error) {
+      await ended;
+    }
+
+    await this.settle();
+
+    return {
+      props: props,
+      reliesOnOwnership: (
+        created.service as {
+          createReliesOnOwnership: (
+            props: DatabaseCommonInteractionProps,
+          ) => boolean;
+        }
+      ).createReliesOnOwnership(props),
+      record: created.record,
+      error: error,
+      steps: steps,
+    };
+  }
+
+  // A record of `kind` created here, as its messages name it.
+  public recordOf(kind: CreatedKind): WorkspaceRecord {
+    return this.createOf(kind).record;
+  }
+
+  /*
+   * What a create of `kind` hands its create chain, as its onBeforeCreate
+   * would (its carryForward): its first stage, the records it is made with,
+   * and when its feed starts - read now, before it is written.
+   */
+  private carryForwardOf(
+    kind: CreatedKind,
+    options: CreateOptions,
+  ): Record<string, unknown> {
+    switch (kind) {
+      case "alert":
+        return {
+          startingStage: options.startingStage || StartingStage.Open,
+          feedStartsAt: this.tick(),
+        };
+      case "incident":
+        return {
+          startingStage: options.startingStage || StartingStage.Open,
+          alertIdsToLink: options.declaredFromAlerts ? [DECLARED_ALERT_ID] : [],
+          acknowledgedAlertStateId: null,
+          alertIdsToAcknowledge: [],
+          declaredByAlertIncidentRuleName: null,
+          carryOverAlertOwners: Boolean(options.declaredFromAlerts),
+          feedStartsAt: this.tick(),
+        };
+      case "incidentEpisode":
+        return {
+          startingStage: options.startingStage || StartingStage.Open,
+          incidentIdsToAdd: options.withMembers ? [INCIDENT_ID] : [],
+          feedStartsAt: this.tick(),
+        };
+      case "alertEpisode":
+        return {
+          startingStage: options.startingStage || StartingStage.Open,
+          // ALT-6, as the alerts the world reads say.
+          alertIdsToAdd: options.withMembers ? [DECLARED_ALERT_ID] : [],
+          feedStartsAt: this.tick(),
+        };
+      case "scheduledMaintenance":
+      case "monitor":
+      case "onCallPolicy":
+        return {
+          feedStartsAt: this.tick(),
+        };
+    }
+  }
+
+  // The service a record of `kind` is created through, and where its owners go.
+  private createOf(kind: CreatedKind): CreateOf {
+    if (kind === "alert") {
+      return {
+        service: AlertService,
+        record: { alertId: ALERT_ID },
+        recordId: ALERT_ID,
+        model: (): BaseModel => {
+          return this.alertModel();
+        },
+        ownerUserService: asService(AlertOwnerUserService),
+        ownerUsers: (): Array<ObjectID> => {
+          return this.alertOwnerUsers;
+        },
+        addOwners: (owners: Owners): Promise<void> => {
+          return this.addAlertOwners(owners);
+        },
+      };
+    }
+
+    if (kind === "incident") {
+      return {
+        service: IncidentService,
+        record: { incidentId: INCIDENT_ID },
+        recordId: INCIDENT_ID,
+        model: (): BaseModel => {
+          return this.incidentModel();
+        },
+        ownerUserService: asService(IncidentOwnerUserService),
+        ownerUsers: (): Array<ObjectID> => {
+          return this.incidentOwnerUsers;
+        },
+        addOwners: (owners: Owners): Promise<void> => {
+          return this.addIncidentOwners(owners);
+        },
+      };
+    }
+
+    const tables: OwnerTables = ownerTablesOf(kind);
+    const services: Record<RecordKind, unknown> = {
+      incidentEpisode: IncidentEpisodeService,
+      alertEpisode: AlertEpisodeService,
+      scheduledMaintenance: ScheduledMaintenanceService,
+      monitor: MonitorService,
+      onCallPolicy: OnCallDutyPolicyService,
+    };
+    const models: Record<RecordKind, () => BaseModel> = {
+      incidentEpisode: (): BaseModel => {
+        return this.incidentEpisodeModel();
+      },
+      alertEpisode: (): BaseModel => {
+        return this.alertEpisodeModel();
+      },
+      scheduledMaintenance: (): BaseModel => {
+        return this.scheduledMaintenanceModel();
+      },
+      monitor: (): BaseModel => {
+        return this.monitorModel();
+      },
+      onCallPolicy: (): BaseModel => {
+        return this.onCallPolicyModel();
+      },
+    };
+    const record: WorkspaceRecord = {};
+    (record as Record<string, ObjectID>)[tables.column] = tables.recordId;
+
+    return {
+      service: services[kind],
+      record: record,
+      recordId: tables.recordId,
+      model: models[kind],
+      ownerUserService: tables.ownerUserService,
+      ownerUsers: (): Array<ObjectID> => {
+        return this.records[kind].ownerUsers;
+      },
+      addOwners: (owners: Owners): Promise<void> => {
+        return this.addOwnersOf(kind, owners);
+      },
+    };
+  }
+
+  /*
+   * What DatabaseService.create does around a record's INSERT that reads or
+   * writes the database, stood in for a create here (createAsOwnedCreator):
+   * the checks before and after its hooks - the caller's permissions, the
+   * project's plan, the records it names, the values it holds unique, which
+   * their own suites hold; its service's onBeforeCreate, which hands the
+   * chain the OnCreate every create here hands it; the INSERT, which gives
+   * the record its id; and what follows the INSERT besides its creator and
+   * its hooks - its audit log entry, its images, the caches, its workflow
+   * and its realtime event. Everything else is the create's own, in its own
+   * order.
+   */
+  private standInCreateSteps(data: {
+    created: CreateOf;
+    carryForward: Record<string, unknown>;
+    steps: Array<string>;
+  }): void {
+    const service: AnyService = asService(data.created.service);
+    const record: WorkspaceRecord = data.created.record;
+    const steps: Array<string> = data.steps;
+
+    const held: () => string = (): string => {
+      return WorkspaceCreatedMessageFirst.isHeld(record) ? " (held)" : "";
+    };
+
+    // The checks before its hooks, and on the record as it will be written.
+    jest
+      .spyOn(service, "checkCreateBeforeHooks")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(service, "refuseArchivedValuesOnCreate")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(service, "checkCreatePermissionsOnRecord")
+      .mockImplementation((async (args: {
+        props: DatabaseCommonInteractionProps;
+      }): Promise<DatabaseCommonInteractionProps> => {
+        return args.props;
+      }) as never);
+
+    for (const check of [
+      "checkTotalItemsBy",
+      "prepareCustomFieldFilesOnCreate",
+      "onBeforeCreateUniqueCheck",
+      "checkUniqueColumnsTogether",
+      "onCreatePermitted",
+    ]) {
+      jest.spyOn(service, check).mockResolvedValue(undefined as never);
+    }
+
+    for (const handsBack of [
+      "checkForUniqueValues",
+      "checkUniqueColumnBy",
+      "sanitizeCreateOrUpdate",
+    ]) {
+      jest.spyOn(service, handsBack).mockImplementation((async (
+        given: unknown,
+      ): Promise<unknown> => {
+        return given;
+      }) as never);
+    }
+
+    jest.spyOn(service, "checkRequiredFields").mockImplementation(((
+      given: unknown,
+    ): unknown => {
+      return given;
+    }) as never);
+    jest
+      .spyOn(service, "planListOrderForCreate")
+      .mockResolvedValue(null as never);
+    jest.spyOn(service, "getCreateLimit").mockResolvedValue(null as never);
+    jest
+      .spyOn(RequiredUniqueNames, "holdNameOnCreate")
+      .mockResolvedValue(null as never);
+
+    // Its onBeforeCreate: what every create here hands its chain.
+    jest.spyOn(service, "onBeforeCreate").mockImplementation((async (
+      createBy: CreateBy<BaseModel>,
+    ): Promise<OnCreate<BaseModel>> => {
+      return { createBy: createBy, carryForward: data.carryForward };
+    }) as never);
+
+    // The INSERT: the row is written, with the record's own id.
+    jest.spyOn(service, "getRepository").mockReturnValue({
+      save: async (entity: BaseModel): Promise<BaseModel> => {
+        entity._id = data.created.recordId.toString();
+        steps.push(`insert${held()}`);
+        return entity;
+      },
+    } as never);
+
+    // What follows it besides its creator and its hooks.
+    for (const after of [
+      "recordCreateInAuditLog",
+      "applyListOrderCreatePlan",
+      "triggerWorkflowAfterWrite",
+      "onTriggerRealtime",
+    ]) {
+      jest.spyOn(service, after).mockResolvedValue(undefined as never);
+    }
+
+    for (const cache of [
+      PublishedImages,
+      ProjectUsageCache,
+      WorkflowListeners,
+      RuleSetCache,
+    ]) {
+      jest
+        .spyOn(asService(cache), "afterCreate")
+        .mockResolvedValue(undefined as never);
+    }
+
+    // Its create hook - the real one - as it begins.
+    const createHook: HookFunction = hookOf(service, "onCreateSuccess");
+
+    jest.spyOn(service, "onCreateSuccess").mockImplementation((async (
+      ...args: Array<unknown>
+    ): Promise<unknown> => {
+      steps.push(`create hook${held()}`);
+      return await createHook(...args);
+    }) as never);
+
+    // A record taken out again, as its create undoes it.
+    jest
+      .spyOn(service, "hardDeleteBy")
+      .mockImplementation((async (): Promise<number> => {
+        steps.push(`taken out${held()}`);
+        return 1;
+      }) as never);
+  }
+
+  /*
+   * The creator's owner row, as DatabaseService.create writes it for a
+   * creator whose role creates only what they own (insertCreatorAsOwner,
+   * through the owner table's own service): the row, then its service's
+   * own hook, which posts "Added Ana Lee ... as the owner". Or, when it
+   * `fails`, nothing: the create finds they do not own the record.
+   */
+  private standInCreatorOwnerRow(data: {
+    created: CreateOf;
+    steps: Array<string>;
+    fails: boolean;
+  }): void {
+    const created: CreateOf = data.created;
+
+    jest
+      .spyOn(created.ownerUserService, "create")
+      .mockImplementation((async (given: {
+        data: BaseModel;
+      }): Promise<BaseModel> => {
+        data.steps.push(
+          `owner row${WorkspaceCreatedMessageFirst.isHeld(created.record) ? " (held)" : ""}`,
+        );
+
+        if (data.fails) {
+          throw new Error("The owner row could not be written.");
+        }
+
+        const userId: ObjectID = (given.data as unknown as { userId: ObjectID })
+          .userId;
+
+        await created.addOwners({ users: [userId] });
+
+        given.data._id = ObjectID.generate().toString();
+        return given.data;
+      }) as never);
+
+    // Whether they own it now, as the create asks once the row failed.
+    jest
+      .spyOn(created.ownerUserService, "findOneBy")
+      .mockImplementation((async (args: {
+        query: { userId?: ObjectID };
+      }): Promise<BaseModel | null> => {
+        const userId: ObjectID | undefined = args.query.userId;
+
+        return userId &&
+          created.ownerUsers().some((id: ObjectID): boolean => {
+            return sameId(id, userId);
+          })
+          ? new IncidentOwnerUser()
+          : null;
+      }) as never);
   }
 
   /*

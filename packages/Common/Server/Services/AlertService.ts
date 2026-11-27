@@ -1411,8 +1411,11 @@ export class Service extends ProjectReferencesService<Model> {
      * until then, and follows it in the order it was made
      * (WorkspaceCreatedMessageFirst): its channels hear of the alert first,
      * then of what happened to it, then its pages. Held on every App server
-     * before the create returns, so a message made on another one - by a
-     * page opened on the alert, the API, a probe - waits too (#11198).
+     * since the alert was written (DatabaseService.create, before even its
+     * creator is made its owner, #11352), so before the create returns, and
+     * a message made on another one - by a page opened on the alert, the
+     * API, a probe - waits too (#11198). This chain takes the hold over
+     * here, and lets it go below.
      */
     await WorkspaceCreatedMessageFirst.hold({ alertId: createdItem.id });
 
