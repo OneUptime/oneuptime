@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "Ange en destination: en länk eller en navigeringssökväg.",
+  "Navigation Path": "Navigeringssökväg",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "Ange /incidents, /announcements eller /scheduled-events för att lägga till en flik. Lämna Länk tomt.",
+  "Use a status page path such as /incidents?category=security.": "Använd en statussidesökväg som /incidents?category=security.",
   "common": {
     "save": "Spara",
     "cancel": "Avbryt",

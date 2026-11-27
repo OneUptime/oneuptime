@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "एक गंतव्य दर्ज करें: लिंक या नेविगेशन पाथ।",
+  "Navigation Path": "नेविगेशन पाथ",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "टैब जोड़ने के लिए /incidents, /announcements या /scheduled-events दर्ज करें। लिंक खाली छोड़ें।",
+  "Use a status page path such as /incidents?category=security.": "/incidents?category=security जैसा स्टेटस पेज पाथ इस्तेमाल करें।",
   "common": {
     "save": "सहेजें",
     "cancel": "रद्द करें",

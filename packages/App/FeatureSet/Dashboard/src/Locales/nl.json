@@ -1,4 +1,8 @@
 {
+  "Enter one destination: a link or a navigation path.": "Voer één bestemming in: een koppeling of een navigatiepad.",
+  "Navigation Path": "Navigatiepad",
+  "To add a tab, enter /incidents, /announcements, or /scheduled-events. Leave Link empty.": "Voer /incidents, /announcements of /scheduled-events in om een tabblad toe te voegen. Laat Koppeling leeg.",
+  "Use a status page path such as /incidents?category=security.": "Gebruik een statuspaginapad zoals /incidents?category=security.",
   "common": {
     "save": "Opslaan",
     "cancel": "Annuleren",
