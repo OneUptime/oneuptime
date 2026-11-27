@@ -443,7 +443,7 @@ describe("the device Overview shows the SNMP engine ID its SNMPv3 polls read (is
   test("a device polled over SNMPv3 shows its engine ID, to copy, and what it is for", async () => {
     await renderOverview(device({ snmpEngineId: ENGINE_ID }));
 
-    expect(screen.getByText("SNMP Engine ID")).toBeInTheDocument();
+    expect(screen.getByText("SNMPv3 Engine ID")).toBeInTheDocument();
     expect(textOf("network-device-details-snmpEngineId")).toBe(ENGINE_ID);
     expect(
       screen.getByText(
@@ -461,7 +461,7 @@ describe("the device Overview shows the SNMP engine ID its SNMPv3 polls read (is
   test("a device no SNMPv3 poll read shows no row", async () => {
     await renderOverview(device({}));
 
-    expect(screen.queryByText("SNMP Engine ID")).not.toBeInTheDocument();
+    expect(screen.queryByText("SNMPv3 Engine ID")).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("network-device-details-snmpEngineId"),
     ).not.toBeInTheDocument();

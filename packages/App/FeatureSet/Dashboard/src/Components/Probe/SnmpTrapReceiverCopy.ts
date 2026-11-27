@@ -175,6 +175,11 @@ export const DEVICE_SNMPV3_TRAPS_HELP: string = translationKey(
   "SNMPv3 traps and informs are taken when they are signed with the SNMPv3 credentials this device has in OneUptime: its own, its credential profile's or its site's default. When devices send from one address, their traps are told apart by these credentials and by the engine ID each device's SNMPv3 polls read.",
 );
 
+// Whose it is, on a device's page: the probe's, not the device's own.
+export const DEVICE_PROBE_ENGINE_ID_LABEL: string = translationKey(
+  "Probe's SNMPv3 Engine ID",
+);
+
 export const DEVICE_PROBE_ENGINE_ID_NOT_REPORTED: string = translationKey(
   "A device that sends SNMPv3 informs may also need its probe's SNMPv3 engine ID, shown here once the probe reports it.",
 );

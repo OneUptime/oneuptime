@@ -2751,7 +2751,7 @@ export default class NetworkDevice extends BaseModel {
     required: false,
     type: TableColumnType.ShortText,
     canReadOnRelationQuery: false,
-    title: "SNMP Engine ID",
+    title: "SNMPv3 Engine ID",
     description:
       "The SNMP engine ID the device's agent answered with when it was last polled over SNMPv3, as hex. Tells apart devices that send SNMPv3 traps from one address. Set by OneUptime.",
     example: "800000090300C0FFEE0001",

@@ -28,6 +28,7 @@ import DeviceProbeSnmpEngineId from "../../../../App/FeatureSet/Dashboard/src/Co
 import DeviceSnmpTrapRefusals from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceSnmpTrapRefusals";
 import ProbeSnmpTraps from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeSnmpTraps";
 import {
+  DEVICE_PROBE_ENGINE_ID_LABEL,
   DEVICE_PROBE_ENGINE_ID_NOT_REPORTED,
   DEVICE_SNMP_TRAP_REFUSALS_DESCRIPTION,
   SNMP_TRAP_REFUSAL_ENGINE_ID_FIX,
@@ -1023,7 +1024,9 @@ describe("a device's probe's SNMPv3 engine ID, on its Logs page", () => {
       "device-probe-snmp-engine-id",
     );
 
-    expect(block).toHaveTextContent("SNMPv3 Engine ID");
+    // The probe's, said as the probe's: not the device's own engine ID.
+    expect(block).toHaveTextContent(DEVICE_PROBE_ENGINE_ID_LABEL);
+    expect(DEVICE_PROBE_ENGINE_ID_LABEL).toBe("Probe's SNMPv3 Engine ID");
     expect(
       within(block).getByTestId("device-probe-snmp-engine-id-value"),
     ).toHaveTextContent(ENGINE_ID);

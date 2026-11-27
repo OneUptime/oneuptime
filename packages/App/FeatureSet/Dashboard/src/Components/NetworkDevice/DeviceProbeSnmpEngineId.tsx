@@ -1,8 +1,8 @@
 import SnmpEngineIdValue from "../Probe/SnmpEngineIdValue";
 import {
+  DEVICE_PROBE_ENGINE_ID_LABEL,
   DEVICE_PROBE_ENGINE_ID_NOT_REPORTED,
   SNMP_TRAPS_ENGINE_ID_HINT,
-  SNMP_TRAPS_FACT_LABELS,
 } from "../Probe/SnmpTrapReceiverCopy";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import Probe from "Common/Models/DatabaseModels/Probe";
@@ -109,7 +109,7 @@ const DeviceProbeSnmpEngineId: FunctionComponent<ComponentProps> = (
     <div className="space-y-1" data-testid="device-probe-snmp-engine-id">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="font-medium text-gray-900">
-          {translator.translateText(SNMP_TRAPS_FACT_LABELS.engineId)}
+          {translator.translateText(DEVICE_PROBE_ENGINE_ID_LABEL)}
         </span>
         <SnmpEngineIdValue
           engineId={engineId}

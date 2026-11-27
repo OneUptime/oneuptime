@@ -430,7 +430,7 @@ const NetworkDeviceView: FunctionComponent<
               field: {
                 snmpEngineId: true,
               },
-              title: "SNMP Engine ID",
+              title: "SNMPv3 Engine ID",
               description:
                 "Read from its SNMPv3 polls. It tells this device's SNMPv3 traps apart from those of devices that send from the same address.",
               fieldType: FieldType.Element,

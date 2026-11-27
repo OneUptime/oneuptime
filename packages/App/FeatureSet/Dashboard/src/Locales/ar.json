@@ -67605,5 +67605,17 @@
   "{{count}} storage groups_one": "{{count}} مجموعة تخزين",
   "{{count}} storage resource pool": "{{count}} تجمّع موارد تخزين",
   "{{count}} storage resource pools": "تجمّعات موارد التخزين: {{count}}",
-  "{{count}} storage resource pools_one": "{{count}} تجمّع موارد تخزين"
+  "{{count}} storage resource pools_one": "{{count}} تجمّع موارد تخزين",
+  "A device that sends SNMPv3 informs may also need its probe's SNMPv3 engine ID, shown here once the probe reports it.": "A device that sends SNMPv3 informs may also need its probe's SNMPv3 engine ID, shown here once the probe reports it.",
+  "Devices send SNMP traps and informs to this probe. An SNMPv3 trap is taken when it is signed with the SNMPv3 credentials of a device on this probe, or of a site whose Default Probe it is.": "Devices send SNMP traps and informs to this probe. An SNMPv3 trap is taken when it is signed with the SNMPv3 credentials of a device on this probe, or of a site whose Default Probe it is.",
+  "Global Probe SNMP Trap Report": "Global Probe SNMP Trap Report",
+  "Global Probe SNMP Trap Reports": "Global Probe SNMP Trap Reports",
+  "None yet: SNMPv3 traps are taken once a device on this probe, or a site whose Default Probe it is, has SNMPv3 credentials.": "None yet: SNMPv3 traps are taken once a device on this probe, or a site whose Default Probe it is, has SNMPv3 credentials.",
+  "Probe's SNMPv3 Engine ID": "Probe's SNMPv3 Engine ID",
+  "Read from its SNMPv3 polls. It tells this device's SNMPv3 traps apart from those of devices that send from the same address.": "Read from its SNMPv3 polls. It tells this device's SNMPv3 traps apart from those of devices that send from the same address.",
+  "SNMPv3 traps and informs are taken when they are signed with the SNMPv3 credentials this device has in OneUptime: its own, its credential profile's or its site's default. When devices send from one address, their traps are told apart by these credentials and by the engine ID each device's SNMPv3 polls read.": "SNMPv3 traps and informs are taken when they are signed with the SNMPv3 credentials this device has in OneUptime: its own, its credential profile's or its site's default. When devices send from one address, their traps are told apart by these credentials and by the engine ID each device's SNMPv3 polls read.",
+  "The SNMPv3 traps a global probe refused in the last day from this project's network devices, kept for this project alone. Written by OneUptime as the probe reports them.": "The SNMPv3 traps a global probe refused in the last day from this project's network devices, kept for this project alone. Written by OneUptime as the probe reports them.",
+  "The device was given another engine ID for this probe. Give it this probe's SNMPv3 engine ID:": "The device was given another engine ID for this probe. Give it this probe's SNMPv3 engine ID:",
+  "{{count}} users, from the devices and sites that use this probe": "{{count}} users, from the devices and sites that use this probe",
+  "{{count}} users, from the devices and sites that use this probe_one": "{{count}} user, from the devices and sites that use this probe"
 }

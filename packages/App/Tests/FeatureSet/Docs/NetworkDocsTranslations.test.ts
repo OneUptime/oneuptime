@@ -255,6 +255,10 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Traps, informs and the probe's engine ID.",
     "The time window.",
     "Refused SNMPv3 traps",
+    // Which keys reach which probe, and devices that share an address (#11172, #11174).
+    "Which keys reach which probe.",
+    "Devices that send from one address.",
+    "A device not added yet.",
   ],
   [VENDORS]: ["Port health.", "Path quality.", "Traffic."],
 };
