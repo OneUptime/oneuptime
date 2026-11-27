@@ -1,6 +1,6 @@
 # 스토리지 어레이 모니터
 
-스토리지 어레이 모니터는 스토리지 어레이 하나를 지켜보며, 어레이가 자체 경고를 올리거나, 공간이 부족해지거나, 느려지거나, 하드웨어나 호스트 경로를 잃거나, 복제가 뒤처질 때 알려 줍니다. Pure Storage FlashArray와 Pure Storage FlashBlade를 지원하며, 어레이가 직접 내보내는 메트릭(Pure의 `purefa_*` 및 `purefb_*` 시리즈)을 읽습니다. 이 메트릭은 OneUptime Storage Array Agent가 수집합니다.
+스토리지 어레이 모니터는 스토리지 어레이 하나를 지켜보며, 어레이가 자체 경고를 올리거나, 공간이 부족해지거나, 느려지거나, 하드웨어나 호스트 경로를 잃거나, 복제가 뒤처질 때 알려 줍니다. Pure Storage FlashArray와 Pure Storage FlashBlade를 지원하며, 이들의 `purefa_*` 및 `purefb_*` 시리즈는 OneUptime Storage Array Agent가 수집합니다. Dell PowerMax도 지원하며, 그 `powermax_*` 시리즈는 OneUptime 프로브가 Unisphere for PowerMax에서 읽습니다.
 
 Dell PowerStore(`dell.powerstore`)에서도 Dell의 `powerstore_*` 시리즈로 동작합니다.
 
@@ -14,6 +14,8 @@ Dell PowerStore(`dell.powerstore`)에서도 Dell의 `powerstore_*` 시리즈로 
 ## 작동 방식
 
 OneUptime Storage Array Agent는 어레이의 관리 인터페이스에 닿을 수 있는 머신에서 실행됩니다. 읽기 전용 API 토큰으로 어레이의 메트릭을 읽고, 어레이 이름 `storage.array.name` 과 플랫폼 `storage.system` 레이블을 붙여 OTLP로 OneUptime에 보냅니다. 첫 데이터가 들어오면 어레이가 등록됩니다.
+
+Dell PowerMax에는 에이전트가 필요 없습니다. OneUptime 프로브가 5분마다 읽기 전용 계정으로 Unisphere for PowerMax에 로그인하여, Unisphere가 관리하는 모든 어레이를 같은 방식으로 보냅니다. 어레이 이름은 바꾸기 전까지 Symmetrix ID입니다([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
 스토리지 어레이 모니터는 어레이 하나에 연결됩니다. 매분 그 어레이의 메트릭에 쿼리를 실행하고 결과를 기준과 비교합니다.
 
@@ -35,6 +37,7 @@ flowchart TB
 
 - **Storage Array Agent를 설치하세요**. HTTPS로 어레이에 닿을 수 있는 곳에, 어레이의 **readonly** 역할을 가진 사용자의 API 토큰으로 설치합니다. [Storage Array Agent 가이드](/docs/telemetry/storage-arrays)는 사용자, 토큰, 설치를 `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, 어레이의 주소와 토큰(`PURE_FA_ENDPOINT` 및 `PURE_FA_API_TOKEN`, 또는 `PURE_FB_ENDPOINT` 및 `PURE_FB_API_TOKEN`)과 함께 다룹니다.
 - **어레이가 등록되었는지 확인하세요.** 첫 수집 후 약 1분 뒤에 에이전트의 `STORAGE_ARRAY_NAME` 이름으로 **제품 → 인프라 → 스토리지 어레이 → 모든 스토리지 어레이** 에 나타납니다.
+- **Dell PowerMax의 경우** 대신 그 어레이를 관리하는 Unisphere for PowerMax를 **제품 → 인프라 → 스토리지 어레이 → 연결** 에서 연결하세요. 자세한 내용은 [Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax) 를 참고하세요.
 
 ## 스토리지 어레이 모니터 만들기
 
@@ -76,10 +79,10 @@ flowchart TB
 | 필드 | 탭 | 하는 일 |
 | --- | --- | --- |
 | **스토리지 어레이** | 모두 | 필수. 모든 쿼리를 `resource.storage.array.name` 으로 한정하므로, 둘 다 `vol-01` 이라는 볼륨을 가진 두 어레이가 섞이지 않습니다. |
-| **볼륨** | Custom Metric, 고급 | FlashArray만. `name` 레이블로 볼륨 하나(예: `vol-db-01`). 파드나 볼륨 그룹 안의 볼륨은 `pod::volume` 이나 `group/volume` 이라는 이름을 씁니다. |
+| **볼륨** | Custom Metric, 고급 | FlashArray와 PowerMax만. 볼륨 하나. FlashArray에서는 `name` 레이블로(예: `vol-db-01`, 파드나 볼륨 그룹 안의 볼륨은 `pod::volume` 이나 `group/volume` 이라는 이름을 씁니다), PowerMax에서는 `volume` 레이블, 즉 장치 ID로(예: `00847`). |
 | **호스트** | Custom Metric, 고급 | FlashArray만. 어레이가 아는 호스트 하나를 `host` 레이블로(예: `esxi-01`). |
 | **파드** | Custom Metric, 고급 | FlashArray만. ActiveCluster 또는 ActiveDR 파드 하나를 `name` 레이블로, 복제 링크 시리즈에서는 `local_pod` 로. |
-| **하드웨어 구성 요소** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`. |
+| **하드웨어 구성 요소** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`, PowerMax에서는 `component`(`FA-1D` 같은 디렉터 또는 `FA-1D:4` 같은 포트). |
 | **파일 시스템** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 파일 시스템 하나. |
 | **버킷** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 객체 저장소 버킷 하나. |
 | **Storage Array Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. 양식은 그 의미를 주는 레이블 필터를 추가하고, 메트릭이 설명하는 객체로 그룹화하므로, 각 볼륨, 호스트, 구성 요소가 따로 판단됩니다. |
@@ -87,7 +90,7 @@ flowchart TB
 | **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **지난 5분** 으로, 파일 시스템이나 버킷의 사용자 지정 메트릭은 **지난 15분** 으로 시작하며, 템플릿은 자체 값을 설정합니다. |
 | **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **집계 기준**, **속성으로 필터링**, **그룹화 기준**, 그리고 쿼리를 합치는 **메트릭 추가** 와 **수식 추가**. |
 
-에이전트는 어레이 엔드포인트를 60초마다, 볼륨, 호스트, 파드를 2분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다. FlashBlade의 파일 시스템과 버킷은 5분마다 읽고(그래서 15분), FlashArray 디렉터리는 30분마다 읽습니다. 디렉터리 모니터에는 60분 기간을 주세요.
+에이전트는 어레이 엔드포인트를 60초마다, 볼륨, 호스트, 파드를 2분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다. FlashBlade의 파일 시스템과 버킷은 5분마다 읽고(그래서 15분), FlashArray 디렉터리는 30분마다 읽습니다. 디렉터리 모니터에는 60분 기간을 주세요. 프로브는 PowerMax를 5분마다, 즉 Unisphere가 성능을 계산하는 주기와 같은 빈도로 읽습니다. PowerMax 모니터에는 10분 이상의 기간을 주세요.
 
 PowerStore는 5분마다, 그 클러스터의 상태는 60초마다 읽습니다. PowerStore 모니터에는 15분 기간을 주세요.
 
@@ -107,9 +110,11 @@ Pure는 메트릭 이름 **하나** 에 여러 수치를 담고 레이블로 구
 | `purefa_host_connectivity_info` | `status`(`details` 포함) | 호스트 |
 | `purefa_drive_capacity_bytes` | `component_status`(값은 드라이브의 용량) | 드라이브 |
 
-나쁜 상태로 필터링한 시리즈는 무언가 그 상태에 있는 동안에만 존재하므로, 시리즈가 없으면 정상이라는 뜻입니다. 그래서 **0보다 큰 Max에서 발생하고 0에서 복구** 가 이 시리즈에 맞는 형태이며, 템플릿도 그렇게 만들어져 있습니다. 템플릿의 복구 기준은 시리즈가 없는 것을 0으로 셉니다. 시리즈가 전혀 남아 있지 않으면 이런 템플릿은 같은 윈도우에 `purefa_info` 또는 `purefb_info` 가 도착한 경우에만 복구되므로, 보고를 멈춘 어레이는 아무것도 닫지 않습니다.
+나쁜 상태로 필터링한 시리즈는 무언가 그 상태에 있는 동안에만 존재하므로, 시리즈가 없으면 정상이라는 뜻입니다. 그래서 **0보다 큰 Max에서 발생하고 0에서 복구** 가 이 시리즈에 맞는 형태이며, 템플릿도 그렇게 만들어져 있습니다. 템플릿의 복구 기준은 시리즈가 없는 것을 0으로 셉니다. 시리즈가 전혀 남아 있지 않으면 이런 템플릿은 같은 윈도우에 `purefa_info`, `purefb_info` 또는 `powermax_array_info` 가 도착한 경우에만 복구되므로, 보고를 멈춘 어레이는 아무것도 닫지 않습니다.
 
-모니터 필터와 그룹화 키에서 에이전트의 속성은 `resource.` 로 시작하지만(`resource.storage.array.name`, `resource.storage.system`), Pure 자체의 레이블은 그렇지 않습니다(`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+PowerMax의 시리즈는 각각 값 하나만 담으며, 그 값에 맞춰 이름이 붙습니다. `powermax_array_response_time_usec` 는 `operation` 으로 읽기와 쓰기를 구분합니다. 상태 시리즈도 마찬가지로 무언가 잘못된 동안에만 존재합니다. `powermax_alert_open` 은 Unisphere에 열린 경고가 있는 동안, `powermax_director_offline` 은 디렉터가 온라인이 아닌 동안, `powermax_port_offline` 은 누군가 사용하는 포트가 다운된 동안, `powermax_srdf_group_not_healthy` 는 SRDF 그룹이 일시 중단되거나 오프라인인 동안 존재합니다.
+
+모니터 필터와 그룹화 키에서 에이전트의 속성은 `resource.` 로 시작하지만(`resource.storage.array.name`, `resource.storage.system`), Pure 자체의 레이블은 그렇지 않으며(`name`, `host`, `component_name`, `dimension`, `space`, `severity`), PowerMax의 레이블도 마찬가지입니다(`storage_group`, `volume`, `director`, `port_id`, `srdf_group`).
 
 ## PowerStore 시리즈의 구성
 
@@ -117,9 +122,9 @@ Dell의 익스포터는 메트릭 이름마다 값 하나를 쓰므로 PowerStor
 
 ## 미리 만든 경고 템플릿
 
-OneUptime은 템플릿 36개(FlashArray용 12개, FlashBlade용 8개, PowerStore용 16개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
+OneUptime은 템플릿 49개(FlashArray용 12개, FlashBlade용 8개, PowerStore용 16개, PowerMax용 13개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
 
-기준은 기간 안의 **모든** 값에서 조건이 성립할 때만 발생합니다. 용량, 지연 시간, 지연, 비율 임계값에서 발생한 모니터는 임계값에서 10% 벗어나야 복구되므로, 임계값 근처를 오가는 값 때문에 상태가 흔들리지 않습니다. 경고, 하드웨어, 연결 템플릿은 상태가 5분 창 전체에서 보였을 때 작동하고, 상태가 사라진 뒤 약 5분 후에 복구됩니다.
+기준은 기간 안의 **모든** 값에서 조건이 성립할 때만 발생합니다. 용량, 지연 시간, 지연, 비율 임계값에서 발생한 모니터는 임계값에서 10% 벗어나야 복구되므로, 임계값 근처를 오가는 값 때문에 상태가 흔들리지 않습니다. 경고, 하드웨어, 연결 템플릿은 상태가 5분 창 전체에서 보였을 때 작동하고, 상태가 사라진 뒤 약 5분 후에 복구됩니다. PowerMax 템플릿은 10분과 15분 기간을 씁니다. 5분 단위 수집 두 번과 세 번에 해당합니다.
 
 ### FlashArray
 
@@ -182,11 +187,29 @@ PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로�
 | Major Array Alert | 경고 | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
 | Port Link Down | 경고 | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
+### PowerMax
+
+| 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 가용성 | 심각 | `powermax_array_info`, Count, 최근 10분 | 기간 내내 데이터 없음 — 프로브가 어레이 수집을 멈춤. 연결이 실패하거나(**연결** 아래의 해당 페이지에 이유가 표시됨), 프로브의 연결이 끊겼거나, Unisphere가 더 이상 어레이를 관리하지 않음. 데이터가 다시 들어오면 복구 |
+| Critical Unisphere Alert | 어레이 상태 | 심각 | `powermax_alert_open` 을 `severity=critical` 로 필터링, `description` 별 Max, 최근 10분 | > 0 — Unisphere에 어레이에 대한 심각도 Critical 또는 Fatal의 열린 경고가 있음. 경고마다 인시던트 하나. Unisphere에서 경고가 인지되거나 해제되면 복구 |
+| Warning Unisphere Alert | 어레이 상태 | 경고 | `powermax_alert_open` 을 `severity=warning` 으로 필터링, `description` 별 Max, 최근 10분 | > 0 — Unisphere에 심각도 Warning 또는 Minor의 열린 경고가 있음. 경고마다 인시던트 하나. 경고가 인지되거나 해제되면 복구 |
+| Performance Collection Off | 어레이 상태 | 경고 | `powermax_array_performance_collection`, Min, 최근 15분 | < 1 — Unisphere가 어레이의 5분 단위 성능을 수집하지 않으므로 응답 시간, IOPS, 처리량의 차트도 경고도 없음. ≥ 1에서 복구 |
+| Storage Resource Pool Above 80% | 용량 | 경고 | `powermax_srp_capacity_used_percent`, `srp` 별 Max, 최근 15분 | > 80 — 풀이 가득 차면 그 스토리지 그룹이 새 쓰기를 받지 않음. 풀마다 인시던트 하나. ≤ 72에서 복구 |
+| Storage Resource Pool Above 90% | 용량 | 심각 | `powermax_srp_capacity_used_percent`, `srp` 별 Max, 최근 15분 | > 90 — 가득 차는 순간 그 스토리지 그룹에 대한 쓰기가 실패함. 풀마다 인시던트 하나. ≤ 81에서 복구 |
+| Storage Group Response Time Above 5 ms | 성능 | 경고 | `powermax_storage_group_response_time_usec`, `storage_group` 별 Avg, 최근 15분 | > 5000 µs (5 ms) — PowerMax는 보통 밀리초보다 훨씬 짧은 시간에 응답함. 스토리지 그룹마다 인시던트 하나. ≤ 4500에서 복구 |
+| High Read Response Time | 성능 | 경고 | `powermax_array_response_time_usec` 를 `operation=read` 로 필터링, Avg, 최근 15분 | > 3000 µs (3 ms). ≤ 2700에서 복구 |
+| High Write Response Time | 성능 | 경고 | `powermax_array_response_time_usec` 를 `operation=write` 로 필터링, Avg, 최근 15분 | > 3000 µs (3 ms) — 동기식 SRDF는 모든 쓰기에 원격 어레이까지의 왕복을 더함. ≤ 2700에서 복구 |
+| Director Not Online | 하드웨어 | 심각 | `powermax_director_offline`, `component` 별 Max, 최근 10분 | > 0 — 디렉터가 온라인이 아니며, 어레이는 나머지 디렉터로 동작함. 디렉터마다 인시던트 하나. 다시 온라인이 되면 복구 |
+| Port Down | 하드웨어 | 경고 | `powermax_port_offline`, `component` 별 Max, 최근 10분 | > 0 — 포트 그룹, 마스킹 뷰 또는 SRDF 그룹에 속한 포트가 작동하지 않음. 포트마다 인시던트 하나. 다시 작동하면 복구 |
+| SRDF Group Suspended or Offline | 복제 | 심각 | `powermax_srdf_group_not_healthy`, `srdf_group` 별 Max, 최근 10분 | > 0 — 그룹의 링크가 오프라인이거나 페어가 일시 중단, 분할 또는 장애 조치 상태여서 원격 복사본이 최신으로 유지되지 않음. 그룹마다 인시던트 하나. 다시 동기화되면 복구 |
+| SRDF/A Lag Above 2 Minutes | 복제 | 경고 | `powermax_srdf_group_lag_seconds`, `srdf_group` 별 Avg, 최근 15분 | > 120 (2분) — 지금 페일오버하면 계획보다 많은 최근 쓰기를 잃음. 그룹마다 인시던트 하나. ≤ 108에서 복구 |
+
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 경고는 프로젝트에서 가장 심각한 인시던트 및 경고 심각도로 시작하며, 기준에서 바꿀 수 있습니다.
 
-- **Array Stopped Reporting** 템플릿은 플랫폼의 식별 시리즈(`purefa_info` 또는 `purefb_info`)를 셉니다. 에이전트가 수집하는 모든 엔드포인트가 수집할 때마다 이 시리즈를 내보냅니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
+- **Array Stopped Reporting** 템플릿은 플랫폼의 식별 시리즈를 셉니다(`purefa_info` 또는 `purefb_info` 는 에이전트가 수집하는 모든 엔드포인트가 수집할 때마다 내보내고, `powermax_array_info` 는 PowerMax 수집마다 기록됩니다). 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 - **열린 경고와 하드웨어 상태는 Max를 씁니다**. 경고가 열려 있거나 구성 요소가 그 상태에 있는 동안에만 존재하는 시리즈이므로, 상태가 5분 창 전체에서 보였을 때 임계값을 넘습니다.
-- **객체별 템플릿은 모두 객체 자체의 레이블로 그룹화합니다**(`summary`, `component_name`, `host`, `local_pod`, `name`). 그래서 영향받은 객체마다 인시던트가 하나씩 발생하고, 인시던트에 그 객체의 이름이 들어갑니다.
+- **객체별 템플릿은 모두 객체 자체의 레이블로 그룹화합니다**(`summary`, `component_name`, `host`, `local_pod`, `name`, 그리고 PowerMax에서는 `description`, `component`, `srp`, `srdf_group`, `storage_group`). 그래서 영향받은 객체마다 인시던트가 하나씩 발생하고, 인시던트에 그 객체의 이름이 들어갑니다.
 - **지연 시간 템플릿은 Avg를 씁니다**. 어레이 자체의 작업당 평균에 대한 Avg이며, 용량 템플릿은 어레이 자체의 사용률에 대한 **최대** 를 씁니다. 지연 시간은 마이크로초, 용량은 퍼센트로 고정되어 있습니다.
 - **Hardware Component Unhealthy는 구성 요소별 Min을 씁니다**. 상태는 정상일 때 1이고, 아닐 때 0으로 떨어집니다.
 
@@ -194,7 +217,7 @@ PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로�
 
 ## 수집되는 메트릭
 
-에이전트는 어레이가 내보내는 모든 것을 보냅니다. 아래 시리즈는 모니터 양식이 제공하는 카탈로그입니다. 모든 값은 어레이가 직접 계산한 게이지이므로(지연 시간은 작업당 마이크로초, 처리량은 초당 값), 비율을 계산할 필요가 없습니다. **필터** 는 시리즈에 그 행이 말하는 의미를 주는 레이블 필터이며, 양식이 대신 적용합니다.
+에이전트는 어레이가 내보내는 모든 것을, 프로브는 PowerMax에서 읽는 모든 것을 같은 단위로 보냅니다(Unisphere의 밀리초는 마이크로초로, 초당 MB는 초당 바이트로). 아래 시리즈는 모니터 양식이 제공하는 카탈로그입니다. 모든 값은 어레이가 직접 계산한 게이지이므로(지연 시간은 작업당 마이크로초, 처리량은 초당 값), 비율을 계산할 필요가 없습니다. **필터** 는 시리즈에 그 행이 말하는 의미를 주는 레이블 필터이며, 양식이 대신 적용합니다.
 
 ### 어레이 상태
 
@@ -203,6 +226,9 @@ PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로�
 | `purefa_alerts_open` | — | FlashArray | `count` | 어레이의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type`, `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary`, `kburl`(Pure 기술 자료 문서) |
 | `powerstore_cluster` | — | PowerStore | `count` | PowerStore 클러스터가 Configured(구성되어 서비스 중)인 동안 1, 그 밖의 상태(Configuring, Expanding, Removing, Clustering_Failed, Unconfigured)에서는 0입니다. |
+| `powermax_alert_open` | — | PowerMax | `count` | Unisphere가 어레이에 대해 열어 둔 경고마다 시리즈 하나(값 1). 인지되지 않고, 해제되지 않았으며, Minor 이상인 경고가 대상입니다. severity 레이블은 critical(Critical 및 Fatal) 또는 warning(Warning 및 Minor)이며, alert_type, object, description 레이블이 경고의 내용을 알려 줍니다. Unisphere에서 경고를 인지하면 시리즈가 사라집니다 |
+| `powermax_array_health_score` | — | PowerMax | `score` | Unisphere가 매긴 어레이의 상태 점수(0~100). health_metric별로 전체 점수와 평가하는 각 영역(용량, 구성, 성능, 서비스 수준 준수)의 점수가 있습니다 |
+| `powermax_array_performance_collection` | — | PowerMax | `count` | Unisphere가 어레이의 5분 단위 성능 데이터를 수집하는 동안은 1, 수집하지 않는 동안은 0. 꺼져 있으면 OneUptime은 어레이의 인벤토리와 경고는 계속 표시하지만 성능 차트는 그리지 않습니다. Unisphere의 Settings > Performance > System Registrations에서 켜세요 |
 
 ### 용량
 
@@ -223,6 +249,13 @@ PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로�
 | `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | 호스트가 각 어플라이언스에 쓴 데이터(바이트)로, 중복 제거와 압축 전의 값입니다. |
 | `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | 각 어플라이언스의 중복 제거와 압축 효과로, 예를 들어 3.4:1이면 3.4입니다. 계속 떨어진다면 새로 쓴 데이터가 잘 줄어들지 않는다는 뜻으로, 암호화되었거나 이미 압축된 데이터입니다. |
 | `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | 각 어플라이언스의 전체 효율입니다. 데이터 절감에 스냅샷과 씬 프로비저닝으로 아낀 용량을 더한 값입니다. |
+| `powermax_array_capacity_used_percent` | — | PowerMax | `%` | 어레이의 모든 스토리지 리소스 풀에 걸친, 사용 가능한 용량 중 사용 중인 비율(%) |
+| `powermax_array_capacity_usable_bytes` | — | PowerMax | `bytes` | Unisphere가 보고하는 어레이의 사용 가능한 용량(바이트) |
+| `powermax_array_capacity_used_bytes` | — | PowerMax | `bytes` | 어레이의 사용 가능한 용량 중 사용 중인 용량(바이트) |
+| `powermax_array_capacity_subscribed_bytes` | — | PowerMax | `bytes` | 어레이에 있는 모든 씬 볼륨의 용량(바이트). 호스트에 약속된 용량이며, 사용 가능한 용량을 초과할 수 있습니다 |
+| `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | 호스트가 쓴 데이터가 압축과 중복 제거 후 차지하는 공간보다 몇 배 큰지(Unisphere가 보고한 값) |
+| `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | srp 레이블별, 각 스토리지 리소스 풀의 사용 가능한 용량 중 사용 중인 비율(%). 가득 찬 풀은 그 안의 모든 스토리지 그룹에 대해 새 쓰기를 받지 않습니다 |
+| `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | srp 레이블별, 각 스토리지 리소스 풀에서 사용 중인 사용 가능한 용량(바이트) |
 
 ### 성능
 
@@ -251,6 +284,18 @@ PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로�
 | `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 각 어플라이언스에서 초당 읽은 바이트 수입니다. |
 | `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 각 어플라이언스에서 초당 쓴 바이트 수입니다. |
 | `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | 각 어플라이언스가 스토리지 I/O에 할당한 CPU 코어 중 바쁜 비율(백분율)입니다. 높은 값이 계속되면 어플라이언스가 처리할 수 있는 부하의 한계에 가깝다는 뜻입니다. |
+| `powermax_array_response_time_usec` | `operation=read` | PowerMax | `µs` | 어레이에서 호스트 읽기에 걸리는 평균 시간(마이크로초). Unisphere의 최근 5분 간격 기준(operation read) |
+| `powermax_array_response_time_usec` | `operation=write` | PowerMax | `µs` | 어레이에서 호스트 쓰기에 걸리는 평균 시간(마이크로초). Unisphere의 최근 5분 간격 기준(operation write) |
+| `powermax_array_read_iops` | — | PowerMax | `ops/s` | 어레이의 초당 호스트 읽기 수. Unisphere의 호스트 IO 수에 읽기 비율을 곱한 값입니다 |
+| `powermax_array_write_iops` | — | PowerMax | `ops/s` | 어레이의 초당 호스트 쓰기 수. Unisphere의 호스트 IO 수에 쓰기 비율을 곱한 값입니다 |
+| `powermax_array_read_throughput_bytes` | — | PowerMax | `bytes/s` | 호스트가 어레이에서 읽는 초당 바이트 수 |
+| `powermax_array_write_throughput_bytes` | — | PowerMax | `bytes/s` | 호스트가 어레이에 쓰는 초당 바이트 수 |
+| `powermax_array_cache_hit_percent` | — | PowerMax | `%` | 어레이가 캐시에서 응답한 호스트 I/O의 비율(%) |
+| `powermax_array_write_pending_percent` | — | PowerMax | `%` | 어레이 캐시 중 아직 드라이브로 디스테이징되지 않은 쓰기를 보관하는 비율(%). 어레이의 한도에 가까워지면 호스트 쓰기가 느려집니다 |
+| `powermax_array_frontend_busy_percent` | — | PowerMax | `%` | 호스트를 처리하는 디렉터의 사용률(%) |
+| `powermax_array_backend_busy_percent` | — | PowerMax | `%` | 드라이브를 처리하는 디렉터의 사용률(%) |
+| `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | 다른 어레이로 복제하는 디렉터의 사용률(%) |
+| `powermax_srp_response_time_usec` | — | PowerMax | `µs` | srp 레이블별, 각 스토리지 리소스 풀에서 I/O에 걸리는 평균 시간(마이크로초) |
 
 ### 볼륨
 
@@ -279,6 +324,20 @@ PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로�
 | `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | 각 볼륨 그룹의 볼륨 전체에 걸친 평균 읽기 지연 시간(마이크로초)입니다. 그룹 이름이 담긴 volume_group_id로 그룹화하세요. |
 | `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | 각 볼륨 그룹의 볼륨 전체에 걸친 평균 쓰기 지연 시간(마이크로초)입니다. |
 | `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | 각 볼륨 그룹의 볼륨 전체에 걸친 초당 읽기 및 쓰기 작업 수입니다. |
+| `powermax_storage_group_response_time_usec` | — | PowerMax | `µs` | storage_group 레이블별, 각 스토리지 그룹에서 I/O에 걸리는 평균 시간(마이크로초). Unisphere의 최근 5분 간격 기준 |
+| `powermax_storage_group_read_response_time_usec` | — | PowerMax | `µs` | storage_group 레이블별, 각 스토리지 그룹에서 읽기에 걸리는 평균 시간(마이크로초) |
+| `powermax_storage_group_write_response_time_usec` | — | PowerMax | `µs` | storage_group 레이블별, 각 스토리지 그룹에서 쓰기에 걸리는 평균 시간(마이크로초) |
+| `powermax_storage_group_iops` | — | PowerMax | `ops/s` | storage_group 레이블별, 각 스토리지 그룹의 초당 호스트 I/O 수 |
+| `powermax_storage_group_throughput_bytes` | — | PowerMax | `bytes/s` | storage_group 레이블별, 각 스토리지 그룹에서 호스트가 읽고 쓰는 초당 바이트 수 |
+| `powermax_storage_group_used_bytes` | — | PowerMax | `bytes` | storage_group 레이블별, 각 스토리지 그룹의 볼륨이 사용하는 용량(바이트) |
+| `powermax_storage_group_host_io_limit_exceeded_percent` | — | PowerMax | `%` | 각 스토리지 그룹이 호스트 I/O 한도로 인해 제한된 시간이 간격에서 차지하는 비율(%). 한도가 설정된 스토리지 그룹만 이 값을 보고합니다 |
+| `powermax_storage_group_realtime_read_response_time_usec` | — | PowerMax | `µs` | Unisphere에서 실시간 수집에 등록된 스토리지 그룹의 읽기 응답 시간(마이크로초), 5초마다. 어레이당 최대 100개의 스토리지 그룹을 등록할 수 있습니다 |
+| `powermax_storage_group_realtime_write_response_time_usec` | — | PowerMax | `µs` | Unisphere에서 실시간 수집에 등록된 스토리지 그룹의 쓰기 응답 시간(마이크로초), 5초마다 |
+| `powermax_storage_group_realtime_iops` | — | PowerMax | `ops/s` | 실시간 수집에 등록된 스토리지 그룹의 초당 호스트 I/O 수, 5초마다 |
+| `powermax_storage_group_realtime_throughput_bytes` | — | PowerMax | `bytes/s` | 실시간 수집에 등록된 스토리지 그룹의 초당 바이트 수, 5초마다 |
+| `powermax_volume_response_time_usec` | — | PowerMax | `µs` | volume 레이블별, 각 볼륨에서 I/O에 걸리는 평균 시간(마이크로초). Unisphere는 실시간 수집에 등록된 스토리지 그룹의 볼륨에 대해서만 이 값을 보고합니다 |
+| `powermax_volume_iops` | — | PowerMax | `ops/s` | volume 레이블별, 각 볼륨의 초당 호스트 I/O 수. 실시간 수집에 등록된 스토리지 그룹의 볼륨이 대상입니다 |
+| `powermax_volume_used_bytes` | — | PowerMax | `bytes` | volume 레이블별, 각 볼륨이 사용하는 용량(바이트) |
 
 ### 호스트
 
@@ -299,6 +358,10 @@ PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로�
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 각 파드의 복제 트래픽. 레이블은 `direction` 과 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 각 ActiveCluster 파드의 미러링된 쓰기 평균 지연 시간 |
 | `powerstore_metro_witness_status` | — | PowerStore | `count` | 각 Metro Witness의 상태입니다: 0 OK, 1 부분 연결, 2 연결 끊김, 3 삭제 중, 4 초기화 중. 0보다 크면 Metro 세션이 스스로 페일오버하지 못할 수 있습니다. |
+| `powermax_srdf_group_not_healthy` | — | PowerMax | `count` | 링크가 오프라인이거나 페어가 일시 중단, 파티션, 분할, 장애 조치 또는 무효 상태인 SRDF 그룹마다 시리즈 하나(값 1). srdf_group, state, remote_symmetrix_id 레이블이 붙습니다. 그룹이 복제 중인 동안에는 시리즈가 없습니다 |
+| `powermax_srdf_group_lag_seconds` | — | PowerMax | `s` | srdf_group 레이블별, 각 비동기 SRDF 그룹의 원격 복사본이 뒤처진 시간(초). 지금 페일오버하면 그 시간만큼의 쓰기를 잃습니다 |
+| `powermax_srdf_group_throughput_bytes` | — | PowerMax | `bytes/s` | srdf_group 레이블별, 각 SRDF 그룹이 원격 어레이로 보내는 초당 바이트 수 |
+| `powermax_srdf_group_response_time_usec` | — | PowerMax | `µs` | srdf_group 레이블별, 각 SRDF 그룹에서 복제된 쓰기가 원격 어레이에 도달하는 데 걸리는 평균 시간(마이크로초) |
 
 ### 하드웨어
 
@@ -326,6 +389,12 @@ PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로�
 | `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | 각 이더넷 포트에서 초당 받은 바이트 수입니다. |
 | `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | 각 이더넷 포트에서 초당 보낸 바이트 수입니다. |
 | `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | 각 이더넷 포트에서 초당 받은, CRC 오류가 있는 패킷 수입니다. 오류가 계속되면 보통 케이블, 광 모듈 또는 스위치 포트 불량입니다. |
+| `powermax_director_offline` | — | PowerMax | `count` | 온라인이 아닌 디렉터마다 시리즈 하나(값 1). director, role, status 레이블이 붙습니다. 모든 디렉터가 온라인인 동안에는 시리즈가 없습니다 |
+| `powermax_director_busy_percent` | — | PowerMax | `%` | component 레이블(예: FA-1D)별, 각 디렉터의 사용률(%) |
+| `powermax_port_offline` | — | PowerMax | `count` | 호스트나 SRDF를 처리하지만(포트 그룹, 마스킹 뷰 또는 SRDF 그룹에 속함) 작동하지 않는 포트마다 시리즈 하나(값 1). component, protocol, status 레이블이 붙습니다. 아무도 사용하지 않는 포트는 의도적으로 꺼 두었을 수 있으므로 제외됩니다 |
+| `powermax_port_busy_percent` | — | PowerMax | `%` | component 레이블(예: FA-1D:4)별, 각 포트의 사용률(%) |
+| `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | component 레이블별, 각 포트를 통해 읽는 초당 바이트 수 |
+| `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | component 레이블별, 각 광 포트가 수신하는 광 출력(밀리와트). 값이 떨어지면 광 모듈이나 케이블이 나빠지고 있다는 뜻입니다. Unisphere 10.3 이상이 필요합니다 |
 
 ### 파일 시스템
 
@@ -420,7 +489,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` 는 어레이의 `storage.array.name`(에이전트를 시작할 때 쓴 `STORAGE_ARRAY_NAME`)이며, OneUptime ID가 아닙니다. `storageSystem` 은 `purestorage.flasharray` 또는 `purestorage.flashblade` 입니다. 이 값에 따라 양식이 보여 주는 카탈로그와 템플릿, 그리고 하드웨어 필터가 `component_name` 과 `name` 중 무엇을 읽을지가 정해집니다.
+`arrayIdentifier` 는 어레이의 `storage.array.name`(에이전트를 시작할 때 쓴 `STORAGE_ARRAY_NAME`, 또는 OneUptime에서의 PowerMax 이름으로, 바꾸기 전까지는 Symmetrix ID)이며, OneUptime ID가 아닙니다. `storageSystem` 은 `purestorage.flasharray`, `purestorage.flashblade` 또는 `dell.powermax` 입니다. 이 값에 따라 양식이 보여 주는 카탈로그와 템플릿, 그리고 하드웨어 필터가 `component_name`, `name`, `component` 중 무엇을 읽을지가 정해집니다.
 
 ## 문제 해결
 
@@ -440,8 +509,12 @@ Pure는 읽기, 쓰기, 미러링된 쓰기, SAN, 큐, QoS 수치를 메트릭 �
 에이전트는 볼륨, 호스트, 파드를 2분마다, FlashBlade의 파일 시스템과 버킷을 5분마다, FlashArray 디렉터리를 30분마다 읽으므로 1분 기간에는 샘플이 없을 수 있습니다. 5분 이상을 쓰세요. 파일 시스템과 버킷에는 15분, 디렉터리에는 60분입니다.
 :::
 
+:::details PowerMax 모니터에 데이터가 표시되지 않음
+프로브는 PowerMax를 5분마다 읽으므로 10분 이상의 기간을 쓰세요. 응답 시간, IOPS, 처리량에는 Unisphere의 성능 수집이 필요하며, 이는 **Performance Collection Off** 템플릿이 감시합니다. 볼륨의 값을 보려면 그 스토리지 그룹이 Unisphere에서 실시간 수집에 등록되어 있어야 합니다. **제품 → 인프라 → 스토리지 어레이 → 연결** 아래의 연결 페이지에 마지막 수집에서 읽지 못한 항목이 표시됩니다.
+:::
+
 :::details 볼륨마다가 아니라 어레이 전체에 대해 인시던트가 한 번만 발생함
-쿼리를 객체의 레이블로 그룹화하세요. 볼륨, 파드, 디렉터리, 파일 시스템, 버킷에는 `name`, 호스트에는 `host`, FlashArray 하드웨어에는 `component_name` 을 씁니다. Pure의 레이블에는 접두사가 없으므로 `resource.name` 은 아무것과도 일치하지 않습니다.
+쿼리를 객체의 레이블로 그룹화하세요. 볼륨, 파드, 디렉터리, 파일 시스템, 버킷에는 `name`, 호스트에는 `host`, FlashArray 하드웨어에는 `component_name`, PowerMax에서는 `storage_group`, `volume`, `component` 또는 `srdf_group` 을 씁니다. Pure와 PowerMax의 레이블에는 접두사가 없으므로 `resource.name` 은 아무것과도 일치하지 않습니다.
 :::
 
 ## 다음 단계

@@ -6,6 +6,7 @@ OneUptime の ストレージアレイ エージェントは、ストレージ�
 - [エージェントをインストールする](#エージェントをインストールする): 読み取り専用ユーザー、続いてインストールスクリプトまたは Docker Compose。
 - [エージェントが収集するもの](#エージェントが収集するもの): すべてのエンドポイントと、そこから作られるページ。
 - [複数のアレイを監視する](#複数のアレイを監視する): アレイごとにエージェントを 1 つ、1 台のマシンで。
+- [Dell PowerMax](#dell-powermax): エージェント不要。プローブが Unisphere の配下にあるすべてのアレイを読み取ります。
 - [トラブルシューティング](#トラブルシューティング): 診断スクリプトと、よくある問題。
 :::
 
@@ -19,6 +20,8 @@ Storage Arrays は、どのベンダーでも同じように動作する製品�
 | **Pure Storage FlashArray**、古い Purity//FA | `purestorage.flasharray` | Pure の FlashArray OpenMetrics エクスポーター。同じ Compose ファイルが `pure-fa-exporter` サービスとして実行します | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure の FlashBlade OpenMetrics エクスポーター。同じ Compose ファイルが `pure-fb-exporter` サービスとして実行します | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | Dell の PowerStore Metrics Exporter。同じ Compose ファイルが `powerstore-exporter` サービスとしてビルドして実行します。クラスターのアラートは syslog でその `powerstore-syslog` サービスに届きます | `otel-collector-config.powerstore.yaml` |
+
+**Dell PowerMax** (`dell.powermax`) にはエージェントが不要です。OneUptime のプローブが読み取り専用アカウントで、Unisphere for PowerMax が管理するすべてのアレイを読み取ります。[Dell PowerMax](#dell-powermax) を参照してください。
 
 Pure Storage は 2026 年 2 月に社名を **Everpure** に変更しました。FlashArray、FlashBlade、Purity は名前を変えず、`purefa_*` と `purefb_*` のメトリクスも同じなので、このページの内容はどちらの名前で販売されたアレイにも当てはまります。
 
@@ -326,6 +329,54 @@ docker compose down
 
 PowerStore では `docker compose --profile powerstore down` を実行して、エクスポーターと syslog コレクターも停止させてください。
 
+## Dell PowerMax
+
+Dell PowerMax にはエージェントが不要です。OneUptime のプローブが 5 分ごとに読み取り専用アカウントで Unisphere for PowerMax の REST API にログインし、その Unisphere が管理するすべてのアレイを読み取ります。各アレイは Symmetrix ID (`000220200269` など) の名前で **ストレージアレイ** に表示され、名前は変更できます。パスワードは暗号化して保存され、二度と表示されず、選択したプローブにのみ送信されます。
+
+- **Unisphere for PowerMax 10.1 以降** で、PowerMaxOS 10 または 5978 のアレイを管理していること。Unisphere 10.3 からは、読み取り専用アカウントでもポートと SRDF グループを参照できます。
+- **TCP 8443 で Unisphere に到達できるプローブ**。通常は Unisphere のネットワーク内にある [カスタムプローブ](/docs/probe/custom-probe) です。OneUptime Cloud では共有プローブがストレージのパスワードを受け取ることはないため、プロジェクト独自のプローブを選んでください。
+- **Monitor ロールを持つ Unisphere ユーザー**。読み取る各アレイでこのロールを持ち、パフォーマンス用に **PerfMonitor** ロールも持たせます。これ以上の権限は不要です。OneUptime がアレイを変更することはありません。
+
+:::steps
+### 読み取り専用ユーザーを作成する
+
+Unisphere for PowerMax の **Settings → Users and Groups** で、ローカルユーザーを作成するか、ディレクトリのユーザーを選びます。各アレイで **Monitor** ロールを、パフォーマンス用に **PerfMonitor** を付与します。
+
+### Unisphere がパフォーマンスを収集していることを確認する
+
+**Settings → Performance → System Registrations** で、各アレイの **Diagnostic** 収集がオンになっていることを確認します。オフの場合、OneUptime はアレイのインベントリとアラートを一覧表示しますが、パフォーマンスのグラフは描画しません。ストレージグループを 5 秒ごとに見るには、同じ画面で **Real Time** にも登録します (アレイあたり最大 100 個)。
+
+### Unisphere を接続する
+
+**製品 → インフラストラクチャ → ストレージアレイ → 接続** に移動し、**Unisphere を接続** をクリックします。Unisphere を開くときのアドレス (`https://unisphere.example.com:8443` など)、ユーザー名、パスワードを入力し、プローブを選びます。
+
+### 接続をテストする
+
+**接続をテスト** を使うと、プローブがログインして、アカウントから見えるもの (各アレイ、そのストレージグループとボリューム、Unisphere がそのパフォーマンスを収集しているかどうか) を読み取ります。Unisphere は既定で自己署名の証明書を使います。テストにその証明書が表示され、**この証明書を信頼** でその SHA-256 フィンガープリントがフォームに入ります。先にフィンガープリントを Unisphere 自身のものと照合してください。たとえばプローブのマシンから `openssl s_client -connect unisphere.example.com:8443` を実行します。
+
+### 名前を付けて接続する
+
+接続に名前を付けるか、ホスト名のままにして、**接続** をクリックします。接続のページには、数分以内に最初の収集と、見つかったすべてのアレイが表示され、それぞれ **ストレージアレイ** 内のページにリンクされます。
+:::
+
+プローブは Unisphere の文書化された REST エンドポイントを読み取ります。アレイ、容量、ヘルス、アラート、プールには従来の `/univmax/restapi` を、ストレージグループ、ボリューム、ディレクター、ポート、SRDF グループ、パフォーマンスには一括取得用の `/univmax/rest/v1` を使います。呼び出しはすべて読み取りです。読み取った内容は次のシリーズとして送信され、Unisphere のミリ秒はマイクロ秒に、MB/秒はバイト/秒に換算されます:
+
+| シリーズ | 内容 |
+| --- | --- |
+| `powermax_array_*` | アレイ: モデルとマイクロコード、使用可能容量・使用済み容量・サブスクライブ済み容量、データ削減、ヘルススコア、Unisphere がパフォーマンスを収集しているかどうか、5 分間隔のレスポンスタイム、IOPS、スループット、キャッシュ、ビジー率 |
+| `powermax_alert_open` | Unisphere がアレイについて開いている Minor 以上のアラートごとのシリーズ。誰かが確認するかクリアするまで続きます |
+| `powermax_storage_group_*` | 各ストレージグループ: 容量とボリューム、5 分間隔のレスポンスタイム、IOPS、スループット、リアルタイム用に登録されている場合は 5 秒間隔の値 |
+| `powermax_volume_*` | ストレージグループ内の各ボリューム: 容量と、そのストレージグループがリアルタイム用に登録されている場合の値 |
+| `powermax_srp_*` | 各ストレージリソースプール: 容量とレスポンスタイム |
+| `powermax_director_*` | 各ディレクター: ロール、ステータス、ビジー率と、オンラインでない間の `powermax_director_offline` |
+| `powermax_port_*` | 各ポート: プロトコル、速度、光レベル、ビジー率と、誰かが利用しているポートがダウンしている間の `powermax_port_offline` |
+| `powermax_srdf_group_*` | 各 SRDF グループ: リモートアレイとモード、遅延とスループットと、一時停止またはオフラインの間の `powermax_srdf_group_not_healthy` |
+
+- **5 分ごと**、または負荷の高い Unisphere への負担を減らすなら 10 分ごと (接続のフォームの **その他の項目**)。Unisphere はパフォーマンスを 5 分ごとに計算します。
+- **Unisphere 自身が管理するアレイのみ。** SRDF 経由で見えるリモートアレイは接続のページに一覧表示され、それぞれのサイトの Unisphere が読み取ります。その Unisphere も接続してください。
+- **アレイあたり最大 5,000 個のストレージグループと 10,000 個のボリューム**、および収集あたり 200 件の新しいアラート (残りは次回以降の収集で届きます)。一覧が途中で切れた場合は、接続のページにその旨が表示されます。
+- **Unisphere 10.1 と 10.2** は、読み取り専用アカウントにポートも SRDF グループも返しません。プローブはディレクターを個別に読み取り、SRDF グループをストレージグループから取得し、その旨を表示します。
+
 ## トラブルシューティング
 
 :::details まず診断スクリプトを実行する
@@ -379,6 +430,18 @@ OneUptime はストレージアレイを `storage.array.name` で登録し、エ
 
 :::details エージェントなしでメトリクスを送信する
 エージェントは標準の Collector 設定 1 つなので、すでに運用している Collector でも同じことができます。スクレイプジョブと `resource` プロセッサーを、同梱の設定から自分の設定にコピーしてください。`storage.array.name` リソース属性が OneUptime にアレイを登録し、`service.name` / `service.instance.id` の削除がデータをサービスの下に整理されないようにします。どちらも残し、`scrape_endpoint` ラベルも残してください。
+:::
+
+:::details 接続テストで Unisphere の証明書が信頼されていないと表示される
+Unisphere for PowerMax は、誰かが認証局の証明書をインストールしていない限り、自己署名の証明書を使います。テストに表示されたフィンガープリントを Unisphere 自身のものと照合してから、**この証明書を信頼** をクリックし、もう一度テストします。Unisphere の証明書が更新されると、新しい証明書を信頼するまで収集は **サーバーの証明書が変更されました** で停止し、それまで Unisphere には何も送信されません。
+:::
+
+:::details 接続テストでアカウントがアレイを読み取れないと表示される
+アレイ上でロールを持たないアカウントに対して、Unisphere は `403` を返します。**Settings → Users and Groups** で、ユーザーに各アレイの **Monitor** ロールを、パフォーマンス用に **PerfMonitor** を付与してください。アカウントがロールを持たないアレイは理由とともに接続のページに一覧表示され、ほかのアレイは読み取られます。
+:::
+
+:::details PowerMax にレスポンスタイムや IOPS が表示されない
+Unisphere がアレイのパフォーマンスを収集していないか、アカウントに **PerfMonitor** がありません。どちらなのかは接続のページに表示されます。**Settings → Performance → System Registrations** で **Diagnostic** 収集をオンにしてください。ボリュームの値と、ストレージグループの 5 秒ごとの値には、そのストレージグループを同じ画面で **Real Time** にも登録する必要があります。
 :::
 
 ## 次のステップ

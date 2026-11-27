@@ -1,6 +1,6 @@
 # Lagerarray-monitor
 
-En lagerarray-monitor holder øje med ét lagerarray og fortæller dig, når arrayet selv udsender en advarsel, løber tør for plads, bliver langsomt, mister hardware eller en værtssti, eller kommer bagud med replikering. Den virker med Pure Storage FlashArray og Pure Storage FlashBlade og læser de metrikker, arrayet selv eksporterer - Pures serier `purefa_*` og `purefb_*` -, som OneUptime Storage Array Agent indsamler.
+En lagerarray-monitor holder øje med ét lagerarray og fortæller dig, når arrayet selv udsender en advarsel, løber tør for plads, bliver langsomt, mister hardware eller en værtssti, eller kommer bagud med replikering. Den virker med Pure Storage FlashArray og Pure Storage FlashBlade, hvis egne serier `purefa_*` og `purefb_*` OneUptime Storage Array Agent indsamler, og med Dell PowerMax, hvis serier `powermax_*` en OneUptime-sonde læser fra Unisphere for PowerMax.
 
 Den fungerer også med Dell PowerStore (`dell.powerstore`), ud fra Dells serier `powerstore_*`.
 
@@ -14,6 +14,8 @@ Den fungerer også med Dell PowerStore (`dell.powerstore`), ud fra Dells serier 
 ## Sådan fungerer det
 
 OneUptime Storage Array Agent kører på en maskine, der kan nå arrayets administrationsgrænseflade. Den læser arrayets metrikker med et skrivebeskyttet API-token, mærker dem med arrayets navn, `storage.array.name`, og dets platform, `storage.system`, og sender dem til OneUptime over OTLP. De første data registrerer arrayet.
+
+En Dell PowerMax kræver ingen agent: en OneUptime-sonde logger hvert 5. minut ind på Unisphere for PowerMax med en skrivebeskyttet konto og sender hvert array, den administrerer, på samme måde, navngivet efter sit Symmetrix ID, indtil du omdøber det ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
 En lagerarray-monitor er knyttet til ét array. Hvert minut kører den sin forespørgsel på det arrays metrikker og sammenligner resultatet med sine kriterier.
 
@@ -35,6 +37,7 @@ flowchart TB
 
 - **Installér Storage Array Agent** et sted, hvor den kan nå arrayet over HTTPS, med API-tokenet for en bruger, der har arrayets rolle **readonly**. [Vejledningen til Storage Array Agent](/docs/telemetry/storage-arrays) dækker brugeren, tokenet og installationen, gennem `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME` samt arrayets adresse og token (`PURE_FA_ENDPOINT` og `PURE_FA_API_TOKEN`, eller `PURE_FB_ENDPOINT` og `PURE_FB_API_TOKEN`).
 - **Tjek, at arrayet er registreret.** Det vises under **Produkter → Infrastruktur → Lagerarrays → Alle lagerarrays**, opkaldt efter agentens `STORAGE_ARRAY_NAME`, cirka et minut efter den første aflæsning.
+- **For en Dell PowerMax** forbinder du i stedet den Unisphere for PowerMax, der administrerer den, under **Produkter → Infrastruktur → Lagerarrays → Forbindelser**, som [Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax) forklarer.
 
 ## Opret en lagerarray-monitor
 
@@ -76,10 +79,10 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | Felt | Fane | Hvad det gør |
 | --- | --- | --- |
 | **Lagerarray** | Alle | Påkrævet. Begrænser hver forespørgsel til `resource.storage.array.name`, så to arrays, der begge har et volumen ved navn `vol-01`, aldrig blandes. |
-| **Volumen** | Custom Metric, Avanceret | Kun FlashArray. Ét volumen, via labelen `name`, som `vol-db-01`. Et volumen i en pod eller en volumengruppe hedder `pod::volume` eller `group/volume`. |
+| **Volumen** | Custom Metric, Avanceret | Kun FlashArray og PowerMax. Ét volumen: via labelen `name` på et FlashArray, som `vol-db-01` (et volumen i en pod eller en volumengruppe hedder `pod::volume` eller `group/volume`), og via labelen `volume` på en PowerMax, dets enheds-ID som `00847`. |
 | **Vært** | Custom Metric, Avanceret | Kun FlashArray. Én vært, som arrayet kender den, via labelen `host`, som `esxi-01`. |
 | **Pod** | Custom Metric, Avanceret | Kun FlashArray. Én ActiveCluster- eller ActiveDR-pod, via labelen `name`, eller `local_pod` på serier for replikalinks. |
-| **Hardwarekomponent** | Custom Metric, Avanceret | Én hardwarekomponent, som `CH0.BAY1` eller `CT0`: labelen `component_name` på et FlashArray, `name` på et FlashBlade. |
+| **Hardwarekomponent** | Custom Metric, Avanceret | Én hardwarekomponent, som `CH0.BAY1` eller `CT0`: labelen `component_name` på et FlashArray, `name` på et FlashBlade og `component` på en PowerMax, en director som `FA-1D` eller en port som `FA-1D:4`. |
 | **Filsystem** | Custom Metric, Avanceret | Kun FlashBlade. Ét filsystem, via labelen `name`. |
 | **Bucket** | Custom Metric, Avanceret | Kun FlashBlade. Én bucket til objektlager, via labelen `name`. |
 | **Storage Array Metric** | Custom Metric | Én metrik fra [kataloget](#indsamlede-metrikker). Formularen tilføjer det labelfilter, der giver den dens betydning, og grupperer den efter det objekt, den beskriver, så hvert volumen, hver vært eller hver komponent bedømmes for sig. |
@@ -87,7 +90,7 @@ Klik på **Opret monitor**. OneUptime åbner monitorens side og evaluerer den hv
 | **Tidsinterval** | Alle | Det glidende vindue, forespørgslen læser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter ved **Seneste 5 minutter**; en brugerdefineret metrik for et filsystem eller en bucket ved **Seneste 15 minutter**; skabeloner sætter deres eget. |
 | **Vælg metrikker** | Avanceret | Forespørgselsbyggeren: **Metrik**, **Aggreger efter**, **Filtrer efter attributter**, **Gruppér efter**, plus **Tilføj metrik** og **Tilføj formel** til at kombinere forespørgsler. |
 
-Agenten læser arrayets endpoint hvert 60. sekund, og volumener, værter og pods hvert 2. minut, så et vindue på 5 minutter altid indeholder en prøve. Et FlashBlades filsystemer og buckets læser den hvert 5. minut, deraf 15, og FlashArray-mapper hvert 30. minut: giv en mappemonitor et vindue på 60 minutter.
+Agenten læser arrayets endpoint hvert 60. sekund, og volumener, værter og pods hvert 2. minut, så et vindue på 5 minutter altid indeholder en prøve. Et FlashBlades filsystemer og buckets læser den hvert 5. minut, deraf 15, og FlashArray-mapper hvert 30. minut: giv en mappemonitor et vindue på 60 minutter. En sonde læser en PowerMax hvert 5. minut, lige så ofte som Unisphere beregner dens ydeevne: giv en PowerMax-monitor et vindue på 10 minutter eller mere.
 
 Den læser en PowerStore hvert 5. minut og dens klynges tilstand hvert 60. sekund: giv en PowerStore-monitor et vindue på 15 minutter.
 
@@ -107,9 +110,11 @@ Flere serier bærer deres tilstand i en **label**, med en værdi, der altid er 1
 | `purefa_host_connectivity_info` | `status`, med `details` | Vært |
 | `purefa_drive_capacity_bytes` | `component_status` (værdien er drevets kapacitet) | Drev |
 
-En serie, der er filtreret til en dårlig tilstand, findes kun, så længe noget er i den tilstand, så ingen serie betyder sundt. Derfor er **Max over 0 udløser og 0 genopretter** den rigtige form for dem, og sådan er skabelonerne bygget: deres genopretningskriterier tæller en manglende serie som nul. Når der slet ingen serier er tilbage, genopretter sådan en skabelon kun, hvis `purefa_info` eller `purefb_info` er ankommet i samme vindue, så et array, der er holdt op med at rapportere, lukker intet.
+En serie, der er filtreret til en dårlig tilstand, findes kun, så længe noget er i den tilstand, så ingen serie betyder sundt. Derfor er **Max over 0 udløser og 0 genopretter** den rigtige form for dem, og sådan er skabelonerne bygget: deres genopretningskriterier tæller en manglende serie som nul. Når der slet ingen serier er tilbage, genopretter sådan en skabelon kun, hvis `purefa_info`, `purefb_info` eller `powermax_array_info` er ankommet i samme vindue, så et array, der er holdt op med at rapportere, lukker intet.
 
-I monitorfiltre og grupperingsnøgler begynder agentens attributter med `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens Pures egne labels ikke gør (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+En PowerMax' serier rummer hver én værdi og er opkaldt efter den: `powermax_array_response_time_usec` skelner læsninger fra skrivninger med `operation`. Dens tilstandsserier findes på samme måde kun, mens noget er galt: `powermax_alert_open`, mens Unisphere har en advarsel åben, `powermax_director_offline`, mens en director ikke er online, `powermax_port_offline`, mens en port, som nogen er afhængig af, er nede, og `powermax_srdf_group_not_healthy`, mens en SRDF-gruppe er suspenderet eller offline.
+
+I monitorfiltre og grupperingsnøgler begynder agentens attributter med `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens Pures egne labels ikke gør (`name`, `host`, `component_name`, `dimension`, `space`, `severity`), og det gør PowerMax' heller ikke (`storage_group`, `volume`, `director`, `port_id`, `srdf_group`).
 
 ## Sådan er PowerStores serier opbygget
 
@@ -117,9 +122,9 @@ Dells eksportør skriver én værdi pr. metriknavn, så en PowerStore-serie beh�
 
 ## Færdige advarselsskabeloner
 
-OneUptime leverer 36 skabeloner — 12 til FlashArray, 8 til FlashBlade og 16 til PowerStore — og listen under **Hvad der skal advares om** tilbyder dem til arrayets platform. Hver bygger en komplet monitor: metrikforespørgslen, dens labelfiltre, en gruppering på objektets egen label, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
+OneUptime leverer 49 skabeloner — 12 til FlashArray, 8 til FlashBlade, 16 til PowerStore og 13 til PowerMax — og listen under **Hvad der skal advares om** tilbyder dem til arrayets platform. Hver bygger en komplet monitor: metrikforespørgslen, dens labelfiltre, en gruppering på objektets egen label, et kriterium, der udløser, og et, der genopretter. Tærskler er udgangspunkter, du kan redigere.
 
-Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets vindue. En monitor, der udløste på en tærskel for kapacitet, latens, forsinkelse eller forhold, genopretter først 10 % forbi den, så en værdi, der svinger omkring tærsklen, ikke skifter frem og tilbage. Skabelonerne for advarsler, hardware og forbindelser udløses, når en tilstand har vist sig i hele deres vindue på 5 minutter, og genopretter cirka 5 minutter efter, at den er forsvundet.
+Et kriterium udløser kun, når betingelsen gælder for **hver** værdi i dets vindue. En monitor, der udløste på en tærskel for kapacitet, latens, forsinkelse eller forhold, genopretter først 10 % forbi den, så en værdi, der svinger omkring tærsklen, ikke skifter frem og tilbage. Skabelonerne for advarsler, hardware og forbindelser udløses, når en tilstand har vist sig i hele deres vindue på 5 minutter, og genopretter cirka 5 minutter efter, at den er forsvundet. PowerMax' skabeloner bruger vinduer på 10 og 15 minutter: to og tre af dens 5-minutters indsamlinger.
 
 ### FlashArray
 
@@ -182,11 +187,29 @@ En PowerStores egne advarsler kommer som protokoller, så deres skabeloner er mo
 | Major Array Alert | Advarsel | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
 | Port Link Down | Advarsel | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
+### PowerMax
+
+| Skabelon | Kategori | Alvorlighed | Overvåger | Udløser når |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Tilgængelighed | Kritisk | `powermax_array_info`, Count, seneste 10 minutter | Ingen data i hele vinduet — sonden er holdt op med at indsamle arrayet: dens forbindelse fejler (dens side under **Forbindelser** siger hvorfor), sonden er afbrudt, eller Unisphere administrerer ikke længere arrayet; genopretter, når data kommer igen |
+| Critical Unisphere Alert | Arrayets sundhed | Kritisk | `powermax_alert_open` filtreret til `severity=critical`, Max pr. `description`, seneste 10 minutter | > 0 — Unisphere har en åben advarsel med alvorligheden Critical eller Fatal for arrayet. Én hændelse pr. advarsel; genopretter, når advarslen bekræftes eller ryddes i Unisphere |
+| Warning Unisphere Alert | Arrayets sundhed | Advarsel | `powermax_alert_open` filtreret til `severity=warning`, Max pr. `description`, seneste 10 minutter | > 0 — Unisphere har en åben advarsel med alvorligheden Warning eller Minor. Én hændelse pr. advarsel; genopretter, når advarslen bekræftes eller ryddes |
+| Performance Collection Off | Arrayets sundhed | Advarsel | `powermax_array_performance_collection`, Min, seneste 15 minutter | < 1 — Unisphere indsamler ikke arrayets 5-minutters ydeevnedata, så ingen svartid, IOPS eller gennemløb tegnes eller advares på; genopretter ved ≥ 1 |
+| Storage Resource Pool Above 80% | Kapacitet | Advarsel | `powermax_srp_capacity_used_percent`, Max pr. `srp`, seneste 15 minutter | > 80 — puljens lagergrupper holder op med at tage imod nye skrivninger, når den bliver fuld. Én hændelse pr. pulje; genopretter ved ≤ 72 |
+| Storage Resource Pool Above 90% | Kapacitet | Kritisk | `powermax_srp_capacity_used_percent`, Max pr. `srp`, seneste 15 minutter | > 90 — skrivninger til dens lagergrupper fejler, så snart den er fuld. Én hændelse pr. pulje; genopretter ved ≤ 81 |
+| Storage Group Response Time Above 5 ms | Ydeevne | Advarsel | `powermax_storage_group_response_time_usec`, Avg pr. `storage_group`, seneste 15 minutter | > 5000 µs (5 ms) — en PowerMax svarer normalt på langt under et millisekund. Én hændelse pr. lagergruppe; genopretter ved ≤ 4500 |
+| High Read Response Time | Ydeevne | Advarsel | `powermax_array_response_time_usec` filtreret til `operation=read`, Avg, seneste 15 minutter | > 3000 µs (3 ms); genopretter ved ≤ 2700 |
+| High Write Response Time | Ydeevne | Advarsel | `powermax_array_response_time_usec` filtreret til `operation=write`, Avg, seneste 15 minutter | > 3000 µs (3 ms) — synkron SRDF lægger rundturen til det fjerne array oven i hver skrivning; genopretter ved ≤ 2700 |
+| Director Not Online | Hardware | Kritisk | `powermax_director_offline`, Max pr. `component`, seneste 10 minutter | > 0 — en director er ikke online, og arrayet kører videre på de andre. Én hændelse pr. director; genopretter, når den er online igen |
+| Port Down | Hardware | Advarsel | `powermax_port_offline`, Max pr. `component`, seneste 10 minutter | > 0 — en port i en portgruppe, en masking view eller en SRDF-gruppe er ikke oppe. Én hændelse pr. port; genopretter, når den er oppe igen |
+| SRDF Group Suspended or Offline | Replikering | Kritisk | `powermax_srdf_group_not_healthy`, Max pr. `srdf_group`, seneste 10 minutter | > 0 — gruppens link er offline, eller dens par er suspenderede, splittede eller i failover, så den fjerne kopi ikke holdes ajour. Én hændelse pr. gruppe; genopretter, når den er synkron igen |
+| SRDF/A Lag Above 2 Minutes | Replikering | Advarsel | `powermax_srdf_group_lag_seconds`, Avg pr. `srdf_group`, seneste 15 minutter | > 120 (2 minutter) — et failover nu ville miste flere nylige skrivninger end planlagt. Én hændelse pr. gruppe; genopretter ved ≤ 108 |
+
 **Alvorlighed** er den label, vælgeren viser. Den hændelse og den advarsel, en skabelon opretter, starter på dit projekts mest alvorlige hændelses- og advarselsalvorlighed; skift dem i kriteriet.
 
-- **Array Stopped Reporting** tæller platformens identitetsserie (`purefa_info` eller `purefb_info`), som hvert endpoint, agenten aflæser, eksporterer ved hver aflæsning. Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
+- **Array Stopped Reporting** tæller platformens identitetsserie (`purefa_info` eller `purefb_info`, som hvert endpoint, agenten aflæser, eksporterer ved hver aflæsning, eller `powermax_array_info`, som hver PowerMax-indsamling skriver). Når data stopper, har de andre skabeloner intet at sammenligne og beholder deres seneste status, så det er denne skabelon, der giver dig besked.
 - **Åbne advarsler og hardwaretilstande bruger Max** af en serie, der kun findes, mens advarslen er åben, eller komponenten er i den tilstand, så tilstanden udløser tærsklen, når den har vist sig i hele vinduet på 5 minutter.
-- **Hver skabelon pr. objekt grupperer på objektets egen label** (`summary`, `component_name`, `host`, `local_pod`, `name`), så der udløses én hændelse pr. berørt objekt, og hændelsen nævner det.
+- **Hver skabelon pr. objekt grupperer på objektets egen label** (`summary`, `component_name`, `host`, `local_pod`, `name` og på en PowerMax `description`, `component`, `srp`, `srdf_group` og `storage_group`), så der udløses én hændelse pr. berørt objekt, og hændelsen nævner det.
 - **Latensskabeloner bruger Avg** af arrayets eget gennemsnit pr. operation, og kapacitetsskabeloner **Maks.** af dets egen udnyttelsesprocent. Latenser er fastlåst i mikrosekunder og kapacitet i procent.
 - **Hardware Component Unhealthy bruger Min** pr. komponent: dens sundhed er 1, når den er sund, og falder til 0, når den ikke er.
 
@@ -194,7 +217,7 @@ Der er ingen skabelon for hvert volumens latens, fordi den rigtige tærskel afh�
 
 ## Indsamlede metrikker
 
-Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, monitorformularen tilbyder. Hver værdi er en gauge, som arrayet selv beregner - latenser er mikrosekunder pr. operation, og gennemløb er pr. sekund -, så der er ikke brug for rateberegning. **Filter** er det labelfilter, der giver serien den betydning, dens række angiver; formularen anvender det for dig.
+Agenten sender alt, hvad arrayet eksporterer, og en sonde alt, hvad den læser fra en PowerMax, i de samme enheder (Unispheres millisekunder som mikrosekunder, dens MB pr. sekund som bytes pr. sekund); serierne nedenfor er det katalog, monitorformularen tilbyder. Hver værdi er en gauge, som arrayet selv beregner - latenser er mikrosekunder pr. operation, og gennemløb er pr. sekund -, så der er ikke brug for rateberegning. **Filter** er det labelfilter, der giver serien den betydning, dens række angiver; formularen anvender det for dig.
 
 ### Arrayets sundhed
 
@@ -203,6 +226,9 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `purefa_alerts_open` | —      | FlashArray | `count` | Én serie pr. åben advarsel på arrayet (værdi 1), med labelerne `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` og `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Én serie pr. åben advarsel på FlashBladen (værdi 1), med labelerne `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` og `kburl` (Pures artikel i vidensbasen) |
 | `powerstore_cluster` | — | PowerStore | `count` | 1, mens PowerStore-klyngen er Configured (dannet og i drift), 0 i enhver anden tilstand: Configuring, Expanding, Removing, Clustering_Failed eller Unconfigured. |
+| `powermax_alert_open` | — | PowerMax | `count` | Én serie pr. advarsel, som Unisphere har åben for arrayet (værdi 1): ikke bekræftet, ikke ryddet og Minor eller værre. Dens label severity er critical (Critical og Fatal) eller warning (Warning og Minor); dens labels alert_type, object og description fortæller, hvad den handler om. Bekræft advarslen i Unisphere, så forsvinder serien |
+| `powermax_array_health_score` | — | PowerMax | `score` | Unispheres sundhedsscore for arrayet fra 0 til 100 pr. health_metric: samlet og for hvert område, den vurderer (kapacitet, konfiguration, ydeevne, overholdelse af serviceniveau) |
+| `powermax_array_performance_collection` | — | PowerMax | `count` | 1, mens Unisphere indsamler 5-minutters ydeevnedata for arrayet, 0, mens det ikke sker. Når det er slået fra, viser OneUptime stadig arrayets inventar og advarsler, men tegner ingen ydeevnegrafer. Slå det til i Unisphere under Settings > Performance > System Registrations |
 
 ### Kapacitet
 
@@ -223,6 +249,13 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | Data, som værter har skrevet til hver appliance i bytes, før deduplikering og komprimering. |
 | `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | Deduplikering og komprimering på hver appliance, for eksempel 3.4 for 3.4:1. Et vedvarende fald betyder, at nyskrevne data reduceres dårligt: krypterede eller allerede komprimerede data. |
 | `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | Hver appliances samlede effektivitet: datareduktionen sammen med besparelserne fra snapshots og thin provisioning. |
+| `powermax_array_capacity_used_percent` | — | PowerMax | `%` | Andelen af arrayets brugbare kapacitet, der er i brug, i procent, på tværs af dets lagerressourcepuljer |
+| `powermax_array_capacity_usable_bytes` | — | PowerMax | `bytes` | Arrayets brugbare kapacitet i bytes, som Unisphere rapporterer den |
+| `powermax_array_capacity_used_bytes` | — | PowerMax | `bytes` | Den del af arrayets brugbare kapacitet, der er i brug, i bytes |
+| `powermax_array_capacity_subscribed_bytes` | — | PowerMax | `bytes` | Kapaciteten af alle thin-volumener på arrayet i bytes: det, værterne har fået lovet, hvilket kan overstige den brugbare kapacitet |
+| `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | Hvor mange gange større de data, værterne skrev, er end den plads, de fylder efter komprimering og deduplikering, som Unisphere rapporterer det |
+| `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | Andelen af hver lagerressourcepuljes brugbare kapacitet, der er i brug, i procent, efter dens label srp. En pulje, der bliver fuld, holder op med at tage imod nye skrivninger for alle lagergrupper i den |
+| `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | Den del af hver lagerressourcepuljes brugbare kapacitet, der er i brug, i bytes, efter dens label srp |
 
 ### Ydeevne
 
@@ -251,6 +284,18 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Bytes læst pr. sekund på hver appliance. |
 | `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Bytes skrevet pr. sekund på hver appliance. |
 | `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | Andel af de CPU-kerner, hver appliance afsætter til lager-I/O, der er optaget, i procent. Vedvarende høje værdier betyder, at appliancen er tæt på den belastning, den kan betjene. |
+| `powermax_array_response_time_usec` | `operation=read` | PowerMax | `µs` | Gennemsnitlig tid for en værtslæsning på arrayet i mikrosekunder over Unispheres seneste 5-minutters interval (operation read) |
+| `powermax_array_response_time_usec` | `operation=write` | PowerMax | `µs` | Gennemsnitlig tid for en værtsskrivning på arrayet i mikrosekunder over Unispheres seneste 5-minutters interval (operation write) |
+| `powermax_array_read_iops` | — | PowerMax | `ops/s` | Værtslæsninger pr. sekund på arrayet: Unispheres værts-IO'er gange deres andel af læsninger |
+| `powermax_array_write_iops` | — | PowerMax | `ops/s` | Værtsskrivninger pr. sekund på arrayet: Unispheres værts-IO'er gange deres andel af skrivninger |
+| `powermax_array_read_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pr. sekund, som værter læser fra arrayet |
+| `powermax_array_write_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pr. sekund, som værter skriver til arrayet |
+| `powermax_array_cache_hit_percent` | — | PowerMax | `%` | Andelen af værts-I/O, som arrayet besvarede fra cachen, i procent |
+| `powermax_array_write_pending_percent` | — | PowerMax | `%` | Andelen af arrayets cache, der rummer skrivninger, som endnu ikke er skrevet ned på dets drev, i procent. Tæt på arrayets grænse gør det værtsskrivninger langsommere |
+| `powermax_array_frontend_busy_percent` | — | PowerMax | `%` | Hvor belastede de directorer, der betjener værter, er, i procent |
+| `powermax_array_backend_busy_percent` | — | PowerMax | `%` | Hvor belastede de directorer, der betjener drevene, er, i procent |
+| `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | Hvor belastede de directorer, der replikerer til andre arrays, er, i procent |
+| `powermax_srp_response_time_usec` | — | PowerMax | `µs` | Gennemsnitlig tid for en I/O i hver lagerressourcepulje i mikrosekunder efter dens label srp |
 
 ### Diskenheder
 
@@ -279,6 +324,20 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | Gennemsnitlig læselatens på tværs af hver volumegruppes diskenheder, i mikrosekunder. Gruppér efter volume_group_id, som indeholder gruppens navn. |
 | `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | Gennemsnitlig skrivelatens på tværs af hver volumegruppes diskenheder, i mikrosekunder. |
 | `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | Læse- og skriveoperationer pr. sekund på tværs af hver volumegruppes diskenheder. |
+| `powermax_storage_group_response_time_usec` | — | PowerMax | `µs` | Gennemsnitlig tid for en I/O for hver lagergruppe i mikrosekunder efter dens label storage_group over Unispheres seneste 5-minutters interval |
+| `powermax_storage_group_read_response_time_usec` | — | PowerMax | `µs` | Gennemsnitlig tid for en læsning for hver lagergruppe i mikrosekunder efter dens label storage_group |
+| `powermax_storage_group_write_response_time_usec` | — | PowerMax | `µs` | Gennemsnitlig tid for en skrivning for hver lagergruppe i mikrosekunder efter dens label storage_group |
+| `powermax_storage_group_iops` | — | PowerMax | `ops/s` | Værts-I/O'er pr. sekund for hver lagergruppe efter dens label storage_group |
+| `powermax_storage_group_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pr. sekund, som værter læser og skriver for hver lagergruppe, efter dens label storage_group |
+| `powermax_storage_group_used_bytes` | — | PowerMax | `bytes` | Den kapacitet, som volumenerne i hver lagergruppe bruger, i bytes efter dens label storage_group |
+| `powermax_storage_group_host_io_limit_exceeded_percent` | — | PowerMax | `%` | Andelen af intervallet, hvor hver lagergruppe blev holdt tilbage af sin værts-I/O-grænse, i procent. Kun lagergrupper med en angivet grænse rapporterer den |
+| `powermax_storage_group_realtime_read_response_time_usec` | — | PowerMax | `µs` | Svartid for læsninger for de lagergrupper, der er registreret til indsamling i realtid i Unisphere, i mikrosekunder, hvert 5. sekund. Op til 100 lagergrupper pr. array kan registreres |
+| `powermax_storage_group_realtime_write_response_time_usec` | — | PowerMax | `µs` | Svartid for skrivninger for de lagergrupper, der er registreret til indsamling i realtid i Unisphere, i mikrosekunder, hvert 5. sekund |
+| `powermax_storage_group_realtime_iops` | — | PowerMax | `ops/s` | Værts-I/O'er pr. sekund for de lagergrupper, der er registreret til indsamling i realtid, hvert 5. sekund |
+| `powermax_storage_group_realtime_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pr. sekund for de lagergrupper, der er registreret til indsamling i realtid, hvert 5. sekund |
+| `powermax_volume_response_time_usec` | — | PowerMax | `µs` | Gennemsnitlig tid for en I/O for hvert volumen i mikrosekunder efter dets label volume. Unisphere rapporterer den kun for volumener i lagergrupper, der er registreret til indsamling i realtid |
+| `powermax_volume_iops` | — | PowerMax | `ops/s` | Værts-I/O'er pr. sekund for hvert volumen efter dets label volume, for volumener i lagergrupper, der er registreret til indsamling i realtid |
+| `powermax_volume_used_bytes` | — | PowerMax | `bytes` | Den kapacitet, hvert volumen bruger, i bytes efter dets label volume |
 
 ### Værter
 
@@ -299,6 +358,10 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Hver pods replikeringstrafik, med labelerne `direction` og `dimension`                                                                                       |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Gennemsnitlig latens for spejlede skrivninger for hver ActiveCluster-pod                                                                                     |
 | `powerstore_metro_witness_status` | — | PowerStore | `count` | Tilstanden for hvert Metro-vidne: 0 OK, 1 delvist forbundet, 2 afbrudt, 3 ved at blive slettet, 4 ved at blive initialiseret. Over 0 skifter en Metro-session måske ikke over af sig selv. |
+| `powermax_srdf_group_not_healthy` | — | PowerMax | `count` | Én serie pr. SRDF-gruppe, hvis link er offline, eller hvis par er suspenderede, partitionerede, splittede, i failover eller ugyldige (værdi 1), med dens labels srdf_group, state og remote_symmetrix_id. Serien findes ikke, så længe gruppen replikerer |
+| `powermax_srdf_group_lag_seconds` | — | PowerMax | `s` | Hvor langt den fjerne kopi af hver asynkron SRDF-gruppe er bagud, i sekunder, efter dens label srdf_group. Et failover nu ville miste skrivningerne fra så lang tid |
+| `powermax_srdf_group_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pr. sekund, som hver SRDF-gruppe sender til sit fjerne array, efter dens label srdf_group |
+| `powermax_srdf_group_response_time_usec` | — | PowerMax | `µs` | Gennemsnitlig tid, før en replikeret skrivning når det fjerne array, for hver SRDF-gruppe i mikrosekunder efter dens label srdf_group |
 
 ### Hardware
 
@@ -326,6 +389,12 @@ Agenten sender alt, hvad arrayet eksporterer; serierne nedenfor er det katalog, 
 | `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | Bytes modtaget pr. sekund på hver Ethernet-port. |
 | `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | Bytes sendt pr. sekund på hver Ethernet-port. |
 | `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | Pakker modtaget med en CRC-fejl pr. sekund på hver Ethernet-port. Vedvarende fejl betyder normalt et dårligt kabel, en dårlig optik eller en dårlig switchport. |
+| `powermax_director_offline` | — | PowerMax | `count` | Én serie pr. director, der ikke er online (værdi 1), med dens labels director, role og status. Serien findes ikke, så længe alle directorer er online |
+| `powermax_director_busy_percent` | — | PowerMax | `%` | Hvor belastet hver director er, i procent, efter dens label component (f.eks. FA-1D) |
+| `powermax_port_offline` | — | PowerMax | `count` | Én serie pr. port, der betjener værter eller SRDF (i en portgruppe, en masking view eller en SRDF-gruppe), men ikke er oppe (værdi 1), med dens labels component, protocol og status. Porte, som ingen bruger, udelades: de kan være slået fra med vilje |
+| `powermax_port_busy_percent` | — | PowerMax | `%` | Hvor belastet hver port er, i procent, efter dens label component (f.eks. FA-1D:4) |
+| `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pr. sekund læst gennem hver port efter dens label component |
+| `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | Den lyseffekt, hver optisk port modtager, i milliwatt efter dens label component. En faldende værdi er en optik eller et kabel, der er ved at gå i stykker. Kræver Unisphere 10.3 eller nyere |
 
 ### Filsystemer
 
@@ -420,7 +489,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` er arrayets `storage.array.name` - det `STORAGE_ARRAY_NAME`, agenten blev startet med -, ikke dets OneUptime-ID. `storageSystem` er `purestorage.flasharray` eller `purestorage.flashblade`. Det afgør, hvilket katalog og hvilke skabeloner formularen viser, og om et hardwarefilter læser `component_name` eller `name`.
+`arrayIdentifier` er arrayets `storage.array.name` - det `STORAGE_ARRAY_NAME`, agenten blev startet med, eller en PowerMax' navn i OneUptime, dens Symmetrix ID, indtil du omdøber den -, ikke dets OneUptime-ID. `storageSystem` er `purestorage.flasharray`, `purestorage.flashblade` eller `dell.powermax`. Det afgør, hvilket katalog og hvilke skabeloner formularen viser, og om et hardwarefilter læser `component_name`, `name` eller `component`.
 
 ## Fejlfinding
 
@@ -440,8 +509,12 @@ Pure lægger læse-, skrive-, spejlet-skrive-, SAN-, kø- og QoS-værdier på é
 Agenten læser volumener, værter og pods hvert 2. minut, et FlashBlades filsystemer og buckets hvert 5. og FlashArray-mapper hvert 30., så et vindue på 1 minut indeholder måske ingen prøve. Brug 5 minutter eller mere: 15 til filsystemer og buckets, 60 til mapper.
 :::
 
+:::details En PowerMax-monitor viser ingen data
+En sonde læser en PowerMax hvert 5. minut, så brug et vindue på 10 minutter eller mere. Svartider, IOPS og gennemløb kræver Unispheres ydeevneindsamling, som skabelonen **Performance Collection Off** overvåger, og et volumens tal kræver, at dets lagergruppe er registreret til realtid i Unisphere. Forbindelsens side under **Produkter → Infrastruktur → Lagerarrays → Forbindelser** siger, hvad dens seneste indsamling ikke kunne læse.
+:::
+
 :::details Hændelser udløses én gang for hele arrayet i stedet for én gang pr. volumen
-Gruppér forespørgslen efter objektets label: `name` for volumener, pods, mapper, filsystemer og buckets, `host` for værter og `component_name` for FlashArray-hardware. Pures labels har intet præfiks, så `resource.name` matcher intet.
+Gruppér forespørgslen efter objektets label: `name` for volumener, pods, mapper, filsystemer og buckets, `host` for værter og `component_name` for FlashArray-hardware; på en PowerMax `storage_group`, `volume`, `component` eller `srdf_group`. Pures og PowerMax' labels har intet præfiks, så `resource.name` matcher intet.
 :::
 
 ## Næste skridt

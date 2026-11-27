@@ -1,6 +1,6 @@
 # Speicher-Array-Überwachung
 
-Ein Speicher-Array-Monitor beobachtet ein Speicher-Array und meldet Ihnen, wenn das Array eine eigene Warnung auslöst, ihm der Platz ausgeht, es langsamer wird, Hardware oder einen Hostpfad verliert oder bei der Replikation zurückfällt. Er funktioniert mit Pure Storage FlashArray und Pure Storage FlashBlade und liest die Metriken, die das Array selbst exportiert - Pures Serien `purefa_*` und `purefb_*` -, die der OneUptime Storage Array Agent sammelt.
+Ein Speicher-Array-Monitor beobachtet ein Speicher-Array und meldet Ihnen, wenn das Array eine eigene Warnung auslöst, ihm der Platz ausgeht, es langsamer wird, Hardware oder einen Hostpfad verliert oder bei der Replikation zurückfällt. Er funktioniert mit Pure Storage FlashArray und Pure Storage FlashBlade, deren eigene Serien `purefa_*` und `purefb_*` der OneUptime Storage Array Agent sammelt, und mit Dell PowerMax, dessen Serien `powermax_*` eine OneUptime-Sonde aus Unisphere for PowerMax liest.
 
 Er funktioniert auch mit Dell PowerStore (`dell.powerstore`), aus den Serien `powerstore_*` von Dell.
 
@@ -14,6 +14,8 @@ Er funktioniert auch mit Dell PowerStore (`dell.powerstore`), aus den Serien `po
 ## So funktioniert es
 
 Der OneUptime Storage Array Agent läuft auf einem Rechner, der die Verwaltungsschnittstelle des Arrays erreicht. Er liest die Metriken des Arrays mit einem nur lesenden API-Token, versieht sie mit dem Namen des Arrays, `storage.array.name`, und seiner Plattform, `storage.system`, und sendet sie über OTLP an OneUptime. Die ersten Daten registrieren das Array.
+
+Ein Dell PowerMax braucht keinen Agent: Eine OneUptime-Sonde meldet sich alle 5 Minuten mit einem Konto mit Lesezugriff bei Unisphere for PowerMax an und sendet jedes Array, das es verwaltet, auf dieselbe Weise, benannt nach seiner Symmetrix ID, bis Sie es umbenennen ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
 Ein Speicher-Array-Monitor ist an ein Array gebunden. Jede Minute führt er seine Abfrage über die Metriken dieses Arrays aus und vergleicht das Ergebnis mit seinen Kriterien.
 
@@ -35,6 +37,7 @@ flowchart TB
 
 - **Installieren Sie den Storage Array Agent** dort, wo er das Array über HTTPS erreicht, mit dem API-Token eines Benutzers, der die Rolle **readonly** des Arrays hat. Die [Anleitung zum Storage Array Agent](/docs/telemetry/storage-arrays) behandelt den Benutzer, das Token und die Installation, über `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME` sowie Adresse und Token des Arrays (`PURE_FA_ENDPOINT` und `PURE_FA_API_TOKEN` oder `PURE_FB_ENDPOINT` und `PURE_FB_API_TOKEN`).
 - **Prüfen Sie, ob das Array registriert ist.** Es erscheint unter **Produkte → Infrastruktur → Speicher-Arrays → Alle Speicher-Arrays**, benannt nach `STORAGE_ARRAY_NAME` des Agenten, etwa eine Minute nach der ersten Abfrage.
+- **Für ein Dell PowerMax** verbinden Sie stattdessen das Unisphere for PowerMax, das es verwaltet, unter **Produkte → Infrastruktur → Speicher-Arrays → Verbindungen**, wie [Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax) erklärt.
 
 ## Einen Speicher-Array-Monitor erstellen
 
@@ -76,10 +79,10 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 | Feld | Tab | Was es tut |
 | --- | --- | --- |
 | **Speicher-Array** | Alle | Erforderlich. Beschränkt jede Abfrage auf `resource.storage.array.name`, sodass zwei Arrays, die beide ein Volume namens `vol-01` haben, nie vermischt werden. |
-| **Volume** | Custom Metric, Erweitert | Nur FlashArray. Ein Volume, über das Label `name`, etwa `vol-db-01`. Ein Volume in einem Pod oder einer Volume-Gruppe heißt `pod::volume` oder `group/volume`. |
+| **Volume** | Custom Metric, Erweitert | Nur FlashArray und PowerMax. Ein Volume: bei einem FlashArray über das Label `name`, etwa `vol-db-01` (ein Volume in einem Pod oder einer Volume-Gruppe heißt `pod::volume` oder `group/volume`), und bei einem PowerMax über das Label `volume`, seine Geräte-ID wie `00847`. |
 | **Host** | Custom Metric, Erweitert | Nur FlashArray. Ein Host, wie das Array ihn kennt, über das Label `host`, etwa `esxi-01`. |
 | **Pod** | Custom Metric, Erweitert | Nur FlashArray. Ein ActiveCluster- oder ActiveDR-Pod, über das Label `name` oder `local_pod` bei Serien von Replikationsverbindungen. |
-| **Hardwarekomponente** | Custom Metric, Erweitert | Eine Hardwarekomponente, etwa `CH0.BAY1` oder `CT0`: das Label `component_name` bei einem FlashArray, `name` bei einem FlashBlade. |
+| **Hardwarekomponente** | Custom Metric, Erweitert | Eine Hardwarekomponente, etwa `CH0.BAY1` oder `CT0`: das Label `component_name` bei einem FlashArray, `name` bei einem FlashBlade und `component` bei einem PowerMax, ein Director wie `FA-1D` oder ein Port wie `FA-1D:4`. |
 | **Dateisystem** | Custom Metric, Erweitert | Nur FlashBlade. Ein Dateisystem, über das Label `name`. |
 | **Bucket** | Custom Metric, Erweitert | Nur FlashBlade. Ein Objektspeicher-Bucket, über das Label `name`. |
 | **Storage Array Metric** | Custom Metric | Eine Metrik aus dem [Katalog](#erfasste-metriken). Das Formular fügt den Label-Filter hinzu, der ihr ihre Bedeutung gibt, und gruppiert sie nach dem Objekt, das sie beschreibt, sodass jedes Volume, jeder Host oder jede Komponente einzeln beurteilt wird. |
@@ -87,7 +90,7 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 | **Zeitbereich** | Alle | Das gleitende Zeitfenster, das die Abfrage liest, von **Past 1 Minute** bis **Past 365 Days**. Ein neuer Monitor beginnt bei **Letzte 5 Minuten**, eine eigene Metrik eines Dateisystems oder Buckets bei **Letzte 15 Minuten**; Vorlagen setzen ihr eigenes. |
 | **Metriken auswählen** | Erweitert | Der Abfrage-Builder: **Metrik**, **Aggregieren nach**, **Nach Attributen filtern**, **Gruppieren nach**, dazu **Metrik hinzufügen** und **Formel hinzufügen**, um Abfragen zu kombinieren. |
 
-Der Agent liest den Array-Endpunkt alle 60 Sekunden und Volumes, Hosts und Pods alle 2 Minuten, sodass ein Fenster von 5 Minuten immer eine Stichprobe enthält. Die Dateisysteme und Buckets eines FlashBlade liest er alle 5 Minuten, daher 15, und FlashArray-Verzeichnisse alle 30 Minuten: Geben Sie einem Verzeichnis-Monitor ein Fenster von 60 Minuten.
+Der Agent liest den Array-Endpunkt alle 60 Sekunden und Volumes, Hosts und Pods alle 2 Minuten, sodass ein Fenster von 5 Minuten immer eine Stichprobe enthält. Die Dateisysteme und Buckets eines FlashBlade liest er alle 5 Minuten, daher 15, und FlashArray-Verzeichnisse alle 30 Minuten: Geben Sie einem Verzeichnis-Monitor ein Fenster von 60 Minuten. Eine Sonde liest ein PowerMax alle 5 Minuten, so oft, wie Unisphere seine Leistungsdaten berechnet: Geben Sie einem PowerMax-Monitor ein Fenster von 10 Minuten oder mehr.
 
 Einen PowerStore liest er alle 5 Minuten und den Zustand seines Clusters alle 60 Sekunden: Geben Sie einem PowerStore-Monitor ein Fenster von 15 Minuten.
 
@@ -107,9 +110,11 @@ Mehrere Serien tragen ihren Zustand in einem **Label**, mit einem Wert, der imme
 | `purefa_host_connectivity_info` | `status`, mit `details` | Host |
 | `purefa_drive_capacity_bytes` | `component_status` (der Wert ist die Kapazität des Laufwerks) | Laufwerk |
 
-Eine auf einen schlechten Zustand gefilterte Serie existiert nur, solange sich etwas in diesem Zustand befindet, also bedeutet keine Serie gesund. Deshalb ist **Max über 0 löst aus und 0 erholt sich** die richtige Form für sie, und so sind die Vorlagen gebaut: Ihre Erholungskriterien zählen eine fehlende Serie als null. Bleibt gar keine Serie übrig, erholt sich eine solche Vorlage nur, wenn `purefa_info` oder `purefb_info` im selben Fenster eingetroffen ist, sodass ein Array, das nicht mehr berichtet, nichts schließt.
+Eine auf einen schlechten Zustand gefilterte Serie existiert nur, solange sich etwas in diesem Zustand befindet, also bedeutet keine Serie gesund. Deshalb ist **Max über 0 löst aus und 0 erholt sich** die richtige Form für sie, und so sind die Vorlagen gebaut: Ihre Erholungskriterien zählen eine fehlende Serie als null. Bleibt gar keine Serie übrig, erholt sich eine solche Vorlage nur, wenn `purefa_info`, `purefb_info` oder `powermax_array_info` im selben Fenster eingetroffen ist, sodass ein Array, das nicht mehr berichtet, nichts schließt.
 
-In Monitorfiltern und Gruppierungsschlüsseln beginnen die Attribute des Agenten mit `resource.` (`resource.storage.array.name`, `resource.storage.system`), Pures eigene Labels dagegen nicht (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+Die Serien eines PowerMax tragen jeweils einen einzigen Wert und sind nach ihm benannt: `powermax_array_response_time_usec` unterscheidet Lese- von Schreibvorgängen mit `operation`. Seine Zustandsserien existieren ebenso nur, solange etwas nicht stimmt: `powermax_alert_open`, solange Unisphere eine Warnung offen hat, `powermax_director_offline`, solange ein Director nicht online ist, `powermax_port_offline`, solange ein Port, auf den sich jemand verlässt, ausgefallen ist, und `powermax_srdf_group_not_healthy`, solange eine SRDF-Gruppe angehalten oder offline ist.
+
+In Monitorfiltern und Gruppierungsschlüsseln beginnen die Attribute des Agenten mit `resource.` (`resource.storage.array.name`, `resource.storage.system`), Pures eigene Labels dagegen nicht (`name`, `host`, `component_name`, `dimension`, `space`, `severity`), ebenso wenig die von PowerMax (`storage_group`, `volume`, `director`, `port_id`, `srdf_group`).
 
 ## Wie die Serien von PowerStore aufgebaut sind
 
@@ -117,9 +122,9 @@ Der Exporter von Dell schreibt einen Wert pro Metrikname, daher braucht eine Pow
 
 ## Fertige Warnungsvorlagen
 
-OneUptime liefert 36 Vorlagen — 12 für FlashArray, 8 für FlashBlade und 16 für PowerStore —, und die Liste unter **Worüber benachrichtigt wird** bietet die für die Plattform des Arrays an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Label-Filter, eine Gruppierung nach dem eigenen Label des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
+OneUptime liefert 49 Vorlagen — 12 für FlashArray, 8 für FlashBlade, 16 für PowerStore und 13 für PowerMax —, und die Liste unter **Worüber benachrichtigt wird** bietet die für die Plattform des Arrays an. Jede baut einen vollständigen Monitor: die Metrikabfrage, ihre Label-Filter, eine Gruppierung nach dem eigenen Label des Objekts, ein Kriterium, das auslöst, und eines, das sich erholt. Schwellenwerte sind Ausgangspunkte, die Sie bearbeiten können.
 
-Ein Kriterium löst nur aus, wenn die Bedingung für **jeden** Wert in seinem Fenster gilt. Ein Monitor, der bei einem Schwellenwert für Kapazität, Latenz, Verzögerung oder Verhältnis ausgelöst hat, erholt sich erst 10 % jenseits davon, sodass ein Wert, der um den Schwellenwert pendelt, nicht flattert. Die Vorlagen für Warnungen, Hardware und Verbindungen lösen aus, sobald ein Zustand ihr ganzes 5-Minuten-Fenster lang zu sehen war, und erholen sich etwa 5 Minuten, nachdem er verschwunden ist.
+Ein Kriterium löst nur aus, wenn die Bedingung für **jeden** Wert in seinem Fenster gilt. Ein Monitor, der bei einem Schwellenwert für Kapazität, Latenz, Verzögerung oder Verhältnis ausgelöst hat, erholt sich erst 10 % jenseits davon, sodass ein Wert, der um den Schwellenwert pendelt, nicht flattert. Die Vorlagen für Warnungen, Hardware und Verbindungen lösen aus, sobald ein Zustand ihr ganzes 5-Minuten-Fenster lang zu sehen war, und erholen sich etwa 5 Minuten, nachdem er verschwunden ist. Die Vorlagen für PowerMax verwenden Fenster von 10 und 15 Minuten: zwei und drei seiner 5-Minuten-Erfassungen.
 
 ### FlashArray
 
@@ -182,11 +187,29 @@ Die eigenen Warnungen eines PowerStore kommen als Protokolle an, daher sind ihre
 | Major Array Alert | Warnung | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
 | Port Link Down | Warnung | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
+### PowerMax
+
+| Template | Kategorie | Schweregrad | Beobachtet | Löst aus, wenn |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Verfügbarkeit | Kritisch | `powermax_array_info`, Count, letzte 10 Minuten | Keine Daten im gesamten Fenster — die Sonde erfasst das Array nicht mehr: Seine Verbindung schlägt fehl (ihre Seite unter **Verbindungen** nennt den Grund), die Sonde ist getrennt, oder Unisphere verwaltet das Array nicht mehr; erholt sich, wenn wieder Daten eintreffen |
+| Critical Unisphere Alert | Array-Zustand | Kritisch | `powermax_alert_open` gefiltert auf `severity=critical`, Max pro `description`, letzte 10 Minuten | > 0 — Unisphere hat für das Array eine offene Warnung mit dem Schweregrad Critical oder Fatal. Ein Vorfall pro Warnung; erholt sich, wenn die Warnung in Unisphere bestätigt oder gelöscht wird |
+| Warning Unisphere Alert | Array-Zustand | Warnung | `powermax_alert_open` gefiltert auf `severity=warning`, Max pro `description`, letzte 10 Minuten | > 0 — Unisphere hat eine offene Warnung mit dem Schweregrad Warning oder Minor. Ein Vorfall pro Warnung; erholt sich, wenn die Warnung bestätigt oder gelöscht wird |
+| Performance Collection Off | Array-Zustand | Warnung | `powermax_array_performance_collection`, Min, letzte 15 Minuten | < 1 — Unisphere erfasst die 5-Minuten-Leistungsdaten des Arrays nicht, sodass weder Antwortzeit noch IOPS oder Durchsatz gezeichnet oder überwacht werden; erholt sich bei ≥ 1 |
+| Storage Resource Pool Above 80% | Kapazität | Warnung | `powermax_srp_capacity_used_percent`, Max pro `srp`, letzte 15 Minuten | > 80 — die Speichergruppen des Pools nehmen keine neuen Schreibvorgänge mehr an, wenn er voll ist. Ein Vorfall pro Pool; erholt sich bei ≤ 72 |
+| Storage Resource Pool Above 90% | Kapazität | Kritisch | `powermax_srp_capacity_used_percent`, Max pro `srp`, letzte 15 Minuten | > 90 — Schreibvorgänge in seine Speichergruppen schlagen fehl, sobald er voll ist. Ein Vorfall pro Pool; erholt sich bei ≤ 81 |
+| Storage Group Response Time Above 5 ms | Leistung | Warnung | `powermax_storage_group_response_time_usec`, Avg pro `storage_group`, letzte 15 Minuten | > 5000 µs (5 ms) — ein PowerMax antwortet normalerweise in deutlich unter einer Millisekunde. Ein Vorfall pro Speichergruppe; erholt sich bei ≤ 4500 |
+| High Read Response Time | Leistung | Warnung | `powermax_array_response_time_usec` gefiltert auf `operation=read`, Avg, letzte 15 Minuten | > 3000 µs (3 ms); erholt sich bei ≤ 2700 |
+| High Write Response Time | Leistung | Warnung | `powermax_array_response_time_usec` gefiltert auf `operation=write`, Avg, letzte 15 Minuten | > 3000 µs (3 ms) — synchrones SRDF fügt jedem Schreibvorgang den Umlauf zum Remote-Array hinzu; erholt sich bei ≤ 2700 |
+| Director Not Online | Hardware | Kritisch | `powermax_director_offline`, Max pro `component`, letzte 10 Minuten | > 0 — ein Director ist nicht online, und das Array läuft mit den übrigen weiter. Ein Vorfall pro Director; erholt sich, wenn er wieder online ist |
+| Port Down | Hardware | Warnung | `powermax_port_offline`, Max pro `component`, letzte 10 Minuten | > 0 — ein Port in einer Portgruppe, einer Masking View oder einer SRDF-Gruppe ist nicht aktiv. Ein Vorfall pro Port; erholt sich, wenn er wieder aktiv ist |
+| SRDF Group Suspended or Offline | Replikation | Kritisch | `powermax_srdf_group_not_healthy`, Max pro `srdf_group`, letzte 10 Minuten | > 0 — der Link der Gruppe ist offline, oder ihre Paare sind angehalten, getrennt oder per Failover umgeschaltet, sodass die Remote-Kopie nicht aktuell gehalten wird. Ein Vorfall pro Gruppe; erholt sich, wenn sie wieder synchron ist |
+| SRDF/A Lag Above 2 Minutes | Replikation | Warnung | `powermax_srdf_group_lag_seconds`, Avg pro `srdf_group`, letzte 15 Minuten | > 120 (2 Minuten) — ein Failover jetzt würde mehr jüngste Schreibvorgänge verlieren als geplant. Ein Vorfall pro Gruppe; erholt sich bei ≤ 108 |
+
 **Schweregrad** ist die Bezeichnung, die die Auswahl zeigt. Der Vorfall und die Warnung, die eine Vorlage erstellt, beginnen beim schwersten Vorfall- und Warnungsschweregrad Ihres Projekts; ändern Sie sie im Kriterium.
 
-- **Array Stopped Reporting** zählt die Identitätsserie der Plattform (`purefa_info` oder `purefb_info`), die jeder Endpunkt, den der Agent abfragt, bei jeder Abfrage exportiert. Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
+- **Array Stopped Reporting** zählt die Identitätsserie der Plattform (`purefa_info` oder `purefb_info`, die jeder Endpunkt, den der Agent abfragt, bei jeder Abfrage exportiert, oder `powermax_array_info`, das jede PowerMax-Erfassung schreibt). Bleiben die Daten aus, haben die anderen Vorlagen nichts zu vergleichen und behalten ihren letzten Status, daher ist es diese Vorlage, die Ihnen das meldet.
 - **Offene Warnungen und Hardwarezustände verwenden Max** einer Serie, die nur existiert, solange die Warnung offen ist oder sich die Komponente in diesem Zustand befindet, sodass der Zustand den Schwellenwert auslöst, sobald er das ganze 5-Minuten-Fenster lang zu sehen war.
-- **Jede Vorlage pro Objekt gruppiert nach dem eigenen Label des Objekts** (`summary`, `component_name`, `host`, `local_pod`, `name`), sodass pro betroffenem Objekt ein Vorfall ausgelöst wird, der das Objekt nennt.
+- **Jede Vorlage pro Objekt gruppiert nach dem eigenen Label des Objekts** (`summary`, `component_name`, `host`, `local_pod`, `name` und bei einem PowerMax `description`, `component`, `srp`, `srdf_group` und `storage_group`), sodass pro betroffenem Objekt ein Vorfall ausgelöst wird, der das Objekt nennt.
 - **Latenzvorlagen verwenden Avg** des eigenen Durchschnitts pro Operation des Arrays, und Kapazitätsvorlagen **Max** seines eigenen Auslastungsprozentsatzes. Latenzen sind in Mikrosekunden festgelegt, Kapazität in Prozent.
 - **Hardware Component Unhealthy verwendet Min** pro Komponente: Ihr Zustand ist 1, wenn sie gesund ist, und fällt auf 0, wenn nicht.
 
@@ -194,7 +217,7 @@ Für die Latenz einzelner Volumes gibt es keine Vorlage, weil der richtige Schwe
 
 ## Erfasste Metriken
 
-Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Katalog, den das Monitorformular anbietet. Jeder Wert ist ein Gauge, den das Array selbst berechnet - Latenzen sind Mikrosekunden pro Operation und Durchsatz ist pro Sekunde -, sodass keine Ratenberechnung nötig ist. **Filter** ist der Label-Filter, der der Serie die Bedeutung gibt, die ihre Zeile nennt; das Formular wendet ihn für Sie an.
+Der Agent sendet alles, was das Array exportiert, und eine Sonde alles, was sie von einem PowerMax liest, in denselben Einheiten (die Millisekunden von Unisphere als Mikrosekunden, seine MB pro Sekunde als Bytes pro Sekunde); die Serien unten sind der Katalog, den das Monitorformular anbietet. Jeder Wert ist ein Gauge, den das Array selbst berechnet - Latenzen sind Mikrosekunden pro Operation und Durchsatz ist pro Sekunde -, sodass keine Ratenberechnung nötig ist. **Filter** ist der Label-Filter, der der Serie die Bedeutung gibt, die ihre Zeile nennt; das Formular wendet ihn für Sie an.
 
 ### Array-Zustand
 
@@ -203,6 +226,9 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefa_alerts_open` | —      | FlashArray | `count` | Eine Serie pro offener Warnung des Arrays (Wert 1), mit den Labels `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` und `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Eine Serie pro offener Warnung des FlashBlade (Wert 1), mit den Labels `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` und `kburl` (Pures Wissensdatenbankartikel) |
 | `powerstore_cluster` | — | PowerStore | `count` | 1, solange der PowerStore-Cluster Configured ist (gebildet und im Betrieb), 0 in jedem anderen Zustand: Configuring, Expanding, Removing, Clustering_Failed oder Unconfigured. |
+| `powermax_alert_open` | — | PowerMax | `count` | Eine Serie pro Warnung, die Unisphere für das Array offen hat (Wert 1): nicht bestätigt, nicht gelöscht und Minor oder schlimmer. Ihr Label severity ist critical (Critical und Fatal) oder warning (Warning und Minor); ihre Labels alert_type, object und description sagen, worum es geht. Bestätigen Sie die Warnung in Unisphere, und die Serie verschwindet |
+| `powermax_array_health_score` | — | PowerMax | `score` | Die Integritätsbewertung des Arrays durch Unisphere, von 0 bis 100, pro health_metric: gesamt und für jeden Bereich, den es bewertet (Kapazität, Konfiguration, Leistung, Einhaltung des Service-Levels) |
+| `powermax_array_performance_collection` | — | PowerMax | `count` | 1, solange Unisphere 5-Minuten-Leistungsdaten für das Array erfasst, 0, solange nicht. Ist die Erfassung aus, listet OneUptime weiterhin Inventar und Warnungen des Arrays auf, zeichnet aber keine Leistungsdaten. Schalten Sie sie in Unisphere unter Settings > Performance > System Registrations ein |
 
 ### Kapazität
 
@@ -223,6 +249,13 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | Daten, die Hosts auf jede Appliance geschrieben haben, in Bytes, vor Deduplizierung und Komprimierung. |
 | `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | Deduplizierung und Komprimierung auf jeder Appliance, zum Beispiel 3.4 für 3.4:1. Ein anhaltender Rückgang bedeutet, dass neu geschriebene Daten sich schlecht reduzieren lassen: verschlüsselte oder bereits komprimierte Daten. |
 | `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | Gesamteffizienz jeder Appliance: die Datenreduktion zusammen mit den Einsparungen durch Snapshots und Thin Provisioning. |
+| `powermax_array_capacity_used_percent` | — | PowerMax | `%` | Anteil der nutzbaren Kapazität des Arrays, der belegt ist, in Prozent, über seine Speicherressourcenpools hinweg |
+| `powermax_array_capacity_usable_bytes` | — | PowerMax | `bytes` | Die nutzbare Kapazität des Arrays in Bytes, wie Unisphere sie meldet |
+| `powermax_array_capacity_used_bytes` | — | PowerMax | `bytes` | Der belegte Teil der nutzbaren Kapazität des Arrays, in Bytes |
+| `powermax_array_capacity_subscribed_bytes` | — | PowerMax | `bytes` | Die Kapazität aller Thin-Volumes auf dem Array in Bytes: was den Hosts zugesagt wurde, was die nutzbare Kapazität übersteigen kann |
+| `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | Wievielmal größer die von Hosts geschriebenen Daten sind als der Platz, den sie nach Komprimierung und Deduplizierung belegen, wie Unisphere es meldet |
+| `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | Anteil der nutzbaren Kapazität jedes Speicherressourcenpools, der belegt ist, in Prozent, nach seinem Label srp. Ein voller Pool nimmt für keine seiner Speichergruppen mehr neue Schreibvorgänge an |
+| `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | Der belegte Teil der nutzbaren Kapazität jedes Speicherressourcenpools, in Bytes, nach seinem Label srp |
 
 ### Leistung
 
@@ -251,6 +284,18 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Pro Sekunde auf jeder Appliance gelesene Bytes. |
 | `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Pro Sekunde auf jeder Appliance geschriebene Bytes. |
 | `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | Anteil der CPU-Kerne, die jede Appliance für Storage-I/O reserviert, die ausgelastet sind, in Prozent. Anhaltend hohe Werte bedeuten, dass die Appliance nahe an der Last ist, die sie bedienen kann. |
+| `powermax_array_response_time_usec` | `operation=read` | PowerMax | `µs` | Durchschnittliche Dauer eines Host-Lesevorgangs auf dem Array, in Mikrosekunden, über das letzte 5-Minuten-Intervall von Unisphere (operation read) |
+| `powermax_array_response_time_usec` | `operation=write` | PowerMax | `µs` | Durchschnittliche Dauer eines Host-Schreibvorgangs auf dem Array, in Mikrosekunden, über das letzte 5-Minuten-Intervall von Unisphere (operation write) |
+| `powermax_array_read_iops` | — | PowerMax | `ops/s` | Host-Lesevorgänge pro Sekunde auf dem Array: die Host-IOs von Unisphere mal ihr Anteil an Lesevorgängen |
+| `powermax_array_write_iops` | — | PowerMax | `ops/s` | Host-Schreibvorgänge pro Sekunde auf dem Array: die Host-IOs von Unisphere mal ihr Anteil an Schreibvorgängen |
+| `powermax_array_read_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pro Sekunde, die Hosts vom Array lesen |
+| `powermax_array_write_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pro Sekunde, die Hosts auf das Array schreiben |
+| `powermax_array_cache_hit_percent` | — | PowerMax | `%` | Anteil der Host-I/O, den das Array aus dem Cache beantwortet hat, in Prozent |
+| `powermax_array_write_pending_percent` | — | PowerMax | `%` | Anteil des Array-Caches mit Schreibvorgängen, die noch nicht auf seine Laufwerke geschrieben wurden, in Prozent. Nahe am Limit bremst das Array die Host-Schreibvorgänge |
+| `powermax_array_frontend_busy_percent` | — | PowerMax | `%` | Wie ausgelastet die Director sind, die Hosts bedienen, in Prozent |
+| `powermax_array_backend_busy_percent` | — | PowerMax | `%` | Wie ausgelastet die Director sind, die die Laufwerke bedienen, in Prozent |
+| `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | Wie ausgelastet die Director sind, die auf andere Arrays replizieren, in Prozent |
+| `powermax_srp_response_time_usec` | — | PowerMax | `µs` | Durchschnittliche Dauer einer I/O in jedem Speicherressourcenpool, in Mikrosekunden, nach seinem Label srp |
 
 ### Volumes
 
@@ -279,6 +324,20 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | Durchschnittliche Leselatenz über die Volumes jeder Volume-Gruppe, in Mikrosekunden. Nach volume_group_id gruppieren, das den Namen der Gruppe enthält. |
 | `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | Durchschnittliche Schreiblatenz über die Volumes jeder Volume-Gruppe, in Mikrosekunden. |
 | `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | Lese- und Schreiboperationen pro Sekunde über die Volumes jeder Volume-Gruppe. |
+| `powermax_storage_group_response_time_usec` | — | PowerMax | `µs` | Durchschnittliche Dauer einer I/O je Speichergruppe, in Mikrosekunden, nach ihrem Label storage_group, über das letzte 5-Minuten-Intervall von Unisphere |
+| `powermax_storage_group_read_response_time_usec` | — | PowerMax | `µs` | Durchschnittliche Dauer eines Lesevorgangs je Speichergruppe, in Mikrosekunden, nach ihrem Label storage_group |
+| `powermax_storage_group_write_response_time_usec` | — | PowerMax | `µs` | Durchschnittliche Dauer eines Schreibvorgangs je Speichergruppe, in Mikrosekunden, nach ihrem Label storage_group |
+| `powermax_storage_group_iops` | — | PowerMax | `ops/s` | Host-I/Os pro Sekunde je Speichergruppe, nach ihrem Label storage_group |
+| `powermax_storage_group_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pro Sekunde, die Hosts je Speichergruppe lesen und schreiben, nach ihrem Label storage_group |
+| `powermax_storage_group_used_bytes` | — | PowerMax | `bytes` | Die Kapazität, die die Volumes jeder Speichergruppe belegen, in Bytes, nach ihrem Label storage_group |
+| `powermax_storage_group_host_io_limit_exceeded_percent` | — | PowerMax | `%` | Anteil des Intervalls, in dem jede Speichergruppe durch ihr Host-I/O-Limit gebremst wurde, in Prozent. Nur Speichergruppen mit gesetztem Limit melden ihn |
+| `powermax_storage_group_realtime_read_response_time_usec` | — | PowerMax | `µs` | Lese-Antwortzeit der Speichergruppen, die in Unisphere für die Echtzeiterfassung registriert sind, in Mikrosekunden, alle 5 Sekunden. Pro Array lassen sich bis zu 100 Speichergruppen registrieren |
+| `powermax_storage_group_realtime_write_response_time_usec` | — | PowerMax | `µs` | Schreib-Antwortzeit der Speichergruppen, die in Unisphere für die Echtzeiterfassung registriert sind, in Mikrosekunden, alle 5 Sekunden |
+| `powermax_storage_group_realtime_iops` | — | PowerMax | `ops/s` | Host-I/Os pro Sekunde der für die Echtzeiterfassung registrierten Speichergruppen, alle 5 Sekunden |
+| `powermax_storage_group_realtime_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pro Sekunde der für die Echtzeiterfassung registrierten Speichergruppen, alle 5 Sekunden |
+| `powermax_volume_response_time_usec` | — | PowerMax | `µs` | Durchschnittliche Dauer einer I/O je Volume, in Mikrosekunden, nach seinem Label volume. Unisphere meldet sie nur für Volumes von Speichergruppen, die für die Echtzeiterfassung registriert sind |
+| `powermax_volume_iops` | — | PowerMax | `ops/s` | Host-I/Os pro Sekunde je Volume, nach seinem Label volume, für Volumes von Speichergruppen, die für die Echtzeiterfassung registriert sind |
+| `powermax_volume_used_bytes` | — | PowerMax | `bytes` | Die Kapazität, die jedes Volume belegt, in Bytes, nach seinem Label volume |
 
 ### Hosts
 
@@ -299,6 +358,10 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replikationsverkehr jedes Pods, mit den Labels `direction` und `dimension`                                                                                   |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Durchschnittliche Latenz gespiegelter Schreibvorgänge jedes ActiveCluster-Pods                                                                               |
 | `powerstore_metro_witness_status` | — | PowerStore | `count` | Zustand jedes Metro-Witness: 0 OK, 1 teilweise verbunden, 2 getrennt, 3 wird gelöscht, 4 wird initialisiert. Über 0 kann eine Metro-Sitzung möglicherweise nicht von selbst umschalten. |
+| `powermax_srdf_group_not_healthy` | — | PowerMax | `count` | Eine Serie pro SRDF-Gruppe, deren Link offline ist oder deren Paare angehalten, partitioniert, getrennt, per Failover umgeschaltet oder ungültig sind (Wert 1), mit ihren Labels srdf_group, state und remote_symmetrix_id. Die Serie fehlt, solange die Gruppe repliziert |
+| `powermax_srdf_group_lag_seconds` | — | PowerMax | `s` | Wie weit die Remote-Kopie jeder asynchronen SRDF-Gruppe zurückliegt, in Sekunden, nach ihrem Label srdf_group. Ein Failover jetzt würde die Schreibvorgänge dieser Zeitspanne verlieren |
+| `powermax_srdf_group_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pro Sekunde, die jede SRDF-Gruppe an ihr Remote-Array sendet, nach ihrem Label srdf_group |
+| `powermax_srdf_group_response_time_usec` | — | PowerMax | `µs` | Durchschnittliche Dauer, bis ein replizierter Schreibvorgang das Remote-Array erreicht, je SRDF-Gruppe, in Mikrosekunden, nach ihrem Label srdf_group |
 
 ### Hardware
 
@@ -326,6 +389,12 @@ Der Agent sendet alles, was das Array exportiert; die Serien unten sind der Kata
 | `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | Pro Sekunde an jedem Ethernet-Port empfangene Bytes. |
 | `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | Pro Sekunde an jedem Ethernet-Port gesendete Bytes. |
 | `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | Pro Sekunde an jedem Ethernet-Port mit CRC-Fehler empfangene Pakete. Anhaltende Fehler bedeuten meist ein defektes Kabel, eine defekte Optik oder einen defekten Switch-Port. |
+| `powermax_director_offline` | — | PowerMax | `count` | Eine Serie pro Director, der nicht online ist (Wert 1), mit seinen Labels director, role und status. Die Serie fehlt, solange jeder Director online ist |
+| `powermax_director_busy_percent` | — | PowerMax | `%` | Wie ausgelastet jeder Director ist, in Prozent, nach seinem Label component (etwa FA-1D) |
+| `powermax_port_offline` | — | PowerMax | `count` | Eine Serie pro Port, der Hosts oder SRDF bedient (in einer Portgruppe, einer Masking View oder einer SRDF-Gruppe), aber nicht aktiv ist (Wert 1), mit seinen Labels component, protocol und status. Ports, die niemand nutzt, werden ausgelassen: Sie sind womöglich absichtlich abgeschaltet |
+| `powermax_port_busy_percent` | — | PowerMax | `%` | Wie ausgelastet jeder Port ist, in Prozent, nach seinem Label component (etwa FA-1D:4) |
+| `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes pro Sekunde, die über jeden Port gelesen werden, nach seinem Label component |
+| `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | Die Lichtleistung, die jeder optische Port empfängt, in Milliwatt, nach seinem Label component. Ein fallender Wert deutet auf eine Optik oder ein Kabel hin, die ausfallen. Erfordert Unisphere 10.3 oder neuer |
 
 ### Dateisysteme
 
@@ -420,7 +489,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` ist der `storage.array.name` des Arrays - der `STORAGE_ARRAY_NAME`, mit dem der Agent gestartet wurde -, nicht seine OneUptime-ID. `storageSystem` ist `purestorage.flasharray` oder `purestorage.flashblade`. Es entscheidet, welchen Katalog und welche Vorlagen das Formular zeigt und ob ein Hardwarefilter `component_name` oder `name` liest.
+`arrayIdentifier` ist der `storage.array.name` des Arrays - der `STORAGE_ARRAY_NAME`, mit dem der Agent gestartet wurde, oder der Name eines PowerMax in OneUptime, bis zur Umbenennung seine Symmetrix ID -, nicht seine OneUptime-ID. `storageSystem` ist `purestorage.flasharray`, `purestorage.flashblade` oder `dell.powermax`. Es entscheidet, welchen Katalog und welche Vorlagen das Formular zeigt und ob ein Hardwarefilter `component_name`, `name` oder `component` liest.
 
 ## Fehlerbehebung
 
@@ -440,8 +509,12 @@ Pure legt Lese-, Schreib-, gespiegelte Schreib-, SAN-, Warteschlangen- und QoS-W
 Der Agent liest Volumes, Hosts und Pods alle 2 Minuten, die Dateisysteme und Buckets eines FlashBlade alle 5 und FlashArray-Verzeichnisse alle 30, sodass ein Fenster von 1 Minute keine Stichprobe enthalten kann. Verwenden Sie 5 Minuten oder mehr: 15 für Dateisysteme und Buckets, 60 für Verzeichnisse.
 :::
 
+:::details Ein PowerMax-Monitor zeigt keine Daten
+Eine Sonde liest ein PowerMax alle 5 Minuten; verwenden Sie daher ein Fenster von 10 Minuten oder mehr. Antwortzeiten, IOPS und Durchsatz setzen die Leistungserfassung von Unisphere voraus, die die Vorlage **Performance Collection Off** überwacht, und die Werte eines Volumes setzen voraus, dass seine Speichergruppe in Unisphere für Echtzeit registriert ist. Die Seite der Verbindung unter **Produkte → Infrastruktur → Speicher-Arrays → Verbindungen** sagt, was ihre letzte Erfassung nicht lesen konnte.
+:::
+
 :::details Vorfälle lösen einmal für das ganze Array statt einmal pro Volume aus
-Gruppieren Sie die Abfrage nach dem Label des Objekts: `name` für Volumes, Pods, Verzeichnisse, Dateisysteme und Buckets, `host` für Hosts und `component_name` für FlashArray-Hardware. Pures Labels haben kein Präfix, also passt `resource.name` auf nichts.
+Gruppieren Sie die Abfrage nach dem Label des Objekts: `name` für Volumes, Pods, Verzeichnisse, Dateisysteme und Buckets, `host` für Hosts und `component_name` für FlashArray-Hardware; bei einem PowerMax `storage_group`, `volume`, `component` oder `srdf_group`. Die Labels von Pure und PowerMax haben kein Präfix, also passt `resource.name` auf nichts.
 :::
 
 ## Nächste Schritte

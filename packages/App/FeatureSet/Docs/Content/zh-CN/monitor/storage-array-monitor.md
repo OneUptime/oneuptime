@@ -1,6 +1,6 @@
 # 存储阵列监控
 
-存储阵列监视器监视一个存储阵列，并在阵列自身发出警报、空间不足、变慢、丢失硬件或主机路径，或复制落后时通知你。它支持 Pure Storage FlashArray 和 Pure Storage FlashBlade，读取阵列自身导出的指标——Pure 的 `purefa_*` 和 `purefb_*` 序列——这些指标由 OneUptime Storage Array Agent 采集。
+存储阵列监视器监视一个存储阵列，并在阵列自身发出警报、空间不足、变慢、丢失硬件或主机路径，或复制落后时通知你。它支持 Pure Storage FlashArray 和 Pure Storage FlashBlade，其自身的 `purefa_*` 和 `purefb_*` 序列由 OneUptime Storage Array Agent 采集；也支持 Dell PowerMax，其 `powermax_*` 序列由 OneUptime 探测器从 Unisphere for PowerMax 读取。
 
 它也适用于 Dell PowerStore（`dell.powerstore`），基于 Dell 的 `powerstore_*` 序列。
 
@@ -14,6 +14,8 @@
 ## 工作原理
 
 OneUptime Storage Array Agent 运行在能够访问阵列管理接口的机器上。它使用只读 API 令牌读取阵列的指标，为指标打上阵列的名称 `storage.array.name` 和平台 `storage.system` 标签，并通过 OTLP 发送到 OneUptime。第一批数据到达时会注册该阵列。
+
+Dell PowerMax 无需代理：OneUptime 探测器每 5 分钟使用只读帐户登录一次 Unisphere for PowerMax，并以同样的方式发送它管理的每个阵列，阵列在你重命名之前以其 Symmetrix ID 命名([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
 
 存储阵列监视器绑定到一个阵列。它每分钟对该阵列的指标运行一次查询，并将结果与其条件进行比较。
 
@@ -35,6 +37,7 @@ flowchart TB
 
 - **安装 Storage Array Agent**，安装在能通过 HTTPS 访问阵列的位置，并使用拥有阵列 **readonly** 角色的用户的 API 令牌。[Storage Array Agent 指南](/docs/telemetry/storage-arrays) 介绍了用户、令牌和安装，涉及 `ONEUPTIME_URL`、`ONEUPTIME_TELEMETRY_INGESTION_KEY`、`STORAGE_ARRAY_NAME`，以及阵列的地址和令牌(`PURE_FA_ENDPOINT` 和 `PURE_FA_API_TOKEN`，或 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`)。
 - **确认阵列已注册。** 在第一次采集后大约一分钟，它会以代理的 `STORAGE_ARRAY_NAME` 命名，出现在 **产品 → 基础设施 → 存储阵列 → 所有存储阵列** 下。
+- **对于 Dell PowerMax**，请改为在 **产品 → 基础设施 → 存储阵列 → 连接** 下连接管理它的 Unisphere for PowerMax，详见 [Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)。
 
 ## 创建存储阵列监视器
 
@@ -76,10 +79,10 @@ flowchart TB
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
 | **存储阵列** | 全部 | 必填。把每个查询限定到 `resource.storage.array.name`，因此两个都有名为 `vol-01` 的卷的阵列永远不会混在一起。 |
-| **卷** | Custom Metric、高级 | 仅限 FlashArray。一个卷，按 `name` 标签，例如 `vol-db-01`。Pod 或卷组中的卷命名为 `pod::volume` 或 `group/volume`。 |
+| **卷** | Custom Metric、高级 | 仅限 FlashArray 和 PowerMax。一个卷：在 FlashArray 上按 `name` 标签，例如 `vol-db-01`(Pod 或卷组中的卷命名为 `pod::volume` 或 `group/volume`)，在 PowerMax 上按 `volume` 标签，即其设备 ID，例如 `00847`。 |
 | **主机** | Custom Metric、高级 | 仅限 FlashArray。阵列所知的一台主机，按 `host` 标签，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、高级 | 仅限 FlashArray。一个 ActiveCluster 或 ActiveDR Pod，按 `name` 标签，在副本链接序列上则按 `local_pod`。 |
-| **硬件组件** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`。 |
+| **硬件组件** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`，在 PowerMax 上是 `component`，即导向器(例如 `FA-1D`)或端口(例如 `FA-1D:4`)。 |
 | **文件系统** | Custom Metric、高级 | 仅限 FlashBlade。一个文件系统，按 `name` 标签。 |
 | **存储桶** | Custom Metric、高级 | 仅限 FlashBlade。一个对象存储桶，按 `name` 标签。 |
 | **Storage Array Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。表单会添加赋予其含义的标签过滤器，并按它描述的对象分组，因此每个卷、主机或组件都会单独判断。 |
@@ -87,7 +90,7 @@ flowchart TB
 | **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **过去 5 分钟** 开始；文件系统或存储桶的自定义指标从 **过去 15 分钟** 开始；模板会设置自己的值。 |
 | **选择指标** | 高级 | 查询构建器：**指标**、**聚合方式**、**按属性过滤**、**分组依据**，以及用于合并查询的 **添加指标** 和 **添加公式**。 |
 
-代理每 60 秒读取一次阵列端点，每 2 分钟读取一次卷、主机和 Pod，因此 5 分钟的窗口中总会有样本。它每 5 分钟读取一次 FlashBlade 的文件系统和存储桶(所以用 15 分钟)，每 30 分钟读取一次 FlashArray 目录：请给目录监视器设置 60 分钟的窗口。
+代理每 60 秒读取一次阵列端点，每 2 分钟读取一次卷、主机和 Pod，因此 5 分钟的窗口中总会有样本。它每 5 分钟读取一次 FlashBlade 的文件系统和存储桶(所以用 15 分钟)，每 30 分钟读取一次 FlashArray 目录：请给目录监视器设置 60 分钟的窗口。探测器每 5 分钟读取一次 PowerMax，与 Unisphere 计算其性能的频率相同：请给 PowerMax 监视器设置 10 分钟或更长的窗口。
 
 它每 5 分钟读取一次 PowerStore，每 60 秒读取一次其集群状态：为 PowerStore 监视器设置 15 分钟的窗口。
 
@@ -107,9 +110,11 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 | `purefa_host_connectivity_info` | `status`，并带有 `details` | 一台主机 |
 | `purefa_drive_capacity_bytes` | `component_status`(值为驱动器的容量) | 一个驱动器 |
 
-过滤到某个不良状态的序列只在有对象处于该状态时才存在，因此没有序列就意味着健康。这就是为什么 **Max 大于 0 时触发、为 0 时恢复** 是适合它们的形式，模板也是这样构建的：它们的恢复条件把缺失的序列计为零。当完全没有序列时，这类模板只有在同一时间窗口内收到 `purefa_info` 或 `purefb_info` 才会恢复，因此已停止上报的阵列不会关闭任何内容。
+过滤到某个不良状态的序列只在有对象处于该状态时才存在，因此没有序列就意味着健康。这就是为什么 **Max 大于 0 时触发、为 0 时恢复** 是适合它们的形式，模板也是这样构建的：它们的恢复条件把缺失的序列计为零。当完全没有序列时，这类模板只有在同一时间窗口内收到 `purefa_info`、`purefb_info` 或 `powermax_array_info` 才会恢复，因此已停止上报的阵列不会关闭任何内容。
 
-在监视器过滤器和分组键中，代理的属性以 `resource.` 开头(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的标签不以它开头(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
+PowerMax 的每个序列只包含一个数值，并以该数值命名：`powermax_array_response_time_usec` 用 `operation` 区分读取和写入。它的状态序列同样只在出现问题时存在：`powermax_alert_open` 在 Unisphere 有未关闭的警报时存在，`powermax_director_offline` 在导向器不在线时存在，`powermax_port_offline` 在有人依赖的端口宕机时存在，`powermax_srdf_group_not_healthy` 在 SRDF 组挂起或离线时存在。
+
+在监视器过滤器和分组键中，代理的属性以 `resource.` 开头(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的标签不以它开头(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)，PowerMax 的标签也不以它开头(`storage_group`、`volume`、`director`、`port_id`、`srdf_group`)。
 
 ## PowerStore 序列的结构
 
@@ -117,9 +122,9 @@ Dell 的导出器每个指标名称只写一个值，因此 PowerStore 序列不
 
 ## 预置警报模板
 
-OneUptime 提供 36 个模板——12 个用于 FlashArray，8 个用于 FlashBlade，16 个用于 PowerStore——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 提供 49 个模板——12 个用于 FlashArray，8 个用于 FlashBlade，16 个用于 PowerStore，13 个用于 PowerMax——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
-只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。警报、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。
+只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。警报、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。PowerMax 的模板使用 10 分钟和 15 分钟的窗口：相当于其两次和三次 5 分钟采集。
 
 ### FlashArray
 
@@ -182,11 +187,29 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | Major Array Alert | 警告 | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
 | Port Link Down | 警告 | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
+### PowerMax
+
+| 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 严重 | `powermax_array_info`，Count，过去 10 分钟 | 整个窗口内都没有数据 — 探测器已停止采集该阵列：其连接失败(其在 **连接** 下的页面会说明原因)、探测器已断开，或 Unisphere 不再管理该阵列；再次收到数据时恢复 |
+| Critical Unisphere Alert | 阵列健康状况 | 严重 | `powermax_alert_open` 过滤到 `severity=critical`，按 `description` 取 Max，过去 10 分钟 | > 0 — Unisphere 中该阵列有一个严重程度为 Critical 或 Fatal 的未关闭警报。每个警报一个事件；警报在 Unisphere 中被确认或清除时恢复 |
+| Warning Unisphere Alert | 阵列健康状况 | 警告 | `powermax_alert_open` 过滤到 `severity=warning`，按 `description` 取 Max，过去 10 分钟 | > 0 — Unisphere 中有一个严重程度为 Warning 或 Minor 的未关闭警报。每个警报一个事件；警报被确认或清除时恢复 |
+| Performance Collection Off | 阵列健康状况 | 警告 | `powermax_array_performance_collection`，Min，过去 15 分钟 | < 1 — Unisphere 没有采集该阵列的 5 分钟性能数据，因此响应时间、IOPS 和吞吐量都不会绘制图表或触发警报；≥ 1 时恢复 |
+| Storage Resource Pool Above 80% | 容量 | 警告 | `powermax_srp_capacity_used_percent`，按 `srp` 取 Max，过去 15 分钟 | > 80 — 存储池写满时，其存储组将不再接受新的写入。每个存储池一个事件；≤ 72 时恢复 |
+| Storage Resource Pool Above 90% | 容量 | 严重 | `powermax_srp_capacity_used_percent`，按 `srp` 取 Max，过去 15 分钟 | > 90 — 存储池一旦写满，对其存储组的写入就会失败。每个存储池一个事件；≤ 81 时恢复 |
+| Storage Group Response Time Above 5 ms | 性能 | 警告 | `powermax_storage_group_response_time_usec`，按 `storage_group` 取 Avg，过去 15 分钟 | > 5000 µs (5 ms) — PowerMax 的响应时间通常远低于一毫秒。每个存储组一个事件；≤ 4500 时恢复 |
+| High Read Response Time | 性能 | 警告 | `powermax_array_response_time_usec` 过滤到 `operation=read`，Avg，过去 15 分钟 | > 3000 µs (3 ms)；≤ 2700 时恢复 |
+| High Write Response Time | 性能 | 警告 | `powermax_array_response_time_usec` 过滤到 `operation=write`，Avg，过去 15 分钟 | > 3000 µs (3 ms) — 同步 SRDF 会给每次写入加上到远程阵列的往返时间；≤ 2700 时恢复 |
+| Director Not Online | 硬件 | 严重 | `powermax_director_offline`，按 `component` 取 Max，过去 10 分钟 | > 0 — 某个导向器不在线，阵列依靠其他导向器运行。每个导向器一个事件；它重新在线时恢复 |
+| Port Down | 硬件 | 警告 | `powermax_port_offline`，按 `component` 取 Max，过去 10 分钟 | > 0 — 端口组、屏蔽视图或 SRDF 组中的某个端口未启动。每个端口一个事件；它重新启动时恢复 |
+| SRDF Group Suspended or Offline | 复制 | 严重 | `powermax_srdf_group_not_healthy`，按 `srdf_group` 取 Max，过去 10 分钟 | > 0 — 组的链路离线，或其配对处于挂起、拆分或故障切换状态，因此远程副本无法保持最新。每个组一个事件；重新同步时恢复 |
+| SRDF/A Lag Above 2 Minutes | 复制 | 警告 | `powermax_srdf_group_lag_seconds`，按 `srdf_group` 取 Avg，过去 15 分钟 | > 120 (2 分钟) — 此时故障切换会丢失比计划更多的近期写入。每个组一个事件；≤ 108 时恢复 |
+
 **严重程度** 是选择器显示的标签。模板创建的事件和警报以项目中最严重的事件和警报严重程度开始；可以在条件中修改。
 
-- **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`)，代理采集的每个端点在每次采集时都会导出该序列。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
+- **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`，代理采集的每个端点在每次采集时都会导出该序列；或 `powermax_array_info`，每次 PowerMax 采集都会写入该序列)。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
 - **未关闭的警报和硬件状态使用 Max**，因为这类序列只在警报未关闭或组件处于该状态时才存在，所以状态在整个 5 分钟窗口内都出现后才会越过阈值。
-- **每个按对象的模板都按对象自身的标签分组**(`summary`、`component_name`、`host`、`local_pod`、`name`)，因此每个受影响的对象各触发一个事件，并且事件中会写出该对象。
+- **每个按对象的模板都按对象自身的标签分组**(`summary`、`component_name`、`host`、`local_pod`、`name`，在 PowerMax 上还有 `description`、`component`、`srp`、`srdf_group` 和 `storage_group`)，因此每个受影响的对象各触发一个事件，并且事件中会写出该对象。
 - **延迟模板使用 Avg**，对阵列自身计算的每次操作平均值取平均；容量模板对阵列自身的利用率百分比取 **最大**。延迟固定以微秒为单位，容量固定以百分比为单位。
 - **Hardware Component Unhealthy 按组件使用 Min**：组件健康时其健康值为 1，不健康时降到 0。
 
@@ -194,7 +217,7 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 
 ## 采集的指标
 
-代理会发送阵列导出的所有内容；下面的序列是监视器表单提供的目录。每个值都是阵列自己计算的仪表值——延迟以每次操作的微秒计，吞吐量以每秒计——因此不需要计算速率。**过滤器** 是赋予序列该行所述含义的标签过滤器；表单会替你应用它。
+代理会发送阵列导出的所有内容，探测器会发送它从 PowerMax 读取的所有内容，单位相同(Unisphere 的毫秒换算为微秒，其每秒 MB 换算为每秒字节数)；下面的序列是监视器表单提供的目录。每个值都是阵列自己计算的仪表值——延迟以每次操作的微秒计，吞吐量以每秒计——因此不需要计算速率。**过滤器** 是赋予序列该行所述含义的标签过滤器；表单会替你应用它。
 
 ### 阵列健康状况
 
@@ -203,6 +226,9 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `purefa_alerts_open` | — | FlashArray | `count` | 阵列上每个未关闭的警报一个序列(值为 1)，带有标签 `severity`(`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type` 和 `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade 上每个未关闭的警报一个序列(值为 1)，带有标签 `severity`(`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary` 和 `kburl`(Pure 知识库文章) |
 | `powerstore_cluster` | — | PowerStore | `count` | PowerStore 集群为 Configured（已组建并在提供服务）时为 1，处于其他任何状态时为 0：Configuring、Expanding、Removing、Clustering_Failed 或 Unconfigured。 |
+| `powermax_alert_open` | — | PowerMax | `count` | Unisphere 为该阵列打开的每个警报对应一个序列(值为 1)：未确认、未清除且严重程度为 Minor 或更高。其 severity 标签为 critical(Critical 和 Fatal)或 warning(Warning 和 Minor)；其 alert_type、object 和 description 标签说明警报内容。在 Unisphere 中确认该警报后，序列即消失 |
+| `powermax_array_health_score` | — | PowerMax | `score` | Unisphere 给出的阵列健康评分，范围 0 到 100，按 health_metric 区分：总体评分，以及其评分的每个方面(容量、配置、性能、服务级别合规性) |
+| `powermax_array_performance_collection` | — | PowerMax | `count` | Unisphere 正在为该阵列采集 5 分钟性能数据时为 1，否则为 0。关闭时，OneUptime 仍会列出该阵列的清单和警报，但不会绘制任何性能图表。请在 Unisphere 的 Settings > Performance > System Registrations 中开启 |
 
 ### 容量
 
@@ -223,6 +249,13 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | 主机写入每台专用设备的数据，以字节为单位，为重复数据删除和压缩之前的值。 |
 | `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | 每台专用设备上的重复数据删除和压缩效果，例如 3.4:1 记为 3.4。持续下降表示新写入的数据缩减效果差：加密或已压缩的数据。 |
 | `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | 每台专用设备的总体效率：数据缩减加上快照和精简配置节省的空间。 |
+| `powermax_array_capacity_used_percent` | — | PowerMax | `%` | 阵列所有存储资源池中可用容量已使用的比例(百分比) |
+| `powermax_array_capacity_usable_bytes` | — | PowerMax | `bytes` | Unisphere 报告的阵列可用容量，以字节为单位 |
+| `powermax_array_capacity_used_bytes` | — | PowerMax | `bytes` | 阵列已使用的可用容量，以字节为单位 |
+| `powermax_array_capacity_subscribed_bytes` | — | PowerMax | `bytes` | 阵列上所有精简卷的容量，以字节为单位：即向主机承诺的容量，可能超过可用容量 |
+| `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | 主机写入的数据是其经过压缩和重复数据删除后所占空间的多少倍，以 Unisphere 报告的为准 |
+| `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | 每个存储资源池可用容量中已使用的比例(百分比)，按其 srp 标签区分。存储池写满后，将不再为其中的任何存储组接受新的写入 |
+| `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | 每个存储资源池已使用的可用容量，以字节为单位，按其 srp 标签区分 |
 
 ### 性能
 
@@ -251,6 +284,18 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 每台专用设备上每秒读取的字节数。 |
 | `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 每台专用设备上每秒写入的字节数。 |
 | `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | 每台专用设备专用于存储 I/O 的 CPU 核心中处于繁忙状态的比例，以百分比表示。持续偏高意味着该专用设备已接近其能承受的负载。 |
+| `powermax_array_response_time_usec` | `operation=read` | PowerMax | `µs` | 阵列上主机读取的平均耗时，以微秒为单位，取 Unisphere 最近一个 5 分钟间隔(operation read) |
+| `powermax_array_response_time_usec` | `operation=write` | PowerMax | `µs` | 阵列上主机写入的平均耗时，以微秒为单位，取 Unisphere 最近一个 5 分钟间隔(operation write) |
+| `powermax_array_read_iops` | — | PowerMax | `ops/s` | 阵列上每秒的主机读取次数：Unisphere 的主机 IO 数乘以其中读取所占的比例 |
+| `powermax_array_write_iops` | — | PowerMax | `ops/s` | 阵列上每秒的主机写入次数：Unisphere 的主机 IO 数乘以其中写入所占的比例 |
+| `powermax_array_read_throughput_bytes` | — | PowerMax | `bytes/s` | 主机每秒从阵列读取的字节数 |
+| `powermax_array_write_throughput_bytes` | — | PowerMax | `bytes/s` | 主机每秒写入阵列的字节数 |
+| `powermax_array_cache_hit_percent` | — | PowerMax | `%` | 阵列从缓存响应的主机 I/O 所占比例(百分比) |
+| `powermax_array_write_pending_percent` | — | PowerMax | `%` | 阵列缓存中保存尚未转储到其驱动器的写入所占的比例(百分比)。接近上限时，阵列会减慢主机写入 |
+| `powermax_array_frontend_busy_percent` | — | PowerMax | `%` | 为主机提供服务的导向器的繁忙程度(百分比) |
+| `powermax_array_backend_busy_percent` | — | PowerMax | `%` | 为驱动器提供服务的导向器的繁忙程度(百分比) |
+| `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | 向其他阵列复制数据的导向器的繁忙程度(百分比) |
+| `powermax_srp_response_time_usec` | — | PowerMax | `µs` | 每个存储资源池中 I/O 的平均耗时，以微秒为单位，按其 srp 标签区分 |
 
 ### 卷
 
@@ -279,6 +324,20 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | 每个卷组中各卷的平均读取延迟，以微秒为单位。按 volume_group_id 分组，它包含卷组的名称。 |
 | `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | 每个卷组中各卷的平均写入延迟，以微秒为单位。 |
 | `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | 每个卷组中各卷每秒的读写操作数。 |
+| `powermax_storage_group_response_time_usec` | — | PowerMax | `µs` | 每个存储组的 I/O 平均耗时，以微秒为单位，按其 storage_group 标签区分，取 Unisphere 最近一个 5 分钟间隔 |
+| `powermax_storage_group_read_response_time_usec` | — | PowerMax | `µs` | 每个存储组的读取平均耗时，以微秒为单位，按其 storage_group 标签区分 |
+| `powermax_storage_group_write_response_time_usec` | — | PowerMax | `µs` | 每个存储组的写入平均耗时，以微秒为单位，按其 storage_group 标签区分 |
+| `powermax_storage_group_iops` | — | PowerMax | `ops/s` | 每个存储组每秒的主机 I/O 数，按其 storage_group 标签区分 |
+| `powermax_storage_group_throughput_bytes` | — | PowerMax | `bytes/s` | 主机对每个存储组每秒读写的字节数，按其 storage_group 标签区分 |
+| `powermax_storage_group_used_bytes` | — | PowerMax | `bytes` | 每个存储组的卷所使用的容量，以字节为单位，按其 storage_group 标签区分 |
+| `powermax_storage_group_host_io_limit_exceeded_percent` | — | PowerMax | `%` | 每个存储组因主机 I/O 限制而受阻的时间占间隔的比例(百分比)。只有设置了限制的存储组才会报告此值 |
+| `powermax_storage_group_realtime_read_response_time_usec` | — | PowerMax | `µs` | 在 Unisphere 中已注册实时采集的存储组的读取响应时间，以微秒为单位，每 5 秒一次。每个阵列最多可注册 100 个存储组 |
+| `powermax_storage_group_realtime_write_response_time_usec` | — | PowerMax | `µs` | 在 Unisphere 中已注册实时采集的存储组的写入响应时间，以微秒为单位，每 5 秒一次 |
+| `powermax_storage_group_realtime_iops` | — | PowerMax | `ops/s` | 已注册实时采集的存储组每秒的主机 I/O 数，每 5 秒一次 |
+| `powermax_storage_group_realtime_throughput_bytes` | — | PowerMax | `bytes/s` | 已注册实时采集的存储组每秒的字节数，每 5 秒一次 |
+| `powermax_volume_response_time_usec` | — | PowerMax | `µs` | 每个卷的 I/O 平均耗时，以微秒为单位，按其 volume 标签区分。Unisphere 仅为已注册实时采集的存储组中的卷报告此值 |
+| `powermax_volume_iops` | — | PowerMax | `ops/s` | 每个卷每秒的主机 I/O 数，按其 volume 标签区分，仅限已注册实时采集的存储组中的卷 |
+| `powermax_volume_used_bytes` | — | PowerMax | `bytes` | 每个卷使用的容量，以字节为单位，按其 volume 标签区分 |
 
 ### 主机
 
@@ -299,6 +358,10 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 每个 Pod 的复制流量，带有标签 `direction` 和 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 每个 ActiveCluster Pod 的镜像写平均延迟 |
 | `powerstore_metro_witness_status` | — | PowerStore | `count` | 每个 Metro Witness 的状态：0 OK，1 部分连接，2 已断开，3 正在删除，4 正在初始化。大于 0 时，Metro 会话可能无法自行故障转移。 |
+| `powermax_srdf_group_not_healthy` | — | PowerMax | `count` | 每个链路离线或其配对处于挂起、分区、拆分、故障切换或无效状态的 SRDF 组对应一个序列(值为 1)，带有 srdf_group、state 和 remote_symmetrix_id 标签。组正常复制时没有该序列 |
+| `powermax_srdf_group_lag_seconds` | — | PowerMax | `s` | 每个异步 SRDF 组的远程副本落后的时间，以秒为单位，按其 srdf_group 标签区分。此时进行故障切换将丢失这段时间内的写入 |
+| `powermax_srdf_group_throughput_bytes` | — | PowerMax | `bytes/s` | 每个 SRDF 组每秒发送到其远程阵列的字节数，按其 srdf_group 标签区分 |
+| `powermax_srdf_group_response_time_usec` | — | PowerMax | `µs` | 每个 SRDF 组中复制写入到达远程阵列的平均耗时，以微秒为单位，按其 srdf_group 标签区分 |
 
 ### 硬件
 
@@ -326,6 +389,12 @@ PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 
 | `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | 每个以太网端口每秒接收的字节数。 |
 | `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | 每个以太网端口每秒发送的字节数。 |
 | `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | 每个以太网端口每秒收到的带 CRC 错误的数据包数。持续出现错误通常意味着线缆、光模块或交换机端口有问题。 |
+| `powermax_director_offline` | — | PowerMax | `count` | 每个不在线的导向器对应一个序列(值为 1)，带有 director、role 和 status 标签。所有导向器都在线时没有该序列 |
+| `powermax_director_busy_percent` | — | PowerMax | `%` | 每个导向器的繁忙程度(百分比)，按其 component 标签区分(例如 FA-1D) |
+| `powermax_port_offline` | — | PowerMax | `count` | 每个为主机或 SRDF 提供服务(位于端口组、屏蔽视图或 SRDF 组中)但未启动的端口对应一个序列(值为 1)，带有 component、protocol 和 status 标签。无人使用的端口不计入：它们可能是有意关闭的 |
+| `powermax_port_busy_percent` | — | PowerMax | `%` | 每个端口的繁忙程度(百分比)，按其 component 标签区分(例如 FA-1D:4) |
+| `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | 每秒通过每个端口读取的字节数，按其 component 标签区分 |
+| `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | 每个光端口接收的光功率，以毫瓦为单位，按其 component 标签区分。数值下降表示光模块或线缆正在劣化。需要 Unisphere 10.3 或更高版本 |
 
 ### 文件系统
 
@@ -420,7 +489,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` 是阵列的 `storage.array.name`——即代理启动时使用的 `STORAGE_ARRAY_NAME`——而不是它的 OneUptime ID。`storageSystem` 是 `purestorage.flasharray` 或 `purestorage.flashblade`。它决定表单显示哪个目录和哪些模板，以及硬件过滤器读取 `component_name` 还是 `name`。
+`arrayIdentifier` 是阵列的 `storage.array.name`——即代理启动时使用的 `STORAGE_ARRAY_NAME`，或 PowerMax 在 OneUptime 中的名称(在你重命名之前为其 Symmetrix ID)——而不是它的 OneUptime ID。`storageSystem` 是 `purestorage.flasharray`、`purestorage.flashblade` 或 `dell.powermax`。它决定表单显示哪个目录和哪些模板，以及硬件过滤器读取 `component_name`、`name` 还是 `component`。
 
 ## 故障排查
 
@@ -440,8 +509,12 @@ Pure 把读、写、镜像写、SAN、队列和 QoS 数值放在同一个指标�
 代理每 2 分钟读取一次卷、主机和 Pod，每 5 分钟读取一次 FlashBlade 的文件系统和存储桶，每 30 分钟读取一次 FlashArray 目录，因此 1 分钟的窗口中可能没有样本。请使用 5 分钟或更长：文件系统和存储桶用 15 分钟，目录用 60 分钟。
 :::
 
+:::details PowerMax 监视器没有显示数据
+探测器每 5 分钟读取一次 PowerMax，因此请使用 10 分钟或更长的窗口。响应时间、IOPS 和吞吐量需要 Unisphere 的性能采集，**Performance Collection Off** 模板会监视这一点；卷的数值还需要在 Unisphere 中为其存储组注册实时采集。**产品 → 基础设施 → 存储阵列 → 连接** 下的连接页面会说明其最近一次采集未能读取哪些内容。
+:::
+
 :::details 事件对整个阵列只触发一次，而不是每个卷一次
-按对象的标签对查询分组：卷、Pod、目录、文件系统和存储桶用 `name`，主机用 `host`，FlashArray 硬件用 `component_name`。Pure 的标签没有前缀，因此 `resource.name` 什么也匹配不到。
+按对象的标签对查询分组：卷、Pod、目录、文件系统和存储桶用 `name`，主机用 `host`，FlashArray 硬件用 `component_name`；在 PowerMax 上用 `storage_group`、`volume`、`component` 或 `srdf_group`。Pure 和 PowerMax 的标签都没有前缀，因此 `resource.name` 什么也匹配不到。
 :::
 
 ## 后续步骤
