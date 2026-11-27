@@ -23,7 +23,7 @@ flowchart TB
     C2 -->|"None matched"| D["The monitor<br/>goes to its<br/>default status"]
     A --> Q{"Does it change<br/>the status?"}
     Q -->|"Yes"| S["It sets<br/>the status"]
-    Q -->|"No"| N["The first criteria below it<br/>that matches and changes<br/>the status sets it, or the<br/>monitor goes to its<br/>default status"]
+    Q -->|"No"| N["The first criteria<br/>below it that matches<br/>and changes the status<br/>sets it, or the monitor<br/>goes to its default status"]
 ```
 
 The order is part of the rule. A new monitor lists its criteria worst first: offline, then a warning where its type has one (a certificate or a domain that expires soon), then online. A broad healthy criteria, such as **Is Online** set to **True**, matches almost every check, so it goes last: above the others, it would match first every time and they would never act.

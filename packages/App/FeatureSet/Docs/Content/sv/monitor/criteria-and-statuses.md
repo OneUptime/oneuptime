@@ -3,7 +3,7 @@
 En monitors kriterier avgör vad varje kontroll betyder: om monitorn är uppe eller nere, och om OneUptime deklarerar en incident eller skapar ett larm. Statusar är ditt projekts lista över vad en monitor kan vara, från **Fungerar** till **Offline**. Den här sidan förklarar båda för alla monitortyper; varje typs egen sida listar de filter den erbjuder.
 
 :::cards
-- [Hur kriterier avgör](#hur-kriterier-avgör): Uppifrån och ned, och den första matchningen vinner.
+- [Hur kriterier avgör](#hur-kriterier-avgör): Uppifrån och ned: den första matchningen agerar, och den första som ändrar statusen sätter den.
 - [Vad ett kriterium innehåller](#vad-ett-kriterium-innehåller): Filter, ett matchningsvillkor, åtgärder och inställningar.
 - [Bedöma ett fönster av kontroller](#bedöma-ett-fönster-av-kontroller): Räkna misslyckade kontroller, upptäck instabilitet, läs av en percentil.
 - [Ändra en monitors kriterier](#ändra-en-monitors-kriterier): Redigera, lägg till, ordna om och testa kriterier.
@@ -12,28 +12,31 @@ En monitors kriterier avgör vad varje kontroll betyder: om monitorn är uppe el
 
 ## Hur kriterier avgör
 
-Varje gång en monitor kontrolleras bedömer dess kriterier resultatet uppifrån och ned i listan. Det första kriteriet vars filter matchar avgör vad som händer, och kriterierna under det tittas inte på för den kontrollen. Om inget matchar går monitorn till sin **Standardstatus för övervakning**. Den behåller i stället sin status så länge ett kriterium som återställer den ännu inte har matchat: se [När ett kriterium återställs](#när-ett-kriterium-återställs).
+Varje gång en monitor kontrolleras bedömer dess kriterier resultatet uppifrån och ned i listan. Det första kriteriet vars filter matchar avgör vad som händer: det deklarerar sina incidenter, skapar sina larm och ändrar, när det är inställt för det, monitorns status. Kriterierna under det tittas bara på när det inte ändrar någon status, och då bara för statusen. Om inget matchar går monitorn till sin **Standardstatus för övervakning**. Den behåller i stället sin status så länge ett kriterium som återställer den ännu inte har matchat: se [När ett kriterium återställs](#när-ett-kriterium-återställs).
 
 ```mermaid title="Hur varje kontroll bedöms"
 flowchart TB
     R["Resultatet av<br/>en kontroll"] --> C1{"Första<br/>kriteriet:<br/>matchar<br/>dess filter?"}
-    C1 -->|"Ja"| A["Det kriteriet<br/>agerar"]
+    C1 -->|"Ja"| A["Det kriteriet agerar:<br/>deklarerar incidenter<br/>och skapar larm"]
     C1 -->|"Nej"| C2{"Nästa kriterium:<br/>matchar<br/>dess filter?"}
     C2 -->|"Ja"| A
     C2 -->|"Inget matchade"| D["Monitorn<br/>går till<br/>sin standardstatus"]
-    A --> S["Ändrar<br/>statusen"]
-    A --> I["Deklarerar<br/>en incident"]
-    A --> L["Skapar ett<br/>larm"]
+    A --> Q{"Ändrar det<br/>statusen?"}
+    Q -->|"Ja"| S["Det sätter<br/>statusen"]
+    Q -->|"Nej"| N["Det första kriteriet<br/>under det som matchar<br/>och ändrar statusen<br/>sätter den, annars går<br/>monitorn till sin<br/>standardstatus"]
 ```
 
 Ordningen är en del av regeln. En ny monitor listar sina kriterier från det värsta fallet: offline, sedan en varning där typen har en (ett certifikat eller en domän som snart går ut), sedan online. Ett brett friskt kriterium, som **Är online** satt till **Sant**, matchar nästan varje kontroll, så det kommer sist: ovanför de andra skulle det matcha först varje gång, och de andra skulle aldrig agera.
 
-Ett kriterium som matchar men inte ändrar någon status avgör ändå kontrollen: monitorn behåller sin status, och kriterierna under det väntar på nästa kontroll. **Standardstatus för övervakning** gäller bara när inget kriterium matchar. För en ny monitor är den **Fungerar**; ändra den under **Fler fält**, under kriterierna.
+Ett kriterium som matchar men inte ändrar någon status, till exempel ett som bara skapar ett larm, avgör ingen status. Dess larm öppnas och löses som vilket kriteriums larm som helst, och kriterierna under det som ändrar statusen bedöms bara för statusen, i sin ordning: det första av dem som matchar sätter statusen och öppnar ingenting vid den kontrollen. Om inget av dem matchar går monitorn till sin **Standardstatus för övervakning**, som när inget kriterium matchar. En webbplats som är uppe igen men långsam står därför på **Fungerar** med sitt larm öppet, oavsett vilken status en tidigare kontroll lämnade den i. För en ny monitor är standarden **Fungerar**; ändra den under **Fler fält**, under kriterierna.
+
+> [!NOTE]
+> Ett kriterium som matchade först och inte ändrade någon status lät tidigare monitorn stanna i den status den hade, så länge det fortsatte att matcha: en switch som det rekommenderade larmpaketet bevakar missade en avsökning, kom tillbaka med en port över 80 % och förblev **Offline**, med statussidan röd, så länge porten var upptagen. Nu avgörs statusen bara av de kriterier som ändrar den. En monitor vars kriterier alla ändrar statusen bedöms exakt som förut. Detsamma gäller vilket kriterium som deklarerar en kontrolls incidenter och skapar dess larm: på en monitor som stannar vid den första matchningen är det fortfarande det första kriteriet som matchar.
 
 > [!NOTE]
 > En monitor som öppnar en incident eller ett larm per värd, container, disk eller gränssnitt bedömer alla kriterier vid varje kontroll, så två värdar kan matcha två olika kriterier samtidigt. Det är en monitor vars fråga har en **Gruppera efter**, som en mätvärden- eller loggmonitor, eller ett kriterium som anger `*` för varje disk eller gränssnitt. Detsamma gäller en mätvärdesmonitor som bevakar ett PromQL-uttryck: varje serie som uttrycket returnerar bedöms för sig. En monitor för inkommande förfrågningar som grupperar incidenter efter ett payload-fält stannar ändå vid den första matchningen.
 >
-> En sådan monitor har ändå en enda status, som sätts av det första kriterium som matchar. Ett kriterium som bara tar tillbaka den till dess **Standardstatus för övervakning** och inte öppnar någon incident eller något larm väntar på värdarna som uppfyllde ett kriterium som sätter en annan status: det matchar när var och en av dem uppfyller det, oavsett vad de andra värdarna gör. Tills dess behåller monitorn sin status, även när inget kriterium matchar, medan varje värds incidenter och larm fortfarande löses var för sig.
+> En sådan monitor har ändå en enda status, som sätts av det första kriterium som matchar bland dem som ändrar statusen. Ett kriterium som bara tar tillbaka den till dess **Standardstatus för övervakning** och inte öppnar någon incident eller något larm väntar på värdarna som uppfyllde ett kriterium som sätter en annan status: det matchar när var och en av dem uppfyller det, oavsett vad de andra värdarna gör. Tills dess behåller monitorn sin status, även när inget kriterium som ändrar statusen matchar, medan varje värds incidenter och larm fortfarande löses var för sig.
 
 ## Vad ett kriterium innehåller
 
@@ -125,11 +128,11 @@ Meningen under fönstrets inställningar återger det: ”Kontrollera: "Svarstid
 
 ## När ett kriterium återställs
 
-Ett kriterium slutar verka så snart dess filter slutar matcha: vid den kontrollen löses dess incident och larm, när **Lös incident automatiskt** och **Lös larm automatiskt** är påslagna, och övervakningen går vidare till nästa kriterium som matchar.
+Ett kriterium slutar verka så snart dess filter slutar matcha: vid den kontrollen löses dess incident och larm, när **Lös incident automatiskt** och **Lös larm automatiskt** är påslagna, och övervakningens status följer de kriterier som matchar då.
 
 **Återställ bara när ett eget villkor är uppfyllt** håller kriteriet i kraft efter att dess filter slutar matcha, tills filtren under **Återställs när** matchar. De börjar som motsatsen till kriteriets filter, över de senaste 10 minuterna, och kan använda allt ett filter erbjuder, till exempel ett fönster som räknar kontroller. Ett kriterium är i kraft så länge övervakningen har den status det sätter eller en incident eller ett larm som det deklarerade är öppet. Medan det håller är det en matchning på sin plats i listan: ett kriterium ovanför som matchar tar ändå över.
 
-När inget kriterium matchar behåller en övervakning som ett kriterium har flyttat från dess **Standardstatus för övervakning** den status den har, så länge den också har ett kriterium som bara för tillbaka den till den statusen och inte öppnar något. Det är återställningsmarginalen: mallarna utlöses över 90 % och kommer tillbaka vid 81 % eller lägre, så vid 89 % stannar övervakningen där den är. Dess incidenter och larm löses ändå när deras eget kriterium slutar matcha. En övervakning utan ett sådant kriterium går till sin **Standardstatus för övervakning**, som den alltid har gjort.
+När inget kriterium som ändrar statusen matchar behåller en övervakning som ett kriterium har flyttat från dess **Standardstatus för övervakning** den status den har, så länge den också har ett kriterium som bara för tillbaka den till den statusen och inte öppnar något. Det är återställningsmarginalen: mallarna utlöses över 90 % och kommer tillbaka vid 81 % eller lägre, så vid 89 % stannar övervakningen där den är. Dess incidenter och larm löses ändå när deras eget kriterium slutar matcha. En övervakning utan ett sådant kriterium går till sin **Standardstatus för övervakning**, som den alltid har gjort.
 
 ## Bara vissa dagar och tider
 
@@ -153,6 +156,7 @@ flowchart TB
 
 - **En i taget.** Så länge en incident som ett kriterium har deklarerat fortfarande är öppen, deklarerar samma kriterium ingen ny när det matchar igen. Larm fungerar på samma sätt. En monitor som grupperar efter värd eller payload-fält håller en öppen per värd eller värde, och ett kriterium på en monitor för inkommande e-post med **Öppna en ny incident för varje e-postmeddelande** öppnar en per e-postmeddelande.
 - **Stängning.** Vid en senare kontroll där ett annat kriterium matchar, eller inget, löses en incident vars kriterium har **Lös incident automatiskt** påslaget, och likaså ett larm med **Lös larm automatiskt**. Båda finns under **Fler fält** i incidenten eller larmet, och de kriterier som en ny monitor börjar med har dem påslagna.
+- **Kriteriet som agerar.** På en monitor som stannar vid den första matchningen deklarerar det första kriteriet som matchar kontrollens incidenter och skapar dess larm, även när det inte ändrar någon status och ett kriterium under det sätter statusen. Det öppnar ingenting vid kontrollen: placera kriterierna som ändrar statusen ovanför dem som bara larmar, det värsta först, som en ny monitors är, så kommer en kontrolls status och dess incident från samma kriterium.
 - **Flera sonder.** En monitor som kontrolleras av mer än en sond ändras bara när dess sonder är överens. Se [Hur kriterier utvärderas](/docs/monitor/create-monitor#så-utvärderas-kriterier).
 - **En överordnad monitor som är nere.** På en monitors sida **Konfiguration → Beroenden** anger **Beror på monitorer** de monitorer den är beroende av. Så länge någon av dem har en status som står i **Undertryck när överordnad status är** (vilken offline-status som helst, om fältet lämnas tomt), öppnar monitorn inga incidenter eller larm. Dess status ändras fortfarande, och det som är öppet löses fortfarande.
 - **Schemalagt underhåll.** En monitor i en underhållshändelse som pågår kontrolleras inte, så dess kriterier körs inte. Se [Schemalagt underhåll – Översikt](/docs/scheduled-maintenance/index).
@@ -335,6 +339,12 @@ Ett kriterium högre upp i listan matchade först. Öppna **Konfiguration → Kr
 
 :::details Ingen incident öppnades när monitorn gick ned
 Kontrollera kriteriet som matchade: **När filter matchar, deklarera en incident.** måste vara påslaget. En incident deklareras inte så länge samma kriteriums incident fortfarande är öppen, så länge en överordnad monitor i **Beror på monitorer** är nere, eller så länge monitorn är i schemalagt underhåll. Kortet **Monitor-sammanfattning** på monitorns **Översikt** säger vilket det var.
+
+Ett kriterium ovanför det som inte ändrar någon status, till exempel ett larm om långsamma svar, kan matcha först: det skapar sitt larm, kriteriet under det sätter statusen och deklarerar sin incident bara vid en kontroll där det är den första matchningen. Dra kriterierna som ändrar statusen ovanför dem som bara larmar.
+:::
+
+:::details Monitorn gick tillbaka till sin standardstatus medan ett larm förblev öppet
+Larmets kriterium ändrar ingen status, så det håller inte kvar monitorn i den status som en tidigare kontroll satte. Det första kriteriet som matchar och ändrar statusen sätter den, och när inget gör det går monitorn till sin **Standardstatus för övervakning**. För att behålla en status så länge ett problem varar ger du kriteriet som sätter den ett eget återställningsvillkor: se [När ett kriterium återställs](#när-ett-kriterium-återställs).
 :::
 
 :::details Incidenten förblir öppen efter att monitorn har återhämtat sig

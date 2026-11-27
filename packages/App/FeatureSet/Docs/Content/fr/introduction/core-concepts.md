@@ -44,7 +44,7 @@ Les personnes font partie d'un projet par l'intermédiaire d'**équipes**, et le
 
 Un **moniteur** vérifie une chose que vous exploitez et décide si elle fonctionne. La plupart des moniteurs sont vérifiés par des **sondes** : des machines qui exécutent la vérification selon un calendrier, par exemple en demandant une page, en appelant une API, en envoyant un ping à un hôte ou en interrogeant une base de données. OneUptime Cloud exécute des sondes dans plusieurs régions, une installation auto-hébergée exécute les siennes, et vous pouvez ajouter des sondes personnalisées dans votre réseau. D'autres moniteurs lisent plutôt ce que vous envoyez : la télémétrie de vos applications, ou les données qu'un agent remonte depuis vos serveurs, vos clusters Kubernetes et le reste de votre infrastructure.
 
-Les **critères** d'un moniteur décident de ce que signifie chaque résultat. Ils sont examinés dans l'ordre, et le premier qui correspond peut changer l'état du moniteur, déclarer un incident, créer une alerte, ou les trois. Chaque nouveau projet a trois états de moniteur : **Opérationnel**, **Dégradé** et **Hors ligne**.
+Les **critères** d'un moniteur décident de ce que signifie chaque résultat. Ils sont examinés dans l'ordre, et le premier qui correspond peut changer l'état du moniteur, déclarer un incident, créer une alerte, ou les trois. Un critère qui ne change aucun statut laisse le statut au critère suivant qui correspond et le change. Chaque nouveau projet a trois états de moniteur : **Opérationnel**, **Dégradé** et **Hors ligne**.
 
 :::cards
 - [Créer un moniteur](/docs/monitor/create-monitor): Choisir un type, dire quoi vérifier, et à quelle fréquence.
