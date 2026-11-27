@@ -715,6 +715,49 @@ const INSTALL_SPECS: Readonly<
         description:
           "Optional: a PEM CA bundle, mounted into the container, to verify the server's certificate against when DATABASE_TLS_INSECURE=false.",
       },
+      /*
+       * Data Observability through the agent (#11148), as the database
+       * agent's docker-compose.yml passes it: off unless exactly "true".
+       */
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY:-}",
+        description:
+          "true lets the agent read the databases you connect through it in Data Observability, read-only. Anything else leaves it off.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME:-}",
+        description:
+          "Optional: the login that reads the catalog. Empty: the collector's. Written as it is (no $$).",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD:-}",
+        description: "That login's password.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_CHECKS",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_CHECKS:-}",
+        description: "false runs no check at all: the catalog alone.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME:-}",
+        description:
+          "Optional: the login that runs checks, which read rows. Empty: the catalog's.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD:-}",
+        description: "That login's password.",
+      },
+      {
+        name: "ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL",
+        composeValue: "${ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL:-}",
+        description:
+          "true runs Custom SQL and Failing Rows checks, still read-only. Empty: off.",
+      },
     ],
     prerequisites: [
       translationKey(
