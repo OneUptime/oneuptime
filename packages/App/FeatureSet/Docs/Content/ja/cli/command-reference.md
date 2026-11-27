@@ -261,6 +261,44 @@ oneuptime <resource> add-note <id> --note <markdown> [--public]
 | `--note <markdown>` | はい | Markdown のメモ |
 | `--public` | いいえ | レコードのステータスページにメモを載せ、購読者に知らせます。インシデント、そのエピソード、定期メンテナンスのみ |
 
+### `oneuptime <resource> breakdown`
+
+`cloud-cost` のみ。期間のクラウドのコストを **クラウド → 支出 → コスト** と同じように分け、各行の隣に前の期間を並べて表示します。サービス、リージョン、アカウント、リソース、アプリプラットフォームの環境、アプリ、タグの値、またはコストビューのグループ別です。キーがコストを読める範囲で読み取ります。[レポートとエクスポート](/docs/telemetry/cloud-costs#レポートとエクスポート) を参照してください。
+
+```bash
+oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
+```
+
+| オプション | 必須 | 内容 | 既定値 |
+| --- | --- | --- | --- |
+| `--by <dimension>` | いいえ | 支出を分ける基準: `service`、`region`、`account`、`resource`、`environment`、`app`、`tag` または `group` | `service` |
+| `--tag-key <key>` | `--by tag` のとき | 値ごとに支出を分けるタグ (`team` など) | |
+| `--view <id>` | `--by group` のとき | グループごとに支出を分けるコストビュー | |
+| `--period <period>` | いいえ | 読み取る日: `this-month`、`last-month`、`last-week`、`last-30-days` のいずれか (UTC の暦で) | `this-month` |
+| `--start-date <date>` | いいえ | 最初の日 (`2026-11-01` など)。`--period` の代わりに指定します | |
+| `--end-date <date>` | いいえ | 最後の日 (`2026-11-30` など)。`--start-date` と一緒に指定します | |
+| `--account <id...>` | いいえ | このクラウド アカウントのコストだけ。複数指定するには繰り返します | すべてのアカウント |
+| `--currency <code>` | いいえ | 通貨 (`USD` など) | ほとんどのアカウントの請求通貨 |
+| `--basis <basis>` | いいえ | コスト基準: `billed`、`amortized`、`net` のいずれか | プロジェクトの基準 |
+| `--no-compare` | いいえ | 前の期間を省きます | |
+| `--csv` | いいえ | 「コスト」ページの **CSV をダウンロード** と同じ CSV を出力します | |
+
+### `oneuptime <resource> export`
+
+`cloud-cost` のみ。期間のすべてのコストを、FOCUS を読み取る財務ツール向けに FOCUS 1.2 ファイルとして出力します。一度に最大 93 日分です。[FOCUS](/docs/telemetry/cloud-costs#focus) を参照してください。
+
+```bash
+oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--file <path>]
+```
+
+| オプション | 必須 | 内容 | 既定値 |
+| --- | --- | --- | --- |
+| `--period <period>` | いいえ | エクスポートする日: `this-month`、`last-month`、`last-week`、`last-30-days` のいずれか | `last-month` |
+| `--start-date <date>` | いいえ | 最初の日 (`2026-10-01` など)。`--period` の代わりに指定します | |
+| `--end-date <date>` | いいえ | 最後の日 (`2026-12-31` など)。`--start-date` と一緒に指定します | |
+| `--account <id...>` | いいえ | このクラウド アカウントのコストだけ。複数指定するには繰り返します | すべてのアカウント |
+| `--file <path>` | いいえ | ファイルをここに書き込みます | 標準出力 |
+
 ### リソース
 
 OneUptime の API のリソースはすべてコマンドになっており、API が受け付ける操作、`fields`、そしてアクションを持つレコードではそのアクションがあります。

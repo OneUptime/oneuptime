@@ -40,6 +40,7 @@ import DashboardPodmanVolumeListComponentUtil from "./DashboardPodmanVolumeListC
 import DashboardProxmoxGuestListComponentUtil from "./DashboardProxmoxGuestListComponent";
 import DashboardSecurityEventsFlowComponentUtil from "./DashboardSecurityEventsFlowComponent";
 import DashboardProductAnalyticsFunnelComponentUtil from "./DashboardProductAnalyticsFunnelComponent";
+import DashboardCloudCostComponentUtil from "./DashboardCloudCostComponent";
 import DashboardProductAnalyticsRetentionComponentUtil from "./DashboardProductAnalyticsRetentionComponent";
 import DashboardSecurityEventsListComponentUtil from "./DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "./DashboardSloComponent";
@@ -144,6 +145,12 @@ export default class DashboardComponentsUtil {
 
     if (dashboardComponentType === DashboardComponentType.SecurityEventsFlow) {
       return DashboardSecurityEventsFlowComponentUtil.getComponentConfigArguments() as Array<
+        ComponentArgument<DashboardBaseComponent>
+      >;
+    }
+
+    if (dashboardComponentType === DashboardComponentType.CloudCost) {
+      return DashboardCloudCostComponentUtil.getComponentConfigArguments() as Array<
         ComponentArgument<DashboardBaseComponent>
       >;
     }

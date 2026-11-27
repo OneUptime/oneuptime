@@ -117,7 +117,7 @@ Termine la verificación como le indique el correo.
 Si desde entonces ha llegado otro correo, la tarjeta ya no muestra el de verificación. Abra **Registros de monitoreo**, busque el correo de verificación por su asunto en la columna **Correo electrónico** y haga clic en **Ver resumen** en esa fila.
 
 > [!IMPORTANT]
-> **Sus criterios también lo ven.** El correo de verificación se evalúa como cualquier otro correo. Una frase como "if you received this in error" coincide con el criterio predeterminado `error` y marca el monitor sin conexión. Para evitarlo, desactive **Comprobar este monitor** en la tarjeta **Monitoreo** de la página **Ajustes** del monitor mientras verifica (le pedirá confirmación). Un monitor con el monitoreo desactivado sigue guardando el correo, y la tarjeta **Resumen del monitor** lo sigue mostrando. Pero no evalúa nada, así que el correo no tiene fila en **Registros de monitoreo**: léalo antes de que llegue otro correo. Cuando termine, pulse **Activar el monitoreo** en el banner de la parte superior de las páginas del monitor, o vuelva a activar el interruptor.
+> **Sus criterios también lo ven.** El correo de verificación se evalúa como cualquier otro correo. Una frase como "if you received this in error" coincide con el criterio predeterminado `error` y marca el monitor sin conexión. Para evitarlo, desactive **Comprobar este monitor** en la tarjeta **Monitoreo** de la página **Ajustes** del monitor mientras verifica (le pedirá confirmación). Un monitor con el monitoreo desactivado sigue guardando el correo, y la tarjeta **Resumen del monitor** lo sigue mostrando. Pero no evalúa nada: la fila del correo en **Registros de monitoreo** dice que no se evaluó, y **Ver resumen** en ella muestra el correo entero. Cuando termine, pulse **Activar el monitoreo** en el banner de la parte superior de las páginas del monitor, o vuelva a activar el interruptor.
 
 **La verificación pertenece a la dirección.** Si [restablece o personaliza la dirección](#restablecer-o-personalizar-la-dirección-de-correo), el servicio ve un destinatario nuevo y tendrá que verificar de nuevo.
 
@@ -186,6 +186,8 @@ La dirección propia del monitor se enmascara antes de que ningún criterio lea 
 Todas estas comparaciones no distinguen mayúsculas y minúsculas. Un filtro con un valor vacío nunca coincide.
 
 ### Filtros temporales (Correo electrónico recibido)
+
+El panel en inglés escribe estas condiciones "Recieved".
 
 | Condición de filtro | Descripción | Ejemplo |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Haga clic en **Mostrar más detalles** para ver el resto:
 
 ### Correos anteriores
 
-La tarjeta solo muestra el correo más reciente. Cada correo que evalúa el monitor también se escribe en **Registros de monitoreo**: la columna **Correo electrónico** muestra su asunto y su remitente, y **Ver resumen** en su fila muestra el correo entero igual que la tarjeta. Un monitor con el monitoreo desactivado no evalúa nada, así que los correos que recibe no tienen filas. Si uno de sus criterios comprueba **Correo electrónico recibido**, el monitor también escribe una fila cada vez que busca correos ausentes. La columna **Correo electrónico** dice "Scheduled check" en esas filas, y su **Ver resumen** muestra el correo más reciente en el momento de la comprobación, o "No email yet" si no había llegado ninguno. Los registros de monitoreo se conservan un día de forma predeterminada. En un servidor autoalojado, un administrador puede cambiarlo con **Retención de registros del monitor (días)** en los ajustes del panel de administración.
+La tarjeta solo muestra el correo más reciente. Cada correo que evalúa el monitor también se escribe en **Registros de monitoreo**: la columna **Correo electrónico** muestra su asunto y su remitente, y **Ver resumen** en su fila muestra el correo entero igual que la tarjeta. Un monitor que no se está comprobando —con el monitoreo desactivado, o en pausa por un incidente o un evento de mantenimiento— no evalúa nada, así que cada correo que recibe tiene una fila que dice que no se evaluó, y por qué. Si uno de sus criterios comprueba **Correo electrónico recibido**, el monitor también escribe una fila cada vez que busca correos ausentes. La columna **Correo electrónico** dice "Scheduled check" en esas filas, y su **Ver resumen** muestra el correo más reciente en el momento de la comprobación, o "No email yet" si no había llegado ninguno.
+
+Los registros de monitoreo se conservan un día de forma predeterminada. En un servidor autoalojado, un administrador puede cambiarlo con **Retención de registros del monitor (días)** en los ajustes del panel de administración.
 
 ## Configuración autoalojada
 

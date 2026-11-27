@@ -24,6 +24,15 @@
  * never reaches; Redis is a map, so the secret-key cache and the probe result
  * order run as they do. The worker's handler is captured by mocking
  * QueueWorker.getWorker, as the other ProcessTelemetry suites do.
+ *
+ * What is sent to a monitor from outside - an Incoming Request monitor's
+ * requests, an Incoming Email monitor's emails, a Server monitor's agent
+ * reports - is no longer dropped while the monitor is not being checked
+ * (#11141): each is listed in the monitor's Logs as not evaluated, and why
+ * (MonitorNotEvaluated), and its arrival is kept. A probe's check is
+ * OneUptime's own, and is not listed. The project is not blocked unless a
+ * test says so, and the log row is caught where it is written
+ * (MonitorLogUtil.saveMonitorLog), before its retention is read.
  */
 
 let capturedHandler: ((job: unknown) => Promise<void>) | null = null;
@@ -59,6 +68,8 @@ jest.mock("Common/Server/Services/MonitorService", () => {
       getEnabledMonitorQuery: jest.fn(() => {
         return {};
       }),
+      // An incoming email's write of the monitor's latest email.
+      updateColumnsByIdWithoutHooks: jest.fn(),
     },
   };
 });
@@ -197,20 +208,29 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import logger from "Common/Server/Utils/Logger";
 import IncomingRequestReceivedAtStore from "Common/Server/Utils/Monitor/IncomingRequestReceivedAtStore";
+import IncomingRequestSecretGate from "Common/Server/Utils/Monitor/IncomingRequestSecretGate";
 import MonitorCriteriaEvaluator from "Common/Server/Utils/Monitor/MonitorCriteriaEvaluator";
+import MonitorHeartbeatState from "Common/Server/Utils/Monitor/MonitorHeartbeatState";
+import MonitorLogUtil from "Common/Server/Utils/Monitor/MonitorLogUtil";
 import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import MonitorSecretKeyCache, {
   MonitorOfSecretKey,
   MonitorSecretKeyKind,
 } from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
+import DataToProcess from "Common/Server/Utils/Monitor/DataToProcess";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
+import IncomingEmailMonitorRequest from "Common/Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
+import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
+import MonitorEvaluationSummary from "Common/Types/Monitor/MonitorEvaluationSummary";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import ServerMonitorResponse from "Common/Types/Monitor/ServerMonitor/ServerMonitorResponse";
 import ObjectID from "Common/Types/ObjectID";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import MonitorPauseState, {
+  MONITOR_PAUSE_FLAGS_SELECT,
   MonitorPauseFlags,
   MonitorPauseReason,
 } from "Common/Utils/Monitor/MonitorPauseState";
@@ -380,9 +400,68 @@ function serverReportJob(): unknown {
   };
 }
 
+// An email to the monitor's generated address, as the inbound webhook queues it.
+function incomingEmailJob(): unknown {
+  const probeIngest: ProbeIngestJobData = JSON.parse(
+    JSON.stringify({
+      jobType: "incoming-email",
+      ingestionTimestamp: new Date("2026-11-14T09:00:02.000Z"),
+      incomingEmail: {
+        secretKey: SECRET_KEY,
+        emailFrom: "backups@acme.example",
+        emailTo: `monitor-${SECRET_KEY}@inbound.oneuptime.example`,
+        emailSubject: "Nightly backup failed",
+        emailBody: "The nightly backup failed.",
+        emailBodyHtml: "<p>The nightly backup failed.</p>",
+        emailHeaders: {},
+        attachments: [],
+      },
+    }),
+  ) as ProbeIngestJobData;
+
+  return {
+    id: "incoming-email-1",
+    name: "ProcessTelemetry",
+    data: {
+      type: TelemetryType.ProbeIngest,
+      ingestionTimestamp: "2026-11-14T09:00:02.000Z",
+      probeIngest: probeIngest,
+    },
+  };
+}
+
 const MONITOR_OF_KEY: MonitorOfSecretKey = {
   monitorId: new ObjectID(MONITOR_ID),
   projectId: new ObjectID(PROJECT_ID),
+};
+
+// The refusal MonitorResource answers a result for a paused monitor with.
+const REFUSAL_FOR_REASON: Record<MonitorPauseReason, string> = {
+  [MonitorPauseReason.Archived]: ExceptionMessages.MonitorArchived,
+  [MonitorPauseReason.Disabled]: ExceptionMessages.MonitorDisabled,
+  [MonitorPauseReason.ManualIncident]:
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+  [MonitorPauseReason.ScheduledMaintenance]:
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+};
+
+// What the log entry of a result that was not evaluated says (#11141).
+const NOT_EVALUATED_TITLE: Record<MonitorPauseReason, string> = {
+  [MonitorPauseReason.Archived]: "Not evaluated: the monitor is archived",
+  [MonitorPauseReason.Disabled]: "Not evaluated: monitoring is turned off",
+  [MonitorPauseReason.ManualIncident]:
+    "Not evaluated: monitoring is paused by an incident",
+  [MonitorPauseReason.ScheduledMaintenance]:
+    "Not evaluated: monitoring is paused for scheduled maintenance",
+};
+
+// The arguments a row of the monitor's Logs is written with.
+type MonitorLogEntry = {
+  monitorId: ObjectID;
+  projectId: ObjectID;
+  dataToProcess: DataToProcess;
+  keepResponseContent: boolean;
+  isNotEvaluated?: boolean | undefined;
 };
 
 // The monitor a key belongs to, kept (before the pause began) for a minute.
@@ -406,6 +485,14 @@ async function keptMonitorOfKey(
 let redis: Map<string, string>;
 let debug: jest.SpyInstance;
 let error: jest.SpyInstance;
+// Where a result that was not evaluated is listed, and its arrival kept.
+let projectBlocked: jest.SpyInstance;
+let saveMonitorLog: jest.SpyInstance;
+let recordIncomingRequest: jest.SpyInstance;
+let recordServerReport: jest.SpyInstance;
+
+const updateColumnsByIdWithoutHooks: jest.Mock =
+  MonitorService.updateColumnsByIdWithoutHooks as unknown as jest.Mock;
 
 // The job is given back to the queue to retry, logged as an error.
 function expectFailedForRetry(): void {
@@ -426,8 +513,50 @@ function expectLockGivenBackAndNothingEvaluated(): void {
   expect(processMonitorStep).not.toHaveBeenCalled();
 }
 
+/*
+ * The result was listed once in the monitor's Logs, as not evaluated and
+ * why (#11141): the entry MonitorNotEvaluated writes. Returns what it lists.
+ */
+function expectListedOnceAsNotEvaluated(
+  reason: MonitorPauseReason,
+): DataToProcess {
+  expect(saveMonitorLog).toHaveBeenCalledTimes(1);
+
+  const entry: MonitorLogEntry = saveMonitorLog.mock
+    .calls[0]![0] as MonitorLogEntry;
+
+  expect(entry.monitorId.toString()).toBe(MONITOR_ID);
+  expect(entry.projectId.toString()).toBe(PROJECT_ID);
+  expect(entry.isNotEvaluated).toBe(true);
+  expect(entry.keepResponseContent).toBe(true);
+
+  const summary: MonitorEvaluationSummary =
+    entry.dataToProcess.evaluationSummary!;
+
+  expect(summary.criteriaResults).toEqual([]);
+  expect(summary.events).toEqual([
+    expect.objectContaining({
+      type: "not-evaluated",
+      notEvaluatedReason: reason,
+      title: NOT_EVALUATED_TITLE[reason],
+    }),
+  ]);
+
+  return entry.dataToProcess;
+}
+
+// Nothing listed, and no arrival kept for it.
+function expectNothingListed(): void {
+  expect(saveMonitorLog).not.toHaveBeenCalled();
+  expect(recordIncomingRequest).not.toHaveBeenCalled();
+  expect(recordServerReport).not.toHaveBeenCalled();
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
+  // Each test says which monitor each read finds: none is left from another.
+  findOneBy.mockReset();
+  findOneById.mockReset();
   redis = new Map<string, string>();
 
   debug = jest.spyOn(logger, "debug").mockImplementation(() => {
@@ -465,8 +594,27 @@ beforeEach(() => {
       },
     );
 
+  /*
+   * #11141: what a monitor that is not being checked receives from outside
+   * is listed in its Logs, unless its project is blocked - which the
+   * listing asks first (MonitorResourceUtil.listNotEvaluated). The row is
+   * caught where it is written; the arrivals go to the map above.
+   */
+  projectBlocked = jest
+    .spyOn(ProjectService, "isProjectBlocked")
+    .mockResolvedValue(false);
+  saveMonitorLog = jest
+    .spyOn(MonitorLogUtil, "saveMonitorLog")
+    .mockReturnValue(undefined);
+  recordIncomingRequest = jest.spyOn(
+    MonitorHeartbeatState,
+    "recordIncomingRequest",
+  );
+  recordServerReport = jest.spyOn(MonitorHeartbeatState, "recordServerReport");
+
   lock.mockResolvedValue(MUTEX as never);
   release.mockResolvedValue(undefined as never);
+  updateColumnsByIdWithoutHooks.mockResolvedValue(undefined as never);
   track.mockImplementation(((input: { receivedAt: Date }) => {
     return Promise.resolve(new Date(input.receivedAt));
   }) as never);
@@ -777,4 +925,342 @@ describe("every reason a monitor is not being monitored", () => {
       expectLockGivenBackAndNothingEvaluated();
     },
   );
+});
+
+/*
+ * #11141: a request, an email or an agent's report that reached a monitor
+ * that is not being checked used to be dropped without a trace. Each is now
+ * listed in the monitor's Logs as not evaluated, and why, and its arrival
+ * kept - and the job still completes, so nothing is retried. Only what is
+ * sent from outside: a probe's check is OneUptime's own.
+ */
+describe("what reaches a monitor that is not being checked is listed in its Logs (#11141)", () => {
+  describe.each(Object.values(MonitorPauseReason))(
+    "a monitor paused as %s",
+    (reason: MonitorPauseReason) => {
+      // The key's lookup finds the monitor paused: MonitorResource is skipped.
+      test("an incoming request whose key is looked up is listed as not evaluated, its arrival kept, and the job completes", async () => {
+        findOneBy.mockResolvedValue(
+          monitor({
+            monitorType: MonitorType.IncomingRequest,
+            pausedBy: reason,
+          }) as never,
+        );
+
+        await expect(
+          capturedHandler!(incomingRequestJob()),
+        ).resolves.toBeUndefined();
+
+        const listed: IncomingMonitorRequest = expectListedOnceAsNotEvaluated(
+          reason,
+        ) as IncomingMonitorRequest;
+
+        expect(listed.requestBody).toEqual(STORED_REQUEST.requestBody);
+        expect(listed.requestHeaders).toEqual(STORED_REQUEST.requestHeaders);
+        expect(listed.onlyCheckForIncomingRequestReceivedAt).toBe(false);
+
+        // When it arrived: for the monitor's page, and for its heartbeat.
+        expect(recordIncomingRequest).toHaveBeenCalledTimes(1);
+        expect(recordIncomingRequest).toHaveBeenCalledWith({
+          monitorId: new ObjectID(MONITOR_ID),
+          receivedAt: new Date("2026-11-14T09:00:00.000Z"),
+        });
+        expect(track).toHaveBeenCalledTimes(1);
+        expect(recordServerReport).not.toHaveBeenCalled();
+
+        // Not evaluated: nothing read the monitor again or took its lock.
+        expect(findOneById).not.toHaveBeenCalled();
+        expect(lock).not.toHaveBeenCalled();
+        expect(processMonitorStep).not.toHaveBeenCalled();
+
+        expect(clearIfUnchanged).toHaveBeenCalledWith({
+          secretKey: SECRET_KEY,
+          payloadId: PAYLOAD_ID,
+        });
+        expect(error).not.toHaveBeenCalled();
+      });
+
+      // The key was kept before the pause: MonitorResource lists, then refuses.
+      test("an incoming request whose key was kept is listed by MonitorResource before its refusal, and the job completes", async () => {
+        await keepKey(MonitorSecretKeyKind.IncomingRequest);
+
+        findOneById.mockResolvedValue(
+          monitor({
+            monitorType: MonitorType.IncomingRequest,
+            pausedBy: reason,
+          }) as never,
+        );
+
+        await expect(
+          capturedHandler!(incomingRequestJob()),
+        ).resolves.toBeUndefined();
+
+        const listed: IncomingMonitorRequest = expectListedOnceAsNotEvaluated(
+          reason,
+        ) as IncomingMonitorRequest;
+
+        expect(listed.requestBody).toEqual(STORED_REQUEST.requestBody);
+        expect(recordIncomingRequest).toHaveBeenCalledTimes(1);
+        expect(recordIncomingRequest).toHaveBeenCalledWith({
+          monitorId: new ObjectID(MONITOR_ID),
+          receivedAt: new Date("2026-11-14T09:00:00.000Z"),
+        });
+
+        expect(findOneBy).not.toHaveBeenCalled();
+        expectDroppedAsRefused(REFUSAL_FOR_REASON[reason]);
+        expectLockGivenBackAndNothingEvaluated();
+        expect(clearIfUnchanged).toHaveBeenCalledWith({
+          secretKey: SECRET_KEY,
+          payloadId: PAYLOAD_ID,
+        });
+        expect(
+          await keptMonitorOfKey(MonitorSecretKeyKind.IncomingRequest),
+        ).toEqual(MONITOR_OF_KEY);
+      });
+
+      /*
+       * The agent's report used to be refused by the lookup itself, as a
+       * monitor that does not exist: it asked only for one being checked.
+       */
+      test("a server agent's report is found by its key, reaches MonitorResource and is listed as not evaluated, and the job completes", async () => {
+        // The key's lookup, then MonitorResource's own read of the monitor.
+        findOneBy.mockResolvedValue(
+          monitor({
+            monitorType: MonitorType.Server,
+            pausedBy: reason,
+          }) as never,
+        );
+        findOneById.mockResolvedValue(
+          monitor({
+            monitorType: MonitorType.Server,
+            pausedBy: reason,
+          }) as never,
+        );
+
+        await expect(
+          capturedHandler!(serverReportJob()),
+        ).resolves.toBeUndefined();
+
+        // The lookup asks for a server monitor, checked or not.
+        expect(findOneBy).toHaveBeenCalledTimes(1);
+
+        const lookupQuery: JSONObject = (
+          findOneBy.mock.calls[0]![0] as { query: JSONObject }
+        ).query;
+
+        expect(lookupQuery["monitorType"]).toBe(MonitorType.Server);
+
+        for (const pauseFlag of Object.keys(MONITOR_PAUSE_FLAGS_SELECT)) {
+          expect(lookupQuery).not.toHaveProperty(pauseFlag);
+        }
+
+        expect(MonitorService.getEnabledMonitorQuery).not.toHaveBeenCalled();
+
+        const listed: ServerMonitorResponse = expectListedOnceAsNotEvaluated(
+          reason,
+        ) as ServerMonitorResponse;
+
+        expect(listed.hostname).toBe("db-1");
+
+        // Its arrival is kept, so the agent is not judged silent on resume.
+        expect(recordServerReport).toHaveBeenCalledTimes(1);
+
+        const arrival: { monitorId: ObjectID; receivedAt: Date } =
+          recordServerReport.mock.calls[0]![0] as {
+            monitorId: ObjectID;
+            receivedAt: Date;
+          };
+
+        expect(arrival.monitorId.toString()).toBe(MONITOR_ID);
+        expect(arrival.receivedAt).toBeInstanceOf(Date);
+        expect(recordIncomingRequest).not.toHaveBeenCalled();
+
+        expect(findOneById).toHaveBeenCalledTimes(1);
+        expectDroppedAsRefused(REFUSAL_FOR_REASON[reason]);
+        expectLockGivenBackAndNothingEvaluated();
+      });
+
+      test("a server agent's report whose key was kept is listed by MonitorResource before its refusal, and the job completes", async () => {
+        await keepKey(MonitorSecretKeyKind.ServerMonitor);
+
+        findOneById.mockResolvedValue(
+          monitor({
+            monitorType: MonitorType.Server,
+            pausedBy: reason,
+          }) as never,
+        );
+
+        await expect(
+          capturedHandler!(serverReportJob()),
+        ).resolves.toBeUndefined();
+
+        expect(findOneBy).not.toHaveBeenCalled();
+        expect(
+          (expectListedOnceAsNotEvaluated(reason) as ServerMonitorResponse)
+            .hostname,
+        ).toBe("db-1");
+        expect(recordServerReport).toHaveBeenCalledTimes(1);
+        expectDroppedAsRefused(REFUSAL_FOR_REASON[reason]);
+        expectLockGivenBackAndNothingEvaluated();
+      });
+
+      test("an email is still recorded as the monitor's latest, and listed as not evaluated", async () => {
+        const emailMonitor: Monitor = monitor({
+          monitorType: MonitorType.IncomingEmail,
+          pausedBy: reason,
+        });
+        emailMonitor.incomingEmailSecretKey = new ObjectID(SECRET_KEY);
+        findOneBy.mockResolvedValue(emailMonitor as never);
+
+        await expect(
+          capturedHandler!(incomingEmailJob()),
+        ).resolves.toBeUndefined();
+
+        // The latest-email write, as before.
+        expect(updateColumnsByIdWithoutHooks).toHaveBeenCalledTimes(1);
+
+        const written: { id: ObjectID; data: JSONObject } =
+          updateColumnsByIdWithoutHooks.mock.calls[0]![0] as {
+            id: ObjectID;
+            data: JSONObject;
+          };
+
+        expect(written.id.toString()).toBe(MONITOR_ID);
+        expect(
+          written.data["incomingEmailMonitorLastEmailReceivedAt"],
+        ).toBeInstanceOf(Date);
+
+        const listed: IncomingEmailMonitorRequest =
+          expectListedOnceAsNotEvaluated(reason) as IncomingEmailMonitorRequest;
+
+        expect(listed.emailSubject).toBe("Nightly backup failed");
+        expect(listed.emailFrom).toBe("backups@acme.example");
+        expect(listed.onlyCheckForIncomingEmailReceivedAt).toBe(false);
+        // The address is the monitor's key: listed masked, as it is stored.
+        expect(JSON.stringify(listed)).not.toContain(SECRET_KEY);
+
+        expect(saveMonitorLog.mock.invocationCallOrder[0]!).toBeGreaterThan(
+          updateColumnsByIdWithoutHooks.mock.invocationCallOrder[0]!,
+        );
+
+        // The email's arrival is the latest email the monitor keeps.
+        expect(recordIncomingRequest).not.toHaveBeenCalled();
+        expect(recordServerReport).not.toHaveBeenCalled();
+        expect(findOneById).not.toHaveBeenCalled();
+        expect(lock).not.toHaveBeenCalled();
+        expect(error).not.toHaveBeenCalled();
+      });
+
+      test("a probe's check result is refused as before and not listed: a probe's check is OneUptime's own", async () => {
+        findOneById.mockResolvedValue(
+          monitor({
+            monitorType: MonitorType.Website,
+            pausedBy: reason,
+          }) as never,
+        );
+
+        await expect(
+          capturedHandler!(probeResultJob()),
+        ).resolves.toBeUndefined();
+
+        expectNothingListed();
+        expectDroppedAsRefused(REFUSAL_FOR_REASON[reason]);
+        expectLockGivenBackAndNothingEvaluated();
+      });
+    },
+  );
+
+  /*
+   * The project's incoming request secret requirement is decided before a
+   * paused monitor's request is listed: a request it refuses is never one.
+   */
+  test("a request its project's incoming request secret requirement refuses is not listed, though the monitor is paused", async () => {
+    findOneBy.mockResolvedValue(
+      monitor({
+        monitorType: MonitorType.IncomingRequest,
+        pausedBy: MonitorPauseReason.ManualIncident,
+      }) as never,
+    );
+    jest.spyOn(IncomingRequestSecretGate, "decideInWorker").mockResolvedValue({
+      verdict: "Missing",
+      isRefused: true,
+      requestHeaders: {},
+    } as never);
+
+    await expect(
+      capturedHandler!(incomingRequestJob()),
+    ).resolves.toBeUndefined();
+
+    expect(IncomingRequestSecretGate.decideInWorker).toHaveBeenCalledTimes(1);
+    expectNothingListed();
+    // Refused before it counts as an arrival.
+    expect(track).not.toHaveBeenCalled();
+    expect(lock).not.toHaveBeenCalled();
+    expect(clearIfUnchanged).toHaveBeenCalledWith({
+      secretKey: SECRET_KEY,
+      payloadId: PAYLOAD_ID,
+    });
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  // A blocked project records nothing of what reaches it.
+  test("an incoming request for a paused monitor of a blocked project is not listed, and the job completes", async () => {
+    findOneBy.mockResolvedValue(
+      monitor({
+        monitorType: MonitorType.IncomingRequest,
+        pausedBy: MonitorPauseReason.ManualIncident,
+      }) as never,
+    );
+    projectBlocked.mockResolvedValue(true);
+
+    await expect(
+      capturedHandler!(incomingRequestJob()),
+    ).resolves.toBeUndefined();
+
+    expect(projectBlocked).toHaveBeenCalledWith(new ObjectID(PROJECT_ID));
+    expectNothingListed();
+    expect(lock).not.toHaveBeenCalled();
+    expect(clearIfUnchanged).toHaveBeenCalledWith({
+      secretKey: SECRET_KEY,
+      payloadId: PAYLOAD_ID,
+    });
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  test("a server agent's report for a paused monitor of a blocked project is refused as before and not listed", async () => {
+    await keepKey(MonitorSecretKeyKind.ServerMonitor);
+
+    findOneById.mockResolvedValue(
+      monitor({
+        monitorType: MonitorType.Server,
+        pausedBy: MonitorPauseReason.ScheduledMaintenance,
+      }) as never,
+    );
+    projectBlocked.mockResolvedValue(true);
+
+    await expect(capturedHandler!(serverReportJob())).resolves.toBeUndefined();
+
+    expect(projectBlocked).toHaveBeenCalledWith(new ObjectID(PROJECT_ID));
+    expectNothingListed();
+    expectDroppedAsRefused(
+      ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+    );
+    expectLockGivenBackAndNothingEvaluated();
+  });
+
+  test("an email to a paused monitor of a blocked project is still recorded as its latest, but not listed", async () => {
+    const emailMonitor: Monitor = monitor({
+      monitorType: MonitorType.IncomingEmail,
+      pausedBy: MonitorPauseReason.Disabled,
+    });
+    emailMonitor.incomingEmailSecretKey = new ObjectID(SECRET_KEY);
+    findOneBy.mockResolvedValue(emailMonitor as never);
+    projectBlocked.mockResolvedValue(true);
+
+    await expect(capturedHandler!(incomingEmailJob())).resolves.toBeUndefined();
+
+    expect(updateColumnsByIdWithoutHooks).toHaveBeenCalledTimes(1);
+    expectNothingListed();
+    expect(error).not.toHaveBeenCalled();
+  });
 });

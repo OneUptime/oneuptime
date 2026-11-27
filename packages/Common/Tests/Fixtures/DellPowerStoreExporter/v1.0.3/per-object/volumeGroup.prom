@@ -1,0 +1,58 @@
+# HELP powerstore_metricVg_avg_io_size Average size of read and write operations in bytes.unit is bytes
+# TYPE powerstore_metricVg_avg_io_size gauge
+powerstore_metricVg_avg_io_size{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 24576
+powerstore_metricVg_avg_io_size{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 24576
+# HELP powerstore_metricVg_avg_latency Average read and write latency in microseconds,unit is ms
+# TYPE powerstore_metricVg_avg_latency gauge
+powerstore_metricVg_avg_latency{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 739
+powerstore_metricVg_avg_latency{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 913
+# HELP powerstore_metricVg_avg_read_bandwidth Read rate in bytes per second,unit is bps
+# TYPE powerstore_metricVg_avg_read_bandwidth gauge
+powerstore_metricVg_avg_read_bandwidth{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 3.59071744e+08
+powerstore_metricVg_avg_read_bandwidth{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 3.84565248e+08
+# HELP powerstore_metricVg_avg_read_iops Total read operations per second,unit is iops
+# TYPE powerstore_metricVg_avg_read_iops gauge
+powerstore_metricVg_avg_read_iops{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 10958
+powerstore_metricVg_avg_read_iops{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 11736
+# HELP powerstore_metricVg_avg_read_latency Average read latency in microseconds,unit is ms
+# TYPE powerstore_metricVg_avg_read_latency gauge
+powerstore_metricVg_avg_read_latency{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 907
+powerstore_metricVg_avg_read_latency{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 1044
+# HELP powerstore_metricVg_avg_read_size Average read size in bytes.unit is bytes
+# TYPE powerstore_metricVg_avg_read_size gauge
+powerstore_metricVg_avg_read_size{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 32768
+powerstore_metricVg_avg_read_size{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 32768
+# HELP powerstore_metricVg_avg_total_bandwidth Total data transfer rate in bytes per second,unit is bps
+# TYPE powerstore_metricVg_avg_total_bandwidth gauge
+powerstore_metricVg_avg_total_bandwidth{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 4.73530368e+08
+powerstore_metricVg_avg_total_bandwidth{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 4.09337856e+08
+# HELP powerstore_metricVg_avg_total_iops Total read and write operations per second,unit is iops
+# TYPE powerstore_metricVg_avg_total_iops gauge
+powerstore_metricVg_avg_total_iops{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 17944
+powerstore_metricVg_avg_total_iops{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 13248
+# HELP powerstore_metricVg_avg_write_bandwidth Write rate in bytes per second,unit is bps
+# TYPE powerstore_metricVg_avg_write_bandwidth gauge
+powerstore_metricVg_avg_write_bandwidth{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 1.14458624e+08
+powerstore_metricVg_avg_write_bandwidth{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 2.4772608e+07
+# HELP powerstore_metricVg_avg_write_iops Total write operations per second,unit is iops
+# TYPE powerstore_metricVg_avg_write_iops gauge
+powerstore_metricVg_avg_write_iops{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 6986
+powerstore_metricVg_avg_write_iops{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 1512
+# HELP powerstore_metricVg_avg_write_latency Average write latency in microseconds,unit is ms
+# TYPE powerstore_metricVg_avg_write_latency gauge
+powerstore_metricVg_avg_write_latency{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 571
+powerstore_metricVg_avg_write_latency{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 782
+# HELP powerstore_metricVg_avg_write_size Average write size in bytes.unit is bytes
+# TYPE powerstore_metricVg_avg_write_size gauge
+powerstore_metricVg_avg_write_size{IP="fake-powerstore",volume_group_id="vg-oracle-prod"} 16384
+powerstore_metricVg_avg_write_size{IP="fake-powerstore",volume_group_id="vg-sql-prod"} 16384
+# HELP powerstore_volumegroup_logical_provisioned The size of the capacity that has been provisioned by the volume group,unit is B
+# TYPE powerstore_volumegroup_logical_provisioned gauge
+powerstore_volumegroup_logical_provisioned{IP="fake-powerstore",appliance_id="A1",name="vg-oracle-prod"} 4.947802324992e+12
+powerstore_volumegroup_logical_provisioned{IP="fake-powerstore",appliance_id="A1",name="vg-sql-prod"} 2.74877906944e+12
+powerstore_volumegroup_logical_provisioned{IP="fake-powerstore",appliance_id="A2",name="vg-sql-prod"} 2.74877906944e+12
+# HELP powerstore_volumegroup_logical_used Current amount of data (in bytes) host has written to a volume without dedupe, compression or sharing,unit is B
+# TYPE powerstore_volumegroup_logical_used gauge
+powerstore_volumegroup_logical_used{IP="fake-powerstore",appliance_id="A1",name="vg-oracle-prod"} 3.419481162383e+12
+powerstore_volumegroup_logical_used{IP="fake-powerstore",appliance_id="A1",name="vg-sql-prod"} 1.67125767422e+12
+powerstore_volumegroup_logical_used{IP="fake-powerstore",appliance_id="A2",name="vg-sql-prod"} 1.67125767422e+12

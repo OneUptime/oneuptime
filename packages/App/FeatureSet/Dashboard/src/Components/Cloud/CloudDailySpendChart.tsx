@@ -128,6 +128,11 @@ export interface ComponentProps {
   currency: string;
   // Marks above the bars: the unusual days, each at its day's bar.
   markers?: Array<ChartTimeReferenceLineProps> | undefined;
+  /*
+   * How tall the chart is: a Dashboards widget's own height (#11009), the
+   * Cloud pages' 240px otherwise.
+   */
+  heightInPx?: number | undefined;
 }
 
 const CloudDailySpendChart: FunctionComponent<ComponentProps> = (
@@ -149,6 +154,8 @@ const CloudDailySpendChart: FunctionComponent<ComponentProps> = (
   if (!chart) {
     return <></>;
   }
+
+  const heightInPx: number = props.heightInPx || DAILY_SPEND_CHART_HEIGHT_IN_PX;
 
   const xAxis: XAxis = {
     legend: "Day",
@@ -182,7 +189,7 @@ const CloudDailySpendChart: FunctionComponent<ComponentProps> = (
   return (
     <div
       className="w-full"
-      style={{ height: `${DAILY_SPEND_CHART_HEIGHT_IN_PX}px` }}
+      style={{ height: `${heightInPx}px` }}
       data-testid="cloud-daily-spend-chart"
       data-partly-reported={chart.series.length > 1 ? "true" : "false"}
       data-marks={String(props.markers?.length || 0)}
@@ -193,7 +200,7 @@ const CloudDailySpendChart: FunctionComponent<ComponentProps> = (
         yAxis={yAxis}
         sync={false}
         syncid="cloud-daily-spend"
-        heightInPx={DAILY_SPEND_CHART_HEIGHT_IN_PX}
+        heightInPx={heightInPx}
         // The legend names the lighter bars: the days still being reported.
         showLegend={chart.series.length > 1}
         colors={DAILY_SPEND_COLORS}

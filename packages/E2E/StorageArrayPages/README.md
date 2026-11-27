@@ -37,6 +37,17 @@ An "Acme Storage" workspace with three arrays:
   registers the way a test does, #11000): two volumes and three aggregates,
   a kind of its own that the Inventory page lists
   (`View/Inventory.tsx`, at `/inventory/Aggregate`).
+- `ps-prod-01`, a Dell PowerStore cluster of two appliances (`A1`, `A2`),
+  as the agent reads one through Dell's exporter (#11002): six volumes, two
+  volume groups, two NAS servers, three file systems, and on each appliance
+  its two nodes with their fans, power supplies and batteries, five drives
+  and three front-end ports, each part with its appliance. Its appliances,
+  volume groups and NAS servers are kinds of its own, at
+  `/inventory/Appliance`, `/inventory/VolumeGroup` and `/inventory/NasServer`.
+  On the trouble day a drive and a power supply of `A1` failed, a fan and a
+  Fibre Channel port of `A2` are down, `nas-files-02` is not started,
+  `archive-legacy` is not ready and `fs-home` is 94.5% full; it has no open
+  alerts, as a PowerStore sends its own by syslog.
 
 Any route not listed above renders a "Not modelled" stub
 (`data-testid="stub-page"`).

@@ -1,6 +1,6 @@
 # عامل XCP-ng
 
-عامل XCP-ng در OneUptime استخرهای XCP-ng را که یک Xen Orchestra مدیریت می‌کند پایش می‌کند: میزبان‌ها، ماشین‌های مجازی، مخزن‌های ذخیره‌سازی و دیسک‌های مجازی آن‌ها را. این عامل یک OpenTelemetry Collector استاندارد است که افزونه OpenMetrics خودِ Xen Orchestra را با راز افزونه می‌خواند و آنچه را می‌خواند به OneUptime می‌فرستد، جایی که هر استخر با موجودی‌اش نمایان می‌شود. هیچ گذرواژه‌ای از یک استخر یا از Xen Orchestra هرگز به عامل نمی‌رسد. [مانیتورهای XCP-ng](/docs/monitor/xcp-ng-monitor) بر پایه داده‌ای که می‌رسد هشدار می‌دهند.
+عامل XCP-ng در OneUptime استخرهای XCP-ng را که یک Xen Orchestra مدیریت می‌کند پایش می‌کند: میزبان‌ها، ماشین‌های مجازی، مخزن‌های ذخیره‌سازی و دیسک‌های مجازی آن‌ها را. این عامل یک OpenTelemetry Collector استاندارد است که افزونه OpenMetrics خودِ Xen Orchestra را با راز افزونه می‌خواند و آنچه را می‌خواند به OneUptime می‌فرستد، جایی که هر استخر با موجودی‌اش نمایان می‌شود. هیچ گذرواژه‌ای از یک استخر یا از Xen Orchestra هرگز به عامل نمی‌رسد. [مانیتورهای XCP-ng](/docs/monitor/xcp-ng-monitor) بر پایه داده‌ای که می‌رسد هشدار می‌دهند. برای خواندن همین استخرها بدون نصب هیچ چیزی، با یک پراب OneUptime، [XCP-ng بدون عامل](/docs/telemetry/xcp-ng-agentless) را ببینید.
 
 :::cards
 - [نصب عامل](#نصب-عامل): افزونه را روشن کنید، سپس از اسکریپت نصب یا Docker Compose استفاده کنید.
@@ -382,8 +382,8 @@ Xen Orchestra فقط استخرهایی را گزارش می‌کند که به 
 افزونه OpenMetrics در Xen Orchestra متریک ارائه می‌کند، پس بخشی از آنچه در یک استخر XCP-ng زیر نظر دارید هنوز در آن نیست:
 
 - **آلارم‌ها**، جز آلارم‌های XOSTOR، **وضعیت HA**، **ارباب استخر**، **وصله‌های نصب‌نشده**، **پشتیبان‌ها** و **اسنپ‌شات‌ها**، و **وضعیت پیوند** رابط‌های فیزیکی یک میزبان (PIFها). این‌ها از REST API در Xen Orchestra می‌آیند، در [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
-- **استخرهای بدون Xen Orchestra**، یا پشت یک XOA بدون پروانهٔ Premium که افزونه نیاز دارد: این‌ها مستقیم از راه XAPI خوانده می‌شوند، در [#10999](https://github.com/OneUptime/oneuptime/issues/10999).
-- **اتصال بدون عامل**، از یک پراب OneUptime، همان‌گونه که برای VMware ممکن است: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
+- **استخرهای بدون Xen Orchestra**، یا پشت یک XOA بدون پروانهٔ Premium که افزونه نیاز دارد: یک پراب OneUptime این‌ها را مستقیم از راه XAPI می‌خواند ([#10999](https://github.com/OneUptime/oneuptime/issues/10999))، [XCP-ng بدون عامل](/docs/telemetry/xcp-ng-agentless) را ببینید.
+- **اتصال بدون عامل**: یک پراب OneUptime خودش افزونهٔ Xen Orchestra را می‌خواند، همان‌گونه که برای VMware ممکن است ([#10996](https://github.com/OneUptime/oneuptime/issues/10996))، در همان صفحه.
 
 ## گام‌های بعدی
 

@@ -312,6 +312,8 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   { directory: "packages/Common/Types/VMware", kind: "ui" },
   // What a failed OpenStack collection means and what fixes it (OpenStackCollectionError).
   { directory: "packages/Common/Types/OpenStack", kind: "ui" },
+  // What a failed XCP-ng connection read means and what fixes it (XcpNgCollectionError).
+  { directory: "packages/Common/Types/XcpNg", kind: "ui" },
   /*
    * What a case's verdicts mean, and what each playbook action does: the
    * close dialog and the step editor show them as written there.
@@ -346,6 +348,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   { directory: "packages/Common/Types/Cloud/CloudSavingsAi.ts", kind: "keys" },
+  /*
+   * A scheduled cloud cost report (#11009): what it covers and its period,
+   * as Cloud > Spend > Reports offers them, and every sentence of the
+   * report itself - the page's preview and the email say the same, the
+   * server's locales copying these (DASHBOARD_SHARED_TEXT_SOURCES).
+   */
+  { directory: "packages/Common/Types/Cloud/CloudCostReport.ts", kind: "keys" },
+  {
+    directory: "packages/Common/Types/Cloud/CloudCostReportWords.ts",
+    kind: "keys",
+  },
   /*
    * A managed device's status - Online, Offline, Provisioning and the rest -
    * as Inventory > Managed Devices and a device's Inventory page draw it.
@@ -1390,6 +1403,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   },
   {
     directory: "packages/Common/Server/Utils/Monitor/MonitorAlert.ts",
+    kind: "keys",
+  },
+  // What reached a monitor that was not being checked, and why (#11141).
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorNotEvaluated.ts",
     kind: "keys",
   },
   {

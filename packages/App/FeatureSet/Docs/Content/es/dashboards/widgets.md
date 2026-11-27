@@ -27,6 +27,7 @@ Parte de la pregunta que tiene que responder la casilla:
 | ¿La gente completa un flujo, y vuelve? | **Embudo** o **Retención de usuarios** |
 | ¿En qué estado están nuestros clústeres y hosts? | Un widget del grupo Infraestructura |
 | ¿Dónde está nuestra red en el mundo, y qué está caído? | **Mapa de red** |
+| ¿Cuánto cuestan nuestras nubes, y qué equipo lo gasta? | **Costo de nube** |
 | ¿Un encabezado, una nota, la hora en otra oficina? | **Texto** o **Reloj** |
 | ¿Datos guardados fuera de OneUptime? | Un widget del grupo Fuentes de datos externas |
 | ¿Algo que ningún widget cubre? | **HTML**, una vez que estés seguro de que ningún otro widget lo hace |
@@ -200,8 +201,9 @@ Cada uno de estos widgets lista los recursos que un agente o un colector comunic
 | **XCP-ng** | **Hosts**, **VM** | El agente de XCP-ng |
 | **Ceph** | **OSD**, como un muro coloreado por estado, y **Pools** | El agente de Ceph |
 | **Cabinas de almacenamiento** | **Volúmenes**, y **Hardware** como un muro coloreado por estado | El agente de cabinas de almacenamiento |
+| **Costos de nube** | **Costo de nube**, un total, un desglose o una tendencia del gasto | Los costos que informan tus [cuentas de nube](/docs/telemetry/cloud-accounts) |
 
-Úsalos para tener una página que combine el estado de tu infraestructura con la telemetría de las cargas de trabajo que corren en ella.
+Úsalos para tener una página que combine el estado de tu infraestructura con la telemetría de las cargas de trabajo que corren en ella. El widget Costo de nube no es una lista: consulta [Costos de nube](#costos-de-nube).
 
 ### Mapa de red
 
@@ -214,6 +216,19 @@ Encima del mapa indica cuántos sitios están caídos, porque nadie distingue un
 **Ajustes**: título, vista de mapa o de lista, número máximo de sitios dibujados, si se imprimen los nombres de los sitios, y filtros por tipo de sitio y por estado. Los nombres de los sitios se ocultan automáticamente cuando el mapa está demasiado cargado para poder leerlos; la información emergente sigue nombrando cada marcador.
 
 Un sitio solo aparece si tiene coordenadas. Añade la latitud y la longitud en el sitio (o impórtalas desde un CSV) para fijarlo.
+
+## Costos de nube
+
+### Costo de nube
+
+Lo que cuestan tus nubes, junto a los servicios que lo gastan, para el intervalo de tiempo del panel. Lee las mismas cifras que **Nube → Gasto → Costos** y la página de un grupo de costos, en los mismos días.
+
+- **Cubre**: todas las cuentas, una **Cuenta**, un **Grupo de costos** o una **Vista de costos**. Elige la cuenta, el grupo o la vista en el ajuste de debajo.
+- **Mostrar**: un total frente al período anterior, un desglose de sus partes más grandes o una tendencia del gasto de cada día.
+- **Desglosar por**: servicios, regiones, cuentas o recursos. El desglose de una vista de costos lista sus grupos, y lo que ningún grupo asume.
+- **Base de costo**: facturado, amortizado o neto. Vacío, es la del proyecto, con la que se abre Costos.
+
+Las cifras están en la moneda en la que se facturan la mayoría de tus cuentas. Verlo requiere lo mismo que ver Costos: cada lector ve lo que puede leer. Un panel público solo muestra su título. Consulta [Costos y ahorros de la nube](/docs/telemetry/cloud-costs#informes-y-exportaciones) para los informes y exportaciones de las mismas cifras.
 
 ## Fuentes de datos externas
 
@@ -250,7 +265,7 @@ Mediante la API y Terraform, el orden es el `arguments.sort` del widget: una col
 
 Un [panel público](/docs/dashboards/sharing) dibuja la mayoría de los widgets para sus visitantes, y cada uno muestra solo lo que se configuró para mostrar. Algunos no pueden mostrarse sin una sesión iniciada:
 
-- **Gráfico de registros**, **Gráfico de trazas**, **Tabla de trazas**, **Eventos de seguridad**, **Flujo de eventos de seguridad**, **Embudo** y **Retención de usuarios** indican en su lugar que no están disponibles en los paneles públicos.
+- **Gráfico de registros**, **Gráfico de trazas**, **Tabla de trazas**, **Eventos de seguridad**, **Flujo de eventos de seguridad**, **Embudo**, **Retención de usuarios** y **Costo de nube** indican en su lugar que no están disponibles en los paneles públicos.
 - Los widgets de Fuentes de datos externas muestran sus datos cuando leen **Métricas de este proyecto (PromQL)**, nunca sus consultas. Un widget de fuente de datos externa se queda totalmente fuera de un panel público.
 
 ## Cuando un widget no se puede mostrar

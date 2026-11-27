@@ -1687,6 +1687,7 @@ describe("the real source roots", () => {
       // What a failed vCenter collection means and what fixes it.
       "ui packages/Common/Types/VMware",
       "ui packages/Common/Types/OpenStack",
+      "ui packages/Common/Types/XcpNg",
       // What a case's verdicts mean and what each playbook action does.
       "ui packages/Common/Types/SecurityCase",
       "ui packages/Common/Types/SecurityPlaybook",
@@ -1919,6 +1920,7 @@ describe("the real source roots", () => {
       "keys packages/Common/Server/Utils/Monitor/MonitorResource.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorIncident.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorAlert.ts",
+      "keys packages/Common/Server/Utils/Monitor/MonitorNotEvaluated.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorMaintenanceSuppression.ts",
       "keys packages/Common/Server/Utils/Monitor/MonitorDependencySuppression.ts",
       "keys packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",
