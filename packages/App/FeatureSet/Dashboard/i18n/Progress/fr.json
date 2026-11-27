@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 4753
+    "keys": 67248,
+    "untranslated": 4743
   },
   "sameAsEnglish": [
     " incidents",
@@ -190,6 +190,7 @@
     "Datastore",
     "Datastores",
     "Date",
+    "Delta",
     "DeploymentConfigs",
     "Description",
     "Destination",
@@ -628,6 +629,7 @@
     "Webhook",
     "Webhooks",
     "Workers",
+    "XAPI",
     "Zone",
     "Zones",
     "[\".customer-name\", \"#invoice-total\"]",

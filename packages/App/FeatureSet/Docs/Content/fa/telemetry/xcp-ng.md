@@ -238,6 +238,17 @@ OneUptime برای هر استخر، هم‌زمان با رسیدن داده‌
 | `xcp_ng.vm.running` | ماشین مجازی Running باشد؛ ۰ تا وقتی Halted، Paused یا Suspended است |
 | `xcp_ng.vm.stopped_after_running` | ماشین مجازی‌ای که در ۲۴ ساعت گذشته کار کرده است Halted یا Paused باشد |
 
+با پرابی که به Xen Orchestra یا XAPI استخر وصل است، OneUptime این‌ها را هم از آنچه پراب فراتر از متریک‌ها می‌خواند به دست می‌آورد؛ عامل هیچ‌کدام را نمی‌خواند:
+
+| سری | مقدار |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | ۱ تا وقتی HA استخر روشن است، وگرنه ۰ |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | ۱ تا وقتی HA هنوز می‌تواند از خرابی یک میزبان جان به در ببرد، وگرنه ۰: از راه XAPI طرح خودِ HA، و از راه Xen Orchestra میزبانی روشن و فعال جز آنکه خراب می‌شود |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | HA قرار است چند خرابی میزبان را تاب بیاورد (فقط از راه XAPI) |
+| `xcp_ng.pool.ha.plan_exists_for` | طرح کنونی‌اش چند خرابی میزبان را پوشش می‌دهد (فقط از راه XAPI) |
+| `xcp_ng.vm.backup_overdue` | ۱ تا وقتی ماشین مجازی‌ای که یک کار پشتیبان‌گیری زمان‌بندی‌شده آن را در بر دارد در بازه‌اش به‌علاوهٔ یک‌چهارم آن، دست‌کم یک ساعت، پشتیبان موفقی نداشته باشد (فقط از راه Xen Orchestra) |
+| `xcp_ng.host.missing_patches` | میزبان چند وصله کم دارد، که هر شش ساعت بررسی می‌شود (فقط از راه Xen Orchestra) |
+
 همچنین روی هر نقطه `xcp_ng.scope` (`pool`، `host`، `vm`، `sr`، `vdi` یا `xostor`) و `xcp_ng.id` (UUID همان شیء) را می‌گذارد، که مانیتورها و داشبوردها بر پایه آن‌ها فیلتر می‌کنند: [هویت منبع](/docs/monitor/xcp-ng-monitor#هویت-منبع) را ببینید.
 
 ### آنچه عامل نگه نمی‌دارد
@@ -405,7 +416,8 @@ Xen Orchestra فقط استخرهایی را گزارش می‌کند که به 
 
 افزونه OpenMetrics در Xen Orchestra متریک ارائه می‌کند، پس بخشی از آنچه در یک استخر XCP-ng زیر نظر دارید هنوز در آن نیست:
 
-- **آلارم‌ها**، جز آلارم‌های XOSTOR، **وضعیت HA**، **ارباب استخر**، **وصله‌های نصب‌نشده**، **پشتیبان‌ها** و **اسنپ‌شات‌ها**، و **وضعیت پیوند** رابط‌های فیزیکی یک میزبان (PIFها). این‌ها از REST API در Xen Orchestra می‌آیند، در [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
+- **آلارم‌ها**، جز آلارم‌های XOSTOR، **وضعیت HA**، **ارباب استخر**، **وصله‌های نصب‌نشده** و **پشتیبان‌ها**: یک پراب OneUptime آن‌ها را از REST API در Xen Orchestra یا از XAPI استخر می‌خواند ([#10997](https://github.com/OneUptime/oneuptime/issues/10997))، [XCP-ng بدون عامل](/docs/telemetry/xcp-ng-agentless) را ببینید.
+- **اسنپ‌شات‌های** هر ماشین مجازی و **وضعیت پیوند** رابط‌های فیزیکی یک میزبان (PIFها)، که هنوز هیچ پرابی هم آن‌ها را نمی‌خواند ([#11328](https://github.com/OneUptime/oneuptime/issues/11328)).
 - **استخرهای بدون Xen Orchestra**، یا پشت یک XOA بدون پروانهٔ Premium که افزونه نیاز دارد: یک پراب OneUptime این‌ها را مستقیم از راه XAPI می‌خواند ([#10999](https://github.com/OneUptime/oneuptime/issues/10999))، [XCP-ng بدون عامل](/docs/telemetry/xcp-ng-agentless) را ببینید.
 - **اتصال بدون عامل**: یک پراب OneUptime خودش افزونهٔ Xen Orchestra را می‌خواند، همان‌گونه که برای VMware ممکن است ([#10996](https://github.com/OneUptime/oneuptime/issues/10996))، در همان صفحه.
 

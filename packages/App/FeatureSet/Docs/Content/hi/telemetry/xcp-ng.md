@@ -238,6 +238,17 @@ OneUptime हर पूल का डेटा आते ही उसके ल
 | `xcp_ng.vm.running` | VM Running है; Halted, Paused या Suspended होने पर 0 |
 | `xcp_ng.vm.stopped_after_running` | पिछले 24 घंटों में चला कोई VM Halted या Paused है |
 
+Xen Orchestra या पूल के XAPI से जुड़े किसी प्रोब के साथ, OneUptime इन्हें भी उससे निकालता है जो प्रोब मेट्रिक्स के अलावा पढ़ता है; एजेंट इनमें से कुछ नहीं पढ़ता:
+
+| सीरीज़ | मान |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | पूल का HA चालू रहने तक 1, वरना 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | जब तक HA एक होस्ट की विफलता झेल सकता है, तब तक 1, वरना 0: XAPI से HA की अपनी योजना, Xen Orchestra से विफल होने वाले होस्ट के अलावा कोई चालू और सक्षम होस्ट |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | HA को कितनी होस्ट विफलताएँ सहने के लिए सेट किया गया है (केवल XAPI से) |
+| `xcp_ng.pool.ha.plan_exists_for` | उसकी मौजूदा योजना कितनी होस्ट विफलताएँ कवर करती है (केवल XAPI से) |
+| `xcp_ng.vm.backup_overdue` | जब तक किसी शेड्यूल किए गए बैकअप जॉब में शामिल VM का उसके अंतराल और उसके एक चौथाई, कम से कम एक घंटे, में कोई सफल बैकअप नहीं हुआ, तब तक 1 (केवल Xen Orchestra से) |
+| `xcp_ng.host.missing_patches` | किसी होस्ट में कितने पैच छूटे हैं, हर छह घंटे में जाँचे जाते हैं (केवल Xen Orchestra से) |
+
 यह हर पॉइंट पर `xcp_ng.scope` (`pool`, `host`, `vm`, `sr`, `vdi` या `xostor`) और `xcp_ng.id` (उस ऑब्जेक्ट का UUID) भी लगाता है, जिन पर मॉनिटर और डैशबोर्ड फ़िल्टर करते हैं: देखें [संसाधन पहचान](/docs/monitor/xcp-ng-monitor#संसाधन-पहचान)।
 
 ### एजेंट क्या नहीं रखता
@@ -405,7 +416,8 @@ Xen Orchestra केवल उन्हीं पूल की रिपोर�
 
 Xen Orchestra का OpenMetrics प्लगइन मेट्रिक्स देता है, इसलिए XCP-ng पूल में आप जिन चीज़ों पर नज़र रखते हैं उनमें से कुछ अभी उसमें नहीं हैं:
 
-- XOSTOR के अलावा **अलार्म**, **HA स्थिति**, **पूल मास्टर**, **छूटे पैच**, **बैकअप** और **स्नैपशॉट**, और होस्ट के फ़िज़िकल इंटरफ़ेस (PIF) की **लिंक स्थिति**। ये Xen Orchestra के REST API से आते हैं, [#10997](https://github.com/OneUptime/oneuptime/issues/10997) में।
+- XOSTOR के अलावा **अलार्म**, **HA स्थिति**, **पूल मास्टर**, **छूटे पैच** और **बैकअप**: एक OneUptime प्रोब इन्हें Xen Orchestra के REST API से या पूल के XAPI से पढ़ता है ([#10997](https://github.com/OneUptime/oneuptime/issues/10997)), देखें [एजेंट के बिना XCP-ng](/docs/telemetry/xcp-ng-agentless)।
+- हर VM के **स्नैपशॉट** और होस्ट के फ़िज़िकल इंटरफ़ेस (PIF) की **लिंक स्थिति**, जिन्हें अभी कोई प्रोब भी नहीं पढ़ता ([#11328](https://github.com/OneUptime/oneuptime/issues/11328))।
 - **बिना Xen Orchestra वाले पूल**, या ऐसे XOA के पीछे के पूल जिसके पास प्लगइन के लिए ज़रूरी Premium लाइसेंस नहीं है: OneUptime प्रोब इन्हें सीधे XAPI से पढ़ता है ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), [एजेंट के बिना XCP-ng](/docs/telemetry/xcp-ng-agentless) देखें।
 - **बिना एजेंट के जुड़ना**: OneUptime प्रोब खुद Xen Orchestra का प्लगइन पढ़ता है, जैसा VMware के साथ हो सकता है ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), उसी पेज पर।
 

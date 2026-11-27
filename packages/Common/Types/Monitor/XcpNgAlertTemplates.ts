@@ -834,11 +834,121 @@ const hostRestartedTemplate: XcpNgAlertTemplate = {
   },
 };
 
+/*
+ * #10997: what a probe reads beyond the metrics, as derived series the
+ * server adds (XcpNgEventRecords). The XCP-ng Agent reads none of it, so on
+ * a pool only the agent reads these stay quiet: there is no series.
+ */
+const haCannotTolerateHostFailureTemplate: XcpNgAlertTemplate = {
+  id: "xcp-ng-ha-cannot-tolerate-host-failure",
+  name: "HA Cannot Tolerate a Host Failure",
+  summary: "HA can no longer tolerate a host failure for 5 minutes.",
+  description:
+    "Alert when the pool's high availability can no longer survive a host failure for five minutes (xcp_ng.pool.ha.can_tolerate_host_failure < 1). Read straight from XAPI it is HA's own plan: overcommitted, or covering fewer host failures than it is set to tolerate. Read through Xen Orchestra, whose REST API does not report the plan, it is fewer than two hosts up and enabled to restart VMs on - disabling one host of an HA pool of two is enough. Needs the pool read by a probe; while HA is off it never alerts. One incident for the pool.",
+  category: "Availability",
+  severity: "Critical",
+  getMonitorStep: (args: XcpNgAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "ha_can_tolerate";
+
+    return buildXcpNgMonitorStep({
+      xcpNgMonitor: buildXcpNgMonitorConfig({
+        poolIdentifier: args.poolIdentifier,
+        queries: [
+          {
+            alias: metricAlias,
+            metricName: XcpNgDerivedSeries.PoolHaCanTolerateHostFailure,
+            attributes: scope(XcpNgScope.Pool),
+          },
+        ],
+        rollingTime: RollingTime.Past5Minutes,
+        // Max: a single read that could tolerate one keeps the window calm.
+        aggregationType: MetricsAggregationType.Max,
+      }),
+      offlineCriteriaInstance: buildXcpNgOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.LessThan,
+        value: 1,
+        incidentTitle: `[XCP-ng] HA Cannot Tolerate a Host Failure - ${args.monitorName}`,
+        incidentDescription: `High availability on this XCP-ng pool can no longer survive a host failure: if one more host fails, its protected VMs may not be restarted anywhere. The pool's Overview says why - HA's own plan when the pool is read straight from XAPI (overcommitted, or covering fewer failures than it is set to tolerate), or too few hosts up and enabled when it is read through Xen Orchestra. Enable the hosts that are in maintenance, bring back a host that is down, or free memory so the plan fits again. The incident resolves when HA can tolerate a host failure again.`,
+        criteriaName:
+          "HA Cannot Tolerate a Host Failure - xcp_ng.pool.ha.can_tolerate_host_failure < 1",
+        criteriaDescription:
+          "Triggers when HA reads as unable to tolerate a host failure in every minute of the five-minute window.",
+      }),
+      onlineCriteriaInstance: buildXcpNgOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.GreaterThanOrEqualTo,
+        value: 1,
+        isBinaryMetric: true,
+      }),
+    });
+  },
+};
+
+const vmNotBackedUpTemplate: XcpNgAlertTemplate = {
+  id: "xcp-ng-vm-not-backed-up",
+  name: "VM Not Backed Up",
+  summary:
+    "A VM in a scheduled backup job has no successful backup within its interval.",
+  description:
+    "Alert when a VM in a scheduled Xen Orchestra backup job has had no successful backup within its interval - the longest gap between two runs of its jobs' schedules - and a quarter of it more, at least an hour: a nightly job's VM after 30 hours (xcp_ng.vm.backup_overdue, derived by OneUptime from the backup logs). One incident per VM; it resolves with the VM's next successful backup. A VM no scheduled job includes never alerts. Needs the pool's Xen Orchestra read by a probe with a Read only API token.",
+  category: "VM",
+  severity: "Warning",
+  getMonitorStep: (args: XcpNgAlertTemplateArgs): MonitorStep => {
+    const metricAlias: string = "vm_backup_overdue";
+
+    return buildXcpNgMonitorStep({
+      xcpNgMonitor: buildXcpNgMonitorConfig({
+        poolIdentifier: args.poolIdentifier,
+        queries: [
+          {
+            alias: metricAlias,
+            metricName: XcpNgDerivedSeries.VmBackupOverdue,
+            attributes: scope(XcpNgScope.VM),
+          },
+        ],
+        rollingTime: RollingTime.Past10Minutes,
+        // Min per VM: overdue in every read of the window.
+        aggregationType: MetricsAggregationType.Min,
+        groupByAttributeKey: GROUP_BY_OBJECT,
+      }),
+      offlineCriteriaInstance: buildXcpNgOfflineCriteriaInstance({
+        offlineMonitorStatusId: args.offlineMonitorStatusId,
+        incidentSeverityId: args.defaultIncidentSeverityId,
+        alertSeverityId: args.defaultAlertSeverityId,
+        monitorName: args.monitorName,
+        metricAlias,
+        filterType: FilterType.GreaterThan,
+        value: 0,
+        incidentTitle: `[XCP-ng] VM Not Backed Up - ${args.monitorName}`,
+        incidentDescription: `A VM of this XCP-ng pool that a scheduled Xen Orchestra backup job includes has had no successful backup within its interval: its jobs have failed for it, skipped it, or not run. The VM is named on this incident; its page says its last backup and why it failed, and the pool's Backups card each job's last runs. The incident resolves with the VM's next successful backup.`,
+        criteriaName:
+          "VM Not Backed Up - no successful backup within its interval",
+        criteriaDescription:
+          "Triggers when a VM reads as overdue for a backup in every minute of the ten-minute window.",
+      }),
+      onlineCriteriaInstance: buildXcpNgOnlineCriteriaInstance({
+        onlineMonitorStatusId: args.onlineMonitorStatusId,
+        metricAlias,
+        filterType: FilterType.EqualTo,
+        value: 0,
+      }),
+    });
+  },
+};
+
 export function getAllXcpNgAlertTemplates(): Array<XcpNgAlertTemplate> {
   return [
     poolDisconnectedTemplate,
     hostOfflineTemplate,
+    haCannotTolerateHostFailureTemplate,
     vmStoppedTemplate,
+    vmNotBackedUpTemplate,
     storageRepositoryNearFullTemplate,
     hostDisabledTemplate,
     hostRestartedTemplate,

@@ -3,6 +3,7 @@ import XcpNgConnectionType from "./XcpNgConnectionType";
 import XcpNgXapiAccountKind from "./XcpNgXapiAccount";
 import { JSONArray } from "../JSON";
 import { VMwarePresentedCertificate } from "../VMware/VMwareProbeCollection";
+import { XcpNgEventsJobState, XcpNgEventsReport } from "./XcpNgPoolEvents";
 
 /*
  * What the server and a probe say to each other about reading XCP-ng
@@ -118,6 +119,16 @@ export interface XcpNgCollectionJob {
   xapiPoolHosts?: Array<XcpNgXapiPoolHost> | undefined;
   // Absent: the first collection; messages are read from then on.
   messageWatermark?: XcpNgMessageWatermark | undefined;
+
+  /*
+   * #10997: where reading the pools' alarms and backups stands, kept by the
+   * server so a probe restart neither loses nor repeats one. Xen
+   * Orchestra, with an API token: each pool's message watermark, the
+   * messages whose alerts are open, the backup watermark, whether the
+   * hosts' patches are due. XAPI: the messages whose alerts are open, to
+   * check which XAPI no longer lists.
+   */
+  events?: XcpNgEventsJobState | undefined;
 }
 
 // One connection test a person started from the dashboard.
@@ -285,6 +296,13 @@ export interface XcpNgCollectionReport extends XcpNgProbeReportBase {
   messageWatermark?: XcpNgMessageWatermark | undefined;
   // XAPI: each pool's HA and master (one pool per XAPI connection).
   poolStates?: Array<XcpNgPoolState> | undefined;
+  // XAPI: of the messages with an open alert, those XAPI no longer lists.
+  xapiClearedMessageIds?: Array<string> | undefined;
+  /*
+   * Xen Orchestra, with an API token: its REST API's alarms, HA, master,
+   * backups and missing patches (#10997), read in the same collection.
+   */
+  events?: XcpNgEventsReport | undefined;
 }
 
 // What a probe posts after a connection test.

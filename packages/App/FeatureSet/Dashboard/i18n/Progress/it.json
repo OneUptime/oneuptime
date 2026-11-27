@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8245
+    "keys": 67248,
+    "untranslated": 8233
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -113,6 +113,7 @@
     "Datastore",
     "Datastores",
     "Debug",
+    "Delta",
     "DeploymentConfigs",
     "Desktop",
     "Directory",
@@ -239,6 +240,7 @@
     "Microsoft Intune",
     "Min",
     "Mirantis MOSK",
+    "Mirror",
     "Mobile",
     "MongoDB",
     "Monitor",
@@ -447,6 +449,7 @@
     "Web, iOS, Android, React Native",
     "Webhook",
     "Working set",
+    "XAPI",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

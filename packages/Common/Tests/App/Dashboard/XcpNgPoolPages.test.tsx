@@ -292,6 +292,8 @@ import {
   XCP_NG_PART_READ_ERROR_TITLES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/XcpNg/Part/XcpNgPartReadError";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import MonitorRecommendationCoverageApi from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi";
+import ObjectID from "../../../Types/ObjectID";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -586,6 +588,13 @@ function tableRow(name: string): string {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
+  /*
+   * Which of a part's recommended alerts are on: the server says it now
+   * (POST /monitor/recommendation-coverage, #11074) - none, here.
+   */
+  jest
+    .spyOn(MonitorRecommendationCoverageApi, "findCoveringMonitors")
+    .mockResolvedValue(new Map<string, ObjectID>());
   mockPool = pool();
   mockInventory = inventory();
   mockInventoryDown = false;

@@ -961,6 +961,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/VMware/VMwareProbeCollectionStore.ts": {
     "VMwareProbeCollectionStore.recordCollectionReport *": Why.Reported,
   },
+  // Where reading a pool's alarms and backups stands, from a probe's read (#10997).
+  "packages/Common/Server/Utils/XcpNg/XcpNgPoolEventsIngest.ts": {
+    "(module) XcpNgPool": Why.Reported,
+  },
   "packages/Common/Server/Utils/XcpNg/XcpNgProbeCollectionStore.ts": {
     "XcpNgProbeCollectionStore.recordCollectionReport *": Why.Reported,
   },
