@@ -337,7 +337,7 @@ export default class DataObservabilityAgentCollect {
     const dataStoreId: unknown = body["dataStoreId"];
 
     if (typeof dataStoreId !== "string" || !ObjectID.isValidUUID(dataStoreId)) {
-      throw new BadDataException("dataStoreId is missing or is not an ID.");
+      throw new BadDataException("The result names no database.");
     }
 
     if (!agent.resourceId || !agent.projectId) {
