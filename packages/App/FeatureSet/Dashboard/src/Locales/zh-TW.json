@@ -66498,5 +66498,17 @@
   "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root，或擁有 XAPI read-only 角色的資源池 Active Directory 使用者。XAPI 沒有唯讀的本機帳戶。",
   "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "「外洩通知」中的內部摘要說明了暴露了什麼、暴露了多久以及暴露給了誰。",
   "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "請在「外洩通知」中撰寫內部摘要，或讓 OneUptime AI 草擬。",
-  "Save or cancel your edit first: the export holds each part as it was last saved.": "請先儲存或取消你的編輯：匯出的內容是每個部分最後一次儲存時的樣子。"
+  "Save or cancel your edit first: the export holds each part as it was last saved.": "請先儲存或取消你的編輯：匯出的內容是每個部分最後一次儲存時的樣子。",
+  "American Express's Enterprise Incident Response Program": "American Express 的 Enterprise Incident Response Program",
+  "Counted from evidence enough to suspect a compromise, not only to confirm one. An incident report to Visa and your acquirer is due within three calendar days after that.": "從出現足以懷疑資料外洩的證據時起算，而不是從確認時起算。之後三個日曆日內，須向 Visa 和您的收單機構提交事件報告。",
+  "Counted from when you knew, or with reasonable security practices should have known, of a potential compromise. Every account number at risk is due to Mastercard within 72 hours.": "從您得知、或依合理的安全做法應當得知可能的資料外洩時起算。每個面臨風險的帳號都須在 72 小時內提交給 Mastercard。",
+  "If the exposed card data includes this brand's cards.": "如果暴露的卡片資料中包含該卡組織的卡片。",
+  "Immediately, and in no case later than that after you discover it. A suspected compromise of even one card number counts.": "立即通知，且無論如何不晚於發現後的這一期限。哪怕只懷疑一個卡號外洩也算在內。",
+  "Mastercard's rules bind its acquirers and issuers and their agents; a merchant is held to them through its acquirer's agreement.": "Mastercard 的規則約束其收單機構、發卡機構及其代理；商店透過與收單機構的協議受其約束。",
+  "Mastercard, through your acquirer": "透過您的收單機構通知 Mastercard",
+  "Notify American Express": "通知 American Express",
+  "Notify Mastercard": "通知 Mastercard",
+  "Notify Visa": "通知 Visa",
+  "Of the card brands, it covers Visa, Mastercard and American Express, which publish their deadlines. Discover, JCB and UnionPay set theirs in agreements they do not publish: ask your acquirer.": "在各卡組織中，涵蓋公開了期限的 Visa、Mastercard 和 American Express。Discover、JCB 和 UnionPay 的期限寫在不公開的協議中：請洽詢您的收單機構。",
+  "Visa's Global Risk Investigations group, and your acquiring bank at once": "Visa 的 Global Risk Investigations 團隊，並立即通知您的收單機構"
 }

@@ -66498,5 +66498,17 @@
   "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, eller en Active Directory-bruker i poolen med XAPIs rolle read-only. XAPI har ingen lokal konto som bare leser.",
   "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "Det interne sammendraget i Meldinger om sikkerhetsbrudd sier hva som ble eksponert, hvor lenge og for hvem.",
   "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "Skriv det interne sammendraget i Meldinger om sikkerhetsbrudd, eller la OneUptime AI skrive et utkast til det.",
-  "Save or cancel your edit first: the export holds each part as it was last saved.": "Lagre eller avbryt endringen din først: eksporten inneholder hver del slik den sist ble lagret."
+  "Save or cancel your edit first: the export holds each part as it was last saved.": "Lagre eller avbryt endringen din først: eksporten inneholder hver del slik den sist ble lagret.",
+  "American Express's Enterprise Incident Response Program": "Enterprise Incident Response Program hos American Express",
+  "Counted from evidence enough to suspect a compromise, not only to confirm one. An incident report to Visa and your acquirer is due within three calendar days after that.": "Regnet fra bevis som er nok til å mistenke en kompromittering, ikke først til å bekrefte den. En hendelsesrapport til Visa og innløseren deres skal sendes innen tre kalenderdager etter det.",
+  "Counted from when you knew, or with reasonable security practices should have known, of a potential compromise. Every account number at risk is due to Mastercard within 72 hours.": "Regnet fra da dere visste, eller med rimelig sikkerhetspraksis burde ha visst, at det kunne ha skjedd en kompromittering. Hvert kontonummer i fare skal gis til Mastercard innen 72 timer.",
+  "If the exposed card data includes this brand's cards.": "Hvis de eksponerte kortdataene omfatter kort fra dette kortmerket.",
+  "Immediately, and in no case later than that after you discover it. A suspected compromise of even one card number counts.": "Straks, og ikke i noe tilfelle senere enn den fristen etter at dere oppdager den. Mistanke om kompromittering av bare ett kortnummer teller.",
+  "Mastercard's rules bind its acquirers and issuers and their agents; a merchant is held to them through its acquirer's agreement.": "Reglene til Mastercard binder innløserne og utstederne og agentene deres; et brukersted er bundet av dem gjennom avtalen med innløseren sin.",
+  "Mastercard, through your acquirer": "Mastercard, gjennom innløseren deres",
+  "Notify American Express": "Varsle American Express",
+  "Notify Mastercard": "Varsle Mastercard",
+  "Notify Visa": "Varsle Visa",
+  "Of the card brands, it covers Visa, Mastercard and American Express, which publish their deadlines. Discover, JCB and UnionPay set theirs in agreements they do not publish: ask your acquirer.": "Av kortmerkene dekker vurderingen Visa, Mastercard og American Express, som publiserer fristene sine. Discover, JCB og UnionPay setter sine i avtaler de ikke publiserer: spør innløseren deres.",
+  "Visa's Global Risk Investigations group, and your acquiring bank at once": "Visas Global Risk Investigations-gruppe, og innløseren deres med en gang"
 }

@@ -1330,6 +1330,8 @@ export enum UncoveredLawKind {
   Establishment = "Establishment",
   // Contracts, sector rules and other obligations.
   ContractsAndSectors = "ContractsAndSectors",
+  // The card brands that publish no deadline of their own (#10953).
+  OtherCardBrands = "OtherCardBrands",
 }
 
 export interface UncoveredLaw {
@@ -1370,6 +1372,11 @@ export function getUncoveredLaws(
     uncovered.push({ kind: UncoveredLawKind.OtherUsStates });
   }
 
+  // Card data: the brands whose rules are only in their agreements.
+  if (whose.elements.includes(BreachDataElement.CardData)) {
+    uncovered.push({ kind: UncoveredLawKind.OtherCardBrands });
+  }
+
   uncovered.push({ kind: UncoveredLawKind.Establishment });
   uncovered.push({ kind: UncoveredLawKind.ContractsAndSectors });
 
@@ -1391,6 +1398,9 @@ export const UNCOVERED_LAW_WORDS: Readonly<Record<UncoveredLawKind, string>> = {
   ),
   [UncoveredLawKind.ContractsAndSectors]: translationKey(
     "Contracts with customers and partners, and sector rules such as banking, insurance and telecoms regulators', can set deadlines of their own.",
+  ),
+  [UncoveredLawKind.OtherCardBrands]: translationKey(
+    "Of the card brands, it covers Visa, Mastercard and American Express, which publish their deadlines. Discover, JCB and UnionPay set theirs in agreements they do not publish: ask your acquirer.",
   ),
 };
 
@@ -1708,10 +1718,23 @@ const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   },
   { pattern: /\bCERT-In\b/gi, family: BreachLawFamily.CertIn },
   { pattern: /\bPCI(?:[ -]?DSS)?\b/gi, family: BreachLawFamily.PciDss },
-  // Laws the table does not cover: never named by a draft.
+  // The card brands whose own rules the table has (#10953).
+  { pattern: /\bVisa\b/gi, family: BreachLawFamily.Visa },
+  {
+    pattern: /\bMastercard\b|\bMaestro\b/gi,
+    family: BreachLawFamily.Mastercard,
+  },
+  {
+    pattern: /\bAmerican Express\b|\bAmex\b/gi,
+    family: BreachLawFamily.AmericanExpress,
+  },
+  /*
+   * Laws, and card brands, the table does not cover: never named by a
+   * draft. Discover by its network's names only: "discover" is a word.
+   */
   {
     pattern:
-      /\bCCPA\b|\bCPRA\b|\bPIPEDA\b|\bPIPL\b|\bAPPI\b|\bPDPA\b|\bPOPIA\b|\bNIS ?2\b|\bDORA\b|\bGLBA\b|Gramm-Leach|\bFERPA\b|\bCOPPA\b|\bSOX\b/gi,
+      /\bCCPA\b|\bCPRA\b|\bPIPEDA\b|\bPIPL\b|\bAPPI\b|\bPDPA\b|\bPOPIA\b|\bNIS ?2\b|\bDORA\b|\bGLBA\b|Gramm-Leach|\bFERPA\b|\bCOPPA\b|\bSOX\b|\bJCB\b|\bUnionPay\b|\bDiscover (?:Global )?Network\b|\bDiscover Card\b/gi,
     family: null,
   },
 ];

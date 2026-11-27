@@ -37,8 +37,14 @@ import { translationKey } from "../Translator";
  * language, while a law's own name and provision stay as written.
  */
 
-// The day every row below was read from its source.
+// The day the table's first rows (#10377) were read from their sources.
 export const BREACH_LAWS_CHECKED_ON: string = "2026-11-24";
+
+/*
+ * The day the card brands' rows (#10953) were read from each brand's own
+ * published rules: the version each row cites was the current one then.
+ */
+export const CARD_BRAND_RULES_CHECKED_ON: string = "2026-11-27";
 
 /*
  * Where the people a store's data is about live, as the table covers
@@ -333,6 +339,8 @@ export enum BreachCondition {
   HipaaBusinessAssociate = "HipaaBusinessAssociate",
   // PCI DSS: the organization stores, processes or transmits payment card data.
   HandlesCardData = "HandlesCardData",
+  // A card brand's own rules: the exposed card data includes that brand's cards.
+  CardsOfTheBrand = "CardsOfTheBrand",
   // CERT-In: the organization is one its directions cover.
   CertInEntity = "CertInEntity",
 }
@@ -365,6 +373,9 @@ export const BREACH_CONDITION_WORDS: Readonly<Record<BreachCondition, string>> =
     ),
     [BreachCondition.HandlesCardData]: translationKey(
       "If your organization stores, processes or transmits payment card data.",
+    ),
+    [BreachCondition.CardsOfTheBrand]: translationKey(
+      "If the exposed card data includes this brand's cards.",
     ),
     [BreachCondition.CertInEntity]: translationKey(
       "If your organization is a service provider, intermediary, data centre, body corporate or government organisation CERT-In's directions cover.",
@@ -438,6 +449,10 @@ export enum BreachLawId {
   DpdpBoard = "dpdp-rule-7-board",
   CertIn = "cert-in-6-hours",
   PciDss = "pci-dss-12-10-1",
+  // The card brands' own rules (#10953), each from its published document.
+  VisaCompromise = "visa-wtdic-a-1",
+  MastercardAdcEvent = "mastercard-spme-10-3-1",
+  AmericanExpressDataIncident = "amex-dsop-3-1",
 }
 
 /*
@@ -458,6 +473,9 @@ export enum BreachLawFamily {
   Dpdp = "DPDP",
   CertIn = "CERT-In",
   PciDss = "PCI DSS",
+  Visa = "Visa",
+  Mastercard = "Mastercard",
+  AmericanExpress = "American Express",
 }
 
 export interface BreachLawRule {
@@ -522,6 +540,13 @@ const CERT_IN_SOURCE: string =
   "https://www.cert-in.org.in/PDF/CERT-In_Directions_70B_28.04.2022.pdf";
 const PCI_DSS_SOURCE: string =
   "https://www.pcisecuritystandards.org/document_library/";
+// The card brands' own published rules, each the version current when checked.
+const VISA_WTDIC_SOURCE: string =
+  "https://usa.visa.com/dam/VCOM/download/merchants/cisp-what-to-do-if-compromised.pdf";
+const MASTERCARD_SPME_SOURCE: string =
+  "https://www.mastercard.com/content/dam/mccom/shared/business/support/rules-pdfs/SPME-Manual.pdf";
+const AMEX_DSOP_SOURCE: string =
+  "https://www.americanexpress.com/content/dam/amex/us/merchant/new-data-security/DSOP_United_States_EN.pdf";
 
 // The data elements most US state laws name, held with a person's name.
 const US_STATE_IDS: ReadonlyArray<BreachDataElement> = [
@@ -1316,6 +1341,114 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     sourceTitle: "PCI DSS v4.0.1 (June 2024), Requirement 12.10.1",
     checkedOn: BREACH_LAWS_CHECKED_ON,
   },
+  /*
+   * ---- The card brands' own deadlines (#10953) ----
+   *
+   * Each from the brand's own published rules, in the version current on
+   * CARD_BRAND_RULES_CHECKED_ON. They bind the brand's acquirers and
+   * issuers, and a merchant or service provider through its agreements.
+   * Discover, JCB and UnionPay publish no deadline of their own - Discover
+   * gives only a number to call - so they are not rows: the assessment
+   * says so (UncoveredLawKind.OtherCardBrands).
+   */
+  {
+    id: BreachLawId.VisaCompromise,
+    family: BreachLawFamily.Visa,
+    law: "Visa What To Do If Compromised",
+    provision: "Section A.1",
+    places: null,
+    dataElements: [BreachDataElement.CardData],
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [
+      BreachCondition.HandlesCardData,
+      BreachCondition.CardsOfTheBrand,
+    ],
+    action: translationKey("Notify Visa"),
+    recipient: translationKey(
+      "Visa's Global Risk Investigations group, and your acquiring bank at once",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 3,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "Counted from evidence enough to suspect a compromise, not only to confirm one. An incident report to Visa and your acquirer is due within three calendar days after that.",
+    ),
+    sourceUrl: VISA_WTDIC_SOURCE,
+    sourceTitle:
+      "Visa What To Do If Compromised, Version 10.0 (effective 25 June 2026), Section A.1",
+    checkedOn: CARD_BRAND_RULES_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.MastercardAdcEvent,
+    family: BreachLawFamily.Mastercard,
+    law: "Mastercard Security Rules and Procedures",
+    provision: "Section 10.3.1",
+    places: null,
+    dataElements: [BreachDataElement.CardData],
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [
+      BreachCondition.HandlesCardData,
+      BreachCondition.CardsOfTheBrand,
+    ],
+    action: translationKey("Notify Mastercard"),
+    recipient: translationKey("Mastercard, through your acquirer"),
+    deadline: {
+      unit: BreachDeadlineUnit.Hours,
+      amount: 24,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "Counted from when you knew, or with reasonable security practices should have known, of a potential compromise. Every account number at risk is due to Mastercard within 72 hours.",
+    ),
+    note: translationKey(
+      "Mastercard's rules bind its acquirers and issuers and their agents; a merchant is held to them through its acquirer's agreement.",
+    ),
+    sourceUrl: MASTERCARD_SPME_SOURCE,
+    sourceTitle:
+      "Mastercard Security Rules and Procedures, Merchant Edition (4 August 2026), Section 10.3.1",
+    checkedOn: CARD_BRAND_RULES_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.AmericanExpressDataIncident,
+    family: BreachLawFamily.AmericanExpress,
+    law: "American Express Data Security Operating Policy",
+    provision: "Section 3.1",
+    places: null,
+    dataElements: [BreachDataElement.CardData],
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [
+      BreachCondition.HandlesCardData,
+      BreachCondition.CardsOfTheBrand,
+    ],
+    action: translationKey("Notify American Express"),
+    recipient: translationKey(
+      "American Express's Enterprise Incident Response Program",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.Hours,
+      amount: 72,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "Immediately, and in no case later than that after you discover it. A suspected compromise of even one card number counts.",
+    ),
+    sourceUrl: AMEX_DSOP_SOURCE,
+    sourceTitle:
+      "American Express Data Security Operating Policy, United States edition (October 2026), Section 3.1",
+    checkedOn: CARD_BRAND_RULES_CHECKED_ON,
+  },
+];
+
+// The card brands the table has rows for, each by the row of its own rules.
+export const CARD_BRAND_RULE_IDS: ReadonlyArray<BreachLawId> = [
+  BreachLawId.VisaCompromise,
+  BreachLawId.MastercardAdcEvent,
+  BreachLawId.AmericanExpressDataIncident,
 ];
 
 // A row, by its id: every id has one.

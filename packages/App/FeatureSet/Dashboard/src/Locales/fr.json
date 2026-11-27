@@ -66498,5 +66498,17 @@
   "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, ou un utilisateur Active Directory du pool ayant le rôle read-only de XAPI. XAPI n'a pas de compte local en lecture seule.",
   "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "Le résumé interne des Notifications de violation indique ce qui a été exposé, pendant combien de temps et à qui.",
   "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "Rédigez le résumé interne dans Notifications de violation, ou demandez à OneUptime AI de le rédiger.",
-  "Save or cancel your edit first: the export holds each part as it was last saved.": "Enregistrez ou annulez d'abord votre modification : l'export contient chaque partie telle qu'elle a été enregistrée en dernier."
+  "Save or cancel your edit first: the export holds each part as it was last saved.": "Enregistrez ou annulez d'abord votre modification : l'export contient chaque partie telle qu'elle a été enregistrée en dernier.",
+  "American Express's Enterprise Incident Response Program": "L'Enterprise Incident Response Program d'American Express",
+  "Counted from evidence enough to suspect a compromise, not only to confirm one. An incident report to Visa and your acquirer is due within three calendar days after that.": "Compté à partir d'indices suffisants pour soupçonner une compromission, pas seulement pour la confirmer. Un rapport d'incident à Visa et à votre acquéreur est dû dans les trois jours calendaires qui suivent.",
+  "Counted from when you knew, or with reasonable security practices should have known, of a potential compromise. Every account number at risk is due to Mastercard within 72 hours.": "Compté à partir du moment où vous avez eu connaissance, ou auriez dû avoir connaissance avec des pratiques de sécurité raisonnables, d'une compromission possible. Chaque numéro de compte exposé est dû à Mastercard dans les 72 heures.",
+  "If the exposed card data includes this brand's cards.": "Si les données de carte exposées comprennent des cartes de ce réseau.",
+  "Immediately, and in no case later than that after you discover it. A suspected compromise of even one card number counts.": "Immédiatement, et en aucun cas plus tard que ce délai après sa découverte. Une compromission soupçonnée d'un seul numéro de carte suffit.",
+  "Mastercard's rules bind its acquirers and issuers and their agents; a merchant is held to them through its acquirer's agreement.": "Les règles de Mastercard lient ses acquéreurs, ses émetteurs et leurs agents ; un commerçant y est tenu par le contrat de son acquéreur.",
+  "Mastercard, through your acquirer": "Mastercard, par l'intermédiaire de votre acquéreur",
+  "Notify American Express": "Informer American Express",
+  "Notify Mastercard": "Informer Mastercard",
+  "Notify Visa": "Informer Visa",
+  "Of the card brands, it covers Visa, Mastercard and American Express, which publish their deadlines. Discover, JCB and UnionPay set theirs in agreements they do not publish: ask your acquirer.": "Parmi les réseaux de cartes, le tableau couvre Visa, Mastercard et American Express, qui publient leurs délais. Discover, JCB et UnionPay fixent les leurs dans des accords qu'ils ne publient pas : demandez à votre acquéreur.",
+  "Visa's Global Risk Investigations group, and your acquiring bank at once": "Le groupe Global Risk Investigations de Visa, et votre acquéreur sans attendre"
 }

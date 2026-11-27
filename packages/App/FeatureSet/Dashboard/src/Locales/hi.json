@@ -66498,5 +66498,17 @@
   "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, या XAPI की read-only भूमिका वाला पूल का Active Directory उपयोगकर्ता। XAPI में केवल पढ़ने वाला कोई स्थानीय खाता नहीं है।",
   "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "'उल्लंघन सूचनाएँ' में दिया आंतरिक सारांश बताता है कि क्या उजागर हुआ, कितने समय तक और किसके सामने।",
   "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "'उल्लंघन सूचनाएँ' में आंतरिक सारांश लिखें, या OneUptime AI से इसका ड्राफ़्ट बनवाएँ।",
-  "Save or cancel your edit first: the export holds each part as it was last saved.": "पहले अपना संपादन सहेजें या रद्द करें: एक्सपोर्ट में हर हिस्सा वैसा ही आता है जैसा उसे आख़िरी बार सहेजा गया था।"
+  "Save or cancel your edit first: the export holds each part as it was last saved.": "पहले अपना संपादन सहेजें या रद्द करें: एक्सपोर्ट में हर हिस्सा वैसा ही आता है जैसा उसे आख़िरी बार सहेजा गया था।",
+  "American Express's Enterprise Incident Response Program": "American Express का Enterprise Incident Response Program",
+  "Counted from evidence enough to suspect a compromise, not only to confirm one. An incident report to Visa and your acquirer is due within three calendar days after that.": "सेंध की पुष्टि से नहीं, बल्कि उस पर संदेह करने लायक सबूत मिलने से गिना जाता है। उसके बाद तीन कैलेंडर दिनों के भीतर Visa और आपके एक्वायरर को घटना रिपोर्ट देनी होती है।",
+  "Counted from when you knew, or with reasonable security practices should have known, of a potential compromise. Every account number at risk is due to Mastercard within 72 hours.": "उस समय से गिना जाता है जब आपको संभावित सेंध का पता चला, या उचित सुरक्षा व्यवहार से पता चल जाना चाहिए था। जोखिम में पड़ा हर खाता नंबर 72 घंटों के भीतर Mastercard को देना होता है।",
+  "If the exposed card data includes this brand's cards.": "अगर उजागर कार्ड डेटा में इस ब्रांड के कार्ड शामिल हैं।",
+  "Immediately, and in no case later than that after you discover it. A suspected compromise of even one card number counts.": "तुरंत, और पता चलने के बाद किसी भी हाल में उस समय-सीमा से देर नहीं। एक भी कार्ड नंबर में सेंध का संदेह काफ़ी है।",
+  "Mastercard's rules bind its acquirers and issuers and their agents; a merchant is held to them through its acquirer's agreement.": "Mastercard के नियम उसके एक्वायरर, इश्यूअर और उनके एजेंटों पर लागू होते हैं; कोई मर्चेंट अपने एक्वायरर के समझौते के ज़रिए उनसे बंधा होता है।",
+  "Mastercard, through your acquirer": "आपके एक्वायरर के ज़रिए Mastercard",
+  "Notify American Express": "American Express को सूचित करें",
+  "Notify Mastercard": "Mastercard को सूचित करें",
+  "Notify Visa": "Visa को सूचित करें",
+  "Of the card brands, it covers Visa, Mastercard and American Express, which publish their deadlines. Discover, JCB and UnionPay set theirs in agreements they do not publish: ask your acquirer.": "कार्ड ब्रांडों में से, यह Visa, Mastercard और American Express को शामिल करता है, जो अपनी समय-सीमाएँ प्रकाशित करते हैं। Discover, JCB और UnionPay अपनी समय-सीमाएँ उन समझौतों में तय करते हैं जिन्हें वे प्रकाशित नहीं करते: अपने एक्वायरर से पूछें।",
+  "Visa's Global Risk Investigations group, and your acquiring bank at once": "Visa का Global Risk Investigations समूह, और तुरंत आपका एक्वायरर"
 }

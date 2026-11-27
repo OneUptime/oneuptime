@@ -92,16 +92,17 @@ export const EXPOSURE_ASSESSMENT_CASES: Array<ExposureAssessmentEvalCase> = [
   {
     id: "exposure-california-cards",
     title:
-      "Card numbers and logins, shared outside, about Californians: 30 calendar days, and the card brands",
+      "Card numbers and logins, shared outside, about Californians: Mastercard's 24 hours first, then the other brands and California's 30 days",
     feature: DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
     exposure: getExposureEvalExposure("california-cards-credentials"),
     expect: {
       parts: {
-        [ExposureDraftPart.Explanation]: [["California"], ["30"]],
+        [ExposureDraftPart.Explanation]: [["Mastercard"], ["24"]],
         [ExposureDraftPart.InternalSummary]: [
           ["PCI"],
           ["card"],
-          ["attorney general", "Attorney General"],
+          ["California"],
+          ["Visa"],
         ],
         [ExposureDraftPart.PeopleNotice]: [["password"]],
       },

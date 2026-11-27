@@ -4,6 +4,7 @@ import {
   BreachLawFamily,
   BreachLawId,
   BreachPlace,
+  CARD_BRAND_RULE_IDS,
   getBreachLawRule,
 } from "../../../Types/DataSecurity/BreachLaws";
 import {
@@ -74,6 +75,7 @@ import {
   startExposureAssessment,
   StoredExposureAssessment,
   toStoredExposureAssessmentJson,
+  UNCOVERED_LAW_WORDS,
   UncoveredLawKind,
 } from "../../../Types/DataSecurity/ExposureAssessment";
 import {
@@ -1010,6 +1012,45 @@ describe("what the law may ask", () => {
       UncoveredLawKind.ContractsAndSectors,
     ]);
   });
+
+  test("card data says which card brands the table does not cover, and names those it does (#10953)", () => {
+    const kinds: Array<UncoveredLawKind> = getUncoveredLaws(
+      whose({
+        dataTypeIds: ["credit-card-number", "card-verification-code"],
+        places: [BreachPlace.Eea],
+      }),
+    ).map((uncovered: { kind: UncoveredLawKind }): UncoveredLawKind => {
+      return uncovered.kind;
+    });
+
+    expect(kinds).toEqual([
+      UncoveredLawKind.OtherCardBrands,
+      UncoveredLawKind.Establishment,
+      UncoveredLawKind.ContractsAndSectors,
+    ]);
+
+    // No card data: no card brand to warn of.
+    expect(
+      getUncoveredLaws(
+        whose({
+          dataTypeIds: ["bank-account-number", "person-name"],
+          places: [BreachPlace.Eea],
+        }),
+      ).map((uncovered: { kind: UncoveredLawKind }): UncoveredLawKind => {
+        return uncovered.kind;
+      }),
+    ).not.toContain(UncoveredLawKind.OtherCardBrands);
+
+    // The words name each brand the table has rows for, and those it has not.
+    const words: string = UNCOVERED_LAW_WORDS[UncoveredLawKind.OtherCardBrands];
+
+    for (const id of CARD_BRAND_RULE_IDS) {
+      expect(words).toContain(getBreachLawRule(id).family);
+    }
+
+    expect(words).toContain("Discover, JCB and UnionPay");
+    expect(words).toContain("ask your acquirer");
+  });
 });
 
 describe("the playbook's checklist, answered", () => {
@@ -1303,6 +1344,58 @@ describe("OneUptime AI's drafts, held to the facts", () => {
         ],
       }),
     ).toEqual(["UK-GDPR"]);
+  });
+
+  test("a card brand is named only when its own rules are among the facts, and a brand the table has no rules for never (#10953)", () => {
+    const brands: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F3",
+        family: BreachLawFamily.Visa,
+        ruleId: BreachLawId.VisaCompromise,
+        law: "Visa What To Do If Compromised Section A.1",
+      }),
+      obligationFact({
+        id: "F4",
+        family: BreachLawFamily.Mastercard,
+        ruleId: BreachLawId.MastercardAdcEvent,
+        law: "Mastercard Security Rules and Procedures Section 10.3.1",
+      }),
+      obligationFact({
+        id: "F5",
+        family: BreachLawFamily.AmericanExpress,
+        ruleId: BreachLawId.AmericanExpressDataIncident,
+        law: "American Express Data Security Operating Policy Section 3.1",
+      }),
+    ];
+
+    expect(
+      getUnfoundedLaws({
+        text: "Notify Visa within three days, Mastercard within 24 hours and American Express (Amex) within 72.",
+        facts: brands,
+      }),
+    ).toEqual([]);
+    // Without their rules in the facts, each brand is a law the draft made up.
+    expect(
+      getUnfoundedLaws({
+        text: "Notify Visa and Mastercard, and Amex.",
+        facts: [HOLDS],
+      }),
+    ).toEqual(["Visa", "Mastercard", "Amex"]);
+    // Brands that publish no deadline: never named, whatever the facts.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell JCB, UnionPay and the Discover Network too.",
+        facts: brands,
+      }),
+    ).toEqual(["JCB", "UnionPay", "Discover Network"]);
+    // "Discover" the word is no brand.
+    expect(
+      getUnfoundedLaws({
+        text: "When you discover a breach, notify Visa.",
+        facts: brands,
+      }),
+    ).toEqual([]);
   });
 
   test("a draft that cites no fact, or says too little, is dropped", () => {

@@ -66498,5 +66498,17 @@
   "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root 또는 XAPI read-only 역할을 가진 풀의 Active Directory 사용자입니다. XAPI에는 읽기 전용 로컬 계정이 없습니다.",
   "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "'침해 통지'의 내부 요약은 무엇이, 얼마 동안, 누구에게 노출되었는지 설명합니다.",
   "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "'침해 통지'에서 내부 요약을 작성하거나 OneUptime AI에게 초안을 맡기세요.",
-  "Save or cancel your edit first: the export holds each part as it was last saved.": "먼저 편집을 저장하거나 취소하세요. 내보내기에는 각 부분이 마지막으로 저장된 내용으로 담깁니다."
+  "Save or cancel your edit first: the export holds each part as it was last saved.": "먼저 편집을 저장하거나 취소하세요. 내보내기에는 각 부분이 마지막으로 저장된 내용으로 담깁니다.",
+  "American Express's Enterprise Incident Response Program": "American Express의 Enterprise Incident Response Program",
+  "Counted from evidence enough to suspect a compromise, not only to confirm one. An incident report to Visa and your acquirer is due within three calendar days after that.": "침해를 확인한 때가 아니라 의심할 만한 증거가 있을 때부터 셉니다. 그 후 3역일 이내에 Visa와 매입사에 인시던트 보고서를 내야 합니다.",
+  "Counted from when you knew, or with reasonable security practices should have known, of a potential compromise. Every account number at risk is due to Mastercard within 72 hours.": "침해 가능성을 알았거나 합리적인 보안 관행을 따랐다면 알았어야 했던 때부터 셉니다. 위험에 처한 모든 계좌 번호는 72시간 이내에 Mastercard에 제출해야 합니다.",
+  "If the exposed card data includes this brand's cards.": "노출된 카드 데이터에 이 브랜드의 카드가 포함된 경우.",
+  "Immediately, and in no case later than that after you discover it. A suspected compromise of even one card number counts.": "즉시, 늦어도 발견한 뒤 그 기한 안에. 카드 번호 한 개의 침해가 의심되기만 해도 해당합니다.",
+  "Mastercard's rules bind its acquirers and issuers and their agents; a merchant is held to them through its acquirer's agreement.": "Mastercard의 규칙은 매입사와 발급사, 그 대리인을 구속합니다. 가맹점은 매입사와의 계약을 통해 이 규칙을 따라야 합니다.",
+  "Mastercard, through your acquirer": "매입사를 통해 Mastercard",
+  "Notify American Express": "American Express에 통보하기",
+  "Notify Mastercard": "Mastercard에 통보하기",
+  "Notify Visa": "Visa에 통보하기",
+  "Of the card brands, it covers Visa, Mastercard and American Express, which publish their deadlines. Discover, JCB and UnionPay set theirs in agreements they do not publish: ask your acquirer.": "카드 브랜드 가운데 기한을 공개하는 Visa, Mastercard, American Express를 다룹니다. Discover, JCB, UnionPay는 공개하지 않는 계약에서 기한을 정합니다. 매입사에 문의하세요.",
+  "Visa's Global Risk Investigations group, and your acquiring bank at once": "Visa의 Global Risk Investigations 그룹, 그리고 즉시 매입사"
 }
