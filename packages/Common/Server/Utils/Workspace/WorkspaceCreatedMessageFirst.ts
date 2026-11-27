@@ -66,7 +66,11 @@ import type { WorkspaceRecord } from "./WorkspaceRecordPeople";
  * none of it (#11235): each message waits in the line with what it says,
  * as its server would post it (keep's `stored`), and another App server
  * posts it from there, in its turn and once, when its own server's turn
- * stalls (takeOverForStoppedServers).
+ * stalls (takeOverForStoppedServers). A server holding a record says it
+ * still holds its line every few seconds, so when the server running the
+ * record's create chain is the one killed, before its Created message, the
+ * others move its line on once it has said nothing for STALLED_AFTER_MS -
+ * about 15 seconds, not the five minutes of HELD_FOR_AT_MOST_MS (#11314).
  */
 
 // A message kept back, posted when it is let go.

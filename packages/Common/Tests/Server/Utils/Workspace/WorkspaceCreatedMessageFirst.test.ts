@@ -1,3 +1,4 @@
+import Redis from "../../../../Server/Infrastructure/Redis";
 import WorkspaceCreatedMessageFirst, {
   KeptPost,
 } from "../../../../Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
@@ -817,5 +818,211 @@ describe("a record held as it is written (#11352)", () => {
     await settleMicrotasks();
     expect(posted).toEqual(["kept"]);
     expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(false);
+  });
+});
+
+/*
+ * THE HOLDER'S HEARTBEAT (#11314): a server holding a record's line in
+ * Valkey says it still holds it, on a timer of its own, so the other
+ * servers can tell once it has stopped. Its timing and its timer here;
+ * what Valkey does with it in WorkspaceCreatedMessageTakeOver.test.ts, and
+ * two real processes, one killed, in WorkspaceCreatedMessageFirstReplicas.
+ */
+describe("the server holding a line says it still holds it (#11314)", () => {
+  /*
+   * A Valkey that answers every script with 1 - for each line, to one
+   * that says this server still holds its lines - and what it was sent.
+   */
+  function valkeyAnsweringOne(): Array<Array<unknown>> {
+    const sent: Array<Array<unknown>> = [];
+
+    jest.spyOn(Redis, "getClient").mockReturnValue({
+      eval: async (
+        ...args: Array<unknown>
+      ): Promise<number | Array<number>> => {
+        sent.push(args);
+
+        if (String(args[0]).includes("kept[i - 1] = 1")) {
+          // Its keys: the index, then each line.
+          return new Array<number>(Number(args[1]) - 1).fill(1);
+        }
+
+        return 1;
+      },
+    } as never);
+    jest.spyOn(Redis, "isConnected").mockReturnValue(true);
+    jest.spyOn(GracefulShutdown, "registerHandler").mockImplementation((() => {
+      // not a real shutdown
+    }) as never);
+
+    return sent;
+  }
+
+  test("every five seconds, and taken for stopped after fifteen without a word: three chances to say so before its line moves on", () => {
+    expect(WorkspaceCreatedMessageLine.KEPT_EVERY_MS).toBe(5 * 1000);
+    expect(WorkspaceCreatedMessageLine.STALLED_AFTER_MS).toBe(15 * 1000);
+    expect(WorkspaceCreatedMessageLine.STALLED_AFTER_MS).toBeGreaterThanOrEqual(
+      WorkspaceCreatedMessageLine.KEPT_EVERY_MS * 3,
+    );
+
+    // Long before a hold has lasted its longest.
+    expect(WorkspaceCreatedMessageLine.STALLED_AFTER_MS).toBeLessThan(
+      WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS / 10,
+    );
+  });
+
+  test("a hundred lines a server holds are said held in one ask", () => {
+    expect(WorkspaceCreatedMessageLine.LINES_KEPT_AT_A_TIME).toBe(100);
+  });
+
+  test("its timer starts with the first line it holds, never keeps the process running, and stops once it holds none", async () => {
+    valkeyAnsweringOne();
+
+    const unref: Mock<() => void> = jest.fn<() => void>();
+    const timers: Array<{
+      delay: number | undefined;
+      unref: Mock<() => void>;
+    }> = [];
+    const cleared: Array<unknown> = [];
+
+    jest.spyOn(global, "setTimeout").mockImplementation(((
+      _handler: () => void,
+      delay?: number,
+    ) => {
+      const timer: { delay: number | undefined; unref: Mock<() => void> } = {
+        delay: delay,
+        unref: unref,
+      };
+      timers.push(timer);
+      return timer;
+    }) as never);
+    jest.spyOn(global, "clearTimeout").mockImplementation(((timer: unknown) => {
+      cleared.push(timer);
+    }) as never);
+
+    const first: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
+    const second: WorkspaceRecord = await hold({
+      incidentId: ObjectID.generate(),
+    });
+
+    const keepTimers: Array<{ delay: number | undefined }> = timers.filter(
+      (timer: { delay: number | undefined }): boolean => {
+        return timer.delay === WorkspaceCreatedMessageLine.KEPT_EVERY_MS;
+      },
+    );
+
+    // One timer for both lines, unref'd as each of the hold's timers is.
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(2);
+    expect(keepTimers).toHaveLength(1);
+    expect(unref).toHaveBeenCalledTimes(timers.length);
+
+    await WorkspaceCreatedMessageFirst.postHeld(first);
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(1);
+    expect(cleared).not.toContain(keepTimers[0]);
+
+    await WorkspaceCreatedMessageFirst.postHeld(second);
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(0);
+    expect(cleared).toContain(keepTimers[0]);
+  });
+
+  test("each time, it says so of every line it holds, a hundred in each ask, with the index first", async () => {
+    const sent: Array<Array<unknown>> = valkeyAnsweringOne();
+    const records: Array<WorkspaceRecord> = [];
+
+    for (let i: number = 0; i < 3; i++) {
+      records.push(await hold({ monitorId: ObjectID.generate() }));
+    }
+
+    const asked: number = sent.length;
+    await WorkspaceCreatedMessageLine.keepHeld();
+
+    const ask: Array<unknown> = sent[asked]!;
+
+    expect(sent).toHaveLength(asked + 1);
+    // eval(script, keys, the index, the three lines, ...ARGV)
+    expect(ask[1]).toBe(4);
+    expect(ask[2]).toBe(WorkspaceCreatedMessageLine.indexKey());
+    expect(ask.slice(3, 6)).toEqual(
+      records.map((record: WorkspaceRecord): string => {
+        return WorkspaceCreatedMessageLine.lineKeyOf(
+          `monitorId:${record.monitorId!.toString().toLowerCase()}`,
+        );
+      }),
+    );
+    expect(ask.slice(6)).toEqual([
+      String(WorkspaceCreatedMessageLine.STALLED_AFTER_MS),
+      String(WorkspaceCreatedMessageLine.RELEASED_FOR_AT_MOST_MS),
+      WorkspaceCreatedMessageLine.SERVER_ID,
+    ]);
+  });
+
+  test("a line opened by this server names it as its holder, with how long its holder may say nothing", async () => {
+    const sent: Array<Array<unknown>> = valkeyAnsweringOne();
+    const record: WorkspaceRecord = await hold({
+      scheduledMaintenanceId: ObjectID.generate(),
+    });
+    const lineKey: string = WorkspaceCreatedMessageLine.lineKeyOf(
+      `scheduledMaintenanceId:${record.scheduledMaintenanceId!.toString().toLowerCase()}`,
+    );
+
+    const start: Array<unknown> | undefined = sent.find(
+      (args: Array<unknown>): boolean => {
+        return args[2] === lineKey;
+      },
+    );
+
+    expect(start!.slice(1)).toEqual([
+      2,
+      lineKey,
+      WorkspaceCreatedMessageLine.indexKey(),
+      String(
+        WorkspaceCreatedMessageLine.livesAtMostMs(
+          WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS,
+        ),
+      ),
+      String(WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS),
+      String(WorkspaceCreatedMessageLine.STALLED_AFTER_MS),
+      WorkspaceCreatedMessageLine.SERVER_ID,
+    ]);
+  });
+
+  test("without Valkey nothing is said, and no timer starts: the hold is this server's own", async () => {
+    const timers: Array<number | undefined> = [];
+
+    jest.spyOn(global, "setTimeout").mockImplementation(((
+      _handler: () => void,
+      delay?: number,
+    ) => {
+      timers.push(delay);
+      return { unref: (): void => {} };
+    }) as never);
+    jest.spyOn(global, "clearTimeout").mockImplementation((() => {
+      // nothing to clear
+    }) as never);
+
+    await hold({ alertEpisodeId: ObjectID.generate() });
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(0);
+    expect(timers).toEqual([WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS]);
+  });
+
+  test("a round Valkey cannot answer is asked again the next time, the lines still held", async () => {
+    valkeyAnsweringOne();
+
+    const record: WorkspaceRecord = await hold({
+      onCallDutyPolicyId: ObjectID.generate(),
+    });
+
+    jest.spyOn(Redis, "getClient").mockReturnValue(null);
+    await WorkspaceCreatedMessageLine.keepHeld();
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(1);
+
+    valkeyAnsweringOne();
+    await WorkspaceCreatedMessageFirst.postHeld(record);
+
+    expect(WorkspaceCreatedMessageLine.linesHeldHere()).toBe(0);
   });
 });
