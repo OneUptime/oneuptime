@@ -123,8 +123,9 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import { INGEST_BACKLOG_ALLOWANCE_MS } from "Common/Utils/Telemetry/ReceivingGaps";
-import { TelemetryMonitorEvaluationJobData } from "../../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
-import TelemetryQueueService from "../../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
+import TelemetryQueueService, {
+  TelemetryMonitorEvaluationJobData,
+} from "../../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
 import "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
@@ -162,7 +163,8 @@ const SCHEDULER_SCHEDULE: string = (registration[1] as { schedule: string })
 const runScheduler: SchedulerRun = registration[2] as SchedulerRun;
 
 const findBy: jest.Mock = MonitorService.findBy as unknown as jest.Mock;
-const findOneById: jest.Mock = MonitorService.findOneById as unknown as jest.Mock;
+const findOneById: jest.Mock =
+  MonitorService.findOneById as unknown as jest.Mock;
 const enqueueJob: jest.Mock =
   TelemetryQueueService.addTelemetryMonitorEvaluationJob as unknown as jest.Mock;
 const countBy: jest.Mock = LogService.countBy as unknown as jest.Mock;
@@ -540,14 +542,20 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
     expect(queue.longestWaitMs).toBeGreaterThan(8 * SECOND_MS);
     expect(droppedAfterTheUpgrade(queue)).toEqual([]);
 
-    const report: TilingReport = keep("busy workers", tilingOf(judged, measured(30)), queue);
+    const report: TilingReport = keep(
+      "busy workers",
+      tilingOf(judged, measured(30)),
+      queue,
+    );
 
     // 100 monitors over 25 minutes: about 2,000 windows, none broken.
     expect(report.windows).toBeGreaterThan(1800);
     expect(report).toMatchObject({ breaks: 0, gapMs: 0, overlapMs: 0 });
 
-    // Each ends when its job said it was due: from the upgrade's last old
-    // stamp on, its monitor's own moment.
+    /*
+     * Each ends when its job said it was due: from the upgrade's last old
+     * stamp on, its monitor's own moment.
+     */
     for (const window of judged) {
       expect(window.endsAt).toBe(window.dueAt);
 
@@ -612,7 +620,9 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
     );
 
     expect(lateRuns.length).toBeGreaterThan(100);
-    expect(keep("a run that dies part way", tilingOf(judged, measured(30)), queue)).toMatchObject({
+    expect(
+      keep("a run that dies part way", tilingOf(judged, measured(30)), queue),
+    ).toMatchObject({
       breaks: 0,
       gapMs: 0,
       overlapMs: 0,
@@ -641,7 +651,11 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
       },
     });
 
-    const report: TilingReport = keep("a run that dies part way, as before", tilingOf(judged, measured(30)), queue);
+    const report: TilingReport = keep(
+      "a run that dies part way, as before",
+      tilingOf(judged, measured(30)),
+      queue,
+    );
 
     expect(report.breaks).toBeGreaterThan(100);
     expect(report.largestGapMs).toBeGreaterThan(2 * SECOND_MS);
@@ -677,7 +691,9 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
     await simulate({ queue, options: { minutes: 30, random } });
 
     expect(refused).toBeGreaterThan(30);
-    expect(keep("refused jobs", tilingOf(judged, measured(30)), queue)).toMatchObject({
+    expect(
+      keep("refused jobs", tilingOf(judged, measured(30)), queue),
+    ).toMatchObject({
       breaks: 0,
       gapMs: 0,
       overlapMs: 0,
@@ -710,7 +726,11 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
 
     await simulate({ queue, options: { minutes: 30, random } });
 
-    const report: TilingReport = keep("refused jobs, as before", tilingOf(judged, measured(30)), queue);
+    const report: TilingReport = keep(
+      "refused jobs, as before",
+      tilingOf(judged, measured(30)),
+      queue,
+    );
 
     expect(report.breaks).toBeGreaterThan(30);
     expect(report.largestGapMs).toBeGreaterThan(9 * SECOND_MS);
@@ -740,7 +760,9 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
     expect(queue.counts.retried).toBeGreaterThan(50);
     expect(queue.counts.failed).toBe(0);
     expect(droppedAfterTheUpgrade(queue)).toEqual([]);
-    expect(keep("failed checks tried again", tilingOf(judged, measured(30)), queue)).toMatchObject({
+    expect(
+      keep("failed checks tried again", tilingOf(judged, measured(30)), queue),
+    ).toMatchObject({
       breaks: 0,
       gapMs: 0,
       overlapMs: 0,
@@ -768,7 +790,11 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
 
     await simulate({ queue, options: { minutes: 30, random } });
 
-    const report: TilingReport = keep("failed checks tried again, as before", tilingOf(judged, measured(30)), queue);
+    const report: TilingReport = keep(
+      "failed checks tried again, as before",
+      tilingOf(judged, measured(30)),
+      queue,
+    );
 
     expect(report.breaks).toBeGreaterThan(50);
     expect(report.largestGapMs).toBeGreaterThanOrEqual(5 * SECOND_MS);
@@ -814,7 +840,11 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
     expect(queue.longestWaitMs).toBeGreaterThan(5 * SECOND_MS);
     expect(droppedAfterTheUpgrade(queue)).toEqual([]);
 
-    const report: TilingReport = keep("everything at once, 300 monitors, an hour", tilingOf(judged, measured(62)), queue);
+    const report: TilingReport = keep(
+      "everything at once, 300 monitors, an hour",
+      tilingOf(judged, measured(62)),
+      queue,
+    );
 
     // 300 monitors, most every minute, for an hour.
     expect(report.windows).toBeGreaterThan(14000);
@@ -842,7 +872,11 @@ describe("Telemetry checks that run late judge the windows they were due to (#11
     // Late as the busy queue makes them, and still all but on their windows.
     expect(queue.longestWaitMs).toBeGreaterThan(8 * SECOND_MS);
 
-    const report: TilingReport = keep("jobs from before due times were carried", tilingOf(judged, measured(20)), queue);
+    const report: TilingReport = keep(
+      "jobs from before due times were carried",
+      tilingOf(judged, measured(20)),
+      queue,
+    );
 
     expect(report.windows).toBeGreaterThan(1000);
     expect(report.largestGapMs).toBeLessThan(ON_TIME_MS);
@@ -896,7 +930,10 @@ describe("Where windows cannot follow on (#11248)", () => {
       }
 
       if (!refusedUntil.has(monitorId)) {
-        refusedUntil.set(monitorId, now + 20 * SECOND_MS + random(11) * SECOND_MS);
+        refusedUntil.set(
+          monitorId,
+          now + 20 * SECOND_MS + random(11) * SECOND_MS,
+        );
       }
 
       if (now < refusedUntil.get(monitorId)!) {
@@ -1024,7 +1061,11 @@ describe("Where windows cannot follow on (#11248)", () => {
     expect(queue.counts.droppedWhileWaiting).toBeGreaterThan(500);
     expect(queue.longestWaitMs).toBeGreaterThan(MINUTE_MS);
 
-    const report: TilingReport = keep("overloaded queue", tilingOf(judged, measured(20)), queue);
+    const report: TilingReport = keep(
+      "overloaded queue",
+      tilingOf(judged, measured(20)),
+      queue,
+    );
 
     expect(report.overlapMs).toBe(0);
     expect(report.gapMs).toBeGreaterThan(0);
@@ -1078,7 +1119,11 @@ describe("Where windows cannot follow on (#11248)", () => {
 
     await simulate({ queue, options: { minutes: 20, random } });
 
-    const report: TilingReport = keep("overloaded queue, as before", tilingOf(judged, measured(20)), queue);
+    const report: TilingReport = keep(
+      "overloaded queue, as before",
+      tilingOf(judged, measured(20)),
+      queue,
+    );
 
     expect(report.breaks).toBeGreaterThan(0);
     expect(
@@ -1105,7 +1150,11 @@ describe("Where windows cannot follow on (#11248)", () => {
       });
 
       for (let index: number = 1; index < windows.length; index++) {
-        if ((windows[index]!.startsAt - windows[index - 1]!.endsAt) % intervalMs !== 0) {
+        if (
+          (windows[index]!.startsAt - windows[index - 1]!.endsAt) %
+            intervalMs !==
+          0
+        ) {
           partGaps++;
         }
       }

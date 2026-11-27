@@ -195,14 +195,12 @@ beforeEach(() => {
   expectedHosts.mockReset().mockResolvedValue([]);
   findHost.mockReset().mockResolvedValue(null);
   findCluster.mockReset().mockResolvedValue(null);
-  jest
-    .spyOn(ReceivingCoverage, "planTelemetryEvaluation")
-    .mockResolvedValue({
-      evaluate: true,
-      // The window ends where the real plan ends it: now, or when the check was due.
-      evaluateUntil: new Date(),
-      isIngestBehind: false,
-    });
+  jest.spyOn(ReceivingCoverage, "planTelemetryEvaluation").mockResolvedValue({
+    evaluate: true,
+    // The window ends where the real plan ends it: now, or when the check was due.
+    evaluateUntil: new Date(),
+    isIngestBehind: false,
+  });
 });
 
 afterEach(() => {

@@ -127,8 +127,9 @@ import MonitorResourceUtil from "Common/Server/Utils/Monitor/MonitorResource";
 import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
 import ReceivingCoverage from "Common/Server/Utils/Telemetry/ReceivingCoverage";
 import TelemetryIngestBacklog from "Common/Server/Utils/Telemetry/TelemetryIngestBacklog";
-import { TelemetryMonitorEvaluationJobData } from "../../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
-import TelemetryQueueService from "../../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
+import TelemetryQueueService, {
+  TelemetryMonitorEvaluationJobData,
+} from "../../../../FeatureSet/Telemetry/Services/Queue/TelemetryQueueService";
 import RunCron from "../../../../FeatureSet/Workers/Utils/Cron";
 import "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/ScheduleTelemetryMonitorEvaluations";
 import { processTelemetryMonitorEvaluationFromQueue } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
@@ -311,11 +312,9 @@ function countGroup(
   windows: Array<CountedWindow>,
   monitorIds: Set<string>,
 ): GroupCounted {
-  const mine: Array<CountedWindow> = windows.filter(
-    (window: CountedWindow) => {
-      return monitorIds.has(window.monitorId);
-    },
-  );
+  const mine: Array<CountedWindow> = windows.filter((window: CountedWindow) => {
+    return monitorIds.has(window.monitorId);
+  });
 
   const counted: GroupCounted = {
     monitors: monitorIds.size,
@@ -344,7 +343,10 @@ function countGroup(
       continue;
     }
 
-    counted.logs += logsBetween(list[0]!.startsAt, list[list.length - 1]!.endsAt);
+    counted.logs += logsBetween(
+      list[0]!.startsAt,
+      list[list.length - 1]!.endsAt,
+    );
 
     for (let index: number = 0; index < list.length; index++) {
       const window: CountedWindow = list[index]!;
@@ -369,10 +371,7 @@ function countGroup(
       }
 
       if (window.startsAt < before.endsAt) {
-        counted.logsCountedTwice += logsBetween(
-          window.startsAt,
-          before.endsAt,
-        );
+        counted.logsCountedTwice += logsBetween(window.startsAt, before.endsAt);
       }
     }
   }
@@ -432,7 +431,11 @@ integration(
 
       // Every minute, no interval: the Dashboard's monitors.
       harness.seed([
-        { monitoringInterval: undefined, intervalMs: MINUTE_MS, count: MONITORS },
+        {
+          monitoringInterval: undefined,
+          intervalMs: MINUTE_MS,
+          count: MONITORS,
+        },
       ]);
       harness.serveFromTheStore();
       harness.applyStatementsToTheStore();
@@ -449,9 +452,7 @@ integration(
 
       for (const id of harness.sortedIds) {
         for (let at: number = logsFrom; at <= logsTo; at += LOG_EVERY_MS) {
-          batch.push(
-            logRow(id, BigInt(at) * BigInt(1000000) + LOG_OFFSET_NS),
-          );
+          batch.push(logRow(id, BigInt(at) * BigInt(1000000) + LOG_OFFSET_NS));
 
           if (batch.length >= 50000) {
             await client.insert({

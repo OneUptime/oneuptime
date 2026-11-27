@@ -273,10 +273,14 @@ function percentile(values: Array<number>, share: number): number {
     return a - b;
   });
 
-  return sorted[Math.min(sorted.length - 1, Math.floor(share * sorted.length))]!;
+  return sorted[
+    Math.min(sorted.length - 1, Math.floor(share * sorted.length))
+  ]!;
 }
 
-function mostAtOnce(spans: Array<{ startedAt: number; endedAt: number }>): number {
+function mostAtOnce(
+  spans: Array<{ startedAt: number; endedAt: number }>,
+): number {
   const edges: Array<[number, number]> = [];
 
   for (const span of spans) {
@@ -687,14 +691,15 @@ describePostgres(
       const times: Array<ResultTimes> = [];
       const failures: Array<unknown> = [];
       const evaluations: Set<Promise<void>> = new Set();
-      let active: number = 0;
+      // Evaluations running now, on the queue's workers.
+      const pool: { active: number } = { active: 0 };
       let claims: number = 0;
 
       const pump: () => void = (): void => {
-        while (active < INGEST_WORKERS && waiting.length > 0) {
+        while (pool.active < INGEST_WORKERS && waiting.length > 0) {
           const next: { monitorProbeId: string; checkedAt: number } =
             waiting.shift()!;
-          active++;
+          pool.active++;
 
           const startedAt: number = Date.now();
           const evaluation: Promise<void> = MonitorResourceUtil.monitorResource(
@@ -717,7 +722,7 @@ describePostgres(
               failures.push(error);
             })
             .finally(() => {
-              active--;
+              pool.active--;
               evaluations.delete(evaluation);
               pump();
             });

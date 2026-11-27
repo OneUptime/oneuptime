@@ -891,7 +891,9 @@ export const processTelemetryMonitorEvaluationFromQueue: (
   await MonitorResourceUtil.monitorResource(response, {
     evaluationStartedAtMs: evaluationStartedAtMs,
     judgedWindow: {
-      startsAt: new Date(plan.evaluateUntil.getTime() - Math.max(0, windowInMs)),
+      startsAt: new Date(
+        plan.evaluateUntil.getTime() - Math.max(0, windowInMs),
+      ),
       endsAt: plan.evaluateUntil,
     },
   });

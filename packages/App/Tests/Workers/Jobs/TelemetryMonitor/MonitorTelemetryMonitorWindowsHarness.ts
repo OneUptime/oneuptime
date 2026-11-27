@@ -120,8 +120,10 @@ export class TelemetryQueueModel {
     new Map();
 
   // A monitor's check queued while its last one ran.
-  private readonly keptForAfter: Map<string, TelemetryMonitorEvaluationJobData> =
-    new Map();
+  private readonly keptForAfter: Map<
+    string,
+    TelemetryMonitorEvaluationJobData
+  > = new Map();
 
   public constructor(
     private readonly options: QueueModelOptions,

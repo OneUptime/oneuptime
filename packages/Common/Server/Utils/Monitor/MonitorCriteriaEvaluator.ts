@@ -939,7 +939,8 @@ ${incomingRequestGrouping.rootCauseNote}
                 (match: PerSeriesCriteriaMatch): PerSeriesCriteriaMatch => {
                   return {
                     ...match,
-                    rootCause: mdText`${FeedMarkdown.asMarkdown(match.rootCause)}
+                    rootCause:
+                      mdText`${FeedMarkdown.asMarkdown(match.rootCause)}
 
 **Window Judged**: ${judgedWindow}`.toString(),
                   };

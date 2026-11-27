@@ -88,7 +88,9 @@ function criteriaInstance(id: string): MonitorCriteriaInstance {
 
 function logStep(groupByAttributes: Array<string> | undefined): MonitorStep {
   const criteria: MonitorCriteria = new MonitorCriteria();
-  criteria.data = { monitorCriteriaInstanceArray: [criteriaInstance("errors")] };
+  criteria.data = {
+    monitorCriteriaInstanceArray: [criteriaInstance("errors")],
+  };
 
   const monitorStep: MonitorStep = new MonitorStep();
   monitorStep.data = {
