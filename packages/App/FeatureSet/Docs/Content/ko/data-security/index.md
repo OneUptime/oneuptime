@@ -6,7 +6,7 @@
 
 :::cards
 - [민감한 데이터는 어디에 있나요?](/docs/data-security/data-types): 카드 번호와 국가 신분증 번호부터 API 키까지, 버킷, 테이블, 텔레메트리에서 찾아내는 143가지 데이터 유형.
-- [노출되어 있나요?](/docs/data-security/checks-and-issues): 각 저장소에 대한 34가지 검사: 공개 액세스, 암호화, 백업, 로깅, 시크릿, 복사본.
+- [노출되어 있나요?](/docs/data-security/checks-and-issues): 각 저장소에 대한 35가지 검사: 공개 액세스, 암호화, 백업, 로깅, 시크릿, 복사본.
 - [누가 접근할 수 있고, 데이터는 어디로 가나요?](/docs/data-security/flows-access-residency): 각 저장소에 접근할 수 있는 모든 ID(위험한 순), 어떤 서비스가 사용하는지, 그 데이터가 어떤 AI 공급자와 호스트에 도달하는지.
 - [규칙을 지키고 있나요?](/docs/data-security/compliance): 데이터 상주 규칙, 그리고 스캔에서 찾은 내용으로 점수를 매기는 아홉 가지 프레임워크.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## 시작하기 전에
 
 - **설정할 수 있는 역할.** 프로젝트 소유자, 프로젝트 관리자, 보안 관리자는 데이터 보안의 설정을 변경합니다. 보안 구성원은 이슈를 처리하고 저장소를 스캔하며, 보안 뷰어는 찾은 내용을 읽습니다. 다른 역할은 팀에 해당 권한이 주어지지 않는 한 아무것도 볼 수 없습니다. 어떤 버킷에 카드 번호가 있는지는 바로 공격자가 알고 싶어 하는 정보이기 때문입니다. [역할](/docs/permissions/reference#역할)을 참고하세요.
-- **읽을 클라우드 계정 또는 데이터베이스.** 데이터 보안은 [클라우드 연결](/docs/telemetry/cloud-accounts)을 통해 클라우드 계정을 읽고, 직접 운영하는 데이터베이스는 읽기 전용 연결 문자열로 읽습니다. 텔레메트리는 아무것도 필요하지 않으며, 매시간 스캔됩니다.
+- **읽을 클라우드 계정 또는 직접 운영하는 저장소.** 데이터 보안은 [클라우드 연결](/docs/telemetry/cloud-accounts)을 통해 클라우드 계정을 읽고, 직접 운영하는 데이터베이스나 검색 클러스터는 읽기 전용 연결 문자열로 읽습니다. 텔레메트리는 아무것도 필요하지 않으며, 매시간 스캔됩니다.
 
 ## 빠른 시작
 
@@ -69,10 +69,10 @@ flowchart TB
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| 직접 운영하는 데이터베이스 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| 직접 운영하는 저장소 | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | 로그, 트레이스, 예외, 세션 리플레이, AI 대화, 메트릭, 보안 이벤트, Network Flows, 보안 주소 보관소, 보안 사용자 보관소 | 로그, 트레이스, 예외, 세션 리플레이, AI 대화, 메트릭 |
 
-모든 저장소는 그 종류에 해당하는 검사를 받습니다. 콘텐츠를 샘플링할 수 없는 저장소도 검사합니다. 공개 버킷이나 암호화되지 않은 데이터베이스는 무엇을 담고 있든 문제이기 때문입니다. 보안 이벤트, Network Flows, 보안 주소 보관소는 OneUptime이 보안을 위해 보관하는 자체 저장소입니다. 선언된 저장소로, 스캔하거나 검사하지 않습니다([OneUptime이 보안을 위해 보관하는 저장소](/docs/data-security/compliance#oneuptime이-보안을-위해-보관하는-저장소) 참고).
+모든 저장소는 OneUptime이 읽을 수 있는 내용을 바탕으로 그 종류에 해당하는 검사를 받습니다. 클라우드 계정의 저장소는 클라우드 자체 설정에서 읽으므로, 콘텐츠를 샘플링할 수 있든 없든 검사합니다. 공개 버킷이나 암호화되지 않은 데이터베이스는 무엇을 담고 있든 문제이기 때문입니다. 직접 운영하는 저장소에는 OneUptime이 읽을 그런 설정이 없습니다. Elasticsearch나 OpenSearch 클러스터에는 콘텐츠 스캔 때마다 자체 주소에서 자격 증명 없이 응답하는지 묻고, 다른 종류에 어떻게 접근할 수 있는지는 검사하지 않습니다([직접 운영하는 저장소에서 OneUptime이 검사하는 항목](/docs/data-security/setup#직접-운영하는-저장소에서-oneuptime이-검사하는-항목) 참고). 각 저장소의 **설정** 에 있는 **OneUptime이 검사하는 항목** 에서 무엇을 검사하고 무엇을 검사하지 않는지 확인할 수 있습니다. 보안 이벤트, Network Flows, 보안 주소 보관소는 OneUptime이 보안을 위해 보관하는 자체 저장소입니다. 선언된 저장소로, 스캔하거나 검사하지 않습니다([OneUptime이 보안을 위해 보관하는 저장소](/docs/data-security/compliance#oneuptime이-보안을-위해-보관하는-저장소) 참고).
 
 소스에 더 이상 나열되지 않는 저장소는 기록과 함께 보관 처리되고 열린 이슈가 해결되며, 데이터 보안 메뉴 맨 끝의 **보관된 저장소** 에 남습니다. 소스에 다시 나열되면 저절로 돌아오고, 검사가 여전히 실패하는 이슈는 다시 열립니다.
 
@@ -86,9 +86,10 @@ flowchart TB
 | 클라우드 연결의 구성 읽기 | 하루에 한 번, 그리고 CloudTrail이 AWS 저장소의 접근, 암호화, 백업 또는 공유에 대한 변경을 기록한 뒤 한 시간 안에 |
 | 저장소의 콘텐츠 샘플링 | 24시간마다, 또는 **스캔 주기(시간)** 에 설정한 주기마다 |
 | 각 서비스의 텔레메트리 샘플링 | 매시간, 지난 한 시간 분량 |
+| 직접 운영하는 검색 클러스터에 자격 증명 없이 응답하는지 묻기 | 콘텐츠 스캔 때마다 |
 | 모든 저장소 다시 검사 | 모든 읽기와 스캔 뒤, 검사가 의존하는 항목을 변경한 뒤, 그리고 하루에 한 번 |
 
-저장소의 **지금 스캔** 은 콘텐츠를 즉시 샘플링하고, **지금 검사** 는 구성을 다시 읽습니다.
+저장소의 **지금 스캔** 은 콘텐츠를 즉시 샘플링하고, 직접 운영하는 검색 클러스터에는 자격 증명 없이 응답하는지 다시 묻습니다. **지금 검사** 는 클라우드 계정에 있는 저장소의 구성을 다시 읽고, 저장소의 검사를 다시 실행합니다.
 
 ## 다음 단계
 

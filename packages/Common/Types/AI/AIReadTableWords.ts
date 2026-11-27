@@ -869,6 +869,8 @@ export const AI_READ_DATA_SECURITY_TERMS: ReadonlyArray<string> = [
   translationKey("Internet reachable"),
   translationKey("Private"),
   translationKey("Unknown"),
+  translationKey("Not checked yet"),
+  translationKey("Can't be checked"),
   // SecuritySeverity
   translationKey("Critical"),
   translationKey("High"),

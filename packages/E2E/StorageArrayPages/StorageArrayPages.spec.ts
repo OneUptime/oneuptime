@@ -1367,3 +1367,352 @@ test.describe("dark, German and Persian", () => {
     await screenshot(page, "host-page-persian-390");
   });
 });
+
+/*
+ * Dell PowerMax's Unisphere connections (#11004), in the product's own
+ * layout and side menu: unisphere-fra collects - its status, Unisphere's
+ * version, and every array behind it, each local one linked to its page and
+ * the SRDF partner said to be read elsewhere - and unisphere-ams stopped
+ * when its certificate changed, with the certificate it was shown and Trust
+ * this certificate. Test Connection starts at once and says what the
+ * account can read, or what is wrong: a certificate to check, a role
+ * missing, nothing answering, performance collection off. The Connect
+ * Unisphere form, at a laptop's width and a phone's, dark, German and
+ * Persian right to left.
+ */
+const CONNECTIONS_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/connections`;
+const UNISPHERE_FRA_ID: string = "5a000000-0000-4000-8000-000000000001";
+const UNISPHERE_AMS_ID: string = "5a000000-0000-4000-8000-000000000002";
+const UNISPHERE_FRA_PATH: string = `${CONNECTIONS_PATH}/${UNISPHERE_FRA_ID}`;
+const UNISPHERE_AMS_PATH: string = `${CONNECTIONS_PATH}/${UNISPHERE_AMS_ID}`;
+const PMAX_8500_PATH: string = `/dashboard/${PROJECT_ID}/storage-arrays/58000000-0000-4000-8000-000000000011`;
+const PROBE_ID: string = "59000000-0000-4000-8000-000000000001";
+// The certificate the fixture's Unisphere presents, unknown to the connection.
+const PRESENTED_FINGERPRINT: string =
+  "B1:07:6E:F2:38:9D:C4:52:0A:E9:71:3B:86:D5:2F:60:C8:14:A7:5E:93:0C:B2:6F:41:D8:E3:27:9A:05:7C:B6";
+
+interface ConnectionWrites {
+  createRequests: Array<{
+    modelName: string;
+    data: Record<string, unknown>;
+    hasPassword: boolean;
+  }>;
+  updateRequests: Array<{
+    modelName: string;
+    id: string;
+    data: Record<string, unknown>;
+  }>;
+}
+
+async function connectionWrites(page: Page): Promise<ConnectionWrites> {
+  return await page.evaluate((): ConnectionWrites => {
+    const fixture: ConnectionWrites = (
+      window as unknown as { __storageArrayPagesFixture: ConnectionWrites }
+    ).__storageArrayPagesFixture;
+    return {
+      createRequests: fixture.createRequests,
+      updateRequests: fixture.updateRequests,
+    };
+  });
+}
+
+async function openConnection(page: Page, pagePath: string): Promise<void> {
+  await page.goto(pagePath);
+  await expect(page.getByText("Data Collection").first()).toBeVisible();
+}
+
+// The connection page's own Test Connection, which opens the test and starts it.
+async function testConnection(page: Page): Promise<Locator> {
+  await page.getByRole("button", { name: "Test Connection" }).click();
+  const result: Locator = page.getByTestId("storage-array-test-result");
+  await expect(result).toBeVisible();
+  return result;
+}
+
+test.describe("Unisphere connections (#11004)", () => {
+  test("lists each connection with how its collection goes, at a laptop's width and a phone's", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await page.goto(CONNECTIONS_PATH);
+
+    const fra: Locator = page.getByRole("row", { name: /unisphere-fra/ });
+    await expect(fra).toContainText("Collecting");
+    await expect(fra).toContainText("2 arrays");
+    await expect(fra).toContainText(
+      "https://unisphere-fra.acme-storage.example:8443",
+    );
+    const ams: Locator = page.getByRole("row", { name: /unisphere-ams/ });
+    await expect(ams).toContainText("Not collecting");
+    await expect(ams).toContainText("1 array");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connections-list-1280");
+
+    await page.setViewportSize(PHONE);
+    await expect(page.getByText("unisphere-ams").first()).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connections-list-390");
+  });
+
+  test("a collecting connection: Unisphere's version and every array behind it, each local one linked to its page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openConnection(page, UNISPHERE_FRA_PATH);
+
+    await expect(
+      page.getByText("The probe is reading every array behind this Unisphere."),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Unisphere for PowerMax T10.4.0.83"),
+    ).toBeVisible();
+
+    // A local array opens its own page; the SRDF partner is read elsewhere.
+    await expect(
+      page.getByRole("link", { name: "000120000123" }),
+    ).toHaveAttribute("href", PMAX_8500_PATH);
+    await expect(page.getByRole("link", { name: "000220200789" })).toHaveCount(
+      0,
+    );
+    await expect(page.getByText("Remote: not collected here")).toBeVisible();
+    await expect(
+      page.getByText("Performance on, real time for 1 storage group"),
+    ).toBeVisible();
+    await expect(page.getByText("Performance collection off")).toBeVisible();
+    // The password is never drawn: the page says only that one is saved.
+    await expect(page.getByText("Saved", { exact: true })).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connection-collecting-1280");
+
+    await page.setViewportSize(PHONE);
+    await openConnection(page, withQuery(UNISPHERE_FRA_PATH, "theme=dark"));
+    expect(
+      await page.evaluate((): boolean => {
+        return document.documentElement.classList.contains("dark");
+      }),
+    ).toBe(true);
+    await expect(page.getByText("Remote: not collected here")).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connection-collecting-dark-390");
+  });
+
+  test("Test Connection starts at once with the saved password, and says what the account can read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openConnection(page, withQuery(UNISPHERE_FRA_PATH, "test=ok"));
+
+    const result: Locator = await testConnection(page);
+    await expect(result).toContainText(
+      "Connected to Unisphere for PowerMax T10.4.0.83.",
+    );
+    for (const pill of ["2 arrays", "49 storage groups", "714 volumes"]) {
+      await expect(result.getByText(pill, { exact: true })).toBeVisible();
+    }
+    await expect(result).toContainText(
+      "Performance on, real time for 1 storage group",
+    );
+    await expect(result).toContainText("Remote: not collected here");
+    await screenshot(page, "connection-test-ok-1280");
+
+    // One test, of this connection, on its probe, with the saved password.
+    const writes: ConnectionWrites = await connectionWrites(page);
+    expect(writes.createRequests).toHaveLength(1);
+    expect(writes.createRequests[0]).toMatchObject({
+      modelName: "StorageArrayConnectionTest",
+      hasPassword: false,
+      data: {
+        storageSystem: "dell.powermax",
+        address: "https://unisphere-fra.acme-storage.example:8443",
+        username: "oneuptime-monitor",
+        probeId: PROBE_ID,
+        storageArrayConnectionId: UNISPHERE_FRA_ID,
+      },
+    });
+  });
+
+  test("Test Connection says what is wrong: a certificate to check, a missing role, nothing answering, performance off", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const answers: Array<[string, Array<string>]> = [
+      [
+        "role",
+        [
+          "The account may not read the arrays.",
+          "In Unisphere, give the user the Monitor role on each array, and PerfMonitor for performance.",
+        ],
+      ],
+      [
+        "unreachable",
+        [
+          "The server refused the connection.",
+          "Unisphere for PowerMax serves its REST API on 8443 unless it was changed.",
+        ],
+      ],
+      [
+        "perfoff",
+        [
+          "Performance collection off",
+          "turn Diagnostic collection on under Settings > Performance > System Registrations.",
+        ],
+      ],
+    ];
+
+    await page.setViewportSize(LAPTOP);
+    for (const [answer, sentences] of answers) {
+      await openConnection(
+        page,
+        withQuery(UNISPHERE_FRA_PATH, `test=${answer}`),
+      );
+      const result: Locator = await testConnection(page);
+      for (const sentence of sentences) {
+        await expect(result).toContainText(sentence);
+      }
+      await screenshot(page, `connection-test-${answer}-1280`);
+    }
+  });
+
+  test("an untrusted certificate is shown to check, and Trust this certificate saves its fingerprint", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(PHONE);
+    await openConnection(
+      page,
+      withQuery(UNISPHERE_FRA_PATH, "test=certificate"),
+    );
+    const result: Locator = await testConnection(page);
+    await expect(result).toContainText(
+      "The server's certificate is not trusted.",
+    );
+    await expect(result).toContainText("CN=unisphere-fra.acme-storage.example");
+    await expect(result).toContainText(PRESENTED_FINGERPRINT);
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connection-test-certificate-390");
+
+    await result
+      .getByRole("button", { name: "Trust this certificate" })
+      .click();
+    await expect(page.getByTestId("storage-array-test-result")).toHaveCount(0);
+
+    const writes: ConnectionWrites = await connectionWrites(page);
+    expect(writes.updateRequests).toEqual([
+      {
+        modelName: "StorageArrayConnection",
+        id: UNISPHERE_FRA_ID,
+        data: { trustedCertificateFingerprint: PRESENTED_FINGERPRINT },
+      },
+    ]);
+  });
+
+  test("a connection whose certificate changed shows the new one, and stops until it is trusted", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await openConnection(page, UNISPHERE_AMS_PATH);
+
+    await expect(page.getByText("Not collecting").first()).toBeVisible();
+    await expect(
+      page.getByText("The server's certificate changed."),
+    ).toBeVisible();
+    await expect(page.getByText(PRESENTED_FINGERPRINT)).toBeVisible();
+    // What it last found stays on the page, two days old.
+    await expect(
+      page.getByRole("link", { name: "000220200789" }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connection-certificate-changed-1280");
+
+    await page.getByRole("button", { name: "Trust this certificate" }).click();
+    await expect
+      .poll(async (): Promise<ConnectionWrites["updateRequests"]> => {
+        return (await connectionWrites(page)).updateRequests;
+      })
+      .toEqual([
+        {
+          modelName: "StorageArrayConnection",
+          id: UNISPHERE_AMS_ID,
+          data: { trustedCertificateFingerprint: PRESENTED_FINGERPRINT },
+        },
+      ]);
+  });
+
+  test("Connect Unisphere opens a two-step form: Unisphere, then its certificate and name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await page.goto(CONNECTIONS_PATH);
+    await page.getByRole("button", { name: "Connect Unisphere" }).click();
+
+    const dialog: Locator = page.getByRole("dialog");
+    for (const label of [
+      "Unisphere Address",
+      "User Name",
+      "Password",
+      "Probe",
+      "Certificate and Name",
+    ]) {
+      await expect(
+        dialog.getByText(label, { exact: true }).first(),
+      ).toBeVisible();
+    }
+    await screenshot(page, "connect-unisphere-form-1280");
+
+    await page.setViewportSize(PHONE);
+    await expect(dialog.getByText("Unisphere Address").first()).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connect-unisphere-form-390");
+  });
+
+  test("German, and Persian right to left", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize(LAPTOP);
+    await page.goto(withQuery(UNISPHERE_FRA_PATH, "lang=de"));
+    await expect(
+      page.getByText(GERMAN["Data Collection"]!).first(),
+    ).toBeVisible();
+    await expect(
+      page.getByText(GERMAN["Remote: not collected here"]!),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connection-german-1280");
+
+    await page.setViewportSize(PHONE);
+    await page.goto(withQuery(UNISPHERE_FRA_PATH, "lang=fa&test=certificate"));
+    await expect(
+      page.getByText(PERSIAN["Data Collection"]!).first(),
+    ).toBeVisible();
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connection-persian-390");
+
+    await page
+      .getByRole("button", { name: PERSIAN["Test Connection"]! })
+      .click();
+    await expect(page.getByTestId("storage-array-test-result")).toContainText(
+      PERSIAN["Trust this certificate"]!,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "connection-test-certificate-persian-390");
+  });
+});

@@ -28,11 +28,16 @@ function exposureOf(
 }
 
 describe("getDataStoreExposure", () => {
-  test("is Unknown when nothing was read", () => {
-    expect(getDataStoreExposure(null)).toBe(DataStoreExposure.Unknown);
-    expect(getDataStoreExposure(undefined)).toBe(DataStoreExposure.Unknown);
+  /*
+   * Never Unknown, which says a read could not tell (#11140): nothing read
+   * is a check still to come. A kind nothing reads is Can't be checked
+   * (DataStoreExposureCheck.test).
+   */
+  test("is Not checked yet when nothing was read", () => {
+    expect(getDataStoreExposure(null)).toBe(DataStoreExposure.NotChecked);
+    expect(getDataStoreExposure(undefined)).toBe(DataStoreExposure.NotChecked);
     expect(getDataStoreExposure({ publicRead: true })).toBe(
-      DataStoreExposure.Unknown,
+      DataStoreExposure.NotChecked,
     );
   });
 

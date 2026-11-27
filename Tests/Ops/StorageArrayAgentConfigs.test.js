@@ -201,6 +201,22 @@ const CONFIGS = {
 const CONFIG_NAMES = Object.keys(CONFIGS);
 
 /*
+ * The configs that poll the array themselves over SNMP rather than scrape
+ * it (no scrape jobs: their receivers are checked in
+ * StorageArrayAgentPowerScale.test.js), with the variables they read the
+ * array's address and read-only credential from.
+ */
+const SNMP_CONFIGS = {
+  "otel-collector-config.powerscale.yaml": {
+    system: "dell.powerscale",
+    profile: "",
+    endpoint: "${env:POWERSCALE_ENDPOINT}",
+    token: "${env:POWERSCALE_SNMP_COMMUNITY}",
+  },
+};
+const ALL_CONFIG_NAMES = [...CONFIG_NAMES, ...Object.keys(SNMP_CONFIGS)];
+
+/*
  * The files a platform runs with besides its collector config (install.sh's
  * table, field 11), and the .env settings only the compose file reads (the
  * PowerStore exporter's login and options, the syslog port).
@@ -285,6 +301,8 @@ const CONFIG_ENV = [
   "PURE_FB_ENDPOINT",
   "PURE_FB_API_TOKEN",
   "POWERSTORE_ENDPOINT",
+  "POWERSCALE_ENDPOINT",
+  "POWERSCALE_SNMP_COMMUNITY",
   "STORAGE_ARRAY_INSECURE_SKIP_VERIFY",
 ];
 /* The compose-level variables .env carries besides those. */
@@ -359,7 +377,8 @@ function installPlatforms() {
     })
     .map((line) => {
       const fields = line.split("|");
-      expect({ line, fields: fields.length }).toEqual({ line, fields: 12 });
+      // Twelve fields, and a thirteenth: a platform's own setup step, or -.
+      expect({ line, fields: fields.length }).toEqual({ line, fields: 13 });
       const list = (field) => {
         return field === "-" ? [] : field.split(" ");
       };
@@ -376,6 +395,7 @@ function installPlatforms() {
         userVariable: fields[9] === "-" ? "" : fields[9],
         otherFiles: list(fields[10]),
         optionalVariables: list(fields[11]),
+        setup: fields[12] && fields[12] !== "-" ? fields[12] : "",
       };
     });
 }
@@ -820,7 +840,7 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
 
   test("names every shipped config where it explains the choice", () => {
     const text = read(`${AGENT_DIR}/docker-compose.yml`);
-    for (const name of CONFIG_NAMES) {
+    for (const name of ALL_CONFIG_NAMES) {
       expect(text).toContain(name);
     }
   });
@@ -831,12 +851,13 @@ describe("agents/StorageArrayAgent/install.sh", () => {
 
   test("gives each config the platform it reads and the profile that starts what it scrapes", () => {
     const mapping = installMapping();
-    expect(Object.keys(mapping).sort()).toEqual([...CONFIG_NAMES].sort());
-    for (const name of CONFIG_NAMES) {
+    expect(Object.keys(mapping).sort()).toEqual([...ALL_CONFIG_NAMES].sort());
+    for (const name of ALL_CONFIG_NAMES) {
+      const expected = CONFIGS[name] || SNMP_CONFIGS[name];
       expect({ name, ...mapping[name] }).toEqual({
         name,
-        system: CONFIGS[name].system,
-        profile: CONFIGS[name].profile,
+        system: expected.system,
+        profile: expected.profile,
       });
     }
   });
@@ -847,9 +868,20 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       platforms.map((platform) => {
         return platform.config;
       }),
-    ).toEqual(CONFIG_NAMES);
+    ).toEqual(ALL_CONFIG_NAMES);
     const services = compose().services;
     for (const platform of platforms) {
+      const snmp = SNMP_CONFIGS[platform.config];
+      if (snmp) {
+        // Its address and read-only community, and no TLS to the array.
+        expect(snmp.token).toBe(`\${env:${platform.tokenVariable}}`);
+        expect(snmp.endpoint).toBe(`\${env:${platform.endpointVariable}}`);
+        expect(platform.tlsToArray).toBe("no");
+        expect(platform.menu).not.toBe("");
+        expect(platform.readHow).not.toBe("");
+        expect(script).toContain(`\n${platform.setup}() {\n`);
+        continue;
+      }
       const expected = CONFIGS[platform.config];
       if (expected.harvest) {
         // Harvest reads the address, the user and its password; the collector none.
@@ -957,7 +989,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect([...downloaded].sort()).toEqual(
       [
         "docker-compose.yml",
-        ...CONFIG_NAMES,
+        ...ALL_CONFIG_NAMES,
         ...OTHER_FILES,
         ...HARVEST_FILES,
       ].sort(),

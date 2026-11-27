@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-Monitorens `monitor_steps` siger, hvad den tjekker, og hvad hvert resultat betyder: efter hvert tjek sætter det første kriterium, der passer, dens status. [Monitortrin](/docs/terraform/monitor-steps) forklarer hver del.
+Monitorens `monitor_steps` siger, hvad den tjekker, og hvad hvert resultat betyder: efter hvert tjek sætter det første kriterium, der passer og ændrer status, dens status. [Monitortrin](/docs/terraform/monitor-steps) forklarer hver del.
 
 ### Planlæg og anvend
 

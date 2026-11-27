@@ -144,8 +144,15 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Accounts outside your connected ones can reach it."),
   translationKey("Its network endpoint accepts connections from the internet."),
   translationKey("Only your own accounts and networks reach it."),
+  // Why OneUptime does not know (#11140): it could not tell, has not checked yet, or has no way to.
+  translationKey("Not checked yet"),
+  translationKey("Can't be checked"),
   translationKey(
-    "OneUptime could not read enough of its configuration to tell.",
+    "OneUptime checked it, but could not tell from what it could read.",
+  ),
+  translationKey("OneUptime has not checked how it can be reached yet."),
+  translationKey(
+    "OneUptime has no way to check how this kind of store can be reached.",
   ),
   // Issue statuses: Open's own words beside the Open buttons' verb
   translationKey("Open"),
@@ -182,6 +189,7 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Oracle"),
   translationKey("Redis"),
   translationKey("Elasticsearch"),
+  translationKey("OpenSearch"),
   translationKey("Snowflake"),
   translationKey("ClickHouse"),
   translationKey("Databricks"),
@@ -668,6 +676,14 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey(
     "Access you cannot see the other side of: a vendor's compromised account becomes your breach.",
   ),
+  // A store you run, asked at its own address without credentials (#11140).
+  translationKey("Anyone who reaches it can read it without credentials"),
+  translationKey(
+    "It answered OneUptime without credentials: whoever can reach its address can read its data, and change it when it has no access control at all.",
+  ),
+  translationKey(
+    "Search clusters and databases left open are found and copied, or wiped and held for ransom, soon after anything can reach them.",
+  ),
   translationKey("Its data is not encrypted at rest"),
   translationKey("Storage encryption is turned off."),
   translationKey(
@@ -929,6 +945,27 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   ),
   translationKey(
     "Review each outside principal, and remove the ones that do not need access.",
+  ),
+  translationKey(
+    "Turn security on: set xpack.security.enabled: true in elasticsearch.yml on every node, restart them, and set the built-in users' passwords with elasticsearch-reset-password.",
+  ),
+  translationKey(
+    "If anonymous access is on, remove xpack.security.authc.anonymous.roles, or give the anonymous user a role with no index privileges.",
+  ),
+  translationKey(
+    "Give each application its own user or API key, with only the roles it needs.",
+  ),
+  translationKey(
+    "Turn the security plugin on: remove plugins.security.disabled: true from opensearch.yml and DISABLE_SECURITY_PLUGIN from the nodes' environment, then restart every node.",
+  ),
+  translationKey(
+    "If anonymous authentication is on, set anonymous_auth_enabled: false in the security plugin's config.yml and apply it with securityadmin.sh.",
+  ),
+  translationKey(
+    "Give each application its own internal user, mapped to a role with only the permissions it needs.",
+  ),
+  translationKey(
+    "Require credentials for every request, and give each application its own read-only user.",
   ),
   translationKey(
     "RDS cannot encrypt an existing instance in place: take a snapshot, copy it with encryption on, and restore the copy.",

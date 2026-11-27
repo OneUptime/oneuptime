@@ -3,6 +3,8 @@ import PureStorageFlashArrayPlatform from "./PureStorage/FlashArray/FlashArrayPl
 import PureStorageFlashBladePlatform from "./PureStorage/FlashBlade/FlashBladePlatform";
 import DellPowerStorePlatform from "./Dell/PowerStore/PowerStorePlatform";
 import NetAppOntapPlatform from "./NetApp/ONTAP/OntapPlatform";
+import DellPowerMaxPlatform from "./Dell/PowerMax/PowerMaxPlatform";
+import DellPowerScalePlatform from "./Dell/PowerScale/PowerScalePlatform";
 
 /*
  * Every storage platform OneUptime ships: a new one is its folder beside
@@ -20,4 +22,6 @@ export const BUILT_IN_STORAGE_ARRAY_PLATFORMS: ReadonlyArray<StorageArrayPlatfor
     PureStorageFlashBladePlatform,
     DellPowerStorePlatform,
     NetAppOntapPlatform,
+    DellPowerMaxPlatform,
+    DellPowerScalePlatform,
   ];

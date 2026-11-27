@@ -91,6 +91,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "One question, what this maintenance affects, asked per kind of resource: every field is an optional picker, and one of them only shows with a monitor picked.",
   },
+  {
+    file: `${DASHBOARD}/Pages/Incidents/View/Index.tsx`,
+    form: "CardModelDetail: Affected Resources",
+    reason:
+      "One question, what this incident affects, asked as Declare Incident asks it: two optional pickers, the monitors and everything else. The status the monitors change to and whether their checks pause (#11141) belong to the monitors, right under them, and show only once a monitor is picked, so an incident with none is two rows.",
+  },
   ...["#1", "#2", "#3", "#4"].map((form: string): ListedForm => {
     return {
       file: `${DASHBOARD}/Components/OpenStack/Checks/OpenStackCheckFormModals.tsx`,

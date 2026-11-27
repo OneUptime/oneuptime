@@ -324,11 +324,12 @@ export const LARGE_REQUEST_BODY_ROUTES: ReadonlyArray<RequestBodyRoute> = [
     paths: under(PROBE_INGEST_ROUTE_PREFIXES, [
       "/probe/vmware/collection",
       "/probe/openstack/collection",
+      "/probe/storage-array/collection",
     ]),
     limit: REPORT_REQUEST_BODY_LIMIT,
     readsBodyAfterAuthentication: true,
     reason:
-      "A probe's collection of a vCenter or an OpenStack cloud is up to 48 MiB of OTLP metrics: millions of values, and a refused collection is lost. The probe's key is checked first, from its headers or from the first few kilobytes of its report, and a collection whose probe is not known by then is refused with the rest of it unread.",
+      "A probe's collection of a vCenter, an OpenStack cloud or the storage arrays behind a storage management server (a Unisphere for PowerMax) is up to 48 MiB of OTLP metrics: millions of values, and a refused collection is lost. The probe's key is checked first, from its headers or from the first few kilobytes of its report, and a collection whose probe is not known by then is refused with the rest of it unread.",
   },
   {
     paths: ["/telemetry-writer/insert"],

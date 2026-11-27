@@ -3,6 +3,7 @@ import Label from "../../../Models/DatabaseModels/Label";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import ScheduledMaintenance from "../../../Models/DatabaseModels/ScheduledMaintenance";
+import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
 import ScheduledMaintenanceOwnerTeam from "../../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import ScheduledMaintenanceOwnerUser from "../../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
 import Team from "../../../Models/DatabaseModels/Team";
@@ -16,12 +17,8 @@ import OnCallDutyPolicyOwnerTeamService from "../../../Server/Services/OnCallDut
 import OnCallDutyPolicyOwnerUserService from "../../../Server/Services/OnCallDutyPolicyOwnerUserService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import ScheduledMaintenanceFeedService from "../../../Server/Services/ScheduledMaintenanceFeedService";
-import ScheduledMaintenanceOwnerTeamService, {
-  Service as ScheduledMaintenanceOwnerTeamServiceClass,
-} from "../../../Server/Services/ScheduledMaintenanceOwnerTeamService";
-import ScheduledMaintenanceOwnerUserService, {
-  Service as ScheduledMaintenanceOwnerUserServiceClass,
-} from "../../../Server/Services/ScheduledMaintenanceOwnerUserService";
+import ScheduledMaintenanceOwnerTeamService from "../../../Server/Services/ScheduledMaintenanceOwnerTeamService";
+import ScheduledMaintenanceOwnerUserService from "../../../Server/Services/ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceService from "../../../Server/Services/ScheduledMaintenanceService";
 import TeamService from "../../../Server/Services/TeamService";
 import UserService from "../../../Server/Services/UserService";
@@ -63,8 +60,8 @@ jest.mock("../../../Server/Utils/Logger");
  *   Jane owns, as recorded - Jane is not an owner of what her team owns;
  * - owners are read when a rule asks, each time: an owner added later
  *   counts from the next post (and the post that says so opens the channel
- *   of a rule that now matches - for a maintenance event, whose owner
- *   changes are not posted, its owner services check the rules again);
+ *   of a rule that now matches - a maintenance event's too, whose owner
+ *   changes are posted since #11223, as every other kind's are);
  * - an on-call rule names its policies by id, so a renamed policy still
  *   matches where a name typed with a typo never did;
  * - a summary's owners and Monitor Labels conditions read what they check.
@@ -686,39 +683,37 @@ describe("A change of owners checks the rules again", () => {
     return row;
   }
 
-  test("a maintenance event's rules, once an event, whoever changed", async () => {
-    const other: ObjectID = ObjectID.generate();
+  /*
+   * A maintenance event's owner changes used to be kept to its feed, so its
+   * owner services checked its rules again themselves. They are posted now,
+   * as every other kind's are (#11223): the post checks the rules on the
+   * way, once, and the services no longer do it a second time.
+   */
+  describe("a maintenance event's owner added or removed is posted, which checks the rules on the way (#11223)", () => {
+    let posts: Array<Record<string, unknown>>;
 
-    await ScheduledMaintenanceOwnerUserServiceClass.checkRulesAgain([
-      ownerRow(new ScheduledMaintenanceOwnerUser(), MAINTENANCE_ID),
-      ownerRow(new ScheduledMaintenanceOwnerUser(), MAINTENANCE_ID),
-      ownerRow(new ScheduledMaintenanceOwnerUser(), other),
-      ownerRow(new ScheduledMaintenanceOwnerUser(), undefined),
-    ]);
-
-    expect(checked).toEqual([
-      { scheduledMaintenanceId: MAINTENANCE_ID },
-      { scheduledMaintenanceId: other },
-    ]);
-
-    checked = [];
-
-    await ScheduledMaintenanceOwnerTeamServiceClass.checkRulesAgain([
-      ownerRow(new ScheduledMaintenanceOwnerTeam(), MAINTENANCE_ID),
-      ownerRow(new ScheduledMaintenanceOwnerTeam(), MAINTENANCE_ID),
-    ]);
-
-    expect(checked).toEqual([{ scheduledMaintenanceId: MAINTENANCE_ID }]);
-  });
-
-  describe("a maintenance event's owner added or removed", () => {
     beforeEach(() => {
+      posts = [];
+
       jest
         .spyOn(
           ScheduledMaintenanceFeedService,
           "createScheduledMaintenanceFeedItem",
         )
-        .mockResolvedValue(undefined as never);
+        .mockImplementation((async (data: Record<string, unknown>) => {
+          posts.push(data);
+        }) as never);
+      jest
+        .spyOn(ScheduledMaintenanceService, "getScheduledMaintenanceNumber")
+        .mockResolvedValue({ number: 5, numberWithPrefix: "SM-5" } as never);
+      jest
+        .spyOn(
+          ScheduledMaintenanceService,
+          "getScheduledMaintenanceLinkInDashboard",
+        )
+        .mockResolvedValue(
+          "https://oneuptime.example/scheduled-maintenance" as never,
+        );
       jest
         .spyOn(UserService, "getUserMarkdownString")
         .mockResolvedValue(FeedMarkdown.asMarkdown("Jane"));
@@ -769,7 +764,7 @@ describe("A change of owners checks the rules again", () => {
         row,
       );
 
-      expect(checked).toEqual([{ scheduledMaintenanceId: MAINTENANCE_ID }]);
+      expectPosted([ScheduledMaintenanceFeedEventType.OwnerUserAdded]);
     });
 
     test("a team added", async () => {
@@ -784,8 +779,34 @@ describe("A change of owners checks the rules again", () => {
         row,
       );
 
-      expect(checked).toEqual([{ scheduledMaintenanceId: MAINTENANCE_ID }]);
+      expectPosted([ScheduledMaintenanceFeedEventType.OwnerTeamAdded]);
     });
+
+    /*
+     * Each line is posted - opening with whoever made the change - and names
+     * the event; the rules are checked by the post, not by the hook first.
+     */
+    function expectPosted(
+      types: Array<ScheduledMaintenanceFeedEventType>,
+    ): void {
+      expect(
+        posts.map((post: Record<string, unknown>): unknown => {
+          return post["scheduledMaintenanceFeedEventType"];
+        }),
+      ).toEqual(types);
+
+      for (const post of posts) {
+        expect(post["workspaceNotification"]).toEqual({
+          sendWorkspaceNotification: true,
+          leadWithAuthor: true,
+        });
+        expect(String(post["feedInfoInMarkdown"])).toContain(
+          "[Scheduled Maintenance SM-5](",
+        );
+      }
+
+      expect(checked).toEqual([]);
+    }
 
     test("a person and a team removed", async () => {
       type DeleteHook = (
@@ -829,10 +850,36 @@ describe("A change of owners checks the rules again", () => {
         [],
       );
 
-      expect(checked).toEqual([
-        { scheduledMaintenanceId: MAINTENANCE_ID },
-        { scheduledMaintenanceId: MAINTENANCE_ID },
+      expectPosted([
+        ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
+        ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
       ]);
+    });
+
+    test("an owner row that names no event posts nothing", async () => {
+      const row: ScheduledMaintenanceOwnerTeam = ownerRow(
+        new ScheduledMaintenanceOwnerTeam(),
+        undefined,
+      );
+      row.teamId = PLATFORM_TEAM;
+
+      await (
+        ScheduledMaintenanceOwnerTeamService as unknown as {
+          onDeleteSuccess: (
+            onDelete: unknown,
+            ids: Array<ObjectID>,
+          ) => Promise<unknown>;
+        }
+      ).onDeleteSuccess(
+        {
+          deleteBy: { query: {}, props: {} },
+          carryForward: { itemsToDelete: [row] },
+        },
+        [],
+      );
+
+      expect(posts).toEqual([]);
+      expect(checked).toEqual([]);
     });
   });
 

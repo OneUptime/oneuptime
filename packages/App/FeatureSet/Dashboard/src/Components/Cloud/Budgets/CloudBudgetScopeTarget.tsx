@@ -106,7 +106,8 @@ export function getCloudBudgetCostGroupOptions(
 
   for (const group of groups) {
     const options: Array<DropdownOption> = byView.get(group.viewName) || [];
-    options.push({ label: group.name, value: group.id });
+    // A cost group's name, as its owner wrote it: never looked up.
+    options.push({ label: group.name, value: group.id, isUserContent: true });
     byView.set(group.viewName, options);
   }
 
@@ -136,7 +137,7 @@ const CloudBudgetScopeTarget: FunctionComponent<ComponentProps> = (
   if (props.scope === CloudBudgetScope.Account) {
     const options: Array<DropdownOption> = props.accounts.map(
       (account: { id: string; name: string }): DropdownOption => {
-        return { label: account.name, value: account.id };
+        return { label: account.name, value: account.id, isUserContent: true };
       },
     );
 
@@ -178,7 +179,7 @@ const CloudBudgetScopeTarget: FunctionComponent<ComponentProps> = (
         return group.id === props.value.cloudCostGroupId;
       })
       .map((group: CloudBudgetCostGroupOption): DropdownOption => {
-        return { label: group.name, value: group.id };
+        return { label: group.name, value: group.id, isUserContent: true };
       })[0];
 
     return (

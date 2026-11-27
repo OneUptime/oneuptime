@@ -23,7 +23,7 @@ Konfigurasjonen av vedlikehold ligger i **Planlagt vedlikehold**, ikke i **Prosj
 
 Seksjonen **Innstillinger** rommer **Vedlikeholdsstatus**, beskrevet på [Vedlikeholdstilstander](/docs/scheduled-maintenance/states), **Vedlikeholdsmaler**, beskrevet på [Maler og gjentakende hendelser](/docs/scheduled-maintenance/templates), og deretter **Notatmaler**, **Godkjenning av offentlige notater**, **Egendefinerte felt**, **Målinger**, **Kalenderinnstillinger** og **Nummerering**. **Kalenderinnstillinger** er beskrevet på [Vedlikeholdskalender](/docs/scheduled-maintenance/calendar#eksterne-kalendere), resten nedenfor.
 
-Seksjonen **Arbeidsområde** rommer Slack- og Microsoft Teams-reglene som poster hendelser i kanaler. Se [Slack](/docs/workspace-connections/slack#varslingsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#varslingsregler).
+Seksjonen **Arbeidsområde** rommer Slack- og Microsoft Teams-reglene som poster hendelser i kanaler: hver hendelse når den opprettes, deretter statusendringene, notatene, eierne som legges til og fjernes, og påminnelsene, slik hver regel velger i steget **Oppdateringer**. Se [Slack](/docs/workspace-connections/slack#varslingsregler) og [Microsoft Teams](/docs/workspace-connections/microsoft-teams#varslingsregler).
 
 ## Reglene en ny hendelse går gjennom
 

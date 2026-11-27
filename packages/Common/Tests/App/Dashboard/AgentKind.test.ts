@@ -457,15 +457,21 @@ const COLLECTOR_CONFIG_FILE: RegExp = /^otel-collector-config.*\.yaml$/;
 /*
  * The Storage Array agent ships one collector config per kind of array and
  * runs the one .env names: every one of them reports the version, so the
- * Dashboard's embedded copies are listed by the file each one is.
+ * Dashboard's embedded copies are listed by the file each one is. A
+ * PowerScale's is not embedded: it holds a receiver per node slot, so its
+ * guide names the file in the agent's folder instead. It stands here as
+ * itself, so its stamp is checked all the same.
  */
 const STORAGE_ARRAY_EMBEDDED_CONFIGS: Record<string, string> = {};
 for (const platform of Object.keys(
   STORAGE_ARRAY_PLATFORM_SETTINGS,
 ) as Array<StorageArrayPlatform>) {
-  STORAGE_ARRAY_EMBEDDED_CONFIGS[
-    STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile
-  ] = STORAGE_ARRAY_COLLECTOR_CONFIGS[platform];
+  const file: string =
+    STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile;
+  STORAGE_ARRAY_EMBEDDED_CONFIGS[file] =
+    platform === "powerscale"
+      ? readRepoFile("agents", "StorageArrayAgent", file)
+      : STORAGE_ARRAY_COLLECTOR_CONFIGS[platform];
 }
 
 /*

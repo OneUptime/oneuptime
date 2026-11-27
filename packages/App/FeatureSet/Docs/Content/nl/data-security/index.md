@@ -6,7 +6,7 @@ Het beantwoordt vier vragen:
 
 :::cards
 - [Waar staan onze gevoelige gegevens?](/docs/data-security/data-types): 143 gegevenstypen, van kaartnummers en nationale identiteitsnummers tot API-sleutels, gevonden in buckets, tabellen en telemetrie.
-- [Is het blootgesteld?](/docs/data-security/checks-and-issues): 34 controles van elke opslag: openbare toegang, versleuteling, back-ups, logging, geheimen en kopieën.
+- [Is het blootgesteld?](/docs/data-security/checks-and-issues): 35 controles van elke opslag: openbare toegang, versleuteling, back-ups, logging, geheimen en kopieën.
 - [Wie kan erbij, en waar gaat het heen?](/docs/data-security/flows-access-residency): Elke identiteit die bij elke opslag kan, de riskantste eerst, welke services hem gebruiken, en welke AI-providers en hosts zijn gegevens bereiken.
 - [Voldoet het aan onze regels?](/docs/data-security/compliance): Residentieregels, en negen kaders gescoord op wat de scans vonden.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Voordat je begint
 
 - **Een rol die het kan instellen.** Projecteigenaren, Projectbeheerders en Beveiligingsbeheerders wijzigen de instellingen van Gegevensbeveiliging. Beveiligingsleden handelen problemen af en scannen opslagen, en Beveiligingskijkers lezen wat het vond. Andere rollen zien er niets van, tenzij hun team de machtigingen ervoor krijgt: welke buckets kaartnummers bevatten, is precies wat een aanvaller wil weten. Zie [Rollen](/docs/permissions/reference#rollen).
-- **Een cloudaccount om te lezen, of een database.** Gegevensbeveiliging leest een cloudaccount via een [cloudkoppeling](/docs/telemetry/cloud-accounts), en een database die je zelf beheert via een alleen-lezen verbindingsreeks. Telemetrie heeft niets nodig: die wordt elk uur gescand.
+- **Een cloudaccount om te lezen, of opslag die je zelf beheert.** Gegevensbeveiliging leest een cloudaccount via een [cloudkoppeling](/docs/telemetry/cloud-accounts), en een database of zoekcluster die je zelf beheert via een alleen-lezen verbindingsreeks. Telemetrie heeft niets nodig: die wordt elk uur gescand.
 
 ## Snel aan de slag
 
@@ -69,10 +69,10 @@ Open **Gegevensbeveiliging**. Opslagen verschijnen onder **Gegevensopslagen** zo
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databases die je zelf beheert | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Opslag die je zelf beheert | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken, metrieken, beveiligingsgebeurtenissen, Network Flows, beveiligingsadreskluis, beveiligingsgebruikerskluis | Logs, traces, uitzonderingen, sessieherhalingen, AI-gesprekken, metrieken |
 
-Elke opslag krijgt de controles die bij zijn soort horen. Een opslag waarvan de inhoud niet kan worden bemonsterd, wordt toch gecontroleerd: een openbare bucket of een onversleutelde database is een probleem, wat er ook in staat. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
+Elke opslag krijgt de controles die bij zijn soort horen, op basis van wat OneUptime ervan kan lezen. Een opslag in een cloudaccount wordt gelezen uit de eigen instellingen van zijn cloud, en wordt dus gecontroleerd of de inhoud nu kan worden bemonsterd of niet: een openbare bucket of een onversleutelde database is een probleem, wat er ook in staat. Opslag die je zelf beheert heeft zulke instellingen niet om door OneUptime gelezen te worden: een Elasticsearch- of OpenSearch-cluster wordt bij elke inhoudsscan op zijn eigen adres gevraagd of hij zonder inloggegevens antwoordt, en hoe de andere soorten bereikbaar zijn, wordt niet gecontroleerd (zie [Wat OneUptime controleert bij opslag die je zelf beheert](/docs/data-security/setup#wat-oneuptime-controleert-bij-opslag-die-je-zelf-beheert)). De **Instellingen** van elke opslag vermelden onder **Wat OneUptime controleert** wat er wordt gecontroleerd en wat niet. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
 
 Een opslag wordt met zijn geschiedenis gearchiveerd zodra zijn bron hem niet meer vermeldt, en zijn openstaande problemen worden opgelost: **Gearchiveerde opslagen**, aan het eind van het menu van Gegevensbeveiliging, bewaart hem. Hij komt vanzelf terug als zijn bron hem weer vermeldt, en een probleem waarvan de controle nog steeds faalt, opent opnieuw.
 
@@ -86,9 +86,10 @@ De **Tijdlijn** van een opslag zegt wat ermee gebeurde, en wie het deed: wanneer
 | De configuratie van een cloudkoppeling lezen | Eenmaal per dag, en binnen het uur nadat CloudTrail een wijziging registreert aan de toegang, de versleuteling, de back-ups of het delen van een AWS-opslag |
 | De inhoud van een opslag bemonsteren | Elke 24 uur, of zo vaak als **Scannen elke (uur)** aangeeft |
 | De telemetrie van elke service bemonsteren | Elk uur, over het laatste uur |
+| Een zoekcluster die je zelf beheert vragen of hij zonder inloggegevens antwoordt | Bij elke inhoudsscan ervan |
 | Elke opslag opnieuw controleren | Na elke uitlezing en scan, nadat je iets wijzigt waarvan een controle afhangt, en eenmaal per dag |
 
-**Nu scannen** op een opslag bemonstert meteen zijn inhoud, en **Nu controleren** leest zijn configuratie opnieuw.
+**Nu scannen** op een opslag bemonstert meteen zijn inhoud, en vraagt een zoekcluster die je zelf beheert opnieuw of hij zonder inloggegevens antwoordt. **Nu controleren** leest de configuratie van een opslag in een cloudaccount opnieuw, en voert de controles van de opslag opnieuw uit.
 
 ## Volgende stappen
 

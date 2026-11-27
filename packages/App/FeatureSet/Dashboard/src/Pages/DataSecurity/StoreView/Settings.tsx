@@ -2,6 +2,11 @@ import PageComponentProps from "../../PageComponentProps";
 import { SensitivityPill } from "../../../Components/DataSecurity/DataSecurityPills";
 import { getStoreContentScanKindRefusal } from "../../../Components/DataSecurity/StoreNextContentScan";
 import StoreExclusionsInput from "../../../Components/DataSecurity/StoreExclusionsInput";
+import StoreCoverageList from "../../../Components/DataSecurity/StoreCoverageList";
+import {
+  getStoreScanMethodFields,
+  isProbeScannableKind,
+} from "../../../Components/DataSecurity/StoreScanMethodFields";
 import StoreRecordCard from "../../../Components/DataSecurity/StoreRecordCard";
 import {
   RecordValue,
@@ -23,14 +28,9 @@ import {
   STORE_SENSITIVITY_OPTIONS,
 } from "../../../Components/DataSecurity/StoreFieldOptions";
 import getLabelsFormField from "../../../Utils/Form/LabelsFormField";
-import {
-  DataStoreKindFacts,
-  getDataStoreKindFacts,
-  useDataStoreViewContext,
-} from "./DataStoreViewContext";
+import { useDataStoreViewContext } from "./DataStoreViewContext";
 import DataStore from "Common/Models/DatabaseModels/DataStore";
 import Label from "Common/Models/DatabaseModels/Label";
-import Probe from "Common/Models/DatabaseModels/Probe";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import {
   CustomElementProps,
@@ -63,7 +63,12 @@ import useDeclaredStore, {
   DeclaredStoreState,
 } from "../../../Components/DataSecurity/UseDeclaredStore";
 import { DataSecurityDeclaredStore } from "Common/Types/DataSecurity/DataSecurityApiTypes";
-import { isDeclaredDataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
+import {
+  DataStoreExposureCheck,
+  getDataStoreExposureCheck,
+  isDeclaredDataStoreKind,
+} from "Common/Types/DataSecurity/DataStoreKind";
+import { takesConnectionString } from "Common/Utils/DataSecurity/DataStoreCoverage";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
@@ -82,9 +87,12 @@ import EmptyValue, {
  *     environment it serves, a sensitivity set by hand, whether it is meant
  *     to be public, whether it holds data used for AI. Each changes what its
  *     checks say;
+ *   - what OneUptime checks on a store of its kind, and what it cannot, and
+ *     why (StoreCoverageList, #11140);
  *   - whether its content is scanned and what the scans skip, and - for a
- *     database you run yourself, folded under More fields - how it is
- *     scanned;
+ *     store you run yourself that OneUptime samples, folded under More
+ *     fields - how it is scanned (StoreScanMethodFields: only the fields
+ *     its kind reads);
  *   - its record of processing on Compliance: why it holds personal data,
  *     how long it keeps it, on what legal basis and about whom - OneUptime
  *     AI's drafts confirmed or edited here (StoreRecordCard) - and who
@@ -96,7 +104,6 @@ const DataStoreSettings: FunctionComponent<
 > = (): ReactElement => {
   const translator: Translator = useTranslator();
   const { dataStoreId, dataStore, refresh } = useDataStoreViewContext();
-  const kindFacts: DataStoreKindFacts = getDataStoreKindFacts(dataStore?.kind);
   /*
    * A store OneUptime declares (#10398) is never classified, checked or
    * scanned: its Settings are its name and its record, where OneUptime's
@@ -115,8 +122,35 @@ const DataStoreSettings: FunctionComponent<
   const scanMethodSection: FormFieldCollapsibleSection<DataStore> =
     getAdvancedFormSection<DataStore>({
       description:
-        "How OneUptime samples the database: from its own workers with a read-only connection string, or from one of your probes inside your network.",
+        "How OneUptime samples it: from its own workers with a read-only connection string, or from one of your probes inside your network.",
     });
+
+  // Whether how it is scanned is a choice: a store you run that OneUptime samples.
+  const hasScanMethod: boolean =
+    isProbeScannableKind(dataStore?.kind) ||
+    takesConnectionString(dataStore?.kind);
+
+  /*
+   * What Scan Content does for this kind: for a cloud's store, its
+   * configuration is checked either way; for a store asked at its own
+   * address, that is asked with each scan, so it stops with the scans
+   * (#11140).
+   */
+  const exposureCheck: DataStoreExposureCheck = getDataStoreExposureCheck(
+    dataStore?.kind,
+  );
+  const scanContentDescription: string =
+    exposureCheck === DataStoreExposureCheck.CloudApi
+      ? translationKey(
+          "Sample this store's content to find sensitive data in it. Its configuration is checked either way.",
+        )
+      : exposureCheck === DataStoreExposureCheck.Endpoint
+        ? translationKey(
+            "Sample its content for sensitive data. Whether it answers without credentials is asked with each scan, so it stops with them.",
+          )
+        : translationKey(
+            "Sample this store's content to find sensitive data in it.",
+          );
 
   // The two switches few stores need: folded under More fields.
   const treatmentMoreFields: FormFieldCollapsibleSection<DataStore> =
@@ -138,8 +172,7 @@ const DataStoreSettings: FunctionComponent<
     {
       field: { isContentScanEnabled: true },
       title: "Scan Content",
-      description:
-        "Sample this store's content to find sensitive data in it. Its configuration is checked either way.",
+      description: scanContentDescription,
       fieldType: FormFieldSchemaType.Toggle,
       required: false,
     },
@@ -168,50 +201,15 @@ const DataStoreSettings: FunctionComponent<
         );
       },
     },
-    ...(kindFacts.isSelfManaged
-      ? ([
-          {
-            field: { scanProbe: true },
-            title: "Scan From Probe",
-            description:
-              "Scan from one of your probes, inside your network. Leave it empty to scan from OneUptime's workers with a connection string.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownModal: {
-              type: Probe,
-              labelField: "name",
-              valueField: "_id",
-            },
-            required: false,
-            placeholder: "Scan from OneUptime's workers",
-            collapsibleSection: scanMethodSection,
+    // How it is scanned: only the fields its kind reads (#11140).
+    ...(hasScanMethod
+      ? getStoreScanMethodFields({
+          section: scanMethodSection,
+          kindOf: (): string | undefined => {
+            return dataStore?.kind;
           },
-          {
-            field: { probeConnectionVariable: true },
-            title: "Probe Connection Variable",
-            description:
-              "The environment variable on that probe that holds a read-only connection string. The connection string itself never reaches OneUptime.",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: "ORDERS_DB_URL",
-            collapsibleSection: scanMethodSection,
-            showIf: (values: FormValues<DataStore>): boolean => {
-              return Boolean(values.scanProbe);
-            },
-          },
-          {
-            field: { connectionString: true },
-            title: "Connection String",
-            description:
-              "A read-only connection string for PostgreSQL, MySQL or SQL Server. It is encrypted and never shown again.",
-            fieldType: FormFieldSchemaType.Password,
-            required: false,
-            placeholder: "postgresql://reader:password@db.internal:5432/app",
-            collapsibleSection: scanMethodSection,
-            showIf: (values: FormValues<DataStore>): boolean => {
-              return !values.scanProbe;
-            },
-          },
-        ] as Fields<DataStore>)
+          translator,
+        })
       : []),
   ];
 
@@ -271,7 +269,7 @@ const DataStoreSettings: FunctionComponent<
         );
       },
     },
-    ...(kindFacts.isSelfManaged
+    ...(hasScanMethod
       ? ([
           {
             field: { scanProbe: { name: true } },
@@ -506,6 +504,24 @@ const DataStoreSettings: FunctionComponent<
         />
       )}
 
+      {/*
+       * What OneUptime checks on a store of this kind, and what it cannot,
+       * and why (#11140): the Content Scans card below changes what it can.
+       */}
+      {isDeclared || !dataStore?.kind ? (
+        <></>
+      ) : (
+        <Card
+          title="What OneUptime Checks"
+          description="On a store of this kind, and what it cannot check, with why."
+        >
+          <StoreCoverageList
+            kind={dataStore.kind}
+            isScannedFromProbe={Boolean(dataStore.scanProbeId)}
+          />
+        </Card>
+      )}
+
       {isDeclared ? (
         <></>
       ) : (
@@ -532,9 +548,7 @@ const DataStoreSettings: FunctionComponent<
               kind: true,
               provider: true,
               scanProbeId: true,
-              ...(kindFacts.isSelfManaged
-                ? { probeConnectionVariable: true }
-                : {}),
+              ...(hasScanMethod ? { probeConnectionVariable: true } : {}),
             },
             fields: scanningDetailFields,
           }}

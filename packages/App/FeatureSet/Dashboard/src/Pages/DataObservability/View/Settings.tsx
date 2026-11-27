@@ -197,7 +197,7 @@ const StoreSettingsPage: FunctionComponent<
 
       <Card
         title="Connection"
-        description="How Data Observability reaches this database. A saved login is never shown again."
+        description="How Data Observability reaches this database. A saved connection string is never shown again."
         buttons={
           settings.canEdit
             ? [
@@ -337,6 +337,8 @@ const StoreSettingsPage: FunctionComponent<
             "Remove {{name}} from Data Observability?",
             { name: settings.name },
           )}
+          // A sentence around the database's name, in the reader's words already.
+          isTitleTranslated={true}
           description={
             <ImpactList
               lead={translator.translateTemplate(
@@ -379,6 +381,7 @@ const StoreSettingsPage: FunctionComponent<
             "Are you sure you want to delete {{name}}?",
             { name: settings.name },
           )}
+          isTitleTranslated={true}
           description={
             <ImpactList
               lead={translator.translateTemplate(

@@ -23,7 +23,7 @@ Konfigurationen av underhåll finns i **Schemalagt underhåll**, inte i **Projek
 
 Avsnittet **Inställningar** rymmer **Underhållsstatus**, som beskrivs på [Underhållsstatusar](/docs/scheduled-maintenance/states), **Underhållsmallar**, som beskrivs på [Mallar och återkommande händelser](/docs/scheduled-maintenance/templates), och sedan **Anteckningsmallar**, **Godkännande av offentliga anteckningar**, **Anpassade fält**, **Mätningar**, **Kalenderinställningar** och **Numrering**. **Kalenderinställningar** beskrivs på [Underhållskalender](/docs/scheduled-maintenance/calendar#externa-kalendrar), resten nedan.
 
-Avsnittet **Arbetsyta** rymmer Slack- och Microsoft Teams-reglerna som publicerar händelser i kanaler. Se [Slack](/docs/workspace-connections/slack#aviseringsregler) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams#aviseringsregler).
+Avsnittet **Arbetsyta** rymmer Slack- och Microsoft Teams-reglerna som publicerar händelser i kanaler: varje händelse när den skapas, sedan dess tillståndsändringar, anteckningar, ägare som läggs till och tas bort samt påminnelser, så som varje regel väljer i sitt steg **Uppdateringar**. Se [Slack](/docs/workspace-connections/slack#aviseringsregler) och [Microsoft Teams](/docs/workspace-connections/microsoft-teams#aviseringsregler).
 
 ## Reglerna som en ny händelse passerar
 

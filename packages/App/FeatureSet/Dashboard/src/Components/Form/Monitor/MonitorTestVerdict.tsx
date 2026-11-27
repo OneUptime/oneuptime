@@ -52,6 +52,9 @@ export const MONITOR_TEST_VERDICT_WORDS: Readonly<{
   defaultStatus: string;
   defaultStatusUnnamed: string;
   changesNothing: string;
+  statusFromLaterMatch: string;
+  defaultStatusAfterMatch: string;
+  defaultStatusAfterMatchUnnamed: string;
   whoIsToldFailed: string;
 }> = {
   matches: translationKey("This result matches {{criteria}}."),
@@ -64,6 +67,20 @@ export const MONITOR_TEST_VERDICT_WORDS: Readonly<{
     "The monitor shows its default status, and nothing opens.",
   ),
   changesNothing: translationKey("It changes no status and opens nothing."),
+  /*
+   * A criteria that changes no status decides none (#11238): the first
+   * criteria after it that matches and changes the status sets it, and with
+   * none the monitor shows its default status.
+   */
+  statusFromLaterMatch: translationKey(
+    "{{criteria}} matches too, so OneUptime marks it {{status}}.",
+  ),
+  defaultStatusAfterMatch: translationKey(
+    "The monitor shows its default status, {{status}}.",
+  ),
+  defaultStatusAfterMatchUnnamed: translationKey(
+    "The monitor shows its default status.",
+  ),
   // The card's own sentence, so a failure reads the same everywhere.
   whoIsToldFailed: translationKey("Couldn't work out who is told. {{error}}"),
 };
@@ -76,6 +93,12 @@ export const MONITOR_TEST_VERDICT_WORDS: Readonly<{
  */
 export interface MonitorTestJudgement {
   matched: MonitorEvaluationCriteriaResult | null;
+  /*
+   * The criteria met after it, in order: judged for the monitor's status
+   * when the first match changes none (#11238). The first of them that
+   * changes the status sets it.
+   */
+  matchedAfter?: Array<MonitorEvaluationCriteriaResult> | undefined;
 }
 
 export function getMonitorTestJudgement(
@@ -101,20 +124,52 @@ export function getMonitorTestJudgement(
     return undefined;
   }
 
-  for (const summary of summaries) {
-    const matched: MonitorEvaluationCriteriaResult | undefined =
-      summary.criteriaResults.find(
-        (result: MonitorEvaluationCriteriaResult): boolean => {
-          return result.met === true && !result.skipped;
-        },
-      );
+  const isMet: (result: MonitorEvaluationCriteriaResult) => boolean = (
+    result: MonitorEvaluationCriteriaResult,
+  ): boolean => {
+    return result.met === true && !result.skipped;
+  };
 
-    if (matched) {
-      return { matched: matched };
+  for (const summary of summaries) {
+    const matchedIndex: number = summary.criteriaResults.findIndex(isMet);
+
+    if (matchedIndex >= 0) {
+      const matchedAfter: Array<MonitorEvaluationCriteriaResult> =
+        summary.criteriaResults.slice(matchedIndex + 1).filter(isMet);
+
+      return {
+        matched: summary.criteriaResults[matchedIndex]!,
+        ...(matchedAfter.length > 0 ? { matchedAfter: matchedAfter } : {}),
+      };
     }
   }
 
   return { matched: null };
+}
+
+/*
+ * What a result's status is when the criteria it matches changes none
+ * (#11238): the first criteria met after it that changes the status, by the
+ * who is told resolver's account of each - which names the status a
+ * criteria sets - or none.
+ */
+export function getStatusCriteriaAfterMatch(data: {
+  judgement: MonitorTestJudgement;
+  criteria: ReadonlyArray<WhoIsToldCriteria>;
+}): WhoIsToldCriteria | undefined {
+  for (const result of data.judgement.matchedAfter || []) {
+    const criteria: WhoIsToldCriteria | undefined = data.criteria.find(
+      (item: WhoIsToldCriteria): boolean => {
+        return Boolean(result.criteriaId) && item.id === result.criteriaId;
+      },
+    );
+
+    if (criteria?.statusName) {
+      return criteria;
+    }
+  }
+
+  return undefined;
 }
 
 export interface ComponentProps {
@@ -136,6 +191,12 @@ const MonitorTestVerdict: FunctionComponent<ComponentProps> = (
     props.probeMonitorResponses,
   );
   const matchedId: string = judgement?.matched?.criteriaId || "";
+  // The criteria met after it, which set the status when it changes none.
+  const matchedAfterIds: string = (judgement?.matchedAfter || [])
+    .map((result: MonitorEvaluationCriteriaResult): string => {
+      return result.criteriaId || "";
+    })
+    .join(",");
   const isJudged: boolean = Boolean(judgement);
   const isMatched: boolean = Boolean(judgement?.matched);
 
@@ -152,7 +213,7 @@ const MonitorTestVerdict: FunctionComponent<ComponentProps> = (
 
     const work: Promise<Array<string>> = isMatched
       ? WhoIsToldApi.getForDraft({ draft: props.draft }).then(
-          (result: WhoIsToldResult): Array<string> => {
+          async (result: WhoIsToldResult): Promise<Array<string>> => {
             const criteria: WhoIsToldCriteria | undefined =
               result.criteria.find((item: WhoIsToldCriteria): boolean => {
                 return Boolean(matchedId) && item.id === matchedId;
@@ -166,13 +227,56 @@ const MonitorTestVerdict: FunctionComponent<ComponentProps> = (
              * The resolver leaves out a criteria that sets no status and
              * opens nothing: it sets nothing off.
              */
-            return sentences.length > 0
-              ? sentences
-              : [
-                  translator.translateText(
-                    MONITOR_TEST_VERDICT_WORDS.changesNothing,
-                  ) || "",
-                ];
+            const ownSentences: Array<string> =
+              sentences.length > 0
+                ? sentences
+                : [
+                    translator.translateText(
+                      MONITOR_TEST_VERDICT_WORDS.changesNothing,
+                    ) || "",
+                  ];
+
+            // A criteria that sets the status says so among its own words.
+            if (criteria?.statusName) {
+              return ownSentences;
+            }
+
+            /*
+             * One that sets none decides no status (#11238): the first
+             * criteria met after it that changes the status sets it, and
+             * with none the monitor shows its default status.
+             */
+            const statusCriteria: WhoIsToldCriteria | undefined = judgement
+              ? getStatusCriteriaAfterMatch({
+                  judgement: judgement,
+                  criteria: result.criteria,
+                })
+              : undefined;
+
+            if (statusCriteria?.statusName) {
+              return [
+                ...ownSentences,
+                translator.translateTemplate(
+                  MONITOR_TEST_VERDICT_WORDS.statusFromLaterMatch,
+                  {
+                    criteria: statusCriteria.name,
+                    status: getWhoIsToldStatusValue(statusCriteria.statusName),
+                  },
+                  // A Latin name stays in order on a right-to-left page.
+                  { setsValuesApart: true },
+                ),
+              ];
+            }
+
+            return [
+              ...ownSentences,
+              await getDefaultStatusSentence({
+                monitorStatusId:
+                  props.draft.monitorSteps.data?.defaultMonitorStatusId,
+                translator: translator,
+                isAfterMatch: true,
+              }),
+            ];
           },
         )
       : getDefaultStatusSentence({
@@ -204,7 +308,7 @@ const MonitorTestVerdict: FunctionComponent<ComponentProps> = (
     return () => {
       isActive = false;
     };
-  }, [isJudged, isMatched, matchedId, translator.language]);
+  }, [isJudged, isMatched, matchedId, matchedAfterIds, translator.language]);
 
   if (!judgement) {
     return <></>;
@@ -294,11 +398,13 @@ const MonitorTestVerdict: FunctionComponent<ComponentProps> = (
  * What follows an answer no criteria matches: the monitor shows its default
  * status - by name, read by its list (a new project's "Operational" in the
  * reader's words) - and nothing opens. A status that cannot be read is not
- * named.
+ * named. After a match that changes no status (isAfterMatch), the default
+ * status alone: what that criteria opens is said before it.
  */
 async function getDefaultStatusSentence(data: {
   monitorStatusId: ObjectID | undefined;
   translator: Translator;
+  isAfterMatch?: boolean | undefined;
 }): Promise<string> {
   let name: string = "";
 
@@ -319,13 +425,17 @@ async function getDefaultStatusSentence(data: {
   if (!name) {
     return (
       data.translator.translateText(
-        MONITOR_TEST_VERDICT_WORDS.defaultStatusUnnamed,
+        data.isAfterMatch
+          ? MONITOR_TEST_VERDICT_WORDS.defaultStatusAfterMatchUnnamed
+          : MONITOR_TEST_VERDICT_WORDS.defaultStatusUnnamed,
       ) || ""
     );
   }
 
   return data.translator.translateTemplate(
-    MONITOR_TEST_VERDICT_WORDS.defaultStatus,
+    data.isAfterMatch
+      ? MONITOR_TEST_VERDICT_WORDS.defaultStatusAfterMatch
+      : MONITOR_TEST_VERDICT_WORDS.defaultStatus,
     { status: getWhoIsToldStatusValue(name) },
     // A Latin name stays in order on a right-to-left page.
     { setsValuesApart: true },

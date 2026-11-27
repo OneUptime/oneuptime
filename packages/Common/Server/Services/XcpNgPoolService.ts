@@ -1117,7 +1117,8 @@ export class Service extends ProjectReferencesService<Model> {
   protected override async onBeforeUpdate(
     updateBy: UpdateBy<Model>,
   ): Promise<OnUpdate<Model>> {
-    const onUpdate: OnUpdate<Model> = await super.onBeforeUpdate(updateBy);
+    // The project's reference checks first, as every service's update runs them.
+    await super.onBeforeUpdate(updateBy);
 
     const aiAccess: ResourceAiAccessWriteCarryForward | null =
       await ResourceAiAccessSettings.checkUpdate({
@@ -1130,7 +1131,7 @@ export class Service extends ProjectReferencesService<Model> {
       await this.getCollectionChanges(updateBy);
 
     if (!aiAccess && xcpNgCollectionChanges.length === 0) {
-      return onUpdate;
+      return { updateBy: updateBy, carryForward: null };
     }
 
     const carryForward: XcpNgPoolWriteCarryForward = {
@@ -1139,7 +1140,7 @@ export class Service extends ProjectReferencesService<Model> {
     };
 
     return {
-      updateBy: onUpdate.updateBy,
+      updateBy: updateBy,
       carryForward: carryForward,
     };
   }

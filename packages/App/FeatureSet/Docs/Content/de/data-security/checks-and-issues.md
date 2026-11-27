@@ -1,10 +1,10 @@
 # Prüfungen und Probleme der Datensicherheit
 
-Datensicherheit führt an jedem Datenspeicher 34 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht. Sicherheitsereignisse, Netzwerk-Flows und Sicherheits-Adresstresor sind OneUptimes eigene, für Ihre Sicherheit geführt: deklariert, nie gescannt und nie geprüft (siehe [Datenspeicher, die OneUptime für Ihre Sicherheit führt](/docs/data-security/compliance#datenspeicher-die-oneuptime-für-ihre-sicherheit-führt)).
+Datensicherheit führt an jedem Datenspeicher 35 Prüfungen aus, in neun Gruppen. Eine Prüfung liest, was über einen Datenspeicher bekannt ist - wie er konfiguriert ist, was darin gefunden wurde, wer ihn erreichen kann, wo er liegt - und besteht, schlägt fehl oder kann es nicht feststellen. Eine fehlschlagende Prüfung eröffnet ein Problem an diesem Datenspeicher, und das Problem schließt sich von selbst, sobald die Prüfung besteht. Diese Seite listet jede Prüfung auf, wie Schweregrad und Risikowert eines Problems ermittelt werden und was mit einem Problem im Lauf seines Lebens geschieht. Sicherheitsereignisse, Netzwerk-Flows und Sicherheits-Adresstresor sind OneUptimes eigene, für Ihre Sicherheit geführt: deklariert, nie gescannt und nie geprüft (siehe [Datenspeicher, die OneUptime für Ihre Sicherheit führt](/docs/data-security/compliance#datenspeicher-die-oneuptime-für-ihre-sicherheit-führt)).
 
 :::cards
 - [Wie eine Prüfung entscheidet](#wie-eine-prüfung-entscheidet): Bestanden, fehlgeschlagen oder nicht feststellbar, und wie schlimm ein Fehlschlag ist.
-- [Jede Prüfung](#jede-prüfung): Alle 34, mit dem, was jede prüft, und wie Sie den Mangel beheben.
+- [Jede Prüfung](#jede-prüfung): Alle 35, mit dem, was jede prüft, und wie Sie den Mangel beheben.
 - [Risikowert](#risikowert): Wie Probleme innerhalb eines Schweregrads geordnet werden.
 - [Was mit einem Problem geschieht](#was-mit-einem-problem-geschieht): Offen, behoben, akzeptiert, kein Problem, wie jedes behoben wurde, und Korrekturen, die bis in die Produktion verfolgt werden.
 - [Die Analyse von OneUptime AI](#die-analyse-von-oneuptime-ai): Ob ein Problem echt ist, was es gefährdet, was die Korrektur beeinträchtigen würde und der kürzeste Weg zur Behebung.
@@ -22,6 +22,8 @@ Jede Prüfung liest Fakten über einen Datenspeicher und antwortet auf eine von 
 | Fehlgeschlagen | Die Prüfung findet den Mangel und sagt in einem Satz, was sie gesehen hat: den Beleg des Problems. | Ein Problem öffnet sich, oder das offene wird aktualisiert. |
 | Nicht feststellbar | Ein Fakt konnte nicht gelesen werden: eine Berechtigung, die die Rolle nicht hat, ein Aufruf, der fehlgeschlagen ist. | Nichts ändert sich: Ein offenes Problem bleibt offen, denn niemand darf schließen, ein Mangel sei behoben, wenn OneUptime nicht nachsehen konnte. |
 | Nicht zutreffend | Die Art des Datenspeichers hat keine solche Einstellung. | Ein offenes Problem wird behoben. |
+
+Ein Fakt, der sich von dort, wo er gelesen wurde, nicht feststellen lässt, wird ebenfalls nie geraten: ob das Internet einen Datenspeicher erreicht, der von innerhalb Ihres Netzwerks gefragt wurde, oder ob der anonyme Benutzer eines Clusters schreiben darf, was nur ein Schreibzugriff zeigen würde. Seine Prüfung kann es nicht feststellen, und diese Zeile der **Konfiguration** des Datenspeichers zeigt **Nicht prüfbar**.
 
 ### Der Schweregrad folgt den Daten
 
@@ -45,6 +47,7 @@ Der Schweregrad wird für eingeschränkte, vertrauliche, interne und öffentlich
 | Ein Snapshot davon kann von jedem wiederhergestellt werden (`snapshot-public`) | Datenbank, Snapshot | Ein Datenbank-Snapshot ist öffentlich geteilt, sodass jedes Cloud-Konto eine vollständige Kopie wiederherstellen kann. | Kritisch / Kritisch / Kritisch / Hoch | Machen Sie den Snapshot privat. |
 | Ein Snapshot davon ist mit anderen Konten geteilt (`snapshot-shared-externally`) | Datenbank, Snapshot | Ein Datenbank-Snapshot ist mit Konten außerhalb Ihrer verbundenen Konten geteilt. | Hoch / Hoch / Mittel / Niedrig | Beenden Sie die Freigabe des Snapshots für die Konten, die ihn nicht haben sollen. |
 | Konten außerhalb Ihrer Organisation können ihn erreichen (`shared-with-external-accounts`) | Jeder Datenspeicher außer Telemetrie | Die Richtlinie des Datenspeichers gewährt Zugriff für Konten, Mandanten oder Projekte, die nicht mit OneUptime verbunden sind. | Hoch / Hoch / Mittel / Niedrig | Prüfen Sie jeden externen Prinzipal, und entfernen Sie die, die keinen Zugriff brauchen. |
+| Jeder, der ihn erreicht, kann ihn ohne Anmeldedaten lesen (`readable-without-credentials`) | Suche | Er hat OneUptime ohne Anmeldedaten geantwortet: Wer seine Adresse erreichen kann, kann seine Daten lesen und sie auch ändern, wenn er gar keine Zugriffskontrolle hat. | Kritisch / Hoch / Mittel / Niedrig | Schalten Sie die Sicherheit des Clusters ein, nehmen Sie seinem anonymen Benutzer jede Rolle, und geben Sie jeder Anwendung einen eigenen Benutzer mit reinem Lesezugriff. Ein Cluster, der Schreibzugriffe ohne Anmeldedaten annimmt, ist bei eingeschränkten und vertraulichen Daten Kritisch und bei allen anderen Hoch. |
 
 ### Verschlüsselung
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Faktor | Punkte |
 | --- | --- |
 | Schweregrad | 75 für Kritisch, 50 für Hoch, 25 für Mittel, 0 für Niedrig |
-| Exponierung | 10 für Öffentlich, 8 für Andere Konten, 6 für Aus dem Internet erreichbar, 3 für Unbekannt, 0 für Privat |
+| Exponierung | 10 für Öffentlich, 8 für Andere Konten, 6 für Aus dem Internet erreichbar, 3 für Unbekannt, Noch nicht geprüft oder Nicht prüfbar, 0 für Privat |
 | Volumen | Bis zu 6, nach den geschätzten sensiblen Datensätzen des Datenspeichers auf einer logarithmischen Skala: 1 für 10 Datensätze, 3 für 1.000, 5 für eine Million, 6 für zehn Millionen oder mehr |
 | Aktivität | 5, wenn Security Operations in der letzten Woche Erkennungen am Datenspeicher gesehen hat |
 | Produktion | 4 für einen Datenspeicher in Produktion |
