@@ -696,6 +696,32 @@ describe("an incident's own page and an episode's", () => {
     expect(screen.queryByTestId("event-item-part-of")).toBeNull();
   });
 
+  test("an incident's page shows severity changes in its timeline", async () => {
+    window.history.replaceState({}, "", `/incidents/${OUTAGE_API}`);
+
+    mockRespondToPost = (): PostResponse => {
+      return ok({
+        ...incidentsAnswer("GroupedByEpisode"),
+        incidents: [OUTAGE_INCIDENTS[1]!],
+        incidentSeverityChanges: [
+          {
+            _id: "10767000-0000-4000-8000-0000000000c5",
+            incidentId: OUTAGE_API,
+            postedAt: dateTime(hoursAgo(1)),
+            incidentSeverityChangedFromName: "Minor",
+            incidentSeverityChangedToName: "Major",
+          },
+        ],
+      });
+    };
+
+    await renderPage(IncidentDetail as PageComponent);
+
+    expect(
+      screen.getByText("Severity changed from Minor to Major"),
+    ).toBeInTheDocument();
+  });
+
   test("grouped, an episode's own page shows its incidents open", async () => {
     window.history.replaceState({}, "", `/incidents/${OUTAGE}`);
 
