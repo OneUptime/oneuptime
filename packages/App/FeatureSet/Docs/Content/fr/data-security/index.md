@@ -6,7 +6,7 @@ Elle répond à quatre questions :
 
 :::cards
 - [Où sont nos données sensibles ?](/docs/data-security/data-types): 143 types de données, des numéros de carte et identifiants nationaux aux clés API, trouvés dans des buckets, des tables et la télémétrie.
-- [Sont-elles exposées ?](/docs/data-security/checks-and-issues): 34 contrôles de chaque magasin de données : accès public, chiffrement, sauvegardes, journalisation, secrets et copies.
+- [Sont-elles exposées ?](/docs/data-security/checks-and-issues): 35 contrôles de chaque magasin de données : accès public, chiffrement, sauvegardes, journalisation, secrets et copies.
 - [Qui peut y accéder, et où vont-elles ?](/docs/data-security/flows-access-residency): Chaque identité qui peut accéder à chaque magasin de données, la plus risquée en premier, quels services l'utilisent, et quels fournisseurs d'IA et hôtes ses données atteignent.
 - [Respectent-elles nos règles ?](/docs/data-security/compliance): Des règles de résidence, et neuf référentiels de conformité notés d'après ce que les analyses ont trouvé.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Avant de commencer
 
 - **Un rôle qui peut la configurer.** Les Propriétaires du projet, Administrateurs du projet et Administrateurs de la sécurité modifient les paramètres de Sécurité des données. Les Membres de la sécurité traitent les problèmes et analysent les magasins de données, et les Lecteurs de la sécurité lisent ce qu'elle a trouvé. Les autres rôles n'en voient rien, sauf si leur équipe reçoit ses autorisations : savoir quels buckets contiennent des numéros de carte, c'est exactement ce qu'un attaquant veut connaître. Voir [Rôles](/docs/permissions/reference#rôles).
-- **Un compte cloud à lire, ou une base de données.** Sécurité des données lit un compte cloud via une [connexion cloud](/docs/telemetry/cloud-accounts), et une base de données que vous exploitez via une chaîne de connexion en lecture seule. La télémétrie ne demande rien : elle est analysée toutes les heures.
+- **Un compte cloud à lire, ou un magasin de données que vous exploitez.** Sécurité des données lit un compte cloud via une [connexion cloud](/docs/telemetry/cloud-accounts), et une base de données ou un cluster de recherche que vous exploitez via une chaîne de connexion en lecture seule. La télémétrie ne demande rien : elle est analysée toutes les heures.
 
 ## Démarrage rapide
 
@@ -69,10 +69,10 @@ Ouvrez **Sécurité des données**. Les magasins de données apparaissent sous *
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Bases de données que vous exploitez | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Magasins de données que vous exploitez | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Journaux, Traces, Exceptions, Relectures de session, Conversations IA, Métriques, Événements de sécurité, Flux réseau, Coffre d'adresses de sécurité, Coffre d'utilisateurs de sécurité | Journaux, Traces, Exceptions, Relectures de session, Conversations IA, Métriques |
 
-Chaque magasin de données reçoit les contrôles qui s'appliquent à son type. Un magasin de données dont le contenu ne peut pas être échantillonné est tout de même contrôlé : un bucket public ou une base de données non chiffrée est un problème, quoi qu'il contienne. Événements de sécurité, Flux réseau et Coffre d'adresses de sécurité appartiennent à OneUptime, qui les conserve pour votre sécurité : déclarés, jamais analysés ni contrôlés (voir [Magasins de données que OneUptime conserve pour votre sécurité](/docs/data-security/compliance#magasins-de-données-que-oneuptime-conserve-pour-votre-sécurité)).
+Chaque magasin de données reçoit les contrôles qui s'appliquent à son type, d'après ce que OneUptime peut en lire. Un magasin de données d'un compte cloud est lu depuis les propres paramètres de son cloud : il est donc contrôlé, que son contenu puisse être échantillonné ou non, car un bucket public ou une base de données non chiffrée est un problème, quoi qu'il contienne. Un magasin de données que vous exploitez n'a pas de tels paramètres que OneUptime puisse lire : un cluster Elasticsearch ou OpenSearch est interrogé à sa propre adresse, à chaque analyse du contenu, pour savoir s'il répond sans identifiants, et la façon dont les autres types peuvent être atteints n'est pas contrôlée (voir [Ce que OneUptime vérifie sur un magasin de données que vous exploitez](/docs/data-security/setup#ce-que-oneuptime-vérifie-sur-un-magasin-de-données-que-vous-exploitez)). Les **Paramètres** de chaque magasin de données indiquent, sous **Ce que vérifie OneUptime**, ce qui est contrôlé sur lui et ce qui ne l'est pas. Événements de sécurité, Flux réseau et Coffre d'adresses de sécurité appartiennent à OneUptime, qui les conserve pour votre sécurité : déclarés, jamais analysés ni contrôlés (voir [Magasins de données que OneUptime conserve pour votre sécurité](/docs/data-security/compliance#magasins-de-données-que-oneuptime-conserve-pour-votre-sécurité)).
 
 Un magasin de données est archivé, avec son historique, dès que sa source ne le liste plus, et ses problèmes ouverts sont résolus : **Magasins de données archivés**, à la fin du menu de Sécurité des données, le conserve. Il revient de lui-même si sa source le liste à nouveau, et un problème dont le contrôle échoue toujours s'ouvre à nouveau.
 
@@ -86,9 +86,10 @@ La **Chronologie** d'un magasin de données indique ce qui lui est arrivé, et q
 | Lire la configuration d'une connexion cloud | Une fois par jour, et dans l'heure qui suit l'enregistrement par CloudTrail d'une modification de l'accès, du chiffrement, des sauvegardes ou du partage d'un magasin de données AWS |
 | Échantillonner le contenu d'un magasin de données | Toutes les 24 heures, ou aussi souvent que l'indique **Analyser toutes les (heures)** |
 | Échantillonner la télémétrie de chaque service | Toutes les heures, sur sa dernière heure |
+| Demander à un cluster de recherche que vous exploitez s'il répond sans identifiants | À chacune de ses analyses du contenu |
 | Contrôler à nouveau chaque magasin de données | Après chaque lecture et chaque analyse, après toute modification d'un élément dont dépend un contrôle, et une fois par jour |
 
-**Analyser maintenant** sur un magasin de données échantillonne aussitôt son contenu, et **Contrôler maintenant** relit sa configuration.
+**Analyser maintenant** sur un magasin de données échantillonne aussitôt son contenu, et demande de nouveau à un cluster de recherche que vous exploitez s'il répond sans identifiants. **Contrôler maintenant** relit la configuration d'un magasin de données d'un compte cloud, et relance les contrôles du magasin de données.
 
 ## Prochaines étapes
 
