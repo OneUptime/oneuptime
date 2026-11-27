@@ -19,8 +19,6 @@ import {
 } from "../../../../Server/Utils/Telemetry/StorageArraySnapshotScan";
 import logger from "../../../../Server/Utils/Logger";
 import StorageArrayResourceKind from "../../../../Types/StorageArray/StorageArrayResourceKind";
-import StorageArrayPlatformRegistry from "../../../../Types/StorageArray/StorageArrayPlatformRegistry";
-import { StorageArrayPlatform } from "../../../../Types/StorageArray/StorageArrayPlatform";
 import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import { JSONObject } from "../../../../Types/JSON";
 import { readOwnValue } from "../../../../Utils/LookupTable";
