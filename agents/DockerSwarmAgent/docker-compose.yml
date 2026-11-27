@@ -47,11 +47,12 @@ services:
       # snapshot read again, each manager's reachability, each service's
       # rolling update and recent task failures, and the swarm's state as
       # metrics; 0.161.4: each local volume's size and the disk it lives
-      # on). OneUptime shows a sign beside
-      # an agent that reports less. Raise it with any change to this file,
+      # on; on collector 0.165.0, 0.165.1: each container line's level read
+      # in the formats programs write it in, #10972). OneUptime shows a sign
+      # beside an agent that reports less. Raise it with any change to this file,
       # the collector config or inventory-snapshot.sh, and set it back to the
       # collector's version when `image:` moves on.
-      - APP_VERSION=${APP_VERSION:-0.165.0}
+      - APP_VERSION=${APP_VERSION:-0.165.1}
     restart: unless-stopped
     logging:
       driver: json-file

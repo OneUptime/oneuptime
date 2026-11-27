@@ -160,10 +160,14 @@ export const DOCKER_SWARM_AGENT_COLLECTOR_VERSION: string = "0.165.0";
  * reachability, each service's rolling update and recent task failures, and
  * the swarm's state as metrics (Node Not Ready, Service Replicas Mismatch);
  * and 0.161.4, each local volume's size and the disk it lives on (#9648).
+ * Then collector 0.165.0 (#9828) started it again at the collector's, and
+ * the files changed on it once more - 0.165.1, each container line's level
+ * read in the formats programs write it in, and a stderr line nothing reads
+ * left Unspecified rather than called an Error (#10972).
  * AgentKind.test.ts and AgentFilesVersion.test.ts fail when the agent's
  * files move on without this.
  */
-export const DOCKER_SWARM_AGENT_VERSION: string = "0.165.0";
+export const DOCKER_SWARM_AGENT_VERSION: string = "0.165.1";
 
 /*
  * The version the Database agent reports: the oneuptime.agent.version every

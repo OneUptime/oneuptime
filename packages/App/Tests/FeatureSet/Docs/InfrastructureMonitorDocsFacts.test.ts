@@ -2780,15 +2780,19 @@ describe("the agents the pages describe", () => {
     (configPath: string, page: string) => {
       const config: string = source(configPath);
 
-      // Only an unread stdout line takes the stream's INFO; an unread stderr
-      // line goes to the router's default, which sets no severity (#10972).
+      /*
+       * Only an unread stdout line takes the stream's INFO; an unread stderr
+       * line goes to the router's default, which sets no severity (#10972).
+       */
       expect(config).toContain(
-        "- output: add-fallback-severity\n            expr: 'attributes[\"log.iostream\"] != \"stderr\"'\n        default: severity-unspecified",
+        '- output: add-fallback-severity\n            expr: \'attributes["log.iostream"] != "stderr"\'\n        default: severity-unspecified',
       );
       expect(config).toContain(
         "id: add-fallback-severity\n        field: attributes.severity_text\n        value: INFO\n",
       );
-      expect(config).toContain("- type: noop\n        id: severity-unspecified");
+      expect(config).toContain(
+        "- type: noop\n        id: severity-unspecified",
+      );
       expect(config).not.toContain('"stderr" ? "ERROR"');
       expect(config).toContain(
         "id: add-exception-severity\n        field: attributes.severity_text\n        value: ERROR\n",
@@ -2920,10 +2924,11 @@ describe("the agents the pages describe", () => {
     expect(englishPage(SWARM)).toContain("version 0.161.2");
     expect(englishPage(SWARM)).toContain("version 0.161.3");
     /*
-     * The files on collector 0.165.0 (#9828), which carry everything before
-     * them: 0.161.4's size of each local volume and its disk (#9648) too.
+     * The second files on collector 0.165.0 (#9828, #10972), which carry
+     * everything before them: 0.161.4's size of each local volume and its
+     * disk (#9648) too.
      */
-    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.165.0}");
+    expect(compose).toContain("APP_VERSION=${APP_VERSION:-0.165.1}");
     // The swarm's own state, every minute, from the poller on a manager.
     const poller: string = source(
       "agents/DockerSwarmAgent/inventory-snapshot.sh",
