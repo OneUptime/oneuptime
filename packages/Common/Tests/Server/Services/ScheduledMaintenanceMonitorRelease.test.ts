@@ -1,3 +1,4 @@
+import IncidentService from "../../../Server/Services/IncidentService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
 import MonitorStatusTimelineService, {
@@ -11,6 +12,10 @@ import ScheduledMaintenanceStateTimelineService from "../../../Server/Services/S
 import { OnDelete } from "../../../Server/Types/Database/Hooks";
 import MeasurementMetricWriter from "../../../Server/Utils/Measurement/MeasurementMetricWriter";
 import logger, { LogAttributes } from "../../../Server/Utils/Logger";
+import MonitorIncidentPause, {
+  MonitorIncidentPauseState,
+} from "../../../Server/Utils/Monitor/MonitorIncidentPause";
+import Incident from "../../../Models/DatabaseModels/Incident";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusTimeline";
@@ -23,6 +28,7 @@ import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ServerException from "../../../Types/Exception/ServerException";
 import { JSONObject } from "../../../Types/JSON";
+import URL from "../../../Types/API/URL";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
@@ -210,6 +216,9 @@ let timelineFindBy: jest.SpyInstance;
 let monitorUpdateOneById: jest.SpyInstance;
 let statusTimelineCreate: jest.SpyInstance;
 let loggerError: jest.SpyInstance;
+let pauseSyncs: jest.SpyInstance;
+let uptimeMarks: jest.SpyInstance;
+let monitorSyncs: jest.SpyInstance;
 
 // The monitors whose flag was cleared, in order.
 function releasedMonitorIds(): Array<string> {
@@ -381,11 +390,66 @@ beforeEach(() => {
   loggerError = jest.spyOn(logger, "error").mockImplementation(() => {
     return undefined;
   });
+
+  /*
+   * What else pauses each monitor (MonitorIncidentPause): no incident
+   * declared by hand, here. What a release does when one still pauses a
+   * monitor, and what each monitor's time counts as, is
+   * MaintenancePausedTimeUptimePostgres.test.ts's, on real rows.
+   */
+  pauseSyncs = jest
+    .spyOn(MonitorIncidentPause, "syncPause")
+    .mockImplementation((async (data: {
+      monitorId: ObjectID;
+    }): Promise<MonitorIncidentPauseState> => {
+      return {
+        monitor: new Monitor(data.monitorId),
+        pausingIncidents: [],
+        isPaused: false,
+        holdingMaintenanceEvents: [],
+      };
+    }) as never);
+  uptimeMarks = jest
+    .spyOn(MonitorIncidentPause, "markUptime")
+    .mockResolvedValue(undefined as never);
+  monitorSyncs = jest
+    .spyOn(MonitorIncidentPause, "syncMonitors")
+    .mockResolvedValue(undefined as never);
+  jest
+    .spyOn(IncidentService, "getIncidentLinkInDashboard")
+    .mockImplementation((async (
+      _projectId: ObjectID,
+      incidentId: ObjectID,
+    ): Promise<URL> => {
+      return URL.fromString(
+        `https://oneuptime.example/incidents/${incidentId.toString()}`,
+      );
+    }) as never);
 });
 
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// The monitors whose time was worked out once released, in order.
+function uptimeMarkedMonitorIds(): Array<string> {
+  return uptimeMarks.mock.calls.map((call: Array<unknown>): string => {
+    return (call[0] as MonitorIncidentPauseState).monitor.id!.toString();
+  });
+}
+
+// The monitors still held whose time was worked out, in order.
+function stillHeldMonitorIds(): Array<string> {
+  return monitorSyncs.mock.calls.flatMap(
+    (call: Array<unknown>): Array<string> => {
+      return (call[0] as { monitorIds: Array<ObjectID> }).monitorIds.map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      );
+    },
+  );
+}
 
 describe("ScheduledMaintenanceStateTimelineService.isMonitorHeldInMaintenanceByAnyEvent", () => {
   test("reads, as root, only the events on the monitor in a state that can hold it", async () => {
@@ -695,6 +759,123 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
 
     expect(releasedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
     expect(operationalMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+    // Then what each one's time counts as is worked out (#11301).
+    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+    expect(stillHeldMonitorIds()).toEqual([]);
+  });
+
+  test("a monitor an incident declared by hand still pauses goes back to the incident's status, not to operational (#11301)", async () => {
+    const incidentStatusId: ObjectID = new ObjectID(
+      "0193c0de-5a5a-4aaa-8bbb-0000000000f2",
+    );
+
+    pauseSyncs.mockImplementation((async (data: {
+      monitorId: ObjectID;
+    }): Promise<MonitorIncidentPauseState> => {
+      const incident: Incident = new Incident(
+        new ObjectID("0193c0de-5a5a-4aaa-8bbb-0000000000c1"),
+      );
+      incident.projectId = PROJECT_ID;
+      incident.incidentNumberWithPrefix = "INC-7";
+      incident.changeMonitorStatusToId = incidentStatusId;
+
+      return {
+        monitor: new Monitor(data.monitorId),
+        pausingIncidents:
+          data.monitorId.toString() === MONITOR_A ? [incident] : [],
+        isPaused: data.monitorId.toString() === MONITOR_A,
+        holdingMaintenanceEvents: [],
+      };
+    }) as never);
+
+    await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
+      releasingEvent([MONITOR_A, MONITOR_B]),
+    );
+
+    expect(releasedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+
+    const rows: Array<MonitorStatusTimeline> =
+      statusTimelineCreate.mock.calls.map(
+        (call: Array<unknown>): MonitorStatusTimeline => {
+          return (call[0] as { data: MonitorStatusTimeline }).data;
+        },
+      );
+
+    expect(
+      rows.map((row: MonitorStatusTimeline): [string, string] => {
+        return [row.monitorId!.toString(), row.monitorStatusId!.toString()];
+      }),
+    ).toEqual([
+      [MONITOR_A, incidentStatusId.toString()],
+      [MONITOR_B, OPERATIONAL_STATUS_ID],
+    ]);
+    expect(rows[0]!.rootCause).toBe(
+      "Scheduled maintenance is over, and [INC-7](https://oneuptime.example/incidents/0193c0de-5a5a-4aaa-8bbb-0000000000c1) is still open, so the monitor is back in the status the incident puts it in.",
+    );
+    // The move to operational says nothing of its own, as before.
+    expect(rows[1]!.rootCause).toBeUndefined();
+    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+  });
+
+  test("a monitor already in the status of the incident still pausing it gets no row", async () => {
+    pauseSyncs.mockImplementation((async (data: {
+      monitorId: ObjectID;
+    }): Promise<MonitorIncidentPauseState> => {
+      const incident: Incident = new Incident(ObjectID.generate());
+      incident.projectId = PROJECT_ID;
+      incident.changeMonitorStatusToId = new ObjectID(MAINTENANCE_STATUS_ID);
+
+      return {
+        monitor: new Monitor(data.monitorId),
+        pausingIncidents: [incident],
+        isPaused: true,
+        holdingMaintenanceEvents: [],
+      };
+    }) as never);
+
+    await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
+      releasingEvent([MONITOR_A]),
+    );
+
+    expect(releasedMonitorIds()).toEqual([MONITOR_A]);
+    expect(statusTimelineCreate).not.toHaveBeenCalled();
+    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A]);
+  });
+
+  test("an incident still pausing it with no status of its own: back to operational, as before", async () => {
+    pauseSyncs.mockImplementation((async (data: {
+      monitorId: ObjectID;
+    }): Promise<MonitorIncidentPauseState> => {
+      return {
+        monitor: new Monitor(data.monitorId),
+        pausingIncidents: [new Incident(ObjectID.generate())],
+        isPaused: true,
+        holdingMaintenanceEvents: [],
+      };
+    }) as never);
+
+    await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
+      releasingEvent([MONITOR_A]),
+    );
+
+    expect(operationalMonitorIds()).toEqual([MONITOR_A]);
+    // Its time is then left out while that incident pauses it (markUptime).
+    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A]);
+  });
+
+  test("a project with no operational status still gets its monitors back, in the status they hold", async () => {
+    jest
+      .spyOn(MonitorStatusService, "findOneBy")
+      .mockResolvedValue(null as never);
+
+    await ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors(
+      releasingEvent([MONITOR_A, MONITOR_B]),
+    );
+
+    // They used to stay paused for good: the release ran only with one.
+    expect(releasedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
+    expect(statusTimelineCreate).not.toHaveBeenCalled();
+    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_A, MONITOR_B]);
   });
 
   test("a monitor another event holds while ongoing is left in maintenance", async () => {
@@ -713,6 +894,9 @@ describe("ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMoni
 
     expect(releasedMonitorIds()).toEqual([MONITOR_B]);
     expect(operationalMonitorIds()).toEqual([MONITOR_B]);
+    // Still held, its time counts as the other event says (#11301).
+    expect(stillHeldMonitorIds()).toEqual([MONITOR_A]);
+    expect(uptimeMarkedMonitorIds()).toEqual([MONITOR_B]);
   });
 
   test("a monitor another event holds in a state of the project's own past ongoing is left in maintenance", async () => {

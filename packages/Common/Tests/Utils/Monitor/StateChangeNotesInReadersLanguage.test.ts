@@ -864,6 +864,15 @@ const MONITOR_STATUS_TEMPLATES: ReadonlyArray<string> = [
   "Monitoring was turned back on. Uptime, status pages and SLOs count the monitor's time again from here.",
   "{{user}} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
   "{{user}} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.",
+  // MonitorIncidentPause's, read in MonitorPauseNotesInEveryLanguage.test.ts.
+  "Monitoring is paused by {{incidents}}, declared by hand without a status for this monitor. Nothing checks the monitor until the incident is resolved, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Monitoring is paused by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until the maintenance ends, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Monitoring is paused by {{incidents}}, declared by hand, and by scheduled maintenance ({{events}}), with no status set for this monitor. Nothing checks the monitor until both are over, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.",
+  "Scheduled maintenance ({{events}}) puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.",
+  "{{incidents}} puts this monitor in its status, so uptime, status pages and SLOs count the monitor's time again from here.",
+  "Monitoring resumed. Uptime, status pages and SLOs count the monitor's time again from here.",
+  "Scheduled maintenance is over, and {{incident}} is still open, so the monitor is back in the status the incident puts it in.",
+  "Scheduled maintenance ({{event}}) is still in progress, so the monitor is back in the status it puts it in.",
   "Something this project uses has an incident.",
   "What this project uses is back.",
 ];

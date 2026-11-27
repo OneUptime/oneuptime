@@ -53,6 +53,9 @@ import Select from "../Types/Database/Select";
 import ScheduledMaintenanceStartUtil from "../../Utils/ScheduledMaintenanceStart";
 import { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import PublicNoteApprovalPolicy from "../Utils/Notes/PublicNoteApprovalPolicy";
+import MonitorIncidentPause, {
+  MonitorIncidentPauseState,
+} from "../Utils/Monitor/MonitorIncidentPause";
 import { PublicNoteApprovalEventType } from "../../Types/StatusPage/PublicNoteApproval";
 
 /*
@@ -734,6 +737,15 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
           scheduledMaintenanceEvent: scheduledMaintenanceEvent,
           isCurrentState: !createdItem.endsAt,
         });
+
+        /*
+         * What their time counts as from here (#11301): the status the
+         * event puts them in, or - when it puts them in none - left out of
+         * uptime, status pages and SLOs while nothing checks them, as an
+         * incident declared by hand without a status leaves it out
+         * (MonitorIncidentPause). Each monitor on its own; never throws.
+         */
+        await this.markUptimeOfMonitors(scheduledMaintenanceEvent);
       }
     }
 
@@ -1356,145 +1368,231 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
    * flag that stopped probing and putting each back in the operational
    * status. A monitor another event still holds is left as it is (see
    * isMonitorHeldInMaintenanceByAnyEvent).
+   *
+   * A monitor an incident declared by hand still pauses goes back to the
+   * status that incident puts it in, not to operational, which showed it up
+   * while the incident said it was down (MonitorIncidentPause). Released or
+   * not, each monitor's time then counts as what still pauses it says, or
+   * counts again once nothing does (#11301).
    */
   @CaptureSpan()
   public async enableActiveMonitoringForMonitors(
     scheduledMaintenanceEvent: ScheduledMaintenance,
   ): Promise<void> {
     if (
-      scheduledMaintenanceEvent &&
-      scheduledMaintenanceEvent.monitors &&
-      scheduledMaintenanceEvent.monitors.length > 0
+      !scheduledMaintenanceEvent ||
+      !scheduledMaintenanceEvent.monitors ||
+      scheduledMaintenanceEvent.monitors.length === 0
     ) {
+      return;
+    }
+
+    const projectId: ObjectID | undefined = scheduledMaintenanceEvent.projectId;
+
+    if (!projectId) {
+      return;
+    }
+
+    /*
+     * Resolve monitors back to the project's operational status once
+     * maintenance ends. A project can hold more than one operational state,
+     * so this lookup MUST be deterministic: without an explicit sort
+     * findOneBy falls back to `createdAt DESC` and would resolve monitors
+     * into whichever operational status was created most recently rather
+     * than the seeded default. Order by priority ascending (seeded default
+     * operational status is priority 0), tie-broken by the oldest row,
+     * matching MonitorService.onBeforeCreate so a monitor's operational
+     * status stays the same canonical one across its lifecycle.
+     *
+     * A project with none still gets its monitors back: they are released,
+     * and keep the status they hold. They used to stay paused for good.
+     */
+    const resolvedMonitorState: MonitorStatus | null =
+      await MonitorStatusService.findOneBy({
+        query: {
+          projectId: projectId,
+          isOperationalState: true,
+        },
+        sort: {
+          priority: SortOrder.Ascending,
+          createdAt: SortOrder.Ascending,
+        },
+        props: {
+          isRoot: true,
+        },
+        select: {
+          _id: true,
+        },
+      });
+
+    /*
+     * Whether each event in a state of its project's own holds its
+     * monitors, once worked out, for the rest of this release. Such an
+     * event is usually attached to many of the monitors let go here (a
+     * "Cancelled" state reached from Scheduled leaves one behind on every
+     * monitor it had), and without this its timeline was replayed again
+     * for each of them. Kept to this one call, so a later release reads
+     * afresh.
+     */
+    const holdingByEventId: Map<string, boolean> = new Map<string, boolean>();
+
+    for (const monitor of scheduledMaintenanceEvent.monitors) {
       /*
-       * Resolve monitors back to the project's operational status once
-       * maintenance ends. A project can hold more than one operational state,
-       * so this lookup MUST be deterministic: without an explicit sort
-       * findOneBy falls back to `createdAt DESC` and would resolve monitors
-       * into whichever operational status was created most recently rather
-       * than the seeded default. Order by priority ascending (seeded default
-       * operational status is priority 0), tie-broken by the oldest row,
-       * matching MonitorService.onBeforeCreate so a monitor's operational
-       * status stays the same canonical one across its lifecycle.
+       * Per-monitor isolation, as in
+       * IncidentService.markMonitorsActiveForMonitoring: one monitor
+       * failing here (the fail-closed status timeline lock, a "same as
+       * previous" rejection after a concurrent writer, a transient DB
+       * error) must not abort the loop and strand the REMAINING monitors
+       * with disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
+       * still set. A monitor left that way is never probed again, and
+       * nothing else clears the flag once the event has let go of it.
        */
-      const resolvedMonitorState: MonitorStatus | null =
-        await MonitorStatusService.findOneBy({
-          query: {
-            projectId: scheduledMaintenanceEvent.projectId!,
-            isOperationalState: true,
-          },
-          sort: {
-            priority: SortOrder.Ascending,
-            createdAt: SortOrder.Ascending,
+      try {
+        // check if the monitor is not in this status already.
+
+        const dbMonitor: Monitor | null = await MonitorService.findOneById({
+          id: monitor.id!,
+          select: {
+            currentMonitorStatusId: true,
           },
           props: {
             isRoot: true,
           },
-          select: {
-            _id: true,
+        });
+
+        const isHeldByAnotherEvent: boolean =
+          await this.isMonitorHeldInMaintenanceByAnyEvent(
+            monitor.id!,
+            holdingByEventId,
+          );
+
+        if (isHeldByAnotherEvent) {
+          /*
+           * Another event still holds it: it stays paused, in the status
+           * it holds, and its time counts as the events still holding it
+           * say.
+           */
+          await MonitorIncidentPause.syncMonitors({
+            projectId: projectId,
+            monitorIds: [monitor.id!],
+          });
+          continue;
+        }
+
+        await MonitorService.updateOneById({
+          id: monitor.id!,
+          data: {
+            disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: false, /// This will start active monitoring again.
+          },
+          props: {
+            isRoot: true,
           },
         });
 
-      // check if this monitor is not in this status already.
+        // What still pauses it: incidents declared by hand, if any.
+        const pause: MonitorIncidentPauseState | null =
+          await MonitorIncidentPause.syncPause({
+            projectId: projectId,
+            monitorId: monitor.id!,
+          });
 
-      if (resolvedMonitorState) {
-        /*
-         * Whether each event in a state of its project's own holds its
-         * monitors, once worked out, for the rest of this release. Such an
-         * event is usually attached to many of the monitors let go here (a
-         * "Cancelled" state reached from Scheduled leaves one behind on every
-         * monitor it had), and without this its timeline was replayed again
-         * for each of them. Kept to this one call, so a later release reads
-         * afresh.
-         */
-        const holdingByEventId: Map<string, boolean> = new Map<
-          string,
-          boolean
-        >();
+        const incidentStatus: {
+          monitorStatusId: ObjectID;
+          rootCause: string;
+        } | null = pause
+          ? await MonitorIncidentPause.getStatusOfIncidentsStillPausing(pause)
+          : null;
 
-        for (const monitor of scheduledMaintenanceEvent.monitors) {
-          /*
-           * Per-monitor isolation, as in
-           * IncidentService.markMonitorsActiveForMonitoring: one monitor
-           * failing here (the fail-closed status timeline lock, a "same as
-           * previous" rejection after a concurrent writer, a transient DB
-           * error) must not abort the loop and strand the REMAINING monitors
-           * with disableActiveMonitoringBecauseOfScheduledMaintenanceEvent
-           * still set. A monitor left that way is never probed again, and
-           * nothing else clears the flag once the event has let go of it.
-           */
-          try {
-            // check if the monitor is not in this status already.
+        const monitorStatusId: ObjectID | undefined =
+          incidentStatus?.monitorStatusId ||
+          resolvedMonitorState?.id ||
+          undefined;
 
-            const dbMonitor: Monitor | null = await MonitorService.findOneById({
-              id: monitor.id!,
-              select: {
-                currentMonitorStatusId: true,
-              },
-              props: {
-                isRoot: true,
-              },
-            });
+        if (
+          monitorStatusId &&
+          dbMonitor?.currentMonitorStatusId?.toString() !==
+            monitorStatusId.toString()
+        ) {
+          const monitorStatusTimeline: MonitorStatusTimeline =
+            new MonitorStatusTimeline();
+          monitorStatusTimeline.monitorId = monitor.id!;
+          monitorStatusTimeline.projectId = projectId;
+          monitorStatusTimeline.monitorStatusId = monitorStatusId;
 
-            const isHeldByAnotherEvent: boolean =
-              await this.isMonitorHeldInMaintenanceByAnyEvent(
-                monitor.id!,
-                holdingByEventId,
-              );
-
-            if (isHeldByAnotherEvent) {
-              // dont do anything because other events are active at the same time.
-              continue;
-            }
-
-            await MonitorService.updateOneById({
-              id: monitor.id!,
-              data: {
-                disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:
-                  false, /// This will start active monitoring again.
-              },
-              props: {
-                isRoot: true,
-              },
-            });
-
-            if (
-              dbMonitor?.currentMonitorStatusId?.toString() ===
-              resolvedMonitorState.id?.toString()
-            ) {
-              // if already in resolved state then skip.
-              continue;
-            }
-
-            const monitorStatusTimeline: MonitorStatusTimeline =
-              new MonitorStatusTimeline();
-            monitorStatusTimeline.monitorId = monitor.id!;
-            monitorStatusTimeline.projectId =
-              scheduledMaintenanceEvent.projectId!;
-            monitorStatusTimeline.monitorStatusId = resolvedMonitorState.id!;
-
-            await MonitorStatusTimelineService.create({
-              data: monitorStatusTimeline,
-              props: {
-                isRoot: true,
-              },
-            });
-          } catch (err) {
-            const logAttributes: LogAttributes = {
-              projectId: scheduledMaintenanceEvent.projectId?.toString(),
-              scheduledMaintenanceId: scheduledMaintenanceEvent.id?.toString(),
-              monitorId: monitor.id?.toString(),
-            } as LogAttributes;
-
-            logger.error(
-              `ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
-              logAttributes,
-            );
-            logger.error(err, logAttributes);
-            continue;
+          if (incidentStatus) {
+            monitorStatusTimeline.rootCause = incidentStatus.rootCause;
           }
+
+          await MonitorStatusTimelineService.create({
+            data: monitorStatusTimeline,
+            props: {
+              isRoot: true,
+            },
+          });
         }
+
+        /*
+         * After the status: time this event left out counts again from the
+         * status written above, and is still left out while an incident
+         * that sets no status pauses the monitor.
+         */
+        if (pause) {
+          await MonitorIncidentPause.markUptime(pause);
+        }
+      } catch (err) {
+        const logAttributes: LogAttributes = {
+          projectId: projectId.toString(),
+          scheduledMaintenanceId: scheduledMaintenanceEvent.id?.toString(),
+          monitorId: monitor.id?.toString(),
+        } as LogAttributes;
+
+        logger.error(
+          `ScheduledMaintenanceStateTimelineService.enableActiveMonitoringForMonitors: failed for monitor ${monitor.id?.toString()}; continuing with the remaining monitors.`,
+          logAttributes,
+        );
+        logger.error(err, logAttributes);
+        continue;
       }
+    }
+  }
+
+  /*
+   * What the time of the event's monitors counts as from here, as what pauses
+   * each of them now says (MonitorIncidentPause, #11301): the status the
+   * events and incidents holding it put it in, or left out of uptime, status
+   * pages and SLOs while none of them puts it in one. Each monitor on its
+   * own, and a failure is logged, never thrown: the change that led here is
+   * saved already.
+   */
+  public async markUptimeOfMonitors(
+    scheduledMaintenanceEvent: Pick<
+      ScheduledMaintenance,
+      "projectId" | "monitors"
+    >,
+  ): Promise<void> {
+    if (!scheduledMaintenanceEvent.projectId) {
+      return;
+    }
+
+    try {
+      await MonitorIncidentPause.syncMonitors({
+        projectId: scheduledMaintenanceEvent.projectId,
+        monitorIds: (scheduledMaintenanceEvent.monitors || [])
+          .filter((monitor: Monitor): boolean => {
+            return Boolean(monitor.id);
+          })
+          .map((monitor: Monitor): ObjectID => {
+            return monitor.id!;
+          }),
+      });
+    } catch (err) {
+      logger.error(
+        `ScheduledMaintenanceStateTimelineService.markUptimeOfMonitors: could not work out what the time of the event's monitors counts as; the change itself is saved.`,
+        {
+          projectId: scheduledMaintenanceEvent.projectId.toString(),
+        } as LogAttributes,
+      );
+      logger.error(err);
     }
   }
 
@@ -1594,12 +1692,16 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
    * tells whether any of them holds its monitors, recording each answer in
    * holdingByEventId. One read covers a whole batch of events (kept per
    * project, as the timeline of a single event is read), and it stops at the
-   * first batch with an event that holds.
+   * first batch with an event that holds - unless every event's answer is
+   * wanted (isEveryEventReplayed: findEventsHoldingMonitor).
    */
   private async replayWhetherScheduledMaintenancesHoldMonitors(data: {
     scheduledMaintenanceEvents: Array<ScheduledMaintenance>;
     holdingByEventId: Map<string, boolean>;
+    isEveryEventReplayed?: boolean | undefined;
   }): Promise<boolean> {
+    let isAnyEventHolding: boolean = false;
+
     const eventsByProjectId: Map<
       string,
       { projectId: ObjectID; scheduledMaintenanceIds: Array<ObjectID> }
@@ -1706,12 +1808,101 @@ export class Service extends ProjectReferencesService<ScheduledMaintenanceStateT
         }
 
         if (isAnyHolding) {
-          return true;
+          if (!data.isEveryEventReplayed) {
+            return true;
+          }
+
+          isAnyEventHolding = true;
         }
       }
     }
 
-    return false;
+    return isAnyEventHolding;
+  }
+
+  /*
+   * The events that hold this monitor in maintenance now, oldest first, each
+   * read with the status it puts its monitors in (Change Monitor Status to)
+   * and its number: what the time of a monitor they pause counts as
+   * (MonitorIncidentPause, #11301). Holding is what
+   * isMonitorHeldInMaintenanceByAnyEvent asks of every event - ongoing by
+   * its flag, or in a state of the project's own that its timeline puts in
+   * progress (isHoldingAfterTimeline) - asked here of each, not of any.
+   */
+  @CaptureSpan()
+  public async findEventsHoldingMonitor(
+    monitorId: ObjectID,
+  ): Promise<Array<ScheduledMaintenance>> {
+    const scheduledMaintenanceEvents: Array<ScheduledMaintenance> =
+      await ScheduledMaintenanceService.findBy({
+        query: {
+          monitors: QueryHelper.inRelationArray([monitorId]),
+          currentScheduledMaintenanceState:
+            ScheduledMaintenanceStateService.getMayBeInProgressStateQuery(),
+        },
+        select: {
+          _id: true,
+          projectId: true,
+          changeMonitorStatusToId: true,
+          scheduledMaintenanceNumber: true,
+          scheduledMaintenanceNumberWithPrefix: true,
+          currentScheduledMaintenanceState: STATE_KIND_SELECT,
+        },
+        sort: {
+          createdAt: SortOrder.Ascending,
+        },
+        limit: LIMIT_MAX,
+        skip: 0,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    const holdingByEventId: Map<string, boolean> = new Map<string, boolean>();
+    const scheduledMaintenanceEventsToReplay: Array<ScheduledMaintenance> = [];
+
+    for (const scheduledMaintenanceEvent of scheduledMaintenanceEvents) {
+      if (
+        !scheduledMaintenanceEvent.id ||
+        !scheduledMaintenanceEvent.projectId
+      ) {
+        continue;
+      }
+
+      const inProgressByFlags: boolean | null =
+        ScheduledMaintenanceStartUtil.isInProgressByFlags(
+          scheduledMaintenanceEvent.currentScheduledMaintenanceState,
+        );
+
+      if (inProgressByFlags === null) {
+        // A state of the project's own: only its timeline can tell.
+        scheduledMaintenanceEventsToReplay.push(scheduledMaintenanceEvent);
+        continue;
+      }
+
+      holdingByEventId.set(
+        scheduledMaintenanceEvent.id.toString(),
+        inProgressByFlags,
+      );
+    }
+
+    if (scheduledMaintenanceEventsToReplay.length > 0) {
+      await this.replayWhetherScheduledMaintenancesHoldMonitors({
+        scheduledMaintenanceEvents: scheduledMaintenanceEventsToReplay,
+        holdingByEventId: holdingByEventId,
+        isEveryEventReplayed: true,
+      });
+    }
+
+    return scheduledMaintenanceEvents.filter(
+      (scheduledMaintenanceEvent: ScheduledMaintenance): boolean => {
+        return (
+          holdingByEventId.get(
+            scheduledMaintenanceEvent.id?.toString() || "",
+          ) === true
+        );
+      },
+    );
   }
 
   /*
