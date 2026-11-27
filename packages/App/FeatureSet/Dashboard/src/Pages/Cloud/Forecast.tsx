@@ -75,6 +75,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -538,16 +539,14 @@ const CloudForecastPage: FunctionComponent<
             )}
           </div>
         </Card>
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card title={HOW_MADE_TITLE} fillHeight={true}>
+        <CardGrid columns={2} dataTestId="cloud-forecast-method-and-months">
+          <Card title={HOW_MADE_TITLE}>
             <CloudForecastHowMade forecast={forecast} />
           </Card>
-          <div className="lg:col-span-2">
-            <Card title={LIKELY_RANGE}>
-              <CloudForecastMonths forecast={forecast} currency={currency} />
-            </Card>
-          </div>
-        </div>
+          <Card title={LIKELY_RANGE}>
+            <CloudForecastMonths forecast={forecast} currency={currency} />
+          </Card>
+        </CardGrid>
         {isSaving ? (
           <CloudForecastSavePlan
             forecast={forecast}

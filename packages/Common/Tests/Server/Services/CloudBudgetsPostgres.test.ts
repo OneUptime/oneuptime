@@ -1,7 +1,7 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import CloudBudget from "../../../Models/DatabaseModels/CloudBudget";
 import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
-import OwnerNotificationDelivery from "../../../Models/DatabaseModels/OwnerNotificationDelivery";
+import { OwnerNotificationDelivery } from "../../../Server/Utils/Notification/OwnerNotificationDeliveries";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
@@ -82,7 +82,7 @@ import { DataSource } from "typeorm";
  * CLOUD_BUDGET_TEST_DATABASE_NAME or DATABASE_NAME, endpoint from
  * CLOUD_BUDGET_TEST_DATABASE_HOST / _PORT (default localhost:5400).
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_CLOUD_BUDGET_TESTS"] === "true"
     ? describe
     : describe.skip;

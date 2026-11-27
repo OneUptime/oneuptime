@@ -436,6 +436,14 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${path}/:groupId/spend`": READ,
     },
   },
+  // A budget's page reads its period, and the Forecast page a forecast (#11008).
+  "packages/Common/Server/API/CloudBudgetAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/forecast`": READ,
+      "`${path}/:budgetId/spend`": READ,
+    },
+  },
   /*
    * Acting on savings (#11010): every route registers through its post
    * helper, which refuses a change while Cloud is off, and the pull request

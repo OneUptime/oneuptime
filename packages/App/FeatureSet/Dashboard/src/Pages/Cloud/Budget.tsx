@@ -80,6 +80,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -488,30 +489,27 @@ const CloudBudgetPage: FunctionComponent<
               spentThisPeriod={page.spentThisPeriod}
             />
           </Card>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2">
-              <Card title={DAYS_TITLE} description={DAYS_DESCRIPTION}>
-                <CloudDailySpendChart
-                  points={page.days.map(
-                    (day: { day: string; amount: number }) => {
-                      return { x: fromCloudCostDay(day.day), y: day.amount };
-                    },
-                  )}
-                  currency={currency}
-                />
-              </Card>
-            </div>
+          <CardGrid columns={2} dataTestId="cloud-budget-this-month">
+            <Card title={DAYS_TITLE} description={DAYS_DESCRIPTION}>
+              <CloudDailySpendChart
+                points={page.days.map(
+                  (day: { day: string; amount: number }) => {
+                    return { x: fromCloudCostDay(day.day), y: day.amount };
+                  },
+                )}
+                currency={currency}
+              />
+            </Card>
             <Card
               title={TOP_SERVICES_TITLE}
               description={TOP_SERVICES_DESCRIPTION}
-              fillHeight={true}
             >
               <RankedBars
                 emptyText={TOP_SERVICES_EMPTY}
                 items={topServiceItems}
               />
             </Card>
-          </div>
+          </CardGrid>
         </Fragment>
       )}
       <Card title={WHO_HEARS_TITLE} description={WHO_HEARS_DESCRIPTION}>
