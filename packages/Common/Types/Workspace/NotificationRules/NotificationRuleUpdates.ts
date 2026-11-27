@@ -171,8 +171,9 @@ export const ALWAYS_POSTED_UPDATE_KINDS: ReadonlyArray<NotificationRuleUpdateKin
  * The updates each kind of rule can choose, in the order its Updates step
  * lists them. Only what that kind of record posts: an alert has no public
  * notes or postmortem, an episode's severity changes stay in its feed, a
- * scheduled maintenance event's owners are not posted, an episode has no
- * reminders.
+ * scheduled maintenance event's edits stay in its feed, an episode has no
+ * reminders. A maintenance event's owners are posted since #11223, and are
+ * their own box, as every other kind's.
  */
 const CHOOSABLE_UPDATE_KINDS: Readonly<
   Partial<
@@ -230,6 +231,7 @@ const CHOOSABLE_UPDATE_KINDS: Readonly<
     NotificationRuleUpdateKind.StateChanges,
     NotificationRuleUpdateKind.PublicNotes,
     NotificationRuleUpdateKind.PrivateNotes,
+    NotificationRuleUpdateKind.Owners,
     NotificationRuleUpdateKind.Reminders,
     NotificationRuleUpdateKind.Other,
   ],

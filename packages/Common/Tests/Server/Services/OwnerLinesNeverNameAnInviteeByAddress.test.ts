@@ -323,14 +323,20 @@ const OWNER_KINDS: Array<OwnerKind> = [
     feedService: ScheduledMaintenanceFeedService,
     feedMethod: "createScheduledMaintenanceFeedItem",
     stubs: [
+      [ScheduledMaintenanceService, "getScheduledMaintenanceNumber", NUMBER],
+      [
+        ScheduledMaintenanceService,
+        "getScheduledMaintenanceLinkInDashboard",
+        LINK,
+      ],
       [
         ScheduledMaintenanceService,
         "getWorkspaceChannelForScheduledMaintenance",
         [],
       ],
     ],
-    // Its owner entries stay in its feed.
-    isPostedToChannels: false,
+    // Its owner entries are its channels' lines too since #11223.
+    isPostedToChannels: true,
   },
   {
     label: "an on-call policy",

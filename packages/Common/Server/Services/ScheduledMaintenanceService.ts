@@ -4147,6 +4147,38 @@ ${FeedMarkdown.join(
   }
 
   /*
+   * The event as a line of its feed names it - "[Scheduled Maintenance
+   * SM-5](its page)", by its number with the project's prefix - which is
+   * the line its Slack, Microsoft Teams and Mattermost channels read too,
+   * a channel shared by every event among them (#11223).
+   */
+  @CaptureSpan()
+  public async getScheduledMaintenanceMarkdownLink(data: {
+    projectId: ObjectID;
+    scheduledMaintenanceId: ObjectID;
+  }): Promise<MarkdownText> {
+    const numbered: {
+      number: number | null;
+      numberWithPrefix: string | null;
+    } = await this.getScheduledMaintenanceNumber({
+      scheduledMaintenanceId: data.scheduledMaintenanceId,
+    });
+
+    const link: URL = await this.getScheduledMaintenanceLinkInDashboard(
+      data.projectId,
+      data.scheduledMaintenanceId,
+    );
+
+    const number: string =
+      numbered.numberWithPrefix ||
+      (numbered.number !== null ? `#${numbered.number}` : "");
+
+    return number
+      ? mdText`[Scheduled Maintenance ${number}](${link.toString()})`
+      : mdText`[Scheduled Maintenance](${link.toString()})`;
+  }
+
+  /*
    * Whether the event has started (ScheduledMaintenanceStartUtil): it is in
    * its project's ongoing state or any state after it - a state of the
    * project's own placed after Ongoing ("Verifying") as much as Ended. What

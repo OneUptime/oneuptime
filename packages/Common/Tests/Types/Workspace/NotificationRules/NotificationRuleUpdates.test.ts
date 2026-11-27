@@ -266,13 +266,21 @@ describe("the updates each kind of rule chooses from", () => {
 
     /*
      * A scheduled maintenance event's every state change is one update; its
-     * reminders are a box of their own.
+     * owners and its reminders are boxes of their own - its owners since
+     * they are posted, as every other kind's (#11223).
      */
     expect(
       NotificationRuleUpdates.getChoosableKinds(
         NotificationRuleEventType.ScheduledMaintenance,
       ),
-    ).toEqual([StateChanges, PublicNotes, PrivateNotes, Reminders, Other]);
+    ).toEqual([
+      StateChanges,
+      PublicNotes,
+      PrivateNotes,
+      Owners,
+      Reminders,
+      Other,
+    ]);
 
     /*
      * An on-call policy's: who is on call, and what changed about it -
@@ -1191,7 +1199,7 @@ describe("what is wrong with the updates a rule is saved with", () => {
           updatesToPost,
         }),
       ).toBe(
-        "updatesToPost is a list of the updates the rule posts, any of: StateChanges, PublicNotes, PrivateNotes, Reminders, Other. Leave it out to post every update.",
+        "updatesToPost is a list of the updates the rule posts, any of: StateChanges, PublicNotes, PrivateNotes, Owners, Reminders, Other. Leave it out to post every update.",
       );
     }
   });
