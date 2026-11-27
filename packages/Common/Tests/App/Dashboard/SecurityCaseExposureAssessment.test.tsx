@@ -1699,7 +1699,7 @@ describe("the US states' laws, while nobody said which states (#10952)", () => {
     );
   });
 
-  test("what the table does not cover names the territories and the agencies' notices, and every state it leaves out", async () => {
+  test("what the table does not cover names the territories and every state it leaves out, and never the agencies' notices, which are rows", async () => {
     reads.mockResolvedValue(ssnAnswer([BreachPlace.UnitedStates]));
 
     await renderCards();
@@ -1709,16 +1709,19 @@ describe("the US states' laws, while nobody said which states (#10952)", () => {
     );
 
     expect(uncovered).toHaveTextContent(
-      "Of the US territories, it covers Puerto Rico only: Guam and the US Virgin Islands have breach laws of their own.",
+      "Guam and the US Virgin Islands have breach laws of their own, which it does not cover.",
     );
-    expect(uncovered).toHaveTextContent(
-      "Many states also ask for a notice to the consumer reporting agencies once enough residents are told: it leaves those notices out.",
-    );
+    expect(uncovered).not.toHaveTextContent("consumer reporting agencies");
 
     if (UNCOVERED_US_STATES.length > 0) {
       expect(uncovered).toHaveTextContent(
         "It does not cover the breach laws of",
       );
+      expect(uncovered).toHaveTextContent(
+        "whose statutes could not be read from an official source: check them yourself.",
+      );
+      expect(uncovered).toHaveTextContent("West Virginia");
+      expect(uncovered).toHaveTextContent("Puerto Rico");
     } else {
       expect(uncovered).not.toHaveTextContent(
         "It does not cover the breach laws of",

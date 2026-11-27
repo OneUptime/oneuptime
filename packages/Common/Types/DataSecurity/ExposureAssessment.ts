@@ -1399,10 +1399,8 @@ export enum UncoveredLawKind {
   PeopleElsewhere = "PeopleElsewhere",
   // The US states whose statutes the table has no rows for (#10952): named in `states`.
   OtherUsStates = "OtherUsStates",
-  // The US territories but Puerto Rico, which have breach laws of their own.
+  // Guam and the US Virgin Islands, which have breach laws of their own.
   UsTerritories = "UsTerritories",
-  // The notices many states also ask for to the consumer reporting agencies.
-  ConsumerReportingAgencies = "ConsumerReportingAgencies",
   // Where the organization is established can bring in a law whatever the people's countries.
   Establishment = "Establishment",
   // Contracts, sector rules and other obligations.
@@ -1471,8 +1469,9 @@ export function getUncoveredLaws(
 
   /*
    * The US states the table has no rows for: every one while the state is
-   * not known, or those a person named. Then the territories, and the
-   * notices to the consumer reporting agencies, wherever a US state may be.
+   * not known, or those a person named; then the territories while the
+   * state is not known. Each state's notice to the consumer reporting
+   * agencies is a row of its own (#10952), so it is never left out here.
    */
   const isStateUnknown: boolean = isUsStateUnknown(whose);
   const statesLeftOut: Array<BreachPlace> = uncoveredStates.filter(
@@ -1490,17 +1489,6 @@ export function getUncoveredLaws(
 
   if (isStateUnknown) {
     uncovered.push({ kind: UncoveredLawKind.UsTerritories });
-  }
-
-  if (
-    isStateUnknown ||
-    Boolean(
-      whose.placesNamed?.some((place: BreachPlace): boolean => {
-        return isUsStatePlace(place);
-      }),
-    )
-  ) {
-    uncovered.push({ kind: UncoveredLawKind.ConsumerReportingAgencies });
   }
 
   // Card data: the brands whose rules are only in their agreements.
@@ -1522,13 +1510,10 @@ export const UNCOVERED_LAW_WORDS: Readonly<Record<UncoveredLawKind, string>> = {
     "You said some of the people live somewhere this assessment does not cover: check that place's breach law.",
   ),
   [UncoveredLawKind.OtherUsStates]: translationKey(
-    "It does not cover the breach laws of {{states}}: their statutes could not be read from an official source, so check them yourself.",
+    "It does not cover the breach laws of {{states}}, whose statutes could not be read from an official source: check them yourself.",
   ),
   [UncoveredLawKind.UsTerritories]: translationKey(
-    "Of the US territories, it covers Puerto Rico only: Guam and the US Virgin Islands have breach laws of their own.",
-  ),
-  [UncoveredLawKind.ConsumerReportingAgencies]: translationKey(
-    "Many states also ask for a notice to the consumer reporting agencies once enough residents are told: it leaves those notices out.",
+    "Guam and the US Virgin Islands have breach laws of their own, which it does not cover.",
   ),
   [UncoveredLawKind.Establishment]: translationKey(
     "Where your organization is established can bring in GDPR, UK GDPR or another law, whatever the people's countries.",
@@ -1951,6 +1936,48 @@ const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   {
     pattern: /\bNew Mexico\b|\b57-12C\b/gi,
     family: BreachLawFamily.NewMexico,
+  },
+  {
+    pattern: /\bNorth Carolina\b|\b75-65\b/gi,
+    family: BreachLawFamily.NorthCarolina,
+  },
+  {
+    pattern: /\bNorth Dakota\b|\b51-30-0\d\b/gi,
+    family: BreachLawFamily.NorthDakota,
+  },
+  { pattern: /\bOhio\b|\b1349\.19\b/gi, family: BreachLawFamily.Ohio },
+  { pattern: /\bOklahoma\b/gi, family: BreachLawFamily.Oklahoma },
+  { pattern: /\bOregon\b|\b646A\.60\d\b/gi, family: BreachLawFamily.Oregon },
+  { pattern: /\bPennsylvania\b/gi, family: BreachLawFamily.Pennsylvania },
+  {
+    pattern: /\bRhode Island\b|\b11-49\.3\b/gi,
+    family: BreachLawFamily.RhodeIsland,
+  },
+  {
+    pattern: /\bSouth Carolina\b|\b39-1-90\b/gi,
+    family: BreachLawFamily.SouthCarolina,
+  },
+  {
+    pattern: /\bSouth Dakota\b|\b22-40-2\d\b/gi,
+    family: BreachLawFamily.SouthDakota,
+  },
+  {
+    pattern: /\bTennessee\b|\b47-18-2107\b/gi,
+    family: BreachLawFamily.Tennessee,
+  },
+  { pattern: /\bUtah\b|\b13-44-\d+\b/gi, family: BreachLawFamily.Utah },
+  { pattern: /\bVermont\b|\bV\.S\.A\./gi, family: BreachLawFamily.Vermont },
+  {
+    pattern: /\bVirginia\b|\b18\.2-186\.6\b/gi,
+    family: BreachLawFamily.Virginia,
+  },
+  {
+    pattern: /\bWisconsin\b|\b134\.98\b/gi,
+    family: BreachLawFamily.Wisconsin,
+  },
+  {
+    pattern: /\bWyoming\b|\b40-12-50\d\b/gi,
+    family: BreachLawFamily.Wyoming,
   },
   { pattern: /\bLGPD\b|\bANPD\b/gi, family: BreachLawFamily.Lgpd },
   {

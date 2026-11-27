@@ -1192,13 +1192,12 @@ describe("what the law may ask", () => {
         }),
       ),
     ).toContain(UncoveredLawKind.PeopleElsewhere);
-    // Nobody said where they live: the states left out, the territories and the agencies' notices may matter.
+    // Nobody said where they live: the states left out and the territories may matter.
     expect(kinds(whose({ dataTypeIds: ["email-address"] }))).toEqual([
       ...(UNCOVERED_US_STATES.length > 0
         ? [UncoveredLawKind.OtherUsStates]
         : []),
       UncoveredLawKind.UsTerritories,
-      UncoveredLawKind.ConsumerReportingAgencies,
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
@@ -1259,7 +1258,10 @@ describe("what the law may ask", () => {
         }),
       ),
     ).toEqual([BreachPlace.Iowa]);
-    // A person named only covered states: no state to name, and no territory either.
+    /*
+     * A person named only covered states: no state to name, no territory,
+     * and no line on the agencies' notices, which are rows of their own.
+     */
     const named: Array<UncoveredLawKind> = getUncoveredLaws(
       whose({ dataTypeIds: ["us-ssn"], places: [BreachPlace.Florida] }),
       leftOut,
@@ -1268,7 +1270,6 @@ describe("what the law may ask", () => {
     });
 
     expect(named).toEqual([
-      UncoveredLawKind.ConsumerReportingAgencies,
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
@@ -1293,9 +1294,16 @@ describe("what the law may ask", () => {
     expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.UsTerritories]).toContain(
       "Guam",
     );
-    expect(
-      UNCOVERED_LAW_WORDS[UncoveredLawKind.ConsumerReportingAgencies],
-    ).toContain("consumer reporting agencies");
+    // Each state's notice to the consumer reporting agencies is a row: no line says it is left out.
+    for (const words of Object.values(UNCOVERED_LAW_WORDS)) {
+      expect(words).not.toContain("consumer reporting agencies");
+    }
+  });
+
+  test("the table leaves out West Virginia and Puerto Rico only, whose official sources could not be read (#10952)", () => {
+    expect([...UNCOVERED_US_STATES].sort()).toEqual(
+      [BreachPlace.PuertoRico, BreachPlace.WestVirginia].sort(),
+    );
   });
 
   test("card data says which card brands the table does not cover, and names those it does (#10953)", () => {

@@ -598,10 +598,10 @@ describe("a case's breach notices, exported", () => {
     // One line a state the table covers, Alabama first; Georgia the state reads "Georgia".
     expect(lines).toHaveLength(COVERED_US_STATES.length);
     expect(lines[0]).toBe(
-      "- **Alabama:** Code of Alabama 1975 8-38-5: Tell the people affected (45 calendar days from when it was found); Code of Alabama 1975 8-38-6: Tell the state's attorney general (45 calendar days from when it was found, if it affects more than 1,000 people).",
+      "- **Alabama:** Code of Alabama 1975 8-38-5: Tell the people affected (45 calendar days from when it was found); Code of Alabama 1975 8-38-6: Tell the state's attorney general (45 calendar days from when it was found, if it affects more than 1,000 people); Code of Alabama 1975 8-38-7: Tell the consumer reporting agencies (in the most expedient time possible and without unreasonable delay, if it affects more than 1,000 people).",
     );
     expect(states).toContain(
-      "- **Georgia:** Official Code of Georgia 10-1-912(a): Tell the people affected (in the most expedient time possible and without unreasonable delay).",
+      "- **Georgia:** Official Code of Georgia 10-1-912(a): Tell the people affected (in the most expedient time possible and without unreasonable delay); Official Code of Georgia 10-1-912(d): Tell the consumer reporting agencies (in the most expedient time possible and without unreasonable delay, if it affects more than 10,000 people).",
     );
     expect(states).not.toContain("Georgia (US state)");
     expect(states).toContain(
@@ -649,11 +649,12 @@ describe("a case's breach notices, exported", () => {
     );
 
     expect(uncovered).toContain(
-      "- Of the US territories, it covers Puerto Rico only: Guam and the US Virgin Islands have breach laws of their own.",
+      "- Guam and the US Virgin Islands have breach laws of their own, which it does not cover.",
     );
-    expect(uncovered).toContain(
-      "- Many states also ask for a notice to the consumer reporting agencies once enough residents are told: it leaves those notices out.",
-    );
+    // Each state's notice to the consumer reporting agencies is a row of its own.
+    expect(uncovered).not.toContain("consumer reporting agencies");
+    expect(uncovered).toContain("West Virginia");
+    expect(uncovered).toContain("Puerto Rico");
     expect(uncovered.includes("It does not cover the breach laws of")).toBe(
       UNCOVERED_US_STATES.length > 0,
     );

@@ -602,6 +602,24 @@ export enum BreachCondition {
   MisuseNotPossibleInWriting = "MisuseNotPossibleInWriting",
   // New Mexico: unless it gives rise to no significant risk of identity theft or fraud.
   SignificantRiskOfIdentityTheft = "SignificantRiskOfIdentityTheft",
+  // North and South Carolina: illegal use has occurred or is reasonably likely, or a material risk of harm.
+  IllegalUseOrMaterialRisk = "IllegalUseOrMaterialRisk",
+  // Ohio: a material risk of identity theft or other fraud.
+  MaterialRiskOfIdentityTheft = "MaterialRiskOfIdentityTheft",
+  // Oregon: unless the people are unlikely to suffer harm, determined in writing and kept five years.
+  UnlikelyHarmInWriting = "UnlikelyHarmInWriting",
+  // Rhode Island: a breach that poses a significant risk of identity theft.
+  PosesSignificantRiskOfIdentityTheft = "PosesSignificantRiskOfIdentityTheft",
+  // South Dakota: unless, after telling the attorney general, harm is not likely, in writing kept three years.
+  LikelyHarmAfterTellingAg = "LikelyHarmAfterTellingAg",
+  // Utah: an investigation finds misuse for identity theft or fraud has occurred or is reasonably likely.
+  MisuseForIdentityTheftOrFraud = "MisuseForIdentityTheftOrFraud",
+  // Vermont: unless misuse is not reasonably possible, with that determination explained to the attorney general.
+  MisuseNotPossibleTellAg = "MisuseNotPossibleTellAg",
+  // Wisconsin: unless the acquisition creates no material risk of identity theft or fraud.
+  NoMaterialRiskOfIdentityTheft = "NoMaterialRiskOfIdentityTheft",
+  // Wyoming: an investigation finds misuse has occurred or is reasonably likely.
+  InvestigationFindsMisuse = "InvestigationFindsMisuse",
 }
 
 export const BREACH_CONDITION_WORDS: Readonly<Record<BreachCondition, string>> =
@@ -692,6 +710,33 @@ export const BREACH_CONDITION_WORDS: Readonly<Record<BreachCondition, string>> =
     ),
     [BreachCondition.SignificantRiskOfIdentityTheft]: translationKey(
       "Unless, after an investigation, you determine the breach does not give rise to a significant risk of identity theft or fraud.",
+    ),
+    [BreachCondition.IllegalUseOrMaterialRisk]: translationKey(
+      "If the data has been, or is reasonably likely to be, used illegally, or the breach creates a material risk of harm to the people.",
+    ),
+    [BreachCondition.MaterialRiskOfIdentityTheft]: translationKey(
+      "If the breach causes, or is reasonably believed to cause, a material risk of identity theft or other fraud to the people.",
+    ),
+    [BreachCondition.UnlikelyHarmInWriting]: translationKey(
+      "Unless, after an investigation or consulting law enforcement, you determine the people are unlikely to suffer harm, in writing kept for five years.",
+    ),
+    [BreachCondition.PosesSignificantRiskOfIdentityTheft]: translationKey(
+      "If the breach poses a significant risk of identity theft to the people.",
+    ),
+    [BreachCondition.LikelyHarmAfterTellingAg]: translationKey(
+      "Unless, after an investigation and telling the attorney general, you determine the breach will not likely result in harm to the people, in writing kept for three years.",
+    ),
+    [BreachCondition.MisuseForIdentityTheftOrFraud]: translationKey(
+      "If an investigation finds the data was, or is reasonably likely to be, misused for identity theft or fraud.",
+    ),
+    [BreachCondition.MisuseNotPossibleTellAg]: translationKey(
+      "Unless you establish that misuse of the data is not reasonably possible, and send that determination, with a detailed explanation, to the attorney general.",
+    ),
+    [BreachCondition.NoMaterialRiskOfIdentityTheft]: translationKey(
+      "Unless the acquisition does not create a material risk of identity theft or fraud to the people.",
+    ),
+    [BreachCondition.InvestigationFindsMisuse]: translationKey(
+      "If an investigation finds the data was, or is reasonably likely to be, misused.",
     ),
   };
 
@@ -850,6 +895,47 @@ export enum BreachLawId {
   NewMexicoConsumerReportingAgencies = "nm-57-12c-10-consumer-reporting-agencies",
   FloridaConsumerReportingAgencies = "fl-501-171-5-consumer-reporting-agencies",
   NewYorkConsumerReportingAgencies = "ny-gbl-899-aa-8-b-consumer-reporting-agencies",
+  NorthCarolinaResidents = "nc-75-65-a-residents",
+  NorthCarolinaAttorneyGeneral = "nc-75-65-e1-attorney-general",
+  NorthDakotaResidents = "nd-51-30-02-residents",
+  NorthDakotaAttorneyGeneral = "nd-51-30-02-attorney-general",
+  OhioResidents = "oh-1349-19-b-residents",
+  OklahomaResidents = "ok-24-163-a-residents",
+  OklahomaAttorneyGeneral = "ok-24-163-e-attorney-general",
+  OregonResidents = "or-646a-604-1-a-residents",
+  OregonAttorneyGeneral = "or-646a-604-1-b-attorney-general",
+  PennsylvaniaResidents = "pa-act-94-3-a-residents",
+  PennsylvaniaAttorneyGeneral = "pa-act-94-3-c1-attorney-general",
+  RhodeIslandResidents = "ri-11-49-3-4-a-residents",
+  RhodeIslandAttorneyGeneral = "ri-11-49-3-4-a-2-attorney-general",
+  SouthCarolinaResidents = "sc-39-1-90-a-residents",
+  SouthCarolinaConsumerAffairs = "sc-39-1-90-k-consumer-affairs",
+  SouthDakotaResidents = "sd-22-40-20-residents",
+  SouthDakotaAttorneyGeneral = "sd-22-40-20-attorney-general",
+  TennesseeResidents = "tn-47-18-2107-b-residents",
+  NorthCarolinaConsumerReportingAgencies = "nc-75-65-f-consumer-reporting-agencies",
+  OhioConsumerReportingAgencies = "oh-1349-19-g-consumer-reporting-agencies",
+  OregonConsumerReportingAgencies = "or-646a-604-6-consumer-reporting-agencies",
+  PennsylvaniaConsumerReportingAgencies = "pa-act-94-5-consumer-reporting-agencies",
+  RhodeIslandConsumerReportingAgencies = "ri-11-49-3-4-consumer-reporting-agencies",
+  SouthCarolinaConsumerReportingAgencies = "sc-39-1-90-k-consumer-reporting-agencies",
+  SouthDakotaConsumerReportingAgencies = "sd-22-40-24-consumer-reporting-agencies",
+  TennesseeConsumerReportingAgencies = "tn-47-18-2107-g-consumer-reporting-agencies",
+  UtahResidents = "ut-13-44-202-1-b-residents",
+  UtahAttorneyGeneral = "ut-13-44-202-1-c-attorney-general",
+  VermontResidents = "vt-9-2435-b-1-residents",
+  VermontAttorneyGeneral = "vt-9-2435-b-3-attorney-general",
+  VirginiaResidents = "va-18-2-186-6-b-residents",
+  VirginiaAttorneyGeneral = "va-18-2-186-6-b-attorney-general",
+  UtahConsumerReportingAgencies = "ut-13-44-202-1-d-consumer-reporting-agencies",
+  VermontConsumerReportingAgencies = "vt-9-2435-c-consumer-reporting-agencies",
+  VirginiaConsumerReportingAgencies = "va-18-2-186-6-e-consumer-reporting-agencies",
+  WisconsinResidents = "wi-134-98-2-residents",
+  WisconsinConsumerReportingAgencies = "wi-134-98-2-br-consumer-reporting-agencies",
+  WyomingResidents = "wy-40-12-502-a-residents",
+  ColoradoConsumerReportingAgencies = "co-6-1-716-2-d-consumer-reporting-agencies",
+  MassachusettsConsumerReportingAgencies = "ma-93h-3-b-consumer-reporting-agencies",
+  TexasConsumerReportingAgencies = "tx-521-053-h-consumer-reporting-agencies",
 }
 
 /*
@@ -903,6 +989,21 @@ export enum BreachLawFamily {
   NewHampshire = "New Hampshire",
   NewJersey = "New Jersey",
   NewMexico = "New Mexico",
+  NorthCarolina = "North Carolina",
+  NorthDakota = "North Dakota",
+  Ohio = "Ohio",
+  Oklahoma = "Oklahoma",
+  Oregon = "Oregon",
+  Pennsylvania = "Pennsylvania",
+  RhodeIsland = "Rhode Island",
+  SouthCarolina = "South Carolina",
+  SouthDakota = "South Dakota",
+  Tennessee = "Tennessee",
+  Utah = "Utah",
+  Vermont = "Vermont",
+  Virginia = "Virginia",
+  Wisconsin = "Wisconsin",
+  Wyoming = "Wyoming",
 }
 
 export interface BreachLawRule {
@@ -1046,6 +1147,45 @@ const NEW_JERSEY_SOURCE: string =
   "https://lis.njleg.state.nj.us/nxt/gateway.dll?xhitlist_vq=56%3A8-163+Disclosure+of+breach+of+security+to+customers.&f=xhitlist&xhitlist_q=%5BRank+100%5D%5BDomain%3A+56%3A8-163+Disclosure+of+breach+of+security+to+customers.%5D56%3A8-163+Disclosure+of+breach+of+security+to+customers.&xhitlist_x=advanced&xhitlist_s=relevance-weight&xhitlist_mh=99999&xhitlist_d=&xhitlist_hc=%5BXML%5D%5BKwic%2C25%5D&xhitlist_xsl=xhitlist.xsl&xhitlist_vpc=first&xhitlist_vps=20&xhitlist_sel=title%3Bpath%3Brelevance-weight%3Bcontent-type%3Bhome-title%3Bitem-bookmark%3Btitle-path%3Bhit-context&vid=Publish%3A10.1048%2FEnu";
 const NEW_MEXICO_SOURCE: string =
   "https://www.nmonesource.com/nmos/nmsa/en/4423/1/document.do";
+const NORTH_CAROLINA_SOURCE: string =
+  "https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_75/GS_75-65.html";
+const NORTH_DAKOTA_SOURCE: string =
+  "https://www.ndlegis.gov/cencode/t51c30.pdf";
+const OHIO_SOURCE: string =
+  "https://codes.ohio.gov/ohio-revised-code/section-1349.19";
+const OKLAHOMA_SOURCE: string =
+  "https://www.oklegislature.gov/OK_Statutes/CompleteTitles/os24.pdf";
+const OREGON_SOURCE: string =
+  "https://www.oregonlegislature.gov/bills_laws/ors/ors646A.html";
+const PENNSYLVANIA_SOURCE: string =
+  "https://www.palegis.us/statutes/unconsolidated/law-information/view-statute?txtType=HTM&SessYr=2005&ActNum=0094.&SessInd=0";
+const RHODE_ISLAND_SOURCE: string =
+  "https://webserver.rilegislature.gov/Statutes/TITLE11/11-49.3/11-49.3-4.htm";
+const SOUTH_CAROLINA_SOURCE: string =
+  "https://www.scstatehouse.gov/code/t39c001.php";
+const SOUTH_DAKOTA_SOURCE: string = "https://sdlegislature.gov/Statutes/22-40";
+// The code is published only by a vendor: the legislature's copy of the act that replaced the section.
+const TENNESSEE_SOURCE: string =
+  "https://capitol.tn.gov/Bills/110/Bill/SB0547.pdf";
+const UTAH_SOURCE: string =
+  "https://le.utah.gov/xcode/Title13/Chapter44/C13-44-S202_2024050120240501.html";
+const VERMONT_SOURCE: string =
+  "https://legislature.vermont.gov/statutes/section/09/062/02435";
+const VIRGINIA_SOURCE: string =
+  "https://law.lis.virginia.gov/vacode/title18.2/chapter6/section18.2-186.6/";
+const WISCONSIN_SOURCE: string =
+  "https://docs.legis.wisconsin.gov/statutes/statutes/134/98";
+const WYOMING_SOURCE: string =
+  "https://wyoleg.gov/statutes/compress/title40.pdf";
+/*
+ * Colorado's and Texas's statutes, as #10952 read them for the agencies'
+ * notices: the rows #10377 took from the attorneys general's guidance agree
+ * with them, and keep their sources.
+ */
+const COLORADO_STATUTE_SOURCE: string =
+  "https://content.leg.colorado.gov/sites/default/files/images/olls/crs2024-title-06.pdf";
+const TEXAS_STATUTE_SOURCE: string =
+  "https://tcss.legis.texas.gov/resources/BC/htm/BC.521.htm";
 
 // The data elements most US state laws name, held with a person's name.
 const US_STATE_IDS: ReadonlyArray<BreachDataElement> = [
@@ -1257,6 +1397,95 @@ const NEW_MEXICO_ELEMENTS: ReadonlyArray<BreachDataElement> = [
   BreachDataElement.Biometric,
 ];
 
+const NORTH_CAROLINA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_IDS,
+  BreachDataElement.TaxIdNumber,
+  BreachDataElement.FinancialAccount,
+  BreachDataElement.Biometric,
+  BreachDataElement.OnlineCredentials,
+];
+
+const NORTH_DAKOTA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_CORE,
+  BreachDataElement.DateOfBirth,
+  ...HEALTH_DATA,
+];
+
+const OKLAHOMA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_CORE,
+  BreachDataElement.OtherGovernmentId,
+  BreachDataElement.Biometric,
+];
+
+const OREGON_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_IDS,
+  BreachDataElement.OtherGovernmentId,
+  BreachDataElement.FinancialAccount,
+  BreachDataElement.Biometric,
+  ...HEALTH_DATA,
+  BreachDataElement.OnlineCredentials,
+];
+
+// Medical information counts only in a state agency's hands: a business's is health insurance alone.
+const PENNSYLVANIA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_CORE,
+  BreachDataElement.HealthInsurance,
+  BreachDataElement.OnlineCredentials,
+];
+
+const RHODE_ISLAND_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_CORE,
+  BreachDataElement.OtherGovernmentId,
+  ...HEALTH_DATA,
+  BreachDataElement.OnlineCredentials,
+];
+
+const SOUTH_CAROLINA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_CORE,
+  BreachDataElement.OtherGovernmentId,
+];
+
+const SOUTH_DAKOTA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_CORE,
+  BreachDataElement.OtherGovernmentId,
+  BreachDataElement.MedicalInformation,
+  BreachDataElement.OnlineCredentials,
+];
+
+const VERMONT_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_IDS,
+  BreachDataElement.TaxIdNumber,
+  BreachDataElement.OtherGovernmentId,
+  BreachDataElement.FinancialAccount,
+  BreachDataElement.Biometric,
+  BreachDataElement.Genetic,
+  ...HEALTH_DATA,
+  BreachDataElement.OnlineCredentials,
+];
+
+// Medical information counts only in a public body's hands, under a law of its own.
+const VIRGINIA_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_IDS,
+  BreachDataElement.OtherGovernmentId,
+  BreachDataElement.FinancialAccount,
+];
+
+const WISCONSIN_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_CORE,
+  BreachDataElement.Genetic,
+  BreachDataElement.Biometric,
+];
+
+const WYOMING_ELEMENTS: ReadonlyArray<BreachDataElement> = [
+  ...US_STATE_IDS,
+  BreachDataElement.TaxIdNumber,
+  BreachDataElement.OtherGovernmentId,
+  BreachDataElement.FinancialAccount,
+  BreachDataElement.Biometric,
+  ...HEALTH_DATA,
+  BreachDataElement.OnlineCredentials,
+];
+
 // Shared words of the rows.
 const TELL_THE_PEOPLE: string = translationKey("Tell the people affected");
 const THE_PEOPLE: string = translationKey("The people the data is about");
@@ -1288,6 +1517,9 @@ const KEEP_THE_DETERMINATION_FIVE_YEARS: string = translationKey(
 );
 const NOT_FOR_GLBA_OR_HIPAA: string = translationKey(
   "The law does not apply to an organization subject to the Gramm-Leach-Bliley Act or HIPAA.",
+);
+const WISCONSIN_EXEMPTIONS: string = translationKey(
+  "Not owed by an organization that complies with the Gramm-Leach-Bliley Act's privacy and security rules and has a breach policy, or by a HIPAA covered entity that complies with HIPAA's privacy and security rules.",
 );
 const BEFORE_THE_PEOPLE_ARE_TOLD: string = translationKey(
   "Before the people are told.",
@@ -1651,6 +1883,33 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       "C.R.S. 6-1-716, as the Colorado Attorney General's guidance states it",
     checkedOn: BREACH_LAWS_CHECKED_ON,
   },
+  {
+    id: BreachLawId.ColoradoConsumerReportingAgencies,
+    family: BreachLawFamily.Colorado,
+    law: "Colorado Revised Statutes",
+    provision: "6-1-716(2)(d)",
+    places: [BreachPlace.Colorado],
+    dataElements: COLORADO_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [
+      BreachDataElement.OnlineCredentials,
+      BreachDataElement.FinancialAccount,
+    ],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.LikelyMisuse],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: translationKey(
+      "The nationwide consumer reporting agencies, with when the residents will be told and about how many",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    note: NOT_FOR_GLBA,
+    sourceUrl: COLORADO_STATUTE_SOURCE,
+    sourceTitle: "Colorado Revised Statutes 2024, 6-1-716(2)(d)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
   // ---- Florida (Fla. Stat. 501.171) ----
   {
     id: BreachLawId.FloridaIndividuals,
@@ -1852,6 +2111,30 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       "Texas Business and Commerce Code 521.053, as the Texas Attorney General's guidance states it",
     checkedOn: BREACH_LAWS_CHECKED_ON,
   },
+  {
+    id: BreachLawId.TexasConsumerReportingAgencies,
+    family: BreachLawFamily.Texas,
+    law: "Texas Business and Commerce Code",
+    provision: "521.053(h)",
+    places: [BreachPlace.Texas],
+    dataElements: TEXAS_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [
+      BreachDataElement.MedicalInformation,
+      BreachDataElement.HealthInsurance,
+    ],
+    minimumPeople: { count: 10000, isMoreThan: true },
+    conditions: [],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: TEXAS_STATUTE_SOURCE,
+    sourceTitle: "Texas Business and Commerce Code 521.053(h)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
   // ---- Washington (RCW 19.255.010) ----
   {
     id: BreachLawId.WashingtonConsumers,
@@ -1905,9 +2188,9 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
    *
    * Each from its statute's own text, read on US_STATE_LAWS_CHECKED_ON: the
    * notice to the residents and, where the statute asks it of a business,
-   * the one to the attorney general or another state office. A notice the
-   * statute asks only of a state's own agencies is left out, and so are the
-   * notices to the consumer reporting agencies (getUncoveredLaws says so).
+   * the one to the attorney general or another state office, and the one to
+   * the consumer reporting agencies, each after its state's other rows. A
+   * notice the statute asks only of a state's own agencies is left out.
    * Where a statute says "days" without saying which, they are counted as
    * calendar days, the longer reading never assumed.
    */
@@ -1974,7 +2257,8 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
       start: BreachDeadlineStart.Found,
     },
-    sourceUrl: "https://alison.legislature.state.al.us/code-of-alabama?section=8-38-7",
+    sourceUrl:
+      "https://alison.legislature.state.al.us/code-of-alabama?section=8-38-7",
     sourceTitle: "Code of Alabama 1975, 8-38-7 (Act 2018-396)",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
   },
@@ -2084,7 +2368,9 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     minimumPeople: { count: 1000, isMoreThan: true },
     conditions: [BreachCondition.SubstantialEconomicLoss],
     action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
-    recipient: translationKey("The three largest nationwide consumer reporting agencies"),
+    recipient: translationKey(
+      "The three largest nationwide consumer reporting agencies",
+    ),
     deadline: {
       unit: BreachDeadlineUnit.CalendarDays,
       amount: 45,
@@ -2361,7 +2647,8 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       start: BreachDeadlineStart.Found,
     },
     sourceUrl: GEORGIA_SOURCE,
-    sourceTitle: "Official Code of Georgia 10-1-912(d), as 2007 SB 236 (Act 241) restates it",
+    sourceTitle:
+      "Official Code of Georgia 10-1-912(d), as 2007 SB 236 (Act 241) restates it",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
   },
   // ---- Hawaii (Hawaii Revised Statutes 487N-2) ----
@@ -2567,7 +2854,8 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     },
     deadlineNote: WITHIN_THE_DAYS_OF_DISCOVERY,
     sourceUrl: INDIANA_SOURCE,
-    sourceTitle: "Indiana Code 24-4.9-3-1(b) and 24-4.9-3-3 (Indiana Code 2026)",
+    sourceTitle:
+      "Indiana Code 24-4.9-3-1(b) and 24-4.9-3-3 (Indiana Code 2026)",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
   },
   // ---- Iowa (Iowa Code 715C.2) ----
@@ -2891,7 +3179,8 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
       start: BreachDeadlineStart.Found,
     },
-    sourceUrl: "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gcl&section=14-3506&enactments=false",
+    sourceUrl:
+      "https://mgaleg.maryland.gov/mgawebsite/Laws/StatuteText?article=gcl&section=14-3506&enactments=false",
     sourceTitle: "Maryland Code, Commercial Law 14-3506(a)",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
   },
@@ -2938,6 +3227,31 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
       start: BreachDeadlineStart.Found,
     },
+    sourceUrl: MASSACHUSETTS_SOURCE,
+    sourceTitle: "General Laws of Massachusetts, chapter 93H, section 3(b)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.MassachusettsConsumerReportingAgencies,
+    family: BreachLawFamily.Massachusetts,
+    law: "General Laws of Massachusetts, chapter 93H",
+    provision: "3(b)",
+    places: [BreachPlace.Massachusetts],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.SubstantialRiskOfIdentityTheft],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: translationKey(
+      "The consumer reporting agencies and state agencies the Director of Consumer Affairs and Business Regulation names",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "As soon as practicable and without unreasonable delay, once the Director names them.",
+    ),
     sourceUrl: MASSACHUSETTS_SOURCE,
     sourceTitle: "General Laws of Massachusetts, chapter 93H, section 3(b)",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
@@ -3132,8 +3446,11 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
       unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
       start: BreachDeadlineStart.Found,
     },
+    note: translationKey(
+      "If your notice tells people they can get their credit file from a consumer reporting agency, coordinate its timing, content and distribution with that agency, without delaying the notice.",
+    ),
     sourceUrl: MONTANA_SOURCE,
-    sourceTitle: "Montana Code Annotated 2025, 30-14-1704(1) and (4)",
+    sourceTitle: "Montana Code Annotated 2025, 30-14-1704(1), (4) and (7)",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
   },
   {
@@ -3447,6 +3764,897 @@ export const BREACH_LAW_RULES: ReadonlyArray<BreachLawRule> = [
     },
     sourceUrl: NEW_MEXICO_SOURCE,
     sourceTitle: "New Mexico Statutes Annotated 1978, 57-12C-10",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- North Carolina (North Carolina General Statutes 75-65) ----
+  {
+    id: BreachLawId.NorthCarolinaResidents,
+    family: BreachLawFamily.NorthCarolina,
+    law: "North Carolina General Statutes",
+    provision: "75-65(a)",
+    places: [BreachPlace.NorthCarolina],
+    dataElements: NORTH_CAROLINA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NORTH_CAROLINA_SOURCE,
+    sourceTitle: "North Carolina General Statutes 75-61 and 75-65(a)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.NorthCarolinaAttorneyGeneral,
+    family: BreachLawFamily.NorthCarolina,
+    law: "North Carolina General Statutes",
+    provision: "75-65(e1)",
+    places: [BreachPlace.NorthCarolina],
+    dataElements: NORTH_CAROLINA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: translationKey(
+      "The Consumer Protection Division of the North Carolina Attorney General's office",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NORTH_CAROLINA_SOURCE,
+    sourceTitle: "North Carolina General Statutes 75-65(e1)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.NorthCarolinaConsumerReportingAgencies,
+    family: BreachLawFamily.NorthCarolina,
+    law: "North Carolina General Statutes",
+    provision: "75-65(f)",
+    places: [BreachPlace.NorthCarolina],
+    dataElements: NORTH_CAROLINA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NORTH_CAROLINA_SOURCE,
+    sourceTitle: "North Carolina General Statutes 75-65(f)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- North Dakota (North Dakota Century Code 51-30-02) ----
+  {
+    id: BreachLawId.NorthDakotaResidents,
+    family: BreachLawFamily.NorthDakota,
+    law: "North Dakota Century Code",
+    provision: "51-30-02",
+    places: [BreachPlace.NorthDakota],
+    dataElements: NORTH_DAKOTA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NORTH_DAKOTA_SOURCE,
+    sourceTitle: "North Dakota Century Code 51-30-01 and 51-30-02",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.NorthDakotaAttorneyGeneral,
+    family: BreachLawFamily.NorthDakota,
+    law: "North Dakota Century Code",
+    provision: "51-30-02 (attorney general)",
+    places: [BreachPlace.NorthDakota],
+    dataElements: NORTH_DAKOTA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 250, isMoreThan: true },
+    conditions: [],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: THE_STATE_ATTORNEY_GENERAL,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: NORTH_DAKOTA_SOURCE,
+    sourceTitle: "North Dakota Century Code 51-30-02",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Ohio (Ohio Revised Code 1349.19) ----
+  {
+    id: BreachLawId.OhioResidents,
+    family: BreachLawFamily.Ohio,
+    law: "Ohio Revised Code",
+    provision: "1349.19(B)(1)",
+    places: [BreachPlace.Ohio],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.MaterialRiskOfIdentityTheft],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: WITHIN_THE_DAYS_OF_DISCOVERY,
+    sourceUrl: OHIO_SOURCE,
+    sourceTitle: "Ohio Revised Code 1349.19(A) and (B)(1)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.OhioConsumerReportingAgencies,
+    family: BreachLawFamily.Ohio,
+    law: "Ohio Revised Code",
+    provision: "1349.19(G)",
+    places: [BreachPlace.Ohio],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.MaterialRiskOfIdentityTheft],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: OHIO_SOURCE,
+    sourceTitle: "Ohio Revised Code 1349.19(G)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Oklahoma (Oklahoma Statutes, Title 24, 163, as Laws 2025, c. 406 amended it) ----
+  {
+    id: BreachLawId.OklahomaResidents,
+    family: BreachLawFamily.Oklahoma,
+    law: "Oklahoma Statutes, Title 24",
+    provision: "163(A)",
+    places: [BreachPlace.Oklahoma],
+    dataElements: OKLAHOMA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: OKLAHOMA_SOURCE,
+    sourceTitle:
+      "Oklahoma Statutes, Title 24, 162 and 163(A), as Laws 2025, c. 406 (SB 626) amended them",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    inForceFrom: "2026-01-01",
+  },
+  {
+    id: BreachLawId.OklahomaAttorneyGeneral,
+    family: BreachLawFamily.Oklahoma,
+    law: "Oklahoma Statutes, Title 24",
+    provision: "163(E)",
+    places: [BreachPlace.Oklahoma],
+    dataElements: OKLAHOMA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 500, isMoreThan: false },
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: THE_STATE_ATTORNEY_GENERAL,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 60,
+      start: BreachDeadlineStart.PeopleNotified,
+      afterRule: BreachLawId.OklahomaResidents,
+    },
+    deadlineNote: translationKey(
+      "Without unreasonable delay, and no later than that after the people are told.",
+    ),
+    note: translationKey(
+      "A credit bureau tells the attorney general only from 1,000 residents.",
+    ),
+    sourceUrl: OKLAHOMA_SOURCE,
+    sourceTitle:
+      "Oklahoma Statutes, Title 24, 163(E), as Laws 2025, c. 406 (SB 626) added it",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+    inForceFrom: "2026-01-01",
+  },
+  // ---- Oregon (Oregon Revised Statutes 646A.604) ----
+  {
+    id: BreachLawId.OregonResidents,
+    family: BreachLawFamily.Oregon,
+    law: "Oregon Revised Statutes",
+    provision: "646A.604(1)(a)",
+    places: [BreachPlace.Oregon],
+    dataElements: OREGON_ELEMENTS,
+    // Without a name too, where the data would be enough for identity theft.
+    needsName: false,
+    nameFreeElements: [],
+    conditions: [BreachCondition.UnlikelyHarmInWriting],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: OREGON_SOURCE,
+    sourceTitle:
+      "Oregon Revised Statutes 646A.602 and 646A.604(1)(a), (3) and (8)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.OregonAttorneyGeneral,
+    family: BreachLawFamily.Oregon,
+    law: "Oregon Revised Statutes",
+    provision: "646A.604(1)(b)",
+    places: [BreachPlace.Oregon],
+    dataElements: OREGON_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    minimumPeople: { count: 250, isMoreThan: true },
+    conditions: [BreachCondition.UnlikelyHarmInWriting],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: THE_STATE_ATTORNEY_GENERAL,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: OREGON_SOURCE,
+    sourceTitle: "Oregon Revised Statutes 646A.604(1)(b) and (3)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.OregonConsumerReportingAgencies,
+    family: BreachLawFamily.Oregon,
+    law: "Oregon Revised Statutes",
+    provision: "646A.604(6)",
+    places: [BreachPlace.Oregon],
+    dataElements: OREGON_ELEMENTS,
+    needsName: false,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: WITHOUT_DELAYING_THE_PEOPLE,
+    sourceUrl: OREGON_SOURCE,
+    sourceTitle: "Oregon Revised Statutes 646A.604(6)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Pennsylvania (Breach of Personal Information Notification Act, 73 P.S. 2301 et seq.) ----
+  {
+    id: BreachLawId.PennsylvaniaResidents,
+    family: BreachLawFamily.Pennsylvania,
+    law: "Pennsylvania Breach of Personal Information Notification Act",
+    provision: "Section 3(a)",
+    places: [BreachPlace.Pennsylvania],
+    dataElements: PENNSYLVANIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.LossOrInjury],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    note: translationKey(
+      "Where Social Security, bank account or driver's license numbers were accessed with names, offer a free credit report and 12 months of credit monitoring.",
+    ),
+    sourceUrl: PENNSYLVANIA_SOURCE,
+    sourceTitle:
+      "Pennsylvania Breach of Personal Information Notification Act (Act 94 of 2005), Sections 2, 3(a) and 5.4, as amended",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.PennsylvaniaAttorneyGeneral,
+    family: BreachLawFamily.Pennsylvania,
+    law: "Pennsylvania Breach of Personal Information Notification Act",
+    provision: "Section 3(c.1)",
+    places: [BreachPlace.Pennsylvania],
+    dataElements: PENNSYLVANIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [BreachCondition.LossOrInjury],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: THE_STATE_ATTORNEY_GENERAL,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 0,
+      start: BreachDeadlineStart.PeopleNotified,
+      afterRule: BreachLawId.PennsylvaniaResidents,
+    },
+    note: translationKey(
+      "An organization subject to Pennsylvania's insurance data security law does not owe this notice.",
+    ),
+    sourceUrl: PENNSYLVANIA_SOURCE,
+    sourceTitle:
+      "Pennsylvania Breach of Personal Information Notification Act (Act 94 of 2005), Section 3(c.1) and (c.2), as amended",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.PennsylvaniaConsumerReportingAgencies,
+    family: BreachLawFamily.Pennsylvania,
+    law: "Pennsylvania Breach of Personal Information Notification Act",
+    provision: "Section 5",
+    places: [BreachPlace.Pennsylvania],
+    dataElements: PENNSYLVANIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [BreachCondition.LossOrInjury],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: PENNSYLVANIA_SOURCE,
+    sourceTitle:
+      "Pennsylvania Breach of Personal Information Notification Act (Act 94 of 2005), Section 5",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Rhode Island (General Laws of Rhode Island 11-49.3-4) ----
+  {
+    id: BreachLawId.RhodeIslandResidents,
+    family: BreachLawFamily.RhodeIsland,
+    law: "General Laws of Rhode Island",
+    provision: "11-49.3-4(a)",
+    places: [BreachPlace.RhodeIsland],
+    dataElements: RHODE_ISLAND_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.PosesSignificantRiskOfIdentityTheft],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "The law counts from when you confirm the breach and can say what the notice must; this counts from when it was found, the earlier of the two.",
+    ),
+    sourceUrl: RHODE_ISLAND_SOURCE,
+    sourceTitle: "General Laws of Rhode Island 11-49.3-3 and 11-49.3-4(a)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.RhodeIslandAttorneyGeneral,
+    family: BreachLawFamily.RhodeIsland,
+    law: "General Laws of Rhode Island",
+    provision: "11-49.3-4(a)(2)(ii)",
+    places: [BreachPlace.RhodeIsland],
+    dataElements: RHODE_ISLAND_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [BreachCondition.PosesSignificantRiskOfIdentityTheft],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: THE_STATE_ATTORNEY_GENERAL,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 0,
+      start: BreachDeadlineStart.PeopleNotified,
+      afterRule: BreachLawId.RhodeIslandResidents,
+    },
+    deadlineNote: WITHOUT_DELAYING_THE_PEOPLE,
+    sourceUrl: RHODE_ISLAND_SOURCE,
+    sourceTitle: "General Laws of Rhode Island 11-49.3-4(a)(2)(ii)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.RhodeIslandConsumerReportingAgencies,
+    family: BreachLawFamily.RhodeIsland,
+    law: "General Laws of Rhode Island",
+    provision: "11-49.3-4(a)(2)(ii)",
+    places: [BreachPlace.RhodeIsland],
+    dataElements: RHODE_ISLAND_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [BreachCondition.PosesSignificantRiskOfIdentityTheft],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 0,
+      start: BreachDeadlineStart.PeopleNotified,
+      afterRule: BreachLawId.RhodeIslandResidents,
+    },
+    deadlineNote: WITHOUT_DELAYING_THE_PEOPLE,
+    sourceUrl: RHODE_ISLAND_SOURCE,
+    sourceTitle: "General Laws of Rhode Island 11-49.3-4(a)(2)(ii)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- South Carolina (Code of Laws of South Carolina 39-1-90) ----
+  {
+    id: BreachLawId.SouthCarolinaResidents,
+    family: BreachLawFamily.SouthCarolina,
+    law: "Code of Laws of South Carolina",
+    provision: "39-1-90(A)",
+    places: [BreachPlace.SouthCarolina],
+    dataElements: SOUTH_CAROLINA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: SOUTH_CAROLINA_SOURCE,
+    sourceTitle: "Code of Laws of South Carolina 39-1-90(A) and (D)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.SouthCarolinaConsumerAffairs,
+    family: BreachLawFamily.SouthCarolina,
+    law: "Code of Laws of South Carolina",
+    provision: "39-1-90(K)",
+    places: [BreachPlace.SouthCarolina],
+    dataElements: SOUTH_CAROLINA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    action: translationKey("Notify the Department of Consumer Affairs"),
+    recipient: translationKey(
+      "The Consumer Protection Division of the South Carolina Department of Consumer Affairs, with the notice's timing, distribution and content",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: SOUTH_CAROLINA_SOURCE,
+    sourceTitle: "Code of Laws of South Carolina 39-1-90(K)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.SouthCarolinaConsumerReportingAgencies,
+    family: BreachLawFamily.SouthCarolina,
+    law: "Code of Laws of South Carolina",
+    provision: "39-1-90(K)",
+    places: [BreachPlace.SouthCarolina],
+    dataElements: SOUTH_CAROLINA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: SOUTH_CAROLINA_SOURCE,
+    sourceTitle: "Code of Laws of South Carolina 39-1-90(K)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- South Dakota (South Dakota Codified Laws 22-40-20) ----
+  {
+    id: BreachLawId.SouthDakotaResidents,
+    family: BreachLawFamily.SouthDakota,
+    law: "South Dakota Codified Laws",
+    provision: "22-40-20",
+    places: [BreachPlace.SouthDakota],
+    dataElements: SOUTH_DAKOTA_ELEMENTS,
+    needsName: true,
+    // Its "protected information": a login, or an account number with its code, on their own.
+    nameFreeElements: [
+      BreachDataElement.FinancialAccount,
+      BreachDataElement.OnlineCredentials,
+    ],
+    conditions: [BreachCondition.LikelyHarmAfterTellingAg],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 60,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: SOUTH_DAKOTA_SOURCE,
+    sourceTitle: "South Dakota Codified Laws 22-40-19 and 22-40-20",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.SouthDakotaAttorneyGeneral,
+    family: BreachLawFamily.SouthDakota,
+    law: "South Dakota Codified Laws",
+    provision: "22-40-20 (attorney general)",
+    places: [BreachPlace.SouthDakota],
+    dataElements: SOUTH_DAKOTA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [
+      BreachDataElement.FinancialAccount,
+      BreachDataElement.OnlineCredentials,
+    ],
+    minimumPeople: { count: 250, isMoreThan: true },
+    // Owed past 250 residents whatever the harm: the attorney general is told before the exception is relied on.
+    conditions: [],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: THE_STATE_ATTORNEY_GENERAL,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 60,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: SOUTH_DAKOTA_SOURCE,
+    sourceTitle: "South Dakota Codified Laws 22-40-20",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.SouthDakotaConsumerReportingAgencies,
+    family: BreachLawFamily.SouthDakota,
+    law: "South Dakota Codified Laws",
+    provision: "22-40-24",
+    places: [BreachPlace.SouthDakota],
+    dataElements: SOUTH_DAKOTA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [
+      BreachDataElement.FinancialAccount,
+      BreachDataElement.OnlineCredentials,
+    ],
+    conditions: [BreachCondition.LikelyHarmAfterTellingAg],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: SOUTH_DAKOTA_SOURCE,
+    sourceTitle: "South Dakota Codified Laws 22-40-24",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Tennessee (Tennessee Code 47-18-2107, as 2017 Public Chapter 91 replaced it) ----
+  {
+    id: BreachLawId.TennesseeResidents,
+    family: BreachLawFamily.Tennessee,
+    law: "Tennessee Code Annotated",
+    provision: "47-18-2107(b)",
+    places: [BreachPlace.Tennessee],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: WITHIN_THE_DAYS_OF_DISCOVERY,
+    note: NOT_FOR_GLBA_OR_HIPAA,
+    sourceUrl: TENNESSEE_SOURCE,
+    sourceTitle:
+      "Tennessee Code Annotated 47-18-2107(a) and (b), as 2017 Public Chapter 91 (SB 547, with Senate Amendment 1) replaced the section",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.TennesseeConsumerReportingAgencies,
+    family: BreachLawFamily.Tennessee,
+    law: "Tennessee Code Annotated",
+    provision: "47-18-2107(g)",
+    places: [BreachPlace.Tennessee],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    note: NOT_FOR_GLBA_OR_HIPAA,
+    sourceUrl: TENNESSEE_SOURCE,
+    sourceTitle: "Tennessee Code Annotated 47-18-2107(g)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Utah (Utah Code 13-44-202) ----
+  {
+    id: BreachLawId.UtahResidents,
+    family: BreachLawFamily.Utah,
+    law: "Utah Code",
+    provision: "13-44-202(1)(b)",
+    places: [BreachPlace.Utah],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.MisuseForIdentityTheftOrFraud],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: UTAH_SOURCE,
+    sourceTitle: "Utah Code 13-44-102 and 13-44-202(1)(b) and (2)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.UtahAttorneyGeneral,
+    family: BreachLawFamily.Utah,
+    law: "Utah Code",
+    provision: "13-44-202(1)(c)",
+    places: [BreachPlace.Utah],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 500, isMoreThan: false },
+    conditions: [BreachCondition.MisuseForIdentityTheftOrFraud],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: translationKey(
+      "The Utah Attorney General's office and the Utah Cyber Center",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: UTAH_SOURCE,
+    sourceTitle: "Utah Code 13-44-202(1)(c) and (6)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.UtahConsumerReportingAgencies,
+    family: BreachLawFamily.Utah,
+    law: "Utah Code",
+    provision: "13-44-202(1)(d)",
+    places: [BreachPlace.Utah],
+    dataElements: US_STATE_CORE,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: false },
+    conditions: [BreachCondition.MisuseForIdentityTheftOrFraud],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: UTAH_SOURCE,
+    sourceTitle: "Utah Code 13-44-202(1)(d)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Vermont (Vermont Statutes, Title 9, 2435) ----
+  {
+    id: BreachLawId.VermontResidents,
+    family: BreachLawFamily.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(1)",
+    places: [BreachPlace.Vermont],
+    dataElements: VERMONT_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: WITHIN_THE_DAYS_OF_DISCOVERY,
+    note: translationKey(
+      "From 1 January 2027, the data the law lists counts without a name too, where it is enough to attempt identity theft (2025, No. 138).",
+    ),
+    sourceUrl: VERMONT_SOURCE,
+    sourceTitle:
+      "Vermont Statutes, Title 9, 2430 and 2435(b)(1) and (d), as in force until 1 January 2027",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.VermontAttorneyGeneral,
+    family: BreachLawFamily.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(3)",
+    places: [BreachPlace.Vermont],
+    dataElements: VERMONT_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: translationKey(
+      "The Vermont Attorney General or, for an organization the Department of Financial Regulation regulates, the Department",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.BusinessDays,
+      amount: 14,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "First a preliminary description, sooner if the people are told sooner; then the number of residents told and a copy of their notice, when they are told.",
+    ),
+    note: translationKey(
+      "An organization that swore its security policies to the attorney general before the breach sends the preliminary description before the people are told instead.",
+    ),
+    sourceUrl: VERMONT_SOURCE,
+    sourceTitle: "Vermont Statutes, Title 9, 2435(b)(3)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.VermontConsumerReportingAgencies,
+    family: BreachLawFamily.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(c)",
+    places: [BreachPlace.Vermont],
+    dataElements: VERMONT_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [BreachDataElement.OnlineCredentials],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    note: translationKey(
+      "Not owed by a person the Department of Financial Regulation licenses or registers under Title 8.",
+    ),
+    sourceUrl: VERMONT_SOURCE,
+    sourceTitle: "Vermont Statutes, Title 9, 2435(c)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Virginia (Code of Virginia 18.2-186.6) ----
+  {
+    id: BreachLawId.VirginiaResidents,
+    family: BreachLawFamily.Virginia,
+    law: "Code of Virginia",
+    provision: "18.2-186.6(B)",
+    places: [BreachPlace.Virginia],
+    dataElements: VIRGINIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: VIRGINIA_SOURCE,
+    sourceTitle: "Code of Virginia 18.2-186.6(A) and (B)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.VirginiaAttorneyGeneral,
+    family: BreachLawFamily.Virginia,
+    law: "Code of Virginia",
+    provision: "18.2-186.6(B) (attorney general)",
+    places: [BreachPlace.Virginia],
+    dataElements: VIRGINIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_ATTORNEY_GENERAL,
+    recipient: THE_STATE_ATTORNEY_GENERAL,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    note: translationKey(
+      "An employer or payroll service provider also tells the attorney general when an employee's taxpayer identification number was taken with the tax withheld.",
+    ),
+    sourceUrl: VIRGINIA_SOURCE,
+    sourceTitle: "Code of Virginia 18.2-186.6(B) and (M)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.VirginiaConsumerReportingAgencies,
+    family: BreachLawFamily.Virginia,
+    law: "Code of Virginia",
+    provision: "18.2-186.6(E)",
+    places: [BreachPlace.Virginia],
+    dataElements: VIRGINIA_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: VIRGINIA_SOURCE,
+    sourceTitle: "Code of Virginia 18.2-186.6(E)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Wisconsin (Wisconsin Statutes 134.98) ----
+  {
+    id: BreachLawId.WisconsinResidents,
+    family: BreachLawFamily.Wisconsin,
+    law: "Wisconsin Statutes",
+    provision: "134.98(2)",
+    places: [BreachPlace.Wisconsin],
+    dataElements: WISCONSIN_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [BreachCondition.NoMaterialRiskOfIdentityTheft],
+    action: TELL_THE_PEOPLE,
+    recipient: translationKey(
+      "Each affected resident of the state or, if you are based in Wisconsin or hold the data there, everyone the data is about",
+    ),
+    deadline: {
+      unit: BreachDeadlineUnit.CalendarDays,
+      amount: 45,
+      start: BreachDeadlineStart.Found,
+    },
+    deadlineNote: translationKey(
+      "Within a reasonable time, and no later than that after you learn the data was taken.",
+    ),
+    note: WISCONSIN_EXEMPTIONS,
+    sourceUrl: WISCONSIN_SOURCE,
+    sourceTitle: "Wisconsin Statutes 134.98(1)(b), (2), (3)(a) and (3m)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  {
+    id: BreachLawId.WisconsinConsumerReportingAgencies,
+    family: BreachLawFamily.Wisconsin,
+    law: "Wisconsin Statutes",
+    provision: "134.98(2)(br)",
+    places: [BreachPlace.Wisconsin],
+    dataElements: WISCONSIN_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    minimumPeople: { count: 1000, isMoreThan: false },
+    conditions: [BreachCondition.NoMaterialRiskOfIdentityTheft],
+    action: TELL_THE_CONSUMER_REPORTING_AGENCIES,
+    recipient: THE_CONSUMER_REPORTING_AGENCIES,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    note: WISCONSIN_EXEMPTIONS,
+    sourceUrl: WISCONSIN_SOURCE,
+    sourceTitle: "Wisconsin Statutes 134.98(2)(br)",
+    checkedOn: US_STATE_LAWS_CHECKED_ON,
+  },
+  // ---- Wyoming (Wyoming Statutes 40-12-501 and 40-12-502) ----
+  {
+    id: BreachLawId.WyomingResidents,
+    family: BreachLawFamily.Wyoming,
+    law: "Wyoming Statutes",
+    provision: "40-12-502(a)",
+    places: [BreachPlace.Wyoming],
+    dataElements: WYOMING_ELEMENTS,
+    needsName: true,
+    nameFreeElements: [],
+    conditions: [
+      BreachCondition.LossOrInjury,
+      BreachCondition.InvestigationFindsMisuse,
+    ],
+    action: TELL_THE_PEOPLE,
+    recipient: EACH_STATE_RESIDENT,
+    deadline: {
+      unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+      start: BreachDeadlineStart.Found,
+    },
+    sourceUrl: WYOMING_SOURCE,
+    sourceTitle:
+      "Wyoming Statutes 40-12-501(a)(i) and (vii), 40-12-502(a), and 6-3-901(b)",
     checkedOn: US_STATE_LAWS_CHECKED_ON,
   },
   // ---- Brazil (LGPD Art. 48, ANPD Resolution 15/2024) ----

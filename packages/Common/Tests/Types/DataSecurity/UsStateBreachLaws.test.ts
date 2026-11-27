@@ -74,6 +74,7 @@ const INSURANCE: BreachDataElement = BreachDataElement.HealthInsurance;
 const BIOMETRIC: BreachDataElement = BreachDataElement.Biometric;
 const GENETIC: BreachDataElement = BreachDataElement.Genetic;
 const GEOLOCATION: BreachDataElement = BreachDataElement.Geolocation;
+const DATE_OF_BIRTH: BreachDataElement = BreachDataElement.DateOfBirth;
 const LOGIN: BreachDataElement = BreachDataElement.OnlineCredentials;
 
 // What a statute says, as read from it: the row is held to this.
@@ -1010,6 +1011,486 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     start: FOUND,
     host: "www.nmonesource.com",
   },
+  // North Carolina General Statutes 75-61 and 75-65.
+  {
+    id: BreachLawId.NorthCarolinaResidents,
+    family: BreachLawFamily.NorthCarolina,
+    place: BreachPlace.NorthCarolina,
+    law: "North Carolina General Statutes",
+    provision: "75-65(a)",
+    elements: [SSN, DL, PASSPORT, TAX_ID, ACCOUNT, BIOMETRIC, LOGIN],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.ncleg.gov",
+  },
+  {
+    id: BreachLawId.NorthCarolinaAttorneyGeneral,
+    family: BreachLawFamily.NorthCarolina,
+    place: BreachPlace.NorthCarolina,
+    law: "North Carolina General Statutes",
+    provision: "75-65(e1)",
+    elements: [SSN, DL, PASSPORT, TAX_ID, ACCOUNT, BIOMETRIC, LOGIN],
+    needsName: true,
+    nameFree: [],
+    // Whenever a business tells an affected person: no threshold.
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.ncleg.gov",
+  },
+  // North Dakota Century Code 51-30-01 and 51-30-02.
+  {
+    id: BreachLawId.NorthDakotaResidents,
+    family: BreachLawFamily.NorthDakota,
+    place: BreachPlace.NorthDakota,
+    law: "North Dakota Century Code",
+    provision: "51-30-02",
+    elements: [SSN, DL, ACCOUNT, DATE_OF_BIRTH, MEDICAL, INSURANCE],
+    needsName: true,
+    nameFree: [],
+    // No risk-of-harm exception.
+    conditions: [],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.ndlegis.gov",
+  },
+  {
+    id: BreachLawId.NorthDakotaAttorneyGeneral,
+    family: BreachLawFamily.NorthDakota,
+    place: BreachPlace.NorthDakota,
+    law: "North Dakota Century Code",
+    provision: "51-30-02 (attorney general)",
+    elements: [SSN, DL, ACCOUNT, DATE_OF_BIRTH, MEDICAL, INSURANCE],
+    needsName: true,
+    nameFree: [],
+    // "that exceeds two hundred fifty individuals".
+    minimumPeople: { count: 250, isMoreThan: true },
+    conditions: [],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.ndlegis.gov",
+  },
+  // Ohio Revised Code 1349.19.
+  {
+    id: BreachLawId.OhioResidents,
+    family: BreachLawFamily.Ohio,
+    place: BreachPlace.Ohio,
+    law: "Ohio Revised Code",
+    provision: "1349.19(B)(1)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.MaterialRiskOfIdentityTheft],
+    // "not later than forty-five days following its discovery or notification of the breach".
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "codes.ohio.gov",
+  },
+  // Oklahoma Statutes, Title 24, 162 and 163, as Laws 2025, c. 406 amended them (in force since 1 January 2026).
+  {
+    id: BreachLawId.OklahomaResidents,
+    family: BreachLawFamily.Oklahoma,
+    place: BreachPlace.Oklahoma,
+    law: "Oklahoma Statutes, Title 24",
+    provision: "163(A)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.oklegislature.gov",
+  },
+  {
+    id: BreachLawId.OklahomaAttorneyGeneral,
+    family: BreachLawFamily.Oklahoma,
+    place: BreachPlace.Oklahoma,
+    law: "Oklahoma Statutes, Title 24",
+    provision: "163(E)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, BIOMETRIC],
+    needsName: true,
+    nameFree: [],
+    // "fewer than five hundred (500) residents ... shall be exempt".
+    minimumPeople: { count: 500, isMoreThan: false },
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    // "in no event more than sixty (60) days after providing notice to impacted residents".
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 60,
+    start: RESIDENTS,
+    afterRule: BreachLawId.OklahomaResidents,
+    host: "www.oklegislature.gov",
+  },
+  // Oregon Revised Statutes 646A.602 and 646A.604.
+  {
+    id: BreachLawId.OregonResidents,
+    family: BreachLawFamily.Oregon,
+    place: BreachPlace.Oregon,
+    law: "Oregon Revised Statutes",
+    provision: "646A.604(1)(a)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      OTHER_ID,
+      ACCOUNT,
+      BIOMETRIC,
+      MEDICAL,
+      INSURANCE,
+      LOGIN,
+    ],
+    needsName: false,
+    nameFree: [],
+    conditions: [BreachCondition.UnlikelyHarmInWriting],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "www.oregonlegislature.gov",
+  },
+  {
+    id: BreachLawId.OregonAttorneyGeneral,
+    family: BreachLawFamily.Oregon,
+    place: BreachPlace.Oregon,
+    law: "Oregon Revised Statutes",
+    provision: "646A.604(1)(b)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      OTHER_ID,
+      ACCOUNT,
+      BIOMETRIC,
+      MEDICAL,
+      INSURANCE,
+      LOGIN,
+    ],
+    needsName: false,
+    nameFree: [],
+    // "exceeds 250".
+    minimumPeople: { count: 250, isMoreThan: true },
+    conditions: [BreachCondition.UnlikelyHarmInWriting],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "www.oregonlegislature.gov",
+  },
+  // Pennsylvania Breach of Personal Information Notification Act (Act 94 of 2005), as amended.
+  {
+    id: BreachLawId.PennsylvaniaResidents,
+    family: BreachLawFamily.Pennsylvania,
+    place: BreachPlace.Pennsylvania,
+    law: "Pennsylvania Breach of Personal Information Notification Act",
+    provision: "Section 3(a)",
+    elements: [SSN, DL, ACCOUNT, INSURANCE, LOGIN],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.LossOrInjury],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.palegis.us",
+  },
+  {
+    id: BreachLawId.PennsylvaniaAttorneyGeneral,
+    family: BreachLawFamily.Pennsylvania,
+    place: BreachPlace.Pennsylvania,
+    law: "Pennsylvania Breach of Personal Information Notification Act",
+    provision: "Section 3(c.1)",
+    elements: [SSN, DL, ACCOUNT, INSURANCE, LOGIN],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [BreachCondition.LossOrInjury],
+    // "concurrently with the notice to affected individuals".
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 0,
+    start: RESIDENTS,
+    afterRule: BreachLawId.PennsylvaniaResidents,
+    host: "www.palegis.us",
+  },
+  // General Laws of Rhode Island 11-49.3-3 and 11-49.3-4.
+  {
+    id: BreachLawId.RhodeIslandResidents,
+    family: BreachLawFamily.RhodeIsland,
+    place: BreachPlace.RhodeIsland,
+    law: "General Laws of Rhode Island",
+    provision: "11-49.3-4(a)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, LOGIN],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.PosesSignificantRiskOfIdentityTheft],
+    // "no later than forty-five (45) calendar days after confirmation of the breach".
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "webserver.rilegislature.gov",
+  },
+  {
+    id: BreachLawId.RhodeIslandAttorneyGeneral,
+    family: BreachLawFamily.RhodeIsland,
+    place: BreachPlace.RhodeIsland,
+    law: "General Laws of Rhode Island",
+    provision: "11-49.3-4(a)(2)(ii)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, LOGIN],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [BreachCondition.PosesSignificantRiskOfIdentityTheft],
+    // "without delaying notice to affected Rhode Island residents".
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 0,
+    start: RESIDENTS,
+    afterRule: BreachLawId.RhodeIslandResidents,
+    host: "webserver.rilegislature.gov",
+  },
+  // Code of Laws of South Carolina 39-1-90.
+  {
+    id: BreachLawId.SouthCarolinaResidents,
+    family: BreachLawFamily.SouthCarolina,
+    place: BreachPlace.SouthCarolina,
+    law: "Code of Laws of South Carolina",
+    provision: "39-1-90(A)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.scstatehouse.gov",
+  },
+  {
+    id: BreachLawId.SouthCarolinaConsumerAffairs,
+    family: BreachLawFamily.SouthCarolina,
+    place: BreachPlace.SouthCarolina,
+    law: "Code of Laws of South Carolina",
+    provision: "39-1-90(K)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    // "more than one thousand persons at one time".
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.scstatehouse.gov",
+  },
+  // South Dakota Codified Laws 22-40-19 to 22-40-24.
+  {
+    id: BreachLawId.SouthDakotaResidents,
+    family: BreachLawFamily.SouthDakota,
+    place: BreachPlace.SouthDakota,
+    law: "South Dakota Codified Laws",
+    provision: "22-40-20",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    needsName: true,
+    nameFree: [ACCOUNT, LOGIN],
+    conditions: [BreachCondition.LikelyHarmAfterTellingAg],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 60,
+    start: FOUND,
+    host: "sdlegislature.gov",
+  },
+  {
+    id: BreachLawId.SouthDakotaAttorneyGeneral,
+    family: BreachLawFamily.SouthDakota,
+    place: BreachPlace.SouthDakota,
+    law: "South Dakota Codified Laws",
+    provision: "22-40-20 (attorney general)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    needsName: true,
+    nameFree: [ACCOUNT, LOGIN],
+    // "any breach of system security that exceeds two hundred fifty residents".
+    minimumPeople: { count: 250, isMoreThan: true },
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 60,
+    start: FOUND,
+    host: "sdlegislature.gov",
+  },
+  // Tennessee Code Annotated 47-18-2107, as 2017 Public Chapter 91 replaced it.
+  {
+    id: BreachLawId.TennesseeResidents,
+    family: BreachLawFamily.Tennessee,
+    place: BreachPlace.Tennessee,
+    law: "Tennessee Code Annotated",
+    provision: "47-18-2107(b)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    conditions: [],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "capitol.tn.gov",
+  },
+  // Utah Code 13-44-102 and 13-44-202.
+  {
+    id: BreachLawId.UtahResidents,
+    family: BreachLawFamily.Utah,
+    place: BreachPlace.Utah,
+    law: "Utah Code",
+    provision: "13-44-202(1)(b)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.MisuseForIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "le.utah.gov",
+  },
+  {
+    id: BreachLawId.UtahAttorneyGeneral,
+    family: BreachLawFamily.Utah,
+    place: BreachPlace.Utah,
+    law: "Utah Code",
+    provision: "13-44-202(1)(c)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    // "relating to 500 or more Utah residents".
+    minimumPeople: { count: 500, isMoreThan: false },
+    conditions: [BreachCondition.MisuseForIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "le.utah.gov",
+  },
+  // Vermont Statutes, Title 9, 2430 and 2435, as in force until 1 January 2027.
+  {
+    id: BreachLawId.VermontResidents,
+    family: BreachLawFamily.Vermont,
+    place: BreachPlace.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(1)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [LOGIN],
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    // "not later than 45 days after the discovery or notification".
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "legislature.vermont.gov",
+  },
+  {
+    id: BreachLawId.VermontAttorneyGeneral,
+    family: BreachLawFamily.Vermont,
+    place: BreachPlace.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(b)(3)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [LOGIN],
+    // No threshold.
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    // "a preliminary description of the breach within 14 business days".
+    unit: BreachDeadlineUnit.BusinessDays,
+    amount: 14,
+    start: FOUND,
+    host: "legislature.vermont.gov",
+  },
+  // Code of Virginia 18.2-186.6.
+  {
+    id: BreachLawId.VirginiaResidents,
+    family: BreachLawFamily.Virginia,
+    place: BreachPlace.Virginia,
+    law: "Code of Virginia",
+    provision: "18.2-186.6(B)",
+    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "law.lis.virginia.gov",
+  },
+  {
+    id: BreachLawId.VirginiaAttorneyGeneral,
+    family: BreachLawFamily.Virginia,
+    place: BreachPlace.Virginia,
+    law: "Code of Virginia",
+    provision: "18.2-186.6(B) (attorney general)",
+    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    // Every breach the residents are told of: no threshold.
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "law.lis.virginia.gov",
+  },
+  // Wisconsin Statutes 134.98.
+  {
+    id: BreachLawId.WisconsinResidents,
+    family: BreachLawFamily.Wisconsin,
+    place: BreachPlace.Wisconsin,
+    law: "Wisconsin Statutes",
+    provision: "134.98(2)",
+    elements: [SSN, DL, ACCOUNT, GENETIC, BIOMETRIC],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.NoMaterialRiskOfIdentityTheft],
+    // "within a reasonable time, not to exceed 45 days after the entity learns of the acquisition".
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 45,
+    start: FOUND,
+    host: "docs.legis.wisconsin.gov",
+  },
+  // Wyoming Statutes 40-12-501 and 40-12-502, and the data elements of 6-3-901(b).
+  {
+    id: BreachLawId.WyomingResidents,
+    family: BreachLawFamily.Wyoming,
+    place: BreachPlace.Wyoming,
+    law: "Wyoming Statutes",
+    provision: "40-12-502(a)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      BIOMETRIC,
+      MEDICAL,
+      INSURANCE,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [],
+    // "causes or is reasonably believed to cause loss or injury", and an investigation that finds misuse.
+    conditions: [
+      BreachCondition.LossOrInjury,
+      BreachCondition.InvestigationFindsMisuse,
+    ],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "wyoleg.gov",
+  },
   /*
    * The consumer reporting agencies' notices, each statute's own: owed once
    * more than a number of residents are told, as the statute counts them.
@@ -1021,7 +1502,17 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Alabama,
     law: "Code of Alabama 1975",
     provision: "8-38-7",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, LOGIN],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      LOGIN,
+    ],
     needsName: true,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1051,7 +1542,17 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Arizona,
     law: "Arizona Revised Statutes",
     provision: "18-552(B)(2)(a)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, ACCOUNT, MEDICAL, INSURANCE, BIOMETRIC, LOGIN],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      LOGIN,
+    ],
     needsName: true,
     nameFree: [LOGIN],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1067,7 +1568,19 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.DistrictOfColumbia,
     law: "D.C. Code",
     provision: "28-3852(c)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, BIOMETRIC, GENETIC, LOGIN],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
     needsName: false,
     nameFree: [],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1173,7 +1686,19 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Maryland,
     law: "Maryland Code, Commercial Law",
     provision: "14-3506(a)",
-    elements: [SSN, DL, PASSPORT, TAX_ID, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, BIOMETRIC, GENETIC, LOGIN],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
     needsName: true,
     nameFree: [LOGIN],
     minimumPeople: { count: 1000, isMoreThan: false },
@@ -1295,7 +1820,18 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     place: BreachPlace.Florida,
     law: "Florida Statutes",
     provision: "501.171(5)",
-    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, BIOMETRIC, GEOLOCATION, LOGIN],
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GEOLOCATION,
+      LOGIN,
+    ],
     needsName: true,
     nameFree: [LOGIN],
     minimumPeople: { count: 1000, isMoreThan: true },
@@ -1320,6 +1856,263 @@ const STATUTES: ReadonlyArray<StatuteSays> = [
     start: RESIDENTS,
     afterRule: BreachLawId.NewYorkResidents,
     host: "www.nysenate.gov",
+  },
+  {
+    id: BreachLawId.NorthCarolinaConsumerReportingAgencies,
+    family: BreachLawFamily.NorthCarolina,
+    place: BreachPlace.NorthCarolina,
+    law: "North Carolina General Statutes",
+    provision: "75-65(f)",
+    elements: [SSN, DL, PASSPORT, TAX_ID, ACCOUNT, BIOMETRIC, LOGIN],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.ncleg.gov",
+  },
+  {
+    id: BreachLawId.OhioConsumerReportingAgencies,
+    family: BreachLawFamily.Ohio,
+    place: BreachPlace.Ohio,
+    law: "Ohio Revised Code",
+    provision: "1349.19(G)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.MaterialRiskOfIdentityTheft],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "codes.ohio.gov",
+  },
+  {
+    id: BreachLawId.OregonConsumerReportingAgencies,
+    family: BreachLawFamily.Oregon,
+    place: BreachPlace.Oregon,
+    law: "Oregon Revised Statutes",
+    provision: "646A.604(6)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      OTHER_ID,
+      ACCOUNT,
+      BIOMETRIC,
+      INSURANCE,
+      MEDICAL,
+      LOGIN,
+    ],
+    needsName: false,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.oregonlegislature.gov",
+  },
+  {
+    id: BreachLawId.PennsylvaniaConsumerReportingAgencies,
+    family: BreachLawFamily.Pennsylvania,
+    place: BreachPlace.Pennsylvania,
+    law: "Pennsylvania Breach of Personal Information Notification Act",
+    provision: "Section 5",
+    elements: [SSN, DL, ACCOUNT, INSURANCE, LOGIN],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [BreachCondition.LossOrInjury],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.palegis.us",
+  },
+  {
+    id: BreachLawId.RhodeIslandConsumerReportingAgencies,
+    family: BreachLawFamily.RhodeIsland,
+    place: BreachPlace.RhodeIsland,
+    law: "General Laws of Rhode Island",
+    provision: "11-49.3-4(a)(2)(ii)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE, LOGIN],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 500, isMoreThan: true },
+    conditions: [BreachCondition.PosesSignificantRiskOfIdentityTheft],
+    unit: BreachDeadlineUnit.CalendarDays,
+    amount: 0,
+    start: RESIDENTS,
+    afterRule: BreachLawId.RhodeIslandResidents,
+    host: "webserver.rilegislature.gov",
+  },
+  {
+    id: BreachLawId.SouthCarolinaConsumerReportingAgencies,
+    family: BreachLawFamily.SouthCarolina,
+    place: BreachPlace.SouthCarolina,
+    law: "Code of Laws of South Carolina",
+    provision: "39-1-90(K)",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.IllegalUseOrMaterialRisk],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "www.scstatehouse.gov",
+  },
+  {
+    id: BreachLawId.SouthDakotaConsumerReportingAgencies,
+    family: BreachLawFamily.SouthDakota,
+    place: BreachPlace.SouthDakota,
+    law: "South Dakota Codified Laws",
+    provision: "22-40-24",
+    elements: [SSN, DL, OTHER_ID, ACCOUNT, MEDICAL, LOGIN],
+    needsName: true,
+    nameFree: [ACCOUNT, LOGIN],
+    conditions: [BreachCondition.LikelyHarmAfterTellingAg],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "sdlegislature.gov",
+  },
+  {
+    id: BreachLawId.TennesseeConsumerReportingAgencies,
+    family: BreachLawFamily.Tennessee,
+    place: BreachPlace.Tennessee,
+    law: "Tennessee Code Annotated",
+    provision: "47-18-2107(g)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "capitol.tn.gov",
+  },
+  {
+    id: BreachLawId.UtahConsumerReportingAgencies,
+    family: BreachLawFamily.Utah,
+    place: BreachPlace.Utah,
+    law: "Utah Code",
+    provision: "13-44-202(1)(d)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: false },
+    conditions: [BreachCondition.MisuseForIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "le.utah.gov",
+  },
+  {
+    id: BreachLawId.VermontConsumerReportingAgencies,
+    family: BreachLawFamily.Vermont,
+    place: BreachPlace.Vermont,
+    law: "Vermont Statutes, Title 9",
+    provision: "2435(c)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      TAX_ID,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      GENETIC,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [LOGIN],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.MisuseNotPossibleTellAg],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "legislature.vermont.gov",
+  },
+  {
+    id: BreachLawId.VirginiaConsumerReportingAgencies,
+    family: BreachLawFamily.Virginia,
+    place: BreachPlace.Virginia,
+    law: "Code of Virginia",
+    provision: "18.2-186.6(E)",
+    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.CausesIdentityTheftOrFraud],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "law.lis.virginia.gov",
+  },
+  {
+    id: BreachLawId.WisconsinConsumerReportingAgencies,
+    family: BreachLawFamily.Wisconsin,
+    place: BreachPlace.Wisconsin,
+    law: "Wisconsin Statutes",
+    provision: "134.98(2)(br)",
+    elements: [SSN, DL, ACCOUNT, GENETIC, BIOMETRIC],
+    needsName: true,
+    nameFree: [],
+    minimumPeople: { count: 1000, isMoreThan: false },
+    conditions: [BreachCondition.NoMaterialRiskOfIdentityTheft],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "docs.legis.wisconsin.gov",
+  },
+  {
+    id: BreachLawId.ColoradoConsumerReportingAgencies,
+    family: BreachLawFamily.Colorado,
+    place: BreachPlace.Colorado,
+    law: "Colorado Revised Statutes",
+    provision: "6-1-716(2)(d)",
+    elements: [
+      SSN,
+      DL,
+      PASSPORT,
+      OTHER_ID,
+      ACCOUNT,
+      MEDICAL,
+      INSURANCE,
+      BIOMETRIC,
+      LOGIN,
+    ],
+    needsName: true,
+    nameFree: [LOGIN, ACCOUNT],
+    minimumPeople: { count: 1000, isMoreThan: true },
+    conditions: [BreachCondition.LikelyMisuse],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "content.leg.colorado.gov",
+  },
+  {
+    id: BreachLawId.MassachusettsConsumerReportingAgencies,
+    family: BreachLawFamily.Massachusetts,
+    place: BreachPlace.Massachusetts,
+    law: "General Laws of Massachusetts, chapter 93H",
+    provision: "3(b)",
+    elements: [SSN, DL, ACCOUNT],
+    needsName: true,
+    nameFree: [],
+    conditions: [BreachCondition.SubstantialRiskOfIdentityTheft],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "malegislature.gov",
+  },
+  {
+    id: BreachLawId.TexasConsumerReportingAgencies,
+    family: BreachLawFamily.Texas,
+    place: BreachPlace.Texas,
+    law: "Texas Business and Commerce Code",
+    provision: "521.053(h)",
+    elements: [SSN, DL, PASSPORT, OTHER_ID, ACCOUNT, MEDICAL, INSURANCE],
+    needsName: true,
+    nameFree: [MEDICAL, INSURANCE],
+    minimumPeople: { count: 10000, isMoreThan: true },
+    conditions: [],
+    unit: BreachDeadlineUnit.WithoutUnreasonableDelay,
+    start: FOUND,
+    host: "tcss.legis.texas.gov",
   },
 ];
 
@@ -1554,33 +2347,31 @@ describe("the other US states' rows, as a set", () => {
     }
   });
 
-  test("a notice to the consumer reporting agencies is owed only past a number of people, as each statute counts them", () => {
+  test("a state's notice to the consumer reporting agencies covers the data its people's notice does, and has a threshold wherever its statute sets one", () => {
     const agencies: Array<BreachLawRule> = BREACH_LAW_RULES.filter(
       (rule: BreachLawRule): boolean => {
         return (
-          isUsStateRule(rule) && rule.id.endsWith("-consumer-reporting-agencies")
+          isUsStateRule(rule) &&
+          rule.id.endsWith("-consumer-reporting-agencies")
         );
       },
     );
 
-    expect(agencies.length).toBeGreaterThan(0);
+    expect(agencies.length).toBeGreaterThan(20);
 
     for (const rule of agencies) {
-      expect({ id: rule.id, threshold: Boolean(rule.minimumPeople) }).toEqual({
-        id: rule.id,
-        threshold: true,
-      });
-      // Each of the state's: the same data and the same test as the people's own notice.
       const residents: BreachLawRule = BREACH_LAW_RULES.find(
         (candidate: BreachLawRule): boolean => {
           return (
             candidate.family === rule.family &&
-            candidate.action === BREACH_LAW_RULES.find(
-              (first: BreachLawRule): boolean => {
-                return first.id === BreachLawId.AlabamaResidents;
-              },
-            )!.action
+            candidate.action ===
+              getBreachLawRule(BreachLawId.AlabamaResidents).action
           );
+        },
+      )!;
+      const statute: StatuteSays = STATUTES.find(
+        (each: StatuteSays): boolean => {
+          return each.id === rule.id;
         },
       )!;
 
@@ -1588,11 +2379,73 @@ describe("the other US states' rows, as a set", () => {
         id: rule.id,
         elements: residents.dataElements,
       });
-      expect({ id: rule.id, conditions: rule.conditions }).toEqual({
+      // South Dakota's and Massachusetts' are owed whenever the residents are told.
+      expect({ id: rule.id, threshold: rule.minimumPeople }).toEqual({
         id: rule.id,
-        conditions: residents.conditions,
+        threshold: statute.minimumPeople,
       });
+      expect(rule.recipient.toLowerCase()).toContain("reporting agencies");
     }
+
+    expect(
+      getBreachLawRule(BreachLawId.SouthDakotaConsumerReportingAgencies)
+        .minimumPeople,
+    ).toBeUndefined();
+    expect(
+      getBreachLawRule(BreachLawId.MassachusettsConsumerReportingAgencies)
+        .minimumPeople,
+    ).toBeUndefined();
+  });
+
+  test("what a statute adds beyond its deadline is said on its row, in its own terms", () => {
+    const said: (id: BreachLawId) => string = (id: BreachLawId): string => {
+      const rule: BreachLawRule = getBreachLawRule(id);
+
+      return [rule.recipient, rule.deadlineNote || "", rule.note || ""].join(
+        " | ",
+      );
+    };
+
+    // Wisconsin: an organization based there tells everyone, wherever they live.
+    expect(said(BreachLawId.WisconsinResidents)).toContain(
+      "if you are based in Wisconsin or hold the data there, everyone the data is about",
+    );
+    expect(said(BreachLawId.WisconsinResidents)).toContain(
+      "Within a reasonable time",
+    );
+    // Massachusetts: the agencies are the ones its director names.
+    expect(said(BreachLawId.MassachusettsConsumerReportingAgencies)).toContain(
+      "the Director of Consumer Affairs and Business Regulation names",
+    );
+    // Colorado: the agencies hear when, and about how many.
+    expect(said(BreachLawId.ColoradoConsumerReportingAgencies)).toContain(
+      "with when the residents will be told and about how many",
+    );
+    expect(said(BreachLawId.ColoradoConsumerReportingAgencies)).toContain(
+      "Gramm-Leach-Bliley",
+    );
+    // Montana: a notice that points to an agency is coordinated with it.
+    expect(said(BreachLawId.MontanaResidents)).toContain(
+      "coordinate its timing, content and distribution with that agency",
+    );
+    // Vermont: a preliminary description first; the 2027 text is said.
+    expect(said(BreachLawId.VermontAttorneyGeneral)).toContain(
+      "First a preliminary description",
+    );
+    expect(said(BreachLawId.VermontResidents)).toContain("1 January 2027");
+    // Virginia: an employer's own notice of a taxpayer number taken.
+    expect(said(BreachLawId.VirginiaAttorneyGeneral)).toContain(
+      "payroll service provider",
+    );
+    // Utah: the attorney general and the Cyber Center together.
+    expect(said(BreachLawId.UtahAttorneyGeneral)).toContain(
+      "Utah Cyber Center",
+    );
+    // Texas: the agencies only past 10,000 people at one time.
+    expect(
+      getBreachLawRule(BreachLawId.TexasConsumerReportingAgencies)
+        .minimumPeople,
+    ).toEqual({ count: 10000, isMoreThan: true });
   });
 });
 
@@ -1643,7 +2496,10 @@ describe.each(
     expect(url.hostname).toBe(statute.host);
     expect(rule.checkedOn).toBe(US_STATE_LAWS_CHECKED_ON);
     expect(rule.sourceTitle).toContain(
-      statute.provision.split("(")[0]!.replace(/^\d+ ILCS /, ""),
+      statute.provision
+        .split("(")[0]!
+        .trim()
+        .replace(/^Section /, ""),
     );
   });
 
