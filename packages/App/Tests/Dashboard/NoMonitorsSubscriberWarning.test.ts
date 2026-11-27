@@ -439,7 +439,7 @@ describe("Declare Incident", () => {
 
   test("the summary step says Yes or No with the preview beside it when something can be sent, then who", () => {
     expect(source).toContain(
-      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1 focus:outline-none" data-testid="incident-create-notify-subscribers-line" ref={notifyReviewLineRef} tabIndex={-1} > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && hasMonitors(item) ? ( <SubscriberNotificationPreviewButton',
+      'getSummaryElement: (item: FormValues<Incident>) => { return ( <> <div className="flex flex-wrap items-center gap-x-3 gap-y-1 focus:outline-none" data-testid="incident-create-notify-subscribers-line" ref={notifyReviewLineRef} tabIndex={-1} > <BooleanValue value={isNotifyTicked(item)} dataTestId="incident-create-notify-subscribers-value" /> {isNotifyingSubscribers(item) && (hasMonitors(item) || getIdsFromFormValue(item.statusPages).length > 0) ? ( <SubscriberNotificationPreviewButton',
     );
     expect(source).toContain("</div> {getAudienceSummary(item)} </> ); },");
     expect(source).toContain(
@@ -492,19 +492,18 @@ describe("Declare Incident", () => {
   });
 });
 
-describe("picking status pages without a monitor is still caught, under the picker", () => {
-  test("the picker warning asks whenever pages are picked, monitors or not", () => {
+describe("status page scope guidance under the picker", () => {
+  test("the picker checks monitor reach when pages and monitors are picked", () => {
     const source: string = readDashboardSource(
       "Components/Incident/IncidentStatusPageScopeNotices.tsx",
     );
 
     expect(source).toContain(
-      "const hasPickedPages: boolean = getIdsFromFormValue(props.statusPageIds).length > 0;",
+      "const canCheckPages: boolean = getIdsFromFormValue(props.statusPageIds).length > 0 && getIdsFromFormValue(props.monitorIds).length > 0;",
     );
     expect(source).toContain(
-      "useSubscriberAudience( hasPickedPages ? { monitorIds: props.monitorIds, statusPageIds: props.statusPageIds, } : null, );",
+      "useSubscriberAudience( canCheckPages ? { monitorIds: props.monitorIds, statusPageIds: props.statusPageIds, } : null, );",
     );
-    expect(source).not.toContain("hasBoth");
   });
 
   test("the incident's Settings tab waits for the incident before checking its monitors", () => {
@@ -517,7 +516,7 @@ describe("picking status pages without a monitor is still caught, under the pick
     );
   });
 
-  test("the server names every picked page when the incident is on no monitor", () => {
+  test("the server identifies selected pages outside the resolved reach", () => {
     const source: string = fs
       .readFileSync(
         path.join(

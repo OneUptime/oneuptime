@@ -146,7 +146,7 @@ async function renderCard(): Promise<void> {
 
 async function loaded(): Promise<void> {
   await waitFor(() => {
-    expect(screen.getAllByRole("switch")).toHaveLength(2);
+    expect(screen.getAllByRole("switch")).toHaveLength(3);
   });
 }
 
@@ -159,11 +159,15 @@ function rowFor(column: SubscriberChoiceColumn): HTMLElement {
 }
 
 describe("the copy", () => {
-  test("names the two switches for the columns they write, each saying what off and on mean", () => {
+  test("names the subscriber preference switches and describes their effect", () => {
     expect(SUBSCRIBER_CHOICE_COLUMNS).toEqual([
       "allowSubscribersToChooseResources",
       "allowSubscribersToChooseEventTypes",
+      "allowSubscribersToChooseIncidentCategories",
     ]);
+    expect(
+      getSubscriberChoiceTitle("allowSubscribersToChooseIncidentCategories"),
+    ).toBe("Allow Subscribers to Choose Incident Categories");
     expect(getSubscriberChoiceTitle("allowSubscribersToChooseResources")).toBe(
       "Allow Subscribers to Choose Resources",
     );
@@ -279,7 +283,7 @@ describe("the copy", () => {
 });
 
 describe("the card", () => {
-  test("reads this page's two columns and nothing else", async () => {
+  test("reads this page's subscriber choice columns and nothing else", async () => {
     await renderCard();
     await loaded();
 
@@ -291,6 +295,7 @@ describe("the card", () => {
     expect(request["select"]).toEqual({
       allowSubscribersToChooseResources: true,
       allowSubscribersToChooseEventTypes: true,
+      allowSubscribersToChooseIncidentCategories: true,
     });
   });
 
@@ -307,7 +312,7 @@ describe("the card", () => {
     ).toBeInTheDocument();
   });
 
-  test("a new page has both off, each saying what off means", async () => {
+  test("a new page starts with subscriber choices off, each saying what off means", async () => {
     await renderCard();
     await loaded();
 
@@ -324,10 +329,11 @@ describe("the card", () => {
     }
   });
 
-  test("a page with both on shows both on, saying what on means", async () => {
+  test("a page with every choice enabled shows each switch on", async () => {
     stored = {
       allowSubscribersToChooseResources: true,
       allowSubscribersToChooseEventTypes: true,
+      allowSubscribersToChooseIncidentCategories: true,
     };
 
     await renderCard();
@@ -434,7 +440,7 @@ describe("the card", () => {
     }
   });
 
-  test("someone who may not edit the page sees both locked, and nothing is saved", async () => {
+  test("someone who may not edit the page sees locked switches, and nothing is saved", async () => {
     gate = { isAllowed: false, disabledReason: "You cannot edit this page." };
 
     await renderCard();

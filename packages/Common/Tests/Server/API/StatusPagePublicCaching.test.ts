@@ -1,3 +1,4 @@
+import StatusPageIncidentCategoryService from "../../../Server/Services/StatusPageIncidentCategoryService";
 import File from "../../../Models/DatabaseModels/File";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
@@ -303,6 +304,7 @@ function installPageRows(): void {
   jest
     .spyOn(StatusPageFooterLinkService, "findBy")
     .mockResolvedValue([] as never);
+  jest.spyOn(StatusPageIncidentCategoryService, "findBy").mockResolvedValue([]);
   jest
     .spyOn(StatusPageHeaderLinkService, "findBy")
     .mockResolvedValue([] as never);

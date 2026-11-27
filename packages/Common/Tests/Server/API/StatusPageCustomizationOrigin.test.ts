@@ -1,3 +1,4 @@
+import StatusPageIncidentCategoryService from "../../../Server/Services/StatusPageIncidentCategoryService";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageHeaderLink from "../../../Models/DatabaseModels/StatusPageHeaderLink";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
@@ -93,6 +94,9 @@ describe("StatusPageAPI master-page customization origin boundary", () => {
       .spyOn(StatusPageSsoService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest.spyOn(StatusPageFooterLinkService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(StatusPageIncidentCategoryService, "findBy")
+      .mockResolvedValue([]);
     jest.spyOn(StatusPageHeaderLinkService, "findBy").mockResolvedValue([]);
     jest.spyOn(StatusPageDomainService, "findOneBy").mockResolvedValue(null);
   });

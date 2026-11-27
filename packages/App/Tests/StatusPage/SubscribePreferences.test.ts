@@ -47,21 +47,25 @@ const LOCALES_DIR: string = path.join(
 const BOTH: SubscribePreferenceOptions = {
   allowSubscribersToChooseResources: true,
   allowSubscribersToChooseEventTypes: true,
+  allowSubscribersToChooseIncidentCategories: false,
 };
 
 const RESOURCES_ONLY: SubscribePreferenceOptions = {
   allowSubscribersToChooseResources: true,
   allowSubscribersToChooseEventTypes: false,
+  allowSubscribersToChooseIncidentCategories: false,
 };
 
 const EVENT_TYPES_ONLY: SubscribePreferenceOptions = {
   allowSubscribersToChooseResources: false,
   allowSubscribersToChooseEventTypes: true,
+  allowSubscribersToChooseIncidentCategories: false,
 };
 
 const NEITHER: SubscribePreferenceOptions = {
   allowSubscribersToChooseResources: false,
   allowSubscribersToChooseEventTypes: false,
+  allowSubscribersToChooseIncidentCategories: false,
 };
 
 const SUMMARY: typeof SUBSCRIBE_PREFERENCES_COPY.summary =
@@ -99,6 +103,7 @@ describe("what a subscription takes, of what the page lets subscribers choose", 
       ).toEqual({
         resources: SubscribePreferenceChoice.All,
         eventTypes: SubscribePreferenceChoice.All,
+        incidentCategories: SubscribePreferenceChoice.All,
       });
     }
   });
@@ -118,6 +123,7 @@ describe("what a subscription takes, of what the page lets subscribers choose", 
     ).toEqual({
       resources: SubscribePreferenceChoice.Picked,
       eventTypes: SubscribePreferenceChoice.All,
+      incidentCategories: SubscribePreferenceChoice.All,
     });
   });
 
@@ -136,6 +142,7 @@ describe("what a subscription takes, of what the page lets subscribers choose", 
       ).toEqual({
         resources: SubscribePreferenceChoice.None,
         eventTypes: SubscribePreferenceChoice.None,
+        incidentCategories: SubscribePreferenceChoice.All,
       });
     }
   });
@@ -154,6 +161,7 @@ describe("what a subscription takes, of what the page lets subscribers choose", 
     ).toEqual({
       resources: SubscribePreferenceChoice.Picked,
       eventTypes: SubscribePreferenceChoice.Picked,
+      incidentCategories: SubscribePreferenceChoice.All,
     });
   });
 
@@ -168,6 +176,7 @@ describe("what a subscription takes, of what the page lets subscribers choose", 
     ).toEqual({
       resources: SubscribePreferenceChoice.All,
       eventTypes: SubscribePreferenceChoice.All,
+      incidentCategories: SubscribePreferenceChoice.All,
     });
     expect(
       getSubscribePreferenceChoices({ ...RESOURCES_ONLY, values: narrowed })
@@ -177,6 +186,27 @@ describe("what a subscription takes, of what the page lets subscribers choose", 
       getSubscribePreferenceChoices({ ...EVENT_TYPES_ONLY, values: narrowed })
         .resources,
     ).toBe(SubscribePreferenceChoice.All);
+  });
+
+  test("distinguishes selected incident categories and an explicit empty choice", () => {
+    const getCategoryChoice: (
+      chosen: Array<string>,
+    ) => SubscribePreferenceChoice = (
+      chosen: Array<string>,
+    ): SubscribePreferenceChoice => {
+      return getSubscribePreferenceChoices({
+        ...BOTH,
+        allowSubscribersToChooseIncidentCategories: true,
+        values: values({
+          isSubscribedToAllIncidentCategories: false,
+          statusPageIncidentCategories: chosen,
+        }),
+      }).incidentCategories;
+    };
+    expect(getCategoryChoice(["security"])).toBe(
+      SubscribePreferenceChoice.Picked,
+    );
+    expect(getCategoryChoice([])).toBe(SubscribePreferenceChoice.None);
   });
 });
 
@@ -413,6 +443,7 @@ describe("the preference fields", () => {
       translate,
       resourceOptions,
       eventTypeOptions,
+      incidentCategoryOptions: { options: [], categories: [] },
     });
   }
 
@@ -626,11 +657,19 @@ describe.each(SUBSCRIBE_FORMS)("$page", (formCase: SubscribeFormCase) => {
       allowSubscribersToChooseEventTypes: Boolean(
         props.allowSubscribersToChooseEventTypes,
       ),
+      allowSubscribersToChooseIncidentCategories: Boolean(
+        props.allowSubscribersToChooseIncidentCategories &&
+          props.incidentCategories.length > 0,
+      ),
       translate: (key: string): string => {
         return t(key);
       },
       resourceOptions: categoryCheckboxOptionsAndCategories,
       eventTypeOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+      incidentCategoryOptions: getIncidentCategoryCheckboxOptions(
+        props.incidentCategories,
+        (key: string): string => t(key),
+      ),
     }),
   ];`),
     );

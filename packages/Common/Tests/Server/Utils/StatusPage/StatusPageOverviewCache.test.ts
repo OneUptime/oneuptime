@@ -961,6 +961,7 @@ describe("GUARD: SHOWN_RECORD_TABLES", () => {
       "StatusPageFooterLink",
       "StatusPageGroup",
       "StatusPageHeaderLink",
+      "StatusPageIncidentCategory",
       "StatusPageMonitorRule",
       "StatusPageResource",
       // What the page's sign-in page offers (its settings, /master-page).

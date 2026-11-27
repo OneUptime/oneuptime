@@ -1,3 +1,5 @@
+import StatusPageIncidentCategory from "../../../Models/DatabaseModels/StatusPageIncidentCategory";
+import StatusPageIncidentCategoryService from "../../../Server/Services/StatusPageIncidentCategoryService";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
@@ -225,6 +227,7 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
           allowSubscribersToChooseResources;
         statusPage.allowSubscribersToChooseEventTypes =
           allowSubscribersToChooseEventTypes;
+        statusPage.allowSubscribersToChooseIncidentCategories = true;
         return Promise.resolve(statusPage);
       });
 
@@ -560,6 +563,69 @@ describe("StatusPageAPI - the resources a visitor subscribes to", () => {
       expect(
         StatusPageSubscriberService.createFromStatusPageSignUp,
       ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("incident category choices", () => {
+    it("starts an ordinary signup with all categories", async () => {
+      await subscribe({ subscriberEmail: "visitor@example.com" });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(created[0]?.isSubscribedToAllIncidentCategories).toBe(true);
+    });
+
+    it("validates category IDs on the page and accepts serialized picker rows", async () => {
+      const category: StatusPageIncidentCategory =
+        new StatusPageIncidentCategory();
+      category.id = ObjectID.generate();
+      category.statusPageId = PAGE_ID;
+      jest
+        .spyOn(StatusPageIncidentCategoryService, "findBy")
+        .mockResolvedValue([category]);
+
+      await changeSubscription({
+        isSubscribedToAllIncidentCategories: false,
+        statusPageIncidentCategories: [{ _id: category.id.toString() }],
+      });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(StatusPageIncidentCategoryService.findBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ statusPageId: PAGE_ID }),
+        }),
+      );
+      expect(updated[0]?.data).toMatchObject({
+        isSubscribedToAllIncidentCategories: false,
+        statusPageIncidentCategories: [category],
+      });
+    });
+
+    it("refuses a category outside the subscription page", async () => {
+      jest
+        .spyOn(StatusPageIncidentCategoryService, "findBy")
+        .mockResolvedValue([]);
+
+      await changeSubscription({
+        isSubscribedToAllIncidentCategories: false,
+        statusPageIncidentCategories: [ObjectID.generate().toString()],
+      });
+
+      expect((thrown() as Error).message).toBe(
+        "Incident categories must belong to this status page.",
+      );
+      expect(updated).toHaveLength(0);
+    });
+
+    it("preserves category choices when changing only another preference", async () => {
+      await changeSubscription({ isSubscribedToAllResources: true });
+
+      expect(nextFunction).not.toHaveBeenCalled();
+      expect(updated[0]?.data).not.toHaveProperty(
+        "isSubscribedToAllIncidentCategories",
+      );
+      expect(updated[0]?.data).not.toHaveProperty(
+        "statusPageIncidentCategories",
+      );
     });
   });
 

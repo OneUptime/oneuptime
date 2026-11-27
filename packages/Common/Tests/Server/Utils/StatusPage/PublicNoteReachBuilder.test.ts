@@ -666,10 +666,11 @@ describe("an incident's public note", () => {
     expect(await incidentReach()).toBe(PublicNoteNothingSentReason.NoMonitors);
   });
 
-  test("no monitors, though it is limited to pages: the monitors come first", async () => {
+  test("a monitorless incident reaches explicitly selected pages", async () => {
+    setPages(page(SITE_1, { monitors: [] }));
     setIncident({ monitors: [], scope: [SITE_1] });
 
-    expect(await incidentReach()).toBe(PublicNoteNothingSentReason.NoMonitors);
+    expect(await incidentReach()).toBeNull();
   });
 
   test("hidden from status pages", async () => {

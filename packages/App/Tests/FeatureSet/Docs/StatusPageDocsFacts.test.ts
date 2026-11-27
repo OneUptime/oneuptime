@@ -821,7 +821,10 @@ describe("the Status Pages Overview: how incidents, maintenance and announcement
 
     while (start >= 0) {
       const end: number = api.indexOf("};", start);
-      incidentQueries.push(api.slice(start, end));
+      const query: string = api.slice(start, end);
+      if (!query.includes("...incidentQuery")) {
+        incidentQueries.push(query);
+      }
       start = api.indexOf("incidentQuery = {", end);
     }
 

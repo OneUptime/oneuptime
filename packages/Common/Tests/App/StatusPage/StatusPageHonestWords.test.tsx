@@ -1,3 +1,4 @@
+import { MemoryRouter } from "react-router-dom";
 /**
  * @timezone UTC
  */
@@ -153,7 +154,11 @@ type PageComponent = React.FunctionComponent<{
 
 async function renderPage(Component: PageComponent): Promise<void> {
   await act(async () => {
-    render(<Component pageRoute={new Route("/")} onLoadComplete={() => {}} />);
+    render(
+      <MemoryRouter>
+        <Component pageRoute={new Route("/")} onLoadComplete={() => {}} />
+      </MemoryRouter>,
+    );
   });
 
   await act(async () => {
