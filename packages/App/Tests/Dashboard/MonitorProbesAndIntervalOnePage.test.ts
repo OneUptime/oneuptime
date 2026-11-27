@@ -99,8 +99,12 @@ const ALL_SOURCES: Array<string> = listSources(DASHBOARD_SRC);
 const IMPORTS_THE_LIST: RegExp =
   /import MonitoringInterval[\s,][^;]*MonitorIntervalDropdownOptions/;
 
-// The old page's path segment, as a route would spell it.
-const NAMES_THE_INTERVAL_PATH: RegExp = /["'`/]interval["'`]/;
+/*
+ * The old page's path segment, as a route would spell it. Not a field of a
+ * request's body, body["interval"]: the interval a cost view's spend is
+ * bucketed by names no page.
+ */
+const NAMES_THE_INTERVAL_PATH: RegExp = /(?<!\[)["'`/]interval["'`]/;
 
 describe("the Probes & Interval page", () => {
   const page: string = readDashboard("Pages/Monitor/View/Probes.tsx");
