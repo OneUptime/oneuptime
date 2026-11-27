@@ -289,7 +289,7 @@ describe("the platform picker", () => {
     expect(DEFAULT_STORAGE_ARRAY_PLATFORM).toBe("flasharray");
     expect(resolveStorageArrayPlatform(undefined)).toBe("flasharray");
     expect(resolveStorageArrayPlatform(null)).toBe("flasharray");
-    expect(resolveStorageArrayPlatform("netapp")).toBe("flasharray");
+    expect(resolveStorageArrayPlatform("hitachi")).toBe("flasharray");
     expect(resolveStorageArrayPlatform("flashblade")).toBe("flashblade");
     expect(resolveStorageArrayPlatform("flasharray-exporter")).toBe(
       "flasharray-exporter",
@@ -304,7 +304,7 @@ describe("the platform picker", () => {
       getStorageArrayPlatformForSystem(StorageSystem.PureStorageFlashArray),
     ).toBe("flasharray");
     expect(getStorageArrayPlatformForSystem(undefined)).toBeUndefined();
-    expect(getStorageArrayPlatformForSystem("netapp.ontap")).toBeUndefined();
+    expect(getStorageArrayPlatformForSystem("hitachi.vsp")).toBeUndefined();
   });
 
   test("every platform is one shipped config, one storage.system value and one compose profile", () => {

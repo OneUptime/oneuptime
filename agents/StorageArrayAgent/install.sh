@@ -136,8 +136,9 @@ reject_dollar() {
 #   4  the .env variable holding the array's management address
 #   5  the .env variable holding the read-only user's API token, or the
 #      password of the user field 10 names
-#   6  whether the collector itself talks TLS to the array (yes / no): only
-#      then is the certificate question asked
+#   6  whether the agent itself talks TLS to the array (yes / no): the
+#      collector, or an exporter that logs in to the array itself (NetApp
+#      Harvest). Only then is the certificate question asked
 #   7  what the array is called in a sentence
 #   8  the menu's line for it
 #   9  how the agent reads it, for the last message
@@ -157,6 +158,7 @@ otel-collector-config.yaml|purestorage.flasharray|-|PURE_FA_ENDPOINT|PURE_FA_API
 otel-collector-config.flasharray-exporter.yaml|purestorage.flasharray|flasharray-exporter|PURE_FA_ENDPOINT|PURE_FA_API_TOKEN|no|FlashArray|Pure Storage FlashArray on an older Purity//FA (through Pure's exporter)|through Pure's exporter (pure-fa-exporter)|-|-|-
 otel-collector-config.flashblade.yaml|purestorage.flashblade|flashblade|PURE_FB_ENDPOINT|PURE_FB_API_TOKEN|no|FlashBlade|Pure Storage FlashBlade (through Pure's exporter)|through Pure's exporter (pure-fb-exporter)|-|-|-
 otel-collector-config.powerstore.yaml|dell.powerstore|powerstore|POWERSTORE_ENDPOINT|POWERSTORE_PASSWORD|no|PowerStore|Dell PowerStore (through Dell's exporter, with its alerts by syslog)|through Dell's exporter (powerstore-exporter). Its alerts arrive once the PowerStore's remote logging points at this machine, port 5514 (see README.md)|POWERSTORE_USERNAME|powerstore-exporter.Dockerfile powerstore-syslog.yaml|POWERSTORE_BULK_METRICS POWERSTORE_API_VERSION POWERSTORE_REQUEST_LIMIT POWERSTORE_SYSLOG_PORT
+otel-collector-config.netapp-ontap.yaml|netapp.ontap|netapp-ontap|NETAPP_ONTAP_ENDPOINT|NETAPP_ONTAP_PASSWORD|yes|ONTAP cluster|NetApp ONTAP 9.12.1 or later, or Amazon FSx for NetApp ONTAP (through NetApp Harvest)|through NetApp Harvest (netapp-harvest)|NETAPP_ONTAP_USERNAME|netapp-harvest.yml netapp-harvest-rest.yaml netapp-harvest-keyperf.yaml netapp-harvest-restperf.yaml|-
 "
 
 # The table's lines, without the blank ones.
@@ -275,7 +277,8 @@ while [ -z "$STORAGE_ARRAY_NAME" ]; do
 done
 reject_dollar STORAGE_ARRAY_NAME "$STORAGE_ARRAY_NAME"
 
-# The address and token go in the variables this platform's config reads.
+# The address and token (or user and password) go in the variables this
+# platform's config reads.
 while [ -z "${!ENDPOINT_VARIABLE}" ]; do
     read -rp "$ARRAY_NOUN management address (host name or IP, no https://): " "$ENDPOINT_VARIABLE"
 done
@@ -305,7 +308,7 @@ fi
 # Only a config whose collector talks TLS to the array itself asks (an
 # exporter does not verify the array's certificate).
 if [ -z "$STORAGE_ARRAY_INSECURE_SKIP_VERIFY" ] && [ "$TLS_TO_ARRAY" = "yes" ]; then
-    echo "${ARRAY_NOUN}s ship a self-signed certificate, which the collector cannot verify."
+    echo "${ARRAY_NOUN}s ship a self-signed certificate, which the agent cannot verify."
     read -rp "Verify the array's certificate anyway (it is signed by a CA you trust)? [y/N]: " VERIFY_TLS
     if [[ "$VERIFY_TLS" =~ ^[Yy] ]]; then
         STORAGE_ARRAY_INSECURE_SKIP_VERIFY="false"
@@ -439,9 +442,9 @@ else
     rm -f "$AGENT_FILES_RECORD"
 fi
 
-# Every platform's address and token variable, quoted for Compose: the ones
-# this platform does not read stay empty, so switching platforms later is an
-# .env edit.
+# Every platform's address, token, user and password variable, quoted for
+# Compose: the ones this platform does not read stay empty, so switching
+# platforms later is an .env edit.
 platform_env_lines() {
     local name
     for name in $PLATFORM_VARIABLES; do
@@ -449,7 +452,7 @@ platform_env_lines() {
     done
 }
 
-# Create .env file. It holds the array's API token, so it is created
+# Create .env file. It holds the array's API token or password, so it is created
 # owner-read-only before anything is written to it. Every user-supplied
 # value is quoted for Compose (see compose_env_quote); the platform, the
 # config, the profile and the boolean are validated shapes and stay bare.

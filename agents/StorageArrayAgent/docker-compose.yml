@@ -25,6 +25,9 @@ services:
       #   otel-collector-config.powerstore.yaml           Dell PowerStore,
       #       through the powerstore-exporter service below (its syslog
       #       goes to the powerstore-syslog service)
+      #   otel-collector-config.netapp-ontap.yaml         NetApp ONTAP or
+      #       Amazon FSx for NetApp ONTAP, through the netapp-harvest
+      #       service below
       - ./${STORAGE_ARRAY_COLLECTOR_CONFIG:-otel-collector-config.yaml}:/etc/otelcol-contrib/config.yaml:ro
     # Uncomment (together with the syslog receivers and the logs pipeline in
     # the collector config) to accept the syslog the array forwards to
@@ -42,7 +45,8 @@ services:
     environment:
       # Defaults for the two optional settings (an empty value in .env
       # counts as unset). The platform, stamped as storage.system:
-      # purestorage.flasharray, purestorage.flashblade or dell.powerstore.
+      # purestorage.flasharray, purestorage.flashblade, dell.powerstore or
+      # netapp.ontap.
       - STORAGE_SYSTEM=${STORAGE_SYSTEM:-purestorage.flasharray}
       # Arrays ship a self-signed certificate, so the collector does not
       # verify the native endpoint's certificate unless this is "false".
@@ -235,6 +239,49 @@ services:
       - STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME:-}
       - STORAGE_SYSTEM=${STORAGE_SYSTEM:-dell.powerstore}
     read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # NetApp Harvest, NetApp's exporter for ONTAP (Apache-2.0,
+  # github.com/NetApp/harvest), for a NetApp ONTAP cluster or Amazon FSx for
+  # NetApp ONTAP. Started only with COMPOSE_PROFILES=netapp-ontap, and scraped
+  # by otel-collector-config.netapp-ontap.yaml. Unlike Pure's exporters it
+  # logs in to the cluster itself, with the read-only user netapp-harvest.yml
+  # reads from the variables below — the only ones of .env it is given. The
+  # three netapp-harvest-*.yaml files limit what it collects to what
+  # OneUptime reads. Its port stays on the compose network — nothing is
+  # published. Harvest releases quarterly; move this pin up only together
+  # with a new recording of its output (see README.md).
+  netapp-harvest:
+    image: ghcr.io/netapp/harvest:26.11.0-1
+    profiles: ["netapp-ontap"]
+    command: ["--poller", "ontap", "--config", "/opt/harvest/harvest.yml"]
+    volumes:
+      - ./netapp-harvest.yml:/opt/harvest/harvest.yml:ro
+      - ./netapp-harvest-rest.yaml:/opt/harvest/conf/rest/oneuptime.yaml:ro
+      - ./netapp-harvest-keyperf.yaml:/opt/harvest/conf/keyperf/oneuptime.yaml:ro
+      - ./netapp-harvest-restperf.yaml:/opt/harvest/conf/restperf/oneuptime.yaml:ro
+    environment:
+      - STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME}
+      - NETAPP_ONTAP_ENDPOINT=${NETAPP_ONTAP_ENDPOINT}
+      - NETAPP_ONTAP_USERNAME=${NETAPP_ONTAP_USERNAME}
+      - NETAPP_ONTAP_PASSWORD=${NETAPP_ONTAP_PASSWORD}
+      # Clusters ship a self-signed certificate, so Harvest does not verify
+      # it unless this is "false" (the same setting as the collector's).
+      - STORAGE_ARRAY_INSECURE_SKIP_VERIFY=${STORAGE_ARRAY_INSECURE_SKIP_VERIFY:-true}
+    expose:
+      - "12990"
+    read_only: true
+    tmpfs:
+      - /tmp
     cap_drop:
       - ALL
     security_opt:
