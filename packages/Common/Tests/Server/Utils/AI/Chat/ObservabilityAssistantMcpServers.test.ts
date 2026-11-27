@@ -105,7 +105,7 @@ function toolCall(
 }
 
 function answer(content: string): ObservabilityAssistantModelReply {
-  return { content, stopReason: "end_turn", tokenCount: 10 };
+  return { content, stopReason: "stop", tokenCount: 10 };
 }
 
 interface Asked {

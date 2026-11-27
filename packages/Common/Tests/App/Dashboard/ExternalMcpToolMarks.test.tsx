@@ -89,6 +89,26 @@ const SERVER_ID: ObjectID = new ObjectID(
   "11081000-0000-4000-8000-00000000d002",
 );
 
+/*
+ * ModelAPI.create and ModelAPI.getList are generic over the model, which a
+ * spy's type cannot follow: their spies are typed by what the tests read.
+ */
+type CreateSpy = SpyInstance<
+  (data: {
+    model: ExternalMcpToolReadOnlyMark;
+    modelType: unknown;
+  }) => Promise<unknown>
+>;
+type GetListSpy = SpyInstance<(data: unknown) => Promise<unknown>>;
+
+function spyOnCreate(): CreateSpy {
+  return jest.spyOn(ModelAPI, "create") as unknown as CreateSpy;
+}
+
+function spyOnGetList(): GetListSpy {
+  return jest.spyOn(ModelAPI, "getList") as unknown as GetListSpy;
+}
+
 const GET_RESOURCES_FINGERPRINT: string = "a".repeat(64);
 
 function tools(): Array<ExternalMcpServerTool> {
@@ -347,9 +367,7 @@ describe("who may mark, and how a mark is made and taken away", () => {
   });
 
   test("marking sends the server and the tool, and nothing else: the definition is the server's to take", async () => {
-    const create: SpyInstance<typeof ModelAPI.create> = jest
-      .spyOn(ModelAPI, "create")
-      .mockResolvedValue({} as never);
+    const create: CreateSpy = spyOnCreate().mockResolvedValue({} as never);
 
     await markExternalMcpToolReadOnly({
       externalMcpServerId: SERVER_ID,
@@ -382,9 +400,12 @@ describe("who may mark, and how a mark is made and taken away", () => {
   });
 
   test("a server's marks are read with who made each and when, newest first", async () => {
-    const getList: SpyInstance<typeof ModelAPI.getList> = jest
-      .spyOn(ModelAPI, "getList")
-      .mockResolvedValue({ data: [], count: 0, skip: 0, limit: 0 } as never);
+    const getList: GetListSpy = spyOnGetList().mockResolvedValue({
+      data: [],
+      count: 0,
+      skip: 0,
+      limit: 0,
+    } as never);
 
     await readExternalMcpToolMarks(SERVER_ID);
 
@@ -634,10 +655,7 @@ describe("the dialog that marks a tool", () => {
   }
 
   test("says plainly what marking means before anything is saved", () => {
-    const create: SpyInstance<typeof ModelAPI.create> = jest.spyOn(
-      ModelAPI,
-      "create",
-    );
+    const create: CreateSpy = spyOnCreate();
     renderDialog();
 
     expect(screen.getByTestId("modal-title")).toHaveTextContent(
@@ -668,9 +686,7 @@ describe("the dialog that marks a tool", () => {
   });
 
   test("its one button marks the tool, says so, and the card shows it", async () => {
-    const create: SpyInstance<typeof ModelAPI.create> = jest
-      .spyOn(ModelAPI, "create")
-      .mockResolvedValue({} as never);
+    const create: CreateSpy = spyOnCreate().mockResolvedValue({} as never);
     const toast: SpyInstance<typeof Toast.success> = jest
       .spyOn(Toast, "success")
       .mockReturnValue("toast-1");
@@ -720,10 +736,7 @@ describe("the dialog that marks a tool", () => {
   });
 
   test("Cancel leaves everything as it was", () => {
-    const create: SpyInstance<typeof ModelAPI.create> = jest.spyOn(
-      ModelAPI,
-      "create",
-    );
+    const create: CreateSpy = spyOnCreate();
     const onClose: Mock<() => void> = jest.fn<() => void>();
     renderDialog((): void => {}, onClose);
 
@@ -754,7 +767,7 @@ describe("the dialog that marks a tool", () => {
 describe("the server's Tools card", () => {
   let marks: Array<ExternalMcpToolReadOnlyMark>;
   let serverTools: Array<ExternalMcpServerTool>;
-  let getList: SpyInstance<typeof ModelAPI.getList>;
+  let getList: GetListSpy;
 
   beforeEach(() => {
     marks = [];
@@ -770,7 +783,7 @@ describe("the server's Tools card", () => {
         tools: serverTools,
       });
     }) as never);
-    getList = jest.spyOn(ModelAPI, "getList").mockImplementation((async () => {
+    getList = spyOnGetList().mockImplementation((async () => {
       return { data: marks, count: marks.length, skip: 0, limit: 0 };
     }) as never);
     jest.spyOn(Toast, "success").mockReturnValue("toast-1");
@@ -804,18 +817,16 @@ describe("the server's Tools card", () => {
 
   test("marking goes through the dialog, and the card then shows who marked it", async () => {
     signedInAs([Permission.ProjectAdmin]);
-    const create: SpyInstance<typeof ModelAPI.create> = jest
-      .spyOn(ModelAPI, "create")
-      .mockImplementation((async () => {
-        marks = [
-          markOf({
-            toolName: "k8s_get_resources",
-            toolFingerprint: GET_RESOURCES_FINGERPRINT,
-            name: "Jane Doe",
-          }),
-        ];
-        return {};
-      }) as never);
+    const create: CreateSpy = spyOnCreate().mockImplementation((async () => {
+      marks = [
+        markOf({
+          toolName: "k8s_get_resources",
+          toolFingerprint: GET_RESOURCES_FINGERPRINT,
+          name: "Jane Doe",
+        }),
+      ];
+      return {};
+    }) as never);
     await renderCard();
 
     await act(async () => {

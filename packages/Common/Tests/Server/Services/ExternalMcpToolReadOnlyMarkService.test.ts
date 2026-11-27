@@ -137,12 +137,15 @@ async function refusal(
 }
 
 let findServer: SpyInstance<typeof ExternalMcpServerService.findOneBy>;
-let references: SpyInstance<typeof ProjectReferenceCheck.validateCreate>;
+// validateCreate is generic over the model: its spy is held by what the tests read of it.
+let references: SpyInstance<(data: never) => Promise<void>>;
 
 beforeEach(() => {
   references = jest
     .spyOn(ProjectReferenceCheck, "validateCreate")
-    .mockResolvedValue(undefined as never);
+    .mockResolvedValue(undefined as never) as unknown as SpyInstance<
+    (data: never) => Promise<void>
+  >;
   findServer = jest
     .spyOn(ExternalMcpServerService, "findOneBy")
     .mockResolvedValue(storedServer(storedToolsOf("0.3.2")));
