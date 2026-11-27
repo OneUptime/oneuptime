@@ -750,7 +750,7 @@ const nationalPhoneDetector: DataTypeDetector = {
  * WHAT DATA SECURITY CALLS A PHONE NUMBER: an international number, a
  * North American one written as people write it, and a UK mobile, each on
  * its own - and a national number of 9 to 12 digits of no other shape,
- * beside a word that names it ("tel 0201234567", nationalPhoneDetector).
+ * beside a word that names it ("tel 02012345678", nationalPhoneDetector).
  * A Phone Number scrub rule hides what these find, as well as what its
  * own pattern does (Utils/Telemetry/ScrubBuiltInPatterns.ts, #11030), in
  * every reading they ask for: the national number only with one of its
