@@ -4210,16 +4210,14 @@ describe("What a value is read as, and what a leak's template keeps", () => {
     expect(bullet).toContain(
       "`Payment declined for Maria Gonzalez`, read from one record, is `Payment declined for <value>`",
     );
-    expect(
-      maskUnprovenWords("Payment declined for Maria Gonzalez", {
-        isAligned: false,
-      }),
-    ).toBe("Payment declined for <value>");
+    expect(maskUnprovenWords("Payment declined for Maria Gonzalez")).toBe(
+      "Payment declined for <value>",
+    );
     // The page's other example keeps every word: each is the code's.
     expect(bullet).toContain("`User <Email address> signed up`");
-    expect(
-      maskUnprovenWords("User <Email address> signed up", { isAligned: false }),
-    ).toBe("User <Email address> signed up");
+    expect(maskUnprovenWords("User <Email address> signed up")).toBe(
+      "User <Email address> signed up",
+    );
   });
 });
 

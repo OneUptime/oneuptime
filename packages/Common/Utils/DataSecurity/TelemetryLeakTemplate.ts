@@ -1,6 +1,6 @@
 import { MAX_TELEMETRY_LEAK_TEMPLATE_LENGTH } from "../../Types/DataSecurity/TelemetryLeakFix";
 import { normalizeLogBodyToErrorPattern } from "../Telemetry/LogErrorPattern";
-import { isCodeWord, isWrittenAsName, WordPlace } from "./CodeWords";
+import { isCodeWord, WordPlace } from "./CodeWords";
 import BUILT_IN_DETECTORS from "./Detectors/Index";
 import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
 
@@ -32,15 +32,16 @@ import { findSensitiveValues, ScanDetector, TextMatch } from "./TextScanner";
  *      that differs between them is a value, whatever a detector made of
  *      it - and of two that cannot be lined up word for word, only the
  *      words both start and end with are kept;
- *   6. a word the records do not prove is the code's is masked
- *      (maskUnprovenWords, #11098). A template read from one record - or
- *      from records that all read alike - proves none: it keeps only the
- *      words code writes log lines with (CodeWords), so "Payment declined
- *      for Ada Lovelace" read once is "Payment declined for <value>". An
- *      aligned one keeps the words every read shares, but for one written
- *      as a person's name ("for Grace Brown") that no technology is
- *      called: a name every record of a line holds reads the same in each.
- *      A structured line's field names are kept either way.
+ *   6. a word that is not one code writes log lines with (CodeWords) is
+ *      masked (maskUnprovenWords, #11098, #11204), however many records
+ *      read it and however many of them share it: "Payment declined for
+ *      Ada Lovelace" is "Payment declined for <value>", and so is "Ticket
+ *      reassigned to jdoe" read from every record of a line. Records share
+ *      a value as readily as they share the code's words - one user's
+ *      session, one tenant's traffic, the on-call engineer every ticket is
+ *      assigned to - so a word every record holds is no more the code's
+ *      than one record's word is: alignment (5) only ever masks. A
+ *      structured line's field names are kept.
  *
  * Pure: run inside OneUptime, by the locator that reads the records
  * (Server/Utils/DataSecurity/Telemetry/TelemetryLeakLocator). What it
@@ -539,39 +540,37 @@ function isFieldName(template: string, start: number, end: number): boolean {
   return template[after] === ":";
 }
 
-export interface TemplateProof {
-  /*
-   * The template's line was read with different words and aligned
-   * (alignTelemetryLeakTemplates): the words that differ are masked
-   * already, and those every read shares are the code's - but for one
-   * written as a person's name. A template read once, or always alike,
-   * proves none of its words.
-   */
-  isAligned: boolean;
-}
-
 /*
- * A TEMPLATE WITH EVERY WORD ITS RECORDS DO NOT PROVE IS THE CODE'S MASKED
- * (#11098).
+ * A TEMPLATE WITH EVERY WORD NO RECORD CAN PROVE IS THE CODE'S MASKED
+ * (#11098, #11204).
  *
- * Read from one record - or from records that all read alike - nothing
- * tells the code's words from a value no detector names: a person's name,
- * a free-text value with no digit in it. So every word but those code
- * writes log lines with (CodeWords.isCodeWord) is masked: "Payment
- * declined for Ada Lovelace" is "Payment declined for <value>". Aligned,
- * the words every read shares are kept, but for one written as a name
- * (CodeWords.isWrittenAsName): "for Grace Brown" in each read of a line is
- * a name, not the code's.
+ * Nothing in a leak's records tells the code's words from a value no
+ * detector names - a person's name, a username, an email's local part, a
+ * free-text value with no digit in it. Not one record, nor records that
+ * all read alike, nor the records of a line aligned with different words
+ * (alignTelemetryLeakTemplates): of those, the words that differ are
+ * values, but the words they share are not the code's for it. The records
+ * read for a leak are a sample of it, and a sample shares a value as
+ * readily as it shares the code's words: every record of one user's
+ * session, of one tenant, of the one engineer every ticket is assigned
+ * to, holds the same name. A rule that waits for three records, or for
+ * records of several sessions, keeps that engineer's name all the same.
  *
- * Kept either way: the placeholders the detectors and patterns put in, the
- * template's punctuation, and a structured line's field names. Words
- * masked side by side are one value. "" when nothing of the code's words
- * is left to find the line by.
+ * So every word but those code writes log lines with (CodeWords.isCodeWord:
+ * its vocabulary, written as code writes it - a capitalized word in the
+ * middle of a sentence only when it names a technology) is masked, however
+ * many records share it: "Payment declined for Ada Lovelace" is "Payment
+ * declined for <value>", and "Ticket reassigned to jdoe" read from every
+ * record of a line is "Ticket reassigned to <value>". A line read from
+ * aligned records names its file and its line number besides, which the
+ * code agent finds the code by whatever the template keeps.
+ *
+ * Kept: the placeholders the detectors and patterns put in, the template's
+ * punctuation, and a structured line's field names. Words masked side by
+ * side are one value. "" when nothing of the code's words is left to find
+ * the line by.
  */
-export function maskUnprovenWords(
-  template: string,
-  proof: TemplateProof,
-): string {
+export function maskUnprovenWords(template: string): string {
   if (!template) {
     return "";
   }
@@ -592,11 +591,7 @@ export function maskUnprovenWords(
     const place: WordPlace = { atSentenceStart: startsSentence(gap, isFirst) };
     const isWord: boolean = piece[0] !== "<";
     const keep: boolean =
-      !isWord ||
-      isFieldName(template, start, end) ||
-      (proof.isAligned
-        ? !isWrittenAsName(piece, place)
-        : isCodeWord(piece, place));
+      !isWord || isFieldName(template, start, end) || isCodeWord(piece, place);
 
     isFirst = false;
     copiedUpTo = end;
