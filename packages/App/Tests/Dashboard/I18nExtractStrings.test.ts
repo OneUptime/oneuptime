@@ -1668,6 +1668,8 @@ describe("the real source roots", () => {
       // Why a pull request a person links to a Data Security issue is refused (#10831).
       "keys packages/Common/Types/DataSecurity/DataSecurityIssuePullRequestLink.ts",
       "keys packages/Common/Types/DataSecurity/ScanWarnings.ts",
+      // What OneUptime checks on a kind of store, and what it cannot, and why (#11140).
+      "keys packages/Common/Utils/DataSecurity/DataStoreCoverage.ts",
       // What the compliance page says is wrong with a rule, and why a member fails one (#8632).
       "keys packages/Common/Types/Team/TeamComplianceFindings.ts",
       // Why a team or a label may not take a name: another one of the project has it (#9674).

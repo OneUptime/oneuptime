@@ -195,7 +195,8 @@ const DataSecurityDataStores: FunctionComponent<
             "Every bucket, database and telemetry stream Data Security knows, the riskiest first. Add a store you run yourself here.",
         }}
         noItemsMessage="No data stores yet. They appear once a cloud account with Data Security turned on is read, or when you add a store you run yourself."
-        createFormTitle="Add a Store You Run"
+        // Marked: the extractor reads no createFormTitle, and the form's title is the reader's.
+        createFormTitle={translationKey("Add a Store You Run")}
         onBeforeCreate={(item: DataStore): Promise<DataStore> => {
           // A connection string or probe left behind by a kind picked before is not saved.
           return Promise.resolve(keepScanFieldsTheKindReads(item, item.kind));

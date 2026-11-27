@@ -66098,5 +66098,6 @@
   "Turn security on: set xpack.security.enabled: true in elasticsearch.yml on every node, restart them, and set the built-in users' passwords with elasticsearch-reset-password.": "فعّل الأمان: اضبط xpack.security.enabled: true في elasticsearch.yml على كل عقدة، وأعد تشغيلها، واضبط كلمات مرور المستخدمين المضمّنين باستخدام elasticsearch-reset-password.",
   "Turn the security plugin on: remove plugins.security.disabled: true from opensearch.yml and DISABLE_SECURITY_PLUGIN from the nodes' environment, then restart every node.": "فعّل مكوّن الأمان الإضافي: احذف plugins.security.disabled: true من opensearch.yml، واحذف DISABLE_SECURITY_PLUGIN من بيئة العقد، ثم أعد تشغيل كل عقدة.",
   "Whether it answers without credentials, and requires TLS": "ما إذا كان يجيب دون بيانات اعتماد، ويشترط TLS",
-  "Whether the internet reaches it": "ما إذا كان الإنترنت يصل إليه"
+  "Whether the internet reaches it": "ما إذا كان الإنترنت يصل إليه",
+  "Add a Store You Run": "إضافة مخزن تشغّله بنفسك"
 }

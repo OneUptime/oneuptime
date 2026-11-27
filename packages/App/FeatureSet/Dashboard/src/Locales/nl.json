@@ -66098,5 +66098,6 @@
   "Turn security on: set xpack.security.enabled: true in elasticsearch.yml on every node, restart them, and set the built-in users' passwords with elasticsearch-reset-password.": "Schakel beveiliging in: stel xpack.security.enabled: true in elasticsearch.yml in op elk knooppunt, start ze opnieuw op en stel de wachtwoorden van de ingebouwde gebruikers in met elasticsearch-reset-password.",
   "Turn the security plugin on: remove plugins.security.disabled: true from opensearch.yml and DISABLE_SECURITY_PLUGIN from the nodes' environment, then restart every node.": "Schakel de beveiligingsplug-in in: verwijder plugins.security.disabled: true uit opensearch.yml en DISABLE_SECURITY_PLUGIN uit de omgeving van de knooppunten, en start daarna elk knooppunt opnieuw op.",
   "Whether it answers without credentials, and requires TLS": "Of het zonder inloggegevens antwoordt en TLS vereist",
-  "Whether the internet reaches it": "Of internet het bereikt"
+  "Whether the internet reaches it": "Of internet het bereikt",
+  "Add a Store You Run": "Opslag toevoegen die u zelf beheert"
 }

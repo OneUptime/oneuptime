@@ -66098,5 +66098,6 @@
   "Turn security on: set xpack.security.enabled: true in elasticsearch.yml on every node, restart them, and set the built-in users' passwords with elasticsearch-reset-password.": "開啟安全功能：在每個節點的 elasticsearch.yml 中設定 xpack.security.enabled: true，重新啟動這些節點，然後使用 elasticsearch-reset-password 設定內建使用者的密碼。",
   "Turn the security plugin on: remove plugins.security.disabled: true from opensearch.yml and DISABLE_SECURITY_PLUGIN from the nodes' environment, then restart every node.": "開啟安全外掛程式：從 opensearch.yml 移除 plugins.security.disabled: true，並從節點的環境移除 DISABLE_SECURITY_PLUGIN，然後重新啟動每個節點。",
   "Whether it answers without credentials, and requires TLS": "是否無需憑證即可回應，以及是否要求 TLS",
-  "Whether the internet reaches it": "網際網路能否連到它"
+  "Whether the internet reaches it": "網際網路能否連到它",
+  "Add a Store You Run": "新增自行架設的資料儲存區"
 }

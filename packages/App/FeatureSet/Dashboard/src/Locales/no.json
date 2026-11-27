@@ -66098,5 +66098,6 @@
   "Turn security on: set xpack.security.enabled: true in elasticsearch.yml on every node, restart them, and set the built-in users' passwords with elasticsearch-reset-password.": "Slå på sikkerhet: sett xpack.security.enabled: true i elasticsearch.yml på hver node, start dem på nytt, og angi passordene til de innebygde brukerne med elasticsearch-reset-password.",
   "Turn the security plugin on: remove plugins.security.disabled: true from opensearch.yml and DISABLE_SECURITY_PLUGIN from the nodes' environment, then restart every node.": "Slå på sikkerhetspluginen: fjern plugins.security.disabled: true fra opensearch.yml og DISABLE_SECURITY_PLUGIN fra nodenes miljø, og start deretter hver node på nytt.",
   "Whether it answers without credentials, and requires TLS": "Om det svarer uten påloggingsinformasjon og krever TLS",
-  "Whether the internet reaches it": "Om internett når det"
+  "Whether the internet reaches it": "Om internett når det",
+  "Add a Store You Run": "Legg til et datalager du drifter selv"
 }

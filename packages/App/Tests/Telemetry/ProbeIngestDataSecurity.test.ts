@@ -579,6 +579,83 @@ describe("POST /probe/data-security/work", () => {
     expect(select["connectionString"]).toBeUndefined();
   });
 
+  /*
+   * Elasticsearch and OpenSearch clusters (#11140): only to a probe whose
+   * build samples them, which says so with dataSecuritySearchScan. An older
+   * probe is never handed one it would sample as a database.
+   */
+  describe("a search cluster", () => {
+    const SEARCH_CAPABLE: JSONObject = {
+      probeCapabilities: [
+        ProbeCapability.DataSecurityScan,
+        ProbeCapability.DataSecuritySearchScan,
+      ],
+    };
+
+    test("a probe that declares dataSecuritySearchScan claims Elasticsearch and OpenSearch clusters too, and sets aside the same kinds", async () => {
+      await call(WORK_URI, makeRequest({ body: SEARCH_CAPABLE }));
+
+      const kinds: Array<string> = [
+        "PostgreSQL",
+        "MySQL",
+        "SQL Server",
+        "Elasticsearch",
+        "OpenSearch",
+      ];
+
+      expect(statements[0]!.sql).toBe(CLAIM_DUE_DATA_STORES_STATEMENT);
+      expect(statements[0]!.parameters[2]).toEqual(kinds);
+      // The stores it steps over are the kinds it could have taken, no others.
+      expect(statements[1]!.parameters).toContainEqual(kinds);
+    });
+
+    test("a probe that does not declare it claims databases only: a cluster set to it is stepped over, and waits for the probe to be updated", async () => {
+      await call(WORK_URI, makeRequest({ body: CAPABLE }));
+
+      const databases: Array<string> = ["PostgreSQL", "MySQL", "SQL Server"];
+
+      expect(statements[0]!.parameters[2]).toEqual(databases);
+      // The set-aside reads the same kinds as claimable: a cluster is not, for this probe.
+      expect(statements[1]!.parameters).toContainEqual(databases);
+      expect(JSON.stringify(statements[0]!.parameters)).not.toContain(
+        "Elasticsearch",
+      );
+    });
+
+    test("a cluster's work names the search sampler and the probe's variable, never a connection string", async () => {
+      stores[0]!.kind = "Elasticsearch";
+      stores[1]!.kind = "OpenSearch";
+
+      await call(WORK_URI, makeRequest({ body: SEARCH_CAPABLE }));
+
+      const handedOut: Array<JSONObject> = sentBody()[
+        "stores"
+      ] as Array<JSONObject>;
+
+      expect(
+        handedOut.map((store: JSONObject) => {
+          return [
+            store["kind"],
+            store["engine"],
+            store["probeConnectionVariable"],
+          ];
+        }),
+      ).toEqual([
+        ["Elasticsearch", "search", "CUSTOMERS_DB_1"],
+        ["OpenSearch", "search", "CUSTOMERS_DB_2"],
+      ]);
+      // The same limits a database's scan has.
+      expect(handedOut[0]!["limits"]).toEqual({
+        maxRowsPerTable: 500,
+        maxTables: 50,
+        maxBytesTotal: 1_000_000,
+        timeLimitInSeconds: 600,
+      });
+      expect(JSON.stringify(handedOut)).not.toContain("connectionString");
+      expect(JSON.stringify(handedOut)).not.toContain(SAVED_CONNECTION_STRING);
+    });
+  });
+
   test("hands each store the project's names-and-addresses switch: a project that turned it off has its probe leave the model out (#10373)", async () => {
     settingService.getOrCreateForProject.mockResolvedValue({
       ...settings(),
@@ -768,6 +845,84 @@ describe("POST /probe/data-security/result", () => {
       ...overrides,
     };
   }
+
+  /*
+   * What a search cluster answered without credentials (#11140), as the
+   * probe found it from inside the customer's network: read for a store
+   * whose endpoint a scan checks, and only as the network vantage allows -
+   * a probe cannot say the internet reaches a store, nor date its own read.
+   */
+  describe("what a cluster answered without credentials", () => {
+    function storeOfKind(kind: string): void {
+      storeService.findOneBy.mockResolvedValue({
+        id: new ObjectID(storeId(1)),
+        projectId: PROJECT_ID,
+        kind,
+      } as never);
+    }
+
+    const ANSWERED: JSONObject = {
+      readAt: "2001-01-01T00:00:00.000Z",
+      readFrom: "internet",
+      anonymousRead: true,
+      anonymousWrite: false,
+      publicRead: true,
+      publicNetworkAccess: true,
+      encryptionInTransitEnforced: false,
+      unknowableFacts: ["publicNetworkAccess"],
+    };
+
+    async function report(posture: JSONObject): Promise<JSONObject> {
+      await call(
+        RESULT_URI,
+        makeRequest({
+          body: {
+            dataStoreId: storeId(1),
+            startedAt: STARTED_AT,
+            result: result({ posture }),
+          },
+        }),
+      );
+
+      expect(sentBody()).toEqual({ accepted: true, findingsWritten: 3 });
+
+      return (writer.recordContentScan.mock.calls[0]![0] as JSONObject)[
+        "result"
+      ] as JSONObject;
+    }
+
+    test.each(["Elasticsearch", "OpenSearch"])(
+      "%s: kept, read from the network now, never from the internet, and never public on the probe's word",
+      async (kind: string) => {
+        storeOfKind(kind);
+
+        const before: number = Date.now();
+        const posture: JSONObject = (await report(ANSWERED))[
+          "posture"
+        ] as JSONObject;
+
+        expect(posture["readFrom"]).toBe("network");
+        expect(
+          new Date(posture["readAt"] as string).getTime(),
+        ).toBeGreaterThanOrEqual(before - 1000);
+        expect(posture["anonymousRead"]).toBe(true);
+        expect(posture["anonymousWrite"]).toBe(false);
+        // Whether everyone on the internet reaches it can't be known from inside.
+        expect(posture["publicRead"]).toBeNull();
+        expect(posture["publicNetworkAccess"]).toBeNull();
+        expect(posture["unknowableFacts"]).toEqual(
+          expect.arrayContaining(["publicNetworkAccess"]),
+        );
+        expect(posture["encryptionInTransitEnforced"]).toBe(false);
+      },
+    );
+
+    test("a database's result keeps no posture, whatever the probe sends", async () => {
+      storeOfKind("PostgreSQL");
+
+      expect((await report(ANSWERED))["posture"]).toBeUndefined();
+    });
+  });
 
   test("finds the store only as the authenticated probe's, never the body's", async () => {
     await call(

@@ -66098,5 +66098,6 @@
   "Turn security on: set xpack.security.enabled: true in elasticsearch.yml on every node, restart them, and set the built-in users' passwords with elasticsearch-reset-password.": "보안을 켜세요. 모든 노드의 elasticsearch.yml에서 xpack.security.enabled: true를 설정하고 노드를 다시 시작한 뒤, elasticsearch-reset-password로 기본 제공 사용자의 비밀번호를 설정하세요.",
   "Turn the security plugin on: remove plugins.security.disabled: true from opensearch.yml and DISABLE_SECURITY_PLUGIN from the nodes' environment, then restart every node.": "보안 플러그인을 켜세요. opensearch.yml에서 plugins.security.disabled: true를, 노드 환경에서 DISABLE_SECURITY_PLUGIN을 제거한 뒤 모든 노드를 다시 시작하세요.",
   "Whether it answers without credentials, and requires TLS": "자격 증명 없이 응답하는지, TLS를 요구하는지",
-  "Whether the internet reaches it": "인터넷에서 접근할 수 있는지"
+  "Whether the internet reaches it": "인터넷에서 접근할 수 있는지",
+  "Add a Store You Run": "직접 운영하는 저장소 추가"
 }
