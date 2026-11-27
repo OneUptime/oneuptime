@@ -11,7 +11,7 @@
 
 ## How a check is judged
 
-Each check gives a result: a probe's answer, a script's return value, or the telemetry the check reads. The step's criteria then judge it in their order. The first criteria whose filters match decides what happens: it can change the monitor's status, open incidents and open alerts. The criteria after it are not looked at for that check.
+Each check gives a result: a probe's answer, a script's return value, or the telemetry the check reads. The step's criteria then judge it in their order. The first criteria whose filters match decides what happens: it can change the monitor's status, open incidents and open alerts. The criteria after it are not looked at for that check, unless it changes no status (`change_monitor_status` off): then the criteria after it that change the status are judged for the status alone, and the first of them that matches sets it. When none does, the monitor goes to its default status.
 
 ```mermaid title="How each check is judged"
 flowchart TB

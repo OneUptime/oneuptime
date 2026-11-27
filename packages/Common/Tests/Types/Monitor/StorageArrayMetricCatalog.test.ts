@@ -446,13 +446,91 @@ function getOntapSeries(): Record<string, SeriesLabels> {
 }
 
 /*
- * Every shipped platform's series, label by label: Pure's and Dell's from
- * their exporters, ONTAP's from Harvest.
+ * Dell PowerMax (#11004): the labels the probe writes on each series it
+ * reads from Unisphere (Probe/Utils/StorageArray/Dell/PowerMax/
+ * PowerMaxOtlpBuilder.ts), which the probe's PowerMaxIngestContract holds
+ * it to.
+ */
+const PM_STORAGE_GROUP: SeriesLabels = { storage_group: null };
+const PM_SRP: SeriesLabels = { srp: null };
+const PM_DIRECTOR: SeriesLabels = { director: null, component: null };
+const PM_PORT: SeriesLabels = {
+  port_id: null,
+  component: null,
+  director: null,
+  port: null,
+};
+const PM_SRDF_GROUP: SeriesLabels = { srdf_group: null, srdf_label: null };
+const POWERMAX_SERIES: Record<string, SeriesLabels> = {
+  powermax_alert_open: {
+    alert_id: null,
+    severity: ["critical", "warning"],
+    alert_type: null,
+    object: null,
+    object_type: null,
+    description: null,
+    created: null,
+  },
+  powermax_array_health_score: { health_metric: null },
+  powermax_array_performance_collection: { realtime: ["true", "false"] },
+  powermax_array_capacity_used_percent: {},
+  powermax_array_capacity_usable_bytes: {},
+  powermax_array_capacity_used_bytes: {},
+  powermax_array_capacity_subscribed_bytes: {},
+  powermax_array_data_reduction_ratio: {},
+  powermax_srp_capacity_used_percent: PM_SRP,
+  powermax_srp_capacity_used_bytes: PM_SRP,
+  powermax_srp_response_time_usec: PM_SRP,
+  powermax_array_response_time_usec: { operation: ["read", "write"] },
+  powermax_array_read_iops: {},
+  powermax_array_write_iops: {},
+  powermax_array_read_throughput_bytes: {},
+  powermax_array_write_throughput_bytes: {},
+  powermax_array_cache_hit_percent: {},
+  powermax_array_write_pending_percent: {},
+  powermax_array_frontend_busy_percent: {},
+  powermax_array_backend_busy_percent: {},
+  powermax_array_srdf_busy_percent: {},
+  powermax_storage_group_response_time_usec: PM_STORAGE_GROUP,
+  powermax_storage_group_read_response_time_usec: PM_STORAGE_GROUP,
+  powermax_storage_group_write_response_time_usec: PM_STORAGE_GROUP,
+  powermax_storage_group_iops: PM_STORAGE_GROUP,
+  powermax_storage_group_throughput_bytes: PM_STORAGE_GROUP,
+  powermax_storage_group_used_bytes: PM_STORAGE_GROUP,
+  powermax_storage_group_host_io_limit_exceeded_percent: PM_STORAGE_GROUP,
+  powermax_storage_group_realtime_read_response_time_usec: PM_STORAGE_GROUP,
+  powermax_storage_group_realtime_write_response_time_usec: PM_STORAGE_GROUP,
+  powermax_storage_group_realtime_iops: PM_STORAGE_GROUP,
+  powermax_storage_group_realtime_throughput_bytes: PM_STORAGE_GROUP,
+  powermax_volume_response_time_usec: { volume: null },
+  powermax_volume_iops: { volume: null },
+  powermax_volume_used_bytes: { volume: null, volume_name: null },
+  powermax_director_offline: { ...PM_DIRECTOR, role: null, status: null },
+  powermax_director_busy_percent: PM_DIRECTOR,
+  powermax_port_offline: { ...PM_PORT, protocol: null, status: null },
+  powermax_port_busy_percent: PM_PORT,
+  powermax_port_read_throughput_bytes: PM_PORT,
+  powermax_port_rx_power_milliwatts: PM_PORT,
+  powermax_srdf_group_not_healthy: {
+    ...PM_SRDF_GROUP,
+    state: null,
+    remote_symmetrix_id: null,
+  },
+  powermax_srdf_group_lag_seconds: PM_SRDF_GROUP,
+  powermax_srdf_group_throughput_bytes: PM_SRDF_GROUP,
+  powermax_srdf_group_response_time_usec: PM_SRDF_GROUP,
+};
+
+/*
+ * Every shipped platform's series, label by label: Pure's and Dell
+ * PowerStore's from their exporters, ONTAP's from Harvest, and Dell
+ * PowerMax's as its probe writes them.
  */
 const SERIES: Record<string, SeriesLabels> = {
   ...PURE_SERIES,
   ...POWERSTORE_SERIES,
   ...getOntapSeries(),
+  ...POWERMAX_SERIES,
 };
 
 const ALL_METRICS: Array<StorageArrayMetricDefinition> =
@@ -462,6 +540,8 @@ const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
 const PS: StorageSystem = StorageSystem.DellPowerStore;
 const ONTAP: StorageSystem = StorageSystem.NetAppOntap;
+// Read by a probe from Unisphere (#11004).
+const PM: StorageSystem = StorageSystem.DellPowerMax;
 
 // Each platform's catalog ids and series names start with these.
 const PREFIXES: Record<string, { id: string; series: string }> = {
@@ -469,6 +549,7 @@ const PREFIXES: Record<string, { id: string; series: string }> = {
   [FB]: { id: "purefb-", series: "purefb_" },
   [PS]: { id: "powerstore-", series: "powerstore_" },
   [ONTAP]: { id: "netapp-", series: "netapp_" },
+  [PM]: { id: "powermax-", series: "powermax_" },
 };
 
 // Pure's entries: the ones whose names follow Pure's unit suffixes.
@@ -757,6 +838,27 @@ describe("StorageArrayMetricCatalog - every entry", () => {
       if (name.startsWith(PREFIXES[PS]!.series)) {
         return powerStoreUnit(name);
       }
+      // PowerMax's series name their units (#11004).
+      if (name.startsWith(PREFIXES[PM]!.series)) {
+        const suffixes: Array<[string, string]> = [
+          ["_usec", "µs"],
+          ["_iops", "ops/s"],
+          ["_throughput_bytes", "bytes/s"],
+          ["_percent", "%"],
+          ["_seconds", "s"],
+          ["_milliwatts", "mW"],
+          ["_ratio", "ratio"],
+          ["_health_score", "score"],
+          ["_bytes", "bytes"],
+        ];
+        for (const [suffix, unit] of suffixes) {
+          if (name.endsWith(suffix)) {
+            return unit;
+          }
+        }
+        // Alerts, objects in a bad state, a 0-or-1 flag: how many.
+        return "count";
+      }
       if (name.endsWith("_latency_usec")) {
         return "µs";
       }
@@ -852,9 +954,9 @@ describe("StorageArrayMetricCatalog - categories", () => {
     const platformsOf: Partial<
       Record<StorageArrayMetricCategory, Array<StorageSystem>>
     > = {
-      Volumes: [FA, PS, ONTAP],
+      Volumes: [FA, PS, ONTAP, PM],
       Hosts: [FA],
-      Replication: [FA, PS, ONTAP],
+      Replication: [FA, PS, ONTAP, PM],
       "File Systems": [FB, PS],
       Buckets: [FB],
     };
@@ -873,7 +975,7 @@ describe("StorageArrayMetricCatalog - categories", () => {
   });
 
   test("every platform covers alerts, capacity, performance and hardware", () => {
-    for (const system of [FA, FB, PS, ONTAP]) {
+    for (const system of [FA, FB, PS, ONTAP, PM]) {
       const covered: Set<string> = new Set(
         getStorageArrayMetricsForSystem(system).map(
           (m: StorageArrayMetricDefinition) => {
@@ -1036,9 +1138,9 @@ describe("StorageArrayMetricCatalog - getStorageArrayMetric (filter-aware lookup
 });
 
 describe("StorageArrayMetricCatalog - per-platform picker", () => {
-  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerStore PowerStore's, an ONTAP cluster ONTAP's", () => {
+  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerStore PowerStore's, an ONTAP cluster ONTAP's, a PowerMax PowerMax's", () => {
     let total: number = 0;
-    for (const system of [FA, FB, PS, ONTAP]) {
+    for (const system of [FA, FB, PS, ONTAP, PM]) {
       const metrics: Array<StorageArrayMetricDefinition> =
         getStorageArrayMetricsForSystem(system);
       expect(metrics.length).toBeGreaterThan(0);
@@ -1206,9 +1308,10 @@ describe("StorageArrayMetricCatalog - object labels (resource filters and per-ob
         continue;
       }
       /*
-       * An array-wide metric with an object label of its own is one series
-       * per part of the array no scope names (a PowerStore appliance, its
-       * NAS servers): its charts and monitors split by that label.
+       * An object of its own scope, or a part of the array no scope
+       * names, by an object label of its own (a PowerStore appliance or
+       * NAS server, a PowerMax storage group, pool or SRDF group, #11004):
+       * its charts and monitors split by that label.
        */
       expect({ id: metric.id, label }).toEqual({
         id: metric.id,

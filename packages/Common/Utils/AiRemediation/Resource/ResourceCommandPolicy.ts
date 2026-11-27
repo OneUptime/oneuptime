@@ -49,6 +49,7 @@ import CephCommandPolicy from "./CephCommandPolicy";
 import DatabaseCommandPolicy from "./DatabaseCommandPolicy";
 import HostCommandPolicy from "./HostCommandPolicy";
 import OpenStackCommandPolicy from "./OpenStackCommandPolicy";
+import XcpNgCommandPolicy from "./XcpNgCommandPolicy";
 import {
   AwsCloudCommandPolicy,
   AzureCloudCommandPolicy,
@@ -105,6 +106,7 @@ const TOOL_POLICY_BY_TYPE: Readonly<
   [AiResourceType.AzureSubscription]: AzureCloudCommandPolicy,
   [AiResourceType.GoogleCloudProject]: GcpCloudCommandPolicy,
   [AiResourceType.OpenStackCloud]: OpenStackCommandPolicy,
+  [AiResourceType.XcpNgPool]: XcpNgCommandPolicy,
 };
 
 // Refuses everything, for a resource type this build does not know.

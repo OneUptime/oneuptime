@@ -99,7 +99,7 @@ Xen Orchestra は、ホストや VM を `uuid` ラベルで、ストレージリ
 
 ## 既製のアラートテンプレート
 
-**アラートの対象** の一覧には 10 個のテンプレートがあります。それぞれが完全なモニターを作ります。クエリ、属性フィルター、グループ化、発火する条件、回復する条件です。ほとんどは `xcp_ng.id` でグループ化するため、ホスト、VM、ストレージリポジトリごとに専用のインシデントとアラートが作られます。しきい値は出発点であり、編集できます。
+**アラートの対象** の一覧には 12 個のテンプレートがあります。それぞれが完全なモニターを作ります。クエリ、属性フィルター、グループ化、発火する条件、回復する条件です。ほとんどは `xcp_ng.id` でグループ化するため、ホスト、VM、ストレージリポジトリごとに専用のインシデントとアラートが作られます。しきい値は出発点であり、編集できます。
 
 条件はそのウィンドウのすべての分で成り立つ場合にのみ発火し、しきい値の条件はしきい値から 10% 離れたところで回復するため、境界付近を行き来する値でばたつくことはありません。0/1 の系列はもう一方の値で回復します。
 
@@ -107,7 +107,9 @@ Xen Orchestra は、ホストや VM を `uuid` ラベルで、ストレージリ
 | --- | --- | --- | --- | --- | --- |
 | Pool Disconnected | 可用性 | 重大 | `xcp_pool_connected`、プール全体に対する Count、過去 10 分 | ウィンドウ全体でデータがない | データが再び届く |
 | Host Offline | 可用性 | 重大 | `xcp_ng.host.running` (`xcp_ng.scope = host`)、`xcp_ng.id` ごとの Min、過去 5 分 | 1 未満 | 1 になる |
+| HA Cannot Tolerate a Host Failure | 可用性 | 重大 | `xcp_ng.pool.ha.can_tolerate_host_failure` (`xcp_ng.scope = pool`)、プール全体に対する Max、過去 5 分 | 1 未満 | 1 になる |
 | VM Stopped | VM | 警告 | `xcp_ng.vm.stopped_after_running` (`xcp_ng.scope = vm`)、`xcp_ng.id` ごとの Min、過去 5 分 | 0 を超える | 0 になる |
+| VM Not Backed Up | VM | 警告 | `xcp_ng.vm.backup_overdue` (`xcp_ng.scope = vm`)、`xcp_ng.id` ごとの Min、過去 10 分 | 0 を超える | 0 になる |
 | Storage Repository Near Full | ストレージ | 重大 | `xcp_sr_physical_usage_bytes` ÷ `xcp_sr_physical_size_bytes` × 100 (`xcp_ng.scope = sr`、どちらも 合計)、`xcp_ng.id` ごと、過去 5 分 | 90% を超える | 81% 以下 |
 | Host Disabled | ホスト | 警告 | `xcp_ng.host.enabled` (`xcp_ng.scope = host`)、`xcp_ng.id` ごとの Max、過去 30 分 | 1 未満 | 1 になる |
 | Host Restarted | ホスト | 警告 | `xcp_host_uptime_seconds` と `xcp_ng.host.running` (`xcp_ng.scope = host`)、`xcp_ng.id` ごとの Min、過去 5 分 | `xcp_host_uptime_seconds` が 900 (15 分) 未満で、かつ `xcp_ng.host.running` が 1 | `xcp_host_uptime_seconds` が 990 以上、または `xcp_ng.host.running` が 0 |
@@ -120,18 +122,20 @@ Xen Orchestra は、ホストや VM を `uuid` ラベルで、ストレージリ
 
 - **Pool Disconnected** は、`xcp_pool_connected` が 10 分間届かなくなると発火します。Xen Orchestra はプールに接続している間はスクレイプのたびにこれを送り、プールのマスターを見失うと 0 を送るのではなく送るのをやめます。Xen Orchestra、そのプラグイン、XCP-ng エージェントが停止したときや、エージェントが OneUptime への経路を失ったときにも止まります。系列が戻ると解決します。データが止まると、ほかのテンプレートには比較するものがなく最後のステータスのままになるため、それを知らせるのはこのテンプレートです。
 - **Host Offline** は `xcp_ng.host.running` を読み取ります。これは OneUptime が `xcp_host_status` から導き出すもので、Xen Orchestra がホストを Halted と報告している間、またはプールマスターがホストとの連絡を失って状態が Unknown の間は 0 です。HA がほかの場所で再起動しない限り、そのホストで動いていた VM も停止しています。
+- **HA Cannot Tolerate a Host Failure** は `xcp_ng.pool.ha.can_tolerate_host_failure` を読み取ります。XAPI から直接読み取る場合は HA 自身のプランで、オーバーコミットしているか、許容するよう設定されたホスト障害数より少ない数しかカバーしていない状態です。プランを報告しない REST API を持つ Xen Orchestra 経由で読み取る場合は、VM を再起動できる稼働中かつ有効なホストが 2 台未満の状態で、ホスト 2 台の HA プールでは 1 台を無効にするだけで該当します。HA がオフの間は発火しません。
 - **VM Stopped** は `xcp_ng.vm.stopped_after_running` を読み取ります。過去 24 時間に実行されていた VM が Halted または Paused の間は 1 です。1 日を超えて電源が切られている VM は意図して切られたものと見なされてアラートを出さなくなり、一時停止した VM はアラートを出さず、コントロールドメインと VM テンプレートは除外されます。
+- **VM Not Backed Up** は、Xen Orchestra のバックアップログから求めた `xcp_ng.vm.backup_overdue` を読み取ります。スケジュール済みのバックアップジョブに含まれる VM が、間隔 (ジョブのスケジュールの 2 回の実行の間で最も長い間隔) とその 4 分の 1 (少なくとも 1 時間) の間に成功したバックアップがない間は 1 です。毎晩のジョブの VM は 30 時間後に発火し、どのスケジュール済みジョブにも含まれない VM は発火しません。
 - **Host Disabled** は、30 分間無効のままのホストで発火します。メンテナンスモード中か、退避によって無効のまま残されたホストです。XAPI はそこで VM を起動せず、HA はそこにフェイルオーバーできません。30 分あれば、計画された再起動や更新で呼び出しが発生することはありません。
 - **Host Restarted** は、稼働中でありながら起動から 15 分未満のホストで発火します。再起動したか、クラッシュして復帰したホストです。ホストの稼働時間が 16.5 分（しきい値から 10% 先）に達すると解決します。停止しているホストでは、代わりに **Host Offline** が発火します。
 - **比率の数式** は両辺の **合計** を取ります。どちらも同じスクレイプから得られるため、結果は正しいパーセントになります。一部の ISO ライブラリやリムーバブルメディアのようにサイズ 0 を報告するストレージリポジトリでは発火しません。
 - **VM Starved of CPU** は完全な競合を読み取ります。VM のすべての vCPU が実行可能な状態で物理 CPU を待っていた時間の割合です。そのホストでは実行可能な vCPU が CPU スレッドより多いため、VM は自身の CPU 使用率から想像されるより遅く動きます。
 - **Storage Repository Slow** は `sr` でグループ化します。これはホストのすべてのディスク系列にある、Xen Orchestra のストレージリポジトリの短い ID です。そのため各ストレージリポジトリに 1 件のインシデントが作られ、そのレイテンシーは読み書きするホスト全体で平均されます。
 
-プラグインは XOSTOR 以外のアラーム、HA の状態、プールマスター、未適用のパッチ、バックアップを報告しないため、まだそれらを監視するテンプレートはありません。[プラグインがまだ扱わないもの](/docs/telemetry/xcp-ng#プラグインがまだ扱わないもの) を参照してください。
+**HA Cannot Tolerate a Host Failure** と **VM Not Backed Up** は、プローブによるプールの読み取りが加える系列を読むため、プローブから接続したプールが必要です。XCP-ng エージェントが読むプラグインは HA の状態もバックアップも報告しません。プローブが読み取るプールでは、クラッシュした VM や HA が失ったホストなどの XAPI メッセージやアラームと、失敗したバックアップジョブについてもアラートを出せます。[エージェントなしの XCP-ng](/docs/telemetry/xcp-ng-agentless) の説明どおり、プールの **推奨事項** からそれらのテンプレートをオンにしてください。
 
 ## 収集されるメトリクス
 
-エージェントは Xen Orchestra の OpenMetrics プラグインのすべての系列を 60 秒ごとに読み取ります。以下の系列は、モニターのフォームが提供するカタログです。Xen Orchestra は XAPI の KiB、MiB/s、マイクロ秒をすでにバイト、1 秒あたりのバイト、秒に変換しています。`_total` という名前でカウンターとして型付けされた 8 つの系列には 1 秒あたりのレートが入っており、[XCP-ng エージェントのガイド](/docs/telemetry/xcp-ng#エージェントが収集するもの) で説明するとおり、OneUptime はそれらを本来のレートとして保存します。4 つの `xcp_ng.*` 系列は OneUptime 独自のもので、届いた Xen Orchestra の状態の系列から導き出されます。
+エージェントは Xen Orchestra の OpenMetrics プラグインのすべての系列を 60 秒ごとに読み取ります。以下の系列は、モニターのフォームが提供するカタログです。Xen Orchestra は XAPI の KiB、MiB/s、マイクロ秒をすでにバイト、1 秒あたりのバイト、秒に変換しています。`_total` という名前でカウンターとして型付けされた 8 つの系列には 1 秒あたりのレートが入っており、[XCP-ng エージェントのガイド](/docs/telemetry/xcp-ng#エージェントが収集するもの) で説明するとおり、OneUptime はそれらを本来のレートとして保存します。`xcp_ng.*` 系列は OneUptime 独自のものです。4 つは届いた Xen Orchestra の状態の系列から、6 つはプローブがメトリクス以外に読み取る内容から導き出され、後者は XCP-ng エージェントだけが読み取るプールにはありません。
 
 ### 可用性
 
@@ -142,6 +146,10 @@ Xen Orchestra は、ホストや VM を `uuid` ラベルで、ストレージリ
 | `xcp_ng.host.enabled` | — | ホストが有効な間は 1、メンテナンスモード中や退避中で XAPI がそこで VM を起動しない間は 0。OneUptime がホストの状態から導き出します。 |
 | `xcp_ng.vm.running` | — | VM が Running の間は 1、Halted、Paused、Suspended の間は 0。コントロールドメインは除外されます。OneUptime が VM の状態から導き出します。 |
 | `xcp_ng.vm.stopped_after_running` | — | 過去 24 時間に実行されていた VM が Halted または Paused の間は 1、それ以外は 0。1 日だれも実行を見ていない VM は意図して電源を切ったものと見なされ、一時停止した VM は数えません。OneUptime が導き出します。 |
+| `xcp_ng.pool.ha.enabled` | — | プールの高可用性がオンの間は 1、それ以外は 0。プローブが Xen Orchestra の REST API 経由、または XAPI から直接読み取ります。XCP-ng エージェントは読み取りません。 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | — | HA がオンの間、ホスト障害にまだ耐えられる間は 1、耐えられなくなると 0。XAPI から直接読み取る場合は HA 自身のプラン、プランを報告しない Xen Orchestra 経由の場合は、障害の起きたホスト以外に稼働中で有効なホストがあるかどうか。OneUptime が算出します。 |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | — | HA が許容するよう設定されたホスト障害数。XAPI から直接読み取る場合のみ。Xen Orchestra の REST API は報告しません。 |
+| `xcp_ng.pool.ha.plan_exists_for` | — | 保護対象のすべての VM を再起動したうえで、HA プランがあと何台のホスト障害に耐えられるか。XAPI から直接読み取る場合のみ。 |
 | `xcp_host_status` | count | 実行中かどうかにかかわらず、すべてのホストで常に 1。ホストの状態は `power_state` (Running、Halted、Unknown) と `enabled` のラベルにあります。 |
 | `xcp_vm_status` | count | コントロールドメインと VM テンプレートを除くすべての VM で常に 1。VM の状態は `power_state` ラベル (Running、Halted、Paused、Suspended) にあります。 |
 | `xcp_host_uptime_seconds` | seconds | ホストが起動してからの稼働時間。 |
@@ -151,6 +159,7 @@ Xen Orchestra は、ホストや VM を `uuid` ラベルで、ストレージリ
 
 | メトリクス | 単位 | 説明 |
 | --- | --- | --- |
+| `xcp_ng.host.missing_patches` | — | ホストに不足しているパッチの数 (Xen Orchestra が最後に一覧した数、6 時間ごとに確認)。 |
 | `xcp_host_cpu_average` | ratio | ホストの CPU 使用率をコア全体で平均したもの (0 から 1 の比率)。 |
 | `xcp_host_cpu_core_usage` | ratio | ホスト上の 1 つの CPU スレッドの使用率 (0 から 1 の比率)。どのスレッドかは `core` ラベルでわかります。 |
 | `xcp_host_load` | — | ホストで実行中または実行待ちの vCPU を物理 CPU 1 つあたりで表したもの。1 を超えると VM が CPU を待っています。 |
@@ -166,6 +175,7 @@ Xen Orchestra は、ホストや VM を `uuid` ラベルで、ストレージリ
 
 | メトリクス | 単位 | 説明 |
 | --- | --- | --- |
+| `xcp_ng.vm.backup_overdue` | — | Xen Orchestra のスケジュール済みバックアップジョブに含まれる VM について、ジョブの間隔とその 4 分の 1 (最低 1 時間) の間に成功したバックアップがない間は 1、それ以外は 0。OneUptime がバックアップログから算出します。 |
 | `xcp_vm_cpu_usage` | ratio | VM の CPU 使用率を vCPU 全体で平均したもの (0 から 1 の比率)。 |
 | `xcp_vm_cpu_core_usage` | ratio | 1 つの vCPU の使用率 (0 から 1 の比率)。どの vCPU かは `core` ラベルでわかります。 |
 | `xcp_vm_runstate_full_contention` | ratio | VM のすべての vCPU が実行可能な状態で物理 CPU を待っていた時間の割合 (0 から 1)。値が高いと、VM は隣の VM のせいで CPU 不足になっています。 |

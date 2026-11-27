@@ -23,7 +23,7 @@
 
 **设置** 分组包含 **维护状态** （在 [维护状态](/docs/scheduled-maintenance/states) 中介绍）、 **维护模板** （在 [模板与周期性事件](/docs/scheduled-maintenance/templates) 中介绍），以及 **备注模板** 、 **公开备注审批** 、 **自定义字段** 、 **测量** 、 **日历设置** 和 **编号规则** 。 **日历设置** 在 [维护日历](/docs/scheduled-maintenance/calendar#外部日历) 中介绍，其余在下文介绍。
 
-**工作区** 分组包含把事件发布到频道的 Slack 和 Microsoft Teams 规则。请参阅 [Slack](/docs/workspace-connections/slack#通知规则) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知规则)。
+**工作区** 分组包含把事件发布到频道的 Slack 和 Microsoft Teams 规则：每个事件在创建时发布，之后是它的状态变更、备注、添加和移除的所有者以及提醒，按每条规则在 **更新** 步骤中的选择发布。请参阅 [Slack](/docs/workspace-connections/slack#通知规则) 和 [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知规则)。
 
 ## 新事件依次经过的规则
 

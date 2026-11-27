@@ -152,6 +152,35 @@ jest.mock("../../../UI/Utils/AnalyticsModelAPI/AnalyticsModelAPI", () => {
   };
 });
 
+/*
+ * What the pages ask the server besides the pool's rows: which recommended
+ * alerts already have a monitor (none, here), and how OneUptime AI reaches
+ * the pool (its Overview's AI agent card, answered with a refusal, which
+ * never fails the page). Every other request is a test that forgot one.
+ */
+let mockApiPosts: Array<string> = [];
+
+jest.mock("../../../UI/Utils/API/API", () => {
+  return {
+    __esModule: true,
+    default: {
+      post: (request: { url: unknown }): Promise<unknown> => {
+        const url: string = String(request.url);
+        mockApiPosts.push(url);
+
+        if (url.endsWith("/recommendation-coverage")) {
+          return Promise.resolve({ data: { covered: {} } });
+        }
+
+        return Promise.reject(new Error(`No stand-in for ${url}`));
+      },
+      getFriendlyMessage: (error: unknown): string => {
+        return String((error as Error)?.message || error);
+      },
+    },
+  };
+});
+
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
     __esModule: true,
@@ -263,6 +292,8 @@ import {
   XCP_NG_PART_READ_ERROR_TITLES,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/XcpNg/Part/XcpNgPartReadError";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
+import MonitorRecommendationCoverageApi from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi";
+import ObjectID from "../../../Types/ObjectID";
 
 const PAGE_PROPS: PageComponentProps = {} as PageComponentProps;
 
@@ -557,9 +588,17 @@ function tableRow(name: string): string {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(NOW);
+  /*
+   * Which of a part's recommended alerts are on: the server says it now
+   * (POST /monitor/recommendation-coverage, #11074) - none, here.
+   */
+  jest
+    .spyOn(MonitorRecommendationCoverageApi, "findCoveringMonitors")
+    .mockResolvedValue(new Map<string, ObjectID>());
   mockPool = pool();
   mockInventory = inventory();
   mockInventoryDown = false;
+  mockApiPosts = [];
   window.localStorage.clear();
 });
 
@@ -569,6 +608,16 @@ afterEach(() => {
 });
 
 describe("a pool's Overview", () => {
+  test("ends with its XCP-ng AI agent's card, which asks how OneUptime AI reaches this pool", async () => {
+    await renderPage(XcpNgPoolOverview, "xcp-ng-overview");
+
+    expect(
+      mockApiPosts.filter((url: string): boolean => {
+        return url.endsWith("/resource-ai-access/status");
+      }),
+    ).toHaveLength(1);
+  });
+
   test("its hero: the pool, connected, its health, when it was last seen and where it is read from", async () => {
     await renderPage(XcpNgPoolOverview, "xcp-ng-overview");
 

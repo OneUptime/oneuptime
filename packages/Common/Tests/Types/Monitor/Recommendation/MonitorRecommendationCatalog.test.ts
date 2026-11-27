@@ -39,6 +39,7 @@ import {
 } from "../../../../Types/Monitor/RumAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../../Types/Monitor/VMwareAlertTemplates";
 import { getAllXcpNgAlertTemplates } from "../../../../Types/Monitor/XcpNgAlertTemplates";
+import { getAllXcpNgEventAlertTemplates } from "../../../../Types/Monitor/XcpNgEventAlertTemplates";
 import {
   StorageArrayAlertTemplate,
   getAllStorageArrayAlertTemplates,
@@ -249,9 +250,14 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.XcpNg,
-    monitorTypes: [MonitorType.XcpNg],
-    templateCount: getAllXcpNgAlertTemplates().length,
-    contextFreeTemplateCount: getAllXcpNgAlertTemplates().length,
+    // Metric templates, and the Logs monitors over what XCP-ng says (#10997).
+    monitorTypes: [MonitorType.XcpNg, MonitorType.Logs],
+    templateCount:
+      getAllXcpNgAlertTemplates().length +
+      getAllXcpNgEventAlertTemplates().length,
+    contextFreeTemplateCount:
+      getAllXcpNgAlertTemplates().length +
+      getAllXcpNgEventAlertTemplates().length,
     identifierFieldName: "poolIdentifier",
   },
   {
@@ -1380,11 +1386,13 @@ describe("MonitorRecommendationCatalog", () => {
     });
 
     it("the platforms' sets partition the whole catalog", () => {
+      // FlashArray, FlashBlade, PowerStore, ONTAP and, read by a probe, PowerMax.
       const sets: Array<Array<string>> = [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
         StorageSystem.DellPowerStore,
         StorageSystem.NetAppOntap,
+        StorageSystem.DellPowerMax,
       ].map((storageSystem: StorageSystem): Array<string> => {
         return storageArrayTemplateIds({ storageSystem });
       });
@@ -1400,6 +1408,14 @@ describe("MonitorRecommendationCatalog", () => {
       expect(ontap[0]).toBe("netapp-cluster-stopped-reporting");
       for (const id of ontap) {
         expect(id.startsWith("netapp-")).toBe(true);
+      }
+      // A PowerMax is offered PowerMax's own (#11004), its heartbeat first.
+      const powerMax: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.DellPowerMax,
+      });
+      expect(powerMax[0]).toBe("powermax-array-stopped-reporting");
+      for (const id of powerMax) {
+        expect(id.startsWith("powermax-")).toBe(true);
       }
     });
 

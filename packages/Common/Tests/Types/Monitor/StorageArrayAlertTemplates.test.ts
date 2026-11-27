@@ -65,6 +65,8 @@ const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
 const PS: StorageSystem = StorageSystem.DellPowerStore;
 const ONTAP: StorageSystem = StorageSystem.NetAppOntap;
+// Read by a probe from Unisphere (#11004).
+const PM: StorageSystem = StorageSystem.DellPowerMax;
 
 // Every shipped platform, with what its template ids and texts are made of.
 const PLATFORMS: Array<{
@@ -80,6 +82,7 @@ const PLATFORMS: Array<{
     words: /PowerStore|powerstore_/,
   },
   { system: ONTAP, templatePrefix: "netapp-", words: /ONTAP|netapp_/ },
+  { system: PM, templatePrefix: "powermax-", words: /PowerMax|powermax_/ },
 ];
 
 /*
@@ -244,6 +247,63 @@ const SERIES_LABELS: Record<string, Record<string, Array<string> | null>> = {
   powerstore_volume_state: { IP: null, appliance_id: null, name: null },
   powerstore_filesystem_logical_used_percent: { IP: null, name: null },
   powerstore_metro_witness_status: { IP: null, name: null, witness_addr: null },
+  /*
+   * Dell PowerMax (#11004): the labels the probe writes on each series,
+   * from Unisphere's answers (Probe/Utils/StorageArray/Dell/PowerMax/
+   * PowerMaxOtlpBuilder.ts).
+   */
+  powermax_array_info: {
+    symmetrix_id: null,
+    model: null,
+    microcode: null,
+    unisphere_version: null,
+  },
+  powermax_alert_open: {
+    alert_id: null,
+    // Unisphere's CRITICAL and FATAL, then its WARNING and MINOR.
+    severity: ["critical", "warning"],
+    alert_type: null,
+    object: null,
+    object_type: null,
+    description: null,
+    created: null,
+  },
+  powermax_director_offline: {
+    director: null,
+    component: null,
+    role: null,
+    status: null,
+  },
+  powermax_port_offline: {
+    port_id: null,
+    component: null,
+    director: null,
+    port: null,
+    protocol: null,
+    status: null,
+  },
+  powermax_srp_capacity_used_percent: {
+    srp: null,
+  },
+  powermax_srdf_group_not_healthy: {
+    srdf_group: null,
+    srdf_label: null,
+    state: null,
+    remote_symmetrix_id: null,
+  },
+  powermax_srdf_group_lag_seconds: {
+    srdf_group: null,
+    srdf_label: null,
+  },
+  powermax_storage_group_response_time_usec: {
+    storage_group: null,
+  },
+  powermax_array_response_time_usec: {
+    operation: ["read", "write"],
+  },
+  powermax_array_performance_collection: {
+    realtime: ["true", "false"],
+  },
 };
 
 /*
@@ -315,6 +375,11 @@ const STATE_IN_A_LABEL_METRICS: Set<string> = new Set<string>([
   "netapp_ems_events",
   "netapp_snapmirror_labels",
   "netapp_svm_labels",
+  // A PowerMax alert, director, port or SRDF group while it is wrong.
+  "powermax_alert_open",
+  "powermax_director_offline",
+  "powermax_port_offline",
+  "powermax_srdf_group_not_healthy",
 ]);
 
 /*
@@ -346,6 +411,8 @@ const BINARY_FLAG_METRICS: Set<string> = new Set<string>([
   "netapp_lun_new_status",
   "netapp_shelf_psu_status",
   "netapp_shelf_fan_status",
+  // 1 while Unisphere collects the array's performance, 0 while it does not.
+  "powermax_array_performance_collection",
 ]);
 
 interface Threshold {
@@ -431,6 +498,7 @@ const HEARTBEAT_METRIC: Record<string, string> = {
   [FB]: "purefb_info",
   [PS]: "powerstore_cluster",
   [ONTAP]: "netapp_cluster_new_status",
+  [PM]: "powermax_array_info",
 };
 
 // The heartbeat: the platform's identity series, counted over the whole array.
@@ -1036,6 +1104,191 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
   },
   ...getPowerStoreTemplates(),
   ...ONTAP_EXPECTED_TEMPLATES,
+  // Dell PowerMax, read by a probe from Unisphere (#11004).
+  stoppedReportingTemplate("powermax-array-stopped-reporting", PM),
+  {
+    id: "powermax-critical-alerts",
+    system: PM,
+    category: "Array Health",
+    severity: "Critical",
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "critical_alerts",
+    metricName: "powermax_alert_open",
+    attributes: { severity: "critical" },
+    groupBy: "description",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.EqualTo,
+    treatNoDataAsZero: true,
+  },
+  {
+    id: "powermax-warning-alerts",
+    system: PM,
+    category: "Array Health",
+    severity: "Warning",
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "warning_alerts",
+    metricName: "powermax_alert_open",
+    attributes: { severity: "warning" },
+    groupBy: "description",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.EqualTo,
+    treatNoDataAsZero: true,
+  },
+  {
+    id: "powermax-director-offline",
+    system: PM,
+    category: "Hardware",
+    severity: "Critical",
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "director_offline",
+    metricName: "powermax_director_offline",
+    attributes: {},
+    groupBy: "component",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.EqualTo,
+    treatNoDataAsZero: true,
+  },
+  {
+    id: "powermax-port-offline",
+    system: PM,
+    category: "Hardware",
+    severity: "Warning",
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "port_offline",
+    metricName: "powermax_port_offline",
+    attributes: {},
+    groupBy: "component",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.EqualTo,
+    treatNoDataAsZero: true,
+  },
+  {
+    id: "powermax-srp-capacity-high",
+    system: PM,
+    category: "Capacity",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "srp_used_percent",
+    metricName: "powermax_srp_capacity_used_percent",
+    attributes: {},
+    groupBy: "srp",
+    fire: { filterType: FilterType.GreaterThan, value: 80 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+    treatNoDataAsZero: false,
+  },
+  {
+    id: "powermax-srp-capacity-critical",
+    system: PM,
+    category: "Capacity",
+    severity: "Critical",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "srp_used_percent",
+    metricName: "powermax_srp_capacity_used_percent",
+    attributes: {},
+    groupBy: "srp",
+    fire: { filterType: FilterType.GreaterThan, value: 90 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+    treatNoDataAsZero: false,
+  },
+  {
+    id: "powermax-srdf-group-not-healthy",
+    system: PM,
+    category: "Replication",
+    severity: "Critical",
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias: "srdf_not_healthy",
+    metricName: "powermax_srdf_group_not_healthy",
+    attributes: {},
+    groupBy: "srdf_group",
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.EqualTo,
+    treatNoDataAsZero: true,
+  },
+  {
+    id: "powermax-srdf-lag-high",
+    system: PM,
+    category: "Replication",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Avg,
+    alias: "srdf_lag_seconds",
+    metricName: "powermax_srdf_group_lag_seconds",
+    attributes: {},
+    groupBy: "srdf_group",
+    // Two minutes, in the series' own seconds.
+    fire: { filterType: FilterType.GreaterThan, value: 120 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+    treatNoDataAsZero: false,
+  },
+  {
+    id: "powermax-storage-group-response-time-high",
+    system: PM,
+    category: "Performance",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Avg,
+    alias: "storage_group_response_time_usec",
+    metricName: "powermax_storage_group_response_time_usec",
+    attributes: {},
+    groupBy: "storage_group",
+    // 5 ms, in the series' own microseconds.
+    fire: { filterType: FilterType.GreaterThan, value: 5000 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+    treatNoDataAsZero: false,
+  },
+  {
+    id: "powermax-read-response-time-high",
+    system: PM,
+    category: "Performance",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Avg,
+    alias: "read_response_time_usec",
+    metricName: "powermax_array_response_time_usec",
+    attributes: { operation: "read" },
+    groupBy: null,
+    fire: { filterType: FilterType.GreaterThan, value: 3000 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+    treatNoDataAsZero: false,
+  },
+  {
+    id: "powermax-write-response-time-high",
+    system: PM,
+    category: "Performance",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Avg,
+    alias: "write_response_time_usec",
+    metricName: "powermax_array_response_time_usec",
+    attributes: { operation: "write" },
+    groupBy: null,
+    fire: { filterType: FilterType.GreaterThan, value: 3000 },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+    treatNoDataAsZero: false,
+  },
+  {
+    id: "powermax-performance-collection-off",
+    system: PM,
+    category: "Array Health",
+    severity: "Warning",
+    rollingTime: RollingTime.Past15Minutes,
+    aggregation: MetricsAggregationType.Min,
+    alias: "performance_collection",
+    metricName: "powermax_array_performance_collection",
+    attributes: {},
+    groupBy: null,
+    // A 0-or-1 flag: fires at 0, recovers at exactly 1.
+    fire: { filterType: FilterType.LessThan, value: 1 },
+    recoverFilterType: FilterType.GreaterThanOrEqualTo,
+    treatNoDataAsZero: false,
+  },
 ];
 
 /*
@@ -1314,6 +1567,7 @@ const STOPPED_REPORTING_IDS: Array<string> = [
   "purefb-array-stopped-reporting",
   "powerstore-array-stopped-reporting",
   "netapp-cluster-stopped-reporting",
+  "powermax-array-stopped-reporting",
 ];
 
 const PER_OBJECT_TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
@@ -1338,12 +1592,16 @@ describe("StorageArrayAlertTemplates - registry", () => {
     );
   });
 
-  test("ships sixty-seven templates: twelve FlashArray, eight FlashBlade, sixteen PowerStore, thirty-one ONTAP, each led by its heartbeat", () => {
-    expect(ALL_TEMPLATES).toHaveLength(67);
+  test("ships eighty templates: twelve FlashArray, eight FlashBlade, sixteen PowerStore, thirty-one ONTAP and thirteen PowerMax, each led by its heartbeat", () => {
+    expect(ALL_TEMPLATES).toHaveLength(80);
     expect(getStorageArrayAlertTemplatesForSystem(FA)).toHaveLength(12);
     expect(getStorageArrayAlertTemplatesForSystem(FB)).toHaveLength(8);
     expect(getStorageArrayAlertTemplatesForSystem(PS)).toHaveLength(16);
     expect(getStorageArrayAlertTemplatesForSystem(ONTAP)).toHaveLength(31);
+    expect(getStorageArrayAlertTemplatesForSystem(PM)).toHaveLength(13);
+    expect(getStorageArrayAlertTemplatesForSystem(PM)[0]!.id).toBe(
+      "powermax-array-stopped-reporting",
+    );
     expect(getStorageArrayAlertTemplatesForSystem(FA)[0]!.id).toBe(
       "purefa-array-stopped-reporting",
     );
@@ -1372,7 +1630,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
   });
 
   test("template names are unique within a platform", () => {
-    for (const system of [FA, FB, PS, ONTAP]) {
+    for (const system of [FA, FB, PS, ONTAP, PM]) {
       const names: Array<string> = getStorageArrayAlertTemplatesForSystem(
         system,
       ).map((t: StorageArrayAlertTemplate) => {
@@ -1420,7 +1678,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
   });
 
   test("getStorageArrayAlertTemplatesForSystem returns only that platform's templates", () => {
-    for (const system of [FA, FB, PS, ONTAP]) {
+    for (const system of [FA, FB, PS, ONTAP, PM]) {
       for (const template of getStorageArrayAlertTemplatesForSystem(system)) {
         expect(template.storageSystems).toEqual([system]);
       }
@@ -1474,7 +1732,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
   });
 
   test("every platform covers alerts, capacity, latency and hardware", () => {
-    for (const system of [FA, FB, PS, ONTAP]) {
+    for (const system of [FA, FB, PS, ONTAP, PM]) {
       const categories: Set<string> = new Set(
         getStorageArrayAlertTemplatesForSystem(system).map(
           (t: StorageArrayAlertTemplate) => {
@@ -2085,8 +2343,18 @@ describe("StorageArrayAlertTemplates - FlashBlade hardware health code (regressi
     expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual(["name"]);
   });
 
-  test("it is Pure's only binary-coded template, and Pure's only `< 1` threshold", () => {
-    // Dell's and ONTAP's state series are binary too: their rows above pin them.
+  /*
+   * PowerMax's performance collection flag (#11004) - 1 while Unisphere
+   * collects, 0 while it does not - and FlashBlade's hardware code are the
+   * 0-or-1 codes, and the only `< 1` thresholds, beside Dell PowerStore's
+   * and ONTAP's state series, which are binary too: their rows above pin
+   * them.
+   */
+  test("it and PowerMax's performance collection are the binary-coded templates beside PowerStore's and ONTAP's, and the only `< 1` thresholds", () => {
+    const binary: Array<string> = [
+      "purefb-hardware-unhealthy",
+      "powermax-performance-collection-off",
+    ];
     for (const other of ALL_TEMPLATES.filter(
       (template: StorageArrayAlertTemplate): boolean => {
         return systemOf(template) !== PS && systemOf(template) !== ONTAP;
@@ -2098,10 +2366,14 @@ describe("StorageArrayAlertTemplates - FlashBlade hardware health code (regressi
       ).some((f: CriteriaFilter) => {
         return f.filterType === FilterType.LessThan && f.value === 1;
       });
-      expect(usesLessThanOne).toBe(other.id === "purefb-hardware-unhealthy");
-      expect(isBinaryFlagTemplate(step)).toBe(
-        other.id === "purefb-hardware-unhealthy",
-      );
+      expect({ id: other.id, usesLessThanOne }).toEqual({
+        id: other.id,
+        usesLessThanOne: binary.includes(other.id),
+      });
+      expect({ id: other.id, binary: isBinaryFlagTemplate(step) }).toEqual({
+        id: other.id,
+        binary: binary.includes(other.id),
+      });
     }
   });
 });

@@ -60,7 +60,9 @@ Aus dem, was es liest, erhält jeder Datenspeicher eine Exponierung:
 | **Andere Konten** | Konten außerhalb Ihrer verbundenen Konten können ihn erreichen. |
 | **Aus dem Internet erreichbar** | Sein Netzwerkendpunkt nimmt Verbindungen aus dem Internet an. |
 | **Privat** | Nur Ihre eigenen Konten und Netzwerke erreichen ihn. |
-| **Unbekannt** | OneUptime konnte nicht genug von seiner Konfiguration lesen, um es zu sagen. |
+| **Unbekannt** | OneUptime hat ihn geprüft, konnte es aber aus dem, was es lesen konnte, nicht feststellen. |
+| **Noch nicht geprüft** | OneUptime hat noch nicht geprüft, wie er erreichbar ist. |
+| **Nicht prüfbar** | OneUptime kann nicht prüfen, wie diese Art von Datenspeicher erreichbar ist. |
 
 Öffentlich schlägt geteilt, und geteilt schlägt erreichbar: Ein öffentlicher Bucket, der auch mit einem anderen Konto geteilt ist, ist Öffentlich. Die Exponierung erhöht den [Risikowert](/docs/data-security/checks-and-issues#risikowert) eines Problems.
 

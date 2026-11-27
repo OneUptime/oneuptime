@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8293
+    "keys": 67248,
+    "untranslated": 8281
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -37,6 +37,7 @@
     "Appliances",
     "Apps",
     "Array",
+    "Arrays",
     "Atmosphere",
     "Auto",
     "Azure AKS",
@@ -96,6 +97,7 @@
     "Datastore",
     "Datastores",
     "Deadlocks",
+    "Delta",
     "Deployment",
     "DeploymentConfigs",
     "Desktop",
@@ -242,6 +244,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Patches",
     "Path traversal",
     "Payload",
     "Pebibytes",
@@ -361,6 +364,7 @@
     "URLs",
     "USD",
     "UTC",
+    "Unisphere",
     "Unnamed OID Collection Template",
     "Up + In",
     "Up + Out",
@@ -398,6 +402,7 @@
     "Webhooks",
     "Workers",
     "Workspaces",
+    "XAPI",
     "Xen Orchestra xo-paris · 3 hosts · 42 VMs",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
@@ -545,6 +550,8 @@
     "{{count}} appliance",
     "{{count}} appliances",
     "{{count}} apps",
+    "{{count}} array",
+    "{{count}} arrays",
     "{{count}} bucket",
     "{{count}} buckets",
     "{{count}} byte",

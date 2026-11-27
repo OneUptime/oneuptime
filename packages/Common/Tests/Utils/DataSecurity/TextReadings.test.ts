@@ -7,6 +7,7 @@ import {
 import { CARD_NUMBER_DETECTORS } from "../../../Utils/DataSecurity/Detectors/FinancialDetectors";
 import {
   acceptedRangesIn,
+  cutsAnEscape,
   findDetectorRanges,
   findInEveryReading,
   mergeRanges,
@@ -144,13 +145,248 @@ describe("TextReadings", () => {
     const readings: TextReadings = new TextReadings("plain 4111 text");
 
     expect(readings.getPercentDecoded()).toBeNull();
+    expect(readings.getPlusAsSpace()).toBeNull();
     expect(readings.getDigitsOfEveryScript()).toEqual([]);
+    expect(readings.getDigitsOfEveryScriptPlusAsSpace()).toEqual([]);
     expect(
       readings.readingsFor({
         readsPercentEncoded: true,
         readsDigitsOfEveryScript: true,
+        readsPlusAsSpace: true,
       }),
     ).toEqual([readings.written]);
+  });
+
+  /*
+   * #11199: a value typed into a form, its spaces written "+" in the URL's
+   * query string - its groups apart by a character no pattern reads as a
+   * group's end.
+   */
+  test("adds the reading of a URL's query string, a '+' for a space, for a detector that asks", () => {
+    const text: string = "card=4539+1488+0343+6467&phone=%2B44+20";
+    const readings: TextReadings = new TextReadings(text);
+    const read: Array<TextReading> = readings.readingsFor({
+      readsPercentEncoded: true,
+      readsPlusAsSpace: true,
+    });
+
+    expect(
+      read.map((reading: TextReading): string => {
+        return reading.text;
+      }),
+    ).toEqual([
+      text,
+      "card=4539+1488+0343+6467&phone=+44+20",
+      "card=4539 1488 0343 6467&phone=+44 20",
+    ]);
+    // "+" for a space is one character for one: a card's characters are where they are written.
+    expect(read[2]!.toWritten(5)).toBe(5);
+    expect(read[2]!.toWritten(24)).toBe(24);
+    // The escaped "+" is read where its escape is: "%2B" starts at 31.
+    expect(read[2]!.toWritten(31)).toBe(31);
+    expect(read[2]!.toWritten(read[2]!.text.length)).toBe(text.length);
+  });
+
+  test("reads the query string's '+'s only for a detector that asks", () => {
+    const readings: TextReadings = new TextReadings("iban=DE44+5001+0517");
+
+    expect(
+      readings
+        .readingsFor({ readsPercentEncoded: true })
+        .map((reading: TextReading): string => {
+          return reading.text;
+        }),
+    ).toEqual(["iban=DE44+5001+0517"]);
+    expect(
+      readings
+        .readingsFor({ readsPlusAsSpace: true })
+        .map((reading: TextReading): string => {
+          return reading.text;
+        }),
+    ).toEqual(["iban=DE44+5001+0517", "iban=DE44 5001 0517"]);
+  });
+
+  test("reads every script's digits in the query string's reading too, placed on its '+'s", () => {
+    const text: string = "card=٤٥٣٩+١٤٨٨+٠٣٤٣+٦٤٦٧";
+    const readings: TextReadings = new TextReadings(text);
+
+    expect(readings.getPlusAsSpace()!.text).toBe("card=٤٥٣٩ ١٤٨٨ ٠٣٤٣ ٦٤٦٧");
+    expect(
+      readings.getDigitsOfEveryScriptPlusAsSpace().map((each: TextReading) => {
+        return each.text;
+      }),
+    ).toEqual(["card=4539 1488 0343 6467"]);
+    // Only a detector that reads both is read so.
+    expect(
+      readings
+        .readingsFor({ readsDigitsOfEveryScript: true })
+        .map((each: TextReading): string => {
+          return each.text;
+        }),
+    ).toEqual([text, "card=4539+1488+0343+6467"]);
+    expect(
+      readings
+        .readingsFor({ readsDigitsOfEveryScript: true, readsPlusAsSpace: true })
+        .map((each: TextReading): string => {
+          return each.text;
+        }),
+    ).toEqual([
+      text,
+      "card=٤٥٣٩ ١٤٨٨ ٠٣٤٣ ٦٤٦٧",
+      "card=4539+1488+0343+6467",
+      "card=4539 1488 0343 6467",
+    ]);
+  });
+
+  test("reads each kind once, the query string's too", () => {
+    const readings: TextReadings = new TextReadings("a+b ４+５");
+
+    expect(readings.getPlusAsSpace()).toBe(readings.getPlusAsSpace());
+    expect(readings.getDigitsOfEveryScriptPlusAsSpace()).toBe(
+      readings.getDigitsOfEveryScriptPlusAsSpace(),
+    );
+  });
+
+  test("reads a candidate's words as written, with its escapes read and as a query string writes them - every script's digits change no word", () => {
+    const readings: TextReadings = new TextReadings(
+      "date+of+birth=12%2F03%2F1985 ٤",
+    );
+
+    expect(
+      readings
+        .wordReadingsFor({
+          readsPercentEncoded: true,
+          readsPlusAsSpace: true,
+          readsDigitsOfEveryScript: true,
+        })
+        .map((each: TextReading): string => {
+          return each.text;
+        }),
+    ).toEqual([
+      "date+of+birth=12%2F03%2F1985 ٤",
+      "date+of+birth=12/03/1985 ٤",
+      "date of birth=12/03/1985 ٤",
+    ]);
+    expect(
+      readings.wordReadingsFor({ readsDigitsOfEveryScript: true }),
+    ).toEqual([readings.written]);
+  });
+
+  /*
+   * In a text a form wrote, a "+" is a space: read with its escapes alone,
+   * "(718) 487-63058" - %28718%29+487-63058 - holds +487-63058, an
+   * international number's shape. A detector that reads the query
+   * string's reading finds its candidates there, and not there.
+   */
+  test("finds a detector's candidates as a form wrote the text, not with its escapes read alone", () => {
+    const formText: string = "q=%28718%29+487-63058";
+    const readings: TextReadings = new TextReadings(formText);
+    const needs: {
+      readsPercentEncoded: boolean;
+      readsPlusAsSpace: boolean;
+      readsDigitsOfEveryScript: boolean;
+    } = {
+      readsPercentEncoded: true,
+      readsPlusAsSpace: true,
+      readsDigitsOfEveryScript: true,
+    };
+
+    expect(
+      readings.readingsFor(needs).map((each: TextReading): string => {
+        return each.text;
+      }),
+    ).toEqual([formText, "q=(718)+487-63058", "q=(718) 487-63058"]);
+    expect(
+      readings.detectorReadingsFor(needs).map((each: TextReading): string => {
+        return each.text;
+      }),
+    ).toEqual([formText, "q=(718) 487-63058"]);
+    // A detector that reads no query string reads the escapes' reading still.
+    expect(
+      readings
+        .detectorReadingsFor({ readsPercentEncoded: true })
+        .map((each: TextReading): string => {
+          return each.text;
+        }),
+    ).toEqual([formText, "q=(718)+487-63058"]);
+  });
+
+  test("keeps the escapes' reading where no form wrote the text: an escaped '+' may be a value's own", () => {
+    // A centenarian's personnummer in a URL, its "+" escaped: as a flat query string reads it, and as one inside the URL.
+    const text: string = "pnr=19991231%2B1234";
+    const readings: TextReadings = new TextReadings(text);
+
+    expect(
+      readings
+        .detectorReadingsFor({
+          readsPercentEncoded: true,
+          readsPlusAsSpace: true,
+        })
+        .map((each: TextReading): string => {
+          return each.text;
+        }),
+    ).toEqual([text, "pnr=19991231+1234", "pnr=19991231 1234"]);
+  });
+});
+
+describe("cutsAnEscape", () => {
+  test("a range that starts or ends on an escape's hex digit cuts it", () => {
+    const text: string = "q=%2212345678901%22&x=1";
+
+    // 2212345678901: the quote's "22" first, glued to the value.
+    expect(cutsAnEscape(text, 3, 16)).toBe(true);
+    // 12345678901%2: the next escape's "%2" last.
+    expect(cutsAnEscape(text, 5, 18)).toBe(true);
+    expect(cutsAnEscape(text, 5, 17)).toBe(true);
+  });
+
+  test("a range of whole escapes and characters cuts none", () => {
+    const text: string = "q=%2212345678901%22&x=1";
+
+    expect(cutsAnEscape(text, 5, 16)).toBe(false);
+    expect(cutsAnEscape(text, 2, 19)).toBe(false);
+    expect(cutsAnEscape("4111%201111", 0, 11)).toBe(false);
+    expect(cutsAnEscape("plain text", 0, 5)).toBe(false);
+    // A "%" no escape follows is a percent sign.
+    expect(cutsAnEscape("100%x 12", 4, 8)).toBe(false);
+  });
+
+  test("a card glued to an escape's digits as written is no card, to the scanner and the detectors' ranges alike", () => {
+    // "22" of %22 and fourteen digits are sixteen as written: 2225..., a Mastercard's shape.
+    const text: string = "q=%7B%22n%22%3A%2225042970296403%22%7D";
+
+    expect(
+      findSensitiveValues(text, { detectors: CARD_NUMBER_DETECTORS }),
+    ).toEqual([]);
+    expect(findDetectorRanges(CARD_NUMBER_DETECTORS, text)).toEqual([]);
+  });
+
+  test("an IP address glued to an escape is taken as written, by the scanner and its rule alike", () => {
+    // 99%2001::1: a percent sign glued to an address, or an escape - read as written too (#10467).
+    const text: string = "load 99%2001::1";
+
+    expect(
+      textsOf(text, findDetectorRanges(IP_ADDRESS_DETECTORS, text)),
+    ).toEqual(["2001::1"]);
+    expect(
+      findSensitiveValues(text, { detectors: IP_ADDRESS_DETECTORS }).map(
+        (match: TextMatch): string => {
+          return text.slice(match.start, match.end);
+        },
+      ),
+    ).toEqual(["2001::1"]);
+  });
+
+  test("a card the escapes' reading holds whole is found there, on its written characters", () => {
+    const text: string = "q=%7B%22n%22%3A%224539148803436467%22%7D";
+
+    expect(
+      findSensitiveValues(text, { detectors: CARD_NUMBER_DETECTORS }).map(
+        (match: TextMatch): string => {
+          return text.slice(match.start, match.end);
+        },
+      ),
+    ).toEqual(["4539148803436467"]);
   });
 });
 
@@ -290,6 +526,53 @@ describe("findDetectorRanges", () => {
       "张伟@acmecorp.io",
       "почта@пример.рф",
     ]);
+  });
+
+  /*
+   * #11199: a card in a URL, its groups apart by an escaped space, by the
+   * "+" a query string writes a space as, or by that "+" escaped again in
+   * a URL inside a query string - each found on every character it is
+   * written with, its escapes and "+"s whole.
+   */
+  test("finds a card in a URL, %20 or '+' between its groups, on its written characters", () => {
+    const form: string =
+      "GET /pay?a=4539%201488%200343%206467&b=4539+1488+0343+6467&d=٤٥٣٩+١٤٨٨+٠٣٤٣+٦٤٦٧";
+
+    expect(
+      textsOf(form, findDetectorRanges(CARD_NUMBER_DETECTORS, form)),
+    ).toEqual([
+      "4539%201488%200343%206467",
+      "4539+1488+0343+6467",
+      "٤٥٣٩+١٤٨٨+٠٣٤٣+٦٤٦٧",
+    ]);
+
+    // In a URL inside the query string, the "+"s its own query string wrote escaped.
+    const nested: string =
+      "GET /login?next=%2Fpay%3Fc%3D4539%2B1488%2B0343%2B6467 HTTP/1.1";
+
+    expect(
+      textsOf(nested, findDetectorRanges(CARD_NUMBER_DETECTORS, nested)),
+    ).toEqual(["4539%2B1488%2B0343%2B6467"]);
+  });
+
+  test("in a text a form wrote, an escaped '+' is the '+' it escaped: no card's groups apart", () => {
+    const text: string = "GET /pay?q=a+b&c=4539%2B1488%2B0343%2B6467";
+
+    expect(findDetectorRanges(CARD_NUMBER_DETECTORS, text)).toEqual([]);
+  });
+
+  test("finds no card a check digit off, however its groups are written", () => {
+    for (const text of [
+      "card=4539%201488%200343%206468",
+      "card=4539+1488+0343+6468",
+      "card=4539+1488+0343+64671",
+      "sum=1234+5678+9012+3456",
+    ]) {
+      expect([text, findDetectorRanges(CARD_NUMBER_DETECTORS, text)]).toEqual([
+        text,
+        [],
+      ]);
+    }
   });
 
   test("finds a card in any script's digits, alone or mixed, on its written characters", () => {

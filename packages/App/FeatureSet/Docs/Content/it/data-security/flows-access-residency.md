@@ -60,7 +60,9 @@ In base a ciò che legge, ogni archivio riceve un'esposizione:
 | **Altri account** | Account esterni a quelli collegati possono raggiungerlo. |
 | **Raggiungibile da Internet** | Il suo endpoint di rete accetta connessioni da Internet. |
 | **Privato** | Solo i tuoi account e le tue reti lo raggiungono. |
-| **Sconosciuto** | OneUptime non ha potuto leggere abbastanza della sua configurazione per stabilirlo. |
+| **Sconosciuto** | OneUptime lo ha verificato, ma non ha potuto stabilirlo da ciò che ha potuto leggere. |
+| **Non ancora verificato** | OneUptime non ha ancora verificato come può essere raggiunto. |
+| **Non verificabile** | OneUptime non ha modo di verificare come si può raggiungere questo tipo di archivio. |
 
 Pubblico prevale su condiviso, e condiviso prevale su raggiungibile: un bucket pubblico che è anche condiviso con un altro account è Pubblico. L'esposizione si somma al [punteggio di rischio](/docs/data-security/checks-and-issues#punteggio-di-rischio) di un problema.
 

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 2320
+    "keys": 67248,
+    "untranslated": 2312
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -147,8 +147,10 @@
     "DSR-1042",
     "Daemon",
     "Daemons",
+    "Delta",
     "DeploymentConfigs",
     "Digital",
+    "Director",
     "Docker CLI",
     "Docker Compose",
     "Docker {{version}}",
@@ -472,6 +474,7 @@
     "USD",
     "UTC",
     "Uganda",
+    "Unisphere",
     "Up & In",
     "Up & Out",
     "Up + In",
@@ -514,6 +517,7 @@
     "WhatsApp: ",
     "Widgets",
     "Workers",
+    "XAPI",
     "Yemen",
     "Zambia",
     "[\".customer-name\", \"#invoice-total\"]",
@@ -706,6 +710,7 @@
     "{{count}} cursor",
     "{{count}} deployment",
     "{{count}} deployments",
+    "{{count}} director",
     "{{count}} error",
     "{{count}} host",
     "{{count}} hosts",

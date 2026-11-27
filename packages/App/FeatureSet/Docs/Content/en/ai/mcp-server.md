@@ -376,6 +376,10 @@ The server also has [Ask AI's Data Security actions](/docs/data-security/integra
 
 Ask AI asks a person before some of these in every mode, on a card that says what changes, what stops working and what it costs: responding on a store, **Not Sensitive**, **Accept Risk**, **Not an Issue**, changing a store's owners, saving a rule, deciding a proposal, a scrub that something reads, and **Confirm** in a project that pages someone for a Critical issue. This server cannot show you that card, so it refuses those, says why, and names the page in OneUptime where you make the change. Nothing is ever run without it.
 
+The create, update and delete tools are held to the same, for a client signed in with OAuth and for an API key alike, whatever its permissions: a write that makes one of those changes is refused in the same words, with the same page. `update_data_security_issue` does not set `status` to `Accepted` or `Not an issue`, `update_data_store_finding` does not turn on `isSuppressed`, nor `isConfirmed` where a Critical issue pages someone, and `create_residency_rule` saves no rule. Nor do they make what OneUptime AI asks a person before whatever its rules say: a data type turned off in `disabledDataTypeIds`, a place left out of a store's scans in `scanExclusions`, or a security playbook step that contains a threat, or responds on a data store, with nobody's approval.
+
+Every other write is made as before: an issue reopened, assigned or resolved, a finding made sensitive again, a rule renamed or turned off, a data type turned back on. `oneuptime_describe_resource` says which writes of a resource are refused, and the agent is told not to retry one, nor to make it another way.
+
 The others act as you, signed in with OAuth: a project API key cannot use them, and uses only the two that change nothing. On a self-hosted server, `MCP_READ_ONLY=true` leaves only the tools that change nothing, and `MCP_ALLOW_DESTRUCTIVE=false` refuses removing a store's owners, which deletes them.
 
 ## Querying Telemetry

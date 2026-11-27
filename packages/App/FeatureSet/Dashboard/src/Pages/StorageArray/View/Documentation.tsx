@@ -18,6 +18,13 @@ import StorageArrayDocumentationCard from "../../../Components/StorageArray/Docu
 import StorageArrayPlatformGuideCard from "../../../Components/StorageArray/PlatformGuideCard";
 import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
 import { getStorageArrayPlatformForSystem } from "../Utils/DocumentationMarkdown";
+import StorageArrayCollectedByCard from "../../../Components/StorageArray/Connection/StorageArrayCollectedByCard";
+import StorageArrayProbeCollectors from "Common/Types/StorageArray/Collection/StorageArrayProbeCollectors";
+import { StorageArrayProbeCollector } from "Common/Types/StorageArray/Collection/StorageArrayProbeCollector";
+import Card from "Common/UI/Components/Card/Card";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
 
 const StorageArrayDocumentation: FunctionComponent<
   PageComponentProps
@@ -37,6 +44,7 @@ const StorageArrayDocumentation: FunctionComponent<
         select: {
           name: true,
           storageSystem: true,
+          systemId: true,
         },
       });
       setStorageArray(item);
@@ -62,6 +70,42 @@ const StorageArrayDocumentation: FunctionComponent<
 
   if (!storageArray) {
     return <ErrorMessage message="Storage array not found." />;
+  }
+
+  /*
+   * No agent reads an array a probe reads from its management server
+   * (#11004): its guide is the connection's, not the agent's install.
+   */
+  const collector: StorageArrayProbeCollector | null =
+    StorageArrayProbeCollectors.getCollector(storageArray.storageSystem);
+
+  if (collector) {
+    return (
+      <Fragment>
+        <StorageArrayCollectedByCard
+          storageSystem={collector.storageSystem}
+          systemId={storageArray.systemId}
+        />
+        <div className="mt-5">
+          <Card
+            title="How This Array Is Read"
+            description={collector.words.listDescription}
+            buttons={[
+              {
+                title: "Read the Guide",
+                icon: IconProp.Book,
+                buttonStyle: ButtonStyleType.OUTLINE,
+                onClick: () => {
+                  Navigation.navigate(Route.fromString(collector.docsPath), {
+                    openInNewTab: true,
+                  });
+                },
+              },
+            ]}
+          />
+        </div>
+      </Fragment>
+    );
   }
 
   /*

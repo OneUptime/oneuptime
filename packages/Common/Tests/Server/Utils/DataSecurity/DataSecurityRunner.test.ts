@@ -14,6 +14,9 @@ import {
 import * as DatabaseSampler from "../../../../Server/Utils/DataSecurity/Content/DatabaseSampler";
 import * as DatabaseConnectionGuard from "../../../../Server/Utils/DataObservability/DatabaseConnectionGuard";
 import * as ObjectStoreSampler from "../../../../Server/Utils/DataSecurity/Content/ObjectStoreSampler";
+import * as SearchStoreSampler from "../../../../Server/Utils/DataSecurity/Content/SearchStoreSampler";
+import { SearchSamplerContext } from "../../../../Server/Utils/DataSecurity/Content/SearchStoreSampler";
+import { DataStorePostureReadFrom } from "../../../../Types/DataSecurity/DataStorePosture";
 import DataSecurityDiscovery from "../../../../Server/Utils/DataSecurity/DataSecurityDiscovery";
 import DataSecurityFindingWriter, {
   CustomDataTypeSummary,
@@ -45,7 +48,10 @@ import {
   TELEMETRY_STORE_MODEL_TIME_IN_MS,
 } from "../../../../Server/Utils/DataSecurity/Model/ModelBudget";
 import ChangeEventService from "../../../../Server/Services/ChangeEventService";
-import { EncryptionSecret } from "../../../../Server/EnvironmentConfig";
+import {
+  EncryptionSecret,
+  IsBillingEnabled,
+} from "../../../../Server/EnvironmentConfig";
 import { deriveFingerprintKey } from "../../../../Server/Utils/DataSecurity/Fingerprint";
 import CloudConnectionService from "../../../../Server/Services/CloudConnectionService";
 import DataSecurityCustomDataTypeService from "../../../../Server/Services/DataSecurityCustomDataTypeService";
@@ -705,7 +711,7 @@ describe("claimDueStores", () => {
     expect(holdSpy).not.toHaveBeenCalled();
   });
 
-  test("the kinds it claims are the ones a worker samples: SQL Server among them", () => {
+  test("the kinds it claims are the ones a worker samples: SQL Server, Elasticsearch and OpenSearch among them", () => {
     expect([...WORKER_CLAIMED_DATA_STORE_KINDS].sort()).toEqual(
       [
         DataStoreKind.AwsS3Bucket,
@@ -715,6 +721,8 @@ describe("claimDueStores", () => {
         DataStoreKind.PostgreSql,
         DataStoreKind.MySql,
         DataStoreKind.SqlServer,
+        DataStoreKind.Elasticsearch,
+        DataStoreKind.OpenSearch,
       ].sort(),
     );
   });
@@ -1072,7 +1080,7 @@ describe("scanStore: what the cloud connection allows", () => {
       startedAt: NOW,
       status: DataSecurityScanStatus.Skipped,
       errorMessage:
-        "Content scanning needs the connection's content permission, or a connection string for a database.",
+        "Content scanning needs the connection's content permission, or a connection string for a store you run.",
     });
   });
 
@@ -2212,6 +2220,109 @@ describe("scanTelemetry: the switches that turn it off", () => {
         return call[0] === TELEMETRY_STORES_NOT_SCANNED_STATEMENT;
       }),
     ).toHaveLength(1);
+    expect(recordScanSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A search cluster you run (#11140): read over its HTTP API, every request
+ * guarded as a data source's is - never through the database guard, which
+ * reads a driver's hosts - and asked how exposed it is from where the
+ * workers run: over the internet on OneUptime Cloud, inside a network on a
+ * OneUptime someone hosts.
+ */
+describe("scanStore: a search cluster you run", () => {
+  test.each([DataStoreKind.Elasticsearch, DataStoreKind.OpenSearch])(
+    "%s is read over its HTTP API, and what it found - its posture with it - is written",
+    async (kind: DataStoreKind) => {
+      const searchSpy: jest.SpyInstance = jest
+        .spyOn(SearchStoreSampler, "sampleSearchStore")
+        .mockImplementation(async (): Promise<ContentScanResult> => {
+          return {
+            ...emptyContentScanResult(),
+            objectsRead: 2,
+            posture: {
+              readAt: NOW.toISOString(),
+              readFrom: DataStorePostureReadFrom.Network,
+              anonymousRead: false,
+            },
+          };
+        });
+
+      storeOf({
+        kind,
+        connectionString: "https://reader:x@search.internal:9200",
+      });
+
+      await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+      expect(searchSpy).toHaveBeenCalledTimes(1);
+
+      const [store, , context] = searchSpy.mock.calls[0] as [
+        { kind: string; connectionString: string },
+        unknown,
+        SearchSamplerContext,
+      ];
+
+      expect(store).toEqual({
+        kind,
+        connectionString: "https://reader:x@search.internal:9200",
+      });
+      expect(typeof context.transport).toBe("function");
+      expect(context.readFrom).toBe(
+        IsBillingEnabled
+          ? DataStorePostureReadFrom.Internet
+          : DataStorePostureReadFrom.Network,
+      );
+      expect(sampleDatabaseSpy).not.toHaveBeenCalled();
+      expect(
+        DatabaseConnectionGuard.assertDatabaseConnectionAllowed,
+      ).not.toHaveBeenCalled();
+      expect(recordScanSpy).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          (recordScanSpy.mock.calls[0]![0] as { result: ContentScanResult })
+            .result.posture as JSONObject
+        )["anonymousRead"],
+      ).toBe(false);
+    },
+  );
+
+  test("without a connection string: skipped, saying what it needs", async () => {
+    const searchSpy: jest.SpyInstance = jest.spyOn(
+      SearchStoreSampler,
+      "sampleSearchStore",
+    );
+
+    storeOf({ kind: DataStoreKind.Elasticsearch });
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(searchSpy).not.toHaveBeenCalled();
+    expect(skippedWith()["errorMessage"]).toBe(
+      "Content scanning needs the connection's content permission, or a connection string for a store you run.",
+    );
+  });
+
+  test("a cluster that cannot be reached is a failed scan with its reason", async () => {
+    jest
+      .spyOn(SearchStoreSampler, "sampleSearchStore")
+      .mockRejectedValue(
+        new Error("Could not connect to the cluster: Connection Refused."),
+      );
+
+    storeOf({
+      kind: DataStoreKind.OpenSearch,
+      connectionString: "https://reader:x@search.internal:9200",
+    });
+
+    await DataSecurityRunner.scanStore(PROJECT_ID, STORE_ID);
+
+    expect(recordFailedSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (recordFailedSpy.mock.calls[0]![0] as { errorMessage: string })
+        .errorMessage,
+    ).toBe("Could not connect to the cluster: Connection Refused.");
     expect(recordScanSpy).not.toHaveBeenCalled();
   });
 });

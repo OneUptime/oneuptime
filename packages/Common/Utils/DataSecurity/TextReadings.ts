@@ -1,6 +1,7 @@
 import { DataTypeDetector } from "./Detector";
 import { readDigitsOfEveryScript } from "./DigitReadings";
 import PercentDecodedText from "./PercentDecodedText";
+import PlusAsSpaceText from "./PlusAsSpaceText";
 
 /*
  * THE WAYS ONE TEXT IS READ, AND WHERE A MATCH IN EACH IS WRITTEN.
@@ -11,10 +12,14 @@ import PercentDecodedText from "./PercentDecodedText";
  * with every script's digits read by their values (readsDigitsOfEveryScript,
  * #10960: a card in fullwidth or Arabic-Indic digits) - and one that asks
  * for both, with every script's digits read in the text as its escapes
- * read as well (a fullwidth digit escaped, %EF%BC%94). A match found in a
- * reading is placed on the characters the text writes it with, so what it
- * finds - and what a scrub rule hides - is the value as written, escapes
- * and all.
+ * read as well (a fullwidth digit escaped, %EF%BC%94). One that reads a
+ * value written in groups, or the words before one, also reads the text
+ * as a URL's query string reads it: a "+" for the space a form writes it
+ * as, its escapes read (readsPlusAsSpace, #11199:
+ * card=4111+1111+1111+1111, PlusAsSpaceText) - with every script's digits
+ * read there too when it reads them. A match found in a reading is placed
+ * on the characters the text writes it with, so what it finds - and what a
+ * scrub rule hides - is the value as written, escapes and "+"s and all.
  *
  * Data Security's scanner (TextScanner.ts) reads each window so, for the
  * detectors that ask; and every scrub rule built on the detectors finds its
@@ -26,8 +31,8 @@ import PercentDecodedText from "./PercentDecodedText";
  * text the same ways, in every place a rule runs.
  *
  * Each reading is made the first time a detector asks for it, once a text,
- * in one pass (PercentDecodedText, DigitReadings): in time in line with the
- * text's length.
+ * in one pass (PercentDecodedText, PlusAsSpaceText, DigitReadings): in time
+ * in line with the text's length.
  */
 
 // A range of a text: [start, end).
@@ -44,6 +49,7 @@ export interface TextReading {
 export interface ReadingNeeds {
   readsPercentEncoded?: boolean | undefined;
   readsDigitsOfEveryScript?: boolean | undefined;
+  readsPlusAsSpace?: boolean | undefined;
 }
 
 function samePosition(position: number): number {
@@ -52,12 +58,16 @@ function samePosition(position: number): number {
 
 /*
  * The readings of one text, each made the first time it is asked for: the
- * text as written, as its percent-escapes read, and with every script's
- * digits read by their values.
+ * text as written, as its percent-escapes read, as a URL's query string
+ * reads it, and with every script's digits read by their values.
  */
 export class TextReadings {
   public readonly written: TextReading;
   private percentDecoded: TextReading | null | undefined = undefined;
+  private plusAsSpace: TextReading | null | undefined = undefined;
+  // Whether a form wrote the text: a "+" written in it is a space (PlusAsSpaceText).
+  private isFormWritten: boolean = false;
+  private plusAsSpaceDigitReadings: Array<TextReading> | undefined = undefined;
   private digitReadings: Array<TextReading> | undefined = undefined;
   private decodedDigitReadings: Array<TextReading> | undefined = undefined;
 
@@ -83,6 +93,33 @@ export class TextReadings {
     }
 
     return this.percentDecoded;
+  }
+
+  /*
+   * The text as a URL's query string reads it - each "+" a form wrote for
+   * a space a space, its escapes read, and an escaped "+" between two
+   * characters of a value a space too (PlusAsSpaceText, #11199) - or null
+   * when it holds no such "+": then it reads as its escapes read, which
+   * getPercentDecoded is.
+   */
+  public getPlusAsSpace(): TextReading | null {
+    if (this.plusAsSpace === undefined) {
+      const read: PlusAsSpaceText | null = PlusAsSpaceText.read(
+        this.written.text,
+      );
+
+      this.isFormWritten = Boolean(read?.isFormWritten);
+      this.plusAsSpace = read
+        ? {
+            text: read.readable,
+            toWritten: (position: number): number => {
+              return read.toWritten(position);
+            },
+          }
+        : null;
+    }
+
+    return this.plusAsSpace;
   }
 
   /*
@@ -125,6 +162,29 @@ export class TextReadings {
     return this.decodedDigitReadings;
   }
 
+  /*
+   * The text as a URL's query string reads it, then each script's digits
+   * read as getDigitsOfEveryScript reads them: a card in Arabic-Indic
+   * digits typed into a form, its groups joined by "+" (#11199). None
+   * when the text holds no "+" a query string means a space by, or that
+   * reading no digit beyond ASCII. Each placed as that reading places it.
+   */
+  public getDigitsOfEveryScriptPlusAsSpace(): Array<TextReading> {
+    if (this.plusAsSpaceDigitReadings === undefined) {
+      const spaced: TextReading | null = this.getPlusAsSpace();
+
+      this.plusAsSpaceDigitReadings = spaced
+        ? readDigitsOfEveryScript(spaced.text).map(
+            (reading: string): TextReading => {
+              return { text: reading, toWritten: spaced.toWritten };
+            },
+          )
+        : [];
+    }
+
+    return this.plusAsSpaceDigitReadings;
+  }
+
   // Every reading a detector reads, the text as written first.
   public readingsFor(needs: ReadingNeeds): Array<TextReading> {
     const readings: Array<TextReading> = [this.written];
@@ -134,6 +194,14 @@ export class TextReadings {
 
       if (decoded) {
         readings.push(decoded);
+      }
+    }
+
+    if (needs.readsPlusAsSpace) {
+      const spaced: TextReading | null = this.getPlusAsSpace();
+
+      if (spaced) {
+        readings.push(spaced);
       }
     }
 
@@ -149,8 +217,122 @@ export class TextReadings {
       }
     }
 
+    if (needs.readsPlusAsSpace && needs.readsDigitsOfEveryScript) {
+      for (const reading of this.getDigitsOfEveryScriptPlusAsSpace()) {
+        readings.push(reading);
+      }
+    }
+
     return readings;
   }
+
+  /*
+   * The readings a detector's candidates are found in (findDetectorRanges,
+   * TextScanner): those it reads (readingsFor), but for a detector that
+   * reads a text as a URL's query string reads it, not the one with its
+   * escapes read alone where a form wrote the text (#11199): there a "+"
+   * written is a space, and read as a "+" it makes a number of what is
+   * none - "(718) 487-63058", which a form writes %28718%29+487-63058,
+   * read so holds the international number +487-63058. The query
+   * string's reading reads every escape that one does, an escaped "+" as
+   * the "+" it is. A rule's own pattern still reads every reading
+   * (findInEveryReading), so it hides at least what a finding is.
+   */
+  public detectorReadingsFor(needs: ReadingNeeds): Array<TextReading> {
+    const readings: Array<TextReading> = this.readingsFor(needs);
+
+    if (
+      !needs.readsPlusAsSpace ||
+      this.getPlusAsSpace() === null ||
+      !this.isFormWritten
+    ) {
+      return readings;
+    }
+
+    const decoded: TextReading | null = this.getPercentDecoded();
+    const decodedDigits: Array<TextReading> =
+      this.getDigitsOfEveryScriptPercentDecoded();
+
+    return readings.filter((reading: TextReading): boolean => {
+      return reading !== decoded && !decodedDigits.includes(reading);
+    });
+  }
+
+  /*
+   * The readings that read a text's words differently, of those a
+   * detector reads: as written, with its escapes read, as a query string
+   * reads it - every script's digits change no word. Where the words a
+   * candidate needs around it are looked for: date%20of%20birth and
+   * date+of+birth are the words date of birth (#11199).
+   */
+  public wordReadingsFor(needs: ReadingNeeds): Array<TextReading> {
+    return this.readingsFor({
+      readsPercentEncoded: needs.readsPercentEncoded,
+      readsPlusAsSpace: needs.readsPlusAsSpace,
+    });
+  }
+}
+
+const PERCENT_CODE: number = 0x25;
+
+function isHexDigitAt(text: string, at: number): boolean {
+  const code: number = text.charCodeAt(at);
+
+  return (
+    (code >= 0x30 && code <= 0x39) ||
+    (code >= 0x41 && code <= 0x46) ||
+    (code >= 0x61 && code <= 0x66)
+  );
+}
+
+// Whether `at` is one of a "%XX" escape's hex digits.
+function isInsideAnEscape(text: string, at: number): boolean {
+  return (
+    (at >= 1 &&
+      text.charCodeAt(at - 1) === PERCENT_CODE &&
+      isHexDigitAt(text, at) &&
+      isHexDigitAt(text, at + 1)) ||
+    (at >= 2 &&
+      text.charCodeAt(at - 2) === PERCENT_CODE &&
+      isHexDigitAt(text, at - 1) &&
+      isHexDigitAt(text, at))
+  );
+}
+
+/*
+ * Whether a range of a text starts or ends inside a "%XX" escape: what a
+ * detector finds in it as written, gluing an escape's hex digits to the
+ * characters beside it - %2212345678901%22 written in a URL holds
+ * 2212345678901 as written, its quote's "22" first (#11199).
+ */
+export function cutsAnEscape(
+  text: string,
+  start: number,
+  end: number,
+): boolean {
+  return isInsideAnEscape(text, start) || isInsideAnEscape(text, end);
+}
+
+/*
+ * Whether a candidate of a number's detector - one that reads a text as a
+ * URL's query string reads it (readsPlusAsSpace) - is a run of digits
+ * glued to an escape's hex digits as written (cutsAnEscape): no number,
+ * nor the value's either. The escape is one character, and the text as
+ * its escapes read holds the value without it, placed on the characters
+ * it is written with, which the detector reads too. The scanner and the
+ * rules built on the detectors (findDetectorRanges) both leave such a
+ * candidate, so a finding and its rule agree. An IP address detector's,
+ * which reads no query string's "+", is taken as it always was, and its
+ * rule hides it too: 99%2001::1 may be a percent sign glued to an address
+ * as much as an escape.
+ */
+export function isGluedToAnEscape(
+  detector: ReadingNeeds,
+  text: string,
+  start: number,
+  end: number,
+): boolean {
+  return Boolean(detector.readsPlusAsSpace) && cutsAnEscape(text, start, end);
 }
 
 /*
@@ -293,9 +475,14 @@ export function findDetectorRanges(
   const found: Array<TextRange> = [];
 
   for (const detector of detectors) {
-    for (const reading of readings.readingsFor(detector)) {
+    for (const reading of readings.detectorReadingsFor(detector)) {
       for (const [start, end] of acceptedRangesIn(detector, reading.text)) {
-        found.push([reading.toWritten(start), reading.toWritten(end)]);
+        const writtenStart: number = reading.toWritten(start);
+        const writtenEnd: number = reading.toWritten(end);
+
+        if (!isGluedToAnEscape(detector, text, writtenStart, writtenEnd)) {
+          found.push([writtenStart, writtenEnd]);
+        }
       }
     }
   }

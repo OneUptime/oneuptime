@@ -442,6 +442,7 @@ describe("ProductsOfRequest", () => {
       [AiResourceType.AzureSubscription]: "CloudAccount",
       [AiResourceType.GoogleCloudProject]: "CloudAccount",
       [AiResourceType.OpenStackCloud]: "OpenStackCloud",
+      [AiResourceType.XcpNgPool]: "XcpNgPool",
     };
 
     for (const resourceType of ALL_AI_RESOURCE_TYPES) {

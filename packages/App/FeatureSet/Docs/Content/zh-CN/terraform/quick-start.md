@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-监视器的 `monitor_steps` 说明它检查什么，以及每个结果意味着什么：每次检查后，第一个匹配的条件决定它的状态。[监控步骤](/docs/terraform/monitor-steps) 解释了每个部分。
+监视器的 `monitor_steps` 说明它检查什么，以及每个结果意味着什么：每次检查后，第一个匹配且会更改状态的条件决定它的状态。[监控步骤](/docs/terraform/monitor-steps) 解释了每个部分。
 
 ### 计划并应用
 

@@ -15,6 +15,8 @@ Dell PowerStore (`dell.powerstore`) にも、Dell の `powerstore_*` シリー�
 
 OneUptime Storage Array Agent は、アレイの管理インターフェイスに到達できるマシンで動作します。読み取り専用の API トークンでアレイのメトリクスを読み取り、アレイの名前 `storage.array.name` とプラットフォーム `storage.system` のラベルを付けて、OTLP で OneUptime に送信します。最初のデータでアレイが登録されます。
 
+Dell PowerMax (`dell.powermax`) にはエージェントが不要です。OneUptime のプローブが 5 分ごとに読み取り専用アカウントで Unisphere for PowerMax にログインし、Unisphere が管理するすべてのアレイを同じように送信します。アレイの名前は、変更するまで Symmetrix ID になります ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax))。
+
 ストレージアレイ モニターは 1 つのアレイに結び付いています。毎分、そのアレイのメトリクスに対してクエリを実行し、結果を条件と比較します。
 
 ```mermaid title="ストレージアレイからインシデントまで"
@@ -35,6 +37,7 @@ flowchart TB
 
 - **Storage Array Agent をインストールします**。HTTPS でアレイに到達できる場所に、アレイの **readonly** ロールを持つユーザーの API トークンを使ってインストールします。[Storage Array Agent のガイド](/docs/telemetry/storage-arrays) では、ユーザー、トークン、インストールを、`ONEUPTIME_URL`、`ONEUPTIME_TELEMETRY_INGESTION_KEY`、`STORAGE_ARRAY_NAME`、アレイのアドレスとトークン (`PURE_FA_ENDPOINT` と `PURE_FA_API_TOKEN`、または `PURE_FB_ENDPOINT` と `PURE_FB_API_TOKEN`)、ONTAP ではクラスターのアドレスと読み取り専用の REST ユーザー (`NETAPP_ONTAP_ENDPOINT`、`NETAPP_ONTAP_USERNAME`、`NETAPP_ONTAP_PASSWORD`) とともに説明しています。
 - **アレイが登録されていることを確認します。** 最初の読み取りから約 1 分後に、エージェントの `STORAGE_ARRAY_NAME` の名前で **製品 → インフラストラクチャ → ストレージアレイ → すべてのストレージアレイ** に表示されます。
+- **Dell PowerMax の場合**、代わりにそのアレイを管理する Unisphere for PowerMax を **製品 → インフラストラクチャ → ストレージアレイ → 接続** で接続します。詳しくは [Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax) を参照してください。
 
 ## ストレージアレイ モニターを作成する
 
@@ -76,10 +79,10 @@ flowchart TB
 | フィールド | タブ | 動作 |
 | --- | --- | --- |
 | **ストレージアレイ** | すべて | 必須。すべてのクエリを `resource.storage.array.name` に限定するため、どちらも `vol-01` という名前のボリュームを持つ 2 つのアレイが混ざることはありません。 |
-| **ボリューム** | Custom Metric、詳細 | 1 つのボリューム。FlashArray では `name` ラベルで指定します (`vol-db-01` など。Pod やボリュームグループ内のボリュームは `pod::volume` や `group/volume` という名前になります)。ONTAP では `volume` ラベルで指定し、このラベルは 2 つの SVM で同じになることがあります。 |
+| **ボリューム** | Custom Metric、詳細 | 1 つのボリューム。FlashArray では `name` ラベルで指定します (`vol-db-01` など。Pod やボリュームグループ内のボリュームは `pod::volume` や `group/volume` という名前になります)。ONTAP では `volume` ラベルで指定し、このラベルは 2 つの SVM で同じになることがあります。PowerMax では `volume` ラベル (`00847` などのデバイス ID) で指定します。 |
 | **ホスト** | Custom Metric、詳細 | FlashArray のみ。アレイが認識している 1 つのホストを `host` ラベルで (`esxi-01` など)。 |
 | **Pod** | Custom Metric、詳細 | FlashArray のみ。1 つの ActiveCluster または ActiveDR Pod を `name` ラベルで、レプリカリンクのシリーズでは `local_pod` で。 |
-| **ハードウェアコンポーネント** | Custom Metric、詳細 | 1 つのハードウェアコンポーネント (`CH0.BAY1` や `CT0` など)。FlashArray では `component_name` ラベル、FlashBlade では `name`、ONTAP ではシリーズがそれを識別するラベル (`node`、`disk`、`shelf`、`port`)。 |
+| **ハードウェアコンポーネント** | Custom Metric、詳細 | 1 つのハードウェアコンポーネント (`CH0.BAY1` や `CT0` など)。FlashArray では `component_name` ラベル、FlashBlade では `name`、ONTAP ではシリーズがそれを識別するラベル (`node`、`disk`、`shelf`、`port`)、PowerMax では `component` (`FA-1D` などのディレクター、または `FA-1D:4` などのポート)。 |
 | **ファイルシステム** | Custom Metric、詳細 | FlashBlade のみ。`name` ラベルで 1 つのファイルシステム。 |
 | **バケット** | Custom Metric、詳細 | FlashBlade のみ。`name` ラベルで 1 つのオブジェクトストアのバケット。 |
 | **Storage Array Metric** | Custom Metric | [カタログ](#収集されるメトリクス) の 1 つのメトリクス。フォームはその意味を決めるラベルフィルターを追加し、説明するオブジェクトでグループ化するため、各ボリューム、ホスト、コンポーネントが個別に判定されます。 |
@@ -107,9 +110,11 @@ Pure は **1 つの** メトリクス名に複数の値を載せ、ラベルで�
 | `purefa_host_connectivity_info` | `status` (`details` 付き) | ホスト |
 | `purefa_drive_capacity_bytes` | `component_status` (値はドライブの容量) | ドライブ |
 
-悪い状態に絞り込んだシリーズは、何かがその状態にある間しか存在しないため、シリーズがないことは正常を意味します。だからこそ **0 を超える最大値で発火し、0 で回復する** という形が適しており、テンプレートもそのように作られています。回復の条件は、シリーズがないことをゼロとして数えます。シリーズがまったく残っていない場合、このようなテンプレートは同じウィンドウ内に `purefa_info` または `purefb_info` が届いたときにだけ回復するので、報告を止めたアレイは何も閉じません。
+悪い状態に絞り込んだシリーズは、何かがその状態にある間しか存在しないため、シリーズがないことは正常を意味します。だからこそ **0 を超える最大値で発火し、0 で回復する** という形が適しており、テンプレートもそのように作られています。回復の条件は、シリーズがないことをゼロとして数えます。シリーズがまったく残っていない場合、このようなテンプレートは同じウィンドウ内に `purefa_info`、`purefb_info`、または `powermax_array_info` が届いたときにだけ回復するので、報告を止めたアレイは何も閉じません。
 
-モニターのフィルターとグループ化のキーでは、エージェントの属性は `resource.` で始まり (`resource.storage.array.name`、`resource.storage.system`)、Pure 自身のラベルはそうではありません (`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
+PowerMax のシリーズはそれぞれ単一の値を持ち、その値にちなんだ名前が付いています。`powermax_array_response_time_usec` は `operation` で読み取りと書き込みを区別します。状態を表すシリーズも同様に、何か問題がある間だけ存在します。`powermax_alert_open` は Unisphere にオープンなアラートがある間、`powermax_director_offline` はディレクターがオンラインでない間、`powermax_port_offline` は誰かが利用しているポートがダウンしている間、`powermax_srdf_group_not_healthy` は SRDF グループが一時停止またはオフラインの間に存在します。
+
+モニターのフィルターとグループ化のキーでは、エージェントの属性は `resource.` で始まり (`resource.storage.array.name`、`resource.storage.system`)、Pure 自身のラベルはそうではありません (`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。PowerMax のラベルも同様です (`storage_group`、`volume`、`director`、`port_id`、`srdf_group`)。
 
 ## PowerStore のシリーズの形
 
@@ -131,7 +136,7 @@ ONTAP の状態は 3 つの形で表されます。
 
 ## 組み込みのアラートテンプレート
 
-OneUptime には 67 個のテンプレートがあり (FlashArray 用が 12 個、FlashBlade 用が 8 個、PowerStore 用が 16 個、ONTAP 用が 31 個)、**アラートの対象** の一覧はアレイのプラットフォームに合うものを提示します。各テンプレートは完全なモニターを作ります。メトリクスのクエリ、そのラベルフィルター、オブジェクト自身のラベルによるグループ化、発火する条件と回復する条件です。しきい値は編集できる出発点です。
+OneUptime には 80 個のテンプレートがあり (FlashArray 用が 12 個、FlashBlade 用が 8 個、PowerStore 用が 16 個、ONTAP 用が 31 個、PowerMax 用が 13 個)、**アラートの対象** の一覧はアレイのプラットフォームに合うものを提示します。各テンプレートは完全なモニターを作ります。メトリクスのクエリ、そのラベルフィルター、オブジェクト自身のラベルによるグループ化、発火する条件と回復する条件です。しきい値は編集できる出発点です。
 
 条件は、ウィンドウ内の **すべての** 値で条件が成り立つときだけ発火します。ただし ONTAP の EMS テンプレートは例外です。Harvest はイベントを 1 回のポーリングの間しかエクスポートしないため、読み取り値は 1 つで足ります。容量、レイテンシ、遅延、比率のしきい値で発火したモニターは、しきい値から 10% 離れて初めて回復するため、しきい値付近を行き来する値で状態がばたつくことはありません。アラート、ハードウェア、接続のテンプレートは、状態が 5 分間のウィンドウ全体で見えたときに発火し、状態が解消されてから約 5 分後に回復します。
 
@@ -232,11 +237,29 @@ PowerStore 自身のアラートはログとして届くため、そのテンプ
 | LUN Offline | 可用性 | 重大 | `netapp_lun_new_status`、`lun`、`volume`、`svm` ごとに Max、過去 10 分 | < 1 — LUN がオンラインでなく、ホストはそのディスクを失っている。≥ 1 で回復 |
 | SVM Stopped | 可用性 | 警告 | `netapp_svm_labels` を `state=stopped` と `type=data` に絞り込み、`svm` ごとに Max、過去 10 分 | > 0 — データ SVM が停止している。再び実行されると回復。ONTAP が自身のために保持する SVM は監視されない |
 
+### PowerMax
+
+| テンプレート | カテゴリ | 重大度 | 監視対象 | 発火する条件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 重大 | `powermax_array_info`、Count、過去 10 分 | ウィンドウ全体でデータがない — プローブがアレイの収集を停止した。接続が失敗している (**接続** の下にあるそのページに理由が表示される)、プローブが切断されている、または Unisphere がアレイを管理しなくなった。データが再び届くと回復 |
+| Critical Unisphere Alert | アレイのヘルス | 重大 | `powermax_alert_open` を `severity=critical` に絞り込み、`description` ごとに Max、過去 10 分 | > 0 — Unisphere に、アレイについて重大度 Critical または Fatal のオープンなアラートがある。アラートごとに一つのインシデント。Unisphere でアラートが確認またはクリアされると回復 |
+| Warning Unisphere Alert | アレイのヘルス | 警告 | `powermax_alert_open` を `severity=warning` に絞り込み、`description` ごとに Max、過去 10 分 | > 0 — Unisphere に重大度 Warning または Minor のオープンなアラートがある。アラートごとに一つのインシデント。アラートが確認またはクリアされると回復 |
+| Performance Collection Off | アレイのヘルス | 警告 | `powermax_array_performance_collection`、Min、過去 15 分 | < 1 — Unisphere がアレイの 5 分間隔のパフォーマンスを収集していないため、レスポンスタイム、IOPS、スループットのグラフもアラートもない。≥ 1 で回復 |
+| Storage Resource Pool Above 80% | 容量 | 警告 | `powermax_srp_capacity_used_percent`、`srp` ごとに Max、過去 15 分 | > 80 — プールがいっぱいになると、そのストレージグループは新しい書き込みを受け付けなくなる。プールごとに一つのインシデント。≤ 72 で回復 |
+| Storage Resource Pool Above 90% | 容量 | 重大 | `powermax_srp_capacity_used_percent`、`srp` ごとに Max、過去 15 分 | > 90 — いっぱいになった時点で、そのストレージグループへの書き込みが失敗する。プールごとに一つのインシデント。≤ 81 で回復 |
+| Storage Group Response Time Above 5 ms | パフォーマンス | 警告 | `powermax_storage_group_response_time_usec`、`storage_group` ごとに Avg、過去 15 分 | > 5000 µs (5 ms) — PowerMax の応答は通常、ミリ秒を大きく下回る。ストレージグループごとに一つのインシデント。≤ 4500 で回復 |
+| High Read Response Time | パフォーマンス | 警告 | `powermax_array_response_time_usec` を `operation=read` に絞り込み、Avg、過去 15 分 | > 3000 µs (3 ms)。≤ 2700 で回復 |
+| High Write Response Time | パフォーマンス | 警告 | `powermax_array_response_time_usec` を `operation=write` に絞り込み、Avg、過去 15 分 | > 3000 µs (3 ms) — 同期 SRDF では、すべての書き込みにリモートアレイとの往復が加わる。≤ 2700 で回復 |
+| Director Not Online | ハードウェア | 重大 | `powermax_director_offline`、`component` ごとに Max、過去 10 分 | > 0 — ディレクターがオンラインでなく、アレイはほかのディレクターで動作している。ディレクターごとに一つのインシデント。再びオンラインになると回復 |
+| Port Down | ハードウェア | 警告 | `powermax_port_offline`、`component` ごとに Max、過去 10 分 | > 0 — ポートグループ、マスキングビュー、または SRDF グループに属するポートが稼働していない。ポートごとに一つのインシデント。再び稼働すると回復 |
+| SRDF Group Suspended or Offline | レプリケーション | 重大 | `powermax_srdf_group_not_healthy`、`srdf_group` ごとに Max、過去 10 分 | > 0 — グループのリンクがオフライン、またはペアが一時停止・分割・フェイルオーバーの状態で、リモートコピーが最新に保たれていない。グループごとに一つのインシデント。再び同期すると回復 |
+| SRDF/A Lag Above 2 Minutes | レプリケーション | 警告 | `powermax_srdf_group_lag_seconds`、`srdf_group` ごとに Avg、過去 15 分 | > 120 (2 分) — 今フェイルオーバーすると、計画以上に最近の書き込みが失われる。グループごとに一つのインシデント。≤ 108 で回復 |
+
 **重大度** はピッカーが表示するラベルです。テンプレートが作成するインシデントとアラートは、プロジェクトで最も重大なインシデントとアラートの重大度から始まります。条件の中で変更してください。
 
-- **Array Stopped Reporting** は、プラットフォームの識別シリーズ (`purefa_info` または `purefb_info`) を数えます。このシリーズは、エージェントが読み取るすべてのエンドポイントが読み取りのたびにエクスポートします。データが途絶えると、ほかのテンプレートは比較するものがなくなって最後のステータスを保ったままになるため、それを知らせてくれるのはこのテンプレートです。
+- **Array Stopped Reporting** は、プラットフォームの識別シリーズを数えます (`purefa_info` または `purefb_info`。エージェントが読み取るすべてのエンドポイントが読み取りのたびにエクスポートします。または `powermax_array_info`。PowerMax の収集のたびに書き込まれます)。データが途絶えると、ほかのテンプレートは比較するものがなくなって最後のステータスを保ったままになるため、それを知らせてくれるのはこのテンプレートです。
 - **オープンなアラートとハードウェアの状態は Max を使います**。アラートがオープンな間、またはコンポーネントがその状態にある間しか存在しないシリーズなので、状態が 5 分間のウィンドウ全体で見えた時点でしきい値を超えます。
-- **オブジェクトごとのテンプレートは、すべてオブジェクト自身のラベルでグループ化します** (`summary`、`component_name`、`host`、`local_pod`、`name`)。そのため、影響を受けたオブジェクトごとに一つのインシデントが発火し、インシデントはそのオブジェクトの名前を示します。
+- **オブジェクトごとのテンプレートは、すべてオブジェクト自身のラベルでグループ化します** (`summary`、`component_name`、`host`、`local_pod`、`name`、PowerMax では `description`、`component`、`srp`、`srdf_group`、`storage_group`)。そのため、影響を受けたオブジェクトごとに一つのインシデントが発火し、インシデントはそのオブジェクトの名前を示します。
 - **レイテンシのテンプレートは Avg を使います**。アレイ自身による操作あたりの平均値の Avg です。容量のテンプレートは、アレイ自身の使用率の **Max** を使います。レイテンシはマイクロ秒、容量はパーセントに固定されています。
 - **Hardware Component Unhealthy はコンポーネントごとに Min を使います**。正常なときは 1、そうでないときは 0 に下がります。
 
@@ -244,7 +267,7 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 
 ## 収集されるメトリクス
 
-エージェントはアレイがエクスポートするすべてを送信します。以下のシリーズは、モニターのフォームが提示するカタログです。どの値もアレイ自身が計算したゲージで、レイテンシは操作あたりのマイクロ秒、スループットは 1 秒あたりの値なので、レートの計算は不要です。**フィルター** は、その行が示す意味をシリーズに与えるラベルフィルターで、フォームが自動で適用します。
+エージェントはアレイがエクスポートするすべてを、プローブは PowerMax から読み取るすべてを、同じ単位で送信します (Unisphere のミリ秒はマイクロ秒に、MB/秒はバイト/秒に換算)。以下のシリーズは、モニターのフォームが提示するカタログです。どの値もアレイ自身が計算したゲージで、レイテンシは操作あたりのマイクロ秒、スループットは 1 秒あたりの値なので、レートの計算は不要です。**フィルター** は、その行が示す意味をシリーズに与えるラベルフィルターで、フォームが自動で適用します。
 
 ### アレイのヘルス
 
@@ -257,6 +280,9 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | ONTAP の各ヘルスサブシステムで開いているアラート (`subsystem` ごと) |
 | `netapp_health_support_alerts` | — | ONTAP | `count` | ONTAP のシステムヘルスモニターが開いているアラートごとに 1 シリーズ (開いている間) |
 | `netapp_ems_events` | — | ONTAP | `count` | EMS イベントごとに 1 シリーズ (それを収集したポーリングの間だけ)。対になるイベントが解消されると、もう一度 0 としてエクスポートされます |
+| `powermax_alert_open` | — | PowerMax | `count` | Unisphere がアレイについて開いているアラートごとに 1 シリーズ (値は 1)。確認済みでなく、クリアされておらず、Minor 以上のものが対象です。severity ラベルは critical (Critical と Fatal) または warning (Warning と Minor) で、alert_type、object、description ラベルが内容を示します。Unisphere でアラートを確認すると、シリーズは消えます |
+| `powermax_array_health_score` | — | PowerMax | `score` | Unisphere によるアレイのヘルススコア (0～100)。health_metric ごとに、全体と、評価する各領域 (容量、構成、パフォーマンス、サービスレベル準拠) の値があります |
+| `powermax_array_performance_collection` | — | PowerMax | `count` | Unisphere がアレイの 5 分間隔のパフォーマンスデータを収集している間は 1、収集していない間は 0。オフの場合も OneUptime はアレイのインベントリとアラートを一覧表示しますが、パフォーマンスのグラフは描画しません。Unisphere の Settings > Performance > System Registrations でオンにしてください |
 
 ### 容量
 
@@ -285,6 +311,13 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `netapp_aggr_new_status` | — | ONTAP | — | アグリゲートがオンラインの間は 1 |
 | `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | ストレージ効率がなかった場合に各アグリゲートのデータが占める量 (スナップショットと FlexClone を除く) |
 | `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | ストレージ効率の適用後に各アグリゲートのデータがディスク上で占める量 |
+| `powermax_array_capacity_used_percent` | — | PowerMax | `%` | アレイのストレージリソースプール全体での、使用可能な容量のうち使用中の割合 (%) |
+| `powermax_array_capacity_usable_bytes` | — | PowerMax | `bytes` | Unisphere が報告するアレイの使用可能な容量 (バイト) |
+| `powermax_array_capacity_used_bytes` | — | PowerMax | `bytes` | アレイの使用可能な容量のうち使用中の容量 (バイト) |
+| `powermax_array_capacity_subscribed_bytes` | — | PowerMax | `bytes` | アレイ上のすべてのシンボリュームの容量 (バイト)。ホストに約束した容量で、使用可能な容量を超えることがあります |
+| `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | ホストが書き込んだデータが、圧縮と重複排除の後に占める領域の何倍あるか (Unisphere の報告値) |
+| `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | srp ラベルごとの、各ストレージリソースプールの使用可能な容量のうち使用中の割合 (%)。プールがいっぱいになると、そのプール内のすべてのストレージグループで新しい書き込みを受け付けなくなります |
+| `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | srp ラベルごとの、各ストレージリソースプールで使用中の使用可能な容量 (バイト) |
 
 ### パフォーマンス
 
@@ -330,6 +363,18 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | 各 SVM のボリュームの 1 秒あたりの書き込み操作数 |
 | `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | 各 SVM のボリュームから 1 秒あたりに読み取られたバイト数 |
 | `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | 各 SVM のボリュームに 1 秒あたりに書き込まれたバイト数 |
+| `powermax_array_response_time_usec` | `operation=read` | PowerMax | `µs` | アレイでのホストの読み取りにかかる平均時間 (マイクロ秒)。Unisphere の直近 5 分間隔の値です (operation read) |
+| `powermax_array_response_time_usec` | `operation=write` | PowerMax | `µs` | アレイでのホストの書き込みにかかる平均時間 (マイクロ秒)。Unisphere の直近 5 分間隔の値です (operation write) |
+| `powermax_array_read_iops` | — | PowerMax | `ops/s` | アレイでの 1 秒あたりのホスト読み取り数。Unisphere のホスト IO 数に読み取りの割合を掛けた値です |
+| `powermax_array_write_iops` | — | PowerMax | `ops/s` | アレイでの 1 秒あたりのホスト書き込み数。Unisphere のホスト IO 数に書き込みの割合を掛けた値です |
+| `powermax_array_read_throughput_bytes` | — | PowerMax | `bytes/s` | ホストがアレイから読み取る 1 秒あたりのバイト数 |
+| `powermax_array_write_throughput_bytes` | — | PowerMax | `bytes/s` | ホストがアレイに書き込む 1 秒あたりのバイト数 |
+| `powermax_array_cache_hit_percent` | — | PowerMax | `%` | アレイがキャッシュから応答したホスト I/O の割合 (%) |
+| `powermax_array_write_pending_percent` | — | PowerMax | `%` | アレイのキャッシュのうち、まだドライブにデステージされていない書き込みを保持している割合 (%)。アレイの上限に近づくと、ホストの書き込みが遅くなります |
+| `powermax_array_frontend_busy_percent` | — | PowerMax | `%` | ホストを処理するディレクターのビジー率 (%) |
+| `powermax_array_backend_busy_percent` | — | PowerMax | `%` | ドライブを処理するディレクターのビジー率 (%) |
+| `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | 他のアレイへ複製するディレクターのビジー率 (%) |
+| `powermax_srp_response_time_usec` | — | PowerMax | `µs` | srp ラベルごとの、各ストレージリソースプールで I/O にかかる平均時間 (マイクロ秒) |
 
 ### ボリューム
 
@@ -384,6 +429,20 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `netapp_lun_write_ops` | — | ONTAP | `ops/s` | 各 LUN の 1 秒あたりの書き込み操作数 |
 | `netapp_lun_read_data` | — | ONTAP | `bytes/s` | 各 LUN から 1 秒あたりに読み取られたバイト数 |
 | `netapp_lun_write_data` | — | ONTAP | `bytes/s` | 各 LUN に 1 秒あたりに書き込まれたバイト数 |
+| `powermax_storage_group_response_time_usec` | — | PowerMax | `µs` | storage_group ラベルごとの、各ストレージグループで I/O にかかる平均時間 (マイクロ秒)。Unisphere の直近 5 分間隔の値です |
+| `powermax_storage_group_read_response_time_usec` | — | PowerMax | `µs` | storage_group ラベルごとの、各ストレージグループで読み取りにかかる平均時間 (マイクロ秒) |
+| `powermax_storage_group_write_response_time_usec` | — | PowerMax | `µs` | storage_group ラベルごとの、各ストレージグループで書き込みにかかる平均時間 (マイクロ秒) |
+| `powermax_storage_group_iops` | — | PowerMax | `ops/s` | storage_group ラベルごとの、各ストレージグループの 1 秒あたりのホスト I/O 数 |
+| `powermax_storage_group_throughput_bytes` | — | PowerMax | `bytes/s` | storage_group ラベルごとの、各ストレージグループでホストが読み書きする 1 秒あたりのバイト数 |
+| `powermax_storage_group_used_bytes` | — | PowerMax | `bytes` | storage_group ラベルごとの、各ストレージグループのボリュームが使用している容量 (バイト) |
+| `powermax_storage_group_host_io_limit_exceeded_percent` | — | PowerMax | `%` | 各ストレージグループがホスト I/O 制限によって抑えられていた時間の、間隔に占める割合 (%)。制限が設定されたストレージグループのみが報告します |
+| `powermax_storage_group_realtime_read_response_time_usec` | — | PowerMax | `µs` | Unisphere でリアルタイム収集に登録されたストレージグループの読み取りレスポンスタイム (マイクロ秒、5 秒ごと)。アレイあたり最大 100 個のストレージグループを登録できます |
+| `powermax_storage_group_realtime_write_response_time_usec` | — | PowerMax | `µs` | Unisphere でリアルタイム収集に登録されたストレージグループの書き込みレスポンスタイム (マイクロ秒、5 秒ごと) |
+| `powermax_storage_group_realtime_iops` | — | PowerMax | `ops/s` | リアルタイム収集に登録されたストレージグループの 1 秒あたりのホスト I/O 数 (5 秒ごと) |
+| `powermax_storage_group_realtime_throughput_bytes` | — | PowerMax | `bytes/s` | リアルタイム収集に登録されたストレージグループの 1 秒あたりのバイト数 (5 秒ごと) |
+| `powermax_volume_response_time_usec` | — | PowerMax | `µs` | volume ラベルごとの、各ボリュームで I/O にかかる平均時間 (マイクロ秒)。Unisphere は、リアルタイム収集に登録されたストレージグループのボリュームについてのみ報告します |
+| `powermax_volume_iops` | — | PowerMax | `ops/s` | volume ラベルごとの、各ボリュームの 1 秒あたりのホスト I/O 数。リアルタイム収集に登録されたストレージグループのボリュームが対象です |
+| `powermax_volume_used_bytes` | — | PowerMax | `bytes` | volume ラベルごとの、各ボリュームが使用している容量 (バイト) |
 
 ### ホスト
 
@@ -410,6 +469,10 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | 各関係の前回の転送で送られた量 |
 | `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | 各関係の失敗した更新の数。増える一方です |
 | `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | ONTAP が異常と報告する関係ごとに 1 シリーズ。理由は `unhealthy_reason` にあります |
+| `powermax_srdf_group_not_healthy` | — | PowerMax | `count` | リンクがオフライン、またはペアが一時停止・パーティション化・分割・フェイルオーバー・無効の状態にある SRDF グループごとに 1 シリーズ (値は 1)。srdf_group、state、remote_symmetrix_id ラベル付きです。グループが複製している間、シリーズはありません |
+| `powermax_srdf_group_lag_seconds` | — | PowerMax | `s` | srdf_group ラベルごとの、各非同期 SRDF グループのリモートコピーの遅れ (秒)。今フェイルオーバーすると、その時間分の書き込みが失われます |
+| `powermax_srdf_group_throughput_bytes` | — | PowerMax | `bytes/s` | srdf_group ラベルごとの、各 SRDF グループがリモートアレイに送信する 1 秒あたりのバイト数 |
+| `powermax_srdf_group_response_time_usec` | — | PowerMax | `µs` | srdf_group ラベルごとの、各 SRDF グループで複製された書き込みがリモートアレイに届くまでの平均時間 (マイクロ秒) |
 
 ### ハードウェア
 
@@ -463,6 +526,12 @@ FlashArray には、ボリュームごとのレイテンシのテンプレート
 | `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | 各 Fibre Channel ポートを通じて 1 秒あたりに書き込まれたバイト数 |
 | `netapp_fcp_util_percent` | — | ONTAP | `%` | 各 Fibre Channel ポートの速度のうち使用中の割合 |
 | `netapp_fcp_link_failure` | — | ONTAP | `count` | 各 Fibre Channel ポートが直近 1 分間に数えたリンク障害 |
+| `powermax_director_offline` | — | PowerMax | `count` | オンラインでないディレクターごとに 1 シリーズ (値は 1)。director、role、status ラベル付きです。すべてのディレクターがオンラインの間、シリーズはありません |
+| `powermax_director_busy_percent` | — | PowerMax | `%` | component ラベル (FA-1D など) ごとの、各ディレクターのビジー率 (%) |
+| `powermax_port_offline` | — | PowerMax | `count` | ホストまたは SRDF を処理している (ポートグループ、マスキングビュー、または SRDF グループに属する) のに稼働していないポートごとに 1 シリーズ (値は 1)。component、protocol、status ラベル付きです。誰も使っていないポートは、意図的にオフにしている可能性があるため除外されます |
+| `powermax_port_busy_percent` | — | PowerMax | `%` | component ラベル (FA-1D:4 など) ごとの、各ポートのビジー率 (%) |
+| `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | component ラベルごとの、各ポートを通じて読み取られる 1 秒あたりのバイト数 |
+| `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | component ラベルごとの、各光ポートが受信する光パワー (ミリワット)。値が下がっている場合は、光モジュールまたはケーブルが劣化しています。Unisphere 10.3 以降が必要です |
 
 ### ファイルシステム
 
@@ -581,8 +650,12 @@ EMS テンプレートは、その種類のイベントがウィンドウ内に�
 エージェントはボリューム、ホスト、Pod を 2 分ごと、FlashBlade のファイルシステムとバケットを 5 分ごと、FlashArray のディレクトリを 30 分ごとに読み取るため、1 分のウィンドウにはサンプルがないことがあります。5 分以上を使ってください。ファイルシステムとバケットには 15 分、ディレクトリには 60 分です。
 :::
 
+:::details PowerMax のモニターにデータが表示されない
+プローブは PowerMax を 5 分ごとに読み取るため、10 分以上のウィンドウを使ってください。レスポンスタイム、IOPS、スループットには Unisphere のパフォーマンス収集が必要で、これは **Performance Collection Off** テンプレートが監視しています。ボリュームの値には、そのストレージグループが Unisphere でリアルタイム用に登録されている必要があります。**製品 → インフラストラクチャ → ストレージアレイ → 接続** の下にある接続のページに、直近の収集で読み取れなかったものが表示されます。
+:::
+
 :::details ボリュームごとではなく、アレイ全体で一度だけインシデントが発火する
-クエリをオブジェクトのラベルでグループ化してください。ボリューム、Pod、ディレクトリ、ファイルシステム、バケットには `name`、ホストには `host`、FlashArray のハードウェアには `component_name` を使います。Pure のラベルには接頭辞がないため、`resource.name` は何にも一致しません。
+クエリをオブジェクトのラベルでグループ化してください。ボリューム、Pod、ディレクトリ、ファイルシステム、バケットには `name`、ホストには `host`、FlashArray のハードウェアには `component_name`、PowerMax では `storage_group`、`volume`、`component`、または `srdf_group` を使います。Pure と PowerMax のラベルには接頭辞がないため、`resource.name` は何にも一致しません。
 :::
 
 ## 次のステップ

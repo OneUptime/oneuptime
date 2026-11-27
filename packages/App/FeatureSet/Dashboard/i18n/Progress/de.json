@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 2766
+    "keys": 67248,
+    "untranslated": 2758
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -80,6 +80,7 @@
     "Appliances",
     "Apps",
     "Array",
+    "Arrays",
     "Aruba",
     "Assets",
     "Atmosphere",
@@ -204,12 +205,14 @@
     "Deadlocks",
     "Debug",
     "Definition",
+    "Delta",
     "DeploymentConfigs",
     "Deployments",
     "Desktop",
     "Detail (in Markdown)",
     "Details",
     "Digital",
+    "Director",
     "Docker CLI",
     "Docker Compose",
     "Dominica",
@@ -489,6 +492,7 @@
     "Passkeys",
     "Passthrough",
     "Patch {{level}}",
+    "Patches",
     "Payload",
     "Perf",
     "Performance & Tracing",
@@ -708,6 +712,7 @@
     "Ukraine",
     "Undersized PGs",
     "Undersized Placement Groups",
+    "Unisphere",
     "Up",
     "Up & In",
     "Up & Out",
@@ -766,6 +771,7 @@
     "Workflow {{id}}",
     "Workload",
     "Workloads",
+    "XAPI",
     "Zone",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

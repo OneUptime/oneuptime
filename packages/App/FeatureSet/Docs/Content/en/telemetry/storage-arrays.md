@@ -6,6 +6,7 @@ The OneUptime Storage Array agent monitors storage arrays: capacity and data red
 - [Install the agent](#install-the-agent): A read-only user, then the install script or Docker Compose.
 - [What the agent collects](#what-the-agent-collects): Every endpoint, and the pages built from it.
 - [Monitoring several arrays](#monitoring-several-arrays): One agent per array, on one machine.
+- [Dell PowerMax](#dell-powermax): No agent: a probe reads every array behind Unisphere.
 - [Troubleshooting](#troubleshooting): A diagnostic script, and the usual problems.
 :::
 
@@ -22,6 +23,8 @@ Storage Arrays is a product that works the same way for every vendor. It support
 | **NetApp ONTAP** 9.12.1 and later (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), and **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, which the same Compose file runs as the `netapp-harvest` service: it logs in to the cluster's REST API with a read-only user and password | `otel-collector-config.netapp-ontap.yaml` |
 
 ONTAP has no metrics endpoint of its own, so the agent runs NetApp's open-source exporter, Harvest, next to the collector. Harvest reads the cluster's REST API and serves what it read on the Compose network, every series named `netapp_<object>_<counter>`; the collector scrapes it and sends it on. Harvest never writes to the cluster, and its AutoSupport report to NetApp is turned off.
+
+**Dell PowerMax** (`dell.powermax`) needs no agent: a OneUptime probe reads every array a Unisphere for PowerMax manages, with a read-only account. See [Dell PowerMax](#dell-powermax).
 
 Pure Storage renamed itself **Everpure** in February 2026. FlashArray, FlashBlade and Purity kept their names, and so did the `purefa_*` and `purefb_*` metrics, so everything on this page applies to arrays sold under either name.
 
@@ -389,6 +392,54 @@ Then delete the read-only user and its API token on the array if you no longer n
 
 On a PowerStore, run `docker compose --profile powerstore down`, so the exporter and the syslog collector stop too.
 
+## Dell PowerMax
+
+A Dell PowerMax needs no agent. A OneUptime probe logs in to the REST API of Unisphere for PowerMax with a read-only account every 5 minutes, and reads every array that Unisphere manages. Each array appears in **Storage Arrays** under its Symmetrix ID, such as `000220200269`, which you can rename. The password is stored encrypted, is never shown again, and is sent only to the probe you pick.
+
+- **Unisphere for PowerMax 10.1 or later**, managing arrays on PowerMaxOS 10 or 5978. From Unisphere 10.3, a read-only account also sees ports and SRDF groups.
+- **A probe that reaches Unisphere on TCP 8443**, usually a [custom probe](/docs/probe/custom-probe) in Unisphere's network. On OneUptime Cloud, a shared probe never receives a storage password, so pick one of your project's own.
+- **A Unisphere user with the Monitor role** on each array it should read, and the **PerfMonitor** role for performance. It needs nothing more: OneUptime never changes the array.
+
+:::steps
+### Create the read-only user
+
+In Unisphere for PowerMax, under **Settings → Users and Groups**, create a local user or pick a directory user. Authorize it with the **Monitor** role on each array, and **PerfMonitor** for performance.
+
+### Check that Unisphere collects performance
+
+Under **Settings → Performance → System Registrations**, check that **Diagnostic** collection is on for each array: without it, OneUptime lists the array's inventory and alerts but charts no performance. To see a storage group every 5 seconds, register it for **Real Time** there too, up to 100 per array.
+
+### Connect Unisphere
+
+Go to **Products → Infrastructure → Storage Arrays → Connections** and click **Connect Unisphere**. Enter the address you open Unisphere at, such as `https://unisphere.example.com:8443`, the user name and the password, and pick the probe.
+
+### Test the connection
+
+**Test connection** has the probe log in and read what the account can see: each array, its storage groups and volumes, and whether Unisphere collects its performance. Unisphere signs its own certificate by default: the test shows it, and **Trust this certificate** puts its SHA-256 fingerprint on the form. Check the fingerprint against Unisphere's first, for example with `openssl s_client -connect unisphere.example.com:8443` from the probe's machine.
+
+### Name it and connect
+
+Name the connection, or keep the host name, and click **Connect**. Its page shows the first collection within a few minutes, and every array it found, each linked to its page in **Storage Arrays**.
+:::
+
+The probe reads Unisphere's documented REST endpoints: the classic `/univmax/restapi` for the arrays, capacity, health, alerts and pools, and the bulk `/univmax/rest/v1` for the storage groups, volumes, directors, ports, SRDF groups and performance. Every call is a read. It sends what it reads as these series, with Unisphere's milliseconds as microseconds and its MB per second as bytes per second:
+
+| Series | What they hold |
+| --- | --- |
+| `powermax_array_*` | The array: its model and microcode, usable, used and subscribed capacity, data reduction, health scores, whether Unisphere collects its performance, and its 5-minute response times, IOPS, throughput, cache and busy figures |
+| `powermax_alert_open` | One series per alert Unisphere has open for the array, Minor and up, until someone acknowledges or clears it |
+| `powermax_storage_group_*` | Each storage group: its capacity and volumes, its 5-minute response times, IOPS and throughput, and its 5-second figures when it is registered for real time |
+| `powermax_volume_*` | Each volume in a storage group: its capacity, and its figures when its storage group is registered for real time |
+| `powermax_srp_*` | Each storage resource pool: its capacity and response time |
+| `powermax_director_*` | Each director: its role, status and busy figures, and `powermax_director_offline` while it is not online |
+| `powermax_port_*` | Each port: its protocol, speed, light levels and busy figures, and `powermax_port_offline` while a port someone relies on is down |
+| `powermax_srdf_group_*` | Each SRDF group: its remote array and modes, its lag and throughput, and `powermax_srdf_group_not_healthy` while it is suspended or offline |
+
+- **Every 5 minutes**, or 10 to go easier on a busy Unisphere (**More fields** on the connection's form): Unisphere computes performance every 5 minutes.
+- **Only the arrays Unisphere manages itself.** The remote arrays it sees through SRDF are listed on the connection's page, and read by the Unisphere at their own site: connect that one too.
+- **Up to 5,000 storage groups and 10,000 volumes per array**, and 200 new alerts per collection (the rest come in the next ones). A list cut short says so on the connection's page.
+- **Unisphere 10.1 and 10.2** list no ports or SRDF groups to a read-only account: the probe reads the directors one by one, takes the SRDF groups from the storage groups, and says so.
+
 ## Troubleshooting
 
 :::details Run the diagnostic script first
@@ -446,6 +497,18 @@ OneUptime registers a storage array by its `storage.array.name`, which the agent
 
 :::details Sending metrics without the agent
 The agent is one stock collector config, so collectors you already run can do the same job: copy the scrape jobs and the `resource` processor from the shipped config into your own. The `storage.array.name` resource attribute is what registers the array in OneUptime, and the deletes of `service.name` / `service.instance.id` keep the data from being filed under a Service: keep both, and keep the `scrape_endpoint` labels.
+:::
+
+:::details Test connection says Unisphere's certificate is not trusted
+Unisphere for PowerMax signs its own certificate unless someone installed one from a certificate authority. Check the fingerprint the test shows against Unisphere's own, then click **Trust this certificate** and test again. When Unisphere's certificate is renewed, the collection stops with **The server's certificate changed** until you trust the new one: nothing is sent to it before.
+:::
+
+:::details Test connection says the account may not read the arrays
+Unisphere answers `403` for an account without a role on the array. Authorize the user with the **Monitor** role on each array under **Settings → Users and Groups**, and **PerfMonitor** for performance. An array the account has no role on is listed on the connection's page with why, and the others are read.
+:::
+
+:::details A PowerMax shows no response times or IOPS
+Unisphere collects no performance for the array, or the account lacks **PerfMonitor**: the connection's page says which. Turn **Diagnostic** collection on under **Settings → Performance → System Registrations**. A volume's figures, and a storage group's every 5 seconds, need the storage group registered for **Real Time** there too.
 :::
 
 ## Next steps

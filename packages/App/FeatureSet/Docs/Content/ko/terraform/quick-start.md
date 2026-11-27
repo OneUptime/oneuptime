@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-모니터의 `monitor_steps`는 무엇을 확인하고 각 결과가 무엇을 뜻하는지 나타냅니다. 각 확인 후에는 처음 일치한 기준이 상태를 정합니다. 각 부분은 [모니터 단계](/docs/terraform/monitor-steps)에서 설명합니다.
+모니터의 `monitor_steps`는 무엇을 확인하고 각 결과가 무엇을 뜻하는지 나타냅니다. 각 확인 후에는 일치하고 상태를 바꾸는 첫 기준이 상태를 정합니다. 각 부분은 [모니터 단계](/docs/terraform/monitor-steps)에서 설명합니다.
 
 ### 계획하고 적용하기
 

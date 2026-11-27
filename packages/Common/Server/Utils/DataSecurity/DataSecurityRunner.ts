@@ -10,7 +10,7 @@ import DataSecurityCustomDataTypeService from "../../Services/DataSecurityCustom
 import DataSecurityScanService from "../../Services/DataSecurityScanService";
 import DataSecuritySettingService from "../../Services/DataSecuritySettingService";
 import ChangeEventService from "../../Services/ChangeEventService";
-import { EncryptionSecret } from "../../EnvironmentConfig";
+import { EncryptionSecret, IsBillingEnabled } from "../../EnvironmentConfig";
 import { CloudConnectionSettings } from "../CloudConnection/CloudConnectorTypes";
 import {
   readAwsDataSecurity,
@@ -36,6 +36,11 @@ import {
   sampleObjectStore,
 } from "./Content/ObjectStoreSampler";
 import { DatabaseConnection, sampleDatabase } from "./Content/DatabaseSampler";
+import { sampleSearchStore } from "./Content/SearchStoreSampler";
+import {
+  createSearchTransport,
+  getWorkersPostureReadFrom,
+} from "./Content/SearchStoreHttp";
 import { assertDatabaseConnectionAllowed } from "../DataObservability/DatabaseConnectionGuard";
 import DataSecurityDiscovery from "./DataSecurityDiscovery";
 import { queueDataStoreOwnerProposals } from "./DataSecurityJobs";
@@ -113,6 +118,7 @@ import {
   DataStoreKindInfo,
   DataStoreProvider,
   getDataStoreKindInfo,
+  isSearchEngineDataStoreKind,
 } from "../../../Types/DataSecurity/DataStoreKind";
 import {
   compileCustomDataType,
@@ -796,7 +802,7 @@ export default class DataSecurityRunner {
           startedAt,
           status: DataSecurityScanStatus.Skipped,
           errorMessage:
-            "Content scanning needs the connection's content permission, or a connection string for a database.",
+            "Content scanning needs the connection's content permission, or a connection string for a store you run.",
         });
         return;
       }
@@ -841,6 +847,22 @@ export default class DataSecurityRunner {
     if (info.provider === DataStoreProvider.SelfManaged) {
       if (!store.connectionString) {
         return null;
+      }
+
+      /*
+       * A search cluster, over its HTTP API (#11140): every request
+       * guarded as a data source's is, and its exposure checked from
+       * where the workers run.
+       */
+      if (isSearchEngineDataStoreKind(store.kind)) {
+        return await sampleSearchStore(
+          { kind: store.kind!, connectionString: store.connectionString },
+          options,
+          {
+            transport: createSearchTransport(),
+            readFrom: getWorkersPostureReadFrom(IsBillingEnabled),
+          },
+        );
       }
 
       const connection: DatabaseConnection = {
