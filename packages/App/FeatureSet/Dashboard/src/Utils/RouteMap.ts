@@ -695,6 +695,8 @@ export const StorageArrayRoutePath: Dictionary<string> = {
     "settings/rules-audit-logs",
   [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.STORAGE_ARRAYS_ARCHIVED]: `archived`,
+  [PageMap.STORAGE_ARRAYS_CONNECTIONS]: `connections`,
+  [PageMap.STORAGE_ARRAYS_CONNECTION_VIEW]: `connections/${RouteParams.ModelID}`,
 };
 
 export const HostRoutePath: Dictionary<string> = {
@@ -6832,6 +6834,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STORAGE_ARRAYS_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTIONS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_CONNECTION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTION_VIEW]
     }`,
   ),
 

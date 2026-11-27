@@ -24,6 +24,7 @@ import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDes
 import { STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS } from "../Utils/StorageArrayHealth";
 import StorageArrayResourceTable from "../../../Components/StorageArray/StorageArrayResourceTable";
 import StorageArrayResourceColumns from "../../../Components/StorageArray/StorageArrayResourceColumns";
+import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { getStorageArrayKindColumns } from "../../../Components/StorageArray/StorageArrayKindView";
 import { getStorageArrayInventoryPartRoute } from "../../../Components/StorageArray/Part/StorageArrayPartRoutes";
 import StorageArrayResourceUtils, {
@@ -223,6 +224,13 @@ const StorageArrayInventory: FunctionComponent<
       description={page?.description || definition?.description || ""}
       noItemsMessage={
         page?.noItemsMessage || definition?.noItemsMessage || NOTHING_HERE_YET
+      }
+      // The order the kind's list opens in, where its platform says.
+      sortBy={definition?.sortBy?.field}
+      sortOrder={
+        definition?.sortBy?.descending
+          ? SortOrder.Descending
+          : SortOrder.Ascending
       }
       // What the platform's columns read is any of the row's values.
       {...(page?.columns

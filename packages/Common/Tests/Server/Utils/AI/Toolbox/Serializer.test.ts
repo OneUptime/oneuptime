@@ -297,6 +297,31 @@ describe("ToolResultSerializer.redact - personal data", () => {
     },
   );
 
+  // #11199: in a URL a tool result holds, its groups apart by %20 or a form's "+".
+  test.each([
+    [
+      "GET /pay?card=4111%201111%201111%201111&step=2",
+      "GET /pay?card=[redacted-card]&step=2",
+    ],
+    [
+      "GET /pay?card=4111+1111+1111+1111&step=2",
+      "GET /pay?card=[redacted-card]&step=2",
+    ],
+    [
+      "GET /login?next=%2Fpay%3Fcard%3D4111%2B1111%2B1111%2B1111",
+      "GET /login?next=%2Fpay%3Fcard%3D[redacted-card]",
+    ],
+  ])(
+    "a grouped card in a URL is removed, the rest of it kept: %s",
+    (line: string, expected: string) => {
+      expect(redactionOf(line)).toBe(expected);
+    },
+  );
+
+  test("a sum of four numbers a form wrote that is no card's shape stays", () => {
+    expect(redactionOf("GET /calc?q=1234+5678")).toBe("GET /calc?q=1234+5678");
+  });
+
   test('an excluded attribute keeps its "-@", encoded or not, and an ASCII address after a dash is found from its first letter', () => {
     expect(redactionOf("-@http.route:/health")).toBe("-@http.route:/health");
     expect(redactionOf("-alice@example.com")).toBe("-[redacted-email]");

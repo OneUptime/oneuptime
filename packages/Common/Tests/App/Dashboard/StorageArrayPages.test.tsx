@@ -217,6 +217,7 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 
@@ -412,6 +413,14 @@ function attentionRows(testId: string): Array<AttentionRow> {
 }
 
 beforeEach(() => {
+  /*
+   * Which of the array's alerts watch a part is the server's answer
+   * (POST /monitor/recommendation-coverage, #11074): this project has no
+   * monitors, so none does.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   mockPartsFail = false;
   mockListQueries = [];
   mockLastParam = "";

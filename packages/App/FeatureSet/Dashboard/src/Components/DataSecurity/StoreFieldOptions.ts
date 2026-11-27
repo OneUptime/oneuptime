@@ -28,6 +28,8 @@ export const STORE_EXPOSURE_OPTIONS: Array<DropdownOption> = [
   { label: "Internet reachable", value: DataStoreExposure.InternetReachable },
   { label: "Private", value: DataStoreExposure.Private },
   { label: "Unknown", value: DataStoreExposure.Unknown },
+  { label: "Not checked yet", value: DataStoreExposure.NotChecked },
+  { label: "Can't be checked", value: DataStoreExposure.CannotBeChecked },
 ];
 
 /*

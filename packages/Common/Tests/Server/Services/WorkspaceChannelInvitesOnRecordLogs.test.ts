@@ -649,6 +649,19 @@ beforeEach(() => {
     .spyOn(AlertFeedService, "createAlertFeedItem")
     .mockResolvedValue(undefined);
 
+  // A maintenance event's owner lines name it too, as they are posted (#11223).
+  jest
+    .spyOn(ScheduledMaintenanceService, "getScheduledMaintenanceNumber")
+    .mockResolvedValue({
+      number: 1,
+      numberWithPrefix: "SM-1",
+    });
+  jest
+    .spyOn(
+      ScheduledMaintenanceService,
+      "getScheduledMaintenanceLinkInDashboard",
+    )
+    .mockResolvedValue(LINK);
   jest
     .spyOn(
       ScheduledMaintenanceFeedService,

@@ -1,11 +1,12 @@
 # Set Up Data Security
 
-Data Security reads only what you let it. Each cloud connection is read at one of three levels, a database you run is read with a connection string you give it, and telemetry needs nothing. This page says what each choice lets OneUptime read, the exact permissions it grants, and what OneUptime keeps of what it reads.
+Data Security reads only what you let it. Each cloud connection is read at one of three levels, a database or search cluster you run is read with a connection string you give it, and telemetry needs nothing. This page says what each choice lets OneUptime read, the exact permissions it grants, and what OneUptime keeps of what it reads.
 
 :::cards
 - [Choose a level](#choose-a-level-for-each-connection): Off, Configuration only, or Configuration and content samples.
 - [What each level grants](#what-each-level-grants): The AWS actions, and the Azure and Google Cloud roles.
-- [Scan a database you run](#scan-a-database-you-run): A read-only connection string, or a probe in your network.
+- [Scan a store you run](#scan-a-store-you-run): A read-only connection string, or a probe in your network.
+- [What OneUptime checks on a store you run](#what-oneuptime-checks-on-a-store-you-run): Whether it answers without credentials, asked from where its scan runs.
 - [What OneUptime keeps](#what-oneuptime-keeps): Counts, locations and masked samples, never a value.
 - [Let Data Security close an exposure](#let-data-security-close-an-exposure): The only writes a connection can be given, off until you turn them on.
 :::
@@ -173,17 +174,75 @@ A scan reads a little of a store, within the project's limits, and stops after 8
 - **Buckets and containers** are sampled by kind, not by count. Object names are listed first, at most ten times as many as the scan may read and never more than 200,000. Each name becomes its pattern, with dates, UUIDs, long hex runs and numbers made `*`, so `exports/2026-10-27/users-0001.csv` is `exports/*/users-*.csv`. The newest objects of each pattern are read, one of each before a second of any, and at most 5 of one pattern. Each object is read from its start: at most **Bytes Per Object** of it, and **Bytes Per Scan** in all. A scan samples at most 10 containers of an Azure storage account.
 - **Files are read as what they are.** CSV and TSV by column, JSON and JSON lines by path, `.env`, `.ini`, `.properties`, TOML and YAML by key, XML and HTML as their text, Word, Excel and PowerPoint files by their text and cells, and anything else as free text. A gzip file is inflated first. Images, Parquet, Avro, PDF and other binary formats are not read, and the scan says so.
 - **Datasets and databases** are read table by table: at most **Tables Per Scan** tables, and **Rows Per Table** rows of each.
+- **Search clusters** are read index by index, as a database is read table by table: at most **Tables Per Scan** indices, and **Rows Per Table** documents of each, the newest first where the index has a `@timestamp`. A data stream is read as one index, and indices whose names differ only by dates or numbers, such as `logs-2026.11.26` and `logs-2026.11.27`, as one, at the newest that holds documents. The cluster's own indices, whose names start with a dot, are not read. Every request is a GET, so the scan cannot write to the cluster, whatever its user may do.
 
 Each scan keeps a record of what it read, by name: the objects, tables or services, never their contents. What it could not read - a request the cloud refused, the deadline, the byte budget - is a warning on the scan, and the scan is marked **Partly succeeded**.
 
 A store's **Overview** says when its content is scanned next. **Next Content Scan** is the time something scans it, **Due now** while it waits its turn, and **Overdue** once it has been due for an hour. Otherwise it says why nothing will: **Off** while **Scan Content** is off for the store or the project, or while the store is no longer found; **Not scanned** when OneUptime cannot sample its kind of store, or its probe cannot scan it; and **Waiting** while its probe is disconnected. A service's telemetry is scanned **Every hour**, with the project's telemetry scan. **Scan Now** is turned off, with the reason, for a store nothing would scan. A scan under way when content scanning is turned off, or when the project is suspended, keeps nothing it found.
 
-## Scan a database you run
+## Scan a store you run
 
-Data Security samples PostgreSQL, MySQL and SQL Server databases, in one of two ways. A database the Database product monitors, or one your services talk to on the service map, is a store already. A database no scan finds, add as a store yourself.
+Data Security samples PostgreSQL, MySQL and SQL Server databases, and Elasticsearch and OpenSearch clusters, in one of two ways. A database the Database product monitors, or one your services talk to on the service map, is a store already. Add any other yourself, with **Add a Store You Run** under **Data Stores**: once you pick its **Kind**, the form says what OneUptime will check on it and what it cannot, and asks only for what that kind reads. A kind OneUptime does not sample, such as MongoDB or Redis, takes no connection string: it is listed with its owners, labels and sensitivity, and its exposure reads **Can't be checked**.
 
-- **From OneUptime's workers.** In the store's **Settings**, set **Connection String** to one that can only read, such as `postgresql://reader:password@db.internal:5432/app`. It is encrypted at rest and never returned by the API. Give it a database user that can read and do nothing else.
-- **From a probe in your network.** Pick the probe under **Scan From Probe**, and enter in **Probe Connection Variable** the name of the environment variable on that probe that holds the connection string. The probe reads the database from inside your network and sends back only what it found: the connection string never reaches OneUptime. See [Custom Probes](/docs/probe/custom-probe) to run a probe.
+- **From OneUptime's workers.** In the store's **Settings**, set **Connection String** to one that can only read, such as `postgresql://reader:password@db.internal:5432/app`, or `https://reader:password@search.internal:9200` for a search cluster. It is encrypted at rest and never returned by the API. Give it a user that can read and do nothing else. On OneUptime Cloud, the workers reach only addresses on the internet.
+- **From a probe in your network.** Pick the probe under **Scan From Probe**, and enter in **Probe Connection Variable** the name of the environment variable on that probe that holds the connection string. The probe reads the store from inside your network and sends back only what it found: the connection string never reaches OneUptime. See [Custom Probes](/docs/probe/custom-probe) to run a probe. A probe of an earlier release is handed databases only: update it to scan a search cluster.
+
+### A search cluster's connection string
+
+Elasticsearch and OpenSearch have no connection string of their own, so OneUptime takes the cluster's address, as curl reaches it, with a read-only user in it, or an Elasticsearch API key after it, written `id:key` or as the encoded value Elasticsearch hands out:
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` accepts a certificate no authority signed, such as the one Elasticsearch makes when it first starts: use it only on a network you trust. Nothing else may follow the address. For a cluster whose certificate your own authority signed, give the address as JSON, with that authority's certificate:
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` takes the place of `username` and `password`, and `"verifyCertificate": false` the place of the certificate.
+
+Give the user a role that can read and do nothing else. On Elasticsearch:
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+On OpenSearch, with its security plugin:
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Then give a user that role, and only that role. Narrow `*` to the indices to scan.
+
+### What OneUptime checks on a store you run
+
+A store in a cloud account is checked from the settings its cloud keeps. A store you run has none OneUptime can read, so an Elasticsearch or OpenSearch cluster is checked from what it answers at its own address. With each content scan, from where the scan runs, it is asked without credentials:
+
+| Asked | What it tells |
+| --- | --- |
+| Who is asking: `/_security/_authenticate` on Elasticsearch, `/_plugins/_security/authinfo` on OpenSearch | Whether it asks for credentials at all |
+| A search that returns no documents, only whether there are any | Whether whoever reaches it can read its documents |
+| Its address over plain HTTP, when its connection string is HTTPS | Whether it takes connections without TLS |
+
+Nothing is written to it, so a cluster with users and roles cannot be asked whether its anonymous user may write: that line of its **Configuration** reads **Can't be checked**. One with no access control at all takes every request, writes too. A cluster that answers anyone fails [Anyone who reaches it can read it without credentials](/docs/data-security/checks-and-issues#exposure).
+
+Where the scan runs decides what else can be known. OneUptime Cloud's workers reach only addresses on the internet, so a cluster they scan is reachable from the internet, and its exposure says so. From a probe, or from a OneUptime you host, the scan runs inside a network, and whether the internet reaches the cluster can't be known from there: its exposure reads **Unknown**, and its **Overview** says why. Its encryption at rest, backups and access logging are its servers' own, not visible from its address, and are not checked.
+
+A database you run is sampled, not asked, and how it can be reached is not checked: its exposure reads **Can't be checked**, as does that of a kind OneUptime does not sample. Until a store is first checked, its exposure reads **Not checked yet**, so a store waiting for its first check is never taken for one that cannot be checked.
 
 ## What OneUptime keeps
 
@@ -244,11 +303,15 @@ Data Security's settings are one set per project, in the **Settings** section of
 ## Troubleshooting
 
 :::details A store says its content was not scanned
-The scan says why: "Content scanning needs the connection's content permission, or a connection string for a database." Set the store's connection to **Configuration and content samples** and run its command again, or give the database a connection string. Check, too, that **Scan Content** is on for the store and in the project's settings.
+The scan says why: "Content scanning needs the connection's content permission, or a connection string for a store you run." Set the store's connection to **Configuration and content samples** and run its command again, or give the store you run a connection string. Check, too, that **Scan Content** is on for the store and in the project's settings.
 :::
 
 :::details A check says it cannot tell
 A fact the reader could not read - a permission the role does not have, an API that is not turned on - is unknown, never guessed. Its check reports that it cannot tell, and an issue it opened stays open: nobody may conclude a problem is fixed because OneUptime could not look. The configuration read's warnings say what it could not read. Run the connection's command again to grant what is missing.
+:::
+
+:::details A store's exposure says Can't be checked
+OneUptime has no way to read how a store of its kind can be reached: a database you run, or a kind it does not sample. It is not a failure, and no issue opens for it. Its **Settings** say what is checked on it, under **What OneUptime Checks**. A store whose exposure says **Not checked yet** is one OneUptime can check and has not yet: a search cluster before its first content scan, or a store in a cloud account before its connection's first configuration read.
 :::
 
 :::details No S3 buckets or BigQuery datasets appear

@@ -63,7 +63,7 @@ Klicken Sie auf **Weiter**. Auf diesem Schritt wird nichts als fehlend markiert,
 
 ### Wie Kriterien ausgewertet werden
 
-Das Ergebnis jeder Prüfung durchläuft die Kriterien von oben nach unten, und das erste zutreffende entscheidet, was passiert. Dieses Kriterium kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles in beliebiger Kombination. Trifft keines zu, zeigt der Monitor seinen **Standard-Überwachungsstatus**, der unter **Weitere Felder** unterhalb der Kriterien eingestellt wird (**Betriebsbereit**, sofern Sie keinen anderen wählen).
+Das Ergebnis jeder Prüfung durchläuft die Kriterien von oben nach unten, und das erste zutreffende entscheidet, was passiert. Dieses Kriterium kann den Status des Monitors ändern, einen Vorfall melden, eine Warnung erstellen oder alles in beliebiger Kombination. Eines, das keinen Status ändert, entscheidet keinen: Das erste Kriterium darunter, das zutrifft und den Status ändert, setzt ihn. Trifft keines zu, zeigt der Monitor seinen **Standard-Überwachungsstatus**, der unter **Weitere Felder** unterhalb der Kriterien eingestellt wird (**Betriebsbereit**, sofern Sie keinen anderen wählen).
 
 ```mermaid title="Von einer Prüfung zu einem Status, einem Vorfall oder einer Warnung"
 flowchart TB

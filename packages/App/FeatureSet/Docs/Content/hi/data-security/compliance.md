@@ -91,7 +91,7 @@ flowchart TB
 | अनुच्छेद 25 | डिज़ाइन से और डिफ़ॉल्ट रूप से डेटा संरक्षण | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | अनुच्छेद 28 | प्रोसेसर | `sensitive-data-to-ai` |
 | अनुच्छेद 30 | प्रोसेसिंग गतिविधियों के रिकॉर्ड | खुद डेटा सुरक्षा से पूरी होती है |
-| अनुच्छेद 32 | प्रोसेसिंग की सुरक्षा | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| अनुच्छेद 32 | प्रोसेसिंग की सुरक्षा | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | अनुच्छेद 44-49 | तीसरे देशों को ट्रांसफ़र | `residency-violation` |
 
 ### CCPA
@@ -99,7 +99,7 @@ flowchart TB
 | आवश्यकता | यह क्या माँगती है | जांचें |
 | --- | --- | --- |
 | 1798.100(c) | सिर्फ़ उतना संग्रह जितना ज़रूरी है | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| 1798.150 | उचित सुरक्षा प्रक्रियाएं | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 1798.150 | उचित सुरक्षा प्रक्रियाएं | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
 
@@ -107,7 +107,7 @@ flowchart TB
 | --- | --- | --- |
 | 164.308(a)(4) | सूचना एक्सेस प्रबंधन | `unused-access` |
 | 164.308(a)(7) | आकस्मिक योजना | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
-| 164.312(a)(1) | एक्सेस नियंत्रण | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 164.312(a)(1) | एक्सेस नियंत्रण | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 164.312(a)(2)(iv) | एन्क्रिप्शन और डिक्रिप्शन | `not-encrypted-at-rest`, `no-customer-managed-key` |
 | 164.312(b) | ऑडिट नियंत्रण | `access-not-logged` |
 | 164.312(e)(1) | ट्रांसमिशन सुरक्षा | `encryption-in-transit-not-enforced`, `weak-tls` |
@@ -120,7 +120,7 @@ flowchart TB
 | 3.4.1 | दिखाए जाने पर कार्ड नंबर मास्क किए जाते हैं | `card-numbers-readable`, `sensitive-data-in-telemetry` |
 | 3.5.1 | कार्ड नंबर जहाँ भी संग्रहीत हों, अपठनीय होते हैं | `not-encrypted-at-rest`, `no-customer-managed-key`, `card-numbers-readable` |
 | 4.2.1 | मज़बूत क्रिप्टोग्राफ़ी ट्रांज़िट में कार्ड डेटा की सुरक्षा करती है | `encryption-in-transit-not-enforced`, `weak-tls` |
-| 7.2 | एक्सेस ज़रूरत के हिसाब से तय और असाइन किया जाता है | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 7.2 | एक्सेस ज़रूरत के हिसाब से तय और असाइन किया जाता है | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 7.2.4 | खातों और उनके एक्सेस की समीक्षा होती है | `unused-access` |
 | 8.3.2 | संग्रहीत होने पर प्रमाणीकरण फ़ैक्टर अपठनीय होते हैं | `plaintext-passwords` |
 | 10.2 | ऑडिट लॉग कार्ड डेटा तक एक्सेस दर्ज करते हैं | `access-not-logged` |
@@ -130,7 +130,7 @@ flowchart TB
 | आवश्यकता | यह क्या माँगती है | जांचें |
 | --- | --- | --- |
 | A1.2 | बैकअप और रिकवरी | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
-| CC6.1 | लॉजिकल एक्सेस सुरक्षा | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| CC6.1 | लॉजिकल एक्सेस सुरक्षा | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | CC6.2 | ज़रूरत न रहने पर एक्सेस हटाया जाता है | `unused-access` |
 | CC6.7 | जानकारी का ट्रांसमिशन | `encryption-in-transit-not-enforced`, `weak-tls` |
 | CC7.2 | सिस्टम घटकों की निगरानी | `access-not-logged` |
@@ -141,7 +141,7 @@ flowchart TB
 | --- | --- | --- |
 | A.5.9 | जानकारी और उससे जुड़े अन्य एसेट की इन्वेंटरी | `no-owner` |
 | A.5.12 | जानकारी का वर्गीकरण | खुद डेटा सुरक्षा से पूरी होती है |
-| A.5.15 | एक्सेस नियंत्रण | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| A.5.15 | एक्सेस नियंत्रण | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | एक्सेस अधिकार | `unused-access` |
 | A.5.34 | PII की गोपनीयता और संरक्षण | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.11 | डेटा मास्किंग | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
@@ -155,7 +155,7 @@ flowchart TB
 | आवश्यकता | यह क्या माँगती है | जांचें |
 | --- | --- | --- |
 | ID.AM-07 | डेटा और मेटाडेटा की इन्वेंटरी रखी जाती है | `no-owner` |
-| PR.AA-05 | एक्सेस अनुमतियाँ प्रबंधित की जाती हैं | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
+| PR.AA-05 | एक्सेस अनुमतियाँ प्रबंधित की जाती हैं | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
 | PR.DS-01 | संग्रहीत डेटा सुरक्षित रहता है | `not-encrypted-at-rest`, `no-customer-managed-key`, `secrets-stored`, `secrets-in-telemetry` |
 | PR.DS-02 | ट्रांज़िट में डेटा सुरक्षित रहता है | `encryption-in-transit-not-enforced`, `weak-tls` |
 | PR.DS-11 | डेटा के बैकअप रखे और परखे जाते हैं | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
@@ -167,13 +167,13 @@ flowchart TB
 | --- | --- | --- |
 | अनुच्छेद 6 | ज़रूरत और उद्देश्य की सीमा | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | अनुच्छेद 33 | डेटा का अंतरराष्ट्रीय ट्रांसफ़र | `residency-violation` |
-| अनुच्छेद 46 | सुरक्षा उपाय | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| अनुच्छेद 46 | सुरक्षा उपाय | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### DPDP
 
 | आवश्यकता | यह क्या माँगती है | जांचें |
 | --- | --- | --- |
-| धारा 8(5) | उचित सुरक्षा उपाय | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| धारा 8(5) | उचित सुरक्षा उपाय | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | धारा 8(7) | उद्देश्य पूरा होने पर मिटाना | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | धारा 16 | भारत के बाहर ट्रांसफ़र | `residency-violation` |
 

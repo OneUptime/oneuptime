@@ -24,6 +24,8 @@
  *   ?lang=      de reads the German locale file, fa the Persian one (right
  *               to left)
  *   ?theme=     dark adds html.dark (handled by server.js)
+ *   ?test=      what a Unisphere connection test finds (#11004): ok
+ *               (default) | certificate | role | unreachable | perfoff
  *
  * Beside the Pure arrays, a NetApp ONTAP cluster and an Amazon FSx for
  * NetApp ONTAP file system (#11001), each what OneUptime keeps of what the
@@ -64,6 +66,10 @@ import StorageArrayBucketDetail from "../../../App/FeatureSet/Dashboard/src/Page
 import StorageArrayInventory from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Inventory";
 import StorageArrayInventoryPart from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/InventoryPart";
 import StorageArrayDocumentation from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Documentation";
+// The Unisphere connections a probe reads Dell PowerMax arrays through (#11004).
+import StorageArrayProductLayout from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Layout";
+import StorageArrayConnections from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/Connections";
+import StorageArrayConnectionView from "../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/ConnectionView";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import Metric from "Common/Models/AnalyticsModels/Metric";
@@ -104,6 +110,21 @@ const LANGUAGE = ["de", "fa"].includes(params.get("lang"))
 const CALM = params.get("array") === "calm";
 const DISCONNECTED = params.get("collector") === "disconnected";
 const INVENTORY_FAILS = params.get("fail") === "inventory";
+/*
+ * What a Unisphere connection test finds (#11004): ok (default), certificate
+ * (a self-signed certificate nobody trusted yet), role (the account has no
+ * role on the arrays), unreachable (nothing answers on 8443) or perfoff
+ * (Unisphere collects no performance for one of the arrays).
+ */
+const CONNECTION_TEST = [
+  "ok",
+  "certificate",
+  "role",
+  "unreachable",
+  "perfoff",
+].includes(params.get("test"))
+  ? params.get("test")
+  : "ok";
 
 // A Persian page reads right to left, as production lays it out.
 if (params.get("dir") === "rtl" || LANGUAGE === "fa") {
@@ -321,6 +342,320 @@ const fsxFileSystem = netAppArray(
   ONTAP_INVENTORY.fsx,
   "Amazon FSx for NetApp ONTAP, for the team shares in eu-central-1.",
 );
+
+/*
+ * ---------------------------------------------------------------------------
+ * Dell PowerMax, read by a probe through Unisphere (#11004)
+ * ---------------------------------------------------------------------------
+ *
+ * Two Unisphere for PowerMax connections on the project's own probe:
+ * unisphere-fra collects - a PowerMax 8500 on PowerMaxOS 10 with a storage
+ * group registered for real time, a PowerMax 2000 on 5978 whose performance
+ * Unisphere does not collect, and the SRDF partner in Amsterdam it only sees
+ * - and unisphere-ams stopped two days ago, when its certificate changed.
+ */
+const PROBE_ID = uuid("59000000", 1);
+const GLOBAL_PROBE_ID = uuid("59000000", 2);
+const UNISPHERE_FRA_ID = uuid("5a000000", 1);
+const UNISPHERE_AMS_ID = uuid("5a000000", 2);
+const PMAX_8500_ID = uuid("58000000", 11);
+const PMAX_2000_ID = uuid("58000000", 12);
+const PMAX_AMS_ID = uuid("58000000", 13);
+const TRUSTED_FINGERPRINT =
+  "4F:2A:9C:11:D0:7E:63:B8:05:AA:21:CF:94:3E:7B:60:18:E2:5D:C9:70:0B:4A:F6:83:29:DE:51:6C:B7:0F:A4";
+const PRESENTED_FINGERPRINT =
+  "B1:07:6E:F2:38:9D:C4:52:0A:E9:71:3B:86:D5:2F:60:C8:14:A7:5E:93:0C:B2:6F:41:D8:E3:27:9A:05:7C:B6";
+
+const probes = [
+  {
+    _id: PROBE_ID,
+    name: "probe-fra-dc1",
+    description: "Beside Unisphere, in the Frankfurt data centre.",
+    isGlobalProbe: false,
+    projectId: PROJECT_ID,
+    connectionStatus: "connected",
+    lastAlive: new Date(LOADED_AT - 15 * 1000),
+    probeVersion: "18.0.0",
+    shouldAutoEnableProbeOnNewMonitors: false,
+  },
+  {
+    _id: GLOBAL_PROBE_ID,
+    name: "Europe (Frankfurt)",
+    isGlobalProbe: true,
+    connectionStatus: "connected",
+    lastAlive: new Date(LOADED_AT - 15 * 1000),
+    shouldAutoEnableProbeOnNewMonitors: true,
+  },
+];
+
+const PERFORMANCE_OFF_WARNING =
+  "Unisphere collects no performance for 000197900456: turn Diagnostic collection on under Settings > Performance > System Registrations.";
+
+function powerMaxSummary(options) {
+  const perfOff = Boolean(options && options.perfOff);
+  return {
+    serverProductName: "Unisphere for PowerMax",
+    serverVersion: "T10.4.0.83",
+    apiVersion: "104",
+    arrays: [
+      {
+        id: "000120000123",
+        model: "PowerMax_8500",
+        osVersion: "10.1.0.3",
+        isLocal: true,
+        isCollected: true,
+        isPerformanceCollected: true,
+        isRealtimeCollected: true,
+        realtimeObjects: ["sg_oracle_prod"],
+        counts: {
+          StorageGroup: 42,
+          Volume: 618,
+          Director: 16,
+          StorageResourcePool: 1,
+          SrdfGroup: 2,
+        },
+        warnings: [],
+      },
+      {
+        id: "000197900456",
+        model: "PowerMax_2000",
+        osVersion: "5978.711.711",
+        isLocal: true,
+        isCollected: true,
+        isPerformanceCollected: !perfOff ? true : false,
+        isRealtimeCollected: false,
+        counts: {
+          StorageGroup: 7,
+          Volume: 96,
+          Director: 8,
+          StorageResourcePool: 1,
+          SrdfGroup: 0,
+        },
+        warnings: perfOff ? [PERFORMANCE_OFF_WARNING] : [],
+      },
+      {
+        id: "000220200789",
+        model: "PowerMax_8500",
+        osVersion: "10.1.0.3",
+        isLocal: false,
+        isCollected: false,
+        counts: {},
+        warnings: [],
+      },
+    ],
+    resourceCount: 790,
+    datapointCount: 12840,
+    warnings: [],
+  };
+}
+
+/*
+ * What unisphere-ams last found, two days ago, before its certificate
+ * changed: its own PowerMax 8500, and Frankfurt's array it replicates with.
+ */
+const amsSummary = {
+  serverProductName: "Unisphere for PowerMax",
+  serverVersion: "T10.4.0.83",
+  apiVersion: "104",
+  arrays: [
+    {
+      id: "000220200789",
+      model: "PowerMax_8500",
+      osVersion: "10.1.0.3",
+      isLocal: true,
+      isCollected: true,
+      isPerformanceCollected: true,
+      isRealtimeCollected: false,
+      counts: {
+        StorageGroup: 38,
+        Volume: 590,
+        Director: 16,
+        StorageResourcePool: 1,
+        SrdfGroup: 2,
+      },
+      warnings: [],
+    },
+    {
+      id: "000120000123",
+      model: "PowerMax_8500",
+      osVersion: "10.1.0.3",
+      isLocal: false,
+      isCollected: false,
+      counts: {},
+      warnings: [],
+    },
+  ],
+  resourceCount: 650,
+  datapointCount: 11020,
+  warnings: [],
+};
+
+const connections = [
+  {
+    _id: UNISPHERE_FRA_ID,
+    name: "unisphere-fra",
+    description: "Unisphere for PowerMax in Frankfurt.",
+    storageSystem: "dell.powermax",
+    address: "https://unisphere-fra.acme-storage.example:8443",
+    username: "oneuptime-monitor",
+    isPasswordSet: true,
+    projectId: PROJECT_ID,
+    collectionProbeId: PROBE_ID,
+    collectionProbe: probes[0],
+    trustedCertificateFingerprint: TRUSTED_FINGERPRINT,
+    collectionIntervalInMinutes: 5,
+    collectionStatus: "Succeeded",
+    collectionErrorCode: null,
+    collectionError: null,
+    presentedCertificate: null,
+    collectionSummary: powerMaxSummary({ perfOff: true }),
+    lastCollectionAt: new Date(LOADED_AT - 2 * MINUTE),
+    lastSuccessfulCollectionAt: new Date(LOADED_AT - 2 * MINUTE),
+    nextCollectionAt: new Date(LOADED_AT + 3 * MINUTE),
+    createdAt: new Date(LOADED_AT - 30 * 24 * 60 * MINUTE),
+  },
+  {
+    _id: UNISPHERE_AMS_ID,
+    name: "unisphere-ams",
+    description: "Unisphere for PowerMax in Amsterdam.",
+    storageSystem: "dell.powermax",
+    address: "https://unisphere-ams.acme-storage.example:8443",
+    username: "oneuptime-monitor",
+    isPasswordSet: true,
+    projectId: PROJECT_ID,
+    collectionProbeId: PROBE_ID,
+    collectionProbe: probes[0],
+    trustedCertificateFingerprint: TRUSTED_FINGERPRINT,
+    collectionIntervalInMinutes: 5,
+    collectionStatus: "Failed",
+    collectionErrorCode: "CertificateChanged",
+    collectionError:
+      "unisphere-ams.acme-storage.example:8443 presented a certificate other than the one this connection trusts. Nothing was sent to it.",
+    presentedCertificate: {
+      fingerprint256: PRESENTED_FINGERPRINT,
+      subject: "CN=unisphere-ams.acme-storage.example",
+      issuer: "CN=unisphere-ams.acme-storage.example",
+      validFrom: new Date(LOADED_AT - 2 * 24 * 60 * MINUTE).toISOString(),
+      validTo: new Date(LOADED_AT + 363 * 24 * 60 * MINUTE).toISOString(),
+      isSelfSigned: true,
+      verificationError: "self-signed certificate",
+    },
+    collectionSummary: amsSummary,
+    lastCollectionAt: new Date(LOADED_AT - 4 * MINUTE),
+    lastSuccessfulCollectionAt: new Date(LOADED_AT - 2 * 24 * 60 * MINUTE),
+    nextCollectionAt: new Date(LOADED_AT + MINUTE),
+    createdAt: new Date(LOADED_AT - 30 * 24 * 60 * MINUTE),
+  },
+];
+
+// The two arrays unisphere-fra collects, as ingest made their rows.
+function powerMaxArray(id, systemId, model, osVersion, options) {
+  return {
+    _id: id,
+    name: systemId,
+    storageSystem: "dell.powermax",
+    reportedName: systemId,
+    systemId: systemId,
+    model: model,
+    osName: "PowerMaxOS",
+    osVersion: osVersion,
+    otelCollectorStatus: "connected",
+    lastSeenAt: new Date(LOADED_AT - 2 * MINUTE),
+    capacityBytes: options.capacityTib * TIB,
+    usedBytes: options.usedTib * TIB,
+    capacityUsedPercent: Math.round(
+      (options.usedTib / options.capacityTib) * 100,
+    ),
+    openAlertCount: 0,
+    criticalAlertCount: 0,
+    warningAlertCount: 0,
+    healthStatus: 0,
+    volumeCount: options.volumes,
+    countsByKind: { Volume: options.volumes, StorageGroup: options.groups },
+    isArchived: false,
+    createdAt: new Date(LOADED_AT - 30 * 24 * 60 * MINUTE),
+  };
+}
+
+const powerMax8500 = powerMaxArray(
+  PMAX_8500_ID,
+  "000120000123",
+  "PowerMax_8500",
+  "10.1.0.3",
+  { capacityTib: 480, usedTib: 301, volumes: 618, groups: 42 },
+);
+const powerMax2000 = powerMaxArray(
+  PMAX_2000_ID,
+  "000197900456",
+  "PowerMax_2000",
+  "5978.711.711",
+  { capacityTib: 120, usedTib: 64, volumes: 96, groups: 7 },
+);
+
+const powerMaxAms = powerMaxArray(
+  PMAX_AMS_ID,
+  "000220200789",
+  "PowerMax_8500",
+  "10.1.0.3",
+  { capacityTib: 480, usedTib: 288, volumes: 590, groups: 38 },
+);
+
+// What the probe answers a connection test with, by ?test=.
+function connectionTestResult() {
+  switch (CONNECTION_TEST) {
+    case "certificate":
+      return {
+        status: "Failed",
+        errorCode: "UntrustedCertificate",
+        errorMessage:
+          "unisphere-fra.acme-storage.example:8443 presented a self-signed certificate this connection does not trust yet.",
+        presentedCertificate: {
+          fingerprint256: PRESENTED_FINGERPRINT,
+          subject: "CN=unisphere-fra.acme-storage.example",
+          issuer: "CN=unisphere-fra.acme-storage.example",
+          validFrom: new Date(LOADED_AT - 30 * 24 * 60 * MINUTE).toISOString(),
+          validTo: new Date(LOADED_AT + 335 * 24 * 60 * MINUTE).toISOString(),
+          isSelfSigned: true,
+          verificationError: "self-signed certificate",
+        },
+        summary: null,
+      };
+    case "role":
+      return {
+        status: "Failed",
+        errorCode: "MissingRole",
+        errorMessage:
+          "Unisphere answered 403: the account has no role on 000120000123 or 000197900456.",
+        presentedCertificate: null,
+        summary: null,
+      };
+    case "unreachable":
+      return {
+        status: "Failed",
+        errorCode: "ConnectionRefused",
+        errorMessage:
+          "unisphere-fra.acme-storage.example refused the connection on port 8443.",
+        presentedCertificate: null,
+        summary: null,
+      };
+    case "perfoff":
+      return {
+        status: "Succeeded",
+        errorCode: null,
+        errorMessage: null,
+        presentedCertificate: null,
+        summary: powerMaxSummary({ perfOff: true }),
+      };
+    default:
+      return {
+        status: "Succeeded",
+        errorCode: null,
+        errorMessage: null,
+        presentedCertificate: null,
+        summary: powerMaxSummary({ perfOff: false }),
+      };
+  }
+}
 
 let rowNumber = 0;
 const inventory = [];
@@ -822,6 +1157,9 @@ const fixture = {
   itemRequests: [],
   aggregateRequests: [],
   apiRequests: [],
+  // What the Unisphere connection pages wrote (#11004): tests started, settings saved.
+  createRequests: [],
+  updateRequests: [],
   unhandled: [],
 };
 window.__storageArrayPagesFixture = fixture;
@@ -890,7 +1228,14 @@ const store = {
     powerStore,
     ontapCluster,
     fsxFileSystem,
+    powerMax8500,
+    powerMax2000,
+    powerMaxAms,
   ],
+  Probe: probes,
+  StorageArrayConnection: connections,
+  // What Test connection starts (ModelAPI.create, below).
+  StorageArrayConnectionTest: [],
   StorageArrayResource: inventory,
   IncidentState: [
     { _id: uuid("50000000", 1), name: "Identified", order: 1 },
@@ -1037,10 +1382,23 @@ ModelAPI.getList = async (options) => {
     throw new Error("The inventory could not be read.");
   }
 
-  const data = rows(options.modelType, options.query, options.sort);
+  let data = rows(options.modelType, options.query, options.sort);
   if (!data) {
     fixture.unhandled.push({ kind: "getList", modelName });
     return { data: [], count: 0, skip: 0, limit: 0 };
+  }
+  /*
+   * The probes a picker offers: the project's own from the list route, the
+   * global ones from /probe/global-probes (Utils/Probe.getAllProbes).
+   */
+  if (modelName === "Probe") {
+    const isGlobalRoute = String(
+      (options.requestOptions && options.requestOptions.overrideRequestUrl) ||
+        "",
+    ).includes("/probe/global-probes");
+    data = data.filter((probe) => {
+      return Boolean(probe.isGlobalProbe) === isGlobalRoute;
+    });
   }
   const skip = options.skip || 0;
   const limit = options.limit || 10;
@@ -1076,7 +1434,91 @@ ModelAPI.getItem = async (options) => {
     return candidate._id === id;
   });
 
+  /*
+   * A connection test the probe has answered by the first poll: with what
+   * ?test= says it found (connectionTestResult).
+   */
+  if (record && modelName === "StorageArrayConnectionTest") {
+    Object.assign(record, connectionTestResult(), {
+      completedAt: new Date(),
+    });
+  }
+
   return record ? Object.assign(new options.modelType(), record) : null;
+};
+
+/*
+ * Test connection starts a StorageArrayConnectionTest; Connect saves a
+ * StorageArrayConnection. Both answer as the server does: the new row, with
+ * its id. The password a test or a connection carries is never kept here.
+ */
+ModelAPI.create = async (options) => {
+  const modelName = tableName(options.modelType);
+  // The values the page set on the model, ids as their strings.
+  const values = {};
+  for (const [key, value] of Object.entries(options.model || {})) {
+    if (value !== undefined && typeof value !== "function") {
+      values[key] = plain(value);
+    }
+  }
+  const recorded = { ...values };
+  delete recorded.password;
+  fixture.createRequests.push({
+    modelName,
+    data: recorded,
+    hasPassword: Boolean(values.password),
+  });
+
+  if (
+    modelName !== "StorageArrayConnectionTest" &&
+    modelName !== "StorageArrayConnection"
+  ) {
+    fixture.unhandled.push({ kind: "create", modelName });
+    throw new Error("Not modelled.");
+  }
+
+  const created = {
+    ...recorded,
+    _id: uuid(
+      modelName === "StorageArrayConnectionTest" ? "5b000000" : "5a000000",
+      store[modelName].length + 10,
+    ),
+    projectId: PROJECT_ID,
+    createdAt: new Date(),
+  };
+  if (modelName === "StorageArrayConnectionTest") {
+    created.status = "Pending";
+  }
+  store[modelName].push(created);
+  return ok({ _id: created._id });
+};
+
+// Trust this certificate: the fingerprint saved on the connection.
+ModelAPI.updateById = async (options) => {
+  const modelName = tableName(options.modelType);
+  const id = plain(options.id);
+  fixture.updateRequests.push({ modelName, id, data: options.data });
+
+  const record = (store[modelName] || []).find((candidate) => {
+    return candidate._id === id;
+  });
+  if (!record) {
+    fixture.unhandled.push({ kind: "updateById", modelName });
+    throw new Error("Not modelled.");
+  }
+
+  Object.assign(record, options.data);
+  if (
+    modelName === "StorageArrayConnection" &&
+    options.data.trustedCertificateFingerprint
+  ) {
+    /*
+     * As StorageArrayConnectionRules does on a trust: the failure stands
+     * until the next collection, which is due now.
+     */
+    record.nextCollectionAt = new Date();
+  }
+  return ok({});
 };
 
 function arrayNameOf(attributes) {
@@ -1535,6 +1977,22 @@ const StorageArrayFixtureLayout = withNavigation(
   PageMap.STORAGE_ARRAY_VIEW,
 );
 
+// The product's own pages, in its layout and side menu: the connections (#11004).
+const PRODUCT_PAGES = [
+  [PageMap.STORAGE_ARRAYS_CONNECTIONS, StorageArrayConnections],
+  [PageMap.STORAGE_ARRAYS_CONNECTION_VIEW, StorageArrayConnectionView],
+].map(([pageKey, Component]) => {
+  return {
+    path: RouteMap[pageKey].toString(),
+    Page: withNavigation(Component, pageKey),
+  };
+});
+
+const StorageArrayProductFixtureLayout = withNavigation(
+  StorageArrayProductLayout,
+  PageMap.STORAGE_ARRAYS,
+);
+
 // A page the views link to that is not modelled: says where it is.
 function StubPage() {
   useNavigationHooks();
@@ -1573,6 +2031,13 @@ function FixtureApp() {
       <Routes>
         <Route element={<StorageArrayFixtureLayout />}>
           {PAGES.map((page) => {
+            return (
+              <Route key={page.path} path={page.path} element={<page.Page />} />
+            );
+          })}
+        </Route>
+        <Route element={<StorageArrayProductFixtureLayout />}>
+          {PRODUCT_PAGES.map((page) => {
             return (
               <Route key={page.path} path={page.path} element={<page.Page />} />
             );

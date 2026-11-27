@@ -597,9 +597,14 @@ describe("charts are built from the metric catalog", () => {
     expect(getAlertMetricNames(StorageSystem.PureStorageFlashBlade)).toEqual([
       "purefb_alerts_open",
     ]);
+    expect(getAlertMetricNames(StorageSystem.DellPowerMax)).toEqual([
+      "powermax_alert_open",
+    ]);
+    // An array whose platform is not known yet: every platform's (#11004).
     expect(getAlertMetricNames(undefined)).toEqual([
       "purefa_alerts_open",
       "purefb_alerts_open",
+      "powermax_alert_open",
     ]);
   });
 });

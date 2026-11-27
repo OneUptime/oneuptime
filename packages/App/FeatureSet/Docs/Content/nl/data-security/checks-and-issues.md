@@ -1,10 +1,10 @@
 # Controles en problemen van Gegevensbeveiliging
 
-Gegevensbeveiliging voert 34 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
+Gegevensbeveiliging voert 35 controles uit op elke opslag, in negen groepen. Een controle leest wat er bekend is over één opslag - hoe die is geconfigureerd, wat erin is gevonden, wie erbij kan, waar die staat - en slaagt, faalt of kan het niet bepalen. Een controle die faalt, opent één probleem op die opslag, en het probleem sluit vanzelf zodra de controle slaagt. Deze pagina somt elke controle op, legt uit hoe de ernst en de risicoscore van een probleem worden bepaald, en wat er tijdens zijn levensloop met een probleem gebeurt. Beveiligingsgebeurtenissen, Network Flows en de beveiligingsadreskluis zijn van OneUptime zelf, bewaard voor je beveiliging: opgegeven, nooit gescand of gecontroleerd (zie [Opslag die OneUptime voor je beveiliging bewaart](/docs/data-security/compliance#opslag-die-oneuptime-voor-je-beveiliging-bewaart)).
 
 :::cards
 - [Hoe een controle beslist](#hoe-een-controle-beslist): Slagen, falen of niet te bepalen, en hoe erg een falen is.
-- [Elke controle](#elke-controle): Alle 34, met wat elke controle nagaat en hoe je het oplost.
+- [Elke controle](#elke-controle): Alle 35, met wat elke controle nagaat en hoe je het oplost.
 - [Risicoscore](#risicoscore): Hoe problemen binnen een ernst worden geordend.
 - [Wat er met een probleem gebeurt](#wat-er-met-een-probleem-gebeurt): Openstaand, opgelost, geaccepteerd, geen probleem, hoe elk is opgelost, en oplossingen die tot in productie worden gevolgd.
 - [De analyse van OneUptime AI](#de-analyse-van-oneuptime-ai): Of een probleem echt is, wat het in gevaar brengt, wat de oplossing zou breken en de kortste weg naar opgelost.
@@ -22,6 +22,8 @@ Elke controle leest feiten over een opslag en antwoordt op een van vier manieren
 | Faalt | De controle vindt het probleem, en zegt in één zin wat ze zag: het bewijs van het probleem. | Er opent een probleem, of het openstaande probleem wordt bijgewerkt. |
 | Niet te bepalen | Een feit kon niet worden gelezen: een machtiging die de rol niet heeft, een aanroep die mislukte. | Er verandert niets: een openstaand probleem blijft open, omdat niemand mag concluderen dat een probleem is opgelost als OneUptime niet kon kijken. |
 | Niet van toepassing | De soort van de opslag heeft zo'n instelling niet. | Een openstaand probleem wordt opgelost. |
+
+Een feit dat niet te weten is vanaf de plek waar het werd gelezen, wordt ook nooit geraden: of internet een opslag bereikt die vanuit je netwerk werd bevraagd, of of de anonieme gebruiker van een cluster mag schrijven, wat alleen een schrijfactie zou laten zien. Zijn controle kan het niet bepalen, en die regel van de **Configuratie** van de opslag staat op **Niet te controleren**.
 
 ### Ernst volgt de gegevens
 
@@ -45,6 +47,7 @@ De ernst staat vermeld voor gegevens met Beperkt, Vertrouwelijk, Intern en Openb
 | Een snapshot ervan kan door iedereen worden hersteld (`snapshot-public`) | Database, snapshot | Een databasesnapshot wordt openbaar gedeeld, dus elk cloudaccount kan een volledige kopie herstellen. | Kritiek / Kritiek / Kritiek / Hoog | Maak de snapshot privé. |
 | Een snapshot ervan wordt gedeeld met andere accounts (`snapshot-shared-externally`) | Database, snapshot | Een databasesnapshot wordt gedeeld met accounts buiten je gekoppelde accounts. | Hoog / Hoog / Gemiddeld / Laag | Stop het delen van de snapshot met de accounts die hem niet zouden moeten hebben. |
 | Accounts buiten je organisatie kunnen erbij (`shared-with-external-accounts`) | Elke opslag behalve telemetrie | Het beleid van de opslag geeft toegang aan accounts, tenants of projecten die niet aan OneUptime zijn gekoppeld. | Hoog / Hoog / Gemiddeld / Laag | Bekijk elke externe principal, en verwijder de principals die geen toegang nodig hebben. |
+| Iedereen die het bereikt, kan het zonder inloggegevens lezen (`readable-without-credentials`) | zoekdienst | Het antwoordde OneUptime zonder inloggegevens: wie het adres kan bereiken, kan de gegevens lezen, en ze wijzigen als er helemaal geen toegangscontrole is. | Kritiek / Hoog / Gemiddeld / Laag | Schakel de beveiliging van de cluster in, neem de anonieme gebruiker elke rol af, en geef elke applicatie een eigen alleen-lezen gebruiker. Een cluster die schrijfacties zonder inloggegevens aanneemt, is Kritiek bij Beperkt en Vertrouwelijk, en Hoog bij alle andere gegevens. |
 
 ### Versleuteling
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Factor | Punten |
 | --- | --- |
 | Ernst | 75 voor Kritiek, 50 voor Hoog, 25 voor Gemiddeld, 0 voor Laag |
-| Blootstelling | 10 voor Openbaar, 8 voor Andere accounts, 6 voor Bereikbaar via internet, 3 voor Onbekend, 0 voor Privé |
+| Blootstelling | 10 voor Openbaar, 8 voor Andere accounts, 6 voor Bereikbaar via internet, 3 voor Onbekend, Nog niet gecontroleerd of Niet te controleren, 0 voor Privé |
 | Volume | Tot 6, naar het geschatte aantal gevoelige records van de opslag op een logaritmische schaal: 1 voor 10 records, 3 voor 1.000, 5 voor een miljoen, 6 voor tien miljoen of meer |
 | Activiteit | 5 als Security Operations de afgelopen week detecties op de opslag zag |
 | Productie | 4 voor een opslag in productie |

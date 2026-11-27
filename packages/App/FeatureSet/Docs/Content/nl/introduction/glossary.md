@@ -40,7 +40,7 @@ Zie [Een monitor maken](/docs/monitor/create-monitor).
 
 ### Criteria
 
-De regels van een monitor: wat elk controleresultaat betekent. Ze worden op volgorde bekeken, en de eerste die overeenkomt kan de status van de monitor wijzigen, een incident melden, een waarschuwing aanmaken, of alle drie.
+De regels van een monitor: wat elk controleresultaat betekent. Ze worden op volgorde bekeken, en de eerste die overeenkomt kan de status van de monitor wijzigen, een incident melden, een waarschuwing aanmaken, of alle drie. Een criterium dat geen status wijzigt, laat de status over aan het volgende criterium dat overeenkomt en hem wijzigt.
 
 Ook wel: **Bewakingscriteria**, **Monitorcriteria**, **Monitor Steps**. Zie [Criteria en statussen](/docs/monitor/criteria-and-statuses).
 
