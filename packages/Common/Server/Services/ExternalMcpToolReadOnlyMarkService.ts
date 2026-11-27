@@ -139,31 +139,23 @@ export class Service extends ProjectReferencesService<Model> {
   }
 
   /*
-   * Its refusals describe the server's tools, so whoever is answered may
-   * create marks in the project - columns and all - before anything is
-   * looked up.
+   * Only someone who may create marks reaches this: DatabaseService refuses
+   * everyone else before any hook runs, and every column a mark is written
+   * with takes what the table takes. So its refusals, which describe the
+   * server's tools, only ever answer a Project Owner or Admin.
    */
-  protected override checksCreatePermissionFirst(): boolean {
-    return true;
-  }
-
-  // A mark is a person's word: nobody else's write is one, root's included.
-  protected override async checkCreateBeforeReferences(
+  @CaptureSpan()
+  protected override async onBeforeCreate(
     createBy: CreateBy<Model>,
-  ): Promise<void> {
+  ): Promise<OnCreate<Model>> {
+    await super.onBeforeCreate(createBy);
+
+    // A mark is a person's word: nobody else's write is one, root's included.
     if (!createBy.props.userId) {
       throw new NotAuthorizedException(
         EXTERNAL_MCP_TOOL_MARK_NEEDS_A_PERSON_MESSAGE,
       );
     }
-  }
-
-  @CaptureSpan()
-  protected override async onBeforeCreate(
-    createBy: CreateBy<Model>,
-  ): Promise<OnCreate<Model>> {
-    // The person, then the server's project, before anything of the mark's.
-    const onCreate: OnCreate<Model> = await super.onBeforeCreate(createBy);
 
     const projectId: ObjectID | undefined =
       createBy.data.projectId || createBy.props.tenantId;
@@ -236,7 +228,7 @@ export class Service extends ProjectReferencesService<Model> {
     createBy.data.toolName = tool.name;
     createBy.data.toolFingerprint = tool.fingerprint;
 
-    return onCreate;
+    return { createBy: createBy, carryForward: undefined };
   }
 
   /*
