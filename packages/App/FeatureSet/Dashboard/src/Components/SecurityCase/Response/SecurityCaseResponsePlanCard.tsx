@@ -84,6 +84,7 @@ import {
   isRouteFixStep,
 } from "./SecurityCaseFixPullRequestsModel";
 import {
+  CloudConnectionsAccess,
   STEP_CHECK_FACT_MARK_STYLES,
   StepCheckFactMarkStyle,
   StepCheckLinkTarget,
@@ -125,6 +126,7 @@ import {
   ResponseStepCompletion,
   ResponseText,
 } from "./SecurityCaseResponseTypes";
+import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
 import SecurityBlock from "Common/Models/DatabaseModels/SecurityBlock";
 import SecurityCase from "Common/Models/DatabaseModels/SecurityCase";
 import { isSecurityCaseTaken } from "Common/Utils/SecurityCase/ResponsePlan/ResponsePlanInputs";
@@ -410,6 +412,17 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   const mayBlockUntilLifted: boolean = PermissionGate.holdsAnyOf(
     BLOCK_ADMIN_PERMISSIONS,
   );
+  /*
+   * Whether the reader may see Cloud > Connect, and change a connection
+   * there (#11039): a step's line links to it only then, and words the link
+   * by what the reader may do on it.
+   */
+  const cloudConnectionsAccess: CloudConnectionsAccess = {
+    mayRead: PermissionGate.check(new CloudConnection(), ModelAction.Read)
+      .isAllowed,
+    mayUpdate: PermissionGate.check(new CloudConnection(), ModelAction.Update)
+      .isAllowed,
+  };
 
   /*
    * The case's addresses its block steps are about (#10342): its public
@@ -1100,26 +1113,69 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
   };
 
   // A link of the evidence: a page of the Dashboard, or the product's own, in a new tab.
+  const renderLinkTo: (
+    target: StepCheckLinkTarget,
+    data: { key: number; dataTestId: string },
+  ) => ReactElement = (
+    target: StepCheckLinkTarget,
+    data: { key: number; dataTestId: string },
+  ): ReactElement => {
+    return (
+      <Link
+        key={data.key}
+        to={target.url || target.route}
+        openInNewTab={Boolean(target.url)}
+        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
+        dataTestId={data.dataTestId}
+      >
+        {translator.translateTemplate(target.title, target.values)}
+      </Link>
+    );
+  };
+
   const renderCheckLink: (link: ResponseLink, index: number) => ReactElement = (
     link: ResponseLink,
     index: number,
   ): ReactElement => {
-    const target: StepCheckLinkTarget | null = getStepCheckLinkTarget(link);
+    const target: StepCheckLinkTarget | null = getStepCheckLinkTarget(
+      link,
+      cloudConnectionsAccess,
+    );
 
     if (!target) {
       return <React.Fragment key={index} />;
     }
 
+    return renderLinkTo(target, {
+      key: index,
+      dataTestId: SECURITY_CASE_RESPONSE_TEST_IDS.checkLink,
+    });
+  };
+
+  /*
+   * A fact's own link, after its words (#11039): where what the line says
+   * to change is changed - the AWS connection's form - for a reader who may
+   * see it.
+   */
+  const renderFactLink: (
+    fact: SecurityCaseStepCheckSentence,
+  ) => ReactElement = (fact: SecurityCaseStepCheckSentence): ReactElement => {
+    const target: StepCheckLinkTarget | null = fact.link
+      ? getStepCheckLinkTarget(fact.link, cloudConnectionsAccess)
+      : null;
+
+    if (!target) {
+      return <></>;
+    }
+
     return (
-      <Link
-        key={index}
-        to={target.url || target.route}
-        openInNewTab={Boolean(target.url)}
-        className="text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
-        dataTestId={SECURITY_CASE_RESPONSE_TEST_IDS.checkLink}
-      >
-        {translator.translateTemplate(target.title, target.values)}
-      </Link>
+      <>
+        {" "}
+        {renderLinkTo(target, {
+          key: 0,
+          dataTestId: SECURITY_CASE_RESPONSE_TEST_IDS.checkFactLink,
+        })}
+      </>
     );
   };
 
@@ -1162,7 +1218,12 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
               index: number,
             ): ReactElement => {
               if (!isMarked) {
-                return <li key={index}>{sentenceText(fact)}</li>;
+                return (
+                  <li key={index}>
+                    {sentenceText(fact)}
+                    {renderFactLink(fact)}
+                  </li>
+                );
               }
 
               const mark: StepCheckFactMarkStyle | null = fact.mark
@@ -1192,6 +1253,7 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
                     }`}
                   >
                     {sentenceText(fact)}
+                    {renderFactLink(fact)}
                   </span>
                 </li>
               );
