@@ -67,6 +67,8 @@ export interface ComponentProps {
    * the template variables modal exposes them as per-series labels.
    */
   seriesAttributeKeys?: Array<string> | undefined;
+  /** Only standard monitor criteria support time-based incident escalation. */
+  allowSeverityEscalation?: boolean | undefined;
 }
 
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
@@ -112,6 +114,29 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   const hasNotifications: boolean = Boolean(
     criteriaIncident.onCallPolicyIds?.length,
   );
+  const hasSeverityEscalation: boolean = Boolean(
+    criteriaIncident.escalationAfterMinutes &&
+      criteriaIncident.escalationSeverityId,
+  );
+  const escalationSeverityOptions: Array<DropdownOption> = useMemo(() => {
+    const startingSeverityIndex: number =
+      props.incidentSeverityDropdownOptions.findIndex(
+        (option: DropdownOption) => {
+          return (
+            option.value === criteriaIncident.incidentSeverityId?.toString()
+          );
+        },
+      );
+
+    // MonitorSteps supplies severities in their configured rank order:
+    // lower order numbers are more severe. Offer only higher severities.
+    return startingSeverityIndex < 0
+      ? []
+      : props.incidentSeverityDropdownOptions.slice(0, startingSeverityIndex);
+  }, [
+    props.incidentSeverityDropdownOptions,
+    criteriaIncident.incidentSeverityId,
+  ]);
   /*
    * The More fields section's options, by name, the ones the user chose
    * as chips: a default rule's auto-resolve does not count.
@@ -212,10 +237,35 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
              */
             isClearable={false}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              updateField(
-                "incidentSeverityId",
-                value ? new ObjectID(value.toString()) : undefined,
-              );
+              const severityId: ObjectID | undefined = value
+                ? new ObjectID(value.toString())
+                : undefined;
+              const startingSeverityIndex: number =
+                props.incidentSeverityDropdownOptions.findIndex(
+                  (option: DropdownOption) => {
+                    return option.value === severityId?.toString();
+                  },
+                );
+              const escalationSeverityIndex: number =
+                props.incidentSeverityDropdownOptions.findIndex(
+                  (option: DropdownOption) => {
+                    return (
+                      option.value ===
+                      criteriaIncident.escalationSeverityId?.toString()
+                    );
+                  },
+                );
+
+              setCriteriaIncident({
+                ...criteriaIncident,
+                incidentSeverityId: severityId,
+                escalationSeverityId:
+                  startingSeverityIndex >= 0 &&
+                  escalationSeverityIndex >= 0 &&
+                  escalationSeverityIndex < startingSeverityIndex
+                    ? criteriaIncident.escalationSeverityId
+                    : undefined,
+              });
             }}
             placeholder="Select Severity"
           />
@@ -271,6 +321,80 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           />
         </div>
       </FoldedSection>
+
+      {props.allowSeverityEscalation && (
+        <FoldedSection
+          title="Severity escalation"
+          description="Raise this incident if the monitor stays offline continuously. The monitor must remain offline and this criterion must still match."
+          badge={hasSeverityEscalation ? "Configured" : undefined}
+          defaultCollapsed={!hasSeverityEscalation}
+          dataTestId="monitor-criteria-severity-escalation"
+        >
+          <div className="space-y-4">
+            <div>
+              <FieldLabelElement
+                title="Escalate after (minutes)"
+                description="Time the monitor must stay offline before the incident severity changes."
+              />
+              <Input
+                type="number"
+                inputMode="numeric"
+                value={
+                  criteriaIncident.escalationAfterMinutes?.toString() || ""
+                }
+                placeholder="e.g., 5"
+                ariaLabel="Escalate after (minutes)"
+                dataTestId="monitor-criteria-escalation-after-minutes"
+                onChange={(value: string) => {
+                  if (!value) {
+                    setCriteriaIncident({
+                      ...criteriaIncident,
+                      escalationAfterMinutes: undefined,
+                      escalationSeverityId: undefined,
+                    });
+                    return;
+                  }
+
+                  const minutes: number = Number(value);
+                  updateField(
+                    "escalationAfterMinutes",
+                    Number.isInteger(minutes) && minutes > 0
+                      ? minutes
+                      : undefined,
+                  );
+                }}
+              />
+            </div>
+            <div>
+              <FieldLabelElement
+                title="Escalate to severity"
+                description="Choose the severity to apply when the offline period reaches this time."
+              />
+              <Dropdown
+                value={props.incidentSeverityDropdownOptions.find(
+                  (option: DropdownOption) => {
+                    return (
+                      option.value ===
+                      criteriaIncident.escalationSeverityId?.toString()
+                    );
+                  },
+                )}
+                options={escalationSeverityOptions}
+                isClearable={true}
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  updateField(
+                    "escalationSeverityId",
+                    value ? new ObjectID(value.toString()) : undefined,
+                  );
+                }}
+                placeholder="Select Severity"
+              />
+            </div>
+          </div>
+        </FoldedSection>
+      )}
 
       {/*
        * Incident Roles - collapsible. The declare form's role picker, with

@@ -15,6 +15,7 @@ export interface ComponentProps {
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
   monitorType?: MonitorType | undefined;
   seriesAttributeKeys?: Array<string> | undefined;
+  allowSeverityEscalation?: boolean | undefined;
 }
 
 const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
@@ -58,6 +59,7 @@ const MonitorCriteriaIncidentsForm: FunctionComponent<ComponentProps> = (
             incidentRoleOptions={props.incidentRoleOptions}
             monitorType={props.monitorType}
             seriesAttributeKeys={props.seriesAttributeKeys}
+            allowSeverityEscalation={props.allowSeverityEscalation}
             initialValue={i}
             /*
              * onDelete={() => {
