@@ -298,7 +298,7 @@ Ogni risorsa a cui manca un tag mostra il valore suggerito da OneUptime e il com
 
 Una risorsa che la tua connessione elenca dopo il primo elenco completo del suo account è nuova. La connessione elenca ogni 30 minuti, quindi una nuova risorsa viene trovata entro l'ora in cui viene creata. Di una a cui manca un tag obbligatorio si avvisa una volta:
 
-- **Chi viene informato.** La persona che l'ha creata, quando il registro delle modifiche dell'account nomina un membro del tuo progetto con il suo indirizzo email, e i proprietari della risorsa, dalle regole di proprietà e dai team. Quando non si può informare nessuno dei due, vengono informati i Proprietari del progetto. Ognuno deve poter leggere le tue risorse cloud.
+- **Chi viene informato.** La persona che l'ha creata, quando il log delle modifiche dell'account nomina un membro del tuo progetto con il suo indirizzo email, e i proprietari della risorsa, dalle regole di proprietà e dai team. Quando non si può informare nessuno dei due, vengono informati i Proprietari del progetto. Ognuno deve poter leggere le tue risorse cloud.
 - **Con quale frequenza.** Un'email all'ora elenca tutte le novità per ogni persona. In **Altre impostazioni**, **Un'email per ogni risorsa** invia ciascuna da sola, e **Genera un avviso** genera anche un avviso per ogni account, con la gravità e le policy di reperibilità in **Dove vanno gli avvisi**.
 - **Quando viene taggata.** Una risorsa taggata prima dell'invio dell'email ne resta fuori, e l'elenco **Nuove risorse** segna ciascuna **Con tag** appena li porta.
 
