@@ -871,16 +871,32 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
     });
   }
 
-  const judgedWindow: { start: string; end: string } | null =
-    getJudgedWindowEnds(evaluationSummary);
+  /*
+   * A check's window holds its start and not its end (#11334), and says so:
+   * a record stamped on its end was judged by the next check. One judged
+   * before then held both ends.
+   */
+  const judgedWindow: {
+    start: string;
+    end: string;
+    includesEnd: boolean;
+  } | null = getJudgedWindowEnds(evaluationSummary);
 
   if (judgedWindow) {
     evaluationFacts.push({
       key: "judged-window",
-      text: translator.translateTemplate("Data from {{start}} to {{end}}", {
-        start: judgedWindow.start,
-        end: judgedWindow.end,
-      }),
+      text: judgedWindow.includesEnd
+        ? translator.translateTemplate("Data from {{start}} to {{end}}", {
+            start: judgedWindow.start,
+            end: judgedWindow.end,
+          })
+        : translator.translateTemplate(
+            "Data from {{start}} up to, but not including, {{end}}",
+            {
+              start: judgedWindow.start,
+              end: judgedWindow.end,
+            },
+          ),
     });
   }
 

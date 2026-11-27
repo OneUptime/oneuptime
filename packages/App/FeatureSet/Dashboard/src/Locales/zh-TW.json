@@ -67066,6 +67066,7 @@
   "{{name}} removed from Data Observability": "已將 {{name}} 從資料可觀測性中移除",
   "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} 未連接任何 Database Agent。請在其旁邊安裝 Database Agent，或選擇其他連線方式。",
   "Data from {{start}} to {{end}}": "資料期間：{{start}} 至 {{end}}",
+  "Data from {{start}} up to, but not including, {{end}}": "資料期間：{{start}} 至 {{end}}（不含結束時刻）",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "只持有內建「Read only」角色副本的 Xen Orchestra 使用者的權杖。每次讀取都會使用它，在 Xen Orchestra 確認該權杖只能讀取之前，代理程式不會執行任何內容。",
   "Investigate with xo-cli": "使用 xo-cli 調查",
   "One agent serves one pool: set XCP_NG_POOL_ID to this pool's UUID when its Xen Orchestra manages several. The agent trusts the xo-ca.pem the collector trusts, and reads Xen Orchestra over https only.": "一個代理程式服務一個資源池：當其 Xen Orchestra 管理多個資源池時，請將 XCP_NG_POOL_ID 設定為此資源池的 UUID。代理程式信任收集器所信任的同一個 xo-ca.pem，而且只透過 https 讀取 Xen Orchestra。",

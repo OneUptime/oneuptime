@@ -67066,6 +67066,7 @@
   "{{name}} removed from Data Observability": "{{name}} をデータオブザーバビリティから削除しました",
   "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} にはデータベースエージェントが接続されていません。横にデータベースエージェントをインストールするか、別の接続方法を選んでください。",
   "Data from {{start}} to {{end}}": "データ: {{start}} から {{end}} まで",
+  "Data from {{start}} up to, but not including, {{end}}": "データ: {{start}} から {{end}} の直前まで",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "組み込みの「Read only」ロールのコピーだけを持つ Xen Orchestra ユーザーのトークン。すべての読み取りにこれを使い、トークンが読み取りしかできないことを Xen Orchestra が確認するまで、エージェントは何も実行しません。",
   "Investigate with xo-cli": "xo-cli で調査",
   "One agent serves one pool: set XCP_NG_POOL_ID to this pool's UUID when its Xen Orchestra manages several. The agent trusts the xo-ca.pem the collector trusts, and reads Xen Orchestra over https only.": "1 つのエージェントが 1 つのプールを担当します。Xen Orchestra が複数のプールを管理している場合は、XCP_NG_POOL_ID にこのプールの UUID を設定してください。エージェントはコレクターが信頼するのと同じ xo-ca.pem を信頼し、Xen Orchestra を https でのみ読み取ります。",
