@@ -50,6 +50,8 @@ flowchart LR
 
 Högst upp på **Översikt**, under det som behöver någon, visar varje del sina siffror: källorna och deras händelser de senaste 24 timmarna, reglerna som är påslagna, de öppna ärendena och playbooks som svarar. En del som inte är konfigurerad säger det och öppnar sidan där du konfigurerar den.
 
+Under dem nämner **Översikt** varje rekommenderad regel som ditt projekt inte har än, med vad den fångar och **Slå på**, som lägger till den så som regelbiblioteket gör. En regel som blir rekommenderad senare visas där också. När alla andra rekommenderade regler är påslagna slår en uppgradering på en ny åt dig, som den gjorde med **Sensitive file served**, och **Översikt** säger det i en månad, med **Stäng av**.
+
 ## Hitta säkerhetshändelser i dina loggar
 
 Kortet **Dina loggar**, högst upp på **Anslutningar**, behöver ingen installation. Med **Hitta säkerhetshändelser i dina loggar** påslaget läser OneUptime projektets nya loggar varje minut och gör raderna det känner igen till säkerhetshändelser:

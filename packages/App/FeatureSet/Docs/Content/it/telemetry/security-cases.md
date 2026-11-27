@@ -531,7 +531,7 @@ Un'esecuzione che smette di ricevere segnali dal suo worker, per esempio dopo un
 - I casi aperti ogni giorno negli ultimi 30 giorni, per priorità, e i rilevamenti generati ogni giorno negli ultimi 14 giorni, per origine.
 - I casi aperti per priorità e per stato, le entità più a rischio per punteggio di rischio, i rilevamenti scattati più spesso, le tattiche ATT&CK alla base dei casi e i verdetti degli ultimi 30 giorni.
 
-Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i rilevamenti, i casi e i playbook, ciascuno con i suoi numeri. Un progetto che non l'ha ancora configurata vede lì **Attiva quanto consigliato** e **Invia un attacco di prova**; vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started). Quando nulla richiede qualcuno, la pagina dice **Tutto tranquillo**, e i grafici compaiono non appena c'è qualcosa da mostrare.
+Sopra, una striscia mostra come è configurata la sicurezza: le sue origini, i rilevamenti, i casi e i playbook, ciascuno con i suoi numeri, e sotto ogni regola consigliata che il tuo progetto non ha ancora, con **Attiva**. Un progetto che non l'ha ancora configurata vede lì **Attiva quanto consigliato** e **Invia un attacco di prova**; vedi [Primi passi con la sicurezza](/docs/telemetry/security-getting-started). Quando nulla richiede qualcuno, la pagina dice **Tutto tranquillo**, e i grafici compaiono non appena c'è qualcosa da mostrare.
 
 ## Trovare le minacce
 

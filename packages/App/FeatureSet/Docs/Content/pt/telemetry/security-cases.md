@@ -531,7 +531,7 @@ Uma execução que deixa de receber sinais do worker dela, depois de uma reinici
 - Os casos abertos a cada dia, nos últimos 30 dias, por prioridade, e as detecções geradas a cada dia, nos últimos 14 dias, por origem.
 - Os casos abertos por prioridade e por status, as entidades de maior risco pela sua pontuação de risco, as detecções que mais dispararam, as táticas ATT&CK por trás dos casos e os vereditos dos últimos 30 dias.
 
-Acima, uma faixa mostra como a segurança está configurada: suas origens, detecções, casos e playbooks, cada um com seus números. Um projeto que ainda não a configurou vê ali **Ativar o recomendado** e **Enviar um ataque de teste**; consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started). Quando nada precisa de ninguém, a página diz **Tudo tranquilo**, e os gráficos aparecem assim que há algo para mostrar.
+Acima, uma faixa mostra como a segurança está configurada: suas origens, detecções, casos e playbooks, cada um com seus números, e abaixo dela cada regra recomendada que seu projeto ainda não tem, com **Ativar**. Um projeto que ainda não a configurou vê ali **Ativar o recomendado** e **Enviar um ataque de teste**; consulte [Primeiros passos com a segurança](/docs/telemetry/security-getting-started). Quando nada precisa de ninguém, a página diz **Tudo tranquilo**, e os gráficos aparecem assim que há algo para mostrar.
 
 ## Encontrar ameaças
 

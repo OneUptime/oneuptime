@@ -531,7 +531,7 @@ El producto se abre en **Productos → Eventos de seguridad → Vista general**:
 - Los casos abiertos cada día durante 30 días, por prioridad, y las detecciones generadas cada día durante 14 días, por origen.
 - Los casos abiertos por prioridad y por estado, las entidades de mayor riesgo según su puntuación de riesgo, las detecciones que más se dispararon, las tácticas de ATT&CK detrás de los casos y los veredictos de los últimos 30 días.
 
-Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, detecciones, casos y playbooks, cada uno con sus cifras. Un proyecto que aún no la ha configurado ve allí **Activar lo recomendado** y **Enviar un ataque de prueba**; consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started). Cuando nada necesita a nadie, la página dice **Todo tranquilo**, y los gráficos aparecen en cuanto hay algo que representar.
+Encima, una franja muestra cómo está configurada la seguridad: sus orígenes, detecciones, casos y playbooks, cada uno con sus cifras, y debajo cada regla recomendada que su proyecto aún no tiene, con **Activar**. Un proyecto que aún no la ha configurado ve allí **Activar lo recomendado** y **Enviar un ataque de prueba**; consulte [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started). Cuando nada necesita a nadie, la página dice **Todo tranquilo**, y los gráficos aparecen en cuanto hay algo que representar.
 
 ## Encontrar amenazas
 

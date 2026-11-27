@@ -50,6 +50,8 @@ flowchart LR
 
 Boven aan **Overzicht**, onder wat iemand nodig heeft, toont elk onderdeel zijn cijfers: de bronnen en hun gebeurtenissen van de afgelopen 24 uur, de regels die aanstaan, de open zaken en de playbooks die reageren. Een onderdeel dat niet is ingesteld, zegt dat en opent de pagina waar u het instelt.
 
+Daaronder noemt **Overzicht** elke aanbevolen regel die uw project nog niet heeft, met wat hij opvangt en **Aanzetten**, dat hem toevoegt zoals de regelbibliotheek dat doet. Een regel die later aanbevolen wordt, verschijnt daar ook. Als elke andere aanbevolen regel aanstaat, zet een upgrade een nieuwe voor u aan, zoals bij **Sensitive file served**, en **Overzicht** zegt dat een maand lang, met **Uitzetten**.
+
 ## Beveiligingsgebeurtenissen in uw logs vinden
 
 De kaart **Uw logboeken**, boven aan **Verbindingen**, hoeft niet geïnstalleerd te worden. Met **Beveiligingsgebeurtenissen in uw logboeken vinden** aan leest OneUptime elke minuut de nieuwe logs van het project en maakt van de regels die het herkent beveiligingsgebeurtenissen:

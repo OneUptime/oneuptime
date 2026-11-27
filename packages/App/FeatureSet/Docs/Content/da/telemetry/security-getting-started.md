@@ -50,6 +50,8 @@ flowchart LR
 
 Øverst på **Oversigt**, under det, der kræver nogen, viser hver del sine tal: kilderne og deres hændelser fra de seneste 24 timer, de regler, der er slået til, de åbne sager og de playbooks, der reagerer. En del, der ikke er sat op, siger det og åbner siden, hvor du sætter den op.
 
+Under dem nævner **Oversigt** hver anbefalet regel, som dit projekt endnu ikke har, med det, den fanger, og **Slå til**, som tilføjer den, som regelbiblioteket gør. En regel, der bliver anbefalet senere, vises også der. Når alle andre anbefalede regler er slået til, slår en opgradering en ny til for dig, som den gjorde med **Sensitive file served**, og **Oversigt** siger det i en måned, med **Slå fra**.
+
 ## Find sikkerhedshændelser i dine logs
 
 Kortet **Dine logs**, øverst på **Forbindelser**, kræver ingen installation. Med **Find sikkerhedshændelser i dine logs** slået til læser OneUptime projektets nye logs hvert minut og gør de linjer, det genkender, til sikkerhedshændelser:

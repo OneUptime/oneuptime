@@ -531,7 +531,7 @@ En körning vars worker slutar höra av sig, till exempel efter en omstart, tas 
 - Ärendena som öppnats varje dag i 30 dagar, efter prioritet, och detektionerna som skapats varje dag i 14 dagar, efter källa.
 - De öppna ärendena efter prioritet och efter status, de mest riskfyllda entiteterna efter riskpoäng, detektionerna som löste ut oftast, ATT&CK-taktikerna bakom ärendena och bedömningarna från de senaste 30 dagarna.
 
-Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ärenden och playbooks, var och en med sina siffror. Ett projekt som ännu inte har satt upp det ser **Slå på rekommenderat** och **Skicka en testattack** där; se [Kom igång med säkerhet](/docs/telemetry/security-getting-started). När inget behöver någon säger sidan **Allt är lugnt**, och diagrammen visas så snart det finns något att visa.
+Ovanför visar en remsa hur säkerhet är uppsatt: dess källor, detektioner, ärenden och playbooks, var och en med sina siffror, och under den varje rekommenderad regel som ditt projekt inte har än, med **Slå på**. Ett projekt som ännu inte har satt upp det ser **Slå på rekommenderat** och **Skicka en testattack** där; se [Kom igång med säkerhet](/docs/telemetry/security-getting-started). När inget behöver någon säger sidan **Allt är lugnt**, och diagrammen visas så snart det finns något att visa.
 
 ## Hitta hot
 

@@ -50,6 +50,8 @@ flowchart LR
 
 At the top of **Overview**, under what needs someone, each part shows its figures: the sources and their events in the last 24 hours, the rules that are on, the open cases and the playbooks that respond. A part that is not set up says so, and opens the page where you set it up.
 
+Under them, **Overview** names each recommended rule your project does not have yet, with what it catches and **Turn On**, which adds it as the Rule Library does. A rule that becomes recommended later shows there too. When every other recommended rule is on, an upgrade turns a new one on for you, as it did **Sensitive file served**, and **Overview** says so for a month, with **Turn Off**.
+
 ## Find security events in your logs
 
 **Your logs**, at the top of **Connections**, needs nothing installed. With **Find security events in your logs** on, OneUptime reads the project's new logs every minute and turns the lines it recognizes into security events:
