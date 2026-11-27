@@ -32,8 +32,11 @@ Bruk en **skrivebeskyttet pålogging**. Velg **Koble til en database** i oversik
 
 - **OneUptime kobler til**: lim inn en tilkoblingsstreng. Den lagres kryptert og vises aldri igjen.
 - **En sonde i mitt nettverk kobler til**: velg en av prosjektets sonder og oppgi miljøvariabelen på sonden som inneholder tilkoblingsstrengen (for eksempel \`ORDERS_DB_URL\`). Tilkoblingsstrengen forlater aldri nettverket ditt. Oppdater sonden til nyeste versjon først.
+- **Min Database Agent kobler til**: velg databaseserveren som Database Agent kjører ved siden av, og oppgi databasen på den som skal leses. Agenten leser den med egne pålogginger, så ingen lagres i OneUptime. Den leser PostgreSQL, MySQL og MariaDB så snart eieren setter \`ONEUPTIME_DATA_OBSERVABILITY=true\` der den kjører.
 
 En database som allerede er koblet til for Datasikkerhet, overvåkes også.
+
+**Innstillinger** for en database, i menyen dens, gir den nytt navn (**Rediger detaljer**), gir den en annen pålogging, en annen sonde eller en Database Agent (**Endre tilkobling**), slutter å lese den og glemmer tabellene og sjekkene dens mens Datasikkerhet beholder den (**Fjern fra Dataobserverbarhet**), eller sletter den fra OneUptime (**Slett database**). Så lenge Datasikkerhet er avhengig av en database, kan bare noen som kan slette Datasikkerhets datalagre, slette den.
 
 **Databaser du kan koble til**, på samme side, viser det prosjektet ditt allerede kjenner til og som ingen har koblet til: databaser som tracene dine snakker med, databaser i skykontoene dine og databaser som Databaseovervåking følger med på. **Koble til** fyller ut skjemaet på forhånd med det som er kjent om hver av dem. Ingenting leses før du kobler den til.
 

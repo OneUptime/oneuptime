@@ -47,6 +47,7 @@
     "DNS:",
     "DNSSEC",
     "DSR-1042",
+    "Database Agent",
     "DeploymentConfigs",
     "Docker CLI",
     "Docker Compose",
