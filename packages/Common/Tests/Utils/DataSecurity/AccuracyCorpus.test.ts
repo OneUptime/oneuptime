@@ -1405,8 +1405,8 @@ const READING_CASES_OF: Readonly<
   // #11199, #11200: a UK postcode typed into a form, and with %20 for its space.
   "postal-code: typed into a form, or with %20 for its space":
     (): CorpusEntry => {
-      const typed: string = drawnUkPostcode().replace(" ", "+");
-      const escaped: string = drawnUkPostcode().replace(" ", "%20");
+      const typed: string = drawnUkPostcode().split(" ").join("+");
+      const escaped: string = drawnUkPostcode().split(" ").join("%20");
 
       return {
         positives: [
