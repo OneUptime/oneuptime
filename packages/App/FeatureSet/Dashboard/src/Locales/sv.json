@@ -66233,5 +66233,6 @@
   "{{count}} volume group": "{{count}} volymgrupp",
   "{{count}} volume groups": "{{count}} volymgrupper",
   "{{count}} volume groups_one": "{{count}} volymgrupp",
-  "Capacity provisioned to each volume group's volumes, in bytes.": "Kapacitet tilldelad volymerna i varje volymgrupp, i byte."
+  "Capacity provisioned to each volume group's volumes, in bytes.": "Kapacitet tilldelad volymerna i varje volymgrupp, i byte.",
+  "Data from {{start}} to {{end}}": "Data: {{start}} till {{end}}"
 }

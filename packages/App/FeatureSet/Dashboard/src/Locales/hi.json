@@ -66233,5 +66233,6 @@
   "{{count}} volume group": "{{count}} वॉल्यूम समूह",
   "{{count}} volume groups": "{{count}} वॉल्यूम समूह",
   "{{count}} volume groups_one": "{{count}} वॉल्यूम समूह",
-  "Capacity provisioned to each volume group's volumes, in bytes.": "हर वॉल्यूम समूह के वॉल्यूम को प्रावधानित क्षमता, बाइट में।"
+  "Capacity provisioned to each volume group's volumes, in bytes.": "हर वॉल्यूम समूह के वॉल्यूम को प्रावधानित क्षमता, बाइट में।",
+  "Data from {{start}} to {{end}}": "डेटा: {{start}} से {{end}} तक"
 }

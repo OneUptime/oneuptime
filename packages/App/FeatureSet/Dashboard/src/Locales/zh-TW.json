@@ -66233,5 +66233,6 @@
   "{{count}} volume group": "{{count}} 個磁碟區群組",
   "{{count}} volume groups": "{{count}} 個磁碟區群組",
   "{{count}} volume groups_one": "{{count}} 個磁碟區群組",
-  "Capacity provisioned to each volume group's volumes, in bytes.": "為每個磁碟區群組中各磁碟區佈建的容量，以位元組為單位。"
+  "Capacity provisioned to each volume group's volumes, in bytes.": "為每個磁碟區群組中各磁碟區佈建的容量，以位元組為單位。",
+  "Data from {{start}} to {{end}}": "資料期間：{{start}} 至 {{end}}"
 }

@@ -66233,5 +66233,6 @@
   "{{count}} volume group": "{{count}} 个卷组",
   "{{count}} volume groups": "{{count}} 个卷组",
   "{{count}} volume groups_one": "{{count}} 个卷组",
-  "Capacity provisioned to each volume group's volumes, in bytes.": "为每个卷组中各卷预配的容量，以字节为单位。"
+  "Capacity provisioned to each volume group's volumes, in bytes.": "为每个卷组中各卷预配的容量，以字节为单位。",
+  "Data from {{start}} to {{end}}": "数据时段：{{start}} 至 {{end}}"
 }

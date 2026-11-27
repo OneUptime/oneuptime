@@ -66233,5 +66233,6 @@
   "{{count}} volume group": "{{count}} مجموعة وحدات تخزين",
   "{{count}} volume groups": "مجموعات وحدات التخزين: {{count}}",
   "{{count}} volume groups_one": "{{count}} مجموعة وحدات تخزين",
-  "Capacity provisioned to each volume group's volumes, in bytes.": "السعة المخصَّصة لوحدات التخزين في كل مجموعة وحدات تخزين، بالبايت."
+  "Capacity provisioned to each volume group's volumes, in bytes.": "السعة المخصَّصة لوحدات التخزين في كل مجموعة وحدات تخزين، بالبايت.",
+  "Data from {{start}} to {{end}}": "البيانات: من {{start}} إلى {{end}}"
 }

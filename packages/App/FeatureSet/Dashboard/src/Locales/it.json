@@ -66233,5 +66233,6 @@
   "{{count}} volume group": "{{count}} gruppo di volumi",
   "{{count}} volume groups": "{{count}} gruppi di volumi",
   "{{count}} volume groups_one": "{{count}} gruppo di volumi",
-  "Capacity provisioned to each volume group's volumes, in bytes.": "Capacità assegnata ai volumi di ciascun gruppo di volumi, in byte."
+  "Capacity provisioned to each volume group's volumes, in bytes.": "Capacità assegnata ai volumi di ciascun gruppo di volumi, in byte.",
+  "Data from {{start}} to {{end}}": "Dati: da {{start}} a {{end}}"
 }

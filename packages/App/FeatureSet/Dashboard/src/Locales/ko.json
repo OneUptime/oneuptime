@@ -66233,5 +66233,6 @@
   "{{count}} volume group": "볼륨 그룹 {{count}}개",
   "{{count}} volume groups": "볼륨 그룹 {{count}}개",
   "{{count}} volume groups_one": "볼륨 그룹 {{count}}개",
-  "Capacity provisioned to each volume group's volumes, in bytes.": "각 볼륨 그룹의 볼륨에 프로비저닝된 용량(바이트)입니다."
+  "Capacity provisioned to each volume group's volumes, in bytes.": "각 볼륨 그룹의 볼륨에 프로비저닝된 용량(바이트)입니다.",
+  "Data from {{start}} to {{end}}": "데이터: {{start}}부터 {{end}}까지"
 }

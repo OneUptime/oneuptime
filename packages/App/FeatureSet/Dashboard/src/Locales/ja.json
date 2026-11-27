@@ -66233,5 +66233,6 @@
   "{{count}} volume group": "{{count}} 個のボリュームグループ",
   "{{count}} volume groups": "{{count}} 個のボリュームグループ",
   "{{count}} volume groups_one": "{{count}} 個のボリュームグループ",
-  "Capacity provisioned to each volume group's volumes, in bytes.": "各ボリュームグループのボリュームにプロビジョニングされた容量 (バイト) です。"
+  "Capacity provisioned to each volume group's volumes, in bytes.": "各ボリュームグループのボリュームにプロビジョニングされた容量 (バイト) です。",
+  "Data from {{start}} to {{end}}": "データ: {{start}} から {{end}} まで"
 }
