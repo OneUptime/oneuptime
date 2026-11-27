@@ -10,7 +10,7 @@ import {
 import i18n from "./Utils/i18n";
 import Route from "Common/Types/API/Route";
 import { VoidFunction } from "Common/Types/FunctionTypes";
-import { JSONObject } from "Common/Types/JSON";
+import { JSONArray, JSONObject } from "Common/Types/JSON";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import { RouteFallbackSkeleton } from "./Components/Skeleton/PageSkeletons";
@@ -25,6 +25,8 @@ import {
 } from "react-router-dom";
 import API from "./Utils/API";
 import { sayServerMessage } from "./Utils/ServerMessageWords";
+import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import StatusPageIncidentCategory from "Common/Models/DatabaseModels/StatusPageIncidentCategory";
 
 // The server's sign-in messages, in the reader's language (#9212).
 API.setServerMessageWords(sayServerMessage);
@@ -248,6 +250,11 @@ const App: () => JSX.Element = () => {
     allowSubscriberToChooseEventTypes,
     setAllowSubscriberToChooseEventTypes,
   ] = useState<boolean>(false);
+  const [allowSubscriberToChooseIncidentCategories, setAllowSubscriberToChooseIncidentCategories] =
+    useState<boolean>(false);
+  const [incidentCategories, setIncidentCategories] = useState<
+    Array<StatusPageIncidentCategory>
+  >([]);
 
   const [enableSMSSubscribers, setenableSMSSubscribers] =
     useState<boolean>(false);
@@ -407,9 +414,24 @@ const App: () => JSX.Element = () => {
             "statusPage.allowSubscribersToChooseEventTypes",
           ) as boolean;
 
+        const allowSubscribersToChooseIncidentCategories: boolean =
+          JSONFunctions.getJSONValueInPath(
+            masterpage || {},
+            "statusPage.allowSubscribersToChooseIncidentCategories",
+          ) === true;
+
         setAllowSubscribersToChooseResources(allowSubscribersToChooseResources);
         setAllowSubscriberToChooseEventTypes(
           allowSubscribersToChooseEventTypes,
+        );
+        setAllowSubscriberToChooseIncidentCategories(
+          allowSubscribersToChooseIncidentCategories,
+        );
+        setIncidentCategories(
+          BaseModel.fromJSONArray(
+            (masterpage["incidentCategories"] as JSONArray) || [],
+            StatusPageIncidentCategory,
+          ),
         );
 
         const limitSubscribersToPrivateUsers: boolean =
@@ -731,6 +753,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 onLoadComplete={() => {
                   onPageLoadComplete();
                 }}
@@ -759,6 +783,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -793,6 +819,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -818,6 +846,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -891,6 +921,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -916,6 +948,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -941,6 +975,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -981,6 +1017,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -1010,6 +1048,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -1039,6 +1079,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 enableEmailSubscribers={enableEmailSubscribers}
                 enableSMSSubscribers={enableSMSSubscribers}
                 enableSlackSubscribers={enableSlackSubscribers}
@@ -1060,6 +1102,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SMS] as Route}
                 allowSubscribersToChooseResources={
                   allowSubscribersToChooseResources
@@ -1085,6 +1129,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 pageRoute={RouteMap[PageMap.PREVIEW_SUBSCRIBE_SLACK] as Route}
                 allowSubscribersToChooseResources={
                   allowSubscribersToChooseResources
@@ -1113,6 +1159,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 pageRoute={
                   RouteMap[PageMap.PREVIEW_SUBSCRIBE_MICROSOFT_TEAMS] as Route
                 }
@@ -1142,6 +1190,8 @@ const App: () => JSX.Element = () => {
                 allowSubscribersToChooseEventTypes={
                   allowSubscriberToChooseEventTypes
                 }
+                allowSubscribersToChooseIncidentCategories={allowSubscriberToChooseIncidentCategories}
+                incidentCategories={incidentCategories}
                 pageRoute={
                   RouteMap[PageMap.PREVIEW_SUBSCRIBE_WEBHOOKS] as Route
                 }
