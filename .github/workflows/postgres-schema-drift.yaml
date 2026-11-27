@@ -1057,6 +1057,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkDevicePollClaimPostgres.test.ts --forceExit
 
+      # Clones the migrated tables into an isolated schema and runs the two
+      # statements a probe's SNMP trap receiver runs on (#11005): the devices
+      # whose SNMPv3 users a probe is handed - its own devices only, with an
+      # SNMPv3 credential on the device, its profile or its site - and the
+      # receiver's report, written on a project's own probe only when it
+      # changed, never on a global probe.
+      - name: Test a probe's SNMP trap receiver users and report on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_SNMP_TRAP_RECEIVER_TESTS: "true"
+          SNMP_TRAP_RECEIVER_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SNMP_TRAP_RECEIVER_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SNMP_TRAP_RECEIVER_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/SnmpTrapReceiverPostgres.test.ts --forceExit
+
       # Clones the migrated MonitorProbe, Monitor and Project tables into an
       # isolated schema and runs a probe's monitor claim (issues #7194,
       # #10819): one statement that takes the due rows nobody else holds
@@ -1239,6 +1257,23 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Infrastructure/Postgres/MonitorIndexesPostgres.test.ts --forceExit
+
+      # Makes a Monitor table with the columns the telemetry scheduler's
+      # stamps touch in a schema of its own (#11060): every monitor still
+      # due stamped with its own next due time in one statement, one due
+      # later or deleted left alone, two schedulers at once stamping each
+      # monitor once, one the queue refused made due again, the stamp a HOT
+      # update, and an interval edit moving the next due time.
+      - name: Test the telemetry scheduler's stamps against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_TELEMETRY_STAMP_TESTS: "true"
+          TELEMETRY_STAMP_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          TELEMETRY_STAMP_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Monitor/TelemetryMonitorStampsPostgres.test.ts --forceExit
 
       # Clones the migrated RunnerJob and Project tables into an isolated
       # schema and runs the global Runners' claim against them: the oldest
@@ -1489,6 +1524,23 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/NetworkInterfaceWritesPostgres.test.ts --forceExit
 
+      # Clones the migrated tables into an isolated schema and writes a SAN
+      # switch's ports with the poll's batched INSERT ... ON CONFLICT and
+      # UPDATE ... FROM (VALUES ...) (#11014, #11015): the two Fibre Channel
+      # columns ride both, typed even when a chunk's first port is no Fibre
+      # Channel port and writes nulls in both.
+      - name: Test a SAN switch's Fibre Channel ports written on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_INTERFACE_TESTS: "true"
+          NETWORK_INTERFACE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_INTERFACE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_INTERFACE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkInterfaceFibreChannelPostgres.test.ts --forceExit
+
       # Clones the migrated NetworkEndpoint table into an isolated schema and
       # runs the endpoint write's own statements against it, reading
       # pg_stat_user_tables after each poll (issue #8092): no index names a
@@ -1570,6 +1622,44 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/CloudCostGroupsPostgres.test.ts
+          --forceExit
+
+      # Copies the migrated commitment and cloud cost settings tables into a
+      # schema of the suite's own and runs the services on them through
+      # TypeORM (#11007, #11011): a project's settings made once with every
+      # default, by three callers at once too; a connection's commitments
+      # created, updated and removed as its cloud lists them, removed only
+      # when the account was read in full; and the expiry and under-use
+      # alerts, raised once each and resolved when they recover.
+      - name: Test cloud commitments and cost settings on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_COMMITMENTS_TESTS: "true"
+          CLOUD_COMMITMENTS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_COMMITMENTS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/CloudConnection/CloudCommitmentsPostgres.test.ts
+          --forceExit
+
+      # Clones the tables acting on savings reads and writes into an isolated
+      # schema and acts on savings end to end against a fake EC2 (#11010):
+      # Apply waiting for an owner's approval, Undo from the final snapshot,
+      # nothing reaching the cloud while a connection's Savings actions are
+      # off, who may approve, the AI rules' limits, off-hours schedules, and
+      # a change the bill shows kept as realised.
+      - name: Test acting on cloud savings, end to end, on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_CLOUD_SAVINGS_TESTS: "true"
+          CLOUD_SAVINGS_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          CLOUD_SAVINGS_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          CLOUD_SAVINGS_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/CloudSavings/CloudSavingsActionsPostgres.test.ts
           --forceExit
 
       # Clones the migrated CloudConnection into an isolated schema and makes
@@ -2176,6 +2266,24 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProxmoxResourcePostgres.test.ts --forceExit
+
+      # Clones the migrated XcpNgResource table (indexes included) into an
+      # isolated schema and runs XcpNgResourceService's hand-written SQL on
+      # the recorded Xen Orchestra scrapes of two pools: the upsert of every
+      # column, the pool's counts and capacity, a VM that stopped keeping
+      # when it last ran, an older batch arriving late regressing nothing,
+      # the prune that never takes a whole pool, and which stopped VMs ran
+      # in the last day.
+      - name: Test the XCP-ng inventory SQL on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_XCP_NG_RESOURCE_TESTS: "true"
+          XCP_NG_RESOURCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          XCP_NG_RESOURCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/XcpNgResourceWritesPostgres.test.ts --forceExit
 
       # Clones the migrated OpenStackResource table into an isolated schema and runs
       # OpenStackResourceService's hand-written SQL against it: the upsert that keeps
