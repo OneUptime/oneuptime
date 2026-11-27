@@ -7,10 +7,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * no default rewrites nothing: every rule that exists was added by someone
  * else, and reads empty.
  */
-export class AddDetectionRuleAddedByOneUptimeAt1809187781037
+export class AddDetectionRuleAddedByOneUptimeAt1809187791037
   implements MigrationInterface
 {
-  public name: string = "AddDetectionRuleAddedByOneUptimeAt1809187781037";
+  public name: string = "AddDetectionRuleAddedByOneUptimeAt1809187791037";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

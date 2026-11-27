@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { MigrationInterface, QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddDetectionRuleAddedByOneUptimeAt1809187781037 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187781037-AddDetectionRuleAddedByOneUptimeAt";
+import { AddDetectionRuleAddedByOneUptimeAt1809187791037 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187791037-AddDetectionRuleAddedByOneUptimeAt";
 import DetectionRule from "../../../../Models/DatabaseModels/DetectionRule";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -20,7 +20,7 @@ import TableColumnType from "../../../../Types/Database/TableColumnType";
  * through the API.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809187781037";
+const MIGRATION_TIMESTAMP: string = "1809187791037";
 const MIGRATION_BASE_NAME: string = "AddDetectionRuleAddedByOneUptimeAt";
 const MIGRATION_CLASS_NAME: string = `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`;
 
@@ -42,7 +42,7 @@ async function statementsOf(
     },
   } as unknown as QueryRunner;
 
-  await run(new AddDetectionRuleAddedByOneUptimeAt1809187781037(), runner);
+  await run(new AddDetectionRuleAddedByOneUptimeAt1809187791037(), runner);
 
   return statements;
 }
@@ -117,7 +117,7 @@ describe("AddDetectionRuleAddedByOneUptimeAt", () => {
         return name === MIGRATION_CLASS_NAME;
       }),
     ).toHaveLength(1);
-    expect(new AddDetectionRuleAddedByOneUptimeAt1809187781037().name).toBe(
+    expect(new AddDetectionRuleAddedByOneUptimeAt1809187791037().name).toBe(
       MIGRATION_CLASS_NAME,
     );
 
