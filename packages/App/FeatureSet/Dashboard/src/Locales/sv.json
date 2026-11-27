@@ -66496,7 +66496,7 @@
   "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Hemligheten i Xen Orchestras OpenMetrics-plugin, under Settings > Plugins > openmetrics. Krypterad, visas aldrig igen, skickas bara till din sond.",
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "Tokenet tas bort från OneUptime. Mätvärdena fortsätter att komma via OpenMetrics-hemligheten. Återkalla det också i Xen Orchestra om inget annat använder det.",
   "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root, eller en Active Directory-användare i poolen med XAPI:s roll read-only. XAPI har inget lokalt konto som bara läser.",
-  "1 while the pool's high availability is on, else 0. Read by a probe through Xen Orchestra's REST API or straight from XAPI; the XCP-ng Agent does not read it.": "1 så länge poolens hög tillgänglighet är påslagen, annars 0. Läses av en sond via Xen Orchestras REST-API eller direkt från XAPI; XCP-ng-agenten läser det inte.",
+  "1 while the pool's high availability is on, else 0. Read by a probe through Xen Orchestra's REST API or straight from XAPI; the XCP-ng Agent does not read it.": "1 så länge poolens höga tillgänglighet är påslagen, annars 0. Läses av en sond via Xen Orchestras REST-API eller direkt från XAPI; XCP-ng-agenten läser det inte.",
   "A CA certificate of the pool expired": "Ett CA-certifikat för poolen har gått ut",
   "A CA certificate of the pool expires soon": "Ett CA-certifikat för poolen går snart ut",
   "A PVS proxy could not be set up": "En PVS-proxy kunde inte konfigureras",

@@ -227,6 +227,17 @@ OneUptime выводит для каждого пула четыре ряда 0/
 | `xcp_ng.vm.running` | ВМ в состоянии Running; 0, пока она Halted, Paused или Suspended |
 | `xcp_ng.vm.stopped_after_running` | ВМ, работавшая за последние 24 часа, находится в состоянии Halted или Paused |
 
+С зондом, подключённым к Xen Orchestra или к XAPI пула, OneUptime также выводит эти ряды из того, что зонд считывает помимо метрик; агент ничего из этого не читает:
+
+| Ряд | Значение |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 1, пока HA пула включена, иначе 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | 1, пока HA ещё может пережить отказ хоста, иначе 0: через XAPI — собственный план HA, через Xen Orchestra — работающий и включённый хост помимо отказавшего |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | сколько отказов хостов должна выдерживать HA (только через XAPI) |
+| `xcp_ng.pool.ha.plan_exists_for` | сколько отказов хостов покрывает её текущий план (только через XAPI) |
+| `xcp_ng.vm.backup_overdue` | 1, пока у ВМ, которую включает запланированное задание резервного копирования, нет успешной копии за её интервал плюс четверть, но не меньше часа (только через Xen Orchestra) |
+| `xcp_ng.host.missing_patches` | сколько исправлений не хватает хосту, проверяется каждые шесть часов (только через Xen Orchestra) |
+
 Он также ставит на каждую точку `xcp_ng.scope` (`pool`, `host`, `vm`, `sr`, `vdi` или `xostor`) и `xcp_ng.id` (UUID этого объекта), по которым фильтруют мониторы и панели: см. [Идентификация ресурсов](/docs/monitor/xcp-ng-monitor#идентификация-ресурсов).
 
 ### Что агент не сохраняет
@@ -381,7 +392,8 @@ Xen Orchestra сообщает только о пулах, к которым п�
 
 Плагин OpenMetrics Xen Orchestra отдаёт метрики, поэтому часть того, за чем вы следите в пуле XCP-ng, в нём пока нет:
 
-- **Тревоги**, кроме тревог XOSTOR, **состояние HA**, **мастер пула**, **недостающие патчи**, **резервные копии** и **снимки**, а также **состояние канала** физических интерфейсов хоста (PIF). Они поступают из REST API Xen Orchestra, в [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
+- **Тревоги**, кроме тревог XOSTOR, **состояние HA**, **мастер пула**, **недостающие патчи** и **резервные копии**: зонд OneUptime читает их из REST API Xen Orchestra или из XAPI пула ([#10997](https://github.com/OneUptime/oneuptime/issues/10997)), см. [XCP-ng без агента](/docs/telemetry/xcp-ng-agentless).
+- **Снимки** каждой ВМ и **состояние канала** физических интерфейсов хоста (PIF), которые пока не читает и зонд ([#11328](https://github.com/OneUptime/oneuptime/issues/11328)).
 - **Пулы без Xen Orchestra** или за XOA без лицензии Premium, которая нужна плагину: их напрямую через XAPI читает зонд OneUptime ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), см. [XCP-ng без агента](/docs/telemetry/xcp-ng-agentless).
 - **Подключение без агента**: зонд OneUptime сам читает плагин Xen Orchestra, как это умеет VMware ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), на той же странице.
 

@@ -227,6 +227,17 @@ OneUptime은 각 풀의 데이터가 들어올 때 0/1 계열 4개를 만들어 
 | `xcp_ng.vm.running` | VM이 Running인 동안. Halted, Paused, Suspended이면 0 |
 | `xcp_ng.vm.stopped_after_running` | 지난 24시간 동안 실행된 VM이 Halted 또는 Paused인 동안 |
 
+Xen Orchestra나 풀의 XAPI에 연결된 프로브가 있으면, OneUptime은 프로브가 메트릭 외에 읽는 내용에서 다음 계열도 만들어 냅니다. 에이전트는 이 중 어느 것도 읽지 않습니다.
+
+| 계열 | 값 |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 풀의 HA가 켜져 있는 동안 1, 그렇지 않으면 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | HA가 아직 호스트 하나의 장애를 견딜 수 있는 동안 1, 그렇지 않으면 0: XAPI를 통해서는 HA 자체의 계획, Xen Orchestra를 통해서는 장애가 난 호스트 외에 켜져 있고 활성화된 호스트 |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | HA가 견디도록 설정된 호스트 장애 수(XAPI를 통해서만) |
+| `xcp_ng.pool.ha.plan_exists_for` | 현재 계획이 감당하는 호스트 장애 수(XAPI를 통해서만) |
+| `xcp_ng.vm.backup_overdue` | 예약된 백업 작업에 포함된 VM에 간격과 그 4분의 1(최소 1시간) 안에 성공한 백업이 없는 동안 1(Xen Orchestra를 통해서만) |
+| `xcp_ng.host.missing_patches` | 호스트의 누락된 패치 수, 6시간마다 확인(Xen Orchestra를 통해서만) |
+
 또한 모든 지점에 `xcp_ng.scope`(`pool`, `host`, `vm`, `sr`, `vdi`, `xostor` 중 하나)와 `xcp_ng.id`(그 객체의 UUID)를 붙이며, 모니터와 대시보드는 이것으로 필터링합니다. [리소스 식별](/docs/monitor/xcp-ng-monitor#리소스-식별)을 참조하세요.
 
 ### 에이전트가 유지하지 않는 것
@@ -381,7 +392,8 @@ Xen Orchestra는 연결된 풀만 보고하고, 에이전트는 그 Xen Orchestr
 
 Xen Orchestra의 OpenMetrics 플러그인은 메트릭을 제공하므로, XCP-ng 풀에서 지켜볼 것 중 일부는 아직 없습니다.
 
-- XOSTOR 외의 **알람**, **HA 상태**, **풀 마스터**, **누락된 패치**, **백업**, **스냅숏**, 호스트 물리 인터페이스(PIF)의 **링크 상태**. 이들은 Xen Orchestra의 REST API에서 가져옵니다([#10997](https://github.com/OneUptime/oneuptime/issues/10997)).
+- XOSTOR 외의 **알람**, **HA 상태**, **풀 마스터**, **누락된 패치**, **백업**. OneUptime 프로브가 Xen Orchestra의 REST API나 풀의 XAPI에서 읽습니다([#10997](https://github.com/OneUptime/oneuptime/issues/10997)). [에이전트 없는 XCP-ng](/docs/telemetry/xcp-ng-agentless)를 참조하세요.
+- 각 VM의 **스냅숏**과 호스트 물리 인터페이스(PIF)의 **링크 상태**. 아직 어떤 프로브도 읽지 않습니다([#11328](https://github.com/OneUptime/oneuptime/issues/11328)).
 - Xen Orchestra가 없는 **풀**, 또는 플러그인에 필요한 Premium 라이선스가 없는 XOA 뒤의 풀. OneUptime 프로브가 이들을 XAPI에서 직접 읽습니다([#10999](https://github.com/OneUptime/oneuptime/issues/10999)). [에이전트 없는 XCP-ng](/docs/telemetry/xcp-ng-agentless)를 참조하세요.
 - VMware처럼 OneUptime 프로브가 Xen Orchestra의 플러그인을 직접 읽는 **에이전트 없는 연결**([#10996](https://github.com/OneUptime/oneuptime/issues/10996)). 같은 페이지에서 설명합니다.
 
