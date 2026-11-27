@@ -127,6 +127,9 @@ describe("isAuthenticatedSnmpV3", () => {
         trap({ securityLevel: "AuthPriv" as SnmpSecurityLevel }),
       ),
     ).toBe(true);
+    expect(
+      SnmpTrapDeviceSelection.isAuthenticatedSnmpV3(trap({ snmpVersion: "v3" })),
+    ).toBe(true);
   });
 
   test("not v1, v2c, noAuthNoPriv or a trap that says no level", () => {

@@ -3,6 +3,7 @@ import SnmpTrap from "../../../Types/Monitor/SnmpMonitor/SnmpTrap";
 import SnmpSecurityLevel, {
   SnmpSecurityLevelUtil,
 } from "../../../Types/Monitor/SnmpMonitor/SnmpSecurityLevel";
+import { SnmpVersionUtil } from "../../../Types/Monitor/SnmpMonitor/SnmpVersion";
 import SnmpTrapReceiverUtil from "../../../Types/Probe/SnmpTrapReceiver";
 import SnmpV3CredentialHolderUtil, {
   SnmpV3CredentialHolders,
@@ -72,7 +73,11 @@ export default class SnmpTrapDeviceSelection {
    * Only such a trap's engine ID and credential say who sent it.
    */
   public static isAuthenticatedSnmpV3(trap: SnmpTrap): boolean {
-    if (String(trap.snmpVersion || "").trim() !== "3") {
+    // "3" as the probe sends it; "v3" too, however a trap was written.
+    if (
+      typeof trap.snmpVersion !== "string" ||
+      !SnmpVersionUtil.isV3(trap.snmpVersion)
+    ) {
       return false;
     }
 
