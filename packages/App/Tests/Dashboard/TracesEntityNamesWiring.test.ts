@@ -77,13 +77,18 @@ describe("TracesViewer props contract", () => {
 });
 
 describe("TracesViewer resolves entity names with one lookup", () => {
-  test("calls useTelemetryEntityNames exactly once, hinted with the scope type", () => {
+  test("calls useTelemetryEntityLookup exactly once, hinted with the scope type", () => {
     expect(TRACES_VIEWER).toContain(
-      'import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
+      'import { TelemetryEntityLookup, useTelemetryEntityLookup, } from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
     );
-    expect(count(TRACES_VIEWER, "useTelemetryEntityNames(")).toBe(1);
+    expect(count(TRACES_VIEWER, "useTelemetryEntityLookup(")).toBe(1);
+    expect(count(TRACES_VIEWER, "useTelemetryEntityNames(")).toBe(0);
     expect(TRACES_VIEWER).toContain(
-      "useTelemetryEntityNames( entityIdsToResolve, { typeHints: entityTypeHints }, );",
+      "useTelemetryEntityLookup( entityIdsToResolve, { typeHints: entityTypeHints }, );",
+    );
+    // A chip naming a deleted service reads "No longer available" (#11213).
+    expect(TRACES_VIEWER).toContain(
+      "notFoundEntityIds: entityLookup.notFound,",
     );
     expect(TRACES_VIEWER).toContain(
       "buildTraceEntityTypeHints(scopeEntityId, props.scopeEntityType)",
@@ -365,8 +370,9 @@ describe("filtering is untouched", () => {
   test("the chip resolver never rewrites facetKey or value", () => {
     expect(ENTITY_DISPLAY).not.toMatch(/facetKey:\s*display/);
     expect(ENTITY_DISPLAY).not.toMatch(/value:\s*display\.value,\s*readOnly/);
+    // Its name, and whether it is gone or archived (#11213): nothing else.
     expect(ENTITY_DISPLAY).toContain(
-      "return { ...chip, displayKey: display.key, displayValue: display.value };",
+      "return withTelemetryEntityChipMarks( { ...chip, displayKey: display.key, displayValue: display.value },",
     );
   });
 });

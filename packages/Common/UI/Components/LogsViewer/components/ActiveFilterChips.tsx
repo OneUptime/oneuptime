@@ -18,8 +18,10 @@ import LockedFilterChip, {
 import { TelemetrySignal } from "../../../../Utils/Telemetry/LockedFilterSearch";
 import {
   EXCLUDED_FILTER_CHIP_TEST_ID,
+  FILTER_CHIP_NOT_FOUND_TEST_ID,
   getFilterChipKeyText,
 } from "../../TelemetryViewer/components/TelemetryActiveFilterChips";
+import { getActiveFilterValueText } from "../../TelemetryViewer/ActiveFilterValueText";
 import {
   FacetChipReading,
   FacetValueState,
@@ -138,7 +140,11 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
           <LockedFilterChip
             key={chipKey}
             displayKey={filter.displayKey}
-            displayValue={chipText(filter.displayValue)}
+            displayValue={getActiveFilterValueText(
+              filter,
+              translator,
+              chipText,
+            )}
             filterValue={getFilterValue(filter)}
             lockedDetail={filter.lockedDetail}
             signal={signal}
@@ -169,6 +175,16 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
           filter.displayKey,
           isExcluded,
           translator,
+        );
+        /*
+         * Its value as its telemetry wrote it, "No longer available" once
+         * every read of the record it names answered nothing, or its name
+         * marked archived (#11213).
+         */
+        const valueText: string = getActiveFilterValueText(
+          filter,
+          translator,
+          chipText,
         );
         return (
           <span
@@ -207,8 +223,17 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
                  * a span of the page's direction, so a value long enough to
                  * wrap still wraps from the chip's side.
                  */}
-                <span>
-                  <IsolatedText text={chipText(filter.displayValue)} />
+                <span
+                  className={
+                    filter.isNotFound ? "italic opacity-75" : undefined
+                  }
+                  data-testid={
+                    filter.isNotFound
+                      ? FILTER_CHIP_NOT_FOUND_TEST_ID
+                      : undefined
+                  }
+                >
+                  <IsolatedText text={valueText} />
                 </span>
               </>
             )}
@@ -254,7 +279,7 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
                             );
                           })
                         : translatableTerm(filter.displayKey),
-                      value: chipText(filter.displayValue),
+                      value: valueText,
                     })
               }
             >

@@ -90,7 +90,7 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
 
   test("collects the scope ids with the page's scope type as hints, plus every chip", () => {
     expect(METRICS_VIEWER).toContain(
-      'import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
+      'import { TelemetryEntityLookup, useTelemetryEntityLookup, } from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
     );
     expect(METRICS_VIEWER).toContain(
       "collectMetricsEntityLookup({ scopeIds: serviceIds, scopeEntityType: props.scopeEntityType, filters: activeFilters, })",
@@ -102,13 +102,15 @@ describe("MetricsViewer resolves chip names through the generic entity resolver"
 
   test("issues exactly one lookup, with the type hints", () => {
     const calls: number = METRICS_VIEWER.split(
-      "useTelemetryEntityNames(",
+      "useTelemetryEntityLookup(",
     ).length;
     // One import-free call site: split yields calls + 1 pieces.
     expect(calls - 1).toBe(1);
     expect(METRICS_VIEWER).toContain(
-      "useTelemetryEntityNames( entityLookup.ids, { typeHints: entityLookup.typeHints }, )",
+      "useTelemetryEntityLookup( entityLookup.ids, { typeHints: entityLookup.typeHints }, )",
     );
+    // A chip naming a deleted service reads "No longer available" (#11213).
+    expect(METRICS_VIEWER).toContain("notFound: entityNamesLookup.notFound,");
   });
 
   test("builds the chip bar from the pure helper with the resolved names", () => {
