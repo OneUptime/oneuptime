@@ -1,6 +1,6 @@
 # 存储阵列代理
 
-OneUptime Storage Array 代理监控存储阵列：容量和数据缩减、延迟、IOPS 和带宽、卷、主机、Pod 和复制、硬件健康状况、文件系统和存储桶。它是一个标准的 OpenTelemetry Collector，使用只读用户的 API 令牌抓取阵列的 OpenMetrics 端点，在每个指标上打上阵列的身份信息，并把它发送到 OneUptime。[存储阵列监控](/docs/monitor/storage-array-monitor) 会根据到达的数据发出警报。
+OneUptime Storage Array 代理监控存储阵列：容量和数据缩减、延迟、IOPS 和带宽、卷、主机、Pod 和复制、硬件健康状况、文件系统和存储桶，在 NetApp ONTAP 上还包括其聚合、SVM、LUN 和 SnapMirror 关系。它是一个标准的 OpenTelemetry Collector，使用只读用户的 API 令牌抓取阵列的 OpenMetrics 端点（对于 ONTAP，则抓取在其旁边运行的 NetApp 自家的 Harvest 导出器），在每个指标上打上阵列的身份信息，并把它发送到 OneUptime。[存储阵列监控](/docs/monitor/storage-array-monitor) 会根据到达的数据发出警报。
 
 :::cards
 - [安装代理](#安装代理): 先创建只读用户，再使用安装脚本或 Docker Compose。
@@ -18,6 +18,9 @@ Storage Arrays 是一个对每个厂商都以相同方式工作的产品。它�
 | **Pure Storage FlashArray**，Purity//FA 6.7 及更高版本 | `purestorage.flasharray` | 阵列自己的 OpenMetrics 端点（`https://<array>/metrics/...?namespace=purefa`）：Collector 旁边不需要运行任何东西 | `otel-collector-config.yaml`（默认） |
 | **Pure Storage FlashArray**，较旧的 Purity//FA | `purestorage.flasharray` | Pure 的 FlashArray OpenMetrics 导出器，由同一个 Compose 文件作为 `pure-fa-exporter` 服务运行 | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure 的 FlashBlade OpenMetrics 导出器，由同一个 Compose 文件作为 `pure-fb-exporter` 服务运行 | `otel-collector-config.flashblade.yaml` |
+| **NetApp ONTAP** 9.12.1 及更高版本（AFF、FAS、ASA、ONTAP Select、Cloud Volumes ONTAP），以及 **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11，由同一个 Compose 文件作为 `netapp-harvest` 服务运行：它使用只读用户和密码登录集群的 REST API | `otel-collector-config.netapp-ontap.yaml` |
+
+ONTAP 没有自己的指标端点，因此代理会在 Collector 旁边运行 NetApp 的开源导出器 Harvest。Harvest 读取集群的 REST API，并在 Compose 网络上提供它读取到的内容，每个序列都命名为 `netapp_<object>_<counter>`；Collector 抓取它并将其发送出去。Harvest 从不写入集群，其发送给 NetApp 的 AutoSupport 报告也已关闭。
 
 Pure Storage 于 2026 年 2 月更名为 **Everpure**。FlashArray、FlashBlade 和 Purity 保留了原名，`purefa_*` 和 `purefb_*` 指标也没有改名，因此本页的所有内容都适用于以任一名称销售的阵列。
 
@@ -26,6 +29,8 @@ flowchart TB
     collector["Collector"] -->|"FlashArray，<br/>Purity//FA 6.7+"| array["阵列，<br/>端口 443"]
     collector -->|"较旧的 FlashArray，<br/>FlashBlade"| exporter["Pure 的导出器"]
     exporter -->|"API 令牌"| array
+    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    harvest -->|"只读用户，<br/>REST API"| cluster["集群，<br/>端口 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
 ```
 
@@ -34,7 +39,7 @@ flowchart TB
 ## 开始之前
 
 - Docker Engine 20.10 或更高版本，带 Docker Compose v2 插件，所在机器能通过 HTTPS（TCP 443）访问阵列的管理接口。
-- 阵列上的一个管理员帐户，用于创建具有内置 **readonly** 角色的用户及其 API 令牌。
+- 阵列上的一个管理员帐户，用于创建具有内置 **readonly** 角色的用户及其 API 令牌。在 ONTAP 上，需要一个集群管理员（在 Amazon FSx for NetApp ONTAP 上为 `fsxadmin`），用于创建带密码的只读 REST 用户。
 - 一个摄取密钥。在 **项目设置 → 遥测与 APM → 摄取密钥** 下创建一个并复制其值。
 
 ### 在哪里运行代理
@@ -62,6 +67,27 @@ pureadmin create --api-token oneuptime
 3. 在新用户的 ⋮ 菜单中选择 **Create API Token…**，将 **Expires In** 留空，然后复制令牌。
 @tab FlashBlade
 以同样的方式创建具有 **readonly** 角色的用户及其 API 令牌：在 FlashBlade GUI 的用户设置中创建，或在 Purity//FB CLI 中使用 `pureadmin`。在没有本地用户的版本中，请使用目录服务（LDAP 或 Active Directory）帐户，其所在组映射到 readonly 角色。FlashBlade 的 API 令牌以 `T-` 开头。
+@tab ONTAP CLI
+以管理员身份 SSH 登录到集群管理地址。第一个命令创建一个只能读取所有 API、不能做其他任何事情的 REST 角色；第二个命令创建一个拥有该角色的 HTTP 用户，并询问其密码：
+
+```bash
+security login rest-role create -role oneuptime-readonly -api /api -access readonly
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role oneuptime-readonly
+```
+
+代理使用此用户和密码登录。不涉及 API 令牌。
+@tab ONTAP System Manager
+1. 打开 _Cluster → Settings → Users and Roles_。
+2. 在 **Roles** 下选择 **Add**，将角色命名为 `oneuptime-readonly`，输入 `/api` 作为 **REST API path**，并选择 **Read-Only** 访问权限。
+3. 在 **Users** 下选择 **Add**，将用户命名为 `oneuptime`，为其授予新角色，添加使用 **Password** 的 **HTTP** 登录方式，并设置密码。
+@tab Amazon FSx for NetApp ONTAP
+以 `fsxadmin` 身份 SSH 登录到文件系统的管理端点（其 DNS 名称或 IP，可在 FSx 控制台中找到），并使用 FSx 预定义的只读角色创建用户。该命令会询问其密码：
+
+```bash
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role fsxadmin-readonly
+```
+
+文件系统的硬件由 AWS 运行，因此 FSx 不回答任何人关于磁盘、磁盘架或传感器的查询：阵列的 **硬件** 页面会列出其节点和端口，并说明这一点。
 :::
 
 ### 检查 FlashArray 是否提供自己的指标
@@ -72,7 +98,7 @@ Pure 为 **Purity//FA 6.7.0 及更高版本** 记录了原生 OpenMetrics 端点
 curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization: Bearer <api-token>' | grep purefa_info
 ```
 
-出现 `purefa_info{...} 1` 行表示阵列原生提供其指标：请使用默认配置。出现 `404` 表示不提供：请使用导出器配置，它会在 Collector 旁边运行 Pure 的导出器。Pure 已弃用该导出器，因此阵列升级后请改用原生配置。FlashBlade 始终通过 Pure 的 FlashBlade 导出器，因此 FlashBlade 可以跳过这一步。
+出现 `purefa_info{...} 1` 行表示阵列原生提供其指标：请使用默认配置。出现 `404` 表示不提供：请使用导出器配置，它会在 Collector 旁边运行 Pure 的导出器。Pure 已弃用该导出器，因此阵列升级后请改用原生配置。FlashBlade 始终通过 Pure 的 FlashBlade 导出器，ONTAP 集群则始终通过 NetApp Harvest，因此它们可以跳过这一步。
 
 ### 安装并启动代理
 
@@ -87,7 +113,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-脚本会询问这是哪种阵列（提供原生指标的 FlashArray、运行较旧 Purity//FA 的 FlashArray，或 FlashBlade），然后询问你的 OneUptime URL、摄取密钥、阵列的名称、阵列的管理地址和只读用户的 API 令牌（读取时不回显）。它安装到 `/opt/oneuptime-storage-array-agent`，下载 Compose 文件和全部三个 Collector 配置，写入一个 `0600` 权限的 `.env` 文件，其中包含匹配的配置和 Compose 配置文件，并用 Docker Compose 启动代理。它会按你输入的原样为 Docker Compose 给每个值加上引号。再次运行它会复用现有 `.env` 中的所有内容，不会再次询问，并在替换你编辑过的文件之前将其保存为 `<file>.bak.<timestamp>`。
+脚本会询问这是哪种阵列（提供原生指标的 FlashArray、运行较旧 Purity//FA 的 FlashArray、FlashBlade，或 NetApp ONTAP 集群），然后询问你的 OneUptime URL、摄取密钥、阵列的名称、阵列的管理地址和只读用户的 API 令牌，对于 ONTAP 则询问只读用户的名称和密码（读取时不回显）。它安装到 `/opt/oneuptime-storage-array-agent`，下载 Compose 文件、所有 Collector 配置和 Harvest 的四个文件，写入一个 `0600` 权限的 `.env` 文件，其中包含匹配的配置和 Compose 配置文件，并用 Docker Compose 启动代理。它会按你输入的原样为 Docker Compose 给每个值加上引号。再次运行它会复用现有 `.env` 中的所有内容，不会再次询问，并在替换你编辑过的文件之前将其保存为 `<file>.bak.<timestamp>`。
 @tab Docker Compose
 从你的 OneUptime 下载 `docker-compose.yml` 和三个 `otel-collector-config*.yaml` 文件到一个新文件夹中：
 
@@ -114,7 +140,34 @@ PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-对于运行较旧 Purity//FA 的 FlashArray，设置 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` 和 `COMPOSE_PROFILES=flasharray-exporter`。对于 FlashBlade，设置 `STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` 和 `COMPOSE_PROFILES=flashblade`，并填写 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`，而不是 `PURE_FA_*` 这一对。启动代理：
+对于运行较旧 Purity//FA 的 FlashArray，设置 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` 和 `COMPOSE_PROFILES=flasharray-exporter`。对于 FlashBlade，设置 `STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` 和 `COMPOSE_PROFILES=flashblade`，并填写 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`，而不是 `PURE_FA_*` 这一对。
+
+对于 NetApp ONTAP 集群或 Amazon FSx for NetApp ONTAP，还需下载 ONTAP 配置和 Harvest 的四个文件：
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
+```
+
+并使用以下 `.env`。请像这里一样把密码放在单引号中：这样无论密码包含什么，Docker Compose 都会按原样读取。包含 `'` 的密码则改放在双引号中，并用 `\"`、`\\` 和 `$$` 分别表示 `"`、`\` 和 `$`：
+
+```bash title=".env"
+ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
+STORAGE_ARRAY_NAME=ontap-prod-01
+STORAGE_SYSTEM=netapp.ontap
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.netapp-ontap.yaml
+COMPOSE_PROFILES=netapp-ontap
+NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
+NETAPP_ONTAP_USERNAME=oneuptime
+NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
+STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+```
+
+启动代理：
 
 ```bash
 docker compose up -d
@@ -128,7 +181,7 @@ docker compose ps
 docker logs -f oneuptime-storage-array-agent
 ```
 
-`docker compose ps` 会列出 Collector（`oneuptime-storage-array-agent`），使用导出器配置时还会列出导出器（`pure-fa-exporter` 或 `pure-fb-exporter`）。Collector 启动后，其日志中应出现这一行：
+`docker compose ps` 会列出 Collector（`oneuptime-storage-array-agent`），使用导出器配置时还会列出导出器（`pure-fa-exporter`、`pure-fb-exporter` 或 `netapp-harvest`）。Collector 启动后，其日志中应出现这一行：
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -136,7 +189,7 @@ Everything is ready. Begin running and processing data.
 
 ### 在 OneUptime 中找到阵列
 
-打开 **产品 → 基础设施 → 存储阵列 → 所有存储阵列**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的警报和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。阵列的 **拓扑** 页面将其主机、卷、文件系统和硬件绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
+打开 **产品 → 基础设施 → 存储阵列 → 所有存储阵列**。第一次抓取之后（大约一分钟），阵列就会出现，带有它的容量、性能、未关闭的警报和硬件。卷、主机和 Pod 会在 2 分钟内出现，FlashBlade 的文件系统和存储桶在 5 分钟内出现，FlashArray 目录在 30 分钟内出现。ONTAP 集群会在 Harvest 读取它之后出现，其完整清单在大约 3 分钟内出现，即 Harvest 轮询其配置的间隔。阵列的 **拓扑** 页面将其主机、卷、文件系统和硬件绘制在一张地图上：请参阅 [拓扑](/docs/telemetry/topology#打开资源自己的地图)。
 :::
 
 ## 环境变量
@@ -148,14 +201,17 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自托管实例。如果实例只支持 HTTP，请使用 `http://` 及其端口。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 来自 **项目设置 → 遥测与 APM → 摄取密钥** 的摄取密钥。 |
 | `STORAGE_ARRAY_NAME` | 是 | 阵列在 OneUptime 中注册所用的名称，作为 `storage.array.name` 资源属性打到每个指标上。请保持不变：之后更改它会注册另一个阵列。缺少它时 Collector 拒绝启动。 |
-| `STORAGE_SYSTEM` | 否 | 平台，作为 `storage.system` 资源属性打上：`purestorage.flasharray` 或 `purestorage.flashblade`。默认为 `purestorage.flasharray`。 |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | 否 | 运行哪个随附的 Collector 配置：`otel-collector-config.yaml`（FlashArray，原生：默认）、`otel-collector-config.flasharray-exporter.yaml`（较旧的 FlashArray）或 `otel-collector-config.flashblade.yaml`（FlashBlade）。 |
-| `COMPOSE_PROFILES` | 否 | 启动所选配置要抓取的导出器：原生 FlashArray 配置留空，另外两种配置分别为 `flasharray-exporter` 或 `flashblade`。 |
+| `STORAGE_SYSTEM` | 否 | 平台，作为 `storage.system` 资源属性打上：`purestorage.flasharray`、`purestorage.flashblade` 或 `netapp.ontap`。默认为 `purestorage.flasharray`。 |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | 否 | 运行哪个随附的 Collector 配置：`otel-collector-config.yaml`（FlashArray，原生：默认）、`otel-collector-config.flasharray-exporter.yaml`（较旧的 FlashArray）、`otel-collector-config.flashblade.yaml`（FlashBlade）或 `otel-collector-config.netapp-ontap.yaml`（ONTAP）。 |
+| `COMPOSE_PROFILES` | 否 | 启动所选配置要抓取的导出器：原生 FlashArray 配置留空，其他配置分别为 `flasharray-exporter`、`flashblade` 或 `netapp-ontap`。 |
 | `PURE_FA_ENDPOINT` | FlashArray | FlashArray 的管理地址：主机名或 IP，不带 `https://`。 |
 | `PURE_FA_API_TOKEN` | FlashArray | 具有 readonly 角色的 FlashArray 用户的 API 令牌。 |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade 的管理地址：主机名或 IP，不带 `https://`。 |
 | `PURE_FB_API_TOKEN` | FlashBlade | 具有 readonly 角色的 FlashBlade 用户的 API 令牌。 |
-| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 否 | `true` 在原生端点上接受阵列的自签名证书；`false` 则验证它。默认为 `true`。Pure 的导出器从不验证阵列的证书，因此它对导出器不适用。 |
+| `NETAPP_ONTAP_ENDPOINT` | ONTAP | 集群管理地址（在 FSx 上为文件系统的管理端点）：主机名或 IP，不带 `https://`。 |
+| `NETAPP_ONTAP_USERNAME` | ONTAP | 只读 REST 用户，例如 `oneuptime`。 |
+| `NETAPP_ONTAP_PASSWORD` | ONTAP | 该用户的密码。只有 Harvest 会读取它，并完全按原样读取。 |
+| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 否 | `true` 在原生端点上和 Harvest 中接受阵列的自签名证书；`false` 则验证它。默认为 `true`。Pure 的导出器从不验证阵列的证书，因此它对导出器不适用。 |
 
 ## 代理如何抓取
 
@@ -164,10 +220,11 @@ Everything is ready. Begin running and processing data.
 - **按卷和按主机的延迟保留三个维度。** 每个卷和主机最多按十六个 `dimension` 导出其延迟。一条 `metric_relabel_configs` 规则保留 `usec_per_read_op`、`usec_per_write_op` 和 `usec_per_mirrored_write_op`，丢弃 QoS 速率限制、队列、SAN 和服务时间的细分，这些细分会使大型阵列的序列数成倍增加。`purefa_array_performance_latency_usec` 上的阵列级细分会保留。删除该规则即可同时保留按卷的细分。
 - **API 令牌是 Bearer 令牌。** 原生配置把它发送给阵列本身；导出器配置只通过 Compose 网络把它发送给导出器，导出器的端口从不发布。
 - **没有 `send_batch_max_size`。** OneUptime 每个请求都根据一次完整的抓取重建清单，因此随附的 `batch` 处理器从不把一次抓取拆分到多次导出中。请保持随附的 batch 设置不变。
+- **ONTAP：Harvest 轮询集群，Collector 抓取 Harvest。** Harvest 每 3 分钟读取一次集群的配置和状态，每分钟读取一次其性能（延迟以每次操作的微秒计，操作数和字节数以每秒计），每 3 分钟读取一次其 EMS 事件，并在 `netapp-harvest:12990` 上提供所有内容的最新值，Collector 每 60 秒抓取一次该端点，并打上 `scrape_endpoint: harvest` 标签。三个 `netapp-harvest-*.yaml` 文件把 Harvest 限制为只读取 OneUptime 需要的内容。Harvest 自己的 `netapp_metadata_*` 序列说明它完整列出了哪些对象，因此已删除的卷会离开清单，而 Harvest 无法读取的对象则保留其最后的计数。Collector 会丢弃 Harvest 对自身的测量以及按磁盘的性能序列，并把每个 SnapMirror 关系的计划转换为 `netapp_snapmirror_schedule_seconds`（每小时一次的计划为 3600），SnapMirror Behind Schedule 用它与滞后进行比较。
 
 ## 代理采集的内容
 
-Pure 的语义约定由 FlashArray 原生端点和两个导出器共享。每个值都是阵列自己计算出的仪表值（延迟以每次操作的微秒计，吞吐量以每秒计），因此无需计算速率，对象则由 **数据点标签** 命名：卷、Pod、目录、文件系统和存储桶用 `name`，主机用 `host`，FlashArray 硬件用 `component_name`。代理会添加 `storage.array.name` 和 `storage.system` 资源属性，因此 OneUptime 会把所有内容归到你的阵列下：
+Pure 的语义约定由 FlashArray 原生端点和两个导出器共享；ONTAP 的语义约定则来自 Harvest，见表格之后的说明。每个值都是阵列自己计算出的仪表值（延迟以每次操作的微秒计，吞吐量以每秒计），因此无需计算速率，对象则由 **数据点标签** 命名：卷、Pod、目录、文件系统和存储桶用 `name`，主机用 `host`，FlashArray 硬件用 `component_name`。代理会添加 `storage.array.name` 和 `storage.system` 资源属性，因此 OneUptime 会把所有内容归到你的阵列下：
 
 | 端点 | 指标族 | OneUptime 据此构建的内容 |
 | --- | --- | --- |
@@ -179,6 +236,11 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享。每个
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名称、Purity 版本和系统 ID；容量和数据缩减；未关闭的警报数；阵列的健康状况；**硬件** 页面 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **文件系统** 页面：每个文件系统的预配空间和已用空间、数据缩减、延迟、IOPS 和带宽 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **存储桶** 页面：每个存储桶的空间、配额、对象数和性能，按帐户分组 |
+| ONTAP，通过 Harvest | `netapp_cluster_*`、`netapp_node_*`、`netapp_aggr_*`、`netapp_svm_*`、`netapp_volume_*`、`netapp_lun_*`、`netapp_snapmirror_*` | 集群的名称、版本和 UUID；其容量（其各数据聚合的总和）和数据缩减；**卷** 页面；**聚合**、**SVM**、**LUN** 和 **SnapMirror** 页面，每个对象一个页面 |
+| ONTAP 硬件，通过 Harvest | `netapp_disk_*`、`netapp_shelf_*`、`netapp_environment_sensor_*`、`netapp_net_port_*`、`netapp_nic_*`、`netapp_fcp_*` | **硬件** 页面：节点、磁盘、磁盘架及其电源、风扇、模块和传感器，节点的传感器，以及以太网和光纤通道端口 |
+| ONTAP 的未解决问题和事件 | `netapp_health_*`、`netapp_ems_events` | 未关闭的警报数和 **活动警报** 卡片（已损坏的磁盘、磁盘架故障、HA 接管、已断开的端口、系统健康警报），以及 EMS 模板 |
+
+在 ONTAP 上，每个序列都来自 Harvest：对象由其标签命名（`volume` 位于其 `svm` 中，以及 `aggr`、`lun`、`node`、`disk`、`shelf`，SnapMirror 关系则用 `destination_location`），状态是一个值为 1 或 0 的 `netapp_*_new_status`，或是由其标签说明状态的 `netapp_*_labels` 序列，而每个未解决的问题都是一个在问题持续期间存在的 `netapp_health_*_alerts` 序列。
 
 **所有存储阵列** 的 **健康状况** 列读取阵列最新数据中阵列自身的警报和硬件：当它报告未关闭的严重警报，或有硬件组件、驱动器或控制器处于严重、故障、缺失或不健康状态时为 **严重**；当它报告未关闭的警告警报，或有降级或状态未知的组件时为 **警告**；否则为 **OK**；代理断开连接期间为 **未知**。阵列的 **概览** 会判断更多内容，如下一节所述。在监控条件中，阵列的属性要加上 `resource.` 前缀（`resource.storage.array.name`、`resource.storage.system`），而数据点标签保持原样（`name`、`host`、`dimension`、`space`）。
 
@@ -191,8 +253,9 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享。每个
 - **主机。** 不再能通过两个控制器访问阵列的主机需要查看，并说明原因：仅通过一个控制器、路径不均衡，或完全没有路径。
 - **Pod。** 阵列报告其副本链路不健康的 Pod 为严重，落后超过一分钟的需要查看。
 - **文件系统。** 剩余空间不足已配置大小 10% 的 FlashBlade 文件系统需要查看。
+- **ONTAP 集群自身的对象。** ONTAP 报告为离线的卷、聚合或 LUN，已损坏的磁盘，处于错误状态的磁盘架部件，超过严重阈值的节点传感器，以及已断开的端口为严重；已停止的 SVM、风扇或电源故障的节点，以及超过警告阈值的传感器需要查看，并用 ONTAP 自己的措辞说明原因。ONTAP 报告为不健康的 SnapMirror 关系为严重，落后超过一个半计划间隔的需要查看。
 
-**主机**、**复制** 和 **文件系统** 列表按同样的规则显示每个部分的状态，并在下方说明原因。主机和文件系统各自的页面会说明其中需要关注的内容以及监视它的阵列警报，只需一步即可开启其余警报；每个部分的页面，包括卷和存储桶的页面，都会说明其上未解决的事项。代理断开连接期间，健康状况显示为 **健康状况未知**：阵列的最后一次报告已不再准确。上面的每条阈值都是其警报模板触发的阈值，[存储阵列监控](/docs/monitor/storage-array-monitor)中列出了它们。
+**主机**、**复制** 和 **文件系统** 列表按同样的规则显示每个部分的状态，并在下方说明原因；ONTAP 集群的 **卷**、**聚合**、**SVM**、**LUN** 和 **SnapMirror** 列表也是如此，其中每一行都会打开它自己的页面：其状态、需要关注的内容、其上未解决的事项、监视它的集群警报、ONTAP 报告的有关它的信息以及它的图表。每个平台的页面都使用该平台自己的术语：ONTAP 卷会列出其 SVM、其聚合及其使用程度，其页面绘制 ONTAP 的序列。在 Amazon FSx for NetApp ONTAP 上，**硬件** 页面会列出节点和端口，并说明为什么没有磁盘或磁盘架。主机和文件系统各自的页面会说明其中需要关注的内容以及监视它的阵列警报，只需一步即可开启其余警报；每个部分的页面，包括卷和存储桶的页面，都会说明其上未解决的事项。代理断开连接期间，健康状况显示为 **健康状况未知**：阵列的最后一次报告已不再准确。上面的每条阈值都是其警报模板触发的阈值，[存储阵列监控](/docs/monitor/storage-array-monitor)中列出了它们。
 
 ## 可选 — 发送阵列的 syslog
 
@@ -251,14 +314,14 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 代理会把其文件固定的 Collector 版本报告为它的 **代理版本**。当该版本早于此 OneUptime 版本固定的版本时，阵列的 **概览** 页面上会在它旁边出现一个警告标志。选择它即可查看这些命令。在其文件开始报告版本之前安装的代理不会显示版本，直到以这种方式升级为止。
 
-Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml` 和三个 Collector 配置（你编辑过的文件会保存为 `<file>.bak.<timestamp>`），并重新创建代理，使 Collector 读取新的配置。安装在 `/opt/oneuptime-storage-array-agent` 之外的代理需要指定其文件夹：`INSTALL_DIR=<folder> bash install.sh`。
+Collector 镜像固定在 `docker-compose.yml` 中，其配置是旁边的文件，因此仅拉取镜像并不能让代理升级。请再次运行 `install.sh`：它会复用你现有 `.env` 中的每个值（不会再询问任何内容），刷新 `docker-compose.yml`、所有 Collector 配置和 Harvest 的文件（你编辑过的文件会保存为 `<file>.bak.<timestamp>`），并重新创建代理，使 Collector 读取新的配置。安装在 `/opt/oneuptime-storage-array-agent` 之外的代理需要指定其文件夹：`INSTALL_DIR=<folder> bash install.sh`。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-如果是用 Docker Compose 安装的，请在代理的文件夹中重新下载 Compose 文件和三个 Collector 配置（并重新做一遍你对它们所做的任何修改），然后拉取镜像并重新创建代理：
+如果是用 Docker Compose 安装的，请在代理的文件夹中重新下载 Compose 文件和各个 Collector 配置（对于 ONTAP，还要下载 ONTAP 配置和 Harvest 的四个文件，并重新做一遍你对它们所做的任何修改），然后拉取镜像并重新创建代理：
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
@@ -276,7 +339,7 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-然后，如果不再需要，请在阵列上删除只读用户及其 API 令牌。
+然后，如果不再需要，请在阵列上删除只读用户及其 API 令牌。在 ONTAP 上，请运行 `security login delete -user-or-group-name oneuptime -application http -authentication-method password`，然后运行 `security login rest-role delete -role oneuptime-readonly -api /api`。
 
 ## 故障排查
 
@@ -313,8 +376,12 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 阵列默认出示自签名证书，没有任何 Docker 镜像信任它。要么设置 `STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true`（在私有管理网络中这是实际的选择），要么在阵列上安装由 Collector 镜像信任的 CA 颁发的证书。
 :::
 
-:::details 无法解析 pure-fa-exporter 或 pure-fb-exporter
-导出器没有运行：`COMPOSE_PROFILES` 必须与 `STORAGE_ARRAY_COLLECTOR_CONFIG` 匹配（FlashArray 导出器配置用 `flasharray-exporter`，FlashBlade 配置用 `flashblade`）。修正 `.env` 并运行 `docker compose up -d`；之后 `docker compose ps` 会列出导出器。
+:::details 无法解析 pure-fa-exporter、pure-fb-exporter 或 netapp-harvest
+导出器没有运行：`COMPOSE_PROFILES` 必须与 `STORAGE_ARRAY_COLLECTOR_CONFIG` 匹配（FlashArray 导出器配置用 `flasharray-exporter`，FlashBlade 配置用 `flashblade`，ONTAP 配置用 `netapp-ontap`）。修正 `.env` 并运行 `docker compose up -d`；之后 `docker compose ps` 会列出导出器。
+:::
+
+:::details ONTAP：Harvest 无法登录，或缺少某个对象
+查看 Harvest 的日志：`docker compose logs netapp-harvest`。出现 `401` 或 `Unauthorized` 表示集群拒绝了该用户或其密码：请检查该用户是否具有 **http** 登录方式和只读 REST 角色（`security login show -user-or-group-name oneuptime`），修正 `.env` 并运行 `docker compose up -d`。某个对象上出现 `403` 或 `not authorized` 表示该角色无法访问那个 API；上面的角色可以访问整个 `/api`。在 Amazon FSx for NetApp ONTAP 上，无论谁询问，FSx 对磁盘、磁盘架和传感器都会这样回答：这是预期行为，**硬件** 页面也会说明这一点。`connection refused` 或 `no such host` 表示 `NETAPP_ONTAP_ENDPOINT` 错误：它应是集群管理地址（在 FSx 上为管理端点），而不是某个节点或 SVM 的地址。诊断脚本也会检查所有这些。
 :::
 
 :::details 已删除的卷或主机仍留在清单中
