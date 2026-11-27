@@ -418,6 +418,112 @@ export function namesAnyone(
 }
 
 /*
+ * WHAT A CORRELATION'S GROUP VALUE WAS, FROM WHAT IS LEFT OF IT (#11231).
+ *
+ * A Sigma correlation that groups on several fields names its group by
+ * their values joined ("alice@example.com / 203.0.113.7"), and what it
+ * opened carries the fingerprint of that value: its alerts and incidents,
+ * and the firings its group's other entities' risk counted. When it writes
+ * no Detection Findings and opens no cases, nothing else keeps the value,
+ * so an erasure works out candidates from what is there - and keeps one
+ * only when its fingerprint is the record's own, which the hash proves:
+ *
+ *   - an alert's or an incident's title, "[Detection] <rule> — <value>":
+ *     whatever follows a " — ";
+ *   - a firing its group's other entities' risk counted: the name, with the
+ *     other entities that counted the same firing, in each order.
+ *
+ * A candidate is no more than a guess until its fingerprint matches, so
+ * these offer every reading and leave the proof to the caller.
+ */
+
+// What an incident's title may end in after its value, as some are written.
+const EVENT_COUNT_SUFFIX: RegExp = / \([0-9][0-9,.]* events?\)$/;
+
+/*
+ * The values a title OneUptime made as "<rule> — <value>" may end in:
+ * whatever follows each " — ", and the same without an event count after
+ * it. Longest first; each once.
+ */
+export function getTitleValueCandidates(
+  title: string | undefined | null,
+): Array<string> {
+  if (typeof title !== "string" || !title) {
+    return [];
+  }
+
+  const candidates: Array<string> = [];
+  let at: number = title.indexOf(TITLE_VALUE_SEPARATOR);
+
+  while (at >= 0) {
+    const value: string = title.slice(at + TITLE_VALUE_SEPARATOR.length);
+
+    candidates.push(value, value.replace(EVENT_COUNT_SUFFIX, ""));
+    at = title.indexOf(TITLE_VALUE_SEPARATOR, at + 1);
+  }
+
+  return Array.from(new Set<string>(candidates)).filter(
+    (value: string): boolean => {
+      return value.length > 0;
+    },
+  );
+}
+
+// The most values a correlation groups on: a Sigma correlation's one to three.
+export const MAX_GROUP_VALUE_PARTS: number = 3;
+
+/*
+ * The group values a correlation may have named `name` by, with the other
+ * entities its risk was added to for the same firing: every order of the
+ * name and one or more of them, up to MAX_GROUP_VALUE_PARTS values, joined
+ * as a correlation joins them. Each once.
+ */
+export function getGroupValueCandidates(data: {
+  name: string;
+  others: ReadonlyArray<string>;
+  maxParts?: number | undefined;
+}): Array<string> {
+  const others: Array<string> = Array.from(
+    new Set<string>(
+      data.others.filter((other: string): boolean => {
+        return Boolean(other) && other !== data.name;
+      }),
+    ),
+  );
+  const maxParts: number = Math.max(2, data.maxParts ?? MAX_GROUP_VALUE_PARTS);
+  const candidates: Set<string> = new Set<string>();
+
+  // Every arrangement of `parts` that is short enough, each other value once.
+  const arrange: (parts: Array<string>, left: Array<string>) => void = (
+    parts: Array<string>,
+    left: Array<string>,
+  ): void => {
+    if (parts.length >= 2 && parts.includes(data.name)) {
+      candidates.add(parts.join(GROUP_VALUE_PART_SEPARATOR));
+    }
+
+    if (parts.length >= maxParts) {
+      return;
+    }
+
+    left.forEach((value: string, index: number): void => {
+      arrange(
+        [...parts, value],
+        left.filter((_other: string, other: number): boolean => {
+          return other !== index;
+        }),
+      );
+    });
+  };
+
+  if (data.name) {
+    arrange([], [data.name, ...others]);
+  }
+
+  return Array.from(candidates);
+}
+
+/*
  * THE FEED'S INDICATOR, OUT OF WHAT OneUptime WROTE ABOUT A MATCH ON THE
  * PERSON (#11230).
  *

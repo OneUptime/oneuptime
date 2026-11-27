@@ -17,7 +17,9 @@ import {
   TITLE_VALUE_SEPARATOR,
   getDescriptionNameTexts,
   getErasedRiskKeys,
+  getGroupValueCandidates,
   getStixIndicatorIdOf,
+  getTitleValueCandidates,
   namesAnyone,
   unnameDescription,
   unnameGroupValue,
@@ -539,6 +541,122 @@ describe("a correlation's group value", () => {
     ]) {
       expect(unnameGroupingKey(key, NAMES)).toBe(key);
     }
+  });
+});
+
+/*
+ * #11231: a correlation that writes no Detection Findings and opens no cases
+ * leaves its group value nowhere - but its alerts' titles hold it, and its
+ * group's other entities counted its firings. These offer the readings; the
+ * erasure keeps one only when its fingerprint proves it.
+ */
+describe("what a correlation's group value was, from what is left of it (#11231)", () => {
+  test("an alert's title: what follows its separator", () => {
+    expect(
+      getTitleValueCandidates(
+        "[Detection] Sign-in burst — alice@example.com / 203.0.113.7",
+      ),
+    ).toEqual(["alice@example.com / 203.0.113.7"]);
+  });
+
+  test("a rule whose own name holds the separator: every reading, the longest first", () => {
+    expect(
+      getTitleValueCandidates(
+        "[Detection] Sign-ins — burst — alice@example.com / 203.0.113.7",
+      ),
+    ).toEqual([
+      "burst — alice@example.com / 203.0.113.7",
+      "alice@example.com / 203.0.113.7",
+    ]);
+  });
+
+  test("an incident's title, with an event count after the value or not", () => {
+    expect(
+      getTitleValueCandidates(
+        "[Detection] Sign-in burst — alice@example.com / 203.0.113.7 (5 events)",
+      ),
+    ).toEqual([
+      "alice@example.com / 203.0.113.7 (5 events)",
+      "alice@example.com / 203.0.113.7",
+    ]);
+    expect(
+      getTitleValueCandidates("[Detection] R — bob / 10.0.0.1 (1 event)"),
+    ).toContain("bob / 10.0.0.1");
+    expect(
+      getTitleValueCandidates("[Detection] R — bob / 10.0.0.1 (1,204 events)"),
+    ).toContain("bob / 10.0.0.1");
+  });
+
+  test("a title with no value, or none at all, offers nothing", () => {
+    expect(getTitleValueCandidates("[Detection] Sign-in burst")).toEqual([]);
+    expect(getTitleValueCandidates("[Detection] Sign-in burst — ")).toEqual([]);
+    expect(getTitleValueCandidates("")).toEqual([]);
+    expect(getTitleValueCandidates(undefined)).toEqual([]);
+    expect(getTitleValueCandidates(null)).toEqual([]);
+  });
+
+  test("a firing's other entity: the name and it, in each order", () => {
+    expect(
+      getGroupValueCandidates({
+        name: "alice@example.com",
+        others: ["203.0.113.7"],
+      }).sort(),
+    ).toEqual(
+      [
+        `alice@example.com${CORRELATION_GROUP_VALUE_SEPARATOR}203.0.113.7`,
+        `203.0.113.7${CORRELATION_GROUP_VALUE_SEPARATOR}alice@example.com`,
+      ].sort(),
+    );
+  });
+
+  test("two others: every order of the name and one or both, never a value twice, never more than three", () => {
+    const candidates: Array<string> = getGroupValueCandidates({
+      name: "alice",
+      others: ["web-1", "203.0.113.7"],
+    });
+
+    expect(candidates).toHaveLength(10);
+    expect(new Set(candidates).size).toBe(10);
+
+    for (const candidate of candidates) {
+      const parts: Array<string> = candidate.split(GROUP_VALUE_PART_SEPARATOR);
+
+      expect(parts).toContain("alice");
+      expect(parts.length).toBeGreaterThanOrEqual(2);
+      expect(parts.length).toBeLessThanOrEqual(3);
+      expect(new Set(parts).size).toBe(parts.length);
+    }
+
+    expect(candidates).toEqual(
+      expect.arrayContaining([
+        "web-1 / alice / 203.0.113.7",
+        "203.0.113.7 / web-1 / alice",
+        "alice / web-1",
+      ]),
+    );
+  });
+
+  test("as many values as the correlation groups on, no more", () => {
+    expect(
+      getGroupValueCandidates({
+        name: "alice",
+        others: ["web-1", "203.0.113.7"],
+        maxParts: 2,
+      }),
+    ).toHaveLength(4);
+  });
+
+  test("the name itself, an empty value or a repeat among the others is no other value", () => {
+    expect(
+      getGroupValueCandidates({
+        name: "alice",
+        others: ["alice", "", "web-1", "web-1"],
+      }).sort(),
+    ).toEqual(["alice / web-1", "web-1 / alice"]);
+    expect(getGroupValueCandidates({ name: "", others: ["web-1"] })).toEqual(
+      [],
+    );
+    expect(getGroupValueCandidates({ name: "alice", others: [] })).toEqual([]);
   });
 });
 

@@ -25,7 +25,9 @@ import {
   THREAT_INTEL_STIX_INDICATOR_PREFIX,
   getDescriptionNameTexts,
   getErasedRiskKeys,
+  getGroupValueCandidates,
   getStixIndicatorIdOf,
+  getTitleValueCandidates,
   unnameDescription,
   unnameGroupValue,
   unnameGroupingKey,
@@ -360,6 +362,58 @@ interface EntityRiskContributionsRow {
   contributions: unknown;
 }
 
+/*
+ * The most other entities of one firing a correlation's value is read
+ * from (#11231): a correlation groups on one to three values, so a firing
+ * is counted by at most two others; a few more are allowed for.
+ */
+const MAX_RISK_CO_ENTITIES: number = 4;
+
+// The rule source's prefix of a risk contribution's key: "rule:<id>".
+const RULE_CONTRIBUTION_PREFIX: string = "rule:";
+
+/*
+ * The fingerprints a risk's contributions from detection rules hold in the
+ * firings they counted (#11231), each once.
+ */
+function ruleFiringFingerprintsOf(contributions: unknown): Array<string> {
+  if (!Array.isArray(contributions)) {
+    return [];
+  }
+
+  const fingerprints: Set<string> = new Set<string>();
+
+  for (const contribution of contributions) {
+    if (!contribution || typeof contribution !== "object") {
+      continue;
+    }
+
+    const record: Record<string, unknown> = contribution as Record<
+      string,
+      unknown
+    >;
+
+    if (
+      typeof record["sourceKey"] !== "string" ||
+      !record["sourceKey"].startsWith(RULE_CONTRIBUTION_PREFIX) ||
+      !Array.isArray(record["firingKeys"])
+    ) {
+      continue;
+    }
+
+    for (const firingKey of record["firingKeys"] as Array<unknown>) {
+      const places: DetectionFingerprintPlaces | null =
+        typeof firingKey === "string" ? getFiringKeyPlaces(firingKey) : null;
+
+      if (places) {
+        fingerprints.add(places.fingerprint);
+      }
+    }
+  }
+
+  return Array.from(fingerprints);
+}
+
 // An alert or an incident as the cut of a feed's indicator reads it (#11230).
 interface SeriesDescriptionRow {
   _id: string;
@@ -606,6 +660,12 @@ export default class SecurityUserErasureRecords {
    * and the alerts, incidents and risk that carry its fingerprint are found
    * by it. The erasure keeps them with the names, encrypted, and wipes them
    * with them.
+   *
+   * From the correlations' case detections, and - for a correlation that
+   * opens no cases and writes no Detection Findings (#11231) - from the
+   * titles of the alerts and incidents it opened and the firings its
+   * group's other entities' risk counted, each proven by its fingerprint.
+   * The findings scan hands over the values of the findings it changes.
    */
   public static async findCorrelationValues(data: {
     projectId: ObjectID;
@@ -641,7 +701,246 @@ export default class SecurityUserErasureRecords {
       }
     }
 
+    /*
+     * And a correlation that writes no Detection Findings and opens no
+     * cases (#11231): its values from the alerts and incidents it opened,
+     * and from the firings its group's other entities' risk counted.
+     */
+    for (const value of await this.findSeriesCorrelationValues({
+      projectId: data.projectId,
+      names,
+    })) {
+      values.set(value.named, value);
+    }
+
+    for (const value of await this.findRiskCorrelationValues({
+      projectId: data.projectId,
+      names,
+      known: Array.from(values.values()),
+    })) {
+      values.set(value.named, value);
+    }
+
     return Array.from(values.values());
+  }
+
+  /*
+   * A correlation's group values that name the person, from the titles of
+   * the alerts and incidents its rule opened (#11231): "[Detection] <rule>
+   * — alice@example.com / 203.0.113.7". A title holding one of the names
+   * offers what follows each " — " (getTitleValueCandidates), and a
+   * candidate is kept only when the record's own fingerprint - keyed, or
+   * as it was before the key - is the candidate's: the hash proves it, so
+   * a rule renamed since, a title a person edited, or a name that only
+   * appears in it, finds nothing. A record whose fingerprint an erasure
+   * already rewrote is the token's, and proves nothing more.
+   */
+  public static async findSeriesCorrelationValues(data: {
+    projectId: ObjectID;
+    names: ReadonlyArray<ErasedName>;
+  }): Promise<Array<ErasedName>> {
+    const values: Map<string, ErasedName> = new Map<string, ErasedName>();
+
+    if (data.names.length === 0) {
+      return [];
+    }
+
+    // Each table's statement in full.
+    for (const read of [
+      `SELECT "title", "seriesFingerprint" FROM "Alert" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 4) = '' AND strpos(COALESCE("title", ''), $3) > 0 AND EXISTS (SELECT 1 FROM unnest($4::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
+      `SELECT "title", "seriesFingerprint" FROM "Incident" WHERE "projectId" = $1 AND split_part(COALESCE("seriesFingerprint", ''), ':', 1) = $2 AND split_part("seriesFingerprint", ':', 4) = '' AND strpos(COALESCE("title", ''), $3) > 0 AND EXISTS (SELECT 1 FROM unnest($4::text[]) AS erased(name) WHERE strpos("title", erased.name) > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
+    ]) {
+      const rows: Array<{
+        title: string | null;
+        seriesFingerprint: string | null;
+      }> = (await this.query(read, [
+        data.projectId.toString(),
+        DetectionFingerprintKind.DetectionRule,
+        GROUP_VALUE_PART_SEPARATOR,
+        namesOf(data.names),
+      ])) as unknown as Array<{
+        title: string | null;
+        seriesFingerprint: string | null;
+      }>;
+
+      for (const row of rows) {
+        const places: DetectionFingerprintPlaces | null =
+          getSourceFingerprintPlaces(row.seriesFingerprint);
+
+        if (
+          !places ||
+          places.source !== DetectionFingerprintKind.DetectionRule
+        ) {
+          continue;
+        }
+
+        for (const candidate of getTitleValueCandidates(row.title)) {
+          const value: ErasedName | null = this.provenCorrelationValue({
+            projectId: data.projectId,
+            candidate,
+            fingerprint: places.fingerprint,
+            names: data.names,
+          });
+
+          if (value) {
+            values.set(value.named, value);
+          }
+        }
+      }
+    }
+
+    return Array.from(values.values());
+  }
+
+  /*
+   * A correlation's group values that name the person, from the firings
+   * its group's entities' risk counted (#11231): a rule's firing is
+   * counted by every entity of its group under the same name, which holds
+   * the fingerprint of the group's value. The person's own risk - read
+   * before the erasure deletes it - says which firings were theirs; the
+   * other entities that counted the same firing are the group's other
+   * values. Each order of the name and them (getGroupValueCandidates) is a
+   * candidate, kept only when its fingerprint is the firing's. A value
+   * `known` already explains needs no reading. What the group grouped on
+   * that carries no risk (a process, a port) is in no risk row, and such a
+   * group's other entities keep its fingerprint: nothing here holds what
+   * would rebuild it.
+   */
+  public static async findRiskCorrelationValues(data: {
+    projectId: ObjectID;
+    names: ReadonlyArray<ErasedName>;
+    known?: ReadonlyArray<ErasedName> | undefined;
+  }): Promise<Array<ErasedName>> {
+    const keys: Array<string> = getErasedRiskKeys(data.names);
+
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const own: Array<EntityRiskContributionsRow> = (await this.query(
+      `SELECT "_id", "contributions" FROM "SecurityEntityRisk" WHERE "projectId" = $1 AND "entityKey" = ANY($2::text[]) LIMIT ${MAX_ROWS_PER_KIND}`,
+      [data.projectId.toString(), keys],
+    )) as unknown as Array<EntityRiskContributionsRow>;
+
+    // The fingerprints of the person's firings that no value already known explains.
+    const explained: Set<string> = new Set<string>();
+
+    for (const value of [...data.names, ...(data.known || [])]) {
+      for (const fingerprint of DetectionFingerprint.allOf({
+        projectId: data.projectId,
+        kind: DetectionFingerprintKind.DetectionRule,
+        value: value.named,
+      })) {
+        explained.add(fingerprint);
+      }
+    }
+
+    const unexplained: Set<string> = new Set<string>();
+
+    for (const row of own) {
+      for (const fingerprint of ruleFiringFingerprintsOf(row.contributions)) {
+        if (!explained.has(fingerprint)) {
+          unexplained.add(fingerprint);
+        }
+      }
+    }
+
+    if (unexplained.size === 0) {
+      return [];
+    }
+
+    // The other entities that counted each of those firings.
+    const others: Array<{
+      entityValue: string | null;
+      contributions: unknown;
+    }> = (await this.query(
+      `SELECT "entityValue", "contributions" FROM "SecurityEntityRisk" WHERE "projectId" = $1 AND NOT ("entityKey" = ANY($2::text[])) AND EXISTS (SELECT 1 FROM unnest($3::text[]) AS previous(fingerprint) WHERE strpos(COALESCE("contributions"::text, ''), ':' || previous.fingerprint || '"') > 0) LIMIT ${MAX_ROWS_PER_KIND}`,
+      [data.projectId.toString(), keys, Array.from(unexplained)],
+    )) as unknown as Array<{
+      entityValue: string | null;
+      contributions: unknown;
+    }>;
+    const entitiesOf: Map<string, Set<string>> = new Map<string, Set<string>>();
+
+    for (const row of others) {
+      const entity: string = (row.entityValue || "").trim();
+
+      if (!entity) {
+        continue;
+      }
+
+      for (const fingerprint of ruleFiringFingerprintsOf(row.contributions)) {
+        if (unexplained.has(fingerprint)) {
+          const entities: Set<string> =
+            entitiesOf.get(fingerprint) || new Set<string>();
+
+          entities.add(entity);
+          entitiesOf.set(fingerprint, entities);
+        }
+      }
+    }
+
+    const values: Map<string, ErasedName> = new Map<string, ErasedName>();
+
+    for (const [fingerprint, entities] of entitiesOf) {
+      const co: Array<string> = Array.from(entities).slice(
+        0,
+        MAX_RISK_CO_ENTITIES,
+      );
+
+      for (const name of data.names) {
+        for (const candidate of getGroupValueCandidates({
+          name: name.named,
+          others: co,
+        })) {
+          const value: ErasedName | null = this.provenCorrelationValue({
+            projectId: data.projectId,
+            candidate,
+            fingerprint,
+            names: data.names,
+          });
+
+          if (value) {
+            values.set(value.named, value);
+          }
+        }
+      }
+    }
+
+    return Array.from(values.values());
+  }
+
+  /*
+   * A candidate group value, kept with what it is once the names are out,
+   * when it holds several values one of which is a name and `fingerprint`
+   * is its own - keyed, or as it was before the key; null otherwise.
+   */
+  private static provenCorrelationValue(data: {
+    projectId: ObjectID;
+    candidate: string;
+    fingerprint: string;
+    names: ReadonlyArray<ErasedName>;
+  }): ErasedName | null {
+    if (!data.candidate.includes(GROUP_VALUE_PART_SEPARATOR)) {
+      return null;
+    }
+
+    const unnamed: string | undefined | null = unnameGroupValue(
+      data.candidate,
+      data.names,
+    );
+
+    if (!unnamed || unnamed === data.candidate) {
+      return null;
+    }
+
+    return DetectionFingerprint.allOf({
+      projectId: data.projectId,
+      kind: DetectionFingerprintKind.DetectionRule,
+      value: data.candidate,
+    }).includes(data.fingerprint)
+      ? { named: data.candidate, hashed: unnamed }
+      : null;
   }
 
   /*
