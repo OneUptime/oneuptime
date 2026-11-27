@@ -55,14 +55,16 @@ async function statementsOf(direction: "up" | "down"): Promise<Array<string>> {
 
 /*
  * Rule tables created after this migration shipped, each with emptiedLimits
- * in its own CREATE TABLE (the drift check holds it to the model): a
- * migration is a snapshot, never edited to cover a table it predates. Only
- * ever append here.
+ * in its own CREATE TABLE, by the migration named (the drift check holds it
+ * to the model): a migration is a snapshot, never edited to cover a table it
+ * predates. Only ever append here.
  */
-const RULE_TABLES_CREATED_AFTER_MIGRATION: ReadonlyArray<string> = [
-  // 1809184860000-AddDataPipelineOwnerRules
-  "DataPipelineOwnerRule",
-];
+const RULE_TABLES_CREATED_AFTER_MIGRATION: Readonly<Record<string, string>> = {
+  DataPipelineOwnerRule: "1809184860000-AddDataPipelineOwnerRules",
+  // An XCP-ng pool's label and owner rules, each with lists (#11093).
+  XcpNgPoolLabelRule: "1809187720000-AddXcpNgPoolTables",
+  XcpNgPoolOwnerRule: "1809187720000-AddXcpNgPoolTables",
+};
 
 // The table of every rule kind this migration covers: every model built on RuleBaseModel.
 const RULE_TABLES: Array<string> = (
@@ -78,7 +80,7 @@ const RULE_TABLES: Array<string> = (
     return model.tableName!;
   })
   .filter((tableName: string): boolean => {
-    return !RULE_TABLES_CREATED_AFTER_MIGRATION.includes(tableName);
+    return !RULE_TABLES_CREATED_AFTER_MIGRATION[tableName];
   })
   .sort();
 
@@ -101,9 +103,28 @@ describe("AddRuleEmptiedLimits1809182490000", () => {
     ).toEqual(RULE_TABLES);
   });
 
-  test("covers the table of every rule a list can limit", () => {
+  test("covers the table of every rule a list can limit, or the migration that made it later made it with the column", () => {
     for (const list of getRuleLimitLists()) {
-      expect(RULE_TABLES).toContain(list.ruleTable);
+      const madeBy: string | undefined =
+        RULE_TABLES_CREATED_AFTER_MIGRATION[list.ruleTable];
+
+      if (!madeBy) {
+        expect(RULE_TABLES).toContain(list.ruleTable);
+        continue;
+      }
+
+      const createTable: string =
+        fs
+          .readFileSync(path.join(MIGRATION_DIRECTORY, `${madeBy}.ts`), "utf8")
+          .split("\n")
+          .find((line: string): boolean => {
+            return line.includes(`CREATE TABLE "${list.ruleTable}"`);
+          }) || "";
+
+      expect({
+        table: list.ruleTable,
+        madeWithTheColumn: createTable.includes('"emptiedLimits" jsonb'),
+      }).toEqual({ table: list.ruleTable, madeWithTheColumn: true });
     }
   });
 
