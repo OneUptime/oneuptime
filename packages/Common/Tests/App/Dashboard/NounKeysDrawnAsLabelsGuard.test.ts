@@ -385,6 +385,10 @@ const SITES: Readonly<Record<string, NounSite>> = {
     inSentence:
       "A rule's resourceSingular and resourcePlural, in Run Rule Now's sentences.",
   },
+  "packages/Common/Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform.ts": {
+    inSentence:
+      'The array\'s noun (#11001), in the Storage Array Agent guide card\'s sentences: "Create a read-only user for the agent on the {{noun}}."',
+  },
   "packages/Common/Types/Workflow/Templates.ts": {
     inEnglish:
       "What a Dynamics 365 case's description calls each kind of affected resource (RESOURCE_NOUNS in the create-case script a workflow template writes): English words the script puts into the case, never translated.",
