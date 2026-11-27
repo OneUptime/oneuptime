@@ -40,7 +40,7 @@ Se [Opret en monitor](/docs/monitor/create-monitor).
 
 ### Kriterier
 
-En monitors regler: hvad hvert tjekresultat betyder. De tjekkes i rækkefølge, og det første, der passer, kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller alle tre.
+En monitors regler: hvad hvert tjekresultat betyder. De tjekkes i rækkefølge, og det første, der passer, kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller alle tre. Et, der ikke ændrer nogen status, overlader status til det næste kriterium, der passer og ændrer den.
 
 Også kaldet: **Overvågningskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Kriterier og statusser](/docs/monitor/criteria-and-statuses).
 

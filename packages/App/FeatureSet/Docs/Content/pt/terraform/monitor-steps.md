@@ -11,7 +11,7 @@
 
 ## Como uma verificação é julgada
 
-Cada verificação dá um resultado: a resposta de uma sonda, o valor que um script retorna ou a telemetria que a verificação lê. Os critérios da etapa então o julgam na ordem deles. O primeiro critério cujos filtros correspondem decide o que acontece: ele pode mudar o status do monitor, abrir incidentes e abrir alertas. Os critérios depois dele não são considerados nessa verificação.
+Cada verificação dá um resultado: a resposta de uma sonda, o valor que um script retorna ou a telemetria que a verificação lê. Os critérios da etapa então o julgam na ordem deles. O primeiro critério cujos filtros correspondem decide o que acontece: ele pode mudar o status do monitor, abrir incidentes e abrir alertas. Os critérios depois dele não são considerados nessa verificação, a menos que ele não altere nenhum status (`change_monitor_status` desligado): então os critérios depois dele que alteram o status são julgados só para o status, e o primeiro deles que corresponde o define. Quando nenhum o faz, o monitor vai para o seu status padrão.
 
 ```mermaid title="Como cada verificação é julgada"
 flowchart TB

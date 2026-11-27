@@ -67288,5 +67288,19 @@
   "XCP-ng Pool Master Changed": "Master van de XCP-ng-pool gewijzigd",
   "XCP-ng Pool High Availability Changed": "Hoge beschikbaarheid van de XCP-ng-pool gewijzigd",
   "XCP-ng Pool Backup Failed": "Back-up van de XCP-ng-pool mislukt",
-  "XCP-ng alarms": "XCP-ng-alarmen"
+  "XCP-ng alarms": "XCP-ng-alarmen",
+  "Criteria are evaluated in order; this monitor stops at the first match that changes its status.": "Criteria worden op volgorde geëvalueerd; deze monitor stopt bij de eerste overeenkomst die zijn status wijzigt.",
+  "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "Monitorstatus teruggezet naar \"{{status}}\" omdat aan geen enkel criterium dat de status wijzigt is voldaan.",
+  "Monitor status reverted to its default state because no criteria that changes the status was met.": "Monitorstatus teruggezet naar de standaardstatus omdat aan geen enkel criterium dat de status wijzigt is voldaan.",
+  "No criteria that changes the status matched, so the monitor changed to its default status.": "Aan geen enkel criterium dat de status wijzigt werd voldaan, dus de monitor is overgeschakeld naar zijn standaardstatus.",
+  "Not evaluated because {{criteria}} matched and set the monitor's status.": "Niet geëvalueerd omdat {{criteria}} overeenkwam en de status van de monitor heeft ingesteld.",
+  "Not evaluated because {{criteria}} matched first, and this criteria changes no status.": "Niet geëvalueerd omdat {{criteria}} als eerste overeenkwam, en dit criterium geen status wijzigt.",
+  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.": "Sonde-overeenstemming niet bereikt: {{agreeing}}/{{required}} sondes zijn het eens ({{active}} actieve sondes in totaal). Er wordt niets geopend of opgelost.",
+  "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.": "Sonde-overeenstemming over de status van de monitor niet bereikt: {{agreeing}}/{{required}} sondes zijn het eens ({{active}} actieve sondes in totaal). Zijn status blijft behouden.",
+  "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).": "Sonde-overeenstemming over de status van de monitor bereikt: {{agreeing}}/{{required}} sondes zijn het eens ({{active}} actieve sondes in totaal).",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.": "De monitor behoudt zijn status: er kwam geen criterium dat de status wijzigt overeen, en hij komt pas terug wanneer aan \"{{criteria}}\" is voldaan.",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.": "De monitor behoudt zijn status: er kwam geen criterium dat de status wijzigt overeen, en hij komt pas terug wanneer aan een criterium dat hem terugbrengt is voldaan.",
+  "The monitor shows its default status, {{status}}.": "De monitor toont zijn standaardstatus, {{status}}.",
+  "The monitor shows its default status.": "De monitor toont zijn standaardstatus.",
+  "{{criteria}} matches too, so OneUptime marks it {{status}}.": "{{criteria}} komt ook overeen, dus OneUptime zet de status op {{status}}."
 }

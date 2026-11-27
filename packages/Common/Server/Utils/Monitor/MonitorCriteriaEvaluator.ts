@@ -111,6 +111,7 @@ import { MonitorStepTraceMonitorUtil } from "../../../Types/Monitor/MonitorStepT
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import MonitorEvaluationSummary, {
   MonitorEvaluationCriteriaResult,
+  MonitorEvaluationCriteriaSkipCause,
   MonitorEvaluationEvent,
   MonitorEvaluationFilterResult,
   MonitorEvaluationSeries,
@@ -301,16 +302,59 @@ interface MatchHistoryContext {
  * check's matches.
  */
 interface GroupedRecoveryOutcome {
-  // The matches that stand, in criteria order: the first sets the status.
+  // The matches that stand, in criteria order: each acts on its series.
   matchedCriteria: Array<MatchedCriteriaResult>;
   /*
+   * The first of them that changes the status, which sets it (#11238).
+   * Undefined when none does: whatever else matched, the status then goes
+   * where a check that matched nothing takes it.
+   */
+  statusMatch: MatchedCriteriaResult | undefined;
+  /*
    * The series behind the status that met no recovery criteria yet: with no
-   * match left, they keep the monitor's status.
+   * match left that changes the status, they keep the monitor's status.
    */
   seriesKeepingStatus: Array<SeriesKeepingStatus>;
   // What is behind the status after the check; undefined: nothing to write.
   seriesBehindStatus: Array<string> | undefined;
 }
+
+/*
+ * The criteria that sets a monitor's status on a check, with the root cause
+ * of its own match (#11238): the first match among the criteria that change
+ * the status.
+ */
+interface StatusMatch {
+  criteriaId: string;
+  rootCause: string;
+}
+
+/*
+ * Why an ungrouped monitor's criteria was not judged once an earlier one
+ * matched: the status was decided by the first match, or by a criteria
+ * judged after a first match that changes no status, or the status is not
+ * decided yet and this criteria changes none, so it has nothing to decide.
+ */
+type NotEvaluatedAfterMatchCause = Extract<
+  MonitorEvaluationCriteriaSkipCause,
+  "earlier-criterion-matched" | "status-already-set" | "changes-no-status"
+>;
+
+const NOT_EVALUATED_AFTER_MATCH_REASONS: Readonly<
+  Record<NotEvaluatedAfterMatchCause, string>
+> = {
+  "earlier-criterion-matched":
+    "An earlier criterion already matched. Criteria are evaluated in order " +
+    "for this monitor, so evaluation stopped at the first match.",
+  "status-already-set":
+    "An earlier criterion already matched and set the monitor's status. " +
+    "Criteria are evaluated in order for this monitor, so evaluation " +
+    "stopped at the first match that changes the status.",
+  "changes-no-status":
+    "An earlier criterion already matched, and this one changes no status, " +
+    "so it was not evaluated. After the first match, only the criteria " +
+    "that change the status are evaluated, until one of them matches.",
+};
 
 // A series a grouped check read, as a sentence names it.
 interface SeriesOfCheck {
@@ -550,21 +594,60 @@ export default class MonitorCriteriaEvaluator {
      */
     const recoveredSeries: Set<string> = new Set<string>();
 
+    /*
+     * The criteria that sets an ungrouped monitor's status on this check:
+     * the first match among the criteria that change the status (#11238).
+     * A grouped monitor picks it from its matches once every criteria is
+     * judged, below.
+     */
+    let statusMatch: StatusMatch | undefined = undefined;
+
+    /*
+     * Whether an ungrouped monitor's evaluation goes on past its first match
+     * for the status: that match changes no status, and a criteria after it
+     * does. Otherwise it stops at the first match, as it always has, and the
+     * criteria after it are said to be passed over for that.
+     */
+    let isJudgingPastFirstMatch: boolean = false;
+
     for (const criteriaInstance of criteria.data.monitorCriteriaInstanceArray) {
       /*
-       * Ungrouped monitors keep the historical semantics exactly: the
-       * first criteria that matches wins and nothing after it is even
-       * looked at. Grouped monitors evaluate every criteria, because
+       * Ungrouped monitors: the first criteria that matches acts on the
+       * check - it opens and resolves the incidents and alerts, as it
+       * always has - and nothing after it is looked at once the status is
+       * decided too. Grouped monitors evaluate every criteria, because
        * different series can legitimately sit in different bands at the
        * same time (host A critical, host B warning) and stopping at the
        * first match silently drops every other band.
+       *
+       * A first match that changes no status - an alert-only criteria -
+       * decides no status (#11238): it used to leave the monitor in
+       * whatever status an earlier check set, for as long as it kept
+       * matching. The criteria after it that change the status are judged
+       * for the status alone, in their order, until one matches; the ones
+       * that change none have nothing to decide and are not judged.
        */
       if (matchedCriteria.length > 0 && !fanOutAcrossCriteria) {
-        MonitorCriteriaEvaluator.pushNotEvaluatedCriteriaResult({
-          criteriaInstance,
-          evaluationSummary: input.evaluationSummary,
-        });
-        continue;
+        const changesMonitorStatus: boolean =
+          MonitorCriteriaInstance.changesMonitorStatus(criteriaInstance.data);
+
+        if (statusMatch || !changesMonitorStatus) {
+          MonitorCriteriaEvaluator.pushNotEvaluatedCriteriaResult({
+            criteriaInstance,
+            evaluationSummary: input.evaluationSummary,
+            /*
+             * Once the status is decided the evaluation stops, as it
+             * always has. Before, only a criteria that changes no status
+             * is passed over, while the ones that change it are judged.
+             */
+            skipCause: !isJudgingPastFirstMatch
+              ? "earlier-criterion-matched"
+              : statusMatch
+                ? "status-already-set"
+                : "changes-no-status",
+          });
+          continue;
+        }
       }
 
       /*
@@ -715,6 +798,15 @@ export default class MonitorCriteriaEvaluator {
       }
 
       /*
+       * Judged after an ungrouped monitor's first match, which changes no
+       * status: this criteria sets the status and acts on nothing else. The
+       * first match opens and resolves the check's incidents and alerts, as
+       * it always has, so this one has no series or payload values to name.
+       */
+      const isJudgedForStatusOnly: boolean =
+        matchedCriteria.length > 0 && !fanOutAcrossCriteria;
+
+      /*
        * An Incoming Request criteria groups by a payload field on its own:
        * whether this one acts once per value, once for the whole monitor or
        * opens nothing new is decided from its own grouping and this request
@@ -725,7 +817,8 @@ export default class MonitorCriteriaEvaluator {
       const incomingRequestGrouping:
         | IncomingRequestGroupingDecision
         | undefined =
-        input.monitor.monitorType === MonitorType.IncomingRequest
+        input.monitor.monitorType === MonitorType.IncomingRequest &&
+        !isJudgedForStatusOnly
           ? IncomingRequestIncidentGrouping.decideForMatchedCriteria({
               dataToProcess: input.dataToProcess,
               criteriaInstance: criteriaInstance,
@@ -767,7 +860,7 @@ export default class MonitorCriteriaEvaluator {
       const perSeriesMatches: Array<PerSeriesCriteriaMatch> =
         incomingRequestGrouping
           ? incomingRequestGrouping.perKeyMatches || []
-          : judgesWholeMonitor
+          : judgesWholeMonitor || isJudgedForStatusOnly
             ? []
             : heldPerSeriesMatches ||
               (await MonitorCriteriaEvaluator.collectPerSeriesMatches({
@@ -950,9 +1043,27 @@ ${incomingRequestGrouping.rootCauseNote}
             : perSeriesMatches;
 
       /*
-       * The monitor has exactly one status, and the FIRST matching
-       * criteria owns it — unchanged from before this became a list.
-       * `perSeriesMatches` likewise keeps pointing at the first match so
+       * A criteria judged for the status alone sets it, and the evaluation
+       * stops: it is no match of the check's - it opens and resolves
+       * nothing, so it leaves the first match's incidents and alerts as
+       * they are.
+       */
+      if (isJudgedForStatusOnly) {
+        if (criteriaInstance.data?.id) {
+          statusMatch = {
+            criteriaId: criteriaInstance.data.id.toString(),
+            rootCause: renderedRootCause.toString(),
+          };
+        }
+
+        continue;
+      }
+
+      /*
+       * The monitor has exactly one status, and the first matching
+       * criteria that changes it owns it (statusMatch, #11238): the FIRST
+       * matching criteria itself whenever it changes the status, as it
+       * always did. `perSeriesMatches` keeps pointing at the first match so
        * any reader that only knows the scalar fields still behaves the
        * way it always did.
        *
@@ -961,6 +1072,28 @@ ${incomingRequestGrouping.rootCauseNote}
        * the monitor's status is no match (GroupedMonitorRecovery).
        */
       if (isFirstMatch && !fanOutAcrossCriteria) {
+        if (
+          criteriaInstance.data?.id &&
+          MonitorCriteriaInstance.changesMonitorStatus(criteriaInstance.data)
+        ) {
+          statusMatch = {
+            criteriaId: criteriaInstance.data.id.toString(),
+            rootCause: renderedRootCause.toString(),
+          };
+        } else {
+          const criteriaInstances: Array<MonitorCriteriaInstance> =
+            criteria.data.monitorCriteriaInstanceArray;
+
+          isJudgingPastFirstMatch = criteriaInstances
+            .slice(criteriaInstances.indexOf(criteriaInstance) + 1)
+            .some((laterCriteria: MonitorCriteriaInstance): boolean => {
+              return (
+                laterCriteria.data?.isEnabled !== false &&
+                MonitorCriteriaInstance.changesMonitorStatus(laterCriteria.data)
+              );
+            });
+        }
+
         input.probeApiIngestResponse.criteriaMetId = criteriaInstance.data?.id;
         input.probeApiIngestResponse.rootCause = renderedRootCause.toString();
 
@@ -1003,7 +1136,8 @@ ${incomingRequestGrouping.rootCauseNote}
       /*
        * Every criteria is judged: now a recovery criteria that waits for the
        * series behind the monitor's status is set aside, and the first match
-       * that stands sets the status (GroupedMonitorRecovery).
+       * that stands among the criteria that change the status sets it
+       * (GroupedMonitorRecovery, #11238).
        */
       const recovery: GroupedRecoveryOutcome =
         await MonitorCriteriaEvaluator.applyGroupedRecoveryRule({
@@ -1032,6 +1166,13 @@ ${incomingRequestGrouping.rootCauseNote}
          */
         input.probeApiIngestResponse.perSeriesMatches =
           firstMatch.perSeriesMatches;
+      }
+
+      if (recovery.statusMatch) {
+        input.probeApiIngestResponse.statusCriteriaId =
+          recovery.statusMatch.criteriaId;
+        input.probeApiIngestResponse.statusRootCause =
+          recovery.statusMatch.rootCause;
       } else if (recovery.seriesKeepingStatus.length > 0) {
         input.probeApiIngestResponse.seriesKeepingStatus =
           recovery.seriesKeepingStatus;
@@ -1075,31 +1216,38 @@ ${incomingRequestGrouping.rootCauseNote}
     }
 
     /*
-     * A monitor that judges no series on its own, on a check no criteria
-     * matched (#10743): its status set by a problem criteria holds until a
-     * recovery criteria of the step brings it back, as a grouped monitor's
-     * does (GroupedMonitorRecovery.judgeWholeMonitor). A recovery criteria
-     * outside its active hours cannot bring it back now, so it is not
-     * waited for.
+     * An ungrouped monitor's status is set by the first match that changes
+     * it - the first match itself, unless that one changes none (#11238).
      */
-    if (!fanOutAcrossCriteria && matchedCriteria.length === 0) {
-      const wholeMonitor: WholeMonitorRecoveryJudgement =
-        GroupedMonitorRecovery.judgeWholeMonitor({
-          criteriaInstances: criteria.data.monitorCriteriaInstanceArray.filter(
-            (criteriaInstance: MonitorCriteriaInstance): boolean => {
-              return CriteriaActiveHours.isActive({
-                criteria: criteriaInstance.data,
-              });
-            },
-          ),
-          defaultMonitorStatusId:
-            input.monitor.monitorSteps?.data?.defaultMonitorStatusId,
-          currentMonitorStatusId: input.monitor.currentMonitorStatusId,
+    if (!fanOutAcrossCriteria && statusMatch) {
+      input.probeApiIngestResponse.statusCriteriaId = statusMatch.criteriaId;
+      input.probeApiIngestResponse.statusRootCause = statusMatch.rootCause;
+    }
+
+    /*
+     * A monitor that judges no series on its own, on a check no criteria
+     * that changes the status matched (#10743, #11238): its status set by a
+     * problem criteria holds until a recovery criteria of the step brings it
+     * back, as a grouped monitor's does
+     * (GroupedMonitorRecovery.judgeWholeMonitor) - whatever matched that
+     * changes no status. A recovery criteria outside its active hours cannot
+     * bring it back now, so it is not waited for.
+     *
+     * Said whatever this check matched: it reads only the monitor's statuses
+     * and its criteria, and the probes can agree that no criteria matched a
+     * check this probe's check matched one on. MonitorResource reads it only
+     * when no criteria that changes the status is to set it.
+     */
+    if (!fanOutAcrossCriteria) {
+      const statusKeptForRecoveryCriteriaIds: Array<string> | undefined =
+        MonitorCriteriaEvaluator.getStatusKeptForRecoveryCriteriaIds({
+          monitor: input.monitor,
+          monitorStep: input.monitorStep,
         });
 
-      if (wholeMonitor.isStatusKept) {
+      if (statusKeptForRecoveryCriteriaIds) {
         input.probeApiIngestResponse.statusKeptForRecoveryCriteriaIds =
-          wholeMonitor.recoveryCriteriaIds;
+          statusKeptForRecoveryCriteriaIds;
       }
     }
 
@@ -1694,6 +1842,41 @@ ${incomingRequestGrouping.rootCauseNote}
     });
   }
 
+  /*
+   * A monitor that judges no series on its own, on a check no criteria that
+   * changes the status matched (#10743): the recovery criteria its status
+   * waits for, when a problem criteria set the status it has and its step
+   * has one to bring it back - else undefined, and the monitor goes to its
+   * default status. Read off the monitor's statuses, the step's criteria
+   * and the clock alone (a recovery criteria outside its active hours is not
+   * waited for), so it is the same for every probe's check, and it is said
+   * whatever this check matched: the probes can agree on a verdict this
+   * probe's check did not reach.
+   */
+  public static getStatusKeptForRecoveryCriteriaIds(input: {
+    monitor: Monitor;
+    monitorStep: MonitorStep;
+  }): Array<string> | undefined {
+    const wholeMonitor: WholeMonitorRecoveryJudgement =
+      GroupedMonitorRecovery.judgeWholeMonitor({
+        criteriaInstances: (
+          input.monitorStep.data?.monitorCriteria?.data
+            ?.monitorCriteriaInstanceArray || []
+        ).filter((criteriaInstance: MonitorCriteriaInstance): boolean => {
+          return CriteriaActiveHours.isActive({
+            criteria: criteriaInstance.data,
+          });
+        }),
+        defaultMonitorStatusId:
+          input.monitor.monitorSteps?.data?.defaultMonitorStatusId,
+        currentMonitorStatusId: input.monitor.currentMonitorStatusId,
+      });
+
+    return wholeMonitor.isStatusKept
+      ? wholeMonitor.recoveryCriteriaIds
+      : undefined;
+  }
+
   /**
    * Does this monitor raise one alert/incident per series rather than
    * one for the whole monitor?
@@ -1784,10 +1967,10 @@ ${incomingRequestGrouping.rootCauseNote}
   private static pushNotEvaluatedCriteriaResult(input: {
     criteriaInstance: MonitorCriteriaInstance;
     evaluationSummary: MonitorEvaluationSummary;
+    skipCause: NotEvaluatedAfterMatchCause;
   }): void {
     const skipReason: string =
-      "An earlier criterion already matched. Criteria are evaluated in order " +
-      "for this monitor, so evaluation stopped at the first match.";
+      NOT_EVALUATED_AFTER_MATCH_REASONS[input.skipCause];
 
     input.evaluationSummary.criteriaResults.push({
       criteriaId: input.criteriaInstance.data?.id,
@@ -1799,7 +1982,7 @@ ${incomingRequestGrouping.rootCauseNote}
       filters: [],
       skipped: true,
       skipReason: skipReason,
-      skipCause: "earlier-criterion-matched",
+      skipCause: input.skipCause,
     });
   }
 
@@ -1854,6 +2037,23 @@ ${incomingRequestGrouping.rootCauseNote}
       }
     }
 
+    /*
+     * The match that sets the status: the first, among those that stand,
+     * that changes it (#11238). A criteria that changes no status - an
+     * alert per port, a warning - acts on its series and decides nothing.
+     */
+    const getStatusMatch: (
+      matches: Array<MatchedCriteriaResult>,
+    ) => MatchedCriteriaResult | undefined = (
+      matches: Array<MatchedCriteriaResult>,
+    ): MatchedCriteriaResult | undefined => {
+      return matches.find((matched: MatchedCriteriaResult): boolean => {
+        return MonitorCriteriaInstance.changesMonitorStatus(
+          criteriaById.get(matched.criteriaId)?.data,
+        );
+      });
+    };
+
     const recoveryCriteria: Array<MonitorCriteriaInstance> =
       input.criteriaInstances.filter(
         (criteriaInstance: MonitorCriteriaInstance): boolean => {
@@ -1871,6 +2071,7 @@ ${incomingRequestGrouping.rootCauseNote}
     if (recoveryCriteria.length === 0) {
       return {
         matchedCriteria: input.matchedCriteria,
+        statusMatch: getStatusMatch(input.matchedCriteria),
         seriesKeepingStatus: [],
         seriesBehindStatus: undefined,
       };
@@ -1977,14 +2178,18 @@ ${incomingRequestGrouping.rootCauseNote}
       },
     );
 
+    const statusMatch: MatchedCriteriaResult | undefined =
+      getStatusMatch(standing);
+
     /*
-     * A recovery criteria that stands and comes first puts the monitor back on
-     * its default status: nothing is behind it any more, but a series that
-     * still meets a problem criteria further down.
+     * A recovery criteria that stands and comes first among those that set
+     * the status puts the monitor back on its default status: nothing is
+     * behind it any more, but a series that still meets a problem criteria
+     * further down. An alert-only criteria above it sets nothing (#11238).
      */
     const isBackOnDefaultStatus: boolean =
-      standing.length > 0 &&
-      getRole(criteriaById.get(standing[0]!.criteriaId)) ===
+      Boolean(statusMatch) &&
+      getRole(criteriaById.get(statusMatch!.criteriaId)) ===
         GroupedCriteriaRole.Recovery;
 
     const seriesBehindStatus: Array<string> = isBackOnDefaultStatus
@@ -1993,21 +2198,25 @@ ${incomingRequestGrouping.rootCauseNote}
 
     return {
       matchedCriteria: standing,
-      seriesKeepingStatus:
-        standing.length === 0
-          ? judgement.seriesKeepingStatus.map(
-              (fingerprint: string): SeriesKeepingStatus => {
-                const series: SeriesOfCheck | undefined =
-                  seriesOfCheck.get(fingerprint);
+      statusMatch: statusMatch,
+      /*
+       * With no match that sets the status, the series behind it that met
+       * no recovery criteria keep it - whatever matched that changes none.
+       */
+      seriesKeepingStatus: !statusMatch
+        ? judgement.seriesKeepingStatus.map(
+            (fingerprint: string): SeriesKeepingStatus => {
+              const series: SeriesOfCheck | undefined =
+                seriesOfCheck.get(fingerprint);
 
-                return {
-                  fingerprint: fingerprint,
-                  labels: series?.labels || {},
-                  ...(series?.context ? { context: series.context } : {}),
-                };
-              },
-            )
-          : [],
+              return {
+                fingerprint: fingerprint,
+                labels: series?.labels || {},
+                ...(series?.context ? { context: series.context } : {}),
+              };
+            },
+          )
+        : [],
       /*
        * Written whenever it was read - an empty list deletes it - and at the
        * default status only once a problem criteria put a series behind it.

@@ -3,7 +3,7 @@
 En monitors kriterier avgjør hva hver kontroll betyr: om monitoren er oppe eller nede, og om OneUptime erklærer en hendelse eller oppretter et varsel. Statuser er prosjektets liste over hva en monitor kan være, fra **I drift** til **Offline**. Denne siden forklarer begge deler for alle monitortyper; hver types egen side viser filtrene den tilbyr.
 
 :::cards
-- [Slik avgjør kriteriene](#slik-avgjør-kriteriene): Ovenfra og ned, og det første samsvaret vinner.
+- [Slik avgjør kriteriene](#slik-avgjør-kriteriene): Ovenfra og ned: det første samsvaret handler, og det første som endrer statusen, setter den.
 - [Hva et kriterium inneholder](#hva-et-kriterium-inneholder): Filtre, en samsvarsbetingelse, handlinger og innstillinger.
 - [Vurdere et vindu av sjekker](#vurdere-et-vindu-av-sjekker): Tell mislykkede sjekker, oppdag ustabilitet, les av en persentil.
 - [Endre en monitors kriterier](#endre-en-monitors-kriterier): Rediger, legg til, omorganiser og test kriterier.
@@ -12,28 +12,31 @@ En monitors kriterier avgjør hva hver kontroll betyr: om monitoren er oppe elle
 
 ## Slik avgjør kriteriene
 
-Hver gang en monitor kontrolleres, vurderer kriteriene resultatet fra toppen av listen og nedover. Det første kriteriet der filtrene samsvarer, avgjør hva som skjer, og kriteriene under det blir ikke sett på for den kontrollen. Samsvarer ingen, går monitoren til sin **Standard monitorstatus**. Den beholder i stedet statusen sin så lenge et kriterium som bringer den tilbake, ennå ikke har samsvart: se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes).
+Hver gang en monitor kontrolleres, vurderer kriteriene resultatet fra toppen av listen og nedover. Det første kriteriet der filtrene samsvarer, avgjør hva som skjer: det erklærer hendelsene sine, oppretter varslene sine og endrer, når det er satt til det, monitorens status. Kriteriene under det blir bare sett på når det ikke endrer noen status, og da bare for statusen. Samsvarer ingen, går monitoren til sin **Standard monitorstatus**. Den beholder i stedet statusen sin så lenge et kriterium som bringer den tilbake, ennå ikke har samsvart: se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes).
 
 ```mermaid title="Slik vurderes hver kontroll"
 flowchart TB
     R["Resultatet av<br/>en kontroll"] --> C1{"Første<br/>kriterium:<br/>samsvarer<br/>filtrene?"}
-    C1 -->|"Ja"| A["Det kriteriet<br/>handler"]
+    C1 -->|"Ja"| A["Det kriteriet handler:<br/>erklærer hendelsene sine<br/>og oppretter varslene"]
     C1 -->|"Nei"| C2{"Neste kriterium:<br/>samsvarer<br/>filtrene?"}
     C2 -->|"Ja"| A
     C2 -->|"Ingen samsvarte"| D["Monitoren<br/>går til<br/>sin standardstatus"]
-    A --> S["Endrer<br/>statusen"]
-    A --> I["Erklærer<br/>en hendelse"]
-    A --> L["Oppretter<br/>et varsel"]
+    A --> Q{"Endrer det<br/>statusen?"}
+    Q -->|"Ja"| S["Det setter<br/>statusen"]
+    Q -->|"Nei"| N["Det første kriteriet<br/>under det som samsvarer<br/>og endrer statusen,<br/>setter den, ellers går<br/>monitoren til sin<br/>standardstatus"]
 ```
 
 Rekkefølgen er en del av regelen. En ny monitor lister kriteriene sine fra det verste tilfellet: offline, så en advarsel der typen har en (et sertifikat eller et domene som snart utløper), så tilkoblet. Et bredt friskt kriterium, som **Er tilkoblet** satt til **Sann**, samsvarer med nesten hver kontroll, så det kommer sist: over de andre ville det samsvare først hver gang, og de andre ville aldri handle.
 
-Et kriterium som samsvarer, men ikke endrer noen status, avgjør likevel kontrollen: monitoren beholder statusen sin, og kriteriene under det venter på neste kontroll. **Standard monitorstatus** gjelder bare når ingen kriterier samsvarer. For en ny monitor er den **I drift**; endre den under **Flere felt**, under kriteriene.
+Et kriterium som samsvarer, men ikke endrer noen status, for eksempel et som bare oppretter et varsel, avgjør ingen status. Varselet åpnes og løses som ethvert kriteriums varsel, og kriteriene under det som endrer statusen, vurderes bare for statusen, i sin rekkefølge: det første av dem som samsvarer, setter statusen og åpner ingenting ved den kontrollen. Samsvarer ingen av dem, går monitoren til sin **Standard monitorstatus**, som når ingen kriterier samsvarer. Et nettsted som er oppe igjen, men tregt, står derfor på **I drift** med varselet åpent, uansett hvilken status en tidligere kontroll etterlot det i. For en ny monitor er standarden **I drift**; endre den under **Flere felt**, under kriteriene.
+
+> [!NOTE]
+> Et kriterium som samsvarte først og ikke endret noen status, lot tidligere monitoren bli i statusen den hadde, så lenge det fortsatte å samsvare: en svitsj som den anbefalte varslingspakken overvåker, gikk glipp av én polling, kom tilbake med en port over 80 % og ble værende **Offline**, med statussiden rød, så lenge porten var travel. Nå er det bare kriteriene som endrer statusen, som avgjør den. En monitor der alle kriteriene endrer statusen, vurderes nøyaktig som før. Det samme gjelder hvilket kriterium som erklærer hendelsene til en kontroll og oppretter varslene: på en monitor som stopper ved det første samsvaret, er det fortsatt det første kriteriet som samsvarer.
 
 > [!NOTE]
 > En monitor som åpner en hendelse eller et varsel per vert, container, disk eller grensesnitt, vurderer alle kriterier ved hver kontroll, slik at to verter kan samsvare med to ulike kriterier samtidig. Det er en monitor der spørringen har en **Grupper etter**, som en målings- eller loggmonitor, eller et kriterium som angir `*` for hver disk eller hvert grensesnitt. Det samme gjelder en målingsmonitor som følger med på et PromQL-uttrykk: hver serie uttrykket returnerer, vurderes for seg. En monitor for innkommende forespørsler som grupperer hendelser etter et payload-felt, stopper likevel ved det første samsvaret.
 >
-> En slik monitor har likevel én status, satt av det første kriteriet som samsvarer. Et kriterium som bare bringer den tilbake til **Standard monitorstatus** og ikke åpner noen hendelse eller noe varsel, venter på vertene som oppfylte et kriterium som setter en annen status: det samsvarer når hver av dem oppfyller det, uansett hva de andre vertene gjør. Inntil da beholder monitoren statusen sin, også når ingen kriterier samsvarer, mens hendelsene og varslene til hver vert fortsatt løses hver for seg.
+> En slik monitor har likevel én status, satt av det første kriteriet som samsvarer blant dem som endrer statusen. Et kriterium som bare bringer den tilbake til **Standard monitorstatus** og ikke åpner noen hendelse eller noe varsel, venter på vertene som oppfylte et kriterium som setter en annen status: det samsvarer når hver av dem oppfyller det, uansett hva de andre vertene gjør. Inntil da beholder monitoren statusen sin, også når ingen kriterier som endrer statusen samsvarer, mens hendelsene og varslene til hver vert fortsatt løses hver for seg.
 
 ## Hva et kriterium inneholder
 
@@ -125,11 +128,11 @@ Setningen under vinduets innstillinger gjengir det: «Sjekk: "Svartid (i ms)" li
 
 ## Når et kriterium gjenopprettes
 
-Et kriterium slutter å virke så snart filtrene slutter å samsvare: ved den sjekken løses hendelsen og varselet, når **Løs hendelse automatisk** og **Løs varsel automatisk** er slått på, og monitoren går videre til neste kriterium som samsvarer.
+Et kriterium slutter å virke så snart filtrene slutter å samsvare: ved den sjekken løses hendelsen og varselet, når **Løs hendelse automatisk** og **Løs varsel automatisk** er slått på, og monitorens status følger kriteriene som samsvarer da.
 
 **Gjenopprett bare når en egen betingelse er oppfylt** holder kriteriet gjeldende etter at filtrene slutter å samsvare, til filtrene under **Gjenopprettes når** samsvarer. De starter som det motsatte av kriteriets filtre, over de siste 10 minuttene, og kan bruke alt et filter tilbyr, for eksempel et vindu som teller sjekker. Et kriterium er gjeldende så lenge monitoren har statusen det setter, eller en hendelse eller et varsel det erklærte, er åpent. Mens det holder, er det et samsvar på sin plass i listen: et kriterium over det som samsvarer, tar likevel over.
 
-Når ingen kriterier samsvarer, beholder en monitor som et kriterium har flyttet bort fra **Standard monitorstatus**, statusen den har, så lenge den også har et kriterium som bare bringer den tilbake til den statusen og ikke åpner noe. Det er gjenopprettingsmarginen: malene utløses over 90 % og kommer tilbake ved 81 % eller lavere, så ved 89 % blir monitoren der den er. Hendelsene og varslene løses likevel når deres eget kriterium slutter å samsvare. En monitor uten et slikt kriterium går til **Standard monitorstatus**, slik den alltid har gjort.
+Når ingen kriterier som endrer statusen samsvarer, beholder en monitor som et kriterium har flyttet bort fra **Standard monitorstatus**, statusen den har, så lenge den også har et kriterium som bare bringer den tilbake til den statusen og ikke åpner noe. Det er gjenopprettingsmarginen: malene utløses over 90 % og kommer tilbake ved 81 % eller lavere, så ved 89 % blir monitoren der den er. Hendelsene og varslene løses likevel når deres eget kriterium slutter å samsvare. En monitor uten et slikt kriterium går til **Standard monitorstatus**, slik den alltid har gjort.
 
 ## Bare på bestemte dager og tider
 
@@ -153,6 +156,7 @@ flowchart TB
 
 - **Én om gangen.** Så lenge en hendelse som et kriterium har erklært fortsatt er åpen, erklærer ikke det samme kriteriet en ny når det samsvarer igjen. Varsler fungerer på samme måte. En monitor som grupperer etter vert eller payload-felt, holder én åpen per vert eller verdi, og et kriterium på en monitor for innkommende e-post med **Åpne en ny hendelse for hver e-post** åpner én per e-post.
 - **Lukking.** Ved en senere kontroll der et annet kriterium samsvarer, eller ingen, løses en hendelse der kriteriet har **Løs hendelse automatisk** slått på, og det samme gjelder et varsel med **Løs varsel automatisk**. Begge ligger under **Flere felt** i hendelsen eller varselet, og kriteriene en ny monitor starter med, har dem slått på.
+- **Kriteriet som handler.** På en monitor som stopper ved det første samsvaret, erklærer det første kriteriet som samsvarer, hendelsene til kontrollen og oppretter varslene, også når det ikke endrer noen status og et kriterium under det setter statusen. Det åpner ingenting ved kontrollen: plasser kriteriene som endrer statusen, over dem som bare varsler, det verste først, slik en ny monitors er, så kommer statusen til en kontroll og hendelsen fra samme kriterium.
 - **Flere sonder.** En monitor som kontrolleres av mer enn én sonde, endres bare når sondene er enige. Se [Slik evalueres kriteriene](/docs/monitor/create-monitor#slik-evalueres-kriterier).
 - **En overordnet monitor som er nede.** På en monitors side **Konfigurasjon → Avhengigheter** angir **Avhenger av monitorer** monitorene den er avhengig av. Så lenge én av dem har en status som står i **Undertrykk når overordnet status er** (enhver offline-status, hvis feltet står tomt), åpner monitoren ingen hendelser eller varsler. Statusen endres fortsatt, og det som er åpent, løses fortsatt.
 - **Planlagt vedlikehold.** En monitor i en vedlikeholdshendelse som pågår, kontrolleres ikke, så kriteriene kjører ikke. Se [Planlagt vedlikehold – Oversikt](/docs/scheduled-maintenance/index).
@@ -337,6 +341,12 @@ Et kriterium høyere opp i listen samsvarte først. Åpne **Konfigurasjon → Kr
 
 :::details Ingen hendelse ble åpnet da monitoren gikk ned
 Sjekk kriteriet som samsvarte: **Når filtre samsvarer, erklær en hendelse.** må være slått på. En hendelse erklæres ikke så lenge det samme kriteriets hendelse fortsatt er åpen, så lenge en overordnet monitor i **Avhenger av monitorer** er nede, eller så lenge monitoren er i planlagt vedlikehold. Kortet **Monitor-sammendrag** på monitorens **Oversikt** forteller hvilken det var.
+
+Et kriterium over det som ikke endrer noen status, for eksempel et varsel om trege svar, kan samsvare først: det oppretter varselet sitt, kriteriet under det setter statusen og erklærer hendelsen sin bare ved en kontroll der det er det første samsvaret. Dra kriteriene som endrer statusen, over dem som bare varsler.
+:::
+
+:::details Monitoren gikk tilbake til standardstatusen mens et varsel forble åpent
+Kriteriet til varselet endrer ingen status, så det holder ikke monitoren i statusen en tidligere kontroll satte. Det første kriteriet som samsvarer og endrer statusen, setter den, og når ingen gjør det, går monitoren til sin **Standard monitorstatus**. For å beholde en status så lenge et problem varer, gir du kriteriet som setter den, en egen gjenopprettingsbetingelse: se [Når et kriterium gjenopprettes](#når-et-kriterium-gjenopprettes).
 :::
 
 :::details Hendelsen forblir åpen etter at monitoren har kommet seg

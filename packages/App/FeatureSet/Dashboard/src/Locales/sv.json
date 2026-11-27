@@ -67288,5 +67288,19 @@
   "XCP-ng Pool Master Changed": "Master för XCP-ng-pool bytt",
   "XCP-ng Pool High Availability Changed": "Hög tillgänglighet för XCP-ng-pool ändrad",
   "XCP-ng Pool Backup Failed": "Säkerhetskopia av XCP-ng-pool misslyckades",
-  "XCP-ng alarms": "XCP-ng-larm"
+  "XCP-ng alarms": "XCP-ng-larm",
+  "Criteria are evaluated in order; this monitor stops at the first match that changes its status.": "Kriterier utvärderas i ordning; den här monitorn stoppar vid första matchningen som ändrar dess status.",
+  "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "Monitorstatusen återställdes till ”{{status}}” eftersom inget kriterium som ändrar statusen uppfylldes.",
+  "Monitor status reverted to its default state because no criteria that changes the status was met.": "Monitorstatusen återställdes till standardläget eftersom inget kriterium som ändrar statusen uppfylldes.",
+  "No criteria that changes the status matched, so the monitor changed to its default status.": "Inget kriterium som ändrar statusen uppfylldes, så monitorn bytte till sin standardstatus.",
+  "Not evaluated because {{criteria}} matched and set the monitor's status.": "Inte utvärderat eftersom {{criteria}} matchade och satte monitorns status.",
+  "Not evaluated because {{criteria}} matched first, and this criteria changes no status.": "Inte utvärderat eftersom {{criteria}} matchade först, och det här kriteriet ändrar ingen status.",
+  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.": "Sondöverensstämmelse uppnåddes inte: {{agreeing}}/{{required}} sonder är överens ({{active}} aktiva sonder totalt). Ingenting öppnas eller löses.",
+  "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.": "Sondöverensstämmelse om monitorns status uppnåddes inte: {{agreeing}}/{{required}} sonder är överens ({{active}} aktiva sonder totalt). Statusen behålls.",
+  "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).": "Sondöverensstämmelse om monitorns status uppnådd: {{agreeing}}/{{required}} sonder är överens ({{active}} aktiva sonder totalt).",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.": "Övervakningen behåller sin status: inget kriterium som ändrar statusen matchade, och den återgår först när ”{{criteria}}” är uppfyllt.",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.": "Övervakningen behåller sin status: inget kriterium som ändrar statusen matchade, och den återgår först när ett kriterium som återställer den är uppfyllt.",
+  "The monitor shows its default status, {{status}}.": "Monitorn visar sin standardstatus, {{status}}.",
+  "The monitor shows its default status.": "Monitorn visar sin standardstatus.",
+  "{{criteria}} matches too, so OneUptime marks it {{status}}.": "{{criteria}} matchar också, så OneUptime sätter statusen till {{status}}."
 }

@@ -67288,5 +67288,19 @@
   "XCP-ng Pool Master Changed": "Mestre do pool do XCP-ng alterado",
   "XCP-ng Pool High Availability Changed": "Alta disponibilidade do pool do XCP-ng alterada",
   "XCP-ng Pool Backup Failed": "Backup do pool do XCP-ng com falha",
-  "XCP-ng alarms": "Alarmes do XCP-ng"
+  "XCP-ng alarms": "Alarmes do XCP-ng",
+  "Criteria are evaluated in order; this monitor stops at the first match that changes its status.": "Os critérios são avaliados em ordem; este monitor para na primeira correspondência que muda seu status.",
+  "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "O status do monitor voltou para \"{{status}}\" porque nenhum critério que muda o status foi atendido.",
+  "Monitor status reverted to its default state because no criteria that changes the status was met.": "O status do monitor voltou ao status padrão porque nenhum critério que muda o status foi atendido.",
+  "No criteria that changes the status matched, so the monitor changed to its default status.": "Nenhum critério que muda o status foi atendido, então o monitor mudou para seu status padrão.",
+  "Not evaluated because {{criteria}} matched and set the monitor's status.": "Não avaliado porque {{criteria}} correspondeu e definiu o status do monitor.",
+  "Not evaluated because {{criteria}} matched first, and this criteria changes no status.": "Não avaliado porque {{criteria}} correspondeu primeiro, e este critério não muda nenhum status.",
+  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.": "Concordância de sondas não atingida: {{agreeing}}/{{required}} sondas concordam ({{active}} sondas ativas no total). Nada é aberto nem resolvido.",
+  "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.": "Concordância de sondas sobre o status do monitor não atingida: {{agreeing}}/{{required}} sondas concordam ({{active}} sondas ativas no total). Seu status é mantido.",
+  "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).": "Concordância de sondas sobre o status do monitor atingida: {{agreeing}}/{{required}} sondas concordam ({{active}} sondas ativas no total).",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.": "O monitor mantém seu status: nenhum critério que muda o status correspondeu, e ele só volta quando \"{{criteria}}\" for atendido.",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.": "O monitor mantém seu status: nenhum critério que muda o status correspondeu, e ele só volta quando um critério que o traz de volta for atendido.",
+  "The monitor shows its default status, {{status}}.": "O monitor mostra seu status padrão, {{status}}.",
+  "The monitor shows its default status.": "O monitor mostra seu status padrão.",
+  "{{criteria}} matches too, so OneUptime marks it {{status}}.": "{{criteria}} também corresponde, então o OneUptime o marca como {{status}}."
 }
