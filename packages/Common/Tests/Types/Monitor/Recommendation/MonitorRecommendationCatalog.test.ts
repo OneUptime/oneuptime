@@ -45,6 +45,7 @@ import {
   getStorageArrayAlertTemplatesForSystem,
 } from "../../../../Types/Monitor/StorageArrayAlertTemplates";
 import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "../../../../Types/StorageArray/StorageSystemUtil";
 import {
   getAllServiceAlertTemplates,
   getLanguagesWithServiceAlertTemplates,
@@ -1308,20 +1309,30 @@ describe("MonitorRecommendationCatalog", () => {
       ).toBe(getAllStorageArrayAlertTemplates().length);
     });
 
-    it("the two platforms' sets partition the whole catalog", () => {
-      const flashArray: Array<string> = storageArrayTemplateIds({
-        storageSystem: StorageSystem.PureStorageFlashArray,
-      });
-      const flashBlade: Array<string> = storageArrayTemplateIds({
-        storageSystem: StorageSystem.PureStorageFlashBlade,
+    it("offers a PowerScale cluster exactly the PowerScale set", () => {
+      const ids: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.DellPowerScale,
       });
 
-      expect(
-        flashArray.filter((id: string) => {
-          return flashBlade.includes(id);
-        }),
-      ).toEqual([]);
-      expect([...flashArray, ...flashBlade].sort()).toEqual(
+      expect(ids).toEqual(idsFor(StorageSystem.DellPowerScale));
+      expect(ids).toHaveLength(13);
+      for (const id of ids) {
+        expect(id.startsWith("powerscale-")).toBe(true);
+      }
+    });
+
+    it("every platform's sets partition the whole catalog", () => {
+      const sets: Array<Array<string>> = StorageSystemUtil.getAllSystems().map(
+        (system: StorageSystem): Array<string> => {
+          return storageArrayTemplateIds({ storageSystem: system });
+        },
+      );
+      const all: Array<string> = sets.flat();
+
+      // No template is offered to two platforms...
+      expect(new Set(all).size).toBe(all.length);
+      // ...and every template is offered to one.
+      expect([...all].sort()).toEqual(
         getAllStorageArrayAlertTemplates()
           .map((template: StorageArrayAlertTemplate) => {
             return template.id;
