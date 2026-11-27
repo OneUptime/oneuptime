@@ -67605,5 +67605,12 @@
   "{{count}} storage groups_one": "{{count}} 個儲存群組",
   "{{count}} storage resource pool": "{{count}} 個儲存資源池",
   "{{count}} storage resource pools": "{{count}} 個儲存資源池",
-  "{{count}} storage resource pools_one": "{{count}} 個儲存資源池"
+  "{{count}} storage resource pools_one": "{{count}} 個儲存資源池",
+  "AI agents have no page in the dashboard: rename one with the API or Terraform.": "AI 代理在儀表板中沒有頁面：請透過 API 或 Terraform 重新命名其中一個。",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "此專案中另有一個 {{kind}} 使用此名稱，因此在選擇器中無法區分它們。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "Meraki connections": "Meraki 連線",
+  "Same name as another {{kind}}": "與另一個 {{kind}} 同名",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kinds}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。"
 }

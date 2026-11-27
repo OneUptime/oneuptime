@@ -67605,5 +67605,12 @@
   "{{count}} storage groups_one": "{{count}} grupo de almacenamiento",
   "{{count}} storage resource pool": "{{count}} pool de recursos de almacenamiento",
   "{{count}} storage resource pools": "{{count}} pools de recursos de almacenamiento",
-  "{{count}} storage resource pools_one": "{{count}} pool de recursos de almacenamiento"
+  "{{count}} storage resource pools_one": "{{count}} pool de recursos de almacenamiento",
+  "AI agents have no page in the dashboard: rename one with the API or Terraform.": "Los agentes de IA no tienen página en el panel: cambia el nombre de uno de ellos con la API o con Terraform.",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Otro elemento de tipo {{kind}} de este proyecto tiene este nombre, así que los selectores no permiten distinguirlos. Abre cada uno para ver cuál es cuál y luego cambia el nombre de uno de ellos.",
+  "Meraki connections": "conexiones de Meraki",
+  "Same name as another {{kind}}": "Mismo nombre que otro elemento de tipo {{kind}}",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} tienen el mismo nombre que otro elemento de tipo {{kind}}, y los selectores no permiten distinguirlos. Abre cada uno para ver cuál es cuál y luego cambia el nombre de uno de ellos.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} tiene el mismo nombre que otro elemento de tipo {{kind}}, y los selectores no permiten distinguirlos. Abre cada uno para ver cuál es cuál y luego cambia el nombre de uno de ellos.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} tiene el mismo nombre que otro elemento de tipo {{kind}}, y los selectores no permiten distinguirlos. Abre cada uno para ver cuál es cuál y luego cambia el nombre de uno de ellos."
 }

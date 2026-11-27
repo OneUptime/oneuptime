@@ -67605,5 +67605,12 @@
   "{{count}} storage groups_one": "{{count}} स्टोरेज समूह",
   "{{count}} storage resource pool": "{{count}} स्टोरेज रिसोर्स पूल",
   "{{count}} storage resource pools": "{{count}} स्टोरेज रिसोर्स पूल",
-  "{{count}} storage resource pools_one": "{{count}} स्टोरेज रिसोर्स पूल"
+  "{{count}} storage resource pools_one": "{{count}} स्टोरेज रिसोर्स पूल",
+  "AI agents have no page in the dashboard: rename one with the API or Terraform.": "AI एजेंटों का डैशबोर्ड में कोई पेज नहीं है: किसी एक का नाम API या Terraform से बदलें।",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "इस प्रोजेक्ट में किसी दूसरे रिकॉर्ड ({{kind}}) का भी यही नाम है, इसलिए चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। हर एक को खोलकर देखें कि कौन-सा कौन है, फिर किसी एक का नाम बदलें।",
+  "Meraki connections": "Meraki कनेक्शन",
+  "Same name as another {{kind}}": "किसी दूसरे रिकॉर्ड ({{kind}}) जैसा नाम",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} रिकॉर्ड ({{kinds}}) का नाम किसी दूसरे रिकॉर्ड ({{kind}}) जैसा ही है, और चयनकर्ताओं में उन्हें अलग-अलग नहीं पहचाना जा सकता। हर एक को खोलकर देखें कि कौन-सा कौन है, फिर किसी एक का नाम बदलें।",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} रिकॉर्ड ({{kind}}) का नाम किसी दूसरे रिकॉर्ड ({{kind}}) जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। हर एक को खोलकर देखें कि कौन-सा कौन है, फिर किसी एक का नाम बदलें।",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} रिकॉर्ड ({{kind}}) का नाम किसी दूसरे रिकॉर्ड ({{kind}}) जैसा ही है, और चयनकर्ताओं में दोनों को अलग-अलग नहीं पहचाना जा सकता। हर एक को खोलकर देखें कि कौन-सा कौन है, फिर किसी एक का नाम बदलें।"
 }
