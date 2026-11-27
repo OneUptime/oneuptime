@@ -478,6 +478,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/StatusPageSubscriberService.ts": {
     "Service.unsubscribe StatusPageSubscriber": Why.Recorded,
   },
+  /*
+   * A Unisphere connection's server-only columns (#11004) - whether a
+   * password is saved, its next collection, the settings version - written
+   * after the settings change the audit log records.
+   */
+  "packages/Common/Server/Services/StorageArrayConnectionService.ts": {
+    "Service.writeConnectionServerColumns StorageArrayConnection": Why.FollowOn,
+  },
   "packages/Common/Server/Services/StorageArrayService.ts": {
     "Service.attachLabels StorageArray": Why.Reported,
     // MERGE_COUNTS_BY_KIND_SQL: each kind's count as a batch reports it (#11000).
@@ -918,6 +926,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SubscriberNotificationClaim.claim *": Why.Bookkeeping,
     "SubscriberNotificationClaim.failInterrupted *": Why.Bookkeeping,
   },
+  // What a probe found when it read a Unisphere (#11004), as VMware's.
+  "packages/Common/Server/Utils/StorageArray/StorageArrayProbeCollectionStore.ts":
+    {
+      "StorageArrayProbeCollectionStore.recordCollectionReport *": Why.Reported,
+    },
   "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
     "reconcileByNaturalKey *": Why.Reported,
   },
