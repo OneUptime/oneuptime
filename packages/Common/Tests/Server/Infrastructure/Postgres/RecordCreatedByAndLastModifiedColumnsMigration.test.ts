@@ -206,6 +206,11 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
       };
     },
   ),
+  // An external MCP server's tools a Project Admin marked read-only (#11081).
+  {
+    table: "ExternalMcpToolReadOnlyMark",
+    migration: "1809187791081-AddExternalMcpToolReadOnlyMarks.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(
