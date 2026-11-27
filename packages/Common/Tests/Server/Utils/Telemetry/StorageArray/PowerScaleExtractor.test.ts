@@ -134,7 +134,7 @@ function rowNamed(
 // One receiver's poll alone: the series whose labels say they are its.
 function onlyCluster(): JSONObject {
   return filterPowerScaleCapture(
-    (metricName: string, labels: Record<string, string>): boolean => {
+    (_metricName: string, labels: Record<string, string>): boolean => {
       return labels["cluster"] !== undefined && !labels["node"];
     },
   );
