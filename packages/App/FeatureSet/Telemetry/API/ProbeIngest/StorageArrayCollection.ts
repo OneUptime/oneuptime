@@ -180,7 +180,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(
+            "OneUptime does not know this probe. Check the probe key and probe ID it runs with.",
+          ),
         );
       }
 
@@ -238,7 +240,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(
+            "OneUptime does not know this probe. Check the probe key and probe ID it runs with.",
+          ),
         );
       }
 
@@ -310,7 +314,9 @@ router.post(
         return Response.sendErrorResponse(
           req,
           res,
-          new BadDataException("Probe not found"),
+          new BadDataException(
+            "OneUptime does not know this probe. Check the probe key and probe ID it runs with.",
+          ),
         );
       }
 

@@ -53,6 +53,11 @@ import {
   SetupGuideStep,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { AgentVersionStatus } from "../../../Utils/AgentVersionUtil";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayAgentConfig,
+  StorageArrayPlatform as StorageArrayPlatformDefinition,
+} from "../../../Types/StorageArray/StorageArrayPlatform";
 
 /*
  * Which agent reports the version each resource shows, and how OneUptime
@@ -455,24 +460,72 @@ describe("pinned-collector agents report exactly the pin this release ships", ()
 const COLLECTOR_CONFIG_FILE: RegExp = /^otel-collector-config.*\.yaml$/;
 
 /*
- * The Storage Array agent ships one collector config per kind of array and
- * runs the one .env names: every one of them reports the version, so the
- * Dashboard's embedded copies are listed by the file each one is. A
- * PowerScale's is not embedded: it holds a receiver per node slot, so its
- * guide names the file in the agent's folder instead. It stands here as
- * itself, so its stamp is checked all the same.
+ * The Storage Array agent ships one collector config per way it reads a
+ * kind of array - every agent config of every platform the registry holds -
+ * and runs the one .env names: every one of them reports the version. The
+ * Dashboard's guide embeds the ones whose steps it has (Pure Storage's), so
+ * those are listed by their embedded copy. The rest stand here as the
+ * shipped file itself, so their stamp is checked all the same: a
+ * PowerScale's, which holds a receiver per node slot and which its guide
+ * names in the agent's folder, and a PowerStore's and an ONTAP cluster's,
+ * which the guide has no steps for yet (#11123).
  */
-const STORAGE_ARRAY_EMBEDDED_CONFIGS: Record<string, string> = {};
+const STORAGE_ARRAY_AGENT_CONFIG_FILES: Array<string> = Array.from(
+  new Set(
+    StorageArrayPlatformRegistry.getPlatforms().flatMap(
+      (platform: StorageArrayPlatformDefinition): Array<string> => {
+        return platform.agentConfigs.map(
+          (config: StorageArrayAgentConfig): string => {
+            return config.collectorConfigFile;
+          },
+        );
+      },
+    ),
+  ),
+);
+
+// The file each embedded copy of the Dashboard's guide is.
+const STORAGE_ARRAY_GUIDE_COPIES: Record<string, string> = {};
 for (const platform of Object.keys(
   STORAGE_ARRAY_PLATFORM_SETTINGS,
 ) as Array<StorageArrayPlatform>) {
-  const file: string =
-    STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile;
-  STORAGE_ARRAY_EMBEDDED_CONFIGS[file] =
-    platform === "powerscale"
-      ? readRepoFile("agents", "StorageArrayAgent", file)
-      : STORAGE_ARRAY_COLLECTOR_CONFIGS[platform];
+  if (platform === "powerscale") {
+    continue;
+  }
+  STORAGE_ARRAY_GUIDE_COPIES[
+    STORAGE_ARRAY_PLATFORM_SETTINGS[platform].collectorConfigFile
+  ] = STORAGE_ARRAY_COLLECTOR_CONFIGS[platform];
 }
+
+const STORAGE_ARRAY_EMBEDDED_CONFIGS: Record<string, string> = {};
+for (const file of STORAGE_ARRAY_AGENT_CONFIG_FILES) {
+  STORAGE_ARRAY_EMBEDDED_CONFIGS[file] =
+    STORAGE_ARRAY_GUIDE_COPIES[file] ??
+    readRepoFile("agents", "StorageArrayAgent", file);
+}
+
+describe("the Storage Array agent's collector configs", () => {
+  test("are every agent config of every platform, and every one the guide embeds is one of them", () => {
+    // Pure's three, PowerStore's, ONTAP's and PowerScale's.
+    expect(STORAGE_ARRAY_AGENT_CONFIG_FILES.sort()).toEqual([
+      "otel-collector-config.flasharray-exporter.yaml",
+      "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.netapp-ontap.yaml",
+      "otel-collector-config.powerscale.yaml",
+      "otel-collector-config.powerstore.yaml",
+      "otel-collector-config.yaml",
+    ]);
+    for (const file of Object.keys(STORAGE_ARRAY_GUIDE_COPIES)) {
+      expect(STORAGE_ARRAY_AGENT_CONFIG_FILES).toContain(file);
+    }
+    // The guide's Pure Storage options embed their whole config.
+    expect(Object.keys(STORAGE_ARRAY_GUIDE_COPIES).sort()).toEqual([
+      "otel-collector-config.flasharray-exporter.yaml",
+      "otel-collector-config.flashblade.yaml",
+      "otel-collector-config.yaml",
+    ]);
+  });
+});
 
 /*
  * The Proxmox, Ceph, VMware and Storage Array agents are the stock collector
@@ -511,7 +564,7 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents report the collecto
   ];
 
   test.each(AGENTS)(
-    "every collector config in agents/%s is one the Dashboard embeds",
+    "every collector config in agents/%s is read here: the Dashboard's copy, or the shipped file its guide names",
     (
       dir: string,
       _kind: AgentKind,
@@ -528,6 +581,19 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents report the collecto
   );
 
   /*
+   * Each agent's services that run the collector, by name, so a new one is
+   * named here. The Storage Array agent runs two: the agent, and PowerStore's
+   * syslog receiver (powerstore-syslog, #11227), which runs the agent's own
+   * image through the *collector-image alias so the two cannot drift apart.
+   */
+  const COLLECTOR_SERVICES: Record<string, Array<string>> = {
+    ProxmoxAgent: ["oneuptime-proxmox-agent"],
+    CephAgent: ["oneuptime-ceph-agent"],
+    VMwareAgent: ["oneuptime-vmware-agent"],
+    StorageArrayAgent: ["oneuptime-storage-array-agent", "powerstore-syslog"],
+  };
+
+  /*
    * The image is the collector the kind pins; the stamp below is the
    * version of the files, which is that collector's until the files change
    * on it (AgentFilesVersion.test.ts).
@@ -539,18 +605,24 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents report the collecto
       const compose: Record<string, unknown> = yaml.load(
         readRepoFile("agents", dir, "docker-compose.yml"),
       ) as Record<string, unknown>;
-      const images: Array<string> = Object.values(
+      const collectors: Record<string, string> = {};
+      for (const [name, service] of Object.entries(
         compose["services"] as Record<string, { image?: string }>,
-      )
-        .map((service: { image?: string }): string => {
-          return service.image || "";
-        })
-        .filter((image: string): boolean => {
-          return image.startsWith("otel/opentelemetry-collector-contrib");
-        });
-      expect(images).toEqual([
-        `otel/opentelemetry-collector-contrib:${collector}`,
-      ]);
+      )) {
+        const image: string = service.image || "";
+        if (image.startsWith("otel/opentelemetry-collector-contrib")) {
+          collectors[name] = image;
+        }
+      }
+      expect(collectors).toEqual(
+        Object.fromEntries(
+          (COLLECTOR_SERVICES[dir] || []).map(
+            (name: string): [string, string] => {
+              return [name, `otel/opentelemetry-collector-contrib:${collector}`];
+            },
+          ),
+        ),
+      );
     },
   );
 
@@ -708,14 +780,21 @@ describe("the XCP-ng agent reports the collector its compose file pins", () => {
     const compose: Record<string, unknown> = yaml.load(
       readRepoFile("agents", "XcpNgAgent", "docker-compose.yml"),
     ) as Record<string, unknown>;
-    const images: Array<string> = Object.values(
+    const images: Record<string, string> = {};
+    for (const [name, service] of Object.entries(
       compose["services"] as Record<string, { image?: string }>,
-    ).map((service: { image?: string }): string => {
-      return service.image || "";
+    )) {
+      images[name] = service.image || "";
+    }
+    /*
+     * The collector, and the XCP-ng AI agent beside it (#10998), which runs
+     * OneUptime's Resource AI agent image as every other agent's AI agent
+     * does: it reports no collector version.
+     */
+    expect(images).toEqual({
+      "oneuptime-xcp-ng-agent": `otel/opentelemetry-collector-contrib:${AGENT_KINDS[AgentKind.XcpNgAgent].collectorVersion}`,
+      "oneuptime-xcp-ng-ai-agent": "oneuptime/resource-ai-agent:release",
     });
-    expect(images).toEqual([
-      `otel/opentelemetry-collector-contrib:${AGENT_KINDS[AgentKind.XcpNgAgent].collectorVersion}`,
-    ]);
     expect(AGENT_KINDS[AgentKind.XcpNgAgent]).toEqual({
       name: "OneUptime XCP-ng Agent",
       latestVersionSource: AgentLatestVersionSource.PinnedCollector,
