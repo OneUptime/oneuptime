@@ -54,6 +54,7 @@ import {
   CloudCostState,
   CloudSavingKind,
 } from "../../../Types/Cloud/CloudCost";
+import { CloudCostBasis } from "../../../Types/Cloud/CloudCostBasis";
 import { CloudCommitmentKind } from "../../../Types/Cloud/CloudCommitments";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -87,6 +88,7 @@ interface CapturedFormField {
   collapsibleSection?: unknown;
   customValidation?: (values: Record<string, unknown>) => string | null;
   defaultValue?: unknown;
+  dropdownOptions?: Array<{ label: string; value: unknown }>;
 }
 
 const ACCOUNT_ROW: string = "10000000-0000-4000-8000-0000000000b1";
@@ -644,7 +646,7 @@ describe("Cloud > Budgets", () => {
     });
   }
 
-  test("created in two steps, in the currency most accounts are billed in, alerting at 80% and 100%", async () => {
+  test("created in two steps, in the currency most accounts are billed in, on the project's cost basis unless it picks one, alerting at 80% and 100%", async () => {
     await openBudgets();
 
     expect(lastTable()).toMatchObject({
@@ -689,8 +691,30 @@ describe("Cloud > Budgets", () => {
       "Name",
       "Monthly Amount",
       "Account",
+      "Cost Basis",
       "Currency",
       "Description",
+    ]);
+    /*
+     * A budget may watch billed, amortized or net spend (#11007); left
+     * empty, it watches the project's cost basis.
+     */
+    const costBasis: CapturedFormField | undefined = fields.find(
+      (field: CapturedFormField): boolean => {
+        return field.title === "Cost Basis";
+      },
+    );
+    expect(costBasis?.required).toBe(false);
+    expect(
+      (costBasis?.dropdownOptions || []).map(
+        (option: { label: string; value: unknown }): unknown => {
+          return option.value;
+        },
+      ),
+    ).toEqual([
+      CloudCostBasis.Billed,
+      CloudCostBasis.Amortized,
+      CloudCostBasis.Net,
     ]);
     expect(byStep("alerts")).toEqual([
       "Alert At",
@@ -706,7 +730,7 @@ describe("Cloud > Budgets", () => {
       },
     );
     expect(unusualDays?.defaultValue).toBe(true);
-    // The currency and a description wait under More fields.
+    // The cost basis, the currency and a description wait under More fields.
     expect(
       fields
         .filter((field: CapturedFormField): boolean => {
@@ -715,7 +739,7 @@ describe("Cloud > Budgets", () => {
         .map((field: CapturedFormField): string => {
           return field.title;
         }),
-    ).toEqual(["Currency", "Description"]);
+    ).toEqual(["Cost Basis", "Currency", "Description"]);
     expect(titles("columns")).toEqual([
       "Name",
       "Applies To",
