@@ -693,6 +693,46 @@ describe("a Matches Pattern Type filter", () => {
     }
   });
 
+  /*
+   * #11115, #11114: Scrub It's metric rule for a phone or SSN finding
+   * matches these pattern types (#11112), so it hides a number typed
+   * wholly in fullwidth, and a national number or nine digits beside the
+   * word that names them in the label, as a log or trace rule does.
+   */
+  test.each([
+    ["phoneNumber", "a number typed wholly in fullwidth", "＋８１ ３－１２３４－５６７８"],
+    ["phoneNumber", "one with an ideographic space", "＋８１　３－１２３４－５６７８"],
+    ["phoneNumber", "a fullwidth plus sign before ASCII digits", "＋81 3－1234－5678"],
+    ["phoneNumber", "a national number beside tel", "tel 02012345678"],
+    ["phoneNumber", "a national number in a URL", "/notify?phone%3D02012345678"],
+    ["ssn", "a Social Security number typed wholly in fullwidth", "５３６－２２－８７３１"],
+    ["ssn", "nine digits beside SSN", "SSN 536221234"],
+    ["ssn", "nine fullwidth digits beside ssn", "ssn ５３６２２１２３４"],
+  ])(
+    "%s redacts %s: %s",
+    (patternType: string, _label: string, value: string) => {
+      const key: string = patternType === "ssn" ? "ssn" : "caller";
+
+      expect(leftOf(redactWhere(key, patternType), key, value)).toBe(
+        "[REDACTED]",
+      );
+    },
+  );
+
+  test.each([
+    ["phoneNumber", "a national number no word names", "order 02012345678"],
+    ["phoneNumber", "a decimal typed in fullwidth", "＋５１．５０７２１７"],
+    ["ssn", "nine digits no word names", "ref 536221234"],
+    ["ssn", "an area never issued, typed in fullwidth", "６６６．２２．８７３１"],
+  ])(
+    "%s keeps %s: %s",
+    (patternType: string, _label: string, value: string) => {
+      const key: string = patternType === "ssn" ? "ssn" : "caller";
+
+      expect(leftOf(redactWhere(key, patternType), key, value)).toBe(value);
+    },
+  );
+
   test("a value that names no pattern type matches nothing", () => {
     for (const patternType of ["", "custom", "sensitiveKeys", "constructor"]) {
       expect(
@@ -837,6 +877,39 @@ describe("a rule that hides matches its pattern in every reading of a value", ()
     ).toBeNull();
   });
 
+  // #11115: a value typed wholly in fullwidth, its separators too, is read with them as ASCII.
+  test("an IBAN typed wholly in fullwidth, ideographic spaces between its groups, is hidden by its grouped pattern", () => {
+    const grouped: string = "\\b[A-Z]{2}[0-9]{2}(?: [0-9]{4}){4} [0-9]{2}\\b";
+    const url: string = [
+      "DE８９",
+      "３７０４",
+      "００４４",
+      "０５３２",
+      "０１３０",
+      "００",
+    ].join("　");
+
+    expect(
+      run(rowOf({ url }), [
+        hidingRule(MetricPipelineRuleType.RedactAttribute, grouped),
+      ])!.attributes,
+    ).toEqual({ url: "[REDACTED]" });
+    // A Filter rule reads it as written alone, as before.
+    expect(
+      run(rowOf({ url }), [
+        ruleOf(MetricPipelineRuleType.Filter, {
+          filters: [
+            attributeIs(
+              "url",
+              MetricPipelineRuleFilterConditionType.MatchesRegex,
+              grouped,
+            ),
+          ],
+        }),
+      ]),
+    ).toBeNull();
+  });
+
   test("a value written plainly matches as it always did, and one with nothing to find never does", () => {
     const redact: MetricPipelineRule = hidingRule(
       MetricPipelineRuleType.RedactAttribute,
@@ -894,7 +967,13 @@ describe("a rule that hides matches its pattern in every reading of a value", ()
       TOKEN_PATTERN,
     );
 
-    for (const url of ["%3D".repeat(130_000), "٣".repeat(400_000)]) {
+    for (const url of [
+      "%3D".repeat(130_000),
+      "٣".repeat(400_000),
+      // #11115: a number's fullwidth forms beside digits without end.
+      "４－".repeat(200_000),
+      "4　".repeat(200_000),
+    ]) {
       const timed: FastestRun<string> = fastestRun({
         run: (): string => {
           return String(

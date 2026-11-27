@@ -589,6 +589,97 @@ describe("a value in a URL as the value it reads as (#11199)", () => {
   });
 });
 
+/*
+ * #11115: a number typed wholly in fullwidth - its digits, its plus sign,
+ * hyphens, parentheses, full stops and ideographic spaces - reads as the
+ * number written in ASCII, for its mask and its token, so a value hashed
+ * however it was typed has the one token.
+ */
+describe("a number typed wholly in fullwidth, as the number it reads as (#11115)", () => {
+  const IDEOGRAPHIC_SPACE: string = "　";
+
+  test.each([
+    [LogScrubPatternType.PhoneNumber, "＋８１ ３－１２３４－５６７８", "+81 3-1234-5678"],
+    [
+      LogScrubPatternType.PhoneNumber,
+      `＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８`,
+      "+81 3-1234-5678",
+    ],
+    [LogScrubPatternType.PhoneNumber, "（４１５）３２１－８７３１", "(415)321-8731"],
+    [LogScrubPatternType.PhoneNumber, "＋81 3－1234－5678", "+81 3-1234-5678"],
+    [LogScrubPatternType.SSN, "５３６－２２－８７３１", "536-22-8731"],
+    [LogScrubPatternType.SSN, "５３６．２２．８７３１", "536.22.8731"],
+    [
+      LogScrubPatternType.CreditCard,
+      `４５３２${IDEOGRAPHIC_SPACE}０１５１${IDEOGRAPHIC_SPACE}１２８３${IDEOGRAPHIC_SPACE}０３６６`,
+      "4532 0151 1283 0366",
+    ],
+    [LogScrubPatternType.CreditCard, "４５３２－０１５１－１２８３－０３６６", "4532-0151-1283-0366"],
+    // A CPF a Custom Regex rule found typed in fullwidth.
+    [LogScrubPatternType.Custom, "４７１．３９２．８６５－８２", "471.392.865-82"],
+    // Its UTF-8 bytes escaped in a URL, then folded.
+    [
+      LogScrubPatternType.PhoneNumber,
+      encodeURIComponent("＋８１ ３－１２３４－５６７８"),
+      "+81 3-1234-5678",
+    ],
+    [
+      LogScrubPatternType.PhoneNumber,
+      "%EF%BC%8B81+3%EF%BC%8D1234%EF%BC%8D5678",
+      "+81 3-1234-5678",
+    ],
+  ])(
+    "a %s match %s reads as %s, and hashes and masks as it does",
+    (patternType: string, written: string, reads: string) => {
+      expect(ScrubAction.asItReads(written, patternType)).toBe(reads);
+      expect(apply(written, LogScrubAction.Hash, patternType)).toBe(
+        ScrubHashToken.ofValue({ projectId: PROJECT_ID, value: reads }),
+      );
+      expect(apply(written, LogScrubAction.Hash, patternType)).toBe(
+        apply(reads, LogScrubAction.Hash, patternType),
+      );
+      expect(apply(written, LogScrubAction.Mask, patternType)).toBe(
+        apply(reads, LogScrubAction.Mask, patternType),
+      );
+    },
+  );
+
+  test("Mask keeps a fullwidth number's last four digits, in ASCII", () => {
+    expect(
+      apply("＋８１ ３－１２３４－５６７８", LogScrubAction.Mask, LogScrubPatternType.PhoneNumber),
+    ).toBe("***-***-5678");
+    expect(
+      apply("５３６－２２－８７３１", LogScrubAction.Mask, LogScrubPatternType.SSN),
+    ).toBe("***-**-8731");
+    expect(
+      apply(
+        "４５３２－０１５１－１２８３－０３６６",
+        LogScrubAction.Mask,
+        LogScrubPatternType.CreditCard,
+      ),
+    ).toBe("****-****-****-0366");
+  });
+
+  test("an email address, an IP address and a key's whole value read as they are written", () => {
+    expect(
+      ScrubAction.asItReads("jane＋news@example.com", LogScrubPatternType.Email),
+    ).toBe("jane＋news@example.com");
+    expect(
+      ScrubAction.asItReads("（８１）", LogScrubPatternType.SensitiveKeys),
+    ).toBe("（８１）");
+  });
+
+  test("a number written plainly reads as it is, so its token is what it always was", () => {
+    for (const [patternType, value] of [
+      [LogScrubPatternType.PhoneNumber, "+81 3-1234-5678"],
+      [LogScrubPatternType.SSN, "536-22-8731"],
+      [LogScrubPatternType.CreditCard, "4532 0151 1283 0366"],
+    ] as Array<[string, string]>) {
+      expect(ScrubAction.asItReads(value, patternType)).toBe(value);
+    }
+  });
+});
+
 describe("a trace rule's words", () => {
   test("are a log rule's, so one comparison serves both", () => {
     expect({ ...TraceScrubAction }).toEqual({ ...LogScrubAction });

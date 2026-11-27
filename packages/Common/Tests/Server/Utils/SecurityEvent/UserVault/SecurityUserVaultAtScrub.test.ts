@@ -200,6 +200,64 @@ describe("a token's user, worked out of a value before and after the rules", () 
     ).toBeNull();
   });
 
+  /*
+   * #11115, #11033: a Phone Number, SSN or Credit Card Hash rule hashes a
+   * number typed wholly in fullwidth, or in another script's digits, as
+   * the number it reads as, so its token is the plain number's: the vault
+   * keeps that number as the user, as it keeps a decoded address.
+   */
+  test.each([
+    ["typed wholly in fullwidth", "＋８１ ３－１２３４－５６７８", "+81 3-1234-5678"],
+    [
+      "with an ideographic space",
+      "＋８１　３－１２３４－５６７８",
+      "+81 3-1234-5678",
+    ],
+    ["in Arabic-Indic digits", "+٤٤ ٢٠ ٧٩٤٦ ٠٩٥٨", "+44 20 7946 0958"],
+    ["in a URL as a form writes it", "%2B44+20+7946+0958", "+44 20 7946 0958"],
+  ])(
+    "a phone number a Hash rule read %s, kept as the number it reads as",
+    (_label: string, written: string, reads: string) => {
+      expect(
+        readHashedUserPair({
+          projectId: PROJECT_ID,
+          before: `sms:${written}`,
+          after: `sms:${tokenOf(reads)}`,
+        }),
+      ).toEqual({ token: tokenOf(reads), user: reads });
+    },
+  );
+
+  test("a Custom Regex Hash rule's match typed in fullwidth, kept as what it reads as", () => {
+    expect(
+      readHashedUserPair({
+        projectId: PROJECT_ID,
+        before: "cpf=４７１．３９２．８６５－８２",
+        after: `cpf=${tokenOf("471.392.865-82")}`,
+      }),
+    ).toEqual({ token: tokenOf("471.392.865-82"), user: "471.392.865-82" });
+  });
+
+  test("a Phone Number Hash rule that hashes enduser.id typed in fullwidth: the user is kept as the number, the span holds its token", () => {
+    const batch: SecurityUserVaultBatch = newBatch("trace");
+    const stored: JSONObject = scrubSpan(
+      span({ "enduser.id": "＋８１ ３－１２３４－５６７８" }),
+      [
+        rule(LogScrubPatternType.PhoneNumber, LogScrubAction.Hash, {
+          fieldsToScrub: TraceScrubField.All,
+        }),
+      ],
+      batch,
+    );
+
+    expect((stored["attributes"] as JSONObject)["enduser.id"]).toBe(
+      tokenOf("+81 3-1234-5678"),
+    );
+    expect(kept(batch)).toEqual({
+      [tokenOf("+81 3-1234-5678")]: "+81 3-1234-5678",
+    });
+  });
+
   test("spaces around what a rule hashed are no part of the user", () => {
     expect(
       readHashedUserPair({

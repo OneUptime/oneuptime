@@ -569,3 +569,106 @@ describe("a long text", () => {
     expect(scanned.inMs).toBeLessThan(20_000);
   });
 });
+
+/*
+ * #11115: a number typed wholly in fullwidth, as Japanese and Chinese text
+ * writes one, is the number it reads as to the scanner: the same type, the
+ * same confidence, judged by the same words, placed on the characters it
+ * is written with.
+ */
+describe("a number typed wholly in fullwidth (#11115)", () => {
+  const IDEOGRAPHIC_SPACE: string = "　";
+
+  function foundIn(text: string): Array<[string, string, DataConfidence]> {
+    return findSensitiveValues(text).map(
+      (match: TextMatch): [string, string, DataConfidence] => {
+        return [
+          match.dataTypeId,
+          text.slice(match.start, match.end),
+          match.confidence,
+        ];
+      },
+    );
+  }
+
+  test.each([
+    [
+      "an international phone number",
+      "連絡先 ＋８１ ３－１２３４－５６７８ まで",
+      "連絡先 +81 3-1234-5678 まで",
+      "phone-number",
+    ],
+    [
+      "one with ideographic spaces",
+      `連絡先 ＋８６${IDEOGRAPHIC_SPACE}１３８${IDEOGRAPHIC_SPACE}００１３${IDEOGRAPHIC_SPACE}８２４１ まで`,
+      "連絡先 +86 138 0013 8241 まで",
+      "phone-number",
+    ],
+    [
+      "a Social Security number beside its word",
+      "SSN ５３６－２２－８７３１ ok",
+      "SSN 536-22-8731 ok",
+      "us-ssn",
+    ],
+    [
+      "a card",
+      "カード ４５３２－０１５１－１２８３－０３６６ ok",
+      "カード 4532-0151-1283-0366 ok",
+      "credit-card-number",
+    ],
+  ])(
+    "finds %s as the type and confidence it has in ASCII",
+    (_label: string, fullwidth: string, ascii: string, dataTypeId: string) => {
+      const inFullwidth: Array<[string, string, DataConfidence]> =
+        foundIn(fullwidth);
+      const inAscii: Array<[string, string, DataConfidence]> = foundIn(ascii);
+
+      expect(
+        inFullwidth.map(
+          ([type, , confidence]: [string, string, DataConfidence]) => {
+            return [type, confidence];
+          },
+        ),
+      ).toEqual(
+        inAscii.map(([type, , confidence]: [string, string, DataConfidence]) => {
+          return [type, confidence];
+        }),
+      );
+      expect(inFullwidth.map(([type]: [string, string, DataConfidence]) => {
+        return type;
+      })).toContain(dataTypeId);
+      // On the very characters it is written with: as long as the ASCII one.
+      for (let index: number = 0; index < inFullwidth.length; index++) {
+        expect(inFullwidth[index]![1]).toHaveLength(inAscii[index]![1].length);
+      }
+    },
+  );
+
+  test("judges a national number and nine digits by their words, an ideographic space between them a space", () => {
+    expect(
+      foundIn(`tel${IDEOGRAPHIC_SPACE}０２０１２３４５６７８`).map(
+        ([type]: [string, string, DataConfidence]) => {
+          return type;
+        },
+      ),
+    ).toEqual(["phone-number"]);
+    expect(
+      foundIn(
+        `social${IDEOGRAPHIC_SPACE}security${IDEOGRAPHIC_SPACE}５３６２２１２３４`,
+      ).map(([type]: [string, string, DataConfidence]) => {
+        return type;
+      }),
+    ).toEqual(["us-ssn"]);
+    // No word names them: nothing.
+    expect(foundIn(`order${IDEOGRAPHIC_SPACE}０２０１２３４５６７８`)).toEqual([]);
+    expect(foundIn(`ref${IDEOGRAPHIC_SPACE}５３６２２１２３４`)).toEqual([]);
+  });
+
+  test("finds nothing in CJK prose, its asides in fullwidth parentheses and its ideographic spaces", () => {
+    expect(
+      foundIn(
+        `（注）設定を確認してください。${IDEOGRAPHIC_SPACE}詳細は（別紙）を参照。`,
+      ),
+    ).toEqual([]);
+  });
+});
