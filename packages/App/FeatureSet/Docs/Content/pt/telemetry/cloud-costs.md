@@ -225,16 +225,15 @@ Quando o horário de trabalho termina, um agendamento para, pela conexão da con
 Um agendamento nunca para a produção, nem um recurso cujo ambiente nada indica. Sabe-se que um recurso não é produção quando:
 
 - uma das tags dele diz isso, com uma chave como `environment`, `env`, `stage`, `tier` ou `deployment.environment`, e uma palavra como `dev`, `test`, `qa`, `staging` ou `sandbox`;
-- a conta dele está marcada como **Não produção** em **Ambiente** nas **Configurações** da conta;
-- ou um dos rótulos dele diz isso, por exemplo `Staging` ou `env: dev`.
+- ou a conta dele está marcada como **Não produção** em **Ambiente** nas **Configurações** da conta.
 
-A produção prevalece: uma tag que diz `prod`, `production` ou `live`, ou uma conta marcada como **Produção**, mantém um recurso em execução, diga o que disser o resto. O nome de um recurso nunca é lido para isso. Desative um agendamento e ele não para mais nada, e inicia de novo o que parou quando o horário de trabalho dele começa; exclua-o e o que ele parou é iniciado na hora.
+Um rótulo do OneUptime nunca torna um recurso não produção para um agendamento. Renomear um rótulo muda de uma vez cada recurso que o leva, então um rótulo como `Staging` ou `env: dev` só é lido onde uma pessoa aprova a alteração, como em **Aplicar**. A produção prevalece: uma tag que diz `prod`, `production` ou `live`, uma conta marcada como **Produção**, ou um rótulo como `Production` ou `env: prod` mantém um recurso em execução, diga o que disser o resto. O nome de um recurso nunca é lido para isso. Cada parada lê o recurso de novo logo antes de ser feita. Desative um agendamento e ele não para mais nada, e inicia de novo o que parou quando o horário de trabalho dele começa; exclua-o e o que ele parou é iniciado na hora.
 
 ## Regras de IA para economias
 
 Com **Habilitar IA** ativado, o OneUptime AI propõe aos proprietários do recurso cada economia que pode aplicar, após cada leitura das economias da conta, e eles a aprovam ou dispensam em **Aguardando aprovação**. Em **Nuvem → Configurações → Regras de IA para economias**, uma regra diz o que o OneUptime AI faz com as economias que correspondem a ela, pelo tipo de alteração, pelo ambiente do recurso e pela nuvem: **Desativado**, **Propor ao proprietário** ou **Agir sem perguntar**, até um limite mensal. Sem regras, cada economia é proposta e nenhuma é feita; com regras, só o que corresponde a uma regra, e entre as regras que correspondem prevalece a mais cautelosa.
 
-Uma regra só age sem perguntar em um recurso que se sabe que não é produção, só para uma alteração que pode ser desfeita, só até o menor limite das regras que correspondem, e no máximo 10 vezes por hora em um projeto: todo o resto é proposto. Uma alteração feita sem perguntar fica nas linhas do tempo com a regra que a fez, e os proprietários podem desfazê-la. Uma economia dispensada ou desfeita não é proposta de novo por 30 dias.
+Uma regra só age sem perguntar em um recurso que se sabe que não é produção da forma como um agendamento o lê, pelas tags ou pela conta dele e nunca só pelos rótulos, só para uma alteração que pode ser desfeita, só até o menor limite das regras que correspondem, e no máximo 10 vezes por hora em um projeto: todo o resto é proposto. O recurso é lido de novo logo antes da alteração, e um que até lá já não se sabe que não é produção é proposto em vez disso. Uma alteração feita sem perguntar fica nas linhas do tempo com a regra que a fez, e os proprietários podem desfazê-la. Uma economia dispensada ou desfeita não é proposta de novo por 30 dias.
 
 ## Orçamentos
 
@@ -481,7 +480,11 @@ O OneUptime só faz alterações de uma etapa: um compromisso, ou uma recomenda�
 :::
 
 :::details Um agendamento deixa um recurso em execução
-**Ver recursos** diz por quê: é produção, nada indica que não é produção, ou a conexão da conta dele não permite ações de economia. Adicione uma tag, por exemplo `environment` = `dev`, ou marque a conta dele como **Não produção**.
+**Ver recursos** diz por quê: é produção, nada indica que não é produção, só os rótulos dele indicam isso, ou a conexão da conta dele não permite ações de economia. Adicione uma tag na sua nuvem, por exemplo `environment` = `dev`, ou marque a conta dele como **Não produção**.
+:::
+
+:::details Uma regra propõe uma alteração que antes fazia sem perguntar
+O cartão dela diz por quê. Uma regra só faz uma alteração sem perguntar em um recurso que as tags ou a conta dele dizem que não é produção: um que só os rótulos chamam de não produção é proposto aos proprietários em vez disso. Adicione uma tag na sua nuvem, por exemplo `environment` = `dev`, ou marque a conta dele como **Não produção**.
 :::
 
 :::details Uma previsão não tem faixa provável

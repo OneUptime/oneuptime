@@ -462,7 +462,7 @@ export default class CloudBudget extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Amount",
     description:
-      "What each period (month, quarter or year) may cost, in its currency. A year split by month: the year's total.",
+      "What each period may cost, in its currency. A year split by month: the year's total.",
     example: "5000",
   })
   @Column({

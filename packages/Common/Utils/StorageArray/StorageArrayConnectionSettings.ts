@@ -43,7 +43,8 @@ export default class StorageArrayConnectionSettings {
       value < minMinutes ||
       value > maxMinutes
     ) {
-      return `Collect every ${minMinutes} to ${maxMinutes} minutes, in whole minutes.`;
+      // A no-break space: the figure and its unit stay on one line.
+      return `Collect every ${minMinutes} to ${maxMinutes}\u00a0minutes, in whole minutes.`;
     }
     return null;
   }

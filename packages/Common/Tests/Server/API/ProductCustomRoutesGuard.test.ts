@@ -436,6 +436,27 @@ const PRODUCT_ROUTE_FILES: Record<string, ProductRouteFile> = {
       "`${path}/:groupId/spend`": READ,
     },
   },
+  /*
+   * Costs' breakdown and its FOCUS export (#11009): both read the costs as
+   * the caller may read them, a project API key's script included.
+   */
+  "packages/Common/Server/API/CloudCostAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/breakdown`": READ,
+      "`${path}/export`": READ,
+    },
+  },
+  /*
+   * A scheduled cost report (#11009): its preview reads what it would say
+   * now; Send Me a Copy sends it, so it names Cloud.
+   */
+  "packages/Common/Server/API/CloudCostReportAPI.ts": {
+    products: [ProductKey.Cloud],
+    leftAlone: {
+      "`${path}/:reportId/preview`": READ,
+    },
+  },
   // A budget's page reads its period, and the Forecast page a forecast (#11008).
   "packages/Common/Server/API/CloudBudgetAPI.ts": {
     products: [ProductKey.Cloud],
@@ -1486,6 +1507,10 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/SnmpTrapReceiver.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/Syslog.ts": 1,
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts": 3,
+        // The XCP-ng connections it reads and tests (#10996, #10999), as a vCenter's.
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/XcpNgCollection.ts": 3,
+        // The storage array connections it reads and tests (Dell PowerMax, #11004).
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/StorageArrayCollection.ts": 3,
         "packages/Probe/API/IncomingRequestIngress.ts": 2,
       },
     ),

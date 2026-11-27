@@ -4,6 +4,7 @@ OneUptime の ストレージアレイ エージェントは、ストレージ�
 
 :::cards
 - [エージェントをインストールする](#エージェントをインストールする): 読み取り専用ユーザー、続いてインストールスクリプトまたは Docker Compose。
+- [Dell PowerScale](#dell-powerscale): クラスターの SNMP、全ノードのポーリング、そのページに表示されるもの。
 - [エージェントが収集するもの](#エージェントが収集するもの): すべてのエンドポイントと、そこから作られるページ。
 - [複数のアレイを監視する](#複数のアレイを監視する): アレイごとにエージェントを 1 つ、1 台のマシンで。
 - [Dell PowerMax](#dell-powermax): エージェント不要。プローブが Unisphere の配下にあるすべてのアレイを読み取ります。
@@ -21,12 +22,15 @@ Storage Arrays は、どのベンダーでも同じように動作する製品�
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure の FlashBlade OpenMetrics エクスポーター。同じ Compose ファイルが `pure-fb-exporter` サービスとして実行します | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | Dell の PowerStore Metrics Exporter。同じ Compose ファイルが `powerstore-exporter` サービスとしてビルドして実行します。クラスターのアラートは syslog でその `powerstore-syslog` サービスに届きます | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 以降 (AFF、FAS、ASA、ONTAP Select、Cloud Volumes ONTAP)、および **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11。同じ Compose ファイルが `netapp-harvest` サービスとして実行し、読み取り専用のユーザーとパスワードでクラスターの REST API にログインします | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale** (Isilon)、OneFS 8.0 以降 | `dell.powerscale` | 各ノードを SNMP で (Dell の ISILON-MIB)、Collector 自身の SNMP レシーバーで読み取ります。Collector の横では何も動きません | `otel-collector-config.powerscale.yaml` |
 
 ONTAP には独自のメトリクスエンドポイントがないため、エージェントは NetApp のオープンソースのエクスポーターである Harvest を Collector の横で実行します。Harvest はクラスターの REST API を読み取り、読み取った内容を Compose ネットワーク上で提供します。各シリーズの名前は `netapp_<object>_<counter>` です。Collector はそれをスクレイプして送信します。Harvest がクラスターに書き込むことはなく、NetApp への AutoSupport レポートは無効になっています。
 
 **Dell PowerMax** (`dell.powermax`) にはエージェントが不要です。OneUptime のプローブが読み取り専用アカウントで、Unisphere for PowerMax が管理するすべてのアレイを読み取ります。[Dell PowerMax](#dell-powermax) を参照してください。
 
 Pure Storage は 2026 年 2 月に社名を **Everpure** に変更しました。FlashArray、FlashBlade、Purity は名前を変えず、`purefa_*` と `purefb_*` のメトリクスも同じなので、このページの内容はどちらの名前で販売されたアレイにも当てはまります。
+
+**Dell PowerScale** クラスターは別の方法で読み取ります。エージェントは各ノードを SNMP でポーリングし、読み取り専用コミュニティまたは SNMPv3 ユーザーを使い、API トークンは使いません。SNMP の有効化からページに表示されるものまでは [Dell PowerScale](#dell-powerscale) で説明します。以下のインストール手順は Pure Storage 用です。
 
 ```mermaid title="アレイから OneUptime へ"
 flowchart TB
@@ -146,6 +150,8 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 POWERSTORE_ENDPOINT=
 POWERSTORE_PASSWORD=
@@ -246,6 +252,18 @@ Dell のエクスポーターはホストもレプリケーションセッショ
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | クラスター管理アドレス (FSx ではファイルシステムの管理エンドポイント)。ホスト名または IP で、`https://` は付けません。 |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | 読み取り専用の REST ユーザー (`oneuptime` など)。 |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | そのパスワード。Harvest だけが、書かれたとおりに読み取ります。 |
+| `POWERSCALE_NODES` | PowerScale | すべてのノードのアドレス (カンマ区切り)。SmartConnect のゾーン名は使いません。インストールスクリプトはここから下記のポーリングを書き込みます。 |
+| `POWERSCALE_ENDPOINT` | PowerScale | クラスター自体のヘルス、容量、クォータを読み取るときに経由するノード。`POWERSCALE_NODES` の最初のノードです。 |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Collector が実行するポーリング。`snmp/cluster`、`snmp/quotas`、続いて `snmp/node-1` 以降をノードごとに一つずつ。 |
+| `POWERSCALE_NODE_<n>` | PowerScale | ノード `<n>` のアドレス。`1` から `252` まで。IPv6 アドレスは `[fd00::11]` のように角かっこで囲みます。 |
+| `POWERSCALE_SNMP_VERSION` | いいえ | `v2c` または `v3`。既定は `v2c` です。 |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | クラスターの読み取り専用コミュニティ。 |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | クラスターの SNMPv3 読み取り専用ユーザー。 |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | いいえ | `auth_priv`、`auth_no_priv`、または `no_auth_no_priv`。既定は `auth_priv` です。 |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | いいえ | `MD5`、`SHA`、`SHA224`、`SHA256`、`SHA384`、または `SHA512` で、`isi snmp settings view` の表示どおりです。既定は `SHA` です。 |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 ユーザーの認証パスワード。 |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | いいえ | `DES`、`AES`、`AES192`、`AES256`、`AES192C`、または `AES256C`。既定は `AES` です。 |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 ユーザーのプライバシーパスワード。`auth_priv` レベルで使います。 |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | いいえ | `true` はネイティブエンドポイントと Harvest でアレイの自己署名証明書を受け入れ、`false` は検証します。既定は `true` です。Pure のエクスポーターはアレイの証明書を検証しないため、エクスポーターには関係しません。 |
 
 ## エージェントのスクレイプ方法
@@ -278,6 +296,9 @@ Pure のセマンティック規約は、FlashArray のネイティブエンド�
 | ONTAP、Harvest 経由 | `netapp_cluster_*`、`netapp_node_*`、`netapp_aggr_*`、`netapp_svm_*`、`netapp_volume_*`、`netapp_lun_*`、`netapp_snapmirror_*` | クラスターの名前、リリース、UUID。容量 (データアグリゲートの合計) とデータ削減。**ボリューム** ページ。**アグリゲート**、**SVM**、**LUN**、**SnapMirror** の各ページと、オブジェクトごとのページ |
 | ONTAP のハードウェア、Harvest 経由 | `netapp_disk_*`、`netapp_shelf_*`、`netapp_environment_sensor_*`、`netapp_net_port_*`、`netapp_nic_*`、`netapp_fcp_*` | **ハードウェア** ページ: ノード、ディスク、シェルフとその電源装置、ファン、モジュール、センサー、ノードのセンサー、Ethernet ポートと Fibre Channel ポート |
 | ONTAP の未解決の問題とイベント | `netapp_health_*`、`netapp_ems_events` | 未解決のアラート数と **アクティブなアラート** カード (破損したディスク、シェルフの障害、HA テイクオーバー、ダウンしたポート、システムヘルスアラート)、そして EMS のテンプレート |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`、`powerscale_ifs_*` | クラスターの名前、OneFS のバージョン、ヘルス、ノード数。`/ifs` の容量。クラスター全体のスループット、ネットワーク、CPU |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | **クォータ** ページ: 各クォータの使用量、その制限、制限にどれだけ近いか |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`、`powerscale_protocol_*`、`powerscale_drive_*`、`powerscale_fan_*`、`powerscale_temperature_*`、`powerscale_power_sensor_*`、`powerscale_interface_*`、`powerscale_chassis_*` | **ノード** ページ: 各ノードのヘルス、CPU、スループット、プロトコルのパフォーマンス。**ハードウェア** ページ: そのドライブ、センサー、ポート |
 
 ONTAP では、すべてのシリーズが Harvest のものです。オブジェクトはラベルで名前が付きます。`volume` (その `svm` 内で)、`aggr`、`lun`、`node`、`disk`、`shelf`、SnapMirror 関係では `destination_location` です。状態は 1 または 0 の `netapp_*_new_status`、またはラベルが状態を示す `netapp_*_labels` シリーズで表され、未解決の問題はそれぞれ、続いている間だけ存在する `netapp_health_*_alerts` シリーズです。
 
@@ -375,6 +396,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -440,6 +462,73 @@ Unisphere for PowerMax の **Settings → Users and Groups** で、ローカル�
 - **アレイあたり最大 5,000 個のストレージグループと 10,000 個のボリューム**、および収集あたり 200 件の新しいアラート (残りは次回以降の収集で届きます)。一覧が途中で切れた場合は、接続のページにその旨が表示されます。
 - **Unisphere 10.1 と 10.2** は、読み取り専用アカウントにポートも SRDF グループも返しません。プローブはディレクターを個別に読み取り、SRDF グループをストレージグループから取得し、その旨を表示します。
 
+## Dell PowerScale
+
+エージェントは Dell PowerScale (Isilon) クラスターを、Dell の ISILON-MIB から SNMP で、Collector 自身の SNMP レシーバーで読み取ります。API トークンは不要で、Collector の横では何も動きません。一つのクラスターが一つのストレージアレイで、そのノード、クォータ、ドライブ、センサー、ポートがインベントリになります。
+
+- **各ノードはそれぞれのアドレスでポーリングされます。** ノードは自分のドライブ、センサー、ポートについてしか SNMP に応答しないため、エージェントは、エージェントから到達できるネットワーク上の各ノードのアドレスでポーリングします。SmartConnect のゾーン名は使いません。ゾーン名だと、各ポーリングがゾーンの選んだ任意のノードに渡されるためです。クラスターのノードは最大 252 台です。
+- **クラスター自体のオブジェクトは、最初のノード経由で 1 回だけ読み取ります:** ヘルス、容量、スループット、CPU、ノード数を 60 秒ごとに (`snmp/cluster`)、SmartQuotas を 5 分ごとに (`snmp/quotas`)。各ノードのヘルス、CPU、プロトコルのパフォーマンス (NFS、SMB、S3、HDFS など)、ドライブ、センサー、ポートは、そのノードから 60 秒ごとに読み取ります (`snmp/node-<n>`)。
+- **OneFS がテキストや別の単位で返す読み取り値** (センサーの読み取り値、0.1% 単位の CPU、ビット単位のスループット) は、送信前に Collector が数値に変換するため、どのグラフもテンプレートも単純なゲージを読み取ります。
+
+### クラスターで SNMP を有効にする
+
+管理者として任意のノードに SSH で接続します。OneFS は SNMP の設定をクラスター全体に適用します。クラスターがすでに別のツールのために SNMP に応答している場合は、エージェントにも同じ読み取り専用コミュニティまたは SNMPv3 ユーザーを渡し、この手順は飛ばしてください。そうでなければ、OneFS の既定の `I$ilonpublic` ではなく、独自の読み取り専用コミュニティで SNMP サービスと SNMP v2c を有効にします:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+または SNMPv3 を有効にします。SNMPv3 はすべてのポーリングを認証して暗号化します。OneFS には SNMPv3 の読み取り専用ユーザーが 1 人だけいて、名前を変えるまでは `general` です。スペースを含まない 8 文字以上のパスワードを設定してください:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` は、ユーザーの認証プロトコルとプライバシープロトコルを含めて設定を表示します。エージェントのマシンからすべてのノードへの UDP 161 を許可し、`isi network interfaces list` でノードのアドレスを一覧表示します。
+
+### PowerScale クラスターにエージェントをインストールする
+
+PowerScale の設定でインストールスクリプトを実行します:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+スクリプトは、OneUptime の URL、取り込みキー、クラスターの名前を尋ね、続いてすべてのノードのアドレス (カンマ区切り) と SNMP のバージョン、さらに読み取り専用コミュニティ、または SNMPv3 ユーザーとその 2 つのパスワードを尋ねます。いずれもエコーなしで読み取ります。プロトコルが SHA と AES 以外のユーザーには、`POWERSCALE_SNMP_AUTH_PROTOCOL` と `POWERSCALE_SNMP_PRIVACY_PROTOCOL` を `bash install.sh` の前に付ける必要があり、プライバシーなしのユーザーには `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv` が必要です。スクリプトはノードごとに一つのポーリングを `.env` に書き込みます:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+クラスターにノードが増えたら、`POWERSCALE_NODES` にそのアドレスを追加し (`.env` 内)、`install.sh` を再実行します。ノードのポーリングが書き込まれ、エージェントが作り直されます。Docker Compose の場合は、`docker-compose.yml` と `otel-collector-config.powerscale.yaml` をダウンロードし、クイックスタートの `.env` で `STORAGE_SYSTEM`、`STORAGE_ARRAY_COLLECTOR_CONFIG`、`POWERSCALE_*` の行をこれらの行に置き換えます。`troubleshoot.sh` は、マシンに `snmpget` があれば、それで各ノードにクラスターの名前を問い合わせます。
+
+### PowerScale のページに表示されるもの
+
+クラスターの **概要** は、ヘルスを OneFS 自身のヘルスから取り、ノードとクォータを数え、各プロトコルのレイテンシと負荷、スループット、最も負荷の高いノード、使用容量を描画します。**ノード** には各ノードがヘルス、モデル、OneFS のバージョン、CPU、スループットとともに並び、**クォータ** には各クォータが制限のうちどれだけ使っているかとともに大きい順に並びます。**ハードウェア** には各ノードのドライブ、ファン、温度センサーと電源センサー (読み取り値付き)、ポートが並びます。容量は `/ifs` の容量で、OneFS が仮想ホットスペア用に確保している容量は使用中として数えます。書き込みには使えないためです。
+
+### エージェントがまだ読み取らないもの
+
+- **OneFS のイベントとストレージプール。** SNMP はどちらも運びません。どちらも OneFS API から取得するもので、OneUptime のプローブが読み取る予定です ([#11249](https://github.com/OneUptime/oneuptime/issues/11249))。それまでは、イベントを SNMP トラップとして [カスタムプローブ](/docs/probe/custom-probe) に送り、クラスターのノードを [ネットワークデバイス](/docs/monitor/network-device-monitor) としてそのプローブに追加してください。トラップは UDP 162 で届き、**SNMP トラップの受信（トラップ OID）** の条件でアラートを出せます。SNMPv3 トラップの場合は、ネットワークデバイスにクラスターの SNMPv3 ユーザーを設定します ([SNMPv3 のトラップと Inform](/docs/monitor/network-device-monitor#snmpv3-のトラップと-inform))。クラスターでチャネルを作成し、そこにアラートを送ります:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **データ削減率** は OneFS が API でしか報告しないため、同じプローブで対応します。
+
 ## トラブルシューティング
 
 :::details まず診断スクリプトを実行する
@@ -485,6 +574,10 @@ Harvest のログを確認します: `docker compose logs netapp-harvest`。`401
 
 :::details PowerStore から何も届かない
 `docker compose logs powerstore-exporter` でエクスポーターのログを確認してください。`401` はユーザー名またはパスワードの誤り、`403` が `latest_five_min_metrics` で返る場合はユーザーのロールが一括メトリクスアーカイブを有効にできないことを意味します (**Storage Operator** を付与するか、4.1 より古い PowerStoreOS では `POWERSTORE_BULK_METRICS=false` を設定します)。エクスポーターは起動してから応答するまでに 1 分かかります。**ログ** ページにアラートがない場合は、クラスターの _Remote Logging_ 設定、ポート 5514 のファイアウォール、`docker compose logs powerstore-syslog` を確認してください。
+:::
+
+:::details PowerScale のクラスターやノードから何も届かない
+Collector のログに `Error scraping metrics` と `request timeout` が出る場合、名前が出ているノードはエージェントのマシンからの SNMP に応答していません。エージェントが使うバージョンの SNMP が無効になっている、コミュニティまたは SNMPv3 ユーザーがクラスターのものではない、または UDP 161 がブロックされているのいずれかです。`bash troubleshoot.sh` は `snmpget` で各ノードに問い合わせます。応答はするのに **ノード** にないノードは `POWERSCALE_NODES` に入っていません。追加して `install.sh` を再実行してください。
 :::
 
 :::details 削除したボリュームやホストがインベントリに残る

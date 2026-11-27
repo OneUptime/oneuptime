@@ -29,7 +29,12 @@ import {
  *                           EnableMFADevice, CreateUser - each with the AWS
  *                           account it was made in, and the cloud
  *                           connection that read it, to read it back
- *                           through (#10900)
+ *                           through (#10900) - and a role's: CreateRole (a
+ *                           backdoor role), UpdateAssumeRolePolicy (a role
+ *                           made to trust someone else, with the trust
+ *                           policy it set), AttachRolePolicy and
+ *                           PutRolePolicy (a role given more power),
+ *                           each with the role as its subject (#11038)
  *
  * Only what succeeded: a refused change gave nothing. Pure, so each event's
  * reading is pinned on its own; the products' read-back is the server's.
@@ -59,8 +64,10 @@ export enum AccountChangeKind {
   Key = "Key",
   // A password to sign in with that the attack set: an IAM user's console password, its login profile (#10900).
   Password = "Password",
-  // An account the attack made.
+  // An account the attack made - or, an IAM role's change, the role it made (#11038).
   Account = "Account",
+  // Who may assume an IAM role: its trust policy, which the attack set (UpdateAssumeRolePolicy, #11038).
+  Trust = "Trust",
 }
 
 export const ACCOUNT_CHANGE_KINDS: ReadonlyArray<AccountChangeKind> = [
@@ -72,14 +79,28 @@ export const ACCOUNT_CHANGE_KINDS: ReadonlyArray<AccountChangeKind> = [
   AccountChangeKind.Key,
   AccountChangeKind.Password,
   AccountChangeKind.Account,
+  AccountChangeKind.Trust,
 ];
+
+/*
+ * What a change was made to: an account - a user - or an IAM role, which an
+ * attack uses to keep its access just as often (#11038). A user and a role
+ * of the same name are two things.
+ */
+export enum AccountChangeSubject {
+  Account = "Account",
+  Role = "Role",
+}
 
 export interface AccountChange {
   provider: AccountChangeProvider;
   kind: AccountChangeKind;
+  // What `account` names: an account, or an IAM role (#11038).
+  subject: AccountChangeSubject;
   /*
    * The account it was made to, as the product names it: a sign-in name, a
-   * mail address - or, for an Entra ID app's key, the app.
+   * mail address - or, for an Entra ID app's key, the app; for an IAM
+   * role's change, the role's name.
    */
   account: string;
   // The product's own id of the account, when the event names it.
@@ -102,6 +123,13 @@ export interface AccountChange {
    * one did (Cloud audit logs): the connection that reaches that account.
    */
   cloudConnectionId: string;
+  /*
+   * The trust policies the case's events set on a role, oldest first, as
+   * CloudTrail recorded them (UpdateAssumeRolePolicy's policyDocument,
+   * #11038): what the read-back holds the role's trust policy now to.
+   * [] for every other change.
+   */
+  trustPolicies: Array<string>;
   // The event that says so: its name in the product, its id and when it happened.
   eventName: string;
   eventUid: string;
@@ -202,6 +230,7 @@ function change(
   return {
     provider: data.provider,
     kind: data.kind,
+    subject: data.subject || AccountChangeSubject.Account,
     account,
     accountId: (data.accountId || "").trim(),
     objectId: (data.objectId || "").trim(),
@@ -210,6 +239,11 @@ function change(
     ownerType: (data.ownerType || "").trim(),
     cloudAccountId: (data.cloudAccountId || "").trim(),
     cloudConnectionId: (data.cloudConnectionId || "").trim(),
+    trustPolicies: (data.trustPolicies || []).filter(
+      (policy: string): boolean => {
+        return Boolean(policy.trim());
+      },
+    ),
     eventName: data.eventName,
     eventUid: event.eventUid,
     time: event.time,
@@ -609,7 +643,7 @@ export function readGoogleWorkspaceAccountChange(
 
 // ---------- AWS CloudTrail ----------
 
-// What each IAM call gives, by its name.
+// What each IAM call gives a user, by its name.
 export const AWS_IAM_ACCOUNT_CHANGES: Record<string, AccountChangeKind> = {
   CreateAccessKey: AccountChangeKind.Key,
   CreateLoginProfile: AccountChangeKind.Password,
@@ -618,6 +652,18 @@ export const AWS_IAM_ACCOUNT_CHANGES: Record<string, AccountChangeKind> = {
   AddUserToGroup: AccountChangeKind.Group,
   EnableMFADevice: AccountChangeKind.MfaDevice,
   CreateUser: AccountChangeKind.Account,
+};
+
+/*
+ * What each IAM call gives a role, by its name (#11038): a role made - a
+ * backdoor, often trusting an account outside - a trust policy set, or a
+ * managed or inline policy that gives it more power.
+ */
+export const AWS_IAM_ROLE_CHANGES: Record<string, AccountChangeKind> = {
+  CreateRole: AccountChangeKind.Account,
+  UpdateAssumeRolePolicy: AccountChangeKind.Trust,
+  AttachRolePolicy: AccountChangeKind.Policy,
+  PutRolePolicy: AccountChangeKind.Policy,
 };
 
 // The attributes a CloudTrail event the cloud connection read carries (CloudAuditSecurityEvents).
@@ -655,12 +701,71 @@ function readAwsAccountId(event: SecurityCaseEventSnapshot): string {
   return "";
 }
 
+/*
+ * A change to an IAM role (#11038), by the role the call names - never the
+ * caller's: a role's call always names it. What it gave, by its id in IAM
+ * and its name: a role made, by the id IAM gave it (a role of the same
+ * name made since is another); a managed policy by its ARN, an inline one
+ * by its name; a trust policy, as the call set it.
+ */
+function readAwsRoleChange(
+  event: SecurityCaseEventSnapshot,
+  data: { eventName: string; kind: AccountChangeKind },
+): AccountChange | null {
+  const policyArn: string = attribute(event, "requestParameters.policyArn");
+  const base: Pick<
+    AccountChange,
+    | "provider"
+    | "kind"
+    | "subject"
+    | "account"
+    | "eventName"
+    | "cloudAccountId"
+    | "cloudConnectionId"
+  > = {
+    provider: AccountChangeProvider.Aws,
+    kind: data.kind,
+    subject: AccountChangeSubject.Role,
+    account: attribute(event, "requestParameters.roleName"),
+    eventName: data.eventName,
+    cloudAccountId: readAwsAccountId(event),
+    cloudConnectionId: attribute(event, CLOUD_AUDIT_CONNECTION_ATTRIBUTE),
+  };
+
+  switch (data.kind) {
+    case AccountChangeKind.Account:
+      return change(event, {
+        ...base,
+        accountId: attribute(event, "responseElements.role.roleId"),
+      });
+
+    case AccountChangeKind.Trust:
+      return change(event, {
+        ...base,
+        trustPolicies: [attribute(event, "requestParameters.policyDocument")],
+      });
+
+    case AccountChangeKind.Policy:
+      return change(event, {
+        ...base,
+        ...(policyArn
+          ? { objectId: policyArn, objectName: readAwsPolicyName(policyArn) }
+          : { objectName: attribute(event, "requestParameters.policyName") }),
+      });
+
+    default:
+      return null;
+  }
+}
+
 export function readAwsAccountChange(
   event: SecurityCaseEventSnapshot,
 ): AccountChange | null {
   const eventName: string = attribute(event, "eventName");
+  const roleKind: AccountChangeKind | undefined =
+    AWS_IAM_ROLE_CHANGES[eventName];
   const kind: AccountChangeKind | undefined =
-    AWS_IAM_ACCOUNT_CHANGES[eventName];
+    AWS_IAM_ACCOUNT_CHANGES[eventName] || roleKind;
 
   if (
     attribute(event, "eventSource") !== "iam.amazonaws.com" ||
@@ -668,6 +773,10 @@ export function readAwsAccountChange(
     attribute(event, "errorCode")
   ) {
     return null;
+  }
+
+  if (roleKind) {
+    return readAwsRoleChange(event, { eventName, kind: roleKind });
   }
 
   // The user it was made to; the caller's own user when it names none.
@@ -697,6 +806,7 @@ export function readAwsAccountChange(
     [AccountChangeKind.AdminRole]: { id: "", name: "" },
     [AccountChangeKind.App]: { id: "", name: "" },
     [AccountChangeKind.Account]: { id: "", name: "" },
+    [AccountChangeKind.Trust]: { id: "", name: "" },
   };
 
   return change(event, {
@@ -738,22 +848,32 @@ export function readAccountChange(
 
 /*
  * One change of each account and thing, whichever event said it first: a
- * user of one name in two AWS accounts is two accounts.
+ * user of one name in two AWS accounts is two accounts, and a user and a
+ * role of one name are two things (#11038).
  */
 function getChangeKey(item: AccountChange): string {
   return [
     item.provider,
     item.kind,
     item.cloudAccountId,
+    item.subject,
     (item.accountId || item.account).toLowerCase(),
     (item.objectId || item.objectName).toLowerCase(),
   ].join("|");
 }
 
+function byTime(left: { time: string }, right: { time: string }): number {
+  return (Date.parse(left.time) || 0) - (Date.parse(right.time) || 0);
+}
+
 /*
  * The changes a case's events record, oldest first, each once: the events
  * its detections matched and the ones kept on it. At most
- * ACCOUNT_CHANGES_MAX.
+ * ACCOUNT_CHANGES_MAX. A role's trust policy, set more than once, is one
+ * change that keeps every policy the events set, oldest first, each once
+ * (#11038): the attack may have let in one account, then another, and a
+ * policy left out could be the one still letting it in. The case's events
+ * are few enough to keep them all.
  */
 export function getAttackAccountChanges(data: {
   matches: SecurityCaseMatchesJson | null;
@@ -768,6 +888,11 @@ export function getAttackAccountChanges(data: {
     ...(data.keptEvents || []),
   ];
   const changes: Map<string, AccountChange> = new Map();
+  // Each role's trust policies, as each event set one, by the change's key.
+  const trustPolicies: Map<
+    string,
+    Array<{ time: string; policy: string }>
+  > = new Map();
 
   for (const event of events) {
     const found: AccountChange | null = readAccountChange(event);
@@ -779,14 +904,42 @@ export function getAttackAccountChanges(data: {
     const key: string = getChangeKey(found);
     const known: AccountChange | undefined = changes.get(key);
 
+    for (const policy of found.trustPolicies) {
+      trustPolicies.set(key, [
+        ...(trustPolicies.get(key) || []),
+        { time: found.time, policy },
+      ]);
+    }
+
     if (!known || Date.parse(found.time) < Date.parse(known.time)) {
       changes.set(key, found);
     }
   }
 
-  return Array.from(changes.values())
-    .sort((left: AccountChange, right: AccountChange): number => {
-      return (Date.parse(left.time) || 0) - (Date.parse(right.time) || 0);
+  return Array.from(changes.entries())
+    .map(([key, item]: [string, AccountChange]): AccountChange => {
+      const policies: Array<{ time: string; policy: string }> | undefined =
+        trustPolicies.get(key);
+
+      if (!policies) {
+        return item;
+      }
+
+      // Each once, where it was set last: the last is what the attack left.
+      const ordered: Array<string> = [];
+
+      for (const entry of [...policies].sort(byTime)) {
+        const seen: number = ordered.indexOf(entry.policy);
+
+        if (seen >= 0) {
+          ordered.splice(seen, 1);
+        }
+
+        ordered.push(entry.policy);
+      }
+
+      return { ...item, trustPolicies: ordered };
     })
+    .sort(byTime)
     .slice(0, ACCOUNT_CHANGES_MAX);
 }

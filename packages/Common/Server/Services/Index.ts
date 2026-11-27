@@ -565,6 +565,7 @@ import ServiceLevelObjectiveErrorBudgetPolicyTierService from "./ServiceLevelObj
 import LlmCostBudgetService from "./LlmCostBudgetService";
 import LlmObservabilityConnectionService from "./LlmObservabilityConnectionService";
 import ExternalMcpServerService from "./ExternalMcpServerService";
+import ExternalMcpToolReadOnlyMarkService from "./ExternalMcpToolReadOnlyMarkService";
 import LlmModelPriceService from "./LlmModelPriceService";
 import ServiceLevelObjectiveOwnerUserService from "./ServiceLevelObjectiveOwnerUserService";
 import ServiceLevelObjectiveOwnerTeamService from "./ServiceLevelObjectiveOwnerTeamService";
@@ -1223,6 +1224,7 @@ const services: Array<BaseService> = [
   LlmCostBudgetService,
   LlmObservabilityConnectionService,
   ExternalMcpServerService,
+  ExternalMcpToolReadOnlyMarkService,
   LlmModelPriceService,
   ServiceLevelObjectiveOwnerUserService,
   ServiceLevelObjectiveOwnerTeamService,

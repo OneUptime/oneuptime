@@ -644,6 +644,37 @@ describe("the answer count statement (the AI / LLM monitor)", () => {
     ).toContain(PROJECT.toString());
   });
 
+  // #11334: a check's window holds its start and not its end.
+  test("a check's window: from its start up to its end, not included", () => {
+    const statement: ReturnType<
+      typeof LlmConversationService.buildAnswerCountStatement
+    > = LlmConversationService.buildAnswerCountStatement(
+      countQuery({ includesEnd: false }),
+    );
+
+    expect(statement.query).toContain("AND startTime >= ");
+    expect(statement.query).toContain("AND startTime < ");
+    expect(statement.query).not.toContain("AND startTime <= ");
+    // Both ends bound, never written into the text.
+    expect(statement.query).not.toContain("2026-10-10");
+    expect(paramValues(statement)).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("2026-10-10 08:00:00"),
+        expect.stringContaining("2026-10-10 08:15:00"),
+      ]),
+    );
+  });
+
+  test("a window that holds both ends, said or not, reads both, as every other read", () => {
+    for (const includesEnd of [true, undefined]) {
+      const sql: string = LlmConversationService.buildAnswerCountStatement(
+        countQuery({ includesEnd: includesEnd }),
+      ).query;
+
+      expect(sql).toContain("AND startTime <= ");
+    }
+  });
+
   test("only answers are counted: kind answer, or a pre-kind row with a model", () => {
     const sql: string =
       LlmConversationService.buildAnswerCountStatement(countQuery()).query;

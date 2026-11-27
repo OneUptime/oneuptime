@@ -187,7 +187,7 @@ A new rule acts on **All data points**. Pick **Only data points that match filte
 
 - **Metric Name**: the metric's name, such as Equal To, Contains, Starts With or Matches Regex.
 - **Attribute**: one attribute key. Is Present, Is Not Present, Is Empty and Is Not Empty check the key; Equal To, Contains, Matches Regex and the rest compare its value.
-- **Matches Pattern Type**: whether the value holds an email address, a credit card number, a Social Security number, a phone number or an IP address, found as a log or trace scrub rule of that **Pattern Type** finds it. A rule **Scrub It** makes for an IP address, an email address or a card number in an attribute uses it.
+- **Matches Pattern Type**: whether the value holds an email address, a credit card number, a Social Security number, a phone number or an IP address, found as a log or trace scrub rule of that **Pattern Type** finds it. A rule **Scrub It** makes for an IP address, an email address, a card number, a phone number or a Social Security number in an attribute uses it.
 
 With two or more filters, **Match Condition** says how they combine: **All**, where a data point must match every filter, or **Any**, where one is enough.
 `;

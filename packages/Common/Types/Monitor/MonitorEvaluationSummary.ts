@@ -244,6 +244,13 @@ export interface MonitorEvaluationSeries {
 export interface MonitorEvaluationWindow {
   startsAt: Date;
   endsAt: Date;
+  /*
+   * False: the window held its start and not its end, as every check's
+   * window does since #11334 (TelemetryCheckWindow), so a record stamped on
+   * endsAt was the next check's. Absent from windows judged before, which
+   * held both ends.
+   */
+  includesEnd?: boolean | undefined;
 }
 
 export default interface MonitorEvaluationSummary {

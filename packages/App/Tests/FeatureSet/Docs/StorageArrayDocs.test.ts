@@ -317,6 +317,32 @@ function platformVariables(): Array<string> {
   return names;
 }
 
+/*
+ * The variables a platform's setup in install.sh writes besides its address
+ * and token (PLATFORM_EXTRA_VARIABLES: a PowerScale's SNMP settings, its
+ * node list and its polls), each once. A node's own address,
+ * POWERSCALE_NODE_<n>, is numbered as the script counts the nodes, so it is
+ * documented as a pattern and left out here.
+ */
+// A whole name: "POWERSCALE_NODE_$count" is a numbered one, not "POWERSCALE_NODE_".
+const VARIABLE_NAME: RegExp = /^[A-Z][A-Z0-9_]*[A-Z0-9]$/;
+
+function platformExtraVariables(): Array<string> {
+  const names: Array<string> = [];
+  for (const match of readAgentFile("install.sh").matchAll(
+    /PLATFORM_EXTRA_VARIABLES="([^"]*)"/g,
+  )) {
+    // "... POWERSCALE_SNMP_RECEIVERS$PLATFORM_EXTRA_VARIABLES": a name, then what came before.
+    for (const word of match[1]!.split(/\s+/)) {
+      const name: string = word.split("$")[0]!;
+      if (VARIABLE_NAME.test(name) && !names.includes(name)) {
+        names.push(name);
+      }
+    }
+  }
+  return names;
+}
+
 function dotenvVariables(): Array<string> {
   const heredoc: RegExpMatchArray | null = readAgentFile("install.sh").match(
     /cat > "\$ENV_FILE" <<ENVEOF\n([\s\S]*?)\nENVEOF/,
@@ -907,7 +933,10 @@ describe("Storage Array docs", (): void => {
           return name !== null;
         });
 
-      expect(documented.sort()).toEqual(dotenvVariables().sort());
+      expect(platformExtraVariables().length).toBeGreaterThan(0);
+      expect(documented.sort()).toEqual(
+        [...dotenvVariables(), ...platformExtraVariables()].sort(),
+      );
     });
 
     it("documents every variable the collector configs read", (): void => {

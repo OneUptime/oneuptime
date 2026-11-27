@@ -4,6 +4,8 @@ Un monitor de cabina de almacenamiento vigila una cabina de almacenamiento y le 
 
 También funciona con Dell PowerStore (`dell.powerstore`), a partir de las series `powerstore_*` de Dell.
 
+También funciona con Dell PowerScale (`dell.powerscale`), a partir de las series `powerscale_*` de Dell.
+
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-cabina-de-almacenamiento): Seis pasos en el panel.
 - [Plantillas](#plantillas-de-alerta-predefinidas): Alertas listas para usar, un incidente por volumen, host, appliance o componente.
@@ -13,7 +15,7 @@ También funciona con Dell PowerStore (`dell.powerstore`), a partir de las serie
 
 ## Cómo funciona
 
-El OneUptime Storage Array Agent se ejecuta en una máquina que puede llegar a la interfaz de gestión de la cabina. Lee las métricas de la cabina con un token de API de solo lectura, las etiqueta con el nombre de la cabina, `storage.array.name`, y su plataforma, `storage.system`, y las envía a OneUptime por OTLP. Los primeros datos registran la cabina.
+El OneUptime Storage Array Agent se ejecuta en una máquina que puede llegar a la interfaz de gestión de la cabina. Lee las métricas de la cabina con un token de API de solo lectura (las de un PowerScale, por SNMP, con una comunidad de solo lectura o un usuario SNMPv3), las etiqueta con el nombre de la cabina, `storage.array.name`, y su plataforma, `storage.system`, y las envía a OneUptime por OTLP. Los primeros datos registran la cabina.
 
 Un Dell PowerMax (`dell.powermax`) no necesita agente: una sonda de OneUptime inicia sesión en Unisphere for PowerMax con una cuenta de solo lectura cada 5 minutos y envía de la misma forma cada cabina que este gestiona, con el nombre de su Symmetrix ID hasta que usted le cambie el nombre ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
@@ -82,15 +84,15 @@ Haga clic en **Crear monitor**. OneUptime abre la página del monitor y lo eval�
 | **Volumen** | Custom Metric, Avanzado | Un volumen: en un FlashArray, por la etiqueta `name`, como `vol-db-01` (un volumen dentro de un pod o de un grupo de volúmenes se llama `pod::volume` o `group/volume`); en ONTAP, por la etiqueta `volume`, que dos SVM pueden compartir; en un PowerMax, por la etiqueta `volume`, su ID de dispositivo, como `00847`. |
 | **Host** | Custom Metric, Avanzado | Solo FlashArray. Un host tal como lo conoce la cabina, por la etiqueta `host`, como `esxi-01`. |
 | **Pod** | Custom Metric, Avanzado | Solo FlashArray. Un pod de ActiveCluster o ActiveDR, por la etiqueta `name`, o `local_pod` en las series de enlaces de réplica. |
-| **Componente de hardware** | Custom Metric, Avanzado | Un componente de hardware, como `CH0.BAY1` o `CT0`: la etiqueta `component_name` en un FlashArray, `name` en un FlashBlade, en ONTAP la etiqueta con la que lo nombra su serie (`node`, `disk`, `shelf` o `port`), y `component` en un PowerMax, un director como `FA-1D` o un puerto como `FA-1D:4`. |
-| **Sistema de archivos** | Custom Metric, Avanzado | Solo FlashBlade. Un sistema de archivos, por la etiqueta `name`. |
+| **Componente de hardware** | Custom Metric, Avanzado | Un componente de hardware, como `CH0.BAY1` o `CT0`: la etiqueta `component_name` en un FlashArray, `name` en un FlashBlade, en ONTAP la etiqueta con la que lo nombra su serie (`node`, `disk`, `shelf` o `port`), y `component` en un PowerMax, un director como `FA-1D` o un puerto como `FA-1D:4`. En un PowerScale, un nodo por la etiqueta `node`, como `ps-prod-2`. |
+| **Sistema de archivos** | Custom Metric, Avanzado | FlashBlade y PowerScale. Un sistema de archivos por la etiqueta `name` en un FlashBlade; una cuota por la etiqueta `quota` en un PowerScale, como `/ifs/data/home`. |
 | **Bucket** | Custom Metric, Avanzado | Solo FlashBlade. Un bucket de almacenamiento de objetos, por la etiqueta `name`. |
 | **Storage Array Metric** | Custom Metric | Una métrica del [catálogo](#métricas-recogidas). El formulario añade el filtro de etiqueta que le da su significado, y la agrupa por el objeto que describe, así que cada volumen, host o componente se juzga por separado. |
 | **Agregación** | Custom Metric | Cómo se combinan las muestras: **Promedio**, **Máximo**, **Mínimo**, **Suma** o **Recuento**. Empieza en la agregación habitual de la métrica. |
 | **Intervalo de tiempo** | Todas | La ventana móvil que lee la consulta, de **Past 1 Minute** a **Past 365 Days**. Un monitor nuevo empieza en **Últimos 5 minutos**; una métrica personalizada de un sistema de archivos o de un bucket, en **Últimos 15 minutos**; las plantillas fijan la suya. |
 | **Seleccionar métricas** | Avanzado | El constructor de consultas: **Métrica**, **Agregar por**, **Filtrar por atributos**, **Agrupar por**, además de **Añadir métrica** y **Añadir fórmula** para combinar consultas. |
 
-El agente lee el endpoint de la cabina cada 60 segundos, y los volúmenes, hosts y pods cada 2 minutos, así que una ventana de 5 minutos siempre contiene una muestra. Lee los sistemas de archivos y los buckets de un FlashBlade cada 5 minutos, de ahí los 15, y los directorios de FlashArray cada 30 minutos: dé a un monitor de directorios una ventana de 60 minutos. En ONTAP, Harvest lee el rendimiento del clúster cada minuto y su configuración, su estado y sus eventos EMS cada 3 minutos, así que una ventana de 5 minutos siempre contiene una muestra.
+El agente lee el endpoint de la cabina cada 60 segundos, y los volúmenes, hosts y pods cada 2 minutos, así que una ventana de 5 minutos siempre contiene una muestra. Lee los sistemas de archivos y los buckets de un FlashBlade cada 5 minutos, de ahí los 15, y los directorios de FlashArray cada 30 minutos: dé a un monitor de directorios una ventana de 60 minutos. En ONTAP, Harvest lee el rendimiento del clúster cada minuto y su configuración, su estado y sus eventos EMS cada 3 minutos, así que una ventana de 5 minutos siempre contiene una muestra. Consulta un clúster PowerScale y cada uno de sus nodos cada 60 segundos, y sus cuotas cada 5 minutos: dé a un monitor de cuotas una ventana de 15 minutos.
 
 Lee un PowerStore cada 5 minutos, y el estado de su clúster cada 60 segundos: dé a un monitor de PowerStore una ventana de 15 minutos.
 
@@ -114,7 +116,7 @@ Una serie filtrada a un estado malo solo existe mientras algo está en ese estad
 
 Las series de un PowerMax contienen cada una un solo valor, y su nombre lo indica: `powermax_array_response_time_usec` distingue las lecturas de las escrituras con `operation`. Sus series de estado solo existen mientras algo va mal, de la misma forma: `powermax_alert_open` mientras Unisphere tiene una alerta abierta, `powermax_director_offline` mientras un director no está en línea, `powermax_port_offline` mientras un puerto del que alguien depende está caído, y `powermax_srdf_group_not_healthy` mientras un grupo SRDF está suspendido o sin conexión.
 
-En los filtros del monitor y en las claves de agrupación, los atributos del agente empiezan por `resource.` (`resource.storage.array.name`, `resource.storage.system`), mientras que las etiquetas propias de Pure no (`name`, `host`, `component_name`, `dimension`, `space`, `severity`), ni tampoco las de PowerMax (`storage_group`, `volume`, `director`, `port_id`, `srdf_group`).
+En los filtros del monitor y en las claves de agrupación, los atributos del agente empiezan por `resource.` (`resource.storage.array.name`, `resource.storage.system`), mientras que las etiquetas propias de Pure no (`name`, `host`, `component_name`, `dimension`, `space`, `severity`), ni tampoco las de PowerMax (`storage_group`, `volume`, `director`, `port_id`, `srdf_group`) ni las de PowerScale (`node`, `quota`, `drive`, `protocol`).
 
 ## Cómo se forman las series de PowerStore
 
@@ -136,7 +138,7 @@ Un estado como número dispara cuando todas las lecturas de la ventana están po
 
 ## Plantillas de alerta predefinidas
 
-OneUptime incluye 80 plantillas — 12 para FlashArray, 8 para FlashBlade, 16 para PowerStore, 31 para ONTAP y 13 para PowerMax — y la lista de **Sobre qué alertar** ofrece las de la plataforma de la cabina. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de etiquetas, una agrupación por la etiqueta propia del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
+OneUptime incluye 93 plantillas — 12 para FlashArray, 8 para FlashBlade, 16 para PowerStore, 31 para ONTAP, 13 para PowerMax y 13 para PowerScale — y la lista de **Sobre qué alertar** ofrece las de la plataforma de la cabina. Cada una construye un monitor completo: la consulta de la métrica, sus filtros de etiquetas, una agrupación por la etiqueta propia del objeto, un criterio que dispara y otro que recupera. Los umbrales son puntos de partida que puede editar.
 
 Un criterio solo dispara cuando la condición se cumple para **cada** valor de su ventana, salvo el de una plantilla de EMS de ONTAP: Harvest exporta un evento durante una sola consulta, así que basta con una lectura. Un monitor que disparó por un umbral de capacidad, latencia, retraso o ratio solo se recupera un 10 % más allá, así que un valor que oscila alrededor del umbral no parpadea. Las plantillas de alertas, hardware y conectividad se disparan cuando un estado se ha visto durante toda su ventana de 5 minutos, y se recuperan unos 5 minutos después de que desaparece.
 
@@ -255,11 +257,29 @@ Las propias alertas de un PowerStore llegan como registros, así que sus plantil
 | SRDF Group Suspended or Offline | Replicación | Crítico | `powermax_srdf_group_not_healthy`, Max por `srdf_group`, últimos 10 minutos | > 0 — el enlace del grupo está sin conexión o sus pares están suspendidos, divididos o conmutados por error, así que la copia remota no se mantiene al día. Un incidente por grupo; se recupera cuando vuelve a estar sincronizado |
 | SRDF/A Lag Above 2 Minutes | Replicación | Advertencia | `powermax_srdf_group_lag_seconds`, Avg por `srdf_group`, últimos 15 minutos | > 120 (2 minutos) — una conmutación ahora perdería más escrituras recientes de lo previsto. Un incidente por grupo; se recupera en ≤ 108 |
 
+### PowerScale
+
+| Plantilla | Categoría | Gravedad | Vigila | Dispara cuando |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Disponibilidad | Crítico | `powerscale_cluster_health`, Count, últimos 10 minutos | Sin datos durante toda la ventana — el Storage Array Agent se detuvo, perdió su conexión con OneUptime o le revocaron el token, o el clúster dejó de responder a sus consultas; se recupera cuando vuelven a llegar datos |
+| Cluster Needs Attention | Salud de la cabina | Advertencia | `powerscale_cluster_health`, Max, últimos 5 minutos | > 0 — OneFS informa de que el clúster necesita atención, está caído o no es válido, y `isi event groups list` dice por qué; se recupera en ≤ 0 |
+| Cluster Down | Salud de la cabina | Crítico | `powerscale_cluster_health`, Max, últimos 5 minutos | ≥ 2 — OneFS informa de que el clúster está caído o no es válido; se recupera en < 2 |
+| Node Offline | Hardware | Crítico | `powerscale_cluster_offline_nodes`, Max, últimos 5 minutos | > 0 — un nodo del clúster está sin conexión, y `offline_nodes` indica cuál; se recupera en ≤ 0 |
+| Node Needs Attention | Hardware | Advertencia | `powerscale_node_health`, Max por `node`, últimos 5 minutos | > 0 — un nodo informa de que necesita atención, está caído o no es válido. Un incidente por nodo; se recupera en ≤ 0 |
+| Node Read-Only | Hardware | Advertencia | `powerscale_node_read_only`, Max por `node`, últimos 5 minutos | > 0 — un nodo está en modo de solo lectura, y los clientes conectados a él no pueden escribir. Un incidente por nodo; se recupera en ≤ 0 |
+| Drive Failed | Hardware | Crítico | `powerscale_drive_size_bytes` filtrada a `status=DEAD`, Count por `drive`, últimos 5 minutos | > 0 — un disco ha muerto, y OneFS vuelve a proteger sus datos en los demás. Un incidente por disco; se recupera cuando informa de otro estado |
+| Drive Smartfailed | Hardware | Advertencia | `powerscale_drive_size_bytes` filtrada a `status=SMARTFAIL`, Count por `drive`, últimos 5 minutos | > 0 — OneFS está sacando los datos de un disco que está fallando antes de que se sustituya. Un incidente por disco; se recupera cuando informa de otro estado |
+| Capacity Above 80% | Capacidad | Advertencia | `powerscale_ifs_used_percent`, Max, últimos 15 minutos | > 80, contando el espacio reservado para repuestos en caliente virtuales; se recupera en ≤ 72 |
+| Capacity Above 90% | Capacidad | Crítico | `powerscale_ifs_used_percent`, Max, últimos 5 minutos | > 90 — el clúster está a punto de rechazar escrituras; se recupera en ≤ 81 |
+| Quota Near Its Limit | Capacidad | Advertencia | `powerscale_quota_used_percent`, Max por `quota`, últimos 15 minutos | > 90 de su límite estricto, o de su límite flexible cuando no tiene uno estricto. Un incidente por cuota; se recupera en ≤ 81 |
+| Quota Full | Capacidad | Crítico | `powerscale_quota_used_percent`, Max por `quota`, últimos 5 minutos | ≥ 100 — las escrituras bajo la ruta de la cuota fallan con un límite estricto. Un incidente por cuota; se recupera en < 90 |
+| High Protocol Latency | Rendimiento | Advertencia | `powerscale_protocol_latency_microseconds`, Max por `protocol`, últimos 10 minutos | > 20000 µs (20 ms) en el nodo más lento. Un incidente por protocolo; se recupera en ≤ 18000 |
+
 **Gravedad** es la etiqueta que muestra el selector. El incidente y la alerta que crea una plantilla empiezan en la gravedad de incidente y de alerta más alta de su proyecto; cámbielas en el criterio.
 
-- **Array Stopped Reporting** cuenta la serie de identidad de la plataforma (`purefa_info` o `purefb_info`, que cada endpoint que lee el agente exporta en cada lectura, o `powermax_array_info`, que escribe cada recopilación de PowerMax). Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
+- **Array Stopped Reporting** cuenta la serie de identidad de la plataforma (`purefa_info` o `purefb_info`, que cada endpoint que lee el agente exporta en cada lectura, o `powermax_array_info`, que escribe cada recopilación de PowerMax); la de un PowerScale es `powerscale_cluster_health`, que la consulta del agente al clúster envía cada minuto. Cuando los datos dejan de llegar, las demás plantillas no tienen nada que comparar y mantienen su último estado, así que esta es la que le avisa.
 - **Las alertas abiertas y los estados de hardware usan Max** de una serie que solo existe mientras la alerta está abierta o el componente está en ese estado, así que el estado dispara el umbral cuando se ha visto durante toda la ventana de 5 minutos.
-- **Cada plantilla por objeto agrupa por la etiqueta propia del objeto** (`summary`, `component_name`, `host`, `local_pod`, `name` y, en un PowerMax, `description`, `component`, `srp`, `srdf_group` y `storage_group`), así que se dispara un incidente por cada objeto afectado, y el incidente lo nombra.
+- **Cada plantilla por objeto agrupa por la etiqueta propia del objeto** (`summary`, `component_name`, `host`, `local_pod`, `name` y, en un PowerMax, `description`, `component`, `srp`, `srdf_group` y `storage_group`, y las de un PowerScale: `node`, `drive`, `quota` y `protocol`), así que se dispara un incidente por cada objeto afectado, y el incidente lo nombra.
 - **Las plantillas de latencia usan Avg** del promedio por operación que calcula la propia cabina, y las de capacidad **Max** de su propio porcentaje de utilización. Las latencias se fijan en microsegundos y la capacidad en porcentaje.
 - **Hardware Component Unhealthy usa Min** por componente: su salud es 1 cuando está bien y baja a 0 cuando no.
 
@@ -283,6 +303,8 @@ El agente envía todo lo que exporta la cabina, y una sonda todo lo que lee de u
 | `powermax_alert_open` | — | PowerMax | `count` | Una serie por cada alerta que Unisphere tiene abierta para la cabina (valor 1): no reconocida, no borrada y de gravedad Minor o peor. Su etiqueta severity es critical (Critical y Fatal) o warning (Warning y Minor); sus etiquetas alert_type, object y description indican de qué trata. Reconozca la alerta en Unisphere y la serie desaparece |
 | `powermax_array_health_score` | — | PowerMax | `score` | La puntuación de salud de la cabina según Unisphere, de 0 a 100, por health_metric: general y de cada área que puntúa (capacidad, configuración, rendimiento, cumplimiento del nivel de servicio) |
 | `powermax_array_performance_collection` | — | PowerMax | `count` | 1 mientras Unisphere recopila datos de rendimiento de 5 minutos de la cabina, 0 mientras no lo hace. Si está desactivada, OneUptime sigue mostrando el inventario y las alertas de la cabina, pero no grafica ningún rendimiento. Actívela en Unisphere en Settings > Performance > System Registrations |
+| `powerscale_cluster_health` | — | PowerScale | — | La salud que informa OneFS para el clúster: 0 es OK, 1 necesita atención, 2 está caído y 3 no es válido. Tome el máximo para ver cualquier cambio |
+| `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | Cuántos nodos del clúster están sin conexión; la etiqueta `offline_nodes` enumera sus números lógicos de nodo |
 
 ### Capacidad
 
@@ -318,6 +340,12 @@ El agente envía todo lo que exporta la cabina, y una sonda todo lo que lee de u
 | `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | Cuántas veces mayores son los datos que escribieron los hosts que el espacio que ocupan tras la compresión y la deduplicación, tal como lo informa Unisphere |
 | `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | Parte de la capacidad utilizable de cada pool de recursos de almacenamiento que está en uso, en porcentaje, según su etiqueta srp. Un pool que se llena deja de aceptar escrituras nuevas para todos sus grupos de almacenamiento |
 | `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | La capacidad utilizable en uso de cada pool de recursos de almacenamiento, en bytes, según su etiqueta srp |
+| `powerscale_ifs_used_percent` | — | PowerScale | `%` | Parte de la capacidad del clúster que ya no está disponible para escrituras: lo que está en uso, más el espacio que OneFS reserva para repuestos en caliente virtuales |
+| `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | Espacio aún disponible para escrituras en `/ifs` |
+| `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | Espacio en uso en `/ifs`, según lo cuenta OneFS |
+| `powerscale_ifs_total_bytes` | — | PowerScale | `bytes` | El tamaño de `/ifs` en todo el clúster |
+| `powerscale_quota_used_percent` | — | PowerScale | `%` | El uso de cada cuota como parte de su límite estricto, o de su límite flexible cuando no tiene uno estricto (la etiqueta `limit` indica cuál) — agrupe por `quota` |
+| `powerscale_quota_usage_bytes` | — | PowerScale | `bytes` | Lo que contiene cada cuota, según lo imputa OneFS a la cuota |
 
 ### Rendimiento
 
@@ -375,6 +403,16 @@ El agente envía todo lo que exporta la cabina, y una sonda todo lo que lee de u
 | `powermax_array_backend_busy_percent` | — | PowerMax | `%` | Lo ocupados que están los directores que atienden a las unidades, en porcentaje |
 | `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | Lo ocupados que están los directores que replican a otras cabinas, en porcentaje |
 | `powermax_srp_response_time_usec` | — | PowerMax | `µs` | Tiempo medio que tarda una I/O en cada pool de recursos de almacenamiento, en microsegundos, según su etiqueta srp |
+| `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes leídos de `/ifs` por segundo, en todo el clúster |
+| `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes escritos en `/ifs` por segundo, en todo el clúster |
+| `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes por segundo que reciben los puertos front-end del clúster |
+| `powerscale_cluster_network_out_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes por segundo que envían los puertos front-end del clúster |
+| `powerscale_cluster_cpu_busy_percent` | — | PowerScale | `%` | Parte del tiempo de CPU en uso, en promedio sobre los nodos del clúster |
+| `powerscale_protocol_latency_microseconds` | — | PowerScale | `µs` | Tiempo medio que tarda una operación por protocolo (NFS, SMB, HDFS, ...) en cada nodo; el máximo es el nodo más lento — agrupe por `protocol` o `node` |
+| `powerscale_protocol_latency_max_microseconds` | — | PowerScale | `µs` | La operación individual más lenta por protocolo en cada nodo |
+| `powerscale_protocol_operations_per_second` | — | PowerScale | `ops/s` | Operaciones por segundo por protocolo en cada nodo; el máximo es el nodo más ocupado |
+| `powerscale_protocol_in_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes por segundo que los clientes envían por cada protocolo a cada nodo: escrituras y solicitudes |
+| `powerscale_protocol_out_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes por segundo enviados a los clientes por cada protocolo desde cada nodo: lecturas y respuestas |
 
 ### Volúmenes
 
@@ -532,6 +570,16 @@ El agente envía todo lo que exporta la cabina, y una sonda todo lo que lee de u
 | `powermax_port_busy_percent` | — | PowerMax | `%` | Lo ocupado que está cada puerto, en porcentaje, según su etiqueta component (como FA-1D:4) |
 | `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | Bytes por segundo leídos a través de cada puerto, según su etiqueta component |
 | `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | La potencia de luz que recibe cada puerto óptico, en milivatios, según su etiqueta component. Un valor que baja indica que un módulo óptico o un cable se está deteriorando. Requiere Unisphere 10.3 o posterior |
+| `powerscale_node_health` | — | PowerScale | — | La salud que informa cada nodo: 0 es OK, 1 necesita atención, 2 está caído y 3 no es válido — agrupe por `node` |
+| `powerscale_node_read_only` | — | PowerScale | — | 1 mientras un nodo está en modo de solo lectura, 0 en caso contrario — agrupe por `node` |
+| `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | Parte del tiempo de CPU de cada nodo en uso — agrupe por `node` |
+| `powerscale_node_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes leídos de `/ifs` por segundo a través de cada nodo |
+| `powerscale_node_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | Bytes escritos en `/ifs` por segundo a través de cada nodo |
+| `powerscale_drive_size_bytes` | — | PowerScale | `bytes` | Una serie por bahía de disco, con el tamaño del disco como valor y con las etiquetas `status` (`HEALTHY`, `SMARTFAIL`, `DEAD`, ...), `model` y `serial` |
+| `powerscale_drive_operations_per_second` | — | PowerScale | `ops/s` | Operaciones por segundo que atiende cada disco — agrupe por `drive` |
+| `powerscale_temperature_celsius` | — | PowerScale | `°C` | La lectura de cada sensor de temperatura en cada nodo; el máximo por nodo es su sensor más caliente |
+| `powerscale_fan_speed_rpm` | — | PowerScale | `rpm` | La velocidad de cada ventilador en cada nodo; el mínimo detecta un ventilador que se frena |
+| `powerscale_interface_status` | — | PowerScale | — | El estado de cada puerto de nodo: 1 es activo, 2 es inactivo, 7 es inactivo por debajo del puerto (sin enlace); `admin_status` es 1 para un puerto que debería estar activo |
 
 ### Sistemas de archivos
 

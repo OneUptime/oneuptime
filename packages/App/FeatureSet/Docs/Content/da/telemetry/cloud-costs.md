@@ -225,16 +225,15 @@ Når arbejdstiden slutter, stopper en tidsplan gennem sin kontos forbindelse hve
 En tidsplan stopper aldrig produktion eller en ressource, hvis miljø intet siger. En ressource vides ikke at være produktion, når:
 
 - et af dens mærker siger det, under en nøgle som `environment`, `env`, `stage`, `tier` eller `deployment.environment`, med et ord som `dev`, `test`, `qa`, `staging` eller `sandbox`;
-- dens konto er markeret som **Ikke-produktion** under **Miljø** i kontoens **Indstillinger**;
-- eller en af dens etiketter siger det, for eksempel `Staging` eller `env: dev`.
+- eller dens konto er markeret som **Ikke-produktion** under **Miljø** i kontoens **Indstillinger**.
 
-Produktion vinder: Et mærke, der siger `prod`, `production` eller `live`, eller en konto markeret som **Produktion**, holder en ressource kørende, uanset hvad andet siger. En ressources navn læses aldrig til det. Slår du en tidsplan fra, stopper den intet mere og starter det, den stoppede, når dens arbejdstid begynder; sletter du den, startes det, den stoppede, med det samme.
+En OneUptime-etiket gør aldrig en ressource til ikke-produktion for en tidsplan. Omdøbes en etiket, ændres hver ressource, der bærer den, på én gang, så en etiket som `Staging` eller `env: dev` læses kun dér, hvor en person godkender ændringen, som ved **Anvend**. Produktion vinder: Et mærke, der siger `prod`, `production` eller `live`, en konto markeret som **Produktion**, eller en etiket som `Production` eller `env: prod` holder en ressource kørende, uanset hvad andet siger. En ressources navn læses aldrig til det. Hvert stop læser ressourcen igen lige før det foretages. Slår du en tidsplan fra, stopper den intet mere og starter det, den stoppede, når dens arbejdstid begynder; sletter du den, startes det, den stoppede, med det samme.
 
 ## AI-regler for besparelser
 
 Med **Aktivér AI** slået til foreslår OneUptime AI efter hver læsning af kontoens besparelser hver besparelse, den kan gennemføre, til ressourcens ejere, og de godkender eller afviser den under **Venter på godkendelse**. Under **Cloud → Indstillinger → AI-regler for besparelser** siger en regel, hvad OneUptime AI gør med de besparelser, den passer på, efter typen af ændring, ressourcens miljø og dens cloud: **Fra**, **Foreslå til ejeren** eller **Handl uden at spørge**, op til en månedlig grænse. Uden regel foreslås hver besparelse, og ingen gennemføres; med regler kun det, en regel passer på, og mellem regler, der passer, vinder den mest forsigtige.
 
-En regel handler kun uden at spørge på en ressource, der vides ikke at være produktion, kun for en ændring, der kan fortrydes, kun op til den laveste grænse blandt de regler, der passer, og højst 10 gange i timen i et projekt: Alt andet foreslås. En ændring foretaget uden at spørge står på tidslinjerne med den regel, der foretog den, og dens ejere kan fortryde den. En afvist eller fortrudt besparelse foreslås ikke igen i 30 dage.
+En regel handler kun uden at spørge på en ressource, der vides ikke at være produktion, sådan som en tidsplan læser det, ud fra dens mærker eller dens konto og aldrig ud fra dens etiketter alene, kun for en ændring, der kan fortrydes, kun op til den laveste grænse blandt de regler, der passer, og højst 10 gange i timen i et projekt: Alt andet foreslås. Ressourcen læses igen lige før ændringen foretages, og en, der til den tid ikke længere vides ikke at være produktion, foreslås i stedet. En ændring foretaget uden at spørge står på tidslinjerne med den regel, der foretog den, og dens ejere kan fortryde den. En afvist eller fortrudt besparelse foreslås ikke igen i 30 dage.
 
 ## Budgetter
 
@@ -381,7 +380,7 @@ En Slack- eller Microsoft Teams-kanal får en kort besked: totalen og dens ændr
 
 - Projektets personer og teams får den pr. e-mail via deres notifikationsindstillinger, hvor hver person kan slå cloudomkostningsrapporter fra. Hver person får de tal, de må læse: den, hvis adgang er begrænset af etiketter, får kun sine konti, og den, der ikke længere må læse projektets cloudomkostninger, udelades.
 - **E-mailadresser** uden for projektet, f.eks. din revisors, og Slack- og Microsoft Teams-kanaler kræver tilladelsen Cloudadministrator, eller Projektadministrator eller Projektejer, fordi OneUptime ikke kan vide, hvem der læser dem. De får rapporten, som den person, der tilføjede dem, må læse den, og holder op med at få den, hvis personen mister tilladelsen. En API-nøgle kan ikke angive dem.
-- Den, der må oprette de andre Cloud-poster, fra Cloudmedlem og op, kan oprette, ændre og slette rapporter. En Cloudseer kan læse dem.
+- Den, der må oprette de andre Cloud-poster, fra Cloudmedlem og op, kan oprette, ændre og slette rapporter. Den, der har Cloud på niveauet Seer, kan læse dem.
 
 En rapport går til højst 200 personer, 25 adresser og 10 kanaler af hver slags. **Seneste udsendelse** viser, hvornår den sidst blev sendt, og hvem den udelod og hvorfor.
 
@@ -481,7 +480,11 @@ OneUptime foretager kun ændringer i ét trin: En forpligtelse eller en anbefali
 :::
 
 :::details En tidsplan lader en ressource køre
-**Se ressourcer** siger hvorfor: Den er produktion, intet siger, at den ikke er produktion, eller dens kontos forbindelse tillader ikke besparelseshandlinger. Mærk den, for eksempel `environment` = `dev`, eller markér dens konto som **Ikke-produktion**.
+**Se ressourcer** siger hvorfor: Den er produktion, intet siger, at den ikke er produktion, kun dens etiketter siger det, eller dens kontos forbindelse tillader ikke besparelseshandlinger. Mærk den i din cloud, for eksempel `environment` = `dev`, eller markér dens konto som **Ikke-produktion**.
+:::
+
+:::details En regel foreslår en ændring, den tidligere foretog uden at spørge
+Dens kort siger hvorfor. En regel foretager kun en ændring uden at spørge på en ressource, som dens mærker eller dens konto siger ikke er produktion: En, som kun dens etiketter kalder ikke-produktion, foreslås i stedet for dens ejere. Mærk den i din cloud, for eksempel `environment` = `dev`, eller markér dens konto som **Ikke-produktion**.
 :::
 
 :::details En prognose har intet sandsynligt interval

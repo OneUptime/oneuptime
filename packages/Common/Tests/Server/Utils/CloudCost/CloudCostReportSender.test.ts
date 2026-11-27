@@ -42,6 +42,7 @@ import { EmailEnvelope } from "../../../../Types/Email/EmailMessage";
 import EmailTemplateType from "../../../../Types/Email/EmailTemplateType";
 import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
+import PermissionScope from "../../../../Types/Database/AccessControl/PermissionScope";
 import NotificationSettingEventType from "../../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../../Types/ObjectID";
 import Permission, {
@@ -468,6 +469,92 @@ describe("who a report goes to", () => {
     );
     expect(stage.builds[1]!.props.userId!.toString()).toBe(BOB.id!.toString());
     expect(notified()).toEqual(["Alice", "Bob", "Erin"]);
+  });
+
+  test("people share one read only when the rule would read their rows alike", () => {
+    const team: ObjectID = new ObjectID("0192f1a0-1100-7000-8000-0000000c0001");
+    const label: ObjectID = new ObjectID(
+      "0192f1a0-1100-7000-8000-0000000b0002",
+    );
+    const keyOf: (
+      user: User,
+      rows: Array<Record<string, unknown>>,
+    ) => string = (
+      user: User,
+      rows: Array<Record<string, unknown>>,
+    ): string => {
+      const props: DatabaseCommonInteractionProps = propsOf(user, []);
+      props.userTenantAccessPermission![PROJECT.toString()]!.permissions =
+        rows.map((row: Record<string, unknown>) => {
+          return {
+            _type: "UserPermission",
+            labelIds: [],
+            isBlockPermission: false,
+            ...row,
+          };
+        }) as never;
+      return CloudCostReportSender.getAccessKey(props, PROJECT);
+    };
+    const viewer: Record<string, unknown> = {
+      permission: Permission.CloudViewer,
+    };
+    const reader: Record<string, unknown> = {
+      permission: Permission.ReadCloudResource,
+      labelIds: [label],
+    };
+
+    // The same rows, in either order: one read.
+    expect(keyOf(ALICE, [viewer, reader])).toBe(keyOf(ERIN, [reader, viewer]));
+    // A block, a label, a team or a scope apart: a read of their own.
+    for (const other of [
+      { ...reader, isBlockPermission: true },
+      { ...reader, labelIds: [] },
+      { ...reader, teamId: team },
+      { ...reader, scope: PermissionScope.All },
+    ]) {
+      expect(keyOf(ALICE, [viewer, reader])).not.toBe(
+        keyOf(ERIN, [viewer, other]),
+      );
+    }
+
+    // An Owned row reaches what the person owns: each their own read.
+    const owned: Record<string, unknown> = {
+      permission: Permission.ReadCloudResource,
+      scope: PermissionScope.Owned,
+      teamId: team,
+    };
+    expect(keyOf(ALICE, [owned])).not.toBe(keyOf(ERIN, [owned]));
+    expect(keyOf(ALICE, [owned])).toBe(keyOf(ALICE, [owned]));
+  });
+
+  test("two people with the same Owned rows are read one by one", async () => {
+    const owned: Array<Record<string, unknown>> = [
+      {
+        _type: "UserPermission",
+        permission: Permission.ReadCloudResource,
+        labelIds: [],
+        isBlockPermission: false,
+        scope: PermissionScope.Owned,
+      },
+    ];
+
+    for (const user of [ALICE, ERIN]) {
+      const props: DatabaseCommonInteractionProps = propsOf(user, []);
+      props.userTenantAccessPermission![PROJECT.toString()]!.permissions =
+        owned as never;
+      stage.permissions.set(user.id!.toString(), props);
+    }
+
+    stage.report.recipientUsers = [ALICE, ERIN];
+    stage.report.recipientTeams = [];
+
+    await send();
+
+    expect(
+      stage.builds.map((build: { props: DatabaseCommonInteractionProps }) => {
+        return build.props.userId!.toString();
+      }),
+    ).toEqual([ALICE.id!.toString(), ERIN.id!.toString()]);
   });
 
   test("a send to one person who fails is said, and the others still get theirs", async () => {

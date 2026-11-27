@@ -146,6 +146,20 @@ export interface DataTypeDetector {
   readsPlusAsSpace?: boolean | undefined;
 
   /*
+   * Whether the text is also read with a number's fullwidth signs and
+   * separators read as their ASCII characters (FullwidthForms.ts, #11115):
+   * the plus sign ＋, the hyphen －, the parentheses （ ）, the full stop ．,
+   * the solidus ／ and the ideographic space, as Japanese and Chinese text
+   * types a number wholly in fullwidth - ＋８１ ３－１２３４－５６７８,
+   * ５３６－２２－８７３１. Each reading the detector reads otherwise is read
+   * so too, every script's digits read in it when it reads them. For a
+   * detector of a number, as every one that reads every script's digits
+   * is. One character for one, so a candidate found so is on the very
+   * characters it is written with.
+   */
+  readsFullwidthForms?: boolean | undefined;
+
+  /*
    * What a database search narrows by for this detector, as an RE2
    * expression that matches at least every text its pattern matches - for
    * a pattern DetectorPrefilter cannot write itself, one with the u flag.
@@ -157,11 +171,13 @@ export interface DataTypeDetector {
 /*
  * A detector that reads its value however people and URLs write it: in
  * every script's digits (#10960, #11033, #11200), with its percent-escapes
- * read, and as a URL's query string reads it, a "+" for a space (#11199) -
+ * read, as a URL's query string reads it, a "+" for a space (#11199) -
  * card=4539%201488%200343%206467, iban=DE44+5001+0517+5407+3249+31,
- * dob=12%2F03%2F1985, bank+account=12345678. For a detector of a number,
- * of a code a bank or a card has, or of a value written in groups: the
- * same value whatever the writing, proven by the same checks.
+ * dob=12%2F03%2F1985, bank+account=12345678 - and typed wholly in
+ * fullwidth, its signs and separators too (#11115): １９８５／０３／１２,
+ * ５３６－２２－８７３１. For a detector of a number, of a code a bank or a card
+ * has, or of a value written in groups: the same value whatever the
+ * writing, proven by the same checks.
  */
 export function withEveryReading(detector: DataTypeDetector): DataTypeDetector {
   return {
@@ -169,6 +185,7 @@ export function withEveryReading(detector: DataTypeDetector): DataTypeDetector {
     readsDigitsOfEveryScript: true,
     readsPercentEncoded: true,
     readsPlusAsSpace: true,
+    readsFullwidthForms: true,
   };
 }
 

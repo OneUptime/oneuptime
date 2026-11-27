@@ -106,6 +106,7 @@ import ExceptionMonitorMeasureReader, {
   ExceptionMonitorInstalls,
 } from "Common/Server/Utils/Monitor/ExceptionMonitorMeasures";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import TelemetryCheckWindow from "Common/Types/Monitor/TelemetryCheckWindow";
 import { monitorException } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import {
   MobileFaultCount,
@@ -827,8 +828,8 @@ integration(
               primaryEntityId: new Includes([iosAppId]),
               escaped: true,
             },
-            windowStart: day.startTime,
-            windowEnd: day.endTime,
+            // A check's window, as the monitor reads it (#11334).
+            window: TelemetryCheckWindow.from(day.startTime, day.endTime),
           });
 
         expect(installs).toEqual({

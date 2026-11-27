@@ -57,6 +57,9 @@ export const SKIP_REASONS: Readonly<Record<CloudOffHoursSkipReason, string>> = {
   [CloudOffHoursSkipReason.EnvironmentNotKnown]: translationKey(
     "Left running: nothing says it is not production. Tag it environment=dev, or mark its account non-production.",
   ),
+  [CloudOffHoursSkipReason.OnlyLabelsSayNonProduction]: translationKey(
+    "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
+  ),
   [CloudOffHoursSkipReason.SavingsActionsOff]: translationKey(
     "Left running: Savings actions are off on its account's cloud connection.",
   ),

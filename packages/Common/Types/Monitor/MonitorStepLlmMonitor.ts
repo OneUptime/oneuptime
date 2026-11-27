@@ -2,13 +2,13 @@ import Span from "../../Models/AnalyticsModels/Span";
 import InBetween from "../BaseDatabase/InBetween";
 import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
-import OneUptimeDate from "../Date";
 import { JSONObject, ObjectType } from "../JSON";
 import ObjectID from "../ObjectID";
 import {
   LlmAnswerIssue,
   LlmAnswerIssueUtil,
 } from "../Telemetry/LlmAnswerIssue";
+import TelemetryCheckWindow from "./TelemetryCheckWindow";
 
 /*
  * THE AI / LLM MONITOR: "TELL ME WHEN THE AI ANSWERS BADLY".
@@ -204,8 +204,9 @@ export class MonitorStepLlmMonitorUtil {
   }
 
   /*
-   * The window a check reads. `evaluateUntil` ends it earlier than now: a
-   * telemetry check judges only data OneUptime has finished reading while
+   * The window a check reads: its start and not its end, as every check's
+   * window (TelemetryCheckWindow). `evaluateUntil` ends it earlier than now:
+   * a telemetry check judges only data OneUptime has finished reading while
    * its ingest queue is behind (ReceivingCoverage.planTelemetryEvaluation,
    * issue #2825).
    */
@@ -220,12 +221,8 @@ export class MonitorStepLlmMonitorUtil {
       ),
       LLM_MONITOR_MAX_WINDOW_SECONDS,
     );
-    const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
 
-    return new InBetween<Date>(
-      OneUptimeDate.addRemoveSeconds(endDate, seconds * -1),
-      endDate,
-    );
+    return TelemetryCheckWindow.ofSeconds(seconds, evaluateUntil);
   }
 
   /*
