@@ -44,7 +44,13 @@ import {
  * Whatever a rule says, a change is made without asking only when:
  *
  *   - its resource is known not to be production: production, and a
- *     resource whose environment nothing says, always wait for a person;
+ *     resource whose environment nothing says, always wait for a person.
+ *     Known by its cloud tags or its account's setting: a OneUptime label
+ *     may say production, never non-production, since renaming one would
+ *     change what every resource carrying it is (#11347,
+ *     getUnattendedCloudResourceEnvironment). A rule's environments are
+ *     matched with every sign, so a rule for non-production still proposes
+ *     what only a label calls so;
  *   - it can be undone - a deleted disk only after its final snapshot, so
  *     a released address or a deleted snapshot or image always asks;
  *   - fewer than CLOUD_SAVINGS_AI_CHANGES_WITHOUT_ASKING_PER_HOUR changes
@@ -155,7 +161,14 @@ export interface CloudSavingsAiRuleFacts {
 export interface CloudSavingsAiSaving {
   provider: CloudProvider | string;
   kind: CloudSavingsActionKind;
+  // What every sign says, labels' names included: what a rule's environments match.
   environment: CloudResourceEnvironment | string;
+  /*
+   * What a change made without asking reads: non-production only from the
+   * cloud's tags or the account's setting (#11347,
+   * getUnattendedCloudResourceEnvironment).
+   */
+  unattendedEnvironment: CloudResourceEnvironment | string;
   monthlySavings: number;
   undo: CloudSavingsActionUndo;
 }
@@ -411,6 +424,8 @@ export enum CloudSavingsAiReason {
   Production = "Production",
   // Nothing says the resource is not production: a person approves.
   EnvironmentNotKnown = "EnvironmentNotKnown",
+  // Only its OneUptime labels say it is not production: a person approves (#11347).
+  OnlyLabelsSayNonProduction = "OnlyLabelsSayNonProduction",
   // The change cannot be undone: a person approves.
   CannotBeUndone = "CannotBeUndone",
   // The saving is worth more a month than the rule's limit.
@@ -442,6 +457,9 @@ export const CLOUD_SAVINGS_AI_REASON_SENTENCES: Readonly<
   [CloudSavingsAiReason.EnvironmentNotKnown]: translationKey(
     "Proposed: nothing says the resource is not production, so a person approves.",
   ),
+  [CloudSavingsAiReason.OnlyLabelsSayNonProduction]: translationKey(
+    "Proposed: only its OneUptime labels say the resource is not production, so a person approves.",
+  ),
   [CloudSavingsAiReason.CannotBeUndone]: translationKey(
     "Proposed: the change cannot be undone, so a person approves.",
   ),
@@ -469,6 +487,37 @@ export interface CloudSavingsAiDecision {
 
 function nameOf(rule: CloudSavingsAiRuleFacts): string {
   return typeof rule.name === "string" ? rule.name : "";
+}
+
+/*
+ * Why a resource's environment keeps a change from being made without
+ * asking, or null when it does not (#11347): production on either reading;
+ * otherwise non-production on both - every sign's, and what a change made
+ * without asking reads - or a person approves. Read when a rule decides,
+ * and again when the change is about to be made
+ * (CloudSavingsActionRunner): the resource may have changed in between.
+ */
+export function getCloudSavingsAiEnvironmentReason(data: {
+  environment: CloudResourceEnvironment | string;
+  unattendedEnvironment: CloudResourceEnvironment | string;
+}): CloudSavingsAiReason | null {
+  if (
+    data.environment === CloudResourceEnvironment.Production ||
+    data.unattendedEnvironment === CloudResourceEnvironment.Production
+  ) {
+    return CloudSavingsAiReason.Production;
+  }
+
+  if (
+    data.environment === CloudResourceEnvironment.NonProduction &&
+    data.unattendedEnvironment === CloudResourceEnvironment.NonProduction
+  ) {
+    return null;
+  }
+
+  return data.environment === CloudResourceEnvironment.NonProduction
+    ? CloudSavingsAiReason.OnlyLabelsSayNonProduction
+    : CloudSavingsAiReason.EnvironmentNotKnown;
 }
 
 function decidedBy(
@@ -562,12 +611,11 @@ export function decideCloudSavingsAi(data: {
     return decidedBy(CloudSavingsAiAutonomy.Suggest, reason, rule);
   };
 
-  if (data.saving.environment === CloudResourceEnvironment.Production) {
-    return ask(CloudSavingsAiReason.Production);
-  }
+  const environmentReason: CloudSavingsAiReason | null =
+    getCloudSavingsAiEnvironmentReason(data.saving);
 
-  if (data.saving.environment !== CloudResourceEnvironment.NonProduction) {
-    return ask(CloudSavingsAiReason.EnvironmentNotKnown);
+  if (environmentReason) {
+    return ask(environmentReason);
   }
 
   if (
