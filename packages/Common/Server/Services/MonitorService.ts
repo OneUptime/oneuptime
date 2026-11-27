@@ -45,6 +45,7 @@ import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorStepLimit from "../../Types/Monitor/MonitorStepLimit";
 import MonitoringIntervalValidator from "../Utils/Monitor/MonitoringIntervalValidator";
+import TelemetryMonitorSchedule from "../Utils/Monitor/TelemetryMonitorSchedule";
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import MonitorType, {
   MonitorTypeHelper,
@@ -1996,6 +1997,51 @@ export class Service extends ProjectReferencesService<Model> {
       });
   }
 
+  /*
+   * Moves a telemetry monitor's next evaluation to its interval's next run,
+   * at its own moment of the interval (TelemetryMonitorSchedule): the time
+   * the telemetry scheduler would stamp had it queued the monitor just now.
+   * Returns that time, or null when nothing was moved:
+   *
+   *   - a monitor never scheduled stays due now, so a monitor whose
+   *     interval is set as it is made is still evaluated at once;
+   *   - one the scheduler stamped since `nextMonitorAt` was read keeps the
+   *     scheduler's stamp (compare-and-set on the time read).
+   *
+   * Scheduler bookkeeping, like the scheduler's own stamp: one statement,
+   * no hooks.
+   */
+  @CaptureSpan()
+  public async rescheduleTelemetryMonitor(data: {
+    monitorId: ObjectID;
+    monitoringInterval: string | null | undefined;
+    nextMonitorAt: Date | null | undefined;
+    now?: Date | undefined;
+  }): Promise<Date | null> {
+    if (!data.nextMonitorAt) {
+      return null;
+    }
+
+    const nextMonitorAt: Date = TelemetryMonitorSchedule.getNextRunAt({
+      monitorId: data.monitorId,
+      monitoringInterval: data.monitoringInterval,
+      after: data.now || OneUptimeDate.getCurrentDate(),
+    });
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: data.monitorId,
+      data: {
+        telemetryMonitorNextMonitorAt: nextMonitorAt,
+      } as PartialEntity<Model>,
+      expectedData: {
+        telemetryMonitorNextMonitorAt: data.nextMonitorAt,
+      } as PartialEntity<Model>,
+      skipUpdateDateColumn: true,
+    });
+
+    return nextMonitorAt;
+  }
+
   @CaptureSpan()
   protected override async onUpdateSuccess(
     onUpdate: OnUpdate<Model>,
@@ -2058,6 +2104,8 @@ export class Service extends ProjectReferencesService<Model> {
             projectId: true,
             name: true,
             monitorType: true,
+            monitoringInterval: true,
+            telemetryMonitorNextMonitorAt: true,
           },
           props: {
             isRoot: true,
@@ -2094,6 +2142,41 @@ export class Service extends ProjectReferencesService<Model> {
           await MonitorProbeService.updateNextPingAtForMonitor({
             monitorId: monitorId,
           });
+        }
+
+        /*
+         * A telemetry monitor given a new interval - or none, which is every
+         * minute - runs on it from now: its next evaluation is the new
+         * schedule's next run, at its own moment of the interval
+         * (TelemetryMonitorSchedule), not the one its old interval had it
+         * due at, which could be a day away. No evaluation is added: the
+         * next is moved. Its own try, the house rule for this hook: the
+         * monitor is saved already.
+         */
+        if (
+          Object.prototype.hasOwnProperty.call(
+            onUpdate.updateBy.data,
+            "monitoringInterval",
+          ) &&
+          monitor?.monitorType &&
+          MonitorTypeHelper.isTelemetryMonitor(monitor.monitorType)
+        ) {
+          try {
+            await this.rescheduleTelemetryMonitor({
+              monitorId: monitorId,
+              monitoringInterval: monitor.monitoringInterval,
+              nextMonitorAt: monitor.telemetryMonitorNextMonitorAt,
+            });
+          } catch (error) {
+            logger.error(
+              "MonitorService.onUpdateSuccess: could not move a telemetry monitor to its new interval; it is evaluated at the time its old interval had it due, and on the new one from then.",
+              {
+                projectId: projectId?.toString(),
+                monitorId: monitorId?.toString(),
+              } as LogAttributes,
+            );
+            logger.error(error as Error);
+          }
         }
 
         /*
