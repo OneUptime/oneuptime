@@ -1921,6 +1921,9 @@ export default class MonitorResourceUtil {
           response.perSeriesMatches !== undefined;
 
         // A lifecycle is shared only by whole-monitor criteria of this check step.
+        const stepCriteria: Array<MonitorCriteriaInstance> =
+          monitorStep.data?.monitorCriteria?.data
+            ?.monitorCriteriaInstanceArray || [];
         const linkedIncidentCriteriaById:
           | Dictionary<MonitorCriteriaInstance>
           | undefined =
@@ -1928,16 +1931,18 @@ export default class MonitorResourceUtil {
           criteriaFanOut.length === 1 &&
           monitor.monitorType !== MonitorType.IncomingEmail &&
           matchedCriteriaInstance.data?.createIncidents &&
-          matchedCriteriaInstance.data.incidents?.some(
-            (action: CriteriaIncident) => {
-              return Boolean(action.incidentLifecycleKey);
-            },
-          )
+          stepCriteria.some((criterion: MonitorCriteriaInstance) => {
+            return (
+              criterion.data?.createIncidents &&
+              criterion.data.incidents?.some((action: CriteriaIncident) => {
+                return Boolean(
+                  action.incidentLifecycleKey || action.linkedIncidentActionId,
+                );
+              })
+            );
+          })
             ? Object.fromEntries(
-                (
-                  monitorStep.data?.monitorCriteria?.data
-                    ?.monitorCriteriaInstanceArray || []
-                ).map((criterion: MonitorCriteriaInstance) => {
+                stepCriteria.map((criterion: MonitorCriteriaInstance) => {
                   return [criterion.data?.id?.toString() || "", criterion];
                 }),
               )

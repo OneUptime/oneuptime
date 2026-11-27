@@ -197,14 +197,17 @@ export default class MonitorIncident {
 
     const resolvedIncidentIds: Set<string> = new Set<string>();
 
+    const lifecycleKeys: Map<CriteriaIncident, string> =
+      MonitorIncidentLifecycle.keysForCriteria(
+        input.linkedIncidentCriteriaById,
+      );
     const activeLifecycleKeys: Set<string> = new Set<string>();
     if (
       input.linkedIncidentCriteriaById &&
       input.criteriaInstance?.data?.createIncidents
     ) {
       for (const action of input.criteriaInstance.data.incidents || []) {
-        const key: string | undefined =
-          MonitorIncidentLifecycle.keyOfAction(action);
+        const key: string | undefined = lifecycleKeys.get(action);
         if (key) {
           activeLifecycleKeys.add(key);
         }
@@ -216,6 +219,7 @@ export default class MonitorIncident {
         ? MonitorIncidentLifecycle.keyOfIncident(
             openIncident,
             input.linkedIncidentCriteriaById,
+            lifecycleKeys,
           )
         : undefined;
       if (lifecycleKey && activeLifecycleKeys.has(lifecycleKey)) {
@@ -821,6 +825,10 @@ export default class MonitorIncident {
       );
     }
 
+    const lifecycleKeys: Map<CriteriaIncident, string> =
+      MonitorIncidentLifecycle.keysForCriteria(
+        input.linkedIncidentCriteriaById,
+      );
     const handledLifecycleKeys: Set<string> = new Set<string>();
     const openByLifecycle: Map<string, Incident> = new Map<string, Incident>();
 
@@ -829,6 +837,7 @@ export default class MonitorIncident {
         const key: string | undefined = MonitorIncidentLifecycle.keyOfIncident(
           incident,
           input.linkedIncidentCriteriaById,
+          lifecycleKeys,
         );
         if (key && !openByLifecycle.has(key)) {
           openByLifecycle.set(key, incident);
@@ -840,7 +849,7 @@ export default class MonitorIncident {
       []) {
       const lifecycleKey: string | undefined =
         input.linkedIncidentCriteriaById && !input.matchesPerSeries
-          ? MonitorIncidentLifecycle.keyOfAction(criteriaIncident)
+          ? lifecycleKeys.get(criteriaIncident)
           : undefined;
 
       if (lifecycleKey) {
