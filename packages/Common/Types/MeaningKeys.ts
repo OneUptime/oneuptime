@@ -199,6 +199,17 @@ export const MEANING_KEYS: ReadonlyArray<string> = [
    */
   "Model (hardware model)",
   /*
+   * A cloud budget's period: what its amount is for, in the Period
+   * dropdown, the Budgets list's filter and its row's period line
+   * ("Quarterly from April", CLOUD_BUDGET_PERIOD_LABELS, #11008). The bare
+   * "Monthly" and "Yearly" are a plan's billing cycle, worded as a payment
+   * in Japanese (月払い, 年払い: paid monthly, paid yearly), which no
+   * budget's period is.
+   */
+  "Monthly (budget period)",
+  "Quarterly (budget period)",
+  "Yearly (budget period)",
+  /*
    * A NetApp ONTAP aggregate, the disks its node's volumes are carved from:
    * ONTAP's Aggregates tab, the kind on its parts' pages and the aggregate a
    * volume lives in (#11001). The bare "Aggregate" is OpenStack's host
