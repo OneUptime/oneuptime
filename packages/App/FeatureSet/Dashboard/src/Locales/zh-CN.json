@@ -67291,5 +67291,6 @@
   "XCP-ng alarms": "XCP-ng 告警",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "保持运行：只有其标签表明它不是生产资源。请在你的云中为它添加 environment=dev 标记，或将其账户标为非生产。",
   "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "只有其标签表明它不是生产资源，因此非工作时间计划不会停止它，AI 规则也不会无需询问就更改它。请在你的云中为它添加标记，或将其账户标为非生产。",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "已提议：只有其 OneUptime 标签表明该资源不是生产资源，因此由人来批准。"
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "已提议：只有其 OneUptime 标签表明该资源不是生产资源，因此由人来批准。",
+  "Production, and resources only their labels or nothing say are not production, are always proposed, whatever this says.": "无论这里如何设置，生产资源以及只有标签表明或没有信息表明其非生产的资源始终只会被提议。"
 }

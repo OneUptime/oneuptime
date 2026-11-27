@@ -67291,5 +67291,6 @@
   "XCP-ng alarms": "XCP-ng-alarmer",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Kjører videre: Bare etikettene sier at den ikke er produksjon. Tagg den med environment=dev i skyen din, eller merk kontoen som ikke-produksjon.",
   "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Bare etikettene sier at den ikke er produksjon, så ingen tidsplan utenfor arbeidstid stopper den, og ingen AI-regel endrer den uten å spørre. Tagg den i skyen din, eller merk kontoen som ikke-produksjon.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Foreslått: Bare OneUptime-etikettene sier at ressursen ikke er produksjon, så en person godkjenner."
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Foreslått: Bare OneUptime-etikettene sier at ressursen ikke er produksjon, så en person godkjenner.",
+  "Production, and resources only their labels or nothing say are not production, are always proposed, whatever this says.": "Produksjon, og ressurser som bare etikettene eller ingenting sier at ikke er produksjon, blir alltid foreslått, uansett hva som står her."
 }

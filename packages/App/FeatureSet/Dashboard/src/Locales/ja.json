@@ -67291,5 +67291,6 @@
   "XCP-ng alarms": "XCP-ng のアラーム",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "稼働したまま: 本番ではないと示すのはラベルだけです。クラウドで environment=dev のタグを付けるか、アカウントを本番以外に設定してください。",
   "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "本番ではないと示すのはラベルだけのため、時間外スケジュールは停止せず、AI ルールも確認なしで変更しません。クラウドでタグを付けるか、アカウントを本番以外に設定してください。",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "提案: リソースが本番ではないと示すのは OneUptime のラベルだけのため、人が承認します。"
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "提案: リソースが本番ではないと示すのは OneUptime のラベルだけのため、人が承認します。",
+  "Production, and resources only their labels or nothing say are not production, are always proposed, whatever this says.": "本番と、本番ではないと示すものがラベルだけか何もないリソースは、ここでの設定にかかわらず常に提案になります。"
 }

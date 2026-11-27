@@ -67291,5 +67291,6 @@
   "XCP-ng alarms": "Allarmi XCP-ng",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Lasciata in esecuzione: solo le sue etichette indicano che non è di produzione. Aggiungi il tag environment=dev nel tuo cloud oppure segna il suo account come non di produzione.",
   "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Solo le sue etichette indicano che non è di produzione, quindi nessuna pianificazione fuori orario la arresta e nessuna regola IA la modifica senza chiedere. Aggiungi un tag nel tuo cloud oppure segna il suo account come non di produzione.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposta: solo le sue etichette OneUptime indicano che la risorsa non è di produzione, quindi approva una persona."
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposta: solo le sue etichette OneUptime indicano che la risorsa non è di produzione, quindi approva una persona.",
+  "Production, and resources only their labels or nothing say are not production, are always proposed, whatever this says.": "La produzione, e le risorse per cui solo le etichette, o nulla, indicano che non siano di produzione, vengono sempre proposte, qualunque cosa dica questo campo."
 }

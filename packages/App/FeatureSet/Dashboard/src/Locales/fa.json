@@ -67291,5 +67291,6 @@
   "XCP-ng alarms": "آلارم‌های XCP-ng",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "روشن ماند: فقط برچسب‌هایش می‌گویند که تولید نیست. در ابر خود به آن تگ environment=dev بزنید یا حسابش را غیرتولیدی علامت بزنید.",
   "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "فقط برچسب‌هایش می‌گویند که تولید نیست، پس هیچ زمان‌بندی خارج از ساعات کاری آن را متوقف نمی‌کند و هیچ قاعدهٔ هوش مصنوعی بدون پرسیدن آن را تغییر نمی‌دهد. در ابر خود به آن تگ بزنید یا حسابش را غیرتولیدی علامت بزنید.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "پیشنهاد شد: فقط برچسب‌های OneUptime آن می‌گویند که منبع تولید نیست، پس یک نفر تأیید می‌کند."
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "پیشنهاد شد: فقط برچسب‌های OneUptime آن می‌گویند که منبع تولید نیست، پس یک نفر تأیید می‌کند.",
+  "Production, and resources only their labels or nothing say are not production, are always proposed, whatever this says.": "تولید و منابعی که فقط برچسب‌هایشان یا هیچ چیز نمی‌گوید تولید نیستند، همیشه پیشنهاد می‌شوند، هر چه اینجا گفته شود."
 }

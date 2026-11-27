@@ -67291,5 +67291,6 @@
   "XCP-ng alarms": "إنذارات XCP-ng",
   "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "تُرك قيد التشغيل: تسمياته وحدها تقول إنه ليس إنتاجًا. ضع عليه الوسم environment=dev في سحابتك، أو علّم حسابه بأنه غير إنتاجي.",
   "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "تسمياته وحدها تقول إنه ليس إنتاجًا، لذا لا يوقفه أي جدول خارج ساعات العمل ولا تغيّره أي قاعدة ذكاء اصطناعي دون سؤال. ضع عليه وسمًا في سحابتك، أو علّم حسابه بأنه غير إنتاجي.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "اقتُرح: تسميات OneUptime الخاصة به وحدها تقول إن المورد ليس إنتاجًا، لذا يوافق شخص."
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "اقتُرح: تسميات OneUptime الخاصة به وحدها تقول إن المورد ليس إنتاجًا، لذا يوافق شخص.",
+  "Production, and resources only their labels or nothing say are not production, are always proposed, whatever this says.": "الإنتاج، والموارد التي لا يقول إنها ليست إنتاجًا إلا تسمياتها أو لا شيء، تُقترح دائمًا مهما قال هذا الحقل."
 }
