@@ -10,7 +10,8 @@ import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import FilterButtons from "Common/UI/Components/FilterButtons/FilterButtons";
-import downloadFile, { getExportFilename } from "Common/UI/Utils/DownloadFile";
+import downloadFile from "Common/UI/Utils/DownloadFile";
+import { getCloudCostFileName } from "Common/Types/Cloud/CloudCostCsv";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -137,10 +138,17 @@ const CloudCostSpendByGroupCard: FunctionComponent<ComponentProps> = (
                 onClick: () => {
                   downloadFile({
                     content: toCloudCostAllocationCsv(allocation),
-                    filename: getExportFilename({
-                      label: allocation.viewName || allocation.viewId,
-                      extension: "csv",
-                      exportedAt: new Date(allocation.readAt),
+                    /*
+                     * What the file is: by the view's groups, its basis and
+                     * its days (#11009).
+                     */
+                    filename: getCloudCostFileName({
+                      what: "cloud-costs",
+                      dimension: "group",
+                      viewName: allocation.viewName || allocation.viewId,
+                      basis: allocation.basis || undefined,
+                      start: allocation.start,
+                      lastDay: allocation.lastDay,
                     }),
                     mimeType: "text/csv;charset=utf-8;",
                   });

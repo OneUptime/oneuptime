@@ -1211,6 +1211,7 @@ import { AddXcpNgPoolConnectionKey1809187730010 } from "./1809187730010-AddXcpNg
 import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
 import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
 import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-AddKeepMonitoringDuringIncidents";
+import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostReports";
 
 export default [
   InitialMigration,
@@ -2426,4 +2427,5 @@ export default [
   AddSanSwitchFibreChannelColumns1809187731166,
   AddSecurityUserErasureRequestProgress1809187741160,
   AddKeepMonitoringDuringIncidents1809187751141,
+  AddCloudCostReports1809187761009,
 ];

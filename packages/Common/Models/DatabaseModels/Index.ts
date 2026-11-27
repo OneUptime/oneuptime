@@ -113,6 +113,7 @@ import CloudTagCoverageDay from "./CloudTagCoverageDay";
 import CloudTagFinding from "./CloudTagFinding";
 import CloudTagSetting from "./CloudTagSetting";
 import CloudCostRecommendation from "./CloudCostRecommendation";
+import CloudCostReport from "./CloudCostReport";
 import CloudCostSetting from "./CloudCostSetting";
 import CloudOffHoursSchedule from "./CloudOffHoursSchedule";
 import CloudSavingsAction from "./CloudSavingsAction";
@@ -1407,6 +1408,7 @@ const AllModelTypes: Array<{
   CloudTagFinding,
   CloudTagSetting,
   CloudCostRecommendation,
+  CloudCostReport,
   CloudCostSetting,
   CloudOffHoursSchedule,
   CloudSavingsAction,

@@ -428,6 +428,8 @@ import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/Cloud/EvaluateCloudCommitments";
 import "./Jobs/Cloud/MakeCloudCostGroups";
+// Scheduled cloud cost reports, sent when they are due (#11009).
+import "./Jobs/Cloud/SendCloudCostReports";
 // Changes for savings stepped, and off-hours schedules run (#11010).
 import "./Jobs/Cloud/CloudSavingsJobs";
 import "./Jobs/Cloud/WatchCloudTags";

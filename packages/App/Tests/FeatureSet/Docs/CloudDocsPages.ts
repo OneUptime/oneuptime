@@ -391,6 +391,8 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A tag that allows one value",
     "Required tags.",
     "What was saved.",
+    // The scheduled cost reports (#11009).
+    "Reports.",
   ],
   // Cost groups (#11006): an example group's name is a lead too.
   [CLOUD_COST_ALLOCATION]: [
