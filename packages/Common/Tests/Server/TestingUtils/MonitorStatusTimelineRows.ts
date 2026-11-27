@@ -62,7 +62,14 @@ export function mockMonitorStatusTimelineRows(input: {
     input.getMonitor().currentMonitorStatusId!.toString(),
   );
   // The status itself, as uptime reads it (UptimeUtil.getMonitorEventsForId).
-  first.monitorStatus = statusOf(first.monitorStatusId);
+  const firstStatus: MonitorStatus | undefined = statusOf(
+    first.monitorStatusId,
+  );
+
+  if (firstStatus) {
+    first.monitorStatus = firstStatus;
+  }
+
   first.startsAt = OneUptimeDate.getCurrentDate();
   first.rootCause = "This status was created when the monitor was created.";
   rows.push(first);
@@ -95,7 +102,15 @@ export function mockMonitorStatusTimelineRows(input: {
 
       row.id = ObjectID.generate();
       row.startsAt = row.startsAt || now;
-      row.monitorStatus = statusOf(row.monitorStatusId);
+
+      const rowStatus: MonitorStatus | undefined = statusOf(
+        row.monitorStatusId,
+      );
+
+      if (rowStatus) {
+        row.monitorStatus = rowStatus;
+      }
+
       rows.push(row);
 
       input.getMonitor().currentMonitorStatusId = new ObjectID(
