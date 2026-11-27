@@ -89,12 +89,14 @@ const DROPDOWNS: {
 function renderIncidentForm(
   initialValue?: CriteriaIncident,
   allowSeverityEscalation: boolean = false,
+  onChange?: (value: CriteriaIncident) => void,
 ): void {
   render(
     <MonitorCriteriaIncidentForm
       initialValue={initialValue}
       incidentSeverityDropdownOptions={[]}
       allowSeverityEscalation={allowSeverityEscalation}
+      onChange={onChange}
       {...DROPDOWNS}
     />,
   );
@@ -118,6 +120,26 @@ describe("monitor criteria severity escalation settings", () => {
     expect(
       screen.queryByTestId("monitor-criteria-severity-escalation"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("monitor-criteria-incident-lifecycle-key"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("stores a trimmed lifecycle key in monitor criteria", () => {
+    const values: Array<CriteriaIncident> = [];
+    renderIncidentForm(undefined, true, (value: CriteriaIncident) => {
+      values.push(value);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "More fields" }));
+    fireEvent.change(
+      screen.getByTestId("monitor-criteria-incident-lifecycle-key"),
+      { target: { value: "  storefront-outage  " } },
+    );
+
+    expect(values[values.length - 1]?.incidentLifecycleKey).toBe(
+      "storefront-outage",
+    );
   });
 });
 

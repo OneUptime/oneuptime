@@ -16,6 +16,9 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
+import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
+import UpdateOneBy from "../../../../Server/Types/Database/UpdateOneBy";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import LabelService from "../../../../Server/Services/LabelService";
 import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDeviceOwnerUserService";
@@ -23,6 +26,7 @@ import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolic
 import logger from "../../../../Server/Utils/Logger";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
 import MonitorIncidentEscalation from "../../../../Server/Utils/Monitor/MonitorIncidentEscalation";
+import MonitorIncidentLifecycle from "../../../../Server/Utils/Monitor/MonitorIncidentLifecycle";
 import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import Dictionary from "../../../../Types/Dictionary";
 import { CriteriaIncident } from "../../../../Types/Monitor/CriteriaIncident";
@@ -285,6 +289,132 @@ describe("MonitorIncident drops criteria references the project cannot use", () 
       }),
     );
     expect(createdIncidents).toHaveLength(0);
+  });
+
+  it("moves one linked incident from Minor to Major to Minor and resolves it on recovery", async () => {
+    const majorId: ObjectID = ObjectID.generate();
+    const openStateId: ObjectID = ObjectID.generate();
+    const resolvedStateId: ObjectID = ObjectID.generate();
+    const slow: MonitorCriteriaInstance = criteriaInstance({});
+    const offline: MonitorCriteriaInstance = criteriaInstance({});
+    offline.data!.id = "offline";
+    offline.data!.incidents![0]!.id = "offline-template";
+    offline.data!.incidents![0]!.incidentSeverityId = majorId;
+    for (const criterion of [slow, offline]) {
+      criterion.data!.incidents![0]!.incidentLifecycleKey =
+        "website availability";
+      criterion.data!.incidents![0]!.autoResolveIncident = true;
+    }
+
+    registerRecords(IncidentSeverityService, [
+      withProject(new IncidentSeverity(), SEVERITY_ID.toString(), PROJECT_ID),
+      withProject(new IncidentSeverity(), majorId.toString(), PROJECT_ID),
+    ]);
+    const update: jest.SpiedFunction<typeof IncidentService.updateOneBy> = jest
+      .spyOn(IncidentService, "updateOneBy")
+      .mockImplementation(
+        async (write: UpdateOneBy<Incident>): Promise<number> => {
+          createdIncidents[0]!.incidentSeverityId =
+            write.data.incidentSeverityId;
+          return 1;
+        },
+      );
+
+    jest
+      .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
+      .mockResolvedValue(resolvedStateId);
+    const resolve: jest.SpiedFunction<
+      typeof IncidentStateTimelineService.create
+    > = jest
+      .spyOn(IncidentStateTimelineService, "create")
+      .mockResolvedValue(new IncidentStateTimeline());
+
+    const linkedIncidentCriteriaById: Dictionary<MonitorCriteriaInstance> = {
+      "criteria-1": slow,
+      offline,
+    };
+    const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+      Array<string>
+    > = {
+      "criteria-1": ["incident-template-1"],
+      offline: ["offline-template"],
+    };
+
+    for (const criterion of [slow, offline, offline, slow]) {
+      await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+        monitor: monitor(),
+        rootCause: "Availability changed",
+        dataToProcess,
+        criteriaInstance: criterion,
+        linkedIncidentCriteriaById,
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        props: {},
+      });
+
+      expect(createdIncidents).toHaveLength(1);
+      expect(resolve).not.toHaveBeenCalled();
+      createdIncidents[0]!.currentIncidentStateId = openStateId;
+      jest.mocked(IncidentService.findBy).mockResolvedValue(createdIncidents);
+    }
+
+    const incident: Incident = createdIncidents[0]!;
+    expect(
+      update.mock.calls.map(([write]: [UpdateOneBy<Incident>]) => {
+        return [write.query._id, write.data.incidentSeverityId];
+      }),
+    ).toEqual([
+      [incident.id, majorId],
+      [incident.id, SEVERITY_ID],
+    ]);
+    expect(incident.createdCriteriaId).toBe("criteria-1");
+
+    const remaining: Array<Incident> =
+      await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+        monitorId: MONITOR_ID,
+        projectId: PROJECT_ID,
+        rootCause: "Monitor recovered",
+        dataToProcess,
+        criteriaInstance: null,
+        linkedIncidentCriteriaById,
+        autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+      });
+    expect(remaining).toEqual([]);
+    expect(resolve).toHaveBeenCalledTimes(1);
+    expect(resolve.mock.calls[0]![0].data.incidentId).toEqual(incident.id);
+  });
+
+  it("keeps the incident and uses the project default when the linked severity was archived", async () => {
+    const record: Incident = withProject(
+      new Incident(),
+      ObjectID.generate().toString(),
+      PROJECT_ID,
+    );
+    record.incidentSeverityId = SEVERITY_ID;
+    record.currentIncidentStateId = ObjectID.generate();
+    const fallback: IncidentSeverity = withProject(
+      new IncidentSeverity(),
+      ObjectID.generate().toString(),
+      PROJECT_ID,
+    );
+
+    jest
+      .mocked(IncidentSeverityService.findOneBy)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(fallback);
+    jest.spyOn(IncidentService, "updateOneBy").mockResolvedValue(1);
+
+    await MonitorIncidentLifecycle.applySeverity({
+      monitor: monitor(),
+      incident: record,
+      severityId: ObjectID.generate(),
+    });
+
+    expect(IncidentService.updateOneBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ _id: record.id }),
+        data: { incidentSeverityId: fallback.id },
+      }),
+    );
   });
 
   it("opens the incident with the usable on-call policies and logs the rest", async () => {
