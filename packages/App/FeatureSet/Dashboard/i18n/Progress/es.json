@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 2320
+    "keys": 67248,
+    "untranslated": 2312
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -147,6 +147,7 @@
     "DSR-1042",
     "Daemon",
     "Daemons",
+    "Delta",
     "DeploymentConfigs",
     "Digital",
     "Docker CLI",
@@ -514,6 +515,7 @@
     "WhatsApp: ",
     "Widgets",
     "Workers",
+    "XAPI",
     "Yemen",
     "Zambia",
     "[\".customer-name\", \"#invoice-total\"]",

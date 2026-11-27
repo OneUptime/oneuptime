@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8293
+    "keys": 67248,
+    "untranslated": 8281
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -96,6 +96,7 @@
     "Datastore",
     "Datastores",
     "Deadlocks",
+    "Delta",
     "Deployment",
     "DeploymentConfigs",
     "Desktop",
@@ -242,6 +243,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Patches",
     "Path traversal",
     "Payload",
     "Pebibytes",
@@ -398,6 +400,7 @@
     "Webhooks",
     "Workers",
     "Workspaces",
+    "XAPI",
     "Xen Orchestra xo-paris · 3 hosts · 42 VMs",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

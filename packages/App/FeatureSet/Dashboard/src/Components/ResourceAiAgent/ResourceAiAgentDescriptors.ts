@@ -20,6 +20,7 @@ import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 
 /*
  * What the generic AI pages (ResourceAiAgentPage, ResourceAiInsightsPage,
@@ -46,7 +47,8 @@ export type ResourceAiModel =
   | DatabaseServer
   | Host
   | CloudAccount
-  | OpenStackCloud;
+  | OpenStackCloud
+  | XcpNgPool;
 
 export type ResourceAiModelType = { new (): ResourceAiModel };
 
@@ -88,7 +90,7 @@ export interface ResourceAiAgentDescriptor {
    * the collector reports), read for the install instructions. Null: the
    * agent is pinned by the resource's id instead (database servers).
    */
-  identityColumn: "hostIdentifier" | "name" | null;
+  identityColumn: "hostIdentifier" | "name" | "poolIdentifier" | null;
   /*
    * A cloud account's agent: set up in its cloud with one command (the
    * account's "Let AI fix problems"), never installed beside a collector.
@@ -429,6 +431,37 @@ const DESCRIPTOR_COPY: Readonly<Record<AiResourceType, DescriptorCopy>> = {
     commandsTableId: "openstack-cloud-ai-commands",
     isCloudAccount: false,
   },
+  [AiResourceType.XcpNgPool]: {
+    modelType: XcpNgPool,
+    agentPage: PageMap.XCP_NG_POOL_VIEW_AI_AGENT,
+    insightsPage: PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS,
+    logsPage: PageMap.XCP_NG_POOL_VIEW_AI_LOGS,
+    agentCardDescription: translationKey(
+      "The small container next to your XCP-ng agent that turns each xo-cli rest command OneUptime AI asks for into one call to Xen Orchestra's REST API. It reads with a read-only token, and changes something only with a second token you give it.",
+    ),
+    investigateTitle: translationKey("Investigate with xo-cli"),
+    readExamples: "pools, hosts, vms, srs, pbds, alarms, tasks, backup-logs",
+    readOnlyCommandsPhrase: translationKey("read-only xo-cli rest requests"),
+    commandsCardTitle: translationKey("xo-cli commands"),
+    // The agent reports "XCP-ng 8.3.0": the pool master's version, named.
+    toolVersionLabel: null,
+    // The pool's XAPI UUID, which its agent registers with.
+    identityColumn: "poolIdentifier",
+    writeExamples: translationKey(
+      "start, resume, unpause, reboot, shut down, suspend, pause and snapshot VMs, plug a storage repository's PBD, run a backup schedule and enable a host",
+    ),
+    alwaysHumanExamples: translationKey(
+      "migrating a VM, and restarting a host's toolstack",
+    ),
+    riskierExamples: translationKey(
+      "riskier changes such as rebooting, shutting down or snapshotting a VM",
+    ),
+    riskierChanges: translationKey(
+      "rebooting, shutting down or snapshotting a VM",
+    ),
+    commandsTableId: "xcp-ng-pool-ai-commands",
+    isCloudAccount: false,
+  },
 };
 
 /*
@@ -445,6 +478,7 @@ export const RESOURCE_AI_NAME_KEYS: ReadonlyArray<string> = [
   translationKey("VMware vCenter"),
   translationKey("Ceph cluster"),
   translationKey("OpenStack cloud"),
+  translationKey("XCP-ng pool"),
   translationKey("database server"),
   translationKey("host"),
   translationKey("Docker AI agent"),
@@ -454,6 +488,7 @@ export const RESOURCE_AI_NAME_KEYS: ReadonlyArray<string> = [
   translationKey("VMware AI agent"),
   translationKey("Ceph AI agent"),
   translationKey("OpenStack AI agent"),
+  translationKey("XCP-ng AI agent"),
   translationKey("Database AI agent"),
   translationKey("Host AI agent"),
   translationKey("AWS account"),

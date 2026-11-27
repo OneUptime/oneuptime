@@ -16,7 +16,9 @@ import Express, {
 } from "Common/Server/Utils/Express";
 import logger from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
-import XcpNgPoolMessages from "Common/Server/Utils/XcpNg/XcpNgPoolMessages";
+import XcpNgProbeEvents, {
+  XcpNgProbeEventsOutcome,
+} from "Common/Server/Utils/XcpNg/XcpNgProbeEvents";
 import { XcpNgCollectionReportOutcome } from "Common/Server/Utils/XcpNg/XcpNgProbeCollectionStore";
 import XcpNgProbeMetrics, {
   XcpNgProbeMetricsPayload,
@@ -273,12 +275,45 @@ router.post(
           queuedResourceCount = payload.resourceCount;
         }
 
-        // What XAPI told the pools' operators since the last read.
-        deliveredMessageCount = await XcpNgPoolMessages.deliver({
+        /*
+         * What XAPI and Xen Orchestra said of the pools since the last read
+         * (#10997): messages and alarms, HA and the master, backups and
+         * missing patches - log records for the alert templates and the
+         * pools' Logs pages, derived series for the XCP-ng monitor, lines
+         * on the pools' feeds. Queued like the metrics, then committed.
+         */
+        const events: XcpNgProbeEventsOutcome = await XcpNgProbeEvents.ingest({
           projectId: outcome.projectId,
-          messages: report.messages,
+          connectionType: connectionType,
+          connectionName: outcome.connectionName,
+          report: report,
           poolIdsToKeep: assignment.poolIdsToKeep,
+          queue: {
+            queueLogs: async (data: {
+              projectId: ObjectID;
+              resourceLogs: Array<JSONObject>;
+            }): Promise<void> => {
+              await TelemetryQueueService.addLogIngestJob({
+                projectId: data.projectId,
+                body: { resourceLogs: data.resourceLogs },
+                headers: {},
+                productType: ProductType.Logs,
+              } as unknown as TelemetryRequest);
+            },
+            queueMetrics: async (data: {
+              projectId: ObjectID;
+              resourceMetrics: Array<JSONObject>;
+            }): Promise<void> => {
+              await TelemetryQueueService.addMetricIngestJob({
+                projectId: data.projectId,
+                body: { resourceMetrics: data.resourceMetrics },
+                headers: {},
+                productType: ProductType.Metrics,
+              } as unknown as TelemetryRequest);
+            },
+          },
         });
+        deliveredMessageCount = events.recordCount;
       }
 
       logger.debug(

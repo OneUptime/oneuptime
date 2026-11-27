@@ -314,7 +314,14 @@ function englishBoldDrawings(
     }),
     ...spans
       .filter((span: string): boolean => {
-        return ACCOUNTS_LABELS[span] !== undefined;
+        /*
+         * Not where the page means something else by the word, such as
+         * Xen Orchestra's Read only role (OTHER_NAMES).
+         */
+        return (
+          ACCOUNTS_LABELS[span] !== undefined &&
+          !listed(OTHER_NAMES, page).includes(span)
+        );
       })
       .map((span: string): [string, string] => {
         return [

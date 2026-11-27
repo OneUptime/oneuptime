@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8303
+    "keys": 67248,
+    "untranslated": 8291
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -86,6 +86,7 @@
     "Database Agent",
     "Datacenter",
     "Definition",
+    "Delta",
     "DeploymentConfigs",
     "Diagram",
     "Digital",
@@ -388,6 +389,7 @@
     "Washington",
     "Webhook",
     "Webhooks",
+    "XAPI",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

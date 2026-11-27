@@ -1,4 +1,10 @@
 import XcpNgResource from "Common/Models/DatabaseModels/XcpNgResource";
+import {
+  XCP_NG_HA_HOST_FAILED_TEMPLATE_ID,
+  XCP_NG_PBD_PLUG_FAILED_TEMPLATE_ID,
+  XCP_NG_SR_GC_NO_SPACE_TEMPLATE_ID,
+  XCP_NG_VM_CRASHED_TEMPLATE_ID,
+} from "Common/Types/Monitor/XcpNgEventAlertTemplates";
 import XcpNgResourceKind from "Common/Types/XcpNg/XcpNgResourceKind";
 import {
   XcpNgHostPowerState,
@@ -73,16 +79,24 @@ export const XCP_NG_HOST_ALERT_TEMPLATE_IDS: Array<string> = [
   "xcp-ng-host-restarted",
   "xcp-ng-host-high-cpu",
   "xcp-ng-host-high-memory",
+  // What XAPI says of a host, read by a probe (#10997).
+  XCP_NG_HA_HOST_FAILED_TEMPLATE_ID,
 ];
 
 export const XCP_NG_VM_ALERT_TEMPLATE_IDS: Array<string> = [
   "xcp-ng-vm-stopped",
   "xcp-ng-vm-cpu-starved",
+  // A crash XAPI wrote, and a backup Xen Orchestra did not make (#10997).
+  XCP_NG_VM_CRASHED_TEMPLATE_ID,
+  "xcp-ng-vm-not-backed-up",
 ];
 
 export const XCP_NG_STORAGE_ALERT_TEMPLATE_IDS: Array<string> = [
   "xcp-ng-sr-near-full",
   "xcp-ng-sr-slow",
+  // What XAPI says of a storage repository (#10997).
+  XCP_NG_PBD_PLUG_FAILED_TEMPLATE_ID,
+  XCP_NG_SR_GC_NO_SPACE_TEMPLATE_ID,
 ];
 
 /*

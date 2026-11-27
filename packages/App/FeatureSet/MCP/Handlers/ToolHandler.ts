@@ -279,15 +279,26 @@ export function getDeleteChoicesSuggestion(data: {
 }
 
 /*
- * What to try next when the API refused a Data Security action because
- * OneUptime asks a person before it in every mode (#10378): not again, and
- * not another way - the person makes it in OneUptime, on the page the
- * refusal names. Undefined for every other error.
+ * What to try next when a change was refused because OneUptime asks a
+ * person before it in every mode: a Data Security action the API refused
+ * (#10378), or a record's write this server refused before sending it,
+ * since it makes the same change (Tools/AlwaysAskWrites, #11177). Not
+ * again, and not another way - the person makes it in OneUptime, on the
+ * page the refusal names. Undefined for every other error.
+ *
+ * The API's refusal reaches here inside the words every failed request is
+ * wrapped in - "API request failed: 403 - " and then the API's message
+ * (OneUptimeApiService) - so the refusal is read after them, never only at
+ * the very start, where it never is for an action the API refused.
  */
+const API_FAILURE_WRAPPER: RegExp = /^API request failed: \d+ - /;
+
 export function getAsksAPersonSuggestion(error: unknown): string | undefined {
   const message: string = error instanceof Error ? error.message : "";
 
-  return message.startsWith(ASKS_IN_EVERY_MODE_REFUSAL_PREFIX)
+  return message
+    .replace(API_FAILURE_WRAPPER, "")
+    .startsWith(ASKS_IN_EVERY_MODE_REFUSAL_PREFIX)
     ? ASKS_IN_EVERY_MODE_SUGGESTION
     : undefined;
 }
@@ -506,6 +517,7 @@ async function handleCallTool(
       (headers: Headers): void => {
         fieldsLeftOut = FieldsLeftOut.fromHeaders(headers);
       },
+      tool.name,
     );
 
     // Format the response

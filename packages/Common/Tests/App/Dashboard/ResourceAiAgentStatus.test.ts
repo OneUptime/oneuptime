@@ -72,6 +72,7 @@ import {
 } from "../../../Types/AI/ResourceAiAccessPermissions";
 import CephCluster from "../../../Models/DatabaseModels/CephCluster";
 import OpenStackCloud from "../../../Models/DatabaseModels/OpenStackCloud";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import CloudAccount from "../../../Models/DatabaseModels/CloudAccount";
 import DatabaseServer from "../../../Models/DatabaseModels/DatabaseServer";
 import DockerHost from "../../../Models/DatabaseModels/DockerHost";
@@ -320,6 +321,33 @@ describe("an agent that may write, and has nothing to write with", () => {
     );
   });
 
+  test("an XCP-ng token for changes Xen Orchestra refuses says so, in the server's words", () => {
+    const XCP_NG: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+      AiResourceType.XcpNgPool,
+    );
+    const refused: ResourceAiAccessGap = {
+      ...gap("remediation_write_access_missing"),
+      title: "The XCP-ng AI agent's token for changes does not work",
+      nextStep:
+        "Xen Orchestra at https://xo.example.com did not accept ONEUPTIME_AI_XO_WRITE_TOKEN, which is wrong or has expired.",
+    };
+    const status: ResourceAiAccessStatus = makeStatus({
+      resourceType: AiResourceType.XcpNgPool,
+      agent: makeAgent({
+        posture: makePosture({
+          resourceType: AiResourceType.XcpNgPool,
+          allowWrites: true,
+          details: { writeCredentialWorks: false },
+        }),
+      }),
+      gaps: [refused],
+    });
+
+    expect(getResourceAiAttentionStepText(refused, status, XCP_NG)).toBe(
+      "The XCP-ng AI agent's token for changes does not work. Xen Orchestra at https://xo.example.com did not accept ONEUPTIME_AI_XO_WRITE_TOKEN, which is wrong or has expired.",
+    );
+  });
+
   test("the write switch on and no credential says what is still missing", () => {
     const status: ResourceAiAccessStatus = makeStatus({
       resourceType: AiResourceType.OpenStackCloud,
@@ -372,6 +400,7 @@ describe("the descriptors", () => {
     [AiResourceType.AzureSubscription]: CloudAccount,
     [AiResourceType.GoogleCloudProject]: CloudAccount,
     [AiResourceType.OpenStackCloud]: OpenStackCloud,
+    [AiResourceType.XcpNgPool]: XcpNgPool,
   };
 
   // A cloud account has no AI insights page of its own.
@@ -435,6 +464,11 @@ describe("the descriptors", () => {
       PageMap.OPENSTACK_CLOUD_VIEW_AI_AGENT,
       PageMap.OPENSTACK_CLOUD_VIEW_AI_INSIGHTS,
       PageMap.OPENSTACK_CLOUD_VIEW_AI_LOGS,
+    ],
+    [AiResourceType.XcpNgPool]: [
+      PageMap.XCP_NG_POOL_VIEW_AI_AGENT,
+      PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS,
+      PageMap.XCP_NG_POOL_VIEW_AI_LOGS,
     ],
   };
 
@@ -534,7 +568,25 @@ describe("the descriptors", () => {
       [AiResourceType.AzureSubscription, null],
       [AiResourceType.GoogleCloudProject, null],
       [AiResourceType.OpenStackCloud, "name"],
+      // A pool is known by its XAPI UUID.
+      [AiResourceType.XcpNgPool, "poolIdentifier"],
     ]);
+  });
+
+  test("XCP-ng: the page offers fixes, with their words, and an allowlist entry for one VM", () => {
+    const descriptor: ResourceAiAgentDescriptor = getResourceAiAgentDescriptor(
+      AiResourceType.XcpNgPool,
+    );
+
+    expect(descriptor.isReadOnly).toBe(false);
+    expect(descriptor.agentName).toBe("XCP-ng AI agent");
+    expect(descriptor.noun).toBe("XCP-ng pool");
+    expect(descriptor.allowlistPlaceholder).toBe(
+      "xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot",
+    );
+    expect(descriptor.alwaysHumanExamples).toContain("migrating a VM");
+    expect(descriptor.alwaysHumanExamples).toContain("toolstack");
+    expect(descriptor.investigateTitle).toBe("Investigate with xo-cli");
   });
 
   test.each(ALL_AI_RESOURCE_TYPES)(
