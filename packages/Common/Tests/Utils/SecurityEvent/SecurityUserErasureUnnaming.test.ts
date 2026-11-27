@@ -11,16 +11,23 @@ import {
   CORRELATION_SENTENCE_PREFIX,
   ErasedName,
   GROUP_VALUE_PART_SEPARATOR,
+  THREAT_INTEL_INDICATOR_NAME_PREFIX,
+  THREAT_INTEL_MATCH_SENTENCE_PREFIX,
+  THREAT_INTEL_STIX_INDICATOR_PREFIX,
   TITLE_VALUE_SEPARATOR,
   getDescriptionNameTexts,
   getErasedRiskKeys,
+  getStixIndicatorIdOf,
   namesAnyone,
   unnameDescription,
   unnameGroupValue,
   unnameGroupingKey,
   unnameJson,
+  unnameKeptEventStamps,
+  unnameThreatIntelDescription,
   unnameTitle,
   unnameValue,
+  withErasedStixIndicator,
 } from "../../../Utils/SecurityEvent/SecurityUserErasureUnnaming";
 import { describe, expect, test } from "@jest/globals";
 
@@ -532,5 +539,365 @@ describe("a correlation's group value", () => {
     ]) {
       expect(unnameGroupingKey(key, NAMES)).toBe(key);
     }
+  });
+});
+
+/*
+ * #11230: a feed can list the person's email address, and what OneUptime
+ * wrote about the match named the feed's indicator - by its id and its name,
+ * beside which the feed keeps the address in clear.
+ */
+describe("the feed's indicator, out of what was written about a match on the person (#11230)", () => {
+  const STIX_ID: string = "indicator--8e2e2d2b-17d4-4cbf-938f-98ee46b3cd3f";
+  const ERASED_ID: string = "[INDICATOR:3f9a1c0e7b2d4a68]";
+  const erasedIndicatorIdOf: (value: string) => string = (
+    value: string,
+  ): string => {
+    return value === TOKEN ? ERASED_ID : `[INDICATOR:${"e".repeat(16)}]`;
+  };
+
+  function match(
+    overrides: Partial<Parameters<typeof threatIntelMatchMarkdown>[0]> = {},
+  ): string {
+    return threatIntelMatchMarkdown({
+      feedName: "Acme Phishing Senders",
+      indicatorName: "Phishing sender alice@example.com",
+      indicatorValue: "alice@example.com",
+      indicatorType: "email-addr",
+      confidence: 80,
+      matchCount: 2,
+      windowStart: "2026-11-24T09:00:00Z",
+      windowEnd: "2026-11-24T09:15:00Z",
+      stixId: STIX_ID,
+      sampleMessage: "Sign-in from 203.0.113.7",
+      ...overrides,
+    }).toString();
+  }
+
+  // An alert's description, as the matcher writes it (ThreatIntelMatcher.buildMatchDescription).
+  function alertText(stixId: string = STIX_ID): string {
+    return [
+      "Phishing sender alice@example.com",
+      "Indicator alice@example.com (email-addr, confidence 80) matched 2 security events between 2026-11-24T09:00:00Z and 2026-11-24T09:15:00Z.",
+      `STIX indicator: ${stixId}`,
+      "Sample event: Sign-in from 203.0.113.7",
+      "Observables: alice@example.com, 203.0.113.7",
+    ].join("\n\n");
+  }
+
+  test("a detection's description: the erased indicator id for the STIX id, and the indicator's name gone", () => {
+    const unnamed: string = unnameThreatIntelDescription(
+      unnameDescription(match(), NAMES),
+      { names: NAMES, erasedIndicatorIdOf },
+    )!;
+
+    expect(unnamed).toBe(
+      [
+        `Indicator \`${TOKEN}\` (email-addr, confidence 80) from the threat intel feed **Acme Phishing Senders** matched 2 security events between 2026-11-24T09:00:00Z and 2026-11-24T09:15:00Z.`,
+        `STIX indicator: \`${ERASED_ID}\``,
+        "Sample event: `Sign-in from 203.0.113.7`",
+      ].join("\n\n"),
+    );
+    expect(unnamed).not.toContain("indicator--");
+    expect(unnamed).not.toContain("Phishing sender");
+    expect(unnamed).not.toContain("alice");
+  });
+
+  test("the same on its own, before the names are out, and on one an earlier erasure un-named", () => {
+    const before: string = unnameThreatIntelDescription(match(), {
+      names: NAMES,
+      erasedIndicatorIdOf,
+    })!;
+
+    expect(before).toContain(`STIX indicator: \`${ERASED_ID}\``);
+    expect(before).not.toContain("Indicator: ");
+
+    const earlier: string = unnameDescription(match(), NAMES)!;
+
+    expect(
+      unnameThreatIntelDescription(earlier, {
+        names: NAMES,
+        erasedIndicatorIdOf,
+      }),
+    ).toBe(
+      unnameThreatIntelDescription(unnameDescription(match(), NAMES), {
+        names: NAMES,
+        erasedIndicatorIdOf,
+      }),
+    );
+  });
+
+  test("a list's indicator has no STIX line: only its name goes", () => {
+    const unnamed: string = unnameThreatIntelDescription(
+      match({ stixId: "list" }),
+      { names: NAMES, erasedIndicatorIdOf },
+    )!;
+
+    expect(unnamed).not.toContain("STIX indicator");
+    expect(unnamed).not.toContain("Phishing sender");
+    expect(unnamed).toContain("Sample event:");
+  });
+
+  test("running it again changes nothing", () => {
+    const once: string = unnameThreatIntelDescription(
+      unnameDescription(match(), NAMES),
+      { names: NAMES, erasedIndicatorIdOf },
+    )!;
+
+    expect(
+      unnameThreatIntelDescription(once, { names: NAMES, erasedIndicatorIdOf }),
+    ).toBe(once);
+  });
+
+  test("a match about anything else, another person's, a description of another kind, or one a person rewrote, stays", () => {
+    for (const description of [
+      match({ indicatorValue: "198.51.100.4", indicatorType: "ipv4-addr" }),
+      match({ indicatorValue: "carol@example.com" }),
+      // The name inside a longer value is not the match's value.
+      match({ indicatorValue: "mailto:alice@example.com" }),
+      detectionRuleMatchMarkdown({
+        ruleName: "Brute force",
+        matchCount: 3,
+        windowStart: "2026-11-24T09:00:00Z",
+        windowEnd: "2026-11-24T09:15:00Z",
+        observables: ["alice@example.com"],
+      }).toString(),
+      `A person wrote this.\n\nIndicator: keep this\n\nSTIX indicator: \`${STIX_ID}\``,
+    ]) {
+      expect(
+        unnameThreatIntelDescription(description, {
+          names: NAMES,
+          erasedIndicatorIdOf,
+        }),
+      ).toBe(description);
+    }
+
+    expect(
+      unnameThreatIntelDescription(undefined, {
+        names: NAMES,
+        erasedIndicatorIdOf,
+      }),
+    ).toBeUndefined();
+    expect(
+      unnameThreatIntelDescription("", { names: NAMES, erasedIndicatorIdOf }),
+    ).toBe("");
+  });
+
+  test("each name's own token: the id stands for the match on what the rule left", () => {
+    const unnamed: string = unnameThreatIntelDescription(
+      match({ indicatorValue: "bob" }),
+      { names: NAMES, erasedIndicatorIdOf },
+    )!;
+
+    expect(unnamed).toContain(
+      `STIX indicator: \`[INDICATOR:${"e".repeat(16)}]\``,
+    );
+  });
+
+  test("the STIX indicator an alert's description names", () => {
+    expect(getStixIndicatorIdOf(alertText())).toBe(STIX_ID);
+    expect(
+      getStixIndicatorIdOf(`Some text\n\nSTIX indicator: ${STIX_ID}\n`),
+    ).toBe(STIX_ID);
+    expect(getStixIndicatorIdOf(alertText(ERASED_ID))).toBeNull();
+    expect(
+      getStixIndicatorIdOf("Indicator 198.51.100.4 (ipv4-addr)"),
+    ).toBeNull();
+    expect(getStixIndicatorIdOf(undefined)).toBeNull();
+    expect(getStixIndicatorIdOf(null)).toBeNull();
+  });
+
+  test("an alert's description and its feed item: the erased indicator id where they say the STIX id, the rest as written", () => {
+    const description: string = withErasedStixIndicator(alertText(), {
+      stixId: STIX_ID,
+      erasedId: ERASED_ID,
+    })!;
+
+    expect(description).toBe(alertText(ERASED_ID));
+
+    // A feed item embeds the description among lines of its own.
+    const feedItem: string = `#### Alert #12 Created:\n\n**[Threat Intel] Acme — alice@example.com**:\n\n${alertText()}\n\n🔴 **Alert State**: Created`;
+
+    expect(
+      withErasedStixIndicator(feedItem, {
+        stixId: STIX_ID,
+        erasedId: ERASED_ID,
+      }),
+    ).toBe(
+      feedItem.replace(
+        `STIX indicator: ${STIX_ID}`,
+        `STIX indicator: ${ERASED_ID}`,
+      ),
+    );
+  });
+
+  test("an alert's text that names another indicator, or none, stays", () => {
+    const other: string = alertText(
+      "indicator--00000000-0000-4000-8000-000000000000",
+    );
+
+    expect(
+      withErasedStixIndicator(other, { stixId: STIX_ID, erasedId: ERASED_ID }),
+    ).toBe(other);
+    expect(
+      withErasedStixIndicator("No indicator here", {
+        stixId: STIX_ID,
+        erasedId: ERASED_ID,
+      }),
+    ).toBe("No indicator here");
+    expect(
+      withErasedStixIndicator(alertText(), { stixId: "", erasedId: ERASED_ID }),
+    ).toBe(alertText());
+    expect(
+      withErasedStixIndicator(undefined, {
+        stixId: STIX_ID,
+        erasedId: ERASED_ID,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("the events a detection kept: a stamp about the person says the token and the erased indicator id", () => {
+    const kept: JSONObject = {
+      events: [
+        {
+          message: "Sign-in",
+          attributes: {
+            "threat.indicator_value": "alice@example.com",
+            "threat.indicator_id": STIX_ID,
+            "threat.feed": "Acme Phishing Senders",
+            "threat.indicator_type": "email-addr",
+          },
+        },
+        {
+          message: "Port scan",
+          attributes: {
+            "threat.indicator_value": "198.51.100.4",
+            "threat.indicator_id":
+              "indicator--11111111-1111-4111-8111-111111111111",
+          },
+        },
+        { message: "No stamp", attributes: { "http.route": "/login" } },
+        { message: "No attributes" },
+      ],
+      outcomes: { blocked: 2 },
+    };
+
+    const result: { value: JSONObject; changed: boolean } =
+      unnameKeptEventStamps(kept, { names: NAMES, erasedIndicatorIdOf });
+
+    expect(result.changed).toBe(true);
+    expect(result.value).toEqual({
+      events: [
+        {
+          message: "Sign-in",
+          attributes: {
+            "threat.indicator_value": TOKEN,
+            "threat.indicator_id": ERASED_ID,
+            "threat.feed": "Acme Phishing Senders",
+            "threat.indicator_type": "email-addr",
+          },
+        },
+        kept["events"] && (kept["events"] as Array<JSONObject>)[1],
+        { message: "No stamp", attributes: { "http.route": "/login" } },
+        { message: "No attributes" },
+      ],
+      outcomes: { blocked: 2 },
+    });
+    // The kept events as they were read are not changed under the reader.
+    expect(
+      ((kept["events"] as Array<JSONObject>)[0]!["attributes"] as JSONObject)[
+        "threat.indicator_id"
+      ],
+    ).toBe(STIX_ID);
+  });
+
+  test("a stamp in the vault's spelling or lower-cased, or one an earlier erasure gave the token, gets it too", () => {
+    const names: Array<ErasedName> = [
+      { named: "Alice@Example.com", hashed: TOKEN },
+    ];
+
+    for (const stamp of ["alice@example.com", "Alice@Example.com", TOKEN]) {
+      const result: { value: JSONObject; changed: boolean } =
+        unnameKeptEventStamps(
+          {
+            events: [
+              {
+                attributes: {
+                  "threat.indicator_value": stamp,
+                  "threat.indicator_id": STIX_ID,
+                },
+              },
+            ],
+          },
+          { names, erasedIndicatorIdOf },
+        );
+
+      expect(result.changed).toBe(true);
+      expect(
+        (result.value["events"] as Array<JSONObject>)[0]!["attributes"],
+      ).toEqual({
+        "threat.indicator_value": TOKEN,
+        "threat.indicator_id": ERASED_ID,
+      });
+    }
+  });
+
+  test("kept events with nothing of the person, or none at all, are left as they are", () => {
+    const done: JSONObject = {
+      events: [
+        {
+          attributes: {
+            "threat.indicator_value": TOKEN,
+            "threat.indicator_id": ERASED_ID,
+          },
+        },
+      ],
+    };
+
+    expect(
+      unnameKeptEventStamps(done, { names: NAMES, erasedIndicatorIdOf }),
+    ).toEqual({ value: done, changed: false });
+
+    for (const value of [undefined, null, {}, { events: "nope" }]) {
+      expect(
+        unnameKeptEventStamps(value as JSONObject, {
+          names: NAMES,
+          erasedIndicatorIdOf,
+        }),
+      ).toEqual({ value, changed: false });
+    }
+  });
+
+  test("a kept event's own __proto__ attribute stays its own", () => {
+    const attributes: JSONObject = JSON.parse(
+      '{"__proto__": "kept", "threat.indicator_value": "alice@example.com", "threat.indicator_id": "indicator--x"}',
+    ) as JSONObject;
+    const result: { value: JSONObject; changed: boolean } =
+      unnameKeptEventStamps(
+        { events: [{ attributes }] },
+        { names: NAMES, erasedIndicatorIdOf },
+      );
+    const stamped: JSONObject = (
+      result.value["events"] as Array<JSONObject>
+    )[0]!["attributes"] as JSONObject;
+
+    expect(Object.prototype.hasOwnProperty.call(stamped, "__proto__")).toBe(
+      true,
+    );
+    expect(Object.getPrototypeOf(stamped)).toBe(Object.prototype);
+  });
+
+  test("the lines it reads are the ones SecurityCaseMarkdown writes", () => {
+    const description: string = match();
+
+    expect(description.startsWith(THREAT_INTEL_MATCH_SENTENCE_PREFIX)).toBe(
+      true,
+    );
+    expect(description).toContain(
+      `\n\n${THREAT_INTEL_INDICATOR_NAME_PREFIX}Phishing sender`,
+    );
+    expect(description).toContain(
+      `\n\n${THREAT_INTEL_STIX_INDICATOR_PREFIX}\`${STIX_ID}\``,
+    );
   });
 });

@@ -1,4 +1,8 @@
-import { JSONValue } from "../../Types/JSON";
+import { JSONObject, JSONValue } from "../../Types/JSON";
+import {
+  ENRICHMENT_INDICATOR_ID_ATTRIBUTE,
+  ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE,
+} from "../../Types/SecurityEvent/ThreatIntelConstants";
 import { writeOwnValue } from "../LookupTable";
 import FeedMarkdown from "../Markdown/FeedMarkdown";
 import { escapeRegExp } from "../RegExpEscape";
@@ -411,4 +415,258 @@ export function namesAnyone(
   names: ReadonlyArray<ErasedName>,
 ): boolean {
   return unnameJson(value, names).changed;
+}
+
+/*
+ * THE FEED'S INDICATOR, OUT OF WHAT OneUptime WROTE ABOUT A MATCH ON THE
+ * PERSON (#11230).
+ *
+ * A threat intel feed can list the person's email address. What OneUptime
+ * wrote about the match named the feed's indicator, by its id and by its
+ * name, and the feed keeps the address beside both in clear: following
+ * either named the person. Once the indicator's value is out (it is one of
+ * the names, so it gets the token), the indicator is taken out with it:
+ *
+ *   - a detection's description, and the case's it opened
+ *     (SecurityCaseMarkdown.threatIntelMatchMarkdown): "STIX indicator:
+ *     `indicator--...`" says the erased indicator id instead, and the line
+ *     "Indicator: <its name>" goes;
+ *   - an alert's or an incident's description, and the feed item that
+ *     announced it: its "STIX indicator: indicator--..." says the erased
+ *     indicator id. The rest of an alert stays as it was written, as an
+ *     erasure leaves alerts and incidents;
+ *   - an event a detection kept: its threat intel stamp
+ *     (threat.indicator_value, threat.indicator_id) about the person says
+ *     the token and the erased indicator id.
+ *
+ * The erased indicator id is the keyed fingerprint of the match once the
+ * person is out, made where the project's key is (`erasedIndicatorIdOf`,
+ * Server/Utils/SecurityEvent/DetectionFingerprint.erasedIndicatorIdOf), so
+ * every place says the same for the same match. Only OneUptime's own lines
+ * are read: a description a person rewrote stays as they wrote it.
+ */
+
+// How a threat intel match's description opens, and the lines after it.
+export const THREAT_INTEL_MATCH_SENTENCE_PREFIX: string = "Indicator ";
+export const THREAT_INTEL_INDICATOR_NAME_PREFIX: string = "Indicator: ";
+export const THREAT_INTEL_STIX_INDICATOR_PREFIX: string = "STIX indicator: ";
+
+// Between the paragraphs of a description OneUptime wrote.
+const PARAGRAPH_SEPARATOR: string = "\n\n";
+
+/*
+ * A line that names a STIX indicator by its id, as an alert's description
+ * (ThreatIntelMatcher.buildMatchDescription) writes it: the id is captured.
+ */
+const STIX_INDICATOR_LINE: RegExp =
+  /^STIX indicator: (indicator--[^\s`]+)\s*$/m;
+
+/*
+ * The name whose match a threat intel description is about: its first
+ * paragraph is the match's sentence, its indicator's value one of the names
+ * or what the rule left of one, as inline code. What the rule left, or null.
+ */
+function getMatchValueOf(
+  firstParagraph: string,
+  names: ReadonlyArray<ErasedName>,
+): string | null {
+  for (const name of names) {
+    for (const value of [name.named, name.hashed]) {
+      if (
+        value &&
+        firstParagraph.startsWith(
+          `${THREAT_INTEL_MATCH_SENTENCE_PREFIX}${asDescriptionCode(value)} (`,
+        )
+      ) {
+        return name.hashed;
+      }
+    }
+  }
+
+  return null;
+}
+
+/*
+ * A threat intel detection's description, or the case's it opened, with the
+ * feed's indicator taken out when the match was about one of the names (see
+ * above). Any other description stays.
+ */
+export function unnameThreatIntelDescription(
+  description: string | undefined | null,
+  data: {
+    names: ReadonlyArray<ErasedName>;
+    erasedIndicatorIdOf: (value: string) => string;
+  },
+): string | undefined | null {
+  if (typeof description !== "string" || !description) {
+    return description;
+  }
+
+  const paragraphs: Array<string> = description.split(PARAGRAPH_SEPARATOR);
+  const value: string | null = getMatchValueOf(paragraphs[0] || "", data.names);
+
+  if (!value) {
+    return description;
+  }
+
+  const erasedId: string = data.erasedIndicatorIdOf(value);
+  const result: string = [
+    paragraphs[0]!,
+    ...paragraphs
+      .slice(1)
+      .filter((paragraph: string): boolean => {
+        return !paragraph.startsWith(THREAT_INTEL_INDICATOR_NAME_PREFIX);
+      })
+      .map((paragraph: string): string => {
+        return paragraph.startsWith(THREAT_INTEL_STIX_INDICATOR_PREFIX)
+          ? `${THREAT_INTEL_STIX_INDICATOR_PREFIX}${asDescriptionCode(erasedId)}`
+          : paragraph;
+      }),
+  ].join(PARAGRAPH_SEPARATOR);
+
+  return result === description ? description : result;
+}
+
+// The STIX indicator an alert's description names, or null.
+export function getStixIndicatorIdOf(
+  text: string | undefined | null,
+): string | null {
+  if (typeof text !== "string") {
+    return null;
+  }
+
+  const match: RegExpMatchArray | null = text.match(STIX_INDICATOR_LINE);
+
+  return match ? match[1]! : null;
+}
+
+/*
+ * An alert's or an incident's text - its description, or the feed item that
+ * announced it - with `erasedId` where it says "STIX indicator:
+ * <stixId>". Any other text stays.
+ */
+export function withErasedStixIndicator(
+  text: string | undefined | null,
+  data: { stixId: string; erasedId: string },
+): string | undefined | null {
+  if (typeof text !== "string" || !text || !data.stixId) {
+    return text;
+  }
+
+  const stated: string = `${THREAT_INTEL_STIX_INDICATOR_PREFIX}${data.stixId}`;
+  const result: string = text
+    .split(stated)
+    .join(`${THREAT_INTEL_STIX_INDICATOR_PREFIX}${data.erasedId}`);
+
+  return result === text ? text : result;
+}
+
+// A value as the enricher matched it: trimmed, in lower case.
+function asEnrichedValue(value: string): string {
+  return (value || "").trim().toLowerCase();
+}
+
+/*
+ * The name a threat intel stamp holds, or what the rule left of one: the
+ * enricher stamps the value it matched in lower case, so it is matched so.
+ */
+function getStampedNameOf(
+  stamp: string,
+  names: ReadonlyArray<ErasedName>,
+): ErasedName | null {
+  const exact: ErasedName | undefined = names.find(
+    (name: ErasedName): boolean => {
+      return name.named === stamp || name.hashed === stamp;
+    },
+  );
+
+  if (exact) {
+    return exact;
+  }
+
+  return (
+    names.find((name: ErasedName): boolean => {
+      return asEnrichedValue(name.named) === asEnrichedValue(stamp);
+    }) || null
+  );
+}
+
+/*
+ * The events a detection kept (Types/SecurityCase/
+ * SecurityDetectionMatchedEvents), with each threat intel stamp about one
+ * of the names saying what the rule left and the erased indicator id (see
+ * above). Says whether any did.
+ */
+export function unnameKeptEventStamps<T extends JSONObject | undefined | null>(
+  matchedEvents: T,
+  data: {
+    names: ReadonlyArray<ErasedName>;
+    erasedIndicatorIdOf: (value: string) => string;
+  },
+): { value: T; changed: boolean } {
+  const events: unknown = (matchedEvents as JSONObject | null | undefined)?.[
+    "events"
+  ];
+
+  if (!Array.isArray(events)) {
+    return { value: matchedEvents, changed: false };
+  }
+
+  let changed: boolean = false;
+
+  const kept: Array<unknown> = events.map((event: unknown): unknown => {
+    const attributes: unknown = (event as JSONObject | null)?.["attributes"];
+
+    if (!attributes || typeof attributes !== "object") {
+      return event;
+    }
+
+    const record: Record<string, unknown> = attributes as Record<
+      string,
+      unknown
+    >;
+    const stamp: unknown = record[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE];
+
+    if (typeof stamp !== "string" || !stamp) {
+      return event;
+    }
+
+    const name: ErasedName | null = getStampedNameOf(stamp, data.names);
+
+    if (!name) {
+      return event;
+    }
+
+    const indicatorId: string = data.erasedIndicatorIdOf(name.hashed);
+
+    if (
+      record[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE] === name.hashed &&
+      record[ENRICHMENT_INDICATOR_ID_ATTRIBUTE] === indicatorId
+    ) {
+      return event;
+    }
+
+    changed = true;
+
+    const stamped: Record<string, unknown> = {};
+
+    for (const [key, inner] of Object.entries(record)) {
+      writeOwnValue(stamped, key, inner);
+    }
+
+    stamped[ENRICHMENT_INDICATOR_VALUE_ATTRIBUTE] = name.hashed;
+    stamped[ENRICHMENT_INDICATOR_ID_ATTRIBUTE] = indicatorId;
+
+    return { ...(event as JSONObject), attributes: stamped };
+  });
+
+  return changed
+    ? {
+        value: {
+          ...(matchedEvents as JSONObject),
+          events: kept,
+        } as unknown as T,
+        changed,
+      }
+    : { value: matchedEvents, changed };
 }

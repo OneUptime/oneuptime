@@ -20,7 +20,11 @@ import {
   DETECTION_GROUP_VALUE_ATTRIBUTE,
   DETECTION_SUMMARY_ATTRIBUTE,
 } from "../../../../Types/SecurityEvent/DetectionFindingConstants";
-import { THREAT_INDICATOR_VALUE_ATTRIBUTE } from "../../../../Types/SecurityEvent/ThreatIntelConstants";
+import {
+  THREAT_FEED_NAME_ATTRIBUTE,
+  THREAT_INDICATOR_ID_ATTRIBUTE,
+  THREAT_INDICATOR_VALUE_ATTRIBUTE,
+} from "../../../../Types/SecurityEvent/ThreatIntelConstants";
 import {
   DETECTION_FINGERPRINT_TEXT_SEPARATOR,
   DetectionFingerprintKind,
@@ -97,6 +101,21 @@ import {
  *     fingerprint is of what the finding holds once the names are out, so
  *     it says nothing a reader of the finding cannot read in it; the old
  *     one, of the name, is never sent.
+ *
+ * AND THE FEED'S INDICATOR (#11230). A threat intel feed can list the
+ * person's email address, and the finding about the match named the feed's
+ * indicator: its id in ruleId and oneuptime.threat.indicator_id (a STIX
+ * indicator's "indicator--<uuid>"), its name in ruleName. The feed keeps
+ * the address beside them in clear, so either led back to the person. The
+ * same change puts the erased indicator id in both id places - the keyed
+ * fingerprint of the match once the names are out, as its alert and case
+ * detection carry it (DetectionFingerprint.erasedIndicatorIdOf) - and the
+ * feed's own name in ruleName, as a match on an indicator with no name has
+ * it. The feed stays named, and so do the indicator's type and confidence:
+ * that one of the feed's indicators matched, never which. The old id is
+ * never sent, only the new one; the feed's name is the finding's own
+ * attribute. A finding an earlier erasure un-named with the indicator left
+ * as it was gets it the same way.
  *
  * BATCHED AND IDEMPOTENT. Findings that need the same change (the same
  * observables replaced by the same tokens, the same new fingerprint - most
@@ -208,6 +227,15 @@ export interface FindingUidChange {
   fingerprint: string;
 }
 
+/*
+ * What a threat intel finding says of the feed's indicator once its person
+ * is out (#11230): the erased indicator id in ruleId and
+ * oneuptime.threat.indicator_id, and the feed's own name in ruleName.
+ */
+export interface FindingIndicatorChange {
+  id: string;
+}
+
 // A finding to change: the names to take out of it, and its id's new fingerprint.
 export interface FindingRewrite {
   id: string;
@@ -217,6 +245,8 @@ export interface FindingRewrite {
   replacements: Array<FindingReplacement>;
   // Its id's fingerprint, when that changes.
   uid?: FindingUidChange | undefined;
+  // The feed's indicator it names, when that is taken out (#11230).
+  indicator?: FindingIndicatorChange | undefined;
   /*
    * The value its fingerprint is of, as it was and once the names are out:
    * what else carries the same fingerprint (an alert, a case detection, a
@@ -237,6 +267,15 @@ export interface ErasureFindingRow {
   indicatorValue?: string | undefined;
   // Whether an erasure request un-named it already.
   isMarkedErased?: boolean | undefined;
+  /*
+   * What a threat intel finding names the feed's indicator by (#11230): its
+   * ruleId and oneuptime.threat.indicator_id (the indicator's id), its
+   * ruleName (the indicator's name, or the feed's), and the feed's name.
+   */
+  ruleId?: string | undefined;
+  ruleName?: string | undefined;
+  indicatorId?: string | undefined;
+  feedName?: string | undefined;
 }
 
 // Where a read of a project's findings is: after this finding, in (time, _id) order.
@@ -351,6 +390,22 @@ function holdsAnyToken(
 }
 
 /*
+ * The indicator change a threat intel finding needs once `erasedId` stands
+ * for its indicator (#11230), or none when it already says nothing more:
+ * both id places hold it, and ruleName is the feed's.
+ */
+export function getFindingIndicatorChange(
+  row: ErasureFindingRow,
+  erasedId: string,
+): FindingIndicatorChange | undefined {
+  return row.ruleId !== erasedId ||
+    row.indicatorId !== erasedId ||
+    (row.ruleName || "") !== (row.feedName || "")
+    ? { id: erasedId }
+    : undefined;
+}
+
+/*
  * The change a finding needs, or null when it needs none:
  *
  *   - each observable that is exactly one of the names, with what goes in
@@ -358,7 +413,10 @@ function holdsAnyToken(
  *     names are out (#11130);
  *   - for a finding an earlier erasure un-named (marked erased, holding one
  *     of the request's tokens) whose id still holds another fingerprint
- *     than its group value's, the id alone.
+ *     than its group value's, the id alone;
+ *   - for a threat intel finding either way, the feed's indicator taken out
+ *     (#11230): the erased indicator id in its id places, the feed's name
+ *     in ruleName.
  *
  * `projectId` keys the fingerprint; `tokens` are the request's.
  */
@@ -387,10 +445,12 @@ export function planFindingRewrite(
   const places: DetectionFingerprintPlaces | null = getFindingUidPlaces(
     row.eventUid,
   );
+  // A feed's finding: by its id, else by the indicator it names.
+  const isThreatIntel: boolean = places
+    ? places.source === DetectionFingerprintKind.ThreatIntel
+    : Boolean(row.indicatorValue);
   const value: string =
-    (places?.source === DetectionFingerprintKind.ThreatIntel
-      ? row.indicatorValue
-      : row.groupValue) || "";
+    (isThreatIntel ? row.indicatorValue : row.groupValue) || "";
   const unnamedValue: string =
     (unnameGroupValue(value, Array.from(byName.values())) as string) || "";
 
@@ -414,7 +474,19 @@ export function planFindingRewrite(
     }
   }
 
-  if (!isNaming && !uid) {
+  // The feed's indicator, taken out of a finding about the person (#11230).
+  const indicator: FindingIndicatorChange | undefined =
+    isThreatIntel && unnamedValue && (isNaming || isStale)
+      ? getFindingIndicatorChange(
+          row,
+          DetectionFingerprint.erasedIndicatorIdOf({
+            projectId: context.projectId,
+            value: unnamedValue,
+          }),
+        )
+      : undefined;
+
+  if (!isNaming && !uid && !indicator) {
     return null;
   }
 
@@ -423,6 +495,7 @@ export function planFindingRewrite(
     time: row.time,
     replacements,
     ...(uid ? { uid } : {}),
+    ...(indicator ? { indicator } : {}),
     ...(isNaming && value && unnamedValue !== value
       ? { groupValue: { named: value, hashed: unnamedValue } }
       : {}),
@@ -443,6 +516,7 @@ function changeKeyOf(rewrite: FindingRewrite): string {
       },
     ),
     rewrite.uid ? [rewrite.uid.positions, rewrite.uid.fingerprint] : null,
+    rewrite.indicator ? rewrite.indicator.id : null,
   ]);
 }
 
@@ -456,6 +530,7 @@ function compareTimes(a: string, b: string): number {
 export interface FindingsMutation {
   replacements: Array<FindingReplacement>;
   uid?: FindingUidChange | undefined;
+  indicator?: FindingIndicatorChange | undefined;
   ids: Array<string>;
   // The earliest and the latest of the findings' times, in nanoseconds.
   fromTime: string;
@@ -504,6 +579,7 @@ export function batchFindingRewrites(
       mutations.push({
         replacements: chunk[0]!.replacements,
         ...(chunk[0]!.uid ? { uid: chunk[0]!.uid } : {}),
+        ...(chunk[0]!.indicator ? { indicator: chunk[0]!.indicator } : {}),
         ids: chunk.map((rewrite: FindingRewrite): string => {
           return rewrite.id;
         }),
@@ -567,15 +643,16 @@ export default class SecurityUserErasureFindings {
   /*
    * A page of the project's own Detection Findings, in the order they were
    * written, after `after`: their _id, when, their observables, their id
-   * and what they are about, and whether an erasure changed them. Names the
-   * project, the class, the vendor and attribute keys - never anybody.
+   * and what they are about, whether an erasure changed them, and - for a
+   * feed's - what names the feed's indicator. Names the project, the class,
+   * the vendor and attribute keys - never anybody.
    */
   public static toFindingsPageStatement(data: {
     projectId: ObjectID;
     after?: FindingsCursor | null | undefined;
     limit: number;
   }): Statement {
-    const statement: Statement = SQL`SELECT _id AS findingId, toString(toUnixTimestamp64Nano(time)) AS findingTime, observables, eventUid AS findingUid, attributes[${text(DETECTION_GROUP_VALUE_ATTRIBUTE)}] AS findingGroupValue, attributes[${text(THREAT_INDICATOR_VALUE_ATTRIBUTE)}] AS findingIndicatorValue, attributes[${text(FINDING_USER_ERASED_ATTRIBUTE)}] AS findingErased FROM `;
+    const statement: Statement = SQL`SELECT _id AS findingId, toString(toUnixTimestamp64Nano(time)) AS findingTime, observables, eventUid AS findingUid, attributes[${text(DETECTION_GROUP_VALUE_ATTRIBUTE)}] AS findingGroupValue, attributes[${text(THREAT_INDICATOR_VALUE_ATTRIBUTE)}] AS findingIndicatorValue, attributes[${text(FINDING_USER_ERASED_ATTRIBUTE)}] AS findingErased, ruleId AS findingRuleId, ruleName AS findingRuleName, attributes[${text(THREAT_INDICATOR_ID_ATTRIBUTE)}] AS findingIndicatorId, attributes[${text(THREAT_FEED_NAME_ATTRIBUTE)}] AS findingFeedName FROM `;
 
     statement.append(
       `${databaseName()}.${SecurityEventService.model.tableName}`,
@@ -624,6 +701,10 @@ export default class SecurityUserErasureFindings {
           groupValue: readText(row["findingGroupValue"]),
           indicatorValue: readText(row["findingIndicatorValue"]),
           isMarkedErased: Boolean(readText(row["findingErased"])),
+          ruleId: readText(row["findingRuleId"]),
+          ruleName: readText(row["findingRuleName"]),
+          indicatorId: readText(row["findingIndicatorId"]),
+          feedName: readText(row["findingFeedName"]),
         };
       },
     );
@@ -839,25 +920,45 @@ export default class SecurityUserErasureFindings {
     }
   }
 
-  // The finding's attributes once the names are out, and the erasure said.
+  /*
+   * The finding's attributes once the names are out, the feed's indicator
+   * with them (#11230), and the erasure said.
+   */
   private static appendUnnamedAttributes(data: {
     statement: Statement;
     replacements: ReadonlyArray<FindingReplacement>;
+    indicator?: FindingIndicatorChange | undefined;
   }): void {
+    data.statement.append("mapUpdate(");
+
+    if (data.replacements.length > 0) {
+      data.statement.append(
+        SQL`mapApply((attributeKey, attributeValue) -> (attributeKey, if(has(${{
+          type: TableColumnType.ArrayText,
+          value: [...FINDING_NAMING_ATTRIBUTES],
+        }}, attributeKey), `,
+      );
+      this.appendUnnamedText({
+        statement: data.statement,
+        value: "attributeValue",
+        replacements: data.replacements,
+      });
+      data.statement.append(", attributeValue)), attributes)");
+    } else {
+      data.statement.append("attributes");
+    }
+
     data.statement.append(
-      SQL`mapUpdate(mapApply((attributeKey, attributeValue) -> (attributeKey, if(has(${{
-        type: TableColumnType.ArrayText,
-        value: [...FINDING_NAMING_ATTRIBUTES],
-      }}, attributeKey), `,
+      SQL`, map(${text(FINDING_USER_ERASED_ATTRIBUTE)}, ${text(USER_ERASED_ON_REQUEST)}`,
     );
-    this.appendUnnamedText({
-      statement: data.statement,
-      value: "attributeValue",
-      replacements: data.replacements,
-    });
-    data.statement.append(
-      SQL`, attributeValue)), attributes), map(${text(FINDING_USER_ERASED_ATTRIBUTE)}, ${text(USER_ERASED_ON_REQUEST)}))`,
-    );
+
+    if (data.indicator) {
+      data.statement.append(
+        SQL`, ${text(THREAT_INDICATOR_ID_ATTRIBUTE)}, ${text(data.indicator.id)}`,
+      );
+    }
+
+    data.statement.append("))");
   }
 
   /*
@@ -898,6 +999,8 @@ export default class SecurityUserErasureFindings {
     mutation: FindingsMutation;
   }): Statement {
     const replacements: Array<FindingReplacement> = data.mutation.replacements;
+    const indicator: FindingIndicatorChange | undefined =
+      data.mutation.indicator;
     const statement: Statement = SQL`ALTER TABLE `;
 
     statement.append(
@@ -933,12 +1036,29 @@ export default class SecurityUserErasureFindings {
 
         statement.append(", message = ");
         this.appendUnnamedText({ statement, value: "message", replacements });
+      });
+    }
 
-        statement.append(", attributes = ");
-        this.appendUnnamedAttributes({ statement, replacements });
+    if (replacements.length > 0 || indicator) {
+      updates.push((): void => {
+        statement.append("attributes = ");
+        this.appendUnnamedAttributes({ statement, replacements, indicator });
         statement.append(", attributeKeys = mapKeys(");
-        this.appendUnnamedAttributes({ statement, replacements });
+        this.appendUnnamedAttributes({ statement, replacements, indicator });
         statement.append(")");
+      });
+    }
+
+    /*
+     * The feed's indicator out of the finding's provenance (#11230): the
+     * erased indicator id for the indicator's, and the feed's name - the
+     * finding's own attribute - for the indicator's.
+     */
+    if (indicator) {
+      updates.push((): void => {
+        statement.append(
+          SQL`ruleId = ${text(indicator.id)}, ruleName = attributes[${text(THREAT_FEED_NAME_ATTRIBUTE)}]`,
+        );
       });
     }
 
@@ -985,7 +1105,11 @@ export default class SecurityUserErasureFindings {
     let changed: number = 0;
 
     for (const mutation of batchFindingRewrites(data.rewrites)) {
-      if (mutation.replacements.length === 0 && !mutation.uid) {
+      if (
+        mutation.replacements.length === 0 &&
+        !mutation.uid &&
+        !mutation.indicator
+      ) {
         continue;
       }
 
