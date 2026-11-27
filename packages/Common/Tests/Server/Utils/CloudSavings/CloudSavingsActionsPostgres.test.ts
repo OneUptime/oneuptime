@@ -1888,6 +1888,335 @@ describePostgres("acting on savings, against Postgres", () => {
     });
   });
 
+  /*
+   * #11347: a resource's environment was read from its tags, its account
+   * and the names of its labels alike for every change, so renaming one
+   * label - an ordinary edit - let a rule act without asking, and a
+   * schedule stop, every resource it was on. Here the label is a row of
+   * Label joined to the resource (CloudResourceLabel), read as the
+   * services read it: renaming it is one UPDATE that every resource
+   * carrying it reads.
+   */
+  describe("a label renamed (#11347)", () => {
+    // Monday 23 November 2026, in UTC: working hours 08:00 to 19:00.
+    const MONDAY_EVENING: Date = new Date("2026-11-23T19:05:00Z");
+
+    async function seedLabel(world: World, name: string): Promise<string> {
+      return await insertRow("Label", {
+        projectId: world.projectId.toString(),
+        name,
+        slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        isArchived: false,
+      });
+    }
+
+    async function attach(resourceId: string, labelId: string): Promise<void> {
+      await database.query(
+        `INSERT INTO "${schema}"."CloudResourceLabel" ("cloudResourceId", "labelId") VALUES ($1, $2)`,
+        [resourceId, labelId],
+      );
+    }
+
+    async function rename(labelId: string, name: string): Promise<void> {
+      await database.query(
+        `UPDATE "${schema}"."Label" SET "name" = $2 WHERE "_id" = $1`,
+        [labelId, name],
+      );
+    }
+
+    async function seedStopRule(world: World): Promise<void> {
+      await insertRow("AutoRemediationRule", {
+        projectId: world.projectId.toString(),
+        name: "Stop idle non-production",
+        isEnabled: true,
+        triggerEntityType: AutoRemediationTriggerEntity.CloudSaving,
+        cloudSavingAutonomy: CloudSavingsAiAutonomy.WithoutAsking,
+        cloudSavingMonthlyLimit: 500,
+        cloudSavingActionGroups: [],
+        cloudSavingEnvironments: [],
+        cloudSavingProviders: [],
+      });
+    }
+
+    // An idle instance OneUptime holds, with these tags and labels.
+    async function seedIdleInstance(
+      world: World,
+      data: {
+        id: string;
+        name: string;
+        tags: Record<string, string>;
+        labels?: Array<string> | undefined;
+      },
+    ): Promise<{ resourceId: string; savingId: ObjectID }> {
+      const resourceId: string = await seedResource(world, {
+        type: "AWS::EC2::Instance",
+        providerResourceId: data.id,
+        name: data.name,
+        tags: data.tags,
+        owners: [world.owner],
+      });
+
+      for (const labelId of data.labels || []) {
+        await attach(resourceId, labelId);
+      }
+
+      return {
+        resourceId,
+        savingId: await seedSaving(world, {
+          cloudResourceId: resourceId,
+          kind: CloudSavingKind.Idle,
+          action: "Stop",
+          resourceId: arn("instance", data.id),
+          resourceType: "AWS::EC2::Instance",
+          monthlySavings: 40,
+          recommendationId: `idle-${data.id}`,
+        }),
+      };
+    }
+
+    async function evaluate(
+      world: World,
+      now: Date,
+    ): Promise<CloudSavingsAiOutcome> {
+      return await CloudSavingsAiEngine.evaluateAccounts({
+        projectId: world.projectId,
+        cloudAccountIds: [world.accountId],
+        now,
+      });
+    }
+
+    test("Production renamed to dev: a rule proposes the instance it held, saying why, and changes nothing", async () => {
+      const world: World = await seedWorld();
+      const production: string = await seedLabel(world, "Production");
+      await seedIdleInstance(world, {
+        id: PROD_INSTANCE,
+        name: "orders-prod",
+        tags: { team: "orders" },
+        labels: [production],
+      });
+      await seedStopRule(world);
+      await rename(production, "dev");
+
+      const fake: FakeAwsSavings = fakeEc2();
+      const now: Date = new Date();
+
+      expect(await evaluate(world, now)).toEqual({
+        proposed: 1,
+        madeWithoutAsking: 0,
+        expired: 0,
+      });
+      expect((await actionsOf(world))[0]).toMatchObject({
+        status: CloudSavingsActionStatus.Proposed,
+        origin: CloudSavingsActionOrigin.Rule,
+        environment: CloudResourceEnvironment.NonProduction,
+        summary:
+          "Proposed: only its OneUptime labels say the resource is not production, so a person approves.",
+      });
+      expect(await CloudSavingsActionRunner.runDue(runner(fake, now))).toBe(0);
+      expect(fake.calls).toEqual([]);
+      expect(fake.instances.get(PROD_INSTANCE)?.state).toBe("running");
+    });
+
+    test("any label renamed to dev, on instances nothing else is said of: one edit, and none of them is stopped without asking", async () => {
+      const world: World = await seedWorld();
+      const team: string = await seedLabel(world, "team-a");
+
+      for (const id of [PROD_INSTANCE, UNKNOWN_INSTANCE]) {
+        await seedIdleInstance(world, {
+          id,
+          name: `orders-${id}`,
+          tags: { team: "orders" },
+          labels: [team],
+        });
+      }
+
+      await seedStopRule(world);
+      await rename(team, "dev");
+
+      const fake: FakeAwsSavings = fakeEc2();
+      const now: Date = new Date();
+
+      expect((await evaluate(world, now)).madeWithoutAsking).toBe(0);
+      await CloudSavingsActionRunner.runDue(runner(fake, now));
+      expect(fake.calls).toEqual([]);
+    });
+
+    test("an instance its tag calls dev is still stopped without asking; with a Production label, or an archived one, it is held", async () => {
+      const world: World = await seedWorld();
+      const production: string = await seedLabel(world, "Production");
+      const archived: string = await seedLabel(world, "env: prod");
+
+      await database.query(
+        `UPDATE "${schema}"."Label" SET "isArchived" = true WHERE "_id" = $1`,
+        [archived],
+      );
+      await seedIdleInstance(world, {
+        id: DEV_INSTANCE,
+        name: "orders-dev",
+        tags: { environment: "dev" },
+      });
+      await seedIdleInstance(world, {
+        id: PROD_INSTANCE,
+        name: "orders-dev-held",
+        tags: { environment: "dev" },
+        labels: [production],
+      });
+      await seedIdleInstance(world, {
+        id: UNKNOWN_INSTANCE,
+        name: "orders-dev-held-archived",
+        tags: { environment: "dev" },
+        labels: [archived],
+      });
+      await seedStopRule(world);
+
+      const fake: FakeAwsSavings = fakeEc2();
+      const now: Date = new Date();
+
+      expect(await evaluate(world, now)).toEqual({
+        proposed: 2,
+        madeWithoutAsking: 1,
+        expired: 0,
+      });
+      expect(await CloudSavingsActionRunner.runDue(runner(fake, now))).toBe(1);
+      expect(fake.writes()).toEqual(["ec2:StopInstances"]);
+      expect(fake.instances.get(DEV_INSTANCE)?.state).not.toBe("running");
+      expect(fake.instances.get(PROD_INSTANCE)?.state).toBe("running");
+      expect(fake.instances.get(UNKNOWN_INSTANCE)?.state).toBe("running");
+    });
+
+    test("read again as it is made: a Production label put on after the rule decided turns it into a proposal, on the timelines", async () => {
+      const world: World = await seedWorld();
+      const { resourceId } = await seedIdleInstance(world, {
+        id: DEV_INSTANCE,
+        name: "orders-dev",
+        tags: { environment: "dev" },
+      });
+      await seedStopRule(world);
+
+      const fake: FakeAwsSavings = fakeEc2();
+      const now: Date = new Date();
+
+      expect((await evaluate(world, now)).madeWithoutAsking).toBe(1);
+      expect((await actionsOf(world))[0]?.status).toBe(
+        CloudSavingsActionStatus.Applying,
+      );
+
+      await attach(resourceId, await seedLabel(world, "Production"));
+
+      expect(await CloudSavingsActionRunner.runDue(runner(fake, now))).toBe(1);
+      expect(fake.calls).toEqual([]);
+      expect((await actionsOf(world))[0]).toMatchObject({
+        status: CloudSavingsActionStatus.Proposed,
+        environment: CloudResourceEnvironment.Production,
+        summary:
+          "Proposed: the resource is production, so a person always approves.",
+      });
+      expect((await feedOf(world)).resource).toEqual(["SavingsActionProposed"]);
+
+      // Its owner may still approve it, and it is made, as them.
+      const result: CloudSavingsActionResult = await CloudSavingsActions.approve(
+        {
+          props: world.owner.props,
+          projectId: world.projectId,
+          actionId: new ObjectID((await actionsOf(world))[0]!._id),
+          runner: runner(fake, now),
+        },
+      );
+
+      expect(result.status).toBe(CloudSavingsActionStatus.Applied);
+      expect(fake.writes()).toEqual(["ec2:StopInstances"]);
+    });
+
+    test("an off-hours schedule leaves running what only a renamed label calls dev, and See Resources says so", async () => {
+      const world: World = await seedWorld();
+      const production: string = await seedLabel(world, "Production");
+      const resourceId: string = await seedResource(world, {
+        type: "AWS::EC2::Instance",
+        providerResourceId: PROD_INSTANCE,
+        name: "orders-prod",
+        tags: { Schedule: "office-hours" },
+      });
+
+      await attach(resourceId, production);
+      await rename(production, "dev");
+
+      const scheduleId: string = await insertRow("CloudOffHoursSchedule", {
+        projectId: world.projectId.toString(),
+        name: "Office hours",
+        isEnabled: true,
+        tagKey: "Schedule",
+        tagValue: "office-hours",
+        timezone: "UTC",
+        workingDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        startTime: "08:00",
+        stopTime: "19:00",
+        stopsInstances: true,
+        stopsDatabases: true,
+      });
+      const fake: FakeAwsSavings = fakeEc2();
+
+      expect(
+        (
+          await CloudOffHoursScheduler.preview({
+            projectId: world.projectId,
+            scheduleId: new ObjectID(scheduleId),
+            now: MONDAY_EVENING,
+          })
+        ).resources.map((resource: CloudOffHoursPreviewResource) => {
+          return resource.skipReason;
+        }),
+      ).toEqual([CloudOffHoursSkipReason.OnlyLabelsSayNonProduction]);
+
+      await CloudOffHoursScheduler.runAll(runner(fake, MONDAY_EVENING));
+
+      expect(fake.calls).toEqual([]);
+
+      const rows: Array<{ lastRunSummary: CloudOffHoursRunSummary }> =
+        await database.query(
+          `SELECT "lastRunSummary" FROM "${schema}"."CloudOffHoursSchedule" WHERE "_id" = $1`,
+          [scheduleId],
+        );
+
+      expect(rows[0]!.lastRunSummary).toMatchObject({
+        matched: 1,
+        stopped: 0,
+        skippedNotKnown: 1,
+      });
+    });
+
+    test("Apply by an owner still reads labels: a resource only they call non-production is made, as them", async () => {
+      const world: World = await seedWorld();
+      const { savingId } = await seedIdleInstance(world, {
+        id: UNKNOWN_INSTANCE,
+        name: "orders-staging",
+        tags: { team: "orders" },
+        labels: [await seedLabel(world, "Staging")],
+      });
+      const fake: FakeAwsSavings = fakeEc2();
+
+      const offer: CloudSavingsOffer = await CloudSavingsActions.offer({
+        props: world.owner.props,
+        projectId: world.projectId,
+        cloudCostRecommendationId: savingId,
+      });
+
+      expect(offer).toMatchObject({
+        environment: CloudResourceEnvironment.NonProduction,
+        environmentSource: "Label",
+      });
+
+      const result: CloudSavingsActionResult = await CloudSavingsActions.apply({
+        props: world.owner.props,
+        projectId: world.projectId,
+        cloudCostRecommendationId: savingId,
+        runner: runner(fake, new Date()),
+      });
+
+      expect(result.status).toBe(CloudSavingsActionStatus.Applied);
+      expect(fake.writes()).toEqual(["ec2:StopInstances"]);
+    });
+  });
+
   describe("proved by the bill", () => {
     test("a change the bill shows is kept as realised, and Saved this month adds up only that", async () => {
       const world: World = await seedWorld();
