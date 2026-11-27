@@ -103,7 +103,7 @@ export default class CronTab {
 
     if (typeof crontab !== "string" || !Number.isFinite(afterInMs)) {
       throw new BadDataException(
-        `Cannot work out the run of "${crontab}" after ${String(after)}`,
+        `Cannot work out the run of "${crontab}" after ${String(after)}. Pass a cron schedule and a valid date.`,
       );
     }
 
@@ -131,7 +131,9 @@ export default class CronTab {
         .toDate()
         .getTime();
     } catch {
-      throw new BadDataException(`Invalid cron expression: ${crontab}`);
+      throw new BadDataException(
+        `Invalid cron expression: ${crontab}. Write a schedule cron can read, such as "*/5 * * * *" for every five minutes.`,
+      );
     }
 
     if (isKept) {

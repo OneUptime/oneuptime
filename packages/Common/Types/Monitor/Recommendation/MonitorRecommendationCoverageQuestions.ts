@@ -259,7 +259,7 @@ export function readCoverageQuestions(
 
   if (!Array.isArray(questions)) {
     throw new BadDataException(
-      "questions must be a list of the recommendations asked about.",
+      "Send the recommendations to ask about as a list, in questions.",
     );
   }
 

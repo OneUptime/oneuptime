@@ -176,7 +176,9 @@ export default class HostAPI extends BaseAPI<Host, HostServiceType> {
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
     if (!props.tenantId) {
-      throw new BadDataException("Project ID is required");
+      throw new BadDataException(
+        "Project ID is required. Please pass the project ID in the 'tenantid' header.",
+      );
     }
 
     const idParam: string = req.params["id"] as string;
@@ -213,7 +215,9 @@ export default class HostAPI extends BaseAPI<Host, HostServiceType> {
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
     if (!props.tenantId) {
-      throw new BadDataException("Project ID is required");
+      throw new BadDataException(
+        "Project ID is required. Please pass the project ID in the 'tenantid' header.",
+      );
     }
 
     const idParam: string = req.params["cloudResourceId"] as string;

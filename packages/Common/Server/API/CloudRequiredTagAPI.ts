@@ -65,7 +65,9 @@ export default class CloudRequiredTagAPI extends BaseAPI<
       await CommonAPI.getDatabaseCommonInteractionProps(req);
 
     if (!props.tenantId) {
-      throw new BadDataException("Project ID is required");
+      throw new BadDataException(
+        "Project ID is required. Please pass the project ID in the 'tenantid' header.",
+      );
     }
 
     const body: JSONObject = (req.body || {}) as JSONObject;
