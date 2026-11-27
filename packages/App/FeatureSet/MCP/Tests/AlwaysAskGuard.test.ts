@@ -716,6 +716,60 @@ describe("what OneUptime AI asks before whatever its rules say", () => {
       "AutoRemediationRule",
       "AIRun",
     ]);
+
+    /*
+     * What OneUptime AI may do on a cluster, host or cloud on its own - its
+     * access, its autonomy, whether it bypasses approval - is a setting of
+     * those records, none of which has a tool here.
+     */
+    expectNoToolHere([
+      "KubernetesCluster",
+      "Host",
+      "DockerHost",
+      "DockerSwarmCluster",
+      "PodmanHost",
+      "ProxmoxCluster",
+      "VMwareVCenter",
+      "CephCluster",
+      "OpenStackCloud",
+      "CloudAccount",
+      "DatabaseServer",
+    ]);
+  });
+
+  it("no record with tools here holds a setting of what OneUptime AI may do without asking", () => {
+    // A column that sets OneUptime AI's access, autonomy or approval, by its name.
+    const AI_SETTING: RegExp =
+      /^ai[A-Z]|Autonomy|ApprovalMode|AccessMode|RemediationMode|bypassApproval/;
+    const writable: Array<string> = [];
+
+    for (const ModelClass of DatabaseModels) {
+      const model: DatabaseBaseModel = new ModelClass();
+
+      if (!model.enableMCP) {
+        continue;
+      }
+
+      for (const [column, access] of Object.entries(
+        model.getColumnAccessControlForAllColumns(),
+      )) {
+        const control: { create?: Array<unknown>; update?: Array<unknown> } =
+          (access || {}) as {
+            create?: Array<unknown>;
+            update?: Array<unknown>;
+          };
+
+        if (
+          AI_SETTING.test(column) &&
+          ((control.create || []).length > 0 ||
+            (control.update || []).length > 0)
+        ) {
+          writable.push(`${model.tableName}.${column}`);
+        }
+      }
+    }
+
+    expect(writable).toEqual([]);
     expect(
       tools.filter((tool: McpToolInfo): boolean => {
         return (tool.apiPath || "").startsWith("/auto-remediation");
