@@ -98,7 +98,8 @@ export interface ExternalMcpToolMarkRefusal {
  * argument's name that switches a change on (should_install), and when they
  * are a value an argument that picks what the tool does can take (action:
  * "delete"). Words that are as often a noun in a tool's name ("label" in
- * prometheus_label_names_tool, "tag", "schedule", "open") are left out.
+ * prometheus_label_names_tool, "rollout" in rollout_status, "tag",
+ * "schedule", "open") are left out.
  */
 const CHANGE_VERBS: ReadonlySet<string> = new Set<string>([
   "add",
@@ -175,7 +176,6 @@ const CHANGE_VERBS: ReadonlySet<string> = new Set<string>([
   "revert",
   "revoke",
   "rollback",
-  "rollout",
   "run",
   "scale",
   "send",
