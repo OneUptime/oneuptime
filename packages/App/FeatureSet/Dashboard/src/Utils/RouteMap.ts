@@ -789,16 +789,21 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_SETTINGS_LABEL_RULES]: `settings/label-rules`,
   [PageMap.CLOUD_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.CLOUD_SETTINGS_OWNER_RULES]: `settings/owner-rules`,
+  [PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES]: `settings/savings-ai-rules`,
   [PageMap.CLOUD_SETTINGS_OWNER_RULE_VIEW]: `settings/owner-rules/${RouteParams.ModelID}`,
   [PageMap.CLOUD_ARCHIVED]: `archived`,
   [PageMap.CLOUD_MONITORED_RESOURCES]: `resources`,
   [PageMap.CLOUD_CONNECT]: `connect`,
   [PageMap.CLOUD_COSTS]: `costs`,
   [PageMap.CLOUD_SAVINGS]: `savings`,
+  [PageMap.CLOUD_COMMITMENTS]: `commitments`,
+  [PageMap.CLOUD_SCHEDULES]: `schedules`,
   [PageMap.CLOUD_BUDGETS]: `budgets`,
+  [PageMap.CLOUD_SETTINGS_COSTS]: `settings/costs`,
   [PageMap.CLOUD_COST_GROUPS]: `cost-groups`,
   [PageMap.CLOUD_COST_VIEW]: `cost-groups/${RouteParams.ModelID}`,
   [PageMap.CLOUD_COST_GROUP_VIEW]: `cost-groups/${RouteParams.ModelID}/groups/${RouteParams.SubModelID}`,
+  [PageMap.CLOUD_TAGS]: `tags`,
   [PageMap.CLOUD_RESOURCE_VIEW_INCIDENTS]: `${RouteParams.ModelID}/incidents`,
   [PageMap.CLOUD_RESOURCE_VIEW_ALERTS]: `${RouteParams.ModelID}/alerts`,
   [PageMap.CLOUD_RESOURCE_VIEW_CHANGES]: `${RouteParams.ModelID}/changes`,
@@ -818,6 +823,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_AI_LOGS]: `accounts/${RouteParams.ModelID}/ai/logs`,
   [PageMap.CLOUD_ACCOUNT_VIEW_FEED]: `accounts/${RouteParams.ModelID}/feed`,
   [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: `accounts/${RouteParams.ModelID}/costs`,
+  [PageMap.CLOUD_ACCOUNT_VIEW_TAGS]: `accounts/${RouteParams.ModelID}/tags`,
   [PageMap.CLOUD_ACCOUNT_VIEW_RECOMMENDATIONS]: `accounts/${RouteParams.ModelID}/recommendations`,
 };
 
@@ -7263,6 +7269,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.CLOUD_COMMITMENTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_COMMITMENTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SETTINGS_COSTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SETTINGS_COSTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SCHEDULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SCHEDULES]
+    }`,
+  ),
+
   [PageMap.CLOUD_BUDGETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_BUDGETS]
@@ -7284,6 +7308,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_COST_GROUP_VIEW]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_COST_GROUP_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_TAGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_TAGS]
     }`,
   ),
 
@@ -7379,6 +7409,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_SETTINGS_OWNER_RULES]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_SETTINGS_OWNER_RULES]
+    }`,
+  ),
+
+  [PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_SETTINGS_SAVINGS_AI_RULES]
     }`,
   ),
 
@@ -7499,6 +7535,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_ACCOUNT_VIEW_COSTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_COSTS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_ACCOUNT_VIEW_TAGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_ACCOUNT_VIEW_TAGS]
     }`,
   ),
 

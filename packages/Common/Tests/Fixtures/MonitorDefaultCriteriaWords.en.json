@@ -760,23 +760,34 @@
   "Network Device": [
     {
       "name": "Check if Acme Checkout is offline",
-      "description": "This criteria checks if the Acme Checkout SNMP device is offline",
+      "description": "This criteria checks if Acme Checkout answers neither ping (ICMP) nor SNMP",
       "incidents": [
         {
           "title": "Acme Checkout is offline",
-          "description": "Acme Checkout SNMP device is currently offline."
+          "description": "Acme Checkout answers neither ping (ICMP) nor SNMP."
         }
       ],
       "alerts": [
         {
           "title": "Acme Checkout is offline",
-          "description": "Acme Checkout SNMP device is currently offline."
+          "description": "Acme Checkout answers neither ping (ICMP) nor SNMP."
+        }
+      ]
+    },
+    {
+      "name": "Check if SNMP is failing on Acme Checkout",
+      "description": "This criteria checks if Acme Checkout answers ping while its SNMP walk fails, which keeps it online with an alert rather than offline",
+      "incidents": [],
+      "alerts": [
+        {
+          "title": "SNMP is failing on Acme Checkout",
+          "description": "Acme Checkout answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again."
         }
       ]
     },
     {
       "name": "Check if Acme Checkout is online",
-      "description": "This criteria checks if the Acme Checkout SNMP device is online",
+      "description": "This criteria checks if Acme Checkout answers ping (ICMP) or SNMP",
       "incidents": [],
       "alerts": []
     }

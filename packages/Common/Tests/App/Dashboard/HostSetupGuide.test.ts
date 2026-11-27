@@ -590,14 +590,43 @@ describe("the shared collector config", () => {
     }
   });
 
-  test("runs one metrics pipeline through resourcedetection to OneUptime", () => {
+  /*
+   * resourcedetection/cloud follows the host's own detection (#11013): on a
+   * cloud VM it stamps the cloud, account, Region and instance, which link
+   * the host to the VM its cloud connection lists.
+   */
+  test("runs one metrics pipeline through both detection steps to OneUptime", () => {
     expect(config["service"]["pipelines"]).toEqual({
       metrics: {
         receivers: ["hostmetrics"],
-        processors: ["resourcedetection", "resource", "batch"],
+        processors: [
+          "resourcedetection",
+          "resourcedetection/cloud",
+          "resource",
+          "batch",
+        ],
         exporters: ["otlphttp/oneuptime"],
       },
     });
+  });
+
+  test("asks the EC2, Google Cloud and Azure metadata services, and keeps the host's own name", () => {
+    const cloud: YamlMap = config["processors"]["resourcedetection/cloud"];
+
+    expect(cloud["detectors"]).toEqual(["ec2", "gcp", "azure"]);
+
+    for (const detector of ["ec2", "gcp", "azure"]) {
+      expect({
+        detector,
+        hostName: cloud[detector]?.["resource_attributes"]?.["host.name"],
+      }).toEqual({ detector, hostName: { enabled: false } });
+    }
+
+    // The host's own detection still runs first, and stamps the name the host is filed under.
+    expect(config["processors"]["resourcedetection"]["detectors"]).toEqual([
+      "system",
+      "env",
+    ]);
   });
 
   /*
@@ -629,16 +658,17 @@ describe("the shared collector config", () => {
      */
     const doc: string = squash(readRepoFile(HOST_DOCS_PAGE));
     expect(doc).toContain(
-      "its processors are `resourcedetection`, `resource` and `batch`, and its exporter is `otlphttp/oneuptime`",
+      "its processors are `resourcedetection`, `resourcedetection/cloud`, `resource` and `batch`, and its exporter is `otlphttp/oneuptime`",
     );
     // The block it tells them to merge keeps every processor the config has.
     expect(doc).toContain(
-      "processors: [filter/drop-metrics, resourcedetection, resource, batch]",
+      "processors: [filter/drop-metrics, resourcedetection, resourcedetection/cloud, resource, batch]",
     );
     expect(Object.keys(config["processors"]).sort()).toEqual([
       "batch",
       "resource",
       "resourcedetection",
+      "resourcedetection/cloud",
     ]);
     expect(Object.keys(config["exporters"])).toEqual(["otlphttp/oneuptime"]);
     expect(Object.keys(config["service"]["pipelines"])).toEqual(["metrics"]);

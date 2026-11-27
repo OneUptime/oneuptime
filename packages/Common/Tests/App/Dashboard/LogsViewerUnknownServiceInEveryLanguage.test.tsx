@@ -321,7 +321,10 @@ describe.each(LANGUAGES)(
           screen.getAllByText(word(language, STAND_IN)).length,
         ).toBeGreaterThan(0);
       }, SETTLE);
-      expect(screen.getByText("checkout-api")).toBeInTheDocument();
+      // A person's service is named once its read by id lands (#11072).
+      expect(
+        await screen.findByText("checkout-api", undefined, SETTLE),
+      ).toBeInTheDocument();
     });
 
     /*
@@ -438,7 +441,9 @@ describe("in a language that marks every key", () => {
     await waitFor(() => {
       expect(serviceNameOf("no service")).toMatch(/^⟦.+⟧$/u);
     }, SETTLE);
-    expect(serviceNameOf("from checkout")).toBe("checkout-api");
+    await waitFor(() => {
+      expect(serviceNameOf("from checkout")).toBe("checkout-api");
+    }, SETTLE);
   });
 });
 

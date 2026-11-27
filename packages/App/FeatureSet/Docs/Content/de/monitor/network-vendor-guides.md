@@ -1,11 +1,13 @@
 # Leitfäden für Netzwerkhersteller (Sophos, Extreme, Cambium)
 
-So überwachen Sie drei verbreitete Umgebungen von Anfang bis Ende mit OneUptime: eine Sophos Firewall (XGS, SFOS) mit ihren IPsec-Tunneln, WAN-Verbindungen und SD-WAN; Switches von Extreme Networks (EXOS / Switch Engine und Fabric Engine / VOSS) mit ihrer Fabric; und cnMatrix-Switches und Enterprise-WLAN-Access-Points von Cambium Networks, bis hinunter zu Kanal und Sendeleistung jedes Funkmoduls.
+So überwachen Sie drei verbreitete Umgebungen von Anfang bis Ende mit OneUptime: eine Sophos Firewall (XGS, SFOS) mit ihren IPsec-Tunneln, WAN-Verbindungen und SD-WAN; Switches von Extreme Networks (EXOS / Switch Engine und Fabric Engine / VOSS) mit ihrer Fabric; und cnMatrix-Switches und Enterprise-WLAN-Access-Points von Cambium Networks, bis hinunter zu Kanal und Sendeleistung jedes Funkmoduls. Er behandelt auch SAN-Switches, Brocade Fabric OS und Cisco MDS 9000, bis hin zu den Fehlern jedes Fibre-Channel-Ports.
 
 :::cards
 - [Sophos Firewall](#sophos-firewall-xgs-sfos): Tunnel, WAN-Verbindungen, Gateways und SD-WAN.
 - [Extreme Networks](#extreme-networks-exos-switch-engine-und-fabric-engine-voss): Switches, die Fabric und ihre Hardware.
 - [Cambium Networks](#cambium-networks-enterprise-wlan-und-cnmatrix): Access Points bis zu jedem Funkmodul, und cnMatrix-Switches.
+- [Brocade Fabric OS](#brocade-fabric-os): Fibre-Channel-Ports, Optiken, Sensoren und Fabric-Ereignisse.
+- [Cisco MDS 9000](#cisco-mds-9000): Fibre-Channel-Schnittstellen, VSANs, Slow Drain und Port-Monitor-Alarme.
 :::
 
 ## So funktioniert es
@@ -145,6 +147,76 @@ Die Vorlage **Cambium Networks cnMatrix** erfasst CPU, RAM, Flash, Temperatur un
 ### cnMaestro-Alarme
 
 cnMaestro kann seine Alarme, etwa einen Access Point, der offline geht, an einen HTTPS-Webhook senden. Richten Sie ihn auf einen [Monitor für eingehende Anfragen](/docs/monitor/incoming-request-monitor), um diese Alarme neben den SNMP-Daten in OneUptime-Vorfälle zu verwandeln.
+
+## Brocade Fabric OS
+
+| Was Sie sehen wollen | Woher es kommt |
+| --- | --- |
+| Switch-Zustand, Firmware, CPU und Speicher | SNMP, mit der Hersteller-Vorlage **Brocade Fabric OS (SAN switches)** |
+| Der Status des Switches, seine Sensoren und seine austauschbaren Einheiten (FRUs), Zeile für Zeile | Die Tabellen `switch_status`, `sensors` und `frus` der Vorlage |
+| Typ jedes Fibre-Channel-Ports, warum ein ausgefallener Port ausgefallen ist, und seine Fehler, verworfenen Frames und Credit-Wartezeiten pro Sekunde | SW-MIB und FCMGMT-MIB, auf der Seite **Schnittstellen** des Geräts |
+| Sende- und Empfangsleistung, Temperatur, Spannung und Bias-Strom jeder Optik | FA-EXT-MIB, auf der Karte **Transceiver** |
+| Ein ausgefallener Inter-Switch-Link, eine geteilte oder neu konfigurierte Fabric, eine Zoning-Änderung, ein MAPS-Alarm, eine geänderte FRU | SNMPv3-Traps |
+
+Jeder Switch und Director mit Fabric OS meldet eine System-Objekt-ID unter `1.3.6.1.4.1.1588.2.1.1`, sodass die Vorlage für alle gilt und für nichts anderes von Brocade: VDX- und SLX-Switches behalten ihre Vorlage.
+
+### SNMP unter Fabric OS einrichten
+
+:::steps
+1. Legen Sie einen SNMPv3-Benutzer mit Authentifizierung und Verschlüsselung an, SHA und AES: `snmpconfig --set snmpv3` fragt nach dem Benutzer, seinen Protokollen und Passphrasen.
+2. Schalten Sie die FA-MIB mit `snmpconfig --set mibCapability` ein. Sie enthält die 64-Bit-Fehlerzähler jedes Ports und seine Optik; ohne sie meldet ein Port nur seine CRC-Fehler, Kodierungsfehler, verworfenen Frames der Klasse 3 und Credit-Wartezeiten, als 32-Bit-Zähler.
+3. Fügen Sie in OneUptime den Switch mit seiner Management-Adresse und diesem Benutzer hinzu. Ist **Integritätsvorlage des Herstellers automatisch anwenden** eingeschaltet, wendet die erste Abfrage die Vorlage **Brocade Fabric OS (SAN switches)** an; sonst wenden Sie sie unter **Integritätsvorlage des Herstellers** auf der Seite **Einstellungen** des Geräts an.
+:::
+
+Die Seite **Schnittstellen** des Geräts kennzeichnet dann jeden Fibre-Channel-Port mit seinem Typ, etwa E-Port oder F-Port, und sagt, warum ein ausgefallener Port ausgefallen ist, wie `switchshow` es sagt: No light, No module, Disabled. Ihre Karte **Fibre-Channel-Ports** zeigt Fehler, verworfene Frames und Credit-Zähler jedes Ports pro Sekunde.
+
+CRC-Fehler, ungültige Übertragungswörter, Verbindungsabbrüche sowie Synchronisations- und Signalverluste eines Ports sind seine Fehler: **SNMP-Schnittstellenfehler (pro Sekunde)** alarmiert bei ihnen, und die empfohlenen Warnungen enthalten **Fibre Channel port errors** ab mehr als einem Fehler in zehn Sekunden. Verworfene Frames und Credit-Wartezeiten sind keine Fehler; alarmieren Sie bei einem davon mit **SNMP-Fibre-Channel-Zähler (pro Sekunde)**.
+
+### Virtual Fabrics
+
+Ein Chassis mit Virtual Fabrics beantwortet jeden logischen Switch in einem eigenen SNMPv3-Kontext: `VF:` und die Fabric-ID des logischen Switches. Fügen Sie pro logischem Switch ein Gerät hinzu, alle unter der Management-Adresse des Chassis, und setzen Sie für jedes den **SNMP-v3-Kontext** (`VF:128`, `VF:20`); ein Gerät ohne Kontext liest den logischen Standard-Switch.
+
+### Brocade-Traps
+
+Fabric OS sendet seine Traps über SNMPv3. Fügen Sie mit `snmpconfig --set snmpv3` die Sonde als Trap-Empfänger für den Benutzer hinzu, mit dem OneUptime abfragt, auf UDP-Port 162: Die Sonde nimmt die SNMPv3-Traps der Benutzer der Geräte an, die sie abfragt (siehe [SNMPv3-Traps und Informs](/docs/monitor/network-device-monitor#snmpv3-traps-und-informs)), und die Traps jedes logischen Switches nennen seinen Kontext, sodass sie nur auf seinem Gerät ausgelöst werden. Ein Upgrade von Fabric OS kann einzelne Traps wieder ausschalten: Prüfen Sie sie nach einem Upgrade mit `snmpconfig --show mibCapability`, und schalten Sie einen mit `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn` wieder ein.
+
+Die empfohlenen Warnungen auf einem Brocade-Switch enthalten eine für jedes wichtige Fabric-Ereignis: **Inter-switch link down** (ein E-Port geht offline), **Fabric segmented**, **Fabric reconfigured**, **Zone configuration changed**, **MAPS alert** und **Field-replaceable unit changed**.
+
+## Cisco MDS 9000
+
+| Was Sie sehen wollen | Woher es kommt |
+| --- | --- |
+| CPU und Speicher | SNMP, mit der Hersteller-Vorlage **Cisco MDS 9000 (SAN switches)** |
+| Netzteile, Module und Lüftereinschübe, Zeile für Zeile | Die Tabellen `power_supplies`, `modules` und `fan_trays` der Vorlage |
+| Jedes VSAN mit seinem Zustand | Die Tabelle `vsans` der Vorlage |
+| Typ jeder fc-Schnittstelle, warum eine ausgefallene ausgefallen ist, und ihre Fehler, verworfenen Frames, Credit-Verluste und Credit-Wartezeiten pro Sekunde | CISCO-FC-FE-MIB, auf der Seite **Schnittstellen** des Geräts |
+| Die Messwerte und Alarmschwellen jeder Optik | CISCO-ENTITY-SENSOR-MIB, auf der Karte **Transceiver** |
+| Port-Monitor-Alarme, ausgefallene Links, Änderungen an Zonen, VSANs, Fabric und FRUs | Traps |
+
+Ein MDS teilt Ciscos Enterprise-Nummer mit jedem anderen Cisco-Gerät, daher erkennt OneUptime es an seinem Modell oder an einer Systembeschreibung, die mit `Cisco NX-OS(tm) m9` beginnt: IOS-, IOS-XE- und Nexus-Switches behalten ihre Cisco-Vorlage.
+
+### SNMP unter NX-OS einrichten
+
+:::steps
+1. Legen Sie einen SNMPv3-Benutzer nur zum Lesen an: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`. Die Rolle `network-operator` liest und kann nichts ändern.
+2. Senden Sie Traps als dieser Benutzer an die Sonde: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
+3. Schalten Sie die Traps ein, die standardmäßig aus sind: `snmp-server enable traps zone`, `snmp-server enable traps vsan`, `snmp-server enable traps fcdomain`, `snmp-server enable traps fspf` und, für die Optiken, `snmp-server enable traps link cisco-xcvr-mon-status-chg`.
+4. Fügen Sie in OneUptime den Switch mit seiner Management-Adresse und diesem Benutzer hinzu: Die Vorlage **Cisco MDS 9000 (SAN switches)** wird genauso angewendet.
+:::
+
+Die empfohlenen Warnungen auf einem MDS enthalten **Credit loss (slow drain)** und **Timeout discards (slow drain)**, einmal pro Schnittstelle: Ein Host oder ein Array, das keinen Puffer-Credit mehr zurückgibt, bremst jeden Datenfluss dahinter, und diese Zähler zeigen es zuerst.
+
+### Port-Monitor-Alarme
+
+Eine Port-Monitor-Richtlinie eines MDS löst einen RMON-Alarm aus, wenn ein Zähler eines Ports seinen Schwellenwert überschreitet. Die empfohlenen Warnungen enthalten **Port monitor alarm**, dessen Warnung den Zähler und die Schnittstelle nennt, etwa "Port monitor: Credit loss rising on fc1/5". Eine Richtlinie, die auf Slow Drain achtet:
+
+```text
+port-monitor name slow-drain
+  logical-type edge
+  counter credit-loss-reco poll-interval 1 delta rising-threshold 1 event 4 falling-threshold 0 event 4
+  counter timeout-discards poll-interval 60 delta rising-threshold 200 event 4 falling-threshold 10 event 4
+port-monitor activate slow-drain
+```
 
 ## Fehlerbehebung
 

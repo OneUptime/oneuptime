@@ -176,6 +176,8 @@ describe("validateSettings", () => {
         wafBlocklist: "off",
         // Nor does a security case read its IAM changes back (#10900).
         securityCaseChecks: "off",
+        // Nor does OneUptime act on a saving until someone lets it (#11010).
+        savingsActions: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },
@@ -256,6 +258,8 @@ describe("validateSettings", () => {
       dataSecurityResponse: "off",
       // Off until someone turns on blocking in Cloud Armor (#10349).
       wafBlocklist: "off",
+      // Off until someone lets OneUptime act on savings (#11010).
+      savingsActions: "off",
       authMethod: CloudConnectionAuthMethod.GcpServiceAccountKey,
       clientEmail: "oneuptime-read-only@acme-prod.iam.gserviceaccount.com",
       keyProjectId: "acme-prod",
@@ -987,6 +991,8 @@ describe("getConnectorSettings", () => {
         wafBlocklist: "off",
         // Nor does a security case read its IAM changes back (#10900).
         securityCaseChecks: "off",
+        // Nor does OneUptime act on a saving until someone lets it (#11010).
+        savingsActions: "off",
         authMethod: CloudConnectionAuthMethod.AwsAccessKey,
       },
       secrets: { secretAccessKey: SECRET },

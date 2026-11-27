@@ -118,6 +118,13 @@ export default class CodeFixRunRepository {
     incidentId?: ObjectID | undefined;
     alertId?: ObjectID | undefined;
     taskContext?: CodeFixTaskContext | undefined;
+    /*
+     * The repositories it may resolve to, when the caller holds it to fewer
+     * than its context allows: a person's trace fix, to the repositories
+     * that person may use in Code (FixPerformanceTaskTrigger, #11075).
+     * Unset: the context's own (getRunRepositoryAllowance).
+     */
+    allowance?: CodeRepositoryAllowance | undefined;
   }): Promise<ObjectID | null> {
     try {
       const facts: { stackTrace: string | null; serviceName: string | null } =
@@ -128,7 +135,8 @@ export default class CodeFixRunRepository {
           projectId: data.projectId,
           stackTrace: facts.stackTrace,
           serviceName: facts.serviceName,
-          allowance: getRunRepositoryAllowance(data.taskContext),
+          allowance:
+            data.allowance || getRunRepositoryAllowance(data.taskContext),
         });
 
       return resolution ? new ObjectID(resolution.codeRepositoryId) : null;

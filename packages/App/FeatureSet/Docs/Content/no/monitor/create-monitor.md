@@ -95,7 +95,7 @@ Velg et **Overvåkingsintervall**, fra **Hvert minutt** til **Hver uke**. Monito
 
 ### Opprett monitoren
 
-Klikk på **Opprett monitor**. Siden til den nye monitoren åpner. For å endre sondene eller intervallet senere åpner du **Konfigurasjon → Sonder og intervall** på den siden.
+Klikk på **Opprett monitor**. Siden til den nye monitoren åpner. Slack og Microsoft Teams får vite om monitoren når eierne og etikettene dens er på plass, slik at en varslingsregel som spør hvem som eier en monitor, eller hvilke etiketter den har, publiserer opprettelsesmeldingen dens, og den første statusen kommer etter den meldingen. For å endre sondene eller intervallet senere åpner du **Konfigurasjon → Sonder og intervall** på den siden.
 :::
 
 Alle andre typer unntatt Manual opprettes fra trinnet **Kriterier**.

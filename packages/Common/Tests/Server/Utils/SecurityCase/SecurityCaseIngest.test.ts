@@ -9,6 +9,8 @@ import SecurityCaseIngest, {
   SecurityDetectionSignal,
   findRepeatedDetection,
   getRepeatedDetectionIdsToRead,
+  getSignalLookupFingerprints,
+  hasDetectionTakenFiring,
   securityCaseGroupingKey,
   worseSeverity,
 } from "../../../../Server/Utils/SecurityCase/SecurityCaseIngest";
@@ -379,6 +381,47 @@ describe("SecurityCaseIngest.recordDetections", () => {
     expect(stubs.launch).not.toHaveBeenCalled();
   });
 
+  test("folds a repeat into the detection recorded under the fingerprint its signal had before #11130: no second detection", async () => {
+    const securityCase: SecurityCase = storedCase();
+    const detection: SecurityDetection = new SecurityDetection();
+    detection._id = ObjectID.generate().toString();
+    detection.fingerprint = "detection-rule:r1:unkeyed";
+    detection.securityCaseId = securityCase.id!;
+    detection.severity = OcsfSeverity.Medium;
+    detection.entities = [];
+
+    install({ detections: [detection], openCases: [securityCase] });
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([
+        signal({
+          eventCount: 5,
+          formerFingerprints: ["detection-rule:r1:unkeyed"],
+        }),
+      ]);
+
+    expect(result).toEqual({
+      casesOpened: 0,
+      detectionsAdded: 0,
+      detectionsRepeated: 1,
+    });
+    expect(stubs.createDetection).not.toHaveBeenCalled();
+    expect(stubs.addToDetection).toHaveBeenCalledWith(
+      expect.objectContaining({ id: detection.id }),
+    );
+
+    // The detections are looked up by both.
+    const query: { fingerprint: Includes } = (
+      stubs.findDetections.mock.calls[0]![0] as {
+        query: { fingerprint: Includes };
+      }
+    ).query;
+
+    expect([...query.fingerprint.values].sort()).toEqual(
+      ["detection-rule:r1:abc", "detection-rule:r1:unkeyed"].sort(),
+    );
+  });
+
   test("joins a new signal about the same entity to its open case, raising the priority", async () => {
     const securityCase: SecurityCase = storedCase({
       securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.Low),
@@ -656,6 +699,57 @@ describe("a firing handed again", () => {
     expect(stubs.createDetection).not.toHaveBeenCalled();
     expect(stubs.createCase).not.toHaveBeenCalled();
     expect(stubs.launch).not.toHaveBeenCalled();
+  });
+
+  test("a firing its detection took under the name it had before #11130 adds nothing", async () => {
+    const securityCase: SecurityCase = storedCase();
+    const formerFiring: string = "run:1760432400000:each:1111111111111111";
+
+    install({
+      detections: [storedDetection(securityCase, [formerFiring])],
+      openCases: [securityCase],
+    });
+
+    const result: SecurityCaseIngestResult =
+      await SecurityCaseIngest.recordDetections([
+        signal({
+          eventCount: 5,
+          firingKey: FIRING,
+          formerFiringKeys: [formerFiring],
+        }),
+      ]);
+
+    expect(result.detectionsAlreadyTaken).toBe(1);
+    expect(result.detectionsRepeated).toBe(0);
+    expect(stubs.addToDetection).not.toHaveBeenCalled();
+  });
+
+  test("a firing's former name never counts as taken without a name of its own", () => {
+    const detection: SecurityDetection = new SecurityDetection();
+
+    detection.recentFiringKeys = [FIRING] as never;
+
+    expect(
+      hasDetectionTakenFiring({
+        detection,
+        signal: signal({ formerFiringKeys: ["run:1:each:other"] }),
+      }),
+    ).toBe(false);
+    expect(
+      hasDetectionTakenFiring({
+        detection,
+        signal: signal({
+          firingKey: "run:2:each:new",
+          formerFiringKeys: [FIRING],
+        }),
+      }),
+    ).toBe(true);
+    expect(
+      hasDetectionTakenFiring({
+        detection,
+        signal: signal({ firingKey: "run:2:each:new" }),
+      }),
+    ).toBe(false);
   });
 
   test("a new firing is taken, its counts go up, and its name is kept with the ones before", async () => {
@@ -1457,5 +1551,77 @@ describe("the repeats a batch reads", () => {
       }),
     ).toEqual(new Map());
     expect(stubs.findDetections).not.toHaveBeenCalled();
+  });
+});
+
+describe("the detection a signal repeats, across #11130's keyed fingerprints", () => {
+  const open: SecurityCase = storedCase();
+  const openCases: Map<string, SecurityCase> = new Map([
+    [open.id!.toString(), open],
+  ]);
+
+  function detectionOf(
+    fingerprint: string,
+    securityCaseId: ObjectID,
+  ): SecurityDetection {
+    const detection: SecurityDetection = new SecurityDetection();
+
+    detection._id = ObjectID.generate().toString();
+    detection.fingerprint = fingerprint;
+    detection.securityCaseId = securityCaseId;
+
+    return detection;
+  }
+
+  test("is the one under its fingerprint first, and one under a former fingerprint only when there is none", () => {
+    const keyed: SecurityDetection = detectionOf("f-keyed", open.id!);
+    const unkeyed: SecurityDetection = detectionOf("f-unkeyed", open.id!);
+
+    expect(
+      findRepeatedDetection({
+        detections: [unkeyed, keyed],
+        fingerprint: "f-keyed",
+        formerFingerprints: ["f-unkeyed"],
+        openCases,
+      }),
+    ).toBe(keyed);
+    expect(
+      findRepeatedDetection({
+        detections: [unkeyed],
+        fingerprint: "f-keyed",
+        formerFingerprints: ["f-unkeyed"],
+        openCases,
+      }),
+    ).toBe(unkeyed);
+  });
+
+  test("never one under a former fingerprint whose case is closed, nor one the signal never had", () => {
+    expect(
+      findRepeatedDetection({
+        detections: [detectionOf("f-unkeyed", ObjectID.generate())],
+        fingerprint: "f-keyed",
+        formerFingerprints: ["f-unkeyed"],
+        openCases,
+      }),
+    ).toBeUndefined();
+    expect(
+      findRepeatedDetection({
+        detections: [detectionOf("f-other", open.id!)],
+        fingerprint: "f-keyed",
+        formerFingerprints: ["f-unkeyed"],
+        openCases,
+      }),
+    ).toBeUndefined();
+  });
+
+  test("a batch's detections are looked up by every signal's fingerprints, each once, cut short as kept", () => {
+    expect(
+      getSignalLookupFingerprints([
+        signal({ fingerprint: "a", formerFingerprints: ["a-old"] }),
+        signal({ fingerprint: "b" }),
+        signal({ fingerprint: "a", formerFingerprints: ["a-old"] }),
+        signal({ fingerprint: `c${"x".repeat(600)}` }),
+      ]),
+    ).toEqual(["a", "a-old", "b", `c${"x".repeat(478)}…`]);
   });
 });

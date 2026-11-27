@@ -203,7 +203,7 @@ L'agent suit aussi le fichier `*-json.log` de chaque conteneur et envoie chaque 
 | `resource.container.id` | L'ID complet du conteneur. |
 | `resource.container.runtime` | Toujours `docker`. |
 | `attributes["log.iostream"]` | `stdout` ou `stderr`. |
-| `severityText` / `severityNumber` | Lu à partir d'un mot-clé de niveau là où un niveau figure dans la ligne (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). Une ligne sans niveau se rabat sur son flux : `stderr` donne `ERROR`, `stdout` donne `INFO`. |
+| `severityText` / `severityNumber` | Lu à partir du niveau que la ligne mentionne, là où un niveau y figure (`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`) ; la traceback d'une exception donne `ERROR`. Une ligne sans niveau donne `INFO` sur `stdout`, et n'a aucune gravité (Non spécifié) sur `stderr`. |
 | `body` | La ligne que le conteneur a écrite. Les lignes qui commencent par un espace ou un crochet fermant, comme les lignes d'une trace de pile, sont rattachées à la ligne précédente. |
 | `time` | L'horodatage du démon Docker pour la ligne. |
 

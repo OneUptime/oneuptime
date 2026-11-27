@@ -90,6 +90,7 @@ export const PROBE_CAPABILITIES: Array<string> = [
   ProbeCapability.TotpCodes,
   ProbeCapability.AnyRequestBody,
   ProbeCapability.HideSecretValuesInLogs,
+  ProbeCapability.SnmpV3Context,
 ];
 
 /*

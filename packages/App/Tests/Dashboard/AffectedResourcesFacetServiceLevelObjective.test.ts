@@ -27,7 +27,9 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import buildAffectedResourcesFacet from "../../FeatureSet/Dashboard/src/Components/AffectedResources/buildAffectedResourcesFacet";
+import buildAffectedResourcesFacet, {
+  NO_RESOURCE_ID,
+} from "../../FeatureSet/Dashboard/src/Components/AffectedResources/buildAffectedResourcesFacet";
 import { ResourceFacet } from "../../FeatureSet/Dashboard/src/Components/ResourceOwners/ResourceFacet";
 import {
   FilterChipDropdownOption,
@@ -38,6 +40,7 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import Includes from "Common/Types/BaseDatabase/Includes";
+import LinkedTo, { LinkedToMatch } from "Common/Types/BaseDatabase/LinkedTo";
 import Search from "Common/Types/BaseDatabase/Search";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -117,73 +120,44 @@ describe("an SLO selection filters on the serviceLevelObjectives relation", () =
     ["incidents", incidentFacet],
     ["alerts", alertFacet],
   ])(
-    "filtering %s by an SLO issues one query over serviceLevelObjectives",
-    async (_label: string, facet: () => ResourceFacet) => {
-      await facet().computeMatchingResourceIds!(
-        PROJECT_ID,
+    "filtering %s by an SLO is one filter, on serviceLevelObjectives",
+    (_label: string, facet: () => ResourceFacet) => {
+      const linkedTo: LinkedTo | null = facet().toLinkedTo!(
         [`serviceLevelObjective:${SLO_ID}`],
         IS_OPERATOR,
       );
 
-      const calls: Array<GetListCall> = getListCalls();
-
-      expect(calls).toHaveLength(1);
-
-      const query: JSONObject = calls[0]!.query;
-
-      expect(Object.keys(query).sort()).toEqual(
-        ["projectId", "serviceLevelObjectives"].sort(),
-      );
-      expect(includedIds(query["serviceLevelObjectives"])).toEqual([SLO_ID]);
-      expect(query["projectId"]).toBe(PROJECT_ID);
-      // Only the parent ids are needed to narrow the table.
-      expect(calls[0]!.select).toEqual({ _id: true });
+      expect(linkedTo?.match).toBe(LinkedToMatch.AnyOf);
+      expect(linkedTo?.relations).toEqual({
+        serviceLevelObjectives: [SLO_ID],
+      });
+      // Nothing is read to narrow the table: the list's own query carries it.
+      expect(getListCalls()).toHaveLength(0);
     },
   );
 
-  test("the query targets the parent model the table lists", async () => {
-    await alertFacet().computeMatchingResourceIds!(
-      PROJECT_ID,
+  test('"is not" an SLO keeps the records it declared none of', () => {
+    const linkedTo: LinkedTo | null = alertFacet().toLinkedTo!(
       [`serviceLevelObjective:${SLO_ID}`],
-      IS_OPERATOR,
+      "is_not",
     );
 
-    expect(getListCalls()[0]!.modelType).toBe(Alert);
+    expect(linkedTo?.match).toBe(LinkedToMatch.NoneOf);
+    expect(linkedTo?.relations).toEqual({ serviceLevelObjectives: [SLO_ID] });
   });
 
-  test("an SLO and a service selected together are unioned", async () => {
-    getListMock.mockReset();
-    getListMock.mockImplementation((args: unknown): Promise<unknown> => {
-      const query: JSONObject = (args as GetListCall).query;
-
-      if (query["serviceLevelObjectives"]) {
-        return Promise.resolve({
-          data: [
-            { id: new ObjectID("incident-burn-1") },
-            { id: new ObjectID("incident-shared") },
-          ],
-          count: 2,
-          skip: 0,
-          limit: 0,
-        });
-      }
-
-      return Promise.resolve({
-        data: [{ id: new ObjectID("incident-shared") }],
-        count: 1,
-        skip: 0,
-        limit: 0,
-      });
-    });
-
-    const matched: Array<string> = await incidentFacet()
-      .computeMatchingResourceIds!(
-      PROJECT_ID,
+  test("an SLO and a service picked together are one filter, OR'd", () => {
+    const linkedTo: LinkedTo | null = incidentFacet().toLinkedTo!(
       [`serviceLevelObjective:${SLO_ID}`, `service:${SERVICE_ID}`],
       IS_OPERATOR,
     );
 
-    expect(matched.sort()).toEqual(["incident-burn-1", "incident-shared"]);
+    expect(linkedTo?.match).toBe(LinkedToMatch.AnyOf);
+    expect(linkedTo?.relations).toEqual({
+      serviceLevelObjectives: [SLO_ID],
+      services: [SERVICE_ID],
+    });
+    expect(getListMock).not.toHaveBeenCalled();
   });
 });
 
@@ -220,7 +194,7 @@ describe("the dropdown offers SLOs when the table opts in", () => {
     ]);
   });
 
-  test("the search term reaches the SLO lookup, which reads only id and name", async () => {
+  test("the search term reaches the SLO lookup, which reads its id, its name and whether it is archived", async () => {
     await alertFacet().loadOptions!(PROJECT_ID, "  checkout ");
 
     const lookups: Array<GetListCall> = sloLookups();
@@ -231,7 +205,11 @@ describe("the dropdown offers SLOs when the table opts in", () => {
     expect((lookups[0]!.query["name"] as Search<string>).toString()).toBe(
       "checkout",
     );
-    expect(lookups[0]!.select).toEqual({ _id: true, name: true });
+    expect(lookups[0]!.select).toEqual({
+      _id: true,
+      name: true,
+      isArchived: true,
+    });
   });
 
   test("opting in adds exactly one lookup to the incident dropdown", async () => {
@@ -312,15 +290,16 @@ describe("without the opt-in the SLO type does not exist", () => {
     expect(sloLookups()).toHaveLength(0);
   });
 
-  test("a stale SLO chip on scheduled maintenance builds no query", async () => {
-    const matched: Array<string> = await maintenanceFacet()
-      .computeMatchingResourceIds!(
-      PROJECT_ID,
+  test("a stale SLO chip on scheduled maintenance filters by no SLO relation, and matches nothing", () => {
+    const linkedTo: LinkedTo | null = maintenanceFacet().toLinkedTo!(
       [`serviceLevelObjective:${SLO_ID}`],
       IS_OPERATOR,
     );
 
-    expect(matched).toEqual([]);
+    expect(Object.keys(linkedTo!.relations)).not.toContain(
+      "serviceLevelObjectives",
+    );
+    expect(linkedTo!.relations).toEqual({ monitors: [NO_RESOURCE_ID] });
     expect(getListMock).not.toHaveBeenCalled();
   });
 
@@ -332,15 +311,12 @@ describe("without the opt-in the SLO type does not exist", () => {
     expect(getListMock).not.toHaveBeenCalled();
   });
 
-  test("an incident facet built without the flag ignores SLO selections too", async () => {
-    await buildAffectedResourcesFacet<Incident>({
+  test("an incident facet built without the flag ignores SLO selections too", () => {
+    const linkedTo: LinkedTo | null = buildAffectedResourcesFacet<Incident>({
       parentModelType: Incident,
-    }).computeMatchingResourceIds!(
-      PROJECT_ID,
-      [`serviceLevelObjective:${SLO_ID}`],
-      IS_OPERATOR,
-    );
+    }).toLinkedTo!([`serviceLevelObjective:${SLO_ID}`], IS_OPERATOR);
 
+    expect(linkedTo!.relations).toEqual({ monitors: [NO_RESOURCE_ID] });
     expect(getListMock).not.toHaveBeenCalled();
   });
 });

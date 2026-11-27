@@ -102,10 +102,18 @@ import ServerlessFunctionOwnerRule from "./ServerlessFunctionOwnerRule";
 import CloudAccount from "./CloudAccount";
 import CloudAccountFeed from "./CloudAccountFeed";
 import CloudBudget from "./CloudBudget";
+import CloudCommitment from "./CloudCommitment";
 import CloudCostGroup from "./CloudCostGroup";
 import CloudCostLineItem from "./CloudCostLineItem";
 import CloudCostView from "./CloudCostView";
+import CloudRequiredTag from "./CloudRequiredTag";
+import CloudTagCoverageDay from "./CloudTagCoverageDay";
+import CloudTagFinding from "./CloudTagFinding";
+import CloudTagSetting from "./CloudTagSetting";
 import CloudCostRecommendation from "./CloudCostRecommendation";
+import CloudCostSetting from "./CloudCostSetting";
+import CloudOffHoursSchedule from "./CloudOffHoursSchedule";
+import CloudSavingsAction from "./CloudSavingsAction";
 import CloudConnection from "./CloudConnection";
 import CloudResource from "./CloudResource";
 import CloudResourceOwnerTeam from "./CloudResourceOwnerTeam";
@@ -1386,10 +1394,18 @@ const AllModelTypes: Array<{
   CloudAccount,
   CloudAccountFeed,
   CloudBudget,
+  CloudCommitment,
   CloudCostView,
   CloudCostGroup,
   CloudCostLineItem,
+  CloudRequiredTag,
+  CloudTagCoverageDay,
+  CloudTagFinding,
+  CloudTagSetting,
   CloudCostRecommendation,
+  CloudCostSetting,
+  CloudOffHoursSchedule,
+  CloudSavingsAction,
   CloudConnection,
   CloudResource,
   CloudResourceOwnerTeam,

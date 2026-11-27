@@ -12,7 +12,6 @@ import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import { getCloudMonitoringServiceName } from "Common/Types/Monitor/CloudAlertTemplates";
 import { ActiveMonitorLimitStatus } from "Common/Types/Monitor/ActiveMonitorLimit";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
@@ -187,9 +186,10 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
     Array<CloudAccountRecommendationResource>
   >([]);
   const [resourceTotal, setResourceTotal] = useState<number>(0);
-  const [existingMonitors, setExistingMonitors] = useState<
-    Array<{ monitorId: ObjectID; monitorSteps: Array<MonitorStep> }>
-  >([]);
+  // What covers each resource's recommendations already, as the server says (#11074).
+  const [coveredMonitorIds, setCoveredMonitorIds] = useState<
+    Map<string, ObjectID>
+  >(new Map<string, ObjectID>());
   const [dismissals, setDismissals] = useState<
     CloudAccountRecommendationCoverage["dismissals"]
   >([]);
@@ -220,17 +220,21 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
       itemToString: CloudAccountRecommendationPlan.getPlanItemName,
     });
 
-  type LoadCoverageFunction = () => Promise<void>;
+  type LoadCoverageFunction = (
+    accountResources: Array<CloudAccountRecommendationResource>,
+  ) => Promise<void>;
 
   /*
    * What covers a recommendation already, and what the team dismissed:
    * read again after every run, so what was made is never offered twice.
    */
-  const loadCoverage: LoadCoverageFunction = async (): Promise<void> => {
+  const loadCoverage: LoadCoverageFunction = async (
+    accountResources: Array<CloudAccountRecommendationResource>,
+  ): Promise<void> => {
     const coverage: CloudAccountRecommendationCoverage =
-      await loadCloudAccountRecommendationCoverage();
+      await loadCloudAccountRecommendationCoverage(accountResources);
 
-    setExistingMonitors(coverage.existingMonitors);
+    setCoveredMonitorIds(coverage.coveredMonitorIds);
     setDismissals(coverage.dismissals);
   };
 
@@ -263,7 +267,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
       setResources(read.resources);
       setResourceTotal(read.total);
 
-      await loadCoverage();
+      await loadCoverage(read.resources);
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
@@ -278,10 +282,10 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
   const groups: Array<CloudAccountRecommendationGroup> = useMemo(() => {
     return CloudAccountRecommendationPlan.buildGroups({
       resources: resources,
-      existingMonitors: existingMonitors,
+      coveredMonitorIds: coveredMonitorIds,
       dismissals: dismissals,
     });
-  }, [resources, existingMonitors, dismissals]);
+  }, [resources, coveredMonitorIds, dismissals]);
 
   /*
    * What the account's connection's interval costs its monitors, when it
@@ -445,7 +449,7 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
       });
     } finally {
       try {
-        await loadCoverage();
+        await loadCoverage(resources);
       } catch (err) {
         setActionError(API.getFriendlyMessage(err));
       }

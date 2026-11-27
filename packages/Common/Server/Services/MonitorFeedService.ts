@@ -87,9 +87,13 @@ export class Service extends ProjectReferencesService<MonitorFeed> {
       monitorFeed.monitorFeedEventType = data.monitorFeedEventType;
       monitorFeed.projectId = data.projectId;
 
-      if (!data.postedAt) {
-        monitorFeed.postedAt = OneUptimeDate.getCurrentDate();
-      }
+      /*
+       * Filed when asked, else now: "Monitor Created" is filed when the
+       * monitor's create began, so it stays the first line of its feed
+       * although its owners are written before it (#11188). A time asked
+       * for used to be dropped, leaving the entry with none.
+       */
+      monitorFeed.postedAt = data.postedAt || OneUptimeDate.getCurrentDate();
 
       if (data.userId) {
         monitorFeed.userId = data.userId;

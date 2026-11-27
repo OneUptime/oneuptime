@@ -1752,6 +1752,41 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     }
   });
 
+  /*
+   * #11031, #11033: the rules that hide data match their regular
+   * expression in a value read as Data Security reads it too; the others,
+   * a Filter rule's among them, as it is written.
+   */
+  it("says which pipeline rules match a regular expression in a value as Data Security reads it", () => {
+    const engine: string = readPackageFile(
+      "Common/Server/Utils/Telemetry/MetricPipelineEngine.ts",
+    );
+
+    const declaration: string =
+      "const HIDING_RULE_TYPES: ReadonlySet<MetricPipelineRuleType> = new Set([";
+
+    expect(engine).toContain(declaration);
+    expect(
+      between(engine, declaration, "]);")
+        .slice(declaration.length)
+        .split(",")
+        .map((entry: string): string => {
+          return entry.trim();
+        })
+        .filter((entry: string): boolean => {
+          return entry.length > 0;
+        }),
+    ).toEqual([
+      "MetricPipelineRuleType.Drop",
+      "MetricPipelineRuleType.RedactAttribute",
+      "MetricPipelineRuleType.RemoveAttribute",
+    ]);
+    expect(engine).toContain("HIDING_RULE_TYPES.has(rule.ruleType");
+    expect(page).toContain(
+      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, and with every script's digits read as ASCII digits. The other rules match the value as it is written.",
+    );
+  });
+
   it("opens the metric list on the past hour", () => {
     expect(
       readDashboardSource("Components/Metrics/MetricsViewer.tsx"),

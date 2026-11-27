@@ -25,6 +25,7 @@ import AccessControlColumn from "../../Types/Database/AccessControlColumn";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ColumnType from "../../Types/Database/ColumnType";
 import CrudApiEndpoint from "../../Types/Database/CrudApiEndpoint";
+import RelationReaders from "../../Types/Database/RelationReaders";
 import EnableDocumentation from "../../Types/Database/EnableDocumentation";
 import SlugifyColumn from "../../Types/Database/SlugifyColumn";
 import TableColumn from "../../Types/Database/TableColumn";
@@ -2160,6 +2161,63 @@ export default class NetworkDevice extends BaseModel {
     type: ColumnType.VeryLongText,
   })
   public snmpV3PrivKey?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.CreateNetworkDevice,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditNetworkDevice,
+    ],
+  })
+  /*
+   * Which SNMPv3 context the device is polled in. Not a credential: it names
+   * the device, not who reads it. A Brocade chassis with Virtual Fabrics
+   * answers each logical switch only in its own context ("VF:128"), so each
+   * logical switch is a device of its own, at the chassis's address, with
+   * its context here. It applies whichever credential the device's SNMPv3
+   * user comes from (its own, its credential profile or its site's), and
+   * only to SNMPv3: v1 and v2c have no context. Empty, the agent's default
+   * context. Through a relation, only the device's own readers read it, as
+   * nobody else reads its other SNMPv3 settings (#11234): an alert's or an
+   * incident's readers see which device it is, not how it is polled.
+   */
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    relationReaders: RelationReaders.ColumnReaders,
+    title: "SNMP v3 Context",
+    description:
+      "SNMPv3 context the device is polled in, such as VF:128 for a Brocade logical switch. Empty for the agent's default context.",
+    example: "VF:128",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public snmpV3ContextName?: string = undefined;
 
   /*
    * --- Polling configuration ---

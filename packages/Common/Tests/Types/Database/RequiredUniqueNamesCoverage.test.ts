@@ -113,6 +113,8 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   CephResource: LeftOut.Discovered,
   CloudAccount: LeftOut.Discovered,
   CloudApp: LeftOut.Discovered,
+  // A reservation, savings plan or committed use discount, read from its cloud (#11007): nobody creates one.
+  CloudCommitment: LeftOut.Discovered,
   DataAsset: LeftOut.Discovered,
   DataDashboard: LeftOut.Discovered,
   DataStore: LeftOut.Discovered,
@@ -163,6 +165,11 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
 
   // Rules.
   AIPostmortemRule: LeftOut.Rule,
+  /*
+   * An off-hours schedule (#11010) picks resources by a tag and acts by its
+   * hours; nothing picks a schedule by its name.
+   */
+  CloudOffHoursSchedule: LeftOut.Rule,
   AlertEpisodeLabelRule: LeftOut.Rule,
   AlertEpisodeOnCallRule: LeftOut.Rule,
   AlertEpisodeOwnerRule: LeftOut.Rule,

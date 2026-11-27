@@ -96,12 +96,13 @@ describe("a read's window", () => {
         "The window ends before it starts. Choose an end date after the start date.",
       ),
     );
+    // The figure and its unit are kept together, by a no-break space.
     expect(() => {
       return toCloudCostAllocationWindow({
         startDate: day("2025-01-01"),
         endDate: day("2026-11-01"),
       });
-    }).toThrow(`at most ${CLOUD_COST_ALLOCATION_MAX_DAYS} days`);
+    }).toThrow(new RegExp(`at most ${CLOUD_COST_ALLOCATION_MAX_DAYS}\\sdays`));
   });
 
   test("the window before: the same days a month back, months back, or just before", () => {

@@ -292,6 +292,9 @@ export default class SnmpTableListUtil {
       // Only ever true: an absent flag and a false one mean the same.
       ...(table.rowIndexIsText === true ? { rowIndexIsText: true } : {}),
       ...(table.skipNameOnlyRows === true ? { skipNameOnlyRows: true } : {}),
+      ...(table.rowLabelsByIndex === true && rowLabelColumnOids.length > 0
+        ? { rowLabelsByIndex: true }
+        : {}),
       columns: columns,
       ...(maxRows === undefined ? {} : { maxRows: maxRows }),
     };
@@ -352,6 +355,25 @@ export default class SnmpTableListUtil {
 
       if (Object.keys(valueLabels).length > 0) {
         sanitized.valueLabels = valueLabels;
+      }
+    }
+
+    if (Array.isArray(column.noReadingValues)) {
+      const noReadingValues: Array<string> = [];
+
+      for (const value of column.noReadingValues) {
+        const noReading: string = String(value ?? "").trim();
+
+        if (noReading && !noReadingValues.includes(noReading)) {
+          noReadingValues.push(noReading.substring(0, MAX_VALUE_LABEL_LENGTH));
+        }
+      }
+
+      if (noReadingValues.length > 0) {
+        sanitized.noReadingValues = noReadingValues.slice(
+          0,
+          MAX_HEALTHY_VALUES_PER_COLUMN,
+        );
       }
     }
 
@@ -574,12 +596,53 @@ export default class SnmpTableListUtil {
     tables: Array<SnmpTableDefinition>,
   ): Array<SnmpTableWalkRequest> {
     return tables.map((table: SnmpTableDefinition) => {
+      const labelOids: Array<string> =
+        SnmpTableListUtil.getLabelLookupOids(table);
+
       return {
         key: table.key,
-        columnOids: SnmpTableListUtil.getWalkedColumnOids(table),
+        columnOids: SnmpTableListUtil.getWalkedColumnOids(table).filter(
+          (oid: string) => {
+            return !labelOids.includes(oid);
+          },
+        ),
         maxRows: SnmpTableListUtil.getMaxRows(table),
+        ...(labelOids.length > 0 ? { labelOids: labelOids } : {}),
       };
     });
+  }
+
+  /*
+   * The name columns a table reads by each row's index instead of walking
+   * them (SnmpTableDefinition.rowLabelsByIndex): every name column that is
+   * not also a value column, which is walked anyway.
+   */
+  public static getLabelLookupOids(table: SnmpTableDefinition): Array<string> {
+    if (table.rowLabelsByIndex !== true) {
+      return [];
+    }
+
+    const valueOids: Set<string> = new Set(
+      table.columns.map((column: SnmpTableColumn) => {
+        return SnmpOidListUtil.normalizeOid(column.oid);
+      }),
+    );
+
+    const labelOids: Array<string> = [];
+
+    for (const oid of table.rowLabelColumnOids || []) {
+      const normalized: string = SnmpOidListUtil.normalizeOid(oid);
+
+      if (
+        normalized &&
+        !valueOids.has(normalized) &&
+        !labelOids.includes(normalized)
+      ) {
+        labelOids.push(normalized);
+      }
+    }
+
+    return labelOids;
   }
 
   public static getMaxRows(table: SnmpTableDefinition): number {
@@ -629,6 +692,24 @@ export default class SnmpTableListUtil {
     const value: string | number | null =
       raw === undefined || raw === null ? null : raw;
     const rawText: string = value === null ? "" : String(value);
+
+    /*
+     * A value the device sends for "no reading" (noReadingValues) is no
+     * value: nothing to show, chart or compare. Health is judged as for any
+     * other value, so a status column can still list it as healthy.
+     */
+    if (
+      value !== null &&
+      (column.noReadingValues || []).includes(rawText.trim())
+    ) {
+      const noReading: SnmpTableSnapshotCell = { raw: value, display: "" };
+
+      if (column.healthyValues && column.healthyValues.length > 0) {
+        noReading.isHealthy = column.healthyValues.includes(rawText.trim());
+      }
+
+      return noReading;
+    }
 
     const parsed: number | undefined = SnmpTableListUtil.parseNumericValue(
       value,

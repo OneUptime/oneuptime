@@ -95,7 +95,7 @@ Vælg et **Overvågningsinterval** fra **Hvert minut** til **Hver uge**. Monitor
 
 ### Opret monitoren
 
-Klik på **Opret monitor**. Den nye monitors side åbner. For senere at ændre dens sonder eller interval åbner du **Konfiguration → Sonder og interval** på den side.
+Klik på **Opret monitor**. Den nye monitors side åbner. Slack og Microsoft Teams hører om monitoren, når dens ejere og etiketter er på plads, så en notifikationsregel, der spørger, hvem der ejer en monitor, eller hvilke etiketter den har, slår dens oprettelsesbesked op, og dens første status følger efter den besked. For senere at ændre dens sonder eller interval åbner du **Konfiguration → Sonder og interval** på den side.
 :::
 
 Alle andre typer undtagen Manual oprettes fra trinnet **Kriterier**.

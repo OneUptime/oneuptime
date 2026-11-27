@@ -1,5 +1,10 @@
 import TableColumnType from "../../../Types/AnalyticsDatabase/TableColumnType";
 import {
+  CloudCostBasis,
+  CloudCostBasisColumn,
+  getCloudCostBasisColumn,
+} from "../../../Types/Cloud/CloudCostBasis";
+import {
   CloudCostRule,
   CloudCostRuleCondition,
   CloudCostRuleField,
@@ -32,6 +37,11 @@ import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
  *
  * Every text is compared in lower case (lowerUTF8), as CloudCostRules'
  * matcher compares it: the tests hold the two to the same answers.
+ *
+ * Every sum is of `spend`: the cost on the read's basis (#11007) - billed
+ * (cost), amortized (amortizedCost) or net (netCost) - so a group's
+ * figures, its shared costs' splits and the unallocated spend are all on
+ * the one basis the page shows.
  */
 
 // A resource's key as the facts name it: the first 16 hex digits of its MD5.
@@ -109,6 +119,15 @@ export interface CloudCostAllocationSqlContext {
   where: Statement;
   groups: Array<{ rules: Array<CloudCostRule> }>;
   facts: CloudCostQueryFacts;
+  // The cost basis summed: billed when absent.
+  basis?: CloudCostBasis | undefined;
+}
+
+// The column a read sums, as `spend`: one of three, never the caller's text.
+export function spendColumnOf(
+  ctx: Pick<CloudCostAllocationSqlContext, "basis">,
+): CloudCostBasisColumn {
+  return getCloudCostBasisColumn(ctx.basis);
 }
 
 function texts(values: Array<string>): Statement {
@@ -499,7 +518,11 @@ export function sourceStatement(
   ctx: CloudCostAllocationSqlContext,
   extraWhere?: Statement | undefined,
 ): Statement {
-  const statement: Statement = SQL`SELECT day, cost, cloudAccountId, provider, accountId, service, region, resourceId, tags`;
+  const statement: Statement = SQL`SELECT day, `
+    .append(spendColumnOf(ctx))
+    .append(
+      SQL` AS spend, cloudAccountId, provider, accountId, service, region, resourceId, tags`,
+    );
 
   if (readsResourceFacts(ctx.facts)) {
     statement
@@ -584,9 +607,9 @@ export function amountsStatement(
     ? "toString(toStartOfMonth(toDate(day, 'UTC')))"
     : "toString(toDate(day, 'UTC'))";
 
-  return SQL`SELECT groupNumber, bucket, sum(cost * weight) AS amount FROM (SELECT `
+  return SQL`SELECT groupNumber, bucket, sum(spend * weight) AS amount FROM (SELECT `
     .append(groupNumberExpression(ctx))
-    .append(` AS groupNumber, ${bucket} AS bucket, cost, weight FROM (`)
+    .append(` AS groupNumber, ${bucket} AS bucket, spend, weight FROM (`)
     .append(sourceStatement(ctx, data.extraWhere))
     .append(SQL`)) GROUP BY groupNumber, bucket ORDER BY groupNumber, bucket`)
     .append(settings());
@@ -612,7 +635,7 @@ export function wouldMatchStatement(
 
       first = false;
       statement
-        .append(SQL`sumIf(cost * weight, `)
+        .append(SQL`sumIf(spend * weight, `)
         .append(
           group.rules.length > 0
             ? rulesPredicate(group.rules, ctx.facts)
@@ -657,10 +680,10 @@ export function topStatement(
   },
 ): Statement {
   const statement: Statement =
-    SQL`SELECT key, sum(cost * weight) AS amount FROM (SELECT `
+    SQL`SELECT key, sum(spend * weight) AS amount FROM (SELECT `
       .append(groupNumberExpression(ctx))
       .append(
-        ` AS groupNumber, ${DIMENSION_SQL[data.dimension]} AS key, cost, weight FROM (`,
+        ` AS groupNumber, ${DIMENSION_SQL[data.dimension]} AS key, spend, weight FROM (`,
       )
       .append(sourceStatement(ctx, data.extraWhere))
       .append(
@@ -695,7 +718,7 @@ export function topTagValuesStatement(
 ): Statement {
   return SQL`SELECT tagKey, tagValue, sum(c) AS amount FROM (SELECT `
     .append(groupNumberExpression(ctx))
-    .append(SQL` AS groupNumber, cost * weight AS c, tags FROM (`)
+    .append(SQL` AS groupNumber, spend * weight AS c, tags FROM (`)
     .append(sourceStatement(ctx, data.extraWhere))
     .append(
       SQL`)) ARRAY JOIN mapKeys(tags) AS tagKey, mapValues(tags) AS tagValue WHERE groupNumber = ${{

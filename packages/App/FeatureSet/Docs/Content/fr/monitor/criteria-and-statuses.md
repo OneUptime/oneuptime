@@ -232,6 +232,14 @@ Quand une évaluation prend trop de temps pour son moniteur, son résumé vous a
 
 Un dixième laisse à un moniteur la place de grandir dix fois avant que ses vérifications ne se chevauchent et prennent du retard : vous en êtes averti tôt. Sous 5 secondes, une vérification est correcte quelle que soit sa taille : évaluer 16 000 séries prend environ 2,5 secondes. Au-delà d'une minute, elle occupe un worker et les bases de données qu'elle lit pendant tout ce temps, quel que soit son intervalle. Pour l'accélérer, affinez les filtres de ses requêtes, regroupez par moins d'attributs ou vérifiez-la moins souvent.
 
+## Quand les moniteurs de télémétrie vérifient
+
+Les moniteurs qui lisent la télémétrie, comme les moniteurs de journaux, de métriques, de traces, Kubernetes, d'hôte et Docker, ne sont pas tous vérifiés au même moment. Chacun a son propre moment dans son intervalle, calculé à partir de l'ID du moniteur : un moniteur vérifié chaque minute s'exécute à la même seconde de chaque minute, un moniteur vérifié toutes les 5 minutes au même moment de chaque période de 5 minutes, et un moniteur vérifié toutes les heures ou moins souvent dans les 5 premières minutes de l'heure ou du jour que donne son intervalle. Ce moment reste le même quand OneUptime redémarre et sur chaque serveur, si bien que le stockage de télémétrie est lu un peu à la fois au fil de la minute plutôt que par tous les moniteurs en même temps.
+
+Chaque moniteur garde son intervalle : ses vérifications sont exactement aussi espacées qu'avant, et chacune juge la fenêtre qui se termine au moment où elle s'exécute, donc une fenêtre aussi longue que l'intervalle couvre toujours tout le temps entre deux vérifications. Ce qui change, c'est le moment de l'intervalle où une vérification s'exécute : jusqu'à un intervalle plus tard, et jamais plus de 5 minutes plus tard. Un incident ou une alerte peut s'ouvrir jusqu'à ce délai plus tard que si chaque vérification s'exécutait au début de son intervalle, et parfois plus tôt. La **Vue d'ensemble** du moniteur indique quand sa prochaine vérification est prévue.
+
+Un nouveau moniteur est vérifié quelques secondes après sa création, puis à son propre moment. Quand vous modifiez l'intervalle d'un moniteur, sa prochaine vérification passe au nouvel intervalle. Juste après la mise à niveau vers une version de OneUptime qui répartit les vérifications, chaque moniteur est vérifié une fois encore à l'heure que lui donnait l'ancien calendrier, puis à son propre moment.
+
 ## Modifier les critères d'un moniteur
 
 :::steps

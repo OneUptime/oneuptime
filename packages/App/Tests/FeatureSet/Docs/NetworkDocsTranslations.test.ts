@@ -126,6 +126,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "No name found",
     // The alert pack's criteria, named in English (NetworkDeviceAlertPack).
     "Device unreachable",
+    "SNMP walk failing",
     // The template and the policy the recommended policy creates, named in English.
     "Network device alert pack (recommended)",
     "Alert on every device",
@@ -136,6 +137,17 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   [VENDORS]: [
     "IPsec Tunnels: row unhealthy",
     "Fabric Adjacencies (IS-IS): row unhealthy",
+    // The SAN switch packs' recommended alerts (NetworkDeviceAlertPack).
+    "Fibre Channel port errors",
+    "Inter-switch link down",
+    "Fabric segmented",
+    "Fabric reconfigured",
+    "Zone configuration changed",
+    "MAPS alert",
+    "Field-replaceable unit changed",
+    "Credit loss (slow drain)",
+    "Timeout discards (slow drain)",
+    "Port monitor alarm",
   ],
 };
 
@@ -206,6 +218,8 @@ const NAMES: Record<string, Array<string>> = {
     "Extreme Networks Fabric Engine / VOSS",
     "Cambium Networks Enterprise Wi-Fi (cnPilot, XV, XE, XH)",
     "Cambium Networks cnMatrix",
+    "Brocade Fabric OS (SAN switches)",
+    "Cisco MDS 9000 (SAN switches)",
   ],
 };
 

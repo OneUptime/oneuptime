@@ -150,7 +150,7 @@ Per cambiare un valore, rimuovi l'agent ed esegui di nuovo il suo comando (Podma
 | Metriche dei container | CPU (utilizzo, percentuale, limitazione), memoria (utilizzo, limite, percentuale), I/O di rete e di blocco, uptime, riavvii e numero di processi, per container, ogni 30 secondi. |
 | Log dei container | stdout e stderr di ogni container, dal file `ctr.log` che scrive il driver di log `k8s-file`. |
 
-Le metriche e i log di ogni container vengono archiviati sotto un servizio con il nome del container. Ogni riga di log riceve una severità in base al livello che indica, come `[ERROR]`, `level=warn` o `{"level":"info"}`; una riga che non ne indica nessuno prende quella del suo flusso: stderr è `ERROR`, stdout è `INFO`. Le righe che iniziano con uno spazio o una parentesi di chiusura vengono unite alla riga precedente, quindi uno stack trace arriva come un unico record. I log dell'agent stesso vengono esclusi.
+Le metriche e i log di ogni container vengono archiviati sotto un servizio con il nome del container. Ogni riga di log riceve una severità in base al livello che indica, come `[ERROR]`, `level=warn` o `{"level":"info"}`, e il traceback di un'eccezione conta come `ERROR`. Una riga che non ne indica nessuno è `INFO` su stdout, e non ha severità su stderr, dove i programmi scrivono la diagnostica di ogni livello. Le righe che iniziano con uno spazio o una parentesi di chiusura vengono unite alla riga precedente, quindi uno stack trace arriva come un unico record. I log dell'agent stesso vengono esclusi.
 
 [Monitor Podman](/docs/monitor/podman-monitor#metriche-raccolte) elenca ogni metrica e il suo significato.
 

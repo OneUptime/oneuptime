@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { describe, expect, test } from "@jest/globals";
+import { CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS } from "../../../Types/Cloud/CloudSavingsAi";
 import RULE_CRITERIA_FIELDS_BY_MODEL from "../../../Types/Rules/RuleCriteriaFieldRegistry";
 import { DATA_SECURITY_AI_RULE_CRITERIA_FIELDS } from "../../../Utils/DataSecurity/DataSecurityAiRuleMatch";
 
@@ -137,6 +138,20 @@ const SECOND_RULE_FORMS: Record<string, Array<SecondRuleForm>> = {
       ),
       evaluatedFields: DATA_SECURITY_AI_RULE_CRITERIA_FIELDS,
       evaluatedFieldsName: "DATA_SECURITY_AI_RULE_CRITERIA_FIELDS",
+    },
+    // The AI rules for savings, on Cloud → Settings → Savings AI Rules (#11010).
+    {
+      formFile: path.join(
+        DASHBOARD_SOURCE_ROOT,
+        "Components/Cloud/Savings/CloudSavingsAiRulesTable.tsx",
+      ),
+      evaluatorFile: path.join(COMMON_ROOT, "Types/Cloud/CloudSavingsAi.ts"),
+      selectingFile: path.join(
+        COMMON_ROOT,
+        "Server/Utils/CloudSavings/CloudSavingsAiEngine.ts",
+      ),
+      evaluatedFields: CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS,
+      evaluatedFieldsName: "CLOUD_SAVINGS_AI_RULE_CRITERIA_FIELDS",
     },
   ],
 };
@@ -383,21 +398,22 @@ describe("static rule criteria runtime coverage", () => {
   const inheritedRuleModelNames: Array<string> = getInheritedRuleModelNames();
 
   /*
-   * 83 forms and 92 models: the investigation rules' form and model went
+   * 86 forms and 94 models: the investigation rules' form and model went
    * when they became AI rules - AiRulesTable for incidents and alerts,
-   * TelemetryAiRulesTable for the telemetry products and
-   * DataSecurityAiRulesTable for Data Security's issues, for the one model -
+   * TelemetryAiRulesTable for the telemetry products,
+   * DataSecurityAiRulesTable for Data Security's issues and
+   * CloudSavingsAiRulesTable for savings (#11010), for the one model -
    * Data Security's label and owner rules for data stores came, App
    * Platforms' pages for the cloud rules' environments, the alert incident
    * rules' page (AlertIncidentRules) for its model, OpenStack's label and
    * owner rules for clouds, Data Observability's for data assets, the
-   * network devices' naming rules (issue #6619), and Data Observability's
+   * network devices' naming rules (issue #6619), Data Observability's
    * owner rules for pipelines, on the page of its table owner rules (issue
-   * #9527).
+   * #9527), and XCP-ng's label and owner rules for pools (issue #10995).
    */
-  test("all 83 static match-criteria forms route their 92 rule models through ModelForm", () => {
-    expect(formFiles).toHaveLength(83);
-    expect(formsByModel.size).toBe(92);
+  test("all 86 static match-criteria forms route their 94 rule models through ModelForm", () => {
+    expect(formFiles).toHaveLength(86);
+    expect(formsByModel.size).toBe(94);
     expect([...secondFormsByModel.keys()]).toEqual(
       Object.keys(SECOND_RULE_FORMS),
     );

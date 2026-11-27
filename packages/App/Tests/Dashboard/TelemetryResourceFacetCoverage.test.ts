@@ -67,7 +67,7 @@ const PRELOADED_KEYS: Array<string> = [
 ];
 
 describe("the catalog the explorers are wired from", () => {
-  test("lists all fifteen non-Service resource types, each once, in sidebar order", () => {
+  test("lists all sixteen non-Service resource types, each once, in sidebar order", () => {
     expect([...RESOURCE_FACET_CATALOG_KEYS]).toEqual([
       "hostId",
       "dockerHostId",
@@ -77,6 +77,8 @@ describe("the catalog the explorers are wired from", () => {
       "proxmoxClusterId",
       "openStackCloudId",
       "vmwareVCenterId",
+      // XCP-ng's pools (#10995).
+      "xcpNgPoolId",
       "cephClusterId",
       "storageArrayId",
       "serverlessFunctionId",

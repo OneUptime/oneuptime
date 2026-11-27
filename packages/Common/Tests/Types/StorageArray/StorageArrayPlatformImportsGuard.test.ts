@@ -226,11 +226,16 @@ function loadFirst(entryPoint: string): Loaded {
         "../../../Types/StorageArray/StorageArrayPlatformRegistry",
       ) as { default: never }
     ).default;
+    // jest.requireActual from @jest/globals answers unknown: named, as the registry is.
     const catalog: { getAllStorageArrayMetrics: () => Array<unknown> } =
-      jest.requireActual("../../../Types/Monitor/StorageArrayMetricCatalog");
+      jest.requireActual(
+        "../../../Types/Monitor/StorageArrayMetricCatalog",
+      ) as { getAllStorageArrayMetrics: () => Array<unknown> };
     const templates: {
       getAllStorageArrayAlertTemplates: () => Array<unknown>;
-    } = jest.requireActual("../../../Types/Monitor/StorageArrayAlertTemplates");
+    } = jest.requireActual(
+      "../../../Types/Monitor/StorageArrayAlertTemplates",
+    ) as { getAllStorageArrayAlertTemplates: () => Array<unknown> };
     const extractors: {
       getExtractors: () => ReadonlyArray<{ storageSystem: string } | undefined>;
     } = (

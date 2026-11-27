@@ -200,6 +200,7 @@ import {
   ACTION_ITEM_MONITOR_QUERY_PARAM,
   getActionItemMonitorName,
 } from "../../Components/Postmortem/ActionItems/PostmortemActionItemsModel";
+import SnmpVendorTemplateUtil from "Common/Types/Monitor/SnmpMonitor/SnmpVendorTemplate";
 import SnmpTableListUtil from "Common/Types/Monitor/SnmpMonitor/SnmpTableListUtil";
 import Host from "Common/Models/DatabaseModels/Host";
 import {
@@ -1007,6 +1008,9 @@ const MonitorCreate: FunctionComponent<
           oidTemplate: {
             tables: true,
           },
+          // And a SAN switch's Fibre Channel alerts, by its platform.
+          sysObjectId: true,
+          sysDescr: true,
         },
       });
     } catch {
@@ -1108,10 +1112,16 @@ const MonitorCreate: FunctionComponent<
           ]
         : NetworkDeviceAlertPackUtil.buildCriteriaInstances({
             downMonitorStatusId: offlineStatus?.id || undefined,
+            // SNMP failing on a device that answers ping is up (issue #11071).
+            upMonitorStatusId: operationalStatus?.id || undefined,
             tables: SnmpTableListUtil.resolveEffectiveTables({
               templateTables: device?.oidTemplate?.tables,
               deviceTables: device?.snmpTables,
             }).tables,
+            vendorTemplateId: SnmpVendorTemplateUtil.matchDevice({
+              sysObjectId: device?.sysObjectId || undefined,
+              sysDescr: device?.sysDescr || undefined,
+            })?.id,
           });
 
       if (recommendedCriteria.length > 0) {

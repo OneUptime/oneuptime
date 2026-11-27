@@ -111,7 +111,7 @@ La regola prende il nome da ciò che nasconde, come «Data Security: Email addre
 | Qualsiasi altro tipo di dati che un pattern trova da solo, come un token GitHub | Una regola **Regex personalizzata** creata dai pattern propri del tipo di dati. Un segreto viene oscurato. |
 | Uno dei tuoi tipi di dati, con un pattern | Quel pattern, solo nell'attributo in cui è stato trovato |
 | Un tipo di dati che si distingue per le parole che lo circondano, come un routing number | La sua forma, solo nell'attributo in cui è stato trovato |
-| Un tipo di dati trovato dal nome del campo, come il nome di una persona sotto `customer_name`, o un valore sotto una chiave che indica un segreto | Una regola **Attributi indicati**, che nasconde l'intero valore di quell'attributo |
+| Un tipo di dati trovato dal nome del campo, come il nome di una persona sotto `customer_name` o sotto il parametro `full_name` di un URL, o un valore sotto una chiave che indica un segreto | Una regola **Attributi indicati**, che nasconde l'intero valore di quell'attributo |
 | Un valore sotto una chiave che sembra sensibile, dove nulla di più ristretto lo nasconde | Una regola **Chiavi di attributi sensibili**, che oscura l'intero valore di ogni attributo del genere |
 | Qualsiasi tipo di dati nell'attributo di una metrica | Una regola della pipeline delle metriche **Oscura attributo** per il servizio, che sostituisce con `[REDACTED]` i valori dell'attributo che contengono il tipo di dati. Per un indirizzo IP, un indirizzo email o un numero di carta, il suo filtro è **Corrisponde al tipo di pattern** con quel tipo, che trova ciò che trova una regola di log o di tracce di quel **Tipo di pattern**, compresi gli indirizzi IPv6 e i valori codificati in percentuale o in un'altra scrittura. Per un altro tipo di dati, è il pattern proprio del tipo, e quando nessun pattern trova il tipo di dati, la regola sostituisce ogni valore dell'attributo |
 
@@ -170,7 +170,7 @@ Prima che OneUptime AI inizi, Sicurezza dei dati rilegge, dentro OneUptime, i re
 
 - **Uno span o una chiamata di IA**: il file, la riga e la funzione che nominano i suoi attributi `code.*`, e il nome dello span.
 - **Un'eccezione**: i suoi frame più alti, quelli nel codice del servizio.
-- **Una riga di log**: il file, la riga e la funzione che nominano i suoi attributi, se li ha, il suo logger, e la riga come modello, con ogni valore sostituito dal nome del suo tipo, ad esempio `User <Email address> signed up`.
+- **Una riga di log**: il file, la riga e la funzione che nominano i suoi attributi, se li ha, il suo logger, e la riga come modello, con ogni valore sostituito dal nome del suo tipo, ad esempio `User <Email address> signed up`, e ogni parola che i suoi record non dimostrano sia stata scritta dal codice, come il nome di una persona, sostituita da `<value>`: `Payment declined for Maria Gonzalez`, letto da un solo record, diventa `Payment declined for <value>`. Il nome di uno span e il nome di una metrica vengono letti allo stesso modo.
 - **Una metrica**: il nome della metrica.
 - **Qualsiasi fuga**: la sua chiave di attributo, ad esempio `user.email`, che il codice di solito scrive così com'è.
 

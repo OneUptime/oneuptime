@@ -1,11 +1,13 @@
 # Руководства по сетевым вендорам (Sophos, Extreme, Cambium)
 
-Как с помощью OneUptime от начала до конца отслеживать три распространённых парка: Sophos Firewall (XGS, SFOS) с его туннелями IPsec, WAN-каналами и SD-WAN; коммутаторы Extreme Networks (EXOS / Switch Engine и Fabric Engine / VOSS) с их фабрикой; а также коммутаторы cnMatrix и корпоративные точки доступа Wi-Fi Cambium Networks — вплоть до канала и мощности передачи каждого радиомодуля.
+Как с помощью OneUptime от начала до конца отслеживать три распространённых парка: Sophos Firewall (XGS, SFOS) с его туннелями IPsec, WAN-каналами и SD-WAN; коммутаторы Extreme Networks (EXOS / Switch Engine и Fabric Engine / VOSS) с их фабрикой; а также коммутаторы cnMatrix и корпоративные точки доступа Wi-Fi Cambium Networks — вплоть до канала и мощности передачи каждого радиомодуля. Они охватывают и коммутаторы SAN — Brocade Fabric OS и Cisco MDS 9000 — вплоть до ошибок каждого порта Fibre Channel.
 
 :::cards
 - [Sophos Firewall](#sophos-firewall-xgs-sfos): Туннели, WAN-каналы, шлюзы и SD-WAN.
 - [Extreme Networks](#extreme-networks-exos-switch-engine-и-fabric-engine-voss): Коммутаторы, фабрика и её оборудование.
 - [Cambium Networks](#cambium-networks-корпоративный-wi-fi-и-cnmatrix): Точки доступа вплоть до каждого радиомодуля и коммутаторы cnMatrix.
+- [Brocade Fabric OS](#brocade-fabric-os): Порты Fibre Channel, оптика, датчики и события фабрики.
+- [Cisco MDS 9000](#cisco-mds-9000): Интерфейсы Fibre Channel, VSAN, slow drain и тревоги port-monitor.
 :::
 
 ## Как это работает
@@ -145,6 +147,76 @@ Cambium сообщает общее число клиентов только н�
 ### Аварии cnMaestro
 
 cnMaestro может отправлять свои аварии, например уход точки доступа из сети, на HTTPS-вебхук. Направьте его на [монитор входящих запросов](/docs/monitor/incoming-request-monitor), чтобы превращать эти аварии в инциденты OneUptime рядом с данными SNMP.
+
+## Brocade Fabric OS
+
+| Что вы хотите видеть | Откуда это берётся |
+| --- | --- |
+| Состояние коммутатора, прошивка, CPU и память | SNMP, с шаблоном производителя **Brocade Fabric OS (SAN switches)** |
+| Статус коммутатора, его датчики и сменные блоки (FRU), строка за строкой | Таблицы шаблона `switch_status`, `sensors` и `frus` |
+| Тип каждого порта Fibre Channel, причина, по которой отключённый порт отключён, и его ошибки, отброшенные кадры и ожидания кредита в секунду | SW-MIB и FCMGMT-MIB, на странице **Интерфейсы** устройства |
+| Принимаемая и передаваемая мощность, температура, напряжение и ток смещения каждого оптического модуля | FA-EXT-MIB, на карточке **Трансиверы** |
+| Отказ межкоммутаторного канала, разделённая или перенастроенная фабрика, изменение зонирования, предупреждение MAPS, заменённый FRU | Трапы SNMPv3 |
+
+Каждый коммутатор и директор с Fabric OS сообщает идентификатор системного объекта в ветви `1.3.6.1.4.1.1588.2.1.1`, поэтому шаблон применяется ко всем ним и ни к чему другому от Brocade: коммутаторы VDX и SLX сохраняют свой шаблон.
+
+### Настройка SNMP в Fabric OS
+
+:::steps
+1. Добавьте пользователя SNMPv3 с аутентификацией и шифрованием, SHA и AES: `snmpconfig --set snmpv3` спросит пользователя, его протоколы и парольные фразы.
+2. Включите FA-MIB командой `snmpconfig --set mibCapability`. В ней 64-битные счётчики ошибок каждого порта и его оптика; без неё порт сообщает только ошибки CRC, ошибки кодирования, отброшенные кадры класса 3 и ожидания кредита, в виде 32-битных счётчиков.
+3. В OneUptime добавьте коммутатор с его адресом управления и этим пользователем. Если **Auto-Apply Vendor Health Template** включено, первый опрос применит шаблон **Brocade Fabric OS (SAN switches)**; иначе примените его в **Vendor Health Template** на странице **Настройки** устройства.
+:::
+
+После этого страница **Интерфейсы** устройства помечает каждый порт Fibre Channel его типом, например E-Port или F-Port, и показывает, почему отключённый порт отключён, так же как `switchshow`: No light, No module, Disabled. Её карточка **Порты Fibre Channel** строит графики ошибок, отброшенных кадров и счётчиков кредита каждого порта в секунду.
+
+Ошибки CRC, недопустимые слова передачи, сбои линии и потери синхронизации и сигнала порта — это его ошибки: **Ошибки интерфейса SNMP (в секунду)** оповещает о них, а рекомендуемые оповещения включают **Fibre Channel port errors** при более чем одной ошибке за десять секунд. Отброшенные кадры и ожидания кредита — не ошибки; оповещайте об одном из них через **Счётчик Fibre Channel SNMP (в секунду)**.
+
+### Virtual Fabrics
+
+Шасси с Virtual Fabrics отвечает за каждый логический коммутатор в отдельном контексте SNMPv3: `VF:` и идентификатор фабрики логического коммутатора. Добавьте по устройству на каждый логический коммутатор, все с адресом управления шасси, и задайте для каждого **Контекст SNMP v3** (`VF:128`, `VF:20`); устройство без контекста читает логический коммутатор по умолчанию.
+
+### Трапы Brocade
+
+Fabric OS отправляет трапы по SNMPv3. С помощью `snmpconfig --set snmpv3` добавьте зонд получателем трапов для пользователя, которым опрашивает OneUptime, на UDP-порт 162: зонд принимает трапы SNMPv3 от пользователей устройств, которые он опрашивает (см. [Трапы и informs SNMPv3](/docs/monitor/network-device-monitor#трапы-и-informs-snmpv3)), а трапы каждого логического коммутатора называют его контекст, поэтому срабатывают только на его устройстве. Обновление Fabric OS может снова отключить отдельные трапы: после обновления проверьте их командой `snmpconfig --show mibCapability`, а включите трап обратно командой `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn`.
+
+Рекомендуемые оповещения для коммутатора Brocade включают по одному на каждое важное событие фабрики: **Inter-switch link down** (E-Port уходит в офлайн), **Fabric segmented**, **Fabric reconfigured**, **Zone configuration changed**, **MAPS alert** и **Field-replaceable unit changed**.
+
+## Cisco MDS 9000
+
+| Что вы хотите видеть | Откуда это берётся |
+| --- | --- |
+| CPU и память | SNMP, с шаблоном производителя **Cisco MDS 9000 (SAN switches)** |
+| Блоки питания, модули и вентиляторные лотки, строка за строкой | Таблицы шаблона `power_supplies`, `modules` и `fan_trays` |
+| Каждый VSAN и его состояние | Таблица шаблона `vsans` |
+| Тип каждого интерфейса fc, причина, по которой отключённый интерфейс отключён, и его ошибки, отброшенные кадры, потери кредита и ожидания кредита в секунду | CISCO-FC-FE-MIB, на странице **Интерфейсы** устройства |
+| Показания и пороги тревоги каждого оптического модуля | CISCO-ENTITY-SENSOR-MIB, на карточке **Трансиверы** |
+| Тревоги port-monitor, отказы каналов, изменения зон, VSAN, фабрики и FRU | Трапы |
+
+MDS делит номер предприятия Cisco со всеми остальными устройствами Cisco, поэтому OneUptime распознаёт его по модели или по системному описанию, которое начинается с `Cisco NX-OS(tm) m9`: коммутаторы IOS, IOS-XE и Nexus сохраняют свой шаблон Cisco.
+
+### Настройка SNMP в NX-OS
+
+:::steps
+1. Добавьте пользователя SNMPv3 только для чтения: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`. Роль `network-operator` читает и ничего не может изменить.
+2. Отправляйте трапы на зонд от имени этого пользователя: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
+3. Включите трапы, которые по умолчанию выключены: `snmp-server enable traps zone`, `snmp-server enable traps vsan`, `snmp-server enable traps fcdomain`, `snmp-server enable traps fspf` и, для оптики, `snmp-server enable traps link cisco-xcvr-mon-status-chg`.
+4. В OneUptime добавьте коммутатор с его адресом управления и этим пользователем: шаблон **Cisco MDS 9000 (SAN switches)** применяется так же.
+:::
+
+Рекомендуемые оповещения для MDS включают **Credit loss (slow drain)** и **Timeout discards (slow drain)**, по одному на интерфейс: хост или массив, который перестаёт возвращать буферный кредит, замедляет каждый поток за собой, и эти счётчики показывают это первыми.
+
+### Тревоги port-monitor
+
+Политика port-monitor на MDS поднимает тревогу RMON, когда счётчик порта пересекает порог. Рекомендуемые оповещения включают **Port monitor alarm**, оповещение которого называет счётчик и интерфейс, например "Port monitor: Credit loss rising on fc1/5". Политика, которая следит за slow drain:
+
+```text
+port-monitor name slow-drain
+  logical-type edge
+  counter credit-loss-reco poll-interval 1 delta rising-threshold 1 event 4 falling-threshold 0 event 4
+  counter timeout-discards poll-interval 60 delta rising-threshold 200 event 4 falling-threshold 10 event 4
+port-monitor activate slow-drain
+```
 
 ## Устранение неполадок
 

@@ -23,7 +23,7 @@ flowchart TB
 
 - **Den første gruppe, der passer, tager omkostningen.** En visnings grupper har en rækkefølge, og hver omkostning havner i den første gruppe, hvis regler passer på den, så intet tælles to gange. Grupperne og det ikke-fordelte forbrug giver altid periodens total tilsammen.
 - **Regler læser alt, hvad en omkostning har.** Kontoen, cloudens udbyder, tjenesten, regionen, ressourcen og dens tags, og det, OneUptime ved om ressourcen: dens ejer-teams, dens etiketter, dens App Platforms-miljø og app.
-- **Alt beregnes, når du kigger.** Intet skrives pr. omkostning. En regel, du ændrer, fordeler hver måned, OneUptime gemmer, igen, op til 400 dage tilbage, uden ventetid.
+- **Alt beregnes, når du kigger.** Intet skrives pr. omkostning. En regel, du ændrer, fordeler hver måned, OneUptime gemmer, igen, op til 400 dage tilbage, uden ventetid. Hvert tal følger knappen over det, faktureret, amortiseret eller netto, som under [Cloudomkostninger](/docs/telemetry/cloud-costs#faktureret-amortiseret-og-netto), og en egen post er den samme på hvert grundlag.
 - **Flere visninger kan fordele det samme forbrug.** "Efter team" og "Efter omkostningssted" fordeler hver især det hele på deres egen måde.
 
 ## Før du begynder
@@ -132,7 +132,7 @@ curl -X POST "https://oneuptime.com/api/cloud-cost-view/<view ID>/allocation" \
   -d '{"startDate": "2026-11-01", "endDate": "2026-11-30", "currency": "USD"}'
 ```
 
-Svaret har hver gruppes `total` og det, den består af (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), dens tal pr. dag eller pr. måned, perioden før, og hvad det ikke-fordelte forbrug består af. `POST /cloud-cost-group/<group ID>/spend` svarer for én gruppe.
+Svaret har hver gruppes `total` og det, den består af (`cloud`, `lineItems`, `sharedIn`, `sharedOut`), dens tal pr. dag eller pr. måned, perioden før, og hvad det ikke-fordelte forbrug består af. `POST /cloud-cost-group/<group ID>/spend` svarer for én gruppe. Send `basis` som `billed`, `amortized` eller `net` for tal på det grundlag; uden det er de på projektets, og svarets `basis` siger hvilket.
 
 ## Grænser
 

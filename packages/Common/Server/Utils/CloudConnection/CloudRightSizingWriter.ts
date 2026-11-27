@@ -16,12 +16,20 @@ import {
   getCloudCostResourceKey,
   startOfUtcDay,
 } from "../../../Types/Cloud/CloudCost";
+import { CloudVmFacts } from "../../../Types/Cloud/CloudHostLink";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
 import {
+  CLOUD_HOST_MEMORY_METRIC,
+  CLOUD_HOST_MEMORY_STATE_ATTRIBUTE,
+  CLOUD_HOST_MEMORY_STATE_USED,
+  CLOUD_HOST_MEMORY_TO_PERCENT,
+  CLOUD_HOST_NAME_ATTRIBUTE,
   CLOUD_RIGHT_SIZING_PROFILES,
   CLOUD_RIGHT_SIZING_WINDOW_DAYS,
   CLOUD_SAVINGS_SOURCE_ONEUPTIME,
+  CloudMemoryReading,
+  CloudMemorySource,
   CloudResourceDailyCost,
   CloudRightSizing,
   CloudRightSizingProfile,
@@ -33,10 +41,12 @@ import {
   getCloudRightSizingRecommendationId,
   getCloudSizeSteps,
   hasCloudRightSizingChange,
+  isCloudHostVmProfile,
   isCloudRightSizingRecommendationId,
   isRecommenderSizeRecommendation,
   readCloudResourceSize,
   toCloudRightSizingEvidence,
+  withCloudMemoryReading,
 } from "../../../Types/Cloud/CloudRightSizing";
 import LIMIT_MAX from "../../../Types/Database/LimitMax";
 import { JSONObject } from "../../../Types/JSON";
@@ -52,6 +62,10 @@ import {
 import { getQuerySettings } from "../AnalyticsDatabase/QuerySettingsHelper";
 import { SQL, Statement } from "../AnalyticsDatabase/Statement";
 import logger from "../Logger";
+import CloudHostLinks, {
+  CloudLinkedHost,
+  toCloudVmFacts,
+} from "./CloudHostLinks";
 
 /*
  * KEEPS ONEUPTIME'S OWN RIGHT-SIZING AMONG AN ACCOUNT'S WAYS TO SPEND LESS.
@@ -77,6 +91,13 @@ import logger from "../Logger";
  * resources of a type, grouped by the attributes that tell them apart -
  * never one per resource. Only the resources linked to the connection are
  * sized: two connections reading one account each size their own.
+ *
+ * A VM that OneUptime's host collector runs on is that host
+ * (CloudHostLinks), and the host reads its memory: where its cloud reads
+ * none, it is sized on the host's, and where both read it, on the one with
+ * more readings (CloudRightSizing's chooseCloudMemoryReading). The hosts'
+ * memory is read grouped too, by host name, a few hundred hosts a read
+ * (#11013).
  */
 
 // At most this many resources are sized per connection and day.
@@ -120,7 +141,12 @@ export interface CloudRightSizingCandidate {
   providerResourceId: string;
   // The stored attributes that select its readings (CloudMonitoredResource).
   telemetryAttributes: Record<string, string>;
+  // What finds the host it is, when it is a VM (CloudHostLink).
+  vm: CloudVmFacts;
 }
+
+// The hosts one grouped read of their memory names at most.
+export const CLOUD_RIGHT_SIZING_HOSTS_PER_READ: number = 200;
 
 /*
  * Resources of one type that tell themselves apart by the same attributes,
@@ -155,6 +181,8 @@ export interface CloudRightSizingRecord {
 export interface CloudRightSizingWriteResult {
   // Resources sized: read, and enough readings to say.
   judged: number;
+  // Of them, sized on the memory of the host the VM is (#11013).
+  sizedOnHostMemory: number;
   // Right-sizings kept: a smaller size would do.
   kept: number;
   removed: number;
@@ -261,6 +289,7 @@ export default class CloudRightSizingWriter {
         region: (resource.cloudRegion || "").trim(),
         providerResourceId: (resource.providerResourceId || "").trim(),
         telemetryAttributes,
+        vm: toCloudVmFacts(resource),
       });
     }
 
@@ -365,6 +394,8 @@ export default class CloudRightSizingWriter {
     cpuMax: Array<AggregatedModel>;
     cpuCount: Array<AggregatedModel>;
     memoryMax: Array<AggregatedModel>;
+    // How many memory readings each has: which source to trust (#11013).
+    memoryCount?: Array<AggregatedModel> | undefined;
     end: Date;
   }): Map<string, CloudUsageObservation> {
     const p95: Map<string, AggregatedModel> = CloudRightSizingWriter.matchRows(
@@ -379,6 +410,8 @@ export default class CloudRightSizingWriter {
       CloudRightSizingWriter.matchRows(data.group, data.cpuCount);
     const memory: Map<string, AggregatedModel> =
       CloudRightSizingWriter.matchRows(data.group, data.memoryMax);
+    const memoryCount: Map<string, AggregatedModel> =
+      CloudRightSizingWriter.matchRows(data.group, data.memoryCount || []);
     const cpuScale: number = data.group.profile.cpu.toPercent;
     const memoryScale: number = data.group.profile.memory?.toPercent || 1;
     const observations: Map<string, CloudUsageObservation> = new Map();
@@ -403,7 +436,7 @@ export default class CloudRightSizingWriter {
       const cpuMax: number | null = valueOf(max.get(id));
       const memoryPeak: number | null = valueOf(memory.get(id));
 
-      observations.set(id, {
+      const observation: CloudUsageObservation = {
         cpuP95Percent: cpuP95 === null ? null : cpuP95 * cpuScale,
         cpuMaxPercent: cpuMax === null ? null : cpuMax * cpuScale,
         memoryPeakPercent:
@@ -412,7 +445,17 @@ export default class CloudRightSizingWriter {
         observedHours: Number.isFinite(first)
           ? Math.max(0, (data.end.getTime() - first) / HOUR_MS)
           : 0,
-      });
+      };
+
+      if (memoryPeak !== null) {
+        observation.memorySource = CloudMemorySource.Cloud;
+        observation.memorySamples = Math.max(
+          0,
+          Math.round(valueOf(memoryCount.get(id)) || 0),
+        );
+      }
+
+      observations.set(id, observation);
     }
 
     return observations;
@@ -512,6 +555,16 @@ export default class CloudRightSizingWriter {
         const memoryMax: Array<AggregatedModel> = group.profile.memory
           ? await read(group.profile.memory.names, AggregationType.Max)
           : [];
+        /*
+         * A VM's memory may come from its host too: how many readings its
+         * cloud gave is what the two are told apart by.
+         */
+        const memoryCount: Array<AggregatedModel> =
+          group.profile.memory &&
+          memoryMax.length > 0 &&
+          isCloudHostVmProfile(group.profile)
+            ? await read(group.profile.memory.names, AggregationType.Count)
+            : [];
 
         for (const [id, observation] of CloudRightSizingWriter.toObservations({
           group,
@@ -519,6 +572,7 @@ export default class CloudRightSizingWriter {
           cpuMax,
           cpuCount,
           memoryMax,
+          memoryCount,
           end,
         })) {
           observations.set(id, observation);
@@ -533,6 +587,222 @@ export default class CloudRightSizingWriter {
     }
 
     return observations;
+  }
+
+  // One grouped read of the hosts' memory over the window, by host name.
+  private static async readHostMemoryRows(data: {
+    projectId: ObjectID;
+    hostNames: Array<string>;
+    aggregationType: AggregationType;
+    start: Date;
+    end: Date;
+  }): Promise<Array<AggregatedModel>> {
+    const result: AggregatedResult = await MetricService.aggregateBy({
+      query: {
+        projectId: data.projectId,
+        name: CLOUD_HOST_MEMORY_METRIC,
+        time: new InBetween<Date>(data.start, data.end),
+        attributes: {
+          [CLOUD_HOST_MEMORY_STATE_ATTRIBUTE]: CLOUD_HOST_MEMORY_STATE_USED,
+          [CLOUD_HOST_NAME_ATTRIBUTE]:
+            data.hostNames.length === 1
+              ? data.hostNames[0]!
+              : new Includes(data.hostNames),
+        },
+      } as never,
+      aggregationType: data.aggregationType,
+      aggregateColumnName: "value",
+      aggregationTimestampColumnName: "time",
+      aggregationInterval: AggregationInterval.Total,
+      startTimestamp: data.start,
+      endTimestamp: data.end,
+      groupByAttributeKeys: [CLOUD_HOST_NAME_ATTRIBUTE],
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return (result.data || []) as Array<AggregatedModel>;
+  }
+
+  /*
+   * Each host's memory as a reading, by the host's row id: its highest
+   * share used (whose time is its first reading in the window) and how
+   * many readings, from the two grouped reads. A host none of whose
+   * readings came in is left out.
+   */
+  public static toHostMemoryReadings(data: {
+    hosts: Array<CloudLinkedHost>;
+    max: Array<AggregatedModel>;
+    count: Array<AggregatedModel>;
+    end: Date;
+  }): Map<string, CloudMemoryReading> {
+    const byName: (
+      rows: Array<AggregatedModel>,
+    ) => Map<string, AggregatedModel> = (
+      rows: Array<AggregatedModel>,
+    ): Map<string, AggregatedModel> => {
+      const found: Map<string, AggregatedModel> = new Map();
+
+      for (const row of rows) {
+        const attributes: unknown = row["attributes"];
+        const name: unknown =
+          attributes && typeof attributes === "object"
+            ? (attributes as Record<string, unknown>)[CLOUD_HOST_NAME_ATTRIBUTE]
+            : undefined;
+
+        if (typeof name === "string" && name.trim()) {
+          found.set(name.trim().toLowerCase(), row);
+        }
+      }
+
+      return found;
+    };
+
+    const maxByName: Map<string, AggregatedModel> = byName(data.max);
+    const countByName: Map<string, AggregatedModel> = byName(data.count);
+    const readings: Map<string, CloudMemoryReading> = new Map();
+
+    for (const host of data.hosts) {
+      const name: string = host.hostIdentifier.trim().toLowerCase();
+      const maxRow: AggregatedModel | undefined = maxByName.get(name);
+      const peak: number = Number(maxRow?.value);
+
+      if (!name || !maxRow || !Number.isFinite(peak)) {
+        continue;
+      }
+
+      const first: number = new Date(maxRow.timestamp).getTime();
+      const samples: number = Number(countByName.get(name)?.value);
+
+      readings.set(host.id.toString(), {
+        source: CloudMemorySource.Host,
+        peakPercent: Math.max(0, peak * CLOUD_HOST_MEMORY_TO_PERCENT),
+        samples: Number.isFinite(samples)
+          ? Math.max(0, Math.round(samples))
+          : 0,
+        observedHours: Number.isFinite(first)
+          ? Math.max(0, (data.end.getTime() - first) / HOUR_MS)
+          : 0,
+        host: {
+          id: host.id.toString(),
+          name: host.name || host.hostIdentifier,
+        },
+      });
+    }
+
+    return readings;
+  }
+
+  /*
+   * What the hosts the candidates are read of their memory over the last
+   * 14 days, by the candidate's row id (#11013): only VMs, only those
+   * that are a host (CloudHostLinks), in grouped reads of a few hundred
+   * hosts each. A read that fails is logged, and the candidates are sized
+   * as their cloud reads them.
+   */
+  public static async readHostMemory(data: {
+    projectId: ObjectID;
+    candidates: Array<CloudRightSizingCandidate>;
+    now: Date;
+  }): Promise<Map<string, CloudMemoryReading>> {
+    const vms: Array<CloudRightSizingCandidate> = data.candidates.filter(
+      (candidate: CloudRightSizingCandidate): boolean => {
+        return isCloudHostVmProfile(candidate.profile);
+      },
+    );
+
+    if (vms.length === 0) {
+      return new Map();
+    }
+
+    const result: Map<string, CloudMemoryReading> = new Map();
+
+    try {
+      const hosts: Map<string, CloudLinkedHost> =
+        await CloudHostLinks.hostsOfVms({
+          projectId: data.projectId,
+          vms: vms.map((candidate: CloudRightSizingCandidate): CloudVmFacts => {
+            return candidate.vm;
+          }),
+        });
+
+      if (hosts.size === 0) {
+        return result;
+      }
+
+      const end: Date = data.now;
+      const start: Date = addUtcDays(end, -CLOUD_RIGHT_SIZING_WINDOW_DAYS);
+      const linked: Array<CloudLinkedHost> = Array.from(hosts.values());
+      const readings: Map<string, CloudMemoryReading> = new Map();
+
+      for (
+        let first: number = 0;
+        first < linked.length;
+        first += CLOUD_RIGHT_SIZING_HOSTS_PER_READ
+      ) {
+        const batch: Array<CloudLinkedHost> = linked.slice(
+          first,
+          first + CLOUD_RIGHT_SIZING_HOSTS_PER_READ,
+        );
+        const hostNames: Array<string> = batch.map(
+          (host: CloudLinkedHost): string => {
+            return host.hostIdentifier;
+          },
+        );
+        const max: Array<AggregatedModel> =
+          await CloudRightSizingWriter.readHostMemoryRows({
+            projectId: data.projectId,
+            hostNames,
+            aggregationType: AggregationType.Max,
+            start,
+            end,
+          });
+
+        if (max.length === 0) {
+          continue;
+        }
+
+        const count: Array<AggregatedModel> =
+          await CloudRightSizingWriter.readHostMemoryRows({
+            projectId: data.projectId,
+            hostNames,
+            aggregationType: AggregationType.Count,
+            start,
+            end,
+          });
+
+        for (const [
+          hostId,
+          reading,
+        ] of CloudRightSizingWriter.toHostMemoryReadings({
+          hosts: batch,
+          max,
+          count,
+          end,
+        })) {
+          readings.set(hostId, reading);
+        }
+      }
+
+      for (const [vmId, host] of hosts) {
+        const reading: CloudMemoryReading | undefined = readings.get(
+          host.id.toString(),
+        );
+
+        if (reading) {
+          result.set(vmId, reading);
+        }
+      }
+    } catch (error) {
+      logger.error(
+        `Cloud right-sizing: the memory of the hosts the VMs are could not be read: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+
+    return result;
   }
 
   /*
@@ -744,6 +1014,7 @@ export default class CloudRightSizingWriter {
   }): Promise<CloudRightSizingWriteResult> {
     const result: CloudRightSizingWriteResult = {
       judged: 0,
+      sizedOnHostMemory: 0,
       kept: 0,
       removed: 0,
     };
@@ -812,15 +1083,25 @@ export default class CloudRightSizingWriter {
               now: data.now,
             })
           : new Map();
+      const read: Array<CloudRightSizingCandidate> = candidates.filter(
+        (candidate: CloudRightSizingCandidate): boolean => {
+          return observations.has(candidate.id.toString());
+        },
+      );
       const costs: Map<string, CloudResourceDailyCost> =
-        observations.size > 0
+        read.length > 0
           ? await CloudRightSizingWriter.readDailyCosts({
               projectId: data.projectId,
-              candidates: candidates.filter(
-                (candidate: CloudRightSizingCandidate): boolean => {
-                  return observations.has(candidate.id.toString());
-                },
-              ),
+              candidates: read,
+              now: data.now,
+            })
+          : new Map();
+      // The memory the hosts these VMs are read (#11013).
+      const hostMemory: Map<string, CloudMemoryReading> =
+        read.length > 0
+          ? await CloudRightSizingWriter.readHostMemory({
+              projectId: data.projectId,
+              candidates: read,
               now: data.now,
             })
           : new Map();
@@ -828,13 +1109,22 @@ export default class CloudRightSizingWriter {
       const records: Array<CloudRightSizingRecord> = [];
 
       for (const candidate of candidates) {
-        const observation: CloudUsageObservation | undefined = observations.get(
-          candidate.id.toString(),
-        );
+        const cloudObservation: CloudUsageObservation | undefined =
+          observations.get(candidate.id.toString());
 
-        if (!observation) {
+        if (!cloudObservation) {
           continue;
         }
+
+        const hostReading: CloudMemoryReading | undefined = hostMemory.get(
+          candidate.id.toString(),
+        );
+        const observation: CloudUsageObservation = hostReading
+          ? withCloudMemoryReading({
+              observation: cloudObservation,
+              host: hostReading,
+            })
+          : cloudObservation;
 
         const sizing: CloudRightSizing = buildCloudRightSizing({
           profile: candidate.profile,
@@ -854,6 +1144,10 @@ export default class CloudRightSizingWriter {
         }
 
         result.judged++;
+
+        if (sizing.memorySource === CloudMemorySource.Host) {
+          result.sizedOnHostMemory++;
+        }
 
         const record: CloudRightSizingRecord | null =
           CloudRightSizingWriter.toRecord({ candidate, sizing });

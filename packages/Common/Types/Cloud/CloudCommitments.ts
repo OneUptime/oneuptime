@@ -116,6 +116,13 @@ export interface CloudCommitmentSummary {
    */
   isOrganization?: boolean | undefined;
   kinds: Array<CloudCommitmentKindFigures>;
+  /*
+   * Whether the commitments themselves could be listed (#11011,
+   * CloudCommitmentInventory) - reading (CloudCostState's values), or why
+   * not - and what was left out: an Azure tenant whose app may not read its
+   * reservations, a role that may not describe Savings Plans.
+   */
+  inventory?: { state: string; message?: string | undefined } | undefined;
   // When they were read.
   readAt: string;
 }
@@ -325,6 +332,12 @@ export function readCloudCommitmentSummary(
     : [];
 
   const days: number = Math.round(readAmount(record["days"]));
+  const inventory: Record<string, unknown> | null =
+    record["inventory"] &&
+    typeof record["inventory"] === "object" &&
+    !Array.isArray(record["inventory"])
+      ? (record["inventory"] as Record<string, unknown>)
+      : null;
 
   return {
     state: record["state"],
@@ -339,6 +352,16 @@ export function readCloudCommitmentSummary(
     days: days > 0 ? days : CLOUD_COMMITMENT_WINDOW_DAYS,
     isOrganization: record["isOrganization"] === true ? true : undefined,
     kinds,
+    inventory:
+      inventory && typeof inventory["state"] === "string" && inventory["state"]
+        ? {
+            state: inventory["state"],
+            message:
+              typeof inventory["message"] === "string" && inventory["message"]
+                ? inventory["message"]
+                : undefined,
+          }
+        : undefined,
     readAt: typeof record["readAt"] === "string" ? record["readAt"] : "",
   };
 }

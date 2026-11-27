@@ -42,13 +42,17 @@ describe("what a Network Device monitor can be built from", () => {
    * to the enum for another monitor type cannot leak into this form, and so
    * that removing one is a deliberate edit here.
    */
-  test("offers exactly the SNMP checks, and only those", () => {
+  test("offers exactly the SNMP and device ping checks, and only those", () => {
     expect(NETWORK_DEVICE_CHECK_ONS).toEqual([
       CheckOn.SnmpOidValue,
       CheckOn.SnmpOidExists,
       CheckOn.SnmpOidRatePerSecond,
       CheckOn.SnmpResponseTime,
       CheckOn.SnmpIsOnline,
+      // The device's ping on its own (issue #11071).
+      CheckOn.IcmpIsReachable,
+      CheckOn.IcmpResponseTime,
+      CheckOn.IcmpPacketLossPercent,
       CheckOn.SnmpWalkIsSucceeding,
       CheckOn.SnmpInterfaceIsDown,
       CheckOn.SnmpTrapReceived,
@@ -63,6 +67,7 @@ describe("what a Network Device monitor can be built from", () => {
       CheckOn.SnmpTransceiverPastWarningThreshold,
       CheckOn.SnmpTransceiverReading,
       CheckOn.SnmpTransceiverRxPowerDrop,
+      CheckOn.SnmpFibreChannelCounterPerSecond,
     ]);
   });
 
@@ -109,6 +114,138 @@ describe("what a Network Device monitor can be built from", () => {
       ).not.toContain(CheckOn.SnmpWalkIsSucceeding);
     },
   );
+});
+
+/*
+ * ISSUE #11071. A device's ping is judged on its own, beside its SNMP walk:
+ * "answers ping, SNMP failing" is a question the form can ask, and "no
+ * answer to ping" an Offline a fleet that always answers ping can choose.
+ */
+describe("the device's ping on its own (#11071)", () => {
+  test("Device Is Reachable (ICMP) is compared as true or false and nothing else", () => {
+    expect(
+      values(
+        CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(
+          CheckOn.IcmpIsReachable,
+        ),
+      ),
+    ).toEqual([FilterType.True, FilterType.False]);
+  });
+
+  test.each([CheckOn.IcmpResponseTime, CheckOn.IcmpPacketLossPercent])(
+    "%s only compares numbers, above or below",
+    (checkOn: CheckOn) => {
+      expect(
+        [
+          ...values(CriteriaFilterUtil.getFilterTypeOptionsByCheckOn(checkOn)),
+        ].sort(),
+      ).toEqual(
+        [
+          FilterType.GreaterThan,
+          FilterType.LessThan,
+          FilterType.GreaterThanOrEqualTo,
+          FilterType.LessThanOrEqualTo,
+        ].sort(),
+      );
+    },
+  );
+
+  /*
+   * A Ping monitor has its own Is Online, Response Time and Packet Loss;
+   * the device's ping is a Network Device monitor's alone.
+   */
+  test.each([MonitorType.Website, MonitorType.Ping, MonitorType.Port])(
+    "%s is not offered the device's ping checks",
+    (monitorType: MonitorType) => {
+      const offered: Array<string> = values(
+        CriteriaFilterUtil.getCheckOnOptionsByMonitorType(monitorType),
+      );
+
+      expect(offered).not.toContain(CheckOn.IcmpIsReachable);
+      expect(offered).not.toContain(CheckOn.IcmpResponseTime);
+      expect(offered).not.toContain(CheckOn.IcmpPacketLossPercent);
+    },
+  );
+
+  /*
+   * A ping-only device - no SNMP credentials - is pinged every poll and
+   * walked never, so its ping must be judged on every poll, as its
+   * reachability is.
+   */
+  test("none of them waits for a walk", () => {
+    type IsWalkDependentFunction = (checkOn: CheckOn) => boolean;
+
+    const isWalkDependent: IsWalkDependentFunction = (
+      SnmpMonitorCriteria as unknown as {
+        isWalkDependentCheckOn: IsWalkDependentFunction;
+      }
+    ).isWalkDependentCheckOn;
+
+    for (const checkOn of [
+      CheckOn.IcmpIsReachable,
+      CheckOn.IcmpResponseTime,
+      CheckOn.IcmpPacketLossPercent,
+    ]) {
+      expect({ checkOn, walkDependent: isWalkDependent(checkOn) }).toEqual({
+        checkOn,
+        walkDependent: false,
+      });
+    }
+  });
+
+  /*
+   * "SNMP Device Is Online" kept its name from before ping-first polling;
+   * under it, the picker says it reads the ping OR the walk, and which
+   * check reads only one.
+   */
+  test("each reachability check says which path it reads, where it is picked", () => {
+    const options: Array<DropdownOption> =
+      CriteriaFilterUtil.getCheckOnOptionsByMonitorType(
+        MonitorType.NetworkDevice,
+      );
+    const describedAs: (checkOn: CheckOn) => string | undefined = (
+      checkOn: CheckOn,
+    ): string | undefined => {
+      return options.find((option: DropdownOption): boolean => {
+        return option.value === checkOn;
+      })?.description;
+    };
+
+    expect(describedAs(CheckOn.SnmpIsOnline)).toBe(
+      "True when the device answers its probe's ping or its SNMP walk.",
+    );
+    expect(describedAs(CheckOn.IcmpIsReachable)).toBe(
+      "True when the device answers its probe's ping, whatever SNMP does.",
+    );
+    expect(describedAs(CheckOn.SnmpWalkIsSucceeding)).toContain("credentials");
+    expect(describedAs(CheckOn.IcmpResponseTime)).toBeTruthy();
+    expect(describedAs(CheckOn.IcmpPacketLossPercent)).toBeTruthy();
+    // Only those: the rest of the list reads as it did.
+    expect(describedAs(CheckOn.SnmpOidValue)).toBeUndefined();
+  });
+
+  test("a criteria on the ping reads in milliseconds and percent", () => {
+    expect(
+      CriteriaFilterUtil.translateFilterToText(
+        {
+          checkOn: CheckOn.IcmpResponseTime,
+          filterType: FilterType.GreaterThan,
+          value: 200,
+        },
+        MonitorType.NetworkDevice,
+      ),
+    ).toContain("ms");
+    expect(
+      CriteriaFilterUtil.translateFilterToText(
+        {
+          checkOn: CheckOn.IcmpPacketLossPercent,
+          filterType: FilterType.GreaterThan,
+          value: 20,
+        },
+        MonitorType.NetworkDevice,
+      ),
+    ).toContain("%");
+  });
 });
 
 describe("the catalog agrees with the server evaluator", () => {

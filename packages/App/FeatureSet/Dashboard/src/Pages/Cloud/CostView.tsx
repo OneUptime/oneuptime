@@ -41,6 +41,10 @@ import CloudCostUnallocatedCard from "../../Components/Cloud/CostGroups/CloudCos
 import useCloudCostRuleContext, {
   CloudCostRuleContext,
 } from "../../Components/Cloud/CostGroups/UseCloudCostRuleContext";
+import CloudCostBasisSwitch, {
+  CloudCostBasisChoice,
+  useCloudCostBasis,
+} from "../../Components/Cloud/CloudCostBasis";
 import { formatCloudMoney } from "../../Components/Cloud/CloudCostWords";
 import useCloudAccounts, {
   CloudAccountsRead,
@@ -63,6 +67,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
@@ -121,6 +126,8 @@ const CloudCostViewPage: FunctionComponent<
   );
   const accounts: CloudAccountsRead = useCloudAccounts();
   const currency: string = accounts.totals.costs.currency;
+  // Each group's spend billed, amortized or net, as Costs shows the spend.
+  const basisChoice: CloudCostBasisChoice = useCloudCostBasis();
   const ruleContext: CloudCostRuleContext = useCloudCostRuleContext({
     accounts: accounts.accounts,
     currency,
@@ -174,7 +181,12 @@ const CloudCostViewPage: FunctionComponent<
 
     fetchCloudCostAllocation({
       viewId,
-      ask: { startDate: window.start, endDate: window.end, currency },
+      ask: {
+        startDate: window.start,
+        endDate: window.end,
+        currency,
+        basis: basisChoice.basis,
+      },
     })
       .then((found: CloudCostAllocationResult): void => {
         if (!ignore) {
@@ -190,7 +202,7 @@ const CloudCostViewPage: FunctionComponent<
     return (): void => {
       ignore = true;
     };
-  }, [viewId.toString(), period, currency, attempt]);
+  }, [viewId.toString(), period, currency, basisChoice.basis, attempt]);
 
   if (viewError) {
     return <ErrorMessage message={viewError} />;
@@ -301,11 +313,23 @@ const CloudCostViewPage: FunctionComponent<
             <></>
           )}
         </div>
+        {/* The view's line: its ID, who created it and who last changed it. */}
+        <RecordActivityLine
+          modelType={CloudCostView}
+          recordId={viewId}
+          className="mt-4 border-t border-gray-100 pt-3"
+        />
       </Card>
+      <CloudCostBasisSwitch
+        basis={basisChoice.basis}
+        onChange={basisChoice.setBasis}
+        accounts={accounts.accounts}
+      />
       <CloudCostSpendByGroupCard
         viewId={viewId}
         period={period}
         onPeriodChange={setPeriod}
+        basis={basisChoice.basis}
         allocation={allocation}
         error={allocationError}
         onRetry={() => {

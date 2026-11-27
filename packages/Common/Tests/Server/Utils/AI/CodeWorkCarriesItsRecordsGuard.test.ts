@@ -113,6 +113,10 @@ const WRITERS: Record<string, Classification> = {
     kind: "carriesNoRecord",
     why: "A Data Security issue's fix: its request describes the issue and its findings, with no context, never the incident declared for the issue.",
   },
+  "packages/Common/Server/Utils/CloudSavings/CloudSavingsCodeFix.ts": {
+    kind: "carriesNoRecord",
+    why: "A cloud saving made in the code that declares its resource (#11010): its request names the resource and the change, with no context, never an incident or alert.",
+  },
   "packages/Common/Server/Utils/AI/SRE/ProfileFixTaskTrigger.ts": {
     kind: "carriesNoRecord",
     why: "A slow function the Profiler found: its context is the service's profile, never an incident or alert.",

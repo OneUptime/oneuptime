@@ -20,9 +20,11 @@ import {
   SearchValueOperator,
   SearchValuePredicate,
 } from "../../../Types/Telemetry/TelemetrySearchQuery";
+import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import {
   SERVICE_NAME_SEARCH_LIMIT,
   ServiceNameSearch,
+  findServiceIdByName,
   getGlobLiteral,
   getServiceNameSearchTexts,
   searchServicesForNamePredicates,
@@ -218,6 +220,86 @@ describe("searchServicesForNamePredicates", () => {
         predicates: [predicate(SearchValueOperator.Equals, "wbkiosk")],
       }),
     ).rejects.toThrow("The server is unavailable.");
+  });
+});
+
+/*
+ * A typed name to the id of the service it names (#11072): the logs
+ * explorer's `service:` name, which it matched against the project's
+ * first 10,000 services.
+ */
+describe("findServiceIdByName", () => {
+  const LATE_ID: string = "a1000000-0000-4000-8000-0000000000aa";
+  const TWIN_ID: string = "a1000000-0000-4000-8000-0000000000ac";
+  let server: CappedListServer;
+
+  beforeEach(() => {
+    server = new CappedListServer();
+    server.add(
+      Service,
+      namesSortingFirst(LIMIT_PER_PROJECT + 50).map(
+        (name: string): Record<string, unknown> => {
+          return { _id: ObjectID.generate().toString(), name: name };
+        },
+      ),
+    );
+    server.add(Service, [
+      { _id: LATE_ID, name: "wbkiosk-payments" },
+      { _id: "a1000000-0000-4000-8000-0000000000ab", name: "wbkiosk-login" },
+    ]);
+    server.install();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("finds a service past the project's first 10,000, by one search of its name", async () => {
+    expect(await findServiceIdByName({ name: "wbkiosk-payments" })).toBe(
+      LATE_ID,
+    );
+
+    const reads: Array<CappedListCall> = server.callsFor(Service);
+    expect(reads).toHaveLength(1);
+    expect((reads[0]!.query["name"] as Search<string>).value).toBe(
+      "wbkiosk-payments",
+    );
+  });
+
+  test("its case aside, and the spaces around it", async () => {
+    expect(await findServiceIdByName({ name: "  WBKIOSK-Payments " })).toBe(
+      LATE_ID,
+    );
+  });
+
+  test("a name that is only part of a service's is no service's", async () => {
+    expect(await findServiceIdByName({ name: "wbkiosk" })).toBeUndefined();
+  });
+
+  test("of services sharing a name, the first by name order", async () => {
+    server.add(Service, [{ _id: TWIN_ID, name: "WBKIOSK-PAYMENTS" }]);
+
+    expect([LATE_ID, TWIN_ID]).toContain(
+      await findServiceIdByName({ name: "wbkiosk-payments" }),
+    );
+  });
+
+  test("no name, no read", async () => {
+    expect(await findServiceIdByName({ name: "  " })).toBeUndefined();
+    expect(server.callsFor(Service)).toHaveLength(0);
+  });
+
+  test("a failed search throws, rather than say no service has the name", async () => {
+    jest.restoreAllMocks();
+    const failing: typeof ModelAPI = {
+      getList: async (): Promise<never> => {
+        throw new Error("refused");
+      },
+    } as unknown as typeof ModelAPI;
+
+    await expect(
+      findServiceIdByName({ name: "wbkiosk-payments", modelAPI: failing }),
+    ).rejects.toThrow("refused");
   });
 });
 

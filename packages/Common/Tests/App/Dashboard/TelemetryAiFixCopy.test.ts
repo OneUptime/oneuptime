@@ -390,10 +390,13 @@ describe("what Fix with AI says", () => {
       button: "Fix with AI",
       pickRepository: "Which repository holds this code?",
       pickRepositoryPlaceholder: "Pick a repository",
-      // What a picker's open list says with nothing to offer (#10921).
+      /*
+       * What a picker's open list says with nothing to offer (#10921) -
+       * Fix performance with AI's too, now its picker is held to the same
+       * repositories (#11075).
+       */
       noAskableRepository:
         "No connected repository you may ask OneUptime AI to work in.",
-      noReadableRepository: "No connected repository you can read.",
       working: "OneUptime AI is working on it.",
       viewTask: "View the task",
       couldNotStart: "Could not start the fix: {{reason}}",

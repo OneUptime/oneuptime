@@ -369,7 +369,7 @@ describe.each(KINDS)("once $name created with owners exists", (kind: Kind) => {
     expect(added["props"]).toBe(PROPS);
   });
 
-  test("after Episode Created and its channels, and before the owner rules run", async () => {
+  test("REGRESSION (#11188): before its channels and Episode Created, so its rules match on them, and before the owner rules run", async () => {
     standIn();
 
     await created(PICKED);
@@ -377,12 +377,12 @@ describe.each(KINDS)("once $name created with owners exists", (kind: Kind) => {
 
     expect(steps).toEqual([
       "privacy",
-      "workspace",
       "first state",
-      "Episode Created",
       "picked owners",
       "owner rules",
       "labels",
+      "workspace",
+      "Episode Created",
       "on-call",
       "paging",
     ]);
