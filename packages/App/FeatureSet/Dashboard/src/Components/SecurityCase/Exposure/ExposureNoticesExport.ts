@@ -1,4 +1,11 @@
 import {
+  AccessLogCounts,
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  formatBytesInEnglish,
+  getReadsFromOutside,
+} from "Common/Types/DataSecurity/AccessLogReads";
+import {
   BREACH_PLACE_WORDS,
   BreachLawRule,
   BreachPlace,
@@ -207,7 +214,61 @@ export function describeReadsInEnglish(
     );
   }
 
+  lines.push(...describeLogReadsInEnglish(reads));
+
   return lines;
+}
+
+/*
+ * What the store's own access logs say (#10951), once OneUptime read them
+ * for the window as it is now: counted - the document never names who.
+ */
+export function describeLogReadsInEnglish(
+  reads: ExposureAssessmentView["reads"],
+): Array<string> {
+  const read: ExposureLogRead | undefined = reads.fromLogs;
+
+  if (
+    !read ||
+    read.status !== ExposureLogReadStatus.Read ||
+    reads.isFromLogsCurrent === false
+  ) {
+    return [];
+  }
+
+  const outside: AccessLogCounts = getReadsFromOutside(read);
+  const files: string = read.isComplete
+    ? `It read ${plural(read.logFilesRead, "log file", "log files")} of the window.`
+    : `It read ${plural(read.logFilesRead, "log file", "log files")}, to ${exportMoment(read.readThrough)}: the counts are those so far.`;
+
+  if (outside.reads === 0) {
+    return [
+      read.isComplete
+        ? "OneUptime read the store's access logs for this window: no read from outside your accounts."
+        : "OneUptime read part of the store's access logs for this window: no read from outside your accounts so far.",
+      files,
+      "S3 delivers its access logs on a best effort basis, so a person still checks.",
+    ];
+  }
+
+  const who: Array<string> = [
+    read.anonymous.reads > 0
+      ? `${read.anonymous.reads.toLocaleString("en-US")} by anyone on the internet, from ${plural(read.anonymous.addresses, "address", "addresses")}`
+      : "",
+    read.outside.reads > 0
+      ? `${read.outside.reads.toLocaleString("en-US")} by ${plural(read.outside.accounts, "account", "accounts")} outside your company`
+      : "",
+    read.unknown.reads > 0
+      ? `${read.unknown.reads.toLocaleString("en-US")} by requesters OneUptime cannot place`
+      : "",
+  ].filter(Boolean);
+
+  return [
+    `OneUptime read the store's access logs for this window: ${plural(outside.reads, "read", "reads")} from outside your accounts.`,
+    `${who.join("; ")}.`,
+    `${plural(outside.objects, "object", "objects")} read, ${formatBytesInEnglish(outside.bytes)} sent.`,
+    files,
+  ];
 }
 
 // Whose data it was, in English.

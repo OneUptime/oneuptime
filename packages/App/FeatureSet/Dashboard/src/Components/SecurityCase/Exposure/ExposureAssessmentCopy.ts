@@ -44,6 +44,7 @@ export const EXPOSURE_TEST_IDS: {
   part: string;
   partToggle: string;
   taskAnswer: string;
+  readLogs: string;
 } = {
   card: "security-case-exposure-assessment",
   notAssessed: "security-case-exposure-not-assessed",
@@ -70,6 +71,8 @@ export const EXPOSURE_TEST_IDS: {
   partToggle: "security-case-exposure-part-toggle",
   // A checklist task's answer, under the task on the case's Tasks page (#10954).
   taskAnswer: "security-case-task-exposure-answer",
+  // Read the Access Logs, on the reads line (#10951).
+  readLogs: "security-case-exposure-read-logs",
 };
 
 // The card.
@@ -159,6 +162,82 @@ export const READS_UNKNOWN: string = translationKey(
 export const READS_LOGGED: string = translationKey(
   "Reads were logged. The store's access logs say who read it.",
 );
+
+// What the store's own access logs say, once OneUptime read them (#10951).
+export const LOGS_FROM_OUTSIDE: PluralTemplate = {
+  one: "OneUptime read the store's access logs for this window: {{count}} read from outside your accounts.",
+  other:
+    "OneUptime read the store's access logs for this window: {{count}} reads from outside your accounts.",
+};
+export const LOGS_NONE_FROM_OUTSIDE: string = translationKey(
+  "OneUptime read the store's access logs for this window: no read from outside your accounts.",
+);
+export const LOGS_NONE_SO_FAR: string = translationKey(
+  "OneUptime read part of the store's access logs for this window: no read from outside your accounts so far.",
+);
+// Who made the reads from outside, each "{{reads}} by ...": counted by its own plural.
+export const LOGS_BY_ANYONE: PluralTemplate = {
+  one: "{{reads}} by anyone on the internet, from {{count}} address",
+  other: "{{reads}} by anyone on the internet, from {{count}} addresses",
+};
+export const LOGS_BY_ACCOUNTS: PluralTemplate = {
+  one: "{{reads}} by {{count}} account outside your company",
+  other: "{{reads}} by {{count}} accounts outside your company",
+};
+export const LOGS_BY_UNPLACED: string = translationKey(
+  "{{reads}} by requesters OneUptime cannot place",
+);
+export const LOGS_OBJECTS_SENT: PluralTemplate = {
+  one: "{{count}} object read, {{size}} sent.",
+  other: "{{count}} objects read, {{size}} sent.",
+};
+export const LOGS_LISTINGS: PluralTemplate = {
+  one: "{{count}} listing of its objects from outside, which names them without sending them.",
+  other:
+    "{{count}} listings of its objects from outside, which name them without sending them.",
+};
+export const LOGS_FILES_READ: PluralTemplate = {
+  one: "It read {{count}} log file of the window.",
+  other: "It read {{count}} log files of the window.",
+};
+export const LOGS_PART_READ: PluralTemplate = {
+  one: "It read {{count}} log file, to {{date}}, within the time a read takes: the counts are those so far.",
+  other:
+    "It read {{count}} log files, to {{date}}, within the time a read takes: the counts are those so far.",
+};
+export const LOGS_BEST_EFFORT: string = translationKey(
+  "S3 delivers its access logs on a best effort basis, so a person still checks.",
+);
+export const LOGS_OLDER_WINDOW: string = translationKey(
+  "Read {{date}}, for the window as it was then. Read them again for the window as it is now.",
+);
+export const LOGS_NO_CONTENT_ACCESS: string = translationKey(
+  "OneUptime cannot read these logs: the store's cloud connection may not read objects. Give it content access in its data security settings, or read the logs where they are.",
+);
+export const LOGS_LOGGING_OFF: string = translationKey(
+  "The store logs no reads now, so OneUptime found no logs to read.",
+);
+export const LOGS_UNREADABLE: string = translationKey(
+  "OneUptime could not read the bucket the logs are written to, {{location}}.",
+);
+export const LOGS_UNREADABLE_SOMEWHERE: string = translationKey(
+  "OneUptime could not read the bucket the logs are written to.",
+);
+export const LOGS_NOT_SUPPORTED: string = translationKey(
+  "OneUptime reads an S3 bucket's access logs. This store's are for you to read where they are.",
+);
+export const READ_ACCESS_LOGS: string = translationKey("Read the Access Logs");
+export const READ_LOGS_AGAIN: string = translationKey("Read the Logs Again");
+export const LOGS_READ_TOAST: string = translationKey(
+  "The store's access logs were read.",
+);
+export const WHO_READ_FROM_OUTSIDE: string = translationKey(
+  "Who Read It From Outside",
+);
+export const LOGS_PRINCIPAL_LINE: PluralTemplate = {
+  one: "{{count}} read, {{size}}, from {{first}} to {{last}}",
+  other: "{{count}} reads, {{size}}, from {{first}} to {{last}}",
+};
 export const ANYONE_COULD_READ: string = translationKey(
   "Anyone on the internet could read it.",
 );

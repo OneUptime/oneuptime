@@ -137,9 +137,24 @@ import SecurityCaseExposureAssessment, {
 import {
   DRAFT_NOT_LEGAL_ADVICE,
   EXPOSURE_CARD_PLACE,
+  LOGS_BEST_EFFORT,
+  LOGS_NO_CONTENT_ACCESS,
+  LOGS_NONE_FROM_OUTSIDE,
+  LOGS_NONE_SO_FAR,
   NOT_LEGAL_ADVICE,
+  READS_LOGGED,
   READS_NOT_LOGGED,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityCase/Exposure/ExposureAssessmentCopy";
+import {
+  ExposureLogUnreadReason,
+  getUnreadLogs,
+} from "../../../Types/DataSecurity/AccessLogReads";
+import {
+  EXPOSURE_NOW,
+  exposureAnswerOf,
+  exposureLogReadOf,
+  exposureViewOf,
+} from "../../Helpers/ExposureAssessmentAnswers";
 import {
   BreachLawId,
   BreachPlace,
@@ -1079,5 +1094,264 @@ describe("exporting the notices", () => {
     await renderCards();
 
     expect(screen.queryByRole("button", { name: "Export PDF" })).toBeNull();
+  });
+});
+
+/*
+ * WHO READ IT, FROM THE STORE'S OWN ACCESS LOGS (#10951): where reads were
+ * logged, the reads line says what OneUptime read of the logs - reads from
+ * outside, by whom, what was read and sent, how far the read went - or why
+ * it could not; Read the Access Logs reads them; and who read it from
+ * outside is named only when the server sent the names. "Reads were not
+ * logged. Treat the data as read." stays where they were not.
+ */
+describe("who read it, from the store's access logs", () => {
+  function readsLine(): HTMLElement {
+    return screen.getByTestId("security-case-exposure-reads");
+  }
+
+  function logged(
+    logRead?: Parameters<typeof exposureLogReadOf>[0] | "none",
+    data: Partial<DataSecurityExposureAssessmentResponse> = {},
+  ): DataSecurityExposureAssessmentResponse {
+    return exposureAnswerOf({
+      view: exposureViewOf({
+        accessLogging: true,
+        logRead:
+          logRead === "none" || logRead === undefined
+            ? undefined
+            : exposureLogReadOf(logRead),
+      }),
+      ...data,
+    });
+  }
+
+  test("logged and not read yet: the logs say who read it, and Read the Access Logs reads them", async () => {
+    reads.mockResolvedValue(logged("none"));
+
+    const readLogs: SpyInstance<typeof DataSecurityApi.readExposureLogs> = jest
+      .spyOn(DataSecurityApi, "readExposureLogs")
+      .mockResolvedValue(logged({ anonymous: 3, outside: 2 }));
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(READS_LOGGED);
+    expect(readsLine()).toHaveAttribute("data-from-logs", "false");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-exposure-read-logs"));
+    });
+    await flush();
+
+    expect(readLogs).toHaveBeenCalledWith(CASE_ID);
+    expect(readsLine()).toHaveAttribute("data-from-logs", "true");
+    expect(readsLine()).toHaveTextContent(
+      "OneUptime read the store's access logs for this window: 5 reads from outside your accounts.",
+    );
+    // The data counts as read: drawn as the brief's warning is.
+    expect(readsLine().className).toContain("bg-amber-50");
+    // Read again, for a window that changed.
+    expect(
+      within(readsLine()).getByRole("button", { name: "Read the Logs Again" }),
+    ).toBeInTheDocument();
+  });
+
+  test("reads from outside: by whom, what was read and sent, and how far the read went", async () => {
+    reads.mockResolvedValue(logged({ anonymous: 3, outside: 2, unknown: 1 }));
+
+    await renderCards();
+
+    const line: HTMLElement = readsLine();
+
+    expect(line).toHaveTextContent(
+      "OneUptime read the store's access logs for this window: 6 reads from outside your accounts.",
+    );
+    expect(line).toHaveTextContent(
+      "3 by anyone on the internet, from 3 addresses",
+    );
+    expect(line).toHaveTextContent("2 by 1 account outside your company");
+    expect(line).toHaveTextContent("1 by requesters OneUptime cannot place");
+    expect(line).toHaveTextContent("6 objects read, 6 MB sent.");
+    expect(line).toHaveTextContent("It read 240 log files of the window.");
+    // No reads from outside to doubt: no best-effort warning.
+    expect(line).not.toHaveTextContent(LOGS_BEST_EFFORT);
+  });
+
+  test("who read it from outside is named only when the server sent the names", async () => {
+    reads.mockResolvedValue(logged({ outside: 2, principals: true }));
+
+    await renderCards();
+
+    const named: HTMLElement = within(readsLine()).getByTestId(
+      "security-case-exposure-reads-principals",
+    );
+
+    expect(named).toHaveTextContent("Who Read It From Outside");
+    expect(named).toHaveTextContent(
+      "arn:aws:sts::999999999999:assumed-role/partner-reader/s1",
+    );
+    // The principal is code, read from the left on any page.
+    expect(
+      within(named).getByText(
+        "arn:aws:sts::999999999999:assumed-role/partner-reader/s1",
+      ).tagName,
+    ).toBe("CODE");
+    expect(named).toHaveTextContent("2 reads, 2 MB, from");
+
+    cleanup();
+    reads.mockResolvedValue(logged({ outside: 2, principals: false }));
+    await renderCards();
+
+    expect(
+      within(readsLine()).queryByTestId(
+        "security-case-exposure-reads-principals",
+      ),
+    ).toBeNull();
+    expect(readsLine()).toHaveTextContent(
+      "2 by 1 account outside your company",
+    );
+  });
+
+  test("every log file read and none from outside: says so, and that a person still checks", async () => {
+    reads.mockResolvedValue(logged({}));
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(LOGS_NONE_FROM_OUTSIDE);
+    expect(readsLine()).toHaveTextContent(LOGS_BEST_EFFORT);
+    expect(readsLine().className).toContain("bg-gray-50");
+  });
+
+  test("part of the logs read: how far, and that the counts are those so far", async () => {
+    reads.mockResolvedValue(logged({ isComplete: false }));
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(LOGS_NONE_SO_FAR);
+    expect(readsLine()).toHaveTextContent("It read 240 log files, to");
+    expect(readsLine()).toHaveTextContent("the counts are those so far");
+  });
+
+  test("logs the store's connection may not read say so, under the brief's line", async () => {
+    reads.mockResolvedValue(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          accessLogging: true,
+          logRead: getUnreadLogs({
+            reason: ExposureLogUnreadReason.NoContentAccess,
+            now: EXPOSURE_NOW,
+          }),
+        }),
+      }),
+    );
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(READS_LOGGED);
+    expect(
+      within(readsLine()).getByTestId("security-case-exposure-reads-logs-note"),
+    ).toHaveTextContent(LOGS_NO_CONTENT_ACCESS);
+  });
+
+  test("logs that could not be read name where they are, as code", async () => {
+    reads.mockResolvedValue(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          accessLogging: true,
+          logRead: getUnreadLogs({
+            reason: ExposureLogUnreadReason.LogsUnreadable,
+            now: EXPOSURE_NOW,
+            logLocation: "s3://acme-logs/logs/",
+          }),
+        }),
+      }),
+    );
+
+    await renderCards();
+
+    const note: HTMLElement = within(readsLine()).getByTestId(
+      "security-case-exposure-reads-logs-note",
+    );
+
+    expect(note).toHaveTextContent(
+      "OneUptime could not read the bucket the logs are written to, s3://acme-logs/logs/.",
+    );
+    expect(within(note).getByText("s3://acme-logs/logs/").tagName).toBe("CODE");
+  });
+
+  test("a read for the window as it was is said to be, and its counts are not drawn", async () => {
+    reads.mockResolvedValue(
+      logged({ outside: 9, windowStart: "2026-10-30T09:00:00.000Z" }),
+    );
+
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(READS_LOGGED);
+    expect(readsLine()).toHaveTextContent("for the window as it was then");
+    expect(readsLine()).not.toHaveTextContent("9 reads from outside");
+  });
+
+  test("no button where the logs cannot be read here: reads not logged, a reader who may not change it, a store other than an S3 bucket", async () => {
+    reads.mockResolvedValue(exposureAnswerOf());
+    await renderCards();
+
+    expect(readsLine()).toHaveTextContent(READS_NOT_LOGGED);
+    expect(screen.queryByTestId("security-case-exposure-read-logs")).toBeNull();
+
+    cleanup();
+    reads.mockResolvedValue(
+      logged("none", { canChange: false, canDraft: false }),
+    );
+    await renderCards();
+
+    expect(screen.queryByTestId("security-case-exposure-read-logs")).toBeNull();
+
+    cleanup();
+    reads.mockResolvedValue(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          accessLogging: true,
+          storeKind: "AWS Redshift Cluster",
+        }),
+      }),
+    );
+    await renderCards();
+
+    expect(screen.queryByTestId("security-case-exposure-read-logs")).toBeNull();
+  });
+
+  test("a read that fails says why, and the line stays as it was", async () => {
+    reads.mockResolvedValue(logged("none"));
+    jest
+      .spyOn(DataSecurityApi, "readExposureLogs")
+      .mockRejectedValue(
+        new DataSecurityApiError("The log bucket is in another account.", 400),
+      );
+
+    await renderCards();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-exposure-read-logs"));
+    });
+    await flush();
+
+    expect(readsLine()).toHaveTextContent(
+      "The log bucket is in another account.",
+    );
+    expect(readsLine()).toHaveTextContent(READS_LOGGED);
+  });
+
+  test("the checklist's who-read-it line answers from the logs", async () => {
+    reads.mockResolvedValue(logged({ anonymous: 3, outside: 2 }));
+
+    await renderCards();
+
+    expect(
+      screen.getByTestId(
+        `security-case-exposure-checklist-${ExposureChecklistItem.WhoReadIt}`,
+      ),
+    ).toHaveTextContent(
+      "OneUptime read the store's access logs for this window: 5 reads from outside your accounts.",
+    );
   });
 });

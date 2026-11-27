@@ -19,10 +19,20 @@ import {
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { getBuiltInDataType } from "../../../Types/DataSecurity/DataTypeCatalog";
 import {
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  ExposureLogUnreadReason,
+  getUnreadLogs,
+} from "../../../Types/DataSecurity/AccessLogReads";
+import {
   addBusinessDays,
+  applyBreachLaw,
   applyBreachLaws,
+  BreachCheckKind,
+  BreachLawFacts,
   BreachObligation,
   BreachObligationStatus,
+  BreachReasonKind,
   buildExposureAssessmentView,
   countObligationsThatMayApply,
   describeBreachCheckInEnglish,
@@ -56,6 +66,7 @@ import {
   getExposureReads,
   getExposureWindow,
   getIssueOpenIntervals,
+  getLogReadFromOutside,
   getMostUrgentObligation,
   getPlacesOfCountries,
   getStaleExposureDraftParts,
@@ -660,6 +671,189 @@ describe("who read it, with and without logs", () => {
     expect(reads.outsideAccountsUsedInWindow).toBe(1);
     // A public grant is anyone on the internet.
     expect(reads.isPublic).toBe(true);
+  });
+
+  /*
+   * #10951: where reads were logged and OneUptime read the store's own
+   * access logs for this window, they say who read it.
+   */
+  function logRead(
+    data: {
+      anonymous?: number;
+      outside?: number;
+      isComplete?: boolean;
+      windowStart?: string;
+      windowEnd?: string;
+    } = {},
+  ): ExposureLogRead {
+    const counts: (reads: number) => {
+      reads: number;
+      bytes: number;
+      objects: number;
+    } = (reads: number) => {
+      return { reads, bytes: reads * 1000, objects: reads ? 1 : 0 };
+    };
+
+    return {
+      ...getUnreadLogs({
+        reason: ExposureLogUnreadReason.NoWindow,
+        now: new Date("2026-11-20T00:00:00Z"),
+      }),
+      status: ExposureLogReadStatus.Read,
+      reason: undefined,
+      windowStart: data.windowStart || window.start,
+      windowEnd: data.windowEnd || window.end,
+      logLocation: "s3://acme-logs/logs/",
+      logFilesRead: 12,
+      isComplete: data.isComplete !== false,
+      anonymous: {
+        ...counts(data.anonymous || 0),
+        addresses: data.anonymous ? 3 : 0,
+      },
+      outside: { ...counts(data.outside || 0), accounts: data.outside ? 1 : 0 },
+    };
+  }
+
+  function readsWith(
+    read: ExposureLogRead | null,
+    accessLogging: boolean | null = true,
+  ): ExposureReads {
+    return getExposureReads({
+      accessLogging,
+      exposureCheckIds: ["public-read"],
+      isStorePublic: true,
+      grants: [],
+      window,
+      now,
+      logRead: read,
+    });
+  }
+
+  test("logs read and reads from outside found: the data was read, and the logs say so", () => {
+    const reads: ExposureReads = readsWith(
+      logRead({ anonymous: 40, outside: 2 }),
+    );
+
+    expect(reads.logged).toBe(ExposureReadsLogged.Logged);
+    expect(reads.isFromLogsCurrent).toBe(true);
+    expect(reads.isReadFromOutside).toBe(true);
+    expect(reads.isTreatedAsRead).toBe(true);
+    expect(reads.fromLogs?.anonymous.reads).toBe(40);
+    expect(getLogReadFromOutside(reads.fromLogs)).toBe(true);
+  });
+
+  test("every log file read and none from outside: not read, as far as the logs say", () => {
+    const reads: ExposureReads = readsWith(logRead());
+
+    expect(reads.isReadFromOutside).toBe(false);
+    expect(reads.isTreatedAsRead).toBe(false);
+  });
+
+  test("part of the logs read and none from outside so far: not known yet", () => {
+    const reads: ExposureReads = readsWith(logRead({ isComplete: false }));
+
+    expect(reads.isReadFromOutside).toBeUndefined();
+    expect(reads.isTreatedAsRead).toBe(false);
+    // Part read with reads found is read, all the same.
+    expect(
+      readsWith(logRead({ isComplete: false, outside: 1 })).isReadFromOutside,
+    ).toBe(true);
+  });
+
+  test("logs read for the window as it was are not for this one, and say nothing of it", () => {
+    const reads: ExposureReads = readsWith(
+      logRead({ outside: 5, windowStart: iso("2026-11-09T00:00:00Z") }),
+    );
+
+    expect(reads.fromLogs).toBeDefined();
+    expect(reads.isFromLogsCurrent).toBe(false);
+    expect(reads.isReadFromOutside).toBeUndefined();
+    expect(reads.isTreatedAsRead).toBe(false);
+  });
+
+  test("a store whose reads are not logged keeps its line: the logs a case kept say nothing", () => {
+    const reads: ExposureReads = readsWith(logRead({ outside: 5 }), false);
+
+    expect(reads.logged).toBe(ExposureReadsLogged.NotLogged);
+    expect(reads.fromLogs).toBeUndefined();
+    expect(reads.isTreatedAsRead).toBe(true);
+    // A read that could not be made answers nothing.
+    expect(
+      getLogReadFromOutside(
+        getUnreadLogs({
+          reason: ExposureLogUnreadReason.NoContentAccess,
+          now,
+        }),
+      ),
+    ).toBeUndefined();
+  });
+
+  test("reads from outside in the logs answer the breach laws' check; none found leaves it a person's", () => {
+    const facts: (reads: ExposureReads) => BreachLawFacts = (
+      reads: ExposureReads,
+    ): BreachLawFacts => {
+      return {
+        whose: whose({ dataTypeIds: ["email-address"], countries: ["DE"] }),
+        reads,
+        foundAt: new Date(window.foundAt),
+        now,
+      };
+    };
+    const found: BreachObligation = applyBreachLaw(
+      getBreachLawRule(BreachLawId.GdprAuthority),
+      facts(readsWith(logRead({ anonymous: 40, outside: 2 }))),
+    );
+
+    expect(
+      found.checks.map((check: { kind: BreachCheckKind }) => {
+        return check.kind;
+      }),
+    ).not.toContain(BreachCheckKind.ReadFromOutside);
+    expect(found.reasons).toContainEqual({
+      kind: BreachReasonKind.ReadFromOutsideLogged,
+      records: 42,
+    });
+
+    const none: BreachObligation = applyBreachLaw(
+      getBreachLawRule(BreachLawId.GdprAuthority),
+      facts(readsWith(logRead())),
+    );
+
+    expect(
+      none.checks.map((check: { kind: BreachCheckKind }) => {
+        return check.kind;
+      }),
+    ).toContain(BreachCheckKind.ReadFromOutside);
+    expect(
+      none.reasons.map((reason: { kind: BreachReasonKind }) => {
+        return reason.kind;
+      }),
+    ).not.toContain(BreachReasonKind.ReadFromOutsideLogged);
+  });
+
+  test("a case keeps what it read of the logs, and reads it back", () => {
+    const kept: StoredExposureAssessment | null = readStoredExposureAssessment(
+      JSON.parse(
+        JSON.stringify({
+          ...startExposureAssessment({
+            dataStoreId: "10377000-0000-4000-8000-0000000000b1",
+            startedBy: ExposureAssessmentStarter.DataSecurity,
+            language: "en",
+            now,
+          }),
+          logRead: logRead({ outside: 2 }),
+        }),
+      ),
+    );
+
+    expect(kept?.logRead?.outside.reads).toBe(2);
+    expect(kept?.logRead?.status).toBe(ExposureLogReadStatus.Read);
+    expect(
+      readStoredExposureAssessment({
+        dataStoreId: "10377000-0000-4000-8000-0000000000b1",
+        logRead: { status: "Lost" },
+      })?.logRead,
+    ).toBeUndefined();
   });
 });
 

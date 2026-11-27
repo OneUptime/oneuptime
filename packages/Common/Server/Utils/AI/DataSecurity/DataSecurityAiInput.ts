@@ -13,6 +13,13 @@ import {
   getOfferedDraft,
 } from "../../../../Utils/DataSecurity/DataTypeProposal";
 import { DataSecurityAiFeature } from "../../../../Types/DataSecurity/DataSecurityAiFeatures";
+import {
+  AccessLogCounts,
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  formatBytesInEnglish,
+  getReadsFromOutside,
+} from "../../../../Types/DataSecurity/AccessLogReads";
 import { MAX_DESCRIBE_SENTENCE_LENGTH } from "../../../../Types/DataSecurity/DataTypeDescribe";
 import {
   CheckRemediation,
@@ -5050,6 +5057,20 @@ export function exposureAssessmentFacts(data: {
     });
   }
 
+  /*
+   * What the store's access logs say (#10951), when OneUptime read them for
+   * the window as it is now: counts only - never a principal, an address or
+   * an object's name, which the read keeps apart.
+   */
+  const logRead: ExposureLogRead | undefined =
+    view.reads.isFromLogsCurrent &&
+    view.reads.fromLogs?.status === ExposureLogReadStatus.Read
+      ? view.reads.fromLogs
+      : undefined;
+  const fromOutside: AccessLogCounts | undefined = logRead
+    ? getReadsFromOutside(logRead)
+    : undefined;
+
   list.add({
     key: "exposure:reads",
     kind: ComplianceFactKind.ExposureReads,
@@ -5058,6 +5079,26 @@ export function exposureAssessmentFacts(data: {
     outsideAccounts: view.reads.outsideAccounts,
     outsideAccountsUsedInWindow: view.reads.outsideAccountsUsedInWindow,
     isTreatedAsRead: view.reads.isTreatedAsRead,
+    ...(logRead && fromOutside
+      ? {
+          logsRead: true,
+          logsComplete: logRead.isComplete,
+          logFilesRead: logRead.logFilesRead,
+          logsReadThrough: logRead.isComplete ? undefined : logRead.readThrough,
+          readsFromOutside: fromOutside.reads,
+          anonymousReads: logRead.anonymous.reads,
+          anonymousAddresses: logRead.anonymous.addresses,
+          outsideAccountReads: logRead.outside.reads,
+          outsideAccountsThatRead: logRead.outside.accounts,
+          unplacedReads: logRead.unknown.reads,
+          objectsReadFromOutside: fromOutside.objects,
+          sentToOutside:
+            fromOutside.bytes > 0
+              ? formatBytesInEnglish(fromOutside.bytes)
+              : undefined,
+          listingsFromOutside: logRead.listingsFromOutside,
+        }
+      : {}),
   });
 
   if (view.whose.placesNamed && view.whose.placesNamed.length > 0) {

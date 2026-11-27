@@ -20,6 +20,24 @@ import {
   IF_READ_FROM_OUTSIDE,
   IN_FORCE_FROM,
   LAW_AND_PROVISION,
+  LOGS_BEST_EFFORT,
+  LOGS_BY_ACCOUNTS,
+  LOGS_BY_ANYONE,
+  LOGS_BY_UNPLACED,
+  LOGS_FILES_READ,
+  LOGS_FROM_OUTSIDE,
+  LOGS_LISTINGS,
+  LOGS_LOGGING_OFF,
+  LOGS_NO_CONTENT_ACCESS,
+  LOGS_NONE_FROM_OUTSIDE,
+  LOGS_NONE_SO_FAR,
+  LOGS_NOT_SUPPORTED,
+  LOGS_OBJECTS_SENT,
+  LOGS_OLDER_WINDOW,
+  LOGS_PART_READ,
+  LOGS_PRINCIPAL_LINE,
+  LOGS_UNREADABLE,
+  LOGS_UNREADABLE_SOMEWHERE,
   NO_FIXED_TIME,
   READS_LOGGED,
   READS_NOT_LOGGED,
@@ -38,6 +56,16 @@ import {
 } from "./ExposureAssessmentCopy";
 import OneUptimeDate from "Common/Types/Date";
 import {
+  AccessLogCounts,
+  ExposureLogPrincipal,
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  ExposureLogUnreadReason,
+  getReadsFromOutside,
+} from "Common/Types/DataSecurity/AccessLogReads";
+import { TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB } from "Common/Types/Telemetry/TelemetryIngestionBudget";
+import { formatTelemetryUsageSize } from "Common/UI/Components/TelemetryUsage/TelemetryUsageWords";
+import {
   BREACH_CONDITION_WORDS,
   BREACH_PLACE_WORDS,
   BreachDeadlineStart,
@@ -55,6 +83,7 @@ import {
   BreachReasonKind,
   ExposureAssessmentView,
   ExposureDraftPart,
+  ExposureReads,
   ExposureReadsLogged,
   StoredExposureAssessment,
 } from "Common/Types/DataSecurity/ExposureAssessment";
@@ -63,6 +92,7 @@ import {
   Translator,
   composedValue,
   formatList,
+  getInlineSeparator,
 } from "Common/UI/Utils/TranslateTemplate";
 
 /*
@@ -376,6 +406,182 @@ export function getReadsLine(logged: ExposureReadsLogged): string {
   }
 }
 
+/*
+ * What the store's own access logs say, in the reader's words (#10951): a
+ * headline - who read it from outside, or that the logs show nobody did -
+ * and the lines under it: who made those reads, what was read and sent,
+ * listings, and how far the read went. Null when OneUptime read no logs.
+ */
+export interface LogReadsWords {
+  headline: string;
+  details: Array<string>;
+  // A read made for the window as it was: the counts are of that one.
+  isOlderWindow: boolean;
+  // The logs could not be read: the headline says why.
+  isUnread: boolean;
+  // Where the logs are, for the sentence that names it as code.
+  unreadableLocation?: string | undefined;
+}
+
+function sizeOf(bytes: number, translator: Translator): string {
+  return formatTelemetryUsageSize(
+    bytes / TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB,
+    translator,
+  );
+}
+
+function when(value: string | undefined): string {
+  return value
+    ? OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(value)
+    : "";
+}
+
+export function describeLogReads(
+  reads: ExposureReads,
+  translator: Translator,
+): LogReadsWords | null {
+  const read: ExposureLogRead | undefined = reads.fromLogs;
+
+  if (!read) {
+    return null;
+  }
+
+  if (read.status !== ExposureLogReadStatus.Read) {
+    switch (read.reason) {
+      case ExposureLogUnreadReason.NoContentAccess:
+        return {
+          headline: say(translator, LOGS_NO_CONTENT_ACCESS),
+          details: [],
+          isOlderWindow: false,
+          isUnread: true,
+        };
+      case ExposureLogUnreadReason.LoggingOff:
+        return {
+          headline: say(translator, LOGS_LOGGING_OFF),
+          details: [],
+          isOlderWindow: false,
+          isUnread: true,
+        };
+      case ExposureLogUnreadReason.LogsUnreadable:
+        return {
+          headline: read.logLocation
+            ? translator.translateTemplate(LOGS_UNREADABLE, {
+                location: read.logLocation,
+              })
+            : say(translator, LOGS_UNREADABLE_SOMEWHERE),
+          details: [],
+          isOlderWindow: false,
+          isUnread: true,
+          unreadableLocation: read.logLocation,
+        };
+      case ExposureLogUnreadReason.NotSupported:
+        return {
+          headline: say(translator, LOGS_NOT_SUPPORTED),
+          details: [],
+          isOlderWindow: false,
+          isUnread: true,
+        };
+      default:
+        return null;
+    }
+  }
+
+  if (reads.isFromLogsCurrent === false) {
+    return {
+      headline: translator.translateTemplate(LOGS_OLDER_WINDOW, {
+        date: when(read.readAt),
+      }),
+      details: [],
+      isOlderWindow: true,
+      isUnread: false,
+    };
+  }
+
+  const outside: AccessLogCounts = getReadsFromOutside(read);
+  const details: Array<string> = [];
+  const files: string = read.isComplete
+    ? translator.translatePlural(LOGS_FILES_READ, read.logFilesRead)
+    : translator.translatePlural(LOGS_PART_READ, read.logFilesRead, {
+        date: when(read.readThrough),
+      });
+
+  if (outside.reads > 0) {
+    const who: Array<string> = [];
+
+    if (read.anonymous.reads > 0) {
+      who.push(
+        translator.translatePlural(LOGS_BY_ANYONE, read.anonymous.addresses, {
+          reads: translator.formatNumber(read.anonymous.reads),
+        }),
+      );
+    }
+
+    if (read.outside.reads > 0) {
+      who.push(
+        translator.translatePlural(LOGS_BY_ACCOUNTS, read.outside.accounts, {
+          reads: translator.formatNumber(read.outside.reads),
+        }),
+      );
+    }
+
+    if (read.unknown.reads > 0) {
+      who.push(
+        translator.translateTemplate(LOGS_BY_UNPLACED, {
+          reads: translator.formatNumber(read.unknown.reads),
+        }),
+      );
+    }
+
+    details.push(who.join(getInlineSeparator(translator.language)));
+    details.push(
+      translator.translatePlural(LOGS_OBJECTS_SENT, outside.objects, {
+        size: composedValue((sentence: Translator): string => {
+          return sizeOf(outside.bytes, sentence);
+        }),
+      }),
+    );
+  }
+
+  if (read.listingsFromOutside > 0) {
+    details.push(
+      translator.translatePlural(LOGS_LISTINGS, read.listingsFromOutside),
+    );
+  }
+
+  details.push(files);
+
+  if (outside.reads === 0) {
+    details.push(say(translator, LOGS_BEST_EFFORT));
+  }
+
+  return {
+    headline:
+      outside.reads > 0
+        ? translator.translatePlural(LOGS_FROM_OUTSIDE, outside.reads)
+        : say(
+            translator,
+            read.isComplete ? LOGS_NONE_FROM_OUTSIDE : LOGS_NONE_SO_FAR,
+          ),
+    details,
+    isOlderWindow: false,
+    isUnread: false,
+  };
+}
+
+// An outside principal's reads, in the reader's words: "3 reads, 2.1 GB, from ... to ...".
+export function describeLogPrincipal(
+  principal: ExposureLogPrincipal,
+  translator: Translator,
+): string {
+  return translator.translatePlural(LOGS_PRINCIPAL_LINE, principal.reads, {
+    size: composedValue((sentence: Translator): string => {
+      return sizeOf(principal.bytes, sentence);
+    }),
+    first: when(principal.firstAt),
+    last: when(principal.lastAt),
+  });
+}
+
 // About how many records, in the reader's plural.
 export function describeRecords(
   records: number | undefined,
@@ -401,8 +607,17 @@ export function answerChecklistItem(data: {
   const translator: Translator = data.translator;
 
   switch (data.item) {
-    case ExposureChecklistItem.WhoReadIt:
-      return say(translator, getReadsLine(data.view.reads.logged));
+    case ExposureChecklistItem.WhoReadIt: {
+      // What the store's own logs say, once read for this window (#10951).
+      const fromLogs: LogReadsWords | null = describeLogReads(
+        data.view.reads,
+        translator,
+      );
+
+      return fromLogs && !fromLogs.isUnread && !fromLogs.isOlderWindow
+        ? fromLogs.headline
+        : say(translator, getReadsLine(data.view.reads.logged));
+    }
     case ExposureChecklistItem.MustReport: {
       const first: BreachObligation | null = data.view.mostUrgent;
       const rule: BreachLawRule | undefined = first

@@ -3,6 +3,7 @@ import {
   BREACH_NOTICES_NOT_LEGAL_ADVICE_ENGLISH,
   DRAFT_NOT_LEGAL_ADVICE_ENGLISH,
   countryInEnglish,
+  describeLogReadsInEnglish,
   describeReadsInEnglish,
   describeSecretsInEnglish,
   describeWhoseInEnglish,
@@ -39,6 +40,7 @@ import {
   EXPOSURE_NOW,
   exposureAnswerOf,
   exposureAssessmentOf,
+  exposureLogReadOf,
   exposureViewOf,
 } from "Common/Tests/Helpers/ExposureAssessmentAnswers";
 
@@ -360,6 +362,71 @@ describe("a case's breach notices, exported", () => {
     expect(markdown).not.toContain("999999999999");
     expect(markdown).not.toContain("partner-reader");
     expect(markdown).not.toContain("888888888888");
+  });
+
+  test("what the store's access logs show, counted - never who, even for a reader the card names them to (#10951)", () => {
+    const view: ExposureAssessmentView = exposureViewOf({
+      accessLogging: true,
+      logRead: exposureLogReadOf({
+        anonymous: 3,
+        outside: 2,
+        principals: true,
+      }),
+    });
+    const markdown: string = markdownOf(exposureAnswerOf({ view }));
+    const reads: string = sectionOf(markdown, "Who Could Read It");
+
+    expect(view.reads.fromLogs!.outsidePrincipals).toHaveLength(1);
+    expect(reads).toContain(
+      `- OneUptime read the store's access logs for this window: 5${NO_BREAK_SPACE}reads from outside your accounts.`,
+    );
+    expect(reads).toContain(
+      `- 3 by anyone on the internet, from 3${NO_BREAK_SPACE}addresses; 2 by 1${NO_BREAK_SPACE}account outside your company.`,
+    );
+    expect(reads).toContain(
+      `- 4${NO_BREAK_SPACE}objects read, 5${NO_BREAK_SPACE}MB sent.`,
+    );
+    expect(reads).toContain(
+      `- It read 240${NO_BREAK_SPACE}log files of the window.`,
+    );
+    expect(markdown).not.toContain("partner-reader");
+    expect(markdown).not.toContain("999999999999");
+  });
+
+  test("logs read with none from outside, or read in part, say so as the card does", () => {
+    expect(
+      describeLogReadsInEnglish(
+        exposureViewOf({ accessLogging: true, logRead: exposureLogReadOf({}) })
+          .reads,
+      ),
+    ).toEqual([
+      "OneUptime read the store's access logs for this window: no read from outside your accounts.",
+      `It read 240${NO_BREAK_SPACE}log files of the window.`,
+      "S3 delivers its access logs on a best effort basis, so a person still checks.",
+    ]);
+    expect(
+      describeLogReadsInEnglish(
+        exposureViewOf({
+          accessLogging: true,
+          logRead: exposureLogReadOf({ isComplete: false }),
+        }).reads,
+      )[1],
+    ).toBe(
+      `It read 240${NO_BREAK_SPACE}log files, to 2026-11-06 09:00 UTC: the counts are those so far.`,
+    );
+    // Not read, or read for the window as it was: nothing said of them.
+    expect(describeLogReadsInEnglish(exposureViewOf({}).reads)).toEqual([]);
+    expect(
+      describeLogReadsInEnglish(
+        exposureViewOf({
+          accessLogging: true,
+          logRead: exposureLogReadOf({
+            outside: 1,
+            windowStart: "2026-10-30T09:00:00.000Z",
+          }),
+        }).reads,
+      ),
+    ).toEqual([]);
   });
 
   test("reads logged, or not known to be: each says so in its own words", () => {

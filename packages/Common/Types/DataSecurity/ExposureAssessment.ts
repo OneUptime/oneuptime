@@ -26,6 +26,13 @@ import {
   PERSON_NAME_TYPE,
 } from "./BreachLaws";
 import {
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  getReadsFromOutside,
+  isLogReadForWindow,
+  readExposureLogRead,
+} from "./AccessLogReads";
+import {
   ComplianceFact,
   ComplianceFactKind,
   getFactKeys,
@@ -595,8 +602,44 @@ export interface ExposureReads {
   outsideAccounts: number;
   // Of those, how many used their access inside the window.
   outsideAccountsUsedInWindow: number;
-  // With reads not logged, or not known to be: treat the data as read.
+  /*
+   * With reads not logged, or not known to be: treat the data as read. With
+   * them logged, as read when the store's logs show reads from outside.
+   */
   isTreatedAsRead: boolean;
+  /*
+   * What the store's own access logs say, when OneUptime read them (#10951):
+   * counted - its outside principals only for a reader who may see who can
+   * reach the store.
+   */
+  fromLogs?: ExposureLogRead | undefined;
+  // Whether that read was for the window as it is now.
+  isFromLogsCurrent?: boolean | undefined;
+  /*
+   * What the logs read for this window say of reads from outside the
+   * company: yes, no (every log file read, none found), or undefined (not
+   * read, or read only in part with none found so far).
+   */
+  isReadFromOutside?: boolean | undefined;
+}
+
+/*
+ * Whether the logs read for a window show reads from outside: yes when
+ * they show any, no only when every log file of the window was read and
+ * none did - logs read in part prove nothing of what they did not reach.
+ */
+export function getLogReadFromOutside(
+  read: ExposureLogRead | null | undefined,
+): boolean | undefined {
+  if (!read || read.status !== ExposureLogReadStatus.Read) {
+    return undefined;
+  }
+
+  if (getReadsFromOutside(read).reads > 0) {
+    return true;
+  }
+
+  return read.isComplete ? false : undefined;
 }
 
 export function getExposureReads(data: {
@@ -606,6 +649,8 @@ export function getExposureReads(data: {
   grants: ReadonlyArray<ExposureGrant>;
   window: ExposureWindow | null;
   now: Date;
+  // What OneUptime read of the store's access logs, as the case keeps it.
+  logRead?: ExposureLogRead | null | undefined;
 }): ExposureReads {
   const logged: ExposureReadsLogged =
     data.accessLogging === true
@@ -624,9 +669,27 @@ export function getExposureReads(data: {
   const start: number | null = data.window ? toTime(data.window.start) : null;
   const end: number =
     (data.window ? toTime(data.window.end) : null) ?? data.now.getTime();
+  // The logs read count only for the store whose reads are logged, and for this window.
+  const fromLogs: ExposureLogRead | undefined =
+    logged === ExposureReadsLogged.Logged && data.logRead
+      ? data.logRead
+      : undefined;
+  const isFromLogsCurrent: boolean | undefined = fromLogs
+    ? isLogReadForWindow({
+        read: fromLogs,
+        windowStart: data.window?.start,
+        windowEnd: data.window?.end,
+      })
+    : undefined;
+  const isReadFromOutside: boolean | undefined = isFromLogsCurrent
+    ? getLogReadFromOutside(fromLogs)
+    : undefined;
 
   return {
     logged,
+    fromLogs,
+    isFromLogsCurrent,
+    isReadFromOutside,
     isPublic:
       data.isStorePublic ||
       data.grants.some((grant: ExposureGrant): boolean => {
@@ -644,7 +707,8 @@ export function getExposureReads(data: {
 
             return used !== null && used >= start && used <= end;
           }).length,
-    isTreatedAsRead: logged !== ExposureReadsLogged.Logged,
+    isTreatedAsRead:
+      logged !== ExposureReadsLogged.Logged || isReadFromOutside === true,
   };
 }
 
@@ -898,6 +962,8 @@ export enum BreachReasonKind {
   Records = "Records",
   ReadsNotLogged = "ReadsNotLogged",
   ReadsUnknown = "ReadsUnknown",
+  // The store's access logs show reads from outside the company (#10951): its count of them.
+  ReadFromOutsideLogged = "ReadFromOutsideLogged",
   NotInForce = "NotInForce",
 }
 
@@ -1189,11 +1255,19 @@ export function applyBreachLaw(
     });
   }
 
-  // Whether anyone read it.
+  /*
+   * Whether anyone read it. Reads logged and the logs read: reads from
+   * outside answer the check; none found leaves it a person's to make.
+   */
   if (facts.reads.logged === ExposureReadsLogged.NotLogged) {
     reasons.push({ kind: BreachReasonKind.ReadsNotLogged });
   } else if (facts.reads.logged === ExposureReadsLogged.Unknown) {
     reasons.push({ kind: BreachReasonKind.ReadsUnknown });
+  } else if (facts.reads.isReadFromOutside === true && facts.reads.fromLogs) {
+    reasons.push({
+      kind: BreachReasonKind.ReadFromOutsideLogged,
+      records: getReadsFromOutside(facts.reads.fromLogs).reads,
+    });
   } else {
     checks.push({ kind: BreachCheckKind.ReadFromOutside });
   }
@@ -1534,6 +1608,13 @@ export interface StoredExposureAssessment {
   // The facts its drafted parts were written from.
   facts: Array<ComplianceFact>;
   draftedAt?: string | undefined;
+  /*
+   * What OneUptime last read of the store's own access logs (#10951): the
+   * counts, and the outside principals the server shows only to a reader
+   * who may see who can reach the store. Kept, since reading them takes
+   * time; read again for a window that changed since.
+   */
+  logRead?: ExposureLogRead | undefined;
 }
 
 export const EXPOSURE_ASSESSMENT_VERSION: number = 1;
@@ -1655,6 +1736,7 @@ export function readStoredExposureAssessment(
     sections,
     facts: readComplianceFacts(value["facts"]),
     draftedAt: readText(value["draftedAt"], 40) || undefined,
+    logRead: readExposureLogRead(value["logRead"]) || undefined,
   };
 }
 

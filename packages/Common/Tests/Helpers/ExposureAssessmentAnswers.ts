@@ -1,3 +1,9 @@
+import {
+  ExposureLogRead,
+  ExposureLogReadStatus,
+  ExposureLogUnreadReason,
+  getUnreadLogs,
+} from "../../Types/DataSecurity/AccessLogReads";
 import { BreachPlace } from "../../Types/DataSecurity/BreachLaws";
 import { DataSecurityExposureAssessmentResponse } from "../../Types/DataSecurity/DataSecurityApiTypes";
 import DataSensitivity from "../../Types/DataSecurity/DataSensitivity";
@@ -49,6 +55,9 @@ export interface ExposureViewOptions {
   grants?: Array<ExposureGrant> | undefined;
   records?: number | undefined;
   storeName?: string | undefined;
+  // What OneUptime read of the store's access logs (#10951).
+  logRead?: ExposureLogRead | undefined;
+  storeKind?: string | undefined;
 }
 
 export function exposureWindowOf(): ExposureWindow | null {
@@ -84,7 +93,7 @@ export function exposureViewOf(
     store: {
       id: EXPOSURE_STORE_ID,
       name: data.storeName || "eu-customer-exports",
-      kind: "AWS S3 Bucket",
+      kind: data.storeKind || "AWS S3 Bucket",
       region: "eu-west-1",
       sensitivity: DataSensitivity.Confidential,
       exposure: "Public",
@@ -106,6 +115,7 @@ export function exposureViewOf(
       ],
       window,
       now: EXPOSURE_NOW,
+      logRead: data.logRead,
     }),
     whose: getWhoseData({
       dataTypes: (data.dataTypeIds || ["email-address", "person-name"]).map(
@@ -186,3 +196,67 @@ export const EXPOSURE_NOT_ASSESSED: Partial<DataSecurityExposureAssessmentRespon
     view: null,
     checklist: [],
   };
+
+/*
+ * What OneUptime read of the bucket's access logs for the window (#10951):
+ * reads from outside by anyone and by an outside account, or none.
+ */
+export function exposureLogReadOf(
+  data: {
+    anonymous?: number;
+    outside?: number;
+    unknown?: number;
+    isComplete?: boolean;
+    principals?: boolean;
+    windowStart?: string;
+  } = {},
+): ExposureLogRead {
+  const window: { start: string; end?: string | undefined } =
+    exposureWindowOf()!;
+  const counts: (reads: number) => {
+    reads: number;
+    bytes: number;
+    objects: number;
+  } = (reads: number) => {
+    return { reads, bytes: reads * 1024 * 1024, objects: reads > 0 ? 2 : 0 };
+  };
+
+  return {
+    ...getUnreadLogs({
+      reason: ExposureLogUnreadReason.NoWindow,
+      now: EXPOSURE_NOW,
+    }),
+    status: ExposureLogReadStatus.Read,
+    reason: undefined,
+    windowStart: data.windowStart || window.start,
+    windowEnd: window.end,
+    logLocation: "s3://acme-logs/logs/",
+    logFilesRead: 240,
+    isComplete: data.isComplete !== false,
+    readThrough:
+      data.isComplete === false ? "2026-11-06T09:00:00.000Z" : undefined,
+    anonymous: {
+      ...counts(data.anonymous || 0),
+      addresses: data.anonymous ? 3 : 0,
+    },
+    outside: { ...counts(data.outside || 0), accounts: data.outside ? 1 : 0 },
+    unknown: {
+      ...counts(data.unknown || 0),
+      requesters: data.unknown ? 1 : 0,
+    },
+    outsidePrincipals:
+      data.principals && data.outside
+        ? [
+            {
+              principal:
+                "arn:aws:sts::999999999999:assumed-role/partner-reader/s1",
+              accountId: "999999999999",
+              reads: data.outside,
+              bytes: data.outside * 1024 * 1024,
+              firstAt: "2026-11-04T10:00:00.000Z",
+              lastAt: "2026-11-06T10:00:00.000Z",
+            },
+          ]
+        : [],
+  };
+}
