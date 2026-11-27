@@ -409,8 +409,6 @@ export function ownedScopeCreator(
 }
 
 export interface OwnedCreateOptions {
-  // Picked on the create form, a workflow's step or the API (misc data).
-  ownersPicked?: Owners | undefined;
   // The creator's owner row is not written, and they do not own the record.
   ownerRowFails?: boolean | undefined;
 }
@@ -1342,7 +1340,6 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
     const createBy: CreateBy<BaseModel> = {
       data: data,
       props: props,
-      ...this.ownersAsMiscData(options.ownersPicked),
     };
 
     this.standInCreateSteps({

@@ -2246,6 +2246,54 @@ describe("the server holding a record says it still holds its line (#11314)", ()
     ]);
   });
 
+  test("its line opened though Valkey's answer was lost on its way back: it says it holds the line all the same, so another server's message waits for its Created message, and the line goes with its hold", async () => {
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverB, channel);
+
+    // The line is opened; the answer never reaches the holder.
+    serverA.valkey.losingAnswerTo = (script: string): boolean => {
+      return script.includes("'heldBy', ARGV[4]");
+    };
+
+    await serverA.first.hold(incident);
+
+    expect((await theLine(incident))["heldBy"]).toBe(serverA.line.SERVER_ID);
+    expect(serverA.line.linesHeldHere()).toBe(1);
+
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
+
+    // Long past when a holder that said nothing would have stopped.
+    await pause(STALLED_MS * 3);
+
+    expect(channel.posts()).toEqual([]);
+    expect((await theLine(incident))["released"]).toBe("0");
+
+    channel.hear("A: Incident INC-42 Created", "A");
+    await serverA.first.postHeld(incident);
+    await channel.waitFor(3);
+    await serverB.line.drained(recordKeyOf(incident));
+
+    // Its own message waited on it alone, as with no Valkey: both follow Created.
+    expect(channel.posts()[0]).toBe("A: Incident INC-42 Created");
+    expect(channel.posts().slice(1).sort()).toEqual([
+      "A: Added team Platform as the owner",
+      "B: Added Valeria as Incident Commander",
+    ]);
+    expect(serverA.line.linesHeldHere()).toBe(0);
+    expect(await theLine(incident)).toEqual({});
+  });
+
   test("the holder, looking after its own line, has not stopped: it leaves the line for the next server that looks", async () => {
     const incident: WorkspaceRecord = newIncident();
     const channel: Channel = new Channel();

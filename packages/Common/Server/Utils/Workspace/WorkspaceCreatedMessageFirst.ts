@@ -86,6 +86,11 @@ export type StoredMessage = () => JSONObject;
 interface Hold {
   // The record's line is in Valkey, for every server; else this server's alone.
   isShared: boolean;
+  /*
+   * Valkey was asked to open the record's line. One that did not answer may
+   * have opened it all the same: it is let go there too (#11314).
+   */
+  isLineAsked: boolean;
   // Settles once Valkey has said whether it keeps the line (hold).
   isReady: Promise<void>;
   /*
@@ -455,6 +460,7 @@ export default class WorkspaceCreatedMessageFirst {
 
     const hold: Hold = {
       isShared: false,
+      isLineAsked: false,
       isReady: new Promise<void>((resolve: () => void) => {
         markReady = resolve;
       }),
@@ -469,6 +475,7 @@ export default class WorkspaceCreatedMessageFirst {
 
     try {
       if (WorkspaceCreatedMessageLine.isAvailable()) {
+        hold.isLineAsked = true;
         hold.isShared = await WorkspaceCreatedMessageLine.start({
           recordKey: key,
           heldForAtMostMs: this.HELD_FOR_AT_MOST_MS,
@@ -503,6 +510,13 @@ export default class WorkspaceCreatedMessageFirst {
           hold.isReleased = true;
           WorkspaceCreatedMessageLine.wake(key);
           await WorkspaceCreatedMessageLine.drained(key);
+        } else if (hold.isLineAsked) {
+          /*
+           * Valkey's answer to opening the line was lost: it may have opened
+           * it all the same, for other servers' messages to wait in, and
+           * this server has said it holds it since. Let go there too.
+           */
+          await WorkspaceCreatedMessageLine.release(key);
         }
 
         hold.isReleased = true;

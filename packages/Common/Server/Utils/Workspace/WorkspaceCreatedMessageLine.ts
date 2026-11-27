@@ -1030,14 +1030,16 @@ export default class WorkspaceCreatedMessageLine {
       [0, 1],
     );
 
-    if (answer === null) {
-      return false;
-    }
-
+    /*
+     * Said held from now on, even when Valkey's answer was lost on its way
+     * back: the line may be open all the same, and its holder alive. A line
+     * that is not there is said held no more the first time Valkey answers
+     * (keepHeld); one that is goes with the hold (release).
+     */
     HELD_HERE.add(data.recordKey);
     this.scheduleKeepHeld();
 
-    return true;
+    return answer !== null;
   }
 
   /*
