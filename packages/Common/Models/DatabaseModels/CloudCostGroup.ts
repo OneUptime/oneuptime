@@ -376,6 +376,7 @@ export default class CloudCostGroup extends BaseModel {
       "How a shared group's costs are split across the other groups: Even, Proportional (by each one's share of the month's cloud spend), Fixed (by Shared Percentages) or Kubernetes (by what each namespace of Kubernetes Cluster cost that month).",
     defaultValue: CloudCostSharedSplit.Proportional,
     isDefaultValueColumn: true,
+    allowedValues: Object.values(CloudCostSharedSplit),
     example: "Proportional",
   })
   @Column({
