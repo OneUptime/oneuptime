@@ -83,6 +83,8 @@ const ROW_READERS: Record<string, string> = {
     "Builds the rows a workflow step's requests carry: a member's defaults and what the workflow runs as - Project Admin by default, Project Owner, or a copy of a custom role's rows (#9695).",
   "packages/Common/Server/Utils/NetworkDevice/NetworkSummaryCache.ts":
     "Fingerprints the rows - permission, scope, team, block and labels - into the cache key of a viewer whose reads the read-permission pipeline narrows, so only the same rows share a kept Network Overview; the pipeline decides what they may read (getViewerScope).",
+  "packages/Common/Server/Utils/CloudCost/CloudCostReportSender.ts":
+    "Fingerprints the rows - permission, scope, team, block and labels - into the key of one build of a scheduled cost report (#11009), so the people whose rows are the same share it, and a row scoped to Owned adds the person, whose own resources it reaches (getAccessKey); each build reads the costs with its person's props, which decide what they may read (CloudCostReportBuilder).",
 };
 
 /*
