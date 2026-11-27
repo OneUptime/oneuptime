@@ -994,7 +994,11 @@ describe("Storage Array docs", (): void => {
         expect(compose).toContain(`  ${service}:\n`);
         expect(markdown).toContain(`\`${service}\``);
       }
-      for (const profile of ["flasharray-exporter", "flashblade", "netapp-ontap"]) {
+      for (const profile of [
+        "flasharray-exporter",
+        "flashblade",
+        "netapp-ontap",
+      ]) {
         expect(compose).toContain(`profiles: ["${profile}"]`);
         expect(markdown).toContain(`COMPOSE_PROFILES=${profile}`);
       }

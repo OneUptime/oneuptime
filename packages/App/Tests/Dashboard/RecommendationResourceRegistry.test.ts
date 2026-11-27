@@ -1215,6 +1215,7 @@ describe("RecommendationResourceRegistry", () => {
       for (const system of [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
+        StorageSystem.NetAppOntap,
       ]) {
         const offered: Array<string> = templateIdsFor(
           readStorageArrayContext(system),
@@ -1237,9 +1238,17 @@ describe("RecommendationResourceRegistry", () => {
        * own series.
        */
       expect(templateIdsFor(readStorageArrayContext(null))).toEqual([]);
-      expect(templateIdsFor(readStorageArrayContext("netapp.ontap"))).toEqual(
+      expect(templateIdsFor(readStorageArrayContext("hitachi.vsp"))).toEqual(
         [],
       );
+      // ONTAP's are ONTAP's own (#11001): no Pure template on a cluster.
+      expect(
+        templateIdsFor(
+          readStorageArrayContext(StorageSystem.NetAppOntap),
+        ).every((id: string): boolean => {
+          return id.startsWith("netapp-");
+        }),
+      ).toBe(true);
     });
 
     test("explains the platform it narrowed to, an unknown one, and none at all", () => {
@@ -1253,10 +1262,15 @@ describe("RecommendationResourceRegistry", () => {
           resourceType: MonitorRecommendationResourceType.StorageArray,
           context: { storageSystem: StorageSystem.PureStorageFlashBlade },
         });
+      const ontap: string | undefined =
+        RecommendationResourceRegistry.describeContext({
+          resourceType: MonitorRecommendationResourceType.StorageArray,
+          context: { storageSystem: StorageSystem.NetAppOntap },
+        });
       const unknownPlatform: string | undefined =
         RecommendationResourceRegistry.describeContext({
           resourceType: MonitorRecommendationResourceType.StorageArray,
-          context: { storageSystem: "netapp.ontap" },
+          context: { storageSystem: "hitachi.vsp" },
         });
       const notReported: string | undefined =
         RecommendationResourceRegistry.describeContext({
@@ -1267,6 +1281,7 @@ describe("RecommendationResourceRegistry", () => {
       for (const note of [
         flashArray,
         flashBlade,
+        ontap,
         unknownPlatform,
         notReported,
       ]) {
@@ -1276,14 +1291,16 @@ describe("RecommendationResourceRegistry", () => {
         new Set<string | undefined>([
           flashArray,
           flashBlade,
+          ontap,
           unknownPlatform,
           notReported,
         ]).size,
-      ).toBe(4);
+      ).toBe(5);
 
       expect(flashArray).toContain("Pure Storage FlashArray");
       expect(flashBlade).toContain("Pure Storage FlashBlade");
-      expect(unknownPlatform).toContain("netapp.ontap");
+      expect(ontap).toContain("NetApp ONTAP");
+      expect(unknownPlatform).toContain("hitachi.vsp");
       // Both empty states say nothing is offered, and why.
       expect(notReported).toContain("none are offered");
       expect(unknownPlatform).toContain("no recommended monitors");
