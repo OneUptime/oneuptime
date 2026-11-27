@@ -403,6 +403,19 @@ describePostgres("the probe tables' writes, HOT or not, on Postgres", () => {
     });
 
     test("the claim is not, and cannot be: it moves nextPingAt, which the claim's own index orders by", async () => {
+      /*
+       * A claim this process made before, so the monitor's schedule is one
+       * it knows, as a server's is from its first claim of it on: the
+       * claim's statement alone writes the row's next run. The first claim
+       * of a schedule new to the process writes it again right after
+       * (MonitorProbeSchedules), a second update of its own.
+       */
+      await insertMonitorProbe();
+      await MonitorProbeService.claimMonitorProbesForProbing({
+        probeId: PROBE_ID,
+        limit: 10,
+      });
+
       const { id } = await insertMonitorProbe();
       let claimed: Array<ClaimedMonitorProbe> = [];
 
