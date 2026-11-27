@@ -1050,7 +1050,8 @@ const XcpNgPoolOverview: FunctionComponent<
         pool={pool}
         rows={inventory}
         vmsRoute={routes.vmsRoute}
-        setupRoute={routes.documentationRoute}
+        // Where a Xen Orchestra is connected from a probe (#10996).
+        setupRoute={RouteMap[PageMap.XCP_NG_CONNECTIONS] as Route}
         routeFor={routes.getPartRoute}
         now={now}
       />

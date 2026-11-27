@@ -195,6 +195,7 @@
     "Vital",
     "WAF",
     "WAF ID",
+    "XAPI",
     "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
