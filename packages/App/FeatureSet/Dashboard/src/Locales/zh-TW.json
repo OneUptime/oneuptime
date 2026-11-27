@@ -66078,5 +66078,19 @@
   "Whether the device answered its probe's ping on each poll (1) or not (0), whatever its SNMP walk did. A device that answers ping while its walk fails is up, with SNMP failing.": "裝置在每次輪詢時是否回應了其探測器的 ping（1）或未回應（0），無論其 SNMP 遍歷結果如何。遍歷失敗但仍回應 ping 的裝置處於在線狀態，並標示為 SNMP 失敗。",
   "{{monitorName}} answers neither ping (ICMP) nor SNMP.": "{{monitorName}} 既不回應 ping（ICMP），也不回應 SNMP。",
   "{{monitorName}} answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again.": "{{monitorName}} 回應 ping，但其 SNMP 遍歷失敗：請檢查 SNMP 憑證、代理程式或 ACL。其介面與健康檢查會等到 SNMP 再次回應。",
-  "You can close this window: the monitors keep being created on the server.": "你可以關閉此視窗：監測器會繼續在伺服器上建立。"
+  "You can close this window: the monitors keep being created on the server.": "你可以關閉此視窗：監測器會繼續在伺服器上建立。",
+  "Criteria are evaluated in order; this monitor stops at the first match that changes its status.": "Criteria are evaluated in order; this monitor stops at the first match that changes its status.",
+  "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.",
+  "Monitor status reverted to its default state because no criteria that changes the status was met.": "Monitor status reverted to its default state because no criteria that changes the status was met.",
+  "No criteria that changes the status matched, so the monitor changed to its default status.": "No criteria that changes the status matched, so the monitor changed to its default status.",
+  "Not evaluated because {{criteria}} matched and set the monitor's status.": "Not evaluated because {{criteria}} matched and set the monitor's status.",
+  "Not evaluated because {{criteria}} matched first, and this criteria changes no status.": "Not evaluated because {{criteria}} matched first, and this criteria changes no status.",
+  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.": "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.",
+  "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.": "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.",
+  "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).": "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.": "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.": "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.",
+  "The monitor shows its default status, {{status}}.": "The monitor shows its default status, {{status}}.",
+  "The monitor shows its default status.": "The monitor shows its default status.",
+  "{{criteria}} matches too, so OneUptime marks it {{status}}.": "{{criteria}} matches too, so OneUptime marks it {{status}}."
 }

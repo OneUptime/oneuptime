@@ -66078,5 +66078,19 @@
   "Whether the device answered its probe's ping on each poll (1) or not (0), whatever its SNMP walk did. A device that answers ping while its walk fails is up, with SNMP failing.": "Ob das Gerät bei jeder Abfrage auf den Ping seiner Sonde geantwortet hat (1) oder nicht (0), unabhängig davon, was sein SNMP-Walk tat. Ein Gerät, das auf Ping antwortet, während sein Walk fehlschlägt, ist erreichbar, und SNMP schlägt fehl.",
   "{{monitorName}} answers neither ping (ICMP) nor SNMP.": "{{monitorName}} antwortet weder auf Ping (ICMP) noch auf SNMP.",
   "{{monitorName}} answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again.": "{{monitorName}} antwortet auf Ping, aber sein SNMP-Walk schlägt fehl: Prüfen Sie die SNMP-Anmeldedaten, den Agenten oder eine ACL. Seine Schnittstellen und Integritätsprüfungen warten, bis SNMP wieder antwortet.",
-  "You can close this window: the monitors keep being created on the server.": "Sie können dieses Fenster schließen: Die Monitore werden auf dem Server weiter erstellt."
+  "You can close this window: the monitors keep being created on the server.": "Sie können dieses Fenster schließen: Die Monitore werden auf dem Server weiter erstellt.",
+  "Criteria are evaluated in order; this monitor stops at the first match that changes its status.": "Criteria are evaluated in order; this monitor stops at the first match that changes its status.",
+  "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.",
+  "Monitor status reverted to its default state because no criteria that changes the status was met.": "Monitor status reverted to its default state because no criteria that changes the status was met.",
+  "No criteria that changes the status matched, so the monitor changed to its default status.": "No criteria that changes the status matched, so the monitor changed to its default status.",
+  "Not evaluated because {{criteria}} matched and set the monitor's status.": "Not evaluated because {{criteria}} matched and set the monitor's status.",
+  "Not evaluated because {{criteria}} matched first, and this criteria changes no status.": "Not evaluated because {{criteria}} matched first, and this criteria changes no status.",
+  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.": "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.",
+  "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.": "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.",
+  "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).": "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.": "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.": "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.",
+  "The monitor shows its default status, {{status}}.": "The monitor shows its default status, {{status}}.",
+  "The monitor shows its default status.": "The monitor shows its default status.",
+  "{{criteria}} matches too, so OneUptime marks it {{status}}.": "{{criteria}} matches too, so OneUptime marks it {{status}}."
 }
