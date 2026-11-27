@@ -42,7 +42,11 @@ import timers from "timers";
  * Opt in with TEST_CLICKHOUSE_URL, a local, disposable server, e.g.
  *
  *   TEST_CLICKHOUSE_URL=http://default:password@127.0.0.1:8123 \
- *   npx jest Tests/Server/Utils/CloudSavings/CloudSavingsBillReaderClickhouse.test.ts
+ *   npx jest Tests/Server/Utils/CloudSavings/CloudSavingsBillReaderClickhouseIntegration.test.ts
+ *
+ * Named *ClickhouseIntegration.test.ts, so Common's test-clickhouse script,
+ * which the App Test shards run beside their ClickHouse, runs it
+ * (Tests/Ops/ClickhouseSuitesRunInCi).
  *
  * It creates a database of its own, and drops it afterwards. Common's
  * jest environment is jsdom, whose timers the ClickHouse client cannot
