@@ -107,7 +107,7 @@ import { DataSource } from "typeorm";
  *     started all the same;
  *   - a change the bill shows is kept as realised, and the Savings page
  *     adds up only that (the statement itself runs against ClickHouse in
- *     CloudSavingsBillReaderClickhouse).
+ *     CloudSavingsBillReaderClickhouseIntegration).
  */
 const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_CLOUD_SAVINGS_TESTS"] === "true"

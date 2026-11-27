@@ -32,8 +32,11 @@ Use um **login somente leitura**. Na visão geral ou em Bancos de dados, escolha
 
 - **O OneUptime conecta**: cole uma string de conexão. Ela é armazenada criptografada e nunca mais é exibida.
 - **Uma sonda na minha rede conecta**: escolha uma das sondas deste projeto e indique a variável de ambiente da sonda que contém a string de conexão (por exemplo \`ORDERS_DB_URL\`). A string de conexão nunca sai da sua rede. Atualize a sonda para a versão mais recente antes.
+- **Meu Database Agent conecta**: escolha o servidor de banco de dados ao lado do qual o Database Agent dele roda e informe o banco de dados a ler nesse servidor. O agente o lê com logins próprios, então nenhum é salvo no OneUptime. Ele lê PostgreSQL, MySQL e MariaDB assim que o responsável por ele define \`ONEUPTIME_DATA_OBSERVABILITY=true\` onde ele roda.
 
 Um banco de dados já conectado para a Segurança de dados também é vigiado.
+
+As **Configurações** de um banco de dados, no menu dele, o renomeiam (**Editar detalhes**), dão a ele outro login, outra sonda ou um Database Agent (**Alterar conexão**), param de lê-lo e esquecem as tabelas e verificações dele enquanto a Segurança de dados o mantém (**Remover da Observabilidade de dados**), ou o excluem do OneUptime (**Excluir banco de dados**). Enquanto a Segurança de dados depender de um banco de dados, só quem pode excluir repositórios de dados da Segurança de dados pode excluí-lo.
 
 **Bancos de dados que você pode conectar**, na mesma página, lista o que o seu projeto já conhece e ninguém conectou: bancos de dados com os quais os seus traces falam, os das suas contas de nuvem e os que o Monitoramento de bancos de dados observa. **Conectar** preenche o formulário com o que se sabe de cada um. Nada é lido até você conectá-lo.
 

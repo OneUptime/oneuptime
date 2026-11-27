@@ -1,12 +1,11 @@
 # Lagringsarray-agent
 
-OneUptimes Lagringsarray-agent övervakar lagringsarrayer: kapacitet och datareduktion, latens, IOPS och bandbredd, volymer, värdar, poddar och replikering, maskinvaruhälsa, filsystem och buckets. Den är en vanlig OpenTelemetry Collector som skrapar arrayens OpenMetrics-slutpunkter med en skrivskyddad användares API-token, stämplar varje mätvärde med arrayens identitet och skickar det till OneUptime. [Lagringsarray-monitorer](/docs/monitor/storage-array-monitor) larmar utifrån det som kommer in.
+OneUptimes Lagringsarray-agent övervakar lagringsarrayer: kapacitet och datareduktion, latens, IOPS och bandbredd, volymer, värdar, poddar och replikering, maskinvaruhälsa, filsystem och buckets, och på NetApp ONTAP även aggregat, SVM:ar, LUN:ar och SnapMirror-relationer. Den är en vanlig OpenTelemetry Collector som skrapar arrayens OpenMetrics-slutpunkter med en skrivskyddad användares API-token (eller, för ONTAP, NetApps egen exportör Harvest som körs bredvid den), stämplar varje mätvärde med arrayens identitet och skickar det till OneUptime. [Lagringsarray-monitorer](/docs/monitor/storage-array-monitor) larmar utifrån det som kommer in.
 
 :::cards
 - [Installera agenten](#installera-agenten): En skrivskyddad användare, sedan installationsskriptet eller Docker Compose.
 - [Vad agenten samlar in](#vad-agenten-samlar-in): Varje slutpunkt och de sidor som byggs av den.
 - [Övervaka flera arrayer](#övervaka-flera-arrayer): En agent per array, på en maskin.
-- [Dell PowerMax](#dell-powermax): Ingen agent: en sond läser varje array bakom Unisphere.
 - [Felsökning](#felsökning): Ett diagnosskript, och de vanliga problemen.
 :::
 
@@ -20,8 +19,9 @@ Storage Arrays är en produkt som fungerar likadant för alla leverantörer. Den
 | **Pure Storage FlashArray**, äldre Purity//FA | `purestorage.flasharray` | Pures FlashArray OpenMetrics-exportör, som samma Compose-fil kör som tjänsten `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pures FlashBlade OpenMetrics-exportör, som samma Compose-fil kör som tjänsten `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | Dells PowerStore Metrics Exporter, som samma Compose-fil bygger och kör som tjänsten `powerstore-exporter`; klustrets larm kommer via syslog till dess tjänst `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
+| **NetApp ONTAP** 9.12.1 och senare (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP) samt **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, som samma Compose-fil kör som tjänsten `netapp-harvest`: den loggar in i klustrets REST-API med en skrivskyddad användare och ett lösenord | `otel-collector-config.netapp-ontap.yaml` |
 
-**Dell PowerMax** (`dell.powermax`) behöver ingen agent: en OneUptime-sond läser med ett skrivskyddat konto varje array som en Unisphere for PowerMax hanterar. Se [Dell PowerMax](#dell-powermax).
+ONTAP har ingen egen slutpunkt för mätvärden, så agenten kör NetApps exportör med öppen källkod, Harvest, bredvid collectorn. Harvest läser klustrets REST-API och serverar det den har läst på Compose-nätverket, där varje serie heter `netapp_<object>_<counter>`; collectorn skrapar den och skickar det vidare. Harvest skriver aldrig till klustret, och dess AutoSupport-rapport till NetApp är avstängd.
 
 Pure Storage bytte namn till **Everpure** i februari 2026. FlashArray, FlashBlade och Purity behöll sina namn, liksom mätvärdena `purefa_*` och `purefb_*`, så allt på den här sidan gäller arrayer som säljs under båda namnen.
 
@@ -30,6 +30,8 @@ flowchart TB
     collector["Collector"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["Arrayen,<br/>port 443"]
     collector -->|"äldre FlashArray,<br/>FlashBlade"| exporter["Pures exportör"]
     exporter -->|"API-token"| array
+    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    harvest -->|"skrivskyddad användare,<br/>REST-API"| cluster["Klustret,<br/>port 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
     collector -->|"PowerStore"| dell["Dell's exporter"]
     dell -->|"user and password"| array
@@ -42,7 +44,7 @@ En agent övervakar en array: Kör en agent per array (se [Övervaka flera array
 ## Innan du börjar
 
 - Docker Engine 20.10 eller senare med pluginet Docker Compose v2, på en maskin som når arrayens administrationsgränssnitt över HTTPS (TCP 443).
-- Ett administratörskonto på arrayen, för att skapa en användare med den inbyggda rollen **readonly** och en API-token för den.
+- Ett administratörskonto på arrayen, för att skapa en användare med den inbyggda rollen **readonly** och en API-token för den. På ONTAP en klusteradministratör (på Amazon FSx for NetApp ONTAP `fsxadmin`), för att skapa en skrivskyddad REST-användare med ett lösenord.
 - För en Dell PowerStore en x86-64-maskin (Dell bygger sin exportör bara för x86-64) och en PowerStore-användare för agenten: se [Dell PowerStore](#dell-powerstore).
 - En intagningsnyckel. Skapa en under **Projektinställningar → Telemetri och APM → Intagningsnycklar** och kopiera värdet.
 
@@ -71,6 +73,27 @@ pureadmin create --api-token oneuptime
 3. Välj **Create API Token…** i den nya användarens ⋮-meny, lämna **Expires In** tomt och kopiera token.
 @tab FlashBlade
 Skapa på samma sätt en användare med rollen **readonly** och en API-token för den: i användarinställningarna i FlashBlade-GUI:t, eller med `pureadmin` i Purity//FB-CLI:t. I en version utan lokala användare använder du ett konto från en katalogtjänst (LDAP eller Active Directory) vars grupp är mappad till rollen readonly. FlashBlade-API-tokens börjar med `T-`.
+@tab ONTAP CLI
+Anslut med SSH till klustrets administrationsadress som administratör. Det första kommandot skapar en REST-roll som får läsa alla API:er och inget annat; det andra skapar en HTTP-användare som har rollen och frågar efter dess lösenord:
+
+```bash
+security login rest-role create -role oneuptime-readonly -api /api -access readonly
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role oneuptime-readonly
+```
+
+Agenten loggar in med den här användaren och lösenordet. Ingen API-token behövs.
+@tab ONTAP System Manager
+1. Öppna _Cluster → Settings → Users and Roles_.
+2. Välj **Add** under **Roles**, döp rollen till `oneuptime-readonly`, ange `/api` som **REST API path** och välj åtkomsten **Read-Only**.
+3. Välj **Add** under **Users**, döp användaren till `oneuptime`, ge den den nya rollen, lägg till inloggningsmetoden **HTTP** med **Password** och ange lösenordet.
+@tab Amazon FSx for NetApp ONTAP
+Anslut med SSH till filsystemets administrationsslutpunkt (dess DNS-namn eller IP, från FSx-konsolen) som `fsxadmin`, och skapa användaren med FSx:s fördefinierade skrivskyddade roll. Kommandot frågar efter dess lösenord:
+
+```bash
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role fsxadmin-readonly
+```
+
+AWS driver filsystemets hårdvara, så FSx svarar inte på någons frågor om diskar, hyllor eller sensorer: Arrayens sida **Hårdvara** listar dess noder och portar och säger det.
 :::
 
 ### Kontrollera om FlashArray serverar sina egna mätvärden
@@ -81,7 +104,7 @@ Pure dokumenterar den inbyggda OpenMetrics-slutpunkten för **Purity//FA 6.7.0 o
 curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization: Bearer <api-token>' | grep purefa_info
 ```
 
-En rad `purefa_info{...} 1` betyder att arrayen serverar sina mätvärden inbyggt: Använd standardkonfigurationen. En `404` betyder att den inte gör det: Använd exportörkonfigurationen, som kör Pures exportör bredvid collectorn. Pure har fasat ut den exportören, så byt till den inbyggda konfigurationen när arrayen har uppgraderats. En FlashBlade går alltid via Pures FlashBlade-exportör, så hoppa över det här steget för den.
+En rad `purefa_info{...} 1` betyder att arrayen serverar sina mätvärden inbyggt: Använd standardkonfigurationen. En `404` betyder att den inte gör det: Använd exportörkonfigurationen, som kör Pures exportör bredvid collectorn. Pure har fasat ut den exportören, så byt till den inbyggda konfigurationen när arrayen har uppgraderats. En FlashBlade går alltid via Pures FlashBlade-exportör och ett ONTAP-kluster via NetApp Harvest, så hoppa över det här steget för dem.
 
 ### Installera och starta agenten
 
@@ -96,7 +119,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Skriptet frågar vilken array det är (en FlashArray som serverar inbyggda mätvärden, en FlashArray med äldre Purity//FA eller en FlashBlade) och sedan efter din OneUptime-URL, intagningsnyckeln, ett namn på arrayen, arrayens administrationsadress och den skrivskyddade användarens API-token (läses utan eko). Det installerar till `/opt/oneuptime-storage-array-agent`, laddar ned Compose-filen och alla tre collector-konfigurationerna, skriver en fil med `0600` som heter `.env` med matchande konfiguration och Compose-profil, och startar agenten med Docker Compose. Det citerar varje värde för Docker Compose så som du skrev det. Om du kör det igen återanvänder det allt i en befintlig `.env` i stället för att fråga igen, och sparar en fil som du har redigerat som `<file>.bak.<timestamp>` innan den ersätts.
+Skriptet frågar vilken array det är (en FlashArray som serverar inbyggda mätvärden, en FlashArray med äldre Purity//FA, en FlashBlade eller ett NetApp ONTAP-kluster) och sedan efter din OneUptime-URL, intagningsnyckeln, ett namn på arrayen, arrayens administrationsadress och den skrivskyddade användarens API-token, eller för ONTAP den skrivskyddade användarens namn och lösenord (läses utan eko). Det installerar till `/opt/oneuptime-storage-array-agent`, laddar ned Compose-filen, alla collector-konfigurationer och Harvests fyra filer, skriver en fil med `0600` som heter `.env` med matchande konfiguration och Compose-profil, och startar agenten med Docker Compose. Det citerar varje värde för Docker Compose så som du skrev det. Om du kör det igen återanvänder det allt i en befintlig `.env` i stället för att fråga igen, och sparar en fil som du har redigerat som `<file>.bak.<timestamp>` innan den ersätts.
 @tab Docker Compose
 Ladda ned `docker-compose.yml` och de tre filerna `otel-collector-config*.yaml` från din OneUptime till en ny mapp:
 
@@ -132,7 +155,34 @@ POWERSTORE_SYSLOG_PORT=
 
 För en Dell PowerStore laddar du också ned `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` och `powerstore-syslog.yaml`, sätter `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` och `COMPOSE_PROFILES=powerstore` och fyller i `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` och `POWERSTORE_PASSWORD`, lösenordet inom enkla citattecken.
 
-För en FlashArray med äldre Purity//FA sätter du `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` och `COMPOSE_PROFILES=flasharray-exporter`. För en FlashBlade sätter du `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` och `COMPOSE_PROFILES=flashblade`, och fyller i `PURE_FB_ENDPOINT` och `PURE_FB_API_TOKEN` i stället för paret `PURE_FA_*`. Starta agenten:
+För en FlashArray med äldre Purity//FA sätter du `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` och `COMPOSE_PROFILES=flasharray-exporter`. För en FlashBlade sätter du `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` och `COMPOSE_PROFILES=flashblade`, och fyller i `PURE_FB_ENDPOINT` och `PURE_FB_API_TOKEN` i stället för paret `PURE_FA_*`.
+
+För ett NetApp ONTAP-kluster eller Amazon FSx for NetApp ONTAP laddar du dessutom ned ONTAP-konfigurationen och Harvests fyra filer:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
+```
+
+och använder den här `.env`. Behåll lösenordet inom enkla citattecken, som här: Docker Compose läser det då exakt som det är skrivet, vad det än innehåller. Ett lösenord som innehåller ett `'` skrivs i stället inom dubbla citattecken, med `\"`, `\\` och `$$` för ett `"`, ett `\` och ett `$`:
+
+```bash title=".env"
+ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
+STORAGE_ARRAY_NAME=ontap-prod-01
+STORAGE_SYSTEM=netapp.ontap
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.netapp-ontap.yaml
+COMPOSE_PROFILES=netapp-ontap
+NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
+NETAPP_ONTAP_USERNAME=oneuptime
+NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
+STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+```
+
+Starta agenten:
 
 ```bash
 docker compose up -d
@@ -146,7 +196,7 @@ docker compose ps
 docker logs -f oneuptime-storage-array-agent
 ```
 
-`docker compose ps` listar collectorn (`oneuptime-storage-array-agent`) och, med en exportörkonfiguration, exportören (`pure-fa-exporter` eller `pure-fb-exporter`). Collectorns loggar bör visa den här raden när den har startat:
+`docker compose ps` listar collectorn (`oneuptime-storage-array-agent`) och, med en exportörkonfiguration, exportören (`pure-fa-exporter`, `pure-fb-exporter` eller `netapp-harvest`). Collectorns loggar bör visa den här raden när den har startat:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -154,7 +204,7 @@ Everything is ready. Begin running and processing data.
 
 ### Hitta arrayen i OneUptime
 
-Öppna **Produkter → Infrastruktur → Lagringsarrayer → Alla lagringsarrayer**. Efter den första skrapningen (ungefär en minut) finns arrayen där med kapacitet, prestanda, öppna larm och maskinvara. Volymer, värdar och poddar följer inom 2 minuter, en FlashBlades filsystem och buckets inom 5 och FlashArray-kataloger inom 30. Arrayens sida **Topologi** ritar dess värdar, volymer, filsystem och hårdvara på en karta: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
+Öppna **Produkter → Infrastruktur → Lagringsarrayer → Alla lagringsarrayer**. Efter den första skrapningen (ungefär en minut) finns arrayen där med kapacitet, prestanda, öppna larm och maskinvara. Volymer, värdar och poddar följer inom 2 minuter, en FlashBlades filsystem och buckets inom 5 och FlashArray-kataloger inom 30. Ett ONTAP-kluster visas så snart Harvest har läst det, och hela dess inventarie inom ungefär 3 minuter, det intervall med vilket Harvest läser dess konfiguration. Arrayens sida **Topologi** ritar dess värdar, volymer, filsystem och hårdvara på en karta: se [Topologi](/docs/telemetry/topology#öppna-en-resurs-egen-karta).
 :::
 
 ## Dell PowerStore
@@ -176,9 +226,9 @@ Installationsskriptet skriver dessa till `/opt/oneuptime-storage-array-agent/.en
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, till exempel `https://oneuptime.com` eller din självhostade instans. Använd `http://` och dess port om instansen bara använder HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Intagningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
 | `STORAGE_ARRAY_NAME` | Ja | Det namn som arrayen registreras under i OneUptime, stämplat på varje mätvärde som resursattributet `storage.array.name`. Håll det stabilt: att ändra det senare registrerar en andra array. Collectorn vägrar starta utan det. |
-| `STORAGE_SYSTEM` | Nej | Plattformen, stämplad som resursattributet `storage.system`: `purestorage.flasharray` eller `purestorage.flashblade`. Standard är `purestorage.flasharray`. |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Nej | Vilken medföljande collector-konfiguration som körs: `otel-collector-config.yaml` (FlashArray, inbyggd: standard), `otel-collector-config.flasharray-exporter.yaml` (äldre FlashArray) eller `otel-collector-config.flashblade.yaml` (FlashBlade). |
-| `COMPOSE_PROFILES` | Nej | Startar den exportör som den valda konfigurationen skrapar: tomt för den inbyggda FlashArray-konfigurationen, `flasharray-exporter` eller `flashblade` för de två andra. |
+| `STORAGE_SYSTEM` | Nej | Plattformen, stämplad som resursattributet `storage.system`: `purestorage.flasharray`, `purestorage.flashblade` eller `netapp.ontap`. Standard är `purestorage.flasharray`. |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Nej | Vilken medföljande collector-konfiguration som körs: `otel-collector-config.yaml` (FlashArray, inbyggd: standard), `otel-collector-config.flasharray-exporter.yaml` (äldre FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade) eller `otel-collector-config.netapp-ontap.yaml` (ONTAP). |
+| `COMPOSE_PROFILES` | Nej | Startar den exportör som den valda konfigurationen skrapar: tomt för den inbyggda FlashArray-konfigurationen, `flasharray-exporter`, `flashblade` eller `netapp-ontap` för de andra. |
 | `PURE_FA_ENDPOINT` | FlashArray | FlashArrayens administrationsadress: ett värdnamn eller en IP, utan `https://`. |
 | `PURE_FA_API_TOKEN` | FlashArray | API-token för FlashArray-användaren med rollen readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBladens administrationsadress: ett värdnamn eller en IP, utan `https://`. |
@@ -190,7 +240,10 @@ Installationsskriptet skriver dessa till `/opt/oneuptime-storage-array-agent/.en
 | `POWERSTORE_API_VERSION` | Nej | `v3` för PowerStoreOS 3.6 och senare, eller `v1`. Standard är `v3`. |
 | `POWERSTORE_REQUEST_LIMIT` | Nej | Hur många förfrågningar exportören skickar till klustret samtidigt. Standard är `16`. |
 | `POWERSTORE_SYSLOG_PORT` | Nej | Porten där den här maskinen tar emot klustrets syslog, via TCP och UDP. Standard är `5514`. |
-| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nej | `true` godtar arrayens självsignerade certifikat på den inbyggda slutpunkten; `false` verifierar det. Standard är `true`. Pures exportörer verifierar aldrig arrayens certifikat, så det gäller inte för dem. |
+| `NETAPP_ONTAP_ENDPOINT` | ONTAP | Klustrets administrationsadress (på FSx filsystemets administrationsslutpunkt): ett värdnamn eller en IP, utan `https://`. |
+| `NETAPP_ONTAP_USERNAME` | ONTAP | Den skrivskyddade REST-användaren, till exempel `oneuptime`. |
+| `NETAPP_ONTAP_PASSWORD` | ONTAP | Dess lösenord. Bara Harvest läser det, exakt som det är skrivet. |
+| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nej | `true` godtar arrayens självsignerade certifikat på den inbyggda slutpunkten och i Harvest; `false` verifierar det. Standard är `true`. Pures exportörer verifierar aldrig arrayens certifikat, så det gäller inte för dem. |
 
 ## Så skrapar agenten
 
@@ -200,10 +253,11 @@ Installationsskriptet skriver dessa till `/opt/oneuptime-storage-array-agent/.en
 - **API-token är en Bearer-token.** Den inbyggda konfigurationen skickar den till själva arrayen; exportörkonfigurationerna skickar den till exportören bara över Compose-nätverket, och exportörernas portar publiceras aldrig.
 - **En PowerStore var 5:e minut.** Dells exportör tillhandahåller varje del av klustret på `/metrics/<cluster>/<part>`: konfigurationen läser `cluster` var 60:e sekund, dess hjärtslag, och `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas` och `file` var 5:e minut, eftersom PowerStore beräknar dem i femminutersprov.
 - **Ingen `send_batch_max_size`.** OneUptime bygger om inventariet från en hel skrapning per begäran, så den medföljande processorn `batch` delar aldrig upp en skrapning på flera exporter. Behåll batch-inställningarna som de levereras.
+- **ONTAP: Harvest läser klustret, collectorn skrapar Harvest.** Harvest läser klustrets konfiguration och tillstånd var 3:e minut, dess prestanda varje minut (latenser i mikrosekunder per operation, operationer och byte per sekund) och dess EMS-händelser var 3:e minut, och serverar det senaste av allt på `netapp-harvest:12990`, som collectorn skrapar var 60:e sekund med etiketten `scrape_endpoint: harvest`. De tre filerna `netapp-harvest-*.yaml` begränsar Harvest till det som OneUptime läser. Harvests egna serier `netapp_metadata_*` anger vilka objekt den listade i sin helhet, så en borttagen volym lämnar inventariet medan ett objekt som Harvest inte kunde läsa behåller sitt senaste antal. Collectorn släpper Harvests mätningar av sig själv och prestandaserierna per disk, och gör om varje SnapMirror-relations schema till `netapp_snapmirror_schedule_seconds` (ett schema per timme är 3600), som SnapMirror Behind Schedule jämför fördröjningen med.
 
 ## Vad agenten samlar in
 
-Pures semantiska konventioner delas av den inbyggda FlashArray-slutpunkten och båda exportörerna. Varje värde är en gauge som arrayen själv räknar ut (latenser i mikrosekunder per operation, genomströmning per sekund), så inga hastigheter behöver räknas ut, och objekt namnges med **datapunktsetiketter**: `name` för volymer, poddar, kataloger, filsystem och buckets, `host` för värdar, `component_name` för FlashArray-maskinvara. Agenten lägger till resursattributen `storage.array.name` och `storage.system`, så att OneUptime arkiverar allt under din array:
+Pures semantiska konventioner delas av den inbyggda FlashArray-slutpunkten och båda exportörerna; ONTAP:s är Harvests, som beskrivs efter tabellen. Varje värde är en gauge som arrayen själv räknar ut (latenser i mikrosekunder per operation, genomströmning per sekund), så inga hastigheter behöver räknas ut, och objekt namnges med **datapunktsetiketter**: `name` för volymer, poddar, kataloger, filsystem och buckets, `host` för värdar, `component_name` för FlashArray-maskinvara. Agenten lägger till resursattributen `storage.array.name` och `storage.system`, så att OneUptime arkiverar allt under din array:
 
 | Slutpunkt | Mätvärdesfamiljer | Vad OneUptime bygger av dem |
 | --- | --- | --- |
@@ -218,6 +272,11 @@ Pures semantiska konventioner delas av den inbyggda FlashArray-slutpunkten och b
 | PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | Klustrets namn och tillstånd; sidan **Appliances**: kapacitet, datareduktion, latens, IOPS och bandbredd för varje appliance |
 | PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | Sidan **Hårdvara**: noder, fläktar, nätaggregat, batterier, diskar och frontendportar, var och en med sin appliance |
 | PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | Sidorna **Volymer**, **Volymgrupper**, **NAS-servrar** och **Filsystem** |
+| ONTAP, via Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | Klustrets namn, version och UUID; dess kapacitet (summan av dess dataaggregat) och datareduktion; sidan **Volymer**; sidorna **Aggregat**, **SVM:ar**, **LUN:ar** och **SnapMirror**, en sida per objekt |
+| ONTAP-hårdvara, via Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | Sidan **Hårdvara**: noder, diskar, hyllor, deras nätaggregat, fläktar, moduler och sensorer, nodernas sensorer samt Ethernet- och Fibre Channel-portar |
+| ONTAP:s öppna problem och händelser | `netapp_health_*`, `netapp_ems_events` | Antalet öppna larm och kortet **Aktiva larm** (trasiga diskar, hyllfel, HA-takeover, portar nere, larm om systemhälsa), samt EMS-mallarna |
+
+På ONTAP är varje serie Harvests: ett objekt namnges av sina etiketter (`volume` inom sin `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` för en SnapMirror-relation), ett tillstånd är en `netapp_*_new_status` på 1 eller 0 eller en serie `netapp_*_labels` vars etiketter anger det, och varje öppet problem är en serie `netapp_health_*_alerts` som finns så länge problemet består.
 
 Kolumnen **Hälsa** under **Alla lagringsarrayer** läser arrayens egna larm och maskinvara i dess senaste data: **Kritisk** så länge den rapporterar ett öppet kritiskt larm, eller en maskinvarukomponent, enhet eller styrenhet som är kritisk, trasig, saknas eller är ohälsosam; **Varning** så länge den rapporterar ett öppet varningslarm, eller en försämrad eller okänd komponent; annars **OK**; och **Okänd** medan agenten är frånkopplad. Arrayens **Översikt** bedömer mer, som nästa avsnitt säger. I monitorkriterier får arrayens attribut prefixet `resource.` (`resource.storage.array.name`, `resource.storage.system`), medan datapunktsetiketterna står utan prefix (`name`, `host`, `dimension`, `space`).
 
@@ -232,8 +291,9 @@ Arrayens **Översikt** anger dess hälsa, **Felfri**, **Försämrad** eller **Ej
 - **Värdar.** En värd som inte längre når arrayen genom båda styrenheterna behöver en titt, med orsaken: genom bara en styrenhet, över ojämna sökvägar eller helt utan sökväg.
 - **Poddar.** En podd vars replikalänk arrayen rapporterar som ohälsosam är kritisk, och en som ligger mer än en minut efter behöver en titt.
 - **Filsystem.** Ett FlashBlade-filsystem med mindre än 10 % av sin tilldelade storlek kvar behöver en titt.
+- **Ett ONTAP-klusters egna objekt.** En volym, ett aggregat eller en LUN som ONTAP rapporterar som offline, en trasig disk, en hylldel med fel, en nodsensor över sin kritiska gräns och en port som är nere är kritiska; en stoppad SVM, en nod med en trasig fläkt eller ett trasigt nätaggregat och en sensor över sin varningsgräns behöver en titt, med ONTAP:s egna ord för orsaken. En SnapMirror-relation som ONTAP rapporterar som ej felfri är kritisk, och en som ligger mer än ett och ett halvt schemaintervall efter behöver en titt.
 
-Listorna **Värdar**, **Replikering** och **Filsystem** anger varje dels tillstånd enligt samma regler, med orsaken under. En värds och ett filsystems egen sida säger vad i den som behöver uppmärksamhet och vilka av arrayens larm som bevakar den, med ett steg för att slå på resten, och varje dels sida, även en volyms och en buckets, säger vad som är öppet för den. Medan agenten är frånkopplad visar hälsan **Hälsa okänd**: arrayens senaste rapport är inte längre sanningen. Varje gräns ovan är den där dess larmmall utlöses, så som [lagringsarray-monitorn](/docs/monitor/storage-array-monitor) listar dem.
+Listorna **Värdar**, **Replikering** och **Filsystem** anger varje dels tillstånd enligt samma regler, med orsaken under, och det gör även ett ONTAP-klusters listor **Volymer**, **Aggregat**, **SVM:ar**, **LUN:ar** och **SnapMirror**, där varje rad öppnar en egen sida: dess tillstånd, vad som behöver uppmärksamhet, vad som är öppet för den, klustrets larm som bevakar den, vad ONTAP rapporterar om den och dess diagram. Varje plattforms sidor använder plattformens egna ord: En ONTAP-volym visar sin SVM, sitt aggregat och hur full den är, och dess sida visar diagram över ONTAP:s serier. På Amazon FSx for NetApp ONTAP listar sidan **Hårdvara** noderna och portarna och förklarar varför det inte finns några diskar eller hyllor. En värds och ett filsystems egen sida säger vad i den som behöver uppmärksamhet och vilka av arrayens larm som bevakar den, med ett steg för att slå på resten, och varje dels sida, även en volyms och en buckets, säger vad som är öppet för den. Medan agenten är frånkopplad visar hälsan **Hälsa okänd**: arrayens senaste rapport är inte längre sanningen. Varje gräns ovan är den där dess larmmall utlöses, så som [lagringsarray-monitorn](/docs/monitor/storage-array-monitor) listar dem.
 
 På en PowerStore listar flikarna **Appliances**, **Volymgrupper** och **NAS-servrar** de delar som bara en PowerStore har, och sidan **Hårdvara** anger varje dels appliance, eftersom varje appliance namnger sina delar likadant.
 
@@ -298,14 +358,14 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 Agenten rapporterar den collectorversion som dess filer låser som sin **Agentversion**. När den är äldre än den version som den här OneUptime-versionen låser, visas ett varningstecken bredvid den på arrayens sida **Översikt**. Välj det för att se de här kommandona. En agent som installerades innan dess filer rapporterade en version visar ingen förrän den har uppgraderats på det här sättet.
 
-Collectorns image är låst i `docker-compose.yml` och dess konfigurationer är filer bredvid den, så att bara hämta images för inte agenten framåt. Kör `install.sh` igen: det återanvänder varje värde i din befintliga `.env` (inget frågas efter igen), förnyar `docker-compose.yml` och de tre collector-konfigurationerna (en fil som du har redigerat sparas som `<file>.bak.<timestamp>`) och återskapar agenten så att collectorn läser sin nya konfiguration. En agent som är installerad utanför `/opt/oneuptime-storage-array-agent` behöver sin mapp: `INSTALL_DIR=<folder> bash install.sh`.
+Collectorns image är låst i `docker-compose.yml` och dess konfigurationer är filer bredvid den, så att bara hämta images för inte agenten framåt. Kör `install.sh` igen: det återanvänder varje värde i din befintliga `.env` (inget frågas efter igen), förnyar `docker-compose.yml`, alla collector-konfigurationer och Harvests filer (en fil som du har redigerat sparas som `<file>.bak.<timestamp>`) och återskapar agenten så att collectorn läser sin nya konfiguration. En agent som är installerad utanför `/opt/oneuptime-storage-array-agent` behöver sin mapp: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Installerade du den med Docker Compose i stället? I agentens mapp laddar du ned Compose-filen och de tre collector-konfigurationerna igen (och gör om eventuella ändringar du hade gjort i dem), hämtar sedan imagesen och återskapar agenten:
+Installerade du den med Docker Compose i stället? I agentens mapp laddar du ned Compose-filen och collector-konfigurationerna igen (för ONTAP även ONTAP-konfigurationen och Harvests fyra filer, och gör om eventuella ändringar du hade gjort i dem), hämtar sedan imagesen och återskapar agenten:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
@@ -325,57 +385,9 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-Ta sedan bort den skrivskyddade användaren och dess API-token på arrayen om du inte längre behöver dem.
+Ta sedan bort den skrivskyddade användaren och dess API-token på arrayen om du inte längre behöver dem. På ONTAP kör du `security login delete -user-or-group-name oneuptime -application http -authentication-method password` och sedan `security login rest-role delete -role oneuptime-readonly -api /api`.
 
 På en PowerStore kör du `docker compose --profile powerstore down`, så att även exportören och syslog-insamlaren stannar.
-
-## Dell PowerMax
-
-En Dell PowerMax behöver ingen agent. En OneUptime-sond loggar in i REST API för Unisphere for PowerMax med ett skrivskyddat konto var 5:e minut och läser varje array som den Unisphere hanterar. Varje array visas i **Lagringsarrayer** under sitt Symmetrix ID, till exempel `000220200269`, och du kan byta namn på den. Lösenordet lagras krypterat, visas aldrig igen och skickas bara till den sond du väljer.
-
-- **Unisphere for PowerMax 10.1 eller senare**, som hanterar arrayer med PowerMaxOS 10 eller 5978. Från Unisphere 10.3 ser ett skrivskyddat konto även portar och SRDF-grupper.
-- **En sond som når Unisphere på TCP 8443**, oftast en [anpassad sond](/docs/probe/custom-probe) i Unispheres nätverk. På OneUptime Cloud får en delad sond aldrig ett lagringslösenord, så välj en av projektets egna sonder.
-- **En Unisphere-användare med rollen Monitor** på varje array den ska läsa, och rollen **PerfMonitor** för prestanda. Mer behövs inte: OneUptime ändrar aldrig arrayen.
-
-:::steps
-### Skapa den skrivskyddade användaren
-
-I Unisphere for PowerMax skapar du under **Settings → Users and Groups** en lokal användare eller väljer en kataloganvändare. Ge den rollen **Monitor** på varje array, och **PerfMonitor** för prestanda.
-
-### Kontrollera att Unisphere samlar in prestanda
-
-Kontrollera under **Settings → Performance → System Registrations** att insamlingen **Diagnostic** är påslagen för varje array: utan den visar OneUptime arrayens inventarie och larm men ritar inga prestandadiagram. För att se en lagringsgrupp var 5:e sekund registrerar du den även för **Real Time** där, upp till 100 per array.
-
-### Anslut Unisphere
-
-Gå till **Produkter → Infrastruktur → Lagringsarrayer → Anslutningar** och klicka på **Anslut Unisphere**. Ange adressen du öppnar Unisphere på, till exempel `https://unisphere.example.com:8443`, användarnamnet och lösenordet, och välj sonden.
-
-### Testa anslutningen
-
-**Testa anslutningen** låter sonden logga in och läsa det kontot kan se: varje array, dess lagringsgrupper och volymer, och om Unisphere samlar in dess prestanda. Unisphere signerar som standard sitt eget certifikat: testet visar det, och **Lita på det här certifikatet** för in dess SHA-256-fingeravtryck i formuläret. Jämför först fingeravtrycket med Unispheres eget, till exempel med `openssl s_client -connect unisphere.example.com:8443` från sondens maskin.
-
-### Namnge och anslut
-
-Namnge anslutningen, eller behåll värdnamnet, och klicka på **Anslut**. Dess sida visar den första insamlingen inom några minuter och varje array den hittade, var och en länkad till sin sida i **Lagringsarrayer**.
-:::
-
-Sonden läser Unispheres dokumenterade REST-slutpunkter: det klassiska `/univmax/restapi` för arrayerna, kapacitet, hälsa, larm och pooler, och bulk-API:et `/univmax/rest/v1` för lagringsgrupperna, volymerna, directorerna, portarna, SRDF-grupperna och prestandan. Varje anrop är en läsning. Den skickar det den läser som dessa serier, med Unispheres millisekunder som mikrosekunder och dess MB per sekund som byte per sekund:
-
-| Serier | Vad de innehåller |
-| --- | --- |
-| `powermax_array_*` | Arrayen: modell och mikrokod, användbar, använd och utlovad kapacitet, datareduktion, hälsopoäng, om Unisphere samlar in dess prestanda, och dess 5-minutersvärden för svarstider, IOPS, genomströmning, cache och belastning |
-| `powermax_alert_open` | En serie per larm som Unisphere har öppet för arrayen, Minor och uppåt, tills någon bekräftar eller rensar det |
-| `powermax_storage_group_*` | Varje lagringsgrupp: kapacitet och volymer, 5-minutersvärden för svarstider, IOPS och genomströmning, och 5-sekundersvärden när den är registrerad för realtid |
-| `powermax_volume_*` | Varje volym i en lagringsgrupp: dess kapacitet, och dess värden när dess lagringsgrupp är registrerad för realtid |
-| `powermax_srp_*` | Varje lagringsresurspool: kapacitet och svarstid |
-| `powermax_director_*` | Varje director: roll, status och belastning, och `powermax_director_offline` så länge den inte är online |
-| `powermax_port_*` | Varje port: protokoll, hastighet, ljusnivåer och belastning, och `powermax_port_offline` så länge en port som någon är beroende av är nere |
-| `powermax_srdf_group_*` | Varje SRDF-grupp: fjärrarray och lägen, eftersläpning och genomströmning, och `powermax_srdf_group_not_healthy` så länge den är suspenderad eller offline |
-
-- **Var 5:e minut**, eller var 10:e för att skona en hårt belastad Unisphere (**Fler fält** i anslutningens formulär): Unisphere beräknar prestanda var 5:e minut.
-- **Bara de arrayer som Unisphere själv hanterar.** Fjärrarrayerna den ser via SRDF listas på anslutningens sida och läses av Unisphere på deras egen plats: anslut den också.
-- **Upp till 5,000 lagringsgrupper och 10,000 volymer per array**, och 200 nya larm per insamling (resten kommer i nästa). En lista som har kortats av anges som sådan på anslutningens sida.
-- **Unisphere 10.1 och 10.2** visar inga portar eller SRDF-grupper för ett skrivskyddat konto: sonden läser directorerna en i taget, hämtar SRDF-grupperna från lagringsgrupperna och säger till om det.
 
 ## Felsökning
 
@@ -412,8 +424,12 @@ Kontrollera att du klistrade in API-token och inte användarens lösenord, att a
 Arrayer presenterar som standard ett självsignerat certifikat, som ingen Docker-avbildning litar på. Sätt antingen `STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true` (det praktiska valet på ett privat administrationsnätverk), eller installera ett certifikat på arrayen från en CA som collectorns avbildning litar på.
 :::
 
-:::details pure-fa-exporter eller pure-fb-exporter kan inte slås upp
-Exportören körs inte: `COMPOSE_PROFILES` måste matcha `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` för FlashArray-exportörkonfigurationen, `flashblade` för FlashBlade-konfigurationen). Rätta `.env` och kör `docker compose up -d`; `docker compose ps` listar då exportören.
+:::details pure-fa-exporter, pure-fb-exporter eller netapp-harvest kan inte slås upp
+Exportören körs inte: `COMPOSE_PROFILES` måste matcha `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` för FlashArray-exportörkonfigurationen, `flashblade` för FlashBlade-konfigurationen, `netapp-ontap` för ONTAP-konfigurationen). Rätta `.env` och kör `docker compose up -d`; `docker compose ps` listar då exportören.
+:::
+
+:::details ONTAP: Harvest kan inte logga in, eller ett objekt saknas
+Läs Harvests logg: `docker compose logs netapp-harvest`. En `401` eller `Unauthorized` betyder att klustret nekade användaren eller dess lösenord: Kontrollera att användaren har inloggningsmetoden **http** och den skrivskyddade REST-rollen (`security login show -user-or-group-name oneuptime`), rätta `.env` och kör `docker compose up -d`. En `403` eller `not authorized` för ett objekt betyder att rollen inte når det API:et; rollen ovan når hela `/api`. På Amazon FSx for NetApp ONTAP svarar FSx så för diskar, hyllor och sensorer vem som än frågar: Det är väntat, och sidan **Hårdvara** säger det. `connection refused` eller `no such host` betyder en felaktig `NETAPP_ONTAP_ENDPOINT`: Det är klustrets administrationsadress (på FSx administrationsslutpunkten), inte en nods eller en SVM:s. Diagnosskriptet kontrollerar allt detta också.
 :::
 
 :::details En PowerStore skickar ingenting
@@ -430,18 +446,6 @@ OneUptime registrerar en lagringsarray efter dess `storage.array.name`, som agen
 
 :::details Skicka mätvärden utan agenten
 Agenten är en enda vanlig collector-konfiguration, så collectorer som du redan kör kan göra samma jobb: Kopiera skrapjobben och processorn `resource` från den medföljande konfigurationen till din egen. Resursattributet `storage.array.name` är det som registrerar arrayen i OneUptime, och borttagningarna av `service.name` / `service.instance.id` hindrar att data arkiveras under en tjänst: Behåll båda, och behåll etiketterna `scrape_endpoint`.
-:::
-
-:::details Anslutningstestet säger att Unispheres certifikat inte är betrott
-Unisphere for PowerMax signerar sitt eget certifikat om ingen har installerat ett från en certifikatutfärdare. Jämför fingeravtrycket som testet visar med Unispheres eget, klicka sedan på **Lita på det här certifikatet** och testa igen. När Unispheres certifikat förnyas stoppas insamlingen med **Serverns certifikat har ändrats** tills du litar på det nya: ingenting skickas till Unisphere innan dess.
-:::
-
-:::details Anslutningstestet säger att kontot inte får läsa arrayerna
-Unisphere svarar `403` för ett konto utan roll på arrayen. Ge användaren rollen **Monitor** på varje array under **Settings → Users and Groups**, och **PerfMonitor** för prestanda. En array som kontot inte har någon roll på listas på anslutningens sida med orsaken, och de andra läses.
-:::
-
-:::details En PowerMax visar inga svarstider eller IOPS
-Unisphere samlar inte in prestanda för arrayen, eller så saknar kontot **PerfMonitor**: anslutningens sida säger vilket. Slå på insamlingen **Diagnostic** under **Settings → Performance → System Registrations**. En volyms värden, och en lagringsgrupps värden var 5:e sekund, kräver att lagringsgruppen även är registrerad för **Real Time** där.
 :::
 
 ## Nästa steg

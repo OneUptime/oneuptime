@@ -1,6 +1,6 @@
 # Cloud Costs and Savings
 
-A connected cloud account also says what it costs and how it could cost less. OneUptime reads each day's costs from your cloud's own billing and the recommendations of your cloud's own recommender, shows them under **Cloud → Spend → Costs** and **Cloud → Spend → Savings**, lists your Savings Plans, reservations and committed use discounts under **Cloud → Spend → Commitments**, and alerts before a month costs more than its budget under **Cloud → Spend → Budgets**. Once you let it, it also makes the savings an owner approves, stops non-production resources outside working hours, and checks each change against the bill.
+A connected cloud account also says what it costs and how it could cost less. OneUptime reads each day's costs from your cloud's own billing and the recommendations of your cloud's own recommender, shows them under **Cloud → Spend → Costs** and **Cloud → Spend → Savings**, lists your Savings Plans, reservations and committed use discounts under **Cloud → Spend → Commitments**, tells you before a month, a quarter or a year costs more than its budget under **Cloud → Spend → Budgets**, and forecasts the months ahead under **Cloud → Spend → Forecast**. Once you let it, it also makes the savings an owner approves, stops non-production resources outside working hours, and checks each change against the bill.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer and Cost Optimization Hub, each turned on once.
@@ -11,7 +11,8 @@ A connected cloud account also says what it costs and how it could cost less. On
 - [Act on savings](#act-on-savings): Apply a saving with its owner's approval, and undo it.
 - [Off-hours schedules](#off-hours-schedules): Stop non-production resources at night and on weekends.
 - [AI rules for savings](#ai-rules-for-savings): Proposals for owners, or changes within a limit.
-- [Budgets](#budgets): An alert as a month's spend passes a share of its budget.
+- [Budgets](#budgets): A month's, a quarter's or a year's budget for any account, cost group or service.
+- [Forecasts](#forecasts): What the next 12 months are on course to cost, and how sure that is.
 - [Required tags](#required-tags): How much of your spend carries the tags you require, and new resources without them.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Your cloud's billing,<br/>read twice a day"] --> costs["Costs"]
     rec["Your cloud's recommender,<br/>read once a day"] --> savings["Savings"]
     costs --> budgets["Budgets that alert"]
+    costs --> forecast["Forecasts"]
+    forecast --> budgets
     costs --> overview["Cloud's Overview"]
     savings --> overview
 ```
@@ -238,14 +241,26 @@ A rule acts without asking only on a resource known not to be production, only f
 :::steps
 ### Create a budget
 
-Under **Cloud → Spend → Budgets**, create a budget: its **Monthly Amount**, the **Account** it is for, or none for every account, and the **Cost Basis** it counts, or none for the project's.
+Under **Cloud → Spend → Budgets**, create a budget and choose what it **Applies To**: every account, one **Account**, a **Cost Group** as its rules sort the spend, or the services, Regions and tags a **Filter** names, written as a cost group's rules are. Leave its **Cost Basis** empty to count the project's.
+
+### Say what it may cost
+
+Its **Period** is a month, a quarter or a year, and its **Amount** is what one period may cost. Quarters and years start in the **First Month of the Year**: from April, a year runs from April to March. A year's **Budget Plan** can split its amount equally over its months, or give each month its own in a **Monthly Plan**. Each month is then held to its own share, so a quiet month is never warned for a busy month's spend.
 
 ### Choose when it alerts
 
-**Alert At** takes the shares of the budget to alert at, in percent: 80 and 100 to start with. **Alert When On Course To Pass** also alerts, once a month, when the last week's pace would take the month past the budget. **Alert On Unusual Days** also alerts the day after a day that cost far more than usual: see [Unusual days](#unusual-days). **Alert Severity** and **On-Call Policies** say how severe the alerts are and who is paged.
+**Alert At** takes the shares of the budget to act at, in percent: 80 and 100 to start with. **Alert When On Course To Pass** also alerts, once a period, when the period is on course to cost more than the budget. **Alert On Unusual Days** also alerts the day after a day that cost far more than usual: see [Unusual days](#unusual-days). **Alert Severity** says how severe its alerts are.
+
+### Choose who hears
+
+The people and teams to **Notify** are told by email and chat as the spend passes a share below 100%, with no alert, so nobody is paged for spend within the budget. **Notify the Cost Group's Team** tells the team the cost group belongs to as well. From 100%, an alert is raised, they own it, and the **On-Call Policies** are paged. A budget with nobody to tell raises an alert at every share.
 :::
 
-A budget is checked after every read of the costs and every hour. As the month's spend passes a threshold, one alert is raised for it, the highest when a read passes several at once, and a new month resolves the last month's alerts. A budget counts only the accounts billed in its currency, on its basis: an amortized budget is not set off by a commitment bought up front, which a billed one counts on the day it was bought.
+A budget is checked after every read of the costs and every hour. As the period's spend passes a share, the people to notify are told, or from 100% an alert is raised, once for the highest when a read passes several at once, and a new period resolves the last period's alerts. A year split by month is checked a month at a time, against that month's share. A budget counts only the accounts billed in its currency, on its basis: an amortized budget is not set off by a commitment bought up front, which a billed one counts on the day it was bought.
+
+A period is on course to pass when what it cost so far, the rest of this month at the last full week's pace, and a quarter's or a year's later months as [forecast](#forecasts) come to more than the budget.
+
+Each budget's row says what it counts, its period and the period so far: for a year split by month, this month against its share, with the year beside it. Its page shows the period month by month against each month's share, this month day by day, what cost the most, and who hears. A yearly budget's page can save its forecast as its plan.
 
 AI agents can create and change budgets through the [MCP server](/docs/ai/mcp-server), and scripts with the CLI's `oneuptime cloud-budget` command: see [Resource Operations](/docs/cli/resource-operations).
 
@@ -253,7 +268,41 @@ AI agents can create and change budgets through the [MCP server](/docs/ai/mcp-se
 
 After every read, each of an account's last 14 full days is held to the 14 days before it. A day is unusual when a service cost twice its usual day or more, or the whole account one and a half times its usual day or more. Either must be at least 10 more than usual, in the account's currency, and at least 5% of the account's usual day, so a few cents are never a spike. A day's usual is the median of the 14 days before it, so one spike moves it little, and an account is judged only once it has a week of costs.
 
-**Cloud → Spend → Costs** marks the unusual days on the daily spend, above their bars, and lists them under it. Over every account, each mark opens its account's **Costs**. A budget that counts the account raises one alert for each account and day, the day after, naming every service that ran high. A spike that goes on for days is reported on the day it began, and a day more than a week old is not reported. A budget made before these alerts existed does not raise them until you edit it and turn them on.
+**Cloud → Spend → Costs** marks the unusual days on the daily spend, above their bars, and lists them under it. Over every account, each mark opens its account's **Costs**. A monthly budget for every account or one raises one alert for each account and day, the day after, naming every service that ran high. Any other budget holds what it counts to its own usual day the same way. A spike that goes on for days is reported on the day it began, and a day more than a week old is not reported. A budget made before these alerts existed does not raise them until you edit it and turn them on.
+
+## Forecasts
+
+**Cloud → Spend → Forecast** says what the spend is on course to cost in each of the next 12 months, for everything, an account, a cost group or a service, on the cost basis you pick. It says how each forecast is made, from the full months of costs OneUptime keeps, a year or a little more:
+
+- **This month** is what it cost so far, with each day still to come at the average of the last seven full days, as a budget projects it.
+- **With fewer than 3 full months**, each month ahead is that pace carried forward, with no likely range: too little has been read to tell a trend from a blip.
+- **From 3 full months**, a trend runs through each month's average day: the median of the slopes between every two months, so one odd month barely moves it.
+- **From 12 full months**, each calendar month also keeps how far it ran above or below the trend last year, so a December peak is forecast for the next December too.
+
+Each month ahead has a likely range, where it should land 8 times in 10, from how far the past months fell from their trend and never narrower than 5% either side. It widens the further ahead a month is, and the fewer months the forecast was made from. From 12 full months, every range is wider still, because a year shows each calendar month only once. A forecast is no promise: a new service, a migration or a price change moves the months ahead in ways no past month shows.
+
+**What If** grows or shrinks every month ahead from the month you choose, by the share you type, such as 20% from January. **Save as Budget Plan** makes the next twelve months a yearly budget's plan, in a new budget or one you have, each month held to its forecast share.
+
+## Budgets and forecasts in the API
+
+Budgets are an API resource (`cloud-budget`), with CLI commands and MCP tools as every resource has. A budget's `scope` is `allAccounts`, `account` (with `cloudAccountId`), `costGroup` (with `cloudCostGroupId`) or `filter` (with `filterRules`, written as a cost group's rules are). Its `period` is `month`, `quarter` or `year`, from `fiscalYearStartMonth`, 1 to 12. A year's `planSplit` is `none`, `equal` or `byMonth`, with its twelve months in `monthlyPlan`, in the fiscal year's order.
+
+To read a budget's period month by month, this month's days and what cost the most, as its page does:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+To forecast a scope, for 1 to 24 months ahead, with an optional what-if:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+The answer's `forecast` has its `method` (`pace`, `trend` or `trendAndSeason`), the months it was made from, and each month with its `amount` and, ahead, its `low` and `high`. Send `basis` as `billed`, `amortized` or `net` to forecast on that basis; without it the forecast is on the project's, and the answer's `basis` says which. A budget's spend is on its own basis.
 
 ## Where the money goes
 
@@ -389,6 +438,8 @@ The **Cloud Cost** widget puts a total, a breakdown or a trend of the spend besi
 - **An account's costs.** An account's **Costs** shows the same for the account alone, with its commitments and its ways to spend less.
 - **Required tags.** **Cloud → Spend → Tags** shows how much of the spend and of the resources carry your required tags, and an account's **Tags** shows the same for the account alone.
 - **A resource's cost.** A resource's page shows what it cost this month and in the last 30 days when its cloud bills it by name, with its ways to spend less and its right-sizing.
+- **Every budget.** **Cloud → Spend → Budgets** lists each budget with what it counts, its period and the period so far, and each opens its page.
+- **The months ahead.** **Cloud → Spend → Forecast** draws the months a forecast was made from, this month on course and the next 12, with how it was made.
 - **What was saved.** **Cloud → Spend → Savings** opens on what the changes made saved this month, as the bill shows it, the changes waiting for approval and those made, and the hours schedules stopped resources for.
 
 ## Troubleshooting
@@ -431,6 +482,14 @@ OneUptime makes only a change of one step: a commitment, or a recommendation tha
 
 :::details A schedule leaves a resource running
 **See Resources** says why: it is production, nothing says it is not production, or its account's connection does not allow Savings actions. Tag it, for example `environment` = `dev`, or mark its account **Non-production**.
+:::
+
+:::details A forecast has no likely range
+It was made from fewer than 3 full months of costs, so each month ahead is the last full week's pace carried forward, and no range is claimed. The range comes once the third full month is read. A connection's first read goes back to the start of the month before last.
+:::
+
+:::details Someone was told of a budget but no alert came
+Below 100%, a budget that names people or teams to notify tells them, and raises no alert, so nobody is paged. From 100% it raises an alert, and its on-call policies are paged. A budget with nobody to tell raises an alert at every share.
 :::
 
 :::details This month is lower than in your cloud's console

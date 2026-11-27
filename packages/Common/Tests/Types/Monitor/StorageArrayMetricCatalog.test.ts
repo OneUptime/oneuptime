@@ -23,6 +23,7 @@ import {
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { getRecordedSeriesLabels } from "../../Helpers/StorageArray/NetAppHarvestRecordings";
 
 /*
  * The storage array metric catalog drives the monitor form's metric picker,
@@ -348,6 +349,103 @@ function readPowerStoreSeries(): Record<string, SeriesLabels> {
 const POWERSTORE_SERIES: Record<string, SeriesLabels> = readPowerStoreSeries();
 
 /*
+ * ONTAP's series as the real NetApp Harvest 26.11 served them
+ * (Tests/Fixtures/NetAppHarvest/26.11.0), every label with the values the
+ * recordings hold, and those no recording happened to hold from Harvest's
+ * own code: its Health plugin's open problems a healthy stand-in cluster
+ * never raised (cmd/collectors/rest/plugins/health), and ONTAP's EMS
+ * severities.
+ */
+const ONTAP_DOCUMENTED_SERIES: Record<string, Record<string, Array<string>>> = {
+  netapp_health_ha_alerts: {
+    node: [],
+    takeover_possible: ["false"],
+    partner: [],
+    state_description: [],
+    partner_state: [],
+    severity: ["error"],
+  },
+  netapp_health_node_alerts: {
+    node: [],
+    healthy: ["false"],
+    severity: ["error"],
+  },
+  netapp_health_network_fc_port_alerts: {
+    node: [],
+    port: [],
+    state: [],
+    severity: ["error"],
+  },
+  netapp_health_lif_alerts: {
+    svm: [],
+    lif: [],
+    isHome: ["false"],
+    severity: ["warning"],
+  },
+  netapp_health_volume_move_alerts: {
+    svm: [],
+    volume: [],
+    movement_state: [],
+    severity: ["warning"],
+  },
+  netapp_health_volume_ransomware_alerts: {
+    volume: [],
+    anti_ransomware_attack_probability: [],
+    severity: ["error"],
+  },
+  netapp_health_license_alerts: {
+    name: [],
+    scope: [],
+    state: [],
+    severity: ["error"],
+  },
+};
+const ONTAP_DOCUMENTED_VALUES: Record<string, Record<string, Array<string>>> = {
+  netapp_ems_events: {
+    severity: [
+      "emergency",
+      "alert",
+      "error",
+      "notice",
+      "informational",
+      "debug",
+    ],
+  },
+};
+
+function getOntapSeries(): Record<string, SeriesLabels> {
+  const series: Record<string, SeriesLabels> = {};
+  const recorded: Record<
+    string,
+    Record<string, Array<string>>
+  > = getRecordedSeriesLabels();
+  for (const [name, labels] of Object.entries({
+    ...recorded,
+    ...ONTAP_DOCUMENTED_SERIES,
+  })) {
+    if (!name.startsWith("netapp_")) {
+      continue;
+    }
+    const entry: SeriesLabels = {};
+    for (const [label, values] of Object.entries({
+      cluster: [],
+      datacenter: [],
+      ...labels,
+    })) {
+      const documented: Array<string> =
+        ONTAP_DOCUMENTED_VALUES[name]?.[label] || [];
+      // A label with no value recorded or documented is free-form.
+      entry[label] =
+        values.length + documented.length > 0
+          ? Array.from(new Set([...values, ...documented]))
+          : null;
+    }
+    series[name] = entry;
+  }
+  return series;
+}
+
+/*
  * Dell PowerMax (#11004): the labels the probe writes on each series it
  * reads from Unisphere (Probe/Utils/StorageArray/Dell/PowerMax/
  * PowerMaxOtlpBuilder.ts), which the probe's PowerMaxIngestContract holds
@@ -423,10 +521,13 @@ const POWERMAX_SERIES: Record<string, SeriesLabels> = {
   powermax_srdf_group_response_time_usec: PM_SRDF_GROUP,
 };
 
-// Every shipped platform's series.
+// Every shipped platform's series, label by label: Pure's and Dell
+// PowerStore's from their exporters, ONTAP's from Harvest, and Dell
+// PowerMax's as its probe writes them.
 const SERIES: Record<string, SeriesLabels> = {
   ...PURE_SERIES,
   ...POWERSTORE_SERIES,
+  ...getOntapSeries(),
   ...POWERMAX_SERIES,
 };
 
@@ -436,6 +537,7 @@ const ALL_METRICS: Array<StorageArrayMetricDefinition> =
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
 const PS: StorageSystem = StorageSystem.DellPowerStore;
+const ONTAP: StorageSystem = StorageSystem.NetAppOntap;
 // Read by a probe from Unisphere (#11004).
 const PM: StorageSystem = StorageSystem.DellPowerMax;
 
@@ -444,8 +546,16 @@ const PREFIXES: Record<string, { id: string; series: string }> = {
   [FA]: { id: "purefa-", series: "purefa_" },
   [FB]: { id: "purefb-", series: "purefb_" },
   [PS]: { id: "powerstore-", series: "powerstore_" },
+  [ONTAP]: { id: "netapp-", series: "netapp_" },
   [PM]: { id: "powermax-", series: "powermax_" },
 };
+
+// Pure's entries: the ones whose names follow Pure's unit suffixes.
+const PURE_METRICS: Array<StorageArrayMetricDefinition> = ALL_METRICS.filter(
+  (metric: StorageArrayMetricDefinition): boolean => {
+    return metric.metricName.startsWith("pure");
+  },
+);
 
 function onlySystem(metric: StorageArrayMetricDefinition): StorageSystem {
   expect(metric.storageSystems).toHaveLength(1);
@@ -485,6 +595,11 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     );
     expect(new Set(ids).size).toBe(ids.length);
 
+    const prefixes: Record<string, string> = {
+      [FA]: "purefa-",
+      [FB]: "purefb-",
+      [ONTAP]: "netapp-",
+    };
     for (const metric of ALL_METRICS) {
       const prefix: string = PREFIXES[onlySystem(metric)]!.id;
       expect(metric.id).toMatch(/^[a-z]+-[a-z0-9-]+$/);
@@ -788,7 +903,8 @@ describe("StorageArrayMetricCatalog - every entry", () => {
       return "count";
     };
 
-    for (const metric of ALL_METRICS) {
+    // ONTAP's follow Harvest's names (NetAppOntapCatalog.test.ts).
+    for (const metric of PURE_METRICS) {
       expect({ id: metric.id, unit: metric.unit }).toEqual({
         id: metric.id,
         unit: expectedUnit(metric),
@@ -840,9 +956,9 @@ describe("StorageArrayMetricCatalog - categories", () => {
     const platformsOf: Partial<
       Record<StorageArrayMetricCategory, Array<StorageSystem>>
     > = {
-      Volumes: [FA, PS, PM],
-      Hosts: [FA],
-      Replication: [FA, PS, PM],
+    Volumes: [FA, PS, ONTAP, PM],
+    Hosts: [FA],
+    Replication: [FA, PS, ONTAP, PM],
       "File Systems": [FB, PS],
       Buckets: [FB],
     };
@@ -861,7 +977,7 @@ describe("StorageArrayMetricCatalog - categories", () => {
   });
 
   test("every platform covers alerts, capacity, performance and hardware", () => {
-    for (const system of [FA, FB, PS, PM]) {
+    for (const system of [FA, FB, PS, ONTAP, PM]) {
       const covered: Set<string> = new Set(
         getStorageArrayMetricsForSystem(system).map(
           (m: StorageArrayMetricDefinition) => {
@@ -1024,9 +1140,9 @@ describe("StorageArrayMetricCatalog - getStorageArrayMetric (filter-aware lookup
 });
 
 describe("StorageArrayMetricCatalog - per-platform picker", () => {
-  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerStore PowerStore's, a PowerMax PowerMax's", () => {
+  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerStore PowerStore's, an ONTAP cluster ONTAP's, a PowerMax PowerMax's", () => {
     let total: number = 0;
-    for (const system of [FA, FB, PS, PM]) {
+    for (const system of [FA, FB, PS, ONTAP, PM]) {
       const metrics: Array<StorageArrayMetricDefinition> =
         getStorageArrayMetricsForSystem(system);
       expect(metrics.length).toBeGreaterThan(0);
@@ -1039,13 +1155,15 @@ describe("StorageArrayMetricCatalog - per-platform picker", () => {
       total += metrics.length;
     }
     expect(total).toBe(ALL_METRICS.length);
+    // ONTAP's catalog: every series the docs' tables name.
+    expect(getStorageArrayMetricsForSystem(ONTAP)).toHaveLength(87);
   });
 
   test.each([
     ["null", null],
     ["undefined", undefined],
     ["the empty string", ""],
-    ["an unknown platform", "netapp.ontap"],
+    ["an unknown platform", "hitachi.vsp"],
     ["an alias rather than the canonical value", "purefa"],
   ])(
     "%s gets the whole catalog, so the picker is never empty",
@@ -1070,6 +1188,9 @@ describe("StorageArrayMetricCatalog - object labels (resource filters and per-ob
     [StorageArrayResourceScope.Volume, PS, "name"],
     [StorageArrayResourceScope.Hardware, PS, "name"],
     [StorageArrayResourceScope.FileSystem, PS, "name"],
+    [StorageArrayResourceScope.Array, ONTAP, null],
+    [StorageArrayResourceScope.Volume, ONTAP, "volume"],
+    [StorageArrayResourceScope.Hardware, ONTAP, "node"],
   ])(
     "%s on %s is named by %p",
     (

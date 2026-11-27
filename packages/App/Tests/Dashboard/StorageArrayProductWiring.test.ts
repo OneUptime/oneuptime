@@ -88,6 +88,9 @@ const STORAGE_ARRAY_PAGE_KEYS: ReadonlyArray<string> = [
   "STORAGE_ARRAY_VIEW_HOST_DETAIL",
   "STORAGE_ARRAY_VIEW_REPLICATION",
   "STORAGE_ARRAY_VIEW_HARDWARE",
+  // A kind a platform has of its own (#11000), and a page per part (#11001).
+  "STORAGE_ARRAY_VIEW_INVENTORY",
+  "STORAGE_ARRAY_VIEW_INVENTORY_PART",
   "STORAGE_ARRAY_VIEW_DIRECTORIES",
   "STORAGE_ARRAY_VIEW_FILE_SYSTEMS",
   "STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL",
@@ -140,6 +143,8 @@ const VIEW_PAGES: ReadonlyArray<[string, string]> = [
   ["Hardware.tsx", "STORAGE_ARRAY_VIEW_HARDWARE"],
   // A kind a platform has of its own (#11000): NetApp's aggregates, ...
   ["Inventory.tsx", "STORAGE_ARRAY_VIEW_INVENTORY"],
+  // ... and one of them, an ONTAP aggregate, SVM, LUN or relationship (#11001).
+  ["InventoryPart.tsx", "STORAGE_ARRAY_VIEW_INVENTORY_PART"],
   ["Directories.tsx", "STORAGE_ARRAY_VIEW_DIRECTORIES"],
   ["FileSystems.tsx", "STORAGE_ARRAY_VIEW_FILE_SYSTEMS"],
   ["FileSystemDetail.tsx", "STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL"],
@@ -249,6 +254,15 @@ describe("RouteMap gives every page a URL", () => {
     },
   );
 
+  test("a platform's kind is one segment, and one of its parts a second under it", () => {
+    expect(dense(routeMap)).toContain(
+      "[PageMap.STORAGE_ARRAY_VIEW_INVENTORY]:`${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}`",
+    );
+    expect(dense(routeMap)).toContain(
+      "[PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART]:`${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}/${RouteParams.PartID}`",
+    );
+  });
+
   test("every view route is built from the StorageArrayRoutePath dictionary", () => {
     for (const key of NAVIGABLE_PAGE_KEYS) {
       if (key === "STORAGE_ARRAYS") {
@@ -294,6 +308,16 @@ describe("every route is actually mounted", () => {
         new RegExp(`RouteUtil\\.getLastPathForKey\\(PageMap\\.${key},2,?\\)`),
       );
     }
+  });
+
+  test("a platform part's page registers its three trailing segments", () => {
+    // inventory/:subModelId/:partId, under the kind's own list.
+    expect(dense(routes)).toMatch(
+      /RouteUtil\.getLastPathForKey\(PageMap\.STORAGE_ARRAY_VIEW_INVENTORY_PART,3,?\)/,
+    );
+    expect(dense(routes)).toMatch(
+      /RouteUtil\.getLastPathForKey\(PageMap\.STORAGE_ARRAY_VIEW_INVENTORY,2,?\)/,
+    );
   });
 
   test("the rule view routes hand the rule model to the rule pages", () => {
@@ -445,6 +469,12 @@ describe("every navigable page has breadcrumbs", () => {
     );
   });
 
+  test("a platform part's trail leads back through the array's inventory", () => {
+    expect(dense(breadcrumbs)).toContain(
+      'PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART,["Project","StorageArrays","ViewStorageArray","Inventory","InventoryDetail",]',
+    );
+  });
+
   test("the trails use storage vocabulary, not Ceph's", () => {
     expect(breadcrumbs).toContain('"Storage Arrays"');
     expect(breadcrumbs).toContain('"View Storage Array"');
@@ -504,8 +534,11 @@ describe("the side menus reach the whole product", () => {
 
   test("the array side menu links to every view page", () => {
     for (const [, key] of VIEW_PAGES) {
-      if (key.endsWith("_DETAIL")) {
-        // Detail pages are reached from their list, not the side menu.
+      if (
+        key.endsWith("_DETAIL") ||
+        key === "STORAGE_ARRAY_VIEW_INVENTORY_PART"
+      ) {
+        // Detail pages, and a platform part's, are reached from their list.
         continue;
       }
       const linked: boolean =
@@ -583,13 +616,40 @@ describe("the side menus reach the whole product", () => {
     }
   });
 
+  test("an ONTAP cluster gets volumes, its own kinds and hardware — never the Pure-only pages", () => {
+    const kinds: Array<string> =
+      StorageArrayResourceKindUtil.getKindsForSystem("netapp.ontap");
+    // A volume and the hardware kinds are shared; the rest are ONTAP's own.
+    expect(kinds).toEqual([
+      "Volume",
+      "Aggregate",
+      "Svm",
+      "Lun",
+      "SnapMirror",
+      "Controller",
+      "Drive",
+      "Hardware",
+      "NetworkInterface",
+    ]);
+    for (const kind of [
+      StorageArrayResourceKind.Host,
+      StorageArrayResourceKind.Pod,
+      StorageArrayResourceKind.Directory,
+      StorageArrayResourceKind.FileSystem,
+      StorageArrayResourceKind.Bucket,
+    ]) {
+      expect(kinds).not.toContain(kind);
+    }
+  });
+
   test("an array whose platform is unknown gets no inventory pages at all", () => {
     expect(StorageArrayResourceKindUtil.getKindsForSystem("")).toEqual([]);
     expect(StorageArrayResourceKindUtil.getKindsForSystem(undefined)).toEqual(
       [],
     );
+    // A platform no registry declares (NetApp ONTAP is one since #11001).
     expect(
-      StorageArrayResourceKindUtil.getKindsForSystem("netapp.ontap"),
+      StorageArrayResourceKindUtil.getKindsForSystem("hitachi.vsp"),
     ).toEqual([]);
     // The menu renders the Storage section only when it has items.
     expect(dense(viewSideMenu)).toContain(

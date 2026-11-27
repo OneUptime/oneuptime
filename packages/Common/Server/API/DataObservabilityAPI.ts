@@ -9,6 +9,7 @@ import DataAssetFeed, {
   DataAssetFeedEventType,
 } from "../../Models/DatabaseModels/DataAssetFeed";
 import DataStore from "../../Models/DatabaseModels/DataStore";
+import DatabaseServer from "../../Models/DatabaseModels/DatabaseServer";
 import Probe from "../../Models/DatabaseModels/Probe";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Includes from "../../Types/BaseDatabase/Includes";
@@ -40,6 +41,7 @@ import DataObservabilityReadScope, {
 } from "../Utils/DataObservability/DataObservabilityReadScope";
 import {
   DATA_OBSERVABILITY_API_ROUTES,
+  DataObservabilityAgentState,
   DataObservabilityAiAppTable,
   DataObservabilityAttentionCountResponse,
   DataObservabilityCheckHealthResponse,
@@ -160,7 +162,20 @@ import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
-import { withProductLevelsOf } from "../../Types/Product/ProductLevels";
+import {
+  DATA_OBSERVABILITY_CONNECT_PERMISSIONS,
+  DATA_OBSERVABILITY_OPERATE_PERMISSIONS,
+  DATA_OBSERVABILITY_READ_PERMISSIONS,
+} from "../Utils/DataObservability/DataObservabilityPermissions";
+import DataObservabilityStoreSettings, {
+  DATABASE_NOT_FOUND_MESSAGE,
+  DATA_OBSERVABILITY_FOUND_FROM,
+  getDataObservabilityCollector,
+} from "../Utils/DataObservability/DataObservabilityStoreSettings";
+import DataObservabilityDatabaseAgents, {
+  DatabaseAgentOfServer,
+  getDatabaseAgentEngineOfKind,
+} from "../Utils/DataObservability/DataObservabilityDatabaseAgents";
 
 /*
  * DATA OBSERVABILITY'S OWN ROUTES, BESIDE THE DATA ASSET CRUD ROUTES.
@@ -230,45 +245,16 @@ import { withProductLevelsOf } from "../../Types/Product/ProductLevels";
 
 /*
  * Who reads, operates and connects Data Observability, with its own levels
- * (Types/Product/ProductLevels): Data Observability Viewer reads, its Member
- * operates and its Admin connects, as Viewer, Project Member and Project
- * Admin do.
+ * (Utils/DataObservability/DataObservabilityPermissions).
  */
-const READ_PERMISSIONS: Array<Permission> = withProductLevelsOf({
-  products: [ProductKey.DataObservability],
-  permissions: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.Viewer,
-    Permission.TelemetryAdmin,
-    Permission.TelemetryMember,
-    Permission.TelemetryViewer,
-    Permission.ReadDataAsset,
-  ],
-});
+const READ_PERMISSIONS: Array<Permission> = DATA_OBSERVABILITY_READ_PERMISSIONS;
+const OPERATE_PERMISSIONS: Array<Permission> =
+  DATA_OBSERVABILITY_OPERATE_PERMISSIONS;
+const CONNECT_PERMISSIONS: Array<Permission> =
+  DATA_OBSERVABILITY_CONNECT_PERMISSIONS;
 
-const OPERATE_PERMISSIONS: Array<Permission> = withProductLevelsOf({
-  products: [ProductKey.DataObservability],
-  permissions: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.ProjectMember,
-    Permission.TelemetryAdmin,
-    Permission.TelemetryMember,
-    Permission.EditDataAsset,
-  ],
-});
-
-const CONNECT_PERMISSIONS: Array<Permission> = withProductLevelsOf({
-  products: [ProductKey.DataObservability],
-  permissions: [
-    Permission.ProjectOwner,
-    Permission.ProjectAdmin,
-    Permission.TelemetryAdmin,
-    Permission.CreateDataAsset,
-  ],
-});
+const NO_WAY_IN_MESSAGE: string =
+  "Give a connection string, choose a probe that holds one in an environment variable, or choose a Database Agent that reaches the database.";
 
 // The kinds Data Observability collects today.
 export const COLLECTABLE_KINDS: ReadonlyArray<DataStoreKind> = [
@@ -543,8 +529,11 @@ export default class DataObservabilityAPI extends BaseAPI<
           } as never,
         });
 
-        // A probe's store is picked up at its probe's next poll.
-        if (!store.scanProbeId) {
+        // A probe's or a Database Agent's store is picked up at its next poll.
+        if (
+          getDataObservabilityCollector(store) ===
+          DataObservabilityCollector.OneUptime
+        ) {
           await queueTableHealthCollection({
             projectId,
             dataStoreId: store.id!,
@@ -1676,6 +1665,98 @@ export default class DataObservabilityAPI extends BaseAPI<
         )) as unknown as JSONObject;
       },
     );
+
+    /*
+     * A database's settings (#11147): how it is reached, what else uses it,
+     * and what the caller may change - read by anyone who may read Data
+     * Observability, never with a connection string.
+     */
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.storeSettings(":id"),
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        return (await DataObservabilityStoreSettings.read({
+          projectId,
+          dataStoreId: DataObservabilityAPI.readStoreId(req),
+          props,
+        })) as unknown as JSONObject;
+      },
+    );
+
+    // Renamed, or reached another way: by those who may connect a database.
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.storeUpdate(":id"),
+      CONNECT_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        await DataObservabilityStoreSettings.update({
+          projectId,
+          dataStoreId: DataObservabilityAPI.readStoreId(req),
+          body: (req.body || {}) as JSONObject,
+          props,
+        });
+
+        return {};
+      },
+    );
+
+    // Data Observability forgets it; Data Security keeps it.
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.storeRemove(":id"),
+      CONNECT_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        await DataObservabilityStoreSettings.remove({
+          projectId,
+          dataStoreId: DataObservabilityAPI.readStoreId(req),
+          props,
+        });
+
+        return {};
+      },
+    );
+
+    // Deleted from OneUptime: through Data Security's own delete while it relies on it.
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.storeDelete(":id"),
+      CONNECT_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        await DataObservabilityStoreSettings.delete({
+          projectId,
+          dataStoreId: DataObservabilityAPI.readStoreId(req),
+          props,
+        });
+
+        return {};
+      },
+    );
+
+    // The Database Agents a database can be read through (#11148), for those who choose one.
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.databaseAgents,
+      READ_PERMISSIONS,
+      async (projectId: ObjectID) => {
+        return {
+          agents: (await DataObservabilityDatabaseAgents.list(
+            projectId,
+          )) as unknown as Array<JSONObject>,
+        };
+      },
+    );
   }
 
   /*
@@ -1708,6 +1789,8 @@ export default class DataObservabilityAPI extends BaseAPI<
       connectionString: true,
       cloudConnectionId: true,
       watchedPaths: true,
+      tableHealthDatabaseServerId: true,
+      tableHealthRemovedAt: true,
     };
     const stores: Array<DataStore> = [
       ...(await DataStoreService.findBy({
@@ -1715,6 +1798,8 @@ export default class DataObservabilityAPI extends BaseAPI<
           projectId,
           isArchived: false,
           kind: new Includes([...COLLECTABLE_KINDS]),
+          // Removed from Data Observability (#11147): Data Security's alone now.
+          tableHealthRemovedAt: QueryHelper.isNull(),
         },
         select,
         sort: { name: SortOrder.Ascending },
@@ -1729,6 +1814,7 @@ export default class DataObservabilityAPI extends BaseAPI<
           isArchived: false,
           kind: new Includes([...OBJECT_STORE_KINDS]),
           watchedPaths: QueryHelper.notNull(),
+          tableHealthRemovedAt: QueryHelper.isNull(),
         },
         select,
         sort: { name: SortOrder.Ascending },
@@ -1772,6 +1858,19 @@ export default class DataObservabilityAPI extends BaseAPI<
       }
     }
 
+    // The Database Agents some are read through (#11148): whether each can read now.
+    const agents: Map<string, DatabaseAgentOfServer> =
+      await DataObservabilityDatabaseAgents.readByServer({
+        projectId,
+        serverIds: stores
+          .map((store: DataStore): ObjectID | undefined => {
+            return store.tableHealthDatabaseServerId;
+          })
+          .filter((id: ObjectID | undefined): id is ObjectID => {
+            return Boolean(id);
+          }),
+      });
+
     /*
      * A store with no way in is watched by nobody: it is one of the suggestions
      * (DataSourceSuggestions), not a database waiting for its first collection.
@@ -1786,15 +1885,28 @@ export default class DataObservabilityAPI extends BaseAPI<
         );
       })
       .map((store: DataStore): DataObservabilityStoreSummary => {
+        const collector: DataObservabilityCollector =
+          getDataObservabilityCollector(store);
+        const agent: DatabaseAgentOfServer | undefined =
+          store.tableHealthDatabaseServerId
+            ? agents.get(
+                store.tableHealthDatabaseServerId.toString().toLowerCase(),
+              )
+            : undefined;
+
         return {
           dataStoreId: store.id!.toString(),
           name: store.name || "",
           kind: store.kind || "",
           isTableHealthEnabled: store.isTableHealthEnabled !== false,
-          collector: store.scanProbeId
-            ? DataObservabilityCollector.Probe
-            : DataObservabilityCollector.OneUptime,
+          collector,
           probeName: store.scanProbe?.name || null,
+          ...(collector === DataObservabilityCollector.DatabaseAgent
+            ? {
+                databaseServerName: agent?.server.name || null,
+                agentState: agent?.state || DataObservabilityAgentState.NoAgent,
+              }
+            : {}),
           status: store.tableHealthStatus || null,
           message: store.tableHealthMessage || null,
           collectedAt: store.tableHealthCollectedAt
@@ -2185,9 +2297,19 @@ export default class DataObservabilityAPI extends BaseAPI<
         : "";
     const probeIdValue: unknown = body["probeId"];
     const probeConnectionVariable: unknown = body["probeConnectionVariable"];
+    const databaseServerIdValue: unknown = body["databaseServerId"];
     let probe: Probe | null = null;
+    let agent: { server: DatabaseServer; databaseName: string } | null = null;
 
-    if (typeof probeIdValue === "string" && probeIdValue) {
+    if (typeof databaseServerIdValue === "string" && databaseServerIdValue) {
+      // A Database Agent that already reaches the database (#11148): no login leaves it.
+      agent = await DataObservabilityStoreSettings.readAgentChoice({
+        projectId,
+        kind: info.kind,
+        databaseServerId: databaseServerIdValue,
+        databaseName: body["databaseName"],
+      });
+    } else if (typeof probeIdValue === "string" && probeIdValue) {
       if (!ObjectID.isValidUUID(probeIdValue)) {
         throw new BadDataException("Probe not found.");
       }
@@ -2209,22 +2331,26 @@ export default class DataObservabilityAPI extends BaseAPI<
           "Name the probe's environment variable that holds the connection string: upper-case letters, digits and underscores, not one of the probe's own settings.",
         );
       }
-    } else if (!connectionString) {
-      throw new BadDataException(
-        "Give a connection string, or choose a probe that holds one in an environment variable.",
-      );
     }
 
     const existingStoreId: unknown = body["dataStoreId"];
+    const isKnownStore: boolean =
+      typeof existingStoreId === "string" && existingStoreId.length > 0;
+
+    // A store the project knows of may keep the connection string Data Security keeps for it.
+    if (!agent && !probe && !connectionString && !isKnownStore) {
+      throw new BadDataException(NO_WAY_IN_MESSAGE);
+    }
 
     // A store the project already knows of takes the connection, rather than a second row.
-    if (typeof existingStoreId === "string" && existingStoreId) {
+    if (isKnownStore) {
       return await DataObservabilityAPI.connectKnownStore({
         projectId,
-        dataStoreId: existingStoreId,
+        dataStoreId: existingStoreId as string,
         connectionString,
         probe,
         probeConnectionVariable: probeConnectionVariable as string | undefined,
+        agent,
       });
     }
 
@@ -2236,15 +2362,20 @@ export default class DataObservabilityAPI extends BaseAPI<
     store.kind = info.kind;
     store.provider = info.provider;
     store.family = info.family;
-    store.discoveredFrom = "Manual";
+    // Data Security lists it as connected from here: Data Observability's to delete while Data Security holds nothing of it.
+    store.discoveredFrom = DATA_OBSERVABILITY_FOUND_FROM;
     store.storeKey = `manual:${ObjectID.generate().toString()}`;
     store.firstSeenAt = now;
     store.lastSeenAt = now;
     store.isTableHealthEnabled = true;
+    store.nextTableHealthCollectionAt = now;
     // Data Observability reads the catalog; content scans are Data Security's to turn on.
     store.isContentScanEnabled = false;
 
-    if (probe?.id) {
+    if (agent) {
+      store.tableHealthDatabaseServerId = agent.server.id!;
+      store.tableHealthDatabaseName = agent.databaseName;
+    } else if (probe?.id) {
       store.scanProbeId = probe.id;
       store.probeConnectionVariable = probeConnectionVariable as string;
     } else {
@@ -2256,7 +2387,8 @@ export default class DataObservabilityAPI extends BaseAPI<
       props: { isRoot: true },
     });
 
-    if (!probe?.id) {
+    // OneUptime's workers read it now; a probe or a Database Agent at its next poll.
+    if (!probe?.id && !agent) {
       await queueTableHealthCollection({
         projectId,
         dataStoreId: created.id!,
@@ -2272,6 +2404,7 @@ export default class DataObservabilityAPI extends BaseAPI<
     connectionString: string;
     probe: Probe | null;
     probeConnectionVariable: string | undefined;
+    agent: { server: DatabaseServer; databaseName: string } | null;
   }): Promise<DataObservabilityConnectStoreResponse> {
     if (!ObjectID.isValidUUID(data.dataStoreId)) {
       throw new BadDataException("Database not found.");
@@ -2284,7 +2417,12 @@ export default class DataObservabilityAPI extends BaseAPI<
         isArchived: false,
         kind: new Includes([...COLLECTABLE_KINDS]),
       },
-      select: { _id: true },
+      select: {
+        _id: true,
+        kind: true,
+        connectionString: true,
+        scanProbeId: true,
+      },
       props: { isRoot: true },
     });
 
@@ -2292,21 +2430,59 @@ export default class DataObservabilityAPI extends BaseAPI<
       throw new BadDataException("Database not found.");
     }
 
+    if (data.agent && !getDatabaseAgentEngineOfKind(known.kind)) {
+      throw new BadDataException(
+        "A Database Agent reads PostgreSQL and MySQL databases for Data Observability. Choose OneUptime or a probe for this one.",
+      );
+    }
+
+    if (
+      !data.agent &&
+      !data.probe?.id &&
+      !data.connectionString &&
+      !known.connectionString
+    ) {
+      throw new BadDataException(NO_WAY_IN_MESSAGE);
+    }
+
+    /*
+     * A store with no way in until now was never sampled by Data Security,
+     * whatever its switch said. Connected from here, it stays so: the login
+     * given here reads the catalog, and no value leaves the database until
+     * Data Security turns its content scans on.
+     */
+    const hadNoWayIn: boolean = !known.connectionString && !known.scanProbeId;
+
     await DataStoreService.updateOneById({
       id: known.id,
       data: {
         isTableHealthEnabled: true,
-        ...(data.probe?.id
+        // Removed from Data Observability once (#11147): connected again, it is back.
+        tableHealthRemovedAt: null,
+        nextTableHealthCollectionAt: OneUptimeDate.getCurrentDate(),
+        ...(hadNoWayIn && !data.agent ? { isContentScanEnabled: false } : {}),
+        ...(data.agent
           ? {
-              scanProbeId: data.probe.id,
-              probeConnectionVariable: data.probeConnectionVariable,
+              tableHealthDatabaseServerId: data.agent.server.id!,
+              tableHealthDatabaseName: data.agent.databaseName,
             }
-          : { connectionString: data.connectionString }),
+          : {
+              tableHealthDatabaseServerId: null,
+              tableHealthDatabaseName: null,
+              ...(data.probe?.id
+                ? {
+                    scanProbeId: data.probe.id,
+                    probeConnectionVariable: data.probeConnectionVariable,
+                  }
+                : data.connectionString
+                  ? { connectionString: data.connectionString }
+                  : {}),
+            }),
       } as never,
       props: { isRoot: true },
     });
 
-    if (!data.probe?.id) {
+    if (!data.probe?.id && !data.agent) {
       await queueTableHealthCollection({
         projectId: data.projectId,
         dataStoreId: known.id,
@@ -2412,6 +2588,17 @@ export default class DataObservabilityAPI extends BaseAPI<
     return a.length === b.length && crypto.timingSafeEqual(a, b);
   }
 
+  // The :id of a database's route; a malformed one is a database not found.
+  private static readStoreId(req: ExpressRequest): ObjectID {
+    const id: string = String(req.params["id"] || "");
+
+    if (!ObjectID.isValidUUID(id)) {
+      throw new BadDataException(DATABASE_NOT_FOUND_MESSAGE);
+    }
+
+    return new ObjectID(id);
+  }
+
   private static readId(req: ExpressRequest): ObjectID {
     const id: string = String(req.params["id"] || "");
 
@@ -2437,6 +2624,7 @@ export default class DataObservabilityAPI extends BaseAPI<
         _id: new ObjectID(id),
         projectId,
         kind: new Includes([...COLLECTABLE_KINDS, ...OBJECT_STORE_KINDS]),
+        tableHealthRemovedAt: QueryHelper.isNull(),
       },
       /*
        * Its name, and whether its tables are watched, for the audit log's
@@ -2447,6 +2635,7 @@ export default class DataObservabilityAPI extends BaseAPI<
         projectId: true,
         name: true,
         scanProbeId: true,
+        tableHealthDatabaseServerId: true,
         isTableHealthEnabled: true,
       },
       props: { isRoot: true },

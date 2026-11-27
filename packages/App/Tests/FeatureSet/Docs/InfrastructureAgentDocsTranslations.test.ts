@@ -314,6 +314,17 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
     "Create User…",
     "Create API Token…",
     "Expires In",
+    /*
+     * ONTAP System Manager's, where the read-only REST role and user are
+     * made, and the CLI's login method (#11001).
+     */
+    "Roles",
+    "Add",
+    "REST API path",
+    "Read-Only",
+    "HTTP",
+    "Password",
+    "http",
     // PowerStore Manager's roles for the agent's user (#11002).
     "Storage Operator",
     "Operator",
@@ -377,6 +388,9 @@ const NAMES: Record<string, Array<string>> = {
     "Pure Storage FlashArray",
     "Pure Storage FlashBlade",
     "Everpure",
+    "NetApp ONTAP",
+    "Amazon FSx for NetApp ONTAP",
+    "SnapMirror",
     "Dell PowerStore",
     "Dell PowerMax",
   ],
@@ -440,6 +454,12 @@ const PROSE: Record<string, Array<string>> = {
   [QUEUES]: ["destination", "namespace"],
   // The two concepts the page defines, "**Fleet**: a group of devices".
   [IOT]: ["Fleet", "Device"],
+  /*
+   * ONTAP's Aggregates tab, which the Dashboard draws with a key of its own
+   * (Aggregates (disk aggregates), #11001): the bare Aggregates is
+   * OpenStack's host aggregate in some languages.
+   */
+  [STORAGE_ARRAYS]: ["Aggregates"],
 };
 
 /*
@@ -686,6 +706,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Hosts.",
     "Pods.",
     "File systems.",
+    "An ONTAP cluster's own objects.",
+    "ONTAP: Harvest polls the cluster, the collector scrapes Harvest.",
   ],
   /*
    * (yes is a Dashboard label since #6369, a recorder decision's value on

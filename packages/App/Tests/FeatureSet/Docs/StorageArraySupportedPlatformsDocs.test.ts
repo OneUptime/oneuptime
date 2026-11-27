@@ -88,7 +88,7 @@ function platformsTable(language: string): {
 }
 
 describe("the supported platforms table", () => {
-  test("the registry ships Pure Storage's three ways in, then Dell PowerStore's", () => {
+  test("the registry ships Pure Storage's three ways in, then Dell PowerStore's and NetApp ONTAP's", () => {
     expect(EXPECTED).toEqual([
       {
         displayName: "Pure Storage FlashArray",
@@ -109,6 +109,11 @@ describe("the supported platforms table", () => {
         displayName: "Dell PowerStore",
         storageSystem: "dell.powerstore",
         config: "otel-collector-config.powerstore.yaml",
+      },
+      {
+        displayName: "NetApp ONTAP",
+        storageSystem: "netapp.ontap",
+        config: "otel-collector-config.netapp-ontap.yaml",
       },
     ]);
   });

@@ -9,6 +9,11 @@ import ResourceAiAgentService, {
   ResourceAiAgentRegistrationResult,
 } from "Common/Server/Services/ResourceAiAgentService";
 import ResourceAiAgentJobService from "Common/Server/Services/ResourceAiAgentJobService";
+import DataObservabilityAgentCollect from "Common/Server/Utils/DataObservability/DataObservabilityAgentCollect";
+import {
+  DATABASE_AGENT_RESULT_ROUTE,
+  DATABASE_AGENT_WORK_ROUTE,
+} from "Common/Utils/DataObservability/DatabaseAgent/DatabaseAgentWork";
 import RunnerJobService from "Common/Server/Services/RunnerJobService";
 import AiCommandKillSwitch from "Common/Server/Utils/AI/AiCommandKillSwitch";
 import ResourceAiAgent from "Common/Models/DatabaseModels/ResourceAiAgent";
@@ -63,6 +68,9 @@ import Response from "Common/Server/Utils/Response";
  *                          claim: stop the command) | 404 { message }
  *   /job/:jobId/result     { accepted }
  *   /disconnect            { status: "ok" }
+ *   /data-observability/work    { stores: DatabaseAgentWork[] } - a
+ *                          Database Agent's due databases (#11148)
+ *   /data-observability/result  { accepted } - what one collection read
  *
  * and every authenticated route answers 401 { message } for an id/key pair
  * that is not (or no longer) valid.
@@ -175,6 +183,65 @@ export default class ResourceAiAgentIngressAPI {
       ResourceAiAgentAuthorization.isAuthorizedAgent,
       this.disconnect,
     );
+
+    /*
+     * A Database Agent reading databases for Data Observability (#11148):
+     * the due databases of the server it registered as, and what one
+     * collection read (Utils/DataObservability/DatabaseAgent/
+     * DatabaseAgentWork). Never a statement, never a credential.
+     */
+    this.router.post(
+      DATABASE_AGENT_WORK_ROUTE,
+      ResourceAiAgentAuthorization.isAuthorizedAgent,
+      this.dataObservabilityWork,
+    );
+
+    this.router.post(
+      DATABASE_AGENT_RESULT_ROUTE,
+      ResourceAiAgentAuthorization.isAuthorizedAgent,
+      this.dataObservabilityResult,
+    );
+  }
+
+  public async dataObservabilityWork(
+    req: ResourceAiAgentExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const agent: ResourceAiAgent =
+        ResourceAiAgentIngressAPI.getAuthenticatedAgent(req);
+
+      return Response.sendJsonObjectResponse(req, res, {
+        stores: (await DataObservabilityAgentCollect.handOutWork(
+          agent,
+        )) as unknown as Array<JSONObject>,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  public async dataObservabilityResult(
+    req: ResourceAiAgentExpressRequest,
+    res: ExpressResponse,
+    next: NextFunction,
+  ): Promise<void> {
+    try {
+      const agent: ResourceAiAgent =
+        ResourceAiAgentIngressAPI.getAuthenticatedAgent(req);
+
+      return Response.sendJsonObjectResponse(
+        req,
+        res,
+        await DataObservabilityAgentCollect.acceptResult(
+          agent,
+          (req.body as JSONObject) || {},
+        ),
+      );
+    } catch (err) {
+      next(err);
+    }
   }
 
   public async register(

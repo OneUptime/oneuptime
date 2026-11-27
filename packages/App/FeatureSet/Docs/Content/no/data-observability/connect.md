@@ -1,6 +1,6 @@
 # Koble til en database
 
-Dataobserverbarhet leser hver database med en bruker som bare leser katalogen: hvilke tabeller og visninger den inneholder, kolonnene, radene og størrelsen deres, og når de ble endret. Denne siden viser det minste hver databasemotor trenger, og hvordan du holder tilkoblingsstrengen inne i nettverket ditt med en sonde.
+Dataobserverbarhet leser hver database med en bruker som bare leser katalogen: hvilke tabeller og visninger den inneholder, kolonnene, radene og størrelsen deres, og når de ble endret. Denne siden viser det minste hver databasemotor trenger, hvordan du holder tilkoblingsstrengen inne i nettverket ditt med en sonde eller med Database Agent som du allerede kjører, og hvordan du senere endrer, fjerner eller sletter en database.
 
 ## Før du begynner
 
@@ -13,12 +13,21 @@ Under **Dataobserverbarhet > Databaser** velger du **Koble til en database**, og
 
 - **OneUptime kobler til**: lim inn en tilkoblingsstreng. Den lagres kryptert, brukes bare av OneUptimes workers og vises aldri igjen.
 - **En sonde i mitt nettverk kobler til**: velg en av sondene dine, og oppgi navnet på miljøvariabelen på sonden som inneholder tilkoblingsstrengen, for eksempel `ORDERS_DB_URL`. Tilkoblingsstrengen forlater aldri nettverket ditt. Se [Egendefinerte sonder](/docs/probe/custom-probe).
+- **Min Database Agent kobler til**: velg databaseserveren som [Database Agent](/docs/telemetry/databases) allerede kjører ved siden av, og oppgi databasen på den som skal leses. Agenten leser den med brukere fra sitt eget miljø, så ingen bruker lagres i OneUptime. Se [Gjennom en Database Agent](#gjennom-en-database-agent).
 
 En database som allerede er koblet til for Datasikkerhet, overvåkes også, uten at du trenger å koble til noe, og det samme gjelder hvert BigQuery-datasett [skytilkoblingen](/docs/telemetry/cloud-accounts) din har funnet.
 
 ## Databaser du kan koble til
 
 **Databaser du kan koble til**, under **Databaser**, lister det prosjektet ditt allerede kjenner til og ingen har koblet til: databaser sporene dine snakker med, databaser i skykontoene dine, og databaser Databaseovervåking overvåker. **Koble til** starter skjemaet ut fra det som er kjent om hver av dem, med en tilkoblingsstreng du fyller ut. **Skjul** hindrer at en kommer tilbake. Ingenting leses før du kobler den til.
+
+## Gjennom en Database Agent
+
+En Database Agent når allerede databaseserveren sin og sender målingene derfra. Den kan også lese serverens PostgreSQL-, MySQL- og MariaDB-databaser for Dataobserverbarhet når eieren slår det på: legg til `ONEUPTIME_DATA_OBSERVABILITY=true` i agentens `.env`, og kjør `docker compose up -d`. Inntil da vises agenten med **Dataobserverbarhet slått av**, og en database som er koblet til gjennom den, sier hva du skal gjøre.
+
+OneUptime forteller agenten hvilken database den skal lese og hvilke sjekker som skal kjøres, hver med sin type og tabellen og kolonnene den leser. Den sender aldri en setning eller en bruker. Agenten bygger hver setning selv, ut fra de samme faste formene som OneUptimes egne collectorer bruker, og kjører hver i en skrivebeskyttet transaksjon med en grense på 30 sekunder. Den kjører en sjekk bare når hver tabell og kolonne sjekken nevner, finnes i katalogen den nettopp har lest, binder hver verdi sjekken sammenligner med, og sender tilbake ett tall per sjekk, aldri en rad. Sjekker av typen **Egendefinert SQL** og **Rader som feiler** kjører bare der agentens eier setter `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true`; andre steder sier de fra om det, og alle andre sjekker kjører.
+
+Agenten leser katalogen med `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME`, eller med collectorens bruker, og kjører sjekker med `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME`, eller med katalogens bruker: gi hver av dem bare det fanene nedenfor viser for den. Agentens README viser alle variablene.
 
 ## En skrivebeskyttet bruker, per databasemotor
 
@@ -162,6 +171,18 @@ Sjekker kjører som skrivebeskyttet SQL på miljøets TDS-endepunkt, på port 14
 
 Hver setning kjører skrivebeskyttet, med tidsavbrudd for setninger og låser der databasemotoren har det. En forespørsel som et øyeblikk avvises eller feiler hos Snowflake, Databricks, BigQuery, Athena, ClickHouse eller Dataverse, med en 429, en 503 eller tjenestens eget svar om at den er for opptatt, sendes på nytt, høyst to ganger og innenfor ett minutts venting per innsamling, og aldri på en måte som kan kjøre en setning to ganger. Tilkoblingsstrengen logges aldri og fjernes fra hver feilmelding. En statistikk brukeren ikke har lov til å lese, utelates med en advarsel på databasen, og gir aldri en mislykket innsamling. Tilkoblinger til private adresser avvises på OneUptime Cloud: bruk en sonde.
 
+## Administrer en database
+
+Hver database har en side **Innstillinger**: velg **Innstillinger** på raden dens under **Databaser**, eller i menyen dens.
+
+- **Rediger detaljer** gir den nytt navn. Datasikkerhet viser samme navn.
+- **Endre tilkobling** gir den en ny bruker, en annen sonde eller en Database Agent. En lagret tilkoblingsstreng vises aldri igjen: la feltet stå tomt for å beholde den. Flytter du en database til en Database Agent, slettes den lagrede tilkoblingsstrengen, med mindre Datasikkerhet tar stikkprøver av databasens innhold med den.
+- **Stopp overvåking**, på **Oversikt** for den, slutter å lese den en stund og beholder tabellene og historikken deres. **Overvåk igjen** starter igjen.
+- **Fjern fra Dataobserverbarhet** slutter å lese den og glemmer tabellene, sjekkene deres og historikken deres. Datasikkerhet beholder databasen, tilkoblingen og det skanningene fant, og den tilbys igjen under **Databaser du kan koble til**.
+- **Slett database** sletter den fra OneUptime, sammen med det Dataobserverbarhet og Datasikkerhet har lagret om den. Bekreftelsen viser først hva som forsvinner.
+
+En database her er også et datalager i Datasikkerhet. Så lenge Datasikkerhet er avhengig av den (den fant databasen, noen la den til der, eller den har funn, problemer, skanninger, eiere eller en oppføring i behandlingsprotokollen om den), kan bare noen som kan slette Datasikkerhets datalagre, slette den, og bare noen som kan redigere dem, kan endre tilkoblingen Datasikkerhet tar stikkprøver av innholdet med. Innstillinger sier fra om dette ved knappen det gjelder. Monitorer som overvåker en database, beholdes når den forsvinner: slett dem under **Monitorer**.
+
 ## Lesereplikaer
 
 En lesereplika i PostgreSQL eller SQL Server flytter ikke skrivetellerne sine, så en tabell der kan se uendret ut mens den endres. OneUptime ser at det er en replika, utelater tellerne, sier fra om det på databasen, og faller tilbake på tabellens størrelse og rader. Koble til primærdatabasen der du kan, eller oppgi en [aktualitetskolonne](/docs/data-observability/table-health) for tabellene som betyr noe.
@@ -174,6 +195,7 @@ Hver sti vises deretter under **Tabeller**: det nyeste objektet er når den sist
 
 ## Feilsøking
 
+- **Databasen viser Database Agent ikke klar.** Agenten kan ikke lese den nå, og databasens side sier hvorfor: serveren har ingen Database Agent tilkoblet, eller agenten er slått av for Dataobserverbarhet (`ONEUPTIME_DATA_OBSERVABILITY=true` slår den på), har ikke latt høre fra seg, er for gammel (kjør dens `install.sh` på nytt), eller kjører på en server som verken er PostgreSQL eller MySQL.
 - **Innsamlingen fra databasen mislykkes.** Meldingen sier hvorfor: en vert OneUptime ikke når, en pålogging som avvises, en TLS-modus serveren ikke godtar. En database inne i nettverket ditt kobler du til gjennom en sonde. For Snowflake, Databricks, BigQuery, Athena, ClickHouse og Dataverse nevner meldingen hva som ble lest, tjenestens egen feilkode og feilmelding, og forespørsels- eller spørrings-ID-en som tjenestens brukerstøtte kan spore, når tjenesten oppgir en. **Samle inn nå** prøver igjen med en gang, og siden viser hvordan det gikk.
 - **Tabeller viser ingen siste endring.** Brukeren kan ikke lese databasemotorens statistikk: gi det fanen for databasemotoren din viser, eller vent til antall rader i en tabell har endret seg to ganger.
 - **En tabell mangler.** Den ligger i et skjema brukeren ikke kan bruke, eller den er utelatt på databasen. Gi `USAGE` på skjemaet, eller fjern utelatelsen.

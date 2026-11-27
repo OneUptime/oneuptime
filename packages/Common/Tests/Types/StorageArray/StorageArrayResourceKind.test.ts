@@ -4,6 +4,8 @@ import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { StorageArrayKindDefinition } from "../../../Types/StorageArray/StorageArrayPlatform";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import { OntapKind } from "../../../Types/StorageArray/Platforms/NetApp/NetApp";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -40,6 +42,19 @@ const POWERSTORE_KINDS: Array<string> = [
   "NasServer",
   StorageArrayResourceKind.Hardware,
   StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.NetworkInterface,
+];
+
+// The shared kinds ONTAP has, and the four only it has (#11001).
+const ONTAP_KINDS: Array<string> = [
+  StorageArrayResourceKind.Volume,
+  OntapKind.Aggregate,
+  OntapKind.Svm,
+  OntapKind.Lun,
+  OntapKind.SnapMirror,
+  StorageArrayResourceKind.Controller,
+  StorageArrayResourceKind.Drive,
+  StorageArrayResourceKind.Hardware,
   StorageArrayResourceKind.NetworkInterface,
 ];
 
@@ -104,6 +119,12 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
     ).toEqual(FLASHBLADE_KINDS);
   });
 
+  test("an ONTAP cluster reports its volumes and hardware, and its aggregates, SVMs, LUNs and SnapMirror relationships", () => {
+    expect(
+      StorageArrayResourceKindUtil.getKindsForSystem(StorageSystem.NetAppOntap),
+    ).toEqual(ONTAP_KINDS);
+  });
+
   test("a PowerStore reports appliances, volumes, volume groups, file systems, NAS servers, hardware, drives and ports", () => {
     expect(
       StorageArrayResourceKindUtil.getKindsForSystem(
@@ -115,12 +136,25 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
   test("every known platform reports at least one kind, and every kind belongs to a platform", () => {
     const covered: Set<StorageArrayResourceKind> = new Set();
     for (const system of StorageSystemUtil.getAllSystems()) {
-      const kinds: Array<StorageArrayResourceKind> =
+      const kinds: Array<string> =
         StorageArrayResourceKindUtil.getKindsForSystem(system);
       expect(kinds.length).toBeGreaterThan(0);
       expect(new Set(kinds).size).toBe(kinds.length);
       for (const kind of kinds) {
         covered.add(kind);
+        if (
+          !(
+            StorageArrayResourceKindUtil.getAllKinds() as Array<string>
+          ).includes(kind)
+        ) {
+          expect({
+            system,
+            kind,
+            defined: Boolean(
+              StorageArrayPlatformRegistry.getKindDefinition(kind, system),
+            ),
+          }).toEqual({ system, kind, defined: true });
+        }
       }
     }
     /*
@@ -169,7 +203,7 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
     ["null", null],
     ["undefined", undefined],
     ["the empty string", ""],
-    ["an unknown platform", "netapp.ontap"],
+    ["an unknown platform", "hitachi.vsp"],
     ["an alias (only canonical values are keyed)", "purefa"],
   ])("%s reports no kinds", (_: string, system: string | null | undefined) => {
     expect(StorageArrayResourceKindUtil.getKindsForSystem(system)).toEqual([]);

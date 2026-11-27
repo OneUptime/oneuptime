@@ -364,7 +364,16 @@ export function projectCloudMonthCost(data: {
   // Each day's total, "2026-11-02" -> amount.
   dailyTotals: Map<string, number>;
   now: Date;
-}): { monthToDate: number; projectedMonth: number; latestDay?: string } {
+}): {
+  monthToDate: number;
+  projectedMonth: number;
+  latestDay?: string;
+  /*
+   * The pace the days left were projected at: what a budget's later months
+   * are projected at too, where they have no forecast (CloudBudget).
+   */
+  dailyPace?: number;
+} {
   const monthStart: Date = startOfUtcMonth(data.now);
   const monthStartDay: string = toCloudCostDay(monthStart);
   const days: Array<string> = Array.from(data.dailyTotals.keys()).sort();
@@ -408,6 +417,7 @@ export function projectCloudMonthCost(data: {
     monthToDate,
     projectedMonth: monthToDate + pace * daysLeft,
     latestDay,
+    dailyPace: pace,
   };
 }
 

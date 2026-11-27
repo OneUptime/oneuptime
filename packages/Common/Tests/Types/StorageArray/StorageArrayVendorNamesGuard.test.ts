@@ -1,7 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { StorageArrayPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayAlertTemplateSpec,
+  StorageArrayMetricDefinition,
+  StorageArrayPlatform,
+} from "../../../Types/StorageArray/StorageArrayPlatform";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 
 /*
@@ -17,7 +21,14 @@ import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArr
  * Each platform's names are its metric prefix (StorageArrayPlatform
  * .metricPrefix), so a platform added later is held to it with no change
  * here, its own folders found by its vendor's name: Pure Storage's are
- * Platforms/PureStorage/ and Telemetry/StorageArray/PureStorage/.
+ * Platforms/PureStorage/ and Telemetry/StorageArray/PureStorage/, NetApp's
+ * Platforms/NetApp/ and Telemetry/StorageArray/NetApp/.
+ *
+ * Its catalog is its own too (#11122): the ids of its metrics and alert
+ * templates ("purefa-volume-read-latency", "netapp-aggregate-full"). A
+ * shared page that names one charts, or offers, one platform's object on
+ * every platform's page, as the part pages did before they read the
+ * platform's StorageArrayKindPage.
  */
 
 const REPOSITORY_ROOT: string = path.resolve(__dirname, "../../../../..");
@@ -48,9 +59,11 @@ const TEXT_FILE: RegExp =
  *     own, #11123);
  *   - the Dashboard's locale files: the words a platform's catalog marks,
  *     translated, which name its series;
- *   - the agent's collector configs, README and troubleshooting script:
+ *   - the agent's collector configs, its exporters' own configs (NetApp
+ *     Harvest's netapp-harvest*.yml), README and troubleshooting script:
  *     what the agent scrapes, and how to check it (troubleshoot.sh probes
- *     Pure's endpoints until each platform has probes of its own, #11124).
+ *     each platform's endpoint by hand until its probes come from the
+ *     platforms table, #11124).
  */
 const ANY_VENDOR: ReadonlyArray<RegExp> = [
   /(^|\/)Tests?\//,
@@ -62,6 +75,7 @@ const ANY_VENDOR: ReadonlyArray<RegExp> = [
   /^packages\/App\/FeatureSet\/Dashboard\/src\/Pages\/StorageArray\/Utils\/DocumentationMarkdown\.ts$/,
   /^packages\/App\/FeatureSet\/Dashboard\/src\/Pages\/StorageArray\/DocumentationTranslations\//,
   /^agents\/StorageArrayAgent\/otel-collector-config[a-z0-9.-]*\.yaml$/,
+  /^agents\/StorageArrayAgent\/netapp-harvest[a-z0-9-]*\.ya?ml$/,
   /^agents\/StorageArrayAgent\/README\.md$/,
   /^agents\/StorageArrayAgent\/troubleshoot\.sh$/,
 ];
@@ -72,6 +86,32 @@ interface Vendor {
   prefixes: Array<string>;
   // Its own folders, where its names belong.
   own: Array<string>;
+}
+
+/*
+ * What may name a platform's catalog ids besides what may name its series
+ * (ANY_VENDOR), and why: the Dashboard's dashboard templates chart Pure's
+ * catalog until each platform has a template of its own (#11125).
+ */
+const ANY_CATALOG_ID: ReadonlyArray<RegExp> = [
+  /^packages\/Common\/Types\/Dashboard\/DashboardTemplates\.ts$/,
+];
+
+// A platform's catalog: its metrics' and alert templates' ids.
+function getCatalogIds(vendorName: string): Array<string> {
+  const ids: Set<string> = new Set();
+  for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+    if (platform.vendorName !== vendorName) {
+      continue;
+    }
+    for (const metric of platform.metrics) {
+      ids.add((metric as StorageArrayMetricDefinition).id);
+    }
+    for (const template of platform.alertTemplates) {
+      ids.add((template as StorageArrayAlertTemplateSpec).id);
+    }
+  }
+  return Array.from(ids).sort();
 }
 
 function vendorFolder(vendorName: string): string {
@@ -135,7 +175,7 @@ const VENDORS: Array<Vendor> = getVendors();
 const FILES: Array<string> = shippedTextFiles();
 
 describe("a vendor's metric names stay in its own folders", () => {
-  test("Pure Storage's are FlashArray's purefa_ and FlashBlade's purefb_, Dell's PowerStore's powerstore_ and PowerMax's powermax_", () => {
+  test("Pure Storage's are FlashArray's purefa_ and FlashBlade's purefb_, Dell's PowerStore's powerstore_ and PowerMax's powermax_, NetApp's netapp_", () => {
     expect(VENDORS).toEqual([
       {
         name: "Pure Storage",
@@ -151,6 +191,14 @@ describe("a vendor's metric names stay in its own folders", () => {
         own: [
           "packages/Common/Types/StorageArray/Platforms/Dell/",
           "packages/Common/Server/Utils/Telemetry/StorageArray/Dell/",
+        ],
+      },
+      {
+        name: "NetApp",
+        prefixes: ["netapp_"],
+        own: [
+          "packages/Common/Types/StorageArray/Platforms/NetApp/",
+          "packages/Common/Server/Utils/Telemetry/StorageArray/NetApp/",
         ],
       },
     ]);
@@ -204,6 +252,44 @@ describe("a vendor's metric names stay in its own folders", () => {
             return text.includes(prefix);
           },
         );
+        if (named.length > 0) {
+          naming.push(`${file}: ${named.join(", ")}`);
+        }
+      }
+      expect(naming).toEqual([]);
+    },
+  );
+
+  test.each(
+    VENDORS.map((vendor: Vendor): [string, Vendor] => {
+      return [vendor.name, vendor];
+    }),
+  )(
+    "no file outside %s's folders, the docs and the tests names its catalog's ids",
+    (_name: string, vendor: Vendor) => {
+      const ids: Array<string> = getCatalogIds(vendor.name);
+      // Every platform has a catalog, each id its platform's prefix's.
+      expect(ids.length).toBeGreaterThan(10);
+      const naming: Array<string> = [];
+      for (const file of FILES) {
+        if (
+          mayNameAnyVendor(file) ||
+          ANY_CATALOG_ID.some((allowed: RegExp): boolean => {
+            return allowed.test(file);
+          }) ||
+          vendor.own.some((folder: string): boolean => {
+            return file.startsWith(folder);
+          })
+        ) {
+          continue;
+        }
+        const text: string = fs.readFileSync(
+          path.join(REPOSITORY_ROOT, file),
+          "utf8",
+        );
+        const named: Array<string> = ids.filter((id: string): boolean => {
+          return text.includes(`"${id}"`) || text.includes(`'${id}'`);
+        });
         if (named.length > 0) {
           naming.push(`${file}: ${named.join(", ")}`);
         }

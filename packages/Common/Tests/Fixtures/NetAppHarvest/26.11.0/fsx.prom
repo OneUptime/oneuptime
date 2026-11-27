@@ -1,0 +1,1313 @@
+# HELP netapp_metadata_collector_task_time Metric for metadata_collector
+# TYPE netapp_metadata_collector_task_time gauge
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Status",poller="ontap",task="counter",version="26.11.0"} 18558
+# HELP netapp_metadata_collector_api_time Metric for metadata_collector
+# TYPE netapp_metadata_collector_api_time gauge
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Status",poller="ontap",task="counter",version="26.11.0"} 18506
+# HELP netapp_metadata_collector_poll_time Metric for metadata_collector
+# TYPE netapp_metadata_collector_poll_time gauge
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Status",poller="ontap",task="counter",version="26.11.0"} 18559
+# HELP netapp_metadata_collector_parse_time Metric for metadata_collector
+# TYPE netapp_metadata_collector_parse_time gauge
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Status",poller="ontap",task="counter",version="26.11.0"} 44
+# HELP netapp_metadata_collector_bytesRx Metric for metadata_collector
+# TYPE netapp_metadata_collector_bytesRx gauge
+netapp_metadata_collector_bytesRx{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 57
+# HELP netapp_metadata_collector_numCalls Metric for metadata_collector
+# TYPE netapp_metadata_collector_numCalls gauge
+netapp_metadata_collector_numCalls{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 13085
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 13068
+# HELP netapp_metadata_collector_plugin_time Metric for metadata_collector
+# TYPE netapp_metadata_collector_plugin_time gauge
+netapp_metadata_collector_plugin_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 6
+# HELP netapp_metadata_collector_metrics Metric for metadata_collector
+# TYPE netapp_metadata_collector_metrics gauge
+netapp_metadata_collector_metrics{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 1
+# HELP netapp_metadata_collector_instances Metric for metadata_collector
+# TYPE netapp_metadata_collector_instances gauge
+netapp_metadata_collector_instances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 1
+# HELP netapp_metadata_collector_pluginInstances Metric for metadata_collector
+# TYPE netapp_metadata_collector_pluginInstances gauge
+netapp_metadata_collector_pluginInstances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 13093
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Status",poller="ontap",task="data",version="26.11.0"} 4
+# HELP netapp_metadata_target_status Metric for metadata_target
+# TYPE netapp_metadata_target_status gauge
+netapp_metadata_target_status{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0"} 0
+# HELP netapp_metadata_target_ping Metric for metadata_target
+# TYPE netapp_metadata_target_ping gauge
+netapp_metadata_target_ping{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0"} 1.3196120262145996
+# HELP netapp_metadata_target_goroutines Metric for metadata_target
+# TYPE netapp_metadata_target_goroutines gauge
+netapp_metadata_target_goroutines{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0"} 47
+# HELP netapp_volume_labels Pseudo-metric for volume labels
+# TYPE netapp_volume_labels gauge
+netapp_volume_labels{aggr="aggr1",antiRansomwareState="disabled",autosize_mode="off",clone_parent_snapshot="",clone_parent_svm="",clone_parent_volume="",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",isDestinationCloud="false",isDestinationOntap="false",isEncrypted="false",isHardwareEncrypted="false",isProtected="false",is_sis_volume="true",is_space_enforcement_logical="false",is_space_reporting_logical="false",junction_path="/",node="FsxId0a1b2c3d4e5f6a7b8-01",root_volume="Yes",snaplock_type="non_snaplock",snapshot_autodelete="false",snapshot_policy="default",space_mgmt_try_first="volume_grow",state="online",style="flexvol",svm="fsx",svm_root="true",tags="",tiering_minimum_cooling_days="",tiering_policy="none",type="RW",volume="fsx_root"} 1.0
+# HELP netapp_volume_capacity_tier_footprint Metric for volume
+# TYPE netapp_volume_capacity_tier_footprint gauge
+netapp_volume_capacity_tier_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+# HELP netapp_volume_guarantee_footprint Metric for volume
+# TYPE netapp_volume_guarantee_footprint gauge
+netapp_volume_guarantee_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+# HELP netapp_volume_hot_data Metric for volume
+# TYPE netapp_volume_hot_data gauge
+netapp_volume_hot_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 44828720
+# HELP netapp_volume_overwrite_reserve_available Metric for volume
+# TYPE netapp_volume_overwrite_reserve_available gauge
+netapp_volume_overwrite_reserve_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+# HELP netapp_volume_snapshot_reserve_size Metric for volume
+# TYPE netapp_volume_snapshot_reserve_size gauge
+netapp_volume_snapshot_reserve_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 53687091
+# HELP netapp_volume_overwrite_reserve_used Metric for volume
+# TYPE netapp_volume_overwrite_reserve_used gauge
+netapp_volume_overwrite_reserve_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+# HELP netapp_volume_snapshot_reserve_used_percent Metric for volume
+# TYPE netapp_volume_snapshot_reserve_used_percent gauge
+netapp_volume_snapshot_reserve_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 60
+# HELP netapp_volume_size_available Metric for volume
+# TYPE netapp_volume_size_available gauge
+netapp_volume_size_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 979252544
+# HELP netapp_volume_num_compress_fail Metric for volume
+# TYPE netapp_volume_num_compress_fail gauge
+netapp_volume_num_compress_fail{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1204
+# HELP netapp_volume_total_metadata_footprint Metric for volume
+# TYPE netapp_volume_total_metadata_footprint gauge
+netapp_volume_total_metadata_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 4026531
+# HELP netapp_volume_inode_used_percent Metric for volume
+# TYPE netapp_volume_inode_used_percent gauge
+netapp_volume_inode_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1.7059326171875
+# HELP netapp_volume_new_status Metric for volume
+# TYPE netapp_volume_new_status gauge
+netapp_volume_new_status{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1
+# HELP netapp_volume_autosize_grow_threshold_percent Metric for volume
+# TYPE netapp_volume_autosize_grow_threshold_percent gauge
+netapp_volume_autosize_grow_threshold_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 85
+# HELP netapp_volume_space_logical_available Metric for volume
+# TYPE netapp_volume_space_logical_available gauge
+netapp_volume_space_logical_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 979252544
+# HELP netapp_volume_autosize_minimum_size Metric for volume
+# TYPE netapp_volume_autosize_minimum_size gauge
+netapp_volume_autosize_minimum_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1073741824
+# HELP netapp_volume_sis_dedup_saved_percent Metric for volume
+# TYPE netapp_volume_sis_dedup_saved_percent gauge
+netapp_volume_sis_dedup_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 21
+# HELP netapp_volume_overwrite_reserve_total Metric for volume
+# TYPE netapp_volume_overwrite_reserve_total gauge
+netapp_volume_overwrite_reserve_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+# HELP netapp_volume_snapshot_reserve_percent Metric for volume
+# TYPE netapp_volume_snapshot_reserve_percent gauge
+netapp_volume_snapshot_reserve_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 5
+# HELP netapp_volume_sis_total_saved Metric for volume
+# TYPE netapp_volume_sis_total_saved gauge
+netapp_volume_sis_total_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 25705378
+# HELP netapp_volume_snapshot_reserve_used Metric for volume
+# TYPE netapp_volume_snapshot_reserve_used gauge
+netapp_volume_snapshot_reserve_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 32212254
+# HELP netapp_volume_space_physical_used_percent Metric for volume
+# TYPE netapp_volume_space_physical_used_percent gauge
+netapp_volume_space_physical_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 4
+# HELP netapp_volume_filesystem_size Metric for volume
+# TYPE netapp_volume_filesystem_size gauge
+netapp_volume_filesystem_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1073741824
+# HELP netapp_volume_sis_total_saved_percent Metric for volume
+# TYPE netapp_volume_sis_total_saved_percent gauge
+netapp_volume_sis_total_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 32
+# HELP netapp_volume_snapshots_size_available Metric for volume
+# TYPE netapp_volume_snapshots_size_available gauge
+netapp_volume_snapshots_size_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1000727381
+# HELP netapp_volume_space_logical_used Metric for volume
+# TYPE netapp_volume_space_logical_used gauge
+netapp_volume_space_logical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 77524159
+# HELP netapp_volume_inode_files_total Metric for volume
+# TYPE netapp_volume_inode_files_total gauge
+netapp_volume_inode_files_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 32768
+# HELP netapp_volume_snapshot_reserve_available Metric for volume
+# TYPE netapp_volume_snapshot_reserve_available gauge
+netapp_volume_snapshot_reserve_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 21474837
+# HELP netapp_volume_sis_compress_saved Metric for volume
+# TYPE netapp_volume_sis_compress_saved gauge
+netapp_volume_sis_compress_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 8568459
+# HELP netapp_volume_space_logical_used_percent Metric for volume
+# TYPE netapp_volume_space_logical_used_percent gauge
+netapp_volume_space_logical_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 7
+# HELP netapp_volume_space_physical_used Metric for volume
+# TYPE netapp_volume_space_physical_used gauge
+netapp_volume_space_physical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 40802189
+# HELP netapp_volume_space_performance_tier_inactive_user_data_percent Metric for volume
+# TYPE netapp_volume_space_performance_tier_inactive_user_data_percent gauge
+netapp_volume_space_performance_tier_inactive_user_data_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 28
+# HELP netapp_volume_num_compress_attempts Metric for volume
+# TYPE netapp_volume_num_compress_attempts gauge
+netapp_volume_num_compress_attempts{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 812340
+# HELP netapp_volume_space_expected_available Metric for volume
+# TYPE netapp_volume_space_expected_available gauge
+netapp_volume_space_expected_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 979252544
+# HELP netapp_volume_snapshots_size_used Metric for volume
+# TYPE netapp_volume_snapshots_size_used gauge
+netapp_volume_snapshots_size_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 32212254
+# HELP netapp_volume_autosize_maximum_size Metric for volume
+# TYPE netapp_volume_autosize_maximum_size gauge
+netapp_volume_autosize_maximum_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1288490188
+# HELP netapp_volume_delayed_free_footprint Metric for volume
+# TYPE netapp_volume_delayed_free_footprint gauge
+netapp_volume_delayed_free_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 805306
+# HELP netapp_volume_performance_tier_footprint Metric for volume
+# TYPE netapp_volume_performance_tier_footprint gauge
+netapp_volume_performance_tier_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 40802189
+# HELP netapp_volume_size_used Metric for volume
+# TYPE netapp_volume_size_used gauge
+netapp_volume_size_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 40802189
+# HELP netapp_volume_space_logical_used_by_snapshots Metric for volume
+# TYPE netapp_volume_space_logical_used_by_snapshots gauge
+netapp_volume_space_logical_used_by_snapshots{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 41875930
+# HELP netapp_volume_size_total Metric for volume
+# TYPE netapp_volume_size_total gauge
+netapp_volume_size_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1020054733
+# HELP netapp_volume_performance_tier_footprint_percent Metric for volume
+# TYPE netapp_volume_performance_tier_footprint_percent gauge
+netapp_volume_performance_tier_footprint_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+# HELP netapp_volume_capacity_tier_footprint_percent Metric for volume
+# TYPE netapp_volume_capacity_tier_footprint_percent gauge
+netapp_volume_capacity_tier_footprint_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+# HELP netapp_volume_sis_compress_saved_percent Metric for volume
+# TYPE netapp_volume_sis_compress_saved_percent gauge
+netapp_volume_sis_compress_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 11
+# HELP netapp_volume_space_logical_used_by_afs Metric for volume
+# TYPE netapp_volume_space_logical_used_by_afs gauge
+netapp_volume_space_logical_used_by_afs{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 77524159
+# HELP netapp_volume_size_used_percent Metric for volume
+# TYPE netapp_volume_size_used_percent gauge
+netapp_volume_size_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 4
+# HELP netapp_volume_autosize_shrink_threshold_percent Metric for volume
+# TYPE netapp_volume_autosize_shrink_threshold_percent gauge
+netapp_volume_autosize_shrink_threshold_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 50
+# HELP netapp_volume_sis_dedup_saved Metric for volume
+# TYPE netapp_volume_sis_dedup_saved gauge
+netapp_volume_sis_dedup_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 17136919
+# HELP netapp_volume_inode_files_used Metric for volume
+# TYPE netapp_volume_inode_files_used gauge
+netapp_volume_inode_files_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 559
+# HELP netapp_volume_space_performance_tier_inactive_user_data Metric for volume
+# TYPE netapp_volume_space_performance_tier_inactive_user_data gauge
+netapp_volume_space_performance_tier_inactive_user_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 11424612
+# HELP netapp_volume_metadata_footprint Metric for volume
+# TYPE netapp_volume_metadata_footprint gauge
+netapp_volume_metadata_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 3221225
+# HELP netapp_volume_size Metric for volume
+# TYPE netapp_volume_size gauge
+netapp_volume_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1073741824
+# HELP netapp_volume_snapshot_count Metric for volume
+# TYPE netapp_volume_snapshot_count gauge
+netapp_volume_snapshot_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 23
+# HELP netapp_volume_total_footprint Metric for volume
+# TYPE netapp_volume_total_footprint gauge
+netapp_volume_total_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 44828720
+netapp_volume_labels{aggr="aggr1",antiRansomwareState="disabled",autosize_mode="off",clone_parent_snapshot="",clone_parent_svm="",clone_parent_volume="",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",isDestinationCloud="false",isDestinationOntap="false",isEncrypted="false",isHardwareEncrypted="false",isProtected="false",is_sis_volume="true",is_space_enforcement_logical="false",is_space_reporting_logical="false",junction_path="/vol_files",node="FsxId0a1b2c3d4e5f6a7b8-01",root_volume="No",snaplock_type="non_snaplock",snapshot_autodelete="false",snapshot_policy="default",space_mgmt_try_first="volume_grow",state="online",style="flexvol",svm="svm_files",svm_root="false",tags="",tiering_minimum_cooling_days="",tiering_policy="none",type="RW",volume="vol_files"} 1.0
+netapp_volume_capacity_tier_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 0
+netapp_volume_guarantee_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 0
+netapp_volume_hot_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 304977037753
+netapp_volume_overwrite_reserve_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 0
+netapp_volume_snapshot_reserve_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 27487790694
+netapp_volume_overwrite_reserve_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 0
+netapp_volume_snapshot_reserve_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 60
+netapp_volume_size_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 219352569742
+netapp_volume_num_compress_fail{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 1204
+netapp_volume_total_metadata_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 2061584301
+netapp_volume_inode_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 20.300596952438354
+netapp_volume_new_status{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 1
+netapp_volume_autosize_grow_threshold_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 85
+netapp_volume_space_logical_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 219352569742
+netapp_volume_autosize_minimum_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 549755813888
+netapp_volume_sis_dedup_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 21
+netapp_volume_overwrite_reserve_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 0
+netapp_volume_snapshot_reserve_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 5
+netapp_volume_sis_total_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 190836735673
+netapp_volume_snapshot_reserve_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 16492674416
+netapp_volume_space_physical_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 58
+netapp_volume_filesystem_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 549755813888
+netapp_volume_sis_total_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 32
+netapp_volume_snapshots_size_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 230347686020
+netapp_volume_space_logical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 575539361558
+netapp_volume_inode_files_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 16777216
+netapp_volume_snapshot_reserve_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 10995116278
+netapp_volume_sis_compress_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 63612245224
+netapp_volume_space_logical_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 99
+netapp_volume_space_physical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 302915453452
+netapp_volume_space_performance_tier_inactive_user_data_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 28
+netapp_volume_num_compress_attempts{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 812340
+netapp_volume_space_expected_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 219352569742
+netapp_volume_snapshots_size_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 16492674416
+netapp_volume_autosize_maximum_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 659706976665
+netapp_volume_delayed_free_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 412316860
+netapp_volume_performance_tier_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 302915453452
+netapp_volume_size_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 302915453452
+netapp_volume_space_logical_used_by_snapshots{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 21440476740
+netapp_volume_size_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 522268023194
+netapp_volume_performance_tier_footprint_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 14
+netapp_volume_capacity_tier_footprint_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 0
+netapp_volume_sis_compress_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 11
+netapp_volume_space_logical_used_by_afs{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 575539361558
+netapp_volume_size_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 58
+netapp_volume_autosize_shrink_threshold_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 50
+netapp_volume_sis_dedup_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 127224490449
+netapp_volume_inode_files_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 3405875
+netapp_volume_space_performance_tier_inactive_user_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 84816326966
+netapp_volume_metadata_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 1649267441
+netapp_volume_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 549755813888
+netapp_volume_snapshot_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 23
+netapp_volume_total_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 304977037753
+netapp_volume_labels{aggr="aggr1",antiRansomwareState="disabled",autosize_mode="off",clone_parent_snapshot="",clone_parent_svm="",clone_parent_volume="",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",isDestinationCloud="false",isDestinationOntap="false",isEncrypted="false",isHardwareEncrypted="false",isProtected="false",is_sis_volume="true",is_space_enforcement_logical="false",is_space_reporting_logical="false",junction_path="/vol_backup",node="FsxId0a1b2c3d4e5f6a7b8-01",root_volume="No",snaplock_type="non_snaplock",snapshot_autodelete="false",snapshot_policy="default",space_mgmt_try_first="volume_grow",state="online",style="flexvol",svm="fsx",svm_root="false",tags="",tiering_minimum_cooling_days="",tiering_policy="none",type="RW",volume="vol_backup"} 1.0
+netapp_volume_size_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 835628837111
+netapp_volume_num_compress_fail{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1204
+netapp_volume_total_metadata_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 4123168603
+netapp_volume_inode_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 7.000300288200378
+netapp_volume_new_status{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1
+netapp_volume_autosize_grow_threshold_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 85
+netapp_volume_space_logical_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 835628837111
+netapp_volume_autosize_minimum_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1099511627776
+netapp_volume_sis_dedup_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 21
+netapp_volume_overwrite_reserve_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_snapshot_reserve_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 5
+netapp_volume_sis_total_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 131611541844
+netapp_volume_snapshot_reserve_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 32985348832
+netapp_volume_space_physical_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 20
+netapp_volume_filesystem_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1099511627776
+netapp_volume_sis_total_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 32
+netapp_volume_snapshots_size_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 857619069667
+netapp_volume_space_logical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 396923697626
+netapp_volume_inode_files_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 33554432
+netapp_volume_snapshot_reserve_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 21990232556
+netapp_volume_sis_compress_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 43870513948
+netapp_volume_space_logical_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 36
+netapp_volume_space_physical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 208907209277
+netapp_volume_space_performance_tier_inactive_user_data_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 28
+netapp_volume_num_compress_attempts{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 812340
+netapp_volume_space_expected_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 835628837111
+netapp_volume_snapshots_size_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 32985348832
+netapp_volume_autosize_maximum_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1319413953331
+netapp_volume_delayed_free_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 824633720
+netapp_volume_performance_tier_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 208907209277
+netapp_volume_size_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 208907209277
+netapp_volume_space_logical_used_by_snapshots{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 42880953481
+netapp_volume_size_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1044536046388
+netapp_volume_performance_tier_footprint_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 9
+netapp_volume_capacity_tier_footprint_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_sis_compress_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 11
+netapp_volume_space_logical_used_by_afs{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 396923697626
+netapp_volume_size_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 20
+netapp_volume_autosize_shrink_threshold_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 50
+netapp_volume_sis_dedup_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 87741027896
+netapp_volume_inode_files_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 2348911
+netapp_volume_space_performance_tier_inactive_user_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 58494018597
+netapp_volume_metadata_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 3298534883
+netapp_volume_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1099511627776
+netapp_volume_snapshot_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 23
+netapp_volume_total_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 213030377880
+netapp_volume_capacity_tier_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_guarantee_footprint{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_hot_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 213030377880
+netapp_volume_overwrite_reserve_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_snapshot_reserve_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 54975581388
+netapp_volume_overwrite_reserve_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_snapshot_reserve_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 60
+# HELP netapp_svm_vol_total_ops Metric for svm_vol
+# TYPE netapp_svm_vol_total_ops gauge
+netapp_svm_vol_total_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 315
+# HELP netapp_svm_vol_nfs_getattr_ops Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_getattr_ops gauge
+netapp_svm_vol_nfs_getattr_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 27.5
+# HELP netapp_svm_vol_nfs_read_ops Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_read_ops gauge
+netapp_svm_vol_nfs_read_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 19
+# HELP netapp_svm_vol_nfs_read_latency Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_read_latency gauge
+netapp_svm_vol_nfs_read_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 175
+# HELP netapp_svm_vol_nfs_lookup_ops Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_lookup_ops gauge
+netapp_svm_vol_nfs_lookup_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 11
+# HELP netapp_svm_vol_read_data Metric for svm_vol
+# TYPE netapp_svm_vol_read_data gauge
+netapp_svm_vol_read_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 1069056
+# HELP netapp_svm_vol_nfs_write_ops Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_write_ops gauge
+netapp_svm_vol_nfs_write_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 241
+# HELP netapp_svm_vol_nfs_setattr_latency Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_setattr_latency gauge
+netapp_svm_vol_nfs_setattr_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 0
+# HELP netapp_svm_vol_write_ops Metric for svm_vol
+# TYPE netapp_svm_vol_write_ops gauge
+netapp_svm_vol_write_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 241
+# HELP netapp_svm_vol_nfs_lookup_latency Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_lookup_latency gauge
+netapp_svm_vol_nfs_lookup_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 40
+# HELP netapp_svm_vol_nfs_setattr_ops Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_setattr_ops gauge
+netapp_svm_vol_nfs_setattr_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 1.1
+# HELP netapp_svm_vol_total_data Metric for svm_vol
+# TYPE netapp_svm_vol_total_data gauge
+netapp_svm_vol_total_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 33579008
+# HELP netapp_svm_vol_other_ops Metric for svm_vol
+# TYPE netapp_svm_vol_other_ops gauge
+netapp_svm_vol_other_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 55
+# HELP netapp_svm_vol_other_data Metric for svm_vol
+# TYPE netapp_svm_vol_other_data gauge
+netapp_svm_vol_other_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 0
+# HELP netapp_svm_vol_nfs_access_ops Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_access_ops gauge
+netapp_svm_vol_nfs_access_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 2.75
+# HELP netapp_svm_vol_write_data Metric for svm_vol
+# TYPE netapp_svm_vol_write_data gauge
+netapp_svm_vol_write_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 32509952
+# HELP netapp_svm_vol_other_latency Metric for svm_vol
+# TYPE netapp_svm_vol_other_latency gauge
+netapp_svm_vol_other_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 95
+# HELP netapp_svm_vol_nfs_getattr_latency Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_getattr_latency gauge
+netapp_svm_vol_nfs_getattr_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 45
+# HELP netapp_svm_vol_nfs_access_latency Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_access_latency gauge
+netapp_svm_vol_nfs_access_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 0
+# HELP netapp_svm_vol_avg_latency Metric for svm_vol
+# TYPE netapp_svm_vol_avg_latency gauge
+netapp_svm_vol_avg_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 408.9561403508772
+# HELP netapp_svm_vol_nfs_write_latency Metric for svm_vol
+# TYPE netapp_svm_vol_nfs_write_latency gauge
+netapp_svm_vol_nfs_write_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 410
+# HELP netapp_svm_vol_read_latency Metric for svm_vol
+# TYPE netapp_svm_vol_read_latency gauge
+netapp_svm_vol_read_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 175
+# HELP netapp_svm_vol_read_ops Metric for svm_vol
+# TYPE netapp_svm_vol_read_ops gauge
+netapp_svm_vol_read_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 19
+# HELP netapp_svm_vol_write_latency Metric for svm_vol
+# TYPE netapp_svm_vol_write_latency gauge
+netapp_svm_vol_write_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 410
+netapp_svm_vol_write_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 690
+netapp_svm_vol_total_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 1190
+netapp_svm_vol_nfs_getattr_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 305
+netapp_svm_vol_nfs_read_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 420
+netapp_svm_vol_nfs_read_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 480
+netapp_svm_vol_nfs_lookup_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 122
+netapp_svm_vol_read_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 27262976
+netapp_svm_vol_nfs_write_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 160
+netapp_svm_vol_nfs_setattr_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 140
+netapp_svm_vol_write_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 160
+netapp_svm_vol_nfs_lookup_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 80
+netapp_svm_vol_nfs_setattr_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 12.2
+netapp_svm_vol_total_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 36700160
+netapp_svm_vol_other_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 610
+netapp_svm_vol_other_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 0
+netapp_svm_vol_nfs_access_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 30.5
+netapp_svm_vol_write_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 9437184
+netapp_svm_vol_other_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 150
+netapp_svm_vol_nfs_getattr_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 45
+netapp_svm_vol_nfs_access_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 60
+netapp_svm_vol_avg_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 339.07563025210084
+netapp_svm_vol_nfs_write_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 690
+netapp_svm_vol_read_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 480
+netapp_svm_vol_read_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 420
+netapp_metadata_collector_plugin_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 4
+netapp_metadata_collector_metrics{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 32
+netapp_metadata_collector_instances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 8
+netapp_metadata_collector_bytesRx{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 1006
+netapp_metadata_collector_pluginInstances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 5982
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 19
+netapp_metadata_collector_numCalls{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 5987
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Subsystem",poller="ontap",task="data",version="26.11.0"} 5929
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Subsystem",poller="ontap",task="counter",version="26.11.0"} 47818
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Subsystem",poller="ontap",task="counter",version="26.11.0"} 42
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Subsystem",poller="ontap",task="counter",version="26.11.0"} 47819
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Subsystem",poller="ontap",task="counter",version="26.11.0"} 47770
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Disk",poller="ontap",task="counter",version="26.11.0"} 78876
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Disk",poller="ontap",task="counter",version="26.11.0"} 78877
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Disk",poller="ontap",task="counter",version="26.11.0"} 78538
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Disk",poller="ontap",task="counter",version="26.11.0"} 78
+# HELP netapp_volume_arw_status Metric for volume_arw
+# TYPE netapp_volume_arw_status gauge
+netapp_volume_arw_status{ArwStatus="Not Monitoring",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod"} 1
+# HELP netapp_poller_memory Metric for poller
+# TYPE netapp_poller_memory gauge
+netapp_poller_memory{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0",metric="vms"} 1282372
+netapp_poller_memory{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0",metric="swap"} 0
+# HELP netapp_poller_concurrent_collectors Metric for poller
+# TYPE netapp_poller_concurrent_collectors gauge
+netapp_poller_concurrent_collectors{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0"} 9
+# HELP netapp_poller_status Metric for poller
+# TYPE netapp_poller_status gauge
+netapp_poller_status{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0"} 1
+# HELP netapp_poller_memory_percent Metric for poller
+# TYPE netapp_poller_memory_percent gauge
+netapp_poller_memory_percent{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0"} 0.02236420184592921
+netapp_poller_memory{addr="fake-ontap",datacenter="fsx-files-prod",hostname="a9779783a3ab",pid="1",poller="ontap",version="26.11.0",metric="rss"} 29496
+# HELP netapp_cluster_new_status Metric for cluster
+# TYPE netapp_cluster_new_status gauge
+netapp_cluster_new_status{addr="fake-ontap",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",poller="ontap",status="ok"} 1
+netapp_metadata_collector_metrics{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FcpPort",poller="ontap",task="counter",version="26.11.0"} 52
+netapp_metadata_collector_numCalls{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FcpPort",poller="ontap",task="counter",version="26.11.0"} 1
+netapp_metadata_collector_poll_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FcpPort",poller="ontap",task="counter",version="26.11.0"} 33645
+netapp_metadata_collector_task_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FcpPort",poller="ontap",task="counter",version="26.11.0"} 33644
+netapp_metadata_collector_api_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FcpPort",poller="ontap",task="counter",version="26.11.0"} 33093
+netapp_metadata_collector_bytesRx{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FcpPort",poller="ontap",task="counter",version="26.11.0"} 5615
+netapp_metadata_collector_parse_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FcpPort",poller="ontap",task="counter",version="26.11.0"} 150
+netapp_metadata_collector_poll_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="2592000.0000",object="FcpPort",poller="ontap",task="instance",version="26.11.0"} 15
+netapp_metadata_collector_task_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="2592000.0000",object="FcpPort",poller="ontap",task="instance",version="26.11.0"} 15
+# HELP netapp_node_labels Pseudo-metric for node labels
+# TYPE netapp_node_labels gauge
+netapp_node_labels{bmc_firmware_version="",cluster="FsxId0a1b2c3d4e5f6a7b8",cpu_firmware_release="",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-02",healthy="true",location="",max_aggr_size="192TB",max_vol_num="1000",max_vol_size="300TB",model="FSx",node="FsxId0a1b2c3d4e5f6a7b8-01",partner_healthy="true",serial="00000000000001",state="up",vendor="Amazon",version="NetApp Release 9.15.1P7: Wed Oct 09 17:52:11 UTC 2024",warnings="There are no failed fans.; There are no failed power supplies.; normal"} 1.0
+# HELP netapp_node_failed_fan Metric for node
+# TYPE netapp_node_failed_fan gauge
+netapp_node_failed_fan{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-02",node="FsxId0a1b2c3d4e5f6a7b8-01",serial="00000000000001"} 0
+# HELP netapp_node_failed_power Metric for node
+# TYPE netapp_node_failed_power gauge
+netapp_node_failed_power{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-02",node="FsxId0a1b2c3d4e5f6a7b8-01",serial="00000000000001"} 0
+# HELP netapp_node_uptime Metric for node
+# TYPE netapp_node_uptime gauge
+netapp_node_uptime{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-02",node="FsxId0a1b2c3d4e5f6a7b8-01",serial="00000000000001"} 10383601
+# HELP netapp_node_cpu_busytime Metric for node
+# TYPE netapp_node_cpu_busytime gauge
+netapp_node_cpu_busytime{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-02",node="FsxId0a1b2c3d4e5f6a7b8-01",serial="00000000000001"} 1869048
+# HELP netapp_node_new_status Metric for node
+# TYPE netapp_node_new_status gauge
+netapp_node_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-02",node="FsxId0a1b2c3d4e5f6a7b8-01",serial="00000000000001"} 1
+netapp_node_labels{bmc_firmware_version="",cluster="FsxId0a1b2c3d4e5f6a7b8",cpu_firmware_release="",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-01",healthy="true",location="",max_aggr_size="192TB",max_vol_num="1000",max_vol_size="300TB",model="FSx",node="FsxId0a1b2c3d4e5f6a7b8-02",partner_healthy="true",serial="00000000000002",state="up",vendor="Amazon",version="NetApp Release 9.15.1P7: Wed Oct 09 17:52:11 UTC 2024",warnings="There are no failed fans.; There are no failed power supplies.; normal"} 1.0
+netapp_node_uptime{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-01",node="FsxId0a1b2c3d4e5f6a7b8-02",serial="00000000000002"} 10383601
+netapp_node_cpu_busytime{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-01",node="FsxId0a1b2c3d4e5f6a7b8-02",serial="00000000000002"} 1142196
+netapp_node_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-01",node="FsxId0a1b2c3d4e5f6a7b8-02",serial="00000000000002"} 1
+netapp_node_failed_fan{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-01",node="FsxId0a1b2c3d4e5f6a7b8-02",serial="00000000000002"} 0
+netapp_node_failed_power{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",ha_partner="FsxId0a1b2c3d4e5f6a7b8-01",node="FsxId0a1b2c3d4e5f6a7b8-02",serial="00000000000002"} 0
+# HELP netapp_aggr_labels Pseudo-metric for aggr labels
+# TYPE netapp_aggr_labels gauge
+netapp_aggr_labels{aggr="aggr1",cloud_stores="",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",is_encrypted="false",node="FsxId0a1b2c3d4e5f6a7b8-01",state="online",type="ssd"} 1.0
+# HELP netapp_aggr_space_performance_tier_used_percent Metric for aggr
+# TYPE netapp_aggr_space_performance_tier_used_percent gauge
+netapp_aggr_space_performance_tier_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 40
+# HELP netapp_aggr_volume_count Metric for aggr
+# TYPE netapp_aggr_volume_count gauge
+netapp_aggr_volume_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 3
+# HELP netapp_aggr_inode_files_private_used Metric for aggr
+# TYPE netapp_aggr_inode_files_private_used gauge
+netapp_aggr_inode_files_private_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1520
+# HELP netapp_aggr_space_used Metric for aggr
+# TYPE netapp_aggr_space_used gauge
+netapp_aggr_space_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 879609302220
+# HELP netapp_aggr_space_performance_tier_inactive_user_data_percent Metric for aggr
+# TYPE netapp_aggr_space_performance_tier_inactive_user_data_percent gauge
+netapp_aggr_space_performance_tier_inactive_user_data_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 31
+# HELP netapp_aggr_logical_used_wo_snapshots Metric for aggr
+# TYPE netapp_aggr_logical_used_wo_snapshots gauge
+netapp_aggr_logical_used_wo_snapshots{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1132936781258
+# HELP netapp_aggr_space_performance_tier_used Metric for aggr
+# TYPE netapp_aggr_space_performance_tier_used gauge
+netapp_aggr_space_performance_tier_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 879609302220
+# HELP netapp_aggr_snapshot_size_total Metric for aggr
+# TYPE netapp_aggr_snapshot_size_total gauge
+netapp_aggr_snapshot_size_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_logical_used_wo_snapshots_flexclones Metric for aggr
+# TYPE netapp_aggr_logical_used_wo_snapshots_flexclones gauge
+netapp_aggr_logical_used_wo_snapshots_flexclones{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1132936781258
+# HELP netapp_aggr_total_logical_used Metric for aggr
+# TYPE netapp_aggr_total_logical_used gauge
+netapp_aggr_total_logical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1756052010949
+# HELP netapp_aggr_raid_disk_count Metric for aggr
+# TYPE netapp_aggr_raid_disk_count gauge
+netapp_aggr_raid_disk_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 8
+# HELP netapp_aggr_space_used_percent Metric for aggr
+# TYPE netapp_aggr_space_used_percent gauge
+netapp_aggr_space_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 39.99999999996362
+# HELP netapp_aggr_inode_inodefile_private_capacity Metric for aggr
+# TYPE netapp_aggr_inode_inodefile_private_capacity gauge
+netapp_aggr_inode_inodefile_private_capacity{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 31250000
+# HELP netapp_aggr_space_available Metric for aggr
+# TYPE netapp_aggr_space_available gauge
+netapp_aggr_space_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1319413953332
+# HELP netapp_aggr_space_sis_shared_count Metric for aggr
+# TYPE netapp_aggr_space_sis_shared_count gauge
+netapp_aggr_space_sis_shared_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 96757023244
+# HELP netapp_aggr_space_total Metric for aggr
+# TYPE netapp_aggr_space_total gauge
+netapp_aggr_space_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 2199023255552
+# HELP netapp_aggr_efficiency_savings_wo_snapshots_flexclones Metric for aggr
+# TYPE netapp_aggr_efficiency_savings_wo_snapshots_flexclones gauge
+netapp_aggr_efficiency_savings_wo_snapshots_flexclones{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 323696223216
+# HELP netapp_aggr_inode_maxfiles_possible Metric for aggr
+# TYPE netapp_aggr_inode_maxfiles_possible gauge
+netapp_aggr_inode_maxfiles_possible{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 2147483647
+# HELP netapp_aggr_inode_maxfiles_available Metric for aggr
+# TYPE netapp_aggr_inode_maxfiles_available gauge
+netapp_aggr_inode_maxfiles_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 31250000
+# HELP netapp_aggr_inode_maxfiles_used Metric for aggr
+# TYPE netapp_aggr_inode_maxfiles_used gauge
+netapp_aggr_inode_maxfiles_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 418000
+# HELP netapp_aggr_snapshot_files_used Metric for aggr
+# TYPE netapp_aggr_snapshot_files_used gauge
+netapp_aggr_snapshot_files_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_space_data_compacted_count Metric for aggr
+# TYPE netapp_aggr_space_data_compacted_count gauge
+netapp_aggr_space_data_compacted_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 79164837199
+# HELP netapp_aggr_snapshot_used_percent Metric for aggr
+# TYPE netapp_aggr_snapshot_used_percent gauge
+netapp_aggr_snapshot_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_raid_size Metric for aggr
+# TYPE netapp_aggr_raid_size gauge
+netapp_aggr_raid_size{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 24
+# HELP netapp_aggr_inode_files_used Metric for aggr
+# TYPE netapp_aggr_inode_files_used gauge
+netapp_aggr_inode_files_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 412000
+# HELP netapp_aggr_inode_inodefile_public_capacity Metric for aggr
+# TYPE netapp_aggr_inode_inodefile_public_capacity gauge
+netapp_aggr_inode_inodefile_public_capacity{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 31250000
+# HELP netapp_aggr_snapshot_files_total Metric for aggr
+# TYPE netapp_aggr_snapshot_files_total gauge
+netapp_aggr_snapshot_files_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_space_data_compaction_saved_percent Metric for aggr
+# TYPE netapp_aggr_space_data_compaction_saved_percent gauge
+netapp_aggr_space_data_compaction_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 6
+# HELP netapp_aggr_raid_plex_count Metric for aggr
+# TYPE netapp_aggr_raid_plex_count gauge
+netapp_aggr_raid_plex_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1
+# HELP netapp_aggr_efficiency_savings_wo_snapshots Metric for aggr
+# TYPE netapp_aggr_efficiency_savings_wo_snapshots gauge
+netapp_aggr_efficiency_savings_wo_snapshots{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 323696223216
+# HELP netapp_aggr_snapshot_size_available Metric for aggr
+# TYPE netapp_aggr_snapshot_size_available gauge
+netapp_aggr_snapshot_size_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_primary_disk_count Metric for aggr
+# TYPE netapp_aggr_primary_disk_count gauge
+netapp_aggr_primary_disk_count{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 8
+# HELP netapp_aggr_snapshot_reserve_percent Metric for aggr
+# TYPE netapp_aggr_snapshot_reserve_percent gauge
+netapp_aggr_snapshot_reserve_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_snapshot_size_used Metric for aggr
+# TYPE netapp_aggr_snapshot_size_used gauge
+netapp_aggr_snapshot_size_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_space_physical_used_percent Metric for aggr
+# TYPE netapp_aggr_space_physical_used_percent gauge
+netapp_aggr_space_physical_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 37
+# HELP netapp_aggr_inode_files_total Metric for aggr
+# TYPE netapp_aggr_inode_files_total gauge
+netapp_aggr_inode_files_total{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 31250000
+# HELP netapp_aggr_new_status Metric for aggr
+# TYPE netapp_aggr_new_status gauge
+netapp_aggr_new_status{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1
+# HELP netapp_aggr_snapshot_maxfiles_possible Metric for aggr
+# TYPE netapp_aggr_snapshot_maxfiles_possible gauge
+netapp_aggr_snapshot_maxfiles_possible{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_physical_used_wo_snapshots Metric for aggr
+# TYPE netapp_aggr_physical_used_wo_snapshots gauge
+netapp_aggr_physical_used_wo_snapshots{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 809240558042
+# HELP netapp_aggr_space_data_compaction_saved Metric for aggr
+# TYPE netapp_aggr_space_data_compaction_saved gauge
+netapp_aggr_space_data_compaction_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 52776558133
+# HELP netapp_aggr_inode_used_percent Metric for aggr
+# TYPE netapp_aggr_inode_used_percent gauge
+netapp_aggr_inode_used_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1
+# HELP netapp_aggr_efficiency_savings Metric for aggr
+# TYPE netapp_aggr_efficiency_savings gauge
+netapp_aggr_efficiency_savings{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 946811452907
+# HELP netapp_aggr_space_physical_used Metric for aggr
+# TYPE netapp_aggr_space_physical_used gauge
+netapp_aggr_space_physical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 809240558042
+# HELP netapp_aggr_space_capacity_tier_used Metric for aggr
+# TYPE netapp_aggr_space_capacity_tier_used gauge
+netapp_aggr_space_capacity_tier_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_space_sis_saved_percent Metric for aggr
+# TYPE netapp_aggr_space_sis_saved_percent gauge
+netapp_aggr_space_sis_saved_percent{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 12
+# HELP netapp_aggr_space_performance_tier_inactive_user_data Metric for aggr
+# TYPE netapp_aggr_space_performance_tier_inactive_user_data gauge
+netapp_aggr_space_performance_tier_inactive_user_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 272678883688
+# HELP netapp_aggr_physical_used_wo_snapshots_flexclones Metric for aggr
+# TYPE netapp_aggr_physical_used_wo_snapshots_flexclones gauge
+netapp_aggr_physical_used_wo_snapshots_flexclones{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 809240558042
+# HELP netapp_aggr_snapshot_maxfiles_available Metric for aggr
+# TYPE netapp_aggr_snapshot_maxfiles_available gauge
+netapp_aggr_snapshot_maxfiles_available{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_snapshot_maxfiles_used Metric for aggr
+# TYPE netapp_aggr_snapshot_maxfiles_used gauge
+netapp_aggr_snapshot_maxfiles_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_space_sis_saved Metric for aggr
+# TYPE netapp_aggr_space_sis_saved gauge
+netapp_aggr_space_sis_saved{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 123145302310
+# HELP netapp_aggr_total_physical_used Metric for aggr
+# TYPE netapp_aggr_total_physical_used gauge
+netapp_aggr_total_physical_used{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 809240558042
+# HELP netapp_metadata_component_count Metric for metadata_component
+# TYPE netapp_metadata_component_count gauge
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="no instances",target="Lun",type="collector",version="26.11.0"} 0
+# HELP netapp_metadata_component_status Metric for metadata_component
+# TYPE netapp_metadata_component_status gauge
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="no instances",target="Lun",type="collector",version="26.11.0"} 1
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Status",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Status",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="running",target="Volume",type="collector",version="26.11.0"} 96
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="running",target="Volume",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="running",target="Cluster",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="running",target="Cluster",type="collector",version="26.11.0"} 15
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="failed to fetch data",target="Disk",type="collector",version="26.11.0"} 2
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="failed to fetch data",target="Disk",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="failed to fetch data",target="Shelf",type="collector",version="26.11.0"} 2
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="failed to fetch data",target="Shelf",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="running",target="SystemNode",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="running",target="SystemNode",type="collector",version="26.11.0"} 12
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="RestPerf",poller="ontap",reason="no instances",target="FcpPort",type="collector",version="26.11.0"} 1
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="RestPerf",poller="ontap",reason="no instances",target="FcpPort",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="no instances",target="Lun",type="collector",version="26.11.0"} 1
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="no instances",target="Lun",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Health",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Health",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="SVM",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="SVM",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Volume",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Volume",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="failed to fetch data",target="Sensor",type="collector",version="26.11.0"} 2
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="failed to fetch data",target="Sensor",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="failed to fetch data",target="FCP",type="collector",version="26.11.0"} 2
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="failed to fetch data",target="FCP",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="no instances",target="SnapMirror",type="collector",version="26.11.0"} 1
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="no instances",target="SnapMirror",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Node",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Node",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="running",target="Aggregate",type="collector",version="26.11.0"} 17
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="KeyPerf",poller="ontap",reason="running",target="Aggregate",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Prometheus",poller="ontap",reason="initialized",target="prometheus",type="exporter",version="26.11.0"} 723
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Prometheus",poller="ontap",reason="initialized",target="prometheus",type="exporter",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Aggregate",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Aggregate",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Ems",poller="ontap",reason="running",target="Ems",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Ems",poller="ontap",reason="running",target="Ems",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Subsystem",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="Subsystem",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="RestPerf",poller="ontap",reason="running",target="NicCommon",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="RestPerf",poller="ontap",reason="running",target="NicCommon",type="collector",version="26.11.0"} 32
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="NetPort",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="Rest",poller="ontap",reason="running",target="NetPort",type="collector",version="26.11.0"} 0
+netapp_metadata_component_count{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="RestPerf",poller="ontap",reason="failed to fetch data. href=[api/cluster/counter/tables/disk",target="Disk",type="collector",version="26.11.0"} 0
+netapp_metadata_component_status{datacenter="fsx-files-prod",hostname="a9779783a3ab",name="RestPerf",poller="ontap",reason="failed to fetch data. href=[api/cluster/counter/tables/disk",target="Disk",type="collector",version="26.11.0"} 2
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Lun",poller="ontap",task="counter",version="26.11.0"} 74822
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Lun",poller="ontap",task="counter",version="26.11.0"} 74821
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Lun",poller="ontap",task="counter",version="26.11.0"} 74699
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Lun",poller="ontap",task="counter",version="26.11.0"} 28
+# HELP netapp_volume_avg_latency Metric for volume
+# TYPE netapp_volume_avg_latency gauge
+netapp_volume_avg_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 339.07563025210084
+# HELP netapp_volume_nfs_write_latency Metric for volume
+# TYPE netapp_volume_nfs_write_latency gauge
+netapp_volume_nfs_write_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 690
+# HELP netapp_volume_nfs_setattr_latency Metric for volume
+# TYPE netapp_volume_nfs_setattr_latency gauge
+netapp_volume_nfs_setattr_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 140
+# HELP netapp_volume_write_data Metric for volume
+# TYPE netapp_volume_write_data gauge
+netapp_volume_write_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 9437184
+# HELP netapp_volume_read_latency Metric for volume
+# TYPE netapp_volume_read_latency gauge
+netapp_volume_read_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 480
+# HELP netapp_volume_read_ops Metric for volume
+# TYPE netapp_volume_read_ops gauge
+netapp_volume_read_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 420
+# HELP netapp_volume_write_latency Metric for volume
+# TYPE netapp_volume_write_latency gauge
+netapp_volume_write_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 690
+# HELP netapp_volume_write_ops Metric for volume
+# TYPE netapp_volume_write_ops gauge
+netapp_volume_write_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 160
+# HELP netapp_volume_nfs_lookup_ops Metric for volume
+# TYPE netapp_volume_nfs_lookup_ops gauge
+netapp_volume_nfs_lookup_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 122
+# HELP netapp_volume_total_ops Metric for volume
+# TYPE netapp_volume_total_ops gauge
+netapp_volume_total_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 1190
+# HELP netapp_volume_read_data Metric for volume
+# TYPE netapp_volume_read_data gauge
+netapp_volume_read_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 27262976
+# HELP netapp_volume_nfs_lookup_latency Metric for volume
+# TYPE netapp_volume_nfs_lookup_latency gauge
+netapp_volume_nfs_lookup_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 80
+# HELP netapp_volume_nfs_setattr_ops Metric for volume
+# TYPE netapp_volume_nfs_setattr_ops gauge
+netapp_volume_nfs_setattr_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 12.2
+# HELP netapp_volume_other_latency Metric for volume
+# TYPE netapp_volume_other_latency gauge
+netapp_volume_other_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 150
+# HELP netapp_volume_nfs_write_ops Metric for volume
+# TYPE netapp_volume_nfs_write_ops gauge
+netapp_volume_nfs_write_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 160
+# HELP netapp_volume_total_data Metric for volume
+# TYPE netapp_volume_total_data gauge
+netapp_volume_total_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 36700160
+# HELP netapp_volume_nfs_getattr_latency Metric for volume
+# TYPE netapp_volume_nfs_getattr_latency gauge
+netapp_volume_nfs_getattr_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 45
+# HELP netapp_volume_nfs_access_latency Metric for volume
+# TYPE netapp_volume_nfs_access_latency gauge
+netapp_volume_nfs_access_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 60
+# HELP netapp_volume_other_ops Metric for volume
+# TYPE netapp_volume_other_ops gauge
+netapp_volume_other_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 610
+# HELP netapp_volume_nfs_getattr_ops Metric for volume
+# TYPE netapp_volume_nfs_getattr_ops gauge
+netapp_volume_nfs_getattr_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 305
+# HELP netapp_volume_other_data Metric for volume
+# TYPE netapp_volume_other_data gauge
+netapp_volume_other_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 0
+# HELP netapp_volume_nfs_read_ops Metric for volume
+# TYPE netapp_volume_nfs_read_ops gauge
+netapp_volume_nfs_read_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 420
+# HELP netapp_volume_nfs_read_latency Metric for volume
+# TYPE netapp_volume_nfs_read_latency gauge
+netapp_volume_nfs_read_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 480
+# HELP netapp_volume_nfs_access_ops Metric for volume
+# TYPE netapp_volume_nfs_access_ops gauge
+netapp_volume_nfs_access_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="svm_files",volume="vol_files"} 30.5
+netapp_volume_nfs_getattr_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 15
+netapp_volume_other_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_nfs_read_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 15
+netapp_volume_nfs_read_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 350
+netapp_volume_nfs_access_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1.5
+netapp_volume_avg_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 721.578947368421
+netapp_volume_nfs_write_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 820
+netapp_volume_nfs_setattr_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_write_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 32505856
+netapp_volume_read_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 350
+netapp_volume_read_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 15
+netapp_volume_write_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 820
+netapp_volume_write_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 240
+netapp_volume_nfs_lookup_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 6
+netapp_volume_total_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 285
+netapp_volume_read_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 1048576
+netapp_volume_nfs_lookup_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 80
+netapp_volume_nfs_setattr_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0.6
+netapp_volume_other_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 120
+netapp_volume_nfs_write_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 240
+netapp_volume_total_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 33554432
+netapp_volume_nfs_getattr_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 45
+netapp_volume_nfs_access_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 0
+netapp_volume_other_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="vol_backup"} 30
+netapp_volume_nfs_read_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 4
+netapp_volume_nfs_read_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+netapp_volume_nfs_access_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1.25
+netapp_volume_avg_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 96.33333333333333
+netapp_volume_nfs_write_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+netapp_volume_nfs_setattr_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+netapp_volume_write_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 4096
+netapp_volume_read_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+netapp_volume_read_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 4
+netapp_volume_write_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+netapp_volume_write_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1
+netapp_volume_nfs_lookup_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 5
+netapp_volume_total_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 30
+netapp_volume_read_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 20480
+netapp_volume_nfs_lookup_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+netapp_volume_nfs_setattr_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0.5
+netapp_volume_other_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 70
+netapp_volume_nfs_write_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 1
+netapp_volume_total_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 24576
+netapp_volume_nfs_getattr_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 45
+netapp_volume_nfs_access_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+netapp_volume_other_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 25
+netapp_volume_nfs_getattr_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 12.5
+netapp_volume_other_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01",style="flexvol",svm="fsx",volume="fsx_root"} 0
+# HELP netapp_nic_labels Pseudo-metric for nic labels
+# TYPE netapp_nic_labels gauge
+netapp_nic_labels{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01",speed="10000000000",state="up",type="ena"} 1.0
+# HELP netapp_nic_tx_total_errors Metric for nic
+# TYPE netapp_nic_tx_total_errors gauge
+netapp_nic_tx_total_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_nic_tx_hw_errors Metric for nic
+# TYPE netapp_nic_tx_hw_errors gauge
+netapp_nic_tx_hw_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_nic_tx_percent Metric for nic
+# TYPE netapp_nic_tx_percent gauge
+netapp_nic_tx_percent{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0.010066440093589977
+# HELP netapp_nic_rx_bytes Metric for nic
+# TYPE netapp_nic_rx_bytes gauge
+netapp_nic_rx_bytes{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 34603387.830046885
+# HELP netapp_nic_rx_crc_errors Metric for nic
+# TYPE netapp_nic_rx_crc_errors gauge
+netapp_nic_rx_crc_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_nic_link_up_to_downs Metric for nic
+# TYPE netapp_nic_link_up_to_downs gauge
+netapp_nic_link_up_to_downs{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_nic_tx_bytes Metric for nic
+# TYPE netapp_nic_tx_bytes gauge
+netapp_nic_tx_bytes{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 12583050.11698747
+# HELP netapp_nic_rx_errors Metric for nic
+# TYPE netapp_nic_rx_errors gauge
+netapp_nic_rx_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_nic_tx_errors Metric for nic
+# TYPE netapp_nic_tx_errors gauge
+netapp_nic_tx_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_nic_util_percent Metric for nic
+# TYPE netapp_nic_util_percent gauge
+netapp_nic_util_percent{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0.027682710264037506
+# HELP netapp_nic_new_status Metric for nic
+# TYPE netapp_nic_new_status gauge
+netapp_nic_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1
+# HELP netapp_nic_rx_length_errors Metric for nic
+# TYPE netapp_nic_rx_length_errors gauge
+netapp_nic_rx_length_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_nic_rx_percent Metric for nic
+# TYPE netapp_nic_rx_percent gauge
+netapp_nic_rx_percent{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0.027682710264037506
+# HELP netapp_nic_rx_total_errors Metric for nic
+# TYPE netapp_nic_rx_total_errors gauge
+netapp_nic_rx_total_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_nic_rx_alignment_errors Metric for nic
+# TYPE netapp_nic_rx_alignment_errors gauge
+netapp_nic_rx_alignment_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+netapp_nic_labels{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02",speed="10000000000",state="up",type="ena"} 1.0
+netapp_nic_rx_total_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_rx_alignment_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_tx_total_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_tx_hw_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_tx_percent{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0.0008388700144642383
+netapp_nic_rx_bytes{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 2097175.019497912
+netapp_nic_rx_crc_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_link_up_to_downs{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_tx_bytes{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 1048587.5180802979
+netapp_nic_rx_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_tx_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_util_percent{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0.0016777400155983295
+netapp_nic_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 1
+netapp_nic_rx_length_errors{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_nic_rx_percent{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",nic="e0e",node="FsxId0a1b2c3d4e5f6a7b8-02"} 0.0016777400155983295
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 27293
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 27232
+netapp_metadata_collector_plugin_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 4
+netapp_metadata_collector_instances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 2
+netapp_metadata_collector_bytesRx{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 2184
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 27287
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 24
+netapp_metadata_collector_metrics{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 30
+netapp_metadata_collector_numCalls{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 3
+netapp_metadata_collector_pluginInstances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="NetPort",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NetPort",poller="ontap",task="counter",version="26.11.0"} 12726
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NetPort",poller="ontap",task="counter",version="26.11.0"} 32
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NetPort",poller="ontap",task="counter",version="26.11.0"} 12727
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NetPort",poller="ontap",task="counter",version="26.11.0"} 12686
+# HELP netapp_net_port_mtu Metric for net_port
+# TYPE netapp_net_port_mtu gauge
+netapp_net_port_mtu{admin_duplex="auto",admin_flowcontrol="none",admin_speed="auto",admin_up="true",broadcast="Default-1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health_status="healthy",ipspace="Default",node="FsxId0a1b2c3d4e5f6a7b8-01",op_duplex="full",op_speed="10000",port="e0e",port_type="physical",role="data",status="up"} 9000
+# HELP netapp_net_port_status Metric for net_port
+# TYPE netapp_net_port_status gauge
+netapp_net_port_status{admin_duplex="auto",admin_flowcontrol="none",admin_speed="auto",admin_up="true",broadcast="Default-1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health_status="healthy",ipspace="Default",node="FsxId0a1b2c3d4e5f6a7b8-01",op_duplex="full",op_speed="10000",port="e0e",port_type="physical",role="data",status="up"} 1
+netapp_net_port_mtu{admin_duplex="auto",admin_flowcontrol="none",admin_speed="auto",admin_up="true",broadcast="Default-1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health_status="healthy",ipspace="Default",node="FsxId0a1b2c3d4e5f6a7b8-02",op_duplex="full",op_speed="10000",port="e0e",port_type="physical",role="data",status="up"} 9000
+netapp_net_port_status{admin_duplex="auto",admin_flowcontrol="none",admin_speed="auto",admin_up="true",broadcast="Default-1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health_status="healthy",ipspace="Default",node="FsxId0a1b2c3d4e5f6a7b8-02",op_duplex="full",op_speed="10000",port="e0e",port_type="physical",role="data",status="up"} 1
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SystemNode",poller="ontap",task="counter",version="26.11.0"} 59059
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SystemNode",poller="ontap",task="counter",version="26.11.0"} 59000
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SystemNode",poller="ontap",task="counter",version="26.11.0"} 59058
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SystemNode",poller="ontap",task="counter",version="26.11.0"} 35
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 25822
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 25
+# HELP netapp_metadata_collector_calc_time Metric for metadata_collector
+# TYPE netapp_metadata_collector_calc_time gauge
+netapp_metadata_collector_calc_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 15
+netapp_metadata_collector_instances{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 2
+# HELP netapp_metadata_collector_skips Metric for metadata_collector
+# TYPE netapp_metadata_collector_skips gauge
+netapp_metadata_collector_skips{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_plugin_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_metrics{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 12
+netapp_metadata_collector_bytesRx{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 922
+netapp_metadata_collector_numCalls{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 25824
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 25794
+netapp_metadata_collector_pluginInstances{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 0
+# HELP netapp_metadata_collector_numPartials Metric for metadata_collector
+# TYPE netapp_metadata_collector_numPartials gauge
+netapp_metadata_collector_numPartials{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="SystemNode",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_poll_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NicCommon",poller="ontap",task="counter",version="26.11.0"} 50372
+netapp_metadata_collector_api_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NicCommon",poller="ontap",task="counter",version="26.11.0"} 49917
+netapp_metadata_collector_parse_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NicCommon",poller="ontap",task="counter",version="26.11.0"} 66
+netapp_metadata_collector_numCalls{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NicCommon",poller="ontap",task="counter",version="26.11.0"} 1
+netapp_metadata_collector_task_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NicCommon",poller="ontap",task="counter",version="26.11.0"} 50371
+netapp_metadata_collector_metrics{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NicCommon",poller="ontap",task="counter",version="26.11.0"} 11
+netapp_metadata_collector_bytesRx{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="NicCommon",poller="ontap",task="counter",version="26.11.0"} 1782
+netapp_metadata_collector_task_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="2592000.0000",object="NicCommon",poller="ontap",task="instance",version="26.11.0"} 4
+netapp_metadata_collector_poll_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="2592000.0000",object="NicCommon",poller="ontap",task="instance",version="26.11.0"} 4
+netapp_metadata_collector_poll_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 37230
+netapp_metadata_collector_api_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 16368
+netapp_metadata_collector_parse_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 48
+netapp_metadata_collector_numCalls{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_pluginInstances{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_plugin_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 20814
+netapp_metadata_collector_task_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 16414
+netapp_metadata_collector_calc_time{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 23
+netapp_metadata_collector_metrics{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 32
+netapp_metadata_collector_instances{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 2
+netapp_metadata_collector_bytesRx{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 2183
+netapp_metadata_collector_skips{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_numPartials{collector="RestPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="NicCommon",poller="ontap",task="data",version="26.11.0"} 0
+# HELP netapp_cluster_subsystem_outstanding_alerts Metric for cluster_subsystem
+# TYPE netapp_cluster_subsystem_outstanding_alerts gauge
+netapp_cluster_subsystem_outstanding_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="cifs_ndo"} 0
+# HELP netapp_cluster_subsystem_suppressed_alerts Metric for cluster_subsystem
+# TYPE netapp_cluster_subsystem_suppressed_alerts gauge
+netapp_cluster_subsystem_suppressed_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="cifs_ndo"} 0
+# HELP netapp_cluster_subsystem_new_status Metric for cluster_subsystem
+# TYPE netapp_cluster_subsystem_new_status gauge
+netapp_cluster_subsystem_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="cifs_ndo"} 1
+netapp_cluster_subsystem_outstanding_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="motherboard"} 0
+netapp_cluster_subsystem_suppressed_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="motherboard"} 0
+netapp_cluster_subsystem_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="motherboard"} 1
+netapp_cluster_subsystem_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="io"} 1
+netapp_cluster_subsystem_outstanding_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="io"} 0
+netapp_cluster_subsystem_suppressed_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="io"} 0
+netapp_cluster_subsystem_outstanding_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="sas_connect"} 0
+netapp_cluster_subsystem_suppressed_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="sas_connect"} 0
+netapp_cluster_subsystem_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="sas_connect"} 1
+netapp_cluster_subsystem_outstanding_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="environment"} 0
+netapp_cluster_subsystem_suppressed_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="environment"} 0
+netapp_cluster_subsystem_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="environment"} 1
+netapp_cluster_subsystem_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="memory"} 1
+netapp_cluster_subsystem_outstanding_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="memory"} 0
+netapp_cluster_subsystem_suppressed_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="memory"} 0
+netapp_cluster_subsystem_outstanding_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="service_processor"} 0
+netapp_cluster_subsystem_suppressed_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="service_processor"} 0
+netapp_cluster_subsystem_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="service_processor"} 1
+netapp_cluster_subsystem_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="switch_health"} 1
+netapp_cluster_subsystem_outstanding_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="switch_health"} 0
+netapp_cluster_subsystem_suppressed_alerts{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",health="ok",subsystem="switch_health"} 0
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Lun",poller="ontap",task="counter",version="26.11.0"} 69846
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Lun",poller="ontap",task="counter",version="26.11.0"} 69845
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Lun",poller="ontap",task="counter",version="26.11.0"} 69626
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Lun",poller="ontap",task="counter",version="26.11.0"} 58
+netapp_metadata_collector_task_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Ems",poller="ontap",task="instance",version="26.11.0"} 75992
+netapp_metadata_collector_api_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Ems",poller="ontap",task="instance",version="26.11.0"} 75154
+netapp_metadata_collector_poll_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Ems",poller="ontap",task="instance",version="26.11.0"} 75993
+netapp_metadata_collector_parse_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Ems",poller="ontap",task="instance",version="26.11.0"} 98
+netapp_metadata_collector_instances{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Ems",poller="ontap",task="instance",version="26.11.0"} 0
+netapp_metadata_collector_instances{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_pluginInstances{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_task_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 18335
+netapp_metadata_collector_api_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 18302
+netapp_metadata_collector_plugin_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_bytesRx{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 2683
+netapp_metadata_collector_numCalls{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_poll_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 18337
+netapp_metadata_collector_parse_time{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 4
+netapp_metadata_collector_metrics{collector="Ems",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Ems",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Aggregate",poller="ontap",task="counter",version="26.11.0"} 65707
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Aggregate",poller="ontap",task="counter",version="26.11.0"} 65706
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Aggregate",poller="ontap",task="counter",version="26.11.0"} 105
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Aggregate",poller="ontap",task="counter",version="26.11.0"} 65593
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 31275
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 24353
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 71
+netapp_metadata_collector_plugin_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 6920
+netapp_metadata_collector_metrics{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 51
+netapp_metadata_collector_instances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_bytesRx{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 4721
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 24257
+netapp_metadata_collector_numCalls{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 2
+netapp_metadata_collector_pluginInstances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 0
+# HELP netapp_aggr_write_data Metric for aggr
+# TYPE netapp_aggr_write_data gauge
+netapp_aggr_write_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 41947136
+# HELP netapp_aggr_total_data Metric for aggr
+# TYPE netapp_aggr_total_data gauge
+netapp_aggr_total_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 70279168
+# HELP netapp_aggr_write_latency Metric for aggr
+# TYPE netapp_aggr_write_latency gauge
+netapp_aggr_write_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 766.8329177057357
+# HELP netapp_aggr_other_data Metric for aggr
+# TYPE netapp_aggr_other_data gauge
+netapp_aggr_other_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_aggr_other_latency Metric for aggr
+# TYPE netapp_aggr_other_latency gauge
+netapp_aggr_other_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 145.6390977443609
+# HELP netapp_aggr_read_ops Metric for aggr
+# TYPE netapp_aggr_read_ops gauge
+netapp_aggr_read_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 439
+# HELP netapp_aggr_read_latency Metric for aggr
+# TYPE netapp_aggr_read_latency gauge
+netapp_aggr_read_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 473.0979498861048
+# HELP netapp_aggr_total_latency Metric for aggr
+# TYPE netapp_aggr_total_latency gauge
+netapp_aggr_total_latency{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 406.67109634551497
+# HELP netapp_aggr_read_data Metric for aggr
+# TYPE netapp_aggr_read_data gauge
+netapp_aggr_read_data{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 28332032
+# HELP netapp_aggr_total_ops Metric for aggr
+# TYPE netapp_aggr_total_ops gauge
+netapp_aggr_total_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1505
+# HELP netapp_aggr_other_ops Metric for aggr
+# TYPE netapp_aggr_other_ops gauge
+netapp_aggr_other_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 665
+# HELP netapp_aggr_write_ops Metric for aggr
+# TYPE netapp_aggr_write_ops gauge
+netapp_aggr_write_ops{aggr="aggr1",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 401
+# HELP netapp_node_volume_nfs_getattr_latency Metric for node_volume
+# TYPE netapp_node_volume_nfs_getattr_latency gauge
+netapp_node_volume_nfs_getattr_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 45
+# HELP netapp_node_volume_nfs_access_latency Metric for node_volume
+# TYPE netapp_node_volume_nfs_access_latency gauge
+netapp_node_volume_nfs_access_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 20
+# HELP netapp_node_volume_nfs_read_ops Metric for node_volume
+# TYPE netapp_node_volume_nfs_read_ops gauge
+netapp_node_volume_nfs_read_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 439
+# HELP netapp_node_volume_avg_latency Metric for node_volume
+# TYPE netapp_node_volume_avg_latency gauge
+netapp_node_volume_avg_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 385.66263698461836
+# HELP netapp_node_volume_read_latency Metric for node_volume
+# TYPE netapp_node_volume_read_latency gauge
+netapp_node_volume_read_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 276.6666666666667
+# HELP netapp_node_volume_read_ops Metric for node_volume
+# TYPE netapp_node_volume_read_ops gauge
+netapp_node_volume_read_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 439
+# HELP netapp_node_volume_write_latency Metric for node_volume
+# TYPE netapp_node_volume_write_latency gauge
+netapp_node_volume_write_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 503.3333333333333
+# HELP netapp_node_volume_other_ops Metric for node_volume
+# TYPE netapp_node_volume_other_ops gauge
+netapp_node_volume_other_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 665
+# HELP netapp_node_volume_nfs_access_ops Metric for node_volume
+# TYPE netapp_node_volume_nfs_access_ops gauge
+netapp_node_volume_nfs_access_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 33.25
+# HELP netapp_node_volume_nfs_setattr_latency Metric for node_volume
+# TYPE netapp_node_volume_nfs_setattr_latency gauge
+netapp_node_volume_nfs_setattr_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 46.666666666666664
+# HELP netapp_node_volume_nfs_lookup_ops Metric for node_volume
+# TYPE netapp_node_volume_nfs_lookup_ops gauge
+netapp_node_volume_nfs_lookup_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 133
+# HELP netapp_node_volume_read_data Metric for node_volume
+# TYPE netapp_node_volume_read_data gauge
+netapp_node_volume_read_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 28332032
+# HELP netapp_node_volume_nfs_lookup_latency Metric for node_volume
+# TYPE netapp_node_volume_nfs_lookup_latency gauge
+netapp_node_volume_nfs_lookup_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 53.333333333333336
+# HELP netapp_node_volume_nfs_setattr_ops Metric for node_volume
+# TYPE netapp_node_volume_nfs_setattr_ops gauge
+netapp_node_volume_nfs_setattr_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 13.299999999999999
+# HELP netapp_node_volume_other_latency Metric for node_volume
+# TYPE netapp_node_volume_other_latency gauge
+netapp_node_volume_other_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 113.33333333333333
+# HELP netapp_node_volume_total_data Metric for node_volume
+# TYPE netapp_node_volume_total_data gauge
+netapp_node_volume_total_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 70279168
+# HELP netapp_node_volume_nfs_getattr_ops Metric for node_volume
+# TYPE netapp_node_volume_nfs_getattr_ops gauge
+netapp_node_volume_nfs_getattr_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 332.5
+# HELP netapp_node_volume_other_data Metric for node_volume
+# TYPE netapp_node_volume_other_data gauge
+netapp_node_volume_other_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+# HELP netapp_node_volume_nfs_read_latency Metric for node_volume
+# TYPE netapp_node_volume_nfs_read_latency gauge
+netapp_node_volume_nfs_read_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 276.6666666666667
+# HELP netapp_node_volume_write_data Metric for node_volume
+# TYPE netapp_node_volume_write_data gauge
+netapp_node_volume_write_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 41947136
+# HELP netapp_node_volume_write_ops Metric for node_volume
+# TYPE netapp_node_volume_write_ops gauge
+netapp_node_volume_write_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 401
+# HELP netapp_node_volume_total_ops Metric for node_volume
+# TYPE netapp_node_volume_total_ops gauge
+netapp_node_volume_total_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 1505
+# HELP netapp_node_volume_nfs_write_ops Metric for node_volume
+# TYPE netapp_node_volume_nfs_write_ops gauge
+netapp_node_volume_nfs_write_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 401
+# HELP netapp_node_volume_nfs_write_latency Metric for node_volume
+# TYPE netapp_node_volume_nfs_write_latency gauge
+netapp_node_volume_nfs_write_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 503.3333333333333
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Cluster",poller="ontap",task="counter",version="26.11.0"} 32451
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Cluster",poller="ontap",task="counter",version="26.11.0"} 32387
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Cluster",poller="ontap",task="counter",version="26.11.0"} 45
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Cluster",poller="ontap",task="counter",version="26.11.0"} 32450
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 6400
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 29
+netapp_metadata_collector_plugin_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_pluginInstances{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 6438
+netapp_metadata_collector_calc_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 27
+netapp_metadata_collector_metrics{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 15
+netapp_metadata_collector_skips{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_numPartials{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 6440
+netapp_metadata_collector_instances{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_bytesRx{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 445
+netapp_metadata_collector_numCalls{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Cluster",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SVM",poller="ontap",task="counter",version="26.11.0"} 12686
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SVM",poller="ontap",task="counter",version="26.11.0"} 12620
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SVM",poller="ontap",task="counter",version="26.11.0"} 60
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SVM",poller="ontap",task="counter",version="26.11.0"} 12688
+netapp_metadata_collector_instances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 5
+netapp_metadata_collector_bytesRx{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 3961
+netapp_metadata_collector_pluginInstances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 27027
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 26949
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 23
+netapp_metadata_collector_plugin_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 16922
+netapp_metadata_collector_numCalls{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 8
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 43952
+netapp_metadata_collector_metrics{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="SVM",poller="ontap",task="data",version="26.11.0"} 24
+# HELP netapp_node_avg_processor_busy Metric for node
+# TYPE netapp_node_avg_processor_busy gauge
+netapp_node_avg_processor_busy{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-01"} 18
+netapp_node_avg_processor_busy{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",node="FsxId0a1b2c3d4e5f6a7b8-02"} 11
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FCP",poller="ontap",task="counter",version="26.11.0"} 13347
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FCP",poller="ontap",task="counter",version="26.11.0"} 13346
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FCP",poller="ontap",task="counter",version="26.11.0"} 44
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="FCP",poller="ontap",task="counter",version="26.11.0"} 13262
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Sensor",poller="ontap",task="counter",version="26.11.0"} 24549
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Sensor",poller="ontap",task="counter",version="26.11.0"} 24550
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Sensor",poller="ontap",task="counter",version="26.11.0"} 24513
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Sensor",poller="ontap",task="counter",version="26.11.0"} 31
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Shelf",poller="ontap",task="counter",version="26.11.0"} 45175
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Shelf",poller="ontap",task="counter",version="26.11.0"} 45174
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Shelf",poller="ontap",task="counter",version="26.11.0"} 45136
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Shelf",poller="ontap",task="counter",version="26.11.0"} 33
+# HELP netapp_cluster_other_ops Metric for cluster
+# TYPE netapp_cluster_other_ops gauge
+netapp_cluster_other_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 665
+# HELP netapp_cluster_read_latency Metric for cluster
+# TYPE netapp_cluster_read_latency gauge
+netapp_cluster_read_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 473.0979498861048
+# HELP netapp_cluster_write_data Metric for cluster
+# TYPE netapp_cluster_write_data gauge
+netapp_cluster_write_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 41947136
+# HELP netapp_cluster_other_data Metric for cluster
+# TYPE netapp_cluster_other_data gauge
+netapp_cluster_other_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 0
+# HELP netapp_cluster_write_latency Metric for cluster
+# TYPE netapp_cluster_write_latency gauge
+netapp_cluster_write_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 766.8329177057357
+# HELP netapp_cluster_read_data Metric for cluster
+# TYPE netapp_cluster_read_data gauge
+netapp_cluster_read_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 28332032
+# HELP netapp_cluster_read_ops Metric for cluster
+# TYPE netapp_cluster_read_ops gauge
+netapp_cluster_read_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 439
+# HELP netapp_cluster_write_ops Metric for cluster
+# TYPE netapp_cluster_write_ops gauge
+netapp_cluster_write_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 401
+# HELP netapp_cluster_total_data Metric for cluster
+# TYPE netapp_cluster_total_data gauge
+netapp_cluster_total_data{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 70279168
+# HELP netapp_cluster_total_latency Metric for cluster
+# TYPE netapp_cluster_total_latency gauge
+netapp_cluster_total_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 406.67109634551497
+# HELP netapp_cluster_total_ops Metric for cluster
+# TYPE netapp_cluster_total_ops gauge
+netapp_cluster_total_ops{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 1505
+# HELP netapp_cluster_other_latency Metric for cluster
+# TYPE netapp_cluster_other_latency gauge
+netapp_cluster_other_latency{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",uuid="c3e9f1d2-7a40-11ef-b1c6-0a1b2c3d4e5f"} 145.6390977443609
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SnapMirror",poller="ontap",task="counter",version="26.11.0"} 33
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SnapMirror",poller="ontap",task="counter",version="26.11.0"} 53313
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SnapMirror",poller="ontap",task="counter",version="26.11.0"} 53011
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="SnapMirror",poller="ontap",task="counter",version="26.11.0"} 53312
+# HELP netapp_svm_labels Pseudo-metric for svm labels
+# TYPE netapp_svm_labels gauge
+netapp_svm_labels{anti_ransomware_state="",audit_protocol_enabled="false",cifs_ntlm_enabled="",cifs_protocol_enabled="false",ciphers="",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",fpolicy_enabled="",fpolicy_name="",insecured="",is_space_enforcement_logical="",is_space_reporting_logical="",iscsi_authentication_type="",iscsi_service_enabled="",ldap_session_security="",nfs_kerberos_protocol_enabled="",nfs_protocol_enabled="",nis_authentication_enabled="",nis_domain="",ns_db="",ns_source="",root_svm="Yes",smb_encryption_required="",smb_signing_required="",state="",svm="FsxId0a1b2c3d4e5f6a7b8",type="admin"} 1.0
+# HELP netapp_svm_new_status Metric for svm
+# TYPE netapp_svm_new_status gauge
+netapp_svm_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8"} 0
+# HELP netapp_svm_ldap_signed Metric for svm
+# TYPE netapp_svm_ldap_signed gauge
+netapp_svm_ldap_signed{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8"} 0
+# HELP netapp_svm_ldap_encrypted Metric for svm
+# TYPE netapp_svm_ldap_encrypted gauge
+netapp_svm_ldap_encrypted{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8"} 0
+netapp_svm_labels{anti_ransomware_state="",audit_protocol_enabled="false",cifs_ntlm_enabled="",cifs_protocol_enabled="false",ciphers="",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",fpolicy_enabled="",fpolicy_name="",insecured="",is_space_enforcement_logical="",is_space_reporting_logical="",iscsi_authentication_type="",iscsi_service_enabled="",ldap_session_security="",nfs_kerberos_protocol_enabled="",nfs_protocol_enabled="",nis_authentication_enabled="",nis_domain="",ns_db="",ns_source="",root_svm="Yes",smb_encryption_required="",smb_signing_required="",state="",svm="FsxId0a1b2c3d4e5f6a7b8-01",type="node"} 1.0
+netapp_svm_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+netapp_svm_ldap_signed{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+netapp_svm_ldap_encrypted{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8-01"} 0
+netapp_svm_labels{anti_ransomware_state="",audit_protocol_enabled="false",cifs_ntlm_enabled="",cifs_protocol_enabled="false",ciphers="",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",fpolicy_enabled="",fpolicy_name="",insecured="",is_space_enforcement_logical="",is_space_reporting_logical="",iscsi_authentication_type="",iscsi_service_enabled="",ldap_session_security="",nfs_kerberos_protocol_enabled="",nfs_protocol_enabled="",nis_authentication_enabled="",nis_domain="",ns_db="",ns_source="",root_svm="Yes",smb_encryption_required="",smb_signing_required="",state="",svm="FsxId0a1b2c3d4e5f6a7b8-02",type="node"} 1.0
+netapp_svm_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_svm_ldap_signed{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_svm_ldap_encrypted{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="FsxId0a1b2c3d4e5f6a7b8-02"} 0
+netapp_svm_labels{anti_ransomware_state="disabled",audit_protocol_enabled="false",cifs_ntlm_enabled="",cifs_protocol_enabled="false",ciphers="aes128_ctr,aes128_gcm,aes192_ctr,aes256_ctr,aes256_gcm",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",fpolicy_enabled="",fpolicy_name="",insecured="false",is_space_enforcement_logical="false",is_space_reporting_logical="false",iscsi_authentication_type="",iscsi_service_enabled="",ldap_session_security="",nfs_kerberos_protocol_enabled="false",nfs_protocol_enabled="true",nis_authentication_enabled="false",nis_domain="",ns_db="group,hosts,namemap,netgroup,passwd",ns_source="dns,files,files,files,files,files",root_svm="No",smb_encryption_required="",smb_signing_required="",state="running",svm="fsx",type="data"} 1.0
+netapp_svm_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 1
+netapp_svm_ldap_signed{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 0
+netapp_svm_ldap_encrypted{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="fsx"} 0
+netapp_svm_labels{anti_ransomware_state="disabled",audit_protocol_enabled="false",cifs_ntlm_enabled="lm-ntlm-ntlmv2-krb",cifs_protocol_enabled="true",ciphers="aes128_ctr,aes128_gcm,aes192_ctr,aes256_ctr,aes256_gcm",cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",fpolicy_enabled="",fpolicy_name="",insecured="false",is_space_enforcement_logical="false",is_space_reporting_logical="false",iscsi_authentication_type="",iscsi_service_enabled="",ldap_session_security="",nfs_kerberos_protocol_enabled="false",nfs_protocol_enabled="true",nis_authentication_enabled="false",nis_domain="",ns_db="group,hosts,namemap,netgroup,passwd",ns_source="dns,files,files,files,files,files",root_svm="No",smb_encryption_required="false",smb_signing_required="false",state="running",svm="svm_files",type="data"} 1.0
+netapp_svm_new_status{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 1
+netapp_svm_ldap_signed{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 0
+netapp_svm_ldap_encrypted{cluster="FsxId0a1b2c3d4e5f6a7b8",datacenter="fsx-files-prod",svm="svm_files"} 0
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Volume",poller="ontap",task="counter",version="26.11.0"} 27903
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Volume",poller="ontap",task="counter",version="26.11.0"} 27903
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Volume",poller="ontap",task="counter",version="26.11.0"} 27739
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Volume",poller="ontap",task="counter",version="26.11.0"} 141
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 15698
+netapp_metadata_collector_calc_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 57
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 15779
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 15614
+netapp_metadata_collector_instances{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 3
+netapp_metadata_collector_bytesRx{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 5508
+netapp_metadata_collector_metrics{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 96
+netapp_metadata_collector_numCalls{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 3
+netapp_metadata_collector_pluginInstances{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 3
+netapp_metadata_collector_skips{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 91
+netapp_metadata_collector_plugin_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 79
+netapp_metadata_collector_numPartials{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Node",poller="ontap",task="counter",version="26.11.0"} 54
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Node",poller="ontap",task="counter",version="26.11.0"} 61736
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Node",poller="ontap",task="counter",version="26.11.0"} 61736
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Node",poller="ontap",task="counter",version="26.11.0"} 61642
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 24802
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 24791
+netapp_metadata_collector_plugin_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 10
+netapp_metadata_collector_metrics{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 42
+netapp_metadata_collector_instances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 2
+netapp_metadata_collector_numCalls{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 2
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 24729
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 34
+netapp_metadata_collector_bytesRx{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 2379
+netapp_metadata_collector_pluginInstances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Node",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Volume",poller="ontap",task="counter",version="26.11.0"} 56
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Volume",poller="ontap",task="counter",version="26.11.0"} 58282
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Volume",poller="ontap",task="counter",version="26.11.0"} 58281
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Volume",poller="ontap",task="counter",version="26.11.0"} 57931
+netapp_metadata_collector_pluginInstances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 37269
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 29415
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 29147
+netapp_metadata_collector_plugin_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 7852
+netapp_metadata_collector_metrics{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 174
+netapp_metadata_collector_instances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 3
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 187
+netapp_metadata_collector_bytesRx{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 8804
+netapp_metadata_collector_numCalls{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Volume",poller="ontap",task="data",version="26.11.0"} 4
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Health",poller="ontap",task="counter",version="26.11.0"} 21610
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Health",poller="ontap",task="counter",version="26.11.0"} 21647
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Health",poller="ontap",task="counter",version="26.11.0"} 21646
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Health",poller="ontap",task="counter",version="26.11.0"} 18
+netapp_metadata_collector_plugin_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 21497
+netapp_metadata_collector_metrics{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 2
+netapp_metadata_collector_numCalls{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_poll_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 45865
+netapp_metadata_collector_task_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 24366
+netapp_metadata_collector_parse_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 5
+netapp_metadata_collector_instances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_bytesRx{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 121
+netapp_metadata_collector_pluginInstances{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_api_time{collector="Rest",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="180.0000",object="Health",poller="ontap",task="data",version="26.11.0"} 24215
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Aggregate",poller="ontap",task="counter",version="26.11.0"} 12932
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Aggregate",poller="ontap",task="counter",version="26.11.0"} 12838
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Aggregate",poller="ontap",task="counter",version="26.11.0"} 12933
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="86400.0000",object="Aggregate",poller="ontap",task="counter",version="26.11.0"} 89
+netapp_metadata_collector_poll_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 18955
+netapp_metadata_collector_parse_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 82
+netapp_metadata_collector_calc_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 25
+netapp_metadata_collector_plugin_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_instances{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_bytesRx{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 1186
+netapp_metadata_collector_numCalls{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 1
+netapp_metadata_collector_pluginInstances{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_task_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 18954
+netapp_metadata_collector_api_time{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 18920
+netapp_metadata_collector_metrics{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 17
+netapp_metadata_collector_skips{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 0
+netapp_metadata_collector_numPartials{collector="KeyPerf",datacenter="fsx-files-prod",hostname="a9779783a3ab",interval="60.0000",object="Aggregate",poller="ontap",task="data",version="26.11.0"} 0
+# HELP netapp_metadata_exporter_time Metric for metadata_exporter
+# TYPE netapp_metadata_exporter_time gauge
+netapp_metadata_exporter_time{datacenter="fsx-files-prod",exporter="Prometheus",hostname="a9779783a3ab",poller="ontap",target="prometheus",task="export",version="26.11.0"} 1482
+netapp_metadata_exporter_time{datacenter="fsx-files-prod",exporter="Prometheus",hostname="a9779783a3ab",poller="ontap",target="prometheus",task="render",version="26.11.0"} 1400
+netapp_metadata_exporter_time{datacenter="fsx-files-prod",exporter="Prometheus",hostname="a9779783a3ab",poller="ontap",target="prometheus",task="http",version="26.11.0"} 1210
+# HELP netapp_metadata_exporter_count Metric for metadata_exporter
+# TYPE netapp_metadata_exporter_count gauge
+netapp_metadata_exporter_count{datacenter="fsx-files-prod",exporter="Prometheus",hostname="a9779783a3ab",poller="ontap",target="prometheus",task="http",version="26.11.0"} 0

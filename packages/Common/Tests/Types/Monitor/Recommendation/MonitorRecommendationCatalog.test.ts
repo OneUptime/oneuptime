@@ -1370,21 +1370,22 @@ describe("MonitorRecommendationCatalog", () => {
     });
 
     it("offers nothing to an array of a platform OneUptime ships no templates for", () => {
-      expect(
-        storageArrayTemplateIds({ storageSystem: "netapp.ontap" }),
-      ).toEqual([]);
+      expect(storageArrayTemplateIds({ storageSystem: "hitachi.vsp" })).toEqual(
+        [],
+      );
       // The module itself would hand such a platform every template.
-      expect(
-        getStorageArrayAlertTemplatesForSystem("netapp.ontap").length,
-      ).toBe(getAllStorageArrayAlertTemplates().length);
+      expect(getStorageArrayAlertTemplatesForSystem("hitachi.vsp").length).toBe(
+        getAllStorageArrayAlertTemplates().length,
+      );
     });
 
     it("the platforms' sets partition the whole catalog", () => {
-        // FlashArray, FlashBlade, PowerStore and, read by a probe, PowerMax.
+        // FlashArray, FlashBlade, PowerStore, ONTAP and, read by a probe, PowerMax.
         const sets: Array<Array<string>> = [
           StorageSystem.PureStorageFlashArray,
           StorageSystem.PureStorageFlashBlade,
           StorageSystem.DellPowerStore,
+          StorageSystem.NetAppOntap,
           StorageSystem.DellPowerMax,
       ].map((storageSystem: StorageSystem): Array<string> => {
         return storageArrayTemplateIds({ storageSystem });
@@ -1394,9 +1395,20 @@ describe("MonitorRecommendationCatalog", () => {
         // No template is two platforms'.
         expect(new Set(all).size).toBe(all.length);
         expect([...all].sort()).toEqual([...everyTemplateId()].sort());
-        // PowerMax's are its own (#11004).
-        expect(sets[3]!.length).toBeGreaterThan(0);
-        for (const id of sets[3]!) {
+        // An ONTAP cluster is offered ONTAP's own, its heartbeat first.
+        const ontap: Array<string> = storageArrayTemplateIds({
+          storageSystem: StorageSystem.NetAppOntap,
+        });
+        expect(ontap[0]).toBe("netapp-cluster-stopped-reporting");
+        for (const id of ontap) {
+          expect(id.startsWith("netapp-")).toBe(true);
+        }
+        // A PowerMax PowerMax's own (#11004), its heartbeat first.
+        const powerMax: Array<string> = storageArrayTemplateIds({
+          storageSystem: StorageSystem.DellPowerMax,
+        });
+        expect(powerMax[0]).toBe("powermax-array-stopped-reporting");
+        for (const id of powerMax) {
           expect(id.startsWith("powermax-")).toBe(true);
         }
     });

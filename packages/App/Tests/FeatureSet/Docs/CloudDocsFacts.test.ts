@@ -509,9 +509,10 @@ describe("the menu paths", () => {
       },
       /*
        * What the accounts cost and how it is shared out, how to spend less,
-       * the commitments, the off-hours schedules, the budgets, the tags
-       * the spend is told apart by (#11012), and the reports that send the
-       * costs on a schedule (#11009).
+       * the commitments, the off-hours schedules, the budgets, the
+       * forecast of the months ahead, the tags the spend is told apart
+       * by (#11012), and the reports that send the costs on a schedule
+       * (#11009).
        */
       {
         title: "Spend",
@@ -522,6 +523,7 @@ describe("the menu paths", () => {
           "Commitments",
           "Schedules",
           "Budgets",
+          "Forecast",
           "Tags",
           "Reports",
         ],

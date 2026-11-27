@@ -147,6 +147,21 @@ export interface StorageArrayExtractor {
   // The platform it reads for: its StorageArrayPlatform.storageSystem.
   storageSystem: string;
   extract: (series: StorageArraySeries) => void;
+  /*
+   * Once every datapoint of a batch is folded, what its rows and the
+   * array's state say together, which no one series does: NetApp sums its
+   * aggregates into the cluster's capacity, names a node's state from its
+   * health and its failed parts, and leaves out the SVMs ONTAP keeps for
+   * itself. Returns the rows to write. Called once per array per batch,
+   * before anything is derived from it (getStorageArrayResourceRows); it
+   * must give the same answer if called again.
+   */
+  finishBatch?:
+    | ((data: {
+        rows: Array<StorageArrayResourceBufferEntry>;
+        array: StorageArraySnapshotBufferEntry;
+      }) => Array<StorageArrayResourceBufferEntry>)
+    | undefined;
 }
 
 export function emptyStorageArrayResourceEntry(
