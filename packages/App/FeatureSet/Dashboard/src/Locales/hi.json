@@ -66210,5 +66210,6 @@
   "{{count}} appliance": "{{count}} अप्लायंस",
   "{{count}} volume group": "{{count}} वॉल्यूम समूह",
   "{{count}} volume groups": "{{count}} वॉल्यूम समूह",
-  "{{count}} volume groups_one": "{{count}} वॉल्यूम समूह"
+  "{{count}} volume groups_one": "{{count}} वॉल्यूम समूह",
+  "Capacity provisioned to each volume group's volumes, in bytes.": "हर वॉल्यूम समूह के वॉल्यूम को प्रावधानित क्षमता, बाइट में।"
 }

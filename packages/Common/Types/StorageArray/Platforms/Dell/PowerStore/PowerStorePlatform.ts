@@ -55,7 +55,9 @@ export const POWERSTORE_VENDOR_NAME: string = "Dell";
  * What a part's state reads, lowercased: a node names its lifecycle state
  * (Healthy, Failed, Disconnected, Prepare_Failed, Initializing,
  * Uninitialized, Trigger_Update, Empty); every other part is the exporter's
- * 0 or 1, which the extractor writes as unhealthy or healthy.
+ * 0 or 1, which the extractor writes as unhealthy or healthy. A NAS server
+ * reads started or not started, and a port up or down: down is no problem
+ * by itself, as a port nothing is cabled to is always down.
  */
 export const POWERSTORE_COMPONENT_STATUSES: StorageArrayPlatform["componentStatuses"] =
   {
@@ -69,7 +71,11 @@ export const POWERSTORE_COMPONENT_STATUSES: StorageArrayPlatform["componentStatu
       "uninitialized",
       "initializing",
       "trigger_update",
+      // A NAS server stopped, starting, stopping or failed over.
+      "not started",
     ],
+    // A NAS server serving its file systems, and a port whose link is up.
+    healthy: ["started", "up"],
   };
 
 // The Resource Usage page's cards, in order.
@@ -321,6 +327,29 @@ const DellPowerStorePlatform: StorageArrayPlatform = {
       noItemsMessage: translationKey(
         "No appliances in the inventory yet. They appear here a few minutes after the Storage Array Agent starts reading the cluster.",
       ),
+      /*
+       * No state of its own (its nodes' are on the Hardware page), and how
+       * full it is as a bar. A cluster names its appliances after itself
+       * (ps-prod-01-appliance-1), so the names need the room: its latency
+       * shows, its IOPS and bandwidth are in the column picker.
+       */
+      inventoryColumns: {
+        // A1, A2: how the Hardware page's Appliance column names it.
+        idTitle: translationKey("ID"),
+        status: false,
+        capacity: true,
+        used: "bar",
+        dataReduction: true,
+        performance: "latency",
+        capacityTitle: translationKey("Physical Capacity"),
+        capacityDescription: translationKey(
+          "Usable physical capacity of each appliance in bytes.",
+        ),
+        usedTitle: translationKey("Physical Capacity Used"),
+        usedDescription: translationKey(
+          "Physical capacity each appliance uses in bytes, after deduplication and compression. Trend it to forecast when an appliance fills up.",
+        ),
+      },
     },
     {
       kind: POWERSTORE_KIND.VolumeGroup,
@@ -337,6 +366,22 @@ const DellPowerStorePlatform: StorageArrayPlatform = {
       noItemsMessage: translationKey(
         "No volume groups in the inventory yet. They appear here a few minutes after the Storage Array Agent starts reading a cluster that has any.",
       ),
+      // What its volumes were given and how much of it hosts wrote.
+      inventoryColumns: {
+        status: false,
+        capacity: true,
+        used: "bar",
+        dataReduction: false,
+        performance: "all",
+        capacityTitle: translationKey("Provisioned Capacity"),
+        capacityDescription: translationKey(
+          "Capacity provisioned to each volume group's volumes, in bytes.",
+        ),
+        usedTitle: translationKey("Logical Capacity Used"),
+        usedDescription: translationKey(
+          "Data hosts have written to each volume group's volumes in bytes, before deduplication and compression.",
+        ),
+      },
     },
     {
       kind: POWERSTORE_KIND.NasServer,
@@ -353,6 +398,14 @@ const DellPowerStorePlatform: StorageArrayPlatform = {
       noItemsMessage: translationKey(
         "No NAS servers in the inventory yet. They appear here a few minutes after the Storage Array Agent starts reading a cluster that serves files.",
       ),
+      // Whether it is started, and the reads and writes it serves.
+      inventoryColumns: {
+        status: true,
+        capacity: false,
+        used: "none",
+        dataReduction: false,
+        performance: "all",
+      },
     },
   ],
   // The physical parts: a node, fan, power supply or battery, and a drive.

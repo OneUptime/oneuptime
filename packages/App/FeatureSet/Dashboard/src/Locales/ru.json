@@ -66210,5 +66210,6 @@
   "{{count}} appliance": "{{count}} специализированное устройство",
   "{{count}} volume group": "{{count}} группа томов",
   "{{count}} volume groups": "Групп томов: {{count}}",
-  "{{count}} volume groups_one": "{{count}} группа томов"
+  "{{count}} volume groups_one": "{{count}} группа томов",
+  "Capacity provisioned to each volume group's volumes, in bytes.": "Ёмкость, выделенная томам каждой группы томов, в байтах."
 }

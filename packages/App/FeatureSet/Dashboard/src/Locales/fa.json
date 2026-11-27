@@ -66210,5 +66210,6 @@
   "{{count}} appliance": "{{count}} دستگاه اختصاصی",
   "{{count}} volume group": "{{count}} گروه حجم",
   "{{count}} volume groups": "{{count}} گروه حجم",
-  "{{count}} volume groups_one": "{{count}} گروه حجم"
+  "{{count}} volume groups_one": "{{count}} گروه حجم",
+  "Capacity provisioned to each volume group's volumes, in bytes.": "ظرفیت تأمین‌شده برای حجم‌های هر گروه حجم، به بایت."
 }

@@ -845,7 +845,7 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
     /*
      * Every registered platform's words for a part that is not well: the
      * shipped ones first, then those a platform declares of its own
-     * (PowerStore's node and drive states).
+     * (PowerStore's node states, and a NAS server not started).
      */
     const statuses: Array<string> = getUnhealthyHardwareStatuses();
     expect(params).toEqual([
@@ -863,6 +863,7 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
       "uninitialized",
       "initializing",
       "trigger_update",
+      "not started",
     ]);
     expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
   });

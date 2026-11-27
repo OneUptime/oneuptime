@@ -76,11 +76,15 @@ import type StorageSystem from "./StorageSystem";
  * controller, network interface, replica link), lowercased, by what they
  * mean: a critical one makes the array's health Critical, a warning one
  * Warning (StorageArraySnapshotScan, the pages' StorageArrayHealth). A
- * status in neither list is never a problem by itself.
+ * status in neither list is never a problem by itself. The pages colour a
+ * part's status by the same lists - red, amber - and green by `healthy`:
+ * the words of its own a platform writes for a part that is fine (a
+ * PowerStore NAS server's "started", a port's "up").
  */
 export interface StorageArrayComponentStatuses {
   critical: ReadonlyArray<string>;
   warning: ReadonlyArray<string>;
+  healthy?: ReadonlyArray<string> | undefined;
 }
 
 /*
@@ -159,6 +163,49 @@ export interface StorageArrayKindDefinition {
   // What its tab's table lists, and what it says while it lists nothing.
   description: string;
   noItemsMessage: string;
+  /*
+   * The columns its Inventory page shows (View/Inventory.tsx). Without
+   * them the page shows every column a volume has, in a volume's words:
+   * give them for a kind whose objects report less (a NAS server has no
+   * size) or call their size something else (an appliance's is physical).
+   */
+  inventoryColumns?: StorageArrayInventoryColumns | undefined;
+}
+
+/*
+ * What a kind's objects report, so its Inventory page shows only those
+ * columns, each under the kind's own words: a status, a size
+ * (StorageArrayResource.capacityBytes) and what of it is used (usedBytes),
+ * a data reduction ratio, the latest latency, IOPS and bandwidth. A title
+ * or description left out is a volume's (Provisioned, Physical). Every
+ * title and description is a translation key.
+ */
+export interface StorageArrayInventoryColumns {
+  /*
+   * The title of a column of each object's own id (externalId), beside its
+   * name, for a kind whose ids are how its other pages name it: a
+   * PowerStore appliance's A1, which its parts' Appliance column shows.
+   */
+  idTitle?: string | undefined;
+  status: boolean;
+  capacity: boolean;
+  /*
+   * What of its size is used: in bytes, as the shared bar (how full in
+   * percent, amber and red at the capacity lines, the bytes under it), or
+   * not at all.
+   */
+  used: "bytes" | "bar" | "none";
+  dataReduction: boolean;
+  /*
+   * Its latest latency, IOPS and bandwidth; or its latency, with the rest
+   * in the table's column picker, where its names are long and need the
+   * room; or none.
+   */
+  performance: "all" | "latency" | "none";
+  capacityTitle?: string | undefined;
+  capacityDescription?: string | undefined;
+  usedTitle?: string | undefined;
+  usedDescription?: string | undefined;
 }
 
 /*

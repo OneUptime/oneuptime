@@ -66210,5 +66210,6 @@
   "{{count}} appliance": "{{count}} appliance",
   "{{count}} volume group": "{{count}} groupe de volumes",
   "{{count}} volume groups": "{{count}} groupes de volumes",
-  "{{count}} volume groups_one": "{{count}} groupe de volumes"
+  "{{count}} volume groups_one": "{{count}} groupe de volumes",
+  "Capacity provisioned to each volume group's volumes, in bytes.": "Capacité provisionnée pour les volumes de chaque groupe de volumes, en octets."
 }

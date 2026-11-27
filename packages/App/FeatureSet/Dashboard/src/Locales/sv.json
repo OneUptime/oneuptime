@@ -66210,5 +66210,6 @@
   "{{count}} appliance": "{{count}} appliance",
   "{{count}} volume group": "{{count}} volymgrupp",
   "{{count}} volume groups": "{{count}} volymgrupper",
-  "{{count}} volume groups_one": "{{count}} volymgrupp"
+  "{{count}} volume groups_one": "{{count}} volymgrupp",
+  "Capacity provisioned to each volume group's volumes, in bytes.": "Kapacitet tilldelad volymerna i varje volymgrupp, i byte."
 }
