@@ -12,6 +12,7 @@ import {
   ResourceExecutorClass,
 } from "./ResourceExecutor";
 import UnavailableExecutor from "./UnavailableExecutor";
+import XcpNgExecutor from "./XcpNgExecutor";
 import AiResourceType, {
   isAiResourceType,
 } from "../Common/Types/ResourceAiAgent/AiResourceType";
@@ -30,6 +31,8 @@ import AiResourceType, {
  *   GoogleCloudProject                          own APIs)
  *   OpenStackCloud                              OpenStackExecutor (the cloud's
  *                                               own APIs, reads only)
+ *   XcpNgPool                                   XcpNgExecutor (Xen
+ *                                               Orchestra's REST API)
  *
  * Every class is constructed the same way (constructor(options:
  * ExecutorOptions)); an agent without a known type gets an
@@ -50,6 +53,7 @@ export const EXECUTOR_CLASSES: Readonly<
   [AiResourceType.AzureSubscription]: CloudExecutor,
   [AiResourceType.GoogleCloudProject]: CloudExecutor,
   [AiResourceType.OpenStackCloud]: OpenStackExecutor,
+  [AiResourceType.XcpNgPool]: XcpNgExecutor,
 };
 
 export function getExecutorClass(

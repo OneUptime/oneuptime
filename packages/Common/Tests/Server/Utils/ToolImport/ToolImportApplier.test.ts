@@ -31,7 +31,15 @@ import BadDataException from "../../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../../Types/ObjectID";
 import { RestrictionType } from "../../../../Types/OnCallDutyPolicy/RestrictionTimes";
-import { ToolImportNoteCode } from "../../../../Types/ToolImport/ToolImportNote";
+import {
+  ToolImportNote,
+  ToolImportNoteCode,
+} from "../../../../Types/ToolImport/ToolImportNote";
+import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
+import CreateBy from "../../../../Server/Types/Database/CreateBy";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../../../../Server/Utils/Notification/CreatedNotificationHold";
 import {
   ARCHIVED_ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
   ON_CALL_POLICY_NAME_TAKEN_REFUSAL,
@@ -55,6 +63,7 @@ import ToolImportResourceKind from "../../../../Types/ToolImport/ToolImportResou
 import {
   ImportedIncidentRoleKind,
   ImportedIncidentStateKind,
+  ImportedPolicy,
   ToolImportSnapshot,
 } from "../../../../Types/ToolImport/ToolImportSnapshot";
 import ToolImportSource from "../../../../Types/ToolImport/ToolImportSource";
@@ -562,6 +571,115 @@ describe("ToolImportApplier: a whole import", () => {
         userId: PERSON_PROPS.userId!.toString(),
       });
     }
+  });
+
+  /*
+   * A policy's owner teams are written once its create has returned, after
+   * its escalation rules, while its announcement - its channels and "On-Call
+   * Policy Created" - waits a moment for the owners its create's caller
+   * says it adds (WorkspaceRuleOwnersOnCreate, #11224). The import says so,
+   * so a notification rule naming an imported team posts the policy's
+   * created message, and the team's line follows it.
+   */
+  describe("a policy's announcement waits for the owner teams the import gives it (#11224)", () => {
+    // Whether the policy's create says owners are still to come.
+    function isAddingOwners(createBy: unknown): boolean {
+      return CreatedNotificationHold.isAddingOwners(
+        createBy as CreateBy<OnCallDutyPolicy>,
+        [OwnersAddedBy.Caller],
+      );
+    }
+
+    // The policy create under way, or the last one made.
+    function lastPolicyCreate(): CreateBy<OnCallDutyPolicy> {
+      const calls: Array<Array<unknown>> = (
+        OnCallDutyPolicyService.create as unknown as {
+          mock: { calls: Array<Array<unknown>> };
+        }
+      ).mock.calls;
+
+      return calls[calls.length - 1]![0] as CreateBy<OnCallDutyPolicy>;
+    }
+
+    // What each step saw, as the world writes each row.
+    function watch(world: ApplierWorld, seen: Array<string>): void {
+      for (const [service, step] of [
+        ["OnCallDutyPolicy", "policy"],
+        ["OnCallDutyPolicyEscalationRule", "level"],
+        ["OnCallDutyPolicyOwnerTeam", "owner team"],
+      ] as Array<[string, string]>) {
+        world.refuse(service, (): Error | null => {
+          seen.push(`${step}: ${isAddingOwners(lastPolicyCreate())}`);
+          return null;
+        });
+      }
+    }
+
+    test("REGRESSION (#11224): the policy's create says its owner teams come right after it, and they are in once the last is written", async () => {
+      const world: ApplierWorld = new ApplierWorld();
+      const seen: Array<string> = [];
+      watch(world, seen);
+
+      await runImport({});
+
+      expect(seen).toEqual([
+        "policy: true",
+        "level: true",
+        "level: true",
+        "owner team: true",
+      ]);
+      expect(isAddingOwners(lastPolicyCreate())).toBe(false);
+    });
+
+    test("a policy given no owner team says nothing: its announcement waits for nobody", async () => {
+      const world: ApplierWorld = new ApplierWorld();
+      const seen: Array<string> = [];
+      watch(world, seen);
+
+      const base: ToolImportSnapshot = account();
+
+      await runImport({
+        snapshot: {
+          ...base,
+          policies: base.policies.map((each: ImportedPolicy) => {
+            return { ...each, ownerTeamSourceIds: [] };
+          }),
+        },
+      });
+
+      expect(seen).toEqual(["policy: false", "level: false", "level: false"]);
+    });
+
+    test("an owner team OneUptime refuses still lets the wait go, and is noted", async () => {
+      const world: ApplierWorld = new ApplierWorld();
+      world.refuse("OnCallDutyPolicyOwnerTeam", (): Error | null => {
+        return new BadDataException("This team is not in this project.");
+      });
+
+      const { report } = await runImport({});
+
+      expect(isAddingOwners(lastPolicyCreate())).toBe(false);
+      expect(world.createsOf("OnCallDutyPolicyOwnerTeam")).toHaveLength(0);
+      expect(
+        report.items.some((each: ToolImportReportItem) => {
+          return each.notes.some((note: ToolImportNote) => {
+            return note.code === ToolImportNoteCode.PartNotAdded;
+          });
+        }),
+      ).toBe(true);
+    });
+
+    test("a policy create that fails leaves no wait behind", async () => {
+      const world: ApplierWorld = new ApplierWorld();
+      world.refuse("OnCallDutyPolicy", (): Error | null => {
+        return new BadDataException("Refused.");
+      });
+
+      await runImport({});
+
+      expect(isAddingOwners(lastPolicyCreate())).toBe(false);
+      expect(world.createsOf("OnCallDutyPolicyOwnerTeam")).toHaveLength(0);
+    });
   });
 
   test("services, severities, states, roles and custom fields are created with what OneUptime needs of each", async () => {

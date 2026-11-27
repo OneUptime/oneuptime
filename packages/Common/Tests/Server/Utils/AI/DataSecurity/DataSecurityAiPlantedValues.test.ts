@@ -2718,3 +2718,189 @@ describe("a line read from one record never puts a person's name in a plan or a 
     expect(oneRecordNamesIn(asked)).toEqual([]);
   });
 });
+
+/*
+ * A LINE READ FROM SEVERAL RECORDS, A LOWER-CASE VALUE THEY ALL SHARE
+ * (#11204): Fix with AI and the plan before it, over HTTP, for a service's
+ * log and a RUM application's browser log - each finding seen in records
+ * of one line of code (one file and line) read with different words, so
+ * their templates are aligned, and every one of them holding the same
+ * values no detector names: a username, a name written in lower case, an
+ * email's local part - one user's session, the one engineer every ticket
+ * goes to. A word every record shares is no more the code's than one
+ * record's word is: none of those may go, in the plan the Dashboard shows
+ * or in the request the code agent is handed (and its pull request is
+ * written from).
+ */
+const SHARED_VALUES: Readonly<Record<string, string>> = {
+  username: "oquarrington",
+  given: "ottilie",
+  family: "quarrington",
+  localPart: "ottilie.q",
+};
+
+function sharedValuesIn(sent: string): Array<string> {
+  return Object.entries(SHARED_VALUES)
+    .filter(([, value]: [string, string]): boolean => {
+      return sent.toLowerCase().includes(value.toLowerCase());
+    })
+    .map(([key]: [string, string]): string => {
+      return key;
+    });
+}
+
+// The records of one line, each with other words, all with the same values.
+function sharedValueLogRows(): Array<JSONObject> {
+  return ["urgent", "normal", "low"].map(
+    (priority: string, index: number): JSONObject => {
+      return {
+        recordTime: 1795000000000 + index,
+        readLogId: `${PLANTED["sampleRecordLog"]}-${index}`,
+        readFile1: "/usr/src/app/src/tickets.js",
+        readLine1: "44",
+        readFunction1: "assign",
+        readScope: "checkout",
+        readBody: `Ticket assigned to ${SHARED_VALUES["username"]} (${SHARED_VALUES["given"]} ${SHARED_VALUES["family"]}, mailbox ${SHARED_VALUES["localPart"]}) with priority ${priority}`,
+      };
+    },
+  );
+}
+
+describe("a line read from several records never puts a value they all share in a plan or a prompt (#11204)", () => {
+  test("a service's log: the plan and the code agent's request say the line's words, file and line, never the shared values", async () => {
+    useOneRecordServiceRead();
+    jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return { data: sharedValueLogRows() };
+      },
+    } as never);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue(["package.json", "src/tickets.js"]);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const plan: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(plan.status).toBe(200);
+
+    const shown: string = JSON.stringify(plan.answer);
+
+    expect(shown).toContain("Ticket assigned to <value>");
+    expect(sharedValuesIn(shown)).toEqual([]);
+
+    const fixed: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(TELEMETRY_ISSUE_ID),
+    );
+
+    expect(fixed.status).toBe(200);
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect(asked).toContain("Ticket assigned to <value>");
+    // Where the code is, whatever the template keeps: the line's file and number.
+    expect(asked).toContain("src/tickets.js");
+    expect(sharedValuesIn(asked)).toEqual([]);
+  });
+
+  test("a RUM application's browser log: its line and its pages, never the values every record shares", async () => {
+    useRumTables();
+    jest
+      .spyOn(TelemetryScrubCoverage, "getScrubCoverage")
+      .mockResolvedValue({ rules: [] } as never);
+    jest.spyOn(LogService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return {
+          data: ["cart", "wishlist", "orders"].map(
+            (tab: string, index: number): JSONObject => {
+              return {
+                recordTime: 1795000000000 + index,
+                readLogId: `${RUM_PLANTED["logId"]}-${index}`,
+                readBody: `Opened ${tab} for ${SHARED_VALUES["username"]} (${SHARED_VALUES["given"]} ${SHARED_VALUES["family"]}) from the header`,
+                readUrlFull: `https://shop.example.com/account/${tab}?user=${SHARED_VALUES["username"]}`,
+                readStackTrace: [
+                  "Error: Opened",
+                  "    at e (https://shop.example.com/assets/app.3f9c1e.js:1:1)",
+                ].join("\n"),
+                readServiceVersion: "web-1.4.2",
+              };
+            },
+          ),
+        };
+      },
+    } as never);
+    jest.spyOn(RumSessionService, "executeQuery").mockResolvedValue({
+      json: async (): Promise<{ data: Array<JSONObject> }> => {
+        return { data: [] };
+      },
+    } as never);
+    jest
+      .spyOn(TelemetrySourceMapService, "resolveFramesForService")
+      .mockImplementation((async (data: { frames: Array<JSONObject> }) => {
+        return {
+          frames: data.frames.map((frame: JSONObject) => {
+            return {
+              ...frame,
+              inApp: true,
+              resolved: true,
+              originalFileName:
+                "webpack://storefront-web/./src/account/tabs.js",
+              originalLineNumber: 21,
+              originalFunctionName: "open",
+            };
+          }),
+        };
+      }) as never);
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue([
+        {
+          id: INFRA_ID,
+          name: "web",
+          organizationName: "acme",
+          repositoryName: "web",
+          mainBranchName: "main",
+          gitHubAppInstallationId: null,
+          repositoryHostedAt: CodeRepositoryType.GitHub,
+        },
+      ]);
+    jest
+      .spyOn(CodeRepositoryServiceClass, "getRepositoryTreePaths")
+      .mockResolvedValue(["package.json", "src/account/tabs.js"]);
+    jest.spyOn(CodeFixOnItsWay, "findTaskId").mockResolvedValue(null);
+    jest
+      .spyOn(DataSecurityAiProposalService, "expireWaitingInLane")
+      .mockResolvedValue(0);
+    const queued: SpyInstance<
+      typeof SubjectCodeFixRun.enqueueSubjectCodeFixRun
+    > = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue(new AIRun(RUN_ID));
+
+    const plan: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.issueFixPlan(RUM_ISSUE_ID),
+    );
+
+    expect(plan.status).toBe(200);
+    expect(sharedValuesIn(JSON.stringify(plan.answer))).toEqual([]);
+
+    const fixed: SentRequest = await post(
+      DATA_SECURITY_API_ROUTES.fixIssueWithAi(RUM_ISSUE_ID),
+    );
+
+    expect(fixed.status).toBe(200);
+    expect(queued).toHaveBeenCalledTimes(1);
+
+    const asked: string = JSON.stringify(queued.mock.calls[0]![0]);
+
+    expect(asked).toContain("Opened <value> for <value>");
+    expect(asked).toContain("src/account/tabs.js");
+    expect(sharedValuesIn(asked)).toEqual([]);
+  });
+});

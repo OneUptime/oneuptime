@@ -61,6 +61,28 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_TLS_FINGERPRINT` | Installationsskript | SHA-256-fingeravtrycket för Xen Orchestras eget certifikat, när agenten litar på just det certifikatet och inget annat |",
   "| `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to `xo-ca.pem` |":
     "| `XO_CA_FILE` | Installationsskript | Ett CA-paket som har utfärdat Xen Orchestras certifikat, och som skriptet kopierar till `xo-ca.pem` |",
+  "| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |":
+    "| `ONEUPTIME_AI_XO_READ_TOKEN` | Nej | En token för en Xen Orchestra-användare med en kopia av den inbyggda rollen **Read only** och inget annat: XCP-ng-AI-agenten körs när den är satt, och läser med den |",
+  "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |":
+    "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | Nej | Bara för åtgärder: en token för en annan användare vars roll tillåter dem. Utan den ändrar AI-agenten ingenting |",
+  "| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |":
+    "| `XCP_NG_POOL_ID` | Nej | XAPI-UUID:t för den pool som AI-agenten hanterar (standard: den enda pool som dess lästoken kan se) |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Nej | Åsidosätter `XCP_NG_POOL_ID` som den pool som AI-agenten registrerar sig som |",
+  "| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | Nej | `true` eller `false`: om OneUptime AI får köra AI-agentens skrivskyddade kommandon medan den utreder (standard: på) |",
+  "| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix |":
+    "| `ONEUPTIME_AI_FIXES` | Nej | `off`, `ask-for-approval`, `automatic` eller `bypass-approval`: hur OneUptime AI får tillämpa en åtgärd |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES` | Nej | `true` låter AI-agenten tillämpa åtgärder, med token för ändringar. Allt annat håller den skrivskyddad |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated (default: all) |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | Nej | De `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` eller `schedule/<uuid>` som en åtgärd får röra, kommaseparerade (standard: alla) |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | Nej | Samma sak, för det som OneUptime AI aldrig får ändra: den VM som AI-agenten körs i, och Xen Orchestras egen |",
+  "| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (default), `warn` or `error` |":
+    "| `LOG_LEVEL` | Nej | AI-agentens loggnivå: `debug`, `info` (standard), `warn` eller `error` |",
+  "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
+    "| `COMPOSE_PROFILES` | Nej | `xcp-ng-ai-agent` startar AI-agenten; installationsskriptet skriver det när lästoken är satt |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "Agenten kontrollerar Xen Orchestras certifikat mot `xo-ca.pem` bredvid `docker-compose.yml`.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

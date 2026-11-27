@@ -149,6 +149,7 @@ import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorSteps
 import MonitorStepsValuesUtil from "../../Utils/Monitor/MonitorStepsValuesUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import MonitorTurnedOff from "../Utils/Monitor/MonitorTurnedOff";
+import MonitorIncidentPause from "../Utils/Monitor/MonitorIncidentPause";
 import LatestIncomingRequest, {
   ReadersCopyRewrite,
 } from "../Utils/Monitor/LatestIncomingRequest";
@@ -2404,6 +2405,62 @@ export class Service extends ProjectReferencesService<Model> {
           } as LogAttributes,
         );
         logger.error(error as Error);
+      }
+    }
+
+    /*
+     * Keep monitoring during incidents switched (issue #11141): the monitor
+     * is paused or resumed at once, as the open incidents declared by hand
+     * on it now say - turned on while one pauses it, its checks start again
+     * now, not once the incident is resolved. And monitoring turned back on:
+     * while such an incident pauses it with no status of its own, its time
+     * is still left out of uptime from here (MonitorIncidentPause). Each
+     * monitor on its own; a side effect never fails the save.
+     */
+    if (
+      onUpdate.updateBy.data.keepMonitoringDuringIncidents !== undefined ||
+      monitorIdsTurnedOn.size > 0
+    ) {
+      for (const monitorId of updatedItemIds) {
+        if (
+          onUpdate.updateBy.data.keepMonitoringDuringIncidents === undefined &&
+          !monitorIdsTurnedOn.has(monitorId.toString())
+        ) {
+          continue;
+        }
+
+        try {
+          const projectId: ObjectID | undefined =
+            (onUpdate.updateBy.props.tenantId as ObjectID | undefined) ||
+            (
+              await this.findOneById({
+                id: monitorId,
+                select: {
+                  projectId: true,
+                },
+                props: {
+                  isRoot: true,
+                },
+              })
+            )?.projectId;
+
+          if (!projectId) {
+            continue;
+          }
+
+          await MonitorIncidentPause.syncMonitors({
+            projectId: projectId,
+            monitorIds: [monitorId],
+          });
+        } catch (error) {
+          logger.error(
+            "Pausing or resuming a monitor for its incidents after Keep monitoring during incidents changed failed in MonitorService.onUpdateSuccess",
+            {
+              monitorId: monitorId?.toString(),
+            } as LogAttributes,
+          );
+          logger.error(error as Error);
+        }
       }
     }
 

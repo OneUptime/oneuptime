@@ -281,7 +281,7 @@ describe("the card", () => {
       "affectedResources",
       "TextBlock: OneUptime AI investigates what you pick here, and can fix it.",
       "incidentMonitors",
-      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved.",
+      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
     ]);
 
     const input: JSONObject = bodyOf(card)[4]!;
@@ -312,7 +312,7 @@ describe("the card", () => {
       "incidentDescription",
       "incidentSeverity",
       "incidentMonitors",
-      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved.",
+      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
     ]);
     expect(JSON.stringify(card)).not.toContain("Data.Query");
   });
@@ -403,7 +403,7 @@ describe("the card", () => {
       "incidentSeverity",
       "affectedResources",
       "incidentMonitors",
-      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved.",
+      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
     ]);
   });
 
@@ -487,7 +487,7 @@ describe("the card's Notify Status Page Subscribers", () => {
       "incidentDescription",
       "incidentSeverity",
       "incidentMonitors",
-      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved.",
+      "TextBlock: A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
       "monitorStatus",
       "notifyStatusPageSubscribers",
       `TextBlock: ${QUESTION}`,

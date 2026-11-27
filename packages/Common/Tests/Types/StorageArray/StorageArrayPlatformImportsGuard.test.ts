@@ -41,6 +41,9 @@ const READERS: ReadonlyArray<string> = [
   "Types/StorageArray/StorageArrayPlatformRegistry.ts",
   "Types/StorageArray/StorageSystemUtil.ts",
   "Types/StorageArray/StorageArrayResourceKindUtil.ts",
+  // What a part's status word and a series' unit mean, on any platform.
+  "Types/StorageArray/StorageArrayStatusUtil.ts",
+  "Types/StorageArray/StorageArrayMetricUnitUtil.ts",
   "Types/Monitor/StorageArrayMetricCatalog.ts",
   "Types/Monitor/StorageArrayAlertTemplates.ts",
   "Server/Utils/Telemetry/StorageArray/StorageArrayExtractors.ts",
@@ -177,16 +180,21 @@ describe("a platform module imports leaves only", () => {
     for (const platform of [
       "Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform.ts",
       "Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform.ts",
+      "Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform.ts",
+      "Types/StorageArray/Platforms/NetApp/ONTAP/OntapKindPages.ts",
     ]) {
       expect(reached.has(platform)).toBe(true);
     }
-    expect(
-      reach(
-        "Server/Utils/Telemetry/StorageArray/StorageArrayExtractors.ts",
-      ).has(
-        "Server/Utils/Telemetry/StorageArray/PureStorage/FlashBladeExtractor.ts",
-      ),
-    ).toBe(true);
+    for (const extractor of [
+      "Server/Utils/Telemetry/StorageArray/PureStorage/FlashBladeExtractor.ts",
+      "Server/Utils/Telemetry/StorageArray/NetApp/OntapExtractor.ts",
+    ]) {
+      expect(
+        reach(
+          "Server/Utils/Telemetry/StorageArray/StorageArrayExtractors.ts",
+        ).has(extractor),
+      ).toBe(true);
+    }
   });
 });
 
@@ -197,6 +205,11 @@ describe("a platform module imports leaves only", () => {
 const ENTRY_POINTS: ReadonlyArray<string> = [
   "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform",
   "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladeMetrics",
+  "../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform",
+  "../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapKindPages",
+  "../../../Types/StorageArray/StorageArrayStatusUtil",
+  "../../../Types/StorageArray/StorageArrayMetricUnitUtil",
+  "../../../Server/Utils/Telemetry/StorageArray/NetApp/OntapExtractor",
   "../../../Types/StorageArray/Platforms/StorageArrayPlatforms",
   "../../../Types/StorageArray/StorageArrayPlatformRegistry",
   "../../../Types/StorageArray/StorageSystemUtil",
@@ -266,10 +279,13 @@ describe("whatever loads first, every platform is there", () => {
     "../../../Types/StorageArray/StorageArrayPlatformRegistry",
   );
 
-  test("the registry, loaded first, holds both platforms, their catalog, templates and extractors", () => {
+  test("the registry, loaded first, holds every shipped platform, their catalog, templates and extractors", () => {
     expect(expected.systems).toEqual([
       "purestorage.flasharray",
       "purestorage.flashblade",
+      "dell.powerstore",
+      "netapp.ontap",
+      "dell.powermax",
     ]);
     expect(expected.extractors).toEqual(expected.systems);
     expect(expected.metrics).toBeGreaterThan(50);

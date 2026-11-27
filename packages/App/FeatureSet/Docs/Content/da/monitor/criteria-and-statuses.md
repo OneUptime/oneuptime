@@ -3,7 +3,7 @@
 En monitors kriterier afgør, hvad hver kontrol betyder: om monitoren er oppe eller nede, og om OneUptime erklærer en hændelse eller opretter en advarsel. Statusser er dit projekts liste over, hvad en monitor kan være, fra **I drift** til **Offline**. Denne side forklarer begge dele for alle monitortyper; hver types egen side viser de filtre, den tilbyder.
 
 :::cards
-- [Sådan afgør kriterierne](#sådan-afgør-kriterierne): Oppefra og ned, og det første match vinder.
+- [Sådan afgør kriterierne](#sådan-afgør-kriterierne): Oppefra og ned: det første match handler, og det første, der ændrer status, sætter den.
 - [Hvad et kriterium indeholder](#hvad-et-kriterium-indeholder): Filtre, en matchbetingelse, handlinger og indstillinger.
 - [Bedømme et vindue af kontroller](#bedømme-et-vindue-af-kontroller): Tæl mislykkede kontroller, opdag ustabilitet, aflæs en percentil.
 - [Ændr en monitors kriterier](#ændr-en-monitors-kriterier): Rediger, tilføj, omorganiser og test kriterier.
@@ -12,28 +12,31 @@ En monitors kriterier afgør, hvad hver kontrol betyder: om monitoren er oppe el
 
 ## Sådan afgør kriterierne
 
-Hver gang en monitor kontrolleres, vurderer dens kriterier resultatet fra toppen af listen og nedad. Det første kriterium, hvis filtre matcher, afgør, hvad der sker, og kriterierne under det bliver ikke set på ved den kontrol. Matcher intet, går monitoren til sin **Standardstatus for monitor**. Den beholder i stedet sin status, så længe et kriterium, der bringer den tilbage, endnu ikke har matchet: se [Hvornår et kriterium gendannes](#hvornår-et-kriterium-gendannes).
+Hver gang en monitor kontrolleres, vurderer dens kriterier resultatet fra toppen af listen og nedad. Det første kriterium, hvis filtre matcher, afgør, hvad der sker: det erklærer sine hændelser, opretter sine advarsler og ændrer, når det er sat til det, monitorens status. Kriterierne under det bliver kun set på, når det ikke ændrer nogen status, og så kun for status. Matcher intet, går monitoren til sin **Standardstatus for monitor**. Den beholder i stedet sin status, så længe et kriterium, der bringer den tilbage, endnu ikke har matchet: se [Hvornår et kriterium gendannes](#hvornår-et-kriterium-gendannes).
 
 ```mermaid title="Sådan vurderes hver kontrol"
 flowchart TB
     R["Resultatet af<br/>en kontrol"] --> C1{"Første<br/>kriterium:<br/>matcher<br/>dets filtre?"}
-    C1 -->|"Ja"| A["Det kriterium<br/>handler"]
+    C1 -->|"Ja"| A["Det kriterium handler:<br/>erklærer sine hændelser<br/>og opretter advarsler"]
     C1 -->|"Nej"| C2{"Næste kriterium:<br/>matcher<br/>dets filtre?"}
     C2 -->|"Ja"| A
     C2 -->|"Intet matchede"| D["Monitoren<br/>går til<br/>sin standardstatus"]
-    A --> S["Ændrer<br/>status"]
-    A --> I["Erklærer<br/>en hændelse"]
-    A --> L["Opretter<br/>en advarsel"]
+    A --> Q{"Ændrer det<br/>status?"}
+    Q -->|"Ja"| S["Det sætter<br/>status"]
+    Q -->|"Nej"| N["Det første kriterium<br/>under det, der matcher<br/>og ændrer status,<br/>sætter den, ellers går<br/>monitoren til sin<br/>standardstatus"]
 ```
 
 Rækkefølgen er en del af reglen. En ny monitor viser sine kriterier fra det værste tilfælde: offline, så en advarsel, hvor dens type har en (et certifikat eller et domæne, der snart udløber), så online. Et bredt sundt kriterium, som **Er online** sat til **Sand**, matcher næsten alle kontroller, så det kommer sidst: over de andre ville det matche først hver gang, og de andre ville aldrig handle.
 
-Et kriterium, der matcher, men ikke ændrer nogen status, afgør stadig kontrollen: monitoren beholder sin status, og kriterierne under det venter på næste kontrol. **Standardstatus for monitor** gælder kun, når intet kriterium matcher. For en ny monitor er den **I drift**; skift den under **Flere felter** under kriterierne.
+Et kriterium, der matcher, men ikke ændrer nogen status, såsom et, der kun opretter en advarsel, afgør ingen status. Dets advarsel åbnes og løses som ethvert kriteriums, og kriterierne under det, der ændrer status, bedømmes alene for status, i deres rækkefølge: det første af dem, der matcher, sætter status og åbner intet ved den kontrol. Matcher ingen af dem, går monitoren til sin **Standardstatus for monitor**, som når intet kriterium matcher. Et websted, der er oppe igen, men langsomt, står derfor på **I drift** med sin advarsel åben, uanset hvilken status en tidligere kontrol efterlod det i. For en ny monitor er standarden **I drift**; skift den under **Flere felter** under kriterierne.
+
+> [!NOTE]
+> Et kriterium, der matchede først og ikke ændrede nogen status, lod tidligere monitoren blive i den status, den havde, så længe det blev ved med at matche: en switch, som den anbefalede advarselspakke overvåger, missede en polling, kom tilbage med en port over 80 % og blev ved med at være **Offline**, med sin statusside rød, så længe porten var travl. Nu er det kun de kriterier, der ændrer status, der afgør den. En monitor, hvis kriterier alle ændrer status, bedømmes præcis som før. Det samme gælder, hvilket kriterium der erklærer en kontrols hændelser og opretter dens advarsler: på en monitor, der stopper ved det første match, er det stadig det første kriterium, der matcher.
 
 > [!NOTE]
 > En monitor, der åbner en hændelse eller en advarsel pr. vært, container, disk eller interface, vurderer alle kriterier ved hver kontrol, så to værter kan matche to forskellige kriterier på samme tid. Det er en monitor, hvis forespørgsel har en **Gruppér efter**, som en metrik- eller logmonitor, eller et kriterium, der angiver `*` for hver disk eller hvert interface. Det samme gælder en metrikmonitor, der holder øje med et PromQL-udtryk: hver serie, udtrykket returnerer, bedømmes for sig. En monitor for indgående anmodninger, der grupperer hændelser efter et payload-felt, stopper stadig ved det første match.
 >
-> En sådan monitor har stadig én status, der sættes af det første kriterium, der matcher. Et kriterium, der kun bringer den tilbage til dens **Standardstatus for monitor** og ikke åbner nogen hændelse eller advarsel, venter på de værter, der opfyldte et kriterium, som satte en anden status: det matcher, når hver af dem opfylder det, uanset hvad de andre værter gør. Indtil da beholder monitoren sin status, selv når intet kriterium matcher, mens hver værts hændelser og advarsler stadig løses hver for sig.
+> En sådan monitor har stadig én status, der sættes af det første kriterium, der matcher, blandt dem, der ændrer status. Et kriterium, der kun bringer den tilbage til dens **Standardstatus for monitor** og ikke åbner nogen hændelse eller advarsel, venter på de værter, der opfyldte et kriterium, som satte en anden status: det matcher, når hver af dem opfylder det, uanset hvad de andre værter gør. Indtil da beholder monitoren sin status, selv når intet kriterium, der ændrer status, matcher, mens hver værts hændelser og advarsler stadig løses hver for sig.
 
 ## Hvad et kriterium indeholder
 
@@ -125,11 +128,11 @@ Sætningen under vinduets indstillinger gengiver det: »Tjek: "Svartid (i ms)" l
 
 ## Hvornår et kriterium gendannes
 
-Et kriterium holder op med at virke, så snart dets filtre holder op med at matche: ved den kontrol løses dets hændelse og alarm, når **Løs hændelse automatisk** og **Løs advarsel automatisk** er slået til, og monitoren går videre til det næste kriterium, der matcher.
+Et kriterium holder op med at virke, så snart dets filtre holder op med at matche: ved den kontrol løses dets hændelse og alarm, når **Løs hændelse automatisk** og **Løs advarsel automatisk** er slået til, og monitorens status følger de kriterier, der matcher da.
 
 **Gendan kun, når en egen betingelse er opfyldt** holder kriteriet gældende, efter at dets filtre holder op med at matche, indtil filtrene under **Gendannes når** matcher. De starter som det modsatte af kriteriets filtre, over de seneste 10 minutter, og kan bruge alt, hvad et filter tilbyder, for eksempel et vindue, der tæller kontroller. Et kriterium er gældende, så længe monitoren har den status, det sætter, eller en hændelse eller alarm, det har erklæret, er åben. Mens det holder, er det et match på sin plads i listen: et kriterium over det, der matcher, overtager stadig.
 
-Når intet kriterium matcher, beholder en monitor, som et kriterium har flyttet væk fra dens **Standardstatus for monitor**, den status, den har, så længe den også har et kriterium, der kun bringer den tilbage til den status og ikke åbner noget. Det er gendannelsesmarginen: skabelonerne udløses over 90 % og vender tilbage ved 81 % eller derunder, så ved 89 % bliver monitoren, hvor den er. Dens hændelser og alarmer løses stadig, når deres eget kriterium holder op med at matche. En monitor uden et sådant kriterium går til sin **Standardstatus for monitor**, som den altid har gjort.
+Når intet kriterium, der ændrer status, matcher, beholder en monitor, som et kriterium har flyttet væk fra dens **Standardstatus for monitor**, den status, den har, så længe den også har et kriterium, der kun bringer den tilbage til den status og ikke åbner noget. Det er gendannelsesmarginen: skabelonerne udløses over 90 % og vender tilbage ved 81 % eller derunder, så ved 89 % bliver monitoren, hvor den er. Dens hændelser og alarmer løses stadig, når deres eget kriterium holder op med at matche. En monitor uden et sådant kriterium går til sin **Standardstatus for monitor**, som den altid har gjort.
 
 ## Kun på bestemte dage og tidspunkter
 
@@ -153,6 +156,7 @@ flowchart TB
 
 - **Én ad gangen.** Så længe en hændelse, som et kriterium har erklæret, stadig er åben, erklærer det samme kriterium ingen ny, når det matcher igen. Advarsler fungerer på samme måde. En monitor, der grupperer efter vært eller payload-felt, holder én åben pr. vært eller værdi, og et kriterium på en monitor for indgående e-mail med **Åbn en ny hændelse for hver e-mail** åbner én pr. e-mail.
 - **Lukning.** Ved en senere kontrol, hvor et andet kriterium matcher, eller intet, løses en hændelse, hvis kriterium har **Løs hændelse automatisk** slået til, og det samme gælder en advarsel med **Løs advarsel automatisk**. Begge ligger under **Flere felter** i hændelsen eller advarslen, og de kriterier, en ny monitor starter med, har dem slået til.
+- **Det kriterium, der handler.** På en monitor, der stopper ved det første match, erklærer det første kriterium, der matcher, kontrollens hændelser og opretter dens advarsler, også når det ikke ændrer nogen status, og et kriterium under det sætter status. Det åbner intet ved kontrollen: placér de kriterier, der ændrer status, over dem, der kun advarer, det værste først, som en ny monitors er, så kommer en kontrols status og dens hændelse fra det samme kriterium.
 - **Flere sonder.** En monitor, som mere end én sonde kontrollerer, skifter kun, når dens sonder er enige. Se [Sådan evalueres kriterierne](/docs/monitor/create-monitor#sådan-evalueres-kriterier).
 - **En overordnet monitor, der er nede.** På en monitors side **Konfiguration → Afhængigheder** angiver **Afhænger af monitorer** de monitorer, den afhænger af. Så længe en af dem er i en status, der står i **Undertryk, når den overordnedes status er** (enhver offline-status, hvis feltet står tomt), åbner monitoren ingen hændelser eller advarsler. Dens status skifter stadig, og det, der er åbent, løses stadig.
 - **Planlagt vedligeholdelse.** En monitor i en vedligeholdelseshændelse, der er i gang, kontrolleres ikke, så dens kriterier kører ikke. Se [Planlagt vedligeholdelse – Oversigt](/docs/scheduled-maintenance/index).
@@ -236,9 +240,11 @@ En tiendedel giver en monitor plads til at vokse ti gange, før dens kontroller 
 
 Monitorer, der læser telemetri, såsom log-, metrik-, trace-, Kubernetes-, vært- og Docker-monitorer, kontrolleres ikke alle i samme øjeblik. Hver har sit eget øjeblik i sit interval, beregnet ud fra monitorens id: En monitor, der kontrolleres hvert minut, kører i samme sekund af hvert minut, en, der kontrolleres hvert 5. minut, i samme øjeblik af hvert 5-minutters interval, og en, der kontrolleres hver time eller sjældnere, inden for de første 5 minutter af den time eller dag, som intervallet angiver. Øjeblikket forbliver det samme, når OneUptime genstarter, og på hver server, så telemetrilageret læses lidt ad gangen hen over minuttet i stedet for af alle monitorer på én gang.
 
-Hver monitor beholder sit interval: Dens kontroller ligger præcis lige så langt fra hinanden som før, og hver kontrol vurderer det vindue, der slutter, når den kører, så et vindue, der er lige så langt som intervallet, stadig dækker al tiden mellem to kontroller. Det, der flytter sig, er, hvornår i intervallet en kontrol kører: op til ét interval senere og aldrig mere end 5 minutter senere. En hændelse eller en advarsel kan åbne op til så meget senere, end hvis hver kontrol kørte i starten af sit interval, og nogle gange tidligere. Monitorens **Oversigt** viser, hvornår dens næste kontrol skal køre.
+Hver monitor beholder sit interval: Dens kontroller ligger præcis lige så langt fra hinanden som før. Hver kontrol vurderer det vindue, der slutter i dens øjeblik, også når den kører senere, for eksempel mens OneUptime har travlt, eller når en kontrol, der mislykkedes, bliver prøvet igen et par sekunder senere. Derfor dækker et vindue, der er lige så langt som intervallet, præcis tiden siden den forrige kontrol: Ingen data vurderes to gange, og ingen bliver udeladt. En kontrols evalueringsoversigt, under **Vis oversigt** i monitorens **Overvågningslogs**, fortæller, hvilket vindue den vurderede, og det samme gør grundårsagen til en hændelse eller en advarsel, som den åbner. Så længe OneUptime er mere end et minut bagud med at læse den telemetri, den har modtaget, slutter en kontrols vindue i stedet der, hvor OneUptime er nået til i læsningen, så en kontrol aldrig vurderer data, der stadig venter på at blive læst. Hvis OneUptime kommer så langt bagud, at en monitors næste kontrol skal køre, før den forrige er startet, kører kun den forrige, for sit eget vindue, og det næste vindue kontrolleres ikke.
 
-En ny monitor kontrolleres få sekunder efter, at den er oprettet, og derefter i sit eget øjeblik. Når du ændrer en monitors interval, flytter dens næste kontrol til det nye interval. Lige efter en opgradering til en version af OneUptime, der spreder kontrollerne, kontrolleres hver monitor én gang til på det tidspunkt, den gamle tidsplan havde den sat til, og derefter i sit eget øjeblik.
+Det, der flytter sig, er, hvornår i intervallet en kontrol kører: op til ét interval senere og aldrig mere end 5 minutter senere. En hændelse eller en advarsel kan åbne op til så meget senere, end hvis hver kontrol kørte i starten af sit interval, og nogle gange tidligere. Monitorens **Oversigt** viser, hvornår dens næste kontrol skal køre.
+
+En ny monitor kontrolleres få sekunder efter, at den er oprettet, for det vindue, der slutter da, og derefter i sit eget øjeblik. Det samme gælder en monitor, der gik glip af kontroller, mens den var slået fra, eller mens OneUptime var stoppet. Når du ændrer en monitors interval, flytter dens næste kontrol til det nye interval. Lige efter en opgradering til en version af OneUptime, der spreder kontrollerne, kontrolleres hver monitor én gang til på det tidspunkt, den gamle tidsplan havde den sat til, og derefter i sit eget øjeblik.
 
 ## Ændr en monitors kriterier
 
@@ -335,6 +341,12 @@ Et kriterium højere oppe på listen matchede først. Åbn **Konfiguration → K
 
 :::details Der blev ikke åbnet nogen hændelse, da monitoren gik ned
 Tjek det kriterium, der matchede: **Når filtre matcher, erklæres en hændelse.** skal være slået til. Der erklæres ingen hændelse, så længe det samme kriteriums hændelse stadig er åben, så længe en overordnet monitor i **Afhænger af monitorer** er nede, eller så længe monitoren er i planlagt vedligeholdelse. Kortet **Monitor-resumé** på monitorens **Oversigt** fortæller, hvilken det var.
+
+Et kriterium over det, der ikke ændrer nogen status, såsom en advarsel om langsomme svar, kan matche først: det opretter sin advarsel, kriteriet under det sætter status og erklærer kun sin hændelse ved en kontrol, hvor det er det første match. Træk de kriterier, der ændrer status, op over dem, der kun advarer.
+:::
+
+:::details Monitoren gik tilbage til sin standardstatus, mens en advarsel forblev åben
+Advarslens kriterium ændrer ingen status, så det holder ikke monitoren i den status, en tidligere kontrol satte. Det første kriterium, der matcher og ændrer status, sætter den, og når intet gør det, går monitoren til sin **Standardstatus for monitor**. For at beholde en status, så længe et problem varer, skal du give det kriterium, der sætter den, sin egen gendannelsesbetingelse: se [Hvornår et kriterium gendannes](#hvornår-et-kriterium-gendannes).
 :::
 
 :::details Hændelsen forbliver åben, efter at monitoren er kommet sig

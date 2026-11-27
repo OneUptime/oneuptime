@@ -1,17 +1,21 @@
 # 스토리지 어레이 모니터
 
-스토리지 어레이 모니터는 스토리지 어레이 하나를 지켜보며, 어레이가 자체 경고를 올리거나, 공간이 부족해지거나, 느려지거나, 하드웨어나 호스트 경로를 잃거나, 복제가 뒤처질 때 알려 줍니다. Pure Storage FlashArray와 Pure Storage FlashBlade를 지원하며, 어레이가 직접 내보내는 메트릭(Pure의 `purefa_*` 및 `purefb_*` 시리즈)을 읽습니다. 이 메트릭은 OneUptime Storage Array Agent가 수집합니다.
+스토리지 어레이 모니터는 스토리지 어레이 하나를 지켜보며, 어레이가 자체 경고를 올리거나, 공간이 부족해지거나, 느려지거나, 하드웨어나 호스트 경로를 잃거나, 복제가 뒤처질 때 알려 줍니다. Pure Storage FlashArray, Pure Storage FlashBlade, NetApp ONTAP(Amazon FSx for NetApp ONTAP 포함)을 지원하며, OneUptime Storage Array Agent가 수집하는 메트릭을 읽습니다. Pure의 `purefa_*` 및 `purefb_*` 시리즈와, NetApp Harvest가 ONTAP 클러스터에서 읽는 `netapp_*` 시리즈입니다.
+
+Dell PowerStore(`dell.powerstore`)에서도 Dell의 `powerstore_*` 시리즈로 동작합니다.
 
 :::cards
 - [모니터 만들기](#스토리지-어레이-모니터-만들기): 대시보드에서 여섯 단계.
-- [템플릿](#미리-만든-경고-템플릿): 미리 만든 경고 스무 개. 볼륨, 호스트, 구성 요소마다 인시던트 하나.
-- [Pure 시리즈의 작동 방식](#pure-시리즈의-구조): 메트릭 이름 하나에 여러 수치.
+- [템플릿](#미리-만든-경고-템플릿): 미리 만든 경고. 볼륨, 호스트, 어플라이언스, 구성 요소마다 인시던트 하나.
+- [Pure 시리즈의 작동 방식](#pure-시리즈의-구조): 메트릭 이름 하나에 여러 수치. ONTAP 시리즈는 [별도 섹션](#ontap-시리즈의-구조)에서 다룹니다.
 - [메트릭](#수집되는-메트릭): 모니터가 경고를 보낼 수 있는 모든 시리즈.
 :::
 
 ## 작동 방식
 
 OneUptime Storage Array Agent는 어레이의 관리 인터페이스에 닿을 수 있는 머신에서 실행됩니다. 읽기 전용 API 토큰으로 어레이의 메트릭을 읽고, 어레이 이름 `storage.array.name` 과 플랫폼 `storage.system` 레이블을 붙여 OTLP로 OneUptime에 보냅니다. 첫 데이터가 들어오면 어레이가 등록됩니다.
+
+Dell PowerMax (`dell.powermax`)에는 에이전트가 필요 없습니다. OneUptime 프로브가 5분마다 읽기 전용 계정으로 Unisphere for PowerMax에 로그인하여, Unisphere가 관리하는 모든 어레이를 같은 방식으로 보냅니다. 어레이 이름은 바꾸기 전까지 Symmetrix ID입니다([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
 
 스토리지 어레이 모니터는 어레이 하나에 연결됩니다. 매분 그 어레이의 메트릭에 쿼리를 실행하고 결과를 기준과 비교합니다.
 
@@ -31,8 +35,9 @@ flowchart TB
 
 ## 시작하기 전에
 
-- **Storage Array Agent를 설치하세요**. HTTPS로 어레이에 닿을 수 있는 곳에, 어레이의 **readonly** 역할을 가진 사용자의 API 토큰으로 설치합니다. [Storage Array Agent 가이드](/docs/telemetry/storage-arrays)는 사용자, 토큰, 설치를 `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, 어레이의 주소와 토큰(`PURE_FA_ENDPOINT` 및 `PURE_FA_API_TOKEN`, 또는 `PURE_FB_ENDPOINT` 및 `PURE_FB_API_TOKEN`)과 함께 다룹니다.
+- **Storage Array Agent를 설치하세요**. HTTPS로 어레이에 닿을 수 있는 곳에, 어레이의 **readonly** 역할을 가진 사용자의 API 토큰으로 설치합니다. [Storage Array Agent 가이드](/docs/telemetry/storage-arrays)는 사용자, 토큰, 설치를 `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, 어레이의 주소와 토큰(`PURE_FA_ENDPOINT` 및 `PURE_FA_API_TOKEN`, 또는 `PURE_FB_ENDPOINT` 및 `PURE_FB_API_TOKEN`), ONTAP의 경우 클러스터의 주소와 읽기 전용 REST 사용자(`NETAPP_ONTAP_ENDPOINT`, `NETAPP_ONTAP_USERNAME`, `NETAPP_ONTAP_PASSWORD`)와 함께 다룹니다.
 - **어레이가 등록되었는지 확인하세요.** 첫 수집 후 약 1분 뒤에 에이전트의 `STORAGE_ARRAY_NAME` 이름으로 **제품 → 인프라 → 스토리지 어레이 → 모든 스토리지 어레이** 에 나타납니다.
+- **Dell PowerMax의 경우** 대신 그 어레이를 관리하는 Unisphere for PowerMax를 **제품 → 인프라 → 스토리지 어레이 → 연결** 에서 연결하세요. 자세한 내용은 [Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax) 를 참고하세요.
 
 ## 스토리지 어레이 모니터 만들기
 
@@ -74,10 +79,10 @@ flowchart TB
 | 필드 | 탭 | 하는 일 |
 | --- | --- | --- |
 | **스토리지 어레이** | 모두 | 필수. 모든 쿼리를 `resource.storage.array.name` 으로 한정하므로, 둘 다 `vol-01` 이라는 볼륨을 가진 두 어레이가 섞이지 않습니다. |
-| **볼륨** | Custom Metric, 고급 | FlashArray만. `name` 레이블로 볼륨 하나(예: `vol-db-01`). 파드나 볼륨 그룹 안의 볼륨은 `pod::volume` 이나 `group/volume` 이라는 이름을 씁니다. |
+| **볼륨** | Custom Metric, 고급 | 볼륨 하나. FlashArray에서는 `name` 레이블로 지정하고(예: `vol-db-01`. 파드나 볼륨 그룹 안의 볼륨은 `pod::volume` 이나 `group/volume` 이라는 이름을 씀), ONTAP에서는 `volume` 레이블로 지정하는데, 이 레이블은 두 SVM이 같은 값을 가질 수 있습니다. PowerMax에서는 `volume` 레이블, 즉 장치 ID로 지정합니다(예: `00847`). |
 | **호스트** | Custom Metric, 고급 | FlashArray만. 어레이가 아는 호스트 하나를 `host` 레이블로(예: `esxi-01`). |
 | **파드** | Custom Metric, 고급 | FlashArray만. ActiveCluster 또는 ActiveDR 파드 하나를 `name` 레이블로, 복제 링크 시리즈에서는 `local_pod` 로. |
-| **하드웨어 구성 요소** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`. |
+| **하드웨어 구성 요소** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`, ONTAP에서는 시리즈가 그것을 가리키는 레이블(`node`, `disk`, `shelf` 또는 `port`), PowerMax에서는 `component`(`FA-1D` 같은 디렉터 또는 `FA-1D:4` 같은 포트). |
 | **파일 시스템** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 파일 시스템 하나. |
 | **버킷** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 객체 저장소 버킷 하나. |
 | **Storage Array Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. 양식은 그 의미를 주는 레이블 필터를 추가하고, 메트릭이 설명하는 객체로 그룹화하므로, 각 볼륨, 호스트, 구성 요소가 따로 판단됩니다. |
@@ -85,7 +90,9 @@ flowchart TB
 | **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **지난 5분** 으로, 파일 시스템이나 버킷의 사용자 지정 메트릭은 **지난 15분** 으로 시작하며, 템플릿은 자체 값을 설정합니다. |
 | **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **집계 기준**, **속성으로 필터링**, **그룹화 기준**, 그리고 쿼리를 합치는 **메트릭 추가** 와 **수식 추가**. |
 
-에이전트는 어레이 엔드포인트를 60초마다, 볼륨, 호스트, 파드를 2분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다. FlashBlade의 파일 시스템과 버킷은 5분마다 읽고(그래서 15분), FlashArray 디렉터리는 30분마다 읽습니다. 디렉터리 모니터에는 60분 기간을 주세요.
+에이전트는 어레이 엔드포인트를 60초마다, 볼륨, 호스트, 파드를 2분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다. FlashBlade의 파일 시스템과 버킷은 5분마다 읽고(그래서 15분), FlashArray 디렉터리는 30분마다 읽습니다. 디렉터리 모니터에는 60분 기간을 주세요. ONTAP에서는 Harvest가 클러스터의 성능을 매분, 구성, 상태, EMS 이벤트를 3분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다.
+
+PowerStore는 5분마다, 그 클러스터의 상태는 60초마다 읽습니다. PowerStore 모니터에는 15분 기간을 주세요.
 
 ## Pure 시리즈의 구조
 
@@ -103,15 +110,35 @@ Pure는 메트릭 이름 **하나** 에 여러 수치를 담고 레이블로 구
 | `purefa_host_connectivity_info` | `status`(`details` 포함) | 호스트 |
 | `purefa_drive_capacity_bytes` | `component_status`(값은 드라이브의 용량) | 드라이브 |
 
-나쁜 상태로 필터링한 시리즈는 무언가 그 상태에 있는 동안에만 존재하므로, 시리즈가 없으면 정상이라는 뜻입니다. 그래서 **0보다 큰 Max에서 발생하고 0에서 복구** 가 이 시리즈에 맞는 형태이며, 템플릿도 그렇게 만들어져 있습니다. 템플릿의 복구 기준은 시리즈가 없는 것을 0으로 셉니다. 시리즈가 전혀 남아 있지 않으면 이런 템플릿은 같은 윈도우에 `purefa_info` 또는 `purefb_info` 가 도착한 경우에만 복구되므로, 보고를 멈춘 어레이는 아무것도 닫지 않습니다.
+나쁜 상태로 필터링한 시리즈는 무언가 그 상태에 있는 동안에만 존재하므로, 시리즈가 없으면 정상이라는 뜻입니다. 그래서 **0보다 큰 Max에서 발생하고 0에서 복구** 가 이 시리즈에 맞는 형태이며, 템플릿도 그렇게 만들어져 있습니다. 템플릿의 복구 기준은 시리즈가 없는 것을 0으로 셉니다. 시리즈가 전혀 남아 있지 않으면 이런 템플릿은 같은 윈도우에 `purefa_info`, `purefb_info` 또는 `powermax_array_info` 가 도착한 경우에만 복구되므로, 보고를 멈춘 어레이는 아무것도 닫지 않습니다.
 
-모니터 필터와 그룹화 키에서 에이전트의 속성은 `resource.` 로 시작하지만(`resource.storage.array.name`, `resource.storage.system`), Pure 자체의 레이블은 그렇지 않습니다(`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+PowerMax의 시리즈는 각각 값 하나만 담으며, 그 값에 맞춰 이름이 붙습니다. `powermax_array_response_time_usec` 는 `operation` 으로 읽기와 쓰기를 구분합니다. 상태 시리즈도 마찬가지로 무언가 잘못된 동안에만 존재합니다. `powermax_alert_open` 은 Unisphere에 열린 경고가 있는 동안, `powermax_director_offline` 은 디렉터가 온라인이 아닌 동안, `powermax_port_offline` 은 누군가 사용하는 포트가 다운된 동안, `powermax_srdf_group_not_healthy` 는 SRDF 그룹이 일시 중단되거나 오프라인인 동안 존재합니다.
+
+모니터 필터와 그룹화 키에서 에이전트의 속성은 `resource.` 로 시작하지만(`resource.storage.array.name`, `resource.storage.system`), Pure 자체의 레이블은 그렇지 않으며(`name`, `host`, `component_name`, `dimension`, `space`, `severity`), PowerMax의 레이블도 마찬가지입니다(`storage_group`, `volume`, `director`, `port_id`, `srdf_group`).
+
+## PowerStore 시리즈의 구성
+
+Dell의 익스포터는 메트릭 이름마다 값 하나를 쓰므로 PowerStore 시리즈에는 레이블 필터가 필요 없습니다. 레이블이 객체를 가리킵니다. `appliance_id`는 어플라이언스, `name`은 부분, 볼륨 또는 파일 시스템, `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id`, `volume_group_id`는 성능 시리즈의 객체입니다. 상태 시리즈는 정상인 동안 1, 그 밖에는 0이므로 템플릿은 1 미만에서 발생합니다. PowerStore 자체의 경고는 syslog로 들어오며, 그 템플릿(로그 모니터)은 아래 표 다음에 나옵니다.
+
+## ONTAP 시리즈의 구조
+
+NetApp Harvest는 각 시리즈의 이름을 `netapp_<object>_<counter>`로 짓고, 객체를 레이블로 가리킵니다. 볼륨은 `volume`(그 `svm` 안에서), 애그리게이트는 `aggr`, LUN은 `lun`(그 `volume` 및 `svm` 안에서), 노드는 `node`, 디스크는 `disk`, 쉘프는 `shelf`, SnapMirror 관계는 `destination_location`입니다. 지연 시간은 작업당 마이크로초, `_ops`는 초당 작업 수, `_data`는 초당 바이트입니다.
+
+ONTAP의 상태는 세 가지 방식으로 나타납니다.
+
+| 시리즈 | 상태 | 시리즈 하나의 단위 |
+| --- | --- | --- |
+| `netapp_*_new_status` | 정상, 온라인, 업, 실행 중이면 1, 아니면 0 | 객체(폴링할 때마다) |
+| `netapp_health_*_alerts` | 값 1. 레이블에 `severity`(`error` 또는 `warning`)와 이유가 있음 | 열린 문제: 손상된 디스크, 쉘프 장애, 파트너를 테이크오버할 수 없는 노드, 다운된 포트, 시스템 상태 경고 |
+| `netapp_ems_events` | 값 1. `message`, `severity`, 이벤트의 매개변수가 있음 | EMS 이벤트(그 이벤트를 수집한 한 번의 폴링 동안만). 짝을 이루는 이벤트가 해제되면 0으로 한 번 더 내보냄 |
+
+숫자로 된 상태는 기간 안의 모든 측정값이 1보다 작으면 발생하고, 측정값이 다시 1이 되면 복구됩니다. 열린 문제는 그 시리즈가 있는 동안 발생하고 사라지면 복구되는데, `netapp_cluster_new_status`가 계속 들어오는 경우에만 그렇습니다. 따라서 멈춘 에이전트는 아무것도 닫지 않습니다. EMS 이벤트는 한 번의 측정값으로 발생하고 템플릿의 1시간 기간 안에 있는 동안 열려 있으며, 다른 이벤트 없이 1시간이 지나면 복구됩니다.
 
 ## 미리 만든 경고 템플릿
 
-OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
+OneUptime은 템플릿 80개(FlashArray용 12개, FlashBlade용 8개, PowerStore용 16개, ONTAP용 31개, PowerMax용 13개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
 
-기준은 기간 안의 **모든** 값에서 조건이 성립할 때만 발생합니다. 용량, 지연 시간, 지연, 비율 임계값에서 발생한 모니터는 임계값에서 10% 벗어나야 복구되므로, 임계값 근처를 오가는 값 때문에 상태가 흔들리지 않습니다. 경고, 하드웨어, 연결 템플릿은 상태가 5분 창 전체에서 보였을 때 작동하고, 상태가 사라진 뒤 약 5분 후에 복구됩니다.
+기준은 기간 안의 **모든** 값에서 조건이 성립할 때만 발생합니다. 단, ONTAP EMS 템플릿은 예외입니다. Harvest는 이벤트를 한 번의 폴링 동안만 내보내므로 측정값 하나면 충분합니다. 용량, 지연 시간, 지연, 비율 임계값에서 발생한 모니터는 임계값에서 10% 벗어나야 복구되므로, 임계값 근처를 오가는 값 때문에 상태가 흔들리지 않습니다. 경고, 하드웨어, 연결 템플릿은 상태가 5분 창 전체에서 보였을 때 작동하고, 상태가 사라진 뒤 약 5분 후에 복구됩니다.
 
 ### FlashArray
 
@@ -143,19 +170,104 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | High Read Latency | 성능 | 경고 | `purefb_array_performance_latency_usec` 를 `dimension=usec_per_read_op` 및 `protocol=all` 로 필터링, Avg, 최근 10분 | > 10000 µs (10 ms), 모든 프로토콜 기준. ≤ 9000에서 복구 |
 | File System Near Full | 파일 시스템 | 경고 | `purefb_file_systems_space_bytes` 를 `space=available_ratio` 로 필터링, `name` 별 Min, 최근 15분 | < 0.1 — 파일 시스템의 프로비저닝된 크기 중 10%도 남지 않음. 파일 시스템마다 인시던트 하나. ≥ 0.11에서 복구 |
 
+### PowerStore
+
+| 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 가용성 | 심각 | `powerstore_cluster`, Count, 최근 10분 | 기간 내내 데이터 없음 — 에이전트, Dell의 익스포터 또는 클러스터가 응답을 멈춤. 데이터가 다시 들어오면 복구 |
+| Capacity Above 80% | 용량 | 경고 | `powerstore_cap_physical_used_percent`, `appliance_id` 별 Max, 최근 15분 | > 80 — 어플라이언스의 용량이 차고 있음. ≤ 72에서 복구 |
+| Capacity Above 90% | 용량 | 심각 | `powerstore_cap_physical_used_percent`, `appliance_id` 별 Max, 최근 15분 | > 90 — 어플라이언스가 쓰기를 거부하기 직전. ≤ 81에서 복구 |
+| High Read Latency | 성능 | 경고 | `powerstore_perf_avg_read_latency`, `appliance_id` 별 Avg, 최근 15분 | > 5000 µs (5 ms). ≤ 4500에서 복구 |
+| High Write Latency | 성능 | 경고 | `powerstore_perf_avg_write_latency`, `appliance_id` 별 Avg, 최근 15분 | > 5000 µs (5 ms). ≤ 4500에서 복구 |
+| Drive Failed | 하드웨어 | 심각 | `powerstore_hardware_Drive_state`, `name` 별 Min, 최근 10분 | < 1 — 드라이브가 고장 났거나 제거됨. ≥ 1에서 복구 |
+| Node Unhealthy | 하드웨어 | 심각 | `powerstore_hardware_node_state`, `name` 별 Min, 최근 10분 | < 1 — 노드가 Healthy가 아님. ≥ 1에서 복구 |
+| Power Supply Unhealthy | 하드웨어 | 경고 | `powerstore_hardware_Power_Supply_state`, `name` 별 Min, 최근 10분 | < 1 — 전원 공급 장치가 고장 났거나 전원을 잃음. ≥ 1에서 복구 |
+| Fan Unhealthy | 하드웨어 | 경고 | `powerstore_hardware_Fan_state`, `name` 별 Min, 최근 10분 | < 1 — 팬이 고장 남. ≥ 1에서 복구 |
+| Battery Unhealthy | 하드웨어 | 경고 | `powerstore_hardware_Battery_state`, `name` 별 Min, 최근 10분 | < 1 — 배터리 백업 모듈에 결함이 생김. ≥ 1에서 복구 |
+| Drive Wearing Out | 하드웨어 | 경고 | `powerstore_wear_metrics_by_drive`, `name` 별 Min, 최근 15분 | < 10 — 드라이브의 남은 내구성이 10% 미만. ≥ 11에서 복구 |
+| NAS Server Not Started | 파일 시스템 | 경고 | `powerstore_nas_server_operational_status`, `name` 별 Max, 최근 10분 | < 1 — NAS 서버가 중지되었거나 성능이 저하됨. ≥ 1에서 복구 |
+| Volume Not Ready | 어레이 상태 | 경고 | `powerstore_volume_state`, `name` 별 Max, 최근 15분 | < 1 — 볼륨이 오프라인. ≥ 1에서 복구 |
+| File System Near Full | 파일 시스템 | 경고 | `powerstore_filesystem_logical_used_percent`, `name` 별 Max, 최근 15분 | > 90 — 파일 시스템이 거의 가득 참. ≤ 81에서 복구 |
+| Cluster Not Configured | 어레이 상태 | 경고 | `powerstore_cluster`, Max, 최근 10분 | < 1 — 클러스터가 Configured가 아님. ≥ 1에서 복구 |
+| Metro Witness Not Connected | 복제 | 경고 | `powerstore_metro_witness_status`, `name` 별 Min, 최근 10분 | > 0 — Metro Witness가 연결되지 않음. 다시 OK가 되면 복구 |
+
+### syslog를 통한 PowerStore 경고
+
+PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로그** 모니터이며, 어레이의 **권장 사항** 페이지의 **어레이 경고** 아래에 제공됩니다. 각 템플릿은 PowerStore 경고마다 경고 하나를 열어 `powerstore.resource.name`과 `powerstore.alert.id`로 그룹화하고, PowerStore가 그 경고를 해제하면 해결합니다:
+
+| 템플릿 | 심각도 | 여는 줄의 내용 | 해결하는 줄의 내용 |
+| --- | --- | --- | --- |
+| Critical Array Alert | 심각 | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | 경고 | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | 경고 | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
+
+### ONTAP
+
+| 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 가용성 | 심각 | `netapp_cluster_new_status`, Count, 최근 10분 | 기간 내내 데이터 없음 — 에이전트나 Harvest가 멈췄거나 클러스터가 Harvest에 더 이상 응답하지 않음. 데이터가 다시 들어오면 복구 |
+| Cluster Not Healthy | 어레이 상태 | 경고 | `netapp_cluster_new_status`, Max, 최근 10분 | < 1 — ONTAP이 클러스터를 정상이 아니라고 보고함. ≥ 1에서 복구 |
+| System Health Alert | 어레이 상태 | 경고 | `netapp_health_support_alerts`, `name` 별 Max, 최근 5분 | > 0 — ONTAP 시스템 상태 모니터가 경고를 올림(쉘프로 가는 경로 누락, 노드 연결 문제). 경고마다 인시던트 하나. ONTAP이 해제하면 복구 |
+| Emergency EMS Event | 어레이 상태 | 심각 | `netapp_ems_events` 를 `severity=emergency` 로 필터링, `message` 별 Max, 최근 1시간, 임의의 값 | > 0 — ONTAP이 emergency 이벤트를 기록함. 이벤트마다 인시던트 하나. 다른 이벤트 없이 1시간이 지나면 복구 |
+| Alert EMS Event | 어레이 상태 | 심각 | `netapp_ems_events` 를 `severity=alert` 로 필터링, `message` 별 Max, 최근 1시간, 임의의 값 | > 0 — ONTAP이 alert 이벤트를 기록함(팬 고장 등). 다른 이벤트 없이 1시간이 지나면 복구 |
+| Disk Out of Service | 하드웨어 | 경고 | `netapp_ems_events` 를 `message=disk.outOfService` 로 필터링, `disk` 별 Max, 최근 1시간, 임의의 값 | > 0 — ONTAP이 디스크를 서비스에서 제외함. 다른 이벤트 없이 1시간이 지나면 복구 |
+| Node Panic | 하드웨어 | 심각 | `netapp_ems_events` 를 `message=sk.panic` 으로 필터링, `node` 별 Max, 최근 1시간, 임의의 값 | > 0 — 노드가 패닉 후 재부팅되었고 파트너가 그 스토리지를 테이크오버함. 다른 이벤트 없이 1시간이 지나면 복구 |
+| Aggregate Above 80% | 용량 | 경고 | `netapp_aggr_space_used_percent`, `aggr` 별 Max, 최근 15분 | > 80. ≤ 72에서 복구 |
+| Aggregate Above 90% | 용량 | 심각 | `netapp_aggr_space_used_percent`, `aggr` 별 Max, 최근 5분 | > 90 — 그 위의 볼륨이 더 이상 커질 수 없음. ≤ 81에서 복구 |
+| Volume Above 90% | 용량 | 경고 | `netapp_volume_size_used_percent`, `volume` 및 `svm` 별 Max, 최근 15분 | > 90. ≤ 81에서 복구 |
+| Volume Above 98% | 용량 | 심각 | `netapp_volume_size_used_percent`, `volume` 및 `svm` 별 Max, 최근 5분 | > 98 — 클라이언트가 공간 부족 오류를 받고, 그 안의 LUN이 오프라인이 될 수 있음. ≤ 88.2에서 복구 |
+| High Read Latency | 성능 | 경고 | `netapp_cluster_read_latency`, Avg, 최근 15분 | > 10000 µs (10 ms). ≤ 9000에서 복구 |
+| High Write Latency | 성능 | 경고 | `netapp_cluster_write_latency`, Avg, 최근 15분 | > 10000 µs (10 ms). ≤ 9000에서 복구 |
+| Volume Latency Above 20 ms | 성능 | 경고 | `netapp_volume_read_latency`, `volume` 및 `svm` 별 Avg, 최근 15분 | > 20000 µs. ≤ 18000에서 복구 |
+| Node Not Healthy | 하드웨어 | 심각 | `netapp_node_new_status`, `node` 별 Max, 최근 10분 | < 1 — ONTAP이 노드를 정상이 아니라고 보고함. ≥ 1에서 복구 |
+| Takeover Not Possible | 하드웨어 | 심각 | `netapp_health_ha_alerts`, `node` 별 Max, 최근 5분 | > 0 — 노드가 HA 파트너를 테이크오버할 수 없어, 장애가 나면 그 파트너의 스토리지가 오프라인이 됨. 다시 테이크오버할 수 있게 되면 복구 |
+| Disk Failed | 하드웨어 | 심각 | `netapp_health_disk_alerts` 를 `container_type=broken` 으로 필터링, `disk` 별 Max, 최근 5분 | > 0 — 디스크가 손상됨. 교체되면 복구 |
+| Shelf Fault | 하드웨어 | 심각 | `netapp_health_shelf_alerts` 를 `severity=error` 로 필터링, `shelf` 별 Max, 최근 5분 | > 0 — ONTAP이 디스크 쉘프의 오류(전원 공급 장치, 모듈, 경로)를 보고함. ONTAP이 해제하면 복구 |
+| Node Fan Failed | 하드웨어 | 경고 | `netapp_node_failed_fan`, `node` 별 Max, 최근 10분 | 고장 난 팬 > 0개. ≤ 0에서 복구 |
+| Node Power Supply Failed | 하드웨어 | 심각 | `netapp_node_failed_power`, `node` 별 Max, 최근 10분 | 고장 난 전원 공급 장치 > 0개. ≤ 0에서 복구 |
+| Shelf Power Supply Failed | 하드웨어 | 심각 | `netapp_shelf_psu_status`, `shelf` 별 Max, 최근 10분 | < 1 — 쉘프의 전원 공급 장치가 정상이 아님. ≥ 1에서 복구 |
+| Shelf Fan Failed | 하드웨어 | 경고 | `netapp_shelf_fan_status`, `shelf` 별 Max, 최근 10분 | < 1 — 쉘프의 팬이 정상이 아님. ≥ 1에서 복구 |
+| Ethernet Port Down | 하드웨어 | 경고 | `netapp_health_network_ethernet_port_alerts`, `port` 및 `node` 별 Max, 최근 5분 | > 0 — 활성 Ethernet 포트가 다운됨. 링크가 다시 업되면 복구 |
+| FC Port Link Failures | 하드웨어 | 경고 | `netapp_fcp_link_failure`, `port` 및 `node` 별 Max, 최근 15분 | > 0 — Fibre Channel 포트의 링크가 기간 안에 장애를 일으킴. ≤ 0에서 복구 |
+| SnapMirror Behind Schedule | 복제 | 경고 | `netapp_snapmirror_lag_time` 을 `netapp_snapmirror_schedule_seconds` 로 나눈 값, `destination_location` 별 Max, 최근 15분 | > 1.5 — 관계가 일정 간격의 1.5배를 넘게 뒤처짐(1시간마다인 관계라면 90분). ≤ 1.35에서 복구 |
+| SnapMirror Relationship Unhealthy | 복제 | 심각 | `netapp_snapmirror_labels` 를 `healthy=false` 로 필터링, `destination_location` 별 Max, 최근 5분 | > 0 — ONTAP이 관계를 비정상으로 보고하며, 이유는 `unhealthy_reason` 레이블에 있음. ONTAP이 정상으로 보고하면 복구 |
+| SnapMirror Lag Above 1 Day | 복제 | 경고 | `netapp_snapmirror_lag_time`, `destination_location` 별 Max, 최근 15분 | > 86400 s(일정과 관계없이). ≤ 77760에서 복구 |
+| Aggregate Offline | 가용성 | 심각 | `netapp_aggr_new_status`, `aggr` 별 Max, 최근 10분 | < 1 — 애그리게이트가 온라인이 아니어서 그 볼륨에 하나도 연결할 수 없음. ≥ 1에서 복구 |
+| Volume Offline | 가용성 | 경고 | `netapp_volume_new_status`, `volume` 및 `svm` 별 Max, 최근 10분 | < 1 — 볼륨이 온라인이 아님. ≥ 1에서 복구 |
+| LUN Offline | 가용성 | 심각 | `netapp_lun_new_status`, `lun`, `volume` 및 `svm` 별 Max, 최근 10분 | < 1 — LUN이 온라인이 아니며, 호스트가 그 디스크를 잃음. ≥ 1에서 복구 |
+| SVM Stopped | 가용성 | 경고 | `netapp_svm_labels` 를 `state=stopped` 및 `type=data` 로 필터링, `svm` 별 Max, 최근 10분 | > 0 — 데이터 SVM이 중지됨. 다시 실행되면 복구. ONTAP이 자체용으로 두는 SVM은 감시하지 않음 |
+
+### PowerMax
+
+| 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 가용성 | 심각 | `powermax_array_info`, Count, 최근 10분 | 기간 내내 데이터 없음 — 프로브가 어레이 수집을 멈춤. 연결이 실패하거나(**연결** 아래의 해당 페이지에 이유가 표시됨), 프로브의 연결이 끊겼거나, Unisphere가 더 이상 어레이를 관리하지 않음. 데이터가 다시 들어오면 복구 |
+| Critical Unisphere Alert | 어레이 상태 | 심각 | `powermax_alert_open` 을 `severity=critical` 로 필터링, `description` 별 Max, 최근 10분 | > 0 — Unisphere에 어레이에 대한 심각도 Critical 또는 Fatal의 열린 경고가 있음. 경고마다 인시던트 하나. Unisphere에서 경고가 인지되거나 해제되면 복구 |
+| Warning Unisphere Alert | 어레이 상태 | 경고 | `powermax_alert_open` 을 `severity=warning` 으로 필터링, `description` 별 Max, 최근 10분 | > 0 — Unisphere에 심각도 Warning 또는 Minor의 열린 경고가 있음. 경고마다 인시던트 하나. 경고가 인지되거나 해제되면 복구 |
+| Performance Collection Off | 어레이 상태 | 경고 | `powermax_array_performance_collection`, Min, 최근 15분 | < 1 — Unisphere가 어레이의 5분 단위 성능을 수집하지 않으므로 응답 시간, IOPS, 처리량의 차트도 경고도 없음. ≥ 1에서 복구 |
+| Storage Resource Pool Above 80% | 용량 | 경고 | `powermax_srp_capacity_used_percent`, `srp` 별 Max, 최근 15분 | > 80 — 풀이 가득 차면 그 스토리지 그룹이 새 쓰기를 받지 않음. 풀마다 인시던트 하나. ≤ 72에서 복구 |
+| Storage Resource Pool Above 90% | 용량 | 심각 | `powermax_srp_capacity_used_percent`, `srp` 별 Max, 최근 15분 | > 90 — 가득 차는 순간 그 스토리지 그룹에 대한 쓰기가 실패함. 풀마다 인시던트 하나. ≤ 81에서 복구 |
+| Storage Group Response Time Above 5 ms | 성능 | 경고 | `powermax_storage_group_response_time_usec`, `storage_group` 별 Avg, 최근 15분 | > 5000 µs (5 ms) — PowerMax는 보통 밀리초보다 훨씬 짧은 시간에 응답함. 스토리지 그룹마다 인시던트 하나. ≤ 4500에서 복구 |
+| High Read Response Time | 성능 | 경고 | `powermax_array_response_time_usec` 를 `operation=read` 로 필터링, Avg, 최근 15분 | > 3000 µs (3 ms). ≤ 2700에서 복구 |
+| High Write Response Time | 성능 | 경고 | `powermax_array_response_time_usec` 를 `operation=write` 로 필터링, Avg, 최근 15분 | > 3000 µs (3 ms) — 동기식 SRDF는 모든 쓰기에 원격 어레이까지의 왕복을 더함. ≤ 2700에서 복구 |
+| Director Not Online | 하드웨어 | 심각 | `powermax_director_offline`, `component` 별 Max, 최근 10분 | > 0 — 디렉터가 온라인이 아니며, 어레이는 나머지 디렉터로 동작함. 디렉터마다 인시던트 하나. 다시 온라인이 되면 복구 |
+| Port Down | 하드웨어 | 경고 | `powermax_port_offline`, `component` 별 Max, 최근 10분 | > 0 — 포트 그룹, 마스킹 뷰 또는 SRDF 그룹에 속한 포트가 작동하지 않음. 포트마다 인시던트 하나. 다시 작동하면 복구 |
+| SRDF Group Suspended or Offline | 복제 | 심각 | `powermax_srdf_group_not_healthy`, `srdf_group` 별 Max, 최근 10분 | > 0 — 그룹의 링크가 오프라인이거나 페어가 일시 중단, 분할 또는 장애 조치 상태여서 원격 복사본이 최신으로 유지되지 않음. 그룹마다 인시던트 하나. 다시 동기화되면 복구 |
+| SRDF/A Lag Above 2 Minutes | 복제 | 경고 | `powermax_srdf_group_lag_seconds`, `srdf_group` 별 Avg, 최근 15분 | > 120 (2분) — 지금 페일오버하면 계획보다 많은 최근 쓰기를 잃음. 그룹마다 인시던트 하나. ≤ 108에서 복구 |
+
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 경고는 프로젝트에서 가장 심각한 인시던트 및 경고 심각도로 시작하며, 기준에서 바꿀 수 있습니다.
 
-- **Array Stopped Reporting** 템플릿은 플랫폼의 식별 시리즈(`purefa_info` 또는 `purefb_info`)를 셉니다. 에이전트가 수집하는 모든 엔드포인트가 수집할 때마다 이 시리즈를 내보냅니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
+- **Array Stopped Reporting** 템플릿은 플랫폼의 식별 시리즈를 셉니다(`purefa_info` 또는 `purefb_info` 는 에이전트가 수집하는 모든 엔드포인트가 수집할 때마다 내보내고, `powermax_array_info` 는 PowerMax 수집마다 기록됩니다). 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 - **열린 경고와 하드웨어 상태는 Max를 씁니다**. 경고가 열려 있거나 구성 요소가 그 상태에 있는 동안에만 존재하는 시리즈이므로, 상태가 5분 창 전체에서 보였을 때 임계값을 넘습니다.
-- **객체별 템플릿은 모두 객체 자체의 레이블로 그룹화합니다**(`summary`, `component_name`, `host`, `local_pod`, `name`). 그래서 영향받은 객체마다 인시던트가 하나씩 발생하고, 인시던트에 그 객체의 이름이 들어갑니다.
+- **객체별 템플릿은 모두 객체 자체의 레이블로 그룹화합니다**(`summary`, `component_name`, `host`, `local_pod`, `name`, 그리고 PowerMax에서는 `description`, `component`, `srp`, `srdf_group`, `storage_group`). 그래서 영향받은 객체마다 인시던트가 하나씩 발생하고, 인시던트에 그 객체의 이름이 들어갑니다.
 - **지연 시간 템플릿은 Avg를 씁니다**. 어레이 자체의 작업당 평균에 대한 Avg이며, 용량 템플릿은 어레이 자체의 사용률에 대한 **최대** 를 씁니다. 지연 시간은 마이크로초, 용량은 퍼센트로 고정되어 있습니다.
 - **Hardware Component Unhealthy는 구성 요소별 Min을 씁니다**. 상태는 정상일 때 1이고, 아닐 때 0으로 떨어집니다.
 
-볼륨별 지연 시간 템플릿은 없습니다. 알맞은 임계값이 워크로드에 따라 다르기 때문입니다. 카탈로그에서 `name` 으로 그룹화해 직접 만드세요. 용량 예측에는 임계값보다 증가 추세가 필요하고, 드라이브 마모에는 경고를 걸 시리즈가 없습니다.
+FlashArray에는 볼륨별 지연 시간 템플릿이 없습니다. 알맞은 임계값이 워크로드에 따라 다르기 때문입니다. 카탈로그에서 `name` 으로 그룹화해 직접 만드세요. 용량 예측에는 임계값보다 증가 추세가 필요하고, 드라이브 마모에는 경고를 걸 시리즈가 없습니다.
 
 ## 수집되는 메트릭
 
-에이전트는 어레이가 내보내는 모든 것을 보냅니다. 아래 시리즈는 모니터 양식이 제공하는 카탈로그입니다. 모든 값은 어레이가 직접 계산한 게이지이므로(지연 시간은 작업당 마이크로초, 처리량은 초당 값), 비율을 계산할 필요가 없습니다. **필터** 는 시리즈에 그 행이 말하는 의미를 주는 레이블 필터이며, 양식이 대신 적용합니다.
+에이전트는 어레이가 내보내는 모든 것을, 프로브는 PowerMax에서 읽는 모든 것을 같은 단위로 보냅니다(Unisphere의 밀리초는 마이크로초로, 초당 MB는 초당 바이트로). 아래 시리즈는 모니터 양식이 제공하는 카탈로그입니다. 모든 값은 어레이가 직접 계산한 게이지이므로(지연 시간은 작업당 마이크로초, 처리량은 초당 값), 비율을 계산할 필요가 없습니다. **필터** 는 시리즈에 그 행이 말하는 의미를 주는 레이블 필터이며, 양식이 대신 적용합니다.
 
 ### 어레이 상태
 
@@ -163,6 +275,14 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 어레이의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type`, `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary`, `kburl`(Pure 기술 자료 문서) |
+| `powerstore_cluster` | — | PowerStore | `count` | PowerStore 클러스터가 Configured(구성되어 서비스 중)인 동안 1, 그 밖의 상태(Configuring, Expanding, Removing, Clustering_Failed, Unconfigured)에서는 0입니다. |
+| `netapp_cluster_new_status` | — | ONTAP | — | ONTAP이 클러스터를 정상으로 보고하는 동안 1. 에이전트가 아직 클러스터를 읽고 있음을 알려 주는 시리즈이기도 합니다 |
+| `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | ONTAP 각 상태 하위 시스템에서 열린 경고(`subsystem` 별) |
+| `netapp_health_support_alerts` | — | ONTAP | `count` | ONTAP 시스템 상태 모니터가 열어 둔 경고마다 시리즈 하나(열려 있는 동안) |
+| `netapp_ems_events` | — | ONTAP | `count` | EMS 이벤트마다 시리즈 하나(그 이벤트를 수집한 폴링 동안만). 짝을 이루는 이벤트가 해제되면 0으로 한 번 더 내보냅니다 |
+| `powermax_alert_open` | — | PowerMax | `count` | Unisphere가 어레이에 대해 열어 둔 경고마다 시리즈 하나(값 1). 인지되지 않고, 해제되지 않았으며, Minor 이상인 경고가 대상입니다. severity 레이블은 critical(Critical 및 Fatal) 또는 warning(Warning 및 Minor)이며, alert_type, object, description 레이블이 경고의 내용을 알려 줍니다. Unisphere에서 경고를 인지하면 시리즈가 사라집니다 |
+| `powermax_array_health_score` | — | PowerMax | `score` | Unisphere가 매긴 어레이의 상태 점수(0~100). health_metric별로 전체 점수와 평가하는 각 영역(용량, 구성, 성능, 서비스 수준 준수)의 점수가 있습니다 |
+| `powermax_array_performance_collection` | — | PowerMax | `count` | Unisphere가 어레이의 5분 단위 성능 데이터를 수집하는 동안은 1, 수집하지 않는 동안은 0. 꺼져 있으면 OneUptime은 어레이의 인벤토리와 경고는 계속 표시하지만 성능 차트는 그리지 않습니다. Unisphere의 Settings > Performance > System Registrations에서 켜세요 |
 
 ### 용량
 
@@ -176,6 +296,28 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | FlashBlade의 사용 가능한 용량 중 사용 중인 비율 |
 | `purefb_array_space_bytes` | `type=array`, `space=empty` | FlashBlade | `bytes` | FlashBlade의 사용하지 않는 용량 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | FlashBlade 전체의 데이터 감소 |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | 각 어플라이언스의 물리 용량 중 사용 중인 비율(백분율)입니다. 물리 사용량을 전체 물리 용량으로 나눈 값으로, PowerStore의 일일 공간 집계 기준입니다. PowerStore는 70%부터 자체 용량 경고를 발생시킵니다. appliance_id로 그룹화하세요. |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | 각 어플라이언스의 사용 가능한 물리 용량(바이트)입니다. |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | 각 어플라이언스가 사용하는 물리 용량(바이트)으로, 중복 제거와 압축 후의 값입니다. 추세를 보고 어플라이언스가 언제 가득 찰지 예측하세요. |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | 각 어플라이언스에 프로비저닝된 논리 용량(바이트)입니다. 그 안의 모든 볼륨, 파일 시스템, vVol의 크기로, 물리 용량을 훨씬 넘을 수 있습니다. |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | 호스트가 각 어플라이언스에 쓴 데이터(바이트)로, 중복 제거와 압축 전의 값입니다. |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | 각 어플라이언스의 중복 제거와 압축 효과로, 예를 들어 3.4:1이면 3.4입니다. 계속 떨어진다면 새로 쓴 데이터가 잘 줄어들지 않는다는 뜻으로, 암호화되었거나 이미 압축된 데이터입니다. |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | 각 어플라이언스의 전체 효율입니다. 데이터 절감에 스냅샷과 씬 프로비저닝으로 아낀 용량을 더한 값입니다. |
+| `netapp_aggr_space_used_percent` | — | ONTAP | `%` | 각 애그리게이트의 사용 가능한 공간 중 사용 중인 비율. `aggr` 로 그룹화하세요 |
+| `netapp_aggr_space_total` | — | ONTAP | `bytes` | 각 애그리게이트의 사용 가능한 공간. 클러스터의 용량은 그 합계입니다 |
+| `netapp_aggr_space_used` | — | ONTAP | `bytes` | 각 애그리게이트에서 사용 중이거나 예약된 공간 |
+| `netapp_aggr_space_available` | — | ONTAP | `bytes` | 각 애그리게이트에 남은 공간. 추세를 따라가면 언제 가득 찰지 예측할 수 있습니다 |
+| `netapp_aggr_inode_used_percent` | — | ONTAP | `%` | 각 애그리게이트의 파일(inode) 중 사용 중인 비율 |
+| `netapp_aggr_new_status` | — | ONTAP | — | 애그리게이트가 온라인인 동안 1 |
+| `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | 스토리지 효율성이 없었다면 각 애그리게이트의 데이터가 차지했을 양(스냅샷과 FlexClone 제외) |
+| `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | 스토리지 효율성 적용 후 각 애그리게이트의 데이터가 디스크에서 차지하는 양 |
+| `powermax_array_capacity_used_percent` | — | PowerMax | `%` | 어레이의 모든 스토리지 리소스 풀에 걸친, 사용 가능한 용량 중 사용 중인 비율(%) |
+| `powermax_array_capacity_usable_bytes` | — | PowerMax | `bytes` | Unisphere가 보고하는 어레이의 사용 가능한 용량(바이트) |
+| `powermax_array_capacity_used_bytes` | — | PowerMax | `bytes` | 어레이의 사용 가능한 용량 중 사용 중인 용량(바이트) |
+| `powermax_array_capacity_subscribed_bytes` | — | PowerMax | `bytes` | 어레이에 있는 모든 씬 볼륨의 용량(바이트). 호스트에 약속된 용량이며, 사용 가능한 용량을 초과할 수 있습니다 |
+| `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | 호스트가 쓴 데이터가 압축과 중복 제거 후 차지하는 공간보다 몇 배 큰지(Unisphere가 보고한 값) |
+| `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | srp 레이블별, 각 스토리지 리소스 풀의 사용 가능한 용량 중 사용 중인 비율(%). 가득 찬 풀은 그 안의 모든 스토리지 그룹에 대해 새 쓰기를 받지 않습니다 |
+| `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | srp 레이블별, 각 스토리지 리소스 풀에서 사용 중인 사용 가능한 용량(바이트) |
 
 ### 성능
 
@@ -197,6 +339,42 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all` | FlashBlade | `ops/s` | 모든 프로토콜의 초당 쓰기 작업 수 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | 모든 프로토콜의 초당 읽은 바이트 수 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | 모든 프로토콜의 초당 쓴 바이트 수 |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | 각 어플라이언스의 읽기 평균 지연 시간(마이크로초)으로, PowerStore의 최신 5분 샘플 기준입니다. PowerStore의 읽기는 보통 1 ms보다 훨씬 짧게 끝납니다. |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | 각 어플라이언스의 쓰기 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | 각 어플라이언스의 초당 읽기 작업 수입니다. |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | 각 어플라이언스의 초당 쓰기 작업 수입니다. |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 각 어플라이언스에서 초당 읽은 바이트 수입니다. |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 각 어플라이언스에서 초당 쓴 바이트 수입니다. |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | 각 어플라이언스가 스토리지 I/O에 할당한 CPU 코어 중 바쁜 비율(백분율)입니다. 높은 값이 계속되면 어플라이언스가 처리할 수 있는 부하의 한계에 가깝다는 뜻입니다. |
+| `netapp_cluster_read_latency` | — | ONTAP | `µs` | 클러스터 전체의 읽기 평균 지연 시간 |
+| `netapp_cluster_write_latency` | — | ONTAP | `µs` | 클러스터 전체의 쓰기 평균 지연 시간 |
+| `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | 클러스터 전체의 초당 읽기 작업 수 |
+| `netapp_cluster_write_ops` | — | ONTAP | `ops/s` | 클러스터 전체의 초당 쓰기 작업 수 |
+| `netapp_cluster_total_ops` | — | ONTAP | `ops/s` | 클러스터 전체의 초당 모든 작업 수(메타데이터 포함) |
+| `netapp_cluster_read_data` | — | ONTAP | `bytes/s` | 클러스터 전체의 초당 읽은 바이트 수 |
+| `netapp_cluster_write_data` | — | ONTAP | `bytes/s` | 클러스터 전체의 초당 쓴 바이트 수 |
+| `netapp_aggr_read_latency` | — | ONTAP | `µs` | 각 애그리게이트의 읽기 평균 지연 시간 |
+| `netapp_aggr_write_latency` | — | ONTAP | `µs` | 각 애그리게이트의 쓰기 평균 지연 시간 |
+| `netapp_aggr_read_ops` | — | ONTAP | `ops/s` | 각 애그리게이트의 초당 읽기 작업 수 |
+| `netapp_aggr_write_ops` | — | ONTAP | `ops/s` | 각 애그리게이트의 초당 쓰기 작업 수 |
+| `netapp_svm_vol_read_latency` | — | ONTAP | `µs` | 각 SVM 볼륨의 읽기 평균 지연 시간 |
+| `netapp_svm_vol_write_latency` | — | ONTAP | `µs` | 각 SVM 볼륨의 쓰기 평균 지연 시간 |
+| `netapp_svm_vol_read_ops` | — | ONTAP | `ops/s` | 각 SVM 볼륨의 초당 읽기 작업 수 |
+| `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | 각 SVM 볼륨의 초당 쓰기 작업 수 |
+| `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | 각 SVM 볼륨에서 초당 읽은 바이트 수 |
+| `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | 각 SVM 볼륨에 초당 쓴 바이트 수 |
+| `powermax_array_response_time_usec` | `operation=read` | PowerMax | `µs` | 어레이에서 호스트 읽기에 걸리는 평균 시간(마이크로초). Unisphere의 최근 5분 간격 기준(operation read) |
+| `powermax_array_response_time_usec` | `operation=write` | PowerMax | `µs` | 어레이에서 호스트 쓰기에 걸리는 평균 시간(마이크로초). Unisphere의 최근 5분 간격 기준(operation write) |
+| `powermax_array_read_iops` | — | PowerMax | `ops/s` | 어레이의 초당 호스트 읽기 수. Unisphere의 호스트 IO 수에 읽기 비율을 곱한 값입니다 |
+| `powermax_array_write_iops` | — | PowerMax | `ops/s` | 어레이의 초당 호스트 쓰기 수. Unisphere의 호스트 IO 수에 쓰기 비율을 곱한 값입니다 |
+| `powermax_array_read_throughput_bytes` | — | PowerMax | `bytes/s` | 호스트가 어레이에서 읽는 초당 바이트 수 |
+| `powermax_array_write_throughput_bytes` | — | PowerMax | `bytes/s` | 호스트가 어레이에 쓰는 초당 바이트 수 |
+| `powermax_array_cache_hit_percent` | — | PowerMax | `%` | 어레이가 캐시에서 응답한 호스트 I/O의 비율(%) |
+| `powermax_array_write_pending_percent` | — | PowerMax | `%` | 어레이 캐시 중 아직 드라이브로 디스테이징되지 않은 쓰기를 보관하는 비율(%). 어레이의 한도에 가까워지면 호스트 쓰기가 느려집니다 |
+| `powermax_array_frontend_busy_percent` | — | PowerMax | `%` | 호스트를 처리하는 디렉터의 사용률(%) |
+| `powermax_array_backend_busy_percent` | — | PowerMax | `%` | 드라이브를 처리하는 디렉터의 사용률(%) |
+| `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | 다른 어레이로 복제하는 디렉터의 사용률(%) |
+| `powermax_srp_response_time_usec` | — | PowerMax | `µs` | srp 레이블별, 각 스토리지 리소스 풀에서 I/O에 걸리는 평균 시간(마이크로초) |
 
 ### 볼륨
 
@@ -211,6 +389,60 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | 호스트가 보는 각 볼륨의 크기 |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | 데이터 감소 후 각 볼륨이 쓰는 물리 공간 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 각 볼륨의 데이터 감소 비율 |
+| `powerstore_volume_state` | — | PowerStore | `count` | 볼륨이 Ready인 동안 1, Initializing, Offline 또는 삭제 중인 동안 0입니다. 호스트가 접근할 수 없는 볼륨을 찾으려면 name으로 그룹화하세요. |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | 호스트가 보는 각 볼륨의 크기(바이트)입니다. |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | 호스트가 각 볼륨에 쓴 데이터(바이트)로, 중복 제거와 압축 전의 값입니다. |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | 각 볼륨의 평균 읽기 지연 시간(마이크로초)입니다. 느린 볼륨을 찾으려면 볼륨 이름이 담긴 volume_id로 그룹화하세요. |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | 각 볼륨의 평균 쓰기 지연 시간(마이크로초)입니다. |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | 각 볼륨의 초당 읽기 작업 수입니다. |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | 각 볼륨의 초당 쓰기 작업 수입니다. |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 각 볼륨에서 초당 읽은 바이트 수입니다. |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 각 볼륨에 초당 쓴 바이트 수입니다. |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | 각 볼륨 그룹의 볼륨에 프로비저닝된 용량(바이트)입니다. name으로 그룹화하세요. |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | 호스트가 각 볼륨 그룹의 볼륨에 쓴 데이터(바이트)로, 중복 제거와 압축 전의 값입니다. |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | 각 볼륨 그룹의 볼륨 전체에 걸친 평균 읽기 지연 시간(마이크로초)입니다. 그룹 이름이 담긴 volume_group_id로 그룹화하세요. |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | 각 볼륨 그룹의 볼륨 전체에 걸친 평균 쓰기 지연 시간(마이크로초)입니다. |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | 각 볼륨 그룹의 볼륨 전체에 걸친 초당 읽기 및 쓰기 작업 수입니다. |
+| `netapp_svm_new_status` | — | ONTAP | — | SVM이 실행 중인 동안 1. `svm` 으로 그룹화하세요 |
+| `netapp_svm_labels` | `state=stopped`, `type=data` | ONTAP | — | 중지된 데이터 SVM마다 시리즈 하나 |
+| `netapp_volume_size_used_percent` | — | ONTAP | `%` | `volume show` 가 보고하는, 각 볼륨 공간 중 사용 중인 비율. `volume` 및 `svm` 으로 그룹화하세요 |
+| `netapp_volume_size_total` | — | ONTAP | `bytes` | 각 볼륨의 사용 가능한 크기(스냅샷 예약 공간 제외) |
+| `netapp_volume_size_used` | — | ONTAP | `bytes` | 각 볼륨에서 사용 중인 공간 |
+| `netapp_volume_size_available` | — | ONTAP | `bytes` | 각 볼륨에 남은 공간 |
+| `netapp_volume_snapshots_size_used` | — | ONTAP | `bytes` | 각 볼륨의 스냅샷이 사용하는 공간 |
+| `netapp_volume_inode_used_percent` | — | ONTAP | `%` | 각 볼륨의 파일(inode) 중 사용 중인 비율 |
+| `netapp_volume_sis_total_saved_percent` | — | ONTAP | `%` | 각 볼륨의 데이터 중 중복 제거와 압축으로 절감한 비율 |
+| `netapp_volume_new_status` | — | ONTAP | — | 볼륨이 온라인인 동안 1 |
+| `netapp_volume_read_latency` | — | ONTAP | `µs` | 각 볼륨의 읽기 평균 지연 시간 |
+| `netapp_volume_write_latency` | — | ONTAP | `µs` | 각 볼륨의 쓰기 평균 지연 시간 |
+| `netapp_volume_read_ops` | — | ONTAP | `ops/s` | 각 볼륨의 초당 읽기 작업 수 |
+| `netapp_volume_write_ops` | — | ONTAP | `ops/s` | 각 볼륨의 초당 쓰기 작업 수 |
+| `netapp_volume_read_data` | — | ONTAP | `bytes/s` | 각 볼륨에서 초당 읽은 바이트 수 |
+| `netapp_volume_write_data` | — | ONTAP | `bytes/s` | 각 볼륨에 초당 쓴 바이트 수 |
+| `netapp_lun_size_used_percent` | — | ONTAP | `%` | 각 LUN 크기 중 호스트가 쓴 비율 |
+| `netapp_lun_size` | — | ONTAP | `bytes` | 각 LUN이 호스트에 제시하는 크기 |
+| `netapp_lun_size_used` | — | ONTAP | `bytes` | 각 LUN이 볼륨에서 사용하는 공간 |
+| `netapp_lun_new_status` | — | ONTAP | — | LUN이 온라인인 동안 1 |
+| `netapp_lun_avg_read_latency` | — | ONTAP | `µs` | 각 LUN의 읽기 평균 지연 시간 |
+| `netapp_lun_avg_write_latency` | — | ONTAP | `µs` | 각 LUN의 쓰기 평균 지연 시간 |
+| `netapp_lun_read_ops` | — | ONTAP | `ops/s` | 각 LUN의 초당 읽기 작업 수 |
+| `netapp_lun_write_ops` | — | ONTAP | `ops/s` | 각 LUN의 초당 쓰기 작업 수 |
+| `netapp_lun_read_data` | — | ONTAP | `bytes/s` | 각 LUN에서 초당 읽은 바이트 수 |
+| `netapp_lun_write_data` | — | ONTAP | `bytes/s` | 각 LUN에 초당 쓴 바이트 수 |
+| `powermax_storage_group_response_time_usec` | — | PowerMax | `µs` | storage_group 레이블별, 각 스토리지 그룹에서 I/O에 걸리는 평균 시간(마이크로초). Unisphere의 최근 5분 간격 기준 |
+| `powermax_storage_group_read_response_time_usec` | — | PowerMax | `µs` | storage_group 레이블별, 각 스토리지 그룹에서 읽기에 걸리는 평균 시간(마이크로초) |
+| `powermax_storage_group_write_response_time_usec` | — | PowerMax | `µs` | storage_group 레이블별, 각 스토리지 그룹에서 쓰기에 걸리는 평균 시간(마이크로초) |
+| `powermax_storage_group_iops` | — | PowerMax | `ops/s` | storage_group 레이블별, 각 스토리지 그룹의 초당 호스트 I/O 수 |
+| `powermax_storage_group_throughput_bytes` | — | PowerMax | `bytes/s` | storage_group 레이블별, 각 스토리지 그룹에서 호스트가 읽고 쓰는 초당 바이트 수 |
+| `powermax_storage_group_used_bytes` | — | PowerMax | `bytes` | storage_group 레이블별, 각 스토리지 그룹의 볼륨이 사용하는 용량(바이트) |
+| `powermax_storage_group_host_io_limit_exceeded_percent` | — | PowerMax | `%` | 각 스토리지 그룹이 호스트 I/O 한도로 인해 제한된 시간이 간격에서 차지하는 비율(%). 한도가 설정된 스토리지 그룹만 이 값을 보고합니다 |
+| `powermax_storage_group_realtime_read_response_time_usec` | — | PowerMax | `µs` | Unisphere에서 실시간 수집에 등록된 스토리지 그룹의 읽기 응답 시간(마이크로초), 5초마다. 어레이당 최대 100개의 스토리지 그룹을 등록할 수 있습니다 |
+| `powermax_storage_group_realtime_write_response_time_usec` | — | PowerMax | `µs` | Unisphere에서 실시간 수집에 등록된 스토리지 그룹의 쓰기 응답 시간(마이크로초), 5초마다 |
+| `powermax_storage_group_realtime_iops` | — | PowerMax | `ops/s` | 실시간 수집에 등록된 스토리지 그룹의 초당 호스트 I/O 수, 5초마다 |
+| `powermax_storage_group_realtime_throughput_bytes` | — | PowerMax | `bytes/s` | 실시간 수집에 등록된 스토리지 그룹의 초당 바이트 수, 5초마다 |
+| `powermax_volume_response_time_usec` | — | PowerMax | `µs` | volume 레이블별, 각 볼륨에서 I/O에 걸리는 평균 시간(마이크로초). Unisphere는 실시간 수집에 등록된 스토리지 그룹의 볼륨에 대해서만 이 값을 보고합니다 |
+| `powermax_volume_iops` | — | PowerMax | `ops/s` | volume 레이블별, 각 볼륨의 초당 호스트 I/O 수. 실시간 수집에 등록된 스토리지 그룹의 볼륨이 대상입니다 |
+| `powermax_volume_used_bytes` | — | PowerMax | `bytes` | volume 레이블별, 각 볼륨이 사용하는 용량(바이트) |
 
 ### 호스트
 
@@ -230,6 +462,17 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | 각 파드 복제 링크의 평균 복제 지연 |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 각 파드의 복제 트래픽. 레이블은 `direction` 과 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 각 ActiveCluster 파드의 미러링된 쓰기 평균 지연 시간 |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | 각 Metro Witness의 상태입니다: 0 OK, 1 부분 연결, 2 연결 끊김, 3 삭제 중, 4 초기화 중. 0보다 크면 Metro 세션이 스스로 페일오버하지 못할 수 있습니다. |
+| `netapp_snapmirror_lag_time` | — | ONTAP | `s` | 각 SnapMirror 관계의 대상이 소스보다 얼마나 뒤처져 있는지 |
+| `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | 각 관계의 일정이 전송하는 간격. 에이전트가 일정의 이름으로부터 씁니다 |
+| `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | 각 관계의 마지막 전송에 걸린 시간 |
+| `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | 각 관계의 마지막 전송이 보낸 양 |
+| `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | 각 관계의 실패한 업데이트 수. 늘기만 합니다 |
+| `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | ONTAP이 비정상으로 보고하는 관계마다 시리즈 하나. 이유는 `unhealthy_reason` 에 있습니다 |
+| `powermax_srdf_group_not_healthy` | — | PowerMax | `count` | 링크가 오프라인이거나 페어가 일시 중단, 파티션, 분할, 장애 조치 또는 무효 상태인 SRDF 그룹마다 시리즈 하나(값 1). srdf_group, state, remote_symmetrix_id 레이블이 붙습니다. 그룹이 복제 중인 동안에는 시리즈가 없습니다 |
+| `powermax_srdf_group_lag_seconds` | — | PowerMax | `s` | srdf_group 레이블별, 각 비동기 SRDF 그룹의 원격 복사본이 뒤처진 시간(초). 지금 페일오버하면 그 시간만큼의 쓰기를 잃습니다 |
+| `powermax_srdf_group_throughput_bytes` | — | PowerMax | `bytes/s` | srdf_group 레이블별, 각 SRDF 그룹이 원격 어레이로 보내는 초당 바이트 수 |
+| `powermax_srdf_group_response_time_usec` | — | PowerMax | `µs` | srdf_group 레이블별, 각 SRDF 그룹에서 복제된 쓰기가 원격 어레이에 도달하는 데 걸리는 평균 시간(마이크로초) |
 
 ### 하드웨어
 
@@ -240,6 +483,55 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | 각 드라이브의 원시 용량. 레이블은 `component_status`(`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...)와 유형 |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 각 Ethernet 및 Fibre Channel 인터페이스의 초당 오류 수. 오류가 계속되면 대개 케이블, 광 모듈, 스위치 포트 불량입니다 |
 | `purefb_hardware_health` | — | FlashBlade | — | 각 하드웨어 구성 요소(블레이드, 패브릭 모듈, 전원 공급 장치, 팬, ...)의 상태: 1 = 정상, 2 = 사용 안 함, 0 = 비정상. `name` 별 최솟값을 쓰세요 |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 어플라이언스 노드가 Healthy인 동안 1, 그 밖의 상태에서는 0이며, 그 상태는 state 레이블이 알려 줍니다(Failed, Disconnected, Initializing...). name과 appliance_id로 그룹화하세요. |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 드라이브가 Healthy인 동안 1, 고장 났거나 제거되었거나 준비되지 않았을 때 0입니다. 드라이브마다 인시던트 하나를 발생시키려면 name으로 그룹화하세요. |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | 각 드라이브의 남은 쓰기 내구성 비율(백분율)입니다. 0에 가까운 드라이브는 수명이 거의 다했으니 교체를 계획하세요. |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 노드의 팬 모듈이 Healthy인 동안 1, 고장 났거나 제거되었을 때 0입니다. |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 노드의 전원 공급 장치가 Healthy인 동안 1, 고장 났거나 입력 전원을 잃었거나 연결이 끊겼을 때 0입니다. |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 노드의 배터리 백업 모듈이 Healthy인 동안 1, 결함이 생겼거나 연결이 끊겼을 때 0입니다. |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 파이버 채널 포트의 링크가 올라와 있는 동안 1, 내려가 있는 동안 0입니다. 아무것도 연결되지 않은 포트는 항상 내려가 있습니다. 포트 이름이 담긴 fc_port_id로 그룹화하세요. |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 이더넷 포트의 링크가 올라와 있는 동안 1, 내려가 있는 동안 0입니다. 포트 이름이 담긴 eth_port_id로 그룹화하세요. |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | 각 파이버 채널 포트를 거치는 읽기의 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | 각 파이버 채널 포트를 거치는 쓰기의 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | 각 파이버 채널 포트를 거치는 초당 읽기 및 쓰기 작업 수입니다. |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | 각 파이버 채널 포트를 거쳐 초당 읽고 쓴 바이트 수입니다. |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | 각 파이버 채널 포트에서 초당 받은, CRC가 잘못된 프레임 수입니다. 오류가 계속되면 보통 케이블, 광 모듈 또는 스위치 포트 불량입니다. |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | 각 파이버 채널 포트의 초당 링크 실패 수입니다. 하나라도 있으면 포트의 케이블, 광 모듈, 스위치를 살펴볼 만합니다. |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | 각 이더넷 포트에서 초당 받은 바이트 수입니다. |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | 각 이더넷 포트에서 초당 보낸 바이트 수입니다. |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | 각 이더넷 포트에서 초당 받은, CRC 오류가 있는 패킷 수입니다. 오류가 계속되면 보통 케이블, 광 모듈 또는 스위치 포트 불량입니다. |
+| `netapp_node_new_status` | — | ONTAP | — | ONTAP이 노드를 정상으로 보고하는 동안 1. `node` 로 그룹화하세요 |
+| `netapp_node_avg_processor_busy` | — | ONTAP | `%` | 각 노드 프로세서의 사용 정도 |
+| `netapp_node_failed_fan` | — | ONTAP | `count` | 각 노드의 고장 난 팬 |
+| `netapp_node_failed_power` | — | ONTAP | `count` | 각 노드의 고장 난 전원 공급 장치 |
+| `netapp_node_uptime` | — | ONTAP | `s` | 각 노드가 가동된 시간. 떨어지면 재부팅이거나 기브백입니다 |
+| `netapp_disk_new_status` | — | ONTAP | — | 디스크가 중단을 보고하지 않는 동안 1. `disk` 로 그룹화하세요 |
+| `netapp_health_disk_alerts` | — | ONTAP | `count` | ONTAP이 손상 또는 미할당으로 보고하는 디스크마다 시리즈 하나(그 상태인 동안) |
+| `netapp_shelf_new_status` | — | ONTAP | — | 디스크 쉘프가 온라인인 동안 1 |
+| `netapp_health_shelf_alerts` | — | ONTAP | `count` | ONTAP이 디스크 쉘프에서 보고하는 장애마다 시리즈 하나(계속되는 동안) |
+| `netapp_shelf_psu_status` | — | ONTAP | — | 쉘프의 전원 공급 장치가 정상인 동안 1 |
+| `netapp_shelf_fan_status` | — | ONTAP | — | 쉘프의 팬이 정상인 동안 1 |
+| `netapp_shelf_temperature_status` | — | ONTAP | — | 쉘프의 온도 센서가 임계값 안에 있는 동안 1 |
+| `netapp_shelf_temperature_reading` | — | ONTAP | `°C` | 각 쉘프 온도 센서의 측정값 |
+| `netapp_environment_sensor_status` | — | ONTAP | — | 노드의 환경 센서가 임계값 안에 있는 동안 1 |
+| `netapp_health_node_alerts` | — | ONTAP | `count` | ONTAP이 비정상으로 보고하는 노드마다 시리즈 하나(그동안) |
+| `netapp_health_ha_alerts` | — | ONTAP | `count` | HA 파트너를 테이크오버할 수 없는 노드마다 시리즈 하나(할 수 없는 동안) |
+| `netapp_net_port_status` | — | ONTAP | — | Ethernet 포트의 링크가 업인 동안 1 |
+| `netapp_health_network_ethernet_port_alerts` | — | ONTAP | `count` | 다운된 활성 Ethernet 포트마다 시리즈 하나(다운된 동안) |
+| `netapp_nic_rx_bytes` | — | ONTAP | `bytes/s` | 각 Ethernet 포트가 초당 받는 바이트 수 |
+| `netapp_nic_tx_bytes` | — | ONTAP | `bytes/s` | 각 Ethernet 포트가 초당 보내는 바이트 수 |
+| `netapp_nic_util_percent` | — | ONTAP | `%` | 각 Ethernet 포트 속도 중 사용 중인 비율 |
+| `netapp_nic_rx_total_errors` | — | ONTAP | `count` | 각 Ethernet 포트가 최근 1분 동안 센 수신 오류 |
+| `netapp_fcp_read_data` | — | ONTAP | `bytes/s` | 각 Fibre Channel 포트를 통해 초당 읽은 바이트 수 |
+| `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | 각 Fibre Channel 포트를 통해 초당 쓴 바이트 수 |
+| `netapp_fcp_util_percent` | — | ONTAP | `%` | 각 Fibre Channel 포트 속도 중 사용 중인 비율 |
+| `netapp_fcp_link_failure` | — | ONTAP | `count` | 각 Fibre Channel 포트가 최근 1분 동안 센 링크 장애 |
+| `powermax_director_offline` | — | PowerMax | `count` | 온라인이 아닌 디렉터마다 시리즈 하나(값 1). director, role, status 레이블이 붙습니다. 모든 디렉터가 온라인인 동안에는 시리즈가 없습니다 |
+| `powermax_director_busy_percent` | — | PowerMax | `%` | component 레이블(예: FA-1D)별, 각 디렉터의 사용률(%) |
+| `powermax_port_offline` | — | PowerMax | `count` | 호스트나 SRDF를 처리하지만(포트 그룹, 마스킹 뷰 또는 SRDF 그룹에 속함) 작동하지 않는 포트마다 시리즈 하나(값 1). component, protocol, status 레이블이 붙습니다. 아무도 사용하지 않는 포트는 의도적으로 꺼 두었을 수 있으므로 제외됩니다 |
+| `powermax_port_busy_percent` | — | PowerMax | `%` | component 레이블(예: FA-1D:4)별, 각 포트의 사용률(%) |
+| `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | component 레이블별, 각 포트를 통해 읽는 초당 바이트 수 |
+| `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | component 레이블별, 각 광 포트가 수신하는 광 출력(밀리와트). 값이 떨어지면 광 모듈이나 케이블이 나빠지고 있다는 뜻입니다. Unisphere 10.3 이상이 필요합니다 |
 
 ### 파일 시스템
 
@@ -249,6 +541,17 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | 각 파일 시스템의 쓰기 평균 지연 시간 |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 각 파일 시스템이 쓰는 물리 공간 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 각 파일 시스템의 프로비저닝된 크기 중 아직 비어 있는 비율(0에서 1). 0에 가까우면 할당량이 곧 가득 찹니다 |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | NAS 서버가 Started인 동안 1, Stopped, Starting, Stopping, 페일오버됨 또는 Degraded(백업 노드 없이 실행 중)인 동안 0입니다. name으로 그룹화하세요. |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | 각 NAS 서버가 처리하는 읽기의 평균 지연 시간(마이크로초)입니다. 서버 이름이 담긴 nas_id로 그룹화하세요. |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | 각 NAS 서버가 처리하는 쓰기의 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | 각 NAS 서버가 처리하는 초당 읽기 및 쓰기 작업 수입니다. |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | 각 파일 시스템 크기 중 사용 중인 비율(백분율)입니다. 논리 사용량을 프로비저닝된 크기로 나눈 값입니다. name으로 그룹화하세요. |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | 클라이언트가 보는 각 파일 시스템의 크기(바이트)입니다. |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | 클라이언트가 각 파일 시스템에 쓴 데이터(바이트)입니다. |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | 각 파일 시스템에서 읽기의 평균 지연 시간(마이크로초)입니다. name으로 그룹화하세요. |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | 각 파일 시스템으로의 쓰기 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | 각 파일 시스템의 초당 읽기 작업 수입니다. |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | 각 파일 시스템의 초당 쓰기 작업 수입니다. |
 
 ### 버킷
 
@@ -323,7 +626,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` 는 어레이의 `storage.array.name`(에이전트를 시작할 때 쓴 `STORAGE_ARRAY_NAME`)이며, OneUptime ID가 아닙니다. `storageSystem` 은 `purestorage.flasharray` 또는 `purestorage.flashblade` 입니다. 이 값에 따라 양식이 보여 주는 카탈로그와 템플릿, 그리고 하드웨어 필터가 `component_name` 과 `name` 중 무엇을 읽을지가 정해집니다.
+`arrayIdentifier` 는 어레이의 `storage.array.name`(에이전트를 시작할 때 쓴 `STORAGE_ARRAY_NAME`)이며, OneUptime ID가 아닙니다. `storageSystem` 은 `purestorage.flasharray`, `purestorage.flashblade` 또는 `netapp.ontap` 입니다. 이 값에 따라 양식이 보여 주는 카탈로그와 템플릿, 그리고 볼륨이나 하드웨어 필터가 어떤 레이블을 읽을지가 정해집니다.
 
 ## 문제 해결
 
@@ -339,12 +642,20 @@ monitor_steps = [{
 Pure는 읽기, 쓰기, 미러링된 쓰기, SAN, 큐, QoS 수치를 메트릭 이름 하나에 담고 `dimension` 레이블로만 구분하므로, `dimension` 필터가 없는 쿼리는 이를 모두 평균합니다. 템플릿과 양식의 카탈로그처럼 dimension 하나로 필터링하세요. 볼륨별 및 호스트별 시리즈는 `usec_per_read_op`, `usec_per_write_op`, `usec_per_mirrored_write_op` 만 유지합니다. 에이전트는 시리즈를 아끼려고 나머지를 버리며, 어레이 전체의 `purefa_array_performance_latency_usec` 만 모두 유지합니다.
 :::
 
+:::details EMS 이벤트에 대한 ONTAP 템플릿이 전혀 발생하지 않음
+EMS 템플릿은 그 종류의 이벤트가 기간 안에 있는 동안에만 발생합니다. Harvest는 이벤트를, 그 이벤트를 수집한 폴링에서 한 번만 내보냅니다. 에이전트의 Harvest가 `Ems` 수집기를 실행하는지(제공된 그대로라면 실행합니다), 그리고 그 이벤트가 Harvest의 기본 목록에 있는지 확인하세요. `sk.panic`, `disk.outOfService`, alert 및 emergency 이벤트는 목록에 있습니다. 계속되는 ONTAP 장애(손상된 디스크, 쉘프 오류, 파트너를 테이크오버할 수 없는 노드)는 열린 문제 템플릿으로도 감시되며, 그 템플릿은 ONTAP이 해제할 때까지 열려 있습니다.
+:::
+
 :::details 1분 기간에 데이터가 표시되지 않음
 에이전트는 볼륨, 호스트, 파드를 2분마다, FlashBlade의 파일 시스템과 버킷을 5분마다, FlashArray 디렉터리를 30분마다 읽으므로 1분 기간에는 샘플이 없을 수 있습니다. 5분 이상을 쓰세요. 파일 시스템과 버킷에는 15분, 디렉터리에는 60분입니다.
 :::
 
+:::details PowerMax 모니터에 데이터가 표시되지 않음
+프로브는 PowerMax를 5분마다 읽으므로 10분 이상의 기간을 쓰세요. 응답 시간, IOPS, 처리량에는 Unisphere의 성능 수집이 필요하며, 이는 **Performance Collection Off** 템플릿이 감시합니다. 볼륨의 값을 보려면 그 스토리지 그룹이 Unisphere에서 실시간 수집에 등록되어 있어야 합니다. **제품 → 인프라 → 스토리지 어레이 → 연결** 아래의 연결 페이지에 마지막 수집에서 읽지 못한 항목이 표시됩니다.
+:::
+
 :::details 볼륨마다가 아니라 어레이 전체에 대해 인시던트가 한 번만 발생함
-쿼리를 객체의 레이블로 그룹화하세요. 볼륨, 파드, 디렉터리, 파일 시스템, 버킷에는 `name`, 호스트에는 `host`, FlashArray 하드웨어에는 `component_name` 을 씁니다. Pure의 레이블에는 접두사가 없으므로 `resource.name` 은 아무것과도 일치하지 않습니다.
+쿼리를 객체의 레이블로 그룹화하세요. 볼륨, 파드, 디렉터리, 파일 시스템, 버킷에는 `name`, 호스트에는 `host`, FlashArray 하드웨어에는 `component_name`, PowerMax에서는 `storage_group`, `volume`, `component` 또는 `srdf_group` 을 씁니다. Pure와 PowerMax의 레이블에는 접두사가 없으므로 `resource.name` 은 아무것과도 일치하지 않습니다.
 :::
 
 ## 다음 단계

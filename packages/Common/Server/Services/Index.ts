@@ -119,6 +119,8 @@ import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import StorageArrayService from "./StorageArrayService";
 import StorageArrayResourceService from "./StorageArrayResourceService";
+import StorageArrayConnectionService from "./StorageArrayConnectionService";
+import StorageArrayConnectionTestService from "./StorageArrayConnectionTestService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
 import OpenStackCloudLabelRuleService from "./OpenStackCloudLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
@@ -152,6 +154,8 @@ import XcpNgPoolLabelRuleService from "./XcpNgPoolLabelRuleService";
 import XcpNgPoolOwnerRuleService from "./XcpNgPoolOwnerRuleService";
 import XcpNgPoolOwnerTeamService from "./XcpNgPoolOwnerTeamService";
 import XcpNgPoolOwnerUserService from "./XcpNgPoolOwnerUserService";
+import XcpNgConnectionService from "./XcpNgConnectionService";
+import XcpNgConnectionTestService from "./XcpNgConnectionTestService";
 import DatabaseServerService from "./DatabaseServerService";
 import DatabaseServerEndpointService from "./DatabaseServerEndpointService";
 import DatabaseServerLabelRuleService from "./DatabaseServerLabelRuleService";
@@ -642,6 +646,7 @@ import CloudTagFindingService from "./CloudTagFindingService";
 import CloudTagSettingService from "./CloudTagSettingService";
 import CloudCostRecommendationService from "./CloudCostRecommendationService";
 import CloudCostSettingService from "./CloudCostSettingService";
+import CloudCostReportService from "./CloudCostReportService";
 import CloudOffHoursScheduleService from "./CloudOffHoursScheduleService";
 import CloudSavingsActionService from "./CloudSavingsActionService";
 import CloudConnectionService from "./CloudConnectionService";
@@ -818,6 +823,8 @@ const services: Array<BaseService> = [
   CephResourceService,
   StorageArrayService,
   StorageArrayResourceService,
+  StorageArrayConnectionService,
+  StorageArrayConnectionTestService,
   ProxmoxClusterLabelRuleService,
   OpenStackCloudLabelRuleService,
   DockerSwarmClusterLabelRuleService,
@@ -844,6 +851,8 @@ const services: Array<BaseService> = [
   XcpNgPoolOwnerRuleService,
   XcpNgPoolOwnerTeamService,
   XcpNgPoolOwnerUserService,
+  XcpNgConnectionService,
+  XcpNgConnectionTestService,
   VMwareVCenterService,
   VMwareResourceService,
   VMwareVCenterLabelRuleService,
@@ -1282,6 +1291,7 @@ const services: Array<BaseService> = [
   CloudTagSettingService,
   CloudCostRecommendationService,
   CloudCostSettingService,
+  CloudCostReportService,
   CloudOffHoursScheduleService,
   CloudSavingsActionService,
   CloudConnectionService,

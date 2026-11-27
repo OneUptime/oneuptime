@@ -1,6 +1,6 @@
 # Agente de XCP-ng
 
-El agente de XCP-ng de OneUptime monitoriza los pools de XCP-ng que gestiona un Xen Orchestra: sus hosts, VM, repositorios de almacenamiento y discos virtuales. Es un OpenTelemetry Collector estándar que lee el propio plugin OpenMetrics de Xen Orchestra con el secreto del plugin y envía lo que lee a OneUptime, donde cada pool aparece con su inventario. Ninguna contraseña de un pool ni de Xen Orchestra llega nunca al agente. Los [monitores de XCP-ng](/docs/monitor/xcp-ng-monitor) alertan sobre lo que llega.
+El agente de XCP-ng de OneUptime monitoriza los pools de XCP-ng que gestiona un Xen Orchestra: sus hosts, VM, repositorios de almacenamiento y discos virtuales. Es un OpenTelemetry Collector estándar que lee el propio plugin OpenMetrics de Xen Orchestra con el secreto del plugin y envía lo que lee a OneUptime, donde cada pool aparece con su inventario. Ninguna contraseña de un pool ni de Xen Orchestra llega nunca al agente. Los [monitores de XCP-ng](/docs/monitor/xcp-ng-monitor) alertan sobre lo que llega. Para leer los mismos pools sin instalar nada, desde una sonda de OneUptime, consulte [XCP-ng sin agente](/docs/telemetry/xcp-ng-agentless).
 
 :::cards
 - [Instala el agente](#instala-el-agente): Activa el plugin y después el script de instalación o Docker Compose.
@@ -197,6 +197,17 @@ El script de instalación las escribe en `/opt/oneuptime-xcp-ng-agent/.env`; una
 | `XO_TLS_FINGERPRINT` | Script de instalación | La huella SHA-256 del propio certificado de Xen Orchestra, tal como la imprime `openssl x509 -fingerprint -sha256`, con los dos puntos opcionales, cuando el agente confía en ese certificado y en nada más. El script de instalación rechaza un certificado que no coincida con ella. |
 | `XO_CA_FILE` | Script de instalación | Un paquete de CA que emitió el certificado de Xen Orchestra; el script de instalación comprueba el certificado con él y lo copia en `xo-ca.pem`. |
 | `XO_TLS_SERVER_NAME` | No | El nombre con el que se comprueba el certificado de Xen Orchestra, cuando `XO_ADDRESS` es una dirección que el certificado no incluye. Vacío: el host de `XO_ADDRESS`. |
+| `ONEUPTIME_AI_XO_READ_TOKEN` | No | Un token de un usuario de Xen Orchestra que tiene una copia del rol integrado **Read only** y nada más: el [agente de IA](#agente-de-ia) se ejecuta cuando está definido, y lee con él. |
+| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Solo para correcciones: un token de otro usuario, cuyo rol las permite. Sin él, el agente de IA no cambia nada. |
+| `XCP_NG_POOL_ID` | No | El UUID de XAPI del pool al que sirve el agente de IA. Vacío: el único pool que puede ver su token de lectura. |
+| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Sustituye a `XCP_NG_POOL_ID` como el pool con el que se registra el agente de IA. |
+| `ONEUPTIME_AI_INVESTIGATION` | No | `true` o `false`: si OneUptime AI puede ejecutar los comandos de solo lectura del agente de IA mientras investiga. Vacío: activado. |
+| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` o `bypass-approval`: cómo puede aplicar OneUptime AI una corrección. Vacío: `ask-for-approval` cuando se permiten escrituras y, si no, `off`. |
+| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` permite al agente de IA aplicar correcciones, con el token para cambios. Cualquier otro valor lo mantiene en solo lectura. |
+| `ONEUPTIME_AI_WRITE_TARGETS` | No | Los `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` o `schedule/<uuid>` que puede tocar una corrección, separados por comas, `*` para cualquier secuencia de caracteres. Vacío: todos. |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | Lo mismo, para lo que OneUptime AI nunca debe cambiar, lo apruebe quien lo apruebe: la VM en la que se ejecuta el agente de IA, y la de Xen Orchestra. |
+| `LOG_LEVEL` | No | El nivel de registro del agente de IA: `debug`, `info` (el predeterminado), `warn` o `error`. |
+| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` arranca el agente de IA. El script de instalación lo escribe cuando el token de lectura está definido, y lo quita cuando no lo está. |
 
 ## Qué recopila el agente
 
@@ -226,6 +237,17 @@ OneUptime deriva para cada pool cuatro series 0/1 a medida que llegan sus datos,
 | `xcp_ng.host.enabled` | el host está habilitado; 0 en modo de mantenimiento o mientras se evacua, cuando XAPI no inicia ninguna VM en él |
 | `xcp_ng.vm.running` | la VM está Running; 0 mientras está Halted, Paused o Suspended |
 | `xcp_ng.vm.stopped_after_running` | una VM que se ejecutó en las últimas 24 horas está Halted o Paused |
+
+Con una sonda conectada a Xen Orchestra o a la XAPI del pool, OneUptime también deriva estas de lo que la sonda lee además de las métricas; el agente no lee nada de ello:
+
+| Serie | Valor |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 1 mientras la HA del pool está activada; si no, 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | 1 mientras HA aún pueda sobrevivir a un fallo de host; si no, 0: el propio plan de HA a través de XAPI, un host activo y habilitado además del que falla a través de Xen Orchestra |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | cuántos fallos de host debe tolerar HA (solo a través de XAPI) |
+| `xcp_ng.pool.ha.plan_exists_for` | cuántos fallos de host cubre su plan actual (solo a través de XAPI) |
+| `xcp_ng.vm.backup_overdue` | 1 mientras una VM que incluye una tarea programada no haya tenido una copia correcta dentro de su intervalo más una cuarta parte, al menos una hora (solo a través de Xen Orchestra) |
+| `xcp_ng.host.missing_patches` | cuántos parches le faltan a un host, comprobados cada seis horas (solo a través de Xen Orchestra) |
 
 También estampa en cada punto `xcp_ng.scope` (`pool`, `host`, `vm`, `sr`, `vdi` o `xostor`) y `xcp_ng.id` (el UUID de ese objeto), por los que filtran los monitores y los paneles: consulta [Identidad de los recursos](/docs/monitor/xcp-ng-monitor#identidad-de-los-recursos).
 
@@ -285,6 +307,19 @@ El colector solo lee su configuración al arrancar: ejecuta `docker compose rest
 Un agente lee un Xen Orchestra y cada pool que gestiona. Para leer un segundo Xen Orchestra desde la misma máquina, instala un segundo agente en su propia carpeta con su propio `.env`, como `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`, y dale su propio `container_name` en su `docker-compose.yml` (como `oneuptime-xcp-ng-agent-lab`): dos contenedores no pueden compartir nombre. Dale a cada uno su propio `XO_NAME`, para que los **Ajustes** de cada pool digan qué Xen Orchestra lo lee, y pasa la carpeta al script de diagnóstico con `-d`.
 
 Nunca dejes que dos agentes lean el mismo pool, a través de dos Xen Orchestra que lo gestionen ambos: es un solo pool en OneUptime, por su UUID, y se informaría de él dos veces.
+
+## Agente de IA
+
+El `docker-compose.yml` del agente también tiene el **Agente de IA de XCP-ng**, `oneuptime-xcp-ng-ai-agent` (imagen `oneuptime/resource-ai-agent:release`), en el perfil `xcp-ng-ai-agent`. Mientras OneUptime AI investiga un incidente o una alerta en un pool, ejecuta a través de él comandos REST de `xo-cli` de solo lectura, como `xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted` o `xo-cli rest get pbds fields=attached,host,SR filter=!attached?`, y, solo si lo permites, aplica correcciones como iniciar una VM o conectar el PBD de un repositorio de almacenamiento. No contiene ningún binario `xo-cli`: cada comando se convierte en exactamente una llamada a la API REST de Xen Orchestra, en la dirección y con el `xo-ca.pem` que usa el colector. Aparece en la página **Agente de IA** del pool en OneUptime.
+
+- **Necesita un token propio, de solo lectura.** El secreto de OpenMetrics solo lee métricas, así que el agente de IA lee la API REST de Xen Orchestra (Xen Orchestra 6.9 o posterior) con `ONEUPTIME_AI_XO_READ_TOKEN`, un token de un usuario de Xen Orchestra que tiene una copia del rol integrado **Read only** y nada más. Ejecuta `install.sh` con él definido, o escríbelo cuando una primera instalación lo pida: el script pregunta a Xen Orchestra si conoce el token, lo guarda en el `.env` con modo 600 y arranca el agente de IA. Antes de que el agente ejecute nada, y cada 5 minutos, comprueba que el token solo puede leer: el token de un administrador, o uno cuyos roles permitan un cambio, no ejecuta nada.
+- **Un pool por agente de IA.** `XCP_NG_POOL_ID` es el pool al que sirve, su UUID de XAPI tal como lo muestran los **Ajustes** del pool. Si se deja vacío, sirve al único pool que puede ver su token. Para un Xen Orchestra con varios pools, el README del agente muestra cómo ejecutar uno más por pool. Un pool que lee una sonda no necesita el agente de XCP-ng: el README también muestra cómo ejecutar solo el agente de IA para ese pool, desde el mismo `docker-compose.yml`.
+- **Las investigaciones con IA están activadas por defecto.** En cuanto el agente se conecta, OneUptime AI investiga con él los incidentes y alertas del pool, y la **Vista general** del pool muestra el estado del agente. Para detenerlo, establece `ONEUPTIME_AI_INVESTIGATION=false` donde se ejecuta el agente (**Cambiar** en **Lo que puede hacer la IA**, en la página del agente de IA, muestra cómo), u omite el token.
+- **Las correcciones necesitan un segundo token.** El agente es de solo lectura salvo que establezcas `ONEUPTIME_AI_ALLOW_WRITES=true` y `ONEUPTIME_AI_XO_WRITE_TOKEN`, un token de otro usuario cuyo rol permita las correcciones (una copia del rol **VMs power state manager**, con los privilegios que lista el README del agente añadidos). Se usa para el propio cambio y para nada más. `ONEUPTIME_AI_WRITE_TARGETS` (`vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>`, `schedule/<uuid>`) limita lo que puede tocar una corrección; pon los UUID de la VM en la que se ejecuta el agente, y de la propia VM de Xen Orchestra, en `ONEUPTIME_AI_PROTECTED_TARGETS`. `ONEUPTIME_AI_FIXES` en el mismo `.env` indica cómo se ejecutan las correcciones — `ask-for-approval` (una persona aprueba cada una), `automatic` o `bypass-approval` — y la página del agente de IA lo muestra en solo lectura ([Lo que puede hacer la IA, según el agente](/docs/ai/infrastructure-ai-agents#lo-que-la-ia-puede-hacer-definido-por-el-agente)).
+- **Comprueba el certificado de Xen Orchestra igual que el colector**, por su subjectAltName y solo con `xo-ca.pem`, así que el certificado que Xen Orchestra crea para sí mismo también se rechaza aquí ([El certificado de Xen Orchestra](#el-certificado-de-xen-orchestra)). Nunca lee Xen Orchestra por `http://`: sus tokens cruzarían la red sin cifrar.
+- Se ejecuta como UID 1000 sin capabilities y con un sistema de archivos raíz de solo lectura, y nunca lee los usuarios, roles, servidores, plugins ni remotes de Xen Orchestra, nunca filtra por una propiedad que contenga secretos y nunca edita, elimina, revierte ni clona nada.
+
+Qué puede ejecutar, cómo funcionan las correcciones y cómo solucionar sus problemas: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#pools-de-xcp-ng). El README del agente tiene los roles y privilegios de ambos tokens.
 
 ## Ejecutar como servicio de systemd
 
@@ -381,9 +416,10 @@ El agente es una sola configuración estándar del colector, así que un colecto
 
 El plugin OpenMetrics de Xen Orchestra sirve métricas, así que parte de lo que vigilas en un pool de XCP-ng aún no está en él:
 
-- Las **alarmas**, salvo las de XOSTOR, el **estado de HA**, el **maestro del pool**, los **parches pendientes**, las **copias de seguridad** y las **instantáneas**, y el **estado del enlace** de las interfaces físicas de un host (PIF). Llegarán desde la API REST de Xen Orchestra, en [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
-- Los **pools sin Xen Orchestra**, o detrás de un XOA sin la licencia Premium que necesita el plugin: se leerán directamente desde XAPI, en [#10999](https://github.com/OneUptime/oneuptime/issues/10999).
-- **Conectar sin agente**, desde una sonda de OneUptime, como ya se puede con VMware: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
+- Las **alarmas**, salvo las de XOSTOR, el **estado de HA**, el **maestro del pool**, los **parches pendientes** y las **copias de seguridad**: una sonda de OneUptime los lee desde la API REST de Xen Orchestra o desde la XAPI del pool ([#10997](https://github.com/OneUptime/oneuptime/issues/10997)); consulte [XCP-ng sin agente](/docs/telemetry/xcp-ng-agentless).
+- Las **instantáneas** de cada VM y el **estado del enlace** de las interfaces físicas de un host (PIF), que tampoco lee todavía ninguna sonda ([#11328](https://github.com/OneUptime/oneuptime/issues/11328)).
+- Los **pools sin Xen Orchestra**, o detrás de un XOA sin la licencia Premium que necesita el plugin: una sonda de OneUptime los lee directamente desde XAPI ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), consulte [XCP-ng sin agente](/docs/telemetry/xcp-ng-agentless).
+- **Conectar sin agente**: una sonda de OneUptime lee ella misma el plugin de Xen Orchestra, como ya se puede con VMware ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), en la misma página.
 
 ## Próximos pasos
 

@@ -433,6 +433,46 @@ describe("the place a RUM record names", () => {
     );
   });
 
+  /*
+   * #11204: the browser logs of one line of the front end - its source
+   * maps resolve each to the same file and line - aligned with different
+   * words, a lower-case value every one holds: one user's session clicking
+   * through the shop. A word they share is no more the code's than one
+   * record's word is, so it is masked; the file and line say where.
+   */
+  test("read from several records of one line, a value they all share is masked too (#11204)", () => {
+    const rows: Array<JSONObject> = ["cart", "wishlist", "orders"].map(
+      (tab: string): JSONObject => {
+        return {
+          readBody: `Opened ${tab} for jdoe from the header`,
+          readUrlFull: `https://shop.example.com/account/${tab}`,
+          readResolvedFrames: [
+            {
+              filePath: "src/account/tabs.js",
+              functionName: "open",
+              lineNumber: 21,
+            },
+          ],
+        };
+      },
+    );
+    const places: Array<TelemetryLeakPlace> = readLeakPlaces({
+      source: TelemetrySampleSource.RumLogs,
+      rows,
+      location: "logs.attributes.user.email",
+      templateOf,
+    });
+
+    expect(places).toHaveLength(1);
+    expect(places[0]).toMatchObject({
+      filePath: "src/account/tabs.js",
+      lineNumber: 21,
+      recordCount: 3,
+      template: "Opened <value> for <value> from the header",
+    });
+    expect(JSON.stringify(places)).not.toContain("jdoe");
+  });
+
   test("a place's key: its file, then its template, its span - else the recorder call and the page, else the page", () => {
     expect(
       getTelemetryLeakPlaceKey({

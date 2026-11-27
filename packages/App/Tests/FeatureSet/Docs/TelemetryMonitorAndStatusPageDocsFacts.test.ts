@@ -43,6 +43,7 @@ import {
   parseStatusPageGroupCsv,
 } from "../../../FeatureSet/Dashboard/src/Utils/StatusPageGroupCsv";
 import slugify from "Common/Server/Types/MarkdownSlugify";
+import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
 import CompareCriteria from "Common/Server/Utils/Monitor/Criteria/CompareCriteria";
 import LogMonitorCriteria from "Common/Server/Utils/Monitor/Criteria/LogMonitorCriteria";
 import MetricHourBaseline, {
@@ -676,13 +677,34 @@ describe("how often a telemetry monitor is checked", () => {
       }).toEqual({ monitorType: entry.typeKey, picked: true });
     }
 
-    // Next due a minute after it was scheduled, unless it has an interval.
+    /*
+     * Next due at its own moment of its interval (#11060), and with no
+     * interval at its own second of every minute: a minute after its last
+     * check, whenever in the minute that was.
+     */
     expect(TELEMETRY_JOB).toContain(
-      "const oneMinuteLater: Date = OneUptimeDate.addRemoveMinutes(data.now, 1);",
+      "return TelemetryMonitorSchedule.getNextRunAt({ monitorId: data.monitor.id!, monitoringInterval: data.monitor.monitoringInterval, after: data.after,",
     );
-    expect(TELEMETRY_JOB).toContain(
-      "if (!data.monitor.monitoringInterval) { return oneMinuteLater; }",
-    );
+
+    const monitorId: ObjectID = ObjectID.generate();
+    const checked: Date = new Date("2026-11-26T10:00:07.250Z");
+
+    for (const monitoringInterval of [undefined, null, ""]) {
+      const next: Date = TelemetryMonitorSchedule.getNextRunAt({
+        monitorId,
+        monitoringInterval,
+        after: checked,
+      });
+      const after: Date = TelemetryMonitorSchedule.getNextRunAt({
+        monitorId,
+        monitoringInterval,
+        after: next,
+      });
+
+      expect(next.getTime()).toBeGreaterThan(checked.getTime());
+      expect(next.getTime() - checked.getTime()).toBeLessThanOrEqual(60000);
+      expect(after.getTime() - next.getTime()).toBe(60000);
+    }
   });
 
   it("Create Monitor's Probes & Interval step and the monitor's Probes & Interval page are only for monitors probes check", () => {
@@ -700,9 +722,16 @@ describe("how often a telemetry monitor is checked", () => {
 // #4626
 describe("OneUptime's own downtime is not silence", () => {
   it("the worker plans each check from the monitor's own window, and skips it while that window holds a gap", () => {
-    const plan: number = TELEMETRY_JOB.indexOf(
-      "await ReceivingCoverage.planTelemetryEvaluation({ windowInMs: TelemetryMonitorWindow.getWindowInMs({",
+    // The window is the step's, ending when the check was due (#11248).
+    const window: number = TELEMETRY_JOB.indexOf(
+      "const windowInMs: number = TelemetryMonitorWindow.getWindowInMs({ monitorType: monitor.monitorType!, monitorStep, });",
     );
+    const plan: number = TELEMETRY_JOB.indexOf(
+      "await ReceivingCoverage.planTelemetryEvaluation({ windowInMs: windowInMs, windowEndsAt: getTelemetryEvaluationWindowEnd({",
+    );
+
+    expect(window).toBeGreaterThan(-1);
+    expect(plan).toBeGreaterThan(window);
     const skip: number = TELEMETRY_JOB.indexOf("if (!plan.evaluate) {");
     // With when the evaluation began, which its log entry times (#10809).
     const check: number = TELEMETRY_JOB.indexOf(

@@ -85,6 +85,7 @@ Monitorene kommer først, for seg selv, fordi statussider ser en hendelse gjenno
 
 - **Monitorer** — et søkefelt som legger til monitorene hendelsen berører; fanen **Etiketter** legger til alle monitorer med en etikett på én gang. En statusside viser en hendelse, og gir abonnentene beskjed om den, når den viser en av hendelsens monitorer, så det er de som avgjør hvilke statussider som får høre om den (`monitors` på hendelsen).
 - **Endre monitorstatus til** — valgfritt, og bare vist når minst én monitor er valgt. Velger en monitorstatus som brukes på hver monitor som er knyttet til denne hendelsen, slik at det å erklære hendelsen og merke monitorene som redusert er én handling i stedet for to. Erklærer du fra en mal som setter en, starter feltet med malens status, vist så snart du velger en monitor. Uten valgt monitor lagres ingen status, heller ikke malens; fjerner du den siste monitoren, forsvinner feltet til du velger en annen, noe som bringer valget ditt tilbake. En monitors status deles av alle statussider som viser den, så med statussider valgt under **Flere felt** minner skjemaet deg om at endringen også vises på sidene du ikke valgte.
+- **Sett overvåkingen på pause** — vist så snart minst én monitor er valgt, og avkrysset. Avkrysset setter hendelsen sjekkene til monitorene sine på pause til den er løst, slik at statusen over blir stående på dem. Fjern krysset for å holde dem sjekket mens hendelsen er åpen: sjekkene deres fortsetter å sette statusen deres og å åpne hendelser og varsler. En monitor som er satt til å fortsette overvåkingen under hendelser, settes aldri på pause, avkrysset eller ikke (`pauseMonitoring` på hendelsen). Se [Overvåking mens en hendelse er åpen](#overvåking-mens-en-hendelse-er-åpen).
 - **Andre berørte ressurser** — et andre søkefelt for alt annet hendelsen berører: verter, nettverksenheter, Kubernetes-klynger, Docker- og Podman-verter, Proxmox-, Ceph- og Docker Swarm-klynger, vCentere, lagringsarrayer, IoT-flåter, databaser, skyressurser og tjenester — alt utenom monitorer som hendelsens eget kort **Berørte ressurser** tilbyr. Under panseret er dette separate relasjoner på hendelsen (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` og flere), men skjemaet slår dem sammen i én velger.
 
 **Andre berørte ressurser** søker i alle typene feltet tilbyr, på én gang. En ressurs finnes på navnet eller beskrivelsen, en nettverksenhet også på adressen den polles på eller DNS-navnet sitt, og en vert på navnet agenten dens rapporterer eller en av IP-adressene dens. Resultatene er gruppert etter type, med en enhets adresse ved siden av navnet. Så snart de inneholder mer enn én type, snevrer en rad over dem listen inn til én type og viser hvor mange av hver som passer, og en type med flere treff enn det er plass til, tilbyr å vise flere. Arkiverte ressurser tilbys ikke. Når søket også treffer monitorer, sier en linje under resultatene hvor mange, og at monitorer velges under **Monitorer**.
@@ -280,7 +281,7 @@ I rekkefølge:
 9. **Abonnenter settes i kø** hvis **Varsle statussideabonnenter** ble stående slått på og hendelsen er synlig på statussiden. Leveringen håndteres av en bakgrunnsjobb, ikke innenfor forespørselen din, og går til statussidene hendelsen når: de som viser monitorene, snevret inn av **Begrens til disse statussidene**, og uten sidene som bare viser hendelser som er begrenset til dem, når den ikke er begrenset. En arkivert statusside sender ingenting. Fremdriften vises som **Abonnentvarslingsstatus** på hendelsens **Oversikt**: hva som ble sendt og hva som feilet på hver statusside, og **Prøv på nytt** eller **Send på nytt** når det er avsluttet. Se [Abonnenter og kunngjøringer](/docs/status-pages/subscribers#sjekk-hva-som-ble-sendt).
 10. **Arbeidsflyter utløses.** Utløseren **Ved oppretting: Hendelse** starter enhver arbeidsflyt som er bygget på den. Se [Oversikt over arbeidsflyter](/docs/workflows/index).
 
-Derfra er hendelsen live: den teller med i merket **Aktive hendelser** i sidemenyen til Hendelser (enhver tilstand over den løste tilstanden din teller som aktiv), den vises på statussidene som viser en av monitorene (bare de valgte, hvis du begrenset den), og **Tilstandstidslinje** begynner å registrere.
+Derfra er hendelsen live: den teller med i merket **Aktive hendelser** i sidemenyen til Hendelser (enhver tilstand over den løste tilstanden din teller som aktiv), den vises på statussidene som viser en av monitorene (bare de valgte, hvis du begrenset den), og **Tilstandstidslinje** begynner å registrere. Monitorene settes i statusen fra **Endre monitorstatus til**, og når den er erklært for hånd, settes sjekkene deres på pause til den er løst: se [Overvåking mens en hendelse er åpen](#overvåking-mens-en-hendelse-er-åpen).
 
 ### Erklært allerede bekreftet eller løst
 
@@ -306,10 +307,43 @@ flowchart TB
 
 Varsler, varselepisoder og hendelsesepisoder følger samme regel: en som opprettes allerede bekreftet, tilkaller ingen, og en som opprettes løst, blir heller ikke gruppert, utbedret eller undersøkt av KI og får ingen egen kanal. En hendelse eller et varsel i opprettelsestilstanden — standarden, og hver en som en monitor åpner — setter i gang alt som før.
 
+## Overvåking mens en hendelse er åpen
+
+En hendelse som erklæres for hånd, setter sjekkene til monitorene den nevner på pause til den er løst. Slik endrer ikke den neste sjekken deres statusen den satte dem i, mens folk jobber med den. Erklært for hånd betyr alt annet enn OneUptime selv: **Erklær hendelse** i dashbordet (fra et varsel, fra fanen **Hendelser** på en monitor eller fra bunnen av), Slack, Microsoft Teams, API-et, Terraform, en arbeidsflyt, [Ask AI](/docs/ai/ask-ai), mobilappen og et skjema. Legges en monitor til en slik hendelse mens den er åpen, settes også den monitoren på pause.
+
+Ingenting annet setter sjekkene til en monitor på pause på denne måten. En hendelse som kriteriene til en monitor erklærer, en som hendelsesregelen til et varsel erklærer, og en som et SLO erklærer, lar monitorene sine fortsatt bli sjekket, og det samme gjør hvert varsel, opprettet av en monitor eller for hånd.
+
+```mermaid title="Om en åpen hendelse setter sjekkene til en monitor på pause"
+flowchart TB
+    declared{"Erklært for hånd?"} -->|Nei| checked["Sjekkene fortsetter"]
+    declared -->|Ja| ticked{"Sett overvåkingen på pause<br/>avkrysset?"}
+    ticked -->|Nei| checked
+    ticked -->|Ja| setting{"Monitor satt til å fortsette<br/>overvåkingen under hendelser?"}
+    setting -->|Ja| checked
+    setting -->|Nei| paused["Sjekker på pause<br/>til den er løst"]
+```
+
+**Hold en monitor sjekket.** To brytere avgjør det, og hver av dem holder den sjekket:
+
+- **Fortsett overvåkingen under hendelser**, på monitorens side **Innstillinger**, under **Under hendelser**. Slå den på for en monitor som mottar meldinger, som en [innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor) som et annet system sender varslene sine til: en hendelse om én melding hindrer den da ikke lenger i å lese den neste. Den gjelder med en gang, også for hendelser som allerede er åpne: slått på mens en hendelse holder monitoren på pause, starter sjekkene igjen med en gang. Slått av som standard.
+- **Sett overvåkingen på pause**, der hendelsen erklæres, under **Endre monitorstatus til**. Fjern krysset for å holde alle hendelsens monitorer sjekket. Den kan endres mens hendelsen er åpen, på kortet **Berørte ressurser**: uten kryss blir monitorene sjekket igjen med en gang.
+
+En monitor som holdes sjekket, fortsetter å sette sin egen status: den neste sjekken erstatter statusen hendelsen satte den i, og kriteriene fortsetter å åpne og løse sine egne hendelser og varsler.
+
+**Hva en monitor på pause fortsatt gjør.** Sjekkene stopper: sonder slutter å sjekke den, et heartbeat, en e-post eller en agent som slutter å sende, blir ikke lagt merke til, og en telemetrimonitor evalueres ikke. Det som sendes til den utenfra, mottas fortsatt: hver forespørsel en [innkommende forespørsel-monitor](/docs/monitor/incoming-request-monitor) får, hver e-post en innkommende e-post-monitor får, og hver rapport agenten til en servermonitor sender, vises i **Overvåkingslogger**, slik den kom, med **Ikke evaluert: overvåkingen er satt på pause av en hendelse**. Ingenting en monitor på pause mottar, åpner eller løser en hendelse eller et varsel eller endrer statusen, og avsenderen får svar som vanlig. Et banner på monitorens sider sier at den er satt på pause, og hvordan den holdes sjekket.
+
+**Hva tid på pause teller som.** En monitor på pause beholder statusen den har, og oppetiden, statussidene og SLO-ene teller den statusen når en hendelse satte monitoren i den med **Endre monitorstatus til**: det er statusen noen erklærte. Når ingen hendelse som holder den på pause satte en status, er statusen bare det den siste sjekken av monitoren så før pausen, så den tiden utelates fra oppetiden, statussidene og SLO-ene, slik tid med overvåking slått av er. **Statustidslinje** markerer hvor den tiden begynner og slutter, og oppetiden på **Oversikt** sier at den utelater tid på pause.
+
+**Når pausen slutter.** Å løse hendelsen, ta monitoren av den eller slette den gjenopptar sjekkene til monitoren og setter den tilbake til operativ, med mindre en annen åpen hendelse fortsatt ligger på den; deretter setter sjekkene statusen. En monitor som en annen åpen hendelse erklært for hånd fortsatt holder på pause, forblir på pause. En hendelse som siden er løst og gjenåpnet, holder ingenting, så den setter ingenting på pause og holder ingenting på pause.
+
 ## Feilsøking
 
 :::details Erklæringen feiler og ber om en opprettelsestilstand for hendelser
 Har prosjektet ditt ingen tilstand med flagget `isCreatedState`, feiler opprettelseskallet og ber deg legge til en opprettelsestilstand for hendelser fra innstillingene. Det skjer normalt bare i et prosjekt der tilstandene er kraftig redigert — se [Hendelsestilstander og alvorlighetsgrader](/docs/incidents/states-and-severities).
+:::
+
+:::details En monitor sluttet å åpne varsler etter at en hendelse ble erklært på den
+En hendelse som erklæres for hånd, setter sjekkene til monitorene sine på pause til den er løst, så det som når dem i mellomtiden, vises i **Overvåkingslogger**, men evalueres ikke. Slå på **Fortsett overvåkingen under hendelser** i monitorens **Innstillinger** for å holde den sjekket under denne hendelsen og de neste, eller fjern krysset i **Sett overvåkingen på pause** på hendelsens kort **Berørte ressurser** for monitorene i denne hendelsen. Se [Overvåking mens en hendelse er åpen](#overvåking-mens-en-hendelse-er-åpen).
 :::
 
 :::details Hendelsen ble erklært, men ingen abonnent på statussiden fikk høre om den

@@ -58,6 +58,11 @@ export interface DatabaseConnectOptions {
   connectTimeoutMs: number;
   // How the connection names itself to the server (application_name, ...).
   applicationName: string;
+  /*
+   * MySQL: the database the session uses. Only Data Observability names one
+   * (#11148): it reads one database's catalog. AI diagnostics name none.
+   */
+  mysqlDatabase?: string | undefined;
 }
 
 export type SqlRow = Record<string, unknown>;
@@ -302,6 +307,10 @@ export function buildMySqlConnectionOptions(
     charset: "utf8mb4",
     connectAttributes: { program_name: options.applicationName },
   };
+
+  if (options.mysqlDatabase) {
+    config.database = options.mysqlDatabase;
+  }
 
   if (tls !== null) {
     config.ssl = {

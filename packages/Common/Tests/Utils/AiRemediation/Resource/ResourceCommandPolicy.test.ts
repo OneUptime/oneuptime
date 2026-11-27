@@ -17,6 +17,7 @@ import GovcCommandPolicy from "../../../../Utils/AiRemediation/Resource/GovcComm
 import CephCommandPolicy from "../../../../Utils/AiRemediation/Resource/CephCommandPolicy";
 import DatabaseCommandPolicy from "../../../../Utils/AiRemediation/Resource/DatabaseCommandPolicy";
 import HostCommandPolicy from "../../../../Utils/AiRemediation/Resource/HostCommandPolicy";
+import XcpNgCommandPolicy from "../../../../Utils/AiRemediation/Resource/XcpNgCommandPolicy";
 import {
   AwsCloudCommandPolicy,
   AzureCloudCommandPolicy,
@@ -206,6 +207,7 @@ describe("routing", () => {
       [AiResourceType.AzureSubscription]: AzureCloudCommandPolicy,
       [AiResourceType.GoogleCloudProject]: GcpCloudCommandPolicy,
       [AiResourceType.OpenStackCloud]: OpenStackCommandPolicy,
+      [AiResourceType.XcpNgPool]: XcpNgCommandPolicy,
     };
 
     for (const type of ALL_AI_RESOURCE_TYPES) {
@@ -231,6 +233,7 @@ describe("routing", () => {
       "cloud-azure",
       "cloud-gcp",
       "openstack",
+      "xo-cli",
     ]);
   });
 

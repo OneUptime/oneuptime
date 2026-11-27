@@ -32,8 +32,11 @@ Brug et **skrivebeskyttet login**. Vælg i oversigten eller under Databaser **Fo
 
 - **OneUptime forbinder**: indsæt en forbindelsesstreng. Den gemmes krypteret og vises aldrig igen.
 - **En sonde i mit netværk forbinder**: vælg en af projektets sonder, og angiv den miljøvariabel på sonden, der indeholder forbindelsesstrengen (for eksempel \`ORDERS_DB_URL\`). Forbindelsesstrengen forlader aldrig dit netværk. Opdater først sonden til den nyeste version.
+- **Min Database Agent forbinder**: vælg den databaseserver, som dens Database Agent kører ved siden af, og angiv den database på den, der skal læses. Agenten læser den med sine egne logins, så intet gemmes i OneUptime. Den læser PostgreSQL, MySQL og MariaDB, så snart dens ejer sætter \`ONEUPTIME_DATA_OBSERVABILITY=true\`, hvor den kører.
 
 En database, der allerede er forbundet til Datasikkerhed, overvåges også.
+
+En databases **Indstillinger**, i dens menu, omdøber den (**Rediger detaljer**), giver den et andet login, en anden sonde eller en Database Agent (**Skift forbindelse**), holder op med at læse den og glemmer dens tabeller og kontroller, mens Datasikkerhed beholder den (**Fjern fra Dataobservabilitet**), eller sletter den fra OneUptime (**Slet database**). Så længe Datasikkerhed er afhængig af en database, kan kun en, der må slette Datasikkerheds datalagre, slette den.
 
 **Databaser, du kan forbinde**, på samme side, viser det, dit projekt allerede kender, og som ingen har forbundet: databaser, dine traces taler med, databaser i dine cloudkonti og databaser, som Databaseovervågning holder øje med. **Forbind** udfylder formularen på forhånd med det, der vides om hver. Intet læses, før du forbinder den.
 

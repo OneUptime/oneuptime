@@ -10,6 +10,13 @@
  * and its evaluation are stubbed, and the real ingest worker runs between
  * them. IncomingRequestCoalescingRedis.test.ts runs the same paths on a real
  * Redis and BullMQ.
+ *
+ * A monitor that is not being checked - archived, turned off, or paused by
+ * an incident declared by hand or a maintenance event - has each request it
+ * would have evaluated listed in its Logs as not evaluated (#11141): by the
+ * ingest (MonitorResourceUtil.listNotEvaluated) when the key's lookup finds
+ * it paused, and by MonitorResource, before it refuses the request, when the
+ * key was kept from before the pause.
  */
 
 jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
@@ -17,6 +24,7 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
     __esModule: true,
     default: {
       monitorResource: jest.fn(),
+      listNotEvaluated: jest.fn(),
     },
   };
 });
@@ -141,7 +149,9 @@ import MonitorService from "Common/Server/Services/MonitorService";
 import MonitorResourceUtil, {
   MonitorResourceOptions,
 } from "Common/Server/Utils/Monitor/MonitorResource";
-import MonitorSecretKeyCache from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
+import MonitorSecretKeyCache, {
+  MonitorSecretKeyKind,
+} from "Common/Server/Utils/Monitor/MonitorSecretKeyCache";
 import IncomingRequestSecretGate from "Common/Server/Utils/Monitor/IncomingRequestSecretGate";
 import logger from "Common/Server/Utils/Logger";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
@@ -155,6 +165,10 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  MONITOR_PAUSE_FLAGS_SELECT,
+  MonitorPauseReason,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import {
   afterEach,
   beforeEach,
@@ -171,11 +185,15 @@ const PROJECT_ID: string = "4c6e0b8a-9c15-4f8b-a1d2-7e5f4c3b2a19";
 
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
+const listNotEvaluated: jest.Mock =
+  MonitorResourceUtil.listNotEvaluated as unknown as jest.Mock;
 const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 const findOneById: jest.Mock =
   MonitorService.findOneById as unknown as jest.Mock;
 const getMonitor: jest.Mock =
   MonitorSecretKeyCache.getMonitor as unknown as jest.Mock;
+const forgetKey: jest.Mock =
+  MonitorSecretKeyCache.forget as unknown as jest.Mock;
 const decideInWorker: jest.Mock =
   IncomingRequestSecretGate.decideInWorker as unknown as jest.Mock;
 const addPendingJob: jest.Mock =
@@ -191,8 +209,22 @@ let failures: Map<string, number> = new Map();
 let skipped: SkippedIncomingRequests = { overLimit: 0, afterFailures: 0 };
 
 let isGrouped: boolean = true;
-let isPaused: boolean = false;
+// Why the monitor is not being checked, if it is not (MonitorPauseState).
+let pausedBy: MonitorPauseReason | null = null;
 let isMonitorFound: boolean = true;
+
+// The refusal MonitorResource answers a monitor not being checked with.
+const REFUSAL_FOR_REASON: Record<MonitorPauseReason, string> = {
+  [MonitorPauseReason.Archived]: ExceptionMessages.MonitorArchived,
+  [MonitorPauseReason.Disabled]: ExceptionMessages.MonitorDisabled,
+  [MonitorPauseReason.ManualIncident]:
+    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+  [MonitorPauseReason.ScheduledMaintenance]:
+    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
+};
+
+const PAUSE_REASONS: Array<MonitorPauseReason> =
+  Object.values(MonitorPauseReason);
 
 function payloadOf(sequence: number): IncomingRequestIngestJobData {
   return {
@@ -249,10 +281,12 @@ function monitorRow(): Monitor {
   monitor._id = MONITOR_ID;
   monitor.projectId = new ObjectID(PROJECT_ID);
   monitor.monitorType = MonitorType.IncomingRequest;
-  monitor.isArchived = false;
-  monitor.disableActiveMonitoring = isPaused;
-  monitor.disableActiveMonitoringBecauseOfManualIncident = false;
-  monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent = false;
+  monitor.isArchived = pausedBy === MonitorPauseReason.Archived;
+  monitor.disableActiveMonitoring = pausedBy === MonitorPauseReason.Disabled;
+  monitor.disableActiveMonitoringBecauseOfManualIncident =
+    pausedBy === MonitorPauseReason.ManualIncident;
+  monitor.disableActiveMonitoringBecauseOfScheduledMaintenanceEvent =
+    pausedBy === MonitorPauseReason.ScheduledMaintenance;
 
   const criteria: MonitorCriteriaInstance = new MonitorCriteriaInstance();
 
@@ -291,6 +325,29 @@ function optionsOf(index: number): MonitorResourceOptions {
   return monitorResource.mock.calls[index]![1] as MonitorResourceOptions;
 }
 
+/*
+ * The sequences the ingest listed as not evaluated, in order, each with the
+ * reason it gave (#11141).
+ */
+function listedSequences(): Array<[number, MonitorPauseReason]> {
+  return listNotEvaluated.mock.calls.map(
+    (call: Array<unknown>): [number, MonitorPauseReason] => {
+      const input: {
+        dataToProcess: IncomingMonitorRequest;
+        reason: MonitorPauseReason;
+      } = call[0] as {
+        dataToProcess: IncomingMonitorRequest;
+        reason: MonitorPauseReason;
+      };
+
+      return [
+        (input.dataToProcess.requestBody as JSONObject)["sequence"] as number,
+        input.reason,
+      ];
+    },
+  );
+}
+
 async function run(isFinalAttempt: boolean = false): Promise<void> {
   await processPendingIncomingRequestsFromQueue(
     { secretKeyHash: HASH },
@@ -305,7 +362,7 @@ beforeEach(() => {
   failures = new Map();
   skipped = { overLimit: 0, afterFailures: 0 };
   isGrouped = true;
-  isPaused = false;
+  pausedBy = null;
   isMonitorFound = true;
 
   // The key's monitor, as kept for a minute.
@@ -333,6 +390,7 @@ beforeEach(() => {
   }) as never);
 
   monitorResource.mockResolvedValue({} as never);
+  listNotEvaluated.mockResolvedValue(undefined as never);
 
   store("peekOldest").mockImplementation((async () => {
     return read(0);
@@ -432,7 +490,13 @@ describe("which requests a monitor's job evaluates", () => {
     expect(findOneBy).not.toHaveBeenCalled();
   });
 
-  test("with more than one waiting, the monitor is read once a job, with its criteria and whether it is paused", async () => {
+  /*
+   * #11141: it used to be read with whether it is paused too, and a paused
+   * monitor counted as one that evaluates only its newest - every request
+   * dropped with it. Paused or not, it now goes by its criteria: a paused
+   * monitor lists each request it would have evaluated.
+   */
+  test("with more than one waiting, the monitor is read once a job, for its criteria only", async () => {
     keep(1, 2, 3);
 
     await run();
@@ -443,14 +507,15 @@ describe("which requests a monitor's job evaluates", () => {
       findOneById.mock.calls[0]![0] as { select: JSONObject }
     ).select;
 
-    expect(select).toEqual(
-      expect.objectContaining({
-        monitorSteps: true,
-        monitorType: true,
-        disableActiveMonitoring: true,
-        isArchived: true,
-      }),
-    );
+    expect(select).toEqual({
+      _id: true,
+      monitorSteps: true,
+      monitorType: true,
+    });
+
+    for (const pauseFlag of Object.keys(MONITOR_PAUSE_FLAGS_SELECT)) {
+      expect(select).not.toHaveProperty(pauseFlag);
+    }
   });
 
   test("a key not kept in the cache is looked up by its value, as the evaluation does", async () => {
@@ -472,22 +537,125 @@ describe("which requests a monitor's job evaluates", () => {
   });
 
   /*
-   * A paused monitor refuses every request alike: its newest is "evaluated"
-   * - refused - and settles all of them, rather than one refusal each.
+   * #11141: a paused monitor used to settle everything waiting with its
+   * newest request, refused, and the rest were dropped without a trace. A
+   * monitor whose criteria group by a payload field now has each of its
+   * requests listed in its Logs as not evaluated, oldest first - as each
+   * would have been evaluated - and none reaches the evaluation.
    */
-  test("a paused monitor settles everything waiting with one request", async () => {
-    isPaused = true;
+  test.each(PAUSE_REASONS)(
+    "a grouped monitor paused as %s lists each waiting request as not evaluated, oldest first, and evaluates none",
+    async (reason: MonitorPauseReason) => {
+      pausedBy = reason;
+      // Looked up by its key: a paused monitor is never kept.
+      getMonitor.mockResolvedValue(null as never);
+      keep(1, 2, 3);
+
+      await expect(run()).resolves.toBeUndefined();
+
+      expect(listedSequences()).toEqual([
+        [1, reason],
+        [2, reason],
+        [3, reason],
+      ]);
+      expect(monitorResource).not.toHaveBeenCalled();
+      expect(waiting).toEqual([]);
+      // Each removed on its own, none superseded by the newest.
+      expect(store("remove")).toHaveBeenCalledTimes(3);
+      expect(store("removeThrough")).not.toHaveBeenCalled();
+      expect(store("countFailure")).not.toHaveBeenCalled();
+      expect(addPendingJob).not.toHaveBeenCalled();
+    },
+  );
+
+  /*
+   * A monitor without grouping evaluates only its newest request, paused or
+   * not: the newest is listed as not evaluated, and the older ones are
+   * superseded by it as before.
+   */
+  test.each(PAUSE_REASONS)(
+    "a monitor without grouping paused as %s lists only its newest request; the older ones are superseded",
+    async (reason: MonitorPauseReason) => {
+      pausedBy = reason;
+      isGrouped = false;
+      getMonitor.mockResolvedValue(null as never);
+      keep(1, 2, 3);
+
+      await expect(run()).resolves.toBeUndefined();
+
+      expect(listedSequences()).toEqual([[3, reason]]);
+      expect(monitorResource).not.toHaveBeenCalled();
+      expect(waiting).toEqual([]);
+      expect(store("removeThrough")).toHaveBeenCalledWith(HASH, "request-3");
+      expect(store("remove")).not.toHaveBeenCalled();
+    },
+  );
+
+  /*
+   * The project's incoming request secret requirement is decided before a
+   * paused monitor's request is listed: one it refuses is not listed.
+   */
+  test("a request the project's secret requirement refuses is not listed, though its monitor is paused", async () => {
+    pausedBy = MonitorPauseReason.ManualIncident;
     getMonitor.mockResolvedValue(null as never);
-    keep(1, 2, 3);
+    keep(1, 2);
+
+    decideInWorker.mockImplementationOnce((async () => {
+      return {
+        verdict: "Missing",
+        isRefused: true,
+        requestHeaders: {},
+      };
+    }) as never);
 
     await run();
 
+    expect(decideInWorker).toHaveBeenCalledTimes(2);
+    expect(listedSequences()).toEqual([[2, MonitorPauseReason.ManualIncident]]);
     expect(monitorResource).not.toHaveBeenCalled();
     expect(waiting).toEqual([]);
-    expect(store("removeThrough")).toHaveBeenCalledWith(HASH, "request-3");
   });
 
-  test("a key that finds no monitor settles everything waiting the same way", async () => {
+  /*
+   * A request listed as not evaluated says nothing of what was skipped
+   * before it: the next request that is evaluated says it.
+   */
+  test("a paused monitor's listed requests leave what was skipped for the next evaluation to say", async () => {
+    pausedBy = MonitorPauseReason.ScheduledMaintenance;
+    getMonitor.mockResolvedValue(null as never);
+    skipped = { overLimit: 4, afterFailures: 0 };
+    keep(1, 2);
+
+    await run();
+
+    expect(listedSequences()).toEqual([
+      [1, MonitorPauseReason.ScheduledMaintenance],
+      [2, MonitorPauseReason.ScheduledMaintenance],
+    ]);
+    expect(store("acknowledgeSkipped")).not.toHaveBeenCalled();
+    expect(skipped).toEqual({ overLimit: 4, afterFailures: 0 });
+
+    // The maintenance event ends: the next request is evaluated, and says it.
+    pausedBy = null;
+    keep(3);
+
+    await run();
+
+    expect(evaluatedSequences()).toEqual([3]);
+    expect(optionsOf(0).skippedIncomingRequests).toEqual({
+      overLimit: 4,
+      afterFailures: 0,
+      attempts: MAX_ATTEMPTS_PER_REQUEST,
+    });
+    expect(skipped).toEqual({ overLimit: 0, afterFailures: 0 });
+  });
+
+  /*
+   * Every request waiting for a key that finds no monitor is refused alike:
+   * its newest is refused, and settles all of them. Nothing is listed - there
+   * is no monitor to list it on.
+   */
+  test("a key that finds no monitor settles everything waiting with one request", async () => {
     isMonitorFound = false;
     getMonitor.mockResolvedValue(null as never);
     keep(1, 2, 3);
@@ -495,7 +663,9 @@ describe("which requests a monitor's job evaluates", () => {
     await expect(run()).rejects.toThrow(ExceptionMessages.MonitorNotFound);
 
     expect(monitorResource).not.toHaveBeenCalled();
+    expect(listNotEvaluated).not.toHaveBeenCalled();
     expect(waiting).toEqual([]);
+    expect(store("removeThrough")).toHaveBeenCalledWith(HASH, "request-3");
   });
 
   test("nothing waiting: nothing is read, nothing evaluated, nothing queued", async () => {
@@ -832,11 +1002,30 @@ describe("a failed evaluation", () => {
   test("a refusal on the job's last attempt queues no next job: nothing is left waiting", async () => {
     keep(1, 2);
     monitorResource.mockRejectedValueOnce(
+      new BadDataException(ExceptionMessages.MonitorNotFound) as never,
+    );
+
+    await expect(run(true)).rejects.toThrow(ExceptionMessages.MonitorNotFound);
+
+    expect(waiting).toEqual([]);
+    expect(addPendingJob).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #11141: an archived monitor's refusal used to fail the job, settling
+   * every request with it. MonitorResource lists each request as not
+   * evaluated before it refuses it, so each is done with on its own and the
+   * job completes - on its last attempt too, with nothing left to queue.
+   */
+  test("a monitor archived since its key was kept, on the job's last attempt: each request is handed over and refused, and the job completes with nothing queued", async () => {
+    keep(1, 2);
+    monitorResource.mockRejectedValue(
       new BadDataException(ExceptionMessages.MonitorArchived) as never,
     );
 
-    await expect(run(true)).rejects.toThrow(ExceptionMessages.MonitorArchived);
+    await expect(run(true)).resolves.toBeUndefined();
 
+    expect(evaluatedSequences()).toEqual([1, 2]);
     expect(waiting).toEqual([]);
     expect(addPendingJob).not.toHaveBeenCalled();
   });
@@ -881,25 +1070,103 @@ describe("a failed evaluation", () => {
     expect(store("skipAfterFailures")).not.toHaveBeenCalled();
   });
 
-  test.each([
-    ExceptionMessages.MonitorNotFound,
-    ExceptionMessages.MonitorDisabled,
-    ExceptionMessages.MonitorArchived,
-    ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
-    ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
-  ])(
-    "refused by the monitor ('%s'): every request waiting is settled, and the refusal passes on for the job to complete",
-    async (message: string) => {
+  /*
+   * A key that no longer finds its monitor - rotated, or the monitor
+   * deleted, since it was kept: every request waiting for it is refused
+   * alike, so one refusal settles them all. The kept key is forgotten, so
+   * the next request looks it up, and the refusal passes on for the job to
+   * complete.
+   */
+  test("refused as a monitor that is not found: the kept key is forgotten, every request waiting is settled, and the refusal passes on", async () => {
+    keep(1, 2, 3);
+    monitorResource.mockRejectedValueOnce(
+      new BadDataException(ExceptionMessages.MonitorNotFound) as never,
+    );
+
+    await expect(run()).rejects.toThrow(ExceptionMessages.MonitorNotFound);
+
+    expect(evaluatedSequences()).toEqual([1]);
+    expect(waiting).toEqual([]);
+    expect(store("removeThrough")).toHaveBeenCalledWith(HASH, "request-3");
+    expect(store("countFailure")).not.toHaveBeenCalled();
+    expect(forgetKey).toHaveBeenCalledTimes(1);
+    expect(forgetKey).toHaveBeenCalledWith({
+      kind: MonitorSecretKeyKind.IncomingRequest,
+      secretKey: SECRET_KEY,
+    });
+    expect(listNotEvaluated).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #11141: a monitor archived, turned off or paused since its key was kept
+   * used to refuse one request and settle every other with it, dropped
+   * without a trace. MonitorResource now lists each request as not
+   * evaluated before it refuses it: each is handed over in turn, removed,
+   * and the next goes on. The job completes, the key stays kept.
+   */
+  test.each(PAUSE_REASONS)(
+    "refused as a monitor paused as %s since its key was kept: each request is handed over in turn, removed, and the job completes",
+    async (reason: MonitorPauseReason) => {
       keep(1, 2, 3);
-      monitorResource.mockRejectedValueOnce(
-        new BadDataException(message) as never,
+      monitorResource.mockRejectedValue(
+        new BadDataException(REFUSAL_FOR_REASON[reason]) as never,
       );
 
-      await expect(run()).rejects.toThrow(message);
+      await expect(run()).resolves.toBeUndefined();
 
-      expect(evaluatedSequences()).toEqual([1]);
+      expect(evaluatedSequences()).toEqual([1, 2, 3]);
       expect(waiting).toEqual([]);
+      expect(store("remove")).toHaveBeenCalledTimes(3);
+      expect(store("removeThrough")).not.toHaveBeenCalled();
+      expect(store("countFailure")).not.toHaveBeenCalled();
+      expect(forgetKey).not.toHaveBeenCalled();
+      expect(addPendingJob).not.toHaveBeenCalled();
+      // MonitorResource lists it, as it refuses it; the ingest lists nothing.
+      expect(listNotEvaluated).not.toHaveBeenCalled();
+    },
+  );
+
+  test.each(PAUSE_REASONS)(
+    "a monitor without grouping refused as paused as %s: its newest is handed over, and the older ones are superseded with it",
+    async (reason: MonitorPauseReason) => {
+      isGrouped = false;
+      keep(1, 2, 3);
+      monitorResource.mockRejectedValue(
+        new BadDataException(REFUSAL_FOR_REASON[reason]) as never,
+      );
+
+      await expect(run()).resolves.toBeUndefined();
+
+      expect(evaluatedSequences()).toEqual([3]);
+      expect(waiting).toEqual([]);
+      expect(store("removeThrough")).toHaveBeenCalledWith(HASH, "request-3");
       expect(store("countFailure")).not.toHaveBeenCalled();
     },
   );
+
+  /*
+   * Paused between two requests of a burst: the requests before the pause
+   * are evaluated, the rest each handed over and refused.
+   */
+  test("a grouped monitor paused partway through its burst: the requests after the pause are each refused, none dropped with another", async () => {
+    keep(1, 2, 3, 4);
+    monitorResource.mockImplementation((async (
+      request: IncomingMonitorRequest,
+    ) => {
+      if (((request.requestBody as JSONObject)["sequence"] as number) >= 3) {
+        throw new BadDataException(
+          ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
+        );
+      }
+
+      return {};
+    }) as never);
+
+    await expect(run()).resolves.toBeUndefined();
+
+    expect(evaluatedSequences()).toEqual([1, 2, 3, 4]);
+    expect(waiting).toEqual([]);
+    expect(store("remove")).toHaveBeenCalledTimes(4);
+    expect(store("countFailure")).not.toHaveBeenCalled();
+  });
 });

@@ -183,10 +183,11 @@ export const WORKSPACE_AFFECTED_RESOURCES_TEXT: {
   placeholder: "Search hosts, clusters, databases…",
   /*
    * Under the forms' own Monitors field: what picking one does, which the
-   * person decides (IncidentService.disableActiveMonitoringIfManualIncident).
+   * person decides (IncidentService.disableActiveMonitoringIfManualIncident)
+   * - unless the monitor keeps monitoring during incidents (#11141).
    */
   monitorsHint:
-    "A monitor you pick here pauses its checks until the incident is resolved.",
+    "A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
 };
 
 // One resource a search found, as the forms list it.

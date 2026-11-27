@@ -1,0 +1,53 @@
+[
+  {
+    "auto_poweron": false,
+    "cpus": { "cores": 48, "sockets": 6 },
+    "current_operations": {},
+    "default_SR": "1d2c3b4a-5e6f-4789-9abc-def012345678",
+    "HA_enabled": true,
+    "haRebootVmOnInternalShutdown": true,
+    "haSrs": ["1d2c3b4a-5e6f-4789-9abc-def012345678"],
+    "master": "9c6c0b6e-4f2a-4a7e-8b1e-0d1f2a3b4c5d",
+    "migrationCompression": false,
+    "name_description": "",
+    "name_label": "Production",
+    "otherConfig": {
+      "auto_poweron": "false",
+      "xo:clientInfo:lastUpdated": "1794800000000"
+    },
+    "platform_version": "3.4.0",
+    "tags": ["production"],
+    "vtpmSupported": true,
+    "zstdSupported": true,
+    "id": "b7569d99-30f8-178a-7d94-801de3e29b5b",
+    "type": "pool",
+    "uuid": "b7569d99-30f8-178a-7d94-801de3e29b5b",
+    "$pool": "b7569d99-30f8-178a-7d94-801de3e29b5b",
+    "$poolId": "b7569d99-30f8-178a-7d94-801de3e29b5b",
+    "_xapiRef": "OpaqueRef:2b3c4d5e-6f70-4182-93a4-b5c6d7e8f901"
+  },
+  {
+    "auto_poweron": false,
+    "cpus": { "cores": 8, "sockets": 1 },
+    "current_operations": {},
+    "default_SR": "77aa88bb-99cc-4ddd-8eee-ff0011223344",
+    "HA_enabled": false,
+    "haRebootVmOnInternalShutdown": true,
+    "haSrs": [],
+    "master": "6a7b8c9d-0e1f-4a2b-9c3d-4e5f6a7b8c9d",
+    "migrationCompression": false,
+    "name_description": "",
+    "name_label": "",
+    "otherConfig": {},
+    "platform_version": "3.4.0",
+    "tags": [],
+    "vtpmSupported": true,
+    "zstdSupported": true,
+    "id": "2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",
+    "type": "pool",
+    "uuid": "2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",
+    "$pool": "2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",
+    "$poolId": "2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1",
+    "_xapiRef": "OpaqueRef:7c8d9e0f-a1b2-43c4-95d6-e7f8091a2b3c"
+  }
+]

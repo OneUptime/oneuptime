@@ -16,7 +16,7 @@ const port: string = process.env["XCP_NG_PAGES_FIXTURE_PORT"] || "4672";
 
 export default defineConfig({
   testDir: "./XcpNgPages",
-  testMatch: ["XcpNgPages.spec.ts"],
+  testMatch: ["XcpNgPages.spec.ts", "XcpNgAiAgent.spec.ts"],
   fullyParallel: false,
   workers: 1,
   timeout: 90000,

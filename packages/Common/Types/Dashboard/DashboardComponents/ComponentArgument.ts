@@ -52,6 +52,10 @@ export enum EntityFilterModelType {
   // Saved funnels and saved retention tables (RumProductAnalyticsSavedView).
   ProductAnalyticsSavedFunnel = "ProductAnalyticsSavedFunnel",
   ProductAnalyticsSavedRetention = "ProductAnalyticsSavedRetention",
+  // What a Cloud Cost widget is over (#11009).
+  CloudAccount = "CloudAccount",
+  CloudCostGroup = "CloudCostGroup",
+  CloudCostView = "CloudCostView",
 }
 
 export interface ComponentArgumentSection {

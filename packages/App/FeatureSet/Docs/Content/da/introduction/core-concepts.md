@@ -44,7 +44,7 @@ Personer er med i et projekt gennem **teams**, og et teams tilladelser afgør, h
 
 En **monitor** tjekker én ting, du kører, og afgør, om den virker. De fleste monitorer tjekkes af **sonder**: maskiner, der kører tjekket efter en tidsplan, for eksempel ved at hente en side, kalde et API, pinge en vært eller forespørge en database. OneUptime Cloud kører sonder i flere regioner, en selvhostet installation kører sine egne, og du kan tilføje brugerdefinerede sonder i dit netværk. Andre monitorer læser i stedet det, du sender: telemetrien fra dine applikationer, eller de data, en agent rapporterer fra dine servere, Kubernetes-klynger og øvrige infrastruktur.
 
-En monitors **kriterier** afgør, hvad hvert resultat betyder. De tjekkes i rækkefølge, og det første, der passer, kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller alle tre. Hvert nyt projekt har tre monitorstatusser: **I drift**, **Forringet** og **Offline**.
+En monitors **kriterier** afgør, hvad hvert resultat betyder. De tjekkes i rækkefølge, og det første, der passer, kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller alle tre. Et, der ikke ændrer nogen status, overlader status til det næste kriterium, der passer og ændrer den. Hvert nyt projekt har tre monitorstatusser: **I drift**, **Forringet** og **Offline**.
 
 :::cards
 - [Opret en monitor](/docs/monitor/create-monitor): Vælg en type, sig hvad der skal tjekkes, og hvor ofte.

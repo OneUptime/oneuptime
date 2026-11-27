@@ -478,6 +478,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/StatusPageSubscriberService.ts": {
     "Service.unsubscribe StatusPageSubscriber": Why.Recorded,
   },
+  /*
+   * A Unisphere connection's server-only columns (#11004) - whether a
+   * password is saved, its next collection, the settings version - written
+   * after the settings change the audit log records.
+   */
+  "packages/Common/Server/Services/StorageArrayConnectionService.ts": {
+    "Service.writeConnectionServerColumns StorageArrayConnection": Why.FollowOn,
+  },
   "packages/Common/Server/Services/StorageArrayService.ts": {
     "Service.attachLabels StorageArray": Why.Reported,
     // MERGE_COUNTS_BY_KIND_SQL: each kind's count as a batch reports it (#11000).
@@ -489,6 +497,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
+  },
+  "packages/Common/Server/Services/XcpNgConnectionService.ts": {
+    /*
+     * The server-only columns a connection's save decides - which address,
+     * probe and certificate its secrets are bound to, the settings version
+     * probes compare - beside the save the audit log records (#10996).
+     */
+    "Service.writeConnectionServerColumns XcpNgConnection": Why.FollowOn,
   },
   "packages/Common/Server/Services/XcpNgPoolService.ts": {
     "Service.attachLabels XcpNgPool": Why.Reported,
@@ -583,6 +599,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataObservability/DataCheckIngest.ts": {
     "DataCheckIngest.recordResults DataCheck": Why.Reported,
   },
+  /*
+   * A database's Settings in Data Observability (#11147): a rename, a new
+   * connection, and Remove from Data Observability, each recorded as the
+   * person who made it.
+   */
+  "packages/Common/Server/Utils/DataObservability/DataObservabilityStoreSettings.ts":
+    {
+      "DataObservabilityStoreSettings.remove DataStore": Why.Recorded,
+      "DataObservabilityStoreSettings.update DataStore": Why.Recorded,
+    },
   "packages/Common/Server/Utils/DataObservability/DataProductCheck.ts": {
     "DataProductCheck.checkProduct DataProduct": Why.Reported,
   },
@@ -918,6 +944,11 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "SubscriberNotificationClaim.claim *": Why.Bookkeeping,
     "SubscriberNotificationClaim.failInterrupted *": Why.Bookkeeping,
   },
+  // What a probe found when it read a Unisphere (#11004), as VMware's.
+  "packages/Common/Server/Utils/StorageArray/StorageArrayProbeCollectionStore.ts":
+    {
+      "StorageArrayProbeCollectionStore.recordCollectionReport *": Why.Reported,
+    },
   "packages/Common/Server/Utils/Telemetry/EntityRegistry.ts": {
     "reconcileByNaturalKey *": Why.Reported,
   },
@@ -942,6 +973,13 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   },
   "packages/Common/Server/Utils/VMware/VMwareProbeCollectionStore.ts": {
     "VMwareProbeCollectionStore.recordCollectionReport *": Why.Reported,
+  },
+  // Where reading a pool's alarms and backups stands, from a probe's read (#10997).
+  "packages/Common/Server/Utils/XcpNg/XcpNgPoolEventsIngest.ts": {
+    "(module) XcpNgPool": Why.Reported,
+  },
+  "packages/Common/Server/Utils/XcpNg/XcpNgProbeCollectionStore.ts": {
+    "XcpNgProbeCollectionStore.recordCollectionReport *": Why.Reported,
   },
 };
 

@@ -94,6 +94,12 @@ import {
 } from "Common/Utils/StateOrder";
 import ScheduledMaintenanceStartUtil from "Common/Utils/ScheduledMaintenanceStart";
 import ScheduledMaintenancePublication from "Common/Types/ScheduledMaintenance/ScheduledMaintenancePublication";
+import NotificationRuleEventType from "Common/Types/Workspace/NotificationRules/EventType";
+import NotificationRuleUpdates, {
+  NotificationRuleUpdateKind,
+} from "Common/Types/Workspace/NotificationRules/NotificationRuleUpdates";
+import { SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS } from "Common/Server/Utils/Feed/FeedUpdateKinds";
+import { ScheduledMaintenanceFeedEventType } from "Common/Models/DatabaseModels/ScheduledMaintenanceFeed";
 import {
   DEFAULT_MAINTENANCE_DURATION_IN_MINUTES,
   MaintenanceWindow,
@@ -3245,7 +3251,7 @@ describe("recurring events", () => {
       inOrder(
         positionsIn(recurringJob, [
           "scheduleNextEventAt: nextScheduledTime,",
-          "scheduledMaintenanceEvent = await ScheduledMaintenanceService.create({",
+          "await ScheduledMaintenanceService.create(createBy);",
         ]),
       ),
     ).toBe(true);
@@ -3637,6 +3643,51 @@ describe("where maintenance settings live", () => {
     expect(where).toContain(
       "at an address beginning `/dashboard/{projectId}/scheduled-maintenance-events/settings/`.",
     );
+  });
+
+  it("says what the Workspace rules post of an event - its owners added and taken off among it - as its services post them (#11223)", () => {
+    expect(where).toContain(
+      "The **Workspace** section holds the Slack and Microsoft Teams rules that post events to channels: each event as it is created, then its state changes, notes, owners added and taken off, and reminders, as each rule's **Updates** step chooses.",
+    );
+
+    // Each owner line is posted: added and taken off, a person and a team.
+    for (const file of [
+      "Server/Services/ScheduledMaintenanceOwnerUserService.ts",
+      "Server/Services/ScheduledMaintenanceOwnerTeamService.ts",
+    ]) {
+      expect({
+        file,
+        linesPosted:
+          readCommonSource(file).split("sendWorkspaceNotification: true,")
+            .length - 1,
+      }).toEqual({ file, linesPosted: 2 });
+    }
+
+    // They are the Owners update, a box of the Updates step, as each update named is.
+    for (const type of [
+      ScheduledMaintenanceFeedEventType.OwnerUserAdded,
+      ScheduledMaintenanceFeedEventType.OwnerTeamAdded,
+      ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
+      ScheduledMaintenanceFeedEventType.OwnerTeamRemoved,
+    ]) {
+      expect({
+        type,
+        kind: SCHEDULED_MAINTENANCE_FEED_UPDATE_KINDS[type],
+      }).toEqual({ type, kind: NotificationRuleUpdateKind.Owners });
+    }
+
+    expect(
+      NotificationRuleUpdates.getChoosableKinds(
+        NotificationRuleEventType.ScheduledMaintenance,
+      ),
+    ).toEqual([
+      NotificationRuleUpdateKind.StateChanges,
+      NotificationRuleUpdateKind.PublicNotes,
+      NotificationRuleUpdateKind.PrivateNotes,
+      NotificationRuleUpdateKind.Owners,
+      NotificationRuleUpdateKind.Reminders,
+      NotificationRuleUpdateKind.Other,
+    ]);
   });
 });
 

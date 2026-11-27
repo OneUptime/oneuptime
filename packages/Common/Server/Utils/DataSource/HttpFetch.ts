@@ -7,7 +7,10 @@ import {
   DATA_SOURCE_QUERY_TIMEOUT_IN_MS,
 } from "../../../Types/DataSource/DataSourceLimits";
 import OutboundUserAgent from "../OutboundUserAgent";
-import DataSourceEgressGuard, { EgressGuardOptions } from "./EgressGuard";
+import DataSourceEgressGuard, {
+  EgressGuardOptions,
+  TargetTlsOptions,
+} from "./EgressGuard";
 import { DataSourceConnectionSettings } from "./Types";
 
 /*
@@ -58,6 +61,13 @@ export interface DataSourceHttpRequest {
   timeoutInMs?: number | undefined;
   // Test seam — forwarded to the egress guard.
   egressOptions?: EgressGuardOptions | undefined;
+  /*
+   * How the target's certificate is checked, for this request alone: a
+   * self-managed search cluster's own CA, or none for one whose
+   * certificate no authority signed (Data Security, #11140). Unset, it is
+   * checked as every request's is.
+   */
+  tls?: TargetTlsOptions | undefined;
   /*
    * Answer every status as a response instead of throwing for anything
    * outside 2xx: for a client that reads the status and headers itself - a
@@ -148,6 +158,7 @@ export default class DataSourceHttpFetch {
       await DataSourceEgressGuard.assertUrlAllowedAndPin(
         request.url,
         request.egressOptions,
+        request.tls ? { tls: request.tls } : undefined,
       );
 
     const headers: Dictionary<string> = OutboundUserAgent.withDefault(

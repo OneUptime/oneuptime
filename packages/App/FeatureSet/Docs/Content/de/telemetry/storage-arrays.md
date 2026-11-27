@@ -1,11 +1,12 @@
 # Speicher-Array-Agent
 
-Der OneUptime-Storage-Array-Agent überwacht Storage-Arrays: Kapazität und Datenreduktion, Latenz, IOPS und Bandbreite, Volumes, Hosts, Pods und Replikation, Hardware-Zustand, Dateisysteme und Buckets. Er ist ein unveränderter OpenTelemetry Collector, der die OpenMetrics-Endpunkte des Arrays mit dem API-Token eines schreibgeschützten Benutzers scrapt, jede Metrik mit der Identität Ihres Arrays versieht und sie an OneUptime sendet. [Storage-Array-Monitore](/docs/monitor/storage-array-monitor) alarmieren anhand dessen, was ankommt.
+Der OneUptime-Storage-Array-Agent überwacht Storage-Arrays: Kapazität und Datenreduktion, Latenz, IOPS und Bandbreite, Volumes, Hosts, Pods und Replikation, Hardware-Zustand, Dateisysteme und Buckets sowie bei NetApp ONTAP seine Aggregate, SVMs, LUNs und SnapMirror-Beziehungen. Er ist ein unveränderter OpenTelemetry Collector, der die OpenMetrics-Endpunkte des Arrays mit dem API-Token eines schreibgeschützten Benutzers scrapt (bei ONTAP stattdessen den eigenen Exporter von NetApp, Harvest, der neben ihm läuft), jede Metrik mit der Identität Ihres Arrays versieht und sie an OneUptime sendet. [Storage-Array-Monitore](/docs/monitor/storage-array-monitor) alarmieren anhand dessen, was ankommt.
 
 :::cards
 - [Agent installieren](#agent-installieren): Ein schreibgeschützter Benutzer, dann das Installationsskript oder Docker Compose.
 - [Was der Agent erfasst](#was-der-agent-erfasst): Jeder Endpunkt und die Seiten, die daraus entstehen.
 - [Mehrere Arrays überwachen](#mehrere-arrays-überwachen): Ein Agent pro Array, auf einem Rechner.
+- [Dell PowerMax](#dell-powermax): Kein Agent: Eine Sonde liest jedes Array hinter Unisphere.
 - [Fehlerbehebung](#fehlerbehebung): Ein Diagnoseskript und die üblichen Probleme.
 :::
 
@@ -18,6 +19,12 @@ Storage Arrays ist ein Produkt, das für jeden Hersteller gleich funktioniert. E
 | **Pure Storage FlashArray**, Purity//FA 6.7 und neuer | `purestorage.flasharray` | Der eigene OpenMetrics-Endpunkt des Arrays (`https://<array>/metrics/...?namespace=purefa`): Neben dem Collector läuft nichts | `otel-collector-config.yaml` (der Standard) |
 | **Pure Storage FlashArray**, älteres Purity//FA | `purestorage.flasharray` | Der FlashArray-OpenMetrics-Exporter von Pure, den dieselbe Compose-Datei als Dienst `pure-fa-exporter` ausführt | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Der FlashBlade-OpenMetrics-Exporter von Pure, den dieselbe Compose-Datei als Dienst `pure-fb-exporter` ausführt | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Der PowerStore Metrics Exporter von Dell, den dieselbe Compose-Datei als Dienst `powerstore-exporter` baut und ausführt; die Warnungen des Clusters kommen per Syslog bei ihrem Dienst `powerstore-syslog` an | `otel-collector-config.powerstore.yaml` |
+| **NetApp ONTAP** 9.12.1 und neuer (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP) sowie **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, das dieselbe Compose-Datei als Dienst `netapp-harvest` ausführt: Es meldet sich mit einem schreibgeschützten Benutzer und dessen Passwort an der REST-API des Clusters an | `otel-collector-config.netapp-ontap.yaml` |
+
+ONTAP hat keinen eigenen Metrik-Endpunkt, daher betreibt der Agent neben dem Collector den Open-Source-Exporter von NetApp, Harvest. Harvest liest die REST-API des Clusters und stellt das Gelesene im Compose-Netzwerk bereit, jede Serie mit dem Namen `netapp_<object>_<counter>`; der Collector scrapt Harvest und sendet die Daten weiter. Harvest schreibt nie auf den Cluster, und sein AutoSupport-Bericht an NetApp ist ausgeschaltet.
+
+**Dell PowerMax** (`dell.powermax`) braucht keinen Agent: Eine OneUptime-Sonde liest mit einem Konto mit Lesezugriff jedes Array, das ein Unisphere for PowerMax verwaltet. Siehe [Dell PowerMax](#dell-powermax).
 
 Pure Storage hat sich im Februar 2026 in **Everpure** umbenannt. FlashArray, FlashBlade und Purity behielten ihre Namen, ebenso die Metriken `purefa_*` und `purefb_*`; alles auf dieser Seite gilt daher für Arrays, die unter dem einen oder dem anderen Namen verkauft werden.
 
@@ -26,7 +33,13 @@ flowchart TB
     collector["Collector"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["Das Array,<br/>Port 443"]
     collector -->|"älteres FlashArray,<br/>FlashBlade"| exporter["Exporter von Pure"]
     exporter -->|"API-Token"| array
+    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    harvest -->|"schreibgeschützter Benutzer,<br/>REST-API"| cluster["Der Cluster,<br/>Port 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 Ein Agent überwacht ein Array: Führen Sie einen Agent pro Array aus (siehe [Mehrere Arrays überwachen](#mehrere-arrays-überwachen)). Das Array registriert sich mit seinen ersten Daten unter dem Namen, den der Agent als `storage.array.name` an jede Metrik hängt.
@@ -34,7 +47,8 @@ Ein Agent überwacht ein Array: Führen Sie einen Agent pro Array aus (siehe [Me
 ## Bevor Sie beginnen
 
 - Docker Engine 20.10 oder neuer mit dem Plugin Docker Compose v2, auf einem Rechner, der die Management-Schnittstelle des Arrays per HTTPS (TCP 443) erreicht.
-- Ein Administratorkonto auf dem Array, um einen Benutzer mit der eingebauten Rolle **readonly** und ein API-Token für ihn anzulegen.
+- Ein Administratorkonto auf dem Array, um einen Benutzer mit der eingebauten Rolle **readonly** und ein API-Token für ihn anzulegen. Bei ONTAP ein Cluster-Administrator (bei Amazon FSx for NetApp ONTAP `fsxadmin`), um einen schreibgeschützten REST-Benutzer mit Passwort anzulegen.
+- Für einen Dell PowerStore ein x86-64-Rechner (Dell baut seinen Exporter nur für x86-64) und ein PowerStore-Benutzer für den Agent: siehe [Dell PowerStore](#dell-powerstore).
 - Ein Ingestion-Schlüssel. Legen Sie ihn unter **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** an und kopieren Sie seinen Wert.
 
 ### Wo der Agent laufen sollte
@@ -62,6 +76,27 @@ pureadmin create --api-token oneuptime
 3. Wählen Sie im ⋮-Menü des neuen Benutzers **Create API Token…**, lassen Sie **Expires In** leer und kopieren Sie das Token.
 @tab FlashBlade
 Legen Sie auf dieselbe Weise einen Benutzer mit der Rolle **readonly** und ein API-Token für ihn an: in den Benutzereinstellungen der FlashBlade-GUI oder mit `pureadmin` in der Purity//FB-CLI. In einem Release ohne lokale Benutzer verwenden Sie ein Konto eines Verzeichnisdienstes (LDAP oder Active Directory), dessen Gruppe auf die Rolle readonly abgebildet ist. FlashBlade-API-Tokens beginnen mit `T-`.
+@tab ONTAP CLI
+Melden Sie sich per SSH als Administrator an der Cluster-Management-Adresse an. Der erste Befehl legt eine REST-Rolle an, die jede API lesen darf und sonst nichts; der zweite legt einen HTTP-Benutzer mit dieser Rolle an und fragt nach seinem Passwort:
+
+```bash
+security login rest-role create -role oneuptime-readonly -api /api -access readonly
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role oneuptime-readonly
+```
+
+Der Agent meldet sich mit diesem Benutzer und diesem Passwort an. Ein API-Token ist nicht beteiligt.
+@tab ONTAP System Manager
+1. Öffnen Sie _Cluster → Settings → Users and Roles_.
+2. Wählen Sie unter **Roles** den Eintrag **Add**, nennen Sie die Rolle `oneuptime-readonly`, geben Sie `/api` als **REST API path** ein und wählen Sie den Zugriff **Read-Only**.
+3. Wählen Sie unter **Users** den Eintrag **Add**, nennen Sie den Benutzer `oneuptime`, geben Sie ihm die neue Rolle, fügen Sie die Anmeldemethode **HTTP** mit **Password** hinzu und legen Sie das Passwort fest.
+@tab Amazon FSx for NetApp ONTAP
+Melden Sie sich per SSH am Management-Endpunkt des Dateisystems (sein DNS-Name oder seine IP, aus der FSx-Konsole) als `fsxadmin` an und legen Sie den Benutzer mit der vordefinierten schreibgeschützten Rolle von FSx an. Der Befehl fragt nach seinem Passwort:
+
+```bash
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role fsxadmin-readonly
+```
+
+AWS betreibt die Hardware des Dateisystems, daher beantwortet FSx niemandem Fragen zu Datenträgern, Shelfs oder Sensoren: Die Seite **Hardware** des Arrays listet seine Knoten und Ports auf und sagt das.
 :::
 
 ### Prüfen, ob das FlashArray seine eigenen Metriken liefert
@@ -72,7 +107,7 @@ Pure dokumentiert den nativen OpenMetrics-Endpunkt für **Purity//FA 6.7.0 und n
 curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization: Bearer <api-token>' | grep purefa_info
 ```
 
-Eine Zeile `purefa_info{...} 1` bedeutet, dass das Array seine Metriken nativ liefert: Verwenden Sie die Standardkonfiguration. Ein `404` bedeutet, dass es das nicht tut: Verwenden Sie die Exporter-Konfiguration, die den Exporter von Pure neben dem Collector ausführt. Pure hat diesen Exporter abgekündigt; wechseln Sie daher zur nativen Konfiguration, sobald das Array aktualisiert ist. Ein FlashBlade läuft immer über den FlashBlade-Exporter von Pure; überspringen Sie diesen Schritt dafür.
+Eine Zeile `purefa_info{...} 1` bedeutet, dass das Array seine Metriken nativ liefert: Verwenden Sie die Standardkonfiguration. Ein `404` bedeutet, dass es das nicht tut: Verwenden Sie die Exporter-Konfiguration, die den Exporter von Pure neben dem Collector ausführt. Pure hat diesen Exporter abgekündigt; wechseln Sie daher zur nativen Konfiguration, sobald das Array aktualisiert ist. Ein FlashBlade läuft immer über den FlashBlade-Exporter von Pure und ein ONTAP-Cluster über NetApp Harvest; überspringen Sie diesen Schritt für sie.
 
 ### Den Agent installieren und starten
 
@@ -87,7 +122,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Das Skript fragt, um welches Array es sich handelt (ein FlashArray mit nativen Metriken, ein FlashArray mit älterem Purity//FA oder ein FlashBlade), dann nach Ihrer OneUptime-URL, dem Ingestion-Schlüssel, einem Namen für das Array, der Management-Adresse des Arrays und dem API-Token des schreibgeschützten Benutzers (ohne Echo gelesen). Es installiert nach `/opt/oneuptime-storage-array-agent`, lädt die Compose-Datei und alle drei Collector-Konfigurationen herunter, schreibt eine mit `0600` geschützte `.env`-Datei mit der passenden Konfiguration und dem passenden Compose-Profil und startet den Agent mit Docker Compose. Es setzt jeden Wert so für Docker Compose in Anführungszeichen, wie Sie ihn eingegeben haben. Ein erneuter Lauf verwendet alles in einer vorhandenen `.env` wieder, statt erneut zu fragen, und bewahrt eine von Ihnen bearbeitete Datei als `<file>.bak.<timestamp>` auf, bevor er sie ersetzt.
+Das Skript fragt, um welches Array es sich handelt (ein FlashArray mit nativen Metriken, ein FlashArray mit älterem Purity//FA, ein FlashBlade oder ein NetApp-ONTAP-Cluster), dann nach Ihrer OneUptime-URL, dem Ingestion-Schlüssel, einem Namen für das Array, der Management-Adresse des Arrays und dem API-Token des schreibgeschützten Benutzers, bei ONTAP nach Name und Passwort des schreibgeschützten Benutzers (ohne Echo gelesen). Es installiert nach `/opt/oneuptime-storage-array-agent`, lädt die Compose-Datei, jede Collector-Konfiguration und die vier Dateien von Harvest herunter, schreibt eine mit `0600` geschützte `.env`-Datei mit der passenden Konfiguration und dem passenden Compose-Profil und startet den Agent mit Docker Compose. Es setzt jeden Wert so für Docker Compose in Anführungszeichen, wie Sie ihn eingegeben haben. Ein erneuter Lauf verwendet alles in einer vorhandenen `.env` wieder, statt erneut zu fragen, und bewahrt eine von Ihnen bearbeitete Datei als `<file>.bak.<timestamp>` auf, bevor er sie ersetzt.
 @tab Docker Compose
 Laden Sie `docker-compose.yml` und die drei Dateien `otel-collector-config*.yaml` von Ihrem OneUptime in einen neuen Ordner herunter:
 
@@ -112,9 +147,45 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
 
-Für ein FlashArray mit älterem Purity//FA setzen Sie `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` und `COMPOSE_PROFILES=flasharray-exporter`. Für ein FlashBlade setzen Sie `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` und `COMPOSE_PROFILES=flashblade` und füllen `PURE_FB_ENDPOINT` und `PURE_FB_API_TOKEN` statt des Paars `PURE_FA_*` aus. Starten Sie den Agent:
+Laden Sie für einen Dell PowerStore außerdem `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` und `powerstore-syslog.yaml` herunter, setzen Sie `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` und `COMPOSE_PROFILES=powerstore` und tragen Sie `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` und `POWERSTORE_PASSWORD` ein, das Passwort in einfachen Anführungszeichen.
+
+Für ein FlashArray mit älterem Purity//FA setzen Sie `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` und `COMPOSE_PROFILES=flasharray-exporter`. Für ein FlashBlade setzen Sie `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` und `COMPOSE_PROFILES=flashblade` und füllen `PURE_FB_ENDPOINT` und `PURE_FB_API_TOKEN` statt des Paars `PURE_FA_*` aus.
+
+Laden Sie für einen NetApp-ONTAP-Cluster oder Amazon FSx for NetApp ONTAP außerdem die ONTAP-Konfiguration und die vier Dateien von Harvest herunter:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
+```
+
+und verwenden Sie diese `.env`. Setzen Sie das Passwort wie hier in einfache Anführungszeichen: Dann liest Docker Compose es genau so, wie es geschrieben ist, was immer es enthält. Ein Passwort mit einem `'` darin kommt stattdessen in doppelte Anführungszeichen, mit `\"`, `\\` und `$$` für ein `"`, ein `\` und ein `$`:
+
+```bash title=".env"
+ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
+STORAGE_ARRAY_NAME=ontap-prod-01
+STORAGE_SYSTEM=netapp.ontap
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.netapp-ontap.yaml
+COMPOSE_PROFILES=netapp-ontap
+NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
+NETAPP_ONTAP_USERNAME=oneuptime
+NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
+STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+```
+
+Starten Sie den Agent:
 
 ```bash
 docker compose up -d
@@ -128,7 +199,7 @@ docker compose ps
 docker logs -f oneuptime-storage-array-agent
 ```
 
-`docker compose ps` listet den Collector (`oneuptime-storage-array-agent`) und, bei einer Exporter-Konfiguration, den Exporter (`pure-fa-exporter` oder `pure-fb-exporter`) auf. Sobald der Collector gestartet ist, sollten seine Logs diese Zeile zeigen:
+`docker compose ps` listet den Collector (`oneuptime-storage-array-agent`) und, bei einer Exporter-Konfiguration, den Exporter (`pure-fa-exporter`, `pure-fb-exporter` oder `netapp-harvest`) auf. Sobald der Collector gestartet ist, sollten seine Logs diese Zeile zeigen:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -136,8 +207,18 @@ Everything is ready. Begin running and processing data.
 
 ### Das Array in OneUptime finden
 
-Öffnen Sie **Produkte → Infrastruktur → Speicher-Arrays → Alle Speicher-Arrays**. Nach dem ersten Scrape (etwa einer Minute) ist das Array mit seiner Kapazität, Leistung, offenen Warnungen und Hardware da. Volumes, Hosts und Pods folgen innerhalb von 2 Minuten, die Dateisysteme und Buckets eines FlashBlade innerhalb von 5 und FlashArray-Verzeichnisse innerhalb von 30. Die Seite **Topologie** des Arrays zeichnet seine Hosts, Volumes, Dateisysteme und Hardware als eine Karte: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
+Öffnen Sie **Produkte → Infrastruktur → Speicher-Arrays → Alle Speicher-Arrays**. Nach dem ersten Scrape (etwa einer Minute) ist das Array mit seiner Kapazität, Leistung, offenen Warnungen und Hardware da. Volumes, Hosts und Pods folgen innerhalb von 2 Minuten, die Dateisysteme und Buckets eines FlashBlade innerhalb von 5 und FlashArray-Verzeichnisse innerhalb von 30. Ein ONTAP-Cluster erscheint, sobald Harvest ihn gelesen hat, und sein ganzes Inventar innerhalb von etwa 3 Minuten, dem Intervall, in dem Harvest seine Konfiguration abfragt. Die Seite **Topologie** des Arrays zeichnet seine Hosts, Volumes, Dateisysteme und Hardware als eine Karte: siehe [Topologie](/docs/telemetry/topology#die-eigene-karte-einer-ressource-öffnen).
 :::
+
+## Dell PowerStore
+
+Der Agent liest einen PowerStore-Cluster über den PowerStore Metrics Exporter von Dell, Release `powerstore-metrics-exporter_v1.0.3`. Dell veröffentlicht ihn als Binärdatei, nicht als Image, daher baut der Dienst `powerstore-exporter` beim ersten Start das von Dell dokumentierte Image aus `powerstore-exporter.Dockerfile` und prüft dabei die SHA-256 der Binärdatei; dieser Build braucht einmal `quay.io` und `github.com`.
+
+Der Exporter von Dell meldet sich mit Benutzername und Passwort an, denn PowerStore hat keine API-Token. Legen Sie im PowerStore Manager unter _Settings → Users_ einen lokalen Benutzer nur für den Agent an, mit der Rolle **Storage Operator**: Der Exporter liest die Leistung aus dem Fünf-Minuten-Bulk-Metrikarchiv von PowerStore, das er selbst einschaltet und das PowerStoreOS 4.1 und neuer verlangen, und laut der README von Dell kann die Rolle Operator es nicht einschalten. Auf einem älteren PowerStoreOS genügt die schreibgeschützte Rolle **Operator** mit `POWERSTORE_BULK_METRICS=false`. Nur der Exporter liest das Passwort, aus `.env`.
+
+Der Exporter von Dell liest keine Warnungen, daher sendet der Cluster seine eigenen: Der Dienst `powerstore-syslog` nimmt sein Remote-Syslog auf Port 5514 per TCP und UDP an und legt jede Zeile auf der Seite **Protokolle** des Arrays ab, mit dem Datensatz von PowerStore in Attributen (`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`) und einem Schweregrad aus den Ereigniscodes von Dell (`powerstore.alert.severity`). Öffnen Sie im PowerStore Manager _Settings → Security → Remote Logging_, fügen Sie diesen Rechner auf Port 5514 hinzu und öffnen Sie den Port in seiner Firewall. Syslog über TLS auf Port 6514 beschreibt `powerstore-syslog.yaml`.
+
+Der Exporter von Dell meldet keine Hosts und keine Replikationssitzungen, daher hat diese Version keine.
 
 ## Umgebungsvariablen
 
@@ -148,14 +229,24 @@ Das Installationsskript schreibt diese nach `/opt/oneuptime-storage-array-agent/
 | `ONEUPTIME_URL` | Ja | Ihre OneUptime-URL, etwa `https://oneuptime.com` oder Ihre selbst gehostete Instanz. Verwenden Sie `http://` und ihren Port, wenn die Instanz nur HTTP spricht. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Der Ingestion-Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel**. |
 | `STORAGE_ARRAY_NAME` | Ja | Der Name, unter dem sich das Array in OneUptime registriert, an jede Metrik als Ressourcenattribut `storage.array.name` gehängt. Halten Sie ihn stabil: Eine spätere Änderung registriert ein zweites Array. Ohne ihn startet der Collector nicht. |
-| `STORAGE_SYSTEM` | Nein | Die Plattform, angehängt als Ressourcenattribut `storage.system`: `purestorage.flasharray` oder `purestorage.flashblade`. Standard ist `purestorage.flasharray`. |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Nein | Welche mitgelieferte Collector-Konfiguration läuft: `otel-collector-config.yaml` (FlashArray, nativ: der Standard), `otel-collector-config.flasharray-exporter.yaml` (älteres FlashArray) oder `otel-collector-config.flashblade.yaml` (FlashBlade). |
-| `COMPOSE_PROFILES` | Nein | Startet den Exporter, den die gewählte Konfiguration scrapt: leer für die native FlashArray-Konfiguration, `flasharray-exporter` oder `flashblade` für die anderen beiden. |
+| `STORAGE_SYSTEM` | Nein | Die Plattform, angehängt als Ressourcenattribut `storage.system`: `purestorage.flasharray`, `purestorage.flashblade` oder `netapp.ontap`. Standard ist `purestorage.flasharray`. |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Nein | Welche mitgelieferte Collector-Konfiguration läuft: `otel-collector-config.yaml` (FlashArray, nativ: der Standard), `otel-collector-config.flasharray-exporter.yaml` (älteres FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade) oder `otel-collector-config.netapp-ontap.yaml` (ONTAP). |
+| `COMPOSE_PROFILES` | Nein | Startet den Exporter, den die gewählte Konfiguration scrapt: leer für die native FlashArray-Konfiguration, `flasharray-exporter`, `flashblade` oder `netapp-ontap` für die anderen. |
 | `PURE_FA_ENDPOINT` | FlashArray | Die Management-Adresse des FlashArray: ein Hostname oder eine IP, ohne `https://`. |
 | `PURE_FA_API_TOKEN` | FlashArray | Das API-Token des FlashArray-Benutzers mit der Rolle readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | Die Management-Adresse des FlashBlade: ein Hostname oder eine IP, ohne `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | Das API-Token des FlashBlade-Benutzers mit der Rolle readonly. |
-| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nein | `true` akzeptiert am nativen Endpunkt das selbstsignierte Zertifikat des Arrays; `false` prüft es. Standard ist `true`. Die Exporter von Pure prüfen das Zertifikat des Arrays nie, daher gilt die Einstellung für sie nicht. |
+| `POWERSTORE_ENDPOINT` | PowerStore | Die Management-Adresse des PowerStore-Clusters: ein Hostname oder eine IP, ohne `https://`. |
+| `POWERSTORE_USERNAME` | PowerStore | Der PowerStore-Benutzer, mit dem sich der Exporter von Dell anmeldet. |
+| `POWERSTORE_PASSWORD` | PowerStore | Das Passwort dieses Benutzers. Nur der Exporter liest es. |
+| `POWERSTORE_BULK_METRICS` | Nein | `true` liest die Leistung aus dem Bulk-Metrikarchiv von PowerStore; `false` liest jedes Objekt einzeln. Standard ist `true`. |
+| `POWERSTORE_API_VERSION` | Nein | `v3` für PowerStoreOS 3.6 und neuer, oder `v1`. Standard ist `v3`. |
+| `POWERSTORE_REQUEST_LIMIT` | Nein | Wie viele Anfragen der Exporter gleichzeitig an den Cluster sendet. Standard ist `16`. |
+| `POWERSTORE_SYSLOG_PORT` | Nein | Der Port, auf dem dieser Rechner das Syslog des Clusters annimmt, per TCP und UDP. Standard ist `5514`. |
+| `NETAPP_ONTAP_ENDPOINT` | ONTAP | Die Cluster-Management-Adresse (bei FSx der Management-Endpunkt des Dateisystems): ein Hostname oder eine IP, ohne `https://`. |
+| `NETAPP_ONTAP_USERNAME` | ONTAP | Der schreibgeschützte REST-Benutzer, etwa `oneuptime`. |
+| `NETAPP_ONTAP_PASSWORD` | ONTAP | Sein Passwort. Nur Harvest liest es, genau so, wie es geschrieben ist. |
+| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nein | `true` akzeptiert am nativen Endpunkt und in Harvest das selbstsignierte Zertifikat des Arrays; `false` prüft es. Standard ist `true`. Die Exporter von Pure prüfen das Zertifikat des Arrays nie, daher gilt die Einstellung für sie nicht. |
 
 ## Wie der Agent scrapt
 
@@ -163,11 +254,13 @@ Das Installationsskript schreibt diese nach `/opt/oneuptime-storage-array-agent/
 - **Jeder Job versieht seine Serien mit dem Label `scrape_endpoint: <endpoint>`.** Jeder Endpunkt exportiert außerdem `purefa_info` oder `purefb_info`; so weiß OneUptime, von welchen Familien ein Batch die vollständige Liste ist: Auf diese Weise verlässt ein gelöschtes Volume, ein Host, ein Pod, ein Dateisystem oder ein Bucket das Inventar, statt darin hängen zu bleiben. Behalten Sie die Labels wie ausgeliefert.
 - **Die Latenz pro Volume und pro Host behält drei Dimensionen.** Jedes Volume und jeder Host exportiert seine Latenz in bis zu sechzehn `dimension`s. Eine Regel `metric_relabel_configs` behält `usec_per_read_op`, `usec_per_write_op` und `usec_per_mirrored_write_op` und verwirft die Aufschlüsselung nach QoS-Ratenlimit, Warteschlange, SAN und Servicezeit, die die Serien eines großen Arrays vervielfacht. Die arrayweite Aufschlüsselung auf `purefa_array_performance_latency_usec` bleibt erhalten. Löschen Sie die Regel, um auch die Aufschlüsselung pro Volume zu behalten.
 - **Das API-Token ist ein Bearer-Token.** Die native Konfiguration sendet es an das Array selbst; die Exporter-Konfigurationen senden es nur über das Compose-Netzwerk an den Exporter, und die Ports der Exporter werden nie veröffentlicht.
+- **Ein PowerStore alle 5 Minuten.** Der Exporter von Dell stellt jeden Teil des Clusters unter `/metrics/<cluster>/<part>` bereit: Die Konfiguration liest `cluster` alle 60 Sekunden, seinen Heartbeat, und `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas` und `file` alle 5 Minuten, da PowerStore sie in Fünf-Minuten-Proben berechnet.
 - **Kein `send_batch_max_size`.** OneUptime baut das Inventar aus einem ganzen Scrape pro Anfrage neu auf; der mitgelieferte Processor `batch` teilt einen Scrape daher nie auf mehrere Exporte auf. Behalten Sie die Batch-Einstellungen wie ausgeliefert.
+- **ONTAP: Harvest fragt den Cluster ab, der Collector scrapt Harvest.** Harvest liest Konfiguration und Zustand des Clusters alle 3 Minuten, seine Leistung jede Minute (Latenzen in Mikrosekunden pro Operation, Operationen und Bytes pro Sekunde) und seine EMS-Ereignisse alle 3 Minuten und stellt jeweils den neuesten Stand unter `netapp-harvest:12990` bereit, das der Collector alle 60 Sekunden mit dem Label `scrape_endpoint: harvest` scrapt. Die drei Dateien `netapp-harvest-*.yaml` beschränken Harvest auf das, was OneUptime liest. Die eigenen Serien `netapp_metadata_*` von Harvest sagen, welche Objekte es vollständig aufgelistet hat; so verlässt ein gelöschtes Volume das Inventar, während ein Objekt, das Harvest nicht lesen konnte, seine letzte Anzahl behält. Der Collector verwirft die Messungen, die Harvest über sich selbst macht, und die Leistungsserien pro Datenträger und macht aus dem Zeitplan jeder SnapMirror-Beziehung `netapp_snapmirror_schedule_seconds` (ein stündlicher Zeitplan ist 3600), womit SnapMirror Behind Schedule den Rückstand vergleicht.
 
 ## Was der Agent erfasst
 
-Die semantischen Konventionen von Pure gelten gleichermaßen für den nativen FlashArray-Endpunkt und beide Exporter. Jeder Wert ist ein Gauge, den das Array selbst berechnet (Latenzen in Mikrosekunden pro Operation, Durchsatz pro Sekunde), daher müssen keine Raten berechnet werden, und Objekte werden über **Datenpunkt-Labels** benannt: `name` für Volumes, Pods, Verzeichnisse, Dateisysteme und Buckets, `host` für Hosts, `component_name` für FlashArray-Hardware. Der Agent hängt die Ressourcenattribute `storage.array.name` und `storage.system` an, sodass OneUptime alles unter Ihrem Array ablegt:
+Die semantischen Konventionen von Pure gelten gleichermaßen für den nativen FlashArray-Endpunkt und beide Exporter; die von ONTAP sind die von Harvest, beschrieben nach der Tabelle. Jeder Wert ist ein Gauge, den das Array selbst berechnet (Latenzen in Mikrosekunden pro Operation, Durchsatz pro Sekunde), daher müssen keine Raten berechnet werden, und Objekte werden über **Datenpunkt-Labels** benannt: `name` für Volumes, Pods, Verzeichnisse, Dateisysteme und Buckets, `host` für Hosts, `component_name` für FlashArray-Hardware. Der Agent hängt die Ressourcenattribute `storage.array.name` und `storage.system` an, sodass OneUptime alles unter Ihrem Array ablegt:
 
 | Endpunkt | Metrikfamilien | Was OneUptime daraus baut |
 | --- | --- | --- |
@@ -179,8 +272,18 @@ Die semantischen Konventionen von Pure gelten gleichermaßen für den nativen Fl
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | Name, Purity-Version und System-ID des FlashBlade; Kapazität und Datenreduktion; Anzahl offener Warnungen; der Zustand des Arrays; die Seite **Hardware** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | Die Seite **Dateisysteme**: bereitgestellter und belegter Platz, Datenreduktion, Latenz, IOPS und Bandbreite pro Dateisystem |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | Die Seite **Buckets**: Platz, Kontingent, Objektanzahl und Leistung pro Bucket, nach Konto gruppiert |
+| PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | Name und Zustand des Clusters; die Seite **Appliances**: Kapazität, Datenreduktion, Latenz, IOPS und Bandbreite jeder Appliance |
+| PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | Die Seite **Hardware**: Knoten, Lüfter, Netzteile, Batterien, Laufwerke und Front-End-Ports, jeweils mit ihrer Appliance |
+| PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | Die Seiten **Volumes**, **Volume-Gruppen**, **NAS-Server** und **Dateisysteme** |
+| ONTAP, über Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | Name, Release und UUID des Clusters; seine Kapazität (die Summe seiner Datenaggregate) und Datenreduktion; die Seite **Volumes**; die Seiten **Aggregate**, **SVMs**, **LUNs** und **SnapMirror**, eine Seite pro Objekt |
+| ONTAP-Hardware, über Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | Die Seite **Hardware**: Knoten, Datenträger, Shelfs, deren Netzteile, Lüfter, Module und Sensoren, die Sensoren der Knoten sowie Ethernet- und Fibre-Channel-Ports |
+| Offene Probleme und Ereignisse von ONTAP | `netapp_health_*`, `netapp_ems_events` | Die Anzahl offener Warnungen und die Karte **Aktive Warnungen** (defekte Datenträger, Shelf-Fehler, HA-Takeover, ausgefallene Ports, Systemzustandswarnungen) sowie die EMS-Vorlagen |
+
+Bei ONTAP stammt jede Serie von Harvest: Ein Objekt wird über seine Labels benannt (`volume` innerhalb seiner `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` für eine SnapMirror-Beziehung), ein Zustand ist ein `netapp_*_new_status` von 1 oder 0 oder eine Serie `netapp_*_labels`, deren Labels ihn nennen, und jedes offene Problem ist eine Serie `netapp_health_*_alerts`, die existiert, solange es besteht.
 
 Die Spalte **Integrität** unter **Alle Speicher-Arrays** liest die eigenen Warnungen und die Hardware des Arrays aus seinen neuesten Daten: **Kritisch**, solange es eine offene kritische Warnung meldet oder eine Hardwarekomponente, ein Laufwerk oder einen Controller, die kritisch, ausgefallen, fehlend oder fehlerhaft sind; **Warnung**, solange es einen offenen Warnalarm oder eine beeinträchtigte oder unbekannte Komponente meldet; andernfalls **OK**; und **Unbekannt**, solange der Agent getrennt ist. Die **Übersicht** des Arrays beurteilt mehr, wie der nächste Abschnitt zeigt. In Monitorkriterien erhalten die Attribute des Arrays das Präfix `resource.` (`resource.storage.array.name`, `resource.storage.system`), während die Datenpunkt-Labels ohne Präfix bleiben (`name`, `host`, `dimension`, `space`).
+
+Der Zustand eines PowerStore ist der seiner Hardware, da seine Warnungen als Protokolle ankommen. Der Agent berechnet `powerstore_cap_physical_used_percent` und `powerstore_filesystem_logical_used_percent` selbst und liest den Zustand eines Knotens als 1, solange er Healthy ist.
 
 ## Was die Seiten des Arrays zeigen
 
@@ -191,10 +294,15 @@ Die **Übersicht** des Arrays nennt seinen Zustand, **Fehlerfrei**, **Beeinträc
 - **Hosts.** Ein Host, der das Array nicht mehr über beide Controller erreicht, braucht einen Blick, mit dem Grund: nur über einen Controller, über ungleiche Pfade oder ganz ohne Pfad.
 - **Pods.** Ein Pod, dessen Replikatverbindung das Array als fehlerhaft meldet, ist kritisch, und einer, der mehr als eine Minute im Rückstand ist, braucht einen Blick.
 - **Dateisysteme.** Ein FlashBlade-Dateisystem, dem weniger als 10 % seiner bereitgestellten Größe bleiben, braucht einen Blick.
+- **Die eigenen Objekte eines ONTAP-Clusters.** Volumes, Aggregate und LUNs, die ONTAP als offline meldet, defekte Datenträger, Shelf-Teile mit einem Fehler, Knotensensoren jenseits ihrer kritischen Schwelle und ausgefallene Ports sind kritisch; gestoppte SVMs, Knoten mit einem ausgefallenen Lüfter oder Netzteil und Sensoren jenseits ihrer Warnschwelle brauchen einen Blick, mit dem Grund in den eigenen Worten von ONTAP. Eine SnapMirror-Beziehung, die ONTAP als fehlerhaft meldet, ist kritisch, und eine, die mehr als anderthalb Zeitplanintervalle im Rückstand ist, braucht einen Blick.
 
-Die Listen **Hosts**, **Replikation** und **Dateisysteme** nennen den Zustand jedes Teils nach denselben Regeln, mit dem Grund darunter. Die eigene Seite eines Hosts und eines Dateisystems sagt, was daran Aufmerksamkeit braucht und welche Warnungen des Arrays es überwachen, mit einem Schritt, um die übrigen einzuschalten, und die Seite jedes Teils, auch eines Volumes und eines Buckets, sagt, was darauf offen ist. Solange der Agent getrennt ist, lautet der Zustand **Integrität unbekannt**: Die letzte Meldung des Arrays ist nicht mehr die Wahrheit. Jede Linie oben ist die, bei der ihre Warnungsvorlage auslöst, wie der [Speicher-Array-Monitor](/docs/monitor/storage-array-monitor) sie auflistet.
+Die Listen **Hosts**, **Replikation** und **Dateisysteme** nennen den Zustand jedes Teils nach denselben Regeln, mit dem Grund darunter, und ebenso die Listen **Volumes**, **Aggregate**, **SVMs**, **LUNs** und **SnapMirror** eines ONTAP-Clusters, in denen jede Zeile eine eigene Seite öffnet: mit dem Zustand des Objekts, dem, was Aufmerksamkeit braucht, dem, was darauf offen ist, den Warnungen des Clusters, die es überwachen, dem, was ONTAP darüber meldet, und seinen Diagrammen. Die Seiten jeder Plattform sprechen deren eigene Sprache: Ein ONTAP-Volume nennt seine SVM, sein Aggregat und wie voll es ist, und seine Seite zeigt die Serien von ONTAP als Diagramme. Bei Amazon FSx for NetApp ONTAP listet die Seite **Hardware** die Knoten und Ports auf und sagt, warum es keine Datenträger oder Shelfs gibt. Die eigene Seite eines Hosts und eines Dateisystems sagt, was daran Aufmerksamkeit braucht und welche Warnungen des Arrays es überwachen, mit einem Schritt, um die übrigen einzuschalten, und die Seite jedes Teils, auch eines Volumes und eines Buckets, sagt, was darauf offen ist. Solange der Agent getrennt ist, lautet der Zustand **Integrität unbekannt**: Die letzte Meldung des Arrays ist nicht mehr die Wahrheit. Jede Linie oben ist die, bei der ihre Warnungsvorlage auslöst, wie der [Speicher-Array-Monitor](/docs/monitor/storage-array-monitor) sie auflistet.
+
+Auf einem PowerStore listen die Tabs **Appliances**, **Volume-Gruppen** und **NAS-Server** die Teile, die nur ein PowerStore hat, und die Seite **Hardware** nennt die Appliance jedes Teils, da jede Appliance ihre Teile gleich benennt.
 
 ## Optional — Das Syslog des Arrays senden
+
+Der Syslog-Collector eines PowerStore läuft so, wie er ausgeliefert wird (siehe [Dell PowerStore](#dell-powerstore)): Dieser Abschnitt gilt für die Arrays von Pure.
 
 Standardmäßig sendet der Agent nur Metriken, daher bleibt die Seite **Protokolle** des Arrays leer. Arrays leiten ihre Warnungen und Audit-Ereignisse als Syslog weiter, und jede mitgelieferte Collector-Konfiguration enthält ein auskommentiertes Receiver-Paar `syslog` (TCP und UDP auf Port 5514, RFC 3164), verbunden mit einer auskommentierten Pipeline `logs`, die `storage.array.name` anhängt, damit die Logs bei Ihrem Array landen.
 
@@ -237,6 +345,8 @@ Der Collector liest seine Konfiguration nur beim Start: Führen Sie `docker comp
 
 Ein Agent liest ein Array. Um mehrere vom selben Rechner aus zu überwachen, installieren Sie jeden in einen eigenen Ordner mit eigener `.env`, etwa `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, und geben Sie jedem einen eigenen `container_name` in seiner `docker-compose.yml` (etwa `oneuptime-storage-array-agent-fa02`): Zwei Container können sich keinen Namen teilen. Übergeben Sie den Ordner mit `-d` an das Diagnoseskript.
 
+Ein zweiter PowerStore-Agent braucht außerdem einen eigenen Syslog-Port: Setzen Sie `POWERSTORE_SYSLOG_PORT`, etwa `5515`, in seiner `.env`.
+
 ## Als systemd-Dienst ausführen
 
 Um den Agent mit dem Rechner zu starten und bei einem Fehler neu zu starten, installieren Sie seine systemd-Unit. Sie geht davon aus, dass der Agent in `/opt/oneuptime-storage-array-agent` liegt, wo das Installationsskript ihn ablegt:
@@ -251,14 +361,14 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 Der Agent meldet die Collector-Version, die seine Dateien festlegen, als seine **Agent-Version**. Ist sie älter als die Version, die dieses OneUptime-Release festlegt, erscheint daneben auf der Seite **Übersicht** des Arrays ein Warnzeichen. Wählen Sie es aus, um diese Befehle zu sehen. Ein Agent, der installiert wurde, bevor seine Dateien eine Version meldeten, zeigt keine an, bis er auf diese Weise aktualisiert wurde.
 
-Das Collector-Image ist in `docker-compose.yml` festgelegt, und seine Konfigurationen sind Dateien daneben; ein Pull allein bringt den Agent daher nicht voran. Führen Sie `install.sh` erneut aus: Es verwendet jeden Wert Ihrer vorhandenen `.env` wieder (es wird nichts erneut abgefragt), erneuert `docker-compose.yml` und die drei Collector-Konfigurationen (eine von Ihnen bearbeitete Datei wird als `<file>.bak.<timestamp>` aufbewahrt) und erstellt den Agent neu, damit der Collector seine neue Konfiguration liest. Ein Agent, der außerhalb von `/opt/oneuptime-storage-array-agent` installiert ist, braucht seinen Ordner: `INSTALL_DIR=<folder> bash install.sh`.
+Das Collector-Image ist in `docker-compose.yml` festgelegt, und seine Konfigurationen sind Dateien daneben; ein Pull allein bringt den Agent daher nicht voran. Führen Sie `install.sh` erneut aus: Es verwendet jeden Wert Ihrer vorhandenen `.env` wieder (es wird nichts erneut abgefragt), erneuert `docker-compose.yml`, jede Collector-Konfiguration und die Dateien von Harvest (eine von Ihnen bearbeitete Datei wird als `<file>.bak.<timestamp>` aufbewahrt) und erstellt den Agent neu, damit der Collector seine neue Konfiguration liest. Ein Agent, der außerhalb von `/opt/oneuptime-storage-array-agent` installiert ist, braucht seinen Ordner: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Haben Sie stattdessen mit Docker Compose installiert? Laden Sie im Ordner des Agents die Compose-Datei und die drei Collector-Konfigurationen erneut herunter (und nehmen Sie Ihre Änderungen daran erneut vor), ziehen Sie dann die Images und erstellen Sie den Agent neu:
+Haben Sie stattdessen mit Docker Compose installiert? Laden Sie im Ordner des Agents die Compose-Datei und die Collector-Konfigurationen erneut herunter (bei ONTAP auch die ONTAP-Konfiguration und die vier Dateien von Harvest, und nehmen Sie Ihre Änderungen daran erneut vor), ziehen Sie dann die Images und erstellen Sie den Agent neu:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
@@ -269,6 +379,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+Ein PowerStore-Agent lädt auch `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` und `powerstore-syslog.yaml` erneut herunter; `docker compose up` baut das Image des Exporters erneut, wenn ein neues Release sein Tag verschiebt.
+
 ## Agent deinstallieren
 
 ```bash
@@ -276,7 +388,57 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-Löschen Sie dann den schreibgeschützten Benutzer und sein API-Token auf dem Array, wenn Sie sie nicht mehr brauchen.
+Löschen Sie dann den schreibgeschützten Benutzer und sein API-Token auf dem Array, wenn Sie sie nicht mehr brauchen. Führen Sie bei ONTAP `security login delete -user-or-group-name oneuptime -application http -authentication-method password` aus, dann `security login rest-role delete -role oneuptime-readonly -api /api`.
+
+Führen Sie auf einem PowerStore `docker compose --profile powerstore down` aus, damit auch der Exporter und der Syslog-Collector anhalten.
+
+## Dell PowerMax
+
+Ein Dell PowerMax braucht keinen Agent. Eine OneUptime-Sonde meldet sich alle 5 Minuten mit einem Konto mit Lesezugriff an der REST API von Unisphere for PowerMax an und liest jedes Array, das dieses Unisphere verwaltet. Jedes Array erscheint unter **Speicher-Arrays** mit seiner Symmetrix ID, etwa `000220200269`, die Sie umbenennen können. Das Passwort wird verschlüsselt gespeichert, nie wieder angezeigt und nur an die Sonde gesendet, die Sie auswählen.
+
+- **Unisphere for PowerMax 10.1 oder neuer**, das Arrays mit PowerMaxOS 10 oder 5978 verwaltet. Ab Unisphere 10.3 sieht ein Konto mit Lesezugriff auch Ports und SRDF-Gruppen.
+- **Eine Sonde, die Unisphere über TCP 8443 erreicht**, meist eine [benutzerdefinierte Sonde](/docs/probe/custom-probe) im Netzwerk von Unisphere. In OneUptime Cloud erhält eine gemeinsam genutzte Sonde nie ein Speicher-Passwort, wählen Sie also eine eigene Sonde Ihres Projekts.
+- **Ein Unisphere-Benutzer mit der Rolle Monitor** auf jedem Array, das er lesen soll, und der Rolle **PerfMonitor** für Leistungsdaten. Mehr braucht er nicht: OneUptime ändert das Array nie.
+
+:::steps
+### Den Benutzer mit Lesezugriff anlegen
+
+Legen Sie in Unisphere for PowerMax unter **Settings → Users and Groups** einen lokalen Benutzer an oder wählen Sie einen Verzeichnisbenutzer. Berechtigen Sie ihn auf jedem Array mit der Rolle **Monitor** und für Leistungsdaten mit **PerfMonitor**.
+
+### Prüfen, ob Unisphere Leistungsdaten erfasst
+
+Prüfen Sie unter **Settings → Performance → System Registrations**, ob die Erfassung **Diagnostic** für jedes Array eingeschaltet ist: Ohne sie listet OneUptime Inventar und Warnungen des Arrays auf, zeichnet aber keine Leistungsdaten. Um eine Speichergruppe alle 5 Sekunden zu sehen, registrieren Sie sie dort auch für **Real Time**, bis zu 100 pro Array.
+
+### Unisphere verbinden
+
+Gehen Sie zu **Produkte → Infrastruktur → Speicher-Arrays → Verbindungen** und klicken Sie auf **Unisphere verbinden**. Geben Sie die Adresse ein, unter der Sie Unisphere öffnen, etwa `https://unisphere.example.com:8443`, dazu Benutzername und Passwort, und wählen Sie die Sonde.
+
+### Die Verbindung testen
+
+**Verbindung testen** lässt die Sonde sich anmelden und lesen, was das Konto sehen kann: jedes Array, seine Speichergruppen und Volumes und ob Unisphere seine Leistungsdaten erfasst. Unisphere signiert sein Zertifikat standardmäßig selbst: Der Test zeigt es, und **Diesem Zertifikat vertrauen** trägt seinen SHA-256-Fingerabdruck in das Formular ein. Gleichen Sie den Fingerabdruck zuerst mit dem von Unisphere ab, zum Beispiel mit `openssl s_client -connect unisphere.example.com:8443` auf dem Rechner der Sonde.
+
+### Benennen und verbinden
+
+Geben Sie der Verbindung einen Namen oder behalten Sie den Hostnamen, und klicken Sie auf **Verbinden**. Ihre Seite zeigt innerhalb weniger Minuten die erste Erfassung und jedes gefundene Array, jeweils verlinkt mit seiner Seite unter **Speicher-Arrays**.
+:::
+
+Die Sonde liest die dokumentierten REST-Endpunkte von Unisphere: die klassische `/univmax/restapi` für Arrays, Kapazität, Zustand, Warnungen und Pools und die Bulk-API `/univmax/rest/v1` für Speichergruppen, Volumes, Director, Ports, SRDF-Gruppen und Leistungsdaten. Jeder Aufruf liest nur. Was sie liest, sendet sie als die folgenden Serien, mit den Millisekunden von Unisphere als Mikrosekunden und seinen MB pro Sekunde als Bytes pro Sekunde:
+
+| Serien | Was sie enthalten |
+| --- | --- |
+| `powermax_array_*` | Das Array: Modell und Microcode, nutzbare, belegte und zugesagte Kapazität, Datenreduktion, Integritätsbewertungen, ob Unisphere seine Leistungsdaten erfasst, sowie seine 5-Minuten-Werte für Antwortzeiten, IOPS, Durchsatz, Cache und Auslastung |
+| `powermax_alert_open` | Eine Serie pro Warnung, die Unisphere für das Array offen hat, ab Minor, bis jemand sie bestätigt oder löscht |
+| `powermax_storage_group_*` | Jede Speichergruppe: ihre Kapazität und Volumes, ihre 5-Minuten-Werte für Antwortzeiten, IOPS und Durchsatz und ihre 5-Sekunden-Werte, wenn sie für Echtzeit registriert ist |
+| `powermax_volume_*` | Jedes Volume in einer Speichergruppe: seine Kapazität und seine Werte, wenn seine Speichergruppe für Echtzeit registriert ist |
+| `powermax_srp_*` | Jeder Speicherressourcenpool: seine Kapazität und Antwortzeit |
+| `powermax_director_*` | Jeder Director: seine Rolle, sein Status und seine Auslastung sowie `powermax_director_offline`, solange er nicht online ist |
+| `powermax_port_*` | Jeder Port: sein Protokoll, seine Geschwindigkeit, Lichtpegel und Auslastung sowie `powermax_port_offline`, solange ein Port, auf den sich jemand verlässt, ausgefallen ist |
+| `powermax_srdf_group_*` | Jede SRDF-Gruppe: ihr Remote-Array und ihre Modi, ihre Verzögerung und ihr Durchsatz sowie `powermax_srdf_group_not_healthy`, solange sie angehalten oder offline ist |
+
+- **Alle 5 Minuten** oder alle 10, um ein ausgelastetes Unisphere zu schonen (**Weitere Felder** im Formular der Verbindung): Unisphere berechnet Leistungsdaten alle 5 Minuten.
+- **Nur die Arrays, die Unisphere selbst verwaltet.** Die Remote-Arrays, die es über SRDF sieht, werden auf der Seite der Verbindung aufgelistet und vom Unisphere an ihrem eigenen Standort gelesen: Verbinden Sie auch dieses.
+- **Bis zu 5,000 Speichergruppen und 10,000 Volumes pro Array** und 200 neue Warnungen pro Erfassung (der Rest folgt mit den nächsten). Ist eine Liste gekürzt, sagt die Seite der Verbindung das.
+- **Unisphere 10.1 und 10.2** listen einem Konto mit Lesezugriff keine Ports oder SRDF-Gruppen auf: Die Sonde liest die Director einzeln, entnimmt die SRDF-Gruppen den Speichergruppen und weist darauf hin.
 
 ## Fehlerbehebung
 
@@ -313,8 +475,16 @@ Prüfen Sie, ob Sie das API-Token eingefügt haben und nicht das Passwort des Be
 Arrays legen standardmäßig ein selbstsigniertes Zertifikat vor, dem kein Docker-Image vertraut. Setzen Sie entweder `STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true` (die praktische Wahl in einem privaten Managementnetz), oder installieren Sie auf dem Array ein Zertifikat von einer CA, der das Collector-Image vertraut.
 :::
 
-:::details pure-fa-exporter oder pure-fb-exporter wird nicht aufgelöst
-Der Exporter läuft nicht: `COMPOSE_PROFILES` muss zu `STORAGE_ARRAY_COLLECTOR_CONFIG` passen (`flasharray-exporter` für die FlashArray-Exporter-Konfiguration, `flashblade` für die FlashBlade-Konfiguration). Korrigieren Sie `.env` und führen Sie `docker compose up -d` aus; `docker compose ps` listet dann den Exporter auf.
+:::details pure-fa-exporter, pure-fb-exporter oder netapp-harvest wird nicht aufgelöst
+Der Exporter läuft nicht: `COMPOSE_PROFILES` muss zu `STORAGE_ARRAY_COLLECTOR_CONFIG` passen (`flasharray-exporter` für die FlashArray-Exporter-Konfiguration, `flashblade` für die FlashBlade-Konfiguration, `netapp-ontap` für die ONTAP-Konfiguration). Korrigieren Sie `.env` und führen Sie `docker compose up -d` aus; `docker compose ps` listet dann den Exporter auf.
+:::
+
+:::details ONTAP: Harvest kann sich nicht anmelden, oder ein Objekt fehlt
+Lesen Sie das Log von Harvest: `docker compose logs netapp-harvest`. Ein `401` oder `Unauthorized` bedeutet, dass der Cluster den Benutzer oder sein Passwort abgelehnt hat: Prüfen Sie, ob der Benutzer die Anmeldemethode **http** und die schreibgeschützte REST-Rolle hat (`security login show -user-or-group-name oneuptime`), korrigieren Sie `.env` und führen Sie `docker compose up -d` aus. Ein `403` oder `not authorized` bei einem Objekt bedeutet, dass die Rolle diese API nicht erreicht; die Rolle oben erreicht ganz `/api`. Bei Amazon FSx for NetApp ONTAP antwortet FSx so bei Datenträgern, Shelfs und Sensoren, wer auch immer fragt: Das ist zu erwarten, und die Seite **Hardware** sagt es. `connection refused` oder `no such host` bedeutet einen falschen `NETAPP_ONTAP_ENDPOINT`: Er ist die Cluster-Management-Adresse (bei FSx der Management-Endpunkt), nicht die eines Knotens oder einer SVM. Das Diagnoseskript prüft all das ebenfalls.
+:::
+
+:::details Ein PowerStore sendet nichts
+Lesen Sie das Log des Exporters mit `docker compose logs powerstore-exporter`: Ein `401` bedeutet einen falschen Benutzernamen oder ein falsches Passwort, und ein `403` auf `latest_five_min_metrics` bedeutet, dass die Rolle des Benutzers das Bulk-Metrikarchiv nicht einschalten kann (geben Sie ihm **Storage Operator**, oder setzen Sie `POWERSTORE_BULK_METRICS=false` auf einem PowerStoreOS älter als 4.1). Der Exporter braucht nach dem Start eine Minute, bevor er antwortet. Keine Warnungen auf der Seite **Protokolle**: Prüfen Sie die Einstellungen _Remote Logging_ des Clusters, die Firewall auf Port 5514 und `docker compose logs powerstore-syslog`.
 :::
 
 :::details Gelöschte Volumes oder Hosts bleiben im Inventar
@@ -327,6 +497,18 @@ OneUptime registriert ein Storage-Array über sein `storage.array.name`, das der
 
 :::details Metriken ohne den Agent senden
 Der Agent ist eine einzige unveränderte Collector-Konfiguration; Collectors, die Sie bereits betreiben, können daher dieselbe Aufgabe übernehmen: Kopieren Sie die Scrape-Jobs und den Processor `resource` aus der mitgelieferten Konfiguration in Ihre eigene. Das Ressourcenattribut `storage.array.name` registriert das Array in OneUptime, und das Löschen von `service.name` / `service.instance.id` verhindert, dass die Daten unter einem Service abgelegt werden: Behalten Sie beides, und behalten Sie die Labels `scrape_endpoint`.
+:::
+
+:::details Der Verbindungstest meldet, dass dem Zertifikat von Unisphere nicht vertraut wird
+Unisphere for PowerMax signiert sein Zertifikat selbst, sofern niemand eines von einer Zertifizierungsstelle installiert hat. Gleichen Sie den Fingerabdruck, den der Test zeigt, mit dem von Unisphere ab, klicken Sie dann auf **Diesem Zertifikat vertrauen** und testen Sie erneut. Wird das Zertifikat von Unisphere erneuert, stoppt die Erfassung mit **Das Zertifikat des Servers hat sich geändert**, bis Sie dem neuen vertrauen: Vorher wird nichts an Unisphere gesendet.
+:::
+
+:::details Der Verbindungstest meldet, dass das Konto die Arrays nicht lesen darf
+Unisphere antwortet mit `403` für ein Konto ohne Rolle auf dem Array. Berechtigen Sie den Benutzer auf jedem Array mit der Rolle **Monitor** unter **Settings → Users and Groups** und für Leistungsdaten mit **PerfMonitor**. Ein Array, auf dem das Konto keine Rolle hat, wird auf der Seite der Verbindung mit dem Grund aufgelistet, und die anderen werden gelesen.
+:::
+
+:::details Ein PowerMax zeigt keine Antwortzeiten oder IOPS
+Unisphere erfasst keine Leistungsdaten für das Array, oder dem Konto fehlt **PerfMonitor**: Die Seite der Verbindung sagt, was davon zutrifft. Schalten Sie die Erfassung **Diagnostic** unter **Settings → Performance → System Registrations** ein. Die Werte eines Volumes und die 5-Sekunden-Werte einer Speichergruppe setzen voraus, dass die Speichergruppe dort auch für **Real Time** registriert ist.
 :::
 
 ## Nächste Schritte
