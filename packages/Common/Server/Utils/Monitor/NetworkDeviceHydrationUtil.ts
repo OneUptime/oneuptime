@@ -57,6 +57,12 @@ interface SourceMatchedDevice {
   id: string;
   projectId: string;
   name: string | undefined;
+  /*
+   * The SNMPv3 context the device is polled in, which tells apart devices
+   * that share an address (a Brocade chassis' logical switches) when a
+   * trap names its context (SnmpTrapContextRouting).
+   */
+  snmpV3ContextName: string | undefined;
 }
 
 /*
@@ -195,6 +201,7 @@ export default class NetworkDeviceHydrationUtil {
     snmpV3AuthKey: true;
     snmpV3PrivProtocol: true;
     snmpV3PrivKey: true;
+    snmpV3ContextName: true;
   } = {
     _id: true,
     projectId: true,
@@ -211,6 +218,8 @@ export default class NetworkDeviceHydrationUtil {
     snmpV3AuthKey: true,
     snmpV3PrivProtocol: true,
     snmpV3PrivKey: true,
+    // The device's, not a credential's: which logical switch it is.
+    snmpV3ContextName: true,
   };
 
   /*
@@ -663,20 +672,60 @@ export default class NetworkDeviceHydrationUtil {
     monitorInterfaces: boolean;
     // The device's effective SNMP tables, already reduced to walk requests.
     tables?: Array<SnmpTableWalkRequest> | undefined;
+    /*
+     * The SNMPv3 context the device is polled in (NetworkDevice
+     * .snmpV3ContextName): WHERE on the agent, like the hostname, so it
+     * comes from the device whichever row the credentials came from.
+     */
+    snmpV3ContextName?: string | null | undefined;
   }): MonitorStepSnmpMonitor {
-    return {
-      snmpVersion: NetworkDeviceHydrationUtil.parseSnmpVersion(
+    const snmpVersion: SnmpVersion =
+      NetworkDeviceHydrationUtil.parseSnmpVersion(
         data.credentials.snmpVersion || undefined,
-      ),
+      );
+    const snmpV3Auth: SnmpV3Auth | undefined =
+      NetworkDeviceHydrationUtil.buildSnmpV3Auth(data.credentials);
+    const contextName: string | undefined =
+      NetworkDeviceHydrationUtil.getSnmpV3ContextName({
+        snmpVersion: snmpVersion,
+        snmpV3ContextName: data.snmpV3ContextName,
+      });
+
+    return {
+      snmpVersion: snmpVersion,
       hostname: data.hostname,
       port: data.credentials.snmpPort || 161,
       communityString: data.credentials.snmpCommunityString || undefined,
-      snmpV3Auth: NetworkDeviceHydrationUtil.buildSnmpV3Auth(data.credentials),
+      snmpV3Auth:
+        snmpV3Auth && contextName
+          ? { ...snmpV3Auth, contextName: contextName }
+          : snmpV3Auth,
       oids: data.oids,
       timeout: 5000,
       monitorInterfaces: data.monitorInterfaces,
       ...(data.tables && data.tables.length > 0 ? { tables: data.tables } : {}),
     };
+  }
+
+  /*
+   * The context a device is polled in, or undefined: only over SNMPv3 (v1
+   * and v2c have none), and only when the device names one.
+   */
+  public static getSnmpV3ContextName(data: {
+    snmpVersion: SnmpVersion | string | null | undefined;
+    snmpV3ContextName: string | null | undefined;
+  }): string | undefined {
+    const version: SnmpVersion = NetworkDeviceHydrationUtil.parseSnmpVersion(
+      data.snmpVersion || undefined,
+    );
+
+    if (version !== SnmpVersion.V3) {
+      return undefined;
+    }
+
+    const contextName: string = (data.snmpV3ContextName || "").trim();
+
+    return contextName || undefined;
   }
 
   /*
@@ -803,6 +852,7 @@ export default class NetworkDeviceHydrationUtil {
             oids: step.data.networkDeviceMonitor?.oids || [],
             monitorInterfaces:
               step.data.networkDeviceMonitor?.monitorInterfaces !== false,
+            snmpV3ContextName: device.snmpV3ContextName,
           });
       }
     }
@@ -892,15 +942,21 @@ export default class NetworkDeviceHydrationUtil {
    * once per trap. Concurrent asks for an address not yet cached share one
    * lookup, so a burst of traps from one sender costs one read.
    *
-   * The devices handed back carry `_id`, `projectId` and `name` (traps log
-   * the name), and are the caller's own: changing one changes no other
-   * caller's. `select` is accepted for the callers that still pass it;
-   * `name` is always read.
+   * The devices handed back carry `_id`, `projectId`, `name` (traps log
+   * the name) and `snmpV3ContextName` (a trap's context picks among
+   * devices that share an address), and are the caller's own: changing one
+   * changes no other caller's. `select` is accepted for the callers that
+   * still pass it; both are always read.
    */
   public static async findDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
-    select?: { name?: boolean | undefined } | undefined;
+    select?:
+      | {
+          name?: boolean | undefined;
+          snmpV3ContextName?: boolean | undefined;
+        }
+      | undefined;
   }): Promise<Array<NetworkDevice>> {
     const address: string = data.sourceIpAddress.trim();
     const key: string = `${data.probeId.toString()}|${address}`;
@@ -946,6 +1002,7 @@ export default class NetworkDeviceHydrationUtil {
           sourceIpAddress: data.sourceIpAddress,
           select: {
             name: true,
+            snmpV3ContextName: true,
           },
         });
 
@@ -960,6 +1017,10 @@ export default class NetworkDeviceHydrationUtil {
           id: device.id.toString(),
           projectId: device.projectId.toString(),
           name: typeof device.name === "string" ? device.name : undefined,
+          snmpV3ContextName:
+            typeof device.snmpV3ContextName === "string"
+              ? device.snmpV3ContextName
+              : undefined,
         });
       }
 
@@ -992,6 +1053,10 @@ export default class NetworkDeviceHydrationUtil {
         device.name = entry.name;
       }
 
+      if (entry.snmpV3ContextName !== undefined) {
+        device.snmpV3ContextName = entry.snmpV3ContextName;
+      }
+
       return device;
     });
   }
@@ -1009,17 +1074,27 @@ export default class NetworkDeviceHydrationUtil {
   public static async lookupDevicesByProbeAndSource(data: {
     probeId: ObjectID;
     sourceIpAddress: string;
-    // Extra columns callers need (syslog attribution wants `name`).
-    select?: { name?: boolean | undefined } | undefined;
+    /*
+     * Extra columns callers need (syslog attribution wants `name`; trap
+     * routing `snmpV3ContextName`).
+     */
+    select?:
+      | {
+          name?: boolean | undefined;
+          snmpV3ContextName?: boolean | undefined;
+        }
+      | undefined;
   }): Promise<Array<NetworkDevice>> {
     const select: {
       _id: boolean;
       projectId: boolean;
       name?: boolean | undefined;
+      snmpV3ContextName?: boolean | undefined;
     } = {
       _id: true,
       projectId: true,
       ...(data.select?.name ? { name: true } : {}),
+      ...(data.select?.snmpV3ContextName ? { snmpV3ContextName: true } : {}),
     };
 
     const exactMatches: Array<NetworkDevice> =

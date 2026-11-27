@@ -16,7 +16,9 @@ import {
 } from "../../../Utils/Monitor/DeviceMonitorDuplicates";
 import { isDeviceTargetMonitorType } from "../../../Utils/Monitor/DeviceMonitorTemplateUtil";
 import Semaphore, { SemaphoreMutex } from "../../Infrastructure/Semaphore";
+import MonitorNetworkDeviceService from "../../Services/MonitorNetworkDeviceService";
 import MonitorService from "../../Services/MonitorService";
+import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 
 /*
@@ -24,13 +26,15 @@ import logger from "../Logger";
  * #9510), on the server.
  *
  * Every path that makes a device's monitor from a template - an import from
- * Review Results or from the Discovered Devices list (DiscoveryImportRunner),
- * and an auto import rule (NetworkDeviceAutoImportRuleEngineService) - asks
- * this before it creates one, and reports the monitor it finds as the
+ * Review Results or from the Discovered Devices list, Create Monitors on the
+ * Devices list (issue #10990) (DiscoveryImportRunner), and an auto import
+ * rule, for every kind of template (NetworkDeviceAutoImportRuleEngineService)
+ * - asks this before it creates one, and reports the monitor it finds as the
  * device's ("Already monitored") instead of making a second. What counts as
  * a duplicate is the shared rule's (Utils/Monitor/DeviceMonitorDuplicates);
  * this reads the monitors it is asked about: the ones made for the device,
- * the ones a person tied to it (issue #9545), then the one bound to it.
+ * the ones a person tied to it (issue #9545), the Network Device monitors
+ * whose steps watch it (issue #10990), then the one bound to it.
  *
  * TWO CREATES AT ONCE. A monitor from the same template as one the device
  * has is refused by the database itself: Monitor's unique (device, template)
@@ -73,6 +77,12 @@ export const DEVICE_MONITOR_LOCK_ACQUIRE_TIMEOUT_MS: number = 60 * 1000;
 export const DEVICE_MONITOR_BUSY_REASON: string =
   "Another import or auto import rule was giving this device a monitor at the same moment. Try again: the device gets one monitor, never two.";
 
+/*
+ * How many monitors watching a device one read names by id. A device is
+ * watched by a handful; a statement names every id it is handed.
+ */
+export const WATCHING_MONITORS_READ_CHUNK_SIZE: number = 500;
+
 // What a device's monitor is read with: enough to tell whether it is a duplicate.
 export const DEVICE_MONITOR_FACTS_SELECT: {
   _id: true;
@@ -104,8 +114,19 @@ export default class DeviceMonitorDuplicateCheck {
   /*
    * The device's monitors, oldest first: the ones made for it, then the
    * ones a person tied to it (Monitor.networkDeviceId, issue #9545), then
-   * the one bound to it when that is another - each once. Read as
-   * OneUptime: the question is about the device, whoever asks.
+   * the Network Device monitors whose steps watch it, then the one bound to
+   * it when that is another - each once. Read as OneUptime: the question is
+   * about the device, whoever asks.
+   *
+   * The ones watching it (issue #10990): a Network Device monitor names its
+   * device in its steps, not by an address, so nothing ties one a person
+   * made to the device. Made from a template - Create from template on the
+   * Monitors page, or linked to one later - it is the device's monitor from
+   * that template all the same, and an import, an auto import rule or
+   * Create Monitors would otherwise give the device a second one beside it.
+   * Read by the device through MonitorNetworkDevice, which Postgres keeps
+   * from every monitor's steps: one index lookup, as a poll's fan-out reads
+   * it.
    */
   public static async readDeviceMonitors(data: {
     projectId: ObjectID;
@@ -141,9 +162,19 @@ export default class DeviceMonitorDuplicateCheck {
       props: { isRoot: true },
     });
 
+    const watchingDevice: Array<Monitor> = await this.readMonitorsWatching({
+      projectId: data.projectId,
+      deviceId: deviceId,
+      alreadyRead: [...(madeForDevice || []), ...(tiedToDevice || [])],
+    });
+
     const monitors: Array<DeviceMonitorFacts> = [];
 
-    for (const monitor of [...(madeForDevice || []), ...(tiedToDevice || [])]) {
+    for (const monitor of [
+      ...(madeForDevice || []),
+      ...(tiedToDevice || []),
+      ...watchingDevice,
+    ]) {
       const facts: DeviceMonitorFacts = toDeviceMonitorFacts(monitor);
 
       if (
@@ -178,6 +209,67 @@ export default class DeviceMonitorDuplicateCheck {
     }
 
     return monitors;
+  }
+
+  /*
+   * The Network Device monitors whose steps watch the device, oldest first,
+   * leaving out the ones already read. Their ids come from MonitorNetworkDevice
+   * (one row per device a monitor's steps name); the monitors are read by
+   * id, in the device's project, so a row left behind by a deleted monitor
+   * reads nothing.
+   */
+  private static async readMonitorsWatching(data: {
+    projectId: ObjectID;
+    deviceId: ObjectID;
+    alreadyRead: Array<Monitor>;
+  }): Promise<Array<Monitor>> {
+    const alreadyReadIds: Set<string> = new Set<string>(
+      data.alreadyRead
+        .map((monitor: Monitor): string => {
+          return (monitor.id?.toString() || "").toLowerCase();
+        })
+        .filter((id: string): boolean => {
+          return Boolean(id);
+        }),
+    );
+
+    const watchingIds: Array<string> = (
+      await MonitorNetworkDeviceService.findMonitorIdsWatching({
+        projectId: data.projectId,
+        deviceIds: [data.deviceId.toString()],
+      })
+    ).filter((id: string): boolean => {
+      return !alreadyReadIds.has(id.toLowerCase());
+    });
+
+    const watching: Array<Monitor> = [];
+
+    for (
+      let offset: number = 0;
+      offset < watchingIds.length;
+      offset += WATCHING_MONITORS_READ_CHUNK_SIZE
+    ) {
+      const chunk: Array<string> = watchingIds.slice(
+        offset,
+        offset + WATCHING_MONITORS_READ_CHUNK_SIZE,
+      );
+
+      watching.push(
+        ...((await MonitorService.findBy({
+          query: {
+            projectId: data.projectId,
+            _id: QueryHelper.any(chunk),
+          },
+          select: DEVICE_MONITOR_FACTS_SELECT,
+          sort: { createdAt: SortOrder.Ascending },
+          limit: chunk.length,
+          skip: 0,
+          props: { isRoot: true },
+        })) || []),
+      );
+    }
+
+    return watching;
   }
 
   /*

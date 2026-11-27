@@ -1206,7 +1206,9 @@ import { AddProbeSnmpTrapReceiver1809187715110 } from "./1809187715110-AddProbeS
 import { AddXcpNgPoolTables1809187720000 } from "./1809187720000-AddXcpNgPoolTables";
 import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSavingsActions";
 import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
-import { AddXcpNgPoolAiAccess1809187721998 } from "./1809187721998-AddXcpNgPoolAiAccess";
+import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
+import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
+import { AddXcpNgPoolAiAccess1809187741998 } from "./1809187741998-AddXcpNgPoolAiAccess";
 
 export default [
   InitialMigration,
@@ -2417,5 +2419,7 @@ export default [
   AddXcpNgPoolTables1809187720000,
   AddCloudSavingsActions1809187721010,
   AddCloudCostBasesAndCommitments1809187721011,
-  AddXcpNgPoolAiAccess1809187721998,
+  AddSanSwitchFibreChannelColumns1809187731166,
+  AddSecurityUserErasureRequestProgress1809187741160,
+  AddXcpNgPoolAiAccess1809187741998,
 ];

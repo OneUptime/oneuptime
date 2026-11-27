@@ -19,6 +19,11 @@ import ThreatIntelGuide from "../../../../App/FeatureSet/Dashboard/src/Component
 import { getEntityRiskGuide } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/HowItWorks/EntityRiskGuide";
 import { securityEventConnectionsHelpMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityEventConnectionsTable";
 import { buildMappingHelp } from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/Base/CustomFieldsPageBase";
+import { getErasureHelpMarkdown } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/ErasureRequests/ErasureRequestCopy";
+import {
+  DASHBOARD_LANGUAGES,
+  dashboardTranslator,
+} from "../../Helpers/DashboardLocales";
 import { MeasurementDomain } from "../../../Utils/Measurement/MeasurementMoments";
 import RunbookRuleTriggerEntity from "../../../Types/Runbook/RunbookRuleTriggerEntity";
 import { CustomFieldMappingSourceInfo } from "../../../Types/CustomField/CustomFieldMappingCatalog";
@@ -68,6 +73,8 @@ const KNOWN_BUILDERS: ReadonlyArray<string> = [
   "guideToMarkdown",
   "securityEventConnectionsHelpMarkdown",
   "buildMappingHelp",
+  // Erasure Requests' help, in the reader's language (#10908).
+  "getErasureHelpMarkdown",
 ];
 
 const SOURCE_FILE: RegExp = /\.tsx?$/;
@@ -326,6 +333,15 @@ describe("the help the builders write", () => {
     ["the Entity Risk guide", guideToMarkdown(getEntityRiskGuide(50))],
     ["the security event connections", securityEventConnectionsHelpMarkdown()],
     ["copied custom fields", buildMappingHelp(SOURCES)],
+    // Every language's wording, as the dialog draws it for its reader.
+    ...["en", ...DASHBOARD_LANGUAGES].map(
+      (language: string): [string, string] => {
+        return [
+          `erasure requests, in ${language}`,
+          getErasureHelpMarkdown(dashboardTranslator(language)),
+        ];
+      },
+    ),
   ];
 
   test.each(BUILT)(

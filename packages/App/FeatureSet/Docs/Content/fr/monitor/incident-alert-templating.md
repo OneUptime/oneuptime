@@ -416,6 +416,11 @@ Pour afficher la capture de chaque exécution en échec, placez l'image dans une
 | `trapOid` | L'OID du trap. Uniquement lorsqu'un trap SNMP a déclenché la vérification. | `string` |
 | `trapSourceIp` | L'adresse d'où vient le trap. Uniquement lorsqu'un trap SNMP a déclenché la vérification. | `string` |
 | `trapVarbinds` | Les varbinds du trap, chacun sous la forme `{oid, value}`. Uniquement lorsqu'un trap SNMP a déclenché la vérification. | `Array<Object>` |
+| `trapInterface` | L'interface dont parle le trap : le nom que porte le trap, sinon celui que le dernier walk de l'appareil a relevé pour son index. Uniquement lorsqu'un trap SNMP a déclenché la vérification. | `string` |
+| `trapAlarmCounter` | Sur un trap d'alarme RMON (une alarme de port-monitor MDS), le compteur qui a franchi son seuil. Vide pour tout autre trap. | `string` |
+| `trapAlarmDirection` | Sur un trap d'alarme RMON, `rising` ou `falling`. Vide pour tout autre trap. | `string` |
+| `trapAlarmValue` | Sur un trap d'alarme RMON, la valeur du compteur quand il a franchi son seuil. Vide pour tout autre trap. | `string` |
+| `trapAlarmThreshold` | Sur un trap d'alarme RMON, le seuil que le compteur a franchi. Vide pour tout autre trap. | `string` |
 
 Un équipement réseau reçoit un ping à chaque interrogation et n'est parcouru en SNMP que lorsqu'il a des identifiants, donc **`isOnline` est la seule variable ci-dessus que remplit un équipement en ping seul** : toutes les autres viennent du parcours SNMP et restent telles qu'écrites sans lui. Commencez par `{{isOnline}}` et le nom de l'équipement dans les modèles qui peuvent servir pour des équipements sans identifiants. Voir [Surveillance des équipements réseau](/docs/monitor/network-device-monitor#ce-que-fait-réellement-une-interrogation) pour ce que collecte chaque type d'interrogation.
 

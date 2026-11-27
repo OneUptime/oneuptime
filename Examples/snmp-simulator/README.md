@@ -5,7 +5,7 @@ bandwidth/utilization charts, LLDP topology, discovery scans, traps, and
 SNMPv3) without owning any managed switches or routers.
 
 The OneUptime probe polls devices over plain SNMP (UDP/161), so anything that
-answers SNMP works as a "device". This compose file starts three:
+answers SNMP works as a "device". This compose file starts these:
 
 | Container   | IP              | What it is                                                        | Credentials                                             |
 | ----------- | --------------- | ----------------------------------------------------------------- | ------------------------------------------------------- |
@@ -14,6 +14,8 @@ answers SNMP works as a "device". This compose file starts three:
 | `router-v3` | `172.30.99.13`  | Real `snmpd` agent, for exercising the SNMPv3 code path            | v3 user `oneuptime`, authPriv, SHA `authpass123`, AES `privpass123` (also v2c `public`) |
 | `sophos-xgs` | `172.30.99.15` | snmpsim replaying a Sophos firewall (SFOS v21): IPsec tunnel table, CPU cores, memory/disk/HA | v2c, community `public` |
 | `cambium-ap` | `172.30.99.16` | snmpsim replaying a Cambium Enterprise Wi-Fi access point: radio and SSID tables | v2c, community `public` |
+| `brocade-g620` | `172.30.99.18` | snmpsim replaying a Brocade G620 SAN switch (Fabric OS 9.2) with Virtual Fabrics: Fibre Channel ports, optics, sensors, FRUs | Default logical switch: v2c `public`. Logical switch FID 20: v3 user `oneuptime`, authPriv, SHA `authpass123`, AES `privpass123`, context `VF:20` |
+| `cisco-mds` | `172.30.99.19` | snmpsim replaying a Cisco MDS 9396S SAN switch (NX-OS 9.4): fc interfaces, VSANs, FRUs, optics | v2c, community `public` |
 | `san-switch-v3` | `172.30.99.17` | A SAN switch that sends SNMPv3 traps and informs (Net-SNMP's `snmptrap` and `snmpinform`); it answers no polls | v3 users `san-monitor` (authPriv, SHA `authpass123`, AES `privpass123`) and `fabric-monitor` (authPriv, SHA-256 `fabricauth123`, AES-256 `fabricpriv123`) |
 
 What the fake switches serve:
@@ -134,6 +136,28 @@ ports and use `127.0.0.1` + that port as the device address instead.)
    `ipsec_tunnels` table and Row `*` raises one incident for `HQ-Branch2` and
    one for `HQ-Cloud`. **Add Recommended Alerts** adds exactly that criteria.
 
+8. **SAN switches** - register `brocade-g620` (`172.30.99.18`) and
+   `cisco-mds` (`172.30.99.19`), v2c `public`, with **Auto-Apply Vendor
+   Health Template** on. After the first poll:
+   - the Brocade switch gets the **Brocade Fabric OS (SAN switches)**
+     template: its **SNMP Tables** page shows the switch status (marginal:
+     a fan has stopped), eight sensors and six FRUs by name, and its
+     **Interfaces** page marks each Fibre Channel port E-Port or F-Port, says
+     port 0/6 is down for "No light" and 0/7 is "Disabled", and lists the
+     optics on the **Transceivers** card (0/6 receives no light at all);
+   - the MDS gets the **Cisco MDS 9000 (SAN switches)** template, not the
+     IOS one: power supplies (PowerSupply-2 has no input power), modules, fan
+     trays and five VSANs. Its counters grow: from the second poll on, fc1/3
+     takes CRC errors and invalid transmission words, about 8 a second, and
+     fc1/5 loses credit and times frames out, the way a slow-draining host
+     does. The **Fibre Channel Ports** card charts them per port, and the
+     recommended alerts fire for both.
+
+   For the Virtual Fabric, register `brocade-g620` a second time with SNMP
+   v3 (user `oneuptime`, authPriv, SHA `authpass123`, AES `privpass123`) and
+   **SNMP v3 Context** `VF:20`: it reads as logical switch
+   `fabric-b-ls20`, with its own four ports 0/8 to 0/11.
+
 ## SNMPv3 traps and informs
 
 `san-switch-v3` (`172.30.99.17`) is a SAN switch set up the way a locked-down
@@ -233,11 +257,14 @@ recording.
 
 ## Note on SNMPv3 and snmpsim
 
-snmpsim selects the recording by SNMPv3 *context name*, but the OneUptime
-probe (like most pollers) sends an empty context - so v3 against the snmpsim
-switches times out. That is why `router-v3` exists: it is a real net-snmp
-agent and answers v3 with the default context. Use v2c for the snmpsim
-switches and `router-v3` for the v3 path.
+snmpsim selects the recording by SNMPv3 *context name*, and answers no v3
+request in the default (empty) context. The OneUptime probe sends the
+context the device names in **SNMP v3 Context**, and none otherwise - so v3
+against an snmpsim switch works only with a context, as `brocade-g620`'s
+`VF:20` does. That is why `router-v3` exists: it is a real net-snmp agent
+and answers v3 in the default context. Use v2c for the other snmpsim
+devices, a context for the Brocade logical switch, and `router-v3` for the
+plain v3 path.
 
 ## Heavier alternatives
 

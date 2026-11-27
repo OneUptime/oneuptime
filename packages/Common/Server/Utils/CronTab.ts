@@ -32,6 +32,15 @@ interface NextExecutionMemo {
 
 const nextExecutionMemo: Map<string, NextExecutionMemo> = new Map();
 
+/*
+ * getNextExecutionTimeAfter's answers: the first run of a schedule after any
+ * instant of a minute, keyed by zone, schedule and minute. A telemetry
+ * monitor asks for the run after a moment of its own - its due time less its
+ * place in its interval (TelemetryMonitorSchedule) - so one sweep asks about
+ * a few minutes of each schedule, not just the current one.
+ */
+const nextExecutionAfterMemo: Map<string, number> = new Map();
+
 const WHITESPACE: RegExp = /\s+/;
 
 function isWholeMinuteSchedule(crontab: string): boolean {
@@ -80,9 +89,71 @@ export default class CronTab {
     return nextExecutionTime;
   }
 
+  /*
+   * The first run of a schedule strictly after `after`, which may be any
+   * instant, past or future. Kept as getNextExecutionTime's answer is: a
+   * five-field schedule's first run after any instant of a minute is its
+   * first run after the minute starts, so the answer is kept per zone,
+   * schedule and minute, for at most MAX_MEMO_ENTRIES of them. Throws
+   * BadDataException, and logs nothing, for a schedule cron-parser refuses
+   * and for an instant that is not one: the caller decides what that means.
+   */
+  public static getNextExecutionTimeAfter(crontab: string, after: Date): Date {
+    const afterInMs: number = after.getTime();
+
+    if (typeof crontab !== "string" || !Number.isFinite(afterInMs)) {
+      throw new BadDataException(
+        `Cannot work out the run of "${crontab}" after ${String(after)}`,
+      );
+    }
+
+    const minute: number = Math.floor(afterInMs / MINUTE_IN_MS);
+    const isKept: boolean =
+      isWholeMinuteSchedule(crontab) &&
+      new Date(minute * MINUTE_IN_MS).getSeconds() === 0;
+    const memoKey: string = `${process.env["TZ"] || ""}\n${crontab}\n${minute}`;
+
+    if (isKept) {
+      const kept: number | undefined = nextExecutionAfterMemo.get(memoKey);
+
+      if (kept !== undefined) {
+        return new Date(kept);
+      }
+    }
+
+    let nextExecutionTimeInMs: number;
+
+    try {
+      nextExecutionTimeInMs = CronParser.parseExpression(crontab, {
+        currentDate: new Date(afterInMs),
+      })
+        .next()
+        .toDate()
+        .getTime();
+    } catch {
+      throw new BadDataException(`Invalid cron expression: ${crontab}`);
+    }
+
+    if (isKept) {
+      if (nextExecutionAfterMemo.size >= MAX_MEMO_ENTRIES) {
+        nextExecutionAfterMemo.clear();
+      }
+
+      nextExecutionAfterMemo.set(memoKey, nextExecutionTimeInMs);
+    }
+
+    return new Date(nextExecutionTimeInMs);
+  }
+
   // Forget every kept answer (tests).
   public static clearNextExecutionMemo(): void {
     nextExecutionMemo.clear();
+    nextExecutionAfterMemo.clear();
+  }
+
+  // How many schedule minutes getNextExecutionTimeAfter has kept (tests).
+  public static getNextExecutionAfterMemoSize(): number {
+    return nextExecutionAfterMemo.size;
   }
 
   // How many schedules have an answer kept (tests).

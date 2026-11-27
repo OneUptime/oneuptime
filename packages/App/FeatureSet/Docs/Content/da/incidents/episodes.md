@@ -25,7 +25,7 @@ Begge tager op til 100 valgte hændelser. Resultatet siger, hvor mange der blev 
 
 ## Hvad tilføjelse gør
 
-- **Én post i episodens feed** nævner hver tilføjet hændelse: de første 20 med nummer og titel, derefter hvor mange flere. Den sendes én gang til episodens Slack- eller Microsoft Teams-kanal, ikke én gang pr. hændelse. En privat hændelse nævnes kun med sit nummer.
+- **Én post i episodens feed** nævner hver tilføjet hændelse: de første 20 med nummer og titel, derefter hvor mange flere. Den sendes én gang til episodens Slack- eller Microsoft Teams-kanal, ikke én gang pr. hændelse, og for en episode, der oprettes med dem, følger den dér efter episodens oprettelsesbesked. En privat hændelse nævnes kun med sit nummer.
 - **Hver hændelses eget feed** siger, hvilken episode den blev føjet til.
 - **Episodens alvorlighed** hæves til den mest alvorlige hændelse, der føjes til en eksisterende episode, og sænkes aldrig. En ny episode starter med den alvorlighed, du vælger.
 - **En løst episode forbliver løst.** At tilføje til den genåbner den ikke, og tilføjelse ændrer aldrig en hændelses status.

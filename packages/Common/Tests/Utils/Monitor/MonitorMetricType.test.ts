@@ -469,6 +469,69 @@ describe("getMonitorMetricTypeByCheckOnOrNull", () => {
     }
   });
 
+  /*
+   * Issue #11071. The device's ping on its own has series of its own: the
+   * device's online series is ping OR the walk, and the ping's reachability
+   * over a window must not read the walk's answers.
+   */
+  test("maps the device's ping checks onto the ping's own series", () => {
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(
+        CheckOn.IcmpIsReachable,
+      ),
+    ).toBe(MonitorMetricType.IcmpIsReachable);
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(
+        CheckOn.IcmpResponseTime,
+      ),
+    ).toBe(MonitorMetricType.IcmpResponseTime);
+    // Loss is the ping's alone already: the Ping monitor's series is it.
+    expect(
+      MonitorMetricTypeUtil.getMonitorMetricTypeByCheckOnOrNull(
+        CheckOn.IcmpPacketLossPercent,
+      ),
+    ).toBe(MonitorMetricType.PacketLossPercent);
+    expect(MonitorMetricType.IcmpIsReachable).not.toBe(
+      MonitorMetricType.IsOnline,
+    );
+  });
+
+  test("a Network Device monitor charts the ping's series, read the way its checks are", () => {
+    const metrics: Array<MonitorMetricType> =
+      MonitorMetricTypeUtil.getMonitorMetricTypesByMonitorType(
+        MonitorType.NetworkDevice,
+      );
+
+    expect(metrics).toContain(MonitorMetricType.IcmpIsReachable);
+    expect(metrics).toContain(MonitorMetricType.IcmpResponseTime);
+    expect(metrics).toContain(MonitorMetricType.PacketLossPercent);
+
+    // Reachable over a window is reachable throughout: its least.
+    expect(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.IcmpIsReachable,
+      ),
+    ).toBe(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.IsOnline,
+      ),
+    );
+    expect(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.IcmpResponseTime,
+      ),
+    ).toBe(
+      MonitorMetricTypeUtil.getAggregationTypeByMonitorMetricType(
+        MonitorMetricType.ResponseTime,
+      ),
+    );
+    expect(
+      MonitorMetricTypeUtil.getLegendUnitByMonitorMetricType(
+        MonitorMetricType.IcmpResponseTime,
+      ),
+    ).toBe("ms");
+  });
+
   test("returns null instead of throwing for CheckOns no series records", () => {
     for (const checkOn of [
       CheckOn.ResponseBody,

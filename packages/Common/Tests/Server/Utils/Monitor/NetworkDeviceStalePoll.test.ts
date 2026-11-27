@@ -191,4 +191,25 @@ describe("which monitors can say a device is unreachable", () => {
       false,
     );
   });
+
+  /*
+   * Issue #11071. A monitor whose Offline is "no answer to ping" says so
+   * when no poll comes too: a device no poll reaches answers no ping.
+   */
+  test("one whose Offline is Device Is Reachable (ICMP) = False", () => {
+    expect(
+      NetworkDeviceStalePoll.canSayUnreachable(
+        stepWithFilters([
+          { checkOn: CheckOn.IcmpIsReachable, filterType: FilterType.False },
+        ]),
+      ),
+    ).toBe(true);
+    expect(
+      NetworkDeviceStalePoll.canSayUnreachable(
+        stepWithFilters([
+          { checkOn: CheckOn.IcmpIsReachable, filterType: FilterType.True },
+        ]),
+      ),
+    ).toBe(false);
+  });
 });

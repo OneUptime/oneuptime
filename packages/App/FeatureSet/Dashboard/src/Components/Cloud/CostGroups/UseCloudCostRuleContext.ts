@@ -148,6 +148,7 @@ export default function useCloudCostRuleContext(data: {
       built.teams = records.teams;
       built.labels = records.labels;
       built.clusters = records.clusters;
+      built.archived = records.archivedLabels;
     }
 
     for (const environment of lists?.environments || []) {

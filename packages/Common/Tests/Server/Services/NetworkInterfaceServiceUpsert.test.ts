@@ -44,12 +44,13 @@ const NOW: Date = new Date("2026-08-20T09:30:30.000Z");
 const JUST_WRITTEN: Date = new Date("2026-08-20T09:30:10.000Z");
 
 /*
- * Insert carries 13 columns per row; update carries 12 value columns per row
+ * Insert carries 15 columns per row; update carries 14 value columns per row
  * after two parameters for the whole statement: the networkDeviceId and the
- * walk's time.
+ * walk's time. Two of each are a Fibre Channel port's type and why it is
+ * down (#11014), null on any other port.
  */
-const INSERT_PARAMS_PER_ROW: number = 13;
-const UPDATE_PARAMS_PER_ROW: number = 12;
+const INSERT_PARAMS_PER_ROW: number = 15;
+const UPDATE_PARAMS_PER_ROW: number = 14;
 const UPDATE_STATEMENT_PARAMS: number = 2;
 
 // Must track INTERFACE_UPSERT_BATCH_SIZE in NetworkInterfaceService.
@@ -353,7 +354,9 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       );
       expect(Object.keys(INTERFACE_SNAPSHOT_SELECT).sort()).toEqual([
         "alias",
+        "downReason",
         "errorsPerSecond",
+        "fibreChannelPortType",
         "inRateMbps",
         "interfaceIndex",
         "interfaceType",
@@ -418,7 +421,7 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       expect(insertCalls()[0]![0]).toContain("DO UPDATE SET");
     });
 
-    test("carries 13 parameters per row in column order", async () => {
+    test("carries 15 parameters per row in column order", async () => {
       await run({
         walkedInterfaces: [
           walked({
@@ -448,6 +451,9 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
         true,
         false,
         10000,
+        // Not a Fibre Channel port: no port type, no reason.
+        null,
+        null,
         NOW,
         1,
       ]);
@@ -463,7 +469,7 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       const sql: string = insertCalls()[0]![0];
       expect(sql).toContain(
-        "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13), ($14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)",
+        "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15), ($16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)",
       );
       expect(insertCalls()[0]![1]).toHaveLength(2 * INSERT_PARAMS_PER_ROW);
     });
@@ -627,7 +633,7 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       expect(updateCalls()[0]![0]).not.toContain("isMonitored");
     });
 
-    test("carries 12 value parameters per row after the device id and the walk's time", async () => {
+    test("carries 14 value parameters per row after the device id and the walk's time", async () => {
       await run({
         walkedInterfaces: [
           walked({
@@ -662,6 +668,8 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
         7.654,
         12.5,
         0.25,
+        null,
+        null,
       ]);
     });
 
@@ -696,16 +704,16 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       const sql: string = updateCalls()[0]![0];
       expect(sql).toContain(
-        "($3::integer, $4::character varying, $5::character varying, $6::character varying, $7::integer, $8::boolean, $9::boolean, $10::numeric, $11::numeric, $12::numeric, $13::numeric, $14::numeric)",
+        "($3::integer, $4::character varying, $5::character varying, $6::character varying, $7::integer, $8::boolean, $9::boolean, $10::numeric, $11::numeric, $12::numeric, $13::numeric, $14::numeric, $15::character varying, $16::character varying)",
       );
 
       /*
        * Every tuple is cast, not just the first — cheap, and it means a
        * future edit that reorders the chunk cannot reintroduce the bug.
-       * 12 casts per tuple, two tuples.
+       * 14 casts per tuple, two tuples.
        */
       const valuesList: string = sql.split("FROM (VALUES")[1]!.split(")\n")[0]!;
-      expect(valuesList.match(/::/g)).toHaveLength(24);
+      expect(valuesList.match(/::/g)).toHaveLength(28);
     });
 
     test("nulls the columns the walk stopped reporting", async () => {
@@ -715,6 +723,8 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
       // alias, macAddress, interfaceType, speed, both rates, utilization, errors.
       expect(params.slice(4, 7)).toEqual([null, null, null]);
       expect(params.slice(9, 14)).toEqual([null, null, null, null, null]);
+      // And it is no Fibre Channel port: no port type, no reason.
+      expect(params.slice(14, 16)).toEqual([null, null]);
     });
 
     test("bumps the version counter the way _updateBy did", async () => {
@@ -749,7 +759,7 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
     /*
      * A modular chassis reports hundreds of interfaces. One statement per
      * chunk keeps every statement far below Postgres' 65,535 bind-parameter
-     * ceiling — at 13 parameters a row, a single un-chunked 6,000-port walk
+     * ceiling — at 15 parameters a row, a single un-chunked 5,000-port walk
      * would exceed it and fail outright.
      */
     test("inserts split at the batch size, remainder last", async () => {
@@ -800,9 +810,9 @@ describe("NetworkInterfaceService.upsertWalkedInterfaces", () => {
 
       const secondChunk: string = insertCalls()[1]![0];
       expect(secondChunk).toContain(
-        "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)",
+        "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
       );
-      expect(secondChunk).not.toContain("$14");
+      expect(secondChunk).not.toContain("$16");
     });
 
     test("a walk spanning chunks in both directions issues one statement per chunk per kind", async () => {

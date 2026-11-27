@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > Pour alerter une fois par problème plutôt qu'une fois par alerte, placez les politiques d'astreinte sur vos règles de regroupement et retirez-les des alertes : des critères du moniteur, du formulaire de création et de vos règles d'astreinte d'alertes.
 
-Les propriétaires de l'épisode en sont informés aussi : **Épisode d'alerte créé**, **État de l'épisode d'alerte modifié** et **Alerte ajoutée à l'épisode d'alerte** sont activés par e-mail par défaut, dans **Paramètres utilisateur → Paramètres de notification**, dans l'onglet **Alertes**. Les **Propriétaires de l'épisode** de la règle deviennent propriétaires de chaque épisode qu'elle ouvre, et sont prévenus comme n'importe quel autre propriétaire.
+Les propriétaires de l'épisode en sont informés aussi : **Épisode d'alerte créé**, **État de l'épisode d'alerte modifié** et **Alerte ajoutée à l'épisode d'alerte** sont activés par e-mail par défaut, dans **Paramètres utilisateur → Paramètres de notification**, dans l'onglet **Alertes**. Les **Propriétaires de l'épisode** de la règle deviennent propriétaires de chaque épisode qu'elle ouvre, et sont prévenus comme n'importe quel autre propriétaire. Ils sont ajoutés avant que Slack et Microsoft Teams ne soient informés de l'épisode, si bien qu'une règle de notification qui porte sur le propriétaire d'un épisode publie son message de création.
 
 ## Créer un épisode à la main
 
@@ -166,7 +166,7 @@ Dans **Détails de l'épisode**, remplissez le **Titre** et, si vous le souhaite
 
 Dans **Astreinte et propriétaires**, choisissez une **Politique d'astreinte** à exécuter à la création de l'épisode, et ses **Propriétaires**. Cliquez ensuite sur **Créer un épisode**.
 
-Chaque équipe dont vous êtes membre est à un clic sous **Propriétaires**, et le récapitulatif liste les règles de propriétaire qui en ajouteront d'autres.
+Chaque équipe dont vous êtes membre est à un clic sous **Propriétaires**, et le récapitulatif liste les règles de propriétaire qui en ajouteront d'autres. Les propriétaires que vous choisissez, ceux des règles de propriétaire et les étiquettes des règles d'étiquettes qui correspondent sont ajoutés avant que Slack et Microsoft Teams ne soient informés de l'épisode, si bien qu'une règle de notification qui porte sur le propriétaire ou les étiquettes d'un épisode le publie aussi.
 
 ### Ajouter les alertes
 

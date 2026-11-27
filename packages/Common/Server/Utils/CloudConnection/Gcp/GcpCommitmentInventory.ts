@@ -11,6 +11,7 @@ import {
 } from "../../../../Types/Cloud/CloudCommitmentInventory";
 import { CloudConnectionFailureKind } from "../../../../Types/CloudConnection/CloudConnectionTest";
 import { JSONObject } from "../../../../Types/JSON";
+import { NO_BREAK_SPACE } from "../../../../Types/NoBreakSpaces";
 import LlmProviderError from "../../LlmObservability/LlmProviderError";
 import {
   readArray,
@@ -64,13 +65,16 @@ export function describeGcpCommitmentResources(commitment: JSONObject): string {
       continue;
     }
 
+    // A commitment's page draws these: each number held to its unit.
     if (type === "VCPU") {
-      parts.push(`${amount} vCPU`);
+      parts.push(`${amount}${NO_BREAK_SPACE}vCPU`);
     } else if (type === "MEMORY") {
       // Memory is in MB.
-      parts.push(`${Math.round((amount / 1024) * 10) / 10} GB memory`);
+      parts.push(
+        `${Math.round((amount / 1024) * 10) / 10}${NO_BREAK_SPACE}GB memory`,
+      );
     } else if (type === "LOCAL_SSD") {
-      parts.push(`${amount} GB local SSD`);
+      parts.push(`${amount}${NO_BREAK_SPACE}GB local SSD`);
     } else if (type === "ACCELERATOR") {
       parts.push(
         `${amount} × ${readText(resource["acceleratorType"]).split("/").pop() || "GPU"}`,

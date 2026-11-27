@@ -7,8 +7,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * column with a constant default rewrites nothing, so existing pools take
  * the defaults at once.
  */
-export class AddXcpNgPoolAiAccess1809187721998 implements MigrationInterface {
-  public name: string = "AddXcpNgPoolAiAccess1809187721998";
+export class AddXcpNgPoolAiAccess1809187741998 implements MigrationInterface {
+  public name: string = "AddXcpNgPoolAiAccess1809187741998";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

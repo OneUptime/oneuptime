@@ -505,7 +505,7 @@ describe("a scheduled maintenance event's new channel", () => {
     await waitFor(ended);
 
     expectNoteRightAfter("Scheduled Maintenance Created");
-    expect(steps.indexOf("note")).toBeLessThan(steps.indexOf("first state"));
+    expect(steps.indexOf("note")).toBeLessThan(steps.indexOf("runbooks"));
   });
 });
 

@@ -81,8 +81,12 @@ import StatementGenerator from "Common/Server/Utils/AnalyticsDatabase/StatementG
 import SecurityUserErasureEvents from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureEvents";
 import SecurityUserErasureFindings, {
   FINDING_USER_ERASED_ATTRIBUTE,
-  FindingsScanResult,
+  FindingsCursor,
+  FindingsScanStep,
 } from "Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureFindings";
+import DetectionFingerprint, {
+  DetectionFingerprintKind,
+} from "Common/Server/Utils/SecurityEvent/DetectionFingerprint";
 import ScrubHashToken from "Common/Server/Utils/Telemetry/ScrubHashToken";
 import OneUptimeDate from "Common/Types/Date";
 import { JSONObject } from "Common/Types/JSON";
@@ -473,9 +477,22 @@ integration("an erasure on a replicated cluster", () => {
    * person was, and nothing ClickHouse keeps of the mutation, on either
    * replica, names them.
    */
-  test("the person comes out of the Detection Findings a rule wrote about them, on both replicas; somebody else's stay", async () => {
+  test("the person comes out of the Detection Findings a rule wrote about them, on both replicas, their ids too, read on from where each read stopped; somebody else's stay", async () => {
     const aliceToken: string = tokenOf(ALICE);
     const authZeroAlice: string = `auth0|${ALICE}`;
+
+    function keyed(value: string): string {
+      return DetectionFingerprint.of({
+        projectId: PROJECT_ID,
+        kind: DetectionFingerprintKind.DetectionRule,
+        value,
+      });
+    }
+
+    // A scheduled run's finding's id: the rule, and the group's fingerprint in both places.
+    function findingUidOf(uid: string, fingerprint: string): string {
+      return `detection:${uid}:detection-rule:${uid}:${fingerprint}:run:1764000000000:each:${fingerprint}`;
+    }
 
     function findingRow(data: {
       uid: string;
@@ -501,7 +518,7 @@ integration("an erasure on a replicated cluster", () => {
         primaryEntityType: ServiceType.OpenTelemetry,
         time: OneUptimeDate.toClickhouseDateTime64(time),
         createdAt: OneUptimeDate.toClickhouseDateTime(time),
-        eventUid: data.uid,
+        eventUid: findingUidOf(data.uid, keyed(data.groupValue)),
         classUid: DETECTION_FINDING_CLASS_UID,
         className: DETECTION_FINDING_CLASS_NAME,
         severityId: 4,
@@ -570,23 +587,50 @@ integration("an erasure on a replicated cluster", () => {
       { named: ALICE, hashed: aliceToken },
       { named: authZeroAlice, hashed: `auth0|${aliceToken}` },
     ];
-    const found: FindingsScanResult =
-      await SecurityUserErasureFindings.findNamingFindings({
-        projectId: PROJECT_ID,
-        names,
-      });
 
-    expect(found.rewrites).toHaveLength(2);
+    /*
+     * Read through the Distributed table a finding at a time, each read on
+     * from where the last stopped (#11160), and changed as an install sends
+     * it: a mutation on the local table, ON CLUSTER.
+     */
+    const reads: Array<FindingsCursor | null> = [];
+    let after: FindingsCursor | null = null;
+    let changed: number = 0;
 
-    // As an install sends it: a mutation on the local table, ON CLUSTER.
+    for (let step: number = 0; step < 10; step++) {
+      reads.push(after);
+
+      const read: FindingsScanStep =
+        await SecurityUserErasureFindings.scanFindings({
+          projectId: PROJECT_ID,
+          names,
+          tokens: [aliceToken],
+          after,
+          onProgress: async (): Promise<void> => {},
+          pageSize: 1,
+          maxRewrites: 1,
+        });
+
+      changed += read.changed;
+      after = read.after;
+
+      if (read.isAtEnd) {
+        break;
+      }
+    }
+
+    expect(changed).toBe(2);
+    // Each read went on from where the one before stopped.
+    expect(reads.length).toBeGreaterThan(2);
     expect(
-      await SecurityUserErasureFindings.unnameFindings({
-        projectId: PROJECT_ID,
-        rewrites: found.rewrites,
-      }),
-    ).toBe(2);
+      new Set(
+        reads.map((cursor: FindingsCursor | null): string => {
+          return JSON.stringify(cursor);
+        }),
+      ).size,
+    ).toBe(reads.length);
 
-    const findingsQuery: string = `SELECT hostName() AS replica, eventUid, message, observables, attributes, attributeKeys FROM clusterAllReplicas('${CLUSTER}', ${database}.${EVENTS_LOCAL}) WHERE className = '${DETECTION_FINDING_CLASS_NAME}' ORDER BY replica, eventUid`;
+    const findingsQuery: string = `SELECT hostName() AS replica, ruleId, eventUid, message, observables, attributes, attributeKeys FROM clusterAllReplicas('${CLUSTER}', ${database}.${EVENTS_LOCAL}) WHERE className = '${DETECTION_FINDING_CLASS_NAME}' ORDER BY replica, ruleId`;
 
     await waitUntil("both replicas apply the findings' change", async () => {
       const findings: Array<JSONObject> = await rows(findingsQuery);
@@ -595,13 +639,27 @@ integration("an erasure on a replicated cluster", () => {
         findings.length === REPLICAS.length * 3 &&
         findings
           .filter((row: JSONObject): boolean => {
-            return row["eventUid"] !== "finding-bob";
+            return row["ruleId"] !== "finding-bob";
           })
           .every((row: JSONObject): boolean => {
-            return !JSON.stringify(row).includes(ALICE);
+            return (
+              !JSON.stringify(row).includes(ALICE) &&
+              !String(row["eventUid"]).includes(keyed(ALICE))
+            );
           })
       );
     });
+
+    // Not a fingerprint of the person, keyed or not, left on either replica.
+    const fingerprintsOfNames: Array<string> = names.flatMap(
+      (name: ErasedName): Array<string> => {
+        return DetectionFingerprint.allOf({
+          projectId: PROJECT_ID,
+          kind: DetectionFingerprintKind.DetectionRule,
+          value: name.named,
+        });
+      },
+    );
 
     for (const row of await rows(findingsQuery)) {
       const attributes: Record<string, string> = row["attributes"] as Record<
@@ -609,15 +667,27 @@ integration("an erasure on a replicated cluster", () => {
         string
       >;
 
-      if (row["eventUid"] === "finding-alice") {
+      for (const fingerprint of fingerprintsOfNames) {
+        expect(JSON.stringify(row)).not.toContain(fingerprint);
+      }
+
+      if (row["ruleId"] === "finding-alice") {
         expect(row["message"]).toBe(
           `Detection: Brute force — ${aliceToken} (5 events)`,
         );
         expect(row["observables"]).toEqual([aliceToken, "203.0.113.7"]);
         expect(attributes[DETECTION_GROUP_VALUE_ATTRIBUTE]).toBe(aliceToken);
+        // The id a rule firing on the token makes.
+        expect(row["eventUid"]).toBe(
+          findingUidOf("finding-alice", keyed(aliceToken)),
+        );
       }
 
-      if (row["eventUid"] === "finding-new-user") {
+      if (row["ruleId"] === "finding-new-user") {
+        // Grouped on the address, which named nobody: its id stays.
+        expect(row["eventUid"]).toBe(
+          findingUidOf("finding-new-user", keyed("203.0.113.7")),
+        );
         expect(row["message"]).toBe(
           `Detection: First sign-in — 203.0.113.7 (5 events; First principalUser in 7 days: auth0|${aliceToken}, ${BOB})`,
         );
@@ -631,11 +701,12 @@ integration("an erasure on a replicated cluster", () => {
         );
       }
 
-      if (row["eventUid"] === "finding-bob") {
+      if (row["ruleId"] === "finding-bob") {
         expect(row["message"]).toBe(
           `Detection: Brute force — ${BOB} (5 events)`,
         );
         expect(row["observables"]).toEqual([BOB]);
+        expect(row["eventUid"]).toBe(findingUidOf("finding-bob", keyed(BOB)));
         expect(attributes[FINDING_USER_ERASED_ATTRIBUTE]).toBeUndefined();
         continue;
       }
@@ -648,14 +719,20 @@ integration("an erasure on a replicated cluster", () => {
       );
     }
 
+    // A read from the first again finds nothing left to change, on either replica.
     expect(
-      await SecurityUserErasureFindings.isAnyFindingNaming({
-        projectId: PROJECT_ID,
-        names,
-      }),
-    ).toBe(false);
+      (
+        await SecurityUserErasureFindings.scanFindings({
+          projectId: PROJECT_ID,
+          names,
+          tokens: [aliceToken],
+          after: null,
+          onProgress: async (): Promise<void> => {},
+        })
+      ).changed,
+    ).toBe(0);
 
-    // What both replicas keep of the mutations: ids, tokens and lengths, never the person.
+    // What both replicas keep of the mutations: ids, tokens, lengths and keyed fingerprints of the token, never the person.
     const commands: Array<JSONObject> = await rows(
       `SELECT hostName() AS replica, command FROM clusterAllReplicas('${CLUSTER}', system.mutations) WHERE database = '${database}'`,
     );
@@ -667,9 +744,20 @@ integration("an erasure on a replicated cluster", () => {
         }),
       ).size,
     ).toBe(REPLICAS.length);
+    expect(
+      commands.some((row: JSONObject): boolean => {
+        return String(row["command"]).includes(keyed(aliceToken));
+      }),
+    ).toBe(true);
 
     for (const row of commands) {
-      expect(String(row["command"]).toLowerCase()).not.toContain("alice");
+      const command: string = String(row["command"]);
+
+      expect(command.toLowerCase()).not.toContain("alice");
+
+      for (const fingerprint of fingerprintsOfNames) {
+        expect(command).not.toContain(fingerprint);
+      }
     }
   });
 });
