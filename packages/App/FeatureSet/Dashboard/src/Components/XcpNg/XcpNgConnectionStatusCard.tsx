@@ -638,7 +638,7 @@ const XcpNgConnectionStatusCard: FunctionComponent<ComponentProps> = (
           title="Remove the API Token"
           // Names the connection whose token goes, as every removal names what it removes.
           description={translator.translateTemplate(
-            "The API token of {{name}} is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.",
+            "OneUptime deletes the API token of {{name}}. Metrics still come through the OpenMetrics secret. Revoke it in Xen Orchestra if nothing else uses it.",
             { name: connection.name || connection.address || "" },
           )}
           submitButtonText="Remove Token"

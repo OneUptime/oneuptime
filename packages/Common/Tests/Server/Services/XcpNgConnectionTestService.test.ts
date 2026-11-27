@@ -60,7 +60,9 @@ function buildService(): {
   return { service, internals: service as unknown as ServiceInternals };
 }
 
-function probeRow(overrides: Partial<Probe> = {}): Probe {
+type Overrides<T> = { [Key in keyof T]?: T[Key] | undefined };
+
+function probeRow(overrides: Overrides<Probe> = {}): Probe {
   const probe: Probe = new Probe(PROBE_ID);
   probe.projectId = PROJECT_ID;
   probe.isGlobalProbe = false;
