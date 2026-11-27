@@ -16,7 +16,7 @@ import {
 export const SNMP_TRAPS_CARD_TITLE: string = translationKey("SNMP Traps");
 
 export const SNMP_TRAPS_CARD_DESCRIPTION: string = translationKey(
-  "Devices send SNMP traps and informs to this probe. An SNMPv3 trap is taken when it is signed with the SNMPv3 credentials of a device on this probe.",
+  "Devices send SNMP traps and informs to this probe. An SNMPv3 trap is taken when it is signed with the SNMPv3 credentials of a device on this probe, or of a site whose Default Probe it is.",
 );
 
 export const SNMP_TRAPS_NOT_REPORTED: string = translationKey(
@@ -47,12 +47,12 @@ export const SNMP_TRAPS_ENGINE_ID_HINT: string = translationKey(
 );
 
 export const SNMP_TRAPS_USER_COUNT: PluralTemplate = {
-  one: "{{count}} user, from the devices on this probe",
-  other: "{{count}} users, from the devices on this probe",
+  one: "{{count}} user, from the devices and sites that use this probe",
+  other: "{{count}} users, from the devices and sites that use this probe",
 };
 
 export const SNMP_TRAPS_NO_USERS: string = translationKey(
-  "None yet: SNMPv3 traps are taken once a device on this probe has SNMPv3 credentials, of its own, from its credential profile or from its site.",
+  "None yet: SNMPv3 traps are taken once a device on this probe, or a site whose Default Probe it is, has SNMPv3 credentials.",
 );
 
 export const SNMP_TRAPS_NONE_RECEIVED: string = translationKey("None yet");
@@ -141,6 +141,15 @@ export const SNMP_TRAP_REFUSAL_WHEN: string = translationKey(
   "Last refused {{time}}, first {{first}}",
 );
 
+/*
+ * An inform sent to another engine ID, where the probe's own engine ID is
+ * shown with the refusal: on a device's pages, where a global probe has no
+ * page to point to (#11173).
+ */
+export const SNMP_TRAP_REFUSAL_ENGINE_ID_FIX: string = translationKey(
+  "The device was given another engine ID for this probe. Give it this probe's SNMPv3 engine ID:",
+);
+
 // A device's own refused traps, on its pages.
 export const DEVICE_SNMP_TRAP_REFUSALS_TITLE: PluralTemplate = {
   one: "{{count}} SNMPv3 trap from this device was refused",
@@ -156,3 +165,16 @@ export const DEVICE_SNMP_TRAP_EDIT_CREDENTIALS: string = translationKey(
 );
 
 export const DEVICE_SNMP_TRAP_VIEW_PROBE: string = translationKey("View Probe");
+
+/*
+ * A device's Logs page: how its SNMPv3 traps are taken, and its probe's
+ * engine ID for informs - the one place a device on a global probe can read
+ * it (#11173).
+ */
+export const DEVICE_SNMPV3_TRAPS_HELP: string = translationKey(
+  "SNMPv3 traps and informs are taken when they are signed with the SNMPv3 credentials this device has in OneUptime: its own, its credential profile's or its site's default. Devices that send from one address are told apart by the engine ID their SNMPv3 polls read and by those credentials.",
+);
+
+export const DEVICE_PROBE_ENGINE_ID_NOT_REPORTED: string = translationKey(
+  "A device that sends SNMPv3 informs may also need its probe's SNMPv3 engine ID, shown here once the probe reports it.",
+);

@@ -55,11 +55,15 @@ import dgram from "dgram";
  *
  * The users are OneUptime's to hand: every thirty seconds the probe reports
  * this receiver - its engine ID, its users count, the traps it refused - and
- * is handed the SNMPv3 users of the devices assigned to it
+ * is handed the SNMPv3 users of the devices assigned to it and the default
+ * credential profiles of the sites whose Default Probe it is
  * (Jobs/SnmpTrap/SyncSnmpTrapReceiver), which replace the table at once,
  * while the receiver keeps listening. Until the first set arrives, SNMPv3
  * datagrams wait (a minute at most) rather than being refused as from an
- * unknown user.
+ * unknown user. Each user comes with the records that hold it, which an
+ * authenticated trap is forwarded with (SnmpTrap.signedBy): OneUptime keeps
+ * the trap in a project whose own keys signed it, on the device that
+ * carries them.
  *
  * A refused SNMPv3 trap is never forwarded and nothing it carried is logged
  * - only its source, user name and why - and it is counted for the probe's
