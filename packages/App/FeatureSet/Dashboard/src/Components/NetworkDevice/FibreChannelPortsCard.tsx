@@ -199,10 +199,7 @@ const FibreChannelPortsCard: FunctionComponent<ComponentProps> = (
           <div className="flex flex-wrap items-center gap-2">
             <div className="w-56">
               <Dropdown
-                ariaLabel={
-                  translator.translateText("Fibre Channel Counter") ||
-                  "Fibre Channel Counter"
-                }
+                ariaLabel="Fibre Channel Counter"
                 options={counterOptions}
                 value={counterOptions.find((option: DropdownOption) => {
                   return option.value === counter;
