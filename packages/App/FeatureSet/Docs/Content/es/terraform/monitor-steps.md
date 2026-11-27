@@ -11,7 +11,7 @@
 
 ## Cómo se juzga una comprobación
 
-Cada comprobación da un resultado: la respuesta de una sonda, el valor que devuelve un script o la telemetría que lee la comprobación. Los criterios del paso lo juzgan después en su orden. El primer criterio cuyos filtros coinciden decide lo que pasa: puede cambiar el estado del monitor, abrir incidentes y abrir alertas. Los criterios que vienen después no se miran en esa comprobación.
+Cada comprobación da un resultado: la respuesta de una sonda, el valor que devuelve un script o la telemetría que lee la comprobación. Los criterios del paso lo juzgan después en su orden. El primer criterio cuyos filtros coinciden decide lo que pasa: puede cambiar el estado del monitor, abrir incidentes y abrir alertas. Los criterios que vienen después no se miran en esa comprobación, salvo que no cambie ningún estado (`change_monitor_status` desactivado): entonces los criterios que vienen después y cambian el estado se juzgan solo para el estado, y el primero de ellos que coincide lo fija. Si ninguno lo hace, el monitor pasa a su estado predeterminado.
 
 ```mermaid title="Cómo se juzga cada comprobación"
 flowchart TB

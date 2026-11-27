@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-The monitor's `monitor_steps` say what it checks and what each result means: after each check, the first criteria that matches sets its status. [Monitor Steps](/docs/terraform/monitor-steps) explains every part.
+The monitor's `monitor_steps` say what it checks and what each result means: after each check, the first criteria that matches and changes the status sets it. [Monitor Steps](/docs/terraform/monitor-steps) explains every part.
 
 ### Plan and apply
 

@@ -67366,5 +67366,19 @@
   "XCP-ng Pool Master Changed": "XCP-ng 풀 마스터 변경됨",
   "XCP-ng Pool High Availability Changed": "XCP-ng 풀 고가용성 변경됨",
   "XCP-ng Pool Backup Failed": "XCP-ng 풀 백업 실패",
-  "XCP-ng alarms": "XCP-ng 경보"
+  "XCP-ng alarms": "XCP-ng 경보",
+  "Criteria are evaluated in order; this monitor stops at the first match that changes its status.": "기준은 순서대로 평가되며, 이 모니터는 상태를 바꾸는 기준과 처음 일치한 곳에서 멈춥니다.",
+  "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "상태를 바꾸는 기준이 충족되지 않아 모니터 상태가 \"{{status}}\"(으)로 되돌아갔습니다.",
+  "Monitor status reverted to its default state because no criteria that changes the status was met.": "상태를 바꾸는 기준이 충족되지 않아 모니터 상태가 기본 상태로 되돌아갔습니다.",
+  "No criteria that changes the status matched, so the monitor changed to its default status.": "상태를 바꾸는 기준이 충족되지 않아 모니터가 기본 상태로 변경되었습니다.",
+  "Not evaluated because {{criteria}} matched and set the monitor's status.": "{{criteria}}이(가) 일치해 모니터 상태를 설정했으므로 평가되지 않았습니다.",
+  "Not evaluated because {{criteria}} matched first, and this criteria changes no status.": "{{criteria}}이(가) 먼저 일치했고 이 기준은 상태를 바꾸지 않아 평가되지 않았습니다.",
+  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.": "프로브 합의에 도달하지 못했습니다: 프로브 {{agreeing}}/{{required}}개가 동의합니다(활성 프로브 총 {{active}}개). 아무것도 열리거나 해결되지 않습니다.",
+  "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.": "모니터 상태에 대한 프로브 합의에 도달하지 못했습니다: 프로브 {{agreeing}}/{{required}}개가 동의합니다(활성 프로브 총 {{active}}개). 상태를 유지합니다.",
+  "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).": "모니터 상태에 대한 프로브 합의에 도달했습니다: 프로브 {{agreeing}}/{{required}}개가 동의합니다(활성 프로브 총 {{active}}개).",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.": "모니터가 상태를 유지합니다: 상태를 바꾸는 기준이 일치하지 않았으며, \"{{criteria}}\"이(가) 충족될 때만 돌아옵니다.",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.": "모니터가 상태를 유지합니다: 상태를 바꾸는 기준이 일치하지 않았으며, 모니터를 되돌리는 기준이 충족될 때만 돌아옵니다.",
+  "The monitor shows its default status, {{status}}.": "모니터는 기본 상태 {{status}}을(를) 표시합니다.",
+  "The monitor shows its default status.": "모니터는 기본 상태를 표시합니다.",
+  "{{criteria}} matches too, so OneUptime marks it {{status}}.": "{{criteria}}도 일치하므로 OneUptime이 상태를 {{status}}(으)로 표시합니다."
 }

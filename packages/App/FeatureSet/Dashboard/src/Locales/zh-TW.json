@@ -67366,5 +67366,19 @@
   "XCP-ng Pool Master Changed": "XCP-ng 資源池主節點已變更",
   "XCP-ng Pool High Availability Changed": "XCP-ng 資源池高可用性已變更",
   "XCP-ng Pool Backup Failed": "XCP-ng 資源池備份失敗",
-  "XCP-ng alarms": "XCP-ng 警報"
+  "XCP-ng alarms": "XCP-ng 警報",
+  "Criteria are evaluated in order; this monitor stops at the first match that changes its status.": "條件按順序評估；此監測器在第一次符合會變更其狀態的條件後停止。",
+  "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "由於未符合任何會變更狀態的條件，監測器狀態已還原為「{{status}}」。",
+  "Monitor status reverted to its default state because no criteria that changes the status was met.": "由於未符合任何會變更狀態的條件，監測器狀態已還原為預設狀態。",
+  "No criteria that changes the status matched, so the monitor changed to its default status.": "未符合任何會變更狀態的條件，因此監測器已變更為預設狀態。",
+  "Not evaluated because {{criteria}} matched and set the monitor's status.": "未評估，因為 {{criteria}} 已符合並設定了監測器狀態。",
+  "Not evaluated because {{criteria}} matched first, and this criteria changes no status.": "未評估，因為 {{criteria}} 先符合，且此條件不會變更狀態。",
+  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.": "探測器未達成一致：{{agreeing}}/{{required}} 個探測器一致（共 {{active}} 個作用中的探測器）。不會開啟或解決任何項目。",
+  "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.": "探測器未就監測器狀態達成一致：{{agreeing}}/{{required}} 個探測器一致（共 {{active}} 個作用中的探測器）。保持其狀態。",
+  "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).": "探測器已就監測器狀態達成一致：{{agreeing}}/{{required}} 個探測器一致（共 {{active}} 個作用中的探測器）。",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.": "監測器保持其狀態：沒有會變更狀態的條件符合，只有在符合「{{criteria}}」時才會恢復。",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.": "監測器保持其狀態：沒有會變更狀態的條件符合，只有在符合能讓它恢復的條件時才會恢復。",
+  "The monitor shows its default status, {{status}}.": "監測器顯示其預設狀態 {{status}}。",
+  "The monitor shows its default status.": "監測器顯示其預設狀態。",
+  "{{criteria}} matches too, so OneUptime marks it {{status}}.": "{{criteria}} 也符合，因此 OneUptime 將其標記為 {{status}}。"
 }

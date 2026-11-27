@@ -67366,5 +67366,19 @@
   "XCP-ng Pool Master Changed": "XCP-ng Pool Master Changed",
   "XCP-ng Pool High Availability Changed": "XCP-ng Pool High Availability Changed",
   "XCP-ng Pool Backup Failed": "XCP-ng Pool Backup Failed",
-  "XCP-ng alarms": "XCP-ng alarms"
+  "XCP-ng alarms": "XCP-ng alarms",
+  "Criteria are evaluated in order; this monitor stops at the first match that changes its status.": "Criteria are evaluated in order; this monitor stops at the first match that changes its status.",
+  "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.": "Monitor status reverted to \"{{status}}\" because no criteria that changes the status was met.",
+  "Monitor status reverted to its default state because no criteria that changes the status was met.": "Monitor status reverted to its default state because no criteria that changes the status was met.",
+  "No criteria that changes the status matched, so the monitor changed to its default status.": "No criteria that changes the status matched, so the monitor changed to its default status.",
+  "Not evaluated because {{criteria}} matched and set the monitor's status.": "Not evaluated because {{criteria}} matched and set the monitor's status.",
+  "Not evaluated because {{criteria}} matched first, and this criteria changes no status.": "Not evaluated because {{criteria}} matched first, and this criteria changes no status.",
+  "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.": "Probe agreement not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Nothing opens or resolves.",
+  "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.": "Probe agreement on the monitor's status not reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total). Keeping its status.",
+  "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).": "Probe agreement on the monitor's status reached: {{agreeing}}/{{required}} probes agree ({{active}} active probes total).",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.": "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when \"{{criteria}}\" is met.",
+  "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.": "The monitor keeps its status: no criteria that changes the status matched, and it comes back only when a criteria that brings it back is met.",
+  "The monitor shows its default status, {{status}}.": "The monitor shows its default status, {{status}}.",
+  "The monitor shows its default status.": "The monitor shows its default status.",
+  "{{criteria}} matches too, so OneUptime marks it {{status}}.": "{{criteria}} matches too, so OneUptime marks it {{status}}."
 }

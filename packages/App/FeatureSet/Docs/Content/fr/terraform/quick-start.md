@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-Les `monitor_steps` du moniteur disent ce qu'il vérifie et ce que signifie chaque résultat : après chaque vérification, le premier critère qui correspond fixe son statut. [Étapes de moniteur](/docs/terraform/monitor-steps) explique chaque partie.
+Les `monitor_steps` du moniteur disent ce qu'il vérifie et ce que signifie chaque résultat : après chaque vérification, le premier critère qui correspond et change le statut le fixe. [Étapes de moniteur](/docs/terraform/monitor-steps) explique chaque partie.
 
 ### Planifier et appliquer
 
