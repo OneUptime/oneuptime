@@ -66078,5 +66078,6 @@
   "Whether the device answered its probe's ping on each poll (1) or not (0), whatever its SNMP walk did. A device that answers ping while its walk fails is up, with SNMP failing.": "ما إذا كان الجهاز قد استجاب لـ ping المسبار الخاص به في كل استطلاع (1) أم لا (0)، أيًّا كانت نتيجة استعراض SNMP. الجهاز الذي يستجيب لـ ping بينما يفشل استعراضه يعمل، مع فشل SNMP.",
   "{{monitorName}} answers neither ping (ICMP) nor SNMP.": "{{monitorName}} لا يستجيب لـ ping (ICMP) ولا لـ SNMP.",
   "{{monitorName}} answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again.": "{{monitorName}} يستجيب لـ ping، لكن استعراض SNMP الخاص به يفشل: تحقّق من بيانات اعتماد SNMP أو الوكيل أو ACL. تنتظر واجهاته وفحوص سلامته حتى يستجيب SNMP مجددًا.",
-  "You can close this window: the monitors keep being created on the server.": "يمكنك إغلاق هذه النافذة: يستمر إنشاء المراقبات على الخادم."
+  "You can close this window: the monitors keep being created on the server.": "يمكنك إغلاق هذه النافذة: يستمر إنشاء المراقبات على الخادم.",
+  "Fell behind {{time}}": "تأخر {{time}}"
 }

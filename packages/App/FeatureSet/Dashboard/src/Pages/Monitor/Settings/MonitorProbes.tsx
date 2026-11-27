@@ -188,6 +188,15 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
             iconFileId: true,
             // When a disconnected one was last seen, under its Status (#9597).
             lastAlive: true,
+            /*
+             * Whether it is behind, and since when, for its Status: the
+             * global probes said Connected while they were handed nothing
+             * to check.
+             */
+            checksLateSince: true,
+            checksLastLateAt: true,
+            devicePollsLateSince: true,
+            devicePollsLastLateAt: true,
           }}
           actionButtons={[monitorThisProbeAction]}
           filters={[

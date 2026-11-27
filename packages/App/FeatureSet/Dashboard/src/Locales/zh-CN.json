@@ -66078,5 +66078,6 @@
   "Whether the device answered its probe's ping on each poll (1) or not (0), whatever its SNMP walk did. A device that answers ping while its walk fails is up, with SNMP failing.": "设备在每次轮询时是否响应了其探测器的 ping（1）或未响应（0），无论其 SNMP 遍历结果如何。遍历失败但仍响应 ping 的设备处于在线状态，并标记为 SNMP 失败。",
   "{{monitorName}} answers neither ping (ICMP) nor SNMP.": "{{monitorName}} 既不响应 ping（ICMP），也不响应 SNMP。",
   "{{monitorName}} answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again.": "{{monitorName}} 响应 ping，但其 SNMP 遍历失败：请检查 SNMP 凭据、代理或 ACL。其接口和健康检查会等到 SNMP 再次响应。",
-  "You can close this window: the monitors keep being created on the server.": "你可以关闭此窗口：监视器会继续在服务器上创建。"
+  "You can close this window: the monitors keep being created on the server.": "你可以关闭此窗口：监视器会继续在服务器上创建。",
+  "Fell behind {{time}}": "{{time}} 开始滞后"
 }

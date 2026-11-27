@@ -7,7 +7,9 @@ import fs from "fs";
 import path from "path";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import ProbeStatusElement from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeStatus";
+import ProbeStatusElement, {
+  PROBE_FELL_BEHIND,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Probe/ProbeStatus";
 import ProbeChecksElement, {
   PROBE_BEHIND_GUIDE_PATH,
   PROBE_CHECKS_COPY,
@@ -45,6 +47,12 @@ import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
  * Behind when they wait past their poll time, and the probe's page shows
  * Network Device Polls while it is behind on them, with the setting that
  * lets it poll more at once.
+ *
+ * On 27 November 2026 every probe was handed nothing to check for twelve
+ * hours, and a monitor's Probes and Settings > Global Probes said
+ * Connected throughout: neither asked whether a probe was behind. They do
+ * now, and Behind says when the probe fell behind, the exact time on
+ * hover.
  */
 
 const DASHBOARD: string = path.join(
@@ -125,6 +133,83 @@ describe("the probe's status in the Custom Probes list", () => {
     expect(screen.getByText("Behind")).toBeInTheDocument();
     expect(dotColor()).toBe("rgb(255, 191, 83)");
   });
+
+  test("Behind says when the probe fell behind, the exact time on hover", async () => {
+    const probe: Probe = connectedProbe({ lateFor: 3 * MINUTE });
+
+    await draw(<ProbeStatusElement probe={probe} />);
+
+    const line: HTMLElement = screen.getByTestId("probe-status-behind-since");
+    // The figure is held to its word by a no-break space.
+    expect(withoutIsolateMarks(line.textContent || "")).toMatch(
+      /^Fell behind 3\sminutes ago$/,
+    );
+
+    const time: HTMLElement = line.querySelector("time") as HTMLElement;
+    expect(time.getAttribute("dateTime")).toBe(
+      probe.checksLateSince!.toISOString(),
+    );
+    expect(time.getAttribute("title")).toBeTruthy();
+  });
+
+  test("behind on both, it fell behind when the first of the two did", async () => {
+    const probe: Probe = connectedProbe({
+      lateFor: 3 * MINUTE,
+      devicesLateFor: 2 * 60 * MINUTE,
+    });
+
+    await draw(<ProbeStatusElement probe={probe} />);
+
+    expect(
+      screen
+        .getByTestId("probe-status-behind-since")
+        .querySelector("time")
+        ?.getAttribute("dateTime"),
+    ).toBe(probe.devicePollsLateSince!.toISOString());
+  });
+
+  test("a probe that keeps up, or is disconnected, or is drawn for its connection only, says nothing of falling behind", async () => {
+    await draw(<ProbeStatusElement probe={connectedProbe()} />);
+    expect(screen.queryByTestId("probe-status-behind-since")).toBeNull();
+    cleanup();
+
+    const disconnected: Probe = connectedProbe({ lateFor: 3 * MINUTE });
+    disconnected.connectionStatus = ProbeConnectionStatus.Disconnected;
+    await draw(<ProbeStatusElement probe={disconnected} />);
+    expect(screen.queryByTestId("probe-status-behind-since")).toBeNull();
+    cleanup();
+
+    await draw(
+      <ProbeStatusElement
+        probe={connectedProbe({ lateFor: 3 * MINUTE })}
+        isConnectionOnly={true}
+      />,
+    );
+    expect(screen.queryByTestId("probe-status-behind-since")).toBeNull();
+  });
+
+  test.each(["de", "fa", "ja"])(
+    "when it fell behind reads in %s",
+    async (language: string) => {
+      await act(async () => {
+        await i18next.changeLanguage(language);
+      });
+
+      await draw(
+        <ProbeStatusElement probe={connectedProbe({ lateFor: 3 * MINUTE })} />,
+      );
+
+      const locale: Record<string, string> = readDashboardLocale(language);
+      const text: string = withoutIsolateMarks(
+        screen.getByTestId("probe-status-behind-since").textContent || "",
+      );
+
+      for (const words of locale[PROBE_FELL_BEHIND]!.split("{{time}}")) {
+        expect(text).toContain(words.trim());
+      }
+      expect(text).not.toContain("Fell behind");
+    },
+  );
 
   test("one late reading - a restart - is not yet behind", async () => {
     await draw(<ProbeStatusElement probe={connectedProbe({ lateFor: 0 })} />);
@@ -360,6 +445,8 @@ describe("in every language the Dashboard speaks", () => {
     PROBE_CHECKS_COPY.behindWords,
     PROBE_CHECKS_COPY.behindFix,
     PROBE_CHECKS_COPY.readTheGuide,
+    // When it fell behind, under Behind in the lists.
+    PROBE_FELL_BEHIND,
     // The model's column titles, which lists and filters show.
     "Checks Late Since",
     "Checks Last Late At",
@@ -444,6 +531,30 @@ describe("the pages", () => {
     );
     expect(source).toMatch(
       /<ProbeChecksElement\s+probe=\{item\}\s+work=\{ProbeBehindWork\.DevicePolls\}\s*\/>/,
+    );
+  });
+
+  test("a monitor's Probes ask whether each probe is behind on its monitor checks, and since when - not on its device polls", () => {
+    const source: string = fs.readFileSync(
+      path.join(DASHBOARD, "Pages/Monitor/View/Probes.tsx"),
+      "utf8",
+    );
+
+    expect(source).toMatch(
+      /probe: \{\s*connectionStatus: true,[\s\S]*?checksLateSince: true,\s*checksLastLateAt: true,\s*\},/,
+    );
+    expect(source).not.toContain("devicePollsLateSince");
+    expect(source).toContain('<ProbeStatusElement probe={item["probe"]!} />');
+  });
+
+  test("Settings > Global Probes reads what says a global probe is behind", () => {
+    const source: string = fs.readFileSync(
+      path.join(DASHBOARD, "Pages/Monitor/Settings/MonitorProbes.tsx"),
+      "utf8",
+    );
+
+    expect(source).toMatch(
+      /"\/probe\/global-probes",[\s\S]*?selectMoreFields=\{\{[^}]*lastAlive: true,[^}]*checksLateSince: true,\s*checksLastLateAt: true,\s*devicePollsLateSince: true,\s*devicePollsLastLateAt: true,\s*\}\}/,
     );
   });
 

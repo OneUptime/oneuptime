@@ -66078,5 +66078,6 @@
   "Whether the device answered its probe's ping on each poll (1) or not (0), whatever its SNMP walk did. A device that answers ping while its walk fails is up, with SNMP failing.": "Ответило ли устройство на ping своего зонда при каждом опросе (1) или нет (0), независимо от результата SNMP-обхода. Устройство, которое отвечает на ping при сбое обхода, доступно, но со сбоем SNMP.",
   "{{monitorName}} answers neither ping (ICMP) nor SNMP.": "{{monitorName}} не отвечает ни на ping (ICMP), ни на SNMP.",
   "{{monitorName}} answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again.": "{{monitorName}} отвечает на ping, но его SNMP-обход завершается ошибкой: проверьте учётные данные SNMP, агент или ACL. Проверки интерфейсов и состояния ждут, пока SNMP снова не ответит.",
-  "You can close this window: the monitors keep being created on the server.": "Это окно можно закрыть: мониторы продолжат создаваться на сервере."
+  "You can close this window: the monitors keep being created on the server.": "Это окно можно закрыть: мониторы продолжат создаваться на сервере.",
+  "Fell behind {{time}}": "Отставание началось {{time}}"
 }

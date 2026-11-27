@@ -66078,5 +66078,6 @@
   "Whether the device answered its probe's ping on each poll (1) or not (0), whatever its SNMP walk did. A device that answers ping while its walk fails is up, with SNMP failing.": "اینکه دستگاه در هر فراخوانی به پینگ پراب خود پاسخ داد (1) یا نه (0)، صرف‌نظر از نتیجهٔ پیمایش SNMP آن. دستگاهی که به پینگ پاسخ می‌دهد در حالی که پیمایش آن ناموفق است، روشن است و SNMP آن ناموفق است.",
   "{{monitorName}} answers neither ping (ICMP) nor SNMP.": "{{monitorName}} نه به پینگ (ICMP) پاسخ می‌دهد و نه به SNMP.",
   "{{monitorName}} answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again.": "{{monitorName}} به پینگ پاسخ می‌دهد، اما پیمایش SNMP آن ناموفق است: اعتبارنامه‌های SNMP، عامل یا یک ACL را بررسی کنید. رابط‌ها و بررسی‌های سلامت آن تا وقتی SNMP دوباره پاسخ دهد منتظر می‌مانند.",
-  "You can close this window: the monitors keep being created on the server.": "می‌توانید این پنجره را ببندید: مانیتورها همچنان روی سرور ساخته می‌شوند."
+  "You can close this window: the monitors keep being created on the server.": "می‌توانید این پنجره را ببندید: مانیتورها همچنان روی سرور ساخته می‌شوند.",
+  "Fell behind {{time}}": "{{time}} عقب افتاد"
 }

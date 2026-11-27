@@ -66078,5 +66078,6 @@
   "Whether the device answered its probe's ping on each poll (1) or not (0), whatever its SNMP walk did. A device that answers ping while its walk fails is up, with SNMP failing.": "Of het apparaat bij elke poll op de ping van zijn sonde antwoordde (1) of niet (0), wat zijn SNMP-walk ook deed. Een apparaat dat op ping antwoordt terwijl zijn walk mislukt, is online, maar SNMP werkt niet.",
   "{{monitorName}} answers neither ping (ICMP) nor SNMP.": "{{monitorName}} antwoordt noch op ping (ICMP) noch op SNMP.",
   "{{monitorName}} answers ping, but its SNMP walk is failing: check the SNMP credentials, the agent or an ACL. Its interfaces and health checks wait until SNMP answers again.": "{{monitorName}} antwoordt op ping, maar zijn SNMP-walk mislukt: controleer de SNMP-inloggegevens, de agent of een ACL. Zijn interfaces en gezondheidscontroles wachten tot SNMP weer antwoordt.",
-  "You can close this window: the monitors keep being created on the server.": "U kunt dit venster sluiten: de monitors worden op de server verder aangemaakt."
+  "You can close this window: the monitors keep being created on the server.": "U kunt dit venster sluiten: de monitors worden op de server verder aangemaakt.",
+  "Fell behind {{time}}": "Achter geraakt {{time}}"
 }
