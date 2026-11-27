@@ -221,8 +221,9 @@ export function toCloudCostPlatformLists(data: {
           _id?: unknown;
           cloudPlatform?: string | undefined;
         }): boolean => {
-        return Boolean(environment._id && environment.cloudPlatform);
-      })
+          return Boolean(environment._id && environment.cloudPlatform);
+        },
+      )
       .map(
         (environment: {
           _id?: unknown;

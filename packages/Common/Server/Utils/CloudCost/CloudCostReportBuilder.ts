@@ -160,7 +160,10 @@ function serviceName(key: string): string {
 
 export class CloudCostReportBuilder {
   // The days a report sent at `at` covers, and the days before.
-  public static getWindows(report: CloudCostReport, at: Date): {
+  public static getWindows(
+    report: CloudCostReport,
+    at: Date,
+  ): {
     window: CloudCostAllocationWindow;
     previous: CloudCostAllocationWindow;
   } {
@@ -233,9 +236,7 @@ export class CloudCostReportBuilder {
     const inScope: Array<CloudAccount> =
       scope === CloudCostReportScope.Account
         ? accounts.filter((account: CloudAccount): boolean => {
-            return (
-              account.id?.toString() === report.cloudAccountId?.toString()
-            );
+            return account.id?.toString() === report.cloudAccountId?.toString();
           })
         : accounts;
 
@@ -620,10 +621,9 @@ export class CloudCostReportBuilder {
     >) {
       const accountId: string = String(item["cloudAccountId"] ?? "");
       const service: string = String(item["service"] ?? "");
-      const day: string = new Date(String(item["timestamp"])).toISOString().slice(
-        0,
-        10,
-      );
+      const day: string = new Date(String(item["timestamp"]))
+        .toISOString()
+        .slice(0, 10);
       const amount: number = Number(item["value"]) || 0;
       let days: Map<string, Map<string, number>> | undefined =
         byAccount.get(accountId);
@@ -678,7 +678,10 @@ export class CloudCostReportBuilder {
 
     return found
       .sort(
-        (a: CloudCostReportUnusualDay, b: CloudCostReportUnusualDay): number => {
+        (
+          a: CloudCostReportUnusualDay,
+          b: CloudCostReportUnusualDay,
+        ): number => {
           return (
             b.amount - b.usual - (a.amount - a.usual) ||
             a.day.localeCompare(b.day)
@@ -858,9 +861,18 @@ export class CloudCostReportBuilder {
     };
 
     const [current, before, extended]: [
-      { allocation: CloudCostAllocationResult; group: CloudCostAllocationGroupResult },
-      { allocation: CloudCostAllocationResult; group: CloudCostAllocationGroupResult },
-      { allocation: CloudCostAllocationResult; group: CloudCostAllocationGroupResult },
+      {
+        allocation: CloudCostAllocationResult;
+        group: CloudCostAllocationGroupResult;
+      },
+      {
+        allocation: CloudCostAllocationResult;
+        group: CloudCostAllocationGroupResult;
+      },
+      {
+        allocation: CloudCostAllocationResult;
+        group: CloudCostAllocationGroupResult;
+      },
     ] = await Promise.all([
       read(data.window.start, endOfDay(data.window.lastDay), true),
       read(data.previous.start, endOfDay(data.previous.lastDay), false),

@@ -201,7 +201,8 @@ export function toCloudCostReportDays(window: CloudCostAllocationWindow): {
  * or null when it is not one. Deliberately plain - something@somewhere.tld
  * with no spaces - since the mail server is the judge of the rest.
  */
-const EMAIL_ADDRESS: RegExp = /^[^\s@<>(),;:"[\]]+@[^\s@<>(),;:"[\]]+\.[^\s@<>(),;:"[\]]+$/;
+const EMAIL_ADDRESS: RegExp =
+  /^[^\s@<>(),;:"[\]]+@[^\s@<>(),;:"[\]]+\.[^\s@<>(),;:"[\]]+$/;
 
 export function toCloudCostReportEmailAddress(value: unknown): string | null {
   if (typeof value !== "string") {
@@ -210,7 +211,9 @@ export function toCloudCostReportEmailAddress(value: unknown): string | null {
 
   const address: string = value.trim().toLowerCase();
 
-  return address.length > 0 && address.length <= 254 && EMAIL_ADDRESS.test(address)
+  return address.length > 0 &&
+    address.length <= 254 &&
+    EMAIL_ADDRESS.test(address)
     ? address
     : null;
 }

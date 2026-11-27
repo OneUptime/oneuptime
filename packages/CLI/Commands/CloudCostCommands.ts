@@ -61,7 +61,9 @@ export interface CloudCostExportOptions {
 }
 
 // The request body a breakdown's flags make.
-export function toBreakdownBody(options: CloudCostBreakdownOptions): JSONObject {
+export function toBreakdownBody(
+  options: CloudCostBreakdownOptions,
+): JSONObject {
   const body: JSONObject = {
     by: options.by || "service",
     compareWithPrevious: options.compare !== false,
@@ -338,7 +340,10 @@ export function registerCloudCostExportCommand(resourceCmd: Command): void {
     .option("--start-date <date>", "The first day, such as 2026-11-01")
     .option("--end-date <date>", "The last day, such as 2026-11-30")
     .option("--account <id...>", "Only these cloud accounts' costs")
-    .option("--file <path>", "Write the file here instead of to standard output")
+    .option(
+      "--file <path>",
+      "Write the file here instead of to standard output",
+    )
     .addOption(createOutputOption())
     .addOption(createJsonOption())
     .action(async (options: CloudCostExportOptions, cmd: Command) => {

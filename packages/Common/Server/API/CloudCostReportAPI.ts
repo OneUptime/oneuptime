@@ -77,9 +77,8 @@ export default class CloudCostReportAPI extends BaseAPI<
   }> {
     const props: DatabaseCommonInteractionProps =
       await CommonAPI.getDatabaseCommonInteractionProps(req);
-    const projectId: ObjectID = CommonAPI.assertAuthenticatedProjectPrincipal(
-      props,
-    );
+    const projectId: ObjectID =
+      CommonAPI.assertAuthenticatedProjectPrincipal(props);
     const id: string = String(req.params["reportId"] || "");
 
     if (!ObjectID.isValidUUID(id)) {
@@ -120,12 +119,14 @@ export default class CloudCostReportAPI extends BaseAPI<
       reportId: ObjectID;
     } = await this.getCaller(req);
 
-    const content: CloudCostReportContent = await CloudCostReportSender.readFor({
-      reportId: caller.reportId,
-      props: caller.props,
-      projectId: caller.projectId,
-      at: new Date(),
-    });
+    const content: CloudCostReportContent = await CloudCostReportSender.readFor(
+      {
+        reportId: caller.reportId,
+        props: caller.props,
+        projectId: caller.projectId,
+        at: new Date(),
+      },
+    );
 
     return Response.sendJsonObjectResponse(
       req,

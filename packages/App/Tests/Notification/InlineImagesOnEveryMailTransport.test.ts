@@ -871,7 +871,9 @@ describe.each(Object.values(TRANSPORT_CASES))(
       ]);
       // The logo still the one inline image, where the HTML points.
       expect(
-        arrived.inlineImages.map((image: ArrivedImage) => image.fileName),
+        arrived.inlineImages.map((image: ArrivedImage) => {
+          return image.fileName;
+        }),
       ).toEqual([EMAIL_LOGO_FILE_NAME]);
       expect(arrived.html).toContain("$1,200");
       expect(arrived.html).toContain("Open Costs");

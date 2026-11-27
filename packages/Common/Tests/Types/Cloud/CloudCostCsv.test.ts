@@ -88,9 +88,9 @@ describe("a CSV field", () => {
     expect(toCloudCostCsvField("Amazon EC2")).toBe('"Amazon EC2"');
     expect(toCloudCostCsvField('a "b" c')).toBe('"a ""b"" c"');
     expect(toCloudCostCsvField("=HYPERLINK(1)")).toBe('"\'=HYPERLINK(1)"');
-    expect(toCloudCostCsvField("+1")).toBe("\"'+1\"");
-    expect(toCloudCostCsvField("-cmd")).toBe("\"'-cmd\"");
-    expect(toCloudCostCsvField("@SUM")).toBe("\"'@SUM\"");
+    expect(toCloudCostCsvField("+1")).toBe('"\'+1"');
+    expect(toCloudCostCsvField("-cmd")).toBe('"\'-cmd"');
+    expect(toCloudCostCsvField("@SUM")).toBe('"\'@SUM"');
     expect(toCloudCostCsvField(null)).toBe('""');
     expect(toCloudCostCsvField(undefined)).toBe('""');
   });
@@ -101,7 +101,12 @@ describe("a CSV field", () => {
   });
 
   test("every line ends, the last one too", () => {
-    expect(toCloudCostCsv([["a", 1], ["b", 2]])).toBe('"a","1"\n"b","2"\n');
+    expect(
+      toCloudCostCsv([
+        ["a", 1],
+        ["b", 2],
+      ]),
+    ).toBe('"a","1"\n"b","2"\n');
   });
 
   test("an amount keeps four places and is never -0", () => {
@@ -160,7 +165,15 @@ describe("a breakdown as CSV", () => {
         "420.1235",
       ],
       // A cost with no service name, worded as the page words it.
-      ["Unnamed service", "", "2026-11-01", "2026-11-30", "USD", "amortized", "3"],
+      [
+        "Unnamed service",
+        "",
+        "2026-11-01",
+        "2026-11-30",
+        "USD",
+        "amortized",
+        "3",
+      ],
     ]);
   });
 
@@ -409,7 +422,10 @@ describe("a cost group's page as CSV", () => {
       toCloudCostGroupSpendCsv({
         group: group({
           series: [10, 0, 12.5],
-          topServices: [{ key: "Amazon EC2", amount: 20 }, { key: "", amount: 2.5 }],
+          topServices: [
+            { key: "Amazon EC2", amount: 20 },
+            { key: "", amount: 2.5 },
+          ],
           topResources: [{ key: "i-0pay", amount: 15 }],
           topAccounts: [{ key: "acc-1", amount: 22.5 }],
         } as Partial<CloudCostAllocationGroupResult>),
@@ -526,7 +542,9 @@ describe("a download's file name", () => {
         start: "2026-11-01",
         lastDay: "2026-11-30",
       }),
-    ).toBe("cloud-costs-by-cost-group-by-team-amortized-2026-11-01-to-2026-11-30.csv");
+    ).toBe(
+      "cloud-costs-by-cost-group-by-team-amortized-2026-11-01-to-2026-11-30.csv",
+    );
     expect(
       getCloudCostFileName({
         what: "cloud-costs",
@@ -537,7 +555,9 @@ describe("a download's file name", () => {
         start: "2026-11-02",
         lastDay: "2026-11-02",
       }),
-    ).toBe("cloud-costs-by-tag-value-team-name-production-aws-net-2026-11-02.csv");
+    ).toBe(
+      "cloud-costs-by-tag-value-team-name-production-aws-net-2026-11-02.csv",
+    );
     expect(
       getCloudCostFileName({
         what: "cloud-costs-focus-1.2",

@@ -1,5 +1,10 @@
 import { CloudProvider } from "./CloudPlatform";
-import { addUtcDays, addUtcMonths, fromCloudCostDay, startOfUtcMonth } from "./CloudCost";
+import {
+  addUtcDays,
+  addUtcMonths,
+  fromCloudCostDay,
+  startOfUtcMonth,
+} from "./CloudCost";
 
 /*
  * CLOUD COSTS AS A FOCUS 1.2 DATASET (#11009).
@@ -695,6 +700,9 @@ export function toCloudCostFocusRows(
  * negative, no sign for a positive, no exponent - to ten places, the
  * zeros after the last digit left off.
  */
+// A number written with an exponent: 1e-7, 1e+21.
+const EXPONENT: RegExp = /e/i;
+
 export function toCloudCostFocusDecimal(value: number): string {
   const number: number = Number(value);
 
@@ -709,7 +717,10 @@ export function toCloudCostFocusDecimal(value: number): string {
    */
   const shortest: string = String(number);
 
-  if (!/e/i.test(shortest) && (shortest.split(".")[1] || "").length <= 10) {
+  if (
+    !EXPONENT.test(shortest) &&
+    (shortest.split(".")[1] || "").length <= 10
+  ) {
     return shortest;
   }
 

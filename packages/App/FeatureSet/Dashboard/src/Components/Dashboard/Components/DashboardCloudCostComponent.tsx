@@ -202,7 +202,10 @@ export async function readCloudCostWidget(data: {
         },
       ),
       points: spend.buckets.map((bucket: string, index: number) => {
-        return { x: fromCloudCostDay(bucket), y: spend.group.series[index] || 0 };
+        return {
+          x: fromCloudCostDay(bucket),
+          y: spend.group.series[index] || 0,
+        };
       }),
     };
   }
@@ -312,7 +315,9 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
   const accountId: string | null = DashboardWidgetIds.readId(
     args.cloudAccountId,
   );
-  const groupId: string | null = DashboardWidgetIds.readId(args.cloudCostGroupId);
+  const groupId: string | null = DashboardWidgetIds.readId(
+    args.cloudCostGroupId,
+  );
   const viewId: string | null = DashboardWidgetIds.readId(args.cloudCostViewId);
   const period: InBetween<Date> = useProductAnalyticsWidgetPeriod(props);
   const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
@@ -407,14 +412,11 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
       />
     );
   } else if (needsId) {
-    body = <WidgetPlaceholder icon={IconProp.Billing} message={CLOUD_COST_SETUP} />;
-  } else if (read.error) {
     body = (
-      <DashboardWidgetError
-        icon={IconProp.Billing}
-        error={read.error}
-      />
+      <WidgetPlaceholder icon={IconProp.Billing} message={CLOUD_COST_SETUP} />
     );
+  } else if (read.error) {
+    body = <DashboardWidgetError icon={IconProp.Billing} error={read.error} />;
   } else if (!read.data) {
     body = (
       <div className="flex h-full items-center justify-center">
@@ -523,7 +525,10 @@ const DashboardCloudCostComponentElement: FunctionComponent<ComponentProps> = (
         />
       </div>
     ) : (
-      <DashboardWidgetEmpty icon={IconProp.Billing} message={CLOUD_COST_NOTHING} />
+      <DashboardWidgetEmpty
+        icon={IconProp.Billing}
+        message={CLOUD_COST_NOTHING}
+      />
     );
   }
 

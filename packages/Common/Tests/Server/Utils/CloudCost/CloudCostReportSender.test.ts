@@ -99,7 +99,8 @@ function userOf(index: number, name: string): User {
     `0192f1a0-1100-7000-8000-${String(index).padStart(12, "0")}`,
   );
   user.name = name as never;
-  user.email = `${name.toLowerCase().replace(/\s+/g, ".")}@example.com` as never;
+  user.email =
+    `${name.toLowerCase().replace(/\s+/g, ".")}@example.com` as never;
   return user;
 }
 
@@ -206,9 +207,11 @@ function contentFor(data: {
       unusualDays: [],
     },
     otherCurrencies: [],
-    costsUrl: "https://oneuptime.example/dashboard/p/cloud/costs?start=2026-11-16",
+    costsUrl:
+      "https://oneuptime.example/dashboard/p/cloud/costs?start=2026-11-16",
     csv: '"service","amount"\n"Amazon EC2","1200"\n',
-    csvFileName: "cloud-costs-by-service-amortized-2026-11-16-to-2026-11-22.csv",
+    csvFileName:
+      "cloud-costs-by-service-amortized-2026-11-16-to-2026-11-22.csv",
     readAt: DUE.toISOString(),
   };
 }
@@ -286,7 +289,10 @@ function setStage(report: CloudCostReport): void {
     return stage.groups;
   }) as never);
   jest
-    .spyOn(AccessTokenService, "getDatabaseCommonInteractionPropsByUserAndProject")
+    .spyOn(
+      AccessTokenService,
+      "getDatabaseCommonInteractionPropsByUserAndProject",
+    )
     .mockImplementation(async (data: { userId: ObjectID }) => {
       return (
         stage.permissions.get(data.userId.toString()) || {
@@ -297,19 +303,24 @@ function setStage(report: CloudCostReport): void {
     });
   jest
     .spyOn(CloudCostReportBuilder, "build")
-    .mockImplementation(async (request: {
-      props: DatabaseCommonInteractionProps;
-      groupId?: ObjectID | undefined;
-    }) => {
-      stage.builds.push({
-        props: request.props,
-        ...(request.groupId ? { groupId: request.groupId } : {}),
-      });
-      return contentFor(request);
-    });
+    .mockImplementation(
+      async (request: {
+        props: DatabaseCommonInteractionProps;
+        groupId?: ObjectID | undefined;
+      }) => {
+        stage.builds.push({
+          props: request.props,
+          ...(request.groupId ? { groupId: request.groupId } : {}),
+        });
+        return contentFor(request);
+      },
+    );
   jest.spyOn(UserLanguage, "getLanguage").mockResolvedValue("en");
   jest
-    .spyOn(UserNotificationSettingService, "addCloudCostReportNotificationSettings")
+    .spyOn(
+      UserNotificationSettingService,
+      "addCloudCostReportNotificationSettings",
+    )
     .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserNotificationSettingService, "sendUserNotification")
@@ -356,12 +367,16 @@ function setStage(report: CloudCostReport): void {
       return [
         failure
           ? {
-              errors: [{ channel: { id: "C1", name: channel }, error: failure }],
+              errors: [
+                { channel: { id: "C1", name: channel }, error: failure },
+              ],
               threads: [],
             }
           : {
               errors: [],
-              threads: [{ channel: { id: "C1", name: channel }, threadId: "t1" }],
+              threads: [
+                { channel: { id: "C1", name: channel }, threadId: "t1" },
+              ],
             },
       ];
     }) as never);
@@ -435,9 +450,11 @@ describe("who a report goes to", () => {
     stage.permissions.set(
       BOB.id!.toString(),
       // Bob reads only what the prod label reaches.
-      propsOf(BOB, [Permission.ReadCloudResource], [
-        new ObjectID("0192f1a0-1100-7000-8000-0000000b0001"),
-      ]),
+      propsOf(
+        BOB,
+        [Permission.ReadCloudResource],
+        [new ObjectID("0192f1a0-1100-7000-8000-0000000b0001")],
+      ),
     );
     stage.report.recipientUsers = [ALICE, BOB, ERIN];
     stage.report.recipientTeams = [];
@@ -613,7 +630,8 @@ describe("addresses and channels outside the project", () => {
     expect(mail.isSubjectLiteral).toBe(true);
     expect(mail.attachments).toEqual([
       {
-        fileName: "cloud-costs-by-service-amortized-2026-11-16-to-2026-11-22.csv",
+        fileName:
+          "cloud-costs-by-service-amortized-2026-11-16-to-2026-11-22.csv",
         mimeType: "text/csv",
         contentBase64: Buffer.from(
           '"service","amount"\n"Amazon EC2","1200"\n',
@@ -636,10 +654,19 @@ describe("addresses and channels outside the project", () => {
 
     expect(result.addresses + result.channels).toBe(0);
     expect(result.skipped).toEqual([
-      { who: "finance@example.org", reason: CloudCostReportSkipReason.NoOutsideSetter },
-      { who: "accountant@example.net", reason: CloudCostReportSkipReason.NoOutsideSetter },
+      {
+        who: "finance@example.org",
+        reason: CloudCostReportSkipReason.NoOutsideSetter,
+      },
+      {
+        who: "accountant@example.net",
+        reason: CloudCostReportSkipReason.NoOutsideSetter,
+      },
       { who: "#finops", reason: CloudCostReportSkipReason.NoOutsideSetter },
-      { who: "Cost reviews", reason: CloudCostReportSkipReason.NoOutsideSetter },
+      {
+        who: "Cost reviews",
+        reason: CloudCostReportSkipReason.NoOutsideSetter,
+      },
     ]);
   });
 
@@ -699,7 +726,11 @@ describe("addresses and channels outside the project", () => {
         }),
       ) as unknown as Array<Record<string, unknown>>;
 
-    expect(blocks.map((block: Record<string, unknown>) => block["_type"])).toEqual([
+    expect(
+      blocks.map((block: Record<string, unknown>) => {
+        return block["_type"];
+      }),
+    ).toEqual([
       "WorkspacePayloadHeader",
       "WorkspacePayloadMarkdown",
       "WorkspacePayloadButtons",
@@ -763,7 +794,10 @@ describe("the schedule", () => {
     report.nextSendAt = nextSendAt;
     report.recurringInterval = {
       _type: "Recurring",
-      value: { intervalType: "Week", intervalCount: { _type: "PositiveNumber", value: 1 } },
+      value: {
+        intervalType: "Week",
+        intervalCount: { _type: "PositiveNumber", value: 1 },
+      },
     } as never;
     report.sendFirstReportAt = new Date("2026-11-16T08:00:00.000Z");
     report.timezone = "Europe/Berlin" as never;
@@ -771,21 +805,24 @@ describe("the schedule", () => {
   }
 
   test("sends each due report once: the replica that moves its next send on sends it", async () => {
-    const claims: Array<{ data: Record<string, unknown>; expectedData: Record<string, unknown> }> = [];
+    const claims: Array<{
+      data: Record<string, unknown>;
+      expectedData: Record<string, unknown>;
+    }> = [];
     const sends: Array<Date> = [];
     const written: Array<Record<string, unknown>> = [];
     const won: Set<string> = new Set(["0192f1a0-1100-7000-8000-0000000f0001"]);
 
-    jest.spyOn(CloudCostReportService, "findBy").mockImplementation((async (
-      data: { limit: number },
-    ) => {
-      expect(data.limit).toBe(CLOUD_COST_REPORTS_PER_TICK);
-      return [
-        due("0192f1a0-1100-7000-8000-0000000f0001", DUE),
-        // Claimed by another replica a moment before.
-        due("0192f1a0-1100-7000-8000-0000000f0002", DUE),
-      ];
-    }) as never);
+    jest
+      .spyOn(CloudCostReportService, "findBy")
+      .mockImplementation((async (data: { limit: number }) => {
+        expect(data.limit).toBe(CLOUD_COST_REPORTS_PER_TICK);
+        return [
+          due("0192f1a0-1100-7000-8000-0000000f0001", DUE),
+          // Claimed by another replica a moment before.
+          due("0192f1a0-1100-7000-8000-0000000f0002", DUE),
+        ];
+      }) as never);
     jest
       .spyOn(CloudCostReportService, "compareAndSetColumnsByIdWithoutHooks")
       .mockImplementation((async (data: {
@@ -865,12 +902,14 @@ describe("the schedule", () => {
   });
 
   test("one report that fails does not stop the others", async () => {
-    jest.spyOn(CloudCostReportService, "findBy").mockImplementation((async () => {
-      return [
-        due("0192f1a0-1100-7000-8000-0000000f0001", DUE),
-        due("0192f1a0-1100-7000-8000-0000000f0002", DUE),
-      ];
-    }) as never);
+    jest
+      .spyOn(CloudCostReportService, "findBy")
+      .mockImplementation((async () => {
+        return [
+          due("0192f1a0-1100-7000-8000-0000000f0001", DUE),
+          due("0192f1a0-1100-7000-8000-0000000f0002", DUE),
+        ];
+      }) as never);
     jest
       .spyOn(CloudCostReportService, "compareAndSetColumnsByIdWithoutHooks")
       .mockResolvedValue(true as never);
@@ -956,12 +995,16 @@ describe("what a report may be saved with", () => {
       CloudCostReportServiceClass.normalizeScope({
         scope: CloudCostReportScope.Account,
       });
-    }).toThrow("A report of one account needs its account: send cloudAccountId.");
+    }).toThrow(
+      "A report of one account needs its account: send cloudAccountId.",
+    );
     expect(() => {
       CloudCostReportServiceClass.normalizeScope({
         scope: CloudCostReportScope.CostGroup,
       });
-    }).toThrow("A report of a cost group needs its group: send cloudCostGroupId.");
+    }).toThrow(
+      "A report of a cost group needs its group: send cloudCostGroupId.",
+    );
     expect(() => {
       CloudCostReportServiceClass.normalizeScope({ scope: "Everything" });
     }).toThrow("Send scope as AllAccounts, Account, CostGroup or CostView.");
@@ -1003,10 +1046,14 @@ describe("what a report may be saved with", () => {
     });
 
     expect(() => {
-      CloudCostReportServiceClass.normalizePeriodAndBasis({ period: "LastYear" });
+      CloudCostReportServiceClass.normalizePeriodAndBasis({
+        period: "LastYear",
+      });
     }).toThrow("Send period as LastWeek, LastMonth or MonthToDate.");
     expect(() => {
-      CloudCostReportServiceClass.normalizePeriodAndBasis({ costBasis: "list" });
+      CloudCostReportServiceClass.normalizePeriodAndBasis({
+        costBasis: "list",
+      });
     }).toThrow(
       "Send costBasis as billed, amortized or net, or leave it out for the project's.",
     );
@@ -1016,13 +1063,19 @@ describe("what a report may be saved with", () => {
     expect(
       getCloudCostReportIntervalProblem({
         _type: "Recurring",
-        value: { intervalType: "Day", intervalCount: { _type: "PositiveNumber", value: 1 } },
+        value: {
+          intervalType: "Day",
+          intervalCount: { _type: "PositiveNumber", value: 1 },
+        },
       }),
     ).toContain("every week or every month");
     expect(
       getCloudCostReportIntervalProblem({
         _type: "Recurring",
-        value: { intervalType: "Month", intervalCount: { _type: "PositiveNumber", value: 1 } },
+        value: {
+          intervalType: "Month",
+          intervalCount: { _type: "PositiveNumber", value: 1 },
+        },
       }),
     ).toBeNull();
     expect(getCloudCostReportIntervalProblem(undefined)).toBeNull();
@@ -1051,7 +1104,10 @@ describe("what a report may be saved with", () => {
     );
 
     // A Project Admin and a Project Owner may too.
-    for (const permission of [Permission.ProjectAdmin, Permission.ProjectOwner]) {
+    for (const permission of [
+      Permission.ProjectAdmin,
+      Permission.ProjectOwner,
+    ]) {
       expect(
         CloudCostReportServiceClass.maySendOutside(
           propsOf(BOB, [permission]),
@@ -1062,7 +1118,10 @@ describe("what a report may be saved with", () => {
 
     // A Cloud admin of another project may not.
     expect(
-      CloudCostReportServiceClass.maySendOutside(CLOUD_ADMIN, ObjectID.generate()),
+      CloudCostReportServiceClass.maySendOutside(
+        CLOUD_ADMIN,
+        ObjectID.generate(),
+      ),
     ).toBe(false);
   });
 

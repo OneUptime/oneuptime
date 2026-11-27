@@ -32,10 +32,14 @@ export const EMAIL_ATTACHMENTS_MAX_BYTES: number = 512 * 1024;
 
 // A file's name as an attachment carries it: no path, no line break, no quote.
 export function toEmailAttachmentFileName(value: string): string {
-  const name: string = (value || "")
-    .split(/[\\/]/)
-    .pop()!
-    .replace(/[\r\n"<>:|?*\u0000-\u001f]/g, "")
+  const name: string = Array.from(
+    (value || "").split(/[\\/]/).pop() || "",
+  )
+    .filter((char: string): boolean => {
+      // No control character - a line break among them - and no quote.
+      return char.charCodeAt(0) >= 32 && !'"<>:|?*'.includes(char);
+    })
+    .join("")
     .trim()
     .slice(0, 120);
 

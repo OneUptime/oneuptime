@@ -116,8 +116,10 @@ export default class CloudCostAPI extends BaseAnalyticsAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    const caller: { projectId: ObjectID; props: DatabaseCommonInteractionProps } =
-      await this.getCaller(req);
+    const caller: {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    } = await this.getCaller(req);
     const now: Date = new Date();
     const request: CloudCostBreakdownRequest = readCloudCostBreakdownBody(
       req.body,
@@ -163,8 +165,10 @@ export default class CloudCostAPI extends BaseAnalyticsAPI<
     req: ExpressRequest,
     res: ExpressResponse,
   ): Promise<void> {
-    const caller: { projectId: ObjectID; props: DatabaseCommonInteractionProps } =
-      await this.getCaller(req);
+    const caller: {
+      projectId: ObjectID;
+      props: DatabaseCommonInteractionProps;
+    } = await this.getCaller(req);
     const window: CloudCostAllocationWindow = readExportWindow(
       req.body,
       new Date(),
@@ -183,14 +187,14 @@ export default class CloudCostAPI extends BaseAnalyticsAPI<
       throw new BadDataException("Send cloudAccountIds as a list of IDs.");
     }
 
-    const cloudAccountIds: Array<ObjectID> | undefined = Array.isArray(
-      accounts,
-    )
+    const cloudAccountIds: Array<ObjectID> | undefined = Array.isArray(accounts)
       ? accounts.map((id: unknown): ObjectID => {
           const text: string = String(id || "").trim();
 
           if (!ObjectID.isValidUUID(text)) {
-            throw new BadDataException("Send each of cloudAccountIds as an ID.");
+            throw new BadDataException(
+              "Send each of cloudAccountIds as an ID.",
+            );
           }
 
           return new ObjectID(text);

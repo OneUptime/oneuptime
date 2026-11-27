@@ -1,4 +1,8 @@
-import { getDateLocale, getNumberLocale, formatReaderFigure } from "../DateLanguage";
+import {
+  getDateLocale,
+  getNumberLocale,
+  formatReaderFigure,
+} from "../DateLanguage";
 import { PluralTemplate, Translator, translationKey } from "../Translator";
 import { CLOUD_COST_BASIS_LABELS, isCloudCostBasis } from "./CloudCostBasis";
 import { getCloudCostAllocationChange } from "./CloudCostAllocation";
@@ -53,9 +57,8 @@ export const REPORT_BUDGET_LINE: string = translationKey(
   "{{spent}} of {{amount}} in {{month}}",
 );
 export const REPORT_SAVINGS: string = translationKey("Savings waiting");
-export const REPORT_SAVINGS_PER_MONTH: string = translationKey(
-  "{{amount}} a month",
-);
+export const REPORT_SAVINGS_PER_MONTH: string =
+  translationKey("{{amount}} a month");
 export const REPORT_SAVINGS_COUNT: PluralTemplate = {
   one: "{{count}} saving",
   other: "{{count}} savings",
@@ -482,7 +485,8 @@ export function writeCloudCostReport(data: {
 
   if (section.unusualDays.length > 0) {
     sections.push({
-      title: translator.translateText(REPORT_UNUSUAL_DAYS) || REPORT_UNUSUAL_DAYS,
+      title:
+        translator.translateText(REPORT_UNUSUAL_DAYS) || REPORT_UNUSUAL_DAYS,
       rows: section.unusualDays.map(
         (day: CloudCostReportUnusualDay): CloudCostReportTextRow => {
           const what: string =
@@ -596,7 +600,8 @@ export function writeCloudCostReport(data: {
     stats,
     sections,
     notes,
-    buttonText: translator.translateText(REPORT_OPEN_COSTS) || REPORT_OPEN_COSTS,
+    buttonText:
+      translator.translateText(REPORT_OPEN_COSTS) || REPORT_OPEN_COSTS,
     costsUrl: content.costsUrl,
     chatLines,
     shortText: `${content.reportName}: ${totalText}, ${days(

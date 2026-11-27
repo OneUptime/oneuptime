@@ -357,9 +357,7 @@ describe("a cost as FOCUS rows", () => {
   });
 
   test("AWS's Tax service is a Tax charge; nothing else is", () => {
-    expect(
-      toCloudCostFocusRows(source({ service: "Tax" }))[0]!,
-    ).toMatchObject({
+    expect(toCloudCostFocusRows(source({ service: "Tax" }))[0]!).toMatchObject({
       ChargeCategory: "Tax",
       ChargeDescription: "Tax",
       ServiceName: "Tax",
@@ -414,7 +412,12 @@ describe("a cost as FOCUS rows", () => {
   });
 
   test("every date is FOCUS's UTC date/time, and the charge period ends after it starts", () => {
-    for (const day of ["2026-01-01", "2026-03-29", "2026-10-25", "2026-12-31"]) {
+    for (const day of [
+      "2026-01-01",
+      "2026-03-29",
+      "2026-10-25",
+      "2026-12-31",
+    ]) {
       const row: CloudCostFocusRow = toCloudCostFocusRows(source({ day }))[0]!;
 
       for (const column of [
@@ -435,7 +438,9 @@ describe("a cost as FOCUS rows", () => {
       ).toBeGreaterThanOrEqual(
         new Date(String(row["BillingPeriodStart"])).getTime(),
       );
-      expect(new Date(String(row["ChargePeriodEnd"])).getTime()).toBeLessThanOrEqual(
+      expect(
+        new Date(String(row["ChargePeriodEnd"])).getTime(),
+      ).toBeLessThanOrEqual(
         new Date(String(row["BillingPeriodEnd"])).getTime(),
       );
     }
@@ -657,16 +662,25 @@ describe("where it ran", () => {
       getCloudCostFocusRegionName({ provider: "aws", regionId: "eu-west-1" }),
     ).toBe("Europe (Ireland)");
     expect(
-      getCloudCostFocusRegionName({ provider: "azure", regionId: "WestEurope" }),
+      getCloudCostFocusRegionName({
+        provider: "azure",
+        regionId: "WestEurope",
+      }),
     ).toBe("West Europe");
     expect(
       getCloudCostFocusRegionName({ provider: "gcp", regionId: "us-central1" }),
     ).toBe("Iowa");
     expect(
-      getCloudCostFocusRegionName({ provider: "aws", regionId: "mars-north-1" }),
+      getCloudCostFocusRegionName({
+        provider: "aws",
+        regionId: "mars-north-1",
+      }),
     ).toBe("mars-north-1");
     expect(
-      getCloudCostFocusRegionName({ provider: "oracle", regionId: "us-ashburn-1" }),
+      getCloudCostFocusRegionName({
+        provider: "oracle",
+        regionId: "us-ashburn-1",
+      }),
     ).toBe("us-ashburn-1");
   });
 
@@ -838,8 +852,10 @@ describe("the CSV", () => {
 
     expect(parsed).toHaveLength(CLOUD_COST_FOCUS_COLUMNS.length);
     expect(parsed[0]).toBe("1");
-    expect(parsed.slice(1).every((value: string | null) => value === null)).toBe(
-      true,
-    );
+    expect(
+      parsed.slice(1).every((value: string | null) => {
+        return value === null;
+      }),
+    ).toBe(true);
   });
 });

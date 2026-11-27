@@ -177,11 +177,9 @@ export class CloudCostReportSender {
   ): boolean {
     return (
       CallerPermission.isProjectMember(props, projectId) &&
-      CallerPermission.holdsAnyOf(
-        props,
-        new CloudCost().getReadPermissions(),
-        { projectId },
-      )
+      CallerPermission.holdsAnyOf(props, new CloudCost().getReadPermissions(), {
+        projectId,
+      })
     );
   }
 
@@ -241,12 +239,13 @@ export class CloudCostReportSender {
     result.lastDay = window.lastDay.toISOString().slice(0, 10);
 
     const audiences: Array<Audience> = data.onlyToUserId
-      ? await this.getUsers([data.onlyToUserId])
-          .then((users: Array<User>): Array<Audience> => {
+      ? await this.getUsers([data.onlyToUserId]).then(
+          (users: Array<User>): Array<Audience> => {
             return users.map((user: User): Audience => {
               return { user };
             });
-          })
+          },
+        )
       : await this.getAudiences(report, result);
 
     // Each version of the report, once: by who may read what, and section.
@@ -280,7 +279,8 @@ export class CloudCostReportSender {
     };
 
     for (const audience of audiences) {
-      const who: string = audience.user.name?.toString() ||
+      const who: string =
+        audience.user.name?.toString() ||
         audience.user.email?.toString() ||
         audience.user.id?.toString() ||
         "";
@@ -328,7 +328,13 @@ export class CloudCostReportSender {
     }
 
     if (!data.onlyToUserId) {
-      await this.sendOutside({ report, projectId, projectName, buildFor, result });
+      await this.sendOutside({
+        report,
+        projectId,
+        projectName,
+        buildFor,
+        result,
+      });
     }
 
     return result;
@@ -346,7 +352,10 @@ export class CloudCostReportSender {
   }): Promise<CloudCostReportContent> {
     const report: CloudCostReport | null = await this.loadReport(data.reportId);
 
-    if (!report?.id || report.projectId?.toString() !== data.projectId.toString()) {
+    if (
+      !report?.id ||
+      report.projectId?.toString() !== data.projectId.toString()
+    ) {
       throw new BadDataException(
         "This report was not found. It may have been deleted.",
       );
@@ -591,23 +600,31 @@ export class CloudCostReportSender {
       change: data.text.change || "",
       changeTone: data.text.changeTone,
       previous: data.text.previous,
-      stats: data.text.stats.map((stat: CloudCostReportText["stats"][number]) => {
-        return { label: stat.label, value: stat.value, hint: stat.hint || "" };
-      }),
+      stats: data.text.stats.map(
+        (stat: CloudCostReportText["stats"][number]) => {
+          return {
+            label: stat.label,
+            value: stat.value,
+            hint: stat.hint || "",
+          };
+        },
+      ),
       hasStats: data.text.stats.length > 0,
       sections: data.text.sections.map(
         (section: CloudCostReportTextSection): JSONObject => {
           return {
             title: section.title,
-            rows: section.rows.map((row: CloudCostReportTextRow): JSONObject => {
-              return {
-                name: row.name,
-                value: row.value,
-                hint: row.hint || "",
-                isUp: row.tone === "up",
-                isDown: row.tone === "down",
-              };
-            }),
+            rows: section.rows.map(
+              (row: CloudCostReportTextRow): JSONObject => {
+                return {
+                  name: row.name,
+                  value: row.value,
+                  hint: row.hint || "",
+                  isUp: row.tone === "up",
+                  isDown: row.tone === "down",
+                };
+              },
+            ),
           };
         },
       ),
@@ -701,7 +718,8 @@ export class CloudCostReportSender {
     await UserNotificationSettingService.sendUserNotification({
       userId: data.user.id!,
       projectId: data.projectId,
-      eventType: NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION,
+      eventType:
+        NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION,
       emailEnvelope: this.getEmail({
         content: data.content,
         text,
@@ -732,7 +750,8 @@ export class CloudCostReportSender {
     const report: CloudCostReport = data.report;
     const addresses: Array<string> = report.emailAddresses || [];
     const slackChannels: Array<string> = report.slackChannelNames || [];
-    const teamsChannels: Array<string> = report.microsoftTeamsChannelNames || [];
+    const teamsChannels: Array<string> =
+      report.microsoftTeamsChannelNames || [];
 
     if (
       addresses.length === 0 &&
@@ -825,11 +844,15 @@ export class CloudCostReportSender {
         data.result.addresses++;
       } catch (error) {
         logger.error(error);
-        data.result.errors.push(`${address}: ${(error as Error).message || error}`);
+        data.result.errors.push(
+          `${address}: ${(error as Error).message || error}`,
+        );
       }
     }
 
-    const blocks: Array<WorkspaceMessageBlock> = this.getChatBlocks(written.text);
+    const blocks: Array<WorkspaceMessageBlock> = this.getChatBlocks(
+      written.text,
+    );
 
     for (const channelName of slackChannels) {
       await this.postInChannel({
@@ -844,13 +867,12 @@ export class CloudCostReportSender {
     }
 
     if (teamsChannels.length > 0) {
-      const team: MicrosoftTeamsTeamOfSummary =
-        await (
-          WorkspaceNotificationSummaryService as WorkspaceNotificationSummaryServiceClass
-        ).getMicrosoftTeamsTeamOfSummary({
-          projectId: data.projectId,
-          teamName: report.microsoftTeamsTeamName || "",
-        } as unknown as WorkspaceNotificationSummary);
+      const team: MicrosoftTeamsTeamOfSummary = await (
+        WorkspaceNotificationSummaryService as WorkspaceNotificationSummaryServiceClass
+      ).getMicrosoftTeamsTeamOfSummary({
+        projectId: data.projectId,
+        teamName: report.microsoftTeamsTeamName || "",
+      } as unknown as WorkspaceNotificationSummary);
 
       for (const channelName of teamsChannels) {
         if (!team.teamId) {
@@ -880,7 +902,10 @@ export class CloudCostReportSender {
     text: CloudCostReportText,
   ): Array<WorkspaceMessageBlock> {
     return [
-      { _type: "WorkspacePayloadHeader", text: text.title } as WorkspaceMessageBlock,
+      {
+        _type: "WorkspacePayloadHeader",
+        text: text.title,
+      } as WorkspaceMessageBlock,
       {
         _type: "WorkspacePayloadMarkdown",
         text: text.chatLines.join("\n"),

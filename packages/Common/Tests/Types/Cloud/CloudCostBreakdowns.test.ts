@@ -65,7 +65,9 @@ interface RecordingReader extends CloudCostBreakdownReader {
  * records every question.
  */
 function readerOf(
-  answer: (aggregateBy: AggregateBy<CloudCost>) => Array<Record<string, unknown>>,
+  answer: (
+    aggregateBy: AggregateBy<CloudCost>,
+  ) => Array<Record<string, unknown>>,
   allocation?: CloudCostAllocationResult,
 ): RecordingReader {
   const reader: RecordingReader = {
@@ -271,9 +273,11 @@ describe("each day's spend", () => {
       endDate: new Date("2026-11-02T23:59:59.999Z"),
     });
 
-    expect(points.map((point: CloudCostPoint) => point.x.toISOString())).toEqual(
-      ["2026-11-01T00:00:00.000Z", "2026-11-02T00:00:00.000Z"],
-    );
+    expect(
+      points.map((point: CloudCostPoint) => {
+        return point.x.toISOString();
+      }),
+    ).toEqual(["2026-11-01T00:00:00.000Z", "2026-11-02T00:00:00.000Z"]);
   });
 });
 
@@ -359,7 +363,14 @@ describe("a breakdown by a column", () => {
 
   test("by environment, the environments are read once and their costs asked by place", async () => {
     const reader: RecordingReader = readerOf(() => {
-      return [{ accountId: "111", region: "us-east-1", service: "AWS Lambda", value: 5 }];
+      return [
+        {
+          accountId: "111",
+          region: "us-east-1",
+          service: "AWS Lambda",
+          value: 5,
+        },
+      ];
     });
     const result: CloudCostBreakdownResult = await readCloudCostBreakdown(
       reader,
@@ -536,18 +547,18 @@ describe("against the period before", () => {
       falls: Array<{ key: string }>;
     } = getCloudCostMovers({ comparison, count: 5 });
 
-    expect(movers.rises.map((share: { key: string }) => share.key)).toEqual([
-      "Amazon EC2",
-      "Amazon Bedrock",
-    ]);
-    expect(movers.falls.map((share: { key: string }) => share.key)).toEqual([
-      "Amazon S3",
-      "AWS Lambda",
-    ]);
-
     expect(
-      getCloudCostMovers({ comparison, count: 1, minimum: 50 }),
-    ).toEqual({
+      movers.rises.map((share: { key: string }) => {
+        return share.key;
+      }),
+    ).toEqual(["Amazon EC2", "Amazon Bedrock"]);
+    expect(
+      movers.falls.map((share: { key: string }) => {
+        return share.key;
+      }),
+    ).toEqual(["Amazon S3", "AWS Lambda"]);
+
+    expect(getCloudCostMovers({ comparison, count: 1, minimum: 50 })).toEqual({
       rises: [{ key: "Amazon EC2", amount: 300, previousAmount: 200 }],
       falls: [{ key: "Amazon S3", amount: 0, previousAmount: 100 }],
     });

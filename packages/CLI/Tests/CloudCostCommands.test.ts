@@ -85,7 +85,9 @@ afterEach(() => {
 function answerWith(data: unknown): void {
   post = jest
     .spyOn(API, "post")
-    .mockResolvedValue(new HTTPResponse<JSONObject>(200, data as JSONObject, {}));
+    .mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, data as JSONObject, {}),
+    );
 }
 
 function asked(): {
@@ -263,7 +265,8 @@ describe("oneuptime cloud-cost breakdown", () => {
   });
 
   test("--csv prints the Costs page's file as the API gives it", async () => {
-    const csv: string = '"cost_group","key","amount"\n"Payments","g-pay","490"\n';
+    const csv: string =
+      '"cost_group","key","amount"\n"Payments","g-pay","490"\n';
     answerWith(csv);
 
     await runCli(["cloud-cost", "breakdown", "--by", "service", "--csv"]);
@@ -309,8 +312,7 @@ describe("oneuptime cloud-cost breakdown", () => {
 
 describe("oneuptime cloud-cost export", () => {
   test("writes last month's FOCUS file where it is told", async () => {
-    const focus: string =
-      'BilledCost,BillingAccountId\n10,"999999999999"\n';
+    const focus: string = 'BilledCost,BillingAccountId\n10,"999999999999"\n';
     answerWith(focus);
     const directory: string = fs.mkdtempSync(
       path.join(os.tmpdir(), "cloud-cost-focus-"),

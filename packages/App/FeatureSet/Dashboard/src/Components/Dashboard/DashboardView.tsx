@@ -1248,7 +1248,8 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
           }
 
           if (componentType === DashboardComponentType.CloudCost) {
-            newComponent = DashboardCloudCostComponentUtil.getDefaultComponent();
+            newComponent =
+              DashboardCloudCostComponentUtil.getDefaultComponent();
           }
 
           if (componentType === DashboardComponentType.ProductAnalyticsFunnel) {

@@ -269,10 +269,16 @@ describePostgres("Cost reports against Postgres", () => {
     jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(PostgresAppInstance, "getDataSource").mockReturnValue(database);
     jest
-      .spyOn(CloudCostReportService as DatabaseService<any>, "onTriggerRealtime")
+      .spyOn(
+        CloudCostReportService as DatabaseService<any>,
+        "onTriggerRealtime",
+      )
       .mockResolvedValue();
     jest
-      .spyOn(CloudCostReportService as DatabaseService<any>, "onTriggerWorkflow")
+      .spyOn(
+        CloudCostReportService as DatabaseService<any>,
+        "onTriggerWorkflow",
+      )
       .mockResolvedValue();
 
     // Alice in Berlin, Carol in New York; Vic and the outsider anywhere.
@@ -367,9 +373,9 @@ describePostgres("Cost reports against Postgres", () => {
     expect(kept.isEnabled).toBe(true);
     expect(String(kept.timezone)).toBe("Europe/Berlin");
     expect(kept.createdByUserId?.toString()).toBe(ALICE.toString());
-    expect(Recurring.fromJSON(kept.recurringInterval as never).intervalType).toBe(
-      EventInterval.Week,
-    );
+    expect(
+      Recurring.fromJSON(kept.recurringInterval as never).intervalType,
+    ).toBe(EventInterval.Week);
     expect(next.isoWeekday()).toBe(1);
     expect(next.format("HH:mm")).toBe("09:00");
     expect(kept.nextSendAt!.getTime()).toBeGreaterThan(before.getTime());
@@ -385,10 +391,7 @@ describePostgres("Cost reports against Postgres", () => {
       CLOUD_ADMIN,
     );
     const kept: CloudCostReport = await stored(report.id!);
-    const next: moment.Moment = moment.tz(
-      kept.nextSendAt!,
-      "America/New_York",
-    );
+    const next: moment.Moment = moment.tz(kept.nextSendAt!, "America/New_York");
 
     expect(next.date()).toBe(1);
     expect(next.format("HH:mm")).toBe("09:00");
@@ -520,11 +523,15 @@ describePostgres("Cost reports against Postgres", () => {
 
     expect(
       (kept.recipientUsers || [])
-        .map((user: User) => user.id!.toString())
+        .map((user: User) => {
+          return user.id!.toString();
+        })
         .sort(),
     ).toEqual([ALICE.toString(), VIC.toString()].sort());
     expect(
-      (kept.recipientTeams || []).map((team: Team) => team.id!.toString()),
+      (kept.recipientTeams || []).map((team: Team) => {
+        return team.id!.toString();
+      }),
     ).toEqual([FINANCE_TEAM]);
 
     // Someone of another project, or another project's team, is refused.
@@ -537,7 +544,10 @@ describePostgres("Cost reports against Postgres", () => {
     const elsewhere: Team = new Team();
     elsewhere.id = new ObjectID(OTHER_TEAM);
     await expect(
-      create({ name: "To another project's team", recipientTeams: [elsewhere] }),
+      create({
+        name: "To another project's team",
+        recipientTeams: [elsewhere],
+      }),
     ).rejects.toThrow();
   });
 
@@ -634,11 +644,13 @@ describePostgres("Cost reports against Postgres", () => {
     const after: CloudCostReport = await stored(report.id!);
     expect(after.nextSendAt!.getTime()).toBeGreaterThan(now.getTime());
 
-    const lastSent: Array<{ lastSentAt: Date | null; lastSendResult: unknown }> =
-      await database.query(
-        `SELECT "lastSentAt", "lastSendResult" FROM "${schema}"."CloudCostReport" WHERE "_id" = $1`,
-        [report.id!.toString()],
-      );
+    const lastSent: Array<{
+      lastSentAt: Date | null;
+      lastSendResult: unknown;
+    }> = await database.query(
+      `SELECT "lastSentAt", "lastSendResult" FROM "${schema}"."CloudCostReport" WHERE "_id" = $1`,
+      [report.id!.toString()],
+    );
     expect(lastSent[0]!.lastSentAt).toBeTruthy();
     expect((lastSent[0]!.lastSendResult as { people: number }).people).toBe(1);
 

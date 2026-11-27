@@ -6,7 +6,6 @@ import {
 import IconProp from "Common/Types/Icon/IconProp";
 import downloadFile from "Common/UI/Utils/DownloadFile";
 import { getCloudCostLinkedView } from "./CloudCostLinkedView";
-import { DOWNLOAD_CSV } from "./CloudCostBreakdownCard";
 import { addUtcDays, startOfUtcDay } from "Common/Types/Cloud/CloudCost";
 import { CloudProvider } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
@@ -31,7 +30,7 @@ import CloudCostBasisSwitch, {
   CloudCostBasisPill,
   useCloudCostBasis,
 } from "./CloudCostBasis";
-import CloudCostBreakdownCard from "./CloudCostBreakdownCard";
+import CloudCostBreakdownCard, { DOWNLOAD_CSV } from "./CloudCostBreakdownCard";
 import {
   CloudCostPoint,
   CloudCostScope,
@@ -181,9 +180,9 @@ const CloudDailySpendCard: FunctionComponent<{
             }
 
             const start: string = points[0]!.x.toISOString().slice(0, 10);
-            const lastDay: string = points[points.length - 1]!.x
-              .toISOString()
-              .slice(0, 10);
+            const lastDay: string = points[
+              points.length - 1
+            ]!.x.toISOString().slice(0, 10);
 
             downloadFile({
               content: toCloudCostDailyCsv({

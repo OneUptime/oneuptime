@@ -92,9 +92,9 @@ describe("what a breakdown is by", () => {
     ["group", "group"],
     ["cost-group", "group"],
   ])("by %s is a breakdown by %s", (by: string, dimension: string) => {
-    expect(
-      read({ by, cloudCostViewId: VIEW, tagKey: "team" }).by,
-    ).toBe(dimension);
+    expect(read({ by, cloudCostViewId: VIEW, tagKey: "team" }).by).toBe(
+      dimension,
+    );
   });
 
   test("by service when nothing is said", () => {
@@ -130,9 +130,9 @@ describe("what a breakdown is by", () => {
     expect(() => {
       read({ by: "group", cloudCostViewId: "not-an-id" });
     }).toThrow("Send cloudCostViewId as an ID.");
-    expect(read({ by: "group", viewId: { _id: VIEW } }).viewId?.toString()).toBe(
-      VIEW,
-    );
+    expect(
+      read({ by: "group", viewId: { _id: VIEW } }).viewId?.toString(),
+    ).toBe(VIEW);
   });
 });
 
@@ -214,7 +214,9 @@ describe("the rest of a breakdown's ask", () => {
     expect(request.format).toBe("csv");
     expect(request.compareWithPrevious).toBe(false);
     expect(read({}).compareWithPrevious).toBe(true);
-    expect(read({ costBasis: "amortized" }).basis).toBe(CloudCostBasis.Amortized);
+    expect(read({ costBasis: "amortized" }).basis).toBe(
+      CloudCostBasis.Amortized,
+    );
   });
 
   test("anything else is refused with what to send", () => {
@@ -369,7 +371,10 @@ describe("the FOCUS export's days", () => {
     );
     expect(
       days(
-        readExportWindow({ startDate: "2026-10-01", endDate: "2026-12-31" }, NOW),
+        readExportWindow(
+          { startDate: "2026-10-01", endDate: "2026-12-31" },
+          NOW,
+        ),
       ),
     ).toBe("2026-10-01..2026-12-31");
     expect(() => {
@@ -454,8 +459,16 @@ describe("an email's attachments", () => {
 
     expect(
       readEmailAttachments([
-        { fileName: "a.exe", mimeType: "application/x-msdownload", contentBase64: csv },
-        { fileName: "b.csv", mimeType: "text/csv", contentBase64: "not base64!" },
+        {
+          fileName: "a.exe",
+          mimeType: "application/x-msdownload",
+          contentBase64: csv,
+        },
+        {
+          fileName: "b.csv",
+          mimeType: "text/csv",
+          contentBase64: "not base64!",
+        },
         { fileName: "c.csv", mimeType: "text/csv", contentBase64: "" },
         "junk",
         null,
@@ -467,19 +480,25 @@ describe("an email's attachments", () => {
         { fileName: "2.csv", mimeType: "text/csv", contentBase64: csv },
         { fileName: "3.csv", mimeType: "text/csv", contentBase64: csv },
         { fileName: "4.csv", mimeType: "text/csv", contentBase64: csv },
-      ]).map((attachment: { fileName: string }) => attachment.fileName),
+      ]).map((attachment: { fileName: string }) => {
+        return attachment.fileName;
+      }),
     ).toEqual(["1.csv", "2.csv", "3.csv"]);
     expect(
       readEmailAttachments([
         { fileName: "big.csv", mimeType: "text/csv", contentBase64: big },
         { fileName: "more.csv", mimeType: "text/csv", contentBase64: csv },
-      ]).map((attachment: { fileName: string }) => attachment.fileName),
+      ]).map((attachment: { fileName: string }) => {
+        return attachment.fileName;
+      }),
     ).toEqual(["big.csv"]);
     expect(readEmailAttachments("nope")).toEqual([]);
   });
 
   test("a base64 text's size is its bytes'", () => {
-    expect(getBase64ByteLength(Buffer.from("hello").toString("base64"))).toBe(5);
+    expect(getBase64ByteLength(Buffer.from("hello").toString("base64"))).toBe(
+      5,
+    );
     expect(getBase64ByteLength(Buffer.from("hell").toString("base64"))).toBe(4);
     expect(getBase64ByteLength("")).toBe(0);
   });

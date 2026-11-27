@@ -1420,8 +1420,7 @@ export default class MailService {
                * carries (a cost report's CSV, FileAttachments) have none, and
                * go as attachments of their own.
                */
-              ...(inlineImages.length > 0 ||
-              FileAttachments.of(mail).length > 0
+              ...(inlineImages.length > 0 || FileAttachments.of(mail).length > 0
                 ? {
                     attachments: [
                       ...InlineImageAttachments.forSmtp(inlineImages),

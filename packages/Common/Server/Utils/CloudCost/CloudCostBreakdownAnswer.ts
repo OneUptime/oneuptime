@@ -188,7 +188,9 @@ export function readCloudCostBreakdownBody(
     .toLowerCase();
   const by: CloudCostDimension | undefined =
     BY_NAMES[byText] ||
-    (isCloudCostDimension(data["by"]) ? (data["by"] as CloudCostDimension) : undefined);
+    (isCloudCostDimension(data["by"])
+      ? (data["by"] as CloudCostDimension)
+      : undefined);
 
   if (!by) {
     throw new BadDataException(
@@ -254,11 +256,18 @@ export function readCloudCostBreakdownBody(
 
   const basis: unknown = data["basis"] ?? data["costBasis"];
 
-  if (basis !== undefined && basis !== null && basis !== "" && !isCloudCostBasis(basis)) {
+  if (
+    basis !== undefined &&
+    basis !== null &&
+    basis !== "" &&
+    !isCloudCostBasis(basis)
+  ) {
     throw new BadDataException("Send basis as billed, amortized or net.");
   }
 
-  const format: string = String(data["format"] ?? "json").trim().toLowerCase();
+  const format: string = String(data["format"] ?? "json")
+    .trim()
+    .toLowerCase();
 
   if (format !== "json" && format !== "csv") {
     throw new BadDataException("Send format as json or csv.");
@@ -283,6 +292,9 @@ export function readCloudCostBreakdownBody(
     format: format as "json" | "csv",
   };
 }
+
+// A currency as ISO 4217 writes it: USD, EUR.
+const CURRENCY_CODE: RegExp = /^[A-Z]{3}$/;
 
 export interface CloudCostBreakdownAnswerShare {
   key: string;
@@ -417,21 +429,26 @@ export async function answerCloudCostBreakdown(data: {
         ? Promise.resolve(request.basis)
         : CloudCostSettingService.getCostBasisOfProject(data.projectId),
       request.by === "cloudAccountId" || !request.currency
-        ? readCloudCostAccounts({ projectId: data.projectId, props: data.props })
+        ? readCloudCostAccounts({
+            projectId: data.projectId,
+            props: data.props,
+          })
         : Promise.resolve([]),
     ]);
   const currency: string =
     request.currency || getCloudCostAccountsCurrency(accounts);
 
-  if (!/^[A-Z]{3}$/.test(currency)) {
+  if (!CURRENCY_CODE.test(currency)) {
     throw new BadDataException(
       "The currency must be a three-letter code such as USD or EUR.",
     );
   }
 
   const window: CloudCostAllocationWindow = request.window;
-  const previous: CloudCostAllocationWindow = getPreviousCloudCostWindow(window);
-  const days: { start: string; lastDay: string } = toCloudCostReportDays(window);
+  const previous: CloudCostAllocationWindow =
+    getPreviousCloudCostWindow(window);
+  const days: { start: string; lastDay: string } =
+    toCloudCostReportDays(window);
   const scope: {
     projectId: ObjectID;
     cloudAccountIds?: Array<ObjectID> | undefined;
@@ -468,7 +485,9 @@ export async function answerCloudCostBreakdown(data: {
       {
         scope,
         previousStartDate: previous.start,
-        previousEndDate: new Date(addUtcDays(previous.lastDay, 1).getTime() - 1),
+        previousEndDate: new Date(
+          addUtcDays(previous.lastDay, 1).getTime() - 1,
+        ),
         dimension: request.by,
         tagKey: request.tagKey,
         viewId: request.viewId,
@@ -551,9 +570,11 @@ export function toCloudCostBreakdownAnswerCsv(
   answer: CloudCostBreakdownAnswer,
 ): string {
   const names: Map<string, string> = new Map(
-    answer.shares.map((share: CloudCostBreakdownAnswerShare): [string, string] => {
-      return [share.key, share.name];
-    }),
+    answer.shares.map(
+      (share: CloudCostBreakdownAnswerShare): [string, string] => {
+        return [share.key, share.name];
+      },
+    ),
   );
   const context: {
     dimension: CloudCostDimension;

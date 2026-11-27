@@ -1,5 +1,12 @@
 import "@testing-library/jest-dom";
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import * as React from "react";
 import AggregateBy from "../../../Types/BaseDatabase/AggregateBy";
@@ -200,9 +207,7 @@ function widget(
   return component;
 }
 
-function renderWidget(
-  args: DashboardCloudCostComponent["arguments"],
-): void {
+function renderWidget(args: DashboardCloudCostComponent["arguments"]): void {
   const props: DashboardBaseComponentProps & {
     component: DashboardCloudCostComponent;
   } = {
@@ -286,17 +291,18 @@ describe("where the widget reads nothing", () => {
     [CloudCostWidgetScope.Account],
     [CloudCostWidgetScope.CostGroup],
     [CloudCostWidgetScope.CostView],
-  ])("covering %s without picking one: what to pick, and no read", async (
-    scope: CloudCostWidgetScope,
-  ) => {
-    renderWidget({ display: CloudCostWidgetDisplay.Total, scope });
+  ])(
+    "covering %s without picking one: what to pick, and no read",
+    async (scope: CloudCostWidgetScope) => {
+      renderWidget({ display: CloudCostWidgetDisplay.Total, scope });
 
-    expect(screen.getByText(CLOUD_COST_SETUP)).toBeInTheDocument();
-    await new Promise<void>((resolve: () => void) => {
-      setTimeout(resolve, 20);
-    });
-    expect(readsAsked()).toBe(0);
-  });
+      expect(screen.getByText(CLOUD_COST_SETUP)).toBeInTheDocument();
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 20);
+      });
+      expect(readsAsked()).toBe(0);
+    },
+  );
 });
 
 describe("each day's spend", () => {
@@ -423,7 +429,9 @@ describe("a total", () => {
 
 describe("a breakdown", () => {
   test("by account: each by its name, the costliest first", async () => {
-    aggregateMock.mockImplementation((async (aggregateBy: AggregateBy<never>) => {
+    aggregateMock.mockImplementation((async (
+      aggregateBy: AggregateBy<never>,
+    ) => {
       const day: InBetween<Date> = (
         aggregateBy.query as Record<string, unknown>
       )["day"] as InBetween<Date>;
@@ -534,9 +542,12 @@ describe("its settings", () => {
   });
 
   test("what it covers is picked from the project's accounts, groups and views", () => {
-    const ids: Array<string> = DashboardCloudCostComponentUtil.getComponentConfigArguments().map(
-      (argument: { id: unknown }) => String(argument.id),
-    );
+    const ids: Array<string> =
+      DashboardCloudCostComponentUtil.getComponentConfigArguments().map(
+        (argument: { id: unknown }) => {
+          return String(argument.id);
+        },
+      );
 
     expect(ids).toEqual([
       "scope",

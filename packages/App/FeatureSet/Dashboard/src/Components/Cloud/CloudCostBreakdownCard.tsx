@@ -332,15 +332,11 @@ const CloudCostBreakdownCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   // The days, breakdown and view a link names - a report's Open Costs.
-  const linked: CloudCostLinkedView = useMemo(
-    (): CloudCostLinkedView => {
-      return getCloudCostLinkedView();
-    },
-    [],
-  );
+  const linked: CloudCostLinkedView = useMemo((): CloudCostLinkedView => {
+    return getCloudCostLinkedView();
+  }, []);
   const [dimension, setDimension] = useState<CloudCostDimension>(
-    linked.by &&
-      (!props.isOneAccount || linked.by !== "cloudAccountId")
+    linked.by && (!props.isOneAccount || linked.by !== "cloudAccountId")
       ? linked.by
       : "service",
   );

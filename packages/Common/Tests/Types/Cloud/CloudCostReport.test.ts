@@ -38,7 +38,8 @@ import { describe, expect, test } from "@jest/globals";
  */
 
 function days(window: CloudCostAllocationWindow): string {
-  const text: { start: string; lastDay: string } = toCloudCostReportDays(window);
+  const text: { start: string; lastDay: string } =
+    toCloudCostReportDays(window);
   return `${text.start}..${text.lastDay}`;
 }
 
@@ -136,7 +137,11 @@ function content(
           },
         ],
       },
-      commitments: { coveredPercent: 64, usedPercent: 97, hasCommitments: true },
+      commitments: {
+        coveredPercent: 64,
+        usedPercent: 97,
+        hasCommitments: true,
+      },
     },
     otherCurrencies: [],
     costsUrl:
@@ -282,7 +287,11 @@ describe("the addresses a report goes to", () => {
       "cfo@example.co.uk",
     ]);
     expect(
-      readCloudCostReportEmailAddresses(["a@example.com", " ", "b@example.com"]),
+      readCloudCostReportEmailAddresses([
+        "a@example.com",
+        " ",
+        "b@example.com",
+      ]),
     ).toEqual(["a@example.com", "b@example.com"]);
     expect(readCloudCostReportEmailAddresses(null)).toEqual([]);
     expect(readCloudCostReportEmailAddresses("")).toEqual([]);
@@ -296,14 +305,20 @@ describe("the addresses a report goes to", () => {
       readCloudCostReportEmailAddresses(["Finance <finance@example.com>"]);
     }).toThrow("is not an email address");
     expect(toCloudCostReportEmailAddress("a@b")).toBeNull();
-    expect(toCloudCostReportEmailAddress(`${"a".repeat(250)}@example.com`)).toBeNull();
+    expect(
+      toCloudCostReportEmailAddress(`${"a".repeat(250)}@example.com`),
+    ).toBeNull();
     expect(toCloudCostReportEmailAddress(42)).toBeNull();
   });
 
   test("a report goes to at most 25 addresses", () => {
     const addresses: Array<string> = [];
 
-    for (let index: number = 0; index <= CLOUD_COST_REPORT_MAX_EMAIL_ADDRESSES; index++) {
+    for (
+      let index: number = 0;
+      index <= CLOUD_COST_REPORT_MAX_EMAIL_ADDRESSES;
+      index++
+    ) {
       addresses.push(`person${index}@example.com`);
     }
 
@@ -345,13 +360,21 @@ describe("what a report's choices are called", () => {
 describe("a report's figures in the reader's language", () => {
   test("money in the report's currency, whole from a thousand up", () => {
     expect(
-      formatCloudCostMoney({ amount: 1234.56, currency: "usd", language: "en" }),
+      formatCloudCostMoney({
+        amount: 1234.56,
+        currency: "usd",
+        language: "en",
+      }),
     ).toBe("$1,235");
     expect(
       formatCloudCostMoney({ amount: 12.5, currency: "USD", language: "en" }),
     ).toBe("$12.50");
     expect(
-      formatCloudCostMoney({ amount: 1234.56, currency: "EUR", language: "de" }),
+      formatCloudCostMoney({
+        amount: 1234.56,
+        currency: "EUR",
+        language: "de",
+      }),
     ).toBe("1.235 €");
     expect(
       formatCloudCostMoney({
@@ -376,9 +399,9 @@ describe("a report's figures in the reader's language", () => {
       }),
       // Intl's own range: thin spaces about the dash.
     ).toMatch(/^Nov 16\s–\s22, 2026$/);
-    expect(
-      formatCloudCostDays({ start: "2026-11-16", language: "en" }),
-    ).toBe("Nov 16, 2026");
+    expect(formatCloudCostDays({ start: "2026-11-16", language: "en" })).toBe(
+      "Nov 16, 2026",
+    );
     expect(formatCloudCostMonth({ month: "2026-11", language: "en" })).toBe(
       "November 2026",
     );
@@ -438,18 +461,20 @@ describe("the report as written", () => {
     expect(text.change).toBe("20% more than the week before");
     expect(text.changeTone).toBe("up");
     expect(text.previous).toBe("It was $1,000 the week before.");
-    expect(text.stats.map((stat: { label: string }) => stat.label)).toEqual([
-      "Budget",
-      "Savings waiting",
-      "Commitments cover",
-    ]);
+    expect(
+      text.stats.map((stat: { label: string }) => {
+        return stat.label;
+      }),
+    ).toEqual(["Budget", "Savings waiting", "Commitments cover"]);
     expect(text.stats[0]!.value).toBe("50%");
     expect(text.stats[0]!.hint).toBe("$2,500 of $5,000 in November 2026");
     expect(text.stats[1]!.value).toBe("$420.00 a month");
     expect(text.stats[2]!.value).toBe("64%");
     expect(text.stats[2]!.hint).toBe("97% of them used");
     expect(
-      text.sections.map((section: { title: string }) => section.title),
+      text.sections.map((section: { title: string }) => {
+        return section.title;
+      }),
     ).toEqual([
       "Rose the most",
       "Fell the most",
@@ -491,7 +516,12 @@ describe("the report as written", () => {
           ...content().section,
           name: "By team",
           groups: [
-            { key: "g-pay", name: "Payments", amount: 420, previousAmount: 210 },
+            {
+              key: "g-pay",
+              name: "Payments",
+              amount: 420,
+              previousAmount: 210,
+            },
             { key: "g-data", name: "Data", amount: 150, previousAmount: 150 },
           ],
           unallocated: { amount: 750, previousAmount: 800 },
@@ -552,7 +582,12 @@ describe("the report as written", () => {
           ...content().section,
           name: "By team",
           groups: [
-            { key: "g-pay", name: "Payments", amount: 420, previousAmount: 210 },
+            {
+              key: "g-pay",
+              name: "Payments",
+              amount: 420,
+              previousAmount: 210,
+            },
           ],
           unallocated: { amount: 750, previousAmount: 800 },
         },

@@ -324,7 +324,10 @@ export function toCloudCostComparisonCsv(data: {
   return toCloudCostCsv(rows);
 }
 
-function getShareName(share: CloudCostShare, context: CloudCostCsvContext): string {
+function getShareName(
+  share: CloudCostShare,
+  context: CloudCostCsvContext,
+): string {
   const name: string | undefined = context.names?.get(share.key);
 
   if (name) {
@@ -499,7 +502,9 @@ export interface CloudCostSavingCsvRow {
  * page's own columns - what to do, to which resource, what would change
  * and what it saves a month.
  */
-export function toCloudCostSavingsCsv(rows: Array<CloudCostSavingCsvRow>): string {
+export function toCloudCostSavingsCsv(
+  rows: Array<CloudCostSavingCsvRow>,
+): string {
   return toCloudCostCsv([
     [
       "recommendation",
@@ -517,26 +522,24 @@ export function toCloudCostSavingsCsv(rows: Array<CloudCostSavingCsvRow>): strin
       "currency",
       "source",
     ],
-    ...rows.map(
-      (row: CloudCostSavingCsvRow): Array<string | number> => {
-        return [
-          row.recommendation,
-          row.kind,
-          row.resourceName,
-          row.resourceId,
-          row.resourceType,
-          row.account,
-          row.provider,
-          row.region,
-          row.currentConfiguration,
-          row.recommendedConfiguration,
-          toCloudCostCsvAmount(row.monthlySavings),
-          row.monthlyCost === null ? "" : toCloudCostCsvAmount(row.monthlyCost),
-          row.currency,
-          row.source,
-        ];
-      },
-    ),
+    ...rows.map((row: CloudCostSavingCsvRow): Array<string | number> => {
+      return [
+        row.recommendation,
+        row.kind,
+        row.resourceName,
+        row.resourceId,
+        row.resourceType,
+        row.account,
+        row.provider,
+        row.region,
+        row.currentConfiguration,
+        row.recommendedConfiguration,
+        toCloudCostCsvAmount(row.monthlySavings),
+        row.monthlyCost === null ? "" : toCloudCostCsvAmount(row.monthlyCost),
+        row.currency,
+        row.source,
+      ];
+    }),
   ]);
 }
 

@@ -53,8 +53,7 @@ afterEach(() => {
 
 describe("Export FOCUS", () => {
   test("downloads the file itself, as the API's text answer holds it", async () => {
-    const focus: string =
-      'BilledCost,BillingAccountId\n10,"999999999999"\n';
+    const focus: string = 'BilledCost,BillingAccountId\n10,"999999999999"\n';
     // As Common's API makes a text answer: { data: <text> }, isText.
     postMock.mockResolvedValue(
       new HTTPResponse<JSONObject>(200, focus as never, {}) as never,
@@ -120,7 +119,11 @@ describe("a report's preview and copy", () => {
 
   test("Send Me a Copy says where it went", async () => {
     postMock.mockResolvedValue(
-      new HTTPResponse<JSONObject>(200, { sentTo: "alice@example.com" }, {}) as never,
+      new HTTPResponse<JSONObject>(
+        200,
+        { sentTo: "alice@example.com" },
+        {},
+      ) as never,
     );
 
     expect(await sendCloudCostReportCopy(REPORT)).toBe("alice@example.com");

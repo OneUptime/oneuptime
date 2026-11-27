@@ -420,7 +420,9 @@ const GROUPS: Array<CloudCostGroup> = [
     id: DATA_GROUP,
     name: "Data",
     order: 3,
-    rules: [makeCloudCostRule({ field: CloudCostRuleField.Account, value: DATA })],
+    rules: [
+      makeCloudCostRule({ field: CloudCostRuleField.Account, value: DATA }),
+    ],
   }),
 ];
 
@@ -567,10 +569,11 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
       },
       format: "JSONEachRow",
     })) as unknown as { json: () => Promise<unknown> };
-    const rows: Array<{ k: string; v: number }> = (await result.json()) as Array<{
-      k: string;
-      v: number;
-    }>;
+    const rows: Array<{ k: string; v: number }> =
+      (await result.json()) as Array<{
+        k: string;
+        v: number;
+      }>;
     const sums: Record<string, number> = {};
 
     for (const entry of rows) {
@@ -684,9 +687,11 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
         view.name = "By team";
         return view;
       }) as never);
-    jest.spyOn(CloudCostGroupService, "findBy").mockImplementation((async () => {
-      return GROUPS;
-    }) as never);
+    jest
+      .spyOn(CloudCostGroupService, "findBy")
+      .mockImplementation((async () => {
+        return GROUPS;
+      }) as never);
     jest
       .spyOn(CloudCostGroupService, "findOneBy")
       .mockImplementation((async (data: { query: Record<string, unknown> }) => {
@@ -806,7 +811,9 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
           expect(amounts).toEqual(november);
           expect(previous).toEqual(october);
           expect(result.total).toBeCloseTo(
-            Object.values(november).reduce((a: number, b: number) => a + b, 0),
+            Object.values(november).reduce((a: number, b: number) => {
+              return a + b;
+            }, 0),
             6,
           );
         }
@@ -818,8 +825,13 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
         (await answer({ by: "service", period: "last-month" })).total,
       ).toBe(850);
       expect(
-        (await answer({ by: "service", period: "last-month", basis: "amortized" }))
-          .total,
+        (
+          await answer({
+            by: "service",
+            period: "last-month",
+            basis: "amortized",
+          })
+        ).total,
       ).toBe(760);
       expect(
         (await answer({ by: "service", period: "last-month", basis: "net" }))
@@ -891,8 +903,8 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
         cloudCostViewId: VIEW.toString(),
         period: "last-month",
       });
-      const allocation: CloudCostAllocationResult = await CloudCostAllocation.read(
-        {
+      const allocation: CloudCostAllocationResult =
+        await CloudCostAllocation.read({
           projectId: PROJECT,
           viewId: VIEW,
           startDate: new Date("2026-11-01T00:00:00.000Z"),
@@ -900,8 +912,7 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
           currency: "USD",
           props: ROOT,
           now: NOW,
-        },
-      );
+        });
 
       expect(result.viewName).toBe("By team");
       expect(
@@ -938,7 +949,11 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
 
       expect(
         csv.map((entry: Record<string, string>) => {
-          return [entry["cost_group"], entry["amount"], entry["previous_amount"]];
+          return [
+            entry["cost_group"],
+            entry["amount"],
+            entry["previous_amount"],
+          ];
         }),
       ).toEqual([
         ["Payments", "490", "201.5"],
@@ -1074,8 +1089,8 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
       projectBasis = CloudCostBasis.Net;
 
       expect(
-        (await build(reportOf({ costBasis: CloudCostBasis.Amortized })))
-          .section.total,
+        (await build(reportOf({ costBasis: CloudCostBasis.Amortized }))).section
+          .total,
       ).toBe(760);
       // Without one, the project's.
       expect((await build(reportOf())).section.total).toBe(700);
@@ -1150,16 +1165,15 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
     });
 
     test("last week, sent on a Monday in Berlin: Monday to Sunday", async () => {
-      const content: CloudCostReportContent = await CloudCostReportBuilder.build(
-        {
+      const content: CloudCostReportContent =
+        await CloudCostReportBuilder.build({
           report: reportOf({ period: CloudCostReportPeriod.LastWeek }),
           projectId: PROJECT,
           projectName: "Acme",
           props: ROOT,
           at: new Date("2026-11-23T08:00:00.000Z"),
           dashboardUrl: URL.fromString("https://oneuptime.example/dashboard"),
-        },
-      );
+        });
       const week: Record<string, number> = await sumOf({
         start: "2026-11-16",
         end: "2026-11-22",
@@ -1208,8 +1222,10 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
         CLOUD_COST_FOCUS_COLUMNS.join(","),
       );
 
-      // 6 costs a day, the unusual day's and the euros', and a credit row
-      // for each day of pay-api and data-lake.
+      /*
+       * 6 costs a day, the unusual day's and the euros', and a credit row
+       * for each day of pay-api and data-lake.
+       */
       const costs: number = 6 * 30 + 2;
       expect(rows).toBe(costs + 2 * 30);
       expect(focus).toHaveLength(rows);
@@ -1256,7 +1272,9 @@ integration("cost reports, breakdowns and FOCUS against ClickHouse", () => {
           .filter((entry: Record<string, string>) => {
             return entry["BillingCurrency"] === "EUR";
           })
-          .map((entry: Record<string, string>) => entry["BilledCost"]),
+          .map((entry: Record<string, string>) => {
+            return entry["BilledCost"];
+          }),
       ).toEqual(["999"]);
       expect(
         focus.some((entry: Record<string, string>) => {

@@ -174,7 +174,7 @@ export class CloudCostFocusExport {
   }): Promise<{ rows: number }> {
     if (getCloudCostWindowDays(data.window) > CLOUD_COST_FOCUS_MAX_DAYS) {
       throw new BadDataException(
-        `A FOCUS export covers at most ${CLOUD_COST_FOCUS_MAX_DAYS} days. Export a month or a quarter at a time.`,
+        `A FOCUS export covers at most ${CLOUD_COST_FOCUS_MAX_DAYS} days. Export a month or a quarter at a time.`,
       );
     }
 

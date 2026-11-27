@@ -136,7 +136,9 @@ export function toFrequency(value: unknown): EventInterval {
       : EventInterval.Week;
   }
 
-  return value === EventInterval.Month ? EventInterval.Month : EventInterval.Week;
+  return value === EventInterval.Month
+    ? EventInterval.Month
+    : EventInterval.Week;
 }
 
 // The interval a frequency is saved as: every one week or month.
@@ -257,8 +259,9 @@ export function getCoversText(
     translator.translateText(CLOUD_COST_REPORT_SCOPE_LABELS[scope]) ||
     CLOUD_COST_REPORT_SCOPE_LABELS[scope];
   const periodLabel: string = report.period
-    ? translator.translateText(CLOUD_COST_REPORT_PERIOD_LABELS[report.period]) ||
-      CLOUD_COST_REPORT_PERIOD_LABELS[report.period]
+    ? translator.translateText(
+        CLOUD_COST_REPORT_PERIOD_LABELS[report.period],
+      ) || CLOUD_COST_REPORT_PERIOD_LABELS[report.period]
     : "";
 
   return [name ? `${scopeLabel}: ${name}` : scopeLabel, periodLabel]
@@ -336,7 +339,9 @@ const CloudReports: FunctionComponent<
       {previewing?._id ? (
         <CloudCostReportPreviewModal
           reportId={new ObjectID(previewing._id.toString())}
-          lastSendResult={(previewing.lastSendResult as JSONObject) || undefined}
+          lastSendResult={
+            (previewing.lastSendResult as JSONObject) || undefined
+          }
           onClose={() => {
             setPreviewing(null);
           }}
@@ -438,7 +443,10 @@ const CloudReports: FunctionComponent<
             icon: IconProp.Report,
             buttonStyleType: ButtonStyleType.NORMAL,
             placement: ActionButtonPlacement.Primary,
-            onClick: (item: CloudCostReport, onCompleteAction: VoidFunction) => {
+            onClick: (
+              item: CloudCostReport,
+              onCompleteAction: VoidFunction,
+            ) => {
               setPreviewing(item);
               onCompleteAction();
             },
@@ -534,7 +542,9 @@ const CloudReports: FunctionComponent<
               if (!item.lastSendResult) {
                 return (
                   <Pill
-                    text={translator.translateText(NOT_SENT_YET) || NOT_SENT_YET}
+                    text={
+                      translator.translateText(NOT_SENT_YET) || NOT_SENT_YET
+                    }
                     isUserContent={true}
                     tone={PillTone.Neutral}
                   />
@@ -564,9 +574,13 @@ const CloudReports: FunctionComponent<
                 <Pill
                   text={
                     left + errors > 0
-                      ? translator.translatePlural(SENT_LEFT_OUT, left + errors, {
-                          date,
-                        })
+                      ? translator.translatePlural(
+                          SENT_LEFT_OUT,
+                          left + errors,
+                          {
+                            date,
+                          },
+                        )
                       : translator.translateTemplate(SENT_ON, { date })
                   }
                   isUserContent={true}

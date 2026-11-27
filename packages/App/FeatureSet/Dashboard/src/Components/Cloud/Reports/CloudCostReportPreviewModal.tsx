@@ -38,7 +38,9 @@ export const REPORT_PREVIEW_FAILED: string = translationKey(
   "The report could not be read.",
 );
 export const SEND_ME_A_COPY: string = translationKey("Send Me a Copy");
-export const COPY_SENT: string = translationKey("A copy is on its way to {{email}}.");
+export const COPY_SENT: string = translationKey(
+  "A copy is on its way to {{email}}.",
+);
 export const LAST_SEND_LEFT_OUT: string = translationKey(
   "Its last send left these out:",
 );
@@ -90,9 +92,10 @@ const CloudCostReportPreviewModal: FunctionComponent<ComponentProps> = (
       : [];
 
   // Why one was left out, in the reader's words, with its channel's own.
-  const getReason: (skip: { reason: string; detail?: string }) => string = (
-    skip: { reason: string; detail?: string },
-  ): string => {
+  const getReason: (skip: {
+    reason: string;
+    detail?: string;
+  }) => string = (skip: { reason: string; detail?: string }): string => {
     const label: string = isCloudCostReportSkipReason(skip.reason)
       ? translator.translateText(
           CLOUD_COST_REPORT_SKIP_REASON_LABELS[skip.reason],
@@ -150,10 +153,7 @@ const CloudCostReportPreviewModal: FunctionComponent<ComponentProps> = (
         )}
         {sendError ? (
           <div className="mb-4">
-            <Alert
-              type={AlertType.DANGER}
-              title={sendError}
-            />
+            <Alert type={AlertType.DANGER} title={sendError} />
           </div>
         ) : (
           <></>
@@ -168,21 +168,23 @@ const CloudCostReportPreviewModal: FunctionComponent<ComponentProps> = (
               {translator.translateText(LAST_SEND_LEFT_OUT)}
             </p>
             <ul className="mt-2 space-y-1">
-              {skipped.slice(0, 20).map(
-                (
-                  skip: { who: string; reason: string; detail?: string },
-                  index: number,
-                ): ReactElement => {
-                  return (
-                    <li key={index} className="text-xs text-gray-600">
-                      <bdi className="font-medium text-gray-800">
-                        {skip.who}
-                      </bdi>{" "}
-                      <span>{getReason(skip)}</span>
-                    </li>
-                  );
-                },
-              )}
+              {skipped
+                .slice(0, 20)
+                .map(
+                  (
+                    skip: { who: string; reason: string; detail?: string },
+                    index: number,
+                  ): ReactElement => {
+                    return (
+                      <li key={index} className="text-xs text-gray-600">
+                        <bdi className="font-medium text-gray-800">
+                          {skip.who}
+                        </bdi>{" "}
+                        <span>{getReason(skip)}</span>
+                      </li>
+                    );
+                  },
+                )}
             </ul>
           </div>
         ) : (
