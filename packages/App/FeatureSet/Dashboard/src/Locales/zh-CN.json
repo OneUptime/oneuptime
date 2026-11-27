@@ -67288,5 +67288,8 @@
   "XCP-ng Pool Master Changed": "XCP-ng 资源池主节点已变更",
   "XCP-ng Pool High Availability Changed": "XCP-ng 资源池高可用性已变更",
   "XCP-ng Pool Backup Failed": "XCP-ng 资源池备份失败",
-  "XCP-ng alarms": "XCP-ng 告警"
+  "XCP-ng alarms": "XCP-ng 告警",
+  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposed: only its OneUptime labels say the resource is not production, so a person approves."
 }
