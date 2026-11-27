@@ -2,6 +2,8 @@ import FixAccountChangesStepCheck, {
   confirmReasons,
   decideAccountChanges,
   describeAccountChange,
+  describeAccountChangeLines,
+  describeRoleTrust,
   orderAccountChangeFacts,
 } from "../../../../../Server/Utils/SecurityCase/StepChecks/FixAccountChangesStepCheck";
 import {
@@ -38,6 +40,7 @@ import {
   AccountChange,
   AccountChangeKind,
   AccountChangeProvider,
+  AccountChangeSubject,
 } from "../../../../../Utils/SecurityCase/AttackAccountChanges";
 import {
   RESPONSE_STEP_KINDS,
@@ -51,6 +54,7 @@ import {
   CHECK_ACCOUNT_CHANGES_CONFIRM_REST,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
   CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
@@ -68,7 +72,20 @@ import {
   CHECK_ACCOUNT_CHANGE_POLICY_STILL,
   CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_GONE,
+  CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+  CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE,
+  CHECK_ACCOUNT_CHANGE_ROLE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_POLICY_STILL,
+  CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_ROLE_STILL,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT,
+  CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_TRUST_STILL,
+  CHECK_ACCOUNT_CHANGE_TRUST_UNDONE,
   CHECK_COULD_NOT_CHECK,
   CHECK_PRODUCT_READ_FAILED,
   CHECK_PRODUCT_SAID,
@@ -92,6 +109,7 @@ function change(data: Partial<AccountChange>): AccountChange {
   return {
     provider: AccountChangeProvider.Okta,
     kind: AccountChangeKind.Group,
+    subject: AccountChangeSubject.Account,
     account: "alice@acme.com",
     accountId: "00u1alice",
     objectId: "00g1admins",
@@ -100,6 +118,7 @@ function change(data: Partial<AccountChange>): AccountChange {
     ownerType: "",
     cloudAccountId: "",
     cloudConnectionId: "",
+    trustPolicies: [],
     eventName: "group.user_membership.add",
     eventUid: "event-1",
     time: "2026-11-17T19:30:00.000Z",
@@ -939,5 +958,439 @@ describe("the step's check, over the case's events", () => {
       expect(result?.evidence.sentence.template).toBe(CHECK_COULD_NOT_CHECK);
       expect(result?.recheckInMinutes).toBe(5);
     }
+  });
+});
+
+// ---------- An IAM role's changes (#11038), and where to grant the reads (#11039) ----------
+
+const AWS_ACCOUNT: string = "123456789012";
+const CONNECTION_ID: string = "5d0c2a7e-0000-4000-8000-00000000c0de";
+
+function roleChange(data: Partial<AccountChange>): AccountChange {
+  return change({
+    provider: AccountChangeProvider.Aws,
+    subject: AccountChangeSubject.Role,
+    account: "Deploy",
+    accountId: "",
+    objectId: "",
+    objectName: "",
+    cloudAccountId: AWS_ACCOUNT,
+    ...data,
+  });
+}
+
+const ROLE_MADE: AccountChange = roleChange({
+  kind: AccountChangeKind.Account,
+  account: "backdoor",
+  accountId: "AROA6ON6E4XEFFEXAMPLE",
+  eventName: "CreateRole",
+  eventUid: "role-1",
+});
+const ROLE_TRUST: AccountChange = roleChange({
+  kind: AccountChangeKind.Trust,
+  eventName: "UpdateAssumeRolePolicy",
+  eventUid: "role-2",
+});
+const ROLE_POLICY: AccountChange = roleChange({
+  kind: AccountChangeKind.Policy,
+  objectId: "arn:aws:iam::aws:policy/AdministratorAccess",
+  objectName: "AdministratorAccess",
+  eventName: "AttachRolePolicy",
+  eventUid: "role-3",
+});
+
+function awsFacts(
+  state: AccountChangeState,
+  extra: Partial<AccountChangeFacts> = {},
+): AccountChangeFacts {
+  return {
+    provider: "AWS",
+    state,
+    url: "https://console.aws.amazon.com/iam/home#/roles/details/Deploy",
+    ...extra,
+  };
+}
+
+const NOT_GRANTED: AccountChangeFacts = {
+  provider: "AWS",
+  state: AccountChangeState.Unknown,
+  reason: AccountChangeUnknownReason.NotGranted,
+};
+
+describe("an IAM role's change is said as a role's (#11038)", () => {
+  test.each([
+    [ROLE_MADE, CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL, CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE, CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM],
+    [ROLE_TRUST, CHECK_ACCOUNT_CHANGE_TRUST_STILL, CHECK_ACCOUNT_CHANGE_TRUST_UNDONE, CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM],
+    [ROLE_POLICY, CHECK_ACCOUNT_CHANGE_ROLE_POLICY_STILL, CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE, CHECK_ACCOUNT_CHANGE_ROLE_POLICY_CONFIRM],
+  ])(
+    "%#: still there, undone and to confirm, each marked, the role and what it gave named",
+    (item: AccountChange, still: string, undone: string, confirm: string) => {
+      const values: Record<string, string> = {
+        account: item.account,
+        object: item.objectName || item.objectId,
+        provider: "AWS",
+      };
+      const decided: (
+        state: AccountChangeState,
+      ) => SecurityCaseStepCheckSentence = (
+        state: AccountChangeState,
+      ): SecurityCaseStepCheckSentence => {
+        const result: StepCheckResult = decide([
+          answer(item, { facts: awsFacts(state) }),
+        ]);
+
+        return result.evidence.facts[0]!;
+      };
+
+      expect(decided(AccountChangeState.StillThere)).toEqual({
+        template: still,
+        values,
+        mark: StepCheckFactMark.NotDone,
+      });
+      expect(decided(AccountChangeState.Undone)).toEqual({
+        template: undone,
+        values,
+        mark: StepCheckFactMark.Done,
+      });
+      expect(
+        decide([answer(item, { facts: NOT_GRANTED })]).evidence.facts[0],
+      ).toEqual({
+        template: confirm,
+        values,
+        mark: StepCheckFactMark.Confirm,
+      });
+    },
+  );
+
+  test("a role deleted took what it was given; the role the attack made, deleted, is simply gone", () => {
+    const gone: AccountChangeFacts = {
+      provider: "AWS",
+      state: AccountChangeState.Undone,
+      isAccountGone: true,
+    };
+
+    expect(
+      decide([answer(ROLE_POLICY, { facts: gone })]).evidence.facts[0]!
+        .template,
+    ).toBe(CHECK_ACCOUNT_CHANGE_ROLE_GONE);
+    expect(
+      decide([answer(ROLE_TRUST, { facts: gone })]).evidence.facts[0]!
+        .template,
+    ).toBe(CHECK_ACCOUNT_CHANGE_ROLE_GONE);
+    expect(
+      decide([answer(ROLE_MADE, { facts: gone })]).evidence.facts[0]!
+        .template,
+    ).toBe(CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE);
+  });
+
+  test("a user's change of the same kind is still said as an account's", () => {
+    const userPolicy: AccountChange = change({
+      ...ROLE_POLICY,
+      subject: AccountChangeSubject.Account,
+      account: "deploy-bot",
+      eventName: "AttachUserPolicy",
+    });
+
+    expect(
+      describeAccountChange({
+        change: userPolicy,
+        outcome: "Still" as never,
+        facts: awsFacts(AccountChangeState.StillThere),
+      }).template,
+    ).toBe(CHECK_ACCOUNT_CHANGE_POLICY_STILL);
+    expect(
+      decide([
+        answer(userPolicy, {
+          facts: { ...awsFacts(AccountChangeState.Undone), isAccountGone: true },
+        }),
+      ]).evidence.facts[0]!.template,
+    ).toBe(CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE);
+  });
+});
+
+describe("whom a role trusts, under its line (#11038)", () => {
+  test("one outside account, named with the account the role is in, on an unmarked line under the role's", () => {
+    const result: StepCheckResult = decide([
+      answer(ROLE_MADE, {
+        facts: awsFacts(AccountChangeState.StillThere, {
+          trusted: ["444455556666"],
+        }),
+      }),
+    ]);
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.NotDone);
+    expect(result.evidence.facts).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+        values: { account: "backdoor", object: "", provider: "AWS" },
+        mark: StepCheckFactMark.NotDone,
+      },
+      {
+        template: CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT,
+        values: {
+          account: "backdoor",
+          cloudAccount: AWS_ACCOUNT,
+          trusted: "444455556666",
+        },
+      },
+    ]);
+  });
+
+  test("several, counted, the first named; every account, said as anyone", () => {
+    expect(
+      describeRoleTrust({
+        change: ROLE_TRUST,
+        outcome: "Confirm" as never,
+        facts: awsFacts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.CannotTellWhich,
+          trusted: ["444455556666", "555555555555", "999999999999"],
+        }),
+      }),
+    ).toEqual({
+      template: CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS,
+      values: {
+        account: "Deploy",
+        cloudAccount: AWS_ACCOUNT,
+        trusted: "444455556666",
+      },
+      count: 3,
+    });
+    expect(
+      describeRoleTrust({
+        change: ROLE_MADE,
+        outcome: "Still" as never,
+        facts: awsFacts(AccountChangeState.StillThere, {
+          trusted: ["444455556666", "*"],
+        }),
+      }),
+    ).toEqual({
+      template: CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT,
+      values: { account: "backdoor" },
+    });
+  });
+
+  test("said only of a role still there or to confirm: not of one undone, of a role that trusts nobody outside, or of a user", () => {
+    expect(
+      describeRoleTrust({
+        change: ROLE_TRUST,
+        outcome: "Undone" as never,
+        facts: awsFacts(AccountChangeState.Undone, { trusted: ["444455556666"] }),
+      }),
+    ).toBeNull();
+    expect(
+      describeRoleTrust({
+        change: ROLE_MADE,
+        outcome: "Still" as never,
+        facts: awsFacts(AccountChangeState.StillThere),
+      }),
+    ).toBeNull();
+    expect(
+      describeRoleTrust({
+        change: AWS_KEY,
+        outcome: "Still" as never,
+        facts: awsFacts(AccountChangeState.StillThere, {
+          trusted: ["444455556666"],
+        }),
+      }),
+    ).toBeNull();
+    expect(
+      describeAccountChangeLines({
+        change: ROLE_POLICY,
+        outcome: "Still" as never,
+        facts: awsFacts(AccountChangeState.StillThere),
+      }),
+    ).toHaveLength(1);
+  });
+
+  test("a trust policy to confirm says so on its own line, with whom it trusts under it, and no 'cannot tell which' line", () => {
+    const result: StepCheckResult = decide([
+      answer(GROUP, { facts: facts(AccountChangeState.Undone) }),
+      answer(ROLE_TRUST, {
+        facts: awsFacts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.CannotTellWhich,
+          trusted: ["111122223333"],
+        }),
+      }),
+    ]);
+
+    expect(result.state).toBe(SecurityCaseStepCheckState.LooksDone);
+    expect(templates(result.evidence.facts)).toEqual([
+      CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM,
+      CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT,
+      CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
+    ]);
+    expect(templates(result.evidence.facts)).not.toContain(
+      CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
+    );
+  });
+
+  test("a line and the unmarked one under it are kept, or left out, together - never whom a role trusts without its role", () => {
+    const lines: (count: number) => Array<SecurityCaseStepCheckSentence> = (
+      count: number,
+    ): Array<SecurityCaseStepCheckSentence> => {
+      return Array.from(
+        { length: count },
+        (_: unknown, index: number): Array<SecurityCaseStepCheckSentence> => {
+          return describeAccountChangeLines({
+            change: roleChange({
+              kind: AccountChangeKind.Account,
+              account: `backdoor-${index}`,
+            }),
+            outcome: "Still" as never,
+            facts: awsFacts(AccountChangeState.StillThere, {
+              trusted: ["444455556666"],
+            }),
+          });
+        },
+      ).flat();
+    };
+    const single: SecurityCaseStepCheckSentence = describeAccountChange({
+      change: AWS_KEY,
+      outcome: "Still" as never,
+      facts: awsFacts(AccountChangeState.StillThere),
+    });
+
+    // A single line, then pairs: the pair that would be cut at the end is left out whole.
+    const ordered: Array<SecurityCaseStepCheckSentence> =
+      orderAccountChangeFacts({
+        still: [single, ...lines(13)],
+        confirm: [],
+        howToCheck: [],
+        undone: [],
+      });
+
+    expect(ordered).toHaveLength(STEP_CHECK_MAX_FACTS - 1);
+    expect(ordered[ordered.length - 1]!.mark).toBeUndefined();
+    expect(ordered[ordered.length - 2]!.mark).toBe(StepCheckFactMark.NotDone);
+
+    // Exactly room for twelve pairs.
+    expect(
+      orderAccountChangeFacts({
+        still: lines(12),
+        confirm: [],
+        howToCheck: [],
+        undone: [single],
+      }),
+    ).toHaveLength(STEP_CHECK_MAX_FACTS);
+  });
+});
+
+describe("the lines that say what to grant link to where it is granted (#11039)", () => {
+  function howToCheck(
+    result: StepCheckResult,
+  ): Array<SecurityCaseStepCheckSentence> {
+    return result.evidence.facts.filter(
+      (fact: SecurityCaseStepCheckSentence): boolean => {
+        return fact.mark === StepCheckFactMark.HowToCheck;
+      },
+    );
+  }
+
+  test("checks off on the connection that reaches the account: turn them on, linked to that connection's form", () => {
+    expect(
+      howToCheck(
+        decide([
+          answer(AWS_KEY, {
+            facts: NOT_GRANTED,
+            reader: { connectionId: CONNECTION_ID, isChecking: false },
+          }),
+        ]),
+      ),
+    ).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+        values: { cloudAccount: AWS_ACCOUNT },
+        mark: StepCheckFactMark.HowToCheck,
+        link: {
+          kind: ResponseLinkKind.OpenCloudConnection,
+          connectionId: CONNECTION_ID,
+        },
+      },
+    ]);
+  });
+
+  test("checks on, and AWS refused all the same - its command not run again since the role reads: run it again, linked to the connection", () => {
+    expect(
+      howToCheck(
+        decide([
+          answer(ROLE_TRUST, {
+            facts: NOT_GRANTED,
+            reader: { connectionId: CONNECTION_ID, isChecking: true },
+          }),
+          answer(ROLE_POLICY, {
+            facts: NOT_GRANTED,
+            reader: { connectionId: CONNECTION_ID, isChecking: true },
+          }),
+        ]),
+      ),
+    ).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
+        values: { cloudAccount: AWS_ACCOUNT },
+        mark: StepCheckFactMark.HowToCheck,
+        link: {
+          kind: ResponseLinkKind.OpenCloudConnection,
+          connectionId: CONNECTION_ID,
+        },
+      },
+    ]);
+  });
+
+  test("no connection reads the account: connect one, linked to Cloud > Connect", () => {
+    expect(
+      howToCheck(decide([answer(AWS_KEY, { hasConnection: false })])),
+    ).toEqual([
+      {
+        template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+        values: { cloudAccount: AWS_ACCOUNT },
+        mark: StepCheckFactMark.HowToCheck,
+        link: { kind: ResponseLinkKind.OpenCloudConnection },
+      },
+    ]);
+  });
+
+  test("an answer that names no connection links to Cloud > Connect; another product's lines link nowhere", () => {
+    const result: StepCheckResult = decide([
+      answer(AWS_KEY, { facts: NOT_GRANTED }),
+      answer(GROUP, { hasConnection: false }),
+    ]);
+
+    expect(
+      howToCheck(result).map(
+        (fact: SecurityCaseStepCheckSentence): unknown => {
+          return [fact.template, fact.link];
+        },
+      ),
+    ).toEqual([
+      [
+        CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+        { kind: ResponseLinkKind.OpenCloudConnection },
+      ],
+      [CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION, undefined],
+    ]);
+  });
+
+  test("a line's link is kept as the check is stored and read back; one the card cannot route is dropped", () => {
+    const result: StepCheckResult = decide([
+      answer(AWS_KEY, {
+        facts: NOT_GRANTED,
+        reader: { connectionId: CONNECTION_ID, isChecking: false },
+      }),
+    ]);
+    const stored: unknown = JSON.parse(JSON.stringify(result.evidence));
+
+    expect(readStepCheckEvidence(stored)?.facts).toEqual(
+      result.evidence.facts,
+    );
+    expect(
+      readStepCheckSentence({
+        template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+        values: { cloudAccount: AWS_ACCOUNT },
+        link: { kind: "OpenSomewhereElse", url: "https://evil.example.com" },
+      }),
+    ).toEqual({
+      template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+      values: { cloudAccount: AWS_ACCOUNT },
+    });
   });
 });
