@@ -4,6 +4,7 @@ import DatabaseService from "../Services/DatabaseService";
 import Services from "../Services/Index";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import TablePermission from "../Types/Database/Permissions/TablePermission";
+import RecordPageFieldsReader from "../Utils/Database/RecordPageFieldsReader";
 import RequiredUniqueNames from "../Utils/Database/RequiredUniqueNames";
 import Express, {
   ExpressRequest,
@@ -19,7 +20,10 @@ import {
   getProjectNameRule,
   ProjectNameRule,
 } from "../../Types/Database/ProjectNameRule";
+import { RecordPageFields } from "../../Types/Database/RecordPageFields";
 import {
+  DuplicateNameGroup,
+  DuplicateNameRecord,
   DuplicateNamesOfKind,
   toDuplicateNamesAnswerJSON,
   toUniqueNameCheckAnswerJSON,
@@ -141,6 +145,83 @@ export const getRequiredUniqueNameServices: (
     );
 };
 
+/*
+ * What the pages of the records a route names need beside their ids, read
+ * for the caller (RecordPageFieldsReader, #11020): an OpenStack budget's
+ * cloud, a workspace summary's workspace. Nothing for most kinds.
+ */
+export const readPageFields: (data: {
+  service: DatabaseService<BaseModel>;
+  projectId: ObjectID;
+  ids: ReadonlyArray<string>;
+  props: DatabaseCommonInteractionProps;
+}) => Promise<Map<string, RecordPageFields>> = async (data: {
+  service: DatabaseService<BaseModel>;
+  projectId: ObjectID;
+  ids: ReadonlyArray<string>;
+  props: DatabaseCommonInteractionProps;
+}): Promise<Map<string, RecordPageFields>> => {
+  return await RecordPageFieldsReader.read({
+    service: data.service,
+    projectId: data.projectId,
+    ids: data.ids,
+    props: data.props,
+    getServiceOfTable: (tableName: string) => {
+      return getServiceOfTable(Services, tableName);
+    },
+  });
+};
+
+// A kind's duplicates, each record with what its page needs beside its id.
+export const withPageFields: (data: {
+  kind: DuplicateNamesOfKind;
+  service: DatabaseService<BaseModel>;
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}) => Promise<DuplicateNamesOfKind> = async (data: {
+  kind: DuplicateNamesOfKind;
+  service: DatabaseService<BaseModel>;
+  projectId: ObjectID;
+  props: DatabaseCommonInteractionProps;
+}): Promise<DuplicateNamesOfKind> => {
+  const pageFields: Map<string, RecordPageFields> = await readPageFields({
+    service: data.service,
+    projectId: data.projectId,
+    ids: data.kind.groups.flatMap(
+      (group: DuplicateNameGroup): Array<string> => {
+        return group.records.map((record: DuplicateNameRecord): string => {
+          return record.id;
+        });
+      },
+    ),
+    props: data.props,
+  });
+
+  if (pageFields.size === 0) {
+    return data.kind;
+  }
+
+  return {
+    ...data.kind,
+    groups: data.kind.groups.map(
+      (group: DuplicateNameGroup): DuplicateNameGroup => {
+        return {
+          ...group,
+          records: group.records.map(
+            (record: DuplicateNameRecord): DuplicateNameRecord => {
+              const fields: RecordPageFields | undefined = pageFields.get(
+                record.id.toLowerCase(),
+              );
+
+              return fields ? { ...record, pageFields: fields } : record;
+            },
+          ),
+        };
+      },
+    ),
+  };
+};
+
 router.get(
   UNIQUE_NAME_CHECK_ROUTE,
   UserMiddleware.getUserMiddleware,
@@ -202,6 +283,22 @@ router.get(
         },
       );
 
+      // The record that has the name, with what its page needs to be linked.
+      if (answer.takenBy) {
+        const pageFields: RecordPageFields | undefined = (
+          await readPageFields({
+            service: service,
+            projectId: projectId,
+            ids: [answer.takenBy.id],
+            props: props,
+          })
+        ).get(answer.takenBy.id.toLowerCase());
+
+        if (pageFields) {
+          answer.takenBy = { ...answer.takenBy, pageFields: pageFields };
+        }
+      }
+
       Response.setNoCacheHeaders(res);
 
       return Response.sendJsonObjectResponse(
@@ -242,7 +339,14 @@ router.get(
           });
 
         if (kind) {
-          kinds.push(kind);
+          kinds.push(
+            await withPageFields({
+              kind: kind,
+              service: service,
+              projectId: projectId,
+              props: props,
+            }),
+          );
         }
       }
 
