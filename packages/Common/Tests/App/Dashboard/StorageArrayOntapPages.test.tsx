@@ -755,6 +755,14 @@ describe("an ONTAP cluster's Overview", () => {
       StorageArrayResourceKind.Pod,
       StorageArrayResourceKind.Hardware,
     ]);
+    // A kind only its platform has, with no page for its parts (a
+    // PowerStore's NAS servers), stays off Needs attention.
+    const powerStore: StorageArrayPlatform | null =
+      StorageArrayPlatformRegistry.getPlatform("dell.powerstore");
+    expect(powerStore!.kinds).toContain("NasServer");
+    expect(getStatusKinds("dell.powerstore", powerStore!.kinds)).not.toContain(
+      "NasServer",
+    );
   });
 
   test("lists each open problem Harvest reports once, by its newest reading, while it lasts", () => {

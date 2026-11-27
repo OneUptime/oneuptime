@@ -484,9 +484,11 @@ const STATUS_KINDS: ReadonlyArray<string> = [
 /*
  * The kinds an array's Needs attention asks the inventory for by their
  * status: the ones whose state is the status every platform writes, a
- * kind only its platform has (an ONTAP aggregate, SVM, LUN, SnapMirror
- * relationship), and a shared kind whose list the platform draws with a
- * state (an ONTAP volume's online or offline).
+ * kind only its platform has whose parts have a page of their own (an
+ * ONTAP aggregate, SVM, LUN, SnapMirror relationship) for its rows to
+ * open, and a shared kind whose list the platform draws with a state (an
+ * ONTAP volume's online or offline). A PowerStore's NAS servers, which
+ * have no page of their own, stay off it as before.
  */
 export function getStatusKinds(
   storageSystem: string | null | undefined,
@@ -501,7 +503,8 @@ export function getStatusKinds(
             storageSystem,
           )?.kindDefinitions?.some((definition: { kind: string }): boolean => {
             return definition.kind === kind;
-          }),
+          }) &&
+          StorageArrayPlatformRegistry.getKindPage(storageSystem, kind)?.part,
       ) ||
       Boolean(
         StorageArrayPlatformRegistry.getKindPage(
