@@ -22,8 +22,10 @@ import {
 } from "Common/Types/Cloud/CloudResourceCatalog";
 import { getAllCephAlertTemplates } from "Common/Types/Monitor/CephAlertTemplates";
 import { getAllOpenStackAlertTemplates } from "Common/Types/Monitor/OpenStackAlertTemplates";
+import { getAllStorageArrayAlertTemplates } from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import { getAllVMwareAlertTemplates } from "Common/Types/Monitor/VMwareAlertTemplates";
 import { getAllXcpNgAlertTemplates } from "Common/Types/Monitor/XcpNgAlertTemplates";
+import { getAllXcpNgEventAlertTemplates } from "Common/Types/Monitor/XcpNgEventAlertTemplates";
 import { isEnglishCopy } from "../../FeatureSet/Docs/Utils/Translations";
 
 /*
@@ -2006,8 +2008,11 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
   const ALERT_TEMPLATE_NAMES: ReadonlyArray<string> = [
     ...getAllOpenStackAlertTemplates(),
     ...getAllCephAlertTemplates(),
+    // A storage array's too: Dell PowerMax's "Storage Resource Pool Above 80%" (#11004).
+    ...getAllStorageArrayAlertTemplates(),
     ...getAllVMwareAlertTemplates(),
     ...getAllXcpNgAlertTemplates(),
+    ...getAllXcpNgEventAlertTemplates(),
   ].map((template: { name: string }): string => {
     return template.name;
   });

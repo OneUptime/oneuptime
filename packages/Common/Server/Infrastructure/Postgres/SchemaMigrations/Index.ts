@@ -1217,6 +1217,10 @@ import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostRe
 import { AddCloudBudgetScopesPeriodsAndPlans1809187771008 } from "./1809187771008-AddCloudBudgetScopesPeriodsAndPlans";
 import { AddCloudBudgetCostGroupIndexAndKey1809187771018 } from "./1809187771018-AddCloudBudgetCostGroupIndexAndKey";
 import { AddXcpNgPoolAiAccess1809187772000 } from "./1809187772000-AddXcpNgPoolAiAccess";
+import { AddXcpNgPoolEventsAndBackups1809187780997 } from "./1809187780997-AddXcpNgPoolEventsAndBackups";
+import { AddStorageArrayConnections1809187781104 } from "./1809187781104-AddStorageArrayConnections";
+import { AddDetectionRuleAddedByOneUptimeAt1809187791037 } from "./1809187791037-AddDetectionRuleAddedByOneUptimeAt";
+import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "./1809187791081-AddExternalMcpToolReadOnlyMarks";
 
 export default [
   InitialMigration,
@@ -2438,4 +2442,8 @@ export default [
   AddCloudBudgetScopesPeriodsAndPlans1809187771008,
   AddCloudBudgetCostGroupIndexAndKey1809187771018,
   AddXcpNgPoolAiAccess1809187772000,
+  AddXcpNgPoolEventsAndBackups1809187780997,
+  AddStorageArrayConnections1809187781104,
+  AddDetectionRuleAddedByOneUptimeAt1809187791037,
+  AddExternalMcpToolReadOnlyMarks1809187791081,
 ];

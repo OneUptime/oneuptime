@@ -178,6 +178,8 @@ export function sentence(
     count?: number | undefined;
     // A fact's mark: what it says of the thing it names.
     mark?: StepCheckFactMark | undefined;
+    // A fact's link: where what it says to change is changed (#11039).
+    link?: ResponseLink | undefined;
   } = {},
 ): SecurityCaseStepCheckSentence {
   const times: Record<string, string> = {};
@@ -195,6 +197,7 @@ export function sentence(
     ...(Object.keys(times).length > 0 ? { times } : {}),
     ...(extras.count !== undefined ? { count: extras.count } : {}),
     ...(extras.mark ? { mark: extras.mark } : {}),
+    ...(extras.link ? { link: extras.link } : {}),
   };
 }
 

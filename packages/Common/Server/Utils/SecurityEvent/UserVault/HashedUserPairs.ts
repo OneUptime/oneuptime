@@ -6,6 +6,7 @@ import SecurityLogParser, {
 } from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogParser";
 import { SecurityLogLine } from "../../../../Utils/SecurityEvent/LogParsers/SecurityLogLine";
 import PercentDecodedText from "../../../../Utils/DataSecurity/PercentDecodedText";
+import PlusAsSpaceText from "../../../../Utils/DataSecurity/PlusAsSpaceText";
 import ScrubHashToken from "../../Telemetry/ScrubHashToken";
 
 /*
@@ -93,12 +94,15 @@ export function readHashedUserPair(data: {
   /*
    * As written, or as an Email Address Hash rule reads what it hides: an
    * address in a percent-encoded URL is the address it reads as, and its
-   * token that address's (ScrubAction.asItReads, #10935). The user kept is
-   * the value the token was made of.
+   * token that address's (ScrubAction.asItReads, #10935) - or as a Custom
+   * Regex Hash rule reads a match it found only with its "+"s read as the
+   * spaces a query string writes them for (readScrubMatch, #11199). The
+   * user kept is the value the token was made of.
    */
   for (const value of new Set<string>([
     hidden,
     PercentDecodedText.readableOf(hidden),
+    PlusAsSpaceText.readableOf(hidden),
   ])) {
     if (
       ScrubHashToken.ofValue({ projectId: data.projectId, value }) === token

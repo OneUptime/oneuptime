@@ -238,6 +238,17 @@ OneUptime ricava per ogni pool quattro serie 0/1 man mano che arrivano i suoi da
 | `xcp_ng.vm.running` | la VM è Running; 0 finché è Halted, Paused o Suspended |
 | `xcp_ng.vm.stopped_after_running` | una VM che ha girato nelle ultime 24 ore è Halted o Paused |
 
+Con una sonda collegata a Xen Orchestra o all'XAPI del pool, OneUptime ricava anche queste da ciò che la sonda legge oltre alle metriche; l'agent non ne legge nulla:
+
+| Serie | Valore |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 1 finché l'HA del pool è attiva, altrimenti 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | 1 finché l'HA può ancora sopravvivere al guasto di un host, altrimenti 0: il piano dell'HA stessa tramite XAPI, un host acceso e abilitato oltre a quello che si guasta tramite Xen Orchestra |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | quanti guasti di host l'HA deve tollerare (solo tramite XAPI) |
+| `xcp_ng.pool.ha.plan_exists_for` | quanti guasti di host copre il suo piano attuale (solo tramite XAPI) |
+| `xcp_ng.vm.backup_overdue` | 1 finché una VM inclusa in un job di backup pianificato non ha avuto un backup riuscito entro il suo intervallo più un quarto, almeno un'ora (solo tramite Xen Orchestra) |
+| `xcp_ng.host.missing_patches` | quante patch mancano a un host, controllate ogni sei ore (solo tramite Xen Orchestra) |
+
 Appone inoltre su ogni punto `xcp_ng.scope` (`pool`, `host`, `vm`, `sr`, `vdi` o `xostor`) e `xcp_ng.id` (l'UUID di quell'oggetto), su cui filtrano monitor e dashboard: vedi [Identità delle risorse](/docs/monitor/xcp-ng-monitor#identità-delle-risorse).
 
 ### Cosa l'agent non tiene
@@ -405,7 +416,8 @@ L'agent è una sola configurazione standard del collector, quindi un collector c
 
 Il plugin OpenMetrics di Xen Orchestra serve metriche, quindi una parte di ciò che sorvegli in un pool XCP-ng non c'è ancora:
 
-- Gli **allarmi**, tranne quelli di XOSTOR, lo **stato HA**, il **master del pool**, le **patch mancanti**, i **backup** e gli **snapshot**, e lo **stato del collegamento** delle interfacce fisiche di un host (PIF). Arriveranno dalla REST API di Xen Orchestra, in [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
+- Gli **allarmi**, tranne quelli di XOSTOR, lo **stato HA**, il **master del pool**, le **patch mancanti** e i **backup**: una sonda OneUptime li legge dalla REST API di Xen Orchestra o dall'XAPI del pool ([#10997](https://github.com/OneUptime/oneuptime/issues/10997)), vedere [XCP-ng senza agent](/docs/telemetry/xcp-ng-agentless).
+- Gli **snapshot** di ogni VM e lo **stato del collegamento** delle interfacce fisiche di un host (PIF), che nessuna sonda legge ancora ([#11328](https://github.com/OneUptime/oneuptime/issues/11328)).
 - I **pool senza Xen Orchestra**, o dietro una XOA senza la licenza Premium che il plugin richiede: una sonda di OneUptime li legge direttamente tramite XAPI ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), vedi [XCP-ng senza agent](/docs/telemetry/xcp-ng-agentless).
 - **Connettersi senza agent**: una sonda di OneUptime legge da sé il plugin di Xen Orchestra, come per VMware ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), nella stessa pagina.
 

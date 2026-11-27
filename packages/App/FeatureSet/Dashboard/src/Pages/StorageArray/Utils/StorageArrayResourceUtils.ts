@@ -110,6 +110,8 @@ export const HEALTHY_RESOURCE_STATUSES: ReadonlyArray<string> = [
   "enabled",
   "online",
   "replicating",
+  // A network port that is up (a PowerScale node's).
+  "up",
 ];
 
 function normalizeStatus(status: string | null | undefined): string {
@@ -403,6 +405,24 @@ export function formatTemperature(
     return EMPTY_VALUE_MARK;
   }
   return writeInLanguage(`${Math.round(value)}\u00A0°C`, translator);
+}
+
+/*
+ * A sensor's reading in its unit, as the sensor gives it: 230 -> "230 V",
+ * 11.5 -> "11.5 A", 9130 -> "9130 rpm".
+ */
+export function formatReading(
+  value: number | null | undefined,
+  unit: string,
+  translator: Translator = getGlobalTranslator(),
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return EMPTY_VALUE_MARK;
+  }
+  const figure: string = Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(1);
+  return writeInLanguage(`${figure}\u00A0${unit}`, translator);
 }
 
 export function formatLastSeen(date: Date | undefined | null): string {
@@ -732,6 +752,7 @@ export default {
   formatDurationMs,
   formatRatio,
   formatTemperature,
+  formatReading,
   joinFiguresOfACell,
   formatLastSeen,
   routeParamFromExternalId,

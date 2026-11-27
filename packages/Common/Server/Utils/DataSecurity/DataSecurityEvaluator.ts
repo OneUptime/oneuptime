@@ -70,6 +70,7 @@ import {
   DataStoreExposure,
   DataStorePostureFacts,
   getDataStoreExposure,
+  isPostureFromCloudApi,
 } from "../../../Types/DataSecurity/DataStorePosture";
 import {
   DataStoreCheckInput,
@@ -372,7 +373,16 @@ export default class DataSecurityEvaluator {
       : computed.sensitivity;
     const posture: DataStorePostureFacts =
       (store.posture as DataStorePostureFacts | undefined) || {};
-    const exposure: DataStoreExposure = getDataStoreExposure(posture);
+    const exposure: DataStoreExposure = getDataStoreExposure(
+      posture,
+      store.kind,
+    );
+    /*
+     * Who can reach it was read only by a cloud's own API: a self-managed
+     * store's endpoint says what it answers, never who holds access to it
+     * (#11140), so its reader checks cannot tell rather than pass.
+     */
+    const isAccessRead: boolean = isPostureFromCloudApi(posture);
     const subjectCountries: Array<string> = getSubjectCountries(
       computed.dataTypeIds,
     );
@@ -408,8 +418,8 @@ export default class DataSecurityEvaluator {
       isPublicByDesign: Boolean(store.isPublicByDesign),
       hasOwner: facts.hasOwner,
       lastActivityAt: store.lastActivityAt || null,
-      readerCount: posture.readAt ? facts.readers.size : null,
-      unusedReaderNames: posture.readAt
+      readerCount: isAccessRead ? facts.readers.size : null,
+      unusedReaderNames: isAccessRead
         ? [...facts.unusedReaders.values()].sort()
         : null,
       copiedFromProductionStoreName: facts.copiedFromProductionStoreName,

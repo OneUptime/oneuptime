@@ -225,16 +225,15 @@ Quando finisce l'orario di lavoro, una pianificazione ferma, tramite la connessi
 Una pianificazione non ferma mai la produzione, né una risorsa il cui ambiente nulla indica. Una risorsa è nota per non essere di produzione quando:
 
 - uno dei suoi tag lo dice, con una chiave come `environment`, `env`, `stage`, `tier` o `deployment.environment` e una parola come `dev`, `test`, `qa`, `staging` o `sandbox`;
-- il suo account è segnato come **Non di produzione** in **Ambiente** nelle **Impostazioni** dell'account;
-- oppure una delle sue etichette lo dice, ad esempio `Staging` o `env: dev`.
+- oppure il suo account è segnato come **Non di produzione** in **Ambiente** nelle **Impostazioni** dell'account.
 
-Vince la produzione: un tag che dice `prod`, `production` o `live`, o un account segnato come **Produzione**, mantiene una risorsa in esecuzione, qualunque cosa dica il resto. Il nome di una risorsa non viene mai letto per questo. Disattiva una pianificazione e non ferma più nulla, e riavvia ciò che ha fermato quando inizia il suo orario di lavoro; eliminala e ciò che ha fermato viene riavviato subito.
+Un'etichetta OneUptime non rende mai una risorsa non di produzione per una pianificazione. Rinominare un'etichetta cambia in un colpo solo ogni risorsa che la porta, quindi un'etichetta come `Staging` o `env: dev` viene letta solo dove una persona approva la modifica, come con **Applica**. Vince la produzione: un tag che dice `prod`, `production` o `live`, un account segnato come **Produzione**, o un'etichetta come `Production` o `env: prod` mantiene una risorsa in esecuzione, qualunque cosa dica il resto. Il nome di una risorsa non viene mai letto per questo. Ogni arresto rilegge la risorsa subito prima di essere effettuato. Disattiva una pianificazione e non ferma più nulla, e riavvia ciò che ha fermato quando inizia il suo orario di lavoro; eliminala e ciò che ha fermato viene riavviato subito.
 
 ## Regole IA per i risparmi
 
 Con **Abilita IA** attivo, OneUptime AI propone ai proprietari della risorsa ogni risparmio che può realizzare, dopo ogni lettura dei risparmi dell'account, e loro lo approvano o lo rifiutano in **In attesa di approvazione**. In **Cloud → Impostazioni → Regole IA per i risparmi**, una regola dice cosa fa OneUptime AI con i risparmi che corrispondono, per tipo di modifica, ambiente della risorsa e cloud: **Disattivato**, **Proponi al proprietario** o **Agisci senza chiedere**, fino a un limite mensile. Senza regole, ogni risparmio viene proposto e nessuno effettuato; con le regole, solo ciò che corrisponde a una regola, e tra le regole che corrispondono vince la più prudente.
 
-Una regola agisce senza chiedere solo su una risorsa nota per non essere di produzione, solo per una modifica che si può annullare, solo fino al limite più basso delle regole che corrispondono, e al massimo 10 volte all'ora in un progetto: tutto il resto viene proposto. Una modifica effettuata senza chiedere è nelle cronologie con la regola che l'ha effettuata, e i suoi proprietari possono annullarla. Un risparmio rifiutato o annullato non viene proposto di nuovo per 30 giorni.
+Una regola agisce senza chiedere solo su una risorsa nota per non essere di produzione così come la legge una pianificazione, dai suoi tag o dal suo account e mai dalle sole etichette, solo per una modifica che si può annullare, solo fino al limite più basso delle regole che corrispondono, e al massimo 10 volte all'ora in un progetto: tutto il resto viene proposto. La risorsa viene riletta subito prima della modifica, e una che nel frattempo non è più nota per non essere di produzione viene invece proposta. Una modifica effettuata senza chiedere è nelle cronologie con la regola che l'ha effettuata, e i suoi proprietari possono annullarla. Un risparmio rifiutato o annullato non viene proposto di nuovo per 30 giorni.
 
 ## Budget
 
@@ -481,7 +480,11 @@ OneUptime fa solo modifiche in un passaggio: un impegno, o una raccomandazione c
 :::
 
 :::details Una pianificazione lascia una risorsa in esecuzione
-**Vedi le risorse** dice perché: è di produzione, nulla indica che non sia di produzione, o la connessione del suo account non consente le azioni di risparmio. Aggiungi un tag, ad esempio `environment` = `dev`, oppure segna il suo account come **Non di produzione**.
+**Vedi le risorse** dice perché: è di produzione, nulla indica che non sia di produzione, solo le sue etichette lo indicano, o la connessione del suo account non consente le azioni di risparmio. Aggiungi un tag nel tuo cloud, ad esempio `environment` = `dev`, oppure segna il suo account come **Non di produzione**.
+:::
+
+:::details Una regola propone una modifica che prima effettuava senza chiedere
+La sua scheda dice perché. Una regola effettua una modifica senza chiedere solo su una risorsa che i suoi tag o il suo account dicono non di produzione: una che solo le sue etichette dicono non di produzione viene invece proposta ai suoi proprietari. Aggiungi un tag nel tuo cloud, ad esempio `environment` = `dev`, oppure segna il suo account come **Non di produzione**.
 :::
 
 :::details Una previsione non ha un intervallo probabile

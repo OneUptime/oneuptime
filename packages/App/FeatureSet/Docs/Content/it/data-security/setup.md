@@ -1,11 +1,12 @@
 # Configurare Sicurezza dei dati
 
-Sicurezza dei dati legge solo ciò che le permetti. Ogni connessione cloud viene letta a uno di tre livelli, un database che gestisci viene letto con una stringa di connessione che le fornisci, e la telemetria non richiede nulla. Questa pagina spiega cosa permette di leggere a OneUptime ogni scelta, i permessi esatti che concede e cosa conserva OneUptime di ciò che legge.
+Sicurezza dei dati legge solo ciò che le permetti. Ogni connessione cloud viene letta a uno di tre livelli, un database o un cluster di ricerca che gestisci viene letto con una stringa di connessione che le fornisci, e la telemetria non richiede nulla. Questa pagina spiega cosa permette di leggere a OneUptime ogni scelta, i permessi esatti che concede e cosa conserva OneUptime di ciò che legge.
 
 :::cards
 - [Scegli un livello](#scegliere-un-livello-per-ogni-connessione): Disattivato, Solo configurazione, oppure Configurazione e campioni di contenuto.
 - [Cosa concede ogni livello](#cosa-concede-ogni-livello): Le azioni AWS, e i ruoli Azure e Google Cloud.
-- [Scansiona un database che gestisci](#scansionare-un-database-che-gestisci): Una stringa di connessione di sola lettura, o una sonda nella tua rete.
+- [Scansiona un archivio che gestisci](#scansionare-un-archivio-che-gestisci): Una stringa di connessione di sola lettura, o una sonda nella tua rete.
+- [Cosa verifica OneUptime su un archivio che gestisci](#cosa-verifica-oneuptime-su-un-archivio-che-gestisci): Se risponde senza credenziali, chiesto da dove viene eseguita la sua scansione.
 - [Cosa conserva OneUptime](#cosa-conserva-oneuptime): Conteggi, posizioni e campioni mascherati, mai un valore.
 - [Lascia che Sicurezza dei dati chiuda un'esposizione](#lasciare-che-sicurezza-dei-dati-chiuda-unesposizione): Le uniche scritture che si possono concedere a una connessione, disattivate finché non le attivi.
 :::
@@ -173,17 +174,75 @@ Una scansione legge un po' di un archivio, entro i limiti del progetto, e si fer
 - **I bucket e i container** vengono campionati per tipo, non per numero. Prima vengono elencati i nomi degli oggetti, al massimo dieci volte quanti la scansione può leggerne e mai più di 200.000. Ogni nome diventa il suo pattern, con date, UUID, lunghe sequenze esadecimali e numeri trasformati in `*`, così `exports/2026-10-27/users-0001.csv` diventa `exports/*/users-*.csv`. Vengono letti gli oggetti più recenti di ogni pattern, uno per ciascuno prima di un secondo di qualsiasi, e al massimo 5 di uno stesso pattern. Ogni oggetto viene letto dall'inizio: al massimo **Byte per oggetto** di ciascuno, e **Byte per scansione** in tutto. Una scansione campiona al massimo 10 container di un account di archiviazione Azure.
 - **I file vengono letti per quello che sono.** CSV e TSV per colonna, JSON e JSON lines per percorso, `.env`, `.ini`, `.properties`, TOML e YAML per chiave, XML e HTML come testo, i file Word, Excel e PowerPoint per il loro testo e le loro celle, e qualsiasi altra cosa come testo libero. Un file gzip viene prima decompresso. Immagini, Parquet, Avro, PDF e altri formati binari non vengono letti, e la scansione lo segnala.
 - **I dataset e i database** vengono letti tabella per tabella: al massimo **Tabelle per scansione** tabelle, e **Righe per tabella** righe di ciascuna.
+- **I cluster di ricerca** vengono letti indice per indice, come un database tabella per tabella: al massimo **Tabelle per scansione** indici, e **Righe per tabella** documenti di ciascuno, i più recenti per primi quando l'indice ha un `@timestamp`. Un data stream viene letto come un solo indice, e gli indici i cui nomi differiscono solo per date o numeri, come `logs-2026.11.26` e `logs-2026.11.27`, come uno solo, al più recente che contiene documenti. Gli indici propri del cluster, il cui nome inizia con un punto, non vengono letti. Ogni richiesta è un GET, quindi la scansione non può scrivere nel cluster, qualunque cosa possa fare il suo utente.
 
 Ogni scansione tiene traccia di ciò che ha letto, per nome: gli oggetti, le tabelle o i servizi, mai il loro contenuto. Ciò che non ha potuto leggere - una richiesta rifiutata dal cloud, la scadenza, il budget di byte - è un'avvertenza sulla scansione, e la scansione viene contrassegnata come **Riuscito in parte**.
 
 La **Panoramica** di un archivio dice quando il suo contenuto viene scansionato la prossima volta. **Prossima scansione del contenuto** è l'ora in cui qualcosa lo scansiona, **Previsto ora** mentre aspetta il suo turno, e **In ritardo** quando è in attesa da un'ora. Altrimenti dice perché nulla lo scansionerà: **Disattivato** finché **Scansiona contenuto** è disattivato per l'archivio o per il progetto, o finché l'archivio non viene più trovato; **Non scansionato** quando OneUptime non può campionare quel tipo di archivio, o la sua sonda non può scansionarlo; e **In attesa** finché la sua sonda è disconnessa. La telemetria di un servizio viene scansionata **Ogni ora**, con la scansione della telemetria del progetto. **Scansiona ora** è disattivato, con il motivo, per un archivio che nulla scansionerebbe. Una scansione in corso quando la scansione del contenuto viene disattivata, o quando il progetto viene sospeso, non conserva nulla di ciò che ha trovato.
 
-## Scansionare un database che gestisci
+## Scansionare un archivio che gestisci
 
-Sicurezza dei dati campiona i database PostgreSQL, MySQL e SQL Server, in uno di due modi. Un database monitorato dal prodotto Database, o uno con cui parlano i tuoi servizi sulla mappa dei servizi, è già un archivio. Un database che nessuna scansione trova, aggiungilo tu come archivio.
+Sicurezza dei dati campiona i database PostgreSQL, MySQL e SQL Server, e i cluster Elasticsearch e OpenSearch, in uno di due modi. Un database monitorato dal prodotto Database, o uno con cui parlano i tuoi servizi sulla mappa dei servizi, è già un archivio. Aggiungi tu qualsiasi altro archivio, con **Aggiungi un archivio che gestisci** in **Archivi dati**: appena ne scegli il **Tipo**, il modulo dice cosa OneUptime verificherà e cosa non può verificare, e chiede solo ciò che quel tipo legge. Un tipo che OneUptime non campiona, come MongoDB o Redis, non prende una stringa di connessione: viene elencato con i suoi proprietari, le sue etichette e la sua sensibilità, e la sua esposizione indica **Non verificabile**.
 
-- **Dai worker di OneUptime.** Nelle **Impostazioni** dell'archivio, imposta **Stringa di connessione** su una che possa solo leggere, come `postgresql://reader:password@db.internal:5432/app`. Viene cifrata a riposo e mai restituita dall'API. Assegnale un utente del database che possa leggere e nient'altro.
-- **Da una sonda nella tua rete.** Scegli la sonda in **Scansiona dalla sonda**, e inserisci in **Variabile di connessione della sonda** il nome della variabile d'ambiente su quella sonda che contiene la stringa di connessione. La sonda legge il database dall'interno della tua rete e rimanda solo ciò che ha trovato: la stringa di connessione non raggiunge mai OneUptime. Vedi [Sonde personalizzate](/docs/probe/custom-probe) per eseguire una sonda.
+- **Dai worker di OneUptime.** Nelle **Impostazioni** dell'archivio, imposta **Stringa di connessione** su una che possa solo leggere, come `postgresql://reader:password@db.internal:5432/app`, o `https://reader:password@search.internal:9200` per un cluster di ricerca. Viene cifrata a riposo e mai restituita dall'API. Assegnale un utente che possa leggere e nient'altro. Su OneUptime Cloud, i worker raggiungono solo indirizzi su Internet.
+- **Da una sonda nella tua rete.** Scegli la sonda in **Scansiona dalla sonda**, e inserisci in **Variabile di connessione della sonda** il nome della variabile d'ambiente su quella sonda che contiene la stringa di connessione. La sonda legge l'archivio dall'interno della tua rete e rimanda solo ciò che ha trovato: la stringa di connessione non raggiunge mai OneUptime. Vedi [Sonde personalizzate](/docs/probe/custom-probe) per eseguire una sonda. A una sonda di una versione precedente vengono affidati solo database: aggiornala perché scansioni un cluster di ricerca.
+
+### La stringa di connessione di un cluster di ricerca
+
+Elasticsearch e OpenSearch non hanno una stringa di connessione propria, quindi OneUptime prende l'indirizzo del cluster, così come lo raggiunge curl, con un utente di sola lettura al suo interno, o una chiave API di Elasticsearch dopo di esso, scritta `id:key` o come il valore codificato che Elasticsearch fornisce:
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` accetta un certificato che nessuna autorità ha firmato, come quello che Elasticsearch crea al primo avvio: usalo solo su una rete di cui ti fidi. Dopo l'indirizzo non può seguire nient'altro. Per un cluster il cui certificato è stato firmato dalla tua autorità, fornisci l'indirizzo come JSON, con il certificato di quell'autorità:
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` prende il posto di `username` e `password`, e `"verifyCertificate": false` quello del certificato.
+
+Assegna all'utente un ruolo che possa leggere e nient'altro. Su Elasticsearch:
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+Su OpenSearch, con il suo plugin di sicurezza:
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Poi assegna quel ruolo, e solo quello, a un utente. Restringi `*` agli indici da scansionare.
+
+### Cosa verifica OneUptime su un archivio che gestisci
+
+Un archivio di un account cloud viene controllato in base alle impostazioni che tiene il suo cloud. Un archivio che gestisci non ne ha nessuna che OneUptime possa leggere, quindi un cluster Elasticsearch o OpenSearch viene controllato in base a ciò che risponde al suo indirizzo. A ogni scansione del contenuto, da dove viene eseguita la scansione, gli viene chiesto senza credenziali:
+
+| Chiesto | Cosa indica |
+| --- | --- |
+| Chi sta chiedendo: `/_security/_authenticate` su Elasticsearch, `/_plugins/_security/authinfo` su OpenSearch | Se chiede delle credenziali |
+| Una ricerca che non restituisce documenti, solo se ce ne sono | Se chiunque lo raggiunga può leggerne i documenti |
+| Il suo indirizzo in HTTP semplice, quando la sua stringa di connessione è HTTPS | Se accetta connessioni senza TLS |
+
+Non vi viene scritto nulla, quindi a un cluster con utenti e ruoli non si può chiedere se il suo utente anonimo può scrivere: quella riga della sua **Configurazione** indica **Non verificabile**. Uno senza alcun controllo degli accessi accetta ogni richiesta, anche le scritture. Un cluster che risponde a chiunque non supera [Chiunque lo raggiunga può leggerlo senza credenziali](/docs/data-security/checks-and-issues#esposizione).
+
+Da dove viene eseguita la scansione decide cos'altro si può sapere. I worker di OneUptime Cloud raggiungono solo indirizzi su Internet, quindi un cluster che scansionano è raggiungibile da Internet, e la sua esposizione lo dice. Da una sonda, o da un OneUptime che ospiti tu, la scansione viene eseguita all'interno di una rete, e da lì non si può sapere se Internet raggiunge il cluster: la sua esposizione indica **Sconosciuto**, e la sua **Panoramica** dice perché. La sua crittografia a riposo, i suoi backup e la sua registrazione degli accessi appartengono ai suoi server, non sono visibili dal suo indirizzo e non vengono controllati.
+
+Un database che gestisci viene campionato, non interrogato, e come lo si può raggiungere non viene controllato: la sua esposizione indica **Non verificabile**, come quella di un tipo che OneUptime non campiona. Finché un archivio non viene controllato la prima volta, la sua esposizione indica **Non ancora verificato**, così un archivio in attesa del suo primo controllo non viene mai scambiato per uno che non si può controllare.
 
 ## Cosa conserva OneUptime
 
@@ -244,11 +303,15 @@ Le impostazioni di Sicurezza dei dati sono un unico insieme per progetto, nella 
 ## Risoluzione dei problemi
 
 :::details Un archivio dice che il suo contenuto non è stato scansionato
-La scansione dice perché: «La scansione del contenuto richiede il permesso sul contenuto della connessione, oppure una stringa di connessione per un database.» Imposta la connessione dell'archivio su **Configurazione e campioni di contenuto** ed esegui di nuovo il suo comando, oppure assegna al database una stringa di connessione. Controlla anche che **Scansiona contenuto** sia attivo per l'archivio e nelle impostazioni del progetto.
+La scansione dice perché: «La scansione del contenuto richiede il permesso sul contenuto della connessione, oppure una stringa di connessione per un archivio che gestisci.» Imposta la connessione dell'archivio su **Configurazione e campioni di contenuto** ed esegui di nuovo il suo comando, oppure assegna all'archivio che gestisci una stringa di connessione. Controlla anche che **Scansiona contenuto** sia attivo per l'archivio e nelle impostazioni del progetto.
 :::
 
 :::details Un controllo dice che non può stabilirlo
 Un dato che il lettore non ha potuto leggere - un permesso che il ruolo non ha, un'API non attivata - è sconosciuto, mai ipotizzato. Il suo controllo segnala che non può stabilirlo, e un problema che ha aperto resta aperto: nessuno può concludere che un problema sia risolto perché OneUptime non ha potuto guardare. Le avvertenze della lettura della configurazione dicono cosa non ha potuto leggere. Esegui di nuovo il comando della connessione per concedere ciò che manca.
+:::
+
+:::details L'esposizione di un archivio indica Non verificabile
+OneUptime non ha modo di leggere come si può raggiungere un archivio di quel tipo: un database che gestisci, o un tipo che non campiona. Non è un errore, e non si apre alcun problema per questo. Le sue **Impostazioni** dicono cosa viene verificato, in **Cosa verifica OneUptime**. Un archivio la cui esposizione indica **Non ancora verificato** è uno che OneUptime può verificare e non ha ancora verificato: un cluster di ricerca prima della sua prima scansione del contenuto, o un archivio di un account cloud prima della prima lettura della configurazione della sua connessione.
 :::
 
 :::details Non compaiono bucket S3 né dataset BigQuery

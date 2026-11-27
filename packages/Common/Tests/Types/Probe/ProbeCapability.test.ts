@@ -22,6 +22,10 @@ describe("ProbeCapability", () => {
     expect(ProbeCapability.SnmpWalk).toBe("snmpWalk");
     // Only a probe declaring this is handed databases to scan.
     expect(ProbeCapability.DataSecurityScan).toBe("dataSecurityScan");
+    // And Elasticsearch and OpenSearch clusters, once it declares this too (#11140).
+    expect(ProbeCapability.DataSecuritySearchScan).toBe(
+      "dataSecuritySearchScan",
+    );
     // A busy scheduling endpoint answers a probe declaring this with a 429.
     expect(ProbeCapability.RetryWhenBusy).toBe("retryWhenBusy");
     // And every other work endpoint, once the probe declares this (#8051).

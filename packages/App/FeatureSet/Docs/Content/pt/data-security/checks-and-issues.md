@@ -1,10 +1,10 @@
 # Verificações e problemas da Segurança de dados
 
-A Segurança de dados executa 34 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
+A Segurança de dados executa 35 verificações em cada repositório, em nove grupos. Uma verificação lê o que se sabe sobre um repositório - como ele está configurado, o que foi encontrado nele, quem pode acessá-lo, onde ele fica - e passa, falha ou não consegue determinar. Uma verificação que falha abre um problema nesse repositório, e o problema se fecha sozinho quando a verificação passa. Esta página lista cada verificação, como a gravidade e a pontuação de risco de um problema são calculadas e o que acontece com um problema ao longo da vida dele. Os eventos de segurança, Network Flows e o cofre de endereços de segurança são do próprio OneUptime, guardados para a sua segurança: declarados, nunca varridos nem verificados (veja [Repositórios que o OneUptime guarda para a sua segurança](/docs/data-security/compliance#repositórios-que-o-oneuptime-guarda-para-a-sua-segurança)).
 
 :::cards
 - [Como uma verificação decide](#como-uma-verificação-decide): Passa, falha ou não consegue determinar, e o quão grave é uma falha.
-- [Todas as verificações](#todas-as-verificações): Todas as 34, com o que cada uma verifica e como corrigir.
+- [Todas as verificações](#todas-as-verificações): Todas as 35, com o que cada uma verifica e como corrigir.
 - [Pontuação de risco](#pontuação-de-risco): Como os problemas são ordenados dentro de uma gravidade.
 - [O que acontece com um problema](#o-que-acontece-com-um-problema): Aberto, resolvido, aceito, não é um problema, como cada um foi resolvido e as correções acompanhadas até a produção.
 - [A análise do OneUptime AI](#a-análise-do-oneuptime-ai): Se um problema é real, o que põe em risco, o que a correção quebraria e o caminho mais curto para a correção.
@@ -22,6 +22,8 @@ Cada verificação lê fatos sobre um repositório e responde de uma de quatro f
 | Falha | A verificação encontra o problema e diz o que viu em uma frase: a evidência do problema. | Um problema abre, ou o que está aberto é atualizado. |
 | Não consegue determinar | Um fato não pôde ser lido: uma permissão que a função não tem, uma chamada que falhou. | Nada muda: um problema aberto continua aberto, porque ninguém pode concluir que um problema foi corrigido quando o OneUptime não conseguiu olhar. |
 | Não se aplica | O tipo do repositório não tem essa configuração. | Um problema aberto é resolvido. |
+
+Um fato que não pode ser conhecido a partir de onde foi lido também não é adivinhado: se a internet alcança um repositório consultado de dentro da sua rede, ou se o usuário anônimo de um cluster pode gravar, o que só uma gravação diria. A verificação dele não consegue saber, e essa linha da **Configuração** do repositório indica **Não verificável**.
 
 ### A gravidade acompanha os dados
 
@@ -45,6 +47,7 @@ A gravidade é dada para os dados de sensibilidade Restrito, Confidencial, Inter
 | Um snapshot dele pode ser restaurado por qualquer pessoa (`snapshot-public`) | Banco de dados, Snapshot | Um snapshot de banco de dados está compartilhado publicamente, então qualquer conta de nuvem pode restaurar uma cópia completa. | Crítico / Crítico / Crítico / Alto | Torne o snapshot privado. |
 | Um snapshot dele está compartilhado com outras contas (`snapshot-shared-externally`) | Banco de dados, Snapshot | Um snapshot de banco de dados está compartilhado com contas fora das que você conectou. | Alto / Alto / Médio / Baixo | Pare de compartilhar o snapshot com as contas que não deveriam tê-lo. |
 | Contas fora da sua organização podem acessá-lo (`shared-with-external-accounts`) | Todo repositório, exceto telemetria | A política do repositório concede acesso a contas, locatários ou projetos que não estão conectados ao OneUptime. | Alto / Alto / Médio / Baixo | Revise cada entidade principal externa e remova as que não precisam de acesso. |
+| Qualquer pessoa que o alcance pode lê-lo sem credenciais (`readable-without-credentials`) | Pesquisa | Ele respondeu ao OneUptime sem credenciais: quem conseguir alcançar o endereço dele pode ler os dados dele, e alterá-los se ele não tiver nenhum controle de acesso. | Crítico / Alto / Médio / Baixo | Ative a segurança do cluster, tire todas as funções do usuário anônimo dele, e dê a cada aplicação o próprio usuário somente leitura. Um cluster que aceita gravações sem credenciais é Crítico em dados Restrito e Confidencial, e Alto em qualquer outro. |
 
 ### Criptografia
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Fator | Pontos |
 | --- | --- |
 | Gravidade | 75 para Crítico, 50 para Alto, 25 para Médio, 0 para Baixo |
-| Exposição | 10 para Público, 8 para Outras contas, 6 para Acessível pela internet, 3 para Desconhecido, 0 para Privado |
+| Exposição | 10 para Público, 8 para Outras contas, 6 para Acessível pela internet, 3 para Desconhecido, Ainda não verificado ou Não verificável, 0 para Privado |
 | Volume | Até 6, pelos registros sensíveis estimados do repositório em escala logarítmica: 1 para 10 registros, 3 para 1.000, 5 para um milhão, 6 para dez milhões ou mais |
 | Atividade | 5 quando o Security Operations viu detecções no repositório na última semana |
 | Produção | 4 para um repositório em produção |

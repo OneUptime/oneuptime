@@ -51,6 +51,9 @@ import CloudSavingsActions, { CloudSavingContext } from "./CloudSavingsActions";
  * works. A change made without asking is never made here: it is created
  * Applying, and the worker takes it through its steps
  * (CloudSavingsActionRunner), so a read never waits on a cloud's change.
+ * The worker reads the resource's environment again before it makes it,
+ * never trusting this read's: one no longer known not to be production by
+ * then is proposed instead (#11347).
  */
 
 /*
@@ -374,6 +377,8 @@ export default class CloudSavingsAiEngine {
           provider: recommendation.provider || "",
           kind: plan.kind,
           environment: saving.environment.environment,
+          // A label may say production, never non-production, to a change made without asking (#11347).
+          unattendedEnvironment: saving.unattendedEnvironment.environment,
           monthlySavings: Number(recommendation.monthlySavings) || 0,
           // A rule's delete of a disk always takes its final snapshot first.
           undo: getCloudSavingsActionUndo({

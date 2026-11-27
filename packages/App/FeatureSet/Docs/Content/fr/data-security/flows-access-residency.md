@@ -60,7 +60,9 @@ D'après ce qu'elle lit, chaque magasin de données reçoit une exposition :
 | **Autres comptes** | Des comptes extérieurs à vos comptes connectés peuvent y accéder. |
 | **Accessible depuis Internet** | Son point de terminaison réseau accepte des connexions depuis Internet. |
 | **Privé** | Seuls vos propres comptes et réseaux y accèdent. |
-| **Inconnu** | OneUptime n'a pas pu lire assez de sa configuration pour le dire. |
+| **Inconnu** | OneUptime l'a vérifié, mais n'a pas pu le déterminer à partir de ce qu'il a pu lire. |
+| **Pas encore vérifié** | OneUptime n'a pas encore vérifié comment il peut être atteint. |
+| **Impossible à vérifier** | OneUptime n'a aucun moyen de vérifier comment ce type de magasin de données peut être atteint. |
 
 Public l'emporte sur partagé, et partagé sur accessible : un bucket public également partagé avec un autre compte est Public. L'exposition s'ajoute au [score de risque](/docs/data-security/checks-and-issues#score-de-risque) d'un problème.
 

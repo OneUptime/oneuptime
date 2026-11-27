@@ -51,6 +51,8 @@ export enum DataStoreKind {
   Oracle = "Oracle",
   Redis = "Redis",
   Elasticsearch = "Elasticsearch",
+  // A cluster a team runs itself (#11140); AWS's managed one is AwsOpenSearchDomain.
+  OpenSearch = "OpenSearch",
   Snowflake = "Snowflake",
   ClickHouse = "ClickHouse",
   Databricks = "Databricks",
@@ -216,7 +218,14 @@ export const DATA_STORE_KINDS: ReadonlyArray<DataStoreKindInfo> = [
   kind(K.SqlServer, P.SelfManaged, F.Database, { contentScannable: true }),
   kind(K.Oracle, P.SelfManaged, F.Database),
   kind(K.Redis, P.SelfManaged, F.Cache),
-  kind(K.Elasticsearch, P.SelfManaged, F.Search),
+  /*
+   * Sampled over their HTTP API with a read-only user, by OneUptime's
+   * workers or from a probe (SearchStoreSampler, #11140), like the
+   * databases above. Each scan also checks, without credentials, whether
+   * the cluster answers anyone who reaches it.
+   */
+  kind(K.Elasticsearch, P.SelfManaged, F.Search, { contentScannable: true }),
+  kind(K.OpenSearch, P.SelfManaged, F.Search, { contentScannable: true }),
   kind(K.Snowflake, P.SelfManaged, F.Warehouse),
   kind(K.ClickHouse, P.SelfManaged, F.Warehouse),
   kind(K.Databricks, P.SelfManaged, F.Warehouse),
@@ -323,14 +332,45 @@ export function isDeclaredDataStoreKind(
 }
 
 /*
- * The kinds of self-managed database a probe samples: the ones its claim
- * hands out (DataSecurityProbeClaim) and its DatabaseSampler reads. Here,
- * not in the server's files, so a store's page tells the same kinds apart.
+ * The kinds of self-managed database read with a database driver
+ * (DatabaseSampler): from a probe or by OneUptime's workers, for Data
+ * Security's content scans and Data Observability's table health alike.
  */
-export const PROBE_SCANNABLE_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+export const PROBE_SCANNABLE_DATABASE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.PostgreSql,
   DataStoreKind.MySql,
   DataStoreKind.SqlServer,
+];
+
+/*
+ * The kinds of self-managed search cluster read over their HTTP API
+ * (SearchStoreSampler, #11140): Elasticsearch and OpenSearch, which answer
+ * the same requests. Data Security samples their documents; Data
+ * Observability does not collect them.
+ */
+export const SEARCH_ENGINE_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  DataStoreKind.Elasticsearch,
+  DataStoreKind.OpenSearch,
+];
+
+export function isSearchEngineDataStoreKind(
+  value: string | undefined | null,
+): boolean {
+  return Boolean(
+    value && SEARCH_ENGINE_DATA_STORE_KINDS.includes(value as DataStoreKind),
+  );
+}
+
+/*
+ * The kinds of self-managed store a probe samples for Data Security: the
+ * ones its claim hands out (DataSecurityProbeClaim) - a search cluster only
+ * to a probe that declares it reads one (ProbeCapability.
+ * DataSecuritySearchScan) - and its samplers read. Here, not in the
+ * server's files, so a store's page tells the same kinds apart.
+ */
+export const PROBE_SCANNABLE_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
+  ...PROBE_SCANNABLE_DATABASE_KINDS,
+  ...SEARCH_ENGINE_DATA_STORE_KINDS,
 ];
 
 /*
@@ -348,7 +388,96 @@ export const WORKER_CLAIMED_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> = [
   DataStoreKind.PostgreSql,
   DataStoreKind.MySql,
   DataStoreKind.SqlServer,
+  DataStoreKind.Elasticsearch,
+  DataStoreKind.OpenSearch,
 ];
+
+/*
+ * HOW ONEUPTIME LEARNS HOW EXPOSED A KIND OF STORE IS (#11140).
+ *
+ * A store's exposure is worked out from its posture facts
+ * (DataStorePosture), and only some kinds have anything that reads them.
+ * A store none of these reach is "Can't be checked", never an Unknown that
+ * reads like a check still to come:
+ *
+ *  - CloudApi: its cloud's own API, through a cloud connection with Data
+ *    Security turned on - the AWS, Azure and Google Cloud readers read
+ *    exactly CLOUD_POSTURE_READ_DATA_STORE_KINDS;
+ *  - Endpoint: the store's own address, with each content scan, from
+ *    where the scan runs (OneUptime's workers or a probe): whether it
+ *    answers without credentials, and whether it takes connections
+ *    without TLS (SearchEndpointCheck);
+ *  - HeldByOneUptime: a service's telemetry and the stores OneUptime
+ *    declares, which OneUptime itself holds: only the project's members
+ *    reach them, through OneUptime;
+ *  - None: nothing OneUptime has reads it.
+ *
+ * Its test reads each cloud reader's source and fails on a kind one reads
+ * that the list does not name, or one it names that no reader reads.
+ */
+export enum DataStoreExposureCheck {
+  CloudApi = "CloudApi",
+  Endpoint = "Endpoint",
+  HeldByOneUptime = "HeldByOneUptime",
+  None = "None",
+}
+
+export const CLOUD_POSTURE_READ_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> =
+  [
+    // Cloud/Aws/AwsDataSecurityReader.
+    DataStoreKind.AwsS3Bucket,
+    DataStoreKind.AwsRdsInstance,
+    DataStoreKind.AwsRdsCluster,
+    DataStoreKind.AwsRdsSnapshot,
+    DataStoreKind.AwsDynamoDbTable,
+    DataStoreKind.AwsRedshiftCluster,
+    DataStoreKind.AwsDocumentDbCluster,
+    DataStoreKind.AwsOpenSearchDomain,
+    DataStoreKind.AwsElastiCacheCluster,
+    DataStoreKind.AwsEfsFileSystem,
+    // Cloud/Azure/AzureDataSecurityReader.
+    DataStoreKind.AzureStorageAccount,
+    DataStoreKind.AzureSqlDatabase,
+    DataStoreKind.AzureCosmosDbAccount,
+    DataStoreKind.AzurePostgreSqlServer,
+    DataStoreKind.AzureMySqlServer,
+    // Cloud/Gcp/GcpDataSecurityReader.
+    DataStoreKind.GcpStorageBucket,
+    DataStoreKind.GcpCloudSqlInstance,
+    DataStoreKind.GcpBigQueryDataset,
+  ];
+
+// The self-managed kinds whose own endpoint each content scan checks.
+export const ENDPOINT_CHECKED_DATA_STORE_KINDS: ReadonlyArray<DataStoreKind> =
+  SEARCH_ENGINE_DATA_STORE_KINDS;
+
+export function getDataStoreExposureCheck(
+  value: string | undefined | null,
+): DataStoreExposureCheck {
+  const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(value);
+
+  if (!info) {
+    return DataStoreExposureCheck.None;
+  }
+
+  if (
+    info.isDeclared ||
+    TELEMETRY_DATA_STORE_KINDS.includes(info.kind) ||
+    info.provider === DataStoreProvider.OneUptime
+  ) {
+    return DataStoreExposureCheck.HeldByOneUptime;
+  }
+
+  if (CLOUD_POSTURE_READ_DATA_STORE_KINDS.includes(info.kind)) {
+    return DataStoreExposureCheck.CloudApi;
+  }
+
+  if (ENDPOINT_CHECKED_DATA_STORE_KINDS.includes(info.kind)) {
+    return DataStoreExposureCheck.Endpoint;
+  }
+
+  return DataStoreExposureCheck.None;
+}
 
 /*
  * The database engines OneUptime's Database product monitors, mapped to the
@@ -368,4 +497,5 @@ export const DATABASE_ENGINE_STORE_KINDS: Readonly<
   oracle: DataStoreKind.Oracle,
   redis: DataStoreKind.Redis,
   elasticsearch: DataStoreKind.Elasticsearch,
+  opensearch: DataStoreKind.OpenSearch,
 };

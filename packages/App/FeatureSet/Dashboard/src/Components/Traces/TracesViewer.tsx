@@ -217,7 +217,10 @@ import {
   ResolvedTelemetryEntity,
   TelemetryEntityNameMap,
 } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
-import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  TelemetryEntityLookup,
+  useTelemetryEntityLookup,
+} from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import { ResultTotal } from "Common/UI/Utils/Telemetry/ResultTotal";
 import useResultTotal, {
   ResultTotalListAnswer,
@@ -2848,10 +2851,29 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
     return buildTraceEntityTypeHints(scopeEntityId, props.scopeEntityType);
   }, [scopeEntityId, props.scopeEntityType]);
 
-  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+  /*
+   * The names, and the ids every read answered nothing for: a chip a link
+   * or a saved view brought naming a deleted service reads "No longer
+   * available", never its id (#11213).
+   */
+  const entityLookup: TelemetryEntityLookup = useTelemetryEntityLookup(
     entityIdsToResolve,
     { typeHints: entityTypeHints },
   );
+  const entityNames: TelemetryEntityNameMap = entityLookup.names;
+
+  // The services read so far that are archived: a chip naming one says so.
+  const archivedServiceIds: ReadonlySet<string> = useMemo(() => {
+    const ids: Set<string> = new Set<string>();
+
+    for (const service of services) {
+      if (service.isArchived && service.id) {
+        ids.add(service.id.toString().toLowerCase());
+      }
+    }
+
+    return ids;
+  }, [services]);
 
   /*
    * Display labels are re-derived on every render (see
@@ -2867,6 +2889,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
         entityNames,
         scopeEntityId,
         scopeEntityType: props.scopeEntityType,
+        notFoundEntityIds: entityLookup.notFound,
+        archivedEntityIds: archivedServiceIds,
       });
     },
     [
@@ -2875,6 +2899,8 @@ const TracesViewer: FunctionComponent<Props> = (props: Props): ReactElement => {
       entityNames,
       scopeEntityId,
       props.scopeEntityType,
+      entityLookup.notFound,
+      archivedServiceIds,
     ],
   );
 

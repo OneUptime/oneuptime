@@ -1,10 +1,10 @@
 # Comprobaciones y problemas de Seguridad de datos
 
-Seguridad de datos ejecuta 34 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
+Seguridad de datos ejecuta 35 comprobaciones en cada almacén, en nueve grupos. Una comprobación lee lo que se sabe de un almacén (cómo está configurado, qué se encontró en él, quién puede acceder a él, dónde está) y el resultado es que se supera, que falla o que no se puede saber. Una comprobación que falla abre un problema en ese almacén, y el problema se cierra solo en cuanto la comprobación se supera. Esta página enumera cada comprobación, cómo se calculan la gravedad y la puntuación de riesgo de un problema, y qué le pasa a un problema a lo largo de su vida. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
 
 :::cards
 - [Cómo decide una comprobación](#cómo-decide-una-comprobación): Se supera, falla o no se puede saber, y lo grave que es un fallo.
-- [Cada comprobación](#cada-comprobación): Las 34, con lo que comprueba cada una y cómo corregirlo.
+- [Cada comprobación](#cada-comprobación): Las 35, con lo que comprueba cada una y cómo corregirlo.
 - [Puntuación de riesgo](#puntuación-de-riesgo): Cómo se ordenan los problemas dentro de una gravedad.
 - [Qué le pasa a un problema](#qué-le-pasa-a-un-problema): Abierto, resuelto, aceptado, no es un problema, cómo se resolvió cada uno y las correcciones seguidas hasta producción.
 - [El análisis de OneUptime AI](#el-análisis-de-oneuptime-ai): Si un problema es real, lo que pone en riesgo, lo que rompería la corrección y el camino más corto hacia la corrección.
@@ -22,6 +22,8 @@ Cada comprobación lee datos sobre un almacén y responde de una de cuatro forma
 | Falla | La comprobación encuentra el problema y dice en una frase lo que vio: la evidencia del problema. | Se abre un problema, o el que está abierto se actualiza. |
 | No se puede saber | No se pudo leer un dato: un permiso que el rol no tiene, una llamada que falló. | No cambia nada: un problema abierto sigue abierto, porque nadie puede concluir que un problema está corregido cuando OneUptime no pudo mirar. |
 | No se aplica | El tipo del almacén no tiene ese ajuste. | Un problema abierto se resuelve. |
+
+Un dato que no se puede saber desde donde se leyó tampoco se adivina: si internet llega a un almacén al que se preguntó desde dentro de tu red, o si el usuario anónimo de un clúster puede escribir, algo que solo una escritura diría. Su comprobación no puede saberlo, y esa línea de la **Configuración** del almacén indica **No se puede comprobar**.
 
 ### La gravedad depende de los datos
 
@@ -45,6 +47,7 @@ La gravedad se da para datos Restringidos, Confidenciales, Internos y Públicos,
 | Cualquiera puede restaurar una instantánea suya (`snapshot-public`) | Base de datos, Instantánea | Una instantánea de la base de datos se comparte públicamente, así que cualquier cuenta en la nube puede restaurar una copia completa. | Crítica / Crítica / Crítica / Alta | Haz privada la instantánea. |
 | Una instantánea suya se comparte con otras cuentas (`snapshot-shared-externally`) | Base de datos, Instantánea | Una instantánea de la base de datos se comparte con cuentas ajenas a las que tienes conectadas. | Alta / Alta / Media / Baja | Deja de compartir la instantánea con las cuentas que no deberían tenerla. |
 | Cuentas ajenas a tu organización pueden acceder a él (`shared-with-external-accounts`) | Todos los almacenes salvo la telemetría | La política del almacén concede acceso a cuentas, inquilinos o proyectos que no están conectados a OneUptime. | Alta / Alta / Media / Baja | Revisa cada entidad principal externa y quita las que no necesitan acceso. |
+| Cualquiera que llegue a él puede leerlo sin credenciales (`readable-without-credentials`) | Búsqueda | Respondió a OneUptime sin credenciales: quien pueda llegar a su dirección puede leer sus datos, y cambiarlos si no tiene ningún control de acceso. | Crítica / Alta / Media / Baja | Activa la seguridad del clúster, quita todos los roles a su usuario anónimo y da a cada aplicación su propio usuario de solo lectura. Un clúster que acepta escrituras sin credenciales es Crítica con datos Restringidos y Confidenciales, y Alta con cualquier otro. |
 
 ### Cifrado
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Factor | Puntos |
 | --- | --- |
 | Gravedad | 75 para Crítica, 50 para Alta, 25 para Media, 0 para Baja |
-| Exposición | 10 para Público, 8 para Otras cuentas, 6 para Accesible desde internet, 3 para Desconocido, 0 para Privado |
+| Exposición | 10 para Público, 8 para Otras cuentas, 6 para Accesible desde internet, 3 para Desconocido, Aún sin comprobar o No se puede comprobar, 0 para Privado |
 | Volumen | Hasta 6, según los registros sensibles estimados del almacén en escala logarítmica: 1 para 10 registros, 3 para 1.000, 5 para un millón, 6 para diez millones o más |
 | Actividad | 5 cuando Operaciones de seguridad vio detecciones en el almacén en la última semana |
 | Producción | 4 para un almacén en producción |

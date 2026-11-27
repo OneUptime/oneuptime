@@ -170,7 +170,7 @@ OneUptime AI 自行做出的更改：
 
 - **跨度或 AI 调用**：其 `code.*` 属性指出的文件、行和函数，以及跨度的名称。
 - **异常**：它自身最顶部的帧，即服务代码中的那些帧。
-- **日志行**：其属性指出的文件、行和函数（如果有）、它的记录器，以及作为模板的这一行，其中每个值都替换为其类型名称，例如 `User <Email address> signed up`，而记录无法证明是代码写出的每个词（例如人名）都替换为 `<value>`：从一条记录中读到的 `Payment declined for Maria Gonzalez` 会变成 `Payment declined for <value>`。跨度的名称和指标的名称也以同样的方式读取。
+- **日志行**：其属性指出的文件、行和函数（如果有）、它的记录器，以及作为模板的这一行，其中每个值都替换为其类型名称，例如 `User <Email address> signed up`，而不是代码写日志行所用词语的每个词（例如人名或用户名），无论该行有多少条记录共有这个词，都替换为 `<value>`：`Payment declined for Maria Gonzalez` 会变成 `Payment declined for <value>`，而从该行的每条记录中读到的 `Ticket assigned to jdoe` 会变成 `Ticket assigned to <value>`。跨度的名称和指标的名称也以同样的方式读取。
 - **指标**：指标的名称。
 - **任何泄露**：它的属性键，例如 `user.email`，代码通常按原样写入它。
 

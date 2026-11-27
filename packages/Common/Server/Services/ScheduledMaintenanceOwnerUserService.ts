@@ -15,6 +15,16 @@ import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
 
+/*
+ * A MAINTENANCE EVENT'S OWNERS, AND WHAT ITS CHANNELS HEAR OF THEM
+ * (#11223).
+ *
+ * A person made an owner of an event, or taken off as one, writes a line to
+ * the event's feed, which is posted to its Slack, Microsoft Teams and
+ * Mattermost channels too - as every other kind of record's owner lines
+ * are, through the feed entry's workspace notification
+ * (ScheduledMaintenanceOwnerTeamService says what that brings).
+ */
 export class Service extends ProjectReferencesService<Model> {
   public constructor() {
     super(Model);
@@ -79,24 +89,22 @@ export class Service extends ProjectReferencesService<Model> {
                 ScheduledMaintenanceFeedEventType.OwnerUserRemoved,
               displayColor: Red500,
               feedInfoInMarkdown:
-                mdText`Removed **${owner}** from the scheduled maintenance as the owner.`.toString(),
+                mdText`👨🏻‍💻 Removed **${owner}** from the ${await ScheduledMaintenanceService.getScheduledMaintenanceMarkdownLink(
+                  {
+                    projectId: projectId,
+                    scheduledMaintenanceId: scheduledMaintenanceId,
+                  },
+                )} as the owner.`.toString(),
               userId: deleteByUserId || undefined,
+              workspaceNotification: {
+                sendWorkspaceNotification: true,
+                leadWithAuthor: true,
+              },
             },
           );
         }
       }
     }
-
-    /*
-     * Who owns the event changed, so a rule with an owners condition may
-     * match it now ("Scheduled Maintenance Owner is none of ..."): a rule
-     * that starts to match opens its channel, as it does when an
-     * incident's owners change - whose change is posted, which checks the
-     * rules on the way (WorkspaceNotificationRuleService
-     * .createChannelsForRulesThatNowMatch). A maintenance event's owner
-     * changes are not posted, so the rules are checked here.
-     */
-    await Service.checkRulesAgain(itemsToDelete);
 
     return onDelete;
   }
@@ -125,24 +133,24 @@ export class Service extends ProjectReferencesService<Model> {
               ScheduledMaintenanceFeedEventType.OwnerUserAdded,
             displayColor: Gray500,
             feedInfoInMarkdown:
-              mdText`Added **${await UserService.getUserMarkdownString({
+              mdText`👨🏻‍💻 Added **${await UserService.getUserMarkdownString({
                 userId: userId,
                 projectId: projectId,
-              })}** to the scheduled maintenance as the owner.`.toString(),
+              })}** to the ${await ScheduledMaintenanceService.getScheduledMaintenanceMarkdownLink(
+                {
+                  projectId: projectId,
+                  scheduledMaintenanceId: scheduledMaintenanceId,
+                },
+              )} as the owner.`.toString(),
             userId: createdByUserId || undefined,
+            workspaceNotification: {
+              sendWorkspaceNotification: true,
+              leadWithAuthor: true,
+            },
           },
         );
       }
     }
-
-    /*
-     * A new owner can make a rule with an owners condition match the event
-     * ("Scheduled Maintenance Owner is any of Platform team"): that rule
-     * opens its channel now, with its people - this owner among them, as a
-     * rule that invites owners invites them. Checked before this owner is
-     * invited to the channels the event has already.
-     */
-    await Service.checkRulesAgain([createdItem]);
 
     // get notification rule where inviteOwners is true.
     const notificationRules: Array<WorkspaceNotificationRule> =
@@ -177,38 +185,6 @@ export class Service extends ProjectReferencesService<Model> {
     });
 
     return createdItem;
-  }
-
-  /*
-   * The rules of the events whose owners changed, checked again: a rule
-   * that now matches one, and creates a channel, opens it
-   * (createChannelsForRulesThatNowMatch, which never throws).
-   */
-  public static async checkRulesAgain(rows: Array<Model>): Promise<void> {
-    const checked: Set<string> = new Set();
-
-    for (const row of rows) {
-      if (!row.scheduledMaintenanceId || !row.projectId) {
-        continue;
-      }
-
-      const key: string = row.scheduledMaintenanceId.toString();
-
-      if (checked.has(key)) {
-        continue;
-      }
-
-      checked.add(key);
-
-      await WorkspaceNotificationRuleService.createChannelsForRulesThatNowMatch(
-        {
-          projectId: row.projectId,
-          notificationFor: {
-            scheduledMaintenanceId: row.scheduledMaintenanceId,
-          },
-        },
-      );
-    }
   }
 }
 

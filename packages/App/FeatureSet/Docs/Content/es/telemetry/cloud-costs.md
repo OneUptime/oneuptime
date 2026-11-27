@@ -225,16 +225,15 @@ Cuando termina el horario laboral, una programación detiene, a través de la co
 Una programación nunca detiene la producción, ni un recurso cuyo entorno nada indica. Se sabe que un recurso no es de producción cuando:
 
 - una de sus etiquetas lo dice, con una clave como `environment`, `env`, `stage`, `tier` o `deployment.environment`, y una palabra como `dev`, `test`, `qa`, `staging` o `sandbox`;
-- su cuenta está marcada como **No productivo** en **Entorno** de los **Ajustes** de la cuenta;
-- o una de sus etiquetas de OneUptime lo dice, por ejemplo `Staging` o `env: dev`.
+- o su cuenta está marcada como **No productivo** en **Entorno** de los **Ajustes** de la cuenta.
 
-Gana la producción: una etiqueta que dice `prod`, `production` o `live`, o una cuenta marcada como **Producción**, mantiene un recurso en marcha diga lo que diga lo demás. Para ello nunca se lee el nombre de un recurso. Desactiva una programación y ya no detiene nada, y vuelve a iniciar lo que detuvo cuando empieza su horario laboral; elimínala y lo que detuvo se inicia al momento.
+Una etiqueta de OneUptime nunca hace que un recurso sea no productivo para una programación. Renombrar una etiqueta de OneUptime cambia de una vez cada recurso que la lleva, así que una etiqueta como `Staging` o `env: dev` solo se lee donde una persona aprueba el cambio, como con **Aplicar**. Gana la producción: una etiqueta que dice `prod`, `production` o `live`, una cuenta marcada como **Producción**, o una etiqueta de OneUptime como `Production` o `env: prod` mantiene un recurso en marcha diga lo que diga lo demás. Para ello nunca se lee el nombre de un recurso. Cada detención vuelve a leer el recurso justo antes de hacerse. Desactiva una programación y ya no detiene nada, y vuelve a iniciar lo que detuvo cuando empieza su horario laboral; elimínala y lo que detuvo se inicia al momento.
 
 ## Reglas de IA para ahorros
 
 Con **Habilitar IA** activado, OneUptime AI propone a los propietarios del recurso cada ahorro que puede aplicar después de cada lectura de los ahorros de la cuenta, y ellos lo aprueban o lo descartan en **Esperando aprobación**. En **Nube → Ajustes → Reglas de IA para ahorros**, una regla dice qué hace OneUptime AI con los ahorros que coinciden con ella, según el tipo de cambio, el entorno del recurso y su nube: **Desactivado**, **Proponer al propietario** o **Actuar sin preguntar**, hasta un límite mensual. Sin reglas, cada ahorro se propone y ninguno se aplica; con reglas, solo lo que coincide con una regla, y entre las reglas que coinciden gana la más prudente.
 
-Una regla solo actúa sin preguntar sobre un recurso que se sabe que no es de producción, solo con un cambio que se puede deshacer, solo hasta el límite más pequeño de las reglas que coinciden, y como mucho 10 veces por hora en un proyecto: todo lo demás se propone. Un cambio hecho sin preguntar queda en las cronologías con la regla que lo hizo, y sus propietarios pueden deshacerlo. Un ahorro descartado o deshecho no se vuelve a proponer durante 30 días.
+Una regla solo actúa sin preguntar sobre un recurso que se sabe que no es de producción tal como lo lee una programación, por sus etiquetas o su cuenta y nunca solo por sus etiquetas de OneUptime, solo con un cambio que se puede deshacer, solo hasta el límite más pequeño de las reglas que coinciden, y como mucho 10 veces por hora en un proyecto: todo lo demás se propone. El recurso se vuelve a leer justo antes de hacer el cambio, y uno que para entonces ya no se sabe que no es de producción se propone en su lugar. Un cambio hecho sin preguntar queda en las cronologías con la regla que lo hizo, y sus propietarios pueden deshacerlo. Un ahorro descartado o deshecho no se vuelve a proponer durante 30 días.
 
 ## Presupuestos
 
@@ -481,7 +480,11 @@ OneUptime solo hace cambios de un paso: un compromiso, o una recomendación que 
 :::
 
 :::details Una programación deja un recurso en marcha
-**Ver recursos** dice por qué: es de producción, nada indica que no sea de producción, o la conexión de su cuenta no permite acciones de ahorro. Etiquétalo, por ejemplo `environment` = `dev`, o marca su cuenta como **No productivo**.
+**Ver recursos** dice por qué: es de producción, nada indica que no sea de producción, solo sus etiquetas de OneUptime lo indican, o la conexión de su cuenta no permite acciones de ahorro. Etiquétalo en tu nube, por ejemplo `environment` = `dev`, o marca su cuenta como **No productivo**.
+:::
+
+:::details Una regla propone un cambio que antes hacía sin preguntar
+Su tarjeta dice por qué. Una regla solo hace un cambio sin preguntar sobre un recurso que sus etiquetas o su cuenta dicen que no es de producción: uno que solo sus etiquetas de OneUptime llaman no productivo se propone a sus propietarios en su lugar. Etiquétalo en tu nube, por ejemplo `environment` = `dev`, o marca su cuenta como **No productivo**.
 :::
 
 :::details Una previsión no tiene rango probable

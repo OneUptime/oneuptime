@@ -3,7 +3,7 @@
 A monitor's criteria decide what each check means: whether the monitor is up or down, and whether OneUptime declares an incident or creates an alert. Statuses are your project's list of what a monitor can be, from **Operational** to **Offline**. This page explains both for every monitor type; each type's own page lists the filters it offers.
 
 :::cards
-- [How criteria decide](#how-criteria-decide): Top to bottom, and the first match wins.
+- [How criteria decide](#how-criteria-decide): Top to bottom: the first match acts, and the first that changes the status sets it.
 - [What a criteria holds](#what-a-criteria-holds): Filters, a match condition, actions and settings.
 - [Judging a window of checks](#judging-a-window-of-checks): Count failed checks, catch flapping, read a percentile.
 - [Change a monitor's criteria](#change-a-monitors-criteria): Edit, add, reorder and test criteria.
@@ -12,28 +12,31 @@ A monitor's criteria decide what each check means: whether the monitor is up or 
 
 ## How criteria decide
 
-Each time a monitor is checked, its criteria judge the result from the top of the list down. The first criteria whose filters match decides what happens, and the criteria below it are not looked at for that check. When none matches, the monitor goes to its **Default Monitor Status**, unless a criteria that brings it back has yet to match: see [When a criteria recovers](#when-a-criteria-recovers).
+Each time a monitor is checked, its criteria judge the result from the top of the list down. The first criteria whose filters match decides what happens: it declares its incidents, creates its alerts and, when it is set to, changes the monitor's status. The criteria below it are looked at only when it changes no status, and then only for the status. When none matches, the monitor goes to its **Default Monitor Status**, unless a criteria that brings it back has yet to match: see [When a criteria recovers](#when-a-criteria-recovers).
 
 ```mermaid title="How each check is judged"
 flowchart TB
     R["The result<br/>of a check"] --> C1{"First criteria:<br/>do its<br/>filters match?"}
-    C1 -->|"Yes"| A["That criteria acts"]
+    C1 -->|"Yes"| A["That criteria acts:<br/>it declares its incidents<br/>and creates its alerts"]
     C1 -->|"No"| C2{"Next criteria:<br/>do its<br/>filters match?"}
     C2 -->|"Yes"| A
     C2 -->|"None matched"| D["The monitor<br/>goes to its<br/>default status"]
-    A --> S["Changes<br/>the status"]
-    A --> I["Declares<br/>an incident"]
-    A --> L["Creates an alert"]
+    A --> Q{"Does it change<br/>the status?"}
+    Q -->|"Yes"| S["It sets<br/>the status"]
+    Q -->|"No"| N["The first criteria<br/>below it that matches<br/>and changes the status<br/>sets it, or the monitor<br/>goes to its default status"]
 ```
 
 The order is part of the rule. A new monitor lists its criteria worst first: offline, then a warning where its type has one (a certificate or a domain that expires soon), then online. A broad healthy criteria, such as **Is Online** set to **True**, matches almost every check, so it goes last: above the others, it would match first every time and they would never act.
 
-A criteria that matches but changes no status still decides the check: the monitor keeps the status it has, and the criteria below it wait for the next check. The **Default Monitor Status** applies only when no criteria matches. A new monitor's default is **Operational**; change it under **More fields**, below the criteria.
+A criteria that matches but changes no status, such as a warning that only creates an alert, decides no status. Its alert opens and resolves as any criteria's does, and the criteria below it that change the status are judged for the status alone, in their order: the first of them that matches sets the status, and opens nothing on that check. When none of them matches, the monitor goes to its **Default Monitor Status**, as when no criteria matches. So a site that is back up but slow reads **Operational** with its slow alert open, whatever status an earlier check left it in. A new monitor's default is **Operational**; change it under **More fields**, below the criteria.
+
+> [!NOTE]
+> A criteria that matched first and changed no status used to leave the monitor in the status it had, for as long as it kept matching: a switch the recommended alert pack watches missed one poll, came back with a port above 80%, and stayed **Offline**, its status page red, while the port stayed busy. Now only the criteria that change the status decide it. A monitor whose criteria all change the status is judged exactly as before. So is which criteria declares a check's incidents and creates its alerts: on a monitor that stops at the first match, it is still the first criteria that matches.
 
 > [!NOTE]
 > A monitor that raises one incident or alert per host, container, disk or interface judges every criteria on each check, so two hosts can match two different criteria at once. That is a monitor whose query has a **Group By**, such as a Metrics or Logs monitor, or a criteria that names `*` for every disk or interface. So is a Metrics monitor that watches a PromQL expression: each series the expression returns is judged on its own. An Incoming Request monitor that groups incidents by a payload field still stops at the first match.
 >
-> Such a monitor still has one status, set by the first criteria that matches. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria matches, while each host's incidents and alerts still resolve on their own.
+> Such a monitor still has one status, set by the first criteria that matches among those that change the status. A criteria that only brings it back to its **Default Monitor Status**, opening no incident or alert, waits for the hosts that met a criteria setting another status: it matches once each of them meets it, whatever the other hosts do. Until then the monitor keeps its status, even when no criteria that changes the status matches, while each host's incidents and alerts still resolve on their own.
 
 ## What a criteria holds
 
@@ -125,11 +128,11 @@ The sentence under the window's settings reads it back: "Check if "Response Time
 
 ## When a criteria recovers
 
-A criteria stops acting as soon as its filters stop matching: on that check its incident and alert resolve, when **Auto Resolve Incident** and **Auto Resolve Alert** are on, and the monitor moves to the next criteria that matches.
+A criteria stops acting as soon as its filters stop matching: on that check its incident and alert resolve, when **Auto Resolve Incident** and **Auto Resolve Alert** are on, and the monitor's status follows the criteria that match then.
 
 **Recover only when a condition of its own is met** keeps the criteria in effect after its filters stop matching, until the filters under **Recover When** match. They start as the opposite of the criteria's filters, over the last 10 minutes, and can use everything a filter offers, such as a window that counts checks. A criteria is in effect while the monitor has the status it sets or an incident or alert it declared is open. While it holds, it is a match in its place in the list: a criteria above it that matches still takes over.
 
-When no criteria matches, a monitor that a criteria moved off its **Default Monitor Status** keeps the status it has, as long as it also has a criteria that only brings it back to that status and opens nothing. That is the recovery margin: the templates fire above 90% and come back at or below 81%, so at 89% the monitor stays where it is. Its incidents and alerts still resolve when their own criteria stops matching. A monitor with no such criteria goes to its **Default Monitor Status**, as it always has.
+When no criteria that changes the status matches, a monitor that a criteria moved off its **Default Monitor Status** keeps the status it has, as long as it also has a criteria that only brings it back to that status and opens nothing. That is the recovery margin: the templates fire above 90% and come back at or below 81%, so at 89% the monitor stays where it is. Its incidents and alerts still resolve when their own criteria stops matching. A monitor with no such criteria goes to its **Default Monitor Status**, as it always has.
 
 ## Only on certain days and times
 
@@ -153,6 +156,7 @@ flowchart TB
 
 - **One at a time.** While an incident a criteria declared is still open, the same criteria matching again declares no other. Alerts work the same way. A monitor that groups by host or by payload field keeps one open per host or value, and an Incoming Email criteria with **Open a new incident for every email** opens one per email.
 - **Closing.** On a later check where another criteria matches, or none, an incident whose criteria has **Auto Resolve Incident** on is resolved, and so is an alert with **Auto Resolve Alert**. Both sit under **More fields** in the incident or alert, and the criteria a new monitor starts with have them on.
+- **The criteria that acts.** On a monitor that stops at the first match, the first criteria that matches declares the check's incidents and creates its alerts, even when it changes no status and a criteria below it sets the status. That one opens nothing on the check: put the criteria that change the status above the ones that only alert, worst first, as a new monitor's are, and a check's status and its incident come from the same criteria.
 - **Several probes.** A monitor checked by more than one probe changes only when its probes agree. See [How criteria are evaluated](/docs/monitor/create-monitor#how-criteria-are-evaluated).
 - **A parent monitor that is down.** On a monitor's **Configuration → Dependencies** page, **Depends On Monitors** names the monitors it relies on. While one of them is in a status listed in **Suppress When Parent Status Is** (any offline status, when that is left empty), the monitor opens no incidents or alerts. Its status still changes, and what is open still resolves.
 - **Scheduled maintenance.** A monitor on a maintenance event that is in progress is not checked, so its criteria do not run. See [Scheduled Maintenance Overview](/docs/scheduled-maintenance/index).
@@ -337,6 +341,12 @@ A criteria higher in the list matched first. Open **Configuration → Criteria**
 
 :::details No incident opened when the monitor went down
 Check the criteria that matched: **When filters match, declare an incident.** must be on. An incident is not declared while the same criteria's incident is still open, while a parent monitor in **Depends On Monitors** is down, or while the monitor is in scheduled maintenance. The **Monitor Summary** card on the monitor's **Overview** says which one it was.
+
+A criteria above it that changes no status, such as a slow-response alert, can match first: it creates its alert, the criteria below it sets the status, and that one declares its incident only on a check where it is the first match. Drag the criteria that change the status above the ones that only alert.
+:::
+
+:::details The monitor went back to its default status while an alert stayed open
+The alert's criteria changes no status, so it does not hold the monitor in the status an earlier check set. The first criteria that matches and changes the status sets it, and when none does, the monitor goes to its **Default Monitor Status**. To keep a status while a problem lasts, give the criteria that sets it a recovery condition of its own: see [When a criteria recovers](#when-a-criteria-recovers).
 :::
 
 :::details The incident stays open after the monitor recovered

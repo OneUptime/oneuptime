@@ -50,6 +50,8 @@ flowchart LR
 
 In cima a **Panoramica**, sotto ciò che richiede qualcuno, ogni parte mostra i suoi numeri: le origini e i loro eventi delle ultime 24 ore, le regole attive, i casi aperti e i playbook che rispondono. Una parte non configurata lo dice e apre la pagina in cui configurarla.
 
+Sotto, **Panoramica** nomina ogni regola consigliata che il tuo progetto non ha ancora, con ciò che rileva e **Attiva**, che la aggiunge come fa la Libreria di regole. Anche una regola che diventa consigliata in seguito compare lì. In un progetto che aveva attive tutte le altre regole consigliate, l'aggiornamento ha attivato **Sensitive file served**, e **Panoramica** lo dice per un mese, con **Disattiva**.
+
 ## Trovare eventi di sicurezza nei tuoi log
 
 La scheda **I tuoi log**, in cima a **Connessioni**, non richiede installazioni. Con **Trova eventi di sicurezza nei tuoi log** attivo, OneUptime legge ogni minuto i nuovi log del progetto e trasforma in eventi di sicurezza le righe che riconosce:

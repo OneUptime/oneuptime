@@ -5,6 +5,7 @@ import ChatAgentRunner, {
 import ExternalMcpServerCheck from "Common/Server/Utils/AI/Mcp/ExternalMcpServerCheck";
 import ExternalMcpServerConnection from "Common/Server/Utils/AI/Mcp/ExternalMcpServerConnection";
 import { clearMcpSignInCachesForTests } from "Common/Server/Utils/AI/Mcp/McpSignIn";
+import { McpRunToolMark } from "Common/Server/Utils/AI/Mcp/McpRunToolkit";
 import AiContextReader from "Common/Server/Utils/AI/AiContext/AiContextReader";
 import AIRunLimitsReader from "Common/Server/Utils/AI/AIRunLimitsReader";
 import AIService, {
@@ -16,6 +17,7 @@ import AIConversationService from "Common/Server/Services/AIConversationService"
 import AIRunEventService from "Common/Server/Services/AIRunEventService";
 import AIRunService from "Common/Server/Services/AIRunService";
 import ExternalMcpServerService from "Common/Server/Services/ExternalMcpServerService";
+import ExternalMcpToolReadOnlyMarkService from "Common/Server/Services/ExternalMcpToolReadOnlyMarkService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import logger from "Common/Server/Utils/Logger";
 import { LLMToolDefinition } from "Common/Server/Utils/LLM/LLMService";
@@ -169,6 +171,8 @@ export interface TurnHarness {
   // Enable AI, as the project reads now.
   setAiEnabled: (isEnabled: boolean) => void;
   setServers: (servers: Array<ExternalMcpServer>) => void;
+  // The project's read-only marks (#11081), as a run reads them: none at first.
+  setMarks: (marks: Array<McpRunToolMark>) => void;
   // The run as a resume reads it: waiting for approval, with what was paused.
   serveRunForResume: (pausedState: AIRunPausedState) => void;
   // A turn's own time limit, as the project's limits say it.
@@ -180,6 +184,7 @@ export function installTurnHarness(): TurnHarness {
 
   let answers: Array<ScriptedAnswer> = [];
   let servers: Array<ExternalMcpServer> = [];
+  let marks: Array<McpRunToolMark> = [];
   let isAiEnabled: boolean = true;
   const connections: Array<string> = [];
   const failures: Array<JSONObject> = [];
@@ -261,6 +266,13 @@ export function installTurnHarness(): TurnHarness {
     .spyOn(ExternalMcpServerCheck, "recordConnection")
     .mockImplementation((async (data: JSONObject) => {
       failures.push(data);
+    }) as never);
+
+  // The project's read-only marks (#11081): none, unless a test marks a tool.
+  jest
+    .spyOn(ExternalMcpToolReadOnlyMarkService, "findMarksOfServer")
+    .mockImplementation((async () => {
+      return marks;
     }) as never);
 
   const realFromServer: typeof ExternalMcpServerConnection.fromServer =
@@ -351,6 +363,9 @@ export function installTurnHarness(): TurnHarness {
     },
     setServers: (next: Array<ExternalMcpServer>): void => {
       servers = next;
+    },
+    setMarks: (next: Array<McpRunToolMark>): void => {
+      marks = next;
     },
     serveRunForResume: (pausedState: AIRunPausedState): void => {
       const run: AIRun = new AIRun();

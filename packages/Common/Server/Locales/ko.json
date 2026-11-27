@@ -309,6 +309,7 @@
   "New incident episode assigned to you": "새 인시던트 에피소드가 배정되었습니다",
   "New note has been added to an incident": "사고에 새 메모가 추가되었습니다",
   "No": "아니오",
+  "No commitments": "약정 없음",
   "No longer waiting for approval.": "더 이상 승인을 기다리지 않습니다.",
   "No longer waiting for approval: the run was cancelled.": "더 이상 승인을 기다리지 않습니다: 실행이 취소되었습니다.",
   "No resources have been added to this status page yet, so there is nothing to report this period.": "이 상태 페이지에 아직 추가된 리소스가 없으므로 이 기간에 보고할 내용이 없습니다.",

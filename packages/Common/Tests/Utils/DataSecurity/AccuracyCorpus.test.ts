@@ -1282,9 +1282,378 @@ function drawnSsn(): string {
   return `${String(area).padStart(3, "0")}-${String(group).padStart(2, "0")}-${String(serial).padStart(4, "0")}`;
 }
 
+// A Visa number's sixteen digits in its four groups, apart by `separator`.
+function inGroupsOfFour(card: string, separator: string): string {
+  return card.replace(/([0-9]{4})(?=[0-9])/g, `$1${separator}`);
+}
+
+// The last digit of a number one more: a check digit off.
+function checkDigitOff(number: string): string {
+  return number.slice(0, -1) + String((Number(number.slice(-1)) + 1) % 10);
+}
+
+// An IBAN of a country whose BBAN is all digits, drawn, in its groups of four apart by `separator`.
+function drawnIban(): string {
+  const country: string = ["DE", "BE", "PL", "HU"][random(4)]!;
+  const lengths: Readonly<Record<string, number>> = {
+    DE: 18,
+    BE: 12,
+    PL: 24,
+    HU: 24,
+  };
+
+  return iban(country, drawnDigitsOf(lengths[country]!));
+}
+
+function ibanInGroups(value: string, separator: string): string {
+  return value.replace(/(.{4})(?=.)/g, `$1${separator}`);
+}
+
+// A plausible birth date's parts: a year from 1950 to 2000, a month, a day every month has.
+function drawnBirthDate(): { year: string; month: string; day: string } {
+  return {
+    year: String(1950 + random(51)),
+    month: String(1 + random(12)).padStart(2, "0"),
+    day: String(1 + random(28)).padStart(2, "0"),
+  };
+}
+
+// A UK postcode: an area, a district digit, a space, a digit and two of the letters an inward code takes.
+function drawnUkPostcode(): string {
+  return `${fake("ABCDEFGHKLMNOPRSTUWYZ", 1 + random(2))}${random(10)} ${random(10)}${fake("ABDEFGHJLNPQRSTUWXYZ", 2)}`;
+}
+
+const MONTH_NAMES: ReadonlyArray<string> = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
 const READING_CASES_OF: Readonly<
   Record<string, (corpus: Record<string, CorpusEntry>) => CorpusEntry>
 > = {
+  /*
+   * #11199, #11200: a date of birth in a URL - its slashes escaped, its
+   * words before it typed into a form, its month's name and spaces "+" -
+   * and in Arabic-Indic digits typed into one; and what is none written
+   * so: no real date, a date with no word that says it is a birth.
+   */
+  "date-of-birth: in a URL, its slashes escaped or its words typed into a form":
+    (): CorpusEntry => {
+      const first: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const second: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const third: { year: string; month: string; day: string } =
+        drawnBirthDate();
+      const escaped: string = `${first.day}%2F${first.month}%2F${first.year}`;
+      const iso: string = `${second.year}-${second.month}-${second.day}`;
+      const written: string = `${Number(third.day)}+${MONTH_NAMES[Number(third.month) - 1]}+${third.year}`;
+      // The date's own digits in Arabic-Indic ones, its escaped slashes as a URL writes them.
+      const arabic: string = [third.day, third.month, third.year]
+        .map((part: string): string => {
+          return inScript(part, ARABIC_INDIC_ZERO);
+        })
+        .join("%2F");
+
+      return {
+        positives: [
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=${escaped}&step=2 HTTP/1.1 200`,
+            escaped,
+          ),
+          labelled(
+            "date-of-birth",
+            `{"url": "/apply?date+of+birth=${iso}&source=form", "batch": "nightly"}`,
+            iso,
+          ),
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /signup?born=${written}&step=2 HTTP/1.1 200`,
+            written,
+          ),
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=${arabic}&step=2 HTTP/1.1 200`,
+            arabic,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "date-of-birth",
+            `2026-10-27T10:15:02Z INFO GET /verify?dob=31%2F02%2F${first.year}&step=2 HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "date-of-birth",
+            `{"url": "/search?q=${iso}&source=form", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  // #11199, #11200: a UK postcode typed into a form, and with %20 for its space.
+  "postal-code: typed into a form, or with %20 for its space":
+    (): CorpusEntry => {
+      const typed: string = drawnUkPostcode().split(" ").join("+");
+      const escaped: string = drawnUkPostcode().split(" ").join("%20");
+
+      return {
+        positives: [
+          labelled(
+            "postal-code",
+            `2026-10-27T10:15:02Z INFO GET /lookup?postcode=${typed}&step=2 HTTP/1.1 200`,
+            typed,
+          ),
+          labelled(
+            "postal-code",
+            `{"url": "/stores?near=${escaped}&radius=5", "batch": "nightly"}`,
+            escaped,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "postal-code",
+            `2026-10-27T10:15:02Z INFO GET /lookup?postcode=${typed.slice(0, -1)}C&step=2 HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "postal-code",
+            `{"url": "/stores?near=${escaped.slice(0, -1)}&radius=5", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  // #11199: a street address a form wrote, its words apart by "+" or %20.
+  "postal-address: typed into a form, or with %20 between its words":
+    (): CorpusEntry => {
+      const name: string = `${fake(UPPER, 1)}${fake(LOWER, 4 + random(5))}`;
+      const typed: string = `${10 + random(900)}+${name}+Street`;
+      const escaped: string = `${10 + random(900)}%20${fake(UPPER, 1)}${fake(LOWER, 5)}%20Avenue`;
+
+      return {
+        positives: [
+          labelled(
+            "postal-address",
+            `2026-10-27T10:15:02Z INFO GET /delivery?address=${typed}&step=2 HTTP/1.1 200`,
+            typed,
+          ),
+          labelled(
+            "postal-address",
+            `{"url": "/checkout?ship_to=${escaped}&step=3", "batch": "nightly"}`,
+            escaped,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "postal-address",
+            `2026-10-27T10:15:02Z INFO GET /search?q=${10 + random(90)}+apples+on+${name}+shelves HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "postal-address",
+            `{"url": "/checkout?ship_to=${10 + random(900)}%20${name.toLowerCase()}%20street&step=3", "batch": "nightly"}`,
+            "",
+          ),
+        ],
+      };
+    },
+  /*
+   * #11199: a card in a URL's query string, its groups apart by an
+   * escaped space, by the "+" a form writes a space as, or by that "+"
+   * escaped again in a URL inside a query string - and in another
+   * script's digits typed into a form.
+   */
+  "credit-card-number: in a URL, %20 or '+' between its groups":
+    (): CorpusEntry => {
+      const card: string = drawnCard();
+      const encoded: string = inGroupsOfFour(card, "%20");
+      const typed: string = inGroupsOfFour(card, "+");
+      const nested: string = inGroupsOfFour(card, "%2B");
+      const arabic: string = inScript(typed, ARABIC_INDIC_ZERO);
+
+      return {
+        positives: [
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /pay?card=${encoded}&step=2 HTTP/1.1 200`,
+            encoded,
+          ),
+          labelled(
+            "credit-card-number",
+            `{"url": "/checkout?number=${typed}&cvc_check=pass", "batch": "nightly"}`,
+            typed,
+          ),
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /login?next=%2Fpay%3Fcard%3D${nested} HTTP/1.1 302`,
+            nested,
+          ),
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /pay?card=${arabic}&step=2 HTTP/1.1 200`,
+            arabic,
+          ),
+        ],
+        nearMisses: [
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /pay?card=${inGroupsOfFour(checkDigitOff(card), "%20")}&step=2 HTTP/1.1 200`,
+            "",
+          ),
+          labelled(
+            "credit-card-number",
+            `{"url": "/checkout?number=${inGroupsOfFour(checkDigitOff(card), "+")}&cvc_check=pass", "batch": "nightly"}`,
+            "",
+          ),
+          labelled(
+            "credit-card-number",
+            `2026-10-27T10:15:02Z INFO GET /pay?card=${inGroupsOfFour(card, "+")}${random(10)}&step=2 HTTP/1.1 200`,
+            "",
+          ),
+        ],
+      };
+    },
+  /*
+   * #11199: an IBAN in a URL's query string, its groups apart as a card's
+   * are - each drawn again while its near miss is another type's value: a
+   * BBAN's sixteen digits in four groups pass a card's Luhn check one time
+   * in ten, and an IBAN a digit off is that card.
+   */
+  "iban: in a URL, %20 or '+' between its groups": (): CorpusEntry => {
+    const drawn: (separator: string) => [string, string] = (
+      separator: string,
+    ): [string, string] => {
+      for (;;) {
+        const value: string = drawnIban();
+        const nearMiss: string = ibanInGroups(checkDigitOff(value), separator);
+
+        if (
+          !isTakenByAnotherType("iban", `iban=${nearMiss}`) &&
+          !isTakenByAnotherType(
+            "iban",
+            `iban=${ibanInGroups(value, separator)}`,
+          )
+        ) {
+          return [ibanInGroups(value, separator), nearMiss];
+        }
+      }
+    };
+    const [encoded, encodedOff] = drawn("%20");
+    const [typed, typedOff] = drawn("+");
+
+    return {
+      positives: [
+        labelled(
+          "iban",
+          `2026-10-27T10:15:02Z INFO GET /payout?iban=${encoded}&step=2 HTTP/1.1 200`,
+          encoded,
+        ),
+        labelled(
+          "iban",
+          `{"url": "/sepa/mandate?account=${typed}&source=form", "batch": "nightly"}`,
+          typed,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "iban",
+          `2026-10-27T10:15:02Z INFO GET /payout?iban=${encodedOff}&step=2 HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "iban",
+          `{"url": "/sepa/mandate?account=${typedOff}&source=form", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  /*
+   * #11199: a phone number a form wrote - its spaces "+", its own "+"
+   * escaped, or written as it is before its digits - and what only looks
+   * like one written so: a count, a decimal.
+   */
+  "phone-number: as a form writes it": (): CorpusEntry => {
+    const berlin: string = `%2B49+30+${drawnDigitsOf(8, "2")}`;
+    const paris: string = `+33+6+${drawnDigitsOf(2)}+${drawnDigitsOf(2)}+${drawnDigitsOf(2)}+${drawnDigitsOf(2)}`;
+    const sanFrancisco: string = `%28415%29+${drawnExchange()}-${drawnDigitsOf(4)}`;
+
+    return {
+      positives: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /callback?phone=${berlin} HTTP/1.1 200`,
+          berlin,
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/notify?mobile=${paris}&step=2", "batch": "nightly"}`,
+          paris,
+        ),
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO POST /contact body=name%3Dx%26tel%3D${sanFrancisco} HTTP/1.1 200`,
+          sanFrancisco,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "phone-number",
+          `2026-10-27T10:15:02Z INFO GET /search?q=%2B1+2+3+4+5+6+7+8 HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "phone-number",
+          `{"url": "/search?delta=%2B${10 + random(80)}.${drawnDigitsOf(6)}+units&step=2", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
+  // #11199: a Social Security number in a URL, its groups apart by %20 or "+".
+  "us-ssn: in a URL, %20 or '+' between its groups": (): CorpusEntry => {
+    const encoded: string = drawnSsn().split("-").join("%20");
+    const typed: string = drawnSsn().split("-").join("+");
+
+    return {
+      positives: [
+        labelled(
+          "us-ssn",
+          `2026-10-27T10:15:02Z INFO GET /verify?ssn=${encoded}&step=2 HTTP/1.1 200`,
+          encoded,
+        ),
+        labelled(
+          "us-ssn",
+          `{"url": "/apply?ssn=${typed}&source=form", "batch": "nightly"}`,
+          typed,
+        ),
+      ],
+      nearMisses: [
+        labelled(
+          "us-ssn",
+          `2026-10-27T10:15:02Z INFO GET /verify?ssn=666%20${drawnSsn().slice(4).split("-").join("%20")}&step=2 HTTP/1.1 200`,
+          "",
+        ),
+        labelled(
+          "us-ssn",
+          `{"url": "/apply?ssn=${drawnSsn().split("-").join("+")}+${drawnDigitsOf(2)}&source=form", "batch": "nightly"}`,
+          "",
+        ),
+      ],
+    };
+  },
   // #11030
   "phone-number: in a percent-encoded URL": (): CorpusEntry => {
     const berlin: string = `%2B49%2030%20${drawnDigitsOf(8, "2")}`;
@@ -1785,6 +2154,94 @@ function everyScriptCases(
   return cases;
 }
 
+/*
+ * #11199: every type whose detectors read a text as a URL's query string
+ * writes it - a "+" for each space - its own drawn values and near misses
+ * as a URL holds them: the log line or the JSON text each is written in,
+ * sent as a query parameter's value, percent-encoded as encodeURIComponent
+ * writes it (a space %20, a colon %3A) and as a form writes it
+ * (URLSearchParams: a space "+", a "+" %2B). A value is the same value
+ * however a URL writes it - its check digit and the words around it prove
+ * it the same way - so each is found as its type, on the characters the
+ * URL writes it with, and each near miss refused, as when written plainly.
+ */
+const PLUS_AS_SPACE_TYPES: ReadonlyArray<string> = Array.from(
+  new Set(
+    BUILT_IN_DETECTORS.filter((detector: DataTypeDetector): boolean => {
+      return detector.readsPlusAsSpace === true;
+    }).map((detector: DataTypeDetector): string => {
+      return detector.dataTypeId;
+    }),
+  ),
+).sort();
+
+// A text as a form writes it into a query string: a space "+", a "+" %2B, the rest escaped.
+function asAFormWritesIt(text: string): string {
+  return new URLSearchParams({ line: text }).toString().slice("line=".length);
+}
+
+// The ways a URL writes a text: each value's two, in turn.
+const URL_WRITINGS: ReadonlyArray<(text: string) => string> = [
+  encodeURIComponent,
+  asAFormWritesIt,
+];
+
+function inAUrl(text: string, write: (text: string) => string): string {
+  return `2026-10-27T10:15:02Z INFO GET /records?line=${write(text)}&page=2 HTTP/1.1 200`;
+}
+
+/*
+ * Each value and each near miss written both ways. A near miss whose URL
+ * writing is another type's value as written is left out, as the corpus
+ * leaves out such a near miss of its own (isTakenByAnotherType): a form's
+ * "+" for a space can spell another type's own writing - a South African
+ * ID's 051214 2647 143 is 051214+2647+143, and 051214+2647 is a Swedish
+ * personnummer as a centenarian's is written.
+ */
+function inAUrlCases(
+  corpus: Record<string, CorpusEntry>,
+): Record<string, CorpusEntry> {
+  const cases: Record<string, CorpusEntry> = {};
+
+  for (const dataTypeId of PLUS_AS_SPACE_TYPES) {
+    const entry: CorpusEntry | undefined = corpus[dataTypeId];
+
+    if (!entry) {
+      continue;
+    }
+
+    const positives: Array<Labelled> = [];
+    const nearMisses: Array<Labelled> = [];
+
+    for (const write of URL_WRITINGS) {
+      for (const positive of entry.positives) {
+        positives.push(
+          labelled(
+            positive.dataTypeId,
+            inAUrl(positive.text, write),
+            write(positive.value),
+          ),
+        );
+      }
+
+      for (const nearMiss of entry.nearMisses) {
+        const text: string = inAUrl(nearMiss.text, write);
+
+        if (!isTakenByAnotherType(dataTypeId, text)) {
+          nearMisses.push(labelled(nearMiss.dataTypeId, text, ""));
+        }
+      }
+    }
+
+    cases[`${dataTypeId}: its values in a URL's query string`] = {
+      positives,
+      nearMisses,
+    };
+  }
+
+  return cases;
+}
+
 function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
   const cases: Record<string, CorpusEntry> = {};
   // The corpus of this seed: what the cases built from its values read.
@@ -1796,8 +2253,15 @@ function buildReadingCases(corpusSeed: number): Record<string, CorpusEntry> {
     cases[name] = build(corpus);
   }
 
-  return { ...cases, ...everyScriptCases(corpus) };
+  return {
+    ...cases,
+    ...everyScriptCases(corpus),
+    ...inAUrlCases(corpus),
+  };
 }
+
+// The seeds besides the corpus's own the reading cases are held to (#11199, #11200).
+const OTHER_READING_SEEDS: ReadonlyArray<number> = [1, 2, 3, 50, 77];
 
 const READING_CASES: Record<string, CorpusEntry> =
   buildReadingCases(CORPUS_SEED);
@@ -2072,7 +2536,7 @@ describe("values written the ways the detectors now read them too", () => {
    * A precision and a recall of 1: every labelled value found as its type,
    * and nothing else - no near miss, no other type - found in any of them.
    */
-  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030 to #11034)", () => {
+  test("finds every value, and nothing else, with every built-in detector (#10935, #10936, #10960, #11025, #11030 to #11034, #11199, #11200)", () => {
     const readingScores: Scores = score(READING_CASES);
     const wrong: Array<string> = [];
 
@@ -2087,7 +2551,91 @@ describe("values written the ways the detectors now read them too", () => {
     expect(readingScores.found).toBe(readingScores.positives);
   });
 
-  test("writes every type read in every script's digits in another script's digits (#11033)", () => {
+  /*
+   * The same at other seeds: every case drawn again - its values, its near
+   * misses, the corpus its every-script and URL cases are written from -
+   * and still every value found as its type and nothing else.
+   */
+  test.each(
+    OTHER_READING_SEEDS.map((seed: number): [number] => {
+      return [seed];
+    }),
+  )(
+    "finds every value, and nothing else, at seed %i too (#11199, #11200)",
+    (seed: number) => {
+      const cases: Record<string, CorpusEntry> = buildReadingCases(seed);
+      const readingScores: Scores = score(cases);
+      const wrong: Array<string> = [];
+
+      for (const tally of readingScores.byType.values()) {
+        wrong.push(...tally.wrong);
+      }
+
+      expect({ seed, wrong, missed: readingScores.missed }).toEqual({
+        seed,
+        wrong: [],
+        missed: [],
+      });
+      expect(readingScores.found).toBe(readingScores.positives);
+      expect(Object.keys(cases)).toEqual(Object.keys(READING_CASES));
+    },
+  );
+
+  test("writes every type read as a query string writes it in a URL, its values in a URL (#11199)", () => {
+    expect(PLUS_AS_SPACE_TYPES).toEqual(
+      expect.arrayContaining([
+        "credit-card-number",
+        "iban",
+        "us-bank-routing-number",
+        "us-ssn",
+        "phone-number",
+        "br-cpf",
+        "in-aadhaar",
+        "uk-nhs-number",
+        "passport-number",
+        "date-of-birth",
+        "postal-code",
+        "postal-address",
+        "bank-account-number",
+        "uk-sort-code",
+        "card-verification-code",
+        "card-expiration-date",
+      ]),
+    );
+
+    const written: Array<string> = PLUS_AS_SPACE_TYPES.filter(
+      (dataTypeId: string): boolean => {
+        return Boolean(CORPUS[dataTypeId]);
+      },
+    );
+
+    expect(written.length).toBeGreaterThan(60);
+
+    for (const dataTypeId of written) {
+      const entry: CorpusEntry =
+        READING_CASES[`${dataTypeId}: its values in a URL's query string`]!;
+
+      expect([dataTypeId, entry.positives.length]).toEqual([dataTypeId, 4]);
+
+      // In a URL indeed: each value's text percent-encoded, then as a form writes it.
+      for (const positive of entry.positives.slice(0, 2)) {
+        expect([dataTypeId, positive.text]).toEqual([
+          dataTypeId,
+          expect.stringContaining("%20"),
+        ]);
+      }
+
+      for (const positive of entry.positives.slice(2)) {
+        expect([
+          dataTypeId,
+          positive.text.includes("%20"),
+          positive.text.includes("+"),
+        ]).toEqual([dataTypeId, false, true]);
+      }
+    }
+  });
+
+  test("writes every type read in every script's digits in another script's digits (#11033, #11200)", () => {
     expect(EVERY_SCRIPT_TYPES).toEqual(
       expect.arrayContaining([
         "iban",
@@ -2102,6 +2650,16 @@ describe("values written the ways the detectors now read them too", () => {
         "uk-nhs-number",
         "us-npi",
         "passport-number",
+        // #11200
+        "date-of-birth",
+        "postal-code",
+        "bank-account-number",
+        "uk-sort-code",
+        "au-bsb",
+        "swift-bic",
+        "in-ifsc",
+        "card-verification-code",
+        "card-expiration-date",
       ]),
     );
 

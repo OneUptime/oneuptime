@@ -275,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## 보안 케이스 확인
 
-AWS에서는 같은 연결로, 공격이 IAM 사용자에게서 바꾼 것이 되돌려졌는지 [보안 케이스](/docs/telemetry/security-cases#oneuptime이-단계를-확인하는-방법)가 확인하게 할 수도 있습니다. 공격이 만든 액세스 키, 설정한 콘솔 비밀번호, 연결하거나 작성한 정책, 사용자를 추가한 그룹, 활성화한 MFA 기기, 만든 사용자입니다. **추가 필드** 아래의 **보안 케이스 확인** 은 켜기 전까지 **꺼짐** 이며, 양식에 표시되는 명령도 이에 따라 바뀝니다. 각 작업은 읽기만 하며 비밀은 읽지 않습니다. 액세스 키의 ID와 활성 여부는 읽지만 키 자체는 읽지 않고, 콘솔 비밀번호가 설정되어 있다는 것은 읽지만 비밀번호 자체는 읽지 않습니다.
+AWS에서는 같은 연결로, 공격이 IAM 사용자나 역할에서 바꾼 것이 되돌려졌는지 [보안 케이스](/docs/telemetry/security-cases#oneuptime이-단계를-확인하는-방법)가 확인하게 할 수도 있습니다. 공격이 만든 액세스 키, 설정한 콘솔 비밀번호, 연결하거나 작성한 정책, 사용자를 추가한 그룹, 활성화한 MFA 기기, 만든 사용자나 역할, 역할에 설정한 신뢰 정책입니다. **추가 필드** 아래의 **보안 케이스 확인** 은 켜기 전까지 **꺼짐** 이며, 양식에 표시되는 명령도 이에 따라 바뀝니다. 각 작업은 읽기만 하며 비밀은 읽지 않습니다. 액세스 키의 ID와 활성 여부는 읽지만 키 자체는 읽지 않고, 콘솔 비밀번호가 설정되어 있다는 것은 읽지만 비밀번호 자체는 읽지 않습니다.
 
-| 케이스가 CloudTrail 이벤트에 나온 각 사용자에 대해 읽는 것 | 작업 |
+| 케이스가 CloudTrail 이벤트에 나온 각 사용자와 역할에 대해 읽는 것 | 작업 |
 | --- | --- |
 | 사용자, 또는 사용자가 더 이상 없다는 것 | `iam:GetUser` |
 | 액세스 키와 각 키의 활성 여부 | `iam:ListAccessKeys` |
@@ -285,11 +285,13 @@ AWS에서는 같은 연결로, 공격이 IAM 사용자에게서 바꾼 것이 �
 | 관리형 정책과 인라인 정책의 이름 | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | 사용자가 속한 그룹 | `iam:ListGroupsForUser` |
 | MFA 기기 | `iam:ListMFADevices` |
+| 역할, 그 신뢰 정책이 신뢰하는 대상, 또는 역할이 사라졌는지 | `iam:GetRole` |
+| 역할의 관리형 정책과 인라인 정책 이름 | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 역할용 명령에는 한 줄이 더해져 전용 인라인 정책 `OneUptimeSecurityCaseChecks` 가 추가되고, 조직의 StackSet은 이를 모든 계정의 역할에 넣습니다.
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 **액세스 키** 를 쓰면 정책은 사용자가 가입하는 같은 이름의 그룹 `OneUptimeSecurityCaseChecks` 에 들어갑니다.
@@ -298,12 +300,12 @@ aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseC
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
 aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-케이스는 변경이 이루어진 계정에 닿는 연결을 통해서만 변경을 읽고, **보안 케이스 확인** 이 **꺼짐** 인 연결을 통해서는 IAM에 아무것도 묻지 않습니다. 그런 변경은 나열해 직접 확인하게 하고, 이 설정을 켜라고 안내합니다. **꺼짐** 은 아무것도 추가하지 않으므로, 이전 명령이 부여한 것은 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 로 삭제할 때까지 그대로 남습니다.
+케이스는 변경이 이루어진 계정에 닿는 연결을 통해서만 변경을 읽고, **보안 케이스 확인** 이 **꺼짐** 인 연결을 통해서는 IAM에 아무것도 묻지 않습니다. 그런 변경은 나열해 직접 확인하게 하고, 이 설정을 켜라고 안내합니다. **꺼짐** 은 아무것도 추가하지 않으므로, 이전 명령이 부여한 것은 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 로 삭제할 때까지 그대로 남습니다. 설정이 역할을 읽기 전에 실행한 명령은 사용자 읽기만 허용합니다. 연결의 명령을 다시 실행하세요. 그때까지 케이스는 역할 변경을 나열해 직접 확인하게 하고, 명령을 실행하라고 안내합니다.
 
 ## OneUptime이 읽는 것
 

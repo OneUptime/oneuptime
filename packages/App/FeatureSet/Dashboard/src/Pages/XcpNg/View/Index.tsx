@@ -87,6 +87,8 @@ import XcpNgBusiestCard, {
   XCP_NG_BUSIEST_SHOWN,
 } from "../../../Components/XcpNg/XcpNgBusiestCard";
 import XcpNgHostsCard from "../../../Components/XcpNg/XcpNgHostsCard";
+import XcpNgBackupsCard from "../../../Components/XcpNg/XcpNgBackupsCard";
+import XcpNgHighAvailabilityCard from "../../../Components/XcpNg/XcpNgHighAvailabilityCard";
 import XcpNgStorageRepositoriesCard from "../../../Components/XcpNg/XcpNgStorageRepositoriesCard";
 import { getXcpNgProblemPill } from "../../../Components/XcpNg/XcpNgProblemPills";
 import {
@@ -119,6 +121,7 @@ import {
   XCP_NG_METRIC_STALE_MS,
   toXcpNgNumber,
 } from "../Utils/XcpNgResourceUtils";
+import { isXcpNgBackupsRead } from "../Utils/XcpNgEventFacts";
 
 /*
  * AN XCP-NG POOL'S OVERVIEW: "what is this pool, and is it all right?"
@@ -225,6 +228,16 @@ const XcpNgPoolOverview: FunctionComponent<
           storageRepositoryCount: true,
           storageCapacityBytes: true,
           storageUsedBytes: true,
+          // What a probe reads beyond the metrics (#10997).
+          isHaEnabled: true,
+          haHostFailuresToTolerate: true,
+          haPlanExistsFor: true,
+          isHaOvercommitted: true,
+          masterHostExternalId: true,
+          eventsReadAt: true,
+          backupsReadAt: true,
+          eventReadStatus: true,
+          backupJobs: true,
         },
       });
     };
@@ -359,6 +372,9 @@ const XcpNgPoolOverview: FunctionComponent<
         rows: inventory,
         routeFor: routes.getPartRoute,
         now: now,
+        // HA, backup jobs and what a probe could not read: the pool's own.
+        pool: pool,
+        translator: translator,
       })
     : [];
   const poolHealth: ResourceHealth = getXcpNgPoolHealth(attentionItems);
@@ -1029,6 +1045,22 @@ const XcpNgPoolOverview: FunctionComponent<
     );
   };
 
+  const isBackupsRead: boolean = isXcpNgBackupsRead(pool);
+
+  const renderBackups: () => ReactElement = (): ReactElement => {
+    return (
+      <XcpNgBackupsCard
+        pool={pool}
+        rows={inventory}
+        vmsRoute={routes.vmsRoute}
+        // Where a Xen Orchestra is connected from a probe (#10996).
+        setupRoute={RouteMap[PageMap.XCP_NG_CONNECTIONS] as Route}
+        routeFor={routes.getPartRoute}
+        now={now}
+      />
+    );
+  };
+
   /*
    * A pool Xen Orchestra reports with nothing in it yet - in the minute
    * after it was added - says what comes, rather than a page of zeros. A
@@ -1117,6 +1149,20 @@ const XcpNgPoolOverview: FunctionComponent<
       {hasInventory ? (
         <>
           {renderTiles()}
+          {/*
+           * HA and backups a probe reads from Xen Orchestra (#10997), under
+           * the tiles: is the pool safe from a host failure, and was it
+           * backed up last night? A pool no probe reads backups for says
+           * how to see them at the foot of the page instead.
+           */}
+          <XcpNgHighAvailabilityCard
+            pool={pool}
+            rows={inventory}
+            getHostRoute={(externalId: string): Route => {
+              return routes.getPartRoute("Host", externalId);
+            }}
+          />
+          {isBackupsRead ? renderBackups() : <></>}
           {renderBusiest()}
           <XcpNgHostsCard
             rows={inventory}
@@ -1125,6 +1171,7 @@ const XcpNgPoolOverview: FunctionComponent<
             }}
             hostsRoute={routes.hostsRoute}
             now={now}
+            masterHostExternalId={pool.masterHostExternalId || undefined}
           />
           <XcpNgStorageRepositoriesCard
             rows={inventory}
@@ -1133,6 +1180,7 @@ const XcpNgPoolOverview: FunctionComponent<
             }}
             storageRoute={routes.storageRoute}
           />
+          {isBackupsRead ? <></> : renderBackups()}
         </>
       ) : (
         <></>

@@ -16,7 +16,9 @@ import {
 import {
   CloudResourceEnvironment,
   CloudResourceEnvironmentReading,
-  getCloudResourceEnvironment,
+  CloudResourceEnvironmentReadings,
+  getCloudResourceEnvironmentReadings,
+  isNonProductionOnlyByLabels,
 } from "../../../Types/Cloud/CloudResourceEnvironment";
 import {
   CloudSavingsActionKind,
@@ -72,9 +74,14 @@ import CloudSavingsActionRunner, {
  *
  * A resource it picks that is production, or whose environment nothing
  * says (Types/Cloud/CloudResourceEnvironment), is never stopped: the
- * schedule says so on its page. Nor is one whose account's connection does
- * not allow Savings actions. A stop that ended saves the hours the
- * resource did not run (CloudSavingsAction.savedHours).
+ * schedule says so on its page. Its environment is read as a change nobody
+ * approves reads it (#11347): non-production only from its cloud tags or
+ * its account's setting, so a resource only its OneUptime labels call
+ * non-production is left running too, and a label that says production
+ * keeps one running. Each stop reads it again when it is made
+ * (CloudSavingsActionRunner). Nor is one stopped whose account's
+ * connection does not allow Savings actions. A stop that ended saves the
+ * hours the resource did not run (CloudSavingsAction.savedHours).
  *
  * A stop is never left for good because its schedule went: a schedule
  * turned off stops nothing more, and starts what it stopped when its
@@ -135,9 +142,39 @@ interface PickedResource {
   resource: CloudResource;
   kind: CloudSavingsActionKind;
   target: CloudSavingsTarget | null;
+  // Every sign, labels' names included: what the schedule's page shows.
   environment: CloudResourceEnvironmentReading;
+  // What the schedule acts on: never a label's non-production (#11347).
+  unattendedEnvironment: CloudResourceEnvironmentReading;
   account: CloudAccount | undefined;
   skipReason?: CloudOffHoursSkipReason | undefined;
+}
+
+/*
+ * Why a schedule leaves a resource running for its environment, or nothing
+ * when it may stop it: production on any sign; otherwise it must be known
+ * not to be production as a change nobody approves reads it - by its cloud
+ * tags or its account's setting, never its labels alone (#11347).
+ */
+export function getCloudOffHoursEnvironmentSkip(
+  readings: CloudResourceEnvironmentReadings,
+): CloudOffHoursSkipReason | undefined {
+  if (
+    readings.reading.environment === CloudResourceEnvironment.Production ||
+    readings.unattended.environment === CloudResourceEnvironment.Production
+  ) {
+    return CloudOffHoursSkipReason.Production;
+  }
+
+  if (
+    readings.unattended.environment === CloudResourceEnvironment.NonProduction
+  ) {
+    return undefined;
+  }
+
+  return isNonProductionOnlyByLabels(readings.reading)
+    ? CloudOffHoursSkipReason.OnlyLabelsSayNonProduction
+    : CloudOffHoursSkipReason.EnvironmentNotKnown;
 }
 
 const SCHEDULE_SELECT: { [key: string]: true } = {
@@ -466,8 +503,8 @@ export default class CloudOffHoursScheduler {
             return entry.type === resource.cloudResourceType;
           },
         )?.kind || CloudSavingsActionKind.StopInstance;
-      const environment: CloudResourceEnvironmentReading =
-        getCloudResourceEnvironment({
+      const readings: CloudResourceEnvironmentReadings =
+        getCloudResourceEnvironmentReadings({
           tags,
           accountEnvironment: account.environment,
           labelNames: (resource.labels || []).map(
@@ -492,19 +529,17 @@ export default class CloudOffHoursScheduler {
       const target: CloudSavingsTarget | null =
         readCloudResourceTarget(resource);
       const skipReason: CloudOffHoursSkipReason | undefined =
-        environment.environment === CloudResourceEnvironment.Production
-          ? CloudOffHoursSkipReason.Production
-          : environment.environment !== CloudResourceEnvironment.NonProduction
-            ? CloudOffHoursSkipReason.EnvironmentNotKnown
-            : !allowed || !target
-              ? CloudOffHoursSkipReason.SavingsActionsOff
-              : undefined;
+        getCloudOffHoursEnvironmentSkip(readings) ||
+        (!allowed || !target
+          ? CloudOffHoursSkipReason.SavingsActionsOff
+          : undefined);
 
       picked.push({
         resource,
         kind,
         target,
-        environment,
+        environment: readings.reading,
+        unattendedEnvironment: readings.unattended,
         account,
         ...(skipReason ? { skipReason } : {}),
       });
@@ -685,7 +720,11 @@ export default class CloudOffHoursScheduler {
         continue;
       }
 
-      if (entry.skipReason === CloudOffHoursSkipReason.EnvironmentNotKnown) {
+      // Nothing a schedule reads says it is not production: its labels alone do not.
+      if (
+        entry.skipReason === CloudOffHoursSkipReason.EnvironmentNotKnown ||
+        entry.skipReason === CloudOffHoursSkipReason.OnlyLabelsSayNonProduction
+      ) {
         data.summary.skippedNotKnown++;
         continue;
       }
@@ -780,7 +819,7 @@ export default class CloudOffHoursScheduler {
       const after: CloudSavingsAction | null =
         await CloudSavingsActionService.findOneById({
           id: created.id!,
-          select: { status: true },
+          select: { status: true, environment: true },
           props: { isRoot: true },
         });
 
@@ -791,6 +830,21 @@ export default class CloudOffHoursScheduler {
         after?.status === CloudSavingsActionStatus.Applying
       ) {
         data.summary.stopped++;
+      } else if (
+        after?.status === CloudSavingsActionStatus.Expired &&
+        after.environment !== CloudResourceEnvironment.NonProduction
+      ) {
+        /*
+         * Read again as it was about to be stopped, it was no longer known
+         * not to be production: the runner keeps what it read then. A stop
+         * of something already stopped expires with the environment it was
+         * made with: non-production.
+         */
+        if (after.environment === CloudResourceEnvironment.Production) {
+          data.summary.skippedProduction++;
+        } else {
+          data.summary.skippedNotKnown++;
+        }
       }
     }
   }

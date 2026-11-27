@@ -24,6 +24,19 @@ const StorageArraySideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.List,
         },
+        /*
+         * The management servers a probe reads arrays from - a Unisphere
+         * for PowerMax adds every array it manages (#11004).
+         */
+        {
+          link: {
+            title: "Connections",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.STORAGE_ARRAYS_CONNECTIONS] as Route,
+            ),
+          },
+          icon: IconProp.Link,
+        },
         {
           link: {
             title: "Documentation",

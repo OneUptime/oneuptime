@@ -225,16 +225,15 @@ När arbetstiden slutar stoppar ett schema via sitt kontos anslutning varje resu
 Ett schema stoppar aldrig produktion, och aldrig en resurs vars miljö inget säger. En resurs är känd för att inte vara produktion när:
 
 - en av dess taggar säger det, under en nyckel som `environment`, `env`, `stage`, `tier` eller `deployment.environment`, med ett ord som `dev`, `test`, `qa`, `staging` eller `sandbox`;
-- dess konto är markerat som **Icke-produktion** under **Miljö** i kontots **Inställningar**;
-- eller en av dess etiketter säger det, till exempel `Staging` eller `env: dev`.
+- eller dess konto är markerat som **Icke-produktion** under **Miljö** i kontots **Inställningar**.
 
-Produktion vinner: En tagg som säger `prod`, `production` eller `live`, eller ett konto markerat som **Produktion**, håller en resurs igång oavsett vad annat säger. En resurs namn läses aldrig för det. Stänger du av ett schema stoppar det inget mer och startar det som det stoppade när dess arbetstid börjar; tar du bort det startas det som det stoppade direkt.
+En OneUptime-etikett gör aldrig en resurs till icke-produktion för ett schema. Att byta namn på en etikett ändrar varje resurs som bär den på en gång, så en etikett som `Staging` eller `env: dev` läses bara där en person godkänner ändringen, som vid **Tillämpa**. Produktion vinner: En tagg som säger `prod`, `production` eller `live`, ett konto markerat som **Produktion**, eller en etikett som `Production` eller `env: prod` håller en resurs igång oavsett vad annat säger. En resurs namn läses aldrig för det. Varje stopp läser resursen igen precis innan det görs. Stänger du av ett schema stoppar det inget mer och startar det som det stoppade när dess arbetstid börjar; tar du bort det startas det som det stoppade direkt.
 
 ## AI-regler för besparingar
 
 Med **Aktivera AI** påslaget föreslår OneUptime AI efter varje läsning av kontots besparingar varje besparing den kan genomföra för resursens ägare, och de godkänner eller avvisar den under **Väntar på godkännande**. Under **Moln → Inställningar → AI-regler för besparingar** säger en regel vad OneUptime AI gör med de besparingar den matchar, efter typ av ändring, resursens miljö och dess moln: **Av**, **Föreslå för ägaren** eller **Agera utan att fråga**, upp till en månadsgräns. Utan regel föreslås varje besparing och ingen genomförs; med regler bara det en regel matchar, och mellan regler som matchar vinner den mest försiktiga.
 
-En regel agerar bara utan att fråga på en resurs som är känd för att inte vara produktion, bara för en ändring som kan ångras, bara upp till den lägsta gränsen bland reglerna som matchar, och högst 10 gånger i timmen i ett projekt: Allt annat föreslås. En ändring som görs utan att fråga finns på tidslinjerna med regeln som gjorde den, och dess ägare kan ångra den. En avvisad eller ångrad besparing föreslås inte igen på 30 dagar.
+En regel agerar bara utan att fråga på en resurs som är känd för att inte vara produktion så som ett schema läser det, utifrån dess taggar eller dess konto och aldrig utifrån dess etiketter enbart, bara för en ändring som kan ångras, bara upp till den lägsta gränsen bland reglerna som matchar, och högst 10 gånger i timmen i ett projekt: Allt annat föreslås. Resursen läses igen precis innan ändringen görs, och en som då inte längre är känd för att inte vara produktion föreslås i stället. En ändring som görs utan att fråga finns på tidslinjerna med regeln som gjorde den, och dess ägare kan ångra den. En avvisad eller ångrad besparing föreslås inte igen på 30 dagar.
 
 ## Budgetar
 
@@ -381,7 +380,7 @@ En Slack- eller Microsoft Teams-kanal får ett kort meddelande: summan och dess 
 
 - Projektets personer och team får den via e-post, genom sina aviseringsinställningar, där var och en kan stänga av molnkostnadsrapporter. Var och en får de siffror de får läsa: den vars åtkomst begränsas av etiketter får bara sina konton, och den som inte längre får läsa projektets molnkostnader utelämnas.
 - **E-postadresser** utanför projektet, till exempel din revisors, och Slack- och Microsoft Teams-kanaler kräver behörigheten Molnadministratör, eller Projektadministratör eller Projektägare, eftersom OneUptime inte kan veta vem som läser dem. De får rapporten så som personen som lade till dem får läsa den, och slutar få den om personen förlorar behörigheten. En API-nyckel kan inte ange dem.
-- Den som får skapa de andra Moln-posterna, från Molnmedlem och uppåt, kan skapa, ändra och ta bort rapporter. En Molntittare kan läsa dem.
+- Den som får skapa de andra Moln-posterna, från Molnmedlem och uppåt, kan skapa, ändra och ta bort rapporter. Den som har Moln på nivån Tittare kan läsa dem.
 
 En rapport går till högst 200 personer, 25 adresser och 10 kanaler av varje slag. **Senaste utskick** säger när den senast skickades, och vem den utelämnade och varför.
 
@@ -481,7 +480,11 @@ OneUptime gör bara ändringar i ett steg: Ett åtagande, eller en rekommendatio
 :::
 
 :::details Ett schema låter en resurs köras
-**Visa resurser** säger varför: Den är produktion, inget säger att den inte är produktion, eller dess kontos anslutning tillåter inte besparingsåtgärder. Tagga den, till exempel `environment` = `dev`, eller markera dess konto som **Icke-produktion**.
+**Visa resurser** säger varför: Den är produktion, inget säger att den inte är produktion, bara dess etiketter säger det, eller dess kontos anslutning tillåter inte besparingsåtgärder. Tagga den i ditt moln, till exempel `environment` = `dev`, eller markera dess konto som **Icke-produktion**.
+:::
+
+:::details En regel föreslår en ändring som den tidigare gjorde utan att fråga
+Dess kort säger varför. En regel gör bara en ändring utan att fråga på en resurs som dess taggar eller dess konto säger inte är produktion: En som bara dess etiketter kallar icke-produktion föreslås i stället för dess ägare. Tagga den i ditt moln, till exempel `environment` = `dev`, eller markera dess konto som **Icke-produktion**.
 :::
 
 :::details En prognos har inget troligt intervall

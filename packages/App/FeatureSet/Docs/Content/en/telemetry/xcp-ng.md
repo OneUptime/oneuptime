@@ -238,6 +238,17 @@ OneUptime derives four 0/1 series for each pool as its data arrives, which the a
 | `xcp_ng.vm.running` | the VM is Running; 0 while it is Halted, Paused or Suspended |
 | `xcp_ng.vm.stopped_after_running` | a VM that ran in the last 24 hours is Halted or Paused |
 
+With a probe connected to Xen Orchestra or to the pool's XAPI, it also derives these from what the probe reads beyond the metrics; the agent reads none of it:
+
+| Series | Value |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 1 while the pool's HA is on, else 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | 1 while HA can still survive a host failure, else 0: HA's own plan through XAPI, a host up and enabled beyond the one that fails through Xen Orchestra |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | how many host failures HA is set to tolerate (through XAPI only) |
+| `xcp_ng.pool.ha.plan_exists_for` | how many host failures its current plan covers (through XAPI only) |
+| `xcp_ng.vm.backup_overdue` | 1 while a VM a scheduled backup job includes has had no successful backup within its interval and a quarter more, at least an hour (through Xen Orchestra only) |
+| `xcp_ng.host.missing_patches` | how many patches a host misses, checked every six hours (through Xen Orchestra only) |
+
 It also stamps every point with `xcp_ng.scope` (`pool`, `host`, `vm`, `sr`, `vdi` or `xostor`) and `xcp_ng.id` (that object's UUID), which monitors and dashboards filter on: see [Resource identity](/docs/monitor/xcp-ng-monitor#resource-identity).
 
 ### What the agent does not keep
@@ -405,7 +416,8 @@ The agent is one stock collector config, so a collector you already run can do t
 
 Xen Orchestra's OpenMetrics plugin serves metrics, so some of what you watch an XCP-ng pool for is not in it yet:
 
-- **Alarms**, other than XOSTOR's, the **HA state**, the **pool master**, **missing patches**, **backups** and **snapshots**, and the **link state** of a host's physical interfaces (PIFs). These come from Xen Orchestra's REST API, in [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
+- **Alarms**, other than XOSTOR's, the **HA state**, the **pool master**, **missing patches** and **backups**: a OneUptime probe reads them from Xen Orchestra's REST API or the pool's XAPI ([#10997](https://github.com/OneUptime/oneuptime/issues/10997)), see [XCP-ng Without an Agent](/docs/telemetry/xcp-ng-agentless).
+- The **snapshots** of each VM and the **link state** of a host's physical interfaces (PIFs), which no probe reads yet either ([#11328](https://github.com/OneUptime/oneuptime/issues/11328)).
 - **Pools without Xen Orchestra**, or behind an XOA without the Premium licence the plugin needs: a OneUptime probe reads these from XAPI directly ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), see [XCP-ng Without an Agent](/docs/telemetry/xcp-ng-agentless).
 - **Connecting without an agent**: a OneUptime probe reads Xen Orchestra's plugin itself, as VMware can ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), on the same page.
 

@@ -5,6 +5,7 @@ import {
   getExternalMcpServerFailureHint,
 } from "./ExternalMcpServerCopy";
 import ExternalMcpServerToolList from "./ExternalMcpServerToolList";
+import ExternalMcpToolReadOnlyMark from "Common/Models/DatabaseModels/ExternalMcpToolReadOnlyMark";
 import { testExternalMcpServer } from "./ExternalMcpServerTestApi";
 import { ExternalMcpServerConnectionCheck } from "Common/Types/AI/ExternalMcpServer/ExternalMcpServerConnectionCheck";
 import { EXTERNAL_MCP_SERVER_TRANSPORT_TITLES } from "Common/Types/AI/ExternalMcpServer/ExternalMcpServerTransport";
@@ -41,6 +42,12 @@ import React, {
 
 export interface ComponentProps {
   externalMcpServerId: string;
+  /*
+   * The server's read-only marks, from its page: a tool a Project Admin
+   * marked shows as one that reads while it is as it was when marked
+   * (issue #11081). A server just added has none.
+   */
+  marks?: Array<ExternalMcpToolReadOnlyMark> | undefined;
   onClose: () => void;
   // Called with every answer, so the page can show what was found.
   onTested?: ((check: ExternalMcpServerConnectionCheck) => void) | undefined;
@@ -177,7 +184,10 @@ const TestExternalMcpServerModal: FunctionComponent<ComponentProps> = (
                   )}
                 </p>
                 <div className="mt-2 max-h-80 overflow-y-auto">
-                  <ExternalMcpServerToolList tools={check.tools} />
+                  <ExternalMcpServerToolList
+                    tools={check.tools}
+                    marks={props.marks}
+                  />
                 </div>
                 {check.toolsLeftOut > 0 ? (
                   <p className="mt-2 text-xs text-gray-500">

@@ -19,6 +19,18 @@ import {
   MIN_XCP_NG_COLLECTION_INTERVAL_IN_MINUTES,
   XCP_NG_API_TOKEN_WARNING_DAYS,
 } from "Common/Utils/XcpNg/XcpNgCollectionSettings";
+import {
+  XCP_NG_BACKUP_FIRST_READ_LOOKBACK_MS,
+  XCP_NG_BACKUP_PENDING_GIVE_UP_MS,
+  XCP_NG_MAX_BACKUP_RUNS_PER_COLLECTION,
+  XCP_NG_PATCH_CHECK_INTERVAL_MS,
+} from "Common/Types/XcpNg/XcpNgPoolEvents";
+import {
+  XcpNgEventAlertTemplate,
+  getAllXcpNgEventAlertTemplates,
+} from "Common/Types/Monitor/XcpNgEventAlertTemplates";
+import { getXcpNgAlertTemplateById } from "Common/Types/Monitor/XcpNgAlertTemplates";
+import { XCP_NG_RECOMMENDATION_CATEGORIES } from "../../../FeatureSet/Dashboard/src/Components/Form/Monitor/AlertTemplatePicker/AlertTemplateCategories";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -267,6 +279,81 @@ describe("the docs page on XCP-ng without an agent", () => {
     );
     expect(XCP_NG_API_TOKEN_WARNING_DAYS).toBe(14);
     expect(english).toContain("Two weeks before");
+  });
+
+  it("says what a probe reads beyond the metrics, and names every template that alerts on it (#10997)", () => {
+    const english: string = readPage("en");
+    const start: number = english.indexOf("\n## Alarms, HA and backups\n");
+    const end: number = english.indexOf("\n## ", start + 1);
+    expect(start).toBeGreaterThan(0);
+    const section: string = english.slice(start, end);
+
+    // Every event template, by the name the Recommendations show.
+    for (const template of getAllXcpNgEventAlertTemplates()) {
+      expect({
+        template: template.id,
+        named: section.includes(template.name),
+      }).toEqual({ template: template.id, named: true });
+    }
+    // The two metric templates that read what the probe adds.
+    for (const id of [
+      "xcp-ng-ha-cannot-tolerate-host-failure",
+      "xcp-ng-vm-not-backed-up",
+    ]) {
+      const template: { name: string } | undefined =
+        getXcpNgAlertTemplateById(id);
+      expect(template).toBeDefined();
+      expect(section).toContain(template!.name);
+    }
+    // The headings they are listed under, as the picker draws them.
+    const headings: Map<string, string> = new Map(
+      XCP_NG_RECOMMENDATION_CATEGORIES.map(
+        (category: { category: string; label: string }): [string, string] => {
+          return [category.category, category.label];
+        },
+      ),
+    );
+    const listedUnder: Set<string> = new Set(
+      getAllXcpNgEventAlertTemplates().map(
+        (template: XcpNgEventAlertTemplate): string => {
+          return template.category;
+        },
+      ),
+    );
+    for (const category of listedUnder) {
+      expect(headings.has(category)).toBe(true);
+      expect(section).toContain(`**${headings.get(category)}**`);
+    }
+    // A pool's XAPI has no backups and no missing patches to read.
+    expect(section).toContain(
+      "| Backup jobs and their runs | Read | Not read:",
+    );
+    expect(section).toContain("| Missing patches | Read every six hours,");
+    expect(XCP_NG_PATCH_CHECK_INTERVAL_MS).toBe(6 * 60 * 60 * 1000);
+  });
+
+  it("states how far back and how much of the backup logs and patches a read takes", () => {
+    const english: string = readPage("en");
+    const reader: string = fs.readFileSync(
+      path.join(REPO_ROOT, "Probe/Utils/XcpNg/XenOrchestraEventsReader.ts"),
+      "utf8",
+    );
+    const hostsPerCheck: string | undefined = reader.match(
+      /XO_MAX_HOSTS_PER_PATCH_CHECK: number = (\d+);/,
+    )?.[1];
+
+    expect(XCP_NG_BACKUP_FIRST_READ_LOOKBACK_MS).toBe(8 * 24 * 60 * 60 * 1000);
+    expect(XCP_NG_BACKUP_PENDING_GIVE_UP_MS).toBe(3 * 24 * 60 * 60 * 1000);
+    expect(english).toContain(
+      `| Backup runs | ${XCP_NG_MAX_BACKUP_RUNS_PER_COLLECTION} per read | The first read looks back a week and a day. A run Xen Orchestra still calls pending after three days is no longer waited for. |`,
+    );
+    expect(english).toContain(
+      "The first read of the backup logs looks back a week and a day",
+    );
+    expect(hostsPerCheck).toBeDefined();
+    expect(english).toContain(
+      `| Missing patches | Every ${XCP_NG_PATCH_CHECK_INTERVAL_MS / 3600000} hours | Through Xen Orchestra, for up to ${hostsPerCheck} hosts a check. |`,
+    );
   });
 
   it("never tells anyone to turn certificate checks off", () => {

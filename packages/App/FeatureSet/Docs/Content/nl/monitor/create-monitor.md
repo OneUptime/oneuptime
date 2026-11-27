@@ -63,7 +63,7 @@ Klik op **Volgende**. Niets op deze stap wordt als ontbrekend gemarkeerd voordat
 
 ### Hoe criteria worden geëvalueerd
 
-Het resultaat van elke controle gaat van boven naar beneden door de criteria, en het eerste dat overeenkomt bepaalt wat er gebeurt. Dat criterium kan de status van de monitor wijzigen, een incident melden, een waarschuwing maken of een combinatie daarvan. Komt er geen overeen, dan toont de monitor zijn **Standaard monitorstatus**, ingesteld onder **Meer velden** onder de criteria (**Operationeel**, tenzij u een andere kiest).
+Het resultaat van elke controle gaat van boven naar beneden door de criteria, en het eerste dat overeenkomt bepaalt wat er gebeurt. Dat criterium kan de status van de monitor wijzigen, een incident melden, een waarschuwing maken of een combinatie daarvan. Een criterium dat geen status wijzigt, beslist er geen: het eerste criterium eronder dat overeenkomt en de status wijzigt, zet die. Komt er geen overeen, dan toont de monitor zijn **Standaard monitorstatus**, ingesteld onder **Meer velden** onder de criteria (**Operationeel**, tenzij u een andere kiest).
 
 ```mermaid title="Van een controle naar een status, een incident of een waarschuwing"
 flowchart TB

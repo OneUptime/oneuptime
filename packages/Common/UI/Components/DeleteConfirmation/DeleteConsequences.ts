@@ -454,6 +454,17 @@ export const DELETE_CONSEQUENCES: Readonly<Record<string, DeleteConsequence>> =
         code: "public async findOrCreateByName(",
       },
     },
+    /*
+     * A Unisphere's arrays are rows of their own, made from what it sent
+     * (#11004): they stay, and go stale once nothing reads them.
+     */
+    StorageArrayConnection: {
+      sentence: translationKey(
+        "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.",
+      ),
+      deletedWith: ["StorageArrayConnectionTest"],
+      stays: ["StorageArray"],
+    },
     ServerlessFunction: {
       addedBackBy: {
         service: "ServerlessFunctionService",
