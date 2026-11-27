@@ -97,7 +97,8 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     severity: "Critical",
     metricAlias: "director_offline",
     metricName: M.directorOffline,
-    groupByAttributeKey: L.director,
+    // The label the Hardware Component filter names a director by.
+    groupByAttributeKey: L.component,
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past10Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 0 },
@@ -119,7 +120,8 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     severity: "Warning",
     metricAlias: "port_offline",
     metricName: M.portOffline,
-    groupByAttributeKey: L.portId,
+    // The label the Hardware Component filter names a port by.
+    groupByAttributeKey: L.component,
     aggregationType: MetricsAggregationType.Max,
     rollingTime: RollingTime.Past10Minutes,
     fire: { filterType: FilterType.GreaterThan, value: 0 },
@@ -159,7 +161,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     name: "Storage Resource Pool Above 90%",
     summary: "A storage resource pool is more than 90% full.",
     description:
-      "Alert when a storage resource pool's used capacity is above 90% of its usable capacity, and recover at 81% or less. One incident per pool.",
+      "Alert when a storage resource pool's used capacity is above 90% of its usable capacity (powermax_srp_capacity_used_percent), and recover at 81% or less. One incident per pool.",
     category: "Capacity",
     severity: "Critical",
     metricAlias: "srp_used_percent",
@@ -180,7 +182,7 @@ const POWERMAX_ALERT_TEMPLATES: Array<StorageArrayAlertTemplateSpec> = [
     id: "powermax-srdf-group-not-healthy",
     name: "SRDF Group Suspended or Offline",
     summary:
-      "An SRDF group stops replicating: suspended, partitioned, split, failed over or offline.",
+      "An SRDF group stops replicating: suspended, split, failed over or offline.",
     description:
       "Alert when an SRDF group's link is offline or its pairs are suspended, partitioned, split, failed over or invalid (powermax_srdf_group_not_healthy). One incident per SRDF group. While it lasts, the remote copy falls further behind with every write.",
     category: "Replication",

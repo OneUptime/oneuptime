@@ -1308,26 +1308,31 @@ describe("MonitorRecommendationCatalog", () => {
       ).toBe(getAllStorageArrayAlertTemplates().length);
     });
 
-    it("the two platforms' sets partition the whole catalog", () => {
-      const flashArray: Array<string> = storageArrayTemplateIds({
-        storageSystem: StorageSystem.PureStorageFlashArray,
+    it("the platforms' sets partition the whole catalog", () => {
+      // FlashArray, FlashBlade and, read by a probe, PowerMax (#11004).
+      const sets: Array<Array<string>> = [
+        StorageSystem.PureStorageFlashArray,
+        StorageSystem.PureStorageFlashBlade,
+        StorageSystem.DellPowerMax,
+      ].map((storageSystem: StorageSystem): Array<string> => {
+        return storageArrayTemplateIds({ storageSystem });
       });
-      const flashBlade: Array<string> = storageArrayTemplateIds({
-        storageSystem: StorageSystem.PureStorageFlashBlade,
-      });
+      const all: Array<string> = sets.flat();
 
-      expect(
-        flashArray.filter((id: string) => {
-          return flashBlade.includes(id);
-        }),
-      ).toEqual([]);
-      expect([...flashArray, ...flashBlade].sort()).toEqual(
+      // No template is offered on two platforms...
+      expect(new Set(all).size).toBe(all.length);
+      // ...and each is offered on one.
+      expect([...all].sort()).toEqual(
         getAllStorageArrayAlertTemplates()
           .map((template: StorageArrayAlertTemplate) => {
             return template.id;
           })
           .sort(),
       );
+      expect(sets[2]!.length).toBeGreaterThan(0);
+      for (const id of sets[2]!) {
+        expect(id.startsWith("powermax-")).toBe(true);
+      }
     });
 
     it("ignores context meant for other resource types", () => {
