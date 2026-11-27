@@ -1,4 +1,5 @@
 import { JSONObject } from "../JSON";
+import { withMeaningKeyAsItsWord } from "../MeaningKeys";
 import { translationKey } from "../Translator";
 import SecuritySeverity from "../SecuritySeverity";
 import {
@@ -20,10 +21,12 @@ import {
   getBreachPlaceOfCountry,
   isBreachLawId,
   isBreachPlace,
+  isDeadlineWithoutLength,
   isUsStatePlace,
   ONLINE_ACCOUNT_TYPES,
   PASSWORD_TYPES,
   PERSON_NAME_TYPE,
+  UNCOVERED_US_STATES,
 } from "./BreachLaws";
 import {
   ExposureLogRead,
@@ -1042,11 +1045,7 @@ export function getBreachDueAt(data: {
   const deadline: BreachLawRule["deadline"] = data.rule.deadline;
   const amount: number | undefined = deadline.amount;
 
-  if (
-    amount === undefined ||
-    deadline.unit === BreachDeadlineUnit.WithoutUndueDelay ||
-    deadline.unit === BreachDeadlineUnit.NoFixedTime
-  ) {
+  if (amount === undefined || isDeadlineWithoutLength(deadline.unit)) {
     return undefined;
   }
 
@@ -1398,8 +1397,12 @@ export enum UncoveredLawKind {
   OtherCountries = "OtherCountries",
   // A person said some of the people live elsewhere.
   PeopleElsewhere = "PeopleElsewhere",
-  // US states other than the six the table covers.
+  // The US states whose statutes the table has no rows for (#10952): named in `states`.
   OtherUsStates = "OtherUsStates",
+  // The US territories but Puerto Rico, which have breach laws of their own.
+  UsTerritories = "UsTerritories",
+  // The notices many states also ask for to the consumer reporting agencies.
+  ConsumerReportingAgencies = "ConsumerReportingAgencies",
   // Where the organization is established can bring in a law whatever the people's countries.
   Establishment = "Establishment",
   // Contracts, sector rules and other obligations.
@@ -1411,10 +1414,42 @@ export enum UncoveredLawKind {
 export interface UncoveredLaw {
   kind: UncoveredLawKind;
   countries?: Array<string> | undefined;
+  // The US states it names, for OtherUsStates.
+  states?: Array<BreachPlace> | undefined;
+}
+
+/*
+ * Whether the people may live in a US state nobody named: nobody said where
+ * they live, a person said the United States without its states (or, before
+ * #10952 named every state, "another US state"), or the data shows people in
+ * the United States while nobody named a state.
+ */
+function isUsStateUnknown(whose: ExposureWhoseData): boolean {
+  const named: ReadonlyArray<BreachPlace> = whose.placesNamed || [];
+
+  if (!whose.placesNamed) {
+    return true;
+  }
+
+  if (
+    named.includes(BreachPlace.UnitedStates) ||
+    named.includes(BreachPlace.OtherUsState)
+  ) {
+    return true;
+  }
+
+  return (
+    whose.countriesFromData.includes("US") &&
+    !named.some((place: BreachPlace): boolean => {
+      return isUsStatePlace(place);
+    })
+  );
 }
 
 export function getUncoveredLaws(
   whose: ExposureWhoseData,
+  // The US states the table has no rows for: the table's own, but for a test.
+  uncoveredStates: ReadonlyArray<BreachPlace> = UNCOVERED_US_STATES,
 ): Array<UncoveredLaw> {
   const uncovered: Array<UncoveredLaw> = [];
   const elsewhere: Array<string> = whose.countriesFromData.filter(
@@ -1434,16 +1469,38 @@ export function getUncoveredLaws(
     uncovered.push({ kind: UncoveredLawKind.PeopleElsewhere });
   }
 
+  /*
+   * The US states the table has no rows for: every one while the state is
+   * not known, or those a person named. Then the territories, and the
+   * notices to the consumer reporting agencies, wherever a US state may be.
+   */
+  const isStateUnknown: boolean = isUsStateUnknown(whose);
+  const statesLeftOut: Array<BreachPlace> = uncoveredStates.filter(
+    (place: BreachPlace): boolean => {
+      return isStateUnknown || Boolean(whose.placesNamed?.includes(place));
+    },
+  );
+
+  if (statesLeftOut.length > 0) {
+    uncovered.push({
+      kind: UncoveredLawKind.OtherUsStates,
+      states: statesLeftOut,
+    });
+  }
+
+  if (isStateUnknown) {
+    uncovered.push({ kind: UncoveredLawKind.UsTerritories });
+  }
+
   if (
-    !whose.placesNamed ||
-    whose.placesNamed.some((place: BreachPlace): boolean => {
-      return (
-        place === BreachPlace.UnitedStates || place === BreachPlace.OtherUsState
-      );
-    }) ||
-    whose.countriesFromData.includes("US")
+    isStateUnknown ||
+    Boolean(
+      whose.placesNamed?.some((place: BreachPlace): boolean => {
+        return isUsStatePlace(place);
+      }),
+    )
   ) {
-    uncovered.push({ kind: UncoveredLawKind.OtherUsStates });
+    uncovered.push({ kind: UncoveredLawKind.ConsumerReportingAgencies });
   }
 
   // Card data: the brands whose rules are only in their agreements.
@@ -1465,7 +1522,13 @@ export const UNCOVERED_LAW_WORDS: Readonly<Record<UncoveredLawKind, string>> = {
     "You said some of the people live somewhere this assessment does not cover: check that place's breach law.",
   ),
   [UncoveredLawKind.OtherUsStates]: translationKey(
-    "Of the US states, it covers California, Colorado, Florida, New York, Texas and Washington. Every other state has a breach law of its own.",
+    "It does not cover the breach laws of {{states}}: their statutes could not be read from an official source, so check them yourself.",
+  ),
+  [UncoveredLawKind.UsTerritories]: translationKey(
+    "Of the US territories, it covers Puerto Rico only: Guam and the US Virgin Islands have breach laws of their own.",
+  ),
+  [UncoveredLawKind.ConsumerReportingAgencies]: translationKey(
+    "Many states also ask for a notice to the consumer reporting agencies once enough residents are told: it leaves those notices out.",
   ),
   [UncoveredLawKind.Establishment]: translationKey(
     "Where your organization is established can bring in GDPR, UK GDPR or another law, whatever the people's countries.",
@@ -1789,9 +1852,105 @@ const LAW_NAMES_IN_TEXT: ReadonlyArray<{
   { pattern: /\bFlorida\b|\b501\.171\b/gi, family: BreachLawFamily.Florida },
   { pattern: /\bNew York\b|\b899-aa\b/gi, family: BreachLawFamily.NewYork },
   { pattern: /\bTexas\b|\b521\.053\b/gi, family: BreachLawFamily.Texas },
+  /*
+   * The District of Columbia before Washington, so "Washington, D.C." is
+   * read as the District's and not as the state's (#10952).
+   */
+  {
+    pattern:
+      /\bDistrict of Columbia\b|\bWashington,? D\.?C\.?(?![\w.])|\bD\.C\.(?![\w.])|\b28-385\d(?:\.\d+)?\b/gi,
+    family: BreachLawFamily.DistrictOfColumbia,
+  },
   {
     pattern: /\bWashington\b|\b19\.255\b/gi,
     family: BreachLawFamily.Washington,
+  },
+  // The other US states (#10952), by name and by their sections' numbers.
+  { pattern: /\bAlabama\b|\b8-38-\d+\b/gi, family: BreachLawFamily.Alabama },
+  { pattern: /\bAlaska\b|\b45\.48\.\d+\b/gi, family: BreachLawFamily.Alaska },
+  { pattern: /\bArizona\b|\b18-55[12]\b/gi, family: BreachLawFamily.Arizona },
+  {
+    pattern: /\bArkansas\b|\b4-110-10\d\b/gi,
+    family: BreachLawFamily.Arkansas,
+  },
+  {
+    pattern: /\bConnecticut\b|\b36a-701b\b/gi,
+    family: BreachLawFamily.Connecticut,
+  },
+  {
+    pattern: /\bDelaware\b|\b12B-10\d\b/gi,
+    family: BreachLawFamily.Delaware,
+  },
+  {
+    pattern: /\bGeorgia\b|\b10-1-91[12]\b/gi,
+    family: BreachLawFamily.Georgia,
+  },
+  {
+    pattern: /\bHawai(?:ʻ|')?i\b|\b487N-\d\b/gi,
+    family: BreachLawFamily.Hawaii,
+  },
+  { pattern: /\bIdaho\b|\b28-51-10\d\b/gi, family: BreachLawFamily.Idaho },
+  {
+    pattern: /\bIllinois\b|\b815 ILCS\b|\bILCS 530\b/gi,
+    family: BreachLawFamily.Illinois,
+  },
+  { pattern: /\bIndiana\b|\b24-4\.9\b/gi, family: BreachLawFamily.Indiana },
+  { pattern: /\bIowa\b|\b715C\b/gi, family: BreachLawFamily.Iowa },
+  // "Arkansas" is read above, and "Kansas" is no word of it.
+  { pattern: /\bKansas\b|\b50-7a0\d\b/gi, family: BreachLawFamily.Kansas },
+  {
+    pattern: /\bKentucky\b|\b365\.732\b/gi,
+    family: BreachLawFamily.Kentucky,
+  },
+  {
+    pattern: /\bLouisiana\b|\b51:307\d\b/gi,
+    family: BreachLawFamily.Louisiana,
+  },
+  { pattern: /\bMaine\b/gi, family: BreachLawFamily.Maine },
+  {
+    pattern: /\bMaryland\b|\b14-350\d\b/gi,
+    family: BreachLawFamily.Maryland,
+  },
+  {
+    pattern: /\bMassachusetts\b|\b93H\b/gi,
+    family: BreachLawFamily.Massachusetts,
+  },
+  {
+    pattern: /\bMichigan\b|\b445\.72\b/gi,
+    family: BreachLawFamily.Michigan,
+  },
+  {
+    pattern: /\bMinnesota\b|\b325E\.61\b/gi,
+    family: BreachLawFamily.Minnesota,
+  },
+  {
+    pattern: /\bMississippi\b|\b75-24-29\b/gi,
+    family: BreachLawFamily.Mississippi,
+  },
+  {
+    pattern: /\bMissouri\b|\b407\.1500\b/gi,
+    family: BreachLawFamily.Missouri,
+  },
+  {
+    pattern: /\bMontana\b|\b30-14-170\d\b/gi,
+    family: BreachLawFamily.Montana,
+  },
+  {
+    pattern: /\bNebraska\b|\b87-80\d\b/gi,
+    family: BreachLawFamily.Nebraska,
+  },
+  { pattern: /\bNevada\b|\b603A\b/gi, family: BreachLawFamily.Nevada },
+  {
+    pattern: /\bNew Hampshire\b|\b359-C\b/gi,
+    family: BreachLawFamily.NewHampshire,
+  },
+  {
+    pattern: /\bNew Jersey\b|\b56:8-16\d\b/gi,
+    family: BreachLawFamily.NewJersey,
+  },
+  {
+    pattern: /\bNew Mexico\b|\b57-12C\b/gi,
+    family: BreachLawFamily.NewMexico,
   },
   { pattern: /\bLGPD\b|\bANPD\b/gi, family: BreachLawFamily.Lgpd },
   {
@@ -2271,6 +2430,8 @@ export function describeBreachDeadlineInEnglish(rule: BreachLawRule): string {
       break;
     case BreachDeadlineUnit.WithoutUndueDelay:
       return "without undue delay";
+    case BreachDeadlineUnit.WithoutUnreasonableDelay:
+      return "in the most expedient time possible and without unreasonable delay";
     default:
       return "no fixed time";
   }
@@ -2289,7 +2450,8 @@ export function describeBreachDeadlineInEnglish(rule: BreachLawRule): string {
 
 // A place in English: the table's own words (translationKey keeps the English).
 export function describeBreachPlaceInEnglish(place: BreachPlace): string {
-  return BREACH_PLACE_WORDS[place];
+  // A key that names its meaning reads as its word: "Georgia", the US state.
+  return withMeaningKeyAsItsWord(BREACH_PLACE_WORDS[place]);
 }
 
 // What a person still checks, in English.

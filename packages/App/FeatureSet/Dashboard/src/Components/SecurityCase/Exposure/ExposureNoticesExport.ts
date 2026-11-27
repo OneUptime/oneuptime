@@ -6,10 +6,13 @@ import {
   getReadsFromOutside,
 } from "Common/Types/DataSecurity/AccessLogReads";
 import {
+  BREACH_LAW_RULES,
+  BREACH_PLACE_CHOICES,
   BREACH_PLACE_WORDS,
   BreachLawRule,
   BreachPlace,
   getBreachLawRule,
+  isUsStateRule,
 } from "Common/Types/DataSecurity/BreachLaws";
 import {
   ComplianceFact,
@@ -37,6 +40,7 @@ import {
   UncoveredLaw,
 } from "Common/Types/DataSecurity/ExposureAssessment";
 import { ImpactAssessmentSectionSource } from "Common/Types/DataSecurity/ImpactAssessment";
+import { withMeaningKeyAsItsWord } from "Common/Types/MeaningKeys";
 import { NO_BREAK_SPACE } from "Common/Types/NoBreakSpaces";
 import {
   createTranslator,
@@ -136,7 +140,56 @@ export function countryInEnglish(code: string): string {
 }
 
 function placeInEnglish(place: string): string {
-  return BREACH_PLACE_WORDS[place as BreachPlace] || place;
+  const words: string | undefined = BREACH_PLACE_WORDS[place as BreachPlace];
+
+  // A key that names its meaning reads as its word: "Georgia", the US state.
+  return words ? withMeaningKeyAsItsWord(words) : place;
+}
+
+/*
+ * The US states' notices that may apply if any of the people live in a
+ * state nobody named (#10952): one line a state, in alphabetical order, as
+ * fifty states' notices in full would bury the rest of the document.
+ */
+function stateLawLines(
+  obligations: ReadonlyArray<BreachObligation>,
+): Array<string> {
+  const byState: Map<string, Array<BreachLawRule>> = new Map();
+
+  // Each state's notices in the table's order: the people's first.
+  for (const rule of BREACH_LAW_RULES) {
+    if (
+      !obligations.some((obligation: BreachObligation): boolean => {
+        return obligation.ruleId === rule.id;
+      })
+    ) {
+      continue;
+    }
+
+    const state: string = withMeaningKeyAsItsWord(
+      BREACH_PLACE_CHOICES[rule.places![0]!],
+    );
+
+    byState.set(state, [...(byState.get(state) || []), rule]);
+  }
+
+  return [...byState.keys()]
+    .sort((a: string, b: string): number => {
+      return a.localeCompare(b);
+    })
+    .map((state: string): string => {
+      const notices: Array<string> = byState
+        .get(state)!
+        .map((rule: BreachLawRule): string => {
+          return `${getBreachLawName(rule.id)}: ${rule.action} (${describeBreachDeadlineInEnglish(rule)}${
+            rule.minimumPeople
+              ? `, if it affects ${rule.minimumPeople.isMoreThan ? "more than " : ""}${rule.minimumPeople.count.toLocaleString("en-US")}${rule.minimumPeople.isMoreThan ? "" : " or more"} people`
+              : ""
+          })`;
+        });
+
+      return `- **${state}:** ${notices.join("; ")}.`;
+    });
 }
 
 // How long the store was open, in English.
@@ -427,6 +480,7 @@ function uncoveredLines(view: ExposureAssessmentView): Array<string> {
   return view.uncovered.map((law: UncoveredLaw): string => {
     return `- ${ENGLISH.translateTemplate(UNCOVERED_LAW_WORDS[law.kind], {
       countries: englishList((law.countries || []).map(countryInEnglish)),
+      states: englishList((law.states || []).map(placeInEnglish)),
     })}`;
   });
 }
@@ -486,7 +540,18 @@ export function getExposureNoticesMarkdown(data: {
     );
     const elsewhere: Array<BreachObligation> = mayApply.filter(
       (obligation: BreachObligation): boolean => {
-        return !obligation.isPlaceKnown;
+        return (
+          !obligation.isPlaceKnown &&
+          !isUsStateRule(getBreachLawRule(obligation.ruleId))
+        );
+      },
+    );
+    const inStatesNobodyNamed: Array<BreachObligation> = mayApply.filter(
+      (obligation: BreachObligation): boolean => {
+        return (
+          !obligation.isPlaceKnown &&
+          isUsStateRule(getBreachLawRule(obligation.ruleId))
+        );
       },
     );
 
@@ -520,7 +585,11 @@ export function getExposureNoticesMarkdown(data: {
       "",
     );
 
-    if (known.length === 0 && elsewhere.length === 0) {
+    if (
+      known.length === 0 &&
+      elsewhere.length === 0 &&
+      inStatesNobodyNamed.length === 0
+    ) {
       lines.push("None of the table's laws may apply on these facts.", "");
     }
 
@@ -544,6 +613,17 @@ export function getExposureNoticesMarkdown(data: {
       for (const obligation of elsewhere) {
         lines.push(...obligationLines(obligation, false));
       }
+    }
+
+    if (inStatesNobodyNamed.length > 0) {
+      lines.push(
+        "## If Any of the People Live in These US States",
+        "",
+        "Each state's notices apply only if some of the people live in that state. Nobody has said which states they live in: say so on the case's Was It a Breach? card, and only those states' laws stay. Each notice's source and what a person still checks are on the card.",
+        "",
+        ...stateLawLines(inStatesNobodyNamed),
+        "",
+      );
     }
 
     if (view.uncovered.length > 0) {

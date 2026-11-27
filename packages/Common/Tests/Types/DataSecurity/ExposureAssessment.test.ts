@@ -6,6 +6,7 @@ import {
   BreachPlace,
   CARD_BRAND_RULE_IDS,
   getBreachLawRule,
+  UNCOVERED_US_STATES,
 } from "../../../Types/DataSecurity/BreachLaws";
 import {
   BreachObligationFact,
@@ -87,6 +88,7 @@ import {
   StoredExposureAssessment,
   toStoredExposureAssessmentJson,
   UNCOVERED_LAW_WORDS,
+  UncoveredLaw,
   UncoveredLawKind,
 } from "../../../Types/DataSecurity/ExposureAssessment";
 import {
@@ -1190,9 +1192,13 @@ describe("what the law may ask", () => {
         }),
       ),
     ).toContain(UncoveredLawKind.PeopleElsewhere);
-    // Nobody said where they live: other states may still be involved.
+    // Nobody said where they live: the states left out, the territories and the agencies' notices may matter.
     expect(kinds(whose({ dataTypeIds: ["email-address"] }))).toEqual([
-      UncoveredLawKind.OtherUsStates,
+      ...(UNCOVERED_US_STATES.length > 0
+        ? [UncoveredLawKind.OtherUsStates]
+        : []),
+      UncoveredLawKind.UsTerritories,
+      UncoveredLawKind.ConsumerReportingAgencies,
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
@@ -1205,6 +1211,91 @@ describe("what the law may ask", () => {
       UncoveredLawKind.Establishment,
       UncoveredLawKind.ContractsAndSectors,
     ]);
+  });
+
+  test("the US states the table leaves out are named: every one while nobody said which, else those a person named (#10952)", () => {
+    const leftOut: Array<BreachPlace> = [BreachPlace.Iowa, BreachPlace.Texas];
+    const statesOf: (data: ExposureWhoseData) => Array<BreachPlace> | null = (
+      data: ExposureWhoseData,
+    ): Array<BreachPlace> | null => {
+      return (
+        getUncoveredLaws(data, leftOut).find(
+          (uncovered: UncoveredLaw): boolean => {
+            return uncovered.kind === UncoveredLawKind.OtherUsStates;
+          },
+        )?.states || null
+      );
+    };
+
+    // Nobody said where: every state left out.
+    expect(statesOf(whose({ dataTypeIds: ["us-ssn"] }))).toEqual(leftOut);
+    // The United States without its states, or the old "another US state": every one too.
+    expect(
+      statesOf(
+        whose({ dataTypeIds: ["us-ssn"], places: [BreachPlace.UnitedStates] }),
+      ),
+    ).toEqual(leftOut);
+    expect(
+      statesOf(
+        whose({ dataTypeIds: ["us-ssn"], places: [BreachPlace.OtherUsState] }),
+      ),
+    ).toEqual(leftOut);
+    // The data shows people in the US and nobody named a state.
+    expect(
+      statesOf(
+        whose({
+          dataTypeIds: ["us-ssn"],
+          countries: ["US"],
+          places: [BreachPlace.Eea],
+        }),
+      ),
+    ).toEqual(leftOut);
+    // A person named Iowa and Florida: Iowa is the one left out.
+    expect(
+      statesOf(
+        whose({
+          dataTypeIds: ["us-ssn"],
+          places: [BreachPlace.Iowa, BreachPlace.Florida],
+        }),
+      ),
+    ).toEqual([BreachPlace.Iowa]);
+    // A person named only covered states: no state to name, and no territory either.
+    const named: Array<UncoveredLawKind> = getUncoveredLaws(
+      whose({ dataTypeIds: ["us-ssn"], places: [BreachPlace.Florida] }),
+      leftOut,
+    ).map((uncovered: UncoveredLaw): UncoveredLawKind => {
+      return uncovered.kind;
+    });
+
+    expect(named).toEqual([
+      UncoveredLawKind.ConsumerReportingAgencies,
+      UncoveredLawKind.Establishment,
+      UncoveredLawKind.ContractsAndSectors,
+    ]);
+    // The table's own: none left out names no state.
+    expect(
+      getUncoveredLaws(whose({ dataTypeIds: ["us-ssn"] }), []).some(
+        (uncovered: UncoveredLaw): boolean => {
+          return uncovered.kind === UncoveredLawKind.OtherUsStates;
+        },
+      ),
+    ).toBe(false);
+  });
+
+  test("each line of what the table does not cover is words, and the states' line names them", () => {
+    for (const kind of Object.values(UncoveredLawKind)) {
+      expect(UNCOVERED_LAW_WORDS[kind].length).toBeGreaterThan(20);
+    }
+
+    expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.OtherUsStates]).toContain(
+      "{{states}}",
+    );
+    expect(UNCOVERED_LAW_WORDS[UncoveredLawKind.UsTerritories]).toContain(
+      "Guam",
+    );
+    expect(
+      UNCOVERED_LAW_WORDS[UncoveredLawKind.ConsumerReportingAgencies],
+    ).toContain("consumer reporting agencies");
   });
 
   test("card data says which card brands the table does not cover, and names those it does (#10953)", () => {
@@ -1590,6 +1681,91 @@ describe("OneUptime AI's drafts, held to the facts", () => {
         facts: brands,
       }),
     ).toEqual([]);
+  });
+
+  test("a US state's law is named only when its notices are among the facts, by its name or its sections (#10952)", () => {
+    const illinois: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F3",
+        family: BreachLawFamily.Illinois,
+        ruleId: BreachLawId.IllinoisResidents,
+        law: "815 ILCS 530 10(a)",
+      }),
+    ];
+
+    expect(
+      getUnfoundedLaws({
+        text: "Under the Illinois Personal Information Protection Act (815 ILCS 530), tell each Illinois resident.",
+        facts: illinois,
+      }),
+    ).toEqual([]);
+    // Another state's name, or its sections, is a law the draft made up.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell Indiana's attorney general too, under 24-4.9, and Alabama's under 8-38-6.",
+        facts: illinois,
+      }),
+    ).toEqual(["Alabama", "8-38-6", "Indiana", "24-4.9"]);
+    expect(
+      getUnfoundedLaws({
+        text: "Hawaii and Hawaiʻi both name the state; so does 487N-2.",
+        facts: illinois,
+      }),
+    ).toEqual(["Hawaii", "Hawaiʻi", "487N-2"]);
+    // "Arkansas" is not read as "Kansas", nor "Indian" as "Indiana".
+    expect(
+      getUnfoundedLaws({
+        text: "Indian customers were in the store too.",
+        facts: illinois,
+      }),
+    ).toEqual([]);
+  });
+
+  test("Washington, D.C. is the District of Columbia's law, never the state of Washington's (#10952)", () => {
+    const district: Array<ComplianceFact> = [
+      HOLDS,
+      obligationFact({
+        id: "F3",
+        family: BreachLawFamily.DistrictOfColumbia,
+        ruleId: BreachLawId.DistrictOfColumbiaResidents,
+        law: "D.C. Code 28-3852(a)",
+      }),
+    ];
+
+    for (const text of [
+      "Tell each District of Columbia resident, under D.C. Code 28-3852.",
+      "Tell the people in Washington, D.C. affected.",
+      "Tell the people in Washington DC affected.",
+    ]) {
+      expect({
+        text,
+        unfounded: getUnfoundedLaws({ text, facts: district }),
+      }).toEqual({ text, unfounded: [] });
+    }
+
+    // The state of Washington's law is not among these facts.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell the Washington attorney general.",
+        facts: district,
+      }),
+    ).toEqual(["Washington"]);
+    // And the state's facts do not make the District's.
+    expect(
+      getUnfoundedLaws({
+        text: "Tell the people in Washington, D.C. affected.",
+        facts: [
+          HOLDS,
+          obligationFact({
+            id: "F3",
+            family: BreachLawFamily.Washington,
+            ruleId: BreachLawId.WashingtonConsumers,
+            law: "Revised Code of Washington 19.255.010",
+          }),
+        ],
+      }),
+    ).toEqual(["Washington, D.C."]);
   });
 
   test("a draft that cites no fact, or says too little, is dropped", () => {

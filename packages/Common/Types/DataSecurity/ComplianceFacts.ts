@@ -89,6 +89,11 @@ export enum ComplianceFactKind {
   SecretFound = "SecretFound",
   PeopleLiveIn = "PeopleLiveIn",
   BreachObligation = "BreachObligation",
+  /*
+   * The US states' notices that may apply if any of the people live in a
+   * state nobody named (#10952), counted as one fact rather than one each.
+   */
+  UsStateLaws = "UsStateLaws",
 }
 
 export const COMPLIANCE_FACT_KINDS: ReadonlyArray<ComplianceFactKind> =
@@ -405,6 +410,20 @@ export interface BreachObligationFact
   checks: Array<string>;
 }
 
+/*
+ * The US states' notices that may apply if any of the people live in a
+ * state nobody named (#10952): counted, not one fact each. Fifty states'
+ * notices would crowd every other fact out of a draft's facts, and a draft
+ * names a state's law only once a person says the people live there.
+ */
+export interface UsStateLawsFact
+  extends FactBase<ComplianceFactKind.UsStateLaws> {
+  // The states, the District of Columbia and Puerto Rico they are of.
+  states: number;
+  // The notices that may apply if the people live there.
+  notices: number;
+}
+
 export type ComplianceFact =
   | ExposureIssueFact
   | ExposureWindowFact
@@ -412,6 +431,7 @@ export type ComplianceFact =
   | SecretFoundFact
   | PeopleLiveInFact
   | BreachObligationFact
+  | UsStateLawsFact
   | StoreHoldsFact
   | StoreIdentityFact
   | StoreTagsFact
@@ -476,6 +496,8 @@ export const COMPLIANCE_FACT_KIND_WORDS: Readonly<
     "where a person said the people the data is about live",
   [ComplianceFactKind.BreachObligation]:
     "a notice a breach law may ask for, as plain code applied the law to these facts",
+  [ComplianceFactKind.UsStateLaws]:
+    "how many US states' breach notices may apply if any of the people live in those states - nobody has said which states they live in",
 };
 
 // What a reader is told each kind of fact is, in the Dashboard: a key the reader's language words.
@@ -514,6 +536,7 @@ export const COMPLIANCE_FACT_KIND_TITLES: Readonly<
   [ComplianceFactKind.SecretFound]: translationKey("Secret found"),
   [ComplianceFactKind.PeopleLiveIn]: translationKey("Where the people live"),
   [ComplianceFactKind.BreachObligation]: translationKey("Breach law"),
+  [ComplianceFactKind.UsStateLaws]: translationKey("US state laws"),
 };
 
 /*
@@ -939,6 +962,14 @@ export function readComplianceFact(value: unknown): ComplianceFact | null {
         dueAt: optionalText(value["dueAt"]),
         countsFrom: text(value["countsFrom"]),
         checks: texts(value["checks"]),
+      };
+    case ComplianceFactKind.UsStateLaws:
+      return {
+        id,
+        key,
+        kind,
+        states: count(value["states"]),
+        notices: count(value["notices"]),
       };
     default:
       return null;
@@ -1412,6 +1443,8 @@ export function describeComplianceFact(fact: ComplianceFact): string {
       return `${fact.law}: ${fact.action}, ${fact.recipient}. Deadline: ${fact.deadline}${
         fact.dueAt ? `, due ${fact.dueAt}` : ""
       } (${fact.status})`;
+    case ComplianceFactKind.UsStateLaws:
+      return `${fact.notices} notices of ${fact.states} US states' breach laws may apply if any of the people live in those states; nobody has said which states`;
     default:
       return "";
   }

@@ -48,11 +48,13 @@ import {
   REASON_PEOPLE_ELSEWHERE,
   WHEN_PEOPLE_TOLD,
   WITHIN_BUSINESS_DAYS,
+  WITHIN_BUSINESS_DAYS_OF_PEOPLE,
   WITHIN_CALENDAR_DAYS,
   WITHIN_DAYS_OF_PEOPLE,
   WITHIN_DAYS_OF_YEAR_END,
   WITHIN_HOURS,
   WITHOUT_UNDUE_DELAY,
+  WITHOUT_UNREASONABLE_DELAY,
 } from "./ExposureAssessmentCopy";
 import OneUptimeDate from "Common/Types/Date";
 import {
@@ -67,12 +69,15 @@ import { TELEMETRY_INGESTION_BUDGET_BYTES_PER_GB } from "Common/Types/Telemetry/
 import { formatTelemetryUsageSize } from "Common/UI/Components/TelemetryUsage/TelemetryUsageWords";
 import {
   BREACH_CONDITION_WORDS,
+  BREACH_LAW_RULES,
   BREACH_PLACE_WORDS,
   BreachDeadlineStart,
   BreachDeadlineUnit,
   BreachLawRule,
   BreachPlace,
   getBreachLawRule,
+  isBreachLawId,
+  isUsStateRule,
 } from "Common/Types/DataSecurity/BreachLaws";
 import {
   BreachCheck,
@@ -170,31 +175,122 @@ export interface ObligationGroups {
   dueFirst: BreachObligation | null;
   // The others that may apply where the people are known to live.
   mayApply: Array<BreachObligation>;
-  // Those that may apply if any of the people live where nobody said.
+  // Those that may apply if any of the people live where nobody said: every row but a US state's.
   ifPeopleLiveElsewhere: Array<BreachObligation>;
+  /*
+   * The US states' that may apply if any of the people live in a state
+   * nobody named (#10952), by state: drawn together, folded, as fifty
+   * states' rows would bury every other law.
+   */
+  stateLawsIfPeopleLiveThere: Array<StateObligations>;
   // Not in force yet, then not triggered: folded until asked for.
   folded: Array<BreachObligation>;
+  /*
+   * The US states nobody named whose laws do not apply on these facts -
+   * the people live elsewhere, or the store holds none of what they cover:
+   * counted, not listed.
+   */
+  statesNotApplying: number;
+}
+
+// A US state's notices, as the card draws them under its name.
+export interface StateObligations {
+  place: BreachPlace;
+  obligations: Array<BreachObligation>;
+}
+
+// Where a row is in the table: its notices are read in that order.
+function tableIndexOf(obligation: BreachObligation): number {
+  return BREACH_LAW_RULES.findIndex((rule: BreachLawRule): boolean => {
+    return rule.id === obligation.ruleId;
+  });
+}
+
+// The US state a row is of, or null for any other row.
+export function getStateOfObligation(
+  obligation: BreachObligation,
+): BreachPlace | null {
+  if (!isBreachLawId(obligation.ruleId)) {
+    return null;
+  }
+
+  const rule: BreachLawRule = getBreachLawRule(obligation.ruleId);
+
+  return isUsStateRule(rule) && rule.places ? rule.places[0]! : null;
+}
+
+/*
+ * A US state's row is drawn on its own where a person named its state, or
+ * where it is known to apply; the others are drawn together (#10952).
+ */
+function isDrawnTogether(
+  obligation: BreachObligation,
+  named: ReadonlyArray<BreachPlace>,
+): boolean {
+  const state: BreachPlace | null = getStateOfObligation(obligation);
+
+  return (
+    state !== null &&
+    !named.includes(state) &&
+    !(
+      obligation.status === BreachObligationStatus.MayApply &&
+      obligation.isPlaceKnown
+    )
+  );
 }
 
 export function groupObligations(
-  view: Pick<ExposureAssessmentView, "obligations" | "mostUrgent">,
+  view: Pick<ExposureAssessmentView, "obligations" | "mostUrgent"> & {
+    whose?: Pick<ExposureAssessmentView["whose"], "placesNamed"> | undefined;
+  },
 ): ObligationGroups {
   const dueFirst: BreachObligation | null = view.mostUrgent || null;
+  const named: ReadonlyArray<BreachPlace> = view.whose?.placesNamed || [];
   const others: Array<BreachObligation> = view.obligations.filter(
     (obligation: BreachObligation): boolean => {
       return obligation.ruleId !== dueFirst?.ruleId;
     },
   );
+  const alone: Array<BreachObligation> = others.filter(
+    (obligation: BreachObligation): boolean => {
+      return !isDrawnTogether(obligation, named);
+    },
+  );
+  const together: Array<BreachObligation> = others.filter(
+    (obligation: BreachObligation): boolean => {
+      return isDrawnTogether(obligation, named);
+    },
+  );
+  const byState: Map<BreachPlace, Array<BreachObligation>> = new Map();
+
+  for (const obligation of together) {
+    if (obligation.status === BreachObligationStatus.MayApply) {
+      const state: BreachPlace = getStateOfObligation(obligation)!;
+
+      byState.set(state, [...(byState.get(state) || []), obligation]);
+    }
+  }
+
+  // A state any of whose notices may apply is drawn with them, not counted.
+  const statesNotApplying: Set<BreachPlace> = new Set();
+
+  for (const obligation of together) {
+    const state: BreachPlace = getStateOfObligation(obligation)!;
+
+    if (!byState.has(state)) {
+      statesNotApplying.add(state);
+    }
+  }
 
   return {
     dueFirst,
-    mayApply: others.filter((obligation: BreachObligation): boolean => {
+    mayApply: alone.filter((obligation: BreachObligation): boolean => {
       return (
         obligation.status === BreachObligationStatus.MayApply &&
         obligation.isPlaceKnown
       );
     }),
-    ifPeopleLiveElsewhere: others.filter(
+    ifPeopleLiveElsewhere: alone.filter(
       (obligation: BreachObligation): boolean => {
         return (
           obligation.status === BreachObligationStatus.MayApply &&
@@ -202,14 +298,31 @@ export function groupObligations(
         );
       },
     ),
+    // Each state's notices in the table's order: the people's first.
+    stateLawsIfPeopleLiveThere: [...byState.entries()].map(
+      ([place, obligations]: [
+        BreachPlace,
+        Array<BreachObligation>,
+      ]): StateObligations => {
+        return {
+          place,
+          obligations: [...obligations].sort(
+            (a: BreachObligation, b: BreachObligation): number => {
+              return tableIndexOf(a) - tableIndexOf(b);
+            },
+          ),
+        };
+      },
+    ),
     folded: [
-      ...others.filter((obligation: BreachObligation): boolean => {
+      ...alone.filter((obligation: BreachObligation): boolean => {
         return obligation.status === BreachObligationStatus.NotYetInForce;
       }),
-      ...others.filter((obligation: BreachObligation): boolean => {
+      ...alone.filter((obligation: BreachObligation): boolean => {
         return obligation.status === BreachObligationStatus.NotTriggered;
       }),
     ],
+    statesNotApplying: statesNotApplying.size,
   };
 }
 
@@ -234,6 +347,8 @@ export function describeDeadline(
   switch (rule.deadline.unit) {
     case BreachDeadlineUnit.WithoutUndueDelay:
       return say(translator, WITHOUT_UNDUE_DELAY);
+    case BreachDeadlineUnit.WithoutUnreasonableDelay:
+      return say(translator, WITHOUT_UNREASONABLE_DELAY);
     case BreachDeadlineUnit.NoFixedTime:
       return say(translator, NO_FIXED_TIME);
     default:
@@ -241,9 +356,16 @@ export function describeDeadline(
   }
 
   if (rule.deadline.start === BreachDeadlineStart.PeopleNotified) {
-    return amount === 0
-      ? say(translator, WHEN_PEOPLE_TOLD)
-      : translator.translatePlural(WITHIN_DAYS_OF_PEOPLE, amount);
+    if (amount === 0) {
+      return say(translator, WHEN_PEOPLE_TOLD);
+    }
+
+    return translator.translatePlural(
+      rule.deadline.unit === BreachDeadlineUnit.BusinessDays
+        ? WITHIN_BUSINESS_DAYS_OF_PEOPLE
+        : WITHIN_DAYS_OF_PEOPLE,
+      amount,
+    );
   }
 
   if (rule.deadline.start === BreachDeadlineStart.EndOfCalendarYear) {

@@ -110,6 +110,38 @@ export const EXPOSURE_ASSESSMENT_CASES: Array<ExposureAssessmentEvalCase> = [
     },
   },
   {
+    id: "exposure-indiana-and-hawaii",
+    title:
+      "Social Security numbers about people in Indiana and Hawaii: Indiana's 45 days first, Hawaii's without unreasonable delay (#10952)",
+    feature: DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    exposure: getExposureEvalExposure("indiana-and-hawaii-ssn"),
+    expect: {
+      parts: {
+        [ExposureDraftPart.Explanation]: [["Indiana"], ["45"]],
+        [ExposureDraftPart.RegulatorNotice]: [["Social Security"]],
+        [ExposureDraftPart.InternalSummary]: [["Hawaii"], ["Indiana"]],
+      },
+      never: NEVER_UNREAD,
+    },
+  },
+  {
+    id: "exposure-us-states-not-said",
+    title:
+      "Social Security numbers about people in the US, nobody said which states: every state's law waits on it, and no draft names one (#10952)",
+    feature: DataSecurityAiFeature.DraftExposureAssessmentOnRequest,
+    exposure: getExposureEvalExposure("us-ssn-state-not-said"),
+    expect: {
+      parts: {
+        [ExposureDraftPart.Explanation]: [["states", "state"]],
+        [ExposureDraftPart.InternalSummary]: [
+          ["Social Security"],
+          ["states", "state"],
+        ],
+      },
+      never: NEVER_UNREAD,
+    },
+  },
+  {
     id: "exposure-secrets-only",
     title:
       "A public bucket of cloud keys and nothing personal: no breach law, rotate the keys",

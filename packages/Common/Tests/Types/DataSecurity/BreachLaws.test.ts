@@ -22,10 +22,13 @@ import {
   getBreachPlaceOfCountry,
   isBreachLawId,
   isBreachPlace,
+  isDeadlineWithoutLength,
   isUsStatePlace,
+  isUsStateRule,
   ONLINE_ACCOUNT_TYPES,
   PASSWORD_TYPES,
   PERSON_NAME_TYPE,
+  US_STATE_LAWS_CHECKED_ON,
 } from "../../../Types/DataSecurity/BreachLaws";
 import {
   applyBreachLaw,
@@ -143,6 +146,17 @@ const DAY: number = 24 * HOUR;
 const TABLE_CHECK_DAYS: ReadonlyArray<string> = [
   BREACH_LAWS_CHECKED_ON,
   CARD_BRAND_RULES_CHECKED_ON,
+  US_STATE_LAWS_CHECKED_ON,
+];
+
+// The US states #10377 read first; the others' rows are #10952's (UsStateBreachLaws.test.ts).
+const FIRST_STATE_FAMILIES: ReadonlyArray<BreachLawFamily> = [
+  BreachLawFamily.California,
+  BreachLawFamily.Colorado,
+  BreachLawFamily.Florida,
+  BreachLawFamily.NewYork,
+  BreachLawFamily.Texas,
+  BreachLawFamily.Washington,
 ];
 
 function after(ms: number): string {
@@ -186,12 +200,24 @@ describe("every row of the table", () => {
     },
   );
 
-  test("each batch of rows was checked on its day: #10377's on 24 November 2026, the card brands' on 27 November", () => {
+  test("each batch of rows was checked on its day: #10377's on 24 November 2026, the card brands' and the other US states' on 27 November", () => {
     expect(BREACH_LAWS_CHECKED_ON).toBe("2026-11-24");
     expect(CARD_BRAND_RULES_CHECKED_ON).toBe("2026-11-27");
+    expect(US_STATE_LAWS_CHECKED_ON).toBe("2026-11-27");
 
     for (const id of CARD_BRAND_RULE_IDS) {
       expect(getBreachLawRule(id).checkedOn).toBe(CARD_BRAND_RULES_CHECKED_ON);
+    }
+
+    for (const rule of BREACH_LAW_RULES) {
+      if (isUsStateRule(rule)) {
+        expect({ id: rule.id, checkedOn: rule.checkedOn }).toEqual({
+          id: rule.id,
+          checkedOn: FIRST_STATE_FAMILIES.includes(rule.family)
+            ? BREACH_LAWS_CHECKED_ON
+            : US_STATE_LAWS_CHECKED_ON,
+        });
+      }
     }
 
     // Every day a row was read is a day some row was read: none left over.
@@ -217,10 +243,7 @@ describe("every row of the table", () => {
 
       const unit: BreachDeadlineUnit = rule.deadline.unit;
 
-      if (
-        unit === BreachDeadlineUnit.WithoutUndueDelay ||
-        unit === BreachDeadlineUnit.NoFixedTime
-      ) {
+      if (isDeadlineWithoutLength(unit)) {
         expect(rule.deadline.amount).toBeUndefined();
       } else {
         expect(typeof rule.deadline.amount).toBe("number");

@@ -152,13 +152,20 @@ import {
 import {
   EXPOSURE_NOW,
   exposureAnswerOf,
+  exposureAssessmentOf,
   exposureLogReadOf,
   exposureViewOf,
 } from "../../Helpers/ExposureAssessmentAnswers";
 import {
+  BREACH_PLACE_CHOICES,
+  BREACH_PLACE_REGION_CHOICES,
   BreachLawId,
   BreachPlace,
+  COVERED_US_STATES,
+  UNCOVERED_US_STATES,
+  US_JURISDICTION_PLACES,
 } from "../../../Types/DataSecurity/BreachLaws";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import { DataSecurityExposureAssessmentResponse } from "../../../Types/DataSecurity/DataSecurityApiTypes";
 import DataSensitivity from "../../../Types/DataSecurity/DataSensitivity";
 import { getBuiltInDataType } from "../../../Types/DataSecurity/DataTypeCatalog";
@@ -593,7 +600,7 @@ describe("the EU emails bucket, open nine days with reads not logged", () => {
     // Not triggered: folded until asked for.
     expect(
       within(laws).queryByTestId(
-        `security-case-exposure-law-${BreachLawId.TexasIndividuals}`,
+        `security-case-exposure-law-${BreachLawId.HipaaPeople}`,
       ),
     ).not.toBeInTheDocument();
 
@@ -611,9 +618,18 @@ describe("the EU emails bucket, open nine days with reads not logged", () => {
     expect(more).toHaveTextContent("Show fewer laws");
     expect(
       within(laws).getByTestId(
-        `security-case-exposure-law-${BreachLawId.TexasIndividuals}`,
+        `security-case-exposure-law-${BreachLawId.HipaaPeople}`,
       ),
     ).toHaveAttribute("data-status", "NotTriggered");
+    // The US states' laws none of the data brings in are counted, never fifty rows (#10952).
+    expect(
+      within(laws).queryByTestId(
+        `security-case-exposure-law-${BreachLawId.TexasIndividuals}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(laws).getByTestId("security-case-exposure-states-not-applying"),
+    ).toBeInTheDocument();
     // What the table does not cover, in plain words.
     expect(
       screen.getByTestId("security-case-exposure-uncovered"),
@@ -1353,5 +1369,360 @@ describe("who read it, from the store's access logs", () => {
     ).toHaveTextContent(
       "OneUptime read the store's access logs for this window: 5 reads from outside your accounts.",
     );
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Every US state (#10952)
+ * ---------------------------------------------------------------------------
+ */
+
+// A store of Social Security numbers with names, about people in the US: every state's law covers it.
+function ssnAnswer(
+  places?: Array<BreachPlace>,
+): DataSecurityExposureAssessmentResponse {
+  return exposureAnswerOf({
+    view: exposureViewOf({
+      dataTypeIds: ["us-ssn", "person-name"],
+      countries: ["US"],
+      places,
+    }),
+    assessment: exposureAssessmentOf(
+      places
+        ? {
+            peopleLiveIn: {
+              places,
+              saidAt: EXPOSURE_NOW.toISOString(),
+              saidByUserId: USER_ID,
+            },
+          }
+        : {},
+    ),
+    editors: { [USER_ID]: "Alice Example" },
+  });
+}
+
+async function openStatesPicker(): Promise<HTMLElement> {
+  const combobox: HTMLElement = screen.getByRole("combobox", {
+    name: "US states",
+  });
+
+  await act(async () => {
+    fireEvent.focus(combobox);
+    fireEvent.keyDown(combobox, { key: "ArrowDown", keyCode: 40 });
+  });
+
+  return combobox;
+}
+
+async function pickState(name: string): Promise<void> {
+  await openStatesPicker();
+
+  const option: HTMLElement = await screen.findByRole("option", {
+    name: new RegExp(`^${name}`),
+  });
+
+  await act(async () => {
+    fireEvent.click(option);
+  });
+}
+
+describe("every US state is a place a person can name (#10952)", () => {
+  test("the regions are chips and the states a list of their own: picking two states and the EU saves all three", async () => {
+    reads.mockResolvedValue(answerOf({ view: viewOf({ countries: [] }) }));
+    const saved: SpyInstance<typeof DataSecurityApi.setExposurePeoplePlaces> =
+      jest
+        .spyOn(DataSecurityApi, "setExposurePeoplePlaces")
+        .mockResolvedValue(
+          ssnAnswer([
+            BreachPlace.Eea,
+            BreachPlace.Illinois,
+            BreachPlace.Georgia,
+          ]),
+        );
+
+    await renderCards();
+
+    // The chips are the regions; no state is a chip, and "Another US state" is no longer offered.
+    for (const place of BREACH_PLACE_REGION_CHOICES) {
+      expect(
+        screen.getByTestId(`security-case-exposure-place-${place}`),
+      ).toBeInTheDocument();
+    }
+
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-place-${BreachPlace.Illinois}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-place-${BreachPlace.OtherUsState}`,
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Pick each state where some of them live, the District of Columbia and Puerto Rico among them: each has a breach law of its own.",
+      ),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId(`security-case-exposure-place-${BreachPlace.Eea}`),
+      );
+    });
+    await pickState("Illinois");
+    // Georgia the state reads "Georgia", never the country's words.
+    await pickState("Georgia");
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("security-case-exposure-save-places"));
+    });
+    await flush();
+
+    // The regions as picked, then the states in their own order.
+    expect(saved).toHaveBeenCalledWith({
+      securityCaseId: CASE_ID,
+      places: [BreachPlace.Eea, BreachPlace.Georgia, BreachPlace.Illinois],
+    });
+  });
+
+  test("the states are listed in alphabetical order, the District of Columbia and Puerto Rico among them", async () => {
+    reads.mockResolvedValue(answerOf({ view: viewOf({ countries: [] }) }));
+
+    await renderCards();
+    await openStatesPicker();
+
+    const names: Array<string> = screen
+      .getAllByRole("option")
+      .map((option: HTMLElement): string => {
+        return (option.textContent || "").trim();
+      });
+
+    expect(names).toHaveLength(US_JURISDICTION_PLACES.length);
+    expect(names[0]).toMatch(/^Alabama/);
+    expect(names[names.length - 1]).toMatch(/^Wyoming/);
+    expect(
+      names.some((name: string): boolean => {
+        return name.startsWith("District of Columbia");
+      }),
+    ).toBe(true);
+    expect(
+      names.some((name: string): boolean => {
+        return name.startsWith("Puerto Rico");
+      }),
+    ).toBe(true);
+    expect(
+      names.some((name: string): boolean => {
+        return name.startsWith("Georgia (US state)");
+      }),
+    ).toBe(false);
+
+    // A state whose law the table does not hold says so, beside its name; one it holds does not.
+    for (const place of US_JURISDICTION_PLACES) {
+      const name: string = withMeaningKeyAsItsWord(BREACH_PLACE_CHOICES[place]);
+      const option: HTMLElement = screen
+        .getAllByRole("option")
+        .find((each: HTMLElement): boolean => {
+          return (each.textContent || "").trim().startsWith(name);
+        })!;
+
+      expect({
+        place,
+        saysNotInTable: (option.textContent || "").includes(
+          "Its breach law is not in OneUptime's table",
+        ),
+      }).toEqual({
+        place,
+        saysNotInTable: UNCOVERED_US_STATES.includes(place),
+      });
+    }
+  });
+
+  test("an answer saved before every state was named keeps its Another US state, as a chip to take back", async () => {
+    reads.mockResolvedValue(
+      answerOf({
+        view: viewOf({ countries: [], places: [BreachPlace.OtherUsState] }),
+        assessment: assessmentOf({
+          peopleLiveIn: {
+            places: [BreachPlace.OtherUsState],
+            saidAt: NOW.toISOString(),
+            saidByUserId: USER_ID,
+          },
+        }),
+        editors: { [USER_ID]: "Alice Example" },
+      }),
+    );
+
+    await renderCards();
+
+    expect(
+      screen.getByText(
+        "Alice Example said the people live in another US state.",
+      ),
+    ).toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByTestId("security-case-exposure-places-change"),
+      );
+    });
+
+    const chip: HTMLElement = screen.getByTestId(
+      `security-case-exposure-place-${BreachPlace.OtherUsState}`,
+    );
+
+    expect(chip).toHaveAttribute("aria-pressed", "true");
+  });
+});
+
+describe("the US states' laws, while nobody said which states (#10952)", () => {
+  test("are one block saying how many states' laws may apply, folded, each state's notices under its name in alphabetical order", async () => {
+    reads.mockResolvedValue(ssnAnswer([BreachPlace.UnitedStates]));
+
+    await renderCards();
+
+    const block: HTMLElement = screen.getByTestId(
+      "security-case-exposure-state-laws",
+    );
+
+    expect(block).toHaveTextContent("US state laws");
+    expect(block).toHaveTextContent(
+      `The breach laws of ${COVERED_US_STATES.length} US states may apply if any of the people live there.`,
+    );
+    expect(block).toHaveTextContent(
+      "Say which states they live in, and only those states' laws stay.",
+    );
+    // Folded: no state's row is drawn until asked for.
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-law-${BreachLawId.AlabamaResidents}`,
+      ),
+    ).not.toBeInTheDocument();
+
+    const toggle: HTMLElement = within(block).getByRole("button", {
+      name: "Show the states' laws",
+    });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+
+    await act(async () => {
+      fireEvent.click(toggle);
+    });
+
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveTextContent("Hide the states' laws");
+
+    const sections: Array<HTMLElement> = within(block).getAllByTestId(
+      /^security-case-exposure-state-laws-US-/,
+    );
+
+    expect(sections).toHaveLength(COVERED_US_STATES.length);
+    expect(sections[0]).toHaveTextContent("Alabama");
+
+    const alabama: HTMLElement = within(block).getByTestId(
+      `security-case-exposure-state-laws-${BreachPlace.Alabama}`,
+    );
+
+    expect(
+      within(alabama).getByTestId(
+        `security-case-exposure-law-${BreachLawId.AlabamaResidents}`,
+      ),
+    ).toHaveAttribute("data-status", "MayApply");
+    expect(
+      within(alabama).getByTestId(
+        `security-case-exposure-law-${BreachLawId.AlabamaAttorneyGeneral}`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(block).getByTestId(
+        `security-case-exposure-state-laws-${BreachPlace.Georgia}`,
+      ),
+    ).toHaveTextContent("Georgia");
+    expect(block).not.toHaveTextContent("Georgia (US state)");
+  });
+
+  test("a state a person named is drawn on its own with its deadline, and the others' laws are counted as not applying", async () => {
+    reads.mockResolvedValue(ssnAnswer([BreachPlace.Indiana]));
+
+    await renderCards();
+
+    // Indiana's 45 days are due first.
+    expect(
+      screen.getByTestId("security-case-exposure-headline"),
+    ).toHaveAttribute("data-rule", BreachLawId.IndianaResidents);
+    expect(
+      screen.getByTestId(
+        `security-case-exposure-law-${BreachLawId.IndianaAttorneyGeneral}`,
+      ),
+    ).toHaveAttribute("data-status", "MayApply");
+    expect(
+      screen.queryByTestId("security-case-exposure-state-laws"),
+    ).not.toBeInTheDocument();
+
+    const more: HTMLElement = screen.getByTestId(
+      "security-case-exposure-more-laws",
+    );
+
+    await act(async () => {
+      fireEvent.click(more);
+    });
+
+    expect(
+      screen.getByTestId("security-case-exposure-states-not-applying"),
+    ).toHaveTextContent(
+      `The breach laws of ${COVERED_US_STATES.length - 1} more US states do not apply on these facts.`,
+    );
+    expect(
+      screen.queryByTestId(
+        `security-case-exposure-law-${BreachLawId.AlabamaResidents}`,
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test("a store none of whose data a state's law covers counts every state as not applying, folded", async () => {
+    await renderCards();
+
+    const more: HTMLElement = screen.getByTestId(
+      "security-case-exposure-more-laws",
+    );
+
+    await act(async () => {
+      fireEvent.click(more);
+    });
+
+    expect(
+      screen.getByTestId("security-case-exposure-states-not-applying"),
+    ).toHaveTextContent(
+      `The breach laws of ${COVERED_US_STATES.length} more US states do not apply on these facts.`,
+    );
+  });
+
+  test("what the table does not cover names the territories and the agencies' notices, and every state it leaves out", async () => {
+    reads.mockResolvedValue(ssnAnswer([BreachPlace.UnitedStates]));
+
+    await renderCards();
+
+    const uncovered: HTMLElement = screen.getByTestId(
+      "security-case-exposure-uncovered",
+    );
+
+    expect(uncovered).toHaveTextContent(
+      "Of the US territories, it covers Puerto Rico only: Guam and the US Virgin Islands have breach laws of their own.",
+    );
+    expect(uncovered).toHaveTextContent(
+      "Many states also ask for a notice to the consumer reporting agencies once enough residents are told: it leaves those notices out.",
+    );
+
+    if (UNCOVERED_US_STATES.length > 0) {
+      expect(uncovered).toHaveTextContent(
+        "It does not cover the breach laws of",
+      );
+    } else {
+      expect(uncovered).not.toHaveTextContent(
+        "It does not cover the breach laws of",
+      );
+    }
   });
 });

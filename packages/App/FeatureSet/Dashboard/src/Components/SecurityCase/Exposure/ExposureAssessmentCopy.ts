@@ -45,6 +45,9 @@ export const EXPOSURE_TEST_IDS: {
   partToggle: string;
   taskAnswer: string;
   readLogs: string;
+  placeStates: string;
+  stateLaws: string;
+  statesNotApplying: string;
 } = {
   card: "security-case-exposure-assessment",
   notAssessed: "security-case-exposure-not-assessed",
@@ -73,6 +76,10 @@ export const EXPOSURE_TEST_IDS: {
   taskAnswer: "security-case-task-exposure-answer",
   // Read the Access Logs, on the reads line (#10951).
   readLogs: "security-case-exposure-read-logs",
+  // The US states picker, and the states' laws drawn together (#10952).
+  placeStates: "security-case-exposure-place-states",
+  stateLaws: "security-case-exposure-state-laws",
+  statesNotApplying: "security-case-exposure-states-not-applying",
 };
 
 // The card.
@@ -140,6 +147,11 @@ export const WITHIN_DAYS_OF_PEOPLE: PluralTemplate = {
   one: "Within {{count}} day of telling the people",
   other: "Within {{count}} days of telling the people",
 };
+// Iowa's notice to its attorney general (#10952).
+export const WITHIN_BUSINESS_DAYS_OF_PEOPLE: PluralTemplate = {
+  one: "Within {{count}} business day of telling the people",
+  other: "Within {{count}} business days of telling the people",
+};
 export const WHEN_PEOPLE_TOLD: string = translationKey(
   "When the people are told",
 );
@@ -149,6 +161,10 @@ export const WITHIN_DAYS_OF_YEAR_END: PluralTemplate = {
 };
 export const WITHOUT_UNDUE_DELAY: string = translationKey(
   "Without undue delay",
+);
+// Most US states' words: "in the most expedient time possible and without unreasonable delay".
+export const WITHOUT_UNREASONABLE_DELAY: string = translationKey(
+  "As soon as possible, without unreasonable delay",
 );
 export const NO_FIXED_TIME: string = translationKey("No fixed deadline");
 
@@ -340,6 +356,23 @@ export const SHOW_MORE_LAWS: PluralTemplate = {
   other: "Show {{count}} more laws",
 };
 export const SHOW_FEWER_LAWS: string = translationKey("Show fewer laws");
+// The US states' laws, drawn together while nobody said which states (#10952).
+export const US_STATE_LAWS: string = translationKey("US state laws");
+export const US_STATE_LAWS_MAY_APPLY: PluralTemplate = {
+  one: "The breach law of {{count}} US state may apply if any of the people live there.",
+  other:
+    "The breach laws of {{count}} US states may apply if any of the people live there.",
+};
+export const US_STATE_LAWS_SAY_WHICH: string = translationKey(
+  "Say which states they live in, and only those states' laws stay.",
+);
+export const SHOW_STATE_LAWS: string = translationKey("Show the states' laws");
+export const HIDE_STATE_LAWS: string = translationKey("Hide the states' laws");
+export const STATES_NOT_APPLYING: PluralTemplate = {
+  one: "The breach law of {{count}} more US state does not apply on these facts.",
+  other:
+    "The breach laws of {{count}} more US states do not apply on these facts.",
+};
 export const SHOW_DETAILS: string = translationKey("Show details");
 export const HIDE_DETAILS: string = translationKey("Hide details");
 export const WHO_IS_TOLD: string = translationKey("Who is told");
@@ -396,6 +429,15 @@ export const PLACES_SAID: string = translationKey(
 );
 export const PLACES_SAID_BY_SOMEONE: string = translationKey(
   "Someone said the people live in {{places}}.",
+);
+// The US states, the District of Columbia and Puerto Rico, picked from a list of their own (#10952).
+export const US_STATES: string = translationKey("US states");
+export const SEARCH_US_STATES: string = translationKey("Search for a state");
+export const US_STATES_HINT: string = translationKey(
+  "Pick each state where some of them live, the District of Columbia and Puerto Rico among them: each has a breach law of its own.",
+);
+export const STATE_NOT_IN_TABLE: string = translationKey(
+  "Its breach law is not in OneUptime's table",
 );
 export const CHANGE_PLACES: string = translationKey("Change Places");
 export const SAVE_PLACES: string = translationKey("Save Places");

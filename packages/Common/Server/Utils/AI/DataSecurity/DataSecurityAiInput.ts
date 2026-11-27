@@ -118,13 +118,16 @@ import {
 import {
   BreachLawId,
   BreachLawRule,
+  BreachPlace,
   getBreachLawRule,
+  isUsStateRule,
 } from "../../../../Types/DataSecurity/BreachLaws";
 import {
   describeBreachCheckInEnglish,
   describeBreachDeadlineInEnglish,
   describeBreachPlaceInEnglish,
   EXPOSURE_DRAFT_PART_ASKS,
+  BreachObligationStatus,
   ExposureAssessmentView,
   ExposureDataType,
   ExposureDraftPart,
@@ -5134,12 +5137,40 @@ export function exposureAssessmentFacts(data: {
       });
     });
 
+  /*
+   * A US state's notice is a fact of its own where a person said some of
+   * the people live in that state (#10952). The others - every state's,
+   * while nobody said which - are counted in one fact: fifty states' rows
+   * would crowd the rest out of the draft's facts, and a draft names a
+   * state's law only once its people are known to live there.
+   */
+  const named: ReadonlyArray<BreachPlace> = view.whose.placesNamed || [];
+  const statesIfPeopleLiveThere: Set<BreachPlace> = new Set();
+  let noticesIfPeopleLiveThere: number = 0;
+
   for (const obligation of view.obligations) {
     if (!isKnownObligation(obligation)) {
       continue;
     }
 
     const rule: BreachLawRule = getBreachLawRule(obligation.ruleId);
+
+    if (
+      isUsStateRule(rule) &&
+      !(rule.places || []).some((place: BreachPlace): boolean => {
+        return named.includes(place);
+      })
+    ) {
+      if (obligation.status === BreachObligationStatus.MayApply) {
+        noticesIfPeopleLiveThere += 1;
+
+        for (const place of rule.places || []) {
+          statesIfPeopleLiveThere.add(place);
+        }
+      }
+
+      continue;
+    }
 
     list.add({
       key: `obligation:${rule.id}`,
@@ -5160,6 +5191,15 @@ export function exposureAssessmentFacts(data: {
         .filter((check: string): boolean => {
           return check.length > 0;
         }),
+    });
+  }
+
+  if (noticesIfPeopleLiveThere > 0) {
+    list.add({
+      key: "obligation:us-states",
+      kind: ComplianceFactKind.UsStateLaws,
+      states: statesIfPeopleLiveThere.size,
+      notices: noticesIfPeopleLiveThere,
     });
   }
 

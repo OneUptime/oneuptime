@@ -17,7 +17,10 @@ import {
   BreachLawId,
   BreachLawRule,
   BreachPlace,
+  COVERED_US_STATES,
   getBreachLawRule,
+  isUsStateRule,
+  UNCOVERED_US_STATES,
 } from "Common/Types/DataSecurity/BreachLaws";
 import {
   ComplianceFact,
@@ -567,6 +570,93 @@ describe("a case's breach notices, exported", () => {
     );
     expect(uncovered).toContain("Where your organization is established");
     expect(uncovered).toContain("Contracts with customers and partners");
+  });
+
+  test("while nobody said which US states, each state's notices are one line under its name, in alphabetical order (#10952)", () => {
+    const markdown: string = markdownOf(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          dataTypeIds: ["us-ssn", "person-name"],
+          countries: ["US"],
+          places: [BreachPlace.UnitedStates],
+        }),
+      }),
+    );
+    const states: string = sectionOf(
+      markdown,
+      "If Any of the People Live in These US States",
+    );
+    const lines: Array<string> = states
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.startsWith("- **");
+      });
+
+    expect(states).toContain(
+      "Each state's notices apply only if some of the people live in that state. Nobody has said which states they live in",
+    );
+    // One line a state the table covers, Alabama first; Georgia the state reads "Georgia".
+    expect(lines).toHaveLength(COVERED_US_STATES.length);
+    expect(lines[0]).toBe(
+      "- **Alabama:** Code of Alabama 1975 8-38-5: Tell the people affected (45 calendar days from when it was found); Code of Alabama 1975 8-38-6: Tell the state's attorney general (45 calendar days from when it was found, if it affects more than 1,000 people).",
+    );
+    expect(states).toContain(
+      "- **Georgia:** Official Code of Georgia 10-1-912(a): Tell the people affected (in the most expedient time possible and without unreasonable delay).",
+    );
+    expect(states).not.toContain("Georgia (US state)");
+    expect(states).toContain(
+      "- **District of Columbia:** D.C. Code 28-3852(a): Tell the people affected",
+    );
+    // No state's notice is drawn in full: those are the card's.
+    for (const rule of BREACH_LAW_RULES.filter(isUsStateRule)) {
+      expect(markdown).not.toContain(`### ${getBreachLawName(rule.id)}`);
+    }
+  });
+
+  test("a US state a person named is a law that may apply in full, and the states the table leaves out are named (#10952)", () => {
+    const markdown: string = markdownOf(
+      exposureAnswerOf({
+        view: exposureViewOf({
+          dataTypeIds: ["us-ssn", "person-name"],
+          countries: ["US"],
+          places: [BreachPlace.Indiana],
+        }),
+      }),
+    );
+    const laws: string = sectionOf(markdown, "Breach Laws That May Apply");
+
+    expect(laws).toContain(
+      `### ${getBreachLawName(BreachLawId.IndianaResidents)} (due first)`,
+    );
+    expect(laws).toContain(
+      `### ${getBreachLawName(BreachLawId.IndianaAttorneyGeneral)}`,
+    );
+    expect(markdown).not.toContain(
+      "If Any of the People Live in These US States",
+    );
+
+    const uncovered: string = sectionOf(
+      markdownOf(
+        exposureAnswerOf({
+          view: exposureViewOf({
+            dataTypeIds: ["us-ssn", "person-name"],
+            countries: ["US"],
+            places: [BreachPlace.UnitedStates],
+          }),
+        }),
+      ),
+      "What This Does Not Cover",
+    );
+
+    expect(uncovered).toContain(
+      "- Of the US territories, it covers Puerto Rico only: Guam and the US Virgin Islands have breach laws of their own.",
+    );
+    expect(uncovered).toContain(
+      "- Many states also ask for a notice to the consumer reporting agencies once enough residents are told: it leaves those notices out.",
+    );
+    expect(uncovered.includes("It does not cover the breach laws of")).toBe(
+      UNCOVERED_US_STATES.length > 0,
+    );
   });
 
   test("each part as a person last saved it: who wrote it and when, its words, and the facts a draft rests on", () => {

@@ -54,15 +54,23 @@ import {
   LOGS_UNREADABLE,
   READ_ACCESS_LOGS,
   READ_LOGS_AGAIN,
+  HIDE_STATE_LAWS,
+  SHOW_STATE_LAWS,
+  STATES_NOT_APPLYING,
+  US_STATE_LAWS,
+  US_STATE_LAWS_MAY_APPLY,
+  US_STATE_LAWS_SAY_WHICH,
 } from "./ExposureAssessmentCopy";
 import {
   ObligationGroups,
+  StateObligations,
   answerChecklistItem,
   describeDeadline,
   describeDueDate,
   describeLaw,
   describeLogPrincipal,
   describeLogReads,
+  describePlaces,
   describeRecords,
   getReadsLine,
   groupObligations,
@@ -85,6 +93,7 @@ import OneUptimeDate from "Common/Types/Date";
 import { ExposureLogPrincipal } from "Common/Types/DataSecurity/AccessLogReads";
 import { DataStoreKind } from "Common/Types/DataSecurity/DataStoreKind";
 import {
+  BREACH_PLACE_CHOICES,
   BreachLawRule,
   BreachPlace,
   getBreachLawRule,
@@ -670,6 +679,105 @@ const CHECKLIST_LABELS: Readonly<Record<ExposureChecklistItem, string>> = {
   [ExposureChecklistItem.CloseTheCase]: CHECK_CLOSE,
 };
 
+/*
+ * THE US STATES' LAWS, WHILE NOBODY SAID WHICH STATES (#10952). Every state
+ * has a breach law, so fifty states' rows would bury every other law on the
+ * card: they are one block saying how many states' laws may apply and how
+ * to narrow them, and each state's rows unfold under its name, in the
+ * reader's alphabetical order.
+ */
+const StateLaws: FunctionComponent<{
+  states: Array<StateObligations>;
+  now: Date;
+}> = (props: { states: Array<StateObligations>; now: Date }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const listId: string = `${EXPOSURE_TEST_IDS.stateLaws}-list`;
+  const states: Array<StateObligations> = [...props.states].sort(
+    (a: StateObligations, b: StateObligations): number => {
+      return say(translator, BREACH_PLACE_CHOICES[a.place]).localeCompare(
+        say(translator, BREACH_PLACE_CHOICES[b.place]),
+      );
+    },
+  );
+
+  return (
+    <div
+      className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+      data-testid={EXPOSURE_TEST_IDS.stateLaws}
+    >
+      <div className="flex items-start gap-3">
+        <Icon
+          icon={IconProp.Scale}
+          className="mt-0.5 h-5 w-5 flex-none text-gray-400"
+        />
+        <div className="min-w-0 flex-1 space-y-1">
+          <h5 className="text-sm font-semibold text-gray-900">
+            {say(translator, US_STATE_LAWS)}
+          </h5>
+          <p className="text-sm text-gray-700">
+            {translator.translatePlural(US_STATE_LAWS_MAY_APPLY, states.length)}{" "}
+            {say(translator, US_STATE_LAWS_SAY_WHICH)}
+          </p>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            aria-expanded={isOpen}
+            aria-controls={listId}
+            data-testid={`${EXPOSURE_TEST_IDS.stateLaws}-toggle`}
+            onClick={() => {
+              setIsOpen(!isOpen);
+            }}
+          >
+            <Icon
+              icon={isOpen ? IconProp.ChevronUp : IconProp.ChevronDown}
+              className="h-4 w-4"
+            />
+            <span>
+              {say(translator, isOpen ? HIDE_STATE_LAWS : SHOW_STATE_LAWS)}
+            </span>
+          </button>
+        </div>
+      </div>
+      {isOpen ? (
+        <div id={listId} className="mt-3 space-y-4 ps-8">
+          {states.map((state: StateObligations): ReactElement => {
+            return (
+              <section
+                key={state.place}
+                aria-labelledby={`${listId}-${state.place}`}
+                data-testid={`${EXPOSURE_TEST_IDS.stateLaws}-${state.place}`}
+              >
+                <h6
+                  id={`${listId}-${state.place}`}
+                  className="text-xs font-semibold uppercase tracking-wide text-gray-500"
+                >
+                  {say(translator, BREACH_PLACE_CHOICES[state.place])}
+                </h6>
+                <ul className="divide-y divide-gray-100">
+                  {state.obligations.map(
+                    (obligation: BreachObligation): ReactElement => {
+                      return (
+                        <ExposureObligationRow
+                          key={obligation.ruleId}
+                          obligation={obligation}
+                          now={props.now}
+                        />
+                      );
+                    },
+                  )}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
 const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -686,7 +794,10 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
     !groups.dueFirst &&
     !view.isPlaceUnknown &&
     groups.mayApply.length === 0 &&
-    groups.ifPeopleLiveElsewhere.length === 0;
+    groups.ifPeopleLiveElsewhere.length === 0 &&
+    groups.stateLawsIfPeopleLiveThere.length === 0;
+  // The folded laws: each row not applying, and the states counted as one line each.
+  const foldedCount: number = groups.folded.length + groups.statesNotApplying;
   const saidBy: string | undefined = props.answer.assessment?.peopleLiveIn
     ?.saidByUserId
     ? props.answer.editors[props.answer.assessment.peopleLiveIn.saidByUserId]
@@ -797,49 +908,78 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
           ) : (
             <></>
           )}
-          {groups.ifPeopleLiveElsewhere.length > 0 ? (
-            <div className="space-y-1">
+          {groups.ifPeopleLiveElsewhere.length > 0 ||
+          groups.stateLawsIfPeopleLiveThere.length > 0 ? (
+            <div className="space-y-2">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                 {say(translator, IF_PEOPLE_LIVE_ELSEWHERE)}
               </h4>
-              <ul className="divide-y divide-gray-100">
-                {groups.ifPeopleLiveElsewhere.map(
-                  (obligation: BreachObligation): ReactElement => {
-                    return (
-                      <ExposureObligationRow
-                        key={obligation.ruleId}
-                        obligation={obligation}
-                        now={now}
-                      />
-                    );
-                  },
-                )}
-              </ul>
+              {groups.ifPeopleLiveElsewhere.length > 0 ? (
+                <ul className="divide-y divide-gray-100">
+                  {groups.ifPeopleLiveElsewhere.map(
+                    (obligation: BreachObligation): ReactElement => {
+                      return (
+                        <ExposureObligationRow
+                          key={obligation.ruleId}
+                          obligation={obligation}
+                          now={now}
+                        />
+                      );
+                    },
+                  )}
+                </ul>
+              ) : (
+                <></>
+              )}
+              {groups.stateLawsIfPeopleLiveThere.length > 0 ? (
+                <StateLaws
+                  states={groups.stateLawsIfPeopleLiveThere}
+                  now={now}
+                />
+              ) : (
+                <></>
+              )}
             </div>
           ) : (
             <></>
           )}
-          {showsAllLaws && groups.folded.length > 0 ? (
-            <ul
-              className="divide-y divide-gray-100"
-              id={`${EXPOSURE_TEST_IDS.moreLaws}-list`}
-            >
-              {groups.folded.map(
-                (obligation: BreachObligation): ReactElement => {
-                  return (
-                    <ExposureObligationRow
-                      key={obligation.ruleId}
-                      obligation={obligation}
-                      now={now}
-                    />
-                  );
-                },
+          {showsAllLaws && foldedCount > 0 ? (
+            <div id={`${EXPOSURE_TEST_IDS.moreLaws}-list`}>
+              {groups.folded.length > 0 ? (
+                <ul className="divide-y divide-gray-100">
+                  {groups.folded.map(
+                    (obligation: BreachObligation): ReactElement => {
+                      return (
+                        <ExposureObligationRow
+                          key={obligation.ruleId}
+                          obligation={obligation}
+                          now={now}
+                        />
+                      );
+                    },
+                  )}
+                </ul>
+              ) : (
+                <></>
               )}
-            </ul>
+              {groups.statesNotApplying > 0 ? (
+                <p
+                  className="py-3 text-sm text-gray-600"
+                  data-testid={EXPOSURE_TEST_IDS.statesNotApplying}
+                >
+                  {translator.translatePlural(
+                    STATES_NOT_APPLYING,
+                    groups.statesNotApplying,
+                  )}
+                </p>
+              ) : (
+                <></>
+              )}
+            </div>
           ) : (
             <></>
           )}
-          {groups.folded.length > 0 ? (
+          {foldedCount > 0 ? (
             <button
               type="button"
               className="inline-flex items-center gap-1 rounded text-sm font-medium text-indigo-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -857,10 +997,7 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
               <span>
                 {showsAllLaws
                   ? say(translator, SHOW_FEWER_LAWS)
-                  : translator.translatePlural(
-                      SHOW_MORE_LAWS,
-                      groups.folded.length,
-                    )}
+                  : translator.translatePlural(SHOW_MORE_LAWS, foldedCount)}
               </span>
             </button>
           ) : (
@@ -891,6 +1028,11 @@ const ExposureAssessmentCard: FunctionComponent<ComponentProps> = (
                                 ),
                                 sentence,
                               );
+                            },
+                          ),
+                          states: composedValue(
+                            (sentence: Translator): string => {
+                              return describePlaces(law.states || [], sentence);
                             },
                           ),
                         },
