@@ -211,7 +211,7 @@ AI に質問 はデータセキュリティのボタンと同じことを行い�
 
 [Terraform プロバイダー](/docs/terraform/index) には、作成する各種類のレコード (自分で追加するデータストア、カスタムデータタイプ、チェックの設定、コンプライアンスの設定、データ所在地ルール、所有者ルールとラベルルール) ごとに、 `oneuptime_residency_rule` のようにレコードにちなんだ名前のリソースがあります。
 
-[MCP サーバー](/docs/ai/mcp-server) には、次のレコードの作成・取得・一覧・更新・削除・件数のツールがあります: Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Compliance Setting、Residency Rule、Data Security Setting。これにより AI アシスタントは、どのデータストアがカード番号を保持しているか、あるバケットで何が未解決かを、あなたの権限で尋ねられます。 また、[AI に質問 の操作](#ai-に質問) もそれぞれ 1 回の呼び出しで使え、どれもボタンと同じ変更をあなたとして行います。MCP サーバーは誰にもカードを表示できないため、AI に質問 がすべてのモードで確認する操作はそこでは拒否されます。回答は理由と、変更を行う OneUptime のページを示します。
+[MCP サーバー](/docs/ai/mcp-server) には、次のレコードの作成・取得・一覧・更新・削除・件数のツールがあります: Data Store、Data Store Finding、Data Store Access Entry、Data Security Identity、Data Flow、Data Security Issue、Data Security Scan、Custom Data Type、Check Setting、Compliance Setting、Residency Rule、Data Security Setting。これにより AI アシスタントは、どのデータストアがカード番号を保持しているか、あるバケットで何が未解決かを、あなたの権限で尋ねられます。 また、[AI に質問 の操作](#ai-に質問) もそれぞれ 1 回の呼び出しで使え、どれもボタンと同じ変更をあなたとして行います。MCP サーバーは誰にもカードを表示できないため、AI に質問 がすべてのモードで確認する操作はそこでは拒否されます。回答は理由と、変更を行う OneUptime のページを示します。これらのレコードへの書き込みで同じ変更を行うものも拒否されます。たとえば、`update_data_security_issue` で問題の `status` を `Accepted` にすること、データタイプをオフにすること、データストアのスキャンから場所を除外することです。それ以外のフィールドはこれまでどおり変更されます。
 
 ## 次のステップ
 
