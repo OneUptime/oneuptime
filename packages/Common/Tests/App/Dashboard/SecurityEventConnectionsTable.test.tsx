@@ -1879,11 +1879,15 @@ describe("SecurityEventConnectionsTable", () => {
       await within(checks).findByText("Passed with warnings"),
     ).toBeVisible();
 
+    /*
+     * The server's own failure, which keeps its words: a 502 is a gateway's,
+     * said as the server not answering (#8413).
+     */
     jest
       .mocked(API.post)
       .mockResolvedValue(
         new HTTPErrorResponse(
-          502,
+          500,
           { message: "The API could not reach Okta." },
           {},
         ),
