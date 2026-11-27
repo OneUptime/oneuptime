@@ -126,9 +126,13 @@ export function getDatabaseEngineOfKind(
  * (SearchStoreSampler, #11140) - handed only to a probe that declares it
  * reads one (ProbeCapability.DataSecuritySearchScan).
  */
-export const SEARCH_PROBE_ENGINE: "search" = "search";
+type SearchProbeEngine = "search";
 
-export type DataSecurityProbeEngine = DatabaseEngine | typeof SEARCH_PROBE_ENGINE;
+export const SEARCH_PROBE_ENGINE: SearchProbeEngine = "search" as const;
+
+export type DataSecurityProbeEngine =
+  | DatabaseEngine
+  | typeof SEARCH_PROBE_ENGINE;
 
 const PROBE_ENGINES: ReadonlyArray<string> = [
   "postgresql",
@@ -327,7 +331,10 @@ export function readProbeStoreWork(
   }
 
   // A search cluster is read as its kind says: Elasticsearch or OpenSearch.
-  if (engine === SEARCH_PROBE_ENGINE && !isSearchEngineDataStoreKind(work["kind"] as string)) {
+  if (
+    engine === SEARCH_PROBE_ENGINE &&
+    !isSearchEngineDataStoreKind(work["kind"] as string)
+  ) {
     return null;
   }
 
@@ -712,7 +719,13 @@ const PROBE_UNKNOWABLE_FACTS: ReadonlySet<string> = new Set([
 ]);
 
 function readFact(value: unknown): boolean | null | undefined {
-  return value === true ? true : value === false ? false : value === null ? null : undefined;
+  return value === true
+    ? true
+    : value === false
+      ? false
+      : value === null
+        ? null
+        : undefined;
 }
 
 /*

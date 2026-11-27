@@ -47,15 +47,18 @@ describe("getDataStoreCoverage", () => {
     DataStoreKind.PostgreSql,
     DataStoreKind.MySql,
     DataStoreKind.SqlServer,
-  ])("%s: its tables are sampled; who can reach it, and its settings, are not checked", (kind: DataStoreKind) => {
-    const items: Array<DataStoreCoverageItem> = coverage(kind);
+  ])(
+    "%s: its tables are sampled; who can reach it, and its settings, are not checked",
+    (kind: DataStoreKind) => {
+      const items: Array<DataStoreCoverageItem> = coverage(kind);
 
-    expect(shape(items)).toEqual(["+content", "-exposure", "-configuration"]);
-    expect(items[0]!.label).toBe("Sensitive data in its tables");
-    expect(items[1]!.detail).toBe(
-      "OneUptime has no way to check this kind of store, so its exposure reads Can't be checked.",
-    );
-  });
+      expect(shape(items)).toEqual(["+content", "-exposure", "-configuration"]);
+      expect(items[0]!.label).toBe("Sensitive data in its tables");
+      expect(items[1]!.detail).toBe(
+        "OneUptime has no way to check this kind of store, so its exposure reads Can't be checked.",
+      );
+    },
+  );
 
   test.each([DataStoreKind.Elasticsearch, DataStoreKind.OpenSearch])(
     "%s, from inside your network: its indices are sampled and it is asked without credentials; the internet's reach and its settings are not known",
@@ -106,19 +109,22 @@ describe("getDataStoreCoverage", () => {
     DataStoreKind.ClickHouse,
     DataStoreKind.Databricks,
     DataStoreKind.Dataverse,
-  ])("%s: nothing of it is checked, and it says what adding it still gives", (kind: DataStoreKind) => {
-    const items: Array<DataStoreCoverageItem> = coverage(kind);
+  ])(
+    "%s: nothing of it is checked, and it says what adding it still gives",
+    (kind: DataStoreKind) => {
+      const items: Array<DataStoreCoverageItem> = coverage(kind);
 
-    expect(shape(items)).toEqual([
-      "-content",
-      "-exposure",
-      "-configuration",
-      "+tracking",
-    ]);
-    expect(items[0]!.detail).toBe(
-      "OneUptime cannot sample this kind of store's content yet.",
-    );
-  });
+      expect(shape(items)).toEqual([
+        "-content",
+        "-exposure",
+        "-configuration",
+        "+tracking",
+      ]);
+      expect(items[0]!.detail).toBe(
+        "OneUptime cannot sample this kind of store's content yet.",
+      );
+    },
+  );
 
   test("a cloud's bucket: sampled through its connection, read from its cloud's settings", () => {
     expect(shape(coverage(DataStoreKind.AwsS3Bucket))).toEqual([
@@ -244,9 +250,11 @@ describe("takesConnectionString", () => {
     ]);
 
     for (const kind of taking) {
-      expect(DATA_STORE_KINDS.find((info: DataStoreKindInfo): boolean => {
-        return info.kind === kind;
-      })?.provider).toBe(DataStoreProvider.SelfManaged);
+      expect(
+        DATA_STORE_KINDS.find((info: DataStoreKindInfo): boolean => {
+          return info.kind === kind;
+        })?.provider,
+      ).toBe(DataStoreProvider.SelfManaged);
     }
 
     expect(takesConnectionString(undefined)).toBe(false);

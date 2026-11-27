@@ -127,9 +127,8 @@ describe("readProbeStoreWork", () => {
 
   test("still reads a database's work as before", () => {
     expect(
-      readProbeStoreWork(
-        work({ kind: DataStoreKind.MySql, engine: "mysql" }),
-      )?.engine,
+      readProbeStoreWork(work({ kind: DataStoreKind.MySql, engine: "mysql" }))
+        ?.engine,
     ).toBe("mysql");
   });
 });

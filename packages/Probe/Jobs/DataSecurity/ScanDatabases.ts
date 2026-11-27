@@ -295,7 +295,9 @@ export async function scanStore(
 
     const result: ContentScanResult =
       work.engine === SEARCH_PROBE_ENGINE
-        ? await (dependencies.sampleSearch || DEFAULT_DEPENDENCIES.sampleSearch!)(
+        ? await (
+            dependencies.sampleSearch || DEFAULT_DEPENDENCIES.sampleSearch!
+          )(
             { kind: work.kind, connectionString: connectionString.trim() },
             options,
           )

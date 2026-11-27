@@ -178,7 +178,9 @@ const CONFIGURATION_FROM_CLOUD: DataStoreCoverageItem = {
   key: DataStoreCoverageKey.Configuration,
   isChecked: true,
   label: translationKey("Encryption, backups and access logging"),
-  detail: translationKey("Read from its cloud's settings, with who can reach it."),
+  detail: translationKey(
+    "Read from its cloud's settings, with who can reach it.",
+  ),
 };
 
 const CONFIGURATION_NOT_VISIBLE: DataStoreCoverageItem = {
@@ -296,7 +298,9 @@ export function getDataStoreCoverage(
  * a database or search cluster OneUptime's workers sample with one. For any
  * other kind the field would be saved and never read, so it is not shown.
  */
-export function takesConnectionString(kind: string | undefined | null): boolean {
+export function takesConnectionString(
+  kind: string | undefined | null,
+): boolean {
   const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(kind);
 
   return Boolean(

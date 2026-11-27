@@ -32,7 +32,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  */
 
 // A fact that cannot be known from where it was read (unknowableFacts).
-export const CANNOT_BE_CHECKED_STATUS: "Can't be checked" = "Can't be checked";
+type CannotBeCheckedStatus = "Can't be checked";
+
+export const CANNOT_BE_CHECKED_STATUS: CannotBeCheckedStatus =
+  "Can't be checked" as const;
 
 export type PostureFactStatus =
   | DataSecurityCheckStatus.Pass

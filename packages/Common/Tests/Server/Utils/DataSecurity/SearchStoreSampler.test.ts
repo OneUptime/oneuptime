@@ -241,7 +241,10 @@ async function transport(
     return json(cluster.rootStatus, cluster.rootBody);
   }
 
-  if (path === "/_security/_authenticate" || path === "/_plugins/_security/authinfo") {
+  if (
+    path === "/_security/_authenticate" ||
+    path === "/_plugins/_security/authinfo"
+  ) {
     return json(cluster.whoAmIStatus, {});
   }
 
@@ -268,15 +271,17 @@ async function transport(
   }
 
   if (path === "/_data_stream") {
-    return json(200, { data_streams: cluster.dataStreams.map((stream: ListedDataStream) => {
-      return {
-        name: stream.name,
-        indices: stream.indices.map((index: string) => {
-          return { index_name: index };
-        }),
-        timestamp_field: { name: stream.timestampField },
-      };
-    }) });
+    return json(200, {
+      data_streams: cluster.dataStreams.map((stream: ListedDataStream) => {
+        return {
+          name: stream.name,
+          indices: stream.indices.map((index: string) => {
+            return { index_name: index };
+          }),
+          timestamp_field: { name: stream.timestampField },
+        };
+      }),
+    });
   }
 
   if (path.endsWith("/_mapping")) {
@@ -304,13 +309,19 @@ async function transport(
 
     if (cluster.failingTargets.has(target)) {
       return json(500, {
-        error: { type: "search_phase_execution_exception", reason: `failed for ${PASSWORD}` },
+        error: {
+          type: "search_phase_execution_exception",
+          reason: `failed for ${PASSWORD}`,
+        },
       });
     }
 
     if (cluster.unsortableTargets.has(target) && sort !== "_doc") {
       return json(400, {
-        error: { type: "illegal_argument_exception", reason: "No mapping found for [@timestamp]" },
+        error: {
+          type: "illegal_argument_exception",
+          reason: "No mapping found for [@timestamp]",
+        },
       });
     }
 
@@ -420,7 +431,12 @@ describe("readListedIndices and readDataStreams", () => {
   test("read _cat/indices' strings, and leave out rows without a name", () => {
     expect(
       readListedIndices([
-        { index: "a", status: "open", "docs.count": "12", "creation.date": "99" },
+        {
+          index: "a",
+          status: "open",
+          "docs.count": "12",
+          "creation.date": "99",
+        },
         { index: "b", status: "close", "docs.count": null },
         { status: "open" },
         "junk",
@@ -466,9 +482,24 @@ describe("groupIndices", () => {
         { name: "customers", isOpen: true, documents: 9, createdAt: 3 },
         { name: "archive", isOpen: false, documents: 9, createdAt: 3 },
         { name: ".security-7", isOpen: true, documents: 9, createdAt: 3 },
-        { name: ".ds-web-2026.11.26-000002", isOpen: true, documents: 4, createdAt: 9 },
-        { name: ".ds-web-2026.11.25-000001", isOpen: true, documents: 3, createdAt: 8 },
-        { name: ".ds-.logs-deprecation-000001", isOpen: true, documents: 3, createdAt: 8 },
+        {
+          name: ".ds-web-2026.11.26-000002",
+          isOpen: true,
+          documents: 4,
+          createdAt: 9,
+        },
+        {
+          name: ".ds-web-2026.11.25-000001",
+          isOpen: true,
+          documents: 3,
+          createdAt: 8,
+        },
+        {
+          name: ".ds-.logs-deprecation-000001",
+          isOpen: true,
+          documents: 3,
+          createdAt: 8,
+        },
         { name: ".ds-orphan-000001", isOpen: true, documents: 3, createdAt: 8 },
       ],
       dataStreams: [
@@ -535,7 +566,9 @@ describe("readSearchExclusions", () => {
 
   test("an index, its pattern or a glob leaves the group out, without regard to case", () => {
     for (const exclusion of ["logs-*", "LOGS-2026.11.26", "logs-2026*", "*"]) {
-      expect(readSearchExclusions([exclusion]).isGroupExcluded(group)).toBe(true);
+      expect(readSearchExclusions([exclusion]).isGroupExcluded(group)).toBe(
+        true,
+      );
     }
 
     expect(readSearchExclusions(["metrics-*"]).isGroupExcluded(group)).toBe(
@@ -558,7 +591,10 @@ describe("readSearchExclusions", () => {
       ),
     ).toBe(true);
     expect(
-      readSearchExclusions(["logs-*.user"]).isFieldExcluded(group, "user.email"),
+      readSearchExclusions(["logs-*.user"]).isFieldExcluded(
+        group,
+        "user.email",
+      ),
     ).toBe(false);
   });
 
@@ -567,7 +603,11 @@ describe("readSearchExclusions", () => {
       readSearchExclusions(["a.b[1]"]);
 
     expect(
-      exclusions.isGroupExcluded({ ...group, name: "a.b[1]", target: "a.b[1]" }),
+      exclusions.isGroupExcluded({
+        ...group,
+        name: "a.b[1]",
+        target: "a.b[1]",
+      }),
     ).toBe(true);
     expect(
       exclusions.isGroupExcluded({ ...group, name: "axb1", target: "axb1" }),
@@ -618,9 +658,9 @@ describe("readMappingFields", () => {
       { path: "payload", type: "object" },
     ];
 
-    expect(
-      readMappingFields({ idx: { mappings: { properties } } }),
-    ).toEqual(expected);
+    expect(readMappingFields({ idx: { mappings: { properties } } })).toEqual(
+      expected,
+    );
     expect(
       readMappingFields({ idx: { mappings: { _doc: { properties } } } }),
     ).toEqual(expected);
@@ -658,9 +698,12 @@ describe("buildSearchPath", () => {
       from: 0,
       size: 10,
       sortField: null,
-      excludedFields: Array.from({ length: 400 }, (_: unknown, index: number) => {
-        return `field_number_${index}`;
-      }),
+      excludedFields: Array.from(
+        { length: 400 },
+        (_: unknown, index: number) => {
+          return `field_number_${index}`;
+        },
+      ),
     });
 
     expect(new URL(`https://x${path}`).searchParams.get("sort")).toBe("_doc");
@@ -671,14 +714,19 @@ describe("buildSearchPath", () => {
 describe("readHitSources and readEngine", () => {
   test("read each hit's _source, an empty one for a hit without", () => {
     expect(
-      readHitSources({ hits: { hits: [{ _source: { a: 1 } }, { _id: "x" }, 3] } }),
+      readHitSources({
+        hits: { hits: [{ _source: { a: 1 } }, { _id: "x" }, 3] },
+      }),
     ).toEqual([{ a: 1 }, {}]);
     expect(readHitSources({})).toEqual([]);
   });
 
   test("OpenSearch says so in its version; without an answer, the kind does", () => {
     expect(
-      readEngine({ version: { distribution: "opensearch" } }, DataStoreKind.Elasticsearch),
+      readEngine(
+        { version: { distribution: "opensearch" } },
+        DataStoreKind.Elasticsearch,
+      ),
     ).toBe("opensearch");
     expect(
       readEngine({ version: { number: "8.15.3" } }, DataStoreKind.OpenSearch),
@@ -699,7 +747,9 @@ describe("assertReadOnlySearchRequest", () => {
         headers: {},
         timeoutInMs: 1000,
       });
-    }).toThrow("Data Security sends a search cluster nothing but GET requests.");
+    }).toThrow(
+      "Data Security sends a search cluster nothing but GET requests.",
+    );
   });
 });
 
@@ -891,7 +941,9 @@ describe("sampleSearchStore", () => {
   test("credentials the cluster refuses are a thrown error that names no secret", async () => {
     cluster = freshCluster();
     cluster.rootStatus = 401;
-    cluster.rootBody = { error: { type: "security_exception", reason: `bad ${PASSWORD}` } };
+    cluster.rootBody = {
+      error: { type: "security_exception", reason: `bad ${PASSWORD}` },
+    };
 
     let message: string = "";
 

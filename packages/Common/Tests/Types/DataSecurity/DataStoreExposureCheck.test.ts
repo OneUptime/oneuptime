@@ -153,7 +153,9 @@ describe("the search kinds", () => {
 
     expect(info?.provider).toBe(DataStoreProvider.SelfManaged);
     expect(info?.contentScannable).toBe(true);
-    expect(getDataStoreKindInfo(DataStoreKind.Elasticsearch)?.contentScannable).toBe(true);
+    expect(
+      getDataStoreKindInfo(DataStoreKind.Elasticsearch)?.contentScannable,
+    ).toBe(true);
     expect(SEARCH_ENGINE_DATA_STORE_KINDS).toEqual([
       DataStoreKind.Elasticsearch,
       DataStoreKind.OpenSearch,
@@ -187,7 +189,9 @@ describe("the exposures", () => {
     );
 
     for (const exposure of ALL_DATA_STORE_EXPOSURES) {
-      expect(DATA_STORE_EXPOSURE_DESCRIPTION[exposure].length).toBeGreaterThan(0);
+      expect(DATA_STORE_EXPOSURE_DESCRIPTION[exposure].length).toBeGreaterThan(
+        0,
+      );
       expect(isDataStoreExposure(exposure)).toBe(true);
     }
 
@@ -232,9 +236,7 @@ describe("getDataStoreExposure, by kind", () => {
       expect(getDataStoreExposure(undefined, kind)).toBe(
         DataStoreExposure.NotChecked,
       );
-      expect(getDataStoreExposure({}, kind)).toBe(
-        DataStoreExposure.NotChecked,
-      );
+      expect(getDataStoreExposure({}, kind)).toBe(DataStoreExposure.NotChecked);
     }
   });
 

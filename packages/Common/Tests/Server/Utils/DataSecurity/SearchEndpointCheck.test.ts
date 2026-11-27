@@ -114,9 +114,9 @@ describe("readAccessControl", () => {
     expect(readAccessControl(answer(403))).toBe(
       SearchAccessControl.CredentialsRequired,
     );
-    expect(
-      readAccessControl(answer(200, { username: "anonymous_user" })),
-    ).toBe(SearchAccessControl.AnonymousAllowed);
+    expect(readAccessControl(answer(200, { username: "anonymous_user" }))).toBe(
+      SearchAccessControl.AnonymousAllowed,
+    );
   });
 
   test("an endpoint that is not there is a cluster with no access control", () => {

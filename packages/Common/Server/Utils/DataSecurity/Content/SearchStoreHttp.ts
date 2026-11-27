@@ -68,17 +68,15 @@ export function createSearchTransport(
 ): SearchHttpTransport {
   return async (request: SearchHttpRequest): Promise<SearchHttpResponse> => {
     try {
-      const response: DataSourceHttpResponse = await DataSourceHttpFetch.fetch(
-        {
-          method: request.method,
-          url: request.url,
-          headers: request.headers,
-          timeoutInMs: request.timeoutInMs,
-          acceptAnyStatus: true,
-          tls: request.tls,
-          egressOptions,
-        },
-      );
+      const response: DataSourceHttpResponse = await DataSourceHttpFetch.fetch({
+        method: request.method,
+        url: request.url,
+        headers: request.headers,
+        timeoutInMs: request.timeoutInMs,
+        acceptAnyStatus: true,
+        tls: request.tls,
+        egressOptions,
+      });
 
       return { statusCode: response.statusCode, bodyText: response.bodyText };
     } catch (error) {

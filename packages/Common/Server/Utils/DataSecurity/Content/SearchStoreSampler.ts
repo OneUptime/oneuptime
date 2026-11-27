@@ -225,9 +225,7 @@ const STAR_RUN: RegExp = /\*[.\-_]*\*/g;
  * mapping or search the sampler sends writes, and a request it builds
  * wrongly is refused rather than sent.
  */
-export function assertReadOnlySearchRequest(
-  request: SearchHttpRequest,
-): void {
+export function assertReadOnlySearchRequest(request: SearchHttpRequest): void {
   if (request.method !== "GET") {
     throw new Error(
       "Data Security sends a search cluster nothing but GET requests.",
@@ -376,10 +374,7 @@ export function readDataStreams(body: unknown): Array<ListedDataStream> {
         return null;
       }
 
-      const record: Record<string, unknown> = stream as Record<
-        string,
-        unknown
-      >;
+      const record: Record<string, unknown> = stream as Record<string, unknown>;
       const name: unknown = record["name"];
 
       if (typeof name !== "string" || !name) {
@@ -720,10 +715,7 @@ export function buildSearchPath(data: {
 
   parameters.set("size", String(data.size));
   parameters.set("from", String(data.from));
-  parameters.set(
-    "sort",
-    data.sortField ? `${data.sortField}:desc` : "_doc",
-  );
+  parameters.set("sort", data.sortField ? `${data.sortField}:desc` : "_doc");
   parameters.set("timeout", `${SEARCH_TIMEOUT_IN_SECONDS}s`);
   parameters.set("track_total_hits", "false");
   parameters.set("ignore_unavailable", "true");
@@ -768,22 +760,20 @@ export function readHitSources(body: unknown): Array<Record<string, unknown>> {
         ? (source as Record<string, unknown>)
         : {};
     })
-    .filter((source: Record<string, unknown> | null): source is Record<
-      string,
-      unknown
-    > => {
-      return source !== null;
-    });
+    .filter(
+      (
+        source: Record<string, unknown> | null,
+      ): source is Record<string, unknown> => {
+        return source !== null;
+      },
+    );
 }
 
 /*
  * The engine a cluster is, from its own answer to GET /: OpenSearch says
  * so in version.distribution. Without an answer, the store's kind says.
  */
-export function readEngine(
-  rootBody: unknown,
-  kind: string,
-): SearchEngineName {
+export function readEngine(rootBody: unknown, kind: string): SearchEngineName {
   const version: unknown =
     rootBody && typeof rootBody === "object"
       ? (rootBody as Record<string, unknown>)["version"]
@@ -1042,9 +1032,7 @@ export async function sampleSearchStore(
       },
     });
   } catch (error) {
-    warn(
-      writeScanWarning("searchExposureNotChecked", { error: clean(error) }),
-    );
+    warn(writeScanWarning("searchExposureNotChecked", { error: clean(error) }));
   }
 
   if (groups.length === 0) {
@@ -1151,10 +1139,7 @@ export async function sampleSearchStore(
         mapped = readMappingFields(parseJson(mapping.bodyText));
       }
     } catch (error) {
-      if (
-        error instanceof SearchTransportError &&
-        error.reason === "timeout"
-      ) {
+      if (error instanceof SearchTransportError && error.reason === "timeout") {
         throw error;
       }
     }
@@ -1298,9 +1283,8 @@ export async function sampleSearchStore(
     }
 
     try {
-      const sources: Array<Record<string, unknown>> = await readDocuments(
-        group,
-      );
+      const sources: Array<Record<string, unknown>> =
+        await readDocuments(group);
 
       consecutiveFailures = 0;
       result.objectsRead++;
@@ -1337,8 +1321,11 @@ export async function sampleSearchStore(
       // The names-and-addresses model reads the index's free-text fields.
       turn.begin();
 
-      const recognitions: ModelRecognitions | undefined =
-        await recognizeFields(options.model, CONTENT_STORE_KEY, fields);
+      const recognitions: ModelRecognitions | undefined = await recognizeFields(
+        options.model,
+        CONTENT_STORE_KEY,
+        fields,
+      );
 
       turn.end(group.name, nameAt(position + 1));
 
@@ -1376,8 +1363,7 @@ export async function sampleSearchStore(
 
       // Documents holding sensitive data, scaled from the sample to the index.
       estimatedRecords +=
-        classified.sensitiveShare *
-        Math.max(group.documents, sources.length);
+        classified.sensitiveShare * Math.max(group.documents, sources.length);
     } catch (error) {
       consecutiveFailures++;
       isComplete = false;

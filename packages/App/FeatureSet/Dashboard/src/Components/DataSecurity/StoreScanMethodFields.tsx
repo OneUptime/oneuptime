@@ -67,9 +67,14 @@ export function keepScanFieldsTheKindReads(
     string,
     unknown
   >;
-  const isFromProbe: boolean = Boolean(record["scanProbe"] || record["scanProbeId"]);
+  const isFromProbe: boolean = Boolean(
+    record["scanProbe"] || record["scanProbeId"],
+  );
 
-  if (!takesConnectionString(kind) || (isFromProbe && isProbeScannableKind(kind))) {
+  if (
+    !takesConnectionString(kind) ||
+    (isFromProbe && isProbeScannableKind(kind))
+  ) {
     delete record["connectionString"];
   }
 

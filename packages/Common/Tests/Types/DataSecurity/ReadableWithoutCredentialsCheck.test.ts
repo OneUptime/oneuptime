@@ -90,12 +90,12 @@ describe("readable-without-credentials", () => {
   });
 
   test("passes when it asks for credentials, and cannot tell when it could not be asked", () => {
-    expect(run({ anonymousRead: false, anonymousWrite: false })?.result.status).toBe(
-      DataSecurityCheckStatus.Pass,
-    );
-    expect(run({ anonymousRead: null, anonymousWrite: null })?.result.status).toBe(
-      DataSecurityCheckStatus.Unknown,
-    );
+    expect(
+      run({ anonymousRead: false, anonymousWrite: false })?.result.status,
+    ).toBe(DataSecurityCheckStatus.Pass);
+    expect(
+      run({ anonymousRead: null, anonymousWrite: null })?.result.status,
+    ).toBe(DataSecurityCheckStatus.Unknown);
   });
 
   test("fails, as severe as what it holds, when a search is answered without credentials", () => {
@@ -233,7 +233,9 @@ describe("the checks a store asked at its own address cannot pass by what it nev
       })?.result.status;
     };
 
-    expect(statusOf("internet-reachable")).toBe(DataSecurityCheckStatus.Unknown);
+    expect(statusOf("internet-reachable")).toBe(
+      DataSecurityCheckStatus.Unknown,
+    );
     expect(statusOf("open-to-all-addresses")).toBe(
       DataSecurityCheckStatus.Unknown,
     );
@@ -245,7 +247,10 @@ describe("the checks a store asked at its own address cannot pass by what it nev
     const secrets: EvaluatedCheck | undefined = evaluateDataStoreChecks(
       input(
         { anonymousRead: false, publicNetworkAccess: null },
-        { dataTypeIds: ["aws-secret-access-key"], sensitivity: DataSensitivity.Restricted },
+        {
+          dataTypeIds: ["aws-secret-access-key"],
+          sensitivity: DataSensitivity.Restricted,
+        },
       ),
     ).find((check: EvaluatedCheck): boolean => {
       return check.check.id === "secrets-stored";

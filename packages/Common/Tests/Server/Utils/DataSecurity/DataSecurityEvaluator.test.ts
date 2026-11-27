@@ -919,46 +919,47 @@ describe("DataSecurityEvaluator.evaluateStore", () => {
   });
 
   test("a store's exposure before anything reads it is its kind's: not checked yet, not checkable, or OneUptime's own", async () => {
-    const cases: Array<[DataStoreKind, DataStorePostureFacts | undefined, DataStoreExposure]> =
+    const cases: Array<
+      [DataStoreKind, DataStorePostureFacts | undefined, DataStoreExposure]
+    > = [
+      [DataStoreKind.Elasticsearch, undefined, DataStoreExposure.NotChecked],
+      [DataStoreKind.OpenSearch, undefined, DataStoreExposure.NotChecked],
+      [DataStoreKind.PostgreSql, undefined, DataStoreExposure.CannotBeChecked],
+      [DataStoreKind.MongoDb, undefined, DataStoreExposure.CannotBeChecked],
+      [DataStoreKind.AwsAthena, undefined, DataStoreExposure.CannotBeChecked],
+      [DataStoreKind.TelemetryLogs, undefined, DataStoreExposure.Private],
+      // Asked at its own address from inside the network: the internet's reach cannot be told.
       [
-        [DataStoreKind.Elasticsearch, undefined, DataStoreExposure.NotChecked],
-        [DataStoreKind.OpenSearch, undefined, DataStoreExposure.NotChecked],
-        [DataStoreKind.PostgreSql, undefined, DataStoreExposure.CannotBeChecked],
-        [DataStoreKind.MongoDb, undefined, DataStoreExposure.CannotBeChecked],
-        [DataStoreKind.AwsAthena, undefined, DataStoreExposure.CannotBeChecked],
-        [DataStoreKind.TelemetryLogs, undefined, DataStoreExposure.Private],
-        // Asked at its own address from inside the network: the internet's reach cannot be told.
-        [
-          DataStoreKind.Elasticsearch,
-          {
-            readAt: NOW.toISOString(),
-            readFrom: DataStorePostureReadFrom.Network,
-            anonymousRead: false,
-            anonymousWrite: false,
-            publicRead: false,
-            publicWrite: false,
-            publicNetworkAccess: null,
-            openToAllAddresses: null,
-            unknowableFacts: ["publicNetworkAccess", "openToAllAddresses"],
-          },
-          DataStoreExposure.Unknown,
-        ],
-        // Reached by OneUptime Cloud's servers, over the internet.
-        [
-          DataStoreKind.OpenSearch,
-          {
-            readAt: NOW.toISOString(),
-            readFrom: DataStorePostureReadFrom.Internet,
-            anonymousRead: false,
-            anonymousWrite: false,
-            publicRead: false,
-            publicWrite: false,
-            publicNetworkAccess: true,
-            openToAllAddresses: null,
-          },
-          DataStoreExposure.InternetReachable,
-        ],
-      ];
+        DataStoreKind.Elasticsearch,
+        {
+          readAt: NOW.toISOString(),
+          readFrom: DataStorePostureReadFrom.Network,
+          anonymousRead: false,
+          anonymousWrite: false,
+          publicRead: false,
+          publicWrite: false,
+          publicNetworkAccess: null,
+          openToAllAddresses: null,
+          unknowableFacts: ["publicNetworkAccess", "openToAllAddresses"],
+        },
+        DataStoreExposure.Unknown,
+      ],
+      // Reached by OneUptime Cloud's servers, over the internet.
+      [
+        DataStoreKind.OpenSearch,
+        {
+          readAt: NOW.toISOString(),
+          readFrom: DataStorePostureReadFrom.Internet,
+          anonymousRead: false,
+          anonymousWrite: false,
+          publicRead: false,
+          publicWrite: false,
+          publicNetworkAccess: true,
+          openToAllAddresses: null,
+        },
+        DataStoreExposure.InternetReachable,
+      ],
+    ];
 
     for (const [index, [kind, posture, exposure]] of cases.entries()) {
       const store: DataStore = storeOf({

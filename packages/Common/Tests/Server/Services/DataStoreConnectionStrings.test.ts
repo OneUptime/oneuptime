@@ -177,10 +177,7 @@ describe("a connection string a person saves, by the store's kind", () => {
       "Enter a MySQL or MariaDB connection string, such as mysql://reader:password@db.internal:3306/app.",
     );
     expect(
-      await refusalOf(
-        DataStoreKind.SqlServer,
-        "https://search.internal:9200",
-      ),
+      await refusalOf(DataStoreKind.SqlServer, "https://search.internal:9200"),
     ).toBe(
       "Enter a SQL Server connection string, such as mssql://reader:password@db.internal:1433/app.",
     );
@@ -217,8 +214,12 @@ describe("a connection string a person saves, by the store's kind", () => {
 
   test("a kind only Data Observability reads takes its engine's own string", async () => {
     expect(
-      (await created(DataStoreKind.MongoDb, "mongodb://reader:x@mongo.internal"))
-        .connectionString,
+      (
+        await created(
+          DataStoreKind.MongoDb,
+          "mongodb://reader:x@mongo.internal",
+        )
+      ).connectionString,
     ).toBe("mongodb://reader:x@mongo.internal");
   });
 
@@ -259,9 +260,9 @@ describe("a connection string written to a store already there", () => {
   test("by a person, held to no store: nothing is written, so nothing is refused", async () => {
     holdUpdateTo([]);
 
-    expect(
-      (await updated(" anything ", PERSON))["connectionString"],
-    ).toBe("anything");
+    expect((await updated(" anything ", PERSON))["connectionString"]).toBe(
+      "anything",
+    );
   });
 
   /*
@@ -274,11 +275,14 @@ describe("a connection string written to a store already there", () => {
     "mongodb://reader:x@mongo.internal:27017/app",
     '{"account":"acme","user":"reader","password":"x"}',
     "http://clickhouse.internal:8123",
-  ])("by OneUptime, as Data Observability connects a store: kept as written (%s)", async (written: string) => {
-    expect(
-      (await updated(` ${written} `, { isRoot: true }))["connectionString"],
-    ).toBe(written);
-  });
+  ])(
+    "by OneUptime, as Data Observability connects a store: kept as written (%s)",
+    async (written: string) => {
+      expect(
+        (await updated(` ${written} `, { isRoot: true }))["connectionString"],
+      ).toBe(written);
+    },
+  );
 });
 
 describe("a new store's exposure, before anything reads it", () => {

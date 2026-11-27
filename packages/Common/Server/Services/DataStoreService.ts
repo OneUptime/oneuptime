@@ -584,9 +584,13 @@ export class Service extends ProjectReferencesService<Model> {
         data["connectionString"] =
           rowsOfConnection.length > 0
             ? connectionString
-            : Service.readConnectionString(data["connectionString"], undefined, {
-                isRoot: true,
-              });
+            : Service.readConnectionString(
+                data["connectionString"],
+                undefined,
+                {
+                  isRoot: true,
+                },
+              );
       }
     }
 

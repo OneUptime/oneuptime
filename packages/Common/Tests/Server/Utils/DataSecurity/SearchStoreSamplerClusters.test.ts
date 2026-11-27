@@ -188,8 +188,7 @@ function call(
       : typeof body === "string"
         ? body
         : JSON.stringify(body);
-  const credentials: string | null =
-    auth === undefined ? cluster.admin : auth;
+  const credentials: string | null = auth === undefined ? cluster.admin : auth;
   const client: typeof http | typeof https =
     url.protocol === "https:" ? https : http;
 
@@ -366,9 +365,7 @@ async function seed(cluster: Cluster): Promise<void> {
     const lines: Array<string> = [];
 
     for (let index: number = 0; index < 12; index++) {
-      lines.push(
-        JSON.stringify({ index: { _index: `dsx-app-logs-${day}` } }),
-      );
+      lines.push(JSON.stringify({ index: { _index: `dsx-app-logs-${day}` } }));
       lines.push(
         JSON.stringify({
           "@timestamp": `${day.split(".").join("-")}T10:${String(index).padStart(2, "0")}:00Z`,
@@ -378,12 +375,7 @@ async function seed(cluster: Cluster): Promise<void> {
       );
     }
 
-    await must(
-      cluster,
-      "POST",
-      "/_bulk?refresh=true",
-      `${lines.join("\n")}\n`,
-    );
+    await must(cluster, "POST", "/_bulk?refresh=true", `${lines.join("\n")}\n`);
   }
 
   await must(cluster, "PUT", `/_index_template/${TEMPLATE}`, {
@@ -750,9 +742,7 @@ describeClusters("SearchStoreSampler against real clusters", () => {
         expect(result.rowsRead).toBeGreaterThanOrEqual(CUSTOMERS + 12 + 10);
         expect(result.bytesRead).toBeGreaterThan(0);
         expect(result.estimatedRecords).toBeGreaterThanOrEqual(CUSTOMERS);
-        expect(result.fingerprints["email-address"]?.length).toBeGreaterThan(
-          0,
-        );
+        expect(result.fingerprints["email-address"]?.length).toBeGreaterThan(0);
       });
 
       test("says how exposed the cluster is, as it answered without credentials", () => {
@@ -873,11 +863,12 @@ describeClusters("SearchStoreSampler against real clusters", () => {
         expect(limited.objectsRead).toBe(1);
         expect(limited.rowsRead).toBeLessThanOrEqual(5);
         expect(limited.isComplete).toBe(false);
+        const notSampled: RegExp =
+          /indices were not sampled: the scan reads at most 1 indices\.$/;
+
         expect(
           limited.warnings.some((warning: string): boolean => {
-            return /indices were not sampled: the scan reads at most 1 indices\.$/.test(
-              warning,
-            );
+            return notSampled.test(warning);
           }),
         ).toBe(true);
       }, 120_000);
@@ -935,20 +926,25 @@ describeClusters("SearchStoreSampler against real clusters", () => {
 
       if (cluster.security === "on" && cluster.engine === "elasticsearch") {
         test("signs in with an API key, as well as a user", async () => {
-          const key: Answer = await must(cluster, "POST", "/_security/api_key", {
-            name: "dsx-reader-key",
-            role_descriptors: {
-              dsx_reader: {
-                cluster: ["monitor"],
-                indices: [
-                  {
-                    names: ["*"],
-                    privileges: ["read", "view_index_metadata", "monitor"],
-                  },
-                ],
+          const key: Answer = await must(
+            cluster,
+            "POST",
+            "/_security/api_key",
+            {
+              name: "dsx-reader-key",
+              role_descriptors: {
+                dsx_reader: {
+                  cluster: ["monitor"],
+                  indices: [
+                    {
+                      names: ["*"],
+                      privileges: ["read", "view_index_metadata", "monitor"],
+                    },
+                  ],
+                },
               },
             },
-          });
+          );
           const encoded: string = (key.json as Record<string, string>)[
             "encoded"
           ]!;

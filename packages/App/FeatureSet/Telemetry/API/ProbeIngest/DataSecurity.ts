@@ -542,7 +542,8 @@ router.post(
          * How exposed it is, as the probe found it from inside the network
          * (#11140): read only for a store whose endpoint a scan checks.
          */
-        getDataStoreExposureCheck(store.kind) === DataStoreExposureCheck.Endpoint
+        getDataStoreExposureCheck(store.kind) ===
+          DataStoreExposureCheck.Endpoint
           ? { readAt: OneUptimeDate.getCurrentDate() }
           : undefined,
       );

@@ -55,15 +55,16 @@ describe("readSearchConnection: a URL", () => {
 
   test("decodes a percent-encoded user and password", () => {
     expect(
-      readSearchConnection("https://re%40der:p%40ss%3Aword@search.internal:9200")
-        .authorization,
+      readSearchConnection(
+        "https://re%40der:p%40ss%3Aword@search.internal:9200",
+      ).authorization,
     ).toBe(basic("re@der", "p@ss:word"));
   });
 
   test("keeps a path after the host, and drops a trailing slash", () => {
-    expect(
-      readSearchConnection("https://search.internal/es/").baseUrl,
-    ).toBe("https://search.internal/es");
+    expect(readSearchConnection("https://search.internal/es/").baseUrl).toBe(
+      "https://search.internal/es",
+    );
     expect(readSearchConnection("http://10.0.0.5:9200/").baseUrl).toBe(
       "http://10.0.0.5:9200",
     );
@@ -88,8 +89,9 @@ describe("readSearchConnection: a URL", () => {
       "ApiKey VnVhQ2ZHY0JDZGJrUW0tZTVhT3g6dWkybHAyYXhUTm1zeWFrdzl0dk5udw==",
     );
     expect(
-      readSearchConnection("https://search.internal:9200?api_key=key-id:key-secret")
-        .authorization,
+      readSearchConnection(
+        "https://search.internal:9200?api_key=key-id:key-secret",
+      ).authorization,
     ).toBe(`ApiKey ${Buffer.from("key-id:key-secret").toString("base64")}`);
   });
 
@@ -105,8 +107,9 @@ describe("readSearchConnection: a URL", () => {
       ).tls,
     ).toBeUndefined();
     expect(
-      readSearchConnection("http://search.internal:9200?verify_certificate=false")
-        .tls,
+      readSearchConnection(
+        "http://search.internal:9200?verify_certificate=false",
+      ).tls,
     ).toBeUndefined();
   });
 
@@ -126,9 +129,9 @@ describe("readSearchConnection: a URL", () => {
   });
 
   test("refuses a user and an API key both", () => {
-    expect(
-      refusal("https://reader:x@search.internal:9200?api_key=abc"),
-    ).toBe("Give a user and password, or an API key, not both.");
+    expect(refusal("https://reader:x@search.internal:9200?api_key=abc")).toBe(
+      "Give a user and password, or an API key, not both.",
+    );
   });
 
   test("refuses a flag that is not true or false, and an empty API key", () => {
@@ -210,9 +213,7 @@ describe("readSearchConnection: JSON", () => {
     ).toBe(
       "OneUptime reads only url, username, password, apiKey, caCertificate and verifyCertificate. Remove region.",
     );
-    expect(
-      refusal(JSON.stringify({ url: "https://reader:x@s:9200" })),
-    ).toBe(
+    expect(refusal(JSON.stringify({ url: "https://reader:x@s:9200" }))).toBe(
       'Give the user, password and API key as "username", "password" and "apiKey", not in the url.',
     );
     expect(
