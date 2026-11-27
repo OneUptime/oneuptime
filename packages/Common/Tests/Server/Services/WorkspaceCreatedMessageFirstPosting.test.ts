@@ -63,9 +63,9 @@ let posted: Array<WorkspaceMarkdownNotification> = [];
 // Every record a test held, let go after it.
 let held: Array<WorkspaceRecord> = [];
 
-function hold(record: WorkspaceRecord): WorkspaceRecord {
+async function hold(record: WorkspaceRecord): Promise<WorkspaceRecord> {
   held.push(record);
-  WorkspaceCreatedMessageFirst.hold(record);
+  await WorkspaceCreatedMessageFirst.hold(record);
   return record;
 }
 
@@ -129,7 +129,7 @@ describe("sendWorkspaceMarkdownNotification while a record is created", () => {
   });
 
   test("a message about a record being created waits, and goes out once it is let go, exactly as sent", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const sent: WorkspaceMarkdownNotification = messageAbout(
       alert,
       "Added team Platform to the Alert as the owner.",
@@ -150,7 +150,9 @@ describe("sendWorkspaceMarkdownNotification while a record is created", () => {
   });
 
   test("the message that announces the record goes out at once, ahead of what was kept", async () => {
-    const incident: WorkspaceRecord = hold({ incidentId: ObjectID.generate() });
+    const incident: WorkspaceRecord = await hold({
+      incidentId: ObjectID.generate(),
+    });
 
     await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       messageAbout(incident, "🔗 Declared from 1 alert"),
@@ -176,7 +178,7 @@ describe("sendWorkspaceMarkdownNotification while a record is created", () => {
   });
 
   test("messages about other records go out at once, and each record's kept messages keep their order", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const monitor: WorkspaceRecord = { monitorId: ObjectID.generate() };
 
     await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
@@ -201,7 +203,7 @@ describe("sendWorkspaceMarkdownNotification while a record is created", () => {
   });
 
   test("once let go, a message about the record goes out at once and is never kept again", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
 
     await WorkspaceCreatedMessageFirst.postHeld(alert);
 
@@ -213,7 +215,7 @@ describe("sendWorkspaceMarkdownNotification while a record is created", () => {
   });
 
   test("a kept message is posted once: posting it does not keep it again", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
 
     await WorkspaceNotificationRuleService.sendWorkspaceMarkdownNotification(
       messageAbout(alert, "Added Jane"),
@@ -259,7 +261,7 @@ describe("the feed services say which message announces its record", () => {
 
   test("an alert's entry that announces it goes out while its other messages wait", async () => {
     const alertId: ObjectID = ObjectID.generate();
-    hold({ alertId: alertId });
+    await hold({ alertId: alertId });
 
     const rows: Array<AlertFeed> = [];
     jest.spyOn(AlertFeedService, "create").mockImplementation((async (
@@ -306,7 +308,7 @@ describe("the feed services say which message announces its record", () => {
 
   test("an incident's entry that announces it goes out while its other messages wait", async () => {
     const incidentId: ObjectID = ObjectID.generate();
-    hold({ incidentId: incidentId });
+    await hold({ incidentId: incidentId });
 
     jest.spyOn(IncidentFeedService, "create").mockImplementation((async (
       data: CreateBy<IncidentFeed>,

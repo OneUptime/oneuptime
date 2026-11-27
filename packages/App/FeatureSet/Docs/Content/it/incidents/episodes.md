@@ -25,7 +25,7 @@ Entrambe accettano fino a 100 incidenti selezionati. Il risultato dice quanti so
 
 ## Cosa fa l'aggiunta
 
-- **Una sola voce nel feed dell'episodio** nomina ogni incidente aggiunto: i primi 20 per numero e titolo, poi quanti altri. Viene pubblicata una sola volta nel canale Slack o Microsoft Teams dell'episodio, non una volta per incidente. Un incidente privato viene indicato solo con il suo numero.
+- **Una sola voce nel feed dell'episodio** nomina ogni incidente aggiunto: i primi 20 per numero e titolo, poi quanti altri. Viene pubblicata una sola volta nel canale Slack o Microsoft Teams dell'episodio, non una volta per incidente, e, per un episodio creato con quegli incidenti, segue lì il messaggio di creazione dell'episodio. Un incidente privato viene indicato solo con il suo numero.
 - **Il feed di ogni incidente** dice a quale episodio è stato aggiunto.
 - **La gravità dell'episodio** sale a quella dell'incidente più grave aggiunto a un episodio esistente, e non scende mai. Un nuovo episodio parte con la gravità che scegliete.
 - **Un episodio risolto resta risolto.** Aggiungervi incidenti non lo riapre, e l'aggiunta non cambia mai lo stato di un incidente.

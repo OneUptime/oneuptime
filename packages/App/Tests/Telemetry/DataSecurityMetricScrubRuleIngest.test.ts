@@ -59,6 +59,12 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const CHECKOUT: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d8101");
 const PAYMENTS: ObjectID = new ObjectID("0192f1a0-0000-7000-8000-0000000d8102");
 
+// A made-up GitHub token, put together where it is used.
+const GITHUB_TOKEN: string = [
+  "ghp",
+  "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ",
+].join("_");
+
 function scrubRule(location: string, dataTypeId: string): MetricPipelineRule {
   const target: ScrubTarget | null = getScrubTarget(
     DataStoreKind.TelemetryMetrics,
@@ -197,6 +203,20 @@ describe("the rule Scrub It makes for a metric's attribute", () => {
     ["credit-card-number", "card", "４５３２ ０１５１ １２８３ ０３６６"],
     ["credit-card-number", "card", "٤٥٣٢٠١٥١١٢٨٣٠٣٦٦"],
     ["credit-card-number", "card", "3782 822463 10005"],
+    /*
+     * #11031, #11033: a rule of the type's own pattern (Matches Regex)
+     * hides what Data Security finds with a value's escapes read and in
+     * every script's digits.
+     */
+    [
+      "github-token",
+      "url.full",
+      `https://app.example.com/cb?next=%2Fhome%3Ftoken%3D${GITHUB_TOKEN}`,
+    ],
+    ["github-token", "oauth.state", GITHUB_TOKEN.replace(/_/g, "%5F")],
+    ["iban", "payout.iban", "DE٤٧٣٧٠٤٠٠٤٤٠٥٣٢٠١٣٠٧٧"],
+    ["br-cpf", "customer.cpf", "４７１.３９２.８６５-８２"],
+    ["tr-tckn", "customer.tckn", "۱۷۴۹۲۶۳۸۵۵۰"],
   ])(
     "the rule for %s redacts %s holding %s",
     (dataTypeId: string, key: string, value: string) => {

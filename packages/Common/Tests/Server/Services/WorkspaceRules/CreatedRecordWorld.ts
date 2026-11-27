@@ -63,11 +63,88 @@ import ObjectID from "../../../../Types/ObjectID";
 import NotificationRuleEventType from "../../../../Types/Workspace/NotificationRules/EventType";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { StartingStage } from "../../../../Utils/StartingStage";
+import AlertEpisode from "../../../../Models/DatabaseModels/AlertEpisode";
+import AlertEpisodeOwnerTeam from "../../../../Models/DatabaseModels/AlertEpisodeOwnerTeam";
+import AlertEpisodeOwnerUser from "../../../../Models/DatabaseModels/AlertEpisodeOwnerUser";
+import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import IncidentEpisode from "../../../../Models/DatabaseModels/IncidentEpisode";
+import { IncidentEpisodeFeedEventType } from "../../../../Models/DatabaseModels/IncidentEpisodeFeed";
+import { AlertEpisodeFeedEventType } from "../../../../Models/DatabaseModels/AlertEpisodeFeed";
+import IncidentEpisodeOwnerTeam from "../../../../Models/DatabaseModels/IncidentEpisodeOwnerTeam";
+import IncidentEpisodeOwnerUser from "../../../../Models/DatabaseModels/IncidentEpisodeOwnerUser";
+import IncidentSeverity from "../../../../Models/DatabaseModels/IncidentSeverity";
+import IncidentState from "../../../../Models/DatabaseModels/IncidentState";
+import Monitor from "../../../../Models/DatabaseModels/Monitor";
+import { MonitorFeedEventType } from "../../../../Models/DatabaseModels/MonitorFeed";
+import MonitorOwnerTeam from "../../../../Models/DatabaseModels/MonitorOwnerTeam";
+import MonitorOwnerUser from "../../../../Models/DatabaseModels/MonitorOwnerUser";
+import MonitorStatus from "../../../../Models/DatabaseModels/MonitorStatus";
+import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
+import OnCallDutyPolicyOwnerTeam from "../../../../Models/DatabaseModels/OnCallDutyPolicyOwnerTeam";
+import OnCallDutyPolicyOwnerUser from "../../../../Models/DatabaseModels/OnCallDutyPolicyOwnerUser";
+import ScheduledMaintenance from "../../../../Models/DatabaseModels/ScheduledMaintenance";
+import { ScheduledMaintenanceFeedEventType } from "../../../../Models/DatabaseModels/ScheduledMaintenanceFeed";
+import ScheduledMaintenanceOwnerTeam from "../../../../Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
+import ScheduledMaintenanceOwnerUser from "../../../../Models/DatabaseModels/ScheduledMaintenanceOwnerUser";
+import AlertEpisodeFeedService from "../../../../Server/Services/AlertEpisodeFeedService";
+import AlertEpisodeLabelRuleEngineService from "../../../../Server/Services/AlertEpisodeLabelRuleEngineService";
+import AlertEpisodeMemberService from "../../../../Server/Services/AlertEpisodeMemberService";
+import AlertEpisodeOnCallRuleEngineService from "../../../../Server/Services/AlertEpisodeOnCallRuleEngineService";
+import AlertEpisodeOwnerRuleEngineService from "../../../../Server/Services/AlertEpisodeOwnerRuleEngineService";
+import AlertEpisodeOwnerTeamService from "../../../../Server/Services/AlertEpisodeOwnerTeamService";
+import AlertEpisodeOwnerUserService from "../../../../Server/Services/AlertEpisodeOwnerUserService";
+import AlertEpisodePrivacyRuleEngineService from "../../../../Server/Services/AlertEpisodePrivacyRuleEngineService";
+import AlertEpisodeService from "../../../../Server/Services/AlertEpisodeService";
+import IncidentEpisodeFeedService from "../../../../Server/Services/IncidentEpisodeFeedService";
+import IncidentEpisodeLabelRuleEngineService from "../../../../Server/Services/IncidentEpisodeLabelRuleEngineService";
+import IncidentEpisodeMemberService from "../../../../Server/Services/IncidentEpisodeMemberService";
+import IncidentEpisodeOnCallRuleEngineService from "../../../../Server/Services/IncidentEpisodeOnCallRuleEngineService";
+import IncidentEpisodeOwnerRuleEngineService from "../../../../Server/Services/IncidentEpisodeOwnerRuleEngineService";
+import IncidentEpisodeOwnerTeamService from "../../../../Server/Services/IncidentEpisodeOwnerTeamService";
+import IncidentEpisodeOwnerUserService from "../../../../Server/Services/IncidentEpisodeOwnerUserService";
+import IncidentEpisodePrivacyRuleEngineService from "../../../../Server/Services/IncidentEpisodePrivacyRuleEngineService";
+import IncidentEpisodeService from "../../../../Server/Services/IncidentEpisodeService";
+import MonitorFeedService from "../../../../Server/Services/MonitorFeedService";
+import MonitorLabelRuleEngineService from "../../../../Server/Services/MonitorLabelRuleEngineService";
+import MonitorOwnerRuleEngineService from "../../../../Server/Services/MonitorOwnerRuleEngineService";
+import MonitorOwnerTeamService from "../../../../Server/Services/MonitorOwnerTeamService";
+import MonitorOwnerUserService from "../../../../Server/Services/MonitorOwnerUserService";
+import MonitorService from "../../../../Server/Services/MonitorService";
+import OnCallDutyPolicyFeedService from "../../../../Server/Services/OnCallDutyPolicyFeedService";
+import OnCallDutyPolicyLabelRuleEngineService from "../../../../Server/Services/OnCallDutyPolicyLabelRuleEngineService";
+import OnCallDutyPolicyOwnerRuleEngineService from "../../../../Server/Services/OnCallDutyPolicyOwnerRuleEngineService";
+import OnCallDutyPolicyOwnerTeamService from "../../../../Server/Services/OnCallDutyPolicyOwnerTeamService";
+import OnCallDutyPolicyOwnerUserService from "../../../../Server/Services/OnCallDutyPolicyOwnerUserService";
+import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
+import ProjectMilestoneService from "../../../../Server/Services/ProjectMilestoneService";
+import ScheduledMaintenanceFeedService from "../../../../Server/Services/ScheduledMaintenanceFeedService";
+import ScheduledMaintenanceLabelRuleEngineService from "../../../../Server/Services/ScheduledMaintenanceLabelRuleEngineService";
+import ScheduledMaintenanceOwnerRuleEngineService from "../../../../Server/Services/ScheduledMaintenanceOwnerRuleEngineService";
+import ScheduledMaintenanceOwnerTeamService from "../../../../Server/Services/ScheduledMaintenanceOwnerTeamService";
+import ScheduledMaintenanceOwnerUserService from "../../../../Server/Services/ScheduledMaintenanceOwnerUserService";
+import ScheduledMaintenanceService from "../../../../Server/Services/ScheduledMaintenanceService";
+import ServiceLevelObjectiveMonitorRuleEngineService from "../../../../Server/Services/ServiceLevelObjectiveMonitorRuleEngineService";
+import StatusPageMonitorRuleEngineService from "../../../../Server/Services/StatusPageMonitorRuleEngineService";
+import { ActiveMonitoringMeteredPlan } from "../../../../Server/Types/Billing/MeteredPlan/AllMeteredPlans";
+import MonitorFirstMeasured from "../../../../Server/Utils/Monitor/MonitorFirstMeasured";
+import OpenStackMaintenanceReach from "../../../../Server/Utils/OpenStack/OpenStackMaintenanceReach";
+import OpenStackMonitorDependencies from "../../../../Server/Utils/OpenStack/OpenStackMonitorDependencies";
+import OpenStackProjectNotices from "../../../../Server/Utils/OpenStack/OpenStackProjectNotices";
+import OwnerRuleAssignment from "../../../../Server/Utils/Rules/OwnerRuleAssignment";
+import AlertEpisodeWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/AlertEpisode";
+import IncidentEpisodeWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/IncidentEpisode";
+import MonitorWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/Monitor";
+import OnCallDutyPolicyWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
+import ScheduledMaintenanceWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/ScheduledMaintenance";
+import MonitorType from "../../../../Types/Monitor/MonitorType";
+import NotificationRuleWorkspaceChannel from "../../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
 import WorkspaceRuleWorld, {
   ALERT_ID,
   CREATED_STATE_ID,
+  INCIDENT_EPISODE_ID,
   INCIDENT_ID,
   PROJECT_ID,
+  SCHEDULED_MAINTENANCE_ID,
   TEAM_ID,
   TEAM_USER,
 } from "./WorkspaceRuleWorld";
@@ -94,6 +171,13 @@ import { jest } from "@jest/globals";
  *     lists them;
  *   - a clock that moves a millisecond each time it is read, so every entry
  *     is filed at a moment of its own.
+ *
+ * And the same for the other kinds of record a rule posts about as it is
+ * created (#11188): an incident episode (IE-3), an alert episode (AE-4), a
+ * maintenance event (SM-5), a monitor (Checkout API) and an on-call policy
+ * (Platform on-call) - each through its service's real onCreateSuccess,
+ * with its owner tables, labels, channels and feed in memory, and the
+ * steps of its chain that do not touch Slack stood in.
  */
 
 export const PLATFORM_TEAM: ObjectID = TEAM_ID;
@@ -140,6 +224,129 @@ export interface CreateOptions {
   startingStage?: StartingStage | undefined;
   // An incident: the alerts it is declared from.
   declaredFromAlerts?: boolean | undefined;
+  // An episode: created with an incident (an alert) in it, INC-42 (ALT-6).
+  withMembers?: boolean | undefined;
+}
+
+// The kinds of record besides alerts and incidents created here (#11188).
+export type RecordKind =
+  | "incidentEpisode"
+  | "alertEpisode"
+  | "scheduledMaintenance"
+  | "monitor"
+  | "onCallPolicy";
+
+// AE-4, the alert episode.
+export const ALERT_EPISODE_ID: ObjectID = new ObjectID(
+  "e7000000-0000-4000-8000-000000000006",
+);
+
+// The monitor Checkout API.
+export const MONITOR_ID: ObjectID = new ObjectID(
+  "e7000000-0000-4000-8000-000000000007",
+);
+
+// The on-call policy Platform on-call.
+export const ON_CALL_POLICY_ID: ObjectID = new ObjectID(
+  "e7000000-0000-4000-8000-000000000008",
+);
+
+const MONITOR_STATUS_ID: ObjectID = new ObjectID(
+  "e7000000-0000-4000-8000-000000000091",
+);
+
+// What the database holds of one record of those kinds, and its feed.
+export interface KindRecord {
+  ownerUsers: Array<ObjectID>;
+  ownerTeams: Array<ObjectID>;
+  labels: Array<ObjectID>;
+  // null: its own channel setup has not run.
+  channels: Array<NotificationRuleWorkspaceChannel> | null;
+  feedRows: Array<FeedRow>;
+}
+
+type AnyService = Record<string, (...args: Array<unknown>) => Promise<unknown>>;
+
+// Where a kind of record keeps its owners, and the column that names it.
+interface OwnerTables {
+  recordId: ObjectID;
+  column: string;
+  ownerUserModel: new () => BaseModel;
+  ownerTeamModel: new () => BaseModel;
+  ownerUserService: AnyService;
+  ownerTeamService: AnyService;
+}
+
+function asService(service: unknown): AnyService {
+  return service as AnyService;
+}
+
+function ownerTablesOf(kind: RecordKind): OwnerTables {
+  switch (kind) {
+    case "incidentEpisode":
+      return {
+        recordId: INCIDENT_EPISODE_ID,
+        column: "incidentEpisodeId",
+        ownerUserModel: IncidentEpisodeOwnerUser,
+        ownerTeamModel: IncidentEpisodeOwnerTeam,
+        ownerUserService: asService(IncidentEpisodeOwnerUserService),
+        ownerTeamService: asService(IncidentEpisodeOwnerTeamService),
+      };
+    case "alertEpisode":
+      return {
+        recordId: ALERT_EPISODE_ID,
+        column: "alertEpisodeId",
+        ownerUserModel: AlertEpisodeOwnerUser,
+        ownerTeamModel: AlertEpisodeOwnerTeam,
+        ownerUserService: asService(AlertEpisodeOwnerUserService),
+        ownerTeamService: asService(AlertEpisodeOwnerTeamService),
+      };
+    case "scheduledMaintenance":
+      return {
+        recordId: SCHEDULED_MAINTENANCE_ID,
+        column: "scheduledMaintenanceId",
+        ownerUserModel: ScheduledMaintenanceOwnerUser,
+        ownerTeamModel: ScheduledMaintenanceOwnerTeam,
+        ownerUserService: asService(ScheduledMaintenanceOwnerUserService),
+        ownerTeamService: asService(ScheduledMaintenanceOwnerTeamService),
+      };
+    case "monitor":
+      return {
+        recordId: MONITOR_ID,
+        column: "monitorId",
+        ownerUserModel: MonitorOwnerUser,
+        ownerTeamModel: MonitorOwnerTeam,
+        ownerUserService: asService(MonitorOwnerUserService),
+        ownerTeamService: asService(MonitorOwnerTeamService),
+      };
+    case "onCallPolicy":
+      return {
+        recordId: ON_CALL_POLICY_ID,
+        column: "onCallDutyPolicyId",
+        ownerUserModel: OnCallDutyPolicyOwnerUser,
+        ownerTeamModel: OnCallDutyPolicyOwnerTeam,
+        ownerUserService: asService(OnCallDutyPolicyOwnerUserService),
+        ownerTeamService: asService(OnCallDutyPolicyOwnerTeamService),
+      };
+  }
+}
+
+const RECORD_KINDS: ReadonlyArray<RecordKind> = [
+  "incidentEpisode",
+  "alertEpisode",
+  "scheduledMaintenance",
+  "monitor",
+  "onCallPolicy",
+];
+
+function emptyRecord(): KindRecord {
+  return {
+    ownerUsers: [],
+    ownerTeams: [],
+    labels: [],
+    channels: null,
+    feedRows: [],
+  };
 }
 
 function sameId(a: ObjectID, b: ObjectID): boolean {
@@ -174,6 +381,18 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
 
   // Called as each chain reaches its first state: what happens meanwhile.
   public onFirstState: (() => Promise<void>) | null = null;
+
+  // The records of the other kinds, as the database holds them now.
+  public records: Record<RecordKind, KindRecord> = {
+    incidentEpisode: emptyRecord(),
+    alertEpisode: emptyRecord(),
+    scheduledMaintenance: emptyRecord(),
+    monitor: emptyRecord(),
+    onCallPolicy: emptyRecord(),
+  };
+
+  // When those records were created: just now, so they are being set up.
+  private recordsCreatedAt: Date = new Date();
 
   private clock: number = Date.parse("2026-11-24T11:30:00.000Z");
 
@@ -628,6 +847,903 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
 
     this.standInAlertChain();
     this.standInIncidentChain();
+
+    this.recordsCreatedAt = new Date(this.clock);
+    this.scheduledMaintenance.createdAt = this.recordsCreatedAt;
+    this.standInRecordKinds();
+  }
+
+  // IE-3 as the database holds it now.
+  public incidentEpisodeModel(): IncidentEpisode {
+    const record: KindRecord = this.records.incidentEpisode;
+    const episode: IncidentEpisode = new IncidentEpisode();
+    episode.id = INCIDENT_EPISODE_ID;
+    episode._id = INCIDENT_EPISODE_ID.toString();
+    episode.projectId = PROJECT_ID;
+    episode.title = "Payments are failing";
+    episode.description = "Card payments fail at checkout.";
+    episode.episodeNumber = 3;
+    episode.episodeNumberWithPrefix = "IE-3";
+    episode.isPrivate = false;
+    episode.createdAt = this.recordsCreatedAt;
+    episode.currentIncidentStateId = CREATED_STATE_ID;
+
+    const state: IncidentState = new IncidentState();
+    state._id = CREATED_STATE_ID.toString();
+    state.id = CREATED_STATE_ID;
+    state.name = "Identified";
+    episode.currentIncidentState = state;
+
+    const severity: IncidentSeverity = new IncidentSeverity();
+    severity._id = SEVERITY_ID.toString();
+    severity.id = SEVERITY_ID;
+    severity.name = "Critical";
+    episode.incidentSeverity = severity;
+
+    episode.labels = this.labelsOf(record);
+
+    if (record.channels !== null) {
+      episode.postUpdatesToWorkspaceChannels = record.channels;
+    }
+
+    return episode;
+  }
+
+  // AE-4 as the database holds it now.
+  public alertEpisodeModel(): AlertEpisode {
+    const record: KindRecord = this.records.alertEpisode;
+    const episode: AlertEpisode = new AlertEpisode();
+    episode.id = ALERT_EPISODE_ID;
+    episode._id = ALERT_EPISODE_ID.toString();
+    episode.projectId = PROJECT_ID;
+    episode.title = "Checkout alerts";
+    episode.description = "Alerts of the checkout monitors.";
+    episode.episodeNumber = 4;
+    episode.episodeNumberWithPrefix = "AE-4";
+    episode.isPrivate = false;
+    episode.createdAt = this.recordsCreatedAt;
+    episode.currentAlertStateId = CREATED_STATE_ID;
+
+    const state: AlertState = new AlertState();
+    state._id = CREATED_STATE_ID.toString();
+    state.id = CREATED_STATE_ID;
+    state.name = "Identified";
+    episode.currentAlertState = state;
+
+    const severity: AlertSeverity = new AlertSeverity();
+    severity._id = SEVERITY_ID.toString();
+    severity.id = SEVERITY_ID;
+    severity.name = "High";
+    episode.alertSeverity = severity;
+
+    episode.labels = this.labelsOf(record);
+
+    if (record.channels !== null) {
+      episode.postUpdatesToWorkspaceChannels = record.channels;
+    }
+
+    return episode;
+  }
+
+  // SM-5 as the database holds it now, with its labels and its channels.
+  public override scheduledMaintenanceModel(): ScheduledMaintenance {
+    const record: KindRecord = this.records.scheduledMaintenance;
+    const event: ScheduledMaintenance = super.scheduledMaintenanceModel();
+
+    event.labels = this.labelsOf(record);
+
+    if (record.channels !== null) {
+      event.postUpdatesToWorkspaceChannels = record.channels;
+    }
+
+    return event;
+  }
+
+  // The monitor Checkout API as the database holds it now.
+  public monitorModel(): Monitor {
+    const record: KindRecord = this.records.monitor;
+    const monitor: Monitor = new Monitor();
+    monitor.id = MONITOR_ID;
+    monitor._id = MONITOR_ID.toString();
+    monitor.projectId = PROJECT_ID;
+    monitor.name = "Checkout API";
+    monitor.description = "The checkout API answers.";
+    monitor.monitorType = MonitorType.Manual;
+    monitor.createdAt = this.recordsCreatedAt;
+    monitor.currentMonitorStatusId = MONITOR_STATUS_ID;
+
+    const status: MonitorStatus = new MonitorStatus();
+    status._id = MONITOR_STATUS_ID.toString();
+    status.id = MONITOR_STATUS_ID;
+    status.name = "Operational";
+    monitor.currentMonitorStatus = status;
+
+    monitor.labels = this.labelsOf(record);
+
+    if (record.channels !== null) {
+      monitor.postUpdatesToWorkspaceChannels = record.channels;
+    }
+
+    return monitor;
+  }
+
+  // The on-call policy Platform on-call as the database holds it now.
+  public onCallPolicyModel(): OnCallDutyPolicy {
+    const record: KindRecord = this.records.onCallPolicy;
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    policy.id = ON_CALL_POLICY_ID;
+    policy._id = ON_CALL_POLICY_ID.toString();
+    policy.projectId = PROJECT_ID;
+    policy.name = "Platform on-call";
+    policy.description = "Who answers for the platform.";
+    policy.createdAt = this.recordsCreatedAt;
+
+    policy.labels = this.labelsOf(record);
+
+    if (record.channels !== null) {
+      policy.postUpdatesToWorkspaceChannels = record.channels;
+    }
+
+    return policy;
+  }
+
+  /*
+   * Owners added to a record of one of those kinds, as its service adds
+   * them: each row written, then its service's own hook - the "owner added"
+   * entry, its post, and the owner's invites to the record's channels.
+   */
+  public async addOwnersOf(kind: RecordKind, owners: Owners): Promise<void> {
+    const record: KindRecord = this.records[kind];
+    const tables: OwnerTables = ownerTablesOf(kind);
+
+    for (const userId of owners.users || []) {
+      if (
+        record.ownerUsers.some((id: ObjectID): boolean => {
+          return sameId(id, userId);
+        })
+      ) {
+        continue;
+      }
+
+      record.ownerUsers.push(userId);
+
+      const row: BaseModel = this.ownerRow(tables, "userId", userId);
+
+      await hookOf(tables.ownerUserService, "onCreateSuccess")(
+        {
+          createBy: { data: row, props: { isRoot: true } },
+          carryForward: null,
+        },
+        row,
+      );
+    }
+
+    for (const teamId of owners.teams || []) {
+      if (
+        record.ownerTeams.some((id: ObjectID): boolean => {
+          return sameId(id, teamId);
+        })
+      ) {
+        continue;
+      }
+
+      record.ownerTeams.push(teamId);
+
+      const row: BaseModel = this.ownerRow(tables, "teamId", teamId);
+
+      await hookOf(tables.ownerTeamService, "onCreateSuccess")(
+        {
+          createBy: { data: row, props: { isRoot: true } },
+          carryForward: null,
+        },
+        row,
+      );
+    }
+  }
+
+  /*
+   * IE-3 is created, as IncidentEpisodeService.create creates it - by hand,
+   * by the API or by a grouping rule, whose Episode Owners are added once
+   * the create has returned (callerAdds).
+   */
+  public async createIncidentEpisode(
+    options: CreateOptions = {},
+  ): Promise<void> {
+    if (options.withMembers) {
+      // The incident it is created with, as the episode's entry names it.
+      jest
+        .spyOn(IncidentService, "findBy")
+        .mockResolvedValue([this.incidentModel()] as never);
+    }
+
+    await this.createRecord({
+      kind: "incidentEpisode",
+      service: IncidentEpisodeService,
+      model: (): BaseModel => {
+        return this.incidentEpisodeModel();
+      },
+      carryForward: {
+        startingStage: options.startingStage || StartingStage.Open,
+        incidentIdsToAdd: options.withMembers ? [INCIDENT_ID] : [],
+        // Taken in onBeforeCreate, before the episode is written.
+        feedStartsAt: this.tick(),
+      },
+      isCreatorMadeOwner: false,
+      chainRunsOn: true,
+      options: options,
+    });
+  }
+
+  // AE-4 is created, as AlertEpisodeService.create creates it.
+  public async createAlertEpisode(options: CreateOptions = {}): Promise<void> {
+    await this.createRecord({
+      kind: "alertEpisode",
+      service: AlertEpisodeService,
+      model: (): BaseModel => {
+        return this.alertEpisodeModel();
+      },
+      carryForward: {
+        startingStage: options.startingStage || StartingStage.Open,
+        // ALT-6, as the alerts the world reads say.
+        alertIdsToAdd: options.withMembers ? [DECLARED_ALERT_ID] : [],
+        feedStartsAt: this.tick(),
+      },
+      isCreatorMadeOwner: false,
+      chainRunsOn: true,
+      options: options,
+    });
+  }
+
+  /*
+   * SM-5 is created, as ScheduledMaintenanceService.create creates it: its
+   * creator is made its owner as the create returns.
+   */
+  public async createScheduledMaintenance(
+    options: CreateOptions = {},
+  ): Promise<void> {
+    await this.createRecord({
+      kind: "scheduledMaintenance",
+      service: ScheduledMaintenanceService,
+      model: (): BaseModel => {
+        return this.scheduledMaintenanceModel();
+      },
+      carryForward: {
+        feedStartsAt: this.tick(),
+      },
+      isCreatorMadeOwner: true,
+      chainRunsOn: true,
+      options: options,
+    });
+  }
+
+  /*
+   * The monitor Checkout API is created, as MonitorService.create creates
+   * it: its creator is made its owner as the create returns.
+   */
+  public async createMonitor(options: CreateOptions = {}): Promise<void> {
+    await this.createRecord({
+      kind: "monitor",
+      service: MonitorService,
+      model: (): BaseModel => {
+        return this.monitorModel();
+      },
+      carryForward: {
+        feedStartsAt: this.tick(),
+      },
+      isCreatorMadeOwner: true,
+      chainRunsOn: true,
+      options: options,
+    });
+  }
+
+  /*
+   * The on-call policy Platform on-call is created: its hook runs its label
+   * and owner rules, opens its channels and posts its created message
+   * before the create returns.
+   */
+  public async createOnCallPolicy(options: CreateOptions = {}): Promise<void> {
+    await this.createRecord({
+      kind: "onCallPolicy",
+      service: OnCallDutyPolicyService,
+      model: (): BaseModel => {
+        return this.onCallPolicyModel();
+      },
+      carryForward: {
+        feedStartsAt: this.tick(),
+      },
+      isCreatorMadeOwner: false,
+      chainRunsOn: false,
+      options: options,
+    });
+  }
+
+  /*
+   * A record of one of those kinds is created: its create hook runs, then -
+   * a moment later, as a write takes one - its creator is made its owner
+   * (isCreatorMadeOwner: its create says it will, OwnersAddedBy.Create) and
+   * the code that made it adds its owners (callerAdds, OwnersAddedBy.Caller).
+   * Settles once the chain has run to its end (chainRunsOn) and everything
+   * it set off has.
+   */
+  private async createRecord(data: {
+    kind: RecordKind;
+    service: unknown;
+    model: () => BaseModel;
+    carryForward: Record<string, unknown>;
+    isCreatorMadeOwner: boolean;
+    chainRunsOn: boolean;
+    options: CreateOptions;
+  }): Promise<void> {
+    const ended: Promise<void> = data.chainRunsOn
+      ? new Promise<void>((resolve: () => void) => {
+          this.chainEnded = resolve;
+        })
+      : Promise.resolve();
+
+    const createBy: CreateBy<BaseModel> = {
+      data: data.model(),
+      props: { isRoot: true },
+      ...this.ownersAsMiscData(data.options.ownersPicked),
+    };
+
+    if (data.isCreatorMadeOwner) {
+      CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);
+    }
+
+    if (data.options.callerAdds) {
+      CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+    }
+
+    const onCreate: OnCreate<BaseModel> = {
+      createBy: createBy,
+      carryForward: data.carryForward,
+    };
+
+    await hookOf(data.service, "onCreateSuccess")(onCreate, data.model());
+
+    // The create returns; its owner rows are written a moment later.
+    await this.settle();
+
+    if (data.options.creator) {
+      await this.addOwnersOf(data.kind, { users: [data.options.creator] });
+    }
+
+    if (data.isCreatorMadeOwner) {
+      await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Create);
+    }
+
+    if (data.options.callerAdds) {
+      await this.addOwnersOf(data.kind, data.options.callerAdds);
+      await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Caller);
+    }
+
+    await ended;
+    await this.settle();
+  }
+
+  private labelsOf(record: KindRecord): Array<Label> {
+    return record.labels.map((id: ObjectID): Label => {
+      return this.label(id);
+    });
+  }
+
+  // A row of a kind's owner table, naming its record and its owner.
+  private ownerRow(
+    tables: OwnerTables,
+    ownerColumn: "userId" | "teamId",
+    ownerId: ObjectID,
+  ): BaseModel {
+    const row: BaseModel =
+      ownerColumn === "userId"
+        ? new tables.ownerUserModel()
+        : new tables.ownerTeamModel();
+    const fields: Record<string, unknown> = row as unknown as Record<
+      string,
+      unknown
+    >;
+    fields["projectId"] = PROJECT_ID;
+    fields[tables.column] = tables.recordId;
+    fields[ownerColumn] = ownerId;
+    return row;
+  }
+
+  // The people who own a record: its owner users, and its owner teams' members.
+  private ownersAsUsers(record: KindRecord): Array<User> {
+    const owners: Array<ObjectID> = [...record.ownerUsers];
+
+    if (
+      record.ownerTeams.some((teamId: ObjectID): boolean => {
+        return sameId(teamId, TEAM_ID);
+      })
+    ) {
+      owners.push(TEAM_USER);
+    }
+
+    return owners.map((userId: ObjectID): User => {
+      const user: User = new User();
+      user.id = userId;
+      user._id = userId.toString();
+      return user;
+    });
+  }
+
+  // The steps the other kinds' chains take that do not touch Slack.
+  private standInRecordKinds(): void {
+    // Each record, as it is now; its channels are stored on it.
+    this.readsAndStores(IncidentEpisodeService, "incidentEpisode", () => {
+      return this.incidentEpisodeModel();
+    });
+    this.readsAndStores(AlertEpisodeService, "alertEpisode", () => {
+      return this.alertEpisodeModel();
+    });
+    this.readsAndStores(
+      ScheduledMaintenanceService,
+      "scheduledMaintenance",
+      () => {
+        return this.scheduledMaintenanceModel();
+      },
+    );
+    this.readsAndStores(MonitorService, "monitor", () => {
+      return this.monitorModel();
+    });
+    this.readsAndStores(OnCallDutyPolicyService, "onCallPolicy", () => {
+      return this.onCallPolicyModel();
+    });
+
+    /*
+     * Their owners, as their tables hold them - what a rule's Owner
+     * condition reads (WorkspaceRecordOwners) and what an on-call policy's
+     * channel setup reads (WorkspaceRecordPeople) - and as people to invite.
+     */
+    for (const kind of RECORD_KINDS) {
+      const tables: OwnerTables = ownerTablesOf(kind);
+
+      for (const method of ["findAllBy", "findBy"]) {
+        jest
+          .spyOn(tables.ownerUserService, method)
+          .mockImplementation((async (): Promise<Array<BaseModel>> => {
+            return this.records[kind].ownerUsers.map(
+              (userId: ObjectID): BaseModel => {
+                return this.ownerRow(tables, "userId", userId);
+              },
+            );
+          }) as never);
+        jest
+          .spyOn(tables.ownerTeamService, method)
+          .mockImplementation((async (): Promise<Array<BaseModel>> => {
+            return this.records[kind].ownerTeams.map(
+              (teamId: ObjectID): BaseModel => {
+                return this.ownerRow(tables, "teamId", teamId);
+              },
+            );
+          }) as never);
+      }
+    }
+
+    for (const [service, kind] of [
+      [IncidentEpisodeService, "incidentEpisode"],
+      [AlertEpisodeService, "alertEpisode"],
+      [ScheduledMaintenanceService, "scheduledMaintenance"],
+      [MonitorService, "monitor"],
+    ] as Array<[unknown, RecordKind]>) {
+      jest
+        .spyOn(asService(service), "findOwners")
+        .mockImplementation((async (): Promise<Array<User>> => {
+          return this.ownersAsUsers(this.records[kind]);
+        }) as never);
+    }
+
+    // The feed rows each entry writes, with when each is filed.
+    for (const [service, kind, typeColumn] of [
+      [
+        IncidentEpisodeFeedService,
+        "incidentEpisode",
+        "incidentEpisodeFeedEventType",
+      ],
+      [AlertEpisodeFeedService, "alertEpisode", "alertEpisodeFeedEventType"],
+      [
+        ScheduledMaintenanceFeedService,
+        "scheduledMaintenance",
+        "scheduledMaintenanceFeedEventType",
+      ],
+      [MonitorFeedService, "monitor", "monitorFeedEventType"],
+      [
+        OnCallDutyPolicyFeedService,
+        "onCallPolicy",
+        "onCallDutyPolicyFeedEventType",
+      ],
+    ] as Array<[unknown, RecordKind, string]>) {
+      jest
+        .spyOn(asService(service), "create")
+        .mockImplementation((async (data: {
+          data: BaseModel;
+        }): Promise<BaseModel> => {
+          const row: Record<string, unknown> = data.data as unknown as Record<
+            string,
+            unknown
+          >;
+
+          this.records[kind].feedRows.push({
+            type: String(row[typeColumn]),
+            markdown: String(row["feedInfoInMarkdown"] || ""),
+            postedAt: row["postedAt"] as Date,
+          });
+
+          data.data.id = ObjectID.generate();
+          return data.data;
+        }) as never);
+    }
+
+    // What the created messages name besides the record itself: nothing.
+    jest
+      .spyOn(
+        IncidentEpisodeWorkspaceMessages,
+        "getIncidentEpisodeCreateMessageBlocks",
+      )
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(
+        AlertEpisodeWorkspaceMessages,
+        "getAlertEpisodeCreateMessageBlocks",
+      )
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(
+        ScheduledMaintenanceWorkspaceMessages,
+        "getScheduledMaintenanceCreateMessageBlocks",
+      )
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(MonitorWorkspaceMessages, "getMonitorCreateMessageBlocks")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(
+        OnCallDutyPolicyWorkspaceMessages,
+        "getOnCallDutyPolicyCreateMessageBlocks",
+      )
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(LinkedAffectedResources, "readForScheduledMaintenance")
+      .mockResolvedValue([] as never);
+
+    this.standInEpisodeChains();
+    this.standInScheduledMaintenanceChain();
+    this.standInMonitorChain();
+    this.standInOnCallPolicyHook();
+  }
+
+  // A service's record, as it is now, and its channels stored on it.
+  private readsAndStores(
+    service: unknown,
+    kind: RecordKind,
+    model: () => BaseModel,
+  ): void {
+    jest
+      .spyOn(asService(service), "findOneById")
+      .mockImplementation((async (): Promise<BaseModel> => {
+        return model();
+      }) as never);
+
+    jest
+      .spyOn(asService(service), "updateOneById")
+      .mockImplementation((async (data: {
+        data: { postUpdatesToWorkspaceChannels?: unknown };
+      }): Promise<void> => {
+        if ("postUpdatesToWorkspaceChannels" in data.data) {
+          this.records[kind].channels = [
+            ...((data.data
+              .postUpdatesToWorkspaceChannels as Array<NotificationRuleWorkspaceChannel>) ||
+              []),
+          ];
+          this.events.push(`store:${kind}`);
+        }
+      }) as never);
+  }
+
+  // Both kinds of episode: their chains' steps that do not touch Slack.
+  private standInEpisodeChains(): void {
+    // The owners picked on an episode's create form, as their tables get them.
+    jest
+      .spyOn(OwnerRuleAssignment, "addOwnersPickedOnCreate")
+      .mockImplementation((async (data: {
+        resourceIdColumn: string;
+        miscDataProps?: JSONObject | undefined;
+      }): Promise<unknown> => {
+        const kind: RecordKind =
+          data.resourceIdColumn === "alertEpisodeId"
+            ? "alertEpisode"
+            : "incidentEpisode";
+        const picked: JSONObject = data.miscDataProps || {};
+        const users: Array<ObjectID> =
+          (picked["ownerUsers"] as unknown as Array<ObjectID>) || [];
+        const teams: Array<ObjectID> =
+          (picked["ownerTeams"] as unknown as Array<ObjectID>) || [];
+
+        await this.addOwnersOf(kind, { users: users, teams: teams });
+
+        return { userIds: users, teamIds: teams, notAdded: [] };
+      }) as never);
+
+    for (const episode of [
+      {
+        kind: "incidentEpisode" as RecordKind,
+        service: asService(IncidentEpisodeService),
+        privacy: asService(IncidentEpisodePrivacyRuleEngineService),
+        owners: asService(IncidentEpisodeOwnerRuleEngineService),
+        labels: asService(IncidentEpisodeLabelRuleEngineService),
+        onCall: asService(IncidentEpisodeOnCallRuleEngineService),
+        firstState: async (): Promise<void> => {
+          await IncidentEpisodeFeedService.createIncidentEpisodeFeedItem({
+            incidentEpisodeId: INCIDENT_EPISODE_ID,
+            projectId: PROJECT_ID,
+            incidentEpisodeFeedEventType:
+              IncidentEpisodeFeedEventType.EpisodeStateChanged,
+            feedInfoInMarkdown: "🔴 Changed Episode IE-3 State to Identified",
+            workspaceNotification: { sendWorkspaceNotification: false },
+          });
+        },
+      },
+      {
+        kind: "alertEpisode" as RecordKind,
+        service: asService(AlertEpisodeService),
+        privacy: asService(AlertEpisodePrivacyRuleEngineService),
+        owners: asService(AlertEpisodeOwnerRuleEngineService),
+        labels: asService(AlertEpisodeLabelRuleEngineService),
+        onCall: asService(AlertEpisodeOnCallRuleEngineService),
+        firstState: async (): Promise<void> => {
+          await AlertEpisodeFeedService.createAlertEpisodeFeedItem({
+            alertEpisodeId: ALERT_EPISODE_ID,
+            projectId: PROJECT_ID,
+            alertEpisodeFeedEventType:
+              AlertEpisodeFeedEventType.EpisodeStateChanged,
+            feedInfoInMarkdown: "🔴 Changed Episode AE-4 State to Identified",
+            workspaceNotification: { sendWorkspaceNotification: false },
+          });
+        },
+      },
+    ]) {
+      jest
+        .spyOn(episode.privacy, "applyRulesToEpisode")
+        .mockResolvedValue(false as never);
+
+      // Its first state: in its feed only, as its state timeline writes it.
+      jest
+        .spyOn(episode.service, "changeEpisodeState")
+        .mockImplementation((async (): Promise<void> => {
+          await episode.firstState();
+
+          if (this.onFirstState) {
+            await this.onFirstState();
+          }
+        }) as never);
+
+      jest
+        .spyOn(episode.owners, "applyRulesToEpisode")
+        .mockImplementation((async (): Promise<void> => {
+          await this.addOwnersOf(episode.kind, this.ownerRulesAdd);
+        }) as never);
+
+      jest
+        .spyOn(episode.labels, "applyRulesToEpisode")
+        .mockImplementation((async (): Promise<void> => {
+          this.records[episode.kind].labels.push(...this.labelRulesAttach);
+        }) as never);
+
+      jest
+        .spyOn(episode.onCall, "applyRulesToEpisode")
+        .mockResolvedValue(undefined as never);
+
+      // Its pages: the chain's last step.
+      jest
+        .spyOn(episode.service, "executeEpisodeOnCallDutyPoliciesAsync")
+        .mockImplementation((async (): Promise<void> => {
+          this.events.push("paging");
+          this.chainEnded();
+        }) as never);
+    }
+
+    // The members it is created with are added; the entry naming them is real.
+    jest
+      .spyOn(IncidentEpisodeMemberService, "addIncidentsToNewEpisode")
+      .mockImplementation((async (data: {
+        incidentIds: Array<ObjectID>;
+      }): Promise<Array<ObjectID>> => {
+        return data.incidentIds;
+      }) as never);
+    jest
+      .spyOn(AlertEpisodeMemberService, "addAlertsToNewEpisode")
+      .mockImplementation((async (data: {
+        alertIds: Array<ObjectID>;
+      }): Promise<Array<ObjectID>> => {
+        return data.alertIds;
+      }) as never);
+  }
+
+  // The maintenance event's chain: its steps that do not touch Slack.
+  private standInScheduledMaintenanceChain(): void {
+    const service: AnyService = asService(ScheduledMaintenanceService);
+
+    // Its first state: in its feed only, as its state timeline writes it.
+    jest
+      .spyOn(service, "createScheduledMaintenanceStateTimelineAsync")
+      .mockImplementation((async (): Promise<void> => {
+        await ScheduledMaintenanceFeedService.createScheduledMaintenanceFeedItem(
+          {
+            scheduledMaintenanceId: SCHEDULED_MAINTENANCE_ID,
+            projectId: PROJECT_ID,
+            scheduledMaintenanceFeedEventType:
+              ScheduledMaintenanceFeedEventType.ScheduledMaintenanceStateChanged,
+            feedInfoInMarkdown:
+              "⏳ Changed Scheduled Maintenance SM-5 State to Scheduled",
+          },
+        );
+
+        if (this.onFirstState) {
+          await this.onFirstState();
+        }
+      }) as never);
+
+    jest.spyOn(service, "addOwners").mockImplementation((async (
+      _projectId: ObjectID,
+      _scheduledMaintenanceId: ObjectID,
+      userIds: Array<ObjectID>,
+      teamIds: Array<ObjectID>,
+    ): Promise<unknown> => {
+      await this.addOwnersOf("scheduledMaintenance", {
+        users: userIds,
+        teams: teamIds,
+      });
+      return { userIds: userIds, teamIds: teamIds, notAdded: [] };
+    }) as never);
+
+    jest
+      .spyOn(
+        asService(ScheduledMaintenanceOwnerRuleEngineService),
+        "applyRulesToScheduledMaintenance",
+      )
+      .mockImplementation((async (): Promise<void> => {
+        await this.addOwnersOf("scheduledMaintenance", this.ownerRulesAdd);
+      }) as never);
+
+    jest
+      .spyOn(
+        asService(ScheduledMaintenanceLabelRuleEngineService),
+        "applyRulesToScheduledMaintenance",
+      )
+      .mockImplementation((async (): Promise<void> => {
+        this.records.scheduledMaintenance.labels.push(...this.labelRulesAttach);
+      }) as never);
+
+    jest
+      .spyOn(RunbookRuleEngineService, "applyRulesToScheduledMaintenance")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(service, "refreshReminderSchedule")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(OpenStackMaintenanceReach, "nameInFeed")
+      .mockResolvedValue(undefined as never);
+
+    // Its last step.
+    jest
+      .spyOn(OpenStackProjectNotices, "recordForMaintenance")
+      .mockImplementation((async (): Promise<void> => {
+        this.chainEnded();
+      }) as never);
+  }
+
+  // The monitor's create: its steps that do not touch Slack.
+  private standInMonitorChain(): void {
+    const service: AnyService = asService(MonitorService);
+
+    jest
+      .spyOn(ProjectMilestoneService, "reachInBackground")
+      .mockImplementation((() => {
+        // no milestones in tests
+      }) as never);
+    jest
+      .spyOn(service, "addProbesToMonitor")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(OpenStackMonitorDependencies, "linkMonitor")
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(MonitorFirstMeasured, "stampManualMonitorOnCreate")
+      .mockResolvedValue(undefined as never);
+
+    /*
+     * Its first status: a line in its feed, posted to its channels as every
+     * status change of a monitor is (MonitorStatusTimelineService).
+     */
+    jest
+      .spyOn(service, "changeMonitorStatus")
+      .mockImplementation((async (): Promise<void> => {
+        await MonitorFeedService.createMonitorFeedItem({
+          monitorId: MONITOR_ID,
+          projectId: PROJECT_ID,
+          monitorFeedEventType: MonitorFeedEventType.MonitorStatusChanged,
+          feedInfoInMarkdown:
+            "➡️ Changed Monitor **Checkout API State** to **Operational**",
+          workspaceNotification: {
+            sendWorkspaceNotification: true,
+            leadWithAuthor: true,
+          },
+        });
+
+        if (this.onFirstState) {
+          await this.onFirstState();
+        }
+      }) as never);
+
+    jest
+      .spyOn(
+        ActiveMonitoringMeteredPlan as unknown as AnyService,
+        "reportQuantityToBillingProvider",
+      )
+      .mockResolvedValue(undefined as never);
+
+    jest.spyOn(service, "addOwners").mockImplementation((async (
+      _projectId: ObjectID,
+      _monitorId: ObjectID,
+      userIds: Array<ObjectID>,
+      teamIds: Array<ObjectID>,
+    ): Promise<unknown> => {
+      await this.addOwnersOf("monitor", { users: userIds, teams: teamIds });
+      return { userIds: userIds, teamIds: teamIds, notAdded: [] };
+    }) as never);
+
+    jest
+      .spyOn(asService(MonitorLabelRuleEngineService), "applyRulesToMonitor")
+      .mockImplementation((async (): Promise<void> => {
+        this.records.monitor.labels.push(...this.labelRulesAttach);
+      }) as never);
+
+    jest
+      .spyOn(asService(MonitorOwnerRuleEngineService), "applyRulesToMonitor")
+      .mockImplementation((async (): Promise<void> => {
+        await this.addOwnersOf("monitor", this.ownerRulesAdd);
+      }) as never);
+
+    jest
+      .spyOn(
+        asService(ServiceLevelObjectiveMonitorRuleEngineService),
+        "syncSlosForMonitor",
+      )
+      .mockResolvedValue(undefined as never);
+    jest
+      .spyOn(
+        asService(StatusPageMonitorRuleEngineService),
+        "syncRulesForMonitor",
+      )
+      .mockResolvedValue(undefined as never);
+
+    // Its last step (a Manual monitor is no Probe Status monitor).
+    jest
+      .spyOn(service, "refreshMonitorProbeStatus")
+      .mockImplementation((async (): Promise<void> => {
+        this.chainEnded();
+      }) as never);
+  }
+
+  // The on-call policy's create hook: its steps that do not touch Slack.
+  private standInOnCallPolicyHook(): void {
+    jest
+      .spyOn(
+        asService(OnCallDutyPolicyLabelRuleEngineService),
+        "applyRulesToOnCallDutyPolicy",
+      )
+      .mockImplementation((async (): Promise<void> => {
+        this.records.onCallPolicy.labels.push(...this.labelRulesAttach);
+      }) as never);
+
+    jest
+      .spyOn(
+        asService(OnCallDutyPolicyOwnerRuleEngineService),
+        "applyRulesToOnCallDutyPolicy",
+      )
+      .mockImplementation((async (): Promise<void> => {
+        await this.addOwnersOf("onCallPolicy", this.ownerRulesAdd);
+      }) as never);
   }
 
   private label(id: ObjectID): Label {

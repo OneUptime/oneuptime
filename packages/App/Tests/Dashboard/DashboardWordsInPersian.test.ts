@@ -1571,6 +1571,10 @@ describe("a cloud's zones and recordsets, in Persian words", () => {
       name: "Edit custom rules in each zone",
       why: "the check blocking adds to a Cloudflare connection's test, which the test report draws as the connector names it",
     },
+    {
+      name: "Zone configuration changed",
+      why: "a Brocade switch's recommended alert, which a monitor's criteria carry under the alert pack's own name",
+    },
   ];
 
   // What a docs line says in Latin letters about a zone or a recordset, once code, links, names and time zones are out.

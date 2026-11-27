@@ -9,8 +9,18 @@ import CodeFixStartGate, {
 } from "../../../Server/Utils/AI/CodeFix/CodeFixStartGate";
 import FixRunBudget from "../../../Server/Utils/AI/CodeFix/FixRunBudget";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import CodeTaskAccess from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import { CODE_TASK_PLAN_REQUIRED_MESSAGE } from "../../../Server/Utils/AI/CodeTask/CodeTaskGate";
+import CodeHostAccess from "../../../Server/Utils/CodeRepository/CodeHost/CodeHostAccess";
+import CodeRepositoryService from "../../../Server/Services/CodeRepositoryService";
+import CodeRepository from "../../../Models/DatabaseModels/CodeRepository";
 import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+} from "../../../Types/CodeRepository/CodeRepositoryAllowance";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
+import NotFoundException from "../../../Types/Exception/NotFoundException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
 import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion";
 import {
@@ -29,7 +39,10 @@ import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
+  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
   parseTracePerformanceFixSuggestion,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
   TracePerformanceFixSuggestion,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
 import { AnalyzableSpan } from "../../../Utils/Traces/SpanTreeAnalyzer";
@@ -81,6 +94,10 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const USER_ID: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
 const SERVICE_ID: string = "33333333-3333-4333-8333-333333333333";
 const TRACE_ID: string = "4bf92f3577b34da6a3ce929d0e0e4736";
+// The project's connected repositories, by what the member may do in them.
+const CHECKOUT_REPOSITORY_ID: string = "11075000-0000-4000-8000-0000000000a1";
+const LEDGER_REPOSITORY_ID: string = "11075000-0000-4000-8000-0000000000a2";
+const VAULT_REPOSITORY_ID: string = "11075000-0000-4000-8000-0000000000a3";
 
 function memberProps(): DatabaseCommonInteractionProps {
   return {
@@ -174,6 +191,27 @@ beforeEach(() => {
   jest
     .spyOn(CodeTaskThread, "findTasksHiddenFrom")
     .mockResolvedValue(new Set<string>());
+  /*
+   * The member may use the project's one connected repository in Code,
+   * unless a test says otherwise: who may start a trace's fix has its own
+   * tests below (#11075).
+   */
+  jest
+    .spyOn(FixPerformanceTaskTrigger, "getUsableRepositories")
+    .mockResolvedValue({
+      connectedCount: 1,
+      usable: [
+        {
+          id: CHECKOUT_REPOSITORY_ID,
+          name: "checkout",
+          organizationName: "acme",
+          repositoryName: "checkout",
+          mainBranchName: "main",
+          gitHubAppInstallationId: "1234",
+        },
+      ],
+      allowance: EVERY_CODE_REPOSITORY,
+    });
 });
 
 afterEach(() => {
@@ -450,6 +488,8 @@ describe("POST /ai-investigation/create-performance-fix-task", () => {
         traceId: TRACE_ID,
         serviceName: "checkout-service",
         userId: USER_ID,
+        // Whose repositories the fix may use: the caller's own (#11075).
+        props: memberProps(),
       }),
     );
     expect(
@@ -583,5 +623,260 @@ describe("POST /ai-investigation/create-performance-fix-task", () => {
     expect((call.thrown as Error).message).toMatch(
       /^OneUptime AI already worked on a fix for this trace\./,
     );
+  });
+});
+
+/*
+ * WHO MAY START A TRACE'S FIX: THE ROUTE HOLDS THE REPOSITORY TO THE
+ * CALLER'S OWN PERMISSIONS IN CODE (#11075).
+ *
+ * The route took any repository the project connected, checked as
+ * OneUptime, so a request could name one the caller may not read, or may
+ * not ask OneUptime AI to work in - the page's picker was all that held it
+ * back. These drive the real route and the real trigger, with only the
+ * reads below Code's permission checks stubbed: the member reads
+ * checkout and may ask AI in it, reads ledger but may not ask in it, and
+ * may not read vault at all.
+ */
+describe("POST /ai-investigation/create-performance-fix-task holds the repository to the caller (#11075)", () => {
+  // Whose permissions each check of the member's repositories was asked under.
+  let asked: Array<DatabaseCommonInteractionProps> = [];
+
+  const mayRead: (id: string) => boolean = (id: string): boolean => {
+    return id !== VAULT_REPOSITORY_ID;
+  };
+  const mayAsk: (id: string) => boolean = (id: string): boolean => {
+    return id === CHECKOUT_REPOSITORY_ID;
+  };
+
+  const rowOf: (id: string) => CodeRepository = (
+    id: string,
+  ): CodeRepository => {
+    const repository: CodeRepository = new CodeRepository();
+    repository.id = new ObjectID(id);
+    return repository;
+  };
+
+  beforeEach(() => {
+    asked = [];
+    // The real weighing of the member's repositories, below the outer default.
+    jest.mocked(FixPerformanceTaskTrigger.getUsableRepositories).mockRestore();
+
+    jest
+      .spyOn(SpanService, "findBy")
+      .mockResolvedValue(storedSpans(SLOW_CHECKOUT_WITH_N_PLUS_ONE));
+    jest.spyOn(FixRunBudget, "assertWithinBudget").mockResolvedValue();
+    jest
+      .spyOn(CodeRepositoryService, "getResolvableRepositories")
+      .mockResolvedValue(
+        [CHECKOUT_REPOSITORY_ID, LEDGER_REPOSITORY_ID, VAULT_REPOSITORY_ID].map(
+          (id: string) => {
+            return {
+              id,
+              name: `repository-${id.slice(-2)}`,
+              organizationName: "acme",
+              repositoryName: `repository-${id.slice(-2)}`,
+              mainBranchName: "main",
+              gitHubAppInstallationId: "1234",
+            };
+          },
+        ),
+      );
+    // Every one of them is connected.
+    jest
+      .spyOn(CodeHostAccess, "getReachableRepositoryIds")
+      .mockImplementation(async (data: { repositoryIds: Array<ObjectID> }) => {
+        return new Set<string>(
+          data.repositoryIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        );
+      });
+    jest
+      .spyOn(CodeTaskAccess, "findReadableRepository")
+      .mockImplementation(
+        async (data: {
+          props: DatabaseCommonInteractionProps;
+          repositoryId: ObjectID;
+        }): Promise<CodeRepository | null> => {
+          asked.push(data.props);
+          const id: string = data.repositoryId.toString();
+          return mayRead(id) ? rowOf(id) : null;
+        },
+      );
+    jest
+      .spyOn(CodeTaskAccess, "canAskInRepository")
+      .mockImplementation(
+        async (data: {
+          props: DatabaseCommonInteractionProps;
+          repositoryId: ObjectID;
+        }): Promise<boolean> => {
+          asked.push(data.props);
+          return mayAsk(data.repositoryId.toString());
+        },
+      );
+    jest
+      .spyOn(CodeTaskAccess, "listReadableRepositoriesByIds")
+      .mockImplementation(
+        async (data: {
+          props: DatabaseCommonInteractionProps;
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Array<CodeRepository>> => {
+          asked.push(data.props);
+          return data.repositoryIds
+            .map((id: ObjectID | string): string => {
+              return id.toString();
+            })
+            .filter(mayRead)
+            .map(rowOf);
+        },
+      );
+    jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockImplementation(
+        async (data: {
+          props: DatabaseCommonInteractionProps;
+          repositoryIds: Array<ObjectID | string>;
+        }): Promise<Set<string>> => {
+          asked.push(data.props);
+          return new Set<string>(
+            data.repositoryIds
+              .map((id: ObjectID | string): string => {
+                return id.toString();
+              })
+              .filter(mayAsk),
+          );
+        },
+      );
+  });
+
+  test("a pick the caller may read but not ask OneUptime AI to work in: refused, in a sentence that says so, as a 403 - nothing queued", async () => {
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    const call: Call = await post(CREATE_ROUTE, {
+      traceId: TRACE_ID,
+      repositoryId: LEDGER_REPOSITORY_ID,
+    });
+
+    expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((call.thrown as Error).message).toBe(
+      PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+    );
+    expect(call.json).toBeUndefined();
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("a pick the caller may not read: refused as not found, as a 404 - never said to exist - nothing queued", async () => {
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    const call: Call = await post(CREATE_ROUTE, {
+      traceId: TRACE_ID,
+      repositoryId: VAULT_REPOSITORY_ID,
+    });
+
+    expect(call.thrown).toBeInstanceOf(NotFoundException);
+    expect((call.thrown as Error).message).toBe(
+      PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("a pick the caller may use: taken, and the fix is made in it - checked under the caller's own permissions", async () => {
+    jest.spyOn(CodeFixStartGate, "check").mockResolvedValue({
+      codeRepositoryId: new ObjectID(CHECKOUT_REPOSITORY_ID),
+      blocker: null,
+    });
+    const runId: ObjectID = ObjectID.generate();
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue({ id: runId } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, {
+      traceId: TRACE_ID,
+      repositoryId: CHECKOUT_REPOSITORY_ID,
+    });
+
+    expect(call.thrown).toBeUndefined();
+    expect(call.json).toEqual({ aiRunId: runId.toString() });
+    const queued: {
+      codeRepositoryId?: ObjectID | null;
+      taskContext: { pickedCodeRepositoryId?: string };
+    } = enqueue.mock.calls[0]![0];
+    expect(queued.codeRepositoryId?.toString()).toBe(CHECKOUT_REPOSITORY_ID);
+    expect(queued.taskContext.pickedCodeRepositoryId).toBe(
+      CHECKOUT_REPOSITORY_ID,
+    );
+    expect(asked.length).toBeGreaterThan(0);
+    for (const props of asked) {
+      expect(props).toEqual(memberProps());
+    }
+  });
+
+  test("no pick, and the trace's facts would find the repository the caller may not ask in: the fix is held to theirs", async () => {
+    const gate: jest.SpyInstance = jest
+      .spyOn(CodeFixStartGate, "check")
+      .mockResolvedValue({
+        codeRepositoryId: new ObjectID(CHECKOUT_REPOSITORY_ID),
+        blocker: null,
+      });
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    // Resolved among checkout alone, the one repository the member may use.
+    expect(
+      (gate.mock.calls[0]![0] as { allowance: CodeRepositoryAllowance })
+        .allowance,
+    ).toEqual({
+      isEveryRepository: false,
+      repositoryIds: [CHECKOUT_REPOSITORY_ID],
+    });
+    expect(
+      (
+        enqueue.mock.calls[0]![0] as {
+          taskContext: { pickedCodeRepositoryId?: string };
+        }
+      ).taskContext.pickedCodeRepositoryId,
+    ).toBe(CHECKOUT_REPOSITORY_ID);
+  });
+
+  test("no pick, and none of the connected repositories is the caller's to ask in: refused, saying why and who can help - nothing queued", async () => {
+    jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockResolvedValue(new Set<string>());
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    const call: Call = await post(CREATE_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
+    expect((call.thrown as Error).message).toBe(
+      NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("the suggestion the page draws for that caller offers nothing, so the page never shows a fix the route refuses", async () => {
+    jest
+      .spyOn(CodeTaskAccess, "listAskableRepositoryIds")
+      .mockResolvedValue(new Set<string>());
+
+    const call: Call = await post(SUGGESTION_ROUTE, { traceId: TRACE_ID });
+
+    expect(call.thrown).toBeUndefined();
+    expect(
+      parseTracePerformanceFixSuggestion(call.json as JSONObject).offer,
+    ).toBe(SuggestionOffer.None);
   });
 });

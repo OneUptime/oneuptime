@@ -416,6 +416,11 @@ To show the screenshot of every failed run, put the image in a loop. Here the sc
 | `trapOid` | The trap's OID. Only when an SNMP trap triggered the check. | `string` |
 | `trapSourceIp` | The address the trap came from. Only when an SNMP trap triggered the check. | `string` |
 | `trapVarbinds` | The trap's varbinds, each as `{oid, value}`. Only when an SNMP trap triggered the check. | `Array<Object>` |
+| `trapInterface` | The interface a trap is about: the name the trap carries, or else the one the device's last walk recorded for its index. Only when an SNMP trap triggered the check. | `string` |
+| `trapAlarmCounter` | On an RMON alarm trap (an MDS port-monitor alarm), the counter that crossed its threshold. Empty for any other trap. | `string` |
+| `trapAlarmDirection` | On an RMON alarm trap, `rising` or `falling`. Empty for any other trap. | `string` |
+| `trapAlarmValue` | On an RMON alarm trap, the counter's value when it crossed its threshold. Empty for any other trap. | `string` |
+| `trapAlarmThreshold` | On an RMON alarm trap, the threshold the counter crossed. Empty for any other trap. | `string` |
 
 A network device is pinged on every poll and walked over SNMP only when it has credentials, so **`isOnline` is the only variable above that a ping-only device fills in**: every other one comes from the SNMP walk and is left as written without one. Lead with `{{isOnline}}` and the device's name in templates that may be used for devices without credentials. See [Network Device Monitor](/docs/monitor/network-device-monitor#what-a-poll-actually-does) for what each kind of poll collects.
 

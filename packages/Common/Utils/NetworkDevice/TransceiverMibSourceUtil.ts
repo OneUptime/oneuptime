@@ -29,6 +29,14 @@ const SOURCES_BY_ENTERPRISE: Record<number, Array<TransceiverMibSource>> = {
     TransceiverMibSource.CiscoEntitySensor,
     TransceiverMibSource.EntitySensor,
   ],
+  /*
+   * Brocade: Fabric OS's swSfpStatTable. VDX and SLX switches share the
+   * enterprise and answer its first request with nothing, falling through.
+   */
+  1588: [
+    TransceiverMibSource.BrocadeSfpStat,
+    TransceiverMibSource.EntitySensor,
+  ],
   // HPE Aruba ProCurve / ArubaOS-Switch
   11: [
     TransceiverMibSource.HpIcfTransceiver,

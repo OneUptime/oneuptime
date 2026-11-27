@@ -8,7 +8,6 @@ import {
 } from "@jest/globals";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "../../../Models/DatabaseModels/RecommendationDismissal";
-import Includes from "../../../Types/BaseDatabase/Includes";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import MonitorRecommendationCatalog from "../../../Types/Monitor/Recommendation/MonitorRecommendationCatalog";
@@ -16,7 +15,14 @@ import {
   MonitorRecommendation,
   MonitorRecommendationResourceType,
 } from "../../../Types/Monitor/Recommendation/MonitorRecommendationTypes";
+import {
+  MonitorRecommendationCoverageQuestion,
+  getCoverageSearchText,
+} from "../../../Types/Monitor/Recommendation/MonitorRecommendationCoverageQuestions";
 import ObjectID from "../../../Types/ObjectID";
+import MonitorRecommendationCoverageApi from "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi";
+import { answerCoverage } from "./MonitorCoverageServer";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * Which of a resource's recommended alerts that watch one kind of part are
@@ -147,11 +153,31 @@ async function statuses(): Promise<Array<[string, RecommendationStatus]>> {
   );
 }
 
+// Which alerts a monitor covers is the server's to say (#11074).
+let coverageSpy: SpyInstance<
+  typeof MonitorRecommendationCoverageApi.findCoveringMonitors
+>;
+
 beforeEach(() => {
   listCalls.length = 0;
   monitorsToReturn = [];
   dismissalsToReturn = [];
   failMonitors = false;
+  coverageSpy = jest
+    .spyOn(MonitorRecommendationCoverageApi, "findCoveringMonitors")
+    .mockImplementation(
+      async (
+        questions: Array<MonitorRecommendationCoverageQuestion>,
+      ): Promise<Map<string, ObjectID>> => {
+        if (failMonitors) {
+          throw new Error("You do not have permission.");
+        }
+
+        return answerCoverage({ questions, monitors: monitorsToReturn });
+      },
+    ) as unknown as SpyInstance<
+    typeof MonitorRecommendationCoverageApi.findCoveringMonitors
+  >;
 });
 
 afterEach(() => {
@@ -284,23 +310,43 @@ describe("which of them are on", () => {
     expect(countResourcePartAlertsOn(viewModels)).toBe(0);
   });
 
-  test("the monitors are read once, of every type the alerts use", async () => {
+  /*
+   * #11074: the part's page read the project's first 10,000 monitors of
+   * the alerts' types, so a monitor past them never turned an alert on.
+   */
+  test("the server is asked once, each alert with its own monitor's type - the project's monitors are never read", async () => {
     await statuses();
 
-    const monitorReads: Array<ListCall> = listCalls.filter(
-      (call: ListCall): boolean => {
-        return call.modelName === "Monitor";
-      },
-    );
-    expect(monitorReads).toHaveLength(1);
-    const monitorType: unknown = monitorReads[0]!.query["monitorType"];
-    expect(monitorType).toBeInstanceOf(Includes);
     expect(
-      [...((monitorType as Includes).values as Array<string>)].sort(),
+      listCalls.filter((call: ListCall): boolean => {
+        return call.modelName === "Monitor";
+      }),
+    ).toEqual([]);
+    expect(coverageSpy).toHaveBeenCalledTimes(1);
+
+    const questions: Array<MonitorRecommendationCoverageQuestion> =
+      coverageSpy.mock.calls[0]![0];
+    expect(
+      questions.map((question: MonitorRecommendationCoverageQuestion) => {
+        return question.key;
+      }),
+    ).toEqual(
+      PROXMOX_NODE_ALERT_TEMPLATE_IDS.map((templateId: string): string => {
+        return recommendationFor(templateId).recommendationId;
+      }),
+    );
+    expect(
+      Array.from(
+        new Set<string>(
+          questions.map((question: MonitorRecommendationCoverageQuestion) => {
+            return question.monitorType;
+          }),
+        ),
+      ).sort(),
     ).toEqual([MonitorType.Logs, MonitorType.Proxmox].sort());
   });
 
-  test("one monitor type is queried as itself", async () => {
+  test("one alert is one question, of its own type, about this cluster", async () => {
     await loadResourcePartAlertCoverage({
       resourceType: MonitorRecommendationResourceType.Proxmox,
       templateIds: ["pve-storage-near-full"],
@@ -308,10 +354,34 @@ describe("which of them are on", () => {
       resourceIdentifier: CLUSTER_NAME,
     });
 
-    const read: ListCall = listCalls.find((call: ListCall): boolean => {
-      return call.modelName === "Monitor";
-    })!;
-    expect(read.query["monitorType"]).toBe(MonitorType.Proxmox);
+    const questions: Array<MonitorRecommendationCoverageQuestion> =
+      coverageSpy.mock.calls[0]![0];
+    expect(questions).toHaveLength(1);
+    expect(questions[0]!.monitorType).toBe(MonitorType.Proxmox);
+    expect(getCoverageSearchText(questions[0]!.fingerprints[0]!)).toBe(
+      CLUSTER_NAME,
+    );
+  });
+
+  test("a monitor past the project's first 10,000 turns its alert on", async () => {
+    monitorsToReturn = [
+      ...Array.from({ length: 10050 }, (_: unknown, index: number) => {
+        return monitorFor(
+          "pve-node-offline",
+          `pve-other-${index}`,
+          `70000000-0000-4000-8000-${String(index + 100).padStart(12, "0")}`,
+        );
+      }),
+      monitorFor(
+        "pve-node-offline",
+        CLUSTER_NAME,
+        "70000000-0000-4000-8000-0000000fffff",
+      ),
+    ];
+
+    expect(Object.fromEntries(await statuses())["pve-node-offline"]).toBe(
+      RecommendationStatus.Created,
+    );
   });
 
   test("no recommendation, no read", async () => {
@@ -324,6 +394,7 @@ describe("which of them are on", () => {
       }),
     ).toEqual([]);
     expect(listCalls).toHaveLength(0);
+    expect(coverageSpy).not.toHaveBeenCalled();
   });
 
   test("a role that may not read monitors gets the refusal, for the card to stay out of the way", async () => {

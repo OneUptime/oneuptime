@@ -6,6 +6,7 @@ import SnmpTrapReceiverUtil, {
   SnmpTrapReceiverUser,
 } from "Common/Types/Probe/SnmpTrapReceiver";
 import IpCanonicalUtil from "Common/Utils/IpCanonicalUtil";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import crypto from "crypto";
 
 /*
@@ -62,8 +63,9 @@ export default class SnmpV3UserTable {
   // By the user name's octets, as hex.
   private usersByName: Map<string, Array<UsmUser>> = new Map();
   private secretsByFingerprint: Map<string, UsmUserSecrets> = new Map();
-  // Least recently used first.
-  private localizedKeys: Map<string, UsmLocalizedKeys> = new Map();
+  // Least recently used first, answered in constant time.
+  private readonly localizedKeys: OldestKeyMap<string, UsmLocalizedKeys> =
+    new OldestKeyMap();
   private userCount: number = 0;
   private hasBeenLoaded: boolean = false;
 
@@ -249,8 +251,7 @@ export default class SnmpV3UserTable {
     this.localizedKeys.set(cacheKey, keys);
 
     while (this.localizedKeys.size > MAX_LOCALIZED_KEYS) {
-      const oldest: string | undefined = this.localizedKeys.keys().next()
-        .value as string | undefined;
+      const oldest: string | undefined = this.localizedKeys.oldestKey();
 
       if (oldest === undefined) {
         break;

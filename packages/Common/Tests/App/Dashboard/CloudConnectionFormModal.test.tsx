@@ -485,6 +485,8 @@ describe("every cloud, one paste", () => {
         wafBlocklist: "off",
         // AWS alone: reading IAM users back for security cases, off until turned on (#10900).
         securityCaseChecks: "off",
+        // OneUptime acts on no saving until someone lets it (#11010).
+        savingsActions: "off",
       },
       secrets: {},
     });
@@ -656,6 +658,8 @@ describe("testing and connecting", () => {
         dataSecurityResponse: "off",
         // Blocking addresses in Azure WAF stays off until someone turns it on (#10348).
         wafBlocklist: "off",
+        // OneUptime acts on no saving until someone lets it (#11010).
+        savingsActions: "off",
         readIntervalInMinutes: "5",
         readScope: "account",
       },
@@ -867,6 +871,8 @@ describe("Data Security's settings, under the command", () => {
         .compareDocumentPosition(fold) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(foldedItems()).toEqual([
+      // What OneUptime may change for savings, Off (#11010).
+      "Savings actions",
       "Data security",
       "Data security response",
       "Block addresses in Azure WAF",
@@ -1138,10 +1144,12 @@ describe("Data Security's settings, under the command", () => {
     );
     // Folded on edit too, but saying what is set (a long choice in a few words).
     expect(foldOnStep()).toHaveAttribute("aria-expanded", "false");
-    expect(foldedItems()[0]).toContain(
+    // Savings actions were never chosen for it: nothing to say (#11010).
+    expect(foldedItems()[0]).toBe("Savings actions");
+    expect(foldedItems()[1]).toContain(
       "Data security: Configuration and content",
     );
-    expect(foldedItems()[1]).toBe(
+    expect(foldedItems()[2]).toBe(
       "Data security response: Close exposures and fix settings",
     );
 
@@ -1161,6 +1169,8 @@ describe("Data Security's settings, under the command", () => {
 
     expect(updateSpy.mock.calls[0]![0].data["config"]).toEqual({
       authMethod: CloudConnectionAuthMethod.GcpServiceAccountKey,
+      // Never chosen for it: saved off, as every folded setting is (#11010).
+      savingsActions: "off",
       readScope: "organization",
       dataSecurity: "content",
       dataSecurityResponse: "block",
@@ -1193,6 +1203,7 @@ describe("Data Security's settings, under the command", () => {
       }),
     );
     expect(foldedItems()).toEqual([
+      "Savings actions",
       "Data security",
       "Data security response",
       "Block addresses in AWS WAF",
@@ -1248,6 +1259,7 @@ describe("Data Security's settings, under the command", () => {
     await stepTitles();
 
     expect(foldedItems()).toEqual([
+      "Savings actions",
       "Data security",
       "Data security response",
       "Block addresses in AWS WAF",

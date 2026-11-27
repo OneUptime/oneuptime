@@ -28,6 +28,7 @@ import {
   CloudCostSharedSplit,
   CloudCostViewGrouping,
 } from "../../../Types/Cloud/CloudCostAllocation";
+import { CloudCostBasis } from "../../../Types/Cloud/CloudCostBasis";
 import {
   CloudCostRule,
   CloudCostRuleField,
@@ -50,16 +51,23 @@ import {
   getGroupChangeHint,
   toCloudCostAllocationCsv,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostGroupFigures";
-import { NEVER_MATCHES } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostGroupWords";
+import {
+  FIELD_ORDER,
+  getFieldLabel,
+  NEVER_MATCHES,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostGroupWords";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { percentagesAddUp } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostPercentagesEditor";
 import CloudCostQuickStart from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostQuickStart";
 import CloudCostRuleEditor, {
   CloudCostRuleOptions,
   changeConditionField,
+  getPickableRecords,
   getRuleEditorProblem,
   newCloudCostCondition,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostRuleEditor";
 import CloudCostRuleSummary, {
+  CloudCostConditionSentence,
   CloudCostRuleNames,
   emptyCloudCostRuleNames,
   getCloudCostValueText,
@@ -442,6 +450,48 @@ describe("the rule editor", () => {
     expect(newCloudCostCondition({ ...OPTIONS, tagKeys: [] }).field).toBe(
       CloudCostRuleField.Account,
     );
+  });
+
+  test("an archived label is never a new pick, but one a condition holds stays, and every one is named", () => {
+    const LIVE: string = "10000000-0000-4000-8000-0000000000d1";
+    const ARCHIVED: string = "10000000-0000-4000-8000-0000000000d2";
+    const labels: Map<string, string> = new Map([
+      [ARCHIVED, "Legacy"],
+      [LIVE, "Customer facing"],
+    ]);
+    const archived: Set<string> = new Set([ARCHIVED]);
+
+    // A new condition: the live label only, by name.
+    expect(getPickableRecords({ names: labels, archived, values: [] })).toEqual(
+      [[LIVE, "Customer facing"]],
+    );
+    // A condition that holds the archived one keeps it, whatever its case.
+    expect(
+      getPickableRecords({
+        names: labels,
+        archived,
+        values: [ARCHIVED.toUpperCase()],
+      }),
+    ).toEqual([
+      [LIVE, "Customer facing"],
+      [ARCHIVED, "Legacy"],
+    ]);
+    // Nothing archived: every record, by name.
+    expect(
+      getPickableRecords({ names: labels, archived: new Set(), values: [] }),
+    ).toHaveLength(2);
+
+    // A rule that names the archived label still says which.
+    const built: CloudCostRuleNames = names();
+    built.labels = labels;
+    built.archived = archived;
+    expect(
+      getCloudCostValueText({
+        field: CloudCostRuleField.Label,
+        value: ARCHIVED,
+        names: built,
+      }).text,
+    ).toBe("Legacy");
   });
 
   test("what keeps rules from being saved, in the reader's words", () => {
@@ -839,6 +889,7 @@ describe("a view's figures", () => {
   test("as a CSV: a row per group then the unallocated, a name never read as a formula, a credit as a number", () => {
     const csv: string = toCloudCostAllocationCsv(
       allocation({
+        basis: CloudCostBasis.Amortized,
         groups: [
           groupResult({
             id: PAYMENTS,
@@ -858,11 +909,12 @@ describe("a view's figures", () => {
       }),
     );
 
+    // Each row says the basis its figures are on, as finance pulls them.
     expect(csv.split("\n")).toEqual([
-      '"group","group_id","period_start","currency","total","cloud","line_items","shared_in","shared_out"',
-      `"'=HYPERLINK(""x"")","${PAYMENTS}","2026-11-01","USD","743.08","420","0","323.08","0"`,
-      `"Search, ""core""","${SEARCH}","2026-11-01","USD","-60","0","-60","0","0"`,
-      '"Unallocated","","2026-11-01","USD","150","150","0","0","0"',
+      '"group","group_id","period_start","currency","cost_basis","total","cloud","line_items","shared_in","shared_out"',
+      `"'=HYPERLINK(""x"")","${PAYMENTS}","2026-11-01","USD","amortized","743.08","420","0","323.08","0"`,
+      `"Search, ""core""","${SEARCH}","2026-11-01","USD","amortized","-60","0","-60","0","0"`,
+      '"Unallocated","","2026-11-01","USD","amortized","150","150","0","0","0"',
       "",
     ]);
   });
@@ -908,7 +960,10 @@ describe("Where the money goes, by cost group", () => {
     },
   ];
 
-  async function openByGroup(views: Array<CloudCostView>): Promise<void> {
+  async function openByGroup(
+    views: Array<CloudCostView>,
+    basis?: CloudCostBasis,
+  ): Promise<void> {
     // The card opens on its services, read before the groups are asked for.
     getJestSpyOn(AnalyticsModelAPI, "aggregate").mockResolvedValue({
       data: [],
@@ -927,7 +982,7 @@ describe("Where the money goes, by cost group", () => {
       render(
         <MemoryRouter>
           <CloudCostBreakdownCard
-            scope={{ projectId: PROJECT, currency: "USD" }}
+            scope={{ projectId: PROJECT, currency: "USD", basis }}
             accounts={ACCOUNTS}
             isOneAccount={false}
           />
@@ -1020,5 +1075,134 @@ describe("Where the money goes, by cost group", () => {
         );
       }),
     ).toBe(true);
+  });
+
+  test("each group's spend is asked for on the basis the page shows (#11007)", async () => {
+    const view: CloudCostView = new CloudCostView();
+    view._id = VIEW;
+    view.name = "By team";
+
+    const post: jest.SpyInstance<any, any> = getJestSpyOn(
+      API,
+      "post",
+    ).mockResolvedValue({
+      data: allocation({
+        basis: CloudCostBasis.Net,
+        groups: [groupResult({ id: PAYMENTS, name: "Payments", total: 600 })],
+      }),
+    });
+
+    await openByGroup([view], CloudCostBasis.Net);
+
+    expect(String(post.mock.calls[0]![0].url)).toContain(
+      `/cloud-cost-view/${VIEW}/allocation`,
+    );
+    expect(post.mock.calls[0]![0].data).toMatchObject({
+      basis: CloudCostBasis.Net,
+      currency: "USD",
+    });
+  });
+
+  test("a page that names no basis leaves it to the project's", async () => {
+    const view: CloudCostView = new CloudCostView();
+    view._id = VIEW;
+    view.name = "By team";
+
+    const post: jest.SpyInstance<any, any> = getJestSpyOn(
+      API,
+      "post",
+    ).mockResolvedValue({ data: allocation() });
+
+    await openByGroup([view]);
+
+    expect(post.mock.calls[0]![0].data).not.toHaveProperty("basis");
+  });
+});
+
+/*
+ * A rule's field is a label: the picker's options and its label, and the
+ * first words of a condition's sentence. "Kubernetes cluster" is a key the
+ * sentences that say it share, worded for the middle of a sentence in five
+ * languages ("clúster de Kubernetes"), so it starts with a capital here.
+ */
+describe("a rule's field, in the reader's language", () => {
+  const inLanguage: (
+    language: string,
+  ) => ReturnType<typeof createTranslator> = (
+    language: string,
+  ): ReturnType<typeof createTranslator> => {
+    const locale: Record<string, string> = readDashboardLocale(language);
+
+    return createTranslator((key: string): string | undefined => {
+      return locale[key];
+    }, language);
+  };
+
+  test("a key worded for the middle of a sentence starts with a capital", () => {
+    expect(readDashboardLocale("es")["Kubernetes cluster"]).toBe(
+      "clúster de Kubernetes",
+    );
+    expect(
+      getFieldLabel(CloudCostRuleField.KubernetesCluster, inLanguage("es")),
+    ).toBe("Clúster de Kubernetes");
+    expect(
+      getFieldLabel(CloudCostRuleField.KubernetesCluster, inLanguage("fr")),
+    ).toBe("Cluster Kubernetes");
+    expect(getFieldLabel(CloudCostRuleField.KubernetesCluster, ENGLISH)).toBe(
+      "Kubernetes cluster",
+    );
+  });
+
+  test("every field starts with a capital in every language that writes one", () => {
+    for (const language of [
+      "da",
+      "de",
+      "es",
+      "fr",
+      "it",
+      "nl",
+      "no",
+      "pt",
+      "ru",
+      "sv",
+    ]) {
+      const translator: ReturnType<typeof createTranslator> =
+        inLanguage(language);
+
+      for (const field of FIELD_ORDER) {
+        expect({
+          language,
+          field,
+          label: getFieldLabel(field, translator),
+        }).toEqual({
+          language,
+          field,
+          label: expect.stringMatching(/^\p{Lu}/u),
+        });
+      }
+    }
+  });
+
+  test("a condition's sentence starts with it", () => {
+    const CLUSTER: string = "10000000-0000-4000-8000-0000000000e1";
+    const built: CloudCostRuleNames = names();
+
+    built.clusters.set(CLUSTER, "prod-eu");
+
+    const { container } = render(
+      <CloudCostConditionSentence
+        condition={{
+          field: CloudCostRuleField.KubernetesCluster,
+          operator: CloudCostRuleOperator.Is,
+          values: [CLUSTER],
+        }}
+        names={built}
+      />,
+    );
+
+    // As it reads, without the marks that set a value apart.
+    expect((container.textContent || "").replace(/[\u2066-\u2069]/g, "")).toMatch(
+      /^Kubernetes cluster is .*prod-eu/,
+    );
   });
 });

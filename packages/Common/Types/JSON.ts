@@ -97,6 +97,7 @@ export enum ObjectType {
   OnWatchlist = "OnWatchlist",
   NotOnWatchlist = "NotOnWatchlist",
   OwnedBy = "OwnedBy",
+  LinkedTo = "LinkedTo",
   DashboardComponent = "DashboardComponent",
   DashboardViewConfig = "DashboardViewConfig",
 }

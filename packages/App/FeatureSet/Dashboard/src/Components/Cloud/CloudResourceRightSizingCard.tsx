@@ -1,4 +1,6 @@
+import Route from "Common/Types/API/Route";
 import { Gray500, Green, Red, Yellow } from "Common/Types/BrandColors";
+import ObjectID from "Common/Types/ObjectID";
 import {
   CloudRightSizing,
   RIGHT_SIZING_TITLE,
@@ -19,9 +21,13 @@ import {
   CloudRightSizingText,
   CloudRightSizingTone,
   RIGHT_SIZING_DESCRIPTION,
+  RIGHT_SIZING_INSTALL_HOST_COLLECTOR,
   getCloudRightSizingText,
 } from "./CloudRightSizingText";
 import { CloudCostFigure } from "./CloudSpendCard";
+import AppLink from "../AppLink/AppLink";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 
 /*
  * A resource's right-sizing, on its Overview: how its size fits what it
@@ -191,6 +197,65 @@ const CloudResourceRightSizingCard: FunctionComponent<ComponentProps> = (
               className="mt-px h-4 w-4 flex-none text-amber-500"
             />
             <span className="min-w-0">{text.caveat}</span>
+          </div>
+        ) : (
+          <></>
+        )}
+
+        {/*
+         * Where its memory came from - the host OneUptime's collector runs
+         * on in it, named and linked - or, a VM sized by its CPU alone,
+         * how to size it on memory too (#11013).
+         */}
+        {text.memory ? (
+          <div
+            className={`flex items-start gap-2 text-xs text-gray-600 ${
+              text.caveat || text.why.length > 0 ? "mt-3" : "mt-5"
+            }`}
+            data-testid="cloud-right-sizing-memory-line"
+            data-kind={text.memory.kind}
+          >
+            <Icon
+              icon={IconProp.Server}
+              className="mt-px h-4 w-4 flex-none text-gray-500"
+            />
+            {text.memory.kind === "install" ? (
+              <span className="min-w-0">
+                <span>{text.memory.sentence}</span>{" "}
+                <AppLink
+                  to={RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.HOST_DOCUMENTATION] as Route,
+                  )}
+                  className="font-medium text-indigo-600 hover:text-indigo-700"
+                  dataTestId="cloud-right-sizing-install-host-collector"
+                >
+                  {translator.translateText(
+                    RIGHT_SIZING_INSTALL_HOST_COLLECTOR,
+                  ) || RIGHT_SIZING_INSTALL_HOST_COLLECTOR}
+                </AppLink>
+              </span>
+            ) : (
+              <span className="min-w-0">
+                <TranslatedSentence
+                  template={text.memory.template}
+                  values={text.memory.values}
+                  slots={{
+                    host: (
+                      <AppLink
+                        to={RouteUtil.populateRouteParams(
+                          RouteMap[PageMap.HOST_VIEW] as Route,
+                          { modelId: new ObjectID(text.memory.hostId) },
+                        )}
+                        className="font-medium text-indigo-600 hover:text-indigo-700"
+                        dataTestId="cloud-right-sizing-memory-host"
+                      >
+                        <bdi>{text.memory.hostName}</bdi>
+                      </AppLink>
+                    ),
+                  }}
+                />
+              </span>
+            )}
           </div>
         ) : (
           <></>

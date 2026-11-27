@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > Per chiamare una volta per problema anziché una volta per avviso, mettete le policy di reperibilità sulle vostre regole di raggruppamento e toglietele dagli avvisi: dai criteri del monitor, dal modulo di creazione e dalle vostre regole di reperibilità degli avvisi.
 
-Anche i proprietari dell'episodio vengono informati: **Episodio di avviso creato**, **Stato dell'episodio di avviso modificato** e **Avviso aggiunto all'episodio di avviso** sono attivi via e-mail per impostazione predefinita, in **Impostazioni utente → Impostazioni notifiche**, nella scheda **Avvisi**. I **Proprietari dell'episodio** della regola diventano proprietari di ogni episodio che apre, e vengono notificati come qualsiasi altro proprietario.
+Anche i proprietari dell'episodio vengono informati: **Episodio di avviso creato**, **Stato dell'episodio di avviso modificato** e **Avviso aggiunto all'episodio di avviso** sono attivi via e-mail per impostazione predefinita, in **Impostazioni utente → Impostazioni notifiche**, nella scheda **Avvisi**. I **Proprietari dell'episodio** della regola diventano proprietari di ogni episodio che apre, e vengono notificati come qualsiasi altro proprietario. Vengono aggiunti prima che Slack e Microsoft Teams siano informati dell'episodio, così una regola di notifica che chiede chi è il proprietario di un episodio ne pubblica il messaggio di creazione.
 
 ## Creare un episodio a mano
 
@@ -166,7 +166,7 @@ In **Dettagli episodio**, compilate il **Titolo** e, se volete, una **Gravità a
 
 In **Reperibilità e proprietari**, scegliete una **Policy di reperibilità** da eseguire quando l'episodio viene creato, e i suoi **Proprietari**. Poi fate clic su **Crea episodio**.
 
-Ogni team di cui siete membri è a un clic sotto **Proprietari**, e il riepilogo elenca le regole del proprietario che ne aggiungeranno altri.
+Ogni team di cui siete membri è a un clic sotto **Proprietari**, e il riepilogo elenca le regole del proprietario che ne aggiungeranno altri. I proprietari che scegliete, quelli delle regole del proprietario e le etichette delle regole delle etichette che corrispondono vengono aggiunti prima che Slack e Microsoft Teams siano informati dell'episodio, così anche una regola di notifica che chiede chi è il proprietario di un episodio, o come è etichettato, lo pubblica.
 
 ### Aggiungere gli avvisi
 

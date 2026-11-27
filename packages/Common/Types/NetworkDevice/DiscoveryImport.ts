@@ -33,11 +33,26 @@ import ObjectID from "../ObjectID";
  *    controllers saw on the network (Network > Discovered Devices, issue
  *    #5775). Each is polled by the probe that polls the switch that saw it,
  *    or its site's probe, and keeps the MAC it was seen with.
+ *  - Devices: devices already in the inventory (Network > Devices > Bulk
+ *    Actions > Create Monitors, issue #10990). Nothing is imported: each
+ *    gets the template's monitor, unless it has one the template's would
+ *    duplicate. However they were added - a scan, by hand, a CSV, a
+ *    controller - and whatever a scan found since.
  */
 export enum DiscoveryImportSource {
   Scan = "scan",
   DiscoveredDevices = "discoveredDevices",
+  Devices = "devices",
 }
+
+/*
+ * The most devices one Create Monitors run gives monitors to: the import's
+ * own bound (MAX_HOSTS_PER_DISCOVERY_IMPORT), below, for the same reason -
+ * each is a monitor create through the whole pipeline. A larger fleet is
+ * narrowed by a filter (a site, a role, a label) and run again: the devices
+ * that already have the template's monitor are left as they are.
+ */
+export const MAX_DEVICES_PER_MONITOR_CREATION: number = 5000;
 
 /*
  * Where an import is.
@@ -409,6 +424,12 @@ export const DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON: string =
  */
 export const DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON: string =
   "More than one device has the address, and the scan's probe cannot tell which of them it found, so none was given a monitor. Give the right device its monitor from its own page.";
+/*
+ * A device Create Monitors was asked to give a monitor (issue #10990) that
+ * was deleted or archived before its turn came.
+ */
+export const DISCOVERY_IMPORT_DEVICE_GONE_REASON: string =
+  "The device was deleted or archived since it was selected, so it was given no monitor.";
 
 export const DISCOVERY_IMPORT_OWN_REASONS: ReadonlyArray<string> = [
   DISCOVERY_IMPORT_STOPPED_REASON,
@@ -416,6 +437,7 @@ export const DISCOVERY_IMPORT_OWN_REASONS: ReadonlyArray<string> = [
   DISCOVERY_IMPORT_MONITOR_BACKED_REASON,
   DISCOVERY_IMPORT_NO_DEVICE_NO_MONITOR_REASON,
   DISCOVERY_IMPORT_AMBIGUOUS_DEVICE_REASON,
+  DISCOVERY_IMPORT_DEVICE_GONE_REASON,
 ];
 
 export interface DiscoveryImportHostResult {
@@ -426,6 +448,12 @@ export interface DiscoveryImportHostResult {
    * every branch has a 10.0.0.5 - so their results are told apart by it.
    */
   endpointId?: string | undefined;
+  /*
+   * The device this host is, on Create Monitors from the Devices list
+   * (issue #10990): it is in the inventory already, so its result starts
+   * Already added, and two at one address are told apart by it.
+   */
+  existingDeviceId?: string | undefined;
   // The name the device was given, or will be given.
   name: string;
   // The host answered ping but not SNMP.
@@ -714,6 +742,9 @@ export function readDiscoveryImportHostResult(
   };
 
   const endpointId: string | undefined = readOptionalText(record["endpointId"]);
+  const existingDeviceId: string | undefined = readOptionalText(
+    record["existingDeviceId"],
+  );
   const deviceId: string | undefined = readOptionalText(record["deviceId"]);
   const deviceError: string | undefined = readOptionalText(
     record["deviceError"],
@@ -721,6 +752,10 @@ export function readDiscoveryImportHostResult(
 
   if (endpointId) {
     result.endpointId = endpointId;
+  }
+
+  if (existingDeviceId) {
+    result.existingDeviceId = existingDeviceId;
   }
   const monitorId: string | undefined = readOptionalText(record["monitorId"]);
   const monitorError: string | undefined = readOptionalText(
@@ -768,14 +803,21 @@ export function readDiscoveryImportHostResults(
 }
 
 /*
- * What tells one host's result from another's: the discovered device it is,
- * on an import from the Discovered Devices list, else its address - a scan
- * finds each address once.
+ * What tells one host's result from another's: the device it is, on Create
+ * Monitors (issue #10990); the discovered device it is, on an import from
+ * the Discovered Devices list; else its address - a scan finds each address
+ * once. Two sites can each have a device at 10.0.0.5, so the first two are
+ * never told apart by address.
  */
 export function getDiscoveryImportHostKey(host: {
   ipAddress: string;
   endpointId?: string | undefined;
+  existingDeviceId?: string | undefined;
 }): string {
+  if (host.existingDeviceId) {
+    return `device:${host.existingDeviceId.toLowerCase()}`;
+  }
+
   return host.endpointId ? `endpoint:${host.endpointId}` : host.ipAddress;
 }
 
@@ -813,8 +855,9 @@ export function readDiscoveryImportView(
     scanId: record["scanId"],
     // Older servers knew only scans.
     source:
-      record["source"] === DiscoveryImportSource.DiscoveredDevices
-        ? DiscoveryImportSource.DiscoveredDevices
+      record["source"] === DiscoveryImportSource.DiscoveredDevices ||
+      record["source"] === DiscoveryImportSource.Devices
+        ? record["source"]
         : DiscoveryImportSource.Scan,
     status: record["status"],
     settings: settings,

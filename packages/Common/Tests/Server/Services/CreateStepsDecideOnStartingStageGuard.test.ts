@@ -98,6 +98,8 @@ const SERVICES: Array<ServiceSteps> = [
         "the owners its notification rules match on as it is created (#11146)",
       "WorkspaceCreatedMessageFirst.postHeld":
         "what was posted about it while its created message waited (#11146)",
+      "WorkspaceCreatedMessageFirst.hold":
+        "its other messages wait for its created message, on every App server (#11198)",
     },
     decidedByOngoing: [
       "this.handleIncidentWorkspaceOperationsAsync",
@@ -137,6 +139,8 @@ const SERVICES: Array<ServiceSteps> = [
         "the owners its notification rules match on as it is created (#11146)",
       "WorkspaceCreatedMessageFirst.postHeld":
         "what was posted about it while its created message waited (#11146)",
+      "WorkspaceCreatedMessageFirst.hold":
+        "its other messages wait for its created message, on every App server (#11198)",
     },
     decidedByOngoing: [
       "this.handleAlertWorkspaceOperationsAsync",
@@ -168,6 +172,12 @@ const SERVICES: Array<ServiceSteps> = [
         "which on-call policies it lists",
       "AlertEpisodeMemberService.createAlertsAddedFeedItem":
         "the entry naming the alerts it was created with",
+      "WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate":
+        "the owners its notification rules match on as it is created (#11188)",
+      "WorkspaceCreatedMessageFirst.postHeld":
+        "what was posted about it while its created message waited (#11188)",
+      "WorkspaceCreatedMessageFirst.hold":
+        "its other messages wait for its created message, on every App server (#11198)",
     },
     decidedByOngoing: ["this.handleEpisodeWorkspaceOperationsAsync"],
     handedIsOngoing: [],
@@ -190,6 +200,12 @@ const SERVICES: Array<ServiceSteps> = [
         "which on-call policies it lists",
       "IncidentEpisodeMemberService.createIncidentsAddedFeedItem":
         "the entry naming the incidents it was created with",
+      "WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate":
+        "the owners its notification rules match on as it is created (#11188)",
+      "WorkspaceCreatedMessageFirst.postHeld":
+        "what was posted about it while its created message waited (#11188)",
+      "WorkspaceCreatedMessageFirst.hold":
+        "its other messages wait for its created message, on every App server (#11198)",
     },
     decidedByOngoing: ["this.handleEpisodeWorkspaceOperationsAsync"],
     handedIsOngoing: [],

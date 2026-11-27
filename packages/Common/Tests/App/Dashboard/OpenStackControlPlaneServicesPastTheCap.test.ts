@@ -121,8 +121,10 @@ describe("OpenStack control plane map: the services its spans name", () => {
   });
 
   test("no traces, no reads", async () => {
-    const spansRead: jest.SpiedFunction<typeof AnalyticsModelAPI.getList> =
-      getJestSpyOn(AnalyticsModelAPI, "getList");
+    const spansRead: jest.SpyInstance = getJestSpyOn(
+      AnalyticsModelAPI,
+      "getList",
+    );
 
     expect(await fetchOpenStackControlPlaneSpans([])).toEqual({
       spans: [],

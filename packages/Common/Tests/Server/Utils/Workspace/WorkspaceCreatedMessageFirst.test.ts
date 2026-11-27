@@ -18,16 +18,18 @@ import type { Mock, SpyInstance } from "jest-mock";
  * A RECORD'S CREATED MESSAGE IS THE FIRST THING ITS CHANNELS HEAR OF IT
  * (#11146): while an incident or alert is being created, every other
  * message about it is kept, and posted right after its Created message, in
- * the order it was made - each once. Here, the hold itself: what is kept,
- * when it goes, in what order, and that nothing waits for good.
+ * the order it was made - each once. Here, the hold itself, on a server
+ * with no Valkey to share it through: what is kept, when it goes, in what
+ * order, and that nothing waits for good. The hold every server shares is
+ * in WorkspaceCreatedMessageFirstValkey.test.ts.
  */
 
 // Every record a test held, let go after it so no timer outlives the test.
 let held: Array<WorkspaceRecord> = [];
 
-function hold(record: WorkspaceRecord): WorkspaceRecord {
+async function hold(record: WorkspaceRecord): Promise<WorkspaceRecord> {
   held.push(record);
-  WorkspaceCreatedMessageFirst.hold(record);
+  await WorkspaceCreatedMessageFirst.hold(record);
   return record;
 }
 
@@ -77,11 +79,11 @@ afterEach(async () => {
 });
 
 describe("a record nobody is creating", () => {
-  test("its messages are not kept: the caller posts them at once", () => {
+  test("its messages are not kept: the caller posts them at once", async () => {
     const posted: Array<string> = [];
 
     expect(
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: { alertId: ObjectID.generate() },
         post: message(posted, "Added team Platform"),
       }),
@@ -96,14 +98,14 @@ describe("a record nobody is creating", () => {
     ).resolves.toBeUndefined();
   });
 
-  test("a message about no record at all is never kept, and holding no record holds nothing", () => {
+  test("a message about no record at all is never kept, and holding no record holds nothing", async () => {
     const posted: Array<string> = [];
 
-    WorkspaceCreatedMessageFirst.hold({});
+    await WorkspaceCreatedMessageFirst.hold({});
 
     expect(WorkspaceCreatedMessageFirst.isHeld({})).toBe(false);
     expect(
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: {},
         post: message(posted, "nothing"),
       }),
@@ -113,14 +115,14 @@ describe("a record nobody is creating", () => {
 
 describe("while a record is being created", () => {
   test("every message about it is kept, and none is posted", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const posted: Array<string> = [];
 
     expect(WorkspaceCreatedMessageFirst.isHeld(alert)).toBe(true);
 
     for (const name of ["Added team Platform", "Added Jane", "A note"]) {
       expect(
-        WorkspaceCreatedMessageFirst.keep({
+        await WorkspaceCreatedMessageFirst.keep({
           record: alert,
           post: message(posted, name),
         }),
@@ -133,11 +135,11 @@ describe("while a record is being created", () => {
   });
 
   test("letting it go posts what was kept, each once, in the order it was made", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const posted: Array<string> = [];
 
     for (const name of ["first", "second", "third"]) {
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: alert,
         post: message(posted, name),
       });
@@ -150,13 +152,13 @@ describe("while a record is being created", () => {
   });
 
   test("one after the other: a message is posted only once the one before it is", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const started: Array<string> = [];
     let finishFirst: () => void = (): void => {
       // replaced once the first starts
     };
 
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: async (): Promise<void> => {
         started.push("first");
@@ -165,7 +167,7 @@ describe("while a record is being created", () => {
         });
       },
     });
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: message(started, "second"),
     });
@@ -183,24 +185,24 @@ describe("while a record is being created", () => {
   });
 
   test("a message made while the kept ones are posted joins the end of the line", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const posted: Array<string> = [];
 
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: async (): Promise<void> => {
         posted.push("first");
 
         // Something else about the alert is posted meanwhile.
         expect(
-          WorkspaceCreatedMessageFirst.keep({
+          await WorkspaceCreatedMessageFirst.keep({
             record: alert,
             post: message(posted, "made meanwhile"),
           }),
         ).toBe(true);
       },
     });
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: message(posted, "second"),
     });
@@ -211,13 +213,13 @@ describe("while a record is being created", () => {
   });
 
   test("once let go, a message about the record goes out at once again", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const posted: Array<string> = [];
 
     await WorkspaceCreatedMessageFirst.postHeld(alert);
 
     expect(
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: alert,
         post: message(posted, "later"),
       }),
@@ -226,16 +228,16 @@ describe("while a record is being created", () => {
   });
 
   test("a message that fails is logged, the next one is still posted, and letting go never throws", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const posted: Array<string> = [];
 
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: async (): Promise<void> => {
         throw new Error("Slack is down");
       },
     });
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: message(posted, "second"),
     });
@@ -250,13 +252,13 @@ describe("while a record is being created", () => {
   });
 
   test("letting it go twice at once posts each message once, and both wait for the last", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const posted: Array<string> = [];
     let finishFirst: () => void = (): void => {
       // replaced once the first starts
     };
 
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: async (): Promise<void> => {
         await new Promise<void>((resolve: () => void) => {
@@ -265,7 +267,7 @@ describe("while a record is being created", () => {
         posted.push("first");
       },
     });
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: message(posted, "second"),
     });
@@ -293,17 +295,17 @@ describe("while a record is being created", () => {
   });
 
   test("holding a record twice is one hold: what was kept stays kept", async () => {
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const posted: Array<string> = [];
 
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: message(posted, "first"),
     });
 
-    WorkspaceCreatedMessageFirst.hold(alert);
+    await WorkspaceCreatedMessageFirst.hold(alert);
 
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: message(posted, "second"),
     });
@@ -317,12 +319,12 @@ describe("while a record is being created", () => {
 describe("records are told apart", () => {
   test("by their kind and their id, whatever the id's case", async () => {
     const id: string = ObjectID.generate().toString();
-    const alert: WorkspaceRecord = hold({ alertId: new ObjectID(id) });
+    const alert: WorkspaceRecord = await hold({ alertId: new ObjectID(id) });
     const posted: Array<string> = [];
 
     // The same id, written in capitals: the same alert.
     expect(
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: { alertId: new ObjectID(id.toUpperCase()) },
         post: message(posted, "same alert"),
       }),
@@ -330,13 +332,13 @@ describe("records are told apart", () => {
 
     // An incident with that id is another record, and so is another alert.
     expect(
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: { incidentId: new ObjectID(id) },
         post: message(posted, "an incident"),
       }),
     ).toBe(false);
     expect(
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: { alertId: ObjectID.generate() },
         post: message(posted, "another alert"),
       }),
@@ -348,15 +350,19 @@ describe("records are told apart", () => {
   });
 
   test("letting one record go leaves another held", async () => {
-    const first: WorkspaceRecord = hold({ incidentId: ObjectID.generate() });
-    const second: WorkspaceRecord = hold({ incidentId: ObjectID.generate() });
+    const first: WorkspaceRecord = await hold({
+      incidentId: ObjectID.generate(),
+    });
+    const second: WorkspaceRecord = await hold({
+      incidentId: ObjectID.generate(),
+    });
     const posted: Array<string> = [];
 
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: first,
       post: message(posted, "first's"),
     });
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: second,
       post: message(posted, "second's"),
     });
@@ -373,11 +379,11 @@ describe("records are told apart", () => {
 
   test("a message is about the first record it names, as WorkspaceRecordChannels reads it", async () => {
     const incidentId: ObjectID = ObjectID.generate();
-    hold({ incidentId: incidentId });
+    await hold({ incidentId: incidentId });
     const posted: Array<string> = [];
 
     expect(
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: { incidentId: incidentId, monitorId: ObjectID.generate() },
         post: message(posted, "about the incident"),
       }),
@@ -393,10 +399,10 @@ describe("nothing waits for good", () => {
       5 * 60 * 1000,
     );
 
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const posted: Array<string> = [];
 
-    WorkspaceCreatedMessageFirst.keep({
+    await WorkspaceCreatedMessageFirst.keep({
       record: alert,
       post: message(posted, "kept"),
     });
@@ -414,7 +420,7 @@ describe("nothing waits for good", () => {
     // From then on its messages go out at once.
     expect(WorkspaceCreatedMessageFirst.isHeld(alert)).toBe(false);
     expect(
-      WorkspaceCreatedMessageFirst.keep({
+      await WorkspaceCreatedMessageFirst.keep({
         record: alert,
         post: message(posted, "later"),
       }),
@@ -424,12 +430,12 @@ describe("nothing waits for good", () => {
   test("a hold let go in time is not let go a second time when its five minutes are up", async () => {
     jest.useFakeTimers();
 
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
     const post: Mock<KeptPost> = jest.fn<KeptPost>(async () => {
       // posted
     });
 
-    WorkspaceCreatedMessageFirst.keep({ record: alert, post: post });
+    await WorkspaceCreatedMessageFirst.keep({ record: alert, post: post });
     await WorkspaceCreatedMessageFirst.postHeld(alert);
 
     expect(post).toHaveBeenCalledTimes(1);
@@ -455,7 +461,7 @@ describe("nothing waits for good", () => {
       // the stand-in timer above is nothing to clear
     }) as never);
 
-    const alert: WorkspaceRecord = hold({ alertId: ObjectID.generate() });
+    const alert: WorkspaceRecord = await hold({ alertId: ObjectID.generate() });
 
     expect(delays).toEqual([WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS]);
     expect(unref).toHaveBeenCalledTimes(1);

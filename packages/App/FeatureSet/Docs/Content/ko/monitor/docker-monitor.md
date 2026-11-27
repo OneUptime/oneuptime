@@ -203,7 +203,7 @@ flowchart TB
 | `resource.container.id` | 전체 컨테이너 ID. |
 | `resource.container.runtime` | 항상 `docker`. |
 | `attributes["log.iostream"]` | `stdout` 또는 `stderr`. |
-| `severityText` / `severityNumber` | 줄 안에 레벨이 있으면 그 레벨 키워드에서 읽습니다(`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). 레벨이 없는 줄은 스트림을 따릅니다. `stderr`는 `ERROR`, `stdout`은 `INFO`입니다. |
+| `severityText` / `severityNumber` | 줄 안에 레벨이 있으면 줄에 적힌 그 레벨에서 읽습니다(`[ERROR]`, `app.INFO:`, `{"level":"warn"}`, `level=error`). 예외의 트레이스백은 `ERROR`입니다. 레벨이 없는 줄은 `stdout`에서는 `INFO`이고, `stderr`에서는 심각도가 없습니다(지정되지 않음). |
 | `body` | 컨테이너가 쓴 줄. 스택 트레이스 줄처럼 공백이나 닫는 괄호로 시작하는 줄은 앞 줄에 이어 붙습니다. |
 | `time` | 그 줄에 대한 Docker 데몬의 타임스탬프. |
 

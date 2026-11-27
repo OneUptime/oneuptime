@@ -104,14 +104,39 @@ describe("hits", () => {
     expect(cached!.name).toBe("Core Router");
   });
 
-  test("the lookup is asked for the device's name, with the address trimmed", async () => {
+  test("the lookup is asked for the device's name and SNMPv3 context, with the address trimmed", async () => {
     await match(" 10.0.0.1 ");
 
     expect(lookup).toHaveBeenCalledWith({
       probeId: PROBE,
       sourceIpAddress: "10.0.0.1",
-      select: { name: true },
+      select: { name: true, snmpV3ContextName: true },
     });
+  });
+
+  /*
+   * The logical switches of a Brocade chassis share its address; a trap's
+   * SNMPv3 context says which of them it is about (SnmpTrapContextRouting),
+   * so each cached device keeps the context it is polled in.
+   */
+  test("each device sharing an address comes back with its own SNMPv3 context, cached or not", async () => {
+    const defaultSwitch: NetworkDevice = device("10.20.0.5", "default");
+    const logicalSwitch: NetworkDevice = device("10.20.0.5", "FID 20");
+    logicalSwitch.snmpV3ContextName = "VF:20";
+    lookup.mockResolvedValue([defaultSwitch, logicalSwitch] as never);
+
+    for (const answer of [await match("10.20.0.5"), await match("10.20.0.5")]) {
+      expect(
+        answer.map((value: NetworkDevice) => {
+          return [value.name, value.snmpV3ContextName];
+        }),
+      ).toEqual([
+        ["default", undefined],
+        ["FID 20", "VF:20"],
+      ]);
+    }
+
+    expect(lookup).toHaveBeenCalledTimes(1);
   });
 
   test("the same address with stray whitespace shares the entry", async () => {

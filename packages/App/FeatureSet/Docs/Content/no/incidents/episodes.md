@@ -25,7 +25,7 @@ Begge tar opptil 100 valgte hendelser. Resultatet sier hvor mange som ble lagt t
 
 ## Hva det å legge til gjør
 
-- **Én oppføring i episodens feed** nevner hver hendelse som ble lagt til: de første 20 med nummer og tittel, deretter hvor mange flere. Den legges ut én gang i episodens Slack- eller Microsoft Teams-kanal, ikke én gang per hendelse. En privat hendelse nevnes bare med nummeret sitt.
+- **Én oppføring i episodens feed** nevner hver hendelse som ble lagt til: de første 20 med nummer og tittel, deretter hvor mange flere. Den legges ut én gang i episodens Slack- eller Microsoft Teams-kanal, ikke én gang per hendelse, og for en episode som opprettes med dem, kommer den der etter episodens opprettelsesmelding. En privat hendelse nevnes bare med nummeret sitt.
 - **Hver hendelses egen feed** sier hvilken episode den ble lagt til i.
 - **Episodens alvorlighetsgrad** heves til den mest alvorlige hendelsen som legges til i en eksisterende episode, og senkes aldri. En ny episode starter med alvorlighetsgraden du velger.
 - **En løst episode forblir løst.** Å legge til i den gjenåpner den ikke, og det endrer aldri statusen til en hendelse.

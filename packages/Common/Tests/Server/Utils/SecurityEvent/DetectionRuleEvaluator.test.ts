@@ -28,6 +28,7 @@ import DetectionRuleEvaluator, {
   DetectionRuleEvaluationResult,
   getArrivalEventTimeBounds,
   getDetectionFiringKey,
+  getDetectionFormerFiringKeys,
   getDetectionOverflowFiringKey,
   getDetectionRetryAt,
   getDetectionRuleDueTime,
@@ -73,6 +74,9 @@ import OTelIngestService, {
 import logger from "../../../../Server/Utils/Logger";
 import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
 import MetricSeriesFingerprint from "../../../../Utils/Metrics/MetricSeriesFingerprint";
+import DetectionFingerprint, {
+  DetectionFingerprintKind,
+} from "../../../../Server/Utils/SecurityEvent/DetectionFingerprint";
 import {
   DETECTION_EVALUATION_DELAY_IN_SECONDS,
   DETECTION_LATE_EVENT_WINDOW_IN_MINUTES,
@@ -285,7 +289,17 @@ function buildOpenIncident(fingerprint: string): Incident {
   return incident;
 }
 
+// A group's fingerprint: keyed in the rule's project (#11130).
 function expectedFingerprint(groupValue: string): string {
+  return `detection-rule:${RULE_ID.toString()}:${DetectionFingerprint.of({
+    projectId: PROJECT_ID,
+    kind: DetectionFingerprintKind.DetectionRule,
+    value: groupValue,
+  })}`;
+}
+
+// The unkeyed fingerprint the same group had before #11130.
+function legacyFingerprint(groupValue: string): string {
   return `detection-rule:${RULE_ID.toString()}:${MetricSeriesFingerprint.computeFingerprint(
     {
       groupValue,
@@ -1105,6 +1119,77 @@ describe("DetectionRuleEvaluator", () => {
       expect(spies.telemetryServiceFromName).not.toHaveBeenCalled();
     });
 
+    test("an alert still open under the unkeyed fingerprint from before #11130 is its group's: nothing opens twice", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        // bob's alert was opened before the fingerprint was keyed.
+        openAlerts: [buildOpenAlert(legacyFingerprint("bob"))],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.alertsCreated).toBe(1);
+      expect(createdAlert(spies, 0).seriesFingerprint).toBe(
+        expectedFingerprint("alice"),
+      );
+
+      // The lookup asked for each group's fingerprint, and the one it had before.
+      const query: JSONObject = (
+        spies.alertFindBy.mock.calls[0]![0] as JSONObject
+      )["query"] as JSONObject;
+
+      expect(
+        [...(query["seriesFingerprint"] as Includes).values].sort(),
+      ).toEqual(
+        [
+          expectedFingerprint("alice"),
+          legacyFingerprint("alice"),
+          expectedFingerprint("bob"),
+          legacyFingerprint("bob"),
+        ].sort(),
+      );
+    });
+
+    test("a fingerprint is never the unkeyed SHA-256 of what it groups on, and differs in every project", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice@example.com", 3)],
+        severities: [buildSeverity("0001", "Default")],
+      });
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      const fingerprint: string = createdAlert(spies, 0).seriesFingerprint!;
+
+      expect(fingerprint).not.toBe(legacyFingerprint("alice@example.com"));
+      expect(fingerprint).not.toContain(
+        MetricSeriesFingerprint.computeFingerprint({
+          groupValue: "alice@example.com",
+        }),
+      );
+      const inAnotherProject: DetectionRule = buildRule();
+
+      inAnotherProject.projectId = new ObjectID(
+        "22222222-2222-4222-8222-2222222222c9",
+      );
+
+      expect(
+        DetectionRuleEvaluator.buildFingerprints(
+          inAnotherProject,
+          "alice@example.com",
+        ).fingerprint,
+      ).not.toBe(fingerprint);
+    });
+
     test("shouldCreateAlert=false skips alert creation but still returns match counts", async () => {
       const rule: DetectionRule = buildRule({
         shouldCreateAlert: false,
@@ -1492,10 +1577,13 @@ describe("DetectionRuleEvaluator", () => {
         .calls[0]?.[0] as JSONObject;
       const query: JSONObject = findByArg["query"] as JSONObject;
       expect(query["projectId"]).toEqual(PROJECT_ID);
+      // Each group's fingerprint, and the unkeyed one it had before #11130.
       expect(query["seriesFingerprint"]).toEqual(
         new Includes([
           expectedFingerprint("alice"),
+          legacyFingerprint("alice"),
           expectedFingerprint("bob"),
+          legacyFingerprint("bob"),
         ]),
       );
       // Unresolved: in a state above the project's resolved state.
@@ -1504,6 +1592,28 @@ describe("DetectionRuleEvaluator", () => {
       );
       expect(Object.keys(query).sort()).toEqual(
         ["currentIncidentStateId", "projectId", "seriesFingerprint"].sort(),
+      );
+    });
+
+    test("an incident still open under the unkeyed fingerprint from before #11130 is its group's: nothing is declared twice", async () => {
+      const rule: DetectionRule = buildRule({
+        shouldCreateIncident: true,
+        shouldWriteDetectionFinding: false,
+      });
+
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 3), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "Default")],
+        incidentSeverities: [buildIncidentSeverity("0001", "Default")],
+        openIncidents: [buildOpenIncident(legacyFingerprint("alice"))],
+      });
+
+      const result: DetectionRuleEvaluationResult =
+        await DetectionRuleEvaluator.evaluateRule(rule);
+
+      expect(result.incidentsCreated).toBe(1);
+      expect(createdIncident(spies, 0).seriesFingerprint).toBe(
+        expectedFingerprint("bob"),
       );
     });
 
@@ -4386,26 +4496,73 @@ describe("DetectionRuleEvaluator", () => {
       const stretchStart: Date = LAST_RUN;
       const windowStart: Date = new Date("2026-09-18T11:45:00.000Z");
       const alice: string = getDetectionFiringKey({
+        projectId: PROJECT_ID,
         stretchStart,
         groupValue: "alice",
       });
 
       expect(alice).toBe(
-        getDetectionFiringKey({ stretchStart, groupValue: "alice" }),
+        getDetectionFiringKey({
+          projectId: PROJECT_ID,
+          stretchStart,
+          groupValue: "alice",
+        }),
       );
+      // The group's fingerprint keyed in the project (#11130).
       expect(alice).toBe(
-        `run:${stretchStart.getTime()}:each:${MetricSeriesFingerprint.computeFingerprint({ groupValue: "alice" })}`,
+        `run:${stretchStart.getTime()}:each:${DetectionFingerprint.of({ projectId: PROJECT_ID, kind: DetectionFingerprintKind.DetectionRule, value: "alice" })}`,
       );
+      // The name it had before, matched so a firing taken under it is taken.
+      expect(
+        getDetectionFormerFiringKeys({
+          projectId: PROJECT_ID,
+          stretchStart,
+          groupValue: "alice",
+        }),
+      ).toEqual([
+        `run:${stretchStart.getTime()}:each:${MetricSeriesFingerprint.computeFingerprint({ groupValue: "alice" })}`,
+      ]);
+      // A group of nothing was never fingerprinted by anything: its name never changed.
+      expect(
+        getDetectionFormerFiringKeys({
+          projectId: PROJECT_ID,
+          stretchStart,
+          groupValue: "",
+        }),
+      ).toEqual([]);
+      expect(
+        getDetectionFiringKey({
+          projectId: PROJECT_ID,
+          stretchStart,
+          groupValue: "",
+        }),
+      ).toBe(
+        `run:${stretchStart.getTime()}:each:${MetricSeriesFingerprint.computeFingerprint({ groupValue: "" })}`,
+      );
+      // Another project names the same firing otherwise.
+      expect(
+        getDetectionFiringKey({
+          projectId: new ObjectID("22222222-2222-4222-8222-2222222222c9"),
+          stretchStart,
+          groupValue: "alice",
+        }),
+      ).not.toBe(alice);
       // Another group, another stretch, a window: another firing.
       expect(
         new Set([
           alice,
-          getDetectionFiringKey({ stretchStart, groupValue: "bob" }),
           getDetectionFiringKey({
+            projectId: PROJECT_ID,
+            stretchStart,
+            groupValue: "bob",
+          }),
+          getDetectionFiringKey({
+            projectId: PROJECT_ID,
             stretchStart: MARKED_UNTIL,
             groupValue: "alice",
           }),
           getDetectionFiringKey({
+            projectId: PROJECT_ID,
             stretchStart,
             windowStart,
             groupValue: "alice",
@@ -4508,10 +4665,12 @@ describe("DetectionRuleEvaluator", () => {
       );
 
       const aliceKey: string = getDetectionFiringKey({
+        projectId: PROJECT_ID,
         stretchStart: LAST_RUN,
         groupValue: "alice",
       });
       const bobKey: string = getDetectionFiringKey({
+        projectId: PROJECT_ID,
         stretchStart: LAST_RUN,
         groupValue: "bob",
       });
@@ -4591,10 +4750,15 @@ describe("DetectionRuleEvaluator", () => {
 
       // The marked stretch's firing has the name its first pass gave it.
       expect(handedSignals()[0]!.firingKey).toBe(
-        getDetectionFiringKey({ stretchStart: LAST_RUN, groupValue: "alice" }),
+        getDetectionFiringKey({
+          projectId: PROJECT_ID,
+          stretchStart: LAST_RUN,
+          groupValue: "alice",
+        }),
       );
       expect(handedSignals()[1]!.firingKey).toBe(
         getDetectionFiringKey({
+          projectId: PROJECT_ID,
           stretchStart: MARKED_UNTIL,
           groupValue: "alice",
         }),
@@ -4607,7 +4771,7 @@ describe("DetectionRuleEvaluator", () => {
         groups: [buildGroup("alice", 2), buildGroup("bob", 1)],
         severities: [buildSeverity("0001", "High")],
       });
-      const aliceUid: string = `detection:${RULE_ID.toString()}:${expectedFingerprint("alice")}:${getDetectionFiringKey({ stretchStart: LAST_RUN, groupValue: "alice" })}`;
+      const aliceUid: string = `detection:${RULE_ID.toString()}:${expectedFingerprint("alice")}:${getDetectionFiringKey({ projectId: PROJECT_ID, stretchStart: LAST_RUN, groupValue: "alice" })}`;
       const lookedFor: Spy = getJestSpyOn(
         SecurityEventService,
         "findBy",
@@ -4639,7 +4803,7 @@ describe("DetectionRuleEvaluator", () => {
 
       // Alice's finding was written by the first pass: only Bob's is.
       expect(writtenFindingUids(spies)).toEqual([
-        `detection:${RULE_ID.toString()}:${expectedFingerprint("bob")}:${getDetectionFiringKey({ stretchStart: LAST_RUN, groupValue: "bob" })}`,
+        `detection:${RULE_ID.toString()}:${expectedFingerprint("bob")}:${getDetectionFiringKey({ projectId: PROJECT_ID, stretchStart: LAST_RUN, groupValue: "bob" })}`,
       ]);
       // Alice's case detection still points at it.
       expect(
@@ -4647,6 +4811,66 @@ describe("DetectionRuleEvaluator", () => {
           return signal.groupValue === "alice";
         })!.eventUid,
       ).toBe(aliceUid);
+    });
+
+    test("judged again across #11130, a finding its first pass wrote under the unkeyed id is found, never written twice, and its case detection points at it", async () => {
+      freezeNow();
+      const spies: EvaluationSpies = installSpies({
+        groups: [buildGroup("alice", 2), buildGroup("bob", 1)],
+        severities: [buildSeverity("0001", "High")],
+      });
+      const formerFiringKey: string = getDetectionFormerFiringKeys({
+        projectId: PROJECT_ID,
+        stretchStart: LAST_RUN,
+        groupValue: "alice",
+      })[0]!;
+      const formerAliceUid: string = `detection:${RULE_ID.toString()}:${legacyFingerprint("alice")}:${formerFiringKey}`;
+      const lookedFor: Spy = getJestSpyOn(
+        SecurityEventService,
+        "findBy",
+      ).mockImplementation((async () => {
+        const written: SecurityEvent = new SecurityEvent();
+        written.eventUid = formerAliceUid;
+        return [written];
+      }) as never);
+
+      const rule: DetectionRule = buildRule({
+        lastEvaluatedAt: LAST_RUN,
+        evaluationIntervalInMinutes: 5,
+      });
+      rule.evaluatingUntil = MARKED_UNTIL;
+      getJestSpyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(
+        new Date(MARKED_UNTIL.getTime() + 2 * 60 * 1000) as never,
+      );
+
+      await DetectionRuleEvaluator.evaluateRule(rule);
+
+      // Looked for under both names.
+      const query: JSONObject = (
+        lookedFor.mock.calls[0]![0] as { query: JSONObject }
+      ).query;
+      expect((query["eventUid"] as Includes).values).toEqual(
+        expect.arrayContaining([
+          formerAliceUid,
+          `detection:${RULE_ID.toString()}:${expectedFingerprint("alice")}:${getDetectionFiringKey({ projectId: PROJECT_ID, stretchStart: LAST_RUN, groupValue: "alice" })}`,
+        ]),
+      );
+      // Only Bob's finding is written, under the keyed id.
+      expect(writtenFindingUids(spies)).toEqual([
+        `detection:${RULE_ID.toString()}:${expectedFingerprint("bob")}:${getDetectionFiringKey({ projectId: PROJECT_ID, stretchStart: LAST_RUN, groupValue: "bob" })}`,
+      ]);
+
+      const alice: SecurityDetectionSignal = handedSignals().find(
+        (signal: SecurityDetectionSignal): boolean => {
+          return signal.groupValue === "alice";
+        },
+      )!;
+
+      expect(alice.eventUid).toBe(formerAliceUid);
+      // Its case detection is matched by both fingerprints and both firing names.
+      expect(alice.fingerprint).toBe(expectedFingerprint("alice"));
+      expect(alice.formerFingerprints).toEqual([legacyFingerprint("alice")]);
+      expect(alice.formerFiringKeys).toEqual([formerFiringKey]);
     });
 
     test("a first pass never looks for findings: its firings are new", async () => {
@@ -4697,6 +4921,7 @@ describe("DetectionRuleEvaluator", () => {
       expect(windowReads[0]!.arrivedUntil).toEqual(MARKED_UNTIL);
       expect(handedSignals()[0]!.firingKey).toBe(
         getDetectionFiringKey({
+          projectId: PROJECT_ID,
           stretchStart: LAST_RUN,
           windowStart,
           groupValue: "alice",
@@ -4752,6 +4977,7 @@ describe("DetectionRuleEvaluator", () => {
       expect(
         writtenFindingUids(spies)[0]!.endsWith(
           getDetectionFiringKey({
+            projectId: PROJECT_ID,
             stretchStart: new Date("2026-09-18T11:00:00.000Z"),
             groupValue: "alice",
           }),

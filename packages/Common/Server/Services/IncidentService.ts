@@ -3830,9 +3830,11 @@ export class Service extends ProjectReferencesService<Model> {
      * the owner" - waits for "Incident Created" until then, and follows it
      * in the order it was made (WorkspaceCreatedMessageFirst): its channels
      * hear of the incident first, then of what happened to it, then its
-     * pages.
+     * pages. Held on every App server before the create returns, so a
+     * message made on another one waits too: the Incident Commander role
+     * the Dashboard gives the declarer as the incident's page opens (#11198).
      */
-    WorkspaceCreatedMessageFirst.hold({ incidentId: createdItem.id });
+    await WorkspaceCreatedMessageFirst.hold({ incidentId: createdItem.id });
 
     /*
      * The alerts it is declared from are linked once the privacy rules have

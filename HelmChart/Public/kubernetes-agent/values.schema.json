@@ -117,7 +117,7 @@
             "minSeverity": {
               "type": "string",
               "enum": ["", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
-              "description": "Drop pod log records below this severity. Empty keeps everything. Applies in both log modes. Does not filter Kubernetes events or resource specs. In api mode, lines with no recognisable level are kept. Default: \"\""
+              "description": "Drop pod log records below this severity. Empty keeps everything. Applies in both log modes. Does not filter Kubernetes events or resource specs. A stderr line with no recognisable level has no severity and is kept; in api mode, every line with no recognisable level is kept. Default: \"\""
             }
           },
           "additionalProperties": false
