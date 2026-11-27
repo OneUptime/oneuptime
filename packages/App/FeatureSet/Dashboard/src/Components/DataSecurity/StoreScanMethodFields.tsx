@@ -131,8 +131,13 @@ export function getStoreKindField(data: {
   };
 }
 
+/*
+ * The folded section is handed in as `collapsibleSection`, the name a field
+ * has for it, so the form steps guard (Tests/Helpers/FormStepsScan) folds
+ * these fields where the form is drawn, with the fields beside them.
+ */
 export function getStoreScanMethodFields(data: {
-  section: FormFieldCollapsibleSection<DataStore>;
+  collapsibleSection: FormFieldCollapsibleSection<DataStore>;
   // The store's kind: what the form holds, or the store's own on its Settings.
   kindOf: (values: FormValues<DataStore>) => string | undefined | null;
   translator: Translator;
@@ -151,7 +156,7 @@ export function getStoreScanMethodFields(data: {
       },
       required: false,
       placeholder: "Scan from OneUptime's workers",
-      collapsibleSection: data.section,
+      collapsibleSection: data.collapsibleSection,
       showIf: (values: FormValues<DataStore>): boolean => {
         return isProbeScannableKind(data.kindOf(values));
       },
@@ -164,7 +169,7 @@ export function getStoreScanMethodFields(data: {
       fieldType: FormFieldSchemaType.Text,
       required: false,
       placeholder: "ORDERS_DB_URL",
-      collapsibleSection: data.section,
+      collapsibleSection: data.collapsibleSection,
       showIf: (values: FormValues<DataStore>): boolean => {
         return (
           Boolean(values.scanProbe) && isProbeScannableKind(data.kindOf(values))
@@ -178,7 +183,7 @@ export function getStoreScanMethodFields(data: {
         "A read-only connection string for OneUptime's workers. It is encrypted and never shown again.",
       fieldType: FormFieldSchemaType.Password,
       required: false,
-      collapsibleSection: data.section,
+      collapsibleSection: data.collapsibleSection,
       showIf: (values: FormValues<DataStore>): boolean => {
         return !values.scanProbe && takesConnectionString(data.kindOf(values));
       },
