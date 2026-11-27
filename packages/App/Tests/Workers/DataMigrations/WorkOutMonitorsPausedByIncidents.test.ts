@@ -238,7 +238,7 @@ describe("WorkOutMonitorsPausedByIncidents", () => {
 
   test("a row read without its id or project is skipped", async () => {
     const monitors: Array<Monitor> = pausedMonitors(1, 2);
-    monitors[0]!.projectId = undefined;
+    delete monitors[0]!.projectId;
     pages = [monitors];
 
     await new WorkOutMonitorsPausedByIncidents().migrate();

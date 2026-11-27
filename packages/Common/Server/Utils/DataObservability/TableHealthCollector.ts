@@ -1,5 +1,21 @@
 import { Client } from "pg";
 import {
+  MYSQL_COLUMNS_SQL,
+  MYSQL_COUNTERS_SQL,
+  MYSQL_MAX_CONNECTIONS_SQL,
+  MYSQL_TABLES_SQL,
+  MYSQL_THREADS_RUNNING_SQL,
+  MYSQL_UPTIME_SQL,
+  MYSQL_VIEW_LINEAGE_SQL,
+  POSTGRES_BUSY_SQL,
+  POSTGRES_COLUMNS_SQL,
+  POSTGRES_RECOVERY_SQL,
+  POSTGRES_STATS_RESET_SQL,
+  POSTGRES_VIEW_LINEAGE_SQL,
+  getPostgresTablesSql,
+  getPostgresViewLineageSql,
+} from "../../../Utils/DataObservability/DatabaseAgent/DatabaseAgentStatements";
+import {
   Connection as MySqlConnection,
   ConnectionOptions as MySqlConnectionOptions,
   createConnection as createMySqlConnection,
@@ -629,26 +645,12 @@ async function readViewLineage(
 }
 
 /*
- * A view's tables, PostgreSQL's and Redshift's alike: its rewrite rule
- * depends on each table and view it selects from (pg_depend). A Redshift
- * late-binding view (WITH NO SCHEMA BINDING) records none.
+ * A view's tables, PostgreSQL's and Redshift's alike: the one statement the
+ * workers, the probes and a Database Agent read them with
+ * (Utils/DataObservability/DatabaseAgent/DatabaseAgentStatements).
  */
 function pgViewLineageSql(schemaFilter: string): string {
-  return `SELECT DISTINCT sn.nspname AS upstream_schema, sc.relname AS upstream_table,
-      vn.nspname AS downstream_schema, vc.relname AS downstream_table
-    FROM pg_catalog.pg_depend d
-    JOIN pg_catalog.pg_rewrite r ON r.oid = d.objid
-    JOIN pg_catalog.pg_class vc ON vc.oid = r.ev_class
-    JOIN pg_catalog.pg_namespace vn ON vn.oid = vc.relnamespace
-    JOIN pg_catalog.pg_class sc ON sc.oid = d.refobjid
-    JOIN pg_catalog.pg_namespace sn ON sn.oid = sc.relnamespace
-    WHERE vc.relkind IN ('v', 'm')
-      AND sc.relkind IN ('r', 'p', 'v', 'm', 'f')
-      AND sc.oid <> vc.oid
-      AND vn.nspname ${schemaFilter}
-      AND vn.nspname NOT LIKE 'pg\\_%'
-    ORDER BY 3, 4, 1, 2
-    LIMIT $1`;
+  return getPostgresViewLineageSql(schemaFilter);
 }
 
 // The engine's kind code for a relation, as a data asset kind.
@@ -749,71 +751,14 @@ class PostgresCatalog implements CatalogSession {
 
   // Half of its connections working at once is a server a check should leave alone.
   public async isBusy(): Promise<boolean> {
-    const [row] = await this.rows(
-      `SELECT COUNT(*) FILTER (WHERE state = 'active' AND pid <> pg_catalog.pg_backend_pid()) AS active,
-        pg_catalog.current_setting('max_connections')::int AS max_connections
-       FROM pg_catalog.pg_stat_activity`,
-      [],
-    );
+    const [row] = await this.rows(POSTGRES_BUSY_SQL, []);
 
     return isBusyAtShare(row?.["active"], row?.["max_connections"]);
   }
 
-  private static readonly RELATION_FILTER: string = `c.relkind IN ('r', 'v', 'm', 'p', 'f')
-      AND NOT c.relispartition
-      AND n.nspname NOT IN ('pg_catalog', 'information_schema')
-      AND n.nspname NOT LIKE 'pg\\_toast%'
-      AND n.nspname NOT LIKE 'pg\\_temp\\_%'`;
-
+  // The catalog's statements: the ones a Database Agent reads with too (DatabaseAgentStatements).
   private tablesSql(withSizes: boolean): string {
-    const size: string = withSizes
-      ? `CASE
-          WHEN c.relkind = 'p' THEN (
-            SELECT SUM(pg_catalog.pg_total_relation_size(i.inhrelid))
-            FROM pg_catalog.pg_inherits i WHERE i.inhparent = c.oid)
-          WHEN c.relkind IN ('r', 'm') THEN pg_catalog.pg_total_relation_size(c.oid)
-          ELSE NULL
-        END::bigint`
-      : "NULL::bigint";
-
-    return `SELECT n.nspname AS table_schema, c.relname AS table_name, c.relkind AS relkind,
-        CASE
-          WHEN c.relkind = 'p' THEN (
-            SELECT SUM(GREATEST(COALESCE(cs.n_live_tup, child.reltuples), 0))
-            FROM pg_catalog.pg_inherits i
-            JOIN pg_catalog.pg_class child ON child.oid = i.inhrelid
-            LEFT JOIN pg_catalog.pg_stat_user_tables cs ON cs.relid = child.oid
-            WHERE i.inhparent = c.oid)
-          WHEN c.relkind IN ('r', 'm') THEN GREATEST(COALESCE(s.n_live_tup, c.reltuples), 0)
-          ELSE NULL
-        END::bigint AS estimated_rows,
-        ${size} AS size_bytes,
-        CASE
-          WHEN c.relkind = 'p' THEN (
-            SELECT SUM(COALESCE(cs.n_tup_ins, 0) + COALESCE(cs.n_tup_upd, 0) + COALESCE(cs.n_tup_del, 0))
-            FROM pg_catalog.pg_inherits i
-            JOIN pg_catalog.pg_stat_user_tables cs ON cs.relid = i.inhrelid
-            WHERE i.inhparent = c.oid)
-          WHEN c.relkind IN ('r', 'm') AND s.relid IS NOT NULL
-            THEN COALESCE(s.n_tup_ins, 0) + COALESCE(s.n_tup_upd, 0) + COALESCE(s.n_tup_del, 0)
-          ELSE NULL
-        END::bigint AS write_count,
-        CASE
-          WHEN c.relkind = 'p' THEN (
-            SELECT SUM(COALESCE(cs.seq_scan, 0) + COALESCE(cs.idx_scan, 0))
-            FROM pg_catalog.pg_inherits i
-            JOIN pg_catalog.pg_stat_user_tables cs ON cs.relid = i.inhrelid
-            WHERE i.inhparent = c.oid)
-          WHEN c.relkind IN ('r', 'm') AND s.relid IS NOT NULL
-            THEN COALESCE(s.seq_scan, 0) + COALESCE(s.idx_scan, 0)
-          ELSE NULL
-        END::bigint AS read_count
-      FROM pg_catalog.pg_class c
-      JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-      LEFT JOIN pg_catalog.pg_stat_user_tables s ON s.relid = c.oid
-      WHERE ${PostgresCatalog.RELATION_FILTER}
-      ORDER BY n.nspname, c.relname
-      LIMIT $1`;
+    return getPostgresTablesSql(withSizes);
   }
 
   public async readLineage(
@@ -825,10 +770,9 @@ class PostgresCatalog implements CatalogSession {
 
     return await readViewLineage(
       async (): Promise<Array<Record<string, unknown>>> => {
-        return await this.rows(
-          pgViewLineageSql("NOT IN ('pg_catalog', 'information_schema')"),
-          [MAX_LINEAGE_EDGES_PER_COLLECTION],
-        );
+        return await this.rows(POSTGRES_VIEW_LINEAGE_SQL, [
+          MAX_LINEAGE_EDGES_PER_COLLECTION,
+        ]);
       },
     );
   }
@@ -847,10 +791,7 @@ class PostgresCatalog implements CatalogSession {
       tableRows = await this.rows(this.tablesSql(false), [options.maxTables]);
     }
 
-    const [recovery] = await this.rows(
-      "SELECT pg_catalog.pg_is_in_recovery() AS in_recovery",
-      [],
-    );
+    const [recovery] = await this.rows(POSTGRES_RECOVERY_SQL, []);
     const isReplica: boolean = recovery?.["in_recovery"] === true;
 
     if (isReplica) {
@@ -887,11 +828,7 @@ class PostgresCatalog implements CatalogSession {
        * The counters count since the database's statistics were reset; a
        * restart before PostgreSQL 15 lost them too, so the later of the two.
        */
-      const [epoch] = await this.rows(
-        `SELECT EXTRACT(EPOCH FROM (now() - GREATEST(COALESCE(d.stats_reset, pg_catalog.pg_postmaster_start_time()), pg_catalog.pg_postmaster_start_time())))::bigint AS seconds
-          FROM pg_catalog.pg_stat_database d WHERE d.datname = pg_catalog.current_database()`,
-        [],
-      );
+      const [epoch] = await this.rows(POSTGRES_STATS_RESET_SQL, []);
       secondsSinceStatsReset = readCount(epoch?.["seconds"]);
     } catch (error) {
       warnings.push(
@@ -900,16 +837,7 @@ class PostgresCatalog implements CatalogSession {
     }
 
     const columnRows: Array<Record<string, unknown>> = await this.rows(
-      `SELECT n.nspname AS table_schema, c.relname AS table_name, a.attname AS column_name,
-          pg_catalog.format_type(a.atttypid, a.atttypmod) AS data_type,
-          NOT a.attnotnull AS is_nullable, a.attnum AS ordinal_position
-        FROM pg_catalog.pg_attribute a
-        JOIN pg_catalog.pg_class c ON c.oid = a.attrelid
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-        WHERE a.attnum > 0 AND NOT a.attisdropped
-          AND ${PostgresCatalog.RELATION_FILTER}
-        ORDER BY n.nspname, c.relname, a.attnum
-        LIMIT $1`,
+      POSTGRES_COLUMNS_SQL,
       [options.maxColumns],
     );
 
@@ -1041,20 +969,14 @@ class MySqlCatalog implements CatalogSession {
 
   // Half of its connections working at once is a server a check should leave alone.
   public async isBusy(): Promise<boolean> {
-    const [running] = await this.run(
-      "SHOW GLOBAL STATUS LIKE 'Threads_running'",
-    );
-    const [limit] = await this.run(
-      "SELECT @@max_connections AS max_connections",
-    );
+    const [running] = await this.run(MYSQL_THREADS_RUNNING_SQL);
+    const [limit] = await this.run(MYSQL_MAX_CONNECTIONS_SQL);
 
     return isBusyAtShare(
       running?.["Value"] ?? running?.["value"],
       limit?.["max_connections"],
     );
   }
-
-  private static readonly SCHEMA_FILTER: string = `NOT IN ('mysql', 'information_schema', 'performance_schema', 'sys')`;
 
   // Each view's tables (MySQL 8.0.13 and later; MariaDB keeps none).
   public async readLineage(
@@ -1066,16 +988,9 @@ class MySqlCatalog implements CatalogSession {
 
     return await readViewLineage(
       async (): Promise<Array<Record<string, unknown>>> => {
-        return await this.inReadOnlyTransaction(
-          `SELECT VIEW_SCHEMA AS downstream_schema, VIEW_NAME AS downstream_table,
-            TABLE_SCHEMA AS upstream_schema, TABLE_NAME AS upstream_table
-          FROM information_schema.VIEW_TABLE_USAGE
-          WHERE VIEW_SCHEMA ${MySqlCatalog.SCHEMA_FILTER}
-            AND (DATABASE() IS NULL OR VIEW_SCHEMA = DATABASE())
-          ORDER BY VIEW_SCHEMA, VIEW_NAME, TABLE_SCHEMA, TABLE_NAME
-          LIMIT ?`,
-          [MAX_LINEAGE_EDGES_PER_COLLECTION],
-        );
+        return await this.inReadOnlyTransaction(MYSQL_VIEW_LINEAGE_SQL, [
+          MAX_LINEAGE_EDGES_PER_COLLECTION,
+        ]);
       },
       (message: string): boolean => {
         return message.toUpperCase().includes("VIEW_TABLE_USAGE");
@@ -1087,18 +1002,7 @@ class MySqlCatalog implements CatalogSession {
     const warnings: Array<string> = [];
 
     const tableRows: Array<Record<string, unknown>> =
-      await this.inReadOnlyTransaction(
-        `SELECT TABLE_SCHEMA AS table_schema, TABLE_NAME AS table_name, TABLE_TYPE AS table_type,
-          TABLE_ROWS AS estimated_rows,
-          CASE WHEN TABLE_TYPE = 'BASE TABLE' THEN COALESCE(DATA_LENGTH, 0) + COALESCE(INDEX_LENGTH, 0) ELSE NULL END AS size_bytes,
-          CASE WHEN UPDATE_TIME IS NULL THEN NULL ELSE TIMESTAMPDIFF(SECOND, UPDATE_TIME, NOW()) END AS seconds_since_change
-        FROM information_schema.TABLES
-        WHERE TABLE_SCHEMA ${MySqlCatalog.SCHEMA_FILTER}
-          AND (DATABASE() IS NULL OR TABLE_SCHEMA = DATABASE())
-        ORDER BY TABLE_SCHEMA, TABLE_NAME
-        LIMIT ?`,
-        [options.maxTables],
-      );
+      await this.inReadOnlyTransaction(MYSQL_TABLES_SQL, [options.maxTables]);
 
     const writeCounts: Map<string, number> = new Map();
     const readCounts: Map<string, number> = new Map();
@@ -1106,16 +1010,7 @@ class MySqlCatalog implements CatalogSession {
 
     try {
       const counterRows: Array<Record<string, unknown>> =
-        await this.inReadOnlyTransaction(
-          `SELECT OBJECT_SCHEMA AS table_schema, OBJECT_NAME AS table_name,
-            COUNT_INSERT + COUNT_UPDATE + COUNT_DELETE AS write_count,
-            COUNT_READ AS read_count
-          FROM performance_schema.table_io_waits_summary_by_table
-          WHERE OBJECT_TYPE = 'TABLE'
-            AND OBJECT_SCHEMA ${MySqlCatalog.SCHEMA_FILTER}
-            AND (DATABASE() IS NULL OR OBJECT_SCHEMA = DATABASE())`,
-          [],
-        );
+        await this.inReadOnlyTransaction(MYSQL_COUNTERS_SQL, []);
 
       for (const row of counterRows) {
         const key: string = keyOf(
@@ -1135,10 +1030,7 @@ class MySqlCatalog implements CatalogSession {
       }
 
       // performance_schema counts since the server started.
-      const [uptime] = await this.inReadOnlyTransaction(
-        `SELECT VARIABLE_VALUE AS seconds FROM performance_schema.global_status WHERE VARIABLE_NAME = 'Uptime'`,
-        [],
-      );
+      const [uptime] = await this.inReadOnlyTransaction(MYSQL_UPTIME_SQL, []);
       secondsSinceStatsReset = readCount(uptime?.["seconds"]);
     } catch (error) {
       warnings.push(
@@ -1178,16 +1070,7 @@ class MySqlCatalog implements CatalogSession {
     }
 
     const columnRows: Array<Record<string, unknown>> =
-      await this.inReadOnlyTransaction(
-        `SELECT TABLE_SCHEMA AS table_schema, TABLE_NAME AS table_name, COLUMN_NAME AS column_name,
-          COLUMN_TYPE AS data_type, IS_NULLABLE AS is_nullable, ORDINAL_POSITION AS ordinal_position
-        FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA ${MySqlCatalog.SCHEMA_FILTER}
-          AND (DATABASE() IS NULL OR TABLE_SCHEMA = DATABASE())
-        ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION
-        LIMIT ?`,
-        [options.maxColumns],
-      );
+      await this.inReadOnlyTransaction(MYSQL_COLUMNS_SQL, [options.maxColumns]);
 
     return {
       tables,
