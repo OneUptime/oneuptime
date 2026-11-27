@@ -152,7 +152,7 @@ function criteria(spec: CriteriaSpec): MonitorCriteriaInstance {
     id: spec.id,
     name: spec.name,
     description: "",
-    monitorStatusId: spec.status?.id,
+    monitorStatusId: spec.status?.id || undefined,
     filterCondition: spec.filterCondition || FilterCondition.All,
     filters: spec.filters,
     incidents: spec.incident
@@ -285,7 +285,7 @@ function watch(input: {
               probeConnectionStatus: ProbeConnectionStatus.Connected,
               resultForJudgedStep: JSON.parse(
                 JSON.stringify({
-                  ...(probe.result as JSONObject),
+                  ...(probe.result as unknown as JSONObject),
                   probeId: probe.probeId,
                   monitorStepId: STEP_ID,
                   monitoredAt: OneUptimeDate.getCurrentDate(),
