@@ -336,7 +336,9 @@ describe("a value typed wholly in fullwidth (#11115)", () => {
   });
 
   test("the pattern Scrub It makes for a CPF hides one typed in fullwidth, and reads it as the CPF it is", () => {
-    const regex: ScrubRegExp = compiled(buildScrubPatternForDataType("br-cpf")!);
+    const regex: ScrubRegExp = compiled(
+      buildScrubPatternForDataType("br-cpf")!,
+    );
     const written: string = "４７１．３９２．８６５－８２";
 
     expect(hidden(regex, `CPF ${written}`)).toBe("CPF [REDACTED]");

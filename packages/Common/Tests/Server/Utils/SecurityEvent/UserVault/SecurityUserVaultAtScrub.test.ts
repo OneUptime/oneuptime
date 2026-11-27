@@ -207,7 +207,11 @@ describe("a token's user, worked out of a value before and after the rules", () 
    * keeps that number as the user, as it keeps a decoded address.
    */
   test.each([
-    ["typed wholly in fullwidth", "＋８１ ３－１２３４－５６７８", "+81 3-1234-5678"],
+    [
+      "typed wholly in fullwidth",
+      "＋８１ ３－１２３４－５６７８",
+      "+81 3-1234-5678",
+    ],
     [
       "with an ideographic space",
       "＋８１　３－１２３４－５６７８",

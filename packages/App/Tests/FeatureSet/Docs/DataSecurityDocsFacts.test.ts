@@ -4256,15 +4256,13 @@ describe("What a value is read as, and what a leak's template keeps", () => {
     );
     const item: string = lineOf(TELEMETRY, "- **A metric's attribute.**");
 
-    expect(Array.from(METRIC_PATTERN_TYPE_OF_DATA_TYPE.keys()).sort()).toEqual(
-      [
-        "credit-card-number",
-        "email-address",
-        "ip-address",
-        "phone-number",
-        "us-ssn",
-      ],
-    );
+    expect(Array.from(METRIC_PATTERN_TYPE_OF_DATA_TYPE.keys()).sort()).toEqual([
+      "credit-card-number",
+      "email-address",
+      "ip-address",
+      "phone-number",
+      "us-ssn",
+    ]);
     expect(row).toContain(
       "For an IP address, an email address, a card number, a phone number or a US Social Security number, its filter is **Matches Pattern Type** of that type",
     );

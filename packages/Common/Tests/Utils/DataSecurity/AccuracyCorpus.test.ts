@@ -1967,11 +1967,7 @@ const READING_CASES_OF: Readonly<
     return {
       positives: [
         labelled("us-ssn", `SSN：${dashed}`, dashed),
-        labelled(
-          "us-ssn",
-          `{"ssn": "${dotted}", "batch": "nightly"}`,
-          dotted,
-        ),
+        labelled("us-ssn", `{"ssn": "${dotted}", "batch": "nightly"}`, dotted),
         labelled(
           "us-ssn",
           `2026-10-27T10:15:02Z INFO verified ssn ${spaced} ok`,
@@ -3096,7 +3092,8 @@ describe("values written the ways the detectors now read them too", () => {
         true,
       ]);
 
-      entry.positives.forEach((positive: Labelled, index: number): void => {
+      for (let index: number = 0; index < entry.positives.length; index++) {
+        const positive: Labelled = entry.positives[index]!;
         const asWritten: Labelled = CORPUS[dataTypeId]!.positives[index]!;
 
         // Typed in fullwidth indeed: no ASCII digit is left in a value.
@@ -3105,14 +3102,16 @@ describe("values written the ways the detectors now read them too", () => {
           false,
         ]);
         // One character for one: as long as the text and the value it was written from.
-        expect([dataTypeId, positive.text.length, positive.value.length]).toEqual(
-          [dataTypeId, asWritten.text.length, asWritten.value.length],
-        );
+        expect([
+          dataTypeId,
+          positive.text.length,
+          positive.value.length,
+        ]).toEqual([dataTypeId, asWritten.text.length, asWritten.value.length]);
 
         if (holdsFullwidthSeparator(positive.value)) {
           withAForm++;
         }
-      });
+      }
     }
 
     // Values set apart by a fullwidth hyphen, full stop, solidus or ideographic space.

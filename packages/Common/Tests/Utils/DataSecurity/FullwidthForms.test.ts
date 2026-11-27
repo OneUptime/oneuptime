@@ -94,8 +94,12 @@ describe("foldFullwidthForms", () => {
     expect(foldFullwidthForms("（０３）１２３４－５６７８")).toBe(
       "(０３)１２３４-５６７８",
     );
-    expect(foldFullwidthForms("５３６．２２．８７３１")).toBe("５３６.２２.８７３１");
-    expect(foldFullwidthForms("１９８５／０３／１２")).toBe("１９８５/０３/１２");
+    expect(foldFullwidthForms("５３６．２２．８７３１")).toBe(
+      "５３６.２２.８７３１",
+    );
+    expect(foldFullwidthForms("１９８５／０３／１２")).toBe(
+      "１９８５/０３/１２",
+    );
   });
 
   test("is one unit for one: as long as the text, every other character where it was", () => {

@@ -1686,7 +1686,8 @@ describe("through log and trace ingest", () => {
                     endTimeUnixNano: nowNano,
                     status: {
                       code: 2,
-                      message: "SMS to ＋８６　１３８　００１３　８２４１ failed",
+                      message:
+                        "SMS to ＋８６　１３８　００１３　８２４１ failed",
                     },
                     attributes: [
                       attribute("http.request.method", "POST"),

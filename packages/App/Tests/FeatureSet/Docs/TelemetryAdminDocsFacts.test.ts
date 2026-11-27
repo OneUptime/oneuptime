@@ -2887,9 +2887,9 @@ describe("Drop Filters & Scrub Rules (telemetry/drop-filters-and-scrub-rules)", 
     expect(scrubbedBody("４１１１－１１１１－１１１１－１１１１", redact)).toBe(
       "[REDACTED]",
     );
-    expect(
-      scrubbedBody("４１１１　１１１１　１１１１　１１１１", redact),
-    ).toBe("[REDACTED]");
+    expect(scrubbedBody("４１１１　１１１１　１１１１　１１１１", redact)).toBe(
+      "[REDACTED]",
+    );
     expect(item).toContain(
       "a card typed wholly in fullwidth, its groups apart by fullwidth hyphens or ideographic spaces",
     );

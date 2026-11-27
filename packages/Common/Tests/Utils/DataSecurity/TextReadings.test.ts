@@ -923,7 +923,11 @@ describe("whether a detector's words sit near a candidate (#11114)", () => {
        * digit is not read in fullwidth at all (FullwidthForms), so CJK
        * prose costs no reading.
        */
-      [`social${IDEOGRAPHIC_SPACE}security ５３６２２１２３４`, BARE_SSN, false],
+      [
+        `social${IDEOGRAPHIC_SPACE}security ５３６２２１２３４`,
+        BARE_SSN,
+        false,
+      ],
     ] as Array<[string, DataTypeDetector, boolean]>) {
       expect([text, holdsWordsOf(new TextReadings(text), detector)]).toEqual([
         text,

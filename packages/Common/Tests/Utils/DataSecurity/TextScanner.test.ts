@@ -630,13 +630,17 @@ describe("a number typed wholly in fullwidth (#11115)", () => {
           },
         ),
       ).toEqual(
-        inAscii.map(([type, , confidence]: [string, string, DataConfidence]) => {
-          return [type, confidence];
-        }),
+        inAscii.map(
+          ([type, , confidence]: [string, string, DataConfidence]) => {
+            return [type, confidence];
+          },
+        ),
       );
-      expect(inFullwidth.map(([type]: [string, string, DataConfidence]) => {
-        return type;
-      })).toContain(dataTypeId);
+      expect(
+        inFullwidth.map(([type]: [string, string, DataConfidence]) => {
+          return type;
+        }),
+      ).toContain(dataTypeId);
       // On the very characters it is written with: as long as the ASCII one.
       for (let index: number = 0; index < inFullwidth.length; index++) {
         expect(inFullwidth[index]![1]).toHaveLength(inAscii[index]![1].length);
@@ -660,7 +664,9 @@ describe("a number typed wholly in fullwidth (#11115)", () => {
       }),
     ).toEqual(["us-ssn"]);
     // No word names them: nothing.
-    expect(foundIn(`order${IDEOGRAPHIC_SPACE}０２０１２３４５６７８`)).toEqual([]);
+    expect(foundIn(`order${IDEOGRAPHIC_SPACE}０２０１２３４５６７８`)).toEqual(
+      [],
+    );
     expect(foundIn(`ref${IDEOGRAPHIC_SPACE}５３６２２１２３４`)).toEqual([]);
   });
 

@@ -819,10 +819,7 @@ function inFullwidth(text: string): string {
 
     if (character === " ") {
       written += IDEOGRAPHIC_SPACE;
-    } else if (
-      (code >= 0x30 && code <= 0x39) ||
-      "+-()./".includes(character)
-    ) {
+    } else if ((code >= 0x30 && code <= 0x39) || "+-()./".includes(character)) {
       written += String.fromCharCode(code - 0x20 + 0xff00);
     } else {
       written += character;
@@ -840,7 +837,11 @@ function inFullwidth(text: string): string {
  */
 describe("a Phone Number rule, a number typed wholly in fullwidth (#11115)", () => {
   test.each([
-    ["its groups apart by hyphens", "電話：＋８１ ３－１２３４－５６７８ 自宅", "電話：[REDACTED] 自宅"],
+    [
+      "its groups apart by hyphens",
+      "電話：＋８１ ３－１２３４－５６７８ 自宅",
+      "電話：[REDACTED] 自宅",
+    ],
     [
       "an ideographic space after its calling code",
       `電話：＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８`,
@@ -883,26 +884,33 @@ describe("a Phone Number rule, a number typed wholly in fullwidth (#11115)", () 
       "GET /callback?phone=%EF%BC%8B81+3%EF%BC%8D1234%EF%BC%8D5678 HTTP/1.1",
       "GET /callback?phone=[REDACTED] HTTP/1.1",
     ],
-    ["in a JSON string", `{"tel":"＋８１ ３－１２３４－５６７８"}`, `{"tel":"[REDACTED]"}`],
-  ])(
-    "hides one %s: %s",
-    (_label: string, text: string, scrubbed: string) => {
-      expect(redact(LogScrubPatternType.PhoneNumber, text)).toBe(scrubbed);
-      expectFoundHidden({
-        text,
-        dataTypeId: "phone-number",
-        findRanges: findPhoneNumberRanges,
-      });
-    },
-  );
+    [
+      "in a JSON string",
+      `{"tel":"＋８１ ３－１２３４－５６７８"}`,
+      `{"tel":"[REDACTED]"}`,
+    ],
+  ])("hides one %s: %s", (_label: string, text: string, scrubbed: string) => {
+    expect(redact(LogScrubPatternType.PhoneNumber, text)).toBe(scrubbed);
+    expectFoundHidden({
+      text,
+      dataTypeId: "phone-number",
+      findRanges: findPhoneNumberRanges,
+    });
+  });
 
   test.each([
     ["a decimal", `delta ${inFullwidth("+51.507217")} out of range`],
-    ["a time zone's offset beside a date", `at UTC ${inFullwidth("+1 2026-11-24")} ok`],
+    [
+      "a time zone's offset beside a date",
+      `at UTC ${inFullwidth("+1 2026-11-24")} ok`,
+    ],
     ["a count", `counted ${inFullwidth("+1 2 3 4 5 6 7 8")} ok`],
     ["a coordinate pair", `at ${inFullwidth("+40.6894-074.0447")} ok`],
     ["an address", `peer ${inFullwidth("+192.168.100.200")} refused`],
-    ["fifteen digits and more", `id ${inFullwidth("+44 20 7946 0958 12 34")} ok`],
+    [
+      "fifteen digits and more",
+      `id ${inFullwidth("+44 20 7946 0958 12 34")} ok`,
+    ],
     ["a Japanese number with no plus sign", "電話：（０３）１２３４－５６７８"],
     ["CJK prose", `（注）設定を確認してください。${IDEOGRAPHIC_SPACE}以上。`],
   ])("leaves %s, as in ASCII: %s", (_kind: string, text: string) => {
@@ -921,13 +929,25 @@ describe("a Phone Number rule, a national number beside the word that names it (
   test.each([
     ["after tel", "tel 02012345678 ok", "tel [REDACTED] ok"],
     ["after Tel: in capitals", "Tel: 02012345678", "Tel: [REDACTED]"],
-    ["after phone=", "user phone=02012345678 saved", "user phone=[REDACTED] saved"],
-    ["of twelve digits after mobile", "mobile 447911123456", "mobile [REDACTED]"],
+    [
+      "after phone=",
+      "user phone=02012345678 saved",
+      "user phone=[REDACTED] saved",
+    ],
+    [
+      "of twelve digits after mobile",
+      "mobile 447911123456",
+      "mobile [REDACTED]",
+    ],
     ["of nine digits after cell", "cell: 201234567", "cell: [REDACTED]"],
     ["after fax", "fax 02012345678", "fax [REDACTED]"],
     ["after contact", "contact 02012345678", "contact [REDACTED]"],
     ["after a word that follows it", "02012345678 (tel)", "[REDACTED] (tel)"],
-    ["in a JSON text, its key the word", `{"tel":"02012345678"}`, `{"tel":"[REDACTED]"}`],
+    [
+      "in a JSON text, its key the word",
+      `{"tel":"02012345678"}`,
+      `{"tel":"[REDACTED]"}`,
+    ],
     [
       "in a URL, its = escaped",
       "GET /x?phone%3D02012345678 HTTP/1.1",
@@ -938,7 +958,11 @@ describe("a Phone Number rule, a national number beside the word that names it (
       "GET /x?phone+number=02012345678 HTTP/1.1",
       "GET /x?phone+number=[REDACTED] HTTP/1.1",
     ],
-    ["the word's letters escaped", "%74%65%6C=02012345678", "%74%65%6C=[REDACTED]"],
+    [
+      "the word's letters escaped",
+      "%74%65%6C=02012345678",
+      "%74%65%6C=[REDACTED]",
+    ],
     ["in fullwidth digits", "tel ０２０１２３４５６７８", "tel [REDACTED]"],
     [
       "in fullwidth, after a fullwidth colon and an ideographic space",
@@ -983,8 +1007,16 @@ describe("a Phone Number rule, a national number beside the word that names it (
 
 describe("an SSN rule, typed wholly in fullwidth (#11115)", () => {
   test.each([
-    ["its groups apart by fullwidth hyphens", "SSN ５３６－２２－８７３１ ok", "SSN [REDACTED] ok"],
-    ["its groups apart by fullwidth full stops", "SSN ５３６．２２．８７３１ ok", "SSN [REDACTED] ok"],
+    [
+      "its groups apart by fullwidth hyphens",
+      "SSN ５３６－２２－８７３１ ok",
+      "SSN [REDACTED] ok",
+    ],
+    [
+      "its groups apart by fullwidth full stops",
+      "SSN ５３６．２２．８７３１ ok",
+      "SSN [REDACTED] ok",
+    ],
     [
       "its groups apart by ideographic spaces",
       `SSN ５３６${IDEOGRAPHIC_SPACE}２２${IDEOGRAPHIC_SPACE}８７３１ ok`,
@@ -996,23 +1028,23 @@ describe("an SSN rule, typed wholly in fullwidth (#11115)", () => {
       `GET /verify?ssn=${encodeURIComponent("５３６－２２－８７３１")} HTTP/1.1`,
       "GET /verify?ssn=[REDACTED] HTTP/1.1",
     ],
-  ])(
-    "hides one %s: %s",
-    (_label: string, text: string, scrubbed: string) => {
-      expect(redact(LogScrubPatternType.SSN, text)).toBe(scrubbed);
-      expectFoundHidden({
-        text,
-        dataTypeId: "us-ssn",
-        findRanges: findSsnRanges,
-      });
-    },
-  );
+  ])("hides one %s: %s", (_label: string, text: string, scrubbed: string) => {
+    expect(redact(LogScrubPatternType.SSN, text)).toBe(scrubbed);
+    expectFoundHidden({
+      text,
+      dataTypeId: "us-ssn",
+      findRanges: findSsnRanges,
+    });
+  });
 
   test.each([
     ["the area 666", "SSN ６６６．２２．８７３１"],
     ["a longer chain of groups", "ref ５３６．２２．８７３１．０１"],
     ["a placeholder", "SSN １２３．４５．６７８９"],
-    ["a group of 00", `SSN ５３６${IDEOGRAPHIC_SPACE}００${IDEOGRAPHIC_SPACE}８７３１`],
+    [
+      "a group of 00",
+      `SSN ５３６${IDEOGRAPHIC_SPACE}００${IDEOGRAPHIC_SPACE}８７３１`,
+    ],
   ])("leaves %s, as in ASCII: %s", (_kind: string, text: string) => {
     expect(findSsnRanges(text)).toEqual(ownPatternRanges(SSN, text));
     expect(findDetectorRanges(US_SSN_DETECTORS, text)).toEqual([]);
@@ -1023,7 +1055,11 @@ describe("an SSN rule, nine digits beside the word that names them (#11114)", ()
   test.each([
     ["after SSN", "SSN 536221234 ok", "SSN [REDACTED] ok"],
     ["after ssn:", "ssn: 536221234", "ssn: [REDACTED]"],
-    ["after social security", "social security 536221234", "social security [REDACTED]"],
+    [
+      "after social security",
+      "social security 536221234",
+      "social security [REDACTED]",
+    ],
     [
       "after social security number",
       "Social Security Number: 536221234",
@@ -1031,7 +1067,11 @@ describe("an SSN rule, nine digits beside the word that names them (#11114)", ()
     ],
     ["after soc sec", "soc sec 536221234", "soc sec [REDACTED]"],
     ["after ss no", "ss no 536221234", "ss no [REDACTED]"],
-    ["in a JSON text, its key the word", `{"ssn":"536221234"}`, `{"ssn":"[REDACTED]"}`],
+    [
+      "in a JSON text, its key the word",
+      `{"ssn":"536221234"}`,
+      `{"ssn":"[REDACTED]"}`,
+    ],
     ["after a word that follows it", "536221234 (ssn)", "[REDACTED] (ssn)"],
     [
       "in a URL, its = escaped",
@@ -1088,13 +1128,21 @@ describe("an SSN rule, nine digits beside the word that names them (#11114)", ()
 
 describe("a Credit Card rule, a card typed wholly in fullwidth (#11115)", () => {
   test.each([
-    ["its groups apart by fullwidth hyphens", "カード ４５３２－０１５１－１２８３－０３６６", "カード [REDACTED]"],
+    [
+      "its groups apart by fullwidth hyphens",
+      "カード ４５３２－０１５１－１２８３－０３６６",
+      "カード [REDACTED]",
+    ],
     [
       "its groups apart by ideographic spaces",
       `カード ${inFullwidth("4532 0151 1283 0366")}`,
       "カード [REDACTED]",
     ],
-    ["its digits in ASCII", "カード 4532－0151－1283－0366", "カード [REDACTED]"],
+    [
+      "its digits in ASCII",
+      "カード 4532－0151－1283－0366",
+      "カード [REDACTED]",
+    ],
     [
       "an American Express card",
       `カード ${inFullwidth("3782-822463-10005")}`,

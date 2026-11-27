@@ -77,10 +77,7 @@ function inFullwidth(text: string): string {
 
     if (character === " ") {
       written += IDEOGRAPHIC_SPACE;
-    } else if (
-      (code >= 0x30 && code <= 0x39) ||
-      "+-()./".includes(character)
-    ) {
+    } else if ((code >= 0x30 && code <= 0x39) || "+-()./".includes(character)) {
       written += String.fromCharCode(code - 0x20 + 0xff00);
     } else {
       written += character;
@@ -288,11 +285,14 @@ describe("a number typed wholly in fullwidth (#11115)", () => {
     FULLWIDTH.map((entry: (typeof FULLWIDTH)[number]) => {
       return [entry.label, entry] as [string, (typeof FULLWIDTH)[number]];
     }),
-  )("Data Security finds %s, as it is written", (_label: string, entry) => {
-    const text: string = `${entry.before}${entry.written} ok`;
+  )(
+    "Data Security finds %s, as it is written",
+    (_label: string, entry: (typeof FULLWIDTH)[number]) => {
+      const text: string = `${entry.before}${entry.written} ok`;
 
-    expect(findingsOf(text, entry.dataTypeId)).toEqual([entry.written]);
-  });
+      expect(findingsOf(text, entry.dataTypeId)).toEqual([entry.written]);
+    },
+  );
 
   test.each(
     FULLWIDTH.map((entry: (typeof FULLWIDTH)[number]) => {
@@ -300,7 +300,7 @@ describe("a number typed wholly in fullwidth (#11115)", () => {
     }),
   )(
     "its rule redacts, masks and hashes %s, the token the plain number's",
-    (_label: string, entry) => {
+    (_label: string, entry: (typeof FULLWIDTH)[number]) => {
       const text: string = `${entry.before}${entry.written} ok`;
 
       expect(leftOf(entry.patternType, text)).toBe(
@@ -406,7 +406,7 @@ describe("a national phone number or nine digits beside the word that names them
     }),
   )(
     "Data Security finds %s, and its rule redacts, masks and hashes it",
-    (_label: string, entry) => {
+    (_label: string, entry: (typeof WORDED)[number]) => {
       const text: string = `${entry.before}${entry.written} ok`;
 
       expect(findingsOf(text, entry.dataTypeId)).toEqual([entry.written]);
@@ -423,12 +423,24 @@ describe("a national phone number or nine digits beside the word that names them
   );
 
   test.each([
-    ["no word that names it", LogScrubPatternType.PhoneNumber, "order 02012345678 ok"],
-    ["a word inside another", LogScrubPatternType.PhoneNumber, "telemetry 02012345678 ok"],
+    [
+      "no word that names it",
+      LogScrubPatternType.PhoneNumber,
+      "order 02012345678 ok",
+    ],
+    [
+      "a word inside another",
+      LogScrubPatternType.PhoneNumber,
+      "telemetry 02012345678 ok",
+    ],
     ["nine digits of a reference", LogScrubPatternType.SSN, "ref 536221234 ok"],
     ["an area never issued", LogScrubPatternType.SSN, "SSN 666221234 ok"],
     ["a placeholder", LogScrubPatternType.SSN, "SSN 123456789 ok"],
-    ["ten digits, which are no SSN", LogScrubPatternType.SSN, "SSN 5362212345 ok"],
+    [
+      "ten digits, which are no SSN",
+      LogScrubPatternType.SSN,
+      "SSN 5362212345 ok",
+    ],
   ])(
     "keeps a number with %s",
     (_label: string, patternType: string, text: string) => {
@@ -461,7 +473,11 @@ describe("Scrub It's metric rule for a phone or SSN finding (#11112)", () => {
     return rule;
   }
 
-  function labelAfter(rule: MetricPipelineRule, key: string, value: string): unknown {
+  function labelAfter(
+    rule: MetricPipelineRule,
+    key: string,
+    value: string,
+  ): unknown {
     const row: MutableMetricRow | null = MetricPipelineEngine.applyRules(
       { name: "sms.sent", attributes: { [key]: value, region: "eu" } },
       [rule],

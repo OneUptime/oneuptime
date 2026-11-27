@@ -700,12 +700,32 @@ describe("a Matches Pattern Type filter", () => {
    * word that names them in the label, as a log or trace rule does.
    */
   test.each([
-    ["phoneNumber", "a number typed wholly in fullwidth", "＋８１ ３－１２３４－５６７８"],
-    ["phoneNumber", "one with an ideographic space", "＋８１　３－１２３４－５６７８"],
-    ["phoneNumber", "a fullwidth plus sign before ASCII digits", "＋81 3－1234－5678"],
+    [
+      "phoneNumber",
+      "a number typed wholly in fullwidth",
+      "＋８１ ３－１２３４－５６７８",
+    ],
+    [
+      "phoneNumber",
+      "one with an ideographic space",
+      "＋８１　３－１２３４－５６７８",
+    ],
+    [
+      "phoneNumber",
+      "a fullwidth plus sign before ASCII digits",
+      "＋81 3－1234－5678",
+    ],
     ["phoneNumber", "a national number beside tel", "tel 02012345678"],
-    ["phoneNumber", "a national number in a URL", "/notify?phone%3D02012345678"],
-    ["ssn", "a Social Security number typed wholly in fullwidth", "５３６－２２－８７３１"],
+    [
+      "phoneNumber",
+      "a national number in a URL",
+      "/notify?phone%3D02012345678",
+    ],
+    [
+      "ssn",
+      "a Social Security number typed wholly in fullwidth",
+      "５３６－２２－８７３１",
+    ],
     ["ssn", "nine digits beside SSN", "SSN 536221234"],
     ["ssn", "nine fullwidth digits beside ssn", "ssn ５３６２２１２３４"],
   ])(
@@ -723,7 +743,11 @@ describe("a Matches Pattern Type filter", () => {
     ["phoneNumber", "a national number no word names", "order 02012345678"],
     ["phoneNumber", "a decimal typed in fullwidth", "＋５１．５０７２１７"],
     ["ssn", "nine digits no word names", "ref 536221234"],
-    ["ssn", "an area never issued, typed in fullwidth", "６６６．２２．８７３１"],
+    [
+      "ssn",
+      "an area never issued, typed in fullwidth",
+      "６６６．２２．８７３１",
+    ],
   ])(
     "%s keeps %s: %s",
     (patternType: string, _label: string, value: string) => {

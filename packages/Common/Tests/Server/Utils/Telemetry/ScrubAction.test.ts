@@ -599,13 +599,21 @@ describe("a number typed wholly in fullwidth, as the number it reads as (#11115)
   const IDEOGRAPHIC_SPACE: string = "　";
 
   test.each([
-    [LogScrubPatternType.PhoneNumber, "＋８１ ３－１２３４－５６７８", "+81 3-1234-5678"],
+    [
+      LogScrubPatternType.PhoneNumber,
+      "＋８１ ３－１２３４－５６７８",
+      "+81 3-1234-5678",
+    ],
     [
       LogScrubPatternType.PhoneNumber,
       `＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８`,
       "+81 3-1234-5678",
     ],
-    [LogScrubPatternType.PhoneNumber, "（４１５）３２１－８７３１", "(415)321-8731"],
+    [
+      LogScrubPatternType.PhoneNumber,
+      "（４１５）３２１－８７３１",
+      "(415)321-8731",
+    ],
     [LogScrubPatternType.PhoneNumber, "＋81 3－1234－5678", "+81 3-1234-5678"],
     [LogScrubPatternType.SSN, "５３６－２２－８７３１", "536-22-8731"],
     [LogScrubPatternType.SSN, "５３６．２２．８７３１", "536.22.8731"],
@@ -614,9 +622,17 @@ describe("a number typed wholly in fullwidth, as the number it reads as (#11115)
       `４５３２${IDEOGRAPHIC_SPACE}０１５１${IDEOGRAPHIC_SPACE}１２８３${IDEOGRAPHIC_SPACE}０３６６`,
       "4532 0151 1283 0366",
     ],
-    [LogScrubPatternType.CreditCard, "４５３２－０１５１－１２８３－０３６６", "4532-0151-1283-0366"],
+    [
+      LogScrubPatternType.CreditCard,
+      "４５３２－０１５１－１２８３－０３６６",
+      "4532-0151-1283-0366",
+    ],
     // A CPF a Custom Regex rule found typed in fullwidth.
-    [LogScrubPatternType.Custom, "４７１．３９２．８６５－８２", "471.392.865-82"],
+    [
+      LogScrubPatternType.Custom,
+      "４７１．３９２．８６５－８２",
+      "471.392.865-82",
+    ],
     // Its UTF-8 bytes escaped in a URL, then folded.
     [
       LogScrubPatternType.PhoneNumber,
@@ -646,10 +662,18 @@ describe("a number typed wholly in fullwidth, as the number it reads as (#11115)
 
   test("Mask keeps a fullwidth number's last four digits, in ASCII", () => {
     expect(
-      apply("＋８１ ３－１２３４－５６７８", LogScrubAction.Mask, LogScrubPatternType.PhoneNumber),
+      apply(
+        "＋８１ ３－１２３４－５６７８",
+        LogScrubAction.Mask,
+        LogScrubPatternType.PhoneNumber,
+      ),
     ).toBe("***-***-5678");
     expect(
-      apply("５３６－２２－８７３１", LogScrubAction.Mask, LogScrubPatternType.SSN),
+      apply(
+        "５３６－２２－８７３１",
+        LogScrubAction.Mask,
+        LogScrubPatternType.SSN,
+      ),
     ).toBe("***-**-8731");
     expect(
       apply(
@@ -662,7 +686,10 @@ describe("a number typed wholly in fullwidth, as the number it reads as (#11115)
 
   test("an email address, an IP address and a key's whole value read as they are written", () => {
     expect(
-      ScrubAction.asItReads("jane＋news@example.com", LogScrubPatternType.Email),
+      ScrubAction.asItReads(
+        "jane＋news@example.com",
+        LogScrubPatternType.Email,
+      ),
     ).toBe("jane＋news@example.com");
     expect(
       ScrubAction.asItReads("（８１）", LogScrubPatternType.SensitiveKeys),

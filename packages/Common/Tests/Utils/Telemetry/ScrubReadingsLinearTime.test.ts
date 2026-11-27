@@ -118,7 +118,10 @@ const CARD_CASES: Array<[string, string]> = [
   ],
   [
     "cards typed wholly in fullwidth back to back",
-    repeat(`４５３２－０１５１－１２８３－０３６６${IDEOGRAPHIC_SPACE}`, LENGTH),
+    repeat(
+      `４５３２－０１５１－１２８３－０３６６${IDEOGRAPHIC_SPACE}`,
+      LENGTH,
+    ),
   ],
   [
     "fullwidth forms beside no digit without end",
@@ -238,10 +241,7 @@ const SSN_CASES: Array<[string, string]> = [
     repeat(FORMS_BESIDE_NO_DIGIT, LENGTH),
   ],
   // #11114: nine digits in a row, judged by the words beside them.
-  [
-    "SSN words and nine digits back to back",
-    repeat("SSN 536221234 ", LENGTH),
-  ],
+  ["SSN words and nine digits back to back", repeat("SSN 536221234 ", LENGTH)],
   ["an SSN word, then digits without end", "ssn " + repeat("5", LENGTH)],
   [
     "SSN words without end, then nine digits",

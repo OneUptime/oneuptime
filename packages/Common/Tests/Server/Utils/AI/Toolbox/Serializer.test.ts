@@ -324,12 +324,18 @@ describe("ToolResultSerializer.redact - personal data", () => {
 
   // #11115: typed wholly in fullwidth, as Japanese text writes one, its separators too.
   test.each([
-    ["its groups apart by fullwidth hyphens", "カード ４１１１－１１１１－１１１１－１１１１ で決済"],
+    [
+      "its groups apart by fullwidth hyphens",
+      "カード ４１１１－１１１１－１１１１－１１１１ で決済",
+    ],
     [
       "its groups apart by ideographic spaces",
       "カード ４１１１　１１１１　１１１１　１１１１ で決済",
     ],
-    ["its digits in ASCII, its hyphens in fullwidth", "カード 4111－1111－1111－1111 で決済"],
+    [
+      "its digits in ASCII, its hyphens in fullwidth",
+      "カード 4111－1111－1111－1111 で決済",
+    ],
     [
       "in a URL, each character's UTF-8 bytes escaped",
       `GET /pay?card=${encodeURIComponent("４１１１－１１１１－１１１１－１１１１")} で決済`,

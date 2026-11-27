@@ -473,7 +473,9 @@ describe("MetricScrubRulesOfPhoneAndSsnMatchTheirPatternType", () => {
   });
 
   test("leaves a rule saved again since it was read", async () => {
-    table.rows.push(redactRule("g1", "caller", [frozenFilter("caller", PHONE)]));
+    table.rows.push(
+      redactRule("g1", "caller", [frozenFilter("caller", PHONE)]),
+    );
     table.changeBeforeUpdate.add("g1");
 
     await migration.migrate();
