@@ -1326,7 +1326,8 @@ describe("the Storage Array page against the form and the agent", () => {
      * A filter one platform alone offers says so first ("FlashArray
      * only."); one that more offer never says "only" (#11001: ONTAP's
      * volumes take the Volume filter, its nodes, disks, shelves and ports
-     * the Hardware Component one).
+     * the Hardware Component one). Pure's and ONTAP's are held here; Dell
+     * PowerStore's filters are its own rows' to name.
      */
     for (const [title, offeredOn, onlyOn] of [
       ["Volume", [flashArray, ontap], ""],
@@ -1355,7 +1356,16 @@ describe("the Storage Array page against the form and the agent", () => {
           });
 
       expect(key).toBeDefined();
-      expect({ title, platforms: [...platforms].sort() }).toEqual({
+      expect({
+        title,
+        platforms: platforms
+          .filter((system: string): boolean => {
+            return [flashArray, flashBlade, ontap].includes(
+              system as StorageSystem,
+            );
+          })
+          .sort(),
+      }).toEqual({
         title,
         platforms: [...offeredOn].sort(),
       });

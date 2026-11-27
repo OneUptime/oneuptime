@@ -132,6 +132,7 @@ const RESOURCE_FILTER_LABELS: Record<
 > = {
   volumeName: {
     [StorageSystem.PureStorageFlashArray]: "`name`",
+    [StorageSystem.DellPowerStore]: "`name`",
     [StorageSystem.NetAppOntap]: "`volume`",
   },
   hostName: {
@@ -143,10 +144,12 @@ const RESOURCE_FILTER_LABELS: Record<
   componentName: {
     [StorageSystem.PureStorageFlashArray]: "`component_name`",
     [StorageSystem.PureStorageFlashBlade]: "`component_name`",
+    [StorageSystem.DellPowerStore]: "`name`",
     [StorageSystem.NetAppOntap]: "the node, disk, shelf or port label",
   },
   fileSystemName: {
     [StorageSystem.PureStorageFlashBlade]: "`name`",
+    [StorageSystem.DellPowerStore]: "`name`",
   },
   bucketName: {
     [StorageSystem.PureStorageFlashBlade]: "`name`",
@@ -218,6 +221,7 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
       for (const system of [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
+        StorageSystem.DellPowerStore,
         StorageSystem.NetAppOntap,
       ]) {
         expect({ key, system, offered: offeredOn.includes(system) }).toEqual({
