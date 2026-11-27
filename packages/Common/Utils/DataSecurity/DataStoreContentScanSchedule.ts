@@ -182,6 +182,11 @@ export function getDataStoreContentScanStop(
   const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(store.kind);
 
   if (scanner === DataStoreContentScanner.Probe) {
+    // A kind nothing samples, a probe no more than a worker (#11140).
+    if (!info?.contentScannable) {
+      return DataStoreContentScanStop.KindNotScannable;
+    }
+
     if (
       store.provider !== DataStoreProvider.SelfManaged ||
       !kind ||
@@ -325,9 +330,9 @@ export const DATA_STORE_CONTENT_SCAN_STOP_SENTENCES: Readonly<
   [DataStoreContentScanStop.ProjectTelemetryScanOff]:
     "Telemetry scanning is off for this project. Turn it on in Data Security's Settings.",
   [DataStoreContentScanStop.KindNotScannable]:
-    "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+    "OneUptime cannot sample this kind of store's content yet.",
   [DataStoreContentScanStop.KindNotScannableByProbe]:
-    "A probe scans PostgreSQL, MySQL and SQL Server databases only. Scan this store from OneUptime's workers in its Settings.",
+    "A probe scans only stores you run: PostgreSQL, MySQL, SQL Server, Elasticsearch and OpenSearch. Scan this store from OneUptime's workers in its Settings.",
   [DataStoreContentScanStop.NoProbeConnectionVariable]:
     "Name the probe's environment variable that holds the connection string, in its Settings.",
   [DataStoreContentScanStop.ProbeNotAllowed]:

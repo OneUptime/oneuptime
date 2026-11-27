@@ -302,6 +302,12 @@ const NOT_THE_LABEL: ReadonlyArray<NotTheLabel> = [
       };
     },
   ),
+  {
+    page: "telemetry/storage-arrays",
+    label: "Performance",
+    reason:
+      "Unisphere for PowerMax's own menu, Settings → Performance → System Registrations (#11004), which Dell draws in English: the page names no Dashboard Performance.",
+  },
 ];
 
 /*

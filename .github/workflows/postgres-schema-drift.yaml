@@ -4028,6 +4028,30 @@ jobs:
           Tests/Server/Services/OpenStackProbeCollectionSqlPostgres.test.ts
           Tests/Server/Services/OpenStackCheckSqlPostgres.test.ts --forceExit
 
+      # Clones the migrated Project, Probe, StorageArrayConnection and
+      # StorageArrayConnectionTest tables into an isolated schema and runs
+      # storage array collection's hand-written SQL (issue #11004, Dell
+      # PowerMax through Unisphere): a probe claims only its own due
+      # connections of live projects (one statement, FOR NO KEY UPDATE SKIP
+      # LOCKED, the tenancy backstop, the subscription rule), moved on by
+      # their interval rule, what nothing may read set aside; two claims
+      # never share one, a row another writer holds is skipped, and - while
+      # a claim's locks are held - a row that names a connection is still
+      # written; a report writes only the current settings' status; and a
+      # connection test is claimed once - its password wiped as it is handed
+      # out - answered only by its probe, and expired with the reason.
+      - name: Test storage array probe collection's SQL on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STORAGE_ARRAY_PROBE_COLLECTION_TESTS: "true"
+          STORAGE_ARRAY_PROBE_COLLECTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STORAGE_ARRAY_PROBE_COLLECTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STORAGE_ARRAY_PROBE_COLLECTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StorageArrayProbeCollectionSqlPostgres.test.ts --forceExit
+
       # Clones the migrated Project, Probe, DataSecuritySetting and DataStore
       # tables into an isolated schema and runs the probes' data store claims
       # (issue #7390): Data Security's content scans and Data Observability's

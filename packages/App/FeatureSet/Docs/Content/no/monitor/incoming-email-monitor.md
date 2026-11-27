@@ -212,7 +212,7 @@ Hvert eksempel er et par kriterier. Et kriterium har filtre, en **Samsvarsbeting
 
 | Kriterium | Filtre | Samsvarsbetingelse | Handlinger |
 | --- | --- | --- | --- |
-| Kritisk e-post | **E-postemne** Inneholder `CRITICAL`; **E-postemne** Inneholder `ALERT`; **E-postemne** Inneholder `ERROR` | **Hvilken som helst** | Endre statusen til frakoblet; opprett et varsel |
+| Kritisk e-post | **E-postemne** Inneholder `CRITICAL`; **E-postemne** Inneholder `ALERT`; **E-postemne** Inneholder `ERROR` | **Hvilken som helst** | Endre statusen til offline; opprett et varsel |
 | Klarsignal | **E-postemne** Inneholder `RESOLVED`; **E-postemne** Inneholder `RECOVERED` | **Hvilken som helst** | Endre statusen til online |
 
 Legg det kritiske kriteriet først: kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør.
@@ -221,14 +221,14 @@ Legg det kritiske kriteriet først: kriteriene sjekkes ovenfra, og det første s
 
 | Kriterium | Filtre | Samsvarsbetingelse | Handlinger |
 | --- | --- | --- | --- |
-| Mislykket jobb | **Avsenderadresse for e-post** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Failed` | **Alle** | Endre statusen til frakoblet; erklær en hendelse |
+| Mislykket jobb | **Avsenderadresse for e-post** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Failed` | **Alle** | Endre statusen til offline; erklær en hendelse |
 | Vellykket jobb | **Avsenderadresse for e-post** Lik `monitoring@legacy-system.com`; **E-postemne** Inneholder `Success` | **Alle** | Endre statusen til online |
 
 ### Eksempel 3: Heartbeat-monitor (ingen e-post = varsel)
 
 | Kriterium | Filtre | Handlinger |
 | --- | --- | --- |
-| E-posten er forsinket | **E-post mottatt** Ikke mottatt innen (minutter) `60` | Endre statusen til frakoblet; opprett et varsel |
+| E-posten er forsinket | **E-post mottatt** Ikke mottatt innen (minutter) `60` | Endre statusen til offline; opprett et varsel |
 | E-posten har kommet | **E-post mottatt** Mottatt innen (minutter) `60` | Endre statusen til online |
 
 Det første kriteriet utløses når det ikke har kommet noen e-post på 60 minutter — nyttig for planlagte jobber eller batchprosesser som sender en e-post når de er ferdige. Det andre løser varselet så snart en e-post kommer. Minutter da OneUptime selv ikke tok imot e-post, teller ikke med i de 60, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.

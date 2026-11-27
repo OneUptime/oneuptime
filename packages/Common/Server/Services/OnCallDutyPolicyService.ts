@@ -35,6 +35,11 @@ import WorkspaceNotificationRuleService, {
 } from "./WorkspaceNotificationRuleService";
 import ChannelMembersNotAddedNotice from "../Utils/Workspace/LiveMessages/ChannelMembersNotAddedNotice";
 import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceRuleOwnersOnCreate from "../Utils/Workspace/WorkspaceRuleOwnersOnCreate";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Utils/Notification/CreatedNotificationHold";
+import NotificationRuleEventType from "../../Types/Workspace/NotificationRules/EventType";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import OnCallDutyPolicyWorkspaceMessages from "../Utils/Workspace/WorkspaceMessages/OnCallDutyPolicy";
@@ -150,8 +155,8 @@ type OnCallDutyPolicyCreateCarryForward = {
   /*
    * The moment the policy's create began, taken before it is written - so
    * before anything about it can be. Its "On-Call Policy Created" entry is
-   * filed at it: the first line of its feed, ahead of the owners its owner
-   * rules add first.
+   * filed at it: the first line of its feed, ahead of the owners added
+   * before it is written - its owner rules', and its creator (#11224).
    */
   feedStartsAt: Date;
 };
@@ -213,7 +218,23 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       });
     }
 
-    const createdPolicy: OnCallDutyPolicy = await super.create(createBy);
+    /*
+     * Its creator is made its owner as the create returns
+     * (autoOwnerOnCreate): its notification rules wait a moment for that
+     * before they are matched, so a rule that names the creator posts its
+     * "On-Call Policy Created" (WorkspaceRuleOwnersOnCreate, #11224). Told
+     * once they are in - also when the create fails, which leaves nothing to
+     * wait for.
+     */
+    CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);
+
+    let createdPolicy: OnCallDutyPolicy;
+
+    try {
+      createdPolicy = await super.create(createBy);
+    } finally {
+      await CreatedNotificationHold.ownersAreIn(createBy, OwnersAddedBy.Create);
+    }
 
     if (firstResponders) {
       await this.addFirstEscalationRule({
@@ -1015,43 +1036,6 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       throw new BadDataException("The new on-call policy has no ID.");
     }
 
-    /*
-     * The policy's label and owner rules run first, so its notification
-     * rules match on what they add; adding owners writes "Added team
-     * Platform to the On-Call Policy as the owner", which is posted too.
-     * Every such message waits for "On-Call Policy Created", on every App
-     * server, and follows it in the order it was made
-     * (WorkspaceCreatedMessageFirst): its channels hear of the policy first,
-     * then of what happened to it - and they are let go however this hook
-     * ends.
-     */
-    await WorkspaceCreatedMessageFirst.hold({
-      onCallDutyPolicyId: createdItem.id,
-    });
-
-    try {
-      return await this.announceCreatedPolicy(onCreate, createdItem);
-    } finally {
-      // What waited for "On-Call Policy Created", in the order it was made.
-      await WorkspaceCreatedMessageFirst.postHeld({
-        onCallDutyPolicyId: createdItem.id,
-      });
-    }
-  }
-
-  /*
-   * A new policy's rules, channels and "On-Call Policy Created" entry - filed
-   * when its feed starts, the first line of its feed ahead of the owners its
-   * owner rules add (onBeforeCreate) - and the note under it.
-   */
-  private async announceCreatedPolicy(
-    onCreate: OnCreate<OnCallDutyPolicy>,
-    createdItem: OnCallDutyPolicy,
-  ): Promise<OnCallDutyPolicy> {
-    if (!createdItem.id) {
-      throw new BadDataException("The new on-call policy has no ID.");
-    }
-
     // Activation event for marketing funnels.
     ProductAnalytics.captureForUser({
       userId: onCreate.createBy.props.userId || createdItem.createdByUserId,
@@ -1061,23 +1045,126 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicy> {
       },
     });
 
-    if (createdItem.projectId) {
-      try {
-        await OnCallDutyPolicyLabelRuleEngineService.applyRulesToOnCallDutyPolicy(
-          createdItem,
-        );
-        await OnCallDutyPolicyOwnerRuleEngineService.applyRulesToOnCallDutyPolicy(
-          createdItem,
-        );
-      } catch (error) {
-        logger.error(
-          `Error applying on-call policy rules in OnCallDutyPolicyService.onCreateSuccess: ${error}`,
-          {
-            projectId: createdItem.projectId?.toString(),
-            onCallDutyPolicyId: createdItem.id?.toString(),
-          } as LogAttributes,
-        );
+    /*
+     * Every other message about the policy - "Added team Platform to the
+     * On-Call Policy as the owner" - waits for "On-Call Policy Created", on
+     * every App server, and follows it in the order it was made
+     * (WorkspaceCreatedMessageFirst): its channels hear of the policy first,
+     * then of what happened to it. Held before the create returns, so
+     * before anything can know of the policy, and let go once it is
+     * announced, however that ends (announceCreatedPolicy).
+     */
+    await WorkspaceCreatedMessageFirst.hold({
+      onCallDutyPolicyId: createdItem.id,
+    });
+
+    /*
+     * Its label and owner rules, before the create returns, as always: the
+     * policy the create hands back has what they add, and so does what its
+     * On Create workflows read. Their notification rules match on it, and
+     * the owners they add wait for "On-Call Policy Created". Never throws.
+     */
+    await this.applyLabelAndOwnerRules(createdItem);
+
+    /*
+     * Then its announcement, once the create has returned and its creator
+     * is its owner (announceCreatedPolicy, #11224): set off here, and not
+     * waited for by the create, as every other kind's create chain is.
+     * Never throws.
+     */
+    void this.announceCreatedPolicy(onCreate, createdItem);
+
+    return createdItem;
+  }
+
+  // The policy's label rules, then its owner rules. Never throws.
+  private async applyLabelAndOwnerRules(
+    createdItem: OnCallDutyPolicy,
+  ): Promise<void> {
+    if (!createdItem.projectId) {
+      return;
+    }
+
+    try {
+      await OnCallDutyPolicyLabelRuleEngineService.applyRulesToOnCallDutyPolicy(
+        createdItem,
+      );
+      await OnCallDutyPolicyOwnerRuleEngineService.applyRulesToOnCallDutyPolicy(
+        createdItem,
+      );
+    } catch (error) {
+      logger.error(
+        `Error applying on-call policy rules in OnCallDutyPolicyService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId?.toString(),
+          onCallDutyPolicyId: createdItem.id?.toString(),
+        } as LogAttributes,
+      );
+    }
+  }
+
+  /*
+   * A NEW POLICY IS ANNOUNCED ONCE ITS OWNERS ARE IN (#11224).
+   *
+   * Its channels are opened, "On-Call Policy Created" is posted and the
+   * note under it, once everything a notification rule's conditions read is
+   * on the policy: the labels and owners its rules added before the create
+   * returned, and its creator, made its owner as the create returns
+   * (autoOwnerOnCreate) - waited for a moment, in a project with a rule that
+   * asks who owns an on-call policy, as the owners the code that made it
+   * adds right after are (WorkspaceRuleOwnersOnCreate). The announcement
+   * used to run inside the create hook, before the creator was an owner: a
+   * rule "On-Call Policy Owner is any of Ana" missed "On-Call Policy
+   * Created" for the policy Ana made, and its channel heard first that she
+   * was added.
+   *
+   * What waited for "On-Call Policy Created" - the owners above, and
+   * anything said about the policy meanwhile on any App server - goes out
+   * right after it, in the order it was made, and also when the announcement
+   * stops short. Never throws: a step that fails is logged.
+   */
+  private async announceCreatedPolicy(
+    onCreate: OnCreate<OnCallDutyPolicy>,
+    createdItem: OnCallDutyPolicy,
+  ): Promise<void> {
+    try {
+      if (createdItem.projectId && createdItem.id) {
+        await WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate({
+          createBy: onCreate.createBy,
+          projectId: createdItem.projectId,
+          eventType: NotificationRuleEventType.OnCallDutyPolicy,
+          recordId: createdItem.id,
+        });
       }
+
+      await this.postPolicyCreated(onCreate, createdItem);
+    } catch (error) {
+      logger.error(
+        `Announcing a new on-call policy failed in OnCallDutyPolicyService.onCreateSuccess: ${error}`,
+        {
+          projectId: createdItem.projectId?.toString(),
+          onCallDutyPolicyId: createdItem.id?.toString(),
+        } as LogAttributes,
+      );
+    } finally {
+      // What waited for "On-Call Policy Created", in the order it was made.
+      await WorkspaceCreatedMessageFirst.postHeld({
+        onCallDutyPolicyId: createdItem.id!,
+      });
+    }
+  }
+
+  /*
+   * A new policy's channels and "On-Call Policy Created" entry - filed when
+   * its feed starts, the first line of its feed ahead of the owners added
+   * before it is written (onBeforeCreate) - and the note under it.
+   */
+  private async postPolicyCreated(
+    onCreate: OnCreate<OnCallDutyPolicy>,
+    createdItem: OnCallDutyPolicy,
+  ): Promise<void> {
+    if (!createdItem.id) {
+      throw new BadDataException("The new on-call policy has no ID.");
     }
 
     const onCallPolicy: OnCallDutyPolicy | null = await this.findOneById({
@@ -1170,8 +1257,6 @@ ${FeedMarkdown.asMarkdown(onCallPolicy.description || "No description provided."
       projectId: createdItem.projectId,
       membersNotAdded: workspaceResult?.membersNotAdded,
     });
-
-    return createdItem;
   }
 
   @CaptureSpan()

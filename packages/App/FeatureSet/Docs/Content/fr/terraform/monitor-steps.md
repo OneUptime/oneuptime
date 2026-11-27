@@ -11,7 +11,7 @@
 
 ## Comment une vérification est jugée
 
-Chaque vérification donne un résultat : la réponse d'une sonde, la valeur renvoyée par un script, ou la télémétrie que la vérification lit. Les critères de l'étape le jugent ensuite dans leur ordre. Le premier critère dont les filtres correspondent décide de ce qui se passe : il peut changer le statut du moniteur, ouvrir des incidents et ouvrir des alertes. Les critères qui le suivent ne sont pas examinés pour cette vérification.
+Chaque vérification donne un résultat : la réponse d'une sonde, la valeur renvoyée par un script, ou la télémétrie que la vérification lit. Les critères de l'étape le jugent ensuite dans leur ordre. Le premier critère dont les filtres correspondent décide de ce qui se passe : il peut changer le statut du moniteur, ouvrir des incidents et ouvrir des alertes. Les critères qui le suivent ne sont pas examinés pour cette vérification, sauf s'il ne change aucun statut (`change_monitor_status` désactivé) : les critères qui le suivent et changent le statut sont alors jugés pour le statut seul, et le premier d'entre eux qui correspond le fixe. Si aucun ne le fait, le moniteur passe à son statut par défaut.
 
 ```mermaid title="Comment chaque vérification est jugée"
 flowchart TB

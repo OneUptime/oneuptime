@@ -23,7 +23,7 @@
 
 **設定** セクションには、 [メンテナンスの状態](/docs/scheduled-maintenance/states) で説明する **メンテナンスの状態**、 [テンプレートと繰り返しイベント](/docs/scheduled-maintenance/templates) で説明する **メンテナンスのテンプレート**、そして **メモテンプレート**、 **公開メモの承認**、 **カスタムフィールド**、 **測定値**、 **カレンダー設定**、 **採番** があります。 **カレンダー設定** は [メンテナンスカレンダー](/docs/scheduled-maintenance/calendar#外部カレンダー) で、残りは以下で説明します。
 
-**ワークスペース** セクションには、イベントをチャンネルに投稿する Slack と Microsoft Teams のルールがあります。 [Slack](/docs/workspace-connections/slack#通知ルール) と [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知ルール) を参照してください。
+**ワークスペース** セクションには、イベントをチャンネルに投稿する Slack と Microsoft Teams のルールがあります。各ルールはイベントが作成されたときにそれを投稿し、その後は状態変更、メモ、追加・削除された所有者、リマインダーのうち、**更新** ステップで選んだものを投稿します。 [Slack](/docs/workspace-connections/slack#通知ルール) と [Microsoft Teams](/docs/workspace-connections/microsoft-teams#通知ルール) を参照してください。
 
 ## 新しいイベントが通過するルール
 

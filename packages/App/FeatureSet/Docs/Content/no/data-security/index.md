@@ -6,7 +6,7 @@ Den svarer på fire spørsmål:
 
 :::cards
 - [Hvor er de sensitive dataene våre?](/docs/data-security/data-types): 143 datatyper, fra kortnumre og nasjonale ID-er til API-nøkler, funnet i bucketer, tabeller og telemetri.
-- [Er de eksponert?](/docs/data-security/checks-and-issues): 34 kontroller av hvert datalager: offentlig tilgang, kryptering, sikkerhetskopier, logging, hemmeligheter og kopier.
+- [Er de eksponert?](/docs/data-security/checks-and-issues): 35 kontroller av hvert datalager: offentlig tilgang, kryptering, sikkerhetskopier, logging, hemmeligheter og kopier.
 - [Hvem kan nå dem, og hvor havner de?](/docs/data-security/flows-access-residency): Hver identitet som kan nå hvert datalager, den mest risikable først, hvilke tjenester som bruker det, og hvilke AI-leverandører og verter dataene når.
 - [Oppfyller de reglene våre?](/docs/data-security/compliance): Residensregler, og ni rammeverk vurdert ut fra det skanningene fant.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Før du begynner
 
 - **En rolle som kan sette det opp.** Prosjekteier, Prosjektadministrator og Sikkerhetsadministrator endrer innstillingene for Datasikkerhet. Sikkerhetsmedlem behandler problemer og skanner datalagre, og Sikkerhetsleser leser det den har funnet. Andre roller ser ingenting av det med mindre teamet deres får tillatelsene for det: hvilke bucketer som inneholder kortnumre, er nøyaktig det en angriper vil vite. Se [Roller](/docs/permissions/reference#roller).
-- **En skykonto å lese, eller en database.** Datasikkerhet leser en skykonto gjennom en [skytilkobling](/docs/telemetry/cloud-accounts), og en database du drifter selv gjennom en skrivebeskyttet tilkoblingsstreng. Telemetri trenger ingenting: den skannes hver time.
+- **En skykonto å lese, eller et datalager du drifter selv.** Datasikkerhet leser en skykonto gjennom en [skytilkobling](/docs/telemetry/cloud-accounts), og en database eller en søkeklynge du drifter selv gjennom en skrivebeskyttet tilkoblingsstreng. Telemetri trenger ingenting: den skannes hver time.
 
 ## Kom i gang
 
@@ -69,10 +69,10 @@ Under **Flere felt** setter du **Datasikkerhet** til **Bare konfigurasjon** for 
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Databaser du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Datalagre du drifter selv | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger, sikkerhetshendelser, Network Flows, sikkerhetsadressehvelv, sikkerhetsbrukerhvelv | Logger, traser, unntak, øktavspillinger, AI-samtaler, målinger |
 
-Hvert datalager får kontrollene som gjelder for typen. Et datalager der innholdet ikke kan prøvetas, kontrolleres likevel: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder. Sikkerhetshendelser, Network Flows og sikkerhetsadressehvelvet er OneUptimes egne, oppbevart for sikkerheten din: oppgitt, aldri skannet eller kontrollert (se [Datalagre OneUptime oppbevarer for sikkerheten din](/docs/data-security/compliance#datalagre-oneuptime-oppbevarer-for-sikkerheten-din)).
+Hvert datalager får kontrollene som gjelder for typen, ut fra det OneUptime kan lese av det. Et datalager i en skykonto leses fra skyens egne innstillinger, så det kontrolleres enten innholdet kan prøvetas eller ikke: en offentlig bucket eller en ukryptert database er et problem uansett hva den inneholder. Et datalager du drifter selv, har ingen slike innstillinger som OneUptime kan lese: en Elasticsearch- eller OpenSearch-klynge blir ved hver innholdsskanning spurt på sin egen adresse om den svarer uten påloggingsinformasjon, og hvordan de andre typene kan nås, kontrolleres ikke (se [Hva OneUptime kontrollerer på et datalager du drifter selv](/docs/data-security/setup#hva-oneuptime-kontrollerer-på-et-datalager-du-drifter-selv)). **Innstillinger** for hvert datalager viser under **Hva OneUptime kontrollerer** hva som kontrolleres på det, og hva som ikke gjør det. Sikkerhetshendelser, Network Flows og sikkerhetsadressehvelvet er OneUptimes egne, oppbevart for sikkerheten din: oppgitt, aldri skannet eller kontrollert (se [Datalagre OneUptime oppbevarer for sikkerheten din](/docs/data-security/compliance#datalagre-oneuptime-oppbevarer-for-sikkerheten-din)).
 
 Et datalager arkiveres, med historikken sin, når kilden ikke lenger viser det, og de åpne problemene på det blir løst: **Arkiverte datalagre**, nederst i menyen til Datasikkerhet, tar vare på det. Det kommer tilbake av seg selv hvis kilden viser det igjen, og et problem der kontrollen fortsatt feiler, åpnes igjen.
 
@@ -86,9 +86,10 @@ Et datalagers **Tidslinje** viser hva som har skjedd med det, og hvem som gjorde
 | Les konfigurasjonen til en skytilkobling | Én gang om dagen, og innen en time etter at CloudTrail registrerer en endring i tilgang, kryptering, sikkerhetskopier eller deling for et AWS-datalager |
 | Ta prøver av innholdet i et datalager | Hver 24. time, eller så ofte som **Skanneintervall (timer)** sier |
 | Ta prøver av telemetrien til hver tjeneste | Hver time, den siste timen av den |
+| Spørre en søkeklynge du drifter selv om den svarer uten påloggingsinformasjon | Ved hver av innholdsskanningene dens |
 | Kontroller hvert datalager igjen | Etter hver lesing og skanning, etter at du endrer noe en kontroll avhenger av, og én gang om dagen |
 
-**Skann nå** på et datalager tar prøver av innholdet med en gang, og **Kontroller nå** leser konfigurasjonen på nytt.
+**Skann nå** på et datalager tar prøver av innholdet med en gang, og spør en søkeklynge du drifter selv på nytt om den svarer uten påloggingsinformasjon. **Kontroller nå** leser konfigurasjonen til et datalager i en skykonto på nytt, og kjører kontrollene til datalageret på nytt.
 
 ## Neste steg
 

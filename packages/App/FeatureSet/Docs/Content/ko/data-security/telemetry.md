@@ -170,7 +170,7 @@ OneUptime AI가 시작하기 전에, 데이터 보안은 각 유출이 발견된
 
 - **스팬 또는 AI 호출**: `code.*` 속성이 가리키는 파일, 줄, 함수, 그리고 스팬의 이름.
 - **예외**: 예외 자체의 상위 프레임 중 서비스 코드에 있는 것.
-- **로그 줄**: 속성이 있으면 그 속성이 가리키는 파일, 줄, 함수, 로거, 그리고 각 값을 유형 이름으로 바꾼 템플릿 형태의 줄. 예: `User <Email address> signed up`. 사람 이름처럼, 코드가 썼다고 레코드가 증명하지 못하는 단어는 각각 `<value>`로 바꿉니다: 레코드 하나에서 읽은 `Payment declined for Maria Gonzalez`는 `Payment declined for <value>`가 됩니다. 스팬의 이름과 메트릭의 이름도 같은 방식으로 읽습니다.
+- **로그 줄**: 속성이 있으면 그 속성이 가리키는 파일, 줄, 함수, 로거, 그리고 각 값을 유형 이름으로 바꾼 템플릿 형태의 줄. 예: `User <Email address> signed up`. 사람 이름이나 사용자 이름처럼, 코드가 로그 줄을 쓸 때 사용하는 단어가 아닌 단어는 그 줄의 레코드 중 몇 개가 그 단어를 공유하든 각각 `<value>`로 바꿉니다: `Payment declined for Maria Gonzalez`는 `Payment declined for <value>`가 되고, 그 줄의 모든 레코드에서 읽은 `Ticket assigned to jdoe`는 `Ticket assigned to <value>`가 됩니다. 스팬의 이름과 메트릭의 이름도 같은 방식으로 읽습니다.
 - **메트릭**: 메트릭의 이름.
 - **모든 유출**: `user.email` 같은 속성 키. 코드는 보통 이 키를 그대로 기록합니다.
 

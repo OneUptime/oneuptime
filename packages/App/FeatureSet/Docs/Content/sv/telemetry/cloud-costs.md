@@ -381,7 +381,7 @@ En Slack- eller Microsoft Teams-kanal får ett kort meddelande: summan och dess 
 
 - Projektets personer och team får den via e-post, genom sina aviseringsinställningar, där var och en kan stänga av molnkostnadsrapporter. Var och en får de siffror de får läsa: den vars åtkomst begränsas av etiketter får bara sina konton, och den som inte längre får läsa projektets molnkostnader utelämnas.
 - **E-postadresser** utanför projektet, till exempel din revisors, och Slack- och Microsoft Teams-kanaler kräver behörigheten Molnadministratör, eller Projektadministratör eller Projektägare, eftersom OneUptime inte kan veta vem som läser dem. De får rapporten så som personen som lade till dem får läsa den, och slutar få den om personen förlorar behörigheten. En API-nyckel kan inte ange dem.
-- Den som får skapa de andra Moln-posterna, från Molnmedlem och uppåt, kan skapa, ändra och ta bort rapporter. En Molntittare kan läsa dem.
+- Den som får skapa de andra Moln-posterna, från Molnmedlem och uppåt, kan skapa, ändra och ta bort rapporter. Den som har Moln på nivån Tittare kan läsa dem.
 
 En rapport går till högst 200 personer, 25 adresser och 10 kanaler av varje slag. **Senaste utskick** säger när den senast skickades, och vem den utelämnade och varför.
 

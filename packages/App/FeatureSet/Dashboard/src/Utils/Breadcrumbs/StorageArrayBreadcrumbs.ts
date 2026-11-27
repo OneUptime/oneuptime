@@ -229,6 +229,18 @@ export function getStorageArrayBreadcrumbs(
       "Storage Arrays",
       "Archived",
     ]),
+    // The Unisphere servers a probe reads arrays from (#11004).
+    ...BuildBreadcrumbLinksByTitles(PageMap.STORAGE_ARRAYS_CONNECTIONS, [
+      "Project",
+      "Storage Arrays",
+      "Connections",
+    ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.STORAGE_ARRAYS_CONNECTION_VIEW, [
+      "Project",
+      "Storage Arrays",
+      "Connections",
+      "View Connection",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

@@ -60,7 +60,9 @@ From what it reads, every store gets an exposure:
 | **Other accounts** | Accounts outside your connected ones can reach it. |
 | **Internet reachable** | Its network endpoint accepts connections from the internet. |
 | **Private** | Only your own accounts and networks reach it. |
-| **Unknown** | OneUptime could not read enough of its configuration to tell. |
+| **Unknown** | OneUptime checked it, but could not tell from what it could read. |
+| **Not checked yet** | OneUptime has not checked how it can be reached yet. |
+| **Can't be checked** | OneUptime has no way to check how this kind of store can be reached. |
 
 Public beats shared, and shared beats reachable: a public bucket that is also shared with another account is Public. Exposure adds to an issue's [risk score](/docs/data-security/checks-and-issues#risk-score).
 

@@ -15,6 +15,9 @@ import FlashBladeExtractor from "../../../../../Server/Utils/Telemetry/StorageAr
 import PowerStoreExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/Dell/PowerStoreExtractor";
 import OntapExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/NetApp/OntapExtractor";
 import NetAppOntapPlatform from "../../../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
+import PowerMaxExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/Dell/PowerMaxExtractor";
+import PowerScaleExtractor from "../../../../../Server/Utils/Telemetry/StorageArray/Dell/PowerScaleExtractor";
+import DellPowerScalePlatform from "../../../../../Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform";
 import {
   STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
   deriveStorageArrayCountsByKind,
@@ -23,6 +26,7 @@ import {
 import PureStorageFlashArrayPlatform from "../../../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
 import PureStorageFlashBladePlatform from "../../../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
 import DellPowerStorePlatform from "../../../../../Types/StorageArray/Platforms/Dell/PowerStore/PowerStorePlatform";
+import DellPowerMaxPlatform from "../../../../../Types/StorageArray/Platforms/Dell/PowerMax/PowerMaxPlatform";
 import { StorageArrayPlatform } from "../../../../../Types/StorageArray/StorageArrayPlatform";
 import StorageArrayPlatformRegistry from "../../../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageArrayResourceKind from "../../../../../Types/StorageArray/StorageArrayResourceKind";
@@ -81,17 +85,22 @@ function row(
 }
 
 describe("the shipped extractors", () => {
-  test("are FlashArray's, FlashBlade's, PowerStore's and ONTAP's, one for each shipped platform", () => {
+  test("are FlashArray's, FlashBlade's, PowerStore's, ONTAP's, PowerMax's and PowerScale's, one for each shipped platform", () => {
     expect(StorageArrayExtractors.getExtractors()).toEqual([
       FlashArrayExtractor,
       FlashBladeExtractor,
       PowerStoreExtractor,
       OntapExtractor,
+      PowerMaxExtractor,
+      PowerScaleExtractor,
     ]);
     expect(FlashArrayExtractor.storageSystem).toBe(FLASHARRAY);
     expect(FlashBladeExtractor.storageSystem).toBe(FLASHBLADE);
     expect(PowerStoreExtractor.storageSystem).toBe(POWERSTORE);
     expect(OntapExtractor.storageSystem).toBe(ONTAP);
+    expect(PowerScaleExtractor.storageSystem).toBe(
+      StorageSystem.DellPowerScale,
+    );
     // Only ONTAP works out what a batch's series say together.
     expect(FlashArrayExtractor.finishBatch).toBeUndefined();
     expect(FlashBladeExtractor.finishBatch).toBeUndefined();
@@ -119,7 +128,9 @@ describe("the shipped extractors", () => {
     }).toThrow(
       "A storage array extractor for purestorage.flasharray is already registered",
     );
-    expect(StorageArrayExtractors.getExtractors()).toHaveLength(4);
+    expect(StorageArrayExtractors.getExtractors()).toHaveLength(
+      StorageArrayPlatformRegistry.getPlatforms().length,
+    );
   });
 });
 
@@ -130,6 +141,8 @@ describe("the ingest's gate", () => {
       ...PureStorageFlashBladePlatform.snapshotMetricNames,
       ...DellPowerStorePlatform.snapshotMetricNames,
       ...NetAppOntapPlatform.snapshotMetricNames,
+      ...DellPowerMaxPlatform.snapshotMetricNames,
+      ...DellPowerScalePlatform.snapshotMetricNames,
     ];
     expect([...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
       [...names].sort(),

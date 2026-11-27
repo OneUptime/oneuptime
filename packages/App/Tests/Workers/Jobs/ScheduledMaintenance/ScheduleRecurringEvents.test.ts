@@ -182,6 +182,10 @@ import ServiceService from "Common/Server/Services/ServiceService";
 import ProjectScopedReferenceValidator, {
   ProjectScopedReferenceException,
 } from "Common/Server/Utils/Database/ProjectScopedReferenceValidator";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "Common/Server/Utils/Notification/CreatedNotificationHold";
+import CreateBy from "Common/Server/Types/Database/CreateBy";
 import "../../../../FeatureSet/Workers/Jobs/ScheduledMaintenance/ScheduleRecurringEvents";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -725,6 +729,150 @@ describe("ScheduledMaintenance:ScheduleRecurringEvents", () => {
       await mockCapturedJobs[JOB_NAME]!();
 
       expect(logger.error).toHaveBeenCalled();
+    });
+
+    /*
+     * The template's owners are written once the event's create has
+     * returned, while its create chain - set off by the create - goes on to
+     * match its notification rules. A rule "Scheduled Maintenance Owner is
+     * any of Platform" read the event before Platform was copied onto it,
+     * and missed "Scheduled Maintenance Created". The chain waits a moment
+     * for owners a create's caller says it adds (WorkspaceRuleOwnersOnCreate),
+     * as for a grouping rule's Episode Owners: the job now says so.
+     */
+    describe("its notification rules wait for the template's owners (#11223)", () => {
+      // What each step saw: whether the template's owners were still to come.
+      let seen: Array<string>;
+      let createdWith: CreateBy<ScheduledMaintenance> | null;
+
+      function isAddingOwners(
+        createBy: CreateBy<ScheduledMaintenance>,
+      ): boolean {
+        return CreatedNotificationHold.isAddingOwners(
+          createBy as unknown as CreateBy<ScheduledMaintenance>,
+          [OwnersAddedBy.Caller],
+        );
+      }
+
+      beforeEach(() => {
+        seen = [];
+        createdWith = null;
+
+        (ScheduledMaintenanceService.create as jest.Mock).mockImplementation(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          async (args: any): Promise<ScheduledMaintenance> => {
+            createdWith = args as CreateBy<ScheduledMaintenance>;
+            seen.push(`create: ${isAddingOwners(createdWith)}`);
+
+            const model: ScheduledMaintenance =
+              args.data as ScheduledMaintenance;
+            model._id = `sm-${created.length + 1}`;
+            created.push(model);
+            return model;
+          },
+        );
+
+        (
+          ScheduledMaintenanceOwnerUserService.create as jest.Mock
+        ).mockImplementation(ownerWritten("user") as never);
+        (
+          ScheduledMaintenanceOwnerTeamService.create as jest.Mock
+        ).mockImplementation(ownerWritten("team") as never);
+      });
+
+      // An owner row written: whether the template's owners were still to come.
+      function ownerWritten(
+        kind: string,
+      ): (args: { data: unknown }) => Promise<unknown> {
+        return async (args: { data: unknown }): Promise<unknown> => {
+          seen.push(`${kind}: ${isAddingOwners(createdWith!)}`);
+          return args.data;
+        };
+      }
+
+      test("REGRESSION (#11223): the create says they come right after it, and they are in once the last of them is written", async () => {
+        await mockCapturedJobs[JOB_NAME]!();
+
+        expect(seen).toEqual([
+          "create: true",
+          "user: true",
+          "user: true",
+          "team: true",
+        ]);
+        expect(createdWith).not.toBeNull();
+        expect(isAddingOwners(createdWith!)).toBe(false);
+        expect(logger.error).not.toHaveBeenCalled();
+      });
+
+      test("the wait is told the owners are in when they are, well before it would give up", async () => {
+        const wait: { heard: Promise<boolean> | null } = { heard: null };
+
+        (ScheduledMaintenanceService.create as jest.Mock).mockImplementation(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          async (args: any): Promise<ScheduledMaintenance> => {
+            createdWith = args as CreateBy<ScheduledMaintenance>;
+            // The event's create chain starts waiting as the create runs.
+            wait.heard = CreatedNotificationHold.whenOwnersAreIn(
+              createdWith as unknown as CreateBy<ScheduledMaintenance>,
+              [OwnersAddedBy.Caller],
+              60_000,
+            );
+            const model: ScheduledMaintenance =
+              args.data as ScheduledMaintenance;
+            model._id = "sm-1";
+            return model;
+          },
+        );
+
+        await mockCapturedJobs[JOB_NAME]!();
+
+        expect(wait.heard).not.toBeNull();
+        await expect(wait.heard!).resolves.toBe(true);
+      });
+
+      test("a template without owners says nothing: the event's rules wait for nobody", async () => {
+        (
+          ScheduledMaintenanceTemplateOwnerUserService.findAllBy as jest.Mock
+        ).mockResolvedValue([] as never);
+        (
+          ScheduledMaintenanceTemplateOwnerTeamService.findAllBy as jest.Mock
+        ).mockResolvedValue([] as never);
+
+        await mockCapturedJobs[JOB_NAME]!();
+
+        expect(seen).toEqual(["create: false"]);
+      });
+
+      test("an owner that cannot be written still lets the wait go", async () => {
+        (
+          ScheduledMaintenanceOwnerUserService.create as jest.Mock
+        ).mockRejectedValue(new Error("connection reset") as never);
+
+        await mockCapturedJobs[JOB_NAME]!();
+
+        expect(createdWith).not.toBeNull();
+        expect(isAddingOwners(createdWith!)).toBe(false);
+        expect(logger.error).toHaveBeenCalled();
+      });
+
+      test("a create that fails still lets the wait go", async () => {
+        (ScheduledMaintenanceService.create as jest.Mock).mockImplementation(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          async (args: any): Promise<ScheduledMaintenance> => {
+            createdWith = args as CreateBy<ScheduledMaintenance>;
+            seen.push(`create: ${isAddingOwners(createdWith)}`);
+            throw new Error("the database went away");
+          },
+        );
+
+        await mockCapturedJobs[JOB_NAME]!();
+
+        expect(seen).toEqual(["create: true"]);
+        expect(isAddingOwners(createdWith!)).toBe(false);
+        expect(
+          ScheduledMaintenanceOwnerUserService.create,
+        ).not.toHaveBeenCalled();
+      });
     });
   });
 
