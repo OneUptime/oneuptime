@@ -297,6 +297,44 @@ export const getServerTranslator: (
   return translator;
 };
 
+const callTranslators: Map<string, Translator> = new Map<string, Translator>();
+
+/*
+ * THE WORDS OF A PHONE CALL, IN THE LANGUAGE OF THE PERSON IT CALLS (#11066).
+ *
+ * A call's sentences are the server's, looked up as a text message's are -
+ * but a call is heard, not read. So no value goes into a call's sentence
+ * between the isolate marks a language read from the right sets it apart
+ * with on a page or a phone's screen (see above): a voice meets them as
+ * characters, and the call has no layout for them to hold. A number keeps a
+ * plain space before its unit, as English written into a record does.
+ * English - for any language OneUptime does not write in too - looks
+ * nothing up: its templates are filled as they are written, so an English
+ * call reads word for word as it always has.
+ */
+export const getCallTranslator: (
+  language?: string | null | undefined,
+) => Translator = (language?: string | null | undefined): Translator => {
+  const code: string = toReaderLanguage(language);
+  const cached: Translator | undefined = callTranslators.get(code);
+
+  if (cached) {
+    return cached;
+  }
+
+  const dictionary: Readonly<Record<string, string>> | undefined =
+    SERVER_LOCALES[code];
+
+  const translator: Translator =
+    code === DEFAULT_READER_LANGUAGE || !dictionary
+      ? createTranslator(undefined, DEFAULT_READER_LANGUAGE)
+      : createTranslator(lookupIn(code, dictionary), code);
+
+  callTranslators.set(code, translator);
+
+  return translator;
+};
+
 /*
  * WORDS ONEUPTIME SUGGESTS FOR A RECORD, IN THE LANGUAGE OF WHO MAKES IT.
  *

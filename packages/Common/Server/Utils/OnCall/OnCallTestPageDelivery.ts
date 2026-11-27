@@ -9,7 +9,7 @@ import IncidentSeverity from "../../../Models/DatabaseModels/IncidentSeverity";
 import ShortLink from "../../../Models/DatabaseModels/ShortLink";
 import URL from "../../../Types/API/URL";
 import { ONEUPTIME_PRODUCT_NAME } from "../../../Types/Branding/ProductBranding";
-import CallRequest from "../../../Types/Call/CallRequest";
+import CallRequest, { CallRequestMessage } from "../../../Types/Call/CallRequest";
 import TwilioConfig from "../../../Types/CallAndSMS/TwilioConfig";
 import {
   CustomChannelEvent,
@@ -38,11 +38,11 @@ import {
   isOnCallTestPageRecordKind,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
-  ON_CALL_TEST_PAGE_CALL_ACKNOWLEDGED,
-  ON_CALL_TEST_PAGE_CALL_GREETING,
-  ON_CALL_TEST_PAGE_CALL_INVALID_INPUT,
-  ON_CALL_TEST_PAGE_CALL_NO_INPUT,
-  ON_CALL_TEST_PAGE_CALL_PROMPT,
+  getOnCallTestPageCallAcknowledged,
+  getOnCallTestPageCallGreeting,
+  getOnCallTestPageCallInvalidInput,
+  getOnCallTestPageCallNoInput,
+  getOnCallTestPageCallPrompt,
   getOnCallTestPageAcknowledgeLabel,
   getOnCallTestPageAskToAcknowledge,
   getOnCallTestPageCallWhatItTests,
@@ -56,6 +56,8 @@ import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { DEFAULT_READER_LANGUAGE } from "../../../Types/ReaderLanguage";
 import { Translator } from "../../../Types/Translator";
+import { hasCallVoiceForLanguage } from "../../../Types/Call/CallVoice";
+import { getEnglishPageTranslator } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import { TwilioMessageKind } from "../../../Utils/Project/TwilioAccount";
 import {
@@ -94,6 +96,7 @@ import WhatsAppService from "../../Services/WhatsAppService";
 import WorkspaceUserNotificationService from "../../Services/WorkspaceUserNotificationService";
 import { ExecuteNotificationRuleOptions } from "../../Services/UserNotificationRuleService";
 import logger from "../Logger";
+import { getCallTranslator } from "../ServerTranslation";
 import PushNotificationUtil from "../PushNotificationUtil";
 import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
@@ -133,6 +136,11 @@ export interface OnCallTestPageContext {
   recordKind: OnCallTestPageRecordKind;
   // In the person's language, when it is OneUptime's own default name.
   severityName: string;
+  /*
+   * As the project wrote it, OneUptime's default names in English: what
+   * the English call says (#11066). Empty for none.
+   */
+  severityNameAsWritten?: string | undefined;
   projectName: string;
   isSentBySelf: boolean;
   senderName: string;
@@ -563,6 +571,7 @@ export default class OnCallTestPageDelivery {
             to: rule.userCall.phone,
             timelineId: row.id!,
             context: context,
+            translator: data.translator,
           }),
           {
             projectId: options.projectId,
@@ -774,13 +783,20 @@ export default class OnCallTestPageDelivery {
       }
 
       if (run?.testPageSeverityId) {
+        const severityName: string = await this.readSeverityName({
+          recordKind: context.recordKind,
+          severityId: run.testPageSeverityId,
+        });
+
         context.severityName = getOnCallPageStateName(
           data.translator,
           getOnCallTestPageSeverityList(context.recordKind),
-          await this.readSeverityName({
-            recordKind: context.recordKind,
-            severityId: run.testPageSeverityId,
-          }),
+          severityName,
+        );
+        context.severityNameAsWritten = getOnCallPageStateName(
+          getEnglishPageTranslator(),
+          getOnCallTestPageSeverityList(context.recordKind),
+          severityName,
         );
       }
 
@@ -1050,54 +1066,107 @@ export default class OnCallTestPageDelivery {
   }
 
   /*
-   * The test's call: in English, as every call is, and said as a real
-   * page's call is (OnCallPageCall) - who calls, that it is a test, the
-   * prompt, then what it tests, said again while no key is pressed. 1
-   * acknowledges it.
+   * The test's call, said as a real page's call is (OnCallPageCall) - who
+   * calls, that it is a test, the prompt, then what it tests, said again
+   * while no key is pressed. 1 acknowledges it. In English, as every call
+   * has been, and - for a person who reads another language a call can be
+   * spoken in - in theirs too, as a page's call is (#11066): the
+   * Notification service speaks that one by a voice of the language when
+   * the Twilio account it goes out on chose a voice.
    */
   public static async getCallRequest(data: {
     to: CallRequest["to"];
     timelineId: ObjectID;
     context: OnCallTestPageContext;
+    // The language of the person it pages; English without one.
+    translator?: Translator | undefined;
   }): Promise<CallRequest> {
-    return {
+    const responseUrl: URL = await OnCallPageLinks.getCallResponseUrl(
+      data.timelineId,
+    );
+
+    const callRequest: CallRequest = {
       to: data.to,
-      data: [
-        {
-          sayMessage: getOnCallPageCallOpening(data.context.projectName),
-        },
-        {
-          sayMessage: ON_CALL_TEST_PAGE_CALL_GREETING,
-          repeated: true,
-        },
-        {
-          sayMessage: getOnCallTestPageCallWhatItTests({
-            recordKind: data.context.recordKind,
-            projectName: data.context.projectName || ONEUPTIME_PRODUCT_NAME,
-            severityName: data.context.severityName,
-          }),
-          afterPrompt: true,
-          repeated: true,
-        },
-        {
-          introMessage: ON_CALL_TEST_PAGE_CALL_PROMPT,
-          numDigits: 1,
-          timeoutInSeconds: ON_CALL_PAGE_CALL_TIMEOUT_IN_SECONDS,
-          noInputMessage: ON_CALL_TEST_PAGE_CALL_NO_INPUT,
-          onInputCallRequest: {
-            "1": {
-              sayMessage: ON_CALL_TEST_PAGE_CALL_ACKNOWLEDGED,
-            },
-            default: {
-              sayMessage: ON_CALL_TEST_PAGE_CALL_INVALID_INPUT,
-            },
-          },
-          responseUrl: await OnCallPageLinks.getCallResponseUrl(
-            data.timelineId,
-          ),
-        },
-      ],
+      data: this.getCallData({
+        context: data.context,
+        responseUrl: responseUrl,
+        translator: getEnglishPageTranslator(),
+      }),
     };
+
+    const language: string = data.translator?.language || DEFAULT_READER_LANGUAGE;
+
+    if (
+      language !== DEFAULT_READER_LANGUAGE &&
+      hasCallVoiceForLanguage(language)
+    ) {
+      callRequest.inLanguage = {
+        language: language,
+        data: this.getCallData({
+          context: data.context,
+          responseUrl: responseUrl,
+          translator: getCallTranslator(language),
+        }),
+      };
+    }
+
+    return callRequest;
+  }
+
+  /*
+   * What the test's call says, in `translator`'s language: the severity it
+   * stands in for named in it too, OneUptime's default names in it, a
+   * project's own as written.
+   */
+  private static getCallData(data: {
+    context: OnCallTestPageContext;
+    responseUrl: URL;
+    translator: Translator;
+  }): CallRequestMessage["data"] {
+    const context: OnCallTestPageContext = data.context;
+    const translator: Translator = data.translator;
+    const severityName: string = context.severityNameAsWritten
+      ? getOnCallPageStateName(
+          translator,
+          getOnCallTestPageSeverityList(context.recordKind),
+          context.severityNameAsWritten,
+        )
+      : context.severityName;
+
+    return [
+      {
+        sayMessage: getOnCallPageCallOpening(context.projectName, translator),
+      },
+      {
+        sayMessage: getOnCallTestPageCallGreeting(translator),
+        repeated: true,
+      },
+      {
+        sayMessage: getOnCallTestPageCallWhatItTests({
+          recordKind: context.recordKind,
+          projectName: context.projectName || ONEUPTIME_PRODUCT_NAME,
+          severityName: severityName,
+          translator: translator,
+        }),
+        afterPrompt: true,
+        repeated: true,
+      },
+      {
+        introMessage: getOnCallTestPageCallPrompt(translator),
+        numDigits: 1,
+        timeoutInSeconds: ON_CALL_PAGE_CALL_TIMEOUT_IN_SECONDS,
+        noInputMessage: getOnCallTestPageCallNoInput(translator),
+        onInputCallRequest: {
+          "1": {
+            sayMessage: getOnCallTestPageCallAcknowledged(translator),
+          },
+          default: {
+            sayMessage: getOnCallTestPageCallInvalidInput(translator),
+          },
+        },
+        responseUrl: data.responseUrl,
+      },
+    ];
   }
 
   // The test's webhook body: the documented test event, with what it tests.
