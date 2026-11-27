@@ -457,6 +457,13 @@ function severityKeywordsFromRegex(pattern) {
 const STDOUT_ROUTE_EXPR = 'attributes["log.iostream"] != "stderr"';
 
 /**
+ * The chain's first route (issue #11225): a level the user's own operators
+ * wrote to attributes.severity_text goes straight to the severity parser,
+ * before any reader of the chain.
+ */
+const USER_LEVEL_ROUTE_EXPR = 'attributes["severity_text"] != nil';
+
+/**
  * The fallback the chain had until issue #10972: an `add` whose value was an
  * expression of the stream. The only expression the chain ever computed a
  * level with, so `classify` can walk a config from before the fix and show
@@ -467,16 +474,29 @@ const STREAM_GUESS_EXPR =
 
 /**
  * Whether a router route sends this record its way, decided as stanza does:
- * a route is one expr-lang boolean over the entry. The chain uses exactly two
- * forms, `body matches "<RE2>"` and the stdout test, so anything else throws
- * rather than being evaluated wrongly.
+ * a route is one expr-lang boolean over the entry. The chain uses exactly
+ * three forms, `body matches "<RE2>"`, the stdout test and the test for a
+ * level the user's operators wrote, so anything else throws rather than
+ * being evaluated wrongly.
  */
-function routeMatches(expr, body, stream) {
+function routeMatches(expr, body, stream, attributes) {
   if (expr === STDOUT_ROUTE_EXPR) {
     return stream !== "stderr";
   }
 
+  if (expr === USER_LEVEL_ROUTE_EXPR) {
+    return (
+      attributes.severity_text !== undefined &&
+      attributes.severity_text !== null
+    );
+  }
+
   return compileRe2AsJs(extractMatchesPattern(expr)).test(body);
+}
+
+/** Whether a route's expression is a `body matches` pattern. */
+function isBodyRoute(expr) {
+  return expr !== STDOUT_ROUTE_EXPR && expr !== USER_LEVEL_ROUTE_EXPR;
 }
 
 /**
@@ -485,13 +505,17 @@ function routeMatches(expr, body, stream) {
  * holds (or to its default), that operator lifts or adds the level text, and
  * the severity parser turns the text into a number.
  *
+ * `attributes` are the record's attributes as the user's own operators left
+ * them (logs.extraOperators, ONEUPTIME_LOG_OPERATOR_n): a severity_text there
+ * takes the chain's first route, straight to the severity parser.
+ *
  * Returns the operator that read it (`reader`), the text, the OTel severity
  * number and the LogSeverity OneUptime stores. A route whose parser cannot
  * parse what the route admitted throws: in the collector that record would
  * leave Unspecified with an error logged, which is the router/parser drift
  * the escaping tests exist to catch.
  */
-function classify(operators, body, stream) {
+function classify(operators, body, stream, attributes = {}) {
   const byId = indexOperatorsById(operators);
   const router = byId.get("severity-router");
 
@@ -500,7 +524,7 @@ function classify(operators, body, stream) {
   }
 
   const route = (router.routes || []).find((candidate) => {
-    return routeMatches(candidate.expr, body, stream);
+    return routeMatches(candidate.expr, body, stream, attributes);
   });
   const reader = route ? route.output : router.default;
   const operator = byId.get(reader);
@@ -513,6 +537,17 @@ function classify(operators, body, stream) {
 
   if (operator.type === "noop") {
     return { reader, text: null, number: 0, severity: "Unspecified" };
+  }
+
+  if (operator.type === "severity_parser") {
+    const number = resolveSeverityNumber(attributes.severity_text, operator);
+
+    return {
+      reader,
+      text: String(attributes.severity_text),
+      number,
+      severity: oneUptimeLogSeverity(number),
+    };
   }
 
   let text;
@@ -604,11 +639,13 @@ module.exports = {
   SEVERITY_NUMBER,
   STDOUT_ROUTE_EXPR,
   STREAM_GUESS_EXPR,
+  USER_LEVEL_ROUTE_EXPR,
   buildBuiltinDefaultPreset,
   classify,
   compileRe2AsJs,
   extractMatchesPattern,
   indexOperatorsById,
+  isBodyRoute,
   oneUptimeLogSeverity,
   outputTargets,
   resolveSeverityNumber,

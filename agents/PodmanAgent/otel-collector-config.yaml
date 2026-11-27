@@ -139,6 +139,23 @@ receivers:
         source_identifier: attributes["log.file.path"]
         force_flush_period: 5s
         max_log_size: 1048576
+      # Operators of your own (issue #11225), for a format the readers below
+      # do not know: up to five, each one stanza operator, as JSON, in
+      # ONEUPTIME_LOG_OPERATOR_1 to ONEUPTIME_LOG_OPERATOR_5. They run on
+      # every line after it is put back together and before its level is read,
+      # and a slot left unset is a noop. To set a line's level, write it to
+      # attributes.severity_text, as a word this agent reads (ERROR, warn,
+      # critical, ...): the router below sends a line that has one straight to
+      # the severity parser. Leave a slot unset rather than empty: the
+      # collector reads an empty one as no operator at all and stops.
+      # install.sh and the Compose file's config check run `otelcol validate`
+      # over them first, so a bad one stops the install with the collector's
+      # own message instead of a collector that restarts forever.
+      - "${env:ONEUPTIME_LOG_OPERATOR_1:-type: noop}"
+      - "${env:ONEUPTIME_LOG_OPERATOR_2:-type: noop}"
+      - "${env:ONEUPTIME_LOG_OPERATOR_3:-type: noop}"
+      - "${env:ONEUPTIME_LOG_OPERATOR_4:-type: noop}"
+      - "${env:ONEUPTIME_LOG_OPERATOR_5:-type: noop}"
       # Podman's k8s-file driver records no severity, only the stream a line was
       # written to; OTel log records have dedicated severity_number /
       # severity_text fields that downstream viewers rely on for filtering.
@@ -244,6 +261,8 @@ receivers:
       - type: router
         id: severity-router
         routes:
+          - output: severity-parser
+            expr: 'attributes["severity_text"] != nil'
           - output: parse-klog-severity
             expr: 'body matches "^([IWEF])\\d{4}(?:\\d{4})? \\d\\d:\\d\\d:\\d\\d\\.\\d{6} +\\d+ [^ :\\]]+:\\d+\\]"'
           - output: add-exception-severity

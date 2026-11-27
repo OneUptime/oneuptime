@@ -92,10 +92,12 @@ const behaviour = require("./Utils/LogSeverityBehaviour.js");
 const { CASES, PROSE } = require("./Utils/LogSeverityCorpus.js");
 const {
   STDOUT_ROUTE_EXPR,
+  USER_LEVEL_ROUTE_EXPR,
   classify,
   compileRe2AsJs,
   extractMatchesPattern,
   indexOperatorsById,
+  isBodyRoute,
   oneUptimeLogSeverity,
   outputTargets,
   resolveSeverityNumber,
@@ -364,8 +366,58 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       router.routes.map((route) => {
         return route.output;
       }),
-    ).toEqual(ROUTE_OUTPUTS);
+    ).toEqual(["severity-parser", ...ROUTE_OUTPUTS]);
     expect(router.default).toBe("severity-unspecified");
+  });
+
+  /*
+   * Issue #11225: your own operators (logs.extraOperators, the container
+   * agents' ONEUPTIME_LOG_OPERATOR_n) run before the router, and a level one
+   * of them writes to attributes.severity_text is read before every reader
+   * of the chain, by the one severity parser, so it means what the same word
+   * means everywhere else.
+   */
+  test("reads a level your own operators wrote before any reader of its own", () => {
+    const firstRoute = router.routes[0];
+
+    expect(firstRoute).toEqual({
+      output: "severity-parser",
+      expr: USER_LEVEL_ROUTE_EXPR,
+    });
+    expect(
+      classify(operators, "[ERROR] upstream said so", "stdout", {
+        severity_text: "WARN",
+      }),
+    ).toEqual({
+      reader: "severity-parser",
+      text: "WARN",
+      number: 13,
+      severity: "Warning",
+    });
+    // Any word the agent reads, a reader token too, at the table's number.
+    expect(
+      classify(operators, "payment failed", "stderr", {
+        severity_text: "crit",
+      }).number,
+    ).toBe(18);
+    expect(
+      classify(operators, "payment failed", "stderr", {
+        severity_text: "E",
+      }).severity,
+    ).toBe("Error");
+    // A word it does not read names no level: the parser leaves none.
+    expect(
+      classify(operators, "[ERROR] x", "stdout", { severity_text: "SEV1" }),
+    ).toEqual({
+      reader: "severity-parser",
+      text: "SEV1",
+      number: 0,
+      severity: "Unspecified",
+    });
+    // Without one, the chain reads the line as before.
+    expect(classify(operators, "[ERROR] x", "stdout").reader).toBe(
+      "parse-severity-from-body",
+    );
   });
 
   test("only an unread line on stdout falls back to the stream, and to INFO", () => {
@@ -552,7 +604,7 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
 
   test("every route's pattern compiles", () => {
     for (const route of router.routes) {
-      if (route.expr !== STDOUT_ROUTE_EXPR) {
+      if (isBodyRoute(route.expr)) {
         expect(() => {
           return compileRe2AsJs(extractMatchesPattern(route.expr));
         }).not.toThrow();
@@ -1022,7 +1074,7 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       const body = PATHOLOGICAL[shape](30000);
 
       for (const route of router.routes) {
-        if (route.expr === STDOUT_ROUTE_EXPR) {
+        if (!isBodyRoute(route.expr)) {
           continue;
         }
 
@@ -1280,6 +1332,96 @@ describe("agent-log-severity-behaviour.sh", () => {
 
     for (const agent of AGENTS) {
       expect(script).toMatch(new RegExp(`\\nagent_case ${agent} `));
+    }
+  });
+
+  /*
+   * logs.extraOperators (issue #11225): the documented example's operators
+   * on the chart, on 0.96.0 too and with minSeverity, and on each container
+   * agent through its variables, with the in-house lines they read beside
+   * the whole corpus.
+   */
+  test("runs the documented logs.extraOperators example through the chart and through the three agents' variables", () => {
+    const script = readRepoFile(SCRIPT);
+
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-extra-operators --extra-operators\n",
+    );
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-0.96.0-extra-operators --extra-operators --set image.tag=0.96.0\n",
+    );
+    expect(script).toContain(
+      "\nkubernetes_case kubernetes-extra-operators-min-error --min-severity ERROR --extra-operators --set filters.logs.minSeverity=ERROR\n",
+    );
+    for (const agent of AGENTS) {
+      expect(script).toMatch(
+        new RegExp(
+          `\\nagent_case ${agent} [a-z]+ [^\\n]+ --extra-operators\\n`,
+        ),
+      );
+    }
+    // The chart gets the example as --set-json, and an agent as variables.
+    expect(script).toContain(
+      'operators=(--set-json "logs.extraOperators=$(node "${HELPER}" operators json)")',
+    );
+    expect(script).toContain('COLLECTOR_ENV+=(-e "${variable}")');
+    expect(script).toContain('done < <(node "${HELPER}" operators env)');
+    expect(script).toContain('${COLLECTOR_ENV[@]+"${COLLECTOR_ENV[@]}"}');
+  });
+
+  test("adds the in-house lines to the corpus only for a run with the example", () => {
+    const {
+      EXTRA_OPERATOR_CASES,
+    } = require("./Utils/ExtraLogOperatorExamples.js");
+    const without = behaviour.allRecords();
+    const withExample = behaviour.allRecords(true);
+
+    expect(withExample.slice(0, without.length)).toEqual(without);
+    expect(withExample.slice(without.length)).toEqual(
+      EXTRA_OPERATOR_CASES.map((entry) => {
+        return { ...entry, name: `logs.extraOperators: ${entry.name}` };
+      }),
+    );
+
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "log-severity-"));
+
+    try {
+      behaviour.fixtures("docker", path.join(dir, "logs"), true);
+
+      expect(
+        JSON.parse(fs.readFileSync(path.join(dir, "cases.json"), "utf8")),
+      ).toHaveLength(withExample.length);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("hands an agent the example one operator a variable, as JSON its slot reads as one operator", () => {
+    const {
+      DOCUMENTED_EXAMPLE,
+    } = require("./Utils/ExtraLogOperatorExamples.js");
+    const result = require("child_process").spawnSync(
+      process.execPath,
+      [
+        path.join(REPO_ROOT, "Tests/Ops/Utils/LogSeverityBehaviour.js"),
+        "operators",
+        "env",
+      ],
+      { encoding: "utf8" },
+    );
+    const lines = result.stdout.split("\n").filter(Boolean);
+
+    expect(result.status).toBe(0);
+    expect(lines).toEqual(
+      DOCUMENTED_EXAMPLE.map((operator, index) => {
+        return `ONEUPTIME_LOG_OPERATOR_${index + 1}=${JSON.stringify(operator)}`;
+      }),
+    );
+    for (const line of lines) {
+      // JSON is YAML: the slot's ${env:...} expands to one map.
+      expect(yaml.load(line.slice(line.indexOf("=") + 1))).toEqual(
+        DOCUMENTED_EXAMPLE[lines.indexOf(line)],
+      );
     }
   });
 

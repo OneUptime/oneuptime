@@ -440,7 +440,39 @@ validate` only proves each operator is well-formed. So the suite holds it to:
   dollar is `[$]`.
 
 `agent-log-severity-behaviour.sh` runs the same corpus through the real
-collector.
+collector, on each agent and on the chart at the collector it pins and at
+`0.96.0`, with and without `filters.logs.minSeverity=ERROR`, and once more
+with the documented `logs.extraOperators` example set (through the chart, and
+through the container agents' `ONEUPTIME_LOG_OPERATOR_<n>` variables): the
+in-house lines it reads (`Utils/ExtraLogOperatorExamples.js`) must leave at
+the levels it names, beside the whole corpus as it leaves without it.
+
+### `AgentLogOperators.test.js`
+
+Log operators of your own (issue #11225), for a log format the agents do not
+read. The container agents take five, `ONEUPTIME_LOG_OPERATOR_1` to `_5`, each
+one collector operator as JSON: in each config, five slots in order, after the
+line is put back together and its stream read and right before the severity
+router, each a `noop` when unset and quoted so YAML keeps the fallback whole;
+in each Compose file, the five named without a value (an empty one would stop
+the collector), and a config check, the collector's own `validate` over the
+same config and settings, which the agent waits on. For the Kubernetes agent's
+`logs.extraOperators`, the chart's check (`kubernetes-agent.validateExtraLogOperators`)
+is held to the agent's own config: the ids it keeps are the pod log
+receiver's, the types of the agent's operators without an id are the ones it
+knows, its types are the schema's enum, the types newer than `0.96.0` are
+the ones it refuses there, the operators render right after the pod's uid
+is moved and before the severity router, the check runs in a template
+nothing else includes, and the example in `values.yaml` is the one the
+chart's suite renders. In the JavaScript model of each chain
+(`Utils/StanzaSeverity.js`), the example's in-house lines are read by no
+reader of the agent's own, and with the example's operators run first each
+leaves at the level it names.
+
+The chart's helm-unittest suite, `tests/extra-log-operators_test.yaml`, holds
+what the chart renders and every refusal by its whole message (helm-unittest
+0.5.1, which CI pins, has no `errorPattern`: it reads one as no assertion).
+`validate-collector-configs.sh` holds those verdicts to the collector's own.
 
 ### `LogSeverityOneTable.test.js`
 
@@ -503,6 +535,21 @@ expressions — the Go-side class of error the jest suite structurally cannot se
 a malformed regex, an `output`/`default` naming an operator that does not exist,
 or an expr string one backslash short. It runs on every PR from the
 "Ops Config Test" workflow.
+
+For the Kubernetes agent's `logs.extraOperators` (issue #11225) it also runs
+`Utils/extra-log-operators-agreement.js`: a table of operators, each with the
+chart's verdict (it renders them, or refuses them with a message that
+matches) and the collector's `validate` verdict on the same operators in a
+receiver of their own, written down, so that the chart refuses at install
+time what would stop the collector, and refuses on its own only what it says
+why (a level the agent would overwrite, a router that would drop lines). It
+validates the agent's config with operators of every type the chart takes in
+it, on the pinned collector and, with the types it has, on `0.96.0`; shows,
+by renaming one of them in that config, that an id the chart keeps (one of
+the agent's, or `move`, the name the collector gives the agent's first move)
+is a duplicate the collector refuses and that `move1` is not; and checks
+the messages of what `values.schema.json` refuses, which helm-unittest cannot
+read.
 
 ```sh
 cd Tests/Ops && npm run validate-collector-configs
@@ -943,7 +990,15 @@ started — and with the socket off it stops before starting anything, with the
 the daemon's name (`docker info --format '{{.Name}}'`, the hostname
 `docker node ls` shows) into `.env` as `DOCKER_SWARM_NODE_NAME`, keeps one given
 when running it, and keeps only a hostname's characters (the name goes into an
-OTTL string).
+OTTL string). Log operators of your own (`ONEUPTIME_LOG_OPERATOR_1` to `_5`,
+issue #11225): with none set nothing is checked or passed, and an empty one is
+not passed; a set one is run through the collector's `validate` in the agent's
+image, with the agent's settings, before the agent is touched, and then reaches
+the collector alone; one the collector refuses stops the script with its
+message, and the agent is neither removed nor started again. The Swarm
+installer writes them into `.env` single-quoted, checks the new `.env` with the
+Compose file's config check before it replaces the old one, keeps one `.env`
+has when run again without it, and refuses one holding a single quote.
 
 ### `ContainerAgentConfigs.test.js`
 

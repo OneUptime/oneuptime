@@ -4,10 +4,17 @@
  * The work of agent-log-severity-behaviour.sh, which runs the agents' log
  * severity chain in the real collector:
  *
- *   fixtures <layout> <dir>       write the corpus (LogSeverityCorpus.js) into
+ *   fixtures <layout> <dir> [--extra-operators]
+ *                                 write the corpus (LogSeverityCorpus.js) into
  *                                 <dir> as a container runtime writes logs to
  *                                 disk, one container per case, and the cases
- *                                 to <dir>/../cases.json
+ *                                 to <dir>/../cases.json; with
+ *                                 --extra-operators, the in-house lines the
+ *                                 documented logs.extraOperators example reads
+ *                                 too (ExtraLogOperatorExamples.js, #11225)
+ *   operators <json|env>          that example, as the chart's --set-json takes
+ *                                 it, or as the container agents' variables
+ *                                 (ONEUPTIME_LOG_OPERATOR_<n>=<operator>)
  *   config <target> <source> <dir> [--min-severity]
  *                                 the collector config for one run: the
  *                                 target's own filelog receiver, exactly as it
@@ -30,6 +37,10 @@ const path = require("path");
 const yaml = require("js-yaml");
 
 const { CASES, PROSE } = require("./LogSeverityCorpus.js");
+const {
+  DOCUMENTED_EXAMPLE,
+  EXTRA_OPERATOR_CASES,
+} = require("./ExtraLogOperatorExamples.js");
 
 const SEVERITY_RANK = {
   Trace: 1,
@@ -49,8 +60,12 @@ const MIN_SEVERITY_RANK = {
   FATAL: 6,
 };
 
-/** Every record the run writes: each case, and each line of prose on both streams. */
-function allRecords() {
+/**
+ * Every record the run writes: each case, and each line of prose on both
+ * streams, and with the documented logs.extraOperators example set, the
+ * in-house lines it reads.
+ */
+function allRecords(withExtraOperators = false) {
   return [
     ...CASES.map((entry) => {
       return {
@@ -76,6 +91,9 @@ function allRecords() {
         },
       ];
     }),
+    ...(withExtraOperators ? EXTRA_OPERATOR_CASES : []).map((entry) => {
+      return { ...entry, name: `logs.extraOperators: ${entry.name}` };
+    }),
   ];
 }
 
@@ -95,8 +113,8 @@ function writeFile(file, text) {
   fs.writeFileSync(file, text);
 }
 
-function fixtures(layout, dir) {
-  const cases = allRecords().map((record, index) => {
+function fixtures(layout, dir, withExtraOperators = false) {
+  const cases = allRecords(withExtraOperators).map((record, index) => {
     const lines = record.body.split("\n");
     let id;
 
@@ -407,7 +425,28 @@ function main(argv) {
   });
 
   if (command === "fixtures") {
-    fixtures(positional[0], positional[1]);
+    fixtures(positional[0], positional[1], args.includes("--extra-operators"));
+    return 0;
+  }
+
+  if (command === "operators") {
+    if (positional[0] === "json") {
+      console.log(JSON.stringify(DOCUMENTED_EXAMPLE));
+    } else if (positional[0] === "env") {
+      // One operator a variable, in the agents' five slots.
+      if (DOCUMENTED_EXAMPLE.length > 5) {
+        throw new Error(
+          "the example has more operators than the agents have slots",
+        );
+      }
+      DOCUMENTED_EXAMPLE.forEach((operator, index) => {
+        console.log(
+          `ONEUPTIME_LOG_OPERATOR_${index + 1}=${JSON.stringify(operator)}`,
+        );
+      });
+    } else {
+      throw new Error(`operators takes json or env, not ${positional[0]}`);
+    }
     return 0;
   }
 

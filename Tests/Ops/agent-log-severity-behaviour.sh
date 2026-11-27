@@ -26,6 +26,12 @@
 # filters.logs.minSeverity=ERROR, what is below ERROR must be dropped at the
 # node and what has no severity kept.
 #
+# With the documented logs.extraOperators example set (issue #11225; on the
+# Kubernetes agent through its chart, on the container agents through their
+# ONEUPTIME_LOG_OPERATOR_<n> variables), the in-house lines it reads
+# (Utils/ExtraLogOperatorExamples.js) must leave at the levels it names, and
+# the whole corpus beside them as it does without it.
+#
 # CONFIG_ROOT runs it against another checkout's configs and chart (the
 # corpus and this script stay this checkout's): that is how the misreading of
 # a config from before the fix is shown.
@@ -56,13 +62,19 @@ AGENT_IMAGE="$(sed -n 's/^FROM \(otel\/opentelemetry-collector-contrib:[^ ]*\).*
 
 failures=0
 
+# What one run adds to the corpus's fixtures (--extra-operators), and to the
+# collector's variables (the container agents' operators). Set by a case for
+# its run.
+FIXTURE_FLAGS=()
+COLLECTOR_ENV=()
+
 # run_collector <label> <image> <fixture mount point> <layout> [--min-severity LEVEL]
 run_collector() {
   local label="$1" image="$2" mount="$3" layout="$4"
   shift 4
   local dir="${WORK_DIR}/${label}"
 
-  node "${HELPER}" fixtures "${layout}" "${dir}/logs"
+  node "${HELPER}" fixtures "${layout}" "${dir}/logs" ${FIXTURE_FLAGS[@]+"${FIXTURE_FLAGS[@]}"}
   chmod -R a+rX "${dir}"
   mkdir -p "${dir}/out"
   chmod 0777 "${dir}/out"
@@ -74,6 +86,7 @@ run_collector() {
     -v "${dir}/config.yaml":/etc/behaviour/config.yaml:ro \
     -v "${dir}/logs":"${mount}":ro \
     -v "${dir}/out":/out \
+    ${COLLECTOR_ENV[@]+"${COLLECTOR_ENV[@]}"} \
     "${image}" --config /etc/behaviour/config.yaml >/dev/null
 
   # The file exporter writes as records arrive, and the recombine operator
@@ -108,7 +121,7 @@ run_collector() {
   docker rm -f "${RUN_ID}-${label}" >/dev/null 2>&1 || true
 }
 
-# kubernetes_case <label> [--min-severity LEVEL] [helm --set flags...]
+# kubernetes_case <label> [--min-severity LEVEL] [--extra-operators] [helm --set flags...]
 kubernetes_case() {
   local label="$1"
   shift
@@ -116,6 +129,18 @@ kubernetes_case() {
   if [ "${1:-}" = "--min-severity" ]; then
     filter=(--min-severity "$2")
     shift 2
+  fi
+  local operators=()
+  FIXTURE_FLAGS=()
+  COLLECTOR_ENV=()
+  if [ "${1:-}" = "--extra-operators" ]; then
+    shift
+    if ! grep -q '^  extraOperators:' "${CHART}/values.yaml"; then
+      echo "==> ${label}: skipped, this chart has no logs.extraOperators"
+      return 0
+    fi
+    operators=(--set-json "logs.extraOperators=$(node "${HELPER}" operators json)")
+    FIXTURE_FLAGS=(--extra-operators)
   fi
   local dir="${WORK_DIR}/${label}"
   mkdir -p "${dir}"
@@ -127,6 +152,7 @@ kubernetes_case() {
     --set oneuptime.apiKey=behaviour-test \
     --set logs.enabled=true \
     --set logs.mode=daemonset \
+    ${operators[@]+"${operators[@]}"} \
     "$@" \
     >"${dir}/rendered.yaml"
 
@@ -139,11 +165,25 @@ kubernetes_case() {
   run_collector "${label}" "$(cat "${dir}/image")" /var/log/pods pods "${filter[@]}"
 }
 
-# agent_case <agent> <layout> <mount point>
+# agent_case <agent> <layout> <mount point> [--extra-operators]
 agent_case() {
   local agent="$1" layout="$2" mount="$3"
   local label
   label="$(echo "${agent}" | tr '[:upper:]' '[:lower:]')"
+  FIXTURE_FLAGS=()
+  COLLECTOR_ENV=()
+  if [ "${4:-}" = "--extra-operators" ]; then
+    label="${label}-extra-operators"
+    if ! grep -q 'ONEUPTIME_LOG_OPERATOR_1' "${CONFIG_ROOT}/agents/${agent}/otel-collector-config.yaml"; then
+      echo "==> ${label}: skipped, this config has no log operator slots"
+      return 0
+    fi
+    local variable
+    while IFS= read -r variable; do
+      COLLECTOR_ENV+=(-e "${variable}")
+    done < <(node "${HELPER}" operators env)
+    FIXTURE_FLAGS=(--extra-operators)
+  fi
   local dir="${WORK_DIR}/${label}"
   mkdir -p "${dir}"
 
@@ -163,6 +203,14 @@ kubernetes_case kubernetes-0.96.0-min-error --min-severity ERROR --set filters.l
 agent_case DockerAgent docker /var/lib/docker/containers
 agent_case DockerSwarmAgent docker /var/lib/docker/containers
 agent_case PodmanAgent podman /var/lib/containers/storage/overlay-containers
+# logs.extraOperators (issue #11225): the documented example's operators, on
+# the in-house lines it reads, beside the whole corpus.
+kubernetes_case kubernetes-extra-operators --extra-operators
+kubernetes_case kubernetes-0.96.0-extra-operators --extra-operators --set image.tag=0.96.0
+kubernetes_case kubernetes-extra-operators-min-error --min-severity ERROR --extra-operators --set filters.logs.minSeverity=ERROR
+agent_case DockerAgent docker /var/lib/docker/containers --extra-operators
+agent_case DockerSwarmAgent docker /var/lib/docker/containers --extra-operators
+agent_case PodmanAgent podman /var/lib/containers/storage/overlay-containers --extra-operators
 
 if [ "${failures}" -gt 0 ]; then
   echo "${failures} run(s) stored log lines at the wrong severity"

@@ -369,6 +369,26 @@
           },
           "additionalProperties": false
         },
+        "extraOperators": {
+          "type": "array",
+          "description": "Collector (stanza) operators of your own, for a log format the agent does not read. They run on every pod log line after the agent has put the line back together and read its pod and stream, and before it reads the line's level; a level one writes to attributes.severity_text, as a word the agent reads, is read before any reader of the agent's own. The chart checks each at install time (its type against the collector of image.tag, its id, the operators it hands lines to, its regex) and refuses an operator that sets the line's severity itself, which the agent would overwrite. Daemonset log mode only: the API log tailer runs no collector operators.",
+          "items": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["add", "assign_keys", "container", "copy", "csv_parser", "filter", "flatten", "json_array_parser", "json_parser", "key_value_parser", "move", "noop", "otelcol", "recombine", "regex_parser", "regex_replace", "remove", "retain", "router", "sanitize_utf8", "scope_name_parser", "severity_parser", "syslog_parser", "time_parser", "trace_parser", "unquote", "uri_parser"],
+                "description": "The operator's type: a parser or transformer of the collector's stanza. An input or output operator has no place in a receiver's chain."
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A name of its own: not one of the agent's operators', not a type's name."
+              }
+            }
+          }
+        },
         "enabled": {
           "type": "boolean"
         },

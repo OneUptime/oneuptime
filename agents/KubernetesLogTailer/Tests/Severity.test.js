@@ -336,10 +336,17 @@ const routePattern = (expr) => {
 test("the readers are the chain's routes, in the chain's order, with its patterns", () => {
   const routes = routerRoutes();
 
-  // The chain's last route is its stdout fallback, which this mode does not
-  // have: it cannot tell stdout from stderr.
+  // The chain's first route reads a level the user's own operators wrote
+  // (logs.extraOperators, issue #11225), which this mode has none of: the
+  // API log tailer runs no collector operators. Its last route is its stdout
+  // fallback, which this mode does not have either: it cannot tell stdout
+  // from stderr.
+  assert.deepEqual(routes[0], [
+    "severity-parser",
+    'attributes["severity_text"] != nil',
+  ]);
   assert.deepEqual(
-    routes.map(([output]) => {
+    routes.slice(1).map(([output]) => {
       return output;
     }),
     [...READER_IDS, "add-fallback-severity"],

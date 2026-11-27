@@ -2461,9 +2461,19 @@ describe("the OpenTelemetry collector pin", () => {
         .filter((image) => {
           return /opentelemetry-collector-contrib/.test(image || "");
         });
-      expect(images).toEqual([
-        `otel/opentelemetry-collector-contrib:${pinsIn("agents/DockerAgent/Dockerfile.tpl")[0]}`,
-      ]);
+      // Every service that runs the collector runs the pin: the agent, and
+      // a check of its config (the Swarm agent's log operators, #11225) or a
+      // second collector of the same agent (the Storage Array agent's).
+      expect({ file, collectors: images.length > 0 }).toEqual({
+        file,
+        collectors: true,
+      });
+      expect({ file, images: [...new Set(images)] }).toEqual({
+        file,
+        images: [
+          `otel/opentelemetry-collector-contrib:${pinsIn("agents/DockerAgent/Dockerfile.tpl")[0]}`,
+        ],
+      });
     }
   });
 
