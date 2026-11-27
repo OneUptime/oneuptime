@@ -423,6 +423,12 @@ Hela nyttolasten finns tillgänglig vid sidan av, så både en incidenttitel `{{
 
 En fullständig Alertmanager-konfiguration finns under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). För Grafana, se [Grafana](/docs/integrations/grafana).
 
+### Håll den kontrollerad under incidenter
+
+En incident som någon deklarerar på den här monitorn — från ett av dess larm, till exempel, med **Deklarera incident** — pausar dess kontroller tills incidenten är löst, så förfrågningarna som kommer under tiden utvärderas inte: de öppnar och löser inga larm. Var och en listas ändå i monitorns **Övervakningsloggar**, som den kom, med anledningen till att den inte utvärderades.
+
+För en monitor som andra system skickar sina larm till bör en incident om ett larm inte hindra den från att läsa nästa. Öppna monitorns **Inställningar** och slå under **Under incidenter** på reglaget **Fortsätt övervaka under incidenter**: incidenter som deklareras på den låter den då fortsätta kontrolleras, även de som redan är öppna. För att hålla den kontrollerad under bara en incident kryssar du ur **Pausa övervakningen** när du deklarerar den. Se [Övervakning medan en incident är öppen](/docs/incidents/declaring-incidents#övervakning-medan-en-incident-är-öppen).
+
 ## Publicera i Slack utan att kalla in någon
 
 En stagingmiljö, eller en produkt vars problem kan vänta, kan vilja få en förfrågan publicerad i en chattkanal utan att kalla in någon. Ett larm som inte nämner någon jourpolicy gör just det: det publiceras i Slack, Microsoft Teams eller Mattermost via projektets arbetsyteregler och startar ingen eskalering.
@@ -506,11 +512,16 @@ Event Grid validerar en slutpunkt som skickar tillbaka en kod till den, eller va
 3. **Använd POST med `Content-Type: application/json`** — allt som läser i kroppen är beroende av det.
 4. **Blanda inte de två uppgifterna på en monitor** — en monitor som tar emot händelsestyrda larm har ingen fast rytm, så ett kriterium "Inte mottaget inom (minuter)" på den kommer att slå fram och tillbaka. Använd en separat monitor för dödmansgreppet.
 5. **Övervaka övervakningen** — Se till att tjänsten som skickar förfrågningarna hanterar fel ordentligt, så att misslyckade förfrågningar inte går obemärkta förbi.
+6. **Håll en mottagare av händelser kontrollerad under incidenter** — Slå på **Fortsätt övervaka under incidenter** i dess **Inställningar** på en monitor som tar emot larm från ett annat system, så att en incident som deklareras på den inte pausar den. Se [Håll den kontrollerad under incidenter](#håll-den-kontrollerad-under-incidenter).
 
 ## Felsökning
 
 :::details Min avsändare får en 200, men ingenting visas på monitorn
 `200` skickas innan förfrågan valideras, så den bevisar inte att förfrågan godtogs. Kontrollera att den hemliga nyckeln i URL:en stämmer med monitorns **Heartbeat URL**, och att monitorn inte är inaktiverad. Titta sedan på monitorns tidslinje för att se om förfrågningarna kommer fram.
+:::
+
+:::details Förfrågningar kommer in, men monitorn öppnar inga larm medan en incident är öppen
+En incident som deklarerats för hand på monitorn pausar dess kontroller, så dess förfrågningar listas i dess **Övervakningsloggar** som **Inte utvärderad: övervakningen är pausad av en incident**, och bannern på dess sidor säger det. Slå på **Fortsätt övervaka under incidenter** i dess **Inställningar**: dess kontroller startar igen direkt, och nästa förfrågningar utvärderas. Förfrågningarna som listades medan den var pausad utvärderas inte i efterhand. Se [Håll den kontrollerad under incidenter](#håll-den-kontrollerad-under-incidenter).
 :::
 
 :::details Min avsändare får 401

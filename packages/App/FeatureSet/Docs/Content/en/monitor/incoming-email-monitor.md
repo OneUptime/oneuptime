@@ -312,7 +312,9 @@ Click **Show More Details** to see the rest of it:
 
 ### Earlier Emails
 
-The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**: the **Email** column shows its subject and sender, and **View Summary** on its row shows the whole email the same way the card does. A monitor that is not being checked - its monitoring turned off, or paused by an incident or a maintenance event - evaluates nothing, so each email it receives gets a row that says it was not evaluated, and why. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. The **Email** column says "Scheduled check" on those rows, and their **View Summary** shows the newest email as of the check, or "No email yet" if none had arrived. Monitoring logs are kept for one day by default. On a self-hosted server, an administrator can change that with **Monitor Log Retention (Days)** in the Admin Dashboard's settings.
+The card only shows the newest email. Every email the monitor evaluates is also written to **Monitoring Logs**: the **Email** column shows its subject and sender, and **View Summary** on its row shows the whole email the same way the card does. A monitor that is not being checked - its monitoring turned off, or paused by an incident or a maintenance event - evaluates nothing, so each email it receives gets a row that says it was not evaluated, and why. If one of your criteria checks **Email Received**, the monitor also writes a row each time it checks for missing email. The **Email** column says "Scheduled check" on those rows, and their **View Summary** shows the newest email as of the check, or "No email yet" if none had arrived.
+
+Monitoring logs are kept for one day by default. On a self-hosted server, an administrator can change that with **Monitor Log Retention (Days)** in the Admin Dashboard's settings.
 
 ## Self-Hosted Setup
 

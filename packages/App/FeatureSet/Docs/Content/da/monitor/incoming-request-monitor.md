@@ -423,6 +423,12 @@ Hele payloaden er tilgængelig ved siden af, så både en hændelsestitel `{{ale
 
 En komplet Alertmanager-konfiguration finder du under [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). For Grafana, se [Grafana](/docs/integrations/grafana).
 
+### Hold den tjekket under hændelser
+
+En hændelse, som nogen erklærer på denne monitor — fra en af dens advarsler, for eksempel, med **Erklær hændelse** — sætter dens tjek på pause, indtil hændelsen er løst, så de anmodninger, der kommer i mellemtiden, evalueres ikke: de åbner og løser ingen advarsler. Hver af dem vises stadig i monitorens **Overvågningslogs**, som den kom, med grunden til, at den ikke blev evalueret.
+
+For en monitor, som andre systemer sender deres advarsler til, bør en hændelse om én advarsel ikke forhindre den i at læse den næste. Åbn monitorens **Indstillinger**, og slå under **Under hændelser** kontakten **Fortsæt overvågning under hændelser** til: hændelser, der erklæres på den, lader den så blive tjekket, også dem, der allerede er åbne. For kun at holde den tjekket under én hændelse skal du fjerne krydset i **Sæt overvågning på pause**, når du erklærer den. Se [Overvågning, mens en hændelse er åben](/docs/incidents/declaring-incidents#overvågning-mens-en-hændelse-er-åben).
+
 ## Skriv i Slack uden at tilkalde nogen
 
 Et staging-miljø, eller et produkt, hvis problemer kan vente, vil måske have en anmodning skrevet i en chatkanal uden at tilkalde nogen. En advarsel, der ikke nævner nogen vagtpolitik, gør netop det: den skrives i Slack, Microsoft Teams eller Mattermost via projektets arbejdsområderegler og starter ingen eskalering.
@@ -506,11 +512,16 @@ Event Grid validerer et endpoint, der sender en kode tilbage til Event Grid, ell
 3. **Brug POST med `Content-Type: application/json`** — alt, der læser inde i brødteksten, afhænger af det.
 4. **Bland ikke de to opgaver på én monitor** — en monitor, der modtager hændelsesdrevne advarsler, har ingen fast rytme, så et kriterium "Ikke modtaget inden for minutter" på den vil skifte frem og tilbage. Brug en separat monitor til dødmandsknappen.
 5. **Overvåg overvågningen** — Sørg for, at den tjeneste, der sender anmodningerne, håndterer fejl ordentligt, så mislykkede anmodninger ikke går ubemærket hen.
+6. **Hold en modtager af begivenheder tjekket under hændelser** — Slå **Fortsæt overvågning under hændelser** til i dens **Indstillinger** på en monitor, der modtager advarsler fra et andet system, så en hændelse, der erklæres på den, ikke sætter den på pause. Se [Hold den tjekket under hændelser](#hold-den-tjekket-under-hændelser).
 
 ## Fejlfinding
 
 :::details Min afsender får en 200, men intet vises på monitoren
 `200` sendes, før anmodningen valideres, så den beviser ikke, at anmodningen blev accepteret. Tjek, at den hemmelige nøgle i URL'en svarer til monitorens **Heartbeat URL**, og at monitoren ikke er deaktiveret. Se derefter på monitorens tidslinje, om anmodningerne lander.
+:::
+
+:::details Anmodninger kommer frem, men monitoren åbner ingen advarsler, mens en hændelse er åben
+En hændelse, der er erklæret i hånden på monitoren, sætter dens tjek på pause, så dens anmodninger vises i dens **Overvågningslogs** som **Ikke evalueret: overvågning er sat på pause af en hændelse**, og banneret på dens sider siger det. Slå **Fortsæt overvågning under hændelser** til i dens **Indstillinger**: dens tjek starter igen med det samme, og de næste anmodninger evalueres. De anmodninger, der blev vist, mens den var på pause, evalueres ikke bagefter. Se [Hold den tjekket under hændelser](#hold-den-tjekket-under-hændelser).
 :::
 
 :::details Min afsender får en 401
