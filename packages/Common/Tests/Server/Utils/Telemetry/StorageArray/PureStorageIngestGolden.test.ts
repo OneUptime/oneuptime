@@ -24,6 +24,7 @@ import {
   FlashBladeEndpoint,
   PURE_CAPTURE_TIME_MS,
 } from "../../../../Helpers/StorageArray/PureStorageCaptures";
+import { getPureSnapshotMetricNames } from "../../../../Helpers/StorageArray/PureSlice";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -405,7 +406,8 @@ function computeGolden(): Omit<GoldenFile, "note"> {
   }
 
   return {
-    snapshotMetricNames: Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES).sort(),
+    // Pure's own: a platform registered since reads series of its own.
+    snapshotMetricNames: getPureSnapshotMetricNames(),
     componentStatuses,
     systemResolution,
     cases,
@@ -485,8 +487,8 @@ describe("a Pure Storage array's metrics become what they became before #11000",
         return !STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(name);
       });
 
-    // Every family the scan reads is in the captures at least once.
-    expect(new Set(read)).toEqual(new Set(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES));
+    // Every family the scan reads for Pure is in the captures at least once.
+    expect(new Set(read)).toEqual(new Set(getPureSnapshotMetricNames()));
     expect(passedOver.length).toBeGreaterThan(0);
   });
 });

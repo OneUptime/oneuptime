@@ -18,6 +18,7 @@ Storage Arrays محصولی است که برای هر سازنده‌ای به �
 | **Pure Storage FlashArray**، Purity//FA 6.7 و بعد از آن | `purestorage.flasharray` | نقطه پایانی OpenMetrics خود آرایه (`https://<array>/metrics/...?namespace=purefa`): چیزی کنار کالکتور اجرا نمی‌شود | `otel-collector-config.yaml` (پیش‌فرض) |
 | **Pure Storage FlashArray**، Purity//FA قدیمی‌تر | `purestorage.flasharray` | صادرکننده OpenMetrics مخصوص FlashArray از Pure، که همان فایل Compose آن را به‌صورت سرویس `pure-fa-exporter` اجرا می‌کند | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | صادرکننده OpenMetrics مخصوص FlashBlade از Pure، که همان فایل Compose آن را به‌صورت سرویس `pure-fb-exporter` اجرا می‌کند | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | صادرکننده PowerStore Metrics Exporter از Dell، که همان فایل Compose آن را به‌صورت سرویس `powerstore-exporter` می‌سازد و اجرا می‌کند؛ هشدارهای خوشه با syslog به سرویس `powerstore-syslog` آن می‌رسند | `otel-collector-config.powerstore.yaml` |
 
 Pure Storage در فوریه ۲۰۲۶ نام خود را به **Everpure** تغییر داد. FlashArray، FlashBlade و Purity نام‌هایشان را نگه داشتند، و متریک‌های `purefa_*` و `purefb_*` هم همین‌طور، پس همه‌چیز در این صفحه درباره آرایه‌هایی که با هر یک از این دو نام فروخته شده‌اند صدق می‌کند.
 
@@ -27,6 +28,10 @@ flowchart TB
     collector -->|"نسخه قدیمی‌تر FlashArray،<br/>FlashBlade"| exporter["صادرکننده Pure"]
     exporter -->|"توکن API"| array
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 یک عامل یک آرایه را پایش می‌کند: برای هر آرایه یک عامل اجرا کنید ([پایش چند آرایه](#پایش-چند-آرایه) را ببینید). آرایه با نخستین داده‌اش خودش را ثبت می‌کند، با نامی که عامل به‌صورت `storage.array.name` روی هر متریک مُهر می‌زند.
@@ -35,6 +40,7 @@ flowchart TB
 
 - Docker Engine 20.10 یا بعد از آن با افزونه Docker Compose v2، روی ماشینی که از طریق HTTPS (TCP 443) به رابط مدیریتی آرایه برسد.
 - یک حساب مدیر روی آرایه، برای ساختن کاربری با نقش داخلی **readonly** و یک توکن API برای آن.
+- برای Dell PowerStore، یک ماشین x86-64 (Dell صادرکننده خود را فقط برای x86-64 می‌سازد) و یک کاربر PowerStore برای عامل: [Dell PowerStore](#dell-powerstore) را ببینید.
 - یک کلید دریافت داده. آن را زیر **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده** بسازید و مقدارش را کپی کنید.
 
 ### عامل را کجا اجرا کنید
@@ -112,7 +118,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+برای Dell PowerStore، `otel-collector-config.powerstore.yaml`، `powerstore-exporter.Dockerfile` و `powerstore-syslog.yaml` را هم دانلود کنید، `STORAGE_SYSTEM=dell.powerstore`، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` و `COMPOSE_PROFILES=powerstore` را تنظیم کنید، و `POWERSTORE_ENDPOINT`، `POWERSTORE_USERNAME` و `POWERSTORE_PASSWORD` را پر کنید، گذرواژه را داخل علامت نقل‌قول تکی.
 
 برای FlashArray روی Purity//FA قدیمی‌تر، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` و `COMPOSE_PROFILES=flasharray-exporter` را تنظیم کنید. برای FlashBlade، `STORAGE_SYSTEM=purestorage.flashblade`، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` و `COMPOSE_PROFILES=flashblade` را تنظیم کنید، و `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN` را پر کنید (به‌جای جفت `PURE_FA_*`). عامل را راه بیندازید:
 
@@ -139,6 +154,16 @@ Everything is ready. Begin running and processing data.
 **محصولات** > **زیرساخت** > **آرایه‌های ذخیره‌سازی** > **همه آرایه‌های ذخیره‌سازی** را باز کنید. پس از نخستین برداشت (حدود یک دقیقه) آرایه با ظرفیت، کارایی، هشدارهای باز و سخت‌افزارش آنجاست. حجم‌ها، میزبان‌ها و پادها ظرف ۲ دقیقه می‌آیند، سیستم‌های فایل و باکت‌های FlashBlade ظرف ۵ دقیقه، و دایرکتوری‌های FlashArray ظرف ۳۰ دقیقه. صفحهٔ **توپولوژی** آرایه میزبان‌ها، حجم‌ها، سیستم‌های فایل و سخت‌افزارش را روی یک نقشه می‌کشد: [توپولوژی](/docs/telemetry/topology#باز-کردن-نقشهٔ-خود-یک-منبع) را ببینید.
 :::
 
+## Dell PowerStore
+
+عامل یک خوشه PowerStore را از طریق PowerStore Metrics Exporter از Dell، نسخه `powerstore-metrics-exporter_v1.0.3`، می‌خواند. Dell آن را به‌صورت فایل اجرایی منتشر می‌کند، نه ایمیج، پس سرویس `powerstore-exporter` در نخستین اجرا ایمیج مستندشده Dell را از `powerstore-exporter.Dockerfile` می‌سازد و SHA-256 فایل اجرایی را بررسی می‌کند؛ این ساخت یک بار به `quay.io` و `github.com` نیاز دارد.
+
+صادرکننده Dell با نام کاربری و گذرواژه وارد می‌شود، چون PowerStore توکن API ندارد. در PowerStore Manager، زیر _Settings → Users_ یک کاربر محلی فقط برای عامل با نقش **Storage Operator** اضافه کنید: صادرکننده کارایی را از بایگانی پنج‌دقیقه‌ای متریک‌های انبوه PowerStore می‌خواند، که خودش آن را روشن می‌کند و PowerStoreOS 4.1 و بعد از آن به آن نیاز دارند، و به گفته README شرکت Dell نقش Operator نمی‌تواند آن را روشن کند. روی PowerStoreOS قدیمی‌تر، نقش فقط‌خواندنی **Operator** همراه با `POWERSTORE_BULK_METRICS=false` کافی است. فقط صادرکننده گذرواژه را از `.env` می‌خواند.
+
+صادرکننده Dell هیچ هشداری نمی‌خواند، پس خوشه هشدارهای خودش را می‌فرستد: سرویس `powerstore-syslog` syslog راه دور آن را روی پورت 5514، با TCP و UDP، دریافت می‌کند و هر خط را در صفحه **لاگ‌ها** آرایه ثبت می‌کند، با رکورد PowerStore در ویژگی‌ها (`powerstore.alert.id`، `powerstore.alert.state`، `powerstore.event.code`) و شدتی برگرفته از کدهای رویداد Dell (`powerstore.alert.severity`). در PowerStore Manager، _Settings → Security → Remote Logging_ را باز کنید، این ماشین را روی پورت 5514 اضافه کنید و آن پورت را در دیوار آتش آن باز کنید. syslog روی TLS در پورت 6514 در `powerstore-syslog.yaml` توضیح داده شده است.
+
+صادرکننده Dell نه میزبانی گزارش می‌کند و نه نشست تکثیری، پس این نسخه هیچ‌کدام را ندارد.
+
 ## متغیرهای محیطی
 
 اسکریپت نصب این‌ها را در `/opt/oneuptime-storage-array-agent/.env` می‌نویسد؛ نصب با Docker Compose آن‌ها را از `.env` کنار `docker-compose.yml` می‌خواند. پس از تغییر یکی از آن‌ها، `docker compose up -d` را در همان پوشه اجرا کنید.
@@ -155,6 +180,13 @@ Everything is ready. Begin running and processing data.
 | `PURE_FA_API_TOKEN` | FlashArray | توکن API کاربر FlashArray با نقش readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | نشانی مدیریتی FlashBlade: یک نام میزبان یا IP، بدون `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | توکن API کاربر FlashBlade با نقش readonly. |
+| `POWERSTORE_ENDPOINT` | PowerStore | نشانی مدیریتی خوشه PowerStore: یک نام میزبان یا IP، بدون `https://`. |
+| `POWERSTORE_USERNAME` | PowerStore | کاربر PowerStore که صادرکننده Dell با آن وارد می‌شود. |
+| `POWERSTORE_PASSWORD` | PowerStore | گذرواژه آن کاربر. فقط صادرکننده آن را می‌خواند. |
+| `POWERSTORE_BULK_METRICS` | خیر | `true` کارایی را از بایگانی متریک‌های انبوه PowerStore می‌خواند؛ `false` هر شیء را جداگانه می‌خواند. پیش‌فرض `true` است. |
+| `POWERSTORE_API_VERSION` | خیر | `v3` برای PowerStoreOS 3.6 و بعد از آن، یا `v1`. پیش‌فرض `v3` است. |
+| `POWERSTORE_REQUEST_LIMIT` | خیر | تعداد درخواست‌هایی که صادرکننده هم‌زمان به خوشه می‌فرستد. پیش‌فرض `16` است. |
+| `POWERSTORE_SYSLOG_PORT` | خیر | پورتی که این ماشین syslog خوشه را روی آن دریافت می‌کند، با TCP و UDP. پیش‌فرض `5514` است. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | خیر | `true` گواهی خودامضای آرایه را روی نقطه پایانی بومی می‌پذیرد؛ `false` آن را اعتبارسنجی می‌کند. پیش‌فرض آن `true` است. صادرکننده‌های Pure هرگز گواهی آرایه را اعتبارسنجی نمی‌کنند، پس این متغیر بر آن‌ها اثری ندارد. |
 
 ## عامل چگونه برداشت می‌کند
@@ -163,6 +195,7 @@ Everything is ready. Begin running and processing data.
 - **هر کار سری‌هایش را با `scrape_endpoint: <endpoint>` برچسب می‌زند.** هر نقطه پایانی `purefa_info` یا `purefb_info` را هم صادر می‌کند، پس OneUptime می‌داند یک دسته فهرست کامل کدام خانواده‌هاست: همین‌گونه است که یک حجم، میزبان، پاد، سیستم فایل یا باکت حذف‌شده به‌جای ماندن، از موجودی بیرون می‌رود. برچسب‌ها را همان‌طور که همراه بسته آمده‌اند نگه دارید.
 - **تأخیر هر حجم و هر میزبان سه بُعد را نگه می‌دارد.** هر حجم و میزبان تأخیر خود را در حداکثر شانزده `dimension` صادر می‌کند. قاعده‌ای در `metric_relabel_configs` سه مقدار `usec_per_read_op`، `usec_per_write_op` و `usec_per_mirrored_write_op` را نگه می‌دارد و تفکیک محدودیت نرخ QoS، صف، SAN و زمان سرویس را کنار می‌گذارد، که شمار سری‌های یک آرایه بزرگ را چند برابر می‌کند. تفکیک کل آرایه روی `purefa_array_performance_latency_usec` نگه داشته می‌شود. برای نگه‌داشتن تفکیک هر حجم هم، این قاعده را حذف کنید.
 - **توکن API یک توکن Bearer است.** پیکربندی بومی آن را به خود آرایه می‌فرستد؛ پیکربندی‌های صادرکننده آن را فقط از راه شبکه Compose به صادرکننده می‌فرستند، و پورت‌های صادرکننده‌ها هرگز منتشر نمی‌شوند.
+- **یک PowerStore هر ۵ دقیقه.** صادرکننده Dell هر بخش خوشه را در `/metrics/<cluster>/<part>` ارائه می‌دهد: پیکربندی `cluster` را هر ۶۰ ثانیه می‌خواند، که ضربان قلب آن است، و `appliance`، `capacity`، `hardware`، `port`، `volume`، `volumeGroup`، `nas` و `file` را هر ۵ دقیقه، چون PowerStore آن‌ها را در نمونه‌های پنج‌دقیقه‌ای محاسبه می‌کند.
 - **بدون `send_batch_max_size`.** ‏OneUptime فهرست موجودی را در هر درخواست از یک برداشت کامل بازمی‌سازد، پس پردازشگر `batch` همراهِ عامل هرگز یک برداشت را میان چند صادرات تقسیم نمی‌کند. تنظیمات batch را همان‌طور که ارسال شده‌اند نگه دارید.
 
 ## آنچه عامل گردآوری می‌کند
@@ -179,8 +212,13 @@ Everything is ready. Begin running and processing data.
 | FlashBlade `/metrics/array` | `purefb_info`، `purefb_alerts_open`، `purefb_array_space_*`، `purefb_array_performance_*`، `purefb_hardware_health` | نام FlashBlade، نسخه Purity و شناسه سیستم؛ ظرفیت و کاهش داده؛ شمار هشدارهای باز؛ سلامت آرایه؛ صفحه **سخت‌افزار** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`، `purefb_file_systems_performance_*` | صفحه **سامانه‌های فایل**: فضای تخصیص‌یافته و مصرف‌شده، کاهش داده، تأخیر، IOPS و پهنای باند هر سیستم فایل |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`، `purefb_buckets_quota_space_bytes`، `purefb_buckets_object_count`، `purefb_buckets_performance_*`، `purefb_object_store_accounts_*` | صفحه **باکت‌ها**: فضا، سهمیه، شمار شیءها و کارایی هر باکت، گروه‌بندی‌شده بر پایه حساب |
+| PowerStore `cluster`، `appliance`، `capacity` | `powerstore_cluster`، `powerstore_metro_*`، `powerstore_appliance`، `powerstore_perf_*`، `powerstore_cap_*` | نام و وضعیت خوشه؛ صفحه **دستگاه‌های اختصاصی**: ظرفیت، کاهش داده، تأخیر، IOPS و پهنای باند هر دستگاه اختصاصی |
+| PowerStore `hardware`، `port` | `powerstore_hardware_*`، `powerstore_wear_metrics_by_drive`، `powerstore_fc_port_*`، `powerstore_eth_port_*`، `powerstore_metricFcPort_*`، `powerstore_metricEthPort_*` | صفحه **سخت‌افزار**: گره‌ها، فن‌ها، منابع تغذیه، باتری‌ها، درایوها و پورت‌های جلویی، هر کدام با دستگاه اختصاصی خودش |
+| PowerStore `volume`، `volumeGroup`، `nas`، `file` | `powerstore_volume_*`، `powerstore_metricVolume_*`، `powerstore_volumegroup_*`، `powerstore_metricVg_*`، `powerstore_nas_server_operational_status`، `powerstore_metricNas_*`، `powerstore_filesystem_*`، `powerstore_metricFilesystem_*` | صفحه‌های **حجم‌ها**، **گروه‌های حجم**، **سرورهای NAS** و **سامانه‌های فایل** |
 
 ستون **سلامت** در **همه آرایه‌های ذخیره‌سازی** هشدارها و سخت‌افزار خود آرایه را از تازه‌ترین داده‌هایش می‌خواند: **بحرانی** تا وقتی که یک هشدار بحرانی باز گزارش می‌کند، یا یک قطعه سخت‌افزاری، درایو یا کنترلر که بحرانی، خراب، ناپیدا یا ناسالم است؛ **هشدار** تا وقتی که یک هشدار اخطار باز گزارش می‌کند، یا قطعه‌ای تنزل‌یافته یا ناشناخته؛ در غیر این صورت **OK**؛ و تا وقتی عامل قطع است، **ناشناخته**. **نمای کلی** آرایه بیش از این را می‌سنجد، همان‌طور که بخش بعدی می‌گوید. در معیارهای مانیتور، ویژگی‌های آرایه پیشوند `resource.` می‌گیرند (`resource.storage.array.name`، `resource.storage.system`)، در حالی که برچسب‌های نقطه داده بی‌پیشوند می‌مانند (`name`، `host`، `dimension`، `space`).
+
+سلامت یک PowerStore همان سلامت سخت‌افزار آن است، چون هشدارهایش به‌صورت لاگ می‌رسند. عامل `powerstore_cap_physical_used_percent` و `powerstore_filesystem_logical_used_percent` را خودش محاسبه می‌کند و وضعیت یک گره را تا وقتی Healthy است 1 می‌خواند.
 
 ## آنچه صفحه‌های آرایه نشان می‌دهند
 
@@ -194,7 +232,11 @@ Everything is ready. Begin running and processing data.
 
 فهرست‌های **میزبان‌ها**، **تکثیر** و **سامانه‌های فایل** وضعیت هر بخش را با همان قواعد می‌گویند، و دلیل زیر آن. صفحه خود هر میزبان و هر سامانه فایل می‌گوید چه چیزی در آن نیاز به توجه دارد و کدام هشدارهای آرایه آن را زیر نظر دارند، با یک قدم برای روشن کردن بقیه، و صفحه هر بخش، از جمله حجم و باکت، می‌گوید چه چیزی روی آن باز است. تا وقتی عامل قطع است، سلامت **سلامت: نامشخص** نشان داده می‌شود: آخرین گزارش آرایه دیگر درست نیست. هر آستانه بالا همان است که الگوی هشدارش در آن فعال می‌شود، همان‌طور که [مانیتور آرایه ذخیره‌سازی](/docs/monitor/storage-array-monitor) آن‌ها را فهرست می‌کند.
 
+روی یک PowerStore، زبانه‌های **دستگاه‌های اختصاصی**، **گروه‌های حجم** و **سرورهای NAS** بخش‌هایی را فهرست می‌کنند که فقط PowerStore دارد، و صفحه **سخت‌افزار** دستگاه اختصاصی هر بخش را نام می‌برد، چون همه دستگاه‌های اختصاصی بخش‌های خود را یکسان نام‌گذاری می‌کنند.
+
 ## اختیاری — ارسال syslog آرایه
+
+کالکتور syslog یک PowerStore همان‌طور که عرضه شده اجرا می‌شود ([Dell PowerStore](#dell-powerstore) را ببینید): این بخش برای آرایه‌های Pure است.
 
 به‌طور پیش‌فرض عامل فقط متریک می‌فرستد، پس صفحه **لاگ‌ها** آرایه خالی می‌ماند. آرایه‌ها هشدارها و رویدادهای ممیزی خود را به‌صورت syslog می‌فرستند، و هر پیکربندی کالکتور همراه بسته یک جفت گیرنده `syslog` در حالت توضیح دارد (TCP و UDP روی پورت ۵۵۱۴، RFC 3164) که به یک خط لوله `logs` در حالت توضیح وصل است و مُهر `storage.array.name` را می‌زند تا لاگ‌ها روی آرایه شما بنشینند.
 
@@ -237,6 +279,8 @@ processors:
 
 یک عامل یک آرایه را می‌خواند. برای پایش چند آرایه از یک ماشین، هر کدام را در پوشه خودش با `.env` خودش نصب کنید، مانند `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`، و به هر کدام `container_name` خودش را در `docker-compose.yml` آن بدهید (مانند `oneuptime-storage-array-agent-fa02`): دو کانتینر نمی‌توانند یک نام داشته باشند. پوشه را با `-d` به اسکریپت تشخیصی بدهید.
 
+یک عامل PowerStore دوم هم به پورت syslog خودش نیاز دارد: `POWERSTORE_SYSLOG_PORT` را، مثلاً `5515`، در `.env` آن تنظیم کنید.
+
 ## اجرا به‌صورت یک سرویس systemd
 
 برای اینکه عامل همراه ماشین شروع شود و اگر از کار افتاد دوباره راه‌اندازی شود، واحد systemd آن را نصب کنید. این واحد فرض می‌کند عامل در `/opt/oneuptime-storage-array-agent` است، جایی که اسکریپت نصب آن را می‌گذارد:
@@ -269,6 +313,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+یک عامل PowerStore فایل‌های `otel-collector-config.powerstore.yaml`، `powerstore-exporter.Dockerfile` و `powerstore-syslog.yaml` را هم دوباره دانلود می‌کند؛ وقتی نسخه تازه برچسب ایمیج صادرکننده را جابه‌جا کند، `docker compose up` آن ایمیج را دوباره می‌سازد.
+
 ## حذف عامل
 
 ```bash
@@ -277,6 +323,8 @@ docker compose down
 ```
 
 سپس اگر دیگر نیازشان ندارید، کاربر فقط‌خواندنی و توکن API آن را روی آرایه پاک کنید.
+
+روی یک PowerStore، `docker compose --profile powerstore down` را اجرا کنید تا صادرکننده و کالکتور syslog هم متوقف شوند.
 
 ## رفع اشکال
 
@@ -315,6 +363,10 @@ Purity//FA آن نقطه پایانی بومی OpenMetrics ندارد. `install.
 
 :::details نام pure-fa-exporter یا pure-fb-exporter پیدا نمی‌شود
 صادرکننده در حال اجرا نیست: `COMPOSE_PROFILES` باید با `STORAGE_ARRAY_COLLECTOR_CONFIG` جور باشد (`flasharray-exporter` برای پیکربندی صادرکننده FlashArray، `flashblade` برای پیکربندی FlashBlade). `.env` را درست کنید و `docker compose up -d` را اجرا کنید؛ سپس `docker compose ps` صادرکننده را فهرست می‌کند.
+:::
+
+:::details یک PowerStore هیچ چیزی نمی‌فرستد
+لاگ صادرکننده را با `docker compose logs powerstore-exporter` بخوانید: `401` یعنی نام کاربری یا گذرواژه اشتباه است، و `403` روی `latest_five_min_metrics` یعنی نقش کاربر نمی‌تواند بایگانی متریک‌های انبوه را روشن کند (نقش **Storage Operator** را به آن بدهید، یا روی PowerStoreOS قدیمی‌تر از 4.1 مقدار `POWERSTORE_BULK_METRICS=false` را تنظیم کنید). صادرکننده پس از شروع یک دقیقه زمان لازم دارد تا پاسخ دهد. هیچ هشداری در صفحه **لاگ‌ها** نیست: تنظیمات _Remote Logging_ خوشه، دیوار آتش روی پورت 5514 و `docker compose logs powerstore-syslog` را بررسی کنید.
 :::
 
 :::details حجم‌ها یا میزبان‌های حذف‌شده در موجودی می‌مانند

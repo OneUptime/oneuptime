@@ -1,0 +1,56 @@
+# HELP powerstore_appliance Dell Service Tag
+# TYPE powerstore_appliance gauge
+powerstore_appliance{IP="fake-powerstore",appliance_id="A1",service_tag="7XKQ2T3"} 0
+powerstore_appliance{IP="fake-powerstore",appliance_id="A2",service_tag="9FHM4V2"} 0
+# HELP powerstore_perf_avg_io_size Average size of read and write operations in bytes.unit is bytes
+# TYPE powerstore_perf_avg_io_size gauge
+powerstore_perf_avg_io_size{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 65536
+powerstore_perf_avg_io_size{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 57232
+# HELP powerstore_perf_avg_io_workload_cpu_utilization The percentage of CPU Utilization on the cores dedicated to servicing storage I/O requests.unit is %
+# TYPE powerstore_perf_avg_io_workload_cpu_utilization gauge
+powerstore_perf_avg_io_workload_cpu_utilization{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 38.5
+powerstore_perf_avg_io_workload_cpu_utilization{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 71.25
+# HELP powerstore_perf_avg_latency Average read and write latency in microseconds,unit is ms
+# TYPE powerstore_perf_avg_latency gauge
+powerstore_perf_avg_latency{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 498.4
+powerstore_perf_avg_latency{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 4123.7
+# HELP powerstore_perf_avg_read_bandwidth Read rate in bytes per second,unit is bps
+# TYPE powerstore_perf_avg_read_bandwidth gauge
+powerstore_perf_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 1.19537664e+09
+powerstore_perf_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 4.7906816e+08
+# HELP powerstore_perf_avg_read_iops Total read operations per second,unit is iops
+# TYPE powerstore_perf_avg_read_iops gauge
+powerstore_perf_avg_read_iops{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 18240.5
+powerstore_perf_avg_read_iops{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 7310
+# HELP powerstore_perf_avg_read_latency Average read latency in microseconds,unit is ms
+# TYPE powerstore_perf_avg_read_latency gauge
+powerstore_perf_avg_read_latency{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 412.6
+powerstore_perf_avg_read_latency{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 6214.9
+# HELP powerstore_perf_avg_read_size Average read size in bytes.unit is bytes
+# TYPE powerstore_perf_avg_read_size gauge
+powerstore_perf_avg_read_size{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 65536
+powerstore_perf_avg_read_size{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 65536
+# HELP powerstore_perf_avg_total_bandwidth Total data transfer rate in bytes per second,unit is bps
+# TYPE powerstore_perf_avg_total_bandwidth gauge
+powerstore_perf_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 1.79306496e+09
+powerstore_perf_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 5.603328e+08
+# HELP powerstore_perf_avg_total_iops Total read and write operations per second,unit is iops
+# TYPE powerstore_perf_avg_total_iops gauge
+powerstore_perf_avg_total_iops{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 27360.75
+powerstore_perf_avg_total_iops{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 9790.5
+# HELP powerstore_perf_avg_write_bandwidth Write rate in bytes per second,unit is bps
+# TYPE powerstore_perf_avg_write_bandwidth gauge
+powerstore_perf_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 5.9768832e+08
+powerstore_perf_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 8.126464e+07
+# HELP powerstore_perf_avg_write_iops Total write operations per second,unit is iops
+# TYPE powerstore_perf_avg_write_iops gauge
+powerstore_perf_avg_write_iops{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 9120.25
+powerstore_perf_avg_write_iops{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 2480.5
+# HELP powerstore_perf_avg_write_latency Average write latency in microseconds,unit is ms
+# TYPE powerstore_perf_avg_write_latency gauge
+powerstore_perf_avg_write_latency{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 638.2
+powerstore_perf_avg_write_latency{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 911.3
+# HELP powerstore_perf_avg_write_size Average write size in bytes.unit is bytes
+# TYPE powerstore_perf_avg_write_size gauge
+powerstore_perf_avg_write_size{IP="fake-powerstore",appliance_id="A1",appliance_name="ps-prod-01-appliance-1"} 65536
+powerstore_perf_avg_write_size{IP="fake-powerstore",appliance_id="A2",appliance_name="ps-prod-01-appliance-2"} 32768
