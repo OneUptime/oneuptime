@@ -29,6 +29,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
 import OneUptimeDate from "../../../../Types/Date";
+import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import {
   afterEach,
   beforeEach,
@@ -748,4 +749,319 @@ describe("an Incoming Request monitor whose first match changes no status", () =
     expect(response.criteriaMetId).toBe("payload-warning");
     expect(response.statusCriteriaId).toBe("payload-error");
   });
+});
+
+/*
+ * THE RULE, OVER DRAWN MONITORS (#11238). Website monitors of one to six
+ * criteria drawn from one seed: each judges whether the site is up, how fast
+ * it answered or its status code - one filter or two - sets Offline,
+ * Degraded, Online or no status, opens an incident, an alert, both or
+ * neither, and one in ten is turned off. Each is judged alone first, on a
+ * monitor of its own, and then the monitor of all of them, on the same
+ * answer: it must act on its first match, take its status from the first
+ * match among the criteria that change the status, and say of every
+ * criteria why it was or was not evaluated.
+ */
+const DRAWN_FILTERS: Array<CriteriaFilter> = [
+  isOffline,
+  isOnline,
+  slowerThan(500),
+  slowerThan(2000),
+  slowerThan(5000),
+  fasterThanOrAt(1000),
+  statusCodeAtLeast(400),
+  statusCodeAtLeast(500),
+];
+
+// No status twice as often as any one: alert-only criteria are common.
+const DRAWN_STATUSES: Array<ObjectID | undefined> = [
+  OFFLINE,
+  DEGRADED,
+  ONLINE,
+  undefined,
+  undefined,
+];
+
+interface DrawnAnswer {
+  isUp: boolean;
+  responseTimeInMs: number;
+  statusCode: number;
+}
+
+function drawCriteria(random: SeededRandom, index: number): CriteriaSpec {
+  const filters: Array<CriteriaFilter> = [];
+  const filterCount: number = 1 + random(2);
+
+  for (let drawn: number = 0; drawn < filterCount; drawn++) {
+    filters.push(DRAWN_FILTERS[random(DRAWN_FILTERS.length)]!);
+  }
+
+  const status: ObjectID | undefined =
+    DRAWN_STATUSES[random(DRAWN_STATUSES.length)];
+
+  return {
+    id: `drawn-${index}`,
+    name: `Drawn criteria ${index + 1}`,
+    filters: filters,
+    status: status,
+    incident: random(3) === 0,
+    alert: random(2) === 0,
+    isEnabled: random(10) !== 0,
+  };
+}
+
+function drawAnswer(random: SeededRandom): DrawnAnswer {
+  return {
+    isUp: random(4) !== 0,
+    responseTimeInMs: [80, 700, 2500, 6000][random(4)]!,
+    statusCode: [200, 404, 503][random(3)]!,
+  };
+}
+
+function answered(answer: DrawnAnswer): DataToProcess {
+  return siteCheck({
+    isUp: answer.isUp,
+    responseTimeInMs: answer.responseTimeInMs,
+    statusCode: answer.statusCode,
+  });
+}
+
+// What the rule says each criteria's row reads, and what acts and sets the status.
+interface Ruled {
+  criteriaMetId: string | undefined;
+  statusCriteriaId: string | undefined;
+  rows: Record<string, string>;
+}
+
+function rule(specs: Array<CriteriaSpec>, matchesAlone: Array<boolean>): Ruled {
+  const changesStatus: (spec: CriteriaSpec) => boolean = (
+    spec: CriteriaSpec,
+  ): boolean => {
+    return Boolean(spec.status);
+  };
+  const isEnabled: (spec: CriteriaSpec) => boolean = (
+    spec: CriteriaSpec,
+  ): boolean => {
+    return spec.isEnabled !== false;
+  };
+
+  const firstIndex: number = matchesAlone.findIndex(Boolean);
+  const first: CriteriaSpec | undefined = specs[firstIndex];
+  const read: Record<string, string> = {};
+
+  // Up to the first match, every criteria is judged, or said to be off.
+  specs.forEach((spec: CriteriaSpec, index: number): void => {
+    if (firstIndex === -1 || index <= firstIndex) {
+      read[spec.id] = !isEnabled(spec)
+        ? "skipped: disabled"
+        : matchesAlone[index]
+          ? "met"
+          : "not met";
+    }
+  });
+
+  if (!first) {
+    return {
+      criteriaMetId: undefined,
+      statusCriteriaId: undefined,
+      rows: read,
+    };
+  }
+
+  // A first match that changes the status decides it: nothing after it is evaluated.
+  if (changesStatus(first)) {
+    specs.slice(firstIndex + 1).forEach((spec: CriteriaSpec): void => {
+      read[spec.id] = "skipped: earlier-criterion-matched";
+    });
+
+    return { criteriaMetId: first.id, statusCriteriaId: first.id, rows: read };
+  }
+
+  // One that changes none: the criteria after it that change the status are judged for it.
+  const isJudgedPast: boolean = specs
+    .slice(firstIndex + 1)
+    .some((spec: CriteriaSpec): boolean => {
+      return isEnabled(spec) && changesStatus(spec);
+    });
+  let statusCriteriaId: string | undefined = undefined;
+
+  specs.slice(firstIndex + 1).forEach((spec: CriteriaSpec, offset: number) => {
+    const index: number = firstIndex + 1 + offset;
+
+    if (statusCriteriaId) {
+      read[spec.id] = isJudgedPast
+        ? "skipped: status-already-set"
+        : "skipped: earlier-criterion-matched";
+    } else if (!changesStatus(spec)) {
+      read[spec.id] = isJudgedPast
+        ? "skipped: changes-no-status"
+        : "skipped: earlier-criterion-matched";
+    } else if (!isEnabled(spec)) {
+      read[spec.id] = "skipped: disabled";
+    } else if (matchesAlone[index]) {
+      read[spec.id] = "met";
+      statusCriteriaId = spec.id;
+    } else {
+      read[spec.id] = "not met";
+    }
+  });
+
+  return {
+    criteriaMetId: first.id,
+    statusCriteriaId: statusCriteriaId,
+    rows: read,
+  };
+}
+
+const DRAWN_EVALUATOR_MONITORS: number = 400;
+
+describe("drawn monitors, each criteria judged alone first (#11238)", () => {
+  it("the first match acts, the first match that changes the status sets it, and every criteria's row says why", async () => {
+    const random: SeededRandom = seededRandom(20261127);
+    const seen: Record<string, number> = {};
+
+    for (
+      let monitorIndex: number = 0;
+      monitorIndex < DRAWN_EVALUATOR_MONITORS;
+      monitorIndex++
+    ) {
+      const specs: Array<CriteriaSpec> = [];
+      const criteriaCount: number = 1 + random(6);
+
+      for (let index: number = 0; index < criteriaCount; index++) {
+        specs.push(drawCriteria(random, index));
+      }
+
+      const answer: DrawnAnswer = drawAnswer(random);
+      const matchesAlone: Array<boolean> = [];
+
+      for (const spec of specs) {
+        const alone: Judged = await judge(
+          monitorWith({ criteria: [spec] }),
+          answered(answer),
+        );
+
+        matchesAlone.push(alone.response.criteriaMetId === spec.id);
+      }
+
+      const { response, summary } = await judge(
+        monitorWith({ criteria: specs }),
+        answered(answer),
+      );
+      const ruled: Ruled = rule(specs, matchesAlone);
+
+      expect({
+        monitor: monitorIndex,
+        criteriaMetId: response.criteriaMetId,
+        statusCriteriaId: response.statusCriteriaId,
+        rows: rows(summary),
+      }).toEqual({ monitor: monitorIndex, ...ruled });
+
+      // One row per criteria, in the order they are given.
+      expect(
+        summary.criteriaResults.map(
+          (result: MonitorEvaluationCriteriaResult) => {
+            return result.criteriaId;
+          },
+        ),
+      ).toEqual(
+        specs.map((spec: CriteriaSpec): string => {
+          return spec.id;
+        }),
+      );
+
+      // The criteria that set the status is named in its own root cause.
+      if (ruled.statusCriteriaId) {
+        const setter: CriteriaSpec = specs.find((spec: CriteriaSpec) => {
+          return spec.id === ruled.statusCriteriaId;
+        })!;
+
+        expect(response.statusRootCause).toContain(
+          `**Criteria Name**: ${setter.name}`,
+        );
+      } else {
+        expect(response.statusRootCause).toBeUndefined();
+      }
+
+      const first: CriteriaSpec | undefined = specs.find(
+        (spec: CriteriaSpec): boolean => {
+          return spec.id === ruled.criteriaMetId;
+        },
+      );
+      const kind: string = !first
+        ? "nothing matched"
+        : first.status
+          ? "first match changes the status"
+          : ruled.statusCriteriaId
+            ? "status from a later match"
+            : "no criteria sets the status";
+
+      seen[kind] = (seen[kind] || 0) + 1;
+    }
+
+    // The draws reach every outcome the rule has, many times each.
+    for (const kind of [
+      "nothing matched",
+      "first match changes the status",
+      "status from a later match",
+      "no criteria sets the status",
+    ]) {
+      expect({ kind, often: (seen[kind] || 0) >= 25 }).toEqual({
+        kind,
+        often: true,
+      });
+    }
+  }, 180000);
+
+  it("a monitor whose criteria all change the status is judged as it always was: its first match sets the status", async () => {
+    const random: SeededRandom = seededRandom(7743);
+
+    for (let monitorIndex: number = 0; monitorIndex < 200; monitorIndex++) {
+      const specs: Array<CriteriaSpec> = [];
+      const criteriaCount: number = 1 + random(6);
+
+      for (let index: number = 0; index < criteriaCount; index++) {
+        const spec: CriteriaSpec = drawCriteria(random, index);
+
+        specs.push({
+          ...spec,
+          status: spec.status || [OFFLINE, DEGRADED, ONLINE][random(3)],
+        });
+      }
+
+      const { response, summary } = await judge(
+        monitorWith({ criteria: specs }),
+        answered(drawAnswer(random)),
+      );
+
+      // The status is the first match's, and nothing past it is judged.
+      expect({
+        monitor: monitorIndex,
+        statusCriteriaId: response.statusCriteriaId,
+      }).toEqual({
+        monitor: monitorIndex,
+        statusCriteriaId: response.criteriaMetId,
+      });
+
+      const firstIndex: number = specs.findIndex((spec: CriteriaSpec) => {
+        return spec.id === response.criteriaMetId;
+      });
+
+      summary.criteriaResults.forEach(
+        (result: MonitorEvaluationCriteriaResult, index: number): void => {
+          if (firstIndex >= 0 && index > firstIndex) {
+            expect({
+              monitor: monitorIndex,
+              skipCause: result.skipCause,
+            }).toEqual({
+              monitor: monitorIndex,
+              skipCause: "earlier-criterion-matched",
+            });
+          } else {
+            expect([undefined, "disabled"]).toContain(result.skipCause);
+          }
+        },
+      );
+    }
+  }, 180000);
 });

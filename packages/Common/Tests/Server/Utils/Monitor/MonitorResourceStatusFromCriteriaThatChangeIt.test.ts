@@ -63,6 +63,11 @@ import {
   mockMonitorStatusTimelineRows,
 } from "../../TestingUtils/MonitorStatusTimelineRows";
 import {
+  SeededRandom,
+  seededRandom,
+  shuffled,
+} from "../../../Helpers/SeededRandom";
+import {
   afterEach,
   beforeEach,
   describe,
@@ -1588,4 +1593,321 @@ describe("an SNMP trap that only alerts (#11238)", () => {
     expect(openAlerts()).toEqual(["Link down (trap)"]);
     expect(timeline.rows).toHaveLength(1);
   });
+});
+
+// ---- Drawn websites, checked again and again -------------------------------
+
+/*
+ * THE RULE, OVER DRAWN MONITORS AND CHECKS (#11238). Websites of two to five
+ * criteria, drawn from one seed out of seven - down (Offline, an incident),
+ * server errors (Degraded, an incident), very slow (Degraded), and four that
+ * only alert: slow, very slow, an error code, a slow error - each in an
+ * order of its own, are checked twelve times by answers of every kind.
+ *
+ * After each check, through the whole pipeline: the first criteria that
+ * matches acts - the incident and the alert open are its own, and every
+ * other criteria's resolve, as they always did - and the status is the one
+ * the first match among the criteria that change the status sets, or the
+ * default status when none of them matches. None of these criteria only
+ * brings the monitor back to its default status, so no recovery margin
+ * keeps a status: a stale status could only come from the old rule.
+ */
+
+interface DrawnAnswer {
+  name: string;
+  isUp: boolean;
+  responseTimeInMs: number;
+  statusCode: number;
+}
+
+interface DrawnCriteria {
+  spec: CriteriaSpec;
+  // Whether this criteria matches an answer, judged alone.
+  matches: (answer: DrawnAnswer) => boolean;
+}
+
+const DRAWN_ANSWERS: Array<DrawnAnswer> = [
+  { name: "down", isUp: false, responseTimeInMs: 120, statusCode: 0 },
+  {
+    name: "down and slow",
+    isUp: false,
+    responseTimeInMs: 3500,
+    statusCode: 0,
+  },
+  { name: "fast", isUp: true, responseTimeInMs: 120, statusCode: 200 },
+  { name: "slow", isUp: true, responseTimeInMs: 3500, statusCode: 200 },
+  { name: "very slow", isUp: true, responseTimeInMs: 6000, statusCode: 200 },
+  { name: "fast 503", isUp: true, responseTimeInMs: 120, statusCode: 503 },
+  { name: "slow 503", isUp: true, responseTimeInMs: 3500, statusCode: 503 },
+  { name: "fast 404", isUp: true, responseTimeInMs: 120, statusCode: 404 },
+  { name: "slow 404", isUp: true, responseTimeInMs: 3500, statusCode: 404 },
+];
+
+function codeAtLeast(code: number): CriteriaFilter {
+  return {
+    checkOn: CheckOn.ResponseStatusCode,
+    filterType: FilterType.GreaterThanOrEqualTo,
+    value: code,
+  };
+}
+
+const DRAWN_CRITERIA: Array<DrawnCriteria> = [
+  {
+    spec: SITE_DOWN,
+    matches: (answer: DrawnAnswer): boolean => {
+      return !answer.isUp;
+    },
+  },
+  {
+    spec: SERVER_ERRORS,
+    matches: (answer: DrawnAnswer): boolean => {
+      return answer.isUp && answer.statusCode >= 500;
+    },
+  },
+  {
+    spec: {
+      id: "very-slow-degraded",
+      name: "Very slow is degraded",
+      filters: [slowerThan(5000)],
+      status: DEGRADED,
+    },
+    matches: (answer: DrawnAnswer): boolean => {
+      return answer.responseTimeInMs > 5000;
+    },
+  },
+  {
+    spec: SITE_SLOW,
+    matches: (answer: DrawnAnswer): boolean => {
+      return answer.responseTimeInMs > 2000;
+    },
+  },
+  {
+    spec: {
+      id: "very-slow-alert",
+      name: "Site is very slow",
+      filters: [slowerThan(5000)],
+      alert: true,
+    },
+    matches: (answer: DrawnAnswer): boolean => {
+      return answer.responseTimeInMs > 5000;
+    },
+  },
+  {
+    spec: {
+      id: "error-code",
+      name: "Site answers an error",
+      filters: [codeAtLeast(400)],
+      alert: true,
+    },
+    matches: (answer: DrawnAnswer): boolean => {
+      return answer.isUp && answer.statusCode >= 400;
+    },
+  },
+  {
+    spec: {
+      id: "slow-error",
+      name: "Slow error",
+      filters: [slowerThan(2000), codeAtLeast(400)],
+      alert: true,
+    },
+    matches: (answer: DrawnAnswer): boolean => {
+      return (
+        answer.isUp &&
+        answer.responseTimeInMs > 2000 &&
+        answer.statusCode >= 400
+      );
+    },
+  },
+];
+
+const DRAWN_MONITORS: number = 60;
+const CHECKS_PER_DRAWN_MONITOR: number = 12;
+
+interface Expected {
+  status: string;
+  incidents: Array<string>;
+  alerts: Array<string>;
+}
+
+// What the rule says follows an answer, from each criteria judged alone.
+function expectedAfter(
+  monitorCriteria: Array<DrawnCriteria>,
+  answer: DrawnAnswer,
+): Expected {
+  const firstIndex: number = monitorCriteria.findIndex(
+    (drawn: DrawnCriteria): boolean => {
+      return drawn.matches(answer);
+    },
+  );
+  const first: DrawnCriteria | undefined = monitorCriteria[firstIndex];
+
+  const setsStatus: DrawnCriteria | undefined = !first
+    ? undefined
+    : first.spec.status
+      ? first
+      : monitorCriteria
+          .slice(firstIndex + 1)
+          .find((drawn: DrawnCriteria): boolean => {
+            return Boolean(drawn.spec.status) && drawn.matches(answer);
+          });
+
+  return {
+    status: setsStatus?.spec.status?.name || "Online",
+    incidents: first?.spec.incident ? [first.spec.name] : [],
+    alerts: first?.spec.alert ? [first.spec.name] : [],
+  };
+}
+
+function drawMonitor(random: SeededRandom): Array<DrawnCriteria> {
+  const monitorCriteria: Array<DrawnCriteria> = shuffled(
+    DRAWN_CRITERIA,
+    random,
+  ).slice(0, 2 + random(4));
+
+  jest.restoreAllMocks();
+  jest.setSystemTime(START);
+  watchSite(
+    monitorCriteria.map((drawn: DrawnCriteria): CriteriaSpec => {
+      return drawn.spec;
+    }),
+  );
+
+  return monitorCriteria;
+}
+
+async function answerWith(answer: DrawnAnswer): Promise<void> {
+  await check(
+    siteCheck({
+      isUp: answer.isUp,
+      responseTimeInMs: answer.responseTimeInMs,
+      ...(answer.isUp ? { statusCode: answer.statusCode } : {}),
+    }),
+  );
+}
+
+function idsOf(monitorCriteria: Array<DrawnCriteria>): Array<string> {
+  return monitorCriteria.map((drawn: DrawnCriteria): string => {
+    return drawn.spec.id;
+  });
+}
+
+describe("drawn websites, checked again and again (#11238)", () => {
+  it("the first match acts, and the first match that changes the status sets it, on every check", async () => {
+    const random: SeededRandom = seededRandom(11238);
+    let firstMatchesChangingNoStatus: number = 0;
+    let firstMatchesChangingTheStatus: number = 0;
+
+    for (
+      let monitorIndex: number = 0;
+      monitorIndex < DRAWN_MONITORS;
+      monitorIndex++
+    ) {
+      const monitorCriteria: Array<DrawnCriteria> = drawMonitor(random);
+
+      for (
+        let checkIndex: number = 0;
+        checkIndex < CHECKS_PER_DRAWN_MONITOR;
+        checkIndex++
+      ) {
+        const answer: DrawnAnswer =
+          DRAWN_ANSWERS[random(DRAWN_ANSWERS.length)]!;
+
+        await answerWith(answer);
+
+        const first: DrawnCriteria | undefined = monitorCriteria.find(
+          (drawn: DrawnCriteria): boolean => {
+            return drawn.matches(answer);
+          },
+        );
+
+        if (first && !first.spec.status) {
+          firstMatchesChangingNoStatus++;
+        } else if (first) {
+          firstMatchesChangingTheStatus++;
+        }
+
+        expect({
+          criteria: idsOf(monitorCriteria),
+          check: checkIndex,
+          answer: answer.name,
+          status: status(),
+          incidents: openIncidents(),
+          alerts: openAlerts(),
+        }).toEqual({
+          criteria: idsOf(monitorCriteria),
+          check: checkIndex,
+          answer: answer.name,
+          ...expectedAfter(monitorCriteria, answer),
+        });
+      }
+    }
+
+    // The draws reach both kinds of first match, many times each.
+    expect(firstMatchesChangingNoStatus).toBeGreaterThan(100);
+    expect(firstMatchesChangingTheStatus).toBeGreaterThan(100);
+  }, 180000);
+
+  it("the status timeline holds a row for each change of status, with no gap, and uptime counts the rule's statuses", async () => {
+    const random: SeededRandom = seededRandom(1123800);
+
+    for (let monitorIndex: number = 0; monitorIndex < 20; monitorIndex++) {
+      const monitorCriteria: Array<DrawnCriteria> = drawMonitor(random);
+
+      // The status the rule gives after each check, from Online.
+      const statuses: Array<string> = ["Online"];
+
+      for (
+        let checkIndex: number = 0;
+        checkIndex < CHECKS_PER_DRAWN_MONITOR;
+        checkIndex++
+      ) {
+        const answer: DrawnAnswer =
+          DRAWN_ANSWERS[random(DRAWN_ANSWERS.length)]!;
+
+        await answerWith(answer);
+        statuses.push(expectedAfter(monitorCriteria, answer).status);
+      }
+
+      // A row for the first status, then one per change - none for a check that kept it.
+      const changes: Array<string> = statuses.filter(
+        (name: string, index: number): boolean => {
+          return index === 0 || name !== statuses[index - 1];
+        },
+      );
+
+      expect({
+        criteria: idsOf(monitorCriteria),
+        rows: timeline.statusNames(),
+      }).toEqual({ criteria: idsOf(monitorCriteria), rows: changes });
+
+      // Each row ends where the next begins.
+      const timelineRows: Array<MonitorStatusTimeline> = timeline.rows;
+
+      for (let index: number = 0; index < timelineRows.length - 1; index++) {
+        expect(timelineRows[index]!.endsAt?.getTime()).toBe(
+          timelineRows[index + 1]!.startsAt?.getTime(),
+        );
+      }
+
+      /*
+       * Uptime over the checks: each status the rule gives holds until the
+       * next check, five minutes later; Online holds until the first one.
+       */
+      const downMinutes: number =
+        statuses.slice(1, -1).filter((name: string): boolean => {
+          return name !== "Online";
+        }).length * CHECK_EVERY_MINUTES;
+      const totalMinutes: number =
+        CHECKS_PER_DRAWN_MONITOR * CHECK_EVERY_MINUTES;
+
+      expect(
+        UptimeUtil.calculateUptimePercentage(
+          timeline.rows,
+          UptimePrecision.TWO_DECIMAL,
+          [OFFLINE, DEGRADED],
+          { startDate: START, endDate: OneUptimeDate.getCurrentDate() },
+        ),
+      ).toBeCloseTo(((totalMinutes - downMinutes) / totalMinutes) * 100, 1);
+    }
+  }, 180000);
 });
