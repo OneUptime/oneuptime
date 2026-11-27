@@ -209,7 +209,9 @@ export default class FilterGroups extends QueryOperator<string> {
       throw FilterGroups.getNotAGroupException(index);
     }
 
-    const columns: Array<string> = Object.keys(group);
+    const columns: Array<string> = Object.keys(
+      group as Record<string, unknown>,
+    );
 
     if (columns.length === 0) {
       throw new BadDataException(

@@ -107,8 +107,8 @@ import {
   CLOUD_ENVIRONMENT_STATUS_LABELS,
   CloudEnvironmentStatus,
   ENVIRONMENT_STATUS_FACET_KEY,
+  buildCloudEnvironmentStatusFilter,
   buildCloudEnvironmentStatusQuery,
-  computeCloudEnvironmentIdsForStatuses,
   getCloudEnvironmentStatus,
   getEnvironmentStatusFacet,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AppPlatforms/AppPlatformsEnvironmentStatus";
@@ -124,12 +124,16 @@ import {
   summarizeCloudFleet,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/AppPlatforms/Utils/CloudFleetSummary";
 import CephResource from "../../../Models/DatabaseModels/CephResource";
-import CloudResource from "../../../Models/DatabaseModels/CloudResource";
 import Route from "../../../Types/API/Route";
-import EqualToOrNull from "../../../Types/BaseDatabase/EqualToOrNull";
+import FilterGroups, {
+  FILTER_GROUPS_QUERY_KEY,
+  FilterGroup,
+  FilterGroupsMatch,
+} from "../../../Types/BaseDatabase/FilterGroups";
 import IsNull from "../../../Types/BaseDatabase/IsNull";
+import NotEqualOrNull from "../../../Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
-import { CloudResourceKind } from "../../../Types/Cloud/CloudResourceKind";
+import { buildFacetColumnQuery } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/FacetColumnQuery";
 import { JSONObject } from "../../../Types/JSON";
 import JSONFunctions from "../../../Types/JSONFunctions";
 import ObjectID from "../../../Types/ObjectID";
@@ -393,7 +397,7 @@ describe("an App Platforms environment's status", () => {
     }
   });
 
-  test("as queries: each status the same rule, a NULL status read as not connected", () => {
+  test("as queries: each status the same rule, any status but connected read as not connected", () => {
     expect(
       buildCloudEnvironmentStatusQuery(CloudEnvironmentStatus.Connected),
     ).toEqual({ otelCollectorStatus: "connected" });
@@ -402,82 +406,172 @@ describe("an App Platforms environment's status", () => {
       CloudEnvironmentStatus.Disconnected,
     ) as unknown as JSONObject;
 
-    expect(disconnected["otelCollectorStatus"]).toBeInstanceOf(EqualToOrNull);
+    // A row that never reported stores none: NotEqualOrNull keeps it.
+    expect(disconnected["otelCollectorStatus"]).toBeInstanceOf(NotEqualOrNull);
     expect(
-      (disconnected["otelCollectorStatus"] as unknown as EqualToOrNull<string>)
+      (disconnected["otelCollectorStatus"] as unknown as NotEqualOrNull<string>)
         .value,
-    ).toBe("disconnected");
+    ).toBe("connected");
     expect(disconnected["lastSeenAt"]).toBeInstanceOf(NotNull);
 
     const waiting: JSONObject = buildCloudEnvironmentStatusQuery(
       CloudEnvironmentStatus.Waiting,
     ) as unknown as JSONObject;
 
-    expect(waiting["otelCollectorStatus"]).toBeInstanceOf(EqualToOrNull);
+    expect(waiting["otelCollectorStatus"]).toBeInstanceOf(NotEqualOrNull);
     expect(waiting["lastSeenAt"]).toBeInstanceOf(IsNull);
   });
 
-  test("the Status chip resolves the statuses picked to the listed environments' ids, unioned", async () => {
-    getListMock.mockImplementation(((data: { query: JSONObject }) => {
-      const lastSeenAt: unknown = data.query["lastSeenAt"];
-      return Promise.resolve({
-        data:
-          lastSeenAt instanceof NotNull
-            ? [{ _id: "env-quiet" }]
-            : lastSeenAt instanceof IsNull
-              ? [{ _id: "env-new" }, { _id: "env-quiet" }]
-              : [],
-        count: 0,
-      });
-    }) as never);
+  /*
+   * Every row the Status column can draw, against each status's query read
+   * the way Postgres reads it: the queries split the rows exactly as the
+   * column does, whatever the status column holds.
+   */
+  const ENVIRONMENT_ROWS: Array<{
+    otelCollectorStatus: string | null;
+    lastSeenAt: Date | null;
+  }> = [
+    { otelCollectorStatus: "connected", lastSeenAt: NOW },
+    { otelCollectorStatus: "connected", lastSeenAt: null },
+    { otelCollectorStatus: "disconnected", lastSeenAt: NOW },
+    { otelCollectorStatus: "disconnected", lastSeenAt: null },
+    { otelCollectorStatus: null, lastSeenAt: NOW },
+    { otelCollectorStatus: null, lastSeenAt: null },
+    // A status the collector path never writes, read as not connected.
+    { otelCollectorStatus: "error", lastSeenAt: NOW },
+    { otelCollectorStatus: "error", lastSeenAt: null },
+  ];
 
-    const ids: Array<string> = await computeCloudEnvironmentIdsForStatuses(
-      PROJECT_ID,
-      [
-        CloudEnvironmentStatus.Disconnected,
-        CloudEnvironmentStatus.Waiting,
-        "not-a-status",
-        CloudEnvironmentStatus.Disconnected,
-      ],
+  const matchesGroup: (
+    group: FilterGroup,
+    row: { otelCollectorStatus: string | null; lastSeenAt: Date | null },
+  ) => boolean = (
+    group: FilterGroup,
+    row: { otelCollectorStatus: string | null; lastSeenAt: Date | null },
+  ): boolean => {
+    return Object.entries(group).every(
+      ([column, expected]: [string, unknown]): boolean => {
+        const actual: unknown = (row as Record<string, unknown>)[column];
+
+        if (expected instanceof IsNull) {
+          return actual === null;
+        }
+
+        if (expected instanceof NotNull) {
+          return actual !== null;
+        }
+
+        if (expected instanceof NotEqualOrNull) {
+          return actual === null || actual !== expected.value;
+        }
+
+        return actual === expected;
+      },
+    );
+  };
+
+  test.each(Object.values(CloudEnvironmentStatus))(
+    "the %s query selects exactly the rows the Status column draws so",
+    (status: CloudEnvironmentStatus) => {
+      const group: FilterGroup = buildCloudEnvironmentStatusQuery(
+        status,
+      ) as unknown as FilterGroup;
+
+      for (const row of ENVIRONMENT_ROWS) {
+        expect({ row, selected: matchesGroup(group, row) }).toEqual({
+          row,
+          selected: getCloudEnvironmentStatus(row) === status,
+        });
+      }
+    },
+  );
+
+  // Every set of statuses a person can pick: one, two or all three.
+  const PICKS: Array<Array<CloudEnvironmentStatus>> = [
+    [CloudEnvironmentStatus.Connected],
+    [CloudEnvironmentStatus.Disconnected],
+    [CloudEnvironmentStatus.Waiting],
+    [CloudEnvironmentStatus.Connected, CloudEnvironmentStatus.Disconnected],
+    [CloudEnvironmentStatus.Connected, CloudEnvironmentStatus.Waiting],
+    [CloudEnvironmentStatus.Disconnected, CloudEnvironmentStatus.Waiting],
+    Object.values(CloudEnvironmentStatus),
+  ];
+
+  test.each(PICKS)(
+    "the Status chip set to %s is one filter of the list's own query: 'is' selects exactly those rows, 'is not' exactly the others",
+    (...picked: Array<CloudEnvironmentStatus>) => {
+      for (const operator of ["is", "is_not"] as const) {
+        const filter: FilterGroups | null = buildCloudEnvironmentStatusFilter(
+          picked,
+          operator,
+        );
+
+        expect(filter).toBeInstanceOf(FilterGroups);
+        expect(filter!.match).toBe(
+          operator === "is"
+            ? FilterGroupsMatch.AnyOf
+            : FilterGroupsMatch.NoneOf,
+        );
+        expect(filter!.groups).toHaveLength(picked.length);
+
+        for (const row of ENVIRONMENT_ROWS) {
+          const anyGroup: boolean = filter!.groups.some(
+            (group: FilterGroup): boolean => {
+              return matchesGroup(group, row);
+            },
+          );
+          const isPicked: boolean = picked.includes(
+            getCloudEnvironmentStatus(row),
+          );
+
+          expect({
+            row,
+            selected: operator === "is" ? anyGroup : !anyGroup,
+          }).toEqual({
+            row,
+            selected: operator === "is" ? isPicked : !isPicked,
+          });
+        }
+      }
+    },
+  );
+
+  test("the Status chip reads nothing first: the server answers it", () => {
+    buildCloudEnvironmentStatusFilter(
+      [CloudEnvironmentStatus.Disconnected, CloudEnvironmentStatus.Waiting],
+      "is",
     );
 
-    expect(ids.sort()).toEqual(["env-new", "env-quiet"]);
-    // One read a status, of this project's listed environments.
-    expect(getListMock).toHaveBeenCalledTimes(2);
-
-    const query: JSONObject = (
-      getListMock.mock.calls[0]![0] as { query: JSONObject }
-    ).query;
-
-    expect(query["projectId"]).toEqual(PROJECT_ID);
-    expect(query["isArchived"]).toBe(false);
-    expect(query["cloudResourceKind"]).toBe(CloudResourceKind.Environment);
-    expect(
-      (getListMock.mock.calls[0]![0] as { modelType: unknown }).modelType,
-    ).toBe(CloudResource);
-  });
-
-  test("a status nobody picked reads nothing", async () => {
-    expect(
-      await computeCloudEnvironmentIdsForStatuses(PROJECT_ID, ["nope"]),
-    ).toEqual([]);
     expect(getListMock).not.toHaveBeenCalled();
   });
 
-  test("the chip offers the three, worded as the Status column words them, and resolves through its own rule", async () => {
-    const resolve: MockFunction = getJestMockFunction();
-    resolve.mockResolvedValue(["env-1"] as never);
+  test("a status picked twice is one group, and a value that is no status is left out", () => {
+    const filter: FilterGroups | null = buildCloudEnvironmentStatusFilter(
+      [
+        CloudEnvironmentStatus.Disconnected,
+        "not-a-status",
+        CloudEnvironmentStatus.Disconnected,
+      ],
+      "is",
+    );
 
+    expect(filter!.groups).toEqual([
+      buildCloudEnvironmentStatusQuery(CloudEnvironmentStatus.Disconnected),
+    ]);
+  });
+
+  test("no status picked, or none a status is called by, filters nothing", () => {
+    expect(buildCloudEnvironmentStatusFilter([], "is")).toBeNull();
+    expect(buildCloudEnvironmentStatusFilter(["nope"], "is_not")).toBeNull();
+  });
+
+  test("the chip offers the three, worded as the Status column words them, and writes its filter under filterGroups", () => {
     const facet: ReturnType<typeof getEnvironmentStatusFacet> =
-      getEnvironmentStatusFacet(
-        resolve as unknown as (
-          projectId: ObjectID,
-          values: Array<string>,
-        ) => Promise<Array<string>>,
-      );
+      getEnvironmentStatusFacet();
 
     expect(facet.key).toBe(ENVIRONMENT_STATUS_FACET_KEY);
     expect(facet.isMultiSelect).toBe(true);
+    expect(facet.supportedOperators).toEqual(["is", "is_not"]);
     expect(
       (facet.options || []).map((option: { value: string; label: string }) => {
         return [option.value, option.label];
@@ -496,14 +590,38 @@ describe("an App Platforms environment's status", () => {
         CLOUD_ENVIRONMENT_STATUS_LABELS[CloudEnvironmentStatus.Waiting],
       ],
     ]);
+
+    const written: ReturnType<typeof buildFacetColumnQuery> =
+      buildFacetColumnQuery({
+        facet: facet,
+        operator: "is_not",
+        values: ["disconnected"],
+        existingValue: undefined,
+      });
+
+    expect(written?.field).toBe(FILTER_GROUPS_QUERY_KEY);
+    expect(written?.value).toBeInstanceOf(FilterGroups);
+    expect((written?.value as FilterGroups).match).toBe(
+      FilterGroupsMatch.NoneOf,
+    );
+
+    // As it crosses the wire to the list route, and back.
+    const sent: JSONObject = JSONFunctions.deserialize(
+      JSON.parse(
+        JSON.stringify(
+          JSONFunctions.serialize({
+            [FILTER_GROUPS_QUERY_KEY]: written!.value,
+          } as unknown as JSONObject),
+        ),
+      ) as JSONObject,
+    );
+
+    expect(sent[FILTER_GROUPS_QUERY_KEY]).toBeInstanceOf(FilterGroups);
     expect(
-      await facet.computeMatchingResourceIds!(
-        PROJECT_ID,
-        ["disconnected"],
-        "is",
-      ),
-    ).toEqual(["env-1"]);
-    expect(resolve).toHaveBeenCalledWith(PROJECT_ID, ["disconnected"]);
+      (sent[FILTER_GROUPS_QUERY_KEY] as FilterGroups).groups[0]![
+        "otelCollectorStatus"
+      ],
+    ).toBeInstanceOf(NotEqualOrNull);
   });
 });
 

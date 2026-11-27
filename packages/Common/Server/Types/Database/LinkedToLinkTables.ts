@@ -114,7 +114,7 @@ export default class LinkedToLinkTables {
       return true;
     }
 
-    const aTable: string | undefined = new a().tableName;
+    const aTable: string | null | undefined = new a().tableName;
 
     return Boolean(aTable) && aTable === new b().tableName;
   }
