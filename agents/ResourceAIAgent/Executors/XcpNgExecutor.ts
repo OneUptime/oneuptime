@@ -921,6 +921,22 @@ export interface XoTokenRole {
   changes: Array<string>;
 }
 
+/*
+ * Why a token's user and role could not be read, and whether Xen Orchestra
+ * answered at all: a token it answered for and refused is one a person must
+ * replace, one it could not be asked about may only have met a bad moment.
+ */
+export interface XoTokenRoleProblem {
+  problem: string;
+  answered: boolean;
+}
+
+function isTokenRoleProblem(
+  value: XoTokenRole | XoTokenRoleProblem,
+): value is XoTokenRoleProblem {
+  return "problem" in value;
+}
+
 // The first few changes, and how many more: "vm:start, vm:shutdown and 4 more".
 export function describeChanges(changes: ReadonlyArray<string>): string {
   const shown: ReadonlyArray<string> = changes.slice(0, 6);
@@ -1913,15 +1929,15 @@ export default class XcpNgExecutor implements ResourceExecutor {
     ca: string,
   ): Promise<ReadTokenCheck> {
     const checkedAtMs: number = this.nowMs();
-    const role: XoTokenRole | string = await this.readTokenRole(
+    const role: XoTokenRole | XoTokenRoleProblem = await this.readTokenRole(
       connection,
       ca,
       connection.readToken,
       XO_READ_TOKEN_ENV,
     );
 
-    if (typeof role === "string") {
-      return { checkedAtMs, problem: role, role: null };
+    if (isTokenRoleProblem(role)) {
+      return { checkedAtMs, problem: role.problem, role: null };
     }
 
     const who: string = role.userName ? ` (${role.userName})` : "";
@@ -1951,14 +1967,14 @@ export default class XcpNgExecutor implements ResourceExecutor {
   /*
    * A token's user and what it may change: GET /users/me (a 307 to the
    * user's own address, followed once, only there), then that user's
-   * effective privileges. A string is why it could not be read.
+   * effective privileges, or why they could not be read.
    */
   private async readTokenRole(
     connection: XenOrchestraConnection,
     ca: string,
     token: string,
     tokenName: string,
-  ): Promise<XoTokenRole | string> {
+  ): Promise<XoTokenRole | XoTokenRoleProblem> {
     const get: (path: string) => Promise<XoSent> = (
       path: string,
     ): Promise<XoSent> => {
@@ -1982,22 +1998,32 @@ export default class XcpNgExecutor implements ResourceExecutor {
         const location: string = me.response.location || "";
 
         if (!OWN_USER_LOCATION_PATTERN.test(location)) {
-          return `Xen Orchestra at ${connection.endpoint} sent ${XO_REST_API_BASE_PATH}/users/me somewhere the agent does not follow, so it cannot tell what ${tokenName} may do.`;
+          return {
+            answered: true,
+            problem: `Xen Orchestra at ${connection.endpoint} sent ${XO_REST_API_BASE_PATH}/users/me somewhere the agent does not follow, so it cannot tell what ${tokenName} may do.`,
+          };
         }
 
         me = await get(location);
       }
     } catch (err: unknown) {
-      return this.describeSideTransportFailure(connection, err);
+      return {
+        answered: false,
+        problem: this.describeSideTransportFailure(connection, err),
+      };
     }
 
     if (me.response.statusCode !== 200 || !isPlainObject(me.json)) {
-      return this.describeSideFailure(
-        connection,
-        me,
-        `say who ${tokenName} belongs to`,
-        tokenName === XO_WRITE_TOKEN_ENV,
-      );
+      return {
+        // A server error says nothing about the token.
+        answered: me.response.statusCode < 500,
+        problem: this.describeSideFailure(
+          connection,
+          me,
+          `say who ${tokenName} belongs to`,
+          tokenName === XO_WRITE_TOKEN_ENV,
+        ),
+      };
     }
 
     const user: Record<string, unknown> = me.json;
@@ -2014,7 +2040,10 @@ export default class XcpNgExecutor implements ResourceExecutor {
     }
 
     if (typeof userId !== "string" || !USER_ID_PATTERN.test(userId)) {
-      return `Xen Orchestra at ${connection.endpoint} named no user for ${tokenName}, so the agent cannot tell what it may do.`;
+      return {
+        answered: true,
+        problem: `Xen Orchestra at ${connection.endpoint} named no user for ${tokenName}, so the agent cannot tell what it may do.`,
+      };
     }
 
     let privileges: XoSent;
@@ -2026,11 +2055,17 @@ export default class XcpNgExecutor implements ResourceExecutor {
         }),
       );
     } catch (err: unknown) {
-      return this.describeSideTransportFailure(connection, err);
+      return {
+        answered: false,
+        problem: this.describeSideTransportFailure(connection, err),
+      };
     }
 
     if (privileges.response.statusCode !== 200) {
-      return `Xen Orchestra at ${connection.endpoint} did not list what ${tokenName} may do (HTTP ${privileges.response.statusCode}): the agent needs Xen Orchestra 6.9 or later, whose roles keep a token read-only.`;
+      return {
+        answered: privileges.response.statusCode < 500,
+        problem: `Xen Orchestra at ${connection.endpoint} did not list what ${tokenName} may do (HTTP ${privileges.response.statusCode}): the agent needs Xen Orchestra 6.9 or later, whose roles keep a token read-only.`,
+      };
     }
 
     return {
@@ -2551,20 +2586,35 @@ export default class XcpNgExecutor implements ResourceExecutor {
       }
     }
 
+    /*
+     * The token for changes, checked at every report while a person can
+     * still replace it, not on the night a fix needs it:
+     * writeCredentialWorks is false only when Xen Orchestra answered and
+     * the token cannot make a change, and writeCredentialProblem says why
+     * (the AI agent page shows it). A read token in its place is the
+     * agent's own refusal to write already (Config).
+     */
     if (connection.writeToken !== null) {
       if (connection.writeToken === connection.readToken) {
         details["writeTokenRole"] =
           "the read token, so Xen Orchestra refuses every change made with it";
       } else {
-        const role: XoTokenRole | string = await this.readTokenRole(
+        const role: XoTokenRole | XoTokenRoleProblem = await this.readTokenRole(
           connection,
           ca,
           connection.writeToken,
           XO_WRITE_TOKEN_ENV,
         );
 
-        if (typeof role === "string") {
-          details["writeTokenRole"] = this.redactText(role).slice(0, 200);
+        if (isTokenRoleProblem(role)) {
+          const problem: string = this.redactText(role.problem).slice(0, 500);
+
+          details["writeTokenRole"] = problem.slice(0, 200);
+
+          if (role.answered) {
+            details["writeCredentialWorks"] = false;
+            details["writeCredentialProblem"] = problem;
+          }
         } else {
           if (role.userName) {
             details["writeTokenUser"] = role.userName;
@@ -2575,6 +2625,15 @@ export default class XcpNgExecutor implements ResourceExecutor {
             : role.changes.length > 0
               ? `may ${describeChanges(role.changes)}`
               : "read only, so Xen Orchestra refuses every change made with it";
+          details["writeCredentialWorks"] =
+            role.isAdministrator || role.changes.length > 0;
+
+          if (!role.isAdministrator && role.changes.length === 0) {
+            details["writeCredentialProblem"] =
+              `${XO_WRITE_TOKEN_ENV} belongs to a user${
+                role.userName ? ` (${role.userName})` : ""
+              } whose roles allow no change, so Xen Orchestra refuses every fix made with it. Give that user a role with the privileges fixes use (the XCP-ng Agent's README lists them), or set ${XO_WRITE_TOKEN_ENV} to a token of a user who has one.`;
+          }
 
           if (role.isAdministrator) {
             this.options.logger.warn(

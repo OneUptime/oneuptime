@@ -1701,9 +1701,74 @@ describe("posture", () => {
         writeTokenUser: "oneuptime-ai-fixes",
         writeTokenRole:
           "may vm:start, vm:shutdown, vm:reboot, vm:pause, vm:suspend, vm:resume and 9 more",
+        writeCredentialWorks: true,
       },
       protectedTargets: [],
     });
+  });
+
+  test("without a token for changes, nothing is said about one", async () => {
+    const probe: ResourcePostureProbe = await harness().executor.probePosture();
+
+    assert.strictEqual(probe.reachable, true);
+    assert.strictEqual(probe.details?.["writeTokenConfigured"], false);
+    assert.strictEqual(probe.details?.["writeCredentialWorks"], undefined);
+    assert.strictEqual(probe.details?.["writeTokenRole"], undefined);
+  });
+
+  test("a token for changes Xen Orchestra does not know is said while someone can replace it", async () => {
+    const probe: ResourcePostureProbe = await harness({
+      ONEUPTIME_AI_XO_WRITE_TOKEN:
+        "expired-Tok3nXoForgotItAfterItsExpiration_1",
+    }).executor.probePosture();
+
+    // Reads still work: the pool is reachable, and fixes are what is broken.
+    assert.strictEqual(probe.reachable, true);
+    assert.strictEqual(probe.details?.["writeCredentialWorks"], false);
+    assert.match(
+      String(probe.details?.["writeCredentialProblem"]),
+      /did not accept ONEUPTIME_AI_XO_WRITE_TOKEN, which is wrong or has expired/,
+    );
+    assert.doesNotMatch(
+      JSON.stringify(probe),
+      /expired-Tok3nXoForgotItAfterItsExpiration_1/,
+    );
+  });
+
+  test("a token for changes whose user may change nothing is said, with what to do", async () => {
+    const probe: ResourcePostureProbe = await harness({
+      ONEUPTIME_AI_XO_WRITE_TOKEN: SECOND_READ_TOKEN,
+    }).executor.probePosture();
+
+    assert.strictEqual(probe.details?.["writeCredentialWorks"], false);
+    assert.match(
+      String(probe.details?.["writeTokenRole"]),
+      /^read only, so Xen Orchestra refuses every change made with it$/,
+    );
+    assert.match(
+      String(probe.details?.["writeCredentialProblem"]),
+      /^ONEUPTIME_AI_XO_WRITE_TOKEN belongs to a user \(another-read-only-user\) whose roles allow no change, so Xen Orchestra refuses every fix made with it\. Give that user a role with the privileges fixes use/,
+    );
+  });
+
+  test("a token for changes that could not be asked about is not called broken", async () => {
+    const h: Harness = harness({ ONEUPTIME_AI_XO_WRITE_TOKEN: FIX_TOKEN });
+
+    h.fake.intercept = (request: FakeXoRequest) => {
+      return request.token === "fix"
+        ? {
+            statusCode: 503,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ error: "xo-server is restarting" }),
+          }
+        : null;
+    };
+
+    const probe: ResourcePostureProbe = await h.executor.probePosture();
+
+    assert.strictEqual(probe.reachable, true);
+    assert.strictEqual(probe.details?.["writeCredentialWorks"], undefined);
+    assert.match(String(probe.details?.["writeTokenRole"]), /503|restarting/);
   });
 
   test("the read token's problem makes the pool unreachable, plainly", async () => {

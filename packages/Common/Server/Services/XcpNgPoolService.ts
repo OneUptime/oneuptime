@@ -5,9 +5,15 @@ import XcpNgPoolFeedService from "./XcpNgPoolFeedService";
 import Model from "../../Models/DatabaseModels/XcpNgPool";
 import Label from "../../Models/DatabaseModels/Label";
 import { XcpNgPoolFeedEventType } from "../../Models/DatabaseModels/XcpNgPoolFeed";
-import { OnCreate, OnUpdate } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import CreateBy from "../Types/Database/CreateBy";
+import DeleteBy from "../Types/Database/DeleteBy";
 import UpdateBy from "../Types/Database/UpdateBy";
+import ResourceAiAccessSettings, {
+  ResourceAiAccessFeedItem,
+} from "../Utils/AI/ResourceAccess/ResourceAiAccessSettings";
+import ResourceAiDeleteCleanup from "../Utils/AI/ResourceAccess/ResourceAiDeleteCleanup";
+import AiResourceType from "../../Types/ResourceAiAgent/AiResourceType";
 import ResourceFeedUtil from "../Utils/ResourceFeed/ResourceFeedUtil";
 import { Blue500, Gray500, Green500, Yellow500 } from "../../Types/BrandColors";
 import { JSONObject } from "../../Types/JSON";
@@ -196,6 +202,17 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
 
+    /*
+     * Held to the same AI access rules as an update, judged against the
+     * never-configured defaults a new pool starts from: an unusable mode or
+     * allowlist is refused for every caller, and the server-only aiAccess*
+     * columns for every caller but root.
+     */
+    ResourceAiAccessSettings.checkCreate({
+      resourceType: AiResourceType.XcpNgPool,
+      createBy,
+    });
+
     const data: Model = createBy.data;
     if (typeof data.poolIdentifier === "string") {
       data.poolIdentifier = XcpNgTelemetryUtil.normalizePoolIdentifier(
@@ -258,6 +275,63 @@ export class Service extends ProjectReferencesService<Model> {
    */
   protected override getUniqueColumnsCheckedOnUpdate(): ReadonlyArray<string> {
     return [XCP_NG_POOL_MATCH_COLUMN.column];
+  }
+
+  /*
+   * An operator's write of an AI access setting (the investigation switch,
+   * the remediation mode, the command allowlist) is validated and checked
+   * against who may make AI do more on this pool - the rules every resource
+   * AI agent's resource shares (ResourceAiAccessSettings). Its carry-forward
+   * is read back by ResourceAiAccessSettings.afterUpdate in onUpdateSuccess.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    await super.onBeforeUpdate(updateBy);
+
+    return {
+      updateBy,
+      carryForward: await ResourceAiAccessSettings.checkUpdate({
+        resourceType: AiResourceType.XcpNgPool,
+        service: this,
+        updateBy,
+      }),
+    };
+  }
+
+  /*
+   * Deleting a pool settles its in-flight AI remediation rounds and removes
+   * its XCP-ng AI agent - read before the delete, done after it for the
+   * pools actually deleted (ResourceAiDeleteCleanup, shared by every resource
+   * AI agent's resource).
+   */
+  @CaptureSpan()
+  protected override async onBeforeDelete(
+    deleteBy: DeleteBy<Model>,
+  ): Promise<OnDelete<Model>> {
+    return {
+      deleteBy,
+      carryForward: await ResourceAiDeleteCleanup.beforeDelete({
+        resourceType: AiResourceType.XcpNgPool,
+        service: this,
+        deleteBy,
+      }),
+    };
+  }
+
+  @CaptureSpan()
+  protected override async onDeleteSuccess(
+    onDelete: OnDelete<Model>,
+    deletedItemIds: Array<ObjectID>,
+  ): Promise<OnDelete<Model>> {
+    await ResourceAiDeleteCleanup.afterDelete({
+      resourceType: AiResourceType.XcpNgPool,
+      onDelete,
+      deletedItemIds,
+    });
+
+    return onDelete;
   }
 
   @CaptureSpan()
@@ -872,6 +946,33 @@ export class Service extends ProjectReferencesService<Model> {
         logger.error(error);
       },
     );
+
+    /*
+     * An operator's AI access write: recorded on the feed, and the pool
+     * marked AI-configured.
+     */
+    await ResourceAiAccessSettings.afterUpdate({
+      service: this,
+      onUpdate,
+      updatedItemIds,
+      getResourceMarkdownLink: (
+        projectId: ObjectID,
+        xcpNgPoolId: ObjectID,
+      ): Promise<MarkdownText> => {
+        return this.getXcpNgPoolMarkdownLink(projectId, xcpNgPoolId);
+      },
+      createFeedItem: async (item: ResourceAiAccessFeedItem): Promise<void> => {
+        await XcpNgPoolFeedService.createXcpNgPoolFeedItem({
+          xcpNgPoolId: item.resourceId,
+          projectId: item.projectId,
+          xcpNgPoolFeedEventType: XcpNgPoolFeedEventType.XcpNgPoolUpdated,
+          displayColor: item.displayColor,
+          feedInfoInMarkdown: item.feedInfoInMarkdown,
+          moreInformationInMarkdown: item.moreInformationInMarkdown,
+          userId: item.userId,
+        });
+      },
+    });
 
     return onUpdate;
   }
