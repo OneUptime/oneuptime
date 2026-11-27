@@ -403,7 +403,7 @@ describe("one XCP-ng pool's side menu", () => {
     ]);
   });
 
-  test("Advanced holds who owns it, its settings, its history, its install guide and Delete", async () => {
+  test("Advanced holds who owns it, its settings, its install guide, its history and Delete", async () => {
     await renderPoolMenu();
 
     expect(linksIn("Advanced")).toEqual([
@@ -413,12 +413,12 @@ describe("one XCP-ng pool's side menu", () => {
         href: poolRoute(PageMap.XCP_NG_POOL_VIEW_SETTINGS),
       },
       {
-        title: "Audit Logs",
-        href: poolRoute(PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS),
-      },
-      {
         title: "Documentation",
         href: poolRoute(PageMap.XCP_NG_POOL_VIEW_DOCUMENTATION),
+      },
+      {
+        title: "Audit Logs",
+        href: poolRoute(PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS),
       },
       {
         title: "Delete Pool",
