@@ -22,6 +22,7 @@ import Route from "../../../Types/API/Route";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
 import { CloudConnectionAwsRoleSetup } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
 import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -49,6 +50,8 @@ import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/P
  *   - saving says what happens next and reads everything again;
  *   - without the right to connect, the tiles are disabled and say why,
  *     and nothing is asked about roles;
+ *   - an address naming a connection opens its form to edit, for someone
+ *     who may (#11039);
  *   - a plan without telemetry says so and reads nothing.
  */
 
@@ -561,5 +564,152 @@ describe("rights and plans", () => {
     );
     expect(getListSpy).not.toHaveBeenCalled();
     expect(getSpy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * A LINK NAMING A CONNECTION (#11039): a security case's step links to the
+ * AWS connection to turn Security case checks on for, as
+ * ?connection=<id>. The page reads that connection - its name, its cloud
+ * and its settings, never its credentials - and opens its form to edit
+ * it, for someone who may; anyone else sees the list.
+ */
+describe("a link naming a connection (#11039)", () => {
+  const LINKED_ID: string = "5d0c2a7e-0000-4000-8000-00000000c0de";
+  let getItemSpy: jest.SpyInstance<any, any>;
+  let linkedForTest: CloudConnection | null | Error = null;
+
+  beforeEach(() => {
+    const linked: CloudConnection = connection(CloudProvider.AWS);
+    linked.id = new ObjectID(LINKED_ID);
+    linked.name = "Production";
+    linked.config = { authMethod: "aws-role", securityCaseChecks: "off" };
+    linkedForTest = linked;
+
+    getItemSpy = getJestSpyOn(ModelAPI, "getItem").mockImplementation(
+      async (): Promise<unknown> => {
+        if (linkedForTest instanceof Error) {
+          throw linkedForTest;
+        }
+
+        return linkedForTest;
+      },
+    );
+  });
+
+  test("opens that connection's form to edit, read with its name, cloud and settings - never its credentials", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=${LINKED_ID}`);
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("connection-form")).toHaveAttribute(
+        "data-editing",
+        "true",
+      );
+    });
+    expect(screen.getByTestId("connection-form")).toHaveAttribute(
+      "data-provider",
+      "aws",
+    );
+    expect(getItemSpy).toHaveBeenCalledTimes(1);
+
+    const asked: {
+      modelType: unknown;
+      id: ObjectID;
+      select: JSONObject;
+    } = getItemSpy.mock.calls[0]![0];
+
+    expect(asked.modelType).toBe(CloudConnection);
+    expect(asked.id.toString()).toBe(LINKED_ID);
+    expect(asked.select).toEqual({
+      _id: true,
+      name: true,
+      provider: true,
+      config: true,
+    });
+  });
+
+  test("closing the form forgets the link: a refresh opens nothing", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=${LINKED_ID}`);
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("connection-form")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Close the form"));
+    });
+
+    expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
+    expect(window.location.search).toBe("");
+  });
+
+  test("for someone who may not edit connections, it opens nothing: the list's Edit says what it takes", async () => {
+    updateGate = { isAllowed: false, disabledReason: "Read only." };
+    goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=${LINKED_ID}`);
+
+    await openPage();
+
+    expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
+    expect(getItemSpy).not.toHaveBeenCalled();
+    expect(screen.getByTestId("connections-table")).toHaveAttribute(
+      "data-can-update",
+      "false",
+    );
+  });
+
+  test("an id that is no connection's, a connection gone since, or one that cannot be read, opens nothing", async () => {
+    goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=not-an-id`);
+
+    await openPage();
+
+    expect(getItemSpy).not.toHaveBeenCalled();
+
+    for (const answer of [null, new Error("Not found")]) {
+      cleanup();
+      linkedForTest = answer;
+      goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=${LINKED_ID}`);
+
+      await openPage();
+
+      await waitFor(() => {
+        expect(getItemSpy).toHaveBeenCalled();
+      });
+      expect(screen.queryByTestId("connection-form")).not.toBeInTheDocument();
+      getItemSpy.mockClear();
+    }
+  });
+
+  test("a link naming a cloud as well opens that cloud's form, and the connection waits", async () => {
+    goTo(
+      `/dashboard/${PROJECT_ID}/cloud/connect?cloud=gcp&connection=${LINKED_ID}`,
+    );
+
+    await openPage();
+
+    await waitFor(() => {
+      expect(getItemSpy).toHaveBeenCalled();
+    });
+    expect(screen.getByTestId("connection-form")).toHaveAttribute(
+      "data-provider",
+      "gcp",
+    );
+    expect(screen.getByTestId("connection-form")).toHaveAttribute(
+      "data-editing",
+      "false",
+    );
+  });
+
+  test("a plan without telemetry reads no connection", async () => {
+    const project: Project = new Project();
+    project.reseller = { enableTelemetryFeatures: false } as never;
+    goTo(`/dashboard/${PROJECT_ID}/cloud/connect?connection=${LINKED_ID}`);
+
+    await openPage({ ...pageProps, currentProject: project });
+
+    expect(getItemSpy).not.toHaveBeenCalled();
   });
 });
