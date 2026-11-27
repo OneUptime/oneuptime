@@ -157,6 +157,12 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
       "Never more than three fields at once: the authentication mode, then either the API token or the basic auth username and password - the two are alternatives.",
   },
   {
+    file: `${DASHBOARD}/Pages/DataObservability/View/Settings.tsx`,
+    form: "BasicFormModal: Data Observability > Change Connection",
+    reason:
+      "Never more than three fields at once: who connects, then only that way's fields - a connection string, or a probe and the variable on it that holds one, or a Database Agent and the database on its server. The three ways are alternatives, and Connect a Database asks the same question on its Connection step; a step here would put a Next between choosing a way and the one field it needs.",
+  },
+  {
     file: `${DASHBOARD}/Pages/SecurityEvents/WatchlistView.tsx`,
     form: "CardModelDetail: Security Events > Watchlist",
     reason:

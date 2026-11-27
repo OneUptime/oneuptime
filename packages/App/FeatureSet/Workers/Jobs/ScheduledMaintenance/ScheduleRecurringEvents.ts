@@ -14,6 +14,10 @@ import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintena
 import ScheduledMaintenanceOwnerUserService from "Common/Server/Services/ScheduledMaintenanceOwnerUserService";
 import ScheduledMaintenanceOwnerTeam from "Common/Models/DatabaseModels/ScheduledMaintenanceOwnerTeam";
 import logger from "Common/Server/Utils/Logger";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "Common/Server/Utils/Notification/CreatedNotificationHold";
+import CreateBy from "Common/Server/Types/Database/CreateBy";
 import OwnerRuleAssignment from "Common/Server/Utils/Rules/OwnerRuleAssignment";
 import MaintenanceTemplateSchedule, {
   MaintenanceTemplateDueEvent,
@@ -304,49 +308,76 @@ RunCron(
 
         // now create this event.
 
-        scheduledMaintenanceEvent = await ScheduledMaintenanceService.create({
+        const createBy: CreateBy<ScheduledMaintenance> = {
           data: scheduledMaintenanceEvent,
           props: {
             isRoot: true,
           },
-        });
+        };
 
-        // now add owners and teams to this event.
+        /*
+         * The template's owners are added once the event exists, right
+         * after its create returns: its notification rules wait a moment
+         * for them before they are matched, so a rule that asks who owns a
+         * maintenance event posts its "Scheduled Maintenance Created", and
+         * their own lines follow it (WorkspaceRuleOwnersOnCreate). Told
+         * once they are in - also when the create or an owner fails.
+         */
+        const isAddingOwnersAfter: boolean =
+          ownerUsers.length > 0 || ownerTeams.length > 0;
 
-        for (const ownerUser of ownerUsers) {
-          const scheduledMaintenanceOwnerUser: ScheduledMaintenanceOwnerUser =
-            new ScheduledMaintenanceOwnerUser();
-          scheduledMaintenanceOwnerUser.scheduledMaintenanceId =
-            scheduledMaintenanceEvent.id!;
-          scheduledMaintenanceOwnerUser.projectId =
-            scheduledMaintenanceEvent.projectId!;
-          scheduledMaintenanceOwnerUser.userId = ownerUser.userId!;
-          await OwnerRuleAssignment.createOwner({
-            ownerService: ScheduledMaintenanceOwnerUserService,
-            owner: scheduledMaintenanceOwnerUser,
-            props: {
-              isRoot: true,
-            },
-          });
+        if (isAddingOwnersAfter) {
+          CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
         }
 
-        // now do the same for owner teams.
+        try {
+          scheduledMaintenanceEvent =
+            await ScheduledMaintenanceService.create(createBy);
 
-        for (const ownerTeam of ownerTeams) {
-          const scheduledMaintenanceOwnerTeam: ScheduledMaintenanceOwnerTeam =
-            new ScheduledMaintenanceOwnerTeam();
-          scheduledMaintenanceOwnerTeam.scheduledMaintenanceId =
-            scheduledMaintenanceEvent.id!;
-          scheduledMaintenanceOwnerTeam.projectId =
-            scheduledMaintenanceEvent.projectId!;
-          scheduledMaintenanceOwnerTeam.teamId = ownerTeam.teamId!;
-          await OwnerRuleAssignment.createOwner({
-            ownerService: ScheduledMaintenanceOwnerTeamService,
-            owner: scheduledMaintenanceOwnerTeam,
-            props: {
-              isRoot: true,
-            },
-          });
+          // now add owners and teams to this event.
+
+          for (const ownerUser of ownerUsers) {
+            const scheduledMaintenanceOwnerUser: ScheduledMaintenanceOwnerUser =
+              new ScheduledMaintenanceOwnerUser();
+            scheduledMaintenanceOwnerUser.scheduledMaintenanceId =
+              scheduledMaintenanceEvent.id!;
+            scheduledMaintenanceOwnerUser.projectId =
+              scheduledMaintenanceEvent.projectId!;
+            scheduledMaintenanceOwnerUser.userId = ownerUser.userId!;
+            await OwnerRuleAssignment.createOwner({
+              ownerService: ScheduledMaintenanceOwnerUserService,
+              owner: scheduledMaintenanceOwnerUser,
+              props: {
+                isRoot: true,
+              },
+            });
+          }
+
+          // now do the same for owner teams.
+
+          for (const ownerTeam of ownerTeams) {
+            const scheduledMaintenanceOwnerTeam: ScheduledMaintenanceOwnerTeam =
+              new ScheduledMaintenanceOwnerTeam();
+            scheduledMaintenanceOwnerTeam.scheduledMaintenanceId =
+              scheduledMaintenanceEvent.id!;
+            scheduledMaintenanceOwnerTeam.projectId =
+              scheduledMaintenanceEvent.projectId!;
+            scheduledMaintenanceOwnerTeam.teamId = ownerTeam.teamId!;
+            await OwnerRuleAssignment.createOwner({
+              ownerService: ScheduledMaintenanceOwnerTeamService,
+              owner: scheduledMaintenanceOwnerTeam,
+              props: {
+                isRoot: true,
+              },
+            });
+          }
+        } finally {
+          if (isAddingOwnersAfter) {
+            await CreatedNotificationHold.ownersAreIn(
+              createBy,
+              OwnersAddedBy.Caller,
+            );
+          }
         }
 
         logger.debug(

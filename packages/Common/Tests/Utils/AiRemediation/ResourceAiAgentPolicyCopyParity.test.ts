@@ -276,10 +276,16 @@ function getAgentEntryPoints(): Array<string> {
 }
 
 describe("Resource AI agent: copies of the resource command policy closure", () => {
-  test("the list copies both policy directories whole, and the four leaf files", () => {
+  test("the list copies the three policy directories whole, and the leaf files", () => {
+    /*
+     * DatabaseAgent: what a Database Agent reads for Data Observability and
+     * the statements it reads with (#11148), decided on the agent by its own
+     * copy.
+     */
     expect(copyList.commonPolicyDirectories).toEqual([
       "Types/ResourceAiAgent",
       "Utils/AiRemediation/Resource",
+      "Utils/DataObservability/DatabaseAgent",
     ]);
     /*
      * AgentAiSettings: what AI may do, which ResourceAiAccess reads.
@@ -290,9 +296,15 @@ describe("Resource AI agent: copies of the resource command policy closure", () 
      * the metric the Proxmox agent sends and the rule that picks the task,
      * read alike by the agent and the metrics ingest.
      */
+    /*
+     * DataAssetKind and DataCheckType: the kinds of table and of check those
+     * statements name (#11148).
+     */
     expect(copyList.commonPolicyFiles).toEqual([
       "Types/AI/AgentAiSettings.ts",
       "Types/AutoRemediation/AiRemediationCommandPolicyVerdict.ts",
+      "Types/DataObservability/DataAssetKind.ts",
+      "Types/DataObservability/DataCheckType.ts",
       "Types/Runbook/RunnerJobOrigin.ts",
       "Utils/RetryAfter.ts",
       "Utils/Proxmox/ProxmoxGuestPowerTask.ts",

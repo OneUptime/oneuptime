@@ -1,11 +1,12 @@
 # Datensicherheit einrichten
 
-Datensicherheit liest nur, was Sie ihr erlauben. Jede Cloud-Verbindung wird auf einer von drei Stufen gelesen, eine Datenbank, die Sie betreiben, mit einer Verbindungszeichenfolge, die Sie ihr geben, und Telemetrie braucht nichts. Diese Seite sagt, was OneUptime mit jeder Wahl lesen darf, welche Berechtigungen sie genau gewährt und was OneUptime von dem behält, was es liest.
+Datensicherheit liest nur, was Sie ihr erlauben. Jede Cloud-Verbindung wird auf einer von drei Stufen gelesen, eine Datenbank oder ein Such-Cluster, die Sie betreiben, mit einer Verbindungszeichenfolge, die Sie ihnen geben, und Telemetrie braucht nichts. Diese Seite sagt, was OneUptime mit jeder Wahl lesen darf, welche Berechtigungen sie genau gewährt und was OneUptime von dem behält, was es liest.
 
 :::cards
 - [Eine Stufe wählen](#eine-stufe-für-jede-verbindung-wählen): Aus, Nur Konfiguration oder Konfiguration und Inhaltsstichproben.
 - [Was jede Stufe gewährt](#was-jede-stufe-gewährt): Die AWS-Aktionen und die Rollen in Azure und Google Cloud.
-- [Eine Datenbank scannen, die Sie betreiben](#eine-datenbank-scannen-die-sie-betreiben): Eine schreibgeschützte Verbindungszeichenfolge oder eine Sonde in Ihrem Netzwerk.
+- [Einen Datenspeicher scannen, den Sie betreiben](#einen-datenspeicher-scannen-den-sie-betreiben): Eine schreibgeschützte Verbindungszeichenfolge oder eine Sonde in Ihrem Netzwerk.
+- [Was OneUptime bei einem Datenspeicher prüft, den Sie betreiben](#was-oneuptime-bei-einem-datenspeicher-prüft-den-sie-betreiben): Ob er ohne Anmeldedaten antwortet, gefragt von dort aus, wo sein Scan läuft.
 - [Was OneUptime behält](#was-oneuptime-behält): Zählungen, Orte und maskierte Stichproben, nie einen Wert.
 - [Datensicherheit eine Exponierung schließen lassen](#datensicherheit-eine-exponierung-schließen-lassen): Die einzigen Schreibzugriffe, die eine Verbindung erhalten kann, aus, bis Sie sie einschalten.
 :::
@@ -173,17 +174,75 @@ Ein Scan liest ein wenig von einem Datenspeicher, innerhalb der Grenzen des Proj
 - **Buckets und Container** werden nach Art beprobt, nicht nach Anzahl. Zuerst werden Objektnamen aufgelistet, höchstens zehnmal so viele, wie der Scan lesen darf, und nie mehr als 200.000. Jeder Name wird zu seinem Muster, wobei Datumsangaben, UUIDs, lange Hex-Folgen und Zahlen zu `*` werden, sodass aus `exports/2026-10-27/users-0001.csv` das Muster `exports/*/users-*.csv` wird. Die neuesten Objekte jedes Musters werden gelesen, eines von jedem, bevor ein zweites von irgendeinem gelesen wird, und höchstens 5 eines Musters. Jedes Objekt wird von seinem Anfang an gelesen: höchstens **Bytes pro Objekt** davon und insgesamt **Bytes pro Scan**. Ein Scan nimmt Stichproben aus höchstens 10 Containern eines Azure-Speicherkontos.
 - **Dateien werden als das gelesen, was sie sind.** CSV und TSV nach Spalte, JSON und JSON Lines nach Pfad, `.env`, `.ini`, `.properties`, TOML und YAML nach Schlüssel, XML und HTML als ihr Text, Word-, Excel- und PowerPoint-Dateien nach ihrem Text und ihren Zellen und alles andere als Freitext. Eine gzip-Datei wird zuerst entpackt. Bilder, Parquet, Avro, PDF und andere Binärformate werden nicht gelesen, und der Scan sagt das.
 - **Datasets und Datenbanken** werden Tabelle für Tabelle gelesen: höchstens **Tabellen pro Scan** Tabellen und **Zeilen pro Tabelle** Zeilen aus jeder.
+- **Such-Cluster** werden Index für Index gelesen, so wie eine Datenbank Tabelle für Tabelle: höchstens **Tabellen pro Scan** Indizes und **Zeilen pro Tabelle** Dokumente aus jedem, die neuesten zuerst, wo der Index ein `@timestamp` hat. Ein Data Stream wird als ein Index gelesen, und Indizes, deren Namen sich nur durch Daten oder Zahlen unterscheiden, etwa `logs-2026.11.26` und `logs-2026.11.27`, als einer, beim neuesten, der Dokumente enthält. Die eigenen Indizes des Clusters, deren Namen mit einem Punkt beginnen, werden nicht gelesen. Jede Anfrage ist ein GET, daher kann der Scan nicht in den Cluster schreiben, was auch immer sein Benutzer darf.
 
 Jeder Scan hält fest, was er gelesen hat, nach Namen: die Objekte, Tabellen oder Dienste, nie ihren Inhalt. Was er nicht lesen konnte - eine Anfrage, die die Cloud abgelehnt hat, die Frist, das Byte-Budget - ist ein Warnhinweis am Scan, und der Scan wird als **Teilweise erfolgreich** markiert.
 
 Die **Übersicht** eines Datenspeichers sagt, wann sein Inhalt als Nächstes gescannt wird. **Nächster Inhaltsscan** nennt die Zeit, zu der ihn etwas scannt, **Jetzt fällig**, solange er wartet, bis er an der Reihe ist, und **Überfällig**, sobald er eine Stunde lang fällig ist. Sonst sagt sie, warum nichts ihn scannt: **Aus**, solange **Inhalt scannen** für den Datenspeicher oder das Projekt aus ist oder der Datenspeicher nicht mehr gefunden wird; **Wird nicht gescannt**, wenn OneUptime aus dieser Art von Datenspeicher keine Stichproben nehmen kann oder seine Sonde ihn nicht scannen kann; und **Wartet**, solange seine Sonde getrennt ist. Die Telemetrie eines Dienstes wird **Jede Stunde** mit dem Telemetrie-Scan des Projekts gescannt. **Jetzt scannen** ist für einen Datenspeicher, den nichts scannen würde, ausgeschaltet, mit dem Grund. Ein Scan, der läuft, während das Scannen von Inhalten ausgeschaltet oder das Projekt gesperrt wird, behält nichts von dem, was er gefunden hat.
 
-## Eine Datenbank scannen, die Sie betreiben
+## Einen Datenspeicher scannen, den Sie betreiben
 
-Datensicherheit nimmt Stichproben aus PostgreSQL-, MySQL- und SQL-Server-Datenbanken, auf eine von zwei Arten. Eine Datenbank, die das Produkt Database überwacht, oder eine, mit der Ihre Dienste laut Dienstkarte sprechen, ist bereits ein Datenspeicher. Eine Datenbank, die kein Scan findet, fügen Sie selbst als Datenspeicher hinzu.
+Datensicherheit nimmt Stichproben aus PostgreSQL-, MySQL- und SQL-Server-Datenbanken sowie aus Elasticsearch- und OpenSearch-Clustern, auf eine von zwei Arten. Eine Datenbank, die das Produkt Database überwacht, oder eine, mit der Ihre Dienste laut Dienstkarte sprechen, ist bereits ein Datenspeicher. Jeden anderen fügen Sie selbst hinzu, mit **Selbst betriebenen Datenspeicher hinzufügen** unter **Datenspeicher**: Sobald Sie seine **Art** wählen, sagt das Formular, was OneUptime an ihm prüfen wird und was nicht, und fragt nur nach dem, was diese Art liest. Eine Art, aus der OneUptime keine Stichproben nimmt, etwa MongoDB oder Redis, nimmt keine Verbindungszeichenfolge: Sie wird mit ihren Eigentümern, Beschriftungen und ihrer Sensibilität geführt, und ihre Exponierung zeigt **Nicht prüfbar**.
 
-- **Von den Workern von OneUptime.** Setzen Sie in den **Einstellungen** des Datenspeichers die **Verbindungszeichenfolge** auf eine, die nur lesen kann, etwa `postgresql://reader:password@db.internal:5432/app`. Sie wird im Ruhezustand verschlüsselt und nie von der API zurückgegeben. Geben Sie ihr einen Datenbankbenutzer, der lesen kann und sonst nichts.
-- **Von einer Sonde in Ihrem Netzwerk.** Wählen Sie die Sonde unter **Von Sonde scannen**, und geben Sie unter **Verbindungsvariable der Sonde** den Namen der Umgebungsvariable auf dieser Sonde ein, die die Verbindungszeichenfolge enthält. Die Sonde liest die Datenbank von innerhalb Ihres Netzwerks und sendet nur zurück, was sie gefunden hat: Die Verbindungszeichenfolge erreicht OneUptime nie. Siehe [Eigene Sonden](/docs/probe/custom-probe), um eine Sonde zu betreiben.
+- **Von den Workern von OneUptime.** Setzen Sie in den **Einstellungen** des Datenspeichers die **Verbindungszeichenfolge** auf eine, die nur lesen kann, etwa `postgresql://reader:password@db.internal:5432/app` oder, für einen Such-Cluster, `https://reader:password@search.internal:9200`. Sie wird im Ruhezustand verschlüsselt und nie von der API zurückgegeben. Geben Sie ihr einen Benutzer, der lesen kann und sonst nichts. In OneUptime Cloud erreichen die Worker nur Adressen im Internet.
+- **Von einer Sonde in Ihrem Netzwerk.** Wählen Sie die Sonde unter **Von Sonde scannen**, und geben Sie unter **Verbindungsvariable der Sonde** den Namen der Umgebungsvariable auf dieser Sonde ein, die die Verbindungszeichenfolge enthält. Die Sonde liest den Datenspeicher von innerhalb Ihres Netzwerks und sendet nur zurück, was sie gefunden hat: Die Verbindungszeichenfolge erreicht OneUptime nie. Siehe [Eigene Sonden](/docs/probe/custom-probe), um eine Sonde zu betreiben. Eine Sonde aus einem früheren Release erhält nur Datenbanken: Aktualisieren Sie sie, damit sie einen Such-Cluster scannt.
+
+### Die Verbindungszeichenfolge eines Such-Clusters
+
+Elasticsearch und OpenSearch haben keine eigene Verbindungszeichenfolge, daher nimmt OneUptime die Adresse des Clusters, so wie curl ihn erreicht, mit einem schreibgeschützten Benutzer darin oder einem Elasticsearch-API-Schlüssel dahinter, geschrieben als `id:key` oder als der codierte Wert, den Elasticsearch ausgibt:
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` akzeptiert ein Zertifikat, das keine Zertifizierungsstelle signiert hat, etwa das, das Elasticsearch beim ersten Start erzeugt: Verwenden Sie es nur in einem Netzwerk, dem Sie vertrauen. Nach der Adresse darf nichts anderes folgen. Für einen Cluster, dessen Zertifikat Ihre eigene Zertifizierungsstelle signiert hat, geben Sie die Adresse als JSON an, mit dem Zertifikat dieser Stelle:
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` tritt an die Stelle von `username` und `password`, und `"verifyCertificate": false` an die Stelle des Zertifikats.
+
+Geben Sie dem Benutzer eine Rolle, die lesen kann und sonst nichts. Bei Elasticsearch:
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+Bei OpenSearch, mit seinem Security-Plugin:
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Geben Sie dann einem Benutzer diese Rolle, und nur diese. Schränken Sie `*` auf die Indizes ein, die gescannt werden sollen.
+
+### Was OneUptime bei einem Datenspeicher prüft, den Sie betreiben
+
+Ein Datenspeicher in einem Cloud-Konto wird anhand der Einstellungen geprüft, die seine Cloud führt. Ein Datenspeicher, den Sie betreiben, hat keine, die OneUptime lesen kann, daher wird ein Elasticsearch- oder OpenSearch-Cluster anhand dessen geprüft, was er an seiner eigenen Adresse antwortet. Bei jedem Inhaltsscan wird er von dort aus, wo der Scan läuft, ohne Anmeldedaten gefragt:
+
+| Gefragt | Was es zeigt |
+| --- | --- |
+| Wer fragt: `/_security/_authenticate` bei Elasticsearch, `/_plugins/_security/authinfo` bei OpenSearch | Ob er überhaupt Anmeldedaten verlangt |
+| Eine Suche, die keine Dokumente zurückgibt, nur ob es welche gibt | Ob jeder, der ihn erreicht, seine Dokumente lesen kann |
+| Seine Adresse über einfaches HTTP, wenn seine Verbindungszeichenfolge HTTPS ist | Ob er Verbindungen ohne TLS annimmt |
+
+Es wird nichts in ihn geschrieben, daher kann ein Cluster mit Benutzern und Rollen nicht gefragt werden, ob sein anonymer Benutzer schreiben darf: Diese Zeile seiner **Konfiguration** zeigt **Nicht prüfbar**. Einer ganz ohne Zugriffskontrolle nimmt jede Anfrage an, auch Schreibzugriffe. Ein Cluster, der jedem antwortet, besteht [Jeder, der ihn erreicht, kann ihn ohne Anmeldedaten lesen](/docs/data-security/checks-and-issues#exponierung) nicht.
+
+Wo der Scan läuft, entscheidet, was sich sonst wissen lässt. Die Worker von OneUptime Cloud erreichen nur Adressen im Internet, daher ist ein Cluster, den sie scannen, aus dem Internet erreichbar, und seine Exponierung sagt das. Von einer Sonde aus, oder von einem OneUptime aus, das Sie selbst hosten, läuft der Scan innerhalb eines Netzwerks, und ob das Internet den Cluster erreicht, lässt sich von dort nicht feststellen: Seine Exponierung zeigt **Unbekannt**, und seine **Übersicht** sagt, warum. Seine Verschlüsselung im Ruhezustand, seine Backups und seine Zugriffsprotokollierung gehören zu seinen Servern, sind von seiner Adresse aus nicht sichtbar und werden nicht geprüft.
+
+Aus einer Datenbank, die Sie betreiben, werden Stichproben genommen, sie wird nicht gefragt, und wie sie erreichbar ist, wird nicht geprüft: Ihre Exponierung zeigt **Nicht prüfbar**, ebenso wie die einer Art, aus der OneUptime keine Stichproben nimmt. Bis ein Datenspeicher zum ersten Mal geprüft wird, zeigt seine Exponierung **Noch nicht geprüft**, sodass ein Datenspeicher, der auf seine erste Prüfung wartet, nie für einen gehalten wird, der sich nicht prüfen lässt.
 
 ## Was OneUptime behält
 
@@ -244,11 +303,15 @@ Die Einstellungen der Datensicherheit gibt es einmal pro Projekt, im Abschnitt *
 ## Fehlerbehebung
 
 :::details Ein Datenspeicher meldet, dass sein Inhalt nicht gescannt wurde
-Der Scan sagt, warum: „Das Scannen von Inhalten erfordert die Inhaltsberechtigung der Verbindung oder eine Verbindungszeichenfolge für eine Datenbank.“ Setzen Sie die Verbindung des Datenspeichers auf **Konfiguration und Inhaltsstichproben** und führen Sie ihren Befehl erneut aus, oder geben Sie der Datenbank eine Verbindungszeichenfolge. Prüfen Sie auch, ob **Inhalt scannen** für den Datenspeicher und in den Einstellungen des Projekts eingeschaltet ist.
+Der Scan sagt, warum: „Das Scannen von Inhalten erfordert die Inhaltsberechtigung der Verbindung oder eine Verbindungszeichenfolge für einen Datenspeicher, den Sie betreiben.“ Setzen Sie die Verbindung des Datenspeichers auf **Konfiguration und Inhaltsstichproben** und führen Sie ihren Befehl erneut aus, oder geben Sie dem Datenspeicher, den Sie betreiben, eine Verbindungszeichenfolge. Prüfen Sie auch, ob **Inhalt scannen** für den Datenspeicher und in den Einstellungen des Projekts eingeschaltet ist.
 :::
 
 :::details Eine Prüfung meldet, dass sie es nicht sagen kann
 Eine Tatsache, die der Leser nicht lesen konnte - eine Berechtigung, die die Rolle nicht hat, eine API, die nicht eingeschaltet ist - ist unbekannt, nie geraten. Ihre Prüfung meldet, dass sie es nicht sagen kann, und ein Problem, das sie eröffnet hat, bleibt offen: Niemand darf schließen, ein Mangel sei behoben, nur weil OneUptime nicht nachsehen konnte. Die Warnhinweise beim Lesen der Konfiguration sagen, was nicht gelesen werden konnte. Führen Sie den Befehl der Verbindung erneut aus, um zu gewähren, was fehlt.
+:::
+
+:::details Die Exponierung eines Datenspeichers zeigt Nicht prüfbar
+OneUptime kann nicht lesen, wie ein Datenspeicher seiner Art erreichbar ist: eine Datenbank, die Sie betreiben, oder eine Art, aus der es keine Stichproben nimmt. Das ist kein Fehler, und es öffnet sich kein Problem dafür. Seine **Einstellungen** sagen unter **Was OneUptime prüft**, was an ihm geprüft wird. Ein Datenspeicher, dessen Exponierung **Noch nicht geprüft** zeigt, ist einer, den OneUptime prüfen kann und noch nicht geprüft hat: ein Such-Cluster vor seinem ersten Inhaltsscan oder ein Datenspeicher in einem Cloud-Konto vor dem ersten Lesen der Konfiguration seiner Verbindung.
 :::
 
 :::details Es erscheinen keine S3-Buckets oder BigQuery-Datasets

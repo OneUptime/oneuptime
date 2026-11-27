@@ -603,9 +603,11 @@ November 2026 ([RELEASING.md](RELEASING.md#google-cloud-marketplace)).
      the deployer. It comes from Google's own `deployer_helm`: 13.0.18, the
      newest, is built with Go 1.26.10.
    - **The same CVE** in the runner image's kubectl v1.36.6. Kubernetes'
-     newest releases (1.36.6 and 1.37.2) are both built with Go 1.26.10, so
-     there is no fixed kubectl yet
-     ([#11042](https://github.com/OneUptime/oneuptime/issues/11042)).
+     newest releases (1.36.6 and 1.37.2) were both built with Go 1.26.10, so
+     there was no fixed kubectl yet
+     ([#11042](https://github.com/OneUptime/oneuptime/issues/11042)). The
+     image now pins v1.36.7, built with Go 1.26.11, which Kubernetes
+     published on 25 November.
    - **CVE-2026-97205** in nginx 1.30.5 (fixed in 1.30.6). The releases from
      17.1.0 on run nginx 1.30.7, and release 15.0's own nginx image got it on
      25 November: a layer over the released image, pushed by hand over its

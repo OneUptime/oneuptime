@@ -59,7 +59,10 @@ export const EXPOSURE_COLOR: Readonly<Record<DataStoreExposure, Color>> = {
   [DataStoreExposure.OtherAccounts]: Orange500,
   [DataStoreExposure.InternetReachable]: Yellow500,
   [DataStoreExposure.Private]: Green500,
+  // Not knowing is grey, whatever the reason: each says its own on hover (#11140).
   [DataStoreExposure.Unknown]: Gray500,
+  [DataStoreExposure.NotChecked]: Gray500,
+  [DataStoreExposure.CannotBeChecked]: Gray500,
 };
 
 export const CONFIDENCE_COLOR: Readonly<Record<DataConfidence, Color>> = {

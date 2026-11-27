@@ -314,6 +314,30 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
     "Create User…",
     "Create API Token…",
     "Expires In",
+    /*
+     * ONTAP System Manager's, where the read-only REST role and user are
+     * made, and the CLI's login method (#11001).
+     */
+    "Roles",
+    "Add",
+    "REST API path",
+    "Read-Only",
+    "HTTP",
+    "Password",
+    "http",
+    // PowerStore Manager's roles for the agent's user (#11002).
+    "Storage Operator",
+    "Operator",
+    /*
+     * Unisphere for PowerMax's roles, collections and menus (#11004), which
+     * Dell draws in English.
+     */
+    "Monitor",
+    "PerfMonitor",
+    "Diagnostic",
+    "Real Time",
+    "Settings → Users and Groups",
+    "Settings → Performance → System Registrations",
   ],
   [SERVERLESS]: ["Key Vault Secrets User"],
   // A CloudWatch Metric Stream's output formats, and Azure's and Google Cloud's roles.
@@ -364,6 +388,11 @@ const NAMES: Record<string, Array<string>> = {
     "Pure Storage FlashArray",
     "Pure Storage FlashBlade",
     "Everpure",
+    "NetApp ONTAP",
+    "Amazon FSx for NetApp ONTAP",
+    "SnapMirror",
+    "Dell PowerStore",
+    "Dell PowerMax",
   ],
   [DATABASES]: [
     "PostgreSQL",
@@ -425,6 +454,12 @@ const PROSE: Record<string, Array<string>> = {
   [QUEUES]: ["destination", "namespace"],
   // The two concepts the page defines, "**Fleet**: a group of devices".
   [IOT]: ["Fleet", "Device"],
+  /*
+   * ONTAP's Aggregates tab, which the Dashboard draws with a key of its own
+   * (Aggregates (disk aggregates), #11001): the bare Aggregates is
+   * OpenStack's host aggregate in some languages.
+   */
+  [STORAGE_ARRAYS]: ["Aggregates"],
 };
 
 /*
@@ -647,6 +682,16 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "not",
   ],
   [STORAGE_ARRAYS]: [
+    // How often PowerStore is read (#11002) and what a PowerMax needs (#11004).
+    "A PowerStore every 5 minutes.",
+    "Unisphere for PowerMax 10.1 or later",
+    "A probe that reaches Unisphere on TCP 8443",
+    "A Unisphere user with the Monitor role",
+    "Only the arrays Unisphere manages itself.",
+    "Up to 5,000 storage groups and 10,000 volumes per array",
+    "Unisphere 10.1 and 10.2",
+    // The error a connection's page shows, quoted in the sentence's words.
+    "The server's certificate changed",
     "without an expiry",
     "Purity//FA 6.7.0 and later",
     "One scrape job per endpoint, each read as often as it is worth.",
@@ -661,6 +706,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Hosts.",
     "Pods.",
     "File systems.",
+    "An ONTAP cluster's own objects.",
+    "ONTAP: Harvest polls the cluster, the collector scrapes Harvest.",
   ],
   /*
    * (yes is a Dashboard label since #6369, a recorder decision's value on

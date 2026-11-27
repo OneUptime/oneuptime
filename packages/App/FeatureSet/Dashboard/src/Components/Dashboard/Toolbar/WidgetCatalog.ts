@@ -903,6 +903,37 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
       },
     ],
   },
+  {
+    name: "Cloud Costs",
+    group: WidgetCategoryGroup.Infrastructure,
+    icon: IconProp.Billing,
+    /*
+     * Said before the widget is added: its figures are read as the viewer
+     * may read the project's cloud costs, so a public dashboard draws none
+     * of them (#11009).
+     */
+    description:
+      "What your clouds cost, beside the services that spend it. Not available on public dashboards.",
+    items: [
+      {
+        type: DashboardComponentType.CloudCost,
+        label: "Cloud Cost",
+        icon: IconProp.Billing,
+        description:
+          "A total, a breakdown or each day's spend, for any account, cost group or cost view.",
+        keywords: [
+          "cloud cost",
+          "spend",
+          "finops",
+          "cost group",
+          "showback",
+          "aws cost",
+          "azure cost",
+          "gcp cost",
+        ],
+      },
+    ],
+  },
 ];
 
 // Every widget's catalog entry, by its type.

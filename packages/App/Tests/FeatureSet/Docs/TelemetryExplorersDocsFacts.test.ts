@@ -1783,8 +1783,18 @@ describe("Metrics Explorer (telemetry/metrics-explorer)", () => {
     ]);
     expect(engine).toContain("HIDING_RULE_TYPES.has(rule.ruleType");
     expect(page).toContain(
-      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, and with every script's digits read as ASCII digits. The other rules match the value as it is written.",
+      "A Drop, Remove Attribute or Redact Attribute rule, which hides data, also matches its regular expression in a value read as Data Security reads it: with its percent-escapes read, as a form writes a URL's query string, with a plus sign for each space, and with every script's digits read as ASCII digits. The other rules match the value as it is written.",
     );
+    // The readings those rules try a value in, the query string's among them (#11199).
+    const readings: string = between(
+      engine,
+      "const PATTERN_READINGS: ReadingNeeds = {",
+      "};",
+    );
+
+    expect(readings).toContain("readsPercentEncoded: true");
+    expect(readings).toContain("readsPlusAsSpace: true");
+    expect(readings).toContain("readsDigitsOfEveryScript: true");
   });
 
   it("opens the metric list on the past hour", () => {

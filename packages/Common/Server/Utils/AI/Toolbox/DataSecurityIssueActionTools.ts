@@ -1,6 +1,13 @@
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
 import DataSecurityIssue from "../../../../Models/DatabaseModels/DataSecurityIssue";
 import {
+  actionAlwaysAsks,
+  AlwaysAskWrite,
+  DATA_SECURITY_ISSUE_TABLE_NAME,
+  writeAlwaysAsks,
+} from "../../../../Types/AI/AIAlwaysAskChanges";
+import { FIX_DATA_SECURITY_ISSUE_WITH_AI_TOOL_NAME } from "../../../../Types/AI/AIDataSecurityActions";
+import {
   AIChatCitationTarget,
   AIChatCitationTargetType,
 } from "../../../../Types/AI/AIChatTypes";
@@ -287,6 +294,17 @@ function moveOf(change: IssueChange): IssueMove | null {
   }
 }
 
+/*
+ * The columns a change writes to the issue, as its button sends them
+ * (DataSecurityIssueChanges) - without the person's reason and date, which
+ * decide nothing about whether it asks.
+ */
+export function getChangeWrite(change: IssueChange): JSONObject {
+  const move: IssueMove | null = moveOf(change);
+
+  return move ? getIssueMoveWrite(move) : getIssueAssignWrite({});
+}
+
 function buildChangeTitle(data: {
   change: IssueChange | null;
   named: NamedIssue | null;
@@ -401,7 +419,12 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
   buildActionTitle: (args: JSONObject): AIActionSentence => {
     return buildChangeTitle({ change: readChange(args), named: null });
   },
-  // Accept Risk and Not an Issue always ask: each stops an issue counting.
+  /*
+   * Accept Risk and Not an Issue always ask: each stops an issue counting.
+   * Decided by the write the change makes, from the one list the MCP
+   * server holds every record's write to (Types/AI/AIAlwaysAskChanges), so
+   * update_data_security_issue is refused what this asks about (#11177).
+   */
   asksInEveryMode: (
     args: JSONObject,
     prepared: PreparedMutation | undefined,
@@ -410,8 +433,11 @@ export const ChangeDataSecurityIssueTool: ObservabilityTool = {
 
     return asksWhenItsCardSaysSo(
       change === null ||
-        change === IssueChange.AcceptRisk ||
-        change === IssueChange.NotAnIssue,
+        writeAlwaysAsks({
+          tableName: DATA_SECURITY_ISSUE_TABLE_NAME,
+          write: AlwaysAskWrite.Update,
+          data: getChangeWrite(change),
+        }),
       prepared,
     );
   },
@@ -800,11 +826,15 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
   buildActionTitle: (): AIActionSentence => {
     return buildFixTitle(null);
   },
+  // Nothing it makes asks in every mode: only a card that could not be prepared.
   asksInEveryMode: (
     _args: JSONObject,
     prepared: PreparedMutation | undefined,
   ): boolean => {
-    return asksWhenItsCardSaysSo(false, prepared);
+    return asksWhenItsCardSaysSo(
+      actionAlwaysAsks(FIX_DATA_SECURITY_ISSUE_WITH_AI_TOOL_NAME),
+      prepared,
+    );
   },
   prepareMutation: async (
     args: JSONObject,

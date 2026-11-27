@@ -531,9 +531,18 @@ const STORE_CASES: ReadonlyArray<{
   },
   {
     name: "a kind a probe does not scan",
-    facts: probeStore({ kind: DataStoreKind.MongoDb }),
+    facts: probeStore({
+      kind: DataStoreKind.AwsS3Bucket,
+      provider: DataStoreProvider.Aws,
+    }),
     detail:
-      "A probe scans PostgreSQL, MySQL and SQL Server databases only. Scan this store from OneUptime's workers in its Settings.",
+      "A probe scans only stores you run: PostgreSQL, MySQL, SQL Server, Elasticsearch and OpenSearch. Scan this store from OneUptime's workers in its Settings.",
+  },
+  // Nothing samples it, a probe no more than OneUptime's workers (#11140).
+  {
+    name: "a kind nothing samples, set to scan from a probe",
+    facts: probeStore({ kind: DataStoreKind.MongoDb }),
+    detail: "OneUptime cannot sample this kind of store's content yet.",
   },
   {
     name: "no variable for the connection string",

@@ -28,12 +28,15 @@ Het **Overzicht** laat zien hoe uw data er nu voor staan. Zolang het project nie
 
 ## Een database koppelen
 
-Gebruik een **alleen-lezen login**. Kies in het overzicht of bij Databases **Een database koppelen**, en vervolgens een van beide:
+Gebruik een **alleen-lezen login**. Kies in het overzicht of bij Databases **Een database koppelen**, en vervolgens een van de volgende:
 
 - **OneUptime maakt verbinding**: plak een verbindingsreeks. Die wordt versleuteld opgeslagen en nooit meer getoond.
 - **Een sonde in mijn netwerk maakt verbinding**: kies een van de sondes van dit project en geef de omgevingsvariabele van de sonde op die de verbindingsreeks bevat (bijvoorbeeld \`ORDERS_DB_URL\`). De verbindingsreeks verlaat uw netwerk nooit. Werk de sonde eerst bij naar de nieuwste versie.
+- **Mijn Database Agent maakt verbinding**: kies de databaseserver waarnaast zijn Database Agent draait, en geef de database daarop op die gelezen moet worden. De agent leest hem met eigen logins, dus in OneUptime wordt er geen opgeslagen. Hij leest PostgreSQL, MySQL en MariaDB zodra de eigenaar \`ONEUPTIME_DATA_OBSERVABILITY=true\` instelt waar hij draait.
 
 Een database die al voor Gegevensbeveiliging is gekoppeld, wordt ook bewaakt.
+
+Met de **Instellingen** van een database, in het menu ervan, geeft u hem een andere naam (**Details bewerken**), geeft u hem een andere login, sonde of Database Agent (**Verbinding wijzigen**), stopt u met lezen en vergeet u zijn tabellen en controles terwijl Gegevensbeveiliging hem behoudt (**Verwijderen uit Data Observability**), of verwijdert u hem uit OneUptime (**Database verwijderen**). Zolang Gegevensbeveiliging op een database steunt, kan alleen iemand die gegevensopslagen van Gegevensbeveiliging mag verwijderen hem verwijderen.
 
 **Databases die u kunt koppelen**, op dezelfde pagina, somt op wat uw project al kent en wat nog niemand heeft gekoppeld: databases waarmee uw traces praten, databases in uw cloudaccounts en databases die Databasebewaking volgt. **Koppelen** vult het formulier vooraf in met wat er van elke database bekend is. Er wordt niets gelezen totdat u hem koppelt.
 

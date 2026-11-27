@@ -454,8 +454,19 @@ Seine eigenen Variablen, in derselben `.env` (die Compose-Datei gibt sie nur an 
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | Ein PEM-CA-Bundle, in den Container gemountet (siehe die auskommentierten `volumes` von `oneuptime-database-ai-agent`), gegen das das Zertifikat des Servers geprüft wird, wenn `DATABASE_TLS_INSECURE=false` |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | die Identität des Collectors | Registriert den KI-Agent als eine andere Datenbank als die des Collectors: ihre ID in OneUptime oder `<engine>\|<address>:<port>`. Lassen Sie es leer |
 | `LOG_LEVEL` | `info` | Die Log-Stufe des KI-Agents: `debug`, `info`, `warn` oder `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` lässt den Agent die Datenbanken dieses Servers für Data Observability lesen; alles andere lässt das ausgeschaltet |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | das Überwachungs-Login | Das Login, mit dem Data Observability den Katalog liest. So geschrieben, wie es ist: Seine `$` werden nicht verdoppelt |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | Das Passwort dieses Logins; setzen Sie es in einfache Anführungszeichen |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` führt keine Datenprüfung aus: nur den Katalog |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | das Katalog-Login | Das Login, mit dem Datenprüfungen Zeilen lesen |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | Das Passwort dieses Logins; setzen Sie es in einfache Anführungszeichen |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` führt Prüfungen vom Typ Benutzerdefiniertes SQL und Fehlerhafte Zeilen aus |
 
 Was er ausführen darf, wie Korrekturen funktionieren und wie Sie Fehler beheben: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#datenbankserver).
+
+### Data Observability über denselben Agent
+
+Derselbe Agent kann die PostgreSQL-, MySQL- und MariaDB-Datenbanken dieses Servers für [Data Observability](/docs/data-observability/index) lesen: ihre Tabellen und Spalten, Aktualität und Volumen, Schemaänderungen und die Prüfungen, die Sie einrichten. Er liest schreibgeschützt, mit Logins aus seiner eigenen Umgebung und Anweisungen, die er selbst baut, und sendet keine Zeile und kein Login zurück. Er ist ausgeschaltet, bis Sie `ONEUPTIME_DATA_OBSERVABILITY=true` in derselben `.env` setzen. [Eine Datenbank verbinden](/docs/data-observability/connect#über-einen-database-agent) beschreibt, wie Sie den Agent auswählen und welche Logins Sie ihm geben.
 
 ## Kubernetes
 

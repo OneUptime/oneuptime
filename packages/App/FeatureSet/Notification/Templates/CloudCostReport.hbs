@@ -1,0 +1,139 @@
+{{> Start this}}
+
+{{!--
+  A SCHEDULED CLOUD COST REPORT (#11009).
+
+  Every word of it is handed in already written in its reader's language
+  (Common/Types/Cloud/CloudCostReportWords, through CloudCostReportSender):
+  what it covers and when, the total and its change on the period before,
+  the budget, savings and commitments strip, and each section's rows - a
+  view's groups, the services that rose and fell the most, the unusual
+  days, the largest savings waiting. Its money, dates and percents are
+  written as the reader's language writes them; what the clouds and the
+  team wrote (services, accounts, groups, the report's name) reads as
+  written, each set apart so it reads its own way in an email read from
+  the right. Its figures are attached as a CSV.
+--}}
+<div style="display: none; max-height: 0; overflow: hidden; opacity: 0; mso-hide: all;">{{report.lead}} {{report.totalLabel}}: {{report.total}}{{#if report.change}} ({{report.change}}){{/if}}</div>
+
+{{> Logo this}}
+
+{{> EmailTitle title=report.title }}
+
+{{> InfoBlock plainInfo=report.lead }}
+
+<!-- Hero: the period's total and its change -->
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td style="border:0;margin:0;padding:0;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f8fafc" style="width:100%;table-layout:fixed;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+          <tbody>
+            <tr>
+              <td align="center" style="padding:26px 24px 24px 24px;">
+                <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.6px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.totalLabel}}</p>
+                <p style="Margin:0;font-size:40px;line-height:48px;letter-spacing:-1px;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.total}}</p>
+                {{#if report.change}}
+                <p style="Margin:10px 0 0 0;font-size:14px;line-height:20px;font-weight:600;{{#ifCond report.changeTone "up"}}color:#b45309;{{else}}{{#ifCond report.changeTone "down"}}color:#047857;{{else}}color:#475569;{{/ifCond}}{{/ifCond}}font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.change}}</p>
+                {{/if}}
+                <p style="Margin:6px 0 0 0;font-size:13px;line-height:18px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{report.previous}}</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="14" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+    </tr>
+  </tbody>
+</table>
+<!-- /Hero -->
+
+{{#if report.hasStats}}
+<!-- Strip: budget, savings waiting, commitments -->
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td style="border:0;margin:0;padding:0;">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" bgcolor="#f8fafc" style="width:100%;table-layout:fixed;background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;">
+          <tbody>
+            <tr>
+              {{#each report.stats}}
+              <td align="center" valign="top" class="st-Stat" style="padding:16px 8px;">
+                <p class="st-Stat-label" style="Margin:0 0 6px 0;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{this.label}}</p>
+                <div class="st-Stat-value" style="margin:0;font-size:20px;line-height:26px;overflow-wrap:anywhere;word-break:break-word;font-weight:700;color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{this.value}}</div>
+                {{#if this.hint}}
+                <div style="margin:4px 0 0 0;font-size:12px;line-height:17px;color:#64748b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">{{this.hint}}</div>
+                {{/if}}
+              </td>
+              {{/each}}
+            </tr>
+          </tbody>
+        </table>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="22" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+    </tr>
+  </tbody>
+</table>
+<!-- /Strip -->
+{{/if}}
+
+{{#each report.sections}}
+{{!-- The section's title, escaped as written: TitleBlock's slot is raw. --}}
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; table-layout: fixed;">
+  <tr><td class="st-Gutter " style="padding: 0 40px 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 15px; line-height: 24px; color: #475569; overflow-wrap: anywhere; word-break: break-word;">
+    <h2 style="margin: 0; color: #0f172a; font-size: 16px; line-height: 24px; font-weight: 600;">{{this.title}}</h2>
+  </td></tr>
+</table>
+<table role="presentation" class="st-Copy st-Width st-Width--mobile" border="0" cellpadding="0" cellspacing="0" width="100%" style="width: 100%; max-width: 100%; table-layout: fixed;">
+  <tbody>
+    <tr>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+      <td style="border:0;margin:0;padding:0;">
+        <table class="st-ReportTable" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="width:100%;table-layout:fixed;overflow-wrap:anywhere;word-break:break-word;border-collapse:separate;border-spacing:0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Ubuntu,sans-serif;">
+          <tbody>
+            {{#each this.rows}}
+            <tr bgcolor="#ffffff" style="background-color:#ffffff;">
+              <td align="{{emailStart}}" width="60%" style="padding:12px 12px;{{#unless @first}}border-top:1px solid #e2e8f0;{{/unless}}font-size:14px;line-height:21px;color:#0f172a;font-weight:500;text-align:{{emailStart}};">
+                <div{{{emailValueDirAttribute this.name}}}>{{this.name}}</div>
+              </td>
+              <td align="{{emailEnd}}" width="40%" style="padding:12px 12px;{{#unless @first}}border-top:1px solid #e2e8f0;{{/unless}}font-size:14px;line-height:21px;color:#0f172a;font-weight:600;text-align:{{emailEnd}};">
+                <div>{{this.value}}</div>
+                {{#if this.hint}}
+                <div style="margin:2px 0 0 0;font-size:12px;line-height:17px;font-weight:500;{{#if this.isUp}}color:#b45309;{{else}}{{#if this.isDown}}color:#047857;{{else}}color:#64748b;{{/if}}{{/if}}"{{{emailValueDirAttribute this.hint}}}>{{this.hint}}</div>
+                {{/if}}
+              </td>
+            </tr>
+            {{/each}}
+          </tbody>
+        </table>
+      </td>
+      <td class="st-Spacer st-Spacer--gutter" width="40" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+    </tr>
+    <tr>
+      <td class="st-Spacer st-Spacer--stacked" colspan="3" height="22" style="border:0;margin:0;padding:0;font-size:1px;line-height:1px;mso-line-height-rule:exactly;"><div class="st-Spacer st-Spacer--filler"></div></td>
+    </tr>
+  </tbody>
+</table>
+{{/each}}
+
+{{> ButtonBlock buttonUrl=costsUrl buttonText=report.buttonText}}
+
+{{#each report.notes}}
+{{> InfoBlock plainInfo=this }}
+{{/each}}
+
+{{> VerticalSpace this}}
+
+{{> InfoBlock plainInfo=report.why }}
+
+{{> Footer this}}
+
+{{> End this}}

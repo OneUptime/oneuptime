@@ -14,7 +14,11 @@ export interface ComponentProps {
   modelId: ObjectID;
 }
 
-// One database's pages: how its collection stands, its tables, and the monitors recommended for them.
+/*
+ * One database's pages: how its collection stands, its tables, and the
+ * monitors recommended for them - then, folded, its Settings and who
+ * changed it.
+ */
 const StoreViewSideMenu: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -48,6 +52,27 @@ const StoreViewSideMenu: FunctionComponent<ComponentProps> = (
           }}
           resourceType={MonitorRecommendationResourceType.DataStore}
           resourceId={props.modelId}
+        />
+      </SideMenuSection>
+
+      {/*
+       * How it is named and reached, Remove and Delete (#11147), and who
+       * changed it: set up once, so folded.
+       */}
+      <SideMenuSection title="Advanced">
+        <SideMenuItem
+          link={{
+            title: "Settings",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS),
+          }}
+          icon={IconProp.Settings}
+        />
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: routeOf(PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS),
+          }}
+          icon={IconProp.List}
         />
       </SideMenuSection>
     </SideMenu>

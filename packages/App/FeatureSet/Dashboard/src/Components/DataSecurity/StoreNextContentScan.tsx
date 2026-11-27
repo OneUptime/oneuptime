@@ -74,10 +74,10 @@ const STOP_DETAILS: Record<
     "Telemetry scanning is off for this project. Turn it on in Data Security's Settings.",
   ),
   [DataStoreContentScanStop.KindNotScannable]: translationKey(
-    "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+    "OneUptime cannot sample this kind of store's content yet.",
   ),
   [DataStoreContentScanStop.KindNotScannableByProbe]: translationKey(
-    "A probe scans PostgreSQL, MySQL and SQL Server databases only. Scan this store from OneUptime's workers in its Settings.",
+    "A probe scans only stores you run: PostgreSQL, MySQL, SQL Server, Elasticsearch and OpenSearch. Scan this store from OneUptime's workers in its Settings.",
   ),
   [DataStoreContentScanStop.NoProbeConnectionVariable]: translationKey(
     "Name the probe's environment variable that holds the connection string, in its Settings.",

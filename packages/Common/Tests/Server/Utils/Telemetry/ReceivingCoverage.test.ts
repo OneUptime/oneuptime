@@ -459,3 +459,179 @@ describe("ReceivingCoverage.planTelemetryEvaluation", () => {
     expect(result.isIngestBehind).toBe(true);
   });
 });
+
+/*
+ * Issue #11248: a telemetry check judges the window that ends when it was
+ * due, however late it runs. The plan is handed that end (windowEndsAt) and
+ * the time it runs (now), and works out from the end.
+ */
+describe("ReceivingCoverage.planTelemetryEvaluation for a check due before it runs (#11248)", () => {
+  async function planDue(data: {
+    windowInMs: number;
+    windowEndsAt: Date;
+    now?: Date | undefined;
+  }): Promise<TelemetryEvaluationPlan> {
+    ReceivingCoverage.clearCache();
+
+    return ReceivingCoverage.planTelemetryEvaluation({
+      windowInMs: data.windowInMs,
+      windowEndsAt: data.windowEndsAt,
+      now: data.now || NOW,
+    });
+  }
+
+  test("the window ends when the check was due, not when it runs", async () => {
+    expect(
+      await planDue({ windowInMs: MINUTE, windowEndsAt: ago(25 * SECOND) }),
+    ).toEqual({
+      evaluate: true,
+      evaluateUntil: ago(25 * SECOND),
+      isIngestBehind: false,
+    });
+  });
+
+  test("checks due a minute apart judge windows that follow on exactly, however late each runs", async () => {
+    const firstDueAt: number = NOW.getTime() - 10 * MINUTE;
+
+    // On time, 40 s late, after the next was due, a second late, retried 15 s on.
+    const lateByMs: Array<number> = [
+      5,
+      40 * SECOND,
+      61 * SECOND,
+      SECOND,
+      15 * SECOND,
+    ];
+
+    const windows: Array<{ startsAt: number; endsAt: number }> = [];
+
+    for (let index: number = 0; index < lateByMs.length; index++) {
+      const dueAtMs: number = firstDueAt + index * MINUTE;
+      const result: TelemetryEvaluationPlan = await planDue({
+        windowInMs: MINUTE,
+        windowEndsAt: new Date(dueAtMs),
+        now: new Date(dueAtMs + lateByMs[index]!),
+      });
+
+      expect(result.evaluate).toBe(true);
+      windows.push({
+        startsAt: result.evaluateUntil.getTime() - MINUTE,
+        endsAt: result.evaluateUntil.getTime(),
+      });
+    }
+
+    for (let index: number = 1; index < windows.length; index++) {
+      expect(windows[index]!.startsAt).toBe(windows[index - 1]!.endsAt);
+    }
+  });
+
+  test("a due time to come - another server's clock ahead of this one's - is now", async () => {
+    expect(
+      (
+        await planDue({
+          windowInMs: MINUTE,
+          windowEndsAt: new Date(NOW.getTime() + 3 * SECOND),
+        })
+      ).evaluateUntil,
+    ).toEqual(NOW);
+  });
+
+  test("a due time that cannot be read is now", async () => {
+    expect(
+      (
+        await planDue({
+          windowInMs: MINUTE,
+          windowEndsAt: new Date(Number.NaN),
+        })
+      ).evaluateUntil,
+    ).toEqual(NOW);
+  });
+
+  test("ingest more than a minute behind the window's end moves the window back to where the queue is: the earlier end wins", async () => {
+    givenBacklogSince(2 * MINUTE);
+
+    expect(
+      await planDue({ windowInMs: MINUTE, windowEndsAt: ago(30 * SECOND) }),
+    ).toEqual({
+      evaluate: true,
+      evaluateUntil: ago(2 * MINUTE),
+      isIngestBehind: true,
+    });
+  });
+
+  test("how far behind ingest is counts from the window's end: a late check judges no more unread data than an on-time one", async () => {
+    // 100 s behind now, but only 55 s behind the window's end.
+    givenBacklogSince(100 * SECOND);
+
+    expect(
+      await planDue({ windowInMs: MINUTE, windowEndsAt: ago(45 * SECOND) }),
+    ).toEqual({
+      evaluate: true,
+      evaluateUntil: ago(45 * SECOND),
+      isIngestBehind: false,
+    });
+
+    // The same queue holds a check due now back: 100 s is past the minute.
+    givenBacklogSince(100 * SECOND);
+
+    expect(
+      await planDue({ windowInMs: MINUTE, windowEndsAt: NOW }),
+    ).toMatchObject({
+      evaluateUntil: ago(100 * SECOND),
+      isIngestBehind: true,
+    });
+  });
+
+  test("a queue whose oldest waiting job came in after the window's end holds none of the window's data", async () => {
+    givenBacklogSince(10 * SECOND);
+
+    expect(
+      await planDue({ windowInMs: MINUTE, windowEndsAt: ago(40 * SECOND) }),
+    ).toEqual({
+      evaluate: true,
+      evaluateUntil: ago(40 * SECOND),
+      isIngestBehind: false,
+    });
+  });
+
+  test("a window that ended before OneUptime stopped receiving is judged, however long after the restart its check runs", async () => {
+    // Down from 30 to 18 minutes ago; reconnecting until 16 minutes ago.
+    givenLedger(RESTART);
+
+    expect(
+      await planDue({ windowInMs: MINUTE, windowEndsAt: ago(31 * MINUTE) }),
+    ).toEqual({
+      evaluate: true,
+      evaluateUntil: ago(31 * MINUTE),
+      isIngestBehind: false,
+    });
+  });
+
+  test("a window that holds the outage, or the reconnect after it, waits and says why", async () => {
+    givenLedger(RESTART);
+
+    expect(
+      await planDue({ windowInMs: MINUTE, windowEndsAt: ago(20 * MINUTE) }),
+    ).toEqual({
+      evaluate: false,
+      evaluateUntil: ago(20 * MINUTE),
+      isIngestBehind: false,
+      deferredBecause: ReceivingGapReason.NotReceiving,
+    });
+
+    expect(
+      await planDue({ windowInMs: MINUTE, windowEndsAt: ago(17 * MINUTE) }),
+    ).toMatchObject({
+      evaluate: false,
+      deferredBecause: ReceivingGapReason.Reconnecting,
+    });
+  });
+
+  test("the ledger is read as of when the check runs, once, for the window it was due to", async () => {
+    givenLedger(RESTART);
+
+    await planDue({ windowInMs: 5 * MINUTE, windowEndsAt: ago(40 * MINUTE) });
+
+    expect(readLedger).toHaveBeenCalledTimes(1);
+    expect(readLedger.mock.calls[0]![0].endsAt).toEqual(NOW);
+  });
+});

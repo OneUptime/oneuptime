@@ -2250,7 +2250,7 @@ export const AirGappedTopicPages: Array<AirGappedTopicPage> = [
           key: "traps",
           title: "SNMP traps",
           description:
-            "A probe takes v1 and v2c traps and informs, on UDP 162 by default.",
+            "A probe takes v1, v2c and v3 traps and informs, on UDP 162 by default.",
           icon: "bell",
           link: {
             label: "SNMP traps",

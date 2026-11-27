@@ -180,7 +180,8 @@ export function getCloudTagTiles(data: {
   const { coverage, translator } = data;
   const spend: CloudTagCoverageBreakdown | null = coverage.total.spend;
   const resources: CloudTagCoverageBreakdown = coverage.total.resources;
-  const money: (amount: number) => string = (amount: number): string => {
+  // In the reader's digits and currency, as every Cloud page writes money.
+  const formatMoney: (amount: number) => string = (amount: number): string => {
     return formatCloudMoney({
       amount,
       currency: coverage.currency,
@@ -202,8 +203,8 @@ export function getCloudTagTiles(data: {
         SPEND_NOT_MEASURED,
       sublabel: spend
         ? translator.translateTemplate(SPEND_TAGGED_OF, {
-            covered: money(spend.all.covered),
-            total: money(spend.all.total),
+            covered: formatMoney(spend.all.covered),
+            total: formatMoney(spend.all.total),
           })
         : undefined,
       sublabelIsTranslated: true,

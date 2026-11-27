@@ -37,6 +37,7 @@ const ORIGIN_TEXT: Readonly<Record<DataObservabilitySourceOrigin, string>> = {
     "Watched by Database Monitoring",
   [DataObservabilitySourceOrigin.CloudAccount]: "Found in your cloud account",
   [DataObservabilitySourceOrigin.BiTool]: "Read by your BI dashboards",
+  [DataObservabilitySourceOrigin.Removed]: "Removed from Data Observability",
 };
 
 /*

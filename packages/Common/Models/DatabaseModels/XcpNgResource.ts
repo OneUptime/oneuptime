@@ -15,6 +15,7 @@ import TenantColumn from "../../Types/Database/TenantColumn";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
+import { XcpNgMissingPatch } from "../../Types/XcpNg/XcpNgPoolEvents";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 
 /*
@@ -945,6 +946,202 @@ export default class XcpNgResource extends BaseModel {
     length: ColumnLength.LongText,
   })
   public tags?: string = undefined;
+
+  /*
+   * ---- #10997: a VM's last backup, a host's missing patches ----
+   *
+   * Read through Xen Orchestra's REST API by a probe (backup logs; each
+   * host's missing_patches every six hours) and written by the events
+   * ingest (XcpNgPoolEventsIngest), never by the snapshot scan, whose upsert
+   * leaves them as they are.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Backup At",
+    description:
+      "When a Xen Orchestra backup job last backed up this VM, or tried to: when its backup in the run ended.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastBackupAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Last Backup Status",
+    description:
+      "How the VM's last backup ended, in Xen Orchestra's words: success, failure, skipped or interrupted.",
+    example: "success",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public lastBackupStatus?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Last Successful Backup At",
+    description: "When a backup of this VM last succeeded, by any of its jobs.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public lastSuccessfulBackupAt?: Date = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: true,
+    title: "Last Backup Job",
+    description: "The Xen Orchestra backup job of the VM's last backup.",
+    example: "Nightly delta",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public lastBackupJobName?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.LongText,
+    canReadOnRelationQuery: true,
+    title: "Last Backup Error",
+    description:
+      "Why the VM's last backup failed or was skipped, as Xen Orchestra wrote it. Empty after a success.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.LongText,
+    length: ColumnLength.LongText,
+  })
+  public lastBackupError?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.BigPositiveNumber,
+    canReadOnRelationQuery: true,
+    title: "Last Backup Bytes",
+    description:
+      "What the VM's last backup sent, summed over its transfers. Stored as bigint.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.BigPositiveNumber,
+    transformer: {
+      to: (value: number | null | undefined): string | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        return Math.trunc(value).toString();
+      },
+      from: (value: string | null | undefined): number | null => {
+        if (value === null || value === undefined) {
+          return null;
+        }
+        const parsed: number = parseInt(value, 10);
+        return isNaN(parsed) ? null : parsed;
+      },
+    },
+  })
+  public lastBackupBytes?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Backup Interval Seconds",
+    description:
+      "How often the VM is backed up: the longest gap between two runs of the shortest-running enabled backup job that included it in its last run. Empty while no scheduled job backs it up.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public backupIntervalSeconds?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Number,
+    canReadOnRelationQuery: true,
+    title: "Missing Patch Count",
+    description:
+      "How many patches Xen Orchestra says this host misses, as last checked. Empty until checked.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Number,
+  })
+  public missingPatchCount?: number = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: READ_PERMISSIONS,
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Missing Patches",
+    description:
+      "The patches this host misses, by name, version and release, as Xen Orchestra last listed them (at most 200).",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.JSON,
+  })
+  public missingPatches?: Array<XcpNgMissingPatch> = undefined;
 
   @ColumnAccessControl({
     create: [],

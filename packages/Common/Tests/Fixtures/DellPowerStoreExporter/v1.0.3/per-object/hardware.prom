@@ -1,0 +1,106 @@
+# HELP powerstore_hardware_Battery_state The lifecycle state of the Hardware,Healthy is 1
+# TYPE powerstore_hardware_Battery_state gauge
+powerstore_hardware_Battery_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeA-Battery"} 1
+powerstore_hardware_Battery_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeB-Battery"} 1
+powerstore_hardware_Battery_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeA-Battery"} 1
+powerstore_hardware_Battery_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeB-Battery"} 1
+# HELP powerstore_hardware_Drive_state The lifecycle state of the Hardware,Healthy is 1
+# TYPE powerstore_hardware_Drive_state gauge
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_0"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_1"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_2"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_23"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_24"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_3"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_4"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_5"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_6"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_7"} 0
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_8"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_9"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_0"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_1"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_2"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_23"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_24"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_3"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_4"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_5"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_6"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_7"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_8"} 1
+powerstore_hardware_Drive_state{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_9"} 1
+# HELP powerstore_hardware_Fan_state The lifecycle state of the Hardware,Healthy is 1
+# TYPE powerstore_hardware_Fan_state gauge
+powerstore_hardware_Fan_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeA-Fan0"} 1
+powerstore_hardware_Fan_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeA-Fan1"} 1
+powerstore_hardware_Fan_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeB-Fan0"} 1
+powerstore_hardware_Fan_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeB-Fan1"} 1
+powerstore_hardware_Fan_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeA-Fan0"} 1
+powerstore_hardware_Fan_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeA-Fan1"} 1
+powerstore_hardware_Fan_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeB-Fan0"} 1
+powerstore_hardware_Fan_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeB-Fan1"} 0
+# HELP powerstore_hardware_Power_Supply_state The lifecycle state of the Hardware,Healthy is 1
+# TYPE powerstore_hardware_Power_Supply_state gauge
+powerstore_hardware_Power_Supply_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeA-PowerSupply"} 1
+powerstore_hardware_Power_Supply_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeB-PowerSupply"} 0
+powerstore_hardware_Power_Supply_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeA-PowerSupply"} 1
+powerstore_hardware_Power_Supply_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeB-PowerSupply"} 1
+# HELP powerstore_hardware_drive_size Size of the drive in bytes,unit is B
+# TYPE powerstore_hardware_drive_size gauge
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_NVRAM",name="Drive_0_0_23"} 8.484552704e+09
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_NVRAM",name="Drive_0_0_24"} 8.484552704e+09
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_0"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_1"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_2"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_3"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_4"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_5"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_6"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_7"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_8"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A1",drive_type="NVMe_SSD",name="Drive_0_0_9"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_NVRAM",name="Drive_0_0_23"} 8.484552704e+09
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_NVRAM",name="Drive_0_0_24"} 8.484552704e+09
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_0"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_1"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_2"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_3"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_4"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_5"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_6"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_7"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_8"} 3.840755982336e+12
+powerstore_hardware_drive_size{IP="fake-powerstore",appliance_id="A2",drive_type="NVMe_SSD",name="Drive_0_0_9"} 3.840755982336e+12
+# HELP powerstore_hardware_node_state The lifecycle state of the Hardware,Healthy is 1
+# TYPE powerstore_hardware_node_state gauge
+powerstore_hardware_node_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeA",serial_number="FXTSP221300670",state="Healthy"} 0
+powerstore_hardware_node_state{IP="fake-powerstore",appliance_id="A1",name="BaseEnclosure-NodeB",serial_number="FXTSP221300671",state="Healthy"} 0
+powerstore_hardware_node_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeA",serial_number="FXTSP221300970",state="Healthy"} 0
+powerstore_hardware_node_state{IP="fake-powerstore",appliance_id="A2",name="BaseEnclosure-NodeB",serial_number="FXTSP221300971",state="Healthy"} 0
+# HELP powerstore_wear_metrics_by_drive The percentage of drive wear remaining.
+# TYPE powerstore_wear_metrics_by_drive gauge
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_0"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_1"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_2"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_23"} 100
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_24"} 100
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_3"} 8
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_4"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_5"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_6"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_7"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_8"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A1",name="Drive_0_0_9"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_0"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_1"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_2"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_23"} 100
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_24"} 100
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_3"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_4"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_5"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_6"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_7"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_8"} 97
+powerstore_wear_metrics_by_drive{IP="fake-powerstore",appliance_id="A2",name="Drive_0_0_9"} 97

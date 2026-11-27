@@ -1,10 +1,10 @@
 # Data Security Checks and Issues
 
-Data Security runs 34 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
+Data Security runs 35 checks on every store, in nine groups. A check reads what is known about one store - how it is configured, what was found in it, who can reach it, where it lives - and passes, fails or cannot tell. A failing check opens one issue on that store, and the issue closes by itself once the check passes. This page lists every check, how an issue's severity and risk score are worked out, and what happens to an issue over its life. Security Events, Network Flows and Security Address Vault are OneUptime's own, kept for your security: declared, never scanned or checked (see [Stores OneUptime keeps for your security](/docs/data-security/compliance#stores-oneuptime-keeps-for-your-security)).
 
 :::cards
 - [How a check decides](#how-a-check-decides): Pass, fail or cannot tell, and how bad a failure is.
-- [Every check](#every-check): All 34, with what each one checks and how to fix it.
+- [Every check](#every-check): All 35, with what each one checks and how to fix it.
 - [Risk score](#risk-score): How issues are ordered inside a severity.
 - [What happens to an issue](#what-happens-to-an-issue): Open, resolved, accepted, not an issue, how each was resolved, and fixes followed to production.
 - [OneUptime AI's analysis](#oneuptime-ais-analysis): Whether an issue is real, what it puts at risk, what the fix would break and the shortest path to fixed.
@@ -22,6 +22,8 @@ Each check reads facts about a store and answers one of four ways:
 | Fail | The check finds the problem, and says what it saw in one sentence: the issue's evidence. | An issue opens, or the open one is brought up to date. |
 | Cannot tell | A fact could not be read: a permission the role does not have, a call that failed. | Nothing changes: an open issue stays open, because nobody may conclude a problem is fixed when OneUptime could not look. |
 | Does not apply | The store's kind has no such setting. | An open issue is resolved. |
+
+A fact that cannot be known from where it was read is not guessed either: whether the internet reaches a store asked from inside your network, or whether a cluster's anonymous user may write, which only a write would tell. Its check cannot tell, and that line of the store's **Configuration** says **Can't be checked**.
 
 ### Severity follows the data
 
@@ -45,6 +47,7 @@ Severity is given for Restricted, Confidential, Internal and Public data, in tha
 | A snapshot of it can be restored by anyone (`snapshot-public`) | Database, Snapshot | A database snapshot is shared publicly, so any cloud account can restore a full copy. | Critical / Critical / Critical / High | Make the snapshot private. |
 | A snapshot of it is shared with other accounts (`snapshot-shared-externally`) | Database, Snapshot | A database snapshot is shared with accounts outside your connected ones. | High / High / Medium / Low | Stop sharing the snapshot with the accounts that should not have it. |
 | Accounts outside your organization can reach it (`shared-with-external-accounts`) | Every store but telemetry | The store's policy grants access to accounts, tenants or projects that are not connected to OneUptime. | High / High / Medium / Low | Review each outside principal, and remove the ones that do not need access. |
+| Anyone who reaches it can read it without credentials (`readable-without-credentials`) | Search | It answered OneUptime without credentials: whoever can reach its address can read its data, and change it when it has no access control at all. | Critical / High / Medium / Low | Turn on the cluster's security, take every role from its anonymous user, and give each application its own read-only user. A cluster that takes writes without credentials is Critical on Restricted and Confidential data, and High on any other. |
 
 ### Encryption
 
@@ -123,7 +126,7 @@ risk = severity + 10 × exposure + 6 × volume + 5 × activity + 4 × production
 | Factor | Points |
 | --- | --- |
 | Severity | 75 for Critical, 50 for High, 25 for Medium, 0 for Low |
-| Exposure | 10 for Public, 8 for Other accounts, 6 for Internet reachable, 3 for Unknown, 0 for Private |
+| Exposure | 10 for Public, 8 for Other accounts, 6 for Internet reachable, 3 for Unknown, Not checked yet or Can't be checked, 0 for Private |
 | Volume | Up to 6, by the store's estimated sensitive records on a log scale: 1 for 10 records, 3 for 1,000, 5 for a million, 6 for ten million or more |
 | Activity | 5 when Security Operations saw detections on the store in the last week |
 | Production | 4 for a store in production |

@@ -117,7 +117,7 @@ Slutför verifieringen så som e-postmeddelandet beskriver.
 Om ett annat e-postmeddelande har kommit sedan dess visar kortet inte längre verifieringsmejlet. Öppna **Övervakningsloggar**, leta upp verifieringsmejlet utifrån ämnet i kolumnen **E-post** och klicka på **Visa sammanfattning** på den raden.
 
 > [!IMPORTANT]
-> **Dina kriterier ser det också.** Verifieringsmejlet utvärderas som vilket e-postmeddelande som helst. En formulering som "if you received this in error" matchar standardkriteriet `error` och markerar monitorn som offline. För att undvika det stänger du av **Kontrollera den här monitorn** i kortet **Övervakning** på monitorns sida **Inställningar** medan du verifierar (du blir ombedd att bekräfta). En monitor med övervakningen avstängd lagrar fortfarande e-postmeddelandet, och kortet **Monitor-sammanfattning** visar det fortfarande. Den utvärderar dock ingenting, så e-postmeddelandet får ingen rad i **Övervakningsloggar**: läs det innan ett annat e-postmeddelande kommer. När du är klar trycker du på **Slå på övervakning** i bannern högst upp på monitorns sidor, eller slår på reglaget igen.
+> **Dina kriterier ser det också.** Verifieringsmejlet utvärderas som vilket e-postmeddelande som helst. En formulering som "if you received this in error" matchar standardkriteriet `error` och markerar monitorn som offline. För att undvika det stänger du av **Kontrollera den här monitorn** i kortet **Övervakning** på monitorns sida **Inställningar** medan du verifierar (du blir ombedd att bekräfta). En monitor med övervakningen avstängd lagrar fortfarande e-postmeddelandet, och kortet **Monitor-sammanfattning** visar det fortfarande. Den utvärderar dock ingenting: e-postmeddelandets rad i **Övervakningsloggar** säger att det inte utvärderades, och **Visa sammanfattning** på den visar hela e-postmeddelandet. När du är klar trycker du på **Slå på övervakning** i bannern högst upp på monitorns sidor, eller slår på reglaget igen.
 
 **Verifieringen hör till adressen.** Om du [återställer eller anpassar adressen](#återställa-eller-anpassa-e-postadressen) ser tjänsten en ny mottagare, och du måste verifiera igen.
 
@@ -186,6 +186,8 @@ Monitorns egen adress maskeras innan något kriterium läser e-postmeddelandet, 
 Ingen av de här jämförelserna skiljer på versaler och gemener. Ett filter med ett tomt värde matchar aldrig.
 
 ### Tidsbaserade filter (E-post mottagen)
+
+Den engelska instrumentpanelen stavar dessa villkor "Recieved".
 
 | Filtervillkor | Beskrivning | Exempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Klicka på **Visa fler detaljer** för att se resten:
 
 ### Tidigare e-postmeddelanden
 
-Kortet visar bara det senaste e-postmeddelandet. Varje e-postmeddelande som monitorn utvärderar skrivs också till **Övervakningsloggar**: kolumnen **E-post** visar dess ämne och avsändare, och **Visa sammanfattning** på dess rad visar hela e-postmeddelandet på samma sätt som kortet. En monitor med övervakningen avstängd utvärderar ingenting, så e-postmeddelandena den tar emot får inga rader. Om något av dina kriterier kontrollerar **E-post mottagen** skriver monitorn också en rad varje gång den letar efter saknad e-post. Kolumnen **E-post** säger "Scheduled check" på de raderna, och deras **Visa sammanfattning** visar det senaste e-postmeddelandet vid kontrollen, eller "No email yet" om inget hade kommit. Övervakningsloggar sparas som standard i en dag. På en självhostad server kan en administratör ändra det med **Lagringstid för övervakningsloggar (dagar)** i inställningarna i Admin Dashboard.
+Kortet visar bara det senaste e-postmeddelandet. Varje e-postmeddelande som monitorn utvärderar skrivs också till **Övervakningsloggar**: kolumnen **E-post** visar dess ämne och avsändare, och **Visa sammanfattning** på dess rad visar hela e-postmeddelandet på samma sätt som kortet. En monitor som inte kontrolleras — med övervakningen avstängd, eller pausad av en incident eller en underhållshändelse — utvärderar ingenting, så varje e-postmeddelande den tar emot får en rad som säger att det inte utvärderades, och varför. Om något av dina kriterier kontrollerar **E-post mottagen** skriver monitorn också en rad varje gång den letar efter saknad e-post. Kolumnen **E-post** säger "Scheduled check" på de raderna, och deras **Visa sammanfattning** visar det senaste e-postmeddelandet vid kontrollen, eller "No email yet" om inget hade kommit.
+
+Övervakningsloggar sparas som standard i en dag. På en självhostad server kan en administratör ändra det med **Lagringstid för övervakningsloggar (dagar)** i inställningarna i Admin Dashboard.
 
 ## Självhostad konfiguration
 

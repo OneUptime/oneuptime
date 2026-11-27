@@ -29,7 +29,15 @@ import {
   DataSecurityProbeStoreWork,
   isValidProbeConnectionVariable,
   readProbeStoreWork,
+  SEARCH_PROBE_ENGINE,
 } from "Common/Server/Utils/DataSecurity/DataSecurityProbeScan";
+import {
+  sampleSearchStore,
+  SearchStoreConnection,
+} from "Common/Server/Utils/DataSecurity/Content/SearchStoreSampler";
+import { getSearchConnectionSecrets } from "Common/Server/Utils/DataSecurity/Content/SearchStoreConnection";
+import { createProbeSearchTransport } from "Common/Server/Utils/DataSecurity/Content/SearchStoreHttp";
+import { DataStorePostureReadFrom } from "Common/Types/DataSecurity/DataStorePosture";
 import {
   ContentScanOptions,
   ContentScanResult,
@@ -50,7 +58,10 @@ import {
  *      its connection string;
  *   2. read the connection string from that variable - a name that is not
  *      an upper-case shell variable's, or one of the probe's own settings,
- *      is refused - and sample the database read-only (DatabaseSampler);
+ *      is refused - and sample the database read-only (DatabaseSampler),
+ *      or an Elasticsearch or OpenSearch cluster with GET requests only
+ *      (SearchStoreSampler, #11140), asking it, without credentials, whether
+ *      it answers anyone who reaches it;
  *   3. report what was found: findings by column, never a value, never the
  *      connection string.
  *
@@ -78,6 +89,13 @@ export interface ScanDatabasesDependencies {
     connection: DatabaseConnection,
     options: ContentScanOptions,
   ) => Promise<ContentScanResult>;
+  // A search cluster's sampler, from inside the customer's network (#11140).
+  sampleSearch?:
+    | ((
+        store: SearchStoreConnection,
+        options: ContentScanOptions,
+      ) => Promise<ContentScanResult>)
+    | undefined;
   environment: Record<string, string | undefined>;
   // The names-and-addresses model for one scan, when the project has it on.
   createModelContext?:
@@ -91,6 +109,15 @@ const DEFAULT_DEPENDENCIES: ScanDatabasesDependencies = {
     options: ContentScanOptions,
   ): Promise<ContentScanResult> => {
     return sampleDatabase(connection, options);
+  },
+  sampleSearch: (
+    store: SearchStoreConnection,
+    options: ContentScanOptions,
+  ): Promise<ContentScanResult> => {
+    return sampleSearchStore(store, options, {
+      transport: createProbeSearchTransport(),
+      readFrom: DataStorePostureReadFrom.Network,
+    });
   },
   environment: process.env,
   createModelContext: (
@@ -266,10 +293,18 @@ export async function scanStore(
       ? await dependencies.createModelContext(work.findNamesAndAddresses)
       : undefined;
 
-    const result: ContentScanResult = await dependencies.sample(
-      { engine: work.engine, connectionString: connectionString.trim() },
-      options,
-    );
+    const result: ContentScanResult =
+      work.engine === SEARCH_PROBE_ENGINE
+        ? await (
+            dependencies.sampleSearch || DEFAULT_DEPENDENCIES.sampleSearch!
+          )(
+            { kind: work.kind, connectionString: connectionString.trim() },
+            options,
+          )
+        : await dependencies.sample(
+            { engine: work.engine, connectionString: connectionString.trim() },
+            options,
+          );
 
     for (const warning of getModelWarnings(options.model, CONTENT_STORE_KEY)) {
       if (
@@ -285,7 +320,12 @@ export async function scanStore(
     return {
       dataStoreId: work.dataStoreId,
       startedAt,
-      error: sanitizeErrorMessage(err, getConnectionSecrets(connectionString)),
+      error: sanitizeErrorMessage(
+        err,
+        work.engine === SEARCH_PROBE_ENGINE
+          ? getSearchConnectionSecrets(connectionString)
+          : getConnectionSecrets(connectionString),
+      ),
     };
   }
 }

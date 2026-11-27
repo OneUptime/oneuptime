@@ -1,8 +1,10 @@
 import OneUptimeDate from "Common/Types/Date";
 import {
+  DataObservabilityAgentState,
   DataObservabilityCollector,
   DataObservabilityStoreSummary,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { getDatabaseAgentStateSentence } from "./DatabaseAgentWords";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -12,7 +14,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * collection someone asked for with Collect Now runs: that it runs, and
  * that the page shows how it went (a probe's, at its next check). Then
  * what the last collection said - why it failed, in the engine's own
- * words, or what it had to leave out - and, for one that failed, when it
+ * words, or what it had to leave out - and, for one read through a
+ * Database Agent that cannot read it now, what stands in the way and the
+ * step that fixes it (#11148) - and, for one that failed, when it
  * last tried and that it tries again by itself, so a person who pressed
  * Collect Now after a failure sees it was tried (#9506).
  */
@@ -32,7 +36,19 @@ const StoreCollectionMessage: FunctionComponent<ComponentProps> = (
   const { store } = props;
   const textSize: string = props.size === "small" ? "text-xs" : "text-sm";
 
-  if (props.isCollecting) {
+  // A Database Agent that cannot read it now (#11148): what stands in the way, and the step that fixes it.
+  const agentProblem: string | null =
+    store.collector === DataObservabilityCollector.DatabaseAgent &&
+    store.agentState &&
+    store.agentState !== DataObservabilityAgentState.Ready
+      ? getDatabaseAgentStateSentence(
+          store.agentState,
+          store.databaseServerName || "",
+          translator,
+        )
+      : null;
+
+  if (props.isCollecting && !agentProblem) {
     return (
       <p className={`${textSize} text-gray-600`}>
         {store.collector === DataObservabilityCollector.Probe
@@ -40,15 +56,30 @@ const StoreCollectionMessage: FunctionComponent<ComponentProps> = (
               "Probe {{probe}} collects it at its next check, within five minutes. This page shows how it went.",
               { probe: store.probeName || "" },
             )
-          : translator.translateText(
-              "Collecting now. This page shows how it went when it ends.",
-            )}
+          : store.collector === DataObservabilityCollector.DatabaseAgent
+            ? translator.translateTemplate(
+                "The Database Agent of {{server}} reads it within a minute. This page shows how it went.",
+                { server: store.databaseServerName || "" },
+              )
+            : translator.translateText(
+                "Collecting now. This page shows how it went when it ends.",
+              )}
       </p>
     );
   }
 
   return (
     <>
+      {agentProblem ? (
+        <p
+          className={`${textSize} text-amber-700`}
+          data-testid="data-observability-agent-problem"
+        >
+          {agentProblem}
+        </p>
+      ) : (
+        <></>
+      )}
       {store.message ? (
         <p
           className={`whitespace-pre-line ${textSize} ${

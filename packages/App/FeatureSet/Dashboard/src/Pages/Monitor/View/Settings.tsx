@@ -2,6 +2,7 @@ import DisabledWarning from "../../../Components/Monitor/DisabledWarning";
 import PageSkeleton from "Common/UI/Components/Page/PageSkeleton";
 import IncomingEmailAddressSettings from "../../../Components/Monitor/IncomingEmailMonitor/IncomingEmailAddressSettings";
 import MonitoringCard from "../../../Components/Monitor/MonitoringCard";
+import KeepMonitoringDuringIncidentsCard from "../../../Components/Monitor/KeepMonitoringDuringIncidentsCard";
 import ResponseContentCard from "../../../Components/Monitor/ResponseContentCard";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -105,6 +106,17 @@ const MonitorCriteria: FunctionComponent<
         {monitor?.monitorType !== MonitorType.Manual && (
           <MonitoringCard monitorId={modelId} />
         )}
+
+        {/*
+         * Whether an incident someone declares pauses those checks: right
+         * under the switch that turns them off (issue #11141).
+         */}
+        <div className="mt-5 empty:hidden">
+          <KeepMonitoringDuringIncidentsCard
+            monitorId={modelId}
+            monitorType={monitor.monitorType}
+          />
+        </div>
 
         {/*
          * What this monitor's incidents and alerts keep of the check that

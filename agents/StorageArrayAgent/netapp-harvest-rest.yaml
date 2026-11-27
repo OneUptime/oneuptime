@@ -1,0 +1,43 @@
+# NetApp Harvest's Rest collector, limited to the objects OneUptime reads.
+# docker-compose.yml mounts this file as conf/rest/oneuptime.yaml in the
+# netapp-harvest service, and netapp-harvest.yml names it. Each object is
+# Harvest's own template for it, so it reads what Harvest's documentation
+# (netapp.github.io/harvest/26.11/ontap-metrics) says.
+#
+# Harvest's default list has some 60 objects; these are the ones the cluster's
+# pages, inventory and alert templates in OneUptime read, so the cluster is
+# asked for no more than that, and the read-only REST role only needs the APIs
+# README.md lists. Keep this file as shipped: install.sh replaces it on every
+# re-run.
+collector: Rest
+
+schedule:
+  - counter: 24h
+  - data: 3m
+
+objects:
+  # The cluster's health, and its health subsystems.
+  Status: status.yaml
+  Subsystem: subsystem.yaml
+  # Nodes (OneUptime's controllers): health, model, version, failed fans
+  # and power supplies.
+  Node: node.yaml
+  # Aggregates: their size, use and state; the cluster's capacity and data
+  # reduction are theirs, summed.
+  Aggregate: aggr.yaml
+  SVM: svm.yaml
+  Volume: volume.yaml
+  Lun: lun.yaml
+  # Hardware: disks, shelves and the nodes' environment sensors (a shelf's
+  # fans, power supplies and sensors come from netapp-harvest-restperf.yaml).
+  # Amazon FSx reports none of them.
+  Disk: disk.yaml
+  Shelf: shelf.yaml
+  Sensor: sensor.yaml
+  # Ethernet and Fibre Channel ports.
+  NetPort: netport.yaml
+  FCP: fcp.yaml
+  SnapMirror: snapmirror.yaml
+  # ONTAP's own health checks (broken disks, shelf faults, takeover, ports
+  # down, system health alerts): one series per open problem, while it lasts.
+  Health: health.yaml

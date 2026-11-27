@@ -15,6 +15,7 @@ import {
   findDetectorRanges,
   findInEveryReading,
   mergeRanges,
+  ReadingNeeds,
   TextRange,
   TextReadings,
 } from "../DataSecurity/TextReadings";
@@ -45,29 +46,32 @@ import ScrubIpAddress from "./ScrubIpAddress";
  *    with its percent-escapes read - jane.doe%40acmecorp.io in a URL's
  *    query string (#10935) - and every address the email detectors find:
  *    one in any script, 张伟@acmecorp.io or почта@пример.рф (#10960);
- *  - Credit Card Number: its own pattern's matches, in the text as written
- *    and with every script's digits read by their values - a card in
- *    fullwidth, Arabic-Indic or Persian digits (#10960) - and every card
- *    the card detectors find, an American Express number's 15 digits
- *    among them;
+ *  - Credit Card Number: its own pattern's matches, in the text as written,
+ *    with every script's digits read by their values - a card in
+ *    fullwidth, Arabic-Indic or Persian digits (#10960) - and in a URL,
+ *    its groups apart by %20 or by a "+" as a query string writes a space
+ *    (card=4539+1488+0343+6467, #11199), and every card the card detectors
+ *    find, an American Express number's 15 digits among them;
  *  - Phone Number: its own pattern's matches - North American numbers -
  *    and every phone number the detectors find on its own (#11025,
  *    #11030): an international one, +44 20 7946 0958 or +49 30 123456, in
  *    the groups people write it in, a North American one as people write
  *    it, and a UK mobile; each in the text as written, with its
- *    percent-escapes read (/callback?phone=%2B44%2020%207946%200958) and
- *    with every script's digits read. What only looks like one is left: an
+ *    percent-escapes read (/callback?phone=%2B44%2020%207946%200958), as a
+ *    query string writes it (phone=%2B44+20+7946+0958, #11199) and with
+ *    every script's digits read. What only looks like one is left: an
  *    order number, a timestamp or a time zone's offset, a version, a
  *    decimal or a coordinate (ContactDetectors, isWrittenAsPhoneNumber);
  *  - SSN: its own pattern's matches, 123-45-6789, and every Social
  *    Security number the detectors find on its own - in its groups set
  *    apart by dots or spaces too, by the SSA's rules - each in the text as
- *    written and with every script's digits read (#11030).
+ *    written, with every script's digits read (#11030) and in a URL,
+ *    ssn=123+45+6789 (#11199).
  *
  * Each pattern's own matches are kept, so a rule hides everything it hid
  * before. What two readings or the pattern and a detector share is one
  * match, hidden whole, and placed on the characters the text writes it
- * with, escapes and all. A value the detectors call a phone number or a
+ * with, escapes and "+"s and all. A value the detectors call a phone number or a
  * Social Security number only beside a word that names it - a national
  * number with no other shape, nine digits in a row - is hidden only where
  * the rule's own pattern finds it: a rule reads one value, not the words
@@ -118,9 +122,22 @@ export function findEmailAddressRanges(text: string): Array<TextRange> {
 }
 
 /*
- * Where a Credit Card rule's matches are: its pattern's, as written and
- * with every script's digits read by their values, and every card the card
- * detectors find, ranges two of them share made one.
+ * Every reading a number is read in: as written, with its percent-escapes
+ * read, as a URL's query string reads it (a "+" for a space, #11199), and
+ * with every script's digits read by their values - as the card, phone
+ * and Social Security number detectors read one (withEveryReading).
+ */
+const EVERY_READING_OF_A_NUMBER: ReadingNeeds = {
+  readsPercentEncoded: true,
+  readsDigitsOfEveryScript: true,
+  readsPlusAsSpace: true,
+};
+
+/*
+ * Where a Credit Card rule's matches are: its pattern's, in every reading
+ * of a number - as written, in a URL with %20 or "+" between its groups,
+ * in every script's digits - and every card the card detectors find,
+ * ranges two of them share made one.
  */
 export function findCardNumberRanges(text: string): Array<TextRange> {
   if (!text) {
@@ -132,7 +149,7 @@ export function findCardNumberRanges(text: string): Array<TextRange> {
   return mergeRanges([
     ...findInEveryReading({
       text,
-      needs: { readsDigitsOfEveryScript: true },
+      needs: EVERY_READING_OF_A_NUMBER,
       findIn: (reading: string): Array<TextRange> => {
         return patternRanges(CREDIT_CARD_PATTERN, reading);
       },
@@ -143,10 +160,11 @@ export function findCardNumberRanges(text: string): Array<TextRange> {
 }
 
 /*
- * Where a Phone Number rule's matches are: its pattern's, as written, with
- * the text's percent-escapes read and with every script's digits read by
- * their values, and every phone number the detectors find on its own,
- * ranges two of them share made one.
+ * Where a Phone Number rule's matches are: its pattern's, in every reading
+ * of a number - as written, with the text's percent-escapes read, as a
+ * query string writes it, and with every script's digits read by their
+ * values - and every phone number the detectors find on its own, ranges
+ * two of them share made one.
  */
 export function findPhoneNumberRanges(text: string): Array<TextRange> {
   if (!text) {
@@ -158,7 +176,7 @@ export function findPhoneNumberRanges(text: string): Array<TextRange> {
   return mergeRanges([
     ...findInEveryReading({
       text,
-      needs: { readsPercentEncoded: true, readsDigitsOfEveryScript: true },
+      needs: EVERY_READING_OF_A_NUMBER,
       findIn: (reading: string): Array<TextRange> => {
         return patternRanges(PHONE_NUMBER_PATTERN, reading);
       },
@@ -169,9 +187,10 @@ export function findPhoneNumberRanges(text: string): Array<TextRange> {
 }
 
 /*
- * Where an SSN rule's matches are: its pattern's, as written and with
- * every script's digits read by their values, and every Social Security
- * number the detectors find on its own, ranges two of them share made one.
+ * Where an SSN rule's matches are: its pattern's, in every reading of a
+ * number - as written, in a URL, in every script's digits - and every
+ * Social Security number the detectors find on its own, ranges two of
+ * them share made one.
  */
 export function findSsnRanges(text: string): Array<TextRange> {
   if (!text) {
@@ -183,7 +202,7 @@ export function findSsnRanges(text: string): Array<TextRange> {
   return mergeRanges([
     ...findInEveryReading({
       text,
-      needs: { readsDigitsOfEveryScript: true },
+      needs: EVERY_READING_OF_A_NUMBER,
       findIn: (reading: string): Array<TextRange> => {
         return patternRanges(SSN_PATTERN, reading);
       },

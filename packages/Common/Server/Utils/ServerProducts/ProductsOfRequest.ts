@@ -72,6 +72,7 @@ export const PRODUCT_OF_AI_RESOURCE_TYPE: Readonly<
   [AiResourceType.AzureSubscription]: ProductKey.Cloud,
   [AiResourceType.GoogleCloudProject]: ProductKey.Cloud,
   [AiResourceType.OpenStackCloud]: ProductKey.OpenStack,
+  [AiResourceType.XcpNgPool]: ProductKey.XcpNg,
 };
 
 export default class ProductsOfRequest {

@@ -5,6 +5,7 @@ import HttpMailApi, {
 import InlineImageAttachments, {
   AmazonSesInlineAttachment,
 } from "./InlineImageAttachments";
+import FileAttachments, { AmazonSesFileAttachment } from "./FileAttachments";
 import InlineImageRefusal from "./InlineImageRefusal";
 import formatMailbox, { toOneLine } from "./MailboxAddress";
 import MailProvider, { MailProviderSendOptions } from "./MailProvider";
@@ -109,7 +110,7 @@ export interface AmazonSesSendEmailRequest {
         Html: { Data: string; Charset: "UTF-8" };
         Text?: { Data: string; Charset: "UTF-8" };
       };
-      Attachments?: Array<AmazonSesInlineAttachment>;
+      Attachments?: Array<AmazonSesInlineAttachment | AmazonSesFileAttachment>;
     };
   };
 }
@@ -193,11 +194,16 @@ export default class AmazonSesMailProvider implements MailProvider {
             Html: { Data: html, Charset: "UTF-8" },
             ...(text ? { Text: { Data: text, Charset: "UTF-8" } } : {}),
           },
-          ...(data.inlineImages.length > 0
+          // Its inline images, then the files it carries (FileAttachments).
+          ...(data.inlineImages.length > 0 ||
+          FileAttachments.of(data.mail).length > 0
             ? {
-                Attachments: InlineImageAttachments.forAmazonSes(
-                  data.inlineImages,
-                ),
+                Attachments: [
+                  ...InlineImageAttachments.forAmazonSes(data.inlineImages),
+                  ...FileAttachments.forAmazonSes(
+                    FileAttachments.of(data.mail),
+                  ),
+                ],
               }
             : {}),
         },

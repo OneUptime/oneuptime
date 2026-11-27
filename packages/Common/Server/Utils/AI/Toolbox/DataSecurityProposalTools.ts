@@ -16,6 +16,7 @@ import {
   DECIDE_DATA_SECURITY_PROPOSAL_TOOL_NAME,
   QUERY_DATA_SECURITY_PROPOSALS_TOOL_NAME,
 } from "../../../../Types/AI/AIDataSecurityActions";
+import { actionAlwaysAsks } from "../../../../Types/AI/AIAlwaysAskChanges";
 import { AIChatCitationTarget } from "../../../../Types/AI/AIChatTypes";
 import Includes from "../../../../Types/BaseDatabase/Includes";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
@@ -354,9 +355,9 @@ export const DecideDataSecurityProposalTool: ObservabilityTool = {
   buildActionTitle: (args: JSONObject): AIActionSentence => {
     return buildDecideTitle(readDecision(args), null);
   },
-  // A person decides what OneUptime AI proposes: it always asks.
+  // A person decides what OneUptime AI proposes: it always asks (Types/AI/AIAlwaysAskChanges).
   asksInEveryMode: (): boolean => {
-    return true;
+    return actionAlwaysAsks(DECIDE_DATA_SECURITY_PROPOSAL_TOOL_NAME);
   },
   prepareMutation: async (
     args: JSONObject,

@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddStatusPageNavigationViews1809187741200
+export class AddStatusPageNavigationViews1809187781200
   implements MigrationInterface
 {
-  public name: string = "AddStatusPageNavigationViews1809187741200";
+  public name: string = "AddStatusPageNavigationViews1809187781200";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

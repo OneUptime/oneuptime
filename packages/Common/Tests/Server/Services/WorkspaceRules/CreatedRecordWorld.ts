@@ -54,6 +54,8 @@ import CreatedNotificationHold, {
 } from "../../../../Server/Utils/Notification/CreatedNotificationHold";
 import ProductAnalytics from "../../../../Server/Utils/ProductAnalytics";
 import VideoCallRuleExecutor from "../../../../Server/Utils/VideoCall/VideoCallRuleExecutor";
+import WorkspaceCreatedMessageFirst from "../../../../Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
+import { WorkspaceRecord } from "../../../../Server/Utils/Workspace/WorkspaceRecordPeople";
 import AlertWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/Alert";
 import IncidentWorkspaceMessages from "../../../../Server/Utils/Workspace/WorkspaceMessages/Incident";
 import URL from "../../../../Types/API/URL";
@@ -1042,6 +1044,72 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
   }
 
   /*
+   * Owners taken off a record of one of those kinds, as a delete of their
+   * rows takes them off: each row deleted, then its service's own hook -
+   * the "owner removed" entry and its post - with the rows the delete
+   * found before it ran (onBeforeDelete's carryForward).
+   */
+  public async removeOwnersOf(kind: RecordKind, owners: Owners): Promise<void> {
+    const record: KindRecord = this.records[kind];
+    const tables: OwnerTables = ownerTablesOf(kind);
+
+    const removed: Array<{
+      service: AnyService;
+      row: BaseModel;
+    }> = [];
+
+    for (const userId of owners.users || []) {
+      if (
+        !record.ownerUsers.some((id: ObjectID): boolean => {
+          return sameId(id, userId);
+        })
+      ) {
+        continue;
+      }
+
+      record.ownerUsers = record.ownerUsers.filter((id: ObjectID): boolean => {
+        return !sameId(id, userId);
+      });
+
+      removed.push({
+        service: tables.ownerUserService,
+        row: this.ownerRow(tables, "userId", userId),
+      });
+    }
+
+    for (const teamId of owners.teams || []) {
+      if (
+        !record.ownerTeams.some((id: ObjectID): boolean => {
+          return sameId(id, teamId);
+        })
+      ) {
+        continue;
+      }
+
+      record.ownerTeams = record.ownerTeams.filter((id: ObjectID): boolean => {
+        return !sameId(id, teamId);
+      });
+
+      removed.push({
+        service: tables.ownerTeamService,
+        row: this.ownerRow(tables, "teamId", teamId),
+      });
+    }
+
+    for (const each of removed) {
+      await hookOf(each.service, "onDeleteSuccess")(
+        {
+          deleteBy: { query: {}, props: { isRoot: true } },
+          carryForward: { itemsToDelete: [each.row] },
+        },
+        [],
+      );
+    }
+
+    await this.settle();
+  }
+
+  /*
    * IE-3 is created, as IncidentEpisodeService.create creates it - by hand,
    * by the API or by a grouping rule, whose Episode Owners are added once
    * the create has returned (callerAdds).
@@ -1137,9 +1205,12 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
   }
 
   /*
-   * The on-call policy Platform on-call is created: its hook runs its label
-   * and owner rules, opens its channels and posts its created message
-   * before the create returns.
+   * The on-call policy Platform on-call is created, as
+   * OnCallDutyPolicyService.create creates it: its hook runs its label and
+   * owner rules, and its creator is made its owner as the create returns.
+   * Settles once the policy has been announced - its channels opened,
+   * "On-Call Policy Created" posted - and what waited for that is out: the
+   * hold on its messages is let go (standInOnCallPolicyHook).
    */
   public async createOnCallPolicy(options: CreateOptions = {}): Promise<void> {
     await this.createRecord({
@@ -1151,8 +1222,8 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
       carryForward: {
         feedStartsAt: this.tick(),
       },
-      isCreatorMadeOwner: false,
-      chainRunsOn: false,
+      isCreatorMadeOwner: true,
+      chainRunsOn: true,
       options: options,
     });
   }
@@ -1744,6 +1815,24 @@ export default class CreatedRecordWorld extends WorkspaceRuleWorld {
       .mockImplementation((async (): Promise<void> => {
         await this.addOwnersOf("onCallPolicy", this.ownerRulesAdd);
       }) as never);
+
+    /*
+     * Its announcement's last step: the messages that waited for "On-Call
+     * Policy Created" go out, and the hold on the policy's messages is let
+     * go - whether the announcement ran to its end or stopped short.
+     */
+    const postHeld: (record: WorkspaceRecord) => Promise<void> =
+      WorkspaceCreatedMessageFirst.postHeld.bind(WorkspaceCreatedMessageFirst);
+
+    jest
+      .spyOn(WorkspaceCreatedMessageFirst, "postHeld")
+      .mockImplementation(async (record: WorkspaceRecord): Promise<void> => {
+        await postHeld(record);
+
+        if (record.onCallDutyPolicyId) {
+          this.chainEnded();
+        }
+      });
   }
 
   private label(id: ObjectID): Label {

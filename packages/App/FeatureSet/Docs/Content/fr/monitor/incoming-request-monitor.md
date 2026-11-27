@@ -423,6 +423,12 @@ La charge utile complète est disponible à côté : un titre d'incident `{{aler
 
 Pour une configuration Alertmanager complète, voir [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Pour Grafana, voir [Grafana](/docs/integrations/grafana).
 
+### Le garder vérifié pendant les incidents
+
+Un incident que quelqu'un déclare sur ce moniteur — depuis l'une de ses alertes, par exemple, avec **Déclarer un incident** — met en pause ses vérifications jusqu'à la résolution de l'incident, donc les requêtes qui arrivent entre-temps ne sont pas évaluées : elles n'ouvrent ni ne résolvent aucune alerte. Chacune est quand même listée dans les **Journaux de surveillance** du moniteur, telle qu'elle est arrivée, avec la raison pour laquelle elle n'a pas été évaluée.
+
+Pour un moniteur auquel d'autres systèmes envoient leurs alertes, un incident sur une alerte ne devrait pas l'empêcher de lire la suivante. Ouvrez les **Paramètres** du moniteur et, sous **Pendant les incidents**, activez **Continuer la surveillance pendant les incidents** : les incidents déclarés dessus le laissent alors vérifié, y compris ceux déjà ouverts. Pour le garder vérifié pour un seul incident, décochez **Mettre la surveillance en pause** en le déclarant. Voir [Surveillance pendant qu'un incident est ouvert](/docs/incidents/declaring-incidents#surveillance-pendant-quun-incident-est-ouvert).
+
 ## Publier dans Slack sans appeler personne
 
 Un environnement de préproduction, ou un produit dont les problèmes peuvent attendre, peut vouloir qu'une requête soit publiée dans un canal de discussion sans appeler personne. Une alerte qui ne nomme aucune politique d'astreinte le fait : elle est publiée dans Slack, Microsoft Teams ou Mattermost par les règles d'espace de travail du projet, et ne lance aucune escalade.
@@ -506,11 +512,16 @@ Event Grid valide un point de terminaison qui lui renvoie un code, ou dont le pr
 3. **Utilisez POST avec `Content-Type: application/json`** — tout ce qui lit le corps en dépend.
 4. **Ne mélangez pas les deux usages sur un même moniteur** — un moniteur qui reçoit des alertes pilotées par les événements n'a pas de cadence régulière : un critère "Non reçu dans le délai (minutes)" y basculerait sans cesse. Utilisez un moniteur à part pour l'interrupteur de l'homme mort.
 5. **Surveillez le surveillant** — Assurez-vous que le service qui envoie les requêtes gère correctement les erreurs, pour que les requêtes échouées ne passent pas inaperçues.
+6. **Garder un récepteur d'événements vérifié pendant les incidents** — Sur un moniteur qui reçoit les alertes d'un autre système, activez **Continuer la surveillance pendant les incidents** dans ses **Paramètres**, pour qu'un incident déclaré dessus ne le mette pas en pause. Voir [Le garder vérifié pendant les incidents](#le-garder-vérifié-pendant-les-incidents).
 
 ## Dépannage
 
 :::details Mon expéditeur reçoit un 200, mais rien n'apparaît sur le moniteur
 Le `200` est envoyé avant la validation de la requête : il ne prouve donc pas qu'elle a été acceptée. Vérifiez que la clé secrète de l'URL correspond à l'**URL de heartbeat** du moniteur, et que le moniteur n'est pas désactivé. Regardez ensuite la chronologie du moniteur pour voir si les requêtes arrivent.
+:::
+
+:::details Les requêtes arrivent, mais le moniteur n'ouvre aucune alerte pendant qu'un incident est ouvert
+Un incident déclaré à la main sur le moniteur met en pause ses vérifications, donc ses requêtes sont listées dans ses **Journaux de surveillance** comme **Non évalué : la surveillance est mise en pause par un incident**, et le bandeau sur ses pages le dit. Activez **Continuer la surveillance pendant les incidents** dans ses **Paramètres** : ses vérifications reprennent aussitôt, et les requêtes suivantes sont évaluées. Les requêtes listées pendant qu'il était en pause ne sont pas évaluées après coup. Voir [Le garder vérifié pendant les incidents](#le-garder-vérifié-pendant-les-incidents).
 :::
 
 :::details Mon expéditeur reçoit un 401

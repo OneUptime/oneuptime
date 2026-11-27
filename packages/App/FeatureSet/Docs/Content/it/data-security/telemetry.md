@@ -170,7 +170,7 @@ Prima che OneUptime AI inizi, Sicurezza dei dati rilegge, dentro OneUptime, i re
 
 - **Uno span o una chiamata di IA**: il file, la riga e la funzione che nominano i suoi attributi `code.*`, e il nome dello span.
 - **Un'eccezione**: i suoi frame più alti, quelli nel codice del servizio.
-- **Una riga di log**: il file, la riga e la funzione che nominano i suoi attributi, se li ha, il suo logger, e la riga come modello, con ogni valore sostituito dal nome del suo tipo, ad esempio `User <Email address> signed up`, e ogni parola che i suoi record non dimostrano sia stata scritta dal codice, come il nome di una persona, sostituita da `<value>`: `Payment declined for Maria Gonzalez`, letto da un solo record, diventa `Payment declined for <value>`. Il nome di uno span e il nome di una metrica vengono letti allo stesso modo.
+- **Una riga di log**: il file, la riga e la funzione che nominano i suoi attributi, se li ha, il suo logger, e la riga come modello, con ogni valore sostituito dal nome del suo tipo, ad esempio `User <Email address> signed up`, e ogni parola che non è tra quelle con cui il codice scrive le righe di log, come il nome di una persona o un nome utente, sostituita da `<value>`, per quanti dei suoi record condividano la parola: `Payment declined for Maria Gonzalez` diventa `Payment declined for <value>`, e `Ticket assigned to jdoe`, letto da tutti i record della riga, diventa `Ticket assigned to <value>`. Il nome di uno span e il nome di una metrica vengono letti allo stesso modo.
 - **Una metrica**: il nome della metrica.
 - **Qualsiasi fuga**: la sua chiave di attributo, ad esempio `user.email`, che il codice di solito scrive così com'è.
 

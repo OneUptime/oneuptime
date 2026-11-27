@@ -117,7 +117,7 @@ Gør bekræftelsen færdig, som e-mailen fortæller dig.
 Er der kommet en anden e-mail siden, viser kortet ikke længere bekræftelsesmailen. Åbn **Overvågningslogs**, find bekræftelsesmailen ud fra dens emne i kolonnen **E-mail**, og klik på **Vis oversigt** i den række.
 
 > [!IMPORTANT]
-> **Dine kriterier ser den også.** Bekræftelsesmailen evalueres som enhver anden e-mail. En formulering som "if you received this in error" matcher standardkriteriet `error` og markerer monitoren som offline. For at undgå det skal du slå **Tjek denne monitor** fra i kortet **Overvågning** på monitorens side **Indstillinger**, mens du bekræfter (du bliver bedt om at bekræfte). En monitor med overvågning slået fra gemmer stadig e-mailen, og kortet **Monitor-resumé** viser den stadig. Den evaluerer dog ingenting, så e-mailen får ingen række i **Overvågningslogs**: læs den, før en anden e-mail ankommer. Når du er færdig, skal du trykke på **Slå overvågning til** i banneret øverst på monitorens sider eller slå kontakten til igen.
+> **Dine kriterier ser den også.** Bekræftelsesmailen evalueres som enhver anden e-mail. En formulering som "if you received this in error" matcher standardkriteriet `error` og markerer monitoren som offline. For at undgå det skal du slå **Tjek denne monitor** fra i kortet **Overvågning** på monitorens side **Indstillinger**, mens du bekræfter (du bliver bedt om at bekræfte). En monitor med overvågning slået fra gemmer stadig e-mailen, og kortet **Monitor-resumé** viser den stadig. Den evaluerer dog ingenting: e-mailens række i **Overvågningslogs** siger, at den ikke blev evalueret, og **Vis oversigt** i den viser hele e-mailen. Når du er færdig, skal du trykke på **Slå overvågning til** i banneret øverst på monitorens sider eller slå kontakten til igen.
 
 **Bekræftelsen hører til adressen.** Hvis du [nulstiller eller tilpasser adressen](#nulstil-eller-tilpas-e-mailadressen), ser tjenesten en ny modtager, og du skal bekræfte igen.
 
@@ -186,6 +186,8 @@ Monitorens egen adresse maskeres, før et kriterium læser e-mailen, så i **E-m
 Ingen af disse sammenligninger skelner mellem store og små bogstaver. Et filter med en tom værdi matcher aldrig.
 
 ### Tidsbaserede filtre (E-mail modtaget)
+
+Det engelske dashboard staver disse betingelser "Recieved".
 
 | Filterbetingelse | Beskrivelse | Eksempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Klik på **Vis flere detaljer** for at se resten:
 
 ### Tidligere e-mails
 
-Kortet viser kun den nyeste e-mail. Hver e-mail, monitoren evaluerer, skrives også til **Overvågningslogs**: kolonnen **E-mail** viser dens emne og afsender, og **Vis oversigt** i dens række viser hele e-mailen på samme måde som kortet. En monitor med overvågning slået fra evaluerer ingenting, så de e-mails, den modtager, får ingen rækker. Hvis et af dine kriterier tjekker **E-mail modtaget**, skriver monitoren også en række, hver gang den tjekker for manglende e-mail. Kolonnen **E-mail** siger "Scheduled check" i de rækker, og deres **Vis oversigt** viser den nyeste e-mail på tidspunktet for tjekket eller "No email yet", hvis der ikke var kommet nogen. Overvågningslogs gemmes som standard i én dag. På en selvhostet server kan en administrator ændre det med **Opbevaring af monitorlogfiler (dage)** i Admin Dashboards indstillinger.
+Kortet viser kun den nyeste e-mail. Hver e-mail, monitoren evaluerer, skrives også til **Overvågningslogs**: kolonnen **E-mail** viser dens emne og afsender, og **Vis oversigt** i dens række viser hele e-mailen på samme måde som kortet. En monitor, der ikke tjekkes — med overvågning slået fra eller sat på pause af en hændelse eller en vedligeholdelseshændelse — evaluerer ingenting, så hver e-mail, den modtager, får en række, der siger, at den ikke blev evalueret, og hvorfor. Hvis et af dine kriterier tjekker **E-mail modtaget**, skriver monitoren også en række, hver gang den tjekker for manglende e-mail. Kolonnen **E-mail** siger "Scheduled check" i de rækker, og deres **Vis oversigt** viser den nyeste e-mail på tidspunktet for tjekket eller "No email yet", hvis der ikke var kommet nogen.
+
+Overvågningslogs gemmes som standard i én dag. På en selvhostet server kan en administrator ændre det med **Opbevaring af monitorlogfiler (dage)** i Admin Dashboards indstillinger.
 
 ## Selvhostet opsætning
 

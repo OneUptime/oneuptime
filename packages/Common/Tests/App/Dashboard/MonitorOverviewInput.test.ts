@@ -996,6 +996,8 @@ describe("toPresentationInput: the rest of the row", () => {
       isDisabled: false,
       byManualIncident: false,
       byScheduledMaintenance: false,
+      // Paused time left out of uptime (#11141): not paused, so not.
+      isLeftOutOfUptime: false,
     });
     expect(buildInput().probeFlags).toEqual({
       isNoProbeEnabled: false,
@@ -1018,6 +1020,8 @@ describe("toPresentationInput: the rest of the row", () => {
       isDisabled: true,
       byManualIncident: true,
       byScheduledMaintenance: true,
+      // Turned off as well: the switch, not the incident, speaks for the time.
+      isLeftOutOfUptime: false,
     });
     expect(input.probeFlags).toEqual({
       isNoProbeEnabled: true,
@@ -1266,5 +1270,108 @@ describe("getProbeLastResultAt", () => {
         rows: [buildProbeRow({ probeId: PROBE_A })],
       }),
     ).toBeUndefined();
+  });
+});
+
+/*
+ * Paused by an incident declared by hand that put the monitor in no status
+ * (#11141): the newest status event marks its time left out of uptime, and
+ * the uptime windows say so ("leaves out paused time") rather than that
+ * they include it.
+ */
+describe("toPresentationInput: paused time left out of uptime", () => {
+  function newestRow(isMonitoringOff: boolean): MonitorStatusTimeline {
+    const row: MonitorStatusTimeline = buildStatusRow({
+      statusId: OPERATIONAL_ID,
+      startsAt: minutesAgo(30),
+    });
+    row.isMonitoringOff = isMonitoringOff;
+    return row;
+  }
+
+  function inputFor(data: {
+    pause: Partial<Monitor>;
+    isNewestRowOff: boolean;
+  }): MonitorOverviewPresentationInput {
+    return buildInput({
+      monitor: buildMonitor(data.pause as MonitorOverrides),
+      statusRows: resolveSection<Array<MonitorStatusTimeline>>({
+        value: [newestRow(data.isNewestRowOff)],
+        subjectId: MONITOR_ID,
+      }),
+    });
+  }
+
+  test("paused by an incident, its newest status event marking the time left out", () => {
+    const input: MonitorOverviewPresentationInput = inputFor({
+      pause: { disableActiveMonitoringBecauseOfManualIncident: true },
+      isNewestRowOff: true,
+    });
+
+    expect(input.pause.isLeftOutOfUptime).toBe(true);
+    expect(
+      MonitorOverviewPresentationUtil.getUptimeCaveat(
+        MonitorOverviewPresentationUtil.build(input),
+      ),
+    ).toBe("paused-left-out");
+  });
+
+  test("paused by an incident that put it in a status: its time counts, and the windows say they include it", () => {
+    const input: MonitorOverviewPresentationInput = inputFor({
+      pause: { disableActiveMonitoringBecauseOfManualIncident: true },
+      isNewestRowOff: false,
+    });
+
+    expect(input.pause.isLeftOutOfUptime).toBe(false);
+    expect(
+      MonitorOverviewPresentationUtil.getUptimeCaveat(
+        MonitorOverviewPresentationUtil.build(input),
+      ),
+    ).toBe("paused");
+  });
+
+  test("turned off as well: the switch speaks for the time", () => {
+    const input: MonitorOverviewPresentationInput = inputFor({
+      pause: {
+        disableActiveMonitoringBecauseOfManualIncident: true,
+        disableActiveMonitoring: true,
+      },
+      isNewestRowOff: true,
+    });
+
+    expect(input.pause.isLeftOutOfUptime).toBe(false);
+    expect(
+      MonitorOverviewPresentationUtil.getUptimeCaveat(
+        MonitorOverviewPresentationUtil.build(input),
+      ),
+    ).toBe("monitoring-off");
+  });
+
+  test("not paused by an incident: nothing of the kind, whatever the newest row says", () => {
+    expect(
+      inputFor({ pause: {}, isNewestRowOff: true }).pause.isLeftOutOfUptime,
+    ).toBe(false);
+    expect(
+      inputFor({
+        pause: {
+          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent: true,
+        },
+        isNewestRowOff: true,
+      }).pause.isLeftOutOfUptime,
+    ).toBe(false);
+  });
+
+  test("rows that could not be read say nothing is left out", () => {
+    const input: MonitorOverviewPresentationInput = buildInput({
+      monitor: buildMonitor({
+        disableActiveMonitoringBecauseOfManualIncident: true,
+      } as MonitorOverrides),
+      statusRows: forbidSection<Array<MonitorStatusTimeline>>({
+        reason: "You need permission to read this monitor's status timeline.",
+        subjectId: MONITOR_ID,
+      }),
+    });
+
+    expect(input.pause.isLeftOutOfUptime).toBe(false);
   });
 });

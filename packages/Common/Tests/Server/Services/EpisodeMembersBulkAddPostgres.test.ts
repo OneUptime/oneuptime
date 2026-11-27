@@ -690,12 +690,18 @@ describePostgres(
       return rows[0]!;
     }
 
+    /*
+     * An episode's feed in the order the Dashboard reads it: by when each
+     * entry is filed (postedAt). Its Created entry is written once its
+     * members are in, but filed when the create began (#11208), so it is
+     * the feed's first line.
+     */
     async function episodeFeed(
       kind: Kind,
       episodeId: ObjectID,
     ): Promise<Array<string>> {
       const rows: Array<{ markdown: string }> = await database.query(
-        `SELECT "feedInfoInMarkdown" AS "markdown" FROM "${kind.name}EpisodeFeed" WHERE "${kind.episodeIdColumn}" = $1 ORDER BY "createdAt", "postedAt"`,
+        `SELECT "feedInfoInMarkdown" AS "markdown" FROM "${kind.name}EpisodeFeed" WHERE "${kind.episodeIdColumn}" = $1 ORDER BY "postedAt", "createdAt"`,
         [episodeId.toString()],
       );
       return rows.map((row: { markdown: string }): string => {

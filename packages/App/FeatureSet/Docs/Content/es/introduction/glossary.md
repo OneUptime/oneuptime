@@ -40,7 +40,7 @@ Consulta [Crear un monitor](/docs/monitor/create-monitor).
 
 ### Criterios
 
-Las reglas de un monitor: qué significa cada resultado de una comprobación. Se evalúan en orden, y el primero que coincide puede cambiar el estado del monitor, declarar un incidente, crear una alerta o las tres cosas.
+Las reglas de un monitor: qué significa cada resultado de una comprobación. Se evalúan en orden, y el primero que coincide puede cambiar el estado del monitor, declarar un incidente, crear una alerta o las tres cosas. Uno que no cambia ningún estado deja el estado al siguiente criterio que coincide y lo cambia.
 
 Otros nombres: **Criterios de monitoreo**, **Criterios del monitor**, **Pasos del monitor**. Consulta [Criterios y estados](/docs/monitor/criteria-and-statuses).
 

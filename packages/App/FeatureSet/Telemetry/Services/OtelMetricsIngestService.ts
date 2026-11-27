@@ -248,6 +248,7 @@ import TelemetryIngestionBudgetMetricTypeUtil, {
   TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX,
 } from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import ContainerStatsPercentUnit from "Common/Utils/Metrics/ContainerStatsPercentUnit";
+import StorageArrayMetricUnitUtil from "Common/Types/StorageArray/StorageArrayMetricUnitUtil";
 import TelemetryUsageMetricTypeUtil, {
   TELEMETRY_USAGE_METRIC_NAME_PREFIX,
 } from "Common/Utils/Telemetry/TelemetryUsageMetricType";
@@ -1541,7 +1542,9 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
            * fallback for a platform OneUptime has no extractor for.
            */
           const storageArrayDeclaredSystem: string | null = storageArrayId
-            ? this.getDeclaredStorageSystemFromAttributes(resourceAttributes_raw)
+            ? this.getDeclaredStorageSystemFromAttributes(
+                resourceAttributes_raw,
+              )
             : null;
           if (storageArrayId && storageArrayDeclaredSystem) {
             storageArrayDeclaredSystems.set(
@@ -2098,13 +2101,20 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
                    * declare "1", a 0-1 fraction, which every chart, monitor
                    * and container row read as 100 times too much. Recorded as
                    * "%" in the metric catalog and read as "%" by the
-                   * container snapshots below.
+                   * container snapshots below. A storage platform whose
+                   * exporter declares no units (NetApp Harvest) has them
+                   * recorded from its own unit rules
+                   * (StorageArrayMetricUnitUtil): a latency in microseconds
+                   * then charts and compares as one.
                    */
                   const metricUnit: string =
-                    ContainerStatsPercentUnit.getStoredUnit({
-                      scopeName: scopeName,
+                    StorageArrayMetricUnitUtil.getStoredUnit({
                       metricName: metricName,
-                      declaredUnit: metric["unit"] as string | undefined,
+                      declaredUnit: ContainerStatsPercentUnit.getStoredUnit({
+                        scopeName: scopeName,
+                        metricName: metricName,
+                        declaredUnit: metric["unit"] as string | undefined,
+                      }),
                     }) as string;
 
                   metricCatalog.addMetric({

@@ -91,7 +91,7 @@ Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projek
 | Art. 25 | Databeskyttelse gennem design og standardindstillinger | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 28 | Databehandlere | `sensitive-data-to-ai` |
 | Art. 30 | Fortegnelser over behandlingsaktiviteter | Opfyldes af Datasikkerhed selv |
-| Art. 32 | Behandlingssikkerhed | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| Art. 32 | Behandlingssikkerhed | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `encryption-in-transit-not-enforced`, `weak-tls`, `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable`, `access-not-logged`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | Arts. 44-49 | Overførsler til tredjelande | `residency-violation` |
 
 ### CCPA
@@ -99,7 +99,7 @@ Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projek
 | Krav | Hvad det kræver | Kontroller |
 | --- | --- | --- |
 | 1798.100(c) | Indsamling begrænset til det nødvendige | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
-| 1798.150 | Rimelige sikkerhedsprocedurer | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 1798.150 | Rimelige sikkerhedsprocedurer | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### HIPAA
 
@@ -107,7 +107,7 @@ Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projek
 | --- | --- | --- |
 | 164.308(a)(4) | Styring af adgang til information | `unused-access` |
 | 164.308(a)(7) | Beredskabsplan | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
-| 164.312(a)(1) | Adgangskontrol | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 164.312(a)(1) | Adgangskontrol | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 164.312(a)(2)(iv) | Kryptering og dekryptering | `not-encrypted-at-rest`, `no-customer-managed-key` |
 | 164.312(b) | Revisionskontroller | `access-not-logged` |
 | 164.312(e)(1) | Transmissionssikkerhed | `encryption-in-transit-not-enforced`, `weak-tls` |
@@ -120,7 +120,7 @@ Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projek
 | 3.4.1 | Kortnumre maskeres, når de vises | `card-numbers-readable`, `sensitive-data-in-telemetry` |
 | 3.5.1 | Kortnumre er ulæselige, uanset hvor de gemmes | `not-encrypted-at-rest`, `no-customer-managed-key`, `card-numbers-readable` |
 | 4.2.1 | Stærk kryptografi beskytter kortdata under overførsel | `encryption-in-transit-not-enforced`, `weak-tls` |
-| 7.2 | Adgang defineres og tildeles efter behov | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| 7.2 | Adgang defineres og tildeles efter behov | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | 7.2.4 | Konti og deres adgang gennemgås | `unused-access` |
 | 8.3.2 | Godkendelsesfaktorer er ulæselige, når de gemmes | `plaintext-passwords` |
 | 10.2 | Revisionslogs registrerer adgang til kortdata | `access-not-logged` |
@@ -130,7 +130,7 @@ Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projek
 | Krav | Hvad det kræver | Kontroller |
 | --- | --- | --- |
 | A1.2 | Backup og gendannelse | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
-| CC6.1 | Logisk adgangssikkerhed | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
+| CC6.1 | Logisk adgangssikkerhed | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `secrets-stored`, `plaintext-passwords`, `secrets-in-telemetry` |
 | CC6.2 | Adgang fjernes, når den ikke længere er nødvendig | `unused-access` |
 | CC6.7 | Overførsel af information | `encryption-in-transit-not-enforced`, `weak-tls` |
 | CC7.2 | Overvågning af systemkomponenter | `access-not-logged` |
@@ -141,7 +141,7 @@ Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projek
 | --- | --- | --- |
 | A.5.9 | Fortegnelse over information og andre tilknyttede aktiver | `no-owner` |
 | A.5.12 | Klassificering af information | Opfyldes af Datasikkerhed selv |
-| A.5.15 | Adgangsstyring | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| A.5.15 | Adgangsstyring | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | A.5.18 | Adgangsrettigheder | `unused-access` |
 | A.5.34 | Privatliv og beskyttelse af personhenførbare oplysninger | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | A.8.11 | Datamaskering | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
@@ -155,7 +155,7 @@ Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projek
 | Krav | Hvad det kræver | Kontroller |
 | --- | --- | --- |
 | ID.AM-07 | Fortegnelser over data og metadata vedligeholdes | `no-owner` |
-| PR.AA-05 | Adgangstilladelser administreres | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
+| PR.AA-05 | Adgangstilladelser administreres | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `shared-key-access`, `object-acls-enabled`, `many-readers`, `unused-access` |
 | PR.DS-01 | Data i hvile beskyttes | `not-encrypted-at-rest`, `no-customer-managed-key`, `secrets-stored`, `secrets-in-telemetry` |
 | PR.DS-02 | Data under overførsel beskyttes | `encryption-in-transit-not-enforced`, `weak-tls` |
 | PR.DS-11 | Backups af data opbevares og testes | `no-backups`, `no-point-in-time-recovery`, `deletion-protection-off`, `deleted-data-not-recoverable` |
@@ -167,13 +167,13 @@ Sikkerhedsmedlemmer, Sikkerhedsadministratorer, Projektadministratorer og Projek
 | --- | --- | --- |
 | Art. 6 | Nødvendighed og formålsbegrænsning | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Art. 33 | International overførsel af data | `residency-violation` |
-| Art. 46 | Sikkerhedsforanstaltninger | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| Art. 46 | Sikkerhedsforanstaltninger | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 
 ### DPDP
 
 | Krav | Hvad det kræver | Kontroller |
 | --- | --- | --- |
-| Sec. 8(5) | Rimelige sikkerhedsforanstaltninger | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
+| Sec. 8(5) | Rimelige sikkerhedsforanstaltninger | `public-read`, `public-write`, `public-access-not-blocked`, `internet-reachable`, `open-to-all-addresses`, `snapshot-public`, `snapshot-shared-externally`, `shared-with-external-accounts`, `readable-without-credentials`, `not-encrypted-at-rest`, `no-customer-managed-key`, `shared-key-access`, `object-acls-enabled`, `many-readers` |
 | Sec. 8(7) | Sletning, når formålet er opfyldt | `production-data-in-non-production`, `stale-sensitive-data`, `new-personal-data-column`, `sensitive-data-in-telemetry`, `sensitive-data-to-ai`, `sensitive-data-in-ai-store` |
 | Sec. 16 | Overførsel uden for Indien | `residency-violation` |
 

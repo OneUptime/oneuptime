@@ -439,6 +439,11 @@ EOF
     assert_present "google-cloud: the build stage is the one a dry run builds" "$DOCKERFILE" " AS build"
     assert_present "google-cloud: the deployer ships the chart" "$DOCKERFILE" "ADD chart/oneuptime /tmp/chart"
     assert_present "google-cloud: the deployer ships the tester" "$DOCKERFILE" "COPY --from=build /tmp/test/oneuptime.tar.gz /data-test/chart/"
+    # deployer_helm 13.0.18's kubectl is built with Go 1.26.10, which Google's scan refuses
+    # (CVE-2026-97040): the deployer runs a pinned kubectl, checked against its sha256, instead.
+    assert_present "google-cloud: the deployer replaces deployer_helm's kubectl" "$DOCKERFILE" "COPY --from=build /tmp/kubectl /opt/kubectl/v1.37/kubectl"
+    assert_present "google-cloud: the deployer's kubectl is checked against its sha256" "$DOCKERFILE" 'echo "${KUBECTL_SHA256}  /tmp/kubectl" | sha256sum -c -'
+    assert_present "google-cloud: the build stops if deployer_helm's kubectl moved" "$DOCKERFILE" 'test "$(readlink -f /opt/kubectl/default)" = /opt/kubectl/v1.37'
 else
     fail "google-cloud: builds"
 fi

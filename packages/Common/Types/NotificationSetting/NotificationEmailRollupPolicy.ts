@@ -59,6 +59,12 @@ export const NEVER_ROLLED_UP_EVENT_TYPES: ReadonlySet<NotificationSettingEventTy
      * minutes, the update would reach them five minutes late.
      */
     NotificationSettingEventType.SEND_PUBLIC_NOTE_APPROVAL_REQUESTED_NOTIFICATION,
+    /*
+     * A scheduled cloud cost report (#11009): it carries its figures as a
+     * CSV, which a rollup's rows have no room for, and it comes once a week
+     * or a month - there is no burst to coalesce.
+     */
+    NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION,
   ]);
 
 /*

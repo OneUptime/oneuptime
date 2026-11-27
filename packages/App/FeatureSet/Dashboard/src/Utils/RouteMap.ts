@@ -522,6 +522,9 @@ export const XcpNgRoutePath: Dictionary<string> = {
   [PageMap.XCP_NG_POOL_VIEW_STORAGE]: `${RouteParams.ModelID}/storage`,
   [PageMap.XCP_NG_POOL_VIEW_STORAGE_DETAIL]: `${RouteParams.ModelID}/storage/${RouteParams.SubModelID}`,
   [PageMap.XCP_NG_POOL_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
+  [PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.XCP_NG_POOL_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
+  [PageMap.XCP_NG_POOL_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.XCP_NG_POOL_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.XCP_NG_POOL_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.XCP_NG_POOL_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
@@ -542,6 +545,8 @@ export const XcpNgRoutePath: Dictionary<string> = {
   [PageMap.XCP_NG_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.XCP_NG_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.XCP_NG_POOLS_ARCHIVED]: `archived`,
+  [PageMap.XCP_NG_CONNECTIONS]: `connections`,
+  [PageMap.XCP_NG_CONNECTION_VIEW]: `connections/${RouteParams.ModelID}`,
 };
 
 export const IoTRoutePath: Dictionary<string> = {
@@ -660,6 +665,11 @@ export const StorageArrayRoutePath: Dictionary<string> = {
   [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: `${RouteParams.ModelID}/directories`,
   // A kind a platform has of its own, by its name (StorageArrayPlatform.kindDefinitions).
   [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: `${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}`,
+  /*
+   * One part of such a kind (a NetApp aggregate), under its kind's list:
+   * the part's externalId, percent-encoded, is the last segment.
+   */
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART]: `${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}/${RouteParams.PartID}`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: `${RouteParams.ModelID}/file-systems`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: `${RouteParams.ModelID}/file-systems/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: `${RouteParams.ModelID}/buckets`,
@@ -685,6 +695,8 @@ export const StorageArrayRoutePath: Dictionary<string> = {
     "settings/rules-audit-logs",
   [PageMap.STORAGE_ARRAYS_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.STORAGE_ARRAYS_ARCHIVED]: `archived`,
+  [PageMap.STORAGE_ARRAYS_CONNECTIONS]: `connections`,
+  [PageMap.STORAGE_ARRAYS_CONNECTION_VIEW]: `connections/${RouteParams.ModelID}`,
 };
 
 export const HostRoutePath: Dictionary<string> = {
@@ -799,6 +811,9 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_COMMITMENTS]: `commitments`,
   [PageMap.CLOUD_SCHEDULES]: `schedules`,
   [PageMap.CLOUD_BUDGETS]: `budgets`,
+  [PageMap.CLOUD_BUDGET_VIEW]: `budgets/${RouteParams.ModelID}`,
+  [PageMap.CLOUD_FORECAST]: `forecast`,
+  [PageMap.CLOUD_REPORTS]: `reports`,
   [PageMap.CLOUD_SETTINGS_COSTS]: `settings/costs`,
   [PageMap.CLOUD_COST_GROUPS]: `cost-groups`,
   [PageMap.CLOUD_COST_VIEW]: `cost-groups/${RouteParams.ModelID}`,
@@ -1226,6 +1241,8 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: `stores/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]: `stores/${RouteParams.ModelID}/tables`,
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS]: `stores/${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]: `stores/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS]: `stores/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
   [PageMap.DATA_OBSERVABILITY_CHECKS]: "checks",
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
@@ -5893,6 +5910,24 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_AI_AGENT]
+    }`,
+  ),
+
   [PageMap.XCP_NG_POOL_VIEW_INSIGHTS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
       XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_INSIGHTS]
@@ -6010,6 +6045,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.XCP_NG_POOLS_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
       XcpNgRoutePath[PageMap.XCP_NG_POOLS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_CONNECTIONS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_CONNECTION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_CONNECTION_VIEW]
     }`,
   ),
 
@@ -6640,6 +6687,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART]
+    }`,
+  ),
+
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]
@@ -6781,6 +6834,18 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STORAGE_ARRAYS_ARCHIVED]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_ARCHIVED]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTIONS]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAYS_CONNECTION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAYS_CONNECTION_VIEW]
     }`,
   ),
 
@@ -7290,6 +7355,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_BUDGETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_BUDGETS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_BUDGET_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_BUDGET_VIEW]
+    }`,
+  ),
+
+  [PageMap.CLOUD_FORECAST]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_FORECAST]
+    }`,
+  ),
+
+  [PageMap.CLOUD_REPORTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_REPORTS]
     }`,
   ),
 
@@ -9596,6 +9679,20 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[
         PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS
       ]
     }`,
   ),

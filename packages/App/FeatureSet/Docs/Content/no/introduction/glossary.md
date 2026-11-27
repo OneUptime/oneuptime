@@ -40,7 +40,7 @@ Se [Opprett en monitor](/docs/monitor/create-monitor).
 
 ### Kriterier
 
-En monitors regler: hva hvert sjekkresultat betyr. De sjekkes i rekkefølge, og det første som treffer, kan endre monitorens status, erklære en hendelse, opprette et varsel eller alle tre.
+En monitors regler: hva hvert sjekkresultat betyr. De sjekkes i rekkefølge, og det første som treffer, kan endre monitorens status, erklære en hendelse, opprette et varsel eller alle tre. Et som ikke endrer noen status, overlater statusen til det neste kriteriet som treffer og endrer den.
 
 Også kalt: **Overvåkingskriterier**, **Monitorkriterier**, **Monitor Steps**. Se [Kriterier og statuser](/docs/monitor/criteria-and-statuses).
 
