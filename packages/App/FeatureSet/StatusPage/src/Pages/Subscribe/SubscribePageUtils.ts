@@ -1,5 +1,6 @@
 import PageComponentProps from "../PageComponentProps";
 import StatusPageSubscriber from "Common/Models/DatabaseModels/StatusPageSubscriber";
+import StatusPageIncidentCategory from "Common/Models/DatabaseModels/StatusPageIncidentCategory";
 import IconProp from "Common/Types/Icon/IconProp";
 import Field, {
   CategoryCheckboxProps,
@@ -7,6 +8,7 @@ import Field, {
 } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
+import { CategoryCheckboxOptionsAndCategories } from "Common/UI/Components/CategoryCheckbox/Index";
 
 export interface SubscribePageProps extends PageComponentProps {
   enableEmailSubscribers: boolean;
@@ -16,6 +18,8 @@ export interface SubscribePageProps extends PageComponentProps {
   enableWebhookSubscribers: boolean;
   allowSubscribersToChooseResources: boolean;
   allowSubscribersToChooseEventTypes: boolean;
+  allowSubscribersToChooseIncidentCategories: boolean;
+  incidentCategories: Array<StatusPageIncidentCategory>;
   /*
    * The page takes only its private users as subscribers: the email
    * subscribe page subscribes the address the reader signed in with.
@@ -118,8 +122,10 @@ export const SUBSCRIBE_PREFERENCES_COPY: {
     pickedResources: string;
     pickedEventTypes: string;
     pickedResourcesAndEventTypes: string;
+    pickedIncidentCategories: string;
     noResources: string;
     noEventTypes: string;
+    noIncidentCategories: string;
   };
 } = {
   title: "subscribe.preferences.title",
@@ -132,13 +138,51 @@ export const SUBSCRIBE_PREFERENCES_COPY: {
       "subscribe.preferences.summary.pickedResourcesAndEventTypes",
     noResources: "subscribe.preferences.summary.noResources",
     noEventTypes: "subscribe.preferences.summary.noEventTypes",
+    pickedIncidentCategories:
+      "subscribe.preferences.summary.pickedIncidentCategories",
+    noIncidentCategories:
+      "subscribe.preferences.summary.noIncidentCategories",
   },
 };
 
 export interface SubscribePreferenceOptions {
   allowSubscribersToChooseResources: boolean;
   allowSubscribersToChooseEventTypes: boolean;
+  allowSubscribersToChooseIncidentCategories: boolean;
 }
+
+export const getIncidentCategoryCheckboxOptions: (
+  categories: Array<StatusPageIncidentCategory>,
+  translate: SubscribeTranslateFunction,
+) => CategoryCheckboxOptionsAndCategories = (
+  categories: Array<StatusPageIncidentCategory>,
+  translate: SubscribeTranslateFunction,
+): CategoryCheckboxOptionsAndCategories => {
+  const groupId: string = "incident-categories";
+  return {
+    categories: [
+      {
+        id: groupId,
+        title: translate("subscribe.incidentCategories.group"),
+        isUserContent: true,
+      },
+    ],
+    options: categories.flatMap(
+      (category: StatusPageIncidentCategory) => {
+        return category.id && category.publicName
+          ? [
+              {
+                value: category.id.toString(),
+                label: category.publicName,
+                categoryId: groupId,
+                isUserContent: true,
+              },
+            ]
+          : [];
+      },
+    ),
+  };
+};
 
 // How much of one kind of preference - resources, or event types - is taken.
 export enum SubscribePreferenceChoice {
@@ -156,6 +200,7 @@ export enum SubscribePreferenceChoice {
 export interface SubscribePreferenceChoices {
   resources: SubscribePreferenceChoice;
   eventTypes: SubscribePreferenceChoice;
+  incidentCategories: SubscribePreferenceChoice;
 }
 
 type GetChoiceFunction = (
@@ -214,6 +259,12 @@ export const getSubscribePreferenceChoices: (
           values["statusPageEventTypes"],
         )
       : SubscribePreferenceChoice.All,
+    incidentCategories: data.allowSubscribersToChooseIncidentCategories
+      ? getChoice(
+          values["isSubscribedToAllIncidentCategories"],
+          values["statusPageIncidentCategories"],
+        )
+      : SubscribePreferenceChoice.All,
   };
 };
 
@@ -248,6 +299,10 @@ export const getSubscribePreferencesSummaryKeys: (
     nothingPicked.push(SUBSCRIBE_PREFERENCES_COPY.summary.noEventTypes);
   }
 
+  if (choices.incidentCategories === SubscribePreferenceChoice.None) {
+    nothingPicked.push(SUBSCRIBE_PREFERENCES_COPY.summary.noIncidentCategories);
+  }
+
   if (nothingPicked.length > 0) {
     return nothingPicked;
   }
@@ -256,20 +311,35 @@ export const getSubscribePreferencesSummaryKeys: (
     choices.resources === SubscribePreferenceChoice.All;
   const allEventTypes: boolean =
     choices.eventTypes === SubscribePreferenceChoice.All;
+  const allIncidentCategories: boolean =
+    choices.incidentCategories === SubscribePreferenceChoice.All;
 
-  if (allResources && allEventTypes) {
+  if (allResources && allEventTypes && allIncidentCategories) {
     return [SUBSCRIBE_PREFERENCES_COPY.summary.everything];
   }
 
-  if (allEventTypes) {
-    return [SUBSCRIBE_PREFERENCES_COPY.summary.pickedResources];
+  const selectedPreferences: Array<string> = [];
+  if (
+    choices.resources === SubscribePreferenceChoice.Picked &&
+    choices.eventTypes === SubscribePreferenceChoice.Picked
+  ) {
+    selectedPreferences.push(
+      SUBSCRIBE_PREFERENCES_COPY.summary.pickedResourcesAndEventTypes,
+    );
+  } else if (choices.resources === SubscribePreferenceChoice.Picked) {
+    selectedPreferences.push(SUBSCRIBE_PREFERENCES_COPY.summary.pickedResources);
+  } else if (choices.eventTypes === SubscribePreferenceChoice.Picked) {
+    selectedPreferences.push(SUBSCRIBE_PREFERENCES_COPY.summary.pickedEventTypes);
+  }
+  if (choices.incidentCategories === SubscribePreferenceChoice.Picked) {
+    selectedPreferences.push(
+      SUBSCRIBE_PREFERENCES_COPY.summary.pickedIncidentCategories,
+    );
   }
 
-  if (allResources) {
-    return [SUBSCRIBE_PREFERENCES_COPY.summary.pickedEventTypes];
-  }
-
-  return [SUBSCRIBE_PREFERENCES_COPY.summary.pickedResourcesAndEventTypes];
+  return selectedPreferences.length > 0
+    ? selectedPreferences
+    : [SUBSCRIBE_PREFERENCES_COPY.summary.everything];
 };
 
 export type SubscribeTranslateFunction = (key: string) => string;
@@ -290,7 +360,8 @@ export const getSubscribePreferencesSection: (
 ): FormFieldCollapsibleSection<StatusPageSubscriber> | undefined => {
   if (
     !data.allowSubscribersToChooseResources &&
-    !data.allowSubscribersToChooseEventTypes
+    !data.allowSubscribersToChooseEventTypes &&
+    !data.allowSubscribersToChooseIncidentCategories
   ) {
     return undefined;
   }
@@ -298,6 +369,8 @@ export const getSubscribePreferencesSection: (
   const options: SubscribePreferenceOptions = {
     allowSubscribersToChooseResources: data.allowSubscribersToChooseResources,
     allowSubscribersToChooseEventTypes: data.allowSubscribersToChooseEventTypes,
+    allowSubscribersToChooseIncidentCategories:
+      data.allowSubscribersToChooseIncidentCategories,
   };
 
   return {
@@ -334,12 +407,14 @@ export const getSubscribePreferenceFields: (
     // The status page's resources, in its groups.
     resourceOptions: CategoryCheckboxProps;
     eventTypeOptions: Field<StatusPageSubscriber>["dropdownOptions"];
+    incidentCategoryOptions: CategoryCheckboxProps;
   },
 ) => Array<Field<StatusPageSubscriber>> = (
   data: SubscribePreferenceOptions & {
     translate: SubscribeTranslateFunction;
     resourceOptions: CategoryCheckboxProps;
     eventTypeOptions: Field<StatusPageSubscriber>["dropdownOptions"];
+    incidentCategoryOptions: CategoryCheckboxProps;
   },
 ): Array<Field<StatusPageSubscriber>> => {
   const preferencesSection:
@@ -402,6 +477,35 @@ export const getSubscribePreferenceFields: (
       dropdownOptions: data.eventTypeOptions,
       showIf: (values: FormValues<StatusPageSubscriber>): boolean => {
         return !values || !values.isSubscribedToAllEventTypes;
+      },
+      collapsibleSection: preferencesSection,
+    });
+  }
+
+  if (data.allowSubscribersToChooseIncidentCategories) {
+    fields.push({
+      field: { isSubscribedToAllIncidentCategories: true },
+      title: data.translate("subscribe.incidentCategories.all"),
+      description: data.translate(
+        "subscribe.incidentCategories.allDescription",
+      ),
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+      collapsibleSection: preferencesSection,
+    });
+
+    fields.push({
+      field: { statusPageIncidentCategories: true },
+      title: data.translate("subscribe.incidentCategories.select"),
+      description: data.translate(
+        "subscribe.incidentCategories.selectDescription",
+      ),
+      fieldType: FormFieldSchemaType.CategoryCheckbox,
+      required: false,
+      categoryCheckboxProps: data.incidentCategoryOptions,
+      showIf: (values: FormValues<StatusPageSubscriber>): boolean => {
+        return !values || !values.isSubscribedToAllIncidentCategories;
       },
       collapsibleSection: preferencesSection,
     });

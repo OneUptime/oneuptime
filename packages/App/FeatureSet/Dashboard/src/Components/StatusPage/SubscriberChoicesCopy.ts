@@ -46,10 +46,15 @@ import {
 // The status page columns the Subscriber Choices card switches.
 export type SubscriberChoiceColumn =
   | "allowSubscribersToChooseResources"
-  | "allowSubscribersToChooseEventTypes";
+  | "allowSubscribersToChooseEventTypes"
+  | "allowSubscribersToChooseIncidentCategories";
 
 export const SUBSCRIBER_CHOICE_COLUMNS: ReadonlyArray<SubscriberChoiceColumn> =
-  ["allowSubscribersToChooseResources", "allowSubscribersToChooseEventTypes"];
+  [
+    "allowSubscribersToChooseResources",
+    "allowSubscribersToChooseEventTypes",
+    "allowSubscribersToChooseIncidentCategories",
+  ];
 
 export const SUBSCRIBER_CHOICES_CARD_TEST_ID: string =
   "status-page-subscriber-choices";
@@ -74,6 +79,8 @@ export const SubscriberChoicesCopy: {
   eventTypesTitle: string;
   eventTypesOnDescription: string;
   eventTypesOffDescription: string;
+  incidentCategoriesTitle: string;
+  incidentCategoriesDescription: string;
   // More settings, and the cards in it.
   moreDescription: string;
   timezonesTitle: string;
@@ -110,6 +117,12 @@ export const SubscriberChoicesCopy: {
   ),
   eventTypesOffDescription: translationKey(
     "Off: subscribers hear about every kind of event.",
+  ),
+  incidentCategoriesTitle: translationKey(
+    "Allow Subscribers to Choose Incident Categories",
+  ),
+  incidentCategoriesDescription: translationKey(
+    "Can subscribers choose which incident categories to receive?",
   ),
   moreDescription: translationKey(
     "Who can subscribe, timezones, the email footer, and your own mail server or Twilio account.",
@@ -149,6 +162,10 @@ export const getSubscriberChoiceDescription: (
       : SubscriberChoicesCopy.resourcesOffDescription;
   }
 
+  if (column === "allowSubscribersToChooseIncidentCategories") {
+    return SubscriberChoicesCopy.incidentCategoriesDescription;
+  }
+
   return isOn
     ? SubscriberChoicesCopy.eventTypesOnDescription
     : SubscriberChoicesCopy.eventTypesOffDescription;
@@ -158,6 +175,10 @@ export const getSubscriberChoiceDescription: (
 export const getSubscriberChoiceTitle: (
   column: SubscriberChoiceColumn,
 ) => string = (column: SubscriberChoiceColumn): string => {
+  if (column === "allowSubscribersToChooseIncidentCategories") {
+    return SubscriberChoicesCopy.incidentCategoriesTitle;
+  }
+
   return column === "allowSubscribersToChooseResources"
     ? SubscriberChoicesCopy.resourcesTitle
     : SubscriberChoicesCopy.eventTypesTitle;

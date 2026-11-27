@@ -65,6 +65,12 @@ import {
 } from "../../../Components/StatusPage/SubscriberTemplateConfiguration";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import StatusPageIncidentCategory from "Common/Models/DatabaseModels/StatusPageIncidentCategory";
+import Label from "Common/Models/DatabaseModels/Label";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import ActionButtonSchema from "Common/UI/Components/ActionButton/ActionButtonSchema";
+import IconProp from "Common/Types/Icon/IconProp";
+import Clipboard from "Common/UI/Utils/Clipboard";
 
 const StatusPageSubscriberSettings: FunctionComponent<
   PageComponentProps
@@ -114,6 +120,7 @@ const StatusPageSubscriberSettings: FunctionComponent<
             callSmsConfig: {
               _id: true,
             },
+            projectId: true,
           },
         });
       setStatusPage(fetchedStatusPage);
@@ -229,6 +236,120 @@ const StatusPageSubscriberSettings: FunctionComponent<
        * which kinds of event. Two switches, saved as they are flipped.
        */}
       <SubscriberChoicesCard statusPageId={modelId} />
+
+      <ModelTable<StatusPageIncidentCategory>
+        modelType={StatusPageIncidentCategory}
+        id="status-page-incident-categories-table"
+        userPreferencesKey="status-page-incident-categories-table"
+        name="Status Page > Incident Categories"
+        cardProps={{
+          title: "Incident Categories",
+          description:
+            "Map internal incident labels to public category names and manage subscriber choices.",
+        }}
+        isDeleteable={true}
+        isCreateable={true}
+        isEditable={true}
+        isViewable={false}
+        query={{ statusPageId: modelId }}
+        onBeforeCreate={(
+          item: StatusPageIncidentCategory,
+        ): Promise<StatusPageIncidentCategory> => {
+          item.statusPageId = modelId;
+          if (statusPage?.projectId) {
+            item.projectId = statusPage.projectId;
+          }
+          return Promise.resolve(item);
+        }}
+        columns={[
+          {
+            field: { publicName: true },
+            title: "Public Name",
+            type: FieldType.Text,
+            isNotCustomizable: true,
+          },
+          {
+            field: { label: { name: true } },
+            title: "Internal Label",
+            type: FieldType.Text,
+            disableSort: true,
+            getElement: (item: StatusPageIncidentCategory): ReactElement => {
+              return <span>{item.label?.name || "—"}</span>;
+            },
+          },
+          {
+            field: { publicDescription: true },
+            title: "Public Description",
+            type: FieldType.Text,
+          },
+          {
+            field: { _id: true },
+            title: "Incident Filter URL",
+            type: FieldType.Text,
+            disableSort: true,
+            getElement: (item: StatusPageIncidentCategory): ReactElement => {
+              return <code>/incidents?category={item.id?.toString()}</code>;
+            },
+          },
+        ]}
+        filters={[]}
+        formFields={[
+          {
+            field: { labelId: true },
+            title: "Internal Label",
+            doNotShowWhenEditing: true,
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownModal: {
+              type: Label,
+              labelField: "name",
+              valueField: "_id",
+            },
+            required: true,
+            description:
+              translator.translateText(
+                "Assign this label to incidents. Visitors see the public category name.",
+              ) ||
+              "Assign this label to incidents. Visitors see the public category name.",
+          },
+          {
+            field: { publicName: true },
+            title: "Public Name",
+            fieldType: FormFieldSchemaType.Text,
+            required: true,
+          },
+          {
+            field: { publicDescription: true },
+            title: "Public Description",
+            fieldType: FormFieldSchemaType.Text,
+            required: false,
+          },
+        ]}
+        actionButtons={[
+          {
+            title: "Copy incident filter URL",
+            icon: IconProp.Copy,
+            buttonStyleType: ButtonStyleType.NORMAL,
+            onClick: async (
+              item: StatusPageIncidentCategory,
+              onCompleteAction: VoidFunction,
+              onError: (error: Error) => void,
+            ): Promise<void> => {
+              const copied: boolean = await Clipboard.copyToClipboard(
+                `/incidents?category=${item.id?.toString() || ""}`,
+              );
+              if (copied) {
+                onCompleteAction();
+              } else {
+                onError(
+                  new Error(
+                    "Could not copy the URL. Select it in the table and copy it manually.",
+                  ),
+                );
+              }
+            },
+          } as ActionButtonSchema<StatusPageIncidentCategory>,
+        ]}
+      />
 
       {/*
        * Set once, if ever: who may be a subscriber (only the page's private

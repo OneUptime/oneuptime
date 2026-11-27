@@ -290,6 +290,13 @@
       "failed": "Le désabonnement a échoué. Veuillez réessayer.",
       "loadFailed": "Impossible de charger ce lien de désabonnement. Veuillez réessayer plus tard."
     },
+    "incidentCategories": {
+      "group": "Catégories d’incident",
+      "all": "Toutes les catégories d’incident",
+      "allDescription": "Recevez les mises à jour d’incident de toutes les catégories.",
+      "select": "Choisissez les catégories d’incident",
+      "selectDescription": "Les incidents sans catégorie sont inclus automatiquement."
+    },
     "preferences": {
       "title": "Préférences",
       "description": "Choisissez ce dont vous voulez être informé.",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "Vous ne recevrez que les mises à jour des types d'événements que vous avez choisis.",
         "pickedResourcesAndEventTypes": "Vous ne recevrez que les mises à jour des ressources et des types d'événements que vous avez choisis.",
         "noResources": "Vous n'avez encore choisi aucune ressource.",
-        "noEventTypes": "Vous n'avez encore choisi aucun type d'événement."
+        "noEventTypes": "Vous n'avez encore choisi aucun type d'événement.",
+        "pickedIncidentCategories": "Vous recevrez les mises à jour des catégories choisies et des incidents sans catégorie.",
+        "noIncidentCategories": "Vous recevrez uniquement les mises à jour des incidents sans catégorie."
       }
     }
   },

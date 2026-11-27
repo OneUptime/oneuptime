@@ -85,10 +85,10 @@ export const IncidentStatusPageScopeCopy: {
 } = {
   pickerTitle: "Limit to these status pages",
   pickerDescription:
-    "Leave empty to use every status page that lists its monitors, or pick some of those pages.",
+    "Leave empty to use every status page that lists the affected monitors. If there are no monitors, pick the pages to publish on.",
   pickerPlaceholder: "Every status page that lists the monitors",
   templatePickerDescription:
-    "Incidents from this template only show on, and notify, these pages among those that list their monitors.",
+    "Incidents from this template use these status pages. If they affect monitors, only pages listing those monitors can show them.",
   noScopeSummary:
     "Not limited: shown on, and notifies, every status page that lists its monitors.",
 
@@ -111,7 +111,7 @@ export const IncidentStatusPageScopeCopy: {
 
   settingsCardTitle: "Status Page Scope",
   settingsCardDescription:
-    "Limit this incident to some of the status pages that list its monitors. It is shown on, and notifies the subscribers of, only those pages.",
+    "Pick which status pages to use. If the incident affects monitors, only pages that list those monitors can show it.",
   settingsEditButton: "Edit Status Page Scope",
   scopeFieldTitle: "Limited to Status Pages",
 

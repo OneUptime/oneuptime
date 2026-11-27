@@ -61,6 +61,7 @@ import SubscriberNotificationRunLimit, {
   SubscriberNotificationProjectSlot,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
+import getIncidentNotificationCategoryIds from "Common/Server/Utils/StatusPage/IncidentNotificationCategoryIds";
 import Email from "Common/Types/Email";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageEmailLogo from "Common/Server/Utils/StatusPage/StatusPageEmailLogo";
@@ -215,6 +216,7 @@ RunCron(
           // Whether the status page shows the incident (isIncidentShown).
           isVisibleOnStatusPage: true,
           isPrivate: true,
+          isScopedToStatusPages: true,
           monitors: {
             _id: true,
           },
@@ -227,6 +229,7 @@ RunCron(
           postmortemNote: true,
           // {{incidentLabels}} and the custom fields (IncidentTemplateVariableBuilder).
           labels: {
+            _id: true,
             name: true,
           },
           customFields: true,
@@ -373,7 +376,10 @@ RunCron(
             mdText`📧 **Subscriber Incident Postmortem Notification Sent for [Incident ${incidentNumberDisplay}](${(await IncidentService.getIncidentLinkInDashboard(incident.projectId!, incident.id!)).toString()})**:
       Notification sent to status page subscribers because postmortem was published for this incident.`.toString();
 
-          if (!incident.monitors || incident.monitors.length === 0) {
+          if (
+            !incident.isScopedToStatusPages &&
+            (!incident.monitors || incident.monitors.length === 0)
+          ) {
             logger.debug(
               `Incident ${incident.id} has no monitors attached; marking subscriber notifications as Skipped.`,
               {
@@ -461,6 +467,7 @@ RunCron(
            */
           const resolvedStatusPages: ResolvedIncidentStatusPages =
             await IncidentStatusPageScope.resolvePagesForIncidents({
+              includeMonitorlessIncidents: true,
               incidents: [incident],
             });
 
@@ -657,6 +664,9 @@ RunCron(
                 },
               );
 
+              const incidentCategoryIds: Array<ObjectID> =
+                await getIncidentNotificationCategoryIds(incident, statuspage);
+
               /*
                * Every subscriber of the page, read in batches past LIMIT_MAX,
                * a bounded number at a time, each message awaited and counted
@@ -688,6 +698,8 @@ RunCron(
                         statusPageToResources[statuspage._id!] || [],
                       statusPage: statuspage,
                       eventType: StatusPageEventType.Incident,
+                      incidentCategoryIds,
+                      isIncidentWithoutMonitors: !incident.monitors?.length,
                     });
 
                   if (!shouldNotifySubscriber) {

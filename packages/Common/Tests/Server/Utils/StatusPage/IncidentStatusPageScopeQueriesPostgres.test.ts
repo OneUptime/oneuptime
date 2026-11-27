@@ -1,3 +1,8 @@
+import incidentCategoryCondition from "../../../../Server/Utils/StatusPage/IncidentCategoryQuery";
+import QueryIdCondition from "../../../../Server/Utils/Database/QueryIdCondition";
+import Query from "../../../../Server/Types/Database/Query";
+import Select from "../../../../Server/Types/Database/Select";
+import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import Entities from "../../../../Models/DatabaseModels/Index";
 import Incident from "../../../../Models/DatabaseModels/Incident";
 import StatusPage from "../../../../Models/DatabaseModels/StatusPage";
@@ -62,6 +67,7 @@ const TABLES: Array<string> = [
   "StatusPageResource",
   "Incident",
   "IncidentMonitor",
+  "IncidentLabel",
   "IncidentStatusPage",
 ];
 
@@ -204,7 +210,7 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
   }
 
   async function seedIncident(data: {
-    monitorId: ObjectID;
+    monitorId?: ObjectID;
     declaredAt: string;
     scopedTo?: Array<ObjectID>;
     isVisibleOnStatusPage?: boolean;
@@ -230,10 +236,12 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
         data.isPrivate === true,
       ],
     );
-    await database.query(
-      `INSERT INTO "${schema}"."IncidentMonitor" ("incidentId", "monitorId") VALUES ($1, $2)`,
-      [id.toString(), data.monitorId.toString()],
-    );
+    if (data.monitorId) {
+      await database.query(
+        `INSERT INTO "${schema}"."IncidentMonitor" ("incidentId", "monitorId") VALUES ($1, $2)`,
+        [id.toString(), data.monitorId.toString()],
+      );
+    }
     for (const statusPageId of data.scopedTo || []) {
       await database.query(
         `INSERT INTO "${schema}"."IncidentStatusPage" ("incidentId", "statusPageId") VALUES ($1, $2)`,
@@ -505,6 +513,96 @@ describePostgres("IncidentStatusPageScope against a migrated Postgres", () => {
         privateScopedToAAndScopedOnly,
       ),
     ).toBeNull();
+  });
+
+  test("the monitorless list and detail keep explicit scope and privacy in Postgres", async () => {
+    const advisory: ObjectID = await seedIncident({
+      declaredAt: "2026-01-10T00:00:00Z",
+      scopedTo: [pageA],
+    });
+    const privateAdvisory: ObjectID = await seedIncident({
+      declaredAt: "2026-01-11T00:00:00Z",
+      scopedTo: [pageA],
+      isPrivate: true,
+    });
+    await seedIncident({ declaredAt: "2026-01-12T00:00:00Z" });
+    await seedIncident({
+      declaredAt: "2026-01-13T00:00:00Z",
+      scopedTo: [pageA],
+      project: otherProjectId,
+    });
+
+    const olderAdvisory: ObjectID = await seedIncident({
+      declaredAt: "2026-01-09T00:00:00Z",
+      scopedTo: [pageA],
+    });
+    const securityLabel: ObjectID = ObjectID.generate();
+    await database.query(
+      `INSERT INTO "${schema}"."IncidentLabel" ("incidentId", "labelId") VALUES ($1, $2)`,
+      [advisory.toString(), securityLabel.toString()],
+    );
+
+    const query: Query<Incident> = { monitors: [], projectId: projectId };
+    const select: Select<Incident> = { _id: true };
+    const props: DatabaseCommonInteractionProps = { isRoot: true };
+    expect(
+      ids(
+        await IncidentStatusPageScope.findIncidentsForStatusPage({
+          statusPage: statusPage(pageA, false),
+          query: QueryIdCondition.withIdCondition(
+            query,
+            incidentCategoryCondition([securityLabel.toString()], false),
+          ),
+          select,
+          props,
+          limit: 1,
+          includeMonitorlessIncidents: true,
+        }),
+      ),
+    ).toEqual([advisory.toString()]);
+    expect(
+      ids(
+        await IncidentStatusPageScope.findIncidentsForStatusPage({
+          statusPage: statusPage(pageA, false),
+          query: QueryIdCondition.withIdCondition(
+            query,
+            incidentCategoryCondition([securityLabel.toString()], true),
+          ),
+          select,
+          props,
+          sort: { declaredAt: SortOrder.Descending },
+          limit: 1,
+          includeMonitorlessIncidents: true,
+        }),
+      ),
+    ).toEqual([olderAdvisory.toString()]);
+
+    const [visible, wrongPage, hidden] = await Promise.all([
+      IncidentStatusPageScope.findOneIncidentForStatusPage({
+        statusPage: statusPage(pageA, false),
+        query: { ...query, _id: advisory },
+        select,
+        props,
+        includeMonitorlessIncidents: true,
+      }),
+      IncidentStatusPageScope.findOneIncidentForStatusPage({
+        statusPage: statusPage(pageB, false),
+        query: { ...query, _id: advisory },
+        select,
+        props,
+        includeMonitorlessIncidents: true,
+      }),
+      IncidentStatusPageScope.findOneIncidentForStatusPage({
+        statusPage: statusPage(pageA, false),
+        query: { ...query, _id: privateAdvisory },
+        select,
+        props,
+        includeMonitorlessIncidents: true,
+      }),
+    ]);
+    expect(visible?._id).toBe(advisory.toString());
+    expect(wrongPage).toBeNull();
+    expect(hidden).toBeNull();
   });
 
   test("counts only the project's visible incidents a page shows", async () => {

@@ -61,6 +61,7 @@ import {
   readIncidentListMode,
 } from "../../Utils/IncidentGrouping";
 import useAsyncEffect from "use-async-effect";
+import { Location, useLocation } from "react-router-dom";
 
 /*
  * The cards the list draws, in the page's mode (Common/Utils/StatusPage/
@@ -107,6 +108,10 @@ const Overview: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   const { t, i18n: i18nInstance } = useTranslation();
+  const location: Location = useLocation();
+  const category: string | null = new URLSearchParams(location.search).get(
+    "category",
+  );
   const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -157,10 +162,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
   const [historyInDays, setHistoryInDays] = useState<number>(
     DEFAULT_STATUS_PAGE_HISTORY_IN_DAYS,
   );
+  const [selectedCategory, setSelectedCategory] = useState<{
+    publicName: string;
+    publicDescription?: string | undefined;
+  } | null>(null);
+  const requestNumber: React.MutableRefObject<number> = React.useRef<number>(0);
 
   StatusPageUtil.checkIfUserHasLoggedIn();
 
   useAsyncEffect(async () => {
+    const thisRequest: number = ++requestNumber.current;
     try {
       if (!StatusPageUtil.getStatusPageId()) {
         return;
@@ -172,12 +183,15 @@ const Overview: FunctionComponent<PageComponentProps> = (
         throw new BadDataException("Status Page ID is required");
       }
 
+      setError(null);
+      setSelectedCategory(null);
+
       // Fetch incidents
       const incidentsResponse: HTTPResponse<JSONObject> =
         await API.post<JSONObject>({
-          url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
-            `/incidents/${id.toString()}`,
-          ),
+          url: URL.fromString(STATUS_PAGE_API_URL.toString())
+            .addRoute(`/incidents/${id.toString()}`)
+            .addQueryParams(category ? { category: category } : {}),
           data: {},
           headers: API.getDefaultHeaders(),
         });
@@ -192,28 +206,56 @@ const Overview: FunctionComponent<PageComponentProps> = (
         monitorsInGroup: {},
       };
 
-      try {
-        const episodesResponse: HTTPResponse<JSONObject> =
-          await API.post<JSONObject>({
-            url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
-              `/episodes/${id.toString()}`,
-            ),
-            data: {},
-            headers: API.getDefaultHeaders(),
-          });
+      if (!category) {
+        try {
+          const episodesResponse: HTTPResponse<JSONObject> =
+            await API.post<JSONObject>({
+              url: URL.fromString(STATUS_PAGE_API_URL.toString()).addRoute(
+                `/episodes/${id.toString()}`,
+              ),
+              data: {},
+              headers: API.getDefaultHeaders(),
+            });
 
-        if (episodesResponse.isSuccess()) {
-          episodesData = episodesResponse.data;
+          if (episodesResponse.isSuccess()) {
+            episodesData = episodesResponse.data;
+          }
+        } catch {
+          // Episodes endpoint might not be enabled, use empty data
         }
-      } catch {
-        // Episodes endpoint might not be enabled, use empty data
       }
 
       if (!incidentsResponse.isSuccess()) {
         throw incidentsResponse;
       }
 
+      if (thisRequest !== requestNumber.current) {
+        return;
+      }
+
       const incidentsData: JSONObject = incidentsResponse.data;
+      const categoryRows: Array<JSONObject> = Array.isArray(
+        incidentsData["incidentCategories"],
+      )
+        ? (incidentsData["incidentCategories"] as Array<JSONObject>)
+        : [];
+      const currentCategory: JSONObject | undefined = categoryRows.find(
+        (item: JSONObject): boolean => {
+          return item["_id"] === category;
+        },
+      );
+      if (
+        currentCategory &&
+        typeof currentCategory["publicName"] === "string"
+      ) {
+        setSelectedCategory({
+          publicName: currentCategory["publicName"],
+          publicDescription:
+            typeof currentCategory["publicDescription"] === "string"
+              ? currentCategory["publicDescription"]
+              : undefined,
+        });
+      }
 
       setHistoryInDays(readHistoryInDays(incidentsData));
 
@@ -289,10 +331,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setEpisodePublicNotes(episodePublicNotes);
       setEpisodeStateTimelines(episodeStateTimelines);
 
-      const mode: StatusPageIncidentListMode = readIncidentListMode(
-        incidentsData,
-        episodesData,
-      );
+      const mode: StatusPageIncidentListMode = category
+        ? StatusPageIncidentListMode.Separate
+        : readIncidentListMode(incidentsData, episodesData);
       const incidentsOfEpisodes: Dictionary<Array<Incident>> =
         readEpisodeIncidents(rawEpisodesArray);
 
@@ -312,13 +353,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
       setIsLoading(false);
       props.onLoadComplete();
     } catch (err) {
+      if (thisRequest !== requestNumber.current) {
+        return;
+      }
       if (err instanceof HTTPErrorResponse) {
         await StatusPageUtil.checkIfTheUserIsAuthenticated(err);
       }
       setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     }
-  }, []);
+  }, [category]);
 
   type GetEventHistoryListComponentProps = (
     events: Array<EventWithDate>,
@@ -523,6 +567,18 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
   return renderPage(
     <>
+      {selectedCategory && (
+        <div className="mb-5 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+          <h2 className="text-lg font-semibold">
+            {selectedCategory.publicName}
+          </h2>
+          {selectedCategory.publicDescription && (
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+              {selectedCategory.publicDescription}
+            </p>
+          )}
+        </div>
+      )}
       {parsedActiveEventsData?.items &&
       parsedActiveEventsData?.items.length > 0 ? (
         <div>

@@ -22,7 +22,10 @@ import TotalItemsBy from "../../Types/Database/TotalItemsBy";
 import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import { Check, Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+
+export const STATUS_PAGE_NAVIGATION_PATH: RegExp =
+  /^\/(?:incidents(?:[?]category=[a-zA-Z0-9_-]+)?|announcements|scheduled-events)$/;
 
 @EnableDocumentation()
 @CanAccessIfCanReadOn("statusPage")
@@ -82,6 +85,10 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Entity({
   name: "StatusPageHeaderLink",
 })
+@Check(
+  "CHK_status_page_header_link_destination",
+  `("link" IS NOT NULL) <> ("navigationPath" IS NOT NULL) AND ("navigationPath" IS NULL OR "navigationPath" ~ '${STATUS_PAGE_NAVIGATION_PATH.source}')`,
+)
 @TotalItemsBy(
   "statusPageId",
   3,
@@ -317,19 +324,99 @@ export default class StatusPageHeaderLink extends BaseModel {
     ],
   })
   @TableColumn({
-    required: true,
     type: TableColumnType.ShortURL,
     title: "Link",
     description: "URL to a website or any other resource on the internet",
     example: "https://docs.example.com",
   })
   @Column({
-    nullable: false,
+    nullable: true,
     type: ColumnType.ShortURL,
     length: ColumnLength.ShortURL,
     transformer: URL.getDatabaseTransformer(),
   })
   public link?: URL = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageHeaderLink,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageHeaderLink,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageHeaderLink,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ShortText,
+    title: "Navigation Path",
+    description:
+      "A status page destination, such as /incidents?category=security.",
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: true,
+  })
+  public navigationPath?: string = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageHeaderLink,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageHeaderLink,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageHeaderLink,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+    title: "Hidden",
+    description: "Hide this link from visitors.",
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    default: false,
+  })
+  public isHidden?: boolean = undefined;
 
   @ColumnAccessControl({
     create: [

@@ -12,6 +12,7 @@ import StatusPageUtil from "../../Utils/StatusPage";
 import SubscribeSideMenu from "./SideMenu";
 import {
   SubscribePageProps,
+  getIncidentCategoryCheckboxOptions,
   getSubscribePreferenceFields,
   isSubscribeChannelMenuShown,
 } from "./SubscribePageUtils";
@@ -144,11 +145,19 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       allowSubscribersToChooseEventTypes: Boolean(
         props.allowSubscribersToChooseEventTypes,
       ),
+      allowSubscribersToChooseIncidentCategories: Boolean(
+        props.allowSubscribersToChooseIncidentCategories &&
+          props.incidentCategories.length > 0,
+      ),
       translate: (key: string): string => {
         return t(key);
       },
       resourceOptions: categoryCheckboxOptionsAndCategories,
       eventTypeOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
+      incidentCategoryOptions: getIncidentCategoryCheckboxOptions(
+        props.incidentCategories,
+        (key: string): string => t(key),
+      ),
     }),
   ];
 

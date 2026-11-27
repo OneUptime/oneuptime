@@ -290,6 +290,13 @@
       "failed": "Vi kunne ikke avslutte abonnementet. Prøv igjen.",
       "loadFailed": "Vi kunne ikke laste inn denne lenken for å avslutte abonnementet. Prøv igjen senere."
     },
+    "incidentCategories": {
+      "group": "Hendelseskategorier",
+      "all": "Alle hendelseskategorier",
+      "allDescription": "Motta hendelsesoppdateringer fra alle kategorier.",
+      "select": "Velg hendelseskategorier",
+      "selectDescription": "Hendelser uten kategori inkluderes automatisk."
+    },
     "preferences": {
       "title": "Preferanser",
       "description": "Velg hva du vil høre om.",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "Du får bare oppdateringer om hendelsestypene du har valgt.",
         "pickedResourcesAndEventTypes": "Du får bare oppdateringer om ressursene og hendelsestypene du har valgt.",
         "noResources": "Du har ikke valgt noen ressurser ennå.",
-        "noEventTypes": "Du har ikke valgt noen hendelsestyper ennå."
+        "noEventTypes": "Du har ikke valgt noen hendelsestyper ennå.",
+        "pickedIncidentCategories": "Du får oppdateringer om kategoriene du valgte og hendelser uten kategori.",
+        "noIncidentCategories": "Du får bare hendelsesoppdateringer for hendelser uten kategori."
       }
     }
   },

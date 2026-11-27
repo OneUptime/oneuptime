@@ -1,6 +1,7 @@
 /**
  * @timezone UTC
  */
+import { MemoryRouter, Link as RouterLink } from "react-router-dom";
 import "@testing-library/jest-dom";
 import {
   act,
@@ -371,6 +372,48 @@ function respondForMode(mode: string | undefined): void {
   };
 }
 
+test("changing incident categories in the same tab reloads the filtered list", async () => {
+  const categoryId: string = ObjectID.generate().toString();
+  const seen: Array<string> = [];
+  mockRespondToPost = (url: string): PostResponse => {
+    seen.push(url);
+    if (url.includes("/episodes/")) {
+      return ok(episodesAnswer("Separate", []));
+    }
+
+    return ok({
+      ...incidentsAnswer("Separate"),
+      incidentCategories: [
+        {
+          _id: categoryId,
+          publicName: "Security advisories",
+          publicDescription: "Updates about vulnerabilities.",
+        },
+      ],
+    });
+  };
+
+  await act(async () => {
+    render(
+      <MemoryRouter initialEntries={["/incidents"]}>
+        <RouterLink to={`/incidents?category=${categoryId}`}>
+          Advisories
+        </RouterLink>
+        <IncidentList
+          pageRoute={new Route("/incidents")}
+          onLoadComplete={() => {}}
+        />
+      </MemoryRouter>,
+    );
+  });
+  expect(screen.queryByText("Updates about vulnerabilities.")).toBeNull();
+  await act(async () => {
+    fireEvent.click(screen.getByRole("link", { name: "Advisories" }));
+  });
+  expect(seen.at(-1)).toContain(`?category=${categoryId}`);
+  expect(screen.getByText("Updates about vulnerabilities.")).toBeVisible();
+});
+
 type PageComponent = React.FunctionComponent<{
   pageRoute: Route;
   onLoadComplete: () => void;
@@ -378,7 +421,11 @@ type PageComponent = React.FunctionComponent<{
 
 async function renderPage(Component: PageComponent): Promise<void> {
   await act(async () => {
-    render(<Component pageRoute={new Route("/")} onLoadComplete={() => {}} />);
+    render(
+      <MemoryRouter>
+        <Component pageRoute={new Route("/")} onLoadComplete={() => {}} />
+      </MemoryRouter>,
+    );
   });
 
   await act(async () => {

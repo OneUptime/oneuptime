@@ -290,6 +290,13 @@
       "failed": "We could not unsubscribe you. Please try again.",
       "loadFailed": "We could not load this unsubscribe link. Please try again later."
     },
+    "incidentCategories": {
+      "group": "Incident categories",
+      "all": "All incident categories",
+      "allDescription": "Receive incident updates from every category.",
+      "select": "Choose incident categories",
+      "selectDescription": "Incidents without a category are included automatically."
+    },
     "preferences": {
       "title": "Preferences",
       "description": "Choose what you hear about.",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "You will get updates only for the event types you picked.",
         "pickedResourcesAndEventTypes": "You will get updates only for the resources and event types you picked.",
         "noResources": "You have not picked any resources yet.",
-        "noEventTypes": "You have not picked any event types yet."
+        "noEventTypes": "You have not picked any event types yet.",
+        "pickedIncidentCategories": "You will get updates about the categories you picked and incidents without a category.",
+        "noIncidentCategories": "You will get incident updates only for incidents without a category."
       }
     }
   },

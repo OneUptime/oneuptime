@@ -9,7 +9,10 @@ import StatusPageModelAPI from "../../Utils/ModelAPI";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import StatusPageUtil from "../../Utils/StatusPage";
 import { getManageLinkRequestPage } from "./ManageLinkRequestPage";
-import { SubscribePageProps } from "./SubscribePageUtils";
+import {
+  SubscribePageProps,
+  getIncidentCategoryCheckboxOptions,
+} from "./SubscribePageUtils";
 import PageMap from "../../Utils/PageMap";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -119,6 +122,10 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
     categories: [],
     options: [],
   });
+  const incidentCategoryCheckboxOptions: CategoryCheckboxOptionsAndCategories =
+    getIncidentCategoryCheckboxOptions(props.incidentCategories, (key) => {
+      return t(key);
+    });
 
   const [isLaoding, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -312,6 +319,34 @@ const SubscribePage: FunctionComponent<SubscribePageProps> = (
       dropdownOptions: SubscriberUtil.getDropdownPropsBasedOnEventTypes(),
       showIf: (model: FormValues<StatusPageSubscriber>) => {
         return !model || !model.isSubscribedToAllEventTypes;
+      },
+    });
+  }
+
+  if (
+    props.allowSubscribersToChooseIncidentCategories &&
+    props.incidentCategories.length > 0
+  ) {
+    fields.push({
+      field: { isSubscribedToAllIncidentCategories: true },
+      showEvenIfPermissionDoesNotExist: true,
+      title: t("subscribe.incidentCategories.all"),
+      description: t("subscribe.incidentCategories.allDescription"),
+      fieldType: FormFieldSchemaType.Checkbox,
+      required: false,
+      defaultValue: true,
+    });
+
+    fields.push({
+      field: { statusPageIncidentCategories: true },
+      showEvenIfPermissionDoesNotExist: true,
+      title: t("subscribe.incidentCategories.select"),
+      description: t("subscribe.incidentCategories.selectDescription"),
+      fieldType: FormFieldSchemaType.CategoryCheckbox,
+      required: false,
+      categoryCheckboxProps: incidentCategoryCheckboxOptions,
+      showIf: (model: FormValues<StatusPageSubscriber>) => {
+        return !model || !model.isSubscribedToAllIncidentCategories;
       },
     });
   }

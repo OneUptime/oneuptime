@@ -971,6 +971,15 @@ describe("status pages that send their subscribers nothing", () => {
     }
   });
 
+  test("a monitorless incident can be sent to its explicitly selected page", () => {
+    expect(
+      reasonFor(
+        { hasMonitors: false, isScoped: true, hiddenStatusPageCount: 1 },
+        true,
+      ),
+    ).toBeNull();
+  });
+
   test("a draft that will be private, or does not notify, is said before the pages", () => {
     for (const draftNothingSentReason of [
       SubscriberNotificationPreviewNothingSentReason.PrivateIncident,

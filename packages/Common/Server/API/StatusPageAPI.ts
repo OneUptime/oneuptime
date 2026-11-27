@@ -1,3 +1,5 @@
+import incidentCategoryCondition from "../Utils/StatusPage/IncidentCategoryQuery";
+import QueryIdCondition from "../Utils/Database/QueryIdCondition";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import PublicDashboardRateLimit, {
   PublicDashboardRateLimitBucket,
@@ -28,6 +30,7 @@ import CustomDomainServerReadiness from "../Utils/CustomDomain/CustomDomainServe
 import StatusPageFooterLinkService from "../Services/StatusPageFooterLinkService";
 import StatusPageGroupService from "../Services/StatusPageGroupService";
 import StatusPageHeaderLinkService from "../Services/StatusPageHeaderLinkService";
+import StatusPageIncidentCategoryService from "../Services/StatusPageIncidentCategoryService";
 import StatusPageHistoryChartBarColorRuleService from "../Services/StatusPageHistoryChartBarColorRuleService";
 import StatusPageResourceService from "../Services/StatusPageResourceService";
 import StatusPageService, {
@@ -52,6 +55,7 @@ import StatusPageSubscriberService, {
   SMS_SIGN_UP_UNAVAILABLE_MESSAGE,
   SubscriptionConfirmationOutcome,
 } from "../Services/StatusPageSubscriberService";
+import StatusPageSubscriberResources from "../Utils/StatusPage/StatusPageSubscriberResources";
 import Query from "../Types/Database/Query";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
@@ -104,6 +108,7 @@ import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEp
 import IncidentPublicNote from "../../Models/DatabaseModels/IncidentPublicNote";
 import IncidentState from "../../Models/DatabaseModels/IncidentState";
 import IncidentStateTimeline from "../../Models/DatabaseModels/IncidentStateTimeline";
+import Label from "../../Models/DatabaseModels/Label";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorGroupResource from "../../Models/DatabaseModels/MonitorGroupResource";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
@@ -119,6 +124,7 @@ import StatusPageDomain from "../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageFooterLink from "../../Models/DatabaseModels/StatusPageFooterLink";
 import StatusPageGroup from "../../Models/DatabaseModels/StatusPageGroup";
 import StatusPageHeaderLink from "../../Models/DatabaseModels/StatusPageHeaderLink";
+import StatusPageIncidentCategory from "../../Models/DatabaseModels/StatusPageIncidentCategory";
 import StatusPageHistoryChartBarColorRule from "../../Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
 import StatusPageSSO from "../../Models/DatabaseModels/StatusPageSso";
@@ -3329,6 +3335,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableSmsSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
+        allowSubscribersToChooseIncidentCategories: true,
         showSubscriberPageOnStatusPage: true,
       },
       props: {
@@ -4009,6 +4016,7 @@ export default class StatusPageAPI extends BaseAPI<
         enableWebhookSubscribers: true,
         allowSubscribersToChooseResources: true,
         allowSubscribersToChooseEventTypes: true,
+        allowSubscribersToChooseIncidentCategories: true,
         showSubscriberPageOnStatusPage: true,
         limitSubscribersToPrivateUsers: true,
         // What the visitor's language is stored against (SubscriberLanguage).
@@ -4289,6 +4297,36 @@ export default class StatusPageAPI extends BaseAPI<
       );
     }
 
+    const submittedIncidentCategories: unknown =
+      req.body.data["statusPageIncidentCategories"];
+    const submittedAllIncidentCategories: unknown =
+      req.body.data["isSubscribedToAllIncidentCategories"];
+    if (
+      !statusPage.allowSubscribersToChooseIncidentCategories &&
+      (submittedIncidentCategories !== undefined ||
+        submittedAllIncidentCategories === false)
+    ) {
+      throw new BadDataException(
+        "Subscribers are not allowed to choose incident categories for this status page.",
+      );
+    }
+    if (
+      submittedIncidentCategories !== undefined &&
+      !Array.isArray(submittedIncidentCategories)
+    ) {
+      throw new BadDataException(
+        "Incident category selections must be a list.",
+      );
+    }
+    if (
+      submittedAllIncidentCategories !== undefined &&
+      typeof submittedAllIncidentCategories !== "boolean"
+    ) {
+      throw new BadDataException(
+        "The all incident categories choice must be true or false.",
+      );
+    }
+
     /*
      * The language the visitor reads the page in, which the status page sends
      * as the request's Accept-Language: kept when it is not the page's
@@ -4311,6 +4349,10 @@ export default class StatusPageAPI extends BaseAPI<
     statusPageSubscriber.isSubscribedToAllEventTypes = Boolean(
       req.body.data["isSubscribedToAllEventTypes"],
     );
+
+    statusPageSubscriber.isSubscribedToAllIncidentCategories =
+      !statusPage.allowSubscribersToChooseIncidentCategories ||
+      submittedAllIncidentCategories !== false;
 
     if (
       req.body.data["statusPageResources"] &&
@@ -4336,6 +4378,45 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageSubscriber.statusPageEventTypes = req.body.data[
         "statusPageEventTypes"
       ] as Array<StatusPageEventType>;
+    }
+
+    let validatedIncidentCategories:
+      | Array<StatusPageIncidentCategory>
+      | undefined;
+    if (Array.isArray(submittedIncidentCategories)) {
+      const categoryIds: Array<ObjectID> = submittedIncidentCategories.map(
+        (category: unknown): ObjectID => {
+          const namedId: string | undefined =
+            StatusPageSubscriberResources.getNamedIds([category])[0];
+          if (!namedId || !ObjectID.isValidUUID(namedId)) {
+            throw new BadDataException(
+              "Incident category selections must contain valid IDs.",
+            );
+          }
+          return new ObjectID(namedId);
+        },
+      );
+      const validCategories: Array<StatusPageIncidentCategory> =
+        categoryIds.length > 0
+          ? await StatusPageIncidentCategoryService.findBy({
+              query: {
+                _id: QueryHelper.any(categoryIds),
+                statusPageId: objectId,
+                projectId: statusPage.projectId!,
+              },
+              select: { _id: true, statusPageId: true },
+              skip: 0,
+              limit: categoryIds.length,
+              props: { isRoot: true },
+            })
+          : [];
+      if (validCategories.length !== new Set(categoryIds.map(String)).size) {
+        throw new BadDataException(
+          "Incident categories must belong to this status page.",
+        );
+      }
+      validatedIncidentCategories = validCategories;
+      statusPageSubscriber.statusPageIncidentCategories = validCategories;
     }
 
     if (isUpdate) {
@@ -4378,6 +4459,19 @@ export default class StatusPageAPI extends BaseAPI<
                 : {}),
               isSubscribedToAllEventTypes:
                 statusPageSubscriber.isSubscribedToAllEventTypes!,
+            }
+          : {}),
+        ...(statusPage.allowSubscribersToChooseIncidentCategories
+          ? {
+              ...(validatedIncidentCategories
+                ? { statusPageIncidentCategories: validatedIncidentCategories }
+                : {}),
+              ...(typeof submittedAllIncidentCategories === "boolean"
+                ? {
+                    isSubscribedToAllIncidentCategories:
+                      submittedAllIncidentCategories,
+                  }
+                : {}),
             }
           : {}),
         /*
@@ -4627,9 +4721,29 @@ export default class StatusPageAPI extends BaseAPI<
    * and the incidents an episode lists - so it is where the page's JSON, and
    * the overview cache, are made safe to serve.
    */
+  private async readIncidentCategoryMappings(
+    statusPageId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<Array<StatusPageIncidentCategory>> {
+    return await StatusPageIncidentCategoryService.findBy({
+      query: { statusPageId, projectId },
+      select: {
+        _id: true,
+        publicName: true,
+        publicDescription: true,
+        labelId: true,
+      },
+      sort: { publicName: SortOrder.Ascending },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+      props: { isRoot: true },
+    });
+  }
+
   private serializeIncidentsForStatusPage(
     incidents: Array<Incident>,
     monitorsOnStatusPage: Array<ObjectID>,
+    incidentCategories?: Array<StatusPageIncidentCategory>,
   ): JSONArray {
     return incidents.map((incident: Incident): JSONObject => {
       const incidentJson: JSONObject = BaseModel.toJSON(incident, Incident);
@@ -4666,6 +4780,44 @@ export default class StatusPageAPI extends BaseAPI<
               .toLowerCase(),
           };
         });
+      }
+
+      if (incidentCategories) {
+        const rawLabels: Array<JSONObject> = Array.isArray(
+          incidentJson["labels"],
+        )
+          ? (incidentJson["labels"] as Array<JSONObject>)
+          : [];
+        const categoryLabels: Array<JSONObject> = incidentCategories
+          .filter((category: StatusPageIncidentCategory) => {
+            return (incident.labels || []).some((label: Label) => {
+              return label.id?.toString() === category.labelId?.toString();
+            });
+          })
+          .map((category: StatusPageIncidentCategory): JSONObject => {
+            return {
+              _id: category.id?.toString(),
+              name: category.publicName,
+              description: category.publicDescription,
+            };
+          });
+        const otherLabels: Array<JSONObject> = rawLabels.filter(
+          (label: JSONObject) => {
+            return !incidentCategories.some(
+              (category: StatusPageIncidentCategory) => {
+                return (
+                  category.labelId?.toString() === label["_id"]?.toString()
+                );
+              },
+            );
+          },
+        );
+        incidentJson["labels"] = [
+          ...categoryLabels,
+          ...otherLabels.filter((label: JSONObject) => {
+            return typeof label["name"] === "string";
+          }),
+        ];
       }
 
       return incidentJson;
@@ -4741,15 +4893,28 @@ export default class StatusPageAPI extends BaseAPI<
       req: req,
     });
 
+    const category: string | null =
+      typeof req.query["category"] === "string" ? req.query["category"] : null;
+
+    if (
+      category &&
+      category !== "uncategorized" &&
+      !ObjectID.isValidUUID(category)
+    ) {
+      throw new BadDataException("Incident category must be a valid ID.");
+    }
+
     // The list, or an incident of it, after the reader's access is checked.
     return await StatusPageAPI.incidentListCache.getOrRead({
       statusPageId: statusPageId,
-      variant: itemVariantOf(incidentId),
+      variant:
+        [itemVariantOf(incidentId), category].filter(Boolean).join(":") ||
+        undefined,
       readProjectId: (): Promise<ObjectID | null> => {
         return StatusPageService.getProjectIdOfStatusPage(statusPageId);
       },
       read: (): Promise<JSONObject> => {
-        return this.readShownIncidents(statusPageId, incidentId);
+        return this.readShownIncidents(statusPageId, incidentId, category);
       },
       shouldKeep: keepItemsShown(incidentId, "incidents"),
     });
@@ -4764,6 +4929,7 @@ export default class StatusPageAPI extends BaseAPI<
   public async readShownIncidents(
     statusPageId: ObjectID,
     incidentId: ObjectID | null,
+    category: string | null = null,
   ): Promise<JSONObject> {
     const statusPage: StatusPage | null = await StatusPageService.findOneBy({
       query: {
@@ -4798,6 +4964,31 @@ export default class StatusPageAPI extends BaseAPI<
 
     const incidentListMode: StatusPageIncidentListMode =
       StatusPageIncidentGrouping.getMode(statusPage);
+
+    const incidentCategories: Array<StatusPageIncidentCategory> =
+      await this.readIncidentCategoryMappings(
+        statusPageId,
+        statusPage.projectId!,
+      );
+
+    const selectedCategory: StatusPageIncidentCategory | undefined =
+      category && category !== "uncategorized"
+        ? incidentCategories.find((item: StatusPageIncidentCategory) => {
+            return item.id?.toString() === category;
+          })
+        : undefined;
+    if (category && category !== "uncategorized" && !selectedCategory) {
+      throw new NotFoundException("Incident category was not found.");
+    }
+    const categoryLabelIds: Array<string> = (
+      category === "uncategorized"
+        ? incidentCategories
+        : selectedCategory
+          ? [selectedCategory]
+          : []
+    ).flatMap((item: StatusPageIncidentCategory): Array<string> => {
+      return item.labelId ? [item.labelId.toString()] : [];
+    });
 
     // get monitors on status page.
     const statusPageResources: Array<StatusPageResource> =
@@ -4839,10 +5030,20 @@ export default class StatusPageAPI extends BaseAPI<
       };
     }
 
+    if (categoryLabelIds.length > 0) {
+      incidentQuery = QueryIdCondition.withIdCondition(
+        incidentQuery,
+        incidentCategoryCondition(
+          categoryLabelIds,
+          category === "uncategorized",
+        ),
+      );
+    }
+
     // check if status page has active incident.
     let incidents: Array<Incident> = [];
 
-    let selectIncidents: Select<Incident> = {
+    const selectIncidents: Select<Incident> = {
       createdAt: true,
       declaredAt: true,
       updatedAt: true,
@@ -4869,19 +5070,14 @@ export default class StatusPageAPI extends BaseAPI<
       monitors: {
         _id: true,
       },
+      labels: { _id: true },
     };
 
     if (statusPage.showIncidentLabelsOnStatusPage) {
-      selectIncidents = {
-        ...selectIncidents,
-        labels: {
-          name: true,
-          color: true,
-        },
-      };
+      selectIncidents.labels = { _id: true, name: true, color: true };
     }
 
-    if (monitorsOnStatusPage.length > 0) {
+    {
       /*
        * Through IncidentStatusPageScope, like every incident read here that
        * decides what the page shows: an incident limited to other status
@@ -4899,6 +5095,7 @@ export default class StatusPageAPI extends BaseAPI<
         },
         skip: 0,
         limit: LIMIT_PER_PROJECT,
+        includeMonitorlessIncidents: true,
         props: {
           isRoot: true,
         },
@@ -4930,6 +5127,7 @@ export default class StatusPageAPI extends BaseAPI<
                 unresolvbedIncidentStateIds,
               ),
               projectId: statusPage.projectId!,
+              _id: incidentQuery._id,
             },
             select: selectIncidents,
             sort: {
@@ -4939,6 +5137,7 @@ export default class StatusPageAPI extends BaseAPI<
 
             skip: 0,
             limit: LIMIT_PER_PROJECT,
+            includeMonitorlessIncidents: true,
             props: {
               isRoot: true,
             },
@@ -5061,6 +5260,7 @@ export default class StatusPageAPI extends BaseAPI<
       incidents: this.serializeIncidentsForStatusPage(
         incidents,
         monitorsOnStatusPage,
+        incidentCategories,
       ),
       statusPageResources: BaseModel.toJSONArray(
         statusPageResources,
@@ -5069,6 +5269,15 @@ export default class StatusPageAPI extends BaseAPI<
       incidentStateTimelines: BaseModel.toJSONArray(
         incidentStateTimelines,
         IncidentStateTimeline,
+      ),
+      incidentCategories: incidentCategories.map(
+        (item: StatusPageIncidentCategory): JSONObject => {
+          return {
+            _id: item.id?.toString(),
+            publicName: item.publicName,
+            publicDescription: item.publicDescription,
+          };
+        },
       ),
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     };
@@ -6298,6 +6507,7 @@ export default class StatusPageAPI extends BaseAPI<
         select = {
           ...select,
           labels: {
+            _id: true,
             name: true,
             color: true,
           },
@@ -7066,6 +7276,19 @@ export default class StatusPageAPI extends BaseAPI<
         ? await this.getIncidentStatesForStatusPage(statusPage.projectId!)
         : [];
 
+    const publicIncidentCategories:
+      | Array<StatusPageIncidentCategory>
+      | undefined =
+      statusPage.showIncidentLabelsOnStatusPage &&
+      activeIncidents.some((incident: Incident): boolean => {
+        return Boolean(incident.labels?.length);
+      })
+        ? await this.readIncidentCategoryMappings(
+            statusPageId,
+            statusPage.projectId!,
+          )
+        : undefined;
+
     const response: JSONObject = {
       overallStatus: overallStatus
         ? BaseModel.toJSON(overallStatus, MonitorStatus)
@@ -7095,6 +7318,7 @@ export default class StatusPageAPI extends BaseAPI<
       activeIncidents: this.serializeIncidentsForStatusPage(
         activeIncidents,
         monitorsOnStatusPage,
+        publicIncidentCategories,
       ),
       incidentStates: BaseModel.toJSONArray(incidentStates, IncidentState),
 
@@ -8205,6 +8429,7 @@ export default class StatusPageAPI extends BaseAPI<
       masterPassword: true,
       allowSubscribersToChooseResources: true,
       allowSubscribersToChooseEventTypes: true,
+      allowSubscribersToChooseIncidentCategories: true,
       // Whether a reader subscribes with the address they sign in with.
       limitSubscribersToPrivateUsers: true,
       requireSsoForLogin: true,
@@ -8363,15 +8588,18 @@ export default class StatusPageAPI extends BaseAPI<
       await StatusPageHeaderLinkService.findBy({
         query: {
           statusPageId: data.statusPageId,
+          isHidden: false,
         },
         select: {
           _id: true,
           link: true,
           title: true,
+          navigationPath: true,
           order: true,
         },
         sort: {
           order: SortOrder.Ascending,
+          createdAt: SortOrder.Ascending,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,
@@ -8380,10 +8608,24 @@ export default class StatusPageAPI extends BaseAPI<
         },
       });
 
+    const incidentCategories: Array<StatusPageIncidentCategory> =
+      await StatusPageIncidentCategoryService.findBy({
+        query: { statusPageId: data.statusPageId },
+        select: { _id: true, publicName: true, publicDescription: true },
+        sort: { publicName: SortOrder.Ascending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
     const response: JSONObject = {
       statusPage: BaseModel.toJSON(item, StatusPage),
       footerLinks: BaseModel.toJSONArray(footerLinks, StatusPageFooterLink),
       headerLinks: BaseModel.toJSONArray(headerLinks, StatusPageHeaderLink),
+      incidentCategories: BaseModel.toJSONArray(
+        incidentCategories,
+        StatusPageIncidentCategory,
+      ),
       hasEnabledSSO: hasEnabledSSO.toNumber(),
       allowStatusPageCustomizations: data.allowStatusPageCustomizations,
     };

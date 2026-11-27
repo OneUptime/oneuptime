@@ -828,6 +828,28 @@ describe("IncidentStatusPageScope.resolvePagesForIncidents", () => {
     expect(findByMonitors).not.toHaveBeenCalled();
   });
 
+  test("an explicitly scoped incident without monitors reaches only its selected active page", async () => {
+    useTenSitePages();
+    const selectedPage: string = sitePageId(3);
+    storedScopes = [
+      {
+        id: INCIDENT_A,
+        isScopedToStatusPages: true,
+        statusPageIds: [selectedPage, ObjectID.generate().toString()],
+      },
+    ];
+
+    const resolved: ResolvedIncidentStatusPages =
+      await IncidentStatusPageScope.resolvePagesForIncidents({
+        incidents: [incidentOn(INCIDENT_A, [])],
+        includeMonitorlessIncidents: true,
+      });
+
+    expect(reachedPageNames(resolved)).toEqual(["Site 03"]);
+    expect(resolved.statusPageToResources).toEqual({ [selectedPage]: [] });
+    expect(findByMonitors).not.toHaveBeenCalled();
+  });
+
   test("an incident without an id is refused rather than guessed at", async () => {
     const incident: Incident = new Incident();
     incident.monitors = [];
@@ -1276,6 +1298,41 @@ describe("IncidentStatusPageScope.findIncidentsForStatusPage", () => {
         statusPages: [STATUS_PAGE_ID],
       },
     ]);
+  });
+
+  test("adds only the explicitly scoped monitorless query when the page has no monitors", async () => {
+    const incidentId: ObjectID = new ObjectID(INCIDENT_A);
+    await IncidentStatusPageScope.findIncidentsForStatusPage({
+      statusPage: page(false),
+      query: { monitors: [], projectId: PROJECT_ID, _id: incidentId },
+      select: { _id: true },
+      limit: 10,
+      props: { isRoot: true },
+      includeMonitorlessIncidents: true,
+    });
+
+    expect(queries()).toEqual([
+      {
+        _id: expect.any(FindOperator),
+        projectId: PROJECT_ID,
+        isPrivate: expect.any(FindOperator),
+        isVisibleOnStatusPage: true,
+        isScopedToStatusPages: true,
+        statusPages: [STATUS_PAGE_ID],
+      },
+    ]);
+    const idCondition: FindOperator<Array<FindOperator<unknown>>> =
+      queries()[0]!["_id"] as unknown as FindOperator<
+        Array<FindOperator<unknown>>
+      >;
+    expect(idCondition.type).toBe("and");
+    const [requestedId, noMonitors] = idCondition.value;
+    expect(Object.values(requestedId?.objectLiteralParameters || {})).toContain(
+      incidentId.toString(),
+    );
+    expect(noMonitors?.getSql?.("Incident._id")).toContain(
+      'FROM "IncidentMonitor"',
+    );
   });
 
   test("a page that only shows scoped incidents runs only the scoped half", async () => {

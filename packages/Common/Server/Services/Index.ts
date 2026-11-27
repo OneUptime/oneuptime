@@ -345,6 +345,7 @@ import StatusPageDomainService from "./StatusPageDomainService";
 import StatusPageFooterLinkService from "./StatusPageFooterLinkService";
 import StatusPageGroupService from "./StatusPageGroupService";
 import StatusPageHeaderLinkService from "./StatusPageHeaderLinkService";
+import StatusPageIncidentCategoryService from "./StatusPageIncidentCategoryService";
 import StatusPageHistoryChartBarColorRuleService from "./StatusPageHistoryChartBarColorRuleService";
 import StatusPageOwnerTeamService from "./StatusPageOwnerTeamService";
 import StatusPageOwnerRuleService from "./StatusPageOwnerRuleService";
@@ -976,6 +977,7 @@ const services: Array<BaseService> = [
   StatusPageFooterLinkService,
   StatusPageGroupService,
   StatusPageHeaderLinkService,
+  StatusPageIncidentCategoryService,
   StatusPageOwnerTeamService,
   StatusPageOwnerRuleService,
   StatusPageOwnerUserService,

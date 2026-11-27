@@ -1769,6 +1769,49 @@ export default class StatusPage extends BaseModel {
   @TableColumn({
     isDefaultValueColumn: true,
     type: TableColumnType.Boolean,
+    title: "Allow Subscribers to Choose Incident Categories",
+    description: "Can subscribers choose which incident categories to receive?",
+    defaultValue: false,
+  })
+  @Column({ type: ColumnType.Boolean, default: false })
+  @ColumnBillingAccessControl({
+    read: PlanType.Free,
+    update: PlanType.Scale,
+    create: PlanType.Scale,
+  })
+  public allowSubscribersToChooseIncidentCategories?: boolean = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateProjectStatusPage,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadProjectStatusPage,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditProjectStatusPage,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
     title: "Enable SMS Subscribers",
     description: "Can SMS subscribers subscribe to this Status Page?",
     defaultValue: false,

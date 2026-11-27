@@ -1,6 +1,7 @@
 import Project from "./Project";
 import StatusPage from "./StatusPage";
 import StatusPageResource from "./StatusPageResource";
+import StatusPageIncidentCategory from "./StatusPageIncidentCategory";
 import User from "./User";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
@@ -1136,6 +1137,99 @@ export default class StatusPageSubscriber extends BaseModel {
     default: [],
   })
   public statusPageEventTypes?: Array<StatusPageEventType> = undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageSubscriber,
+      Permission.Public,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageSubscriber,
+    ],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.EntityArray,
+    modelType: StatusPageIncidentCategory,
+    title: "Subscribed to Incident Categories",
+    description:
+      "Which status page incident categories this subscriber selected.",
+  })
+  @ManyToMany(
+    () => {
+      return StatusPageIncidentCategory;
+    },
+    { eager: false },
+  )
+  @JoinTable({
+    name: "StatusPageSubscriberStatusPageIncidentCategory",
+    inverseJoinColumn: {
+      name: "statusPageIncidentCategoryId",
+      referencedColumnName: "_id",
+    },
+    joinColumn: { name: "statusPageSubscriberId", referencedColumnName: "_id" },
+  })
+  public statusPageIncidentCategories?: Array<StatusPageIncidentCategory> =
+    undefined;
+
+  @ColumnAccessControl({
+    create: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.CreateStatusPageSubscriber,
+      Permission.Public,
+    ],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.StatusPageViewer,
+      Permission.ReadStatusPageSubscriber,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.StatusPageAdmin,
+      Permission.StatusPageMember,
+      Permission.EditStatusPageSubscriber,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    required: false,
+    title: "Subscribed to All Incident Categories",
+    description: "Whether the subscriber receives incidents of every category.",
+    defaultValue: true,
+  })
+  @Column({ type: ColumnType.Boolean, default: true })
+  public isSubscribedToAllIncidentCategories?: boolean = true;
 
   @ColumnAccessControl({
     create: [

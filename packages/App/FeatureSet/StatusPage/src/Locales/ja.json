@@ -290,6 +290,13 @@
       "failed": "購読を解除できませんでした。もう一度お試しください。",
       "loadFailed": "この購読解除リンクを読み込めませんでした。しばらくしてからもう一度お試しください。"
     },
+    "incidentCategories": {
+      "group": "インシデントカテゴリ",
+      "all": "すべてのインシデントカテゴリ",
+      "allDescription": "すべてのカテゴリのインシデント更新を受け取ります。",
+      "select": "インシデントカテゴリを選択",
+      "selectDescription": "カテゴリのないインシデントは自動的に含まれます。"
+    },
     "preferences": {
       "title": "設定",
       "description": "受け取る内容を選択してください。",
@@ -299,7 +306,9 @@
         "pickedEventTypes": "選択したイベントタイプのアップデートのみを受け取ります。",
         "pickedResourcesAndEventTypes": "選択したリソースとイベントタイプのアップデートのみを受け取ります。",
         "noResources": "まだリソースを選択していません。",
-        "noEventTypes": "まだイベントタイプを選択していません。"
+        "noEventTypes": "まだイベントタイプを選択していません。",
+        "pickedIncidentCategories": "選択したカテゴリと、カテゴリのないインシデントの更新を受け取ります。",
+        "noIncidentCategories": "カテゴリのないインシデントの更新のみを受け取ります。"
       }
     }
   },

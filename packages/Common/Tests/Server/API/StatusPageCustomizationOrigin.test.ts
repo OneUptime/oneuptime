@@ -1,4 +1,6 @@
+import StatusPageIncidentCategoryService from "../../../Server/Services/StatusPageIncidentCategoryService";
 import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import StatusPageHeaderLink from "../../../Models/DatabaseModels/StatusPageHeaderLink";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
 import StatusPageDomainService from "../../../Server/Services/StatusPageDomainService";
@@ -14,6 +16,7 @@ import {
 } from "../../../Server/Utils/Express";
 import Response from "../../../Server/Utils/Response";
 import { JSONObject } from "../../../Types/JSON";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
 import PositiveNumber from "../../../Types/PositiveNumber";
 import { mockRouter } from "./Helpers";
@@ -91,6 +94,9 @@ describe("StatusPageAPI master-page customization origin boundary", () => {
       .spyOn(StatusPageSsoService, "countBy")
       .mockResolvedValue(new PositiveNumber(0));
     jest.spyOn(StatusPageFooterLinkService, "findBy").mockResolvedValue([]);
+    jest
+      .spyOn(StatusPageIncidentCategoryService, "findBy")
+      .mockResolvedValue([]);
     jest.spyOn(StatusPageHeaderLinkService, "findBy").mockResolvedValue([]);
     jest.spyOn(StatusPageDomainService, "findOneBy").mockResolvedValue(null);
   });
@@ -335,6 +341,32 @@ describe("StatusPageAPI master-page customization origin boundary", () => {
     expect(result.payload["footerLinks"]).toEqual([]);
     expect(result.payload["headerLinks"]).toEqual([]);
     expect(result.payload["hasEnabledSSO"]).toBe(0);
+  });
+
+  it("loads visible navigation views scoped to the authorized page in display order", async () => {
+    const view: StatusPageHeaderLink = new StatusPageHeaderLink();
+    view.id = ObjectID.generate();
+    view.title = "Security advisories";
+    view.navigationPath = "/incidents?category=security";
+    jest.spyOn(StatusPageHeaderLinkService, "findBy").mockResolvedValue([view]);
+
+    const result: InvocationResult = await invokeMasterPage({
+      host: "app.example.com",
+    });
+
+    expect(StatusPageHeaderLinkService.findBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: { statusPageId, isHidden: false },
+        sort: { order: SortOrder.Ascending, createdAt: SortOrder.Ascending },
+      }),
+    );
+    expect(result.payload["headerLinks"]).toEqual([
+      expect.objectContaining({
+        _id: view.id.toString(),
+        title: view.title,
+        navigationPath: view.navigationPath,
+      }),
+    ]);
   });
 
   it("explicitly redacts over-populated service results on denied origins", async () => {

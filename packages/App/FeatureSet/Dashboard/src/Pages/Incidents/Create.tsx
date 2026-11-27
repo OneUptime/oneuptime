@@ -2610,7 +2610,10 @@ const IncidentCreate: FunctionComponent<
                             value={isNotifyTicked(item)}
                             dataTestId="incident-create-notify-subscribers-value"
                           />
-                          {isNotifyingSubscribers(item) && hasMonitors(item) ? (
+                          {isNotifyingSubscribers(item) &&
+                          (hasMonitors(item) ||
+                            getIdsFromFormValue(item.statusPages).length >
+                              0) ? (
                             <SubscriberNotificationPreviewButton
                               dataTestId="incident-create-preview-notification"
                               getRequest={() => {
