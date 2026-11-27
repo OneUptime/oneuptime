@@ -451,10 +451,12 @@ async function theClaims(
 
 // Valkey's own time, as the index reads it.
 async function valkeyNow(): Promise<number> {
-  const [seconds, microseconds]: [string, string] =
-    (await inspector.time()) as [string, string];
+  // Seconds and microseconds, as Valkey answers TIME.
+  const time: Array<number | string> = (await inspector.time()) as Array<
+    number | string
+  >;
 
-  return Number(seconds) * 1000 + Math.floor(Number(microseconds) / 1000);
+  return Number(time[0]) * 1000 + Math.floor(Number(time[1]) / 1000);
 }
 
 function pause(ms: number): Promise<void> {
