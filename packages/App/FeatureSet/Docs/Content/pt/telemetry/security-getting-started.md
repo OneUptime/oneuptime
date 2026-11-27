@@ -50,7 +50,7 @@ flowchart LR
 
 No topo da **Visão geral**, abaixo do que precisa de alguém, cada parte mostra seus números: as origens e seus eventos das últimas 24 horas, as regras ativas, os casos abertos e os playbooks que respondem. Uma parte que não está configurada diz isso e abre a página onde configurá-la.
 
-Abaixo disso, a **Visão geral** mostra cada regra recomendada que seu projeto ainda não tem, com o que ela detecta e **Ativar**, que a adiciona como a biblioteca de regras faz. Uma regra que passe a ser recomendada depois também aparece ali. Quando todas as outras regras recomendadas estão ativadas, uma atualização ativa uma nova para você, como fez com **Sensitive file served**, e a **Visão geral** avisa disso por um mês, com **Desativar**.
+Abaixo disso, a **Visão geral** mostra cada regra recomendada que seu projeto ainda não tem, com o que ela detecta e **Ativar**, que a adiciona como a biblioteca de regras faz. Uma regra que passe a ser recomendada depois também aparece ali. Em um projeto que tinha todas as outras regras recomendadas ativadas, a atualização ativou a regra **Sensitive file served**, e a **Visão geral** avisa disso por um mês, com **Desativar**.
 
 ## Encontrar eventos de segurança nos seus logs
 

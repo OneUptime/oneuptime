@@ -50,7 +50,7 @@ flowchart LR
 
 Øverst på **Oversikt**, under det som trenger noen, viser hver del tallene sine: kildene og hendelsene deres de siste 24 timene, reglene som er slått på, de åpne sakene og playbookene som svarer. En del som ikke er satt opp, sier det og åpner siden der du setter den opp.
 
-Under dem nevner **Oversikt** hver anbefalt regel prosjektet ditt ikke har ennå, med hva den fanger opp, og **Slå på**, som legger den til slik regelbiblioteket gjør. En regel som blir anbefalt senere, vises der også. Når alle de andre anbefalte reglene er slått på, slår en oppgradering på en ny for deg, slik den gjorde med **Sensitive file served**, og **Oversikt** sier det i en måned, med **Slå av**.
+Under dem nevner **Oversikt** hver anbefalt regel prosjektet ditt ikke har ennå, med hva den fanger opp, og **Slå på**, som legger den til slik regelbiblioteket gjør. En regel som blir anbefalt senere, vises der også. I et prosjekt der alle de andre anbefalte reglene var slått på, slo oppgraderingen på **Sensitive file served**, og **Oversikt** sier det i en måned, med **Slå av**.
 
 ## Finn sikkerhetshendelser i loggene dine
 

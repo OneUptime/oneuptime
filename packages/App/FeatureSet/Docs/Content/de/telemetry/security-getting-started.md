@@ -50,7 +50,7 @@ flowchart LR
 
 Oben auf **Übersicht**, unter dem, was jemanden braucht, zeigt jeder Teil seine Zahlen: die Quellen und ihre Ereignisse der letzten 24 Stunden, die eingeschalteten Regeln, die offenen Fälle und die Playbooks, die reagieren. Ein Teil, der nicht eingerichtet ist, sagt das und öffnet die Seite, auf der Sie ihn einrichten.
 
-Darunter nennt **Übersicht** jede empfohlene Regel, die Ihr Projekt noch nicht hat, mit dem, was sie erkennt, und **Einschalten**, das sie so hinzufügt, wie es die Regelbibliothek tut. Eine Regel, die später empfohlen wird, erscheint dort ebenfalls. Ist jede andere empfohlene Regel eingeschaltet, schaltet ein Upgrade eine neue für Sie ein, wie bei **Sensitive file served**, und **Übersicht** sagt das einen Monat lang, mit **Ausschalten**.
+Darunter nennt **Übersicht** jede empfohlene Regel, die Ihr Projekt noch nicht hat, mit dem, was sie erkennt, und **Einschalten**, das sie so hinzufügt, wie es die Regelbibliothek tut. Eine Regel, die später empfohlen wird, erscheint dort ebenfalls. Bei einem Projekt, in dem jede andere empfohlene Regel eingeschaltet war, hat das Upgrade **Sensitive file served** eingeschaltet, und **Übersicht** sagt das einen Monat lang, mit **Ausschalten**.
 
 ## Sicherheitsereignisse in Ihren Logs finden
 
