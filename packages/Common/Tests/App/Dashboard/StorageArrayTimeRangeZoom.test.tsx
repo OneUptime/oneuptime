@@ -17,6 +17,7 @@ import {
 } from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * Issue #4105 on the storage array pages. Every time-series chart on them
@@ -487,6 +488,13 @@ beforeEach(() => {
     mock.mockReset();
   }
   arrange();
+  /*
+   * A part's alerts card asks the server which of its recommended alerts a
+   * monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
 });
 
 afterEach(() => {

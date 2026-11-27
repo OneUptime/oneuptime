@@ -19,6 +19,7 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * An XCP-ng pool's own pages, rendered for real against a stubbed data
@@ -560,6 +561,13 @@ beforeEach(() => {
   mockPool = pool();
   mockInventory = inventory();
   mockInventoryDown = false;
+  /*
+   * A host's, a VM's and a storage repository's alerts card asks the server
+   * which of its recommended alerts a monitor covers (#11074): none does yet.
+   */
+  serveCoverageFrom(() => {
+    return [];
+  });
   window.localStorage.clear();
 });
 

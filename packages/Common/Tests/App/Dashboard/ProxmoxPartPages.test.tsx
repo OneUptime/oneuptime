@@ -19,6 +19,8 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import { serveCoverageFrom } from "./MonitorCoverageServer";
 
 /*
  * A Proxmox VE node's, guest's and storage's own pages, rendered for real
@@ -46,7 +48,11 @@ let mockInventory: Array<Row> = [];
 let mockInventoryDown: boolean = false;
 let mockInventoryReads: number = 0;
 let mockIncidents: Array<Row> = [];
-let mockMonitors: Array<Row> = [];
+/*
+ * The project's monitors. A part's alerts card no longer lists them: it
+ * asks the server which of its alerts they cover (#11074).
+ */
+let mockMonitors: Array<Monitor> = [];
 
 jest.mock("react-i18next", () => {
   return {
@@ -99,8 +105,6 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
               order: 1,
             },
           ];
-        } else if (modelName === "Monitor") {
-          records = mockMonitors;
         }
         const data: Array<unknown> = records.map((record: Row) => {
           return Object.assign(new Model(), record);
@@ -354,6 +358,10 @@ beforeEach(() => {
   mockInventory = inventory();
   mockIncidents = [];
   mockMonitors = [];
+  // None of the project's monitors covers a part's alerts yet.
+  serveCoverageFrom(() => {
+    return mockMonitors;
+  });
 });
 
 afterEach(() => {
