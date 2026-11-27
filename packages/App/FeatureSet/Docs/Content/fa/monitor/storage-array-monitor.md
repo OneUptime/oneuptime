@@ -1,11 +1,11 @@
 # مانیتور آرایه ذخیره‌سازی
 
-مانیتور آرایه ذخیره‌سازی یک آرایه ذخیره‌سازی را زیر نظر می‌گیرد و وقتی آرایه خودش هشداری می‌دهد، فضایش تمام می‌شود، کند می‌شود، سخت‌افزار یا مسیری به یک میزبان را از دست می‌دهد، یا در همتاسازی عقب می‌افتد به شما خبر می‌دهد. با Pure Storage FlashArray و Pure Storage FlashBlade کار می‌کند و متریک‌هایی را می‌خواند که خود آرایه صادر می‌کند – سری‌های `purefa_*` و `purefb_*` در Pure – و عامل آرایه ذخیره‌سازی در OneUptime آن‌ها را جمع می‌کند.
+مانیتور آرایه ذخیره‌سازی یک آرایه ذخیره‌سازی را زیر نظر می‌گیرد و وقتی آرایه خودش هشداری می‌دهد، فضایش تمام می‌شود، کند می‌شود، سخت‌افزار یا مسیری به یک میزبان را از دست می‌دهد، یا در همتاسازی عقب می‌افتد به شما خبر می‌دهد. با Pure Storage FlashArray، Pure Storage FlashBlade و NetApp ONTAP (از جمله Amazon FSx for NetApp ONTAP) کار می‌کند و متریک‌هایی را می‌خواند که عامل آرایه ذخیره‌سازی در OneUptime جمع می‌کند: سری‌های `purefa_*` و `purefb_*` در Pure، و سری‌های `netapp_*` که NetApp Harvest از یک خوشه ONTAP می‌خواند.
 
 :::cards
 - [ساخت مانیتور](#ساخت-یک-مانیتور-آرایه-ذخیرهسازی): شش گام در داشبورد.
-- [قالب‌ها](#قالبهای-هشدار-آماده): بیست هشدار آماده، یک حادثه به ازای هر حجم، میزبان یا قطعه.
-- [سری‌های Pure چگونه کار می‌کنند](#سریهای-pure-چگونه-شکل-گرفتهاند): یک نام متریک، چند رقم.
+- [قالب‌ها](#قالبهای-هشدار-آماده): پنجاه و یک هشدار آماده، یک حادثه به ازای هر حجم، میزبان یا قطعه.
+- [سری‌های Pure چگونه کار می‌کنند](#سریهای-pure-چگونه-شکل-گرفتهاند): یک نام متریک، چند رقم. سری‌های ONTAP [بخش جداگانه خود را دارند](#سریهای-ontap-چگونه-شکل-گرفتهاند).
 - [متریک‌ها](#متریکهای-جمعآوریشده): هر سری که مانیتور می‌تواند بر پایه‌اش هشدار دهد.
 :::
 
@@ -31,7 +31,7 @@ flowchart TB
 
 ## پیش از شروع
 
-- **عامل آرایه ذخیره‌سازی را نصب کنید**، جایی که از راه HTTPS به آرایه دسترسی دارد، با توکن API کاربری که نقش **readonly** آرایه را دارد. [راهنمای عامل آرایه ذخیره‌سازی](/docs/telemetry/storage-arrays) کاربر، توکن و نصب را پوشش می‌دهد، از راه `ONEUPTIME_URL`، `ONEUPTIME_TELEMETRY_INGESTION_KEY`، `STORAGE_ARRAY_NAME`، و نشانی و توکن آرایه (`PURE_FA_ENDPOINT` و `PURE_FA_API_TOKEN`، یا `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN`).
+- **عامل آرایه ذخیره‌سازی را نصب کنید**، جایی که از راه HTTPS به آرایه دسترسی دارد، با توکن API کاربری که نقش **readonly** آرایه را دارد. [راهنمای عامل آرایه ذخیره‌سازی](/docs/telemetry/storage-arrays) کاربر، توکن و نصب را پوشش می‌دهد، از راه `ONEUPTIME_URL`، `ONEUPTIME_TELEMETRY_INGESTION_KEY`، `STORAGE_ARRAY_NAME`، و نشانی و توکن آرایه (`PURE_FA_ENDPOINT` و `PURE_FA_API_TOKEN`، یا `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN`)، یا برای ONTAP نشانی خوشه و یک کاربر REST فقط‌خواندنی (`NETAPP_ONTAP_ENDPOINT`، `NETAPP_ONTAP_USERNAME` و `NETAPP_ONTAP_PASSWORD`).
 - **بررسی کنید آرایه ثبت شده باشد.** حدود یک دقیقه پس از نخستین خراش، با نام `STORAGE_ARRAY_NAME` عامل زیر **محصولات ← زیرساخت ← آرایه‌های ذخیره‌سازی ← همه آرایه‌های ذخیره‌سازی** پدیدار می‌شود.
 
 ## ساخت یک مانیتور آرایه ذخیره‌سازی
@@ -74,10 +74,10 @@ flowchart TB
 | فیلد | زبانه | چه می‌کند |
 | --- | --- | --- |
 | **آرایه ذخیره‌سازی** | همه | الزامی. هر پرس‌وجو را به `resource.storage.array.name` محدود می‌کند، پس دو آرایه که هر دو حجمی به نام `vol-01` دارند هرگز با هم قاطی نمی‌شوند. |
-| **حجم** | Custom Metric، پیشرفته | فقط FlashArray. یک حجم، بر پایه برچسب `name`، مانند `vol-db-01`. حجمی که در یک پاد یا یک گروه حجم است `pod::volume` یا `group/volume` نام دارد. |
+| **حجم** | Custom Metric، پیشرفته | یک حجم: روی FlashArray بر پایه برچسب `name`، مانند `vol-db-01` (حجمی که در یک پاد یا یک گروه حجم است `pod::volume` یا `group/volume` نام دارد)؛ روی ONTAP بر پایه برچسب `volume`، که ممکن است در دو SVM یکسان باشد. |
 | **میزبان** | Custom Metric، پیشرفته | فقط FlashArray. یک میزبان آن‌طور که آرایه می‌شناسدش، بر پایه برچسب `host`، مانند `esxi-01`. |
 | **پاد** | Custom Metric، پیشرفته | فقط FlashArray. یک پاد ActiveCluster یا ActiveDR، بر پایه برچسب `name`، یا `local_pod` روی سری‌های پیوند replica. |
-| **قطعه سخت‌افزاری** | Custom Metric، پیشرفته | یک قطعه سخت‌افزاری، مانند `CH0.BAY1` یا `CT0`: برچسب `component_name` روی FlashArray، و `name` روی FlashBlade. |
+| **قطعه سخت‌افزاری** | Custom Metric، پیشرفته | یک قطعه سخت‌افزاری، مانند `CH0.BAY1` یا `CT0`: برچسب `component_name` روی FlashArray، `name` روی FlashBlade، و روی ONTAP برچسبی که سری‌هایش آن را با آن نام می‌برند (`node`، `disk`، `shelf` یا `port`). |
 | **سامانه فایل** | Custom Metric، پیشرفته | فقط FlashBlade. یک سیستم فایل، بر پایه برچسب `name`. |
 | **باکت** | Custom Metric، پیشرفته | فقط FlashBlade. یک باکت ذخیره‌سازی شیء، بر پایه برچسب `name`. |
 | **متریک آرایه ذخیره‌سازی** | Custom Metric | یک متریک از [فهرست](#متریکهای-جمعآوریشده). فرم فیلتر برچسبی را که به آن معنا می‌دهد اضافه می‌کند و آن را بر پایه شیئی که توصیف می‌کند گروه‌بندی می‌کند، پس هر حجم، میزبان یا قطعه جداگانه سنجیده می‌شود. |
@@ -85,7 +85,7 @@ flowchart TB
 | **بازه زمانی** | همه | پنجره غلتانی که پرس‌وجو می‌خواند، از **Past 1 Minute** تا **Past 365 Days**. مانیتور تازه از **۵ دقیقه گذشته** شروع می‌شود؛ متریک سفارشی یک سیستم فایل یا باکت از **۱۵ دقیقه گذشته**؛ قالب‌ها پنجره خودشان را تعیین می‌کنند. |
 | **انتخاب متریک‌ها** | پیشرفته | سازنده پرس‌وجو: **متریک**، **تجمیع بر اساس**، **فیلتر بر اساس ویژگی‌ها**، **گروه‌بندی بر اساس**، به همراه **افزودن متریک** و **افزودن فرمول** برای ترکیب پرس‌وجوها. |
 
-عامل نقطه پایانی آرایه را هر ۶۰ ثانیه، و حجم‌ها، میزبان‌ها و پادها را هر ۲ دقیقه می‌خواند، پس پنجره ۵ دقیقه‌ای همیشه یک نمونه دارد. سیستم‌های فایل و باکت‌های FlashBlade را هر ۵ دقیقه می‌خواند، از همین رو ۱۵، و پوشه‌های FlashArray را هر ۳۰ دقیقه: به مانیتور پوشه پنجره‌ای ۶۰ دقیقه‌ای بدهید.
+عامل نقطه پایانی آرایه را هر ۶۰ ثانیه، و حجم‌ها، میزبان‌ها و پادها را هر ۲ دقیقه می‌خواند، پس پنجره ۵ دقیقه‌ای همیشه یک نمونه دارد. سیستم‌های فایل و باکت‌های FlashBlade را هر ۵ دقیقه می‌خواند، از همین رو ۱۵، و پوشه‌های FlashArray را هر ۳۰ دقیقه: به مانیتور پوشه پنجره‌ای ۶۰ دقیقه‌ای بدهید. روی ONTAP، Harvest کارایی خوشه را هر دقیقه و پیکربندی، وضعیت و رویدادهای EMS آن را هر ۳ دقیقه می‌خواند، پس پنجره ۵ دقیقه‌ای همیشه یک نمونه دارد.
 
 ## سری‌های Pure چگونه شکل گرفته‌اند
 
@@ -107,11 +107,25 @@ Pure چند رقم را روی **یک** نام متریک می‌گذارد و �
 
 در فیلترها و کلیدهای گروه‌بندی مانیتور، ویژگی‌های عامل با `resource.` شروع می‌شوند (`resource.storage.array.name`، `resource.storage.system`)، در حالی که برچسب‌های خود Pure این‌طور نیستند (`name`، `host`، `component_name`، `dimension`، `space`، `severity`).
 
+## سری‌های ONTAP چگونه شکل گرفته‌اند
+
+NetApp Harvest هر سری را `netapp_<object>_<counter>` نام می‌گذارد و شیء را با برچسب‌هایش نام‌گذاری می‌کند: یک حجم را با `volume` درون `svm` خودش، یک اگریگیت را با `aggr`، یک LUN را با `lun` درون `volume` و `svm` خودش، یک گره را با `node`، یک دیسک را با `disk`، یک قفسه دیسک را با `shelf`، و یک رابطه SnapMirror را با `destination_location`. تأخیرها میکروثانیه به ازای هر عملیات‌اند، `_ops` عملیات در ثانیه و `_data` بایت در ثانیه.
+
+وضعیت‌های ONTAP به سه شکل می‌آیند:
+
+| سری | وضعیت | یک سری به ازای هر |
+| --- | --- | --- |
+| `netapp_*_new_status` | ۱ سالم، آنلاین، برقرار یا در حال اجرا، ۰ نه | شیء، در هر پیمایش |
+| `netapp_health_*_alerts` | مقدار ۱، با `severity` (`error` یا `warning`) و دلیل در برچسب‌هایش | مشکل باز: دیسک خراب، خطای قفسه دیسک، گره‌ای که نمی‌تواند کار شریکش را بر عهده بگیرد، پورت قطع، هشدار سلامت سامانه |
+| `netapp_ems_events` | مقدار ۱، با `message`، `severity` و پارامترهای رویداد | رویداد EMS، فقط برای همان یک پیمایشی که آن را گردآوری کرد؛ پایان یک رویداد جفت‌شده یک بار دیگر با مقدار ۰ صادر می‌شود |
+
+وضعیتی که به‌صورت عدد است وقتی فعال می‌شود که همه خوانش‌های پنجره کمتر از ۱ باشند، و به‌محض آنکه یک خوانش دوباره ۱ شود بهبود می‌یابد. یک مشکل باز تا وقتی سری‌اش هست فعال است و به‌محض ناپدید شدن آن بهبود می‌یابد، به شرط آنکه `netapp_cluster_new_status` هنوز برسد، پس عاملی که متوقف شده چیزی را نمی‌بندد. یک رویداد EMS با همان یک خوانشش فعال می‌شود و تا وقتی در بازه یک‌ساعته قالب است باز می‌ماند؛ وقتی یک ساعت بی رویدادی دیگر بگذرد بهبود می‌یابد.
+
 ## قالب‌های هشدار آماده
 
-OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای FlashArray و ۸ قالب برای FlashBlade – و فهرست **هشدار برای چه** قالب‌های پلتفرم آرایه را ارائه می‌دهد. هر کدام یک مانیتور کامل می‌سازد: پرس‌وجوی متریک، فیلترهای برچسب آن، یک گروه‌بندی بر پایه برچسب خود شیء، یک معیار که فعال می‌شود و یکی که بهبود می‌یابد. آستانه‌ها نقطه شروع‌اند و می‌توانید ویرایششان کنید.
+OneUptime در مجموع ۵۱ قالب دارد – ۱۲ قالب برای FlashArray، ۸ قالب برای FlashBlade و ۳۱ قالب برای ONTAP – و فهرست **هشدار برای چه** قالب‌های پلتفرم آرایه را ارائه می‌دهد. هر کدام یک مانیتور کامل می‌سازد: پرس‌وجوی متریک، فیلترهای برچسب آن، یک گروه‌بندی بر پایه برچسب خود شیء، یک معیار که فعال می‌شود و یکی که بهبود می‌یابد. آستانه‌ها نقطه شروع‌اند و می‌توانید ویرایششان کنید.
 
-یک معیار فقط وقتی فعال می‌شود که شرط برای **همه** مقدارهای پنجره‌اش برقرار باشد. مانیتوری که بر پایه آستانه ظرفیت، تأخیر، عقب‌ماندگی یا نسبت فعال شده، فقط ۱۰٪ آن‌سوی آن بهبود می‌یابد، تا مقداری که حول آستانه نوسان دارد مدام جابه‌جا نشود. قالب‌های هشدار، سخت‌افزار و اتصال وقتی فعال می‌شوند که وضعیتی در تمام پنجره ۵ دقیقه‌ای‌شان دیده شده باشد، و حدود ۵ دقیقه پس از برطرف شدن آن بهبود می‌یابند.
+یک معیار فقط وقتی فعال می‌شود که شرط برای **همه** مقدارهای پنجره‌اش برقرار باشد، جز معیار قالب‌های EMS در ONTAP: Harvest هر رویداد را فقط برای یک پیمایش صادر می‌کند، پس یک خوانش کافی است. مانیتوری که بر پایه آستانه ظرفیت، تأخیر، عقب‌ماندگی یا نسبت فعال شده، فقط ۱۰٪ آن‌سوی آن بهبود می‌یابد، تا مقداری که حول آستانه نوسان دارد مدام جابه‌جا نشود. قالب‌های هشدار، سخت‌افزار و اتصال وقتی فعال می‌شوند که وضعیتی در تمام پنجره ۵ دقیقه‌ای‌شان دیده شده باشد، و حدود ۵ دقیقه پس از برطرف شدن آن بهبود می‌یابند.
 
 ### FlashArray
 
@@ -143,6 +157,42 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | High Read Latency | کارایی | هشدار | `purefb_array_performance_latency_usec` با فیلتر `dimension=usec_per_read_op` و `protocol=all`، Avg، ۱۰ دقیقه گذشته | > ۱۰۰۰۰ µs (۱۰ ms) در همه پروتکل‌ها؛ در ≤ ۹۰۰۰ بهبود می‌یابد |
 | File System Near Full | سامانه‌های فایل | هشدار | `purefb_file_systems_space_bytes` با فیلتر `space=available_ratio`، Min به ازای هر `name`، ۱۵ دقیقه گذشته | < ۰٫۱ – کمتر از ۱۰٪ اندازه تأمین‌شده یک سیستم فایل باقی مانده است. یک حادثه به ازای هر سیستم فایل؛ در ≥ ۰٫۱۱ بهبود می‌یابد |
 
+### ONTAP
+
+| قالب | دسته | شدت | چه چیزی را پایش می‌کند | چه وقت فعال می‌شود |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | در دسترس بودن | بحرانی | `netapp_cluster_new_status`، Count، ۱۰ دقیقه گذشته | در تمام پنجره هیچ داده‌ای نیست – عامل یا Harvest متوقف شده، یا خوشه دیگر به Harvest پاسخ نمی‌دهد؛ با رسیدن دوباره داده بهبود می‌یابد |
+| Cluster Not Healthy | سلامت آرایه | هشدار | `netapp_cluster_new_status`، Max، ۱۰ دقیقه گذشته | < ۱ – ONTAP خوشه را ناسالم گزارش می‌کند؛ در ≥ ۱ بهبود می‌یابد |
+| System Health Alert | سلامت آرایه | هشدار | `netapp_health_support_alerts`، Max به ازای هر `name`، ۵ دقیقه گذشته | > ۰ – پایشگر سلامت سامانه در ONTAP هشداری داده است (مسیری ازدست‌رفته به یک قفسه دیسک، مشکل اتصال یک گره). یک حادثه به ازای هر هشدار؛ وقتی ONTAP آن را پاک کند بهبود می‌یابد |
+| Emergency EMS Event | سلامت آرایه | بحرانی | `netapp_ems_events` با فیلتر `severity=emergency`، Max به ازای هر `message`، ۱ ساعت گذشته، هر خوانش | > ۰ – ONTAP رویدادی در سطح emergency ثبت کرده است. یک حادثه به ازای هر رویداد؛ وقتی یک ساعت بی رویدادی دیگر بگذرد بهبود می‌یابد |
+| Alert EMS Event | سلامت آرایه | بحرانی | `netapp_ems_events` با فیلتر `severity=alert`، Max به ازای هر `message`، ۱ ساعت گذشته، هر خوانش | > ۰ – ONTAP رویدادی در سطح alert ثبت کرده است (فنی از کار افتاده)؛ وقتی یک ساعت بی رویدادی دیگر بگذرد بهبود می‌یابد |
+| Disk Out of Service | سخت‌افزار | هشدار | `netapp_ems_events` با فیلتر `message=disk.outOfService`، Max به ازای هر `disk`، ۱ ساعت گذشته، هر خوانش | > ۰ – ONTAP دیسکی را از سرویس خارج کرده است؛ وقتی یک ساعت بی رویدادی دیگر بگذرد بهبود می‌یابد |
+| Node Panic | سخت‌افزار | بحرانی | `netapp_ems_events` با فیلتر `message=sk.panic`، Max به ازای هر `node`، ۱ ساعت گذشته، هر خوانش | > ۰ – یک گره دچار panic شد و دوباره راه‌اندازی شد، و شریکش ذخیره‌سازی آن را بر عهده گرفت؛ وقتی یک ساعت بی رویدادی دیگر بگذرد بهبود می‌یابد |
+| Aggregate Above 80% | ظرفیت | هشدار | `netapp_aggr_space_used_percent`، Max به ازای هر `aggr`، ۱۵ دقیقه گذشته | > ۸۰؛ در ≤ ۷۲ بهبود می‌یابد |
+| Aggregate Above 90% | ظرفیت | بحرانی | `netapp_aggr_space_used_percent`، Max به ازای هر `aggr`، ۵ دقیقه گذشته | > ۹۰ – حجم‌های روی آن دیگر نمی‌توانند بزرگ‌تر شوند؛ در ≤ ۸۱ بهبود می‌یابد |
+| Volume Above 90% | ظرفیت | هشدار | `netapp_volume_size_used_percent`، Max به ازای هر `volume` و `svm`، ۱۵ دقیقه گذشته | > ۹۰؛ در ≤ ۸۱ بهبود می‌یابد |
+| Volume Above 98% | ظرفیت | بحرانی | `netapp_volume_size_used_percent`، Max به ازای هر `volume` و `svm`، ۵ دقیقه گذشته | > ۹۸ – کلاینت‌ها خطای کمبود فضا می‌گیرند، و LUNی که در آن است ممکن است آفلاین شود؛ در ≤ ۸۸٫۲ بهبود می‌یابد |
+| High Read Latency | کارایی | هشدار | `netapp_cluster_read_latency`، Avg، ۱۵ دقیقه گذشته | > ۱۰۰۰۰ µs (۱۰ ms)؛ در ≤ ۹۰۰۰ بهبود می‌یابد |
+| High Write Latency | کارایی | هشدار | `netapp_cluster_write_latency`، Avg، ۱۵ دقیقه گذشته | > ۱۰۰۰۰ µs (۱۰ ms)؛ در ≤ ۹۰۰۰ بهبود می‌یابد |
+| Volume Latency Above 20 ms | کارایی | هشدار | `netapp_volume_read_latency`، Avg به ازای هر `volume` و `svm`، ۱۵ دقیقه گذشته | > ۲۰۰۰۰ µs؛ در ≤ ۱۸۰۰۰ بهبود می‌یابد |
+| Node Not Healthy | سخت‌افزار | بحرانی | `netapp_node_new_status`، Max به ازای هر `node`، ۱۰ دقیقه گذشته | < ۱ – ONTAP گره را ناسالم گزارش می‌کند؛ در ≥ ۱ بهبود می‌یابد |
+| Takeover Not Possible | سخت‌افزار | بحرانی | `netapp_health_ha_alerts`، Max به ازای هر `node`، ۵ دقیقه گذشته | > ۰ – یک گره نمی‌تواند کار شریک HA خود را بر عهده بگیرد، پس یک خرابی ذخیره‌سازی آن شریک را آفلاین می‌کند؛ وقتی دوباره بتواند بهبود می‌یابد |
+| Disk Failed | سخت‌افزار | بحرانی | `netapp_health_disk_alerts` با فیلتر `container_type=broken`، Max به ازای هر `disk`، ۵ دقیقه گذشته | > ۰ – یک دیسک خراب است؛ با تعویض آن بهبود می‌یابد |
+| Shelf Fault | سخت‌افزار | بحرانی | `netapp_health_shelf_alerts` با فیلتر `severity=error`، Max به ازای هر `shelf`، ۵ دقیقه گذشته | > ۰ – ONTAP خطایی روی یک قفسه دیسک گزارش می‌کند (یک منبع تغذیه، یک ماژول، یک مسیر)؛ وقتی ONTAP آن را پاک کند بهبود می‌یابد |
+| Node Fan Failed | سخت‌افزار | هشدار | `netapp_node_failed_fan`، Max به ازای هر `node`، ۱۰ دقیقه گذشته | > ۰ فن خراب؛ در ≤ ۰ بهبود می‌یابد |
+| Node Power Supply Failed | سخت‌افزار | بحرانی | `netapp_node_failed_power`، Max به ازای هر `node`، ۱۰ دقیقه گذشته | > ۰ منبع تغذیه خراب؛ در ≤ ۰ بهبود می‌یابد |
+| Shelf Power Supply Failed | سخت‌افزار | بحرانی | `netapp_shelf_psu_status`، Max به ازای هر `shelf`، ۱۰ دقیقه گذشته | < ۱ – منبع تغذیه یک قفسه دیسک در وضعیت عادی نیست؛ در ≥ ۱ بهبود می‌یابد |
+| Shelf Fan Failed | سخت‌افزار | هشدار | `netapp_shelf_fan_status`، Max به ازای هر `shelf`، ۱۰ دقیقه گذشته | < ۱ – فن یک قفسه دیسک در وضعیت عادی نیست؛ در ≥ ۱ بهبود می‌یابد |
+| Ethernet Port Down | سخت‌افزار | هشدار | `netapp_health_network_ethernet_port_alerts`، Max به ازای هر `port` و `node`، ۵ دقیقه گذشته | > ۰ – یک پورت Ethernet فعال قطع است؛ وقتی لینکش دوباره برقرار شود بهبود می‌یابد |
+| FC Port Link Failures | سخت‌افزار | هشدار | `netapp_fcp_link_failure`، Max به ازای هر `port` و `node`، ۱۵ دقیقه گذشته | > ۰ – لینک یک پورت Fibre Channel در طول پنجره از کار افتاده است؛ در ≤ ۰ بهبود می‌یابد |
+| SnapMirror Behind Schedule | تکثیر | هشدار | `netapp_snapmirror_lag_time` تقسیم بر `netapp_snapmirror_schedule_seconds`، Max به ازای هر `destination_location`، ۱۵ دقیقه گذشته | > ۱٫۵ – یک رابطه بیش از یک و نیم بازه زمان‌بندی‌اش عقب است (برای زمان‌بندی ساعتی، ۹۰ دقیقه)؛ در ≤ ۱٫۳۵ بهبود می‌یابد |
+| SnapMirror Relationship Unhealthy | تکثیر | بحرانی | `netapp_snapmirror_labels` با فیلتر `healthy=false`، Max به ازای هر `destination_location`، ۵ دقیقه گذشته | > ۰ – ONTAP رابطه را ناسالم گزارش می‌کند، با دلیل آن در برچسب `unhealthy_reason`؛ وقتی ONTAP آن را سالم گزارش کند بهبود می‌یابد |
+| SnapMirror Lag Above 1 Day | تکثیر | هشدار | `netapp_snapmirror_lag_time`، Max به ازای هر `destination_location`، ۱۵ دقیقه گذشته | > ۸۶۴۰۰ s، زمان‌بندی‌اش هرچه باشد؛ در ≤ ۷۷۷۶۰ بهبود می‌یابد |
+| Aggregate Offline | در دسترس بودن | بحرانی | `netapp_aggr_new_status`، Max به ازای هر `aggr`، ۱۰ دقیقه گذشته | < ۱ – یک اگریگیت آنلاین نیست، پس به هیچ‌یک از حجم‌هایش نمی‌توان دسترسی داشت؛ در ≥ ۱ بهبود می‌یابد |
+| Volume Offline | در دسترس بودن | هشدار | `netapp_volume_new_status`، Max به ازای هر `volume` و `svm`، ۱۰ دقیقه گذشته | < ۱ – یک حجم آنلاین نیست؛ در ≥ ۱ بهبود می‌یابد |
+| LUN Offline | در دسترس بودن | بحرانی | `netapp_lun_new_status`، Max به ازای هر `lun`، `volume` و `svm`، ۱۰ دقیقه گذشته | < ۱ – یک LUN آنلاین نیست، و میزبان‌هایش دیسک را از دست داده‌اند؛ در ≥ ۱ بهبود می‌یابد |
+| SVM Stopped | در دسترس بودن | هشدار | `netapp_svm_labels` با فیلتر `state=stopped` و `type=data`، Max به ازای هر `svm`، ۱۰ دقیقه گذشته | > ۰ – یک SVM داده متوقف شده است؛ وقتی دوباره اجرا شود بهبود می‌یابد. SVMهایی که ONTAP برای خودش نگه می‌دارد هرگز پایش نمی‌شوند |
+
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک قالب می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.
 
 - **Array Stopped Reporting** سری هویتی پلتفرم (`purefa_info` یا `purefb_info`) را می‌شمارد، که هر نقطه پایانی‌ای که عامل می‌خراشد در هر خراش صادر می‌کند. وقتی داده قطع شود، قالب‌های دیگر چیزی برای مقایسه ندارند و آخرین وضعیت خود را نگه می‌دارند، پس این همان قالبی است که به شما خبر می‌دهد.
@@ -151,7 +201,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 - **قالب‌های تأخیر از Avg استفاده می‌کنند**، روی میانگین خود آرایه به ازای هر عملیات، و قالب‌های ظرفیت از **بیشینه** روی درصد استفاده خود آرایه. تأخیرها بر حسب میکروثانیه و ظرفیت بر حسب درصد ثابت شده‌اند.
 - **Hardware Component Unhealthy از Min استفاده می‌کند**، به ازای هر قطعه: سلامت آن وقتی سالم است ۱ است و وقتی نیست به ۰ می‌افتد.
 
-برای تأخیر هر حجم قالبی وجود ندارد، چون آستانه درست به بار کاری بستگی دارد: آن را از فهرست با گروه‌بندی بر پایه `name` بسازید. پیش‌بینی ظرفیت به روند رشد نیاز دارد نه آستانه، و فرسودگی درایو هیچ سری‌ای برای هشدار ندارد.
+برای تأخیر هر حجم در FlashArray قالبی وجود ندارد، چون آستانه درست به بار کاری بستگی دارد: آن را از فهرست با گروه‌بندی بر پایه `name` بسازید. پیش‌بینی ظرفیت به روند رشد نیاز دارد نه آستانه، و فرسودگی درایو هیچ سری‌ای برای هشدار ندارد.
 
 ## متریک‌های جمع‌آوری‌شده
 
@@ -163,6 +213,10 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | یک سری به ازای هر هشدار باز روی آرایه (مقدار ۱)، با برچسب‌های `severity` (`critical`، `warning`، `info`، `hidden`)، `category`، `code`، `component_type` و `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | یک سری به ازای هر هشدار باز روی FlashBlade (مقدار ۱)، با برچسب‌های `severity` (`info`، `warning`، `critical`)، `code`، `component_name`، `component_type`، `summary` و `kburl` (مقاله پایگاه دانش Pure) |
+| `netapp_cluster_new_status` | — | ONTAP | — | ۱ تا وقتی ONTAP خوشه را سالم گزارش می‌کند؛ همین سری نشان می‌دهد که عامل هنوز آن را می‌خواند |
+| `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | هشدارهای باز در هر یک از زیرسامانه‌های سلامت ONTAP، بر پایه `subsystem` |
+| `netapp_health_support_alerts` | — | ONTAP | `count` | یک سری به ازای هر هشداری که پایشگر سلامت سامانه در ONTAP باز دارد، تا وقتی باز است |
+| `netapp_ems_events` | — | ONTAP | `count` | یک سری به ازای هر رویداد EMS، برای پیمایشی که آن را گردآوری کرد؛ پایان یک رویداد جفت‌شده آن را یک بار دیگر با مقدار ۰ صادر می‌کند |
 
 ### ظرفیت
 
@@ -176,6 +230,14 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | سهم ظرفیت قابل استفاده FlashBlade که در حال استفاده است |
 | `purefb_array_space_bytes` | `type=array`، `space=empty` | FlashBlade | `bytes` | ظرفیت استفاده‌نشده FlashBlade |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | کاهش داده در سراسر FlashBlade |
+| `netapp_aggr_space_used_percent` | — | ONTAP | `%` | سهم فضای قابل استفاده هر اگریگیت که در حال استفاده است – بر پایه `aggr` گروه‌بندی کنید |
+| `netapp_aggr_space_total` | — | ONTAP | `bytes` | فضای قابل استفاده هر اگریگیت؛ ظرفیت خوشه مجموع آن‌هاست |
+| `netapp_aggr_space_used` | — | ONTAP | `bytes` | فضایی که هر اگریگیت در حال استفاده دارد یا رزرو کرده است |
+| `netapp_aggr_space_available` | — | ONTAP | `bytes` | فضای باقی‌مانده روی هر اگریگیت – روندش را دنبال کنید تا پیش‌بینی کنید کی پر می‌شود |
+| `netapp_aggr_inode_used_percent` | — | ONTAP | `%` | سهم فایل‌های (inodeهای) هر اگریگیت که در حال استفاده است |
+| `netapp_aggr_new_status` | — | ONTAP | — | ۱ تا وقتی اگریگیت آنلاین است |
+| `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | فضایی که داده هر اگریگیت بدون بهره‌وری ذخیره‌سازی می‌گرفت، بی‌احتساب snapshotها و FlexCloneها |
+| `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | فضایی که داده هر اگریگیت پس از بهره‌وری ذخیره‌سازی روی دیسک می‌گیرد |
 
 ### کارایی
 
@@ -197,6 +259,23 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`، `protocol=all` | FlashBlade | `ops/s` | عملیات نوشتن در ثانیه در همه پروتکل‌ها |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`، `protocol=all` | FlashBlade | `bytes/s` | بایت خوانده‌شده در ثانیه در همه پروتکل‌ها |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`، `protocol=all` | FlashBlade | `bytes/s` | بایت نوشته‌شده در ثانیه در همه پروتکل‌ها |
+| `netapp_cluster_read_latency` | — | ONTAP | `µs` | میانگین تأخیر یک خواندن در سراسر خوشه |
+| `netapp_cluster_write_latency` | — | ONTAP | `µs` | میانگین تأخیر یک نوشتن در سراسر خوشه |
+| `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | عملیات خواندن در ثانیه در سراسر خوشه |
+| `netapp_cluster_write_ops` | — | ONTAP | `ops/s` | عملیات نوشتن در ثانیه در سراسر خوشه |
+| `netapp_cluster_total_ops` | — | ONTAP | `ops/s` | همه عملیات در ثانیه در سراسر خوشه، از جمله فراداده |
+| `netapp_cluster_read_data` | — | ONTAP | `bytes/s` | بایت خوانده‌شده در ثانیه در سراسر خوشه |
+| `netapp_cluster_write_data` | — | ONTAP | `bytes/s` | بایت نوشته‌شده در ثانیه در سراسر خوشه |
+| `netapp_aggr_read_latency` | — | ONTAP | `µs` | میانگین تأخیر یک خواندن روی هر اگریگیت |
+| `netapp_aggr_write_latency` | — | ONTAP | `µs` | میانگین تأخیر یک نوشتن روی هر اگریگیت |
+| `netapp_aggr_read_ops` | — | ONTAP | `ops/s` | عملیات خواندن در ثانیه روی هر اگریگیت |
+| `netapp_aggr_write_ops` | — | ONTAP | `ops/s` | عملیات نوشتن در ثانیه روی هر اگریگیت |
+| `netapp_svm_vol_read_latency` | — | ONTAP | `µs` | میانگین تأخیر یک خواندن روی حجم‌های هر SVM |
+| `netapp_svm_vol_write_latency` | — | ONTAP | `µs` | میانگین تأخیر یک نوشتن روی حجم‌های هر SVM |
+| `netapp_svm_vol_read_ops` | — | ONTAP | `ops/s` | عملیات خواندن در ثانیه روی حجم‌های هر SVM |
+| `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | عملیات نوشتن در ثانیه روی حجم‌های هر SVM |
+| `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | بایت خوانده‌شده در ثانیه از حجم‌های هر SVM |
+| `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | بایت نوشته‌شده در ثانیه روی حجم‌های هر SVM |
 
 ### حجم‌ها
 
@@ -211,6 +290,32 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | اندازه هر حجم آن‌طور که میزبان‌ها می‌بینند |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | فضای فیزیکی که هر حجم پس از کاهش داده مصرف می‌کند |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | نسبت کاهش داده هر حجم |
+| `netapp_svm_new_status` | — | ONTAP | — | ۱ تا وقتی SVM در حال اجراست – بر پایه `svm` گروه‌بندی کنید |
+| `netapp_svm_labels` | `state=stopped`، `type=data` | ONTAP | — | یک سری به ازای هر SVM داده که متوقف شده است |
+| `netapp_volume_size_used_percent` | — | ONTAP | `%` | سهم فضای هر حجم که در حال استفاده است، آن‌طور که `volume show` گزارش می‌کند – بر پایه `volume` و `svm` گروه‌بندی کنید |
+| `netapp_volume_size_total` | — | ONTAP | `bytes` | اندازه قابل استفاده هر حجم، بی‌احتساب فضای رزرو snapshot آن |
+| `netapp_volume_size_used` | — | ONTAP | `bytes` | فضایی که هر حجم در حال استفاده دارد |
+| `netapp_volume_size_available` | — | ONTAP | `bytes` | فضای باقی‌مانده در هر حجم |
+| `netapp_volume_snapshots_size_used` | — | ONTAP | `bytes` | فضایی که snapshotهای هر حجم مصرف می‌کنند |
+| `netapp_volume_inode_used_percent` | — | ONTAP | `%` | سهم فایل‌های (inodeهای) هر حجم که در حال استفاده است |
+| `netapp_volume_sis_total_saved_percent` | — | ONTAP | `%` | سهمی از داده هر حجم که یکتاسازی و فشرده‌سازی صرفه‌جویی می‌کنند |
+| `netapp_volume_new_status` | — | ONTAP | — | ۱ تا وقتی حجم آنلاین است |
+| `netapp_volume_read_latency` | — | ONTAP | `µs` | میانگین تأخیر یک خواندن روی هر حجم |
+| `netapp_volume_write_latency` | — | ONTAP | `µs` | میانگین تأخیر یک نوشتن روی هر حجم |
+| `netapp_volume_read_ops` | — | ONTAP | `ops/s` | عملیات خواندن در ثانیه روی هر حجم |
+| `netapp_volume_write_ops` | — | ONTAP | `ops/s` | عملیات نوشتن در ثانیه روی هر حجم |
+| `netapp_volume_read_data` | — | ONTAP | `bytes/s` | بایت خوانده‌شده در ثانیه از هر حجم |
+| `netapp_volume_write_data` | — | ONTAP | `bytes/s` | بایت نوشته‌شده در ثانیه روی هر حجم |
+| `netapp_lun_size_used_percent` | — | ONTAP | `%` | سهمی از اندازه هر LUN که میزبانش نوشته است |
+| `netapp_lun_size` | — | ONTAP | `bytes` | اندازه‌ای که هر LUN به میزبان‌هایش ارائه می‌دهد |
+| `netapp_lun_size_used` | — | ONTAP | `bytes` | فضایی که هر LUN در حجم خود مصرف می‌کند |
+| `netapp_lun_new_status` | — | ONTAP | — | ۱ تا وقتی LUN آنلاین است |
+| `netapp_lun_avg_read_latency` | — | ONTAP | `µs` | میانگین تأخیر یک خواندن روی هر LUN |
+| `netapp_lun_avg_write_latency` | — | ONTAP | `µs` | میانگین تأخیر یک نوشتن روی هر LUN |
+| `netapp_lun_read_ops` | — | ONTAP | `ops/s` | عملیات خواندن در ثانیه روی هر LUN |
+| `netapp_lun_write_ops` | — | ONTAP | `ops/s` | عملیات نوشتن در ثانیه روی هر LUN |
+| `netapp_lun_read_data` | — | ONTAP | `bytes/s` | بایت خوانده‌شده در ثانیه از هر LUN |
+| `netapp_lun_write_data` | — | ONTAP | `bytes/s` | بایت نوشته‌شده در ثانیه روی هر LUN |
 
 ### میزبان‌ها
 
@@ -230,6 +335,12 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | میانگین عقب‌ماندگی همتاسازی هر پیوند replica پاد |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | ترافیک همتاسازی هر پاد، با برچسب‌های `direction` و `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | میانگین تأخیر نوشتن آینه‌ای هر پاد ActiveCluster |
+| `netapp_snapmirror_lag_time` | — | ONTAP | `s` | مقصد هر رابطه SnapMirror چقدر از منبعش عقب است |
+| `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | زمان‌بندی هر رابطه هر چند وقت یک بار انتقال می‌دهد؛ عامل آن را از روی نام زمان‌بندی می‌نویسد |
+| `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | آخرین انتقال هر رابطه چقدر طول کشید |
+| `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | آخرین انتقال هر رابطه چقدر داده فرستاد |
+| `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | چند به‌روزرسانی هر رابطه ناموفق بوده است؛ این شمار فقط بالا می‌رود |
+| `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | یک سری به ازای هر رابطه‌ای که ONTAP آن را ناسالم گزارش می‌کند، با دلیل آن در `unhealthy_reason` |
 
 ### سخت‌افزار
 
@@ -240,6 +351,32 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | ظرفیت خام هر درایو، با برچسب `component_status` آن (`healthy`، `failed`، `missing`، `recovering`، `unhealthy`، `empty`، ...) و نوعش |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | خطاها در ثانیه روی هر رابط Ethernet و Fibre Channel – خطاهای پایدار معمولاً یعنی کابل، ماژول نوری یا پورت سوئیچ خراب |
 | `purefb_hardware_health` | — | FlashBlade | — | سلامت هر قطعه سخت‌افزاری (bladeها، ماژول‌های fabric، منابع تغذیه، فن‌ها، ...): ۱ = سالم، ۲ = بی‌استفاده، ۰ = ناسالم. کمینه را به ازای هر `name` بگیرید |
+| `netapp_node_new_status` | — | ONTAP | — | ۱ تا وقتی ONTAP گره را سالم گزارش می‌کند – بر پایه `node` گروه‌بندی کنید |
+| `netapp_node_avg_processor_busy` | — | ONTAP | `%` | پردازنده‌های هر گره چقدر مشغول‌اند |
+| `netapp_node_failed_fan` | — | ONTAP | `count` | فن‌های خراب هر گره |
+| `netapp_node_failed_power` | — | ONTAP | `count` | منابع تغذیه خراب هر گره |
+| `netapp_node_uptime` | — | ONTAP | `s` | مدت روشن بودن هر گره؛ افت آن یعنی راه‌اندازی دوباره یا بازگرداندن کار (giveback) |
+| `netapp_disk_new_status` | — | ONTAP | — | ۱ تا وقتی دیسک قطعی گزارش نمی‌کند – بر پایه `disk` گروه‌بندی کنید |
+| `netapp_health_disk_alerts` | — | ONTAP | `count` | یک سری به ازای هر دیسکی که ONTAP آن را خراب یا تخصیص‌نیافته گزارش می‌کند، تا وقتی چنین است |
+| `netapp_shelf_new_status` | — | ONTAP | — | ۱ تا وقتی قفسه دیسک آنلاین است |
+| `netapp_health_shelf_alerts` | — | ONTAP | `count` | یک سری به ازای هر خطایی که ONTAP روی یک قفسه دیسک گزارش می‌کند، تا وقتی ادامه دارد |
+| `netapp_shelf_psu_status` | — | ONTAP | — | ۱ تا وقتی منبع تغذیه قفسه دیسک در وضعیت عادی است |
+| `netapp_shelf_fan_status` | — | ONTAP | — | ۱ تا وقتی فن قفسه دیسک در وضعیت عادی است |
+| `netapp_shelf_temperature_status` | — | ONTAP | — | ۱ تا وقتی حسگر دمای قفسه دیسک در محدوده آستانه‌هایش است |
+| `netapp_shelf_temperature_reading` | — | ONTAP | `°C` | آنچه هر حسگر دمای قفسه دیسک نشان می‌دهد |
+| `netapp_environment_sensor_status` | — | ONTAP | — | ۱ تا وقتی حسگر محیطی گره در محدوده آستانه‌هایش است |
+| `netapp_health_node_alerts` | — | ONTAP | `count` | یک سری به ازای هر گره‌ای که ONTAP آن را ناسالم گزارش می‌کند، تا وقتی چنین است |
+| `netapp_health_ha_alerts` | — | ONTAP | `count` | یک سری به ازای هر گره‌ای که نمی‌تواند کار شریک HA خود را بر عهده بگیرد، تا وقتی نمی‌تواند |
+| `netapp_net_port_status` | — | ONTAP | — | ۱ تا وقتی لینک پورت Ethernet برقرار است |
+| `netapp_health_network_ethernet_port_alerts` | — | ONTAP | `count` | یک سری به ازای هر پورت Ethernet فعالی که قطع است، تا وقتی چنین است |
+| `netapp_nic_rx_bytes` | — | ONTAP | `bytes/s` | بایتی که هر پورت Ethernet در ثانیه دریافت می‌کند |
+| `netapp_nic_tx_bytes` | — | ONTAP | `bytes/s` | بایتی که هر پورت Ethernet در ثانیه می‌فرستد |
+| `netapp_nic_util_percent` | — | ONTAP | `%` | چه مقدار از سرعت هر پورت Ethernet در حال استفاده است |
+| `netapp_nic_rx_total_errors` | — | ONTAP | `count` | خطاهای دریافتی که هر پورت Ethernet در دقیقه گذشته شمرده است |
+| `netapp_fcp_read_data` | — | ONTAP | `bytes/s` | بایت خوانده‌شده در ثانیه از راه هر پورت Fibre Channel |
+| `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | بایت نوشته‌شده در ثانیه از راه هر پورت Fibre Channel |
+| `netapp_fcp_util_percent` | — | ONTAP | `%` | چه مقدار از سرعت هر پورت Fibre Channel در حال استفاده است |
+| `netapp_fcp_link_failure` | — | ONTAP | `count` | خرابی‌های لینکی که هر پورت Fibre Channel در دقیقه گذشته شمرده است |
 
 ### سامانه‌های فایل
 
@@ -323,7 +460,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` همان `storage.array.name` آرایه است – همان `STORAGE_ARRAY_NAME` که عامل با آن اجرا شده – نه شناسه OneUptime آن. `storageSystem` یکی از `purestorage.flasharray` یا `purestorage.flashblade` است. تعیین می‌کند فرم کدام فهرست و قالب‌ها را نشان دهد، و اینکه یک فیلتر سخت‌افزاری `component_name` را بخواند یا `name` را.
+`arrayIdentifier` همان `storage.array.name` آرایه است – همان `STORAGE_ARRAY_NAME` که عامل با آن اجرا شده – نه شناسه OneUptime آن. `storageSystem` یکی از `purestorage.flasharray`، `purestorage.flashblade` یا `netapp.ontap` است. تعیین می‌کند فرم کدام فهرست و قالب‌ها را نشان دهد، و اینکه یک فیلتر حجم یا سخت‌افزار کدام برچسب را بخواند.
 
 ## رفع اشکال
 
@@ -337,6 +474,10 @@ monitor_steps = [{
 
 :::details یک مانیتور تأخیر نادرست می‌خواند
 Pure رقم‌های خواندن، نوشتن، نوشتن آینه‌ای، SAN، صف و QoS را روی یک نام متریک می‌گذارد که فقط برچسب `dimension` آن‌ها را از هم جدا می‌کند، و پرس‌وجوی بدون فیلتر `dimension` از همه آن‌ها با هم میانگین می‌گیرد. روی یک dimension فیلتر کنید، همان‌طور که قالب‌ها و فهرست فرم می‌کنند. سری‌های هر حجم و هر میزبان فقط `usec_per_read_op`، `usec_per_write_op` و `usec_per_mirrored_write_op` را نگه می‌دارند: عامل بقیه را برای صرفه‌جویی در سری‌ها کنار می‌گذارد، و فقط `purefa_array_performance_latency_usec` در سطح کل آرایه همه آن‌ها را نگه می‌دارد.
+:::
+
+:::details یک قالب ONTAP برای رویداد EMS هرگز فعال نمی‌شود
+یک قالب EMS فقط تا وقتی رویدادی از نوع آن در پنجره‌اش باشد فعال می‌شود: Harvest هر رویداد را فقط یک بار صادر می‌کند، برای پیمایشی که آن را گردآوری کرد. بررسی کنید که Harvest عامل، گردآورنده `Ems` را اجرا کند (در فایل‌های همراه بسته اجرا می‌کند)، و اینکه رویداد در فهرست پیش‌فرض Harvest باشد: `sk.panic`، `disk.outOfService` و رویدادهای alert و emergency در آن هستند. خطایی در ONTAP که ادامه دارد (دیسک خراب، خطای قفسه دیسک، گره‌ای که نمی‌تواند کار شریکش را بر عهده بگیرد) را قالب مشکل باز آن هم زیر نظر دارد، که تا وقتی ONTAP آن را پاک نکند باز می‌ماند.
 :::
 
 :::details پنجره ۱ دقیقه‌ای هیچ داده‌ای نشان نمی‌دهد
