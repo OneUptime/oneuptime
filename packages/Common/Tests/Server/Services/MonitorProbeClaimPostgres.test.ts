@@ -1,6 +1,8 @@
 import Entities from "../../../Models/DatabaseModels/Index";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
-import MonitorProbeService from "../../../Server/Services/MonitorProbeService";
+import MonitorProbeService, {
+  ClaimedMonitorProbe,
+} from "../../../Server/Services/MonitorProbeService";
 import {
   SET_ASIDE_FOR_MINUTES,
   SET_ASIDE_PER_CLAIM,
@@ -279,15 +281,15 @@ describePostgres("claiming monitor probes to check, on Postgres", () => {
     limit: number = 50,
     probeId: ObjectID = PROBE_ID,
   ): Promise<Array<string>> {
-    const claimed: Array<ObjectID> =
+    const claimed: Array<ClaimedMonitorProbe> =
       await MonitorProbeService.claimMonitorProbesForProbing({
         probeId: probeId,
         limit: limit,
       });
 
     return claimed
-      .map((id: ObjectID) => {
-        return id.toString();
+      .map((claimedMonitorProbe: ClaimedMonitorProbe) => {
+        return claimedMonitorProbe.monitorProbeId.toString();
       })
       .sort();
   }

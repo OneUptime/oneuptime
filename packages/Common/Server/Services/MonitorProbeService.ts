@@ -37,6 +37,9 @@ import MonitorProbeSchedules, {
 import ProbeSchedulingMetrics, {
   MonitorHandedOut,
 } from "../Utils/Probe/ProbeSchedulingMetrics";
+import ClaimedMonitor, {
+  ClaimedMonitorRow,
+} from "../Utils/Probe/ClaimedMonitor";
 
 /*
  * The most monitor probes one claim hands out (claimMonitorProbesForProbing),
@@ -47,7 +50,7 @@ import ProbeSchedulingMetrics, {
 export const MAX_MONITOR_PROBES_PER_CLAIM: number = 5000;
 
 // A row the claim's statement answers with.
-interface ClaimedMonitorProbeRow {
+interface ClaimedMonitorProbeRow extends ClaimedMonitorRow {
   // Null on the one row answered when nothing was claimed.
   _id?: string | null;
   // When its schedule made it due: its nextPingAt before the claim.
@@ -57,6 +60,18 @@ interface ClaimedMonitorProbeRow {
   scheduled?: boolean | null;
   // Whether the read stepped over a due row nothing may probe.
   steppedOver?: boolean | null;
+}
+
+/*
+ * A monitor probe a claim handed out, with its monitor as the probe is
+ * handed it (ClaimedMonitor): read by the claim's own statement, so a
+ * probe's request for monitors is one round trip (#11120).
+ */
+export interface ClaimedMonitorProbe {
+  // The MonitorProbe row claimed.
+  monitorProbeId: ObjectID;
+  // Its monitor: id, project, type, interval and steps.
+  monitor: Monitor;
 }
 
 /*
@@ -343,12 +358,21 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * Each monitor handed out is counted with how late it was, past when its
    * schedule made it due (ProbeSchedulingMetrics: dispatch lag).
    *
-   * Returns the ids of the MonitorProbe rows it claimed, oldest first.
+   * The same statement hands back each claimed row's monitor as the probe
+   * is handed it - its id, project, type, interval and steps (ClaimedMonitor),
+   * read with the row by the claim's own join - so the probe's answer needs
+   * no second read (OneUptime issue #11120). It used to be read again by
+   * primary key after the claim: a second round trip for every request,
+   * holding the request's probe scheduling slot. With every statement 50 ms
+   * slower, as on a busy database, that read was 52 of a request's 124 ms.
+   *
+   * Returns the MonitorProbe rows it claimed, oldest first, each with its
+   * monitor.
    */
   public async claimMonitorProbesForProbing(data: {
     probeId: ObjectID;
     limit: number;
-  }): Promise<Array<ObjectID>> {
+  }): Promise<Array<ClaimedMonitorProbe>> {
     const currentDate: Date = OneUptimeDate.getCurrentDate();
     const fallbackNextPing: Date = OneUptimeDate.addRemoveMinutes(
       currentDate,
@@ -359,7 +383,8 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
 
     const claimQuery: string = `
         WITH "claimable" AS (
-          SELECT mp."_id", mp."nextPingAt" AS "dueAt", m."monitoringInterval"
+          SELECT mp."_id", mp."nextPingAt" AS "dueAt", m."monitoringInterval",
+            ${ClaimedMonitor.COLUMNS.join(", ")}
           FROM "MonitorProbe" mp
           INNER JOIN "Monitor" m ON mp."monitorId" = m."_id"
           INNER JOIN "Project" p ON mp."projectId" = p."_id"
@@ -384,7 +409,8 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
             ON s."monitoringInterval" = c."monitoringInterval"
           WHERE mp."_id" = c."_id"
           RETURNING mp."_id", c."dueAt", c."monitoringInterval",
-            (s."nextPingAt" IS NOT NULL) AS "scheduled"
+            (s."nextPingAt" IS NOT NULL) AS "scheduled",
+            ${ClaimedMonitor.COLUMNS_OF_CLAIMED.join(", ")}
         ),
         "flags" AS (
           SELECT (
@@ -427,6 +453,7 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
           ) AS "steppedOver"
         )
         SELECT c."_id", c."dueAt", c."monitoringInterval", c."scheduled",
+          ${ClaimedMonitor.COLUMNS_OF_CLAIMED.join(", ")},
           f."steppedOver"
         FROM "flags" f
         LEFT JOIN "claimed" c ON true
@@ -503,8 +530,11 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
       });
     }
 
-    return claimed.map((row: ClaimedMonitorProbeRow): ObjectID => {
-      return new ObjectID(row._id!);
+    return claimed.map((row: ClaimedMonitorProbeRow): ClaimedMonitorProbe => {
+      return {
+        monitorProbeId: new ObjectID(row._id!),
+        monitor: ClaimedMonitor.fromRow(row),
+      };
     });
   }
 

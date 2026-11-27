@@ -112,7 +112,9 @@ import GlobalCache from "../../../../Server/Infrastructure/GlobalCache";
 import Redis from "../../../../Server/Infrastructure/Redis";
 import PostgresAppInstance from "../../../../Server/Infrastructure/PostgresDatabase";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
-import MonitorProbeService from "../../../../Server/Services/MonitorProbeService";
+import MonitorProbeService, {
+  ClaimedMonitorProbe,
+} from "../../../../Server/Services/MonitorProbeService";
 import ProjectService from "../../../../Server/Services/ProjectService";
 import logger from "../../../../Server/Utils/Logger";
 import MonitorCriteriaEvaluator from "../../../../Server/Utils/Monitor/MonitorCriteriaEvaluator";
@@ -757,11 +759,14 @@ describePostgres(
               Math.ceil(FETCH_LIMIT / 2),
             );
 
-            const claimed: Array<ObjectID> =
+            const claimed: Array<ObjectID> = (
               await MonitorProbeService.claimMonitorProbesForProbing({
                 probeId: data.probeId,
                 limit: room,
-              });
+              })
+            ).map((claimedMonitorProbe: ClaimedMonitorProbe): ObjectID => {
+              return claimedMonitorProbe.monitorProbeId;
+            });
             claims++;
 
             data.slots.release(room - claimed.length);
