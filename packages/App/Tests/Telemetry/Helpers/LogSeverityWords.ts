@@ -135,11 +135,19 @@ export const OTHER_LOGGER_WORDS: Array<LogSeverityWord> = [
     severity: LogSeverity.Error,
     source: "Appendix B: syslog Alert (1)",
   },
+  /*
+   * A panic is a crash, the data model's FATAL (issue #11228): Go's runtime
+   * panic, PostgreSQL's PANIC, logrus's and zerolog's top level, which
+   * OpenTelemetry's own zap and logrus bridges send as FATAL2 and FATAL4.
+   * Appendix B's zap example (ERROR3) would rank a logrus or zerolog panic
+   * below its fatal.
+   */
   {
     word: "panic",
-    severityNumber: 19,
-    severity: LogSeverity.Error,
-    source: "Appendix B: zap Panic",
+    severityNumber: 21,
+    severity: LogSeverity.Fatal,
+    source:
+      "a crash: Go, PostgreSQL, logrus, zerolog; the zap and logrus bridges",
   },
   {
     word: "emerg",
@@ -175,6 +183,31 @@ export const OTHER_LOGGER_WORDS: Array<LogSeverityWord> = [
     severityNumber: 1,
     severity: LogSeverity.Trace,
     source: "zerolog's TRC: TRACE",
+  },
+  // And the ones the agents read off a line (issue #11228).
+  {
+    word: "trce",
+    severityNumber: 1,
+    severity: LogSeverity.Trace,
+    source: ".NET's console trce: TRACE",
+  },
+  {
+    word: "note",
+    severityNumber: 9,
+    severity: LogSeverity.Information,
+    source: "MySQL's and MariaDB's Note: INFO",
+  },
+  {
+    word: "fail",
+    severityNumber: 17,
+    severity: LogSeverity.Error,
+    source: ".NET's console fail: ERROR",
+  },
+  {
+    word: "pnc",
+    severityNumber: 21,
+    severity: LogSeverity.Fatal,
+    source: "zerolog's PNC: a panic",
   },
   {
     word: "vrb",

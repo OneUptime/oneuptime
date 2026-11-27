@@ -19,8 +19,10 @@
 # Each case is its own container's log file, in the layout its runtime
 # writes: a Kubernetes node's /var/log/pods (CRI lines), Docker's json-file
 # logs (the Docker and Docker Swarm agents) and Podman's k8s-file logs. Every
-# case must leave with the corpus's severity, no case may leave twice or not
-# at all, and the collector may log no error from the chain. With
+# case must leave with the corpus's severity, at the number OneUptime's ingest
+# stores the word it names at (LOG_SEVERITY_NUMBER_BY_TEXT, issue #11228: the
+# collector's severityText is the word the chain lifted), no case may leave
+# twice or not at all, and the collector may log no error from the chain. With
 # filters.logs.minSeverity=ERROR, what is below ERROR must be dropped at the
 # node and what has no severity kept.
 #

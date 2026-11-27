@@ -584,12 +584,16 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       Information: "Information",
       eror: "Error",
       DPANIC: "Error",
-      // PSR-3 / syslog, and the shapes read by their form
+      // PSR-3 / syslog, as the one table reads them (issue #11228): an
+      // alert is an error that asks for action, an emergency a crash; an
+      // application logger's critical is its top level, and a panic a crash.
       notice: "Information",
-      alert: "Fatal",
+      alert: "Error",
       emerg: "Fatal",
       emergency: "Fatal",
+      critical: "Fatal",
       panic: "Fatal",
+      PNC: "Fatal",
       ERROR: "Error",
       WARN: "Warning",
       INFO: "Information",
@@ -842,6 +846,8 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       ).toBe("Error");
     });
 
+    // Read at all, and since issue #11228 as the one table reads them:
+    // EMERGENCY is a crash, ALERT an error that asks for action (ERROR3).
     test("reads the two most severe PSR-3 levels", () => {
       expect(
         severityOf(
@@ -851,7 +857,14 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       ).toBe("Fatal");
       expect(
         severityOf("[2026-08-31 07:25:04] app.ALERT: replica lag\n", "stdout"),
-      ).toBe("Fatal");
+      ).toBe("Error");
+      expect(
+        classify(
+          operators,
+          "[2026-08-31 07:25:04] app.ALERT: replica lag\n",
+          "stdout",
+        ).number,
+      ).toBe(19);
       expect(
         severityOf("2026/08/31 [emerg] 1#1: bind() failed\n", "stdout"),
       ).toBe("Fatal");
@@ -1332,6 +1345,76 @@ describe("agent-log-severity-behaviour.sh", () => {
       expect(() => {
         return behaviour.exported(file);
       }).toThrow();
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  /*
+   * Issue #11228: a record at the right level can still carry a number
+   * ingest gives the same word elsewhere. The collector's severityText is
+   * the word the chain lifted, so its number must be the one table's.
+   */
+  test("fails a record whose number is not the one table's for the word it carries", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "log-severity-"));
+    const casesFile = path.join(dir, "cases.json");
+    const exportedFile = path.join(dir, "logs.json");
+    const collectorLog = path.join(dir, "collector.log");
+    const exportOf = (record) => {
+      return `${JSON.stringify({
+        resourceLogs: [
+          {
+            resource: {
+              attributes: [
+                { key: "k8s.pod.name", value: { stringValue: "case-0" } },
+              ],
+            },
+            scopeLogs: [{ logRecords: [record] }],
+          },
+        ],
+      })}\n`;
+    };
+    const quietly = (run) => {
+      const log = console.log;
+
+      console.log = () => {};
+
+      try {
+        return run();
+      } finally {
+        console.log = log;
+      }
+    };
+
+    try {
+      fs.writeFileSync(
+        casesFile,
+        JSON.stringify([
+          { id: "case-0", name: "nginx [crit]", severity: "Error" },
+        ]),
+      );
+      fs.writeFileSync(collectorLog, "");
+
+      // syslog's crit is ERROR2 (18): an Error at 17 is the wrong number.
+      fs.writeFileSync(
+        exportedFile,
+        exportOf({ severityText: "crit", severityNumber: 17 }),
+      );
+      expect(
+        quietly(() => {
+          return behaviour.check(casesFile, exportedFile, collectorLog, "");
+        }),
+      ).toBe(false);
+
+      fs.writeFileSync(
+        exportedFile,
+        exportOf({ severityText: "crit", severityNumber: 18 }),
+      );
+      expect(
+        quietly(() => {
+          return behaviour.check(casesFile, exportedFile, collectorLog, "");
+        }),
+      ).toBe(true);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

@@ -30,17 +30,25 @@ export const LogSeverityNumber: Record<LogSeverity, number> = {
 };
 
 /*
- * THE LEVEL WORDS, AND THE SEVERITY EACH ONE NAMES (issue #8425).
+ * THE LEVEL WORDS, AND THE SEVERITY EACH ONE NAMES (issues #8425, #11228).
  *
- * One table for every place that turns a level word a sender wrote into a
- * stored severity, so the same line is stored the same way whichever way it
- * came in:
+ * One table for every place that turns a level word into a stored severity,
+ * so the same line is stored the same way whichever way it came in:
  *
  *   - OTLP logs ingest, for a record that sets a severityText and no
  *     severityNumber (OtelLogsIngestService.severityNumberFromText, #8248);
- *   - Fluentd and Fluent Bit records' level fields (FluentLogsIngestService);
+ *   - Fluentd and Fluent Bit records' level fields (FluentLogsIngestService),
+ *     and the Loki, Splunk HEC, Datadog and Sentry intakes (OtlpJson);
  *   - the pipeline severity remapper's target, and saved filters
- *     (normalizeLogSeverity, below).
+ *     (normalizeLogSeverity, below);
+ *   - syslog's eight severities by number, through their keywords
+ *     (SyslogSeverity), and CloudWatch Logs' first-word read;
+ *   - and outside this package, the agents that read a level off a log line
+ *     themselves: the severity chain of the Docker, Podman and Docker Swarm
+ *     agents and of the Kubernetes agent's DaemonSet, and the Kubernetes
+ *     agent's API-mode log tailer. They send the number, so they must carry
+ *     this table's numbers; Tests/Ops/LogSeverityOneTable.test.js holds
+ *     every one of these copies to this table, number for number.
  *
  * Keyed upper-cased; matched after trimming, in any case. A Map, so a word
  * such as "constructor" or "toString" names nothing: an object literal would
@@ -57,20 +65,43 @@ export const LogSeverityNumber: Record<LogSeverity, number> = {
  *     journald and the Collector's syslog parser keep as the text: `emerg`,
  *     `alert`, `crit`, `err`, `warning`, `notice`, `info`, `debug`), the
  *     Windows Event Log's and ETW's (`Verbose`, `Information`), log4j's,
- *     zap's (`DPanic`, `Panic`) and java.util.logging's (`FINEST` ...
- *     `SEVERE`).
+ *     zap's (`DPanic`) and java.util.logging's (`FINEST` ... `SEVERE`).
  *
- * One word Appendix B maps two ways: `critical`. Syslog's Critical (2) and
- * the Windows Event Log's Critical are ERROR2, but ETW's CRITICAL and .NET's
- * LogLevel.Critical are FATAL. A level field that says `critical` in full
- * is nearly always an application logger's top level - .NET's Critical,
- * Python's CRITICAL (whose FATAL is the same level, and which OpenTelemetry's
- * own Python SDK sends as FATAL) - while syslog writes the keyword `crit`.
- * So `critical` is FATAL here and `crit` is ERROR2. It is also what Fluent
- * ingest has always stored for `critical`, so no Fluent user's logs move.
+ * Syslog's severities are Appendix B's syslog column, which is RFC 5424's
+ * meaning of each read against the data model's ranges: Emergency, "system
+ * is unusable", is FATAL's "application or system crash"; Alert ("action
+ * must be taken immediately"), Critical and Error are errors, in that order
+ * (ERROR3, ERROR2, ERROR); Notice is INFO2. The Collector's own syslog
+ * parser, the host collector's journald mapping and OpenTelemetry's PHP SDK
+ * (PSR-3's levels are RFC 5424's) number them the same way.
+ *
+ * Three words, decided where the copies disagreed (issue #11228):
+ *
+ *   - `critical`, which Appendix B maps two ways. Syslog's Critical (2) and
+ *     the Windows Event Log's Critical are ERROR2, but ETW's CRITICAL and
+ *     .NET's LogLevel.Critical are FATAL. A level that says `critical` in
+ *     full is nearly always an application logger's top level - .NET's
+ *     Critical, Python's CRITICAL (whose FATAL is the same level, and which
+ *     OpenTelemetry's own Python SDK sends as FATAL) - while syslog writes the
+ *     keyword `crit`. So `critical` is FATAL here and `crit` is ERROR2, which
+ *     is also what Fluent ingest has always stored. The cost: PSR-3's and
+ *     Elixir's CRITICAL, which sit below their ALERT, land above it here. A
+ *     vocabulary OneUptime knows to be syslog's reads its Critical as
+ *     syslog's: the priority numbers (SyslogSeverity), Datadog's statuses.
+ *   - `alert`: syslog's Alert, ERROR3, as above. Not FATAL: it asks for
+ *     action, it is no crash.
+ *   - `panic`: FATAL. A panic is a crash, the data model's FATAL: Go's
+ *     runtime panic, PostgreSQL's PANIC (every session aborted), logrus's
+ *     and zerolog's top level, above their own fatal. OpenTelemetry's own zap
+ *     and logrus bridges send it as FATAL2 and FATAL4. Appendix B's zap
+ *     example (ERROR3) would put a logrus or zerolog panic below its fatal.
+ *     zap's DPanic stays ERROR2: it panics only in development.
  *
  * Numbers are not words: "3" names nothing here. A syslog priority is mapped
- * by number where the sender says it is one (SyslogSeverity).
+ * by number where the sender says it is one (SyslogSeverity). Nor are the
+ * marks only one format's own position gives a meaning: klog's letter,
+ * pino's number, or "log", which as a level field's value is console.log's
+ * word (PostgreSQL's LOG is read in capitals only, by the agents).
  */
 export const LOG_SEVERITY_NUMBER_BY_TEXT: ReadonlyMap<string, number> = new Map<
   string,
@@ -101,7 +132,8 @@ export const LOG_SEVERITY_NUMBER_BY_TEXT: ReadonlyMap<string, number> = new Map<
   ["WARNING", 13],
   ["SEVERE", 17],
   ["DPANIC", 18],
-  ["PANIC", 19],
+  // A crash, whoever writes it (see above): not Appendix B's zap example.
+  ["PANIC", 21],
   // syslog's keywords (RFC 5424), as Appendix B's syslog column maps them.
   ["NOTICE", 10],
   ["ERR", 17],
@@ -114,16 +146,23 @@ export const LOG_SEVERITY_NUMBER_BY_TEXT: ReadonlyMap<string, number> = new Map<
   /*
    * The short forms loggers write in a level field (issue #8536): Serilog's
    * VRB, DBG, INF, WRN and FTL (its ERR is syslog's, above), zerolog's TRC,
-   * and log15's DBUG and EROR (its CRIT is syslog's too).
+   * and log15's DBUG and EROR (its CRIT is syslog's too). And the ones the
+   * agents read off a line (issue #11228): .NET's console prefixes TRCE and
+   * FAIL (its dbug, info and warn are above, its crit is syslog's), MySQL's
+   * and MariaDB's NOTE, zerolog's PNC.
    */
   ["TRC", 1],
+  ["TRCE", 1],
   ["VRB", 5],
   ["DBG", 5],
   ["DBUG", 5],
   ["INF", 9],
+  ["NOTE", 9],
   ["WRN", 13],
   ["EROR", 17],
+  ["FAIL", 17],
   ["FTL", 21],
+  ["PNC", 21],
 ]);
 
 /*

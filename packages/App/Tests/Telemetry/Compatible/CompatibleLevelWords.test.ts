@@ -109,7 +109,8 @@ describe("OtlpJson.severityFromWord reads the level words every log ingest reads
   test.each([
     ["critical", 21, "FATAL", "ERROR2 before"],
     ["verbose", 5, "DEBUG", "TRACE before"],
-    ["panic", 19, "ERROR3", "FATAL before"],
+    // A crash (issue #11228): FATAL as before #8536, ERROR3 in between.
+    ["panic", 21, "FATAL", "unchanged"],
     ["crit", 18, "ERROR2", "unchanged"],
     ["alert", 19, "ERROR3", "unchanged"],
     ["emergency", 21, "FATAL", "unchanged"],

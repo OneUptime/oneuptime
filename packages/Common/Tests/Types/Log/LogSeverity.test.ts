@@ -181,7 +181,6 @@ describe("LogSeverity", () => {
       ["CRIT", 18, "syslog Critical (2), keyword crit: ERROR2"],
       ["DPANIC", 18, "zap: ERROR2"],
       ["ALERT", 19, "syslog Alert (1): ERROR3"],
-      ["PANIC", 19, "zap: ERROR3"],
       ["EMERG", 21, "syslog Emergency (0), keyword emerg: FATAL"],
       ["EMERGENCY", 21, "syslog Emergency (0): FATAL"],
     ])("%s -> %i (%s)", (word: string, severityNumber: number) => {
@@ -202,16 +201,82 @@ describe("LogSeverity", () => {
       expect(logSeverityFromNumber(18)).toBe(LogSeverity.Error);
     });
 
-    // Issue #8536: the short forms loggers write, at the level each abbreviates.
+    /*
+     * Issue #11228: a panic is a crash, the data model's FATAL - Go's runtime
+     * panic, PostgreSQL's PANIC, logrus's and zerolog's top level, which
+     * OpenTelemetry's own zap and logrus bridges send as FATAL2 and FATAL4.
+     * Appendix B's zap example, ERROR3, would rank a logrus or zerolog panic
+     * below its fatal. zap's DPanic, which panics only in development, stays
+     * Appendix B's ERROR2.
+     */
+    test("panic is FATAL (21), and dpanic is ERROR2 (18)", () => {
+      expect(logSeverityNumberFromText("panic")).toBe(21);
+      expect(logSeverityNumberFromText("PANIC")).toBe(21);
+      expect(normalizeLogSeverity("panic")).toBe(LogSeverity.Fatal);
+      expect(logSeverityNumberFromText("dpanic")).toBe(18);
+      expect(normalizeLogSeverity("DPanic")).toBe(LogSeverity.Error);
+    });
+
+    /*
+     * Syslog's eight keywords keep RFC 5424's order as numbers, each step
+     * more severe than the one below it: Appendix B's syslog column, which
+     * the Collector's syslog parser follows.
+     */
+    test("syslog's keywords keep their order: emerg > alert > crit > err > warning > notice > info > debug", () => {
+      const numbers: Array<number> = [
+        "emerg",
+        "alert",
+        "crit",
+        "err",
+        "warning",
+        "notice",
+        "info",
+        "debug",
+      ].map((keyword: string): number => {
+        return logSeverityNumberFromText(keyword);
+      });
+
+      expect(numbers).toEqual([21, 19, 18, 17, 13, 10, 9, 5]);
+    });
+
+    /*
+     * The words issue #11228 found stored two ways: through the agents'
+     * severity chain and through Fluent or OTLP ingest. Now one table, and
+     * Tests/Ops/LogSeverityOneTable.test.js holds the agents to it.
+     */
+    test.each([
+      ["critical", 21, LogSeverity.Fatal],
+      ["alert", 19, LogSeverity.Error],
+      ["panic", 21, LogSeverity.Fatal],
+      ["crit", 18, LogSeverity.Error],
+      ["notice", 10, LogSeverity.Information],
+      ["emergency", 21, LogSeverity.Fatal],
+    ])(
+      "%s -> %i (%s), wherever the line comes from",
+      (word: string, severityNumber: number, severity: LogSeverity) => {
+        expect(logSeverityNumberFromText(word)).toBe(severityNumber);
+        expect(logSeverityFromNumber(severityNumber)).toBe(severity);
+      },
+    );
+
+    /*
+     * Issue #8536: the short forms loggers write, at the level each
+     * abbreviates. And the ones the agents read off a line (issue #11228):
+     * .NET's console prefixes trce and fail, MySQL's Note, zerolog's PNC.
+     */
     test.each([
       ["TRC", 1, LogSeverity.Trace],
+      ["TRCE", 1, LogSeverity.Trace],
       ["VRB", 5, LogSeverity.Debug],
       ["DBG", 5, LogSeverity.Debug],
       ["DBUG", 5, LogSeverity.Debug],
       ["INF", 9, LogSeverity.Information],
+      ["NOTE", 9, LogSeverity.Information],
       ["WRN", 13, LogSeverity.Warning],
       ["EROR", 17, LogSeverity.Error],
+      ["FAIL", 17, LogSeverity.Error],
       ["FTL", 21, LogSeverity.Fatal],
+      ["PNC", 21, LogSeverity.Fatal],
     ])(
       "the short form %s -> %i (%s)",
       (word: string, severityNumber: number, severity: LogSeverity) => {

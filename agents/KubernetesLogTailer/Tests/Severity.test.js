@@ -134,13 +134,32 @@ test("the real level field beats a level word quoted inside the message", () => 
 test("maps every alias onto the OTel severity number for its level", () => {
   assert.equal(derive("[WARN] x").number, derive("[WARNING] x").number);
   assert.equal(derive("[ERR] x").number, derive("[ERROR] x").number);
-  assert.equal(derive("[CRIT] x").number, derive("[CRITICAL] x").number);
   assert.equal(derive("[PANIC] x").number, derive("[FATAL] x").number);
   assert.equal(derive("[TRACE] x").number, 1);
   assert.equal(derive("[DEBUG] x").number, 5);
   assert.equal(derive("[INFO] x").number, 9);
-  assert.equal(derive("[NOTICE] x").number, 9);
-  assert.equal(derive("[CRIT] x").number, 17);
+});
+
+/*
+ * Issue #11228: the numbers OneUptime's ingest stores the same words at.
+ * Syslog's notice, crit and alert are INFO2, ERROR2 and ERROR3 (Appendix B's
+ * syslog column); an application logger's critical, and a panic, are FATAL.
+ * They used to be 9, 17, 21, 17 and 21 here and in the chain, so CRITICAL,
+ * ALERT and PANIC landed in other levels than through Fluent or OTLP.
+ */
+test("numbers syslog's and the application loggers' top words as ingest does", () => {
+  assert.equal(derive("[NOTICE] x").number, 10);
+  assert.equal(derive("[CRIT] x").number, 18);
+  assert.equal(derive('{"level":"dpanic","msg":"x"}').number, 18);
+  assert.equal(derive("[ALERT] x").number, 19);
+  assert.equal(derive("[CRITICAL] x").number, 21);
+  assert.equal(derive("[PANIC] x").number, 21);
+  assert.equal(derive("[EMERG] x").number, 21);
+  assert.equal(
+    bucket(derive("[2026-08-31 07:25:04] app.ALERT: x").number),
+    "Error",
+  );
+  assert.equal(bucket(derive("CRITICAL:root:x").number), "Fatal");
 });
 
 /*
@@ -404,19 +423,28 @@ const severityParserMapping = () => {
 
 /*
  * stanza's built-in `default` preset, the base the config's own `mapping:`
- * block is layered on: these eight level names (and the numbers 1-24, which
- * the mapping overrides for pino's 10 and 20) and NOTHING else.
+ * block is layered on: OpenTelemetry's level names with their numbered steps
+ * (info2, error3, ...), warning and err (and the numbers 1-24, which the
+ * mapping overrides for pino's 10 and 20), and NOTHING else. A mapping
+ * block's keys are these names too.
  */
-const STANZA_BUILTIN = {
-  trace: 1,
-  debug: 5,
-  info: 9,
-  warn: 13,
-  warning: 13,
-  error: 17,
-  err: 17,
-  fatal: 21,
-};
+const STANZA_BUILTIN = Object.fromEntries(
+  ["trace", "debug", "info", "warn", "error", "fatal"].flatMap(
+    (level, index) => {
+      return [0, 1, 2, 3].map((step) => {
+        return [
+          step === 0 ? level : `${level}${step + 1}`,
+          1 + index * 4 + step,
+        ];
+      });
+    },
+  ),
+);
+
+for (const step of ["", "2", "3", "4"]) {
+  STANZA_BUILTIN[`warning${step}`] = STANZA_BUILTIN[`warn${step}`];
+  STANZA_BUILTIN[`err${step}`] = STANZA_BUILTIN[`error${step}`];
+}
 
 /** Every text a reader can produce: its fixed level, or what its group can capture. */
 const textsOf = (reader) => {

@@ -216,8 +216,13 @@ receivers:
         value: INFO
         output: severity-parser
       # Promote the text onto the LogRecord, so OTel consumers see a real
-      # severity_number. Each alias is under one level only: stanza reads this
-      # block as a map, in no set order.
+      # severity_number. Each text is stored at the number OneUptime's ingest
+      # stores the same word at (LOG_SEVERITY_NUMBER_BY_TEXT in
+      # packages/Common/Types/Log/LogSeverity.ts, issue #11228), so a line is
+      # stored the same way whether it comes through this agent or a Fluent or
+      # OTLP sender: Tests/Ops/LogSeverityOneTable.test.js holds this block to
+      # that table, number for number. Each alias is under one level only: stanza
+      # reads this block as a map, in no set order.
       - type: severity_parser
         id: severity-parser
         parse_from: attributes.severity_text
@@ -234,42 +239,49 @@ receivers:
             - dbg
             - vrb
             - "20"
-          # syslog's notice, MySQL's Note, PostgreSQL's LOG, zerolog's INF,
-          # .NET's Information; klog's I, pino's 30.
+          # MySQL's Note, PostgreSQL's LOG, zerolog's INF, .NET's Information;
+          # klog's I, pino's 30.
           info:
-            - notice
             - note
             - log
             - inf
             - information
             - i
             - "30"
+          # syslog's notice: INFO2, above INFO, as Appendix B maps it.
+          info2:
+            - notice
           # zerolog's WRN; klog's W, pino's 40.
           warn:
             - warning
             - wrn
             - w
             - "40"
-          # log15's eror, .NET's fail, java.util.logging's SEVERE, zap's DPanic,
-          # syslog's crit; klog's E, pino's 50.
+          # log15's eror, .NET's fail, java.util.logging's SEVERE; klog's E,
+          # pino's 50.
           error:
             - err
             - eror
             - fail
             - severe
-            - dpanic
-            - crit
-            - critical
             - e
             - "50"
-          # PSR-3 / syslog put alert and emergency above critical, and neither
-          # has a built-in mapping; nginx writes it as [emerg]. zerolog's PNC
-          # and FTL; klog's F, pino's 60.
+          # syslog's crit, and zap's DPanic (it panics only in development):
+          # ERROR2.
+          error2:
+            - crit
+            - dpanic
+          # syslog's and PSR-3's alert: ERROR3, an error that asks for action.
+          error3:
+            - alert
+          # A crash, or an application logger's top level: Python's and .NET's
+          # critical, a panic (Go's, PostgreSQL's, logrus's, zerolog's PNC),
+          # syslog's emerg; zerolog's FTL; klog's F, pino's 60.
           fatal:
+            - critical
             - panic
             - pnc
             - ftl
-            - alert
             - emerg
             - emergency
             - f

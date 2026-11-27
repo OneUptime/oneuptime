@@ -15,7 +15,10 @@
  *                                 file exporter (with the chart's
  *                                 filter/telemetry for --min-severity)
  *   check <cases.json> <exported> <collector.log> [--min-severity LEVEL]
- *                                 what the collector sent, case by case
+ *                                 what the collector sent, case by case:
+ *                                 each record at its case's level, and
+ *                                 at the number the one table of level
+ *                                 words names for the text it carries
  *
  * Layouts: "pods" is a Kubernetes node's /var/log/pods (CRI lines, as
  * containerd writes them), "docker" Docker's json-file logs, "podman"
@@ -305,6 +308,9 @@ function keptBy(minSeverity, severity) {
 }
 
 function check(casesFile, exportedFile, collectorLog, minSeverity) {
+  // Loaded here rather than at the top: it transpiles Common's table, and
+  // `count` runs once a second while the script waits for the collector.
+  const { namedNumber } = require("./LogSeverityTable.js");
   const cases = JSON.parse(fs.readFileSync(casesFile, "utf8"));
   const got = exported(exportedFile);
   const failures = [];
@@ -347,6 +353,15 @@ function check(casesFile, exportedFile, collectorLog, minSeverity) {
     } else if (scratch) {
       failures.push(
         `${entry.name}: still carries the scratch severity_text attribute`,
+      );
+    } else if (
+      record.severityText &&
+      record.severityNumber !== namedNumber(record.severityText)
+    ) {
+      // The text is the one the chain lifted; ingest stores the same word at
+      // the one table's number, and so must the agent (issue #11228).
+      failures.push(
+        `${entry.name}: "${record.severityText}" left at ${record.severityNumber}, the one table stores it at ${namedNumber(record.severityText)}`,
       );
     }
   }
@@ -431,6 +446,7 @@ if (require.main === module) {
 
 module.exports = {
   allRecords,
+  check,
   config,
   exported,
   fixtures,

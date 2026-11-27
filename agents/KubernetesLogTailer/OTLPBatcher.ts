@@ -17,20 +17,22 @@ import Logger from "./Logger";
  * OTLP-HTTP JSON severity numbers follow the OpenTelemetry spec:
  * https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
  *
- * These are the numbers the collector chain emits for the same keywords, and
- * they have to be those numbers rather than "something in the right bucket":
- * OneUptime's ingest throws away severityText and re-derives it from
- * severityNumber (OtelLogsIngestService.getSeverityText), so a keyword the two
- * Kubernetes log modes number differently can still surface as two different
- * levels on the Logs page. NOTICE and CRITICAL used to be 10 and 20 here
- * against the chain's 9 and 17; Tests/Severity.test.js reads the chain's own
- * mapping block out of the Helm template and fails if they drift again.
+ * Each is the number OneUptime's ingest stores the same word at
+ * (LOG_SEVERITY_NUMBER_BY_TEXT in packages/Common/Types/Log/LogSeverity.ts,
+ * issue #11228), and the number the collector chain emits for it. They have
+ * to be those numbers rather than "something in the right bucket": ingest
+ * re-derives a record's level from its severityNumber, so a word numbered
+ * two ways surfaces as two levels on the Logs page. CRITICAL, ALERT and PANIC
+ * once landed in different levels here and in ingest; now syslog's ALERT, CRIT
+ * and NOTICE are ERROR3, ERROR2 and INFO2, as Appendix B maps them, and an
+ * application logger's CRITICAL and a PANIC are FATAL.
+ * Tests/Ops/LogSeverityOneTable.test.js holds these to that table, and
+ * Tests/Severity.test.js to the chain's own mapping block.
  *
- * ALERT and EMERGENCY (PSR-3, syslog, nginx's [emerg]) sit above CRITICAL and
- * land on FATAL. The rest are the texts the readers below lift for the formats
- * they read (issue #10972): klog's letter, pino's number, PostgreSQL's LOG,
- * MySQL's Note, .NET's four-letter prefixes, zerolog's and Serilog's three
- * letters, java.util.logging's SEVERE, log15's EROR and zap's DPANIC.
+ * The rest are the texts the readers below lift for the formats they read
+ * (issue #10972): klog's letter, pino's number, PostgreSQL's LOG, MySQL's
+ * Note, .NET's four-letter prefixes, zerolog's and Serilog's three letters,
+ * java.util.logging's SEVERE, log15's EROR and zap's DPANIC.
  */
 export const severityTextToNumber: Record<string, number> = {
   TRACE: 1,
@@ -43,9 +45,9 @@ export const severityTextToNumber: Record<string, number> = {
   INFO: 9,
   INF: 9,
   INFORMATION: 9,
-  NOTICE: 9,
   NOTE: 9,
   LOG: 9,
+  NOTICE: 10,
   WARN: 13,
   WARNING: 13,
   WRN: 13,
@@ -54,14 +56,14 @@ export const severityTextToNumber: Record<string, number> = {
   EROR: 17,
   FAIL: 17,
   SEVERE: 17,
-  DPANIC: 17,
-  CRITICAL: 17,
-  CRIT: 17,
+  CRIT: 18,
+  DPANIC: 18,
+  ALERT: 19,
   FATAL: 21,
   FTL: 21,
+  CRITICAL: 21,
   PANIC: 21,
   PNC: 21,
-  ALERT: 21,
   EMERG: 21,
   EMERGENCY: 21,
   // klog and glog's letter.

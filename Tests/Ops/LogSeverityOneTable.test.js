@@ -56,15 +56,18 @@ const {
   readTailerSeverityNumbers,
 } = require("./Utils/AgentLogSeverityConfigs.js");
 const {
+  LOG_SEVERITY_NUMBER_BY_TEXT,
+  READER_TOKENS,
+  logSeverityFromNumber,
+  namedNumber,
+} = require("./Utils/LogSeverityTable.js");
+const {
   SEVERITY_NUMBER,
   indexOperatorsById,
   resolveSeverityNumber,
   severityKeywordsFromRegex,
 } = require("./Utils/StanzaSeverity.js");
 
-const { LOG_SEVERITY_NUMBER_BY_TEXT, logSeverityFromNumber } = loadCommonModule(
-  "Types/Log/LogSeverity.ts",
-);
 const { SYSLOG_TO_OTEL_SEVERITY, mapSyslogSeverity } = loadCommonModule(
   "Utils/Syslog/SyslogSeverity.ts",
 );
@@ -73,38 +76,6 @@ const { inferCloudWatchLogSeverity } = loadCommonModule(
 );
 
 const CONFIGS = readChainConfigs();
-
-/**
- * The texts only the agents' readers lift, with the number each names and
- * the reader that lifts it. Upper-cased, as the table is keyed.
- */
-const READER_TOKENS = new Map([
-  // klog and glog's first letter.
-  ["I", { number: 9, reader: "parse-klog-severity" }],
-  ["W", { number: 13, reader: "parse-klog-severity" }],
-  ["E", { number: 17, reader: "parse-klog-severity" }],
-  ["F", { number: 21, reader: "parse-klog-severity" }],
-  // pino and bunyan's numbers.
-  ["10", { number: 1, reader: "parse-numeric-severity" }],
-  ["20", { number: 5, reader: "parse-numeric-severity" }],
-  ["30", { number: 9, reader: "parse-numeric-severity" }],
-  ["40", { number: 13, reader: "parse-numeric-severity" }],
-  ["50", { number: 17, reader: "parse-numeric-severity" }],
-  ["60", { number: 21, reader: "parse-numeric-severity" }],
-  // PostgreSQL's informational level, in capitals only.
-  ["LOG", { number: 9, reader: "parse-severity-from-body" }],
-]);
-
-/** The number a text names: the table's, or a reader token's; undefined else. */
-function namedNumber(text) {
-  const key = String(text).trim().toUpperCase();
-
-  if (LOG_SEVERITY_NUMBER_BY_TEXT.has(key)) {
-    return LOG_SEVERITY_NUMBER_BY_TEXT.get(key);
-  }
-
-  return READER_TOKENS.has(key) ? READER_TOKENS.get(key).number : undefined;
-}
 
 /** The chain's severity parser's mapping block, as [alias, number] pairs. */
 function mappingAliases(severityParser) {

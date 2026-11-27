@@ -1731,8 +1731,10 @@ const CASES = [
     ["[2026-08-31 07:25:04] request.WARNING: slow response", "Warning"],
     ["[2026-08-31 07:25:04] app.ERROR: connection refused", "Error"],
     ["[2026-08-31 07:25:04] doctrine.DEBUG: SELECT 1", "Debug"],
-    ["[2026-08-31 07:25:04] php.CRITICAL: out of memory", "Error"],
-    ["[2026-08-31 07:25:04] app.ALERT: replica lag 900s", "Fatal"],
+    // PSR-3's CRITICAL and ALERT, stored as the one table stores the
+    // words since issue #11228 (17.0.0 had them the other way round).
+    ["[2026-08-31 07:25:04] php.CRITICAL: out of memory", "Fatal", "Error"],
+    ["[2026-08-31 07:25:04] app.ALERT: replica lag 900s", "Error", "Fatal"],
     ["[2026-08-31 07:25:04] app.EMERGENCY: site is down", "Fatal"],
     ["2026/08/31 07:25:04 [emerg] 1#1: bind() failed", "Fatal"],
     ['{"level":"info","ts":1756628704.1,"msg":"started"}', "Information"],
@@ -1772,7 +1774,7 @@ const CASES = [
     ["[TRACE] entering handler", "Trace"],
     ["[ERR] short alias", "Error"],
     ["[FATAL] cannot bind port", "Fatal"],
-  ].map(([body, severity]) => {
+  ].map(([body, severity, before = severity]) => {
     return {
       name: `before #10972: ${JSON.stringify(body)}`,
       source: "documented",
@@ -1781,7 +1783,7 @@ const CASES = [
       body,
       reader: "parse-severity-from-body",
       severity,
-      before: severity,
+      before,
     };
   }),
   {
