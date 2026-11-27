@@ -26,6 +26,7 @@ import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLeve
 import SnmpTrapReceiverUtil, {
   SnmpTrapRefusalReason,
 } from "Common/Types/Probe/SnmpTrapReceiver";
+import { SnmpV3CredentialHolders } from "Common/Types/Probe/SnmpV3CredentialHolders";
 import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import crypto from "crypto";
 
@@ -109,6 +110,13 @@ export interface SnmpV3Notification {
    * says nothing about the device. Empty when nothing names it.
    */
   senderEngineId: Buffer;
+  /*
+   * The records OneUptime said hold the credential that authenticated it
+   * (#11172, #11174), for OneUptime to tell which project and which device
+   * it is. Only for an authenticated message: a noAuthNoPriv one carries no
+   * key, so its user name is anyone's to send and proves nothing.
+   */
+  signedBy?: SnmpV3CredentialHolders | undefined;
 }
 
 export type SnmpV3IgnoredReason =
@@ -341,7 +349,13 @@ export default class SnmpV3NotificationProcessor {
 
       return {
         kind: "accepted",
-        notification: this.toNotification(message, scopedPdu, user, true),
+        notification: this.toNotification({
+          message: message,
+          scopedPdu: scopedPdu,
+          user: user,
+          signer: signer,
+          isInform: true,
+        }),
         reply: this.buildInformResponse(message, scopedPdu, signer),
       };
     }
@@ -349,7 +363,13 @@ export default class SnmpV3NotificationProcessor {
     if (scopedPdu.pduType === BerTag.TrapV2Pdu) {
       return {
         kind: "accepted",
-        notification: this.toNotification(message, scopedPdu, user, false),
+        notification: this.toNotification({
+          message: message,
+          scopedPdu: scopedPdu,
+          user: user,
+          signer: signer,
+          isInform: false,
+        }),
       };
     }
 
@@ -546,14 +566,19 @@ export default class SnmpV3NotificationProcessor {
     }
   }
 
-  private toNotification(
-    message: ParsedSnmpV3Message,
-    scopedPdu: ScopedPdu,
-    user: UsmUser,
-    isInform: boolean,
-  ): SnmpV3Notification {
+  private toNotification(data: {
+    message: ParsedSnmpV3Message;
+    scopedPdu: ScopedPdu;
+    user: UsmUser;
+    // Who signed it: null for a noAuthNoPriv message, which nobody did.
+    signer: Signer | null;
+    isInform: boolean;
+  }): SnmpV3Notification {
+    const message: ParsedSnmpV3Message = data.message;
+    const scopedPdu: ScopedPdu = data.scopedPdu;
+
     let senderEngineId: Buffer =
-      !isInform && message.engineId.length > 0
+      !data.isInform && message.engineId.length > 0
         ? message.engineId
         : scopedPdu.contextEngineId;
 
@@ -561,9 +586,9 @@ export default class SnmpV3NotificationProcessor {
       senderEngineId = Buffer.alloc(0);
     }
 
-    return {
-      isInform: isInform,
-      userName: user.userName,
+    const notification: SnmpV3Notification = {
+      isInform: data.isInform,
+      userName: data.user.userName,
       securityLevel: SnmpV3NotificationProcessor.getMessageLevel(message),
       contextEngineId: Buffer.from(scopedPdu.contextEngineId),
       contextName: SnmpTrapReceiverUtil.toDisplayableUserName(
@@ -573,6 +598,12 @@ export default class SnmpV3NotificationProcessor {
       varbinds: scopedPdu.varbinds,
       senderEngineId: Buffer.from(senderEngineId),
     };
+
+    if (data.signer?.user.heldBy) {
+      notification.signedBy = data.signer.user.heldBy;
+    }
+
+    return notification;
   }
 
   /*

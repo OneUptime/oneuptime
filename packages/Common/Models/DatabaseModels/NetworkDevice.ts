@@ -2722,6 +2722,48 @@ export default class NetworkDevice extends BaseModel {
   })
   public sysObjectId?: string = undefined;
 
+  /*
+   * The SNMP engine ID the device's own agent answered with when its probe
+   * last polled it over SNMPv3 (OneUptime issue #11172), as hex in
+   * capitals. An agent sends its traps as that engine, so it tells apart
+   * the devices that send SNMPv3 traps from one address - behind a NAT, or
+   * blades behind their chassis's address - when they share a credential
+   * too (SnmpTrapDeviceSelection). Read from the poll every time, so a
+   * replaced device's new ID is taken at its next poll, and never typed:
+   * a device that is not polled over SNMPv3 has none. Read on the device's
+   * own pages only, never through a relation.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadNetworkDevice,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.ShortText,
+    canReadOnRelationQuery: false,
+    title: "SNMP Engine ID",
+    description:
+      "The SNMP engine ID the device's agent answered with when it was last polled over SNMPv3, as hex. Tells apart devices that send SNMPv3 traps from one address. Set by OneUptime.",
+    example: "800000090300C0FFEE0001",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+  })
+  public snmpEngineId?: string = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

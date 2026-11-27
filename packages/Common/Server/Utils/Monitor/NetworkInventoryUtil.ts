@@ -21,6 +21,7 @@ import EndpointAttachmentUtil, {
   EndpointAttachmentResult,
 } from "../../../Utils/Monitor/EndpointAttachmentUtil";
 import SnmpSystemInfo from "../../../Types/Monitor/SnmpMonitor/SnmpSystemInfo";
+import SnmpTrapReceiverUtil from "../../../Types/Probe/SnmpTrapReceiver";
 import SnmpEntityInfo from "../../../Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpVendorTemplateUtil, {
   SnmpVendorTemplate,
@@ -78,6 +79,7 @@ export const INVENTORY_COMPARED_COLUMNS: Array<keyof NetworkDevice> = [
   "sysObjectId",
   "sysLocation",
   "sysContact",
+  "snmpEngineId",
   "lastRebootedAt",
   "vendor",
   "deviceModel",
@@ -527,6 +529,21 @@ export default class NetworkInventoryUtil {
       }
       if (systemInfo?.sysContact) {
         deviceUpdate["sysContact"] = systemInfo.sysContact.substring(0, 100);
+      }
+
+      /*
+       * The agent's SNMPv3 engine ID, from the walk's own discovery: what
+       * the device's SNMPv3 traps are sent as, which tells it apart from
+       * devices that send traps from the same address (#11172). Taken at
+       * every poll, so a replaced device's new ID is taken at its next one;
+       * a v1 or v2c poll carries none and leaves the last one as it was.
+       */
+      const snmpEngineId: string | null = SnmpTrapReceiverUtil.normalizeEngineId(
+        systemInfo?.snmpEngineId,
+      );
+
+      if (snmpEngineId) {
+        deviceUpdate["snmpEngineId"] = snmpEngineId;
       }
       /*
        * The uptime was read when the poll was, so it is counted back from

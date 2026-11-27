@@ -38,6 +38,7 @@ import {
 import ArpEntry from "Common/Types/Monitor/SnmpMonitor/ArpEntry";
 import FdbEntry from "Common/Types/Monitor/SnmpMonitor/FdbEntry";
 import SnmpSystemInfo from "Common/Types/Monitor/SnmpMonitor/SnmpSystemInfo";
+import SnmpTrapReceiverUtil from "Common/Types/Probe/SnmpTrapReceiver";
 import SnmpEntityInfo from "Common/Types/Monitor/SnmpMonitor/SnmpEntityInfo";
 import SnmpHardwareIdentity from "Common/Types/Monitor/SnmpMonitor/SnmpHardwareIdentity";
 import SnmpOid from "Common/Types/Monitor/SnmpMonitor/SnmpOid";
@@ -1475,6 +1476,20 @@ export default class SnmpMonitor {
         }
       }
 
+      /*
+       * The agent's SNMPv3 engine ID, which net-snmp learned answering this
+       * walk's first request (#11172): what the device's SNMPv3 traps are
+       * sent as, so OneUptime can tell it from devices that send from the
+       * same address. Read when the walk is done, never asked for: a v1 or
+       * v2c session has none.
+       */
+      const snmpEngineId: string | undefined =
+        SnmpMonitor.readDiscoveredEngineId(session);
+
+      if (systemInfo && snmpEngineId) {
+        systemInfo.snmpEngineId = snmpEngineId;
+      }
+
       return {
         interfaces,
         systemInfo,
@@ -1490,6 +1505,36 @@ export default class SnmpMonitor {
     } finally {
       session.close();
     }
+  }
+
+  /*
+   * The engine ID an SNMPv3 agent answered a session with: net-snmp learns
+   * it from the agent's Report to the session's first request (RFC 3414
+   * section 4, discovery) and keeps it for the session's later requests. As
+   * hex in capitals, as a trap's engine ID is kept; undefined for a v1 or
+   * v2c session, which discovers nothing, and for one that never got an
+   * answer.
+   */
+  public static readDiscoveredEngineId(
+    session: snmp.Session,
+  ): string | undefined {
+    const securityParameters: { msgAuthoritativeEngineID?: unknown } | undefined =
+      (
+        session as unknown as {
+          msgSecurityParameters?: { msgAuthoritativeEngineID?: unknown };
+        }
+      ).msgSecurityParameters;
+
+    const engineId: unknown = securityParameters?.msgAuthoritativeEngineID;
+
+    if (!Buffer.isBuffer(engineId) || engineId.length === 0) {
+      return undefined;
+    }
+
+    return (
+      SnmpTrapReceiverUtil.normalizeEngineId(engineId.toString("hex")) ||
+      undefined
+    );
   }
 
   /*

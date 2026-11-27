@@ -915,6 +915,15 @@ export default class SnmpTrapReceiver {
       trap.contextName = notification.contextName;
     }
 
+    /*
+     * Which records hold the credential that authenticated it, as OneUptime
+     * handed them over (#11172, #11174): which project may keep the trap,
+     * and which of the devices at its address sent it.
+     */
+    if (notification.signedBy) {
+      trap.signedBy = notification.signedBy;
+    }
+
     return trap;
   }
 

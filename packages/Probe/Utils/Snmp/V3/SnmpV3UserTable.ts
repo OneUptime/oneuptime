@@ -5,6 +5,9 @@ import SnmpSecurityLevel from "Common/Types/Monitor/SnmpMonitor/SnmpSecurityLeve
 import SnmpTrapReceiverUtil, {
   SnmpTrapReceiverUser,
 } from "Common/Types/Probe/SnmpTrapReceiver";
+import SnmpV3CredentialHolderUtil, {
+  SnmpV3CredentialHolders,
+} from "Common/Types/Probe/SnmpV3CredentialHolders";
 import IpCanonicalUtil from "Common/Utils/IpCanonicalUtil";
 import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import crypto from "crypto";
@@ -43,6 +46,12 @@ export interface UsmUser {
   readonly authProtocol?: SnmpAuthProtocol | undefined;
   readonly privProtocol?: SnmpPrivProtocol | undefined;
   readonly addresses: ReadonlySet<string>;
+  /*
+   * The records OneUptime said hold this credential (#11172, #11174): sent
+   * back, unread, with every trap it authenticates. Absent when OneUptime
+   * did not say.
+   */
+  readonly heldBy?: SnmpV3CredentialHolders | undefined;
 }
 
 // A user's keys localized to one engine.
@@ -93,7 +102,11 @@ export default class SnmpV3UserTable {
   public replace(users: Array<SnmpTrapReceiverUser>): void {
     const usersByFingerprint: Map<
       string,
-      { user: SnmpTrapReceiverUser; addresses: Set<string> }
+      {
+        user: SnmpTrapReceiverUser;
+        addresses: Set<string>;
+        heldBy: SnmpV3CredentialHolders | undefined;
+      }
     > = new Map();
 
     for (const candidate of users) {
@@ -107,13 +120,27 @@ export default class SnmpV3UserTable {
 
       const fingerprint: string = SnmpV3UserTable.getFingerprint(user);
       const existing:
-        | { user: SnmpTrapReceiverUser; addresses: Set<string> }
+        | {
+            user: SnmpTrapReceiverUser;
+            addresses: Set<string>;
+            heldBy: SnmpV3CredentialHolders | undefined;
+          }
         | undefined = usersByFingerprint.get(fingerprint);
 
       if (existing) {
         for (const address of user.addresses) {
           existing.addresses.add(address);
         }
+
+        /*
+         * The server sends each credential once; sent twice, it is held by
+         * both - and by nothing known when either side does not say.
+         */
+        existing.heldBy =
+          existing.heldBy && user.heldBy
+            ? SnmpV3CredentialHolderUtil.merge(existing.heldBy, user.heldBy) ||
+              undefined
+            : undefined;
         continue;
       }
 
@@ -124,6 +151,7 @@ export default class SnmpV3UserTable {
             return IpCanonicalUtil.canonicalize(address);
           }),
         ),
+        heldBy: user.heldBy,
       });
     }
 
@@ -143,6 +171,7 @@ export default class SnmpV3UserTable {
         authProtocol: user.authProtocol,
         privProtocol: user.privProtocol,
         addresses: entry.addresses,
+        heldBy: entry.heldBy,
       };
 
       const named: Array<UsmUser> = usersByName.get(nameKey) || [];
