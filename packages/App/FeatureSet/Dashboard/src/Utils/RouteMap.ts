@@ -662,6 +662,11 @@ export const StorageArrayRoutePath: Dictionary<string> = {
   [PageMap.STORAGE_ARRAY_VIEW_DIRECTORIES]: `${RouteParams.ModelID}/directories`,
   // A kind a platform has of its own, by its name (StorageArrayPlatform.kindDefinitions).
   [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: `${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}`,
+  /*
+   * One part of such a kind (a NetApp aggregate), under its kind's list:
+   * the part's externalId, percent-encoded, is the last segment.
+   */
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART]: `${RouteParams.ModelID}/inventory/${RouteParams.SubModelID}/${RouteParams.PartID}`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEMS]: `${RouteParams.ModelID}/file-systems`,
   [PageMap.STORAGE_ARRAY_VIEW_FILE_SYSTEM_DETAIL]: `${RouteParams.ModelID}/file-systems/${RouteParams.SubModelID}`,
   [PageMap.STORAGE_ARRAY_VIEW_BUCKETS]: `${RouteParams.ModelID}/buckets`,
@@ -6656,6 +6661,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.STORAGE_ARRAY_VIEW_INVENTORY]: new Route(
     `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
       StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INVENTORY]
+    }`,
+  ),
+
+  [PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/storage-arrays/${
+      StorageArrayRoutePath[PageMap.STORAGE_ARRAY_VIEW_INVENTORY_PART]
     }`,
   ),
 

@@ -16,11 +16,13 @@
  * oneuptime.agent.version that config stamps).
  *
  * troubleshoot.sh: its array probe asks the array the way the collector
- * does — the native endpoint with namespace=purefa, or Pure's exporter with
- * endpoint=<array> — and names the cause: a refused API token, a FlashArray
- * without the native endpoint, an exporter whose profile is off, a
- * certificate the collector does not trust. The API token reaches curl on
- * stdin, never on a command line.
+ * does — the native endpoint with namespace=purefa, Pure's exporter with
+ * endpoint=<array>, or NetApp Harvest on the compose network — and names
+ * the cause: a refused API token, a FlashArray without the native
+ * endpoint, an exporter whose profile is off, a certificate the collector
+ * does not trust, Harvest serving nothing of the cluster. The API token
+ * reaches curl on stdin, never on a command line, and an ONTAP user's
+ * password never leaves .env and the container.
  */
 
 const crypto = require("crypto");
@@ -35,6 +37,33 @@ const AGENT_DIR = path.join(REPO_ROOT, "agents", "StorageArrayAgent");
 const INGESTION_KEY = "0b6a4e39-1f0e-4a7c-9d57-6c0f2a8a3b11";
 const FA_TOKEN = "3bc8f0a2-6d1e-4c57-9a0b-1f2e3d4c5b6a";
 const FB_TOKEN = "T-7d0c2e1b-5a4f-4e3d-8c2b-1a0f9e8d7c6b";
+// An ONTAP user's password: only Harvest reads it, so a $ and a space are fine.
+const ONTAP_PASSWORD = "Harvest-r3ad$only pass";
+
+/*
+ * What install.sh downloads besides the compose file: every config, then
+ * every platform's other files, in the PLATFORMS table's order (Dell's
+ * exporter and syslog collector, then NetApp Harvest's).
+ */
+const CONFIG_FILES = [
+  "otel-collector-config.yaml",
+  "otel-collector-config.flasharray-exporter.yaml",
+  "otel-collector-config.flashblade.yaml",
+  "otel-collector-config.powerstore.yaml",
+  "otel-collector-config.netapp-ontap.yaml",
+];
+const HARVEST_FILES = [
+  "netapp-harvest.yml",
+  "netapp-harvest-rest.yaml",
+  "netapp-harvest-keyperf.yaml",
+  "netapp-harvest-restperf.yaml",
+];
+const OTHER_FILES = [
+  "powerstore-exporter.Dockerfile",
+  "powerstore-syslog.yaml",
+  ...HARVEST_FILES,
+];
+const INSTALLED_FILES = ["docker-compose.yml", ...CONFIG_FILES, ...OTHER_FILES];
 
 const scratchDirs = [];
 
@@ -174,6 +203,9 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       POWERSTORE_API_VERSION: "''",
       POWERSTORE_REQUEST_LIMIT: "''",
       POWERSTORE_SYSLOG_PORT: "''",
+      NETAPP_ONTAP_ENDPOINT: "''",
+      NETAPP_ONTAP_USERNAME: "''",
+      NETAPP_ONTAP_PASSWORD: "''",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
     });
     // It holds the array's API token.
@@ -184,7 +216,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(run.output).not.toContain(FA_TOKEN);
   });
 
-  test("downloads the compose file and every platform's files, so switching the array type is an .env edit", () => {
+  test("downloads the compose file, every config and every platform's other files, so switching the array type is an .env edit", () => {
     const dir = scratch();
     const run = install(dir, {
       env: {
@@ -199,15 +231,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     });
 
     expect(run.status).toBe(0);
-    for (const file of [
-      "docker-compose.yml",
-      "otel-collector-config.yaml",
-      "otel-collector-config.flasharray-exporter.yaml",
-      "otel-collector-config.flashblade.yaml",
-      "otel-collector-config.powerstore.yaml",
-      "powerstore-exporter.Dockerfile",
-      "powerstore-syslog.yaml",
-    ]) {
+    for (const file of INSTALLED_FILES) {
       expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
         fs.readFileSync(path.join(AGENT_DIR, file), "utf8"),
       );
@@ -239,15 +263,11 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       });
 
     expect(run.status).toBe(0);
-    expect(requested).toEqual([
-      `${served}/docker-compose.yml`,
-      `${served}/otel-collector-config.yaml`,
-      `${served}/otel-collector-config.flasharray-exporter.yaml`,
-      `${served}/otel-collector-config.flashblade.yaml`,
-      `${served}/otel-collector-config.powerstore.yaml`,
-      `${served}/powerstore-exporter.Dockerfile`,
-      `${served}/powerstore-syslog.yaml`,
-    ]);
+    expect(requested).toEqual(
+      INSTALLED_FILES.map((file) => {
+        return `${served}/${file}`;
+      }),
+    );
     expect(run.output).toContain(
       `If nothing shows up: curl -fsSL ${served}/troubleshoot.sh | bash -s -- -d ${run.installDir}`,
     );
@@ -275,12 +295,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
 
     expect(run.status).toBe(0);
     expect(run.output).toContain("Downloading them from GitHub instead.");
-    for (const file of [
-      "docker-compose.yml",
-      "otel-collector-config.yaml",
-      "otel-collector-config.flasharray-exporter.yaml",
-      "otel-collector-config.flashblade.yaml",
-    ]) {
+    for (const file of INSTALLED_FILES) {
       expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
         fs.readFileSync(path.join(AGENT_DIR, file), "utf8"),
       );
@@ -316,7 +331,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     expect(calls).toEqual([
       {
         cwd: installDir,
-        args: "compose --profile flasharray-exporter --profile flashblade --profile powerstore down --remove-orphans",
+        args: "compose --profile flasharray-exporter --profile flashblade --profile powerstore --profile netapp-ontap down --remove-orphans",
       },
       { cwd: installDir, args: "compose up -d --force-recreate" },
     ]);
@@ -369,6 +384,125 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       PURE_FB_API_TOKEN: `'${FB_TOKEN}'`,
       PURE_FA_ENDPOINT: "''",
       PURE_FA_API_TOKEN: "''",
+    });
+  });
+
+  test("an ONTAP cluster: the ONTAP config, its profile, the ONTAP platform, and the user and password Harvest logs in with", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      input: answers(
+        "https://oneuptime.example.com",
+        INGESTION_KEY,
+        "5",
+        "ontap-prod-01",
+        "https://ontap-prod-01.example.com/",
+        "oneuptime",
+        ONTAP_PASSWORD,
+        "",
+      ),
+    });
+
+    expect(run.status).toBe(0);
+    expect(envLines(run.envFile)).toEqual({
+      ONEUPTIME_URL: "'https://oneuptime.example.com'",
+      ONEUPTIME_TELEMETRY_INGESTION_KEY: `'${INGESTION_KEY}'`,
+      STORAGE_ARRAY_NAME: "'ontap-prod-01'",
+      STORAGE_SYSTEM: "netapp.ontap",
+      STORAGE_ARRAY_COLLECTOR_CONFIG: "otel-collector-config.netapp-ontap.yaml",
+      COMPOSE_PROFILES: "netapp-ontap",
+      PURE_FA_ENDPOINT: "''",
+      PURE_FA_API_TOKEN: "''",
+      PURE_FB_ENDPOINT: "''",
+      PURE_FB_API_TOKEN: "''",
+      // Every other platform's settings are written too, empty.
+      POWERSTORE_ENDPOINT: "''",
+      POWERSTORE_PASSWORD: "''",
+      POWERSTORE_USERNAME: "''",
+      POWERSTORE_BULK_METRICS: "''",
+      POWERSTORE_API_VERSION: "''",
+      POWERSTORE_REQUEST_LIMIT: "''",
+      POWERSTORE_SYSLOG_PORT: "''",
+      // Scheme and path go: Harvest wants the bare address.
+      NETAPP_ONTAP_ENDPOINT: "'ontap-prod-01.example.com'",
+      NETAPP_ONTAP_USERNAME: "'oneuptime'",
+      // Single-quoted: Compose hands Harvest exactly what was typed.
+      NETAPP_ONTAP_PASSWORD: `'${ONTAP_PASSWORD}'`,
+      STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
+    });
+    // It holds the user's password, read without echo.
+    expect(fs.statSync(path.join(run.installDir, ".env")).mode & 0o777).toBe(
+      0o600,
+    );
+    expect(run.output).not.toContain(ONTAP_PASSWORD);
+    // Harvest talks TLS to the cluster, so the certificate question is asked.
+    expect(run.output).toContain(
+      "ONTAP clusters ship a self-signed certificate, which the agent cannot verify.",
+    );
+    expect(run.output).toContain(
+      "If nothing shows up: curl -fsSL https://oneuptime.example.com/install/storage-array-agent/troubleshoot.sh",
+    );
+    for (const file of HARVEST_FILES) {
+      expect(fs.readFileSync(path.join(run.installDir, file), "utf8")).toBe(
+        fs.readFileSync(path.join(AGENT_DIR, file), "utf8"),
+      );
+    }
+  });
+
+  test("an ONTAP password with a quote is written for Compose and read back exactly on a re-run", () => {
+    const dir = scratch();
+    const password = `it's$1"x`;
+    const first = install(dir, {
+      input: answers(
+        "https://oneuptime.example.com",
+        INGESTION_KEY,
+        "5",
+        "ontap-prod-01",
+        "ontap-prod-01.example.com",
+        "oneuptime",
+        password,
+        "y",
+      ),
+    });
+
+    expect(first.status).toBe(0);
+    // A ' cannot be single-quoted: double quotes, with \" and $$.
+    expect(envLines(first.envFile).NETAPP_ONTAP_PASSWORD).toBe(
+      '"it\'s$$1\\"x"',
+    );
+    expect(envLines(first.envFile).STORAGE_ARRAY_INSECURE_SKIP_VERIFY).toBe(
+      "false",
+    );
+    expect(first.output).not.toContain(password);
+
+    // No input at all: any prompt would read EOF and stop the script.
+    const second = install(dir);
+    expect(second.status).toBe(0);
+    expect(second.output).toContain("reusing it");
+    expect(second.envFile).toBe(first.envFile);
+  });
+
+  test("STORAGE_SYSTEM=netapp.ontap picks the ONTAP config without asking", () => {
+    const dir = scratch();
+    const run = install(dir, {
+      env: {
+        ONEUPTIME_URL: "https://oneuptime.example.com",
+        ONEUPTIME_TELEMETRY_INGESTION_KEY: INGESTION_KEY,
+        STORAGE_SYSTEM: "netapp.ontap",
+        STORAGE_ARRAY_NAME: "ontap-prod-01",
+        NETAPP_ONTAP_ENDPOINT: "ontap-prod-01.example.com",
+        NETAPP_ONTAP_USERNAME: "oneuptime",
+        NETAPP_ONTAP_PASSWORD: ONTAP_PASSWORD,
+        STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
+      },
+    });
+
+    expect(run.status).toBe(0);
+    expect(run.output).not.toContain("Which array does this agent monitor?");
+    expect(envLines(run.envFile)).toMatchObject({
+      STORAGE_SYSTEM: "netapp.ontap",
+      STORAGE_ARRAY_COLLECTOR_CONFIG: "otel-collector-config.netapp-ontap.yaml",
+      COMPOSE_PROFILES: "netapp-ontap",
+      NETAPP_ONTAP_PASSWORD: `'${ONTAP_PASSWORD}'`,
     });
   });
 
@@ -546,15 +680,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       PURE_FA_API_TOKEN: FA_TOKEN,
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
     };
-    const AGENT_FILES = [
-      "docker-compose.yml",
-      "otel-collector-config.yaml",
-      "otel-collector-config.flasharray-exporter.yaml",
-      "otel-collector-config.flashblade.yaml",
-      "otel-collector-config.powerstore.yaml",
-      "powerstore-exporter.Dockerfile",
-      "powerstore-syslog.yaml",
-    ];
+    const AGENT_FILES = INSTALLED_FILES;
     const CONFIGS = AGENT_FILES.filter((file) => {
       return file.startsWith("otel-collector-config");
     });
@@ -758,8 +884,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
  * `docker` answers the runtime checks as a healthy install would, reads the
  * container's environment from container.env, answers the OneUptime token
  * probe as a server that accepts the key, and answers the array probe
- * (any /metrics/array URL) from array.out with array.exit as curl's exit
- * code. A `docker run -i` (the array probe) records what it read on stdin.
+ * (any /metrics/array URL, or Harvest's /metrics) from array.out with
+ * array.exit as curl's exit code. A `docker run -i` (the array probe) records what it read on stdin.
  * `compose ps` prints compose-ps.out; `inspect` of that id prints
  * container.name.
  */
@@ -795,7 +921,7 @@ case "$1" in
       */otlp/v1/validate*) printf '{"valid":true,"keyType":"Server"}\\nOUSTATUS:200\\n' ;;
       *127.0.0.1:8888/metrics*)
         printf 'otelcol_receiver_accepted_metric_points 10\\notelcol_exporter_sent_metric_points 10\\notelcol_exporter_send_failed_metric_points 0\\n' ;;
-      */metrics/array*)
+      */metrics/array*|*netapp-harvest:12990/metrics*)
         cat "$STUB_DIR/array.out"
         exit "$(cat "$STUB_DIR/array.exit" 2>/dev/null || echo 0)" ;;
     esac
@@ -829,6 +955,24 @@ const FA_EXPORTER_ENV = {
   STORAGE_ARRAY_COLLECTOR_CONFIG:
     "otel-collector-config.flasharray-exporter.yaml",
   COMPOSE_PROFILES: "flasharray-exporter",
+};
+
+const HARVEST_BODY = [
+  'netapp_cluster_new_status{cluster="ontap-prod-01",datacenter="ontap-prod-01"} 1',
+  'netapp_volume_size_used_percent{cluster="ontap-prod-01",svm="svm1",volume="vol1"} 42',
+].join("\n");
+
+const ONTAP_ENV = {
+  ONEUPTIME_URL: "https://oneuptime.example.com",
+  ONEUPTIME_TELEMETRY_INGESTION_KEY: INGESTION_KEY,
+  STORAGE_ARRAY_NAME: "ontap-prod-01",
+  STORAGE_SYSTEM: "netapp.ontap",
+  STORAGE_ARRAY_COLLECTOR_CONFIG: "otel-collector-config.netapp-ontap.yaml",
+  COMPOSE_PROFILES: "netapp-ontap",
+  NETAPP_ONTAP_ENDPOINT: "ontap-prod-01.example.com",
+  NETAPP_ONTAP_USERNAME: "oneuptime",
+  NETAPP_ONTAP_PASSWORD: ONTAP_PASSWORD,
+  STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
 };
 
 const FLASHBLADE_ENV = {
@@ -913,10 +1057,14 @@ function arrayCheckLines(output) {
     });
 }
 
-/* The `docker run` calls that probed the array. */
+/* The `docker run` calls that probed the array (or, for ONTAP, Harvest). */
 function arrayProbes(run) {
   return run.docker.split("\n").filter((line) => {
-    return line.startsWith("run ") && line.includes("/metrics/array");
+    return (
+      line.startsWith("run ") &&
+      (line.includes("/metrics/array") ||
+        line.includes("netapp-harvest:12990/metrics"))
+    );
   });
 }
 
@@ -1068,6 +1216,110 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
       "✔ The array answers with metrics: fb-prod (Purity//FB 4.5.6), 1 purefb_* series on /metrics/array.",
     ]);
     expect(run.status).toBe(0);
+  });
+
+  test("an ONTAP cluster Harvest reads passes, and names the cluster", () => {
+    const run = doctor(ONTAP_ENV, { body: HARVEST_BODY });
+
+    expect(arrayCheckLines(run.output)).toEqual([
+      "✔ COMPOSE_PROFILES includes 'netapp-ontap' (starts the exporter this config scrapes).",
+      "✔ NETAPP_ONTAP_USERNAME and NETAPP_ONTAP_PASSWORD are set.",
+      "✔ Harvest reads the cluster: ontap-prod-01, 2 netapp_* series.",
+    ]);
+    expect(run.output).toContain(
+      "The agent looks healthy and OneUptime accepts the token.",
+    );
+    expect(run.status).toBe(0);
+  });
+
+  test("probes Harvest on the compose network as the collector scrapes it, and the password goes nowhere", () => {
+    const run = doctor(ONTAP_ENV, { body: HARVEST_BODY });
+
+    const probes = arrayProbes(run);
+    expect(probes).toHaveLength(1);
+    expect(probes[0]).toContain("http://netapp-harvest:12990/metrics");
+    // Harvest holds the login: the probe sends no credential at all.
+    expect(probes[0]).not.toContain("Authorization");
+    expect(run.stdin).toBe("");
+    expect(run.docker).not.toContain(ONTAP_PASSWORD);
+    expect(run.output).not.toContain(ONTAP_PASSWORD);
+  });
+
+  test("Harvest not answering is the root cause, and the fix is its profile", () => {
+    const run = doctor(ONTAP_ENV, {
+      body: "curl: (6) Could not resolve host: netapp-harvest",
+      status: "000",
+      curlExit: 6,
+    });
+
+    expect(arrayCheckLines(run.output)).toContain(
+      "✗ No answer from http://netapp-harvest:12990/metrics (curl exit 6).",
+    );
+    expect(run.output).toContain("ROOT CAUSE: NetApp Harvest is not running.");
+    expect(run.output).toContain("COMPOSE_PROFILES=netapp-ontap");
+    expect(run.status).toBe(1);
+  });
+
+  test("an ONTAP config without its profile: Harvest never starts", () => {
+    const run = doctor(
+      { ...ONTAP_ENV, COMPOSE_PROFILES: "" },
+      {
+        body: "curl: (6) Could not resolve host: netapp-harvest",
+        status: "000",
+        curlExit: 6,
+      },
+    );
+
+    expect(arrayCheckLines(run.output)).toContain(
+      "✗ COMPOSE_PROFILES='' does not include 'netapp-ontap' — the exporter this config scrapes never starts.",
+    );
+    expect(run.output).toContain("ROOT CAUSE: NetApp Harvest is not running.");
+    expect(run.status).toBe(1);
+  });
+
+  test("Harvest serving nothing of the cluster points at its login, its address and its log", () => {
+    const run = doctor(ONTAP_ENV, {
+      body: 'netapp_poller_status{poller="ontap-prod-01"} 1',
+    });
+
+    expect(arrayCheckLines(run.output)).toContain(
+      "✗ Harvest answers, but has not read the cluster: no netapp_cluster_new_status series.",
+    );
+    expect(run.output).toContain(
+      "ROOT CAUSE: NetApp Harvest cannot read the cluster (login / address / network).",
+    );
+    expect(run.output).toContain(
+      "docker compose logs --tail 200 netapp-harvest",
+    );
+    expect(run.status).toBe(1);
+  });
+
+  test("an ONTAP install without its user or password is a misconfiguration, and Harvest is not probed", () => {
+    const noUser = doctor({ ...ONTAP_ENV, NETAPP_ONTAP_USERNAME: "" });
+    expect(arrayCheckLines(noUser.output)).toContain(
+      "✗ NETAPP_ONTAP_USERNAME is not set — Harvest has no user to log in to the cluster with.",
+    );
+    expect(arrayProbes(noUser)).toEqual([]);
+    expect(noUser.output).toContain(
+      "ROOT CAUSE: the array settings in .env are incomplete or invalid.",
+    );
+
+    const noPassword = doctor({ ...ONTAP_ENV, NETAPP_ONTAP_PASSWORD: "" });
+    expect(arrayCheckLines(noPassword.output)).toContain(
+      "✗ NETAPP_ONTAP_PASSWORD is not set — the cluster refuses Harvest without the read-only user's password.",
+    );
+    expect(arrayProbes(noPassword)).toEqual([]);
+  });
+
+  test("an ONTAP config stamped as a FlashArray is flagged", () => {
+    const run = doctor(
+      { ...ONTAP_ENV, STORAGE_SYSTEM: "purestorage.flasharray" },
+      { body: HARVEST_BODY },
+    );
+
+    expect(arrayCheckLines(run.output)).toContain(
+      "▲ STORAGE_SYSTEM='purestorage.flasharray' but otel-collector-config.netapp-ontap.yaml reads a NetApp ONTAP cluster (netapp.ontap).",
+    );
   });
 
   test("a FlashBlade config stamped as a FlashArray is flagged", () => {

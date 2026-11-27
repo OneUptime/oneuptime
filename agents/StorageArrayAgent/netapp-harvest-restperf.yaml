@@ -1,0 +1,22 @@
+# NetApp Harvest's RestPerf collector, limited to the counter tables
+# OneUptime reads that KeyPerf has no statistics for: Ethernet ports
+# (nic_common: traffic, utilization, errors), Fibre Channel ports (fcp:
+# traffic, utilization, link failures) and disks (disk:constituent), whose
+# template exports no per-disk series but does export each shelf's fans,
+# power supplies, temperature and voltage sensors and modules (Harvest's
+# shelf_*_status series come from it, not from the Rest collector's Shelf).
+# It reads ONTAP's performance counters (/api/cluster/counter/tables), which
+# the read-only REST role grants. docker-compose.yml mounts this file as
+# conf/restperf/oneuptime.yaml in the netapp-harvest service. Keep it as
+# shipped: install.sh replaces it on every re-run.
+collector: RestPerf
+
+schedule:
+  - counter: 24h
+  - instance: 720h
+  - data: 1m
+
+objects:
+  NicCommon: nic_common.yaml
+  FcpPort: fcp.yaml
+  Disk: disk.yaml
