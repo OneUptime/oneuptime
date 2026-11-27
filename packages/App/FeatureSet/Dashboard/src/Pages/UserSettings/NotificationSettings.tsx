@@ -606,6 +606,11 @@ const EVENT_LIBRARY: Record<
     description:
       "A cloud budget that names you, or a team you are on, passes one of its thresholds below 100%. No alert is raised and nobody is paged.",
   },
+  [NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION]: {
+    label: "Cloud cost report",
+    description:
+      "A scheduled report of what the clouds cost goes out to you, a team you are on, or your team's cost group, with its figures as a CSV.",
+  },
 
   [NotificationSettingEventType.SEND_INCOMING_CALL_MISSED_OWNER_NOTIFICATION]: {
     label: "Missed call",
@@ -942,6 +947,17 @@ const monitoring: Array<SectionDef> = [
       "Notify me when a cloud budget that names me, or a team I am on, passes a threshold below 100%.",
     ),
     [NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION],
+  ),
+  /*
+   * Scheduled cloud cost reports (#11009): the report itself, sent to the
+   * person, a team they are on, or their team's cost group.
+   */
+  buildSection(
+    translationKey("Cloud Cost Reports"),
+    translationKey(
+      "Send me the cloud cost reports that name me, a team I am on, or my team's cost group.",
+    ),
+    [NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION],
   ),
   /*
    * Dashboards, workflows and runbooks (#9700), the products menu's own

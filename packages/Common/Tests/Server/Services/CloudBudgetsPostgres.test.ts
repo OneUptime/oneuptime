@@ -6,7 +6,7 @@ import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import UserNotificationSetting from "../../../Models/DatabaseModels/UserNotificationSetting";
 import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase";
-import { CLOUD_BUDGET_ACCOUNT_SCOPE_UPDATE } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187761008-AddCloudBudgetScopesPeriodsAndPlans";
+import { CLOUD_BUDGET_ACCOUNT_SCOPE_UPDATE } from "../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187771008-AddCloudBudgetScopesPeriodsAndPlans";
 import CloudBudgetService, {
   CLOUD_BUDGET_ACCOUNT_ERROR,
   CLOUD_BUDGET_COST_GROUP_ERROR,

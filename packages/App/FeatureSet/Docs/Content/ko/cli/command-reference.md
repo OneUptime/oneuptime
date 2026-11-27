@@ -261,6 +261,44 @@ oneuptime <resource> add-note <id> --note <markdown> [--public]
 | `--note <markdown>` | 예 | Markdown으로 된 메모 |
 | `--public` | 아니요 | 레코드의 상태 페이지에 메모를 올리고 구독자에게 알립니다. 인시던트, 그 에피소드, 예정된 유지 관리 전용 |
 
+### `oneuptime <resource> breakdown`
+
+`cloud-cost` 전용. 기간 동안 클라우드에 든 비용을 **클라우드 → 지출 → 비용**처럼 나누고, 각 줄 옆에 이전 기간을 함께 보여 줍니다. 서비스, 리전, 계정, 리소스, 앱 플랫폼 환경, 앱, 태그 값 또는 비용 보기의 그룹별입니다. 키가 비용을 읽을 수 있는 대로 읽습니다. [보고서와 내보내기](/docs/telemetry/cloud-costs#보고서와-내보내기)를 참고하세요.
+
+```bash
+oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
+```
+
+| 옵션 | 필수 | 설명 | 기본값 |
+| --- | --- | --- | --- |
+| `--by <dimension>` | 아니요 | 지출을 나눌 기준: `service`, `region`, `account`, `resource`, `environment`, `app`, `tag` 또는 `group` | `service` |
+| `--tag-key <key>` | `--by tag`와 함께 | 그 값으로 지출을 나눌 태그(예: `team`) | |
+| `--view <id>` | `--by group`과 함께 | 그 그룹으로 지출을 나눌 비용 보기 | |
+| `--period <period>` | 아니요 | 읽을 날짜: `this-month`, `last-month`, `last-week` 또는 `last-30-days`, UTC 달력 기준 | `this-month` |
+| `--start-date <date>` | 아니요 | 첫날(예: `2026-11-01`), `--period` 대신 | |
+| `--end-date <date>` | 아니요 | 마지막 날(예: `2026-11-30`), `--start-date`와 함께 | |
+| `--account <id...>` | 아니요 | 이 클라우드 계정의 비용만. 여러 개는 반복해서 지정합니다 | 모든 계정 |
+| `--currency <code>` | 아니요 | 통화(예: `USD`) | 대부분의 계정이 청구되는 통화 |
+| `--basis <basis>` | 아니요 | 비용 기준: `billed`, `amortized` 또는 `net` | 프로젝트의 기준 |
+| `--no-compare` | 아니요 | 이전 기간을 뺍니다 | |
+| `--csv` | 아니요 | 비용 페이지의 **CSV 다운로드**가 주는 CSV를 출력합니다 | |
+
+### `oneuptime <resource> export`
+
+`cloud-cost` 전용. 기간의 모든 비용을 FOCUS를 읽는 재무 도구를 위해 FOCUS 1.2 파일로 내보냅니다. 한 번에 최대 93일입니다. [FOCUS](/docs/telemetry/cloud-costs#focus)를 참고하세요.
+
+```bash
+oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--file <path>]
+```
+
+| 옵션 | 필수 | 설명 | 기본값 |
+| --- | --- | --- | --- |
+| `--period <period>` | 아니요 | 내보낼 날짜: `this-month`, `last-month`, `last-week` 또는 `last-30-days` | `last-month` |
+| `--start-date <date>` | 아니요 | 첫날(예: `2026-10-01`), `--period` 대신 | |
+| `--end-date <date>` | 아니요 | 마지막 날(예: `2026-12-31`), `--start-date`와 함께 | |
+| `--account <id...>` | 아니요 | 이 클라우드 계정의 비용만. 여러 개는 반복해서 지정합니다 | 모든 계정 |
+| `--file <path>` | 아니요 | 파일을 여기에 씁니다 | 표준 출력 |
+
 ### 리소스
 
 OneUptime API의 모든 리소스는 명령이며, API가 받는 작업, `fields`, 그리고 동작이 있는 레코드라면 그 동작을 가집니다.

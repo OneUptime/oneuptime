@@ -362,11 +362,79 @@ OneUptime suggests a value only when it is one the tag allows:
 
 The command sets the tag in one step, from your cloud's own shell: `aws resourcegroupstaggingapi tag-resources` on AWS, `az tag update --operation Merge` on Azure, and `gcloud ... add-labels` or `--update-labels` for Compute Engine VMs and disks, Cloud Storage buckets and Cloud SQL instances on Google Cloud.
 
+## Reports and exports
+
+### Cost reports
+
+**Cloud → Spend → Reports** sends what the clouds cost on a schedule, by email and to Slack or Microsoft Teams channels, so the people who need the figures get them without opening OneUptime. A report has:
+
+- **Covers**: every account, one account, a cost group, or a cost view with all its groups.
+- **Period**: last week (Monday to Sunday), last month, or the month so far. Each is compared with the period before: the week before, the month before, or last month by the same day.
+- **Cost Basis**: billed, amortized or net. Empty, it is the project's, as Costs opens on. The report always says which basis it is on.
+- **Schedule**: every week or every month, at a day and time in a time zone, by the same rules as Slack and Microsoft Teams summaries. A new weekly report goes out next Monday at 09:00 in your time zone, a monthly one on the 1st, and later reports keep that day and time all year.
+
+The email says what the period cost against the period before, the budgets it counts towards (each month so far, on the budget's own basis), the services that rose and fell the most, a cost view's groups and what no group takes, the unusual days, the largest savings waiting and how much of the spend commitments cover. Its figures are attached as a CSV. **Open Costs** opens **Costs** on exactly the report's days, basis and view, so the report's numbers and the page's are the same. Accounts billed in another currency are left out of the figures, and the report names them.
+
+A Slack or Microsoft Teams channel gets a short message: the total and its change, the budget, the first lines of the report's lists, and **Open Costs**.
+
+### Who gets a report
+
+- People and teams of the project get it by email, through their notification settings, where each person can turn cloud cost reports off. Each person gets the figures they may read: someone whose access is limited by labels gets their accounts only, and someone who may no longer read the project's cloud costs is left out.
+- **Email Addresses** outside the project, such as your accountant's, and Slack and Microsoft Teams channels need the Cloud Admin permission, or Project Admin or Owner, because OneUptime can't tell who reads them. They get the report as the person who added them may read it, and stop getting it if that person loses the permission. An API key can't set them.
+- Anyone who may make the other Cloud records, Cloud Member and up, can make, change and delete reports. A Cloud Viewer can read them.
+
+A report goes to at most 200 people, 25 addresses and 10 channels of each kind. **Last Send** says when it last went out, and who it left out and why.
+
+### A section for each team
+
+A report of a cost view can send each group its own section with **Send Each Group's Team Its Section**. The members of each group's team, given on the group, get their group's spend against the period before, the services in it that rose and fell the most, and its unusual days. A shared group has no section of its own: its costs are in the groups it is split between. The report's own people, teams and addresses get every group. Someone on two groups' teams gets both sections. One monthly report of a cost view this way is the month's showback.
+
+### Preview and Send Me a Copy
+
+**Preview** shows what a report says now, as you may read it, the way the email lays it out, and who its last send left out and why. **Send Me a Copy** emails it to you now.
+
+### Download CSV
+
+**Download CSV** saves what a card shows: **Where the money goes** on **Costs**, in any breakdown and against the period before, each day's spend, **Savings**' recommendations, and a cost group's page. The file's name says what it holds, what it is broken down by, the view and the account, the cost basis and the days, such as `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Figures are plain numbers, and a text that a spreadsheet would read as a formula starts with an apostrophe.
+
+### FOCUS
+
+**Export FOCUS** on **Costs** downloads every cost of the period as a FOCUS 1.2 file, the FinOps Open Cost and Usage Specification, version 1.2, which finance tools read. One file holds at most 93 days, and every currency the accounts are billed in, each row in its own.
+
+The file has every column FOCUS 1.2 makes mandatory, and the conditional ones OneUptime has the data for: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` and `Tags`. It has a row for each cost OneUptime keeps: a day, an account, a service, a Region and, where the cloud names it, a resource.
+
+- `BilledCost` is what the cloud billed, and `EffectiveCost` what it cost with commitments spread over what they cover.
+- What the cloud took off, its credits, refunds and discounts, is a row of its own, with a `ChargeCategory` of `Credit`. The file's `EffectiveCost` added up is the net cost.
+- `ChargeCategory` is `Tax` for the costs AWS bills under its Tax service, and `Usage` for the rest.
+- `BillingAccountId` is the account the connection reads the bill from: an AWS organization's management account, a Google Cloud billing account, or the Azure subscription, as the Azure billing account isn't read. `SubAccountId` is the AWS account, the Azure subscription or the Google Cloud project.
+- Dates are whole UTC days, with the charge period's and the billing period's end not included. The billing period is the calendar month.
+
+What FOCUS 1.2 asks for that OneUptime doesn't read is left empty or matched as the specification allows. `PricingQuantity` and `PricingUnit` are empty, because the costs are read by day, service, Region and resource, not by usage type. `ListCost` and `ContractedCost` equal `BilledCost`, as FOCUS asks when unit prices aren't known. A purchase, such as a reservation's upfront fee, is the usage of the service it was bought for. There are no SKU, commitment discount, capacity reservation or invoice columns. FOCUS 1.3 and 1.4 add columns that a reader of 1.2 does without.
+
+### From the API and the CLI
+
+The API answers a breakdown, not only the costs' rows, so a finance system can pull the month's chargeback:
+
+- `POST /api/cloud-cost/breakdown` with `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` with a `tagKey`, or `group` with a `cloudCostViewId`), a `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) or a `startDate` and an `endDate`, and optionally `cloudAccountIds`, `currency`, `basis` and `compareWithPrevious`. It answers the period's total and each share, with the period before beside them, or with `"format": "csv"` the CSV that **Download CSV** gives.
+- `POST /api/cloud-cost/export` with a `period`, or a `startDate` and an `endDate`, answers the FOCUS file.
+
+Both read as the key may read the costs. From the [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### On a dashboard
+
+The **Cloud Cost** widget puts a total, a breakdown or a trend of the spend beside the services that spend it. See [Dashboard Widgets](/docs/dashboards/widgets#cloud-costs).
+
 ## What you see in OneUptime
 
 - **Cloud's Overview.** **Cloud → Overview** shows the month's spend against last month's by the same day, the services that cost the most and the largest ways to spend less, beside what needs attention.
 - **Every day's spend.** **Cloud → Spend → Costs** draws each of the last 30 days with the days that cost far more than usual marked, lists those days and breaks a period down by service, Region, account, resource, App Platforms environment, app or tag, billed, amortized or net. The accounts whose costs are not read are listed under it, each with why.
 - **Every commitment.** **Cloud → Spend → Commitments** lists each one with when it ends and how much of it is used, the ones ending soon with what to renew, and what to buy.
+- **Reports.** **Cloud → Spend → Reports** lists each scheduled report with what it covers, when it goes out next and how its last send went.
 - **An account's costs.** An account's **Costs** shows the same for the account alone, with its commitments and its ways to spend less.
 - **Required tags.** **Cloud → Spend → Tags** shows how much of the spend and of the resources carry your required tags, and an account's **Tags** shows the same for the account alone.
 - **A resource's cost.** A resource's page shows what it cost this month and in the last 30 days when its cloud bills it by name, with its ways to spend less and its right-sizing.

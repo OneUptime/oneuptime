@@ -362,11 +362,79 @@ OneUptime ne suggère une valeur que si l'étiquette l'autorise :
 
 La commande pose l'étiquette en une étape, depuis le shell de votre cloud : `aws resourcegroupstaggingapi tag-resources` sur AWS, `az tag update --operation Merge` sur Azure, et `gcloud ... add-labels` ou `--update-labels` pour les VM et disques Compute Engine, les buckets Cloud Storage et les instances Cloud SQL sur Google Cloud.
 
+## Rapports et exports
+
+### Rapports de coûts
+
+**Cloud → Dépenses → Rapports** envoie selon une planification ce que coûtent les clouds, par e-mail et dans des canaux Slack ou Microsoft Teams, pour que les personnes qui ont besoin des chiffres les reçoivent sans ouvrir OneUptime. Un rapport a :
+
+- **Couvre** : tous les comptes, un compte, un groupe de coûts, ou une vue de coûts avec tous ses groupes.
+- **Période** : la semaine dernière (du lundi au dimanche), le mois dernier, ou le mois en cours. Chacune est comparée à la période précédente : la semaine précédente, le mois précédent, ou le mois dernier au même jour.
+- **Base de coût** : facturé, amorti ou net. Vide, c'est celle du projet, sur laquelle Coûts s'ouvre. Le rapport dit toujours sur quelle base il est.
+- **Planification** : chaque semaine ou chaque mois, à un jour et une heure dans un fuseau horaire, selon les mêmes règles que les résumés Slack et Microsoft Teams. Un nouveau rapport hebdomadaire part lundi prochain à 09:00 dans votre fuseau horaire, un mensuel le 1er, et les rapports suivants gardent ce jour et cette heure toute l'année.
+
+L'e-mail dit ce que la période a coûté face à la période précédente, les budgets qu'elle entame (chaque mois en cours, sur la base propre au budget), les services qui ont le plus augmenté et le plus baissé, les groupes d'une vue de coûts et ce qu'aucun groupe ne prend, les jours inhabituels, les plus grandes économies en attente et la part des dépenses que couvrent les engagements. Ses chiffres sont joints en CSV. **Ouvrir Coûts** ouvre **Coûts** sur exactement les jours, la base et la vue du rapport, pour que les chiffres du rapport et ceux de la page soient les mêmes. Les comptes facturés dans une autre devise sont laissés hors des chiffres, et le rapport les nomme.
+
+Un canal Slack ou Microsoft Teams reçoit un court message : le total et son évolution, le budget, les premières lignes des listes du rapport, et **Ouvrir Coûts**.
+
+### Qui reçoit un rapport
+
+- Les personnes et les équipes du projet le reçoivent par e-mail, selon leurs paramètres de notification, où chacun peut désactiver les rapports de coûts cloud. Chaque personne reçoit les chiffres qu'elle peut lire : quelqu'un dont l'accès est limité par des étiquettes ne reçoit que ses comptes, et quelqu'un qui ne peut plus lire les coûts cloud du projet est laissé de côté.
+- Les **Adresses e-mail** hors du projet, comme celle de votre comptable, et les canaux Slack et Microsoft Teams exigent la permission Administrateur du cloud, ou Administrateur du projet ou Propriétaire du projet, car OneUptime ne peut pas savoir qui les lit. Ils reçoivent le rapport tel que la personne qui les a ajoutés peut le lire, et ne le reçoivent plus si cette personne perd la permission. Une clé d'API ne peut pas les définir.
+- Quiconque peut créer les autres enregistrements Cloud, à partir de Membre du cloud, peut créer, modifier et supprimer des rapports. Un Lecteur du cloud peut les lire.
+
+Un rapport va au plus à 200 personnes, 25 adresses et 10 canaux de chaque sorte. **Dernier envoi** dit quand il est parti pour la dernière fois, qui il a laissé de côté et pourquoi.
+
+### Une section pour chaque équipe
+
+Un rapport d'une vue de coûts peut envoyer à chaque groupe sa propre section avec **Envoyer à l'équipe de chaque groupe sa section**. Les membres de l'équipe de chaque groupe, indiquée sur le groupe, reçoivent les dépenses de leur groupe face à la période précédente, les services qui y ont le plus augmenté et le plus baissé, et ses jours inhabituels. Un groupe partagé n'a pas de section à lui : ses coûts sont dans les groupes entre lesquels il est réparti. Les personnes, équipes et adresses du rapport lui-même reçoivent tous les groupes. Quelqu'un qui fait partie des équipes de deux groupes reçoit les deux sections. Un rapport mensuel d'une vue de coûts ainsi fait le showback du mois.
+
+### Aperçu et M'envoyer une copie
+
+**Aperçu** montre ce que dit un rapport maintenant, tel que vous pouvez le lire et tel que l'e-mail le présente, et qui son dernier envoi a laissé de côté et pourquoi. **M'envoyer une copie** vous l'envoie par e-mail maintenant.
+
+### Télécharger le CSV
+
+**Télécharger le CSV** enregistre ce qu'affiche une carte : **Où va l'argent** sur **Coûts**, dans n'importe quelle répartition et face à la période précédente, les dépenses de chaque jour, les recommandations de **Économies**, et la page d'un groupe de coûts. Le nom du fichier dit ce qu'il contient, selon quoi il est réparti, la vue et le compte, la base de coût et les jours, par exemple `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Les chiffres sont des nombres simples, et un texte qu'un tableur lirait comme une formule commence par une apostrophe.
+
+### FOCUS
+
+**Exporter FOCUS** sur **Coûts** télécharge chaque coût de la période sous forme de fichier FOCUS 1.2, la FinOps Open Cost and Usage Specification en version 1.2, que lisent les outils financiers. Un fichier contient au plus 93 jours, et chaque devise dans laquelle les comptes sont facturés, chaque ligne dans la sienne.
+
+Le fichier a chaque colonne que FOCUS 1.2 rend obligatoire, et les colonnes conditionnelles pour lesquelles OneUptime a les données : `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` et `Tags`. Il a une ligne pour chaque coût que OneUptime conserve : un jour, un compte, un service, une région et, quand le cloud le nomme, une ressource.
+
+- `BilledCost` est ce que le cloud a facturé, et `EffectiveCost` ce que cela a coûté avec les engagements répartis sur ce qu'ils couvrent.
+- Ce que le cloud a déduit, ses crédits, remboursements et remises, est une ligne à part, avec une `ChargeCategory` à `Credit`. L'`EffectiveCost` du fichier, additionné, donne le coût net.
+- `ChargeCategory` vaut `Tax` pour les coûts qu'AWS facture sous son service Tax, et `Usage` pour le reste.
+- `BillingAccountId` est le compte dont la connexion lit la facture : le compte de gestion d'une organisation AWS, un compte de facturation Google Cloud, ou l'abonnement Azure, car le compte de facturation Azure n'est pas lu. `SubAccountId` est le compte AWS, l'abonnement Azure ou le projet Google Cloud.
+- Les dates sont des jours UTC entiers, la fin de la période de facturation de la charge et celle de la période de facturation n'étant pas incluses. La période de facturation est le mois civil.
+
+Ce que FOCUS 1.2 demande et que OneUptime ne lit pas est laissé vide ou rempli comme la spécification le permet. `PricingQuantity` et `PricingUnit` sont vides, car les coûts sont lus par jour, service, région et ressource, pas par type d'usage. `ListCost` et `ContractedCost` valent `BilledCost`, comme FOCUS le demande quand les prix unitaires ne sont pas connus. Un achat, comme le paiement initial d'une réservation, est l'usage du service pour lequel il a été acheté. Il n'y a pas de colonnes de SKU, de remise d'engagement, de réservation de capacité ni de facture. FOCUS 1.3 et 1.4 ajoutent des colonnes dont un lecteur de 1.2 se passe.
+
+### Depuis l'API et la CLI
+
+L'API répond par une répartition, pas seulement par les lignes des coûts, pour qu'un système financier puisse récupérer la refacturation du mois :
+
+- `POST /api/cloud-cost/breakdown` avec `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` avec une `tagKey`, ou `group` avec un `cloudCostViewId`), une `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) ou une `startDate` et une `endDate`, et en option `cloudAccountIds`, `currency`, `basis` et `compareWithPrevious`. La réponse donne le total de la période et chaque part, avec la période précédente à côté, ou avec `"format": "csv"` le CSV que donne **Télécharger le CSV**.
+- `POST /api/cloud-cost/export` avec une `period`, ou une `startDate` et une `endDate`, répond par le fichier FOCUS.
+
+Les deux lisent comme la clé peut lire les coûts. Depuis la [CLI](/docs/cli/command-reference) :
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### Sur un tableau de bord
+
+Le widget **Coût cloud** place un total, une répartition ou une tendance des dépenses à côté des services qui les engagent. Voir [Widgets de tableau de bord](/docs/dashboards/widgets#coûts-cloud).
+
 ## Ce que vous voyez dans OneUptime
 
 - **La vue d'ensemble de Cloud.** **Cloud → Vue d'ensemble** montre les dépenses du mois face à celles du mois dernier au même jour, les services qui coûtent le plus et les plus gros moyens de dépenser moins, à côté de ce qui demande votre attention.
 - **Les dépenses de chaque jour.** **Cloud → Dépenses → Coûts** trace chacun des 30 derniers jours en marquant ceux qui ont coûté bien plus que d'habitude, liste ces jours et ventile une période par service, région, compte, ressource, environnement des plateformes d'applications, application ou étiquette, facturé, amorti ou net. Les comptes dont les coûts ne sont pas lus sont listés en dessous, chacun avec la raison.
 - **Chaque engagement.** **Cloud → Dépenses → Engagements** liste chacun avec sa date de fin et sa part utilisée, ceux qui se terminent bientôt avec ce qu'il faut renouveler, et ce qu'il faut acheter.
+- **Rapports.** **Cloud → Dépenses → Rapports** liste chaque rapport planifié avec ce qu'il couvre, quand il part la prochaine fois et comment s'est passé son dernier envoi.
 - **Les coûts d'un compte.** Les **Coûts** d'un compte montrent la même chose pour ce seul compte, avec ses engagements et ses moyens de dépenser moins.
 - **Étiquettes obligatoires.** **Cloud → Dépenses → Étiquettes** montre quelle part des dépenses et des ressources porte vos étiquettes obligatoires, et les **Étiquettes** d'un compte montrent la même chose pour ce seul compte.
 - **Le coût d'une ressource.** La page d'une ressource montre ce qu'elle a coûté ce mois-ci et sur les 30 derniers jours quand son cloud la facture par son nom, avec ses moyens de dépenser moins et son redimensionnement.

@@ -362,11 +362,79 @@ OneUptime föreslår bara ett värde när taggen tillåter det:
 
 Kommandot sätter taggen i ett steg, från ditt molns eget skal: `aws resourcegroupstaggingapi tag-resources` på AWS, `az tag update --operation Merge` på Azure och `gcloud ... add-labels` eller `--update-labels` för Compute Engine-VM:ar och -diskar, Cloud Storage-buckets och Cloud SQL-instanser på Google Cloud.
 
+## Rapporter och exporter
+
+### Kostnadsrapporter
+
+**Moln → Utgifter → Rapporter** skickar enligt ett schema vad molnen kostar, via e-post och till Slack- eller Microsoft Teams-kanaler, så att de som behöver siffrorna får dem utan att öppna OneUptime. En rapport har:
+
+- **Täcker**: alla konton, ett konto, en kostnadsgrupp eller en kostnadsvy med alla dess grupper.
+- **Tidsperiod**: förra veckan (måndag till söndag), förra månaden eller månaden hittills. Var och en jämförs med perioden innan: veckan innan, månaden innan eller förra månaden till samma dag.
+- **Kostnadsbas**: fakturerad, amorterad eller netto. Tom är det projektets, som Kostnader öppnas med. Rapporten säger alltid vilken bas den använder.
+- **Schema**: varje vecka eller varje månad, en dag och en tid i en tidszon, enligt samma regler som sammanfattningarna i Slack och Microsoft Teams. En ny veckorapport skickas nästa måndag kl. 09:00 i din tidszon, en månadsrapport den 1:a, och senare rapporter behåller den dagen och tiden hela året.
+
+E-postmeddelandet säger vad perioden kostade mot perioden innan, de budgetar den räknas mot (varje månad hittills, på budgetens egen bas), tjänsterna som ökade och minskade mest, grupperna i en kostnadsvy och det som ingen grupp tar, de ovanliga dagarna, de största väntande besparingarna och hur mycket av utgifterna åtaganden täcker. Siffrorna är bifogade som CSV. **Öppna Kostnader** öppnar **Kostnader** på exakt rapportens dagar, bas och vy, så att rapportens siffror och sidans är desamma. Konton som faktureras i en annan valuta hålls utanför siffrorna, och rapporten nämner dem.
+
+En Slack- eller Microsoft Teams-kanal får ett kort meddelande: summan och dess förändring, budgeten, de första raderna i rapportens listor och **Öppna Kostnader**.
+
+### Vem som får en rapport
+
+- Projektets personer och team får den via e-post, genom sina aviseringsinställningar, där var och en kan stänga av molnkostnadsrapporter. Var och en får de siffror de får läsa: den vars åtkomst begränsas av etiketter får bara sina konton, och den som inte längre får läsa projektets molnkostnader utelämnas.
+- **E-postadresser** utanför projektet, till exempel din revisors, och Slack- och Microsoft Teams-kanaler kräver behörigheten Molnadministratör, eller Projektadministratör eller Projektägare, eftersom OneUptime inte kan veta vem som läser dem. De får rapporten så som personen som lade till dem får läsa den, och slutar få den om personen förlorar behörigheten. En API-nyckel kan inte ange dem.
+- Den som får skapa de andra Moln-posterna, från Molnmedlem och uppåt, kan skapa, ändra och ta bort rapporter. En Molntittare kan läsa dem.
+
+En rapport går till högst 200 personer, 25 adresser och 10 kanaler av varje slag. **Senaste utskick** säger när den senast skickades, och vem den utelämnade och varför.
+
+### Ett avsnitt för varje team
+
+En rapport över en kostnadsvy kan skicka varje grupp dess eget avsnitt med **Skicka varje grupps team dess avsnitt**. Medlemmarna i varje grupps team, som anges på gruppen, får gruppens utgifter mot perioden innan, tjänsterna i den som ökade och minskade mest, och dess ovanliga dagar. En delad grupp har inget eget avsnitt: dess kostnader ligger i grupperna den fördelas mellan. Rapportens egna personer, team och adresser får alla grupper. Den som är med i två gruppers team får båda avsnitten. En månatlig rapport över en kostnadsvy på det här sättet är månadens showback.
+
+### Förhandsgranskning och Skicka mig en kopia
+
+**Förhandsgranskning** visar vad en rapport säger nu, så som du får läsa den och som e-postmeddelandet visar den, och vem det senaste utskicket utelämnade och varför. **Skicka mig en kopia** mejlar den till dig nu.
+
+### Ladda ner CSV
+
+**Ladda ner CSV** sparar det ett kort visar: **Vart pengarna går** på **Kostnader**, i valfri uppdelning och mot perioden innan, varje dags utgifter, rekommendationerna under **Besparingar** och en kostnadsgrupps sida. Filnamnet säger vad den innehåller, vad den är uppdelad efter, vyn och kontot, kostnadsbasen och dagarna, till exempel `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Siffror är vanliga tal, och en text som ett kalkylark skulle läsa som en formel börjar med en apostrof.
+
+### FOCUS
+
+**Exportera FOCUS** på **Kostnader** laddar ner alla periodens kostnader som en FOCUS 1.2-fil, FinOps Open Cost and Usage Specification i version 1.2, som ekonomiverktyg läser. En fil rymmer högst 93 dagar och varje valuta som kontona faktureras i, varje rad i sin egen.
+
+Filen har varje kolumn som FOCUS 1.2 gör obligatorisk, och de villkorade som OneUptime har data för: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` och `Tags`. Den har en rad för varje kostnad som OneUptime sparar: en dag, ett konto, en tjänst, en region och, där molnet nämner den, en resurs.
+
+- `BilledCost` är det som molnet fakturerade, och `EffectiveCost` det som det kostade med åtaganden fördelade över det de täcker.
+- Det som molnet drog av, dess krediter, återbetalningar och rabatter, är en egen rad med `ChargeCategory` satt till `Credit`. Filens `EffectiveCost` summerad är nettokostnaden.
+- `ChargeCategory` är `Tax` för de kostnader som AWS fakturerar under sin Tax-tjänst, och `Usage` för resten.
+- `BillingAccountId` är kontot som anslutningen läser fakturan från: en AWS-organisations hanteringskonto, ett Google Cloud-faktureringskonto eller Azure-prenumerationen, eftersom Azure-faktureringskontot inte läses. `SubAccountId` är AWS-kontot, Azure-prenumerationen eller Google Cloud-projektet.
+- Datum är hela UTC-dagar, där slutet av debiteringsperioden och av faktureringsperioden inte ingår. Faktureringsperioden är kalendermånaden.
+
+Det som FOCUS 1.2 begär men som OneUptime inte läser lämnas tomt eller sätts lika så som specifikationen tillåter. `PricingQuantity` och `PricingUnit` är tomma, eftersom kostnaderna läses per dag, tjänst, region och resurs, inte per användningstyp. `ListCost` och `ContractedCost` är lika med `BilledCost`, så som FOCUS begär när styckpriser inte är kända. Ett köp, till exempel förskottsbetalningen för en reservation, är användningen av tjänsten det köptes för. Det finns inga kolumner för SKU:er, åtagandesrabatter, kapacitetsreservationer eller fakturor. FOCUS 1.3 och 1.4 lägger till kolumner som en läsare av 1.2 klarar sig utan.
+
+### Från API:et och CLI:n
+
+API:et svarar med en uppdelning, inte bara kostnadernas rader, så att ett ekonomisystem kan hämta månadens vidaredebitering:
+
+- `POST /api/cloud-cost/breakdown` med `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` med en `tagKey`, eller `group` med ett `cloudCostViewId`), en `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) eller ett `startDate` och ett `endDate`, och valfritt `cloudAccountIds`, `currency`, `basis` och `compareWithPrevious`. Svaret är periodens summa och varje andel, med perioden innan bredvid, eller med `"format": "csv"` den CSV som **Ladda ner CSV** ger.
+- `POST /api/cloud-cost/export` med en `period`, eller ett `startDate` och ett `endDate`, svarar med FOCUS-filen.
+
+Båda läser så som nyckeln får läsa kostnaderna. Från [CLI:n](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### På en instrumentpanel
+
+Widgeten **Molnkostnad** ställer en summa, en uppdelning eller en trend för utgifterna bredvid tjänsterna som står för dem. Se [Instrumentpanelens widgetar](/docs/dashboards/widgets#molnkostnader).
+
 ## Det du ser i OneUptime
 
 - **Molns översikt.** **Moln → Översikt** visar månadens utgifter mot förra månadens på samma dag, de dyraste tjänsterna och de största sätten att spendera mindre, bredvid det som behöver uppmärksamhet.
 - **Varje dags utgifter.** **Moln → Utgifter → Kostnader** ritar var och en av de senaste 30 dagarna och markerar de dagar som kostade långt mer än vanligt, listar de dagarna och delar upp en period efter tjänst, region, konto, resurs, miljö i appplattformar, app eller tagg, fakturerad, amorterad eller netto. De konton vars kostnader inte läses listas nedanför, var och en med orsaken.
 - **Varje åtagande.** **Moln → Utgifter → Åtaganden** listar vart och ett med när det upphör och hur mycket av det som används, dem som snart upphör med vad som ska förnyas, och vad som ska köpas.
+- **Rapporter.** **Moln → Utgifter → Rapporter** listar varje schemalagd rapport med vad den täcker, när den skickas nästa gång och hur det senaste utskicket gick.
 - **Ett kontos kostnader.** Ett kontos **Kostnader** visar samma sak för kontot ensamt, med dess åtaganden och dess sätt att spendera mindre.
 - **Obligatoriska taggar.** **Moln → Utgifter → Taggar** visar hur mycket av utgifterna och resurserna som har dina obligatoriska taggar, och ett kontos **Taggar** visar detsamma för bara det kontot.
 - **En resurs kostnad.** En resurs sida visar vad den har kostat den här månaden och de senaste 30 dagarna när dess moln fakturerar den med namn, med dess sätt att spendera mindre och dess storleksanpassning.

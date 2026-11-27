@@ -1,6 +1,6 @@
 # XCP-ng 代理
 
-OneUptime 的 XCP-ng 代理监控由 Xen Orchestra 管理的 XCP-ng 资源池：它们的主机、虚拟机、存储库和虚拟磁盘。它是一个标准的 OpenTelemetry Collector，使用插件的密钥读取 Xen Orchestra 自带的 OpenMetrics 插件，并把读到的内容发送到 OneUptime，每个资源池都会连同其清单出现在那里。资源池或 Xen Orchestra 的任何密码都不会到达代理。[XCP-ng 监视器](/docs/monitor/xcp-ng-monitor) 会针对传入的数据发出警报。
+OneUptime 的 XCP-ng 代理监控由 Xen Orchestra 管理的 XCP-ng 资源池：它们的主机、虚拟机、存储库和虚拟磁盘。它是一个标准的 OpenTelemetry Collector，使用插件的密钥读取 Xen Orchestra 自带的 OpenMetrics 插件，并把读到的内容发送到 OneUptime，每个资源池都会连同其清单出现在那里。资源池或 Xen Orchestra 的任何密码都不会到达代理。[XCP-ng 监视器](/docs/monitor/xcp-ng-monitor) 会针对传入的数据发出警报。 要无需安装任何东西、由 OneUptime 探测器读取同样的资源池，请参阅[无需代理的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
 
 :::cards
 - [安装代理](#安装代理): 启用插件，然后使用安装脚本或 Docker Compose。
@@ -382,8 +382,8 @@ Xen Orchestra 只报告它所连接的资源池，而代理只读取这个 Xen O
 Xen Orchestra 的 OpenMetrics 插件提供的是指标，因此你在 XCP-ng 资源池中关注的部分内容还不在其中：
 
 - 除 XOSTOR 之外的 **告警**、**HA 状态**、**资源池主节点**、**缺失的补丁**、**备份** 和 **快照**，以及主机物理接口（PIF）的 **链路状态**。它们来自 Xen Orchestra 的 REST API，见 [#10997](https://github.com/OneUptime/oneuptime/issues/10997)。
-- **没有 Xen Orchestra 的资源池**，或位于没有插件所需 Premium 许可证的 XOA 之后的资源池：它们直接通过 XAPI 读取，见 [#10999](https://github.com/OneUptime/oneuptime/issues/10999)。
-- **无需代理即可连接**，从 OneUptime 探测器连接，就像 VMware 那样：[#10996](https://github.com/OneUptime/oneuptime/issues/10996)。
+- **没有 Xen Orchestra 的资源池**，或位于没有插件所需 Premium 许可证的 XOA 之后的资源池：OneUptime 探测器直接通过 XAPI 读取它们（[#10999](https://github.com/OneUptime/oneuptime/issues/10999)），请参阅[无需代理的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
+- **无需代理即可连接**：OneUptime 探测器自己读取 Xen Orchestra 的插件，就像 VMware 那样（[#10996](https://github.com/OneUptime/oneuptime/issues/10996)），见同一页面。
 
 ## 后续步骤
 

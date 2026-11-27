@@ -1,6 +1,6 @@
 # XCP-ng-agent
 
-OneUptimes XCP-ng-agent overvåger de XCP-ng-pools, som en Xen Orchestra administrerer: deres værter, VM'er, lagerdepoter og virtuelle diske. Den er en standard OpenTelemetry Collector, der læser Xen Orchestras eget OpenMetrics-plugin med pluginets hemmelighed og sender det, den læser, til OneUptime, hvor hver pool vises med sin inventar. Ingen adgangskode til en pool eller til Xen Orchestra når nogensinde frem til agenten. [XCP-ng-monitorer](/docs/monitor/xcp-ng-monitor) advarer på det, der kommer ind.
+OneUptimes XCP-ng-agent overvåger de XCP-ng-pools, som en Xen Orchestra administrerer: deres værter, VM'er, lagerdepoter og virtuelle diske. Den er en standard OpenTelemetry Collector, der læser Xen Orchestras eget OpenMetrics-plugin med pluginets hemmelighed og sender det, den læser, til OneUptime, hvor hver pool vises med sin inventar. Ingen adgangskode til en pool eller til Xen Orchestra når nogensinde frem til agenten. [XCP-ng-monitorer](/docs/monitor/xcp-ng-monitor) advarer på det, der kommer ind. Vil du læse de samme pools uden at installere noget, fra en OneUptime-sonde, så se [XCP-ng uden agent](/docs/telemetry/xcp-ng-agentless).
 
 :::cards
 - [Installer agenten](#installer-agenten): Slå pluginet til, og brug derefter installationsscriptet eller Docker Compose.
@@ -382,8 +382,8 @@ Agenten er én standardkonfiguration af collectoren, så en collector, du allere
 Xen Orchestras OpenMetrics-plugin leverer metrikker, så en del af det, du holder øje med i en XCP-ng-pool, er der ikke endnu:
 
 - **Alarmer** ud over XOSTOR's, **HA-tilstanden**, **pool-masteren**, **manglende patches**, **backups** og **snapshots** samt **linktilstanden** for en værts fysiske interfaces (PIF'er). De kommer fra Xen Orchestras REST API i [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
-- **Pools uden Xen Orchestra**, eller bag en XOA uden den Premium-licens, pluginet kræver: de læses direkte via XAPI i [#10999](https://github.com/OneUptime/oneuptime/issues/10999).
-- **Forbindelse uden agent** fra en OneUptime-sonde, som VMware kan: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
+- **Pools uden Xen Orchestra**, eller bag en XOA uden den Premium-licens, pluginet kræver: En OneUptime-sonde læser dem direkte via XAPI ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), se [XCP-ng uden agent](/docs/telemetry/xcp-ng-agentless).
+- **Forbindelse uden agent**: En OneUptime-sonde læser selv Xen Orchestras plugin, som VMware kan ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), på samme side.
 
 ## Næste trin
 

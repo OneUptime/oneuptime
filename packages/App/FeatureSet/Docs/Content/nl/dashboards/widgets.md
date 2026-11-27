@@ -27,6 +27,7 @@ Begin bij de vraag die de tegel moet beantwoorden:
 | Komen mensen door een flow heen, en komen ze terug? | **Trechter** of **Gebruikersretentie** |
 | In welke toestand zijn onze clusters en hosts? | Een widget uit de groep Infrastructuur |
 | Waar ter wereld ligt ons netwerk, en wat ligt er plat? | **Netwerkkaart** |
+| Wat kosten onze clouds, en welk team geeft het uit? | **Cloudkosten** |
 | Een kop, een notitie, de tijd op een ander kantoor? | **Tekst** of **Klok** |
 | Gegevens die buiten OneUptime staan? | Een widget uit de groep Externe gegevensbronnen |
 | Iets wat geen enkele widget dekt? | **HTML**, zodra je zeker weet dat geen andere widget het doet |
@@ -200,8 +201,9 @@ Elk van deze widgets toont de resources die een agent of een collector aan OneUp
 | **XCP-ng** | **Hosts**, **VM's** | De XCP-ng-agent |
 | **Ceph** | **OSD's**, als muur gekleurd naar toestand, en **Pools** | De Ceph-agent |
 | **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Opslagarray-agent |
+| **Cloudkosten** | **Cloudkosten**, een totaal, een uitsplitsing of een trend van de uitgaven | De kosten die uw [cloudaccounts](/docs/telemetry/cloud-accounts) melden |
 
-Gebruik ze voor één pagina die de toestand van je infrastructuur combineert met de telemetrie van de workloads die erop draaien.
+Gebruik ze voor één pagina die de toestand van je infrastructuur combineert met de telemetrie van de workloads die erop draaien. De widget Cloudkosten is geen lijst: zie [Kosten van de cloud](#kosten-van-de-cloud).
 
 ### Network Map
 
@@ -214,6 +216,19 @@ Boven de kaart staat hoeveel sites er plat liggen, omdat een rood puntje van twe
 **Instellingen**: titel, kaart- of lijstweergave, maximaal aantal getekende sites, of sitenamen worden getoond, en filters op sitetype en status. Sitenamen verdwijnen automatisch als de kaart te vol wordt om ze te lezen; de tooltip noemt nog steeds elke markering.
 
 Een site verschijnt alleen als hij coördinaten heeft. Voeg breedte- en lengtegraad toe aan de site (of importeer ze uit een CSV) om hem vast te zetten.
+
+## Kosten van de cloud
+
+### Cloudkosten
+
+Wat uw clouds kosten, naast de services die het uitgeven, voor de periode van het dashboard. De widget leest dezelfde cijfers als **Cloud → Uitgaven → Kosten** en de pagina van een kostengroep, op dezelfde dagen.
+
+- **Dekt**: alle accounts, één **Account**, een **Kostengroep** of een **Kostenweergave**. Kies het account, de groep of de weergave in de instelling eronder.
+- **Tonen**: een totaal tegenover de periode ervoor, een uitsplitsing van de grootste delen of een trend van de uitgaven per dag.
+- **Uitsplitsen naar**: services, regio's, accounts of resources. De uitsplitsing van een kostenweergave toont haar groepen, en wat geen groep opneemt.
+- **Kostenbasis**: gefactureerd, geamortiseerd of netto. Leeg is het die van het project, waarmee Kosten opent.
+
+De cijfers staan in de valuta waarin de meeste van uw accounts worden gefactureerd. Om de widget te zien is nodig wat nodig is om Kosten te zien: ieder ziet wat hij mag lezen. Een openbaar dashboard toont alleen de titel. Zie [Cloudkosten en besparingen](/docs/telemetry/cloud-costs#rapporten-en-exports) voor rapporten en exports van dezelfde cijfers.
 
 ## Externe gegevensbronnen
 
@@ -250,7 +265,7 @@ Via de API en Terraform is de volgorde de `arguments.sort` van de widget: een ko
 
 Een [openbaar dashboard](/docs/dashboards/sharing) tekent de meeste widgets voor zijn bezoekers, en elk toont alleen wat hij moest tonen. Een paar kunnen niet worden weergegeven zonder aangemelde sessie:
 
-- **Logboekgrafiek**, **Tracegrafiek**, **Tracetabel**, **Beveiligingsgebeurtenissen**, **Stroom van beveiligingsgebeurtenissen**, **Trechter** en **Gebruikersretentie** melden op hun plek dat ze niet beschikbaar zijn op openbare dashboards.
+- **Logboekgrafiek**, **Tracegrafiek**, **Tracetabel**, **Beveiligingsgebeurtenissen**, **Stroom van beveiligingsgebeurtenissen**, **Trechter**, **Gebruikersretentie** en **Cloudkosten** melden op hun plek dat ze niet beschikbaar zijn op openbare dashboards.
 - De widgets van Externe gegevensbronnen tonen hun gegevens wanneer ze **Metrieken van dit project (PromQL)** lezen, nooit hun query's. Een widget met een externe gegevensbron wordt helemaal weggelaten uit een openbaar dashboard.
 
 ## Als een widget niet kan worden weergegeven

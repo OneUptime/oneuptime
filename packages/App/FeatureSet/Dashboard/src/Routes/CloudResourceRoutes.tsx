@@ -56,6 +56,7 @@ import CloudCostGroups from "../Pages/Cloud/CostGroups";
 import CloudCostViewPage from "../Pages/Cloud/CostView";
 import CloudCostGroupPage from "../Pages/Cloud/CostGroup";
 import CloudSchedules from "../Pages/Cloud/Schedules";
+import CloudReports from "../Pages/Cloud/Reports";
 import CloudSavingsAiRules from "../Pages/Cloud/Settings/SavingsAiRules";
 import CloudTags from "../Pages/Cloud/Tags";
 import CloudAccount from "Common/Models/DatabaseModels/CloudAccount";
@@ -146,6 +147,15 @@ const CloudResourceRoutes: FunctionComponent<ComponentProps> = (
             <CloudSchedules
               {...props}
               pageRoute={RouteMap[PageMap.CLOUD_SCHEDULES] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={CloudRoutePath[PageMap.CLOUD_REPORTS] || ""}
+          element={
+            <CloudReports
+              {...props}
+              pageRoute={RouteMap[PageMap.CLOUD_REPORTS] as Route}
             />
           }
         />

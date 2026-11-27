@@ -398,6 +398,8 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "With fewer than 3 full months",
     "From 3 full months",
     "From 12 full months",
+    // The scheduled cost reports (#11009).
+    "Reports.",
   ],
   // Cost groups (#11006): an example group's name is a lead too.
   [CLOUD_COST_ALLOCATION]: [

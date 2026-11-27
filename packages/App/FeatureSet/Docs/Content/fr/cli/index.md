@@ -107,6 +107,7 @@ La liste montre chaque type d'enregistrement avec lequel vous pouvez travailler,
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Travaille avec un type d'enregistrement | [Opérations sur les ressources](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Liste les champs d'une ressource, et les options qui les définissent | [Opérations sur les ressources](/docs/cli/resource-operations#voir-les-champs-dune-ressource) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Fait ce que font les boutons du tableau de bord sur les incidents, les alertes et les maintenances planifiées | [Opérations sur les ressources](/docs/cli/resource-operations#prendre-en-compte-résoudre-et-ajouter-des-notes) |
+| `oneuptime <resource> breakdown`, `export` | Répartit les dépenses cloud d'une période, ou les exporte en fichier FOCUS 1.2, pour `cloud-cost` | [Rapports et exports](/docs/telemetry/cloud-costs#rapports-et-exports) |
 | `oneuptime resources` | Liste les types d'enregistrements, avec leurs commandes | [Référence des commandes](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Affiche la version de la CLI | [Référence des commandes](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Affiche l'aide d'une commande | [Obtenir de l'aide](#obtenir-de-laide) |

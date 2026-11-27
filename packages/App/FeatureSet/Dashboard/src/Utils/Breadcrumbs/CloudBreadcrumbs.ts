@@ -59,6 +59,11 @@ export function getCloudBreadcrumbs(path: string): Array<Link> | undefined {
       "Cloud",
       "Tags",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_REPORTS, [
+      "Project",
+      "Cloud",
+      "Reports",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.CLOUD_SETTINGS_COSTS, [
       "Project",
       "Cloud",

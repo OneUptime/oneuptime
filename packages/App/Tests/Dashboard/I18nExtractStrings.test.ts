@@ -1687,6 +1687,7 @@ describe("the real source roots", () => {
       // What a failed vCenter collection means and what fixes it.
       "ui packages/Common/Types/VMware",
       "ui packages/Common/Types/OpenStack",
+      "ui packages/Common/Types/XcpNg",
       // What a case's verdicts mean and what each playbook action does.
       "ui packages/Common/Types/SecurityCase",
       "ui packages/Common/Types/SecurityPlaybook",

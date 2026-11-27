@@ -362,11 +362,79 @@ OneUptime schlägt einen Wert nur vor, wenn das Tag ihn erlaubt:
 
 Der Befehl setzt das Tag in einem Schritt, aus der eigenen Shell Ihrer Cloud: `aws resourcegroupstaggingapi tag-resources` auf AWS, `az tag update --operation Merge` auf Azure und `gcloud ... add-labels` oder `--update-labels` für Compute-Engine-VMs und -Disks, Cloud-Storage-Buckets und Cloud-SQL-Instanzen auf Google Cloud.
 
+## Berichte und Exporte
+
+### Kostenberichte
+
+**Cloud → Ausgaben → Berichte** sendet nach Zeitplan, was die Clouds kosten, per E-Mail und in Slack- oder Microsoft Teams-Kanäle, sodass die Menschen, die die Zahlen brauchen, sie bekommen, ohne OneUptime zu öffnen. Ein Bericht hat:
+
+- **Deckt ab**: alle Konten, ein Konto, eine Kostengruppe oder eine Kostenansicht mit all ihren Gruppen.
+- **Zeitraum**: letzte Woche (Montag bis Sonntag), letzter Monat oder der Monat bis heute. Jeder wird mit dem Zeitraum davor verglichen: der Woche davor, dem Monat davor oder dem letzten Monat bis zum selben Tag.
+- **Kostenbasis**: abgerechnet, amortisiert oder netto. Leer ist es die des Projekts, mit der Kosten öffnet. Der Bericht sagt immer, auf welcher Basis er steht.
+- **Zeitplan**: jede Woche oder jeden Monat, an einem Tag und zu einer Uhrzeit in einer Zeitzone, nach denselben Regeln wie die Zusammenfassungen in Slack und Microsoft Teams. Ein neuer wöchentlicher Bericht geht nächsten Montag um 09:00 in Ihrer Zeitzone hinaus, ein monatlicher am 1., und spätere Berichte behalten diesen Tag und diese Uhrzeit das ganze Jahr.
+
+Die E-Mail sagt, was der Zeitraum gegenüber dem Zeitraum davor gekostet hat, die Budgets, auf die er angerechnet wird (jeder Monat bis heute, auf der eigenen Basis des Budgets), die Dienste, die am stärksten gestiegen und gesunken sind, die Gruppen einer Kostenansicht und was keine Gruppe übernimmt, die ungewöhnlichen Tage, die größten ausstehenden Einsparungen und wie viel der Ausgaben Zusagen abdecken. Ihre Zahlen sind als CSV angehängt. **Kosten öffnen** öffnet **Kosten** auf genau den Tagen, der Basis und der Ansicht des Berichts, sodass die Zahlen des Berichts und die der Seite dieselben sind. Konten, die in einer anderen Währung abgerechnet werden, fehlen in den Zahlen, und der Bericht nennt sie.
+
+Ein Slack- oder Microsoft Teams-Kanal bekommt eine kurze Nachricht: die Summe und ihre Veränderung, das Budget, die ersten Zeilen der Listen des Berichts und **Kosten öffnen**.
+
+### Wer einen Bericht bekommt
+
+- Personen und Teams des Projekts bekommen ihn per E-Mail über ihre Benachrichtigungseinstellungen, in denen jede Person Cloud-Kostenberichte ausschalten kann. Jede Person bekommt die Zahlen, die sie lesen darf: Wer nur über Labels Zugriff hat, bekommt nur seine Konten, und wer die Cloud-Kosten des Projekts nicht mehr lesen darf, wird ausgelassen.
+- **E-Mail-Adressen** außerhalb des Projekts, etwa die Ihrer Buchhaltung, sowie Slack- und Microsoft Teams-Kanäle erfordern die Berechtigung Cloud-Administrator, Projektadministrator oder Projektinhaber, weil OneUptime nicht wissen kann, wer sie liest. Sie bekommen den Bericht so, wie die Person, die sie hinzugefügt hat, ihn lesen darf, und bekommen ihn nicht mehr, wenn diese Person die Berechtigung verliert. Ein API-Schlüssel kann sie nicht festlegen.
+- Wer die anderen Cloud-Datensätze anlegen darf, ab Cloud-Mitglied, kann Berichte anlegen, ändern und löschen. Ein Cloud-Betrachter kann sie lesen.
+
+Ein Bericht geht an höchstens 200 Personen, 25 Adressen und 10 Kanäle jeder Art. **Letzter Versand** sagt, wann er zuletzt hinausging, und wen er ausgelassen hat und warum.
+
+### Ein Abschnitt für jedes Team
+
+Ein Bericht über eine Kostenansicht kann mit **Jedem Gruppenteam seinen Abschnitt senden** jeder Gruppe ihren eigenen Abschnitt senden. Die Mitglieder des Teams jeder Gruppe, das an der Gruppe angegeben ist, bekommen die Ausgaben ihrer Gruppe gegenüber dem Zeitraum davor, die Dienste darin, die am stärksten gestiegen und gesunken sind, und ihre ungewöhnlichen Tage. Eine geteilte Gruppe hat keinen eigenen Abschnitt: Ihre Kosten stecken in den Gruppen, auf die sie aufgeteilt wird. Die eigenen Personen, Teams und Adressen des Berichts bekommen alle Gruppen. Wer in den Teams zweier Gruppen ist, bekommt beide Abschnitte. Ein monatlicher Bericht über eine Kostenansicht auf diese Weise ist das Showback des Monats.
+
+### Vorschau und Mir eine Kopie senden
+
+**Vorschau** zeigt, was ein Bericht jetzt sagt, so wie Sie ihn lesen dürfen und wie die E-Mail ihn darstellt, und wen sein letzter Versand ausgelassen hat und warum. **Mir eine Kopie senden** schickt ihn Ihnen jetzt per E-Mail.
+
+### CSV herunterladen
+
+**CSV herunterladen** speichert, was eine Karte zeigt: **Wohin das Geld fließt** auf **Kosten**, in jeder Aufschlüsselung und gegenüber dem Zeitraum davor, die Ausgaben jedes Tages, die Empfehlungen unter **Einsparungen** und die Seite einer Kostengruppe. Der Dateiname sagt, was sie enthält, wonach sie aufgeschlüsselt ist, die Ansicht und das Konto, die Kostenbasis und die Tage, etwa `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Zahlen sind einfache Zahlen, und ein Text, den eine Tabellenkalkulation als Formel lesen würde, beginnt mit einem Apostroph.
+
+### FOCUS
+
+**FOCUS exportieren** auf **Kosten** lädt alle Kosten des Zeitraums als FOCUS-1.2-Datei herunter, die FinOps Open Cost and Usage Specification in Version 1.2, die Finanzwerkzeuge lesen. Eine Datei enthält höchstens 93 Tage und jede Währung, in der die Konten abgerechnet werden, jede Zeile in ihrer eigenen.
+
+Die Datei hat jede Spalte, die FOCUS 1.2 verpflichtend macht, und die bedingten, für die OneUptime die Daten hat: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` und `Tags`. Sie hat eine Zeile für jede Kostenposition, die OneUptime führt: ein Tag, ein Konto, ein Dienst, eine Region und, wo die Cloud sie nennt, eine Ressource.
+
+- `BilledCost` ist, was die Cloud abgerechnet hat, und `EffectiveCost`, was es gekostet hat, wenn Zusagen auf das verteilt werden, was sie abdecken.
+- Was die Cloud abgezogen hat, ihre Gutschriften, Erstattungen und Rabatte, ist eine eigene Zeile mit der `ChargeCategory` `Credit`. Die `EffectiveCost` der Datei ergibt zusammengezählt die Nettokosten.
+- `ChargeCategory` ist `Tax` für die Kosten, die AWS unter seinem Tax-Dienst abrechnet, und `Usage` für den Rest.
+- `BillingAccountId` ist das Konto, aus dem die Verbindung die Rechnung liest: das Verwaltungskonto einer AWS-Organisation, ein Google Cloud-Rechnungskonto oder das Azure-Abonnement, da das Azure-Rechnungskonto nicht gelesen wird. `SubAccountId` ist das AWS-Konto, das Azure-Abonnement oder das Google Cloud-Projekt.
+- Datumsangaben sind ganze UTC-Tage, wobei das Ende des Abrechnungszeitraums und des Rechnungszeitraums nicht eingeschlossen ist. Der Rechnungszeitraum ist der Kalendermonat.
+
+Was FOCUS 1.2 verlangt, OneUptime aber nicht liest, bleibt leer oder wird so gesetzt, wie die Spezifikation es erlaubt. `PricingQuantity` und `PricingUnit` sind leer, weil die Kosten nach Tag, Dienst, Region und Ressource gelesen werden, nicht nach Nutzungsart. `ListCost` und `ContractedCost` entsprechen `BilledCost`, wie FOCUS es verlangt, wenn Stückpreise nicht bekannt sind. Ein Kauf, etwa die Vorauszahlung einer Reservierung, ist die Nutzung des Dienstes, für den er gekauft wurde. Es gibt keine Spalten für SKUs, Commitment-Rabatte, Kapazitätsreservierungen oder Rechnungen. FOCUS 1.3 und 1.4 fügen Spalten hinzu, ohne die ein Leser von 1.2 auskommt.
+
+### Über die API und die CLI
+
+Die API beantwortet eine Aufschlüsselung, nicht nur die Zeilen der Kosten, sodass ein Finanzsystem die Leistungsverrechnung des Monats abrufen kann:
+
+- `POST /api/cloud-cost/breakdown` mit `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` mit einem `tagKey` oder `group` mit einer `cloudCostViewId`), einer `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) oder einem `startDate` und einem `endDate`, und optional `cloudAccountIds`, `currency`, `basis` und `compareWithPrevious`. Die Antwort ist die Summe des Zeitraums und jeder Anteil, mit dem Zeitraum davor daneben, oder mit `"format": "csv"` die CSV, die **CSV herunterladen** liefert.
+- `POST /api/cloud-cost/export` mit einer `period` oder einem `startDate` und einem `endDate` beantwortet die FOCUS-Datei.
+
+Beide lesen so, wie der Schlüssel die Kosten lesen darf. Über die [CLI](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### Auf einem Dashboard
+
+Das Widget **Cloud-Kosten** stellt eine Summe, eine Aufschlüsselung oder einen Trend der Ausgaben neben die Dienste, die sie verursachen. Siehe [Dashboard-Widgets](/docs/dashboards/widgets#kosten-der-cloud).
+
 ## Was Sie in OneUptime sehen
 
 - **Die Übersicht von Cloud.** **Cloud → Übersicht** zeigt die Ausgaben des Monats im Vergleich zu denen des letzten Monats am selben Tag, die teuersten Dienste und die größten Wege, weniger auszugeben, neben dem, was Aufmerksamkeit braucht.
 - **Die Ausgaben jedes Tages.** **Cloud → Ausgaben → Kosten** zeichnet jeden der letzten 30 Tage und markiert die Tage, die weit mehr gekostet haben als üblich, listet diese Tage auf und schlüsselt einen Zeitraum nach Dienst, Region, Konto, Ressource, Umgebung der App-Plattformen, App oder Tag auf, abgerechnet, amortisiert oder netto. Die Konten, deren Kosten nicht gelesen werden, sind darunter aufgeführt, jeweils mit dem Grund.
 - **Jede Zusage.** **Cloud → Ausgaben → Zusagen** listet jede mit ihrem Ende und wie viel davon genutzt wird auf, die bald endenden mit dem, was zu verlängern ist, und was zu kaufen ist.
+- **Berichte.** **Cloud → Ausgaben → Berichte** listet jeden geplanten Bericht mit dem, was er abdeckt, wann er als Nächstes hinausgeht und wie sein letzter Versand verlief.
 - **Die Kosten eines Kontos.** Die Seite **Kosten** eines Kontos zeigt dasselbe nur für das Konto, mit seinen Zusagen und seinen Wegen, weniger auszugeben.
 - **Erforderliche Tags.** **Cloud → Ausgaben → Tags** zeigt, wie viel der Ausgaben und der Ressourcen Ihre erforderlichen Tags tragen, und die **Tags** eines Kontos zeigen dasselbe für das Konto allein.
 - **Die Kosten einer Ressource.** Die Seite einer Ressource zeigt, was sie in diesem Monat und in den letzten 30 Tagen gekostet hat, wenn ihre Cloud sie namentlich abrechnet, mit ihren Wegen, weniger auszugeben, und ihrer Größenanpassung.

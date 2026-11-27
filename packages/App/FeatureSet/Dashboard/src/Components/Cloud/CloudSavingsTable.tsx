@@ -45,6 +45,14 @@ import IconProp from "Common/Types/Icon/IconProp";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CloudSavingsApplyModal from "./Savings/CloudSavingsApplyModal";
+import {
+  CloudCostSavingCsvRow,
+  getCloudCostFileName,
+  toCloudCostSavingsCsv,
+} from "Common/Types/Cloud/CloudCostCsv";
+import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
+import downloadFile from "Common/UI/Utils/DownloadFile";
+import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 
 /*
  * The ways to spend less, as a table: every recommendation your clouds'
@@ -134,6 +142,108 @@ export function getSavingChangeText(
   );
 }
 
+export const DOWNLOAD_SAVINGS_CSV: string = translationKey("Download CSV");
+
+/*
+ * Every saving as a CSV (#11009): the page's own columns, the largest
+ * first, read as the person may read them - in the accounts the table is
+ * over.
+ */
+export async function downloadCloudSavingsCsv(data: {
+  cloudAccountId?: ObjectID | undefined;
+  currency: string;
+  translator: Translator;
+}): Promise<void> {
+  const [savings, accounts]: [
+    ListResult<CloudCostRecommendation>,
+    ListResult<CloudAccount>,
+  ] = await Promise.all([
+    ModelAPI.getList<CloudCostRecommendation>({
+      modelType: CloudCostRecommendation,
+      query: (data.cloudAccountId
+        ? { cloudAccountId: data.cloudAccountId }
+        : {}) as Query<CloudCostRecommendation>,
+      select: {
+        _id: true,
+        action: true,
+        kind: true,
+        resourceName: true,
+        resourceId: true,
+        resourceType: true,
+        cloudAccountId: true,
+        provider: true,
+        region: true,
+        currentConfiguration: true,
+        recommendedConfiguration: true,
+        monthlySavings: true,
+        monthlyCost: true,
+        currency: true,
+        source: true,
+      },
+      sort: { monthlySavings: SortOrder.Descending },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    }),
+    ModelAPI.getList<CloudAccount>({
+      modelType: CloudAccount,
+      query: {},
+      select: { _id: true, name: true, accountId: true },
+      sort: { name: SortOrder.Ascending },
+      skip: 0,
+      limit: LIMIT_PER_PROJECT,
+    }),
+  ]);
+  const accountNames: Map<string, string> = new Map(
+    accounts.data.map((account: CloudAccount): [string, string] => {
+      return [
+        account._id?.toString() || "",
+        account.name || account.accountId || "",
+      ];
+    }),
+  );
+  const rows: Array<CloudCostSavingCsvRow> = savings.data.map(
+    (item: CloudCostRecommendation): CloudCostSavingCsvRow => {
+      return {
+        recommendation: getCloudSavingActionText({
+          action: item.action,
+          kind: item.kind as CloudSavingKind | undefined,
+          translateText: data.translator.translateText,
+        }),
+        kind: String(item.kind || ""),
+        resourceName: item.resourceName || "",
+        resourceId: item.resourceId || "",
+        resourceType: item.resourceType || "",
+        account: accountNames.get(item.cloudAccountId?.toString() || "") || "",
+        provider: String(item.provider || ""),
+        region: item.region || "",
+        currentConfiguration: item.currentConfiguration || "",
+        recommendedConfiguration: item.recommendedConfiguration || "",
+        monthlySavings: Number(item.monthlySavings) || 0,
+        monthlyCost:
+          item.monthlyCost === undefined || item.monthlyCost === null
+            ? null
+            : Number(item.monthlyCost),
+        currency: item.currency || data.currency,
+        source: item.source || "",
+      };
+    },
+  );
+  const day: string = new Date().toISOString().slice(0, 10);
+
+  downloadFile({
+    content: toCloudCostSavingsCsv(rows),
+    filename: getCloudCostFileName({
+      what: "cloud-savings",
+      accountName: data.cloudAccountId
+        ? accountNames.get(data.cloudAccountId.toString())
+        : undefined,
+      start: day,
+      lastDay: day,
+    }),
+    mimeType: "text/csv;charset=utf-8;",
+  });
+}
+
 export interface ComponentProps {
   id: string;
   // One account's; every account's when absent.
@@ -150,6 +260,7 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const isOneAccount: boolean = Boolean(props.cloudAccountId);
   const [applying, setApplying] = useState<ObjectID | null>(null);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
 
   return (
     <>
@@ -245,6 +356,29 @@ const CloudSavingsTable: FunctionComponent<ComponentProps> = (
         cardProps={{
           title: SAVINGS_TABLE_TITLE,
           description: SAVINGS_TABLE_DESCRIPTION,
+          // Every saving as a CSV, the largest first (#11009).
+          buttons: [
+            {
+              title: DOWNLOAD_SAVINGS_CSV,
+              icon: IconProp.Download,
+              isLoading: isDownloading,
+              onClick: () => {
+                setIsDownloading(true);
+
+                downloadCloudSavingsCsv({
+                  cloudAccountId: props.cloudAccountId,
+                  currency: props.currency,
+                  translator,
+                })
+                  .catch((): void => {
+                    // The table above says why it cannot read them.
+                  })
+                  .finally((): void => {
+                    setIsDownloading(false);
+                  });
+              },
+            },
+          ],
         }}
         noItemsMessage={SAVINGS_TABLE_EMPTY}
         filters={[

@@ -5,6 +5,7 @@ import HttpMailApi, {
 import InlineImageAttachments, {
   ResendInlineAttachment,
 } from "./InlineImageAttachments";
+import FileAttachments, { ResendFileAttachment } from "./FileAttachments";
 import InlineImageRefusal from "./InlineImageRefusal";
 import formatMailbox, { toOneLine } from "./MailboxAddress";
 import MailProvider, { MailProviderSendOptions } from "./MailProvider";
@@ -54,7 +55,7 @@ export interface ResendSendEmailRequest {
   subject: string;
   html: string;
   text: string;
-  attachments?: Array<ResendInlineAttachment>;
+  attachments?: Array<ResendInlineAttachment | ResendFileAttachment>;
 }
 
 // Resend's answer to a refusal: {"name", "statusCode", "message"}.
@@ -90,9 +91,14 @@ export default class ResendMailProvider implements MailProvider {
       subject: toOneLine(data.mail.subject || ""),
       html: html,
       text: EmailPlainText.fromHtml(html),
-      ...(data.inlineImages.length > 0
+      // Its inline images, then the files it carries (FileAttachments).
+      ...(data.inlineImages.length > 0 ||
+      FileAttachments.of(data.mail).length > 0
         ? {
-            attachments: InlineImageAttachments.forResend(data.inlineImages),
+            attachments: [
+              ...InlineImageAttachments.forResend(data.inlineImages),
+              ...FileAttachments.forResend(FileAttachments.of(data.mail)),
+            ],
           }
         : {}),
     };
