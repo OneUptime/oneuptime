@@ -194,10 +194,11 @@ It reads Xen Orchestra's REST API (Xen Orchestra 6.9 or later), over HTTPS only,
 
 1. In Xen Orchestra, create a user for OneUptime AI. Not an administrator: Xen Orchestra lets an administrator change anything, whatever their roles.
 2. Give it a copy of the built-in **Read only** role and nothing else. The built-in roles are templates: copy one, then give the copy to the user, on the pools it should read.
-3. Create a token for that user (signed in as it, its profile's authentication tokens, or `xo-cli create-token`) and give it to the agent:
+3. Create a token for that user (signed in as it, its profile's authentication tokens, or `xo-cli create-token`) and give it to the agent. The first line reads it without showing it or keeping it in your shell history: paste the token, then press Enter.
 
 ```bash
-ONEUPTIME_AI_XO_READ_TOKEN=<the token> bash install.sh
+read -rs ONEUPTIME_AI_XO_READ_TOKEN && export ONEUPTIME_AI_XO_READ_TOKEN
+bash install.sh
 ```
 
 `install.sh` asks Xen Orchestra whether it knows the token before it installs anything, writes it to the mode-600 `.env`, and starts the agent. Run without it at a terminal, a first install asks for it (not echoed); Enter skips it. Before the agent runs a command, and again every 5 minutes, it asks Xen Orchestra who the token belongs to and what that user may do: the token of an administrator, or of a user whose roles allow any change, runs nothing, and the pool's AI agent page in OneUptime says why.

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import ResourceAiAccessService, {
   ResourceAiAccessProjectGates,
   ResourceAiAccessRow,
@@ -127,7 +128,7 @@ describe("what kind of resource an XCP-ng pool is", () => {
 
   test("an agent registering is bound to the pool service and found by poolIdentifier", async () => {
     const found: JSONObject = { _id: RESOURCE_ID.toString() };
-    const findOrCreate: jest.SpiedFunction<
+    const findOrCreate: SpyInstance<
       typeof XcpNgPoolService.findOrCreateByIdentifier
     > = jest
       .spyOn(XcpNgPoolService, "findOrCreateByIdentifier")
