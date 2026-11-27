@@ -707,7 +707,8 @@
           "description": "Filter to one FlashArray volume — the `name` label of the purefa_volume_* series (optional). Volumes in a pod or volume group are named pod::volume or group/volume.",
           "placeholder": "e.g. vol-db-01",
           "storageSystems": [
-            "purestorage.flasharray"
+            "purestorage.flasharray",
+            "dell.powermax"
           ]
         },
         {
@@ -735,7 +736,8 @@
           "placeholder": "e.g. CH0.BAY1",
           "storageSystems": [
             "purestorage.flasharray",
-            "purestorage.flashblade"
+            "purestorage.flashblade",
+            "dell.powermax"
           ]
         }
       ],
@@ -1457,7 +1459,8 @@
           "placeholder": "e.g. CH0.BAY1",
           "storageSystems": [
             "purestorage.flasharray",
-            "purestorage.flashblade"
+            "purestorage.flashblade",
+            "dell.powermax"
           ]
         },
         {
@@ -1564,7 +1567,8 @@
       "goldenCharts": [],
       "alertMetricNames": [
         "purefa_alerts_open",
-        "purefb_alerts_open"
+        "purefb_alerts_open",
+        "powermax_alert_open"
       ],
       "insightsSections": [],
       "insightsQueries": [],
@@ -1575,7 +1579,8 @@
           "description": "Filter to one FlashArray volume — the `name` label of the purefa_volume_* series (optional). Volumes in a pod or volume group are named pod::volume or group/volume.",
           "placeholder": "e.g. vol-db-01",
           "storageSystems": [
-            "purestorage.flasharray"
+            "purestorage.flasharray",
+            "dell.powermax"
           ]
         },
         {
@@ -1603,7 +1608,8 @@
           "placeholder": "e.g. CH0.BAY1",
           "storageSystems": [
             "purestorage.flasharray",
-            "purestorage.flashblade"
+            "purestorage.flashblade",
+            "dell.powermax"
           ]
         },
         {
@@ -1743,7 +1749,8 @@
       "goldenCharts": [],
       "alertMetricNames": [
         "purefa_alerts_open",
-        "purefb_alerts_open"
+        "purefb_alerts_open",
+        "powermax_alert_open"
       ],
       "insightsSections": [],
       "insightsQueries": [],
@@ -1754,7 +1761,8 @@
           "description": "Filter to one FlashArray volume — the `name` label of the purefa_volume_* series (optional). Volumes in a pod or volume group are named pod::volume or group/volume.",
           "placeholder": "e.g. vol-db-01",
           "storageSystems": [
-            "purestorage.flasharray"
+            "purestorage.flasharray",
+            "dell.powermax"
           ]
         },
         {
@@ -1782,7 +1790,8 @@
           "placeholder": "e.g. CH0.BAY1",
           "storageSystems": [
             "purestorage.flasharray",
-            "purestorage.flashblade"
+            "purestorage.flashblade",
+            "dell.powermax"
           ]
         },
         {
@@ -1922,7 +1931,8 @@
       "goldenCharts": [],
       "alertMetricNames": [
         "purefa_alerts_open",
-        "purefb_alerts_open"
+        "purefb_alerts_open",
+        "powermax_alert_open"
       ],
       "insightsSections": [],
       "insightsQueries": [],
@@ -1933,7 +1943,8 @@
           "description": "Filter to one FlashArray volume — the `name` label of the purefa_volume_* series (optional). Volumes in a pod or volume group are named pod::volume or group/volume.",
           "placeholder": "e.g. vol-db-01",
           "storageSystems": [
-            "purestorage.flasharray"
+            "purestorage.flasharray",
+            "dell.powermax"
           ]
         },
         {
@@ -1961,7 +1972,8 @@
           "placeholder": "e.g. CH0.BAY1",
           "storageSystems": [
             "purestorage.flasharray",
-            "purestorage.flashblade"
+            "purestorage.flashblade",
+            "dell.powermax"
           ]
         },
         {
@@ -2101,7 +2113,8 @@
       "goldenCharts": [],
       "alertMetricNames": [
         "purefa_alerts_open",
-        "purefb_alerts_open"
+        "purefb_alerts_open",
+        "powermax_alert_open"
       ],
       "insightsSections": [],
       "insightsQueries": [],
@@ -2112,7 +2125,8 @@
           "description": "Filter to one FlashArray volume — the `name` label of the purefa_volume_* series (optional). Volumes in a pod or volume group are named pod::volume or group/volume.",
           "placeholder": "e.g. vol-db-01",
           "storageSystems": [
-            "purestorage.flasharray"
+            "purestorage.flasharray",
+            "dell.powermax"
           ]
         },
         {
@@ -2140,7 +2154,8 @@
           "placeholder": "e.g. CH0.BAY1",
           "storageSystems": [
             "purestorage.flasharray",
-            "purestorage.flashblade"
+            "purestorage.flashblade",
+            "dell.powermax"
           ]
         },
         {

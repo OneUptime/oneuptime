@@ -66229,7 +66229,6 @@
   "Storage Resource Pool Used": "Lagerressourcepulje brugt",
   "Storage Resource Pool Used (%)": "Lagerressourcepulje brugt (%)",
   "Storage Resource Pools": "Lagerressourcepuljer",
-  "Storage arrays being monitored in this project, such as Pure Storage FlashArray and FlashBlade. Install the OneUptime Storage Array Agent to connect an array, or connect a Unisphere to add every Dell PowerMax it manages.": "Lagerarrays, der overvåges i dette projekt, såsom Pure Storage FlashArray og FlashBlade. Installer OneUptime Storage Array-agenten for at forbinde et array, eller forbind en Unisphere for at tilføje hver Dell PowerMax, den administrerer.",
   "Storage management servers, such as Unisphere for PowerMax, that a OneUptime probe reads every storage array from with a read-only account.": "Lageradministrationsservere, såsom Unisphere for PowerMax, som en OneUptime-sonde læser hvert lagerarray fra med en skrivebeskyttet konto.",
   "Subscribed Capacity": "Tilsagt kapacitet",
   "Test again. If it keeps happening, check the probe's logs.": "Test igen. Hvis det bliver ved med at ske, så kontrollér sondens logfiler.",

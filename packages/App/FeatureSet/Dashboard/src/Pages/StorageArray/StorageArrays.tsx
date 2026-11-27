@@ -257,7 +257,7 @@ const StorageArrays: FunctionComponent<
         cardProps={{
           title: "Storage Arrays",
           description:
-            "Storage arrays being monitored in this project, such as Pure Storage FlashArray and FlashBlade. Install the OneUptime Storage Array Agent to connect an array, or connect a Unisphere to add every Dell PowerMax it manages.",
+            "Storage arrays being monitored in this project, such as Pure Storage FlashArray and FlashBlade. Install the OneUptime Storage Array Agent to connect an array.",
           buttons: [
             {
               title: STORAGE_ARRAY_ONBOARDING.addTitle,

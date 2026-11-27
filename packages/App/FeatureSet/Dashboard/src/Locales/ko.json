@@ -66229,7 +66229,6 @@
   "Storage Resource Pool Used": "스토리지 리소스 풀 사용량",
   "Storage Resource Pool Used (%)": "스토리지 리소스 풀 사용률(%)",
   "Storage Resource Pools": "스토리지 리소스 풀",
-  "Storage arrays being monitored in this project, such as Pure Storage FlashArray and FlashBlade. Install the OneUptime Storage Array Agent to connect an array, or connect a Unisphere to add every Dell PowerMax it manages.": "이 프로젝트에서 모니터링하는 스토리지 어레이(예: Pure Storage FlashArray 및 FlashBlade)입니다. 어레이를 연결하려면 OneUptime Storage Array 에이전트를 설치하거나, Unisphere를 연결해 그것이 관리하는 모든 Dell PowerMax를 추가하세요.",
   "Storage management servers, such as Unisphere for PowerMax, that a OneUptime probe reads every storage array from with a read-only account.": "Unisphere for PowerMax 같은 스토리지 관리 서버로, OneUptime 프로브가 읽기 전용 계정으로 이 서버에서 모든 스토리지 어레이를 읽습니다.",
   "Subscribed Capacity": "구독 용량",
   "Test again. If it keeps happening, check the probe's logs.": "다시 테스트하세요. 계속 발생하면 프로브의 로그를 확인하세요.",

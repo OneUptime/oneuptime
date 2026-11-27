@@ -962,8 +962,14 @@ describe("a platform a probe reads is connected, never installed (#11004)", () =
     const overview: string = dense(
       readSource("Pages", "StorageArray", "View", "Index.tsx"),
     );
-    expect(overview).toContain(
-      'StorageArrayProbeCollectors.isProbeCollected(storageArray.storageSystem)?(<divclassName="mb-5"><StorageArrayCollectedByCard',
+    // However the call is wrapped: with a trailing comma when it breaks.
+    expect(
+      overview.replace(
+        "isProbeCollected(storageArray.storageSystem,)",
+        "isProbeCollected(storageArray.storageSystem)",
+      ),
+    ).toContain(
+      'storageArray&&StorageArrayProbeCollectors.isProbeCollected(storageArray.storageSystem)?(<divclassName="mb-5"><StorageArrayCollectedByCard',
     );
     expect(overview).toContain("):storageArray?(<ResourceConnectionGuideCard");
     expect(overview).toContain("systemId:true,");

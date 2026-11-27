@@ -66229,7 +66229,6 @@
   "Storage Resource Pool Used": "存储资源池已用",
   "Storage Resource Pool Used (%)": "存储资源池已用（%）",
   "Storage Resource Pools": "存储资源池",
-  "Storage arrays being monitored in this project, such as Pure Storage FlashArray and FlashBlade. Install the OneUptime Storage Array Agent to connect an array, or connect a Unisphere to add every Dell PowerMax it manages.": "此项目中监控的存储阵列，例如 Pure Storage FlashArray 和 FlashBlade。安装 OneUptime Storage Array 代理以连接阵列，或连接 Unisphere 以添加它管理的每个 Dell PowerMax。",
   "Storage management servers, such as Unisphere for PowerMax, that a OneUptime probe reads every storage array from with a read-only account.": "存储管理服务器，例如 Unisphere for PowerMax，OneUptime 探测器使用只读账户从中读取每个存储阵列。",
   "Subscribed Capacity": "已订阅容量",
   "Test again. If it keeps happening, check the probe's logs.": "请再次测试。如果问题持续出现，请检查探测器的日志。",

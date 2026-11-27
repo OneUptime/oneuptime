@@ -500,7 +500,12 @@ describe("an Acme array's monitors and Resource Usage", () => {
     ).find((field: ResourceFilterField): boolean => {
       return field.key === "volumeName";
     });
-    expect(volume?.storageSystems).toEqual([FLASHARRAY, ACME_STORAGE_SYSTEM]);
+    // A PowerMax volume too (#11004), by its own `volume` label.
+    expect(volume?.storageSystems).toEqual([
+      FLASHARRAY,
+      StorageSystem.DellPowerMax,
+      ACME_STORAGE_SYSTEM,
+    ]);
     // The first platform's words describe it.
     expect(volume?.description).toContain("FlashArray");
   });

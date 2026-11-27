@@ -131,7 +131,10 @@ const RESOURCE_FILTER_LABELS: Record<
 > = {
   volumeName: {
     label: "`name`",
-    storageSystems: [StorageSystem.PureStorageFlashArray],
+    storageSystems: [
+      StorageSystem.PureStorageFlashArray,
+      StorageSystem.DellPowerMax,
+    ],
   },
   hostName: {
     label: "`host`",
@@ -146,6 +149,7 @@ const RESOURCE_FILTER_LABELS: Record<
     storageSystems: [
       StorageSystem.PureStorageFlashArray,
       StorageSystem.PureStorageFlashBlade,
+      StorageSystem.DellPowerMax,
     ],
   },
   fileSystemName: {
@@ -157,6 +161,28 @@ const RESOURCE_FILTER_LABELS: Record<
     storageSystems: [StorageSystem.PureStorageFlashBlade],
   },
 };
+
+/*
+ * A PowerMax names its objects by labels of its own (#11004): a volume by
+ * `volume` (its device ID), a director or port by `component`.
+ */
+const POWERMAX_FILTER_LABELS: Partial<
+  Record<keyof Required<StorageArrayResourceFilters>, string>
+> = {
+  volumeName: "`volume`",
+  componentName: "`component`",
+};
+
+// The label a platform's description of a filter names.
+function filterLabelOn(
+  key: keyof Required<StorageArrayResourceFilters>,
+  storageSystem: string,
+): string {
+  if (storageSystem === StorageSystem.DellPowerMax) {
+    return POWERMAX_FILTER_LABELS[key] as string;
+  }
+  return RESOURCE_FILTER_LABELS[key].label;
+}
 
 const ALL_FILTER_KEYS: Array<keyof StorageArrayResourceFilters> = Object.keys(
   RESOURCE_FILTER_LABELS,
@@ -201,7 +227,7 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
       expect(filterOfferings(key).length).toBeGreaterThan(0);
       for (const offering of filterOfferings(key)) {
         expect(offering.description).toContain(
-          RESOURCE_FILTER_LABELS[key].label,
+          filterLabelOn(key, offering.storageSystem),
         );
       }
     },
@@ -220,6 +246,7 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
       for (const system of [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
+        StorageSystem.DellPowerMax,
       ]) {
         expect({ key, system, offered: offeredOn.includes(system) }).toEqual({
           key,
@@ -281,10 +308,25 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
         getStorageArrayObjectLabel(scope, StorageSystem.PureStorageFlashBlade),
       ).toBe("name");
     }
-    // The hardware field names both platforms' labels.
+    // The hardware field names both of Pure's platforms' labels.
     for (const offering of filterOfferings("componentName")) {
-      expect(offering.description).toContain("`name` on a FlashBlade");
+      if (offering.storageSystem !== StorageSystem.DellPowerMax) {
+        expect(offering.description).toContain("`name` on a FlashBlade");
+      }
     }
+    // PowerMax: a volume by `volume`, a director or a port by `component`.
+    expect(
+      getStorageArrayObjectLabel(
+        StorageArrayResourceScope.Volume,
+        StorageSystem.DellPowerMax,
+      ),
+    ).toBe("volume");
+    expect(
+      getStorageArrayObjectLabel(
+        StorageArrayResourceScope.Hardware,
+        StorageSystem.DellPowerMax,
+      ),
+    ).toBe("component");
   });
 
   test("writes each field back under its own key, spreading the rest", () => {
@@ -475,9 +517,14 @@ describe("StorageArrayMonitorStepForm custom metrics", () => {
         metric.metricName,
       );
       if (metric.defaultResourceScope === StorageArrayResourceScope.Array) {
+        /*
+         * The array itself - or an object of a kind only its platform has
+         * (a PowerMax storage group, pool or SRDF group, #11004), by the
+         * label the catalog names for it.
+         */
         expect({ id: metric.id, label }).toEqual({
           id: metric.id,
-          label: null,
+          label: metric.objectLabel || null,
         });
       } else {
         expect({ id: metric.id, hasLabel: Boolean(label) }).toEqual({
