@@ -83,7 +83,17 @@ import {
   NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
   PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
   PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
-} from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
+import {
+  parseInvestigationCodeFixSuggestion,
+  PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES,
+} from "../../../Utils/Suggestions/InvestigationCodeFixSuggestion";
+import {
+  parseTelemetryImprovementSuggestion,
+  PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE,
+} from "../../../Utils/Suggestions/TelemetryImprovementSuggestion";
+import FixFromIncidentTaskTrigger from "../../../Server/Utils/AI/SRE/FixFromIncidentTaskTrigger";
+import RemediationRulePullRequests from "../../../Server/Utils/AI/SRE/RemediationRulePullRequests";
 import { customDomainCaller } from "./CustomDomainCallers";
 import DashboardRequestsOverHttp, {
   SentRequest,
@@ -243,7 +253,29 @@ function investigation(): AIRun {
   return run;
 }
 
+// The plans a billed server sells, as its environment names them.
+const PLAN_ENVIRONMENT: Record<string, string> = {
+  SUBSCRIPTION_PLAN_BASIC: "Free,price_free_month,price_free_year,0,0,1,0",
+  SUBSCRIPTION_PLAN_GROWTH:
+    "Growth,price_growth_month,price_growth_year,22,20,2,14",
+  SUBSCRIPTION_PLAN_SCALE:
+    "Scale,price_scale_month,price_scale_year,99,84,3,14",
+  SUBSCRIPTION_PLAN_ENTERPRISE:
+    "Enterprise,price_enterprise_month,price_enterprise_year,-1,-1,4,14",
+};
+
+const savedPlanEnvironment: Record<string, string | undefined> = {};
+
 beforeAll(async () => {
+  for (const key of Object.keys(process.env)) {
+    if (key.startsWith("SUBSCRIPTION_PLAN_")) {
+      savedPlanEnvironment[key] = process.env[key];
+      delete process.env[key];
+    }
+  }
+
+  Object.assign(process.env, PLAN_ENVIRONMENT);
+
   passSessionGuards();
   server = new DashboardRequestsOverHttp();
   // The router is built as the module loads, with the session guard above.
@@ -254,6 +286,16 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await server.stop();
+
+  for (const key of Object.keys(PLAN_ENVIRONMENT)) {
+    delete process.env[key];
+  }
+
+  for (const [key, value] of Object.entries(savedPlanEnvironment)) {
+    if (value !== undefined) {
+      process.env[key] = value;
+    }
+  }
 });
 
 beforeEach(() => {
@@ -475,6 +517,10 @@ interface Path {
   suggestionRoute: string;
   body: (extra?: JSONObject) => JSONObject;
   suggestionBody: JSONObject;
+  // What the route says when several repositories are theirs and none matched.
+  pickMessage: string;
+  // The repositories the page offers to pick from, read as the page reads them.
+  choicesOf: (answer: unknown) => Array<{ id: string; name: string }>;
 }
 
 const PATHS: Array<Path> = [
@@ -486,6 +532,10 @@ const PATHS: Array<Path> = [
       return fixTheCauseBody(extra, "incident");
     },
     suggestionBody: { subjectType: "incident", subjectId: INCIDENT_ID },
+    pickMessage: PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES.incident,
+    choicesOf: (answer: unknown) => {
+      return parseInvestigationCodeFixSuggestion(answer).repositories;
+    },
   },
   {
     name: "Fix the Cause from an alert",
@@ -495,6 +545,10 @@ const PATHS: Array<Path> = [
       return fixTheCauseBody(extra, "alert");
     },
     suggestionBody: { subjectType: "alert", subjectId: ALERT_ID },
+    pickMessage: PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES.alert,
+    choicesOf: (answer: unknown) => {
+      return parseInvestigationCodeFixSuggestion(answer).repositories;
+    },
   },
   {
     name: "Improve Logging",
@@ -507,6 +561,10 @@ const PATHS: Array<Path> = [
       telemetryServiceId: SERVICE_ID,
       taskType: CodeFixTaskType.ImproveLogging,
     },
+    pickMessage: PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE,
+    choicesOf: (answer: unknown) => {
+      return parseTelemetryImprovementSuggestion(answer).repositories;
+    },
   },
   {
     name: "Improve Tracing",
@@ -518,6 +576,10 @@ const PATHS: Array<Path> = [
     suggestionBody: {
       telemetryServiceId: SERVICE_ID,
       taskType: CodeFixTaskType.ImproveTracing,
+    },
+    pickMessage: PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE,
+    choicesOf: (answer: unknown) => {
+      return parseTelemetryImprovementSuggestion(answer).repositories;
     },
   },
 ];
@@ -667,6 +729,37 @@ describe.each(PATHS)("$name, by role, with Code's own checks", (path: Path) => {
       refusal: "repositoryId must be a repository's ID.",
     });
     expect(create).not.toHaveBeenCalled();
+    // Neither the record, the service nor a repository was read for it.
+    expect(IncidentService.findOneById).not.toHaveBeenCalled();
+    expect(AlertService.findOneById).not.toHaveBeenCalled();
+    expect(ServiceService.findOneById).not.toHaveBeenCalled();
+    expect(codeRepositories.repository.find).not.toHaveBeenCalled();
+  });
+
+  test("a pick written in capitals is the same repository, and is held to as the database writes it", async () => {
+    caller = callerWith([Permission.ProjectMember]);
+
+    const sent: SentRequest = await server.request(
+      "POST",
+      path.route,
+      path.body({ repositoryId: LEDGER_ID.toUpperCase() }),
+    );
+
+    expect(sent.status).toBe(200);
+    expect(theRun().pickedCodeRepositoryId).toBe(LEDGER_ID);
+  });
+
+  test("a null pick is no pick", async () => {
+    caller = callerWith([Permission.ProjectMember]);
+
+    const sent: SentRequest = await server.request(
+      "POST",
+      path.route,
+      path.body({ repositoryId: null }),
+    );
+
+    expect(sent.status).toBe(200);
+    expect(theRun().pickedCodeRepositoryId).toBe(BILLING_ID);
   });
 
   test("the page offers a viewer nothing, so it never shows a button the route refuses", async () => {
@@ -938,19 +1031,85 @@ describe.each(PATHS)(
       });
     });
 
-    test("no pick, and several theirs that the record's name matches none of: never made in billing-api", async () => {
-      await server.request("POST", path.route, path.body());
+    test("no pick, and several theirs that the record's name matches none of: asked to pick, never made in billing-api", async () => {
+      const sent: SentRequest = await server.request(
+        "POST",
+        path.route,
+        path.body(),
+      );
 
-      expect(
-        created.map((run: AIRun): string | undefined => {
-          return run.codeRepositoryId?.toString();
-        }),
-      ).not.toContain(BILLING_ID);
-      expect(
-        created.map((run: AIRun): string | undefined => {
-          return run.taskContext?.pickedCodeRepositoryId;
-        }),
-      ).not.toContain(BILLING_ID);
+      expect({ status: sent.status, refusal: refusalOf(sent) }).toEqual({
+        status: 400,
+        refusal: path.pickMessage,
+      });
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    test("the page asks that pick first: the button, with the repositories theirs to pick from, by name", async () => {
+      const sent: SentRequest = await server.request(
+        "POST",
+        path.suggestionRoute,
+        path.suggestionBody,
+      );
+
+      expect(sent.status).toBe(200);
+      expect(answerOf(sent)["offer"]).toBe(SuggestionOffer.Act);
+      expect(path.choicesOf(sent.answer)).toEqual([
+        { id: CHECKOUT_ID, name: "checkout" },
+        { id: LEDGER_ID, name: "ledger" },
+      ]);
+    });
+
+    test("and the pick the page then sends is taken", async () => {
+      const sent: SentRequest = await server.request(
+        "POST",
+        path.route,
+        path.body({ repositoryId: LEDGER_ID }),
+      );
+
+      expect(sent.status).toBe(200);
+      expect(theRun()).toMatchObject({
+        codeRepositoryId: LEDGER_ID,
+        pickedCodeRepositoryId: LEDGER_ID,
+      });
+    });
+
+    test("one repository theirs: the page asks no pick", async () => {
+      askable = new Set<string>([CHECKOUT_ID]);
+
+      const sent: SentRequest = await server.request(
+        "POST",
+        path.suggestionRoute,
+        path.suggestionBody,
+      );
+
+      expect(answerOf(sent)["offer"]).toBe(SuggestionOffer.Act);
+      expect(path.choicesOf(sent.answer)).toEqual([]);
+    });
+
+    test("the repository the record's name points at among theirs: no pick asked, and the run is made there", async () => {
+      askable = new Set<string>([BILLING_ID, CHECKOUT_ID, LEDGER_ID]);
+
+      const suggested: SentRequest = await server.request(
+        "POST",
+        path.suggestionRoute,
+        path.suggestionBody,
+      );
+
+      expect(answerOf(suggested)["offer"]).toBe(SuggestionOffer.Act);
+      expect(path.choicesOf(suggested.answer)).toEqual([]);
+
+      const sent: SentRequest = await server.request(
+        "POST",
+        path.route,
+        path.body(),
+      );
+
+      expect(sent.status).toBe(200);
+      expect(theRun()).toMatchObject({
+        codeRepositoryId: BILLING_ID,
+        pickedCodeRepositoryId: BILLING_ID,
+      });
     });
 
     test("none theirs to ask in: refused, saying who can help - nothing written", async () => {
@@ -970,3 +1129,109 @@ describe.each(PATHS)(
     });
   },
 );
+
+/*
+ * IN THE ONE PROJECT THE REQUEST IS FOR: a record of another project the
+ * person belongs to, read through a read across projects, never has its fix
+ * weighed by their grants here.
+ */
+describe("Fix the Cause, in the request's own project", () => {
+  test("a record of another project: refused, nothing written", async () => {
+    caller = callerWith([Permission.ProjectMember]);
+
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockImplementation((async (): Promise<Incident> => {
+        const incident: Incident = new Incident(new ObjectID(INCIDENT_ID));
+        incident.projectId = ObjectID.generate();
+        incident.monitors = [monitorNamed(SERVICE_NAME)];
+        return incident;
+      }) as never);
+
+    const sent: SentRequest = await server.request(
+      "POST",
+      FIX_THE_CAUSE,
+      fixTheCauseBody(),
+    );
+
+    expect({ status: sent.status, refusal: refusalOf(sent) }).toEqual({
+      status: 422,
+      refusal: "You are not authorized to access this project's data.",
+    });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  test("the person's repositories are weighed in that one project, never across projects", async () => {
+    caller = {
+      ...callerWith([Permission.ProjectMember]),
+      isMultiTenantRequest: true,
+    };
+    const readable: SpyInstance<
+      typeof CodeTaskAccess.listReadableRepositoriesByIds
+    > = jest.spyOn(CodeTaskAccess, "listReadableRepositoriesByIds");
+
+    const sent: SentRequest = await server.request(
+      "POST",
+      FIX_THE_CAUSE,
+      fixTheCauseBody(),
+    );
+
+    expect(sent.status).toBe(200);
+    expect(readable).toHaveBeenCalled();
+    for (const call of readable.mock.calls) {
+      expect(call[0].props.isMultiTenantRequest).toBe(false);
+      expect(call[0].props.tenantId?.toString()).toBe(PROJECT_ID.toString());
+      expect(call[0].projectId.toString()).toBe(PROJECT_ID.toString());
+    }
+  });
+});
+
+/*
+ * THE RUNS NO PERSON STARTED keep their rule: an investigation that ends
+ * recommending a fix in the code opens the pull request on its own while
+ * fixing is on, held to the repositories its AI rules allow - every
+ * connected one, with no rule - and no person's permissions weigh it.
+ */
+describe("Fix the Cause opened by OneUptime AI on its own", () => {
+  test("is made where the monitor's name points, among every connected repository, and pinned to no person's", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockImplementation(async (): Promise<Project | null> => {
+        const project: Project = new Project(PROJECT_ID);
+        project.enableAi = true;
+        project.enableAutomaticIncidentRemediation = true;
+        return project;
+      });
+    // No AI rule for the lane: every connected repository is allowed.
+    jest
+      .spyOn(RemediationRulePullRequests, "getRulesForSignal")
+      .mockResolvedValue({ rulesSetUp: false, matchingRules: [] });
+    jest.spyOn(FixRunBudget, "getBudgetStatus").mockResolvedValue({
+      allowed: true,
+    } as never);
+    const readable: SpyInstance<
+      typeof CodeTaskAccess.listReadableRepositoriesByIds
+    > = jest.spyOn(CodeTaskAccess, "listReadableRepositoriesByIds");
+    const askable: SpyInstance<typeof CodeTaskAccess.listAskableRepositoryIds> =
+      jest.spyOn(CodeTaskAccess, "listAskableRepositoryIds");
+
+    await FixFromIncidentTaskTrigger.autoEnqueueFromRecommendedInvestigation({
+      projectId: PROJECT_ID,
+      investigationRunId: INVESTIGATION_ID,
+      analysisMarkdown: ANALYSIS,
+      incidentId: new ObjectID(INCIDENT_ID),
+    });
+
+    expect(theRun()).toMatchObject({
+      codeRepositoryId: BILLING_ID,
+      pickedCodeRepositoryId: undefined,
+      userId: undefined,
+    });
+    expect(theRun().taskContext).toEqual({
+      sourceInvestigationRunId: INVESTIGATION_ID.toString(),
+      sourceInvestigationAnalysisMarkdown: ANALYSIS,
+    });
+    expect(readable).not.toHaveBeenCalled();
+    expect(askable).not.toHaveBeenCalled();
+  });
+});

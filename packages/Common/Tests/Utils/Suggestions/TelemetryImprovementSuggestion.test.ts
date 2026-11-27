@@ -119,14 +119,29 @@ describe("getTelemetryImprovementOffer", () => {
   });
 });
 
+const CHECKOUT: { id: string; name: string } = {
+  id: "11209000-0000-4000-8000-0000000000a2",
+  name: "checkout",
+};
+const LEDGER: { id: string; name: string } = {
+  id: "11209000-0000-4000-8000-0000000000a3",
+  name: "ledger",
+};
+
 describe("the wire format the card reads", () => {
   test.each([
-    { offer: SuggestionOffer.Act, aiRunId: null },
+    { offer: SuggestionOffer.Act, aiRunId: null, repositories: [] },
+    {
+      offer: SuggestionOffer.Act,
+      aiRunId: null,
+      repositories: [CHECKOUT, LEDGER],
+    },
     {
       offer: SuggestionOffer.InProgress,
       aiRunId: "70000000-0000-4000-8000-000000000009",
+      repositories: [],
     },
-    { offer: SuggestionOffer.None, aiRunId: null },
+    { offer: SuggestionOffer.None, aiRunId: null, repositories: [] },
   ])("round-trips $offer", (suggestion: TelemetryImprovementSuggestion) => {
     expect(
       parseTelemetryImprovementSuggestion(
@@ -158,6 +173,111 @@ describe("the wire format the card reads", () => {
   test("a run id on an Act offer is dropped", () => {
     expect(
       parseTelemetryImprovementSuggestion({ offer: "Act", aiRunId: "x" }),
-    ).toEqual({ offer: SuggestionOffer.Act, aiRunId: null });
+    ).toEqual({ offer: SuggestionOffer.Act, aiRunId: null, repositories: [] });
+  });
+});
+
+/*
+ * THE REPOSITORIES TO PICK FROM (#11209): the card asks which repository
+ * holds the service's code when several are the person's and none is named
+ * like the service. Only the offer of the card carries them, whole, each
+ * once - and one repository is no choice.
+ */
+describe("the repositories the card offers to pick from", () => {
+  test("an Act offer carries them, in the server's order", () => {
+    expect(
+      parseTelemetryImprovementSuggestion({
+        offer: "Act",
+        repositories: [LEDGER, CHECKOUT],
+      }).repositories,
+    ).toEqual([LEDGER, CHECKOUT]);
+  });
+
+  test("one repository is no choice: none", () => {
+    expect(
+      parseTelemetryImprovementSuggestion({
+        offer: "Act",
+        repositories: [CHECKOUT],
+      }).repositories,
+    ).toEqual([]);
+  });
+
+  test("each once, whatever the letter case of its id", () => {
+    expect(
+      parseTelemetryImprovementSuggestion({
+        offer: "Act",
+        repositories: [
+          CHECKOUT,
+          { id: CHECKOUT.id.toUpperCase(), name: "checkout again" },
+          LEDGER,
+        ],
+      }).repositories,
+    ).toEqual([CHECKOUT, LEDGER]);
+  });
+
+  test.each([
+    ["no id", { name: "checkout" }],
+    ["an empty id", { id: " ", name: "checkout" }],
+    ["no name", { id: CHECKOUT.id }],
+    ["an empty name", { id: CHECKOUT.id, name: "" }],
+    ["a number for a name", { id: CHECKOUT.id, name: 7 }],
+    ["text", "checkout"],
+    ["a list", [CHECKOUT.id, "checkout"]],
+    ["null", null],
+  ])(
+    "an entry with %s is left out",
+    (_label: string, entry: unknown) => {
+      expect(
+        parseTelemetryImprovementSuggestion({
+          offer: "Act",
+          repositories: [entry, CHECKOUT, LEDGER],
+        }).repositories,
+      ).toEqual([CHECKOUT, LEDGER]);
+    },
+  );
+
+  test("anything but a list reads as none", () => {
+    for (const repositories of [CHECKOUT, "checkout", 2, null, undefined]) {
+      expect(
+        parseTelemetryImprovementSuggestion({ offer: "Act", repositories })
+          .repositories,
+      ).toEqual([]);
+    }
+  });
+
+  test("an improvement on its way carries none: a pick is the card's own step", () => {
+    expect(
+      parseTelemetryImprovementSuggestion({
+        offer: "InProgress",
+        aiRunId: "70000000-0000-4000-8000-000000000009",
+        repositories: [CHECKOUT, LEDGER],
+      }).repositories,
+    ).toEqual([]);
+  });
+
+  test("names and ids are read trimmed", () => {
+    expect(
+      parseTelemetryImprovementSuggestion({
+        offer: "Act",
+        repositories: [
+          { id: ` ${CHECKOUT.id} `, name: " checkout " },
+          LEDGER,
+        ],
+      }).repositories,
+    ).toEqual([CHECKOUT, LEDGER]);
+  });
+
+  test("the server writes them as the card reads them", () => {
+    expect(
+      telemetryImprovementSuggestionToJSON({
+        offer: SuggestionOffer.Act,
+        aiRunId: null,
+        repositories: [CHECKOUT, LEDGER],
+      }),
+    ).toEqual({
+      offer: SuggestionOffer.Act,
+      aiRunId: null,
+      repositories: [CHECKOUT, LEDGER],
+    });
   });
 });

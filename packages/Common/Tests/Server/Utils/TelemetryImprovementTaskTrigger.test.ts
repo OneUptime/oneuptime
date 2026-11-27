@@ -24,8 +24,20 @@ import {
 } from "../../../Types/AI/CodeTask";
 import CodeFixTaskContext from "../../../Types/AI/CodeFixTaskContext";
 import CodeTaskThread from "../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import CodeFixPersonRepository, {
+  CodeFixRepositoryUse,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
+import { ResolvableRepository } from "../../../Server/Utils/CodeRepository/StackTraceRepoResolver";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
+import {
+  CodeRepositoryAllowance,
+  EVERY_CODE_REPOSITORY,
+  NO_CODE_REPOSITORY,
+} from "../../../Types/CodeRepository/CodeRepositoryAllowance";
+import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../../Types/Exception/PaymentRequiredException";
+import { NO_REPOSITORY_YOU_MAY_USE_MESSAGE } from "../../../Utils/Suggestions/CodeFixRepositoryPick";
+import { PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE } from "../../../Utils/Suggestions/TelemetryImprovementSuggestion";
 import { describe, expect, test, afterEach, beforeEach } from "@jest/globals";
 
 /*
@@ -74,6 +86,44 @@ const projectId: ObjectID = ObjectID.generate();
 const telemetryServiceId: ObjectID = ObjectID.generate();
 const userId: ObjectID = ObjectID.generate();
 
+// Who clicked Improve Logging or Improve Tracing, as their request reads.
+const PERSON: DatabaseCommonInteractionProps = {
+  userId,
+  tenantId: projectId,
+};
+
+const OTHER_REPOSITORY_ID: string = "60000000-0000-4000-8000-000000000006";
+
+function usableRepository(
+  id: string = GATE_REPOSITORY_ID.toString(),
+  name: string = "checkout",
+): ResolvableRepository {
+  return {
+    id,
+    name,
+    organizationName: "acme",
+    repositoryName: name,
+    mainBranchName: "main",
+    gitHubAppInstallationId: "1234",
+  };
+}
+
+/*
+ * The connected repositories the person may use in Code (#11209): the one
+ * Code's gate is asked about, unless a test says otherwise.
+ */
+function personMayUse(
+  use: CodeFixRepositoryUse = {
+    connectedCount: 1,
+    usable: [usableRepository()],
+    allowance: EVERY_CODE_REPOSITORY,
+  },
+): jest.SpyInstance {
+  return jest
+    .spyOn(CodeFixPersonRepository, "getUsableRepositories")
+    .mockResolvedValue(use);
+}
+
 function mockService(overrides: Partial<Service> = {}): void {
   jest.spyOn(ServiceService, "findOneById").mockResolvedValue({
     id: telemetryServiceId,
@@ -93,6 +143,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
       .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
       .mockResolvedValue(null);
     gateSays(null);
+    personMayUse();
   });
 
   afterEach(() => {
@@ -111,6 +162,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         telemetryServiceId,
         taskType: CodeFixTaskType.FixException,
         userId,
+        props: PERSON,
       }),
     ).rejects.toThrow(/not a telemetry-improvement recipe/);
 
@@ -134,6 +186,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         telemetryServiceId,
         taskType: CodeFixTaskType.ImproveLogging,
         userId,
+        props: PERSON,
       }),
     ).rejects.toThrow(AI_DISABLED_MESSAGE);
 
@@ -151,6 +204,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         telemetryServiceId,
         taskType: CodeFixTaskType.ImproveLogging,
         userId,
+        props: PERSON,
       }),
     ).rejects.toThrow(/not found/);
   });
@@ -167,6 +221,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         telemetryServiceId,
         taskType: CodeFixTaskType.ImproveLogging,
         userId,
+        props: PERSON,
       }),
     ).rejects.toThrow(/^No connected repository exists for this project/);
   });
@@ -187,6 +242,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         telemetryServiceId,
         taskType: CodeFixTaskType.ImproveTracing,
         userId,
+        props: PERSON,
       }),
     ).rejects.toThrow(/already queued or running/);
 
@@ -206,6 +262,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         telemetryServiceId,
         taskType: CodeFixTaskType.ImproveLogging,
         userId,
+        props: PERSON,
       });
 
     expect(run).toBe(createdRun);
@@ -236,6 +293,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
       telemetryServiceId,
       taskType: CodeFixTaskType.ImproveTracing,
       userId,
+      props: PERSON,
     });
 
     expect(check).toHaveBeenCalledTimes(1);
@@ -243,13 +301,16 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
       projectId: ObjectID;
       taskType: CodeFixTaskType;
       taskContext: CodeFixTaskContext;
+      allowance: CodeRepositoryAllowance;
     } = check.mock.calls[0]![0];
     expect(asked.projectId).toBe(projectId);
     expect(asked.taskType).toBe(CodeFixTaskType.ImproveTracing);
-    expect(asked.taskContext).toEqual({
+    expect(asked.taskContext).toMatchObject({
       telemetryServiceId: telemetryServiceId.toString(),
       serviceName: "checkout",
     });
+    // Resolved among the repositories the person may use (#11209).
+    expect(asked.allowance).toEqual(EVERY_CODE_REPOSITORY);
     // The service was read once, for both the gate and the run.
     expect(ServiceService.findOneById).toHaveBeenCalledTimes(1);
   });
@@ -268,6 +329,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         telemetryServiceId,
         taskType: CodeFixTaskType.ImproveLogging,
         userId,
+        props: PERSON,
       }),
     ).rejects.toThrow(new BadDataException(NO_RUNNER.message));
 
@@ -292,6 +354,7 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
           telemetryServiceId,
           taskType: CodeFixTaskType.ImproveLogging,
           userId,
+          props: PERSON,
         }),
       ).rejects.toThrow(PaymentRequiredException);
     },
@@ -310,13 +373,20 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
         telemetryServiceId,
         taskType: CodeFixTaskType.ImproveTracing,
         userId,
+        props: PERSON,
       }),
     ).rejects.toThrow(/already queued or running/);
 
     expect(check).not.toHaveBeenCalled();
   });
 
-  test("no repository resolves for the service: queued without one, as the run then finds its own", async () => {
+  /*
+   * A run queued without a repository used to find none when it started,
+   * and failed: now the person's one repository is the run's, and two or
+   * more of theirs that the service's name matches none of ask for a pick
+   * first (#11209).
+   */
+  test("no repository resolves by the service's name, and one is the person's: queued on it, and held to it", async () => {
     mockService();
     gateSays(null, null);
     const enqueue: jest.SpyInstance = jest
@@ -328,9 +398,164 @@ describe("TelemetryImprovementTaskTrigger.createTelemetryImprovementTask", () =>
       telemetryServiceId,
       taskType: CodeFixTaskType.ImproveLogging,
       userId,
+      props: PERSON,
     });
 
-    expect(enqueue.mock.calls[0]![0]).toMatchObject({ codeRepositoryId: null });
+    const queued: {
+      codeRepositoryId: ObjectID;
+      taskContext: CodeFixTaskContext;
+    } = enqueue.mock.calls[0]![0];
+    expect(queued.codeRepositoryId.toString()).toBe(
+      GATE_REPOSITORY_ID.toString(),
+    );
+    expect(queued.taskContext.pickedCodeRepositoryId).toBe(
+      GATE_REPOSITORY_ID.toString(),
+    );
+  });
+
+  test("no repository resolves by the service's name, and several are the person's: asked to pick, nothing queued", async () => {
+    mockService();
+    gateSays(null, null);
+    personMayUse({
+      connectedCount: 3,
+      usable: [
+        usableRepository(),
+        usableRepository(OTHER_REPOSITORY_ID, "ledger"),
+      ],
+      allowance: {
+        isEveryRepository: false,
+        repositoryIds: [GATE_REPOSITORY_ID.toString(), OTHER_REPOSITORY_ID],
+      },
+    });
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    await expect(
+      TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+        projectId,
+        telemetryServiceId,
+        taskType: CodeFixTaskType.ImproveLogging,
+        userId,
+        props: PERSON,
+      }),
+    ).rejects.toThrow(
+      new BadDataException(PICK_A_REPOSITORY_FOR_THE_IMPROVEMENT_MESSAGE),
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("none of the connected repositories the person's: refused, saying who can help - nothing queued", async () => {
+    mockService();
+    personMayUse({
+      connectedCount: 2,
+      usable: [],
+      allowance: NO_CODE_REPOSITORY,
+    });
+    const enqueue: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "enqueueSubjectCodeFixRun",
+    );
+
+    const refusal: unknown =
+      await TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+        projectId,
+        telemetryServiceId,
+        taskType: CodeFixTaskType.ImproveTracing,
+        userId,
+        props: PERSON,
+      }).catch((error: unknown) => {
+        return error;
+      });
+
+    expect(refusal).toBeInstanceOf(NotAuthorizedException);
+    expect((refusal as Error).message).toBe(NO_REPOSITORY_YOU_MAY_USE_MESSAGE);
+    expect(enqueue).not.toHaveBeenCalled();
+  });
+
+  test("the plan is said first, as a payment, before why the person may use none", async () => {
+    mockService();
+    personMayUse({
+      connectedCount: 2,
+      usable: [],
+      allowance: NO_CODE_REPOSITORY,
+    });
+    gateSays(
+      {
+        type: CodeTaskBlockerType.PlanRequired,
+        message: CODE_TASK_PLAN_REQUIRED_MESSAGE,
+      },
+      null,
+    );
+
+    await expect(
+      TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+        projectId,
+        telemetryServiceId,
+        taskType: CodeFixTaskType.ImproveLogging,
+        userId,
+        props: PERSON,
+      }),
+    ).rejects.toThrow(PaymentRequiredException);
+  });
+
+  test("the person's repositories are weighed under their own props, after the service and dedupe gates", async () => {
+    mockService();
+    const usable: jest.SpyInstance = personMayUse();
+    const inFlight: jest.SpyInstance = jest.spyOn(
+      SubjectCodeFixRun,
+      "findNonTerminalRunForTelemetryService",
+    );
+    jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+      projectId,
+      telemetryServiceId,
+      taskType: CodeFixTaskType.ImproveLogging,
+      userId,
+      props: PERSON,
+    });
+
+    expect(usable.mock.calls[0]![0]).toEqual({ projectId, props: PERSON });
+    expect(usable.mock.invocationCallOrder[0]).toBeGreaterThan(
+      inFlight.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("a pick is asked about by itself, and the run is held to it", async () => {
+    mockService();
+    const check: jest.SpyInstance = jest
+      .spyOn(CodeFixPersonRepository, "checkRepositoryPick")
+      .mockResolvedValue(null);
+    const usable: jest.SpyInstance = personMayUse();
+    gateSays(null, new ObjectID(OTHER_REPOSITORY_ID));
+    const enqueue: jest.SpyInstance = jest
+      .spyOn(SubjectCodeFixRun, "enqueueSubjectCodeFixRun")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+
+    await TelemetryImprovementTaskTrigger.createTelemetryImprovementTask({
+      projectId,
+      telemetryServiceId,
+      taskType: CodeFixTaskType.ImproveLogging,
+      userId,
+      props: PERSON,
+      repositoryId: new ObjectID(OTHER_REPOSITORY_ID),
+    });
+
+    expect(check.mock.calls[0]![0]).toMatchObject({
+      projectId,
+      props: PERSON,
+    });
+    // A pick is never looked for among a list of the person's repositories.
+    expect(usable).not.toHaveBeenCalled();
+    expect(
+      (
+        enqueue.mock.calls[0]![0] as { taskContext: CodeFixTaskContext }
+      ).taskContext.pickedCodeRepositoryId,
+    ).toBe(OTHER_REPOSITORY_ID);
   });
 });
 
@@ -350,6 +575,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       .mockImplementation(async () => {
         return hiddenTaskIds;
       });
+    personMayUse();
   });
 
   afterEach(() => {
@@ -388,6 +614,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
     expect(await suggest()).toEqual({
       offer: SuggestionOffer.None,
       aiRunId: null,
+      repositories: [],
     });
     // Asked of the task (a reply's is its first turn), for the person.
     expect(hiddenFrom).toHaveBeenCalledWith({
@@ -411,6 +638,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
     expect(await suggest()).toEqual({
       offer: SuggestionOffer.InProgress,
       aiRunId: taskId.toString(),
+      repositories: [],
     });
   });
 
@@ -438,6 +666,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
     expect(await suggest(CodeFixTaskType.FixException)).toEqual({
       offer: SuggestionOffer.None,
       aiRunId: null,
+      repositories: [],
     });
     expect(isEnabled).not.toHaveBeenCalled();
   });
@@ -484,6 +713,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
     expect(await suggest(CodeFixTaskType.ImproveTracing)).toEqual({
       offer: SuggestionOffer.Act,
       aiRunId: null,
+      repositories: [],
     });
   });
 
@@ -512,6 +742,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       expect(await suggest()).toEqual({
         offer: SuggestionOffer.None,
         aiRunId: null,
+        repositories: [],
       });
     },
   );
@@ -579,6 +810,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
     expect(await suggest(CodeFixTaskType.ImproveTracing)).toEqual({
       offer: SuggestionOffer.InProgress,
       aiRunId: activeRun.id!.toString(),
+      repositories: [],
     });
     expect(run).toHaveBeenCalledWith({
       projectId,
@@ -655,6 +887,7 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
           telemetryServiceId,
           taskType,
           userId,
+          props: PERSON,
         });
       } catch {
         created = false;
@@ -663,4 +896,153 @@ describe("TelemetryImprovementTaskTrigger.getSuggestion (what a service's page o
       expect(suggestion.offer === SuggestionOffer.Act).toBe(created);
     },
   );
+});
+
+/*
+ * WHO THE CARD IS OFFERED TO, AND WITH WHICH REPOSITORIES (#11209): the
+ * improvement is a code task on the person's behalf, held to the
+ * repositories they may use in Code, so the card is drawn by that rule.
+ */
+describe("TelemetryImprovementTaskTrigger.getSuggestion, by the reader's repositories", () => {
+  const READER: DatabaseCommonInteractionProps = {
+    userId,
+    tenantId: projectId,
+  };
+
+  beforeEach(() => {
+    aiSwitch(true);
+    mockService();
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue(null);
+    jest
+      .spyOn(SubjectCodeFixRun, "hasConnectedRepository")
+      .mockResolvedValue(true);
+    jest
+      .spyOn(CodeTaskThread, "findTasksHiddenFrom")
+      .mockResolvedValue(new Set<string>());
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  async function suggest(): Promise<TelemetryImprovementSuggestion> {
+    return TelemetryImprovementTaskTrigger.getSuggestion({
+      projectId,
+      telemetryServiceId,
+      taskType: CodeFixTaskType.ImproveLogging,
+      reader: READER,
+    });
+  }
+
+  test("none of the connected repositories theirs: no card, and Code's gate is not asked", async () => {
+    personMayUse({ connectedCount: 2, usable: [], allowance: NO_CODE_REPOSITORY });
+    const check: jest.SpyInstance = gateSays(null);
+
+    expect(await suggest()).toEqual({
+      offer: SuggestionOffer.None,
+      aiRunId: null,
+      repositories: [],
+    });
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  test("none OneUptime AI can work in after all: no card", async () => {
+    personMayUse({ connectedCount: 0, usable: [], allowance: NO_CODE_REPOSITORY });
+    const check: jest.SpyInstance = gateSays(null);
+
+    expect((await suggest()).offer).toBe(SuggestionOffer.None);
+    expect(check).not.toHaveBeenCalled();
+  });
+
+  test("their repositories are weighed for the reader, and Code's gate resolves the run among them", async () => {
+    const allowance: CodeRepositoryAllowance = {
+      isEveryRepository: false,
+      repositoryIds: [GATE_REPOSITORY_ID.toString()],
+    };
+    const usable: jest.SpyInstance = personMayUse({
+      connectedCount: 2,
+      usable: [usableRepository()],
+      allowance,
+    });
+    const check: jest.SpyInstance = gateSays(null);
+
+    expect((await suggest()).offer).toBe(SuggestionOffer.Act);
+    expect(usable.mock.calls[0]![0]).toEqual({ projectId, props: READER });
+    expect(check.mock.calls[0]![0]).toMatchObject({ allowance });
+  });
+
+  test("several theirs, and the service's name matches none: the card, with the ones to pick from, by name", async () => {
+    personMayUse({
+      connectedCount: 3,
+      usable: [
+        usableRepository(OTHER_REPOSITORY_ID, "ledger"),
+        usableRepository(),
+      ],
+      allowance: {
+        isEveryRepository: false,
+        repositoryIds: [OTHER_REPOSITORY_ID, GATE_REPOSITORY_ID.toString()],
+      },
+    });
+    gateSays(null, null);
+
+    expect(await suggest()).toEqual({
+      offer: SuggestionOffer.Act,
+      aiRunId: null,
+      repositories: [
+        { id: GATE_REPOSITORY_ID.toString(), name: "checkout" },
+        { id: OTHER_REPOSITORY_ID, name: "ledger" },
+      ],
+    });
+  });
+
+  test("one theirs: the card asks no pick", async () => {
+    personMayUse();
+    gateSays(null, null);
+
+    expect((await suggest()).repositories).toEqual([]);
+  });
+
+  test("the service's name matches one of theirs: no pick", async () => {
+    personMayUse({
+      connectedCount: 2,
+      usable: [
+        usableRepository(OTHER_REPOSITORY_ID, "ledger"),
+        usableRepository(),
+      ],
+      allowance: EVERY_CODE_REPOSITORY,
+    });
+    gateSays(null);
+
+    expect((await suggest()).repositories).toEqual([]);
+  });
+
+  test("Code's gate in the way: no card, and no pick", async () => {
+    personMayUse({
+      connectedCount: 2,
+      usable: [
+        usableRepository(OTHER_REPOSITORY_ID, "ledger"),
+        usableRepository(),
+      ],
+      allowance: EVERY_CODE_REPOSITORY,
+    });
+    gateSays(NO_RUNNER, null);
+
+    expect(await suggest()).toEqual({
+      offer: SuggestionOffer.None,
+      aiRunId: null,
+      repositories: [],
+    });
+  });
+
+  test("an improvement on its way: the reader's repositories are not weighed", async () => {
+    jest
+      .spyOn(SubjectCodeFixRun, "findNonTerminalRunForTelemetryService")
+      .mockResolvedValue({ id: ObjectID.generate() } as unknown as AIRun);
+    const usable: jest.SpyInstance = personMayUse();
+
+    expect((await suggest()).offer).toBe(SuggestionOffer.InProgress);
+    expect(usable).not.toHaveBeenCalled();
+  });
 });

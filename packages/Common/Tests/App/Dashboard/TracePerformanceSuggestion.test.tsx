@@ -48,12 +48,14 @@ import { FinishedFixOutcome } from "../../../Utils/Suggestions/CodeFixSuggestion
 import { SuggestionBlocker } from "../../../Utils/Suggestions/SuggestionBlocker";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
-  PICK_REFUSAL_MESSAGES,
+  TracePerformanceFixSuggestion,
+} from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import {
   PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
   PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
   PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
-  TracePerformanceFixSuggestion,
-} from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+  PICK_REFUSAL_MESSAGES,
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import { CodeRepositoriesQuery } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 import {
   FakeCodeRepository,

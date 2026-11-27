@@ -136,8 +136,11 @@ const MAX_EVENTS: number = 500;
  * different ids in one request. Both names identify the exact displayed run.
  */
 /*
- * The repository a person picked for a fix, when the body names one
- * (create-performance-fix-task: TracePerformanceFixSuggestion.repositories).
+ * The repository a person picked for a fix, when the body names one: from
+ * the choices the suggestion listed (create-performance-fix-task,
+ * create-fix-task, create-telemetry-improvement-task - each suggestion's
+ * `repositories`), or any the API names. Read before anything else, so a
+ * pick that is no id is refused before the record is.
  */
 export function readPickedRepositoryId(body: unknown): ObjectID | undefined {
   const repositoryId: unknown =
@@ -1487,11 +1490,15 @@ router.post(
  * access-checked under the USER's permissions first (same idiom as the read
  * routes above); on a private one, the fix is asked only through the
  * record's owners, as approving one of its fixes is (#9165); the trigger's
- * gates (completed investigation, GitHub-App repository, per-subject
- * dedupe) fail early with a clear message.
+ * gates (completed investigation, a connected repository, per-subject
+ * dedupe, a repository the person may use in Code, Code's gate, a
+ * repository to work in) fail early with a clear message.
  * Body: { subjectType: "incident" | "alert", subjectId,
- * aiRunId (or its investigationRunId alias) }. The run id rejects stale
- * clicks instead of silently switching to a newer analysis. Response:
+ * aiRunId (or its investigationRunId alias), repositoryId? } - the
+ * repository the person picked when the Remediation step listed
+ * repositories to pick from, refused unless they may read it and ask
+ * OneUptime AI to work in it (#11209). The run id rejects stale clicks
+ * instead of silently switching to a newer analysis. Response:
  * { aiRunId } — the Queued CodeFix run the agent worker will claim.
  */
 router.post(
@@ -1528,6 +1535,11 @@ router.post(
       const subjectId: ObjectID = new ObjectID(subjectIdString);
 
       const investigationRunId: ObjectID = getDisplayedInvestigationRunId(req);
+
+      // The repository the person picked, when the step asked for one.
+      const repositoryId: ObjectID | undefined = readPickedRepositoryId(
+        req.body,
+      );
 
       // Access check under the USER's permissions (null when not allowed).
       let projectId: ObjectID | undefined = undefined;
@@ -1576,6 +1588,19 @@ router.post(
         action: OPEN_CODE_FIX_PULL_REQUEST_ACTION,
       });
 
+      /*
+       * The repositories the pull request may be opened in are the person's
+       * own in the record's project (#11209), weighed with their grants in
+       * the one project the request is for - never through a read across
+       * projects, which no change in a repository is weighed by.
+       */
+      if (props.tenantId) {
+        CommonAPI.assertResourceBelongsToProject({
+          resourceProjectId: projectId,
+          projectId: props.tenantId,
+        });
+      }
+
       const run: AIRun =
         await FixFromIncidentTaskTrigger.createFixTaskFromInvestigation({
           projectId,
@@ -1584,6 +1609,9 @@ router.post(
             : { alertId: subjectId }),
           investigationRunId,
           userId: props.userId!,
+          // Whose repositories the fix may use: the caller's own (#11209).
+          props: pinPropsToTenant(props),
+          repositoryId,
         });
 
       Response.sendJsonObjectResponse(req, res, {
@@ -2151,11 +2179,15 @@ router.post(
       const request: TelemetryImprovementRequest =
         await readTelemetryImprovementRequest(req, props);
 
+      /*
+       * The improvement on its way, as its task's page reads it for them,
+       * and the repositories it may be made in: theirs (#11209), in the
+       * one project the request is for.
+       */
       const suggestion: TelemetryImprovementSuggestion =
         await TelemetryImprovementTaskTrigger.getSuggestion({
           ...request,
-          // The improvement on its way, as its task's page reads it for them.
-          reader: props,
+          reader: pinPropsToTenant(props),
         });
 
       Response.sendJsonObjectResponse(
@@ -2176,8 +2208,11 @@ router.post(
  * Traces page: gate and enqueue a service-scoped instrumentation-
  * improvement CodeFix run (ImproveLogging / ImproveTracing). Human-
  * triggered — the click is the gate; the AI switch, budget, repository,
- * per-service dedupe and Code's gate are enforced in the trigger. Returns
- * { aiRunId }.
+ * per-service dedupe, a repository the person may use in Code and Code's
+ * gate are enforced in the trigger. Body: { telemetryServiceId, taskType,
+ * repositoryId? } - the repository the person picked when the card listed
+ * repositories to pick from, refused unless they may read it and ask
+ * OneUptime AI to work in it (#11209). Returns { aiRunId }.
  */
 router.post(
   "/ai-investigation/create-telemetry-improvement-task",
@@ -2190,6 +2225,12 @@ router.post(
   ): Promise<void> => {
     try {
       const props: DatabaseCommonInteractionProps = await getLoggedInProps(req);
+
+      // The repository the person picked, when the card asked for one.
+      const repositoryId: ObjectID | undefined = readPickedRepositoryId(
+        req.body,
+      );
+
       const request: TelemetryImprovementRequest =
         await readTelemetryImprovementRequest(req, props);
 
@@ -2199,6 +2240,12 @@ router.post(
           telemetryServiceId: request.telemetryServiceId,
           taskType: request.taskType,
           userId: props.userId!,
+          /*
+           * Whose repositories the improvement may use: the caller's own,
+           * in the one project the request is for (#11209).
+           */
+          props: pinPropsToTenant(props),
+          repositoryId,
         });
 
       Response.sendJsonObjectResponse(req, res, {

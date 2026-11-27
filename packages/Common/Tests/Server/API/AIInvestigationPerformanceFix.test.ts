@@ -3,6 +3,7 @@ import AIService from "../../../Server/Services/AIService";
 import ServiceService from "../../../Server/Services/ServiceService";
 import SpanService from "../../../Server/Services/SpanService";
 import FixPerformanceTaskTrigger from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import CodeFixPersonRepository from "../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
 import SubjectCodeFixRun from "../../../Server/Utils/AI/SRE/SubjectCodeFixRun";
 import CodeFixStartGate, {
   CodeFixStart,
@@ -39,12 +40,14 @@ import ObjectID from "../../../Types/ObjectID";
 import UserType from "../../../Types/UserType";
 import SuggestionOffer from "../../../Utils/Suggestions/SuggestionOffer";
 import {
-  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
   parseTracePerformanceFixSuggestion,
-  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
-  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
   TracePerformanceFixSuggestion,
 } from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+import {
+  NO_REPOSITORY_YOU_MAY_USE_MESSAGE,
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import { AnalyzableSpan } from "../../../Utils/Traces/SpanTreeAnalyzer";
 import {
   HEALTH_CHECK,
@@ -197,7 +200,7 @@ beforeEach(() => {
    * tests below (#11075).
    */
   jest
-    .spyOn(FixPerformanceTaskTrigger, "getUsableRepositories")
+    .spyOn(CodeFixPersonRepository, "getUsableRepositories")
     .mockResolvedValue({
       connectedCount: 1,
       usable: [
@@ -660,7 +663,7 @@ describe("POST /ai-investigation/create-performance-fix-task holds the repositor
   beforeEach(() => {
     asked = [];
     // The real weighing of the member's repositories, below the outer default.
-    jest.mocked(FixPerformanceTaskTrigger.getUsableRepositories).mockRestore();
+    jest.mocked(CodeFixPersonRepository.getUsableRepositories).mockRestore();
 
     jest
       .spyOn(SpanService, "findBy")

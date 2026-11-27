@@ -5,15 +5,17 @@ import CommonAPI from "../../../Server/API/CommonAPI";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import CodeTaskAccess from "../../../Server/Utils/AI/CodeTask/CodeTaskAccess";
 import FixPerformanceTaskTrigger, {
-  TracePerformanceFixRepositoryUse,
 } from "../../../Server/Utils/AI/SRE/FixPerformanceTaskTrigger";
+import CodeFixPersonRepository, {
+  CodeFixRepositoryUse,
+} from "../../../Server/Utils/AI/CodeFix/CodeFixPersonRepository";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import NotFoundException from "../../../Types/Exception/NotFoundException";
 import {
   PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
   PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
-} from "../../../Utils/Suggestions/TracePerformanceFixSuggestion";
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
 import Encryption from "../../../Server/Utils/Encryption";
 import {
   ExpressRequest,
@@ -799,7 +801,7 @@ describePostgres(
       // The suggestion lists the first 200 by name: these are past them.
       for (const id of [threeHundredthId, warehouseId, walrusId]) {
         expect(
-          await FixPerformanceTaskTrigger.isRepositoryChoice({
+          await CodeFixPersonRepository.isRepositoryChoice({
             projectId,
             pickedRepositoryId: id,
             props: memberProps,
@@ -809,7 +811,7 @@ describePostgres(
 
       // Its id however it is written.
       expect(
-        await FixPerformanceTaskTrigger.isRepositoryChoice({
+        await CodeFixPersonRepository.isRepositoryChoice({
           projectId,
           pickedRepositoryId: new ObjectID(
             warehouseId.toString().toUpperCase(),
@@ -821,7 +823,7 @@ describePostgres(
       // Never one not connected, another project's, or none.
       for (const id of [wharfId, westwindId, ObjectID.generate()]) {
         expect(
-          await FixPerformanceTaskTrigger.isRepositoryChoice({
+          await CodeFixPersonRepository.isRepositoryChoice({
             projectId,
             pickedRepositoryId: id,
             props: memberProps,
@@ -829,7 +831,7 @@ describePostgres(
         ).toBe(false);
       }
       expect(
-        await FixPerformanceTaskTrigger.isRepositoryChoice({
+        await CodeFixPersonRepository.isRepositoryChoice({
           projectId,
           props: memberProps,
         }),
@@ -844,7 +846,7 @@ describePostgres(
 
       // Reads it, may not ask AI in it: refused as such.
       const refusal: Error | null =
-        (await FixPerformanceTaskTrigger.checkRepositoryPick({
+        (await CodeFixPersonRepository.checkRepositoryPick({
           projectId,
           pickedRepositoryId: warehouseId,
           props: readerProps,
@@ -855,7 +857,7 @@ describePostgres(
 
       // The label's editor: the labelled one is theirs, the other is not.
       expect(
-        await FixPerformanceTaskTrigger.checkRepositoryPick({
+        await CodeFixPersonRepository.checkRepositoryPick({
           projectId,
           pickedRepositoryId: warehouseId,
           props: labelEditorProps,
@@ -863,7 +865,7 @@ describePostgres(
       ).toBeNull();
       expect(
         (
-          (await FixPerformanceTaskTrigger.checkRepositoryPick({
+          (await CodeFixPersonRepository.checkRepositoryPick({
             projectId,
             pickedRepositoryId: watchtowerId,
             props: labelEditorProps,
@@ -873,7 +875,7 @@ describePostgres(
 
       // Another project's: not found, never said to exist.
       const foreign: Error | null =
-        (await FixPerformanceTaskTrigger.checkRepositoryPick({
+        (await CodeFixPersonRepository.checkRepositoryPick({
           projectId,
           pickedRepositoryId: westwindId,
           props: labelEditorProps,
@@ -884,18 +886,18 @@ describePostgres(
     });
 
     test("without a pick, the trace's fix is resolved among the connected repositories the member may use - however many the project has", async () => {
-      const memberUse: TracePerformanceFixRepositoryUse =
-        await FixPerformanceTaskTrigger.getUsableRepositories({
+      const memberUse: CodeFixRepositoryUse =
+        await CodeFixPersonRepository.getUsableRepositories({
           projectId,
           props: await propsOf(memberId),
         });
-      const readerUse: TracePerformanceFixRepositoryUse =
-        await FixPerformanceTaskTrigger.getUsableRepositories({
+      const readerUse: CodeFixRepositoryUse =
+        await CodeFixPersonRepository.getUsableRepositories({
           projectId,
           props: await propsOf(readerId),
         });
-      const labelEditorUse: TracePerformanceFixRepositoryUse =
-        await FixPerformanceTaskTrigger.getUsableRepositories({
+      const labelEditorUse: CodeFixRepositoryUse =
+        await CodeFixPersonRepository.getUsableRepositories({
           projectId,
           props: await propsOf(labelEditorId),
         });

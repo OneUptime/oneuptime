@@ -2169,8 +2169,95 @@ describe("AIInvestigationAPI run-scoped actions", () => {
       alertId: ALERT_ID,
       investigationRunId,
       userId: USER_ID,
+      // Whose repositories the fix may use: the caller's own, in this project.
+      props: { ...props, isMultiTenantRequest: false },
+      repositoryId: undefined,
     });
     expect(sentPayload()).toEqual({ aiRunId: fixRunId.toString() });
+  });
+
+  it("hands the trigger the repository the person picked, read before the record", async () => {
+    const repositoryId: ObjectID = ObjectID.generate();
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+
+    await mockRouter
+      .match("post", "/ai-investigation/create-fix-task")
+      .handlerFunction(
+        requestFor({
+          subjectType: "incident",
+          subjectId: INCIDENT_ID.toString(),
+          aiRunId: investigationRunId.toString(),
+          repositoryId: repositoryId.toString(),
+        }),
+        response(),
+        next as unknown as NextFunction,
+      );
+
+    expect(next).not.toHaveBeenCalled();
+    expect(
+      (
+        (
+          FixFromIncidentTaskTrigger.createFixTaskFromInvestigation as unknown as jest.Mock
+        ).mock.calls[0]![0] as { repositoryId?: ObjectID }
+      ).repositoryId?.toString(),
+    ).toBe(repositoryId.toString());
+  });
+
+  it.each([
+    ["a name", "billing-api"],
+    ["a number", 7],
+    ["an id that is no uuid", "repo-1"],
+  ])(
+    "refuses a pick that is %s before the record is read, and starts nothing",
+    async (_label: string, repositoryId: string | number) => {
+      const next: ReturnType<typeof jest.fn> = jest.fn();
+
+      await mockRouter
+        .match("post", "/ai-investigation/create-fix-task")
+        .handlerFunction(
+          requestFor({
+            subjectType: "incident",
+            subjectId: INCIDENT_ID.toString(),
+            aiRunId: investigationRunId.toString(),
+            repositoryId,
+          }),
+          response(),
+          next as unknown as NextFunction,
+        );
+
+      expect(next).toHaveBeenCalledWith(expect.any(BadDataException));
+      expect(
+        (next.mock.calls[0]![0] as Error).message,
+      ).toBe("repositoryId must be a repository's ID.");
+      expect(IncidentService.findOneById).not.toHaveBeenCalled();
+      expect(
+        FixFromIncidentTaskTrigger.createFixTaskFromInvestigation,
+      ).not.toHaveBeenCalled();
+    },
+  );
+
+  it("refuses a record of another project the person reads across projects, and starts nothing", async () => {
+    const incident: Incident = new Incident(INCIDENT_ID);
+    incident.projectId = ObjectID.generate();
+    jest.spyOn(IncidentService, "findOneById").mockResolvedValue(incident);
+    const next: ReturnType<typeof jest.fn> = jest.fn();
+
+    await mockRouter
+      .match("post", "/ai-investigation/create-fix-task")
+      .handlerFunction(
+        requestFor({
+          subjectType: "incident",
+          subjectId: INCIDENT_ID.toString(),
+          aiRunId: investigationRunId.toString(),
+        }),
+        response(),
+        next as unknown as NextFunction,
+      );
+
+    expect(next).toHaveBeenCalledWith(expect.any(NotAuthorizedException));
+    expect(
+      FixFromIncidentTaskTrigger.createFixTaskFromInvestigation,
+    ).not.toHaveBeenCalled();
   });
 
   /*
