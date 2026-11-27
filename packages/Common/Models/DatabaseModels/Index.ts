@@ -527,6 +527,7 @@ import AutoRemediationSuggestion from "./AutoRemediationSuggestion";
 import AutoRemediationDecision from "./AutoRemediationDecision";
 import AIPostmortemRule from "./AIPostmortemRule";
 import ExternalMcpServer from "./ExternalMcpServer";
+import ExternalMcpToolReadOnlyMark from "./ExternalMcpToolReadOnlyMark";
 
 import UserTotpAuth from "./UserTotpAuth";
 import UserTwoFactorBackupCode from "./UserTwoFactorBackupCode";
@@ -1071,6 +1072,7 @@ const AllModelTypes: Array<{
   AutoRemediationDecision,
   AIPostmortemRule,
   ExternalMcpServer,
+  ExternalMcpToolReadOnlyMark,
   Runner,
   RunnerJob,
   RunnerOwnerTeam,

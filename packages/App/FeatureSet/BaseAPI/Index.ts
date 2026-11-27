@@ -698,6 +698,10 @@ import ManagedDeviceAppService, {
   Service as ManagedDeviceAppServiceType,
 } from "Common/Server/Services/ManagedDeviceAppService";
 import ExternalMcpServerAPI from "Common/Server/API/ExternalMcpServerAPI";
+import ExternalMcpToolReadOnlyMark from "Common/Models/DatabaseModels/ExternalMcpToolReadOnlyMark";
+import ExternalMcpToolReadOnlyMarkService, {
+  Service as ExternalMcpToolReadOnlyMarkServiceType,
+} from "Common/Server/Services/ExternalMcpToolReadOnlyMarkService";
 import SecurityEventDestinationAPI from "Common/Server/API/SecurityEventDestinationAPI";
 import AuditLogExportService, {
   Service as AuditLogExportServiceType,
@@ -4178,6 +4182,18 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new ExternalMcpServerAPI().getRouter(),
+    );
+
+    // A Project Admin's word that a server's tool only reads (#11081).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        ExternalMcpToolReadOnlyMark,
+        ExternalMcpToolReadOnlyMarkServiceType
+      >(
+        ExternalMcpToolReadOnlyMark,
+        ExternalMcpToolReadOnlyMarkService,
+      ).getRouter(),
     );
 
     // LlmModelPrice
