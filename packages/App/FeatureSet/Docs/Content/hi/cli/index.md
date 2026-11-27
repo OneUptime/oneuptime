@@ -107,6 +107,7 @@ oneuptime resources
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | एक तरह के रिकॉर्ड के साथ काम करती है | [संसाधन संचालन](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | किसी संसाधन के फ़ील्ड और उन्हें सेट करने वाले फ़्लैग सूचीबद्ध करती है | [संसाधन संचालन](/docs/cli/resource-operations#किसी-संसाधन-के-फ़ील्ड-देखें) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | घटनाओं, अलर्ट और अनुसूचित रखरखाव पर वही करती है जो डैशबोर्ड के बटन करते हैं | [संसाधन संचालन](/docs/cli/resource-operations#स्वीकार-करें-सुलझाएँ-और-नोट-जोड़ें) |
+| `oneuptime <resource> breakdown`, `export` | `cloud-cost` के लिए किसी अवधि का क्लाउड खर्च बाँटकर दिखाती है, या उसे FOCUS 1.2 फ़ाइल के रूप में एक्सपोर्ट करती है | [रिपोर्ट और एक्सपोर्ट](/docs/telemetry/cloud-costs#रिपोर्ट-और-एक्सपोर्ट) |
 | `oneuptime resources` | रिकॉर्ड के प्रकार उनकी कमांड के साथ सूचीबद्ध करती है | [कमांड संदर्भ](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | CLI का संस्करण प्रिंट करती है | [कमांड संदर्भ](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | किसी कमांड की सहायता दिखाती है | [सहायता पाएँ](#सहायता-पाएँ) |

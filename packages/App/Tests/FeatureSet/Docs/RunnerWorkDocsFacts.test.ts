@@ -210,11 +210,11 @@ describe("what a Bash and a kubectl step run without, as the Authoring page says
   });
 });
 
-describe("the notes on 17", () => {
+describe("the notes on 18", () => {
   it("say who sets a repository's commands and Runner and who chooses a Runner's key, with the permissions as the API names them", () => {
     const notes: string = section(
       UPGRADING,
-      "## Upgrading from OneUptime 16 → 17",
+      "## Upgrading from OneUptime 17 → 18",
     ).replace(/\n {2}/g, " ");
 
     expect(notes).toContain(

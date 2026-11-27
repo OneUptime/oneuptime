@@ -1,6 +1,6 @@
 # Агент XCP-ng
 
-Агент XCP-ng от OneUptime следит за пулами XCP-ng, которыми управляет Xen Orchestra: их хостами, ВМ, репозиториями хранения и виртуальными дисками. Это стандартный OpenTelemetry Collector, который читает собственный плагин OpenMetrics Xen Orchestra с секретом плагина и отправляет прочитанное в OneUptime, где каждый пул появляется со своим инвентарём. Ни один пароль пула или Xen Orchestra никогда не попадает к агенту. [Мониторы XCP-ng](/docs/monitor/xcp-ng-monitor) создают оповещения по поступающим данным.
+Агент XCP-ng от OneUptime следит за пулами XCP-ng, которыми управляет Xen Orchestra: их хостами, ВМ, репозиториями хранения и виртуальными дисками. Это стандартный OpenTelemetry Collector, который читает собственный плагин OpenMetrics Xen Orchestra с секретом плагина и отправляет прочитанное в OneUptime, где каждый пул появляется со своим инвентарём. Ни один пароль пула или Xen Orchestra никогда не попадает к агенту. [Мониторы XCP-ng](/docs/monitor/xcp-ng-monitor) создают оповещения по поступающим данным. Чтобы читать те же пулы без установки чего-либо, зондом OneUptime, см. [XCP-ng без агента](/docs/telemetry/xcp-ng-agentless).
 
 :::cards
 - [Установка агента](#установка-агента): Включите плагин, затем используйте скрипт установки или Docker Compose.
@@ -382,8 +382,8 @@ Xen Orchestra сообщает только о пулах, к которым п�
 Плагин OpenMetrics Xen Orchestra отдаёт метрики, поэтому часть того, за чем вы следите в пуле XCP-ng, в нём пока нет:
 
 - **Тревоги**, кроме тревог XOSTOR, **состояние HA**, **мастер пула**, **недостающие патчи**, **резервные копии** и **снимки**, а также **состояние канала** физических интерфейсов хоста (PIF). Они поступают из REST API Xen Orchestra, в [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
-- **Пулы без Xen Orchestra** или за XOA без лицензии Premium, которая нужна плагину: они читаются напрямую через XAPI, в [#10999](https://github.com/OneUptime/oneuptime/issues/10999).
-- **Подключение без агента**, с зонда OneUptime, как это умеет VMware: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
+- **Пулы без Xen Orchestra** или за XOA без лицензии Premium, которая нужна плагину: их напрямую через XAPI читает зонд OneUptime ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), см. [XCP-ng без агента](/docs/telemetry/xcp-ng-agentless).
+- **Подключение без агента**: зонд OneUptime сам читает плагин Xen Orchestra, как это умеет VMware ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), на той же странице.
 
 ## Дальнейшие шаги
 

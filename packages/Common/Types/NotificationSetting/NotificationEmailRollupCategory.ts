@@ -227,6 +227,12 @@ export const ROLLUP_CATEGORY_BY_EVENT_TYPE: Record<
    */
   [NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION]:
     RollupCategory.ServicesAndInfrastructure,
+  /*
+   * A scheduled cloud cost report (#11009): the cloud is infrastructure.
+   * Never held back (NEVER_ROLLED_UP_EVENT_TYPES): filed here all the same.
+   */
+  [NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION]:
+    RollupCategory.ServicesAndInfrastructure,
 
   // Dashboards, workflows and runbooks (#9700): the products menu's own group.
   [NotificationSettingEventType.SEND_DASHBOARD_OWNER_ADDED_NOTIFICATION]:

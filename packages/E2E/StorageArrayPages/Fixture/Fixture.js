@@ -15,7 +15,9 @@
  *               drive failed, a fan is degraded, a host reaches it through
  *               one controller and a pod is a minute and a half behind; the
  *               FlashBlade's scratch file system has 5% left | calm: every
- *               part fine
+ *               part fine (the PowerStore's failed drive, power supply,
+ *               fan and port, its stopped NAS server, its volume that is not
+ *               ready and its nearly full file system too)
  *   ?collector= disconnected: the arrays' agents stopped reporting three
  *               days ago
  *   ?fail=      inventory: every inventory read fails
@@ -149,6 +151,7 @@ const TIB = 1024 * GIB;
 const FLASHARRAY_ID = uuid("58000000", 1);
 const FLASHBLADE_ID = uuid("58000000", 2);
 const ACME_ID = uuid("58000000", 3);
+const POWERSTORE_ID = uuid("58000000", 4);
 
 /*
  * Acme, a platform that exists only in tests (#11000), registered here the
@@ -248,6 +251,34 @@ const acmeArray = {
   countsByKind: { Volume: 2, [ACME_AGGREGATE_KIND]: 3 },
   isArchived: false,
   createdAt: new Date(LOADED_AT - 10 * 24 * 60 * MINUTE),
+};
+
+/*
+ * A Dell PowerStore cluster of two appliances (#11002), as the agent reads
+ * one through Dell's exporter: no open alerts here (a PowerStore sends them
+ * by syslog, to the Logs page), its health from its parts. Its per-kind
+ * counts are the inventory's, set once its parts are made below.
+ */
+const powerStore = {
+  _id: POWERSTORE_ID,
+  name: "ps-prod-01",
+  description: "Block and file storage for the ERP systems, in Amsterdam.",
+  storageSystem: StorageSystem.DellPowerStore,
+  reportedName: "ps-prod-01",
+  systemId: "PS4f5c9a3d21e7",
+  osName: "PowerStoreOS",
+  agentVersion: "14.0.101",
+  otelCollectorStatus: DISCONNECTED ? "disconnected" : "connected",
+  lastSeenAt: LAST_REPORT,
+  capacityBytes: 220 * TIB,
+  usedBytes: (CALM ? 101 : 155) * TIB,
+  capacityUsedPercent: CALM ? 45.9 : 70.5,
+  dataReductionRatio: 3.2,
+  healthStatus: CALM ? 0 : 2,
+  volumeCount: 6,
+  fileSystemCount: 3,
+  isArchived: false,
+  createdAt: new Date(LOADED_AT - 21 * 24 * 60 * MINUTE),
 };
 
 /*
@@ -786,6 +817,259 @@ for (const name of ["vol-acme-01", "vol-acme-02"]) {
 }
 
 /*
+ * The PowerStore's parts, as its extractor writes them: each appliance by
+ * its id, and every part of an appliance keyed by the appliance and its
+ * name, with the appliance as its group (each appliance names its parts
+ * alike). The trouble day's: a failed drive and power supply on A1, a fan
+ * and a port down on A2, a NAS server stopped, a volume not ready and a
+ * file system 94.5% full.
+ */
+const POWERSTORE_APPLIANCES = [
+  {
+    id: "A1",
+    name: "ps-prod-01-appliance-1",
+    model: "PowerStore 1200T",
+    usedPercent: CALM ? 41.2 : 48.9,
+    reduction: 3.6,
+    readUsec: 412,
+    writeUsec: 598,
+  },
+  {
+    id: "A2",
+    name: "ps-prod-01-appliance-2",
+    model: "PowerStore 1200T",
+    usedPercent: CALM ? 50.6 : 92.1,
+    reduction: 2.9,
+    readUsec: 655,
+    writeUsec: 840,
+  },
+];
+for (const appliance of POWERSTORE_APPLIANCES) {
+  part(POWERSTORE_ID, {
+    kind: "Appliance",
+    externalId: appliance.id,
+    name: appliance.name,
+    model: appliance.model,
+    capacityBytes: 110 * TIB,
+    usedBytes: Math.round((110 * TIB * appliance.usedPercent) / 100),
+    dataReductionRatio: appliance.reduction,
+    readLatencyUsec: appliance.readUsec,
+    writeLatencyUsec: appliance.writeUsec,
+    readIops: 38000,
+    writeIops: 21000,
+  });
+}
+
+const POWERSTORE_VOLUMES = [
+  {
+    name: "erp-db-01",
+    appliance: "A1",
+    sizeTib: 4,
+    usedTib: 1.9,
+    readUsec: 610,
+    writeUsec: 880,
+  },
+  {
+    name: "erp-db-logs",
+    appliance: "A1",
+    sizeTib: 1,
+    usedTib: 0.3,
+    readUsec: 240,
+    writeUsec: 410,
+  },
+  {
+    name: "vmfs-prod-01",
+    appliance: "A2",
+    sizeTib: 16,
+    usedTib: 9.4,
+    readUsec: 520,
+    writeUsec: 760,
+  },
+  {
+    name: "vmfs-prod-02",
+    appliance: "A2",
+    sizeTib: 16,
+    usedTib: 7.7,
+    readUsec: 470,
+    writeUsec: 690,
+  },
+  {
+    name: "sql-backup",
+    appliance: "A1",
+    sizeTib: 8,
+    usedTib: 5.1,
+    readUsec: 330,
+    writeUsec: 1240,
+  },
+  {
+    name: "archive-legacy",
+    appliance: "A2",
+    sizeTib: 2,
+    usedTib: 1.6,
+    readUsec: 180,
+    writeUsec: 260,
+    notReady: !CALM,
+  },
+];
+for (const volume of POWERSTORE_VOLUMES) {
+  part(POWERSTORE_ID, {
+    kind: "Volume",
+    externalId: volume.name,
+    name: volume.name,
+    status: volume.notReady ? "not ready" : "ready",
+    groupName: volume.appliance,
+    capacityBytes: Math.round(volume.sizeTib * TIB),
+    usedBytes: Math.round(volume.usedTib * TIB),
+    readLatencyUsec: volume.readUsec,
+    writeLatencyUsec: volume.writeUsec,
+    readIops: 2400,
+    writeIops: 1300,
+  });
+}
+
+for (const [name, sizeTib, usedTib, appliances] of [
+  ["erp-vg", 5, 2.2, "A1"],
+  ["vmfs-vg", 32, 17.1, "A1, A2"],
+]) {
+  part(POWERSTORE_ID, {
+    kind: "VolumeGroup",
+    externalId: name,
+    name: name,
+    capacityBytes: sizeTib * TIB,
+    usedBytes: Math.round(usedTib * TIB),
+    readLatencyUsec: 402,
+    writeLatencyUsec: 575,
+    readIops: 9100,
+    writeIops: 4800,
+    details: { appliances: appliances },
+  });
+}
+
+for (const [name, started] of [
+  ["nas-prod-01", true],
+  ["nas-files-02", CALM],
+]) {
+  part(POWERSTORE_ID, {
+    kind: "NasServer",
+    externalId: name,
+    name: name,
+    status: started ? "started" : "not started",
+    readLatencyUsec: started ? 690 : null,
+    writeLatencyUsec: started ? 910 : null,
+    readIops: started ? 3200 : null,
+    writeIops: started ? 1100 : null,
+  });
+}
+
+for (const [name, sizeTib, usedPercent] of [
+  ["fs-home", 10, CALM ? 61 : 94.5],
+  ["fs-projects", 40, 30],
+  ["fs-scratch", 5, 20],
+]) {
+  part(POWERSTORE_ID, {
+    kind: "FileSystem",
+    externalId: name,
+    name: name,
+    capacityBytes: sizeTib * TIB,
+    usedBytes: Math.round((sizeTib * TIB * usedPercent) / 100),
+  });
+}
+
+// Each appliance's nodes, and their fans, power supplies and batteries.
+for (const appliance of ["A1", "A2"]) {
+  for (const node of ["NodeA", "NodeB"]) {
+    const parts = [
+      ["", "Node"],
+      ["-Fan0", "Fan"],
+      ["-Fan1", "Fan"],
+      ["-PowerSupply", "Power Supply"],
+      ["-Battery", "Battery"],
+    ];
+    for (const [suffix, type] of parts) {
+      const name = `BaseEnclosure-${node}${suffix}`;
+      const faulty =
+        !CALM &&
+        ((appliance === "A1" && name === "BaseEnclosure-NodeB-PowerSupply") ||
+          (appliance === "A2" && name === "BaseEnclosure-NodeB-Fan1"));
+      part(POWERSTORE_ID, {
+        kind: "Hardware",
+        externalId: `${appliance}/${name}`,
+        name: name,
+        groupName: appliance,
+        componentType: type,
+        status: faulty ? "unhealthy" : "healthy",
+      });
+    }
+  }
+}
+
+// Each appliance's drives: NVMe SSDs and an NVRAM drive.
+for (const appliance of ["A1", "A2"]) {
+  for (const slot of [0, 1, 2, 3, 23]) {
+    const name = `Drive_0_0_${slot}`;
+    const nvram = slot === 23;
+    const failed = !CALM && appliance === "A1" && slot === 2;
+    part(POWERSTORE_ID, {
+      kind: "Drive",
+      externalId: `${appliance}/${name}`,
+      name: name,
+      groupName: appliance,
+      componentType: nvram ? "NVMe NVRAM" : "NVMe SSD",
+      status: failed ? "unhealthy" : "healthy",
+      capacityBytes: nvram ? 8 * GIB : 3840755982336,
+      details: {
+        protocol: "NVMe",
+        enduranceRemainingPercent: appliance === "A1" && slot === 3 ? 8 : 97,
+      },
+    });
+  }
+}
+
+// Each node's front-end ports: Fibre Channel and Ethernet.
+for (const appliance of ["A1", "A2"]) {
+  for (const [name, type, speedGbps] of [
+    ["BaseEnclosure-NodeA-IoModule0-FEPort0", "Fibre Channel", 32],
+    ["BaseEnclosure-NodeB-IoModule0-FEPort1", "Fibre Channel", 32],
+    ["BaseEnclosure-NodeA-4PortCard-FEPort0", "Ethernet", 25],
+  ]) {
+    const down =
+      !CALM &&
+      appliance === "A2" &&
+      name === "BaseEnclosure-NodeB-IoModule0-FEPort1";
+    part(POWERSTORE_ID, {
+      kind: "NetworkInterface",
+      externalId: `${appliance}/${name}`,
+      name: name,
+      groupName: appliance,
+      componentType: type,
+      status: down ? "down" : "up",
+      details: {
+        speedGbps: down ? 0 : speedGbps,
+        speedBytesPerSec: down ? 0 : (speedGbps * 1e9) / 8,
+        errorsPerSec: 0,
+      },
+    });
+  }
+}
+
+// The cluster's counts, as the server keeps them: every kind it holds.
+powerStore.countsByKind = {};
+powerStore.hardwareComponentCount = 0;
+powerStore.unhealthyHardwareCount = 0;
+for (const row of inventory) {
+  if (row.storageArrayId === POWERSTORE_ID) {
+    powerStore.countsByKind[row.kind] =
+      (powerStore.countsByKind[row.kind] || 0) + 1;
+    if (["Hardware", "Drive"].includes(row.kind)) {
+      powerStore.hardwareComponentCount++;
+      if (row.status === "unhealthy") {
+        powerStore.unhealthyHardwareCount++;
+      }
+    }
+  }
+}
+
+/*
  * ---------------------------------------------------------------------------
  * The data boundary
  * ---------------------------------------------------------------------------
@@ -863,6 +1147,7 @@ const store = {
     flashArray,
     flashBlade,
     acmeArray,
+    powerStore,
     powerMax8500,
     powerMax2000,
     powerMaxAms,
@@ -1260,7 +1545,8 @@ AnalyticsModelAPI.getList = async (options) => {
     });
   } else if (
     String(query.name || "").startsWith("purefa_") ||
-    String(query.name || "").startsWith("purefb_")
+    String(query.name || "").startsWith("purefb_") ||
+    String(query.name || "").startsWith("powerstore_")
   ) {
     // A golden chart's raw points: empty, as it draws from the aggregates.
     data = [];
@@ -1283,8 +1569,8 @@ AnalyticsModelAPI.count = async (modelType) => {
 };
 
 /*
- * The series the pages chart: any of the arrays' own (purefa_*, purefb_*),
- * a smooth line over the chart's range.
+ * The series the pages chart: any of the arrays' own (purefa_*, purefb_*,
+ * powerstore_*), a smooth line over the chart's range.
  */
 AnalyticsModelAPI.aggregate = async (options) => {
   const modelName = tableName(options.modelType);
@@ -1295,7 +1581,11 @@ AnalyticsModelAPI.aggregate = async (options) => {
   const name = String(query.name || "");
   if (
     modelName !== tableName(Metric) ||
-    !(name.startsWith("purefa_") || name.startsWith("purefb_"))
+    !(
+      name.startsWith("purefa_") ||
+      name.startsWith("purefb_") ||
+      name.startsWith("powerstore_")
+    )
   ) {
     fixture.unhandled.push({ kind: "aggregate", modelName, name: query.name });
     return { data: [] };
@@ -1319,6 +1609,23 @@ AnalyticsModelAPI.aggregate = async (options) => {
 
 // Where a chart's line sits: what the array reports for that series.
 function chartLevel(name, attributes) {
+  // A PowerStore names reads and writes in the series' name.
+  if (name.startsWith("powerstore_")) {
+    const writes = name.includes("write");
+    if (name.includes("used_percent")) {
+      return powerStore.capacityUsedPercent;
+    }
+    if (name.includes("latency")) {
+      return writes ? 690 : 520;
+    }
+    if (name.includes("iops")) {
+      return writes ? 21000 : 38000;
+    }
+    if (name.includes("bandwidth")) {
+      return (writes ? 450 : 900) * 1024 * 1024;
+    }
+    return 1000;
+  }
   const dimension = String(attributes["dimension"] || "");
   const write = dimension.includes("write");
   if (name.includes("latency")) {
@@ -1403,6 +1710,17 @@ async function handleApi(method, options) {
   // When OneUptime itself was not receiving: never, here.
   if (method === "POST" && parsed.pathname.endsWith("/receiving-gaps")) {
     return ok({ gaps: [] });
+  }
+
+  /*
+   * Which recommended monitors exist already (#11074), as the server
+   * answers from the Monitor store: none yet, so none is covered.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/monitor/recommendation-coverage")
+  ) {
+    return ok({ covered: {} });
   }
 
   /*

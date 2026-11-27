@@ -399,6 +399,8 @@ describe("the Declare Incident docs follow the form's steps", () => {
       expect(openOnTheForm).toEqual([
         "Monitors",
         "Change Monitor Status to",
+        // Whether the incident pauses its monitors' checks (#11141).
+        "Pause Monitoring",
         "Other Affected Resources",
       ]);
 

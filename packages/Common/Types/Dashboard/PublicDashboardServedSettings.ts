@@ -58,6 +58,11 @@ export const PUBLIC_DASHBOARD_UNDRAWN_WIDGET_TYPES: ReadonlyArray<DashboardCompo
      */
     DashboardComponentType.ProductAnalyticsFunnel,
     DashboardComponentType.ProductAnalyticsRetention,
+    /*
+     * What the clouds cost is read only by those who may read the project's
+     * cloud costs (#11009): a page anyone with the link opens never shows it.
+     */
+    DashboardComponentType.CloudCost,
   ];
 
 /*
@@ -252,6 +257,15 @@ export const PUBLIC_DASHBOARD_WIDGET_SETTINGS: Readonly<
   ]),
   [DashboardComponentType.ProductAnalyticsFunnel]: undrawn(["savedViewId"]),
   [DashboardComponentType.ProductAnalyticsRetention]: undrawn(["savedViewId"]),
+  [DashboardComponentType.CloudCost]: undrawn([
+    "display",
+    "scope",
+    "cloudAccountId",
+    "cloudCostGroupId",
+    "cloudCostViewId",
+    "breakdownBy",
+    "basis",
+  ]),
   [DashboardComponentType.TraceList]: drawn([
     "title",
     "statusFilter",

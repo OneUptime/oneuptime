@@ -1365,6 +1365,24 @@ export class Service extends DatabaseService<UserNotificationSetting> {
   }
 
   /*
+   * Scheduled cloud cost reports (CloudCostReportSender, #11009), by email
+   * only: a report is read, never paged. Idempotent - the sender seeds it
+   * before each send, so a member who joined before the event existed gets
+   * it then.
+   */
+  @CaptureSpan()
+  public async addCloudCostReportNotificationSettings(
+    userId: ObjectID,
+    projectId: ObjectID,
+  ): Promise<void> {
+    await this.addNotificationSettingIfNotExists(
+      userId,
+      projectId,
+      NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION,
+    );
+  }
+
+  /*
    * The security case events (SecurityCaseNotifications), by email and push:
    * a Critical case, a case handed to you, a containment step waiting for
    * your approval, a case about to miss a response target and a task handed

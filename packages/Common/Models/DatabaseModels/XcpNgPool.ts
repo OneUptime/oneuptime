@@ -3,6 +3,7 @@ import ColumnBillingAccessControl from "../../Types/Database/AccessControl/Colum
 import Label from "./Label";
 import Project from "./Project";
 import User from "./User";
+import XcpNgConnection from "./XcpNgConnection";
 import BaseModel from "./DatabaseBaseModel/DatabaseBaseModel";
 import Route from "../../Types/API/Route";
 import ColumnAccessControl from "../../Types/Database/AccessControl/ColumnAccessControl";
@@ -23,6 +24,7 @@ import IconProp from "../../Types/Icon/IconProp";
 import ObjectID from "../../Types/ObjectID";
 import Permission from "../../Types/Permission";
 import TelemetryRetentionConfig from "../../Types/Telemetry/TelemetryRetentionConfig";
+import XcpNgCollectionMethod from "../../Types/XcpNg/XcpNgCollectionMethod";
 import {
   Column,
   Entity,
@@ -452,6 +454,134 @@ export default class XcpNgPool extends BaseModel {
     length: ColumnLength.ShortText,
   })
   public xenOrchestraName?: string = undefined;
+
+  /*
+   * How the pool is read (#10996, #10999): by the XCP-ng Agent, or by a
+   * probe through an XCP-ng connection (xcpNgConnectionId). A pool the
+   * agent reads is taken over by the first probe connection that reports
+   * it; "Use the XCP-ng Agent" on its Settings hands it back, and the
+   * probe's data for it is dropped from then on (XcpNgPoolAssignment). The
+   * row, and its history, are the same whichever reads it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditXcpNgPool,
+    ],
+  })
+  @TableColumn({
+    isDefaultValueColumn: true,
+    required: true,
+    type: TableColumnType.ShortText,
+    allowedValues: Object.values(XcpNgCollectionMethod),
+    canReadOnRelationQuery: true,
+    title: "Collection Method",
+    description:
+      "How this pool's data reaches OneUptime. Agent: the OneUptime XCP-ng Agent, beside its Xen Orchestra, sends it. Probe: one of your probes reads it through the XCP-ng connection named here, with nothing to install. Switching to Agent drops the probe's data for this pool.",
+    defaultValue: XcpNgCollectionMethod.Agent,
+    example: XcpNgCollectionMethod.Probe,
+  })
+  @Column({
+    type: ColumnType.ShortText,
+    length: ColumnLength.ShortText,
+    nullable: false,
+    default: XcpNgCollectionMethod.Agent,
+  })
+  public collectionMethod?: XcpNgCollectionMethod = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditXcpNgPool,
+    ],
+  })
+  @TableColumn({
+    manyToOneRelationColumn: "xcpNgConnectionId",
+    type: TableColumnType.Entity,
+    modelType: XcpNgConnection,
+    title: "XCP-ng Connection",
+    description:
+      "The XCP-ng connection - a Xen Orchestra, or the pool's own XAPI - a probe reads this pool through.",
+  })
+  @ManyToOne(
+    () => {
+      return XcpNgConnection;
+    },
+    {
+      eager: false,
+      nullable: true,
+      onDelete: "SET NULL",
+      orphanedRowAction: "nullify",
+    },
+  )
+  @JoinColumn({ name: "xcpNgConnectionId" })
+  public xcpNgConnection?: XcpNgConnection = undefined;
+
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.SettingsViewer,
+      Permission.ReadXcpNgPool,
+    ],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.SettingsAdmin,
+      Permission.SettingsMember,
+      Permission.EditXcpNgPool,
+    ],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "XCP-ng Connection ID",
+    description:
+      "ID of the XCP-ng connection a probe reads this pool through. Empty for a pool the XCP-ng Agent reads.",
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public xcpNgConnectionId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],

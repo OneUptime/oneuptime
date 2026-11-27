@@ -32,7 +32,9 @@ import IncomingRequestSecretGate, {
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorPauseState, {
   MONITOR_PAUSE_FLAGS_SELECT,
+  MonitorPauseReason,
 } from "Common/Utils/Monitor/MonitorPauseState";
+import { MONITOR_NOT_EVALUATED_SELECT } from "Common/Server/Utils/Monitor/MonitorNotEvaluated";
 import IncomingRequestLatestPayloadStore, {
   LatestIncomingRequestPayload,
 } from "../../Utils/IncomingRequestLatestPayloadStore";
@@ -211,20 +213,21 @@ async function queueNextJobLater(secretKeyHash: string): Promise<void> {
 /*
  * Whether the monitor whose key this is evaluates every request it
  * receives: when a criteria of it groups by a payload field. A key that
- * finds no monitor, or a monitor that is not being monitored, evaluates only
- * its newest: every request waiting for it is refused alike, so refusing the
- * newest settles them all.
+ * finds no monitor evaluates only its newest: every request waiting for it
+ * is refused alike, so refusing the newest settles them all. A monitor that
+ * is not being checked goes by its criteria all the same (#11141): each of
+ * its requests is listed in its Logs as not evaluated, as each would have
+ * been evaluated - rather than all of them dropped with the newest.
  */
 async function isEveryRequestEvaluated(secretKey: string): Promise<boolean> {
   const select: {
     _id: true;
     monitorType: true;
     monitorSteps: true;
-  } & typeof MONITOR_PAUSE_FLAGS_SELECT = {
+  } = {
     _id: true,
     monitorType: true,
     monitorSteps: true,
-    ...MONITOR_PAUSE_FLAGS_SELECT,
   };
 
   const monitorOfKey: MonitorOfSecretKey | null =
@@ -253,7 +256,7 @@ async function isEveryRequestEvaluated(secretKey: string): Promise<boolean> {
         },
       });
 
-  if (!monitor || MonitorPauseState.isPaused(monitor)) {
+  if (!monitor) {
     return false;
   }
 
@@ -297,11 +300,13 @@ export function toSkippedIncomingRequestsNote(
 
 /*
  * One request of a monitor that evaluates every request: evaluated, then
- * removed. A refusal of the monitor (deleted, archived, disabled, paused)
- * refuses every request waiting for it, so they are all removed. A failure
- * leaves the request at the head of the list, counted, for the job's retry
- * - until it has failed MAX_ATTEMPTS_PER_REQUEST times, when it is skipped
- * and the next request goes on.
+ * removed - or, while the monitor is not being checked (archived, turned
+ * off, paused), listed in its Logs as not evaluated, then removed, and the
+ * next one goes on (#11141). A key that finds no monitor refuses every
+ * request waiting for it, so they are all removed. A failure leaves the
+ * request at the head of the list, counted, for the job's retry - until it
+ * has failed MAX_ATTEMPTS_PER_REQUEST times, when it is skipped and the next
+ * request goes on.
  */
 async function evaluateRequestInTurn(data: {
   secretKeyHash: string;
@@ -411,9 +416,12 @@ async function evaluateNewestRequest(secretKeyHash: string): Promise<void> {
 /*
  * A request whose evaluation threw.
  *
- *   - The monitor refused it (isNonActionableIngestError): it refuses every
- *     request waiting for it alike, so they are all removed, and the job
- *     completes (ProcessTelemetry) - as a job of its own would.
+ *   - It was refused for good (isNonActionableIngestError) - its key finds
+ *     no monitor: every request waiting for it is refused alike, so they are
+ *     all removed, and the job completes (ProcessTelemetry) - as a job of its
+ *     own would. A monitor that is not being checked never gets here: its
+ *     request was listed as not evaluated, and is done with
+ *     (processIncomingRequestFromQueue, #11141).
  *   - It has now failed MAX_ATTEMPTS_PER_REQUEST times: skipped (`skip`), and
  *     the job goes on.
  *   - Otherwise it stays waiting, counted, and the job fails for BullMQ to
@@ -504,9 +512,9 @@ export async function processIncomingRequestJobFromQueue(
     /*
      * A failure the worker retries leaves the request stored, so the retry
      * evaluates it - or anything newer - again. One it completes the job on
-     * (an unknown monitor, or one that is archived, disabled, or paused by a
-     * manually created incident or a maintenance event) is final, so clear
-     * it.
+     * (an unknown monitor) is final, so clear it. A monitor that is archived,
+     * turned off or paused lists the request as not evaluated and returns
+     * (#11141), and the request is cleared below, as one evaluated is.
      */
     if (isNonActionableIngestError(err)) {
       await IncomingRequestLatestPayloadStore.clearIfUnchanged({
@@ -527,7 +535,8 @@ export async function processIncomingRequestJobFromQueue(
 /*
  * Evaluates one request against its monitor's criteria. Returns whether it
  * reached the evaluation: false for one refused before it - its project's
- * secret requirement, a paused monitor - which is done with all the same.
+ * secret requirement, or a monitor that is not being checked, which lists
+ * it as not evaluated - and done with all the same.
  */
 export async function processIncomingRequestFromQueue(
   jobData: IncomingRequestIngestJobData,
@@ -572,6 +581,13 @@ export async function processIncomingRequestFromQueue(
       secretKey: monitorSecretKeyAsString,
     });
 
+  /*
+   * The monitor, when the lookup below found it not being checked: archived,
+   * turned off, or paused by an incident declared by hand or a maintenance
+   * event. Its request is listed as not evaluated rather than evaluated.
+   */
+  let monitorNotChecked: Monitor | null = null;
+
   if (!monitorOfKey) {
     // Found by the key's lookup hash: the key is kept encrypted (#9012).
     const monitor: Monitor | null = await MonitorService.findOneByPresentedKey({
@@ -581,6 +597,7 @@ export async function processIncomingRequestFromQueue(
         monitorType: MonitorType.IncomingRequest,
       },
       select: {
+        ...MONITOR_NOT_EVALUATED_SELECT,
         _id: true,
         projectId: true,
         ...MONITOR_PAUSE_FLAGS_SELECT,
@@ -598,39 +615,29 @@ export async function processIncomingRequestFromQueue(
       throw new BadDataException("Project not found");
     }
 
-    /*
-     * Skip disabled monitors here, before doing any further work. Incoming
-     * Request monitors are driven by an external sender that keeps calling
-     * the ingest endpoint regardless of the monitor being disabled in
-     * OneUptime, so these requests arrive continuously. Without this
-     * short-circuit, every one would still invoke monitorResource() — a
-     * monitor fetch, a per-monitor Redis lock, and a thrown refusal - only
-     * for the result to be discarded. This mirrors monitorResource()'s own
-     * handling of a monitor that is archived, disabled, or paused by a
-     * manually created incident or a maintenance event (it refuses the
-     * result before persisting anything), so skipping here is
-     * behaviour-preserving while avoiding the wasted queue/DB/lock work. A
-     * paused monitor is never kept, so it is looked up - and skipped - every
-     * time; one paused within the minute it is kept ends in monitorResource's
-     * refusal, which completes the job (isNonActionableIngestError).
-     */
-    if (MonitorPauseState.isPaused(monitor)) {
-      logger.debug(
-        `Incoming request received for archived or disabled monitor ${monitor._id.toString()}. Skipping.`,
-      );
-      return false;
-    }
-
     monitorOfKey = {
       monitorId: new ObjectID(monitor._id.toString()),
       projectId: monitor.projectId,
     };
 
-    await MonitorSecretKeyCache.setMonitor({
-      kind: MonitorSecretKeyKind.IncomingRequest,
-      secretKey: monitorSecretKeyAsString,
-      monitor: monitorOfKey,
-    });
+    /*
+     * A monitor that is not being checked is not evaluated: its request is
+     * listed below, once the project's secret requirement lets it in,
+     * without monitorResource() - a monitor fetch, a per-monitor Redis lock
+     * and a thrown refusal for every request an outside sender keeps
+     * sending. Nor is it kept, so it is looked up again next time; one
+     * paused within the minute it is kept ends in monitorResource's refusal,
+     * which lists it the same way.
+     */
+    if (MonitorPauseState.isPaused(monitor)) {
+      monitorNotChecked = monitor;
+    } else {
+      await MonitorSecretKeyCache.setMonitor({
+        kind: MonitorSecretKeyKind.IncomingRequest,
+        secretKey: monitorSecretKeyAsString,
+        monitor: monitorOfKey,
+      });
+    }
   }
 
   /*
@@ -736,6 +743,30 @@ export async function processIncomingRequestFromQueue(
     incomingRequest.answeredVerification = answeredVerification;
   }
 
+  /*
+   * The monitor is not being checked: the request is listed in its Logs as
+   * not evaluated, and why (#11141), and goes no further. It used to be
+   * dropped here without a trace.
+   */
+  if (monitorNotChecked) {
+    const reason: MonitorPauseReason | null =
+      MonitorPauseState.getPauseReason(monitorNotChecked);
+
+    logger.debug(
+      `Incoming request received for monitor ${monitorOfKey.monitorId.toString()}, which is not being checked (${reason}): listed as not evaluated.`,
+    );
+
+    if (reason) {
+      await MonitorResourceUtil.listNotEvaluated({
+        monitor: monitorNotChecked,
+        dataToProcess: incomingRequest,
+        reason: reason,
+      });
+    }
+
+    return false;
+  }
+
   // process probe response here.
   try {
     await MonitorResourceUtil.monitorResource(incomingRequest, {
@@ -761,10 +792,37 @@ export async function processIncomingRequestFromQueue(
       });
     }
 
+    /*
+     * A monitor paused, turned off or archived since its key was kept:
+     * monitorResource listed the request as not evaluated before it refused
+     * it. The request is done with, as one refused before its evaluation -
+     * so a monitor that evaluates every request lists each of them, rather
+     * than all of them being dropped with this one.
+     */
+    if (isNotCheckedRefusal(err)) {
+      return false;
+    }
+
     throw err;
   }
 
   return true;
+}
+
+/*
+ * monitorResource's refusal of a monitor that is not being checked: it
+ * listed the result as not evaluated first (MonitorNotEvaluated).
+ */
+export function isNotCheckedRefusal(error: unknown): boolean {
+  return (
+    error instanceof BadDataException &&
+    (error.message === ExceptionMessages.MonitorArchived ||
+      error.message === ExceptionMessages.MonitorDisabled ||
+      error.message ===
+        ExceptionMessages.MonitorDisabledBecauseOfManualIncident ||
+      error.message ===
+        ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent)
+  );
 }
 
 /*

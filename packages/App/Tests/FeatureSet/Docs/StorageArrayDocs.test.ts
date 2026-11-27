@@ -100,6 +100,16 @@ const SHIPPED_CONFIGS: ReadonlyArray<string> = [
   "otel-collector-config.flashblade.yaml",
 ];
 
+/*
+ * Dell PowerStore's (#11002): its collector config, which scrapes Dell's
+ * exporter at /metrics/<cluster>/<part>, and its syslog collector's.
+ */
+const POWERSTORE_CONFIG: string = "otel-collector-config.powerstore.yaml";
+const POWERSTORE_CONFIGS: ReadonlyArray<string> = [
+  POWERSTORE_CONFIG,
+  "powerstore-syslog.yaml",
+];
+
 const FENCE_LINE: RegExp = /^\s*```/;
 /* The opening fence of a mermaid diagram. */
 const MERMAID_FENCE: RegExp = /^\s*```mermaid\b/;
@@ -260,8 +270,10 @@ function pinnedFilters(metric: StorageArrayMetricDefinition): Array<string> {
  * reads for itself (the config to mount, the profile to start).
  */
 /*
- * The address and token variables of install.sh's PLATFORMS table (#11000):
- * each line's fourth and fifth |-separated fields, each once, in order.
+ * The variables of install.sh's PLATFORMS table (#11000): each line's
+ * address, token, user and optional settings - its fourth, fifth, tenth and
+ * twelfth |-separated fields, the last two space-separated lists ("-" for
+ * none) - each once, in order, as the script writes them.
  */
 function platformVariables(): Array<string> {
   const table: RegExpMatchArray | null = readAgentFile("install.sh").match(
@@ -273,9 +285,11 @@ function platformVariables(): Array<string> {
   const names: Array<string> = [];
   for (const line of (table as RegExpMatchArray)[1]!.split("\n")) {
     const fields: Array<string> = line.split("|");
-    for (const name of [fields[3], fields[4]]) {
-      if (name && !names.includes(name)) {
-        names.push(name);
+    for (const field of [fields[3], fields[4], fields[9], fields[11]]) {
+      for (const name of (field || "").split(" ")) {
+        if (name && name !== "-" && !names.includes(name)) {
+          names.push(name);
+        }
       }
     }
   }
@@ -686,7 +700,7 @@ describe("Storage Array docs", (): void => {
         }).length;
       };
 
-      // "12 for FlashArray, 8 for FlashBlade and 13 for PowerMax": every platform's, in order.
+      // "12 for FlashArray, 8 for FlashBlade, 16 for PowerStore and 13 for PowerMax": every platform's, in order.
       const perPlatform: Array<string> = StorageSystemUtil.getAllSystems().map(
         (system: StorageSystem): string => {
           return `${count(system)} for ${platformName(system)}`;
@@ -879,7 +893,7 @@ describe("Storage Array docs", (): void => {
         "## Environment variables",
       );
 
-      for (const config of SHIPPED_CONFIGS) {
+      for (const config of [...SHIPPED_CONFIGS, ...POWERSTORE_CONFIGS]) {
         const variables: Array<string> = Array.from(
           readAgentFile(config).matchAll(/\$\{env:([A-Z0-9_]+)\}/g),
         ).map((match: RegExpMatchArray): string => {
@@ -963,13 +977,30 @@ describe("Storage Array docs", (): void => {
       expect(markdown).toContain("Defaults to `purestorage.flasharray`");
       expect(markdown).toContain("Defaults to `true`");
 
-      for (const service of ["pure-fa-exporter", "pure-fb-exporter"]) {
+      for (const service of [
+        "pure-fa-exporter",
+        "pure-fb-exporter",
+        "powerstore-exporter",
+        "powerstore-syslog",
+      ]) {
         expect(compose).toContain(`  ${service}:\n`);
         expect(markdown).toContain(`\`${service}\``);
       }
-      for (const profile of ["flasharray-exporter", "flashblade"]) {
+      for (const profile of [
+        "flasharray-exporter",
+        "flashblade",
+        "powerstore",
+      ]) {
         expect(compose).toContain(`profiles: ["${profile}"]`);
         expect(markdown).toContain(`COMPOSE_PROFILES=${profile}`);
+      }
+      // A PowerStore's files, the ones install.sh downloads beside the configs.
+      for (const file of [
+        POWERSTORE_CONFIG,
+        "powerstore-exporter.Dockerfile",
+        "powerstore-syslog.yaml",
+      ]) {
+        expect(markdown).toContain(`\`${file}\``);
       }
     });
 
@@ -995,6 +1026,26 @@ describe("Storage Array docs", (): void => {
 
       expect(scrapes).toContain("`scrape_endpoint: <endpoint>`");
       expect(scrapes).toContain("`send_batch_max_size`");
+
+      // A PowerStore: Dell's exporter names the cluster in every path.
+      expect(scrapes).toContain("`/metrics/<cluster>/<part>`");
+      for (const job of scrapeJobs(POWERSTORE_CONFIG)) {
+        const part: string = job.metrics_path.replace(
+          "/metrics/${env:POWERSTORE_ENDPOINT}/",
+          "",
+        );
+        expect(job.metrics_path).toBe(
+          `/metrics/\${env:POWERSTORE_ENDPOINT}/${part}`,
+        );
+        expect({
+          job: job.job_name,
+          named: scrapes.includes(`\`${part}\``),
+        }).toEqual({ job: job.job_name, named: true });
+        expect({
+          job: job.job_name,
+          stated: scrapes.includes(spokenDuration(job.scrape_interval)),
+        }).toEqual({ job: job.job_name, stated: true });
+      }
     });
 
     it("names every catalog metric's family on the what-gets-collected table", (): void => {
@@ -1012,7 +1063,7 @@ describe("Storage Array docs", (): void => {
             : `## ${platform.displayName}`,
         );
         families.push(
-          ...Array.from(collected.matchAll(/`([a-z]+_[a-z_]+)(\*?)`/g))
+          ...Array.from(collected.matchAll(/`([a-z]+_[A-Za-z_]+)(\*?)`/g))
             .filter((match: RegExpMatchArray): boolean => {
               return (match[1] as string).startsWith(platform.metricPrefix);
             })

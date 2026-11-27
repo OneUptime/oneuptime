@@ -681,6 +681,7 @@ import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
 import CloudCostGroupAPI from "Common/Server/API/CloudCostGroupAPI";
 import CloudCostViewAPI from "Common/Server/API/CloudCostViewAPI";
+import CloudCostReportAPI from "Common/Server/API/CloudCostReportAPI";
 import CloudCostLineItem from "Common/Models/DatabaseModels/CloudCostLineItem";
 import CloudCostLineItemService, {
   Service as CloudCostLineItemServiceType,
@@ -1126,6 +1127,12 @@ import StorageArrayConnectionTestService, {
 import XcpNgPoolService, {
   Service as XcpNgPoolServiceType,
 } from "Common/Server/Services/XcpNgPoolService";
+import XcpNgConnectionService, {
+  Service as XcpNgConnectionServiceType,
+} from "Common/Server/Services/XcpNgConnectionService";
+import XcpNgConnectionTestService, {
+  Service as XcpNgConnectionTestServiceType,
+} from "Common/Server/Services/XcpNgConnectionTestService";
 import ProxmoxClusterOwnerTeamService, {
   Service as ProxmoxClusterOwnerTeamServiceType,
 } from "Common/Server/Services/ProxmoxClusterOwnerTeamService";
@@ -1638,9 +1645,8 @@ import ExceptionInstanceService, {
 import KubernetesCostAllocationService, {
   KubernetesCostAllocationService as KubernetesCostAllocationServiceType,
 } from "Common/Server/Services/KubernetesCostAllocationService";
-import CloudCostService, {
-  CloudCostService as CloudCostServiceType,
-} from "Common/Server/Services/CloudCostService";
+import CloudCostService from "Common/Server/Services/CloudCostService";
+import CloudCostAPI from "Common/Server/API/CloudCostAPI";
 import AcmeChallengeAPI from "Common/Server/API/AcmeChallengeAPI";
 
 import FeatureSet from "Common/Server/Types/FeatureSet";
@@ -1865,6 +1871,8 @@ import StorageArrayConnectionTest from "Common/Models/DatabaseModels/StorageArra
 import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
 import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
+import XcpNgConnection from "Common/Models/DatabaseModels/XcpNgConnection";
+import XcpNgConnectionTest from "Common/Models/DatabaseModels/XcpNgConnectionTest";
 import XcpNgPoolOwnerTeam from "Common/Models/DatabaseModels/XcpNgPoolOwnerTeam";
 import XcpNgPoolOwnerUser from "Common/Models/DatabaseModels/XcpNgPoolOwnerUser";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
@@ -2003,7 +2011,6 @@ import AIAgentOwnerUser from "Common/Models/DatabaseModels/AIAgentOwnerUser";
 import LlmLog from "Common/Models/DatabaseModels/LlmLog";
 import ExceptionInstance from "Common/Models/AnalyticsModels/ExceptionInstance";
 import KubernetesCostAllocation from "Common/Models/AnalyticsModels/KubernetesCostAllocation";
-import CloudCost from "Common/Models/AnalyticsModels/CloudCost";
 import WorkspaceNotificationLogService, {
   Service as WorkspaceNotificationLogServiceType,
 } from "Common/Server/Services/WorkspaceNotificationLogService";
@@ -4056,6 +4063,12 @@ const BaseAPIFeatureSet: FeatureSet = {
       new CloudCostViewAPI().getRouter(),
     );
 
+    // Scheduled cloud cost reports, with Preview and Send Me a Copy (#11009).
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new CloudCostReportAPI().getRouter(),
+    );
+
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
       new CloudCostGroupAPI().getRouter(),
@@ -4315,12 +4328,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       >(KubernetesCostAllocation, KubernetesCostAllocationService).getRouter(),
     );
 
+    /*
+     * Cloud costs: the analytics reads, and a breakdown and a FOCUS export
+     * of their own (#11009).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAnalyticsAPI<CloudCost, CloudCostServiceType>(
-        CloudCost,
-        CloudCostService,
-      ).getRouter(),
+      new CloudCostAPI(CloudCostService).getRouter(),
     );
 
     app.use(
@@ -6855,6 +6869,22 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<XcpNgPool, XcpNgPoolServiceType>(
         XcpNgPool,
         XcpNgPoolService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgConnection, XcpNgConnectionServiceType>(
+        XcpNgConnection,
+        XcpNgConnectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<XcpNgConnectionTest, XcpNgConnectionTestServiceType>(
+        XcpNgConnectionTest,
+        XcpNgConnectionTestService,
       ).getRouter(),
     );
 

@@ -16,7 +16,13 @@ import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import {
+  CapturedSeries,
+  parseOpenMetrics,
+} from "../../Helpers/StorageArray/OpenMetricsCapture";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
 
 /*
  * The storage array metric catalog drives the monitor form's metric picker,
@@ -306,6 +312,42 @@ const PURE_SERIES: Record<string, SeriesLabels> = {
 };
 
 /*
+ * Dell PowerStore's series, label by label, as Dell's exporter
+ * (powerstore-metrics-exporter v1.0.3) answered every path the agent scrapes
+ * (packages/Common/Tests/Fixtures/DellPowerStoreExporter: the recordings),
+ * and the two percents the agent divides out of them, which keep the
+ * labels of the series they are divided from. Dell's labels name objects,
+ * so every value is free-form.
+ */
+function readPowerStoreSeries(): Record<string, SeriesLabels> {
+  const directory: string = path.join(
+    __dirname,
+    "../../Fixtures/DellPowerStoreExporter/v1.0.3/bulk",
+  );
+  const series: Record<string, SeriesLabels> = {};
+  for (const file of fs.readdirSync(directory)) {
+    for (const one of parseOpenMetrics(
+      fs.readFileSync(path.join(directory, file), "utf8"),
+    )) {
+      const labels: SeriesLabels = series[one.name] || {};
+      for (const key of Object.keys((one as CapturedSeries).labels)) {
+        labels[key] = null;
+      }
+      series[one.name] = labels;
+    }
+  }
+  series["powerstore_cap_physical_used_percent"] = {
+    ...series["powerstore_cap_last_physical_used"]!,
+  };
+  series["powerstore_filesystem_logical_used_percent"] = {
+    ...series["powerstore_filesystem_logical_used"]!,
+  };
+  return series;
+}
+
+const POWERSTORE_SERIES: Record<string, SeriesLabels> = readPowerStoreSeries();
+
+/*
  * Dell PowerMax (#11004): the labels the probe writes on each series it
  * reads from Unisphere (Probe/Utils/StorageArray/Dell/PowerMax/
  * PowerMaxOtlpBuilder.ts), which the probe's PowerMaxIngestContract holds
@@ -381,9 +423,10 @@ const POWERMAX_SERIES: Record<string, SeriesLabels> = {
   powermax_srdf_group_response_time_usec: PM_SRDF_GROUP,
 };
 
-// Every platform's series, label by label.
+// Every shipped platform's series.
 const SERIES: Record<string, SeriesLabels> = {
   ...PURE_SERIES,
+  ...POWERSTORE_SERIES,
   ...POWERMAX_SERIES,
 };
 
@@ -392,14 +435,16 @@ const ALL_METRICS: Array<StorageArrayMetricDefinition> =
 
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
+const PS: StorageSystem = StorageSystem.DellPowerStore;
 // Read by a probe from Unisphere (#11004).
 const PM: StorageSystem = StorageSystem.DellPowerMax;
 
-// Each platform's id and metric name prefixes.
-const PREFIXES: Record<string, { id: string; metric: string }> = {
-  [FA]: { id: "purefa-", metric: "purefa_" },
-  [FB]: { id: "purefb-", metric: "purefb_" },
-  [PM]: { id: "powermax-", metric: "powermax_" },
+// Each platform's catalog ids and series names start with these.
+const PREFIXES: Record<string, { id: string; series: string }> = {
+  [FA]: { id: "purefa-", series: "purefa_" },
+  [FB]: { id: "purefb-", series: "purefb_" },
+  [PS]: { id: "powerstore-", series: "powerstore_" },
+  [PM]: { id: "powermax-", series: "powermax_" },
 };
 
 function onlySystem(metric: StorageArrayMetricDefinition): StorageSystem {
@@ -442,7 +487,7 @@ describe("StorageArrayMetricCatalog - every entry", () => {
 
     for (const metric of ALL_METRICS) {
       const prefix: string = PREFIXES[onlySystem(metric)]!.id;
-      expect(metric.id).toMatch(/^(purefa|purefb|powermax)-[a-z0-9-]+$/);
+      expect(metric.id).toMatch(/^[a-z]+-[a-z0-9-]+$/);
       expect(metric.id.startsWith(prefix)).toBe(true);
     }
   });
@@ -456,17 +501,17 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     }
   });
 
-  test("every metric name is one the snapshot scan, Pure's exporters or the PowerMax probe know", () => {
+  test("every metric name is one the snapshot scan or its platform's exporter knows", () => {
     for (const metric of ALL_METRICS) {
       expect(
         SERIES[metric.metricName] !== undefined ||
           STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metric.metricName),
       ).toBe(true);
       // Every catalog metric is documented here, label by label.
-      expect({ metric: metric.metricName, documented: true }).toEqual({
-        metric: metric.metricName,
+      expect({
+        metric: metric.id,
         documented: SERIES[metric.metricName] !== undefined,
-      });
+      }).toEqual({ metric: metric.id, documented: true });
     }
   });
 
@@ -628,6 +673,48 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     }
   });
 
+  /*
+   * Dell's names say what they measure in words rather than units: its
+   * latencies are microseconds, its space bytes, its rates per second.
+   */
+  const powerStoreUnit: (name: string) => string = (name: string): string => {
+    if (name.endsWith("_latency")) {
+      return "µs";
+    }
+    if (name.endsWith("_iops")) {
+      return "ops/s";
+    }
+    if (
+      name.endsWith("_bandwidth") ||
+      name.endsWith("_bytes_rx_ps") ||
+      name.endsWith("_bytes_tx_ps")
+    ) {
+      return "bytes/s";
+    }
+    if (name.endsWith("_count_ps") || name.endsWith("_error_ps")) {
+      return "errors/s";
+    }
+    if (
+      name.endsWith("_percent") ||
+      name.endsWith("_cpu_utilization") ||
+      name === "powerstore_wear_metrics_by_drive"
+    ) {
+      return "%";
+    }
+    if (
+      name.endsWith("_data_reduction") ||
+      name.endsWith("_efficiency_ratio")
+    ) {
+      return "ratio";
+    }
+    const bytesSuffix: RegExp = /_(size|used|provisioned|total)$/;
+    if (bytesSuffix.test(name)) {
+      return "bytes";
+    }
+    // States (1 while healthy) and the cluster's identity.
+    return "count";
+  };
+
   test("units follow the metric name's own unit suffix", () => {
     const expectedUnit: (
       metric: StorageArrayMetricDefinition,
@@ -635,8 +722,11 @@ describe("StorageArrayMetricCatalog - every entry", () => {
       metric: StorageArrayMetricDefinition,
     ): string | undefined => {
       const name: string = metric.metricName;
+      if (name.startsWith(PREFIXES[PS]!.series)) {
+        return powerStoreUnit(name);
+      }
       // PowerMax's series name their units (#11004).
-      if (name.startsWith("powermax_")) {
+      if (name.startsWith(PREFIXES[PM]!.series)) {
         const suffixes: Array<[string, string]> = [
           ["_usec", "µs"],
           ["_iops", "ops/s"],
@@ -746,33 +836,32 @@ describe("StorageArrayMetricCatalog - categories", () => {
     expect(total).toBe(ALL_METRICS.length);
   });
 
-  test("platform-specific categories hold only that platform's metrics", () => {
-    for (const category of ["Hosts"] as Array<StorageArrayMetricCategory>) {
-      for (const metric of getStorageArrayMetricsByCategory(category)) {
-        expect(onlySystem(metric)).toBe(FA);
-      }
-    }
-    // A PowerMax's volumes and storage groups, and its SRDF groups (#11004).
-    for (const category of [
-      "Volumes",
-      "Replication",
-    ] as Array<StorageArrayMetricCategory>) {
-      for (const metric of getStorageArrayMetricsByCategory(category)) {
-        expect([FA, PM]).toContain(onlySystem(metric));
-      }
-    }
-    for (const category of [
-      "File Systems",
-      "Buckets",
-    ] as Array<StorageArrayMetricCategory>) {
-      for (const metric of getStorageArrayMetricsByCategory(category)) {
-        expect(onlySystem(metric)).toBe(FB);
+  test("platform-specific categories hold only the metrics of the platforms that have the objects", () => {
+    const platformsOf: Partial<
+      Record<StorageArrayMetricCategory, Array<StorageSystem>>
+    > = {
+      Volumes: [FA, PS, PM],
+      Hosts: [FA],
+      Replication: [FA, PS, PM],
+      "File Systems": [FB, PS],
+      Buckets: [FB],
+    };
+    for (const [category, systems] of Object.entries(platformsOf)) {
+      for (const metric of getStorageArrayMetricsByCategory(
+        category as StorageArrayMetricCategory,
+      )) {
+        expect({ metric: metric.id, system: onlySystem(metric) }).toEqual({
+          metric: metric.id,
+          system: systems!.includes(onlySystem(metric))
+            ? onlySystem(metric)
+            : `<one of ${systems!.join(", ")}>`,
+        });
       }
     }
   });
 
   test("every platform covers alerts, capacity, performance and hardware", () => {
-    for (const system of [FA, FB, PM]) {
+    for (const system of [FA, FB, PS, PM]) {
       const covered: Set<string> = new Set(
         getStorageArrayMetricsForSystem(system).map(
           (m: StorageArrayMetricDefinition) => {
@@ -935,30 +1024,21 @@ describe("StorageArrayMetricCatalog - getStorageArrayMetric (filter-aware lookup
 });
 
 describe("StorageArrayMetricCatalog - per-platform picker", () => {
-  test("a FlashArray sees only FlashArray metrics, a FlashBlade only FlashBlade ones", () => {
-    const fa: Array<StorageArrayMetricDefinition> =
-      getStorageArrayMetricsForSystem(FA);
-    const fb: Array<StorageArrayMetricDefinition> =
-      getStorageArrayMetricsForSystem(FB);
-
-    expect(fa.length).toBeGreaterThan(0);
-    expect(fb.length).toBeGreaterThan(0);
-    for (const metric of fa) {
-      expect(metric.storageSystems).toContain(FA);
-      expect(metric.metricName.startsWith("purefa_")).toBe(true);
+  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerStore PowerStore's, a PowerMax PowerMax's", () => {
+    let total: number = 0;
+    for (const system of [FA, FB, PS, PM]) {
+      const metrics: Array<StorageArrayMetricDefinition> =
+        getStorageArrayMetricsForSystem(system);
+      expect(metrics.length).toBeGreaterThan(0);
+      for (const metric of metrics) {
+        expect(metric.storageSystems).toContain(system);
+        expect(metric.metricName.startsWith(PREFIXES[system]!.series)).toBe(
+          true,
+        );
+      }
+      total += metrics.length;
     }
-    for (const metric of fb) {
-      expect(metric.storageSystems).toContain(FB);
-      expect(metric.metricName.startsWith("purefb_")).toBe(true);
-    }
-    const pm: Array<StorageArrayMetricDefinition> =
-      getStorageArrayMetricsForSystem(PM);
-    expect(pm.length).toBeGreaterThan(0);
-    for (const metric of pm) {
-      expect(metric.storageSystems).toContain(PM);
-      expect(metric.metricName.startsWith(PREFIXES[PM]!.metric)).toBe(true);
-    }
-    expect(fa.length + fb.length + pm.length).toBe(ALL_METRICS.length);
+    expect(total).toBe(ALL_METRICS.length);
   });
 
   test.each([
@@ -986,6 +1066,10 @@ describe("StorageArrayMetricCatalog - object labels (resource filters and per-ob
     [StorageArrayResourceScope.Hardware, FB, "name"],
     [StorageArrayResourceScope.FileSystem, FB, "name"],
     [StorageArrayResourceScope.Bucket, FB, "name"],
+    [StorageArrayResourceScope.Array, PS, null],
+    [StorageArrayResourceScope.Volume, PS, "name"],
+    [StorageArrayResourceScope.Hardware, PS, "name"],
+    [StorageArrayResourceScope.FileSystem, PS, "name"],
   ])(
     "%s on %s is named by %p",
     (
@@ -1105,8 +1189,10 @@ describe("StorageArrayMetricCatalog - object labels (resource filters and per-ob
         continue;
       }
       /*
-       * An object of its own scope, or of a kind only its platform has (a
-       * PowerMax storage group, pool or SRDF group, #11004).
+       * An object of its own scope, or a part of the array no scope
+       * names, by an object label of its own (a PowerStore appliance or
+       * NAS server, a PowerMax storage group, pool or SRDF group, #11004):
+       * its charts and monitors split by that label.
        */
       expect({ id: metric.id, label }).toEqual({
         id: metric.id,

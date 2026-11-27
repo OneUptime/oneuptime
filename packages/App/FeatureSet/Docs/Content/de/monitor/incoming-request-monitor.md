@@ -423,6 +423,12 @@ Die ganze Nutzlast steht daneben zur Verfügung, ein Vorfalltitel `{{alertname}}
 
 Eine vollständige Alertmanager-Konfiguration finden Sie unter [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Für Grafana siehe [Grafana](/docs/integrations/grafana).
 
+### Während Vorfällen geprüft halten
+
+Ein Vorfall, den jemand für diesen Monitor meldet – etwa aus einer seiner Warnungen mit **Vorfall melden** –, pausiert seine Prüfungen, bis der Vorfall behoben ist, daher werden die Anfragen, die in der Zwischenzeit eintreffen, nicht ausgewertet: Sie eröffnen und beheben keine Warnungen. Jede wird trotzdem in **Überwachungsprotokolle** aufgeführt, so wie sie ankam, mit dem Grund, warum sie nicht ausgewertet wurde.
+
+Für einen Monitor, an den andere Systeme ihre Warnungen senden, sollte ein Vorfall zu einer Warnung ihn nicht davon abhalten, die nächste zu lesen. Öffnen Sie die **Einstellungen** des Monitors und schalten Sie auf der Karte **Während Vorfällen** den Schalter **Während Vorfällen weiter überwachen** ein: Für ihn gemeldete Vorfälle lassen ihn dann geprüft, auch bereits offene. Um ihn nur für einen Vorfall geprüft zu halten, entfernen Sie beim Melden den Haken bei **Überwachung pausieren**. Siehe [Überwachung, während ein Vorfall offen ist](/docs/incidents/declaring-incidents#überwachung-während-ein-vorfall-offen-ist).
+
 ## In Slack posten, ohne jemanden zu alarmieren
 
 Eine Staging-Umgebung oder ein Produkt, dessen Probleme warten können, soll eine Anfrage vielleicht in einem Chat-Kanal posten, ohne jemanden zu alarmieren. Das leistet eine Warnung, die keine Bereitschaftsrichtlinie nennt: Sie wird über die Arbeitsbereich-Regeln des Projekts in Slack, Microsoft Teams oder Mattermost gepostet und startet keine Eskalation.
@@ -506,11 +512,16 @@ Event Grid validiert einen Endpunkt, der ihm einen Code zurückschickt oder dess
 3. **POST mit `Content-Type: application/json` verwenden** — alles, was im Body liest, hängt davon ab.
 4. **Die beiden Aufgaben nicht auf einem Monitor mischen** — ein Monitor, der ereignisgesteuerte Warnungen empfängt, hat keinen regelmäßigen Takt, ein Kriterium "Nicht empfangen in Minuten" darauf würde also flattern. Verwenden Sie für den Totmannschalter einen eigenen Monitor.
 5. **Den Monitor überwachen** — Sorgen Sie dafür, dass der Dienst, der die Anfragen sendet, eine ordentliche Fehlerbehandlung hat, damit fehlgeschlagene Anfragen nicht unbemerkt bleiben.
+6. **Einen Ereignisempfänger während Vorfällen geprüft halten** — Schalten Sie bei einem Monitor, der Warnungen von einem anderen System empfängt, **Während Vorfällen weiter überwachen** in seinen **Einstellungen** ein, damit ein für ihn gemeldeter Vorfall ihn nicht pausiert. Siehe [Während Vorfällen geprüft halten](#während-vorfällen-geprüft-halten).
 
 ## Fehlerbehebung
 
 :::details Mein Absender bekommt 200, aber am Monitor erscheint nichts
 Die `200` wird gesendet, bevor die Anfrage geprüft wird, sie beweist also nicht, dass die Anfrage angenommen wurde. Prüfen Sie, ob der geheime Schlüssel in der URL zur **Heartbeat-URL** des Monitors passt und ob der Monitor nicht deaktiviert ist. Sehen Sie dann in der Zeitleiste des Monitors nach, ob Anfragen ankommen.
+:::
+
+:::details Anfragen kommen an, aber der Monitor eröffnet keine Warnungen, während ein Vorfall offen ist
+Ein von Hand für den Monitor gemeldeter Vorfall pausiert seine Prüfungen, daher werden seine Anfragen in **Überwachungsprotokolle** als **Nicht ausgewertet: Die Überwachung ist durch einen Vorfall pausiert** aufgeführt, und das Banner auf seinen Seiten sagt es. Schalten Sie **Während Vorfällen weiter überwachen** in seinen **Einstellungen** ein: Seine Prüfungen starten sofort wieder, und die nächsten Anfragen werden ausgewertet. Die Anfragen, die aufgeführt wurden, während er pausiert war, werden nachträglich nicht ausgewertet. Siehe [Während Vorfällen geprüft halten](#während-vorfällen-geprüft-halten).
 :::
 
 :::details Mein Absender bekommt 401

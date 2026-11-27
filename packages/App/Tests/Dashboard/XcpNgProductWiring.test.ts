@@ -95,6 +95,9 @@ const XCP_NG_PAGE_KEYS: ReadonlyArray<string> = [
   "XCP_NG_POOL_VIEW_DOCUMENTATION",
   "XCP_NG_POOL_VIEW_AUDIT_LOGS",
   "XCP_NG_POOL_VIEW_DELETE",
+  // The connections a probe reads, and one connection's page (#10996, #10999).
+  "XCP_NG_CONNECTIONS",
+  "XCP_NG_CONNECTION_VIEW",
 ];
 
 /**
@@ -141,6 +144,8 @@ const PRODUCT_PAGES: ReadonlyArray<[Array<string>, string]> = [
   [["Pools.tsx"], "XCP_NG_POOLS"],
   [["Documentation.tsx"], "XCP_NG_DOCUMENTATION"],
   [["Archived.tsx"], "XCP_NG_POOLS_ARCHIVED"],
+  [["Connections.tsx"], "XCP_NG_CONNECTIONS"],
+  [["ConnectionView.tsx"], "XCP_NG_CONNECTION_VIEW"],
   [["Settings", "OwnerRules.tsx"], "XCP_NG_SETTINGS_OWNER_RULES"],
   [["Settings", "LabelRules.tsx"], "XCP_NG_SETTINGS_LABEL_RULES"],
   [["Settings", "RulesAuditLogs.tsx"], "XCP_NG_SETTINGS_RULES_AUDIT_LOGS"],
@@ -228,8 +233,15 @@ describe("RouteMap gives every page a URL", () => {
     ["XCP_NG_SETTINGS_OWNER_RULES", "settings/owner-rules"],
     ["XCP_NG_SETTINGS_LABEL_RULES", "settings/label-rules"],
     ["XCP_NG_POOLS_ARCHIVED", "archived"],
+    ["XCP_NG_CONNECTIONS", "connections"],
   ])("the product page %s is at %s", (key: string, segment: string) => {
     expect(dense(routeMap)).toContain(`[PageMap.${key}]:\`${segment}\``);
+  });
+
+  test("a connection's page is its id under connections, never one segment that would shadow a pool", () => {
+    expect(dense(routeMap)).toContain(
+      "[PageMap.XCP_NG_CONNECTION_VIEW]:`connections/${RouteParams.ModelID}`",
+    );
   });
 
   test("the rule history page is at settings/rules-audit-logs, as every product's", () => {
@@ -517,6 +529,7 @@ describe("the side menus reach the whole product", () => {
       "XCP_NG_SETTINGS_OWNER_RULES",
       "XCP_NG_SETTINGS_LABEL_RULES",
       "XCP_NG_SETTINGS_RULES_AUDIT_LOGS",
+      "XCP_NG_CONNECTIONS",
     ]) {
       expect(dense(productSideMenu)).toContain(
         `RouteMap[PageMap.${key}]asRoute`,

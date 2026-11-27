@@ -85,6 +85,7 @@ Monitorerna kommer först, för sig, eftersom statussidor ser en incident genom 
 
 - **Monitorer** — en sökruta som lägger till monitorerna som incidenten påverkar; fliken **Etiketter** lägger till alla monitorer med en etikett på en gång. En statussida visar en incident, och meddelar sina prenumeranter om den, när den visar någon av incidentens monitorer, så det är dessa som avgör vilka statussidor som får höra om den (`monitors` på incidenten).
 - **Ändra övervakningsstatus till** — valfritt, och visas bara när minst en monitor är vald. Väljer en monitorstatus som tillämpas på varje monitor som är kopplad till den här incidenten, så att det att deklarera incidenten och markera monitorerna som försämrade är en åtgärd i stället för två. Deklarerar du från en mall som sätter en, börjar fältet med mallens status, som visas så snart du väljer en monitor. Utan vald monitor sparas ingen status, inte heller mallens; tar du bort den sista monitorn försvinner fältet tills du väljer en annan, vilket tar tillbaka ditt val. En monitors status delas av alla statussidor som visar den, så med statussidor valda under **Fler fält** påminner formuläret dig om att ändringen också syns på sidorna du inte valde.
+- **Pausa övervakningen** — visas så snart minst en monitor är vald, och är ikryssad. Ikryssad pausar incidenten kontrollerna av sina monitorer tills den är löst, så att statusen ovan står kvar på dem. Kryssa ur den för att hålla dem kontrollerade medan incidenten är öppen: deras kontroller fortsätter att sätta deras status och att öppna incidenter och larm. En monitor som är inställd på att fortsätta övervakas under incidenter pausas aldrig, ikryssad eller inte (`pauseMonitoring` på incidenten). Se [Övervakning medan en incident är öppen](#övervakning-medan-en-incident-är-öppen).
 - **Andra påverkade resurser** — en andra sökruta för allt annat som incidenten påverkar: värdar, nätverksenheter, Kubernetes-kluster, Docker- och Podman-värdar, Proxmox-, Ceph- och Docker Swarm-kluster, vCenters, lagringsmatriser, IoT-flottor, databaser, molnresurser och tjänster — allt utöver monitorer som incidentens eget kort **Berörda resurser** erbjuder. Under huven är det separata relationer på incidenten (`hosts`, `kubernetesClusters`, `dockerHosts`, `podmanHosts`, `services` och fler), men formuläret slår ihop dem till en väljare.
 
 **Andra påverkade resurser** söker i alla sorter som fältet erbjuder på en gång. En resurs hittas på sitt namn eller sin beskrivning, en nätverksenhet också på adressen den avsöks på eller sitt DNS-namn, och en värd på namnet dess agent rapporterar eller en av dess IP-adresser. Resultaten grupperas efter sort, med en enhets adress bredvid dess namn. Så snart de innehåller mer än en sort begränsar en rad ovanför dem listan till en sort och visar hur många av varje som matchar, och en sort med fler träffar än det finns plats för erbjuder att visa fler. Arkiverade resurser erbjuds inte. När sökningen även matchar monitorer säger en rad under resultaten hur många, och att monitorer väljs under **Monitorer**.
@@ -280,7 +281,7 @@ I ordning:
 9. **Prenumeranter köas**, om **Meddela statussideprenumeranter** lämnades påslaget och incidenten är synlig på statussidan. Leveransen sköts av ett bakgrundsjobb, inte inom din begäran, och går till statussidorna som incidenten når: de som visar dess monitorer, inskränkt av **Begränsa till dessa statussidor**, och utan sidorna som bara visar incidenter som är begränsade till dem, när den inte är begränsad. En arkiverad statussida skickar ingenting. Förloppet visas som **Prenumerantaviseringsstatus** på incidentens **Översikt**: vad som skickades och vad som misslyckades på varje statussida, och **Försök igen** eller **Skicka igen** när det är avslutat. Se [Prenumeranter och meddelanden](/docs/status-pages/subscribers#kontrollera-vad-som-skickades).
 10. **Arbetsflöden utlöses.** Utlösaren **Vid skapande: Incident** startar varje arbetsflöde som är byggt på den. Se [Översikt över arbetsflöden](/docs/workflows/index).
 
-Därifrån är incidenten live: den räknas in i märket **Aktiva incidenter** i sidomenyn för Incidenter (varje tillstånd ovanför ditt lösta tillstånd räknas som aktivt), den visas på statussidorna som visar någon av dess monitorer (bara de valda, om du begränsade den), och dess **Tillståndstidslinje** börjar registrera.
+Därifrån är incidenten live: den räknas in i märket **Aktiva incidenter** i sidomenyn för Incidenter (varje tillstånd ovanför ditt lösta tillstånd räknas som aktivt), den visas på statussidorna som visar någon av dess monitorer (bara de valda, om du begränsade den), och dess **Tillståndstidslinje** börjar registrera. Dess monitorer sätts i dess status från **Ändra övervakningsstatus till**, och när den deklarerades för hand pausas deras kontroller tills den är löst: se [Övervakning medan en incident är öppen](#övervakning-medan-en-incident-är-öppen).
 
 ### Deklarerad redan bekräftad eller löst
 
@@ -306,10 +307,43 @@ flowchart TB
 
 Larm, larmepisoder och incidentepisoder följer samma regel: en som skapas redan bekräftad larmar ingen, och en som skapas löst grupperas inte heller, åtgärdas inte och utreds inte av AI, och får ingen egen kanal. En incident eller ett larm i skapandetillståndet — standarden, och varje sådan som en monitor öppnar — sätter igång allt som tidigare.
 
+## Övervakning medan en incident är öppen
+
+En incident som deklareras för hand pausar kontrollerna av de monitorer den listar, tills den är löst. Då ändrar inte deras nästa kontroll den status den satte dem i medan folk arbetar med den. Deklarerad för hand betyder allt utom OneUptime självt: **Deklarera incident** i instrumentpanelen (från ett larm, från en monitors flik **Incidenter** eller från början), Slack, Microsoft Teams, API:et, Terraform, ett arbetsflöde, [Ask AI](/docs/ai/ask-ai), mobilappen och ett formulär. Läggs en monitor till en sådan incident medan den är öppen pausas även den monitorn.
+
+Inget annat pausar en monitors kontroller på det här sättet. En incident som en monitors kriterier deklarerar, en som ett larms incidentregel deklarerar och en som ett SLO deklarerar låter sina monitorer fortsätta kontrolleras, och det gör även varje larm, skapat av en monitor eller för hand.
+
+```mermaid title="Om en öppen incident pausar en monitors kontroller"
+flowchart TB
+    declared{"Deklarerad för hand?"} -->|Nej| checked["Kontrollerna fortsätter"]
+    declared -->|Ja| ticked{"Pausa övervakningen<br/>ikryssad?"}
+    ticked -->|Nej| checked
+    ticked -->|Ja| setting{"Monitor inställd på att fortsätta<br/>övervakas under incidenter?"}
+    setting -->|Ja| checked
+    setting -->|Nej| paused["Kontroller pausade<br/>tills den är löst"]
+```
+
+**Håll en monitor kontrollerad.** Två reglage avgör, och vilket som helst av dem håller den kontrollerad:
+
+- **Fortsätt övervaka under incidenter**, på monitorns sida **Inställningar**, under **Under incidenter**. Slå på det för en monitor som tar emot händelser, som en [monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor) som ett annat system skickar sina larm till: en incident om en händelse hindrar den då inte längre från att läsa nästa. Det gäller direkt, även för incidenter som redan är öppna: påslaget medan en incident pausar monitorn startar dess kontroller igen direkt. Avstängt som standard.
+- **Pausa övervakningen**, där incidenten deklareras, under **Ändra övervakningsstatus till**. Kryssa ur den för att hålla alla incidentens monitorer kontrollerade. Den kan ändras medan incidenten är öppen, på dess kort **Berörda resurser**: urkryssad kontrolleras monitorerna igen direkt.
+
+En monitor som hålls kontrollerad fortsätter att sätta sin egen status: dess nästa kontroll ersätter den status incidenten satte den i, och dess kriterier fortsätter att öppna och lösa sina egna incidenter och larm.
+
+**Vad en pausad monitor fortfarande gör.** Dess kontroller stoppar: sonder slutar kontrollera den, ett heartbeat, ett e-postmeddelande eller en agent som slutar skicka märks inte, och en telemetrimonitor utvärderas inte. Det som skickas till den utifrån tas fortfarande emot: varje förfrågan som en [monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor) får, varje e-postmeddelande som en monitor för inkommande e-post får och varje rapport som en servermonitors agent skickar listas i dess **Övervakningsloggar**, som den kom, med **Inte utvärderad: övervakningen är pausad av en incident**. Inget som en pausad monitor tar emot öppnar eller löser en incident eller ett larm, eller ändrar dess status, och avsändaren får svar som vanligt. En banner på monitorns sidor säger att den är pausad, och hur den hålls kontrollerad.
+
+**Vad pausad tid räknas som.** En pausad monitor behåller den status den har, och dess drifttid, statussidor och SLO:er räknar den statusen när en incident satte monitorn i den med **Ändra övervakningsstatus till**: det är den status någon deklarerade. När ingen pausande incident satte en status är statusen bara det som monitorns senaste kontroll såg före pausen, så den tiden utesluts ur dess drifttid, statussidor och SLO:er, som tid med övervakningen avstängd är. Dess **Statustidslinje** markerar var den tiden börjar och slutar, och drifttiden på dess **Översikt** säger att den utesluter pausad tid.
+
+**När pausen slutar.** Att lösa incidenten, ta bort monitorn från den eller radera den återupptar monitorns kontroller och sätter tillbaka den till drift, om inte en annan öppen incident fortfarande ligger på den; sedan sätter dess kontroller dess status. En monitor som en annan öppen incident som deklarerats för hand fortfarande pausar förblir pausad. En incident som sedan dess har lösts och öppnats igen håller ingenting, så den pausar ingenting och håller ingenting pausat.
+
 ## Felsökning
 
 :::details Deklarationen misslyckas och ber om ett skapandetillstånd för incidenter
 Har ditt projekt inget tillstånd med flaggan `isCreatedState` misslyckas skapandeanropet och ber dig lägga till ett skapandetillstånd för incidenter från inställningarna. Det händer normalt bara i ett projekt vars tillstånd har redigerats kraftigt — se [Incidentstatusar och allvarlighetsgrader](/docs/incidents/states-and-severities).
+:::
+
+:::details En monitor slutade öppna larm när en incident deklarerades på den
+En incident som deklareras för hand pausar kontrollerna av sina monitorer tills den är löst, så det som når dem under tiden listas i deras **Övervakningsloggar** men utvärderas inte. Slå på **Fortsätt övervaka under incidenter** i monitorns **Inställningar** för att hålla den kontrollerad under den här incidenten och nästa, eller kryssa ur **Pausa övervakningen** på incidentens kort **Berörda resurser** för den här incidentens monitorer. Se [Övervakning medan en incident är öppen](#övervakning-medan-en-incident-är-öppen).
 :::
 
 :::details Incidenten deklarerades, men ingen prenumerant på statussidan fick höra om den

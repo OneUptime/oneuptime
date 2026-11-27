@@ -4,6 +4,7 @@ import StorageSystemUtil from "../../../../Types/StorageArray/StorageSystemUtil"
 import { StorageArrayExtractor } from "./StorageArrayExtractor";
 import FlashArrayExtractor from "./PureStorage/FlashArrayExtractor";
 import FlashBladeExtractor from "./PureStorage/FlashBladeExtractor";
+import PowerStoreExtractor from "./Dell/PowerStoreExtractor";
 import PowerMaxExtractor from "./Dell/PowerMaxExtractor";
 
 /*
@@ -36,6 +37,7 @@ import PowerMaxExtractor from "./Dell/PowerMaxExtractor";
 const BUILT_IN_EXTRACTORS: ReadonlyArray<StorageArrayExtractor> = [
   FlashArrayExtractor,
   FlashBladeExtractor,
+  PowerStoreExtractor,
   PowerMaxExtractor,
 ];
 

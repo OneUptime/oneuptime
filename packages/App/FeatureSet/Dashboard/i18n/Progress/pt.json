@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 66269,
+    "keys": 66171,
     "untranslated": 8293
   },
   "sameAsEnglish": [
@@ -260,9 +260,11 @@
     "Pool",
     "Pool {{name}}",
     "Pools",
+    "Pools: {{names}}",
     "Portugal (+351)",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "PowerStore",
     "Powered by OneUptime",
     "PromQL",
     "Prompt",
@@ -474,6 +476,7 @@
     "prod-vcenter",
     "recordset",
     "recordsets",
+    "root",
     "s",
     "secret",
     "security-alerts",

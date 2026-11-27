@@ -1,6 +1,7 @@
 import MailService from "../Services/MailService";
 import Dictionary from "Common/Types/Dictionary";
 import Email from "Common/Types/Email";
+import { readEmailAttachments } from "Common/Types/Email/EmailAttachment";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import {
   readEmailAddress,
@@ -54,6 +55,11 @@ router.post(
          */
         ccEmails: readEmailAddresses(body["ccEmails"]),
         replyToEmail: readEmailAddress(body["replyToEmail"]),
+        /*
+         * The files sent with it (a cost report's CSV, #11009): only small
+         * text files of the kinds OneUptime writes (EmailAttachment).
+         */
+        attachments: readEmailAttachments(body["attachments"]),
       };
 
       let mailServer: EmailServer | undefined = undefined;

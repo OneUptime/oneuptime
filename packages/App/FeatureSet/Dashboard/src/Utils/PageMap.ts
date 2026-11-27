@@ -1040,6 +1040,10 @@ enum PageMap {
   XCP_NG_SETTINGS_LABEL_RULE_VIEW = "XCP_NG_SETTINGS_LABEL_RULE_VIEW",
   XCP_NG_POOLS_ARCHIVED = "XCP_NG_POOLS_ARCHIVED",
 
+  // XCP-ng connections a probe reads: a Xen Orchestra, or a pool's XAPI.
+  XCP_NG_CONNECTIONS = "XCP_NG_CONNECTIONS",
+  XCP_NG_CONNECTION_VIEW = "XCP_NG_CONNECTION_VIEW",
+
   // IoT
   IOT_ROOT = "IOT_ROOT",
   IOT_FLEETS = "IOT_FLEETS",
@@ -1301,6 +1305,8 @@ enum PageMap {
   CLOUD_COMMITMENTS = "CLOUD_COMMITMENTS",
   CLOUD_SCHEDULES = "CLOUD_SCHEDULES",
   CLOUD_BUDGETS = "CLOUD_BUDGETS",
+  // Scheduled cost reports, to email, Slack and Microsoft Teams (#11009).
+  CLOUD_REPORTS = "CLOUD_REPORTS",
   // The project's cost basis and when its commitments alert.
   CLOUD_SETTINGS_COSTS = "CLOUD_SETTINGS_COSTS",
   CLOUD_COST_GROUPS = "CLOUD_COST_GROUPS",

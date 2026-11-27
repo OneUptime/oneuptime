@@ -409,6 +409,12 @@ import "./Jobs/StorageArray/CleanupStaleResources";
 // XCP-ng pool disconnection sweeper + inventory cleanup.
 import "./Jobs/XcpNg/CleanupStaleResources";
 
+// XCP-ng connections read from a probe: connection tests no probe answers.
+import "./Jobs/XcpNg/ExpireConnectionTests";
+
+// XCP-ng connections read from a probe: API tokens about to expire.
+import "./Jobs/XcpNg/WarnExpiringApiTokens";
+
 // Docker Swarm cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/DockerSwarm/CleanupStaleResources";
 
@@ -423,6 +429,8 @@ import "./Jobs/Cloud/ReadCloudStreams";
 import "./Jobs/Cloud/EvaluateCloudBudgets";
 import "./Jobs/Cloud/EvaluateCloudCommitments";
 import "./Jobs/Cloud/MakeCloudCostGroups";
+// Scheduled cloud cost reports, sent when they are due (#11009).
+import "./Jobs/Cloud/SendCloudCostReports";
 // Changes for savings stepped, and off-hours schedules run (#11010).
 import "./Jobs/Cloud/CloudSavingsJobs";
 import "./Jobs/Cloud/WatchCloudTags";
