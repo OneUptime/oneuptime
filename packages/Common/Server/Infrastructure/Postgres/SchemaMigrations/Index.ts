@@ -1214,7 +1214,7 @@ import { AddDataStoreDatabaseAgentIndexAndKey1809187741148 } from "./18091877411
 import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
 import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-AddKeepMonitoringDuringIncidents";
 import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostReports";
-import { AddExternalMcpToolReadOnlyMarks1809187771081 } from "./1809187771081-AddExternalMcpToolReadOnlyMarks";
+import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "./1809187791081-AddExternalMcpToolReadOnlyMarks";
 
 export default [
   InitialMigration,
@@ -2433,5 +2433,5 @@ export default [
   AddSecurityUserErasureRequestProgress1809187741160,
   AddKeepMonitoringDuringIncidents1809187751141,
   AddCloudCostReports1809187761009,
-  AddExternalMcpToolReadOnlyMarks1809187771081,
+  AddExternalMcpToolReadOnlyMarks1809187791081,
 ];

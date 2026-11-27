@@ -1,5 +1,5 @@
 import { AddCloudCostReports1809187761009 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187761009-AddCloudCostReports";
-import { AddExternalMcpToolReadOnlyMarks1809187771081 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187771081-AddExternalMcpToolReadOnlyMarks";
+import { AddExternalMcpToolReadOnlyMarks1809187791081 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187791081-AddExternalMcpToolReadOnlyMarks";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import ExternalMcpToolReadOnlyMark from "../../../../Models/DatabaseModels/ExternalMcpToolReadOnlyMark";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -21,7 +21,7 @@ import { describe, expect, test } from "@jest/globals";
  * earlier migration had run on, and the check found no drift after it).
  */
 
-const MIGRATION_NAME: string = "AddExternalMcpToolReadOnlyMarks1809187771081";
+const MIGRATION_NAME: string = "AddExternalMcpToolReadOnlyMarks1809187791081";
 const TABLE: string = "ExternalMcpToolReadOnlyMark";
 
 const TRAILING_TIMESTAMP: RegExp = /(\d{13})$/;
@@ -39,8 +39,8 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
     },
   } as unknown as QueryRunner;
 
-  const migration: AddExternalMcpToolReadOnlyMarks1809187771081 =
-    new AddExternalMcpToolReadOnlyMarks1809187771081();
+  const migration: AddExternalMcpToolReadOnlyMarks1809187791081 =
+    new AddExternalMcpToolReadOnlyMarks1809187791081();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -60,7 +60,7 @@ function timestampOf(migration: MigrationClass): number {
 
 describe("the read-only marks migration", () => {
   test("names itself after its timestamp", () => {
-    expect(new AddExternalMcpToolReadOnlyMarks1809187771081().name).toBe(
+    expect(new AddExternalMcpToolReadOnlyMarks1809187791081().name).toBe(
       MIGRATION_NAME,
     );
   });
@@ -69,12 +69,12 @@ describe("the read-only marks migration", () => {
     const registered: Array<MigrationClass> =
       SchemaMigrations as Array<MigrationClass>;
     const at: number = registered.indexOf(
-      AddExternalMcpToolReadOnlyMarks1809187771081,
+      AddExternalMcpToolReadOnlyMarks1809187791081,
     );
 
     expect(
       registered.filter((candidate: MigrationClass): boolean => {
-        return candidate === AddExternalMcpToolReadOnlyMarks1809187771081;
+        return candidate === AddExternalMcpToolReadOnlyMarks1809187791081;
       }),
     ).toHaveLength(1);
     expect(at).toBeGreaterThan(
@@ -83,7 +83,7 @@ describe("the read-only marks migration", () => {
 
     for (let before: number = 0; before < at; before++) {
       expect(timestampOf(registered[before]!)).toBeLessThan(
-        timestampOf(AddExternalMcpToolReadOnlyMarks1809187771081),
+        timestampOf(AddExternalMcpToolReadOnlyMarks1809187791081),
       );
     }
   });
@@ -99,10 +99,10 @@ describe("the read-only marks migration", () => {
     expect(
       files.filter((file: string): boolean => {
         return file.startsWith(
-          `${timestampOf(AddExternalMcpToolReadOnlyMarks1809187771081)}-`,
+          `${timestampOf(AddExternalMcpToolReadOnlyMarks1809187791081)}-`,
         );
       }),
-    ).toEqual(["1809187771081-AddExternalMcpToolReadOnlyMarks.ts"]);
+    ).toEqual(["1809187791081-AddExternalMcpToolReadOnlyMarks.ts"]);
   });
 
   test("creates the marks' table with every column the model stores", async () => {

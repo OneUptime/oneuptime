@@ -1,9 +1,9 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class AddExternalMcpToolReadOnlyMarks1809187771081
+export class AddExternalMcpToolReadOnlyMarks1809187791081
   implements MigrationInterface
 {
-  public name = "AddExternalMcpToolReadOnlyMarks1809187771081";
+  public name = "AddExternalMcpToolReadOnlyMarks1809187791081";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
