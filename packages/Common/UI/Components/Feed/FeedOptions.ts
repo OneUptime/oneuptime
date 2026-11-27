@@ -110,6 +110,9 @@ const EVENT_TYPE_LABELS: Map<string, string> = new Map<string, string>([
   ["AiProposalExpired", "AI Proposal Expired"],
   ["AiResponse", "AI Response"],
   ["LifecycleEvent", "Lifecycle Event"],
+  // What XAPI and Xen Orchestra say of an XCP-ng pool (#10997).
+  ["XcpNgPoolMessage", "XCP-ng Pool Message"],
+  ["XcpNgPoolHaChanged", "XCP-ng Pool High Availability Changed"],
 ]);
 
 /*
@@ -127,6 +130,7 @@ const EVENT_TYPE_WORDS: Array<{ word: string; label: string }> = [
   { word: "VMware", label: "VMware" },
   { word: "VCenter", label: "vCenter" },
   { word: "OpenStack", label: "OpenStack" },
+  { word: "XcpNg", label: "XCP-ng" },
   { word: "OnCallDuty", label: "On-Call" },
   { word: "OnCall", label: "On-Call" },
 ];

@@ -63,10 +63,8 @@ import {
   XcpNgAlarmReading,
   readXcpNgAlarmBody,
 } from "../../../Utils/XcpNg/XenOrchestraRest";
-import {
-  getXcpNgBackupJobIntervalSeconds,
-  isXcpNgVmBackupOverdue,
-} from "./XcpNgBackupSchedule";
+import { getXcpNgBackupJobIntervalSeconds } from "./XcpNgBackupSchedule";
+import { isXcpNgVmBackupOverdue } from "../../../Utils/XcpNg/XcpNgBackupOverdue";
 import {
   XcpNgDerivedReadings,
   XcpNgEventObject,
@@ -1140,5 +1138,13 @@ export function processXcpNgPoolEvents(
   }
 
   output.columns.eventState = state;
+  /*
+   * The overdue clock's start, where the pages can read it: they call a VM
+   * with no backup on record overdue when the alert does, not before.
+   */
+  if (state.backupsWatchedSince) {
+    output.columns.eventReadStatus.backupsWatchedSince =
+      state.backupsWatchedSince;
+  }
   return output;
 }

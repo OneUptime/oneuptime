@@ -31,6 +31,11 @@ export enum XcpNgEventSource {
 export interface XcpNgPoolEventReadStatus {
   source: XcpNgEventSource;
   problems: XcpNgEventReadProblems;
+  /*
+   * ISO: when the pool's backups were first read, from which a VM with no
+   * successful backup on record is counted overdue.
+   */
+  backupsWatchedSince?: string | undefined;
 }
 
 // One of the pool's VMs that did not back up in a run.

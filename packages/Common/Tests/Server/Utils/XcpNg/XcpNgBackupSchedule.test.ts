@@ -1,12 +1,15 @@
 import {
-  XCP_NG_BACKUP_MIN_GRACE_SECONDS,
   XcpNgCronSpec,
-  getXcpNgBackupGraceSeconds,
   getXcpNgBackupJobIntervalSeconds,
-  isXcpNgVmBackupOverdue,
   listXcpNgScheduleRuns,
   parseXcpNgCron,
 } from "../../../../Server/Utils/XcpNg/XcpNgBackupSchedule";
+import {
+  XCP_NG_BACKUP_MIN_GRACE_SECONDS,
+  getXcpNgBackupGraceSeconds,
+  getXcpNgVmBackupDueBy,
+  isXcpNgVmBackupOverdue,
+} from "../../../../Utils/XcpNg/XcpNgBackupOverdue";
 import { XcpNgBackupSchedule } from "../../../../Types/XcpNg/XcpNgPoolEvents";
 import CronParser, { CronExpression } from "cron-parser";
 import { describe, expect, test } from "@jest/globals";
@@ -173,6 +176,37 @@ describe("overdue", () => {
         }),
       ).toBe(false);
     }
+  });
+
+  test("when a VM's backup falls due: its last good one, plus the interval and the grace", () => {
+    expect(
+      getXcpNgVmBackupDueBy({
+        intervalSeconds: DAY,
+        lastSuccessfulBackupAt: NOW,
+        watchedSince: null,
+      }),
+    ).toEqual(new Date(NOW.getTime() + 30 * HOUR * 1000));
+    expect(
+      getXcpNgVmBackupDueBy({
+        intervalSeconds: DAY,
+        lastSuccessfulBackupAt: null,
+        watchedSince: NOW,
+      }),
+    ).toEqual(new Date(NOW.getTime() + 30 * HOUR * 1000));
+    expect(
+      getXcpNgVmBackupDueBy({
+        intervalSeconds: null,
+        lastSuccessfulBackupAt: NOW,
+        watchedSince: NOW,
+      }),
+    ).toBeNull();
+    expect(
+      getXcpNgVmBackupDueBy({
+        intervalSeconds: DAY,
+        lastSuccessfulBackupAt: null,
+        watchedSince: null,
+      }),
+    ).toBeNull();
   });
 
   test("an invalid date is no reference", () => {
