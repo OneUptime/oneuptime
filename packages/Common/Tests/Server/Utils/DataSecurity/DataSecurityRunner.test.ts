@@ -1072,7 +1072,7 @@ describe("scanStore: what the cloud connection allows", () => {
       startedAt: NOW,
       status: DataSecurityScanStatus.Skipped,
       errorMessage:
-        "Content scanning needs the connection's content permission, or a connection string for a database.",
+        "Content scanning needs the connection's content permission, or a connection string for a store you run.",
     });
   });
 

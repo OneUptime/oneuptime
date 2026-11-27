@@ -1,3 +1,8 @@
+import {
+  DataStoreExposureCheck,
+  getDataStoreExposureCheck,
+} from "./DataStoreKind";
+
 /*
  * WHAT A STORE'S CONFIGURATION SAYS ABOUT ITS SAFETY, IN ONE SHAPE FOR EVERY
  * CLOUD.
@@ -13,11 +18,55 @@
  * means the reader could not tell (the permission was missing, the call
  * failed) and a check of it reports Unknown rather than guessing; a fact
  * that is absent does not apply to the store's kind.
+ *
+ * A self-managed store no cloud lists is read from its own endpoint
+ * instead (#11140, Server/Utils/DataSecurity/Content/SearchEndpointCheck):
+ * with each content scan, from where the scan runs, OneUptime asks it
+ * without credentials whether it answers, and whether it takes connections
+ * without TLS. That says nothing of what only its own network or its
+ * operators know - whether the internet reaches it, what its firewall
+ * lets in - so those facts are null and named in unknowableFacts: the
+ * store's page says they cannot be checked from there, never Unknown as if
+ * a read had failed.
  */
+
+/*
+ * Where a store's own endpoint was checked from (#11140): from outside your
+ * networks - OneUptime's own servers, on OneUptime Cloud - or from inside
+ * them: a probe, or the workers of a OneUptime you host yourself.
+ */
+export enum DataStorePostureReadFrom {
+  Internet = "internet",
+  Network = "network",
+}
 
 export interface DataStorePostureFacts {
   // When the facts were read, as ISO 8601.
   readAt?: string | undefined;
+
+  /*
+   * Where the facts were read from: absent for a cloud's own API, which
+   * reads the store's configuration and who can reach it; set for a
+   * self-managed store's own endpoint (#11140), which says only what that
+   * endpoint answers - never who holds access to it.
+   */
+  readFrom?: DataStorePostureReadFrom | undefined;
+  /*
+   * The facts that cannot be known from where they were read, by key: null
+   * among the facts, and drawn as "Can't be checked from there" rather than
+   * Unknown.
+   */
+  unknowableFacts?: Array<string> | undefined;
+
+  /*
+   * Seen from the store's own endpoint, asked without credentials (#11140):
+   * whether anyone who reaches it can read its data, and change it. True
+   * when it answered a search without credentials - and, for changes, when
+   * it reports no access control of its own at all - false when it refused
+   * a request without credentials, null when it could not be told.
+   */
+  anonymousRead?: boolean | null | undefined;
+  anonymousWrite?: boolean | null | undefined;
 
   // Exposure.
   publicRead?: boolean | null | undefined;
@@ -65,13 +114,21 @@ export interface DataStorePostureFacts {
   readWarnings?: Array<string> | undefined;
 }
 
-// Where a store sits relative to the internet and to other organizations.
+/*
+ * Where a store sits relative to the internet and to other organizations -
+ * or why OneUptime cannot say (#11140): it has not checked yet, it has no
+ * way to check this kind of store, or it checked and could not tell. The
+ * three read alike as "Unknown" before, so a store nothing will ever check
+ * looked like one about to be.
+ */
 export enum DataStoreExposure {
   Public = "Public",
   OtherAccounts = "Other accounts",
   InternetReachable = "Internet reachable",
   Private = "Private",
   Unknown = "Unknown",
+  NotChecked = "Not checked yet",
+  CannotBeChecked = "Can't be checked",
 }
 
 export const ALL_DATA_STORE_EXPOSURES: ReadonlyArray<DataStoreExposure> = [
@@ -80,7 +137,25 @@ export const ALL_DATA_STORE_EXPOSURES: ReadonlyArray<DataStoreExposure> = [
   DataStoreExposure.InternetReachable,
   DataStoreExposure.Private,
   DataStoreExposure.Unknown,
+  DataStoreExposure.NotChecked,
+  DataStoreExposure.CannotBeChecked,
 ];
+
+// The exposures that say OneUptime does not know, each for its own reason.
+export const UNKNOWN_DATA_STORE_EXPOSURES: ReadonlyArray<DataStoreExposure> = [
+  DataStoreExposure.Unknown,
+  DataStoreExposure.NotChecked,
+  DataStoreExposure.CannotBeChecked,
+];
+
+export function isDataStoreExposure(
+  value: unknown,
+): value is DataStoreExposure {
+  return (
+    typeof value === "string" &&
+    (ALL_DATA_STORE_EXPOSURES as ReadonlyArray<string>).includes(value)
+  );
+}
 
 export const DATA_STORE_EXPOSURE_DESCRIPTION: Readonly<
   Record<DataStoreExposure, string>
@@ -92,10 +167,17 @@ export const DATA_STORE_EXPOSURE_DESCRIPTION: Readonly<
     "Its network endpoint accepts connections from the internet.",
   [DataStoreExposure.Private]: "Only your own accounts and networks reach it.",
   [DataStoreExposure.Unknown]:
-    "OneUptime could not read enough of its configuration to tell.",
+    "OneUptime checked it, but could not tell from what it could read.",
+  [DataStoreExposure.NotChecked]:
+    "OneUptime has not checked how it can be reached yet.",
+  [DataStoreExposure.CannotBeChecked]:
+    "OneUptime has no way to check how this kind of store can be reached.",
 };
 
-// The weight exposure adds to an issue's risk score (DataSecurityRisk.ts).
+/*
+ * The weight exposure adds to an issue's risk score (DataSecurityRisk.ts).
+ * Not knowing weighs the same whatever the reason.
+ */
 export const DATA_STORE_EXPOSURE_WEIGHT: Readonly<
   Record<DataStoreExposure, number>
 > = {
@@ -104,20 +186,52 @@ export const DATA_STORE_EXPOSURE_WEIGHT: Readonly<
   [DataStoreExposure.InternetReachable]: 0.6,
   [DataStoreExposure.Private]: 0,
   [DataStoreExposure.Unknown]: 0.3,
+  [DataStoreExposure.NotChecked]: 0.3,
+  [DataStoreExposure.CannotBeChecked]: 0.3,
 };
+
+// Whether the facts were read from a cloud's own API: its configuration and who can reach it.
+export function isPostureFromCloudApi(
+  facts: DataStorePostureFacts | null | undefined,
+): boolean {
+  return Boolean(facts?.readAt) && !facts?.readFrom;
+}
+
+// Whether a fact cannot be known from where the facts were read (#11140).
+export function isPostureFactUnknowable(
+  facts: DataStorePostureFacts | null | undefined,
+  key: string,
+): boolean {
+  return Array.isArray(facts?.unknowableFacts)
+    ? facts!.unknowableFacts.includes(key)
+    : false;
+}
 
 /*
  * A store's exposure from its facts: public beats shared, shared beats
- * reachable. Nothing read at all is Unknown, and so is a store whose
- * reachability could not be read; a kind with no such facts at all (a
- * DynamoDB table, a file system: reached only with credentials) is
- * Private.
+ * reachable. A kind with no such facts at all (a DynamoDB table, a file
+ * system: reached only with credentials) is Private, and so is a store
+ * OneUptime holds itself. Nothing read at all is Not checked yet, or Can't
+ * be checked for a kind nothing reads (getDataStoreExposureCheck); a store
+ * whose reachability could not be read, or cannot be from where it was
+ * read, is Unknown.
  */
 export function getDataStoreExposure(
   facts: DataStorePostureFacts | null | undefined,
+  kind?: string | null | undefined,
 ): DataStoreExposure {
+  const check: DataStoreExposureCheck | null = kind
+    ? getDataStoreExposureCheck(kind)
+    : null;
+
+  if (check === DataStoreExposureCheck.HeldByOneUptime) {
+    return DataStoreExposure.Private;
+  }
+
   if (!facts || !facts.readAt) {
-    return DataStoreExposure.Unknown;
+    return check === DataStoreExposureCheck.None
+      ? DataStoreExposure.CannotBeChecked
+      : DataStoreExposure.NotChecked;
   }
 
   if (
