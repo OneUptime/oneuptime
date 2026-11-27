@@ -238,6 +238,17 @@ OneUptime は、各プールのデータが届くたびに 4 つの 0/1 系列�
 | `xcp_ng.vm.running` | VM が Running の間。Halted、Paused、Suspended の間は 0 |
 | `xcp_ng.vm.stopped_after_running` | 過去 24 時間に実行されていた VM が Halted または Paused の間 |
 
+Xen Orchestra またはプールの XAPI に接続したプローブがあれば、OneUptime はプローブがメトリクス以外に読み取る内容から次の系列も導き出します。エージェントはどれも読み取りません。
+
+| 系列 | 値 |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | プールの HA がオンの間は 1、それ以外は 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | HA がまだホスト 1 台の障害に耐えられる間は 1、それ以外は 0。XAPI 経由では HA 自身のプラン、Xen Orchestra 経由では障害が起きたホスト以外に稼働中かつ有効なホストがあること |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | HA が許容するよう設定されたホスト障害数 (XAPI 経由のみ) |
+| `xcp_ng.pool.ha.plan_exists_for` | 現在のプランが対応できるホスト障害数 (XAPI 経由のみ) |
+| `xcp_ng.vm.backup_overdue` | スケジュール済みのバックアップジョブに含まれる VM に、間隔とその 4 分の 1 (少なくとも 1 時間) の間に成功したバックアップがない間は 1 (Xen Orchestra 経由のみ) |
+| `xcp_ng.host.missing_patches` | ホストに不足しているパッチの数、6 時間ごとに確認 (Xen Orchestra 経由のみ) |
+
 また、各ポイントに `xcp_ng.scope` (`pool`、`host`、`vm`、`sr`、`vdi`、`xostor` のいずれか) と `xcp_ng.id` (そのオブジェクトの UUID) を付けます。モニターとダッシュボードはこれで絞り込みます。[リソースの識別](/docs/monitor/xcp-ng-monitor#リソースの識別) を参照してください。
 
 ### エージェントが保持しないもの
@@ -405,7 +416,8 @@ Xen Orchestra は接続しているプールだけを報告し、エージェン
 
 Xen Orchestra の OpenMetrics プラグインはメトリクスを提供するため、XCP-ng プールで注意すべきことの一部はまだ含まれていません。
 
-- XOSTOR 以外の **アラーム**、**HA の状態**、**プールマスター**、**未適用のパッチ**、**バックアップ**、**スナップショット**、ホストの物理インターフェース (PIF) の **リンク状態**。これらは Xen Orchestra の REST API から取得します ([#10997](https://github.com/OneUptime/oneuptime/issues/10997))。
+- XOSTOR 以外の **アラーム**、**HA の状態**、**プールマスター**、**未適用のパッチ**、**バックアップ**。OneUptime のプローブが Xen Orchestra の REST API またはプールの XAPI から読み取ります ([#10997](https://github.com/OneUptime/oneuptime/issues/10997))。[エージェントなしの XCP-ng](/docs/telemetry/xcp-ng-agentless) を参照してください。
+- 各 VM の **スナップショット** と、ホストの物理インターフェース (PIF) の **リンク状態**。これらはまだどのプローブも読み取りません ([#11328](https://github.com/OneUptime/oneuptime/issues/11328))。
 - Xen Orchestra のない **プール**、またはプラグインに必要な Premium ライセンスのない XOA の背後にあるプール。OneUptime のプローブがこれらを XAPI から直接読み取ります ([#10999](https://github.com/OneUptime/oneuptime/issues/10999))。[エージェントなしの XCP-ng](/docs/telemetry/xcp-ng-agentless) を参照してください。
 - VMware と同じく、OneUptime のプローブが Xen Orchestra のプラグインを自分で読み取る **エージェントなしの接続** ([#10996](https://github.com/OneUptime/oneuptime/issues/10996))。同じページで説明しています。
 

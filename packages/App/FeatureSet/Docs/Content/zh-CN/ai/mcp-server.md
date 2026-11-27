@@ -41,7 +41,7 @@ flowchart TB
 - **计划维护**：创建和管理维护事件。
 - **遥测**：查询日志、指标、追踪、异常、监视器日志、安全事件等，只读。
 
-有针对 59 种记录的创建、获取、列出、更新、删除和计数工具，有针对 9 种遥测的列出和计数工具，还有专为事件响应打造的工具。像事件与警报之间的关联这样、创建后没有任何字段可以更改的记录类型，没有更新工具。只读工具带有 `readOnlyHint`，每个会更改内容的工具都带有 `destructiveHint`，因此客户端可以自行执行只读调用，并在做出任何更改之前询问您。`openWorldHint` 标记那些会触及您的项目之外的工具：公共状态页工具；会显示在状态页上并发送给其订阅者的更改，例如新事件、事件状态的变化或公开备注；通过电子邮件发送给尚不必是项目成员的人的邀请；以及创建或更改监视器、数据存储或 BI 工具的工具，因为之后 OneUptime 会访问您提供的地址。失败的工具调用会作为工具结果（`isError: true`）返回，其中包含 `statusCode`、详细信息和建议，而不是作为 MCP 协议错误返回，因此代理可以读取失败原因并自行纠正。
+有针对 60 种记录的创建、获取、列出、更新、删除和计数工具，有针对 9 种遥测的列出和计数工具，还有专为事件响应打造的工具。像事件与警报之间的关联这样、创建后没有任何字段可以更改的记录类型，没有更新工具。只读工具带有 `readOnlyHint`，每个会更改内容的工具都带有 `destructiveHint`，因此客户端可以自行执行只读调用，并在做出任何更改之前询问您。`openWorldHint` 标记那些会触及您的项目之外的工具：公共状态页工具；会显示在状态页上并发送给其订阅者的更改，例如新事件、事件状态的变化或公开备注；通过电子邮件发送给尚不必是项目成员的人的邀请；以及创建或更改监视器、数据存储或 BI 工具的工具，因为之后 OneUptime 会访问您提供的地址。失败的工具调用会作为工具结果（`isError: true`）返回，其中包含 `statusCode`、详细信息和建议，而不是作为 MCP 协议错误返回，因此代理可以读取失败原因并自行纠正。
 
 ## 开始之前
 
@@ -376,6 +376,10 @@ curl https://oneuptime.com/mcp/tools
 
 对于其中一些操作，询问 AI 会在每种模式下先用卡片询问人，卡片说明会更改什么、什么会停止工作以及成本是什么：对数据存储执行响应、**不敏感**、**接受风险**、**不是问题**、更改数据存储的所有者、保存规则、决定提议、有内容读取的清除，以及在会因严重问题呼叫某人的项目中执行 **确认**。此服务器无法向你显示这张卡片，因此会拒绝这些操作，说明原因，并指出你在 OneUptime 中进行更改的页面。没有卡片就绝不会执行。
 
+创建、更新和删除工具也遵循同样的规定，无论是通过 OAuth 登录的客户端还是 API 密钥，也无论其权限如何：进行其中任一更改的写入都会以相同的措辞被拒绝，并指出同一个页面。`update_data_security_issue` 不会将 `status` 设为 `Accepted` 或 `Not an issue`，`update_data_store_finding` 不会开启 `isSuppressed`，在会因严重问题呼叫某人的项目中也不会开启 `isConfirmed`，`create_residency_rule` 也不会保存任何规则。对于 OneUptime AI 无论其规则如何规定都会先询问人的更改，这些工具同样不会进行：在 `disabledDataTypeIds` 中关闭的数据类型、在 `scanExclusions` 中排除在数据存储扫描之外的位置，或无需任何人批准就遏制威胁或对数据存储执行响应的安全剧本步骤。
+
+其他所有写入都照常进行：重新打开、分配或解决问题，将发现重新标记为敏感，重命名或关闭规则，重新开启数据类型。`oneuptime_describe_resource` 会说明资源的哪些写入会被拒绝，并告诉代理不要重试被拒绝的写入，也不要换一种方式进行。
+
 其他操作以你通过 OAuth 登录的身份执行：项目 API 密钥不能使用它们，只能使用不更改任何内容的那两个。在自托管服务器上，`MCP_READ_ONLY=true` 只保留不更改任何内容的工具，而 `MCP_ALLOW_DESTRUCTIVE=false` 会拒绝移除数据存储的所有者，因为这会删除他们。
 
 ## 查询遥测
@@ -528,7 +532,7 @@ MCP 服务器是无状态的：它既不发放也不跟踪会话 ID，因此每�
 | 安全 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | 数据安全 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | 数据可观测性 | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| 云 | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View, Required Tag |
+| 云 | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost Report, Cloud Cost View, Required Tag |
 
 | 领域 | 只有列出和计数工具的遥测 |
 | --- | --- |

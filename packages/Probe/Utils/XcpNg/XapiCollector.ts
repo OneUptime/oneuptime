@@ -882,6 +882,41 @@ export function selectNewMessages(data: {
   };
 }
 
+// The most open messages one collection checks: the rest, the next time.
+export const XAPI_MAX_OPEN_MESSAGE_CHECKS: number = 50;
+
+/*
+ * Of the messages with an open alert (#10997), those XAPI no longer lists:
+ * someone dismissed them in Xen Orchestra or XenCenter, or XAPI let them
+ * go. Only XAPI's own "no such message" (UUID_INVALID) proves one gone; any
+ * other failure leaves it, and the ones after it, open until next time.
+ */
+export async function findClearedXapiMessages(data: {
+  client: XapiClient;
+  session: string;
+  openMessageIds: Array<string>;
+}): Promise<Array<string>> {
+  const cleared: Array<string> = [];
+  const ids: Array<string> = Array.from(new Set(data.openMessageIds)).slice(
+    0,
+    XAPI_MAX_OPEN_MESSAGE_CHECKS,
+  );
+
+  for (const id of ids) {
+    try {
+      await data.client.call<string>("message.get_by_uuid", [data.session, id]);
+    } catch (error) {
+      if (error instanceof XapiError && error.code === "UUID_INVALID") {
+        cleared.push(id);
+        continue;
+      }
+      break;
+    }
+  }
+
+  return cleared;
+}
+
 async function readMessages(data: {
   client: XapiClient;
   session: string;
@@ -1158,6 +1193,15 @@ export default class XapiCollector {
             report.xapiPoolHosts = describePoolHosts(records);
             report.messages = messages.messages;
             report.messageWatermark = messages.watermark;
+            // Which messages with an open alert XAPI no longer lists.
+            report.xapiClearedMessageIds = await findClearedXapiMessages({
+              client: session.client,
+              session: session.session,
+              openMessageIds:
+                job.events?.pools.find((entry: { poolId: string }): boolean => {
+                  return entry.poolId.toLowerCase() === pool.uuid.toLowerCase();
+                })?.openMessageIds || [],
+            });
             report.poolStates = [
               describePoolState({
                 pool: pool,

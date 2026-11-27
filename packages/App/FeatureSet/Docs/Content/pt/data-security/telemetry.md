@@ -170,7 +170,7 @@ Antes que o OneUptime AI comece, a Segurança de dados lê de novo, dentro do On
 
 - **Um span ou uma chamada de IA**: o arquivo, a linha e a função que seus atributos `code.*` nomeiam, e o nome do span.
 - **Uma exceção**: seus próprios frames do topo, os do código do serviço.
-- **Uma linha de log**: o arquivo, a linha e a função que seus atributos nomeiam, quando os tem, seu logger, e a linha como modelo, com cada valor substituído pelo nome do seu tipo, como `User <Email address> signed up`, e cada palavra que seus registros não provam que o código escreveu, como o nome de uma pessoa, por `<value>`: `Payment declined for Maria Gonzalez`, lida de um só registro, passa a ser `Payment declined for <value>`. O nome de um span e o nome de uma métrica são lidos da mesma forma.
+- **Uma linha de log**: o arquivo, a linha e a função que seus atributos nomeiam, quando os tem, seu logger, e a linha como modelo, com cada valor substituído pelo nome do seu tipo, como `User <Email address> signed up`, e cada palavra que não seja uma das que o código usa para escrever linhas de log, como o nome de uma pessoa ou um nome de usuário, por `<value>`, não importa quantos dos seus registros compartilhem a palavra: `Payment declined for Maria Gonzalez` passa a ser `Payment declined for <value>`, e `Ticket assigned to jdoe`, lida de todos os registros da linha, passa a ser `Ticket assigned to <value>`. O nome de um span e o nome de uma métrica são lidos da mesma forma.
 - **Uma métrica**: o nome da métrica.
 - **Qualquer vazamento**: sua chave de atributo, como `user.email`, que o código costuma escrever como está.
 

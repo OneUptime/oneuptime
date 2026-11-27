@@ -1,0 +1,415 @@
+[
+  {
+    "data": { "mode": "delta", "reportWhen": "failure" },
+    "id": "1794182400000",
+    "jobId": "59af07fc-e82c-43b5-8137-026832f30166",
+    "jobName": "Nightly delta",
+    "message": "backup",
+    "scheduleId": "1c7cfc78-a006-4942-aab6-b4c825ce9a4e",
+    "start": 1794182400000,
+    "status": "success",
+    "infos": [
+      {
+        "data": {
+          "vms": [
+            "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",
+            "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f"
+          ]
+        },
+        "message": "vms"
+      }
+    ],
+    "tasks": [
+      {
+        "data": {
+          "type": "VM",
+          "id": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",
+          "name_label": "web-01"
+        },
+        "id": "1794182401000",
+        "message": "backup VM",
+        "start": 1794182401000,
+        "status": "success",
+        "end": 1794182700000
+      }
+    ],
+    "end": 1794182900000
+  },
+  {
+    "data": { "mode": "delta", "reportWhen": "failure" },
+    "id": "1794909600000",
+    "jobId": "59af07fc-e82c-43b5-8137-026832f30166",
+    "jobName": "Nightly delta",
+    "message": "backup",
+    "scheduleId": "1c7cfc78-a006-4942-aab6-b4c825ce9a4e",
+    "start": 1794909600000,
+    "status": "success",
+    "infos": [
+      {
+        "data": {
+          "vms": [
+            "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",
+            "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+            "7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e",
+            "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+          ]
+        },
+        "message": "vms"
+      }
+    ],
+    "tasks": [
+      {
+        "data": {
+          "type": "VM",
+          "id": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",
+          "name_label": "web-01"
+        },
+        "id": "1794909601000",
+        "message": "backup VM",
+        "start": 1794909601000,
+        "status": "success",
+        "tasks": [
+          {
+            "id": "1794909601500",
+            "message": "snapshot",
+            "start": 1794909601500,
+            "status": "success",
+            "end": 1794909604000,
+            "result": "0e1f2a3b-4c5d-4e6f-8a7b-8c9d0e1f2a3b"
+          },
+          {
+            "data": {
+              "id": "1af95910-01b4-4e87-9c2f-d895cafe0776",
+              "isFull": false,
+              "type": "remote"
+            },
+            "id": "1794909604100",
+            "message": "export",
+            "start": 1794909604100,
+            "status": "success",
+            "tasks": [
+              {
+                "id": "1794909604200",
+                "message": "transfer",
+                "start": 1794909604200,
+                "status": "success",
+                "end": 1794909780000,
+                "result": { "size": 2147483648 }
+              },
+              {
+                "id": "1794909780100",
+                "message": "merge",
+                "start": 1794909780100,
+                "status": "success",
+                "end": 1794909790000,
+                "result": { "size": 1073741824 }
+              }
+            ],
+            "end": 1794909790100
+          }
+        ],
+        "end": 1794909790200
+      },
+      {
+        "data": {
+          "type": "VM",
+          "id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+          "name_label": "db-01"
+        },
+        "id": "1794909790300",
+        "message": "backup VM",
+        "start": 1794909790300,
+        "status": "success",
+        "tasks": [
+          {
+            "data": {
+              "id": "1af95910-01b4-4e87-9c2f-d895cafe0776",
+              "isFull": false,
+              "type": "remote"
+            },
+            "id": "1794909791000",
+            "message": "export",
+            "start": 1794909791000,
+            "status": "success",
+            "tasks": [
+              {
+                "id": "1794909791100",
+                "message": "transfer",
+                "start": 1794909791100,
+                "status": "success",
+                "end": 1794910000000,
+                "result": { "size": 4294967296 }
+              }
+            ],
+            "end": 1794910000100
+          }
+        ],
+        "end": 1794910000200
+      },
+      {
+        "data": {
+          "type": "VM",
+          "id": "7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e",
+          "name_label": "app-02"
+        },
+        "id": "1794910000300",
+        "message": "backup VM",
+        "start": 1794910000300,
+        "status": "success",
+        "end": 1794910100000
+      },
+      {
+        "data": {
+          "type": "VM",
+          "id": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",
+          "name_label": "lab-vm-01"
+        },
+        "id": "1794910100100",
+        "message": "backup VM",
+        "start": 1794910100100,
+        "status": "success",
+        "tasks": [
+          {
+            "data": {
+              "id": "1af95910-01b4-4e87-9c2f-d895cafe0776",
+              "isFull": true,
+              "type": "remote"
+            },
+            "id": "1794910100200",
+            "message": "export",
+            "start": 1794910100200,
+            "status": "success",
+            "tasks": [
+              {
+                "id": "1794910100300",
+                "message": "transfer",
+                "start": 1794910100300,
+                "status": "success",
+                "end": 1794910400000,
+                "result": { "size": 1073741824 }
+              }
+            ],
+            "end": 1794910400100
+          }
+        ],
+        "end": 1794910400200
+      }
+    ],
+    "end": 1794910400300
+  },
+  {
+    "data": { "mode": "delta", "reportWhen": "failure" },
+    "id": "1794996000000",
+    "jobId": "59af07fc-e82c-43b5-8137-026832f30166",
+    "jobName": "Nightly delta",
+    "message": "backup",
+    "scheduleId": "1c7cfc78-a006-4942-aab6-b4c825ce9a4e",
+    "start": 1794996000000,
+    "status": "failure",
+    "infos": [
+      {
+        "data": {
+          "vms": [
+            "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",
+            "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+            "7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e",
+            "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b"
+          ]
+        },
+        "message": "vms"
+      }
+    ],
+    "tasks": [
+      {
+        "data": {
+          "type": "VM",
+          "id": "e8a5b2c1-3d4e-4f5a-8b6c-7d8e9f0a1b2c",
+          "name_label": "web-01"
+        },
+        "id": "1794996001000",
+        "message": "backup VM",
+        "start": 1794996001000,
+        "status": "failure",
+        "tasks": [
+          {
+            "id": "1794996001500",
+            "message": "snapshot",
+            "start": 1794996001500,
+            "status": "success",
+            "end": 1794996004000,
+            "result": "1f2a3b4c-5d6e-4f7a-8b8c-9d0e1f2a3b4c"
+          },
+          {
+            "data": {
+              "id": "1af95910-01b4-4e87-9c2f-d895cafe0776",
+              "isFull": false,
+              "type": "remote"
+            },
+            "id": "1794996004100",
+            "message": "export",
+            "start": 1794996004100,
+            "status": "failure",
+            "tasks": [
+              {
+                "id": "1794996004200",
+                "message": "transfer",
+                "start": 1794996004200,
+                "status": "failure",
+                "end": 1794996150000,
+                "result": {
+                  "code": "ENOSPC",
+                  "errno": -28,
+                  "message": "ENOSPC: no space left on device, write",
+                  "name": "Error",
+                  "stack": "Error: ENOSPC: no space left on device, write\n    at RemoteNfs._outputStream (/opt/xo/@xen-orchestra/fs/dist/abstract.js:301:11)"
+                }
+              }
+            ],
+            "end": 1794996150100,
+            "result": {
+              "code": "ENOSPC",
+              "errno": -28,
+              "message": "ENOSPC: no space left on device, write",
+              "name": "Error",
+              "stack": "Error: ENOSPC: no space left on device, write\n    at RemoteNfs._outputStream (/opt/xo/@xen-orchestra/fs/dist/abstract.js:301:11)"
+            }
+          }
+        ],
+        "end": 1794996150200
+      },
+      {
+        "data": {
+          "type": "VM",
+          "id": "3c4d5e6f-7a8b-4c9d-8e0f-1a2b3c4d5e6f",
+          "name_label": "db-01"
+        },
+        "id": "1794996150300",
+        "message": "backup VM",
+        "start": 1794996150300,
+        "status": "skipped",
+        "result": {
+          "message": "unhealthy VDI chain",
+          "name": "Error",
+          "stack": "Error: unhealthy VDI chain\n    at VmBackup._checkBaseVdis (/opt/xo/@xen-orchestra/backups/_runners/_vmRunners/_AbstractXapi.mjs:152:13)"
+        },
+        "end": 1794996151000
+      },
+      {
+        "data": {
+          "type": "VM",
+          "id": "7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e",
+          "name_label": "app-02"
+        },
+        "id": "1794996151100",
+        "message": "backup VM",
+        "start": 1794996151100,
+        "status": "failure",
+        "result": {
+          "code": "VDI_IO_ERROR",
+          "params": ["Device I/O errors"],
+          "message": "VDI_IO_ERROR(Device I/O errors)",
+          "name": "XapiError",
+          "stack": "XapiError: VDI_IO_ERROR(Device I/O errors)\n    at Function.wrap (/opt/xo/packages/xen-api/_XapiError.mjs:16:12)"
+        },
+        "end": 1794996160000
+      },
+      {
+        "data": {
+          "type": "VM",
+          "id": "5e6f7a8b-9c0d-4e1f-8a2b-3c4d5e6f7a8b",
+          "name_label": "lab-vm-01"
+        },
+        "id": "1794996160100",
+        "message": "backup VM",
+        "start": 1794996160100,
+        "status": "success",
+        "tasks": [
+          {
+            "data": {
+              "id": "1af95910-01b4-4e87-9c2f-d895cafe0776",
+              "isFull": false,
+              "type": "remote"
+            },
+            "id": "1794996160200",
+            "message": "export",
+            "start": 1794996160200,
+            "status": "success",
+            "tasks": [
+              {
+                "id": "1794996160300",
+                "message": "transfer",
+                "start": 1794996160300,
+                "status": "success",
+                "end": 1794996300000,
+                "result": { "size": 536870912 }
+              }
+            ],
+            "end": 1794996300100
+          }
+        ],
+        "end": 1794996300200
+      }
+    ],
+    "end": 1794996300300
+  },
+  {
+    "data": { "mode": "full", "reportWhen": "always" },
+    "id": "1794999600000",
+    "jobId": "d33f3dc1-92b4-469c-ad58-4c2a106a4721",
+    "jobName": "Weekly full",
+    "message": "backup",
+    "scheduleId": "cf7249f8-d20b-494f-97f4-b1f32f94e780",
+    "start": 1794999600000,
+    "status": "interrupted",
+    "infos": [
+      {
+        "data": { "vms": ["9d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a"] },
+        "message": "vms"
+      }
+    ],
+    "tasks": [
+      {
+        "data": {
+          "type": "VM",
+          "id": "9d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a",
+          "name_label": "win-03"
+        },
+        "id": "1794999601000",
+        "message": "backup VM",
+        "start": 1794999601000,
+        "status": "interrupted"
+      }
+    ],
+    "end": 1794999900000
+  },
+  {
+    "data": { "reportWhen": "failure" },
+    "id": "1794997800000",
+    "jobId": "b50f95fd-f6b7-4027-87b6-6a02c7dcd5f5",
+    "jobName": "Pool metadata",
+    "message": "backup",
+    "scheduleId": "d1f79c6b-90f7-49f4-9adb-bcb85f236dea",
+    "start": 1794997800000,
+    "status": "failure",
+    "tasks": [
+      {
+        "data": {
+          "id": "4d4c8be8-5815-42af-82ad-b413d45b2d38",
+          "type": "remote"
+        },
+        "id": "1794997800100",
+        "message": "get remote adapter",
+        "start": 1794997800100,
+        "status": "failure",
+        "end": 1794997805000,
+        "result": {
+          "code": "ECONNREFUSED",
+          "message": "connect ECONNREFUSED 10.0.0.9:2049",
+          "name": "Error",
+          "stack": "Error: connect ECONNREFUSED 10.0.0.9:2049"
+        }
+      }
+    ],
+    "end": 1794997805100
+  }
+]

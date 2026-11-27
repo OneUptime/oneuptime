@@ -170,7 +170,7 @@ Før OneUptime AI starter, leser Datasikkerhet postene hver lekkasje ble sett i 
 
 - **Et span eller et AI-kall**: filen, linjen og funksjonen som attributtene `code.*` nevner, og navnet på spannet.
 - **Et unntak**: dets egne øverste rammer, de i tjenestens kode.
-- **En logglinje**: filen, linjen og funksjonen som attributtene nevner, når den har dem, loggeren, og linjen som mal, der hver verdi er erstattet av navnet på typen, for eksempel `User <Email address> signed up`, og hvert ord postene ikke beviser at koden skrev, for eksempel en persons navn, av `<value>`: `Payment declined for Maria Gonzalez`, lest fra én post, blir `Payment declined for <value>`. Navnet på et span og navnet på en måling leses på samme måte.
+- **En logglinje**: filen, linjen og funksjonen som attributtene nevner, når den har dem, loggeren, og linjen som mal, der hver verdi er erstattet av navnet på typen, for eksempel `User <Email address> signed up`, og hvert ord som ikke er et av ordene kode skriver logglinjer med, for eksempel en persons navn eller et brukernavn, av `<value>`, uansett hvor mange av postene som deler ordet: `Payment declined for Maria Gonzalez` blir `Payment declined for <value>`, og `Ticket assigned to jdoe`, lest fra alle postene til linjen, blir `Ticket assigned to <value>`. Navnet på et span og navnet på en måling leses på samme måte.
 - **En måling**: navnet på målingen.
 - **Enhver lekkasje**: attributtnøkkelen, for eksempel `user.email`, som koden vanligvis skriver som den er.
 

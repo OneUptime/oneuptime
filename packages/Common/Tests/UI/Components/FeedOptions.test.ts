@@ -48,6 +48,7 @@ import { ServiceFeedEventType } from "../../../Models/DatabaseModels/ServiceFeed
 import { ServiceLevelObjectiveFeedEventType } from "../../../Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import { StorageArrayFeedEventType } from "../../../Models/DatabaseModels/StorageArrayFeed";
 import { VMwareVCenterFeedEventType } from "../../../Models/DatabaseModels/VMwareVCenterFeed";
+import { XcpNgPoolFeedEventType } from "../../../Models/DatabaseModels/XcpNgPoolFeed";
 import Includes from "../../../Types/BaseDatabase/Includes";
 import Query from "../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
@@ -202,6 +203,11 @@ const FEEDS: Array<FeedEventTypeSpec> = [
     name: "VMwareVCenterFeed",
     enumName: "VMwareVCenterFeedEventType",
     eventTypes: Object.values(VMwareVCenterFeedEventType),
+  },
+  {
+    name: "XcpNgPoolFeed",
+    enumName: "XcpNgPoolFeedEventType",
+    eventTypes: Object.values(XcpNgPoolFeedEventType),
   },
 ];
 
@@ -448,6 +454,19 @@ describe("getFeedEventTypeLabel", () => {
     [
       VMwareVCenterFeedEventType.VMwareVCenterRestored,
       "VMware vCenter Restored",
+    ],
+    // "XCP-ng" keeps its product spelling, never "Xcp Ng".
+    [XcpNgPoolFeedEventType.XcpNgPoolCreated, "XCP-ng Pool Created"],
+    [XcpNgPoolFeedEventType.XcpNgPoolBackupFailed, "XCP-ng Pool Backup Failed"],
+    [
+      XcpNgPoolFeedEventType.XcpNgPoolMasterChanged,
+      "XCP-ng Pool Master Changed",
+    ],
+    // What XAPI said, and HA by its name.
+    [XcpNgPoolFeedEventType.XcpNgPoolMessage, "XCP-ng Pool Message"],
+    [
+      XcpNgPoolFeedEventType.XcpNgPoolHaChanged,
+      "XCP-ng Pool High Availability Changed",
     ],
     // "OpenStack" keeps its product spelling, never "Open Stack".
     [

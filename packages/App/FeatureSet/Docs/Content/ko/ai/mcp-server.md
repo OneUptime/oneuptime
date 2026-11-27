@@ -41,7 +41,7 @@ flowchart TB
 - **예정된 유지 관리**: 유지 관리 이벤트를 만들고 관리합니다.
 - **텔레메트리**: 로그, 메트릭, 트레이스, 예외, 모니터 로그, 보안 이벤트 등을 조회합니다(읽기 전용).
 
-59가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 인시던트와 경고의 연결처럼 만들어진 뒤에는 바꿀 수 있는 필드가 없는 종류의 레코드에는 업데이트 도구가 없습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. `openWorldHint` 는 프로젝트 밖까지 닿는 도구에 붙습니다. 공개 상태 페이지 도구, 상태 페이지에 표시되고 그 구독자에게 전송되는 변경(예를 들어 새 인시던트, 그 상태의 변경, 공개 메모), 아직 프로젝트에 없어도 되는 사람에게 이메일로 보내지는 초대, 그리고 모니터, 데이터 저장소, BI 도구를 만들거나 바꾸는 도구입니다. 만들거나 바꾸고 나면 OneUptime 이 지정한 주소에 접속합니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
+60가지 레코드에 대한 생성, 조회, 목록, 업데이트, 삭제, 개수 도구와 9가지 텔레메트리에 대한 목록과 개수 도구, 그리고 인시던트 대응을 위한 도구가 있습니다. 인시던트와 경고의 연결처럼 만들어진 뒤에는 바꿀 수 있는 필드가 없는 종류의 레코드에는 업데이트 도구가 없습니다. 읽기 전용 도구에는 `readOnlyHint` 가, 무언가를 바꾸는 모든 도구에는 `destructiveHint` 가 붙어 있어 클라이언트는 읽기 전용 호출은 스스로 실행하고 무언가를 바꾸기 전에는 사용자에게 물어볼 수 있습니다. `openWorldHint` 는 프로젝트 밖까지 닿는 도구에 붙습니다. 공개 상태 페이지 도구, 상태 페이지에 표시되고 그 구독자에게 전송되는 변경(예를 들어 새 인시던트, 그 상태의 변경, 공개 메모), 아직 프로젝트에 없어도 되는 사람에게 이메일로 보내지는 초대, 그리고 모니터, 데이터 저장소, BI 도구를 만들거나 바꾸는 도구입니다. 만들거나 바꾸고 나면 OneUptime 이 지정한 주소에 접속합니다. 실패한 도구 호출은 MCP 프로토콜 오류가 아니라 `statusCode`, 세부 정보, 제안이 담긴 도구 결과(`isError: true`)로 돌아오므로, 에이전트는 실패 내용을 읽고 스스로 바로잡을 수 있습니다.
 
 ## 시작하기 전에
 
@@ -376,6 +376,10 @@ curl https://oneuptime.com/mcp/tools
 
 AI에게 질문 은 이 중 일부에 대해 모든 모드에서, 무엇이 바뀌고 무엇이 작동을 멈추고 비용이 무엇인지 알려 주는 카드로 사람에게 먼저 묻습니다: 저장소에 대한 대응, **민감하지 않음**, **위험 수락**, **문제 아님**, 저장소의 소유자 변경, 규칙 저장, 제안 결정, 무언가 읽고 있는 정리, 그리고 심각한 이슈로 누군가를 호출하는 프로젝트의 **확인** 입니다. 이 서버는 그 카드를 보여 줄 수 없으므로 이를 거부하고, 이유와 변경을 하는 OneUptime 페이지를 알려 줍니다. 카드 없이 실행되는 일은 없습니다.
 
+생성, 업데이트, 삭제 도구에도 같은 기준이 적용되며, OAuth로 로그인한 클라이언트든 API 키든 권한과 관계없이 마찬가지입니다: 이러한 변경 중 하나를 하는 쓰기는 같은 문구로 거부되며, 응답은 같은 페이지를 알려 줍니다. `update_data_security_issue` 는 `status` 를 `Accepted` 나 `Not an issue` 로 설정하지 않고, `update_data_store_finding` 은 `isSuppressed` 를 켜지 않으며, 심각한 이슈로 누군가를 호출하는 프로젝트에서는 `isConfirmed` 도 켜지 않고, `create_residency_rule` 은 규칙을 저장하지 않습니다. 또한 OneUptime AI가 그 규칙이 무엇이든 사람에게 먼저 묻는 변경도 하지 않습니다: `disabledDataTypeIds` 로 끈 데이터 유형, `scanExclusions` 로 저장소의 스캔에서 제외한 위치, 또는 누구의 승인도 없이 위협을 봉쇄하거나 저장소에 대응하는 보안 플레이북 단계입니다.
+
+그 밖의 쓰기는 이전과 같이 이루어집니다: 이슈를 다시 열거나 할당하거나 해결하는 것, 발견 사항을 다시 민감한 것으로 표시하는 것, 규칙의 이름을 바꾸거나 끄는 것, 데이터 유형을 다시 켜는 것입니다. `oneuptime_describe_resource` 는 리소스의 어떤 쓰기가 거부되는지 알려 주며, 에이전트에게는 거부된 쓰기를 다시 시도하지 말고 다른 방법으로도 하지 말라고 알립니다.
+
 나머지는 OAuth로 로그인한 본인으로서 실행됩니다: 프로젝트 API 키는 이를 사용할 수 없으며, 아무것도 바꾸지 않는 두 가지만 사용합니다. 자체 호스팅 서버에서는 `MCP_READ_ONLY=true` 로 아무것도 바꾸지 않는 도구만 남고, `MCP_ALLOW_DESTRUCTIVE=false` 는 저장소의 소유자 제거를 거부합니다. 제거하면 소유자가 삭제되기 때문입니다.
 
 ## 텔레메트리 조회하기
@@ -528,7 +532,7 @@ MCP 서버는 상태를 저장하지 않습니다. 세션 ID를 발급하지도 
 | 보안 | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | 데이터 보안 | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | 데이터 옵저버빌리티 | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| 클라우드 | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View, Required Tag |
+| 클라우드 | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost Report, Cloud Cost View, Required Tag |
 
 | 분야 | 목록과 개수 도구만 있는 텔레메트리 |
 | --- | --- |

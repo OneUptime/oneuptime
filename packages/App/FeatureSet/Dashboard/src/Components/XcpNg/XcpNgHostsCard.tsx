@@ -33,6 +33,7 @@ import {
   isXcpNgReadingFresh,
   toXcpNgNumber,
 } from "../../Pages/XcpNg/Utils/XcpNgResourceUtils";
+import { getXcpNgMissingPatchCount } from "../../Pages/XcpNg/Utils/XcpNgEventFacts";
 
 /*
  * THE POOL'S HOSTS AT A GLANCE, on its Overview - what Xen Orchestra's own
@@ -54,6 +55,8 @@ export interface ComponentProps {
   getHostRoute: (externalId: string) => Route;
   hostsRoute: Route;
   now: Date;
+  // The pool master's XAPI UUID, as a probe last read it (#10997).
+  masterHostExternalId?: string | undefined;
 }
 
 /*
@@ -222,6 +225,24 @@ const XcpNgHostsCard: FunctionComponent<ComponentProps> = (
                 ),
               );
             }
+            // Updates Xen Orchestra says it has not installed (#10997).
+            const missingPatches: number | null =
+              getXcpNgMissingPatchCount(host);
+            if (missingPatches !== null && missingPatches > 0) {
+              facts.push(
+                translator.translatePlural(
+                  {
+                    one: "{{count}} patch missing",
+                    other: "{{count}} patches missing",
+                  },
+                  missingPatches,
+                ),
+              );
+            }
+            const isMaster: boolean =
+              Boolean(props.masterHostExternalId) &&
+              externalId.toLowerCase() ===
+                (props.masterHostExternalId || "").toLowerCase();
 
             return (
               <li
@@ -275,6 +296,16 @@ const XcpNgHostsCard: FunctionComponent<ComponentProps> = (
                             text="Disabled"
                             tone={PillTone.Paused}
                             dataTestId="xcp-ng-hosts-card-disabled"
+                          />
+                        ) : (
+                          <></>
+                        )}
+                        {/* The host that runs the pool's XAPI. */}
+                        {isMaster ? (
+                          <Pill
+                            text="Pool master"
+                            tone={PillTone.Info}
+                            dataTestId="xcp-ng-hosts-card-master"
                           />
                         ) : (
                           <></>

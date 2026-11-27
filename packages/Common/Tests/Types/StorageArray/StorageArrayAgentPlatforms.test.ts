@@ -47,6 +47,8 @@ interface TableLine {
   userVariable: string;
   otherFiles: Array<string>;
   optionalVariables: Array<string>;
+  // A setup step of the platform's own (a function of install.sh), or "".
+  setup: string;
 }
 
 interface ComposeFile {
@@ -76,7 +78,8 @@ function installTable(): Array<TableLine> {
     })
     .map((line: string): TableLine => {
       const fields: Array<string> = line.split("|");
-      expect({ line, fields: fields.length }).toEqual({ line, fields: 12 });
+      // Twelve fields, and a thirteenth: a platform's own setup step, or -.
+      expect({ line, fields: fields.length }).toEqual({ line, fields: 13 });
       const list: (field: string) => Array<string> = (
         field: string,
       ): Array<string> => {
@@ -95,6 +98,7 @@ function installTable(): Array<TableLine> {
         userVariable: fields[9] === "-" ? "" : fields[9]!,
         otherFiles: list(fields[10]!),
         optionalVariables: list(fields[11]!),
+        setup: fields[12] && fields[12] !== "-" ? fields[12] : "",
       };
     });
 }
@@ -159,8 +163,9 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
          * (NetApp Harvest).
          */
         tlsToArray:
-          entry.config.exporterService === null ||
-          entry.config.exporterChecksCertificate
+          (entry.config.talksTlsToArray ??
+            entry.config.exporterService === null ||
+              entry.config.exporterChecksCertificate)
             ? "yes"
             : "no",
         // An exporter that logs in itself: its user, and the files it runs with.
@@ -169,6 +174,10 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
       });
       expect(line!.menu).not.toBe("");
       expect(line!.readHow).not.toBe("");
+      // A setup step the line names is a function of the script.
+      if (line!.setup) {
+        expect(readAgentFile("install.sh")).toContain(`\n${line!.setup}() {\n`);
+      }
     },
   );
 

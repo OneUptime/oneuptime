@@ -117,8 +117,17 @@ import ModelType from "../Types/ModelType";
  * 320,500 the same day: Cloud Cost Report's six tools (#11009) took the
  * answer to 319,980 with no word here, so an agent schedules a cost report
  * as people do. They are generated too, with nothing on them to cut.
+ * 320,250 later that day: the descriptions of our own models' columns that
+ * a create tool still carried were cut where they said what the schema
+ * already says, by 213 bytes - a budget's amount named the periods its
+ * period's enum lists (#11008), a cost group's view (#11006) and a
+ * compliance setting's resource said they were IDs, which their format
+ * says, and a compliance setting's kind of resource and framework listed
+ * the values their enums list (the framework's list had missed NSA/CISA
+ * Hardening, which the enum has). That took the answer to 319,767; the
+ * budget is that and a small margin.
  */
-const MAX_TOOLS_LIST_BYTES: number = 320_500;
+const MAX_TOOLS_LIST_BYTES: number = 320_250;
 
 // The most any one tool may take of it.
 const MAX_TOOL_BYTES: number = 5_000;

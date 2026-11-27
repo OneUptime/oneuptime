@@ -41,7 +41,7 @@ flowchart TB
 - **定期メンテナンス**: メンテナンスイベントを作成・管理します。
 - **テレメトリ**: ログ、メトリクス、トレース、例外、モニターログ、セキュリティイベントなどを照会します(読み取り専用)。
 
-59 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。インシデントとアラートの関連付けのように、作成後に変更できるフィールドがない種類のレコードには、更新ツールはありません。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。`openWorldHint` は、プロジェクトの外に届くツールに付きます。公開ステータスページのツール、ステータスページに表示されてその購読者に送られる変更（たとえば新しいインシデント、その状態の変更、公開メモ）、まだプロジェクトにいなくてもよい人にメールで送られる招待、そしてモニター、データストア、BI ツールを作成または変更するツールです。作成や変更のあと、OneUptime は指定されたアドレスにアクセスします。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
+60 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。インシデントとアラートの関連付けのように、作成後に変更できるフィールドがない種類のレコードには、更新ツールはありません。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。`openWorldHint` は、プロジェクトの外に届くツールに付きます。公開ステータスページのツール、ステータスページに表示されてその購読者に送られる変更（たとえば新しいインシデント、その状態の変更、公開メモ）、まだプロジェクトにいなくてもよい人にメールで送られる招待、そしてモニター、データストア、BI ツールを作成または変更するツールです。作成や変更のあと、OneUptime は指定されたアドレスにアクセスします。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
 
 ## 始める前に
 
@@ -376,6 +376,10 @@ curl https://oneuptime.com/mcp/tools
 
 AI に質問 は、このうちいくつかの前に、何が変わるか、何が動作しなくなるか、何にコストがかかるかを示すカードで、すべてのモードで人に確認します。データストアへの対応、**機密ではない**、**リスクを受容**、**問題ではない**、データストアの所有者の変更、ルールの保存、提案の判断、何かが読んでいるスクラブ、そして重大な問題で誰かを呼び出すプロジェクトでの **確認** です。このサーバーはそのカードを表示できないため、これらを拒否し、理由と変更を行う OneUptime のページを示します。カードなしで実行されることはありません。
 
+作成・更新・削除のツールにも、OAuth でサインインしたクライアントか API キーかを問わず、権限にかかわらず同じことが当てはまります。これらの変更のいずれかを行う書き込みは、同じ文言で拒否され、同じページが示されます。`update_data_security_issue` は `status` を `Accepted` や `Not an issue` に設定せず、`update_data_store_finding` は `isSuppressed` をオンにせず、重大な問題で誰かを呼び出すプロジェクトでは `isConfirmed` もオンにしません。`create_residency_rule` はルールを保存しません。また、OneUptime AI がそのルールにかかわらず先に人に確認する変更も行いません。対象は、`disabledDataTypeIds` でオフにしたデータタイプ、`scanExclusions` でデータストアのスキャンから除外した場所、そして誰の承認もなく脅威を封じ込める、またはデータストアに対応するセキュリティプレイブックのステップです。
+
+それ以外の書き込みはこれまでどおり行われます。たとえば、問題の再オープン・割り当て・解決、検出事項を再び機密とすること、ルールの名前の変更やオフへの切り替え、データタイプを再びオンにすることです。`oneuptime_describe_resource` はリソースのどの書き込みが拒否されるかを示し、エージェントには、拒否された書き込みを再試行せず、別の方法でも行わないよう伝えられます。
+
 それ以外は OAuth でサインインしたあなたとして動作します。プロジェクトの API キーはこれらを使えず、何も変更しない 2 つだけを使います。セルフホストのサーバーでは、`MCP_READ_ONLY=true` で何も変更しないツールだけが残り、`MCP_ALLOW_DESTRUCTIVE=false` ではデータストアの所有者の削除が拒否されます。削除すると所有者が消えるためです。
 
 ## テレメトリを照会する
@@ -528,7 +532,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | セキュリティ | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | データセキュリティ | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | データオブザーバビリティ | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| クラウド | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View, Required Tag |
+| クラウド | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost Report, Cloud Cost View, Required Tag |
 
 | 分野 | 一覧と件数のツールだけがあるテレメトリ |
 | --- | --- |

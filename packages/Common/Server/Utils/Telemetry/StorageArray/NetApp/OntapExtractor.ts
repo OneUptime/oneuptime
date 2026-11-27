@@ -960,7 +960,8 @@ function readSensor(series: StorageArraySeries): void {
       } else if (metricName === "netapp_environment_sensor_threshold_value") {
         const unit: string | null = series.label("unit");
         const value: string = String(Math.round(series.value * 100) / 100);
-        row.details["reading"] = unit ? `${value} ${unit}` : value;
+        // A no-break space: the page never ends a line with "1200" and starts the next with "RPM".
+        row.details["reading"] = unit ? `${value}\u00A0${unit}` : value;
       }
     },
   );

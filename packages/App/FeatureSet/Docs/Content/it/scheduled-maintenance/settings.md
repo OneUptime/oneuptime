@@ -23,7 +23,7 @@ Aprite **Manutenzione programmata** dal menu **Prodotti** nella barra superiore.
 
 La sezione **Impostazioni** contiene **Stato della manutenzione**, trattato in [Stati della manutenzione](/docs/scheduled-maintenance/states), **Modelli di manutenzione**, trattato in [Modelli ed eventi ricorrenti](/docs/scheduled-maintenance/templates), poi **Modelli di note**, **Approvazione delle note pubbliche**, **Campi personalizzati**, **Misurazioni**, **Impostazioni del calendario** e **Numerazione**. **Impostazioni del calendario** è trattato in [Calendario della manutenzione](/docs/scheduled-maintenance/calendar#calendari-esterni), il resto più sotto.
 
-La sezione **Area di lavoro** contiene le regole Slack e Microsoft Teams che pubblicano gli eventi nei canali. Vedere [Slack](/docs/workspace-connections/slack#regole-di-notifica) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regole-di-notifica).
+La sezione **Area di lavoro** contiene le regole Slack e Microsoft Teams che pubblicano gli eventi nei canali: ogni evento quando viene creato, poi i suoi cambiamenti di stato, le note, i proprietari aggiunti e rimossi e i promemoria, secondo ciò che ogni regola sceglie nel suo passaggio **Aggiornamenti**. Vedere [Slack](/docs/workspace-connections/slack#regole-di-notifica) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams#regole-di-notifica).
 
 ## Le regole che un nuovo evento attraversa
 

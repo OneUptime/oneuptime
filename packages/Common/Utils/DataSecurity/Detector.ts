@@ -130,12 +130,46 @@ export interface DataTypeDetector {
   readsDigitsOfEveryScript?: boolean | undefined;
 
   /*
+   * Whether the text is also read as a URL's query string reads it
+   * (PlusAsSpaceText.ts): each "+" a space, as a form or URLSearchParams
+   * writes a value's spaces - card=4111+1111+1111+1111, iban=DE44+5001+...,
+   * postcode=SW1A+1AA, and date+of+birth before a date (#11199) - its
+   * escapes read, and an escaped "+" between two characters of a value a
+   * space too, as a URL inside a query string writes one (%2B). A number's
+   * own sign is a "+": %2B44+20+7946+0958 and +44+20+7946+0958 read
+   * +44 20 7946 0958. For a detector of a value written in groups, or
+   * found by the words before it; it reads percent-encoded text too, so a
+   * value written with %20 between its groups is read as well. A
+   * candidate found so is placed on the characters it is written with,
+   * "+"s and escapes and all.
+   */
+  readsPlusAsSpace?: boolean | undefined;
+
+  /*
    * What a database search narrows by for this detector, as an RE2
    * expression that matches at least every text its pattern matches - for
    * a pattern DetectorPrefilter cannot write itself, one with the u flag.
    * More is fine, never less.
    */
   prefilter?: string | undefined;
+}
+
+/*
+ * A detector that reads its value however people and URLs write it: in
+ * every script's digits (#10960, #11033, #11200), with its percent-escapes
+ * read, and as a URL's query string reads it, a "+" for a space (#11199) -
+ * card=4539%201488%200343%206467, iban=DE44+5001+0517+5407+3249+31,
+ * dob=12%2F03%2F1985, bank+account=12345678. For a detector of a number,
+ * of a code a bank or a card has, or of a value written in groups: the
+ * same value whatever the writing, proven by the same checks.
+ */
+export function withEveryReading(detector: DataTypeDetector): DataTypeDetector {
+  return {
+    ...detector,
+    readsDigitsOfEveryScript: true,
+    readsPercentEncoded: true,
+    readsPlusAsSpace: true,
+  };
 }
 
 // How far around a candidate its context words are looked for.

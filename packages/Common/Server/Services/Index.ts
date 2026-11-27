@@ -119,6 +119,8 @@ import DockerSwarmResourceService from "./DockerSwarmResourceService";
 import CephResourceService from "./CephResourceService";
 import StorageArrayService from "./StorageArrayService";
 import StorageArrayResourceService from "./StorageArrayResourceService";
+import StorageArrayConnectionService from "./StorageArrayConnectionService";
+import StorageArrayConnectionTestService from "./StorageArrayConnectionTestService";
 import ProxmoxClusterLabelRuleService from "./ProxmoxClusterLabelRuleService";
 import OpenStackCloudLabelRuleService from "./OpenStackCloudLabelRuleService";
 import DockerSwarmClusterLabelRuleService from "./DockerSwarmClusterLabelRuleService";
@@ -820,6 +822,8 @@ const services: Array<BaseService> = [
   CephResourceService,
   StorageArrayService,
   StorageArrayResourceService,
+  StorageArrayConnectionService,
+  StorageArrayConnectionTestService,
   ProxmoxClusterLabelRuleService,
   OpenStackCloudLabelRuleService,
   DockerSwarmClusterLabelRuleService,

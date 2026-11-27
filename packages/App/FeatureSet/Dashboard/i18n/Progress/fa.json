@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 66171,
+    "keys": 67248,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -192,6 +192,7 @@
     "Object Storage",
     "Ollama",
     "OnCallDutyPolicy",
+    "OneFS",
     "OpenSearch",
     "OpenShift",
     "OpenStack-Ansible",
@@ -217,6 +218,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmark",
+    "PowerScale",
     "PowerStore",
     "Powered by OneUptime",
     "PromQL",
@@ -286,6 +288,7 @@
     "US",
     "USD",
     "UTC",
+    "Unisphere",
     "Up + In",
     "Up + Out",
     "V1",
@@ -308,6 +311,7 @@
     "Vital",
     "WAF",
     "WhatsApp: ",
+    "XAPI",
     "Zabbix",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

@@ -95,7 +95,9 @@ jest.mock("../../../Server/Utils/Logger");
  *
  * An on-call policy ran its label and owner rules first already; what it
  * lacked was the hold, so the owners those rules added were posted ahead of
- * "On-Call Policy Created".
+ * "On-Call Policy Created" - and then its creator (#11224): it was announced
+ * inside its create hook, before the create made its creator its owner. Its
+ * announcement now runs once the create has returned, after the same wait.
  */
 
 const PROJECT_ID: ObjectID = new ObjectID(
@@ -833,22 +835,70 @@ describe("a monitor's create chain", () => {
   });
 });
 
+/*
+ * An on-call policy ran its label and owner rules first already, and
+ * #11188 gave it the hold. What it still lacked was its creator (#11224):
+ * it was announced inside its create hook, before the create made the
+ * creator its owner, so a rule naming the creator missed "On-Call Policy
+ * Created". Its rules still run before the create returns; its
+ * announcement now runs after, once its owners are in.
+ */
 describe("an on-call policy's create", () => {
   let policyCreated: SpyInstance<(...args: Array<unknown>) => Promise<unknown>>;
+  let waitForOwners: SpyInstance<(...args: Array<unknown>) => Promise<unknown>>;
 
-  function standIn(options: { notFound?: boolean } = {}): void {
+  /*
+   * Its steps stood in, as the other kinds' are. Settles once its held
+   * messages are let go - its announcement's last step, however it ends.
+   */
+  function standIn(
+    options: {
+      notFound?: boolean;
+      rulesFail?: boolean;
+      waitFails?: boolean;
+      // Owners still to come: the announcement waits until they are told in.
+      ownersComeIn?: Promise<void>;
+    } = {},
+  ): Promise<void> {
+    const { ended, end } = chainEnd();
+
     record = { onCallDutyPolicyId: RECORD_ID };
 
     step(
       OnCallDutyPolicyLabelRuleEngineService,
       "applyRulesToOnCallDutyPolicy",
       "label rules",
+      { fail: Boolean(options.rulesFail) },
     );
     step(
       OnCallDutyPolicyOwnerRuleEngineService,
       "applyRulesToOnCallDutyPolicy",
       "owner rules",
     );
+
+    waitForOwners = jest
+      .spyOn(
+        WorkspaceRuleOwnersOnCreate as unknown as Record<
+          string,
+          (...args: Array<unknown>) => Promise<unknown>
+        >,
+        "waitForOwnersOfCreate",
+      )
+      .mockImplementation((async (): Promise<void> => {
+        steps.push("owners waited for");
+        heldAt.set(
+          "owners waited for",
+          WorkspaceCreatedMessageFirst.isHeld(record),
+        );
+
+        if (options.ownersComeIn) {
+          await options.ownersComeIn;
+        }
+
+        if (options.waitFails) {
+          throw new Error("owners waited for failed");
+        }
+      }) as never);
 
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
     policy.id = RECORD_ID;
@@ -876,45 +926,128 @@ describe("an on-call policy's create", () => {
       "On-Call Policy Created",
     );
     step(ChannelMembersNotAddedNotice, "noteAll", "note");
+
+    // Its last step: the held messages let go (logged by logRelease).
+    const logged: SpyInstance<(released: WorkspaceRecord) => Promise<void>> =
+      WorkspaceCreatedMessageFirst.postHeld as unknown as SpyInstance<
+        (released: WorkspaceRecord) => Promise<void>
+      >;
+    const letGo: (released: WorkspaceRecord) => Promise<void> =
+      logged.getMockImplementation()!;
+
+    logged.mockImplementation(
+      async (released: WorkspaceRecord): Promise<void> => {
+        await letGo(released);
+
+        if (released.onCallDutyPolicyId) {
+          end();
+        }
+      },
+    );
+
+    return ended;
   }
 
-  async function create(
+  function onCreate(
     carryForward: Record<string, unknown> | null = {
       feedStartsAt: FEED_STARTS_AT,
     },
+  ): OnCreate<OnCallDutyPolicy> {
+    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
+    policy.id = RECORD_ID;
+    policy.projectId = PROJECT_ID;
+
+    return {
+      createBy: { data: policy, props: { isRoot: true } },
+      carryForward: carryForward,
+    };
+  }
+
+  // The create hook, as the create awaits it.
+  async function create(
+    hookInput: OnCreate<OnCallDutyPolicy> = onCreate(),
   ): Promise<void> {
     const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
     policy.id = RECORD_ID;
     policy.projectId = PROJECT_ID;
 
-    await hookOf(OnCallDutyPolicyService, "onCreateSuccess")(
-      {
-        createBy: { data: policy, props: { isRoot: true } },
-        carryForward: carryForward,
-      },
-      policy,
-    );
+    await hookOf(OnCallDutyPolicyService, "onCreateSuccess")(hookInput, policy);
   }
 
-  test("REGRESSION: the owners its rules add wait for On-Call Policy Created, and are let go right after it and the note", async () => {
-    standIn();
+  test("REGRESSION (#11224): its rules, then a wait for its owners, then its channels, On-Call Policy Created and the note, then what waited for them", async () => {
+    const ended: Promise<void> = standIn();
     await create();
+    await waitFor(ended);
 
     expect(steps).toEqual([
       "label rules",
       "owner rules",
+      "owners waited for",
       "channels",
       "On-Call Policy Created",
       "note",
       "held messages",
     ]);
-    expectHeldUntil("note");
     expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(false);
   });
 
-  test("On-Call Policy Created announces the policy and is filed when its feed starts", async () => {
-    standIn();
+  test("REGRESSION (#11224): the create returns once its rules have run, before it is announced: the announcement waits for its owners, who come as the create returns", async () => {
+    let ownersAreIn: () => void = () => {};
+    const ownersComeIn: Promise<void> = new Promise<void>(
+      (resolve: () => void) => {
+        ownersAreIn = resolve;
+      },
+    );
+
+    const ended: Promise<void> = standIn({ ownersComeIn });
     await create();
+
+    // The create has its answer: rules run, policy held, nothing announced yet.
+    expect(steps).toEqual(["label rules", "owner rules", "owners waited for"]);
+    expect(policyCreated).not.toHaveBeenCalled();
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(true);
+
+    await turns();
+    expect(policyCreated).not.toHaveBeenCalled();
+
+    ownersAreIn();
+    await waitFor(ended);
+
+    expect(steps.slice(3)).toEqual([
+      "channels",
+      "On-Call Policy Created",
+      "note",
+      "held messages",
+    ]);
+  });
+
+  test("its other messages are held from the start of the hook until right after On-Call Policy Created and the note", async () => {
+    const ended: Promise<void> = standIn();
+    await create();
+    await waitFor(ended);
+
+    expectHeldUntil("note");
+  });
+
+  test("REGRESSION (#11224): the owners added outside its rules - its creator's - are waited for, for this policy, as an on-call policy", async () => {
+    const hookInput: OnCreate<OnCallDutyPolicy> = onCreate();
+    const ended: Promise<void> = standIn();
+    await create(hookInput);
+    await waitFor(ended);
+
+    expect(waitForOwners).toHaveBeenCalledTimes(1);
+    expect(waitForOwners.mock.calls[0]![0]).toEqual({
+      createBy: hookInput.createBy,
+      projectId: PROJECT_ID,
+      eventType: NotificationRuleEventType.OnCallDutyPolicy,
+      recordId: RECORD_ID,
+    });
+  });
+
+  test("On-Call Policy Created announces the policy and is filed when its feed starts", async () => {
+    const ended: Promise<void> = standIn();
+    await create();
+    await waitFor(ended);
 
     const entry: Record<string, unknown> = policyCreated.mock
       .calls[0]![0] as Record<string, unknown>;
@@ -928,8 +1061,9 @@ describe("an on-call policy's create", () => {
   });
 
   test("without a feed start handed over, it is filed as it is written", async () => {
-    standIn();
-    await create(null);
+    const ended: Promise<void> = standIn();
+    await create(onCreate(null));
+    await waitFor(ended);
 
     const entry: Record<string, unknown> = policyCreated.mock
       .calls[0]![0] as Record<string, unknown>;
@@ -937,14 +1071,45 @@ describe("an on-call policy's create", () => {
     expect(Object.keys(entry)).not.toContain("postedAt");
   });
 
-  test("a create that fails half way still lets the held messages go", async () => {
-    standIn({ notFound: true });
+  test("a policy gone before it is announced: the create still succeeds, the announcement stops short, and the held messages go", async () => {
+    const ended: Promise<void> = standIn({ notFound: true });
 
-    await expect(create()).rejects.toThrow();
+    await expect(create()).resolves.toBeUndefined();
+    await waitFor(ended);
 
     expect(steps).not.toContain("On-Call Policy Created");
     expect(steps).toContain("held messages");
     expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(false);
+  });
+
+  test("a wait for its owners that fails stops the announcement short, and still lets the held messages go", async () => {
+    const ended: Promise<void> = standIn({ waitFails: true });
+
+    await create();
+    await waitFor(ended);
+
+    expect(steps).not.toContain("channels");
+    expect(steps).not.toContain("On-Call Policy Created");
+    expect(steps[steps.length - 1]).toBe("held messages");
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(false);
+  });
+
+  test("rules that fail are logged, and the policy is still announced, its messages held until then", async () => {
+    const ended: Promise<void> = standIn({ rulesFail: true });
+
+    await create();
+    await waitFor(ended);
+
+    // The label rules failed, so the owner rules never ran; the rest did.
+    expect(steps).toEqual([
+      "label rules",
+      "owners waited for",
+      "channels",
+      "On-Call Policy Created",
+      "note",
+      "held messages",
+    ]);
+    expectHeldUntil("note");
   });
 });
 
@@ -1104,10 +1269,12 @@ describe("when a record's feed starts", () => {
   });
 });
 
-describe("the creator of a maintenance event or a monitor is waited for", () => {
+describe("the creator of a maintenance event, a monitor or an on-call policy is waited for", () => {
   test.each([
     ["a maintenance event", ScheduledMaintenanceService],
     ["a monitor", MonitorService],
+    // #11224: it was announced before its creator was its owner.
+    ["an on-call policy", OnCallDutyPolicyService],
   ])(
     "%s's create says its creator is still to be made an owner until it returns - also when it fails",
     async (_name: string, service: unknown) => {
@@ -1151,6 +1318,85 @@ describe("the creator of a maintenance event or a monitor is waited for", () => 
 
       expect(createBy).toBe(create);
       expect(seen).toEqual([true]);
+      expect(
+        CreatedNotificationHold.isAddingOwners(create, [OwnersAddedBy.Create]),
+      ).toBe(false);
+    },
+  );
+
+  test.each([
+    [
+      "a maintenance event",
+      ScheduledMaintenanceService,
+      new ScheduledMaintenance(),
+    ],
+    ["a monitor", MonitorService, new Monitor()],
+    ["an on-call policy", OnCallDutyPolicyService, new OnCallDutyPolicy()],
+  ])(
+    "%s's creator is in once its create returns: whoever waits for them hears it then",
+    async (
+      _name: string,
+      service: unknown,
+      data: Monitor | OnCallDutyPolicy | ScheduledMaintenance,
+    ) => {
+      const create: CreateBy<Monitor> = {
+        data: data as Monitor,
+        props: { isRoot: true },
+      };
+
+      // What the wait started during the create hears, and when.
+      const wait: { heard: Promise<boolean> | null; isHeard: boolean } = {
+        heard: null,
+        isHeard: false,
+      };
+
+      /*
+       * The create itself, past its hooks - where the announcement starts
+       * waiting, as its create chain does - and where its creator is made
+       * its owner, as it returns.
+       */
+      jest
+        .spyOn(
+          Object.getPrototypeOf(Object.getPrototypeOf(service)) as Record<
+            string,
+            (...args: Array<unknown>) => Promise<unknown>
+          >,
+          "create",
+        )
+        .mockImplementation((async (
+          given: CreateBy<Monitor>,
+        ): Promise<unknown> => {
+          expect(
+            CreatedNotificationHold.isAddingOwners(given, [
+              OwnersAddedBy.Create,
+            ]),
+          ).toBe(true);
+
+          wait.heard = CreatedNotificationHold.whenOwnersAreIn(
+            given,
+            [OwnersAddedBy.Create],
+            60_000,
+          );
+          void wait.heard.then((): void => {
+            wait.isHeard = true;
+          });
+
+          await turns();
+          // Not while the create is still under way.
+          expect(wait.isHeard).toBe(false);
+
+          return given.data;
+        }) as never);
+
+      await (
+        service as {
+          create: (data: CreateBy<Monitor>) => Promise<unknown>;
+        }
+      ).create(create);
+
+      // Told as the create returned, well within the wait's longest.
+      expect(wait.heard).not.toBeNull();
+      await expect(wait.heard!).resolves.toBe(true);
       expect(
         CreatedNotificationHold.isAddingOwners(create, [OwnersAddedBy.Create]),
       ).toBe(false);

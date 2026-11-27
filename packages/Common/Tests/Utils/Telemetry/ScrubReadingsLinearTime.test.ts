@@ -1,11 +1,13 @@
 import { describe, expect, test } from "@jest/globals";
 import LogScrubPatternType from "../../../Types/Log/LogScrubPatternType";
 import { ScrubRegExp } from "../../../Types/Telemetry/ScrubRule";
+import { DataTypeDetector } from "../../../Utils/DataSecurity/Detector";
 import { DIGIT_ZEROS } from "../../../Utils/DataSecurity/DigitReadings";
 import {
   EMAIL_ADDRESS_DETECTORS,
   PHONE_NUMBER_DETECTORS,
 } from "../../../Utils/DataSecurity/Detectors/ContactDetectors";
+import { getBuiltInDetectorsOf } from "../../../Utils/DataSecurity/Detectors/Index";
 import { CARD_NUMBER_DETECTORS } from "../../../Utils/DataSecurity/Detectors/FinancialDetectors";
 import { US_SSN_DETECTORS } from "../../../Utils/DataSecurity/Detectors/GovernmentIdDetectors";
 import {
@@ -86,6 +88,20 @@ const CARD_CASES: Array<[string, string]> = [
     "cards in fullwidth digits back to back",
     repeat("４５３２ ０１５１ １２８３ ０３６６ ", LENGTH),
   ],
+  // #11199: as a URL's query string writes a card's spaces.
+  ["'+'s for spaces between digits without end", repeat("4+", LENGTH)],
+  [
+    "cards typed into a form back to back",
+    repeat("4532+0151+1283+0366&", LENGTH),
+  ],
+  [
+    "cards with %20 between their groups back to back",
+    repeat("4532%200151%201283%200366&", LENGTH),
+  ],
+  ["escaped '+'s between digits without end", repeat("4%2B", LENGTH)],
+  ["escapes glued to digits without end", repeat("%2212", LENGTH)],
+  ["'+' runs between digits without end", repeat("4++", LENGTH)],
+  ["Arabic-Indic digits typed into a form", repeat("٤+", LENGTH)],
 ];
 
 const PHONE_CASES: Array<[string, string]> = [
@@ -113,6 +129,14 @@ const PHONE_CASES: Array<[string, string]> = [
     repeat("٤١٥-٥٥٥-٢٦٧١ ", LENGTH),
   ],
   ["UK mobiles back to back", repeat("07911 123456 ", LENGTH)],
+  // #11199: as a form writes a phone number, its own "+" escaped or not.
+  ["a form's '+'s and escaped plus signs", repeat("%2B44+20+", LENGTH)],
+  ["'+' runs before digits", repeat("++4", LENGTH)],
+  ["a form's spaces after numbers' signs", repeat("=+4+", LENGTH)],
+  [
+    "numbers a form wrote back to back",
+    repeat("phone=%2B44+20+7946+0958&", LENGTH),
+  ],
 ];
 
 const SSN_CASES: Array<[string, string]> = [
@@ -126,7 +150,106 @@ const SSN_CASES: Array<[string, string]> = [
     "Social Security numbers back to back in Arabic-Indic digits",
     repeat("٥٣٦-٢٢-٨٧٣١ ", LENGTH),
   ],
+  // #11199
+  ["groups typed into a form without end", repeat("123+", LENGTH)],
+  [
+    "Social Security numbers typed into a form back to back",
+    repeat("536+22+8731&", LENGTH),
+  ],
+  [
+    "Social Security numbers with %20 back to back",
+    repeat("536%2022%208731&", LENGTH),
+  ],
 ];
+
+/*
+ * #11200, #11199: a date of birth, a postcode, an address and a bank's
+ * or a card's code, read in every script's digits and as a URL's query
+ * string writes them - by the scanner, every detector of their types.
+ */
+const CODE_TYPES: ReadonlyArray<string> = [
+  "date-of-birth",
+  "postal-code",
+  "postal-address",
+  "card-verification-code",
+  "card-expiration-date",
+  "bank-account-number",
+  "uk-sort-code",
+  "au-bsb",
+  "swift-bic",
+  "in-ifsc",
+];
+
+const CODE_CASES: Array<[string, string]> = [
+  [
+    "dates of birth with escaped slashes back to back",
+    repeat("dob=12%2F03%2F1985&", LENGTH),
+  ],
+  [
+    "birth's words typed into a form without end",
+    repeat("date+of+birth=", LENGTH),
+  ],
+  [
+    "dates of birth in Arabic-Indic digits back to back",
+    repeat("dob ١٢/٠٣/١٩٨٥ ", LENGTH),
+  ],
+  [
+    "written dates typed into a form back to back",
+    repeat("born=12+Mar+1985&", LENGTH),
+  ],
+  [
+    "postcodes typed into a form back to back",
+    repeat("postcode=SW1A+2AA&", LENGTH),
+  ],
+  [
+    "addresses typed into a form back to back",
+    repeat("address=10+Downing+Street&", LENGTH),
+  ],
+  [
+    "a street's words typed into a form without end",
+    "12+" + repeat("Main+", LENGTH),
+  ],
+  [
+    "security codes typed into a form back to back",
+    repeat("security+code=123&", LENGTH),
+  ],
+  ["expiry dates in a URL back to back", repeat("exp=04%2F27&", LENGTH)],
+  [
+    "account numbers after their words in a URL",
+    repeat("account%20number%3D12345679&", LENGTH),
+  ],
+  [
+    "sort codes in Persian digits back to back",
+    repeat("sort code ۴۰-۴۷-۸۴ ", LENGTH),
+  ],
+  [
+    "BICs before Arabic-Indic digits back to back",
+    repeat("swift DEUTDEFF٥٠٠ ", LENGTH),
+  ],
+  ["letters and digits of another script in turn", repeat("A٥", LENGTH)],
+];
+
+describe("Data Security's scanner, reading dates, postcodes, addresses and codes every way (#11199, #11200)", () => {
+  const detectors: Array<DataTypeDetector> = CODE_TYPES.flatMap(
+    (dataTypeId: string): Array<DataTypeDetector> => {
+      return [...getBuiltInDetectorsOf(dataTypeId)];
+    },
+  );
+
+  test.each(CODE_CASES)(
+    "reads %s in time in line with its length",
+    (_label: string, text: string) => {
+      const timed: FastestRun<number> = fastestRun({
+        run: (): number => {
+          return findSensitiveValues(text, { detectors }).length;
+        },
+        limitInMs: LIMIT_IN_MS,
+      });
+
+      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+    },
+  );
+});
 
 describe("an Email Address rule", () => {
   const regex: ScrubRegExp = compileBuiltInScrubPattern(

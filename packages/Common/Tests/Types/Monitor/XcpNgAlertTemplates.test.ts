@@ -111,6 +111,7 @@ function getReferencableAliases(monitor: MonitorStepXcpNgMonitor): Set<string> {
 const BINARY_METRIC_ALIASES: Set<string> = new Set<string>([
   "host_running",
   "host_enabled",
+  "ha_can_tolerate",
 ]);
 
 function isDisjointComplement(
@@ -150,7 +151,50 @@ const SR_SCOPE: Record<string, string> = {
   "xcp_ng.scope": XcpNgScope.StorageRepository,
 };
 
+const POOL_SCOPE: Record<string, string> = { "xcp_ng.scope": XcpNgScope.Pool };
+
 const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
+  // #10997: on the series the server derives from what a probe reads.
+  {
+    id: "xcp-ng-ha-cannot-tolerate-host-failure",
+    category: "Availability",
+    severity: "Critical",
+    rollingTime: RollingTime.Past5Minutes,
+    queries: [
+      {
+        metricName: XcpNgDerivedSeries.PoolHaCanTolerateHostFailure,
+        aggregation: MetricsAggregationType.Max,
+        attributes: POOL_SCOPE,
+      },
+    ],
+    groupBy: null,
+    formula: null,
+    fire: {
+      alias: "ha_can_tolerate",
+      filterType: FilterType.LessThan,
+      value: 1,
+    },
+  },
+  {
+    id: "xcp-ng-vm-not-backed-up",
+    category: "VM",
+    severity: "Warning",
+    rollingTime: RollingTime.Past10Minutes,
+    queries: [
+      {
+        metricName: XcpNgDerivedSeries.VmBackupOverdue,
+        aggregation: MetricsAggregationType.Min,
+        attributes: VM_SCOPE,
+      },
+    ],
+    groupBy: "xcp_ng.id",
+    formula: null,
+    fire: {
+      alias: "vm_backup_overdue",
+      filterType: FilterType.GreaterThan,
+      value: 0,
+    },
+  },
   {
     id: "xcp-ng-pool-disconnected",
     category: "Availability",
