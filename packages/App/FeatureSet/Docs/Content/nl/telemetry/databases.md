@@ -454,8 +454,19 @@ Zijn eigen variabelen, in dezelfde `.env` (het compose-bestand geeft ze alleen a
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | Een PEM-CA-bundel, gekoppeld in de container (zie de uitgecommentarieerde `volumes` van `oneuptime-database-ai-agent`), waartegen het certificaat van de server wordt geverifieerd als `DATABASE_TLS_INSECURE=false` |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | de identiteit van de collector | Registreert de AI-agent als een andere database dan die van de collector: het id ervan in OneUptime, of `<engine>\|<address>:<port>`. Laat het leeg |
 | `LOG_LEVEL` | `info` | Het logniveau van de AI-agent: `debug`, `info`, `warn` of `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` laat de agent de databases van deze server voor Data Observability lezen; elke andere waarde laat dat uit |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | de monitoringlogin | De login waarmee Data Observability de catalogus leest. Geschreven zoals hij is: zijn `$` worden niet verdubbeld |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | Het wachtwoord van die login; zet het tussen enkele aanhalingstekens |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` voert geen datacontrole uit: alleen de catalogus |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | de cataloguslogin | De login waarmee datacontroles rijen lezen |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | Het wachtwoord van die login; zet het tussen enkele aanhalingstekens |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` voert controles van het type Aangepaste SQL en Mislukte rijen uit |
 
 Wat hij mag uitvoeren, hoe fixes werken en hoe je problemen oplost: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#databaseservers).
+
+### Data Observability via dezelfde agent
+
+Dezelfde agent kan de PostgreSQL-, MySQL- en MariaDB-databases van deze server lezen voor [Data Observability](/docs/data-observability/index): hun tabellen en kolommen, freshness en volume, schemawijzigingen en de controles die je instelt. Hij leest alleen-lezen, met logins uit zijn eigen omgeving en statements die hij zelf bouwt, en stuurt geen rij en geen login terug. Hij staat uit totdat je `ONEUPTIME_DATA_OBSERVABILITY=true` in dezelfde `.env` zet. [Een database koppelen](/docs/data-observability/connect#via-een-database-agent) beschrijft hoe je de agent kiest en welke logins je hem geeft.
 
 ## Kubernetes
 

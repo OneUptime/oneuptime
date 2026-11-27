@@ -28,12 +28,15 @@ La **Panoramica** dice come stanno i tuoi dati adesso. Finché il progetto non �
 
 ## Collegare un database
 
-Usa un'**utenza in sola lettura**. Nella panoramica o in Database, scegli **Collega un database**, poi una delle due opzioni:
+Usa un'**utenza in sola lettura**. Nella panoramica o in Database, scegli **Collega un database**, poi una delle seguenti opzioni:
 
 - **OneUptime si collega**: incolla una stringa di connessione. Viene salvata cifrata e non viene più mostrata.
 - **Una sonda nella mia rete si collega**: scegli una delle sonde di questo progetto e indica la variabile d'ambiente della sonda che contiene la stringa di connessione (per esempio \`ORDERS_DB_URL\`). La stringa di connessione non lascia mai la tua rete. Aggiorna prima la sonda all'ultima versione.
+- **Il mio Database Agent si collega**: scegli il server di database accanto al quale è in esecuzione il suo Database Agent e indica il database da leggere su quel server. L'agente lo legge con utenze proprie, quindi in OneUptime non ne viene salvata nessuna. Legge PostgreSQL, MySQL e MariaDB non appena il suo responsabile imposta \`ONEUPTIME_DATA_OBSERVABILITY=true\` dove è in esecuzione.
 
 Anche un database già collegato per la Sicurezza dei dati viene sorvegliato.
+
+Le **Impostazioni** di un database, nel suo menu, lo rinominano (**Modifica dettagli**), gli assegnano un'altra utenza, un'altra sonda o un Database Agent (**Modifica connessione**), smettono di leggerlo e ne dimenticano tabelle e controlli mentre la Sicurezza dei dati lo conserva (**Rimuovi dall'Osservabilità dei dati**), oppure lo eliminano da OneUptime (**Elimina database**). Finché la Sicurezza dei dati si basa su un database, può eliminarlo solo chi può eliminare gli archivi dati della Sicurezza dei dati.
 
 **Database che potresti collegare**, nella stessa pagina, elenca ciò che il tuo progetto conosce già e che nessuno ha collegato: i database con cui parlano le tue tracce, quelli nei tuoi account cloud e quelli che osserva il Monitoraggio dei database. **Collega** precompila il modulo con ciò che si sa di ciascuno. Non viene letto nulla finché non lo colleghi.
 

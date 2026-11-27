@@ -16,6 +16,7 @@ import {
 } from "../PureStorage";
 import FLASHBLADE_METRICS from "./FlashBladeMetrics";
 import FLASHBLADE_ALERT_TEMPLATES from "./FlashBladeAlertTemplates";
+import FLASHBLADE_KIND_PAGES from "./FlashBladeKindPages";
 
 // The High Read Latency alert's line (10 ms).
 export const FLASHBLADE_READ_LATENCY_WARNING_USEC: number = 10000;
@@ -260,6 +261,7 @@ const PureStorageFlashBladePlatform: StorageArrayPlatform = {
       ),
     },
   ],
+  kindPages: FLASHBLADE_KIND_PAGES,
 
   agentConfigs: [
     {

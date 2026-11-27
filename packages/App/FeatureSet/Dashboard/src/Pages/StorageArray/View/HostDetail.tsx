@@ -2,7 +2,6 @@ import PageComponentProps from "../../PageComponentProps";
 import React, { FunctionComponent, ReactElement } from "react";
 import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResource";
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
-import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { SummaryField } from "../../../Components/Infrastructure/ResourceOverviewTab";
 import StorageArrayResourceDetail from "../../../Components/StorageArray/StorageArrayResourceDetail";
@@ -10,8 +9,9 @@ import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 
 /*
- * One host defined on a FlashArray. Its series carry the host's name in
- * the `host` label of its host series, which scopes the Metrics tab.
+ * One host defined on an array. Its Metrics tab charts what the array's
+ * platform charts for a host (StorageArrayPlatform.kindPages, #11122): a
+ * FlashArray names one by its `host` label.
  */
 const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   row: StorageArrayResource,
@@ -86,50 +86,6 @@ const getSummaryFields: (row: StorageArrayResource) => Array<SummaryField> = (
   ];
 };
 
-const getQueryConfigs: (data: {
-  arrayName: string;
-  externalId: string;
-}) => Array<MetricQueryConfigData> = (data: {
-  arrayName: string;
-  externalId: string;
-}): Array<MetricQueryConfigData> => {
-  const objectFilters: Record<string, string> = { host: data.externalId };
-
-  return StorageArrayResourceUtils.buildCatalogQueries([
-    {
-      metricId: "purefa-host-read-latency",
-      arrayName: data.arrayName,
-      objectFilters: objectFilters,
-      legend: "Read",
-    },
-    {
-      metricId: "purefa-host-write-latency",
-      arrayName: data.arrayName,
-      objectFilters: objectFilters,
-      legend: "Write",
-      overlayWithPreviousQuery: true,
-    },
-    {
-      metricId: "purefa-host-iops",
-      arrayName: data.arrayName,
-      objectFilters: objectFilters,
-      legend: "Read",
-    },
-    {
-      metricId: "purefa-host-write-iops",
-      arrayName: data.arrayName,
-      objectFilters: objectFilters,
-      legend: "Write",
-      overlayWithPreviousQuery: true,
-    },
-    {
-      metricId: "purefa-host-connectivity",
-      arrayName: data.arrayName,
-      objectFilters: objectFilters,
-    },
-  ]);
-};
-
 const StorageArrayHostDetail: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -137,12 +93,11 @@ const StorageArrayHostDetail: FunctionComponent<
     <StorageArrayResourceDetail
       kind={StorageArrayResourceKind.Host}
       getSummaryFields={getSummaryFields}
-      getQueryConfigs={getQueryConfigs}
       emptyMessageTemplate={translationKey(
         "Host {{name}} is not in the inventory yet. It appears here a few minutes after the Storage Array Agent starts scraping the array.",
       )}
       metricsTitleTemplate={translationKey("Host Metrics: {{name}}")}
-      description="Latency, IOPS and connectivity of this host, as the FlashArray sees them."
+      description="Latency, IOPS and connectivity of this host, as the array sees them."
     />
   );
 };

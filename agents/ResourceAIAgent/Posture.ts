@@ -10,6 +10,7 @@ import {
   MAX_POSTURE_STRING_LENGTH,
   ResourceAiAgentPosture,
 } from "./Common/Types/ResourceAiAgent/ResourceAiAccess";
+import { DatabaseAgentDataObservabilityPosture } from "./Common/Utils/DataObservability/DatabaseAgent/DatabaseAgentWork";
 
 /*
  * What the agent tells OneUptime about itself, on registration and on every
@@ -246,6 +247,8 @@ export function buildPosture(data: {
   resourceIdentifier: string;
   probe: NormalizedProbe;
   now?: Date | undefined;
+  // A database server's Data Observability (#11148): never a login.
+  dataObservability?: DatabaseAgentDataObservabilityPosture | undefined;
 }): AgentPosture {
   const protectedTargets: Array<string> = mergeTargets(
     data.config.protectedTargets,
@@ -302,6 +305,10 @@ export function buildPosture(data: {
 
   if (!data.probe.reachable && data.probe.reachError) {
     posture.reachError = data.probe.reachError;
+  }
+
+  if (data.dataObservability) {
+    posture.dataObservability = { ...data.dataObservability };
   }
 
   return posture;

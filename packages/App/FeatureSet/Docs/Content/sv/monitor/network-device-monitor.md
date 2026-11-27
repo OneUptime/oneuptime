@@ -260,7 +260,7 @@ Sidan **Enheter** visar en banderoll när projektet har enheter med åsidosättn
 
 En agent kan svara för flera enheter på en adress, var och en i sin egen SNMPv3-kontext: ett Brocade-chassi med Virtual Fabrics svarar för varje logisk switch i kontexten `VF:` och dess fabric-ID. Lägg till en enhet per logisk switch på den adressen, med SNMP v3, och ange för var och en dess **SNMP v3-kontext** på dess sida **Inställningar**; en enhet utan kontext frågas i agentens standardkontext. Kontexten hör till enheten, inte till dess inloggningsuppgifter, så den gäller med vilken inloggningsprofil enheten än använder.
 
-En prob från före SNMPv3-kontexter skulle fråga standardkontexten i stället, så tills den är uppdaterad pingar den bara en sådan enhet. Varje SNMPv3-trap nämner också sin kontext och utlöses bara på den enhet som frågas i den kontexten; en trap i en kontext där ingen enhet frågas loggas som omatchad.
+En sond från före SNMPv3-kontexter skulle fråga standardkontexten i stället, så tills den är uppdaterad pingar den bara en sådan enhet. Varje SNMPv3-trap nämner också sin kontext och utlöses bara på den enhet som frågas i den kontexten; en trap i en kontext där ingen enhet frågas loggas som omatchad.
 
 ## Platsens standardvärden för övervakning
 

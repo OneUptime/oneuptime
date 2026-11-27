@@ -214,6 +214,7 @@ import { getCephMetricByMetricName } from "../../../Types/Monitor/CephMetricCata
 import { getStorageArrayMetric } from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
 import StorageArrayResourceKindUtil from "../../../Types/StorageArray/StorageArrayResourceKindUtil";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import { getDockerSwarmMetricByMetricName } from "../../../Types/Monitor/DockerSwarmMetricCatalog";
@@ -7733,8 +7734,14 @@ ${incomingRequestGrouping.rootCauseNote}
       );
       name = AffectedResourceList.code(resource.hostName);
     } else if (resource.objectName) {
+      /*
+       * A kind's word, as English reads it: an ONTAP aggregate's label is a
+       * key that names its meaning (Common/Types/MeaningKeys).
+       */
       kind = objectKind
-        ? StorageArrayResourceKindUtil.getSingularLabel(objectKind)
+        ? withMeaningKeyAsItsWord(
+            StorageArrayResourceKindUtil.getSingularLabel(objectKind),
+          )
         : "Object";
       name = AffectedResourceList.code(resource.objectName);
     }

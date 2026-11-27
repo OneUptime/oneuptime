@@ -5,6 +5,8 @@ import { BUILT_IN_STORAGE_ARRAY_PLATFORMS } from "../../../Types/StorageArray/Pl
 import PureStorageFlashArrayPlatform from "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
 import PureStorageFlashBladePlatform from "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
 import DellPowerStorePlatform from "../../../Types/StorageArray/Platforms/Dell/PowerStore/PowerStorePlatform";
+import NetAppOntapPlatform from "../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
+import { OntapKind } from "../../../Types/StorageArray/Platforms/NetApp/NetApp";
 import {
   STORAGE_ARRAY_HARDWARE_KINDS,
   StorageArrayLogAlertTemplateSpec,
@@ -14,6 +16,7 @@ import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArr
 import StorageArrayResourceKind from "../../../Types/StorageArray/StorageArrayResourceKind";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
+import { withMeaningKeyAsItsWord } from "../../../Types/MeaningKeys";
 import {
   ACME_AGGREGATE_KIND,
   ACME_PLATFORM,
@@ -33,6 +36,7 @@ import {
 const FLASHARRAY: string = StorageSystem.PureStorageFlashArray;
 const FLASHBLADE: string = StorageSystem.PureStorageFlashBlade;
 const POWERSTORE: string = StorageSystem.DellPowerStore;
+const ONTAP: string = StorageSystem.NetAppOntap;
 
 afterEach(() => {
   // Each test that registers a platform leaves the registry as shipped.
@@ -52,16 +56,18 @@ function systemsOf(
 }
 
 describe("the shipped platforms", () => {
-  test("are Pure Storage's FlashArray and FlashBlade, then Dell's PowerStore, in that order", () => {
+  test("are Pure Storage's FlashArray and FlashBlade, then Dell's PowerStore and NetApp ONTAP, in that order", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
       POWERSTORE,
+      ONTAP,
     ]);
     expect(BUILT_IN_STORAGE_ARRAY_PLATFORMS).toEqual([
       PureStorageFlashArrayPlatform,
       PureStorageFlashBladePlatform,
       DellPowerStorePlatform,
+      NetAppOntapPlatform,
     ]);
   });
 
@@ -69,13 +75,16 @@ describe("the shipped platforms", () => {
     expect(StorageArrayPlatformRegistry.getDefaultPlatform()).toBe(
       PureStorageFlashArrayPlatform,
     );
-    for (const unknown of [null, undefined, "", "netapp.ontap", "Flasharray"]) {
+    for (const unknown of [null, undefined, "", "hitachi.vsp", "Flasharray"]) {
       expect(StorageArrayPlatformRegistry.getPlatformOrDefault(unknown)).toBe(
         PureStorageFlashArrayPlatform,
       );
     }
     expect(StorageArrayPlatformRegistry.getPlatformOrDefault(FLASHBLADE)).toBe(
       PureStorageFlashBladePlatform,
+    );
+    expect(StorageArrayPlatformRegistry.getPlatformOrDefault(ONTAP)).toBe(
+      NetAppOntapPlatform,
     );
   });
 
@@ -89,6 +98,9 @@ describe("the shipped platforms", () => {
     expect(StorageArrayPlatformRegistry.getPlatform(POWERSTORE)).toBe(
       DellPowerStorePlatform,
     );
+    expect(StorageArrayPlatformRegistry.getPlatform(ONTAP)).toBe(
+      NetAppOntapPlatform,
+    );
     // An alias is StorageSystemUtil.normalize's to resolve, not a lookup.
     for (const other of [
       null,
@@ -98,7 +110,7 @@ describe("the shipped platforms", () => {
       "PURESTORAGE.FLASHARRAY",
       " purestorage.flasharray",
       "powerstore",
-      "netapp.ontap",
+      "hitachi.vsp",
     ]) {
       expect(StorageArrayPlatformRegistry.getPlatform(other)).toBeNull();
     }
@@ -120,6 +132,11 @@ describe("the shipped platforms", () => {
         "powerstore_volume_logical_used",
       ),
     ).toBe(DellPowerStorePlatform);
+    expect(
+      StorageArrayPlatformRegistry.getPlatformByMetricName(
+        "netapp_volume_size_used",
+      ),
+    ).toBe(NetAppOntapPlatform);
     // A name no catalog lists still has its platform.
     expect(
       StorageArrayPlatformRegistry.getPlatformByMetricName(
@@ -131,6 +148,11 @@ describe("the shipped platforms", () => {
         "powerstore_metricReplication_avg_rpo",
       ),
     ).toBe(DellPowerStorePlatform);
+    expect(
+      StorageArrayPlatformRegistry.getPlatformByMetricName(
+        "netapp_some_counter_harvest_adds_later",
+      ),
+    ).toBe(NetAppOntapPlatform);
     for (const other of [
       null,
       undefined,
@@ -167,6 +189,17 @@ describe("the shipped platforms", () => {
     ["purefb_hardware_health", StorageArrayResourceKind.Hardware],
     ["purefb_array_space_bytes", null],
     ["node_cpu_seconds_total", null],
+    // ONTAP's: its kinds, a node a controller, a disk a drive, a shelf part hardware.
+    ["netapp_volume_size_used", StorageArrayResourceKind.Volume],
+    ["netapp_aggr_space_used", OntapKind.Aggregate],
+    ["netapp_svm_new_status", OntapKind.Svm],
+    ["netapp_lun_size", OntapKind.Lun],
+    ["netapp_snapmirror_lag_time", OntapKind.SnapMirror],
+    ["netapp_node_new_status", StorageArrayResourceKind.Controller],
+    ["netapp_disk_new_status", StorageArrayResourceKind.Drive],
+    ["netapp_shelf_psu_status", StorageArrayResourceKind.Hardware],
+    ["netapp_net_port_status", StorageArrayResourceKind.NetworkInterface],
+    ["netapp_cluster_new_status", null],
   ] as Array<[string, string | null]>)(
     "%s is about a %s",
     (metricName: string, kind: string | null) => {
@@ -174,7 +207,7 @@ describe("the shipped platforms", () => {
         StorageArrayPlatformRegistry.getObjectKindForMetricName(metricName),
       ).toBe(kind);
       // The array's own platform first changes nothing for a Pure series.
-      for (const system of [FLASHARRAY, FLASHBLADE, "netapp.ontap", null]) {
+      for (const system of [FLASHARRAY, FLASHBLADE, "hitachi.vsp", null]) {
         expect(
           StorageArrayPlatformRegistry.getObjectKindForMetricName(
             metricName,
@@ -185,16 +218,42 @@ describe("the shipped platforms", () => {
     },
   );
 
-  test("none has kinds of its own, so no kind definition is found", () => {
+  test("only ONTAP has kinds of its own, worded by its definitions", () => {
     for (const kind of [
       ...Object.values(StorageArrayResourceKind),
-      ACME_AGGREGATE_KIND,
       "",
       null,
       undefined,
+      "constructor",
     ]) {
       expect(StorageArrayPlatformRegistry.getKindDefinition(kind)).toBeNull();
     }
+    for (const kind of Object.values(OntapKind)) {
+      const definition: ReturnType<
+        typeof StorageArrayPlatformRegistry.getKindDefinition
+      > = StorageArrayPlatformRegistry.getKindDefinition(kind, ONTAP);
+      expect(definition?.kind).toBe(kind);
+      expect(NetAppOntapPlatform.kindDefinitions).toContain(definition);
+      // Asked without a platform, the only one that has it answers.
+      expect(StorageArrayPlatformRegistry.getKindDefinition(kind)).toBe(
+        definition,
+      );
+    }
+    // A key of its own, which English reads as Aggregates (MeaningKeys).
+    expect(
+      StorageArrayPlatformRegistry.getKindDefinition(OntapKind.Aggregate)
+        ?.pluralLabel,
+    ).toBe("Aggregates (disk aggregates)");
+    expect(
+      withMeaningKeyAsItsWord(
+        StorageArrayPlatformRegistry.getKindDefinition(OntapKind.Aggregate)!
+          .pluralLabel,
+      ),
+    ).toBe("Aggregates");
+    expect(
+      StorageArrayPlatformRegistry.getKindDefinition(OntapKind.Svm)
+        ?.singularLabel,
+    ).toBe("SVM");
   });
 });
 
@@ -299,9 +358,11 @@ describe.each(
   });
 
   test("each endpoint it marks complete lists kinds it has, and every kind it counts is listed by one", () => {
-    const listed: Set<string> = new Set(
-      Object.values(platform.scrapeEndpoints).flat(),
-    );
+    const listed: Set<string> = new Set([
+      ...Object.values(platform.scrapeEndpoints).flat(),
+      // Or by its exporter's own word (NetApp Harvest's metadata).
+      ...(platform.exporterCompletedKinds || []),
+    ]);
     for (const kind of listed) {
       expect(platform.kinds).toContain(kind);
     }
@@ -386,6 +447,7 @@ describe("registering a platform at runtime", () => {
       FLASHARRAY,
       FLASHBLADE,
       POWERSTORE,
+      ONTAP,
       ACME_STORAGE_SYSTEM,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 1);
@@ -403,9 +465,19 @@ describe("registering a platform at runtime", () => {
     ).toBe(ACME_PLATFORM);
     expect(StorageSystemUtil.normalize("ACME")).toBe(ACME_STORAGE_SYSTEM);
     expect(StorageSystemUtil.isKnownSystem(ACME_STORAGE_SYSTEM)).toBe(true);
+    // Acme's Aggregate is Acme's on an Acme array; ONTAP has one too.
     expect(
-      StorageArrayPlatformRegistry.getKindDefinition(ACME_AGGREGATE_KIND),
+      StorageArrayPlatformRegistry.getKindDefinition(
+        ACME_AGGREGATE_KIND,
+        ACME_STORAGE_SYSTEM,
+      ),
     ).toBe(ACME_PLATFORM.kindDefinitions![0]);
+    expect(
+      StorageArrayPlatformRegistry.getKindDefinition(
+        ACME_AGGREGATE_KIND,
+        ONTAP,
+      ),
+    ).not.toBe(ACME_PLATFORM.kindDefinitions![0]);
     expect(
       StorageArrayPlatformRegistry.getObjectKindForMetricName(
         "acme_aggregate_used_bytes",
@@ -418,6 +490,7 @@ describe("registering a platform at runtime", () => {
       FLASHARRAY,
       FLASHBLADE,
       POWERSTORE,
+      ONTAP,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 2);
     expect(
@@ -425,13 +498,16 @@ describe("registering a platform at runtime", () => {
     ).toBeNull();
     expect(StorageSystemUtil.isKnownSystem(ACME_STORAGE_SYSTEM)).toBe(false);
     expect(
-      StorageArrayPlatformRegistry.getKindDefinition(ACME_AGGREGATE_KIND),
-    ).toBeNull();
+      StorageArrayPlatformRegistry.getKindDefinition(
+        ACME_AGGREGATE_KIND,
+        ACME_STORAGE_SYSTEM,
+      ),
+    ).not.toBe(ACME_PLATFORM.kindDefinitions![0]);
   });
 
   test("unregistering a platform it does not hold changes nothing", () => {
     const before: number = StorageArrayPlatformRegistry.getVersion();
-    StorageArrayPlatformRegistry.unregister("netapp.ontap");
+    StorageArrayPlatformRegistry.unregister("hitachi.vsp");
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before);
     expect(StorageArrayPlatformRegistry.getPlatforms()).toEqual(
       BUILT_IN_STORAGE_ARRAY_PLATFORMS,
@@ -580,9 +656,11 @@ describe("what registration refuses", () => {
     [
       "a metric id a shipped platform uses",
       {
+        // The one metric no page or section of Acme's names (#11122).
         metrics: [
-          { ...ACME_PLATFORM.metrics[0]!, id: firstPureMetricId },
-          ...ACME_PLATFORM.metrics.slice(1),
+          ACME_PLATFORM.metrics[0]!,
+          { ...ACME_PLATFORM.metrics[1]!, id: firstPureMetricId },
+          ...ACME_PLATFORM.metrics.slice(2),
         ],
       },
       `the metric id ${firstPureMetricId} is taken`,
@@ -865,7 +943,7 @@ describe("what registration refuses", () => {
 
   test("a value of the vendor.product shape with digits, dots, dashes and underscores is fine", () => {
     for (const storageSystem of [
-      "netapp.ontap",
+      "hitachi.vsp",
       "dell.powerstore_next",
       "dell.powermax",
       "dell.unity_xt",
@@ -888,6 +966,7 @@ describe("what registration refuses", () => {
           aliases: ["purefa"],
           metrics: [{ ...ACME_PLATFORM.metrics[0]!, id: firstPureMetricId }],
           insightsSections: [],
+          kindPages: {},
         }),
         [],
       ),

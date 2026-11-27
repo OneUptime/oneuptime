@@ -107,6 +107,7 @@ oneuptime resources
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 한 종류의 레코드를 다룹니다 | [리소스 작업](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 리소스의 필드와 그것을 설정하는 플래그를 나열합니다 | [리소스 작업](/docs/cli/resource-operations#리소스의-필드-보기) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 인시던트, 경고, 예정된 유지 관리에 대해 대시보드 버튼과 같은 일을 합니다 | [리소스 작업](/docs/cli/resource-operations#인지-해결-메모-추가) |
+| `oneuptime <resource> breakdown`, `export` | 기간의 클라우드 지출을 나누어 보여 주거나 FOCUS 1.2 파일로 내보냅니다(`cloud-cost`용) | [보고서와 내보내기](/docs/telemetry/cloud-costs#보고서와-내보내기) |
 | `oneuptime resources` | 레코드 종류를 명령과 함께 나열합니다 | [명령 참조](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | CLI 버전을 출력합니다 | [명령 참조](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | 명령의 도움말을 보여 줍니다 | [도움말 보기](#도움말-보기) |

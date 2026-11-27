@@ -53,7 +53,8 @@ export interface ComponentProps {
  * One pool's menu, its everyday pages first: what the pool is made of
  * (Basic), how it runs (Observability) and what happened to it (Activity),
  * then the Developer pages and, folded under Advanced, who owns it, its
- * settings, its history, its install guide and, last, Delete.
+ * settings, its install guide, its history and, last, Delete: Audit Logs
+ * right before Delete, as on every resource (ResourceViewMenusAuditLogs).
  * Common/Tests/App/Dashboard/XcpNgSideMenus.test.tsx pins it.
  */
 const XcpNgPoolSideMenu: FunctionComponent<ComponentProps> = (
@@ -334,16 +335,6 @@ const XcpNgPoolSideMenu: FunctionComponent<ComponentProps> = (
         />
         <SideMenuItem
           link={{
-            title: "Audit Logs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS] as Route,
-              { modelId: props.modelId },
-            ),
-          }}
-          icon={IconProp.List}
-        />
-        <SideMenuItem
-          link={{
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.XCP_NG_POOL_VIEW_DOCUMENTATION] as Route,
@@ -351,6 +342,16 @@ const XcpNgPoolSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.Book}
+        />
+        <SideMenuItem
+          link={{
+            title: "Audit Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.List}
         />
         <SideMenuItem
           link={{

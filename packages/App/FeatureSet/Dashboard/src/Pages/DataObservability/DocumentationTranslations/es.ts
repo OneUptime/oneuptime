@@ -32,8 +32,11 @@ Usa un **inicio de sesión de solo lectura**. En la vista general o en Bases de 
 
 - **OneUptime se conecta**: pega una cadena de conexión. Se guarda cifrada y no se vuelve a mostrar.
 - **Una sonda de mi red se conecta**: elige una de las sondas de este proyecto e indica la variable de entorno de la sonda que contiene la cadena de conexión (por ejemplo \`ORDERS_DB_URL\`). La cadena de conexión nunca sale de tu red. Actualiza antes la sonda a la última versión.
+- **Mi agente de bases de datos se conecta**: elige el servidor de bases de datos junto al que se ejecuta su agente de bases de datos e indica la base de datos que se leerá en él. El agente la lee con sus propias credenciales, así que no se guarda ninguna en OneUptime. Lee PostgreSQL, MySQL y MariaDB en cuanto su responsable define \`ONEUPTIME_DATA_OBSERVABILITY=true\` donde se ejecuta.
 
 Una base de datos ya conectada para Seguridad de datos también se vigila.
+
+Los **Ajustes** de una base de datos, en su menú, le cambian el nombre (**Editar detalles**), le dan otro inicio de sesión, otra sonda o un agente de bases de datos (**Cambiar conexión**), dejan de leerla y olvidan sus tablas y comprobaciones mientras Seguridad de datos la conserva (**Quitar de Observabilidad de datos**), o la eliminan de OneUptime (**Eliminar base de datos**). Mientras Seguridad de datos dependa de una base de datos, solo puede eliminarla alguien con permiso para eliminar almacenes de datos de Seguridad de datos.
 
 **Bases de datos que podrías conectar**, en la misma página, enumera lo que tu proyecto ya conoce y nadie ha conectado: bases de datos con las que hablan tus trazas, las de tus cuentas en la nube y las que vigila el Monitoreo de bases de datos. **Conectar** rellena el formulario con lo que se sabe de cada una. No se lee nada hasta que la conectas.
 

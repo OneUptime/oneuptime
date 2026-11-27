@@ -1,6 +1,6 @@
 # عامل آرایه ذخیره‌سازی
 
-عامل آرایه ذخیره‌سازی در OneUptime آرایه‌های ذخیره‌سازی را پایش می‌کند: ظرفیت و کاهش داده، تأخیر، IOPS و پهنای باند، حجم‌ها، میزبان‌ها، پادها و همتاسازی، سلامت سخت‌افزار، سیستم‌های فایل و باکت‌ها. این عامل یک OpenTelemetry Collector استاندارد است که نقطه‌های پایانی OpenMetrics آرایه را با توکن API یک کاربر فقط‌خواندنی برداشت می‌کند، هویت آرایه شما را روی هر متریک مُهر می‌زند و آن را به OneUptime می‌فرستد. [مانیتورهای آرایه ذخیره‌سازی](/docs/monitor/storage-array-monitor) بر پایه آنچه می‌رسد هشدار می‌دهند.
+عامل آرایه ذخیره‌سازی در OneUptime آرایه‌های ذخیره‌سازی را پایش می‌کند: ظرفیت و کاهش داده، تأخیر، IOPS و پهنای باند، حجم‌ها، میزبان‌ها، پادها و همتاسازی، سلامت سخت‌افزار، سیستم‌های فایل و باکت‌ها، و روی NetApp ONTAP اگریگیت‌ها، SVMها، LUNها و رابطه‌های SnapMirror آن. این عامل یک OpenTelemetry Collector استاندارد است که نقطه‌های پایانی OpenMetrics آرایه را با توکن API یک کاربر فقط‌خواندنی برداشت می‌کند (یا، برای ONTAP، صادرکننده Harvest خود NetApp را که کنار آن اجرا می‌شود)، هویت آرایه شما را روی هر متریک مُهر می‌زند و آن را به OneUptime می‌فرستد. [مانیتورهای آرایه ذخیره‌سازی](/docs/monitor/storage-array-monitor) بر پایه آنچه می‌رسد هشدار می‌دهند.
 
 :::cards
 - [نصب عامل](#نصب-عامل): یک کاربر فقط‌خواندنی، سپس اسکریپت نصب یا Docker Compose.
@@ -19,6 +19,9 @@ Storage Arrays محصولی است که برای هر سازنده‌ای به �
 | **Pure Storage FlashArray**، Purity//FA قدیمی‌تر | `purestorage.flasharray` | صادرکننده OpenMetrics مخصوص FlashArray از Pure، که همان فایل Compose آن را به‌صورت سرویس `pure-fa-exporter` اجرا می‌کند | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | صادرکننده OpenMetrics مخصوص FlashBlade از Pure، که همان فایل Compose آن را به‌صورت سرویس `pure-fb-exporter` اجرا می‌کند | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | صادرکننده PowerStore Metrics Exporter از Dell، که همان فایل Compose آن را به‌صورت سرویس `powerstore-exporter` می‌سازد و اجرا می‌کند؛ هشدارهای خوشه با syslog به سرویس `powerstore-syslog` آن می‌رسند | `otel-collector-config.powerstore.yaml` |
+| **NetApp ONTAP** 9.12.1 و بعد از آن (AFF، FAS، ASA، ONTAP Select، Cloud Volumes ONTAP)، و **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11، که همان فایل Compose آن را به‌صورت سرویس `netapp-harvest` اجرا می‌کند: با یک کاربر فقط‌خواندنی و گذرواژه به REST API خوشه وارد می‌شود | `otel-collector-config.netapp-ontap.yaml` |
+
+ONTAP نقطه پایانی متریک ویژه خودش را ندارد، پس عامل صادرکننده متن‌باز NetApp، یعنی Harvest، را کنار کالکتور اجرا می‌کند. Harvest از REST API خوشه می‌خواند و آنچه خوانده را روی شبکه Compose ارائه می‌کند، با نام `netapp_<object>_<counter>` برای هر سری؛ کالکتور آن را برداشت می‌کند و به OneUptime می‌فرستد. Harvest هرگز چیزی روی خوشه نمی‌نویسد، و گزارش AutoSupport آن به NetApp خاموش است.
 
 Pure Storage در فوریه ۲۰۲۶ نام خود را به **Everpure** تغییر داد. FlashArray، FlashBlade و Purity نام‌هایشان را نگه داشتند، و متریک‌های `purefa_*` و `purefb_*` هم همین‌طور، پس همه‌چیز در این صفحه درباره آرایه‌هایی که با هر یک از این دو نام فروخته شده‌اند صدق می‌کند.
 
@@ -27,6 +30,8 @@ flowchart TB
     collector["کالکتور"] -->|"FlashArray<br/>با Purity//FA 6.7+"| array["آرایه،<br/>پورت ۴۴۳"]
     collector -->|"نسخه قدیمی‌تر FlashArray،<br/>FlashBlade"| exporter["صادرکننده Pure"]
     exporter -->|"توکن API"| array
+    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    harvest -->|"کاربر فقط‌خواندنی،<br/>REST API"| cluster["خوشه،<br/>پورت ۴۴۳"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
     collector -->|"PowerStore"| dell["Dell's exporter"]
     dell -->|"user and password"| array
@@ -39,7 +44,7 @@ flowchart TB
 ## پیش از شروع
 
 - Docker Engine 20.10 یا بعد از آن با افزونه Docker Compose v2، روی ماشینی که از طریق HTTPS (TCP 443) به رابط مدیریتی آرایه برسد.
-- یک حساب مدیر روی آرایه، برای ساختن کاربری با نقش داخلی **readonly** و یک توکن API برای آن.
+- یک حساب مدیر روی آرایه، برای ساختن کاربری با نقش داخلی **readonly** و یک توکن API برای آن. روی ONTAP، یک مدیر خوشه (روی Amazon FSx for NetApp ONTAP، `fsxadmin`)، برای ساختن یک کاربر REST فقط‌خواندنی با گذرواژه.
 - برای Dell PowerStore، یک ماشین x86-64 (Dell صادرکننده خود را فقط برای x86-64 می‌سازد) و یک کاربر PowerStore برای عامل: [Dell PowerStore](#dell-powerstore) را ببینید.
 - یک کلید دریافت داده. آن را زیر **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده** بسازید و مقدارش را کپی کنید.
 
@@ -68,6 +73,27 @@ pureadmin create --api-token oneuptime
 3. از منوی ⋮ کاربر تازه، **Create API Token…** را برگزینید، **Expires In** را خالی بگذارید و توکن را کپی کنید.
 @tab FlashBlade
 به همین روش کاربری با نقش **readonly** و یک توکن API برای آن بسازید: در تنظیمات کاربر در GUI مربوط به FlashBlade، یا با `pureadmin` در CLI مربوط به Purity//FB. در انتشاری که کاربر محلی ندارد، از حسابی در یک سرویس دایرکتوری (LDAP یا Active Directory) استفاده کنید که گروهش به نقش readonly نگاشت شده باشد. توکن‌های API در FlashBlade با `T-` آغاز می‌شوند.
+@tab ONTAP CLI
+به‌عنوان مدیر با SSH به نشانی مدیریتی خوشه وصل شوید. فرمان نخست یک نقش REST می‌سازد که می‌تواند همه APIها را بخواند و هیچ کار دیگری نمی‌تواند؛ فرمان دوم یک کاربر HTTP با این نقش می‌سازد و گذرواژه آن را می‌پرسد:
+
+```bash
+security login rest-role create -role oneuptime-readonly -api /api -access readonly
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role oneuptime-readonly
+```
+
+عامل با همین کاربر و گذرواژه وارد می‌شود. هیچ توکن API در کار نیست.
+@tab ONTAP System Manager
+1. _Cluster → Settings → Users and Roles_ را باز کنید.
+2. زیر **Roles**، **Add** را برگزینید، نام نقش را `oneuptime-readonly` بگذارید، `/api` را به‌عنوان **REST API path** وارد کنید و دسترسی **Read-Only** را برگزینید.
+3. زیر **Users**، **Add** را برگزینید، نام کاربر را `oneuptime` بگذارید، نقش تازه را به آن بدهید، روش ورود **HTTP** را با **Password** بیفزایید و گذرواژه را تعیین کنید.
+@tab Amazon FSx for NetApp ONTAP
+به‌عنوان `fsxadmin` با SSH به نقطه پایانی مدیریتی سیستم فایل (نام DNS یا IP آن، از کنسول FSx) وصل شوید، و کاربر را با نقش فقط‌خواندنی ازپیش‌تعریف‌شده FSx بسازید. فرمان گذرواژه آن را می‌پرسد:
+
+```bash
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role fsxadmin-readonly
+```
+
+سخت‌افزار سیستم فایل را AWS اداره می‌کند، پس FSx به پرسش هیچ‌کس درباره دیسک‌ها، قفسه‌های دیسک یا حسگرها پاسخ نمی‌دهد: صفحه **سخت‌افزار** آرایه گره‌ها و پورت‌هایش را فهرست می‌کند و همین را می‌گوید.
 :::
 
 ### بررسی کنید که آیا FlashArray متریک‌های خودش را ارائه می‌کند
@@ -78,7 +104,7 @@ pureadmin create --api-token oneuptime
 curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization: Bearer <api-token>' | grep purefa_info
 ```
 
-یک خط `purefa_info{...} 1` یعنی آرایه متریک‌هایش را به‌طور بومی ارائه می‌کند: از پیکربندی پیش‌فرض استفاده کنید. یک `404` یعنی نه: از پیکربندی صادرکننده استفاده کنید، که صادرکننده Pure را کنار کالکتور اجرا می‌کند. Pure آن صادرکننده را منسوخ کرده است، پس به‌محض ارتقای آرایه به پیکربندی بومی بروید. FlashBlade همیشه از صادرکننده FlashBlade در Pure می‌گذرد، پس برای آن این گام را رد کنید.
+یک خط `purefa_info{...} 1` یعنی آرایه متریک‌هایش را به‌طور بومی ارائه می‌کند: از پیکربندی پیش‌فرض استفاده کنید. یک `404` یعنی نه: از پیکربندی صادرکننده استفاده کنید، که صادرکننده Pure را کنار کالکتور اجرا می‌کند. Pure آن صادرکننده را منسوخ کرده است، پس به‌محض ارتقای آرایه به پیکربندی بومی بروید. FlashBlade همیشه از صادرکننده FlashBlade در Pure می‌گذرد، و خوشه ONTAP از NetApp Harvest، پس برای آن‌ها این گام را رد کنید.
 
 ### عامل را نصب و اجرا کنید
 
@@ -93,7 +119,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-اسکریپت می‌پرسد این کدام آرایه است (FlashArray با متریک‌های بومی، FlashArray روی Purity//FA قدیمی‌تر، یا FlashBlade)، سپس نشانی OneUptime شما، کلید دریافت داده، نامی برای آرایه، نشانی مدیریتی آرایه و توکن API کاربر فقط‌خواندنی را می‌پرسد (بی‌نمایش خوانده می‌شود). در `/opt/oneuptime-storage-array-agent` نصب می‌کند، فایل Compose و هر سه پیکربندی کالکتور را دانلود می‌کند، یک فایل با مجوز `0600` به نام `.env` با پیکربندی و پروفایل Compose متناظر می‌نویسد و عامل را با Docker Compose راه می‌اندازد. هر مقدار را همان‌طور که تایپ کرده‌اید برای Docker Compose درون نقل‌قول می‌گذارد. اجرای دوباره آن به‌جای پرسیدن دوباره، همه‌چیز را از `.env` موجود دوباره به کار می‌برد، و فایلی را که ویرایش کرده‌اید پیش از جایگزینی به‌صورت `<file>.bak.<timestamp>` نگه می‌دارد.
+اسکریپت می‌پرسد این کدام آرایه است (FlashArray با متریک‌های بومی، FlashArray روی Purity//FA قدیمی‌تر، FlashBlade، یا یک خوشه NetApp ONTAP)، سپس نشانی OneUptime شما، کلید دریافت داده، نامی برای آرایه، نشانی مدیریتی آرایه و توکن API کاربر فقط‌خواندنی، یا برای ONTAP نام و گذرواژه کاربر فقط‌خواندنی را می‌پرسد (بی‌نمایش خوانده می‌شود). در `/opt/oneuptime-storage-array-agent` نصب می‌کند، فایل Compose، همه پیکربندی‌های کالکتور و چهار فایل Harvest را دانلود می‌کند، یک فایل با مجوز `0600` به نام `.env` با پیکربندی و پروفایل Compose متناظر می‌نویسد و عامل را با Docker Compose راه می‌اندازد. هر مقدار را همان‌طور که تایپ کرده‌اید برای Docker Compose درون نقل‌قول می‌گذارد. اجرای دوباره آن به‌جای پرسیدن دوباره، همه‌چیز را از `.env` موجود دوباره به کار می‌برد، و فایلی را که ویرایش کرده‌اید پیش از جایگزینی به‌صورت `<file>.bak.<timestamp>` نگه می‌دارد.
 @tab Docker Compose
 `docker-compose.yml` و سه فایل `otel-collector-config*.yaml` را از OneUptime خودتان در یک پوشه تازه دانلود کنید:
 
@@ -129,7 +155,34 @@ POWERSTORE_SYSLOG_PORT=
 
 برای Dell PowerStore، `otel-collector-config.powerstore.yaml`، `powerstore-exporter.Dockerfile` و `powerstore-syslog.yaml` را هم دانلود کنید، `STORAGE_SYSTEM=dell.powerstore`، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` و `COMPOSE_PROFILES=powerstore` را تنظیم کنید، و `POWERSTORE_ENDPOINT`، `POWERSTORE_USERNAME` و `POWERSTORE_PASSWORD` را پر کنید، گذرواژه را داخل علامت نقل‌قول تکی.
 
-برای FlashArray روی Purity//FA قدیمی‌تر، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` و `COMPOSE_PROFILES=flasharray-exporter` را تنظیم کنید. برای FlashBlade، `STORAGE_SYSTEM=purestorage.flashblade`، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` و `COMPOSE_PROFILES=flashblade` را تنظیم کنید، و `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN` را پر کنید (به‌جای جفت `PURE_FA_*`). عامل را راه بیندازید:
+برای FlashArray روی Purity//FA قدیمی‌تر، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` و `COMPOSE_PROFILES=flasharray-exporter` را تنظیم کنید. برای FlashBlade، `STORAGE_SYSTEM=purestorage.flashblade`، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` و `COMPOSE_PROFILES=flashblade` را تنظیم کنید، و `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN` را پر کنید (به‌جای جفت `PURE_FA_*`).
+
+برای یک خوشه NetApp ONTAP یا Amazon FSx for NetApp ONTAP، پیکربندی ONTAP و چهار فایل Harvest را هم دانلود کنید:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
+```
+
+و از این `.env` استفاده کنید. گذرواژه را مانند اینجا درون نقل‌قول تکی نگه دارید: آن‌گاه Docker Compose آن را دقیقاً همان‌طور که نوشته شده می‌خواند، هرچه در آن باشد. گذرواژه‌ای که `'` در خود دارد به‌جای آن درون نقل‌قول دوتایی می‌رود، با `\"`، `\\` و `$$` به‌جای `"`، `\` و `$`:
+
+```bash title=".env"
+ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
+STORAGE_ARRAY_NAME=ontap-prod-01
+STORAGE_SYSTEM=netapp.ontap
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.netapp-ontap.yaml
+COMPOSE_PROFILES=netapp-ontap
+NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
+NETAPP_ONTAP_USERNAME=oneuptime
+NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
+STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+```
+
+عامل را راه بیندازید:
 
 ```bash
 docker compose up -d
@@ -143,7 +196,7 @@ docker compose ps
 docker logs -f oneuptime-storage-array-agent
 ```
 
-`docker compose ps` کالکتور (`oneuptime-storage-array-agent`) و، با پیکربندی صادرکننده، خود صادرکننده (`pure-fa-exporter` یا `pure-fb-exporter`) را فهرست می‌کند. پس از راه‌اندازی کالکتور، لاگ‌هایش باید این خط را نشان دهند:
+`docker compose ps` کالکتور (`oneuptime-storage-array-agent`) و، با پیکربندی صادرکننده، خود صادرکننده (`pure-fa-exporter`، `pure-fb-exporter` یا `netapp-harvest`) را فهرست می‌کند. پس از راه‌اندازی کالکتور، لاگ‌هایش باید این خط را نشان دهند:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -151,7 +204,7 @@ Everything is ready. Begin running and processing data.
 
 ### یافتن آرایه در OneUptime
 
-**محصولات** > **زیرساخت** > **آرایه‌های ذخیره‌سازی** > **همه آرایه‌های ذخیره‌سازی** را باز کنید. پس از نخستین برداشت (حدود یک دقیقه) آرایه با ظرفیت، کارایی، هشدارهای باز و سخت‌افزارش آنجاست. حجم‌ها، میزبان‌ها و پادها ظرف ۲ دقیقه می‌آیند، سیستم‌های فایل و باکت‌های FlashBlade ظرف ۵ دقیقه، و دایرکتوری‌های FlashArray ظرف ۳۰ دقیقه. صفحهٔ **توپولوژی** آرایه میزبان‌ها، حجم‌ها، سیستم‌های فایل و سخت‌افزارش را روی یک نقشه می‌کشد: [توپولوژی](/docs/telemetry/topology#باز-کردن-نقشهٔ-خود-یک-منبع) را ببینید.
+**محصولات** > **زیرساخت** > **آرایه‌های ذخیره‌سازی** > **همه آرایه‌های ذخیره‌سازی** را باز کنید. پس از نخستین برداشت (حدود یک دقیقه) آرایه با ظرفیت، کارایی، هشدارهای باز و سخت‌افزارش آنجاست. حجم‌ها، میزبان‌ها و پادها ظرف ۲ دقیقه می‌آیند، سیستم‌های فایل و باکت‌های FlashBlade ظرف ۵ دقیقه، و دایرکتوری‌های FlashArray ظرف ۳۰ دقیقه. خوشه ONTAP وقتی Harvest آن را خواند پدیدار می‌شود، و کل موجودی‌اش ظرف حدود ۳ دقیقه، یعنی فاصله‌ای که Harvest پیکربندی آن را پیمایش می‌کند. صفحهٔ **توپولوژی** آرایه میزبان‌ها، حجم‌ها، سیستم‌های فایل و سخت‌افزارش را روی یک نقشه می‌کشد: [توپولوژی](/docs/telemetry/topology#باز-کردن-نقشهٔ-خود-یک-منبع) را ببینید.
 :::
 
 ## Dell PowerStore
@@ -173,9 +226,9 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | بله | نشانی OneUptime شما، مانند `https://oneuptime.com` یا نمونه خودمیزبان شما. اگر نمونه فقط HTTP دارد، از `http://` و پورتش استفاده کنید. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | بله | کلید دریافت داده از **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده**. |
 | `STORAGE_ARRAY_NAME` | بله | نامی که آرایه با آن در OneUptime ثبت می‌شود، و به‌صورت ویژگی منبع `storage.array.name` روی هر متریک مُهر زده می‌شود. ثابتش نگه دارید: تغییرش در آینده آرایه دومی ثبت می‌کند. کالکتور بدون آن راه‌اندازی نمی‌شود. |
-| `STORAGE_SYSTEM` | خیر | پلتفرم، که به‌صورت ویژگی منبع `storage.system` مُهر زده می‌شود: `purestorage.flasharray` یا `purestorage.flashblade`. پیش‌فرض آن `purestorage.flasharray` است. |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | خیر | اینکه کدام پیکربندی کالکتور همراه بسته اجرا شود: `otel-collector-config.yaml` (FlashArray، بومی: پیش‌فرض)، `otel-collector-config.flasharray-exporter.yaml` (FlashArray قدیمی‌تر) یا `otel-collector-config.flashblade.yaml` (FlashBlade). |
-| `COMPOSE_PROFILES` | خیر | صادرکننده‌ای را که پیکربندی انتخاب‌شده برداشت می‌کند راه می‌اندازد: برای پیکربندی بومی FlashArray خالی، و برای دو پیکربندی دیگر `flasharray-exporter` یا `flashblade`. |
+| `STORAGE_SYSTEM` | خیر | پلتفرم، که به‌صورت ویژگی منبع `storage.system` مُهر زده می‌شود: `purestorage.flasharray`، `purestorage.flashblade` یا `netapp.ontap`. پیش‌فرض آن `purestorage.flasharray` است. |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | خیر | اینکه کدام پیکربندی کالکتور همراه بسته اجرا شود: `otel-collector-config.yaml` (FlashArray، بومی: پیش‌فرض)، `otel-collector-config.flasharray-exporter.yaml` (FlashArray قدیمی‌تر)، `otel-collector-config.flashblade.yaml` (FlashBlade) یا `otel-collector-config.netapp-ontap.yaml` (ONTAP). |
+| `COMPOSE_PROFILES` | خیر | صادرکننده‌ای را که پیکربندی انتخاب‌شده برداشت می‌کند راه می‌اندازد: برای پیکربندی بومی FlashArray خالی، و برای بقیه `flasharray-exporter`، `flashblade` یا `netapp-ontap`. |
 | `PURE_FA_ENDPOINT` | FlashArray | نشانی مدیریتی FlashArray: یک نام میزبان یا IP، بدون `https://`. |
 | `PURE_FA_API_TOKEN` | FlashArray | توکن API کاربر FlashArray با نقش readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | نشانی مدیریتی FlashBlade: یک نام میزبان یا IP، بدون `https://`. |
@@ -187,7 +240,10 @@ Everything is ready. Begin running and processing data.
 | `POWERSTORE_API_VERSION` | خیر | `v3` برای PowerStoreOS 3.6 و بعد از آن، یا `v1`. پیش‌فرض `v3` است. |
 | `POWERSTORE_REQUEST_LIMIT` | خیر | تعداد درخواست‌هایی که صادرکننده هم‌زمان به خوشه می‌فرستد. پیش‌فرض `16` است. |
 | `POWERSTORE_SYSLOG_PORT` | خیر | پورتی که این ماشین syslog خوشه را روی آن دریافت می‌کند، با TCP و UDP. پیش‌فرض `5514` است. |
-| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | خیر | `true` گواهی خودامضای آرایه را روی نقطه پایانی بومی می‌پذیرد؛ `false` آن را اعتبارسنجی می‌کند. پیش‌فرض آن `true` است. صادرکننده‌های Pure هرگز گواهی آرایه را اعتبارسنجی نمی‌کنند، پس این متغیر بر آن‌ها اثری ندارد. |
+| `NETAPP_ONTAP_ENDPOINT` | ONTAP | نشانی مدیریتی خوشه (روی FSx، نقطه پایانی مدیریتی سیستم فایل): یک نام میزبان یا IP، بدون `https://`. |
+| `NETAPP_ONTAP_USERNAME` | ONTAP | کاربر REST فقط‌خواندنی، مانند `oneuptime`. |
+| `NETAPP_ONTAP_PASSWORD` | ONTAP | گذرواژه آن کاربر. فقط Harvest آن را می‌خواند، دقیقاً همان‌طور که نوشته شده است. |
+| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | خیر | `true` گواهی خودامضای آرایه را روی نقطه پایانی بومی و در Harvest می‌پذیرد؛ `false` آن را اعتبارسنجی می‌کند. پیش‌فرض آن `true` است. صادرکننده‌های Pure هرگز گواهی آرایه را اعتبارسنجی نمی‌کنند، پس این متغیر بر آن‌ها اثری ندارد. |
 
 ## عامل چگونه برداشت می‌کند
 
@@ -197,10 +253,11 @@ Everything is ready. Begin running and processing data.
 - **توکن API یک توکن Bearer است.** پیکربندی بومی آن را به خود آرایه می‌فرستد؛ پیکربندی‌های صادرکننده آن را فقط از راه شبکه Compose به صادرکننده می‌فرستند، و پورت‌های صادرکننده‌ها هرگز منتشر نمی‌شوند.
 - **یک PowerStore هر ۵ دقیقه.** صادرکننده Dell هر بخش خوشه را در `/metrics/<cluster>/<part>` ارائه می‌دهد: پیکربندی `cluster` را هر ۶۰ ثانیه می‌خواند، که ضربان قلب آن است، و `appliance`، `capacity`، `hardware`، `port`، `volume`، `volumeGroup`، `nas` و `file` را هر ۵ دقیقه، چون PowerStore آن‌ها را در نمونه‌های پنج‌دقیقه‌ای محاسبه می‌کند.
 - **بدون `send_batch_max_size`.** ‏OneUptime فهرست موجودی را در هر درخواست از یک برداشت کامل بازمی‌سازد، پس پردازشگر `batch` همراهِ عامل هرگز یک برداشت را میان چند صادرات تقسیم نمی‌کند. تنظیمات batch را همان‌طور که ارسال شده‌اند نگه دارید.
+- **ONTAP: Harvest خوشه را پیمایش می‌کند، کالکتور Harvest را برداشت می‌کند.** Harvest پیکربندی و وضعیت خوشه را هر ۳ دقیقه، کارایی آن را هر دقیقه (تأخیرها به میکروثانیه برای هر عملیات، عملیات و بایت در ثانیه) و رویدادهای EMS آن را هر ۳ دقیقه می‌خواند، و تازه‌ترین مقدار همه‌چیز را روی `netapp-harvest:12990` ارائه می‌کند، که کالکتور هر ۶۰ ثانیه آن را با برچسب `scrape_endpoint: harvest` برداشت می‌کند. سه فایل `netapp-harvest-*.yaml` کار Harvest را به آنچه OneUptime می‌خواند محدود می‌کنند. سری‌های `netapp_metadata_*` خود Harvest می‌گویند کدام شیءها را به‌طور کامل فهرست کرده است، پس حجم حذف‌شده از موجودی بیرون می‌رود، در حالی که شیئی که Harvest نتوانسته بخواند آخرین شمار خود را نگه می‌دارد. کالکتور اندازه‌گیری‌های Harvest از خودش و سری‌های کارایی هر دیسک را کنار می‌گذارد، و زمان‌بندی هر رابطه SnapMirror را به `netapp_snapmirror_schedule_seconds` تبدیل می‌کند (زمان‌بندی ساعتی ۳۶۰۰ است)، که SnapMirror Behind Schedule عقب‌ماندگی را با آن مقایسه می‌کند.
 
 ## آنچه عامل گردآوری می‌کند
 
-قراردادهای معنایی Pure میان نقطه پایانی بومی FlashArray و هر دو صادرکننده مشترک است. هر مقدار یک سنجه از نوع gauge است که آرایه خودش محاسبه می‌کند (تأخیرها به میکروثانیه برای هر عملیات، توان عملیاتی در ثانیه)، پس نیازی به محاسبه نرخ نیست، و شیءها با **برچسب‌های نقطه داده** نام‌گذاری می‌شوند: `name` برای حجم‌ها، پادها، دایرکتوری‌ها، سیستم‌های فایل و باکت‌ها، `host` برای میزبان‌ها، `component_name` برای سخت‌افزار FlashArray. عامل ویژگی‌های منبع `storage.array.name` و `storage.system` را می‌افزاید، پس OneUptime همه‌چیز را زیر آرایه شما بایگانی می‌کند:
+قراردادهای معنایی Pure میان نقطه پایانی بومی FlashArray و هر دو صادرکننده مشترک است؛ قراردادهای ONTAP از آنِ Harvest است و پس از جدول شرح داده شده است. هر مقدار یک سنجه از نوع gauge است که آرایه خودش محاسبه می‌کند (تأخیرها به میکروثانیه برای هر عملیات، توان عملیاتی در ثانیه)، پس نیازی به محاسبه نرخ نیست، و شیءها با **برچسب‌های نقطه داده** نام‌گذاری می‌شوند: `name` برای حجم‌ها، پادها، دایرکتوری‌ها، سیستم‌های فایل و باکت‌ها، `host` برای میزبان‌ها، `component_name` برای سخت‌افزار FlashArray. عامل ویژگی‌های منبع `storage.array.name` و `storage.system` را می‌افزاید، پس OneUptime همه‌چیز را زیر آرایه شما بایگانی می‌کند:
 
 | نقطه پایانی | خانواده‌های متریک | آنچه OneUptime از آن‌ها می‌سازد |
 | --- | --- | --- |
@@ -215,6 +272,11 @@ Everything is ready. Begin running and processing data.
 | PowerStore `cluster`، `appliance`، `capacity` | `powerstore_cluster`، `powerstore_metro_*`، `powerstore_appliance`، `powerstore_perf_*`، `powerstore_cap_*` | نام و وضعیت خوشه؛ صفحه **دستگاه‌های اختصاصی**: ظرفیت، کاهش داده، تأخیر، IOPS و پهنای باند هر دستگاه اختصاصی |
 | PowerStore `hardware`، `port` | `powerstore_hardware_*`، `powerstore_wear_metrics_by_drive`، `powerstore_fc_port_*`، `powerstore_eth_port_*`، `powerstore_metricFcPort_*`، `powerstore_metricEthPort_*` | صفحه **سخت‌افزار**: گره‌ها، فن‌ها، منابع تغذیه، باتری‌ها، درایوها و پورت‌های جلویی، هر کدام با دستگاه اختصاصی خودش |
 | PowerStore `volume`، `volumeGroup`، `nas`، `file` | `powerstore_volume_*`، `powerstore_metricVolume_*`، `powerstore_volumegroup_*`، `powerstore_metricVg_*`، `powerstore_nas_server_operational_status`، `powerstore_metricNas_*`، `powerstore_filesystem_*`، `powerstore_metricFilesystem_*` | صفحه‌های **حجم‌ها**، **گروه‌های حجم**، **سرورهای NAS** و **سامانه‌های فایل** |
+| ONTAP، از راه Harvest | `netapp_cluster_*`، `netapp_node_*`، `netapp_aggr_*`، `netapp_svm_*`، `netapp_volume_*`، `netapp_lun_*`، `netapp_snapmirror_*` | نام، نسخه و UUID خوشه؛ ظرفیت آن (مجموع ظرفیت اگریگیت‌های داده‌اش) و کاهش داده؛ صفحه **حجم‌ها**؛ صفحه‌های **اگریگیت‌ها**، **SVMها**، **LUNها** و **SnapMirror**، یک صفحه برای هر شیء |
+| سخت‌افزار ONTAP، از راه Harvest | `netapp_disk_*`، `netapp_shelf_*`، `netapp_environment_sensor_*`، `netapp_net_port_*`، `netapp_nic_*`، `netapp_fcp_*` | صفحه **سخت‌افزار**: گره‌ها، دیسک‌ها، قفسه‌های دیسک و منابع تغذیه، فن‌ها، ماژول‌ها و حسگرهای آن‌ها، حسگرهای گره‌ها، و پورت‌های Ethernet و Fibre Channel |
+| مشکل‌های باز و رویدادهای ONTAP | `netapp_health_*`، `netapp_ems_events` | شمار هشدارهای باز و کارت **هشدارهای فعال** (دیسک‌های خراب، خطاهای قفسه دیسک، بر عهده گرفتن کار در HA، پورت‌های قطع، هشدارهای سلامت سامانه)، و الگوهای هشدار EMS |
+
+روی ONTAP هر سری از آنِ Harvest است: هر شیء با برچسب‌هایش نام‌گذاری می‌شود (`volume` درون `svm` خودش، `aggr`، `lun`، `node`، `disk`، `shelf`، و `destination_location` برای یک رابطه SnapMirror)، هر وضعیت یا یک `netapp_*_new_status` با مقدار ۱ یا ۰ است یا یک سری `netapp_*_labels` که برچسب‌هایش آن را می‌گویند، و هر مشکل باز یک سری `netapp_health_*_alerts` است که تا وقتی مشکل ادامه دارد وجود دارد.
 
 ستون **سلامت** در **همه آرایه‌های ذخیره‌سازی** هشدارها و سخت‌افزار خود آرایه را از تازه‌ترین داده‌هایش می‌خواند: **بحرانی** تا وقتی که یک هشدار بحرانی باز گزارش می‌کند، یا یک قطعه سخت‌افزاری، درایو یا کنترلر که بحرانی، خراب، ناپیدا یا ناسالم است؛ **هشدار** تا وقتی که یک هشدار اخطار باز گزارش می‌کند، یا قطعه‌ای تنزل‌یافته یا ناشناخته؛ در غیر این صورت **OK**؛ و تا وقتی عامل قطع است، **ناشناخته**. **نمای کلی** آرایه بیش از این را می‌سنجد، همان‌طور که بخش بعدی می‌گوید. در معیارهای مانیتور، ویژگی‌های آرایه پیشوند `resource.` می‌گیرند (`resource.storage.array.name`، `resource.storage.system`)، در حالی که برچسب‌های نقطه داده بی‌پیشوند می‌مانند (`name`، `host`، `dimension`، `space`).
 
@@ -229,8 +291,9 @@ Everything is ready. Begin running and processing data.
 - **میزبان‌ها.** میزبانی که دیگر از طریق هر دو کنترلر به آرایه نمی‌رسد نیاز به نگاهی دارد، با دلیل آن: فقط از طریق یک کنترلر، از مسیرهای نامتوازن یا بی هیچ مسیری.
 - **Podها.** Podی که آرایه پیوند رونوشت آن را ناسالم گزارش می‌کند بحرانی است، و Podی که بیش از یک دقیقه عقب است نیاز به نگاهی دارد.
 - **سامانه‌های فایل.** سامانه فایل FlashBlade که کمتر از ۱۰٪ اندازه تخصیص‌یافته‌اش آزاد مانده، نیاز به نگاهی دارد.
+- **شیءهای خود یک خوشه ONTAP.** حجم، اگریگیت یا LUNی که ONTAP آن را آفلاین گزارش می‌کند، دیسک خراب، قطعه‌ای از قفسه دیسک که خطا دارد، حسگر گره‌ای که از آستانه بحرانی‌اش گذشته و پورتی که قطع است بحرانی‌اند؛ SVM متوقف‌شده، گره‌ای با فن یا منبع تغذیه خراب و حسگری که از آستانه اخطارش گذشته نیاز به نگاهی دارند، با دلیل آن به زبان خود ONTAP. رابطه SnapMirror که ONTAP آن را ناسالم گزارش می‌کند بحرانی است، و رابطه‌ای که بیش از یک و نیم بازه زمان‌بندی‌اش عقب است نیاز به نگاهی دارد.
 
-فهرست‌های **میزبان‌ها**، **تکثیر** و **سامانه‌های فایل** وضعیت هر بخش را با همان قواعد می‌گویند، و دلیل زیر آن. صفحه خود هر میزبان و هر سامانه فایل می‌گوید چه چیزی در آن نیاز به توجه دارد و کدام هشدارهای آرایه آن را زیر نظر دارند، با یک قدم برای روشن کردن بقیه، و صفحه هر بخش، از جمله حجم و باکت، می‌گوید چه چیزی روی آن باز است. تا وقتی عامل قطع است، سلامت **سلامت: نامشخص** نشان داده می‌شود: آخرین گزارش آرایه دیگر درست نیست. هر آستانه بالا همان است که الگوی هشدارش در آن فعال می‌شود، همان‌طور که [مانیتور آرایه ذخیره‌سازی](/docs/monitor/storage-array-monitor) آن‌ها را فهرست می‌کند.
+فهرست‌های **میزبان‌ها**، **تکثیر** و **سامانه‌های فایل** وضعیت هر بخش را با همان قواعد می‌گویند، و دلیل زیر آن، و فهرست‌های **حجم‌ها**، **اگریگیت‌ها**، **SVMها**، **LUNها** و **SnapMirror** یک خوشه ONTAP هم همین‌طور، که هر سطرشان صفحه‌ای ویژه خود را باز می‌کند: وضعیتش، آنچه نیاز به توجه دارد، آنچه روی آن باز است، هشدارهایی از خوشه که آن را زیر نظر دارند، آنچه ONTAP درباره‌اش گزارش می‌کند و نمودارهایش. صفحه‌های هر پلتفرم به زبان همان پلتفرم سخن می‌گویند: یک حجم ONTAP نشان می‌دهد در کدام SVM و کدام اگریگیت است و چقدر پر است، و صفحه‌اش سری‌های ONTAP را در نمودار نشان می‌دهد. روی Amazon FSx for NetApp ONTAP، صفحه **سخت‌افزار** گره‌ها و پورت‌ها را فهرست می‌کند و می‌گوید چرا دیسک یا قفسه دیسکی در کار نیست. صفحه خود هر میزبان و هر سامانه فایل می‌گوید چه چیزی در آن نیاز به توجه دارد و کدام هشدارهای آرایه آن را زیر نظر دارند، با یک قدم برای روشن کردن بقیه، و صفحه هر بخش، از جمله حجم و باکت، می‌گوید چه چیزی روی آن باز است. تا وقتی عامل قطع است، سلامت **سلامت: نامشخص** نشان داده می‌شود: آخرین گزارش آرایه دیگر درست نیست. هر آستانه بالا همان است که الگوی هشدارش در آن فعال می‌شود، همان‌طور که [مانیتور آرایه ذخیره‌سازی](/docs/monitor/storage-array-monitor) آن‌ها را فهرست می‌کند.
 
 روی یک PowerStore، زبانه‌های **دستگاه‌های اختصاصی**، **گروه‌های حجم** و **سرورهای NAS** بخش‌هایی را فهرست می‌کنند که فقط PowerStore دارد، و صفحه **سخت‌افزار** دستگاه اختصاصی هر بخش را نام می‌برد، چون همه دستگاه‌های اختصاصی بخش‌های خود را یکسان نام‌گذاری می‌کنند.
 
@@ -295,14 +358,14 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 عامل نسخه کالکتوری را که فایل‌هایش ثابت کرده‌اند به‌عنوان **نسخه عامل** خود گزارش می‌دهد. وقتی این نسخه از نسخه‌ای که این انتشار OneUptime ثابت کرده قدیمی‌تر باشد، کنار آن یک نشانه هشدار در **نمای کلی** آرایه نمایان می‌شود. آن را انتخاب کنید تا این فرمان‌ها را ببینید. عاملی که پیش از آنکه فایل‌هایش نسخه‌ای گزارش دهند نصب شده باشد، تا وقتی به این روش به‌روزرسانی نشود هیچ نسخه‌ای نشان نمی‌دهد.
 
-ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌هایش فایل‌هایی کنار آن هستند، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و سه پیکربندی کالکتور را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-storage-array-agent` نصب شده، پوشه‌اش را لازم دارد: `INSTALL_DIR=<folder> bash install.sh`.
+ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌هایش فایل‌هایی کنار آن هستند، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml`، همه پیکربندی‌های کالکتور و فایل‌های Harvest را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-storage-array-agent` نصب شده، پوشه‌اش را لازم دارد: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-به‌جای آن با Docker Compose نصبش کرده‌اید؟ در پوشه عامل، فایل Compose و سه پیکربندی کالکتور را دوباره دانلود کنید (و هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را بکشید و عامل را دوباره بسازید:
+به‌جای آن با Docker Compose نصبش کرده‌اید؟ در پوشه عامل، فایل Compose و پیکربندی‌های کالکتور را دوباره دانلود کنید (برای ONTAP، پیکربندی ONTAP و چهار فایل Harvest را هم، و هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را بکشید و عامل را دوباره بسازید:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
@@ -322,7 +385,7 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-سپس اگر دیگر نیازشان ندارید، کاربر فقط‌خواندنی و توکن API آن را روی آرایه پاک کنید.
+سپس اگر دیگر نیازشان ندارید، کاربر فقط‌خواندنی و توکن API آن را روی آرایه پاک کنید. روی ONTAP، `security login delete -user-or-group-name oneuptime -application http -authentication-method password` را اجرا کنید، سپس `security login rest-role delete -role oneuptime-readonly -api /api` را.
 
 روی یک PowerStore، `docker compose --profile powerstore down` را اجرا کنید تا صادرکننده و کالکتور syslog هم متوقف شوند.
 
@@ -361,8 +424,12 @@ Purity//FA آن نقطه پایانی بومی OpenMetrics ندارد. `install.
 آرایه‌ها به‌طور پیش‌فرض یک گواهی خودامضا ارائه می‌کنند که هیچ ایمیج Docker به آن اعتماد ندارد. یا `STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true` را تنظیم کنید (انتخاب عملی در یک شبکه مدیریتی خصوصی)، یا گواهی‌ای از یک CA را روی آرایه نصب کنید که ایمیج کالکتور به آن اعتماد دارد.
 :::
 
-:::details نام pure-fa-exporter یا pure-fb-exporter پیدا نمی‌شود
-صادرکننده در حال اجرا نیست: `COMPOSE_PROFILES` باید با `STORAGE_ARRAY_COLLECTOR_CONFIG` جور باشد (`flasharray-exporter` برای پیکربندی صادرکننده FlashArray، `flashblade` برای پیکربندی FlashBlade). `.env` را درست کنید و `docker compose up -d` را اجرا کنید؛ سپس `docker compose ps` صادرکننده را فهرست می‌کند.
+:::details نام pure-fa-exporter، pure-fb-exporter یا netapp-harvest پیدا نمی‌شود
+صادرکننده در حال اجرا نیست: `COMPOSE_PROFILES` باید با `STORAGE_ARRAY_COLLECTOR_CONFIG` جور باشد (`flasharray-exporter` برای پیکربندی صادرکننده FlashArray، `flashblade` برای پیکربندی FlashBlade، `netapp-ontap` برای پیکربندی ONTAP). `.env` را درست کنید و `docker compose up -d` را اجرا کنید؛ سپس `docker compose ps` صادرکننده را فهرست می‌کند.
+:::
+
+:::details ONTAP: Harvest نمی‌تواند وارد شود، یا شیئی ناپیداست
+لاگ Harvest را بخوانید: `docker compose logs netapp-harvest`. یک `401` یا `Unauthorized` یعنی خوشه کاربر یا گذرواژه‌اش را رد کرده است: بررسی کنید که کاربر روش ورود **http** و نقش REST فقط‌خواندنی را داشته باشد (`security login show -user-or-group-name oneuptime`)، `.env` را درست کنید و `docker compose up -d` را اجرا کنید. یک `403` یا `not authorized` روی یک شیء یعنی نقش به آن API نمی‌رسد؛ نقش بالا به کل `/api` می‌رسد. روی Amazon FSx for NetApp ONTAP، FSx برای دیسک‌ها، قفسه‌های دیسک و حسگرها به هر کسی که بپرسد همین پاسخ را می‌دهد: این عادی است، و صفحه **سخت‌افزار** هم همین را می‌گوید. `connection refused` یا `no such host` یعنی `NETAPP_ONTAP_ENDPOINT` نادرست است: این نشانی مدیریتی خوشه است (روی FSx، نقطه پایانی مدیریتی)، نه نشانی یک گره یا یک SVM. اسکریپت تشخیصی همه این‌ها را هم بررسی می‌کند.
 :::
 
 :::details یک PowerStore هیچ چیزی نمی‌فرستد

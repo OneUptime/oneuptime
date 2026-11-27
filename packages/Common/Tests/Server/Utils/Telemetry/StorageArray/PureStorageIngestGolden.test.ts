@@ -60,6 +60,19 @@ const GOLDEN_PATH: string = path.join(
 
 const ARRAY_ID: string = "5a7e0000-0000-4000-8000-0000000011a0";
 
+/*
+ * The series the scan reads for a Pure array: the list holds every shipped
+ * platform's (NetApp ONTAP's too, since #11001), and a Pure array's are
+ * Pure's prefixes'.
+ */
+const PURE_SNAPSHOT_METRIC_NAMES: Set<string> = new Set(
+  Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES).filter(
+    (name: string): boolean => {
+      return name.startsWith("purefa_") || name.startsWith("purefb_");
+    },
+  ),
+);
+
 interface CapturedBatchSeries {
   series: CapturedSeries;
   jobLabels: Record<string, string>;
@@ -391,7 +404,7 @@ function computeGolden(): Omit<GoldenFile, "note"> {
     ["a FlashArray batch with no declaration", "purestorage.flasharray", null],
     ["no Pure series, declared FlashArray", null, "purestorage.flasharray"],
     ["no Pure series, declared FlashBlade", null, "purestorage.flashblade"],
-    ["no Pure series, another platform declared", null, "netapp.ontap"],
+    ["no Pure series, another platform declared", null, "hitachi.vsp"],
     ["no Pure series, nothing declared", null, null],
   ];
   const systemResolution: Record<string, string | null> = {};

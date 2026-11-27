@@ -1,6 +1,6 @@
 # Eine Datenbank verbinden
 
-Data Observability liest jede Datenbank mit einem Login, das nur ihren Katalog liest: welche Tabellen und Views sie enthält, deren Spalten, Zeilen und Größe und wann sie sich geändert haben. Diese Seite nennt das Minimum, das jede Engine braucht, und zeigt, wie Sie die Verbindungszeichenfolge mit einer Sonde in Ihrem Netzwerk halten.
+Data Observability liest jede Datenbank mit einem Login, das nur ihren Katalog liest: welche Tabellen und Views sie enthält, deren Spalten, Zeilen und Größe und wann sie sich geändert haben. Diese Seite nennt das Minimum, das jede Engine braucht, zeigt, wie Sie die Verbindungszeichenfolge mit einer Sonde oder dem Database Agent, den Sie bereits betreiben, in Ihrem Netzwerk halten, und wie Sie eine Datenbank später ändern, entfernen oder löschen.
 
 ## Bevor Sie beginnen
 
@@ -13,12 +13,21 @@ Wählen Sie unter **Data Observability > Datenbanken** die Option **Datenbank ve
 
 - **OneUptime verbindet sich**: Fügen Sie eine Verbindungszeichenfolge ein. Sie wird verschlüsselt gespeichert, nur von den Workern von OneUptime verwendet und nie wieder angezeigt.
 - **Eine Sonde in meinem Netzwerk verbindet sich**: Wählen Sie eine Ihrer Sonden und nennen Sie die Umgebungsvariable auf der Sonde, die die Verbindungszeichenfolge enthält, etwa `ORDERS_DB_URL`. Die Verbindungszeichenfolge verlässt Ihr Netzwerk nie. Siehe [Benutzerdefinierte Sonden](/docs/probe/custom-probe).
+- **Mein Datenbank-Agent verbindet sich**: Wählen Sie den Datenbankserver, neben dem sein [Database Agent](/docs/telemetry/databases) bereits läuft, und nennen Sie die Datenbank darauf, die gelesen werden soll. Der Agent liest sie mit Logins aus seiner eigenen Umgebung, sodass kein Login in OneUptime gespeichert wird. Siehe [Über einen Database Agent](#über-einen-database-agent).
 
 Eine Datenbank, die bereits für Datensicherheit verbunden ist, wird ebenfalls überwacht, ohne dass Sie etwas verbinden müssen, und ebenso jedes BigQuery-Dataset, das Ihre [Cloud-Verbindung](/docs/telemetry/cloud-accounts) gefunden hat.
 
 ## Datenbanken, die Sie verbinden könnten
 
 **Datenbanken, die Sie verbinden könnten** unter **Datenbanken** listet auf, was Ihr Projekt bereits kennt und niemand verbunden hat: Datenbanken, mit denen Ihre Traces sprechen, solche in Ihren Cloud-Konten und solche, die Datenbank-Monitoring überwacht. **Verbinden** startet das Formular mit dem, was über jede bekannt ist, mit einer Verbindungszeichenfolge zum Ausfüllen. **Ausblenden** verhindert, dass eine wiederkommt. Es wird nichts gelesen, bis Sie sie verbinden.
+
+## Über einen Database Agent
+
+Ein Database Agent erreicht seinen Datenbankserver bereits und sendet dessen Metriken. Er kann die PostgreSQL-, MySQL- und MariaDB-Datenbanken dieses Servers auch für Data Observability lesen, sobald sein Betreiber das einschaltet: Fügen Sie `ONEUPTIME_DATA_OBSERVABILITY=true` zur `.env` des Agents hinzu und führen Sie `docker compose up -d` aus. Bis dahin wird der Agent mit **Data Observability aus** aufgeführt, und eine über ihn verbundene Datenbank sagt, was zu tun ist.
+
+OneUptime teilt dem Agent mit, welche Datenbank er lesen soll und welche Prüfungen fällig sind, jede mit ihrem Typ und der Tabelle und den Spalten, die sie liest. Es sendet nie eine Anweisung oder ein Login. Der Agent baut jede Anweisung selbst, aus denselben festen Formen, die auch die eigenen Collectors von OneUptime verwenden, und führt jede in einer schreibgeschützten Transaktion mit einem Limit von 30 Sekunden aus. Er führt eine Prüfung nur aus, wenn jede Tabelle und Spalte, die sie nennt, in dem Katalog steht, den er gerade gelesen hat, bindet jeden Wert, mit dem die Prüfung vergleicht, und sendet pro Prüfung eine Zahl zurück, nie eine Zeile. Prüfungen vom Typ **Benutzerdefiniertes SQL** und **Fehlerhafte Zeilen** laufen nur, wo der Betreiber des Agents `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true` setzt; anderswo sagen sie das, und jede andere Prüfung läuft.
+
+Der Agent liest den Katalog mit `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` oder dem Login des Collectors und führt Prüfungen mit `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` oder dem Login des Katalogs aus: Geben Sie jedem nur, was die Tabs unten dafür auflisten. Die README des Agents listet jede Variable auf.
 
 ## Ein schreibgeschütztes Login, je Engine
 
@@ -162,6 +171,18 @@ Prüfungen laufen als schreibgeschütztes SQL auf dem TDS-Endpunkt der Umgebung,
 
 Jede Anweisung läuft schreibgeschützt, mit einem Timeout für Anweisungen und Sperren, wo die Engine sie kennt. Eine Anfrage, die Snowflake, Databricks, BigQuery, Athena, ClickHouse oder Dataverse kurzzeitig abweist oder die dort kurzzeitig fehlschlägt, mit einem 429, einem 503 oder der eigenen Antwort des Dienstes, dass er ausgelastet ist, wird erneut gesendet, höchstens zweimal und mit höchstens einer Minute Wartezeit pro Erfassung, und nie so, dass eine Anweisung zweimal laufen könnte. Die Verbindungszeichenfolge wird nie protokolliert und aus jeder Fehlermeldung entfernt. Eine Statistik, die das Login nicht lesen darf, wird mit einem Hinweis an der Datenbank ausgelassen, nie mit einer fehlgeschlagenen Erfassung. Verbindungen zu privaten Adressen werden bei OneUptime Cloud abgelehnt: Verwenden Sie eine Sonde.
 
+## Eine Datenbank verwalten
+
+Jede Datenbank hat eine Seite **Einstellungen**: Wählen Sie **Einstellungen** in ihrer Zeile unter **Datenbanken** oder in ihrem Menü.
+
+- **Details bearbeiten** benennt sie um. Datensicherheit zeigt denselben Namen.
+- **Verbindung ändern** gibt ihr ein neues Login, eine andere Sonde oder einen Database Agent. Eine gespeicherte Verbindungszeichenfolge wird nie wieder angezeigt: Lassen Sie das Feld leer, um sie zu behalten. Wechselt eine Datenbank zu einem Database Agent, wird ihre gespeicherte Verbindungszeichenfolge gelöscht, es sei denn, Datensicherheit entnimmt damit Stichproben des Inhalts der Datenbank.
+- **Überwachung beenden** in ihrer **Übersicht** liest sie eine Weile nicht mehr und behält ihre Tabellen und deren Verlauf. **Wieder überwachen** startet erneut.
+- **Aus Data Observability entfernen** liest sie nicht mehr und verwirft ihre Tabellen, deren Prüfungen und deren Verlauf. Datensicherheit behält die Datenbank, ihre Verbindung und das, was ihre Scans gefunden haben, und sie wird wieder unter **Datenbanken, die Sie verbinden könnten** angeboten.
+- **Datenbank löschen** löscht sie aus OneUptime, mitsamt dem, was Data Observability und Datensicherheit von ihr speichern. Die Bestätigung listet vorher auf, was dabei wegfällt.
+
+Eine Datenbank hier ist zugleich ein Datenspeicher von Datensicherheit. Solange Datensicherheit sich auf sie stützt (sie hat die Datenbank gefunden, jemand hat sie dort hinzugefügt, oder sie enthält Befunde, Probleme, Scans, Eigentümer oder einen Eintrag im Verarbeitungsverzeichnis zu ihr), kann sie nur löschen, wer Datenspeicher von Datensicherheit löschen darf, und die Verbindung, mit der Datensicherheit Stichproben des Inhalts entnimmt, kann nur ändern, wer sie bearbeiten darf. Die Einstellungen sagen das an der jeweiligen Schaltfläche. Monitore, die eine Datenbank überwachen, bleiben erhalten, wenn sie entfernt wird: Löschen Sie sie unter **Monitore**.
+
 ## Lesereplikate
 
 Ein Lesereplikat von PostgreSQL oder SQL Server bewegt seine Schreibzähler nicht, sodass eine Tabelle dort unverändert wirken kann, während sie sich ändert. OneUptime erkennt, dass es ein Replikat ist, lässt die Zähler weg, sagt das an der Datenbank und fällt auf die Größe und die Zeilen der Tabelle zurück. Verbinden Sie, wo möglich, den Primärserver, oder nennen Sie für die wichtigen Tabellen eine [Freshness-Spalte](/docs/data-observability/table-health).
@@ -174,6 +195,7 @@ Jeder Pfad erscheint dann unter **Tabellen**: Sein neuestes Objekt ist seine let
 
 ## Fehlerbehebung
 
+- **Die Datenbank zeigt den Status Datenbank-Agent nicht bereit.** Der Agent kann sie gerade nicht lesen, und die Seite der Datenbank sagt, warum: An ihrem Server ist kein Database Agent verbunden, oder der Agent ist für Data Observability ausgeschaltet (`ONEUPTIME_DATA_OBSERVABILITY=true` schaltet ihn ein), hat sich nicht gemeldet, ist zu alt (führen Sie sein `install.sh` erneut aus) oder läuft an einem Server, der weder PostgreSQL noch MySQL ist.
 - **Die Datenbank zeigt den Status Fehlgeschlagen.** Ihre Meldung sagt, warum: ein Host, den OneUptime nicht erreicht, ein abgelehntes Login, ein TLS-Modus, den der Server nicht akzeptiert. Verbinden Sie eine Datenbank innerhalb Ihres Netzwerks über eine Sonde. Bei Snowflake, Databricks, BigQuery, Athena, ClickHouse und Dataverse nennt die Meldung, was gerade gelesen wurde, den Fehlercode und die Fehlermeldung des Dienstes selbst sowie die Anfrage- oder Abfrage-ID, die sein Support zurückverfolgen kann, sofern er eine angibt. **Jetzt erfassen** versucht es sofort erneut, und die Seite zeigt, wie es gelaufen ist.
 - **Tabellen zeigen keine letzte Änderung.** Das Login kann die Statistiken der Engine nicht lesen: Gewähren Sie, was der Tab Ihrer Engine auflistet, oder warten Sie, bis sich die Zeilen einer Tabelle zweimal geändert haben.
 - **Eine Tabelle fehlt.** Sie liegt in einem Schema, das das Login nicht nutzen kann, oder sie ist an der Datenbank ausgeschlossen. Gewähren Sie `USAGE` auf ihr Schema oder entfernen Sie den Ausschluss.

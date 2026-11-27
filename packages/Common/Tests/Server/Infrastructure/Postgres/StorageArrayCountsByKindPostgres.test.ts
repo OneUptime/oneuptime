@@ -108,7 +108,7 @@ describePostgres("StorageArray countsByKind against Postgres", () => {
     },
     anotherPlatform: {
       id: ObjectID.generate().toString(),
-      storageSystem: "netapp.ontap",
+      storageSystem: "hitachi.vsp",
       volumeCount: 0,
     },
     notReportedYet: {
