@@ -275,9 +275,9 @@ De opdracht van een lager niveau vervangt het AWS-beleid door het lagere. **Uit*
 
 ## Controles voor beveiligingszaken
 
-Op AWS kan dezelfde koppeling een [beveiligingszaak](/docs/telemetry/security-cases#hoe-oneuptime-een-stap-controleert) laten controleren of is teruggedraaid wat een aanval aan een IAM-gebruiker heeft gewijzigd: de toegangssleutel die hij maakte, het consolewachtwoord dat hij instelde, de beleidsdocumenten die hij koppelde of schreef, de groepen waaraan hij de gebruiker toevoegde, het MFA-apparaat dat hij inschakelde en de gebruiker die hij maakte. Onder **Meer velden** staat **Controles voor beveiligingszaken** op **Uit** tot je ze aanzet, en de opdracht die het formulier toont, verandert mee. Elke actie leest alleen, en geen enkele leest een geheim: van een toegangssleutel de ID en of hij actief is, nooit de sleutel, en dat er een consolewachtwoord is ingesteld, nooit het wachtwoord.
+Op AWS kan dezelfde koppeling een [beveiligingszaak](/docs/telemetry/security-cases#hoe-oneuptime-een-stap-controleert) laten controleren of is teruggedraaid wat een aanval aan een IAM-gebruiker of -rol heeft gewijzigd: de toegangssleutel die hij maakte, het consolewachtwoord dat hij instelde, de beleidsdocumenten die hij koppelde of schreef, de groepen waaraan hij de gebruiker toevoegde, het MFA-apparaat dat hij inschakelde, de gebruiker of rol die hij maakte, en het vertrouwensbeleid dat hij op een rol instelde. Onder **Meer velden** staat **Controles voor beveiligingszaken** op **Uit** tot je ze aanzet, en de opdracht die het formulier toont, verandert mee. Elke actie leest alleen, en geen enkele leest een geheim: van een toegangssleutel de ID en of hij actief is, nooit de sleutel, en dat er een consolewachtwoord is ingesteld, nooit het wachtwoord.
 
-| Wat de zaak leest van elke gebruiker die in haar CloudTrail-gebeurtenissen voorkomt | Acties |
+| Wat de zaak leest van elke gebruiker en rol die in haar CloudTrail-gebeurtenissen voorkomt | Acties |
 | --- | --- |
 | De gebruiker, of dat hij niet meer bestaat | `iam:GetUser` |
 | Zijn toegangssleutels, en of elke sleutel actief is | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ Op AWS kan dezelfde koppeling een [beveiligingszaak](/docs/telemetry/security-ca
 | Zijn beheerde beleidsdocumenten, en de namen van zijn inline-beleidsdocumenten | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | De groepen waarin hij zit | `iam:ListGroupsForUser` |
 | Zijn MFA-apparaten | `iam:ListMFADevices` |
+| De rol, wie het vertrouwensbeleid ervan vertrouwt, of dat de rol er niet meer is | `iam:GetRole` |
+| Het beheerde beleid van de rol, en de namen van het inline beleid ervan | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 De opdracht van de rol voegt een eigen inline-beleid toe, `OneUptimeSecurityCaseChecks`, met één regel extra, en het StackSet van een organisatie zet het in de rol van elk account:
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-Een zaak leest een wijziging alleen via een koppeling die het account bereikt waarin de wijziging is gemaakt, en vraagt IAM niets via een koppeling waarvan **Controles voor beveiligingszaken** op **Uit** staat: ze noemt die wijzigingen zodat je ze zelf bevestigt, en zegt dat je de instelling moet aanzetten. **Uit** voegt niets toe, dus het laat staan wat een eerdere opdracht gaf, tot je dat verwijdert, met `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+Een zaak leest een wijziging alleen via een koppeling die het account bereikt waarin de wijziging is gemaakt, en vraagt IAM niets via een koppeling waarvan **Controles voor beveiligingszaken** op **Uit** staat: ze noemt die wijzigingen zodat je ze zelf bevestigt, en zegt dat je de instelling moet aanzetten. **Uit** voegt niets toe, dus het laat staan wat een eerdere opdracht gaf, tot je dat verwijdert, met `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. Een opdracht die werd uitgevoerd voordat de instelling rollen las, geeft alleen het lezen van een gebruiker: voer de opdracht van de koppeling opnieuw uit, en tot je dat doet, noemt een zaak haar rolwijzigingen zodat je ze zelf bevestigt, en zegt ze dat je de opdracht moet uitvoeren.
 
 ## Wat OneUptime leest
 

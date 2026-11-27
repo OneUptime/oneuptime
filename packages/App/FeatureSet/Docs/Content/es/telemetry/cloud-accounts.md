@@ -275,9 +275,9 @@ Un comando de un nivel inferior sustituye la política de AWS por la de ese nive
 
 ## Comprobaciones de casos de seguridad
 
-En AWS, la misma conexión puede permitir que un [caso de seguridad](/docs/telemetry/security-cases#cómo-comprueba-oneuptime-un-paso) compruebe que se deshizo lo que un ataque cambió en un usuario de IAM: la clave de acceso que creó, la contraseña de consola que estableció, las políticas que adjuntó o escribió, los grupos a los que añadió al usuario, el dispositivo MFA que activó y el usuario que creó. En **Más campos**, **Comprobaciones de casos de seguridad** está en **Desactivado** hasta que lo actives, y el comando que muestra el formulario cambia con él. Cada acción solo lee, y ninguna lee un secreto: el ID de una clave de acceso y si está activa, nunca la clave, y que hay una contraseña de consola, nunca la contraseña.
+En AWS, la misma conexión puede permitir que un [caso de seguridad](/docs/telemetry/security-cases#cómo-comprueba-oneuptime-un-paso) compruebe que se deshizo lo que un ataque cambió en un usuario o un rol de IAM: la clave de acceso que creó, la contraseña de consola que estableció, las políticas que adjuntó o escribió, los grupos a los que añadió al usuario, el dispositivo MFA que activó, el usuario o el rol que creó, y la política de confianza que estableció en un rol. En **Más campos**, **Comprobaciones de casos de seguridad** está en **Desactivado** hasta que lo actives, y el comando que muestra el formulario cambia con él. Cada acción solo lee, y ninguna lee un secreto: el ID de una clave de acceso y si está activa, nunca la clave, y que hay una contraseña de consola, nunca la contraseña.
 
-| Lo que el caso lee de cada usuario que nombran sus eventos de CloudTrail | Acciones |
+| Lo que el caso lee de cada usuario y cada rol que nombran sus eventos de CloudTrail | Acciones |
 | --- | --- |
 | El usuario, o que ya no existe | `iam:GetUser` |
 | Sus claves de acceso, y si cada una está activa | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ En AWS, la misma conexión puede permitir que un [caso de seguridad](/docs/telem
 | Sus políticas administradas, y los nombres de sus políticas insertadas | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | Los grupos a los que pertenece | `iam:ListGroupsForUser` |
 | Sus dispositivos MFA | `iam:ListMFADevices` |
+| El rol, en quién confía su política de confianza, o que ya no existe | `iam:GetRole` |
+| Las políticas administradas del rol, y los nombres de sus políticas insertadas | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 El comando del rol añade una política insertada propia, `OneUptimeSecurityCaseChecks`, con una línea más, y el StackSet de una organización la coloca en el rol de cada cuenta:
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-Un caso solo vuelve a leer un cambio a través de una conexión que llega a la cuenta en la que se hizo, y no pregunta nada a IAM a través de una conexión con **Comprobaciones de casos de seguridad** en **Desactivado**: nombra esos cambios para que los confirmes, y dice que lo actives. **Desactivado** no añade nada, así que deja en su sitio lo que concedió un comando anterior hasta que lo elimines, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+Un caso solo vuelve a leer un cambio a través de una conexión que llega a la cuenta en la que se hizo, y no pregunta nada a IAM a través de una conexión con **Comprobaciones de casos de seguridad** en **Desactivado**: nombra esos cambios para que los confirmes, y dice que lo actives. **Desactivado** no añade nada, así que deja en su sitio lo que concedió un comando anterior hasta que lo elimines, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. Un comando ejecutado antes de que la opción leyera roles solo concede las lecturas de un usuario: vuelve a ejecutar el comando de la conexión y, hasta que lo hagas, un caso nombra sus cambios de roles para que los confirmes y dice que lo ejecutes.
 
 ## Qué lee OneUptime
 

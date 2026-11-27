@@ -275,9 +275,9 @@ Der Befehl einer niedrigeren Stufe ersetzt die AWS-Richtlinie durch die der nied
 
 ## Prüfungen für Sicherheitsfälle
 
-Bei AWS kann dieselbe Verbindung einen [Sicherheitsfall](/docs/telemetry/security-cases#wie-oneuptime-einen-schritt-prüft) prüfen lassen, ob rückgängig gemacht wurde, was ein Angriff an einem IAM-Benutzer geändert hat: der Zugriffsschlüssel, den er angelegt hat, das Konsolenpasswort, das er gesetzt hat, die Richtlinien, die er angehängt oder geschrieben hat, die Gruppen, denen er den Benutzer hinzugefügt hat, das MFA-Gerät, das er aktiviert hat, und der Benutzer, den er angelegt hat. Unter **Weitere Felder** steht die Einstellung **Prüfungen für Sicherheitsfälle** auf **Aus**, bis Sie sie einschalten, und der Befehl, den das Formular zeigt, ändert sich mit ihr. Jede Aktion liest nur, und keine liest ein Geheimnis: von einem Zugriffsschlüssel die ID und ob er aktiv ist, nie den Schlüssel, und dass ein Konsolenpasswort gesetzt ist, nie das Passwort.
+Bei AWS kann dieselbe Verbindung einen [Sicherheitsfall](/docs/telemetry/security-cases#wie-oneuptime-einen-schritt-prüft) prüfen lassen, ob rückgängig gemacht wurde, was ein Angriff an einem IAM-Benutzer oder einer IAM-Rolle geändert hat: der Zugriffsschlüssel, den er angelegt hat, das Konsolenpasswort, das er gesetzt hat, die Richtlinien, die er angehängt oder geschrieben hat, die Gruppen, denen er den Benutzer hinzugefügt hat, das MFA-Gerät, das er aktiviert hat, der Benutzer oder die Rolle, die er angelegt hat, und die Vertrauensrichtlinie, die er für eine Rolle gesetzt hat. Unter **Weitere Felder** steht die Einstellung **Prüfungen für Sicherheitsfälle** auf **Aus**, bis Sie sie einschalten, und der Befehl, den das Formular zeigt, ändert sich mit ihr. Jede Aktion liest nur, und keine liest ein Geheimnis: von einem Zugriffsschlüssel die ID und ob er aktiv ist, nie den Schlüssel, und dass ein Konsolenpasswort gesetzt ist, nie das Passwort.
 
-| Was der Fall von jedem Benutzer liest, den seine CloudTrail-Ereignisse nennen | Aktionen |
+| Was der Fall von jedem Benutzer und jeder Rolle liest, die seine CloudTrail-Ereignisse nennen | Aktionen |
 | --- | --- |
 | Den Benutzer, oder dass es ihn nicht mehr gibt | `iam:GetUser` |
 | Seine Zugriffsschlüssel und ob jeder davon aktiv ist | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ Bei AWS kann dieselbe Verbindung einen [Sicherheitsfall](/docs/telemetry/securit
 | Seine verwalteten Richtlinien und die Namen seiner Inline-Richtlinien | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | Die Gruppen, in denen er ist | `iam:ListGroupsForUser` |
 | Seine MFA-Geräte | `iam:ListMFADevices` |
+| Die Rolle, wem ihre Vertrauensrichtlinie vertraut, oder dass es sie nicht mehr gibt | `iam:GetRole` |
+| Die verwalteten Richtlinien der Rolle und die Namen ihrer Inline-Richtlinien | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 Der Befehl der Rolle fügt eine eigene Inline-Richtlinie, `OneUptimeSecurityCaseChecks`, mit einer weiteren Zeile hinzu, und das StackSet einer Organisation legt sie in die Rolle jedes Kontos:
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-Ein Fall liest eine Änderung nur über eine Verbindung, die das Konto erreicht, in dem die Änderung vorgenommen wurde, und fragt IAM über eine Verbindung, deren Einstellung **Prüfungen für Sicherheitsfälle** auf **Aus** steht, nichts: Er nennt diese Änderungen, damit Sie sie bestätigen, und sagt, dass Sie die Einstellung einschalten sollen. **Aus** fügt nichts hinzu und lässt daher stehen, was ein früherer Befehl gewährt hat, bis Sie es löschen, mit `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+Ein Fall liest eine Änderung nur über eine Verbindung, die das Konto erreicht, in dem die Änderung vorgenommen wurde, und fragt IAM über eine Verbindung, deren Einstellung **Prüfungen für Sicherheitsfälle** auf **Aus** steht, nichts: Er nennt diese Änderungen, damit Sie sie bestätigen, und sagt, dass Sie die Einstellung einschalten sollen. **Aus** fügt nichts hinzu und lässt daher stehen, was ein früherer Befehl gewährt hat, bis Sie es löschen, mit `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. Ein Befehl, der ausgeführt wurde, bevor die Einstellung Rollen las, gewährt nur das Lesen von Benutzern: Führen Sie den Befehl der Verbindung erneut aus, und bis Sie das tun, nennt ein Fall seine Rollenänderungen, damit Sie sie bestätigen, und sagt, dass Sie den Befehl ausführen sollen.
 
 ## Was OneUptime liest
 

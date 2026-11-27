@@ -275,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## 安全案例检查
 
-在 AWS 上，同一个连接还可以让 [安全案例](/docs/telemetry/security-cases#oneuptime-如何检查一个步骤) 检查攻击对 IAM 用户所做的更改已被撤销：它创建的访问密钥、它设置的控制台密码、它附加或写入的策略、它把用户加入的组、它启用的 MFA 设备，以及它创建的用户。在 **更多字段** 下，**安全案例检查** 默认为 **关闭**，直到你将其开启；表单显示的命令会随之变化。每个操作都只读取，且没有一个读取机密：读取访问密钥的 ID 及其是否处于活动状态，但从不读取密钥本身；读取控制台密码已设置这一事实，但从不读取密码本身。
+在 AWS 上，同一个连接还可以让 [安全案例](/docs/telemetry/security-cases#oneuptime-如何检查一个步骤) 检查攻击对 IAM 用户或角色所做的更改已被撤销：它创建的访问密钥、它设置的控制台密码、它附加或写入的策略、它把用户加入的组、它启用的 MFA 设备、它创建的用户或角色，以及它为角色设置的信任策略。在 **更多字段** 下，**安全案例检查** 默认为 **关闭**，直到你将其开启；表单显示的命令会随之变化。每个操作都只读取，且没有一个读取机密：读取访问密钥的 ID 及其是否处于活动状态，但从不读取密钥本身；读取控制台密码已设置这一事实，但从不读取密码本身。
 
-| 案例对其 CloudTrail 事件中提到的每个用户读取什么 | 操作 |
+| 案例对其 CloudTrail 事件中提到的每个用户和角色读取什么 | 操作 |
 | --- | --- |
 | 该用户，或它已不存在 | `iam:GetUser` |
 | 它的访问密钥，以及每个密钥是否处于活动状态 | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | 它的托管策略，以及它的内联策略的名称 | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | 它所在的组 | `iam:ListGroupsForUser` |
 | 它的 MFA 设备 | `iam:ListMFADevices` |
+| 角色、其信任策略信任的对象，或角色已不存在 | `iam:GetRole` |
+| 角色的托管策略，以及其内联策略的名称 | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 角色的命令会多用一行添加一个单独的内联策略 `OneUptimeSecurityCaseChecks`，组织的 StackSet 会把它放进每个账户的角色中：
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-案例只通过能到达更改所在账户的连接读取更改，并且不会通过 **安全案例检查** 为 **关闭** 的连接向 IAM 询问任何内容：它会列出这些更改，由你来确认，并提示你将其开启。**关闭** 不添加任何内容，因此之前的命令所授予的权限会保留，直到你使用 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 删除它。
+案例只通过能到达更改所在账户的连接读取更改，并且不会通过 **安全案例检查** 为 **关闭** 的连接向 IAM 询问任何内容：它会列出这些更改，由你来确认，并提示你将其开启。**关闭** 不添加任何内容，因此之前的命令所授予的权限会保留，直到你使用 `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks` 删除它。在该设置读取角色之前运行的命令只授予读取用户的权限：请再次运行该连接的命令；在你这样做之前，案例会列出其角色更改，由你来确认，并提示你运行它。
 
 ## OneUptime 读取什么
 

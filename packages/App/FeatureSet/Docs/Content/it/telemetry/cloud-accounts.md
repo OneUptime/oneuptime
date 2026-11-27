@@ -275,9 +275,9 @@ Il comando di un livello inferiore sostituisce la policy AWS con quella del live
 
 ## Controlli dei casi di sicurezza
 
-Su AWS, la stessa connessione può permettere a un [caso di sicurezza](/docs/telemetry/security-cases#come-oneuptime-controlla-un-passaggio) di controllare che sia stato annullato ciò che un attacco ha cambiato su un utente IAM: la chiave di accesso che ha creato, la password della console che ha impostato, le policy che ha collegato o scritto, i gruppi a cui ha aggiunto l'utente, il dispositivo MFA che ha attivato e l'utente che ha creato. In **Altri campi**, **Controlli dei casi di sicurezza** è **Disattivato** finché non lo attivi, e il comando che mostra il modulo cambia di conseguenza. Ogni azione legge soltanto, e nessuna legge un segreto: l'ID di una chiave di accesso e se è attiva, mai la chiave, e che una password della console è impostata, mai la password.
+Su AWS, la stessa connessione può permettere a un [caso di sicurezza](/docs/telemetry/security-cases#come-oneuptime-controlla-un-passaggio) di controllare che sia stato annullato ciò che un attacco ha cambiato su un utente o un ruolo IAM: la chiave di accesso che ha creato, la password della console che ha impostato, le policy che ha collegato o scritto, i gruppi a cui ha aggiunto l'utente, il dispositivo MFA che ha attivato, l'utente o il ruolo che ha creato, e la policy di attendibilità che ha impostato su un ruolo. In **Altri campi**, **Controlli dei casi di sicurezza** è **Disattivato** finché non lo attivi, e il comando che mostra il modulo cambia di conseguenza. Ogni azione legge soltanto, e nessuna legge un segreto: l'ID di una chiave di accesso e se è attiva, mai la chiave, e che una password della console è impostata, mai la password.
 
-| Cosa legge il caso di ogni utente nominato dai suoi eventi CloudTrail | Azioni |
+| Cosa legge il caso di ogni utente e ruolo nominato dai suoi eventi CloudTrail | Azioni |
 | --- | --- |
 | L'utente, o che non esiste più | `iam:GetUser` |
 | Le sue chiavi di accesso, e se ognuna è attiva | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ Su AWS, la stessa connessione può permettere a un [caso di sicurezza](/docs/tel
 | Le sue policy gestite, e i nomi delle sue policy inline | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | I gruppi di cui fa parte | `iam:ListGroupsForUser` |
 | I suoi dispositivi MFA | `iam:ListMFADevices` |
+| Il ruolo, chi considera attendibile la sua policy di attendibilità, o che non esiste più | `iam:GetRole` |
+| Le policy gestite del ruolo, e i nomi delle sue policy inline | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 Il comando del ruolo aggiunge una propria policy inline, `OneUptimeSecurityCaseChecks`, con una riga in più, e lo StackSet di un'organizzazione la mette nel ruolo di ogni account:
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-Un caso rilegge una modifica solo tramite una connessione che raggiunge l'account in cui è stata fatta, e non chiede nulla a IAM tramite una connessione con **Controlli dei casi di sicurezza** su **Disattivato**: nomina quelle modifiche perché tu le confermi, e dice di attivarlo. **Disattivato** non aggiunge nulla, quindi lascia ciò che ha concesso un comando precedente finché non lo elimini, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+Un caso rilegge una modifica solo tramite una connessione che raggiunge l'account in cui è stata fatta, e non chiede nulla a IAM tramite una connessione con **Controlli dei casi di sicurezza** su **Disattivato**: nomina quelle modifiche perché tu le confermi, e dice di attivarlo. **Disattivato** non aggiunge nulla, quindi lascia ciò che ha concesso un comando precedente finché non lo elimini, con `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. Un comando eseguito prima che l'impostazione leggesse i ruoli concede solo le letture di un utente: esegui di nuovo il comando della connessione e, finché non lo fai, un caso nomina le sue modifiche ai ruoli perché tu le confermi e dice di eseguirlo.
 
 ## Cosa legge OneUptime
 

@@ -275,9 +275,9 @@ Kommandot för en lägre nivå ersätter AWS-policyn med den lägre nivåns poli
 
 ## Kontroller för säkerhetsärenden
 
-På AWS kan samma anslutning låta ett [säkerhetsärende](/docs/telemetry/security-cases#så-kontrollerar-oneuptime-ett-steg) kontrollera att det som en attack ändrade på en IAM-användare har ångrats: åtkomstnyckeln den skapade, konsollösenordet den satte, policyerna den kopplade eller skrev, grupperna den lade till användaren i, MFA-enheten den aktiverade och användaren den skapade. Under **Fler fält** står **Kontroller för säkerhetsärenden** på **Av** tills du slår på dem, och kommandot som formuläret visar ändras med det. Varje åtgärd läser bara, och ingen läser en hemlighet: en åtkomstnyckels ID och om den är aktiv, aldrig nyckeln, och att ett konsollösenord är satt, aldrig lösenordet.
+På AWS kan samma anslutning låta ett [säkerhetsärende](/docs/telemetry/security-cases#så-kontrollerar-oneuptime-ett-steg) kontrollera att det som en attack ändrade på en IAM-användare eller -roll har ångrats: åtkomstnyckeln den skapade, konsollösenordet den satte, policyerna den kopplade eller skrev, grupperna den lade till användaren i, MFA-enheten den aktiverade, användaren eller rollen den skapade, och förtroendepolicyn den satte på en roll. Under **Fler fält** står **Kontroller för säkerhetsärenden** på **Av** tills du slår på dem, och kommandot som formuläret visar ändras med det. Varje åtgärd läser bara, och ingen läser en hemlighet: en åtkomstnyckels ID och om den är aktiv, aldrig nyckeln, och att ett konsollösenord är satt, aldrig lösenordet.
 
-| Vad ärendet läser om varje användare som dess CloudTrail-händelser nämner | Åtgärder |
+| Vad ärendet läser om varje användare och roll som dess CloudTrail-händelser nämner | Åtgärder |
 | --- | --- |
 | Användaren, eller att den inte finns längre | `iam:GetUser` |
 | Dess åtkomstnycklar, och om var och en är aktiv | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ På AWS kan samma anslutning låta ett [säkerhetsärende](/docs/telemetry/secur
 | Dess hanterade policyer, och namnen på dess inbäddade policyer | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | Grupperna den är med i | `iam:ListGroupsForUser` |
 | Dess MFA-enheter | `iam:ListMFADevices` |
+| Rollen, vem dess förtroendepolicy litar på, eller att den är borta | `iam:GetRole` |
+| Rollens hanterade policyer och namnen på dess infogade policyer | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 Rollens kommando lägger till en egen inbäddad policy, `OneUptimeSecurityCaseChecks`, med en rad till, och en organisations StackSet lägger den i varje kontos roll:
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-Ett ärende läser en ändring bara via en anslutning som når kontot där ändringen gjordes, och frågar inte IAM om något via en anslutning vars **Kontroller för säkerhetsärenden** står på **Av**: det nämner de ändringarna så att du kan bekräfta dem, och säger att du ska slå på inställningen. **Av** lägger inte till något, så det som ett tidigare kommando beviljade finns kvar tills du tar bort det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+Ett ärende läser en ändring bara via en anslutning som når kontot där ändringen gjordes, och frågar inte IAM om något via en anslutning vars **Kontroller för säkerhetsärenden** står på **Av**: det nämner de ändringarna så att du kan bekräfta dem, och säger att du ska slå på inställningen. **Av** lägger inte till något, så det som ett tidigare kommando beviljade finns kvar tills du tar bort det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. Ett kommando som kördes innan inställningen läste roller beviljar bara läsningar av en användare: kör anslutningens kommando igen, och tills du gör det nämner ett ärende sina rolländringar så att du kan bekräfta dem, och säger att du ska köra det.
 
 ## Vad OneUptime läser
 

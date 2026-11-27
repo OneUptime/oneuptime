@@ -275,9 +275,9 @@ La commande d'un niveau inférieur remplace la stratégie AWS par celle de ce ni
 
 ## Vérifications des dossiers de sécurité
 
-Sur AWS, la même connexion peut permettre à un [dossier de sécurité](/docs/telemetry/security-cases#comment-oneuptime-vérifie-une-étape) de vérifier que ce qu'une attaque a modifié sur un utilisateur IAM a été annulé : la clé d'accès qu'elle a créée, le mot de passe de console qu'elle a défini, les stratégies qu'elle a attachées ou écrites, les groupes auxquels elle a ajouté l'utilisateur, l'appareil MFA qu'elle a activé et l'utilisateur qu'elle a créé. Sous **Plus de champs**, **Vérifications des dossiers de sécurité** est **Désactivé** jusqu'à ce que vous l'activiez, et la commande qu'affiche le formulaire change en conséquence. Chaque action ne fait que lire, et aucune ne lit de secret : l'ID d'une clé d'accès et si elle est active, jamais la clé, et le fait qu'un mot de passe de console est défini, jamais le mot de passe.
+Sur AWS, la même connexion peut permettre à un [dossier de sécurité](/docs/telemetry/security-cases#comment-oneuptime-vérifie-une-étape) de vérifier que ce qu'une attaque a modifié sur un utilisateur ou un rôle IAM a été annulé : la clé d'accès qu'elle a créée, le mot de passe de console qu'elle a défini, les stratégies qu'elle a attachées ou écrites, les groupes auxquels elle a ajouté l'utilisateur, l'appareil MFA qu'elle a activé, l'utilisateur ou le rôle qu'elle a créé, et la politique d'approbation qu'elle a définie sur un rôle. Sous **Plus de champs**, **Vérifications des dossiers de sécurité** est **Désactivé** jusqu'à ce que vous l'activiez, et la commande qu'affiche le formulaire change en conséquence. Chaque action ne fait que lire, et aucune ne lit de secret : l'ID d'une clé d'accès et si elle est active, jamais la clé, et le fait qu'un mot de passe de console est défini, jamais le mot de passe.
 
-| Ce que le dossier lit de chaque utilisateur que nomment ses événements CloudTrail | Actions |
+| Ce que le dossier lit de chaque utilisateur et de chaque rôle que nomment ses événements CloudTrail | Actions |
 | --- | --- |
 | L'utilisateur, ou le fait qu'il n'existe plus | `iam:GetUser` |
 | Ses clés d'accès, et si chacune est active | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ Sur AWS, la même connexion peut permettre à un [dossier de sécurité](/docs/t
 | Ses stratégies gérées, et les noms de ses stratégies en ligne | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | Les groupes dont il fait partie | `iam:ListGroupsForUser` |
 | Ses appareils MFA | `iam:ListMFADevices` |
+| Le rôle, qui sa politique d'approbation approuve, ou le fait qu'il n'existe plus | `iam:GetRole` |
+| Les stratégies gérées du rôle, et les noms de ses stratégies en ligne | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 La commande du rôle ajoute sa propre stratégie en ligne, `OneUptimeSecurityCaseChecks`, avec une ligne de plus, et le StackSet d'une organisation la place dans le rôle de chaque compte :
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-Un dossier ne relit une modification que par une connexion qui atteint le compte où elle a été faite, et n'interroge pas IAM par une connexion dont **Vérifications des dossiers de sécurité** est **Désactivé** : il nomme ces modifications pour que vous les confirmiez, et indique d'activer le paramètre. **Désactivé** n'ajoute rien : il laisse donc en place ce qu'une commande précédente a accordé jusqu'à ce que vous le supprimiez, avec `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+Un dossier ne relit une modification que par une connexion qui atteint le compte où elle a été faite, et n'interroge pas IAM par une connexion dont **Vérifications des dossiers de sécurité** est **Désactivé** : il nomme ces modifications pour que vous les confirmiez, et indique d'activer le paramètre. **Désactivé** n'ajoute rien : il laisse donc en place ce qu'une commande précédente a accordé jusqu'à ce que vous le supprimiez, avec `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. Une commande exécutée avant que le paramètre ne lise les rôles n'accorde que les lectures d'un utilisateur : exécutez de nouveau la commande de la connexion ; d'ici là, un dossier nomme ses modifications de rôles pour que vous les confirmiez, et indique de l'exécuter.
 
 ## Ce que lit OneUptime
 

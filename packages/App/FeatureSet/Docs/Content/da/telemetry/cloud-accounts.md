@@ -275,9 +275,9 @@ Et lavere niveaus kommando erstatter AWS-politikken med den lavere. **Fra** tilf
 
 ## Sikkerhedssagstjek
 
-På AWS kan den samme forbindelse lade en [sikkerhedssag](/docs/telemetry/security-cases#sådan-kontrollerer-oneuptime-et-trin) tjekke, at det, et angreb ændrede på en IAM-bruger, er fortrudt: den adgangsnøgle, det oprettede, den konsoladgangskode, det satte, de politikker, det tilknyttede eller skrev, de grupper, det føjede brugeren til, den MFA-enhed, det aktiverede, og den bruger, det oprettede. Under **Flere felter** står **Sikkerhedssagstjek** på **Fra**, indtil du slår det til, og den kommando, formularen viser, ændrer sig med det. Hver handling læser kun, og ingen læser en hemmelighed: en adgangsnøgles id og om den er aktiv, aldrig nøglen, og at en konsoladgangskode er sat, aldrig adgangskoden.
+På AWS kan den samme forbindelse lade en [sikkerhedssag](/docs/telemetry/security-cases#sådan-kontrollerer-oneuptime-et-trin) tjekke, at det, et angreb ændrede på en IAM-bruger eller -rolle, er fortrudt: den adgangsnøgle, det oprettede, den konsoladgangskode, det satte, de politikker, det tilknyttede eller skrev, de grupper, det føjede brugeren til, den MFA-enhed, det aktiverede, den bruger eller rolle, det oprettede, og den tillidspolitik, det satte på en rolle. Under **Flere felter** står **Sikkerhedssagstjek** på **Fra**, indtil du slår det til, og den kommando, formularen viser, ændrer sig med det. Hver handling læser kun, og ingen læser en hemmelighed: en adgangsnøgles id og om den er aktiv, aldrig nøglen, og at en konsoladgangskode er sat, aldrig adgangskoden.
 
-| Hvad sagen læser om hver bruger, som dens CloudTrail-hændelser nævner | Handlinger |
+| Hvad sagen læser om hver bruger og rolle, som dens CloudTrail-hændelser nævner | Handlinger |
 | --- | --- |
 | Brugeren, eller at den ikke findes længere | `iam:GetUser` |
 | Dens adgangsnøgler, og om hver af dem er aktiv | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ På AWS kan den samme forbindelse lade en [sikkerhedssag](/docs/telemetry/securi
 | Dens administrerede politikker og navnene på dens inline-politikker | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | De grupper, den er med i | `iam:ListGroupsForUser` |
 | Dens MFA-enheder | `iam:ListMFADevices` |
+| Rollen, hvem dens tillidspolitik har tillid til, eller at den er væk | `iam:GetRole` |
+| Rollens administrerede politikker og navnene på dens indbyggede politikker | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 Rollens kommando tilføjer en egen inline-politik, `OneUptimeSecurityCaseChecks`, med én linje mere, og en organisations StackSet lægger den i hver kontos rolle:
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-En sag læser kun en ændring gennem en forbindelse, der når den konto, ændringen blev lavet i, og spørger ikke IAM om noget gennem en forbindelse, hvis **Sikkerhedssagstjek** står på **Fra**: den nævner de ændringer, så du kan bekræfte dem, og siger, at du skal slå indstillingen til. **Fra** tilføjer intet, så det lader det, en tidligere kommando gav adgang til, blive på plads, indtil du sletter det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+En sag læser kun en ændring gennem en forbindelse, der når den konto, ændringen blev lavet i, og spørger ikke IAM om noget gennem en forbindelse, hvis **Sikkerhedssagstjek** står på **Fra**: den nævner de ændringer, så du kan bekræfte dem, og siger, at du skal slå indstillingen til. **Fra** tilføjer intet, så det lader det, en tidligere kommando gav adgang til, blive på plads, indtil du sletter det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. En kommando, der blev kørt, før indstillingen læste roller, giver kun adgang til at læse en bruger: kør forbindelsens kommando igen, og indtil du gør det, nævner en sag sine rolleændringer, så du kan bekræfte dem, og siger, at du skal køre den.
 
 ## Hvad OneUptime læser
 

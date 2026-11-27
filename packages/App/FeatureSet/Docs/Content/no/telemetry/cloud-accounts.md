@@ -275,9 +275,9 @@ Kommandoen for et lavere nivå erstatter AWS-policyen med den lavere. **Av** leg
 
 ## Sikkerhetssakskontroller
 
-På AWS kan den samme tilkoblingen la en [sikkerhetssak](/docs/telemetry/security-cases#slik-kontrollerer-oneuptime-et-trinn) sjekke at det et angrep endret på en IAM-bruker, er angret: tilgangsnøkkelen det opprettet, konsollpassordet det satte, policyene det knyttet til eller skrev, gruppene det la brukeren inn i, MFA-enheten det aktiverte, og brukeren det opprettet. Under **Flere felt** står **Sikkerhetssakskontroller** på **Av** til du slår dem på, og kommandoen skjemaet viser, endres med det. Hver handling leser bare, og ingen leser en hemmelighet: ID-en til en tilgangsnøkkel og om den er aktiv, aldri nøkkelen, og at et konsollpassord er satt, aldri passordet.
+På AWS kan den samme tilkoblingen la en [sikkerhetssak](/docs/telemetry/security-cases#slik-kontrollerer-oneuptime-et-trinn) sjekke at det et angrep endret på en IAM-bruker eller -rolle, er angret: tilgangsnøkkelen det opprettet, konsollpassordet det satte, policyene det knyttet til eller skrev, gruppene det la brukeren inn i, MFA-enheten det aktiverte, brukeren eller rollen det opprettet, og tillitspolicyen det satte på en rolle. Under **Flere felt** står **Sikkerhetssakskontroller** på **Av** til du slår dem på, og kommandoen skjemaet viser, endres med det. Hver handling leser bare, og ingen leser en hemmelighet: ID-en til en tilgangsnøkkel og om den er aktiv, aldri nøkkelen, og at et konsollpassord er satt, aldri passordet.
 
-| Hva saken leser om hver bruker som CloudTrail-hendelsene dens nevner | Handlinger |
+| Hva saken leser om hver bruker og rolle som CloudTrail-hendelsene dens nevner | Handlinger |
 | --- | --- |
 | Brukeren, eller at den ikke finnes lenger | `iam:GetUser` |
 | Tilgangsnøklene, og om hver av dem er aktiv | `iam:ListAccessKeys` |
@@ -285,6 +285,8 @@ På AWS kan den samme tilkoblingen la en [sikkerhetssak](/docs/telemetry/securit
 | De administrerte policyene, og navnene på de innebygde policyene | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | Gruppene den er med i | `iam:ListGroupsForUser` |
 | MFA-enhetene | `iam:ListMFADevices` |
+| Rollen, hvem tillitspolicyen dens stoler på, eller at den er borte | `iam:GetRole` |
+| Rollens administrerte policyer og navnene på de innebygde policyene dens | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 Kommandoen for rollen legger til en egen innebygd policy, `OneUptimeSecurityCaseChecks`, med én linje til, og en organisasjons StackSet legger den i rollen i hver konto:
 
@@ -303,7 +305,7 @@ aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSe
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-En sak leser en endring bare gjennom en tilkobling som når kontoen endringen ble gjort i, og spør ikke IAM om noe gjennom en tilkobling der **Sikkerhetssakskontroller** står på **Av**: den nevner de endringene så du kan bekrefte dem, og sier at du må slå innstillingen på. **Av** legger ikke til noe, så det lar det en tidligere kommando ga, bli stående til du sletter det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+En sak leser en endring bare gjennom en tilkobling som når kontoen endringen ble gjort i, og spør ikke IAM om noe gjennom en tilkobling der **Sikkerhetssakskontroller** står på **Av**: den nevner de endringene så du kan bekrefte dem, og sier at du må slå innstillingen på. **Av** legger ikke til noe, så det lar det en tidligere kommando ga, bli stående til du sletter det, med `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. En kommando som ble kjørt før innstillingen leste roller, gir bare tilgang til å lese en bruker: kjør kommandoen til tilkoblingen på nytt, og til du gjør det, nevner en sak rolleendringene sine så du kan bekrefte dem, og sier at du må kjøre den.
 
 ## Hva OneUptime leser
 
