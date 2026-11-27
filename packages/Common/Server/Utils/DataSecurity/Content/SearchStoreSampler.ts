@@ -8,6 +8,7 @@ import FieldCollector, {
 import { MAX_FIELD_VALUES } from "../../../../Utils/DataSecurity/FieldClassifier";
 import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import { toPathPattern } from "../../../../Utils/DataSecurity/PathPattern";
+import escapeRegExp from "../../../../Utils/RegExpEscape";
 import {
   mergeShadowCounts,
   ShadowCounts,
@@ -509,12 +510,7 @@ export function groupIndices(data: {
  * compared without regard to case.
  */
 function toGlob(text: string): RegExp {
-  const escaped: string = text
-    .split("*")
-    .map((part: string): string => {
-      return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    })
-    .join(".*");
+  const escaped: string = text.split("*").map(escapeRegExp).join(".*");
 
   return new RegExp(`^${escaped}$`, "i");
 }
@@ -922,8 +918,9 @@ export async function sampleSearchStore(
     let dataStreams: Array<ListedDataStream> = [];
 
     try {
+      // No parameters: OpenSearch refuses expand_wildcards here (400).
       const streams: SearchHttpResponse = await send({
-        path: "/_data_stream?expand_wildcards=open",
+        path: "/_data_stream",
         withCredentials: true,
       });
 
