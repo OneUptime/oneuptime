@@ -871,7 +871,7 @@ flowchart TB
 | SNMP Interface Is Down | 管理上已启用的接口在运行上宕机时为 true。 | 不评估 |
 | SNMP Interface Utilization (in %) | 最繁忙接口的链路利用率。 | 不评估 |
 | SNMP Interface Errors (per second) | 最差接口的错误率。 | 不评估 |
-| SNMP Fibre Channel Counter (per second) | SAN 交换机端口的一个 Fibre Channel 计数器（CRC 错误、丢弃的帧、信用丢失等）的每秒值，按范围内最差的端口判断；`*` 为每个端口发出一条告警。 | 不评估 |
+| SNMP Fibre Channel Counter (per second) | SAN 交换机端口的一个 Fibre Channel 计数器（CRC 错误、丢弃的帧、信用丢失等）的每秒值，按范围内最差的端口判断；`*` 为每个端口发出一条警报。 | 不评估 |
 | SNMP Transceiver Not Detected | 曾有光模块的端口在仍启用的情况下连续两次轮询没有报告光模块时为 true。 | 不评估 |
 | SNMP Transceiver Past Alarm Threshold | 光模块的读数达到或超过设备报告的告警阈值，或设备标记了信号丢失或发射器故障时为 true。 | 不评估 |
 | SNMP Transceiver Past Warning Threshold | 在警告阈值上的相同判断；超过告警阈值的光模块也算在内。 | 不评估 |

@@ -260,7 +260,7 @@ Siden **Enheter** viser et banner når prosjektet har enheter med overstyringen 
 
 En agent kan svare for flere enheter på én adresse, hver i sin egen SNMPv3-kontekst: et Brocade-chassis med Virtual Fabrics svarer for hver logisk svitsj i konteksten `VF:` og fabric-ID-en. Legg til én enhet per logisk svitsj på den adressen, med SNMP v3, og sett for hver sin **SNMP v3-kontekst** på siden **Innstillinger**; en enhet uten kontekst spørres i agentens standardkontekst. Konteksten hører til enheten, ikke til påloggingsinformasjonen, så den gjelder uansett hvilken påloggingsprofil enheten bruker.
 
-En probe fra før SNMPv3-kontekster ville spurt standardkonteksten i stedet, så til den er oppdatert, pinger den bare en slik enhet. Hver SNMPv3-trap nevner også konteksten sin og utløses bare på enheten som spørres i den konteksten; en trap i en kontekst ingen enhet spørres i, logges som ikke matchet.
+En sonde fra før SNMPv3-kontekster ville spurt standardkonteksten i stedet, så til den er oppdatert, pinger den bare en slik enhet. Hver SNMPv3-trap nevner også konteksten sin og utløses bare på enheten som spørres i den konteksten; en trap i en kontekst ingen enhet spørres i, logges som ikke matchet.
 
 ## Lokasjonens standardverdier for overvåking
 

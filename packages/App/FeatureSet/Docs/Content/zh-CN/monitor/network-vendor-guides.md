@@ -170,7 +170,7 @@ cnMaestro 可以把它的告警（例如接入点离线）发送到 HTTPS Webhoo
 
 之后，设备的 **接口** 页面会为每个 Fibre Channel 端口标出类型（例如 E-Port 或 F-Port），并像 `switchshow` 那样说明停机端口停机的原因：No light、No module、Disabled。它的 **Fibre Channel 端口** 卡片按秒绘制每个端口的错误、丢弃的帧和信用计数器。
 
-端口的 CRC 错误、无效传输字、链路故障以及同步和信号丢失就是它的错误：**SNMP 接口错误（每秒）** 据此告警，推荐的告警包含 **Fibre Channel port errors**，在十秒超过一个错误时触发。丢弃的帧和信用等待不是错误；要按其中之一告警，请使用 **SNMP Fibre Channel 计数器（每秒）**。
+端口的 CRC 错误、无效传输字、链路故障以及同步和信号丢失就是它的错误：**SNMP 接口错误（每秒）** 据此报警，推荐的警报包含 **Fibre Channel port errors**，在十秒超过一个错误时触发。丢弃的帧和信用等待不是错误；要按其中之一报警，请使用 **SNMP Fibre Channel 计数器（每秒）**。
 
 ### Virtual Fabrics
 
@@ -180,7 +180,7 @@ cnMaestro 可以把它的告警（例如接入点离线）发送到 HTTPS Webhoo
 
 Fabric OS 通过 SNMPv3 发送 trap。用 `snmpconfig --set snmpv3` 把探测器添加为 OneUptime 轮询所用用户的 trap 接收方，UDP 端口 162：探测器接收它所轮询设备的用户发来的 SNMPv3 trap（参见 [SNMPv3 trap 和 inform](/docs/monitor/network-device-monitor#snmpv3-trap-和-inform)），每个逻辑交换机的 trap 都带有它的上下文，因此只在它的设备上触发。Fabric OS 升级可能会重新关闭个别 trap：升级后用 `snmpconfig --show mibCapability` 检查，并用 `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn` 重新开启。
 
-Brocade 交换机的推荐告警为每个重要的 Fabric 事件各包含一项：**Inter-switch link down**（E-Port 离线）、**Fabric segmented**、**Fabric reconfigured**、**Zone configuration changed**、**MAPS alert** 和 **Field-replaceable unit changed**。
+Brocade 交换机的推荐警报为每个重要的 Fabric 事件各包含一项：**Inter-switch link down**（E-Port 离线）、**Fabric segmented**、**Fabric reconfigured**、**Zone configuration changed**、**MAPS alert** 和 **Field-replaceable unit changed**。
 
 ## Cisco MDS 9000
 
@@ -204,11 +204,11 @@ MDS 与所有其他 Cisco 设备共用 Cisco 的企业编号，因此 OneUptime 
 4. 在 OneUptime 中，用交换机的管理地址和该用户添加交换机：模板 **Cisco MDS 9000 (SAN switches)** 以同样的方式应用。
 :::
 
-MDS 的推荐告警包含 **Credit loss (slow drain)** 和 **Timeout discards (slow drain)**，每个接口一次：不再返还缓冲区信用的主机或存储阵列会拖慢其后的每条流，而这些计数器最先显示出来。
+MDS 的推荐警报包含 **Credit loss (slow drain)** 和 **Timeout discards (slow drain)**，每个接口一次：不再返还缓冲区信用的主机或存储阵列会拖慢其后的每条流，而这些计数器最先显示出来。
 
 ### 端口监控告警
 
-MDS 的端口监控策略在端口计数器越过阈值时触发 RMON 告警。推荐的告警包含 **Port monitor alarm**，其告警会写明计数器和接口，例如 "Port monitor: Credit loss rising on fc1/5"。一个监视慢速排空的策略：
+MDS 的端口监控策略在端口计数器越过阈值时触发 RMON 警报。推荐的警报包含 **Port monitor alarm**，其警报会写明计数器和接口，例如 "Port monitor: Credit loss rising on fc1/5"。一个监视慢速排空的策略：
 
 ```text
 port-monitor name slow-drain
