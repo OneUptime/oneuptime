@@ -1168,13 +1168,16 @@ const SecurityCaseResponsePlanCard: FunctionComponent<ComponentProps> = (
       return <></>;
     }
 
+    // Its words kept on one line: "Edit Connection" never breaks at its space.
     return (
       <>
         {" "}
-        {renderLinkTo(target, {
-          key: 0,
-          dataTestId: SECURITY_CASE_RESPONSE_TEST_IDS.checkFactLink,
-        })}
+        <span className="whitespace-nowrap">
+          {renderLinkTo(target, {
+            key: 0,
+            dataTestId: SECURITY_CASE_RESPONSE_TEST_IDS.checkFactLink,
+          })}
+        </span>
       </>
     );
   };
