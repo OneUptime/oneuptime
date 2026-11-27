@@ -663,8 +663,7 @@ const IncidentCreate: FunctionComponent<
    * decide - under Initial State, under On-Call Policy and on the review.
    * The form waits for it, since it latches where its boxes start.
    */
-  const declareDefaults: DeclareIncidentDefaults =
-    useDeclareIncidentDefaults();
+  const declareDefaults: DeclareIncidentDefaults = useDeclareIncidentDefaults();
 
   /*
    * Whether the template the incident is declared from names a state - even
@@ -2581,7 +2580,10 @@ const IncidentCreate: FunctionComponent<
                             value={isNotifyTicked(item)}
                             dataTestId="incident-create-notify-subscribers-value"
                           />
-                          {isNotifyingSubscribers(item) && hasMonitors(item) ? (
+                          {isNotifyingSubscribers(item) &&
+                          (hasMonitors(item) ||
+                            getIdsFromFormValue(item.statusPages).length >
+                              0) ? (
                             <SubscriberNotificationPreviewButton
                               dataTestId="incident-create-preview-notification"
                               getRequest={() => {

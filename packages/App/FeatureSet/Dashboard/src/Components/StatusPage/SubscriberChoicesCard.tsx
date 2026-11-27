@@ -57,6 +57,7 @@ const SubscriberChoicesCard: FunctionComponent<ComponentProps> = (
         select: {
           allowSubscribersToChooseResources: true,
           allowSubscribersToChooseEventTypes: true,
+          allowSubscribersToChooseIncidentCategories: true,
         },
       });
 
@@ -104,7 +105,7 @@ const SubscriberChoicesCard: FunctionComponent<ComponentProps> = (
                 <StatusPageSwitchRow
                   statusPageId={props.statusPageId}
                   column={column}
-                  // Both columns default to off: only an explicit true is on.
+                  // These columns default to off: only an explicit true is on.
                   initialValue={statusPage[column] === true}
                   title={getSubscriberChoiceTitle(column)}
                   getDescription={(isOn: boolean): string => {
