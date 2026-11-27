@@ -1,9 +1,17 @@
+import { JSONObject } from "../../../Types/JSON";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
 import {
   AccountChange,
   AccountChangeKind,
   AccountChangeProvider,
+  AccountChangeSubject,
 } from "../../../Utils/SecurityCase/AttackAccountChanges";
+import {
+  AWS_EVERY_ACCOUNT,
+  getAwsTrustedOutsideAccounts,
+  isSameAwsPolicy,
+  readAwsPolicyDocument,
+} from "../../../Utils/SecurityCase/AwsTrustPolicy";
 import {
   AwsIamAccessKey,
   AwsIamAccessNotGranted,
@@ -11,16 +19,21 @@ import {
   AwsIamGroup,
   AwsIamLoginProfile,
   AwsIamMfaDevice,
+  AwsIamRole,
   AwsIamSession,
   AwsIamUser,
   getAwsIamLoginProfile,
+  getAwsIamRole,
+  getAwsIamRoleUrl,
   getAwsIamUser,
   getAwsIamUserUrl,
   isAwsIamAccessKeyActive,
   listAwsIamAccessKeys,
+  listAwsIamAttachedRolePolicies,
   listAwsIamAttachedUserPolicies,
   listAwsIamGroupsForUser,
   listAwsIamMfaDevices,
+  listAwsIamRolePolicyNames,
   listAwsIamUserPolicyNames,
 } from "../CloudConnection/Aws/AwsIamUsers";
 import DataSourceHttpFetch from "../DataSource/HttpFetch";
@@ -69,7 +82,10 @@ import {
  *   AWS IAM             an access key, a console password, a managed or
  *                       inline policy, a group, an MFA device, a user made
  *                       - through the AWS cloud connection that reads the
- *                       account, with its Security case checks (#10900)
+ *                       account, with its Security case checks (#10900) -
+ *                       and a role's: a role made, a trust policy set, a
+ *                       managed or inline policy (#11038), naming the
+ *                       outside accounts the role trusts now
  *
  * A change the product cannot say anything of, or one the connection was
  * not given the access to read (NotGranted: a delegation without the
@@ -116,6 +132,13 @@ export interface AccountChangeFacts {
   isAccountGone?: boolean | undefined;
   // What the account still holds of the kind, in the product's words, when OneUptime cannot tell which.
   holding?: Array<string> | undefined;
+  /*
+   * An IAM role's (#11038): the AWS accounts outside its own it trusts now,
+   * as its trust policy names them - "*" for every account - that a person
+   * is told of. On a trust policy changed since the attack's, only the
+   * ones the attack's policies trusted too.
+   */
+  trusted?: Array<string> | undefined;
   // The account's page in the product, https.
   url?: string | undefined;
 }
@@ -697,13 +720,13 @@ export default class AccountChangeReadBack {
   // ---------- AWS IAM ----------
 
   /*
-   * Whether a change an attack made to an IAM user is still there (#10900),
-   * through a session signed in to the account it was made in: the user
-   * first - deleted, it took everything it was given with it - then the
-   * one list the change is in. A read the connection was not given (its
-   * Security case checks off, its setup command not run again) leaves the
-   * change a person's to confirm, saying what to grant. Throws when IAM
-   * could not be read.
+   * Whether a change an attack made to an IAM user (#10900) or role
+   * (#11038) is still there, through a session signed in to the account it
+   * was made in: the user or the role first - deleted, it took everything
+   * it was given with it - then the one list the change is in. A read the
+   * connection was not given (its Security case checks off, its setup
+   * command not run again) leaves the change a person's to confirm, saying
+   * what to grant. Throws when IAM could not be read.
    */
   public static async readInAws(data: {
     session: AwsIamSession;
@@ -713,7 +736,9 @@ export default class AccountChangeReadBack {
     const provider: string = AccountChangeProvider.Aws;
 
     try {
-      return await AccountChangeReadBack.readIamUser({ session, change });
+      return change.subject === AccountChangeSubject.Role
+        ? await AccountChangeReadBack.readIamRole({ session, change })
+        : await AccountChangeReadBack.readIamUser({ session, change });
     } catch (error) {
       if (error instanceof AwsIamAccessNotGranted) {
         return {
@@ -927,4 +952,217 @@ export default class AccountChangeReadBack {
         });
     }
   }
+
+  /*
+   * A change an attack made to an IAM role (#11038): the role first, by its
+   * name - deleted, it took everything it was given with it, and a role
+   * of its name made since (another id) is not the attack's - then:
+   *
+   *   a role made      still there until it is deleted
+   *   a trust policy   readIamTrust: the policy now, held to the ones the
+   *                    attack set
+   *   a policy         a managed one by its ARN, an inline one by its name
+   *
+   * Each names the outside accounts the role trusts now where a person
+   * acts on it: a role still there, a trust policy to confirm.
+   */
+  private static async readIamRole(data: {
+    session: AwsIamSession;
+    change: AccountChange;
+  }): Promise<AccountChangeFacts> {
+    const { session, change } = data;
+    const provider: string = AccountChangeProvider.Aws;
+    const gone: AccountChangeFacts = {
+      provider,
+      state: AccountChangeState.Undone,
+      isAccountGone: true,
+    };
+    const role: AwsIamRole | null = await getAwsIamRole(
+      session,
+      change.account,
+    );
+
+    if (
+      !role ||
+      (change.accountId && role.roleId && role.roleId !== change.accountId)
+    ) {
+      return gone;
+    }
+
+    const url: string = getAwsIamRoleUrl(session.partition, role.roleName);
+    const facts: (
+      state: AccountChangeState,
+      extra?: Partial<AccountChangeFacts>,
+    ) => AccountChangeFacts = (
+      state: AccountChangeState,
+      extra?: Partial<AccountChangeFacts>,
+    ): AccountChangeFacts => {
+      return { provider, state, url, ...(extra || {}) };
+    };
+    const has: (isThere: boolean) => AccountChangeFacts = (
+      isThere: boolean,
+    ): AccountChangeFacts => {
+      return facts(
+        isThere ? AccountChangeState.StillThere : AccountChangeState.Undone,
+      );
+    };
+    const notNamed: AccountChangeFacts = facts(AccountChangeState.Unknown, {
+      reason: AccountChangeUnknownReason.NotNamed,
+    });
+    const trustsNow: JSONObject | null = readAwsPolicyDocument(
+      role.trustPolicy,
+    );
+    const outsideNow: Array<string> = trustsNow
+      ? getAwsTrustedOutsideAccounts(trustsNow, change.cloudAccountId)
+      : [];
+
+    switch (change.kind) {
+      case AccountChangeKind.Account:
+        return facts(AccountChangeState.StillThere, trustedOf(outsideNow));
+
+      case AccountChangeKind.Trust:
+        return AccountChangeReadBack.readIamTrust({
+          change,
+          trustsNow,
+          outsideNow,
+          facts,
+        });
+
+      case AccountChangeKind.Policy: {
+        if (change.eventName === "AttachRolePolicy" || change.objectId) {
+          if (!change.objectId) {
+            return notNamed;
+          }
+
+          const attached: Array<AwsIamAttachedPolicy> | null =
+            await listAwsIamAttachedRolePolicies(session, role.roleName);
+
+          return attached
+            ? has(
+                attached.some((policy: AwsIamAttachedPolicy): boolean => {
+                  return sameText(policy.policyArn, change.objectId);
+                }),
+              )
+            : gone;
+        }
+
+        if (!change.objectName) {
+          return notNamed;
+        }
+
+        const inline: Array<string> | null = await listAwsIamRolePolicyNames(
+          session,
+          role.roleName,
+        );
+
+        return inline
+          ? has(
+              inline.some((name: string): boolean => {
+                return sameText(name, change.objectName);
+              }),
+            )
+          : gone;
+      }
+
+      default:
+        return facts(AccountChangeState.Unknown, {
+          reason: AccountChangeUnknownReason.NotReadBack,
+        });
+    }
+  }
+
+  /*
+   * A role's trust policy the attack set (UpdateAssumeRolePolicy, #11038):
+   * reading alone cannot undo it, so the policy now is held to the ones the
+   * case's events set, oldest first.
+   *
+   *   still there  it is the last policy the attack set, as IAM reads it -
+   *                however either is written - naming whom it trusts
+   *                outside the account;
+   *   undone       it trusts none of the outside accounts any of the
+   *                attack's policies trusted - each read whole;
+   *   to confirm   anything else: changed since, but still trusting an
+   *                outside account one of them trusted (it may have been
+   *                trusted before the attack), a policy that trusted no
+   *                outside account changed since, or one CloudTrail cut
+   *                short - never undone on what OneUptime could not read.
+   *                It names what the person checks: the outside accounts
+   *                trusted now that the attack's trusted too, or, past
+   *                telling, every one trusted now.
+   */
+  private static readIamTrust(data: {
+    change: AccountChange;
+    trustsNow: JSONObject | null;
+    outsideNow: Array<string>;
+    facts: (
+      state: AccountChangeState,
+      extra?: Partial<AccountChangeFacts>,
+    ) => AccountChangeFacts;
+  }): AccountChangeFacts {
+    const { change, trustsNow, outsideNow, facts } = data;
+    const cannotTell: (trusted: Array<string>) => AccountChangeFacts = (
+      trusted: Array<string>,
+    ): AccountChangeFacts => {
+      return facts(AccountChangeState.Unknown, {
+        reason: AccountChangeUnknownReason.CannotTellWhich,
+        ...trustedOf(trusted),
+      });
+    };
+
+    if (!trustsNow) {
+      return cannotTell([]);
+    }
+
+    const set: Array<JSONObject | null> = change.trustPolicies.map(
+      (policy: string): JSONObject | null => {
+        return readAwsPolicyDocument(policy);
+      },
+    );
+    const latest: JSONObject | null = set[set.length - 1] || null;
+
+    if (latest && isSameAwsPolicy(trustsNow, latest)) {
+      return facts(AccountChangeState.StillThere, trustedOf(outsideNow));
+    }
+
+    const isWhole: boolean =
+      set.length > 0 &&
+      set.every((policy: JSONObject | null): boolean => {
+        return policy !== null;
+      });
+
+    if (!isWhole) {
+      return cannotTell(outsideNow);
+    }
+
+    // Each outside account an attack's policy let in: any may be its way back.
+    const attackOutside: Array<string> = Array.from(
+      new Set(
+        set.flatMap((policy: JSONObject | null): Array<string> => {
+          return getAwsTrustedOutsideAccounts(policy!, change.cloudAccountId);
+        }),
+      ),
+    );
+
+    if (attackOutside.length === 0) {
+      return cannotTell(outsideNow);
+    }
+
+    // Every account, now, is each of the attack's too.
+    const stillTrusted: Array<string> = outsideNow.includes(
+      AWS_EVERY_ACCOUNT,
+    )
+      ? [AWS_EVERY_ACCOUNT]
+      : outsideNow.filter((account: string): boolean => {
+          return attackOutside.includes(account);
+        });
+
+    return stillTrusted.length === 0
+      ? facts(AccountChangeState.Undone)
+      : cannotTell(stillTrusted);
+  }
+}
+
+// The outside accounts a role trusts, as facts carry them: none said when there are none.
+function trustedOf(accounts: Array<string>): Partial<AccountChangeFacts> {
+  return accounts.length > 0 ? { trusted: accounts } : {};
 }

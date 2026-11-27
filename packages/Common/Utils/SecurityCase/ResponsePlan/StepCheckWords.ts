@@ -617,6 +617,64 @@ export const CHECK_ACCOUNT_CHANGE_ACCOUNT_CONFIRM: string = translationKey(
   "Confirm the account {{account}} the attack made is gone or disabled in {{provider}}.",
 );
 
+/*
+ * An IAM role's changes (#11038): {{account}} is the role's name. A role
+ * the attack made - a backdoor, often trusting an account outside - a
+ * trust policy it set, and a policy it gave the role more power with. A
+ * role is never "an account": its words say it is a role.
+ */
+export const CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL: string = translationKey(
+  "The role {{account}} the attack made is still in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE: string = translationKey(
+  "The role {{account}} the attack made is gone from {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM: string = translationKey(
+  "Confirm the role {{account}} the attack made is gone from {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_TRUST_STILL: string = translationKey(
+  "The role {{account}} still has the trust policy the attack set in {{provider}}.",
+);
+// Undone: it trusts none of the outside accounts any trust policy the attack set trusted.
+export const CHECK_ACCOUNT_CHANGE_TRUST_UNDONE: string = translationKey(
+  "The role {{account}} in {{provider}} no longer trusts the outside accounts the attack's trust policy let in.",
+);
+export const CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM: string = translationKey(
+  "Confirm the role {{account}} in {{provider}} trusts only whom you expect: the attack changed its trust policy.",
+);
+export const CHECK_ACCOUNT_CHANGE_ROLE_POLICY_STILL: string = translationKey(
+  "The role {{account}} still has the policy {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE: string = translationKey(
+  "The role {{account}} no longer has the policy {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ROLE_POLICY_CONFIRM: string = translationKey(
+  "Confirm the role {{account}} no longer has the policy {{object}} in {{provider}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_ROLE_GONE: string = translationKey(
+  "The role {{account}} no longer exists in {{provider}}, so nothing the attack gave it is left.",
+);
+
+/*
+ * Whom a role trusts outside the AWS account it is in (#11038), as its
+ * trust policy says now: the line under the role's, unmarked, naming what
+ * a person checks. {{trusted}} is an account's 12 digits, {{cloudAccount}}
+ * the role's own account. Several are counted, one named.
+ */
+export const CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT: string = translationKey(
+  "The role {{account}} trusts {{trusted}}, an AWS account outside {{cloudAccount}}.",
+);
+export const CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS: PluralTemplate = {
+  one: "The role {{account}} trusts {{count}} AWS account outside {{cloudAccount}}: {{trusted}}.",
+  other:
+    "The role {{account}} trusts {{count}} AWS accounts outside {{cloudAccount}}, {{trusted}} among them.",
+};
+// Its trust policy trusts "*": every AWS account.
+export const CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT: string =
+  translationKey(
+    "Anyone in AWS may assume the role {{account}}: its trust policy trusts every AWS account.",
+  );
+
 // Why OneUptime cannot read the changes in a product back, said once for it.
 export const CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION: string = translationKey(
   "OneUptime has no connection to {{provider}}, so it cannot read the changes there back.",
@@ -638,6 +696,24 @@ export const CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED: string =
   translationKey(
     "To read IAM back in the account {{cloudAccount}}, edit its AWS connection under Cloud → Connect, turn on Security case checks, and run the command it shows.",
   );
+/*
+ * AWS: the connection's Security case checks are on, and AWS refused the
+ * read all the same: its command was not run again since the setting came
+ * to grant more - the role reads (#11038) - or what it granted was removed.
+ */
+export const CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN: string =
+  translationKey(
+    "AWS refused OneUptime's read of IAM in the account {{cloudAccount}}, though its AWS connection has Security case checks on. Edit the connection under Cloud → Connect and run the command it shows again.",
+  );
+/*
+ * The links after the lines that say what to change (#11039): the AWS
+ * connection's form on Cloud → Connect, for a reader who may change it, or
+ * Cloud → Connect itself, for one who may only see it.
+ */
+export const CHECK_ACCOUNT_CHANGES_EDIT_CONNECTION: string =
+  translationKey("Edit Connection");
+export const CHECK_ACCOUNT_CHANGES_OPEN_CLOUD_CONNECTIONS: string =
+  translationKey("Open Cloud Connections");
 // Google Workspace: the connection may not read groups: its delegation lacks the group member scope (#10901).
 export const CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS: string = translationKey(
   "To read Google Workspace groups back, add the scope {{scope}} to the connection's domain-wide delegation, for an administrator who may read groups.",
