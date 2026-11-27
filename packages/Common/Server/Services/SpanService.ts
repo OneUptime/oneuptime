@@ -359,7 +359,8 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
    *
    * Trade-off (same as the count override): window edges round to the
    * minute, so the boundary buckets may include spans from the partial
-   * boundary minute.
+   * boundary minute. A telemetry check's window is never rounded: it is
+   * served here only when its ends are whole minutes (MinuteRollupRange).
    */
   public override toAggregateStatement(aggregateBy: AggregateBy<Span>): {
     statement: Statement;
