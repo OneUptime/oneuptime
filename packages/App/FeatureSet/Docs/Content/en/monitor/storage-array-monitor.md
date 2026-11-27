@@ -1,13 +1,13 @@
 # Storage Array Monitor
 
-A storage array monitor watches one storage array and tells you when the array raises an alert of its own, runs out of space, slows down, loses hardware or a host path, or falls behind on replication. It works with Pure Storage FlashArray and Pure Storage FlashBlade, and reads the metrics the array exports itself - Pure's `purefa_*` and `purefb_*` series - which the OneUptime Storage Array Agent collects.
+A storage array monitor watches one storage array and tells you when the array raises an alert of its own, runs out of space, slows down, loses hardware or a host path, or falls behind on replication. It works with Pure Storage FlashArray, Pure Storage FlashBlade and NetApp ONTAP (Amazon FSx for NetApp ONTAP included), and reads the metrics the OneUptime Storage Array Agent collects: Pure's `purefa_*` and `purefb_*` series, and the `netapp_*` series NetApp Harvest reads from an ONTAP cluster.
 
 It also works with Dell PowerStore (`dell.powerstore`), from Dell's `powerstore_*` series.
 
 :::cards
 - [Create the monitor](#create-a-storage-array-monitor): Six steps in the dashboard.
 - [Templates](#pre-built-alert-templates): Ready-made alerts, one incident per volume, host, appliance or component.
-- [How Pure's series work](#how-pures-series-are-shaped): One metric name, many figures.
+- [How Pure's series work](#how-pures-series-are-shaped): One metric name, many figures. ONTAP's [have a section of their own](#how-ontaps-series-are-shaped).
 - [Metrics](#collected-metrics): Every series the monitor can alert on.
 :::
 
@@ -33,7 +33,7 @@ flowchart TB
 
 ## Before you begin
 
-- **Install the Storage Array Agent** where it can reach the array over HTTPS, with the API token of a user that has the array's **readonly** role. The [Storage Array Agent guide](/docs/telemetry/storage-arrays) covers the user, the token and the install, through `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, and the array's address and token (`PURE_FA_ENDPOINT` and `PURE_FA_API_TOKEN`, or `PURE_FB_ENDPOINT` and `PURE_FB_API_TOKEN`).
+- **Install the Storage Array Agent** where it can reach the array over HTTPS, with the API token of a user that has the array's **readonly** role. The [Storage Array Agent guide](/docs/telemetry/storage-arrays) covers the user, the token and the install, through `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME`, and the array's address and token (`PURE_FA_ENDPOINT` and `PURE_FA_API_TOKEN`, or `PURE_FB_ENDPOINT` and `PURE_FB_API_TOKEN`), or for ONTAP the cluster's address and a read-only REST user (`NETAPP_ONTAP_ENDPOINT`, `NETAPP_ONTAP_USERNAME` and `NETAPP_ONTAP_PASSWORD`).
 - **Check the array is registered.** It appears under **Products → Infrastructure → Storage Arrays → All Storage Arrays**, named after the agent's `STORAGE_ARRAY_NAME`, about a minute after the first scrape.
 
 ## Create a storage array monitor
@@ -76,10 +76,10 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 | Field | Tab | What it does |
 | --- | --- | --- |
 | **Storage Array** | All | Required. Scopes every query to `resource.storage.array.name`, so two arrays that both have a volume called `vol-01` never mix. |
-| **Volume** | Custom Metric, Advanced | FlashArray only. One volume, by the `name` label, such as `vol-db-01`. A volume in a pod or a volume group is named `pod::volume` or `group/volume`. |
+| **Volume** | Custom Metric, Advanced | One volume: on a FlashArray by the `name` label, such as `vol-db-01` (a volume in a pod or a volume group is named `pod::volume` or `group/volume`); on ONTAP by the `volume` label, which two SVMs can share. |
 | **Host** | Custom Metric, Advanced | FlashArray only. One host as the array knows it, by the `host` label, such as `esxi-01`. |
 | **Pod** | Custom Metric, Advanced | FlashArray only. One ActiveCluster or ActiveDR pod, by the `name` label, or `local_pod` on replica link series. |
-| **Hardware Component** | Custom Metric, Advanced | One hardware component, such as `CH0.BAY1` or `CT0`: the `component_name` label on a FlashArray, `name` on a FlashBlade. |
+| **Hardware Component** | Custom Metric, Advanced | One hardware component, such as `CH0.BAY1` or `CT0`: the `component_name` label on a FlashArray, `name` on a FlashBlade, and on ONTAP the label its series names it by (`node`, `disk`, `shelf` or `port`). |
 | **File System** | Custom Metric, Advanced | FlashBlade only. One file system, by the `name` label. |
 | **Bucket** | Custom Metric, Advanced | FlashBlade only. One object store bucket, by the `name` label. |
 | **Storage Array Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). The form adds the label filter that gives it its meaning, and groups it by the object it describes, so each volume, host or component is judged on its own. |
@@ -87,7 +87,7 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 | **Time Range** | All | The rolling window the query reads, from **Past 1 Minute** to **Past 365 Days**. A new monitor starts at **Past 5 Minutes**; a custom metric of a file system or bucket at **Past 15 Minutes**; templates set their own. |
 | **Select Metrics** | Advanced | The query builder: **Metric**, **Aggregate by**, **Filter by attributes**, **Group by**, plus **Add Metric** and **Add Formula** to combine queries. |
 
-The agent reads the array endpoint every 60 seconds, and volumes, hosts and pods every 2 minutes, so a 5-minute window always holds a sample. It reads a FlashBlade's file systems and buckets every 5 minutes, hence 15, and FlashArray directories every 30 minutes: give a directory monitor a 60-minute window.
+The agent reads the array endpoint every 60 seconds, and volumes, hosts and pods every 2 minutes, so a 5-minute window always holds a sample. It reads a FlashBlade's file systems and buckets every 5 minutes, hence 15, and FlashArray directories every 30 minutes: give a directory monitor a 60-minute window. On ONTAP, Harvest reads the cluster's performance every minute and its configuration, state and EMS events every 3 minutes, so a 5-minute window always holds a sample.
 
 It reads a PowerStore every 5 minutes, and its cluster's state every 60 seconds: give a PowerStore monitor a window of 15 minutes.
 
@@ -115,11 +115,25 @@ In monitor filters and group-by keys, the agent's attributes start with `resourc
 
 Dell's exporter writes one figure per metric name, so a PowerStore series needs no label filter. Its labels name the object: `appliance_id` an appliance, `name` a part, volume or file system, and `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id` or `volume_group_id` the object of a performance series. Its state series are 1 while healthy and 0 otherwise, so the templates fire below 1. Its own alerts arrive by syslog, and their templates, Logs monitors, are listed after its table below.
 
+## How ONTAP's series are shaped
+
+NetApp Harvest names each series `netapp_<object>_<counter>` and names the object by its labels: a volume by `volume` within its `svm`, an aggregate by `aggr`, a LUN by `lun` within its `volume` and `svm`, a node by `node`, a disk by `disk`, a shelf by `shelf`, a SnapMirror relationship by `destination_location`. Latencies are microseconds per operation, `_ops` operations per second, `_data` bytes per second.
+
+ONTAP's states come three ways:
+
+| Series | State | One series per |
+| --- | --- | --- |
+| `netapp_*_new_status` | 1 healthy, online, up or running, 0 not | Object, on every poll |
+| `netapp_health_*_alerts` | Value 1, with `severity` (`error` or `warning`) and why in its labels | Open problem: a broken disk, a shelf fault, a node that cannot take over its partner, a port down, a system health alert |
+| `netapp_ems_events` | Value 1, with `message`, `severity` and the event's parameters | EMS event, for the one poll that collected it; a paired event's clearing is exported once more as 0 |
+
+A state as a number fires when every reading of the window is below 1, and recovers once a reading is 1 again. An open problem fires while its series is there and recovers once it is gone, as long as `netapp_cluster_new_status` still arrives, so a stopped agent closes nothing. An EMS event fires on its one reading and stays open while it is in the template's hour; it recovers when an hour passes without another.
+
 ## Pre-built Alert Templates
 
-OneUptime ships 36 templates — 12 for FlashArray, 8 for FlashBlade and 16 for PowerStore — and the **What to alert on** list offers the ones for the array's platform. Each builds a complete monitor: the metric query, its label filters, a group-by on the object's own label, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
+OneUptime ships 67 templates — 12 for FlashArray, 8 for FlashBlade, 16 for PowerStore and 31 for ONTAP — and the **What to alert on** list offers the ones for the array's platform. Each builds a complete monitor: the metric query, its label filters, a group-by on the object's own label, a criteria that fires and one that recovers. Thresholds are starting points you can edit.
 
-A criteria fires only when the condition holds for **every** value in its window. A monitor that fired on a capacity, latency, lag or ratio threshold recovers only 10% past it, so a value hovering at the threshold does not flap. The alert, hardware and connectivity templates fire once a state has shown for their whole 5-minute window, and recover about 5 minutes after it clears.
+A criteria fires only when the condition holds for **every** value in its window, except an ONTAP EMS template's: Harvest exports an event for one poll, so one reading is enough. A monitor that fired on a capacity, latency, lag or ratio threshold recovers only 10% past it, so a value hovering at the threshold does not flap. The alert, hardware and connectivity templates fire once a state has shown for their whole 5-minute window, and recover about 5 minutes after it clears.
 
 ### FlashArray
 
@@ -182,6 +196,42 @@ A PowerStore's own alerts arrive as logs, so their templates are **Logs** monito
 | Major Array Alert | Warning | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
 | Port Link Down | Warning | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
 
+### ONTAP
+
+| Template | Category | Severity | Watches | Fires when |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Availability | Critical | `netapp_cluster_new_status`, Count, past 10 minutes | No data for the whole window — the agent or Harvest stopped, or the cluster stopped answering Harvest; recovers when data arrives again |
+| Cluster Not Healthy | Array Health | Warning | `netapp_cluster_new_status`, Max, past 10 minutes | < 1 — ONTAP reports the cluster not healthy; recovers at ≥ 1 |
+| System Health Alert | Array Health | Warning | `netapp_health_support_alerts`, Max per `name`, past 5 minutes | > 0 — ONTAP's system health monitor raised an alert (a missing path to a shelf, a node connectivity problem). One incident per alert; recovers when ONTAP clears it |
+| Emergency EMS Event | Array Health | Critical | `netapp_ems_events` filtered to `severity=emergency`, Max per `message`, past 1 hour, any reading | > 0 — ONTAP logged an emergency event. One incident per event; recovers when an hour passes without another |
+| Alert EMS Event | Array Health | Critical | `netapp_ems_events` filtered to `severity=alert`, Max per `message`, past 1 hour, any reading | > 0 — ONTAP logged an alert event (a fan failed); recovers when an hour passes without another |
+| Disk Out of Service | Hardware | Warning | `netapp_ems_events` filtered to `message=disk.outOfService`, Max per `disk`, past 1 hour, any reading | > 0 — ONTAP took a disk out of service; recovers when an hour passes without another |
+| Node Panic | Hardware | Critical | `netapp_ems_events` filtered to `message=sk.panic`, Max per `node`, past 1 hour, any reading | > 0 — a node panicked and rebooted, and its partner took over its storage; recovers when an hour passes without another |
+| Aggregate Above 80% | Capacity | Warning | `netapp_aggr_space_used_percent`, Max per `aggr`, past 15 minutes | > 80; recovers at ≤ 72 |
+| Aggregate Above 90% | Capacity | Critical | `netapp_aggr_space_used_percent`, Max per `aggr`, past 5 minutes | > 90 — the volumes on it can no longer grow; recovers at ≤ 81 |
+| Volume Above 90% | Capacity | Warning | `netapp_volume_size_used_percent`, Max per `volume` and `svm`, past 15 minutes | > 90; recovers at ≤ 81 |
+| Volume Above 98% | Capacity | Critical | `netapp_volume_size_used_percent`, Max per `volume` and `svm`, past 5 minutes | > 98 — clients get out-of-space errors, and a LUN in it can go offline; recovers at ≤ 88.2 |
+| High Read Latency | Performance | Warning | `netapp_cluster_read_latency`, Avg, past 15 minutes | > 10000 µs (10 ms); recovers at ≤ 9000 |
+| High Write Latency | Performance | Warning | `netapp_cluster_write_latency`, Avg, past 15 minutes | > 10000 µs (10 ms); recovers at ≤ 9000 |
+| Volume Latency Above 20 ms | Performance | Warning | `netapp_volume_read_latency`, Avg per `volume` and `svm`, past 15 minutes | > 20000 µs; recovers at ≤ 18000 |
+| Node Not Healthy | Hardware | Critical | `netapp_node_new_status`, Max per `node`, past 10 minutes | < 1 — ONTAP reports the node not healthy; recovers at ≥ 1 |
+| Takeover Not Possible | Hardware | Critical | `netapp_health_ha_alerts`, Max per `node`, past 5 minutes | > 0 — a node cannot take over its HA partner, so a failure would take that partner's storage offline; recovers when it can again |
+| Disk Failed | Hardware | Critical | `netapp_health_disk_alerts` filtered to `container_type=broken`, Max per `disk`, past 5 minutes | > 0 — a disk is broken; recovers when it is replaced |
+| Shelf Fault | Hardware | Critical | `netapp_health_shelf_alerts` filtered to `severity=error`, Max per `shelf`, past 5 minutes | > 0 — ONTAP reports an error on a disk shelf (a power supply, a module, a path); recovers when ONTAP clears it |
+| Node Fan Failed | Hardware | Warning | `netapp_node_failed_fan`, Max per `node`, past 10 minutes | > 0 failed fans; recovers at ≤ 0 |
+| Node Power Supply Failed | Hardware | Critical | `netapp_node_failed_power`, Max per `node`, past 10 minutes | > 0 failed power supplies; recovers at ≤ 0 |
+| Shelf Power Supply Failed | Hardware | Critical | `netapp_shelf_psu_status`, Max per `shelf`, past 10 minutes | < 1 — a shelf's power supply is not normal; recovers at ≥ 1 |
+| Shelf Fan Failed | Hardware | Warning | `netapp_shelf_fan_status`, Max per `shelf`, past 10 minutes | < 1 — a shelf's fan is not normal; recovers at ≥ 1 |
+| Ethernet Port Down | Hardware | Warning | `netapp_health_network_ethernet_port_alerts`, Max per `port` and `node`, past 5 minutes | > 0 — an enabled Ethernet port is down; recovers when its link is up again |
+| FC Port Link Failures | Hardware | Warning | `netapp_fcp_link_failure`, Max per `port` and `node`, past 15 minutes | > 0 — a Fibre Channel port's link failed in the window; recovers at ≤ 0 |
+| SnapMirror Behind Schedule | Replication | Warning | `netapp_snapmirror_lag_time` over `netapp_snapmirror_schedule_seconds`, Max per `destination_location`, past 15 minutes | > 1.5 — a relationship is more than one and a half schedule intervals behind (an hourly one, 90 minutes); recovers at ≤ 1.35 |
+| SnapMirror Relationship Unhealthy | Replication | Critical | `netapp_snapmirror_labels` filtered to `healthy=false`, Max per `destination_location`, past 5 minutes | > 0 — ONTAP reports the relationship unhealthy, with why in its `unhealthy_reason` label; recovers when ONTAP reports it healthy |
+| SnapMirror Lag Above 1 Day | Replication | Warning | `netapp_snapmirror_lag_time`, Max per `destination_location`, past 15 minutes | > 86400 s, whatever its schedule; recovers at ≤ 77760 |
+| Aggregate Offline | Availability | Critical | `netapp_aggr_new_status`, Max per `aggr`, past 10 minutes | < 1 — an aggregate is not online, so none of its volumes can be reached; recovers at ≥ 1 |
+| Volume Offline | Availability | Warning | `netapp_volume_new_status`, Max per `volume` and `svm`, past 10 minutes | < 1 — a volume is not online; recovers at ≥ 1 |
+| LUN Offline | Availability | Critical | `netapp_lun_new_status`, Max per `lun`, `volume` and `svm`, past 10 minutes | < 1 — a LUN is not online, and its hosts have lost the disk; recovers at ≥ 1 |
+| SVM Stopped | Availability | Warning | `netapp_svm_labels` filtered to `state=stopped` and `type=data`, Max per `svm`, past 10 minutes | > 0 — a data SVM is stopped; recovers when it runs again. The SVMs ONTAP keeps for itself are never watched |
+
 **Severity** is the label the picker shows. The incident and alert a template creates start on your project's most severe incident and alert severity; change them in the criteria.
 
 - **Array Stopped Reporting** counts the platform's identity series (`purefa_info` or `purefb_info`), which every endpoint the agent scrapes exports on every scrape. When data stops, the other templates have nothing to compare and keep their last status, so this is the one that tells you.
@@ -190,7 +240,7 @@ A PowerStore's own alerts arrive as logs, so their templates are **Logs** monito
 - **Latency templates use Avg** of the array's own average per operation, and capacity templates **Max** of its own utilization percentage. Latencies are pinned in microseconds and capacity in percent.
 - **Hardware Component Unhealthy uses Min** per component: its health is 1 when healthy and drops to 0 when not.
 
-There is no template for the latency of each volume, because the right threshold depends on the workload: build it from the catalog with a group-by on `name`. Capacity forecasting needs a growth trend rather than a threshold, and drive wear has no series to alert on.
+There is no FlashArray template for the latency of each volume, because the right threshold depends on the workload: build it from the catalog with a group-by on `name`. Capacity forecasting needs a growth trend rather than a threshold, and drive wear has no series to alert on.
 
 ## Collected Metrics
 
@@ -203,6 +253,10 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefa_alerts_open` | —      | FlashArray | `count` | One series per alert open on the array (value 1), labeled `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` and `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | One series per alert open on the FlashBlade (value 1), labeled `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` and `kburl` (Pure's knowledge base article) |
 | `powerstore_cluster` | — | PowerStore | `count` | 1 while the PowerStore cluster is Configured (formed and serving), 0 in any other state: Configuring, Expanding, Removing, Clustering_Failed or Unconfigured. |
+| `netapp_cluster_new_status` | — | ONTAP | — | 1 while ONTAP reports the cluster healthy; also what says the agent still reads it |
+| `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | Alerts open in each of ONTAP's health subsystems, by `subsystem` |
+| `netapp_health_support_alerts` | — | ONTAP | `count` | One series per alert ONTAP's system health monitor has open, while it is open |
+| `netapp_ems_events` | — | ONTAP | `count` | One series per EMS event, for the poll that collected it; a paired event's clearing exports it once more as 0 |
 
 ### Capacity
 
@@ -223,6 +277,14 @@ The agent sends everything the array exports; the series below are the catalog t
 | `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | Data hosts have written to each appliance in bytes, before deduplication and compression. |
 | `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | Deduplication and compression on each appliance, for example 3.4 for 3.4:1. A sustained drop means newly written data reduces poorly: encrypted or already-compressed data. |
 | `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | Overall efficiency of each appliance: data reduction together with the savings of snapshots and thin provisioning. |
+| `netapp_aggr_space_used_percent` | — | ONTAP | `%` | Share of each aggregate's usable space in use — group by `aggr` |
+| `netapp_aggr_space_total` | — | ONTAP | `bytes` | Usable space of each aggregate; the cluster's capacity is their sum |
+| `netapp_aggr_space_used` | — | ONTAP | `bytes` | Space each aggregate has in use or reserved |
+| `netapp_aggr_space_available` | — | ONTAP | `bytes` | Space left on each aggregate — trend it to forecast when it fills |
+| `netapp_aggr_inode_used_percent` | — | ONTAP | `%` | Share of each aggregate's files (inodes) in use |
+| `netapp_aggr_new_status` | — | ONTAP | — | 1 while an aggregate is online |
+| `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | What each aggregate's data would take without storage efficiency, snapshots and FlexClones aside |
+| `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | What each aggregate's data takes on disk after storage efficiency |
 
 ### Performance
 
@@ -251,6 +313,23 @@ The agent sends everything the array exports; the series below are the catalog t
 | `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Bytes read per second on each appliance. |
 | `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Bytes written per second on each appliance. |
 | `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | Share of the CPU cores each appliance dedicates to storage I/O that is busy, in percent. Sustained high values mean the appliance is near the load it can serve. |
+| `netapp_cluster_read_latency` | — | ONTAP | `µs` | Average latency of a read across the cluster |
+| `netapp_cluster_write_latency` | — | ONTAP | `µs` | Average latency of a write across the cluster |
+| `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | Read operations per second across the cluster |
+| `netapp_cluster_write_ops` | — | ONTAP | `ops/s` | Write operations per second across the cluster |
+| `netapp_cluster_total_ops` | — | ONTAP | `ops/s` | Every operation per second across the cluster, metadata included |
+| `netapp_cluster_read_data` | — | ONTAP | `bytes/s` | Bytes read per second across the cluster |
+| `netapp_cluster_write_data` | — | ONTAP | `bytes/s` | Bytes written per second across the cluster |
+| `netapp_aggr_read_latency` | — | ONTAP | `µs` | Average latency of a read on each aggregate |
+| `netapp_aggr_write_latency` | — | ONTAP | `µs` | Average latency of a write on each aggregate |
+| `netapp_aggr_read_ops` | — | ONTAP | `ops/s` | Read operations per second on each aggregate |
+| `netapp_aggr_write_ops` | — | ONTAP | `ops/s` | Write operations per second on each aggregate |
+| `netapp_svm_vol_read_latency` | — | ONTAP | `µs` | Average latency of a read on each SVM's volumes |
+| `netapp_svm_vol_write_latency` | — | ONTAP | `µs` | Average latency of a write on each SVM's volumes |
+| `netapp_svm_vol_read_ops` | — | ONTAP | `ops/s` | Read operations per second on each SVM's volumes |
+| `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | Write operations per second on each SVM's volumes |
+| `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | Bytes read per second from each SVM's volumes |
+| `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | Bytes written per second to each SVM's volumes |
 
 ### Volumes
 
@@ -279,6 +358,32 @@ The agent sends everything the array exports; the series below are the catalog t
 | `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | Average read latency across each volume group's volumes, in microseconds. Group by volume_group_id, which holds the group's name. |
 | `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | Average write latency across each volume group's volumes, in microseconds. |
 | `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | Read and write operations per second across each volume group's volumes. |
+| `netapp_svm_new_status` | — | ONTAP | — | 1 while an SVM is running — group by `svm` |
+| `netapp_svm_labels` | `state=stopped`, `type=data` | ONTAP | — | One series per data SVM that is stopped |
+| `netapp_volume_size_used_percent` | — | ONTAP | `%` | Share of each volume's space in use, as `volume show` reports it — group by `volume` and `svm` |
+| `netapp_volume_size_total` | — | ONTAP | `bytes` | Each volume's usable size, its snapshot reserve aside |
+| `netapp_volume_size_used` | — | ONTAP | `bytes` | Space each volume has in use |
+| `netapp_volume_size_available` | — | ONTAP | `bytes` | Space left in each volume |
+| `netapp_volume_snapshots_size_used` | — | ONTAP | `bytes` | Space each volume's snapshots use |
+| `netapp_volume_inode_used_percent` | — | ONTAP | `%` | Share of each volume's files (inodes) in use |
+| `netapp_volume_sis_total_saved_percent` | — | ONTAP | `%` | Share of each volume's data that deduplication and compression save |
+| `netapp_volume_new_status` | — | ONTAP | — | 1 while a volume is online |
+| `netapp_volume_read_latency` | — | ONTAP | `µs` | Average latency of a read on each volume |
+| `netapp_volume_write_latency` | — | ONTAP | `µs` | Average latency of a write on each volume |
+| `netapp_volume_read_ops` | — | ONTAP | `ops/s` | Read operations per second on each volume |
+| `netapp_volume_write_ops` | — | ONTAP | `ops/s` | Write operations per second on each volume |
+| `netapp_volume_read_data` | — | ONTAP | `bytes/s` | Bytes read per second from each volume |
+| `netapp_volume_write_data` | — | ONTAP | `bytes/s` | Bytes written per second to each volume |
+| `netapp_lun_size_used_percent` | — | ONTAP | `%` | Share of each LUN's size its host has written |
+| `netapp_lun_size` | — | ONTAP | `bytes` | The size each LUN presents to its hosts |
+| `netapp_lun_size_used` | — | ONTAP | `bytes` | Space each LUN uses in its volume |
+| `netapp_lun_new_status` | — | ONTAP | — | 1 while a LUN is online |
+| `netapp_lun_avg_read_latency` | — | ONTAP | `µs` | Average latency of a read on each LUN |
+| `netapp_lun_avg_write_latency` | — | ONTAP | `µs` | Average latency of a write on each LUN |
+| `netapp_lun_read_ops` | — | ONTAP | `ops/s` | Read operations per second on each LUN |
+| `netapp_lun_write_ops` | — | ONTAP | `ops/s` | Write operations per second on each LUN |
+| `netapp_lun_read_data` | — | ONTAP | `bytes/s` | Bytes read per second from each LUN |
+| `netapp_lun_write_data` | — | ONTAP | `bytes/s` | Bytes written per second to each LUN |
 
 ### Hosts
 
@@ -299,6 +404,12 @@ The agent sends everything the array exports; the series below are the catalog t
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replication traffic of each pod, labeled `direction` and `dimension`                                                                                         |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Average mirrored write latency of each ActiveCluster pod                                                                                                     |
 | `powerstore_metro_witness_status` | — | PowerStore | `count` | State of each Metro witness: 0 OK, 1 partially connected, 2 disconnected, 3 being deleted, 4 initializing. Above 0, a Metro session may not fail over on its own. |
+| `netapp_snapmirror_lag_time` | — | ONTAP | `s` | How far each SnapMirror relationship's destination is behind its source |
+| `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | How often each relationship's schedule transfers; the agent writes it from the schedule's name |
+| `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | How long each relationship's last transfer took |
+| `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | How much each relationship's last transfer sent |
+| `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | How many of each relationship's updates have failed; it only grows |
+| `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | One series per relationship ONTAP reports unhealthy, with why in `unhealthy_reason` |
 
 ### Hardware
 
@@ -326,6 +437,32 @@ The agent sends everything the array exports; the series below are the catalog t
 | `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | Bytes received per second on each Ethernet port. |
 | `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | Bytes transmitted per second on each Ethernet port. |
 | `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | Packets received with a CRC error per second on each Ethernet port. Sustained errors usually mean a bad cable, optic or switch port. |
+| `netapp_node_new_status` | — | ONTAP | — | 1 while ONTAP reports a node healthy — group by `node` |
+| `netapp_node_avg_processor_busy` | — | ONTAP | `%` | How busy each node's processors are |
+| `netapp_node_failed_fan` | — | ONTAP | `count` | Failed fans of each node |
+| `netapp_node_failed_power` | — | ONTAP | `count` | Failed power supplies of each node |
+| `netapp_node_uptime` | — | ONTAP | `s` | How long each node has been up; a drop is a reboot or a giveback |
+| `netapp_disk_new_status` | — | ONTAP | — | 1 while a disk reports no outage — group by `disk` |
+| `netapp_health_disk_alerts` | — | ONTAP | `count` | One series per disk ONTAP reports broken or unassigned, while it is |
+| `netapp_shelf_new_status` | — | ONTAP | — | 1 while a disk shelf is online |
+| `netapp_health_shelf_alerts` | — | ONTAP | `count` | One series per fault ONTAP reports on a disk shelf, while it lasts |
+| `netapp_shelf_psu_status` | — | ONTAP | — | 1 while a shelf's power supply is normal |
+| `netapp_shelf_fan_status` | — | ONTAP | — | 1 while a shelf's fan is normal |
+| `netapp_shelf_temperature_status` | — | ONTAP | — | 1 while a shelf's temperature sensor is within its thresholds |
+| `netapp_shelf_temperature_reading` | — | ONTAP | `°C` | What each shelf temperature sensor reads |
+| `netapp_environment_sensor_status` | — | ONTAP | — | 1 while a node's environment sensor is within its thresholds |
+| `netapp_health_node_alerts` | — | ONTAP | `count` | One series per node ONTAP reports unhealthy, while it is |
+| `netapp_health_ha_alerts` | — | ONTAP | `count` | One series per node that cannot take over its HA partner, while it cannot |
+| `netapp_net_port_status` | — | ONTAP | — | 1 while an Ethernet port's link is up |
+| `netapp_health_network_ethernet_port_alerts` | — | ONTAP | `count` | One series per enabled Ethernet port that is down, while it is |
+| `netapp_nic_rx_bytes` | — | ONTAP | `bytes/s` | Bytes each Ethernet port receives per second |
+| `netapp_nic_tx_bytes` | — | ONTAP | `bytes/s` | Bytes each Ethernet port sends per second |
+| `netapp_nic_util_percent` | — | ONTAP | `%` | How much of each Ethernet port's speed is in use |
+| `netapp_nic_rx_total_errors` | — | ONTAP | `count` | Receive errors each Ethernet port counted in the last minute |
+| `netapp_fcp_read_data` | — | ONTAP | `bytes/s` | Bytes read per second through each Fibre Channel port |
+| `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | Bytes written per second through each Fibre Channel port |
+| `netapp_fcp_util_percent` | — | ONTAP | `%` | How much of each Fibre Channel port's speed is in use |
+| `netapp_fcp_link_failure` | — | ONTAP | `count` | Link failures each Fibre Channel port counted in the last minute |
 
 ### File Systems
 
@@ -420,7 +557,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` is the array's `storage.array.name` - the `STORAGE_ARRAY_NAME` the agent was started with - not its OneUptime ID. `storageSystem` is `purestorage.flasharray` or `purestorage.flashblade`. It decides which catalog and templates the form shows, and whether a hardware filter reads `component_name` or `name`.
+`arrayIdentifier` is the array's `storage.array.name` - the `STORAGE_ARRAY_NAME` the agent was started with - not its OneUptime ID. `storageSystem` is `purestorage.flasharray`, `purestorage.flashblade` or `netapp.ontap`. It decides which catalog and templates the form shows, and which label a volume or hardware filter reads.
 
 ## Troubleshooting
 
@@ -434,6 +571,10 @@ That is the healthy case. `purefa_alerts_open`, `purefa_hw_component_status`, `p
 
 :::details A latency monitor reads wrong
 Pure puts read, write, mirrored-write, SAN, queue and QoS figures on one metric name, told apart only by the `dimension` label, and a query without a `dimension` filter averages them together. Filter on one dimension, as the templates and the form's catalog do. Per-volume and per-host series keep only `usec_per_read_op`, `usec_per_write_op` and `usec_per_mirrored_write_op`: the agent drops the rest to save series, and only the array-wide `purefa_array_performance_latency_usec` keeps all of them.
+:::
+
+:::details An ONTAP template on an EMS event never fires
+An EMS template fires only while an event of its kind is in its window: Harvest exports an event once, for the poll that collected it. Check that the agent's Harvest runs the `Ems` collector (it does as shipped), and that the event is one of Harvest's default list: `sk.panic`, `disk.outOfService` and the alert and emergency events are. An ONTAP fault that lasts (a broken disk, a shelf error, a node that cannot take over its partner) is watched by its open-problem template as well, which stays open until ONTAP clears it.
 :::
 
 :::details A 1-minute window shows no data

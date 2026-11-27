@@ -727,6 +727,8 @@ const RESOURCE_UNDO_EXAMPLES: Readonly<Record<AiResourceType, string>> = {
   [AiResourceType.GoogleCloudProject]: CLOUD_UNDO_EXAMPLE,
   [AiResourceType.OpenStackCloud]:
     "openstack compute service set --enable <host> nova-compute undoes a disable of that service; openstack network agent set --enable <agent id> undoes a disable of that agent. A start, a reboot, a move or an evacuation has no undo, so omit the rollbackCommand",
+  [AiResourceType.XcpNgPool]:
+    "xo-cli rest post vms/<vm uuid>/actions/start undoes a clean_shutdown or hard_shutdown of that VM; xo-cli rest post vms/<vm uuid>/actions/resume undoes a suspend of it, and xo-cli rest post vms/<vm uuid>/actions/unpause a pause. A reboot, a snapshot, a migration, a PBD plug, a host enable or a toolstack restart has no undo the agent may run (deleting a snapshot, unplugging a PBD and disabling a host are left to a person), so omit the rollbackCommand",
 };
 
 export function getResourceUndoExamples(resourceType: AiResourceType): string {

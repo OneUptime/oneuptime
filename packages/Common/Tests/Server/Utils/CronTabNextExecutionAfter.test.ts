@@ -296,4 +296,17 @@ describe("CronTab.getNextExecutionTimeAfter", () => {
       );
     }).toThrow(BadDataException);
   });
+
+  test("each refusal is a sentence that names the schedule and says what to do", () => {
+    expect(() => {
+      CronTab.getNextExecutionTimeAfter("61 * * * *", new Date(START));
+    }).toThrow(
+      'The schedule "61 * * * *" is not a cron expression OneUptime can read. Check it, then save it again.',
+    );
+    expect(() => {
+      CronTab.getNextExecutionTimeAfter("* * * * *", new Date(Number.NaN));
+    }).toThrow(
+      /^The next run of "\* \* \* \* \*" after Invalid Date cannot be worked out: the schedule must be a cron expression, and the time a valid date\.$/,
+    );
+  });
 });

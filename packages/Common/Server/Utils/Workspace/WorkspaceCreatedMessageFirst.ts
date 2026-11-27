@@ -1,6 +1,10 @@
+import { randomUUID } from "crypto";
+import { JSONObject } from "../../../Types/JSON";
 import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
 import logger from "../Logger";
-import WorkspaceCreatedMessageLine from "./WorkspaceCreatedMessageLine";
+import WorkspaceCreatedMessageLine, {
+  StoredLinePost,
+} from "./WorkspaceCreatedMessageLine";
 import { WorkspaceRecord } from "./WorkspaceRecordPeople";
 
 /*
@@ -41,10 +45,23 @@ import { WorkspaceRecord } from "./WorkspaceRecordPeople";
  * messages go as it stops, and a hold is let go after HELD_FOR_AT_MOST_MS
  * whatever happens, on every server, so no message waits for good. A server
  * shutting down posts what still waits on it rather than losing it.
+ *
+ * And a server that is killed outright - an OOM kill, a lost node - loses
+ * none of it (#11235): each message waits in the line with what it says,
+ * as its server would post it (keep's `stored`), and another App server
+ * posts it from there, in its turn and once, when its own server's turn
+ * stalls (takeOverForStoppedServers).
  */
 
 // A message kept back, posted when it is let go.
 export type KeptPost = () => Promise<void>;
+
+/*
+ * What another App server posts a kept message from, should the server
+ * that made it stop before its turn: the message as JSON, which
+ * takeOverForStoppedServers's `post` reads back.
+ */
+export type StoredMessage = () => JSONObject;
 
 interface Hold {
   // The record's line is in Valkey, for every server; else this server's alone.
@@ -99,6 +116,15 @@ export default class WorkspaceCreatedMessageFirst {
    * themselves before it posts what still waits on it.
    */
   public static readonly SHUTDOWN_WAITS_AT_MOST_MS: number = 5 * 1000;
+
+  /*
+   * The most a kept message is stored with in Valkey, as JSON. What a
+   * message about a record says is a few hundred bytes, and Slack takes
+   * 40,000 characters of text at most; a larger one - a note with a
+   * screenshot in it - waits on its own server, as every message did
+   * before #11235, and is passed over should that server stop.
+   */
+  public static readonly MAX_STORED_MESSAGE_BYTES: number = 512 * 1024;
 
   /*
    * The record's create chain begins: every other message about it, on
@@ -178,10 +204,18 @@ export default class WorkspaceCreatedMessageFirst {
    * otherwise, for the caller to post it now. Kept in the order this is
    * called in, which is the order the messages were made: the first thing
    * it does is take its place in the record's line. Never throws.
+   *
+   * `stored` is the message as another App server would post it, should
+   * this one stop before its turn: it waits in the line with it, and is
+   * read only once the message has a place in a line in Valkey - so the
+   * many messages about records nobody is creating cost nothing more.
+   * Without it - or when it is larger than MAX_STORED_MESSAGE_BYTES - the
+   * message waits on this server alone.
    */
   public static async keep(data: {
     record: WorkspaceRecord;
     post: KeptPost;
+    stored?: StoredMessage | undefined;
   }): Promise<boolean> {
     const key: string | null = this.keyOf(data.record);
 
@@ -200,9 +234,12 @@ export default class WorkspaceCreatedMessageFirst {
       }
     }
 
+    // Its own id: the one server that claims it is the one that posts it.
+    const messageId: string = randomUUID();
+
     // The record's line in Valkey, whichever server holds it.
     const ticket: number | null = WorkspaceCreatedMessageLine.isAvailable()
-      ? await WorkspaceCreatedMessageLine.take(key)
+      ? await WorkspaceCreatedMessageLine.take(key, { messageId: messageId })
       : null;
 
     if (ticket === null || (ticket === 0 && hold && !hold.isReleased)) {
@@ -224,9 +261,21 @@ export default class WorkspaceCreatedMessageFirst {
       return false;
     }
 
+    // What another App server posts it from, should this one stop before its turn.
+    const stored: string | null = this.storedText(data.stored);
+    const isStored: boolean = stored
+      ? await WorkspaceCreatedMessageLine.store(key, {
+          ticket: ticket,
+          messageId: messageId,
+          stored: stored,
+        })
+      : false;
+
     WorkspaceCreatedMessageLine.wait({
       recordKey: key,
       ticket: ticket,
+      messageId: messageId,
+      isStored: isStored,
       post: data.post,
       isHeldHere: (): boolean => {
         return this.isHoldingLineHere(key);
@@ -256,12 +305,36 @@ export default class WorkspaceCreatedMessageFirst {
   }
 
   /*
+   * From now on this server also posts the messages another App server
+   * kept and was killed before posting - an OOM kill, a lost node, SIGKILL
+   * (#11235) - each in its turn and once, with `post`, from what that
+   * server stored of it (keep's `stored`). Started as the App starts
+   * (App/Index.ts), on every App server: the lines are looked after
+   * whether or not this server has a message waiting in them. Nothing
+   * without Valkey. A server shutting down stops.
+   */
+  public static takeOverForStoppedServers(post: StoredLinePost): void {
+    WorkspaceCreatedMessageLine.lookAfterStoppedServers({
+      post: post,
+      heldForAtMostMs: (): number => {
+        return this.HELD_FOR_AT_MOST_MS;
+      },
+    });
+
+    this.registerShutdownHandler();
+  }
+
+  /*
    * This server shuts down. Its holds and lines go on by themselves for up
    * to SHUTDOWN_WAITS_AT_MOST_MS; then its holds are let go - their chains
    * stop with the server - and what still waits on it is posted now, out of
-   * turn if need be, rather than lost with it.
+   * turn if need be, rather than lost with it. It takes over no other
+   * server's messages from then on.
    */
   public static async postEverythingHeldHere(): Promise<void> {
+    // A server shutting down takes over no other server's messages from now on.
+    WorkspaceCreatedMessageLine.stopLookingAfterStoppedServers();
+
     const deadline: number = Date.now() + this.SHUTDOWN_WAITS_AT_MOST_MS;
 
     while (
@@ -327,6 +400,35 @@ export default class WorkspaceCreatedMessageFirst {
     await hold.posting;
   }
 
+  /*
+   * What a kept message waits in the line with, as text: null when there is
+   * nothing to store, it cannot be written, or it is larger than
+   * MAX_STORED_MESSAGE_BYTES. Never throws.
+   */
+  private static storedText(stored: StoredMessage | undefined): string | null {
+    if (!stored) {
+      return null;
+    }
+
+    try {
+      const text: string = JSON.stringify(stored());
+
+      if (Buffer.byteLength(text, "utf8") > this.MAX_STORED_MESSAGE_BYTES) {
+        logger.debug(
+          "A message held for a record's Created message is too large to store: it waits on this server alone.",
+        );
+        return null;
+      }
+
+      return text;
+    } catch (error) {
+      logger.error(
+        `A message held for a record's Created message could not be stored: ${error}. It waits on this server alone.`,
+      );
+      return null;
+    }
+  }
+
   // Whether this server holds the record's line in Valkey, not let go yet.
   private static isHoldingLineHere(key: string): boolean {
     const hold: Hold | undefined = HOLDS.get(key);
@@ -335,8 +437,9 @@ export default class WorkspaceCreatedMessageFirst {
   }
 
   /*
-   * Once this server keeps a line in Valkey: what waits on it is posted as
-   * it shuts down, rather than lost with it.
+   * Once this server keeps a line in Valkey, or takes over other servers'
+   * messages: what waits on it is posted as it shuts down, rather than lost
+   * with it, and it takes over nothing more.
    */
   private static registerShutdownHandler(): void {
     if (isShutdownHandlerRegistered) {

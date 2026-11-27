@@ -1150,6 +1150,20 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * Cloud budgets and forecasts (#11008): what a budget counts, its period
+   * and how a year is spread, and how a forecast is made and how sure it
+   * is, on Cloud > Spend > Budgets, a budget's page and the Forecast.
+   * Only the words the files mark are read.
+   */
+  {
+    directory: "packages/Common/Types/Cloud/CloudBudget.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Types/Cloud/CloudCostForecast.ts",
+    kind: "keys",
+  },
+  /*
    * A commitment's state, scope and payment option (#11011), on Cloud >
    * Spend > Commitments. Only the words the file marks are read: a
    * commitment's own name and type are its cloud's words, drawn as written.

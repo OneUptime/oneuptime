@@ -9,6 +9,7 @@ import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
+import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
 import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
@@ -248,6 +249,14 @@ const CloudRequiredTagsCard: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  /*
+   * What most required tags never change is folded under More fields, whose
+   * line names each field and what it is set to: the account (every account
+   * unless one is picked) and the description.
+   */
+  const moreFields: FormFieldCollapsibleSection<RequiredTagFormValues> =
+    getAdvancedFormSection<RequiredTagFormValues>();
+
   // On Cloud > Tags a tag is for every account or one; on an account's, for it.
   if (!fixedAccountId) {
     fields.push({
@@ -259,6 +268,7 @@ const CloudRequiredTagsCard: FunctionComponent<ComponentProps> = (
       required: false,
       placeholder: EVERY_ACCOUNT,
       dataTestId: "cloud-required-tag-account",
+      collapsibleSection: moreFields,
     });
   }
 
@@ -269,7 +279,7 @@ const CloudRequiredTagsCard: FunctionComponent<ComponentProps> = (
     fieldType: FormFieldSchemaType.LongText,
     required: false,
     placeholder: "The team that pays for the resource.",
-    collapsibleSection: getAdvancedFormSection<RequiredTagFormValues>(),
+    collapsibleSection: moreFields,
   });
 
   const save: (values: RequiredTagFormValues) => Promise<void> = async (

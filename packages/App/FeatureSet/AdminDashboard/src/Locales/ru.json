@@ -4622,5 +4622,14 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "У этого шаблона монитора нет типа монитора, поэтому его мониторы нельзя синхронизировать. Создайте шаблон заново с типом монитора.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Для настроек синхронизации шаблона нужен тип монитора шаблона. Сначала выберите тип монитора, затем снова выберите настройки синхронизации.",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Шаблон монитора не может синхронизировать «{{field}}». Выберите из настроек синхронизации, которые предлагает шаблон, и сохраните снова.",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Новые пользователи пока не могут войти. Привяжите проект с командами, в которые они попадут, в разделе «Привязанные проекты»."
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Новые пользователи пока не могут войти. Привяжите проект с командами, в которые они попадут, в разделе «Привязанные проекты».",
+  "This issue does not exist, or you cannot read it.": "Эта проблема не существует, или у вас нет доступа к ней.",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "К этой проблеме уже привязано 10 пул-реквестов. Отвяжите один, прежде чем привязать другой.",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Эта проблема отложена: её риск принят, или это не проблема. Откройте её снова, чтобы привязать пул-реквест, который её исправляет.",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} уже привязан к этой проблеме.",
+  "All XCP-ng pools": "Все пулы XCP-ng",
+  "Only XCP-ng pools that match conditions": "Только пулы XCP-ng, соответствующие условиям",
+  "All savings": "Вся экономия",
+  "Only savings that match conditions": "Только экономия, соответствующая условиям",
+  "XCP-ng Pool": "Пул XCP-ng"
 }

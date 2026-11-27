@@ -93,7 +93,7 @@ const SYSTEM_INPUTS: Array<string | null | undefined> = [
   "purefa",
   " FlashBlade ",
   "everpure.flasharray",
-  "netapp.ontap",
+  "hitachi.vsp",
   "dell.powerstore",
   "constructor",
   "__proto__",
@@ -109,7 +109,7 @@ const METRIC_NAMES_FOR_PLATFORM: Array<string> = [
   "purefa_volume_space_bytes",
   "purefb_buckets_object_count",
   "pure_something",
-  "netapp_volume_size",
+  "hitachi_volume_size",
   "",
 ];
 
@@ -281,7 +281,11 @@ function computeGolden(): JSONObject {
   }
 
   const kindLabels: JSONObject = {};
-  for (const kind of [...pureKinds, "Aggregate", "constructor"]) {
+  for (const kind of [...pureKinds, "Aggregate", "constructor"].filter(
+    (candidate: string): boolean => {
+      return !isLaterKind(candidate);
+    },
+  )) {
     kindLabels[kind] = {
       singular: StorageArrayResourceKindUtil.getSingularLabel(
         kind as StorageArrayResourceKind,
@@ -352,7 +356,7 @@ function computeGolden(): JSONObject {
 
   const objectLabels: JSONObject = {};
   for (const scope of Object.values(StorageArrayResourceScope)) {
-    for (const system of [FA, FB, "netapp.ontap", null]) {
+    for (const system of [FA, FB, "hitachi.vsp", null]) {
       for (const metricName of [undefined, ...metricNames]) {
         const label: string | null = getStorageArrayObjectLabel(
           scope,
@@ -430,7 +434,7 @@ function computeGolden(): JSONObject {
     "purefb_hardware_health",
     "purefb_buckets_space_bytes",
     "purefa_array_space_bytes",
-    "netapp_volume_size",
+    "hitachi_volume_size",
     "",
   ]) {
     objectKinds[name] = Evaluator.getStorageArrayObjectKind(name);
@@ -454,7 +458,7 @@ function computeGolden(): JSONObject {
       "purefb_buckets_object_count",
       "purefb_hardware_health",
       "purefa_volume_group_performance_latency_usec",
-      "netapp_volume_size",
+      "hitachi_volume_size",
     ]) {
       const entry: { kind: string; name: unknown; details: unknown } =
         Evaluator.getStorageArrayAffectedResourceEntry({
@@ -525,6 +529,13 @@ function readGolden(): JSONObject {
   for (const input of SYSTEM_INPUTS) {
     if (isLaterSystem(input)) {
       delete systems[labelOf(input)];
+    }
+  }
+  // And the kinds a platform registered since owns (ONTAP's Aggregate).
+  const kindLabels: JSONObject = golden["kindLabels"] as JSONObject;
+  for (const kind of Object.keys(kindLabels)) {
+    if (isLaterKind(kind)) {
+      delete kindLabels[kind];
     }
   }
   return golden;

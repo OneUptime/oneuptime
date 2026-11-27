@@ -43,6 +43,7 @@ import {
   getSlowEvaluationWords,
   SlowEvaluationWords,
 } from "./SlowEvaluationWords";
+import { getJudgedWindowEnds } from "./JudgedWindowWords";
 
 interface FilterGroup {
   message: string;
@@ -824,8 +825,10 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
 
   /*
    * What the evaluation was, set apart by " · ": when it ran, how long it
-   * took and how many series it judged (#10317). An evaluation logged
-   * before it said how long it took says when it ran only.
+   * took, how many series it judged (#10317) and, for a telemetry check,
+   * the window of data it judged - the one it was due to, however late it
+   * ran (#11248). An evaluation logged before it said how long it took says
+   * when it ran only.
    */
   const durationInMs: number | undefined =
     typeof evaluationSummary.durationInMs === "number" &&
@@ -865,6 +868,19 @@ const EvaluationLogList: FunctionComponent<ComponentProps> = (
         { one: "Judged {{count}} series", other: "Judged {{count}} series" },
         seriesJudged,
       ),
+    });
+  }
+
+  const judgedWindow: { start: string; end: string } | null =
+    getJudgedWindowEnds(evaluationSummary);
+
+  if (judgedWindow) {
+    evaluationFacts.push({
+      key: "judged-window",
+      text: translator.translateTemplate("Data from {{start}} to {{end}}", {
+        start: judgedWindow.start,
+        end: judgedWindow.end,
+      }),
     });
   }
 

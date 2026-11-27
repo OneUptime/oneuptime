@@ -26,8 +26,8 @@ import {
 /*
  * The prompt-side view of infrastructure access — the resource-agnostic
  * sibling of ClusterAccessContext, for the Docker and Podman hosts, Docker
- * Swarm, Proxmox, VMware and Ceph clusters, OpenStack clouds, database servers
- * and hosts an incident or alert is linked to.
+ * Swarm, Proxmox, VMware and Ceph clusters, OpenStack clouds, XCP-ng pools,
+ * database servers and hosts an incident or alert is linked to.
  *
  * Two audiences read this: the model, which needs to know which resources
  * it may inspect and how; and, through the model's report, the on-call
