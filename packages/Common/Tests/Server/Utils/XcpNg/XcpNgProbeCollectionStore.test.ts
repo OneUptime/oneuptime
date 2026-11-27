@@ -350,9 +350,7 @@ describe("XcpNgProbeCollectionStore.toJob", () => {
       XcpNgProbeCollectionStore.toJob(xapiRow({ address: undefined })),
     ).toBeNull();
     expect(
-      XcpNgProbeCollectionStore.toJob(
-        xapiRow({ connectionType: "Something" }),
-      ),
+      XcpNgProbeCollectionStore.toJob(xapiRow({ connectionType: "Something" })),
     ).toBeNull();
   });
 
@@ -431,7 +429,9 @@ describe("XcpNgProbeCollectionStore.recordCollectionReport", () => {
     expect(values["apiTokenExpiresAt"]).toEqual(
       new Date("2026-12-01T00:00:00.000Z"),
     );
-    expect((values["collectionSummary"] as XcpNgCollectionSummary).pools).toHaveLength(1);
+    expect(
+      (values["collectionSummary"] as XcpNgCollectionSummary).pools,
+    ).toHaveLength(1);
   });
 
   test("lets a renewed token be warned about again", async () => {
@@ -482,7 +482,9 @@ describe("XcpNgProbeCollectionStore.recordCollectionReport", () => {
       verificationError: "self-signed certificate",
     };
 
-    const trustFake: FakeService = fakeService({ connection: savedConnection() });
+    const trustFake: FakeService = fakeService({
+      connection: savedConnection(),
+    });
     await XcpNgProbeCollectionStore.recordCollectionReport(trustFake.service, {
       probeId: PROBE_ID,
       report: report({
@@ -500,12 +502,17 @@ describe("XcpNgProbeCollectionStore.recordCollectionReport", () => {
       collectionError: "Xen Orchestra presented a certificate nobody trusted.",
     });
     expect(
-      (trustFake.updates[0]!.data["presentedCertificate"] as Record<string, unknown>)[
-        "fingerprint256"
-      ],
+      (
+        trustFake.updates[0]!.data["presentedCertificate"] as Record<
+          string,
+          unknown
+        >
+      )["fingerprint256"],
     ).toBe(FINGERPRINT);
 
-    const otherFake: FakeService = fakeService({ connection: savedConnection() });
+    const otherFake: FakeService = fakeService({
+      connection: savedConnection(),
+    });
     await XcpNgProbeCollectionStore.recordCollectionReport(otherFake.service, {
       probeId: PROBE_ID,
       report: report({

@@ -175,8 +175,8 @@ export default class XcpNgPoolMessages {
       const names: Map<string, string> = new Map();
 
       if (objectUuids.length > 0 && poolIdByIdentifier.size > 0) {
-        const resources: Array<XcpNgResource> = await XcpNgResourceService.findBy(
-          {
+        const resources: Array<XcpNgResource> =
+          await XcpNgResourceService.findBy({
             query: {
               projectId: data.projectId,
               xcpNgPoolId: QueryHelper.any(
@@ -197,8 +197,7 @@ export default class XcpNgPoolMessages {
             props: {
               isRoot: true,
             },
-          },
-        );
+          });
 
         for (const resource of resources) {
           if (resource.externalId && resource.name) {

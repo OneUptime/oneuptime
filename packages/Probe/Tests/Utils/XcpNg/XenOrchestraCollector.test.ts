@@ -7,7 +7,10 @@ import {
   READ_ONLY_USER,
   startFakeXenOrchestra,
 } from "./Helpers/FakeXenOrchestraServer";
-import { TestCertificate, makeTestCertificate } from "./Helpers/XcpNgCertificates";
+import {
+  TestCertificate,
+  makeTestCertificate,
+} from "./Helpers/XcpNgCertificates";
 import {
   POOL_PRODUCTION,
   POOL_UNNAMED,
@@ -133,7 +136,9 @@ function settle(settings: Partial<FakeXoSettings>): void {
   Object.assign(xo.settings, settings);
 }
 
-function poolIdsOf(report: { summary?: { pools: Array<XcpNgPoolSummary> } | undefined }): Array<string> {
+function poolIdsOf(report: {
+  summary?: { pools: Array<XcpNgPoolSummary> } | undefined;
+}): Array<string> {
   return (report.summary?.pools || [])
     .map((pool: XcpNgPoolSummary): string => {
       return pool.poolId;
@@ -178,7 +183,9 @@ describe("XenOrchestraCollector.collect", () => {
 
     expect(report.status).toBe("Succeeded");
     expect(report.errorCode).toBeUndefined();
-    expect(report.summary?.connectionType).toBe(XcpNgConnectionType.XenOrchestra);
+    expect(report.summary?.connectionType).toBe(
+      XcpNgConnectionType.XenOrchestra,
+    );
     expect(poolIdsOf(report)).toEqual([POOL_PRODUCTION, POOL_UNNAMED].sort());
     expect(report.resourceMetrics).toHaveLength(2);
     expect(report.summary?.resourceCount).toBe(2);
@@ -322,7 +329,9 @@ describe("XenOrchestraCollector.collect", () => {
     );
 
     expect(report.status).toBe("Failed");
-    expect(report.errorCode).toBe(XcpNgCollectionErrorCode.UntrustedCertificate);
+    expect(report.errorCode).toBe(
+      XcpNgCollectionErrorCode.UntrustedCertificate,
+    );
     expect(report.presentedCertificate?.fingerprint256).toBe(
       XO_CERTIFICATE.fingerprint256,
     );
@@ -661,7 +670,9 @@ describe("XenOrchestraCollector.test", () => {
       dependencies(),
     );
 
-    expect(report.errorCode).toBe(XcpNgCollectionErrorCode.UntrustedCertificate);
+    expect(report.errorCode).toBe(
+      XcpNgCollectionErrorCode.UntrustedCertificate,
+    );
     expect(report.presentedCertificate?.fingerprint256).toBe(
       XO_CERTIFICATE.fingerprint256,
     );

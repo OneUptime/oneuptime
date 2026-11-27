@@ -246,7 +246,9 @@ export default class XcpNgConnectionAddress {
    * connect to. The pool's own report is no more trusted than a person's
    * typing: the same forbidden hosts are refused.
    */
-  public static getXapiHostUrl(address: string | null | undefined): string | null {
+  public static getXapiHostUrl(
+    address: string | null | undefined,
+  ): string | null {
     const raw: string = (address || "").trim();
 
     if (!raw || WHITESPACE_PATTERN.test(raw) || SCHEME_PATTERN.test(raw)) {

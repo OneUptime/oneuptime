@@ -531,9 +531,9 @@ describe("getXcpNgCollectionStatusView", () => {
   });
 
   test("the next read is a promise only while nothing stops the claim", () => {
-    expect(
-      getXcpNgNextCollection(connection(), NOW, true).state,
-    ).toBe(ClaimDueState.Scheduled);
+    expect(getXcpNgNextCollection(connection(), NOW, true).state).toBe(
+      ClaimDueState.Scheduled,
+    );
     expect(
       getXcpNgNextCollection(connection({ address: null }), NOW, true).state,
     ).not.toBe(ClaimDueState.Scheduled);
@@ -620,10 +620,16 @@ describe("Test connection's input", () => {
 describe("validation, as the server answers", () => {
   test("an address is refused with the server's own sentence", () => {
     expect(
-      validateXcpNgAddress("https://xo.example.com", XcpNgConnectionType.XenOrchestra),
+      validateXcpNgAddress(
+        "https://xo.example.com",
+        XcpNgConnectionType.XenOrchestra,
+      ),
     ).toBeNull();
     expect(
-      validateXcpNgAddress("http://xo.example.com", XcpNgConnectionType.XenOrchestra),
+      validateXcpNgAddress(
+        "http://xo.example.com",
+        XcpNgConnectionType.XenOrchestra,
+      ),
     ).toContain("https://");
     expect(
       validateXcpNgAddress("https://10.0.0.10/v5", XcpNgConnectionType.Xapi),
@@ -670,7 +676,9 @@ describe("how a pool is read", () => {
 
   test("a connection can read a pool its last read saw", () => {
     expect(isXcpNgPoolInSummary(summary(), POOL_ID.toUpperCase())).toBe(true);
-    expect(isXcpNgPoolInSummary(summary(), "00000000-0000-4000-8000-000000000000")).toBe(false);
+    expect(
+      isXcpNgPoolInSummary(summary(), "00000000-0000-4000-8000-000000000000"),
+    ).toBe(false);
     expect(isXcpNgPoolInSummary(undefined, POOL_ID)).toBe(false);
   });
 });

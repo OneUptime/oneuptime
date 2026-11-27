@@ -690,10 +690,9 @@ export default class XcpNgConnectionRules {
 
     if (data["collectionIntervalInMinutes"] !== undefined) {
       const interval: unknown = data["collectionIntervalInMinutes"];
-      const refusal: string | null =
-        XcpNgCollectionSettings.getIntervalRefusal(
-          typeof interval === "string" ? Number(interval) : interval,
-        );
+      const refusal: string | null = XcpNgCollectionSettings.getIntervalRefusal(
+        typeof interval === "string" ? Number(interval) : interval,
+      );
 
       if (refusal) {
         throw new BadDataException(refusal);

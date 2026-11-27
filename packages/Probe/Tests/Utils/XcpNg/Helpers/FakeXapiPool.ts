@@ -207,120 +207,119 @@ export async function startFakeXapiPool(options: {
     hostKey: string,
     method: string,
     params: Array<unknown>,
-  ) => { result?: unknown; error?: { message: string; data: Array<string> } } =
-    (
-      hostKey: string,
-      method: string,
-      params: Array<unknown>,
-    ): {
-      result?: unknown;
-      error?: { message: string; data: Array<string> };
-    } => {
-      const fail: (
-        message: string,
-        data?: Array<string>,
-      ) => { error: { message: string; data: Array<string> } } = (
-        message: string,
-        data: Array<string> = [],
-      ): { error: { message: string; data: Array<string> } } => {
-        return { error: { message: message, data: data } };
-      };
-
-      if (method === "session.login_with_password") {
-        if (hostKey !== settings.masterKey) {
-          return fail("HOST_IS_SLAVE", [addressOf(settings.masterKey)]);
-        }
-
-        if (
-          params[0] !== settings.username ||
-          params[1] !== settings.password
-        ) {
-          return fail("SESSION_AUTHENTICATION_FAILED", [
-            String(params[0]),
-            "Authentication failure",
-          ]);
-        }
-
-        const session: string = `OpaqueRef:session-${++sessionCount}`;
-        sessions.add(session);
-        return { result: session };
-      }
-
-      if (!sessions.has(String(params[0]))) {
-        return fail("SESSION_INVALID", [String(params[0])]);
-      }
-
-      if (settings.deniedMethods.includes(method)) {
-        return fail("RBAC_PERMISSION_DENIED", [method, "No permission"]);
-      }
-
-      if (method === "session.logout") {
-        sessions.delete(String(params[0]));
-        return { result: "" };
-      }
-
-      if (method === "session.get_is_local_superuser") {
-        return { result: settings.account.isLocalSuperuser };
-      }
-
-      if (method === "session.get_subject") {
-        return {
-          result: settings.account.isLocalSuperuser
-            ? NULL_REF
-            : "OpaqueRef:subject-oneuptime",
-        };
-      }
-
-      if (method === "session.get_auth_user_name") {
-        return { result: settings.account.authUserName };
-      }
-
-      if (method === "subject.get_roles") {
-        return {
-          result: settings.account.roles.map((_role: string, index: number) => {
-            return `OpaqueRef:role-${index}`;
-          }),
-        };
-      }
-
-      if (method === "role.get_name_label") {
-        const index: number = Number(String(params[1]).split("-").pop());
-        return { result: settings.account.roles[index] || "" };
-      }
-
-      if (method === "host.get_servertime") {
-        return { result: settings.serverTime };
-      }
-
-      if (method === "message.get_since") {
-        const since: string = String(params[1]);
-        const result: Record<string, FakeXapiMessage> = {};
-
-        settings.messages.forEach((message: FakeXapiMessage, index: number) => {
-          // XAPI DateTimes of one shape compare as strings.
-          if (message.timestamp > since) {
-            result[`OpaqueRef:message-${index}`] = message;
-          }
-        });
-
-        return { result: result };
-      }
-
-      const getAll: RegExpMatchArray | null = method.match(
-        /^([A-Za-z_]+)\.get_all_records$/,
-      );
-
-      if (getAll) {
-        // Before XCP-ng 8.2, XAPI has no Certificate class.
-        if (getAll[1] === "Certificate" && !settings.listCertificates) {
-          return fail("MESSAGE_METHOD_UNKNOWN", [method]);
-        }
-
-        return { result: recordsOf(hostKey, getAll[1]!) };
-      }
-
-      return fail("MESSAGE_METHOD_UNKNOWN", [method]);
+  ) => {
+    result?: unknown;
+    error?: { message: string; data: Array<string> };
+  } = (
+    hostKey: string,
+    method: string,
+    params: Array<unknown>,
+  ): {
+    result?: unknown;
+    error?: { message: string; data: Array<string> };
+  } => {
+    const fail: (
+      message: string,
+      data?: Array<string>,
+    ) => { error: { message: string; data: Array<string> } } = (
+      message: string,
+      data: Array<string> = [],
+    ): { error: { message: string; data: Array<string> } } => {
+      return { error: { message: message, data: data } };
     };
+
+    if (method === "session.login_with_password") {
+      if (hostKey !== settings.masterKey) {
+        return fail("HOST_IS_SLAVE", [addressOf(settings.masterKey)]);
+      }
+
+      if (params[0] !== settings.username || params[1] !== settings.password) {
+        return fail("SESSION_AUTHENTICATION_FAILED", [
+          String(params[0]),
+          "Authentication failure",
+        ]);
+      }
+
+      const session: string = `OpaqueRef:session-${++sessionCount}`;
+      sessions.add(session);
+      return { result: session };
+    }
+
+    if (!sessions.has(String(params[0]))) {
+      return fail("SESSION_INVALID", [String(params[0])]);
+    }
+
+    if (settings.deniedMethods.includes(method)) {
+      return fail("RBAC_PERMISSION_DENIED", [method, "No permission"]);
+    }
+
+    if (method === "session.logout") {
+      sessions.delete(String(params[0]));
+      return { result: "" };
+    }
+
+    if (method === "session.get_is_local_superuser") {
+      return { result: settings.account.isLocalSuperuser };
+    }
+
+    if (method === "session.get_subject") {
+      return {
+        result: settings.account.isLocalSuperuser
+          ? NULL_REF
+          : "OpaqueRef:subject-oneuptime",
+      };
+    }
+
+    if (method === "session.get_auth_user_name") {
+      return { result: settings.account.authUserName };
+    }
+
+    if (method === "subject.get_roles") {
+      return {
+        result: settings.account.roles.map((_role: string, index: number) => {
+          return `OpaqueRef:role-${index}`;
+        }),
+      };
+    }
+
+    if (method === "role.get_name_label") {
+      const index: number = Number(String(params[1]).split("-").pop());
+      return { result: settings.account.roles[index] || "" };
+    }
+
+    if (method === "host.get_servertime") {
+      return { result: settings.serverTime };
+    }
+
+    if (method === "message.get_since") {
+      const since: string = String(params[1]);
+      const result: Record<string, FakeXapiMessage> = {};
+
+      settings.messages.forEach((message: FakeXapiMessage, index: number) => {
+        // XAPI DateTimes of one shape compare as strings.
+        if (message.timestamp > since) {
+          result[`OpaqueRef:message-${index}`] = message;
+        }
+      });
+
+      return { result: result };
+    }
+
+    const getAll: RegExpMatchArray | null = method.match(
+      /^([A-Za-z_]+)\.get_all_records$/,
+    );
+
+    if (getAll) {
+      // Before XCP-ng 8.2, XAPI has no Certificate class.
+      if (getAll[1] === "Certificate" && !settings.listCertificates) {
+        return fail("MESSAGE_METHOD_UNKNOWN", [method]);
+      }
+
+      return { result: recordsOf(hostKey, getAll[1]!) };
+    }
+
+    return fail("MESSAGE_METHOD_UNKNOWN", [method]);
+  };
 
   for (const host of lab.hosts) {
     const certificate: TestCertificate = getHostCertificate(host);
@@ -345,8 +344,11 @@ export async function startFakeXapiPool(options: {
           body += chunk;
         });
         request.on("end", () => {
-          const parsed: { method?: string; params?: Array<unknown>; id?: unknown } =
-            JSON.parse(body || "{}");
+          const parsed: {
+            method?: string;
+            params?: Array<unknown>;
+            id?: unknown;
+          } = JSON.parse(body || "{}");
           const method: string = String(parsed.method || "");
           const params: Array<unknown> = Array.isArray(parsed.params)
             ? parsed.params

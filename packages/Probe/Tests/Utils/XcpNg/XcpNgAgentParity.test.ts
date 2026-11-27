@@ -90,7 +90,8 @@ describe("XCP-ng probe: what it sends is what the XCP-ng Agent sends", () => {
     expect(built.resourceCount).toBe(2);
     expect(built.poolIds).toEqual([POOL_UNNAMED, POOL_PRODUCTION].sort());
 
-    const resources: Array<JSONObject> = built.resourceMetrics as Array<JSONObject>;
+    const resources: Array<JSONObject> =
+      built.resourceMetrics as Array<JSONObject>;
     const production: JSONObject = resources.find((resource: JSONObject) => {
       return attributeOf(resource, "xcp_ng.pool.id") === POOL_PRODUCTION;
     })!;
@@ -106,7 +107,8 @@ describe("XCP-ng probe: what it sends is what the XCP-ng Agent sends", () => {
   });
 
   it("never claims to be the agent, nor names the Xen Orchestra itself", () => {
-    for (const resource of buildFromScrape(1).resourceMetrics as Array<JSONObject>) {
+    for (const resource of buildFromScrape(1)
+      .resourceMetrics as Array<JSONObject>) {
       expect(attributeOf(resource, "oneuptime.agent.version")).toBeUndefined();
       expect(attributeOf(resource, "xen_orchestra.name")).toBeUndefined();
       expect(attributeOf(resource, "service.name")).toBeUndefined();
@@ -199,11 +201,11 @@ describe("XCP-ng probe: what it sends is what the XCP-ng Agent sends", () => {
       previousUntimedSeries: first.untimedSeries,
     });
 
-    const unnamed: JSONObject = (second.resourceMetrics as Array<JSONObject>).find(
-      (resource: JSONObject) => {
-        return attributeOf(resource, "xcp_ng.pool.id") === POOL_UNNAMED;
-      },
-    )!;
+    const unnamed: JSONObject = (
+      second.resourceMetrics as Array<JSONObject>
+    ).find((resource: JSONObject) => {
+      return attributeOf(resource, "xcp_ng.pool.id") === POOL_UNNAMED;
+    })!;
 
     expect(metricsOf(unnamed)).toEqual([
       {

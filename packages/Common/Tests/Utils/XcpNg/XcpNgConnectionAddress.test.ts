@@ -88,10 +88,13 @@ describe("XcpNgConnectionAddress.normalize", () => {
     ["https://[::1]"],
     ["https://169.254.169.254"],
     ["https://metadata.google.internal"],
-  ])("never reads %s: loopback, link-local and metadata addresses are refused", (input: string) => {
-    expect(urlOf(input)).toBeNull();
-    expect(urlOf(input, XAPI)).toBeNull();
-  });
+  ])(
+    "never reads %s: loopback, link-local and metadata addresses are refused",
+    (input: string) => {
+      expect(urlOf(input)).toBeNull();
+      expect(urlOf(input, XAPI)).toBeNull();
+    },
+  );
 
   test("words each kind's refusals for what a person typed", () => {
     expect(errorOf("")).toContain("Xen Orchestra");
@@ -167,7 +170,9 @@ describe("XcpNgConnectionAddress.getXapiHostUrl", () => {
   test("trusts the pool's own report no more than a person's typing", () => {
     expect(XcpNgConnectionAddress.getXapiHostUrl("127.0.0.1")).toBeNull();
     expect(XcpNgConnectionAddress.getXapiHostUrl("169.254.169.254")).toBeNull();
-    expect(XcpNgConnectionAddress.getXapiHostUrl("http://10.0.0.12")).toBeNull();
+    expect(
+      XcpNgConnectionAddress.getXapiHostUrl("http://10.0.0.12"),
+    ).toBeNull();
     expect(XcpNgConnectionAddress.getXapiHostUrl("10.0.0.12 evil")).toBeNull();
     expect(XcpNgConnectionAddress.getXapiHostUrl("")).toBeNull();
     expect(XcpNgConnectionAddress.getXapiHostUrl(null)).toBeNull();

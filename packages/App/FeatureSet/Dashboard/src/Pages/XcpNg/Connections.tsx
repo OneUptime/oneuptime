@@ -45,8 +45,6 @@ import ProbeUtil from "../../Utils/Probe";
  * (?connect=1).
  */
 
-
-
 const DOT_CLASS: Record<XcpNgCollectionTone, string> = {
   [XcpNgCollectionTone.Collecting]: "bg-emerald-500",
   [XcpNgCollectionTone.Checking]: "bg-indigo-500",

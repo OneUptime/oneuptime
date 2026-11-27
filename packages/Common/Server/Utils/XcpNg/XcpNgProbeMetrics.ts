@@ -168,11 +168,18 @@ export function readReportedPools(
   }
 
   return Array.from(pools.entries())
-    .sort((left: [string, string | undefined], right: [string, string | undefined]) => {
-      return left[0] < right[0] ? -1 : left[0] > right[0] ? 1 : 0;
-    })
+    .sort(
+      (
+        left: [string, string | undefined],
+        right: [string, string | undefined],
+      ) => {
+        return left[0] < right[0] ? -1 : left[0] > right[0] ? 1 : 0;
+      },
+    )
     .map(([poolIdentifier, reportedName]: [string, string | undefined]) => {
-      return reportedName ? { poolIdentifier, reportedName } : { poolIdentifier };
+      return reportedName
+        ? { poolIdentifier, reportedName }
+        : { poolIdentifier };
     });
 }
 

@@ -234,21 +234,68 @@ describe("XcpNgConnectionRules.prepareCreate", () => {
   });
 
   test.each([
-    ["no kind", { ...NEW_XEN_ORCHESTRA, connectionType: undefined }, "connectionType"],
-    ["an unknown kind", { ...NEW_XEN_ORCHESTRA, connectionType: "Proxmox" }, "connectionType"],
+    [
+      "no kind",
+      { ...NEW_XEN_ORCHESTRA, connectionType: undefined },
+      "connectionType",
+    ],
+    [
+      "an unknown kind",
+      { ...NEW_XEN_ORCHESTRA, connectionType: "Proxmox" },
+      "connectionType",
+    ],
     ["no address", { ...NEW_XEN_ORCHESTRA, address: undefined }, "address"],
-    ["an http address", { ...NEW_XEN_ORCHESTRA, address: "http://xo.example.com" }, "https://"],
-    ["no secret", { ...NEW_XEN_ORCHESTRA, openMetricsSecret: "" }, "OpenMetrics"],
-    ["an XAPI account on a Xen Orchestra", { ...NEW_XEN_ORCHESTRA, password: "x" }, "no XAPI account"],
-    ["a Xen Orchestra secret on a pool", { ...NEW_XAPI, apiToken: "x" }, "no Xen Orchestra secret"],
+    [
+      "an http address",
+      { ...NEW_XEN_ORCHESTRA, address: "http://xo.example.com" },
+      "https://",
+    ],
+    [
+      "no secret",
+      { ...NEW_XEN_ORCHESTRA, openMetricsSecret: "" },
+      "OpenMetrics",
+    ],
+    [
+      "an XAPI account on a Xen Orchestra",
+      { ...NEW_XEN_ORCHESTRA, password: "x" },
+      "no XAPI account",
+    ],
+    [
+      "a Xen Orchestra secret on a pool",
+      { ...NEW_XAPI, apiToken: "x" },
+      "no Xen Orchestra secret",
+    ],
     ["a pool with no user name", { ...NEW_XAPI, username: "" }, "user name"],
     ["a pool with no password", { ...NEW_XAPI, password: "" }, "password"],
     ["no probe", { ...NEW_XAPI, collectionProbeId: undefined }, "probe"],
-    ["a probe that does not exist", { ...NEW_XAPI, collectionProbeId: new ObjectID("4d1b9f52-7a0e-4f34-9a0b-2b7c3f1d0999") }, "Probe not found"],
-    ["another project's probe", { ...NEW_XAPI, collectionProbeId: new ObjectID(FOREIGN_PROBE_ID) }, "another project"],
-    ["a bad fingerprint", { ...NEW_XAPI, trustedCertificateFingerprint: "AB:CD" }, "SHA-256"],
-    ["an interval out of bounds", { ...NEW_XAPI, collectionIntervalInMinutes: 0 }, "1 to 60"],
-    ["a secret too long", { ...NEW_XEN_ORCHESTRA, openMetricsSecret: "x".repeat(1025) }, "at most"],
+    [
+      "a probe that does not exist",
+      {
+        ...NEW_XAPI,
+        collectionProbeId: new ObjectID("4d1b9f52-7a0e-4f34-9a0b-2b7c3f1d0999"),
+      },
+      "Probe not found",
+    ],
+    [
+      "another project's probe",
+      { ...NEW_XAPI, collectionProbeId: new ObjectID(FOREIGN_PROBE_ID) },
+      "another project",
+    ],
+    [
+      "a bad fingerprint",
+      { ...NEW_XAPI, trustedCertificateFingerprint: "AB:CD" },
+      "SHA-256",
+    ],
+    [
+      "an interval out of bounds",
+      { ...NEW_XAPI, collectionIntervalInMinutes: 0 },
+      "1 to 60",
+    ],
+    [
+      "a secret too long",
+      { ...NEW_XEN_ORCHESTRA, openMetricsSecret: "x".repeat(1025) },
+      "at most",
+    ],
   ])("refuses %s", async (_name: string, data: DataRecord, words: string) => {
     await expect(
       XcpNgConnectionRules.prepareCreate(createBy(data)),
@@ -417,9 +464,9 @@ describe("XcpNgConnectionRules.prepareUpdate", () => {
 });
 
 describe("XcpNgConnectionRules.afterWrite", () => {
-  async function written(change: XcpNgConnectionChange): Promise<
-    Array<{ values: DataRecord; bumpSettingsVersion: boolean }>
-  > {
+  async function written(
+    change: XcpNgConnectionChange,
+  ): Promise<Array<{ values: DataRecord; bumpSettingsVersion: boolean }>> {
     const writes: Array<{ values: DataRecord; bumpSettingsVersion: boolean }> =
       [];
     await XcpNgConnectionRules.afterWrite({
@@ -501,7 +548,11 @@ describe("XcpNgConnectionRules.afterWrite", () => {
   test("writes nothing for a change that changed nothing", async () => {
     expect(await written(base)).toEqual([]);
     expect(
-      await written({ ...base, xcpNgConnectionId: null, isConnectionChanged: true }),
+      await written({
+        ...base,
+        xcpNgConnectionId: null,
+        isConnectionChanged: true,
+      }),
     ).toEqual([]);
   });
 });

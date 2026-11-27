@@ -85,7 +85,9 @@ export interface XcpNgConnectionEditOptions extends XcpNgConnectionFormOptions {
 const isXenOrchestra: (values: FormValues<XcpNgConnection>) => boolean = (
   values: FormValues<XcpNgConnection>,
 ): boolean => {
-  return getXcpNgFormConnectionType(values) === XcpNgConnectionType.XenOrchestra;
+  return (
+    getXcpNgFormConnectionType(values) === XcpNgConnectionType.XenOrchestra
+  );
 };
 
 const isXapi: (values: FormValues<XcpNgConnection>) => boolean = (
@@ -102,7 +104,11 @@ function getProbesPageRoute(): Route {
 
 // The words of each kind's fields, the same on Connect and Edit Connection.
 const WORDS: {
-  xenOrchestraAddress: { title: string; placeholder: string; description: string };
+  xenOrchestraAddress: {
+    title: string;
+    placeholder: string;
+    description: string;
+  };
   xapiAddress: { title: string; placeholder: string; description: string };
   probe: string;
   openMetricsSecret: string;
@@ -132,7 +138,8 @@ const WORDS: {
     "Optional. A token of a Xen Orchestra user with the Read only role: OneUptime checks that it only reads, warns you before it expires, and reads the REST API with it. Encrypted, never shown again.",
   username:
     "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.",
-  password: "Encrypted, never shown again, and sent only to the probe you picked.",
+  password:
+    "Encrypted, never shown again, and sent only to the probe you picked.",
   certificate:
     "Leave empty if the probe trusts the certificate. Xen Orchestra and XCP-ng sign their own by default: test the connection to see it and trust it.",
   interval:

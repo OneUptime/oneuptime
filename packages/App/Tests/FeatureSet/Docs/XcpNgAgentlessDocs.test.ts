@@ -1,7 +1,4 @@
-import DocsNav, {
-  NavGroup,
-  NavLink,
-} from "../../../FeatureSet/Docs/Utils/Nav";
+import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { XCP_NG_COLLECTION_OVERDUE_AFTER_IN_MS } from "../../../FeatureSet/Dashboard/src/Components/XcpNg/XcpNgConnectionView";
 import XcpNgCollectionErrorCode, {
@@ -65,19 +62,43 @@ function readSource(...segments: Array<string>): string {
 const LABELS: Array<[string, Array<string>]> = [
   ["Connections", ["Pages", "XcpNg", "SideMenu.tsx"]],
   ["What to Read", ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"]],
-  ["Xen Orchestra Address", ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"]],
-  ["Pool Master Address", ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"]],
-  ["OpenMetrics Secret", ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"]],
+  [
+    "Xen Orchestra Address",
+    ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"],
+  ],
+  [
+    "Pool Master Address",
+    ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"],
+  ],
+  [
+    "OpenMetrics Secret",
+    ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"],
+  ],
   ["API Token", ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"]],
   ["User Name", ["Components", "XcpNg", "XcpNgConnectionFormFields.tsx"]],
-  ["A pool without Xen Orchestra", ["Components", "XcpNg", "XcpNgConnectionView.ts"]],
+  [
+    "A pool without Xen Orchestra",
+    ["Components", "XcpNg", "XcpNgConnectionView.ts"],
+  ],
   ["Test connection", ["Components", "XcpNg", "XcpNgConnectionTestPanel.tsx"]],
   ["Pools It Reads", ["Pages", "XcpNg", "ConnectionView.tsx"]],
   ["Edit Connection", ["Components", "XcpNg", "XcpNgConnectionStatusCard.tsx"]],
-  ["Remove the API token", ["Components", "XcpNg", "XcpNgConnectionStatusCard.tsx"]],
-  ["Use the XCP-ng Agent", ["Components", "XcpNg", "XcpNgPoolDataCollectionCard.tsx"]],
-  ["Collect With a Probe", ["Components", "XcpNg", "XcpNgPoolDataCollectionCard.tsx"]],
-  ["Data Collection", ["Components", "XcpNg", "XcpNgPoolDataCollectionCard.tsx"]],
+  [
+    "Remove the API token",
+    ["Components", "XcpNg", "XcpNgConnectionStatusCard.tsx"],
+  ],
+  [
+    "Use the XCP-ng Agent",
+    ["Components", "XcpNg", "XcpNgPoolDataCollectionCard.tsx"],
+  ],
+  [
+    "Collect With a Probe",
+    ["Components", "XcpNg", "XcpNgPoolDataCollectionCard.tsx"],
+  ],
+  [
+    "Data Collection",
+    ["Components", "XcpNg", "XcpNgPoolDataCollectionCard.tsx"],
+  ],
   ["Checking", ["Components", "XcpNg", "XcpNgConnectionView.ts"]],
   ["Collecting", ["Components", "XcpNg", "XcpNgConnectionView.ts"]],
   ["Not collecting", ["Components", "XcpNg", "XcpNgConnectionView.ts"]],

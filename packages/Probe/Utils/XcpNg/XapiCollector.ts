@@ -149,8 +149,10 @@ interface OpenedSession {
 }
 
 // The series served without a timestamp at the last read, per connection.
-const untimedSeriesByConnection: Map<string, Map<string, OpenMetricsSample>> =
-  new Map();
+const untimedSeriesByConnection: Map<
+  string,
+  Map<string, OpenMetricsSample>
+> = new Map();
 
 // Exported for tests.
 export function resetXapiCollectorState(): void {
@@ -170,6 +172,8 @@ function getErrorContext(address: XcpNgAddress): XcpNgErrorContext {
   };
 }
 
+const HTTPS_URL: RegExp = /^https:\/\//i;
+
 /*
  * An address XAPI or a past read gave for a host - bare, as host.address and
  * HOST_IS_SLAVE write it, or the https:// URL a report kept - as the address
@@ -184,7 +188,7 @@ export function toXapiAddress(
     return null;
   }
 
-  const url: string | null = /^https:\/\//i.test(text)
+  const url: string | null = HTTPS_URL.test(text)
     ? text
     : XcpNgConnectionAddress.getXapiHostUrl(text);
   const normalized: XcpNgAddressResult | null = url
@@ -222,9 +226,7 @@ export function getKnownHostCandidate(data: {
 
   const host: XcpNgXapiPoolHost | undefined = (data.poolHosts || []).find(
     (candidate: XcpNgXapiPoolHost): boolean => {
-      const hostAddress: XcpNgAddress | null = toXapiAddress(
-        candidate.address,
-      );
+      const hostAddress: XcpNgAddress | null = toXapiAddress(candidate.address);
       return hostAddress !== null && keyOf(hostAddress) === keyOf(address);
     },
   );
@@ -344,7 +346,10 @@ export async function openXapiSession(data: {
       );
 
       handle = data.dependencies.createTransport({
-        endpoint: { host: candidate.address.host, port: candidate.address.port },
+        endpoint: {
+          host: candidate.address.host,
+          port: candidate.address.port,
+        },
         pinnedAddresses: pinned,
         trustedFingerprint: candidate.trustedFingerprint,
       });
@@ -359,14 +364,12 @@ export async function openXapiSession(data: {
       if (error instanceof XapiError) {
         if (error.code === "HOST_IS_SLAVE") {
           const master: string = error.params[0] || "";
-          const masterCandidate: XapiCandidate | null = getKnownHostCandidate(
-            {
-              entered: entered.address,
-              trustedFingerprint: entered.trustedFingerprint,
-              poolHosts: data.poolHosts,
-              rawAddress: master,
-            },
-          );
+          const masterCandidate: XapiCandidate | null = getKnownHostCandidate({
+            entered: entered.address,
+            trustedFingerprint: entered.trustedFingerprint,
+            poolHosts: data.poolHosts,
+            rawAddress: master,
+          });
 
           if (masterCandidate && !tried.has(keyOf(masterCandidate.address))) {
             queue.unshift(masterCandidate);
@@ -600,7 +603,11 @@ async function readPoolRecords(data: {
 // A whole number XAPI wrote (as a string, before XAPI 23.31), or undefined.
 function readWholeNumber(value: unknown): number | undefined {
   const number: number = Number(value);
-  return value !== undefined && value !== null && value !== "" && Number.isInteger(number) && number >= 0
+  return value !== undefined &&
+    value !== null &&
+    value !== "" &&
+    Number.isInteger(number) &&
+    number >= 0
     ? number
     : undefined;
 }
@@ -676,15 +683,20 @@ async function forEachLimited<T>(
   let next: number = 0;
   const workers: Array<Promise<void>> = [];
 
-  for (let index: number = 0; index < Math.min(concurrency, items.length); index++) {
-    workers.push(
-      (async (): Promise<void> => {
-        while (next < items.length) {
-          const item: T = items[next++]!;
-          await work(item);
-        }
-      })(),
-    );
+  // Each worker takes the next item until none is left.
+  const runWorker: () => Promise<void> = async (): Promise<void> => {
+    while (next < items.length) {
+      const item: T = items[next++]!;
+      await work(item);
+    }
+  };
+
+  for (
+    let index: number = 0;
+    index < Math.min(concurrency, items.length);
+    index++
+  ) {
+    workers.push(runWorker());
   }
 
   await Promise.all(workers);
@@ -745,10 +757,8 @@ async function readRrds(data: {
             return;
           }
 
-          const normalized: XcpNgAddressResult = XcpNgConnectionAddress.normalize(
-            url,
-            XcpNgConnectionType.Xapi,
-          );
+          const normalized: XcpNgAddressResult =
+            XcpNgConnectionAddress.normalize(url, XcpNgConnectionType.Xapi);
 
           if (!normalized.address) {
             return;
@@ -833,7 +843,8 @@ export function selectNewMessages(data: {
     })
     .sort((left: XcpNgPoolMessage, right: XcpNgPoolMessage): number => {
       const byTime: number =
-        new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime();
+        new Date(left.timestamp).getTime() -
+        new Date(right.timestamp).getTime();
       return byTime !== 0
         ? byTime
         : left.uuid < right.uuid
@@ -848,9 +859,7 @@ export function selectNewMessages(data: {
     return { messages: [], watermark: data.watermark };
   }
 
-  const newest: number = new Date(
-    fresh[fresh.length - 1]!.timestamp,
-  ).getTime();
+  const newest: number = new Date(fresh[fresh.length - 1]!.timestamp).getTime();
   const atNewest: Array<string> = fresh
     .filter((message: XcpNgPoolMessage): boolean => {
       return new Date(message.timestamp).getTime() === newest;
@@ -865,7 +874,9 @@ export function selectNewMessages(data: {
       readUntil: new Date(newest).toISOString(),
       uuidsAtReadUntil:
         newest === readUntil
-          ? Array.from(new Set([...data.watermark.uuidsAtReadUntil, ...atNewest]))
+          ? Array.from(
+              new Set([...data.watermark.uuidsAtReadUntil, ...atNewest]),
+            )
           : atNewest,
     },
   };
@@ -1167,7 +1178,12 @@ export default class XapiCollector {
         )} seconds. Collect it less often, or check the pool master's load.`,
       );
     } catch (error) {
-      XapiCollector.fail(report, error, reachedAddress, job.trustedCertificateFingerprint);
+      XapiCollector.fail(
+        report,
+        error,
+        reachedAddress,
+        job.trustedCertificateFingerprint,
+      );
     } finally {
       (opened as OpenedSession | null)?.handle.close();
     }
@@ -1377,7 +1393,12 @@ export default class XapiCollector {
         )} seconds.`,
       );
     } catch (error) {
-      XapiCollector.fail(report, error, entered, job.trustedCertificateFingerprint);
+      XapiCollector.fail(
+        report,
+        error,
+        entered,
+        job.trustedCertificateFingerprint,
+      );
     } finally {
       (opened as OpenedSession | null)?.handle.close();
     }

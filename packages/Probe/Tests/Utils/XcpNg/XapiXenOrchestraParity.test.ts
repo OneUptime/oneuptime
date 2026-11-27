@@ -41,7 +41,10 @@ import { describe, expect, it } from "@jest/globals";
 const NOT_PORTED: ReadonlyArray<string> = ["xcp_vm_power_consumption_watts"];
 const READ_FROM: ReadonlyArray<string> = ["server.address", "server.port"];
 
-function buildOtlp(samples: Array<OpenMetricsSample>, seconds: number): JSONArray {
+function buildOtlp(
+  samples: Array<OpenMetricsSample>,
+  seconds: number,
+): JSONArray {
   const built: XcpNgOtlpBuildResult = XcpNgOtlpBuilder.build({
     samples: samples,
     scrapeTimeMs: seconds * 1000,
@@ -58,11 +61,13 @@ function comparable(resourceMetrics: JSONArray, poolId: string): JSONObject {
   ).find((entry: JSONObject): boolean => {
     return (
       (
-        (entry["resource"] as JSONObject)["attributes"] as Array<JSONObject>
-      ).find((attribute: JSONObject) => {
-        return attribute["key"] === "xcp_ng.pool.id";
-      })?.["value"] as JSONObject | undefined
-    )?.["stringValue"] === poolId;
+        (
+          (entry["resource"] as JSONObject)["attributes"] as Array<JSONObject>
+        ).find((attribute: JSONObject) => {
+          return attribute["key"] === "xcp_ng.pool.id";
+        })?.["value"] as JSONObject | undefined
+      )?.["stringValue"] === poolId
+    );
   });
 
   expect(resource).toBeDefined();

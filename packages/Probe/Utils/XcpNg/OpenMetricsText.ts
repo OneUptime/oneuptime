@@ -98,6 +98,9 @@ export function unescapeOpenMetrics(value: string): string {
   return result;
 }
 
+// A decimal number as OpenMetrics writes one: 1, -2.5, .5, 3e-9.
+const DECIMAL_NUMBER: RegExp = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
+
 /*
  * A sample's value or timestamp: a decimal float, or NaN, +Inf and -Inf as
  * OpenMetrics spells them. Null for anything else.
@@ -121,7 +124,7 @@ export function parseOpenMetricsNumber(text: string): number | null {
       break;
   }
 
-  if (!/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(trimmed)) {
+  if (!DECIMAL_NUMBER.test(trimmed)) {
     return null;
   }
 
@@ -218,12 +221,16 @@ export function parseOpenMetricsSampleLine(
   // An exemplar (" # {...}") belongs to no series; nothing past it is read.
   const exemplarAt: number = line.indexOf(" # ", position);
   const valuePart: string = (
-    exemplarAt >= 0 ? line.substring(position, exemplarAt) : line.substring(position)
+    exemplarAt >= 0
+      ? line.substring(position, exemplarAt)
+      : line.substring(position)
   ).trim();
 
-  const fields: Array<string> = valuePart.split(/\s+/).filter((field: string) => {
-    return field.length > 0;
-  });
+  const fields: Array<string> = valuePart
+    .split(/\s+/)
+    .filter((field: string) => {
+      return field.length > 0;
+    });
 
   if (fields.length < 1 || fields.length > 2) {
     return null;
@@ -258,10 +265,7 @@ export function parseOpenMetricsSampleLine(
  * suffixes OpenMetrics gives a counter, a histogram or a summary's samples -
  * the TYPE'd name they extend.
  */
-function findFamily(
-  name: string,
-  types: Map<string, OpenMetricsType>,
-): string {
+function findFamily(name: string, types: Map<string, OpenMetricsType>): string {
   if (types.has(name)) {
     return name;
   }

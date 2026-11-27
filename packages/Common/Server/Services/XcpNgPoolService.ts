@@ -33,7 +33,10 @@ import LIMIT_MAX from "../../Types/Database/LimitMax";
 import GlobalCache from "../Infrastructure/GlobalCache";
 import logger, { LogAttributes } from "../Utils/Logger";
 import crypto from "crypto";
-import { mdText, MarkdownText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  mdText,
+  MarkdownText,
+} from "../../Utils/Markdown/FeedMarkdown";
 import { NameHolder } from "../../Types/Exception/NameTakenException";
 import { XcpNgTelemetryUtil } from "../../Types/XcpNg/XcpNgTelemetry";
 import XcpNgCollectionMethod, {
@@ -43,7 +46,6 @@ import XcpNgConnectionType from "../../Types/XcpNg/XcpNgConnectionType";
 import BadDataException from "../../Types/Exception/BadDataException";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import Select from "../Types/Database/Select";
-import FeedMarkdown from "../../Utils/Markdown/FeedMarkdown";
 import XcpNgConnection from "../../Models/DatabaseModels/XcpNgConnection";
 import {
   XcpNgPoolAssignmentDecision,
@@ -1204,7 +1206,11 @@ export class Service extends ProjectReferencesService<Model> {
         return poolId.length > 0;
       });
 
-    if (reported.length > 0 && poolIdentifier && !reported.includes(poolIdentifier)) {
+    if (
+      reported.length > 0 &&
+      poolIdentifier &&
+      !reported.includes(poolIdentifier)
+    ) {
       throw new BadDataException(
         "This Xen Orchestra does not report this pool. Pick the connection of the Xen Orchestra that manages it.",
       );

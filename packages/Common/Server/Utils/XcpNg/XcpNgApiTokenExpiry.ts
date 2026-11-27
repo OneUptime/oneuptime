@@ -65,7 +65,11 @@ export default class XcpNgApiTokenExpiry {
     let warned: number = 0;
 
     for (const connection of connections) {
-      if (!connection.id || !connection.projectId || !connection.apiTokenExpiresAt) {
+      if (
+        !connection.id ||
+        !connection.projectId ||
+        !connection.apiTokenExpiresAt
+      ) {
         continue;
       }
 

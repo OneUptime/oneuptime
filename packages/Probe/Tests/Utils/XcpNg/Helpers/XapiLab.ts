@@ -69,7 +69,9 @@ export function toSnapshot(
       "host_metrics"
     ] as unknown as XapiPoolSnapshot["hostMetrics"],
     vms: records["VM"] as unknown as XapiPoolSnapshot["vms"],
-    vmMetrics: records["VM_metrics"] as unknown as XapiPoolSnapshot["vmMetrics"],
+    vmMetrics: records[
+      "VM_metrics"
+    ] as unknown as XapiPoolSnapshot["vmMetrics"],
     srs: records["SR"] as unknown as XapiPoolSnapshot["srs"],
     pbds: records["PBD"] as unknown as XapiPoolSnapshot["pbds"],
     vdis: records["VDI"] as unknown as XapiPoolSnapshot["vdis"],

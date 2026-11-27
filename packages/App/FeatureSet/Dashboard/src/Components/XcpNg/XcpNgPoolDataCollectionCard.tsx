@@ -166,9 +166,7 @@ const XcpNgPoolDataCollectionCard: FunctionComponent<ComponentProps> = (
     },
   );
 
-  const save: (data: JSONObject) => void = (
-    data: JSONObject,
-  ): void => {
+  const save: (data: JSONObject) => void = (data: JSONObject): void => {
     setIsSaving(true);
     setSaveError("");
     ModelAPI.updateById({

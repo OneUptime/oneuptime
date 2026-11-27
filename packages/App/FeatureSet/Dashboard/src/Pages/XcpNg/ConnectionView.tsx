@@ -172,7 +172,9 @@ const XcpNgConnectionView: FunctionComponent<
                   {translator.translateTemplate(
                     "{{running}}/{{total}} running",
                     {
-                      running: translator.formatNumber(item.runningVmCount || 0),
+                      running: translator.formatNumber(
+                        item.runningVmCount || 0,
+                      ),
                       total: translator.formatNumber(item.vmCount),
                     },
                   )}

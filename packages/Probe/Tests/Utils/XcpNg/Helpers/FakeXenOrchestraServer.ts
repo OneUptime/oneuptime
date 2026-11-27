@@ -168,7 +168,11 @@ export async function startFakeXenOrchestra(options: {
 
     if (url.startsWith("/openmetrics/")) {
       if (settings.plugin === "off") {
-        return send(500, "text/plain", "There was a problem proxying this request.");
+        return send(
+          500,
+          "text/plain",
+          "There was a problem proxying this request.",
+        );
       }
 
       const pluginPath: string = url.substring("/openmetrics".length);
@@ -195,7 +199,11 @@ export async function startFakeXenOrchestra(options: {
 
       if (pluginPath === "/metrics" && request.method === "GET") {
         if (settings.noPools) {
-          return send(200, OPENMETRICS_CONTENT_TYPE, "# No connected hosts\n# EOF");
+          return send(
+            200,
+            OPENMETRICS_CONTENT_TYPE,
+            "# No connected hosts\n# EOF",
+          );
         }
 
         // Served in turn, the last one again and again.
@@ -210,7 +218,9 @@ export async function startFakeXenOrchestra(options: {
     }
 
     if (url.startsWith("/rest/v0/")) {
-      const tokenValue: string | null = readCookieToken(request.headers["cookie"]);
+      const tokenValue: string | null = readCookieToken(
+        request.headers["cookie"],
+      );
       // Xen Orchestra forgets a token once it expires: it reads as wrong.
       const token: FakeXoToken | undefined = settings.tokens.find(
         (candidate: FakeXoToken) => {
@@ -290,7 +300,14 @@ export async function startFakeXenOrchestra(options: {
           user.permission === "admin"
             ? []
             : user.privileges.map(
-                (privilege: { action: string; resource: string; effect?: string }, index: number) => {
+                (
+                  privilege: {
+                    action: string;
+                    resource: string;
+                    effect?: string;
+                  },
+                  index: number,
+                ) => {
                   return {
                     action: privilege.action,
                     resource: privilege.resource,
@@ -321,7 +338,11 @@ export async function startFakeXenOrchestra(options: {
       return json(404, { error: "Not found" });
     }
 
-    return send(404, "text/html", "<!doctype html><title>Xen Orchestra</title>");
+    return send(
+      404,
+      "text/html",
+      "<!doctype html><title>Xen Orchestra</title>",
+    );
   };
 
   const server: https.Server = https.createServer(

@@ -533,21 +533,21 @@ const XcpNgPoolOverview: FunctionComponent<
         slots={{ connection: connectionSlot }}
       />
     ) : xenOrchestraName && hasAgentVersion ? (
-        <TranslatedSentence
-          template="Read from Xen Orchestra {{xenOrchestra}} by the XCP-ng Agent {{version}}"
-          slots={{ xenOrchestra: xenOrchestraSlot, version: agentSlot }}
-        />
-      ) : xenOrchestraName ? (
-        <TranslatedSentence
-          template="Read from Xen Orchestra {{xenOrchestra}}"
-          slots={{ xenOrchestra: xenOrchestraSlot }}
-        />
-      ) : hasAgentVersion ? (
-        <TranslatedSentence
-          template="Read by the XCP-ng Agent {{version}}"
-          slots={{ version: agentSlot }}
-        />
-      ) : null;
+      <TranslatedSentence
+        template="Read from Xen Orchestra {{xenOrchestra}} by the XCP-ng Agent {{version}}"
+        slots={{ xenOrchestra: xenOrchestraSlot, version: agentSlot }}
+      />
+    ) : xenOrchestraName ? (
+      <TranslatedSentence
+        template="Read from Xen Orchestra {{xenOrchestra}}"
+        slots={{ xenOrchestra: xenOrchestraSlot }}
+      />
+    ) : hasAgentVersion ? (
+      <TranslatedSentence
+        template="Read by the XCP-ng Agent {{version}}"
+        slots={{ version: agentSlot }}
+      />
+    ) : null;
 
     /*
      * The count chips open their list: the Overview's one step to the

@@ -49,7 +49,11 @@ const PROBE_KEYS: Array<string> = ["probeId", "probe"];
 const CONNECTION_KEYS: Array<string> = ["xcpNgConnectionId", "xcpNgConnection"];
 
 // The secrets a test may carry, which no answer ever holds.
-const SECRET_COLUMNS: Array<string> = ["openMetricsSecret", "apiToken", "password"];
+const SECRET_COLUMNS: Array<string> = [
+  "openMetricsSecret",
+  "apiToken",
+  "password",
+];
 
 /*
  * Why a test no probe picked up failed. It names the product, so the sweep
@@ -333,10 +337,13 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    const required: string = data.type === XcpNgConnectionType.Xapi ? "password" : "openMetricsSecret";
-    const needsSaved: boolean = SECRET_COLUMNS.some((column: string): boolean => {
-      return !isGiven(data.data[column]);
-    });
+    const required: string =
+      data.type === XcpNgConnectionType.Xapi ? "password" : "openMetricsSecret";
+    const needsSaved: boolean = SECRET_COLUMNS.some(
+      (column: string): boolean => {
+        return !isGiven(data.data[column]);
+      },
+    );
 
     if (!needsSaved) {
       return;
@@ -382,7 +389,10 @@ export class Service extends ProjectReferencesService<Model> {
       return;
     }
 
-    if (!isGiven(data.data["openMetricsSecret"]) && connection.openMetricsSecret) {
+    if (
+      !isGiven(data.data["openMetricsSecret"]) &&
+      connection.openMetricsSecret
+    ) {
       data.data["openMetricsSecret"] = connection.openMetricsSecret;
     }
 
@@ -613,7 +623,8 @@ export class Service extends ProjectReferencesService<Model> {
     if (
       errorCode === XcpNgCollectionErrorCode.TokenRejected &&
       savedExpiry &&
-      new Date(savedExpiry).getTime() <= OneUptimeDate.getCurrentDate().getTime()
+      new Date(savedExpiry).getTime() <=
+        OneUptimeDate.getCurrentDate().getTime()
     ) {
       errorCode = XcpNgCollectionErrorCode.TokenExpired;
       errorMessage =

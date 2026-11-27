@@ -87,7 +87,9 @@ export function decideXcpNgPoolAssignment(data: {
 }
 
 // Whether the connection's data for the pool is stored after the decision.
-export function isXcpNgPoolKept(decision: XcpNgPoolAssignmentDecision): boolean {
+export function isXcpNgPoolKept(
+  decision: XcpNgPoolAssignmentDecision,
+): boolean {
   return (
     decision === XcpNgPoolAssignmentDecision.Create ||
     decision === XcpNgPoolAssignmentDecision.Keep ||

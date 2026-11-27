@@ -64,17 +64,39 @@ function xapi(
 describe("why no probe reads a connection", () => {
   test("nothing stops one with what its kind needs and the project's own connected probe", () => {
     for (const isBillingEnabled of [true, false]) {
-      expect(getXcpNgCollectionStop(xenOrchestra(), isBillingEnabled)).toBeNull();
+      expect(
+        getXcpNgCollectionStop(xenOrchestra(), isBillingEnabled),
+      ).toBeNull();
       expect(getXcpNgCollectionStop(xapi(), isBillingEnabled)).toBeNull();
     }
   });
 
   test.each([
-    ["a Xen Orchestra with no address", xenOrchestra({ address: null }), XcpNgCollectionStop.NoAddress],
-    ["a Xen Orchestra with no secret", xenOrchestra({ isOpenMetricsSecretSet: false }), XcpNgCollectionStop.NoSecret],
-    ["a pool with no user name", xapi({ username: null }), XcpNgCollectionStop.NoUserName],
-    ["a pool with no password", xapi({ isPasswordSet: false }), XcpNgCollectionStop.NoPassword],
-    ["one with no probe", xenOrchestra({ collectionProbeId: null, collectionProbe: null }), XcpNgCollectionStop.NoProbe],
+    [
+      "a Xen Orchestra with no address",
+      xenOrchestra({ address: null }),
+      XcpNgCollectionStop.NoAddress,
+    ],
+    [
+      "a Xen Orchestra with no secret",
+      xenOrchestra({ isOpenMetricsSecretSet: false }),
+      XcpNgCollectionStop.NoSecret,
+    ],
+    [
+      "a pool with no user name",
+      xapi({ username: null }),
+      XcpNgCollectionStop.NoUserName,
+    ],
+    [
+      "a pool with no password",
+      xapi({ isPasswordSet: false }),
+      XcpNgCollectionStop.NoPassword,
+    ],
+    [
+      "one with no probe",
+      xenOrchestra({ collectionProbeId: null, collectionProbe: null }),
+      XcpNgCollectionStop.NoProbe,
+    ],
     [
       "one read by another project's probe",
       xapi({ collectionProbe: { ...OWN_PROBE, projectId: OTHER_PROJECT_ID } }),
@@ -90,13 +112,23 @@ describe("why no probe reads a connection", () => {
       }),
       XcpNgCollectionStop.ProbeDisconnected,
     ],
-  ])("%s", (_name: string, facts: XcpNgCollectionStopFacts, stop: XcpNgCollectionStop) => {
-    expect(getXcpNgCollectionStop(facts, true)).toBe(stop);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      facts: XcpNgCollectionStopFacts,
+      stop: XcpNgCollectionStop,
+    ) => {
+      expect(getXcpNgCollectionStop(facts, true)).toBe(stop);
+    },
+  );
 
   test("a pool's secret is its password, a Xen Orchestra's its OpenMetrics secret: the other kind's is not asked for", () => {
     expect(
-      getXcpNgCollectionStop(xenOrchestra({ isPasswordSet: false, username: null }), true),
+      getXcpNgCollectionStop(
+        xenOrchestra({ isPasswordSet: false, username: null }),
+        true,
+      ),
     ).toBeNull();
     expect(
       getXcpNgCollectionStop(xapi({ isOpenMetricsSecretSet: false }), true),
@@ -211,16 +243,15 @@ const CLAUSES: Record<string, ClauseReading> = {
     { kind: "not shown" },
 };
 
-const CLAIM_CLAUSES: Array<string> = XcpNgProbeCollectionStore.getCollectableSql(
-  {
+const CLAIM_CLAUSES: Array<string> =
+  XcpNgProbeCollectionStore.getCollectableSql({
     statusesParameter: "$6",
     isBillingEnabledParameter: "$7",
-  },
-)
-  .split(/\n\s*AND /)
-  .map((clause: string): string => {
-    return clause.trim();
-  });
+  })
+    .split(/\n\s*AND /)
+    .map((clause: string): string => {
+      return clause.trim();
+    });
 
 const ROW_CLAUSES: Array<string> = Object.keys(CLAUSES).filter(
   (clause: string): boolean => {
@@ -283,7 +314,9 @@ describe("the page's rule is the claim's (XcpNgProbeCollectionStore.getCollectab
         const row: ClaimRow = claimable(kind, isBillingEnabled);
 
         expect(isClaimable(row)).toBe(true);
-        expect(getXcpNgCollectionStop(pageFacts(row), isBillingEnabled)).toBeNull();
+        expect(
+          getXcpNgCollectionStop(pageFacts(row), isBillingEnabled),
+        ).toBeNull();
       });
 
       test(`${where}: each condition false alone stops it on the page`, () => {
@@ -294,7 +327,9 @@ describe("the page's rule is the claim's (XcpNgProbeCollectionStore.getCollectab
             continue;
           }
 
-          const row: ClaimRow = reading.breaks(claimable(kind, isBillingEnabled));
+          const row: ClaimRow = reading.breaks(
+            claimable(kind, isBillingEnabled),
+          );
 
           expect(reading.holds(row)).toBe(false);
           expect(isClaimable(row)).toBe(false);

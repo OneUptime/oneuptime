@@ -8,7 +8,10 @@ import {
   startFakeXapiPool,
 } from "./Helpers/FakeXapiPool";
 import { XapiLab, buildXapiLab } from "./Helpers/XapiLab";
-import { TestCertificate, makeTestCertificate } from "./Helpers/XcpNgCertificates";
+import {
+  TestCertificate,
+  makeTestCertificate,
+} from "./Helpers/XcpNgCertificates";
 import {
   POOL_PRODUCTION,
   SCRAPE_SECONDS,
@@ -38,13 +41,7 @@ import {
 } from "Common/Types/XcpNg/XcpNgProbeCollection";
 import XcpNgXapiAccountKind from "Common/Types/XcpNg/XcpNgXapiAccount";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 
 /*
  * A PROBE READING A POOL STRAIGHT FROM XAPI (#10999), over real HTTPS and
@@ -469,7 +466,9 @@ describe("XapiCollector.collect", () => {
       dependencies(),
     );
 
-    expect(report.errorCode).toBe(XcpNgCollectionErrorCode.UntrustedCertificate);
+    expect(report.errorCode).toBe(
+      XcpNgCollectionErrorCode.UntrustedCertificate,
+    );
     expect(report.presentedCertificate?.fingerprint256).toBe(
       host("prod1").certificate.fingerprint256,
     );
@@ -676,7 +675,9 @@ describe("XapiCollector.test", () => {
       dependencies(),
     );
 
-    expect(report.errorCode).toBe(XcpNgCollectionErrorCode.UntrustedCertificate);
+    expect(report.errorCode).toBe(
+      XcpNgCollectionErrorCode.UntrustedCertificate,
+    );
     expect(report.presentedCertificate?.fingerprint256).toBe(
       host("prod1").certificate.fingerprint256,
     );
@@ -714,7 +715,10 @@ describe("selectNewMessages", () => {
 
   it("delivers the oldest first, at most the cap, and moves the watermark to the newest delivered", () => {
     const result: ReturnType<typeof selectNewMessages> = selectNewMessages({
-      watermark: { readUntil: "2026-11-18T07:00:00.000Z", uuidsAtReadUntil: [] },
+      watermark: {
+        readUntil: "2026-11-18T07:00:00.000Z",
+        uuidsAtReadUntil: [],
+      },
       received: [
         message("c", "2026-11-18T07:00:03.000Z"),
         message("a", "2026-11-18T07:00:01.000Z"),

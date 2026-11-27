@@ -327,12 +327,11 @@ router.post(
         );
       }
 
-      const accepted: boolean = await XcpNgConnectionTestService.recordTestReport(
-        {
+      const accepted: boolean =
+        await XcpNgConnectionTestService.recordTestReport({
           probeId: probeId,
           report: report,
-        },
-      );
+        });
 
       return Response.sendJsonObjectResponse(req, res, {
         accepted: accepted,

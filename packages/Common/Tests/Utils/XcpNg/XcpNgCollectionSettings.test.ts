@@ -124,9 +124,9 @@ describe("XcpNgCollectionSettings.getSecretRebindRefusal", () => {
     expect(
       refusal({ probeId: "4d1b9f52-7a0e-4f34-9a0b-2b7c3f1d0002" }),
     ).toContain("probe");
-    expect(
-      refusal({ trustedCertificateFingerprint: FINGERPRINT_B }),
-    ).toContain("certificate");
+    expect(refusal({ trustedCertificateFingerprint: FINGERPRINT_B })).toContain(
+      "certificate",
+    );
   });
 
   test("keeps it when only publicly trusted certificates are accepted from now on, which is stricter", () => {

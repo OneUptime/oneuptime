@@ -186,62 +186,426 @@ const device: (matches: RegExpMatchArray) => Record<string, string> = (
 };
 
 export const HOST_METRICS: ReadonlyArray<MetricDefinition> = [
-  { test: "loadavg", openMetricName: "host_load_average", type: "gauge", help: "Host load average" },
-  { test: "memory_free_kib", openMetricName: "host_memory_free_bytes", type: "gauge", help: "Host free memory in bytes", transformValue: (v: number) => v * 1024 },
-  { test: "memory_total_kib", openMetricName: "host_memory_total_bytes", type: "gauge", help: "Host total memory in bytes", transformValue: (v: number) => v * 1024 },
-  { test: "cpu_avg", openMetricName: "host_cpu_average", type: "gauge", help: "Host average CPU usage ratio" },
-  { test: /^cpu(\d+)$/, openMetricName: "host_cpu_core_usage", type: "gauge", help: "Host CPU core usage ratio", extractLabels: (m: RegExpMatchArray) => ({ core: m[1]! }) },
-  { test: "pif_aggr_rx", openMetricName: "host_network_aggregated_receive_bytes", type: "gauge", help: "Aggregated received bytes per second" },
-  { test: "pif_aggr_tx", openMetricName: "host_network_aggregated_transmit_bytes", type: "gauge", help: "Aggregated transmitted bytes per second" },
-  { test: /^pif_(.+)_rx$/, openMetricName: "host_network_receive_bytes_total", type: "counter", help: "Host network interface received bytes", extractLabels: (m: RegExpMatchArray) => ({ interface: m[1]! }) },
-  { test: /^pif_(.+)_tx$/, openMetricName: "host_network_transmit_bytes_total", type: "counter", help: "Host network interface transmitted bytes", extractLabels: (m: RegExpMatchArray) => ({ interface: m[1]! }) },
-  { test: /^iops_read_(.+)$/, openMetricName: "host_disk_iops_read", type: "gauge", help: "Host disk read IOPS", extractLabels: sr },
-  { test: /^iops_write_(.+)$/, openMetricName: "host_disk_iops_write", type: "gauge", help: "Host disk write IOPS", extractLabels: sr },
-  { test: /^io_throughput_read_(.+)$/, openMetricName: "host_disk_throughput_read_bytes", type: "gauge", help: "Host disk read throughput in bytes per second", transformValue: (v: number) => v * MIB, extractLabels: sr },
-  { test: /^io_throughput_write_(.+)$/, openMetricName: "host_disk_throughput_write_bytes", type: "gauge", help: "Host disk write throughput in bytes per second", transformValue: (v: number) => v * MIB, extractLabels: sr },
-  { test: /^read_latency_(.+)$/, openMetricName: "host_disk_read_latency_seconds", type: "gauge", help: "Host disk read latency in seconds", transformValue: (v: number) => v / 1e6, extractLabels: sr },
-  { test: /^write_latency_(.+)$/, openMetricName: "host_disk_write_latency_seconds", type: "gauge", help: "Host disk write latency in seconds", transformValue: (v: number) => v / 1e6, extractLabels: sr },
-  { test: /^iowait_(.+)$/, openMetricName: "host_disk_iowait", type: "gauge", help: "Host disk IO wait ratio", extractLabels: sr },
-  { test: "DCMI-power-reading", openMetricName: "host_power_consumption_watts", type: "gauge", help: "Host power consumption in watts (DCMI)" },
-  { test: "hostload", openMetricName: "host_load", type: "gauge", help: "Normalized host load" },
-  { test: "memory_reclaimed", openMetricName: "host_memory_reclaimed_bytes", type: "gauge", help: "Reclaimed host memory in bytes", transformValue: (v: number) => v * 1024 },
-  { test: "memory_reclaimed_max", openMetricName: "host_memory_reclaimed_max_bytes", type: "gauge", help: "Maximum reclaimable host memory in bytes", transformValue: (v: number) => v * 1024 },
-  { test: "running_vcpus", openMetricName: "host_running_vcpus", type: "gauge", help: "Total number of running vCPUs" },
-  { test: /^iops_total_(.+)$/, openMetricName: "host_disk_iops_total", type: "gauge", help: "Total IOPS (read + write) per SR", extractLabels: sr },
-  { test: /^io_throughput_total_(.+)$/, openMetricName: "host_disk_throughput_total_bytes", type: "gauge", help: "Total I/O throughput per SR in bytes per second", transformValue: (v: number) => v * MIB, extractLabels: sr },
-  { test: /^latency_(.+)$/, openMetricName: "host_disk_latency_seconds", type: "gauge", help: "Combined I/O latency per SR in seconds", transformValue: (v: number) => v / 1e6, extractLabels: sr },
+  {
+    test: "loadavg",
+    openMetricName: "host_load_average",
+    type: "gauge",
+    help: "Host load average",
+  },
+  {
+    test: "memory_free_kib",
+    openMetricName: "host_memory_free_bytes",
+    type: "gauge",
+    help: "Host free memory in bytes",
+    transformValue: (v: number) => {
+      return v * 1024;
+    },
+  },
+  {
+    test: "memory_total_kib",
+    openMetricName: "host_memory_total_bytes",
+    type: "gauge",
+    help: "Host total memory in bytes",
+    transformValue: (v: number) => {
+      return v * 1024;
+    },
+  },
+  {
+    test: "cpu_avg",
+    openMetricName: "host_cpu_average",
+    type: "gauge",
+    help: "Host average CPU usage ratio",
+  },
+  {
+    test: /^cpu(\d+)$/,
+    openMetricName: "host_cpu_core_usage",
+    type: "gauge",
+    help: "Host CPU core usage ratio",
+    extractLabels: (m: RegExpMatchArray) => {
+      return { core: m[1]! };
+    },
+  },
+  {
+    test: "pif_aggr_rx",
+    openMetricName: "host_network_aggregated_receive_bytes",
+    type: "gauge",
+    help: "Aggregated received bytes per second",
+  },
+  {
+    test: "pif_aggr_tx",
+    openMetricName: "host_network_aggregated_transmit_bytes",
+    type: "gauge",
+    help: "Aggregated transmitted bytes per second",
+  },
+  {
+    test: /^pif_(.+)_rx$/,
+    openMetricName: "host_network_receive_bytes_total",
+    type: "counter",
+    help: "Host network interface received bytes",
+    extractLabels: (m: RegExpMatchArray) => {
+      return { interface: m[1]! };
+    },
+  },
+  {
+    test: /^pif_(.+)_tx$/,
+    openMetricName: "host_network_transmit_bytes_total",
+    type: "counter",
+    help: "Host network interface transmitted bytes",
+    extractLabels: (m: RegExpMatchArray) => {
+      return { interface: m[1]! };
+    },
+  },
+  {
+    test: /^iops_read_(.+)$/,
+    openMetricName: "host_disk_iops_read",
+    type: "gauge",
+    help: "Host disk read IOPS",
+    extractLabels: sr,
+  },
+  {
+    test: /^iops_write_(.+)$/,
+    openMetricName: "host_disk_iops_write",
+    type: "gauge",
+    help: "Host disk write IOPS",
+    extractLabels: sr,
+  },
+  {
+    test: /^io_throughput_read_(.+)$/,
+    openMetricName: "host_disk_throughput_read_bytes",
+    type: "gauge",
+    help: "Host disk read throughput in bytes per second",
+    transformValue: (v: number) => {
+      return v * MIB;
+    },
+    extractLabels: sr,
+  },
+  {
+    test: /^io_throughput_write_(.+)$/,
+    openMetricName: "host_disk_throughput_write_bytes",
+    type: "gauge",
+    help: "Host disk write throughput in bytes per second",
+    transformValue: (v: number) => {
+      return v * MIB;
+    },
+    extractLabels: sr,
+  },
+  {
+    test: /^read_latency_(.+)$/,
+    openMetricName: "host_disk_read_latency_seconds",
+    type: "gauge",
+    help: "Host disk read latency in seconds",
+    transformValue: (v: number) => {
+      return v / 1e6;
+    },
+    extractLabels: sr,
+  },
+  {
+    test: /^write_latency_(.+)$/,
+    openMetricName: "host_disk_write_latency_seconds",
+    type: "gauge",
+    help: "Host disk write latency in seconds",
+    transformValue: (v: number) => {
+      return v / 1e6;
+    },
+    extractLabels: sr,
+  },
+  {
+    test: /^iowait_(.+)$/,
+    openMetricName: "host_disk_iowait",
+    type: "gauge",
+    help: "Host disk IO wait ratio",
+    extractLabels: sr,
+  },
+  {
+    test: "DCMI-power-reading",
+    openMetricName: "host_power_consumption_watts",
+    type: "gauge",
+    help: "Host power consumption in watts (DCMI)",
+  },
+  {
+    test: "hostload",
+    openMetricName: "host_load",
+    type: "gauge",
+    help: "Normalized host load",
+  },
+  {
+    test: "memory_reclaimed",
+    openMetricName: "host_memory_reclaimed_bytes",
+    type: "gauge",
+    help: "Reclaimed host memory in bytes",
+    transformValue: (v: number) => {
+      return v * 1024;
+    },
+  },
+  {
+    test: "memory_reclaimed_max",
+    openMetricName: "host_memory_reclaimed_max_bytes",
+    type: "gauge",
+    help: "Maximum reclaimable host memory in bytes",
+    transformValue: (v: number) => {
+      return v * 1024;
+    },
+  },
+  {
+    test: "running_vcpus",
+    openMetricName: "host_running_vcpus",
+    type: "gauge",
+    help: "Total number of running vCPUs",
+  },
+  {
+    test: /^iops_total_(.+)$/,
+    openMetricName: "host_disk_iops_total",
+    type: "gauge",
+    help: "Total IOPS (read + write) per SR",
+    extractLabels: sr,
+  },
+  {
+    test: /^io_throughput_total_(.+)$/,
+    openMetricName: "host_disk_throughput_total_bytes",
+    type: "gauge",
+    help: "Total I/O throughput per SR in bytes per second",
+    transformValue: (v: number) => {
+      return v * MIB;
+    },
+    extractLabels: sr,
+  },
+  {
+    test: /^latency_(.+)$/,
+    openMetricName: "host_disk_latency_seconds",
+    type: "gauge",
+    help: "Combined I/O latency per SR in seconds",
+    transformValue: (v: number) => {
+      return v / 1e6;
+    },
+    extractLabels: sr,
+  },
 ];
 
 export const VM_METRICS: ReadonlyArray<MetricDefinition> = [
-  { test: /memory$/, openMetricName: "vm_memory_bytes", type: "gauge", help: "VM memory usage in bytes" },
-  { test: "memory_internal_free", openMetricName: "vm_memory_internal_free_bytes", type: "gauge", help: "VM internal free memory in bytes", transformValue: (v: number) => v * 1024 },
-  { test: "memory_target", openMetricName: "vm_memory_target_bytes", type: "gauge", help: "VM memory target in bytes" },
-  { test: "cpu_usage", openMetricName: "vm_cpu_usage", type: "gauge", help: "VM CPU usage ratio" },
-  { test: /^cpu(\d+)$/, openMetricName: "vm_cpu_core_usage", type: "gauge", help: "VM CPU core usage ratio", extractLabels: (m: RegExpMatchArray) => ({ core: m[1]! }) },
-  { test: "runstate_fullrun", openMetricName: "vm_runstate_fullrun", type: "gauge", help: "VM runstate fullrun ratio" },
-  { test: "runstate_full_contention", openMetricName: "vm_runstate_full_contention", type: "gauge", help: "VM runstate full contention ratio" },
-  { test: "runstate_partial_run", openMetricName: "vm_runstate_partial_run", type: "gauge", help: "VM runstate partial run ratio" },
-  { test: "runstate_partial_contention", openMetricName: "vm_runstate_partial_contention", type: "gauge", help: "VM runstate partial contention ratio" },
-  { test: "runstate_concurrency_hazard", openMetricName: "vm_runstate_concurrency_hazard", type: "gauge", help: "VM runstate concurrency hazard ratio" },
-  { test: "runstate_blocked", openMetricName: "vm_runstate_blocked", type: "gauge", help: "VM runstate blocked ratio" },
-  { test: /^vif_(\d+)_rx$/, openMetricName: "vm_network_receive_bytes_total", type: "counter", help: "VM network interface received bytes", extractLabels: (m: RegExpMatchArray) => ({ vif: m[1]! }) },
-  { test: /^vif_(\d+)_tx$/, openMetricName: "vm_network_transmit_bytes_total", type: "counter", help: "VM network interface transmitted bytes", extractLabels: (m: RegExpMatchArray) => ({ vif: m[1]! }) },
-  { test: /^vif_(\d+)_rx_errors$/, openMetricName: "vm_network_receive_errors_total", type: "counter", help: "VM network interface receive errors", extractLabels: (m: RegExpMatchArray) => ({ vif: m[1]! }) },
-  { test: /^vif_(\d+)_tx_errors$/, openMetricName: "vm_network_transmit_errors_total", type: "counter", help: "VM network interface transmit errors", extractLabels: (m: RegExpMatchArray) => ({ vif: m[1]! }) },
-  { test: /^vbd_xvd(.)_read$/, openMetricName: "vm_disk_read_bytes_total", type: "counter", help: "VM disk read bytes", extractLabels: device },
-  { test: /^vbd_xvd(.)_write$/, openMetricName: "vm_disk_write_bytes_total", type: "counter", help: "VM disk write bytes", extractLabels: device },
-  { test: /^vbd_xvd(.)_iops_read$/, openMetricName: "vm_disk_iops_read", type: "gauge", help: "VM disk read IOPS", extractLabels: device },
-  { test: /^vbd_xvd(.)_iops_write$/, openMetricName: "vm_disk_iops_write", type: "gauge", help: "VM disk write IOPS", extractLabels: device },
-  { test: /^vbd_xvd(.)_iops_total$/, openMetricName: "vm_disk_iops_total", type: "gauge", help: "VM disk total IOPS", extractLabels: device },
-  { test: /^vbd_xvd(.)_read_latency$/, openMetricName: "vm_disk_read_latency_seconds", type: "gauge", help: "VM disk read latency in seconds", transformValue: (v: number) => v / 1e6, extractLabels: device },
-  { test: /^vbd_xvd(.)_write_latency$/, openMetricName: "vm_disk_write_latency_seconds", type: "gauge", help: "VM disk write latency in seconds", transformValue: (v: number) => v / 1e6, extractLabels: device },
-  { test: /^vbd_xvd(.)_io_throughput_read$/, openMetricName: "vm_disk_throughput_read_bytes", type: "gauge", help: "VM disk read throughput in bytes per second", transformValue: (v: number) => v * 2 ** 20, extractLabels: device },
-  { test: /^vbd_xvd(.)_io_throughput_write$/, openMetricName: "vm_disk_throughput_write_bytes", type: "gauge", help: "VM disk write throughput in bytes per second", transformValue: (v: number) => v * 2 ** 20, extractLabels: device },
-  { test: /^vbd_xvd(.)_io_throughput_total$/, openMetricName: "vm_disk_throughput_total_bytes", type: "gauge", help: "VM disk total throughput in bytes per second", transformValue: (v: number) => v * 2 ** 20, extractLabels: device },
-  { test: /^vbd_xvd(.)_latency$/, openMetricName: "vm_disk_latency_seconds", type: "gauge", help: "VM disk average IO latency in seconds", transformValue: (v: number) => v / 1e6, extractLabels: device },
-  { test: /^vbd_xvd(.)_iowait$/, openMetricName: "vm_disk_iowait", type: "gauge", help: "VM disk IO wait ratio", extractLabels: device },
-  { test: /^vbd_xvd(.)_inflight$/, openMetricName: "vm_disk_inflight", type: "gauge", help: "VM disk inflight operations", extractLabels: device },
-  { test: /^vbd_xvd(.)_avgqu_sz$/, openMetricName: "vm_disk_queue_size", type: "gauge", help: "VM disk average queue size", extractLabels: device },
+  {
+    test: /memory$/,
+    openMetricName: "vm_memory_bytes",
+    type: "gauge",
+    help: "VM memory usage in bytes",
+  },
+  {
+    test: "memory_internal_free",
+    openMetricName: "vm_memory_internal_free_bytes",
+    type: "gauge",
+    help: "VM internal free memory in bytes",
+    transformValue: (v: number) => {
+      return v * 1024;
+    },
+  },
+  {
+    test: "memory_target",
+    openMetricName: "vm_memory_target_bytes",
+    type: "gauge",
+    help: "VM memory target in bytes",
+  },
+  {
+    test: "cpu_usage",
+    openMetricName: "vm_cpu_usage",
+    type: "gauge",
+    help: "VM CPU usage ratio",
+  },
+  {
+    test: /^cpu(\d+)$/,
+    openMetricName: "vm_cpu_core_usage",
+    type: "gauge",
+    help: "VM CPU core usage ratio",
+    extractLabels: (m: RegExpMatchArray) => {
+      return { core: m[1]! };
+    },
+  },
+  {
+    test: "runstate_fullrun",
+    openMetricName: "vm_runstate_fullrun",
+    type: "gauge",
+    help: "VM runstate fullrun ratio",
+  },
+  {
+    test: "runstate_full_contention",
+    openMetricName: "vm_runstate_full_contention",
+    type: "gauge",
+    help: "VM runstate full contention ratio",
+  },
+  {
+    test: "runstate_partial_run",
+    openMetricName: "vm_runstate_partial_run",
+    type: "gauge",
+    help: "VM runstate partial run ratio",
+  },
+  {
+    test: "runstate_partial_contention",
+    openMetricName: "vm_runstate_partial_contention",
+    type: "gauge",
+    help: "VM runstate partial contention ratio",
+  },
+  {
+    test: "runstate_concurrency_hazard",
+    openMetricName: "vm_runstate_concurrency_hazard",
+    type: "gauge",
+    help: "VM runstate concurrency hazard ratio",
+  },
+  {
+    test: "runstate_blocked",
+    openMetricName: "vm_runstate_blocked",
+    type: "gauge",
+    help: "VM runstate blocked ratio",
+  },
+  {
+    test: /^vif_(\d+)_rx$/,
+    openMetricName: "vm_network_receive_bytes_total",
+    type: "counter",
+    help: "VM network interface received bytes",
+    extractLabels: (m: RegExpMatchArray) => {
+      return { vif: m[1]! };
+    },
+  },
+  {
+    test: /^vif_(\d+)_tx$/,
+    openMetricName: "vm_network_transmit_bytes_total",
+    type: "counter",
+    help: "VM network interface transmitted bytes",
+    extractLabels: (m: RegExpMatchArray) => {
+      return { vif: m[1]! };
+    },
+  },
+  {
+    test: /^vif_(\d+)_rx_errors$/,
+    openMetricName: "vm_network_receive_errors_total",
+    type: "counter",
+    help: "VM network interface receive errors",
+    extractLabels: (m: RegExpMatchArray) => {
+      return { vif: m[1]! };
+    },
+  },
+  {
+    test: /^vif_(\d+)_tx_errors$/,
+    openMetricName: "vm_network_transmit_errors_total",
+    type: "counter",
+    help: "VM network interface transmit errors",
+    extractLabels: (m: RegExpMatchArray) => {
+      return { vif: m[1]! };
+    },
+  },
+  {
+    test: /^vbd_xvd(.)_read$/,
+    openMetricName: "vm_disk_read_bytes_total",
+    type: "counter",
+    help: "VM disk read bytes",
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_write$/,
+    openMetricName: "vm_disk_write_bytes_total",
+    type: "counter",
+    help: "VM disk write bytes",
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_iops_read$/,
+    openMetricName: "vm_disk_iops_read",
+    type: "gauge",
+    help: "VM disk read IOPS",
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_iops_write$/,
+    openMetricName: "vm_disk_iops_write",
+    type: "gauge",
+    help: "VM disk write IOPS",
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_iops_total$/,
+    openMetricName: "vm_disk_iops_total",
+    type: "gauge",
+    help: "VM disk total IOPS",
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_read_latency$/,
+    openMetricName: "vm_disk_read_latency_seconds",
+    type: "gauge",
+    help: "VM disk read latency in seconds",
+    transformValue: (v: number) => {
+      return v / 1e6;
+    },
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_write_latency$/,
+    openMetricName: "vm_disk_write_latency_seconds",
+    type: "gauge",
+    help: "VM disk write latency in seconds",
+    transformValue: (v: number) => {
+      return v / 1e6;
+    },
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_io_throughput_read$/,
+    openMetricName: "vm_disk_throughput_read_bytes",
+    type: "gauge",
+    help: "VM disk read throughput in bytes per second",
+    transformValue: (v: number) => {
+      return v * 2 ** 20;
+    },
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_io_throughput_write$/,
+    openMetricName: "vm_disk_throughput_write_bytes",
+    type: "gauge",
+    help: "VM disk write throughput in bytes per second",
+    transformValue: (v: number) => {
+      return v * 2 ** 20;
+    },
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_io_throughput_total$/,
+    openMetricName: "vm_disk_throughput_total_bytes",
+    type: "gauge",
+    help: "VM disk total throughput in bytes per second",
+    transformValue: (v: number) => {
+      return v * 2 ** 20;
+    },
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_latency$/,
+    openMetricName: "vm_disk_latency_seconds",
+    type: "gauge",
+    help: "VM disk average IO latency in seconds",
+    transformValue: (v: number) => {
+      return v / 1e6;
+    },
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_iowait$/,
+    openMetricName: "vm_disk_iowait",
+    type: "gauge",
+    help: "VM disk IO wait ratio",
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_inflight$/,
+    openMetricName: "vm_disk_inflight",
+    type: "gauge",
+    help: "VM disk inflight operations",
+    extractLabels: device,
+  },
+  {
+    test: /^vbd_xvd(.)_avgqu_sz$/,
+    openMetricName: "vm_disk_queue_size",
+    type: "gauge",
+    help: "VM disk average queue size",
+    extractLabels: device,
+  },
 ];
 
 // --- The plugin's formatted metric ------------------------------------------
@@ -304,7 +668,12 @@ export function parseRrdLegend(legend: string): ParsedLegend | null {
 
   const [, , objectType, uuid, metricName] = match;
 
-  if (!objectType || !uuid || !metricName || !VALID_OBJECT_TYPES.has(objectType)) {
+  if (
+    !objectType ||
+    !uuid ||
+    !metricName ||
+    !VALID_OBJECT_TYPES.has(objectType)
+  ) {
     return null;
   }
 
@@ -340,7 +709,9 @@ export function parseRrdText(text: string): {
   }
 
   const record: Record<string, unknown> =
-    parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+    parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : {};
   const meta: Record<string, unknown> =
     record["meta"] && typeof record["meta"] === "object"
       ? (record["meta"] as Record<string, unknown>)
@@ -348,7 +719,8 @@ export function parseRrdText(text: string): {
 
   return {
     meta: {
-      end: typeof meta["end"] === "number" ? (meta["end"] as number) : undefined,
+      end:
+        typeof meta["end"] === "number" ? (meta["end"] as number) : undefined,
       legend: Array.isArray(meta["legend"])
         ? (meta["legend"] as Array<unknown>).map((entry: unknown) => {
             return String(entry);
@@ -484,12 +856,18 @@ function toNumber(value: string | number | undefined): number {
 // What xo-server calls a VM: a VM, its control domain, a template, a snapshot.
 type XoVmType = "VM" | "VM-controller" | "VM-template" | "VM-snapshot";
 
-function getVmType(vm: XapiVmRecord, vms: Record<string, XapiVmRecord>): XoVmType {
+function getVmType(
+  vm: XapiVmRecord,
+  vms: Record<string, XapiVmRecord>,
+): XoVmType {
   if (vm.is_control_domain) {
     return "VM-controller";
   }
 
-  if (vm.is_a_snapshot || (vm.snapshot_of && vm.snapshot_of !== NULL_REF && vms[vm.snapshot_of])) {
+  if (
+    vm.is_a_snapshot ||
+    (vm.snapshot_of && vm.snapshot_of !== NULL_REF && vms[vm.snapshot_of])
+  ) {
     return "VM-snapshot";
   }
 
@@ -501,8 +879,14 @@ function getVmType(vm: XapiVmRecord, vms: Record<string, XapiVmRecord>): XoVmTyp
 }
 
 // Whether xo-server lists a VDI as a 'VDI' (not a snapshot, not unmanaged).
-function isPlainVdi(vdi: XapiVdiRecord, vdis: Record<string, XapiVdiRecord>): boolean {
-  if (vdi.is_a_snapshot || (vdi.snapshot_of && vdi.snapshot_of !== NULL_REF && vdis[vdi.snapshot_of])) {
+function isPlainVdi(
+  vdi: XapiVdiRecord,
+  vdis: Record<string, XapiVdiRecord>,
+): boolean {
+  if (
+    vdi.is_a_snapshot ||
+    (vdi.snapshot_of && vdi.snapshot_of !== NULL_REF && vdis[vdi.snapshot_of])
+  ) {
     return false;
   }
 
@@ -577,8 +961,10 @@ function buildLabelLookups(
   }
 
   // VM -> device -> VDI.
-  const vbdMap: Map<string, Map<string, { name: string; uuid: string }>> =
-    new Map();
+  const vbdMap: Map<
+    string,
+    Map<string, { name: string; uuid: string }>
+  > = new Map();
   for (const vbd of Object.values(snapshot.vbds)) {
     if (!vbd.device || !vbd.VDI || vbd.VDI === NULL_REF) {
       continue;
@@ -658,7 +1044,8 @@ function buildLabelLookups(
       vifIndexToNetworkName[index] = networkName;
     }
 
-    const metrics: XapiVmMetricsRecord | undefined = snapshot.vmMetrics[vm.metrics];
+    const metrics: XapiVmMetricsRecord | undefined =
+      snapshot.vmMetrics[vm.metrics];
 
     lookups.vms.set(vm.uuid, {
       name_label: vm.name_label,
@@ -731,7 +1118,11 @@ function findMetricDefinition(
   objectType: "host" | "vm" | "sr",
 ): { definition: MetricDefinition; matches: RegExpMatchArray | null } | null {
   const definitions: ReadonlyArray<MetricDefinition> =
-    objectType === "host" ? HOST_METRICS : objectType === "vm" ? VM_METRICS : [];
+    objectType === "host"
+      ? HOST_METRICS
+      : objectType === "vm"
+        ? VM_METRICS
+        : [];
 
   for (const definition of definitions) {
     if (typeof definition.test === "string") {
@@ -763,7 +1154,10 @@ function transformRrdMetric(data: {
   const match: {
     definition: MetricDefinition;
     matches: RegExpMatchArray | null;
-  } | null = findMetricDefinition(data.legend.metricName, data.legend.objectType);
+  } | null = findMetricDefinition(
+    data.legend.metricName,
+    data.legend.objectType,
+  );
 
   if (!match) {
     return null;
@@ -775,7 +1169,9 @@ function transformRrdMetric(data: {
     : data.value;
 
   const extracted: Record<string, string> =
-    matches && definition.extractLabels ? definition.extractLabels(matches) : {};
+    matches && definition.extractLabels
+      ? definition.extractLabels(matches)
+      : {};
 
   const labels: Record<string, string> = {
     pool_id: data.poolId,
@@ -876,9 +1272,8 @@ function transformRrdMetric(data: {
             data.lookups.vdiUuidToSrUuid.get(vdiUuid);
 
           if (srUuid !== undefined) {
-            const srInfo:
-              | { name_label: string; SR_type: string }
-              | undefined = data.lookups.srs.get(srUuid);
+            const srInfo: { name_label: string; SR_type: string } | undefined =
+              data.lookups.srs.get(srUuid);
 
             if (srInfo) {
               if (srInfo.name_label !== "") {
@@ -1252,11 +1647,14 @@ export function buildXapiFormattedMetrics(
       ? snapshot.pbds[srRecord.PBDs[0]]
       : undefined;
     const containerHostUuid: string | undefined =
-      !srRecord.shared && firstPbd ? hostUuidByRef.get(firstPbd.host) : undefined;
+      !srRecord.shared && firstPbd
+        ? hostUuidByRef.get(firstPbd.host)
+        : undefined;
 
     if (containerHostUuid !== undefined) {
       labels["host_id"] = containerHostUuid;
-      const hostName: string | undefined = hostNameByUuid.get(containerHostUuid);
+      const hostName: string | undefined =
+        hostNameByUuid.get(containerHostUuid);
 
       if (hostName !== undefined) {
         labels["host_name"] = hostName;
@@ -1330,7 +1728,9 @@ export function buildXapiFormattedMetrics(
 
     for (const vbdRef of vdi.VBDs || []) {
       const vbd: XapiVbdRecord | undefined = snapshot.vbds[vbdRef];
-      const vm: XapiVmRecord | undefined = vbd ? plainVmByRef.get(vbd.VM) : undefined;
+      const vm: XapiVmRecord | undefined = vbd
+        ? plainVmByRef.get(vbd.VM)
+        : undefined;
 
       if (vm) {
         labels["vm_uuid"] = vm.uuid;

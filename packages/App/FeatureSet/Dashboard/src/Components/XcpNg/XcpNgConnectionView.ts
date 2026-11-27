@@ -429,7 +429,9 @@ export function getXcpNgConnectionTestView(
         ...empty,
         phase: XcpNgConnectionTestPhase.Running,
         title: (isXapi
-          ? translator.translateText("The probe is connecting to the pool master…")
+          ? translator.translateText(
+              "The probe is connecting to the pool master…",
+            )
           : translator.translateText(
               "The probe is connecting to Xen Orchestra…",
             )) as string,
@@ -603,7 +605,9 @@ const STOP_WORDS: Record<
     ),
   },
   [XcpNgCollectionStop.NoSecret]: {
-    title: translationKey("No OpenMetrics secret is saved for this connection."),
+    title: translationKey(
+      "No OpenMetrics secret is saved for this connection.",
+    ),
     nextStep: translationKey(
       "Enter the secret of Xen Orchestra's OpenMetrics plugin in Edit Connection, and test the connection.",
     ),
@@ -652,11 +656,12 @@ function getXcpNgStopView(
     stop === XcpNgCollectionStop.ProbeNotAllowed ||
     stop === XcpNgCollectionStop.ProbeDisconnected
   ) {
-    const advice: XcpNgCollectionErrorAdvice = XcpNgCollectionErrorUtil.getAdvice(
-      stop === XcpNgCollectionStop.ProbeNotAllowed
-        ? XcpNgCollectionErrorCode.ProbeNotAllowed
-        : XcpNgCollectionErrorCode.ProbeNotAvailable,
-    );
+    const advice: XcpNgCollectionErrorAdvice =
+      XcpNgCollectionErrorUtil.getAdvice(
+        stop === XcpNgCollectionStop.ProbeNotAllowed
+          ? XcpNgCollectionErrorCode.ProbeNotAllowed
+          : XcpNgCollectionErrorCode.ProbeNotAvailable,
+      );
 
     title = translator.translateText(advice.title) as string;
     nextStep = translator.translateText(advice.nextStep) as string;
@@ -726,9 +731,10 @@ export function getXcpNgCollectionStatusView(
       overdueAfterInMs: XCP_NG_COLLECTION_OVERDUE_AFTER_IN_MS,
     }).state === ClaimDueState.Overdue
   ) {
-    const advice: XcpNgCollectionErrorAdvice = XcpNgCollectionErrorUtil.getAdvice(
-      XcpNgCollectionErrorCode.ProbeNotAvailable,
-    );
+    const advice: XcpNgCollectionErrorAdvice =
+      XcpNgCollectionErrorUtil.getAdvice(
+        XcpNgCollectionErrorCode.ProbeNotAvailable,
+      );
 
     return {
       tone: XcpNgCollectionTone.Failing,

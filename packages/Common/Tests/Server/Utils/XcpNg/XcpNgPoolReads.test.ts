@@ -17,7 +17,12 @@ import XcpNgProbeMetrics, {
   readReportedPools,
   readResourcePoolId,
 } from "../../../../Server/Utils/XcpNg/XcpNgProbeMetrics";
-import { Blue500, Gray500, Red500, Yellow500 } from "../../../../Types/BrandColors";
+import {
+  Blue500,
+  Gray500,
+  Red500,
+  Yellow500,
+} from "../../../../Types/BrandColors";
 import { JSONArray, JSONObject } from "../../../../Types/JSON";
 import XcpNgCollectionMethod from "../../../../Types/XcpNg/XcpNgCollectionMethod";
 import { XcpNgPoolMessage } from "../../../../Types/XcpNg/XcpNgProbeCollection";
@@ -39,17 +44,26 @@ describe("decideXcpNgPoolAssignment", () => {
     ["a pool not registered yet", null, XcpNgPoolAssignmentDecision.Create],
     [
       "a pool this connection reads",
-      { collectionMethod: XcpNgCollectionMethod.Probe, xcpNgConnectionId: THIS_CONNECTION },
+      {
+        collectionMethod: XcpNgCollectionMethod.Probe,
+        xcpNgConnectionId: THIS_CONNECTION,
+      },
       XcpNgPoolAssignmentDecision.Keep,
     ],
     [
       "a pool a removed connection read",
-      { collectionMethod: XcpNgCollectionMethod.Probe, xcpNgConnectionId: null },
+      {
+        collectionMethod: XcpNgCollectionMethod.Probe,
+        xcpNgConnectionId: null,
+      },
       XcpNgPoolAssignmentDecision.TakeOver,
     ],
     [
       "a pool the agent registered",
-      { collectionMethod: XcpNgCollectionMethod.Agent, xcpNgConnectionId: null },
+      {
+        collectionMethod: XcpNgCollectionMethod.Agent,
+        xcpNgConnectionId: null,
+      },
       XcpNgPoolAssignmentDecision.TakeOver,
     ],
     [
@@ -59,24 +73,43 @@ describe("decideXcpNgPoolAssignment", () => {
     ],
     [
       "a pool switched back to the agent from this connection",
-      { collectionMethod: XcpNgCollectionMethod.Agent, xcpNgConnectionId: THIS_CONNECTION },
+      {
+        collectionMethod: XcpNgCollectionMethod.Agent,
+        xcpNgConnectionId: THIS_CONNECTION,
+      },
       XcpNgPoolAssignmentDecision.LeaveToAgent,
     ],
     [
       "a pool switched back to the agent from another connection",
-      { collectionMethod: XcpNgCollectionMethod.Agent, xcpNgConnectionId: OTHER_CONNECTION },
+      {
+        collectionMethod: XcpNgCollectionMethod.Agent,
+        xcpNgConnectionId: OTHER_CONNECTION,
+      },
       XcpNgPoolAssignmentDecision.LeaveToAgent,
     ],
     [
       "a pool another connection reads",
-      { collectionMethod: XcpNgCollectionMethod.Probe, xcpNgConnectionId: OTHER_CONNECTION },
+      {
+        collectionMethod: XcpNgCollectionMethod.Probe,
+        xcpNgConnectionId: OTHER_CONNECTION,
+      },
       XcpNgPoolAssignmentDecision.LeaveToOtherConnection,
     ],
-  ])("%s", (_name: string, pool: Parameters<typeof decideXcpNgPoolAssignment>[0]["pool"], decision: XcpNgPoolAssignmentDecision) => {
-    expect(
-      decideXcpNgPoolAssignment({ pool: pool, connectionId: THIS_CONNECTION }),
-    ).toBe(decision);
-  });
+  ])(
+    "%s",
+    (
+      _name: string,
+      pool: Parameters<typeof decideXcpNgPoolAssignment>[0]["pool"],
+      decision: XcpNgPoolAssignmentDecision,
+    ) => {
+      expect(
+        decideXcpNgPoolAssignment({
+          pool: pool,
+          connectionId: THIS_CONNECTION,
+        }),
+      ).toBe(decision);
+    },
+  );
 
   test("reads ids in any case", () => {
     expect(
@@ -144,12 +177,13 @@ function resource(
 
 function keysOf(entry: unknown): Array<string> {
   return (
-    ((entry as JSONObject)["resource"] as JSONObject)["attributes"] as Array<JSONObject>
+    ((entry as JSONObject)["resource"] as JSONObject)[
+      "attributes"
+    ] as Array<JSONObject>
   ).map((attribute: JSONObject): string => {
     return String(attribute["key"]);
   });
 }
-
 
 describe("XcpNgProbeMetrics.prepare", () => {
   test("keeps the pools the connection reads, and says which it dropped", () => {
@@ -242,12 +276,19 @@ describe("readReportedPools", () => {
         resource(POOL_A, [], "Production"),
         resource(POOL_A),
       ]),
-    ).toEqual([
-      { poolIdentifier: POOL_B },
-      { poolIdentifier: POOL_A, reportedName: "Production" },
-    ].sort((left: { poolIdentifier: string }, right: { poolIdentifier: string }) => {
-      return left.poolIdentifier < right.poolIdentifier ? -1 : 1;
-    }));
+    ).toEqual(
+      [
+        { poolIdentifier: POOL_B },
+        { poolIdentifier: POOL_A, reportedName: "Production" },
+      ].sort(
+        (
+          left: { poolIdentifier: string },
+          right: { poolIdentifier: string },
+        ) => {
+          return left.poolIdentifier < right.poolIdentifier ? -1 : 1;
+        },
+      ),
+    );
     expect(readReportedPools(undefined)).toEqual([]);
   });
 });

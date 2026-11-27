@@ -162,7 +162,9 @@ export class Service extends ProjectReferencesService<Model> {
 
   // Once its owners were warned of a token, they are not warned again.
   @CaptureSpan()
-  public async markApiTokenExpiryWarned(xcpNgConnectionId: ObjectID): Promise<void> {
+  public async markApiTokenExpiryWarned(
+    xcpNgConnectionId: ObjectID,
+  ): Promise<void> {
     await this.updateColumnsByIdWithoutHooks({
       id: xcpNgConnectionId,
       data: {

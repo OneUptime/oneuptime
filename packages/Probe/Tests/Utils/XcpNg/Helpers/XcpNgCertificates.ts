@@ -48,7 +48,9 @@ export function makeTestCertificate(
         "2",
         "-subj",
         `/O=Test XCP-ng/CN=${commonName}`,
-        ...(subjectAltName ? ["-addext", `subjectAltName=${subjectAltName}`] : []),
+        ...(subjectAltName
+          ? ["-addext", `subjectAltName=${subjectAltName}`]
+          : []),
       ],
       { stdio: "ignore" },
     );

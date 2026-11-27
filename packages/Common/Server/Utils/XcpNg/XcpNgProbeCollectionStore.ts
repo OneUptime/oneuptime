@@ -82,6 +82,8 @@ const MAX_SUMMARY_POOLS: number = 500;
 const MAX_POOL_HOSTS: number = 128;
 const MAX_TEXT_LENGTH: number = 1000;
 const MAX_WATERMARK_UUIDS: number = 500;
+// A pool master the probe reported is kept only as the https:// URL it read.
+const HTTPS_URL: RegExp = /^https:\/\//i;
 
 function boundText(value: unknown, maxLength: number): string | null {
   return VMwareProbeCollectionStore.boundText(value, maxLength);
@@ -596,7 +598,7 @@ export default class XcpNgProbeCollectionStore {
       ColumnLength.LongText,
     );
 
-    if (master && /^https:\/\//i.test(master)) {
+    if (master && HTTPS_URL.test(master)) {
       values["xapiMasterAddress"] = master;
     }
 
@@ -695,7 +697,9 @@ export default class XcpNgProbeCollectionStore {
     return hosts;
   }
 
-  public static sanitizeWatermark(value: unknown): XcpNgMessageWatermark | null {
+  public static sanitizeWatermark(
+    value: unknown,
+  ): XcpNgMessageWatermark | null {
     if (!value || typeof value !== "object") {
       return null;
     }
@@ -716,7 +720,9 @@ export default class XcpNgProbeCollectionStore {
         : []
       )
         .filter((uuid: unknown): uuid is string => {
-          return typeof uuid === "string" && uuid.length > 0 && uuid.length <= 64;
+          return (
+            typeof uuid === "string" && uuid.length > 0 && uuid.length <= 64
+          );
         })
         .slice(0, MAX_WATERMARK_UUIDS),
     };
@@ -746,16 +752,24 @@ export default class XcpNgProbeCollectionStore {
 
     const summary: XcpNgCollectionSummary = {
       connectionType: connectionType,
-      pools: (Array.isArray(raw["pools"]) ? (raw["pools"] as Array<unknown>) : [])
+      pools: (Array.isArray(raw["pools"])
+        ? (raw["pools"] as Array<unknown>)
+        : []
+      )
         .slice(0, MAX_SUMMARY_POOLS)
         .map((entry: unknown): XcpNgPoolSummary | null => {
           if (!entry || typeof entry !== "object") {
             return null;
           }
 
-          const pool: Record<string, unknown> = entry as Record<string, unknown>;
+          const pool: Record<string, unknown> = entry as Record<
+            string,
+            unknown
+          >;
           const poolId: string = XcpNgTelemetryUtil.normalizePoolIdentifier(
-            typeof pool["poolId"] === "string" ? (pool["poolId"] as string) : "",
+            typeof pool["poolId"] === "string"
+              ? (pool["poolId"] as string)
+              : "",
           );
 
           if (!poolId) {
@@ -809,7 +823,10 @@ export default class XcpNgProbeCollectionStore {
       "productVersion",
       "xapiVersion",
     ] as const) {
-      const text: string | null = boundText(raw[key], ColumnLength.ShortText * 2);
+      const text: string | null = boundText(
+        raw[key],
+        ColumnLength.ShortText * 2,
+      );
 
       if (text) {
         summary[key] = text;
@@ -910,7 +927,9 @@ export default class XcpNgProbeCollectionStore {
     return token;
   }
 
-  public static sanitizeAccount(value: unknown): XcpNgXapiAccountSummary | null {
+  public static sanitizeAccount(
+    value: unknown,
+  ): XcpNgXapiAccountSummary | null {
     if (!value || typeof value !== "object") {
       return null;
     }

@@ -238,9 +238,7 @@ const XcpNgConnectionStatusCard: FunctionComponent<ComponentProps> = (
     props.onChanged?.();
   };
 
-  const save: (data: JSONObject) => void = (
-    data: JSONObject,
-  ): void => {
+  const save: (data: JSONObject) => void = (data: JSONObject): void => {
     setIsSaving(true);
     setSaveError("");
     ModelAPI.updateById({
@@ -305,7 +303,9 @@ const XcpNgConnectionStatusCard: FunctionComponent<ComponentProps> = (
   const warnings: Array<string> = summary?.warnings || [];
   const product: string | null = isXapi ? getXcpNgProductLine(summary) : null;
   const notSaved: ReactElement = (
-    <span className="text-red-700">{translator.translateText("Not saved")}</span>
+    <span className="text-red-700">
+      {translator.translateText("Not saved")}
+    </span>
   );
   const saved: ReactElement = (
     <span>
@@ -337,7 +337,10 @@ const XcpNgConnectionStatusCard: FunctionComponent<ComponentProps> = (
         }
         buttons={buttons}
       >
-        <div className="space-y-4 text-sm" data-testid="xcp-ng-connection-status">
+        <div
+          className="space-y-4 text-sm"
+          data-testid="xcp-ng-connection-status"
+        >
           <div className="flex items-start gap-2">
             <Icon
               icon={
@@ -445,7 +448,9 @@ const XcpNgConnectionStatusCard: FunctionComponent<ComponentProps> = (
             ) : (
               <Fragment>
                 <Fact
-                  label={translator.translateText("OpenMetrics Secret") as string}
+                  label={
+                    translator.translateText("OpenMetrics Secret") as string
+                  }
                 >
                   {connection.isOpenMetricsSecretSet ? saved : notSaved}
                 </Fact>
@@ -455,16 +460,21 @@ const XcpNgConnectionStatusCard: FunctionComponent<ComponentProps> = (
                 >
                   {connection.isApiTokenSet
                     ? connection.apiTokenExpiresAt
-                      ? translator.translateTemplate("Saved, expires {{time}}", {
-                          time: OneUptimeDate.fromNow(
-                            connection.apiTokenExpiresAt,
-                          ),
-                        })
+                      ? translator.translateTemplate(
+                          "Saved, expires {{time}}",
+                          {
+                            time: OneUptimeDate.fromNow(
+                              connection.apiTokenExpiresAt,
+                            ),
+                          },
+                        )
                       : saved
                     : (translator.translateText("None") as string)}
                 </Fact>
                 <Fact
-                  label={translator.translateText("Trusted Certificate") as string}
+                  label={
+                    translator.translateText("Trusted Certificate") as string
+                  }
                 >
                   {connection.trustedCertificateFingerprint ? (
                     <code className="break-all font-mono">
@@ -502,7 +512,9 @@ const XcpNgConnectionStatusCard: FunctionComponent<ComponentProps> = (
               )}
             </Fact>
             {product ? (
-              <Fact label={translator.translateText("XCP-ng version") as string}>
+              <Fact
+                label={translator.translateText("XCP-ng version") as string}
+              >
                 {product}
               </Fact>
             ) : (
