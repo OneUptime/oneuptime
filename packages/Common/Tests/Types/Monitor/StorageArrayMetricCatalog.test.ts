@@ -348,7 +348,6 @@ function readPowerStoreSeries(): Record<string, SeriesLabels> {
 
 const POWERSTORE_SERIES: Record<string, SeriesLabels> = readPowerStoreSeries();
 
-
 /*
  * ONTAP's series as the real NetApp Harvest 26.11 served them
  * (Tests/Fixtures/NetAppHarvest/26.11.0), every label with the values the

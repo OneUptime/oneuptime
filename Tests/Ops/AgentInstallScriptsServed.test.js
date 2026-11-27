@@ -165,9 +165,7 @@ function fetchedFiles(entry) {
        * download_agent_file handing its own argument on.
        */
       const list = /^AGENT_FILES="([^"]+)"$/m.exec(script);
-      const names = list
-        ? list[1].split(" ")
-        : [];
+      const names = list ? list[1].split(" ") : [];
 
       for (const file of names) {
         if (file === "$PLATFORM_CONFIGS") {

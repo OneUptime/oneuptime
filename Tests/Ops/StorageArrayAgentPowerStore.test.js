@@ -1191,7 +1191,7 @@ describe("agents/StorageArrayAgent/install.sh for a PowerStore", () => {
     }
     // Every profile's containers stop, then what .env selects starts.
     expect(run.docker).toContain(
-      "compose --profile flasharray-exporter --profile flashblade --profile powerstore down --remove-orphans",
+      "compose --profile flasharray-exporter --profile flashblade --profile powerstore --profile netapp-ontap down --remove-orphans",
     );
     expect(run.docker).toContain("compose up -d --force-recreate");
   });

@@ -390,11 +390,10 @@ describe("a Pure Storage array's pages are told about its platform as before #11
   });
 
   /*
-   * And with ONTAP registered beside them, as it is in the product: a Pure
-   * array's every page answers as it did, but for the volume filter the
-   * monitor form shares with ONTAP's volumes, which names ONTAP too.
+   * And with ONTAP and PowerStore registered beside them, as they are in
+   * the product: a Pure array's every page answers as it did.
    */
-  test("beside ONTAP, a Pure array's pages answer as they did, the shared volume filter naming ONTAP too", async () => {
+  test("beside ONTAP and PowerStore, a Pure array's pages answer as they did", async () => {
     const withoutOntap: (value: JSONValue) => JSONValue = (
       value: JSONValue,
     ): JSONValue => {
@@ -426,15 +425,11 @@ describe("a Pure Storage array's pages are told about its platform as before #11
       },
     );
     expect(pure.length).toBeGreaterThanOrEqual(2);
-    let namesOntap: boolean = false;
     for (const system of pure) {
       const actual: JSONObject = computedBySystem[system] as JSONObject;
       const expected: JSONObject = goldenBySystem[system] as JSONObject;
       for (const part of Object.keys(expected)) {
         if (part === "resourceFilterFields") {
-          namesOntap =
-            namesOntap ||
-            JSON.stringify(actual[part]).includes('"netapp.ontap"');
           expect({ system, part, value: withoutOntap(actual[part]!) }).toEqual({
             system,
             part,
@@ -449,7 +444,5 @@ describe("a Pure Storage array's pages are told about its platform as before #11
         });
       }
     }
-    // The one difference is there: ONTAP's volumes share the filter.
-    expect(namesOntap).toBe(true);
   });
 });

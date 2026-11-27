@@ -205,7 +205,10 @@ const CONFIG_NAMES = Object.keys(CONFIGS);
  * table, field 11), and the .env settings only the compose file reads (the
  * PowerStore exporter's login and options, the syslog port).
  */
-const OTHER_FILES = ["powerstore-exporter.Dockerfile", "powerstore-syslog.yaml"];
+const OTHER_FILES = [
+  "powerstore-exporter.Dockerfile",
+  "powerstore-syslog.yaml",
+];
 const PLATFORM_COMPOSE_ENV = [
   "POWERSTORE_USERNAME",
   "POWERSTORE_PASSWORD",
@@ -217,8 +220,15 @@ const PLATFORM_COMPOSE_ENV = [
 
 /* A job's path after its config's prefix: the part it scrapes. */
 function endpointOf(name, job) {
+  // Harvest serves every object of the cluster on one path.
+  if (CONFIGS[name].harvest && job.metrics_path === CONFIGS[name].metricsPath) {
+    return "harvest";
+  }
   const prefix = CONFIGS[name].pathPrefix || "/metrics/";
-  expect({ path: job.metrics_path, prefixed: job.metrics_path.startsWith(prefix) }).toEqual({
+  expect({
+    path: job.metrics_path,
+    prefixed: job.metrics_path.startsWith(prefix),
+  }).toEqual({
     path: job.metrics_path,
     prefixed: true,
   });
@@ -256,12 +266,6 @@ const HARVEST_DROPS = [
  * last segment of a Pure metrics path, or `harvest` for the one path
  * Harvest serves every object of a cluster on.
  */
-function endpointOf(name, job) {
-  return CONFIGS[name].harvest && job.metrics_path === CONFIGS[name].metricsPath
-    ? "harvest"
-    : job.metrics_path.replace("/metrics/", "");
-}
-
 /* The per-volume / per-host latency breakdown the volumes and hosts jobs drop. */
 const LATENCY_BREAKDOWN_DROP = {
   source_labels: ["__name__", "dimension"],
@@ -488,7 +492,11 @@ describe("agents/StorageArrayAgent collector configs", () => {
       const lines = text.split("\n").filter((line) => {
         return /insecure_skip_verify:/.test(line) && !/^\s*#/.test(line);
       });
-      if (expected.endpointParam || expected.exporterLogsIn || expected.harvest) {
+      if (
+        expected.endpointParam ||
+        expected.exporterLogsIn ||
+        expected.harvest
+      ) {
         // An exporter's own TLS to the array is its business (Harvest's below).
         expect(lines).toEqual([]);
       } else {
@@ -708,9 +716,12 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
     for (const variable of referenced) {
       expect({
         variable,
-        known: [...CONFIG_ENV, ...COMPOSE_ENV, ...PLATFORM_COMPOSE_ENV].includes(
-          variable,
-        ),
+        known: [
+          ...CONFIG_ENV,
+          ...COMPOSE_ENV,
+          ...PLATFORM_COMPOSE_ENV,
+          ...HARVEST_ENV,
+        ].includes(variable),
       }).toEqual({ variable, known: true });
     }
   });
@@ -774,7 +785,9 @@ describe("agents/StorageArrayAgent/docker-compose.yml", () => {
     const service = compose().services[expected.exporterService];
 
     expect(service.profiles).toEqual([expected.profile]);
-    expect(service.image).toMatch(/^ghcr\.io\/netapp\/harvest:\d+\.\d+\.\d+-\d+$/);
+    expect(service.image).toMatch(
+      /^ghcr\.io\/netapp\/harvest:\d+\.\d+\.\d+-\d+$/,
+    );
     expect(service.command).toEqual([
       "--poller",
       "ontap",
@@ -924,27 +937,30 @@ describe("agents/StorageArrayAgent/install.sh", () => {
     const files = script.match(/^AGENT_FILES="([^"]+)"$/m);
     expect(files).not.toBeNull();
     // The table's configs and other files stand in their places.
-    const downloaded = files[1]
-      .split(" ")
-      .flatMap((file) => {
-        if (file === "$PLATFORM_CONFIGS") {
-          return installPlatforms().map((platform) => {
-            return platform.config;
-          });
-        }
-        if (file === "$PLATFORM_FILES") {
-          return [
-            ...new Set(
-              installPlatforms().flatMap((platform) => {
-                return platform.otherFiles;
-              }),
-            ),
-          ];
-        }
-        return [file];
-      });
+    const downloaded = files[1].split(" ").flatMap((file) => {
+      if (file === "$PLATFORM_CONFIGS") {
+        return installPlatforms().map((platform) => {
+          return platform.config;
+        });
+      }
+      if (file === "$PLATFORM_FILES") {
+        return [
+          ...new Set(
+            installPlatforms().flatMap((platform) => {
+              return platform.otherFiles;
+            }),
+          ),
+        ];
+      }
+      return [file];
+    });
     expect([...downloaded].sort()).toEqual(
-      ["docker-compose.yml", ...CONFIG_NAMES, ...OTHER_FILES, ...HARVEST_FILES].sort(),
+      [
+        "docker-compose.yml",
+        ...CONFIG_NAMES,
+        ...OTHER_FILES,
+        ...HARVEST_FILES,
+      ].sort(),
     );
     for (const file of downloaded) {
       expect(fs.existsSync(path.join(REPO_ROOT, AGENT_DIR, file))).toBe(true);
@@ -972,7 +988,12 @@ describe("agents/StorageArrayAgent/install.sh", () => {
         return line.split("=")[0];
       });
     expect([...written, ...installPlatformVariables()].sort()).toEqual(
-      [...CONFIG_ENV, ...COMPOSE_ENV, ...PLATFORM_COMPOSE_ENV, ...HARVEST_ENV].sort(),
+      [
+        ...CONFIG_ENV,
+        ...COMPOSE_ENV,
+        ...PLATFORM_COMPOSE_ENV,
+        ...HARVEST_ENV,
+      ].sort(),
     );
 
     for (const name of [
@@ -1179,7 +1200,8 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
 
   test("never prints an array's token or password, nor hands it to a probe that does not need it", () => {
     // Read once, tested for being set and for its shape, and sent once: to
-    // curl's stdin, for Pure's probes. Dell's exporter holds the password.
+    // curl's stdin, for Pure's probes. Dell's exporter and NetApp Harvest
+    // hold the password.
     const uses = script
       .split("\n")
       .filter((line) => {
@@ -1191,6 +1213,7 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
     expect(uses).toEqual([
       'ARRAY_TOKEN=$(agent_env "$TOKEN_VAR")',
       'if [ -z "$(agent_env POWERSTORE_USERNAME)" ] || [ -z "$ARRAY_TOKEN" ]; then',
+      'if [ -z "$ARRAY_TOKEN" ]; then',
       'elif [ -z "$ARRAY_TOKEN" ]; then',
       'if [[ "$ARRAY_TOKEN" =~ ^T-$TOKEN_UUID$ ]]; then',
       'if [[ "$ARRAY_TOKEN" =~ ^$TOKEN_UUID$ ]]; then',
@@ -1198,13 +1221,17 @@ describe("agents/StorageArrayAgent/troubleshoot.sh", () => {
     ]);
     // The PowerStore probe comes before Pure's and carries no credential.
     const powerstoreProbe = script.slice(
-      script.indexOf('if [ "$ARRAY_VERDICT" = "UNKNOWN" ] && [ "$MODE" = "powerstore" ]; then'),
+      script.indexOf(
+        'if [ "$ARRAY_VERDICT" = "UNKNOWN" ] && [ "$MODE" = "powerstore" ]; then',
+      ),
       script.indexOf("declare -a PROBE_ARGS=()"),
     );
     expect(powerstoreProbe).toContain(
       `PROBE_OUT=$(agent_netns_curl -sS -m 120 -w $'\\nOUSTATUS:%{http_code}' "$PROBE_URL")`,
     );
-    expect(powerstoreProbe).not.toMatch(/\$\{?ARRAY_TOKEN|-H |DOCKER_RUN_EXTRA/);
+    expect(powerstoreProbe).not.toMatch(
+      /\$\{?ARRAY_TOKEN|-H |DOCKER_RUN_EXTRA/,
+    );
     // Harvest serves the cluster on the compose network, with no credential.
     expect(script).toContain('PROBE_URL="http://netapp-harvest:12990/metrics"');
   });

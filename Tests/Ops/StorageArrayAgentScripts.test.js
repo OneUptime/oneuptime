@@ -393,7 +393,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       input: answers(
         "https://oneuptime.example.com",
         INGESTION_KEY,
-        "4",
+        "5",
         "ontap-prod-01",
         "https://ontap-prod-01.example.com/",
         "oneuptime",
@@ -414,6 +414,14 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       PURE_FA_API_TOKEN: "''",
       PURE_FB_ENDPOINT: "''",
       PURE_FB_API_TOKEN: "''",
+      // Every other platform's settings are written too, empty.
+      POWERSTORE_ENDPOINT: "''",
+      POWERSTORE_PASSWORD: "''",
+      POWERSTORE_USERNAME: "''",
+      POWERSTORE_BULK_METRICS: "''",
+      POWERSTORE_API_VERSION: "''",
+      POWERSTORE_REQUEST_LIMIT: "''",
+      POWERSTORE_SYSLOG_PORT: "''",
       // Scheme and path go: Harvest wants the bare address.
       NETAPP_ONTAP_ENDPOINT: "'ontap-prod-01.example.com'",
       NETAPP_ONTAP_USERNAME: "'oneuptime'",
@@ -447,7 +455,7 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       input: answers(
         "https://oneuptime.example.com",
         INGESTION_KEY,
-        "4",
+        "5",
         "ontap-prod-01",
         "ontap-prod-01.example.com",
         "oneuptime",

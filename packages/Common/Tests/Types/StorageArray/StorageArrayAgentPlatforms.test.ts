@@ -278,6 +278,11 @@ describe("each config of the table", () => {
       );
       // No env_file: the ingestion key and every other platform's token stay out.
       expect(Object.keys(service)).not.toContain("env_file");
+      // ...and the optional settings its line names (a PowerStore's).
+      const optional: Array<string> =
+        TABLE.find((line: TableLine): boolean => {
+          return line.system === entry.platform.storageSystem;
+        })?.optionalVariables || [];
       for (const variable of given) {
         expect([
           entry.config.endpointVariable,
@@ -285,6 +290,7 @@ describe("each config of the table", () => {
           entry.config.tokenVariable,
           "STORAGE_ARRAY_NAME",
           "STORAGE_ARRAY_INSECURE_SKIP_VERIFY",
+          ...optional,
         ]).toContain(variable);
       }
     }
@@ -293,21 +299,16 @@ describe("each config of the table", () => {
   test("install.sh downloads every exporter's own files with the configs", () => {
     const script: string = readAgentFile("install.sh");
     expect(script).toContain(
-      'AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS${PLATFORM_EXTRA_FILES:+ $PLATFORM_EXTRA_FILES}"',
+      'AGENT_FILES="docker-compose.yml $PLATFORM_CONFIGS $PLATFORM_FILES"',
     );
     expect(script).toMatch(
-      /PLATFORM_EXTRA_FILES="\$\(platform_lines \| cut -d '\|' -f 11/,
+      /PLATFORM_FILES="\$\(platform_lines \| cut -d '\|' -f 11/,
     );
     // A user's name is asked for, and a password is never refused for a $.
     expect(script).toContain(
       'USER_VARIABLE="$(platform_field "$PLATFORM_LINE" 10)"',
     );
-    expect(script).toContain(
-      'SECRET_KIND="$(platform_field "$PLATFORM_LINE" 12)"',
-    );
-    expect(script).toContain(
-      'read -rsp "Password of the $ARRAY_NOUN\'s read-only user: "',
-    );
+    expect(script).toContain('read -rsp "That user\'s password: "');
   });
 
   test("whose exporter the compose file runs under the line's profile", () => {

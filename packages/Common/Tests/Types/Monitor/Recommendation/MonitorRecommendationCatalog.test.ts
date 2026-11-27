@@ -1389,9 +1389,6 @@ describe("MonitorRecommendationCatalog", () => {
         return storageArrayTemplateIds({ storageSystem });
       });
       const all: Array<string> = sets.flat();
-      const ontap: Array<string> = storageArrayTemplateIds({
-        storageSystem: StorageSystem.NetAppOntap,
-      });
 
       // No template is two platforms'.
       expect(new Set(all).size).toBe(all.length);

@@ -401,9 +401,7 @@ describe("an Acme array's counts", () => {
         ACME_AGGREGATE_KIND,
         ACME_STORAGE_SYSTEM,
       ).title,
-    ).toBe(
-      "Aggregates",
-    );
+    ).toBe("Aggregates");
     // No ranked lists are written for it.
     expect(getStorageArrayTopListWords(ACME_AGGREGATE_KIND)).toBeNull();
   });

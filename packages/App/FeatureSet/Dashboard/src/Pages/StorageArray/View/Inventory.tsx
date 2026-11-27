@@ -179,7 +179,6 @@ export function getInventoryColumns(
   ];
 }
 
-
 const NOTHING_HERE_YET: string = translationKey("Nothing here yet.");
 
 const StorageArrayInventory: FunctionComponent<

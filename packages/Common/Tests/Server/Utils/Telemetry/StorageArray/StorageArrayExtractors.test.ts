@@ -119,7 +119,7 @@ describe("the shipped extractors", () => {
     }).toThrow(
       "A storage array extractor for purestorage.flasharray is already registered",
     );
-    expect(StorageArrayExtractors.getExtractors()).toHaveLength(3);
+    expect(StorageArrayExtractors.getExtractors()).toHaveLength(4);
   });
 });
 

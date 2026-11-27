@@ -45,8 +45,6 @@ import {
   isLaterTemplateId,
 } from "../../Helpers/StorageArray/PureSlice";
 import { describe, expect, test } from "@jest/globals";
-import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
-import { StorageArrayPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
 import fs from "fs";
 import path from "path";
 
@@ -283,7 +281,11 @@ function computeGolden(): JSONObject {
   }
 
   const kindLabels: JSONObject = {};
-  for (const kind of [...pureKinds, "Aggregate", "constructor"]) {
+  for (const kind of [...pureKinds, "Aggregate", "constructor"].filter(
+    (candidate: string): boolean => {
+      return !isLaterKind(candidate);
+    },
+  )) {
     kindLabels[kind] = {
       singular: StorageArrayResourceKindUtil.getSingularLabel(
         kind as StorageArrayResourceKind,
@@ -499,43 +501,7 @@ function computeGolden(): JSONObject {
   };
 }
 
-/*
- * The golden is what the code answered when Pure's were the only
- * platforms, and whole-catalog answers (an array of no known platform is
- * offered every template) grow with each platform added since (NetApp
- * ONTAP, #11001). So it is computed with Pure's platforms alone; what Pure
- * answers beside the others is held to it below.
- */
-function withPurePlatformsAlone<T>(compute: () => T): T {
-  const others: Array<StorageArrayPlatform> =
-    StorageArrayPlatformRegistry.getPlatforms().filter(
-      (platform: StorageArrayPlatform): boolean => {
-        return platform.vendorName !== "Pure Storage";
-      },
-    );
-  for (const platform of others) {
-    StorageArrayPlatformRegistry.unregister(platform.storageSystem);
-  }
-  try {
-    return compute();
-  } finally {
-    for (const platform of others) {
-      StorageArrayPlatformRegistry.register(platform);
-    }
-  }
-}
-
-const computed: JSONObject = withPurePlatformsAlone(computeGolden);
-const besideTheOthers: JSONObject = computeGolden();
-
-// A canonical Pure value, a Pure catalog id or a Pure series' name.
-const ABOUT_PURE: RegExp =
-  /purestorage\.(flasharray|flashblade)"|purefa[-_]|purefb[-_]/;
-
-// A golden entry about a Pure platform or a Pure catalog id.
-function isAboutPure(key: string): boolean {
-  return ABOUT_PURE.test(key);
-}
+const computed: JSONObject = computeGolden();
 
 if (process.env["UPDATE_PURE_STORAGE_GOLDEN"] === "1") {
   fs.writeFileSync(
@@ -565,6 +531,13 @@ function readGolden(): JSONObject {
       delete systems[labelOf(input)];
     }
   }
+  // And the kinds a platform registered since owns (ONTAP's Aggregate).
+  const kindLabels: JSONObject = golden["kindLabels"] as JSONObject;
+  for (const kind of Object.keys(kindLabels)) {
+    if (isLaterKind(kind)) {
+      delete kindLabels[kind];
+    }
+  }
   return golden;
 }
 
@@ -575,40 +548,6 @@ describe("a Pure Storage array is watched as it was before #11000", () => {
     }),
   )("%s", (key: string) => {
     expect(computed[key]).toEqual(readGolden()[key]);
-  });
-
-  test("with every shipped platform registered, Pure's own answers are the same", () => {
-    const golden: JSONObject = readGolden();
-    let compared: number = 0;
-    for (const [key, part] of Object.entries(besideTheOthers)) {
-      const expected: JSONValue | undefined = golden[key];
-      if (
-        !part ||
-        typeof part !== "object" ||
-        Array.isArray(part) ||
-        !expected ||
-        typeof expected !== "object" ||
-        Array.isArray(expected)
-      ) {
-        continue;
-      }
-      for (const [entry, value] of Object.entries(part as JSONObject)) {
-        if (!isAboutPure(entry) || !(entry in (expected as JSONObject))) {
-          continue;
-        }
-        expect({ key, entry, value }).toEqual({
-          key,
-          entry,
-          value: (expected as JSONObject)[entry],
-        });
-        compared++;
-      }
-    }
-    expect(compared).toBeGreaterThan(100);
-    // And they were computed with ONTAP registered.
-    expect(
-      StorageArrayPlatformRegistry.getPlatform("netapp.ontap"),
-    ).not.toBeNull();
   });
 
   test("the golden holds every part this test computes, and no other", () => {
