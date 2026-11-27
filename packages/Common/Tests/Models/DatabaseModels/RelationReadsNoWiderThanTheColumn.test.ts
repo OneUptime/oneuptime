@@ -96,6 +96,13 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
   },
   {
     reason:
+      "The storage array connection a connection test is of (Dell PowerMax's Unisphere, #11004): whoever may test one creates or edits storage arrays (Create Storage Array, Edit Storage Array), and reads through the test the connection's name and platform its form shows them, as a vCenter's test reads its vCenter. Its password never: encrypted, write-only and no relation's (EncryptedColumnsStayOffRelations).",
+    columns: {
+      StorageArrayConnection: ["name", "storageSystem"],
+    },
+  },
+  {
+    reason:
       "Which store a data asset, a data alert or a warehouse job is in, or a data security issue, finding, access, flow or scan is about: its name, its kind, its environment and whether it is still there. Data Observability's readers (Viewer, Project Member, the Telemetry tiers) read that much of the stores their tables are in - the name and the kind are copied onto every data asset for them - and a custom role given one of Data Security's records reads which store it is on. Nothing the store holds, how exposed it is, what its issues are or where it lives in a cloud: those follow the store's own read through every relation (#10281).",
     columns: {
       DataStore: ["environment", "isArchived", "kind", "name"],

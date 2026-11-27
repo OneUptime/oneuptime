@@ -1509,6 +1509,8 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/VMwareCollection.ts": 3,
         // The XCP-ng connections it reads and tests (#10996, #10999), as a vCenter's.
         "packages/App/FeatureSet/Telemetry/API/ProbeIngest/XcpNgCollection.ts": 3,
+        // The storage array connections it reads and tests (Dell PowerMax, #11004).
+        "packages/App/FeatureSet/Telemetry/API/ProbeIngest/StorageArrayCollection.ts": 3,
         "packages/Probe/API/IncomingRequestIngress.ts": 2,
       },
     ),
