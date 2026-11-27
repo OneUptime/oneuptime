@@ -266,7 +266,7 @@ oneuptime <resource> add-note <id> --note <markdown> [--public]
 Solo `cloud-cost`. Lo que costaron las nubes en un período, desglosado como lo desglosa **Nube → Gasto → Costos**, con el período anterior junto a cada línea: por servicio, región, cuenta, recurso, entorno de App Platforms, aplicación, el valor de una etiqueta o los grupos de una vista de costos. Lee como la clave puede leer los costos. Consulta [Informes y exportaciones](/docs/telemetry/cloud-costs#informes-y-exportaciones).
 
 ```bash
-oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
+oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
 ```
 
 | Opción | Obligatorio | Qué es | Predeterminado |
@@ -277,7 +277,7 @@ oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>
 | `--period <period>` | No | Los días que se leen: `this-month`, `last-month`, `last-week` o `last-30-days`, según el calendario UTC | `this-month` |
 | `--start-date <date>` | No | El primer día, por ejemplo `2026-11-01`, en lugar de `--period` | |
 | `--end-date <date>` | No | El último día, por ejemplo `2026-11-30`, con `--start-date` | |
-| `--account <id>` | No | Solo los costos de esta cuenta de nube; repítelo para más | Todas las cuentas |
+| `--account <id...>` | No | Solo los costos de esta cuenta de nube; repítelo para más | Todas las cuentas |
 | `--currency <code>` | No | La moneda, por ejemplo `USD` | La de la mayoría de tus cuentas |
 | `--basis <basis>` | No | La base de costo: `billed`, `amortized` o `net` | La del proyecto |
 | `--no-compare` | No | Deja fuera el período anterior | |
@@ -288,7 +288,7 @@ oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>
 Solo `cloud-cost`. Cada costo de un período como un archivo FOCUS 1.2, para las herramientas financieras que leen FOCUS. Como máximo 93 días a la vez. Consulta [FOCUS](/docs/telemetry/cloud-costs#focus).
 
 ```bash
-oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id>] [--file <path>]
+oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--file <path>]
 ```
 
 | Opción | Obligatorio | Qué es | Predeterminado |
@@ -296,7 +296,7 @@ oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-dat
 | `--period <period>` | No | Los días que se exportan: `this-month`, `last-month`, `last-week` o `last-30-days` | `last-month` |
 | `--start-date <date>` | No | El primer día, por ejemplo `2026-10-01`, en lugar de `--period` | |
 | `--end-date <date>` | No | El último día, por ejemplo `2026-12-31`, con `--start-date` | |
-| `--account <id>` | No | Solo los costos de esta cuenta de nube; repítelo para más | Todas las cuentas |
+| `--account <id...>` | No | Solo los costos de esta cuenta de nube; repítelo para más | Todas las cuentas |
 | `--file <path>` | No | Escribe el archivo aquí | La salida estándar |
 
 ### Recursos

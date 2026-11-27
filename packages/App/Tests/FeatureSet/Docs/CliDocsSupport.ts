@@ -719,7 +719,8 @@ export const ACTION_REGISTER_FUNCTIONS: ReadonlyArray<string> = [
 
 // The functions that register a resource's own commands (#11009).
 export const RESOURCE_OWN_REGISTER_FUNCTIONS: ReadonlyArray<string> = [
-  "registerCloudCostCommands",
+  "registerCloudCostBreakdownCommand",
+  "registerCloudCostExportCommand",
 ];
 
 // Every subcommand of a resource, "<resource> list" to "<resource> add-note".

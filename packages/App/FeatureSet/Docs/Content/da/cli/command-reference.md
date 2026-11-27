@@ -266,7 +266,7 @@ oneuptime <resource> add-note <id> --note <markdown> [--public]
 Kun `cloud-cost`. Hvad skyerne kostede i en periode, opdelt som **Cloud → Forbrug → Omkostninger** opdeler det, med perioden før ved siden af hver linje: efter tjeneste, region, konto, ressource, App Platforms-miljø, app, en tags værdi eller en omkostningsvisnings grupper. Den læser, som nøglen må læse omkostningerne. Se [Rapporter og eksporter](/docs/telemetry/cloud-costs#rapporter-og-eksporter).
 
 ```bash
-oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
+oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>] [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--currency <code>] [--basis <basis>] [--no-compare] [--csv]
 ```
 
 | Indstilling | Påkrævet | Hvad det er | Standard |
@@ -277,7 +277,7 @@ oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>
 | `--period <period>` | Nej | De dage, der læses: `this-month`, `last-month`, `last-week` eller `last-30-days`, efter UTC-kalenderen | `this-month` |
 | `--start-date <date>` | Nej | Den første dag, f.eks. `2026-11-01`, i stedet for `--period` | |
 | `--end-date <date>` | Nej | Den sidste dag, f.eks. `2026-11-30`, sammen med `--start-date` | |
-| `--account <id>` | Nej | Kun denne cloudkontos omkostninger; gentag for flere | Alle konti |
+| `--account <id...>` | Nej | Kun denne cloudkontos omkostninger; gentag for flere | Alle konti |
 | `--currency <code>` | Nej | Valutaen, f.eks. `USD` | Den, de fleste af dine konti faktureres i |
 | `--basis <basis>` | Nej | Omkostningsgrundlaget: `billed`, `amortized` eller `net` | Projektets |
 | `--no-compare` | Nej | Udelader perioden før | |
@@ -288,7 +288,7 @@ oneuptime <resource> breakdown [--by <dimension>] [--tag-key <key>] [--view <id>
 Kun `cloud-cost`. Alle en periodes omkostninger som en FOCUS 1.2-fil til økonomiværktøjer, der læser FOCUS. Højst 93 dage ad gangen. Se [FOCUS](/docs/telemetry/cloud-costs#focus).
 
 ```bash
-oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id>] [--file <path>]
+oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-date <date>] [--account <id...>] [--file <path>]
 ```
 
 | Indstilling | Påkrævet | Hvad det er | Standard |
@@ -296,7 +296,7 @@ oneuptime <resource> export [--period <period>] [--start-date <date>] [--end-dat
 | `--period <period>` | Nej | De dage, der eksporteres: `this-month`, `last-month`, `last-week` eller `last-30-days` | `last-month` |
 | `--start-date <date>` | Nej | Den første dag, f.eks. `2026-10-01`, i stedet for `--period` | |
 | `--end-date <date>` | Nej | Den sidste dag, f.eks. `2026-12-31`, sammen med `--start-date` | |
-| `--account <id>` | Nej | Kun denne cloudkontos omkostninger; gentag for flere | Alle konti |
+| `--account <id...>` | Nej | Kun denne cloudkontos omkostninger; gentag for flere | Alle konti |
 | `--file <path>` | Nej | Skriver filen hertil | Standardoutput |
 
 ### Ressourcer

@@ -107,6 +107,7 @@ A lista mostra cada tipo de registro com que você pode trabalhar, e o comando d
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Trabalha com um tipo de registro | [Operações de recursos](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Lista os campos de um recurso e as flags que os definem | [Operações de recursos](/docs/cli/resource-operations#ver-os-campos-de-um-recurso) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Faz o que os botões do painel fazem em incidentes, alertas e manutenções programadas | [Operações de recursos](/docs/cli/resource-operations#confirmar-resolver-e-adicionar-notas) |
+| `oneuptime <resource> breakdown`, `export` | Detalha os gastos de nuvem de um período, ou os exporta como arquivo FOCUS 1.2, para `cloud-cost` | [Relatórios e exportações](/docs/telemetry/cloud-costs#relatórios-e-exportações) |
 | `oneuptime resources` | Lista os tipos de registro, com seus comandos | [Referência de comandos](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Imprime a versão da CLI | [Referência de comandos](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Mostra a ajuda de um comando | [Obter ajuda](#obter-ajuda) |

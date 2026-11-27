@@ -215,10 +215,6 @@ export function toBreakdownRows(answer: JSONObject): Array<JSONObject> {
   return rows;
 }
 
-function collect(value: string, previous: Array<string> = []): Array<string> {
-  return [...previous, value];
-}
-
 function credentialsOf(cmd: Command): ResolvedCredentials {
   return getResolvedCredentials(getParentOptions(cmd));
 }
@@ -235,6 +231,12 @@ export function registerCloudCostCommands(
     return;
   }
 
+  registerCloudCostBreakdownCommand(resourceCmd);
+  registerCloudCostExportCommand(resourceCmd);
+}
+
+// `oneuptime cloud-cost breakdown`: POST /cloud-cost/breakdown.
+export function registerCloudCostBreakdownCommand(resourceCmd: Command): void {
   resourceCmd
     .command("breakdown")
     .description(
@@ -263,11 +265,8 @@ export function registerCloudCostCommands(
     )
     .option("--start-date <date>", "The first day, such as 2026-11-01")
     .option("--end-date <date>", "The last day, such as 2026-11-30")
-    .option(
-      "--account <id>",
-      "Only this cloud account's costs (repeat for more)",
-      collect,
-    )
+    // One or more, as `--account a b` or `--account a --account b`.
+    .option("--account <id...>", "Only these cloud accounts' costs")
     .option("--currency <code>", "The currency, such as USD")
     .addOption(
       new Option("--basis <basis>", "The cost basis").choices([
@@ -322,7 +321,10 @@ export function registerCloudCostCommands(
         handleError(error);
       }
     });
+}
 
+// `oneuptime cloud-cost export`: POST /cloud-cost/export, a FOCUS 1.2 file.
+export function registerCloudCostExportCommand(resourceCmd: Command): void {
   resourceCmd
     .command("export")
     .description(
@@ -335,11 +337,7 @@ export function registerCloudCostCommands(
     )
     .option("--start-date <date>", "The first day, such as 2026-11-01")
     .option("--end-date <date>", "The last day, such as 2026-11-30")
-    .option(
-      "--account <id>",
-      "Only this cloud account's costs (repeat for more)",
-      collect,
-    )
+    .option("--account <id...>", "Only these cloud accounts' costs")
     .option("--file <path>", "Write the file here instead of to standard output")
     .addOption(createOutputOption())
     .addOption(createJsonOption())

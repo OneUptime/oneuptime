@@ -458,6 +458,7 @@ export class Service extends ProjectReferencesService<Model> {
         ? undefined
         : await this.getCreatorTimezone(createBy.props);
 
+    // Who made it is stamped by DatabaseService, as on every record.
     applyScheduleWrite(
       data,
       WorkspaceSummaryScheduleUtil.getCreateWrite({
@@ -465,10 +466,6 @@ export class Service extends ProjectReferencesService<Model> {
         timezone: creatorTimezone,
       }),
     );
-
-    if (createBy.props.userId && !data["createdByUserId"]) {
-      data["createdByUserId"] = createBy.props.userId;
-    }
 
     return { createBy, carryForward: null };
   }
