@@ -158,6 +158,8 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "An Email Address rule hides what Data Security calls an email address.",
     // What a Credit Card Number rule hides: in any script's digits (issue #10960).
     "A Credit Card Number rule hides what Data Security calls a card number.",
+    // What a Phone Number or SSN rule hides: typed in fullwidth, beside the word that names it (issues #11114, #11115).
+    "A Phone Number or SSN rule hides what Data Security calls one.",
     // What a Custom Regex rule reads: escapes and every script's digits (issues #11031, #11033).
     "A Custom Regex rule reads a value as Data Security reads it.",
     // A Hash token's key, and the tokens made before it (issue #10394).
