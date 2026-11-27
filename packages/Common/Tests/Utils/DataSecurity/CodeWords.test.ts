@@ -9,7 +9,6 @@ import {
   isCodeWord,
   isNameLike,
   isVocabularyWord,
-  isWrittenAsName,
 } from "../../../Utils/DataSecurity/CodeWords";
 import { FAMILY_NAMES, GIVEN_NAMES } from "./PeopleNames";
 
@@ -334,26 +333,39 @@ describe("how a word is written", () => {
   });
 });
 
+/*
+ * A word written as a person's name - capitalized in a sentence's middle,
+ * of any script - is no word of the code's, however many records hold it
+ * (#11204: an aligned template keeps no word this does not): only a
+ * technology's name is written so by code.
+ */
 describe("a word written as a person's name", () => {
-  test("capitalized in a sentence's middle, of any script, and no technology's name", () => {
-    expect(isWrittenAsName("Grace", MIDDLE)).toBe(true);
-    expect(isWrittenAsName("José", MIDDLE)).toBe(true);
-    expect(isWrittenAsName("Łukasz", MIDDLE)).toBe(true);
-    expect(isWrittenAsName("O'Brien", MIDDLE)).toBe(true);
-    expect(isWrittenAsName("Mary-Jane", MIDDLE)).toBe(true);
+  test("capitalized in a sentence's middle, of any script, is no code word", () => {
+    for (const name of ["Grace", "José", "Łukasz", "O'Brien", "Mary-Jane"]) {
+      expect([name, isCodeWord(name, MIDDLE)]).toEqual([name, false]);
+    }
   });
 
-  test("never where a sentence starts, in capitals, an identifier, with a digit or a technology's name", () => {
-    expect(isWrittenAsName("Grace", START)).toBe(false);
-    expect(isWrittenAsName("ERROR", MIDDLE)).toBe(false);
-    expect(isWrittenAsName("I", MIDDLE)).toBe(false);
-    expect(isWrittenAsName("PaymentService", MIDDLE)).toBe(false);
-    expect(isWrittenAsName("V2", MIDDLE)).toBe(false);
-    expect(isWrittenAsName("Node_1", MIDDLE)).toBe(false);
-    expect(isWrittenAsName("Stripe", MIDDLE)).toBe(false);
-    expect(isWrittenAsName("Redis", MIDDLE)).toBe(false);
-    expect(isWrittenAsName("payment", MIDDLE)).toBe(false);
-    expect(isWrittenAsName("", MIDDLE)).toBe(false);
+  test("in capitals, as an identifier or a technology's name, written so by code, it is one", () => {
+    for (const word of [
+      "ERROR",
+      "I",
+      "PaymentService",
+      "V2",
+      "Stripe",
+      "Redis",
+      "payment",
+    ]) {
+      expect([word, isCodeWord(word, MIDDLE)]).toEqual([word, true]);
+    }
+  });
+
+  test("a lower-case word no vocabulary holds - a username - is none either, wherever it stands", () => {
+    for (const word of ["jdoe", "ottilie", "quarrington", "ada_lovelace"]) {
+      expect([word, isCodeWord(word, MIDDLE), isCodeWord(word, START)]).toEqual(
+        [word, false, false],
+      );
+    }
   });
 });
 

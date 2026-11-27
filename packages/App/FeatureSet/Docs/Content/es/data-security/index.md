@@ -6,7 +6,7 @@ Responde a cuatro preguntas:
 
 :::cards
 - [¿Dónde están nuestros datos sensibles?](/docs/data-security/data-types): 143 tipos de datos, desde números de tarjeta y documentos nacionales de identidad hasta claves de API, encontrados en buckets, tablas y telemetría.
-- [¿Están expuestos?](/docs/data-security/checks-and-issues): 34 comprobaciones de cada almacén: acceso público, cifrado, copias de seguridad, registro de actividad, secretos y copias.
+- [¿Están expuestos?](/docs/data-security/checks-and-issues): 35 comprobaciones de cada almacén: acceso público, cifrado, copias de seguridad, registro de actividad, secretos y copias.
 - [¿Quién puede acceder a ellos y adónde van?](/docs/data-security/flows-access-residency): Cada identidad que puede acceder a cada almacén, la más arriesgada primero, qué servicios lo usan y a qué proveedores de IA y hosts llegan sus datos.
 - [¿Cumplen nuestras normas?](/docs/data-security/compliance): Reglas de residencia y nueve marcos de cumplimiento puntuados a partir de lo que encontraron los escaneos.
 :::
@@ -44,7 +44,7 @@ flowchart TB
 ## Antes de empezar
 
 - **Un rol que pueda configurarla.** Los roles Propietario del proyecto, Administrador del proyecto y Administrador de seguridad cambian los ajustes de Seguridad de datos. Los Miembros de seguridad gestionan problemas y escanean almacenes, y los Visores de seguridad leen lo que encontró. Los demás roles no ven nada de ella salvo que su equipo reciba sus permisos: qué buckets contienen números de tarjeta es justo lo que quiere saber un atacante. Consulta [Roles](/docs/permissions/reference#roles).
-- **Una cuenta en la nube que leer, o una base de datos.** Seguridad de datos lee una cuenta en la nube mediante una [conexión a la nube](/docs/telemetry/cloud-accounts), y una base de datos que gestionas mediante una cadena de conexión de solo lectura. La telemetría no necesita nada: se escanea cada hora.
+- **Una cuenta en la nube que leer, o un almacén que gestionas.** Seguridad de datos lee una cuenta en la nube mediante una [conexión a la nube](/docs/telemetry/cloud-accounts), y una base de datos o un clúster de búsqueda que gestionas mediante una cadena de conexión de solo lectura. La telemetría no necesita nada: se escanea cada hora.
 
 ## Inicio rápido
 
@@ -69,10 +69,10 @@ Abre **Seguridad de datos**. Los almacenes aparecen en **Almacenes de datos** a 
 | AWS | AWS S3 Bucket, AWS RDS Instance, AWS Aurora Cluster, AWS RDS Snapshot, AWS DynamoDB Table, AWS Redshift Cluster, AWS DocumentDB Cluster, AWS OpenSearch Domain, AWS ElastiCache Cluster, AWS EFS File System, Amazon Athena | AWS S3 Bucket |
 | Azure | Azure Storage Account, Azure SQL Database, Azure Cosmos DB Account, Azure PostgreSQL Server, Azure MySQL Server | Azure Storage Account |
 | Google Cloud | Google Cloud Storage Bucket, Google Cloud SQL Instance, Google BigQuery Dataset, Google Firestore Database, Google Spanner Instance, Google Bigtable Instance | Google Cloud Storage Bucket, Google BigQuery Dataset |
-| Bases de datos que gestionas | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server |
+| Almacenes que gestionas | PostgreSQL, MySQL, MongoDB, SQL Server, Oracle, Redis, Elasticsearch, OpenSearch, Snowflake, ClickHouse, Databricks, Microsoft Dataverse | PostgreSQL, MySQL, SQL Server, Elasticsearch, OpenSearch |
 | OneUptime | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA, Métricas, Eventos de seguridad, Flujos de red, Bóveda de direcciones de seguridad, Bóveda de usuarios de seguridad | Registros, Trazas, Excepciones, Reproducciones de sesiones, Conversaciones de IA, Métricas |
 
-Cada almacén recibe las comprobaciones que se aplican a su tipo. Un almacén cuyo contenido no se puede muestrear se comprueba igualmente: un bucket público o una base de datos sin cifrar es un problema, contenga lo que contenga. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
+Cada almacén recibe las comprobaciones que se aplican a su tipo, según lo que OneUptime puede leer de él. Un almacén de una cuenta en la nube se lee desde los propios ajustes de su nube, así que se comprueba se pueda muestrear su contenido o no: un bucket público o una base de datos sin cifrar es un problema, contenga lo que contenga. Un almacén que gestionas no tiene esos ajustes para que OneUptime los lea: a un clúster de Elasticsearch u OpenSearch se le pregunta en su propia dirección, con cada escaneo de contenido, si responde sin credenciales, y cómo se puede llegar a los demás tipos no se comprueba (consulta [Qué comprueba OneUptime en un almacén que gestionas](/docs/data-security/setup#qué-comprueba-oneuptime-en-un-almacén-que-gestionas)). Los **Ajustes** de cada almacén dicen, en **Qué comprueba OneUptime**, qué se comprueba en él y qué no. Eventos de seguridad, Flujos de red y Bóveda de direcciones de seguridad son de OneUptime, que los conserva para tu seguridad: declarados, nunca escaneados ni comprobados (consulta [Almacenes que OneUptime conserva para tu seguridad](/docs/data-security/compliance#almacenes-que-oneuptime-conserva-para-tu-seguridad)).
 
 Un almacén se archiva, con su historial, cuando su fuente deja de incluirlo, y sus problemas abiertos se resuelven: **Almacenes archivados**, al final del menú de Seguridad de datos, lo conserva. Vuelve por sí solo si su fuente lo vuelve a incluir, y un problema cuya comprobación sigue fallando se vuelve a abrir.
 
@@ -86,9 +86,10 @@ La **Cronología** de un almacén dice qué le ha pasado y quién lo hizo: cuán
 | Leer la configuración de una conexión a la nube | Una vez al día, y en menos de una hora después de que CloudTrail registre un cambio en el acceso, el cifrado, las copias de seguridad o el uso compartido de un almacén de AWS |
 | Muestrear el contenido de un almacén | Cada 24 horas, o con la frecuencia que indique **Escanear cada (horas)** |
 | Muestrear la telemetría de cada servicio | Cada hora, la última hora de telemetría |
+| Preguntar a un clúster de búsqueda que gestionas si responde sin credenciales | Con cada uno de sus escaneos de contenido |
 | Volver a comprobar cada almacén | Después de cada lectura y cada escaneo, después de que cambies cualquier cosa de la que dependa una comprobación, y una vez al día |
 
-**Escanear ahora** en un almacén muestrea su contenido al momento, y **Comprobar ahora** vuelve a leer su configuración.
+**Escanear ahora** en un almacén muestrea su contenido al momento, y vuelve a preguntar a un clúster de búsqueda que gestionas si responde sin credenciales. **Comprobar ahora** vuelve a leer la configuración de un almacén de una cuenta en la nube, y vuelve a ejecutar las comprobaciones del almacén.
 
 ## Próximos pasos
 

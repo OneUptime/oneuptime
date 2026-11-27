@@ -4076,6 +4076,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "budget alerts",
               "spend controls",
               "cost alerts",
+              "quarterly budget",
+              "yearly budget",
+              "fiscal year budget",
+              "cost group budget",
+              "budget plan",
+            ],
+          },
+          {
+            page: PageMap.CLOUD_FORECAST,
+            title: "Forecast",
+            icon: IconProp.ChartBar,
+            keywords: [
+              "cost forecast",
+              "spend forecast",
+              "cloud forecast",
+              "forecasting",
+              "projected spend",
+              "what if",
+              "growth what-if",
             ],
           },
           // Required tags and how much of the spend carries them (#11012).
@@ -4263,6 +4282,19 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Storage Arrays",
         pages: [
           allListPage(PageMap.STORAGE_ARRAYS, "All Storage Arrays"),
+          // The Unisphere servers a probe reads arrays from (#11004).
+          {
+            page: PageMap.STORAGE_ARRAYS_CONNECTIONS,
+            title: "Connections",
+            icon: IconProp.Link,
+            keywords: [
+              "unisphere",
+              "powermax",
+              "dell",
+              "connect unisphere",
+              "storage connections",
+            ],
+          },
           documentation(PageMap.STORAGE_ARRAYS_DOCUMENTATION),
         ],
       },

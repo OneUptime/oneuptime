@@ -1318,14 +1318,26 @@ describe("the Storage Array page against the form and the agent", () => {
       sectionOf(STORAGE, "## Monitor settings"),
     );
 
-    for (const [title, onlyOn] of [
-      ["Volume", "FlashArray only."],
-      ["Host", "FlashArray only."],
-      ["Pod", "FlashArray only."],
-      ["Hardware Component", ""],
-      ["File System", "FlashBlade only."],
-      ["Bucket", "FlashBlade only."],
-    ] as Array<[string, string]>) {
+    const flashArray: StorageSystem = StorageSystem.PureStorageFlashArray;
+    const flashBlade: StorageSystem = StorageSystem.PureStorageFlashBlade;
+    const ontap: StorageSystem = StorageSystem.NetAppOntap;
+
+    /*
+     * A filter one platform alone offers says so first ("FlashArray
+     * only."); one that more offer never says "only" (#11001: ONTAP's
+     * volumes take the Volume filter, its nodes, disks, shelves and ports
+     * the Hardware Component one). Pure's and ONTAP's are held here; Dell
+     * PowerStore's filters are its own rows' to name.
+     */
+    for (const [title, offeredOn, onlyOn] of [
+      ["Volume", [flashArray, ontap], ""],
+      ["Host", [flashArray], "FlashArray only."],
+      ["Pod", [flashArray], "FlashArray only."],
+      ["Hardware Component", [flashArray, flashBlade, ontap], ""],
+      // A PowerScale's quotas take it too, so it is not FlashBlade's only.
+      ["File System", [flashBlade], ""],
+      ["Bucket", [flashBlade], "FlashBlade only."],
+    ] as Array<[string, Array<StorageSystem>, string]>) {
       // The form's title for a filter, by the filter's key...
       const key: string | undefined = new RegExp(
         `(\\w+): \\{\\s*title: "${title}",`,
@@ -1345,12 +1357,22 @@ describe("the Storage Array page against the form and the agent", () => {
           });
 
       expect(key).toBeDefined();
-      expect(platforms.includes(StorageSystem.PureStorageFlashArray)).toBe(
-        onlyOn !== "FlashBlade only.",
-      );
-      expect(platforms.includes(StorageSystem.PureStorageFlashBlade)).toBe(
-        onlyOn !== "FlashArray only.",
-      );
+      expect({
+        title,
+        platforms: platforms
+          .filter((system: string): boolean => {
+            /*
+             * As StorageSystem: each const above narrows to its own member,
+             * and an array of the three would take no other.
+             */
+            const held: Array<StorageSystem> = [flashArray, flashBlade, ontap];
+            return held.includes(system as StorageSystem);
+          })
+          .sort(),
+      }).toEqual({
+        title,
+        platforms: [...offeredOn].sort(),
+      });
 
       const row: Array<string> | undefined = rows.find(
         (cells: Array<string>): boolean => {

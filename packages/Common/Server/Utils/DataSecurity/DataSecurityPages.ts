@@ -1,4 +1,5 @@
 import { DashboardClientUrl } from "../../EnvironmentConfig";
+import { AlwaysAskPage } from "../../../Types/AI/AIAlwaysAskChanges";
 import {
   AIChatCitationTarget,
   AIChatCitationTargetType,
@@ -22,6 +23,7 @@ export const DATA_SECURITY_PAGE_PATHS: {
   store: string;
   storeFindings: string;
   storeOwners: string;
+  storeSettings: string;
   issue: string;
   ai: string;
   dataTypes: string;
@@ -32,12 +34,26 @@ export const DATA_SECURITY_PAGE_PATHS: {
   store: "/dashboard/:projectId/data-security/stores/:id",
   storeFindings: "/dashboard/:projectId/data-security/stores/:id/inside",
   storeOwners: "/dashboard/:projectId/data-security/stores/:id/owners",
+  storeSettings: "/dashboard/:projectId/data-security/stores/:id/settings",
   issue: "/dashboard/:projectId/data-security/issues/:id",
   ai: "/dashboard/:projectId/data-security/ai",
   dataTypes: "/dashboard/:projectId/data-security/settings/data-types",
   residencyRules: "/dashboard/:projectId/data-security/settings/residency",
   ownerRules: "/dashboard/:projectId/data-security/settings/owner-rules",
   labelRules: "/dashboard/:projectId/data-security/settings/label-rules",
+};
+
+/*
+ * Security Events' playbooks, where a containment step's approval is
+ * turned off (Dashboard/src/Utils/RouteMap: SecurityEventsRoutePath): a
+ * refusal of a playbook's write names them (#11177).
+ */
+export const SECURITY_PLAYBOOK_PAGE_PATHS: {
+  playbooks: string;
+  playbook: string;
+} = {
+  playbooks: "/dashboard/:projectId/security-events/playbooks",
+  playbook: "/dashboard/:projectId/security-events/playbooks/:id",
 };
 
 /*
@@ -99,4 +115,105 @@ export function getDataSecurityPageUrl(data: {
 // A template's :id, filled with an id that is one.
 function withId(template: string, id: string | undefined): string | null {
   return id && ObjectID.isValidUUID(id) ? template.replace(":id", id) : null;
+}
+
+/*
+ * The page a change that asks in every mode is made on (Types/AI/
+ * AIAlwaysAskChanges' AlwaysAskPage), as the action's own card opens it:
+ * the MCP server names it when it refuses a record's write that makes the
+ * change (App/FeatureSet/MCP/Tools/AlwaysAskWrites). Null when the record
+ * it needs - the issue, the finding's store - is not known.
+ */
+export function getAlwaysAskPageTarget(data: {
+  page: AlwaysAskPage;
+  recordId?: string | null | undefined;
+  dataStoreId?: string | null | undefined;
+}): AIChatCitationTarget | null {
+  const storeId: string | null =
+    data.dataStoreId && ObjectID.isValidUUID(data.dataStoreId)
+      ? data.dataStoreId
+      : null;
+
+  switch (data.page) {
+    case AlwaysAskPage.DataSecurityIssue:
+      return data.recordId && ObjectID.isValidUUID(data.recordId)
+        ? {
+            type: AIChatCitationTargetType.DataSecurityIssueView,
+            params: { dataSecurityIssueId: data.recordId },
+          }
+        : null;
+    case AlwaysAskPage.DataStore:
+      return storeId
+        ? {
+            type: AIChatCitationTargetType.DataStoreView,
+            params: { dataStoreId: storeId },
+          }
+        : null;
+    case AlwaysAskPage.DataStoreFindings:
+      return storeId
+        ? getDataSecurityPageTarget({
+            path: DATA_SECURITY_PAGE_PATHS.storeFindings.replace(
+              ":id",
+              storeId,
+            ),
+            title: "Data Store",
+          })
+        : null;
+    case AlwaysAskPage.DataStoreOwners:
+      return storeId
+        ? getDataSecurityPageTarget({
+            path: DATA_SECURITY_PAGE_PATHS.storeOwners.replace(":id", storeId),
+            title: "Owners",
+          })
+        : null;
+    case AlwaysAskPage.DataStoreSettings:
+      return storeId
+        ? getDataSecurityPageTarget({
+            path: DATA_SECURITY_PAGE_PATHS.storeSettings.replace(
+              ":id",
+              storeId,
+            ),
+            title: "Settings",
+          })
+        : null;
+    case AlwaysAskPage.DataTypes:
+      return getDataSecurityPageTarget({
+        path: DATA_SECURITY_PAGE_PATHS.dataTypes,
+        title: "Data Types",
+      });
+    case AlwaysAskPage.SecurityPlaybook:
+      // A playbook's own page, or the playbooks for one not yet made.
+      return getDataSecurityPageTarget({
+        path:
+          data.recordId && ObjectID.isValidUUID(data.recordId)
+            ? SECURITY_PLAYBOOK_PAGE_PATHS.playbook.replace(
+                ":id",
+                data.recordId,
+              )
+            : SECURITY_PLAYBOOK_PAGE_PATHS.playbooks,
+        title: "Playbooks",
+      });
+    case AlwaysAskPage.ResidencyRules:
+      return getDataSecurityPageTarget({
+        path: DATA_SECURITY_PAGE_PATHS.residencyRules,
+        title: "Residency",
+      });
+    case AlwaysAskPage.OwnerRules:
+      return getDataSecurityPageTarget({
+        path: DATA_SECURITY_PAGE_PATHS.ownerRules,
+        title: "Owner Rules",
+      });
+    case AlwaysAskPage.LabelRules:
+      return getDataSecurityPageTarget({
+        path: DATA_SECURITY_PAGE_PATHS.labelRules,
+        title: "Label Rules",
+      });
+    case AlwaysAskPage.DataSecurityAi:
+      return getDataSecurityPageTarget({
+        path: DATA_SECURITY_PAGE_PATHS.ai,
+        title: "AI",
+      });
+    default:
+      return null;
+  }
 }

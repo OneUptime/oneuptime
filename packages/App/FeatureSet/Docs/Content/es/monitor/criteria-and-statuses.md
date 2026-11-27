@@ -3,7 +3,7 @@
 Los criterios de un monitor deciden qué significa cada comprobación: si el monitor está en línea o caído, y si OneUptime declara un incidente o crea una alerta. Los estados son la lista de su proyecto con lo que puede ser un monitor, de **Operativo** a **Sin conexión**. Esta página explica ambos para cada tipo de monitor; la página de cada tipo enumera los filtros que ofrece.
 
 :::cards
-- [Cómo deciden los criterios](#cómo-deciden-los-criterios): De arriba abajo, y gana la primera coincidencia.
+- [Cómo deciden los criterios](#cómo-deciden-los-criterios): De arriba abajo: actúa la primera coincidencia, y la primera que cambia el estado lo fija.
 - [Qué contiene un criterio](#qué-contiene-un-criterio): Filtros, una condición de coincidencia, acciones y ajustes.
 - [Juzgar una ventana de comprobaciones](#juzgar-una-ventana-de-comprobaciones): Contar comprobaciones fallidas, detectar inestabilidad, leer un percentil.
 - [Cambiar los criterios de un monitor](#cambiar-los-criterios-de-un-monitor): Editar, añadir, reordenar y probar criterios.
@@ -12,28 +12,31 @@ Los criterios de un monitor deciden qué significa cada comprobación: si el mon
 
 ## Cómo deciden los criterios
 
-Cada vez que se comprueba un monitor, sus criterios juzgan el resultado de arriba abajo de la lista. El primer criterio cuyos filtros coinciden decide qué ocurre, y los criterios que están debajo no se examinan en esa comprobación. Si ninguno coincide, el monitor pasa a su **Estado de monitor predeterminado**. En cambio, conserva su estado mientras un criterio que lo devuelve aún no haya coincidido: consulte [Cuándo se recupera un criterio](#cuándo-se-recupera-un-criterio).
+Cada vez que se comprueba un monitor, sus criterios juzgan el resultado de arriba abajo de la lista. El primer criterio cuyos filtros coinciden decide qué ocurre: declara sus incidentes, crea sus alertas y, si está configurado para ello, cambia el estado del monitor. Los criterios que están debajo solo se examinan cuando no cambia ningún estado, y entonces solo para el estado. Si ninguno coincide, el monitor pasa a su **Estado de monitor predeterminado**. En cambio, conserva su estado mientras un criterio que lo devuelve aún no haya coincidido: consulte [Cuándo se recupera un criterio](#cuándo-se-recupera-un-criterio).
 
 ```mermaid title="Cómo se juzga cada comprobación"
 flowchart TB
     R["El resultado<br/>de una<br/>comprobación"] --> C1{"Primer<br/>criterio:<br/>¿coinciden<br/>sus filtros?"}
-    C1 -->|"Sí"| A["Ese criterio actúa"]
+    C1 -->|"Sí"| A["Ese criterio actúa:<br/>declara sus incidentes<br/>y crea sus alertas"]
     C1 -->|"No"| C2{"Siguiente<br/>criterio:<br/>¿coinciden<br/>sus filtros?"}
     C2 -->|"Sí"| A
     C2 -->|"Ninguno<br/>coincidió"| D["El monitor<br/>pasa a su<br/>estado<br/>predeterminado"]
-    A --> S["Cambia<br/>el estado"]
-    A --> I["Declara un<br/>incidente"]
-    A --> L["Crea una<br/>alerta"]
+    A --> Q{"¿Cambia<br/>el estado?"}
+    Q -->|"Sí"| S["Fija<br/>el estado"]
+    Q -->|"No"| N["El primer criterio<br/>de debajo que coincide<br/>y cambia el estado<br/>lo fija, o el monitor<br/>pasa a su estado<br/>predeterminado"]
 ```
 
 El orden forma parte de la regla. Un monitor nuevo enumera sus criterios del peor caso al mejor: sin conexión, después una advertencia si su tipo la tiene (un certificado o un dominio que caduca pronto) y después en línea. Un criterio sano y amplio, como **En línea** en **Verdadero**, coincide con casi todas las comprobaciones, así que va el último: por encima de los demás, coincidiría primero cada vez y los demás nunca actuarían.
 
-Un criterio que coincide pero no cambia ningún estado sigue decidiendo la comprobación: el monitor conserva su estado, y los criterios de debajo esperan a la siguiente comprobación. El **Estado de monitor predeterminado** solo se aplica cuando ningún criterio coincide. En un monitor nuevo es **Operativo**; cámbielo en **Más campos**, debajo de los criterios.
+Un criterio que coincide pero no cambia ningún estado, como una advertencia que solo crea una alerta, no decide ningún estado. Su alerta se abre y se resuelve como la de cualquier criterio, y los criterios de debajo que cambian el estado se juzgan solo para el estado, en su orden: el primero de ellos que coincide fija el estado y no abre nada en esa comprobación. Si ninguno de ellos coincide, el monitor pasa a su **Estado de monitor predeterminado**, como cuando no coincide ningún criterio. Así, un sitio que vuelve a responder pero lento queda en **Operativo** con su alerta abierta, sea cual sea el estado en que lo dejó una comprobación anterior. En un monitor nuevo es **Operativo**; cámbielo en **Más campos**, debajo de los criterios.
+
+> [!NOTE]
+> Un criterio que coincidía primero sin cambiar ningún estado dejaba antes el monitor en el estado que tenía, mientras siguiera coincidiendo: un switch vigilado por el paquete de alertas recomendado perdía un sondeo, volvía con un puerto por encima del 80 % y se quedaba **Sin conexión**, con su página de estado en rojo, mientras el puerto siguiera ocupado. Ahora solo deciden el estado los criterios que lo cambian. Un monitor cuyos criterios cambian todos el estado se juzga exactamente igual que antes. También sigue igual qué criterio declara los incidentes de una comprobación y crea sus alertas: en un monitor que se detiene en la primera coincidencia, sigue siendo el primer criterio que coincide.
 
 > [!NOTE]
 > Un monitor que abre un incidente o una alerta por host, contenedor, disco o interfaz juzga todos los criterios en cada comprobación, de modo que dos hosts pueden coincidir con dos criterios distintos a la vez. Es un monitor cuya consulta tiene un **Agrupar por**, como un monitor de métricas o de registros, o un criterio que indica `*` para cada disco o interfaz. También lo es un monitor de métricas que vigila una expresión PromQL: cada serie que devuelve la expresión se juzga por separado. Un monitor de solicitudes entrantes que agrupa incidentes por un campo de la carga útil sigue deteniéndose en la primera coincidencia.
 >
-> Un monitor así sigue teniendo un solo estado, que fija el primer criterio que coincide. Un criterio que solo lo devuelve a su **Estado de monitor predeterminado**, sin abrir ningún incidente ni alerta, espera a los hosts que cumplieron un criterio que fija otro estado: coincide cuando cada uno de ellos lo cumple, hagan lo que hagan los demás hosts. Hasta entonces el monitor mantiene su estado, aunque no coincida ningún criterio, mientras los incidentes y alertas de cada host se siguen resolviendo por separado.
+> Un monitor así sigue teniendo un solo estado, que fija el primer criterio que coincide de entre los que cambian el estado. Un criterio que solo lo devuelve a su **Estado de monitor predeterminado**, sin abrir ningún incidente ni alerta, espera a los hosts que cumplieron un criterio que fija otro estado: coincide cuando cada uno de ellos lo cumple, hagan lo que hagan los demás hosts. Hasta entonces el monitor mantiene su estado, aunque no coincida ningún criterio que cambie el estado, mientras los incidentes y alertas de cada host se siguen resolviendo por separado.
 
 ## Qué contiene un criterio
 
@@ -125,11 +128,11 @@ La frase bajo la configuración de la ventana lo repite: «Comprobar si "Tiempo 
 
 ## Cuándo se recupera un criterio
 
-Un criterio deja de actuar en cuanto sus filtros dejan de coincidir: en esa comprobación se resuelven su incidente y su alerta, cuando **Resolver incidente automáticamente** y **Resolver alerta automáticamente** están activados, y el monitor pasa al siguiente criterio que coincida.
+Un criterio deja de actuar en cuanto sus filtros dejan de coincidir: en esa comprobación se resuelven su incidente y su alerta, cuando **Resolver incidente automáticamente** y **Resolver alerta automáticamente** están activados, y el estado del monitor sigue a los criterios que coinciden entonces.
 
 **Recuperarse solo cuando se cumpla una condición propia** mantiene el criterio en vigor después de que sus filtros dejen de coincidir, hasta que coincidan los filtros de **Se recupera cuando**. Empiezan como lo opuesto de los filtros del criterio, durante los últimos 10 minutos, y pueden usar todo lo que ofrece un filtro, como una ventana que cuenta comprobaciones. Un criterio está en vigor mientras el monitor tiene el estado que define o está abierto un incidente o una alerta que declaró. Mientras se mantiene, cuenta como una coincidencia en su lugar de la lista: un criterio por encima que coincida sigue tomando el control.
 
-Cuando ningún criterio coincide, un monitor que un criterio sacó de su **Estado de monitor predeterminado** conserva el estado que tiene, siempre que también tenga un criterio que solo lo devuelva a ese estado y no abra nada. Ese es el margen de recuperación: las plantillas se disparan por encima del 90 % y vuelven al 81 % o menos, así que con el 89 % el monitor se queda donde está. Sus incidentes y alertas se siguen resolviendo cuando su propio criterio deja de coincidir. Un monitor sin un criterio así pasa a su **Estado de monitor predeterminado**, como siempre.
+Cuando no coincide ningún criterio que cambie el estado, un monitor que un criterio sacó de su **Estado de monitor predeterminado** conserva el estado que tiene, siempre que también tenga un criterio que solo lo devuelva a ese estado y no abra nada. Ese es el margen de recuperación: las plantillas se disparan por encima del 90 % y vuelven al 81 % o menos, así que con el 89 % el monitor se queda donde está. Sus incidentes y alertas se siguen resolviendo cuando su propio criterio deja de coincidir. Un monitor sin un criterio así pasa a su **Estado de monitor predeterminado**, como siempre.
 
 ## Solo ciertos días y a ciertas horas
 
@@ -153,6 +156,7 @@ flowchart TB
 
 - **Uno cada vez.** Mientras siga abierto un incidente que declaró un criterio, ese mismo criterio no declara otro al volver a coincidir. Las alertas funcionan igual. Un monitor que agrupa por host o por campo de la carga útil mantiene uno abierto por host o por valor, y un criterio de monitor de correo entrante con **Abrir un incidente nuevo por cada correo** abre uno por cada correo.
 - **El cierre.** En una comprobación posterior en la que coincide otro criterio, o ninguno, se resuelve un incidente cuyo criterio tiene activado **Resolver incidente automáticamente**, y también una alerta con **Resolver alerta automáticamente**. Ambos están en **Más campos** dentro del incidente o la alerta, y los criterios con los que empieza un monitor nuevo los tienen activados.
+- **El criterio que actúa.** En un monitor que se detiene en la primera coincidencia, el primer criterio que coincide declara los incidentes de la comprobación y crea sus alertas, aunque no cambie ningún estado y un criterio de debajo fije el estado. Ese otro no abre nada en la comprobación: coloque los criterios que cambian el estado por encima de los que solo alertan, el peor primero, como los de un monitor nuevo, y el estado de una comprobación y su incidente vendrán del mismo criterio.
 - **Varias sondas.** Un monitor comprobado por más de una sonda solo cambia cuando sus sondas coinciden. Consulte [Cómo se evalúan los criterios](/docs/monitor/create-monitor#cómo-se-evalúan-los-criterios).
 - **Un monitor padre caído.** En la página **Configuración → Dependencias** de un monitor, **Depende de los monitores** indica los monitores de los que depende. Mientras uno de ellos esté en un estado de **Suprimir cuando el estado del padre sea** (cualquier estado sin conexión, si se deja vacío), el monitor no abre incidentes ni alertas. Su estado sigue cambiando, y lo que está abierto se sigue resolviendo.
 - **El mantenimiento programado.** Un monitor incluido en un evento de mantenimiento en curso no se comprueba, así que sus criterios no se ejecutan. Consulte [Visión general del mantenimiento programado](/docs/scheduled-maintenance/index).
@@ -236,9 +240,11 @@ Una décima parte deja a un monitor margen para crecer diez veces antes de que s
 
 Los monitores que leen telemetría, como los monitores de registros, de métricas, de trazas, de Kubernetes, de host y de Docker, no se comprueban todos en el mismo momento. Cada uno tiene su propio momento en su intervalo, calculado a partir del ID del monitor: un monitor que se comprueba cada minuto se ejecuta en el mismo segundo de cada minuto, uno que se comprueba cada 5 minutos en el mismo momento de cada 5 minutos, y uno que se comprueba cada hora o con menos frecuencia dentro de los primeros 5 minutos de la hora o del día que indica su intervalo. El momento se mantiene cuando OneUptime se reinicia y en cada servidor, de modo que el almacén de telemetría se lee poco a poco a lo largo del minuto en lugar de por todos los monitores a la vez.
 
-Cada monitor conserva su intervalo: sus comprobaciones están exactamente igual de separadas que antes, y cada una juzga la ventana que termina cuando se ejecuta, así que una ventana tan larga como el intervalo sigue cubriendo todo el tiempo entre dos comprobaciones. Lo que cambia es en qué momento de su intervalo se ejecuta una comprobación: hasta un intervalo más tarde, y nunca más de 5 minutos más tarde. Un incidente o una alerta puede abrirse hasta ese tiempo más tarde que si cada comprobación se ejecutara al comienzo de su intervalo, y a veces antes. La **Vista general** del monitor muestra cuándo toca su próxima comprobación.
+Cada monitor conserva su intervalo: sus comprobaciones están exactamente igual de separadas que antes. Cada comprobación juzga la ventana que termina en su momento, incluso cuando se ejecuta más tarde, por ejemplo mientras OneUptime está ocupado, o cuando una comprobación que falló se reintenta unos segundos después. Así, una ventana tan larga como el intervalo cubre exactamente el tiempo transcurrido desde la comprobación anterior: ningún dato se juzga dos veces y ninguno se queda fuera. El resumen de evaluación de una comprobación, en **Ver resumen** dentro de los **Registros de monitoreo** del monitor, indica qué ventana juzgó, y también lo indica la causa raíz de un incidente o una alerta que abra. Mientras OneUptime lleva más de un minuto de atraso en la lectura de la telemetría que ha recibido, la ventana de una comprobación termina, en cambio, en el punto hasta el que OneUptime ha leído, de modo que una comprobación nunca juzga datos que aún esperan ser leídos. Si OneUptime se retrasa tanto que la próxima comprobación de un monitor toca antes de que haya empezado la anterior, solo se ejecuta la anterior, para su propia ventana, y la ventana siguiente no se comprueba.
 
-Un monitor nuevo se comprueba a los pocos segundos de crearse, y después en su propio momento. Cuando cambia el intervalo de un monitor, su próxima comprobación pasa al nuevo intervalo. Justo después de actualizar a una versión de OneUptime que reparte las comprobaciones, cada monitor se comprueba una vez más a la hora que le daba la programación anterior, y a partir de entonces en su propio momento.
+Lo que cambia es en qué momento de su intervalo se ejecuta una comprobación: hasta un intervalo más tarde, y nunca más de 5 minutos más tarde. Un incidente o una alerta puede abrirse hasta ese tiempo más tarde que si cada comprobación se ejecutara al comienzo de su intervalo, y a veces antes. La **Vista general** del monitor muestra cuándo toca su próxima comprobación.
+
+Un monitor nuevo se comprueba a los pocos segundos de crearse, para la ventana que termina entonces, y después en su propio momento. Lo mismo ocurre con un monitor que perdió comprobaciones mientras estaba desactivado o mientras OneUptime estaba detenido. Cuando cambia el intervalo de un monitor, su próxima comprobación pasa al nuevo intervalo. Justo después de actualizar a una versión de OneUptime que reparte las comprobaciones, cada monitor se comprueba una vez más a la hora que le daba la programación anterior, y a partir de entonces en su propio momento.
 
 ## Cambiar los criterios de un monitor
 
@@ -335,6 +341,12 @@ Un criterio más arriba en la lista coincidió primero. Abra **Configuración �
 
 :::details No se abrió ningún incidente cuando el monitor cayó
 Revise el criterio que coincidió: **Cuando los filtros coinciden, declarar un incidente.** debe estar activado. No se declara un incidente mientras siga abierto el incidente del mismo criterio, mientras esté caído un monitor padre de **Depende de los monitores** o mientras el monitor esté en mantenimiento programado. La tarjeta **Resumen del monitor** de la **Vista general** del monitor indica cuál fue.
+
+Un criterio situado encima que no cambia ningún estado, como una alerta de respuesta lenta, puede coincidir primero: crea su alerta, el criterio de debajo fija el estado y solo declara su incidente en una comprobación en la que es la primera coincidencia. Arrastre los criterios que cambian el estado por encima de los que solo alertan.
+:::
+
+:::details El monitor volvió a su estado predeterminado mientras una alerta seguía abierta
+El criterio de la alerta no cambia ningún estado, así que no retiene el monitor en el estado que fijó una comprobación anterior. Lo fija el primer criterio que coincide y cambia el estado, y cuando ninguno lo hace, el monitor pasa a su **Estado de monitor predeterminado**. Para mantener un estado mientras dura un problema, dé al criterio que lo fija una condición de recuperación propia: consulte [Cuándo se recupera un criterio](#cuándo-se-recupera-un-criterio).
 :::
 
 :::details El incidente sigue abierto después de que el monitor se recuperara

@@ -398,6 +398,7 @@ import "./Jobs/OpenStack/ExpireConnectionTests";
 import "./Jobs/VMware/CleanupStaleResources";
 // vCenter connection tests no probe will answer: failed, password wiped.
 import "./Jobs/VMware/ExpireConnectionTests";
+import "./Jobs/StorageArray/ExpireConnectionTests";
 
 // Ceph cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/Ceph/CleanupStaleResources";

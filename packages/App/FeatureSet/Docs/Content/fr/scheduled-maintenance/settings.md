@@ -23,7 +23,7 @@ Ouvrez **Maintenance planifiée** depuis le menu **Produits** de la barre supér
 
 La section **Paramètres** contient **État de la maintenance**, traité dans [États de la maintenance](/docs/scheduled-maintenance/states), **Modèles de maintenance**, traité dans [Modèles et événements récurrents](/docs/scheduled-maintenance/templates), puis **Modèles de notes**, **Approbation des notes publiques**, **Champs personnalisés**, **Mesures**, **Paramètres du calendrier** et **Numérotation**. **Paramètres du calendrier** est traité dans [Calendrier de maintenance](/docs/scheduled-maintenance/calendar#calendriers-externes), le reste ci-dessous.
 
-La section **Espace de travail** contient les règles Slack et Microsoft Teams qui publient les événements dans des canaux. Voir [Slack](/docs/workspace-connections/slack#règles-de-notification) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams#règles-de-notification).
+La section **Espace de travail** contient les règles Slack et Microsoft Teams qui publient les événements dans des canaux : chaque événement dès sa création, puis ses changements d'état, ses notes, les propriétaires ajoutés et retirés, et ses rappels, selon ce que chaque règle choisit à son étape **Mises à jour**. Voir [Slack](/docs/workspace-connections/slack#règles-de-notification) et [Microsoft Teams](/docs/workspace-connections/microsoft-teams#règles-de-notification).
 
 ## Les règles que traverse un nouvel événement
 

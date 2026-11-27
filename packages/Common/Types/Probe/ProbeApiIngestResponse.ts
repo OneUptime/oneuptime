@@ -68,8 +68,26 @@ export default interface ProbeApiIngestResponse {
   monitorId: ObjectID;
   ingestedMonitorStepId?: ObjectID | undefined;
   nextMonitorStepId?: ObjectID | undefined;
+  /*
+   * The first criteria that matched: what acts on the check - the incidents
+   * and alerts it opens and resolves. Its status is the monitor's only when
+   * it changes one (statusCriteriaId).
+   */
   criteriaMetId?: string | undefined;
   rootCause: string | null; // this is in markdown format
+  /*
+   * The criteria that sets the monitor's status on this check: the first
+   * that matched among those that change the status
+   * (MonitorCriteriaInstance.changesMonitorStatus), in the order given -
+   * criteriaMetId whenever that criteria changes the status, as it does on
+   * every monitor whose criteria all do. Unset when none of them matched:
+   * the status then goes where a check that matched nothing takes it (its
+   * default status, unless a recovery criteria is waited for or nothing was
+   * read), whatever criteria that change no status matched (#11238).
+   */
+  statusCriteriaId?: string | undefined;
+  // That criteria's own root cause, for the status change it makes.
+  statusRootCause?: string | null | undefined;
   evaluationSummary?: MonitorEvaluationSummary | undefined;
   /**
    * Set when a metric monitor with group-by attributes produced one or
@@ -88,25 +106,30 @@ export default interface ProbeApiIngestResponse {
    * semantics and leave this undefined, in which case `criteriaMetId` +
    * `rootCause` + `perSeriesMatches` are the whole story.
    *
-   * `criteriaMetId` always stays the FIRST match — the monitor has a
-   * single status and that is what sets it. A recovery criteria that waits
-   * for the series behind the monitor's status (GroupedMonitorRecovery) is
-   * not a match.
+   * `criteriaMetId` always stays the FIRST match, and the first match that
+   * changes the status is `statusCriteriaId` - the monitor has a single
+   * status. A recovery criteria that waits for the series behind the
+   * monitor's status (GroupedMonitorRecovery) is not a match.
    */
   matchedCriteria?: Array<MatchedCriteriaResult> | undefined;
   /**
    * A grouped monitor's series behind its status that have not met a
    * recovery criteria yet (GroupedMonitorRecovery). Set when no criteria
-   * matched while some wait: the monitor then keeps its status rather than
-   * going to its default status. Unset otherwise.
+   * that changes the status matched while some wait: the monitor then keeps
+   * its status rather than going to its default status. Unset otherwise.
    */
   seriesKeepingStatus?: Array<SeriesKeepingStatus> | undefined;
   /**
-   * A monitor that judges no series on its own, on a check no criteria
-   * matched, whose status a problem criteria set while its step has a
-   * recovery criteria (GroupedMonitorRecovery.judgeWholeMonitor, #10743):
-   * it keeps its status rather than go to its default status, until one of
-   * these recovery criteria matches. Unset otherwise.
+   * A monitor that judges no series on its own, whose status a problem
+   * criteria set while its step has a recovery criteria
+   * (GroupedMonitorRecovery.judgeWholeMonitor, #10743): on a check no
+   * criteria that changes the status matched, it keeps its status rather
+   * than go to its default status, until one of these recovery criteria
+   * matches. Said whatever the check matched - it reads only the monitor's
+   * statuses and criteria, so it holds for every probe's check alike, and
+   * probes can agree that nothing matched a check this one matched - and
+   * read only when no criteria that changes the status sets it. Unset
+   * otherwise.
    */
   statusKeptForRecoveryCriteriaIds?: Array<string> | undefined;
   /**

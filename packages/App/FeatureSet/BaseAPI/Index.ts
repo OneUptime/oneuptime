@@ -679,6 +679,7 @@ import SecurityEventConnectionAPI from "Common/Server/API/SecurityEventConnectio
 import LlmObservabilityConnectionAPI from "Common/Server/API/LlmObservabilityConnectionAPI";
 import CloudAccountAPI from "Common/Server/API/CloudAccountAPI";
 import CloudConnectionAPI from "Common/Server/API/CloudConnectionAPI";
+import CloudBudgetAPI from "Common/Server/API/CloudBudgetAPI";
 import CloudCostGroupAPI from "Common/Server/API/CloudCostGroupAPI";
 import CloudCostViewAPI from "Common/Server/API/CloudCostViewAPI";
 import CloudCostReportAPI from "Common/Server/API/CloudCostReportAPI";
@@ -1122,6 +1123,12 @@ import CephClusterService, {
 import StorageArrayService, {
   Service as StorageArrayServiceType,
 } from "Common/Server/Services/StorageArrayService";
+import StorageArrayConnectionService, {
+  Service as StorageArrayConnectionServiceType,
+} from "Common/Server/Services/StorageArrayConnectionService";
+import StorageArrayConnectionTestService, {
+  Service as StorageArrayConnectionTestServiceType,
+} from "Common/Server/Services/StorageArrayConnectionTestService";
 import XcpNgPoolService, {
   Service as XcpNgPoolServiceType,
 } from "Common/Server/Services/XcpNgPoolService";
@@ -1864,6 +1871,8 @@ import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import CephClusterOwnerTeam from "Common/Models/DatabaseModels/CephClusterOwnerTeam";
 import CephClusterOwnerUser from "Common/Models/DatabaseModels/CephClusterOwnerUser";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
+import StorageArrayConnection from "Common/Models/DatabaseModels/StorageArrayConnection";
+import StorageArrayConnectionTest from "Common/Models/DatabaseModels/StorageArrayConnectionTest";
 import StorageArrayOwnerTeam from "Common/Models/DatabaseModels/StorageArrayOwnerTeam";
 import StorageArrayOwnerUser from "Common/Models/DatabaseModels/StorageArrayOwnerUser";
 import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
@@ -2200,7 +2209,6 @@ import CloudAccountFeed from "Common/Models/DatabaseModels/CloudAccountFeed";
 import CloudAccountFeedService, {
   Service as CloudAccountFeedServiceType,
 } from "Common/Server/Services/CloudAccountFeedService";
-import CloudBudget from "Common/Models/DatabaseModels/CloudBudget";
 import CloudRequiredTagAPI from "Common/Server/API/CloudRequiredTagAPI";
 import CloudTagCoverageDay from "Common/Models/DatabaseModels/CloudTagCoverageDay";
 import CloudTagCoverageDayService, {
@@ -2214,9 +2222,6 @@ import CloudTagSetting from "Common/Models/DatabaseModels/CloudTagSetting";
 import CloudTagSettingService, {
   Service as CloudTagSettingServiceType,
 } from "Common/Server/Services/CloudTagSettingService";
-import CloudBudgetService, {
-  Service as CloudBudgetServiceType,
-} from "Common/Server/Services/CloudBudgetService";
 import CloudCommitment from "Common/Models/DatabaseModels/CloudCommitment";
 import CloudCommitmentService, {
   Service as CloudCommitmentServiceType,
@@ -4022,13 +4027,13 @@ const BaseAPIFeatureSet: FeatureSet = {
       ).getRouter(),
     );
 
-    // Monthly budgets for what the connected clouds cost, and their alerts.
+    /*
+     * Budgets for what the connected clouds cost, and their alerts: a
+     * budget's page and the forecasts of any scope too (#11008).
+     */
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<CloudBudget, CloudBudgetServiceType>(
-        CloudBudget,
-        CloudBudgetService,
-      ).getRouter(),
+      new CloudBudgetAPI().getRouter(),
     );
 
     // The connected clouds' commitments and what they cover: read only.
@@ -6834,6 +6839,25 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StorageArray, StorageArrayServiceType>(
         StorageArray,
         StorageArrayService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<StorageArrayConnection, StorageArrayConnectionServiceType>(
+        StorageArrayConnection,
+        StorageArrayConnectionService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        StorageArrayConnectionTest,
+        StorageArrayConnectionTestServiceType
+      >(
+        StorageArrayConnectionTest,
+        StorageArrayConnectionTestService,
       ).getRouter(),
     );
 

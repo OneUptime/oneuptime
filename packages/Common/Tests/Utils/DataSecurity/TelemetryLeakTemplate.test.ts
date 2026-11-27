@@ -183,19 +183,28 @@ describe("the reads of one line of code, aligned", () => {
 });
 
 /*
- * A WORD NO RECORD PROVES IS THE CODE'S, MASKED (#11098).
+ * A WORD NO RECORD CAN PROVE IS THE CODE'S, MASKED (#11098, #11204).
  *
- * Read once - or always alike - a line tells no word of the code's from a
- * value no detector names. So its template keeps only the words code
- * writes log lines with; an aligned one keeps what every read shares, but
- * for a word written as a person's name.
+ * Nothing in a leak's records tells a word of the code's from a value no
+ * detector names: not one record, nor records that all read alike, nor
+ * records of a line aligned with different words - of those, the words
+ * that differ are values, and the words they share are no more the
+ * code's for it: every record of one user's session holds that user's
+ * name. So a template keeps only the words code writes log lines with,
+ * however many records share a word.
  */
 function once(text: string): string {
-  return maskUnprovenWords(template(text), { isAligned: false });
+  return maskUnprovenWords(template(text));
 }
 
-function aligned(text: string): string {
-  return maskUnprovenWords(template(text), { isAligned: true });
+// The reads of one line of code, aligned and then masked as the places of a leak are.
+function aligned(texts: ReadonlyArray<string>): Array<string> {
+  const templates: Array<string> = texts.map(template);
+  const lined: Map<string, string> = alignTelemetryLeakTemplates(templates);
+
+  return templates.map((each: string): string => {
+    return maskUnprovenWords(lined.get(each) || each);
+  });
 }
 
 describe("a template read from one record keeps only the code's words", () => {
@@ -259,7 +268,7 @@ describe("a template read from one record keeps only the code's words", () => {
       "ECONNREFUSED <ip>:<num>",
       "order.step<num>",
     ]) {
-      expect(maskUnprovenWords(line, { isAligned: false })).toBe(line);
+      expect(maskUnprovenWords(line)).toBe(line);
     }
   });
 
@@ -279,68 +288,125 @@ describe("a template read from one record keeps only the code's words", () => {
       `msg="Payment declined for <value>" user=${toTypePlaceholder(namer.nameOf("email-address"))} plan=<value>`,
     );
     // A field's name the vocabulary does not hold is still the code's.
-    expect(
-      maskUnprovenWords('{"custRef":<value>,"ordNo":<value>}', {
-        isAligned: false,
-      }),
-    ).toBe('{"custRef":<value>,"ordNo":<value>}');
+    expect(maskUnprovenWords('{"custRef":<value>,"ordNo":<value>}')).toBe(
+      '{"custRef":<value>,"ordNo":<value>}',
+    );
   });
 
   test("a page's path: its words kept, a name's segment masked", () => {
-    expect(
-      maskUnprovenWords("/profile/ada-lovelace/settings", { isAligned: false }),
-    ).toBe("/profile/<value>/settings");
-    expect(
-      maskUnprovenWords("/checkout/[redacted]/pay", { isAligned: false }),
-    ).toBe("/checkout/[redacted]/pay");
+    expect(maskUnprovenWords("/profile/ada-lovelace/settings")).toBe(
+      "/profile/<value>/settings",
+    );
+    expect(maskUnprovenWords("/checkout/[redacted]/pay")).toBe(
+      "/checkout/[redacted]/pay",
+    );
   });
 
   test("nothing of the code's words left is no template", () => {
     expect(once("Ada Lovelace")).toBe("");
     expect(once("Zahlung abgelehnt für Ada Lovelace")).toBe("");
-    expect(maskUnprovenWords("", { isAligned: false })).toBe("");
-    expect(maskUnprovenWords("<value> <value>", { isAligned: false })).toBe("");
+    expect(maskUnprovenWords("")).toBe("");
+    expect(maskUnprovenWords("<value> <value>")).toBe("");
   });
 
   test("the placeholders the detectors and patterns put in are kept as they are", () => {
     expect(
-      maskUnprovenWords("Charged <Credit card number> at <timestamp>", {
-        isAligned: false,
-      }),
+      maskUnprovenWords("Charged <Credit card number> at <timestamp>"),
     ).toBe("Charged <Credit card number> at <timestamp>");
   });
 });
 
-describe("an aligned template keeps the words every read shares, but a name", () => {
-  test("a word written as a person's name is masked, however many records hold it", () => {
+/*
+ * #11204: the reads of one line of code aligned - a word that differs
+ * between them is a value, masked whatever it is - keep no more of the
+ * words they share than one read does: a value every record holds reads
+ * the same in each.
+ */
+describe("an aligned template keeps only the code's words too, however many reads share a word", () => {
+  test("a lower-case value every read shares - a username - is masked", () => {
     expect(
-      aligned("Payment declined for Ada Lovelace: insufficient funds"),
-    ).toBe("Payment declined for <value>: insufficient funds");
-    expect(aligned("Sending welcome email to Grace")).toBe(
-      "Sending welcome email to <value>",
-    );
+      aligned([
+        "Ticket assigned to jdoe with priority urgent",
+        "Ticket assigned to jdoe with priority normal",
+      ]),
+    ).toEqual([
+      "Ticket assigned to <value> with priority <value>",
+      "Ticket assigned to <value> with priority <value>",
+    ]);
   });
 
-  test("the words alignment proved - lower case, an identifier, a technology's name - are kept", () => {
-    expect(aligned("Calling Stripe API for customer <value>")).toBe(
-      "Calling Stripe API for customer <value>",
-    );
-    expect(aligned("Zahlung abgelehnt für <value>")).toBe(
-      "Zahlung abgelehnt für <value>",
-    );
-    expect(
-      maskUnprovenWords("Error in PaymentService: <value>", {
-        isAligned: true,
-      }),
-    ).toBe("Error in PaymentService: <value>");
+  test("a name written in lower case, an email's local part and a tenant every read shares are masked", () => {
+    for (const reads of [
+      [
+        "Login failed for ottilie quarrington from mobile",
+        "Login failed for ottilie quarrington from desktop",
+      ],
+      [
+        "Mailbox jane.doe quota exceeded on primary",
+        "Mailbox jane.doe quota exceeded on archive",
+      ],
+      [
+        "Export finished for tenant northwind in region eu",
+        "Export finished for tenant northwind in region us",
+      ],
+    ]) {
+      for (const made of aligned(reads)) {
+        expect(made).not.toMatch(/ottilie|quarrington|jane\.doe|northwind/);
+        expect(made).toContain("<value>");
+      }
+    }
   });
 
-  test("a word at a sentence's start is the code's", () => {
+  test("a word written as a person's name is masked, however many reads hold it", () => {
     expect(
-      maskUnprovenWords("Order <value> shipped. Notified the warehouse", {
-        isAligned: true,
-      }),
-    ).toBe("Order <value> shipped. Notified the warehouse");
+      aligned([
+        "Payment declined for Ada Lovelace: insufficient funds",
+        "Payment declined for Ada Lovelace: card expired",
+      ]),
+    ).toEqual([
+      "Payment declined for <value>: <value> <value>",
+      "Payment declined for <value>: <value> <value>",
+    ]);
+  });
+
+  test("a word that differs between reads is masked though it is one of the code's", () => {
+    expect(aligned(["Order status pending", "Order status shipped"])).toEqual([
+      "Order status <value>",
+      "Order status <value>",
+    ]);
+  });
+
+  test("the code's words every read shares - lower case, an identifier, a technology's name - are kept", () => {
+    expect(
+      aligned([
+        "Calling Stripe API for customer jane.doe@northwind-mail.com",
+        "Calling Stripe API for customer sam.lee@northwind-mail.com",
+      ]),
+    ).toEqual([
+      `Calling Stripe API for customer ${toTypePlaceholder(namer.nameOf("email-address"))}`,
+      `Calling Stripe API for customer ${toTypePlaceholder(namer.nameOf("email-address"))}`,
+    ]);
+    expect(
+      aligned([
+        "Error in PaymentService: timeout",
+        "Error in PaymentService: refused",
+      ]),
+    ).toEqual([
+      "Error in PaymentService: <value>",
+      "Error in PaymentService: <value>",
+    ]);
+  });
+
+  test("a line in another language keeps none of its words: no record proves them the code's", () => {
+    expect(
+      aligned(["Zahlung abgelehnt für jdoe", "Zahlung abgelehnt für asmith"]),
+    ).toEqual(["", ""]);
+  });
+
+  test("a word at a sentence's start is read as the code writes one", () => {
+    expect(
+      maskUnprovenWords("Order <value> shipped. Notified the customer"),
+    ).toBe("Order <value> shipped. Notified the customer");
   });
 });
 
@@ -356,6 +422,7 @@ describe("masking a template takes time in line with its length", () => {
     ["joiners without end", repeat("a-")],
     ["apostrophes without end", repeat("a'")],
     ["names without end", repeat("Ada Lovelace ")],
+    ["lower-case values without end", repeat("jdoe ")],
     ["half placeholders without end", repeat("<a")],
     ["placeholders without end", repeat("<value> ")],
     ["a camel case identifier without end", repeat("aB")],
@@ -364,15 +431,13 @@ describe("masking a template takes time in line with its length", () => {
     ["a field's name before spaces without end", `"a"${" ".repeat(399_996)}`],
     ["opening brackets without end", `a ${repeat("(")}b`],
   ])("reads %s", (_label: string, text: string) => {
-    for (const isAligned of [false, true]) {
-      const timed: FastestRun<number> = fastestRun({
-        run: (): number => {
-          return maskUnprovenWords(text, { isAligned }).length;
-        },
-        limitInMs: LIMIT_IN_MS,
-      });
+    const timed: FastestRun<number> = fastestRun({
+      run: (): number => {
+        return maskUnprovenWords(text).length;
+      },
+      limitInMs: LIMIT_IN_MS,
+    });
 
-      expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
-    }
+    expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
   });
 });

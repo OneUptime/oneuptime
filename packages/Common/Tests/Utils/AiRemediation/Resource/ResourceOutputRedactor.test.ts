@@ -287,6 +287,7 @@ describe("the hook table", () => {
         "pvesh",
         "systemctl",
         "top",
+        "xo-cli",
       ].sort(),
     );
     expect(getResourceOutputRedactionHooks("docker").length).toBeGreaterThan(0);

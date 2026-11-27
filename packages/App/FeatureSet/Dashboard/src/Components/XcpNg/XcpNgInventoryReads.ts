@@ -17,6 +17,7 @@ import { XCP_NG_INVENTORY_SELECT } from "../../Pages/XcpNg/Utils/XcpNgResourceUt
 async function listRows(
   query: Record<string, unknown>,
   limit: number = LIMIT_PER_PROJECT,
+  extraSelect: Record<string, boolean> = {},
 ): Promise<Array<XcpNgResource>> {
   const result: ListResult<XcpNgResource> =
     await ModelAPI.getList<XcpNgResource>({
@@ -24,7 +25,11 @@ async function listRows(
       query: query,
       skip: 0,
       limit: limit,
-      select: XCP_NG_INVENTORY_SELECT,
+      // The lists' own select, unless the page asks for more.
+      select:
+        Object.keys(extraSelect).length > 0
+          ? { ...XCP_NG_INVENTORY_SELECT, ...extraSelect }
+          : XCP_NG_INVENTORY_SELECT,
       sort: {
         name: SortOrder.Ascending,
       },
@@ -58,6 +63,11 @@ export async function fetchXcpNgInventoryRow(options: {
   xcpNgPoolId: ObjectID;
   kind: XcpNgResourceKind;
   externalId: string;
+  /*
+   * What only the part's own page draws - a host's missing patches - on
+   * top of what every list does.
+   */
+  extraSelect?: Record<string, boolean> | undefined;
 }): Promise<XcpNgResource | null> {
   const rows: Array<XcpNgResource> = await listRows(
     {
@@ -66,6 +76,7 @@ export async function fetchXcpNgInventoryRow(options: {
       externalId: options.externalId,
     },
     1,
+    options.extraSelect || {},
   );
   return rows[0] || null;
 }

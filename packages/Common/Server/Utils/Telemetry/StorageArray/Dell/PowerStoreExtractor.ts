@@ -1,4 +1,5 @@
 import { JSONObject } from "../../../../../Types/JSON";
+import lookupTable from "../../../../../Utils/LookupTable";
 import StorageArrayResourceKind from "../../../../../Types/StorageArray/StorageArrayResourceKind";
 import DellPowerStorePlatform, {
   POWERSTORE_KIND,
@@ -207,10 +208,15 @@ function readCluster(series: StorageArraySeries): void {
 
 // ------------------------------------------------------------- appliances
 
-const APPLIANCE_PERFORMANCE: Record<
+/*
+ * Each table here is read by the metric name a scrape carried: a Map
+ * (lookupTable) answers only for the names it lists, never for one every
+ * object inherits ("constructor", "__proto__").
+ */
+const APPLIANCE_PERFORMANCE: ReadonlyMap<
   string,
   (row: StorageArrayResourceBufferEntry, value: number) => void
-> = {
+> = lookupTable<(row: StorageArrayResourceBufferEntry, value: number) => void>({
   powerstore_perf_avg_read_latency: (
     row: StorageArrayResourceBufferEntry,
     value: number,
@@ -277,7 +283,7 @@ const APPLIANCE_PERFORMANCE: Record<
   ) => {
     setDetail(row, "averageIoSizeBytes", nonNegative(value));
   },
-};
+});
 
 // The cluster's space: the sum of its appliances' (and their data reduction).
 function updateClusterSpace(series: StorageArraySeries): void {
@@ -415,7 +421,7 @@ function readAppliance(series: StorageArraySeries): void {
   }
   const apply:
     | ((row: StorageArrayResourceBufferEntry, value: number) => void)
-    | undefined = APPLIANCE_PERFORMANCE[series.metricName];
+    | undefined = APPLIANCE_PERFORMANCE.get(series.metricName);
   if (!apply) {
     return;
   }
@@ -431,11 +437,11 @@ function readAppliance(series: StorageArraySeries): void {
 
 // --------------------------------------------------------------- hardware
 
-const PART_TYPES: Record<string, string> = {
+const PART_TYPES: ReadonlyMap<string, string> = lookupTable<string>({
   powerstore_hardware_Fan_state: "Fan",
   powerstore_hardware_Power_Supply_state: "Power Supply",
   powerstore_hardware_Battery_state: "Battery",
-};
+});
 
 /*
  * A drive's type as PowerStore's REST API words it: NVMe_SSD is an NVMe
@@ -485,7 +491,7 @@ function readHardware(series: StorageArraySeries): void {
     return;
   }
 
-  const partType: string | undefined = PART_TYPES[metricName];
+  const partType: string | undefined = PART_TYPES.get(metricName);
   if (partType) {
     foldObject(series, {
       kind: StorageArrayResourceKind.Hardware,
@@ -531,7 +537,7 @@ function readHardware(series: StorageArraySeries): void {
 
 // ------------------------------------------------------------------ ports
 
-const FC_ERROR_DETAILS: Record<string, string> = {
+const FC_ERROR_DETAILS: ReadonlyMap<string, string> = lookupTable<string>({
   powerstore_metricFcPort_avg_invalid_crc_count_ps: "crcErrorsPerSec",
   powerstore_metricFcPort_avg_link_failure_count_ps: "linkFailuresPerSec",
   powerstore_metricFcPort_avg_loss_of_signal_count_ps: "lossOfSignalPerSec",
@@ -540,14 +546,14 @@ const FC_ERROR_DETAILS: Record<string, string> = {
   powerstore_metricFcPort_avg_prim_seq_prot_err_count_ps:
     "primitiveSequenceErrorsPerSec",
   powerstore_metricFcPort_avg_dumped_frames_ps: "dumpedFramesPerSec",
-};
+});
 
-const ETH_ERROR_DETAILS: Record<string, string> = {
+const ETH_ERROR_DETAILS: ReadonlyMap<string, string> = lookupTable<string>({
   powerstore_metricEthPort_avg_pkt_rx_crc_error_ps: "crcErrorsPerSec",
   powerstore_metricEthPort_avg_pkt_rx_no_buffer_error_ps:
     "noBufferErrorsPerSec",
   powerstore_metricEthPort_avg_pkt_tx_error_ps: "transmitErrorsPerSec",
-};
+});
 
 // A port's errors per second: every error rate of it the batch carried.
 function addPortError(
@@ -586,8 +592,8 @@ function readPort(series: StorageArraySeries): void {
   const value: number = series.value;
 
   const errorDetail: string | undefined = isFibreChannel
-    ? FC_ERROR_DETAILS[metricName]
-    : ETH_ERROR_DETAILS[metricName];
+    ? FC_ERROR_DETAILS.get(metricName)
+    : ETH_ERROR_DETAILS.get(metricName);
 
   const apply: ((row: StorageArrayResourceBufferEntry) => void) | null = (():
     | ((row: StorageArrayResourceBufferEntry) => void)

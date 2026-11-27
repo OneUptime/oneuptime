@@ -28,6 +28,8 @@ import {
   isLaterMetricName,
 } from "../../../Helpers/StorageArray/PureSlice";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import NetAppOntapPlatform from "../../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
+import { getRecordedSeriesLabels } from "../../../Helpers/StorageArray/NetAppHarvestRecordings";
 
 /*
  * The storage array snapshot scan, fed with synthetic OTLP datapoints in the
@@ -533,6 +535,37 @@ afterEach(() => {
 });
 
 describe("StorageArraySnapshotScan - the allow-list (the ingest gate)", () => {
+  /*
+   * ONTAP's families (#11001): what its extractor reads, each one the real
+   * NetApp Harvest served in Tests/Fixtures/NetAppHarvest - but its Health
+   * plugin's open problems a healthy stand-in never raised (an HA pair that
+   * cannot take over, an unhealthy node, an FC port, a LIF, a volume move,
+   * a ransomware attack, a license), which Harvest's own code declares.
+   */
+  const ONTAP_NEVER_RAISED: Array<string> = [
+    "netapp_health_ha_alerts",
+    "netapp_health_node_alerts",
+    "netapp_health_network_fc_port_alerts",
+    "netapp_health_lif_alerts",
+    "netapp_health_volume_move_alerts",
+    "netapp_health_volume_ransomware_alerts",
+    "netapp_health_license_alerts",
+  ];
+
+  test("every allow-listed ONTAP family is one NetApp Harvest serves", () => {
+    const recorded: Record<string, unknown> = getRecordedSeriesLabels();
+    expect(NetAppOntapPlatform.snapshotMetricNames.length).toBeGreaterThan(0);
+    for (const metricName of NetAppOntapPlatform.snapshotMetricNames) {
+      expect(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(true);
+      expect({
+        metricName,
+        served:
+          recorded[metricName] !== undefined ||
+          ONTAP_NEVER_RAISED.includes(metricName),
+      }).toEqual({ metricName, served: true });
+    }
+  });
+
   /*
    * Pure's families. A platform registered since adds its own to the gate
    * (Dell PowerStore's: PowerStoreIngest.test.ts holds them to what Dell's
@@ -2521,9 +2554,9 @@ describe("StorageArraySnapshotScan - the platform to write (resolveStorageArrayS
     expect(
       resolveStorageArraySystem({
         derived: undefined,
-        declared: "netapp.ontap",
+        declared: "hitachi.vsp",
       }),
-    ).toBe("netapp.ontap");
+    ).toBe("hitachi.vsp");
   });
 
   test("a known platform is never taken from the declaration alone", () => {

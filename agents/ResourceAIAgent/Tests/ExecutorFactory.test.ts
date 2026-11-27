@@ -17,6 +17,7 @@ import GovcExecutor from "../Executors/GovcExecutor";
 import HostExecutor from "../Executors/HostExecutor";
 import OpenStackExecutor from "../Executors/OpenStackExecutor";
 import ProxmoxExecutor from "../Executors/ProxmoxExecutor";
+import XcpNgExecutor from "../Executors/XcpNgExecutor";
 import {
   ExecutorOptions,
   PrepareResult,
@@ -43,6 +44,13 @@ import { ResourceCommandTier } from "../Common/Types/ResourceAiAgent/ResourceAiA
  */
 
 const URL: string = "https://oneuptime.example.com";
+
+// An XCP-ng pool is named by its XAPI UUID; every other type takes any name.
+const XCP_NG_POOL_ID: string = "b7569d99-30f8-178a-7d94-801de3e29b5b";
+
+function identityOf(type: AiResourceType): string {
+  return type === AiResourceType.XcpNgPool ? XCP_NG_POOL_ID : "res-1";
+}
 
 // A complete environment for each type (its alias and identity).
 const TYPE_ENV: Record<AiResourceType, Record<string, string>> = {
@@ -97,6 +105,10 @@ const TYPE_ENV: Record<AiResourceType, Record<string, string>> = {
     ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "openstack",
     OPENSTACK_CLOUD_NAME: "res-1",
   },
+  [AiResourceType.XcpNgPool]: {
+    ONEUPTIME_AI_AGENT_RESOURCE_TYPE: "xcp-ng",
+    XCP_NG_POOL_ID: XCP_NG_POOL_ID,
+  },
 };
 
 let tmpDir: string;
@@ -141,7 +153,7 @@ function testCommandPayload(
   return {
     resourceType: type,
     resourceId: "resource-1",
-    resourceIdentifier: "res-1",
+    resourceIdentifier: identityOf(type),
     program,
     args,
     displayCommand: AI_RESOURCE_TYPE_INFO[type].testCommands[0],
@@ -165,6 +177,7 @@ describe("which executor serves which resource", () => {
       [AiResourceType.AzureSubscription]: CloudExecutor,
       [AiResourceType.GoogleCloudProject]: CloudExecutor,
       [AiResourceType.OpenStackCloud]: OpenStackExecutor,
+      [AiResourceType.XcpNgPool]: XcpNgExecutor,
     };
 
     assert.deepStrictEqual(

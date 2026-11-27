@@ -1,0 +1,48 @@
+[
+  {
+    "name": "Nightly delta",
+    "mode": "delta",
+    "settings": {
+      "": { "timezone": "UTC", "reportWhen": "failure" },
+      "1c7cfc78-a006-4942-aab6-b4c825ce9a4e": { "exportRetention": 7 }
+    },
+    "vms": { "$pool": { "__or": ["b7569d99-30f8-178a-7d94-801de3e29b5b", "2ad2c2ec-1d43-4a5c-9c62-e8d0b6a4c3f1"] }, "type": "VM" },
+    "type": "backup",
+    "remotes": { "id": "1af95910-01b4-4e87-9c2f-d895cafe0776" },
+    "srs": { "id": { "__or": [] } },
+    "id": "59af07fc-e82c-43b5-8137-026832f30166"
+  },
+  {
+    "name": "Weekly full",
+    "mode": "full",
+    "settings": {
+      "": { "timezone": "UTC" },
+      "cf7249f8-d20b-494f-97f4-b1f32f94e780": { "exportRetention": 4 }
+    },
+    "vms": { "id": { "__or": ["9d0e1f2a-3b4c-4d5e-8f6a-7b8c9d0e1f2a"] } },
+    "type": "backup",
+    "remotes": { "id": "1af95910-01b4-4e87-9c2f-d895cafe0776" },
+    "srs": { "id": { "__or": [] } },
+    "id": "d33f3dc1-92b4-469c-ad58-4c2a106a4721"
+  },
+  {
+    "name": "Pool metadata",
+    "pools": { "id": { "__or": ["b7569d99-30f8-178a-7d94-801de3e29b5b"] } },
+    "remotes": { "id": "4d4c8be8-5815-42af-82ad-b413d45b2d38" },
+    "settings": {
+      "d1f79c6b-90f7-49f4-9adb-bcb85f236dea": { "retentionPoolMetadata": 7 }
+    },
+    "type": "metadataBackup",
+    "id": "b50f95fd-f6b7-4027-87b6-6a02c7dcd5f5"
+  },
+  {
+    "name": "Old archive",
+    "mode": "full",
+    "settings": { "": {} },
+    "vms": { "id": { "__or": ["7b8c9d0e-1f2a-4b3c-9d4e-5f6a7b8c9d0e"] } },
+    "type": "backup",
+    "remotes": { "id": "1af95910-01b4-4e87-9c2f-d895cafe0776" },
+    "srs": { "id": { "__or": [] } },
+    "id": "e680c14c-ab52-45c8-bb0e-bd4ca12ea8f9"
+  }
+]
