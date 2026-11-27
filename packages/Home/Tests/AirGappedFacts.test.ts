@@ -544,11 +544,11 @@ describe("step 3: probes and webhooks reach the private addresses an air-gapped 
     // Website and API monitors - "websites and APIs" on the page - are the ones refused.
     expectFileToSay(
       privateAccess,
-      "Four monitor types are affected: **API**, **Website**, **External Status Page** and **Custom JavaScript Code**. On a stock probe they can reach public HTTP(S) targets, but refuse private address space.",
+      "Five monitor types are affected: **API**, **Website**, **External Status Page**, **Custom JavaScript Code** and **Synthetic**. On a stock probe they can reach public HTTP(S) targets, but refuse private address space.",
     );
     expectFileToSay(
       CHART_CONFIGURATION,
-      "| `probes.<key>.allowPrivateNetworkMonitors`        | Let API, Website, External Status Page and Custom JavaScript Code monitors on this probe reach private network addresses",
+      "| `probes.<key>.allowPrivateNetworkMonitors`        | Let API, Website, External Status Page, Custom JavaScript Code and Synthetic monitors on this probe reach private network addresses",
     );
     expectFileToSay(
       `${CHART}/templates/probe.yaml`,
