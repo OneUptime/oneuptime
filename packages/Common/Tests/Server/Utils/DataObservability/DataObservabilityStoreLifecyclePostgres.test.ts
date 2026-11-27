@@ -8,6 +8,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import { SpyInstance } from "jest-mock";
 import { DataSource } from "typeorm";
 import Entities from "../../../../Models/DatabaseModels/Index";
 import DataStore from "../../../../Models/DatabaseModels/DataStore";
@@ -1445,7 +1446,7 @@ describePostgres(
           agentServer: serverId,
           agentDatabase: "orders",
         });
-        const failure: jest.SpiedFunction<
+        const failure: SpyInstance<
           typeof TableHealthIngest.recordFailure
         > = jest
           .spyOn(TableHealthIngest, "recordFailure")
@@ -1475,7 +1476,7 @@ describePostgres(
           agentServer: otherServerId,
           agentDatabase: "billing",
         });
-        const recorded: jest.SpiedFunction<
+        const recorded: SpyInstance<
           typeof TableHealthIngest.recordSnapshot
         > = jest
           .spyOn(TableHealthIngest, "recordSnapshot")
