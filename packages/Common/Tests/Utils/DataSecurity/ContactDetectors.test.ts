@@ -812,6 +812,127 @@ describe("date-of-birth", () => {
   });
 });
 
+/*
+ * #11200: a postal code and a date of birth read in every script's
+ * digits, as #11033 did for national IDs - the same value beside the same
+ * words, its digits in Arabic-Indic, Persian or fullwidth ones. And
+ * #11199: each, and a street address, in a URL - its separators escaped
+ * (a date's "/" is %2F), or its spaces written "+" as a form writes them.
+ */
+function inScriptOf(text: string, zero: number): string {
+  return text.replace(/[0-9]/g, (digit: string): string => {
+    return String.fromCharCode(zero + Number(digit));
+  });
+}
+
+const ARABIC_INDIC: number = 0x0660;
+const PERSIAN: number = 0x06f0;
+const FULLWIDTH: number = 0xff10;
+
+describe("postal-code and date-of-birth: in another script's digits (#11200)", () => {
+  test("a date of birth, beside its words, in each script's digits", () => {
+    for (const zero of [ARABIC_INDIC, PERSIAN, FULLWIDTH]) {
+      expectFound(`dob: ${inScriptOf("1985-03-12", zero)}`, [
+        found("date-of-birth", inScriptOf("1985-03-12", zero), H),
+      ]);
+      expectFound(
+        `born ${inScriptOf("12", zero)} Mar ${inScriptOf("1985", zero)}`,
+        [
+          found(
+            "date-of-birth",
+            `${inScriptOf("12", zero)} Mar ${inScriptOf("1985", zero)}`,
+            H,
+          ),
+        ],
+      );
+    }
+  });
+
+  test("a date that is no real one, or with no words, is none in any script", () => {
+    expectNothingOf("date-of-birth", [
+      `dob: ${inScriptOf("1985-02-30", ARABIC_INDIC)}`,
+      `dob ${inScriptOf("13/13/1985", PERSIAN)}`,
+      inScriptOf("1985-03-12", FULLWIDTH),
+    ]);
+  });
+
+  test("a UK postcode, a Canadian postal code and a ZIP with their digits in another script's", () => {
+    expectFound(
+      `Postcode: EC${inScriptOf("1", FULLWIDTH)}A ${inScriptOf("1", FULLWIDTH)}BB`,
+      [
+        found(
+          "postal-code",
+          `EC${inScriptOf("1", FULLWIDTH)}A ${inScriptOf("1", FULLWIDTH)}BB`,
+          H,
+        ),
+      ],
+    );
+    expectFound(
+      `postal code: K${inScriptOf("1", ARABIC_INDIC)}A ${inScriptOf("0", ARABIC_INDIC)}B${inScriptOf("1", ARABIC_INDIC)}`,
+      [
+        found(
+          "postal-code",
+          `K${inScriptOf("1", ARABIC_INDIC)}A ${inScriptOf("0", ARABIC_INDIC)}B${inScriptOf("1", ARABIC_INDIC)}`,
+          M,
+        ),
+      ],
+    );
+    expectFound(`zip ${inScriptOf("94105", PERSIAN)}`, [
+      found("postal-code", inScriptOf("94105", PERSIAN), H),
+    ]);
+    expectNothingOf("postal-code", [
+      `zip ${inScriptOf("00000", ARABIC_INDIC)}`,
+      inScriptOf("94105", PERSIAN),
+    ]);
+  });
+});
+
+describe("postal-code, postal-address and date-of-birth: in a URL (#11199, #11200)", () => {
+  test("a postcode typed into a form, or with %20 for its space", () => {
+    expectFound("GET /lookup?postcode=EC1A+1BB&step=2", [
+      found("postal-code", "EC1A+1BB", H),
+    ]);
+    expectFound("GET /lookup?postcode=EC1A%201BB&step=2", [
+      found("postal-code", "EC1A%201BB", H),
+    ]);
+    expectFound("GET /lookup?zip+code=94105&step=2", [
+      found("postal-code", "94105", H),
+    ]);
+  });
+
+  test("a street address typed into a form, or with %20 for its spaces", () => {
+    expectFound("GET /delivery?address=221B+Baker+Street&step=2", [
+      found("postal-address", "221B+Baker+Street", H),
+    ]);
+    expectFound("GET /delivery?address=1600%20Pennsylvania%20Avenue&step=2", [
+      found("postal-address", "1600%20Pennsylvania%20Avenue", H),
+    ]);
+  });
+
+  test("a date of birth with its slashes escaped, or after its words written so", () => {
+    expectFound("GET /verify?dob=12%2F03%2F1985&step=2", [
+      found("date-of-birth", "12%2F03%2F1985", H),
+    ]);
+    expectFound("GET /verify?date+of+birth=1985-03-12&step=2", [
+      found("date-of-birth", "1985-03-12", H),
+    ]);
+    expectFound("GET /verify?born=12+Mar+1985&step=2", [
+      found("date-of-birth", "12+Mar+1985", H),
+    ]);
+  });
+
+  test("what is none written plainly is none in a URL either", () => {
+    expectNothingOf("date-of-birth", [
+      "GET /verify?dob=13%2F13%2F1985",
+      "GET /search?q=1985-03-12",
+    ]);
+    expectNothingOf("postal-code", ["GET /lookup?postcode=EC1A+1CB"]);
+    expectNothingOf("postal-address", [
+      "GET /search?q=12+apples+on+3+Main+shelves",
+    ]);
+  });
+});
+
 describe("ip-address", () => {
   test("finds a public IPv4 address, High next to address words", () => {
     expectFound("remote_addr=81.2.69.142", [

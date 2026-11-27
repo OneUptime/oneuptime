@@ -76,7 +76,9 @@ import OpenStackCloudFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pag
 import CephClusterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Feed";
 import StorageArrayFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Feed";
 import VMwareVCenterFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Feed";
-import XcpNgPoolFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Feed";
+import XcpNgPoolFeedPage, {
+  getXcpNgPoolFeedKind,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Feed";
 import HostFeedPage from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/View/Feed";
 import CloudResourceFeedPage, {
   CLOUD_RESOURCE_FEED_EVENT_TYPES,
@@ -364,6 +366,8 @@ const FEED_PAGES: Array<FeedPageSpec> = [
     resourceIdColumn: "xcpNgPoolId",
     eventTypeColumn: "xcpNgPoolFeedEventType",
     enumObject: XcpNgPoolFeedEventType,
+    // What XAPI and Xen Orchestra said: a message, the master, HA, a backup (#10997).
+    getKind: getXcpNgPoolFeedKind,
   },
   {
     product: "Host",

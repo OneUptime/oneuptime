@@ -46,6 +46,10 @@ export enum XcpNgPoolFeedEventType {
    * them into alerts.
    */
   XcpNgPoolMessage = "XcpNgPoolMessage",
+  // #10997: the master moving, HA changing, a backup job failing.
+  XcpNgPoolMasterChanged = "XcpNgPoolMasterChanged",
+  XcpNgPoolHaChanged = "XcpNgPoolHaChanged",
+  XcpNgPoolBackupFailed = "XcpNgPoolBackupFailed",
 }
 
 @EnableDocumentation()

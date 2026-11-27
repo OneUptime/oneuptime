@@ -3982,6 +3982,27 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/XcpNgProbeCollectionSqlPostgres.test.ts --forceExit
 
+      # Clones the migrated XcpNgResource and XcpNgPool tables into an
+      # isolated schema and runs the XCP-ng inventory's and pool events'
+      # hand-written SQL (#10995, #10997): the inventory upsert, prune and
+      # counts from the recorded Xen Orchestra scrapes; a VM's last backup
+      # written only when newer, its last success only moving forward,
+      # nothing on another pool's, project's, kind's or a deleted row,
+      # batches past one statement, a host's missing patches replaced by
+      # each check; and the pool's event columns written round the hooks,
+      # a key left out keeping its value.
+      - name: Test XCP-ng inventory and pool event writes on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_XCP_NG_RESOURCE_TESTS: "true"
+          XCP_NG_RESOURCE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          XCP_NG_RESOURCE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/XcpNgResourceWritesPostgres.test.ts
+          Tests/Server/Services/XcpNgPoolEventWritesPostgres.test.ts --forceExit
+
       # Clones the migrated Project, Probe, OpenStackCloud and
       # OpenStackCloudConnectionTest tables into an isolated schema and runs
       # OpenStack probe collection's hand-written SQL: a probe claims only its

@@ -25,6 +25,7 @@ import { getAllOpenStackAlertTemplates } from "Common/Types/Monitor/OpenStackAle
 import { getAllStorageArrayAlertTemplates } from "Common/Types/Monitor/StorageArrayAlertTemplates";
 import { getAllVMwareAlertTemplates } from "Common/Types/Monitor/VMwareAlertTemplates";
 import { getAllXcpNgAlertTemplates } from "Common/Types/Monitor/XcpNgAlertTemplates";
+import { getAllXcpNgEventAlertTemplates } from "Common/Types/Monitor/XcpNgEventAlertTemplates";
 import { isEnglishCopy } from "../../FeatureSet/Docs/Utils/Translations";
 
 /*
@@ -2011,6 +2012,7 @@ describe("OpenStack's load balancers, floating IPs, pools and shares, in Persian
     ...getAllStorageArrayAlertTemplates(),
     ...getAllVMwareAlertTemplates(),
     ...getAllXcpNgAlertTemplates(),
+    ...getAllXcpNgEventAlertTemplates(),
   ].map((template: { name: string }): string => {
     return template.name;
   });

@@ -546,6 +546,7 @@ export default class SessionReplayScrubService {
             action,
             patternType,
             compiled.rule.projectId,
+            compiled.regex,
           );
         },
       );
@@ -566,18 +567,22 @@ export default class SessionReplayScrubService {
    * (Common/Server/Utils/Telemetry/ScrubAction). A Hash rule makes its
    * project's token there (ScrubHashToken, #10394), as a log rule does -
    * the same rule hashes a value alike in a recording and in a log line.
+   * `pattern`: the rule's compiled pattern, which says how a match it found
+   * in a reading reads (#11199), as a log rule's does.
    */
   private static applyScrubAction(
     match: string,
     action: string,
     patternType: string,
     projectId?: ObjectID | string | null | undefined,
+    pattern?: ScrubRegExp | undefined,
   ): string {
     return ScrubAction.apply({
       match: match,
       action: action,
       patternType: patternType,
       projectId: projectId,
+      pattern: pattern,
     });
   }
 }

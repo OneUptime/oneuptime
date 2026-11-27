@@ -827,6 +827,10 @@ describe("XCP-ng database models", () => {
           "LabelRuleExecuted",
           // What XAPI tells a pool's operators, read by a probe (#10999).
           "XcpNgPoolMessage",
+          // #10997: the master moving, HA changing, a backup job failing.
+          "XcpNgPoolMasterChanged",
+          "XcpNgPoolHaChanged",
+          "XcpNgPoolBackupFailed",
         ].sort(),
       );
     });

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 2766
+    "keys": 67248,
+    "untranslated": 2758
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -205,6 +205,7 @@
     "Deadlocks",
     "Debug",
     "Definition",
+    "Delta",
     "DeploymentConfigs",
     "Deployments",
     "Desktop",
@@ -491,6 +492,7 @@
     "Passkeys",
     "Passthrough",
     "Patch {{level}}",
+    "Patches",
     "Payload",
     "Perf",
     "Performance & Tracing",
@@ -769,6 +771,7 @@
     "Workflow {{id}}",
     "Workload",
     "Workloads",
+    "XAPI",
     "Zone",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

@@ -238,6 +238,17 @@ OneUptime 會在每個資源池的資料送達時為其衍生四個 0/1 序列�
 | `xcp_ng.vm.running` | 虛擬機器為 Running；為 Halted、Paused 或 Suspended 時為 0 |
 | `xcp_ng.vm.stopped_after_running` | 過去 24 小時內執行過的虛擬機器為 Halted 或 Paused |
 
+如果有探測器連線到 Xen Orchestra 或資源池的 XAPI，OneUptime 也會根據探測器在指標之外讀取的內容推導以下序列；代理程式不讀取其中任何內容：
+
+| 序列 | 值 |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 資源池的 HA 開啟時為 1，否則為 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | HA 仍能承受一台主機故障時為 1，否則為 0：透過 XAPI 是 HA 自己的計畫，透過 Xen Orchestra 是除故障主機之外還有一台已啟動且已啟用的主機 |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | HA 設定為可承受的主機故障數（僅透過 XAPI） |
+| `xcp_ng.pool.ha.plan_exists_for` | 目前計畫涵蓋的主機故障數（僅透過 XAPI） |
+| `xcp_ng.vm.backup_overdue` | 排程備份工作所包含的虛擬機器在其間隔再加四分之一（至少一小時）內沒有成功備份時為 1（僅透過 Xen Orchestra） |
+| `xcp_ng.host.missing_patches` | 主機缺少的修補程式數，每六小時檢查一次（僅透過 Xen Orchestra） |
+
 它還會在每個資料點上標上 `xcp_ng.scope`（`pool`、`host`、`vm`、`sr`、`vdi` 或 `xostor`）和 `xcp_ng.id`（該物件的 UUID），監測器和儀表板會依它們篩選：請參閱 [資源識別](/docs/monitor/xcp-ng-monitor#資源識別)。
 
 ### 代理程式不保留的內容
@@ -405,7 +416,8 @@ Xen Orchestra 只回報它所連線的資源池，而代理程式只讀取這個
 
 Xen Orchestra 的 OpenMetrics 外掛程式提供的是指標，因此你在 XCP-ng 資源池中關注的部分內容還不在其中：
 
-- 除 XOSTOR 之外的 **警報**、**HA 狀態**、**資源池主節點**、**缺少的修補程式**、**備份** 和 **快照**，以及主機實體介面（PIF）的 **連結狀態**。它們來自 Xen Orchestra 的 REST API，見 [#10997](https://github.com/OneUptime/oneuptime/issues/10997)。
+- 除 XOSTOR 之外的 **警報**、**HA 狀態**、**資源池主節點**、**缺少的修補程式** 和 **備份**：OneUptime 探測器從 Xen Orchestra 的 REST API 或資源池的 XAPI 讀取它們（[#10997](https://github.com/OneUptime/oneuptime/issues/10997)），請參閱[免代理程式的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
+- 每台虛擬機器的 **快照** 和主機實體介面（PIF）的 **連結狀態**，目前也還沒有探測器讀取它們（[#11328](https://github.com/OneUptime/oneuptime/issues/11328)）。
 - **沒有 Xen Orchestra 的資源池**，或位於沒有外掛程式所需 Premium 授權的 XOA 之後的資源池：OneUptime 探測器直接透過 XAPI 讀取它們（[#10999](https://github.com/OneUptime/oneuptime/issues/10999)），請參閱[免代理程式的 XCP-ng](/docs/telemetry/xcp-ng-agentless)。
 - **不需代理程式即可連線**：OneUptime 探測器自己讀取 Xen Orchestra 的外掛程式，就像 VMware 那樣（[#10996](https://github.com/OneUptime/oneuptime/issues/10996)），見同一頁面。
 

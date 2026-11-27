@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8259
+    "keys": 67248,
+    "untranslated": 8247
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -108,6 +108,7 @@
     "Datastores",
     "Deadlocks",
     "Definition",
+    "Delta",
     "DeploymentConfigs",
     "Desktop",
     "Destination",
@@ -283,6 +284,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Patches",
     "Path traversal",
     "Pause",
     "Payload",
@@ -470,6 +472,7 @@
     "Webhooks",
     "Workflow {{id}}",
     "Workspaces",
+    "XAPI",
     "Zone",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

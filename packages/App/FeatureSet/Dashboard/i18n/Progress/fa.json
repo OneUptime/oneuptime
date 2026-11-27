@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 66171,
+    "keys": 67248,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -309,6 +309,7 @@
     "Vital",
     "WAF",
     "WhatsApp: ",
+    "XAPI",
     "Zabbix",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

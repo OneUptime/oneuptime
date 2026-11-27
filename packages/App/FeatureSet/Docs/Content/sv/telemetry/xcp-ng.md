@@ -238,6 +238,17 @@ OneUptime härleder fyra 0/1-serier för varje pool medan dess data kommer in, o
 | `xcp_ng.vm.running` | VM:en är Running; 0 medan den är Halted, Paused eller Suspended |
 | `xcp_ng.vm.stopped_after_running` | en VM som kördes under de senaste 24 timmarna är Halted eller Paused |
 
+Med en sond ansluten till Xen Orchestra eller till poolens XAPI härleder OneUptime också dessa ur det sonden läser utöver mätvärdena; agenten läser inget av det:
+
+| Serie | Värde |
+| --- | --- |
+| `xcp_ng.pool.ha.enabled` | 1 så länge poolens HA är påslagen, annars 0 |
+| `xcp_ng.pool.ha.can_tolerate_host_failure` | 1 så länge HA fortfarande klarar att en värd havererar, annars 0: HA:s egen plan via XAPI, via Xen Orchestra en värd som är igång och aktiverad utöver den som havererar |
+| `xcp_ng.pool.ha.host_failures_to_tolerate` | hur många värdhaverier HA ska klara (bara via XAPI) |
+| `xcp_ng.pool.ha.plan_exists_for` | hur många värdhaverier den nuvarande planen täcker (bara via XAPI) |
+| `xcp_ng.vm.backup_overdue` | 1 så länge en VM som ett schemalagt säkerhetskopieringsjobb omfattar inte har haft en lyckad säkerhetskopia inom sitt intervall plus en fjärdedel, minst en timme (bara via Xen Orchestra) |
+| `xcp_ng.host.missing_patches` | hur många uppdateringar en värd saknar, kontrolleras var sjätte timme (bara via Xen Orchestra) |
+
 Den sätter också `xcp_ng.scope` (`pool`, `host`, `vm`, `sr`, `vdi` eller `xostor`) och `xcp_ng.id` (objektets UUID) på varje punkt, och monitorer och instrumentpaneler filtrerar på dem: se [Resursidentitet](/docs/monitor/xcp-ng-monitor#resursidentitet).
 
 ### Vad agenten inte behåller
@@ -405,7 +416,8 @@ Agenten är en standardkonfiguration av collectorn, så en collector som du reda
 
 Xen Orchestras OpenMetrics-plugin levererar mätvärden, så en del av det du håller koll på i en XCP-ng-pool finns inte där ännu:
 
-- **Larm** utöver XOSTOR:s, **HA-tillståndet**, **pool-mastern**, **saknade patchar**, **säkerhetskopior** och **ögonblicksbilder**, och **länktillståndet** för en värds fysiska gränssnitt (PIF:ar). De kommer från Xen Orchestras REST-API, i [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
+- **Larm** utöver XOSTOR:s, **HA-tillståndet**, **pool-mastern**, **saknade patchar** och **säkerhetskopior**: en OneUptime-sond läser dem från Xen Orchestras REST-API eller poolens XAPI ([#10997](https://github.com/OneUptime/oneuptime/issues/10997)), se [XCP-ng utan agent](/docs/telemetry/xcp-ng-agentless).
+- Varje VM:s **ögonblicksbilder** och **länktillståndet** för en värds fysiska gränssnitt (PIF:ar), som ingen sond heller läser ännu ([#11328](https://github.com/OneUptime/oneuptime/issues/11328)).
 - **Pooler utan Xen Orchestra**, eller bakom en XOA utan den Premium-licens som pluginet behöver: en OneUptime-sond läser dem direkt via XAPI ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), se [XCP-ng utan agent](/docs/telemetry/xcp-ng-agentless).
 - **Anslutning utan agent**: en OneUptime-sond läser själv Xen Orchestras plugin, som VMware kan ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), på samma sida.
 
