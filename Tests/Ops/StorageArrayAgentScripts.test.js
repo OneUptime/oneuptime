@@ -430,6 +430,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       NETAPP_ONTAP_USERNAME: "'oneuptime'",
       // Single-quoted: Compose hands Harvest exactly what was typed.
       NETAPP_ONTAP_PASSWORD: `'${ONTAP_PASSWORD}'`,
+      POWERSCALE_ENDPOINT: "''",
+      POWERSCALE_SNMP_COMMUNITY: "''",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
     });
     // It holds the user's password, read without echo.

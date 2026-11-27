@@ -42,6 +42,41 @@ const TEXT = fs.readFileSync(CONFIG_PATH, "utf8");
 const CONFIG = yaml.load(TEXT);
 const RECEIVERS = CONFIG.receivers;
 
+/*
+ * install.sh's PLATFORMS table, one line per menu choice: PowerScale's
+ * number in the menu is its line's place, and every other line's address,
+ * token, user and kept settings (fields 4, 5, 10 and 12) are written to
+ * .env empty. Read from the script, so a platform added later moves neither.
+ */
+const PLATFORM_TABLE = fs
+  .readFileSync(path.join(AGENT_DIR, "install.sh"), "utf8")
+  .split('\nPLATFORMS="\n')[1]
+  .split('\n"\n')[0]
+  .split("\n")
+  .filter((line) => {
+    return line.trim() !== "";
+  })
+  .map((line) => {
+    return line.split("|");
+  });
+const POWERSCALE_ROW = PLATFORM_TABLE.findIndex((fields) => {
+  return fields[0] === CONFIG_NAME;
+});
+const MENU_NUMBER = String(POWERSCALE_ROW + 1);
+const OTHER_PLATFORMS_EMPTY = {};
+for (const fields of PLATFORM_TABLE) {
+  if (fields[0] === CONFIG_NAME) {
+    continue;
+  }
+  for (const field of [fields[3], fields[4], fields[9], fields[11]]) {
+    for (const name of field.split(" ")) {
+      if (name !== "-" && name !== "") {
+        OTHER_PLATFORMS_EMPTY[name] = "''";
+      }
+    }
+  }
+}
+
 const SNMP_SETTINGS = {
   version: "${env:POWERSCALE_SNMP_VERSION:-v2c}",
   community: "${env:POWERSCALE_SNMP_COMMUNITY}",
@@ -426,13 +461,29 @@ const BASE_ENV = {
 };
 
 describe("install.sh for a PowerScale cluster", () => {
+  test("reads the PLATFORMS table it derives the menu number and other platforms from", () => {
+    expect(POWERSCALE_ROW).toBeGreaterThan(-1);
+    expect(PLATFORM_TABLE[POWERSCALE_ROW]).toHaveLength(13);
+    expect(PLATFORM_TABLE[POWERSCALE_ROW][1]).toBe("dell.powerscale");
+    // The Pure platforms' at least, and none of PowerScale's own.
+    expect(OTHER_PLATFORMS_EMPTY).toMatchObject({
+      PURE_FA_ENDPOINT: "''",
+      PURE_FA_API_TOKEN: "''",
+      PURE_FB_ENDPOINT: "''",
+      PURE_FB_API_TOKEN: "''",
+    });
+    for (const name of Object.keys(OTHER_PLATFORMS_EMPTY)) {
+      expect(name.startsWith("POWERSCALE_")).toBe(false);
+    }
+  });
+
   test("from the menu: every node's address, SNMP v2c and the community, written for the collector", () => {
     const dir = scratch();
     const run = install(dir, {
       input: answers(
         "https://oneuptime.example.com/",
         INGESTION_KEY,
-        "4",
+        MENU_NUMBER,
         "ps-prod",
         "10.20.0.11, 10.20.0.12,10.20.0.12,https://10.20.0.13/, fd00::14",
         "",
@@ -442,7 +493,7 @@ describe("install.sh for a PowerScale cluster", () => {
 
     expect(run.status).toBe(0);
     expect(run.output).toContain(
-      "4) Dell PowerScale (Isilon), polled over SNMP",
+      `${MENU_NUMBER}) Dell PowerScale (Isilon), polled over SNMP`,
     );
     expect(run.output).toContain(
       "Use each node's own address, not the SmartConnect name.",
@@ -454,10 +505,8 @@ describe("install.sh for a PowerScale cluster", () => {
       STORAGE_SYSTEM: "dell.powerscale",
       STORAGE_ARRAY_COLLECTOR_CONFIG: CONFIG_NAME,
       COMPOSE_PROFILES: "",
-      PURE_FA_ENDPOINT: "''",
-      PURE_FA_API_TOKEN: "''",
-      PURE_FB_ENDPOINT: "''",
-      PURE_FB_API_TOKEN: "''",
+      // Every other platform's settings stay empty: switching is an .env edit.
+      ...OTHER_PLATFORMS_EMPTY,
       // The cluster's own objects are read through the first node.
       POWERSCALE_ENDPOINT: "'10.20.0.11'",
       // Single-quoted: Compose reads the $ literally.
