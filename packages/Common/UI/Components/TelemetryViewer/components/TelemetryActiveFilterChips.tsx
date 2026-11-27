@@ -152,7 +152,7 @@ const TelemetryActiveFilterChips: FunctionComponent<
              * to wrap still wraps from the chip's side.
              */}
             <span
-              className={filter.isNotFound ? "italic opacity-75" : undefined}
+              className={filter.isNotFound ? "italic text-gray-500" : undefined}
               data-testid={
                 filter.isNotFound ? FILTER_CHIP_NOT_FOUND_TEST_ID : undefined
               }

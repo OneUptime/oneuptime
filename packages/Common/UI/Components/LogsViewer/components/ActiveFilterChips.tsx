@@ -225,7 +225,7 @@ const ActiveFilterChips: FunctionComponent<ActiveFilterChipsProps> = (
                  */}
                 <span
                   className={
-                    filter.isNotFound ? "italic opacity-75" : undefined
+                    filter.isNotFound ? "italic text-gray-500" : undefined
                   }
                   data-testid={
                     filter.isNotFound
