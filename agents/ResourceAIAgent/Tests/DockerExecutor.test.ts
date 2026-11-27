@@ -795,7 +795,7 @@ describe("prepare: what the agent never changes", () => {
     assert.deepStrictEqual(built.docker.calls, []);
   });
 
-  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware, Storage Array and database agents", () => {
+  test("OneUptime's other agents on the same engine: Host, Ceph, Proxmox, VMware, Storage Array, XCP-ng and database agents", () => {
     const built: Built = build({ config: WRITES });
 
     for (const name of [
@@ -813,6 +813,9 @@ describe("prepare: what the agent never changes", () => {
       // Compose's names for Pure's exporters, after the install directory.
       "oneuptime-storage-array-agent-pure-fa-exporter-1",
       "array2-pure-fb-exporter-1",
+      "oneuptime-xcp-ng-agent",
+      // A second Xen Orchestra's agent, renamed as its README says.
+      "oneuptime-xcp-ng-agent-lab",
       // Compose's names for the database agent installed in /opt/oneuptime-database-agent.
       "oneuptime-database-agent-oneuptime-database-agent-1",
       "orders-db-oneuptime-database-ai-agent-1",
