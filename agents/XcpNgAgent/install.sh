@@ -480,12 +480,21 @@ AGENT_FILES_RECORD="$INSTALL_DIR/.agent-files.sha256"
 # The certificates the collector trusts for Xen Orchestra.
 CA_PEM="$INSTALL_DIR/xo-ca.pem"
 
-# Every variable docker-compose.yml reads, and the three this script reads
-# again on a re-run: XO_URL (XO_SCHEME and XO_ADDRESS come from it), and how
-# Xen Orchestra's certificate is trusted (XO_TLS_FINGERPRINT, XO_CA_FILE),
-# so an upgrade checks the certificate the same way.
+# Every variable docker-compose.yml reads, the XCP-ng AI agent's included,
+# and the four this script reads again on a re-run: XO_URL (XO_SCHEME and
+# XO_ADDRESS come from it), how Xen Orchestra's certificate is trusted
+# (XO_TLS_FINGERPRINT, XO_CA_FILE), so an upgrade checks the certificate the
+# same way, and COMPOSE_PROFILES, which starts the AI agent.
 ENV_NAMES="ONEUPTIME_URL ONEUPTIME_TELEMETRY_INGESTION_KEY XO_URL XO_SCHEME XO_ADDRESS \
-XO_OPENMETRICS_SECRET XO_NAME XO_TLS_FINGERPRINT XO_CA_FILE XO_TLS_SERVER_NAME"
+XO_OPENMETRICS_SECRET XO_NAME XO_TLS_FINGERPRINT XO_CA_FILE XO_TLS_SERVER_NAME \
+COMPOSE_PROFILES XCP_NG_POOL_ID ONEUPTIME_AI_AGENT_RESOURCE_NAME \
+ONEUPTIME_AI_XO_READ_TOKEN ONEUPTIME_AI_XO_WRITE_TOKEN \
+ONEUPTIME_AI_INVESTIGATION ONEUPTIME_AI_FIXES ONEUPTIME_AI_ALLOW_WRITES \
+ONEUPTIME_AI_WRITE_TARGETS ONEUPTIME_AI_PROTECTED_TARGETS LOG_LEVEL"
+
+# The Compose profile that starts the XCP-ng AI agent (docker-compose.yml).
+AI_AGENT_PROFILE="xcp-ng-ai-agent"
+AI_AGENT_SERVICE="oneuptime-xcp-ng-ai-agent"
 
 # Re-running the installer is the upgrade, and it keeps the existing
 # configuration: every value already in .env is reused unless the same
@@ -811,6 +820,94 @@ else
     esac
 fi
 
+# ----------------------------------------------------------------------------
+# OneUptime AI (optional): the XCP-ng AI agent
+# ----------------------------------------------------------------------------
+# It lets OneUptime AI look at a pool during an incident, through Xen
+# Orchestra's REST API, with a token of a user holding a copy of Xen
+# Orchestra's Read only role (README.md, "OneUptime AI agent"). It runs
+# exactly when it has such a token: asked for once on a first install at a
+# terminal, kept in .env after that. The agent itself checks, before it runs
+# anything, that the token can only read; here Xen Orchestra is only asked
+# whether it knows the token. Tokens reach curl on stdin, never on its
+# command line, and are never echoed.
+if [ -z "$ONEUPTIME_AI_XO_READ_TOKEN" ] && [ "$REUSED_ENV" = 0 ] && [ -t 0 ] && [ "$XO_SCHEME" = "https" ]; then
+    echo ""
+    echo "Optional: let OneUptime AI look at your pools during incidents, through Xen Orchestra."
+    echo "It needs a token of a Xen Orchestra user holding a copy of the Read only role and nothing"
+    echo "else (README.md, \"OneUptime AI agent\", says how to make one). Press Enter to skip."
+    read -rsp "Read-only Xen Orchestra token: " ONEUPTIME_AI_XO_READ_TOKEN || ONEUPTIME_AI_XO_READ_TOKEN=""
+    echo ""
+fi
+
+# xo_token_answer <token>: the HTTP status Xen Orchestra answers its own
+# user's address with, for that token (000 without an answer).
+xo_token_answer() {
+    local code=""
+    code="$(printf 'Cookie: authenticationToken=%s\n' "$1" \
+        | xo_curl "$TRUST_PEM" /rest/v0/users/me -H @- -o /dev/null -w '%{http_code}' 2>/dev/null)" || true
+    printf '%s' "${code:-000}"
+}
+
+AI_AGENT_RUNS=0
+if [ -n "$ONEUPTIME_AI_XO_READ_TOKEN" ]; then
+    if [ "$XO_SCHEME" != "https" ]; then
+        echo "Warning: the XCP-ng AI agent reads Xen Orchestra over https:// only, so its tokens never cross"
+        echo "the network in clear: it is not started while XO_URL uses http://."
+    elif [ "$ONEUPTIME_AI_XO_WRITE_TOKEN" = "$ONEUPTIME_AI_XO_READ_TOKEN" ]; then
+        echo "Error: ONEUPTIME_AI_XO_WRITE_TOKEN is the read token. Fixes need a token of another user,"
+        echo "whose role allows them (README.md, \"OneUptime AI agent\"), or none."
+        exit 1
+    elif [ "$TRUST_MODE" = "keep" ]; then
+        echo "Warning: not checking the XCP-ng AI agent's token: Xen Orchestra does not answer."
+        AI_AGENT_RUNS=1
+    else
+        case "$(xo_token_answer "$ONEUPTIME_AI_XO_READ_TOKEN")" in
+            200 | 307)
+                echo "Xen Orchestra knows the XCP-ng AI agent's read token. The agent checks that it can"
+                echo "only read before it runs anything."
+                AI_AGENT_RUNS=1
+                ;;
+            401 | 403)
+                echo "Error: Xen Orchestra refused ONEUPTIME_AI_XO_READ_TOKEN, which is wrong or has expired."
+                echo "Make a new token for the read-only user (README.md, \"OneUptime AI agent\") and run this"
+                echo "again, or run it with ONEUPTIME_AI_XO_READ_TOKEN empty to install without the AI agent."
+                exit 1
+                ;;
+            404)
+                echo "Error: Xen Orchestra has no REST API at /rest/v0: the XCP-ng AI agent needs Xen"
+                echo "Orchestra 6.9 or later."
+                exit 1
+                ;;
+            *)
+                echo "Warning: could not ask Xen Orchestra about the XCP-ng AI agent's token; starting the agent"
+                echo "anyway. Its logs, and the pool's AI agent page in OneUptime, say what it finds."
+                AI_AGENT_RUNS=1
+                ;;
+        esac
+        if [ "$AI_AGENT_RUNS" = 1 ] && [ -n "$ONEUPTIME_AI_XO_WRITE_TOKEN" ]; then
+            case "$(xo_token_answer "$ONEUPTIME_AI_XO_WRITE_TOKEN")" in
+                401 | 403)
+                    echo "Error: Xen Orchestra refused ONEUPTIME_AI_XO_WRITE_TOKEN, which is wrong or has expired."
+                    echo "Make a new token for the user whose role allows the fixes, or leave it empty: the"
+                    echo "agent then reads, and fixes nothing."
+                    exit 1
+                    ;;
+            esac
+        fi
+    fi
+fi
+
+# The profile in .env starts the AI agent exactly when it runs: kept with
+# any other profile someone set, dropped when the token is gone.
+OTHER_PROFILES="$(printf '%s' "$COMPOSE_PROFILES" | tr ',' '\n' \
+    | grep -vx "$AI_AGENT_PROFILE" | grep -v '^[[:space:]]*$' | paste -s -d, -)" || OTHER_PROFILES=""
+if [ "$AI_AGENT_RUNS" = 1 ]; then
+    COMPOSE_PROFILES="${OTHER_PROFILES:+$OTHER_PROFILES,}$AI_AGENT_PROFILE"
+else
+    COMPOSE_PROFILES="$OTHER_PROFILES"
+fi
+
 # Create installation directory
 echo ""
 echo "Installing to: $INSTALL_DIR"
@@ -910,6 +1007,17 @@ XO_NAME=$(compose_env_quote "$XO_NAME")
 XO_TLS_FINGERPRINT=$(compose_env_quote "$XO_TLS_FINGERPRINT")
 XO_CA_FILE=$(compose_env_quote "$XO_CA_FILE")
 XO_TLS_SERVER_NAME=$(compose_env_quote "$XO_TLS_SERVER_NAME")
+COMPOSE_PROFILES=$(compose_env_quote "$COMPOSE_PROFILES")
+XCP_NG_POOL_ID=$(compose_env_quote "$XCP_NG_POOL_ID")
+ONEUPTIME_AI_AGENT_RESOURCE_NAME=$(compose_env_quote "$ONEUPTIME_AI_AGENT_RESOURCE_NAME")
+ONEUPTIME_AI_XO_READ_TOKEN=$(compose_env_quote "$ONEUPTIME_AI_XO_READ_TOKEN")
+ONEUPTIME_AI_XO_WRITE_TOKEN=$(compose_env_quote "$ONEUPTIME_AI_XO_WRITE_TOKEN")
+ONEUPTIME_AI_INVESTIGATION=$(compose_env_quote "$ONEUPTIME_AI_INVESTIGATION")
+ONEUPTIME_AI_FIXES=$(compose_env_quote "$ONEUPTIME_AI_FIXES")
+ONEUPTIME_AI_ALLOW_WRITES=$(compose_env_quote "$ONEUPTIME_AI_ALLOW_WRITES")
+ONEUPTIME_AI_WRITE_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_WRITE_TARGETS")
+ONEUPTIME_AI_PROTECTED_TARGETS=$(compose_env_quote "$ONEUPTIME_AI_PROTECTED_TARGETS")
+LOG_LEVEL=$(compose_env_quote "$LOG_LEVEL")
 ENVEOF
 chmod 600 "$ENV_FILE"
 
@@ -936,6 +1044,11 @@ fi
 # otel-collector-config.yaml or xo-ca.pem (bind mounts), and the collector
 # reads them only when it starts. A plain `up -d` would keep the old config
 # — and the old oneuptime.agent.version — running after the new one arrived.
+# Without its profile, `up` leaves an AI agent started before running, with
+# the token it was started with: one whose token is gone is stopped.
+if [ "$AI_AGENT_RUNS" = 0 ]; then
+    docker compose --profile "$AI_AGENT_PROFILE" rm -sf "$AI_AGENT_SERVICE" >/dev/null 2>&1 || true
+fi
 if ! docker compose up -d --force-recreate; then
     echo ""
     echo "Error: the agent did not start. If Docker reports that the container name"
@@ -958,6 +1071,13 @@ case "$TRUST_MODE" in
     system) echo "Xen Orchestra's certificate is checked against this machine's CA bundle." ;;
     http) echo "Reading Xen Orchestra over http:// - in clear. Use https:// anywhere but a lab." ;;
 esac
+if [ "$AI_AGENT_RUNS" = 1 ]; then
+    echo "The XCP-ng AI agent runs too ($AI_AGENT_SERVICE): it appears on the pool's AI -> AI agent page"
+    echo "in OneUptime. It reads only, until you allow fixes (README.md, \"OneUptime AI agent\")."
+else
+    echo "OneUptime AI can look at your pools too: set ONEUPTIME_AI_XO_READ_TOKEN in $ENV_FILE to a"
+    echo "read-only Xen Orchestra token and run this again (README.md, \"OneUptime AI agent\")."
+fi
 if [ "${#EDITED_FILES[@]}" -gt 0 ]; then
     echo ""
     echo "You had edited these files since install.sh installed them. They were replaced by"

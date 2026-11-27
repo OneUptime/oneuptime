@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-I `monitor_steps` del monitor dicono cosa controlla e cosa significa ogni risultato: dopo ogni controllo, il primo criterio che corrisponde imposta il suo stato. [Passaggi del monitor](/docs/terraform/monitor-steps) spiega ogni parte.
+I `monitor_steps` del monitor dicono cosa controlla e cosa significa ogni risultato: dopo ogni controllo, il primo criterio che corrisponde e cambia lo stato lo imposta. [Passaggi del monitor](/docs/terraform/monitor-steps) spiega ogni parte.
 
 ### Pianificare e applicare
 

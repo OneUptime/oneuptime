@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8050
+    "keys": 67248,
+    "untranslated": 8038
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -196,6 +196,7 @@
     "Web ACL",
     "Webhook",
     "Webhook URL",
+    "XAPI",
     "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

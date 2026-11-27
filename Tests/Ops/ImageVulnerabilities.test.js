@@ -517,7 +517,7 @@ describe("the lines that pin it", () => {
 
   test("a binary named with its version, not a directory of the same name", () => {
     const dockerfile = [
-      "ARG KUBECTL_VERSION=v1.36.6",
+      "ARG KUBECTL_VERSION=v1.36.7",
       'RUN curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"',
       "COPY ./config.yaml /etc/kubectl/config.yaml",
     ].join("\n");

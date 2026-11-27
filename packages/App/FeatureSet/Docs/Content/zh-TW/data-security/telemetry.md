@@ -170,7 +170,7 @@ OneUptime AI 自行做出的變更：
 
 - **跨度或 AI 呼叫**：其 `code.*` 屬性指出的檔案、行和函式，以及跨度的名稱。
 - **例外**：它自身最上層的框架，也就是服務程式碼中的那些框架。
-- **日誌行**：其屬性指出的檔案、行和函式（如果有）、它的記錄器，以及作為範本的這一行，其中每個值都替換為其類型名稱，例如 `User <Email address> signed up`，而記錄無法證明是程式碼寫出的每個字詞（例如人名）都替換為 `<value>`：從一筆記錄中讀到的 `Payment declined for Maria Gonzalez` 會變成 `Payment declined for <value>`。跨度的名稱和指標的名稱也以同樣的方式讀取。
+- **日誌行**：其屬性指出的檔案、行和函式（如果有）、它的記錄器，以及作為範本的這一行，其中每個值都替換為其類型名稱，例如 `User <Email address> signed up`，而不是程式碼寫日誌行所用字詞的每個字詞（例如人名或使用者名稱），無論該行有多少筆記錄共有這個字詞，都替換為 `<value>`：`Payment declined for Maria Gonzalez` 會變成 `Payment declined for <value>`，而從該行的每筆記錄中讀到的 `Ticket assigned to jdoe` 會變成 `Ticket assigned to <value>`。跨度的名稱和指標的名稱也以同樣的方式讀取。
 - **指標**：指標的名稱。
 - **任何洩漏**：它的屬性鍵，例如 `user.email`，程式碼通常照原樣寫入它。
 

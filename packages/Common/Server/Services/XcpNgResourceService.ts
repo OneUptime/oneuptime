@@ -10,6 +10,14 @@ import logger from "../Utils/Logger";
 import XcpNgResourceKind from "../../Types/XcpNg/XcpNgResourceKind";
 import { ParsedXcpNgResource } from "../Utils/Telemetry/XcpNgSnapshotScan";
 import { XCP_NG_VM_RAN_RECENTLY_HOURS } from "../../Types/XcpNg/XcpNgTelemetry";
+import {
+  XCP_NG_MAX_PATCHES_PER_HOST,
+  XcpNgHostPatches,
+} from "../../Types/XcpNg/XcpNgPoolEvents";
+import {
+  XcpNgStoredResource,
+  XcpNgVmBackupUpdate,
+} from "../Utils/XcpNg/XcpNgPoolEventsProcessing";
 
 export { ParsedXcpNgResource };
 
@@ -248,6 +256,245 @@ export function getXcpNgResourceUpsertSql(rowCount: number): string {
       `;
 }
 
+/*
+ * ---------------------------------------------------------------
+ * #10997: a VM's last backup, its jobs' interval, a host's missing
+ * patches - written by the events ingest (XcpNgPoolEventsIngest), each as
+ * one parameterized UPDATE ... FROM (VALUES ...) per batch, and only to
+ * rows of the pool's own kind and project.
+ * ---------------------------------------------------------------
+ */
+
+export interface XcpNgSqlStatement {
+  sql: string;
+  params: Array<unknown>;
+}
+
+const EVENT_WRITE_BATCH_SIZE: number = 200;
+
+function chunk<T>(items: Array<T>, size: number): Array<Array<T>> {
+  const chunks: Array<Array<T>> = [];
+  for (let index: number = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
+/*
+ * One update per VM: the newest run's "last backup", and the newest
+ * success of any run in the batch.
+ */
+export function collapseXcpNgVmBackupUpdates(
+  updates: Array<XcpNgVmBackupUpdate>,
+): Array<XcpNgVmBackupUpdate> {
+  const byVm: Map<string, XcpNgVmBackupUpdate> = new Map();
+
+  for (const update of updates) {
+    const vmId: string = update.vmId.toLowerCase();
+    const known: XcpNgVmBackupUpdate | undefined = byVm.get(vmId);
+    if (!known) {
+      byVm.set(vmId, { ...update, vmId: vmId });
+      continue;
+    }
+    const newest: XcpNgVmBackupUpdate =
+      update.lastBackupAt.getTime() >= known.lastBackupAt.getTime()
+        ? { ...update, vmId: vmId }
+        : { ...known };
+    const successes: Array<Date> = [
+      known.lastSuccessfulBackupAt,
+      update.lastSuccessfulBackupAt,
+    ].filter((date: Date | null): date is Date => {
+      return Boolean(date);
+    });
+    newest.lastSuccessfulBackupAt =
+      successes.length > 0
+        ? new Date(
+            Math.max(
+              ...successes.map((date: Date): number => {
+                return date.getTime();
+              }),
+            ),
+          )
+        : null;
+    byVm.set(vmId, newest);
+  }
+
+  return Array.from(byVm.values());
+}
+
+/*
+ * The VMs' "last backup": written only where it is newer than what the row
+ * holds, so a run delivered late never undoes a newer one.
+ */
+export function getXcpNgVmLastBackupStatements(data: {
+  projectId: ObjectID;
+  xcpNgPoolId: ObjectID;
+  updates: Array<XcpNgVmBackupUpdate>;
+}): Array<XcpNgSqlStatement> {
+  return chunk(data.updates, EVENT_WRITE_BATCH_SIZE).map(
+    (batch: Array<XcpNgVmBackupUpdate>): XcpNgSqlStatement => {
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.xcpNgPoolId.toString(),
+        XcpNgResourceKind.VM,
+      ];
+      const rows: Array<string> = batch.map(
+        (update: XcpNgVmBackupUpdate): string => {
+          const start: number = params.length + 1;
+          params.push(
+            update.vmId.toLowerCase(),
+            update.lastBackupAt,
+            truncateShortText(update.lastBackupStatus),
+            truncateShortText(update.lastBackupJobName),
+            update.lastBackupError === null
+              ? null
+              : truncateLongText(update.lastBackupError),
+            update.lastBackupBytes === null
+              ? null
+              : Math.max(0, Math.trunc(update.lastBackupBytes)).toString(),
+          );
+          return `($${start}::text, $${start + 1}::timestamptz, $${start + 2}::text, $${start + 3}::text, $${start + 4}::text, $${start + 5}::bigint)`;
+        },
+      );
+
+      return {
+        sql: `UPDATE "XcpNgResource" AS r SET
+          "lastBackupAt" = v."lastBackupAt",
+          "lastBackupStatus" = v."lastBackupStatus",
+          "lastBackupJobName" = v."lastBackupJobName",
+          "lastBackupError" = v."lastBackupError",
+          "lastBackupBytes" = v."lastBackupBytes",
+          "updatedAt" = now()
+        FROM (VALUES ${rows.join(", ")}) AS v("externalId", "lastBackupAt", "lastBackupStatus", "lastBackupJobName", "lastBackupError", "lastBackupBytes")
+        WHERE r."projectId" = $1 AND r."xcpNgPoolId" = $2 AND r."kind" = $3
+          AND r."externalId" = v."externalId" AND r."deletedAt" IS NULL
+          AND (r."lastBackupAt" IS NULL OR r."lastBackupAt" <= v."lastBackupAt")`,
+        params: params,
+      };
+    },
+  );
+}
+
+// The VMs' newest successful backup, whichever run brought it.
+export function getXcpNgVmLastSuccessStatements(data: {
+  projectId: ObjectID;
+  xcpNgPoolId: ObjectID;
+  updates: Array<XcpNgVmBackupUpdate>;
+}): Array<XcpNgSqlStatement> {
+  const successes: Array<XcpNgVmBackupUpdate> = data.updates.filter(
+    (update: XcpNgVmBackupUpdate): boolean => {
+      return Boolean(update.lastSuccessfulBackupAt);
+    },
+  );
+
+  return chunk(successes, EVENT_WRITE_BATCH_SIZE).map(
+    (batch: Array<XcpNgVmBackupUpdate>): XcpNgSqlStatement => {
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.xcpNgPoolId.toString(),
+        XcpNgResourceKind.VM,
+      ];
+      const rows: Array<string> = batch.map(
+        (update: XcpNgVmBackupUpdate): string => {
+          const start: number = params.length + 1;
+          params.push(update.vmId.toLowerCase(), update.lastSuccessfulBackupAt);
+          return `($${start}::text, $${start + 1}::timestamptz)`;
+        },
+      );
+
+      return {
+        sql: `UPDATE "XcpNgResource" AS r SET
+          "lastSuccessfulBackupAt" = GREATEST(r."lastSuccessfulBackupAt", v."at"),
+          "updatedAt" = now()
+        FROM (VALUES ${rows.join(", ")}) AS v("externalId", "at")
+        WHERE r."projectId" = $1 AND r."xcpNgPoolId" = $2 AND r."kind" = $3
+          AND r."externalId" = v."externalId" AND r."deletedAt" IS NULL`,
+        params: params,
+      };
+    },
+  );
+}
+
+// How often each VM is backed up; null for a VM no scheduled job backs up.
+export function getXcpNgVmIntervalStatements(data: {
+  projectId: ObjectID;
+  xcpNgPoolId: ObjectID;
+  updates: Array<{ vmId: string; intervalSeconds: number | null }>;
+}): Array<XcpNgSqlStatement> {
+  return chunk(data.updates, EVENT_WRITE_BATCH_SIZE).map(
+    (
+      batch: Array<{ vmId: string; intervalSeconds: number | null }>,
+    ): XcpNgSqlStatement => {
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.xcpNgPoolId.toString(),
+        XcpNgResourceKind.VM,
+      ];
+      const rows: Array<string> = batch.map(
+        (update: { vmId: string; intervalSeconds: number | null }): string => {
+          const start: number = params.length + 1;
+          params.push(
+            update.vmId.toLowerCase(),
+            update.intervalSeconds === null
+              ? null
+              : Math.max(0, Math.trunc(update.intervalSeconds)),
+          );
+          return `($${start}::text, $${start + 1}::integer)`;
+        },
+      );
+
+      return {
+        sql: `UPDATE "XcpNgResource" AS r SET
+          "backupIntervalSeconds" = v."intervalSeconds",
+          "updatedAt" = now()
+        FROM (VALUES ${rows.join(", ")}) AS v("externalId", "intervalSeconds")
+        WHERE r."projectId" = $1 AND r."xcpNgPoolId" = $2 AND r."kind" = $3
+          AND r."externalId" = v."externalId" AND r."deletedAt" IS NULL`,
+        params: params,
+      };
+    },
+  );
+}
+
+// Each host's missing patches, as last checked.
+export function getXcpNgHostPatchStatements(data: {
+  projectId: ObjectID;
+  xcpNgPoolId: ObjectID;
+  hosts: Array<XcpNgHostPatches>;
+}): Array<XcpNgSqlStatement> {
+  return chunk(data.hosts, EVENT_WRITE_BATCH_SIZE).map(
+    (batch: Array<XcpNgHostPatches>): XcpNgSqlStatement => {
+      const params: Array<unknown> = [
+        data.projectId.toString(),
+        data.xcpNgPoolId.toString(),
+        XcpNgResourceKind.Host,
+      ];
+      const rows: Array<string> = batch.map(
+        (host: XcpNgHostPatches): string => {
+          const start: number = params.length + 1;
+          params.push(
+            host.hostId.toLowerCase(),
+            Math.max(0, Math.trunc(host.patchCount)),
+            JSON.stringify(host.patches.slice(0, XCP_NG_MAX_PATCHES_PER_HOST)),
+          );
+          return `($${start}::text, $${start + 1}::integer, $${start + 2}::jsonb)`;
+        },
+      );
+
+      return {
+        sql: `UPDATE "XcpNgResource" AS r SET
+          "missingPatchCount" = v."count",
+          "missingPatches" = v."patches",
+          "updatedAt" = now()
+        FROM (VALUES ${rows.join(", ")}) AS v("externalId", "count", "patches")
+        WHERE r."projectId" = $1 AND r."xcpNgPoolId" = $2 AND r."kind" = $3
+          AND r."externalId" = v."externalId" AND r."deletedAt" IS NULL`,
+        params: params,
+      };
+    },
+  );
+}
+
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
@@ -461,6 +708,113 @@ export class Service extends DatabaseService<Model> {
         return row.externalId;
       }),
     );
+  }
+
+  /**
+   * What the events ingest needs of a pool's inventory (#10997): its
+   * hosts, VMs, storage repositories and virtual disks, by name and state,
+   * with each VM's backups and each host's patches as last written.
+   */
+  @CaptureSpan()
+  public async findForEvents(data: {
+    projectId: ObjectID;
+    xcpNgPoolId: ObjectID;
+  }): Promise<Array<XcpNgStoredResource>> {
+    const rows: Array<Record<string, unknown>> =
+      await this.getRepository().manager.query(
+        `SELECT "kind", "externalId", "name", "isUp", "isEnabled",
+          "isControlDomain", "lastSuccessfulBackupAt", "backupIntervalSeconds",
+          "missingPatchCount"
+        FROM "XcpNgResource"
+        WHERE "projectId" = $1 AND "xcpNgPoolId" = $2 AND "deletedAt" IS NULL`,
+        [data.projectId.toString(), data.xcpNgPoolId.toString()],
+      );
+
+    return rows.map((row: Record<string, unknown>): XcpNgStoredResource => {
+      const lastSuccess: unknown = row["lastSuccessfulBackupAt"];
+      return {
+        kind: String(row["kind"] || ""),
+        externalId: String(row["externalId"] || "").toLowerCase(),
+        name: typeof row["name"] === "string" ? (row["name"] as string) : null,
+        isUp:
+          typeof row["isUp"] === "boolean" ? (row["isUp"] as boolean) : null,
+        isEnabled:
+          typeof row["isEnabled"] === "boolean"
+            ? (row["isEnabled"] as boolean)
+            : null,
+        isControlDomain:
+          typeof row["isControlDomain"] === "boolean"
+            ? (row["isControlDomain"] as boolean)
+            : null,
+        lastSuccessfulBackupAt:
+          lastSuccess instanceof Date
+            ? lastSuccess
+            : lastSuccess
+              ? new Date(String(lastSuccess))
+              : null,
+        backupIntervalSeconds:
+          row["backupIntervalSeconds"] === null ||
+          row["backupIntervalSeconds"] === undefined
+            ? null
+            : Number(row["backupIntervalSeconds"]),
+        missingPatchCount:
+          row["missingPatchCount"] === null ||
+          row["missingPatchCount"] === undefined
+            ? null
+            : Number(row["missingPatchCount"]),
+      };
+    });
+  }
+
+  // Each statement is one auto-committed UPDATE, run one after another.
+  private async runStatements(
+    statements: Array<XcpNgSqlStatement>,
+  ): Promise<void> {
+    for (const statement of statements) {
+      await this.getRepository().manager.query(statement.sql, statement.params);
+    }
+  }
+
+  @CaptureSpan()
+  public async applyVmBackups(data: {
+    projectId: ObjectID;
+    xcpNgPoolId: ObjectID;
+    updates: Array<XcpNgVmBackupUpdate>;
+  }): Promise<void> {
+    const updates: Array<XcpNgVmBackupUpdate> = collapseXcpNgVmBackupUpdates(
+      data.updates,
+    );
+    if (updates.length === 0) {
+      return;
+    }
+    await this.runStatements([
+      ...getXcpNgVmLastBackupStatements({ ...data, updates: updates }),
+      ...getXcpNgVmLastSuccessStatements({ ...data, updates: updates }),
+    ]);
+  }
+
+  @CaptureSpan()
+  public async applyVmBackupIntervals(data: {
+    projectId: ObjectID;
+    xcpNgPoolId: ObjectID;
+    updates: Array<{ vmId: string; intervalSeconds: number | null }>;
+  }): Promise<void> {
+    if (data.updates.length === 0) {
+      return;
+    }
+    await this.runStatements(getXcpNgVmIntervalStatements(data));
+  }
+
+  @CaptureSpan()
+  public async applyHostPatches(data: {
+    projectId: ObjectID;
+    xcpNgPoolId: ObjectID;
+    hosts: Array<XcpNgHostPatches>;
+  }): Promise<void> {
+    if (data.hosts.length === 0) {
+      return;
+    }
+    await this.runStatements(getXcpNgHostPatchStatements(data));
   }
 }
 

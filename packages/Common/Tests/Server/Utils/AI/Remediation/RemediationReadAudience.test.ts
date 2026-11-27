@@ -77,6 +77,7 @@ describe("what a fix acts on, by model name", () => {
       [AiResourceType.AzureSubscription]: "CloudAccount",
       [AiResourceType.GoogleCloudProject]: "CloudAccount",
       [AiResourceType.OpenStackCloud]: "OpenStackCloud",
+      [AiResourceType.XcpNgPool]: "XcpNgPool",
     };
 
     for (const [resourceType, kind] of Object.entries(expected)) {

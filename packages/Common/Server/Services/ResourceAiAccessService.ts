@@ -68,11 +68,12 @@ import PodmanHostService from "./PodmanHostService";
 import ProxmoxClusterService from "./ProxmoxClusterService";
 import ResourceAiAgentService from "./ResourceAiAgentService";
 import VMwareVCenterService from "./VMwareVCenterService";
+import XcpNgPoolService from "./XcpNgPoolService";
 
 /*
  * OneUptime AI access to an infrastructure resource — a Docker or Podman
  * host, a Docker Swarm, Proxmox, VMware or Ceph cluster, an OpenStack cloud,
- * a database server or a host — through that resource's AI agent (a ResourceAiAgent row).
+ * an XCP-ng pool, a database server or a host — through that resource's AI agent (a ResourceAiAgent row).
  *
  * The resource-agnostic sibling of KubernetesClusterAiAccessService, and
  * shaped like it: it answers, from CURRENT configuration, whether AI can
@@ -173,6 +174,7 @@ type SubjectRelation =
   | "vmwareVCenters"
   | "cephClusters"
   | "openStackClouds"
+  | "xcpNgPools"
   | "databaseServers"
   | "hosts"
   | "cloudResources";
@@ -332,6 +334,17 @@ const MODEL_SPECS: Readonly<Record<AiResourceType, ResourceAiAccessModelSpec>> =
       query: {},
       hasArchive: true,
     },
+    [AiResourceType.XcpNgPool]: {
+      get service(): AnyDatabaseService {
+        return XcpNgPoolService;
+      },
+      // The pool's XAPI UUID: the identity its collector and its agent report.
+      identityColumns: { poolIdentifier: true },
+      subjectRelation: "xcpNgPools",
+      resolvedIdsKey: "xcpNgPoolIds",
+      query: {},
+      hasArchive: true,
+    },
   };
 
 /*
@@ -362,6 +375,8 @@ const REACH_HINTS: Readonly<Record<AiResourceType, string>> = {
     "that the agent's service account has its role on this project and the agent can reach the Google Cloud APIs",
   [AiResourceType.OpenStackCloud]:
     "the clouds.yaml mounted into the agent's container and its route to Keystone and the services' endpoints",
+  [AiResourceType.XcpNgPool]:
+    "Xen Orchestra's address (XO_ADDRESS), the xo-ca.pem the agent trusts for it, and the agent's read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN)",
 };
 
 /*
@@ -778,19 +793,28 @@ export class ResourceAiAccessServiceClass {
       });
     } else if (
       agent &&
-      type === AiResourceType.OpenStackCloud &&
+      (type === AiResourceType.OpenStackCloud ||
+        type === AiResourceType.XcpNgPool) &&
       posture?.details?.["writeCredentialWorks"] === false
     ) {
       /*
        * Found while a person can still fix it, not on the night the fix is needed:
-       * the agent logs in with its credential for changes at every report.
+       * the agent tries its credential for changes at every report (an OpenStack
+       * cloud's logs in; an XCP-ng pool's Xen Orchestra token is asked who it is
+       * and what it may do).
        */
+      const isXcpNg: boolean = type === AiResourceType.XcpNgPool;
+
       gaps.push({
         code: "remediation_write_access_missing",
-        title: `The ${info.agentDisplayName}'s credential for changes does not work`,
+        title: `The ${info.agentDisplayName}'s ${
+          isXcpNg ? "token" : "credential"
+        } for changes does not work`,
         nextStep: String(
           posture.details["writeCredentialProblem"] ||
-            "It did not log in. Make it again, as the OpenStack agent's README says.",
+            (isXcpNg
+              ? "Xen Orchestra refused it. Make a new token for changes, as the XCP-ng Agent's README says."
+              : "It did not log in. Make it again, as the OpenStack agent's README says."),
         ),
         blocksInvestigation: false,
         blocksRemediation: true,
@@ -1117,8 +1141,8 @@ export class ResourceAiAccessServiceClass {
 
   /*
    * The identity the resource's collector reports: hostIdentifier for
-   * hosts, the name for clusters and vCenters, and system|host:port for a
-   * database server.
+   * hosts, the pool's UUID for an XCP-ng pool, the name for clusters and
+   * vCenters, and system|host:port for a database server.
    */
   private readIdentifier(
     resourceType: AiResourceType,
@@ -1134,6 +1158,10 @@ export class ResourceAiAccessServiceClass {
 
     if (isCloudAiResourceType(resourceType)) {
       return readString(model["accountId"]);
+    }
+
+    if (resourceType === AiResourceType.XcpNgPool) {
+      return readString(model["poolIdentifier"]);
     }
 
     if (resourceType === AiResourceType.DatabaseServer) {

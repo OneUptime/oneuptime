@@ -158,7 +158,7 @@ output "monitor_id" {
 }
 ```
 
-Los `monitor_steps` del monitor dicen qué comprueba y qué significa cada resultado: tras cada comprobación, el primer criterio que coincide fija su estado. [Pasos del monitor](/docs/terraform/monitor-steps) explica cada parte.
+Los `monitor_steps` del monitor dicen qué comprueba y qué significa cada resultado: tras cada comprobación, el primer criterio que coincide y cambia el estado lo fija. [Pasos del monitor](/docs/terraform/monitor-steps) explica cada parte.
 
 ### Planificar y aplicar
 

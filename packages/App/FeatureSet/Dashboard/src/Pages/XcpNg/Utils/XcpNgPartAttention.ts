@@ -2,6 +2,7 @@ import XcpNgResource from "Common/Models/DatabaseModels/XcpNgResource";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { ResourcePartAttention } from "../../../Components/ResourcePart/ResourcePartTypes";
 import {
+  XcpNgBackupContext,
   XcpNgPartKind,
   XcpNgRouteFor,
   getXcpNgAttentionItems,
@@ -53,6 +54,8 @@ export function getXcpNgPartAttention(data: {
   hostRows?: Array<XcpNgResource> | undefined;
   routeFor: XcpNgRouteFor;
   now: Date;
+  // The pool's backups, for a VM's backup rules (#10997).
+  backups?: XcpNgBackupContext | undefined;
 }): ResourcePartAttention {
   const words: { description: string; current: string } =
     XCP_NG_PART_ATTENTION_WORDS[data.kind];
@@ -65,6 +68,7 @@ export function getXcpNgPartAttention(data: {
       rows: rows,
       routeFor: data.routeFor,
       now: data.now,
+      backups: data.backups,
     }),
     description: words.description,
     current: { key: `${data.kind}:${data.externalId}`, label: words.current },
