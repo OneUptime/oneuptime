@@ -5358,7 +5358,14 @@ jobs:
       # column, a label's reader kept to their incidents, and a saved pick
       # named by its id, archived or gone. #11074: which recommended
       # monitors a resource has, answered past the project's 10,000th
-      # monitor.
+      # monitor. #11211: the Databases list's Engine Metrics chip and All
+      # Environments' Status chip answered in the list's own query (one
+      # FilterGroups) - 10,050 databases and environments of a status
+      # listed, counted and paged, every subset of statuses matching the
+      # Status column's rule exactly, a label's reader kept to theirs - and
+      # the Teams list's Member chip through TeamMember, a person in 10,050
+      # teams, one taken out of a team in none; the old reads shown
+      # stopping at 10,000.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 5
         working-directory: packages/Common
@@ -5387,6 +5394,7 @@ jobs:
           Tests/Server/API/FixWithAiRepositorySearchPostgres.test.ts
           Tests/Server/API/AffectedResourceFilterPostgres.test.ts
           Tests/Server/API/MonitorRecommendationCoveragePostgres.test.ts
+          Tests/Server/API/ListFiltersPastTheCapPostgres.test.ts
           --forceExit
 
       # #11012 and #11013: required cloud tags and the host a VM is, on
