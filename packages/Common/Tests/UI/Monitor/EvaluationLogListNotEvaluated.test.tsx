@@ -29,6 +29,7 @@ import Route from "../../../Types/API/Route";
 import MonitorEvaluationSummary, {
   MonitorEvaluationEvent,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
+import { withNoBreakSpaces } from "../../../Types/NoBreakSpaces";
 import ObjectID from "../../../Types/ObjectID";
 import { MonitorPauseReason } from "../../../Utils/Monitor/MonitorPauseState";
 import Navigation from "../../../UI/Utils/Navigation";
@@ -239,10 +240,13 @@ describe("in every language", () => {
         />,
       );
 
+      const title: string = MonitorNotEvaluated.getEvent(
+        MonitorPauseReason.ManualIncident,
+      ).title;
+
+      // As the page sets a line: French holds its colon to the word before.
       expect(screen.getByTestId("not-evaluated-title").textContent).toBe(
-        locale[
-          MonitorNotEvaluated.getEvent(MonitorPauseReason.ManualIncident).title
-        ],
+        withNoBreakSpaces(locale[title]!, title, language),
       );
     },
   );

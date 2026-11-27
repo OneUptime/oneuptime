@@ -222,15 +222,15 @@ describe("what off says, by the monitor's kind", () => {
   test.each([
     [
       MonitorType.IncomingRequest,
-      "Such an incident pauses checks until it is resolved. Requests that arrive meanwhile are listed in Logs, not evaluated.",
+      "Such an incident pauses checks until it is resolved. Requests that arrive meanwhile are listed in Monitoring Logs, not evaluated.",
     ],
     [
       MonitorType.IncomingEmail,
-      "Such an incident pauses checks until it is resolved. Emails that arrive meanwhile are listed in Logs, not evaluated.",
+      "Such an incident pauses checks until it is resolved. Emails that arrive meanwhile are listed in Monitoring Logs, not evaluated.",
     ],
     [
       MonitorType.Server,
-      "Such an incident pauses checks until it is resolved. Reports the agent sends meanwhile are listed in Logs, not evaluated.",
+      "Such an incident pauses checks until it is resolved. Reports the agent sends meanwhile are listed in Monitoring Logs, not evaluated.",
     ],
     [
       MonitorType.Website,
@@ -303,6 +303,37 @@ describe("the words", () => {
           `${language}: has ${text}`,
         );
         expect(locale[text]).not.toBe(text);
+      }
+    }
+  });
+
+  /*
+   * The banner, the Logs' notice and the overview's explanation each say
+   * to turn the switch on: by the name it has on the card, in every
+   * language, so a reader finds it.
+   */
+  test("every sentence that says to turn the switch on names it as the switch reads, in each language", () => {
+    const switchTitle: string = KeepMonitoringDuringIncidentsCopy.switchTitle;
+    const sentences: Array<string> = Object.keys(
+      readDashboardLocale("en"),
+    ).filter((key: string): boolean => {
+      return key.includes(`turn on ${switchTitle}`);
+    });
+
+    expect(sentences).toHaveLength(3);
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readDashboardLocale(language);
+      const switchWords: string = locale[switchTitle]!;
+
+      expect(switchWords).toBeTruthy();
+
+      for (const sentence of sentences) {
+        expect({
+          language,
+          sentence,
+          namesTheSwitch: Boolean(locale[sentence]?.includes(switchWords)),
+        }).toEqual({ language, sentence, namesTheSwitch: true });
       }
     }
   });

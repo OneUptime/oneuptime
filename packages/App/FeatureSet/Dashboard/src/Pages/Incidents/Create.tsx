@@ -663,8 +663,7 @@ const IncidentCreate: FunctionComponent<
    * decide - under Initial State, under On-Call Policy and on the review.
    * The form waits for it, since it latches where its boxes start.
    */
-  const declareDefaults: DeclareIncidentDefaults =
-    useDeclareIncidentDefaults();
+  const declareDefaults: DeclareIncidentDefaults = useDeclareIncidentDefaults();
 
   /*
    * Whether the template the incident is declared from names a state - even

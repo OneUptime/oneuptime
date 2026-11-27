@@ -49,13 +49,13 @@ export const KeepMonitoringDuringIncidentsCopy: {
  */
 const OFF_DESCRIPTION_BY_TYPE: Partial<Record<MonitorType, string>> = {
   [MonitorType.IncomingRequest]: translationKey(
-    "Such an incident pauses checks until it is resolved. Requests that arrive meanwhile are listed in Logs, not evaluated.",
+    "Such an incident pauses checks until it is resolved. Requests that arrive meanwhile are listed in Monitoring Logs, not evaluated.",
   ),
   [MonitorType.IncomingEmail]: translationKey(
-    "Such an incident pauses checks until it is resolved. Emails that arrive meanwhile are listed in Logs, not evaluated.",
+    "Such an incident pauses checks until it is resolved. Emails that arrive meanwhile are listed in Monitoring Logs, not evaluated.",
   ),
   [MonitorType.Server]: translationKey(
-    "Such an incident pauses checks until it is resolved. Reports the agent sends meanwhile are listed in Logs, not evaluated.",
+    "Such an incident pauses checks until it is resolved. Reports the agent sends meanwhile are listed in Monitoring Logs, not evaluated.",
   ),
 };
 
