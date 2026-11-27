@@ -117,6 +117,7 @@ import CaptureSpan from "../Telemetry/CaptureSpan";
 import ExceptionMessages from "../../../Types/Exception/ExceptionMessages";
 import MonitorEvaluationSummary, {
   MonitorEvaluationEvent,
+  MonitorEvaluationWindow,
 } from "../../../Types/Monitor/MonitorEvaluationSummary";
 import MonitorStatusService from "../../Services/MonitorStatusService";
 import ProjectScopedReferenceValidator from "../Database/ProjectScopedReferenceValidator";
@@ -206,6 +207,11 @@ export interface MonitorResourceOptions {
    * time counts them (#10317). Left out, it begins here.
    */
   evaluationStartedAtMs?: number | undefined;
+  /*
+   * The window of telemetry a telemetry check judged (issue #11248): its log
+   * entry says it, and so does the root cause of what it opens.
+   */
+  judgedWindow?: MonitorEvaluationWindow | undefined;
 }
 
 /*
@@ -490,6 +496,14 @@ export default class MonitorResourceUtil {
       criteriaResults: [],
       events: [],
     };
+
+    // The window a telemetry check judged (#11248), for its log entry.
+    if (options?.judgedWindow) {
+      evaluationSummary.judgedWindow = {
+        startsAt: new Date(options.judgedWindow.startsAt),
+        endsAt: new Date(options.judgedWindow.endsAt),
+      };
+    }
 
     response.evaluationSummary = evaluationSummary;
     dataToProcess.evaluationSummary = evaluationSummary;

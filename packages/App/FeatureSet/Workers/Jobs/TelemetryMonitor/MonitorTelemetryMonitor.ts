@@ -359,11 +359,57 @@ export const getTelemetryDispatchWindowEnd: (runStartedAt: Date) => Date = (
 interface TelemetryDispatch {
   monitor: Monitor;
   /*
-   * Its next due time; the run's start for one never scheduled, or due
-   * before the run started (the scheduler was stopped, or a run skipped).
+   * When its evaluation is queued: its next due time; the run's start for
+   * one never scheduled, or due before the run started (the scheduler was
+   * stopped, a run died, the queue refused its job).
    */
-  dueAtMs: number;
+  queueAtMs: number;
+  // Its next due time as it was read; null when it was never scheduled.
+  nextMonitorAtMs: number | null;
 }
+
+/*
+ * When a due monitor's evaluation was due (issue #11248): the end of the
+ * window it judges, carried on its job, so the window is the same however
+ * late the job runs and a monitor's windows follow on from one another
+ * exactly. Also the time it is stamped against (still due by then) and made
+ * due again at when the queue refuses its job.
+ *
+ *   - Its next due time, as it was read, while that is still its latest
+ *     run: on time, or late by less than its interval - a run that died
+ *     before queueing it, a job the queue refused (made due again at that
+ *     time), a run that started late.
+ *   - Otherwise the run's start (`queueAtMs`): a monitor never scheduled (a
+ *     new one), or one whose runs went by while it was not checked (it was
+ *     turned off, or the scheduler was stopped). Its check judges the window
+ *     that ends as it is queued, and its next is at its own moment after
+ *     that.
+ *
+ * `runAfterNextMonitorAt` is the run after its next due time
+ * (getTelemetryMonitorNextMonitorAt), which says whether another has gone
+ * by since.
+ */
+export const getTelemetryEvaluationDueAt: (data: {
+  nextMonitorAtMs: number | null;
+  queueAtMs: number;
+  runAfterNextMonitorAtMs: number | null;
+  dispatchedAt: Date;
+}) => number = (data: {
+  nextMonitorAtMs: number | null;
+  queueAtMs: number;
+  runAfterNextMonitorAtMs: number | null;
+  dispatchedAt: Date;
+}): number => {
+  if (
+    data.nextMonitorAtMs === null ||
+    data.runAfterNextMonitorAtMs === null ||
+    data.runAfterNextMonitorAtMs <= data.dispatchedAt.getTime()
+  ) {
+    return data.queueAtMs;
+  }
+
+  return data.nextMonitorAtMs;
+};
 
 /*
  * Waits until `atMs`, or until the deadline passes, whichever is first.
@@ -414,17 +460,36 @@ const dispatchTelemetryStep: (
   const stamps: Map<string, TelemetryMonitorStamp> = new Map();
 
   for (const entry of step) {
+    const runAfterNextMonitorAtMs: number | null =
+      entry.nextMonitorAtMs === null
+        ? null
+        : getTelemetryMonitorNextMonitorAt({
+            monitor: entry.monitor,
+            after: new Date(entry.nextMonitorAtMs),
+          }).getTime();
+
+    const dueAtMs: number = getTelemetryEvaluationDueAt({
+      nextMonitorAtMs: entry.nextMonitorAtMs,
+      queueAtMs: entry.queueAtMs,
+      runAfterNextMonitorAtMs: runAfterNextMonitorAtMs,
+      dispatchedAt: dispatchedAt,
+    });
+
     stamps.set(entry.monitor.id!.toString().toLowerCase(), {
       id: entry.monitor.id!,
-      dueAt: new Date(entry.dueAtMs),
+      dueAt: new Date(dueAtMs),
       /*
-       * After the time it was due and after now, whichever is later: a
-       * monitor is never due again at a time already past.
+       * The run after the one being queued, so the window it judges next
+       * starts where this one ends - and never a time already past: when
+       * that run has gone by, the run after now.
        */
-      nextMonitorAt: getTelemetryMonitorNextMonitorAt({
-        monitor: entry.monitor,
-        after: new Date(Math.max(dispatchedAt.getTime(), entry.dueAtMs)),
-      }),
+      nextMonitorAt:
+        dueAtMs === entry.nextMonitorAtMs && runAfterNextMonitorAtMs !== null
+          ? new Date(runAfterNextMonitorAtMs)
+          : getTelemetryMonitorNextMonitorAt({
+              monitor: entry.monitor,
+              after: new Date(Math.max(dispatchedAt.getTime(), dueAtMs)),
+            }),
     });
   }
 
@@ -449,6 +514,8 @@ const dispatchTelemetryStep: (
       return TelemetryQueueService.addTelemetryMonitorEvaluationJob({
         monitorId: entry.monitor.id!,
         projectId: entry.monitor.projectId!,
+        // The end of the window it judges, however late it runs.
+        dueAt: stamps.get(entry.monitor.id!.toString().toLowerCase())!.dueAt,
       });
     },
     onError: (entry: TelemetryDispatch, error: unknown): void => {
@@ -493,7 +560,9 @@ const dispatchTelemetryStep: (
  * its own moment of its interval (TelemetryMonitorSchedule), so the
  * evaluations of an installation start spread over each minute instead of
  * all in its first seconds (issue #11060) - and is stamped with when it is
- * next due as it is queued.
+ * next due as it is queued. The job carries when the evaluation was due
+ * (getTelemetryEvaluationDueAt): the end of the window it judges, however
+ * late it runs (issue #11248).
  *
  * The due monitors are read a page at a time, in _id order
  * (forEachKeysetPage), then queued in the order they are due, a step at a
@@ -587,9 +656,12 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
 
         due.push({
           monitor: monitor,
-          dueAtMs: Number.isFinite(nextMonitorAtMs)
+          queueAtMs: Number.isFinite(nextMonitorAtMs)
             ? Math.max(nextMonitorAtMs, runStartedAt.getTime())
             : runStartedAt.getTime(),
+          nextMonitorAtMs: Number.isFinite(nextMonitorAtMs)
+            ? nextMonitorAtMs
+            : null,
         });
       }
     },
@@ -605,7 +677,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
   }
 
   due.sort((a: TelemetryDispatch, b: TelemetryDispatch): number => {
-    return a.dueAtMs - b.dueAtMs;
+    return a.queueAtMs - b.queueAtMs;
   });
 
   let queued: number = 0;
@@ -613,7 +685,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
   let index: number = 0;
 
   while (index < due.length) {
-    const stepStartsAtMs: number = due[index]!.dueAtMs;
+    const stepStartsAtMs: number = due[index]!.queueAtMs;
     const step: Array<TelemetryDispatch> = [];
 
     /*
@@ -624,7 +696,8 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
     while (
       index < due.length &&
       step.length < TELEMETRY_SCHEDULE_PAGE_SIZE &&
-      due[index]!.dueAtMs < stepStartsAtMs + TELEMETRY_SCHEDULE_DISPATCH_STEP_MS
+      due[index]!.queueAtMs <
+        stepStartsAtMs + TELEMETRY_SCHEDULE_DISPATCH_STEP_MS
     ) {
       step.push(due[index]!);
       index++;
@@ -632,7 +705,7 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
 
     // Never before any monitor of the step is due.
     await waitUntil({
-      atMs: step[step.length - 1]!.dueAtMs,
+      atMs: step[step.length - 1]!.queueAtMs,
       deadline: deadline,
     });
 
@@ -650,6 +723,40 @@ export const enqueueDueTelemetryMonitorEvaluationJobs: (
     }`,
     { service: "workers" },
   );
+};
+
+/*
+ * Where a queued check's window ends (issue #11248): when the check was due,
+ * as the scheduler carried it on the job, however late the job runs - its
+ * workers were busy, the queue refused it and the next run queued it, it
+ * failed and was tried again - so a monitor's windows follow on from one
+ * another exactly. Never later than now: a due time to come is another
+ * server's clock running ahead.
+ *
+ * A job queued before the due time was carried has none: its window ends
+ * when it was queued (queuedAt), which the scheduler does at the moment the
+ * check is due (#11060), and a job with neither ends now, as every check
+ * once did. A date that cannot be read is not one.
+ */
+export const getTelemetryEvaluationWindowEnd: (data: {
+  job: TelemetryMonitorEvaluationJobData;
+  now: Date;
+}) => Date = (data: {
+  job: TelemetryMonitorEvaluationJobData;
+  now: Date;
+}): Date => {
+  for (const value of [data.job.dueAt, data.job.queuedAt]) {
+    const atMs: number =
+      value === undefined || value === null || value === ""
+        ? Number.NaN
+        : new Date(value).getTime();
+
+    if (Number.isFinite(atMs) && atMs > 0) {
+      return new Date(Math.min(atMs, data.now.getTime()));
+    }
+  }
+
+  return data.now;
 };
 
 export const processTelemetryMonitorEvaluationFromQueue: (
@@ -712,19 +819,29 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     });
 
   /*
+   * The window this check judges ends when it was due, however late it runs
+   * (issue #11248): its windows follow on from one another exactly.
+   *
    * OneUptime's own downtime is never a resource's silence (issue #2825).
    * While the window this check judges holds time OneUptime was not
    * receiving - it was restarting, upgrading or its datastores were
    * unreachable, or it had only just come back - the check waits: no status
-   * change, nothing opened, nothing resolved. While the ingest queue is
-   * behind, the window ends where the queue is, so the check judges data
-   * that has been read rather than data still waiting to be.
+   * change, nothing opened, nothing resolved. While the ingest queue is more
+   * than a minute behind the window's end, the window ends where the queue
+   * is, so the check judges data that has been read rather than data still
+   * waiting to be.
    */
+  const windowInMs: number = TelemetryMonitorWindow.getWindowInMs({
+    monitorType: monitor.monitorType!,
+    monitorStep,
+  });
+
   const plan: TelemetryEvaluationPlan =
     await ReceivingCoverage.planTelemetryEvaluation({
-      windowInMs: TelemetryMonitorWindow.getWindowInMs({
-        monitorType: monitor.monitorType!,
-        monitorStep,
+      windowInMs: windowInMs,
+      windowEndsAt: getTelemetryEvaluationWindowEnd({
+        job: data,
+        now: OneUptimeDate.getCurrentDate(),
       }),
     });
 
@@ -744,7 +861,7 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     monitorType: monitor.monitorType!,
     monitorId: monitor.id,
     projectId: monitor.projectId!,
-    evaluateUntil: plan.isIngestBehind ? plan.evaluateUntil : undefined,
+    evaluateUntil: plan.evaluateUntil,
   });
 
   /*
@@ -770,8 +887,13 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     });
   }
 
+  // Its log entry and the root cause of what it opens say which window it judged.
   await MonitorResourceUtil.monitorResource(response, {
     evaluationStartedAtMs: evaluationStartedAtMs,
+    judgedWindow: {
+      startsAt: new Date(plan.evaluateUntil.getTime() - Math.max(0, windowInMs)),
+      endsAt: plan.evaluateUntil,
+    },
   });
 };
 
