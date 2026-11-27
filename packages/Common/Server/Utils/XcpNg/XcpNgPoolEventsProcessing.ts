@@ -657,7 +657,11 @@ export function processXcpNgPoolEvents(
       }
     }
 
-    if (isXenOrchestra && isXcpNgMessageClearable(definition.alert)) {
+    /*
+     * Held open until XCP-ng no longer lists it: Xen Orchestra's reader and
+     * XAPI's collector each check the open ones by id.
+     */
+    if (isXcpNgMessageClearable(definition.alert)) {
       const open: XcpNgOpenMessage = {
         id: message.uuid,
         name: message.name,
@@ -686,7 +690,7 @@ export function processXcpNgPoolEvents(
   }
 
   // An alert's group is cleared when its last open message is gone.
-  if (isXenOrchestra && input.clearedMessageIds.length > 0) {
+  if (input.clearedMessageIds.length > 0) {
     const cleared: Array<XcpNgOpenMessage> = [];
     for (const id of input.clearedMessageIds) {
       const open: XcpNgOpenMessage | undefined = openById.get(id);

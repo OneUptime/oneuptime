@@ -425,8 +425,8 @@ describe("a message XCP-ng clears", () => {
     ).toEqual(["a3"]);
   });
 
-  test("straight from XAPI nothing is tracked: the alert resolves by hand", () => {
-    const output: XcpNgPoolEventsOutput = process({
+  test("straight from XAPI too, a message is held open until XAPI no longer lists it", () => {
+    const raised: XcpNgPoolEventsOutput = process({
       source: XcpNgEventSource.Xapi,
       messageWatermark: undefined,
       messages: [
@@ -436,9 +436,29 @@ describe("a message XCP-ng clears", () => {
         }),
       ],
     });
-    expect(output.records).toHaveLength(1);
-    expect(output.columns.eventState.openMessages).toEqual([]);
-    expect(output.columns.eventReadStatus.source).toBe(XcpNgEventSource.Xapi);
+    expect(raised.records).toHaveLength(1);
+    expect(
+      raised.columns.eventState.openMessages.map((open: { id: string }) => {
+        return open.id;
+      }),
+    ).toEqual(["x1"]);
+    expect(raised.columns.eventReadStatus.source).toBe(XcpNgEventSource.Xapi);
+    // XAPI keeps its own watermark, on the connection: none is kept here.
+    expect(raised.columns.eventState.messageWatermark).toBeUndefined();
+
+    // The XAPI collector found it gone (message.get_by_uuid: UUID_INVALID).
+    const cleared: XcpNgPoolEventsOutput = process({
+      source: XcpNgEventSource.Xapi,
+      messageWatermark: undefined,
+      pool: {
+        ...storedPool(),
+        eventState: raised.columns.eventState,
+      },
+      messages: [],
+      clearedMessageIds: ["x1"],
+    });
+    expect(cleared.records).toHaveLength(1);
+    expect(cleared.columns.eventState.openMessages).toEqual([]);
   });
 });
 

@@ -158,11 +158,7 @@ export function getXoEventsBlocker(
     return "The API token cannot read alarms, so alarms, HA and backups were not read. Give its user a copy of Xen Orchestra's built-in Read only role.";
   }
 
-  const canReadMessages: unknown = (
-    summary as XcpNgApiTokenSummary & { canReadMessages?: boolean }
-  ).canReadMessages;
-
-  if (canReadMessages === false) {
+  if (summary.canReadMessages === false) {
     return "The API token cannot read messages, so alarms, HA and backups were not read. Give its user a copy of Xen Orchestra's built-in Read only role.";
   }
 
@@ -354,11 +350,15 @@ export default class XenOrchestraEventsReader {
           runs: Array<XcpNgBackupRun>;
           watermark: XcpNgBackupWatermark;
           jobs: Array<XcpNgBackupJobInfo> | undefined;
+          jobsWarning?: string | undefined;
         } = await this.readBackups();
         report.backupRuns = backups.runs;
         report.backupWatermark = backups.watermark;
         if (backups.jobs) {
           report.backupJobs = backups.jobs;
+        }
+        if (backups.jobsWarning) {
+          report.warnings.push(backups.jobsWarning);
         }
       } catch (error) {
         report.problems.backups = this.describe(error, "its backup logs");
@@ -581,11 +581,8 @@ export default class XenOrchestraEventsReader {
     pool: XcpNgPoolEventsJobState,
   ): Promise<Array<string>> {
     const ids: Array<string> = Array.from(new Set(pool.openMessageIds || []));
-    const canReadMessages: unknown = (
-      this.input.tokenSummary as
-        | (XcpNgApiTokenSummary & { canReadMessages?: boolean })
-        | undefined
-    )?.canReadMessages;
+    const canReadMessages: boolean | undefined =
+      this.input.tokenSummary?.canReadMessages;
 
     if (ids.length === 0 || canReadMessages !== true) {
       return [];
@@ -641,6 +638,7 @@ export default class XenOrchestraEventsReader {
     runs: Array<XcpNgBackupRun>;
     watermark: XcpNgBackupWatermark;
     jobs: Array<XcpNgBackupJobInfo> | undefined;
+    jobsWarning?: string | undefined;
   }> {
     const nowMs: number = this.input.now().getTime();
     const watermark: XcpNgBackupWatermark | undefined =
@@ -733,21 +731,41 @@ export default class XenOrchestraEventsReader {
      * keeps the ones it knows until a read lists the jobs again.
      */
     let jobs: Array<XcpNgBackupJobInfo> | undefined = undefined;
+    let jobsWarning: string | undefined = undefined;
     try {
-      jobs = buildXcpNgBackupJobInfos({
-        jobs: readXoBackupJobs(
-          await this.get(
-            buildXoPath("/rest/v0/backup-jobs", {
-              fields: XO_BACKUP_JOB_FIELDS,
-            }),
-          ),
+      const jobReadings: ReturnType<typeof readXoBackupJobs> = readXoBackupJobs(
+        await this.get(
+          buildXoPath("/rest/v0/backup-jobs", {
+            fields: XO_BACKUP_JOB_FIELDS,
+          }),
         ),
-        schedules: readXoSchedules(
+      );
+      const scheduleReadings: ReturnType<typeof readXoSchedules> =
+        readXoSchedules(
           await this.get(
             buildXoPath("/rest/v0/schedules", { fields: XO_SCHEDULE_FIELDS }),
           ),
-        ),
-      });
+        );
+
+      /*
+       * A list the token's user may not read comes back empty, never
+       * refused: runs of jobs with no job listed, or jobs with no schedule
+       * at all, are read as not known - never as "no jobs" or "never
+       * scheduled", which would call every VM's backups unscheduled.
+       */
+      const isUnreadable: boolean =
+        (jobReadings.length === 0 && summaries.length > 0) ||
+        (jobReadings.length > 0 && scheduleReadings.length === 0);
+
+      if (isUnreadable) {
+        jobsWarning =
+          "The API token reads no backup jobs or no schedules, so how often each VM is backed up is not known and VM Not Backed Up cannot fire. Give the token's user read access to backup jobs and schedules.";
+      } else {
+        jobs = buildXcpNgBackupJobInfos({
+          jobs: jobReadings,
+          schedules: scheduleReadings,
+        });
+      }
     } catch (error) {
       if (this.tokenRejected) {
         throw error;
@@ -757,6 +775,7 @@ export default class XenOrchestraEventsReader {
 
     return {
       runs: runs,
+      jobsWarning: jobsWarning,
       watermark: advanceXcpNgBackupWatermark({
         watermark: watermark,
         summaries: summaries,

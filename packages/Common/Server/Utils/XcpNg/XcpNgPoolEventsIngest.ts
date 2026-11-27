@@ -86,6 +86,8 @@ export interface XcpNgPoolEventsIngestInput {
   // Whether XAPI's messages were read (the report carries a watermark).
   xapiMessagesRead?: boolean | undefined;
   xapiPoolStates?: Array<XcpNgPoolState> | undefined;
+  // XAPI: of the messages with an open alert, those XAPI no longer lists.
+  xapiClearedMessageIds?: Array<string> | undefined;
   // The name the connection gives its Xen Orchestra, for the records.
   xenOrchestraName?: string | null | undefined;
   now?: Date | undefined;
@@ -436,7 +438,13 @@ export default class XcpNgPoolEventsIngest {
           : Boolean(input.xapiMessagesRead),
         messages: messages,
         messageWatermark: poolReport?.messageWatermark,
-        clearedMessageIds: poolReport?.clearedMessageIds || [],
+        /*
+         * Through XAPI, one pool a connection: the ids it checked are the
+         * pool's own, and the processor clears only messages it holds open.
+         */
+        clearedMessageIds: isXenOrchestra
+          ? poolReport?.clearedMessageIds || []
+          : input.xapiClearedMessageIds || [],
         backupRuns: isXenOrchestra ? input.events?.backupRuns : undefined,
         backupJobs: isXenOrchestra ? input.events?.backupJobs : undefined,
         backupWatermark: isXenOrchestra

@@ -25,7 +25,11 @@ async function listRows(
       query: query,
       skip: 0,
       limit: limit,
-      select: { ...XCP_NG_INVENTORY_SELECT, ...extraSelect },
+      // The lists' own select, unless the page asks for more.
+      select:
+        Object.keys(extraSelect).length > 0
+          ? { ...XCP_NG_INVENTORY_SELECT, ...extraSelect }
+          : XCP_NG_INVENTORY_SELECT,
       sort: {
         name: SortOrder.Ascending,
       },

@@ -50,7 +50,7 @@ import { beforeEach, describe, expect, test } from "@jest/globals";
  * restarts, a server that dies before it commits, a message dismissed.
  */
 
-type TokenSummary = XcpNgApiTokenSummary & { canReadMessages?: boolean };
+type TokenSummary = XcpNgApiTokenSummary;
 
 const READ_ONLY: TokenSummary = {
   isReadOnly: true,
