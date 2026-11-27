@@ -70,7 +70,7 @@ jest.mock("../../../Server/Utils/Logger");
  *   MONITOR_INCIDENT_PAUSE_TEST_DATABASE_PORT=5400 \
  *   DATABASE_PASSWORD=... npx jest Tests/Server/Services/MonitorIncidentPausePostgres.test.ts
  */
-const describePostgres: typeof describe =
+const describePostgres: typeof describe.skip =
   process.env["RUN_POSTGRES_MONITOR_INCIDENT_PAUSE_TESTS"] === "true"
     ? describe
     : describe.skip;

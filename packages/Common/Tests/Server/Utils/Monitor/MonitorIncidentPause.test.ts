@@ -58,9 +58,20 @@ function incidentWith(data: {
 }): Incident {
   const incident: Incident = new Incident(new ObjectID(data.id));
   incident.projectId = PROJECT_ID;
-  incident.incidentNumber = data.number;
-  incident.incidentNumberWithPrefix = data.prefixed;
-  incident.changeMonitorStatusToId = data.changeMonitorStatusToId;
+
+  // Left unset when not given, as a read that does not find them leaves them.
+  if (data.number !== undefined) {
+    incident.incidentNumber = data.number;
+  }
+
+  if (data.prefixed !== undefined) {
+    incident.incidentNumberWithPrefix = data.prefixed;
+  }
+
+  if (data.changeMonitorStatusToId !== undefined) {
+    incident.changeMonitorStatusToId = data.changeMonitorStatusToId;
+  }
+
   incident.isCreatedAutomatically = data.isCreatedAutomatically ?? false;
   incident.holdsMonitors =
     data.holdsMonitors === undefined ? true : (data.holdsMonitors as boolean);

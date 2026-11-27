@@ -195,9 +195,9 @@ describe("WorkOutMonitorsPausedByIncidents", () => {
     await new WorkOutMonitorsPausedByIncidents().migrate();
 
     expect(findBy).toHaveBeenCalledTimes(2);
-    expect(
-      (findBy.mock.calls[1]![0] as { skip: number }).skip,
-    ).toBe(LIMIT_PER_PROJECT);
+    expect((findBy.mock.calls[1]![0] as { skip: number }).skip).toBe(
+      LIMIT_PER_PROJECT,
+    );
     expect(order.indexOf("work out")).toBe(2);
     expect(order.lastIndexOf("list")).toBe(1);
     expect(giveBack).toHaveBeenCalledTimes(LIMIT_PER_PROJECT + 3);
