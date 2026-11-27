@@ -290,7 +290,8 @@ function platformVariables(): Array<string> {
  * POWERSCALE_NODE_<n>, is numbered as the script counts the nodes, so it is
  * documented as a pattern and left out here.
  */
-const VARIABLE_NAME: RegExp = /^[A-Z][A-Z0-9_]+$/;
+// A whole name: "POWERSCALE_NODE_$count" is a numbered one, not "POWERSCALE_NODE_".
+const VARIABLE_NAME: RegExp = /^[A-Z][A-Z0-9_]*[A-Z0-9]$/;
 
 function platformExtraVariables(): Array<string> {
   const names: Array<string> = [];

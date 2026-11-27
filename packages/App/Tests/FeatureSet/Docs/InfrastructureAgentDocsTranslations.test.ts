@@ -364,6 +364,7 @@ const NAMES: Record<string, Array<string>> = {
     "Pure Storage FlashArray",
     "Pure Storage FlashBlade",
     "Everpure",
+    "Dell PowerScale",
   ],
   [DATABASES]: [
     "PostgreSQL",
@@ -661,6 +662,11 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Hosts.",
     "Pods.",
     "File systems.",
+    // A PowerScale cluster, as the agent reads it (#11003).
+    "Every node is polled at its own address.",
+    "The cluster's own objects are read once, through the first node:",
+    "Readings OneFS gives as text or in other units",
+    "OneFS's events and its storage pools.",
   ],
   /*
    * (yes is a Dashboard label since #6369, a recorder decision's value on

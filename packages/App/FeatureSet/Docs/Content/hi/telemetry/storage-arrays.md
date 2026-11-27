@@ -1,9 +1,10 @@
 # स्टोरेज ऐरे एजेंट
 
-OneUptime Storage Array एजेंट स्टोरेज ऐरे की निगरानी करता है: क्षमता और डेटा रिडक्शन, लेटेंसी, IOPS और बैंडविड्थ, वॉल्यूम, होस्ट, पॉड और रेप्लिकेशन, हार्डवेयर का स्वास्थ्य, फ़ाइल सिस्टम और बकेट। यह एक मानक OpenTelemetry Collector है, जो केवल-पढ़ने वाले उपयोगकर्ता के API टोकन से ऐरे के OpenMetrics एंडपॉइंट स्क्रैप करता है, हर मेट्रिक पर आपके ऐरे की पहचान लगाता है और उसे OneUptime को भेजता है। [स्टोरेज ऐरे मॉनिटर](/docs/monitor/storage-array-monitor) जो आता है उस पर अलर्ट करते हैं।
+OneUptime Storage Array एजेंट स्टोरेज ऐरे की निगरानी करता है: क्षमता और डेटा रिडक्शन, लेटेंसी, IOPS और बैंडविड्थ, वॉल्यूम, होस्ट, पॉड और रेप्लिकेशन, हार्डवेयर का स्वास्थ्य, फ़ाइल सिस्टम, बकेट और कोटा। यह एक मानक OpenTelemetry Collector है, जो केवल-पढ़ने वाले उपयोगकर्ता के API टोकन से ऐरे के OpenMetrics एंडपॉइंट स्क्रैप करता है, या SNMP पर किसी Dell PowerScale क्लस्टर के नोड पोल करता है, हर मेट्रिक पर आपके ऐरे की पहचान लगाता है और उसे OneUptime को भेजता है। [स्टोरेज ऐरे मॉनिटर](/docs/monitor/storage-array-monitor) जो आता है उस पर अलर्ट करते हैं।
 
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): एक केवल-पढ़ने वाला उपयोगकर्ता, फिर इंस्टॉल स्क्रिप्ट या Docker Compose।
+- [Dell PowerScale](#dell-powerscale): क्लस्टर पर SNMP, हर नोड का पोल, और उसके पेज क्या दिखाते हैं।
 - [एजेंट क्या इकट्ठा करता है](#एजेंट-क्या-इकट्ठा-करता-है): हर एंडपॉइंट, और उससे बनने वाले पेज।
 - [कई ऐरे की निगरानी](#कई-ऐरे-की-निगरानी): हर ऐरे के लिए एक एजेंट, एक ही मशीन पर।
 - [समस्या निवारण](#समस्या-निवारण): एक डायग्नोस्टिक स्क्रिप्ट, और आम समस्याएँ।
@@ -18,8 +19,11 @@ Storage Arrays एक ऐसा उत्पाद है जो हर वे�
 | **Pure Storage FlashArray**, Purity//FA 6.7 और बाद का | `purestorage.flasharray` | ऐरे का अपना OpenMetrics एंडपॉइंट (`https://<array>/metrics/...?namespace=purefa`): कलेक्टर के बगल में कुछ नहीं चलता | `otel-collector-config.yaml` (डिफ़ॉल्ट) |
 | **Pure Storage FlashArray**, पुराना Purity//FA | `purestorage.flasharray` | Pure का FlashArray OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fa-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure का FlashBlade OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fb-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 और बाद का | `dell.powerscale` | हर नोड SNMP पर (Dell का ISILON-MIB), कलेक्टर के अपने SNMP रिसीवर से: कलेक्टर के बगल में कुछ नहीं चलता | `otel-collector-config.powerscale.yaml` |
 
 Pure Storage ने फ़रवरी 2026 में अपना नाम बदलकर **Everpure** कर लिया। FlashArray, FlashBlade और Purity के नाम वही रहे, और `purefa_*` और `purefb_*` मेट्रिक्स के भी, इसलिए इस पेज की हर बात दोनों में से किसी भी नाम से बेचे गए ऐरे पर लागू होती है।
+
+**Dell PowerScale** क्लस्टर को दूसरे तरीके से पढ़ा जाता है: एजेंट उसके हर नोड को SNMP पर पोल करता है, केवल-पढ़ने वाली कम्युनिटी या SNMPv3 उपयोगकर्ता के साथ और बिना API टोकन के। [Dell PowerScale](#dell-powerscale) SNMP चालू करने से लेकर उसके पेज क्या दिखाते हैं, सब बताता है; नीचे दिए इंस्टॉल चरण Pure Storage के लिए हैं।
 
 ```mermaid title="ऐरे से OneUptime तक"
 flowchart TB
@@ -87,7 +91,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-स्क्रिप्ट पूछती है कि यह कौन-सा ऐरे है (नेटिव मेट्रिक्स देने वाला FlashArray, पुराने Purity//FA वाला FlashArray, या FlashBlade), फिर आपका OneUptime URL, इंजेशन कुंजी, ऐरे का नाम, ऐरे का प्रबंधन पता और केवल-पढ़ने वाले उपयोगकर्ता का API टोकन (बिना दिखाए पढ़ा जाता है)। यह `/opt/oneuptime-storage-array-agent` में इंस्टॉल करती है, Compose फ़ाइल और तीनों कलेक्टर कॉन्फ़िगरेशन डाउनलोड करती है, मेल खाते कॉन्फ़िगरेशन और Compose प्रोफ़ाइल के साथ `0600` अनुमति वाली एक `.env` फ़ाइल लिखती है, और Docker Compose से एजेंट शुरू करती है। यह हर मान को वैसे ही Docker Compose के लिए उद्धरण चिह्नों में रखती है जैसे आपने टाइप किया। इसे फिर से चलाने पर यह दोबारा पूछने के बजाय मौजूदा `.env` की हर चीज़ फिर से उपयोग करती है, और आपकी संपादित फ़ाइल को बदलने से पहले उसे `<file>.bak.<timestamp>` के रूप में रख लेती है।
+स्क्रिप्ट पूछती है कि यह कौन-सा ऐरे है (नेटिव मेट्रिक्स देने वाला FlashArray, पुराने Purity//FA वाला FlashArray, FlashBlade, या PowerScale क्लस्टर), फिर आपका OneUptime URL, इंजेशन कुंजी, ऐरे का नाम, ऐरे का प्रबंधन पता और केवल-पढ़ने वाले उपयोगकर्ता का API टोकन (बिना दिखाए पढ़ा जाता है)। यह `/opt/oneuptime-storage-array-agent` में इंस्टॉल करती है, Compose फ़ाइल और सभी कलेक्टर कॉन्फ़िगरेशन डाउनलोड करती है, मेल खाते कॉन्फ़िगरेशन और Compose प्रोफ़ाइल के साथ `0600` अनुमति वाली एक `.env` फ़ाइल लिखती है, और Docker Compose से एजेंट शुरू करती है। यह हर मान को वैसे ही Docker Compose के लिए उद्धरण चिह्नों में रखती है जैसे आपने टाइप किया। इसे फिर से चलाने पर यह दोबारा पूछने के बजाय मौजूदा `.env` की हर चीज़ फिर से उपयोग करती है, और आपकी संपादित फ़ाइल को बदलने से पहले उसे `<file>.bak.<timestamp>` के रूप में रख लेती है।
 @tab Docker Compose
 `docker-compose.yml` और तीन `otel-collector-config*.yaml` फ़ाइलें अपने OneUptime से एक नए फ़ोल्डर में डाउनलोड करें:
 
@@ -111,10 +115,12 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-पुराने Purity//FA वाले FlashArray के लिए `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` और `COMPOSE_PROFILES=flasharray-exporter` सेट करें। FlashBlade के लिए `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` और `COMPOSE_PROFILES=flashblade` सेट करें, और `PURE_FB_ENDPOINT` और `PURE_FB_API_TOKEN` भरें (`PURE_FA_*` जोड़ी के बजाय)। एजेंट शुरू करें:
+पुराने Purity//FA वाले FlashArray के लिए `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` और `COMPOSE_PROFILES=flasharray-exporter` सेट करें। FlashBlade के लिए `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` और `COMPOSE_PROFILES=flashblade` सेट करें, और `PURE_FB_ENDPOINT` और `PURE_FB_API_TOKEN` भरें (`PURE_FA_*` जोड़ी के बजाय)। PowerScale क्लस्टर की `.env` [Dell PowerScale](#dell-powerscale) में है। एजेंट शुरू करें:
 
 ```bash
 docker compose up -d
@@ -148,13 +154,25 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | हाँ | आपका OneUptime URL, जैसे `https://oneuptime.com` या आपका सेल्फ़-होस्टेड इंस्टेंस। अगर इंस्टेंस सिर्फ़ HTTP पर है तो `http://` और उसका पोर्ट उपयोग करें। |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से इंजेशन कुंजी। |
 | `STORAGE_ARRAY_NAME` | हाँ | वह नाम जिससे ऐरे OneUptime में रजिस्टर होता है, हर मेट्रिक पर `storage.array.name` रिसोर्स एट्रिब्यूट के रूप में लगाया गया। इसे स्थिर रखें: बाद में बदलने से एक दूसरा ऐरे रजिस्टर होता है। इसके बिना कलेक्टर शुरू होने से इनकार करता है। |
-| `STORAGE_SYSTEM` | नहीं | प्लेटफ़ॉर्म, `storage.system` रिसोर्स एट्रिब्यूट के रूप में लगाया गया: `purestorage.flasharray` या `purestorage.flashblade`। डिफ़ॉल्ट `purestorage.flasharray` है। |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | नहीं | साथ आने वाला कौन-सा कलेक्टर कॉन्फ़िगरेशन चलता है: `otel-collector-config.yaml` (FlashArray, नेटिव: डिफ़ॉल्ट), `otel-collector-config.flasharray-exporter.yaml` (पुराना FlashArray) या `otel-collector-config.flashblade.yaml` (FlashBlade)। |
+| `STORAGE_SYSTEM` | नहीं | प्लेटफ़ॉर्म, `storage.system` रिसोर्स एट्रिब्यूट के रूप में लगाया गया: `purestorage.flasharray`, `purestorage.flashblade` या `dell.powerscale`। डिफ़ॉल्ट `purestorage.flasharray` है। |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | नहीं | साथ आने वाला कौन-सा कलेक्टर कॉन्फ़िगरेशन चलता है: `otel-collector-config.yaml` (FlashArray, नेटिव: डिफ़ॉल्ट), `otel-collector-config.flasharray-exporter.yaml` (पुराना FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade) या `otel-collector-config.powerscale.yaml` (PowerScale)। |
 | `COMPOSE_PROFILES` | नहीं | वह एक्सपोर्टर शुरू करता है जिसे चुना गया कॉन्फ़िगरेशन स्क्रैप करता है: नेटिव FlashArray कॉन्फ़िगरेशन के लिए खाली, बाकी दोनों के लिए `flasharray-exporter` या `flashblade`। |
 | `PURE_FA_ENDPOINT` | FlashArray | FlashArray का प्रबंधन पता: होस्ट नाम या IP, `https://` के बिना। |
 | `PURE_FA_API_TOKEN` | FlashArray | readonly भूमिका वाले FlashArray उपयोगकर्ता का API टोकन। |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade का प्रबंधन पता: होस्ट नाम या IP, `https://` के बिना। |
 | `PURE_FB_API_TOKEN` | FlashBlade | readonly भूमिका वाले FlashBlade उपयोगकर्ता का API टोकन। |
+| `POWERSCALE_NODES` | PowerScale | सभी नोड के पते, कॉमा से अलग किए हुए, कभी SmartConnect ज़ोन का नाम नहीं। इंस्टॉल स्क्रिप्ट इससे नीचे दिए पोल लिखती है। |
+| `POWERSCALE_ENDPOINT` | PowerScale | वह नोड जिसके ज़रिए क्लस्टर का अपना स्वास्थ्य, क्षमता और कोटा पढ़े जाते हैं: `POWERSCALE_NODES` में पहला। |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | कलेक्टर जो पोल चलाता है: `snmp/cluster`, `snmp/quotas`, फिर `snmp/node-1` और आगे, हर नोड के लिए एक। |
+| `POWERSCALE_NODE_<n>` | PowerScale | नोड `<n>` का पता, `1` से `252` तक। IPv6 पता ब्रैकेट में जाता है, जैसे `[fd00::11]`। |
+| `POWERSCALE_SNMP_VERSION` | नहीं | `v2c` या `v3`। डिफ़ॉल्ट `v2c` है। |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | क्लस्टर की केवल-पढ़ने वाली कम्युनिटी। |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | क्लस्टर का SNMPv3 केवल-पढ़ने वाला उपयोगकर्ता। |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | नहीं | `auth_priv`, `auth_no_priv` या `no_auth_no_priv`। डिफ़ॉल्ट `auth_priv` है। |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | नहीं | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` या `SHA512`, जैसा `isi snmp settings view` दिखाता है। डिफ़ॉल्ट `SHA` है। |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 उपयोगकर्ता का प्रमाणीकरण पासवर्ड। |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | नहीं | `DES`, `AES`, `AES192`, `AES256`, `AES192C` या `AES256C`। डिफ़ॉल्ट `AES` है। |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 उपयोगकर्ता का गोपनीयता पासवर्ड, `auth_priv` स्तर पर। |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | नहीं | `true` नेटिव एंडपॉइंट पर ऐरे का सेल्फ़-साइन्ड सर्टिफ़िकेट स्वीकार करता है; `false` उसे सत्यापित करता है। डिफ़ॉल्ट `true` है। Pure के एक्सपोर्टर ऐरे का सर्टिफ़िकेट कभी सत्यापित नहीं करते, इसलिए यह उन पर लागू नहीं होता। |
 
 ## एजेंट कैसे स्क्रैप करता है
@@ -179,6 +197,9 @@ Pure की सिमैंटिक कन्वेंशन FlashArray के 
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBlade का नाम, Purity वर्शन और सिस्टम ID; क्षमता और डेटा रिडक्शन; खुले अलर्ट की गिनती; ऐरे का स्वास्थ्य; **हार्डवेयर** पेज |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | **फ़ाइल सिस्टम** पेज: प्रोविज़न किया गया और उपयोग किया गया स्पेस, डेटा रिडक्शन, प्रति फ़ाइल सिस्टम लेटेंसी, IOPS और बैंडविड्थ |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | **बकेट** पेज: प्रति बकेट स्पेस, कोटा, ऑब्जेक्ट की गिनती और परफ़ॉर्मेंस, खाते के अनुसार समूहित |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | क्लस्टर का नाम, OneFS वर्शन, स्वास्थ्य और नोड की गिनती; `/ifs` की क्षमता; पूरे क्लस्टर में थ्रूपुट, नेटवर्क और CPU |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | **कोटा** पेज: हर कोटा का उपयोग, उसकी सीमाएँ और वह उनके कितने करीब है |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | **नोड** पेज: हर नोड का स्वास्थ्य, CPU, थ्रूपुट और प्रोटोकॉल प्रदर्शन; **हार्डवेयर** पेज: उसकी ड्राइव, सेंसर और पोर्ट |
 
 **सभी स्टोरेज ऐरे** का **स्वास्थ्य** कॉलम ऐरे के नवीनतम डेटा में ऐरे के अपने अलर्ट और हार्डवेयर को पढ़ता है: **गंभीर** जब तक वह कोई खुला गंभीर अलर्ट बताता है, या कोई हार्डवेयर कंपोनेंट, ड्राइव या कंट्रोलर जो गंभीर, विफल, गायब या अस्वस्थ हो; **चेतावनी** जब तक वह कोई खुला चेतावनी अलर्ट बताता है, या कोई डिग्रेड या अज्ञात कंपोनेंट; बाकी समय **OK**; और एजेंट डिस्कनेक्ट रहने तक **अज्ञात**। ऐरे का **अवलोकन** इससे ज़्यादा परखता है, जैसा अगला सेक्शन बताता है। मॉनिटर मानदंड में ऐरे के एट्रिब्यूट पर `resource.` प्रीफ़िक्स लगता है (`resource.storage.array.name`, `resource.storage.system`), जबकि डेटापॉइंट लेबल बिना प्रीफ़िक्स रहते हैं (`name`, `host`, `dimension`, `space`)।
 
@@ -251,20 +272,21 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 एजेंट अपनी फ़ाइलों द्वारा पिन किए गए कलेक्टर वर्शन को अपने **एजेंट संस्करण** के रूप में बताता है। जब वह इस OneUptime रिलीज़ के पिन किए वर्शन से पुराना होता है, तो ऐरे के **अवलोकन** पर उसके बगल में एक चेतावनी चिह्न दिखता है। ये कमांड देखने के लिए उसे चुनें। जो एजेंट उसकी फ़ाइलों के वर्शन बताने से पहले इंस्टॉल हुआ था, वह इस तरह अपग्रेड होने तक कोई वर्शन नहीं दिखाता।
 
-कलेक्टर इमेज `docker-compose.yml` में पिन है और उसके कॉन्फ़िगरेशन उसके बगल की फ़ाइलें हैं, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml` और तीनों कलेक्टर कॉन्फ़िगरेशन ताज़ा करती है (आपकी संपादित फ़ाइल `<file>.bak.<timestamp>` के रूप में रखी जाती है), और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `/opt/oneuptime-storage-array-agent` के बाहर इंस्टॉल किए गए एजेंट को अपना फ़ोल्डर चाहिए: `INSTALL_DIR=<folder> bash install.sh`।
+कलेक्टर इमेज `docker-compose.yml` में पिन है और उसके कॉन्फ़िगरेशन उसके बगल की फ़ाइलें हैं, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml` और कलेक्टर कॉन्फ़िगरेशन ताज़ा करती है (आपकी संपादित फ़ाइल `<file>.bak.<timestamp>` के रूप में रखी जाती है), और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `/opt/oneuptime-storage-array-agent` के बाहर इंस्टॉल किए गए एजेंट को अपना फ़ोल्डर चाहिए: `INSTALL_DIR=<folder> bash install.sh`।
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-इसके बजाय Docker Compose से इंस्टॉल किया था? एजेंट के फ़ोल्डर में Compose फ़ाइल और तीनों कलेक्टर कॉन्फ़िगरेशन फिर से डाउनलोड करें (और उनमें किए गए बदलाव फिर से करें), फिर इमेज पुल करें और एजेंट दोबारा बनाएँ:
+इसके बजाय Docker Compose से इंस्टॉल किया था? एजेंट के फ़ोल्डर में Compose फ़ाइल और कलेक्टर कॉन्फ़िगरेशन फिर से डाउनलोड करें (और उनमें किए गए बदलाव फिर से करें), फिर इमेज पुल करें और एजेंट दोबारा बनाएँ:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -276,7 +298,74 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-फिर, अगर अब ज़रूरत नहीं है, तो ऐरे पर केवल-पढ़ने वाला उपयोगकर्ता और उसका API टोकन हटा दें।
+फिर, अगर अब ज़रूरत नहीं है, तो ऐरे पर केवल-पढ़ने वाला उपयोगकर्ता और उसका API टोकन हटा दें, या PowerScale की कम्युनिटी या SNMPv3 उपयोगकर्ता।
+
+## Dell PowerScale
+
+एजेंट Dell PowerScale (Isilon) क्लस्टर को SNMP पर, Dell के ISILON-MIB से, कलेक्टर के अपने SNMP रिसीवर के साथ पढ़ता है: कोई API टोकन नहीं, और कलेक्टर के बगल में कुछ नहीं चलता। एक क्लस्टर एक स्टोरेज ऐरे है, और उसके नोड, कोटा, ड्राइव, सेंसर और पोर्ट उसकी इन्वेंटरी हैं।
+
+- **हर नोड को उसके अपने पते पर पोल किया जाता है।** कोई नोड सिर्फ़ अपनी ड्राइव, सेंसर और पोर्ट के लिए SNMP का जवाब देता है, इसलिए एजेंट हर नोड को उस नेटवर्क पर उसके पते से पोल करता है जिस तक एजेंट पहुँचता है, कभी SmartConnect ज़ोन के नाम से नहीं, जो हर पोल को अपनी पसंद के किसी भी नोड को सौंप देता है। एक क्लस्टर में अधिकतम 252 नोड होते हैं।
+- **क्लस्टर के अपने ऑब्जेक्ट एक बार, पहले नोड के ज़रिए पढ़े जाते हैं:** उसका स्वास्थ्य, क्षमता, थ्रूपुट, CPU और नोड की गिनती हर 60 सेकंड (`snmp/cluster`), और उसके SmartQuotas हर 5 मिनट (`snmp/quotas`)। हर नोड का स्वास्थ्य, CPU, प्रोटोकॉल प्रदर्शन (NFS, SMB, S3, HDFS और बाकी), ड्राइव, सेंसर और पोर्ट हर 60 सेकंड में उसी नोड से पढ़े जाते हैं (`snmp/node-<n>`)।
+- **OneFS जो रीडिंग टेक्स्ट के रूप में या दूसरी इकाइयों में देता है** (सेंसर रीडिंग, प्रतिशत के दसवें हिस्से में CPU, बिट में थ्रूपुट), उन्हें कलेक्टर भेजने से पहले संख्याओं में बदल देता है, इसलिए हर चार्ट और टेम्पलेट एक सादा gauge पढ़ता है।
+
+### क्लस्टर पर SNMP चालू करें
+
+एडमिनिस्ट्रेटर के रूप में SSH से किसी भी नोड पर जाएँ: OneFS SNMP सेटिंग पूरे क्लस्टर पर लागू करता है। अगर क्लस्टर किसी दूसरे टूल के लिए पहले से SNMP का जवाब देता है, तो एजेंट को वही केवल-पढ़ने वाली कम्युनिटी या SNMPv3 उपयोगकर्ता दें और यह चरण छोड़ दें। वरना अपनी केवल-पढ़ने वाली कम्युनिटी के साथ SNMP सेवा और SNMP v2c चालू करें, OneFS की डिफ़ॉल्ट `I$ilonpublic` के साथ नहीं:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+या SNMPv3 चालू करें, जो हर पोल को प्रमाणित और एन्क्रिप्ट करता है। OneFS में SNMPv3 का एक ही केवल-पढ़ने वाला उपयोगकर्ता होता है, जिसका नाम बदलने तक वह `general` है: उसे कम से कम आठ अक्षरों के, बिना स्पेस वाले पासवर्ड दें:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` सेटिंग दिखाता है, उपयोगकर्ता के प्रमाणीकरण और गोपनीयता प्रोटोकॉल के साथ। एजेंट की मशीन से हर नोड तक UDP 161 की अनुमति दें, और `isi network interfaces list` से नोड के पते सूचीबद्ध करें।
+
+### PowerScale क्लस्टर पर एजेंट इंस्टॉल करें
+
+PowerScale कॉन्फ़िगरेशन के साथ इंस्टॉल स्क्रिप्ट चलाएँ:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+स्क्रिप्ट आपका OneUptime URL, इंजेशन कुंजी और क्लस्टर का नाम पूछती है, फिर सभी नोड के पते, कॉमा से अलग किए हुए, और SNMP वर्शन, फिर केवल-पढ़ने वाली कम्युनिटी, या SNMPv3 उपयोगकर्ता और उसके दो पासवर्ड, जिनमें से हर एक बिना दिखाए पढ़ा जाता है। जिस उपयोगकर्ता के प्रोटोकॉल SHA और AES नहीं हैं, उसे `POWERSCALE_SNMP_AUTH_PROTOCOL` और `POWERSCALE_SNMP_PRIVACY_PROTOCOL` चाहिए, `bash install.sh` से पहले, और बिना गोपनीयता वाले उपयोगकर्ता को `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`। स्क्रिप्ट हर नोड के लिए एक पोल `.env` में लिखती है:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+जब क्लस्टर में कोई नोड जुड़े, तो उसका पता `POWERSCALE_NODES` में जोड़ें, जो `.env` में है, और `install.sh` फिर से चलाएँ: यह उस नोड का पोल लिखती है और एजेंट दोबारा बनाती है। Docker Compose के साथ, `docker-compose.yml` और `otel-collector-config.powerscale.yaml` डाउनलोड करें, और ये पंक्तियाँ क्विक स्टार्ट की `.env` में रखें, उसकी `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG` और `POWERSCALE_*` पंक्तियों की जगह। `troubleshoot.sh` हर नोड से `snmpget` के ज़रिए क्लस्टर का नाम पूछती है, जब मशीन पर यह मौजूद हो।
+
+### PowerScale के पेज क्या दिखाते हैं
+
+क्लस्टर का **अवलोकन** अपना स्वास्थ्य OneFS के अपने स्वास्थ्य से लेता है, उसके नोड और कोटा गिनता है, और हर प्रोटोकॉल की लेटेंसी और लोड, थ्रूपुट, सबसे व्यस्त नोड और इस्तेमाल हुई क्षमता दिखाता है। **नोड** हर नोड को उसके स्वास्थ्य, मॉडल, OneFS वर्शन, CPU और थ्रूपुट के साथ दिखाता है; **कोटा** हर कोटा को इस बात के साथ दिखाता है कि वह अपनी सीमा का कितना उपयोग करता है, सबसे बड़ा पहले; **हार्डवेयर** हर नोड की ड्राइव, उसके पंखे और उसके तापमान व पावर सेंसर उनकी रीडिंग के साथ, और उसके पोर्ट दिखाता है। क्षमता `/ifs` की है, और OneFS वर्चुअल हॉट स्पेयर के लिए जो जगह बचाकर रखता है वह उपयोग में गिनी जाती है: वह लिखने के लिए उपलब्ध नहीं है।
+
+### एजेंट अभी क्या नहीं पढ़ता
+
+- **OneFS के इवेंट और उसके स्टोरेज पूल।** SNMP इनमें से कुछ भी नहीं ले जाता: ये OneFS API से आते हैं, जिसे एक OneUptime प्रोब पढ़ेगा ([#11249](https://github.com/OneUptime/oneuptime/issues/11249))। तब तक, इवेंट को SNMP ट्रैप के रूप में किसी [कस्टम प्रोब](/docs/probe/custom-probe) को भेजें, और क्लस्टर के नोड उसमें [नेटवर्क डिवाइस](/docs/monitor/network-device-monitor) के रूप में जोड़ें: ट्रैप UDP 162 पर आते हैं, और **SNMP ट्रैप प्राप्त (ट्रैप OID)** मानदंड उन पर अलर्ट करते हैं। SNMPv3 ट्रैप के लिए, नेटवर्क डिवाइस को क्लस्टर का SNMPv3 उपयोगकर्ता दें ([SNMPv3 ट्रैप और इन्फ़ॉर्म](/docs/monitor/network-device-monitor#snmpv3-ट्रैप-और-इन्फ़ॉर्म))। क्लस्टर पर चैनल बनाएँ और उसे एक अलर्ट भेजें:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **डेटा रिडक्शन**, जिसे OneFS सिर्फ़ अपनी API पर बताता है, उसी प्रोब के साथ आएगा।
 
 ## समस्या निवारण
 
@@ -315,6 +404,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 
 :::details pure-fa-exporter या pure-fb-exporter रिज़ॉल्व नहीं होता
 एक्सपोर्टर नहीं चल रहा: `COMPOSE_PROFILES` को `STORAGE_ARRAY_COLLECTOR_CONFIG` से मेल खाना चाहिए (FlashArray एक्सपोर्टर कॉन्फ़िगरेशन के लिए `flasharray-exporter`, FlashBlade कॉन्फ़िगरेशन के लिए `flashblade`)। `.env` ठीक करें और `docker compose up -d` चलाएँ; इसके बाद `docker compose ps` एक्सपोर्टर दिखाता है।
+:::
+
+:::details कोई PowerScale क्लस्टर या नोड कुछ नहीं भेजता
+`Error scraping metrics` और साथ में `request timeout`, कलेक्टर के लॉग में, ऐसे नोड का नाम बताता है जो एजेंट की मशीन से SNMP का जवाब नहीं देता: एजेंट जिस वर्शन का इस्तेमाल करता है उसके लिए SNMP बंद है, कम्युनिटी या SNMPv3 उपयोगकर्ता क्लस्टर का नहीं है, या UDP 161 ब्लॉक है। `bash troubleshoot.sh` हर नोड से `snmpget` के ज़रिए पूछती है। जो नोड जवाब देता है लेकिन **नोड** में नहीं दिखता, वह `POWERSCALE_NODES` में नहीं है: उसे जोड़ें और `install.sh` फिर से चलाएँ।
 :::
 
 :::details हटाए गए वॉल्यूम या होस्ट इन्वेंटरी में बने रहते हैं

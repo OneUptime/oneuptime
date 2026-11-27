@@ -1,17 +1,17 @@
 # Lagringsarray-monitor
 
-En lagringsarray-monitor følger med på ett lagringsarray og sier fra når arrayet selv sender ut et varsel, går tom for plass, blir tregt, mister maskinvare eller en vertssti, eller henger etter med replikering. Den virker med Pure Storage FlashArray og Pure Storage FlashBlade og leser målingene arrayet selv eksporterer - Pures serier `purefa_*` og `purefb_*` -, som OneUptime Storage Array Agent samler inn.
+En lagringsarray-monitor følger med på ett lagringsarray og sier fra når arrayet selv sender ut et varsel, går tom for plass, blir tregt, mister maskinvare eller en vertssti, eller henger etter med replikering. Den virker med Pure Storage FlashArray, Pure Storage FlashBlade og Dell PowerScale og leser målingene arrayet selv eksporterer - Pures serier `purefa_*` og `purefb_*`, og seriene `powerscale_*` som agenten avspør fra en PowerScale over SNMP -, som OneUptime Storage Array Agent samler inn.
 
 :::cards
 - [Opprett monitoren](#opprett-en-lagringsarray-monitor): Seks trinn i dashbordet.
-- [Maler](#ferdige-varslingsmaler): Tjue ferdige varsler, én hendelse per volum, vert eller komponent.
+- [Maler](#ferdige-varslingsmaler): Trettitre ferdige varsler, én hendelse per volum, vert, node eller komponent.
 - [Slik fungerer Pures serier](#slik-er-pures-serier-bygd-opp): Ett målingsnavn, mange verdier.
 - [Målinger](#innsamlede-målinger): Hver serie monitoren kan varsle på.
 :::
 
 ## Slik fungerer det
 
-OneUptime Storage Array Agent kjører på en maskin som kan nå arrayets administrasjonsgrensesnitt. Den leser arrayets målinger med et skrivebeskyttet API-token, merker dem med arrayets navn, `storage.array.name`, og plattformen, `storage.system`, og sender dem til OneUptime over OTLP. De første dataene registrerer arrayet.
+OneUptime Storage Array Agent kjører på en maskin som kan nå arrayets administrasjonsgrensesnitt. Den leser arrayets målinger med et skrivebeskyttet API-token (en PowerScales over SNMP, med en skrivebeskyttet community eller SNMPv3-bruker), merker dem med arrayets navn, `storage.array.name`, og plattformen, `storage.system`, og sender dem til OneUptime over OTLP. De første dataene registrerer arrayet.
 
 En lagringsarray-monitor er knyttet til ett array. Hvert minutt kjører den spørringen sin på det arrayets målinger og sammenligner resultatet med kriteriene sine.
 
@@ -77,15 +77,15 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | **Volum** | Custom Metric, Avansert | Bare FlashArray. Ett volum, via etiketten `name`, som `vol-db-01`. Et volum i en pod eller en volumgruppe heter `pod::volume` eller `group/volume`. |
 | **Vert** | Custom Metric, Avansert | Bare FlashArray. Én vert slik arrayet kjenner den, via etiketten `host`, som `esxi-01`. |
 | **Pod** | Custom Metric, Avansert | Bare FlashArray. Én ActiveCluster- eller ActiveDR-pod, via etiketten `name`, eller `local_pod` på serier for replikalenker. |
-| **Maskinvarekomponent** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade. |
-| **Filsystem** | Custom Metric, Avansert | Bare FlashBlade. Ett filsystem, via etiketten `name`. |
+| **Maskinvarekomponent** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade. På en PowerScale én node via etiketten `node`, som `ps-prod-2`. |
+| **Filsystem** | Custom Metric, Avansert | FlashBlade og PowerScale. Ett filsystem via etiketten `name` på et FlashBlade; én kvote via etiketten `quota` på en PowerScale, som `/ifs/data/home`. |
 | **Bucket** | Custom Metric, Avansert | Bare FlashBlade. Én bucket for objektlagring, via etiketten `name`. |
 | **Storage Array Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). Skjemaet legger til etikettfilteret som gir den betydningen sin, og grupperer den etter objektet den beskriver, så hvert volum, hver vert eller hver komponent vurderes for seg. |
 | **Aggregering** | Custom Metric | Hvordan prøver kombineres: **Gjennomsnitt**, **Maksimum**, **Minimum**, **Sum** eller **Antall**. Starter på målingens vanlige aggregering. |
 | **Tidsintervall** | Alle | Det glidende vinduet spørringen leser, fra **Past 1 Minute** til **Past 365 Days**. En ny monitor starter på **Siste 5 minutter**; en egendefinert måling for et filsystem eller en bucket på **Siste 15 minutter**; maler setter sitt eget. |
 | **Velg målinger** | Avansert | Spørringsbyggeren: **Måling**, **Aggreger etter**, **Filtrer etter attributter**, **Grupper etter**, pluss **Legg til måling** og **Legg til formel** for å kombinere spørringer. |
 
-Agenten leser arrayets endepunkt hvert 60. sekund, og volumer, verter og pods hvert 2. minutt, så et vindu på 5 minutter alltid inneholder en prøve. Filsystemene og bucketene til et FlashBlade leser den hvert 5. minutt, derav 15, og FlashArray-kataloger hvert 30. minutt: gi en katalogmonitor et vindu på 60 minutter.
+Agenten leser arrayets endepunkt hvert 60. sekund, og volumer, verter og pods hvert 2. minutt, så et vindu på 5 minutter alltid inneholder en prøve. Filsystemene og bucketene til et FlashBlade leser den hvert 5. minutt, derav 15, og FlashArray-kataloger hvert 30. minutt: gi en katalogmonitor et vindu på 60 minutter. En PowerScale-klynge og hver av nodene avspør den hvert 60. sekund, og kvotene hvert 5. minutt: gi en kvotemonitor et vindu på 15 minutter.
 
 ## Slik er Pures serier bygd opp
 
@@ -105,11 +105,11 @@ Flere serier bærer tilstanden sin i en **etikett**, med en verdi som alltid er 
 
 En serie som er filtrert til en dårlig tilstand, finnes bare så lenge noe er i den tilstanden, så ingen serie betyr sunt. Derfor er **Max over 0 utløser og 0 gjenoppretter** den riktige formen for dem, og slik er malene bygd: gjenopprettingskriteriene deres teller en manglende serie som null. Når det ikke er noen serier igjen i det hele tatt, gjenoppretter en slik mal bare hvis `purefa_info` eller `purefb_info` kom i samme vindu, så et array som har sluttet å rapportere, lukker ingenting.
 
-I monitorfiltre og grupperingsnøkler begynner agentens attributter med `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens Pures egne etiketter ikke gjør det (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+I monitorfiltre og grupperingsnøkler begynner agentens attributter med `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens arrayenes egne etiketter ikke gjør det (`name`, `host`, `component_name`, `dimension`, `space`, `severity`, og en PowerScales `node`, `quota`, `drive` og `protocol`).
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 20 maler — 12 for FlashArray og 8 for FlashBlade — og listen under **Hva det skal varsles om** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: målingsspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 33 maler — 12 for FlashArray, 8 for FlashBlade og 13 for PowerScale — og listen under **Hva det skal varsles om** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: målingsspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet. En monitor som utløste på en terskel for kapasitet, latens, etterslep eller forhold, gjenoppretter først 10 % forbi den, så en verdi som svinger rundt terskelen, ikke skifter fram og tilbake. Malene for varsler, maskinvare og tilkobling utløses når en tilstand har vist seg i hele vinduet på 5 minutter, og gjenoppretter omtrent 5 minutter etter at den er borte.
 
@@ -143,11 +143,29 @@ Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet
 | High Read Latency            | Ytelse       | Advarsel          | `purefb_array_performance_latency_usec` filtrert til `dimension=usec_per_read_op` og `protocol=all`, Avg, siste 10 minutter | > 10000 µs (10 ms) på tvers av alle protokoller; gjenoppretter ved ≤ 9000                             |
 | File System Near Full        | Filsystemer | Advarsel          | `purefb_file_systems_space_bytes` filtrert til `space=available_ratio`, Min per `name`, siste 15 minutter      | < 0.1 — det er mindre enn 10 % igjen av et filsystems tildelte størrelse. Én hendelse per filsystem; gjenoppretter ved ≥ 0.11 |
 
+### PowerScale
+
+| Mal | Kategori | Alvorlighetsgrad | Overvåker | Utløser når |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Tilgjengelighet | Kritisk | `powerscale_cluster_health`, Count, siste 10 minutter | Ingen data i hele vinduet — Storage Array Agent har stoppet, mistet ruten sin til OneUptime eller fått tokenet sitt tilbakekalt, eller klyngen sluttet å svare på avspørringene; gjenoppretter når data kommer inn igjen |
+| Cluster Needs Attention | Arrayets helse | Advarsel | `powerscale_cluster_health`, Max, siste 5 minutter | > 0 — OneFS rapporterer at klyngen trenger oppmerksomhet, er nede eller ugyldig, og `isi event groups list` sier hvorfor; gjenoppretter ved ≤ 0 |
+| Cluster Down | Arrayets helse | Kritisk | `powerscale_cluster_health`, Max, siste 5 minutter | ≥ 2 — OneFS rapporterer klyngen som nede eller ugyldig; gjenoppretter ved < 2 |
+| Node Offline | Maskinvare | Kritisk | `powerscale_cluster_offline_nodes`, Max, siste 5 minutter | > 0 — en node i klyngen er offline, og `offline_nodes` viser hvilken; gjenoppretter ved ≤ 0 |
+| Node Needs Attention | Maskinvare | Advarsel | `powerscale_node_health`, Max per `node`, siste 5 minutter | > 0 — en node rapporterer at den trenger oppmerksomhet, er nede eller ugyldig. Én hendelse per node; gjenoppretter ved ≤ 0 |
+| Node Read-Only | Maskinvare | Advarsel | `powerscale_node_read_only`, Max per `node`, siste 5 minutter | > 0 — en node er i skrivebeskyttet modus, og klienter som er koblet til den, kan ikke skrive. Én hendelse per node; gjenoppretter ved ≤ 0 |
+| Drive Failed | Maskinvare | Kritisk | `powerscale_drive_size_bytes` filtrert til `status=DEAD`, Count per `drive`, siste 5 minutter | > 0 — en disk er død, og OneFS beskytter dataene på den på nytt på de andre. Én hendelse per disk; gjenoppretter når den melder en annen status |
+| Drive Smartfailed | Maskinvare | Advarsel | `powerscale_drive_size_bytes` filtrert til `status=SMARTFAIL`, Count per `drive`, siste 5 minutter | > 0 — OneFS flytter dataene bort fra en disk som svikter, før den byttes. Én hendelse per disk; gjenoppretter når den melder en annen status |
+| Capacity Above 80% | Kapasitet | Advarsel | `powerscale_ifs_used_percent`, Max, siste 15 minutter | > 80, medregnet plassen som holdes av til virtuelle hot spares; gjenoppretter ved ≤ 72 |
+| Capacity Above 90% | Kapasitet | Kritisk | `powerscale_ifs_used_percent`, Max, siste 5 minutter | > 90 — klyngen er nær ved å avvise skrivinger; gjenoppretter ved ≤ 81 |
+| Quota Near Its Limit | Kapasitet | Advarsel | `powerscale_quota_used_percent`, Max per `quota`, siste 15 minutter | > 90 av den harde grensen, eller av den myke grensen når den ikke har noen. Én hendelse per kvote; gjenoppretter ved ≤ 81 |
+| Quota Full | Kapasitet | Kritisk | `powerscale_quota_used_percent`, Max per `quota`, siste 5 minutter | ≥ 100 — skrivinger under kvotens sti feiler ved en hard grense. Én hendelse per kvote; gjenoppretter ved < 90 |
+| High Protocol Latency | Ytelse | Advarsel | `powerscale_protocol_latency_microseconds`, Max per `protocol`, siste 10 minutter | > 20000 µs (20 ms) på den tregeste noden. Én hendelse per protokoll; gjenoppretter ved ≤ 18000 |
+
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriet.
 
-- **Array Stopped Reporting** teller plattformens identitetsserie (`purefa_info` eller `purefb_info`), som hvert endepunkt agenten leser, eksporterer ved hver avlesning. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
+- **Array Stopped Reporting** teller plattformens identitetsserie (`purefa_info` eller `purefb_info`), som hvert endepunkt agenten leser, eksporterer ved hver avlesning; for en PowerScale er det `powerscale_cluster_health`, som agentens avspørring av klyngen sender hvert minutt. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **Åpne varsler og maskinvaretilstander bruker Max** av en serie som bare finnes så lenge varselet er åpent eller komponenten er i den tilstanden, så tilstanden krysser terskelen når den har vist seg i hele vinduet på 5 minutter.
-- **Hver mal per objekt grupperer på objektets egen etikett** (`summary`, `component_name`, `host`, `local_pod`, `name`), så det utløses én hendelse per berørt objekt, og hendelsen nevner det.
+- **Hver mal per objekt grupperer på objektets egen etikett** (`summary`, `component_name`, `host`, `local_pod`, `name`, og en PowerScales `node`, `drive`, `quota` og `protocol`), så det utløses én hendelse per berørt objekt, og hendelsen nevner det.
 - **Latensmaler bruker Avg** av arrayets eget gjennomsnitt per operasjon, og kapasitetsmaler **Maks.** av dets egen utnyttelsesprosent. Latenser er låst i mikrosekunder og kapasitet i prosent.
 - **Hardware Component Unhealthy bruker Min** per komponent: helsen er 1 når den er sunn, og faller til 0 når den ikke er det.
 
@@ -163,6 +181,8 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Én serie per åpent varsel på arrayet (verdi 1), med etikettene `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` og `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Én serie per åpent varsel på FlashBladen (verdi 1), med etikettene `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` og `kburl` (Pures artikkel i kunnskapsbasen) |
+| `powerscale_cluster_health` | — | PowerScale | — | Helsen OneFS rapporterer for klyngen: 0 er OK, 1 trenger oppmerksomhet, 2 er nede og 3 er ugyldig. Ta maksimum for å se enhver endring |
+| `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | Hvor mange av nodene i klyngen som er offline; etiketten `offline_nodes` viser de logiske nodenumrene deres |
 
 ### Kapasitet
 
@@ -176,6 +196,12 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefb_array_space_utilization`          | `type=array`                 | FlashBlade | `%`     | Andelen av FlashBladens brukbare kapasitet som er i bruk                                                                              |
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | FlashBladens ubrukte kapasitet                                                                                                        |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Datareduksjon på tvers av FlashBladen                                                                                                 |
+| `powerscale_ifs_used_percent` | — | PowerScale | `%` | Andel av kapasiteten til klyngen som ikke lenger er tilgjengelig for skrivinger: det som er i bruk, pluss plassen OneFS holder av til virtuelle hot spares |
+| `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | Plass som fortsatt er tilgjengelig for skrivinger på `/ifs` |
+| `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | Plass i bruk på `/ifs`, slik OneFS teller den |
+| `powerscale_ifs_total_bytes` | — | PowerScale | `bytes` | Størrelsen på `/ifs` på tvers av klyngen |
+| `powerscale_quota_used_percent` | — | PowerScale | `%` | Bruken av hver kvote som andel av den harde grensen, eller av den myke grensen når den ikke har en hard (etiketten `limit` sier hvilken) — grupper etter `quota` |
+| `powerscale_quota_usage_bytes` | — | PowerScale | `bytes` | Hva hver kvote inneholder, slik OneFS regner det inn i kvoten |
 
 ### Ytelse
 
@@ -197,6 +223,16 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all`     | FlashBlade | `ops/s`   | Skriveoperasjoner per sekund på tvers av alle protokoller                                                    |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Leste byte per sekund på tvers av alle protokoller                                                           |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Skrevne byte per sekund på tvers av alle protokoller                                                        |
+| `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | Byte per sekund som leses fra `/ifs`, på tvers av klyngen |
+| `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | Byte per sekund som skrives til `/ifs`, på tvers av klyngen |
+| `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | Byte per sekund som front-end-portene til klyngen mottar |
+| `powerscale_cluster_network_out_bytes_per_second` | — | PowerScale | `bytes/s` | Byte per sekund som front-end-portene til klyngen sender |
+| `powerscale_cluster_cpu_busy_percent` | — | PowerScale | `%` | Andel av CPU-tiden i bruk, gjennomsnittlig over nodene i klyngen |
+| `powerscale_protocol_latency_microseconds` | — | PowerScale | `µs` | Gjennomsnittlig tid en operasjon tar per protokoll (NFS, SMB, HDFS, ...) på hver node; maksimum er den tregeste noden — grupper etter `protocol` eller `node` |
+| `powerscale_protocol_latency_max_microseconds` | — | PowerScale | `µs` | Den tregeste enkeltoperasjonen per protokoll på hver node |
+| `powerscale_protocol_operations_per_second` | — | PowerScale | `ops/s` | Operasjoner per sekund per protokoll på hver node; maksimum er den travleste noden |
+| `powerscale_protocol_in_bytes_per_second` | — | PowerScale | `bytes/s` | Byte per sekund som klienter sender over hver protokoll til hver node: skrivinger og forespørsler |
+| `powerscale_protocol_out_bytes_per_second` | — | PowerScale | `bytes/s` | Byte per sekund som hver node sender til klienter over hver protokoll: lesinger og svar |
 
 ### Volumer
 
@@ -240,6 +276,16 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `purefa_drive_capacity_bytes`                 | —                                | FlashArray | `bytes`    | Rå kapasitet for hver disk, med etiketten for dens `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) og type                                                      |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Feil per sekund på hvert Ethernet- og Fibre Channel-grensesnitt — vedvarende feil betyr som regel en dårlig kabel, optikk eller switchport                                                                   |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Helsen til hver maskinvarekomponent (blader, fabric-moduler, strømforsyninger, vifter, ...): 1 = sunn, 2 = ubrukt, 0 = usunn. Ta minimum per `name`                                                           |
+| `powerscale_node_health` | — | PowerScale | — | Helsen hver node rapporterer: 0 er OK, 1 trenger oppmerksomhet, 2 er nede og 3 er ugyldig — grupper etter `node` |
+| `powerscale_node_read_only` | — | PowerScale | — | 1 så lenge en node er i skrivebeskyttet modus, ellers 0 — grupper etter `node` |
+| `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | Andel av CPU-tiden til hver node i bruk — grupper etter `node` |
+| `powerscale_node_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | Byte per sekund som leses fra `/ifs` gjennom hver node |
+| `powerscale_node_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | Byte per sekund som skrives til `/ifs` gjennom hver node |
+| `powerscale_drive_size_bytes` | — | PowerScale | `bytes` | Én serie per diskplass, med diskens størrelse som verdi og etikettene `status` (`HEALTHY`, `SMARTFAIL`, `DEAD`, ...), `model` og `serial` |
+| `powerscale_drive_operations_per_second` | — | PowerScale | `ops/s` | Operasjoner per sekund som hver disk betjener — grupper etter `drive` |
+| `powerscale_temperature_celsius` | — | PowerScale | `°C` | Avlesningen fra hver temperatursensor på hver node; maksimum per node er den varmeste sensoren |
+| `powerscale_fan_speed_rpm` | — | PowerScale | `rpm` | Hastigheten til hver vifte på hver node; minimum finner en vifte som går saktere |
+| `powerscale_interface_status` | — | PowerScale | — | Tilstanden til hver nodeport: 1 er oppe, 2 er nede, 7 er nede under porten (ingen link); `admin_status` er 1 for en port som skal være oppe |
 
 ### Filsystemer
 
@@ -323,7 +369,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` er arrayets `storage.array.name` - det `STORAGE_ARRAY_NAME` agenten ble startet med -, ikke dets OneUptime-ID. `storageSystem` er `purestorage.flasharray` eller `purestorage.flashblade`. Det avgjør hvilken katalog og hvilke maler skjemaet viser, og om et maskinvarefilter leser `component_name` eller `name`.
+`arrayIdentifier` er arrayets `storage.array.name` - det `STORAGE_ARRAY_NAME` agenten ble startet med -, ikke dets OneUptime-ID. `storageSystem` er `purestorage.flasharray`, `purestorage.flashblade` eller `dell.powerscale`. Det avgjør hvilken katalog og hvilke maler skjemaet viser, og hvilken etikett et maskinvarefilter leser: `component_name`, `name` eller `node`.
 
 ## Feilsøking
 

@@ -1,9 +1,10 @@
 # 儲存陣列代理程式
 
-OneUptime Storage Array 代理程式會監控儲存陣列：容量和資料縮減、延遲、IOPS 和頻寬、磁碟區、主機、Pod 和複寫、硬體健康狀態、檔案系統和儲存貯體。它是一個標準的 OpenTelemetry Collector，使用唯讀使用者的 API 權杖抓取陣列的 OpenMetrics 端點，在每個指標上加上陣列的身分資訊，並將其傳送到 OneUptime。[儲存陣列監控](/docs/monitor/storage-array-monitor) 會根據送達的資料發出警示。
+OneUptime Storage Array 代理程式會監控儲存陣列：容量和資料縮減、延遲、IOPS 和頻寬、磁碟區、主機、Pod 和複寫、硬體健康狀態、檔案系統、儲存貯體和配額。它是一個標準的 OpenTelemetry Collector，使用唯讀使用者的 API 權杖抓取陣列的 OpenMetrics 端點，或透過 SNMP 輪詢 Dell PowerScale 叢集的節點，在每個指標上加上陣列的身分資訊，並將其傳送到 OneUptime。[儲存陣列監控](/docs/monitor/storage-array-monitor) 會根據送達的資料發出警示。
 
 :::cards
 - [安裝代理程式](#安裝代理程式): 先建立唯讀使用者，再使用安裝指令碼或 Docker Compose。
+- [Dell PowerScale](#dell-powerscale): 叢集上的 SNMP、逐一輪詢的每個節點，以及其頁面顯示的內容。
 - [代理程式收集的內容](#代理程式收集的內容): 每個端點，以及以它為基礎建立的頁面。
 - [監控多個陣列](#監控多個陣列): 每個陣列一個代理程式，都在同一台機器上。
 - [疑難排解](#疑難排解): 一個診斷指令碼，以及常見問題。
@@ -18,8 +19,11 @@ Storage Arrays 是一個對每個廠商都以相同方式運作的產品。它�
 | **Pure Storage FlashArray**，Purity//FA 6.7 及更新版本 | `purestorage.flasharray` | 陣列自己的 OpenMetrics 端點（`https://<array>/metrics/...?namespace=purefa`）：Collector 旁邊不需要執行任何東西 | `otel-collector-config.yaml`（預設） |
 | **Pure Storage FlashArray**，較舊的 Purity//FA | `purestorage.flasharray` | Pure 的 FlashArray OpenMetrics 匯出器，由同一個 Compose 檔案以 `pure-fa-exporter` 服務執行 | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure 的 FlashBlade OpenMetrics 匯出器，由同一個 Compose 檔案以 `pure-fb-exporter` 服務執行 | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerScale**（Isilon），OneFS 8.0 及更新版本 | `dell.powerscale` | 透過 SNMP 讀取每個節點（Dell 的 ISILON-MIB），使用 Collector 內建的 SNMP 接收器：Collector 旁邊不需要執行任何東西 | `otel-collector-config.powerscale.yaml` |
 
 Pure Storage 於 2026 年 2 月更名為 **Everpure**。FlashArray、FlashBlade 和 Purity 保留了原名，`purefa_*` 和 `purefb_*` 指標也沒有改名，因此本頁的所有內容都適用於以任一名稱銷售的陣列。
+
+**Dell PowerScale** 叢集的讀取方式不同：代理程式透過 SNMP 輪詢它的每個節點，使用唯讀社群字串或 SNMPv3 使用者，不需要 API 權杖。[Dell PowerScale](#dell-powerscale) 一節從啟用 SNMP 一路講到其頁面顯示的內容；下面的安裝步驟適用於 Pure Storage。
 
 ```mermaid title="從陣列到 OneUptime"
 flowchart TB
@@ -87,7 +91,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-指令碼會詢問這是哪種陣列（提供原生指標的 FlashArray、執行較舊 Purity//FA 的 FlashArray，或 FlashBlade），然後詢問你的 OneUptime URL、擷取金鑰、陣列的名稱、陣列的管理位址和唯讀使用者的 API 權杖（讀取時不會回顯）。它會安裝到 `/opt/oneuptime-storage-array-agent`，下載 Compose 檔案和全部三個 Collector 設定，寫入一個 `0600` 權限的 `.env` 檔案，其中包含相符的設定和 Compose 設定檔，並用 Docker Compose 啟動代理程式。它會依你輸入的原樣為 Docker Compose 為每個值加上引號。再次執行它會重複使用現有 `.env` 中的所有內容，不會再次詢問，並在取代你編輯過的檔案之前將其保存為 `<file>.bak.<timestamp>`。
+指令碼會詢問這是哪種陣列（提供原生指標的 FlashArray、執行較舊 Purity//FA 的 FlashArray、FlashBlade，或 PowerScale 叢集），然後詢問你的 OneUptime URL、擷取金鑰、陣列的名稱、陣列的管理位址和唯讀使用者的 API 權杖（讀取時不會回顯）。它會安裝到 `/opt/oneuptime-storage-array-agent`，下載 Compose 檔案和所有 Collector 設定，寫入一個 `0600` 權限的 `.env` 檔案，其中包含相符的設定和 Compose 設定檔，並用 Docker Compose 啟動代理程式。它會依你輸入的原樣為 Docker Compose 為每個值加上引號。再次執行它會重複使用現有 `.env` 中的所有內容，不會再次詢問，並在取代你編輯過的檔案之前將其保存為 `<file>.bak.<timestamp>`。
 @tab Docker Compose
 從你的 OneUptime 下載 `docker-compose.yml` 和三個 `otel-collector-config*.yaml` 檔案到一個新資料夾中：
 
@@ -111,10 +115,12 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-對於執行較舊 Purity//FA 的 FlashArray，請設定 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` 和 `COMPOSE_PROFILES=flasharray-exporter`。對於 FlashBlade，請設定 `STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` 和 `COMPOSE_PROFILES=flashblade`，並填入 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`，而不是 `PURE_FA_*` 這一組。啟動代理程式：
+對於執行較舊 Purity//FA 的 FlashArray，請設定 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` 和 `COMPOSE_PROFILES=flasharray-exporter`。對於 FlashBlade，請設定 `STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` 和 `COMPOSE_PROFILES=flashblade`，並填入 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`，而不是 `PURE_FA_*` 這一組。PowerScale 叢集的 `.env` 請見 [Dell PowerScale](#dell-powerscale)。啟動代理程式：
 
 ```bash
 docker compose up -d
@@ -148,13 +154,25 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 是 | 你的 OneUptime URL，例如 `https://oneuptime.com` 或你的自行託管執行個體。如果執行個體只支援 HTTP，請使用 `http://` 及其連接埠。 |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 是 | 來自 **專案設定 → 遙測與 APM → 擷取金鑰** 的擷取金鑰。 |
 | `STORAGE_ARRAY_NAME` | 是 | 陣列在 OneUptime 中註冊所用的名稱，會作為 `storage.array.name` 資源屬性加到每個指標上。請保持不變：之後變更它會註冊另一個陣列。缺少它時 Collector 會拒絕啟動。 |
-| `STORAGE_SYSTEM` | 否 | 平台，會作為 `storage.system` 資源屬性加上：`purestorage.flasharray` 或 `purestorage.flashblade`。預設為 `purestorage.flasharray`。 |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | 否 | 執行哪個隨附的 Collector 設定：`otel-collector-config.yaml`（FlashArray，原生：預設）、`otel-collector-config.flasharray-exporter.yaml`（較舊的 FlashArray）或 `otel-collector-config.flashblade.yaml`（FlashBlade）。 |
+| `STORAGE_SYSTEM` | 否 | 平台，會作為 `storage.system` 資源屬性加上：`purestorage.flasharray`、`purestorage.flashblade` 或 `dell.powerscale`。預設為 `purestorage.flasharray`。 |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | 否 | 執行哪個隨附的 Collector 設定：`otel-collector-config.yaml`（FlashArray，原生：預設）、`otel-collector-config.flasharray-exporter.yaml`（較舊的 FlashArray）、`otel-collector-config.flashblade.yaml`（FlashBlade）或 `otel-collector-config.powerscale.yaml`（PowerScale）。 |
 | `COMPOSE_PROFILES` | 否 | 啟動所選設定要抓取的匯出器：原生 FlashArray 設定留空，另外兩種設定分別為 `flasharray-exporter` 或 `flashblade`。 |
 | `PURE_FA_ENDPOINT` | FlashArray | FlashArray 的管理位址：主機名稱或 IP，不含 `https://`。 |
 | `PURE_FA_API_TOKEN` | FlashArray | 具有 readonly 角色的 FlashArray 使用者的 API 權杖。 |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade 的管理位址：主機名稱或 IP，不含 `https://`。 |
 | `PURE_FB_API_TOKEN` | FlashBlade | 具有 readonly 角色的 FlashBlade 使用者的 API 權杖。 |
+| `POWERSCALE_NODES` | PowerScale | 每個節點的位址，以逗號分隔，絕不是 SmartConnect 區域名稱。安裝指令碼會據此寫入下面的輪詢。 |
+| `POWERSCALE_ENDPOINT` | PowerScale | 讀取叢集本身健康狀況、容量和配額所經由的節點：`POWERSCALE_NODES` 中的第一個。 |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Collector 執行的輪詢：`snmp/cluster`、`snmp/quotas`，然後是 `snmp/node-1` 及之後各項，每個節點一個。 |
+| `POWERSCALE_NODE_<n>` | PowerScale | 節點 `<n>` 的位址，從 `1` 到 `252`。IPv6 位址要放在方括號中，例如 `[fd00::11]`。 |
+| `POWERSCALE_SNMP_VERSION` | 否 | `v2c` 或 `v3`。預設為 `v2c`。 |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | 叢集的唯讀社群字串。 |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | 叢集的 SNMPv3 唯讀使用者。 |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | 否 | `auth_priv`、`auth_no_priv` 或 `no_auth_no_priv`。預設為 `auth_priv`。 |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | 否 | `MD5`、`SHA`、`SHA224`、`SHA256`、`SHA384` 或 `SHA512`，與 `isi snmp settings view` 顯示的一致。預設為 `SHA`。 |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 使用者的驗證密碼。 |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | 否 | `DES`、`AES`、`AES192`、`AES256`、`AES192C` 或 `AES256C`。預設為 `AES`。 |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 使用者的隱私密碼，用於 `auth_priv` 層級。 |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 否 | `true` 會在原生端點上接受陣列的自我簽署憑證；`false` 則會驗證它。預設為 `true`。Pure 的匯出器從不驗證陣列的憑證，因此它不適用於匯出器。 |
 
 ## 代理程式如何抓取
@@ -179,6 +197,9 @@ Pure 的語意慣例由 FlashArray 原生端點和兩個匯出器共用。每個
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名稱、Purity 版本和系統 ID；容量和資料縮減；未結的警示數；陣列的健康狀態；**硬體** 頁面 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **檔案系統** 頁面：每個檔案系統的佈建空間和已用空間、資料縮減、延遲、IOPS 和頻寬 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **儲存貯體** 頁面：每個儲存貯體的空間、配額、物件數和效能，依帳戶分組 |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`、`powerscale_ifs_*` | 叢集的名稱、OneFS 版本、健康狀況和節點數；`/ifs` 的容量；整個叢集的輸送量、網路和 CPU |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | **配額** 頁面：每個配額的用量、其限制，以及它離限制有多近 |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`、`powerscale_protocol_*`、`powerscale_drive_*`、`powerscale_fan_*`、`powerscale_temperature_*`、`powerscale_power_sensor_*`、`powerscale_interface_*`、`powerscale_chassis_*` | **節點** 頁面：每個節點的健康狀況、CPU、輸送量和通訊協定效能；**硬體** 頁面：它的磁碟機、感測器和連接埠 |
 
 **所有儲存陣列** 的 **健康狀況** 欄讀取陣列最新資料中陣列本身的警示和硬體：當它回報未結的嚴重警示，或有硬體元件、磁碟機或控制器處於嚴重、故障、遺失或不健康狀態時為 **嚴重**；當它回報未結的警告警示，或有降級或狀態不明的元件時為 **警告**；否則為 **OK**；代理程式中斷連線期間為 **未知**。陣列的 **概覽** 會判斷更多內容，如下一節所述。在監控條件中，陣列的屬性要加上 `resource.` 前置詞（`resource.storage.array.name`、`resource.storage.system`），而資料點標籤保持原樣（`name`、`host`、`dimension`、`space`）。
 
@@ -251,20 +272,21 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 代理程式會把其檔案固定的 Collector 版本回報為它的 **代理程式版本**。當該版本早於此 OneUptime 版本固定的版本時，陣列的 **概覽** 頁面上會在它旁邊出現一個警告標誌。選取它即可查看這些命令。在其檔案開始回報版本之前安裝的代理程式不會顯示版本，直到以這種方式升級為止。
 
-Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和三個 Collector 設定（你編輯過的檔案會保存為 `<file>.bak.<timestamp>`），並重新建立代理程式，讓 Collector 讀取新的設定。安裝在 `/opt/oneuptime-storage-array-agent` 之外的代理程式需要指定其資料夾：`INSTALL_DIR=<folder> bash install.sh`。
+Collector 映像檔固定在 `docker-compose.yml` 中，其設定是旁邊的檔案，因此只提取映像檔並不能讓代理程式升級。請再次執行 `install.sh`：它會重複使用你現有 `.env` 中的每個值（不會再詢問任何內容），重新整理 `docker-compose.yml` 和 Collector 設定（你編輯過的檔案會保存為 `<file>.bak.<timestamp>`），並重新建立代理程式，讓 Collector 讀取新的設定。安裝在 `/opt/oneuptime-storage-array-agent` 之外的代理程式需要指定其資料夾：`INSTALL_DIR=<folder> bash install.sh`。
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-如果是用 Docker Compose 安裝的，請在代理程式的資料夾中重新下載 Compose 檔案和三個 Collector 設定（並重新做一次你對它們所做的任何修改），然後提取映像檔並重新建立代理程式：
+如果是用 Docker Compose 安裝的，請在代理程式的資料夾中重新下載 Compose 檔案和 Collector 設定（並重新做一次你對它們所做的任何修改），然後提取映像檔並重新建立代理程式：
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -276,7 +298,74 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-接著，如果不再需要，請在陣列上刪除唯讀使用者及其 API 權杖。
+接著，如果不再需要，請在陣列上刪除唯讀使用者及其 API 權杖，或刪除 PowerScale 的社群字串或 SNMPv3 使用者。
+
+## Dell PowerScale
+
+代理程式透過 SNMP 讀取 Dell PowerScale（Isilon）叢集，資料來自 Dell 的 ISILON-MIB，使用 Collector 內建的 SNMP 接收器：不需要 API 權杖，Collector 旁邊也不執行任何東西。一個叢集就是一個儲存陣列，它的節點、配額、磁碟機、感測器和連接埠就是它的清單。
+
+- **每個節點都透過它自己的位址輪詢。** 節點只為它自己的磁碟機、感測器和連接埠回應 SNMP，因此代理程式依每個節點在代理程式可達網路上的位址輪詢它，絕不使用 SmartConnect 區域名稱，因為該區域會把每次輪詢交給它選中的任一節點。一個叢集最多有 252 個節點。
+- **叢集本身的物件透過第一個節點讀取一次：** 每 60 秒讀取其健康狀況、容量、輸送量、CPU 和節點數（`snmp/cluster`），每 5 分鐘讀取其 SmartQuotas（`snmp/quotas`）。每個節點的健康狀況、CPU、通訊協定效能（NFS、SMB、S3、HDFS 等）、磁碟機、感測器和連接埠每 60 秒從該節點本身讀取（`snmp/node-<n>`）。
+- **OneFS 以文字或其他單位提供的讀數**（感測器讀數、以十分之一百分點為單位的 CPU、以位元為單位的輸送量）會在傳送前由 Collector 轉換為數字，因此每個圖表和範本讀取的都是普通的 gauge。
+
+### 在叢集上啟用 SNMP
+
+以管理員身分透過 SSH 登入任一節點：OneFS 會將 SNMP 設定套用到整個叢集。如果叢集已經為其他工具回應 SNMP，請為代理程式提供相同的唯讀社群字串或 SNMPv3 使用者，並跳過此步驟。否則，請啟用 SNMP 服務，並使用你自己的唯讀社群字串啟用 SNMP v2c，不要使用 OneFS 預設的 `I$ilonpublic`：
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+或者啟用 SNMPv3，它會對每次輪詢進行驗證和加密。OneFS 只有一個 SNMPv3 唯讀使用者，在你重新命名之前名為 `general`：為它設定至少八個字元且不含空格的密碼：
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` 會顯示設定，包括該使用者的驗證通訊協定和隱私通訊協定。允許從代理程式所在機器到每個節點的 UDP 161，並用 `isi network interfaces list` 列出各節點的位址。
+
+### 在 PowerScale 叢集上安裝代理程式
+
+使用 PowerScale 設定執行安裝指令碼：
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+指令碼會詢問你的 OneUptime URL、擷取金鑰和叢集的名稱，然後詢問每個節點的位址（以逗號分隔）和 SNMP 版本，再詢問唯讀社群字串，或 SNMPv3 使用者及其兩個密碼，每一項讀取時都不會回顯。如果使用者的通訊協定不是 SHA 和 AES，需要把 `POWERSCALE_SNMP_AUTH_PROTOCOL` 和 `POWERSCALE_SNMP_PRIVACY_PROTOCOL` 放在 `bash install.sh` 前面；不使用隱私保護的使用者則需要 `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`。指令碼會為每個節點寫入一項輪詢到 `.env` 中：
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+叢集新增節點時，請把它的位址加入 `POWERSCALE_NODES`（在 `.env` 中），然後再次執行 `install.sh`：它會寫入該節點的輪詢並重新建立代理程式。使用 Docker Compose 時，請下載 `docker-compose.yml` 和 `otel-collector-config.powerscale.yaml`，並把這些行放進快速入門的 `.env`，取代其中的 `STORAGE_SYSTEM`、`STORAGE_ARRAY_COLLECTOR_CONFIG` 和 `POWERSCALE_*` 行。`troubleshoot.sh` 會用 `snmpget`（如果機器上有）向每個節點查詢叢集的名稱。
+
+### PowerScale 的頁面顯示的內容
+
+叢集的 **概覽** 從 OneFS 本身回報的健康狀況取得其健康狀況，統計其節點和配額，並繪製每個通訊協定的延遲和負載、輸送量、最繁忙的節點和已用容量。**節點** 列出每個節點及其健康狀況、型號、OneFS 版本、CPU 和輸送量；**配額** 列出每個配額及其已用掉的限制比例，最大的排在最前；**硬體** 列出每個節點的磁碟機、風扇、溫度和電源感測器及其讀數，以及連接埠。容量是 `/ifs` 的容量，OneFS 為虛擬熱備援預留的空間計為已用：它不可用於寫入。
+
+### 代理程式暫時還不讀取的內容
+
+- **OneFS 的事件及其儲存池。** SNMP 兩者都不傳送：它們來自 OneFS API，將由 OneUptime 探測器讀取（[#11249](https://github.com/OneUptime/oneuptime/issues/11249)）。在此之前，請把事件作為 SNMP Trap 傳送到 [自訂探測器](/docs/probe/custom-probe)，並把叢集的節點作為 [網路裝置](/docs/monitor/network-device-monitor) 新增到該探測器：Trap 送達 UDP 162，**收到的 SNMP Trap（Trap OID）** 條件會據此發出警示。對於 SNMPv3 Trap，請為這些網路裝置設定叢集的 SNMPv3 使用者（[SNMPv3 Trap 和 Inform](/docs/monitor/network-device-monitor#snmpv3-trap-和-inform)）。在叢集上建立通道並向它傳送一則警示：
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **資料縮減** 由 OneFS 僅透過其 API 回報，將隨同一個探測器一起提供。
 
 ## 疑難排解
 
@@ -315,6 +404,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 
 :::details 無法解析 pure-fa-exporter 或 pure-fb-exporter
 匯出器沒有執行：`COMPOSE_PROFILES` 必須與 `STORAGE_ARRAY_COLLECTOR_CONFIG` 相符（FlashArray 匯出器設定用 `flasharray-exporter`，FlashBlade 設定用 `flashblade`）。修正 `.env` 並執行 `docker compose up -d`；之後 `docker compose ps` 會列出匯出器。
+:::
+
+:::details PowerScale 叢集或節點沒有傳送任何資料
+Collector 日誌中的 `Error scraping metrics`（附帶 `request timeout`）指出了一個不回應來自代理程式所在機器之 SNMP 要求的節點：代理程式所用版本的 SNMP 已關閉、社群字串或 SNMPv3 使用者不屬於該叢集，或者 UDP 161 遭到封鎖。`bash troubleshoot.sh` 會用 `snmpget` 詢問每個節點。能回應卻不在 **節點** 中的節點，就是不在 `POWERSCALE_NODES` 中：加入它，然後再次執行 `install.sh`。
 :::
 
 :::details 已刪除的磁碟區或主機仍留在清單中

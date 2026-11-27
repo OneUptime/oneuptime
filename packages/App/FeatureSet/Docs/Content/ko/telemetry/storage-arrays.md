@@ -1,9 +1,10 @@
 # 스토리지 어레이 에이전트
 
-OneUptime Storage Array 에이전트는 스토리지 어레이를 모니터링합니다. 대상은 용량과 데이터 절감, 지연 시간, IOPS와 대역폭, 볼륨, 호스트, 포드와 복제, 하드웨어 상태, 파일 시스템과 버킷입니다. 이 에이전트는 표준 OpenTelemetry Collector로, 읽기 전용 사용자의 API 토큰으로 어레이의 OpenMetrics 엔드포인트를 스크레이프하고, 모든 메트릭에 어레이의 식별 정보를 붙여 OneUptime으로 보냅니다. 들어온 데이터에는 [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor)로 경고를 보낼 수 있습니다.
+OneUptime Storage Array 에이전트는 스토리지 어레이를 모니터링합니다. 대상은 용량과 데이터 절감, 지연 시간, IOPS와 대역폭, 볼륨, 호스트, 포드와 복제, 하드웨어 상태, 파일 시스템, 버킷, 할당량입니다. 이 에이전트는 표준 OpenTelemetry Collector로, 읽기 전용 사용자의 API 토큰으로 어레이의 OpenMetrics 엔드포인트를 스크레이프하거나 Dell PowerScale 클러스터의 노드를 SNMP로 폴링하고, 모든 메트릭에 어레이의 식별 정보를 붙여 OneUptime으로 보냅니다. 들어온 데이터에는 [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor)로 경고를 보낼 수 있습니다.
 
 :::cards
 - [에이전트 설치](#에이전트-설치): 읽기 전용 사용자, 그다음 설치 스크립트 또는 Docker Compose.
+- [Dell PowerScale](#dell-powerscale): 클러스터의 SNMP, 모든 노드 폴링, 그리고 페이지에 표시되는 내용.
 - [에이전트가 수집하는 항목](#에이전트가-수집하는-것): 모든 엔드포인트와, 그것으로 만드는 페이지.
 - [여러 어레이 모니터링](#여러-어레이-모니터링): 어레이마다 에이전트 하나, 머신 한 대에서.
 - [문제 해결](#문제-해결): 진단 스크립트와 일반적인 문제.
@@ -18,8 +19,11 @@ Storage Arrays는 모든 벤더에서 같은 방식으로 동작하는 제품입
 | **Pure Storage FlashArray**, Purity//FA 6.7 이상 | `purestorage.flasharray` | 어레이 자체의 OpenMetrics 엔드포인트(`https://<array>/metrics/...?namespace=purefa`). Collector 옆에서 실행되는 것은 없습니다 | `otel-collector-config.yaml`(기본값) |
 | **Pure Storage FlashArray**, 이전 Purity//FA | `purestorage.flasharray` | Pure의 FlashArray OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fa-exporter` 서비스로 실행합니다 | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure의 FlashBlade OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fb-exporter` 서비스로 실행합니다 | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 이상 | `dell.powerscale` | 각 노드를 SNMP로(Dell의 ISILON-MIB), Collector 자체의 SNMP 리시버로 읽습니다. Collector 옆에서 실행되는 것은 없습니다 | `otel-collector-config.powerscale.yaml` |
 
 Pure Storage는 2026년 2월에 이름을 **Everpure**로 바꿨습니다. FlashArray, FlashBlade, Purity는 이름을 유지했고 `purefa_*` 및 `purefb_*` 메트릭도 그대로이므로, 이 페이지의 모든 내용은 어느 이름으로 판매된 어레이에도 적용됩니다.
+
+**Dell PowerScale** 클러스터는 다른 방식으로 읽습니다. 에이전트는 읽기 전용 커뮤니티 또는 SNMPv3 사용자로 각 노드를 SNMP로 폴링하며, API 토큰은 쓰지 않습니다. SNMP를 켜는 방법부터 페이지에 표시되는 내용까지는 [Dell PowerScale](#dell-powerscale)에서 다룹니다. 아래 설치 단계는 Pure Storage용입니다.
 
 ```mermaid title="어레이에서 OneUptime까지"
 flowchart TB
@@ -87,7 +91,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-스크립트는 어떤 어레이인지(네이티브 메트릭을 제공하는 FlashArray, 이전 Purity//FA의 FlashArray, 또는 FlashBlade) 묻고, 이어서 OneUptime URL, 수집 키, 어레이 이름, 어레이의 관리 주소, 읽기 전용 사용자의 API 토큰(화면에 표시하지 않고 읽음)을 묻습니다. `/opt/oneuptime-storage-array-agent`에 설치하고, Compose 파일과 Collector 구성 세 개를 모두 내려받고, 알맞은 구성과 Compose 프로필을 담은 `0600` 권한의 `.env` 파일을 쓰고, Docker Compose로 에이전트를 시작합니다. 각 값을 입력한 그대로 Docker Compose용 따옴표로 감쌉니다. 다시 실행하면 다시 묻는 대신 기존 `.env`의 내용을 모두 재사용하며, 수정한 파일은 교체하기 전에 `<file>.bak.<timestamp>`로 보관합니다.
+스크립트는 어떤 어레이인지(네이티브 메트릭을 제공하는 FlashArray, 이전 Purity//FA의 FlashArray, FlashBlade, 또는 PowerScale 클러스터) 묻고, 이어서 OneUptime URL, 수집 키, 어레이 이름, 어레이의 관리 주소, 읽기 전용 사용자의 API 토큰(화면에 표시하지 않고 읽음)을 묻습니다. `/opt/oneuptime-storage-array-agent`에 설치하고, Compose 파일과 모든 Collector 구성을 내려받고, 알맞은 구성과 Compose 프로필을 담은 `0600` 권한의 `.env` 파일을 쓰고, Docker Compose로 에이전트를 시작합니다. 각 값을 입력한 그대로 Docker Compose용 따옴표로 감쌉니다. 다시 실행하면 다시 묻는 대신 기존 `.env`의 내용을 모두 재사용하며, 수정한 파일은 교체하기 전에 `<file>.bak.<timestamp>`로 보관합니다.
 @tab Docker Compose
 `docker-compose.yml`과 `otel-collector-config*.yaml` 파일 세 개를 사용 중인 OneUptime에서 새 폴더로 내려받으세요:
 
@@ -111,10 +115,12 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-이전 Purity//FA의 FlashArray라면 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml`과 `COMPOSE_PROFILES=flasharray-exporter`를 설정하세요. FlashBlade라면 `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml`, `COMPOSE_PROFILES=flashblade`를 설정하고, `PURE_FB_ENDPOINT`와 `PURE_FB_API_TOKEN`을 채우세요(`PURE_FA_*` 쌍 대신). 에이전트를 시작하세요:
+이전 Purity//FA의 FlashArray라면 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml`과 `COMPOSE_PROFILES=flasharray-exporter`를 설정하세요. FlashBlade라면 `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml`, `COMPOSE_PROFILES=flashblade`를 설정하고, `PURE_FB_ENDPOINT`와 `PURE_FB_API_TOKEN`을 채우세요(`PURE_FA_*` 쌍 대신). PowerScale 클러스터의 `.env`는 [Dell PowerScale](#dell-powerscale)에 있습니다. 에이전트를 시작하세요:
 
 ```bash
 docker compose up -d
@@ -148,13 +154,25 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | 예 | OneUptime URL(예: `https://oneuptime.com` 또는 자체 호스팅 인스턴스). 인스턴스가 HTTP 전용이면 `http://`와 해당 포트를 사용하세요. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | 예 | **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**의 수집 키. |
 | `STORAGE_ARRAY_NAME` | 예 | OneUptime에서 어레이가 등록되는 이름으로, 모든 메트릭에 `storage.array.name` 리소스 속성으로 붙습니다. 바꾸지 마세요. 나중에 바꾸면 별도의 어레이가 등록됩니다. 이 값이 없으면 Collector가 시작을 거부합니다. |
-| `STORAGE_SYSTEM` | 아니요 | `storage.system` 리소스 속성으로 붙는 플랫폼. `purestorage.flasharray` 또는 `purestorage.flashblade`입니다. 기본값은 `purestorage.flasharray`입니다. |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | 아니요 | 실행할 기본 제공 Collector 구성. `otel-collector-config.yaml`(FlashArray, 네이티브. 기본값), `otel-collector-config.flasharray-exporter.yaml`(이전 FlashArray), 또는 `otel-collector-config.flashblade.yaml`(FlashBlade)입니다. |
+| `STORAGE_SYSTEM` | 아니요 | `storage.system` 리소스 속성으로 붙는 플랫폼. `purestorage.flasharray`, `purestorage.flashblade` 또는 `dell.powerscale`입니다. 기본값은 `purestorage.flasharray`입니다. |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | 아니요 | 실행할 기본 제공 Collector 구성. `otel-collector-config.yaml`(FlashArray, 네이티브. 기본값), `otel-collector-config.flasharray-exporter.yaml`(이전 FlashArray), `otel-collector-config.flashblade.yaml`(FlashBlade) 또는 `otel-collector-config.powerscale.yaml`(PowerScale)입니다. |
 | `COMPOSE_PROFILES` | 아니요 | 선택한 구성이 스크레이프하는 익스포터를 시작합니다. 네이티브 FlashArray 구성에서는 비워 두고, 나머지 구성에서는 `flasharray-exporter` 또는 `flashblade`입니다. |
 | `PURE_FA_ENDPOINT` | FlashArray | FlashArray의 관리 주소. 호스트 이름 또는 IP이며 `https://`는 붙이지 않습니다. |
 | `PURE_FA_API_TOKEN` | FlashArray | readonly 역할을 가진 FlashArray 사용자의 API 토큰. |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade의 관리 주소. 호스트 이름 또는 IP이며 `https://`는 붙이지 않습니다. |
 | `PURE_FB_API_TOKEN` | FlashBlade | readonly 역할을 가진 FlashBlade 사용자의 API 토큰. |
+| `POWERSCALE_NODES` | PowerScale | 모든 노드의 주소(쉼표로 구분). SmartConnect 영역 이름은 쓰지 않습니다. 설치 스크립트는 이 값으로 아래 폴링을 씁니다. |
+| `POWERSCALE_ENDPOINT` | PowerScale | 클러스터 자체의 상태, 용량, 할당량을 읽을 때 거치는 노드로, `POWERSCALE_NODES`의 첫 번째 노드입니다. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Collector가 실행하는 폴링: `snmp/cluster`, `snmp/quotas`, 그다음 `snmp/node-1`부터 노드마다 하나씩. |
+| `POWERSCALE_NODE_<n>` | PowerScale | 노드 `<n>`의 주소로, `1`부터 `252`까지입니다. IPv6 주소는 `[fd00::11]`처럼 대괄호로 묶습니다. |
+| `POWERSCALE_SNMP_VERSION` | 아니요 | `v2c` 또는 `v3`. 기본값은 `v2c`입니다. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | 클러스터의 읽기 전용 커뮤니티. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | 클러스터의 SNMPv3 읽기 전용 사용자. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | 아니요 | `auth_priv`, `auth_no_priv` 또는 `no_auth_no_priv`. 기본값은 `auth_priv`입니다. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | 아니요 | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` 또는 `SHA512`로, `isi snmp settings view`에 표시되는 그대로입니다. 기본값은 `SHA`입니다. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 사용자의 인증 비밀번호. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | 아니요 | `DES`, `AES`, `AES192`, `AES256`, `AES192C` 또는 `AES256C`. 기본값은 `AES`입니다. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 사용자의 개인정보 보호 비밀번호로, `auth_priv` 수준에서 씁니다. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 아니요 | `true`는 네이티브 엔드포인트에서 어레이의 자체 서명 인증서를 받아들이고, `false`는 이를 검증합니다. 기본값은 `true`입니다. Pure의 익스포터는 어레이의 인증서를 검증하지 않으므로 익스포터에는 적용되지 않습니다. |
 
 ## 에이전트의 스크레이프 방식
@@ -179,6 +197,9 @@ Pure의 시맨틱 규칙은 FlashArray 네이티브 엔드포인트와 두 익�
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBlade의 이름, Purity 버전, 시스템 ID. 용량과 데이터 절감. 열린 경고 수. 어레이의 상태. **하드웨어** 페이지 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | **파일 시스템** 페이지: 파일 시스템별 프로비저닝 공간과 사용 공간, 데이터 절감, 지연 시간, IOPS와 대역폭 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | **버킷** 페이지: 버킷별 공간, 할당량, 객체 수, 성능. 계정별로 묶어 표시 |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | 클러스터의 이름, OneFS 버전, 상태, 노드 수. `/ifs`의 용량. 클러스터 전체의 처리량, 네트워크, CPU |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | **쿼터** 페이지: 각 할당량의 사용량, 한도, 한도에 얼마나 가까운지 |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | **노드** 페이지: 각 노드의 상태, CPU, 처리량, 프로토콜 성능. **하드웨어** 페이지: 그 노드의 드라이브, 센서, 포트 |
 
 **모든 스토리지 어레이**의 **상태** 열은 어레이의 최신 데이터에서 어레이 자체의 알림과 하드웨어를 읽습니다. 열린 심각 알림이 있거나 하드웨어 구성 요소, 드라이브, 컨트롤러가 심각, 실패, 누락, 비정상 상태라고 보고하는 동안에는 **심각**, 열린 경고 알림이 있거나 저하 또는 알 수 없는 상태의 구성 요소를 보고하는 동안에는 **경고**, 그 밖에는 **OK**, 에이전트 연결이 끊긴 동안에는 **알 수 없음**입니다. 어레이의 **개요**는 다음 섹션처럼 더 많은 것을 판단합니다. 모니터 조건에서 어레이의 속성에는 `resource.` 접두사가 붙고(`resource.storage.array.name`, `resource.storage.system`), 데이터 포인트 레이블은 접두사 없이 그대로 씁니다(`name`, `host`, `dimension`, `space`).
 
@@ -251,20 +272,21 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 에이전트는 파일이 고정한 Collector 버전을 **에이전트 버전**으로 보고합니다. 그 버전이 이 OneUptime 릴리스가 고정한 버전보다 오래되었으면, 어레이의 **개요** 페이지에서 그 옆에 경고 표시가 나타납니다. 이를 선택하면 다음 명령을 볼 수 있습니다. 파일이 버전을 보고하기 전에 설치된 에이전트는 이 방법으로 업그레이드할 때까지 버전을 표시하지 않습니다.
 
-Collector 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 Collector 구성 세 개를 새로 고치고(수정한 파일은 `<file>.bak.<timestamp>`로 보관), 에이전트를 다시 만들어 Collector가 새 구성을 읽게 합니다. `/opt/oneuptime-storage-array-agent` 밖에 설치한 에이전트는 폴더를 지정해야 합니다: `INSTALL_DIR=<folder> bash install.sh`.
+Collector 이미지는 `docker-compose.yml`에 고정되어 있고 구성은 그 옆의 파일이므로, 가져오기만으로는 에이전트가 새 버전이 되지 않습니다. `install.sh`를 다시 실행하세요. 기존 `.env`의 모든 값을 재사용하고(아무것도 다시 묻지 않음), `docker-compose.yml`과 Collector 구성을 새로 고치고(수정한 파일은 `<file>.bak.<timestamp>`로 보관), 에이전트를 다시 만들어 Collector가 새 구성을 읽게 합니다. `/opt/oneuptime-storage-array-agent` 밖에 설치한 에이전트는 폴더를 지정해야 합니다: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Docker Compose로 설치했다면, 에이전트의 폴더에서 Compose 파일과 Collector 구성 세 개를 다시 내려받고(파일에 가한 변경이 있으면 다시 적용), 이미지를 가져와 에이전트를 다시 만드세요:
+Docker Compose로 설치했다면, 에이전트의 폴더에서 Compose 파일과 Collector 구성을 다시 내려받고(파일에 가한 변경이 있으면 다시 적용), 이미지를 가져와 에이전트를 다시 만드세요:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -276,7 +298,74 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-그런 다음 더 이상 필요하지 않다면 어레이에서 읽기 전용 사용자와 그 API 토큰을 삭제하세요.
+그런 다음 더 이상 필요하지 않다면 어레이에서 읽기 전용 사용자와 그 API 토큰을 삭제하세요. PowerScale이라면 그 커뮤니티 또는 SNMPv3 사용자를 삭제하세요.
+
+## Dell PowerScale
+
+에이전트는 Dell PowerScale(Isilon) 클러스터를 SNMP로, Dell의 ISILON-MIB에서, Collector 자체의 SNMP 리시버로 읽습니다. API 토큰이 필요 없고, Collector 옆에서 실행되는 것도 없습니다. 클러스터 하나가 스토리지 어레이 하나이며, 그 노드, 할당량, 드라이브, 센서, 포트가 인벤토리입니다.
+
+- **각 노드는 자체 주소로 폴링합니다.** 노드는 자신의 드라이브, 센서, 포트에 대해서만 SNMP에 응답하므로, 에이전트는 에이전트가 닿는 네트워크에서 각 노드의 주소로 폴링합니다. SmartConnect 영역 이름은 쓰지 않습니다. 영역 이름은 각 폴링을 자신이 고른 아무 노드에나 넘기기 때문입니다. 클러스터에는 노드가 최대 252개 있습니다.
+- **클러스터 자체의 객체는 첫 번째 노드를 거쳐 한 번만 읽습니다:** 상태, 용량, 처리량, CPU, 노드 수는 60초마다(`snmp/cluster`), SmartQuotas는 5분마다(`snmp/quotas`) 읽습니다. 각 노드의 상태, CPU, 프로토콜 성능(NFS, SMB, S3, HDFS 등), 드라이브, 센서, 포트는 그 노드에서 60초마다 읽습니다(`snmp/node-<n>`).
+- **OneFS가 텍스트나 다른 단위로 주는 측정값**(센서 측정값, 0.1% 단위의 CPU, 비트 단위의 처리량)은 Collector가 보내기 전에 숫자로 바꾸므로, 모든 차트와 템플릿이 단순한 게이지를 읽습니다.
+
+### 클러스터에서 SNMP 켜기
+
+관리자로 아무 노드에나 SSH로 접속합니다. OneFS는 SNMP 설정을 클러스터 전체에 적용합니다. 클러스터가 이미 다른 도구를 위해 SNMP에 응답하고 있다면 에이전트에도 같은 읽기 전용 커뮤니티나 SNMPv3 사용자를 주고 이 단계를 건너뛰세요. 그렇지 않으면 OneFS 기본값인 `I$ilonpublic`이 아닌 자체 읽기 전용 커뮤니티로 SNMP 서비스와 SNMP v2c를 켜세요:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+또는 모든 폴링을 인증하고 암호화하는 SNMPv3를 켜세요. OneFS에는 SNMPv3 읽기 전용 사용자가 하나 있으며, 이름을 바꾸기 전까지는 `general`입니다. 공백 없이 8자 이상의 비밀번호를 지정하세요:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view`는 사용자의 인증 및 개인정보 보호 프로토콜을 포함한 설정을 보여 줍니다. 에이전트 머신에서 모든 노드로 가는 UDP 161을 허용하고, `isi network interfaces list`로 노드 주소를 나열하세요.
+
+### PowerScale 클러스터에 에이전트 설치
+
+PowerScale 구성으로 설치 스크립트를 실행하세요:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+스크립트는 OneUptime URL, 수집 키, 클러스터 이름을 묻고, 이어서 모든 노드의 주소(쉼표로 구분)와 SNMP 버전을, 그다음 읽기 전용 커뮤니티 또는 SNMPv3 사용자와 그 비밀번호 두 개를 묻습니다. 각각 화면에 표시하지 않고 읽습니다. 프로토콜이 SHA와 AES가 아닌 사용자는 `POWERSCALE_SNMP_AUTH_PROTOCOL`과 `POWERSCALE_SNMP_PRIVACY_PROTOCOL`을 `bash install.sh` 앞에 붙여야 하고, 개인정보 보호가 없는 사용자는 `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`가 필요합니다. 스크립트는 노드마다 폴링 하나씩을 `.env`에 씁니다:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+클러스터에 노드가 추가되면 `POWERSCALE_NODES`에 주소를 추가하고(`.env` 안), `install.sh`를 다시 실행하세요. 노드의 폴링을 쓰고 에이전트를 다시 만듭니다. Docker Compose라면 `docker-compose.yml`과 `otel-collector-config.powerscale.yaml`을 내려받고, 빠른 시작의 `.env`에서 `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG`, `POWERSCALE_*` 줄을 이 줄들로 바꾸세요. `troubleshoot.sh`는 머신에 `snmpget`이 있으면 그것으로 각 노드에 클러스터 이름을 묻습니다.
+
+### PowerScale의 페이지에 표시되는 내용
+
+클러스터의 **개요**는 OneFS 자체의 상태를 그대로 가져오고, 노드와 할당량을 세며, 각 프로토콜의 지연 시간과 부하, 처리량, 가장 바쁜 노드, 사용된 용량을 그립니다. **노드**에는 각 노드가 상태, 모델, OneFS 버전, CPU, 처리량과 함께 나열되고, **쿼터**에는 각 할당량이 한도를 얼마나 쓰는지와 함께 큰 순서대로 나열됩니다. **하드웨어**에는 각 노드의 드라이브, 팬, 온도 및 전원 센서와 그 측정값, 포트가 나열됩니다. 용량은 `/ifs`의 용량이며, OneFS가 가상 핫 스페어용으로 남겨 두는 공간은 사용 중으로 셉니다. 쓰기에 쓸 수 없기 때문입니다.
+
+### 에이전트가 아직 읽지 않는 것
+
+- **OneFS의 이벤트와 스토리지 풀.** SNMP는 둘 다 전달하지 않습니다. 이 둘은 OneFS API에서 나오며, OneUptime 프로브가 읽을 예정입니다([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). 그때까지는 이벤트를 SNMP 트랩으로 [사용자 지정 프로브](/docs/probe/custom-probe)에 보내고, 클러스터의 노드를 그 프로브에 [네트워크 디바이스](/docs/monitor/network-device-monitor)로 추가하세요. 트랩은 UDP 162로 들어오며, **SNMP 트랩 수신(트랩 OID)** 조건으로 경고할 수 있습니다. SNMPv3 트랩이라면 네트워크 디바이스에 클러스터의 SNMPv3 사용자를 지정하세요([SNMPv3 트랩과 inform](/docs/monitor/network-device-monitor#snmpv3-트랩과-inform)). 클러스터에서 채널을 만들고 그 채널로 경고를 보내세요:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **데이터 절감**은 OneFS가 API로만 보고하므로, 같은 프로브로 제공됩니다.
 
 ## 문제 해결
 
@@ -315,6 +404,10 @@ OneUptime이 15분 동안 어레이에서 아무것도 받지 못하면 어레�
 
 :::details pure-fa-exporter 또는 pure-fb-exporter의 이름을 확인할 수 없음
 익스포터가 실행되고 있지 않습니다. `COMPOSE_PROFILES`는 `STORAGE_ARRAY_COLLECTOR_CONFIG`와 맞아야 합니다(FlashArray 익스포터 구성에는 `flasharray-exporter`, FlashBlade 구성에는 `flashblade`). `.env`를 고치고 `docker compose up -d`를 실행하면 `docker compose ps`에 익스포터가 표시됩니다.
+:::
+
+:::details PowerScale 클러스터나 노드가 아무것도 보내지 않음
+Collector 로그에 `Error scraping metrics`와 `request timeout`이 나오면, 이름이 표시된 노드가 에이전트 머신에서 보낸 SNMP에 응답하지 않는 것입니다. 에이전트가 쓰는 버전의 SNMP가 꺼져 있거나, 커뮤니티 또는 SNMPv3 사용자가 클러스터의 것이 아니거나, UDP 161이 차단된 경우입니다. `bash troubleshoot.sh`는 `snmpget`으로 각 노드에 묻습니다. 응답은 하지만 **노드**에 없는 노드는 `POWERSCALE_NODES`에 없는 것입니다. 추가하고 `install.sh`를 다시 실행하세요.
 :::
 
 :::details 삭제한 볼륨이나 호스트가 인벤토리에 남아 있음

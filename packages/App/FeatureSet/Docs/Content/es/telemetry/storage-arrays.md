@@ -1,9 +1,10 @@
 # Agente de cabinas de almacenamiento
 
-El agente de Cabina de almacenamiento de OneUptime supervisa cabinas de almacenamiento: capacidad y reducción de datos, latencia, IOPS y ancho de banda, volúmenes, hosts, pods y replicación, estado del hardware, sistemas de archivos y buckets. Es un OpenTelemetry Collector estándar que recopila los endpoints OpenMetrics de la cabina con el token de API de un usuario de solo lectura, marca cada métrica con la identidad de tu cabina y la envía a OneUptime. Los [monitores de cabinas de almacenamiento](/docs/monitor/storage-array-monitor) alertan sobre lo que llega.
+El agente de Cabina de almacenamiento de OneUptime supervisa cabinas de almacenamiento: capacidad y reducción de datos, latencia, IOPS y ancho de banda, volúmenes, hosts, pods y replicación, estado del hardware, sistemas de archivos, buckets y cuotas. Es un OpenTelemetry Collector estándar que recopila los endpoints OpenMetrics de la cabina con el token de API de un usuario de solo lectura, o consulta por SNMP los nodos de un clúster Dell PowerScale, marca cada métrica con la identidad de tu cabina y la envía a OneUptime. Los [monitores de cabinas de almacenamiento](/docs/monitor/storage-array-monitor) alertan sobre lo que llega.
 
 :::cards
 - [Instalar el agente](#instala-el-agente): Un usuario de solo lectura y luego el script de instalación o Docker Compose.
+- [Dell PowerScale](#dell-powerscale): SNMP en el clúster, cada nodo consultado, y lo que muestran sus páginas.
 - [Qué recopila el agente](#qué-recopila-el-agente): Cada endpoint y las páginas que se construyen a partir de él.
 - [Supervisar varias cabinas](#supervisar-varias-cabinas): Un agente por cabina, en una sola máquina.
 - [Solución de problemas](#solución-de-problemas): Un script de diagnóstico y los problemas habituales.
@@ -18,8 +19,11 @@ Storage Arrays es un producto que funciona igual para cada fabricante. Es compat
 | **Pure Storage FlashArray**, Purity//FA 6.7 y posteriores | `purestorage.flasharray` | El propio endpoint OpenMetrics de la cabina (`https://<array>/metrics/...?namespace=purefa`): no se ejecuta nada junto al colector | `otel-collector-config.yaml` (la predeterminada) |
 | **Pure Storage FlashArray**, Purity//FA anterior | `purestorage.flasharray` | El exportador OpenMetrics de FlashArray de Pure, que el mismo archivo de Compose ejecuta como el servicio `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | El exportador OpenMetrics de FlashBlade de Pure, que el mismo archivo de Compose ejecuta como el servicio `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 y posteriores | `dell.powerscale` | Cada nodo por SNMP (la ISILON-MIB de Dell), con el propio receptor SNMP del colector: no se ejecuta nada junto al colector | `otel-collector-config.powerscale.yaml` |
 
 Pure Storage pasó a llamarse **Everpure** en febrero de 2026. FlashArray, FlashBlade y Purity conservaron sus nombres, y también las métricas `purefa_*` y `purefb_*`, así que todo lo de esta página se aplica a las cabinas vendidas con cualquiera de los dos nombres.
+
+Un clúster **Dell PowerScale** se lee de otra manera: el agente consulta cada uno de sus nodos por SNMP, con una comunidad de solo lectura o un usuario SNMPv3 y sin token de API. [Dell PowerScale](#dell-powerscale) lo recorre desde la activación de SNMP hasta lo que muestran sus páginas; los pasos de instalación de abajo son los de Pure Storage.
 
 ```mermaid title="De la cabina a OneUptime"
 flowchart TB
@@ -87,7 +91,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-El script pregunta qué cabina es (una FlashArray que sirve métricas nativas, una FlashArray con un Purity//FA anterior o una FlashBlade) y luego pide tu URL de OneUptime, la clave de ingesta, un nombre para la cabina, la dirección de administración de la cabina y el token de API del usuario de solo lectura (leído sin mostrarse). Se instala en `/opt/oneuptime-storage-array-agent`, descarga el archivo de Compose y las tres configuraciones del colector, escribe un archivo con `0600` llamado `.env` con la configuración y el perfil de Compose correspondientes e inicia el agente con Docker Compose. Entrecomilla cada valor para Docker Compose tal como lo escribiste. Volver a ejecutarlo reutiliza todo lo que hay en un `.env` existente en lugar de volver a preguntar, y conserva un archivo que hayas editado como `<file>.bak.<timestamp>` antes de sustituirlo.
+El script pregunta qué cabina es (una FlashArray que sirve métricas nativas, una FlashArray con un Purity//FA anterior, una FlashBlade o un clúster PowerScale) y luego pide tu URL de OneUptime, la clave de ingesta, un nombre para la cabina, la dirección de administración de la cabina y el token de API del usuario de solo lectura (leído sin mostrarse). Se instala en `/opt/oneuptime-storage-array-agent`, descarga el archivo de Compose y todas las configuraciones del colector, escribe un archivo con `0600` llamado `.env` con la configuración y el perfil de Compose correspondientes e inicia el agente con Docker Compose. Entrecomilla cada valor para Docker Compose tal como lo escribiste. Volver a ejecutarlo reutiliza todo lo que hay en un `.env` existente en lugar de volver a preguntar, y conserva un archivo que hayas editado como `<file>.bak.<timestamp>` antes de sustituirlo.
 @tab Docker Compose
 Descarga `docker-compose.yml` y los tres archivos `otel-collector-config*.yaml` de tu OneUptime en una carpeta nueva:
 
@@ -111,10 +115,12 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-Para una FlashArray con un Purity//FA anterior, establece `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` y `COMPOSE_PROFILES=flasharray-exporter`. Para una FlashBlade, establece `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` y `COMPOSE_PROFILES=flashblade`, y rellena `PURE_FB_ENDPOINT` y `PURE_FB_API_TOKEN` en lugar del par `PURE_FA_*`. Inicia el agente:
+Para una FlashArray con un Purity//FA anterior, establece `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` y `COMPOSE_PROFILES=flasharray-exporter`. Para una FlashBlade, establece `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` y `COMPOSE_PROFILES=flashblade`, y rellena `PURE_FB_ENDPOINT` y `PURE_FB_API_TOKEN` en lugar del par `PURE_FA_*`. El `.env` de un clúster PowerScale está en [Dell PowerScale](#dell-powerscale). Inicia el agente:
 
 ```bash
 docker compose up -d
@@ -148,13 +154,25 @@ El script de instalación las escribe en `/opt/oneuptime-storage-array-agent/.en
 | `ONEUPTIME_URL` | Sí | Tu URL de OneUptime, como `https://oneuptime.com` o tu instancia autoalojada. Usa `http://` y su puerto si la instancia solo admite HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Sí | La clave de ingesta de **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. |
 | `STORAGE_ARRAY_NAME` | Sí | El nombre con el que la cabina se registra en OneUptime, marcado en cada métrica como el atributo de recurso `storage.array.name`. Mantenlo estable: cambiarlo más tarde registra una segunda cabina. El colector se niega a iniciarse sin él. |
-| `STORAGE_SYSTEM` | No | La plataforma, marcada como el atributo de recurso `storage.system`: `purestorage.flasharray` o `purestorage.flashblade`. Su valor predeterminado es `purestorage.flasharray`. |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Qué configuración incluida del colector se ejecuta: `otel-collector-config.yaml` (FlashArray, nativa: la predeterminada), `otel-collector-config.flasharray-exporter.yaml` (FlashArray anterior) o `otel-collector-config.flashblade.yaml` (FlashBlade). |
+| `STORAGE_SYSTEM` | No | La plataforma, marcada como el atributo de recurso `storage.system`: `purestorage.flasharray`, `purestorage.flashblade` o `dell.powerscale`. Su valor predeterminado es `purestorage.flasharray`. |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | No | Qué configuración incluida del colector se ejecuta: `otel-collector-config.yaml` (FlashArray, nativa: la predeterminada), `otel-collector-config.flasharray-exporter.yaml` (FlashArray anterior), `otel-collector-config.flashblade.yaml` (FlashBlade) o `otel-collector-config.powerscale.yaml` (PowerScale). |
 | `COMPOSE_PROFILES` | No | Inicia el exportador que recopila la configuración elegida: vacío para la configuración nativa de FlashArray, `flasharray-exporter` o `flashblade` para las otras dos. |
 | `PURE_FA_ENDPOINT` | FlashArray | La dirección de administración de la FlashArray: un nombre de host o una IP, sin `https://`. |
 | `PURE_FA_API_TOKEN` | FlashArray | El token de API del usuario de FlashArray con el rol readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | La dirección de administración de la FlashBlade: un nombre de host o una IP, sin `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | El token de API del usuario de FlashBlade con el rol readonly. |
+| `POWERSCALE_NODES` | PowerScale | Las direcciones de todos los nodos, separadas por comas, nunca el nombre de la zona SmartConnect. El script de instalación escribe a partir de ellas las consultas de abajo. |
+| `POWERSCALE_ENDPOINT` | PowerScale | El nodo a través del cual se leen la salud, la capacidad y las cuotas del propio clúster: el primero de `POWERSCALE_NODES`. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Las consultas que ejecuta el colector: `snmp/cluster`, `snmp/quotas` y luego `snmp/node-1` y siguientes, una por nodo. |
+| `POWERSCALE_NODE_<n>` | PowerScale | La dirección del nodo `<n>`, de `1` a `252`. Una dirección IPv6 va entre corchetes, como `[fd00::11]`. |
+| `POWERSCALE_SNMP_VERSION` | No | `v2c` o `v3`. Su valor predeterminado es `v2c`. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | La comunidad de solo lectura del clúster. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | El usuario SNMPv3 de solo lectura del clúster. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv`, `auth_no_priv` o `no_auth_no_priv`. Su valor predeterminado es `auth_priv`. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | No | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` o `SHA512`, tal como lo muestra `isi snmp settings view`. Su valor predeterminado es `SHA`. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | La contraseña de autenticación del usuario SNMPv3. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | No | `DES`, `AES`, `AES192`, `AES256`, `AES192C` o `AES256C`. Su valor predeterminado es `AES`. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | La contraseña de privacidad del usuario SNMPv3, en el nivel `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | No | `true` acepta el certificado autofirmado de la cabina en el endpoint nativo; `false` lo verifica. Su valor predeterminado es `true`. Los exportadores de Pure nunca verifican el certificado de la cabina, así que no se aplica a ellos. |
 
 ## Cómo recopila el agente
@@ -179,6 +197,9 @@ Las convenciones semánticas de Pure son comunes al endpoint nativo de FlashArra
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | El nombre, la versión de Purity y el ID de sistema de la FlashBlade; capacidad y reducción de datos; número de alertas abiertas; el estado de la cabina; la página **Hardware** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | La página **Sistemas de archivos**: espacio aprovisionado y usado, reducción de datos, latencia, IOPS y ancho de banda por sistema de archivos |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | La página **Buckets**: espacio, cuota, número de objetos y rendimiento por bucket, agrupados por cuenta |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | El nombre, la versión de OneFS, la salud y los recuentos de nodos del clúster; la capacidad de `/ifs`; el rendimiento, la red y la CPU de todo el clúster |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | La página **Cuotas**: el uso de cada cuota, sus límites y lo cerca que está de ellos |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | La página **Nodos**: la salud, la CPU y el rendimiento de cada nodo, también por protocolo; la página **Hardware**: sus discos, sensores y puertos |
 
 La columna **Salud** de **Todas las cabinas de almacenamiento** lee las alertas y el hardware de la propia cabina en sus datos más recientes: **Crítico** mientras informa de una alerta crítica abierta, o de un componente de hardware, disco o controladora en estado crítico, averiado, ausente o no saludable; **Advertencia** mientras informa de una alerta de advertencia abierta, o de un componente degradado o desconocido; **OK** en caso contrario; y **Desconocido** mientras el agente está desconectado. La **Vista general** de la cabina juzga más, como dice la sección siguiente. En los criterios de un monitor, los atributos de la cabina llevan un prefijo `resource.` (`resource.storage.array.name`, `resource.storage.system`), mientras que las etiquetas de punto de datos van sin prefijo (`name`, `host`, `dimension`, `space`).
 
@@ -251,20 +272,21 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 El agente informa como su **Versión del agente** de la versión del colector que fijan sus archivos. Cuando es más antigua que la versión que fija esta versión de OneUptime, aparece una señal de advertencia a su lado en la página **Vista general** de la cabina. Selecciónala para ver estos comandos. Un agente instalado antes de que sus archivos informaran una versión no muestra ninguna hasta que se actualiza de esta forma.
 
-La imagen del colector está fijada en `docker-compose.yml` y sus configuraciones son archivos junto a él, así que descargar las imágenes no basta para que el agente avance. Vuelve a ejecutar `install.sh`: reutiliza todos los valores de tu `.env` existente (no se vuelve a preguntar nada), renueva `docker-compose.yml` y las tres configuraciones del colector (un archivo que editaste se conserva como `<file>.bak.<timestamp>`) y vuelve a crear el agente para que el colector lea su nueva configuración. Un agente instalado fuera de `/opt/oneuptime-storage-array-agent` necesita su carpeta: `INSTALL_DIR=<folder> bash install.sh`.
+La imagen del colector está fijada en `docker-compose.yml` y sus configuraciones son archivos junto a él, así que descargar las imágenes no basta para que el agente avance. Vuelve a ejecutar `install.sh`: reutiliza todos los valores de tu `.env` existente (no se vuelve a preguntar nada), renueva `docker-compose.yml` y las configuraciones del colector (un archivo que editaste se conserva como `<file>.bak.<timestamp>`) y vuelve a crear el agente para que el colector lea su nueva configuración. Un agente instalado fuera de `/opt/oneuptime-storage-array-agent` necesita su carpeta: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-¿Lo instalaste con Docker Compose? En la carpeta del agente, vuelve a descargar el archivo de Compose y las tres configuraciones del colector (y vuelve a hacer cualquier cambio que les hicieras), luego descarga las imágenes y vuelve a crear el agente:
+¿Lo instalaste con Docker Compose? En la carpeta del agente, vuelve a descargar el archivo de Compose y las configuraciones del colector (y vuelve a hacer cualquier cambio que les hicieras), luego descarga las imágenes y vuelve a crear el agente:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -276,7 +298,74 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-Después elimina el usuario de solo lectura y su token de API en la cabina si ya no los necesitas.
+Después elimina el usuario de solo lectura y su token de API en la cabina si ya no los necesitas, o la comunidad o el usuario SNMPv3 de un PowerScale.
+
+## Dell PowerScale
+
+El agente lee un clúster Dell PowerScale (Isilon) por SNMP, a partir de la ISILON-MIB de Dell, con el propio receptor SNMP del colector: sin token de API, y no se ejecuta nada junto al colector. Un clúster es una cabina de almacenamiento, y sus nodos, cuotas, discos, sensores y puertos son su inventario.
+
+- **Cada nodo se consulta en su propia dirección.** Un nodo solo responde a SNMP por sus propios discos, sensores y puertos, así que el agente consulta cada nodo por su dirección en la red a la que llega el agente, nunca por el nombre de la zona SmartConnect, que pasa cada consulta al nodo que elija. Un clúster tiene hasta 252 nodos.
+- **Los objetos del propio clúster se leen una sola vez, a través del primer nodo:** su salud, capacidad, rendimiento, CPU y recuentos de nodos cada 60 segundos (`snmp/cluster`), y sus SmartQuotas cada 5 minutos (`snmp/quotas`). La salud, la CPU, el rendimiento de los protocolos (NFS, SMB, S3, HDFS y los demás), los discos, los sensores y los puertos de cada nodo se leen desde el propio nodo cada 60 segundos (`snmp/node-<n>`).
+- **Las lecturas que OneFS da como texto o en otras unidades** (lecturas de sensores, CPU en décimas de porcentaje, rendimiento en bits) las convierte el colector en números antes de enviarlas, así que cada gráfico y cada plantilla lee un gauge simple.
+
+### Activa SNMP en el clúster
+
+Conéctate por SSH a cualquier nodo como administrador: OneFS aplica la configuración de SNMP a todo el clúster. Si el clúster ya responde a SNMP para otra herramienta, dale al agente la misma comunidad de solo lectura o el mismo usuario SNMPv3 y sáltate este paso. Si no, activa el servicio SNMP y SNMP v2c con una comunidad de solo lectura propia, no la predeterminada de OneFS, `I$ilonpublic`:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+O activa SNMPv3, que autentica y cifra cada consulta. OneFS tiene un único usuario SNMPv3 de solo lectura, `general` hasta que le cambies el nombre: dale contraseñas de al menos ocho caracteres, sin espacios:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` muestra la configuración, con los protocolos de autenticación y de privacidad del usuario. Permite UDP 161 desde la máquina del agente hacia cada nodo y lista las direcciones de los nodos con `isi network interfaces list`.
+
+### Instala el agente en un clúster PowerScale
+
+Ejecuta el script de instalación con la configuración de PowerScale:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+El script pide tu URL de OneUptime, la clave de ingesta y un nombre para el clúster, luego las direcciones de todos los nodos, separadas por comas, y la versión de SNMP, y después la comunidad de solo lectura, o el usuario SNMPv3 y sus dos contraseñas, cada una leída sin mostrarse. Un usuario cuyos protocolos no sean SHA y AES necesita `POWERSCALE_SNMP_AUTH_PROTOCOL` y `POWERSCALE_SNMP_PRIVACY_PROTOCOL` delante de `bash install.sh`, y un usuario sin privacidad, `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`. El script escribe una consulta por nodo en `.env`:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+Cuando el clúster sume un nodo, añade su dirección a `POWERSCALE_NODES` en `.env` y vuelve a ejecutar `install.sh`: escribe la consulta del nodo y vuelve a crear el agente. Con Docker Compose, descarga `docker-compose.yml` y `otel-collector-config.powerscale.yaml`, y pon estas líneas en el `.env` del inicio rápido en lugar de sus líneas `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG` y `POWERSCALE_*`. `troubleshoot.sh` pregunta a cada nodo el nombre del clúster con `snmpget` cuando la máquina lo tiene.
+
+### Lo que muestran las páginas de un PowerScale
+
+La **Vista general** del clúster toma su salud de la que informa OneFS, cuenta sus nodos y cuotas, y dibuja la latencia y la carga de cada protocolo, el rendimiento, los nodos más ocupados y la capacidad usada. **Nodos** lista cada nodo con su salud, modelo, versión de OneFS, CPU y rendimiento; **Cuotas** lista cada cuota con cuánto de su límite usa, de mayor a menor; **Hardware** lista los discos de cada nodo, sus ventiladores y sus sensores de temperatura y de alimentación con sus lecturas, y sus puertos. La capacidad es la de `/ifs`, y el espacio que OneFS reserva para repuestos en caliente virtuales cuenta como usado: no está disponible para escrituras.
+
+### Lo que el agente todavía no lee
+
+- **Los eventos de OneFS y sus pools de almacenamiento.** SNMP no transporta ninguno de los dos: vienen de la API de OneFS, que leerá una sonda de OneUptime ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). Hasta entonces, envía los eventos como traps SNMP a una [sonda personalizada](/docs/probe/custom-probe) y añádele los nodos del clúster como [dispositivos de red](/docs/monitor/network-device-monitor): los traps llegan por UDP 162, y los criterios **Trap SNMP recibido (OID del trap)** alertan sobre ellos. Para traps SNMPv3, da a los dispositivos de red el usuario SNMPv3 del clúster ([Traps e informs SNMPv3](/docs/monitor/network-device-monitor#traps-e-informs-snmpv3)). En el clúster, crea el canal y envíale una alerta:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **Reducción de datos**, que OneFS solo informa a través de su API, llega con la misma sonda.
 
 ## Solución de problemas
 
@@ -315,6 +404,10 @@ Las cabinas presentan por defecto un certificado autofirmado, en el que no conf�
 
 :::details pure-fa-exporter o pure-fb-exporter no se resuelve
 El exportador no se está ejecutando: `COMPOSE_PROFILES` debe coincidir con `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` para la configuración con el exportador de FlashArray, `flashblade` para la configuración de FlashBlade). Corrige `.env` y ejecuta `docker compose up -d`; `docker compose ps` mostrará entonces el exportador.
+:::
+
+:::details Un clúster o un nodo PowerScale no envía nada
+`Error scraping metrics` con `request timeout` en el log del colector señala un nodo que no responde a SNMP desde la máquina del agente: SNMP está desactivado para la versión que usa el agente, la comunidad o el usuario SNMPv3 no son los del clúster, o UDP 161 está bloqueado. `bash troubleshoot.sh` consulta cada nodo con `snmpget`. Un nodo que responde pero falta en **Nodos** no está en `POWERSCALE_NODES`: añádelo y vuelve a ejecutar `install.sh`.
 :::
 
 :::details Los volúmenes o hosts eliminados siguen en el inventario

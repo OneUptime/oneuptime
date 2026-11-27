@@ -1,9 +1,10 @@
 # Lagringsarray-agent
 
-OneUptimes Lagringsarray-agent övervakar lagringsarrayer: kapacitet och datareduktion, latens, IOPS och bandbredd, volymer, värdar, poddar och replikering, maskinvaruhälsa, filsystem och buckets. Den är en vanlig OpenTelemetry Collector som skrapar arrayens OpenMetrics-slutpunkter med en skrivskyddad användares API-token, stämplar varje mätvärde med arrayens identitet och skickar det till OneUptime. [Lagringsarray-monitorer](/docs/monitor/storage-array-monitor) larmar utifrån det som kommer in.
+OneUptimes Lagringsarray-agent övervakar lagringsarrayer: kapacitet och datareduktion, latens, IOPS och bandbredd, volymer, värdar, poddar och replikering, maskinvaruhälsa, filsystem, buckets och kvoter. Den är en vanlig OpenTelemetry Collector som skrapar arrayens OpenMetrics-slutpunkter med en skrivskyddad användares API-token, eller avfrågar noderna i ett Dell PowerScale-kluster över SNMP, stämplar varje mätvärde med arrayens identitet och skickar det till OneUptime. [Lagringsarray-monitorer](/docs/monitor/storage-array-monitor) larmar utifrån det som kommer in.
 
 :::cards
 - [Installera agenten](#installera-agenten): En skrivskyddad användare, sedan installationsskriptet eller Docker Compose.
+- [Dell PowerScale](#dell-powerscale): SNMP på klustret, varje nod avfrågad, och vad dess sidor visar.
 - [Vad agenten samlar in](#vad-agenten-samlar-in): Varje slutpunkt och de sidor som byggs av den.
 - [Övervaka flera arrayer](#övervaka-flera-arrayer): En agent per array, på en maskin.
 - [Felsökning](#felsökning): Ett diagnosskript, och de vanliga problemen.
@@ -18,8 +19,11 @@ Storage Arrays är en produkt som fungerar likadant för alla leverantörer. Den
 | **Pure Storage FlashArray**, Purity//FA 6.7 och senare | `purestorage.flasharray` | Arrayens egen OpenMetrics-slutpunkt (`https://<array>/metrics/...?namespace=purefa`): inget körs bredvid collectorn | `otel-collector-config.yaml` (standard) |
 | **Pure Storage FlashArray**, äldre Purity//FA | `purestorage.flasharray` | Pures FlashArray OpenMetrics-exportör, som samma Compose-fil kör som tjänsten `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pures FlashBlade OpenMetrics-exportör, som samma Compose-fil kör som tjänsten `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 och senare | `dell.powerscale` | Varje nod över SNMP (Dells ISILON-MIB), med collectorns egen SNMP-mottagare: inget körs bredvid collectorn | `otel-collector-config.powerscale.yaml` |
 
 Pure Storage bytte namn till **Everpure** i februari 2026. FlashArray, FlashBlade och Purity behöll sina namn, liksom mätvärdena `purefa_*` och `purefb_*`, så allt på den här sidan gäller arrayer som säljs under båda namnen.
+
+Ett **Dell PowerScale**-kluster läses på ett annat sätt: agenten avfrågar var och en av dess noder över SNMP, med en skrivskyddad community eller SNMPv3-användare och utan API-token. [Dell PowerScale](#dell-powerscale) tar dig från att slå på SNMP till vad dess sidor visar; installationsstegen nedan gäller Pure Storage.
 
 ```mermaid title="Från arrayen till OneUptime"
 flowchart TB
@@ -87,7 +91,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Skriptet frågar vilken array det är (en FlashArray som serverar inbyggda mätvärden, en FlashArray med äldre Purity//FA eller en FlashBlade) och sedan efter din OneUptime-URL, intagningsnyckeln, ett namn på arrayen, arrayens administrationsadress och den skrivskyddade användarens API-token (läses utan eko). Det installerar till `/opt/oneuptime-storage-array-agent`, laddar ned Compose-filen och alla tre collector-konfigurationerna, skriver en fil med `0600` som heter `.env` med matchande konfiguration och Compose-profil, och startar agenten med Docker Compose. Det citerar varje värde för Docker Compose så som du skrev det. Om du kör det igen återanvänder det allt i en befintlig `.env` i stället för att fråga igen, och sparar en fil som du har redigerat som `<file>.bak.<timestamp>` innan den ersätts.
+Skriptet frågar vilken array det är (en FlashArray som serverar inbyggda mätvärden, en FlashArray med äldre Purity//FA, en FlashBlade eller ett PowerScale-kluster) och sedan efter din OneUptime-URL, intagningsnyckeln, ett namn på arrayen, arrayens administrationsadress och den skrivskyddade användarens API-token (läses utan eko). Det installerar till `/opt/oneuptime-storage-array-agent`, laddar ned Compose-filen och alla collector-konfigurationer, skriver en fil med `0600` som heter `.env` med matchande konfiguration och Compose-profil, och startar agenten med Docker Compose. Det citerar varje värde för Docker Compose så som du skrev det. Om du kör det igen återanvänder det allt i en befintlig `.env` i stället för att fråga igen, och sparar en fil som du har redigerat som `<file>.bak.<timestamp>` innan den ersätts.
 @tab Docker Compose
 Ladda ned `docker-compose.yml` och de tre filerna `otel-collector-config*.yaml` från din OneUptime till en ny mapp:
 
@@ -111,10 +115,12 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-För en FlashArray med äldre Purity//FA sätter du `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` och `COMPOSE_PROFILES=flasharray-exporter`. För en FlashBlade sätter du `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` och `COMPOSE_PROFILES=flashblade`, och fyller i `PURE_FB_ENDPOINT` och `PURE_FB_API_TOKEN` i stället för paret `PURE_FA_*`. Starta agenten:
+För en FlashArray med äldre Purity//FA sätter du `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` och `COMPOSE_PROFILES=flasharray-exporter`. För en FlashBlade sätter du `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` och `COMPOSE_PROFILES=flashblade`, och fyller i `PURE_FB_ENDPOINT` och `PURE_FB_API_TOKEN` i stället för paret `PURE_FA_*`. `.env`-filen för ett PowerScale-kluster finns under [Dell PowerScale](#dell-powerscale). Starta agenten:
 
 ```bash
 docker compose up -d
@@ -148,13 +154,25 @@ Installationsskriptet skriver dessa till `/opt/oneuptime-storage-array-agent/.en
 | `ONEUPTIME_URL` | Ja | Din OneUptime-URL, till exempel `https://oneuptime.com` eller din självhostade instans. Använd `http://` och dess port om instansen bara använder HTTP. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | Ja | Intagningsnyckeln från **Projektinställningar → Telemetri och APM → Intagningsnycklar**. |
 | `STORAGE_ARRAY_NAME` | Ja | Det namn som arrayen registreras under i OneUptime, stämplat på varje mätvärde som resursattributet `storage.array.name`. Håll det stabilt: att ändra det senare registrerar en andra array. Collectorn vägrar starta utan det. |
-| `STORAGE_SYSTEM` | Nej | Plattformen, stämplad som resursattributet `storage.system`: `purestorage.flasharray` eller `purestorage.flashblade`. Standard är `purestorage.flasharray`. |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Nej | Vilken medföljande collector-konfiguration som körs: `otel-collector-config.yaml` (FlashArray, inbyggd: standard), `otel-collector-config.flasharray-exporter.yaml` (äldre FlashArray) eller `otel-collector-config.flashblade.yaml` (FlashBlade). |
+| `STORAGE_SYSTEM` | Nej | Plattformen, stämplad som resursattributet `storage.system`: `purestorage.flasharray`, `purestorage.flashblade` eller `dell.powerscale`. Standard är `purestorage.flasharray`. |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Nej | Vilken medföljande collector-konfiguration som körs: `otel-collector-config.yaml` (FlashArray, inbyggd: standard), `otel-collector-config.flasharray-exporter.yaml` (äldre FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade) eller `otel-collector-config.powerscale.yaml` (PowerScale). |
 | `COMPOSE_PROFILES` | Nej | Startar den exportör som den valda konfigurationen skrapar: tomt för den inbyggda FlashArray-konfigurationen, `flasharray-exporter` eller `flashblade` för de två andra. |
 | `PURE_FA_ENDPOINT` | FlashArray | FlashArrayens administrationsadress: ett värdnamn eller en IP, utan `https://`. |
 | `PURE_FA_API_TOKEN` | FlashArray | API-token för FlashArray-användaren med rollen readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBladens administrationsadress: ett värdnamn eller en IP, utan `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | API-token för FlashBlade-användaren med rollen readonly. |
+| `POWERSCALE_NODES` | PowerScale | Alla noders adresser, avgränsade med kommatecken, aldrig SmartConnect-zonens namn. Installationsskriptet skriver avfrågningarna nedan utifrån den. |
+| `POWERSCALE_ENDPOINT` | PowerScale | Noden som klustrets egen hälsa, kapacitet och kvoter läses genom: den första i `POWERSCALE_NODES`. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Avfrågningarna som collectorn kör: `snmp/cluster`, `snmp/quotas`, sedan `snmp/node-1` och framåt, en per nod. |
+| `POWERSCALE_NODE_<n>` | PowerScale | Adressen till nod `<n>`, från `1` till `252`. En IPv6-adress skrivs inom hakparenteser, till exempel `[fd00::11]`. |
+| `POWERSCALE_SNMP_VERSION` | Nej | `v2c` eller `v3`. Standard är `v2c`. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | Klustrets skrivskyddade community. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | Klustrets skrivskyddade SNMPv3-användare. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | Nej | `auth_priv`, `auth_no_priv` eller `no_auth_no_priv`. Standard är `auth_priv`. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | Nej | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` eller `SHA512`, så som `isi snmp settings view` visar det. Standard är `SHA`. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3-användarens autentiseringslösenord. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | Nej | `DES`, `AES`, `AES192`, `AES256`, `AES192C` eller `AES256C`. Standard är `AES`. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3-användarens sekretesslösenord, på nivån `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nej | `true` godtar arrayens självsignerade certifikat på den inbyggda slutpunkten; `false` verifierar det. Standard är `true`. Pures exportörer verifierar aldrig arrayens certifikat, så det gäller inte för dem. |
 
 ## Så skrapar agenten
@@ -179,6 +197,9 @@ Pures semantiska konventioner delas av den inbyggda FlashArray-slutpunkten och b
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBladens namn, Purity-version och system-ID; kapacitet och datareduktion; antal öppna larm; arrayens hälsa; sidan **Hårdvara** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | Sidan **Filsystem**: tilldelat och använt utrymme, datareduktion, latens, IOPS och bandbredd per filsystem |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | Sidan **Buckets**: utrymme, kvot, antal objekt och prestanda per bucket, grupperat efter konto |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | Klustrets namn, OneFS-version, hälsa och antal noder; kapaciteten för `/ifs`; genomströmning, nätverk och CPU över hela klustret |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | Sidan **Kvoter**: varje kvots användning, dess gränser och hur nära den är dem |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | Sidan **Noder**: varje nods hälsa, CPU, genomströmning och protokollprestanda; sidan **Hårdvara**: dess diskar, sensorer och portar |
 
 Kolumnen **Hälsa** under **Alla lagringsarrayer** läser arrayens egna larm och maskinvara i dess senaste data: **Kritisk** så länge den rapporterar ett öppet kritiskt larm, eller en maskinvarukomponent, enhet eller styrenhet som är kritisk, trasig, saknas eller är ohälsosam; **Varning** så länge den rapporterar ett öppet varningslarm, eller en försämrad eller okänd komponent; annars **OK**; och **Okänd** medan agenten är frånkopplad. Arrayens **Översikt** bedömer mer, som nästa avsnitt säger. I monitorkriterier får arrayens attribut prefixet `resource.` (`resource.storage.array.name`, `resource.storage.system`), medan datapunktsetiketterna står utan prefix (`name`, `host`, `dimension`, `space`).
 
@@ -251,20 +272,21 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 Agenten rapporterar den collectorversion som dess filer låser som sin **Agentversion**. När den är äldre än den version som den här OneUptime-versionen låser, visas ett varningstecken bredvid den på arrayens sida **Översikt**. Välj det för att se de här kommandona. En agent som installerades innan dess filer rapporterade en version visar ingen förrän den har uppgraderats på det här sättet.
 
-Collectorns image är låst i `docker-compose.yml` och dess konfigurationer är filer bredvid den, så att bara hämta images för inte agenten framåt. Kör `install.sh` igen: det återanvänder varje värde i din befintliga `.env` (inget frågas efter igen), förnyar `docker-compose.yml` och de tre collector-konfigurationerna (en fil som du har redigerat sparas som `<file>.bak.<timestamp>`) och återskapar agenten så att collectorn läser sin nya konfiguration. En agent som är installerad utanför `/opt/oneuptime-storage-array-agent` behöver sin mapp: `INSTALL_DIR=<folder> bash install.sh`.
+Collectorns image är låst i `docker-compose.yml` och dess konfigurationer är filer bredvid den, så att bara hämta images för inte agenten framåt. Kör `install.sh` igen: det återanvänder varje värde i din befintliga `.env` (inget frågas efter igen), förnyar `docker-compose.yml` och collector-konfigurationerna (en fil som du har redigerat sparas som `<file>.bak.<timestamp>`) och återskapar agenten så att collectorn läser sin nya konfiguration. En agent som är installerad utanför `/opt/oneuptime-storage-array-agent` behöver sin mapp: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-Installerade du den med Docker Compose i stället? I agentens mapp laddar du ned Compose-filen och de tre collector-konfigurationerna igen (och gör om eventuella ändringar du hade gjort i dem), hämtar sedan imagesen och återskapar agenten:
+Installerade du den med Docker Compose i stället? I agentens mapp laddar du ned Compose-filen och collector-konfigurationerna igen (och gör om eventuella ändringar du hade gjort i dem), hämtar sedan imagesen och återskapar agenten:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -276,7 +298,74 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-Ta sedan bort den skrivskyddade användaren och dess API-token på arrayen om du inte längre behöver dem.
+Ta sedan bort den skrivskyddade användaren och dess API-token på arrayen om du inte längre behöver dem, eller en PowerScales community eller SNMPv3-användare.
+
+## Dell PowerScale
+
+Agenten läser ett Dell PowerScale-kluster (Isilon) över SNMP, från Dells ISILON-MIB, med collectorns egen SNMP-mottagare: ingen API-token, och inget körs bredvid collectorn. Ett kluster är en lagringsarray, och dess noder, kvoter, diskar, sensorer och portar är dess inventarie.
+
+- **Varje nod avfrågas på sin egen adress.** En nod svarar på SNMP bara för sina egna diskar, sensorer och portar, så agenten avfrågar varje nod via dess adress på det nätverk som agenten når, aldrig via SmartConnect-zonens namn, som skickar varje avfrågning vidare till den nod den själv väljer. Ett kluster har upp till 252 noder.
+- **Klustrets egna objekt läses en gång, genom den första noden:** dess hälsa, kapacitet, genomströmning, CPU och antal noder var 60:e sekund (`snmp/cluster`), och dess SmartQuotas var 5:e minut (`snmp/quotas`). Varje nods hälsa, CPU, protokollprestanda (NFS, SMB, S3, HDFS och resten), diskar, sensorer och portar läses från noden själv var 60:e sekund (`snmp/node-<n>`).
+- **Avläsningar som OneFS ger som text eller i andra enheter** (sensoravläsningar, CPU i tiondels procent, genomströmning i bitar) omvandlas till tal av collectorn innan den skickar dem, så att varje diagram och varje mall läser en enkel gauge.
+
+### Slå på SNMP på klustret
+
+Anslut till valfri nod med SSH som administratör: OneFS tillämpar SNMP-inställningar på hela klustret. Om klustret redan svarar på SNMP för ett annat verktyg ger du agenten samma skrivskyddade community eller SNMPv3-användare och hoppar över det här steget. Annars slår du på SNMP-tjänsten och SNMP v2c med en egen skrivskyddad community, inte OneFS standard-community `I$ilonpublic`:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+Eller slå på SNMPv3, som autentiserar och krypterar varje avfrågning. OneFS har en skrivskyddad SNMPv3-användare, `general` tills du byter namn på den: ge den lösenord på minst åtta tecken, utan mellanslag:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` visar inställningarna, med användarens autentiserings- och sekretessprotokoll. Tillåt UDP 161 från agentens maskin till varje nod och lista nodernas adresser med `isi network interfaces list`.
+
+### Installera agenten på ett PowerScale-kluster
+
+Kör installationsskriptet med PowerScale-konfigurationen:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+Skriptet frågar efter din OneUptime-URL, intagningsnyckeln och ett namn på klustret, sedan efter alla noders adresser, avgränsade med kommatecken, och SNMP-versionen, sedan efter den skrivskyddade communityn, eller SNMPv3-användaren och dess två lösenord, som vart och ett läses utan eko. En användare vars protokoll inte är SHA och AES behöver `POWERSCALE_SNMP_AUTH_PROTOCOL` och `POWERSCALE_SNMP_PRIVACY_PROTOCOL` före `bash install.sh`, och en användare utan sekretess `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`. Skriptet skriver en avfrågning per nod i `.env`:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+När klustret får en ny nod lägger du till dess adress i `POWERSCALE_NODES` i `.env` och kör `install.sh` igen: det skriver nodens avfrågning och återskapar agenten. Med Docker Compose laddar du ned `docker-compose.yml` och `otel-collector-config.powerscale.yaml` och lägger de här raderna i snabbstartens `.env` i stället för dess rader `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG` och `POWERSCALE_*`. `troubleshoot.sh` frågar varje nod efter klustrets namn med `snmpget` när maskinen har det.
+
+### Vad en PowerScales sidor visar
+
+Klustrets **Översikt** hämtar sin hälsa från den som OneFS själv rapporterar, räknar dess noder och kvoter och ritar varje protokolls latens och belastning, genomströmning, de mest belastade noderna och använd kapacitet. **Noder** listar varje nod med dess hälsa, modell, OneFS-version, CPU och genomströmning; **Kvoter** listar varje kvot med hur mycket av sin gräns den använder, den största först; **Hårdvara** listar varje nods diskar, dess fläktar och dess temperatur- och strömsensorer med deras avläsningar, och dess portar. Kapaciteten är den för `/ifs`, och utrymmet som OneFS håller undan för virtuella hot spares räknas som använt: det är inte tillgängligt för skrivningar.
+
+### Vad agenten inte läser än
+
+- **OneFS händelser och dess lagringspooler.** SNMP bär ingen av dem: de kommer från OneFS API, som en OneUptime-sond ska läsa ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). Till dess skickar du händelserna som SNMP-traps till en [anpassad sond](/docs/probe/custom-probe) och lägger till klustrets noder i den som [nätverksenheter](/docs/monitor/network-device-monitor): trapsen kommer in på UDP 162, och kriterierna **SNMP-trap mottagen (trap-OID)** larmar på dem. För SNMPv3-traps ger du nätverksenheterna klustrets SNMPv3-användare ([SNMPv3-traps och -informs](/docs/monitor/network-device-monitor#snmpv3-traps-och-informs)). Skapa kanalen på klustret och skicka ett larm till den:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **Datareduktion**, som OneFS bara rapporterar över sitt API, kommer med samma sond.
 
 ## Felsökning
 
@@ -315,6 +404,10 @@ Arrayer presenterar som standard ett självsignerat certifikat, som ingen Docker
 
 :::details pure-fa-exporter eller pure-fb-exporter kan inte slås upp
 Exportören körs inte: `COMPOSE_PROFILES` måste matcha `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` för FlashArray-exportörkonfigurationen, `flashblade` för FlashBlade-konfigurationen). Rätta `.env` och kör `docker compose up -d`; `docker compose ps` listar då exportören.
+:::
+
+:::details Ett PowerScale-kluster eller en PowerScale-nod skickar inget
+`Error scraping metrics` med `request timeout` i collectorns logg pekar ut en nod som inte svarar på SNMP från agentens maskin: SNMP är avslaget för versionen som agenten använder, communityn eller SNMPv3-användaren är inte klustrets, eller UDP 161 blockeras. `bash troubleshoot.sh` frågar varje nod med `snmpget`. En nod som svarar men saknas under **Noder** finns inte i `POWERSCALE_NODES`: lägg till den och kör `install.sh` igen.
 :::
 
 :::details Borttagna volymer eller värdar blir kvar i inventariet

@@ -1,17 +1,17 @@
 # 스토리지 어레이 모니터
 
-스토리지 어레이 모니터는 스토리지 어레이 하나를 지켜보며, 어레이가 자체 경고를 올리거나, 공간이 부족해지거나, 느려지거나, 하드웨어나 호스트 경로를 잃거나, 복제가 뒤처질 때 알려 줍니다. Pure Storage FlashArray와 Pure Storage FlashBlade를 지원하며, 어레이가 직접 내보내는 메트릭(Pure의 `purefa_*` 및 `purefb_*` 시리즈)을 읽습니다. 이 메트릭은 OneUptime Storage Array Agent가 수집합니다.
+스토리지 어레이 모니터는 스토리지 어레이 하나를 지켜보며, 어레이가 자체 경고를 올리거나, 공간이 부족해지거나, 느려지거나, 하드웨어나 호스트 경로를 잃거나, 복제가 뒤처질 때 알려 줍니다. Pure Storage FlashArray, Pure Storage FlashBlade, Dell PowerScale을 지원하며, 어레이가 직접 내보내는 메트릭(Pure의 `purefa_*` 및 `purefb_*` 시리즈, 그리고 에이전트가 PowerScale에서 SNMP로 폴링하는 `powerscale_*` 시리즈)을 읽습니다. 이 메트릭은 OneUptime Storage Array Agent가 수집합니다.
 
 :::cards
 - [모니터 만들기](#스토리지-어레이-모니터-만들기): 대시보드에서 여섯 단계.
-- [템플릿](#미리-만든-경고-템플릿): 미리 만든 경고 스무 개. 볼륨, 호스트, 구성 요소마다 인시던트 하나.
+- [템플릿](#미리-만든-경고-템플릿): 미리 만든 경고 서른세 개. 볼륨, 호스트, 노드, 구성 요소마다 인시던트 하나.
 - [Pure 시리즈의 작동 방식](#pure-시리즈의-구조): 메트릭 이름 하나에 여러 수치.
 - [메트릭](#수집되는-메트릭): 모니터가 경고를 보낼 수 있는 모든 시리즈.
 :::
 
 ## 작동 방식
 
-OneUptime Storage Array Agent는 어레이의 관리 인터페이스에 닿을 수 있는 머신에서 실행됩니다. 읽기 전용 API 토큰으로 어레이의 메트릭을 읽고, 어레이 이름 `storage.array.name` 과 플랫폼 `storage.system` 레이블을 붙여 OTLP로 OneUptime에 보냅니다. 첫 데이터가 들어오면 어레이가 등록됩니다.
+OneUptime Storage Array Agent는 어레이의 관리 인터페이스에 닿을 수 있는 머신에서 실행됩니다. 읽기 전용 API 토큰으로 어레이의 메트릭을 읽고(PowerScale은 읽기 전용 커뮤니티 또는 SNMPv3 사용자로 SNMP를 통해 읽음), 어레이 이름 `storage.array.name` 과 플랫폼 `storage.system` 레이블을 붙여 OTLP로 OneUptime에 보냅니다. 첫 데이터가 들어오면 어레이가 등록됩니다.
 
 스토리지 어레이 모니터는 어레이 하나에 연결됩니다. 매분 그 어레이의 메트릭에 쿼리를 실행하고 결과를 기준과 비교합니다.
 
@@ -77,15 +77,15 @@ flowchart TB
 | **볼륨** | Custom Metric, 고급 | FlashArray만. `name` 레이블로 볼륨 하나(예: `vol-db-01`). 파드나 볼륨 그룹 안의 볼륨은 `pod::volume` 이나 `group/volume` 이라는 이름을 씁니다. |
 | **호스트** | Custom Metric, 고급 | FlashArray만. 어레이가 아는 호스트 하나를 `host` 레이블로(예: `esxi-01`). |
 | **파드** | Custom Metric, 고급 | FlashArray만. ActiveCluster 또는 ActiveDR 파드 하나를 `name` 레이블로, 복제 링크 시리즈에서는 `local_pod` 로. |
-| **하드웨어 구성 요소** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`. |
-| **파일 시스템** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 파일 시스템 하나. |
+| **하드웨어 구성 요소** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`. PowerScale에서는 `node` 레이블로 노드 하나(예: `ps-prod-2`). |
+| **파일 시스템** | Custom Metric, 고급 | FlashBlade와 PowerScale. FlashBlade에서는 `name` 레이블로 파일 시스템 하나, PowerScale에서는 `quota` 레이블로 할당량 하나(예: `/ifs/data/home`). |
 | **버킷** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 객체 저장소 버킷 하나. |
 | **Storage Array Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. 양식은 그 의미를 주는 레이블 필터를 추가하고, 메트릭이 설명하는 객체로 그룹화하므로, 각 볼륨, 호스트, 구성 요소가 따로 판단됩니다. |
 | **집계** | Custom Metric | 샘플을 합치는 방법: **평균**, **최대**, **최소**, **합계**, **개수**. 메트릭의 일반적인 집계로 시작합니다. |
 | **시간 범위** | 모두 | 쿼리가 읽는 이동 기간으로, **Past 1 Minute** 부터 **Past 365 Days** 까지입니다. 새 모니터는 **지난 5분** 으로, 파일 시스템이나 버킷의 사용자 지정 메트릭은 **지난 15분** 으로 시작하며, 템플릿은 자체 값을 설정합니다. |
 | **메트릭 선택** | 고급 | 쿼리 빌더: **메트릭**, **집계 기준**, **속성으로 필터링**, **그룹화 기준**, 그리고 쿼리를 합치는 **메트릭 추가** 와 **수식 추가**. |
 
-에이전트는 어레이 엔드포인트를 60초마다, 볼륨, 호스트, 파드를 2분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다. FlashBlade의 파일 시스템과 버킷은 5분마다 읽고(그래서 15분), FlashArray 디렉터리는 30분마다 읽습니다. 디렉터리 모니터에는 60분 기간을 주세요.
+에이전트는 어레이 엔드포인트를 60초마다, 볼륨, 호스트, 파드를 2분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다. FlashBlade의 파일 시스템과 버킷은 5분마다 읽고(그래서 15분), FlashArray 디렉터리는 30분마다 읽습니다. 디렉터리 모니터에는 60분 기간을 주세요. PowerScale 클러스터와 각 노드는 60초마다, 할당량은 5분마다 폴링합니다. 할당량 모니터에는 15분 기간을 주세요.
 
 ## Pure 시리즈의 구조
 
@@ -105,11 +105,11 @@ Pure는 메트릭 이름 **하나** 에 여러 수치를 담고 레이블로 구
 
 나쁜 상태로 필터링한 시리즈는 무언가 그 상태에 있는 동안에만 존재하므로, 시리즈가 없으면 정상이라는 뜻입니다. 그래서 **0보다 큰 Max에서 발생하고 0에서 복구** 가 이 시리즈에 맞는 형태이며, 템플릿도 그렇게 만들어져 있습니다. 템플릿의 복구 기준은 시리즈가 없는 것을 0으로 셉니다. 시리즈가 전혀 남아 있지 않으면 이런 템플릿은 같은 윈도우에 `purefa_info` 또는 `purefb_info` 가 도착한 경우에만 복구되므로, 보고를 멈춘 어레이는 아무것도 닫지 않습니다.
 
-모니터 필터와 그룹화 키에서 에이전트의 속성은 `resource.` 로 시작하지만(`resource.storage.array.name`, `resource.storage.system`), Pure 자체의 레이블은 그렇지 않습니다(`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+모니터 필터와 그룹화 키에서 에이전트의 속성은 `resource.` 로 시작하지만(`resource.storage.array.name`, `resource.storage.system`), 어레이 자체의 레이블은 그렇지 않습니다(`name`, `host`, `component_name`, `dimension`, `space`, `severity`, 그리고 PowerScale의 `node`, `quota`, `drive`, `protocol`).
 
 ## 미리 만든 경고 템플릿
 
-OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
+OneUptime은 템플릿 33개(FlashArray용 12개, FlashBlade용 8개, PowerScale용 13개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
 
 기준은 기간 안의 **모든** 값에서 조건이 성립할 때만 발생합니다. 용량, 지연 시간, 지연, 비율 임계값에서 발생한 모니터는 임계값에서 10% 벗어나야 복구되므로, 임계값 근처를 오가는 값 때문에 상태가 흔들리지 않습니다. 경고, 하드웨어, 연결 템플릿은 상태가 5분 창 전체에서 보였을 때 작동하고, 상태가 사라진 뒤 약 5분 후에 복구됩니다.
 
@@ -143,11 +143,29 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | High Read Latency | 성능 | 경고 | `purefb_array_performance_latency_usec` 를 `dimension=usec_per_read_op` 및 `protocol=all` 로 필터링, Avg, 최근 10분 | > 10000 µs (10 ms), 모든 프로토콜 기준. ≤ 9000에서 복구 |
 | File System Near Full | 파일 시스템 | 경고 | `purefb_file_systems_space_bytes` 를 `space=available_ratio` 로 필터링, `name` 별 Min, 최근 15분 | < 0.1 — 파일 시스템의 프로비저닝된 크기 중 10%도 남지 않음. 파일 시스템마다 인시던트 하나. ≥ 0.11에서 복구 |
 
+### PowerScale
+
+| 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 가용성 | 심각 | `powerscale_cluster_health`, Count, 최근 10분 | 기간 내내 데이터 없음 — Storage Array Agent가 멈췄거나 OneUptime으로 가는 경로를 잃었거나 토큰이 취소됨, 또는 클러스터가 폴링에 더 이상 응답하지 않음. 데이터가 다시 들어오면 복구 |
+| Cluster Needs Attention | 어레이 상태 | 경고 | `powerscale_cluster_health`, Max, 최근 5분 | > 0 — OneFS가 클러스터를 주의 필요, 다운 또는 유효하지 않음으로 보고하며, 이유는 `isi event groups list`에 나옴. ≤ 0에서 복구 |
+| Cluster Down | 어레이 상태 | 심각 | `powerscale_cluster_health`, Max, 최근 5분 | ≥ 2 — OneFS가 클러스터를 다운 또는 유효하지 않음으로 보고함. < 2에서 복구 |
+| Node Offline | 하드웨어 | 심각 | `powerscale_cluster_offline_nodes`, Max, 최근 5분 | > 0 — 클러스터의 노드가 오프라인이며, 어느 노드인지는 `offline_nodes`에 나옴. ≤ 0에서 복구 |
+| Node Needs Attention | 하드웨어 | 경고 | `powerscale_node_health`, `node` 별 Max, 최근 5분 | > 0 — 노드가 주의 필요, 다운 또는 유효하지 않음을 보고함. 노드마다 인시던트 하나. ≤ 0에서 복구 |
+| Node Read-Only | 하드웨어 | 경고 | `powerscale_node_read_only`, `node` 별 Max, 최근 5분 | > 0 — 노드가 읽기 전용 모드여서 연결된 클라이언트가 쓸 수 없음. 노드마다 인시던트 하나. ≤ 0에서 복구 |
+| Drive Failed | 하드웨어 | 심각 | `powerscale_drive_size_bytes` 를 `status=DEAD` 로 필터링, `drive` 별 Count, 최근 5분 | > 0 — 드라이브가 죽어서 OneFS가 그 데이터를 나머지 드라이브에서 다시 보호함. 드라이브마다 인시던트 하나. 다른 상태를 보고하면 복구 |
+| Drive Smartfailed | 하드웨어 | 경고 | `powerscale_drive_size_bytes` 를 `status=SMARTFAIL` 로 필터링, `drive` 별 Count, 최근 5분 | > 0 — OneFS가 교체 전에 고장 나고 있는 드라이브에서 데이터를 옮기는 중. 드라이브마다 인시던트 하나. 다른 상태를 보고하면 복구 |
+| Capacity Above 80% | 용량 | 경고 | `powerscale_ifs_used_percent`, Max, 최근 15분 | > 80, 가상 핫 스페어용으로 남겨 둔 공간 포함. ≤ 72에서 복구 |
+| Capacity Above 90% | 용량 | 심각 | `powerscale_ifs_used_percent`, Max, 최근 5분 | > 90 — 클러스터가 쓰기를 거부하기 직전. ≤ 81에서 복구 |
+| Quota Near Its Limit | 용량 | 경고 | `powerscale_quota_used_percent`, `quota` 별 Max, 최근 15분 | 하드 한도(없으면 소프트 한도)의 > 90. 할당량마다 인시던트 하나. ≤ 81에서 복구 |
+| Quota Full | 용량 | 심각 | `powerscale_quota_used_percent`, `quota` 별 Max, 최근 5분 | ≥ 100 — 하드 한도에서는 할당량 경로 아래의 쓰기가 실패함. 할당량마다 인시던트 하나. < 90에서 복구 |
+| High Protocol Latency | 성능 | 경고 | `powerscale_protocol_latency_microseconds`, `protocol` 별 Max, 최근 10분 | 가장 느린 노드에서 > 20000 µs (20 ms). 프로토콜마다 인시던트 하나. ≤ 18000에서 복구 |
+
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 경고는 프로젝트에서 가장 심각한 인시던트 및 경고 심각도로 시작하며, 기준에서 바꿀 수 있습니다.
 
-- **Array Stopped Reporting** 템플릿은 플랫폼의 식별 시리즈(`purefa_info` 또는 `purefb_info`)를 셉니다. 에이전트가 수집하는 모든 엔드포인트가 수집할 때마다 이 시리즈를 내보냅니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
+- **Array Stopped Reporting** 템플릿은 플랫폼의 식별 시리즈(`purefa_info` 또는 `purefb_info`)를 셉니다. 에이전트가 수집하는 모든 엔드포인트가 수집할 때마다 이 시리즈를 내보냅니다. PowerScale의 식별 시리즈는 `powerscale_cluster_health`이며, 에이전트의 클러스터 폴링이 매분 보냅니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
 - **열린 경고와 하드웨어 상태는 Max를 씁니다**. 경고가 열려 있거나 구성 요소가 그 상태에 있는 동안에만 존재하는 시리즈이므로, 상태가 5분 창 전체에서 보였을 때 임계값을 넘습니다.
-- **객체별 템플릿은 모두 객체 자체의 레이블로 그룹화합니다**(`summary`, `component_name`, `host`, `local_pod`, `name`). 그래서 영향받은 객체마다 인시던트가 하나씩 발생하고, 인시던트에 그 객체의 이름이 들어갑니다.
+- **객체별 템플릿은 모두 객체 자체의 레이블로 그룹화합니다**(`summary`, `component_name`, `host`, `local_pod`, `name`, 그리고 PowerScale의 `node`, `drive`, `quota`, `protocol`). 그래서 영향받은 객체마다 인시던트가 하나씩 발생하고, 인시던트에 그 객체의 이름이 들어갑니다.
 - **지연 시간 템플릿은 Avg를 씁니다**. 어레이 자체의 작업당 평균에 대한 Avg이며, 용량 템플릿은 어레이 자체의 사용률에 대한 **최대** 를 씁니다. 지연 시간은 마이크로초, 용량은 퍼센트로 고정되어 있습니다.
 - **Hardware Component Unhealthy는 구성 요소별 Min을 씁니다**. 상태는 정상일 때 1이고, 아닐 때 0으로 떨어집니다.
 
@@ -163,6 +181,8 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 어레이의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type`, `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary`, `kburl`(Pure 기술 자료 문서) |
+| `powerscale_cluster_health` | — | PowerScale | — | OneFS가 보고하는 클러스터 상태: 0은 OK, 1은 주의 필요, 2는 다운, 3은 유효하지 않음. 변화를 놓치지 않으려면 최댓값을 쓰세요 |
+| `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | 클러스터의 노드 중 오프라인인 노드 수. `offline_nodes` 레이블에 그 논리 노드 번호가 나열됩니다 |
 
 ### 용량
 
@@ -176,6 +196,12 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | FlashBlade의 사용 가능한 용량 중 사용 중인 비율 |
 | `purefb_array_space_bytes` | `type=array`, `space=empty` | FlashBlade | `bytes` | FlashBlade의 사용하지 않는 용량 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | FlashBlade 전체의 데이터 감소 |
+| `powerscale_ifs_used_percent` | — | PowerScale | `%` | 클러스터 용량 중 더 이상 쓰기에 사용할 수 없는 비율. 사용 중인 공간에 OneFS가 가상 핫 스페어용으로 남겨 두는 공간을 더한 값입니다 |
+| `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | `/ifs`에서 아직 쓰기에 사용할 수 있는 공간 |
+| `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | OneFS가 계산한 `/ifs`의 사용 중인 공간 |
+| `powerscale_ifs_total_bytes` | — | PowerScale | `bytes` | 클러스터 전체의 `/ifs` 크기 |
+| `powerscale_quota_used_percent` | — | PowerScale | `%` | 각 할당량의 사용량을 하드 한도에 대한 비율로 나타내며, 하드 한도가 없으면 소프트 한도에 대한 비율입니다(어느 쪽인지는 `limit` 레이블이 알려 줍니다). `quota` 로 그룹화하세요 |
+| `powerscale_quota_usage_bytes` | — | PowerScale | `bytes` | OneFS가 각 할당량에 반영하는 사용량 |
 
 ### 성능
 
@@ -197,6 +223,16 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all` | FlashBlade | `ops/s` | 모든 프로토콜의 초당 쓰기 작업 수 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | 모든 프로토콜의 초당 읽은 바이트 수 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | 모든 프로토콜의 초당 쓴 바이트 수 |
+| `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | 클러스터 전체에서 `/ifs`에서 읽는 초당 바이트 |
+| `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | 클러스터 전체에서 `/ifs`에 쓰는 초당 바이트 |
+| `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | 클러스터의 프런트엔드 포트가 받는 초당 바이트 |
+| `powerscale_cluster_network_out_bytes_per_second` | — | PowerScale | `bytes/s` | 클러스터의 프런트엔드 포트가 보내는 초당 바이트 |
+| `powerscale_cluster_cpu_busy_percent` | — | PowerScale | `%` | 사용 중인 CPU 시간의 비율을 클러스터의 노드에 걸쳐 평균한 값 |
+| `powerscale_protocol_latency_microseconds` | — | PowerScale | `µs` | 각 노드에서 프로토콜(NFS, SMB, HDFS, ...)별로 작업에 걸리는 평균 시간. 최댓값은 가장 느린 노드입니다. `protocol` 또는 `node` 로 그룹화하세요 |
+| `powerscale_protocol_latency_max_microseconds` | — | PowerScale | `µs` | 각 노드에서 프로토콜별로 가장 느린 단일 작업 |
+| `powerscale_protocol_operations_per_second` | — | PowerScale | `ops/s` | 각 노드의 프로토콜별 초당 작업 수. 최댓값은 가장 바쁜 노드입니다 |
+| `powerscale_protocol_in_bytes_per_second` | — | PowerScale | `bytes/s` | 클라이언트가 각 노드에 각 프로토콜로 보내는 초당 바이트(쓰기와 요청) |
+| `powerscale_protocol_out_bytes_per_second` | — | PowerScale | `bytes/s` | 각 노드가 각 프로토콜로 클라이언트에 보내는 초당 바이트(읽기와 응답) |
 
 ### 볼륨
 
@@ -240,6 +276,16 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | 각 드라이브의 원시 용량. 레이블은 `component_status`(`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...)와 유형 |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 각 Ethernet 및 Fibre Channel 인터페이스의 초당 오류 수. 오류가 계속되면 대개 케이블, 광 모듈, 스위치 포트 불량입니다 |
 | `purefb_hardware_health` | — | FlashBlade | — | 각 하드웨어 구성 요소(블레이드, 패브릭 모듈, 전원 공급 장치, 팬, ...)의 상태: 1 = 정상, 2 = 사용 안 함, 0 = 비정상. `name` 별 최솟값을 쓰세요 |
+| `powerscale_node_health` | — | PowerScale | — | 각 노드가 보고하는 상태: 0은 OK, 1은 주의 필요, 2는 다운, 3은 유효하지 않음. `node` 로 그룹화하세요 |
+| `powerscale_node_read_only` | — | PowerScale | — | 노드가 읽기 전용 모드인 동안 1, 그 밖에는 0. `node` 로 그룹화하세요 |
+| `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | 각 노드의 사용 중인 CPU 시간 비율. `node` 로 그룹화하세요 |
+| `powerscale_node_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | 각 노드를 통해 `/ifs`에서 읽는 초당 바이트 |
+| `powerscale_node_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | 각 노드를 통해 `/ifs`에 쓰는 초당 바이트 |
+| `powerscale_drive_size_bytes` | — | PowerScale | `bytes` | 드라이브 베이마다 시리즈 하나이며, 값은 드라이브의 크기이고 레이블은 `status`(`HEALTHY`, `SMARTFAIL`, `DEAD`, ...), `model`, `serial` |
+| `powerscale_drive_operations_per_second` | — | PowerScale | `ops/s` | 각 드라이브가 처리하는 초당 작업 수. `drive` 로 그룹화하세요 |
+| `powerscale_temperature_celsius` | — | PowerScale | `°C` | 각 노드에 있는 각 온도 센서의 측정값. 노드별 최댓값은 그 노드에서 가장 뜨거운 센서입니다 |
+| `powerscale_fan_speed_rpm` | — | PowerScale | `rpm` | 각 노드에 있는 각 팬의 속도. 최솟값으로 느려지는 팬을 찾을 수 있습니다 |
+| `powerscale_interface_status` | — | PowerScale | — | 각 노드 포트의 상태: 1은 업, 2는 다운, 7은 포트 아래 계층이 다운(링크 없음). `admin_status` 는 업이어야 하는 포트에서 1입니다 |
 
 ### 파일 시스템
 
@@ -323,7 +369,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` 는 어레이의 `storage.array.name`(에이전트를 시작할 때 쓴 `STORAGE_ARRAY_NAME`)이며, OneUptime ID가 아닙니다. `storageSystem` 은 `purestorage.flasharray` 또는 `purestorage.flashblade` 입니다. 이 값에 따라 양식이 보여 주는 카탈로그와 템플릿, 그리고 하드웨어 필터가 `component_name` 과 `name` 중 무엇을 읽을지가 정해집니다.
+`arrayIdentifier` 는 어레이의 `storage.array.name`(에이전트를 시작할 때 쓴 `STORAGE_ARRAY_NAME`)이며, OneUptime ID가 아닙니다. `storageSystem` 은 `purestorage.flasharray`, `purestorage.flashblade` 또는 `dell.powerscale` 입니다. 이 값에 따라 양식이 보여 주는 카탈로그와 템플릿, 그리고 하드웨어 필터가 읽는 레이블(`component_name`, `name` 또는 `node`)이 정해집니다.
 
 ## 문제 해결
 

@@ -1,9 +1,10 @@
 # عامل آرایه ذخیره‌سازی
 
-عامل آرایه ذخیره‌سازی در OneUptime آرایه‌های ذخیره‌سازی را پایش می‌کند: ظرفیت و کاهش داده، تأخیر، IOPS و پهنای باند، حجم‌ها، میزبان‌ها، پادها و همتاسازی، سلامت سخت‌افزار، سیستم‌های فایل و باکت‌ها. این عامل یک OpenTelemetry Collector استاندارد است که نقطه‌های پایانی OpenMetrics آرایه را با توکن API یک کاربر فقط‌خواندنی برداشت می‌کند، هویت آرایه شما را روی هر متریک مُهر می‌زند و آن را به OneUptime می‌فرستد. [مانیتورهای آرایه ذخیره‌سازی](/docs/monitor/storage-array-monitor) بر پایه آنچه می‌رسد هشدار می‌دهند.
+عامل آرایه ذخیره‌سازی در OneUptime آرایه‌های ذخیره‌سازی را پایش می‌کند: ظرفیت و کاهش داده، تأخیر، IOPS و پهنای باند، حجم‌ها، میزبان‌ها، پادها و همتاسازی، سلامت سخت‌افزار، سیستم‌های فایل، باکت‌ها و سهمیه‌ها. این عامل یک OpenTelemetry Collector استاندارد است که نقطه‌های پایانی OpenMetrics آرایه را با توکن API یک کاربر فقط‌خواندنی برداشت می‌کند، یا از گره‌های یک خوشه Dell PowerScale از راه SNMP پرس‌وجو می‌کند، هویت آرایه شما را روی هر متریک مُهر می‌زند و آن را به OneUptime می‌فرستد. [مانیتورهای آرایه ذخیره‌سازی](/docs/monitor/storage-array-monitor) بر پایه آنچه می‌رسد هشدار می‌دهند.
 
 :::cards
 - [نصب عامل](#نصب-عامل): یک کاربر فقط‌خواندنی، سپس اسکریپت نصب یا Docker Compose.
+- [Dell PowerScale](#dell-powerscale): SNMP روی خوشه، پرس‌وجو از هر گره، و آنچه صفحه‌هایش نشان می‌دهند.
 - [آنچه عامل گردآوری می‌کند](#آنچه-عامل-گردآوری-میکند): هر نقطه پایانی، و صفحه‌هایی که از آن ساخته می‌شوند.
 - [پایش چند آرایه](#پایش-چند-آرایه): یک عامل برای هر آرایه، روی یک ماشین.
 - [رفع اشکال](#رفع-اشکال): یک اسکریپت تشخیصی، و مشکلات معمول.
@@ -18,8 +19,11 @@ Storage Arrays محصولی است که برای هر سازنده‌ای به �
 | **Pure Storage FlashArray**، Purity//FA 6.7 و بعد از آن | `purestorage.flasharray` | نقطه پایانی OpenMetrics خود آرایه (`https://<array>/metrics/...?namespace=purefa`): چیزی کنار کالکتور اجرا نمی‌شود | `otel-collector-config.yaml` (پیش‌فرض) |
 | **Pure Storage FlashArray**، Purity//FA قدیمی‌تر | `purestorage.flasharray` | صادرکننده OpenMetrics مخصوص FlashArray از Pure، که همان فایل Compose آن را به‌صورت سرویس `pure-fa-exporter` اجرا می‌کند | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | صادرکننده OpenMetrics مخصوص FlashBlade از Pure، که همان فایل Compose آن را به‌صورت سرویس `pure-fb-exporter` اجرا می‌کند | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerScale** (Isilon)، OneFS 8.0 و بعد از آن | `dell.powerscale` | هر گره از راه SNMP (ISILON-MIB متعلق به Dell)، با گیرنده SNMP خود کالکتور: چیزی کنار کالکتور اجرا نمی‌شود | `otel-collector-config.powerscale.yaml` |
 
 Pure Storage در فوریه ۲۰۲۶ نام خود را به **Everpure** تغییر داد. FlashArray، FlashBlade و Purity نام‌هایشان را نگه داشتند، و متریک‌های `purefa_*` و `purefb_*` هم همین‌طور، پس همه‌چیز در این صفحه درباره آرایه‌هایی که با هر یک از این دو نام فروخته شده‌اند صدق می‌کند.
+
+یک خوشه **Dell PowerScale** به روش دیگری خوانده می‌شود: عامل از هر یک از گره‌هایش از راه SNMP، با یک community فقط‌خواندنی یا کاربر SNMPv3 و بدون توکن API، پرس‌وجو می‌کند. [Dell PowerScale](#dell-powerscale) از روشن کردن SNMP تا آنچه صفحه‌هایش نشان می‌دهند را پوشش می‌دهد؛ گام‌های نصب زیر مخصوص Pure Storage است.
 
 ```mermaid title="از آرایه تا OneUptime"
 flowchart TB
@@ -87,7 +91,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-اسکریپت می‌پرسد این کدام آرایه است (FlashArray با متریک‌های بومی، FlashArray روی Purity//FA قدیمی‌تر، یا FlashBlade)، سپس نشانی OneUptime شما، کلید دریافت داده، نامی برای آرایه، نشانی مدیریتی آرایه و توکن API کاربر فقط‌خواندنی را می‌پرسد (بی‌نمایش خوانده می‌شود). در `/opt/oneuptime-storage-array-agent` نصب می‌کند، فایل Compose و هر سه پیکربندی کالکتور را دانلود می‌کند، یک فایل با مجوز `0600` به نام `.env` با پیکربندی و پروفایل Compose متناظر می‌نویسد و عامل را با Docker Compose راه می‌اندازد. هر مقدار را همان‌طور که تایپ کرده‌اید برای Docker Compose درون نقل‌قول می‌گذارد. اجرای دوباره آن به‌جای پرسیدن دوباره، همه‌چیز را از `.env` موجود دوباره به کار می‌برد، و فایلی را که ویرایش کرده‌اید پیش از جایگزینی به‌صورت `<file>.bak.<timestamp>` نگه می‌دارد.
+اسکریپت می‌پرسد این کدام آرایه است (FlashArray با متریک‌های بومی، FlashArray روی Purity//FA قدیمی‌تر، FlashBlade، یا یک خوشه PowerScale)، سپس نشانی OneUptime شما، کلید دریافت داده، نامی برای آرایه، نشانی مدیریتی آرایه و توکن API کاربر فقط‌خواندنی را می‌پرسد (بی‌نمایش خوانده می‌شود). در `/opt/oneuptime-storage-array-agent` نصب می‌کند، فایل Compose و همه پیکربندی‌های کالکتور را دانلود می‌کند، یک فایل با مجوز `0600` به نام `.env` با پیکربندی و پروفایل Compose متناظر می‌نویسد و عامل را با Docker Compose راه می‌اندازد. هر مقدار را همان‌طور که تایپ کرده‌اید برای Docker Compose درون نقل‌قول می‌گذارد. اجرای دوباره آن به‌جای پرسیدن دوباره، همه‌چیز را از `.env` موجود دوباره به کار می‌برد، و فایلی را که ویرایش کرده‌اید پیش از جایگزینی به‌صورت `<file>.bak.<timestamp>` نگه می‌دارد.
 @tab Docker Compose
 `docker-compose.yml` و سه فایل `otel-collector-config*.yaml` را از OneUptime خودتان در یک پوشه تازه دانلود کنید:
 
@@ -111,10 +115,12 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 ```
 
-برای FlashArray روی Purity//FA قدیمی‌تر، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` و `COMPOSE_PROFILES=flasharray-exporter` را تنظیم کنید. برای FlashBlade، `STORAGE_SYSTEM=purestorage.flashblade`، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` و `COMPOSE_PROFILES=flashblade` را تنظیم کنید، و `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN` را پر کنید (به‌جای جفت `PURE_FA_*`). عامل را راه بیندازید:
+برای FlashArray روی Purity//FA قدیمی‌تر، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` و `COMPOSE_PROFILES=flasharray-exporter` را تنظیم کنید. برای FlashBlade، `STORAGE_SYSTEM=purestorage.flashblade`، `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` و `COMPOSE_PROFILES=flashblade` را تنظیم کنید، و `PURE_FB_ENDPOINT` و `PURE_FB_API_TOKEN` را پر کنید (به‌جای جفت `PURE_FA_*`). فایل `.env` یک خوشه PowerScale در [Dell PowerScale](#dell-powerscale) آمده است. عامل را راه بیندازید:
 
 ```bash
 docker compose up -d
@@ -148,13 +154,25 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | بله | نشانی OneUptime شما، مانند `https://oneuptime.com` یا نمونه خودمیزبان شما. اگر نمونه فقط HTTP دارد، از `http://` و پورتش استفاده کنید. |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | بله | کلید دریافت داده از **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده**. |
 | `STORAGE_ARRAY_NAME` | بله | نامی که آرایه با آن در OneUptime ثبت می‌شود، و به‌صورت ویژگی منبع `storage.array.name` روی هر متریک مُهر زده می‌شود. ثابتش نگه دارید: تغییرش در آینده آرایه دومی ثبت می‌کند. کالکتور بدون آن راه‌اندازی نمی‌شود. |
-| `STORAGE_SYSTEM` | خیر | پلتفرم، که به‌صورت ویژگی منبع `storage.system` مُهر زده می‌شود: `purestorage.flasharray` یا `purestorage.flashblade`. پیش‌فرض آن `purestorage.flasharray` است. |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | خیر | اینکه کدام پیکربندی کالکتور همراه بسته اجرا شود: `otel-collector-config.yaml` (FlashArray، بومی: پیش‌فرض)، `otel-collector-config.flasharray-exporter.yaml` (FlashArray قدیمی‌تر) یا `otel-collector-config.flashblade.yaml` (FlashBlade). |
+| `STORAGE_SYSTEM` | خیر | پلتفرم، که به‌صورت ویژگی منبع `storage.system` مُهر زده می‌شود: `purestorage.flasharray`، `purestorage.flashblade` یا `dell.powerscale`. پیش‌فرض آن `purestorage.flasharray` است. |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | خیر | اینکه کدام پیکربندی کالکتور همراه بسته اجرا شود: `otel-collector-config.yaml` (FlashArray، بومی: پیش‌فرض)، `otel-collector-config.flasharray-exporter.yaml` (FlashArray قدیمی‌تر)، `otel-collector-config.flashblade.yaml` (FlashBlade) یا `otel-collector-config.powerscale.yaml` (PowerScale). |
 | `COMPOSE_PROFILES` | خیر | صادرکننده‌ای را که پیکربندی انتخاب‌شده برداشت می‌کند راه می‌اندازد: برای پیکربندی بومی FlashArray خالی، و برای دو پیکربندی دیگر `flasharray-exporter` یا `flashblade`. |
 | `PURE_FA_ENDPOINT` | FlashArray | نشانی مدیریتی FlashArray: یک نام میزبان یا IP، بدون `https://`. |
 | `PURE_FA_API_TOKEN` | FlashArray | توکن API کاربر FlashArray با نقش readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | نشانی مدیریتی FlashBlade: یک نام میزبان یا IP، بدون `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | توکن API کاربر FlashBlade با نقش readonly. |
+| `POWERSCALE_NODES` | PowerScale | نشانی همه گره‌ها، جداشده با ویرگول، هرگز نام زُن SmartConnect. اسکریپت نصب پرس‌وجوهای زیر را از روی آن می‌نویسد. |
+| `POWERSCALE_ENDPOINT` | PowerScale | گره‌ای که سلامت، ظرفیت و سهمیه‌های خود خوشه از راه آن خوانده می‌شوند: نخستین گره در `POWERSCALE_NODES`. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | پرس‌وجوهایی که کالکتور اجرا می‌کند: `snmp/cluster`، `snmp/quotas`، سپس `snmp/node-1` و بعدی‌ها، یکی برای هر گره. |
+| `POWERSCALE_NODE_<n>` | PowerScale | نشانی گره `<n>`، از `1` تا `252`. نشانی IPv6 درون کروشه می‌آید، مانند `[fd00::11]`. |
+| `POWERSCALE_SNMP_VERSION` | خیر | `v2c` یا `v3`. پیش‌فرض آن `v2c` است. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | community فقط‌خواندنی خوشه. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | کاربر فقط‌خواندنی SNMPv3 خوشه. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | خیر | `auth_priv`، `auth_no_priv` یا `no_auth_no_priv`. پیش‌فرض آن `auth_priv` است. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | خیر | `MD5`، `SHA`، `SHA224`، `SHA256`، `SHA384` یا `SHA512`، همان‌طور که `isi snmp settings view` نشان می‌دهد. پیش‌فرض آن `SHA` است. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | گذرواژه احراز هویت کاربر SNMPv3. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | خیر | `DES`، `AES`، `AES192`، `AES256`، `AES192C` یا `AES256C`. پیش‌فرض آن `AES` است. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | گذرواژه حریم خصوصی کاربر SNMPv3، در سطح `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | خیر | `true` گواهی خودامضای آرایه را روی نقطه پایانی بومی می‌پذیرد؛ `false` آن را اعتبارسنجی می‌کند. پیش‌فرض آن `true` است. صادرکننده‌های Pure هرگز گواهی آرایه را اعتبارسنجی نمی‌کنند، پس این متغیر بر آن‌ها اثری ندارد. |
 
 ## عامل چگونه برداشت می‌کند
@@ -179,6 +197,9 @@ Everything is ready. Begin running and processing data.
 | FlashBlade `/metrics/array` | `purefb_info`، `purefb_alerts_open`، `purefb_array_space_*`، `purefb_array_performance_*`، `purefb_hardware_health` | نام FlashBlade، نسخه Purity و شناسه سیستم؛ ظرفیت و کاهش داده؛ شمار هشدارهای باز؛ سلامت آرایه؛ صفحه **سخت‌افزار** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`، `purefb_file_systems_performance_*` | صفحه **سامانه‌های فایل**: فضای تخصیص‌یافته و مصرف‌شده، کاهش داده، تأخیر، IOPS و پهنای باند هر سیستم فایل |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`، `purefb_buckets_quota_space_bytes`، `purefb_buckets_object_count`، `purefb_buckets_performance_*`، `purefb_object_store_accounts_*` | صفحه **باکت‌ها**: فضا، سهمیه، شمار شیءها و کارایی هر باکت، گروه‌بندی‌شده بر پایه حساب |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`، `powerscale_ifs_*` | نام خوشه، نسخه OneFS، سلامت و شمار گره‌ها؛ ظرفیت `/ifs`؛ توان عملیاتی، شبکه و CPU در کل خوشه |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | صفحه **سهمیه‌ها**: مصرف هر سهمیه، حدهای آن و اینکه چقدر به آن‌ها نزدیک است |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`، `powerscale_protocol_*`، `powerscale_drive_*`، `powerscale_fan_*`، `powerscale_temperature_*`، `powerscale_power_sensor_*`، `powerscale_interface_*`، `powerscale_chassis_*` | صفحه **گره‌ها**: سلامت، CPU، توان عملیاتی و کارایی پروتکل‌های هر گره؛ صفحه **سخت‌افزار**: درایوها، حسگرها و پورت‌های آن |
 
 ستون **سلامت** در **همه آرایه‌های ذخیره‌سازی** هشدارها و سخت‌افزار خود آرایه را از تازه‌ترین داده‌هایش می‌خواند: **بحرانی** تا وقتی که یک هشدار بحرانی باز گزارش می‌کند، یا یک قطعه سخت‌افزاری، درایو یا کنترلر که بحرانی، خراب، ناپیدا یا ناسالم است؛ **هشدار** تا وقتی که یک هشدار اخطار باز گزارش می‌کند، یا قطعه‌ای تنزل‌یافته یا ناشناخته؛ در غیر این صورت **OK**؛ و تا وقتی عامل قطع است، **ناشناخته**. **نمای کلی** آرایه بیش از این را می‌سنجد، همان‌طور که بخش بعدی می‌گوید. در معیارهای مانیتور، ویژگی‌های آرایه پیشوند `resource.` می‌گیرند (`resource.storage.array.name`، `resource.storage.system`)، در حالی که برچسب‌های نقطه داده بی‌پیشوند می‌مانند (`name`، `host`، `dimension`، `space`).
 
@@ -251,20 +272,21 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 عامل نسخه کالکتوری را که فایل‌هایش ثابت کرده‌اند به‌عنوان **نسخه عامل** خود گزارش می‌دهد. وقتی این نسخه از نسخه‌ای که این انتشار OneUptime ثابت کرده قدیمی‌تر باشد، کنار آن یک نشانه هشدار در **نمای کلی** آرایه نمایان می‌شود. آن را انتخاب کنید تا این فرمان‌ها را ببینید. عاملی که پیش از آنکه فایل‌هایش نسخه‌ای گزارش دهند نصب شده باشد، تا وقتی به این روش به‌روزرسانی نشود هیچ نسخه‌ای نشان نمی‌دهد.
 
-ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌هایش فایل‌هایی کنار آن هستند، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و سه پیکربندی کالکتور را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-storage-array-agent` نصب شده، پوشه‌اش را لازم دارد: `INSTALL_DIR=<folder> bash install.sh`.
+ایمیج کالکتور در `docker-compose.yml` ثابت شده و پیکربندی‌هایش فایل‌هایی کنار آن هستند، پس فقط کشیدن ایمیج‌ها عامل را جلو نمی‌برد. `install.sh` را دوباره اجرا کنید: هر مقداری را در `.env` موجود شما دوباره به کار می‌برد (هیچ چیزی دوباره پرسیده نمی‌شود)، `docker-compose.yml` و پیکربندی‌های کالکتور را تازه می‌کند (فایلی که ویرایش کرده‌اید به‌صورت `<file>.bak.<timestamp>` نگه داشته می‌شود)، و عامل را دوباره می‌سازد تا کالکتور پیکربندی تازه‌اش را بخواند. عاملی که بیرون از `/opt/oneuptime-storage-array-agent` نصب شده، پوشه‌اش را لازم دارد: `INSTALL_DIR=<folder> bash install.sh`.
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-به‌جای آن با Docker Compose نصبش کرده‌اید؟ در پوشه عامل، فایل Compose و سه پیکربندی کالکتور را دوباره دانلود کنید (و هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را بکشید و عامل را دوباره بسازید:
+به‌جای آن با Docker Compose نصبش کرده‌اید؟ در پوشه عامل، فایل Compose و پیکربندی‌های کالکتور را دوباره دانلود کنید (و هر تغییری را که در آن‌ها داده بودید دوباره اعمال کنید)، سپس ایمیج‌ها را بکشید و عامل را دوباره بسازید:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -276,7 +298,74 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-سپس اگر دیگر نیازشان ندارید، کاربر فقط‌خواندنی و توکن API آن را روی آرایه پاک کنید.
+سپس اگر دیگر نیازشان ندارید، کاربر فقط‌خواندنی و توکن API آن را روی آرایه پاک کنید، یا community یا کاربر SNMPv3 یک PowerScale را.
+
+## Dell PowerScale
+
+عامل یک خوشه Dell PowerScale (Isilon) را از راه SNMP، از ISILON-MIB متعلق به Dell، با گیرنده SNMP خود کالکتور می‌خواند: بدون توکن API، و چیزی کنار کالکتور اجرا نمی‌شود. یک خوشه یک آرایه ذخیره‌سازی است، و گره‌ها، سهمیه‌ها، درایوها، حسگرها و پورت‌هایش موجودی آن‌اند.
+
+- **از هر گره در نشانی خودش پرس‌وجو می‌شود.** هر گره فقط برای درایوها، حسگرها و پورت‌های خودش به SNMP پاسخ می‌دهد، پس عامل از هر گره با نشانی آن در شبکه‌ای که عامل به آن دسترسی دارد پرس‌وجو می‌کند، هرگز با نام زُن SmartConnect، که هر پرس‌وجو را به هر گره‌ای که خودش انتخاب کند می‌سپارد. یک خوشه حداکثر ۲۵۲ گره دارد.
+- **اشیای خود خوشه یک بار، از راه نخستین گره، خوانده می‌شوند:** سلامت، ظرفیت، توان عملیاتی، CPU و شمار گره‌های آن هر ۶۰ ثانیه (`snmp/cluster`)، و SmartQuotas آن هر ۵ دقیقه (`snmp/quotas`). سلامت، CPU، کارایی پروتکل‌ها (NFS، SMB، S3، HDFS و بقیه)، درایوها، حسگرها و پورت‌های هر گره هر ۶۰ ثانیه از خود گره خوانده می‌شوند (`snmp/node-<n>`).
+- **خوانش‌هایی که OneFS به‌صورت متن یا با یکاهای دیگر می‌دهد** (خوانش حسگرها، CPU به دهم درصد، توان عملیاتی به بیت) پیش از ارسال به دست کالکتور به عدد تبدیل می‌شوند، پس هر نمودار و هر قالب یک gauge ساده را می‌خواند.
+
+### روشن کردن SNMP روی خوشه
+
+با SSH و به‌عنوان مدیر به هر گره‌ای وصل شوید: OneFS تنظیمات SNMP را روی کل خوشه اعمال می‌کند. اگر خوشه از پیش برای ابزار دیگری به SNMP پاسخ می‌دهد، همان community فقط‌خواندنی یا کاربر SNMPv3 را به عامل بدهید و از این مرحله بگذرید. در غیر این صورت، سرویس SNMP و SNMP v2c را با یک community فقط‌خواندنی از آنِ خودتان روشن کنید، نه community پیش‌فرض OneFS یعنی `I$ilonpublic`:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+یا SNMPv3 را روشن کنید که هر پرس‌وجو را احراز هویت و رمزگذاری می‌کند. OneFS یک کاربر فقط‌خواندنی SNMPv3 دارد که تا وقتی نامش را تغییر ندهید `general` است: به آن گذرواژه‌هایی با دست‌کم هشت نویسه و بدون فاصله بدهید:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` تنظیمات را همراه با پروتکل‌های احراز هویت و حریم خصوصی کاربر نشان می‌دهد. UDP 161 را از ماشین عامل به همه گره‌ها مجاز کنید و نشانی گره‌ها را با `isi network interfaces list` فهرست کنید.
+
+### نصب عامل روی یک خوشه PowerScale
+
+اسکریپت نصب را با پیکربندی PowerScale اجرا کنید:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+اسکریپت نشانی OneUptime شما، کلید دریافت داده و نامی برای خوشه را می‌پرسد، سپس نشانی همه گره‌ها، جداشده با ویرگول، و نسخه SNMP را، و سپس community فقط‌خواندنی، یا کاربر SNMPv3 و دو گذرواژه آن را، که هر کدام بی‌نمایش خوانده می‌شود. کاربری که پروتکل‌هایش SHA و AES نیستند، به `POWERSCALE_SNMP_AUTH_PROTOCOL` و `POWERSCALE_SNMP_PRIVACY_PROTOCOL` پیش از `bash install.sh` نیاز دارد، و کاربر بدون حریم خصوصی به `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`. اسکریپت برای هر گره یک پرس‌وجو در `.env` می‌نویسد:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+وقتی گره‌ای به خوشه اضافه می‌شود، نشانی آن را به `POWERSCALE_NODES` در `.env` بیفزایید و `install.sh` را دوباره اجرا کنید: پرس‌وجوی آن گره را می‌نویسد و عامل را دوباره می‌سازد. با Docker Compose، `docker-compose.yml` و `otel-collector-config.powerscale.yaml` را دانلود کنید، و این خط‌ها را در `.env` راه‌اندازی سریع، به‌جای خط‌های `STORAGE_SYSTEM`، `STORAGE_ARRAY_COLLECTOR_CONFIG` و `POWERSCALE_*` آن بگذارید. `troubleshoot.sh` وقتی ماشین `snmpget` را داشته باشد، نام خوشه را با آن از هر گره می‌پرسد.
+
+### آنچه صفحه‌های یک PowerScale نشان می‌دهند
+
+**نمای کلی** خوشه سلامت آن را از سلامتی که خود OneFS گزارش می‌دهد می‌گیرد، گره‌ها و سهمیه‌هایش را می‌شمارد، و تأخیر و بار هر پروتکل، توان عملیاتی، پرکارترین گره‌ها و ظرفیت مصرف‌شده را رسم می‌کند. **گره‌ها** هر گره را با سلامت، مدل، نسخه OneFS، CPU و توان عملیاتی آن فهرست می‌کند؛ **سهمیه‌ها** هر سهمیه را با اینکه چه مقدار از حدش را مصرف می‌کند، بزرگ‌ترین اول، فهرست می‌کند؛ **سخت‌افزار** درایوهای هر گره، فن‌ها و حسگرهای دما و برق آن را با خوانش‌هایشان، و پورت‌هایش را فهرست می‌کند. ظرفیت همان ظرفیت `/ifs` است، و فضایی که OneFS برای یدک‌های داغ مجازی کنار می‌گذارد مصرف‌شده به حساب می‌آید: برای نوشتن در دسترس نیست.
+
+### آنچه عامل هنوز نمی‌خواند
+
+- **رویدادهای OneFS و استخرهای ذخیره‌سازی آن.** ‏SNMP هیچ‌کدام را منتقل نمی‌کند: این‌ها از API خود OneFS می‌آیند، که یک پراب OneUptime آن را خواهد خواند ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). تا آن زمان، رویدادها را به‌صورت تله‌های SNMP به یک [پراب سفارشی](/docs/probe/custom-probe) بفرستید و گره‌های خوشه را به‌عنوان [دستگاه‌های شبکه](/docs/monitor/network-device-monitor) به آن بیفزایید: تله‌ها روی UDP 162 می‌رسند، و معیارهای **دریافت SNMP Trap (Trap OID)** بر پایه آن‌ها هشدار می‌دهند. برای تله‌های SNMPv3، کاربر SNMPv3 خوشه را به دستگاه‌های شبکه بدهید ([تله‌ها و informهای SNMPv3](/docs/monitor/network-device-monitor#تلهها-و-informهای-snmpv3)). روی خوشه، کانال را بسازید و یک هشدار به آن بفرستید:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **کاهش داده**، که OneFS فقط از راه API خود گزارش می‌دهد، با همان پراب می‌آید.
 
 ## رفع اشکال
 
@@ -315,6 +404,10 @@ Purity//FA آن نقطه پایانی بومی OpenMetrics ندارد. `install.
 
 :::details نام pure-fa-exporter یا pure-fb-exporter پیدا نمی‌شود
 صادرکننده در حال اجرا نیست: `COMPOSE_PROFILES` باید با `STORAGE_ARRAY_COLLECTOR_CONFIG` جور باشد (`flasharray-exporter` برای پیکربندی صادرکننده FlashArray، `flashblade` برای پیکربندی FlashBlade). `.env` را درست کنید و `docker compose up -d` را اجرا کنید؛ سپس `docker compose ps` صادرکننده را فهرست می‌کند.
+:::
+
+:::details یک خوشه یا گره PowerScale هیچ چیزی نمی‌فرستد
+`Error scraping metrics` همراه با `request timeout` در لاگ کالکتور گره‌ای را نام می‌برد که از ماشین عامل به SNMP پاسخ نمی‌دهد: SNMP برای نسخه‌ای که عامل به کار می‌برد خاموش است، community یا کاربر SNMPv3 از آنِ خوشه نیست، یا UDP 161 مسدود است. `bash troubleshoot.sh` از هر گره با `snmpget` می‌پرسد. گره‌ای که پاسخ می‌دهد اما در **گره‌ها** نیست، در `POWERSCALE_NODES` نیامده است: آن را بیفزایید و `install.sh` را دوباره اجرا کنید.
 :::
 
 :::details حجم‌ها یا میزبان‌های حذف‌شده در موجودی می‌مانند

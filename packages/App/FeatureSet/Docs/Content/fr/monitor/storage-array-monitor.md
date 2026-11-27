@@ -1,17 +1,17 @@
 # Surveillance des baies de stockage
 
-Un moniteur de baie de stockage surveille une baie de stockage et vous prévient lorsque la baie lève une alerte qui lui est propre, manque d'espace, ralentit, perd du matériel ou un chemin d'hôte, ou prend du retard sur la réplication. Il fonctionne avec Pure Storage FlashArray et Pure Storage FlashBlade, et lit les métriques que la baie exporte elle-même - les séries `purefa_*` et `purefb_*` de Pure -, que collecte le OneUptime Storage Array Agent.
+Un moniteur de baie de stockage surveille une baie de stockage et vous prévient lorsque la baie lève une alerte qui lui est propre, manque d'espace, ralentit, perd du matériel ou un chemin d'hôte, ou prend du retard sur la réplication. Il fonctionne avec Pure Storage FlashArray, Pure Storage FlashBlade et Dell PowerScale, et lit les métriques que la baie exporte elle-même - les séries `purefa_*` et `purefb_*` de Pure, et les séries `powerscale_*` que l'agent interroge en SNMP sur un PowerScale -, que collecte le OneUptime Storage Array Agent.
 
 :::cards
 - [Créer le moniteur](#créer-un-moniteur-de-baie-de-stockage): Six étapes dans le tableau de bord.
-- [Modèles](#modèles-dalerte-prédéfinis): Vingt alertes prêtes à l'emploi, un incident par volume, hôte ou composant.
+- [Modèles](#modèles-dalerte-prédéfinis): Trente-trois alertes prêtes à l'emploi, un incident par volume, hôte, nœud ou composant.
 - [Comment fonctionnent les séries de Pure](#comment-sont-construites-les-séries-de-pure): Un nom de métrique, plusieurs valeurs.
 - [Métriques](#métriques-collectées): Chaque série sur laquelle le moniteur peut alerter.
 :::
 
 ## Fonctionnement
 
-Le OneUptime Storage Array Agent tourne sur une machine qui peut joindre l'interface de gestion de la baie. Il lit les métriques de la baie avec un jeton d'API en lecture seule, les étiquette avec le nom de la baie, `storage.array.name`, et sa plateforme, `storage.system`, et les envoie à OneUptime via OTLP. Les premières données enregistrent la baie.
+Le OneUptime Storage Array Agent tourne sur une machine qui peut joindre l'interface de gestion de la baie. Il lit les métriques de la baie avec un jeton d'API en lecture seule (celles d'un PowerScale en SNMP, avec une communauté en lecture seule ou un utilisateur SNMPv3), les étiquette avec le nom de la baie, `storage.array.name`, et sa plateforme, `storage.system`, et les envoie à OneUptime via OTLP. Les premières données enregistrent la baie.
 
 Un moniteur de baie de stockage est lié à une baie. Chaque minute, il exécute sa requête sur les métriques de cette baie et compare le résultat à ses critères.
 
@@ -77,15 +77,15 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 | **Volume** | Custom Metric, Avancé | FlashArray uniquement. Un volume, par le label `name`, comme `vol-db-01`. Un volume dans un pod ou un groupe de volumes est nommé `pod::volume` ou `group/volume`. |
 | **Hôte** | Custom Metric, Avancé | FlashArray uniquement. Un hôte tel que la baie le connaît, par le label `host`, comme `esxi-01`. |
 | **Pod** | Custom Metric, Avancé | FlashArray uniquement. Un pod ActiveCluster ou ActiveDR, par le label `name`, ou `local_pod` sur les séries de liens de réplication. |
-| **Composant matériel** | Custom Metric, Avancé | Un composant matériel, comme `CH0.BAY1` ou `CT0` : le label `component_name` sur un FlashArray, `name` sur un FlashBlade. |
-| **Système de fichiers** | Custom Metric, Avancé | FlashBlade uniquement. Un système de fichiers, par le label `name`. |
+| **Composant matériel** | Custom Metric, Avancé | Un composant matériel, comme `CH0.BAY1` ou `CT0` : le label `component_name` sur un FlashArray, `name` sur un FlashBlade. Sur un PowerScale, un nœud par son label `node`, comme `ps-prod-2`. |
+| **Système de fichiers** | Custom Metric, Avancé | FlashBlade et PowerScale. Un système de fichiers par le label `name` sur un FlashBlade ; un quota par le label `quota` sur un PowerScale, comme `/ifs/data/home`. |
 | **Bucket** | Custom Metric, Avancé | FlashBlade uniquement. Un bucket de stockage objet, par le label `name`. |
 | **Storage Array Metric** | Custom Metric | Une métrique du [catalogue](#métriques-collectées). Le formulaire ajoute le filtre de label qui lui donne son sens, et la regroupe par l'objet qu'elle décrit, de sorte que chaque volume, hôte ou composant est jugé séparément. |
 | **Agrégation** | Custom Metric | La façon dont les échantillons sont combinés : **Moyenne**, **Maximum**, **Minimum**, **Somme** ou **Comptage**. Commence à l'agrégation habituelle de la métrique. |
 | **Plage temporelle** | Tous | La fenêtre glissante que lit la requête, de **Past 1 Minute** à **Past 365 Days**. Un nouveau moniteur commence à **5 dernières minutes** ; une métrique personnalisée d'un système de fichiers ou d'un bucket à **15 dernières minutes** ; les modèles définissent la leur. |
 | **Sélectionner les métriques** | Avancé | Le constructeur de requêtes : **Métrique**, **Agréger par**, **Filtrer par attributs**, **Regrouper par**, plus **Ajouter une métrique** et **Ajouter une formule** pour combiner des requêtes. |
 
-L'agent lit le point de terminaison de la baie toutes les 60 secondes, et les volumes, hôtes et pods toutes les 2 minutes, donc une fenêtre de 5 minutes contient toujours un échantillon. Il lit les systèmes de fichiers et les buckets d'un FlashBlade toutes les 5 minutes, d'où 15, et les répertoires FlashArray toutes les 30 minutes : donnez à un moniteur de répertoire une fenêtre de 60 minutes.
+L'agent lit le point de terminaison de la baie toutes les 60 secondes, et les volumes, hôtes et pods toutes les 2 minutes, donc une fenêtre de 5 minutes contient toujours un échantillon. Il lit les systèmes de fichiers et les buckets d'un FlashBlade toutes les 5 minutes, d'où 15, et les répertoires FlashArray toutes les 30 minutes : donnez à un moniteur de répertoire une fenêtre de 60 minutes. Il interroge un cluster PowerScale et chacun de ses nœuds toutes les 60 secondes, et ses quotas toutes les 5 minutes : donnez à un moniteur de quota une fenêtre de 15 minutes.
 
 ## Comment sont construites les séries de Pure
 
@@ -105,11 +105,11 @@ Plusieurs séries portent leur état dans un **label**, avec une valeur toujours
 
 Une série filtrée sur un mauvais état n'existe que tant que quelque chose est dans cet état, donc l'absence de série signifie que tout va bien. C'est pourquoi **Max au-dessus de 0 déclenche et 0 rétablit** est la bonne forme pour elles, et c'est ainsi que sont construits les modèles : leurs critères de rétablissement comptent une série absente comme zéro. Quand il ne reste plus aucune série, un tel modèle ne se rétablit que si `purefa_info` ou `purefb_info` est arrivé dans la même fenêtre, si bien qu'une baie qui ne rapporte plus ne ferme rien.
 
-Dans les filtres du moniteur et les clés de regroupement, les attributs de l'agent commencent par `resource.` (`resource.storage.array.name`, `resource.storage.system`), alors que les propres labels de Pure non (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+Dans les filtres du moniteur et les clés de regroupement, les attributs de l'agent commencent par `resource.` (`resource.storage.array.name`, `resource.storage.system`), alors que les propres labels des baies non (`name`, `host`, `component_name`, `dimension`, `space`, `severity`, et ceux d'un PowerScale : `node`, `quota`, `drive` et `protocol`).
 
 ## Modèles d'alerte prédéfinis
 
-OneUptime fournit 20 modèles — 12 pour FlashArray et 8 pour FlashBlade — et la liste de **Sur quoi alerter** propose ceux de la plateforme de la baie. Chacun construit un moniteur complet : la requête de métrique, ses filtres de labels, un regroupement sur le propre label de l'objet, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
+OneUptime fournit 33 modèles — 12 pour FlashArray, 8 pour FlashBlade et 13 pour PowerScale — et la liste de **Sur quoi alerter** propose ceux de la plateforme de la baie. Chacun construit un moniteur complet : la requête de métrique, ses filtres de labels, un regroupement sur le propre label de l'objet, un critère qui déclenche et un qui rétablit. Les seuils sont des points de départ que vous pouvez modifier.
 
 Un critère ne déclenche que lorsque la condition est vraie pour **chaque** valeur de sa fenêtre. Un moniteur qui s'est déclenché sur un seuil de capacité, de latence, de retard ou de ratio ne se rétablit que 10 % au-delà, donc une valeur qui oscille autour du seuil ne bascule pas sans cesse. Les modèles d'alerte, de matériel et de connectivité se déclenchent une fois qu'un état s'est montré pendant toute leur fenêtre de 5 minutes, et se rétablissent environ 5 minutes après sa disparition.
 
@@ -143,11 +143,29 @@ Un critère ne déclenche que lorsque la condition est vraie pour **chaque** val
 | High Read Latency            | Performances | Avertissement  | `purefb_array_performance_latency_usec` filtrée sur `dimension=usec_per_read_op` et `protocol=all`, Avg, 10 dernières minutes | > 10000 µs (10 ms) sur tous les protocoles ; se rétablit à ≤ 9000                                      |
 | File System Near Full        | Systèmes de fichiers | Avertissement  | `purefb_file_systems_space_bytes` filtrée sur `space=available_ratio`, Min par `name`, 15 dernières minutes    | < 0.1 — il reste moins de 10 % de la taille provisionnée d'un système de fichiers. Un incident par système de fichiers ; se rétablit à ≥ 0.11 |
 
+### PowerScale
+
+| Modèle | Catégorie | Gravité | Surveille | Déclenche quand |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Disponibilité | Critique | `powerscale_cluster_health`, Count, 10 dernières minutes | Aucune donnée pendant toute la fenêtre — le Storage Array Agent s'est arrêté, a perdu sa connexion à OneUptime ou a vu son jeton révoqué, ou le cluster ne répond plus à ses interrogations ; se rétablit quand des données arrivent de nouveau |
+| Cluster Needs Attention | Santé de la baie | Avertissement | `powerscale_cluster_health`, Max, 5 dernières minutes | > 0 — OneFS signale que le cluster demande de l'attention, est en panne ou invalide, et `isi event groups list` dit pourquoi ; se rétablit à ≤ 0 |
+| Cluster Down | Santé de la baie | Critique | `powerscale_cluster_health`, Max, 5 dernières minutes | ≥ 2 — OneFS signale le cluster en panne ou invalide ; se rétablit à < 2 |
+| Node Offline | Matériel | Critique | `powerscale_cluster_offline_nodes`, Max, 5 dernières minutes | > 0 — un nœud du cluster est hors ligne, et `offline_nodes` indique lequel ; se rétablit à ≤ 0 |
+| Node Needs Attention | Matériel | Avertissement | `powerscale_node_health`, Max par `node`, 5 dernières minutes | > 0 — un nœud signale qu'il demande de l'attention, qu'il est en panne ou invalide. Un incident par nœud ; se rétablit à ≤ 0 |
+| Node Read-Only | Matériel | Avertissement | `powerscale_node_read_only`, Max par `node`, 5 dernières minutes | > 0 — un nœud est en mode lecture seule, et les clients qui y sont connectés ne peuvent pas écrire. Un incident par nœud ; se rétablit à ≤ 0 |
+| Drive Failed | Matériel | Critique | `powerscale_drive_size_bytes` filtrée sur `status=DEAD`, Count par `drive`, 5 dernières minutes | > 0 — un disque est mort, et OneFS protège de nouveau ses données sur les autres. Un incident par disque ; se rétablit quand il signale un autre état |
+| Drive Smartfailed | Matériel | Avertissement | `powerscale_drive_size_bytes` filtrée sur `status=SMARTFAIL`, Count par `drive`, 5 dernières minutes | > 0 — OneFS déplace les données d'un disque défaillant avant son remplacement. Un incident par disque ; se rétablit quand il signale un autre état |
+| Capacity Above 80% | Capacité | Avertissement | `powerscale_ifs_used_percent`, Max, 15 dernières minutes | > 80, en comptant l'espace réservé aux disques de secours virtuels ; se rétablit à ≤ 72 |
+| Capacity Above 90% | Capacité | Critique | `powerscale_ifs_used_percent`, Max, 5 dernières minutes | > 90 — le cluster est sur le point de refuser les écritures ; se rétablit à ≤ 81 |
+| Quota Near Its Limit | Capacité | Avertissement | `powerscale_quota_used_percent`, Max par `quota`, 15 dernières minutes | > 90 de sa limite stricte, ou de sa limite souple s'il n'en a pas. Un incident par quota ; se rétablit à ≤ 81 |
+| Quota Full | Capacité | Critique | `powerscale_quota_used_percent`, Max par `quota`, 5 dernières minutes | ≥ 100 — les écritures sous le chemin du quota échouent à une limite stricte. Un incident par quota ; se rétablit à < 90 |
+| High Protocol Latency | Performances | Avertissement | `powerscale_protocol_latency_microseconds`, Max par `protocol`, 10 dernières minutes | > 20000 µs (20 ms) sur le nœud le plus lent. Un incident par protocole ; se rétablit à ≤ 18000 |
+
 La **Gravité** est le libellé qu'affiche le sélecteur. L'incident et l'alerte qu'un modèle crée commencent à la gravité d'incident et d'alerte la plus élevée de votre projet ; modifiez-les dans le critère.
 
-- **Array Stopped Reporting** compte la série d'identité de la plateforme (`purefa_info` ou `purefb_info`), que chaque point de terminaison interrogé par l'agent exporte à chaque collecte. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
+- **Array Stopped Reporting** compte la série d'identité de la plateforme (`purefa_info` ou `purefb_info`), que chaque point de terminaison interrogé par l'agent exporte à chaque collecte ; celle d'un PowerScale est `powerscale_cluster_health`, que l'interrogation du cluster par l'agent envoie chaque minute. Quand les données cessent d'arriver, les autres modèles n'ont plus rien à comparer et gardent leur dernier état ; c'est donc lui qui vous prévient.
 - **Les alertes ouvertes et les états matériels utilisent Max** d'une série qui n'existe que tant que l'alerte est ouverte ou que le composant est dans cet état, donc l'état franchit le seuil une fois qu'il s'est montré pendant toute la fenêtre de 5 minutes.
-- **Chaque modèle par objet regroupe sur le propre label de l'objet** (`summary`, `component_name`, `host`, `local_pod`, `name`), donc un incident se déclenche par objet concerné, et l'incident le nomme.
+- **Chaque modèle par objet regroupe sur le propre label de l'objet** (`summary`, `component_name`, `host`, `local_pod`, `name`, et ceux d'un PowerScale : `node`, `drive`, `quota` et `protocol`), donc un incident se déclenche par objet concerné, et l'incident le nomme.
 - **Les modèles de latence utilisent Avg** de la propre moyenne par opération de la baie, et les modèles de capacité **Max** de son propre pourcentage d'utilisation. Les latences sont fixées en microsecondes et la capacité en pourcentage.
 - **Hardware Component Unhealthy utilise Min** par composant : sa santé vaut 1 lorsqu'il est en bonne santé et tombe à 0 sinon.
 
@@ -163,6 +181,8 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Une série par alerte ouverte sur la baie (valeur 1), avec les labels `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` et `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Une série par alerte ouverte sur le FlashBlade (valeur 1), avec les labels `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` et `kburl` (l'article de la base de connaissances de Pure) |
+| `powerscale_cluster_health` | — | PowerScale | — | La santé que OneFS signale pour le cluster : 0 signifie OK, 1 demande de l'attention, 2 en panne et 3 invalide. Prenez le maximum pour voir tout changement |
+| `powerscale_cluster_offline_nodes` | — | PowerScale | `count` | Nombre de nœuds du cluster hors ligne ; le label `offline_nodes` liste leurs numéros de nœud logiques |
 
 ### Capacité
 
@@ -176,6 +196,12 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | `purefb_array_space_utilization`          | `type=array`                 | FlashBlade | `%`     | Part de la capacité utilisable du FlashBlade qui est occupée                                                                          |
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | Capacité inutilisée du FlashBlade                                                                                                     |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Réduction des données sur tout le FlashBlade                                                                                          |
+| `powerscale_ifs_used_percent` | — | PowerScale | `%` | Part de la capacité du cluster qui n'est plus disponible pour les écritures : ce qui est utilisé, plus l'espace que OneFS réserve aux disques de secours virtuels |
+| `powerscale_ifs_available_bytes` | — | PowerScale | `bytes` | Espace encore disponible pour les écritures sur `/ifs` |
+| `powerscale_ifs_used_bytes` | — | PowerScale | `bytes` | Espace utilisé sur `/ifs`, tel que OneFS le compte |
+| `powerscale_ifs_total_bytes` | — | PowerScale | `bytes` | La taille de `/ifs` sur l'ensemble du cluster |
+| `powerscale_quota_used_percent` | — | PowerScale | `%` | Utilisation de chaque quota en part de sa limite stricte, ou de sa limite souple s'il n'a pas de limite stricte (le label `limit` indique laquelle) — regroupez par `quota` |
+| `powerscale_quota_usage_bytes` | — | PowerScale | `bytes` | Ce que contient chaque quota, tel que OneFS l'impute au quota |
 
 ### Performances
 
@@ -197,6 +223,16 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all`     | FlashBlade | `ops/s`   | Opérations d'écriture par seconde sur tous les protocoles                                                    |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Octets lus par seconde sur tous les protocoles                                                               |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Octets écrits par seconde sur tous les protocoles                                                           |
+| `powerscale_cluster_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | Octets lus dans `/ifs` par seconde, sur l'ensemble du cluster |
+| `powerscale_cluster_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | Octets écrits dans `/ifs` par seconde, sur l'ensemble du cluster |
+| `powerscale_cluster_network_in_bytes_per_second` | — | PowerScale | `bytes/s` | Octets par seconde que reçoivent les ports front-end du cluster |
+| `powerscale_cluster_network_out_bytes_per_second` | — | PowerScale | `bytes/s` | Octets par seconde qu'envoient les ports front-end du cluster |
+| `powerscale_cluster_cpu_busy_percent` | — | PowerScale | `%` | Part du temps CPU utilisée, en moyenne sur les nœuds du cluster |
+| `powerscale_protocol_latency_microseconds` | — | PowerScale | `µs` | Durée moyenne d'une opération par protocole (NFS, SMB, HDFS, ...) sur chaque nœud ; le maximum est le nœud le plus lent — regroupez par `protocol` ou `node` |
+| `powerscale_protocol_latency_max_microseconds` | — | PowerScale | `µs` | L'opération individuelle la plus lente par protocole sur chaque nœud |
+| `powerscale_protocol_operations_per_second` | — | PowerScale | `ops/s` | Opérations par seconde par protocole sur chaque nœud ; le maximum est le nœud le plus chargé |
+| `powerscale_protocol_in_bytes_per_second` | — | PowerScale | `bytes/s` | Octets par seconde que les clients envoient par chaque protocole à chaque nœud : écritures et requêtes |
+| `powerscale_protocol_out_bytes_per_second` | — | PowerScale | `bytes/s` | Octets par seconde envoyés aux clients par chaque protocole depuis chaque nœud : lectures et réponses |
 
 ### Volumes
 
@@ -240,6 +276,16 @@ L'agent envoie tout ce que la baie exporte ; les séries ci-dessous forment le c
 | `purefa_drive_capacity_bytes`                 | —                                | FlashArray | `bytes`    | Capacité brute de chaque disque, avec le label de son `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) et de son type                                            |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Erreurs par seconde sur chaque interface Ethernet et Fibre Channel — des erreurs persistantes signifient généralement un câble, une optique ou un port de switch défectueux                                     |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Santé de chaque composant matériel (lames, modules de fabric, alimentations, ventilateurs, ...) : 1 = en bonne santé, 2 = inutilisé, 0 = défaillant. Prenez le minimum par `name`                            |
+| `powerscale_node_health` | — | PowerScale | — | La santé que signale chaque nœud : 0 signifie OK, 1 demande de l'attention, 2 en panne et 3 invalide — regroupez par `node` |
+| `powerscale_node_read_only` | — | PowerScale | — | 1 tant qu'un nœud est en mode lecture seule, 0 sinon — regroupez par `node` |
+| `powerscale_node_cpu_busy_percent` | — | PowerScale | `%` | Part du temps CPU utilisée de chaque nœud — regroupez par `node` |
+| `powerscale_node_ifs_read_bytes_per_second` | — | PowerScale | `bytes/s` | Octets lus dans `/ifs` par seconde via chaque nœud |
+| `powerscale_node_ifs_write_bytes_per_second` | — | PowerScale | `bytes/s` | Octets écrits dans `/ifs` par seconde via chaque nœud |
+| `powerscale_drive_size_bytes` | — | PowerScale | `bytes` | Une série par emplacement de disque, valant la taille du disque et étiquetée avec son `status` (`HEALTHY`, `SMARTFAIL`, `DEAD`, ...), son `model` et son `serial` |
+| `powerscale_drive_operations_per_second` | — | PowerScale | `ops/s` | Opérations par seconde que sert chaque disque — regroupez par `drive` |
+| `powerscale_temperature_celsius` | — | PowerScale | `°C` | Mesure de chaque capteur de température sur chaque nœud ; le maximum par nœud est son capteur le plus chaud |
+| `powerscale_fan_speed_rpm` | — | PowerScale | `rpm` | Vitesse de chaque ventilateur sur chaque nœud ; le minimum repère un ventilateur qui ralentit |
+| `powerscale_interface_status` | — | PowerScale | — | État de chaque port de nœud : 1 signifie actif, 2 inactif, 7 inactif sous le port (pas de lien) ; `admin_status` vaut 1 pour un port censé être actif |
 
 ### Systèmes de fichiers
 
@@ -323,7 +369,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` est le `storage.array.name` de la baie - le `STORAGE_ARRAY_NAME` avec lequel l'agent a été démarré -, et non son ID OneUptime. `storageSystem` vaut `purestorage.flasharray` ou `purestorage.flashblade`. Il décide du catalogue et des modèles qu'affiche le formulaire, et de si un filtre de matériel lit `component_name` ou `name`.
+`arrayIdentifier` est le `storage.array.name` de la baie - le `STORAGE_ARRAY_NAME` avec lequel l'agent a été démarré -, et non son ID OneUptime. `storageSystem` vaut `purestorage.flasharray`, `purestorage.flashblade` ou `dell.powerscale`. Il décide du catalogue et des modèles qu'affiche le formulaire, et du label que lit un filtre de matériel : `component_name`, `name` ou `node`.
 
 ## Dépannage
 
