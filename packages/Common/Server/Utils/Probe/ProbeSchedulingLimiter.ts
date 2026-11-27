@@ -84,6 +84,17 @@ export const PROBE_SCHEDULING_BUSY_RETRY_AFTER_SECONDS: number = 10;
 // Longest a scheduling request waits for a slot before it is answered busy.
 export const PROBE_SCHEDULING_MAX_WAIT_MS: number = 5000;
 
+/*
+ * Longest a scheduling request keeps its slot with neither its answer gone
+ * nor its probe hung up (Telemetry/Middleware/ProbeScheduling): far past any
+ * probe's own deadline (45 s by default) and any proxy's, so a slot still
+ * held then is one the "finish" and "close" that give it back were missed
+ * by. It is given back, and logged: lost for good, it would be one slot
+ * fewer for every probe until the process restarts - and with every slot of
+ * a process lost, no probe is handed work by it.
+ */
+export const PROBE_SCHEDULING_MAX_SLOT_HOLD_MS: number = 5 * 60 * 1000;
+
 // The busy warning in the server log, at most once in this long per lane.
 export const PROBE_SCHEDULING_BUSY_WARNING_EVERY_MS: number = 60 * 1000;
 
