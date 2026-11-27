@@ -120,7 +120,7 @@ describe("who may set the hourly limit", () => {
 
   it.each([
     ["the project's name", { name: "Renamed" }],
-    ["its trusted proxies", { securityTrustedProxies: "203.0.113.0/24" }],
+    // Trusted Proxies is a Security Admin's as well since #11049.
     ["its risk threshold", { securityRiskCaseThreshold: 200 }],
     ["its AI switch", { enableAi: false }],
     ["what OneUptime AI may do", { securityCaseAiEdgeMode: "OnItsOwn" }],
