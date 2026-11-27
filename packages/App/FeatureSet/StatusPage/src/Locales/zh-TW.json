@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "事件",
+    "severityChanged": "嚴重程度從{{from}}變更為{{to}}",
     "singular": "事件",
     "active": "進行中事件",
     "noneDescription": "當事件影響此頁面上的服務時，會在這裡發布。",

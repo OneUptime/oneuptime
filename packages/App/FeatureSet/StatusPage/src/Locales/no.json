@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "Hendelser",
+    "severityChanged": "Alvorlighetsgrad endret fra {{from}} til {{to}}",
     "singular": "Hendelse",
     "active": "Aktive hendelser",
     "noneDescription": "Når en hendelse påvirker tjenestene på denne siden, publiseres den her.",

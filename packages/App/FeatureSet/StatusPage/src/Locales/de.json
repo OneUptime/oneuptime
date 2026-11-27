@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "Vorfälle",
+    "severityChanged": "Schweregrad von {{from}} auf {{to}} geändert",
     "singular": "Vorfall",
     "active": "Aktive Vorfälle",
     "noneDescription": "Wenn ein Vorfall die Dienste auf dieser Seite betrifft, wird er hier veröffentlicht.",

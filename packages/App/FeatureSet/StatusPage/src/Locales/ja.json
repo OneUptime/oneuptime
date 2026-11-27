@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "インシデント",
+    "severityChanged": "重大度が{{from}}から{{to}}に変更されました",
     "singular": "インシデント",
     "active": "進行中のインシデント",
     "noneDescription": "このページのサービスにインシデントが発生すると、ここに掲載されます。",

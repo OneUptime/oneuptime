@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "Incidencias",
+    "severityChanged": "La gravedad cambió de {{from}} a {{to}}",
     "singular": "Incidencia",
     "active": "Incidencias activas",
     "noneDescription": "Cuando una incidencia afecte a los servicios de esta página, se publicará aquí.",

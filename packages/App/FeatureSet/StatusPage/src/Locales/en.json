@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "Incidents",
+    "severityChanged": "Severity changed from {{from}} to {{to}}",
     "singular": "Incident",
     "active": "Active Incidents",
     "noneDescription": "When an incident affects the services on this page, it is posted here.",

@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "사고",
+    "severityChanged": "심각도가 {{from}}에서 {{to}}(으)로 변경되었습니다",
     "singular": "사고",
     "active": "진행 중인 사고",
     "noneDescription": "이 페이지의 서비스에 사고가 발생하면 여기에 게시됩니다.",
