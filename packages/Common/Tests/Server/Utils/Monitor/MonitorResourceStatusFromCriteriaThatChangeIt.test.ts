@@ -1595,6 +1595,100 @@ describe("an SNMP trap that only alerts (#11238)", () => {
   });
 });
 
+// ---- A Logs monitor: telemetry judged as one --------------------------------
+
+/*
+ * A Logs monitor that judges its whole count, with no group by: the
+ * telemetry check's path, ungrouped. More than 100 error logs is Offline
+ * and an incident, more than 10 only alerts, and 100 or fewer is Online.
+ */
+describe("a Logs monitor whose lower error count only alerts (#11238)", () => {
+  function logCount(filterType: FilterType, value: number): CriteriaFilter {
+    return { checkOn: CheckOn.LogCount, filterType: filterType, value: value };
+  }
+
+  const MANY_ERRORS: CriteriaSpec = {
+    id: "many-errors",
+    name: "More than 100 error logs",
+    filters: [logCount(FilterType.GreaterThan, 100)],
+    status: OFFLINE,
+    incident: true,
+  };
+  const SOME_ERRORS: CriteriaSpec = {
+    id: "some-errors",
+    name: "More than 10 error logs",
+    filters: [logCount(FilterType.GreaterThan, 10)],
+    alert: true,
+  };
+  const FEW_ERRORS: CriteriaSpec = {
+    id: "few-errors",
+    name: "100 error logs or fewer",
+    filters: [logCount(FilterType.LessThanOrEqualTo, 100)],
+    status: ONLINE,
+  };
+
+  function errorLogs(count: number): DataToProcess {
+    return {
+      projectId: PROJECT_ID,
+      monitorId: MONITOR_ID,
+      logCount: count,
+      logQuery: {},
+      evaluatedUntil: OneUptimeDate.getCurrentDate(),
+    } as unknown as DataToProcess;
+  }
+
+  beforeEach(() => {
+    watch({
+      monitorType: MonitorType.Logs,
+      step: stepWith([MANY_ERRORS, SOME_ERRORS, FEW_ERRORS].map(criteria)),
+    });
+    jest.spyOn(ReceivingSilence, "measure").mockResolvedValue({
+      wallMinutes: 0,
+      receivingMinutes: 0,
+      notReceivingMinutes: 0,
+    });
+  });
+
+  it("a burst of errors, then fewer but still some: Online, the incident resolved, the alert open", async () => {
+    await check(errorLogs(500));
+
+    expect(status()).toBe("Offline");
+    expect(openIncidents()).toEqual(["More than 100 error logs"]);
+
+    const response: ProbeApiIngestResponse = await check(errorLogs(50));
+
+    expect(response.criteriaMetId).toBe("some-errors");
+    expect(response.statusCriteriaId).toBe("few-errors");
+    expect(status()).toBe("Online");
+    expect(openIncidents()).toEqual([]);
+    expect(openAlerts()).toEqual(["More than 10 error logs"]);
+    expect(timeline.statusNames()).toEqual(["Online", "Offline", "Online"]);
+  });
+
+  it("quiet again: the alert resolves, and the status stays as it is", async () => {
+    await check(errorLogs(500));
+    await check(errorLogs(50));
+    await check(errorLogs(2));
+
+    expect(status()).toBe("Online");
+    expect(openAlerts()).toEqual([]);
+    expect(timeline.statusNames()).toEqual(["Online", "Offline", "Online"]);
+  });
+
+  it("errors again past the bar: Offline, with the incident, and the alert resolves", async () => {
+    await check(errorLogs(50));
+
+    expect(status()).toBe("Online");
+    expect(openAlerts()).toEqual(["More than 10 error logs"]);
+
+    await check(errorLogs(400));
+
+    expect(status()).toBe("Offline");
+    expect(openIncidents()).toEqual(["More than 100 error logs"]);
+    expect(openAlerts()).toEqual([]);
+  });
+});
+
 // ---- Drawn websites, checked again and again -------------------------------
 
 /*
