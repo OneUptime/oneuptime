@@ -209,7 +209,7 @@ Sondens nettverk kan ikke nå adressen på TCP 443. Tillat det i brannmuren, ell
 :::
 
 :::details Sonden plukket ikke opp dette
-Sonden er frakoblet, eller kjører en OneUptime-versjon som er eldre enn lesing av XCP-ng. Kontroller i tabellen **Egendefinerte sonder** at den er tilkoblet, og oppdater den.
+Sonden er offline, eller kjører en OneUptime-versjon som er eldre enn lesing av XCP-ng. Kontroller i tabellen **Egendefinerte sonder** at den er tilkoblet, og oppdater den.
 :::
 
 :::details Denne tilkoblingen er for stor til å leses fra en sonde

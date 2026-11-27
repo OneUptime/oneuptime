@@ -219,7 +219,7 @@ OneUptime 只保存只读令牌。请为一个只拥有内置 **Read only** 角�
 ## 后续步骤
 
 :::cards
-- [XCP-ng 监视器](/docs/monitor/xcp-ng-monitor)：针对资源池、主机、虚拟机和存储库发出告警。
+- [XCP-ng 监视器](/docs/monitor/xcp-ng-monitor)：针对资源池、主机、虚拟机和存储库发出警报。
 - [自定义探测器](/docs/probe/custom-probe)：在资源池所在网络中运行探测器。
 - [XCP-ng 代理](/docs/telemetry/xcp-ng)：改用代理读取 Xen Orchestra。
 :::

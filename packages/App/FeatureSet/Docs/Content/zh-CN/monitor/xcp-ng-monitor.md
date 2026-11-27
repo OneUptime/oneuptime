@@ -131,7 +131,7 @@ Xen Orchestra 用 `uuid` 标签标识主机或虚拟机，用 `sr_uuid` 标识�
 - **VM Starved of CPU** 模板读取完全争用：虚拟机的所有 vCPU 都已准备好运行、却在等待物理 CPU 的时间占比。它的主机上可运行的 vCPU 多于 CPU 线程，因此虚拟机运行得比其自身 CPU 使用率所显示的更慢。
 - **Storage Repository Slow** 模板按 `sr` 分组，这是每台主机的磁盘序列上 Xen Orchestra 为存储库使用的短 ID，因此每个存储库只有一个事件，其延迟是对读写它的各台主机取平均。
 
-**HA Cannot Tolerate a Host Failure** 和 **VM Not Backed Up** 读取的是探测器读取资源池时添加的序列，因此需要从探测器连接资源池：XCP-ng 代理读取的插件不报告 HA 状态，也不报告备份。由探测器读取的资源池还可以针对其 XAPI 消息和告警（例如崩溃的虚拟机或 HA 失去的主机）以及失败的备份作业发出警报：按[无需代理的 XCP-ng](/docs/telemetry/xcp-ng-agentless)中的说明，在资源池的 **建议** 中开启这些模板。
+**HA Cannot Tolerate a Host Failure** 和 **VM Not Backed Up** 读取的是探测器读取资源池时添加的序列，因此需要从探测器连接资源池：XCP-ng 代理读取的插件不报告 HA 状态，也不报告备份。由探测器读取的资源池还可以针对其 XAPI 消息（例如崩溃的虚拟机或 HA 失去的主机）以及失败的备份作业发出警报：按[无需代理的 XCP-ng](/docs/telemetry/xcp-ng-agentless)中的说明，在资源池的 **建议** 中开启这些模板。
 
 ## 收集的指标
 

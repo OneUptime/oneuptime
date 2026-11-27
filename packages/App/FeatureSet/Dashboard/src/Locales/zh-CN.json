@@ -66665,7 +66665,7 @@
   "VM started": "虚拟机已启动",
   "VM suspended": "虚拟机已挂起",
   "VM unpaused": "虚拟机已取消暂停",
-  "VMs a scheduled backup job backs up that have had no good backup for longer than the longest gap between that job's runs, plus a quarter of it (an hour at least). The VM Not Backed Up alert fires on the same rule.": "由计划备份作业备份、且没有成功备份的时间超过该作业两次运行之间最长间隔再加其四分之一（至少一小时）的虚拟机。VM Not Backed Up 告警按同一规则触发。",
+  "VMs a scheduled backup job backs up that have had no good backup for longer than the longest gap between that job's runs, plus a quarter of it (an hour at least). The VM Not Backed Up alert fires on the same rule.": "由计划备份作业备份、且没有成功备份的时间超过该作业两次运行之间最长间隔再加其四分之一（至少一小时）的虚拟机。VM Not Backed Up 警报按同一规则触发。",
   "VMs no backup job with an enabled schedule has backed up since OneUptime started reading this pool's backups. A VM only backed up by hand, or not at all, is counted here.": "自 OneUptime 开始读取此资源池的备份以来，没有任何启用了计划的备份作业备份过的虚拟机。只手动备份或从不备份的虚拟机计入此处。",
   "VMs whose last backup by a Xen Orchestra backup job succeeded, as Xen Orchestra's backup logs say. Control domains are never backed up and are left out.": "根据 Xen Orchestra 的备份日志，最近一次由 Xen Orchestra 备份作业进行的备份成功的虚拟机。控制域从不备份，不计入其中。",
   "VMs whose last backup failed or was interrupted. Each one is listed with Xen Orchestra's words for why, and its job; the VM is backed up again on the job's next run.": "最近一次备份失败或被中断的虚拟机。每台都会列出 Xen Orchestra 给出的原因及其作业；该作业下次运行时会再次备份此虚拟机。",
