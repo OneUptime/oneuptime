@@ -492,6 +492,17 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "Your permissions decide.",
     "A tool gets only what it takes.",
     "Enable AI stops every call.",
+    // A Project Admin marks a tool read-only (#11081).
+    "One tool at a time.",
+    "Only a tool its server says nothing about.",
+    "Never a tool that plainly changes things.",
+    "A mark stops applying when the server changes the tool.",
+    "Who and when are recorded.",
+    // In Slack and Microsoft Teams (#11082).
+    "Slack and Microsoft Teams",
+    "Only the tools that read.",
+    "As the person who asked.",
+    "Everyone in the conversation reads the answer",
   ],
   [MCP_SERVER]: [
     "OneUptime Cloud",

@@ -211,15 +211,49 @@ describe("a Project Admin marks one tool", () => {
   });
 
   test("a server id sent as text is read as the id", async () => {
+    await service.onBeforeCreate(
+      createBy({
+        toolName: "k8s_get_resources",
+        externalMcpServerId: SERVER_ID.toString() as never,
+      }),
+    );
+
+    const query: JSONObject = findServer.mock.calls[0]![0].query as JSONObject;
+    expect(String(query["_id"])).toBe(SERVER_ID.toString());
+  });
+
+  test("a server named by the relation alone is read under that name, and kept in the ID column", async () => {
     const onCreate: OnCreate<ExternalMcpToolReadOnlyMark> =
       await service.onBeforeCreate(
         createBy({
           toolName: "k8s_get_resources",
-          externalMcpServerId: SERVER_ID.toString() as never,
+          externalMcpServerId: undefined,
+          externalMcpServer: { _id: SERVER_ID.toString() } as never,
         }),
       );
 
-    expect(onCreate.createBy.data.externalMcpServerId).toBeInstanceOf(ObjectID);
+    const query: JSONObject = findServer.mock.calls[0]![0].query as JSONObject;
+    expect(String(query["_id"])).toBe(SERVER_ID.toString());
+    expect(onCreate.createBy.data.externalMcpServerId?.toString()).toBe(
+      SERVER_ID.toString(),
+    );
+  });
+
+  test("a write that names one server by its id and another by the relation is refused", async () => {
+    const message: string = await refusal(
+      service.onBeforeCreate(
+        createBy({
+          toolName: "k8s_get_resources",
+          externalMcpServer: {
+            _id: ObjectID.generate().toString(),
+          } as never,
+        }),
+      ),
+      BadDataException,
+    );
+
+    expect(message).toContain("External MCP Server");
+    expect(findServer).not.toHaveBeenCalled();
   });
 });
 

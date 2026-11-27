@@ -5,6 +5,7 @@ import ExternalMcpServer from "../../Models/DatabaseModels/ExternalMcpServer";
 import CreateBy from "../Types/Database/CreateBy";
 import { OnCreate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import logger from "../Utils/Logger";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import {
@@ -117,20 +118,33 @@ function readToolName(value: unknown): string {
   return name;
 }
 
-function readServerId(value: unknown): ObjectID {
-  if (value instanceof ObjectID) {
-    return value;
-  }
+// The two names a write can name the server by: the ID column, then the relation.
+const SERVER_REFERENCE_NAMES: Array<string> = [
+  "externalMcpServerId",
+  "externalMcpServer",
+];
 
-  if (typeof value === "string" && ObjectID.isValidUUID(value)) {
-    return new ObjectID(value);
-  }
+/*
+ * The server a mark names, under either of its names - two that disagree
+ * are refused (RelationIdUtil) - kept in the ID column for the saved row.
+ * An id that is no id names no server.
+ */
+function readServerId(data: Model): ObjectID {
+  const serverId: ObjectID | null = RelationIdUtil.readIntoIdColumn(
+    data as unknown as Record<string, unknown>,
+    SERVER_REFERENCE_NAMES,
+    "External MCP Server",
+  );
 
-  if (value === undefined || value === null || value === "") {
+  if (!serverId) {
     throw new BadDataException(EXTERNAL_MCP_TOOL_MARK_SERVER_REQUIRED_MESSAGE);
   }
 
-  throw new BadDataException(EXTERNAL_MCP_TOOL_MARK_SERVER_NOT_FOUND_MESSAGE);
+  if (!ObjectID.isValidUUID(serverId.toString())) {
+    throw new BadDataException(EXTERNAL_MCP_TOOL_MARK_SERVER_NOT_FOUND_MESSAGE);
+  }
+
+  return serverId;
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -166,7 +180,7 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    const serverId: ObjectID = readServerId(createBy.data.externalMcpServerId);
+    const serverId: ObjectID = readServerId(createBy.data);
     const toolName: string = readToolName(createBy.data.toolName);
 
     const server: ExternalMcpServer | null =
@@ -224,7 +238,6 @@ export class Service extends ProjectReferencesService<Model> {
     }
 
     // The tool as OneUptime read it, whatever the request said it was.
-    createBy.data.externalMcpServerId = serverId;
     createBy.data.toolName = tool.name;
     createBy.data.toolFingerprint = tool.fingerprint;
 
@@ -243,15 +256,21 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<Model> {
     const props: DatabaseCommonInteractionProps = onCreate.createBy.props;
     const data: Model = onCreate.createBy.data;
+    // Under either of its names, as the create hook read it.
+    const serverId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      SERVER_REFERENCE_NAMES,
+      "External MCP Server",
+    );
 
-    if (!createdItem.id || !data.externalMcpServerId || !data.toolName) {
+    if (!createdItem.id || !serverId || !data.toolName) {
       return createdItem;
     }
 
     try {
       await this.deleteBy({
         query: {
-          externalMcpServerId: data.externalMcpServerId,
+          externalMcpServerId: serverId,
           toolName: data.toolName,
           _id: QueryHelper.notEquals(createdItem.id),
         },
@@ -261,7 +280,7 @@ export class Service extends ProjectReferencesService<Model> {
       });
     } catch (error) {
       logger.error(
-        `External MCP server ${data.externalMcpServerId.toString()}: could not take away the earlier read-only marks of ${data.toolName}: ${
+        `External MCP server ${serverId.toString()}: could not take away the earlier read-only marks of ${data.toolName}: ${
           error instanceof Error ? error.message : String(error)
         }`,
       );
