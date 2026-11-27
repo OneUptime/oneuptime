@@ -262,10 +262,12 @@ export class Service extends ProjectReferencesService<Model> {
       return trimmed;
     }
 
+    const info: DataStoreKindInfo | undefined = getDataStoreKindInfo(kind);
+
     throw new BadDataException(
-      `OneUptime cannot sample a ${
-        getDataStoreKindInfo(kind)?.kind || "store of this kind"
-      }'s content yet, so it takes no connection string. Leave it empty: the store is still tracked.`,
+      `OneUptime cannot sample ${
+        info ? `a ${info.kind} store's` : "this kind of store's"
+      } content yet, so it takes no connection string. Leave it empty: the store is still tracked.`,
     );
   }
 

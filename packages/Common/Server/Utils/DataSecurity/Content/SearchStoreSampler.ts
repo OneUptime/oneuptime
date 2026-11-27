@@ -210,8 +210,16 @@ const TIMESTAMP_FIELD: string = "@timestamp";
 // A data stream's backing index: .ds-<stream>-[<yyyy.MM.dd>-]<generation>.
 const BACKING_INDEX: RegExp = /^\.ds-(.+?)-(?:\d{4}\.\d{2}\.\d{2}-)?\d{6}$/;
 
-// Runs of stars and separators a pattern collapses: logstash-*.*.* is logstash-*.
-const STAR_RUNS: RegExp = /\*(?:[.\-_]*\*)+/g;
+/*
+ * Stars, the separators between them and the digits a version leaves
+ * beside them, which a pattern collapses to one star: logstash-*.*.* is
+ * logstash-*, and filebeat-7.*.0-* is filebeat-*, whatever release wrote
+ * it. Three plain replacements, run until nothing changes: none can
+ * backtrack.
+ */
+const DIGIT_BEFORE_STAR: RegExp = /\d[.\-_]*\*/g;
+const DIGIT_AFTER_STAR: RegExp = /\*[.\-_]*\d/g;
+const STAR_RUN: RegExp = /\*[.\-_]*\*/g;
 
 /*
  * Every request goes out through here, and only a GET does: no listing,
@@ -303,7 +311,18 @@ function errorOf(response: SearchHttpResponse): string {
 
 // An index's name as a pattern: its dates and numbers stars, each run one.
 export function toIndexPattern(index: string): string {
-  return toPathPattern(index).split("/").join("_").replace(STAR_RUNS, "*");
+  let pattern: string = toPathPattern(index).split("/").join("_");
+  let previous: string = "";
+
+  while (pattern !== previous) {
+    previous = pattern;
+    pattern = pattern
+      .replace(DIGIT_BEFORE_STAR, "*")
+      .replace(DIGIT_AFTER_STAR, "*")
+      .replace(STAR_RUN, "*");
+  }
+
+  return pattern;
 }
 
 export function readListedIndices(body: unknown): Array<ListedIndex> {
@@ -757,13 +776,15 @@ export function readEngine(
 
 function plaintextUrlOf(baseUrl: string): string {
   const url: URL = new URL(baseUrl);
-
-  // The same port the TLS address names, never http's own 80.
-  if (!url.port) {
-    url.port = "443";
-  }
+  /*
+   * The same port the TLS address names, never http's own 80. Read before
+   * the scheme changes: an https address's 443 is its default, so a URL
+   * leaves it unwritten.
+   */
+  const port: string = url.port || "443";
 
   url.protocol = "http:";
+  url.port = port;
 
   return url.toString().replace(/\/+$/, "");
 }
