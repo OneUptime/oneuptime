@@ -8,6 +8,12 @@ import {
   TrustedProxies,
   toTrustedProxies,
 } from "../../../Utils/SecurityEvent/ClientAddressTrust";
+import {
+  NO_TRUSTED_PROXY_SOURCES,
+  TrustedEdgeRanges,
+  TrustedProxySources,
+  trustedProxiesOf,
+} from "../../../Utils/SecurityEvent/TrustedProxySources";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import ProjectService from "../../Services/ProjectService";
 import logger from "../Logger";
@@ -47,6 +53,11 @@ import SecurityOwnLoadBalancers from "./SecurityOwnLoadBalancers";
  * private addresses at least), and the next scan reads again. So an
  * address a proxy forwarded is claimed rather than verified: nothing a
  * sender wrote is blamed because a read failed.
+ *
+ * Check a log line reads the same sources the same way (readSources), as
+ * they are now rather than as a scan kept them, and turns them into what
+ * the parsers read with the same function (trustedProxiesOf), so what it
+ * shows is what a scan stores (#11046).
  */
 
 export const TRUSTED_PROXIES_CACHE_TTL_MS: number = 60 * 1000;
@@ -55,6 +66,15 @@ const MAX_CACHED_PROJECTS: number = 10_000;
 
 const cache: InMemoryTTLCache<TrustedProxies> =
   new InMemoryTTLCache<TrustedProxies>(MAX_CACHED_PROJECTS);
+
+export interface TrustedProxySourcesRead {
+  sources: TrustedProxySources;
+  /*
+   * False when a source could not be read and was left out: what was read
+   * is trusted, and nothing of it is kept, so the next scan reads again.
+   */
+  isComplete: boolean;
+}
 
 export default class SecurityTrustedProxies {
   public static async getForProject(
@@ -67,6 +87,32 @@ export default class SecurityTrustedProxies {
       return cached;
     }
 
+    const read: TrustedProxySourcesRead | null =
+      await SecurityTrustedProxies.readSources(projectId);
+
+    if (!read) {
+      return NO_TRUSTED_PROXIES;
+    }
+
+    const proxies: TrustedProxies = trustedProxiesOf(read.sources);
+
+    if (read.isComplete) {
+      cache.set(key, proxies, TRUSTED_PROXIES_CACHE_TTL_MS);
+    }
+
+    return proxies;
+  }
+
+  /*
+   * Each source of the project's trusted proxies, read now; null when the
+   * project itself cannot be read, which leaves only the private addresses
+   * trusted. A source that fails is left out, toward trusting less, and the
+   * read says it is not complete.
+   */
+  public static async readSources(
+    projectId: ObjectID,
+  ): Promise<TrustedProxySourcesRead | null> {
+    const key: string = projectId.toString();
     let project: Project | null;
 
     try {
@@ -84,22 +130,21 @@ export default class SecurityTrustedProxies {
         `SecurityTrustedProxies: could not read the trusted proxies of project ${key}; its scans trust only private addresses until they can.`,
       );
       logger.warn(error);
-      return NO_TRUSTED_PROXIES;
+      return null;
     }
 
     // Only a project that said so has its access logs read for the header.
-    const readsAccessLogForwardedFor: boolean =
-      project?.securityReadAccessLogForwardedFor === true;
-
-    const listed: TrustedProxies = {
-      ...toTrustedProxies(project?.securityTrustedProxies),
-      readsAccessLogForwardedFor,
+    const listed: TrustedProxySources = {
+      ...NO_TRUSTED_PROXY_SOURCES,
+      listed: toTrustedProxies(project?.securityTrustedProxies).blocks,
+      readsAccessLogForwardedFor:
+        project?.securityReadAccessLogForwardedFor === true,
     };
 
-    let edgeBlocks: Array<NetworkAddressBlock>;
+    let edges: Array<TrustedEdgeRanges>;
 
     try {
-      edgeBlocks = await SecurityTrustedProxies.readEdgeBlocks(projectId);
+      edges = await SecurityTrustedProxies.readEdges(projectId);
     } catch (error) {
       logger.warn(
         `SecurityTrustedProxies: could not read the edges project ${key} sits behind; its scans trust its Trusted Proxies and private addresses until they can.`,
@@ -107,50 +152,46 @@ export default class SecurityTrustedProxies {
       logger.warn(error);
 
       // Not kept: the next scan reads the edges again.
-      return listed;
+      return { sources: listed, isComplete: false };
     }
 
-    const withEdges: TrustedProxies = {
-      blocks: [...listed.blocks, ...edgeBlocks],
-      readsAccessLogForwardedFor,
-    };
+    const withEdges: TrustedProxySources = { ...listed, edges };
 
     // On unless the project turned it off: a project that never said is on.
-    let ownBlocks: Array<NetworkAddressBlock> = [];
-
-    if (project?.securityTrustOwnLoadBalancers !== false) {
-      try {
-        ownBlocks = await SecurityOwnLoadBalancers.getTrustedBlocks(projectId);
-      } catch (error) {
-        logger.warn(
-          `SecurityTrustedProxies: could not read the load balancers of project ${key}; its scans trust its Trusted Proxies, its edges and private addresses until they can.`,
-        );
-        logger.warn(error);
-
-        // Not kept: the next scan reads the load balancers again.
-        return withEdges;
-      }
+    if (project?.securityTrustOwnLoadBalancers === false) {
+      return { sources: withEdges, isComplete: true };
     }
 
-    const proxies: TrustedProxies = {
-      blocks: [...withEdges.blocks, ...ownBlocks],
-      readsAccessLogForwardedFor,
-    };
+    try {
+      const ownBlocks: Array<NetworkAddressBlock> =
+        await SecurityOwnLoadBalancers.getTrustedBlocks(projectId);
 
-    cache.set(key, proxies, TRUSTED_PROXIES_CACHE_TTL_MS);
+      return {
+        sources: { ...withEdges, ownLoadBalancers: ownBlocks },
+        isComplete: true,
+      };
+    } catch (error) {
+      logger.warn(
+        `SecurityTrustedProxies: could not read the load balancers of project ${key}; its scans trust its Trusted Proxies, its edges and private addresses until they can.`,
+      );
+      logger.warn(error);
 
-    return proxies;
+      // Not kept: the next scan reads the load balancers again.
+      return { sources: withEdges, isComplete: false };
+    }
   }
 
-  // The published ranges of the edges the project has connected.
-  public static async readEdgeBlocks(
+  // The published ranges of the edges the project has connected, by edge.
+  public static async readEdges(
     projectId: ObjectID,
-  ): Promise<Array<NetworkAddressBlock>> {
-    const blocks: Array<NetworkAddressBlock> = [];
+  ): Promise<Array<TrustedEdgeRanges>> {
+    const read: Array<TrustedEdgeRanges> = [];
     const edges: Array<SecurityEdge> =
       await SecurityEdgeRanges.findConnectedEdges(projectId);
 
     for (const edge of edges) {
+      const blocks: Array<NetworkAddressBlock> = [];
+
       for (const range of await SecurityEdgeRanges.getRanges(edge)) {
         const block: NetworkAddressBlock | null =
           NetworkAddressBlockUtil.parse(range);
@@ -159,9 +200,22 @@ export default class SecurityTrustedProxies {
           blocks.push(block);
         }
       }
+
+      read.push({ name: edge.name, blocks });
     }
 
-    return blocks;
+    return read;
+  }
+
+  // The published ranges of the edges the project has connected.
+  public static async readEdgeBlocks(
+    projectId: ObjectID,
+  ): Promise<Array<NetworkAddressBlock>> {
+    return (await SecurityTrustedProxies.readEdges(projectId)).flatMap(
+      (edge: TrustedEdgeRanges): ReadonlyArray<NetworkAddressBlock> => {
+        return edge.blocks;
+      },
+    );
   }
 
   // Forget what was read, so a test reads the proxies it set up.

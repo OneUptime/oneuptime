@@ -658,7 +658,18 @@ export interface ClientAddressReading {
   // An address the request claimed that is not the verified one, and where it was read.
   claimed: AddressSlot | null;
   claimedFrom: string;
+  /*
+   * With TrustedProxy, the proxies the project trusts that the verified
+   * address came through (#11046): in the order X-Forwarded-For lists them,
+   * the connection's own address last - at most MAX_FORWARDED_BY, the ones
+   * nearest the server. What tells a person why the event names the client
+   * a proxy forwarded and not the proxy. Absent otherwise.
+   */
+  forwardedBy?: Array<string> | undefined;
 }
+
+// The most proxies a reading says it came through: the ones nearest the server.
+export const MAX_FORWARDED_BY: number = 10;
 
 export const NO_CLIENT_ADDRESS: ClientAddressReading = {
   address: "",
@@ -687,24 +698,34 @@ function firstSlot(
  * client (the trusted proxy right of it wrote it). A hop that names no
  * address ends the walk with none. Every hop trusted: the leftmost is the
  * client, a host inside the network.
+ *
+ * With it, the trusted hops the walk passed on the way, in the order the
+ * header lists them (#11046).
  */
 function readThroughTrustedProxies(
   hops: ReadonlyArray<AddressSlot | null>,
   proxies: TrustedProxies | undefined,
-): AddressSlot | null {
+): { hop: AddressSlot | null; through: Array<string> } {
+  const through: Array<string> = [];
+
   for (let index: number = hops.length - 1; index >= 0; index--) {
     const hop: AddressSlot | null = hops[index] || null;
 
     if (!hop) {
-      return null;
+      return { hop: null, through: [] };
     }
 
     if (hop.scrubbed || !isTrustedProxy(hop.address, proxies)) {
-      return hop;
+      return { hop, through };
+    }
+
+    // The leftmost hop of a header of trusted hops is the client, not a proxy.
+    if (index > 0) {
+      through.unshift(hop.address);
     }
   }
 
-  return hops[0] || null;
+  return { hop: hops[0] || null, through };
 }
 
 /*
@@ -744,13 +765,20 @@ export function resolveClientAddress(
 
   let verified: AddressSlot | null = null;
   let trust: ClientAddressTrust | null = null;
+  let forwardedBy: Array<string> = [];
 
   if (peer && peer.address && !isTrustedProxy(peer.address, proxies)) {
     verified = peer;
     trust = ClientAddressTrust.Peer;
   } else if (peer && peer.address && forwardedFor.length > 0) {
-    verified = readThroughTrustedProxies(forwardedFor, proxies);
+    const walk: { hop: AddressSlot | null; through: Array<string> } =
+      readThroughTrustedProxies(forwardedFor, proxies);
+
+    verified = walk.hop;
     trust = verified ? ClientAddressTrust.TrustedProxy : null;
+    forwardedBy = verified
+      ? [...walk.through, peer.address].slice(-MAX_FORWARDED_BY)
+      : [];
   } else if (peer && !forwardedSomething) {
     verified = peer;
     trust = ClientAddressTrust.Peer;
@@ -792,6 +820,7 @@ export function resolveClientAddress(
     trust,
     claimed,
     claimedFrom: claimed ? claimedFrom : "",
+    ...(forwardedBy.length > 0 ? { forwardedBy } : {}),
   };
 }
 
@@ -873,6 +902,7 @@ const TRUST_ATTRIBUTES: ReadonlyArray<string> = [
   SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust,
   SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress,
   SECURITY_REQUEST_ATTRIBUTES.claimedClientAddressFrom,
+  SECURITY_REQUEST_ATTRIBUTES.forwardedBy,
 ];
 
 export const CLIENT_ADDRESS_TRUST_ATTRIBUTES: ReadonlyArray<string> =
@@ -891,6 +921,8 @@ export function markClientAddressTrust(
     attributes[SECURITY_REQUEST_ATTRIBUTES.clientAddressTrust] = reading.trust;
   }
 
+  markForwardedBy(attributes, reading);
+
   if (reading.claimed) {
     attributes[SECURITY_REQUEST_ATTRIBUTES.claimedClientAddress] =
       getAddressSlotText(reading.claimed);
@@ -906,6 +938,62 @@ export function clearClientAddressTrust(attributes: JSONObject): void {
   for (const key of TRUST_ATTRIBUTES) {
     delete attributes[key];
   }
+}
+
+/*
+ * The proxies a verified address came through (#11046), as the event says
+ * them: one line of addresses, in the order X-Forwarded-For lists them.
+ * Only for an address a trusted proxy forwarded; anything else says none.
+ */
+export function markForwardedBy(
+  attributes: JSONObject,
+  reading: ClientAddressReading,
+): void {
+  const forwardedBy: Array<string> = (reading.forwardedBy || []).filter(
+    (address: string): boolean => {
+      return Boolean(readAddressText(address));
+    },
+  );
+
+  if (
+    reading.trust !== ClientAddressTrust.TrustedProxy ||
+    forwardedBy.length === 0
+  ) {
+    delete attributes[SECURITY_REQUEST_ATTRIBUTES.forwardedBy];
+    return;
+  }
+
+  attributes[SECURITY_REQUEST_ATTRIBUTES.forwardedBy] = forwardedBy
+    .slice(-MAX_FORWARDED_BY)
+    .join(", ");
+}
+
+/*
+ * The proxies an event says its address came through (#11046), each an
+ * address, in the order it says them: none for an event whose address no
+ * trusted proxy forwarded.
+ */
+export function readForwardedBy(event: {
+  attributes?: unknown;
+}): Array<string> {
+  if (readClientAddressTrust(event) !== ClientAddressTrust.TrustedProxy) {
+    return [];
+  }
+
+  const addresses: Array<string> = [];
+
+  for (const hop of readAttribute(
+    event.attributes,
+    SECURITY_REQUEST_ATTRIBUTES.forwardedBy,
+  ).split(",")) {
+    const address: string = readAddressText(hop);
+
+    if (address && addresses.length < MAX_FORWARDED_BY) {
+      addresses.push(address);
+    }
+  }
+
+  return addresses;
 }
 
 function readAttribute(attributes: unknown, key: string): string {

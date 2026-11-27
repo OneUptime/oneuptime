@@ -1,4 +1,4 @@
-import { CLAIMED_IP } from "./ClaimedClientAddressCopy";
+import { CLAIMED_IP, FORWARDED_BY } from "./ClaimedClientAddressCopy";
 import { HIDDEN_BY_A_SCRUB_RULE } from "./HiddenClientAddressCopy";
 import SecurityEvent from "Common/Models/AnalyticsModels/SecurityEvent";
 import { JSONObject } from "Common/Types/JSON";
@@ -6,6 +6,7 @@ import { SECURITY_REQUEST_ATTRIBUTES } from "Common/Types/SecurityEvent/Security
 import {
   ClaimedClientAddress,
   readClaimedClientAddress,
+  readForwardedBy,
 } from "Common/Utils/SecurityEvent/ClientAddressTrust";
 import { SECURITY_EVENT_ATTRIBUTE_FACET_PREFIX } from "Common/Utils/SecurityEvent/SecurityEventSearch";
 import {
@@ -69,6 +70,11 @@ export interface SecurityEventDetailField {
    * request, not verified, and never the event's address.
    */
   claimedAddress?: ClaimedClientAddress | undefined;
+  /*
+   * The proxies the event's verified address came through (#11046), each
+   * an address: what Check a log line says each is trusted for.
+   */
+  forwardedBy?: Array<string> | undefined;
   /*
    * A user a scrub rule redacted or masked (#10435): what Principal User or
    * Target User says in the user's place, whose filter shows every event
@@ -214,6 +220,29 @@ export function buildClaimedIpField(
           facetValue: claimedAddress.address,
         }
       : {}),
+  };
+}
+
+/*
+ * Forwarded By, after Claimed IP (#11046): the proxies the project trusts
+ * that the event's verified address came through, in the order
+ * X-Forwarded-For lists them, the connection's own address last - why the
+ * event names the client they forwarded and not the first of them. Null
+ * for an event whose address no trusted proxy forwarded.
+ */
+export function buildForwardedByField(
+  event: SecurityEventDetailSource,
+): SecurityEventDetailField | null {
+  const forwardedBy: Array<string> = readForwardedBy(event);
+
+  if (forwardedBy.length === 0) {
+    return null;
+  }
+
+  return {
+    label: FORWARDED_BY,
+    value: forwardedBy.join(", "),
+    forwardedBy,
   };
 }
 
@@ -400,6 +429,8 @@ export function buildSecurityEventOverviewFields(
     },
     // An address the request only claimed: said as claimed, never blamed.
     buildClaimedIpField(event) || { label: CLAIMED_IP, value: "" },
+    // The proxies the verified address came through, when a proxy forwarded it.
+    buildForwardedByField(event) || { label: FORWARDED_BY, value: "" },
     { label: "Principal Process", value: text(event.principalProcess) },
     /*
      * The process the event is about - the one started, in a process

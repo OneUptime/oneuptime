@@ -17,6 +17,13 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 export const CLAIMED_IP: string = translationKey("Claimed IP");
 
 /*
+ * An event's field after it (#11046): the proxies the project trusts that
+ * its verified address came through, so a person reads why the event names
+ * the client a proxy forwarded and not the proxy.
+ */
+export const FORWARDED_BY: string = translationKey("Forwarded By");
+
+/*
  * What is said of it wherever it is shown, and the same naming the address:
  * What happened next, the Response Plan. The plan is built in Common for
  * the server and the browser (#10340), so these live with its words.

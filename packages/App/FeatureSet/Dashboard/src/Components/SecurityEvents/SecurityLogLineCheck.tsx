@@ -1,9 +1,11 @@
+import { FORWARDED_BY } from "./ClaimedClientAddressCopy";
 import { SECURITY_LOG_FORMAT_TEXTS } from "./SecurityConnectionsCopy";
 import {
   SecurityEventDetailField,
   buildSecurityEventOverviewFields,
 } from "./SecurityEventDetailFields";
 import { readFieldValue } from "./HiddenClientAddressText";
+import { fetchSecurityLogLineCheck } from "./SecurityLogLineCheckApi";
 import SecurityEventSeverityPill from "./SecurityEventSeverityPill";
 import IconProp from "Common/Types/Icon/IconProp";
 import NormalizedSecurityEvent from "Common/Types/SecurityEvent/NormalizedSecurityEvent";
@@ -12,49 +14,109 @@ import SecurityLogFormat, {
   SECURITY_LOG_FORMAT_ATTRIBUTE,
   SecurityLogFormatDefinition,
 } from "Common/Types/SecurityEvent/SecurityLogFormat";
+import {
+  CheckedTrustedProxy,
+  MAX_SHOWN_EVENTS,
+  SecurityLogLineCheckResult,
+} from "Common/Types/SecurityEvent/SecurityLogLineCheck";
 import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
 import CollapsibleSection from "Common/UI/Components/CollapsibleSection/CollapsibleSection";
+import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence";
 import Icon from "Common/UI/Components/Icon/Icon";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
 import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
 import { PillSize } from "Common/UI/Components/Pill/Pill";
 import TextArea from "Common/UI/Components/TextArea/TextArea";
+import API from "Common/UI/Utils/API/API";
 import { isPageRightToLeft } from "Common/UI/Utils/PageLanguage";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import SecurityLogParser from "Common/Utils/SecurityEvent/LogParsers/SecurityLogParser";
-import React, { FunctionComponent, ReactElement, useId, useState } from "react";
+import { TrustedProxySource } from "Common/Utils/SecurityEvent/TrustedProxySources";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  useId,
+  useRef,
+  useState,
+} from "react";
 
 /*
  * "Check a log line" on the Your logs card: paste a line from your logs and
  * see the security event OneUptime makes of it - which kind of record it
- * read it as, how severe, who and what - or that it makes none. It runs the
- * very parsers the every-minute scan runs (Common/Utils/SecurityEvent/
- * LogParsers), in the browser, so nothing is saved or sent: the way to see
- * whether a firewall's CEF, a Windows event or an Azure export is read
+ * read it as, how severe, who and what - or that it makes none: the way to
+ * see whether a firewall's CEF, a Windows event or an Azure export is read
  * before waiting for a scan to find one.
+ *
+ * The server reads it (#11046), with the very parsers the every-minute scan
+ * runs and the project's trust as the scan reads it: its Trusted Proxies,
+ * the edges it connected, its own load balancers and its Access Logs
+ * settings (Server/Utils/SecurityEvent/SecurityLogLineCheck). Read here in
+ * the browser, with no trust, a line written behind a proxy named the
+ * proxy as its client where the stored event names the client it forwarded.
+ * Nothing is saved. When a proxy forwarded the client, the event says which
+ * (Forwarded By), each with why it is trusted.
  */
 
 export const SECURITY_LOG_LINE_CHECK_ID: string = "security-log-line-check";
 
-// A paste holds a line or a few; past these, the rest is not read.
-export const MAX_CHECKED_LINES: number = 20;
-export const MAX_SHOWN_EVENTS: number = 5;
-// The longest paste read: the longest JSON line the scan reads, and a little.
-export const MAX_CHECKED_TEXT_LENGTH: number = 300 * 1024;
+export {
+  MAX_CHECKED_LINES,
+  MAX_CHECKED_TEXT_LENGTH,
+  MAX_SHOWN_EVENTS,
+  splitPastedLogLines,
+} from "Common/Types/SecurityEvent/SecurityLogLineCheck";
 
 // Under the folded section's title: what it is for.
 export const LOG_LINE_CHECK_SUMMARY: string = translationKey(
   "Paste a line from your logs to see the security event OneUptime makes of it.",
 );
 
-// Under the box's label once it is open: where the line goes, which is nowhere.
+// Under the box's label once it is open: how the line is read, and that it is kept nowhere.
 export const LOG_LINE_CHECK_PRIVACY: string = translationKey(
-  "The line is read here, in your browser: nothing is saved or sent.",
+  "OneUptime reads it as its scans read your logs, with your trusted proxies, and saves nothing.",
 );
+
+/*
+ * Why each proxy a checked event came through is trusted, after its
+ * address under Forwarded By.
+ */
+export const FORWARDED_BY_REASONS: Readonly<
+  Record<Exclude<TrustedProxySource, TrustedProxySource.Edge>, string>
+> = {
+  [TrustedProxySource.Private]: translationKey("Private address"),
+  [TrustedProxySource.Listed]: translationKey("In your Trusted Proxies"),
+  [TrustedProxySource.OwnLoadBalancer]: translationKey(
+    "One of your load balancers",
+  ),
+  [TrustedProxySource.GoogleFrontEnd]: translationKey(
+    "One of Google's front ends",
+  ),
+};
+
+// An edge's range, by the edge's name: "In Cloudflare's published ranges".
+export const FORWARDED_BY_EDGE_REASON: string = translationKey(
+  "In {{edge}}'s published ranges",
+);
+
+// Why a proxy is trusted, in the reader's language.
+export function getForwardedByReason(
+  proxy: CheckedTrustedProxy,
+  translator: Translator,
+): string {
+  if (proxy.source === TrustedProxySource.Edge) {
+    return translator.translateTemplate(FORWARDED_BY_EDGE_REASON, {
+      edge: proxy.edgeName,
+    });
+  }
+
+  const reason: string = FORWARDED_BY_REASONS[proxy.source];
+
+  return translator.translateText(reason) || reason;
+}
 
 // The menu at the end of the box's label row: a line of each kind, checked at once.
 export const LOG_LINE_CHECK_EXAMPLES: string = translationKey("Try an example");
@@ -77,6 +139,9 @@ export const CHECKED_EVENT_FIELD_LABELS: ReadonlyArray<string> = [
   "Principal User",
   "Principal Host",
   "Principal IP",
+  // What the request only claimed, and the proxies it came through (#11046).
+  "Claimed IP",
+  FORWARDED_BY,
   "Process",
   "Command Line",
   "Parent Process",
@@ -86,66 +151,6 @@ export const CHECKED_EVENT_FIELD_LABELS: ReadonlyArray<string> = [
   "Target Port",
   "Target Resource",
 ];
-
-export interface SecurityLogLineCheckResult {
-  // Lines read - a pretty-printed JSON record is one.
-  linesRead: number;
-  events: Array<NormalizedSecurityEvent>;
-}
-
-/*
- * The lines of a paste, as the scan would have stored them: a JSON record
- * pasted across lines is one record, minified as a log body holds it; any
- * other paste is one log line a line.
- */
-export function splitPastedLogLines(text: string): Array<string> {
-  const trimmed: string = text.slice(0, MAX_CHECKED_TEXT_LENGTH).trim();
-
-  if (!trimmed) {
-    return [];
-  }
-
-  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
-    try {
-      return [JSON.stringify(JSON.parse(trimmed))];
-    } catch {
-      // Not one JSON record: a JSON line each, or text.
-    }
-  }
-
-  return trimmed
-    .split("\n")
-    .map((line: string): string => {
-      return line.trim();
-    })
-    .filter((line: string): boolean => {
-      return line.length > 0;
-    })
-    .slice(0, MAX_CHECKED_LINES);
-}
-
-export function checkSecurityLogLines(
-  text: string,
-): SecurityLogLineCheckResult {
-  const lines: Array<string> = splitPastedLogLines(text);
-  const events: Array<NormalizedSecurityEvent> = [];
-
-  for (const body of lines) {
-    try {
-      events.push(
-        ...SecurityLogParser.parse({
-          body,
-          attributes: {},
-          time: new Date(),
-        }),
-      );
-    } catch {
-      // A line no parser can read makes no event, as in the scan.
-    }
-  }
-
-  return { linesRead: lines.length, events };
-}
 
 // The kind of record an event was read as.
 export function getEventLogFormat(
@@ -184,16 +189,98 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
   const privacyId: string = `security-log-line-privacy-${uniqueId}`;
   const [text, setText] = useState<string>("");
   const [result, setResult] = useState<SecurityLogLineCheckResult | null>(null);
+  const [isChecking, setIsChecking] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  /*
+   * Which check is the latest: an answer to a line that has been changed,
+   * or checked again since, is dropped, never shown under the new one.
+   */
+  const latestCheck: React.MutableRefObject<number> = useRef<number>(0);
+
+  const checkText: (value: string) => void = (value: string): void => {
+    const thisCheck: number = latestCheck.current + 1;
+
+    latestCheck.current = thisCheck;
+    setResult(null);
+    setError(null);
+    setIsChecking(true);
+
+    fetchSecurityLogLineCheck(value)
+      .then((answer: SecurityLogLineCheckResult) => {
+        if (latestCheck.current === thisCheck) {
+          setResult(answer);
+        }
+      })
+      .catch((caught: unknown) => {
+        if (latestCheck.current === thisCheck) {
+          setError(API.getFriendlyMessage(caught));
+        }
+      })
+      .finally(() => {
+        if (latestCheck.current === thisCheck) {
+          setIsChecking(false);
+        }
+      });
+  };
 
   const check: () => void = (): void => {
-    setResult(checkSecurityLogLines(text));
+    checkText(text);
   };
 
   const tryExample: (format: SecurityLogFormatDefinition) => void = (
     format: SecurityLogFormatDefinition,
   ): void => {
     setText(format.example);
-    setResult(checkSecurityLogLines(format.example));
+    checkText(format.example);
+  };
+
+  // Why each proxy the events came through is trusted, by its address.
+  const proxyReasons: Map<string, CheckedTrustedProxy> = new Map<
+    string,
+    CheckedTrustedProxy
+  >(
+    (result?.trustedProxies || []).map(
+      (proxy: CheckedTrustedProxy): [string, CheckedTrustedProxy] => {
+        return [proxy.address, proxy];
+      },
+    ),
+  );
+
+  /*
+   * Forwarded By: each proxy on a line of its own, in the event's order,
+   * with why it is trusted after it, as Claimed IP says what its address is.
+   */
+  const renderForwardedBy: (field: SecurityEventDetailField) => ReactElement = (
+    field: SecurityEventDetailField,
+  ): ReactElement => {
+    return (
+      <ul
+        className="space-y-0.5"
+        data-testid={`${SECURITY_LOG_LINE_CHECK_ID}-forwarded-by`}
+      >
+        {(field.forwardedBy || []).map((address: string): ReactElement => {
+          const proxy: CheckedTrustedProxy | undefined =
+            proxyReasons.get(address);
+
+          return (
+            <li
+              key={address}
+              data-testid={`${SECURITY_LOG_LINE_CHECK_ID}-forwarded-by-proxy`}
+            >
+              <bdi className="[overflow-wrap:anywhere]">{address}</bdi>
+              {proxy ? (
+                <span className="text-gray-500">
+                  <InlineSeparator />
+                  {getForwardedByReason(proxy, translator)}
+                </span>
+              ) : (
+                <></>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    );
   };
 
   const renderEvent: (
@@ -267,9 +354,14 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
                       {/*
                        * A value is as the line wrote it: an address, a name,
                        * a command. An address a scrub rule hid says so
-                       * (readFieldValue).
+                       * (readFieldValue), and each proxy the address came
+                       * through says why it is trusted.
                        */}
-                      <bdi>{readFieldValue(field, translator)}</bdi>
+                      {field.forwardedBy ? (
+                        renderForwardedBy(field)
+                      ) : (
+                        <bdi>{readFieldValue(field, translator)}</bdi>
+                      )}
                     </dd>
                   </div>
                 );
@@ -366,7 +458,11 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
             dataTestId={`${SECURITY_LOG_LINE_CHECK_ID}-input`}
             onChange={(value: string) => {
               setText(value);
+              // A new line: whatever the old one was told is dropped, in flight too.
+              latestCheck.current += 1;
               setResult(null);
+              setError(null);
+              setIsChecking(false);
             }}
           />
         </div>
@@ -382,13 +478,24 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
             title="Check line"
             buttonStyle={ButtonStyleType.NORMAL}
             buttonSize={ButtonSize.Small}
-            disabled={!text.trim()}
+            disabled={!text.trim() || isChecking}
+            isLoading={isChecking}
             dataTestId={`${SECURITY_LOG_LINE_CHECK_ID}-run`}
             onClick={check}
           />
         </div>
 
         <div aria-live="polite">
+          {error ? (
+            <div
+              className="text-sm text-gray-600"
+              data-testid={`${SECURITY_LOG_LINE_CHECK_ID}-error`}
+            >
+              <ErrorInSentence message={error} showWhereToLook={true} />
+            </div>
+          ) : (
+            <></>
+          )}
           {result && result.events.length > 0 ? (
             <div data-testid={`${SECURITY_LOG_LINE_CHECK_ID}-result`}>
               <p className="text-sm font-medium text-gray-900">
@@ -397,13 +504,13 @@ const SecurityLogLineCheck: FunctionComponent<ComponentProps> = (
                     one: "OneUptime makes {{count}} security event of this:",
                     other: "OneUptime makes {{count}} security events of this:",
                   },
-                  result.events.length,
+                  result.eventCount,
                 )}
               </p>
               <ul className="mt-2 grid grid-cols-1 gap-2">
                 {result.events.slice(0, MAX_SHOWN_EVENTS).map(renderEvent)}
               </ul>
-              {result.events.length > MAX_SHOWN_EVENTS ? (
+              {result.eventCount > MAX_SHOWN_EVENTS ? (
                 <p
                   className="mt-2 text-xs text-gray-500"
                   data-testid={`${SECURITY_LOG_LINE_CHECK_ID}-more`}
