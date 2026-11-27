@@ -15,10 +15,18 @@ import ModelPermission from "../../../../../Server/Types/Database/Permissions/In
 import { CheckReadPermissionType } from "../../../../../Server/Types/Database/Permissions/ReadPermission";
 import Query from "../../../../../Server/Types/Database/Query";
 import Select from "../../../../../Server/Types/Database/Select";
+import FilterGroups, {
+  FILTER_GROUPS_QUERY_KEY,
+} from "../../../../../Types/BaseDatabase/FilterGroups";
+import LinkedTo, {
+  LINKED_TO_QUERY_KEY,
+} from "../../../../../Types/BaseDatabase/LinkedTo";
+import MultiSearch from "../../../../../Types/BaseDatabase/MultiSearch";
 import NotEqual from "../../../../../Types/BaseDatabase/NotEqual";
 import SortOrder from "../../../../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ColumnAccessControl from "../../../../../Types/Database/AccessControl/ColumnAccessControl";
+import OwnerOnlyColumn from "../../../../../Types/Database/AccessControl/OwnerOnlyColumn";
 import TableAccessControl from "../../../../../Types/Database/AccessControl/TableAccessControl";
 import CurrentUserCanAccessRecordBy from "../../../../../Types/Database/CurrentUserCanAccessRecordBy";
 import TableColumn from "../../../../../Types/Database/TableColumn";
@@ -281,6 +289,68 @@ class AdminReadableRuleModel extends BaseModel {
     title: "User Webhook",
   })
   public userWebhook?: UserWebhook = undefined;
+}
+
+/*
+ * A record with an id only its owner may filter by. No model marks an id
+ * column today - every marked column is a phone, an address, a token or a
+ * URL - and an id column is all a filter by linked records (LinkedTo) can
+ * name besides a list of linked records, so that filter cannot reach a
+ * marked column of a production model. This one marks one, the device a
+ * method delivers to, to show the rule holds for that shape all the same:
+ * the day an id is marked, `{ linkedTo: { deviceId: [guess] } }` is no
+ * oracle either (#11381).
+ */
+@TenantColumn("projectId")
+@TableAccessControl(ADMIN_READABLE_TABLE_ACCESS)
+@CurrentUserCanAccessRecordBy("userId")
+class AdminReadableOwnerOnlyDeviceModel extends BaseModel {
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser, Permission.ProjectAdmin],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Project ID",
+  })
+  public projectId?: ObjectID = undefined;
+
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser, Permission.ProjectAdmin],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "User ID",
+  })
+  public userId?: ObjectID = undefined;
+
+  // Read by an admin's widened table read - but only by its owner as a filter.
+  @OwnerOnlyColumn()
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser, Permission.ProjectAdmin],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Device ID",
+  })
+  public deviceId?: ObjectID = undefined;
+
+  // An id anyone who reads the table may filter by.
+  @ColumnAccessControl({
+    create: [Permission.CurrentUser],
+    read: [Permission.CurrentUser, Permission.ProjectAdmin],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    title: "Team ID",
+  })
+  public teamId?: ObjectID = undefined;
 }
 
 interface MethodModelUnderTest {
@@ -1264,6 +1334,393 @@ describe("route 4 - a marked column used as a query predicate", () => {
       ).resolves.toBeDefined();
     },
   );
+});
+
+/*
+ * ROUTE 4 THROUGH A FILTER THAT NAMES ITS COLUMNS INSIDE ITSELF (#11381).
+ *
+ * A multi-field search is keyed by no column of its own - `search`, or the
+ * list's `_multiFieldSearch` - and names the columns it reads in its fields:
+ * `{ search: new MultiSearch({ fields: ["phone"], value: "+1555" }) }`
+ * matches the rows whose phone holds "+1555", so it confirms or denies a
+ * guess at somebody's phone exactly as `{ phone: "+1555..." }` does, with
+ * nothing selected. Route 4 walked the query's own keys, so the search was
+ * held to the column's read (QueryPermission) and never to the owner-only
+ * rule. Every column a search reads is held to it now, as each column a
+ * group of filters names is (FilterGroups, #11211), and as each relation a
+ * filter by linked records names is.
+ */
+function searchOf(fields: Array<string>): MultiSearch {
+  return new MultiSearch({ fields: fields, value: "+1555" });
+}
+
+describe("route 4 - a marked column a multi-field search reads (#11381)", () => {
+  it.each(METHOD_MODELS)(
+    "refuses an admin searching everyone's $name rows by an owner-only column",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          {
+            search: searchOf([model.ownerOnlyColumnReachableThroughRelation]),
+          },
+          { _id: true },
+          makeAdminProps(),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "refuses an admin's search of $name that hides the owner-only column beside a label",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      /*
+       * The label matches nothing a guess is about; the marked column beside
+       * it still answers the guess, so one marked field is enough to refuse.
+       */
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          {
+            search: searchOf([
+              model.unmarkedSortColumn,
+              model.ownerOnlyColumnReachableThroughRelation,
+            ]),
+          },
+          { _id: true },
+          makeAdminProps(),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "refuses an admin searching another member's $name rows by an owner-only column",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          {
+            userId: otherUserId,
+            search: searchOf([model.ownerOnlyColumnReachableThroughRelation]),
+          },
+          { _id: true },
+          makeAdminProps(),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "refuses the search a list sends, under its own key, on $name to an admin",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      // What a table's search box sends (BaseModelTable): `_multiFieldSearch`.
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          {
+            _multiFieldSearch: searchOf([
+              model.ownerOnlyColumnReachableThroughRelation,
+            ]),
+          },
+          { _id: true },
+          makeAdminProps(),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "refuses an API key with Project Admin searching $name by an owner-only column: it has no user to be pinned to",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          {
+            search: searchOf([model.ownerOnlyColumnReachableThroughRelation]),
+          },
+          { _id: true },
+          makeApiKeyAdminProps(),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "names the column it refuses, on $name",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      const refusal: unknown = await checkRead(
+        model.adminReadableModelType,
+        {
+          search: searchOf([model.ownerOnlyColumnReachableThroughRelation]),
+        },
+        { _id: true },
+        makeAdminProps(),
+      ).catch((error: unknown) => {
+        return error;
+      });
+
+      expect(refusal).toBeInstanceOf(NotAuthorizedException);
+      expect((refusal as Error).message).toBe(
+        `You do not have permissions to read ${model.ownerOnlyColumnReachableThroughRelation} on ${new model.adminReadableModelType().singularName}. This column belongs to the user it was created for, so it can only be read by a query restricted to your own records.`,
+      );
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "lets the owner search their own $name rows by an owner-only column",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.modelType,
+          {
+            search: searchOf([model.ownerOnlyColumnReachableThroughRelation]),
+          },
+          { _id: true },
+          makeOwnerProps(),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "lets the owner search their own $name rows on the admin-readable table too",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      /*
+       * A member with no role is still stamped to their own rows on the
+       * widened table (TenantPermission), so their search is pinned to them.
+       */
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          {
+            search: searchOf([model.ownerOnlyColumnReachableThroughRelation]),
+          },
+          { _id: true },
+          makeOwnerProps(),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "lets an admin search their OWN $name rows by an owner-only column",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          {
+            userId: adminUserId,
+            search: searchOf([model.ownerOnlyColumnReachableThroughRelation]),
+          },
+          { _id: true },
+          makeAdminProps(),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "lets an admin search everyone's $name rows by the columns that are not marked",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      // The labels an admin surface names the rows by keep working.
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          { search: searchOf([model.unmarkedSortColumn]) },
+          { _id: true },
+          makeAdminProps(),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "lets root search $name by an owner-only column",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.modelType,
+          {
+            search: searchOf([model.ownerOnlyColumnReachableThroughRelation]),
+          },
+          { _id: true },
+          makeRootProps(),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it("refuses a pinning predicate that only looks like the admin's own id", async () => {
+    /*
+     * `userId != me` stringifies to the admin's id and selects every other
+     * row: only an exact id pins a read (isQueryPinnedToCurrentUser).
+     */
+    await expect(
+      checkRead(
+        AdminReadableUserSMS,
+        {
+          userId: new NotEqual(adminUserId),
+          search: searchOf(["phone"]),
+        },
+        { _id: true },
+        makeAdminProps(),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+});
+
+describe("route 4 - a marked column a group of filters names", () => {
+  /*
+   * The rule #11211 added for FilterGroups, held here beside the search's:
+   * a group on a label OR a group on the marked column.
+   */
+  function groupsOf(model: MethodModelUnderTest): FilterGroups {
+    return new FilterGroups({
+      groups: [
+        { [model.unmarkedSortColumn]: "probe-label" },
+        { [model.ownerOnlyColumnReachableThroughRelation]: "probe-value" },
+      ],
+    });
+  }
+
+  it.each(METHOD_MODELS)(
+    "refuses an admin filtering everyone's $name rows by a group on an owner-only column",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          { [FILTER_GROUPS_QUERY_KEY]: groupsOf(model) },
+          { _id: true },
+          makeAdminProps(),
+        ),
+      ).rejects.toThrow(NotAuthorizedException);
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "lets the owner filter their own $name rows by a group on an owner-only column",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.modelType,
+          { [FILTER_GROUPS_QUERY_KEY]: groupsOf(model) },
+          { _id: true },
+          makeOwnerProps(),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+
+  it.each(METHOD_MODELS)(
+    "lets an admin filter their OWN $name rows by a group on an owner-only column",
+    async (model: MethodModelUnderTest): Promise<void> => {
+      await expect(
+        checkRead(
+          model.adminReadableModelType,
+          {
+            userId: adminUserId,
+            [FILTER_GROUPS_QUERY_KEY]: groupsOf(model),
+          },
+          { _id: true },
+          makeAdminProps(),
+        ),
+      ).resolves.toBeDefined();
+    },
+  );
+});
+
+describe("route 4 - a marked id a filter by linked records names (#11381)", () => {
+  const deviceId: ObjectID = ObjectID.generate();
+  const teamId: ObjectID = ObjectID.generate();
+
+  function linkedTo(relation: string, id: ObjectID): LinkedTo {
+    return new LinkedTo({ relations: { [relation]: [id] } });
+  }
+
+  it("refuses an admin finding whose device an id is, across everyone's rows", async () => {
+    await expect(
+      checkRead(
+        AdminReadableOwnerOnlyDeviceModel,
+        { [LINKED_TO_QUERY_KEY]: linkedTo("deviceId", deviceId) },
+        { _id: true },
+        makeAdminProps(),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  it("refuses it on another member's rows too", async () => {
+    await expect(
+      checkRead(
+        AdminReadableOwnerOnlyDeviceModel,
+        {
+          userId: otherUserId,
+          [LINKED_TO_QUERY_KEY]: linkedTo("deviceId", deviceId),
+        },
+        { _id: true },
+        makeAdminProps(),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
+
+  it("lets the owner filter their own rows by it", async () => {
+    await expect(
+      checkRead(
+        AdminReadableOwnerOnlyDeviceModel,
+        { [LINKED_TO_QUERY_KEY]: linkedTo("deviceId", deviceId) },
+        { _id: true },
+        makeOwnerProps(),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("lets an admin filter their OWN rows by it", async () => {
+    await expect(
+      checkRead(
+        AdminReadableOwnerOnlyDeviceModel,
+        {
+          userId: adminUserId,
+          [LINKED_TO_QUERY_KEY]: linkedTo("deviceId", deviceId),
+        },
+        { _id: true },
+        makeAdminProps(),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("lets an admin filter everyone's rows by an id that is not marked", async () => {
+    await expect(
+      checkRead(
+        AdminReadableOwnerOnlyDeviceModel,
+        { [LINKED_TO_QUERY_KEY]: linkedTo("teamId", teamId) },
+        { _id: true },
+        makeAdminProps(),
+      ),
+    ).resolves.toBeDefined();
+  });
+
+  it("refuses a search and a group on the marked id as well", async () => {
+    await expect(
+      checkRead(
+        AdminReadableOwnerOnlyDeviceModel,
+        { search: searchOf(["deviceId"]) },
+        { _id: true },
+        makeAdminProps(),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+    await expect(
+      checkRead(
+        AdminReadableOwnerOnlyDeviceModel,
+        {
+          [FILTER_GROUPS_QUERY_KEY]: new FilterGroups({
+            groups: [{ deviceId: deviceId }],
+          }),
+        },
+        { _id: true },
+        makeAdminProps(),
+      ),
+    ).rejects.toThrow(NotAuthorizedException);
+  });
 });
 
 describe("the verification codes nobody may read, owner included", () => {
