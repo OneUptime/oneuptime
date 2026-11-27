@@ -139,6 +139,8 @@ describe("which lists keep themselves current", () => {
         "AIRunEvent",
         "Alert",
         "AlertEpisode",
+        // A pull request linked to a Data Security issue, merging and reaching production, is announced so the issue can show it at once (#10831).
+        "DataSecurityIssuePullRequest",
         // An Android device moves its log sessions on while people watch the list (#9806).
         "HostLogSession",
         "Incident",

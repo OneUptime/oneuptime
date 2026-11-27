@@ -18,6 +18,7 @@ Storage Arrays는 모든 벤더에서 같은 방식으로 동작하는 제품입
 | **Pure Storage FlashArray**, Purity//FA 6.7 이상 | `purestorage.flasharray` | 어레이 자체의 OpenMetrics 엔드포인트(`https://<array>/metrics/...?namespace=purefa`). Collector 옆에서 실행되는 것은 없습니다 | `otel-collector-config.yaml`(기본값) |
 | **Pure Storage FlashArray**, 이전 Purity//FA | `purestorage.flasharray` | Pure의 FlashArray OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fa-exporter` 서비스로 실행합니다 | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure의 FlashBlade OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fb-exporter` 서비스로 실행합니다 | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Dell의 PowerStore Metrics Exporter. 같은 Compose 파일이 `powerstore-exporter` 서비스로 빌드하고 실행합니다. 클러스터의 경고는 syslog로 `powerstore-syslog` 서비스에 도착합니다 | `otel-collector-config.powerstore.yaml` |
 
 Pure Storage는 2026년 2월에 이름을 **Everpure**로 바꿨습니다. FlashArray, FlashBlade, Purity는 이름을 유지했고 `purefa_*` 및 `purefb_*` 메트릭도 그대로이므로, 이 페이지의 모든 내용은 어느 이름으로 판매된 어레이에도 적용됩니다.
 
@@ -27,6 +28,10 @@ flowchart TB
     collector -->|"이전 FlashArray,<br/>FlashBlade"| exporter["Pure 익스포터"]
     exporter -->|"API 토큰"| array
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 에이전트 하나는 어레이 하나를 모니터링합니다. 어레이마다 에이전트를 하나씩 실행하세요([여러 어레이 모니터링](#여러-어레이-모니터링) 참고). 어레이는 첫 데이터와 함께 스스로 등록되며, 그 이름은 에이전트가 모든 메트릭에 `storage.array.name`으로 붙이는 이름입니다.
@@ -35,6 +40,7 @@ flowchart TB
 
 - Docker Compose v2 플러그인이 있는 Docker Engine 20.10 이상. 머신은 HTTPS(TCP 443)로 어레이의 관리 인터페이스에 연결할 수 있어야 합니다.
 - 어레이의 관리자 계정. 기본 제공 **readonly** 역할을 가진 사용자와 그 사용자의 API 토큰을 만드는 데 씁니다.
+- Dell PowerStore라면 x86-64 머신(Dell은 익스포터를 x86-64용으로만 빌드합니다)과 에이전트용 PowerStore 사용자: [Dell PowerStore](#dell-powerstore)를 참고하세요.
 - 수집 키. **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 만들고 값을 복사합니다.
 
 ### 에이전트를 실행할 위치
@@ -112,7 +118,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+Dell PowerStore라면 `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile`, `powerstore-syslog.yaml`도 내려받고, `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml`, `COMPOSE_PROFILES=powerstore`를 설정한 다음 `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME`, `POWERSTORE_PASSWORD`를 채우세요. 비밀번호는 작은따옴표로 감쌉니다.
 
 이전 Purity//FA의 FlashArray라면 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml`과 `COMPOSE_PROFILES=flasharray-exporter`를 설정하세요. FlashBlade라면 `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml`, `COMPOSE_PROFILES=flashblade`를 설정하고, `PURE_FB_ENDPOINT`와 `PURE_FB_API_TOKEN`을 채우세요(`PURE_FA_*` 쌍 대신). 에이전트를 시작하세요:
 
@@ -139,6 +154,16 @@ Everything is ready. Begin running and processing data.
 **제품 → 인프라 → 스토리지 어레이 → 모든 스토리지 어레이** 메뉴를 여세요. 첫 스크레이프(약 1분) 후에 어레이가 용량, 성능, 열린 경고, 하드웨어와 함께 표시됩니다. 볼륨, 호스트, 포드는 2분 안에, FlashBlade의 파일 시스템과 버킷은 5분 안에, FlashArray 디렉터리는 30분 안에 뒤따릅니다. 어레이의 **토폴로지** 페이지는 호스트, 볼륨, 파일 시스템, 하드웨어를 하나의 지도로 그립니다. [토폴로지](/docs/telemetry/topology#리소스별-지도-열기)를 참고하세요.
 :::
 
+## Dell PowerStore
+
+에이전트는 Dell의 PowerStore Metrics Exporter(릴리스 `powerstore-metrics-exporter_v1.0.3`)를 통해 PowerStore 클러스터를 읽습니다. Dell은 이를 이미지가 아닌 바이너리로 배포하므로, `powerstore-exporter` 서비스는 처음 시작할 때 Dell이 문서화한 이미지를 `powerstore-exporter.Dockerfile`로 빌드하고 바이너리의 SHA-256을 확인합니다. 이 빌드에는 한 번만 `quay.io`와 `github.com`이 필요합니다.
+
+PowerStore에는 API 토큰이 없으므로 Dell의 익스포터는 사용자 이름과 비밀번호로 로그인합니다. PowerStore Manager의 _Settings → Users_에서 에이전트 전용 로컬 사용자를 **Storage Operator** 역할로 추가하세요. 익스포터는 PowerStore의 5분 단위 대량 메트릭 아카이브에서 성능을 읽는데, 이 아카이브는 익스포터가 직접 켜고 PowerStoreOS 4.1 이상에서는 필수이며, Dell의 README에 따르면 Operator 역할로는 켤 수 없습니다. 이전 PowerStoreOS에서는 `POWERSTORE_BULK_METRICS=false`와 함께 읽기 전용 **Operator** 역할로 충분합니다. 비밀번호는 익스포터만 `.env`에서 읽습니다.
+
+Dell의 익스포터는 경고를 읽지 않으므로 클러스터가 직접 보냅니다. `powerstore-syslog` 서비스가 포트 5514에서 TCP와 UDP로 원격 syslog를 받아 각 줄을 어레이의 **로그** 페이지에 기록하며, PowerStore의 레코드는 속성(`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`)에, Dell의 이벤트 코드에 따른 심각도는 (`powerstore.alert.severity`)에 담습니다. PowerStore Manager에서 _Settings → Security → Remote Logging_을 열고 이 머신을 포트 5514로 추가한 뒤 방화벽에서 그 포트를 여세요. 포트 6514의 TLS syslog는 `powerstore-syslog.yaml`에 설명되어 있습니다.
+
+Dell의 익스포터는 호스트도 복제 세션도 보고하지 않으므로 이 버전에는 둘 다 없습니다.
+
 ## 환경 변수
 
 설치 스크립트는 이 값들을 `/opt/oneuptime-storage-array-agent/.env`에 씁니다. Docker Compose 설치는 이 값들을 `.env`(`docker-compose.yml` 옆의 파일)에서 읽습니다. 값을 바꾼 뒤에는 그 폴더에서 `docker compose up -d`를 실행하세요.
@@ -155,6 +180,13 @@ Everything is ready. Begin running and processing data.
 | `PURE_FA_API_TOKEN` | FlashArray | readonly 역할을 가진 FlashArray 사용자의 API 토큰. |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade의 관리 주소. 호스트 이름 또는 IP이며 `https://`는 붙이지 않습니다. |
 | `PURE_FB_API_TOKEN` | FlashBlade | readonly 역할을 가진 FlashBlade 사용자의 API 토큰. |
+| `POWERSTORE_ENDPOINT` | PowerStore | PowerStore 클러스터의 관리 주소. 호스트 이름 또는 IP이며 `https://`는 붙이지 않습니다. |
+| `POWERSTORE_USERNAME` | PowerStore | Dell의 익스포터가 로그인할 때 쓰는 PowerStore 사용자. |
+| `POWERSTORE_PASSWORD` | PowerStore | 그 사용자의 비밀번호. 익스포터만 읽습니다. |
+| `POWERSTORE_BULK_METRICS` | 아니요 | `true`는 PowerStore의 대량 메트릭 아카이브에서 성능을 읽고, `false`는 객체를 하나씩 읽습니다. 기본값은 `true`입니다. |
+| `POWERSTORE_API_VERSION` | 아니요 | PowerStoreOS 3.6 이상은 `v3`, 그 밖에는 `v1`. 기본값은 `v3`입니다. |
+| `POWERSTORE_REQUEST_LIMIT` | 아니요 | 익스포터가 클러스터에 한 번에 보내는 요청 수. 기본값은 `16`입니다. |
+| `POWERSTORE_SYSLOG_PORT` | 아니요 | 이 머신이 클러스터의 syslog를 TCP와 UDP로 받는 포트. 기본값은 `5514`입니다. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 아니요 | `true`는 네이티브 엔드포인트에서 어레이의 자체 서명 인증서를 받아들이고, `false`는 이를 검증합니다. 기본값은 `true`입니다. Pure의 익스포터는 어레이의 인증서를 검증하지 않으므로 익스포터에는 적용되지 않습니다. |
 
 ## 에이전트의 스크레이프 방식
@@ -163,6 +195,7 @@ Everything is ready. Begin running and processing data.
 - **각 작업은 자신의 시리즈에 `scrape_endpoint: <endpoint>` 레이블을 붙입니다.** 각 엔드포인트는 `purefa_info` 또는 `purefb_info`도 내보내므로, OneUptime은 배치가 어떤 패밀리의 전체 목록인지 압니다. 이 덕분에 삭제된 볼륨, 호스트, 포드, 파일 시스템, 버킷이 남아 있지 않고 인벤토리에서 빠집니다. 레이블은 제공된 그대로 두세요.
 - **볼륨별, 호스트별 지연 시간은 세 가지 차원만 유지합니다.** 각 볼륨과 호스트는 최대 열여섯 가지 `dimension`으로 지연 시간을 내보냅니다. `metric_relabel_configs` 규칙이 `usec_per_read_op`, `usec_per_write_op`, `usec_per_mirrored_write_op`를 유지하고, 큰 어레이의 시리즈 수를 몇 배로 늘리는 QoS 속도 제한, 큐, SAN, 서비스 시간 내역은 버립니다. `purefa_array_performance_latency_usec`의 어레이 전체 내역은 유지됩니다. 볼륨별 내역도 유지하려면 이 규칙을 삭제하세요.
 - **API 토큰은 Bearer 토큰입니다.** 네이티브 구성은 이 토큰을 어레이 자체로 보냅니다. 익스포터 구성은 Compose 네트워크 안에서만 익스포터로 보내며, 익스포터의 포트는 절대 게시되지 않습니다.
+- **PowerStore는 5분마다.** Dell의 익스포터는 클러스터의 각 부분을 `/metrics/<cluster>/<part>`에서 제공합니다. 설정은 `cluster`(하트비트)를 60초마다, `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas`, `file`을 5분마다 읽습니다. PowerStore가 이 값들을 5분 샘플로 계산하기 때문입니다.
 - **`send_batch_max_size`가 없습니다.** OneUptime은 요청마다 스크레이프 한 번 전체로 인벤토리를 다시 만들기 때문에, 함께 제공되는 `batch` 프로세서는 스크레이프를 여러 내보내기로 나누지 않습니다. batch 설정은 제공된 그대로 두세요.
 
 ## 에이전트가 수집하는 것
@@ -179,8 +212,13 @@ Pure의 시맨틱 규칙은 FlashArray 네이티브 엔드포인트와 두 익�
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBlade의 이름, Purity 버전, 시스템 ID. 용량과 데이터 절감. 열린 경고 수. 어레이의 상태. **하드웨어** 페이지 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | **파일 시스템** 페이지: 파일 시스템별 프로비저닝 공간과 사용 공간, 데이터 절감, 지연 시간, IOPS와 대역폭 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | **버킷** 페이지: 버킷별 공간, 할당량, 객체 수, 성능. 계정별로 묶어 표시 |
+| PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | 클러스터의 이름과 상태. **어플라이언스** 페이지: 어플라이언스별 용량, 데이터 절감, 지연 시간, IOPS, 대역폭 |
+| PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | **하드웨어** 페이지: 노드, 팬, 전원 공급 장치, 배터리, 드라이브, 프런트엔드 포트와 각각의 어플라이언스 |
+| PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | **볼륨**, **볼륨 그룹**, **NAS 서버**, **파일 시스템** 페이지 |
 
 **모든 스토리지 어레이**의 **상태** 열은 어레이의 최신 데이터에서 어레이 자체의 알림과 하드웨어를 읽습니다. 열린 심각 알림이 있거나 하드웨어 구성 요소, 드라이브, 컨트롤러가 심각, 실패, 누락, 비정상 상태라고 보고하는 동안에는 **심각**, 열린 경고 알림이 있거나 저하 또는 알 수 없는 상태의 구성 요소를 보고하는 동안에는 **경고**, 그 밖에는 **OK**, 에이전트 연결이 끊긴 동안에는 **알 수 없음**입니다. 어레이의 **개요**는 다음 섹션처럼 더 많은 것을 판단합니다. 모니터 조건에서 어레이의 속성에는 `resource.` 접두사가 붙고(`resource.storage.array.name`, `resource.storage.system`), 데이터 포인트 레이블은 접두사 없이 그대로 씁니다(`name`, `host`, `dimension`, `space`).
+
+PowerStore의 경고는 로그로 들어오므로 PowerStore의 상태는 하드웨어의 상태입니다. 에이전트는 `powerstore_cap_physical_used_percent`와 `powerstore_filesystem_logical_used_percent`를 직접 계산하고, 노드의 상태는 Healthy인 동안 1로 읽습니다.
 
 ## 어레이 페이지에 표시되는 내용
 
@@ -194,7 +232,11 @@ Pure의 시맨틱 규칙은 FlashArray 네이티브 엔드포인트와 두 익�
 
 **호스트**, **복제**, **파일 시스템** 목록은 같은 규칙으로 각 부분의 상태를 보여 주며 그 아래에 이유가 표시됩니다. 호스트와 파일 시스템의 개별 페이지는 주의가 필요한 항목과 그것을 감시하는 어레이 경고를 보여 주며, 나머지를 켜는 것도 한 단계면 됩니다. 볼륨과 버킷을 포함한 모든 부분의 페이지는 열린 항목을 보여 줍니다. 에이전트 연결이 끊긴 동안 상태는 **상태: 알 수 없음**으로 표시됩니다. 어레이의 마지막 보고가 더 이상 사실이 아니기 때문입니다. 위의 각 기준선은 [스토리지 어레이 모니터](/docs/monitor/storage-array-monitor)에 나열된 대로 해당 경고 템플릿이 발생하는 수준입니다.
 
+PowerStore에서는 **어플라이언스**, **볼륨 그룹**, **NAS 서버** 탭에 PowerStore에만 있는 부분이 나열되고, **하드웨어** 페이지에는 각 부분의 어플라이언스가 표시됩니다. 모든 어플라이언스가 부분에 같은 이름을 붙이기 때문입니다.
+
 ## 선택 사항 — 어레이의 syslog 보내기
+
+PowerStore의 syslog 수집기는 제공된 그대로 실행됩니다([Dell PowerStore](#dell-powerstore) 참고). 이 섹션은 Pure의 어레이용입니다.
 
 기본적으로 에이전트는 메트릭만 보내므로 어레이의 **로그** 페이지는 비어 있습니다. 어레이는 경고와 감사 이벤트를 syslog로 전달하며, 함께 제공되는 모든 Collector 구성에는 주석 처리된 `syslog` 리시버 쌍(포트 5514의 TCP와 UDP, RFC 3164)이 있고, 이는 주석 처리된 `logs` 파이프라인에 연결되어 있습니다. 이 파이프라인이 `storage.array.name`을 붙이므로 로그가 어레이로 들어갑니다.
 
@@ -237,6 +279,8 @@ Collector는 시작할 때만 구성을 읽습니다. `docker compose restart on
 
 에이전트 하나는 어레이 하나를 읽습니다. 같은 머신에서 여러 어레이를 모니터링하려면 각각을 전용 `.env`가 있는 전용 폴더에 설치하고(예: `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`), 각각에 전용 `container_name`을 주세요(`docker-compose.yml`에서. 예: `oneuptime-storage-array-agent-fa02`). 두 컨테이너가 같은 이름을 가질 수는 없습니다. 진단 스크립트에는 `-d`로 폴더를 넘기세요.
 
+두 번째 PowerStore 에이전트에도 자체 syslog 포트가 필요합니다. `POWERSTORE_SYSLOG_PORT`를 예를 들어 `5515`로, 그 에이전트의 `.env`에서 설정하세요.
+
 ## systemd 서비스로 실행
 
 머신과 함께 에이전트를 시작하고 실패하면 다시 시작하게 하려면 systemd 유닛을 설치하세요. 이 유닛은 설치 스크립트가 에이전트를 두는 `/opt/oneuptime-storage-array-agent`에 에이전트가 있다고 가정합니다:
@@ -269,6 +313,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+PowerStore 에이전트는 `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile`, `powerstore-syslog.yaml`도 다시 내려받습니다. 새 릴리스가 태그를 옮기면 `docker compose up`이 익스포터의 이미지를 다시 빌드합니다.
+
 ## 에이전트 제거
 
 ```bash
@@ -277,6 +323,8 @@ docker compose down
 ```
 
 그런 다음 더 이상 필요하지 않다면 어레이에서 읽기 전용 사용자와 그 API 토큰을 삭제하세요.
+
+PowerStore에서는 `docker compose --profile powerstore down`을 실행해 익스포터와 syslog 수집기도 멈추게 하세요.
 
 ## 문제 해결
 
@@ -315,6 +363,10 @@ OneUptime이 15분 동안 어레이에서 아무것도 받지 못하면 어레�
 
 :::details pure-fa-exporter 또는 pure-fb-exporter의 이름을 확인할 수 없음
 익스포터가 실행되고 있지 않습니다. `COMPOSE_PROFILES`는 `STORAGE_ARRAY_COLLECTOR_CONFIG`와 맞아야 합니다(FlashArray 익스포터 구성에는 `flasharray-exporter`, FlashBlade 구성에는 `flashblade`). `.env`를 고치고 `docker compose up -d`를 실행하면 `docker compose ps`에 익스포터가 표시됩니다.
+:::
+
+:::details PowerStore가 아무것도 보내지 않음
+`docker compose logs powerstore-exporter`로 익스포터의 로그를 읽으세요. `401`은 사용자 이름이나 비밀번호가 틀렸다는 뜻이고, `403`이 `latest_five_min_metrics`에서 반환되면 사용자의 역할이 대량 메트릭 아카이브를 켤 수 없다는 뜻입니다(**Storage Operator**를 부여하거나, 4.1보다 오래된 PowerStoreOS에서는 `POWERSTORE_BULK_METRICS=false`를 설정하세요). 익스포터는 시작 후 응답하기까지 1분이 걸립니다. **로그** 페이지에 경고가 없다면 클러스터의 _Remote Logging_ 설정, 포트 5514의 방화벽, `docker compose logs powerstore-syslog`를 확인하세요.
 :::
 
 :::details 삭제한 볼륨이나 호스트가 인벤토리에 남아 있음

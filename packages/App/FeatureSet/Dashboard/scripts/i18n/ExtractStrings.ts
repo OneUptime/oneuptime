@@ -1406,6 +1406,11 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Server/Utils/Monitor/MonitorAlert.ts",
     kind: "keys",
   },
+  // What reached a monitor that was not being checked, and why (#11141).
+  {
+    directory: "packages/Common/Server/Utils/Monitor/MonitorNotEvaluated.ts",
+    kind: "keys",
+  },
   {
     directory:
       "packages/Common/Server/Utils/Monitor/MonitorMaintenanceSuppression.ts",

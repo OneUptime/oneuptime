@@ -34,14 +34,14 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * rewriting the table. The two new tables are empty, so their indexes and
  * keys lock nothing for long. The index and the key on "cloudCostGroupId",
  * a column of a table that holds rows, are built online in
- * AddCloudBudgetCostGroupIndexAndKey1809187751018.
+ * AddCloudBudgetCostGroupIndexAndKey1809187761018.
  */
 export const CLOUD_BUDGET_ACCOUNT_SCOPE_UPDATE: string = `UPDATE "CloudBudget" SET "scope" = 'account' WHERE "cloudAccountId" IS NOT NULL`;
 
-export class AddCloudBudgetScopesPeriodsAndPlans1809187751008
+export class AddCloudBudgetScopesPeriodsAndPlans1809187761008
   implements MigrationInterface
 {
-  public name: string = "AddCloudBudgetScopesPeriodsAndPlans1809187751008";
+  public name: string = "AddCloudBudgetScopesPeriodsAndPlans1809187761008";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

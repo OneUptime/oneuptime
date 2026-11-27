@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from "typeorm";
 
 /*
  * Generated with npm run generate-postgres-migration alongside
- * AddCloudBudgetScopesPeriodsAndPlans1809187751008, and moved into a
+ * AddCloudBudgetScopesPeriodsAndPlans1809187761008, and moved into a
  * migration of its own: "CloudBudget" holds rows, and its budgets are
  * written by the worker every hour. So the index on the new
  * "cloudCostGroupId" column is built online, and its key to
@@ -19,10 +19,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * Safe to run again after a stop part way: an index or key that is already
  * there is left as it is.
  */
-export class AddCloudBudgetCostGroupIndexAndKey1809187751018
+export class AddCloudBudgetCostGroupIndexAndKey1809187761018
   implements MigrationInterface
 {
-  public name: string = "AddCloudBudgetCostGroupIndexAndKey1809187751018";
+  public name: string = "AddCloudBudgetCostGroupIndexAndKey1809187761018";
 
   // CREATE INDEX CONCURRENTLY and the validation run outside a transaction.
   public transaction: boolean = false;

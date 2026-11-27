@@ -271,6 +271,30 @@
       "alerts": []
     }
   ],
+  "XCP-ng": [
+    {
+      "name": "Check if Acme Checkout is offline",
+      "description": "This criteria checks if the Acme Checkout has stopped sending data.",
+      "incidents": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ],
+      "alerts": [
+        {
+          "title": "Acme Checkout is offline",
+          "description": "Acme Checkout has sent no data for the whole evaluation window."
+        }
+      ]
+    },
+    {
+      "name": "Check if Acme Checkout is online",
+      "description": "This criteria checks if the Acme Checkout is sending data.",
+      "incidents": [],
+      "alerts": []
+    }
+  ],
   "Ceph": [
     {
       "name": "Check if Acme Checkout is offline",

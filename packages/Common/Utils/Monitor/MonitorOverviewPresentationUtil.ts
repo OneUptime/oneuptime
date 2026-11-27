@@ -267,6 +267,14 @@ export interface MonitorOverviewPresentationInput {
     isDisabled: boolean;
     byManualIncident: boolean;
     byScheduledMaintenance: boolean;
+    /*
+     * Paused by incidents declared by hand that put it in no status: its
+     * status is only what its last check saw, so its time is left out of
+     * uptime from the pause on, as the newest status event marks it
+     * (MonitorStatusTimeline.isMonitoringOff, issue #11141). Unset reads as
+     * counted.
+     */
+    isLeftOutOfUptime?: boolean | undefined;
   };
   probeFlags: { isNoProbeEnabled: boolean; isAllProbesDisconnected: boolean };
   // Null when the probes are unknown (forbidden or failed to load).
@@ -364,6 +372,11 @@ export interface MonitorOverviewPresentation {
    * that time out (MonitorStatusTimeline.isMonitoringOff, issue #6480).
    */
   isMonitoringOff?: boolean | undefined;
+  /*
+   * Paused by an incident declared by hand that put it in no status: its
+   * uptime windows leave the paused time out too (issue #11141).
+   */
+  isPausedTimeLeftOut?: boolean | undefined;
   facts: Array<MonitorOverviewFact>;
   target: MonitorOverviewTarget | null;
   sections: MonitorOverviewSections;
@@ -466,8 +479,12 @@ const PAUSED_EXPLANATION: Record<
   disabled: translationKey(
     "No checks run while monitoring is off, so the status stays at the last one recorded.",
   ),
+  /*
+   * And how to keep it checked (issue #11141): Keep monitoring during
+   * incidents, on its Settings page, resumes it now and for the next one.
+   */
   incident: translationKey(
-    "Checks resume when the incident that paused this monitor is resolved.",
+    "Checks resume when the incident that paused this monitor is resolved. To keep checking during incidents, turn on Keep monitoring during incidents in Settings.",
   ),
   maintenance: translationKey(
     "Checks resume automatically when the maintenance event ends.",
@@ -634,6 +651,9 @@ export default class MonitorOverviewPresentationUtil {
       freshness: context.freshness.freshness,
       isNeverReported: MonitorOverviewPresentationUtil.isNeverReported(context),
       isMonitoringOff: input.pause.isDisabled === true,
+      isPausedTimeLeftOut:
+        input.pause.byManualIncident === true &&
+        input.pause.isLeftOutOfUptime === true,
       facts: MonitorOverviewPresentationUtil.getFacts(input, context),
       target: MonitorOverviewTargetUtil.getTarget({
         monitorType: input.monitorType,
@@ -681,17 +701,24 @@ export default class MonitorOverviewPresentationUtil {
    * Monitoring turned off is the exception (issue #6480): that time is not
    * counted but left out, from the moment it was turned off, whatever the
    * monitor's kind, so the windows say that instead - measured over less
-   * than their length. Archived, or paused by an incident or a scheduled
-   * maintenance event, the last status still counts: "paused".
+   * than their length. So is a pause by incidents declared by hand that put
+   * the monitor in no status (issue #11141): "paused-left-out". Archived, or
+   * paused by an incident that put it in a status or by a scheduled
+   * maintenance event, the status still counts: "paused".
    */
   public static getUptimeCaveat(
     presentation: Pick<
       MonitorOverviewPresentation,
       "family" | "runState" | "isNeverReported" | "isMonitoringOff"
-    >,
+    > &
+      Partial<Pick<MonitorOverviewPresentation, "isPausedTimeLeftOut">>,
   ): MonitorUptimeCaveat | null {
     if (presentation.isMonitoringOff) {
       return "monitoring-off";
+    }
+
+    if (presentation.isPausedTimeLeftOut) {
+      return "paused-left-out";
     }
 
     if (presentation.family === MonitorOverviewFamily.Manual) {

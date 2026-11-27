@@ -1208,8 +1208,9 @@ import { AddCloudSavingsActions1809187721010 } from "./1809187721010-AddCloudSav
 import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-AddCloudCostBasesAndCommitments";
 import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
 import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
-import { AddCloudBudgetScopesPeriodsAndPlans1809187751008 } from "./1809187751008-AddCloudBudgetScopesPeriodsAndPlans";
-import { AddCloudBudgetCostGroupIndexAndKey1809187751018 } from "./1809187751018-AddCloudBudgetCostGroupIndexAndKey";
+import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-AddKeepMonitoringDuringIncidents";
+import { AddCloudBudgetScopesPeriodsAndPlans1809187761008 } from "./1809187761008-AddCloudBudgetScopesPeriodsAndPlans";
+import { AddCloudBudgetCostGroupIndexAndKey1809187761018 } from "./1809187761018-AddCloudBudgetCostGroupIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2422,6 +2423,7 @@ export default [
   AddCloudCostBasesAndCommitments1809187721011,
   AddSanSwitchFibreChannelColumns1809187731166,
   AddSecurityUserErasureRequestProgress1809187741160,
-  AddCloudBudgetScopesPeriodsAndPlans1809187751008,
-  AddCloudBudgetCostGroupIndexAndKey1809187751018,
+  AddKeepMonitoringDuringIncidents1809187751141,
+  AddCloudBudgetScopesPeriodsAndPlans1809187761008,
+  AddCloudBudgetCostGroupIndexAndKey1809187761018,
 ];

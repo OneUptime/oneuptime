@@ -423,6 +423,12 @@ De volledige payload is ernaast beschikbaar, dus zowel een incidenttitel `{{aler
 
 Een volledige Alertmanager-configuratie vindt u onder [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager). Voor Grafana, zie [Grafana](/docs/integrations/grafana).
 
+### Gecontroleerd houden tijdens incidenten
+
+Een incident dat iemand op deze monitor meldt — vanuit een van zijn waarschuwingen bijvoorbeeld, met **Incident melden** — pauzeert zijn controles tot het incident is opgelost, dus de verzoeken die in de tussentijd binnenkomen, worden niet getoetst: ze openen en sluiten geen waarschuwingen. Elk ervan staat nog steeds in de **Monitoringlogboeken** van de monitor, zoals het binnenkwam, met de reden waarom het niet is getoetst.
+
+Voor een monitor waar andere systemen hun waarschuwingen naartoe sturen, zou een incident over één waarschuwing hem niet moeten tegenhouden de volgende te lezen. Open de **Instellingen** van de monitor en zet op de kaart **Tijdens incidenten** de schakelaar **Bewaking voortzetten tijdens incidenten** aan: incidenten die op hem worden gemeld, laten hem dan gecontroleerd, ook die al open zijn. Om hem voor één incident gecontroleerd te houden, vinkt u **Bewaking pauzeren** uit wanneer u het meldt. Zie [Bewaking terwijl een incident open is](/docs/incidents/declaring-incidents#bewaking-terwijl-een-incident-open-is).
+
 ## In Slack plaatsen zonder iemand op te roepen
 
 Een stagingomgeving, of een product waarvan de problemen kunnen wachten, wil een verzoek misschien in een chatkanaal plaatsen zonder iemand op te roepen. Een waarschuwing die geen bereikbaarheidsbeleid noemt doet dat: ze wordt via de werkruimteregels van het project in Slack, Microsoft Teams of Mattermost geplaatst en start geen escalatie.
@@ -506,11 +512,16 @@ Event Grid valideert een endpoint dat een code naar Event Grid terugstuurt, of w
 3. **Gebruik POST met `Content-Type: application/json`**: alles wat in de body leest, hangt daarvan af.
 4. **Meng de twee taken niet op één monitor**: een monitor die gebeurtenisgestuurde waarschuwingen ontvangt, heeft geen vast ritme, dus een criterium "Niet ontvangen in minuten" daarop zou steeds omslaan. Gebruik een aparte monitor voor de dodemansknop.
 5. **Bewaak de bewaker**: zorg dat de service die de verzoeken stuurt, fouten goed afhandelt, zodat mislukte verzoeken niet onopgemerkt blijven.
+6. **Houd een ontvanger van gebeurtenissen gecontroleerd tijdens incidenten**: zet bij een monitor die waarschuwingen van een ander systeem ontvangt **Bewaking voortzetten tijdens incidenten** aan in zijn **Instellingen**, zodat een incident dat erop wordt gemeld hem niet pauzeert. Zie [Gecontroleerd houden tijdens incidenten](#gecontroleerd-houden-tijdens-incidenten).
 
 ## Probleemoplossing
 
 :::details Mijn afzender krijgt een 200, maar op de monitor verschijnt niets
 De `200` wordt verstuurd voordat het verzoek wordt gecontroleerd, dus hij bewijst niet dat het verzoek is aanvaard. Controleer of de geheime sleutel in de URL overeenkomt met de **Heartbeat URL** van de monitor, en of de monitor niet is uitgeschakeld. Kijk daarna in de tijdlijn van de monitor of er verzoeken aankomen.
+:::
+
+:::details Er komen verzoeken binnen, maar de monitor opent geen waarschuwingen terwijl een incident open is
+Een incident dat met de hand op de monitor is gemeld, pauzeert zijn controles, dus zijn verzoeken staan in zijn **Monitoringlogboeken** als **Niet geëvalueerd: monitoring is gepauzeerd door een incident**, en de banner op zijn pagina's zegt het. Zet **Bewaking voortzetten tijdens incidenten** aan in zijn **Instellingen**: zijn controles starten meteen weer, en de volgende verzoeken worden getoetst. De verzoeken die werden vermeld terwijl hij gepauzeerd was, worden achteraf niet getoetst. Zie [Gecontroleerd houden tijdens incidenten](#gecontroleerd-houden-tijdens-incidenten).
 :::
 
 :::details Mijn afzender krijgt een 401

@@ -24,6 +24,10 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
       monitorResource: jest.fn(() => {
         return Promise.resolve({});
       }),
+      // Lists what a monitor that is not being checked received (#11141).
+      listNotEvaluated: jest.fn(() => {
+        return Promise.resolve();
+      }),
     },
   };
 });
@@ -127,6 +131,7 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import ObjectID from "Common/Types/ObjectID";
+import { MonitorPauseReason } from "Common/Utils/Monitor/MonitorPauseState";
 import {
   afterEach,
   beforeEach,
@@ -146,6 +151,8 @@ const ARRIVED_AT: Date = new Date("2026-10-05T12:19:00.000Z");
 
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
+const listNotEvaluated: jest.Mock =
+  MonitorResourceUtil.listNotEvaluated as unknown as jest.Mock;
 const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 const trackMock: jest.Mock =
   IncomingRequestReceivedAtStore.track as unknown as jest.Mock;
@@ -298,15 +305,46 @@ describe("processIncomingRequestFromQueue records when the heartbeat arrived", (
     );
   });
 
-  test("a paused monitor never touches the store", async () => {
+  /*
+   * #11141: it used to be dropped before the store, so a sender that kept
+   * sending through a pause read as silent the moment checks resumed. Its
+   * arrival now counts for the heartbeat, and the request is listed in the
+   * monitor's Logs as not evaluated, with the arrival the store answered.
+   */
+  test("a paused monitor's request still counts as an arrival, and is listed rather than evaluated", async () => {
     const paused: Monitor = activeMonitor();
     paused.disableActiveMonitoring = true;
     findOneBy.mockResolvedValue(paused as never);
 
-    await processIncomingRequestFromQueue(job(ARRIVED_AT.toISOString()));
+    await expect(
+      processIncomingRequestFromQueue(job(ARRIVED_AT.toISOString())),
+    ).resolves.toBe(false);
 
-    expect(trackMock).not.toHaveBeenCalled();
+    expect(trackMock).toHaveBeenCalledTimes(1);
+    const input: { secretKey: string; receivedAt: Date } = trackMock.mock
+      .calls[0]![0] as { secretKey: string; receivedAt: Date };
+    expect(input.secretKey).toBe(SECRET_KEY);
+    expect(input.receivedAt.getTime()).toBe(ARRIVED_AT.getTime());
+
     expect(monitorResource).not.toHaveBeenCalled();
+    expect(listNotEvaluated).toHaveBeenCalledTimes(1);
+
+    const listed: {
+      dataToProcess: IncomingMonitorRequest;
+      reason: MonitorPauseReason;
+    } = listNotEvaluated.mock.calls[0]![0] as {
+      dataToProcess: IncomingMonitorRequest;
+      reason: MonitorPauseReason;
+    };
+
+    expect(listed.reason).toBe(MonitorPauseReason.Disabled);
+    expect(listed.dataToProcess.incomingRequestReceivedAt.getTime()).toBe(
+      ARRIVED_AT.getTime(),
+    );
+    expect(listed.dataToProcess.checkedAt.getTime()).toBe(NOW.getTime());
+    expect(listed.dataToProcess.onlyCheckForIncomingRequestReceivedAt).toBe(
+      false,
+    );
   });
 
   /*
