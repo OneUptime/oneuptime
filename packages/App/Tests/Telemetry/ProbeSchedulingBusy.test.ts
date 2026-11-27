@@ -1,5 +1,6 @@
 import { mockRouter } from "Common/Tests/Server/API/Helpers";
 import Response from "Common/Server/Utils/Response";
+import logger from "Common/Server/Utils/Logger";
 import GlobalCache from "Common/Server/Infrastructure/GlobalCache";
 import MonitorProbeService from "Common/Server/Services/MonitorProbeService";
 import MonitorTestService from "Common/Server/Services/MonitorTestService";
@@ -185,6 +186,8 @@ const responseUtil: {
 const cache: { getString: AnyMock; setString: AnyMock } =
   GlobalCache as unknown as { getString: AnyMock; setString: AnyMock };
 
+const loggerError: AnyMock = (logger as unknown as { error: AnyMock }).error;
+
 const monitorProbeService: {
   claimMonitorProbesForProbing: AnyMock;
   countMonitorProbesDueForProbing: AnyMock;
@@ -201,12 +204,17 @@ const deviceService: { claimDevicesForPolling: AnyMock } =
 
 const PROBE_ID: ObjectID = new ObjectID("1f7e3c2a-9b4d-4e6f-8a0c-2d4b6f8a0c11");
 
-// An HTTP response: answers once, then says it finished and closed.
+/*
+ * An HTTP response: answers once, then says it finished and closed. As
+ * Node's does, it says it is destroyed and closed from its "close" on.
+ */
 class FakeResponse extends EventEmitter {
   public statusCode: number = 200;
   public headers: Record<string, string> = {};
   public body: unknown = undefined;
   public writableFinished: boolean = false;
+  public destroyed: boolean = false;
+  public closed: boolean = false;
 
   public status(code: number): this {
     this.statusCode = code;
@@ -227,11 +235,17 @@ class FakeResponse extends EventEmitter {
   public finish(): void {
     this.writableFinished = true;
     this.emit("finish");
-    this.emit("close");
+    this.close();
   }
 
   // The client hangs up before an answer.
   public hangUp(): void {
+    this.close();
+  }
+
+  private close(): void {
+    this.destroyed = true;
+    this.closed = true;
     this.emit("close");
   }
 }
@@ -426,6 +440,94 @@ describe("ProbeSchedulingMiddleware", () => {
     expect(next).not.toHaveBeenCalled();
     expect(res.body).toBeUndefined();
     expect(limiter.runningCount()).toBe(0);
+  });
+
+  /*
+   * The probe gave up on its own deadline while its request was still being
+   * authenticated (ProbeAuthorization, on a slow database or Valkey): its
+   * "close" has been and gone, so nothing would give a slot taken now back.
+   */
+  test("a probe that hung up before its request reached the limit takes no slot, and its request never runs", async () => {
+    const res: FakeResponse = new FakeResponse();
+    res.hangUp();
+
+    const next: AnyMock = jest.fn() as unknown as AnyMock;
+    await limit(makeRequest({}), asExpress(res), next as NextFunction);
+
+    expect(next).not.toHaveBeenCalled();
+    expect(emptyAnswer).not.toHaveBeenCalled();
+    expect(res.body).toBeUndefined();
+    expect(limiter.runningCount()).toBe(0);
+    expect(limiter.waitingCount()).toBe(0);
+  });
+
+  test("a request handed its slot as its probe hangs up gives the slot straight back, and never runs", async () => {
+    const held: KeyedConcurrencyRelease = await limiter.acquire("other");
+    const res: FakeResponse = new FakeResponse();
+    const next: AnyMock = jest.fn() as unknown as AnyMock;
+    const waiting: Promise<void> = limit(
+      makeRequest({}),
+      asExpress(res),
+      next as NextFunction,
+    );
+    await settle();
+    expect(limiter.waitingCount()).toBe(1);
+
+    // Gone, with the "close" that would have taken it out of the queue missed.
+    res.destroyed = true;
+    res.closed = true;
+    held();
+    await waiting;
+
+    expect(next).not.toHaveBeenCalled();
+    expect(limiter.runningCount()).toBe(0);
+  });
+
+  test("a slot neither answered nor hung up on is given back after its longest hold, and the log says so", async () => {
+    const holdLimit: ProbeSchedulingMiddlewareFunction =
+      ProbeSchedulingMiddleware.limit(emptyAnswer, {
+        limiter,
+        maxSlotHoldMs: 20,
+      });
+    const res: FakeResponse = new FakeResponse();
+    const next: AnyMock = jest.fn() as unknown as AnyMock;
+
+    await holdLimit(makeRequest({}), asExpress(res), next as NextFunction);
+    expect(next).toHaveBeenCalledWith();
+    expect(limiter.runningCount()).toBe(1);
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 80);
+    });
+
+    expect(limiter.runningCount()).toBe(0);
+    expect(loggerError).toHaveBeenCalledTimes(1);
+    expect(String(loggerError.mock.calls[0]![0])).toContain(
+      `probe ${PROBE_ID.toString()}`,
+    );
+
+    // An answer that comes after all gives nothing more back.
+    res.send([]);
+    expect(limiter.runningCount()).toBe(0);
+  });
+
+  test("an answered request's longest hold is called off with its answer", async () => {
+    const holdLimit: ProbeSchedulingMiddlewareFunction =
+      ProbeSchedulingMiddleware.limit(emptyAnswer, {
+        limiter,
+        maxSlotHoldMs: 20,
+      });
+    const res: FakeResponse = new FakeResponse();
+
+    await holdLimit(makeRequest({}), asExpress(res), jest.fn() as NextFunction);
+    res.send([]);
+    expect(limiter.runningCount()).toBe(0);
+
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 80);
+    });
+
+    expect(loggerError).not.toHaveBeenCalled();
   });
 
   test("a probe declares retryWhenBusy only with the capability in its body", () => {

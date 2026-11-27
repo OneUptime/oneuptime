@@ -168,6 +168,20 @@ const CloudSideMenu: FunctionComponent = (): ReactElement => {
           },
           icon: IconProp.Tag,
         },
+        /*
+         * Scheduled cost reports (#11009): what the clouds cost, emailed
+         * weekly or monthly to each team, and posted to Slack and
+         * Microsoft Teams.
+         */
+        {
+          link: {
+            title: "Reports",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.CLOUD_REPORTS] as Route,
+            ),
+          },
+          icon: IconProp.Report,
+        },
       ],
     },
     {

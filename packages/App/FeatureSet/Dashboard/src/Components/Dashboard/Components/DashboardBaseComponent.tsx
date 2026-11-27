@@ -24,6 +24,7 @@ import DashboardLogChartComponent from "./DashboardLogChartComponent";
 import DashboardSecurityEventsListComponent from "./DashboardSecurityEventsListComponent";
 import DashboardSecurityEventsFlowComponent from "./DashboardSecurityEventsFlowComponent";
 import DashboardProductAnalyticsFunnelComponent from "./DashboardProductAnalyticsFunnelComponent";
+import DashboardCloudCostComponent from "./DashboardCloudCostComponent";
 import DashboardProductAnalyticsRetentionComponent from "./DashboardProductAnalyticsRetentionComponent";
 import DashboardTraceListComponent from "./DashboardTraceListComponent";
 import DashboardTraceChartComponent from "./DashboardTraceChartComponent";
@@ -216,6 +217,7 @@ const WIDGET_BY_TYPE: Partial<
     DashboardSecurityEventsFlowComponent,
   [DashboardComponentType.ProductAnalyticsFunnel]:
     DashboardProductAnalyticsFunnelComponent,
+  [DashboardComponentType.CloudCost]: DashboardCloudCostComponent,
   [DashboardComponentType.ProductAnalyticsRetention]:
     DashboardProductAnalyticsRetentionComponent,
   [DashboardComponentType.TraceList]: DashboardTraceListComponent,

@@ -117,7 +117,7 @@ Conclua a verificação como o e-mail indicar.
 Se outro e-mail chegou desde então, o cartão não mostra mais o e-mail de verificação. Abra **Registros de monitoramento**, encontre o e-mail de verificação pelo assunto na coluna **E-mail** e clique em **Ver resumo** nessa linha.
 
 > [!IMPORTANT]
-> **Seus critérios também o veem.** O e-mail de verificação é avaliado como qualquer outro e-mail. Uma frase como "if you received this in error" corresponde ao critério padrão `error` e marca o monitor como offline. Para evitar isso, desligue **Verificar este monitor** no cartão **Monitoramento** da página **Configurações** do monitor enquanto verifica (ele pede confirmação). Um monitor com o monitoramento desligado continua registrando o e-mail, e o cartão **Resumo do monitor** continua mostrando-o. Mas ele não avalia nada, então o e-mail não ganha uma linha em **Registros de monitoramento**: leia-o antes que chegue outro e-mail. Ao terminar, clique em **Ligar o monitoramento** no banner no topo das páginas do monitor, ou ligue o interruptor de novo.
+> **Seus critérios também o veem.** O e-mail de verificação é avaliado como qualquer outro e-mail. Uma frase como "if you received this in error" corresponde ao critério padrão `error` e marca o monitor como offline. Para evitar isso, desligue **Verificar este monitor** no cartão **Monitoramento** da página **Configurações** do monitor enquanto verifica (ele pede confirmação). Um monitor com o monitoramento desligado continua registrando o e-mail, e o cartão **Resumo do monitor** continua mostrando-o. Mas ele não avalia nada: a linha do e-mail em **Registros de monitoramento** diz que ele não foi avaliado, e **Ver resumo** nela mostra o e-mail inteiro. Ao terminar, clique em **Ligar o monitoramento** no banner no topo das páginas do monitor, ou ligue o interruptor de novo.
 
 **A verificação pertence ao endereço.** Se você [redefinir ou personalizar o endereço](#redefinir-ou-personalizar-o-endereço-de-e-mail), o serviço vê um novo destinatário, e você precisa verificar de novo.
 
@@ -186,6 +186,8 @@ O endereço do próprio monitor é mascarado antes de qualquer critério ler o e
 Todas essas comparações não diferenciam maiúsculas de minúsculas. Um filtro com valor vazio nunca corresponde.
 
 ### Filtros de tempo (E-mail recebido)
+
+O painel em inglês escreve essas condições como "Recieved".
 
 | Condição do filtro | Descrição | Exemplo |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Clique em **Mostrar mais detalhes** para ver o resto:
 
 ### E-mails anteriores
 
-O cartão só mostra o e-mail mais recente. Cada e-mail que o monitor avalia também é gravado em **Registros de monitoramento**: a coluna **E-mail** mostra o assunto e o remetente dele, e **Ver resumo** na linha dele mostra o e-mail inteiro do mesmo jeito que o cartão. Um monitor com o monitoramento desligado não avalia nada, então os e-mails que ele recebe não ganham linhas. Se um dos seus critérios verificar **E-mail recebido**, o monitor também grava uma linha a cada verificação de e-mail ausente. A coluna **E-mail** mostra "Scheduled check" nessas linhas, e o **Ver resumo** delas mostra o e-mail mais recente no momento da verificação, ou "No email yet" se nenhum tinha chegado. Os registros de monitoramento são mantidos por um dia por padrão. Em um servidor auto-hospedado, um administrador pode mudar isso com **Retenção de Registros do Monitor (Dias)** nas configurações do Admin Dashboard.
+O cartão só mostra o e-mail mais recente. Cada e-mail que o monitor avalia também é gravado em **Registros de monitoramento**: a coluna **E-mail** mostra o assunto e o remetente dele, e **Ver resumo** na linha dele mostra o e-mail inteiro do mesmo jeito que o cartão. Um monitor que não está sendo verificado — com o monitoramento desligado, ou pausado por um incidente ou um evento de manutenção — não avalia nada, então cada e-mail que ele recebe ganha uma linha que diz que ele não foi avaliado, e por quê. Se um dos seus critérios verificar **E-mail recebido**, o monitor também grava uma linha a cada verificação de e-mail ausente. A coluna **E-mail** mostra "Scheduled check" nessas linhas, e o **Ver resumo** delas mostra o e-mail mais recente no momento da verificação, ou "No email yet" se nenhum tinha chegado.
+
+Os registros de monitoramento são mantidos por um dia por padrão. Em um servidor auto-hospedado, um administrador pode mudar isso com **Retenção de Registros do Monitor (Dias)** nas configurações do Admin Dashboard.
 
 ## Configuração auto-hospedada
 

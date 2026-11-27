@@ -1,0 +1,165 @@
+# HELP powerstore_metricVolume_avg_io_size Average size of read and write operations in bytes.unit is bytes
+# TYPE powerstore_metricVolume_avg_io_size gauge
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 24576
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 24576
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 24576
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 24576
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 24576
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 24576
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 24576
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 24576
+powerstore_metricVolume_avg_io_size{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 24576
+# HELP powerstore_metricVolume_avg_latency Average read and write latency in microseconds,unit is ms
+# TYPE powerstore_metricVolume_avg_latency gauge
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 549
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 723
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 1245
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 897
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 1071
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 375
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 593
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 767
+powerstore_metricVolume_avg_latency{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 869
+# HELP powerstore_metricVolume_avg_read_bandwidth Read rate in bytes per second,unit is bps
+# TYPE powerstore_metricVolume_avg_read_bandwidth gauge
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 5.2068352e+07
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 6.4815104e+07
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 1.0305536e+08
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 7.7561856e+07
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 9.0308608e+07
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 0
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 1.28548864e+08
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 1.41295616e+08
+powerstore_metricVolume_avg_read_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 1.15802112e+08
+# HELP powerstore_metricVolume_avg_read_iops Total read operations per second,unit is iops
+# TYPE powerstore_metricVolume_avg_read_iops gauge
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 1589
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 1978
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 3145
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 2367
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 2756
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 0
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 3923
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 4312
+powerstore_metricVolume_avg_read_iops{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 3534
+# HELP powerstore_metricVolume_avg_read_latency Average read latency in microseconds,unit is ms
+# TYPE powerstore_metricVolume_avg_read_latency gauge
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 437
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 574
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 985
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 711
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 848
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 300
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 359
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 496
+powerstore_metricVolume_avg_read_latency{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 1122
+# HELP powerstore_metricVolume_avg_read_size Average read size in bytes.unit is bytes
+# TYPE powerstore_metricVolume_avg_read_size gauge
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 32768
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 32768
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 32768
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 32768
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 32768
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 32768
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 32768
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 32768
+powerstore_metricVolume_avg_read_size{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 32768
+# HELP powerstore_metricVolume_avg_total_bandwidth Total data transfer rate in bytes per second,unit is bps
+# TYPE powerstore_metricVolume_avg_total_bandwidth gauge
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 6.6207744e+07
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 8.3263488e+07
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 1.3443072e+08
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 1.00319232e+08
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 1.17374976e+08
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 0
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 1.68542208e+08
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 1.85597952e+08
+powerstore_metricVolume_avg_total_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 1.51486464e+08
+# HELP powerstore_metricVolume_avg_total_iops Total read and write operations per second,unit is iops
+# TYPE powerstore_metricVolume_avg_total_iops gauge
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 2452
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 3104
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 5060
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 3756
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 4408
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 0
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 6364
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 7016
+powerstore_metricVolume_avg_total_iops{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 5712
+# HELP powerstore_metricVolume_avg_write_bandwidth Write rate in bytes per second,unit is bps
+# TYPE powerstore_metricVolume_avg_write_bandwidth gauge
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 1.4139392e+07
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 1.8448384e+07
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 3.137536e+07
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 2.2757376e+07
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 2.7066368e+07
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 0
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 3.9993344e+07
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 4.4302336e+07
+powerstore_metricVolume_avg_write_bandwidth{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 3.5684352e+07
+# HELP powerstore_metricVolume_avg_write_iops Total write operations per second,unit is iops
+# TYPE powerstore_metricVolume_avg_write_iops gauge
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 863
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 1126
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 1915
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 1389
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 1652
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 0
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 2441
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 2704
+powerstore_metricVolume_avg_write_iops{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 2178
+# HELP powerstore_metricVolume_avg_write_latency Average write latency in microseconds,unit is ms
+# TYPE powerstore_metricVolume_avg_write_latency gauge
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 661
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 872
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 1505
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 1083
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 1294
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 450
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 827
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 1038
+powerstore_metricVolume_avg_write_latency{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 616
+# HELP powerstore_metricVolume_avg_write_size Average write size in bytes.unit is bytes
+# TYPE powerstore_metricVolume_avg_write_size gauge
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-data"} 16384
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A1",volume_id="oracle-prod-redo"} 16384
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A1",volume_id="sql-prod-01"} 16384
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-01"} 16384
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A1",volume_id="vmware-ds-02"} 16384
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A2",volume_id="archive-legacy"} 16384
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A2",volume_id="backup-landing"} 16384
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A2",volume_id="sql-prod-logs"} 16384
+powerstore_metricVolume_avg_write_size{IP="fake-powerstore",appliance_id="A2",volume_id="vdi-gold-01"} 16384
+# HELP powerstore_volume_logical_used The usage size of the virtual volume in bytes，unit is B
+# TYPE powerstore_volume_logical_used gauge
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A1",name="oracle-prod-data"} 3.18858372055e+12
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A1",name="oracle-prod-redo"} 2.2548578304e+11
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A1",name="sql-prod-01"} 1.539316278886e+12
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A1",name="vmware-ds-01"} 7.916483719987e+12
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A1",name="vmware-ds-02"} 3.408486046106e+12
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A2",name="archive-legacy"} 6.59706976666e+11
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A2",name="backup-landing"} 2.0450916276634e+13
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A2",name="sql-prod-logs"} 1.2884901888e+11
+powerstore_volume_logical_used{IP="fake-powerstore",appliance_id="A2",name="vdi-gold-01"} 1.209462790554e+12
+# HELP powerstore_volume_size The size of the virtual volume in bytes,unit is B
+# TYPE powerstore_volume_size gauge
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A1",name="oracle-prod-data"} 4.398046511104e+12
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A1",name="oracle-prod-redo"} 5.49755813888e+11
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A1",name="sql-prod-01"} 2.199023255552e+12
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A1",name="vmware-ds-01"} 1.099511627776e+13
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A1",name="vmware-ds-02"} 1.099511627776e+13
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A2",name="archive-legacy"} 1.099511627776e+12
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A2",name="backup-landing"} 2.199023255552e+13
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A2",name="sql-prod-logs"} 5.49755813888e+11
+powerstore_volume_size{IP="fake-powerstore",appliance_id="A2",name="vdi-gold-01"} 4.398046511104e+12
+# HELP powerstore_volume_state Migration session states,1 is ready ,0 is other
+# TYPE powerstore_volume_state gauge
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A1",name="oracle-prod-data"} 1
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A1",name="oracle-prod-redo"} 1
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A1",name="sql-prod-01"} 1
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A1",name="vmware-ds-01"} 1
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A1",name="vmware-ds-02"} 1
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A2",name="archive-legacy"} 0
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A2",name="backup-landing"} 1
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A2",name="sql-prod-logs"} 1
+powerstore_volume_state{IP="fake-powerstore",appliance_id="A2",name="vdi-gold-01"} 1

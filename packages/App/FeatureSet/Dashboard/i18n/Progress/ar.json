@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66171,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -219,6 +219,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmark",
+    "PowerStore",
     "PromQL",
     "Purity CLI",
     "RTT",
@@ -399,6 +400,7 @@
     "public",
     "pve-production",
     "resolved",
+    "root",
     "s",
     "security-alerts",
     "sensor-001",

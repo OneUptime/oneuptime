@@ -2,9 +2,11 @@
 
 스토리지 어레이 모니터는 스토리지 어레이 하나를 지켜보며, 어레이가 자체 경고를 올리거나, 공간이 부족해지거나, 느려지거나, 하드웨어나 호스트 경로를 잃거나, 복제가 뒤처질 때 알려 줍니다. Pure Storage FlashArray와 Pure Storage FlashBlade를 지원하며, 어레이가 직접 내보내는 메트릭(Pure의 `purefa_*` 및 `purefb_*` 시리즈)을 읽습니다. 이 메트릭은 OneUptime Storage Array Agent가 수집합니다.
 
+Dell PowerStore(`dell.powerstore`)에서도 Dell의 `powerstore_*` 시리즈로 동작합니다.
+
 :::cards
 - [모니터 만들기](#스토리지-어레이-모니터-만들기): 대시보드에서 여섯 단계.
-- [템플릿](#미리-만든-경고-템플릿): 미리 만든 경고 스무 개. 볼륨, 호스트, 구성 요소마다 인시던트 하나.
+- [템플릿](#미리-만든-경고-템플릿): 미리 만든 경고. 볼륨, 호스트, 어플라이언스, 구성 요소마다 인시던트 하나.
 - [Pure 시리즈의 작동 방식](#pure-시리즈의-구조): 메트릭 이름 하나에 여러 수치.
 - [메트릭](#수집되는-메트릭): 모니터가 경고를 보낼 수 있는 모든 시리즈.
 :::
@@ -87,6 +89,8 @@ flowchart TB
 
 에이전트는 어레이 엔드포인트를 60초마다, 볼륨, 호스트, 파드를 2분마다 읽으므로 5분 기간에는 항상 샘플이 있습니다. FlashBlade의 파일 시스템과 버킷은 5분마다 읽고(그래서 15분), FlashArray 디렉터리는 30분마다 읽습니다. 디렉터리 모니터에는 60분 기간을 주세요.
 
+PowerStore는 5분마다, 그 클러스터의 상태는 60초마다 읽습니다. PowerStore 모니터에는 15분 기간을 주세요.
+
 ## Pure 시리즈의 구조
 
 Pure는 메트릭 이름 **하나** 에 여러 수치를 담고 레이블로 구분합니다.
@@ -107,9 +111,13 @@ Pure는 메트릭 이름 **하나** 에 여러 수치를 담고 레이블로 구
 
 모니터 필터와 그룹화 키에서 에이전트의 속성은 `resource.` 로 시작하지만(`resource.storage.array.name`, `resource.storage.system`), Pure 자체의 레이블은 그렇지 않습니다(`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 
+## PowerStore 시리즈의 구성
+
+Dell의 익스포터는 메트릭 이름마다 값 하나를 쓰므로 PowerStore 시리즈에는 레이블 필터가 필요 없습니다. 레이블이 객체를 가리킵니다. `appliance_id`는 어플라이언스, `name`은 부분, 볼륨 또는 파일 시스템, `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id`, `volume_group_id`는 성능 시리즈의 객체입니다. 상태 시리즈는 정상인 동안 1, 그 밖에는 0이므로 템플릿은 1 미만에서 발생합니다. PowerStore 자체의 경고는 syslog로 들어오며, 그 템플릿(로그 모니터)은 아래 표 다음에 나옵니다.
+
 ## 미리 만든 경고 템플릿
 
-OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
+OneUptime은 템플릿 36개(FlashArray용 12개, FlashBlade용 8개, PowerStore용 16개)를 제공하며, **경고 대상** 목록은 어레이의 플랫폼에 맞는 것을 보여 줍니다. 각 템플릿은 완전한 모니터를 만듭니다. 메트릭 쿼리, 레이블 필터, 객체 자체의 레이블로 하는 그룹화, 발생 기준과 복구 기준입니다. 임계값은 편집할 수 있는 출발점입니다.
 
 기준은 기간 안의 **모든** 값에서 조건이 성립할 때만 발생합니다. 용량, 지연 시간, 지연, 비율 임계값에서 발생한 모니터는 임계값에서 10% 벗어나야 복구되므로, 임계값 근처를 오가는 값 때문에 상태가 흔들리지 않습니다. 경고, 하드웨어, 연결 템플릿은 상태가 5분 창 전체에서 보였을 때 작동하고, 상태가 사라진 뒤 약 5분 후에 복구됩니다.
 
@@ -143,6 +151,37 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | High Read Latency | 성능 | 경고 | `purefb_array_performance_latency_usec` 를 `dimension=usec_per_read_op` 및 `protocol=all` 로 필터링, Avg, 최근 10분 | > 10000 µs (10 ms), 모든 프로토콜 기준. ≤ 9000에서 복구 |
 | File System Near Full | 파일 시스템 | 경고 | `purefb_file_systems_space_bytes` 를 `space=available_ratio` 로 필터링, `name` 별 Min, 최근 15분 | < 0.1 — 파일 시스템의 프로비저닝된 크기 중 10%도 남지 않음. 파일 시스템마다 인시던트 하나. ≥ 0.11에서 복구 |
 
+### PowerStore
+
+| 템플릿 | 범주 | 심각도 | 감시 대상 | 발생 조건 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 가용성 | 심각 | `powerstore_cluster`, Count, 최근 10분 | 기간 내내 데이터 없음 — 에이전트, Dell의 익스포터 또는 클러스터가 응답을 멈춤. 데이터가 다시 들어오면 복구 |
+| Capacity Above 80% | 용량 | 경고 | `powerstore_cap_physical_used_percent`, `appliance_id` 별 Max, 최근 15분 | > 80 — 어플라이언스의 용량이 차고 있음. ≤ 72에서 복구 |
+| Capacity Above 90% | 용량 | 심각 | `powerstore_cap_physical_used_percent`, `appliance_id` 별 Max, 최근 15분 | > 90 — 어플라이언스가 쓰기를 거부하기 직전. ≤ 81에서 복구 |
+| High Read Latency | 성능 | 경고 | `powerstore_perf_avg_read_latency`, `appliance_id` 별 Avg, 최근 15분 | > 5000 µs (5 ms). ≤ 4500에서 복구 |
+| High Write Latency | 성능 | 경고 | `powerstore_perf_avg_write_latency`, `appliance_id` 별 Avg, 최근 15분 | > 5000 µs (5 ms). ≤ 4500에서 복구 |
+| Drive Failed | 하드웨어 | 심각 | `powerstore_hardware_Drive_state`, `name` 별 Min, 최근 10분 | < 1 — 드라이브가 고장 났거나 제거됨. ≥ 1에서 복구 |
+| Node Unhealthy | 하드웨어 | 심각 | `powerstore_hardware_node_state`, `name` 별 Min, 최근 10분 | < 1 — 노드가 Healthy가 아님. ≥ 1에서 복구 |
+| Power Supply Unhealthy | 하드웨어 | 경고 | `powerstore_hardware_Power_Supply_state`, `name` 별 Min, 최근 10분 | < 1 — 전원 공급 장치가 고장 났거나 전원을 잃음. ≥ 1에서 복구 |
+| Fan Unhealthy | 하드웨어 | 경고 | `powerstore_hardware_Fan_state`, `name` 별 Min, 최근 10분 | < 1 — 팬이 고장 남. ≥ 1에서 복구 |
+| Battery Unhealthy | 하드웨어 | 경고 | `powerstore_hardware_Battery_state`, `name` 별 Min, 최근 10분 | < 1 — 배터리 백업 모듈에 결함이 생김. ≥ 1에서 복구 |
+| Drive Wearing Out | 하드웨어 | 경고 | `powerstore_wear_metrics_by_drive`, `name` 별 Min, 최근 15분 | < 10 — 드라이브의 남은 내구성이 10% 미만. ≥ 11에서 복구 |
+| NAS Server Not Started | 파일 시스템 | 경고 | `powerstore_nas_server_operational_status`, `name` 별 Max, 최근 10분 | < 1 — NAS 서버가 중지되었거나 성능이 저하됨. ≥ 1에서 복구 |
+| Volume Not Ready | 어레이 상태 | 경고 | `powerstore_volume_state`, `name` 별 Max, 최근 15분 | < 1 — 볼륨이 오프라인. ≥ 1에서 복구 |
+| File System Near Full | 파일 시스템 | 경고 | `powerstore_filesystem_logical_used_percent`, `name` 별 Max, 최근 15분 | > 90 — 파일 시스템이 거의 가득 참. ≤ 81에서 복구 |
+| Cluster Not Configured | 어레이 상태 | 경고 | `powerstore_cluster`, Max, 최근 10분 | < 1 — 클러스터가 Configured가 아님. ≥ 1에서 복구 |
+| Metro Witness Not Connected | 복제 | 경고 | `powerstore_metro_witness_status`, `name` 별 Min, 최근 10분 | > 0 — Metro Witness가 연결되지 않음. 다시 OK가 되면 복구 |
+
+### syslog를 통한 PowerStore 경고
+
+PowerStore 자체의 경고는 로그로 들어오므로 그 템플릿은 **로그** 모니터이며, 어레이의 **권장 사항** 페이지의 **어레이 경고** 아래에 제공됩니다. 각 템플릿은 PowerStore 경고마다 경고 하나를 열어 `powerstore.resource.name`과 `powerstore.alert.id`로 그룹화하고, PowerStore가 그 경고를 해제하면 해결합니다:
+
+| 템플릿 | 심각도 | 여는 줄의 내용 | 해결하는 줄의 내용 |
+| --- | --- | --- | --- |
+| Critical Array Alert | 심각 | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | 경고 | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | 경고 | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
+
 **심각도** 는 선택기가 보여 주는 레이블입니다. 템플릿이 만드는 인시던트와 경고는 프로젝트에서 가장 심각한 인시던트 및 경고 심각도로 시작하며, 기준에서 바꿀 수 있습니다.
 
 - **Array Stopped Reporting** 템플릿은 플랫폼의 식별 시리즈(`purefa_info` 또는 `purefb_info`)를 셉니다. 에이전트가 수집하는 모든 엔드포인트가 수집할 때마다 이 시리즈를 내보냅니다. 데이터가 끊기면 다른 템플릿은 비교할 값이 없어 마지막 상태를 그대로 유지하므로, 이를 알려 주는 것은 이 템플릿입니다.
@@ -163,6 +202,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 어레이의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type`, `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade의 열린 경고마다 시리즈 하나(값 1). 레이블은 `severity`(`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary`, `kburl`(Pure 기술 자료 문서) |
+| `powerstore_cluster` | — | PowerStore | `count` | PowerStore 클러스터가 Configured(구성되어 서비스 중)인 동안 1, 그 밖의 상태(Configuring, Expanding, Removing, Clustering_Failed, Unconfigured)에서는 0입니다. |
 
 ### 용량
 
@@ -176,6 +216,13 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | FlashBlade의 사용 가능한 용량 중 사용 중인 비율 |
 | `purefb_array_space_bytes` | `type=array`, `space=empty` | FlashBlade | `bytes` | FlashBlade의 사용하지 않는 용량 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | FlashBlade 전체의 데이터 감소 |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | 각 어플라이언스의 물리 용량 중 사용 중인 비율(백분율)입니다. 물리 사용량을 전체 물리 용량으로 나눈 값으로, PowerStore의 일일 공간 집계 기준입니다. PowerStore는 70%부터 자체 용량 경고를 발생시킵니다. appliance_id로 그룹화하세요. |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | 각 어플라이언스의 사용 가능한 물리 용량(바이트)입니다. |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | 각 어플라이언스가 사용하는 물리 용량(바이트)으로, 중복 제거와 압축 후의 값입니다. 추세를 보고 어플라이언스가 언제 가득 찰지 예측하세요. |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | 각 어플라이언스에 프로비저닝된 논리 용량(바이트)입니다. 그 안의 모든 볼륨, 파일 시스템, vVol의 크기로, 물리 용량을 훨씬 넘을 수 있습니다. |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | 호스트가 각 어플라이언스에 쓴 데이터(바이트)로, 중복 제거와 압축 전의 값입니다. |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | 각 어플라이언스의 중복 제거와 압축 효과로, 예를 들어 3.4:1이면 3.4입니다. 계속 떨어진다면 새로 쓴 데이터가 잘 줄어들지 않는다는 뜻으로, 암호화되었거나 이미 압축된 데이터입니다. |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | 각 어플라이언스의 전체 효율입니다. 데이터 절감에 스냅샷과 씬 프로비저닝으로 아낀 용량을 더한 값입니다. |
 
 ### 성능
 
@@ -197,6 +244,13 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all` | FlashBlade | `ops/s` | 모든 프로토콜의 초당 쓰기 작업 수 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | 모든 프로토콜의 초당 읽은 바이트 수 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | 모든 프로토콜의 초당 쓴 바이트 수 |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | 각 어플라이언스의 읽기 평균 지연 시간(마이크로초)으로, PowerStore의 최신 5분 샘플 기준입니다. PowerStore의 읽기는 보통 1 ms보다 훨씬 짧게 끝납니다. |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | 각 어플라이언스의 쓰기 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | 각 어플라이언스의 초당 읽기 작업 수입니다. |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | 각 어플라이언스의 초당 쓰기 작업 수입니다. |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 각 어플라이언스에서 초당 읽은 바이트 수입니다. |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 각 어플라이언스에서 초당 쓴 바이트 수입니다. |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | 각 어플라이언스가 스토리지 I/O에 할당한 CPU 코어 중 바쁜 비율(백분율)입니다. 높은 값이 계속되면 어플라이언스가 처리할 수 있는 부하의 한계에 가깝다는 뜻입니다. |
 
 ### 볼륨
 
@@ -211,6 +265,20 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | 호스트가 보는 각 볼륨의 크기 |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | 데이터 감소 후 각 볼륨이 쓰는 물리 공간 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 각 볼륨의 데이터 감소 비율 |
+| `powerstore_volume_state` | — | PowerStore | `count` | 볼륨이 Ready인 동안 1, Initializing, Offline 또는 삭제 중인 동안 0입니다. 호스트가 접근할 수 없는 볼륨을 찾으려면 name으로 그룹화하세요. |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | 호스트가 보는 각 볼륨의 크기(바이트)입니다. |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | 호스트가 각 볼륨에 쓴 데이터(바이트)로, 중복 제거와 압축 전의 값입니다. |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | 각 볼륨의 평균 읽기 지연 시간(마이크로초)입니다. 느린 볼륨을 찾으려면 볼륨 이름이 담긴 volume_id로 그룹화하세요. |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | 각 볼륨의 평균 쓰기 지연 시간(마이크로초)입니다. |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | 각 볼륨의 초당 읽기 작업 수입니다. |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | 각 볼륨의 초당 쓰기 작업 수입니다. |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 각 볼륨에서 초당 읽은 바이트 수입니다. |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 각 볼륨에 초당 쓴 바이트 수입니다. |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | 각 볼륨 그룹의 볼륨에 프로비저닝된 용량(바이트)입니다. name으로 그룹화하세요. |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | 호스트가 각 볼륨 그룹의 볼륨에 쓴 데이터(바이트)로, 중복 제거와 압축 전의 값입니다. |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | 각 볼륨 그룹의 볼륨 전체에 걸친 평균 읽기 지연 시간(마이크로초)입니다. 그룹 이름이 담긴 volume_group_id로 그룹화하세요. |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | 각 볼륨 그룹의 볼륨 전체에 걸친 평균 쓰기 지연 시간(마이크로초)입니다. |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | 각 볼륨 그룹의 볼륨 전체에 걸친 초당 읽기 및 쓰기 작업 수입니다. |
 
 ### 호스트
 
@@ -230,6 +298,7 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | 각 파드 복제 링크의 평균 복제 지연 |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 각 파드의 복제 트래픽. 레이블은 `direction` 과 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 각 ActiveCluster 파드의 미러링된 쓰기 평균 지연 시간 |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | 각 Metro Witness의 상태입니다: 0 OK, 1 부분 연결, 2 연결 끊김, 3 삭제 중, 4 초기화 중. 0보다 크면 Metro 세션이 스스로 페일오버하지 못할 수 있습니다. |
 
 ### 하드웨어
 
@@ -240,6 +309,23 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | 각 드라이브의 원시 용량. 레이블은 `component_status`(`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...)와 유형 |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 각 Ethernet 및 Fibre Channel 인터페이스의 초당 오류 수. 오류가 계속되면 대개 케이블, 광 모듈, 스위치 포트 불량입니다 |
 | `purefb_hardware_health` | — | FlashBlade | — | 각 하드웨어 구성 요소(블레이드, 패브릭 모듈, 전원 공급 장치, 팬, ...)의 상태: 1 = 정상, 2 = 사용 안 함, 0 = 비정상. `name` 별 최솟값을 쓰세요 |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 어플라이언스 노드가 Healthy인 동안 1, 그 밖의 상태에서는 0이며, 그 상태는 state 레이블이 알려 줍니다(Failed, Disconnected, Initializing...). name과 appliance_id로 그룹화하세요. |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 드라이브가 Healthy인 동안 1, 고장 났거나 제거되었거나 준비되지 않았을 때 0입니다. 드라이브마다 인시던트 하나를 발생시키려면 name으로 그룹화하세요. |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | 각 드라이브의 남은 쓰기 내구성 비율(백분율)입니다. 0에 가까운 드라이브는 수명이 거의 다했으니 교체를 계획하세요. |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 노드의 팬 모듈이 Healthy인 동안 1, 고장 났거나 제거되었을 때 0입니다. |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 노드의 전원 공급 장치가 Healthy인 동안 1, 고장 났거나 입력 전원을 잃었거나 연결이 끊겼을 때 0입니다. |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 노드의 배터리 백업 모듈이 Healthy인 동안 1, 결함이 생겼거나 연결이 끊겼을 때 0입니다. |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 파이버 채널 포트의 링크가 올라와 있는 동안 1, 내려가 있는 동안 0입니다. 아무것도 연결되지 않은 포트는 항상 내려가 있습니다. 포트 이름이 담긴 fc_port_id로 그룹화하세요. |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 이더넷 포트의 링크가 올라와 있는 동안 1, 내려가 있는 동안 0입니다. 포트 이름이 담긴 eth_port_id로 그룹화하세요. |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | 각 파이버 채널 포트를 거치는 읽기의 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | 각 파이버 채널 포트를 거치는 쓰기의 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | 각 파이버 채널 포트를 거치는 초당 읽기 및 쓰기 작업 수입니다. |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | 각 파이버 채널 포트를 거쳐 초당 읽고 쓴 바이트 수입니다. |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | 각 파이버 채널 포트에서 초당 받은, CRC가 잘못된 프레임 수입니다. 오류가 계속되면 보통 케이블, 광 모듈 또는 스위치 포트 불량입니다. |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | 각 파이버 채널 포트의 초당 링크 실패 수입니다. 하나라도 있으면 포트의 케이블, 광 모듈, 스위치를 살펴볼 만합니다. |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | 각 이더넷 포트에서 초당 받은 바이트 수입니다. |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | 각 이더넷 포트에서 초당 보낸 바이트 수입니다. |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | 각 이더넷 포트에서 초당 받은, CRC 오류가 있는 패킷 수입니다. 오류가 계속되면 보통 케이블, 광 모듈 또는 스위치 포트 불량입니다. |
 
 ### 파일 시스템
 
@@ -249,6 +335,17 @@ OneUptime은 템플릿 20개(FlashArray용 12개, FlashBlade용 8개)를 제공�
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | 각 파일 시스템의 쓰기 평균 지연 시간 |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 각 파일 시스템이 쓰는 물리 공간 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 각 파일 시스템의 프로비저닝된 크기 중 아직 비어 있는 비율(0에서 1). 0에 가까우면 할당량이 곧 가득 찹니다 |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | NAS 서버가 Started인 동안 1, Stopped, Starting, Stopping, 페일오버됨 또는 Degraded(백업 노드 없이 실행 중)인 동안 0입니다. name으로 그룹화하세요. |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | 각 NAS 서버가 처리하는 읽기의 평균 지연 시간(마이크로초)입니다. 서버 이름이 담긴 nas_id로 그룹화하세요. |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | 각 NAS 서버가 처리하는 쓰기의 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | 각 NAS 서버가 처리하는 초당 읽기 및 쓰기 작업 수입니다. |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | 각 파일 시스템 크기 중 사용 중인 비율(백분율)입니다. 논리 사용량을 프로비저닝된 크기로 나눈 값입니다. name으로 그룹화하세요. |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | 클라이언트가 보는 각 파일 시스템의 크기(바이트)입니다. |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | 클라이언트가 각 파일 시스템에 쓴 데이터(바이트)입니다. |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | 각 파일 시스템에서 읽기의 평균 지연 시간(마이크로초)입니다. name으로 그룹화하세요. |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | 각 파일 시스템으로의 쓰기 평균 지연 시간(마이크로초)입니다. |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | 각 파일 시스템의 초당 읽기 작업 수입니다. |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | 각 파일 시스템의 초당 쓰기 작업 수입니다. |
 
 ### 버킷
 

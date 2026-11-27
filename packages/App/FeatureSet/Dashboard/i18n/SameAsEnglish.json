@@ -1,4 +1,5 @@
 [
+  "#finops",
   "#incidents, #ops",
   "#incidents-summary, #engineering",
   "(a / b) * 100",
@@ -264,6 +265,7 @@
   "curl",
   "default, kube-system",
   "etcd",
+  "finance@example.com, accountant@example.com",
   "gpt-4o",
   "gpt-4o, claude-3-opus, llama-3.3-70b-versatile",
   "gpt-5.1, claude-sonnet-5-5, llama-3.3-70b-versatile",

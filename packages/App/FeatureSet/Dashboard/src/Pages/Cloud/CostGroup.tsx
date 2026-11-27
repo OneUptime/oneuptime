@@ -1,4 +1,10 @@
 import PageComponentProps from "../PageComponentProps";
+import {
+  getCloudCostFileName,
+  toCloudCostGroupSpendCsv,
+} from "Common/Types/Cloud/CloudCostCsv";
+import downloadFile from "Common/UI/Utils/DownloadFile";
+import { DOWNLOAD_CSV } from "../../Components/Cloud/CloudCostBreakdownCard";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RouteParams from "../../Utils/RouteParams";
@@ -427,6 +433,35 @@ const CloudCostGroupPage: FunctionComponent<
             rightElement={
               <CloudCostBasisPill basis={spend.basis || basisChoice.basis} />
             }
+            buttons={[
+              {
+                title: DOWNLOAD_CSV,
+                icon: IconProp.Download,
+                // Its days, its services, resources and accounts, in one file.
+                onClick: () => {
+                  downloadFile({
+                    content: toCloudCostGroupSpendCsv({
+                      group: spend.group,
+                      buckets: spend.buckets,
+                      start: spend.start,
+                      lastDay: spend.lastDay,
+                      currency: spend.currency,
+                      basis: spend.basis || basisChoice.basis,
+                      accountNames,
+                    }),
+                    filename: getCloudCostFileName({
+                      what: "cloud-costs",
+                      dimension: "group",
+                      viewName: spend.group.name,
+                      basis: spend.basis || basisChoice.basis,
+                      start: spend.start,
+                      lastDay: spend.lastDay,
+                    }),
+                    mimeType: "text/csv;charset=utf-8;",
+                  });
+                },
+              },
+            ]}
           >
             <div data-testid="cloud-cost-group-chart">
               <CloudDailySpendChart

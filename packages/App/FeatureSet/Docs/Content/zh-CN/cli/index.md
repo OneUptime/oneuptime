@@ -107,6 +107,7 @@ oneuptime resources
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | 处理一种记录 | [资源操作](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | 列出资源的字段以及设置它们的标志 | [资源操作](/docs/cli/resource-operations#查看资源的字段) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | 对事件、警报和计划维护执行仪表盘按钮所做的操作 | [资源操作](/docs/cli/resource-operations#确认解决和添加备注) |
+| `oneuptime <resource> breakdown`, `export` | 拆分某个时段的云支出，或将其导出为 FOCUS 1.2 文件，用于 `cloud-cost` | [报告和导出](/docs/telemetry/cloud-costs#报告和导出) |
 | `oneuptime resources` | 列出各种记录及其命令 | [命令参考](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | 打印 CLI 的版本 | [命令参考](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | 显示命令的帮助 | [获取帮助](#获取帮助) |

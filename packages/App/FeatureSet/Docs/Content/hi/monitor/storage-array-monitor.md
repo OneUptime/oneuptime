@@ -2,9 +2,11 @@
 
 स्टोरेज ऐरे मॉनिटर एक स्टोरेज ऐरे पर नज़र रखता है और आपको तब बताता है जब ऐरे खुद अलर्ट उठाता है, उसकी जगह खत्म होती है, वह धीमा होता है, हार्डवेयर या होस्ट पाथ खोता है, या रेप्लिकेशन में पीछे रह जाता है। यह Pure Storage FlashArray और Pure Storage FlashBlade के साथ काम करता है, और वे मेट्रिक्स पढ़ता है जो ऐरे खुद एक्सपोर्ट करता है - Pure की `purefa_*` और `purefb_*` सीरीज़ - जिन्हें OneUptime Storage Array Agent इकट्ठा करता है।
 
+यह Dell PowerStore (`dell.powerstore`) के साथ भी काम करता है, Dell की `powerstore_*` सीरीज़ से।
+
 :::cards
 - [मॉनिटर बनाएँ](#स्टोरेज-ऐरे-मॉनिटर-बनाएँ): डैशबोर्ड में छह चरण।
-- [टेम्पलेट](#पहले-से-बने-अलर्ट-टेम्पलेट): बीस तैयार अलर्ट, हर वॉल्यूम, होस्ट या कंपोनेंट के लिए एक घटना।
+- [टेम्पलेट](#पहले-से-बने-अलर्ट-टेम्पलेट): तैयार अलर्ट, हर वॉल्यूम, होस्ट, अप्लायंस या कंपोनेंट के लिए एक घटना।
 - [Pure की सीरीज़ कैसे काम करती हैं](#pure-की-सीरीज़-का-ढाँचा): एक मेट्रिक नाम, कई आँकड़े।
 - [मेट्रिक्स](#इकट्ठा-किए-गए-मेट्रिक्स): हर सीरीज़ जिस पर मॉनिटर अलर्ट कर सकता है।
 :::
@@ -87,6 +89,8 @@ flowchart TB
 
 एजेंट ऐरे एंडपॉइंट को हर 60 सेकंड में, और वॉल्यूम, होस्ट और पॉड को हर 2 मिनट में पढ़ता है, इसलिए 5 मिनट की विंडो में हमेशा एक सैंपल होता है। FlashBlade के फ़ाइल सिस्टम और बकेट वह हर 5 मिनट में पढ़ता है, इसलिए 15, और FlashArray डायरेक्टरी हर 30 मिनट में: डायरेक्टरी मॉनिटर को 60 मिनट की विंडो दें।
 
+यह PowerStore को हर 5 मिनट और उसके क्लस्टर की स्थिति को हर 60 सेकंड पढ़ता है: PowerStore मॉनिटर को 15 मिनट की विंडो दें।
+
 ## Pure की सीरीज़ का ढाँचा
 
 Pure **एक** मेट्रिक नाम पर कई आँकड़े रखता है और उन्हें एक लेबल से अलग करता है:
@@ -107,9 +111,13 @@ Pure **एक** मेट्रिक नाम पर कई आँकड़े
 
 मॉनिटर फ़िल्टर और ग्रुप-बाय कुंजियों में, एजेंट के एट्रिब्यूट `resource.` से शुरू होते हैं (`resource.storage.array.name`, `resource.storage.system`), जबकि Pure के अपने लेबल नहीं (`name`, `host`, `component_name`, `dimension`, `space`, `severity`)।
 
+## PowerStore की सीरीज़ कैसी बनी हैं
+
+Dell का एक्सपोर्टर हर मेट्रिक नाम के लिए एक मान लिखता है, इसलिए PowerStore सीरीज़ को किसी लेबल फ़िल्टर की ज़रूरत नहीं होती। उसके लेबल ऑब्जेक्ट का नाम बताते हैं: `appliance_id` एक अप्लायंस, `name` एक हिस्सा, वॉल्यूम या फ़ाइल सिस्टम, और `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id` या `volume_group_id` किसी प्रदर्शन सीरीज़ का ऑब्जेक्ट। उसकी स्थिति सीरीज़ स्वस्थ रहने तक 1 और वरना 0 होती हैं, इसलिए टेम्पलेट 1 से नीचे ट्रिगर होते हैं। उसके अपने अलर्ट syslog से आते हैं, और उनके टेम्पलेट, लॉग मॉनिटर, नीचे उसकी तालिका के बाद दिए गए हैं।
+
 ## पहले से बने अलर्ट टेम्पलेट
 
-OneUptime 20 टेम्पलेट देता है — 12 FlashArray के लिए और 8 FlashBlade के लिए — और **किस पर अलर्ट करना है** सेक्शन ऐरे के प्लेटफ़ॉर्म वाले टेम्पलेट देता है। हर एक पूरा मॉनिटर बनाता है: मेट्रिक क्वेरी, उसके लेबल फ़िल्टर, ऑब्जेक्ट के अपने लेबल पर ग्रुप-बाय, एक मानदंड जो ट्रिगर करता है और एक जो रिकवर करता है। थ्रेशोल्ड शुरुआती बिंदु हैं जिन्हें आप संपादित कर सकते हैं।
+OneUptime 36 टेम्पलेट देता है — 12 FlashArray के लिए, 8 FlashBlade के लिए और 16 PowerStore के लिए — और **किस पर अलर्ट करना है** सेक्शन ऐरे के प्लेटफ़ॉर्म वाले टेम्पलेट देता है। हर एक पूरा मॉनिटर बनाता है: मेट्रिक क्वेरी, उसके लेबल फ़िल्टर, ऑब्जेक्ट के अपने लेबल पर ग्रुप-बाय, एक मानदंड जो ट्रिगर करता है और एक जो रिकवर करता है। थ्रेशोल्ड शुरुआती बिंदु हैं जिन्हें आप संपादित कर सकते हैं।
 
 मानदंड तभी ट्रिगर होता है जब शर्त विंडो के **हर** मान के लिए सही हो। जो मॉनिटर क्षमता, लेटेंसी, लैग या अनुपात के थ्रेशोल्ड पर ट्रिगर हुआ, वह उससे 10% आगे जाने पर ही रिकवर होता है, इसलिए थ्रेशोल्ड के आसपास मँडराता मान बार-बार बदलाव नहीं करता। अलर्ट, हार्डवेयर और कनेक्टिविटी टेम्पलेट तब ट्रिगर होते हैं जब कोई स्थिति उनकी पूरी 5 मिनट की विंडो में दिखी हो, और उसके हटने के लगभग 5 मिनट बाद रिकवर होते हैं।
 
@@ -143,6 +151,37 @@ OneUptime 20 टेम्पलेट देता है — 12 FlashArray क�
 | High Read Latency | प्रदर्शन | चेतावनी | `purefb_array_performance_latency_usec` को `dimension=usec_per_read_op` और `protocol=all` पर फ़िल्टर, Avg, पिछले 10 मिनट | > 10000 µs (10 ms) सभी प्रोटोकॉल में; ≤ 9000 पर रिकवर |
 | File System Near Full | फ़ाइल सिस्टम | चेतावनी | `purefb_file_systems_space_bytes` को `space=available_ratio` पर फ़िल्टर, `name` के अनुसार Min, पिछले 15 मिनट | < 0.1 — फ़ाइल सिस्टम के प्रोविज़न किए गए आकार का 10% से कम बचा है। हर फ़ाइल सिस्टम के लिए एक घटना; ≥ 0.11 पर रिकवर |
 
+### PowerStore
+
+| टेम्पलेट | श्रेणी | गंभीरता | किस पर नज़र | कब ट्रिगर होता है |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | उपलब्धता | गंभीर | `powerstore_cluster`, Count, पिछले 10 मिनट | पूरी विंडो में कोई डेटा नहीं — एजेंट, Dell के एक्सपोर्टर या क्लस्टर ने जवाब देना बंद कर दिया; डेटा फिर से आने पर रिकवर |
+| Capacity Above 80% | क्षमता | चेतावनी | `powerstore_cap_physical_used_percent`, `appliance_id` के अनुसार Max, पिछले 15 मिनट | > 80 — किसी अप्लायंस की क्षमता भर रही है; ≤ 72 पर रिकवर |
+| Capacity Above 90% | क्षमता | गंभीर | `powerstore_cap_physical_used_percent`, `appliance_id` के अनुसार Max, पिछले 15 मिनट | > 90 — कोई अप्लायंस राइट ठुकराने के करीब है; ≤ 81 पर रिकवर |
+| High Read Latency | प्रदर्शन | चेतावनी | `powerstore_perf_avg_read_latency`, `appliance_id` के अनुसार Avg, पिछले 15 मिनट | > 5000 µs (5 ms); ≤ 4500 पर रिकवर |
+| High Write Latency | प्रदर्शन | चेतावनी | `powerstore_perf_avg_write_latency`, `appliance_id` के अनुसार Avg, पिछले 15 मिनट | > 5000 µs (5 ms); ≤ 4500 पर रिकवर |
+| Drive Failed | हार्डवेयर | गंभीर | `powerstore_hardware_Drive_state`, `name` के अनुसार Min, पिछले 10 मिनट | < 1 — कोई ड्राइव खराब हो गई या निकाल दी गई; ≥ 1 पर रिकवर |
+| Node Unhealthy | हार्डवेयर | गंभीर | `powerstore_hardware_node_state`, `name` के अनुसार Min, पिछले 10 मिनट | < 1 — कोई नोड Healthy नहीं है; ≥ 1 पर रिकवर |
+| Power Supply Unhealthy | हार्डवेयर | चेतावनी | `powerstore_hardware_Power_Supply_state`, `name` के अनुसार Min, पिछले 10 मिनट | < 1 — कोई पावर सप्लाई खराब हो गई या उसकी पावर चली गई; ≥ 1 पर रिकवर |
+| Fan Unhealthy | हार्डवेयर | चेतावनी | `powerstore_hardware_Fan_state`, `name` के अनुसार Min, पिछले 10 मिनट | < 1 — कोई फ़ैन खराब हो गया; ≥ 1 पर रिकवर |
+| Battery Unhealthy | हार्डवेयर | चेतावनी | `powerstore_hardware_Battery_state`, `name` के अनुसार Min, पिछले 10 मिनट | < 1 — किसी बैटरी बैकअप मॉड्यूल में खराबी आ गई; ≥ 1 पर रिकवर |
+| Drive Wearing Out | हार्डवेयर | चेतावनी | `powerstore_wear_metrics_by_drive`, `name` के अनुसार Min, पिछले 15 मिनट | < 10 — किसी ड्राइव का 10% से कम एंड्योरेंस बचा है; ≥ 11 पर रिकवर |
+| NAS Server Not Started | फ़ाइल सिस्टम | चेतावनी | `powerstore_nas_server_operational_status`, `name` के अनुसार Max, पिछले 10 मिनट | < 1 — कोई NAS सर्वर रुका हुआ है या डिग्रेड है; ≥ 1 पर रिकवर |
+| Volume Not Ready | ऐरे स्वास्थ्य | चेतावनी | `powerstore_volume_state`, `name` के अनुसार Max, पिछले 15 मिनट | < 1 — कोई वॉल्यूम ऑफ़लाइन है; ≥ 1 पर रिकवर |
+| File System Near Full | फ़ाइल सिस्टम | चेतावनी | `powerstore_filesystem_logical_used_percent`, `name` के अनुसार Max, पिछले 15 मिनट | > 90 — कोई फ़ाइल सिस्टम लगभग भर गया है; ≤ 81 पर रिकवर |
+| Cluster Not Configured | ऐरे स्वास्थ्य | चेतावनी | `powerstore_cluster`, Max, पिछले 10 मिनट | < 1 — क्लस्टर Configured नहीं है; ≥ 1 पर रिकवर |
+| Metro Witness Not Connected | रेप्लिकेशन | चेतावनी | `powerstore_metro_witness_status`, `name` के अनुसार Min, पिछले 10 मिनट | > 0 — कोई Metro Witness कनेक्टेड नहीं है; फिर से OK होने पर रिकवर |
+
+### syslog से PowerStore अलर्ट
+
+PowerStore के अपने अलर्ट लॉग के रूप में आते हैं, इसलिए उनके टेम्पलेट **लॉग** मॉनिटर हैं, जो ऐरे के **सुझाव** पेज पर **ऐरे अलर्ट** के अंतर्गत दिए जाते हैं। हर एक PowerStore अलर्ट के लिए एक अलर्ट खोलता है, `powerstore.resource.name` और `powerstore.alert.id` के अनुसार समूहित, और PowerStore के उस अलर्ट को हटाने पर उसे हल करता है:
+
+| टेम्पलेट | गंभीरता | इस वाली लाइन पर खुलता है | इस पर हल होता है |
+| --- | --- | --- | --- |
+| Critical Array Alert | गंभीर | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | चेतावनी | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | चेतावनी | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
+
 **गंभीरता** वह लेबल है जो पिकर दिखाता है। टेम्पलेट जो घटना और अलर्ट बनाता है, वे आपके प्रोजेक्ट की सबसे गंभीर घटना और अलर्ट गंभीरता से शुरू होते हैं; उन्हें मानदंड में बदलें।
 
 - **Array Stopped Reporting** प्लेटफ़ॉर्म की पहचान सीरीज़ (`purefa_info` या `purefb_info`) गिनता है, जिसे एजेंट द्वारा स्क्रेप किया जाने वाला हर एंडपॉइंट हर स्क्रेप पर एक्सपोर्ट करता है। जब डेटा रुक जाता है, तो बाकी टेम्पलेट के पास तुलना करने के लिए कुछ नहीं होता और वे अपनी आखिरी स्थिति बनाए रखते हैं, इसलिए यही टेम्पलेट आपको बताता है।
@@ -163,6 +202,7 @@ OneUptime 20 टेम्पलेट देता है — 12 FlashArray क�
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | ऐरे पर हर खुले अलर्ट के लिए एक सीरीज़ (मान 1), लेबल `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` और `summary` के साथ |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade पर हर खुले अलर्ट के लिए एक सीरीज़ (मान 1), लेबल `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` और `kburl` (Pure का नॉलेज-बेस लेख) के साथ |
+| `powerstore_cluster` | — | PowerStore | `count` | जब तक PowerStore क्लस्टर Configured (बना हुआ और सेवा दे रहा) है तब तक 1, किसी भी दूसरी स्थिति में 0: Configuring, Expanding, Removing, Clustering_Failed या Unconfigured। |
 
 ### क्षमता
 
@@ -176,6 +216,13 @@ OneUptime 20 टेम्पलेट देता है — 12 FlashArray क�
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | FlashBlade की उपयोग योग्य क्षमता का उपयोग में हिस्सा |
 | `purefb_array_space_bytes` | `type=array`, `space=empty` | FlashBlade | `bytes` | FlashBlade की अप्रयुक्त क्षमता |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | पूरे FlashBlade में डेटा रिडक्शन |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | हर अप्लायंस की फ़िज़िकल क्षमता का उपयोग में हिस्सा, प्रतिशत में: उसका फ़िज़िकल उपयोग भाग उसकी कुल फ़िज़िकल क्षमता, PowerStore के दैनिक स्पेस रोलअप से। PowerStore 70% से अपने क्षमता अलर्ट उठाता है। appliance_id के अनुसार समूहित करें। |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | हर अप्लायंस की उपयोग योग्य फ़िज़िकल क्षमता बाइट में। |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | हर अप्लायंस द्वारा इस्तेमाल की गई फ़िज़िकल क्षमता बाइट में, डीडुप्लिकेशन और कम्प्रेशन के बाद। अप्लायंस कब भरेगा, इसका अनुमान लगाने के लिए इसका ट्रेंड देखें। |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | हर अप्लायंस पर प्रावधानित लॉजिकल क्षमता बाइट में: उसमें मौजूद हर वॉल्यूम, फ़ाइल सिस्टम और vVol का आकार, जो उसकी फ़िज़िकल क्षमता से काफ़ी ज़्यादा हो सकता है। |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | होस्ट द्वारा हर अप्लायंस में लिखा गया डेटा बाइट में, डीडुप्लिकेशन और कम्प्रेशन से पहले। |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | हर अप्लायंस पर डीडुप्लिकेशन और कम्प्रेशन, उदाहरण के लिए 3.4:1 के लिए 3.4। लगातार गिरावट का मतलब है कि नया लिखा गया डेटा ठीक से कम नहीं हो रहा: एन्क्रिप्टेड या पहले से कम्प्रेस किया गया डेटा। |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | हर अप्लायंस की कुल दक्षता: डेटा रिडक्शन के साथ स्नैपशॉट और थिन प्रोविज़निंग से हुई बचत। |
 
 ### प्रदर्शन
 
@@ -197,6 +244,13 @@ OneUptime 20 टेम्पलेट देता है — 12 FlashArray क�
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all` | FlashBlade | `ops/s` | सभी प्रोटोकॉल में प्रति सेकंड राइट ऑपरेशन |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | सभी प्रोटोकॉल में प्रति सेकंड पढ़े गए बाइट |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | सभी प्रोटोकॉल में प्रति सेकंड लिखे गए बाइट |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | हर अप्लायंस पर रीड की औसत लेटेंसी, माइक्रोसेकंड में, PowerStore के नवीनतम पाँच मिनट के सैंपल पर। PowerStore के रीड आमतौर पर 1 ms से काफ़ी कम में पूरे होते हैं। |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | हर अप्लायंस पर राइट की औसत लेटेंसी, माइक्रोसेकंड में। |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | हर अप्लायंस पर प्रति सेकंड रीड ऑपरेशन। |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | हर अप्लायंस पर प्रति सेकंड राइट ऑपरेशन। |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | हर अप्लायंस पर प्रति सेकंड पढ़े गए बाइट। |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | हर अप्लायंस पर प्रति सेकंड लिखे गए बाइट। |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | हर अप्लायंस द्वारा स्टोरेज I/O के लिए रखे गए CPU कोर में से व्यस्त हिस्सा, प्रतिशत में। लगातार ऊँचे मान का मतलब है कि अप्लायंस उस लोड के करीब है जिसे वह संभाल सकता है। |
 
 ### वॉल्यूम
 
@@ -211,6 +265,20 @@ OneUptime 20 टेम्पलेट देता है — 12 FlashArray क�
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | हर वॉल्यूम का आकार जैसा होस्ट उसे देखते हैं |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | डेटा रिडक्शन के बाद हर वॉल्यूम की उपयोग की गई भौतिक जगह |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | हर वॉल्यूम का डेटा रिडक्शन अनुपात |
+| `powerstore_volume_state` | — | PowerStore | `count` | जब तक वॉल्यूम Ready है तब तक 1, जब तक वह Initializing, Offline है या नष्ट किया जा रहा है तब तक 0। जिस वॉल्यूम तक होस्ट नहीं पहुँच पा रहे, उसे ढूँढ़ने के लिए name के अनुसार समूहित करें। |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | होस्ट को दिखने वाला हर वॉल्यूम का आकार, बाइट में। |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | होस्ट द्वारा हर वॉल्यूम में लिखा गया डेटा बाइट में, डीडुप्लिकेशन और कम्प्रेशन से पहले। |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | हर वॉल्यूम की औसत रीड लेटेंसी माइक्रोसेकंड में। धीमा वॉल्यूम ढूँढ़ने के लिए volume_id के अनुसार समूहित करें, जिसमें वॉल्यूम का नाम होता है। |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | हर वॉल्यूम की औसत राइट लेटेंसी माइक्रोसेकंड में। |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | हर वॉल्यूम के प्रति सेकंड रीड ऑपरेशन। |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | हर वॉल्यूम के प्रति सेकंड राइट ऑपरेशन। |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | हर वॉल्यूम से प्रति सेकंड पढ़े गए बाइट। |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | हर वॉल्यूम में प्रति सेकंड लिखे गए बाइट। |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | हर वॉल्यूम समूह के वॉल्यूम को प्रावधानित क्षमता, बाइट में। name के अनुसार समूहित करें। |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | होस्ट द्वारा हर वॉल्यूम समूह के वॉल्यूम में लिखा गया डेटा बाइट में, डीडुप्लिकेशन और कम्प्रेशन से पहले। |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | हर वॉल्यूम समूह के वॉल्यूम पर औसत रीड लेटेंसी, माइक्रोसेकंड में। volume_group_id के अनुसार समूहित करें, जिसमें समूह का नाम होता है। |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | हर वॉल्यूम समूह के वॉल्यूम पर औसत राइट लेटेंसी, माइक्रोसेकंड में। |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | हर वॉल्यूम समूह के वॉल्यूम पर प्रति सेकंड रीड और राइट ऑपरेशन। |
 
 ### होस्ट
 
@@ -230,6 +298,7 @@ OneUptime 20 टेम्पलेट देता है — 12 FlashArray क�
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | हर पॉड रेप्लिका लिंक का औसत रेप्लिकेशन लैग |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | हर पॉड का रेप्लिकेशन ट्रैफ़िक, लेबल `direction` और `dimension` के साथ |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | हर ActiveCluster पॉड की औसत मिरर्ड राइट लेटेंसी |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | हर Metro Witness की स्थिति: 0 OK, 1 आंशिक रूप से कनेक्टेड, 2 डिस्कनेक्टेड, 3 हटाया जा रहा, 4 इनिशियलाइज़ हो रहा। 0 से ऊपर होने पर Metro सेशन शायद अपने आप फ़ेलओवर न करे। |
 
 ### हार्डवेयर
 
@@ -240,6 +309,23 @@ OneUptime 20 टेम्पलेट देता है — 12 FlashArray क�
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | हर ड्राइव की कच्ची क्षमता, उसके `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) और प्रकार के लेबल के साथ |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | हर Ethernet और Fibre Channel इंटरफ़ेस पर प्रति सेकंड त्रुटियाँ — लगातार त्रुटियों का मतलब आमतौर पर खराब केबल, ऑप्टिक या स्विच पोर्ट है |
 | `purefb_hardware_health` | — | FlashBlade | — | हर हार्डवेयर कंपोनेंट (ब्लेड, फ़ैब्रिक मॉड्यूल, पावर सप्लाई, पंखे, ...) का स्वास्थ्य: 1 = स्वस्थ, 2 = अप्रयुक्त, 0 = अस्वस्थ। `name` के अनुसार न्यूनतम लें |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | जब तक किसी अप्लायंस का नोड Healthy है तब तक 1, किसी भी दूसरी स्थिति में 0, जिसका नाम उसका state लेबल बताता है (Failed, Disconnected, Initializing...)। name और appliance_id के अनुसार समूहित करें। |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | जब तक ड्राइव Healthy है तब तक 1, जब वह खराब हो गई हो, निकाल दी गई हो या तैयार न हो तब 0। हर ड्राइव के लिए एक घटना शुरू करने के लिए name के अनुसार समूहित करें। |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | हर ड्राइव के राइट एंड्योरेंस का बचा हिस्सा, प्रतिशत में। 0 के पास की ड्राइव अपने जीवनकाल के अंत के करीब है: उसे बदलने की योजना बनाएँ। |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | जब तक नोड का फ़ैन मॉड्यूल Healthy है तब तक 1, जब वह खराब हो गया हो या निकाल दिया गया हो तब 0। |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | जब तक नोड की पावर सप्लाई Healthy है तब तक 1, जब वह खराब हो गई हो, इनपुट पावर खो चुकी हो या डिस्कनेक्ट हो गई हो तब 0। |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | जब तक नोड का बैटरी बैकअप मॉड्यूल Healthy है तब तक 1, जब उसमें खराबी आ गई हो या वह डिस्कनेक्ट हो गया हो तब 0। |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | जब तक Fibre Channel पोर्ट का लिंक अप है तब तक 1, जब तक वह डाउन है तब तक 0; जिस पोर्ट में कोई केबल नहीं लगी, वह हमेशा डाउन रहता है। fc_port_id के अनुसार समूहित करें, जिसमें पोर्ट का नाम होता है। |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | जब तक Ethernet पोर्ट का लिंक अप है तब तक 1, जब तक वह डाउन है तब तक 0। eth_port_id के अनुसार समूहित करें, जिसमें पोर्ट का नाम होता है। |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | हर Fibre Channel पोर्ट से होकर रीड की औसत लेटेंसी, माइक्रोसेकंड में। |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | हर Fibre Channel पोर्ट से होकर राइट की औसत लेटेंसी, माइक्रोसेकंड में। |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | हर Fibre Channel पोर्ट से होकर प्रति सेकंड रीड और राइट ऑपरेशन। |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | हर Fibre Channel पोर्ट से होकर प्रति सेकंड पढ़े और लिखे गए बाइट। |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | हर Fibre Channel पोर्ट पर प्रति सेकंड प्राप्त अमान्य CRC वाले फ़्रेम। लगातार त्रुटियों का मतलब आमतौर पर खराब केबल, ऑप्टिक या स्विच पोर्ट होता है। |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | हर Fibre Channel पोर्ट पर प्रति सेकंड लिंक विफलताएँ। कोई भी हो तो पोर्ट की केबल, ऑप्टिक और स्विच देखना उचित है। |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | हर Ethernet पोर्ट पर प्रति सेकंड प्राप्त बाइट। |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | हर Ethernet पोर्ट पर प्रति सेकंड भेजे गए बाइट। |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | हर Ethernet पोर्ट पर प्रति सेकंड CRC त्रुटि के साथ प्राप्त पैकेट। लगातार त्रुटियों का मतलब आमतौर पर खराब केबल, ऑप्टिक या स्विच पोर्ट होता है। |
 
 ### फ़ाइल सिस्टम
 
@@ -249,6 +335,17 @@ OneUptime 20 टेम्पलेट देता है — 12 FlashArray क�
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | हर फ़ाइल सिस्टम की औसत राइट लेटेंसी |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | हर फ़ाइल सिस्टम की उपयोग की गई भौतिक जगह |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | हर फ़ाइल सिस्टम के प्रोविज़न किए गए आकार का अभी भी खाली हिस्सा, 0 से 1 — 0 के पास वह अपना कोटा भरने वाला है |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | जब तक NAS सर्वर Started है तब तक 1, जब तक वह Stopped, Starting, Stopping, फ़ेलओवर हो चुका या Degraded (अपने बैकअप नोड के बिना चल रहा) है तब तक 0। name के अनुसार समूहित करें। |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | हर NAS सर्वर द्वारा दिए गए रीड की औसत लेटेंसी, माइक्रोसेकंड में। nas_id के अनुसार समूहित करें, जिसमें सर्वर का नाम होता है। |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | हर NAS सर्वर द्वारा दिए गए राइट की औसत लेटेंसी, माइक्रोसेकंड में। |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | हर NAS सर्वर द्वारा दिए गए प्रति सेकंड रीड और राइट ऑपरेशन। |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | हर फ़ाइल सिस्टम के आकार का उपयोग में हिस्सा, प्रतिशत में: उसका लॉजिकल उपयोग भाग उसका प्रावधानित आकार। name के अनुसार समूहित करें। |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | क्लाइंट को दिखने वाला हर फ़ाइल सिस्टम का आकार, बाइट में। |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | क्लाइंट द्वारा हर फ़ाइल सिस्टम में लिखा गया डेटा, बाइट में। |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | हर फ़ाइल सिस्टम से रीड की औसत लेटेंसी, माइक्रोसेकंड में। name के अनुसार समूहित करें। |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | हर फ़ाइल सिस्टम पर राइट की औसत लेटेंसी, माइक्रोसेकंड में। |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | हर फ़ाइल सिस्टम के प्रति सेकंड रीड ऑपरेशन। |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | हर फ़ाइल सिस्टम के प्रति सेकंड राइट ऑपरेशन। |
 
 ### बकेट
 
