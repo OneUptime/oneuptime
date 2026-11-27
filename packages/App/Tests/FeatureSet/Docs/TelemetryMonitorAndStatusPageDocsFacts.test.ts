@@ -99,6 +99,7 @@ import MonitorType, {
   MonitorTypeHelper,
 } from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import TelemetryMonitorSchedule from "Common/Server/Utils/Monitor/TelemetryMonitorSchedule";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
@@ -676,13 +677,35 @@ describe("how often a telemetry monitor is checked", () => {
       }).toEqual({ monitorType: entry.typeKey, picked: true });
     }
 
-    // Next due a minute after it was scheduled, unless it has an interval.
+    /*
+     * Stamped, as it is queued, with when it is next due: its own moment of
+     * its interval (#11060). With no interval of its own, as the create page
+     * makes these, that is every minute - each check a minute after the last.
+     */
     expect(TELEMETRY_JOB).toContain(
-      "const oneMinuteLater: Date = OneUptimeDate.addRemoveMinutes(data.now, 1);",
+      "nextMonitorAt: getTelemetryMonitorNextMonitorAt({ monitor: entry.monitor,",
     );
     expect(TELEMETRY_JOB).toContain(
-      "if (!data.monitor.monitoringInterval) { return oneMinuteLater; }",
+      "return TelemetryMonitorSchedule.getNextRunAt({ monitorId: data.monitor.id!, monitoringInterval: data.monitor.monitoringInterval, after: data.after,",
     );
+    expect(TelemetryMonitorSchedule.read(undefined)).toMatchObject({
+      cron: "* * * * *",
+      cadenceInMs: 60 * 1000,
+    });
+
+    const monitorId: ObjectID = ObjectID.generate();
+    const checkedAt: Date = TelemetryMonitorSchedule.getNextRunAt({
+      monitorId: monitorId,
+      monitoringInterval: undefined,
+      after: new Date("2026-11-26T12:00:00.000Z"),
+    });
+    const checkedAgainAt: Date = TelemetryMonitorSchedule.getNextRunAt({
+      monitorId: monitorId,
+      monitoringInterval: undefined,
+      after: checkedAt,
+    });
+
+    expect(checkedAgainAt.getTime() - checkedAt.getTime()).toBe(60 * 1000);
   });
 
   it("Create Monitor's Probes & Interval step and the monitor's Probes & Interval page are only for monitors probes check", () => {
