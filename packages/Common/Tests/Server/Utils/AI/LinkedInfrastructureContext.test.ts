@@ -894,7 +894,8 @@ describe("what people see in the run's activity", () => {
    * the AI Investigation card words it since #7940: "on host web-1 and
    * Docker host web-2". The line used to put the label's capital there,
    * "on Host web-1", while the card said "host web-1" (#7952). A name of a
-   * product or vendor keeps its capital: Docker, Kubernetes, IoT, VMware.
+   * product or vendor keeps its capital: Docker, Kubernetes, IoT, VMware,
+   * XCP-ng (a pool is linked infrastructure since #10995).
    */
   test("each kind reads as the middle of a sentence says it, never as a label", () => {
     expect(
@@ -926,6 +927,7 @@ describe("what people see in the run's activity", () => {
       "Proxmox cluster x",
       "OpenStack cloud x",
       "VMware vCenter x",
+      "XCP-ng pool x",
       "Ceph cluster x",
       "storage array x",
       "IoT fleet x",
