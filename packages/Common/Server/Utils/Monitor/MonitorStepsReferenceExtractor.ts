@@ -292,6 +292,13 @@ export default class MonitorStepsReferenceExtractor {
         isOperative: createsIncidents,
       });
 
+      this.push(data.references, {
+        model: MonitorStepsReferenceModel.IncidentSeverity,
+        value: incidentValue["escalationSeverityId"],
+        path: `${label} escalation severity`,
+        isOperative: createsIncidents,
+      });
+
       this.pushSharedNotificationReferences({
         references: data.references,
         source: incidentValue,

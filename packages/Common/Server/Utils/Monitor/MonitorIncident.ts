@@ -81,6 +81,7 @@ import CreatedNotificationHold, {
 } from "../Notification/CreatedNotificationHold";
 import CreateBy from "../../Types/Database/CreateBy";
 import MonitorOpenRecords from "./MonitorOpenRecords";
+import MonitorIncidentEscalation from "./MonitorIncidentEscalation";
 import { EventLoopBudget } from "../EventLoop";
 
 export default class MonitorIncident {
@@ -912,6 +913,23 @@ export default class MonitorIncident {
           );
 
           if (hasAlreadyOpenIncident) {
+            if (
+              alreadyOpenIncident?.id &&
+              criteriaId &&
+              criteriaIncident.id &&
+              alreadyOpenIncident.createdIncidentTemplateId ===
+                criteriaIncident.id.toString() &&
+              !seriesFingerprint &&
+              !input.matchesPerSeries
+            ) {
+              await MonitorIncidentEscalation.apply({
+                monitor: input.monitor,
+                incidentId: alreadyOpenIncident.id,
+                criteriaIncident,
+                keepEvaluationLock: input.keepEvaluationLock,
+              });
+            }
+
             /*
              * Use the open incident's already-rendered title when
              * available — the template (`criteriaIncident.title`) still

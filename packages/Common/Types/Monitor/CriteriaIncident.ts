@@ -9,6 +9,8 @@ export interface CriteriaIncident {
   title: string;
   description: string;
   incidentSeverityId?: ObjectID | undefined;
+  escalationAfterMinutes?: number | undefined;
+  escalationSeverityId?: ObjectID | undefined;
   autoResolveIncident?: boolean | undefined;
   remediationNotes?: string | undefined;
   id: string;
