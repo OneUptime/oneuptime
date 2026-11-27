@@ -67824,5 +67824,12 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "您的姓名和時間會被記錄。如果伺服器變更了此工具，該標記將不再生效，直到有人再次標記。",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} 已於 {{date}} 將其標記為唯讀，但伺服器之後變更了它。在有人再次標記之前，它會被視為可能會做出變更的工具。",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} 沒有說明 {{tool}} 是否會變更內容，也沒有專案管理員將其標記為唯讀，因此 OneUptime 會先詢問。",
-  "{{tool}} marked read-only": "已將 {{tool}} 標記為唯讀"
+  "{{tool}} marked read-only": "已將 {{tool}} 標記為唯讀",
+  "AI agents have no page in the dashboard: rename one with the API or Terraform.": "AI 代理在儀表板中沒有頁面：請透過 API 或 Terraform 重新命名其中一個。",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "此專案中另有一個 {{kind}} 使用此名稱，因此在選擇器中無法區分它們。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "Meraki connections": "Meraki 連線",
+  "Same name as another {{kind}}": "與另一個 {{kind}} 同名",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kinds}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "有 {{count}} 個 {{kind}} 與另一個 {{kind}} 同名，在選擇器中無法區分。請逐一開啟，查看哪個是哪個，然後重新命名其中一個。"
 }

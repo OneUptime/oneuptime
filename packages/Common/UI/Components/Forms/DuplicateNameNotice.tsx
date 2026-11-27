@@ -1,7 +1,7 @@
 import Icon from "../Icon/Icon";
 import Link from "../Link/Link";
 import RecordPageContext, {
-  GetRecordPageRoute,
+  RecordPages,
 } from "../RecordPage/RecordPageContext";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
 import UniqueNamesApi from "../../Utils/UniqueNamesApi";
@@ -143,8 +143,7 @@ const DuplicateNameNotice: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement | null => {
   const translator: Translator = useTranslator();
-  const getRecordPageRoute: GetRecordPageRoute | null =
-    useContext(RecordPageContext);
+  const recordPages: RecordPages | null = useContext(RecordPageContext);
   const [checked, setChecked] = useState<CheckedName | null>(null);
 
   // Bumped by every question: an answer to one asked before is dropped.
@@ -207,11 +206,21 @@ const DuplicateNameNotice: FunctionComponent<ComponentProps> = (
   }
 
   const holderRoute: Route | null =
-    checked.answer.takenBy && getRecordPageRoute
-      ? getRecordPageRoute({
+    checked.answer.takenBy && recordPages
+      ? recordPages.getRoute({
           tableName: props.tableName,
           modelId: new ObjectID(checked.answer.takenBy.id),
+          pageFields: checked.answer.takenBy.pageFields,
         })
+      : null;
+
+  /*
+   * A kind shown on no page at all is said to be (#11020), rather than
+   * named as if it had one somewhere.
+   */
+  const noPageNote: string | null =
+    checked.answer.takenBy && !holderRoute && recordPages?.getNoPageNote
+      ? recordPages.getNoPageNote(props.tableName)
       : null;
 
   const holderName: string = checked.answer.takenBy?.name || name;
@@ -261,6 +270,14 @@ const DuplicateNameNotice: FunctionComponent<ComponentProps> = (
             kind: translatableTerm(props.singularName, { inSentence: true }),
           }}
         />
+        {noPageNote ? (
+          <>
+            {" "}
+            <span data-testid="duplicate-name-notice-no-page">
+              {translator.translateText(noPageNote) || noPageNote}
+            </span>
+          </>
+        ) : null}
         {words.refused ? (
           <>
             {" "}

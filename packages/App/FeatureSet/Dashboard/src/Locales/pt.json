@@ -67824,5 +67824,12 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Seu nome e o horário são registrados. Se o servidor alterar esta ferramenta, a marcação deixa de valer até que alguém a marque novamente.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} a marcou como somente leitura em {{date}}, mas o servidor a alterou desde então. Até que alguém a marque novamente, ela conta como uma ferramenta que pode alterar coisas.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} não diz se {{tool}} altera algo, e nenhum administrador do projeto a marcou como somente leitura, então o OneUptime pergunta antes.",
-  "{{tool}} marked read-only": "{{tool}} marcada como somente leitura"
+  "{{tool}} marked read-only": "{{tool}} marcada como somente leitura",
+  "AI agents have no page in the dashboard: rename one with the API or Terraform.": "Os agentes de IA não têm página no painel: renomeie um deles pela API ou pelo Terraform.",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Outro item do tipo {{kind}} deste projeto tem este nome, então os seletores não conseguem distingui-los. Abra cada um para ver qual é qual e depois renomeie um deles.",
+  "Meraki connections": "conexões do Meraki",
+  "Same name as another {{kind}}": "Mesmo nome que outro item do tipo {{kind}}",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} têm o mesmo nome que outro item do tipo {{kind}}, e os seletores não conseguem distingui-los. Abra cada um para ver qual é qual e depois renomeie um deles.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} tem o mesmo nome que outro item do tipo {{kind}}, e os seletores não conseguem distingui-los. Abra cada um para ver qual é qual e depois renomeie um deles.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} tem o mesmo nome que outro item do tipo {{kind}}, e os seletores não conseguem distingui-los. Abra cada um para ver qual é qual e depois renomeie um deles."
 }

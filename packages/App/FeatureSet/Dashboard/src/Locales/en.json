@@ -67824,5 +67824,12 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.",
-  "{{tool}} marked read-only": "{{tool}} marked read-only"
+  "{{tool}} marked read-only": "{{tool}} marked read-only",
+  "AI agents have no page in the dashboard: rename one with the API or Terraform.": "AI agents have no page in the dashboard: rename one with the API or Terraform.",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.",
+  "Meraki connections": "Meraki connections",
+  "Same name as another {{kind}}": "Same name as another {{kind}}",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one."
 }

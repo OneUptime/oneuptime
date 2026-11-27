@@ -67824,5 +67824,12 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "이름과 시간이 기록됩니다. 서버가 이 도구를 변경하면 누군가 다시 표시할 때까지 표시가 적용되지 않습니다.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}}님이 {{date}}에 읽기 전용으로 표시했지만 그 후 서버가 도구를 변경했습니다. 누군가 다시 표시할 때까지 변경할 수 있는 도구로 취급됩니다.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}}이(가) {{tool}}이(가) 무언가를 변경하는지 알려 주지 않고, 읽기 전용으로 표시한 프로젝트 관리자도 없으므로 OneUptime이 먼저 확인합니다.",
-  "{{tool}} marked read-only": "{{tool}}을(를) 읽기 전용으로 표시했습니다"
+  "{{tool}} marked read-only": "{{tool}}을(를) 읽기 전용으로 표시했습니다",
+  "AI agents have no page in the dashboard: rename one with the API or Terraform.": "AI 에이전트는 대시보드에 페이지가 없으므로 API나 Terraform으로 그중 하나의 이름을 바꾸세요.",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "이 프로젝트에 이름이 같은 다른 항목({{kind}})이 있어 선택기에서 둘을 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "Meraki connections": "Meraki 연결",
+  "Same name as another {{kind}}": "다른 항목({{kind}})과 같은 이름",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kinds}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{kind}} {{count}}개가 다른 항목({{kind}})과 이름이 같아 선택기에서 구분할 수 없습니다. 각각 열어 어느 것이 어느 것인지 확인한 뒤 그중 하나의 이름을 바꾸세요."
 }

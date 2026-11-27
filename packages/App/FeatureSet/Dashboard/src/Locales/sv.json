@@ -67824,5 +67824,12 @@
   "Your name and the time are recorded. If the server changes this tool, the mark stops applying until someone marks it again.": "Ditt namn och tidpunkten registreras. Om servern ändrar det här verktyget slutar markeringen att gälla tills någon markerar det igen.",
   "{{name}} marked it read-only on {{date}}, but the server has changed it since. It may change things until someone marks it again.": "{{name}} markerade det som skrivskyddat den {{date}}, men servern har ändrat det sedan dess. Tills någon markerar det igen räknas det som ett verktyg som kan ändra saker.",
   "{{server}} does not say whether {{tool}} changes anything, and no Project Admin has marked it read-only, so OneUptime asks first.": "{{server}} anger inte om {{tool}} ändrar något, och ingen projektadministratör har markerat det som skrivskyddat, så OneUptime frågar först.",
-  "{{tool}} marked read-only": "{{tool}} markerat som skrivskyddat"
+  "{{tool}} marked read-only": "{{tool}} markerat som skrivskyddat",
+  "AI agents have no page in the dashboard: rename one with the API or Terraform.": "AI-agenter har ingen sida i instrumentpanelen: byt namn på en av dem via API:et eller med Terraform.",
+  "Another {{kind}} in this project has this name, so pickers can't tell them apart. Open each to see which is which, then rename one.": "En annan post av typen {{kind}} i det här projektet har det här namnet, så de två går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på den ena.",
+  "Meraki connections": "Meraki-anslutningar",
+  "Same name as another {{kind}}": "Samma namn som en annan post av typen {{kind}}",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kinds}} har samma namn som en annan post av typen {{kind}} och går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på en av dem.",
+  "{{count}} {{kinds}} have the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one._one": "{{count}} {{kind}} har samma namn som en annan post av typen {{kind}}, och de två går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på den ena.",
+  "{{count}} {{kind}} has the same name as another {{kind}}, and pickers can't tell them apart. Open each to see which is which, then rename one.": "{{count}} {{kind}} har samma namn som en annan post av typen {{kind}}, och de två går inte att skilja åt i väljare. Öppna var och en för att se vilken som är vilken, och byt sedan namn på den ena."
 }
