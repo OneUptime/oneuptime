@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "コストグループ: {{name}}",
   "A cost view: {{name}}": "コストビュー: {{name}}",
   "Data from {{start}} to {{end}}": "データ: {{start}} から {{end}} まで",
+  "Data from {{start}} up to, but not including, {{end}}": "データ: {{start}} から {{end}} の直前まで",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "組み込みの「Read only」ロールのコピーだけを持つ Xen Orchestra ユーザーのトークン。すべての読み取りにこれを使い、トークンが読み取りしかできないことを Xen Orchestra が確認するまで、エージェントは何も実行しません。",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "データオブザーバビリティがこのデータベースに接続する方法です。保存された接続文字列が再び表示されることはありません。",
   "Investigate with xo-cli": "xo-cli で調査",

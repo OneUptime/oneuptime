@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "लागत समूह: {{name}}",
   "A cost view: {{name}}": "लागत व्यू: {{name}}",
   "Data from {{start}} to {{end}}": "डेटा: {{start}} से {{end}} तक",
+  "Data from {{start}} up to, but not including, {{end}}": "डेटा: {{start}} से {{end}} से पहले तक",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "ऐसे Xen Orchestra उपयोगकर्ता का टोकन जिसके पास बिल्ट-इन “Read only” भूमिका की एक कॉपी हो और कुछ नहीं। पढ़ने का हर अनुरोध इसी का उपयोग करता है, और जब तक Xen Orchestra यह न बताए कि टोकन सिर्फ़ पढ़ सकता है, एजेंट कुछ नहीं चलाता।",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "डेटा अवलोकनीयता इस डेटाबेस तक कैसे पहुँचती है। सहेजी गई कनेक्शन स्ट्रिंग दोबारा कभी नहीं दिखाई जाती।",
   "Investigate with xo-cli": "xo-cli से जाँच करें",

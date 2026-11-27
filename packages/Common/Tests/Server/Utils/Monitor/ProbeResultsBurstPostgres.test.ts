@@ -49,6 +49,17 @@
  * next minute's ask, a second later or most of a minute. The numbers are in
  * the issue and in the pull request that closed it.
  *
+ * #11333 RUNS THREE MORE: the probes as they ask since then - each worker
+ * at its own moment of the minute, the same every minute (ProbeFetchMoments,
+ * which the probe's FetchList asks by) - with the probes' defaults and with
+ * the Helm chart's three workers a probe, and today's way with three workers
+ * too, to compare with. Beside how bursty the results are, each run says how
+ * far apart each monitor probe's checks were: before, a worker waited a new
+ * random second every minute, so a one-minute monitor's checks were 15 to
+ * 105 seconds apart; at its own moment, a minute, give or take how long its
+ * probe takes to get through what is due (its round). "today" below is how
+ * probes asked before #11333, as #11247 measured it.
+ *
  * Opt in with RUN_POSTGRES_PROBE_RESULTS_BURST_TESTS=true against a Postgres
  * migrated to head, e.g. the Postgres Schema Drift workflow's database:
  *
@@ -57,7 +68,7 @@
  *   PROBE_RESULTS_BURST_TEST_DATABASE_PORT=5400 \
  *   DATABASE_PASSWORD=... npx jest Tests/Server/Utils/Monitor/ProbeResultsBurstPostgres.test.ts
  *
- * It runs about ten minutes of real time. PROBE_RESULTS_BURST_REPORT_FILE,
+ * It runs about twenty minutes of real time. PROBE_RESULTS_BURST_REPORT_FILE,
  * when set, is where the measurements are written as JSON. The tables'
  * STRUCTURE is cloned into a unique schema (search_path holds only that
  * schema), dropped afterwards; every row is synthetic.
@@ -129,6 +140,7 @@ import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeApiIngestResponse from "../../../../Types/Probe/ProbeApiIngestResponse";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import ProbeFetchMoments from "../../../../Utils/Probe/ProbeFetchMoments";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import {
   afterAll,
@@ -166,6 +178,13 @@ const FETCH_LIMIT: number = 10;
 
 // The Telemetry queue's workers in one process (TELEMETRY_CONCURRENCY).
 const INGEST_WORKERS: number = 100;
+
+/*
+ * How far a monitor's two results can land from a minute plus its probe's
+ * round: each check takes 100 to 900 ms here, so two of them end up to
+ * 800 ms further apart than they started; the rest is timers.
+ */
+const GAP_SLACK_MS: number = 2 * SECOND_MS;
 
 const DASHES: RegExp = /-/g;
 
@@ -230,6 +249,26 @@ interface ProbeFleetSettings {
   staggerMaxMs: number;
   // Each claimed row stamped at its monitor's own moment, as #11247 proposed.
   atOwnMoment: boolean;
+  /*
+   * Each worker asks at its own moment of the minute, the same every minute,
+   * as the probe does since #11333 (ProbeFetchMoments); otherwise at a new
+   * random moment of the first staggerMaxMs every minute, as it did before.
+   */
+  askAtOwnMoment?: boolean | undefined;
+}
+
+// The time between two checks of one monitor probe, over a run.
+export interface BetweenChecks {
+  gaps: number;
+  minMs: number;
+  p5Ms: number;
+  p50Ms: number;
+  p95Ms: number;
+  maxMs: number;
+  // The farthest a gap was from a minute, either way.
+  farthestFromAMinuteMs: number;
+  // The share of gaps within a second of a minute.
+  withinASecondShare: number;
 }
 
 // One probe result, from its check to its evaluation.
@@ -260,6 +299,14 @@ export interface BurstMeasured {
   statementsPerSecondMax: number;
   // Each monitor probe's checks: the longest between two, and minutes it was not checked in.
   longestBetweenChecksMs: number;
+  betweenChecks: BetweenChecks;
+  /*
+   * A probe's round: in one minute, from the first of its claims that handed
+   * it monitors to the last. The longest of the run. A monitor is checked
+   * somewhere in its probe's round, and where depends on the order the
+   * claim hands out monitors due at the same moment.
+   */
+  longestRoundMs: number;
   checksSkipped: number;
   claims: number;
 }
@@ -694,6 +741,9 @@ describePostgres(
       // Evaluations running now, on the queue's workers.
       const pool: { active: number } = { active: 0 };
       let claims: number = 0;
+      // Each probe's round of each minute: its first and last claim with monitors.
+      const rounds: Map<string, { firstMs: number; lastMs: number }> =
+        new Map();
 
       const pump: () => void = (): void => {
         while (pool.active < INGEST_WORKERS && waiting.length > 0) {
@@ -735,9 +785,12 @@ describePostgres(
       const runWorker: (data: {
         probeId: ObjectID;
         slots: CheckSlots;
+        // Its moment of the minute, when it asks at its own (#11333).
+        offsetMs: number;
       }) => Promise<void> = async (data: {
         probeId: ObjectID;
         slots: CheckSlots;
+        offsetMs: number;
       }): Promise<void> => {
         const checks: Set<Promise<void>> = new Set();
 
@@ -748,7 +801,11 @@ describePostgres(
         ) {
           await sleepUntil(
             minute +
-              (settings.staggerMaxMs > 0 ? random(settings.staggerMaxMs) : 0),
+              (settings.askAtOwnMoment
+                ? data.offsetMs
+                : settings.staggerMaxMs > 0
+                  ? random(settings.staggerMaxMs)
+                  : 0),
           );
 
           for (;;) {
@@ -763,6 +820,18 @@ describePostgres(
                 limit: room,
               });
             claims++;
+
+            if (claimed.length > 0) {
+              const key: string = `${data.probeId.toString()} ${minute}`;
+              const round: { firstMs: number; lastMs: number } | undefined =
+                rounds.get(key);
+              const claimedAt: number = Date.now();
+
+              rounds.set(key, {
+                firstMs: round ? round.firstMs : claimedAt,
+                lastMs: claimedAt,
+              });
+            }
 
             data.slots.release(room - claimed.length);
 
@@ -812,10 +881,29 @@ describePostgres(
             const slots: CheckSlots = new CheckSlots(
               settings.workers * FETCH_LIMIT,
             );
+            /*
+             * Drawn once for the probe, as it starts (ProbeFetchMoments).
+             * Only by a run that asks at its own moments, so a run that asks
+             * as before draws the same seconds as before.
+             */
+            const offsetsMs: Array<number> = settings.askAtOwnMoment
+              ? ProbeFetchMoments.getWorkerOffsetsMs({
+                  workers: settings.workers,
+                  spreadMs: settings.staggerMaxMs,
+                  random: random(1000000) / 1000000,
+                })
+              : [];
 
-            return Array.from({ length: settings.workers }, () => {
-              return runWorker({ probeId, slots });
-            });
+            return Array.from(
+              { length: settings.workers },
+              (_value: unknown, worker: number) => {
+                return runWorker({
+                  probeId,
+                  slots,
+                  offsetMs: offsetsMs[worker] ?? 0,
+                });
+              },
+            );
           }),
         );
 
@@ -834,6 +922,7 @@ describePostgres(
         startAt,
         stopAt,
         claims,
+        rounds: Array.from(rounds.values()),
       });
 
       measured[name] = report;
@@ -846,6 +935,7 @@ describePostgres(
       startAt: number;
       stopAt: number;
       claims: number;
+      rounds: Array<{ firstMs: number; lastMs: number }>;
     }): BurstMeasured {
       const seconds: number = (data.stopAt - data.startAt) / SECOND_MS;
       const perSecond: Array<number> = new Array<number>(seconds).fill(0);
@@ -908,6 +998,7 @@ describePostgres(
 
       let longestBetween: number = 0;
       let skipped: number = 0;
+      const gaps: Array<number> = [];
 
       for (const list of byAssignment.values()) {
         list.sort((a: number, b: number) => {
@@ -917,8 +1008,13 @@ describePostgres(
         for (let index: number = 1; index < list.length; index++) {
           const between: number = list[index]! - list[index - 1]!;
           longestBetween = Math.max(longestBetween, between);
+          gaps.push(between);
         }
       }
+
+      const fromAMinute: Array<number> = gaps.map((gap: number): number => {
+        return Math.abs(gap - MINUTE_MS);
+      });
 
       // A monitor probe with no check in a whole minute of the run.
       for (const id of assignmentOf.keys()) {
@@ -967,6 +1063,29 @@ describePostgres(
         ),
         statementsPerSecondMax: Math.max(0, ...statementsPerSecond.values()),
         longestBetweenChecksMs: longestBetween,
+        betweenChecks: {
+          gaps: gaps.length,
+          minMs: gaps.length > 0 ? Math.min(...gaps) : 0,
+          p5Ms: percentile(gaps, 0.05),
+          p50Ms: percentile(gaps, 0.5),
+          p95Ms: percentile(gaps, 0.95),
+          maxMs: Math.max(0, ...gaps),
+          farthestFromAMinuteMs: Math.max(0, ...fromAMinute),
+          withinASecondShare:
+            gaps.length > 0
+              ? fromAMinute.filter((distance: number): boolean => {
+                  return distance <= SECOND_MS;
+                }).length / gaps.length
+              : 0,
+        },
+        longestRoundMs: Math.max(
+          0,
+          ...data.rounds.map(
+            (round: { firstMs: number; lastMs: number }): number => {
+              return round.lastMs - round.firstMs;
+            },
+          ),
+        ),
         checksSkipped: skipped,
         claims: data.claims,
       };
@@ -1028,13 +1147,124 @@ describePostgres(
 
         // A probe asks once a minute: a monitor due after it asked waits for the next.
         expect(report.checksSkipped).toBeGreaterThan(0);
-        expect(report.longestBetweenChecksMs).toBeGreaterThan(
-          today.longestBetweenChecksMs,
-        );
+        /*
+         * More often than today's asking skips one. Not the longest gap
+         * against today's: both are well over a minute and a half, as random
+         * as the seconds the probes draw, so which is longer is a coin toss
+         * (in two runs for #11333: 108.7 s against 108.2 s, then 92.5 s
+         * against 95.3 s; skipped: 635 against 43, then 467 against 0).
+         */
+        expect(report.checksSkipped).toBeGreaterThan(today.checksSkipped);
 
         // Where it is evaluated, no calmer than today.
         expect(report.waitForAWorkerMsMax).toBeLessThan(SECOND_MS);
         expect(report.evaluationsAtOnceMax).toBeLessThan(INGEST_WORKERS / 2);
+      },
+      RUN_TIMEOUT_MS,
+    );
+
+    /*
+     * #11333: the time between a monitor probe's checks. Before, each worker
+     * waited a new random second every minute, so a one-minute monitor's
+     * checks were anything from 15 to 105 seconds apart (today's run above).
+     * At its own moment of every minute, each worker's checks are a minute
+     * apart, give or take how long the probe takes to get through what is
+     * due - and the results reach the server as spread as today's.
+     */
+    test(
+      "#11333: each worker at its own moment of the minute, the probes' defaults - a monitor's checks a minute apart, give or take its probe's round, and the results as spread as today's",
+      async () => {
+        const today: BurstMeasured = measured["today"]!;
+        const report: BurstMeasured = await runFleet(
+          "own moments of the minute, one worker",
+          {
+            workers: 1,
+            staggerMaxMs: STAGGER_MAX_MS,
+            atOwnMoment: false,
+            askAtOwnMoment: true,
+          },
+          11333,
+        );
+
+        expect(report.results).toBeGreaterThanOrEqual(
+          MONITORS * PROBES * 3 - MONITORS * PROBES * 0.05,
+        );
+        expect(report.checksSkipped).toBe(0);
+
+        /*
+         * A minute apart, give or take the probe's round: one worker with 10
+         * check slots takes about 15 s to get through 300 monitors. Where in
+         * it a monitor is checked can move from one minute to the next. The
+         * claim orders the monitors due at the same moment by that moment
+         * alone, so Postgres hands them out in the order its index holds
+         * them, and each claim's rewrite of their rows moves that order.
+         * The probe's moment no longer moves (follow-up: #11386).
+         */
+        expect(report.betweenChecks.farthestFromAMinuteMs).toBeLessThanOrEqual(
+          report.longestRoundMs + GAP_SLACK_MS,
+        );
+        expect(report.betweenChecks.withinASecondShare).toBeGreaterThan(
+          today.betweenChecks.withinASecondShare,
+        );
+
+        // Where it is evaluated, as today: no burst, nothing waits for a worker.
+        expect(report.resultsPerSecondMax).toBeLessThan(80);
+        expect(report.evaluationsAtOnceMax).toBeLessThan(INGEST_WORKERS / 2);
+        expect(report.waitForAWorkerMsMax).toBeLessThan(SECOND_MS);
+      },
+      RUN_TIMEOUT_MS,
+    );
+
+    test(
+      "#11333: before, with the Helm chart's three workers a probe - each a new random second a minute",
+      async () => {
+        const report: BurstMeasured = await runFleet(
+          "today, three workers",
+          { workers: 3, staggerMaxMs: STAGGER_MAX_MS, atOwnMoment: false },
+          11334,
+        );
+
+        expect(report.checksSkipped).toBe(0);
+        // A new random second each minute: checks far from a minute apart.
+        expect(report.betweenChecks.farthestFromAMinuteMs).toBeGreaterThan(
+          10 * SECOND_MS,
+        );
+      },
+      RUN_TIMEOUT_MS,
+    );
+
+    test(
+      "#11333: the Helm chart's three workers a probe, each at its own moment - a minute apart, and its workers never ask at once",
+      async () => {
+        const before: BurstMeasured = measured["today, three workers"]!;
+        const report: BurstMeasured = await runFleet(
+          "own moments of the minute, three workers",
+          {
+            workers: 3,
+            staggerMaxMs: STAGGER_MAX_MS,
+            atOwnMoment: false,
+            askAtOwnMoment: true,
+          },
+          11335,
+        );
+
+        expect(report.results).toBeGreaterThanOrEqual(
+          MONITORS * PROBES * 3 - MONITORS * PROBES * 0.05,
+        );
+        expect(report.checksSkipped).toBe(0);
+        // A minute apart, give or take a round of three workers' 30 slots.
+        expect(report.betweenChecks.farthestFromAMinuteMs).toBeLessThanOrEqual(
+          report.longestRoundMs + GAP_SLACK_MS,
+        );
+        expect(report.betweenChecks.farthestFromAMinuteMs).toBeLessThan(
+          10 * SECOND_MS,
+        );
+        expect(report.betweenChecks.withinASecondShare).toBeGreaterThan(
+          before.betweenChecks.withinASecondShare,
+        );
+
+        expect(report.evaluationsAtOnceMax).toBeLessThan(INGEST_WORKERS / 2);
+        expect(report.waitForAWorkerMsMax).toBeLessThan(SECOND_MS);
       },
       RUN_TIMEOUT_MS,
     );

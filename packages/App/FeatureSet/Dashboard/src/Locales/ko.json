@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "비용 그룹: {{name}}",
   "A cost view: {{name}}": "비용 보기: {{name}}",
   "Data from {{start}} to {{end}}": "데이터: {{start}}부터 {{end}}까지",
+  "Data from {{start}} up to, but not including, {{end}}": "데이터: {{start}}부터 {{end}} 직전까지",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "기본 제공 'Read only' 역할의 사본만 가진 Xen Orchestra 사용자의 토큰입니다. 모든 읽기에 이 토큰을 쓰며, 토큰이 읽기만 할 수 있다고 Xen Orchestra가 확인하기 전에는 에이전트가 아무것도 실행하지 않습니다.",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "데이터 관측 가능성이 이 데이터베이스에 연결하는 방법입니다. 저장된 연결 문자열은 다시 표시되지 않습니다.",
   "Investigate with xo-cli": "xo-cli로 조사",

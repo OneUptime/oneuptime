@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "Группа затрат: {{name}}",
   "A cost view: {{name}}": "Представление затрат: {{name}}",
   "Data from {{start}} to {{end}}": "Данные: с {{start}} по {{end}}",
+  "Data from {{start}} up to, but not including, {{end}}": "Данные: с {{start}} до {{end}} (не включая)",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "Токен пользователя Xen Orchestra с копией встроенной роли «Read only» и ничем больше. Его использует каждое чтение, и агент ничего не запускает, пока Xen Orchestra не подтвердит, что токен может только читать.",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "Как Наблюдаемость данных подключается к этой базе данных. Сохранённая строка подключения больше никогда не показывается.",
   "Investigate with xo-cli": "Расследование с помощью xo-cli",

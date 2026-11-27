@@ -1527,6 +1527,21 @@ export default class StatementGenerator<TBaseModel extends AnalyticsBaseModel> {
             type: tableColumn.type,
           }}`,
         );
+      } else if (value instanceof InBetween && !value.includesEnd) {
+        /*
+         * A telemetry check's window: its start and not its end, so a
+         * record stamped where one window ends and the next begins is
+         * counted by one check, the later one (issue #11334).
+         */
+        whereStatement.append(
+          SQL`AND ${columnRef(key)} >= ${{
+            value: value.startValue,
+            type: tableColumn.type,
+          }} AND ${columnRef(key)} < ${{
+            value: value.endValue,
+            type: tableColumn.type,
+          }}`,
+        );
       } else if (value instanceof InBetween) {
         whereStatement.append(
           SQL`AND ${columnRef(key)} >= ${{

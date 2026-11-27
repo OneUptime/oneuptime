@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "A cost group: {{name}}",
   "A cost view: {{name}}": "A cost view: {{name}}",
   "Data from {{start}} to {{end}}": "Data from {{start}} to {{end}}",
+  "Data from {{start}} up to, but not including, {{end}}": "Data from {{start}} up to, but not including, {{end}}",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "How Data Observability reaches this database. A saved connection string is never shown again.",
   "Investigate with xo-cli": "Investigate with xo-cli",

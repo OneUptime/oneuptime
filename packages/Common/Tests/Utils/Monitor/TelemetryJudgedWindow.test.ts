@@ -115,6 +115,99 @@ describe("TelemetryJudgedWindow.describe, the root cause's words", () => {
   });
 });
 
+/*
+ * A check's window holds its start and not its end (#11334): a record
+ * stamped on its end was judged by the next check, and the root cause says
+ * so. A window judged before then held both ends, and reads as it did.
+ */
+describe("TelemetryJudgedWindow.describe of a window that leaves out its end", () => {
+  test("says the end is not included, its date once", () => {
+    expect(
+      TelemetryJudgedWindow.describe({
+        startsAt: new Date("2026-11-27T10:00:07.123Z"),
+        endsAt: new Date("2026-11-27T10:01:07.123Z"),
+        includesEnd: false,
+      }),
+    ).toBe("2026-11-27 10:00:07 up to, but not including, 10:01:07 UTC");
+  });
+
+  test("across midnight in UTC, and a day long, it says both dates", () => {
+    expect(
+      TelemetryJudgedWindow.describe({
+        startsAt: new Date("2026-11-26T23:59:30.000Z"),
+        endsAt: new Date("2026-11-27T00:00:30.000Z"),
+        includesEnd: false,
+      }),
+    ).toBe(
+      "2026-11-26 23:59:30 up to, but not including, 2026-11-27 00:00:30 UTC",
+    );
+    expect(
+      TelemetryJudgedWindow.describe({
+        startsAt: new Date("2026-11-26T10:00:07.000Z"),
+        endsAt: new Date("2026-11-27T10:00:07.000Z"),
+        includesEnd: false,
+      }),
+    ).toBe(
+      "2026-11-26 10:00:07 up to, but not including, 2026-11-27 10:00:07 UTC",
+    );
+  });
+
+  test("read back from JSON, as a stored summary holds it, it says the same", () => {
+    const stored: { startsAt: Date; endsAt: Date; includesEnd: boolean } =
+      JSON.parse(
+        JSON.stringify({
+          startsAt: new Date("2026-11-27T10:00:07.000Z"),
+          endsAt: new Date("2026-11-27T10:01:07.000Z"),
+          includesEnd: false,
+        }),
+      );
+
+    expect(TelemetryJudgedWindow.describe(stored)).toBe(
+      "2026-11-27 10:00:07 up to, but not including, 10:01:07 UTC",
+    );
+  });
+
+  test("windows that follow on: the second's start is the first's end, which the first leaves out", () => {
+    const first: string = TelemetryJudgedWindow.describe({
+      startsAt: new Date("2026-11-27T10:00:07.000Z"),
+      endsAt: new Date("2026-11-27T10:01:07.000Z"),
+      includesEnd: false,
+    })!;
+    const second: string = TelemetryJudgedWindow.describe({
+      startsAt: new Date("2026-11-27T10:01:07.000Z"),
+      endsAt: new Date("2026-11-27T10:02:07.000Z"),
+      includesEnd: false,
+    })!;
+
+    expect(first).toBe(
+      "2026-11-27 10:00:07 up to, but not including, 10:01:07 UTC",
+    );
+    expect(second.startsWith("2026-11-27 10:01:07 up to")).toBe(true);
+  });
+
+  test("a window that holds both ends, said or not, reads as it always did", () => {
+    for (const includesEnd of [true, undefined]) {
+      expect(
+        TelemetryJudgedWindow.describe({
+          startsAt: new Date("2026-11-27T10:00:07.000Z"),
+          endsAt: new Date("2026-11-27T10:01:07.000Z"),
+          includesEnd: includesEnd,
+        }),
+      ).toBe("2026-11-27 10:00:07 to 10:01:07 UTC");
+    }
+  });
+
+  test("ends that cannot be read still say nothing", () => {
+    expect(
+      TelemetryJudgedWindow.describe({
+        startsAt: new Date(Number.NaN),
+        endsAt: new Date("2026-11-27T10:01:07.000Z"),
+        includesEnd: false,
+      }),
+    ).toBeNull();
+  });
+});
+
 describe("getLocalDateTimeRangeEnds with includeSeconds, the log entry's words", () => {
   const START: Date = new Date("2026-11-27T10:00:07.000Z");
   const END: Date = new Date("2026-11-27T10:01:07.000Z");

@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "Un grupo de costos: {{name}}",
   "A cost view: {{name}}": "Una vista de costos: {{name}}",
   "Data from {{start}} to {{end}}": "Datos: de {{start}} a {{end}}",
+  "Data from {{start}} up to, but not including, {{end}}": "Datos: de {{start}} hasta antes de {{end}}",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "Un token de un usuario de Xen Orchestra que tiene una copia del rol integrado «Read only» y nada más. Todas las lecturas lo usan, y el agente no ejecuta nada hasta que Xen Orchestra confirma que el token solo puede leer.",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "Cómo llega Observabilidad de datos a esta base de datos. Una cadena de conexión guardada no se vuelve a mostrar.",
   "Investigate with xo-cli": "Investigar con xo-cli",

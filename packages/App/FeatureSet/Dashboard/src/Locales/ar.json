@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "مجموعة التكاليف: {{name}}",
   "A cost view: {{name}}": "عرض التكاليف: {{name}}",
   "Data from {{start}} to {{end}}": "البيانات: من {{start}} إلى {{end}}",
+  "Data from {{start}} up to, but not including, {{end}}": "البيانات: من {{start}} حتى ما قبل {{end}}",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "رمز لمستخدم Xen Orchestra يحمل نسخة من الدور المدمج «Read only» ولا شيء غيره. تستخدمه كل عملية قراءة، ولا يشغّل الوكيل شيئًا حتى يؤكد Xen Orchestra أن الرمز يستطيع القراءة فقط.",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "كيف تصل قابلية ملاحظة البيانات إلى قاعدة البيانات هذه. لا تُعرض سلسلة الاتصال المحفوظة مرة أخرى أبدًا.",
   "Investigate with xo-cli": "التحقيق باستخدام xo-cli",

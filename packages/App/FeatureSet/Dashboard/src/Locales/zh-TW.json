@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "成本群組：{{name}}",
   "A cost view: {{name}}": "成本檢視：{{name}}",
   "Data from {{start}} to {{end}}": "資料期間：{{start}} 至 {{end}}",
+  "Data from {{start}} up to, but not including, {{end}}": "資料期間：{{start}} 至 {{end}}（不含結束時刻）",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "只持有內建「Read only」角色副本的 Xen Orchestra 使用者的權杖。每次讀取都會使用它，在 Xen Orchestra 確認該權杖只能讀取之前，代理程式不會執行任何內容。",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "資料可觀測性連線到此資料庫的方式。已儲存的連線字串不會再次顯示。",
   "Investigate with xo-cli": "使用 xo-cli 調查",

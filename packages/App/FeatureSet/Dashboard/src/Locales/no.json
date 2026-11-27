@@ -67258,6 +67258,7 @@
   "A cost group: {{name}}": "En kostnadsgruppe: {{name}}",
   "A cost view: {{name}}": "En kostnadsvisning: {{name}}",
   "Data from {{start}} to {{end}}": "Data: {{start}} til {{end}}",
+  "Data from {{start}} up to, but not including, {{end}}": "Data: {{start}} til, men ikke med, {{end}}",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "Et token fra en Xen Orchestra-bruker med en kopi av den innebygde rollen «Read only» og ingenting annet. Hver lesing bruker det, og agenten kjører ingenting før Xen Orchestra bekrefter at tokenet bare kan lese.",
   "How Data Observability reaches this database. A saved connection string is never shown again.": "Hvordan Dataobserverbarhet når denne databasen. En lagret tilkoblingsstreng vises aldri igjen.",
   "Investigate with xo-cli": "Undersøk med xo-cli",
