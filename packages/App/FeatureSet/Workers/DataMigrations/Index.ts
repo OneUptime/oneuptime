@@ -224,6 +224,7 @@ import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResource
 import EndOnCallTimeLogsOfDeletedPolicies from "./EndOnCallTimeLogsOfDeletedPolicies";
 import WorkOutMonitorsPausedByIncidents from "./WorkOutMonitorsPausedByIncidents";
 import AddSensitiveFileServedToRecommendedRules from "./AddSensitiveFileServedToRecommendedRules";
+import MergeBackExceptionsSplitByFailedLookups from "./MergeBackExceptionsSplitByFailedLookups";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1711,6 +1712,20 @@ const DataMigrations: Array<DataMigrationBase> = [
    * two slots kept last.
    */
   new AddSensitiveFileServedToRecommendedRules(),
+  /*
+   * Merges back the duplicates a failed fingerprint lookup made before
+   * #11027 whose error never happened again (#11113): an exception made
+   * since grouping v2 under the grouping v1 fingerprint of its own stored
+   * text, after the exception that text's later fingerprints find, is
+   * merged into that one as its next occurrence would merge it
+   * (TelemetryExceptionSplitHeal), when every occurrence ClickHouse keeps
+   * agrees. Postgres, and a bounded read of ClickHouse per pair; paged,
+   * resumable, idempotent; a couple of minutes at most, the
+   * TelemetryException:MergeBackExceptionsSplitByFailedLookups job doing
+   * the rest. No ordering requirement of its own; before the two slots
+   * kept last.
+   */
+  new MergeBackExceptionsSplitByFailedLookups(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams
