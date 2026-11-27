@@ -375,7 +375,7 @@ function composeVariables(): Array<string> {
           return match[1] as string;
         })
         .filter((name: string): boolean => {
-          // ${XO_NAME:-${XO_ADDRESS}} reads XO_ADDRESS again: one variable.
+          // ${XO_NAME:-${XO_ADDRESS:-}} reads XO_ADDRESS again: one variable.
           return name.length > 0;
         }),
     ),
