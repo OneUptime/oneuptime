@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "테이블 {{count}}개와 그 기록 및 스키마 변경",
   "{{name}} deleted": "{{name}} 삭제됨",
   "{{name}} removed from Data Observability": "{{name}}을(를) 데이터 관측 가능성에서 제거함",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}}에 연결된 Database Agent가 없습니다. 옆에 Database Agent를 설치하거나 다른 연결 방법을 선택하세요."
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}}에 연결된 Database Agent가 없습니다. 옆에 Database Agent를 설치하거나 다른 연결 방법을 선택하세요.",
+  "State changes, notes, owners and everything else.": "상태 변경, 노트, 소유자, 그 밖의 모든 것."
 }

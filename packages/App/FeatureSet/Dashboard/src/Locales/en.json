@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} table, with its history and schema changes",
   "{{name}} deleted": "{{name}} deleted",
   "{{name}} removed from Data Observability": "{{name}} removed from Data Observability",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect."
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.",
+  "State changes, notes, owners and everything else.": "State changes, notes, owners and everything else."
 }

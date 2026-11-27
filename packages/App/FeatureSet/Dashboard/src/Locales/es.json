@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} tabla, con su historial y sus cambios de esquema",
   "{{name}} deleted": "{{name}} eliminada",
   "{{name}} removed from Data Observability": "{{name}} quitada de Observabilidad de datos",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "No hay ningún agente de bases de datos conectado a {{server}}. Instala el agente de bases de datos junto a él o elige otra forma de conexión."
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "No hay ningún agente de bases de datos conectado a {{server}}. Instala el agente de bases de datos junto a él o elige otra forma de conexión.",
+  "State changes, notes, owners and everything else.": "Cambios de estado, notas, propietarios y todo lo demás."
 }

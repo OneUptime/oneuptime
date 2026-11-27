@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "テーブル {{count}} 個（履歴とスキーマの変更を含む）",
   "{{name}} deleted": "{{name}} を削除しました",
   "{{name}} removed from Data Observability": "{{name}} をデータオブザーバビリティから削除しました",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} にはデータベースエージェントが接続されていません。横にデータベースエージェントをインストールするか、別の接続方法を選んでください。"
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} にはデータベースエージェントが接続されていません。横にデータベースエージェントをインストールするか、別の接続方法を選んでください。",
+  "State changes, notes, owners and everything else.": "状態変更、メモ、所有者、その他すべて。"
 }

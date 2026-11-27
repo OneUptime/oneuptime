@@ -67064,5 +67064,6 @@
   "{{count}} tables, with their history and schema changes_one": "{{count}} tabell, med sin historik och sina schemaändringar",
   "{{name}} deleted": "{{name}} borttagen",
   "{{name}} removed from Data Observability": "{{name}} borttagen från Dataobserverbarhet",
-  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "Ingen Database Agent är ansluten till {{server}}. Installera Database Agent bredvid den, eller välj ett annat sätt att ansluta."
+  "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "Ingen Database Agent är ansluten till {{server}}. Installera Database Agent bredvid den, eller välj ett annat sätt att ansluta.",
+  "State changes, notes, owners and everything else.": "Tillståndsändringar, anteckningar, ägare och allt annat."
 }
