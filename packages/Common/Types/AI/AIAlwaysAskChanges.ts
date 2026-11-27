@@ -751,24 +751,29 @@ export interface AlwaysAskWriteFound {
 }
 
 /*
- * The change a write of a record makes that asks a person in every mode,
- * or null for an ordinary write. `data` is the write's columns as its
- * route reads them (Server/Utils/Database/CrudRouteWrites); a delete has
- * none. `stored` is the record as it is now, for a change that compares
- * the write with it (comparesWith): a create holds nothing, and an update
- * whose record was not read is judged as if it could make the change. A
- * change that asks only where something holds (onlyWhen) is found here
- * too: the caller reads whether it holds.
+ * Every change a write of a record makes that asks a person in every mode:
+ * none for an ordinary write, and more than one for a write that makes
+ * several - a finding confirmed and marked not sensitive at once. Those
+ * that ask wherever they are made come first, so a change that asks only
+ * where something holds never stands in front of one that always asks.
+ * `data` is the write's columns as its route reads them
+ * (Server/Utils/Database/CrudRouteWrites); a delete has none. `stored` is
+ * the record as it is now, for a change that compares the write with it
+ * (comparesWith): a create holds nothing, and an update whose record was
+ * not read is judged as if it could make the change. A change that asks
+ * only where something holds (onlyWhen) is found here too: the caller
+ * reads whether it holds.
  */
-export function findAlwaysAskChange(data: {
+export function findAlwaysAskChanges(data: {
   tableName: string;
   write: AlwaysAskWrite;
   data: JSONObject | undefined;
   stored?: JSONObject | null | undefined;
-}): AlwaysAskWriteFound | null {
+}): Array<AlwaysAskWriteFound> {
   const columns: JSONObject = data.data || {};
   const stored: JSONObject | null =
     data.write === AlwaysAskWrite.Create ? {} : data.stored || null;
+  const found: Array<AlwaysAskWriteFound> = [];
 
   for (const change of ALWAYS_ASK_CHANGES) {
     for (const record of change.records) {
@@ -792,11 +797,29 @@ export function findAlwaysAskChange(data: {
         continue;
       }
 
-      return { change, record };
+      found.push({ change, record });
     }
   }
 
-  return null;
+  // Stable: the list's order among those that ask alike.
+  return [
+    ...found.filter((each: AlwaysAskWriteFound): boolean => {
+      return !each.change.onlyWhen;
+    }),
+    ...found.filter((each: AlwaysAskWriteFound): boolean => {
+      return Boolean(each.change.onlyWhen);
+    }),
+  ];
+}
+
+// The first change a write makes that asks a person (findAlwaysAskChanges), or null.
+export function findAlwaysAskChange(data: {
+  tableName: string;
+  write: AlwaysAskWrite;
+  data: JSONObject | undefined;
+  stored?: JSONObject | null | undefined;
+}): AlwaysAskWriteFound | null {
+  return findAlwaysAskChanges(data)[0] || null;
 }
 
 /*
@@ -810,9 +833,11 @@ export function writeAlwaysAsks(data: {
   data: JSONObject | undefined;
   stored?: JSONObject | null | undefined;
 }): boolean {
-  const found: AlwaysAskWriteFound | null = findAlwaysAskChange(data);
-
-  return Boolean(found && !found.change.onlyWhen);
+  return findAlwaysAskChanges(data).some(
+    (found: AlwaysAskWriteFound): boolean => {
+      return !found.change.onlyWhen;
+    },
+  );
 }
 
 /*

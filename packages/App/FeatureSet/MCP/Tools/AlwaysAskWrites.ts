@@ -38,7 +38,7 @@ import {
   AlwaysAskWrite,
   AlwaysAskWriteFound,
   doCriticalIssuesPage,
-  findAlwaysAskChange,
+  findAlwaysAskChanges,
   getAlwaysAskChangesOfTable,
   getAsksInEveryModeRefusal,
 } from "Common/Types/AI/AIAlwaysAskChanges";
@@ -289,29 +289,52 @@ export function readWriteColumns(write: RecordWrite): Array<JSONObject> {
 }
 
 /*
- * The change a write makes that asks a person first, or null. `stored` is
+ * Every change a write makes that asks a person first, those that ask
+ * wherever they are made first (findAlwaysAskChanges), read both as the
+ * route reads the write and as it was sent, each change once. `stored` is
  * the record as it is now, for a change that compares the write with it
  * (AlwaysAskRecordWrite.comparesWith): left out, such a change is judged
  * as if the write could make it.
  */
-export function findAlwaysAskChangeOfWrite(
+export function findAlwaysAskChangesOfWrite(
   write: RecordWrite,
   stored?: JSONObject | null | undefined,
-): AlwaysAskWriteFound | null {
+): Array<AlwaysAskWriteFound> {
+  const found: Array<AlwaysAskWriteFound> = [];
+
   for (const columns of readWriteColumns(write)) {
-    const found: AlwaysAskWriteFound | null = findAlwaysAskChange({
+    for (const each of findAlwaysAskChanges({
       tableName: write.tableName,
       write: write.write,
       data: columns,
       stored: stored || null,
-    });
-
-    if (found) {
-      return found;
+    })) {
+      if (
+        !found.some((known: AlwaysAskWriteFound): boolean => {
+          return known.change === each.change && known.record === each.record;
+        })
+      ) {
+        found.push(each);
+      }
     }
   }
 
-  return null;
+  return [
+    ...found.filter((each: AlwaysAskWriteFound): boolean => {
+      return !each.change.onlyWhen;
+    }),
+    ...found.filter((each: AlwaysAskWriteFound): boolean => {
+      return Boolean(each.change.onlyWhen);
+    }),
+  ];
+}
+
+// The first change a write makes that asks a person first, or null.
+export function findAlwaysAskChangeOfWrite(
+  write: RecordWrite,
+  stored?: JSONObject | null | undefined,
+): AlwaysAskWriteFound | null {
+  return findAlwaysAskChangesOfWrite(write, stored)[0] || null;
 }
 
 // The columns a table's changes compare a write with.
@@ -591,11 +614,11 @@ export async function refuseWriteThatAsksAPerson(data: {
    * write that could make no change even then - nearly every write - is
    * sent at once, with nothing read for it.
    */
-  let found: AlwaysAskWriteFound | null = findAlwaysAskChangeOfWrite(
+  let changes: Array<AlwaysAskWriteFound> = findAlwaysAskChangesOfWrite(
     data.write,
   );
 
-  if (!found) {
+  if (changes.length === 0) {
     return;
   }
 
@@ -616,17 +639,27 @@ export async function refuseWriteThatAsksAPerson(data: {
       columns: getComparedColumns(data.write.tableName),
     });
 
-    found = findAlwaysAskChangeOfWrite(data.write, stored);
+    changes = findAlwaysAskChangesOfWrite(data.write, stored);
+  }
 
-    if (!found) {
-      return;
+  /*
+   * Every change the write makes is judged, those that ask wherever they
+   * are made first: one that asks only where something holds, and does
+   * not hold here, never lets another the same write makes through.
+   */
+  let found: AlwaysAskWriteFound | null = null;
+
+  for (const each of changes) {
+    if (
+      !each.change.onlyWhen ||
+      (await isAskedHere({ condition: each.change.onlyWhen, read: data.read }))
+    ) {
+      found = each;
+      break;
     }
   }
 
-  if (
-    found.change.onlyWhen &&
-    !(await isAskedHere({ condition: found.change.onlyWhen, read: data.read }))
-  ) {
+  if (!found) {
     return;
   }
 

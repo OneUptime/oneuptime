@@ -21,6 +21,7 @@ import {
   isStepGuardedByApproval,
   doCriticalIssuesPage,
   findAlwaysAskChange,
+  findAlwaysAskChanges,
   getAlwaysAskChangesOfTable,
   getAsksInEveryModeRefusal,
   writeAlwaysAsks,
@@ -268,6 +269,66 @@ describe("a finding's write", () => {
     expect(findingUpdate({ isSuppressed: true, isConfirmed: true })).toBe(
       "Not Sensitive",
     );
+  });
+
+  test("a write that makes several changes is found making each, those that always ask first", () => {
+    const changes: Array<AlwaysAskWriteFound> = findAlwaysAskChanges({
+      tableName: DATA_STORE_FINDING_TABLE_NAME,
+      write: AlwaysAskWrite.Update,
+      data: { isConfirmed: true, isSuppressed: true },
+    });
+
+    expect(
+      changes.map((each: AlwaysAskWriteFound): string => {
+        return each.change.name;
+      }),
+    ).toEqual([
+      "Not Sensitive",
+      "Confirm, in a project that pages someone for a Critical issue",
+    ]);
+    expect(
+      writeAlwaysAsks({
+        tableName: DATA_STORE_FINDING_TABLE_NAME,
+        write: AlwaysAskWrite.Update,
+        data: { isConfirmed: true, isSuppressed: true },
+      }),
+    ).toBe(true);
+  });
+
+  test("whatever the list's order, a change that always asks is never behind one that asks only somewhere", () => {
+    for (const change of ALWAYS_ASK_CHANGES) {
+      for (const record of change.records) {
+        for (const write of record.writes) {
+          const everyColumn: JSONObject = {};
+
+          for (const column of record.columns || []) {
+            everyColumn[column] = column === "status" ? "Accepted" : true;
+          }
+
+          const found: Array<AlwaysAskWriteFound> = findAlwaysAskChanges({
+            tableName: record.tableName,
+            write,
+            data: everyColumn,
+          });
+          const firstConditional: number = found.findIndex(
+            (each: AlwaysAskWriteFound): boolean => {
+              return Boolean(each.change.onlyWhen);
+            },
+          );
+          const lastAlways: number = found
+            .map((each: AlwaysAskWriteFound): boolean => {
+              return !each.change.onlyWhen;
+            })
+            .lastIndexOf(true);
+
+          expect({
+            table: record.tableName,
+            write,
+            ordered: firstConditional === -1 || lastAlways < firstConditional,
+          }).toEqual({ table: record.tableName, write, ordered: true });
+        }
+      }
+    }
   });
 });
 

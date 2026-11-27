@@ -547,6 +547,27 @@ describe("Confirm asks where a Critical issue pages someone, as the card reads i
     expect(writesTo("DataStoreFinding")).toHaveLength(2);
   });
 
+  it("a write that also marks the finding not sensitive is refused for that, whatever the project pages, with nothing read for it", async () => {
+    pagesNobody(api);
+
+    const answer: ToolAnswer = await call(UPDATE_FINDING, {
+      id: FINDING_ID,
+      isConfirmed: true,
+      isSuppressed: true,
+    });
+
+    expect(readFailure(answer).error).toContain(
+      AI_DATA_SECURITY_ACTION_ASKS_BECAUSE.notSensitive,
+    );
+    // The change that always asks is judged first: the paging setting is never read.
+    expect(
+      api.sent.some((request: SentRequest): boolean => {
+        return request.path.startsWith("/api/data-security-setting/");
+      }),
+    ).toBe(false);
+    expect(writesTo("DataStoreFinding")).toEqual([]);
+  });
+
   it("where the setting cannot be read: refused, never made unseen", async () => {
     api.refusedReads.push("/api/data-security-setting/");
 
