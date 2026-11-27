@@ -2,9 +2,11 @@
 
 存储阵列监视器监视一个存储阵列，并在阵列自身发出警报、空间不足、变慢、丢失硬件或主机路径，或复制落后时通知你。它支持 Pure Storage FlashArray 和 Pure Storage FlashBlade，读取阵列自身导出的指标——Pure 的 `purefa_*` 和 `purefb_*` 序列——这些指标由 OneUptime Storage Array Agent 采集。
 
+它也适用于 Dell PowerStore（`dell.powerstore`），基于 Dell 的 `powerstore_*` 序列。
+
 :::cards
 - [创建监视器](#创建存储阵列监视器): 在仪表板中的六个步骤。
-- [模板](#预置警报模板): 二十个现成的警报，每个卷、主机或组件一个事件。
+- [模板](#预置警报模板): 现成的警报，每个卷、主机、专用设备或组件一个事件。
 - [Pure 序列的工作方式](#pure-序列的结构): 一个指标名称，多个数值。
 - [指标](#采集的指标): 监视器可以据以警报的每个序列。
 :::
@@ -87,6 +89,8 @@ flowchart TB
 
 代理每 60 秒读取一次阵列端点，每 2 分钟读取一次卷、主机和 Pod，因此 5 分钟的窗口中总会有样本。它每 5 分钟读取一次 FlashBlade 的文件系统和存储桶(所以用 15 分钟)，每 30 分钟读取一次 FlashArray 目录：请给目录监视器设置 60 分钟的窗口。
 
+它每 5 分钟读取一次 PowerStore，每 60 秒读取一次其集群状态：为 PowerStore 监视器设置 15 分钟的窗口。
+
 ## Pure 序列的结构
 
 Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分它们：
@@ -107,9 +111,13 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 
 在监视器过滤器和分组键中，代理的属性以 `resource.` 开头(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的标签不以它开头(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
 
+## PowerStore 序列的结构
+
+Dell 的导出器每个指标名称只写一个值，因此 PowerStore 序列不需要标签过滤器。其标签标识对象：`appliance_id` 是专用设备，`name` 是部件、卷或文件系统，而 `volume_id`、`fc_port_id`、`eth_port_id`、`nas_id` 或 `volume_group_id` 是性能序列的对象。其状态序列在健康时为 1，否则为 0，因此模板在低于 1 时触发。它自己的警报通过 syslog 到达，其模板（日志监视器）列在下面的表格之后。
+
 ## 预置警报模板
 
-OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 提供 36 个模板——12 个用于 FlashArray，8 个用于 FlashBlade，16 个用于 PowerStore——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
 只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。警报、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。
 
@@ -143,6 +151,37 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | High Read Latency | 性能 | 警告 | `purefb_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，过去 10 分钟 | > 10000 µs (10 ms)，跨所有协议；≤ 9000 时恢复 |
 | File System Near Full | 文件系统 | 警告 | `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，按 `name` 取 Min，过去 15 分钟 | < 0.1 — 文件系统预配大小的剩余不足 10%。每个文件系统一个事件；≥ 0.11 时恢复 |
 
+### PowerStore
+
+| 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 严重 | `powerstore_cluster`，Count，过去 10 分钟 | 整个窗口内都没有数据 — 代理、Dell 的导出器或集群不再响应；再次收到数据时恢复 |
+| Capacity Above 80% | 容量 | 警告 | `powerstore_cap_physical_used_percent`，按 `appliance_id` 取 Max，过去 15 分钟 | > 80 — 某台专用设备的容量正在填满；≤ 72 时恢复 |
+| Capacity Above 90% | 容量 | 严重 | `powerstore_cap_physical_used_percent`，按 `appliance_id` 取 Max，过去 15 分钟 | > 90 — 某台专用设备即将拒绝写入；≤ 81 时恢复 |
+| High Read Latency | 性能 | 警告 | `powerstore_perf_avg_read_latency`，按 `appliance_id` 取 Avg，过去 15 分钟 | > 5000 µs (5 ms)；≤ 4500 时恢复 |
+| High Write Latency | 性能 | 警告 | `powerstore_perf_avg_write_latency`，按 `appliance_id` 取 Avg，过去 15 分钟 | > 5000 µs (5 ms)；≤ 4500 时恢复 |
+| Drive Failed | 硬件 | 严重 | `powerstore_hardware_Drive_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个驱动器发生故障或被移除；≥ 1 时恢复 |
+| Node Unhealthy | 硬件 | 严重 | `powerstore_hardware_node_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个节点不是 Healthy；≥ 1 时恢复 |
+| Power Supply Unhealthy | 硬件 | 警告 | `powerstore_hardware_Power_Supply_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个电源发生故障或断电；≥ 1 时恢复 |
+| Fan Unhealthy | 硬件 | 警告 | `powerstore_hardware_Fan_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个风扇发生故障；≥ 1 时恢复 |
+| Battery Unhealthy | 硬件 | 警告 | `powerstore_hardware_Battery_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个电池备份模块出现故障；≥ 1 时恢复 |
+| Drive Wearing Out | 硬件 | 警告 | `powerstore_wear_metrics_by_drive`，按 `name` 取 Min，过去 15 分钟 | < 10 — 某个驱动器剩余的耐久度不足 10%；≥ 11 时恢复 |
+| NAS Server Not Started | 文件系统 | 警告 | `powerstore_nas_server_operational_status`，按 `name` 取 Max，过去 10 分钟 | < 1 — 某个 NAS 服务器已停止或已降级；≥ 1 时恢复 |
+| Volume Not Ready | 阵列健康状况 | 警告 | `powerstore_volume_state`，按 `name` 取 Max，过去 15 分钟 | < 1 — 某个卷处于离线状态；≥ 1 时恢复 |
+| File System Near Full | 文件系统 | 警告 | `powerstore_filesystem_logical_used_percent`，按 `name` 取 Max，过去 15 分钟 | > 90 — 某个文件系统快满了；≤ 81 时恢复 |
+| Cluster Not Configured | 阵列健康状况 | 警告 | `powerstore_cluster`，Max，过去 10 分钟 | < 1 — 集群不是 Configured；≥ 1 时恢复 |
+| Metro Witness Not Connected | 复制 | 警告 | `powerstore_metro_witness_status`，按 `name` 取 Min，过去 10 分钟 | > 0 — 某个 Metro Witness 未连接；再次变为 OK 时恢复 |
+
+### 通过 syslog 的 PowerStore 警报
+
+PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 监视器，在阵列的 **建议** 页面的 **阵列警报** 下提供。每个模板为每条 PowerStore 警报打开一个警报，按 `powerstore.resource.name` 和 `powerstore.alert.id` 分组，并在 PowerStore 清除该警报时将其解决：
+
+| 模板 | 严重性 | 在包含以下内容的行上打开 | 在以下内容上解决 |
+| --- | --- | --- | --- |
+| Critical Array Alert | 严重 | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | 警告 | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | 警告 | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
+
 **严重程度** 是选择器显示的标签。模板创建的事件和警报以项目中最严重的事件和警报严重程度开始；可以在条件中修改。
 
 - **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`)，代理采集的每个端点在每次采集时都会导出该序列。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
@@ -163,6 +202,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 阵列上每个未关闭的警报一个序列(值为 1)，带有标签 `severity`(`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type` 和 `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade 上每个未关闭的警报一个序列(值为 1)，带有标签 `severity`(`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary` 和 `kburl`(Pure 知识库文章) |
+| `powerstore_cluster` | — | PowerStore | `count` | PowerStore 集群为 Configured（已组建并在提供服务）时为 1，处于其他任何状态时为 0：Configuring、Expanding、Removing、Clustering_Failed 或 Unconfigured。 |
 
 ### 容量
 
@@ -176,6 +216,13 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | FlashBlade 可用容量中已使用的比例 |
 | `purefb_array_space_bytes` | `type=array`、`space=empty` | FlashBlade | `bytes` | FlashBlade 未使用的容量 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | 整个 FlashBlade 的数据缩减 |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | 每台专用设备物理容量的使用比例，以百分比表示：物理已用除以物理总量，来自 PowerStore 的每日空间汇总。PowerStore 从 70% 起发出自己的容量警报。按 appliance_id 分组。 |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | 每台专用设备的可用物理容量，以字节为单位。 |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | 每台专用设备使用的物理容量，以字节为单位，为重复数据删除和压缩之后的值。观察其趋势，预测专用设备何时写满。 |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | 每台专用设备上预配的逻辑容量，以字节为单位：其所含每个卷、文件系统和 vVol 的大小，可能远高于其物理容量。 |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | 主机写入每台专用设备的数据，以字节为单位，为重复数据删除和压缩之前的值。 |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | 每台专用设备上的重复数据删除和压缩效果，例如 3.4:1 记为 3.4。持续下降表示新写入的数据缩减效果差：加密或已压缩的数据。 |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | 每台专用设备的总体效率：数据缩减加上快照和精简配置节省的空间。 |
 
 ### 性能
 
@@ -197,6 +244,13 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`、`protocol=all` | FlashBlade | `ops/s` | 所有协议的每秒写操作数 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有协议的每秒读取字节数 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有协议的每秒写入字节数 |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | 每台专用设备上读取的平均延迟，以微秒为单位，基于 PowerStore 最近的五分钟样本。PowerStore 的读取通常远低于 1 ms 即可完成。 |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | 每台专用设备上写入的平均延迟，以微秒为单位。 |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | 每台专用设备上每秒的读取操作数。 |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | 每台专用设备上每秒的写入操作数。 |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 每台专用设备上每秒读取的字节数。 |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 每台专用设备上每秒写入的字节数。 |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | 每台专用设备专用于存储 I/O 的 CPU 核心中处于繁忙状态的比例，以百分比表示。持续偏高意味着该专用设备已接近其能承受的负载。 |
 
 ### 卷
 
@@ -211,6 +265,20 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | 主机看到的每个卷的大小 |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | 每个卷在数据缩减后占用的物理空间 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 每个卷的数据缩减比 |
+| `powerstore_volume_state` | — | PowerStore | `count` | 卷为 Ready 时为 1，为 Initializing、Offline 或正在销毁时为 0。按 name 分组，找出主机无法访问的卷。 |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | 主机看到的每个卷的大小，以字节为单位。 |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | 主机写入每个卷的数据，以字节为单位，为重复数据删除和压缩之前的值。 |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | 每个卷的平均读取延迟，以微秒为单位。按 volume_id 分组（它包含卷的名称），找出慢的卷。 |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | 每个卷的平均写入延迟，以微秒为单位。 |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | 每个卷每秒的读取操作数。 |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | 每个卷每秒的写入操作数。 |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 每秒从每个卷读取的字节数。 |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 每秒写入每个卷的字节数。 |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | 为每个卷组中各卷预配的容量，以字节为单位。按 name 分组。 |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | 主机写入每个卷组中各卷的数据，以字节为单位，为重复数据删除和压缩之前的值。 |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | 每个卷组中各卷的平均读取延迟，以微秒为单位。按 volume_group_id 分组，它包含卷组的名称。 |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | 每个卷组中各卷的平均写入延迟，以微秒为单位。 |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | 每个卷组中各卷每秒的读写操作数。 |
 
 ### 主机
 
@@ -230,6 +298,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | 每条 Pod 副本链接的平均复制滞后 |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 每个 Pod 的复制流量，带有标签 `direction` 和 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 每个 ActiveCluster Pod 的镜像写平均延迟 |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | 每个 Metro Witness 的状态：0 OK，1 部分连接，2 已断开，3 正在删除，4 正在初始化。大于 0 时，Metro 会话可能无法自行故障转移。 |
 
 ### 硬件
 
@@ -240,6 +309,23 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | 每个驱动器的原始容量，带有其 `component_status`(`healthy`、`failed`、`missing`、`recovering`、`unhealthy`、`empty`……)和类型标签 |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 每个以太网和光纤通道接口上的每秒错误数——持续出错通常意味着线缆、光模块或交换机端口有问题 |
 | `purefb_hardware_health` | — | FlashBlade | — | 每个硬件组件(刀片、交换模块、电源、风扇……)的健康状况：1 = 健康，2 = 未使用，0 = 不健康。按 `name` 取最小值 |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 专用设备的节点为 Healthy 时为 1，处于其他任何状态时为 0，状态由其 state 标签给出（Failed、Disconnected、Initializing...）。按 name 和 appliance_id 分组。 |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 驱动器为 Healthy 时为 1，发生故障、被移除或未就绪时为 0。按 name 分组，每个驱动器触发一个事件。 |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | 每个驱动器剩余的写入耐久度比例，以百分比表示。接近 0 的驱动器已接近寿命终点：请计划更换。 |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 节点的风扇模块为 Healthy 时为 1，发生故障或被移除时为 0。 |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 节点的电源为 Healthy 时为 1，发生故障、失去输入电源或断开连接时为 0。 |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 节点的电池备份模块为 Healthy 时为 1，出现故障或断开连接时为 0。 |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 光纤通道端口链路启动时为 1，断开时为 0；未连接任何线缆的端口始终处于断开状态。按 fc_port_id 分组，它包含端口的名称。 |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 以太网端口链路启动时为 1，断开时为 0。按 eth_port_id 分组，它包含端口的名称。 |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | 经过每个光纤通道端口的读取的平均延迟，以微秒为单位。 |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | 经过每个光纤通道端口的写入的平均延迟，以微秒为单位。 |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | 每秒经过每个光纤通道端口的读写操作数。 |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | 每秒经过每个光纤通道端口读取和写入的字节数。 |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | 每个光纤通道端口每秒收到的 CRC 无效的帧数。持续出现错误通常意味着线缆、光模块或交换机端口有问题。 |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | 每个光纤通道端口每秒的链路故障数。出现任何一次都值得检查该端口的线缆、光模块和交换机。 |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | 每个以太网端口每秒接收的字节数。 |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | 每个以太网端口每秒发送的字节数。 |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | 每个以太网端口每秒收到的带 CRC 错误的数据包数。持续出现错误通常意味着线缆、光模块或交换机端口有问题。 |
 
 ### 文件系统
 
@@ -249,6 +335,17 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | 每个文件系统的写入平均延迟 |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 每个文件系统占用的物理空间 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 每个文件系统预配大小中仍然空闲的比例，从 0 到 1——接近 0 时它即将用满配额 |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | NAS 服务器为 Started 时为 1，为 Stopped、Starting、Stopping、已故障转移或 Degraded（在没有备份节点的情况下运行）时为 0。按 name 分组。 |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | 每个 NAS 服务器处理的读取的平均延迟，以微秒为单位。按 nas_id 分组，它包含服务器的名称。 |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | 每个 NAS 服务器处理的写入的平均延迟，以微秒为单位。 |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | 每个 NAS 服务器每秒处理的读写操作数。 |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | 每个文件系统大小的使用比例，以百分比表示：逻辑已用除以预配大小。按 name 分组。 |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | 客户端看到的每个文件系统的大小，以字节为单位。 |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | 客户端写入每个文件系统的数据，以字节为单位。 |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | 从每个文件系统读取的平均延迟，以微秒为单位。按 name 分组。 |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | 写入每个文件系统的平均延迟，以微秒为单位。 |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | 每个文件系统每秒的读取操作数。 |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | 每个文件系统每秒的写入操作数。 |
 
 ### 存储桶
 

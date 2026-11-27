@@ -114,6 +114,24 @@ export const getIncidentAffectedResourcesFormFields: () => Fields<Incident> =
       },
       {
         /*
+         * Whether the incident pauses its monitors' checks (#11141), as
+         * Declare Incident asks it: switched off while the incident is
+         * open, its monitors are checked again at once; on, they pause.
+         */
+        field: {
+          pauseMonitoring: true,
+        },
+        title: "Pause Monitoring",
+        description:
+          "Stops checking these monitors until the incident is resolved. Monitors set to keep monitoring during incidents keep being checked.",
+        fieldType: FormFieldSchemaType.Checkbox,
+        required: false,
+        showIf: (values: FormValues<Incident>): boolean => {
+          return hasPickedMonitors(values);
+        },
+      },
+      {
+        /*
          * Everything else the incident affects, anchored on `hosts`;
          * the payload is split back into each relation below, and
          * the hidden registrations load and save the rest.

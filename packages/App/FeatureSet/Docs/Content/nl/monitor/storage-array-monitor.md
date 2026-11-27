@@ -2,9 +2,11 @@
 
 Een opslagarray-monitor houdt één opslagarray in de gaten en laat je weten wanneer de array een eigen waarschuwing geeft, zonder ruimte komt, trager wordt, hardware of een hostpad verliest, of achterloopt met replicatie. Hij werkt met Pure Storage FlashArray en Pure Storage FlashBlade, en leest de metrieken die de array zelf exporteert - de reeksen `purefa_*` en `purefb_*` van Pure -, die de OneUptime Storage Array Agent verzamelt.
 
+Hij werkt ook met Dell PowerStore (`dell.powerstore`), op basis van de reeksen `powerstore_*` van Dell.
+
 :::cards
 - [De monitor maken](#een-opslagarray-monitor-maken): Zes stappen in het dashboard.
-- [Templates](#kant-en-klare-waarschuwingstemplates): Twintig kant-en-klare waarschuwingen, één incident per volume, host of component.
+- [Templates](#kant-en-klare-waarschuwingstemplates): Kant-en-klare waarschuwingen, één incident per volume, host, appliance of component.
 - [Hoe de reeksen van Pure werken](#hoe-de-reeksen-van-pure-zijn-opgebouwd): Eén metrieknaam, veel waarden.
 - [Metrieken](#verzamelde-metrieken): Elke reeks waarop de monitor kan waarschuwen.
 :::
@@ -87,6 +89,8 @@ Klik op **Monitor maken**. OneUptime opent de pagina van de monitor en evalueert
 
 De agent leest het array-endpoint elke 60 seconden, en volumes, hosts en pods elke 2 minuten, dus een venster van 5 minuten bevat altijd een monster. De bestandssystemen en buckets van een FlashBlade leest hij elke 5 minuten, vandaar 15, en FlashArray-mappen elke 30 minuten: geef een mapmonitor een venster van 60 minuten.
 
+Hij leest een PowerStore elke 5 minuten, en de toestand van zijn cluster elke 60 seconden: geef een PowerStore-monitor een venster van 15 minuten.
+
 ## Hoe de reeksen van Pure zijn opgebouwd
 
 Pure zet meerdere waarden op **één** metrieknaam en onderscheidt ze met een label:
@@ -107,9 +111,13 @@ Een reeks die gefilterd is op een slechte toestand bestaat alleen zolang iets in
 
 In monitorfilters en groeperingssleutels beginnen de attributen van de agent met `resource.` (`resource.storage.array.name`, `resource.storage.system`), terwijl de eigen labels van Pure dat niet doen (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 
+## Hoe de reeksen van PowerStore zijn opgebouwd
+
+De exporter van Dell schrijft één waarde per metrieknaam, dus een PowerStore-reeks heeft geen labelfilter nodig. Zijn labels noemen het object: `appliance_id` een appliance, `name` een onderdeel, volume of bestandssysteem, en `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id` of `volume_group_id` het object van een prestatiereeks. Zijn toestandsreeksen zijn 1 zolang alles gezond is en anders 0, dus de templates gaan af onder 1. Zijn eigen waarschuwingen komen per syslog binnen, en hun templates, logboekmonitors, staan na zijn tabel hieronder.
+
 ## Kant-en-klare waarschuwingstemplates
 
-OneUptime levert 20 templates — 12 voor FlashArray en 8 voor FlashBlade — en de lijst onder **Waarover te waarschuwen** biedt die voor het platform van de array aan. Elk template bouwt een volledige monitor: de metriekquery, de labelfilters, een groepering op het eigen label van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
+OneUptime levert 36 templates — 12 voor FlashArray, 8 voor FlashBlade en 16 voor PowerStore — en de lijst onder **Waarover te waarschuwen** biedt die voor het platform van de array aan. Elk template bouwt een volledige monitor: de metriekquery, de labelfilters, een groepering op het eigen label van het object, een criterium dat afgaat en een dat herstelt. Drempels zijn startpunten die je kunt aanpassen.
 
 Een criterium gaat alleen af als de voorwaarde geldt voor **elke** waarde in zijn venster. Een monitor die afging op een drempel voor capaciteit, latentie, achterstand of verhouding herstelt pas 10 % voorbij die drempel, zodat een waarde die rond de drempel schommelt niet heen en weer springt. De templates voor waarschuwingen, hardware en connectiviteit gaan af zodra een toestand hun hele venster van 5 minuten zichtbaar was, en herstellen ongeveer 5 minuten nadat die verdwenen is.
 
@@ -143,6 +151,37 @@ Een criterium gaat alleen af als de voorwaarde geldt voor **elke** waarde in zij
 | High Read Latency            | Prestaties   | Waarschuwing  | `purefb_array_performance_latency_usec` gefilterd op `dimension=usec_per_read_op` en `protocol=all`, Avg, laatste 10 minuten | > 10000 µs (10 ms) over alle protocollen; herstelt bij ≤ 9000                                         |
 | File System Near Full        | Bestandssystemen | Waarschuwing  | `purefb_file_systems_space_bytes` gefilterd op `space=available_ratio`, Min per `name`, laatste 15 minuten     | < 0.1 — er is minder dan 10 % over van de toegewezen grootte van een bestandssysteem. Eén incident per bestandssysteem; herstelt bij ≥ 0.11 |
 
+### PowerStore
+
+| Template                     | Categorie    | Ernst    | Houdt in de gaten                                                                                              | Gaat af als                                                                                                         |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Beschikbaarheid | Kritiek | `powerstore_cluster`, Count, laatste 10 minuten | Geen gegevens gedurende het hele venster — de agent, de exporter van Dell of het cluster antwoordt niet meer; herstelt zodra er weer gegevens binnenkomen |
+| Capacity Above 80% | Capaciteit | Waarschuwing | `powerstore_cap_physical_used_percent`, Max per `appliance_id`, laatste 15 minuten | > 80 — de capaciteit van een appliance raakt vol; herstelt bij ≤ 72 |
+| Capacity Above 90% | Capaciteit | Kritiek | `powerstore_cap_physical_used_percent`, Max per `appliance_id`, laatste 15 minuten | > 90 — een appliance weigert binnenkort schrijfbewerkingen; herstelt bij ≤ 81 |
+| High Read Latency | Prestaties | Waarschuwing | `powerstore_perf_avg_read_latency`, Avg per `appliance_id`, laatste 15 minuten | > 5000 µs (5 ms); herstelt bij ≤ 4500 |
+| High Write Latency | Prestaties | Waarschuwing | `powerstore_perf_avg_write_latency`, Avg per `appliance_id`, laatste 15 minuten | > 5000 µs (5 ms); herstelt bij ≤ 4500 |
+| Drive Failed | Hardware | Kritiek | `powerstore_hardware_Drive_state`, Min per `name`, laatste 10 minuten | < 1 — een schijf is defect of verwijderd; herstelt bij ≥ 1 |
+| Node Unhealthy | Hardware | Kritiek | `powerstore_hardware_node_state`, Min per `name`, laatste 10 minuten | < 1 — een knooppunt is niet Healthy; herstelt bij ≥ 1 |
+| Power Supply Unhealthy | Hardware | Waarschuwing | `powerstore_hardware_Power_Supply_state`, Min per `name`, laatste 10 minuten | < 1 — een voeding is defect of zonder stroom; herstelt bij ≥ 1 |
+| Fan Unhealthy | Hardware | Waarschuwing | `powerstore_hardware_Fan_state`, Min per `name`, laatste 10 minuten | < 1 — een ventilator is defect; herstelt bij ≥ 1 |
+| Battery Unhealthy | Hardware | Waarschuwing | `powerstore_hardware_Battery_state`, Min per `name`, laatste 10 minuten | < 1 — een back-upbatterijmodule heeft een storing; herstelt bij ≥ 1 |
+| Drive Wearing Out | Hardware | Waarschuwing | `powerstore_wear_metrics_by_drive`, Min per `name`, laatste 15 minuten | < 10 — een schijf heeft nog minder dan 10% van zijn duurzaamheid; herstelt bij ≥ 11 |
+| NAS Server Not Started | Bestandssystemen | Waarschuwing | `powerstore_nas_server_operational_status`, Max per `name`, laatste 10 minuten | < 1 — een NAS-server is gestopt of gedegradeerd; herstelt bij ≥ 1 |
+| Volume Not Ready | Arraygezondheid | Waarschuwing | `powerstore_volume_state`, Max per `name`, laatste 15 minuten | < 1 — een volume is offline; herstelt bij ≥ 1 |
+| File System Near Full | Bestandssystemen | Waarschuwing | `powerstore_filesystem_logical_used_percent`, Max per `name`, laatste 15 minuten | > 90 — een bestandssysteem is bijna vol; herstelt bij ≤ 81 |
+| Cluster Not Configured | Arraygezondheid | Waarschuwing | `powerstore_cluster`, Max, laatste 10 minuten | < 1 — het cluster is niet Configured; herstelt bij ≥ 1 |
+| Metro Witness Not Connected | Replicatie | Waarschuwing | `powerstore_metro_witness_status`, Min per `name`, laatste 10 minuten | > 0 — een Metro-witness is niet verbonden; herstelt zodra die weer OK is |
+
+### PowerStore-waarschuwingen, per syslog
+
+De eigen waarschuwingen van een PowerStore komen als logboeken binnen, dus hun templates zijn monitors van het type **Logboeken**, aangeboden op de pagina **Aanbevelingen** van de array onder **Arraywaarschuwingen**. Elk opent één waarschuwing per PowerStore-waarschuwing, gegroepeerd op `powerstore.resource.name` en `powerstore.alert.id`, en lost die op wanneer de PowerStore die waarschuwing opheft:
+
+| Template | Ernst | Opent bij een regel met | Lost op bij |
+| --- | --- | --- | --- |
+| Critical Array Alert | Kritiek | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | Waarschuwing | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | Waarschuwing | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
+
 **Ernst** is het label dat de keuzelijst toont. Het incident en de waarschuwing die een template maakt, beginnen op de zwaarste incident- en waarschuwingsernst van je project; wijzig ze in het criterium.
 
 - **Array Stopped Reporting** telt de identiteitsreeks van het platform (`purefa_info` of `purefb_info`), die elk endpoint dat de agent uitleest bij elke uitlezing exporteert. Als er geen gegevens meer komen, hebben de andere templates niets om te vergelijken en houden ze hun laatste status, dus dit is het template dat het je laat weten.
@@ -163,6 +202,7 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | -------------------- | ------ | ---------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `purefa_alerts_open` | —      | FlashArray | `count` | Eén reeks per openstaande waarschuwing op de array (waarde 1), met de labels `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` en `summary` |
 | `purefb_alerts_open` | —      | FlashBlade | `count` | Eén reeks per openstaande waarschuwing op de FlashBlade (waarde 1), met de labels `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` en `kburl` (het kennisbankartikel van Pure) |
+| `powerstore_cluster` | — | PowerStore | `count` | 1 zolang het PowerStore-cluster Configured is (gevormd en in bedrijf), 0 in elke andere toestand: Configuring, Expanding, Removing, Clustering_Failed of Unconfigured. |
 
 ### Capaciteit
 
@@ -176,6 +216,13 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefb_array_space_utilization`          | `type=array`                 | FlashBlade | `%`     | Aandeel van de bruikbare capaciteit van de FlashBlade dat in gebruik is                                                               |
 | `purefb_array_space_bytes`                | `type=array`, `space=empty`  | FlashBlade | `bytes` | Ongebruikte capaciteit van de FlashBlade                                                                                              |
 | `purefb_array_space_data_reduction_ratio` | `type=array`                 | FlashBlade | `ratio` | Gegevensreductie over de hele FlashBlade                                                                                              |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | Aandeel van de fysieke capaciteit van elke appliance dat in gebruik is, in procenten: de fysiek gebruikte ruimte gedeeld door het fysieke totaal, uit de dagelijkse ruimteoverzichten van PowerStore. PowerStore geeft zelf capaciteitswaarschuwingen vanaf 70%. Groepeer op appliance_id. |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | Bruikbare fysieke capaciteit van elke appliance in bytes. |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | Fysieke capaciteit die elke appliance gebruikt, in bytes, na deduplicatie en compressie. Volg de trend om te voorspellen wanneer een appliance vol raakt. |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | Logische capaciteit die op elke appliance is toegewezen, in bytes: de grootte van elk volume, bestandssysteem en vVol erop, die ver boven de fysieke capaciteit kan liggen. |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | Gegevens die hosts naar elke appliance hebben geschreven in bytes, vóór deduplicatie en compressie. |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | Deduplicatie en compressie op elke appliance, bijvoorbeeld 3.4 voor 3.4:1. Een aanhoudende daling betekent dat nieuw geschreven gegevens slecht te reduceren zijn: versleutelde of al gecomprimeerde gegevens. |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | Totale efficiëntie van elke appliance: de gegevensreductie samen met de besparingen van snapshots en thin provisioning. |
 
 ### Prestaties
 
@@ -197,6 +244,13 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all`     | FlashBlade | `ops/s`   | Schrijfoperaties per seconde over alle protocollen                                                           |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Gelezen bytes per seconde over alle protocollen                                                              |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Geschreven bytes per seconde over alle protocollen                                                          |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | Gemiddelde latentie van een leesbewerking op elke appliance, in microseconden, over de laatste steekproef van vijf minuten van PowerStore. Leesbewerkingen op PowerStore zijn meestal ruim onder 1 ms klaar. |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | Gemiddelde latentie van een schrijfbewerking op elke appliance, in microseconden. |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | Leesbewerkingen per seconde op elke appliance. |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | Schrijfbewerkingen per seconde op elke appliance. |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Bytes per seconde gelezen op elke appliance. |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Bytes per seconde geschreven op elke appliance. |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | Aandeel van de CPU-kernen die elke appliance aan opslag-I/O toewijst dat bezet is, in procenten. Aanhoudend hoge waarden betekenen dat de appliance dicht bij de belasting zit die hij aankan. |
 
 ### Volumes
 
@@ -211,6 +265,20 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefa_volume_space_bytes`                 | `space=total_provisioned`        | FlashArray | `bytes`   | Grootte van elk volume zoals hosts die zien                   |
 | `purefa_volume_space_bytes`                 | `space=total_physical`           | FlashArray | `bytes`   | Fysieke ruimte die elk volume na gegevensreductie gebruikt    |
 | `purefa_volume_space_data_reduction_ratio`  | —                                | FlashArray | `ratio`   | Gegevensreductieverhouding van elk volume                     |
+| `powerstore_volume_state` | — | PowerStore | `count` | 1 zolang een volume Ready is, 0 zolang het Initializing of Offline is of verwijderd wordt. Groepeer op name om het volume te vinden dat hosts niet bereiken. |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | Grootte van elk volume zoals hosts die zien, in bytes. |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | Gegevens die hosts naar elk volume hebben geschreven in bytes, vóór deduplicatie en compressie. |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | Gemiddelde leeslatentie van elk volume in microseconden. Groepeer op volume_id, dat de naam van het volume bevat, om het trage volume te vinden. |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | Gemiddelde schrijflatentie van elk volume in microseconden. |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | Leesbewerkingen per seconde van elk volume. |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | Schrijfbewerkingen per seconde van elk volume. |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Bytes per seconde gelezen uit elk volume. |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Bytes per seconde geschreven naar elk volume. |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | Capaciteit die aan de volumes van elke volumegroep is toegewezen, in bytes. Groepeer op name. |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | Gegevens die hosts naar de volumes van elke volumegroep hebben geschreven in bytes, vóór deduplicatie en compressie. |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | Gemiddelde leeslatentie over de volumes van elke volumegroep, in microseconden. Groepeer op volume_group_id, dat de naam van de groep bevat. |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | Gemiddelde schrijflatentie over de volumes van elke volumegroep, in microseconden. |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | Lees- en schrijfbewerkingen per seconde over de volumes van elke volumegroep. |
 
 ### Hosts
 
@@ -230,6 +298,7 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefa_pod_replica_links_lag_average_msec`          | —                                      | FlashArray | `ms`      | Gemiddelde replicatieachterstand van elke podreplicakoppeling                                                                                                |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total`                      | FlashArray | `bytes/s` | Replicatieverkeer van elke pod, met de labels `direction` en `dimension`                                                                                     |
 | `purefa_pod_performance_latency_usec`                | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs`      | Gemiddelde latentie van gespiegelde schrijfacties van elke ActiveCluster-pod                                                                                 |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | Toestand van elke Metro-witness: 0 OK, 1 gedeeltelijk verbonden, 2 verbroken, 3 wordt verwijderd, 4 wordt geïnitialiseerd. Boven 0 schakelt een Metro-sessie mogelijk niet zelf over. |
 
 ### Hardware
 
@@ -240,6 +309,23 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefa_drive_capacity_bytes`                 | —                                | FlashArray | `bytes`    | Ruwe capaciteit van elke schijf, met het label van zijn `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) en type                                                  |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Fouten per seconde op elke Ethernet- en Fibre Channel-interface — aanhoudende fouten betekenen meestal een slechte kabel, optiek of switchpoort                                                               |
 | `purefb_hardware_health`                      | —                                | FlashBlade | —          | Gezondheid van elk hardwarecomponent (blades, fabric-modules, voedingen, ventilatoren, ...): 1 = gezond, 2 = ongebruikt, 0 = ongezond. Neem het minimum per `name`                                             |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 1 zolang een knooppunt van een appliance Healthy is, 0 in elke andere toestand, die zijn label state noemt (Failed, Disconnected, Initializing...). Groepeer op name en appliance_id. |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 1 zolang een schijf Healthy is, 0 wanneer hij defect is, verwijderd is of niet gereed is. Groepeer op name om één incident per schijf te openen. |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | Aandeel van de schrijfduurzaamheid dat elke schijf nog heeft, in procenten. Een schijf bij 0 is bijna aan het einde van zijn levensduur: plan de vervanging. |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 1 zolang de ventilatormodule van een knooppunt Healthy is, 0 wanneer die defect is of verwijderd is. |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 1 zolang de voeding van een knooppunt Healthy is, 0 wanneer die defect is, geen ingangsstroom meer heeft of losgekoppeld is. |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 1 zolang de back-upbatterijmodule van een knooppunt Healthy is, 0 wanneer die een storing heeft of losgekoppeld is. |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 1 zolang de verbinding van een Fibre Channel-poort actief is, 0 zolang die verbroken is, wat een poort zonder kabel altijd is. Groepeer op fc_port_id, dat de naam van de poort bevat. |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 1 zolang de verbinding van een Ethernet-poort actief is, 0 zolang die verbroken is. Groepeer op eth_port_id, dat de naam van de poort bevat. |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | Gemiddelde latentie van een leesbewerking via elke Fibre Channel-poort, in microseconden. |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | Gemiddelde latentie van een schrijfbewerking via elke Fibre Channel-poort, in microseconden. |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | Lees- en schrijfbewerkingen per seconde via elke Fibre Channel-poort. |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | Bytes per seconde gelezen en geschreven via elke Fibre Channel-poort. |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | Frames met een ongeldige CRC die per seconde op elke Fibre Channel-poort binnenkomen. Aanhoudende fouten wijzen meestal op een defecte kabel, optiek of switchpoort. |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | Verbindingsstoringen per seconde op elke Fibre Channel-poort. Elke storing is een blik waard op de kabel, de optiek en de switch van de poort. |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | Bytes per seconde ontvangen op elke Ethernet-poort. |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | Bytes per seconde verzonden op elke Ethernet-poort. |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | Pakketten met een CRC-fout die per seconde op elke Ethernet-poort binnenkomen. Aanhoudende fouten wijzen meestal op een defecte kabel, optiek of switchpoort. |
 
 ### Bestandssystemen
 
@@ -249,6 +335,17 @@ De agent stuurt alles wat de array exporteert; de reeksen hieronder vormen de ca
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs`    | Gemiddelde schrijflatentie van elk bestandssysteem                                           |
 | `purefb_file_systems_space_bytes`              | `space=total_physical`        | FlashBlade | `bytes` | Fysieke ruimte die elk bestandssysteem gebruikt                                              |
 | `purefb_file_systems_space_bytes`              | `space=available_ratio`       | FlashBlade | `ratio` | Aandeel van de toegewezen grootte van elk bestandssysteem dat nog beschikbaar is, 0 tot 1 — dicht bij 0 staat het op het punt zijn quotum te vullen |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | 1 zolang een NAS-server Started is, 0 zolang hij Stopped, Starting, Stopping, overgenomen of Degraded is (hij draait zonder zijn reserveknooppunt). Groepeer op name. |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | Gemiddelde latentie van een leesbewerking die elke NAS-server bedient, in microseconden. Groepeer op nas_id, dat de naam van de server bevat. |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | Gemiddelde latentie van een schrijfbewerking die elke NAS-server bedient, in microseconden. |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | Lees- en schrijfbewerkingen per seconde die elke NAS-server bedient. |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | Aandeel van de grootte van elk bestandssysteem dat in gebruik is, in procenten: de logisch gebruikte ruimte gedeeld door de toegewezen grootte. Groepeer op name. |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | Grootte van elk bestandssysteem zoals clients die zien, in bytes. |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | Gegevens die clients naar elk bestandssysteem hebben geschreven, in bytes. |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | Gemiddelde latentie van een leesbewerking uit elk bestandssysteem, in microseconden. Groepeer op name. |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | Gemiddelde latentie van een schrijfbewerking naar elk bestandssysteem, in microseconden. |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | Leesbewerkingen per seconde van elk bestandssysteem. |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | Schrijfbewerkingen per seconde van elk bestandssysteem. |
 
 ### Buckets
 

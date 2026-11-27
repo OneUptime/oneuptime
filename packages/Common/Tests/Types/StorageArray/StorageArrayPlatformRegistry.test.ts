@@ -4,8 +4,10 @@ import { StorageArrayResourceScope } from "../../../Types/Monitor/MonitorStepSto
 import { BUILT_IN_STORAGE_ARRAY_PLATFORMS } from "../../../Types/StorageArray/Platforms/StorageArrayPlatforms";
 import PureStorageFlashArrayPlatform from "../../../Types/StorageArray/Platforms/PureStorage/FlashArray/FlashArrayPlatform";
 import PureStorageFlashBladePlatform from "../../../Types/StorageArray/Platforms/PureStorage/FlashBlade/FlashBladePlatform";
+import DellPowerStorePlatform from "../../../Types/StorageArray/Platforms/Dell/PowerStore/PowerStorePlatform";
 import {
   STORAGE_ARRAY_HARDWARE_KINDS,
+  StorageArrayLogAlertTemplateSpec,
   StorageArrayPlatform,
 } from "../../../Types/StorageArray/StorageArrayPlatform";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
@@ -30,6 +32,7 @@ import {
 
 const FLASHARRAY: string = StorageSystem.PureStorageFlashArray;
 const FLASHBLADE: string = StorageSystem.PureStorageFlashBlade;
+const POWERSTORE: string = StorageSystem.DellPowerStore;
 
 afterEach(() => {
   // Each test that registers a platform leaves the registry as shipped.
@@ -49,14 +52,16 @@ function systemsOf(
 }
 
 describe("the shipped platforms", () => {
-  test("are Pure Storage's FlashArray and FlashBlade, in that order", () => {
+  test("are Pure Storage's FlashArray and FlashBlade, then Dell's PowerStore, in that order", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
+      POWERSTORE,
     ]);
     expect(BUILT_IN_STORAGE_ARRAY_PLATFORMS).toEqual([
       PureStorageFlashArrayPlatform,
       PureStorageFlashBladePlatform,
+      DellPowerStorePlatform,
     ]);
   });
 
@@ -81,6 +86,9 @@ describe("the shipped platforms", () => {
     expect(StorageArrayPlatformRegistry.getPlatform(FLASHBLADE)).toBe(
       PureStorageFlashBladePlatform,
     );
+    expect(StorageArrayPlatformRegistry.getPlatform(POWERSTORE)).toBe(
+      DellPowerStorePlatform,
+    );
     // An alias is StorageSystemUtil.normalize's to resolve, not a lookup.
     for (const other of [
       null,
@@ -89,6 +97,7 @@ describe("the shipped platforms", () => {
       "purefa",
       "PURESTORAGE.FLASHARRAY",
       " purestorage.flasharray",
+      "powerstore",
       "netapp.ontap",
     ]) {
       expect(StorageArrayPlatformRegistry.getPlatform(other)).toBeNull();
@@ -106,12 +115,22 @@ describe("the shipped platforms", () => {
         "purefb_file_systems_space_bytes",
       ),
     ).toBe(PureStorageFlashBladePlatform);
+    expect(
+      StorageArrayPlatformRegistry.getPlatformByMetricName(
+        "powerstore_volume_logical_used",
+      ),
+    ).toBe(DellPowerStorePlatform);
     // A name no catalog lists still has its platform.
     expect(
       StorageArrayPlatformRegistry.getPlatformByMetricName(
         "purefa_some_series_purity_adds_later",
       ),
     ).toBe(PureStorageFlashArrayPlatform);
+    expect(
+      StorageArrayPlatformRegistry.getPlatformByMetricName(
+        "powerstore_metricReplication_avg_rpo",
+      ),
+    ).toBe(DellPowerStorePlatform);
     for (const other of [
       null,
       undefined,
@@ -366,6 +385,7 @@ describe("registering a platform at runtime", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
+      POWERSTORE,
       ACME_STORAGE_SYSTEM,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 1);
@@ -397,6 +417,7 @@ describe("registering a platform at runtime", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
+      POWERSTORE,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 2);
     expect(
@@ -412,7 +433,9 @@ describe("registering a platform at runtime", () => {
     const before: number = StorageArrayPlatformRegistry.getVersion();
     StorageArrayPlatformRegistry.unregister("netapp.ontap");
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before);
-    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(2);
+    expect(StorageArrayPlatformRegistry.getPlatforms()).toEqual(
+      BUILT_IN_STORAGE_ARRAY_PLATFORMS,
+    );
   });
 
   test("a series family of the array's own platform wins over an earlier platform's", () => {
@@ -453,7 +476,9 @@ describe("registering a platform at runtime", () => {
       'Storage array platform acme.array cannot be registered: "purefa" already names purestorage.flasharray',
     );
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before);
-    expect(StorageArrayPlatformRegistry.getPlatforms()).toHaveLength(2);
+    expect(StorageArrayPlatformRegistry.getPlatforms()).toEqual(
+      BUILT_IN_STORAGE_ARRAY_PLATFORMS,
+    );
   });
 
   test("registering it twice is refused", () => {
@@ -464,6 +489,28 @@ describe("registering a platform at runtime", () => {
   });
 });
 
+/*
+ * A log template as a platform whose alerts arrive in its logs declares one
+ * (Dell PowerStore's, read from its syslog).
+ */
+const ACME_LOG_TEMPLATE: StorageArrayLogAlertTemplateSpec = {
+  id: "acme-failure-logged",
+  name: "Acme Failure Logged",
+  summary: "The array logs a failure: one alert each, until it clears it.",
+  description: "Opens an alert for each failure the array logs.",
+  category: "Array Alerts",
+  severity: "Critical",
+  attributes: { "acme.alert.severity": "failure" },
+  groupByAttributes: ["acme.alert.id"],
+  resolvedByAttributes: { "acme.alert.state": "cleared" },
+  windowSeconds: 3600,
+  incidentTitle: "Acme array failure",
+  incidentDescription: "The array logged a failure.",
+  criteriaName: "A failure is logged",
+  criteriaDescription: "A line of the array logs a failure.",
+  healthyDescription: "No failure is open.",
+};
+
 describe("what registration refuses", () => {
   const firstPureMetricId: string =
     PureStorageFlashArrayPlatform.metrics[0]!.id;
@@ -473,6 +520,14 @@ describe("what registration refuses", () => {
   test("the acme platform itself is accepted", () => {
     expect(
       StorageArrayPlatformRegistry.getRegistrationProblem(ACME_PLATFORM),
+    ).toBeNull();
+  });
+
+  test("a platform whose alerts arrive in its logs, with a log template, is accepted", () => {
+    expect(
+      StorageArrayPlatformRegistry.getRegistrationProblem(
+        acmePlatformWith({ logAlertTemplates: [ACME_LOG_TEMPLATE] }),
+      ),
     ).toBeNull();
   });
 
@@ -569,6 +624,70 @@ describe("what registration refuses", () => {
         ],
       },
       `the template id ${ACME_PLATFORM.heartbeat.templateId} is taken`,
+    ],
+    [
+      "a log template id a shipped platform's log template uses",
+      {
+        logAlertTemplates: [
+          {
+            ...ACME_LOG_TEMPLATE,
+            id: DellPowerStorePlatform.logAlertTemplates![0]!.id,
+          },
+        ],
+      },
+      `the template id ${DellPowerStorePlatform.logAlertTemplates![0]!.id} is taken`,
+    ],
+    [
+      "a log template with a metric template's id",
+      {
+        logAlertTemplates: [{ ...ACME_LOG_TEMPLATE, id: firstPureTemplateId }],
+      },
+      `the template id ${firstPureTemplateId} is taken`,
+    ],
+    [
+      "a log template with its own metric template's id",
+      {
+        logAlertTemplates: [
+          { ...ACME_LOG_TEMPLATE, id: ACME_PLATFORM.alertTemplates[0]!.id },
+        ],
+      },
+      `the template id ${ACME_PLATFORM.alertTemplates[0]!.id} is taken`,
+    ],
+    [
+      "a log template that matches every line",
+      { logAlertTemplates: [{ ...ACME_LOG_TEMPLATE, attributes: {} }] },
+      "its log template acme-failure-logged matches every line",
+    ],
+    [
+      "a log template grouped by nothing",
+      { logAlertTemplates: [{ ...ACME_LOG_TEMPLATE, groupByAttributes: [] }] },
+      "its log template acme-failure-logged groups by no attribute it can name",
+    ],
+    [
+      "a log template grouped by a blank attribute",
+      {
+        logAlertTemplates: [
+          { ...ACME_LOG_TEMPLATE, groupByAttributes: ["acme.alert.id", " "] },
+        ],
+      },
+      "its log template acme-failure-logged groups by no attribute it can name",
+    ],
+    [
+      "a log template no line resolves",
+      {
+        logAlertTemplates: [{ ...ACME_LOG_TEMPLATE, resolvedByAttributes: {} }],
+      },
+      "its log template acme-failure-logged has no line that resolves it",
+    ],
+    [
+      "a log template that looks back no time",
+      { logAlertTemplates: [{ ...ACME_LOG_TEMPLATE, windowSeconds: 0 }] },
+      "its log template acme-failure-logged looks back no time",
+    ],
+    [
+      "a log template that looks back part of a second",
+      { logAlertTemplates: [{ ...ACME_LOG_TEMPLATE, windowSeconds: 1.5 }] },
+      "its log template acme-failure-logged looks back no time",
     ],
     [
       "an agent config key a shipped platform uses",
@@ -747,7 +866,7 @@ describe("what registration refuses", () => {
   test("a value of the vendor.product shape with digits, dots, dashes and underscores is fine", () => {
     for (const storageSystem of [
       "netapp.ontap",
-      "dell.powerstore",
+      "dell.powerstore_next",
       "dell.powermax",
       "dell.unity_xt",
       "hpe.3par-primera",
