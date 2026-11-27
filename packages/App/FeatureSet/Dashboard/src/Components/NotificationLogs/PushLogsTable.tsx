@@ -8,12 +8,8 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Red } from "Common/Types/BrandColors";
-import PushStatus from "Common/Types/PushNotification/PushStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -23,6 +19,11 @@ import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import NotificationLogStatusPill from "./NotificationLogStatusPill";
+import {
+  getNotificationLogStatusFilterOptions,
+  NotificationLogKind,
+} from "./NotificationLogStatus";
 
 export interface PushLogsTableProps {
   query?: Query<BaseModel>;
@@ -68,17 +69,18 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Text,
+      /*
+       * What the status means: Success is the push service's, which turns
+       * to Error should its receipt say the push was not delivered (#11138).
+       */
       getElement: (item: PushNotificationLog): ReactElement => {
-        if (item["status"]) {
-          return (
-            <Pill
-              isMinimal={false}
-              color={item["status"] === PushStatus.Success ? Green : Red}
-              text={item["status"] as string}
-            />
-          );
-        }
-        return <></>;
+        return (
+          <NotificationLogStatusPill
+            kind={NotificationLogKind.Push}
+            status={item.status}
+            statusMessage={item.statusMessage}
+          />
+        );
       },
     },
   ];
@@ -94,8 +96,9 @@ const PushLogsTable: FunctionComponent<PushLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Dropdown,
-      filterDropdownOptions:
-        DropdownUtil.getDropdownOptionsFromEnum(PushStatus),
+      filterDropdownOptions: getNotificationLogStatusFilterOptions(
+        NotificationLogKind.Push,
+      ),
     },
   ];
 

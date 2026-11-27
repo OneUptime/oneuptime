@@ -8,7 +8,6 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import CallLog from "Common/Models/DatabaseModels/CallLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import Pill from "Common/UI/Components/Pill/Pill";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -19,8 +18,12 @@ import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
 import { JSONObject } from "Common/Types/JSON";
-import { CallStatusPill, getCallStatusPill } from "./CallStatusPill";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import NotificationLogStatusPill from "./NotificationLogStatusPill";
+import {
+  getNotificationLogStatusFilterOptions,
+  NotificationLogKind,
+} from "./NotificationLogStatus";
 
 export interface CallLogsTableProps {
   query?: Query<BaseModel>;
@@ -70,20 +73,35 @@ const CallLogsTable: FunctionComponent<CallLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Text,
+      /*
+       * What the status means: Calling while it rings, then how it ended -
+       * Success when it was answered, yellow when nobody picked up (a missed
+       * call, a busy line, voicemail), red when it could not be made
+       * (#11138, #6586, #6594).
+       */
       getElement: (item: CallLog): ReactElement => {
-        if (item["status"]) {
-          const pill: CallStatusPill = getCallStatusPill(item["status"]);
-
-          return <Pill isMinimal={false} color={pill.color} text={pill.text} />;
-        }
-        return <></>;
+        return (
+          <NotificationLogStatusPill
+            kind={NotificationLogKind.Call}
+            status={item.status}
+            statusMessage={item.statusMessage}
+          />
+        );
       },
     },
   ];
 
   const defaultFilters: Array<Filter<CallLog>> = [
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
-    { field: { status: true }, title: "Status", type: FieldType.Dropdown },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Dropdown,
+      // Every status a call can have, in the order it moves through them.
+      filterDropdownOptions: getNotificationLogStatusFilterOptions(
+        NotificationLogKind.Call,
+      ),
+    },
   ];
 
   return (

@@ -10,13 +10,10 @@ import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNoti
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import Pill from "Common/UI/Components/Pill/Pill";
-import { PillTone } from "Common/UI/Components/Pill/PillTone";
 import { Green, Blue, Purple, Orange, Yellow } from "Common/Types/BrandColors";
-import WorkspaceNotificationStatus from "Common/Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceNotificationActionType from "Common/Types/Workspace/WorkspaceNotificationActionType";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
-import DropdownUtil from "Common/UI/Utils/Dropdown";
 import WorkspaceType, {
   getWorkspaceTypeDisplayName,
 } from "Common/Types/Workspace/WorkspaceType";
@@ -35,6 +32,11 @@ import WorkspaceLogReason, {
   getWorkspaceLogReason,
   getWorkspaceLogStatusText,
 } from "./WorkspaceLogReason";
+import NotificationLogStatusPill from "./NotificationLogStatusPill";
+import {
+  getNotificationLogStatusFilterOptions,
+  NotificationLogKind,
+} from "./NotificationLogStatus";
 
 export interface WorkspaceLogsTableProps {
   query?: Query<BaseModel>;
@@ -164,21 +166,15 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Text,
+      // What the status means: the action went through, or Reason says why not (#11138).
       getElement: (item: WorkspaceNotificationLog): ReactElement => {
-        if (item["status"]) {
-          return (
-            <Pill
-              isMinimal={false}
-              tone={
-                item["status"] === WorkspaceNotificationStatus.Success
-                  ? PillTone.Success
-                  : PillTone.Danger
-              }
-              text={item["status"] as string}
-            />
-          );
-        }
-        return <></>;
+        return (
+          <NotificationLogStatusPill
+            kind={NotificationLogKind.Workspace}
+            status={item.status}
+            statusMessage={item.statusMessage}
+          />
+        );
       },
     },
     /*
@@ -229,8 +225,8 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Dropdown,
-      filterDropdownOptions: DropdownUtil.getDropdownOptionsFromEnum(
-        WorkspaceNotificationStatus,
+      filterDropdownOptions: getNotificationLogStatusFilterOptions(
+        NotificationLogKind.Workspace,
       ),
     },
     {

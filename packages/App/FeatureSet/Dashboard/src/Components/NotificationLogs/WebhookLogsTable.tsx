@@ -9,9 +9,6 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Columns from "Common/UI/Components/ModelTable/Columns";
-import Pill from "Common/UI/Components/Pill/Pill";
-import { Green, Grey, Red } from "Common/Types/BrandColors";
-import WebhookStatus from "Common/Types/WebhookStatus";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Filter from "Common/UI/Components/ModelFilter/Filter";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -21,8 +18,12 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
-import Color from "Common/Types/Color";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import NotificationLogStatusPill from "./NotificationLogStatusPill";
+import {
+  getNotificationLogStatusFilterOptions,
+  NotificationLogKind,
+} from "./NotificationLogStatus";
 
 export interface WebhookLogsTableProps {
   query?: Query<BaseModel>;
@@ -36,19 +37,6 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
   const [showModal, setShowModal] = useState<boolean>(false);
   const [modalText, setModalText] = useState<string>("");
   const [modalTitle, setModalTitle] = useState<string>("");
-
-  const getStatusColor: (status?: WebhookStatus) => Color = (
-    status?: WebhookStatus,
-  ): Color => {
-    switch (status) {
-      case WebhookStatus.Success:
-        return Green;
-      case WebhookStatus.Error:
-        return Red;
-      default:
-        return Grey;
-    }
-  };
 
   const defaultColumns: Columns<WebhookLog> = [
     {
@@ -92,25 +80,13 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
       field: { status: true },
       title: "Status",
       type: FieldType.Text,
+      // What the status means: the address took the request, or why not (#11138).
       getElement: (item: WebhookLog): ReactElement => {
-        const statusValue: string | undefined =
-          (item["status"] as string | undefined) || undefined;
-
-        if (!statusValue) {
-          return <></>;
-        }
-
-        const normalizedStatus: WebhookStatus | undefined = (
-          Object.values(WebhookStatus) as Array<string>
-        ).includes(statusValue)
-          ? (statusValue as WebhookStatus)
-          : undefined;
-
         return (
-          <Pill
-            isMinimal={false}
-            color={getStatusColor(normalizedStatus)}
-            text={statusValue}
+          <NotificationLogStatusPill
+            kind={NotificationLogKind.Webhook}
+            status={item.status}
+            statusMessage={item.statusMessage}
           />
         );
       },
@@ -119,7 +95,14 @@ const WebhookLogsTable: FunctionComponent<WebhookLogsTableProps> = (
 
   const defaultFilters: Array<Filter<WebhookLog>> = [
     { field: { createdAt: true }, title: "Sent at", type: FieldType.Date },
-    { field: { status: true }, title: "Status", type: FieldType.Dropdown },
+    {
+      field: { status: true },
+      title: "Status",
+      type: FieldType.Dropdown,
+      filterDropdownOptions: getNotificationLogStatusFilterOptions(
+        NotificationLogKind.Webhook,
+      ),
+    },
   ];
 
   return (
