@@ -1,6 +1,6 @@
 # インフラストラクチャの AI エージェント
 
-OneUptime AI は、インシデントやアラートを調査するとき、テレメトリ以外のものも見ることができます。リソース(Docker または Podman のホスト、Docker Swarm クラスター、Proxmox クラスター、VMware vCenter、Ceph クラスター、データベースサーバー、Linux ホスト)の隣にインストールした小さなエージェントが、`docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30`、`journalctl -u nginx -n 200 --no-pager` のように OneUptime AI が求める読み取り専用のコマンドを実行して出力を返すので、根本原因分析はリソース自身が示す内容を引用します。許可すれば、同じエージェントが修正(コンテナの再起動、VM の起動、OSD を in に戻すなど)も適用します。各修正はコマンドポリシーによって段階に分類され、別の設定を選ばない限り、まず人が承認します。リソースのページで開いた AI に質問も、頼めば同じ読み取り専用のコマンドを実行します([AI に質問](/docs/ai/ask-ai)を参照)。
+OneUptime AI は、インシデントやアラートを調査するとき、テレメトリ以外のものも見ることができます。リソース(Docker または Podman のホスト、Docker Swarm クラスター、Proxmox クラスター、VMware vCenter、Ceph クラスター、XCP-ng プール、データベースサーバー、Linux ホスト)の隣にインストールした小さなエージェントが、`docker logs --tail 200 web`、`pvesh get /cluster/status`、`ceph health detail`、`db long-queries --min-seconds 30`、`journalctl -u nginx -n 200 --no-pager` のように OneUptime AI が求める読み取り専用のコマンドを実行して出力を返すので、根本原因分析はリソース自身が示す内容を引用します。許可すれば、同じエージェントが修正(コンテナの再起動、VM の起動、OSD を in に戻すなど)も適用します。各修正はコマンドポリシーによって段階に分類され、別の設定を選ばない限り、まず人が承認します。リソースのページで開いた AI に質問も、頼めば同じ読み取り専用のコマンドを実行します([AI に質問](/docs/ai/ask-ai)を参照)。
 
 AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクトは、調査のためのエージェントを必要としません。OneUptime は、接続に使われた読み取り専用の接続を通じて、それをリアルタイムで読み取ります。エージェントが必要なのは修正だけで、それがクラウド AI エージェントです。アカウント自体の中で動作し、アカウントのページからコマンド一つで設定します([クラウド アカウント内で](#クラウド-アカウント内で)を参照)。
 
@@ -13,7 +13,7 @@ AWS アカウント、Azure サブスクリプション、Google Cloud プロジ
 リソースの **概要** の末尾には、AI エージェントのページを要約する **AI エージェント** カードがあります。エージェントが接続されているか、調査がオンか、修正がどう実行されるか(**オフ**、**承認を求める**、**自動**、**承認をバイパス**)、対応が必要なことを示し、それらを変更する AI エージェントのページへのリンクがあります。
 
 :::cards
-- [サポートされるリソース](#サポートされるリソース): 十一種類のリソースに、一つのイメージ。
+- [サポートされるリソース](#サポートされるリソース): 十三種類のリソースに、一つのイメージ。
 - [AI エージェントのインストール](#ai-エージェントのインストール): すでに動かしているコレクターの隣か、Linux ホスト上、またはコマンド一つでクラウド アカウント内に。
 - [修正の仕組み](#修正の仕組み): 自動で実行してよいもの、人を待つもの、決して実行されないもの。
 - [セキュリティモデル](#セキュリティモデル): すべてのコマンドに三つのチェックがあり、OneUptime から認証情報は届きません。
@@ -44,7 +44,7 @@ Kubernetes クラスターには独自のエージェントである Kubernetes 
 
 異なる点:
 
-- **すべてのリソースに一つのイメージ。** `oneuptime/resource-ai-agent` が十一種類すべてのリソースに対応し、`ONEUPTIME_AI_AGENT_RESOURCE_TYPE` がエージェントの対応するリソースを示します。Helm チャートからではなく、リソースのコレクターの隣でもう一つのコンテナとして、または対応するクラウド アカウント内で動作します。
+- **すべてのリソースに一つのイメージ。** `oneuptime/resource-ai-agent` が十三種類すべてのリソースに対応し、`ONEUPTIME_AI_AGENT_RESOURCE_TYPE` がエージェントの対応するリソースを示します。Helm チャートからではなく、リソースのコレクターの隣でもう一つのコンテナとして、または対応するクラウド アカウント内で動作します。
 - **書き込みアクセスは環境変数。** エージェントに `ONEUPTIME_AI_ALLOW_WRITES=true` があって初めて修正を適用でき、`ONEUPTIME_AI_WRITE_TARGETS` で修正が触れてよいコンテナ、サービス、VM、OSD、セッション、ユニットを制限します。クラスターでは、チャートの RBAC と `aiAgent.remediation.namespaces` がこの役割を担います。
 
 Kubernetes AI エージェントと同じく、リソース AI エージェントは Runner ではありません。Runbook → Runner の下に表示されることはなく、Runbook の Bash または SSH ホストとして使われることもありません。
@@ -65,6 +65,7 @@ Kubernetes AI エージェントと同じく、リソース AI エージェン�
 | Azure サブスクリプション | `azure` | クラウド AI エージェント | `AZURE_SUBSCRIPTION_ID`(セットアップコマンドが設定) | `cloud` — 固定のカタログの操作を一つ実行し、`az` コマンドは決して実行しない | Azure Resource Manager、Container App のマネージド ID として |
 | Google Cloud プロジェクト | `gcp`(または `google-cloud`) | クラウド AI エージェント | `GOOGLE_CLOUD_PROJECT`(空の場合は動作しているプロジェクト) | `cloud` — 固定のカタログの操作を一つ実行し、`gcloud` コマンドは決して実行しない | Google Cloud の API、専用のサービス アカウントとして |
 | OpenStack クラウド | `openstack` | OpenStack AI エージェント | `OPENSTACK_CLOUD_NAME` | `openstack` コマンド(エージェントに `openstack` バイナリはありません)。[修正](#openstack-クラウドでの修正)を有効にするまでは読み取りのみ | クラウドの API。`clouds.yaml` のアプリケーション認証情報を使用 |
+| XCP-ng プール | `xcp-ng`(または `xcpng`、`xen-orchestra`) | XCP-ng AI エージェント | `XCP_NG_POOL_ID`(空の場合: 読み取りトークンから見える唯一のプール) | `xo-cli` の REST コマンド(エージェントに `xo-cli` バイナリはありません)。[修正](#xcp-ng-プールでの修正)を許可するまでは読み取りのみ | Xen Orchestra の REST API。読み取り専用の Xen Orchestra ユーザーのトークンを使用 |
 
 データベースサーバー: データベース AI エージェントには、PostgreSQL、MySQL(および MariaDB と Percona Server)、Redis(および Valkey、KeyDB、Dragonfly)、MongoDB 向けの診断があります。それ以外のエンジンでは何も実行せず、データベースの AI エージェントのページでその旨を表示します。
 
@@ -84,6 +85,7 @@ AI エージェントのページでエージェントの状態の隣にある *
 | Azure サブスクリプション | `cloud whoami` |
 | Google Cloud プロジェクト | `cloud whoami` |
 | OpenStack クラウド | `openstack endpoint list`、`openstack compute service list` |
+| XCP-ng プール | `xo-cli rest get pools fields=name_label,master,HA_enabled`、`xo-cli rest get hosts fields=name_label,power_state,enabled` |
 
 Docker Swarm のワーカーでは `docker node ls` が失敗します。Docker Swarm AI エージェントはマネージャーノードで実行する必要があります。ワーカーで起動したエージェントは、そのノードがマネージャーになるまでクラスターに登録されず、Docker Swarm のインストーラーはマネージャーでないノードにはエージェントを含めません。
 
@@ -95,7 +97,7 @@ Docker Swarm のワーカーでは `docker node ls` が失敗します。Docker 
 
 ### コレクターの隣で
 
-Docker、Podman、Docker Swarm、Proxmox、VMware、Ceph、OpenStack、データベースサーバーでは、エージェントはそのリソースですでに使っているコレクターの隣で動作し、その `.env` を共有します。`ONEUPTIME_URL`、取り込みキー、リソース名はすでに揃っています。各コレクターの `docker-compose.yml` にはエージェントがもう一つのサービスとして含まれており、その `install.sh` がエージェントを起動します。
+Docker、Podman、Docker Swarm、Proxmox、VMware、Ceph、OpenStack、XCP-ng、データベースサーバーでは、エージェントはそのリソースですでに使っているコレクターの隣で動作し、その `.env` を共有します。`ONEUPTIME_URL`、取り込みキー、リソース名はすでに揃っています。各コレクターの `docker-compose.yml` にはエージェントがもう一つのサービスとして含まれており、その `install.sh` がエージェントを起動します。
 
 | リソース | コレクター | AI エージェントのサービス(とコンテナ) | 設定場所 |
 | -------------------- | ----------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------- |
@@ -107,8 +109,9 @@ Docker、Podman、Docker Swarm、Proxmox、VMware、Ceph、OpenStack、データ
 | Ceph クラスター | [Ceph エージェント](/docs/telemetry/ceph#ai-エージェント) | `oneuptime-ceph-ai-agent` | `agents/CephAgent/docker-compose.yml`、エージェント専用の Ceph クライアントを `./ceph` に配置 |
 | データベースサーバー | [データベースエージェント](/docs/telemetry/databases#ai-エージェント) | `oneuptime-database-ai-agent` | `agents/DatabaseAgent/docker-compose.yml` |
 | OpenStack クラウド | [OpenStack エージェント](/docs/telemetry/openstack#ai-エージェント) | `oneuptime-openstack-ai-agent` | `agents/OpenStackAgent/docker-compose.yml`。認証情報は `clouds.yaml` に置く |
+| XCP-ng プール | [XCP-ng エージェント](/docs/telemetry/xcp-ng#ai-エージェント) | `oneuptime-xcp-ng-ai-agent` | `agents/XcpNgAgent/docker-compose.yml`。`xcp-ng-ai-agent` プロファイルの下にあり、読み取り専用の Xen Orchestra トークンを渡すと `install.sh` がこれを有効にします |
 
-AI エージェントが存在する前にインストールしたコレクターは、まだエージェントを実行していません。その `install.sh` を再実行すると、AI エージェントも起動するようになります(Proxmox、VMware、Ceph、OpenStack、データベース、Docker Swarm のインストーラーは、AI エージェントのサービスを含む最新の `docker-compose.yml` をダウンロードします)。ファイルを自分で管理している場合は、コレクターの `docker-compose.yml` からサービスを自分のファイルに追加し、`docker compose up -d` を実行してください。リソースの AI エージェントのページには、そのリソース用の正確なサービスが、名前を入力済みの状態で表示されます。
+AI エージェントが存在する前にインストールしたコレクターは、まだエージェントを実行していません。その `install.sh` を再実行すると、AI エージェントも起動するようになります(Proxmox、VMware、Ceph、OpenStack、XCP-ng、データベース、Docker Swarm のインストーラーは、AI エージェントのサービスを含む最新の `docker-compose.yml` をダウンロードします。XCP-ng のインストーラーは、読み取り専用の Xen Orchestra トークンを受け取った時点でそれを起動します)。ファイルを自分で管理している場合は、コレクターの `docker-compose.yml` からサービスを自分のファイルに追加し、`docker compose up -d` を実行してください。リソースの AI エージェントのページには、そのリソース用の正確なサービスが、名前を入力済みの状態で表示されます。
 
 インストーラーを使わない場合、Docker AI エージェントは `docker run` 一回で起動できます:
 
@@ -173,7 +176,7 @@ AWS アカウント、Azure サブスクリプション、Google Cloud プロジ
 
 ### OneUptime への接続
 
-エージェントは **コレクターが報告するのと同じ識別子** (`DOCKER_HOST_NAME`、`PROXMOX_CLUSTER_NAME`、`CEPH_CLUSTER_NAME`、`OPENSTACK_CLOUD_NAME`、…。`ONEUPTIME_AI_AGENT_RESOURCE_NAME` で上書き可能)で登録するため、コレクターのテレメトリが作成したリソースにぴったり対応します。OneUptime にその名前のリソースがまだない場合は登録時に作成されるため、コレクターと異なる名前を使うと、エラーではなく空の二つ目のリソースができます。データベースは、`DATABASE_SERVER_ID` が設定されていればそれで、なければエンジン、アドレス、ポートで登録します。このプロジェクトのデータベースではない `DATABASE_SERVER_ID` は拒否されます。
+エージェントは **コレクターが報告するのと同じ識別子** (`DOCKER_HOST_NAME`、`PROXMOX_CLUSTER_NAME`、`CEPH_CLUSTER_NAME`、`OPENSTACK_CLOUD_NAME`、…。`ONEUPTIME_AI_AGENT_RESOURCE_NAME` で上書き可能)で登録するため、コレクターのテレメトリが作成したリソースにぴったり対応します。OneUptime にその名前のリソースがまだない場合は登録時に作成されるため、コレクターと異なる名前を使うと、エラーではなく空の二つ目のリソースができます。データベースは、`DATABASE_SERVER_ID` が設定されていればそれで、なければエンジン、アドレス、ポートで登録します。このプロジェクトのデータベースではない `DATABASE_SERVER_ID` は拒否されます。XCP-ng プールは、そのテレメトリが持つ識別子である XAPI UUID `XCP_NG_POOL_ID` で登録し、これが空の場合は、読み取りトークンから見える唯一のプールで登録します。UUID ではない識別子は拒否され、複数のプールが見えるトークンには `XCP_NG_POOL_ID` が必要です。
 
 コレクターがまだデフォルトの名前(`docker-host`、`podman-host`、`docker-swarm`、`proxmox-cluster`、`vmware-vcenter`、`ceph`、`openstack`)を使っている場合、そのデフォルトでインストールしたすべてのリソースが OneUptime の同じリソースに報告し、そのリソース向けのコマンドがどれにでも届く可能性があります。エージェントはこのことをログで警告します。コレクターとエージェントの両方で、各リソースに一意の名前を付けてください。
 
@@ -267,6 +270,20 @@ Podman ホストは、Podman の Docker 互換 API を通じて同じ `docker` C
 
 そこからリクエストをたどります。`server event list` は各操作のリクエスト ID を出力し、`search_logs` はその ID を属性(`openstack.request_root_id`)として受け取り、すべてのサービスがそれについて書いた内容を読み取ります。レポートは、`kubectl` と同様に、実行した各コマンドとその出力を引用します。ログには[サービスログ](/docs/telemetry/openstack#サービスログ)のプロファイルが、変更には[ライフサイクルイベント](/docs/telemetry/openstack#ライフサイクルイベント)が必要です。これらがなければ、その読み取りは空で返ります。
 
+### XCP-ng プール
+
+エージェントには `xo-cli` バイナリもシェルもありません。コマンドは xo-cli の REST 文法(xo-cli 0.32)で書きます。`rest get`、Xen Orchestra の REST API のパスを一つ、続いて `name=value` 形式のオプションです。エージェントはそれをちょうど一つの `GET` に変換して `/rest/v0`(Xen Orchestra 6.9 以降)に送ります。使うのは、組み込みの **Read only** ロールのコピーを持つ Xen Orchestra ユーザーのトークンです。何かを実行する前と、その後 5 分ごとに、エージェントはそのトークンが誰のものか、そのユーザーに何が許可されているかを Xen Orchestra に問い合わせます。管理者のトークンや、ロールが何らかの変更を許可するユーザーのトークンでは、何も実行しません。プールのオブジェクトの一覧はこのプールに絞り込まれ、別のプールのオブジェクトが出力されることはありません。`fields=` でプロパティを選び、`filter=` で Xen Orchestra 独自のフィルター文法により一覧を絞り込み、`limit=` で件数の上限を設定します。
+
+- プールとそのホスト: `xo-cli rest get pools`、`xo-cli rest get pools/b7569d99-30f8-178a-7d94-801de3e29b5b`、`xo-cli rest get hosts fields=name_label,power_state,enabled,version`、`xo-cli rest get hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/missing_patches`、`xo-cli rest get hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/stats granularity=minutes`。
+- VM: `xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted`、`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`、`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/stats granularity=seconds`、`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/vdis`、さらにそのスナップショット(`xo-cli rest get vm-snapshots`)とテンプレート。
+- ストレージ: `xo-cli rest get srs fields=name_label,SR_type,physical_usage,size`、`xo-cli rest get pbds fields=attached,host,SR filter=!attached?`(ストレージリポジトリの PBD のうち接続されなかったものを一覧表示します)、`xo-cli rest get vdis`、`xo-cli rest get vbds`。
+- 問題の発生箇所: `xo-cli rest get alarms`、`xo-cli rest get messages fields=name,body,time limit=50`、`xo-cli rest get tasks filter=status:failure`、さらにオブジェクト自身のアラーム、メッセージ、タスク(`xo-cli rest get vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/alarms`)。
+- バックアップ: `xo-cli rest get backup-jobs`、`xo-cli rest get backup-logs filter=status:failure limit=20`、`xo-cli rest get restore-logs`、`xo-cli rest get schedules`。
+- ネットワーク: `xo-cli rest get networks`、`xo-cli rest get pifs`、`xo-cli rest get vifs`。
+- 決して不可: Xen Orchestra のユーザー、グループ、ロール、権限、そのサーバー、プラグイン、プロキシ、リモート、バックアップリポジトリ、ダウンロード(VM のエクスポート、ホストのログ)、クエリ文字列、シークレットや自由形式のデータを持つプロパティに対する `filter`(`other_config`、`xenStoreData`、`device_config`、パスワード、トークン、キーのような名前のもの。フィルターで一回の応答ごとにシークレットを読み出せないようにするためです)、そして xo-cli 自身のオプション(`--url`、`--allowUnauthorized`、…)。
+
+応答はインデントされた JSON で、エントリ単位で返されます。VM の cloud-init データ、PBD の `device_config` のパスワード、URL 内のバックアップリモートのパスワード、事前共有キー、むき出しの Xen Orchestra トークンは、出力がモデルやログに届く前にマスクされます。
+
 ### Ceph クラスター
 
 - クラスター: `ceph status`(または `ceph -s`)、`ceph health detail`、`ceph df detail`、`ceph versions`、`ceph progress`、`ceph quorum_status`、`ceph log last 100`。
@@ -329,7 +346,7 @@ OneUptime は、AWS アカウント、Azure サブスクリプション、Google
 
 修正の実行後、OneUptime はインシデントやアラートのモニターを監視します。回復しない場合は計画のロールバックが実行され、OneUptime AI は失敗した試みを踏まえてもう一つ計画を作成します。インシデントやアラートごとに最大で二ラウンドです。**自動** モードではその二ラウンド目は承認を求め、**承認をバイパス** ではそれも自動で実行されます。無人の修正にはリソースごと一時間あたり三件のサーキットブレーカーがあり、それを超えた場合や、OneUptime AI の別の無人ラウンドが同じリソースをまだ変更または検証している間は、ラウンドは計画を実行せずに承認用に提案します。
 
-一つのインシデントやアラートには、AI の修正レーンが一つだけ割り当てられます。修正がオンの Kubernetes クラスターにリンクされている場合は、そのクラスターのラウンドが実行され、リソースのラウンドは実行されません。それ以外の場合は、修正がオンで準備のできたエージェントを持つ最初のリンク済みリソースが、次の順でラウンドを得ます: Docker ホスト、Podman ホスト、Docker Swarm クラスター、Proxmox クラスター、VMware vCenter、Ceph クラスター、データベースサーバー、ホスト、AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクト、OpenStack クラウド。ラウンドが変更するのはそのリソースだけです。
+一つのインシデントやアラートには、AI の修正レーンが一つだけ割り当てられます。修正がオンの Kubernetes クラスターにリンクされている場合は、そのクラスターのラウンドが実行され、リソースのラウンドは実行されません。それ以外の場合は、修正がオンで準備のできたエージェントを持つ最初のリンク済みリソースが、次の順でラウンドを得ます: Docker ホスト、Podman ホスト、Docker Swarm クラスター、Proxmox クラスター、VMware vCenter、Ceph クラスター、データベースサーバー、ホスト、AWS アカウント、Azure サブスクリプション、Google Cloud プロジェクト、OpenStack クラウド、XCP-ng プール。ラウンドが変更するのはそのリソースだけです。
 
 ### 安全、よりリスクが高い、決して不可
 
@@ -412,6 +429,19 @@ VM はすべて正確に名前で指定します。govc は単なる名前を、
 
 ほかのリソースと異なり、ここでの修正は、あなたが二段階でオプトインするまでオフのままです。`ONEUPTIME_AI_ALLOW_WRITES=true` だけでは **AI に許可する操作** は **オフ** のままで、変更用の認証情報がなければ何も行いません。[OpenStack エージェントのガイド](/docs/telemetry/openstack#変更用の認証情報)に、クラウドのデプロイ方法ごとに、必要最小限の権限でその認証情報を作る方法があります。
 
+### XCP-ng プールでの修正
+
+修正は `rest post` と一つのオブジェクトの一つのアクションで、たとえば `vms/<uuid>/actions/start` です。これは Xen Orchestra の REST API への `POST` 一回で、修正を許可するロールを持つユーザーの二つ目のトークン `ONEUPTIME_AI_XO_WRITE_TOKEN` を使い、それ以外は何も使いません。代わりに読み取りトークンを使うと拒否されます。変更の前に、エージェントは読み取りトークンでオブジェクトを読み取ります。別のプールのオブジェクトは拒否され、すでに行われた変更(実行中の VM の起動)は繰り返されず、オブジェクトの状態が許さない変更は、代わりに何を実行すべきかを示します。その後、コマンドの時間制限内で Xen Orchestra のタスクが終わるまで追跡し、オブジェクトを再び読み取るので、修正の出力は変更後の状態で終わります。
+
+| | コマンド |
+| ------------------- | -------- |
+| **安全** | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/start`(特定のホストで起動するには `hostId=<uuid>`)、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/resume`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/unpause`、`xo-cli rest post pbds/4d3c2b1a-9f8e-4d7c-8b6a-5f4e3d2c1b0a/actions/plug`、`xo-cli rest post schedules/cf7249f8-d20b-494f-97f4-b1f32f94e780/actions/run` — VM、PBD、バックアップスケジュールのいずれか一つ |
+| **よりリスクが高い** | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/hard_reboot`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_shutdown`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/hard_shutdown`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/suspend`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/pause`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/snapshot name_label=before-fix`、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/enable` |
+| **常に人が必要** | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/migrate hostId=a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b`(同じプールの別のホストへ、ストレージはそのまま)、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/restart_toolstack` |
+| **決して不可** | `xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/revert_snapshot`、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clone`、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/disable`、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/evacuate`、`xo-cli rest post hosts/a1b2c3d4-0000-4e5f-8a9b-0c1d2e3f4a5b/actions/clean_shutdown`、`xo-cli rest post pbds/4d3c2b1a-9f8e-4d7c-8b6a-5f4e3d2c1b0a/actions/unplug`、`xo-cli rest delete vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`、`xo-cli rest patch vms/613f541c-4bed-fc77-7ca8-2db6b68f079c`、`xo-cli rest get users`、`xo-cli vm.stop id=613f541c-4bed-fc77-7ca8-2db6b68f079c`、およびここに記載されていないすべてのアクション(プールやストレージリポジトリのものも含む) |
+
+起動はシャットダウンで、サスペンドは再開で、一時停止は一時停止の解除で元に戻せ、修正のロールバックはこれを使います。スナップショットは人が削除するまで残り、移行、PBD の接続、ホストの有効化、ツールスタックの再起動には、エージェントが実行できる取り消し手段がありません。書き込みトークンの Xen Orchestra のロールが絶対的な上限です。各修正に必要な権限は [XCP-ng エージェントの README](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent#fixes) に記載されています。
+
 ### データベースサーバーでの修正
 
 以下の `12345` は、`db sessions` が出力するセッション ID です。PostgreSQL の pid、MySQL の processlist ID、Redis のクライアント ID、MongoDB の opid に当たります。エージェントはまずセッションを確認し、自身の接続、サーバーやレプリケーションのスレッド、存在しないセッションには決して触れません。
@@ -473,9 +503,10 @@ VM はすべて正確に名前で指定します。govc は単なる名前を、
 - 対象の位置に `*` があるエントリ(`docker stop *` は **すべての** コンテナの停止を事前承認します)は、保存前に確認を求めます。
 - Proxmox のパスは一つの単語なので、`*` を含めることはできません。ゲストごとに一つずつ、`pvesh create /nodes/pve1/qemu/100/status/shutdown` のようなエントリを書いてください。
 - OpenStack クラウドでは、インスタンスの退避(evacuate)のエントリは保存時に拒否されます。退避は常に人の承認を求めるため、何も事前承認しないことになるからです。
+- XCP-ng のパスも一つの単語です。VM ごとに一つずつ、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot` のようなエントリを書いてください。移行やツールスタックの再起動のエントリは、どちらも常に人の承認を求めるため、保存時に拒否されます。
 - 許可リストのどのエントリも、常に人を必要とする変更や、ポリシーが拒否するコマンドを覆すことはできません。
 
-リソースごとの有効なエントリの例: `docker stop web`(Docker と Podman)、`docker service update --image nginx:1.27 web`(Docker Swarm)、`pvesh create /nodes/pve1/qemu/100/status/shutdown`(Proxmox)、`govc vm.power -off web-01`(VMware)、`ceph osd out 3`(Ceph)、`db terminate-session 12345`(データベース)、`systemctl stop nginx`(ホスト)、`cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`(AWS)、`cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`(Azure)、`cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`(Google Cloud)、`openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`(OpenStack クラウド)。
+リソースごとの有効なエントリの例: `docker stop web`(Docker と Podman)、`docker service update --image nginx:1.27 web`(Docker Swarm)、`pvesh create /nodes/pve1/qemu/100/status/shutdown`(Proxmox)、`govc vm.power -off web-01`(VMware)、`ceph osd out 3`(Ceph)、`db terminate-session 12345`(データベース)、`systemctl stop nginx`(ホスト)、`cloud scale-in arn:aws:ecs:us-east-1:123456789012:service/prod/web --count 2`(AWS)、`cloud restart-service /subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/prod/providers/Microsoft.Web/sites/web`(Azure)、`cloud reboot-instance //compute.googleapis.com/projects/my-project/zones/us-central1-a/instances/web-1`(Google Cloud)、`openstack server reboot --hard 358ee736-ba74-40ba-a354-7ead413c5df6`(OpenStack クラウド)、`xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/clean_reboot`(XCP-ng プール)。
 
 ### 変更できる人
 
@@ -510,6 +541,7 @@ AI エージェントのページが何を示していても、エージェン�
 | ホスト | 完全なユニット名(`nginx.service`)、プロセスには `pid:<pid>`、ジャーナルの削減には `journal` | `nginx.service,app-*` |
 | クラウド アカウント | リソースの ID: ARN、小文字の Azure のリソース ID、または Google Cloud の完全なリソース名 | `arn:aws:ecs:*:123456789012:service/prod/*` |
 | OpenStack クラウド | 変更が指定するものには `instance:<id>`、`host:<name>`、`agent:<id>`、移動先には `destination:<name>`。エントリは `project:<id>`、`host:<name>`、`instance:<id>` のみで、それ以外があるとエージェントは読み取り専用のままになります。エージェントは変更の直前に、インスタンスがどのプロジェクトとホストにあるかを読み取ります |
+| XCP-ng プール | 変更が指定する一つのオブジェクトの `vm/<uuid>`、`host/<uuid>`、`pbd/<uuid>`、`schedule/<uuid>`。UUID だけを書くと、そのいずれにも一致します | `vm/613f541c-*,host/*` |
 
 ### エージェントが自ら保護するもの
 
@@ -521,6 +553,7 @@ AI エージェントのページが何を示していても、エージェン�
 - **ホスト:** OneUptime のすべてのユニット(ホスト AI エージェント自身のものを含む `oneuptime-*`)、OpenTelemetry コレクター(`otelcol-contrib.service`、`otelcol.service`)、エージェントが動作する Docker エンジン(`docker.service`、`docker.socket`、`containerd.service`)、そしてエージェント自身のプロセスとその上位のプロセス。
 - **Proxmox:** エージェントは自分がどのゲストで動作しているかを判別できません。同じクラスターの VM やコンテナで動作している場合は、その VMID を `ONEUPTIME_AI_PROTECTED_TARGETS` に追加してください。VMware 上のエージェントの VM についても同様です。
 - **OpenStack クラウド:** エージェントは自分がどのインスタンスで動いているかを判別できません。同じクラウド上で動かす場合は、そのインスタンスを `instance:<id>` として `ONEUPTIME_AI_PROTECTED_TARGETS` に入れてください。クラウドでは、このリストはあなた自身のもので、人の承認も含め、ほかのどの設定よりも優先されます。
+- **XCP-ng プール:** エージェントは、自分がどの VM で動いているか、Xen Orchestra がどの VM で動いているかを判別できません。どちらかがこのプール上で動いている場合は、その UUID を `ONEUPTIME_AI_PROTECTED_TARGETS` に、`vm/<uuid>` または UUID だけの形で入れてください。
 - **クラウド アカウント:** セットアップコマンドが作成したものすべて。AWS では `oneuptime-ai-agent` スタック (組織のメンバーアカウントでは、組織の StackSet が作成した `StackSet-oneuptime-ai-agent-*` スタック)、その ECS クラスターとサービス、ロール `OneUptimeAiAgentTask` と `OneUptimeAiAgentWrite`、Azure ではリソース グループ `oneuptime-ai-agent` とその中の書き込み ID `oneuptime-ai-agent-write`、Google Cloud では VM または Cloud Run サービスの `oneuptime-ai-agent` と、そのサービス アカウント `oneuptime-ai-agent` と `oneuptime-ai-agent-write` です。
 
 ## 認証情報と最小権限
@@ -537,8 +570,9 @@ AI エージェントのページが何を示していても、エージェン�
 | ホスト | なし。ホストの名前空間で root として特権実行される | `ONEUPTIME_AI_ALLOW_WRITES` は未設定のままにする | `ONEUPTIME_AI_WRITE_TARGETS` に AI が変更してよいユニットを指定 |
 | クラウド アカウント | 動作する場所の ID。AWS では ECS タスクのロールで、`ONEUPTIME_AI_AWS_WRITE_ROLE_ARN` の書き込みロールしか引き受けられない。Azure では Container App 独自のマネージド ID で、読み取りしかできない。加えて、同じ Container App に割り当てられた `ONEUPTIME_AI_AZURE_WRITE_IDENTITY` の書き込み ID。Google Cloud では VM または Cloud Run サービスが動作するサービス アカウント。このサービス アカウントは読み取りと、`ONEUPTIME_AI_GCP_WRITE_SERVICE_ACCOUNT` の書き込み用サービス アカウントのトークンの要求しかできない | なし。OneUptime は読み取り専用の接続を通じてアカウントを読み取る | セットアップコマンドが書き出すロール: 有効にした変更の権限と、それに必要な読み取りだけ。AWS では、変更のたびに、その一つのリソースに対するその一つの変更だけを許すセッション ポリシー付きで `OneUptimeAiAgentWrite` を引き受ける。Google Cloud では、変更のたびに、その変更だけに使える 15 分間有効なトークンで `oneuptime-ai-agent-write` として実行する。Azure では、変更のたびに、エージェントがその変更のためにサインインする `oneuptime-ai-agent-write` として実行する。Azure はマネージド ID に、そのロールより狭い、または有効期間の短いトークンを発行せず、Privileged Identity Management による期限付きのアクセスには Microsoft Entra ID P2 が必要なため、変更のための常時のアクセスは、エージェントが変更にだけ使う ID に置き、読み取りに使う ID には決して置かない |
 | OpenStack クラウド | 変更用には、専用のアプリケーション認証情報である `ONEUPTIME_AI_OPENSTACK_WRITE_APPLICATION_CREDENTIAL_ID` と `_SECRET`。作り方は[ガイド](/docs/telemetry/openstack#変更用の認証情報)にあります。読み取り用には、コレクターのエクスポーターが読む `clouds.yaml` のアプリケーション認証情報(`OS_CLIENT_CONFIG_FILE`、`OPENSTACK_EXPORTER_CLOUDS`、別のエントリを使う場合は `ONEUPTIME_AI_OPENSTACK_CLOUD`)、または設定されていれば `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_ID` / `ONEUPTIME_AI_OPENSTACK_APPLICATION_CREDENTIAL_SECRET` と `OPENSTACK_AUTH_URL`。ほかに `ONEUPTIME_AI_OPENSTACK_REGION`、`ONEUPTIME_AI_OPENSTACK_INTERFACE`、`ONEUPTIME_AI_OPENSTACK_CA_FILE` |
+| XCP-ng プール | すべての読み取りに Xen Orchestra のトークン `ONEUPTIME_AI_XO_READ_TOKEN`、変更に別のユーザーのトークン `ONEUPTIME_AI_XO_WRITE_TOKEN`。コレクターの `XO_SCHEME`、`XO_ADDRESS`、`XO_TLS_SERVER_NAME` と、コレクターの `xo-ca.pem`。コレクターの OpenMetrics シークレットは決して使いません | 組み込みの **Read only** ロールのコピーだけを持つユーザー。管理者は不可で、エージェントは何かを実行する前にこれを確認します | **VMs power state manager** ロールのコピーに、ほかの修正が使う権限(`vm:snapshot`、`host:enable`、`pbd:plug`、`schedule:run`、…)を加えたものを持つユーザー。AI が修正してよいプールに対して付与します |
 
-各コレクターの README には正確なコマンドが載っています。Proxmox の修正用トークンを作る `pveum` コマンド([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent))、vSphere の修正用ロール([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent))、Ceph の読み取り用と修正用の caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent))、エンジンごとのデータベースの権限([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent))です。クラウド AI エージェントのロールはセットアップコマンドが書き出します。変更をオフにしてコマンドをもう一度実行すると、その権限はロールから外れます。
+各コレクターの README には正確なコマンドが載っています。Proxmox の修正用トークンを作る `pveum` コマンド([ProxmoxAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent))、vSphere の修正用ロール([VMwareAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent))、Ceph の読み取り用と修正用の caps([CephAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent))、エンジンごとのデータベースの権限([DatabaseAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent))、読み取り用と修正用のトークンに必要な Xen Orchestra のロールと権限([XcpNgAgent](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent))です。クラウド AI エージェントのロールはセットアップコマンドが書き出します。変更をオフにしてコマンドをもう一度実行すると、その権限はロールから外れます。
 
 ## セキュリティモデル
 
@@ -555,8 +589,8 @@ AI エージェントのページが何を示していても、エージェン�
 - プログラムは一つだけで、引数のリストとして実行し、シェルを経由することはありません。パイプ、リダイレクト、`;`、`&&`、`$(…)` は何かが実行される前に拒否され、`sudo` も同様です。
 - そのコマンドのためだけに構築された環境。エージェント自身のもの(取り込みキーもプロキシ設定も)はプログラムに渡らず、`docker`、`govc`、`ceph` にはそのコマンドのためだけに `/tmp` 配下の空のプライベートなホームディレクトリが与えられます。`docker` CLI には空のプライベートな `DOCKER_CONFIG` が与えられるため、コンテキストや認証情報ヘルパーが接続先を変えることはできません。`govc` は認証情報をコマンドラインではなく環境で受け取ります。`ceph` はエージェント自身の `--conf`、`--keyring`、`--id` を受け取り、コマンドが別のものを選ぶことはできません。
 - 制限時間(最大 2 分)。過ぎるとプログラムは強制終了されます。出力は 50 KB までに制限されます。
-- 出力内のシークレット(`docker inspect` の環境変数の値、Proxmox の cloud-init のパスワード、OpenStack の `user_data`、ログやコマンドライン中のキー、トークン、パスワード)は、出力がエージェントを離れる前にエージェント上でマスクされ、保存またはモデルへの表示の前に OneUptime でも再びマスクされます。
-- コンテナは読み取り専用のルートファイルシステムで動作します。Proxmox、VMware、Ceph、データベースの AI エージェントは、capability を一切持たない UID 1000 として動作します。OpenStack の AI エージェントは `clouds.yaml` の所有者(`OPENSTACK_EXPORTER_USER`)として動作し、やはり capability を持ちません。
+- 出力内のシークレット(`docker inspect` の環境変数の値、Proxmox の cloud-init のパスワード、OpenStack の `user_data`、XCP-ng の VM の cloud-init データ、ログやコマンドライン中のキー、トークン、パスワード)は、出力がエージェントを離れる前にエージェント上でマスクされ、保存またはモデルへの表示の前に OneUptime でも再びマスクされます。
+- コンテナは読み取り専用のルートファイルシステムで動作します。Proxmox、VMware、Ceph、XCP-ng、データベースの AI エージェントは、capability を一切持たない UID 1000 として動作します。OpenStack の AI エージェントは `clouds.yaml` の所有者(`OPENSTACK_EXPORTER_USER`)として動作し、やはり capability を持ちません。
 - クラウド AI エージェントはプログラムを一切起動しません。`cloud` はカタログの操作を一つ指定し、エージェントはそれを、対応する一つの API 呼び出しとして、動作する場所の認証情報で実行します。読み取りは OneUptime 上で、アカウントの読み取り専用の接続を通じて実行されます。
 
 ### Docker ソケットとホスト AI エージェントはホストの root に等しい
@@ -583,7 +617,7 @@ docker logs --tail 100 oneuptime-docker-ai-agent
 docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 ```
 
-リソースのコンテナ名を使ってください: `oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`(`docker` の代わりに `podman` を使用)、`oneuptime-docker-swarm-ai-agent`、`oneuptime-openstack-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-host-ai-agent`。データベースエージェントのサービスには固定のコンテナ名がないため、`/opt/oneuptime-database-agent` で `docker compose logs --tail=100 oneuptime-database-ai-agent` と `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` を使います。ホスト AI エージェントはホストのネットワークを使うため、`curl -s http://127.0.0.1:3877/status` はホスト上でそのまま動作します。
+リソースのコンテナ名を使ってください: `oneuptime-docker-ai-agent`、`oneuptime-podman-ai-agent`(`docker` の代わりに `podman` を使用)、`oneuptime-docker-swarm-ai-agent`、`oneuptime-openstack-ai-agent`、`oneuptime-proxmox-ai-agent`、`oneuptime-vmware-ai-agent`、`oneuptime-ceph-ai-agent`、`oneuptime-xcp-ng-ai-agent`、`oneuptime-host-ai-agent`。データベースエージェントのサービスには固定のコンテナ名がないため、`/opt/oneuptime-database-agent` で `docker compose logs --tail=100 oneuptime-database-ai-agent` と `docker compose exec oneuptime-database-ai-agent wget -qO- http://127.0.0.1:3877/status` を使います。ホスト AI エージェントはホストのネットワークを使うため、`curl -s http://127.0.0.1:3877/status` はホスト上でそのまま動作します。
 
 クラウド AI エージェントはクラウドで動作するため、`exec` で入れるコンテナはありません。ログはクラウドのシェルで `aws logs tail /oneuptime/oneuptime-ai-agent --since 30m`、`az containerapp logs show --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --tail 100`（専用 VM の場合は `az vm run-command invoke --name oneuptime-ai-agent --resource-group oneuptime-ai-agent --command-id RunShellScript --scripts "docker logs --tail 100 oneuptime-ai-agent" --query "value[0].message" --output tsv`）、または `gcloud logging read 'resource.type="gce_instance" AND jsonPayload.container.name="/oneuptime-ai-agent"' --freshness 30m --limit 100 --format "value(jsonPayload.data)"`（Cloud Run の場合は `gcloud run services logs read oneuptime-ai-agent --region "$(gcloud run services list --filter "metadata.name=oneuptime-ai-agent" --format "value(region)" | head -1)" --limit 100`） を使って読み、状態はアカウントの **AI エージェント** ページで確認します。このページにも同じコマンドが表示されます。
 
@@ -611,12 +645,14 @@ docker exec oneuptime-docker-ai-agent wget -qO- http://127.0.0.1:3877/status
 | `pipes and redirects are not supported; run one command` | 想定どおりです。コマンドがシェルを経由することはありません。この拒否は、OneUptime AI にコマンドを一つずつ実行するよう伝えます。 |
 | `Killed (timeout …)` | リソースが時間内に応答しませんでした。出力がまったくない場合、エージェントはリソースに到達できていません。両者の間のネットワークを確認します。 |
 | 権限、ロール、cap が不足していることを示す Proxmox、vCenter、Ceph、データベースのエラー | 認証情報が絶対的な上限です。メッセージが示すものを付与する([認証情報と最小権限](#認証情報と最小権限) を参照)か、その変更を人に任せます。 |
+| XCP-ng プールのエージェントが何も実行しない。読み取りトークンが Xen Orchestra の管理者のもの(`belongs to a Xen Orchestra administrator`)か、ロールが変更を許可するユーザーのものであるため | トークンのユーザーには、組み込みの **Read only** ロールのコピーだけを与えてください。修正には別のユーザーのトークンである `ONEUPTIME_AI_XO_WRITE_TOKEN` を使います。 |
+| XCP-ng プールのエージェントが Xen Orchestra に接続できない。証明書にアドレスが記載されていないため(`the certificate names no address`) | Xen Orchestra は自分で作った証明書を使っていますが、ピン留めの有無にかかわらず、どの TLS クライアントもそれを検証できません。アドレスを記載した証明書を与え([Xen Orchestra の証明書](/docs/telemetry/xcp-ng#xen-orchestra-の証明書))、XCP-ng エージェントの `install.sh` を再実行してください。 |
 | `The Cloud AI agent could not check its cloud: …` | ロール、マネージド ID、またはサービス アカウントが削除されたか権限が不足している、あるいはクラウドの API に到達できません。アカウントのページからセットアップコマンドをもう一度実行してください。 |
 | `The agent could not ask … to sign in as the write …` | Azure では、書き込み ID `oneuptime-ai-agent-write` がエージェントの実行場所に割り当てられていないか、削除されています。Google Cloud では、エージェント自身のサービス アカウントが `oneuptime-ai-agent-write` のトークンをまだ要求できない (新しい付与が有効になるまで数分かかることがあります) か、アカウントが削除されています。アカウントの **AI エージェント** ページの **変更** から、セットアップコマンドをもう一度実行してください。 |
 | `cloud … is not one of the changes this agent may make` | **AI に問題を修正させる** の **その他の項目** でその変更をオンにして、コマンドをもう一度実行します。これでエージェントのロールにもその変更の権限が与えられます。 |
 | `the agent only changes resources that carry the …` | リソースに `oneuptime-ai=allow` のタグ(Google Cloud ではラベル)を付けるか、タグなしでエージェントをもう一度設定します。 |
 
-[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)、[データベース](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) の各エージェントの README と、[ホスト AI エージェント](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent) の README には、それぞれの接続エラーに関するトラブルシューティング表があります。
+[Proxmox](https://github.com/OneUptime/oneuptime/tree/main/agents/ProxmoxAgent)、[VMware](https://github.com/OneUptime/oneuptime/tree/main/agents/VMwareAgent)、[Ceph](https://github.com/OneUptime/oneuptime/tree/main/agents/CephAgent)、[XCP-ng](https://github.com/OneUptime/oneuptime/tree/main/agents/XcpNgAgent)、[データベース](https://github.com/OneUptime/oneuptime/tree/main/agents/DatabaseAgent) の各エージェントの README と、[ホスト AI エージェント](https://github.com/OneUptime/oneuptime/tree/main/agents/HostAIAgent) の README には、それぞれの接続エラーに関するトラブルシューティング表があります。
 
 ## 対象外のもの
 

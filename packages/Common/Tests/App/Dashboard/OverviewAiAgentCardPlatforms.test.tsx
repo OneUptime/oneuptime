@@ -23,6 +23,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
 import ProxmoxClusterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/Index";
 import CephClusterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/Ceph/View/Index";
 import VMwareVCenterOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/Index";
+import XcpNgPoolOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/Index";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -36,7 +37,7 @@ import { RESOURCE_AI_ACCESS_STATUS_PATH } from "../../../Types/AI/ResourceAiAcce
 import { flush } from "./TimeRangeZoomPageHarness";
 
 /*
- * The "AI agent" card at the bottom of the Proxmox, Ceph and VMware
+ * The "AI agent" card at the bottom of the Proxmox, Ceph, VMware and XCP-ng
  * Overviews, inside the real pages: for each, the card is the last thing on
  * the page, reads THIS resource's status from the route its AI agent page
  * reads, shows the agent's connection, the investigation switch and the
@@ -262,6 +263,21 @@ const OVERVIEWS: Array<[string, OverviewCase]> = [
       type: AiResourceType.VMwareVCenter,
       agentPage: PageMap.VMWARE_VCENTER_VIEW_AI_AGENT,
       agentName: "VMware AI agent",
+    },
+  ],
+  [
+    "XCP-ng pool",
+    {
+      Page: XcpNgPoolOverview,
+      resource: {
+        _id: RESOURCE_ID,
+        name: "Production",
+        poolIdentifier: "b7569d99-30f8-178a-7d94-801de3e29b5b",
+      },
+      title: "Production",
+      type: AiResourceType.XcpNgPool,
+      agentPage: PageMap.XCP_NG_POOL_VIEW_AI_AGENT,
+      agentName: "XCP-ng AI agent",
     },
   ],
 ];

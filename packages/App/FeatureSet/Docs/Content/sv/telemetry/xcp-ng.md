@@ -197,6 +197,17 @@ Installationsskriptet skriver dem till `/opt/oneuptime-xcp-ng-agent/.env`; en Do
 | `XO_TLS_FINGERPRINT` | Installationsskript | SHA-256-fingeravtrycket för Xen Orchestras eget certifikat, som `openssl x509 -fingerprint -sha256` visar det, kolon valfria, när agenten litar på det certifikatet och inget annat. Installationsskriptet vägrar ett certifikat som inte stämmer med det. |
 | `XO_CA_FILE` | Installationsskript | Ett CA-paket som utfärdade Xen Orchestras certifikat; installationsskriptet kontrollerar certifikatet mot det och kopierar det till `xo-ca.pem`. |
 | `XO_TLS_SERVER_NAME` | Nej | Namnet som Xen Orchestras certifikat kontrolleras mot, när `XO_ADDRESS` är en adress som certifikatet inte anger. Tomt: värden i `XO_ADDRESS`. |
+| `ONEUPTIME_AI_XO_READ_TOKEN` | Nej | En token för en Xen Orchestra-användare med en kopia av den inbyggda rollen **Read only** och inget annat: [AI-agenten](#ai-agent) körs när den är satt, och läser med den. |
+| `ONEUPTIME_AI_XO_WRITE_TOKEN` | Nej | Bara för åtgärder: en token för en annan användare vars roll tillåter dem. Utan den ändrar AI-agenten ingenting. |
+| `XCP_NG_POOL_ID` | Nej | XAPI-UUID:t för den pool som AI-agenten hanterar. Tomt: den enda pool som dess lästoken kan se. |
+| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | Nej | Åsidosätter `XCP_NG_POOL_ID` som den pool som AI-agenten registrerar sig som. |
+| `ONEUPTIME_AI_INVESTIGATION` | Nej | `true` eller `false`: om OneUptime AI får köra AI-agentens skrivskyddade kommandon medan den utreder. Tomt: på. |
+| `ONEUPTIME_AI_FIXES` | Nej | `off`, `ask-for-approval`, `automatic` eller `bypass-approval`: hur OneUptime AI får tillämpa en åtgärd. Tomt: `ask-for-approval` när skrivningar är tillåtna, annars `off`. |
+| `ONEUPTIME_AI_ALLOW_WRITES` | Nej | `true` låter AI-agenten tillämpa åtgärder, med token för ändringar. Allt annat håller den skrivskyddad. |
+| `ONEUPTIME_AI_WRITE_TARGETS` | Nej | De `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` eller `schedule/<uuid>` som en åtgärd får röra, kommaseparerade, `*` för en godtycklig följd av tecken. Tomt: alla. |
+| `ONEUPTIME_AI_PROTECTED_TARGETS` | Nej | Samma sak, för det som OneUptime AI aldrig får ändra, vem som än godkänner det: den VM som AI-agenten körs i, och Xen Orchestras egen. |
+| `LOG_LEVEL` | Nej | AI-agentens loggnivå: `debug`, `info` (standard), `warn` eller `error`. |
+| `COMPOSE_PROFILES` | Nej | `xcp-ng-ai-agent` startar AI-agenten. Installationsskriptet skriver det när lästoken är satt, och tar bort det när den inte är det. |
 
 ## Vad agenten samlar in
 
@@ -296,6 +307,19 @@ Collectorn läser sin konfiguration bara vid start: kör `docker compose restart
 En agent läser en Xen Orchestra och varje pool som den hanterar. För att läsa en andra Xen Orchestra från samma maskin installerar du en andra agent i en egen mapp med en egen `.env`, till exempel `INSTALL_DIR=/opt/oneuptime-xcp-ng-agent-lab bash install.sh`, och ger den ett eget `container_name` i dess `docker-compose.yml` (till exempel `oneuptime-xcp-ng-agent-lab`): två containrar kan inte dela namn. Ge var och en ett eget `XO_NAME`, så att varje pools **Inställningar** säger vilken Xen Orchestra som läser den, och ge mappen till diagnosskriptet med `-d`.
 
 Låt aldrig två agenter läsa samma pool via två Xen Orchestra som båda hanterar den: den är en pool i OneUptime via sitt UUID och skulle rapporteras två gånger.
+
+## AI-agent
+
+Agentens `docker-compose.yml` har också **XCP-ng-AI-agenten**, `oneuptime-xcp-ng-ai-agent` (imagen `oneuptime/resource-ai-agent:release`), under profilen `xcp-ng-ai-agent`. Medan OneUptime AI undersöker en incident eller ett larm på en pool kör den skrivskyddade `xo-cli`-REST-kommandon genom den, till exempel `xo-cli rest get vms fields=name_label,power_state filter=power_state:Halted` eller `xo-cli rest get pbds fields=attached,host,SR filter=!attached?`, och, bara om du tillåter det, genomför åtgärder som att starta en VM eller ansluta ett lagringsrepositorys PBD. Det finns ingen `xo-cli`-binär i den: varje kommando blir exakt ett anrop till Xen Orchestras REST-API, på den adress och med den `xo-ca.pem` som collectorn använder. Den visas på poolens sida **AI-agent** i OneUptime.
+
+- **Den behöver en egen token, skrivskyddad.** OpenMetrics-hemligheten läser bara mätvärden, så AI-agenten läser Xen Orchestras REST-API (Xen Orchestra 6.9 eller senare) med `ONEUPTIME_AI_XO_READ_TOKEN`, en token för en Xen Orchestra-användare med en kopia av den inbyggda rollen **Read only** och inget annat. Kör `install.sh` med den satt, eller skriv in den när en första installation frågar: skriptet frågar Xen Orchestra om det känner till token, sparar den i `.env` med läge 600 och startar AI-agenten. Innan agenten kör något, och var 5:e minut, kontrollerar den att token bara kan läsa: en administratörs token, eller en token vars roller tillåter en ändring, kör ingenting.
+- **En pool per AI-agent.** `XCP_NG_POOL_ID` är den pool den hanterar, dess XAPI-UUID som poolens **Inställningar** visar det. Lämnas det tomt hanterar den den enda pool som dess token kan se. För en Xen Orchestra med flera pooler visar agentens README hur du kör en till per pool. En pool som en sond läser behöver ingen XCP-ng-agent: README-filen visar också hur du kör AI-agenten fristående för den, från samma `docker-compose.yml`.
+- **AI-undersökningar är på som standard.** När agenten väl ansluter undersöker OneUptime AI incidenter och larm på poolen med den, och poolens **Översikt** visar agentens status. För att stoppa sätter du `ONEUPTIME_AI_INVESTIGATION=false` där agenten körs (**Ändra** under **Vad AI får göra** på AI-agentsidan visar hur), eller utelämnar token.
+- **Åtgärder kräver en andra token.** Agenten är skrivskyddad om du inte sätter `ONEUPTIME_AI_ALLOW_WRITES=true` och `ONEUPTIME_AI_XO_WRITE_TOKEN`, en token för en annan användare vars roll tillåter åtgärderna (en kopia av rollen **VMs power state manager**, med de behörigheter som agentens README listar tillagda). Den används för själva ändringen och inget annat. `ONEUPTIME_AI_WRITE_TARGETS` (`vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>`, `schedule/<uuid>`) begränsar vad en åtgärd får röra; lägg UUID:n för den VM som agenten körs i, och för Xen Orchestras egen VM, i `ONEUPTIME_AI_PROTECTED_TARGETS`. `ONEUPTIME_AI_FIXES` i samma `.env` anger hur åtgärder körs — `ask-for-approval` (en person godkänner varje åtgärd), `automatic` eller `bypass-approval` — och AI-agentsidan visar det skrivskyddat ([Vad AI får göra, inställt av agenten](/docs/ai/infrastructure-ai-agents#vad-ai-får-göra-satt-av-agenten)).
+- **Den kontrollerar Xen Orchestras certifikat som collectorn gör**, efter dess subjectAltName och bara mot `xo-ca.pem`, så det certifikat som Xen Orchestra skapar åt sig själv nekas här också ([Xen Orchestras certifikat](#xen-orchestras-certifikat)). Den läser aldrig Xen Orchestra över `http://`: dess tokens skulle gå okrypterade över nätverket.
+- Den körs som UID 1000 utan capabilities och med ett skrivskyddat rotfilsystem, och läser aldrig Xen Orchestras användare, roller, servrar, plugins eller remotes, filtrerar aldrig på en egenskap som innehåller hemligheter, och redigerar, tar bort, återställer eller klonar aldrig något.
+
+Vad den får köra, hur åtgärder fungerar och hur du felsöker den: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#xcp-ng-pooler). Agentens README har rollerna och behörigheterna för båda tokens.
 
 ## Kör som en systemd-tjänst
 

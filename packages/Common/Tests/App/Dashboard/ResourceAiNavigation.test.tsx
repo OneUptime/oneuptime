@@ -22,6 +22,7 @@ import PodmanSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Podma
 import ProxmoxSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Proxmox/View/SideMenu";
 import OpenStackSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OpenStack/View/SideMenu";
 import VMwareSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/VMware/View/SideMenu";
+import XcpNgSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/XcpNg/View/SideMenu";
 import { getCephBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/CephBreadcrumbs";
 import { getDatabaseBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DatabaseBreadcrumbs";
 import { getDockerBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DockerBreadcrumbs";
@@ -31,6 +32,7 @@ import { getPodmanBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/U
 import { getProxmoxBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ProxmoxBreadcrumbs";
 import { getOpenStackBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/OpenStackBreadcrumbs";
 import { getVMwareBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/VMwareBreadcrumbs";
+import { getXcpNgBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/XcpNgBreadcrumbs";
 import { getResourceAiAgentDescriptor } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceAiAgent/ResourceAiAgentDescriptors";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
@@ -44,6 +46,7 @@ import RouteMap, {
   ProxmoxRoutePath,
   RouteUtil,
   VMwareRoutePath,
+  XcpNgRoutePath,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Dictionary from "../../../Types/Dictionary";
 import Link from "../../../Types/Link";
@@ -285,6 +288,20 @@ const CASES: Array<ResourceCase> = [
     firstSection: "Basic",
     breadcrumbs: getOpenStackBreadcrumbs,
     trail: ["Project", "OpenStack", "View Cloud"],
+    metricsInsights: null,
+  },
+  {
+    type: AiResourceType.XcpNgPool,
+    directory: "XcpNg",
+    routesFile: "XcpNgRoutes.tsx",
+    base: "xcp-ng",
+    routePath: XcpNgRoutePath,
+    prefix: "XCP_NG_POOL_VIEW",
+    menu: XcpNgSideMenu,
+    firstSection: "Basic",
+    breadcrumbs: getXcpNgBreadcrumbs,
+    trail: ["Project", "XCP-ng", "View Pool"],
+    // Its metrics page is "Resource Usage", never a second "Insights".
     metricsInsights: null,
   },
 ];

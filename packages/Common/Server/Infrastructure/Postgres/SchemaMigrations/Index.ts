@@ -1216,6 +1216,7 @@ import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-A
 import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostReports";
 import { AddCloudBudgetScopesPeriodsAndPlans1809187771008 } from "./1809187771008-AddCloudBudgetScopesPeriodsAndPlans";
 import { AddCloudBudgetCostGroupIndexAndKey1809187771018 } from "./1809187771018-AddCloudBudgetCostGroupIndexAndKey";
+import { AddXcpNgPoolAiAccess1809187772000 } from "./1809187772000-AddXcpNgPoolAiAccess";
 import { AddXcpNgPoolEventsAndBackups1809187780997 } from "./1809187780997-AddXcpNgPoolEventsAndBackups";
 
 export default [
@@ -2437,5 +2438,6 @@ export default [
   AddCloudCostReports1809187761009,
   AddCloudBudgetScopesPeriodsAndPlans1809187771008,
   AddCloudBudgetCostGroupIndexAndKey1809187771018,
+  AddXcpNgPoolAiAccess1809187772000,
   AddXcpNgPoolEventsAndBackups1809187780997,
 ];
