@@ -649,74 +649,93 @@ export function getNotificationLogStatusWords(data: {
  * go. Every status OneUptime writes on the log, and the one it wrote before
  * delivery was tracked (an SMS's and a WhatsApp message's Success); none it
  * never writes - a Telegram message is never Read, nor a WhatsApp message
- * Not Verified.
+ * Not Verified. Each in its pill's word: a key, looked up in the menu and
+ * the chip alike (FilterOptionLabelsGuard reads them here).
+ *
  * The filter had no choices at all on six of the eight logs: a Dropdown
  * filter that is handed none draws nothing.
  */
-export const NOTIFICATION_LOG_FILTER_STATUSES: Readonly<
-  Record<WhoWasToldLogKind, ReadonlyArray<string>>
+export const NOTIFICATION_LOG_STATUS_FILTER_OPTIONS: Readonly<
+  Record<WhoWasToldLogKind, Array<DropdownOption>>
 > = {
-  [WhoWasToldLogKind.Email]: [MailStatus.Success, MailStatus.Error],
+  [WhoWasToldLogKind.Email]: [
+    { value: MailStatus.Success, label: SUCCESS },
+    { value: MailStatus.Error, label: ERROR },
+  ],
   [WhoWasToldLogKind.SMS]: [
-    SmsStatus.Sending,
-    SmsStatus.Sent,
-    SmsStatus.Delivered,
-    SmsStatus.Undelivered,
-    SmsStatus.Failed,
-    SmsStatus.Error,
-    SmsStatus.LowBalance,
-    SmsStatus.Success,
+    { value: SmsStatus.Sending, label: SENDING },
+    { value: SmsStatus.Sent, label: SENT },
+    { value: SmsStatus.Delivered, label: DELIVERED },
+    { value: SmsStatus.Undelivered, label: UNDELIVERED },
+    { value: SmsStatus.Failed, label: FAILED },
+    { value: SmsStatus.Error, label: ERROR },
+    { value: SmsStatus.LowBalance, label: LOW_BALANCE },
+    { value: SmsStatus.Success, label: SUCCESS },
   ],
   [WhoWasToldLogKind.Call]: [
-    CallStatus.Calling,
-    CallStatus.Success,
-    CallStatus.MissedCall,
-    CallStatus.Busy,
-    CallStatus.Voicemail,
-    CallStatus.Error,
-    CallStatus.LowBalance,
+    { value: CallStatus.Calling, label: CALLING },
+    { value: CallStatus.Success, label: SUCCESS },
+    { value: CallStatus.MissedCall, label: MISSED_CALL },
+    { value: CallStatus.Busy, label: BUSY },
+    { value: CallStatus.Voicemail, label: VOICEMAIL },
+    { value: CallStatus.Error, label: ERROR },
+    { value: CallStatus.LowBalance, label: LOW_BALANCE },
   ],
-  [WhoWasToldLogKind.Push]: [PushStatus.Success, PushStatus.Error],
+  [WhoWasToldLogKind.Push]: [
+    { value: PushStatus.Success, label: SUCCESS },
+    { value: PushStatus.Error, label: ERROR },
+  ],
   [WhoWasToldLogKind.WhatsApp]: [
-    WhatsAppStatus.Queued,
-    WhatsAppStatus.Sent,
-    WhatsAppStatus.Delivered,
-    WhatsAppStatus.Read,
-    WhatsAppStatus.Warning,
-    WhatsAppStatus.Failed,
-    WhatsAppStatus.Error,
-    WhatsAppStatus.LowBalance,
-    WhatsAppStatus.Deleted,
-    WhatsAppStatus.Unknown,
-    WhatsAppStatus.Success,
+    { value: WhatsAppStatus.Queued, label: QUEUED },
+    { value: WhatsAppStatus.Sent, label: SENT },
+    { value: WhatsAppStatus.Delivered, label: DELIVERED },
+    { value: WhatsAppStatus.Read, label: READ },
+    { value: WhatsAppStatus.Warning, label: WARNING },
+    { value: WhatsAppStatus.Failed, label: FAILED },
+    { value: WhatsAppStatus.Error, label: ERROR },
+    { value: WhatsAppStatus.LowBalance, label: LOW_BALANCE },
+    { value: WhatsAppStatus.Deleted, label: DELETED },
+    { value: WhatsAppStatus.Unknown, label: UNKNOWN },
+    { value: WhatsAppStatus.Success, label: SUCCESS },
   ],
   [WhoWasToldLogKind.Telegram]: [
-    TelegramStatus.Sent,
-    TelegramStatus.Error,
-    TelegramStatus.LowBalance,
+    { value: TelegramStatus.Sent, label: SENT },
+    { value: TelegramStatus.Error, label: ERROR },
+    { value: TelegramStatus.LowBalance, label: LOW_BALANCE },
   ],
-  [WhoWasToldLogKind.Webhook]: [WebhookStatus.Success, WebhookStatus.Error],
+  [WhoWasToldLogKind.Webhook]: [
+    { value: WebhookStatus.Success, label: SUCCESS },
+    { value: WebhookStatus.Error, label: ERROR },
+  ],
   [WhoWasToldLogKind.Workspace]: [
-    WorkspaceNotificationStatus.Success,
-    WorkspaceNotificationStatus.Error,
+    { value: WorkspaceNotificationStatus.Success, label: SUCCESS },
+    { value: WorkspaceNotificationStatus.Error, label: ERROR },
   ],
 };
 
-/*
- * A log's Status filter: each status it can hold, named as its pill names
- * it - a key, looked up in the menu and the chip alike.
- */
+// The statuses each log's filter offers, in its order.
+function getFilterStatuses(): Record<WhoWasToldLogKind, ReadonlyArray<string>> {
+  const statuses: Partial<Record<WhoWasToldLogKind, ReadonlyArray<string>>> =
+    {};
+
+  for (const kind of Object.values(WhoWasToldLogKind)) {
+    statuses[kind] = NOTIFICATION_LOG_STATUS_FILTER_OPTIONS[kind].map(
+      (option: DropdownOption): string => {
+        return String(option.value);
+      },
+    );
+  }
+
+  return statuses as Record<WhoWasToldLogKind, ReadonlyArray<string>>;
+}
+
+export const NOTIFICATION_LOG_FILTER_STATUSES: Readonly<
+  Record<WhoWasToldLogKind, ReadonlyArray<string>>
+> = getFilterStatuses();
+
+// A log's Status filter: each status it can hold, named as its pill names it.
 export function getNotificationLogStatusFilterOptions(
   kind: WhoWasToldLogKind,
 ): Array<DropdownOption> {
-  return NOTIFICATION_LOG_FILTER_STATUSES[kind].map(
-    (status: string): DropdownOption => {
-      return {
-        value: status,
-        label:
-          getNotificationLogStatusWords({ kind: kind, status: status })?.text ||
-          status,
-      };
-    },
-  );
+  return NOTIFICATION_LOG_STATUS_FILTER_OPTIONS[kind];
 }
