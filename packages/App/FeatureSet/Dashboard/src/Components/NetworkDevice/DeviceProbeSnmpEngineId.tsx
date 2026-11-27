@@ -43,6 +43,11 @@ const DeviceProbeSnmpEngineId: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [engineId, setEngineId] = useState<string | undefined>(undefined);
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
+  /*
+   * Nothing to say of a device with no probe, nor of a receiver its probe's
+   * operator turned off: neither takes informs at all.
+   */
+  const [isTakingInforms, setIsTakingInforms] = useState<boolean>(false);
 
   const mayReadReport: boolean =
     !PermissionGate.hasPermissionSnapshot() ||
@@ -61,6 +66,7 @@ const DeviceProbeSnmpEngineId: FunctionComponent<ComponentProps> = (
           select: PermissionGate.getSelectReadableThroughRelations(
             NetworkDevice,
             {
+              probeId: true,
               probe: {
                 _id: true,
                 snmpTrapReceiver: true,
@@ -73,6 +79,9 @@ const DeviceProbeSnmpEngineId: FunctionComponent<ComponentProps> = (
         SnmpTrapReceiverUtil.parseReport(device?.probe?.snmpTrapReceiver);
 
       setEngineId(report?.isEnabled ? report.engineId : undefined);
+      setIsTakingInforms(
+        Boolean(device?.probeId || device?.probe) && report?.isEnabled !== false,
+      );
       setIsLoaded(true);
     };
 
@@ -81,7 +90,7 @@ const DeviceProbeSnmpEngineId: FunctionComponent<ComponentProps> = (
     });
   }, [props.modelId, mayReadReport]);
 
-  if (!mayReadReport || !isLoaded) {
+  if (!mayReadReport || !isLoaded || !isTakingInforms) {
     return <></>;
   }
 

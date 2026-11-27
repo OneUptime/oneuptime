@@ -253,6 +253,8 @@ const ProbePage: FunctionComponent<PageComponentProps> = (): ReactElement => {
               title: "SNMPv3 Engine ID",
               type: FieldType.Element,
               hideOnMobile: true,
+              // The route sorts by nothing it hands back whole: by no report.
+              disableSort: true,
               getElement: (item: Probe): ReactElement => {
                 const engineId: string | undefined =
                   SnmpTrapReceiverUtil.parseReport(item.snmpTrapReceiver)

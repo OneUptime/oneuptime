@@ -172,7 +172,7 @@ export const DEVICE_SNMP_TRAP_VIEW_PROBE: string = translationKey("View Probe");
  * it (#11173).
  */
 export const DEVICE_SNMPV3_TRAPS_HELP: string = translationKey(
-  "SNMPv3 traps and informs are taken when they are signed with the SNMPv3 credentials this device has in OneUptime: its own, its credential profile's or its site's default. Devices that send from one address are told apart by the engine ID their SNMPv3 polls read and by those credentials.",
+  "SNMPv3 traps and informs are taken when they are signed with the SNMPv3 credentials this device has in OneUptime: its own, its credential profile's or its site's default. When devices send from one address, their traps are told apart by these credentials and by the engine ID each device's SNMPv3 polls read.",
 );
 
 export const DEVICE_PROBE_ENGINE_ID_NOT_REPORTED: string = translationKey(
