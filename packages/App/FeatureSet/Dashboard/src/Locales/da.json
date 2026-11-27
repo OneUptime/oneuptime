@@ -67289,7 +67289,7 @@
   "XCP-ng Pool High Availability Changed": "Høj tilgængelighed for XCP-ng-pool ændret",
   "XCP-ng Pool Backup Failed": "Backup af XCP-ng-pool mislykkedes",
   "XCP-ng alarms": "XCP-ng-alarmer",
-  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
-  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposed: only its OneUptime labels say the resource is not production, so a person approves."
+  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Kører videre: Kun dens etiketter siger, at den ikke er produktion. Mærk den med environment=dev i din cloud, eller markér dens konto som ikke-produktion.",
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Kun dens etiketter siger, at den ikke er produktion, så ingen tidsplan uden for arbejdstid stopper den, og ingen AI-regel ændrer den uden at spørge. Mærk den i din cloud, eller markér dens konto som ikke-produktion.",
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Foreslået: Kun dens OneUptime-etiketter siger, at ressourcen ikke er produktion, så en person godkender."
 }

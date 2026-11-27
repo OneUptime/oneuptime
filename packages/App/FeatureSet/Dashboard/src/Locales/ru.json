@@ -67289,7 +67289,7 @@
   "XCP-ng Pool High Availability Changed": "Изменилась высокая доступность пула XCP-ng",
   "XCP-ng Pool Backup Failed": "Сбой резервного копирования пула XCP-ng",
   "XCP-ng alarms": "Аварийные сигналы XCP-ng",
-  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
-  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposed: only its OneUptime labels say the resource is not production, so a person approves."
+  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Оставлен работающим: только его метки говорят, что это не продакшен. Добавьте тег environment=dev в вашем облаке или отметьте его аккаунт как непродакшен.",
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Только его метки говорят, что это не продакшен, поэтому ни одно расписание нерабочего времени его не останавливает и ни одно правило ИИ не меняет его без запроса. Добавьте тег в вашем облаке или отметьте его аккаунт как непродакшен.",
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Предложено: только метки OneUptime говорят, что ресурс не продакшен, поэтому одобряет человек."
 }

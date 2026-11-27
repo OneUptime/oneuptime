@@ -67289,7 +67289,7 @@
   "XCP-ng Pool High Availability Changed": "XCP-ng पूल की हाई अवेलेबिलिटी बदली",
   "XCP-ng Pool Backup Failed": "XCP-ng पूल का बैकअप विफल",
   "XCP-ng alarms": "XCP-ng अलार्म",
-  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
-  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposed: only its OneUptime labels say the resource is not production, so a person approves."
+  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "चलता छोड़ा गया: केवल इसके लेबल बताते हैं कि यह प्रोडक्शन नहीं है। इसे अपने क्लाउड में environment=dev से टैग करें, या इसके खाते को गैर-प्रोडक्शन चिह्नित करें।",
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "केवल इसके लेबल बताते हैं कि यह प्रोडक्शन नहीं है, इसलिए काम के घंटों के बाहर की कोई अनुसूची इसे नहीं रोकती और कोई AI नियम बिना पूछे इसे नहीं बदलता। इसे अपने क्लाउड में टैग करें, या इसके खाते को गैर-प्रोडक्शन चिह्नित करें।",
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "प्रस्तावित: केवल इसके OneUptime लेबल बताते हैं कि संसाधन प्रोडक्शन नहीं है, इसलिए कोई व्यक्ति स्वीकृत करता है।"
 }

@@ -67289,7 +67289,7 @@
   "XCP-ng Pool High Availability Changed": "Alta disponibilidade do pool do XCP-ng alterada",
   "XCP-ng Pool Backup Failed": "Backup do pool do XCP-ng com falha",
   "XCP-ng alarms": "Alarmes do XCP-ng",
-  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
-  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposed: only its OneUptime labels say the resource is not production, so a person approves."
+  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Deixado em execução: só os rótulos indicam que não é produção. Adicione a tag environment=dev na sua nuvem ou marque a conta dele como não produção.",
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Só os rótulos indicam que não é produção, então nenhum agendamento fora do horário o para e nenhuma regra de IA o altera sem perguntar. Adicione uma tag na sua nuvem ou marque a conta dele como não produção.",
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposta: só os rótulos do OneUptime indicam que o recurso não é produção, então uma pessoa aprova."
 }

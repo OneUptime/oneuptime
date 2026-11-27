@@ -67289,7 +67289,7 @@
   "XCP-ng Pool High Availability Changed": "XCP-ng 資源池高可用性已變更",
   "XCP-ng Pool Backup Failed": "XCP-ng 資源池備份失敗",
   "XCP-ng alarms": "XCP-ng 警報",
-  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
-  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposed: only its OneUptime labels say the resource is not production, so a person approves."
+  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "保持執行：只有其標籤表示它不是正式環境。請在你的雲端為它加上 environment=dev 標記，或將其帳戶標為非正式環境。",
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "只有其標籤表示它不是正式環境，因此非上班時間排程不會停止它，AI 規則也不會不經詢問就變更它。請在你的雲端為它加上標記，或將其帳戶標為非正式環境。",
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "已提議：只有其 OneUptime 標籤表示此資源不是正式環境，因此由人核准。"
 }

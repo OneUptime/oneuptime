@@ -67289,7 +67289,7 @@
   "XCP-ng Pool High Availability Changed": "XCP-ng プールの高可用性変更",
   "XCP-ng Pool Backup Failed": "XCP-ng プールのバックアップ失敗",
   "XCP-ng alarms": "XCP-ng のアラーム",
-  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
-  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposed: only its OneUptime labels say the resource is not production, so a person approves."
+  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "稼働したまま: 本番ではないと示すのはラベルだけです。クラウドで environment=dev のタグを付けるか、アカウントを本番以外に設定してください。",
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "本番ではないと示すのはラベルだけのため、時間外スケジュールは停止せず、AI ルールも確認なしで変更しません。クラウドでタグを付けるか、アカウントを本番以外に設定してください。",
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "提案: リソースが本番ではないと示すのは OneUptime のラベルだけのため、人が承認します。"
 }

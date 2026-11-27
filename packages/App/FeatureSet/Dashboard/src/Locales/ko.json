@@ -67289,7 +67289,7 @@
   "XCP-ng Pool High Availability Changed": "XCP-ng 풀 고가용성 변경됨",
   "XCP-ng Pool Backup Failed": "XCP-ng 풀 백업 실패",
   "XCP-ng alarms": "XCP-ng 경보",
-  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
-  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
-  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "Proposed: only its OneUptime labels say the resource is not production, so a person approves."
+  "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.": "계속 실행: 프로덕션이 아니라고 알려 주는 것은 레이블뿐입니다. 클라우드에서 environment=dev 태그를 지정하거나 계정을 비프로덕션으로 표시하세요.",
+  "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.": "프로덕션이 아니라고 알려 주는 것이 레이블뿐이므로 근무 시간 외 스케줄은 이를 중지하지 않고, AI 규칙도 묻지 않고 변경하지 않습니다. 클라우드에서 태그를 지정하거나 계정을 비프로덕션으로 표시하세요.",
+  "Proposed: only its OneUptime labels say the resource is not production, so a person approves.": "제안: 리소스가 프로덕션이 아니라고 알려 주는 것은 OneUptime 레이블뿐이므로 사람이 승인합니다."
 }
