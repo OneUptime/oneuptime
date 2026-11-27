@@ -97,6 +97,8 @@ const COUNTERS_NOT_KEYED_ON_A_CLIENT: Record<string, string> = {
     "Mattermost sign-in links sent per OneUptime user in 15 minutes",
   "packages/Common/Server/Services/OnCallTestPageService.ts":
     "on-call test pages sent per project and hour",
+  "packages/Common/Server/Utils/Workspace/WorkspaceCreatedMessageLine.ts":
+    "the tickets a new record's workspace messages take in the line that waits for its Created message, per record (#11198); never who sent them",
 };
 
 /*
