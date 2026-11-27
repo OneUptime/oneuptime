@@ -6,7 +6,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import Input from "Common/UI/Components/Input/Input";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import React, {
   FunctionComponent,
@@ -22,6 +22,10 @@ import OwnersPicker, {
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  getIncidentMoreFieldsItems,
+  MonitorMoreFieldsTitles,
+} from "./MonitorMoreFields";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
@@ -30,7 +34,6 @@ import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariable
 import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
-import { getIncidentMoreFieldsItems } from "./MonitorMoreFields";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import IncidentRoleFormField from "../../Incident/IncidentRoleFormField";
@@ -118,6 +121,9 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
     criteriaIncident.escalationAfterMinutes &&
       criteriaIncident.escalationSeverityId,
   );
+  const hasIncidentLifecycleKey: boolean = Boolean(
+    criteriaIncident.incidentLifecycleKey?.trim(),
+  );
   const escalationSeverityOptions: Array<DropdownOption> = useMemo(() => {
     const startingSeverityIndex: number =
       props.incidentSeverityDropdownOptions.findIndex(
@@ -128,8 +134,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         },
       );
 
-    // MonitorSteps supplies severities in their configured rank order:
-    // lower order numbers are more severe. Offer only higher severities.
+    /*
+     * MonitorSteps supplies severities in their configured rank order:
+     * lower order numbers are more severe. Offer only higher severities.
+     */
     return startingSeverityIndex < 0
       ? []
       : props.incidentSeverityDropdownOptions.slice(0, startingSeverityIndex);
@@ -141,8 +149,10 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
    * The More fields section's options, by name, the ones the user chose
    * as chips: a default rule's auto-resolve does not count.
    */
-  const moreFieldsItems: Array<FoldedSectionItem> =
-    getIncidentMoreFieldsItems(criteriaIncident);
+  const moreFieldsItems: Array<FoldedSectionItem> = getIncidentMoreFieldsItems(
+    criteriaIncident,
+    props.allowSeverityEscalation,
+  );
   /*
    * Who the rule names for each role, as the role picker holds it. Set only
    * for roles the project still has: a row for a deleted role names nobody
@@ -322,7 +332,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         </div>
       </FoldedSection>
 
-      {props.allowSeverityEscalation && (
+      {props.allowSeverityEscalation && !hasIncidentLifecycleKey && (
         <FoldedSection
           title="Severity escalation"
           description="Raise this incident if the monitor stays offline continuously. The monitor must remain offline and this criterion must still match."
@@ -337,7 +347,7 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
                 description="Time the monitor must stay offline before the incident severity changes."
               />
               <Input
-                type="number"
+                type={InputType.NUMBER}
                 inputMode="numeric"
                 value={
                   criteriaIncident.escalationAfterMinutes?.toString() || ""
@@ -489,6 +499,29 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         dataTestId="criteria-incident-more-fields"
       >
         <div className="space-y-4">
+          {props.allowSeverityEscalation && (
+            <div>
+              <FieldLabelElement
+                title={MonitorMoreFieldsTitles.incidentLifecycleKey}
+                description="Use the same key on a slower Minor criterion and the Offline Major criterion to keep one incident as severity changes. When multiple linked criteria match, the first matching severity wins. Give linked criteria a neutral incident title. Leave blank to keep their incidents separate. A lifecycle key takes precedence over the time-based escalation setting."
+              />
+              <Input
+                value={criteriaIncident.incidentLifecycleKey || ""}
+                placeholder="e.g., website-outage"
+                maxLength={100}
+                ariaLabel={MonitorMoreFieldsTitles.incidentLifecycleKey}
+                dataTestId="monitor-criteria-incident-lifecycle-key"
+                onChange={(value: string) => {
+                  const incidentLifecycleKey: string = value.trim();
+                  updateField(
+                    "incidentLifecycleKey",
+                    incidentLifecycleKey || undefined,
+                  );
+                }}
+              />
+            </div>
+          )}
+
           <div>
             <Checkbox
               value={criteriaIncident.autoResolveIncident || false}

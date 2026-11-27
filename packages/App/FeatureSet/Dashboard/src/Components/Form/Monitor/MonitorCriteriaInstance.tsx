@@ -770,7 +770,11 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 incidentRoleOptions={props.incidentRoleOptions}
                 monitorType={props.monitorType}
                 seriesAttributeKeys={seriesAttributeKeys}
-                allowSeverityEscalation={true}
+                allowSeverityEscalation={
+                  props.monitorType !== MonitorType.IncomingEmail &&
+                  seriesAttributeKeys.length === 0 &&
+                  !incidentGrouping?.groupByJSONPath
+                }
                 onChange={(value: Array<CriteriaIncident>) => {
                   monitorCriteriaInstance.setIncidents(value);
                   if (props.onChange) {

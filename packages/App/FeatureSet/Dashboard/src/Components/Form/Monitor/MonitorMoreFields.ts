@@ -43,6 +43,7 @@ export const MonitorMoreFieldsTitles: {
   autoResolveIncident: string;
   showIncidentOnStatusPage: string;
   privateIncident: string;
+  incidentLifecycleKey: string;
   autoResolveAlert: string;
   privateAlert: string;
   remediationNotes: string;
@@ -62,6 +63,7 @@ export const MonitorMoreFieldsTitles: {
   autoResolveIncident: translationKey("Auto Resolve Incident"),
   showIncidentOnStatusPage: translationKey("Show Incident on Status Page"),
   privateIncident: translationKey("Private Incident"),
+  incidentLifecycleKey: translationKey("Incident lifecycle key"),
   autoResolveAlert: translationKey("Auto Resolve Alert"),
   privateAlert: translationKey("Private Alert"),
   remediationNotes: translationKey("Remediation Notes"),
@@ -247,7 +249,9 @@ export const getIncidentMoreFieldsItems: (
     | "remediationNotes"
     | "showIncidentOnStatusPage"
     | "isPrivate"
+    | "incidentLifecycleKey"
   >,
+  includeIncidentLifecycleKey?: boolean | undefined,
 ) => Array<FoldedSectionItem> = (
   incident: Pick<
     CriteriaIncident,
@@ -255,9 +259,11 @@ export const getIncidentMoreFieldsItems: (
     | "remediationNotes"
     | "showIncidentOnStatusPage"
     | "isPrivate"
+    | "incidentLifecycleKey"
   >,
+  includeIncidentLifecycleKey?: boolean | undefined,
 ): Array<FoldedSectionItem> => {
-  return [
+  const items: Array<FoldedSectionItem> = [
     switchItem(
       MonitorMoreFieldsTitles.autoResolveIncident,
       "autoResolveIncident",
@@ -281,6 +287,18 @@ export const getIncidentMoreFieldsItems: (
       isSet: Boolean(incident.remediationNotes?.trim()),
     }),
   ];
+
+  if (includeIncidentLifecycleKey) {
+    items.push(
+      foldedSectionItem(MonitorMoreFieldsTitles.incidentLifecycleKey, {
+        key: "incidentLifecycleKey",
+        isSet: Boolean(incident.incidentLifecycleKey?.trim()),
+        value: incident.incidentLifecycleKey?.trim(),
+      }),
+    );
+  }
+
+  return items;
 };
 
 // A monitor rule's alert More fields, by the same rule.
