@@ -168,7 +168,9 @@ export function readRecordWriteOfRequest(data: {
   path: string;
   body?: JSONObject | undefined;
 }): RecordWrite | null {
+  // Express routes a path whatever its case, and with or without a slash at its end.
   const path: string = (data.path.split("?")[0] || "")
+    .toLowerCase()
     .replace(/^\/api(?=\/)/, "")
     .replace(/\/+$/, "");
 
@@ -367,23 +369,27 @@ async function readRecord(data: {
   }
 
   try {
-    const select: JSONObject = {};
+    const select: JSONObject = { _id: true };
 
     for (const column of data.columns) {
       select[column] = true;
     }
 
+    // The route answers with the record itself (Response.sendEntityResponse).
     const answer: JSONValue = await data.read(
       `/api${route.apiPath}/${data.id}/get-item`,
       { select },
     );
 
-    return answer && typeof answer === "object" && !Array.isArray(answer)
-      ? (answer as JSONObject)["data"] &&
-        typeof (answer as JSONObject)["data"] === "object" &&
-        !Array.isArray((answer as JSONObject)["data"])
-        ? ((answer as JSONObject)["data"] as JSONObject)
-        : (answer as JSONObject)
+    /*
+     * A record the caller may not read is answered as {}: unread, never
+     * taken for a record that holds nothing.
+     */
+    return answer &&
+      typeof answer === "object" &&
+      !Array.isArray(answer) &&
+      readId((answer as JSONObject)["_id"]) !== null
+      ? (answer as JSONObject)
       : null;
   } catch {
     return null;

@@ -599,9 +599,26 @@ describe("a change judged against what the record holds now", () => {
       `/api${apiPathOf("DataSecuritySetting")}/${SETTING_ID}/get-item`,
     );
     expect(api.readsSent()[0]?.body?.["select"]).toEqual({
+      _id: true,
       disabledDataTypeIds: true,
     });
     expect(writesTo("DataSecuritySetting")).toEqual([]);
+  });
+
+  it("a record the caller may not read, answered as {}, is not taken for one that holds nothing", async () => {
+    /*
+     * What the route answers for a playbook the caller may not read: were
+     * it taken for one with no steps, turning it on would look harmless.
+     */
+    api.records.set(`${apiPathOf("SecurityPlaybook")}/${PLAYBOOK_ID}`, {});
+
+    const answer: ToolAnswer = await call(
+      toolOf("SecurityPlaybook", OneUptimeOperation.Update),
+      { id: PLAYBOOK_ID, isEnabled: true },
+    );
+
+    expect(answer.isError).toBe(true);
+    expect(writesTo("SecurityPlaybook")).toEqual([]);
   });
 
   it("the list written as it is, or one shorter, is sent", async () => {
@@ -961,6 +978,19 @@ describe("which request writes which record", () => {
       read("PUT", `/api/data-security-issue/${ISSUE_ID}/?dryRun=true`)?.id,
     ).toBe(ISSUE_ID);
     expect(read("POST", "/data-store/")?.write).toBe(AlwaysAskWrite.Create);
+  });
+
+  it("reads the path whatever its case, as Express routes it", () => {
+    expect(
+      read("PUT", `/API/Data-Security-Issue/${ISSUE_ID.toUpperCase()}/`, {
+        data: { status: "Accepted" },
+      }),
+    ).toEqual({
+      tableName: "DataSecurityIssue",
+      write: AlwaysAskWrite.Update,
+      id: ISSUE_ID,
+      data: { status: "Accepted" },
+    });
   });
 
   it("takes a request's data, and the lists it changes beside it", () => {
