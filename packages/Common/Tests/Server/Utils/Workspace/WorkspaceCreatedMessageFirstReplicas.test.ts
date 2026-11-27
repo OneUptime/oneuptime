@@ -43,6 +43,14 @@ import getTestRedisConnectionOptions from "../../TestingUtils/Redis/TestRedisOpt
  * server tells it of every post as the post goes out, and waits for it to
  * have it, so it hears the posts of both servers in the order Slack would.
  *
+ * The messages themselves were in the memory of the server that made them,
+ * so a server killed outright - an OOM kill, a lost node, SIGKILL - lost
+ * every message waiting on it (#11235). Now each waits in Valkey with what
+ * it says, and another server posts it, in its turn and once: here a server
+ * is killed with SIGKILL while it holds messages, or frozen with SIGSTOP
+ * and let go on with SIGCONT, to show nothing is lost and nothing is posted
+ * twice.
+ *
  * Every line this run makes in Valkey has a key prefix of its own, deleted
  * afterwards.
  */
@@ -605,6 +613,60 @@ describe("nothing waits for good, across servers", () => {
     );
   });
 
+  test("a deploy stops the other server while its message waits: it is posted as the server stops, not lost, and the line goes on at once", async () => {
+    const [creating, other] = await startServers(["A", "B"], {
+      stalledAfterMs: 60_000,
+    });
+
+    const created: Promise<JSONObject> = creating!.ask("createIncident", {
+      pauseAtFirstState: true,
+    });
+    await creating!.paused();
+
+    await other!.ask("assignCommander");
+
+    // SIGTERM: its shutdown handlers run, and post what still waits on it.
+    await other!.terminate();
+    await slack.waitFor(1, 30_000);
+
+    expect(slack.said()).toEqual(["B: Incident Commander"]);
+
+    await creating!.ask("resume");
+    await created;
+    await slack.waitFor(3, 20_000);
+
+    expect(slack.said()).toEqual([
+      "B: Incident Commander",
+      "A: Incident Created",
+      "A: Platform added",
+    ]);
+  });
+
+  test("the create chain fails before Incident Created: its .catch lets every server's waiting messages go", async () => {
+    const [creating, other] = await startServers(["A", "B"]);
+
+    const created: Promise<JSONObject> = creating!.ask("createIncident", {
+      pauseAtFirstState: true,
+      failBeforeCreated: true,
+    });
+    await creating!.paused();
+
+    await other!.ask("assignCommander");
+
+    await pause(300);
+    expect(slack.said()).toEqual([]);
+
+    await creating!.ask("resume");
+    await created;
+    await slack.waitFor(2, 30_000);
+    await other!.ask("drained");
+    await pause(200);
+
+    expect(slack.said()).toEqual([
+      "B: Incident Commander",
+      "A: Platform added",
+    ]);
+  });
 });
 
 describe("a server killed outright loses none of the messages it held (#11235)", () => {
@@ -880,60 +942,5 @@ describe("a server killed outright loses none of the messages it held (#11235)",
     expect(claims).toHaveLength(2);
     expect(claims).toContain(line["by:1"]);
     expect(new Set(claims).size).toBe(2);
-  });
-
-  test("a deploy stops the other server while its message waits: it is posted as the server stops, not lost, and the line goes on at once", async () => {
-    const [creating, other] = await startServers(["A", "B"], {
-      stalledAfterMs: 60_000,
-    });
-
-    const created: Promise<JSONObject> = creating!.ask("createIncident", {
-      pauseAtFirstState: true,
-    });
-    await creating!.paused();
-
-    await other!.ask("assignCommander");
-
-    // SIGTERM: its shutdown handlers run, and post what still waits on it.
-    await other!.terminate();
-    await slack.waitFor(1, 30_000);
-
-    expect(slack.said()).toEqual(["B: Incident Commander"]);
-
-    await creating!.ask("resume");
-    await created;
-    await slack.waitFor(3, 20_000);
-
-    expect(slack.said()).toEqual([
-      "B: Incident Commander",
-      "A: Incident Created",
-      "A: Platform added",
-    ]);
-  });
-
-  test("the create chain fails before Incident Created: its .catch lets every server's waiting messages go", async () => {
-    const [creating, other] = await startServers(["A", "B"]);
-
-    const created: Promise<JSONObject> = creating!.ask("createIncident", {
-      pauseAtFirstState: true,
-      failBeforeCreated: true,
-    });
-    await creating!.paused();
-
-    await other!.ask("assignCommander");
-
-    await pause(300);
-    expect(slack.said()).toEqual([]);
-
-    await creating!.ask("resume");
-    await created;
-    await slack.waitFor(2, 30_000);
-    await other!.ask("drained");
-    await pause(200);
-
-    expect(slack.said()).toEqual([
-      "B: Incident Commander",
-      "A: Platform added",
-    ]);
   });
 });
