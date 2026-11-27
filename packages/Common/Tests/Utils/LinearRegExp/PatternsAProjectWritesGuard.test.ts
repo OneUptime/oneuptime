@@ -178,6 +178,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the record kinds ON_CALL_POLICY_RUN_RECORD_KINDS lists (incident, alert and their episodes), letters and spaces only, to read back the observer line getOnCallObserverPageSeenMessage writes",
   },
   {
+    file: "packages/Common/Types/StorageArray/StorageArrayMetricUnitUtil.ts",
+    count: 1,
+    builtFrom:
+      "the unit rules of the storage platforms OneUptime ships (StorageArrayPlatform.unitRules, such as NetApp ONTAP's ONTAP_UNIT_RULES, pattern strings written in code), run only on a metric name that starts with that platform's own prefix (#11001): no project writes them",
+  },
+  {
     file: "packages/Common/Types/Telemetry/ScrubRule.ts",
     count: 1,
     builtFrom: "a copy of one of the built-in scrub patterns",
