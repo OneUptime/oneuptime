@@ -532,7 +532,7 @@ Eine Ausführung, von deren Worker nichts mehr kommt, etwa nach einem Neustart, 
 - Die pro Tag eröffneten Fälle über 30 Tage, nach Priorität, und die pro Tag ausgelösten Erkennungen über 14 Tage, nach Quelle.
 - Die offenen Fälle nach Priorität und nach Status, die riskantesten Entitäten nach ihrem Risikowert, die am häufigsten ausgelösten Erkennungen, die ATT&CK-Taktiken hinter den Fällen und die Bewertungen der letzten 30 Tage.
 
-Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erkennungen, Fälle und Playbooks, jeweils mit ihren Zahlen. Ein Projekt, das sie noch nicht eingerichtet hat, sieht dort **Empfohlenes aktivieren** und **Testangriff senden**; siehe [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started). Braucht nichts jemanden, sagt die Seite **Alles ruhig**, und die Diagramme erscheinen, sobald es etwas darzustellen gibt.
+Darüber zeigt ein Streifen, wie Sicherheit eingerichtet ist: ihre Quellen, Erkennungen, Fälle und Playbooks, jeweils mit ihren Zahlen, und darunter jede empfohlene Regel, die Ihr Projekt noch nicht hat, mit **Einschalten**. Ein Projekt, das sie noch nicht eingerichtet hat, sieht dort **Empfohlenes aktivieren** und **Testangriff senden**; siehe [Erste Schritte mit Sicherheit](/docs/telemetry/security-getting-started). Braucht nichts jemanden, sagt die Seite **Alles ruhig**, und die Diagramme erscheinen, sobald es etwas darzustellen gibt.
 
 ## Bedrohungen finden
 

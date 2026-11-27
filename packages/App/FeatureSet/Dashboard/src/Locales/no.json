@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} lagringsgruppe",
   "{{count}} storage resource pool": "{{count}} lagringsressurspool",
   "{{count}} storage resource pools": "{{count}} lagringsressurspooler",
-  "{{count}} storage resource pools_one": "{{count}} lagringsressurspool"
+  "{{count}} storage resource pools_one": "{{count}} lagringsressurspool",
+  "Added By OneUptime At": "Lagt til av OneUptime den",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "Alle de andre anbefalte reglene var slått på i dette prosjektet, så OneUptime la til denne da den ble anbefalt.",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime slo på {{rule}} den {{date}}",
+  "Recommended rules not in this project": "Anbefalte regler som ikke er i dette prosjektet",
+  "{{count}} more in the Rule Library": "Ytterligere {{count}} i Regelbibliotek",
+  "{{count}} more in the Rule Library_one": "Ytterligere {{count}} i Regelbibliotek",
+  "{{count}} recommended rules are not in this project yet": "{{count}} anbefalte regler er ikke i dette prosjektet ennå",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} anbefalt regel er ikke i dette prosjektet ennå",
+  "{{rule}} could not be turned off": "{{rule}} kunne ikke slås av",
+  "{{rule}} is off.": "{{rule}} er slått av.",
+  "{{rule}} is on.": "{{rule}} er slått på."
 }

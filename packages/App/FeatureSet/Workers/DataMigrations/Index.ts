@@ -223,6 +223,7 @@ import RestoreContainerAppRequestMonitorTotals from "./RestoreContainerAppReques
 import DeleteStatusPageResourcesThatShowNothing from "./DeleteStatusPageResourcesThatShowNothing";
 import EndOnCallTimeLogsOfDeletedPolicies from "./EndOnCallTimeLogsOfDeletedPolicies";
 import WorkOutMonitorsPausedByIncidents from "./WorkOutMonitorsPausedByIncidents";
+import AddSensitiveFileServedToRecommendedRules from "./AddSensitiveFileServedToRecommendedRules";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1701,6 +1702,15 @@ const DataMigrations: Array<DataMigrationBase> = [
    * Monitor.keepMonitoringDuringIncidents; Postgres; idempotent.
    */
   new WorkOutMonitorsPausedByIncidents(),
+  /*
+   * Sensitive file served (#10912) for each project that runs every other
+   * recommended rule and has no rule of it (#11037), on and opening cases,
+   * as Turn on recommended would have added it, marked as added by
+   * OneUptime so the Overview says so. After the schema migration that adds
+   * DetectionRule.addedByOneUptimeAt; Postgres only, idempotent; before the
+   * two slots kept last.
+   */
+  new AddSensitiveFileServedToRecommendedRules(),
   /*
    * Names the account whose sign-in read each incident call transcript an
    * earlier release read from Zoom, Google Meet or Microsoft Teams

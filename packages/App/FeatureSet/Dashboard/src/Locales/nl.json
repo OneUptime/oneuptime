@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} opslaggroep",
   "{{count}} storage resource pool": "{{count}} opslagresourcepool",
   "{{count}} storage resource pools": "{{count}} opslagresourcepools",
-  "{{count}} storage resource pools_one": "{{count}} opslagresourcepool"
+  "{{count}} storage resource pools_one": "{{count}} opslagresourcepool",
+  "Added By OneUptime At": "Toegevoegd door OneUptime op",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "Alle andere aanbevolen regels stonden aan in dit project, dus voegde OneUptime deze toe toen die aanbevolen werd.",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime heeft {{rule}} op {{date}} aangezet",
+  "Recommended rules not in this project": "Aanbevolen regels die niet in dit project staan",
+  "{{count}} more in the Rule Library": "Nog {{count}} in de Regelbibliotheek",
+  "{{count}} more in the Rule Library_one": "Nog {{count}} in de Regelbibliotheek",
+  "{{count}} recommended rules are not in this project yet": "{{count}} aanbevolen regels staan nog niet in dit project",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} aanbevolen regel staat nog niet in dit project",
+  "{{rule}} could not be turned off": "{{rule}} kon niet worden uitgezet",
+  "{{rule}} is off.": "{{rule}} staat uit.",
+  "{{rule}} is on.": "{{rule}} staat aan."
 }

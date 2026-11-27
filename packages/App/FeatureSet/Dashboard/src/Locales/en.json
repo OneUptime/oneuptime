@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} storage group",
   "{{count}} storage resource pool": "{{count}} storage resource pool",
   "{{count}} storage resource pools": "{{count}} storage resource pools",
-  "{{count}} storage resource pools_one": "{{count}} storage resource pool"
+  "{{count}} storage resource pools_one": "{{count}} storage resource pool",
+  "Added By OneUptime At": "Added By OneUptime At",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime turned on {{rule}} on {{date}}",
+  "Recommended rules not in this project": "Recommended rules not in this project",
+  "{{count}} more in the Rule Library": "{{count}} more in the Rule Library",
+  "{{count}} more in the Rule Library_one": "{{count}} more in the Rule Library",
+  "{{count}} recommended rules are not in this project yet": "{{count}} recommended rules are not in this project yet",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} recommended rule is not in this project yet",
+  "{{rule}} could not be turned off": "{{rule}} could not be turned off",
+  "{{rule}} is off.": "{{rule}} is off.",
+  "{{rule}} is on.": "{{rule}} is on."
 }

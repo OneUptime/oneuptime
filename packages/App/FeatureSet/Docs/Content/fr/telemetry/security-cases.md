@@ -532,7 +532,7 @@ Le produit s'ouvre sur **Produits → Événements de sécurité → Vue d'ensem
 - Les dossiers ouverts chaque jour sur 30 jours, par priorité, et les détections levées chaque jour sur 14 jours, par source.
 - Les dossiers ouverts par priorité et par statut, les entités les plus à risque selon leur score de risque, les détections qui se sont le plus déclenchées, les tactiques ATT&CK à l'origine des dossiers et les verdicts des 30 derniers jours.
 
-Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sources, ses détections, ses dossiers et ses playbooks, chacun avec ses chiffres. Un projet qui ne l'a pas encore mise en place y voit **Activer les recommandations** et **Envoyer une attaque de test** ; voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started). Quand rien n'attend personne, la page affiche **Tout est calme**, et les graphiques apparaissent dès qu'il y a quelque chose à représenter.
+Au-dessus, un bandeau montre comment la sécurité est mise en place : ses sources, ses détections, ses dossiers et ses playbooks, chacun avec ses chiffres, et en dessous chaque règle recommandée que votre projet n'a pas encore, avec **Activer**. Un projet qui ne l'a pas encore mise en place y voit **Activer les recommandations** et **Envoyer une attaque de test** ; voir [Bien démarrer avec la sécurité](/docs/telemetry/security-getting-started). Quand rien n'attend personne, la page affiche **Tout est calme**, et les graphiques apparaissent dès qu'il y a quelque chose à représenter.
 
 ## Trouver des menaces
 

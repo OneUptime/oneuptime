@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} 個儲存群組",
   "{{count}} storage resource pool": "{{count}} 個儲存資源池",
   "{{count}} storage resource pools": "{{count}} 個儲存資源池",
-  "{{count}} storage resource pools_one": "{{count}} 個儲存資源池"
+  "{{count}} storage resource pools_one": "{{count}} 個儲存資源池",
+  "Added By OneUptime At": "OneUptime 新增時間",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "此專案已開啟其他所有推薦規則，因此當這條規則成為推薦規則時，OneUptime 新增了它。",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime 已於 {{date}} 開啟 {{rule}}",
+  "Recommended rules not in this project": "此專案中沒有的推薦規則",
+  "{{count}} more in the Rule Library": "規則庫中還有 {{count}} 條",
+  "{{count}} more in the Rule Library_one": "規則庫中還有 {{count}} 條",
+  "{{count}} recommended rules are not in this project yet": "有 {{count}} 條推薦規則尚未加入此專案",
+  "{{count}} recommended rules are not in this project yet_one": "有 {{count}} 條推薦規則尚未加入此專案",
+  "{{rule}} could not be turned off": "無法關閉 {{rule}}",
+  "{{rule}} is off.": "{{rule}} 已關閉。",
+  "{{rule}} is on.": "{{rule}} 已開啟。"
 }

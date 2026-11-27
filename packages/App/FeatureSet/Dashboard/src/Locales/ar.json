@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} مجموعة تخزين",
   "{{count}} storage resource pool": "{{count}} تجمّع موارد تخزين",
   "{{count}} storage resource pools": "تجمّعات موارد التخزين: {{count}}",
-  "{{count}} storage resource pools_one": "{{count}} تجمّع موارد تخزين"
+  "{{count}} storage resource pools_one": "{{count}} تجمّع موارد تخزين",
+  "Added By OneUptime At": "وقت الإضافة بواسطة OneUptime",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "كانت كل القواعد الموصى بها الأخرى مفعّلة في هذا المشروع، لذا أضاف OneUptime هذه القاعدة عندما أصبحت موصى بها.",
+  "OneUptime turned on {{rule}} on {{date}}": "فعّل OneUptime القاعدة {{rule}} في {{date}}",
+  "Recommended rules not in this project": "القواعد الموصى بها غير الموجودة في هذا المشروع",
+  "{{count}} more in the Rule Library": "المزيد في مكتبة القواعد: {{count}}",
+  "{{count}} more in the Rule Library_one": "{{count}} قاعدة أخرى في مكتبة القواعد",
+  "{{count}} recommended rules are not in this project yet": "{{count}} من القواعد الموصى بها ليست في هذا المشروع بعد",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} قاعدة موصى بها ليست في هذا المشروع بعد",
+  "{{rule}} could not be turned off": "تعذّر إيقاف {{rule}}",
+  "{{rule}} is off.": "تم إيقاف {{rule}}.",
+  "{{rule}} is on.": "تم تفعيل {{rule}}."
 }

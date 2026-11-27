@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} स्टोरेज समूह",
   "{{count}} storage resource pool": "{{count}} स्टोरेज रिसोर्स पूल",
   "{{count}} storage resource pools": "{{count}} स्टोरेज रिसोर्स पूल",
-  "{{count}} storage resource pools_one": "{{count}} स्टोरेज रिसोर्स पूल"
+  "{{count}} storage resource pools_one": "{{count}} स्टोरेज रिसोर्स पूल",
+  "Added By OneUptime At": "OneUptime द्वारा जोड़ने का समय",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "इस प्रोजेक्ट में बाकी सभी सुझाए गए नियम चालू थे, इसलिए जब यह नियम सुझाए गए नियमों में शामिल हुआ, तो OneUptime ने इसे जोड़ दिया।",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime ने {{date}} को {{rule}} चालू किया",
+  "Recommended rules not in this project": "सुझाए गए नियम जो इस प्रोजेक्ट में नहीं हैं",
+  "{{count}} more in the Rule Library": "नियम लाइब्रेरी में {{count}} और",
+  "{{count}} more in the Rule Library_one": "नियम लाइब्रेरी में {{count}} और",
+  "{{count}} recommended rules are not in this project yet": "{{count}} सुझाए गए नियम अभी इस प्रोजेक्ट में नहीं हैं",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} सुझाया गया नियम अभी इस प्रोजेक्ट में नहीं है",
+  "{{rule}} could not be turned off": "{{rule}} बंद नहीं किया जा सका",
+  "{{rule}} is off.": "{{rule}} बंद है।",
+  "{{rule}} is on.": "{{rule}} चालू है।"
 }

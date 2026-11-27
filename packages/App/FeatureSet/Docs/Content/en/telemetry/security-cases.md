@@ -532,7 +532,7 @@ A run that stops hearing from its worker, after a restart for example, is picked
 - The cases opened each day for 30 days, by priority, and the detections raised each day for 14 days, by source.
 - The open cases by priority and by status, the riskiest entities by their risk score, the detections that fired most, the ATT&CK tactics behind the cases, and the verdicts of the last 30 days.
 
-Above them, a strip shows how Security is set up: its sources, detections, cases and playbooks, each with its figures. A project that has not set it up yet sees **Turn on recommended** and **Send a test attack** there; see [Get Started with Security](/docs/telemetry/security-getting-started). When nothing needs anybody, the page says **All quiet**, and the charts show once there is something to chart.
+Above them, a strip shows how Security is set up: its sources, detections, cases and playbooks, each with its figures, and under it each recommended rule your project does not have yet, with **Turn On**. A project that has not set it up yet sees **Turn on recommended** and **Send a test attack** there; see [Get Started with Security](/docs/telemetry/security-getting-started). When nothing needs anybody, the page says **All quiet**, and the charts show once there is something to chart.
 
 ## Find threats
 

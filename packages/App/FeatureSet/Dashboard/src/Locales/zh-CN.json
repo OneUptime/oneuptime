@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} 个存储组",
   "{{count}} storage resource pool": "{{count}} 个存储资源池",
   "{{count}} storage resource pools": "{{count}} 个存储资源池",
-  "{{count}} storage resource pools_one": "{{count}} 个存储资源池"
+  "{{count}} storage resource pools_one": "{{count}} 个存储资源池",
+  "Added By OneUptime At": "OneUptime 添加时间",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "此项目已开启其他所有推荐规则，因此当这条规则成为推荐规则时，OneUptime 添加了它。",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime 已于 {{date}} 开启 {{rule}}",
+  "Recommended rules not in this project": "此项目中没有的推荐规则",
+  "{{count}} more in the Rule Library": "规则库中还有 {{count}} 条",
+  "{{count}} more in the Rule Library_one": "规则库中还有 {{count}} 条",
+  "{{count}} recommended rules are not in this project yet": "有 {{count}} 条推荐规则尚未加入此项目",
+  "{{count}} recommended rules are not in this project yet_one": "有 {{count}} 条推荐规则尚未加入此项目",
+  "{{rule}} could not be turned off": "无法关闭 {{rule}}",
+  "{{rule}} is off.": "{{rule}} 已关闭。",
+  "{{rule}} is on.": "{{rule}} 已开启。"
 }

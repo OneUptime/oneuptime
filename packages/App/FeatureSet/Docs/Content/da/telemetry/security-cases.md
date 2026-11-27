@@ -532,7 +532,7 @@ En kørsel, der holder op med at høre fra sin worker, f.eks. efter en genstart,
 - De sager, der er åbnet hver dag i 30 dage, efter prioritet, og de detektioner, der er rejst hver dag i 14 dage, efter kilde.
 - De åbne sager efter prioritet og efter status, de mest risikable entiteter efter deres risikoscore, de detektioner, der blev udløst oftest, ATT&CK-taktikkerne bag sagerne og konklusionerne fra de seneste 30 dage.
 
-Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, sager og playbooks, hver med sine tal. Et projekt, der endnu ikke har sat det op, ser **Slå anbefalet til** og **Send et testangreb** der; se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started). Når intet kræver nogen, siger siden **Alt er roligt**, og diagrammerne vises, så snart der er noget at vise.
+Over dem viser et bånd, hvordan sikkerhed er sat op: dens kilder, detektioner, sager og playbooks, hver med sine tal, og under det hver anbefalet regel, som dit projekt endnu ikke har, med **Slå til**. Et projekt, der endnu ikke har sat det op, ser **Slå anbefalet til** og **Send et testangreb** der; se [Kom godt i gang med sikkerhed](/docs/telemetry/security-getting-started). Når intet kræver nogen, siger siden **Alt er roligt**, og diagrammerne vises, så snart der er noget at vise.
 
 ## Find trusler
 

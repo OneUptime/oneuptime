@@ -5124,6 +5124,27 @@ jobs:
           Tests/Workers/DataMigrations/EndOnCallTimeLogsOfDeletedPoliciesPostgres.test.ts
           --forceExit
 
+      # #11037: Sensitive file served, added on upgrade to each project that
+      # runs every other recommended rule and has none of it - on, opening
+      # cases, created by nobody and marked as added by OneUptime, which the
+      # Overview's own read then names - and to no project that turned a
+      # recommended rule off, deleted one, or has the rule already (off,
+      # renamed, or by its name alone). More projects than a page, a second
+      # run and two at once. Clones the migrated DetectionRule table into an
+      # isolated schema. An App suite, so in shard 3, which installs App.
+      - name: Test adding Sensitive file served to the projects that run every other recommended rule on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_SENSITIVE_FILE_SERVED_ROLLOUT_TESTS: "true"
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/AddSensitiveFileServedToRecommendedRulesPostgres.test.ts
+          --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when

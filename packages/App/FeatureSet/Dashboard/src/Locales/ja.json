@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} 個のストレージグループ",
   "{{count}} storage resource pool": "{{count}} 個のストレージリソースプール",
   "{{count}} storage resource pools": "{{count}} 個のストレージリソースプール",
-  "{{count}} storage resource pools_one": "{{count}} 個のストレージリソースプール"
+  "{{count}} storage resource pools_one": "{{count}} 個のストレージリソースプール",
+  "Added By OneUptime At": "OneUptime による追加日時",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "このプロジェクトではほかのおすすめのルールがすべてオンだったため、このルールがおすすめになったときに OneUptime が追加しました。",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime が {{date}} に {{rule}} をオンにしました",
+  "Recommended rules not in this project": "このプロジェクトにないおすすめのルール",
+  "{{count}} more in the Rule Library": "ルールライブラリにあと {{count}} 件",
+  "{{count}} more in the Rule Library_one": "ルールライブラリにあと {{count}} 件",
+  "{{count}} recommended rules are not in this project yet": "まだこのプロジェクトにないおすすめのルールが {{count}} 件あります",
+  "{{count}} recommended rules are not in this project yet_one": "まだこのプロジェクトにないおすすめのルールが {{count}} 件あります",
+  "{{rule}} could not be turned off": "{{rule}} をオフにできませんでした",
+  "{{rule}} is off.": "{{rule}} はオフです。",
+  "{{rule}} is on.": "{{rule}} はオンです。"
 }

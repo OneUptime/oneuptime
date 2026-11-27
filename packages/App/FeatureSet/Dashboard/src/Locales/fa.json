@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} گروه ذخیره‌سازی",
   "{{count}} storage resource pool": "{{count}} استخر منابع ذخیره‌سازی",
   "{{count}} storage resource pools": "{{count}} استخر منابع ذخیره‌سازی",
-  "{{count}} storage resource pools_one": "{{count}} استخر منابع ذخیره‌سازی"
+  "{{count}} storage resource pools_one": "{{count}} استخر منابع ذخیره‌سازی",
+  "Added By OneUptime At": "زمان افزودن توسط OneUptime",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "همهٔ قاعده‌های پیشنهادی دیگر در این پروژه روشن بودند، پس OneUptime این قاعده را وقتی پیشنهادی شد افزود.",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime در {{date}} قاعدهٔ {{rule}} را روشن کرد",
+  "Recommended rules not in this project": "قاعده‌های پیشنهادی‌ای که در این پروژه نیستند",
+  "{{count}} more in the Rule Library": "{{count}} مورد دیگر در کتابخانه قواعد",
+  "{{count}} more in the Rule Library_one": "{{count}} مورد دیگر در کتابخانه قواعد",
+  "{{count}} recommended rules are not in this project yet": "{{count}} قاعدهٔ پیشنهادی هنوز در این پروژه نیستند",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} قاعدهٔ پیشنهادی هنوز در این پروژه نیست",
+  "{{rule}} could not be turned off": "خاموش کردن {{rule}} ممکن نشد",
+  "{{rule}} is off.": "{{rule}} خاموش است.",
+  "{{rule}} is on.": "{{rule}} روشن است."
 }

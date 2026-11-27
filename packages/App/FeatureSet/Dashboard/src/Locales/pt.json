@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} grupo de armazenamento",
   "{{count}} storage resource pool": "{{count}} pool de recursos de armazenamento",
   "{{count}} storage resource pools": "{{count}} pools de recursos de armazenamento",
-  "{{count}} storage resource pools_one": "{{count}} pool de recursos de armazenamento"
+  "{{count}} storage resource pools_one": "{{count}} pool de recursos de armazenamento",
+  "Added By OneUptime At": "Adicionado pelo OneUptime em",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "Todas as outras regras recomendadas estavam ativadas neste projeto, então o OneUptime adicionou esta quando ela passou a ser recomendada.",
+  "OneUptime turned on {{rule}} on {{date}}": "O OneUptime ativou {{rule}} em {{date}}",
+  "Recommended rules not in this project": "Regras recomendadas que não estão neste projeto",
+  "{{count}} more in the Rule Library": "Mais {{count}} na Biblioteca de regras",
+  "{{count}} more in the Rule Library_one": "Mais {{count}} na Biblioteca de regras",
+  "{{count}} recommended rules are not in this project yet": "{{count}} regras recomendadas ainda não estão neste projeto",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} regra recomendada ainda não está neste projeto",
+  "{{rule}} could not be turned off": "Não foi possível desativar {{rule}}",
+  "{{rule}} is off.": "A regra {{rule}} está desativada.",
+  "{{rule}} is on.": "A regra {{rule}} está ativada."
 }

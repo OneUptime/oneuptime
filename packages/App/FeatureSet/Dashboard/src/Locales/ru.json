@@ -67744,5 +67744,16 @@
   "{{count}} storage groups_one": "{{count}} группа хранения",
   "{{count}} storage resource pool": "{{count}} пул ресурсов хранения",
   "{{count}} storage resource pools": "Пулов ресурсов хранения: {{count}}",
-  "{{count}} storage resource pools_one": "{{count}} пул ресурсов хранения"
+  "{{count}} storage resource pools_one": "{{count}} пул ресурсов хранения",
+  "Added By OneUptime At": "Добавлено OneUptime",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "Все остальные рекомендуемые правила в этом проекте были включены, поэтому OneUptime добавил это правило, когда оно стало рекомендуемым.",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime включил правило «{{rule}}» {{date}}",
+  "Recommended rules not in this project": "Рекомендуемые правила, которых нет в этом проекте",
+  "{{count}} more in the Rule Library": "Ещё {{count}} в разделе «Библиотека правил»",
+  "{{count}} more in the Rule Library_one": "Ещё {{count}} в разделе «Библиотека правил»",
+  "{{count}} recommended rules are not in this project yet": "Рекомендуемые правила, которых ещё нет в этом проекте: {{count}}",
+  "{{count}} recommended rules are not in this project yet_one": "В этом проекте ещё нет {{count}} рекомендуемого правила",
+  "{{rule}} could not be turned off": "Не удалось выключить правило «{{rule}}»",
+  "{{rule}} is off.": "Правило «{{rule}}» выключено.",
+  "{{rule}} is on.": "Правило «{{rule}}» включено."
 }

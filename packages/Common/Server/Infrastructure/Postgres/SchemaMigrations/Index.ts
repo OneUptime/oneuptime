@@ -1219,6 +1219,7 @@ import { AddCloudBudgetCostGroupIndexAndKey1809187771018 } from "./1809187771018
 import { AddXcpNgPoolAiAccess1809187772000 } from "./1809187772000-AddXcpNgPoolAiAccess";
 import { AddXcpNgPoolEventsAndBackups1809187780997 } from "./1809187780997-AddXcpNgPoolEventsAndBackups";
 import { AddStorageArrayConnections1809187781104 } from "./1809187781104-AddStorageArrayConnections";
+import { AddDetectionRuleAddedByOneUptimeAt1809187791037 } from "./1809187791037-AddDetectionRuleAddedByOneUptimeAt";
 
 export default [
   InitialMigration,
@@ -2442,4 +2443,5 @@ export default [
   AddXcpNgPoolAiAccess1809187772000,
   AddXcpNgPoolEventsAndBackups1809187780997,
   AddStorageArrayConnections1809187781104,
+  AddDetectionRuleAddedByOneUptimeAt1809187791037,
 ];
