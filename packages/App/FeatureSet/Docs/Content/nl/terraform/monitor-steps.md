@@ -11,7 +11,7 @@
 
 ## Hoe een controle wordt beoordeeld
 
-Elke controle geeft een resultaat: het antwoord van een sonde, de returnwaarde van een script of de telemetrie die de controle leest. De criteria van de stap beoordelen het daarna op hun volgorde. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt: het kan de status van de monitor wijzigen, incidenten openen en waarschuwingen openen. De criteria erna worden voor die controle niet bekeken.
+Elke controle geeft een resultaat: het antwoord van een sonde, de returnwaarde van een script of de telemetrie die de controle leest. De criteria van de stap beoordelen het daarna op hun volgorde. Het eerste criterium waarvan de filters overeenkomen, bepaalt wat er gebeurt: het kan de status van de monitor wijzigen, incidenten openen en waarschuwingen openen. De criteria erna worden voor die controle niet bekeken, tenzij het geen status wijzigt (`change_monitor_status` uit): dan worden de criteria erna die de status wijzigen alleen voor de status beoordeeld, en de eerste daarvan die overeenkomt, zet hem. Doet geen enkele dat, dan gaat de monitor naar zijn standaardstatus.
 
 ```mermaid title="Hoe elke controle wordt beoordeeld"
 flowchart TB

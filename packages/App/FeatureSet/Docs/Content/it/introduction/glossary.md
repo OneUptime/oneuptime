@@ -40,7 +40,7 @@ Vedi [Creare un monitor](/docs/monitor/create-monitor).
 
 ### Criteri
 
-Le regole di un monitor: cosa significa ogni risultato di un controllo. Vengono valutati in ordine, e il primo che corrisponde può cambiare lo stato del monitor, dichiarare un incidente, creare un avviso, o tutte e tre le cose.
+Le regole di un monitor: cosa significa ogni risultato di un controllo. Vengono valutati in ordine, e il primo che corrisponde può cambiare lo stato del monitor, dichiarare un incidente, creare un avviso, o tutte e tre le cose. Uno che non cambia alcuno stato lascia lo stato al criterio successivo che corrisponde e lo cambia.
 
 Altri nomi: **Criteri di monitoraggio**, **Criteri del monitor**, **Monitor Steps**. Vedi [Criteri e stati](/docs/monitor/criteria-and-statuses).
 

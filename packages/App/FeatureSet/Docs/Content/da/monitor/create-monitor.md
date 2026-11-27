@@ -63,7 +63,7 @@ Klik på **Næste**. Intet på dette trin markeres som manglende, før du klikke
 
 ### Sådan evalueres kriterier
 
-Resultatet af hvert tjek går gennem kriterierne fra top til bund, og det første, der matcher, afgør, hvad der sker. Det kriterium kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller en hvilken som helst kombination af de tre. Når intet matcher, viser monitoren sin **Standardstatus for monitor**, som sættes under **Flere felter** under kriterierne (**I drift**, medmindre du vælger en anden).
+Resultatet af hvert tjek går gennem kriterierne fra top til bund, og det første, der matcher, afgør, hvad der sker. Det kriterium kan ændre monitorens status, erklære en hændelse, oprette en advarsel eller en hvilken som helst kombination af de tre. Et, der ikke ændrer nogen status, afgør ingen: det første kriterium under det, der matcher og ændrer status, sætter den. Når intet matcher, viser monitoren sin **Standardstatus for monitor**, som sættes under **Flere felter** under kriterierne (**I drift**, medmindre du vælger en anden).
 
 ```mermaid title="Fra et tjek til en status, en hændelse eller en advarsel"
 flowchart TB

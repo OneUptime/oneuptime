@@ -11,7 +11,7 @@
 
 ## Sådan bedømmes et tjek
 
-Hvert tjek giver et resultat: en sondes svar, et scripts returværdi eller den telemetri, tjekket læser. Trinnets kriterier bedømmer det derefter i deres rækkefølge. Det første kriterium, hvis filtre passer, bestemmer, hvad der sker: det kan ændre monitorens status, åbne hændelser og åbne advarsler. Kriterierne efter det bliver ikke set på for det tjek.
+Hvert tjek giver et resultat: en sondes svar, et scripts returværdi eller den telemetri, tjekket læser. Trinnets kriterier bedømmer det derefter i deres rækkefølge. Det første kriterium, hvis filtre passer, bestemmer, hvad der sker: det kan ændre monitorens status, åbne hændelser og åbne advarsler. Kriterierne efter det bliver ikke set på for det tjek, medmindre det ikke ændrer nogen status (`change_monitor_status` slået fra): så bedømmes de kriterier efter det, der ændrer status, alene for status, og det første af dem, der passer, sætter den. Gør intet det, går monitoren til sin standardstatus.
 
 ```mermaid title="Sådan bedømmes hvert tjek"
 flowchart TB
