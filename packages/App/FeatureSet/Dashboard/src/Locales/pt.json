@@ -67089,5 +67089,16 @@
   "riskier changes such as rebooting, shutting down or snapshotting a VM": "alterações mais arriscadas como reiniciar, desligar ou criar um snapshot de uma VM",
   "start, resume, unpause, reboot, shut down, suspend, pause and snapshot VMs, plug a storage repository's PBD, run a backup schedule and enable a host": "iniciar, retomar, tirar da pausa, reiniciar, desligar, suspender, pausar e criar snapshots de VMs, conectar o PBD de um repositório de armazenamento, executar um agendamento de backup e ativar um host",
   "xo-cli commands": "comandos xo-cli",
-  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "O docker-compose.yml do {{collectorName}} inclui este serviço no perfil xcp-ng-ai-agent, e o install.sh dele o inicia assim que você fornece um token somente leitura do Xen Orchestra (ONEUPTIME_AI_XO_READ_TOKEN). Em uma instalação mais antiga, adicione-o ao docker-compose.yml em {{directory}} — ele lê todas as variáveis abaixo do mesmo .env. Um pool lido por uma sonda não precisa do {{collectorName}}: execute este serviço sozinho, como explica o README do {{collectorName}}."
+  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "O docker-compose.yml do {{collectorName}} inclui este serviço no perfil xcp-ng-ai-agent, e o install.sh dele o inicia assim que você fornece um token somente leitura do Xen Orchestra (ONEUPTIME_AI_XO_READ_TOKEN). Em uma instalação mais antiga, adicione-o ao docker-compose.yml em {{directory}} — ele lê todas as variáveis abaixo do mesmo .env. Um pool lido por uma sonda não precisa do {{collectorName}}: execute este serviço sozinho, como explica o README do {{collectorName}}.",
+  "Added By OneUptime At": "Adicionado pelo OneUptime em",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "Todas as outras regras recomendadas estavam ativadas neste projeto, então o OneUptime adicionou esta quando ela passou a ser recomendada.",
+  "OneUptime turned on {{rule}} on {{date}}": "O OneUptime ativou {{rule}} em {{date}}",
+  "Recommended rules not in this project": "Regras recomendadas que não estão neste projeto",
+  "{{count}} more in the Rule Library": "Mais {{count}} na Biblioteca de regras",
+  "{{count}} more in the Rule Library_one": "Mais {{count}} na Biblioteca de regras",
+  "{{count}} recommended rules are not in this project yet": "{{count}} regras recomendadas ainda não estão neste projeto",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} regra recomendada ainda não está neste projeto",
+  "{{rule}} could not be turned off": "Não foi possível desativar {{rule}}",
+  "{{rule}} is off.": "A regra {{rule}} está desativada.",
+  "{{rule}} is on.": "A regra {{rule}} está ativada."
 }

@@ -67089,5 +67089,16 @@
   "riskier changes such as rebooting, shutting down or snapshotting a VM": "التغييرات الأكثر خطورة مثل إعادة تشغيل جهاز افتراضي أو إيقاف تشغيله أو أخذ لقطة له",
   "start, resume, unpause, reboot, shut down, suspend, pause and snapshot VMs, plug a storage repository's PBD, run a backup schedule and enable a host": "بدء الأجهزة الافتراضية واستئنافها وإلغاء إيقافها المؤقت وإعادة تشغيلها وإيقاف تشغيلها وتعليقها وإيقافها مؤقتًا وأخذ لقطات لها، وتوصيل PBD لمستودع تخزين، وتشغيل جدول نسخ احتياطي، وتمكين مضيف",
   "xo-cli commands": "أوامر xo-cli",
-  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "يتضمن docker-compose.yml الخاص بـ {{collectorName}} هذه الخدمة ضمن ملف التعريف (profile) xcp-ng-ai-agent، ويشغّلها install.sh بمجرد أن تقدّم رمز Xen Orchestra للقراءة فقط (ONEUPTIME_AI_XO_READ_TOKEN). أما في تثبيت أقدم، فأضفها إلى docker-compose.yml في {{directory}} — فهي تأخذ كل المتغيرات أدناه من ملف .env نفسه. لا يحتاج التجمّع الذي يقرؤه مسبار إلى {{collectorName}}: شغّل هذه الخدمة وحدها كما يشرح ملف README الخاص به."
+  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "يتضمن docker-compose.yml الخاص بـ {{collectorName}} هذه الخدمة ضمن ملف التعريف (profile) xcp-ng-ai-agent، ويشغّلها install.sh بمجرد أن تقدّم رمز Xen Orchestra للقراءة فقط (ONEUPTIME_AI_XO_READ_TOKEN). أما في تثبيت أقدم، فأضفها إلى docker-compose.yml في {{directory}} — فهي تأخذ كل المتغيرات أدناه من ملف .env نفسه. لا يحتاج التجمّع الذي يقرؤه مسبار إلى {{collectorName}}: شغّل هذه الخدمة وحدها كما يشرح ملف README الخاص به.",
+  "Added By OneUptime At": "وقت الإضافة بواسطة OneUptime",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "كانت كل القواعد الموصى بها الأخرى مفعّلة في هذا المشروع، لذا أضاف OneUptime هذه القاعدة عندما أصبحت موصى بها.",
+  "OneUptime turned on {{rule}} on {{date}}": "فعّل OneUptime القاعدة {{rule}} في {{date}}",
+  "Recommended rules not in this project": "القواعد الموصى بها غير الموجودة في هذا المشروع",
+  "{{count}} more in the Rule Library": "المزيد في مكتبة القواعد: {{count}}",
+  "{{count}} more in the Rule Library_one": "{{count}} قاعدة أخرى في مكتبة القواعد",
+  "{{count}} recommended rules are not in this project yet": "{{count}} من القواعد الموصى بها ليست في هذا المشروع بعد",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} قاعدة موصى بها ليست في هذا المشروع بعد",
+  "{{rule}} could not be turned off": "تعذّر إيقاف {{rule}}",
+  "{{rule}} is off.": "تم إيقاف {{rule}}.",
+  "{{rule}} is on.": "تم تفعيل {{rule}}."
 }

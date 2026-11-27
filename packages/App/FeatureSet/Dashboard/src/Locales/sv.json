@@ -67089,5 +67089,16 @@
   "riskier changes such as rebooting, shutting down or snapshotting a VM": "mer riskfyllda ändringar som att starta om, stänga av eller ta en ögonblicksbild av en VM",
   "start, resume, unpause, reboot, shut down, suspend, pause and snapshot VMs, plug a storage repository's PBD, run a backup schedule and enable a host": "starta, återuppta, häva paus för, starta om, stänga av, suspendera, pausa och ta ögonblicksbilder av VM:ar, ansluta ett lagringsrepositorys PBD, köra ett säkerhetskopieringsschema och aktivera en värd",
   "xo-cli commands": "xo-cli-kommandon",
-  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "Den här tjänsten ingår i docker-compose.yml för {{collectorName}} under profilen xcp-ng-ai-agent, och install.sh startar den så snart du anger en skrivskyddad token för Xen Orchestra (ONEUPTIME_AI_XO_READ_TOKEN). För en äldre installation lägger du till den i docker-compose.yml i {{directory}} — den hämtar alla variabler nedan från samma .env. En pool som en sond läser behöver inte {{collectorName}}: kör den här tjänsten fristående, så som README-filen för {{collectorName}} beskriver."
+  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "Den här tjänsten ingår i docker-compose.yml för {{collectorName}} under profilen xcp-ng-ai-agent, och install.sh startar den så snart du anger en skrivskyddad token för Xen Orchestra (ONEUPTIME_AI_XO_READ_TOKEN). För en äldre installation lägger du till den i docker-compose.yml i {{directory}} — den hämtar alla variabler nedan från samma .env. En pool som en sond läser behöver inte {{collectorName}}: kör den här tjänsten fristående, så som README-filen för {{collectorName}} beskriver.",
+  "Added By OneUptime At": "Tillagd av OneUptime den",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "Alla andra rekommenderade regler var påslagna i det här projektet, så OneUptime lade till den här när den blev rekommenderad.",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime slog på {{rule}} den {{date}}",
+  "Recommended rules not in this project": "Rekommenderade regler som inte finns i det här projektet",
+  "{{count}} more in the Rule Library": "Ytterligare {{count}} i Regelbibliotek",
+  "{{count}} more in the Rule Library_one": "Ytterligare {{count}} i Regelbibliotek",
+  "{{count}} recommended rules are not in this project yet": "{{count}} rekommenderade regler finns inte i det här projektet än",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} rekommenderad regel finns inte i det här projektet än",
+  "{{rule}} could not be turned off": "{{rule}} kunde inte stängas av",
+  "{{rule}} is off.": "{{rule}} är avstängd.",
+  "{{rule}} is on.": "{{rule}} är påslagen."
 }

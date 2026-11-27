@@ -67089,5 +67089,16 @@
   "riskier changes such as rebooting, shutting down or snapshotting a VM": "重启、关闭虚拟机或为其创建快照等风险较高的更改",
   "start, resume, unpause, reboot, shut down, suspend, pause and snapshot VMs, plug a storage repository's PBD, run a backup schedule and enable a host": "启动、恢复、取消暂停、重启、关机、挂起、暂停虚拟机并为其创建快照，接入存储库的 PBD，运行备份计划以及启用主机",
   "xo-cli commands": "xo-cli 命令",
-  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "{{collectorName}} 的 docker-compose.yml 在 xcp-ng-ai-agent profile 下包含此服务；只要提供只读的 Xen Orchestra 令牌（ONEUPTIME_AI_XO_READ_TOKEN），install.sh 就会启动它。对于较早的安装，请将此服务添加到 {{directory}} 中的 docker-compose.yml——它会从同一个 .env 读取下面的所有变量。由探测器读取的资源池不需要 {{collectorName}}：请按照其 README 的说明单独运行此服务。"
+  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "{{collectorName}} 的 docker-compose.yml 在 xcp-ng-ai-agent profile 下包含此服务；只要提供只读的 Xen Orchestra 令牌（ONEUPTIME_AI_XO_READ_TOKEN），install.sh 就会启动它。对于较早的安装，请将此服务添加到 {{directory}} 中的 docker-compose.yml——它会从同一个 .env 读取下面的所有变量。由探测器读取的资源池不需要 {{collectorName}}：请按照其 README 的说明单独运行此服务。",
+  "Added By OneUptime At": "OneUptime 添加时间",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "此项目已开启其他所有推荐规则，因此当这条规则成为推荐规则时，OneUptime 添加了它。",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime 已于 {{date}} 开启 {{rule}}",
+  "Recommended rules not in this project": "此项目中没有的推荐规则",
+  "{{count}} more in the Rule Library": "规则库中还有 {{count}} 条",
+  "{{count}} more in the Rule Library_one": "规则库中还有 {{count}} 条",
+  "{{count}} recommended rules are not in this project yet": "有 {{count}} 条推荐规则尚未加入此项目",
+  "{{count}} recommended rules are not in this project yet_one": "有 {{count}} 条推荐规则尚未加入此项目",
+  "{{rule}} could not be turned off": "无法关闭 {{rule}}",
+  "{{rule}} is off.": "{{rule}} 已关闭。",
+  "{{rule}} is on.": "{{rule}} 已开启。"
 }

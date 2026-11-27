@@ -67089,5 +67089,16 @@
   "riskier changes such as rebooting, shutting down or snapshotting a VM": "riskier changes such as rebooting, shutting down or snapshotting a VM",
   "start, resume, unpause, reboot, shut down, suspend, pause and snapshot VMs, plug a storage repository's PBD, run a backup schedule and enable a host": "start, resume, unpause, reboot, shut down, suspend, pause and snapshot VMs, plug a storage repository's PBD, run a backup schedule and enable a host",
   "xo-cli commands": "xo-cli commands",
-  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says."
+  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.",
+  "Added By OneUptime At": "Added By OneUptime At",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime turned on {{rule}} on {{date}}",
+  "Recommended rules not in this project": "Recommended rules not in this project",
+  "{{count}} more in the Rule Library": "{{count}} more in the Rule Library",
+  "{{count}} more in the Rule Library_one": "{{count}} more in the Rule Library",
+  "{{count}} recommended rules are not in this project yet": "{{count}} recommended rules are not in this project yet",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} recommended rule is not in this project yet",
+  "{{rule}} could not be turned off": "{{rule}} could not be turned off",
+  "{{rule}} is off.": "{{rule}} is off.",
+  "{{rule}} is on.": "{{rule}} is on."
 }

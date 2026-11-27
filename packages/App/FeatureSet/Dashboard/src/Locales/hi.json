@@ -67089,5 +67089,16 @@
   "riskier changes such as rebooting, shutting down or snapshotting a VM": "किसी VM को रीबूट करने, शट डाउन करने या उसका स्नैपशॉट लेने जैसे अधिक जोखिम वाले बदलाव",
   "start, resume, unpause, reboot, shut down, suspend, pause and snapshot VMs, plug a storage repository's PBD, run a backup schedule and enable a host": "VM को शुरू, रिज़्यूम, अनपॉज़, रीबूट, शट डाउन, सस्पेंड, पॉज़ और स्नैपशॉट करना, किसी स्टोरेज रिपॉजिटरी के PBD को प्लग करना, कोई बैकअप शेड्यूल चलाना और किसी होस्ट को सक्षम करना",
   "xo-cli commands": "xo-cli कमांड",
-  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "{{collectorName}} की docker-compose.yml में यह सर्विस xcp-ng-ai-agent प्रोफ़ाइल के तहत शामिल है, और जैसे ही आप एक रीड-ओनली Xen Orchestra टोकन (ONEUPTIME_AI_XO_READ_TOKEN) देते हैं, install.sh इसे शुरू कर देती है। पुराने इंस्टॉल के लिए इसे {{directory}} की docker-compose.yml में जोड़ें — यह नीचे दिए गए सभी वेरिएबल उसी .env से लेती है। जिस पूल को कोई प्रोब पढ़ता है, उसे {{collectorName}} की ज़रूरत नहीं होती: इस सर्विस को उसके README के अनुसार अकेले चलाएँ।"
+  "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.": "{{collectorName}} की docker-compose.yml में यह सर्विस xcp-ng-ai-agent प्रोफ़ाइल के तहत शामिल है, और जैसे ही आप एक रीड-ओनली Xen Orchestra टोकन (ONEUPTIME_AI_XO_READ_TOKEN) देते हैं, install.sh इसे शुरू कर देती है। पुराने इंस्टॉल के लिए इसे {{directory}} की docker-compose.yml में जोड़ें — यह नीचे दिए गए सभी वेरिएबल उसी .env से लेती है। जिस पूल को कोई प्रोब पढ़ता है, उसे {{collectorName}} की ज़रूरत नहीं होती: इस सर्विस को उसके README के अनुसार अकेले चलाएँ।",
+  "Added By OneUptime At": "OneUptime द्वारा जोड़ने का समय",
+  "Every other recommended rule was on in this project, so OneUptime added this one when it became recommended.": "इस प्रोजेक्ट में बाकी सभी सुझाए गए नियम चालू थे, इसलिए जब यह नियम सुझाए गए नियमों में शामिल हुआ, तो OneUptime ने इसे जोड़ दिया।",
+  "OneUptime turned on {{rule}} on {{date}}": "OneUptime ने {{date}} को {{rule}} चालू किया",
+  "Recommended rules not in this project": "सुझाए गए नियम जो इस प्रोजेक्ट में नहीं हैं",
+  "{{count}} more in the Rule Library": "नियम लाइब्रेरी में {{count}} और",
+  "{{count}} more in the Rule Library_one": "नियम लाइब्रेरी में {{count}} और",
+  "{{count}} recommended rules are not in this project yet": "{{count}} सुझाए गए नियम अभी इस प्रोजेक्ट में नहीं हैं",
+  "{{count}} recommended rules are not in this project yet_one": "{{count}} सुझाया गया नियम अभी इस प्रोजेक्ट में नहीं है",
+  "{{rule}} could not be turned off": "{{rule}} बंद नहीं किया जा सका",
+  "{{rule}} is off.": "{{rule}} बंद है।",
+  "{{rule}} is on.": "{{rule}} चालू है।"
 }
