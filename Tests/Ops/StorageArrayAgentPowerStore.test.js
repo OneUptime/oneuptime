@@ -538,10 +538,15 @@ describe("docker-compose.yml: PowerStore's syslog collector", () => {
 
   test("is given what its config reads, and never the PowerStore's password", () => {
     expect(service).not.toHaveProperty("env_file");
+    /*
+     * The three the agent needs too are required here as there - no
+     * default (the agent page's Required column reads the compose file so) -
+     * and the platform has the PowerStore's own.
+     */
     expect(service.environment).toEqual([
-      "ONEUPTIME_URL=${ONEUPTIME_URL:-}",
-      "ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY:-}",
-      "STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME:-}",
+      "ONEUPTIME_URL=${ONEUPTIME_URL}",
+      "ONEUPTIME_TELEMETRY_INGESTION_KEY=${ONEUPTIME_TELEMETRY_INGESTION_KEY}",
+      "STORAGE_ARRAY_NAME=${STORAGE_ARRAY_NAME}",
       "STORAGE_SYSTEM=${STORAGE_SYSTEM:-dell.powerstore}",
     ]);
     const read = new Set(

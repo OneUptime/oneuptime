@@ -382,7 +382,7 @@ export type CloudConnectionSecurityCaseChecks = "off" | "on";
 export const CLOUD_CONNECTION_SECURITY_CASE_CHECKS_CHOICES: ReadonlyArray<CloudConnectionSecurityCaseChecks> =
   ["off", "on"];
 
-// Whether security cases may read the account's IAM users back: "on" alone does.
+// Whether security cases may read the account's IAM users and roles back: "on" alone does.
 export function isCloudConnectionSecurityCaseChecksOn(value: unknown): boolean {
   return value === "on";
 }
@@ -396,7 +396,7 @@ function securityCaseChecksField(): CloudConnectionField {
     key: SECURITY_CASE_CHECKS_FIELD_KEY,
     title: "Security case checks",
     description:
-      "Lets a security case read back what an attack changed on an IAM user: its keys, password, policies, groups and MFA. The command changes with it.",
+      "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.",
     type: "dropdown",
     required: false,
     options: [

@@ -578,7 +578,7 @@ describe("the Databases list", () => {
     expect(code).toContain("getDatabaseEndpointLabel(item)");
   });
 
-  test("the engine-metrics facet resolves rows by status, 'Not connected' included", () => {
+  test("the engine-metrics facet filters by status in the list's own query, 'Not connected' included", () => {
     const facet: string = between(
       code,
       'key: "otelCollectorStatus"',
@@ -590,9 +590,14 @@ describe("the Databases list", () => {
     expect(code).toContain(
       "translateDatabaseOptions(ENGINE_METRICS_STATUS_OPTIONS, translator)",
     );
+    /*
+     * One FilterGroups the server answers (#11211), never the ids of each
+     * status read first: those were the first 10,000.
+     */
     expect(facet).toContain(
-      "computeDatabaseServerIdsForEngineMetricsStatuses(",
+      "toFilterGroups: buildDatabaseEngineMetricsStatusFilter",
     );
+    expect(facet).not.toContain("computeMatchingResourceIds");
     expect(code).toContain(
       "const ENGINE_METRICS_STATUS_OPTIONS: Array<DatabaseOption> = getDatabaseEngineMetricsStatusOptions();",
     );

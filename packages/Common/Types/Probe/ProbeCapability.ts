@@ -41,6 +41,16 @@ enum ProbeCapability {
    */
   DataSecurityScan = "dataSecurityScan",
   /*
+   * The probe samples Elasticsearch and OpenSearch clusters for Data
+   * Security too (#11140): it reads a cluster's address from the variable
+   * the store names, reads its documents over its HTTP API with GET
+   * requests only (SearchStoreSampler), and asks it without credentials
+   * whether it answers anyone who reaches it. The server hands a search
+   * cluster only to a probe that declares this: an older probe refuses
+   * work of an engine it does not know, and the store would sit claimed.
+   */
+  DataSecuritySearchScan = "dataSecuritySearchScan",
+  /*
    * The probe collects table health for Data Observability (Jobs/
    * DataObservability/CollectTableHealth): it reads each store's connection
    * string from the environment variable the store names and reads the

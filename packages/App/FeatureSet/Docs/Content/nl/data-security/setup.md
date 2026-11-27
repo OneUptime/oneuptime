@@ -1,11 +1,12 @@
 # Gegevensbeveiliging instellen
 
-Gegevensbeveiliging leest alleen wat je toestaat. Elke cloudkoppeling wordt gelezen op een van drie niveaus, een database die je zelf beheert wordt gelezen met een verbindingsreeks die je opgeeft, en telemetrie heeft niets nodig. Deze pagina zegt wat elke keuze OneUptime laat lezen, welke machtigingen ze precies geeft, en wat OneUptime bewaart van wat het leest.
+Gegevensbeveiliging leest alleen wat je toestaat. Elke cloudkoppeling wordt gelezen op een van drie niveaus, een database of zoekcluster die je zelf beheert wordt gelezen met een verbindingsreeks die je opgeeft, en telemetrie heeft niets nodig. Deze pagina zegt wat elke keuze OneUptime laat lezen, welke machtigingen ze precies geeft, en wat OneUptime bewaart van wat het leest.
 
 :::cards
 - [Kies een niveau](#kies-een-niveau-voor-elke-koppeling): Uit, Alleen configuratie, of Configuratie en inhoudsvoorbeelden.
 - [Wat elk niveau toestaat](#wat-elk-niveau-toestaat): De AWS-acties, en de rollen in Azure en Google Cloud.
-- [Een database scannen die je zelf beheert](#een-database-scannen-die-je-zelf-beheert): Een alleen-lezen verbindingsreeks, of een sonde in je netwerk.
+- [Opslag scannen die je zelf beheert](#opslag-scannen-die-je-zelf-beheert): Een alleen-lezen verbindingsreeks, of een sonde in je netwerk.
+- [Wat OneUptime controleert bij opslag die je zelf beheert](#wat-oneuptime-controleert-bij-opslag-die-je-zelf-beheert): Of hij zonder inloggegevens antwoordt, gevraagd vanaf de plek waar zijn scan draait.
 - [Wat OneUptime bewaart](#wat-oneuptime-bewaart): Tellingen, locaties en gemaskeerde voorbeelden, nooit een waarde.
 - [Gegevensbeveiliging een blootstelling laten sluiten](#gegevensbeveiliging-een-blootstelling-laten-sluiten): De enige schrijfrechten die een koppeling kan krijgen, uit tot je ze aanzet.
 :::
@@ -173,17 +174,75 @@ Een scan leest een klein deel van een opslag, binnen de limieten van het project
 - **Buckets en containers** worden bemonsterd op soort, niet op aantal. Eerst worden de objectnamen opgesomd, hoogstens tien keer zoveel als de scan mag lezen en nooit meer dan 200.000. Elke naam wordt zijn patroon, waarin datums, UUID's, lange hexreeksen en getallen `*` worden, zodat `exports/2026-10-27/users-0001.csv` het patroon `exports/*/users-*.csv` wordt. De nieuwste objecten van elk patroon worden gelezen, van elk patroon één voordat er van welk patroon ook een tweede wordt gelezen, en hoogstens 5 van één patroon. Elk object wordt vanaf het begin gelezen: hoogstens **Bytes per object** ervan, en **Bytes per scan** in totaal. Een scan bemonstert hoogstens 10 containers van een Azure-opslagaccount.
 - **Bestanden worden gelezen als wat ze zijn.** CSV en TSV per kolom, JSON en JSON Lines per pad, `.env`, `.ini`, `.properties`, TOML en YAML per sleutel, XML en HTML als hun tekst, Word-, Excel- en PowerPoint-bestanden op hun tekst en cellen, en al het andere als vrije tekst. Een gzip-bestand wordt eerst uitgepakt. Afbeeldingen, Parquet, Avro, PDF en andere binaire formaten worden niet gelezen, en de scan zegt dat.
 - **Datasets en databases** worden tabel voor tabel gelezen: hoogstens **Tabellen per scan** tabellen, en **Rijen per tabel** rijen van elke tabel.
+- **Zoekclusters** worden index voor index gelezen, zoals een database tabel voor tabel: hoogstens **Tabellen per scan** indexen, en **Rijen per tabel** documenten van elke index, de nieuwste eerst als de index een `@timestamp` heeft. Een datastroom wordt als één index gelezen, en indexen waarvan de namen alleen in datums of getallen verschillen, zoals `logs-2026.11.26` en `logs-2026.11.27`, als één, bij de nieuwste die documenten bevat. De eigen indexen van de cluster, waarvan de naam met een punt begint, worden niet gelezen. Elk verzoek is een GET, dus de scan kan niet naar de cluster schrijven, wat zijn gebruiker ook mag.
 
 Elke scan houdt bij wat hij las, op naam: de objecten, tabellen of services, nooit hun inhoud. Wat hij niet kon lezen - een verzoek dat de cloud weigerde, de deadline, het bytebudget - is een waarschuwing op de scan, en de scan wordt gemarkeerd als **Gedeeltelijk geslaagd**.
 
 Het **Overzicht** van een opslag zegt wanneer de inhoud ervan de volgende keer wordt gescand. **Volgende inhoudsscan** is het tijdstip waarop iets hem scant, **Nu aan de beurt** terwijl hij op zijn beurt wacht, en **Te laat** zodra hij een uur aan de beurt is. Anders zegt het waarom niets hem zal scannen: **Uit** zolang **Inhoud scannen** uit staat voor de opslag of het project, of zolang de opslag niet meer wordt gevonden; **Wordt niet gescand** als OneUptime van dat soort opslag geen steekproeven kan nemen, of zijn sonde hem niet kan scannen; en **Wachten** zolang zijn sonde is losgekoppeld. De telemetrie van een service wordt **Elk uur** gescand, met de telemetriescan van het project. **Nu scannen** staat uit, met de reden, voor een opslag die niets zou scannen. Een scan die bezig is wanneer het scannen van inhoud wordt uitgezet, of wanneer het project wordt opgeschort, bewaart niets van wat hij vond.
 
-## Een database scannen die je zelf beheert
+## Opslag scannen die je zelf beheert
 
-Gegevensbeveiliging bemonstert PostgreSQL-, MySQL- en SQL Server-databases, op een van twee manieren. Een database die het product Database bewaakt, of een waarmee je services praten op de servicekaart, is al een opslag. Een database die geen enkele scan vindt, voeg je zelf toe als opslag.
+Gegevensbeveiliging bemonstert PostgreSQL-, MySQL- en SQL Server-databases, en Elasticsearch- en OpenSearch-clusters, op een van twee manieren. Een database die het product Database bewaakt, of een waarmee je services praten op de servicekaart, is al een opslag. Voeg elke andere zelf toe, met **Opslag toevoegen die u zelf beheert** onder **Gegevensopslagen**: zodra je de **Soort** kiest, zegt het formulier wat OneUptime erbij zal controleren en wat niet, en vraagt het alleen wat die soort leest. Een soort die OneUptime niet bemonstert, zoals MongoDB of Redis, krijgt geen verbindingsreeks: die wordt vermeld met zijn eigenaren, labels en gevoeligheid, en zijn blootstelling staat op **Niet te controleren**.
 
-- **Vanaf de workers van OneUptime.** Zet in de **Instellingen** van de opslag de **Verbindingsreeks** op een reeks die alleen kan lezen, zoals `postgresql://reader:password@db.internal:5432/app`. Die wordt versleuteld opgeslagen en nooit door de API teruggegeven. Geef hem een databasegebruiker die kan lezen en verder niets.
-- **Vanaf een sonde in je netwerk.** Kies de sonde onder **Scannen vanaf sonde**, en vul in **Verbindingsvariabele van sonde** de naam in van de omgevingsvariabele op die sonde die de verbindingsreeks bevat. De sonde leest de database vanuit je netwerk en stuurt alleen terug wat ze vond: de verbindingsreeks bereikt OneUptime nooit. Zie [Aangepaste sondes](/docs/probe/custom-probe) om een sonde te draaien.
+- **Vanaf de workers van OneUptime.** Zet in de **Instellingen** van de opslag de **Verbindingsreeks** op een reeks die alleen kan lezen, zoals `postgresql://reader:password@db.internal:5432/app`, of `https://reader:password@search.internal:9200` voor een zoekcluster. Die wordt versleuteld opgeslagen en nooit door de API teruggegeven. Geef hem een gebruiker die kan lezen en verder niets. Op OneUptime Cloud bereiken de workers alleen adressen op internet.
+- **Vanaf een sonde in je netwerk.** Kies de sonde onder **Scannen vanaf sonde**, en vul in **Verbindingsvariabele van sonde** de naam in van de omgevingsvariabele op die sonde die de verbindingsreeks bevat. De sonde leest de opslag vanuit je netwerk en stuurt alleen terug wat ze vond: de verbindingsreeks bereikt OneUptime nooit. Zie [Aangepaste sondes](/docs/probe/custom-probe) om een sonde te draaien. Een sonde van een eerdere release krijgt alleen databases: werk hem bij om een zoekcluster te laten scannen.
+
+### De verbindingsreeks van een zoekcluster
+
+Elasticsearch en OpenSearch hebben geen eigen verbindingsreeks, dus neemt OneUptime het adres van de cluster, zoals curl hem bereikt, met een alleen-lezen gebruiker erin, of een Elasticsearch-API-sleutel erachter, geschreven als `id:key` of als de gecodeerde waarde die Elasticsearch uitgeeft:
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` accepteert een certificaat dat geen autoriteit heeft ondertekend, zoals het certificaat dat Elasticsearch bij de eerste start maakt: gebruik het alleen op een netwerk dat je vertrouwt. Na het adres mag niets anders volgen. Geef voor een cluster waarvan je eigen autoriteit het certificaat heeft ondertekend het adres als JSON op, met het certificaat van die autoriteit:
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` komt in de plaats van `username` en `password`, en `"verifyCertificate": false` in de plaats van het certificaat.
+
+Geef de gebruiker een rol die kan lezen en verder niets. Op Elasticsearch:
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+Op OpenSearch, met zijn beveiligingsplug-in:
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Geef daarna een gebruiker die rol, en alleen die rol. Beperk `*` tot de indexen die gescand moeten worden.
+
+### Wat OneUptime controleert bij opslag die je zelf beheert
+
+Een opslag in een cloudaccount wordt gecontroleerd op basis van de instellingen die zijn cloud bijhoudt. Opslag die je zelf beheert heeft er geen die OneUptime kan lezen, dus wordt een Elasticsearch- of OpenSearch-cluster gecontroleerd op basis van wat hij op zijn eigen adres antwoordt. Bij elke inhoudsscan wordt hij, vanaf de plek waar de scan draait, zonder inloggegevens gevraagd:
+
+| Gevraagd | Wat het zegt |
+| --- | --- |
+| Wie er vraagt: `/_security/_authenticate` op Elasticsearch, `/_plugins/_security/authinfo` op OpenSearch | Of hij om inloggegevens vraagt |
+| Een zoekopdracht die geen documenten teruggeeft, alleen of er zijn | Of iedereen die hem bereikt zijn documenten kan lezen |
+| Zijn adres via gewone HTTP, als zijn verbindingsreeks HTTPS is | Of hij verbindingen zonder TLS aanneemt |
+
+Er wordt niets naar hem geschreven, dus aan een cluster met gebruikers en rollen kan niet worden gevraagd of zijn anonieme gebruiker mag schrijven: die regel van zijn **Configuratie** staat op **Niet te controleren**. Een cluster zonder enige toegangscontrole neemt elk verzoek aan, ook schrijfacties. Een cluster die iedereen antwoordt, faalt voor [Iedereen die het bereikt, kan het zonder inloggegevens lezen](/docs/data-security/checks-and-issues#blootstelling).
+
+Waar de scan draait, bepaalt wat er verder te weten valt. De workers van OneUptime Cloud bereiken alleen adressen op internet, dus een cluster die zij scannen is bereikbaar via internet, en zijn blootstelling zegt dat. Vanaf een sonde, of vanaf een OneUptime die je zelf host, draait de scan binnen een netwerk, en of internet de cluster bereikt, is van daaruit niet te bepalen: zijn blootstelling staat op **Onbekend**, en zijn **Overzicht** zegt waarom. Zijn versleuteling in rust, back-ups en toegangslogboeken horen bij zijn servers, zijn niet zichtbaar vanaf zijn adres en worden niet gecontroleerd.
+
+Een database die je zelf beheert wordt bemonsterd, niet bevraagd, en hoe hij bereikbaar is, wordt niet gecontroleerd: zijn blootstelling staat op **Niet te controleren**, net als die van een soort die OneUptime niet bemonstert. Tot een opslag voor het eerst is gecontroleerd, staat zijn blootstelling op **Nog niet gecontroleerd**, zodat een opslag die op zijn eerste controle wacht nooit wordt aangezien voor een opslag die niet te controleren is.
 
 ## Wat OneUptime bewaart
 
@@ -244,11 +303,15 @@ De instellingen van Gegevensbeveiliging zijn één set per project, in de sectie
 ## Probleemoplossing
 
 :::details Een opslag zegt dat zijn inhoud niet is gescand
-De scan zegt waarom: "Het scannen van inhoud vereist de inhoudsmachtiging van de koppeling, of een verbindingsreeks voor een database." Zet de koppeling van de opslag op **Configuratie en inhoudsvoorbeelden** en voer de opdracht opnieuw uit, of geef de database een verbindingsreeks. Controleer ook of **Inhoud scannen** aan staat voor de opslag en in de instellingen van het project.
+De scan zegt waarom: "Het scannen van inhoud vereist de inhoudsmachtiging van de koppeling, of een verbindingsreeks voor opslag die je zelf beheert." Zet de koppeling van de opslag op **Configuratie en inhoudsvoorbeelden** en voer de opdracht opnieuw uit, of geef de opslag die je zelf beheert een verbindingsreeks. Controleer ook of **Inhoud scannen** aan staat voor de opslag en in de instellingen van het project.
 :::
 
 :::details Een controle zegt dat ze het niet kan bepalen
 Een feit dat de lezer niet kon lezen - een machtiging die de rol niet heeft, een API die niet is aangezet - is onbekend, en wordt nooit geraden. De controle meldt dat ze het niet kan bepalen, en een probleem dat ze opende, blijft open: niemand mag concluderen dat een probleem is opgelost omdat OneUptime niet kon kijken. De waarschuwingen van het uitlezen van de configuratie zeggen wat niet kon worden gelezen. Voer de opdracht van de koppeling opnieuw uit om te geven wat ontbreekt.
+:::
+
+:::details De blootstelling van een opslag staat op Niet te controleren
+OneUptime kan niet lezen hoe een opslag van die soort bereikbaar is: een database die je zelf beheert, of een soort die het niet bemonstert. Het is geen fout, en er wordt geen probleem voor geopend. De **Instellingen** ervan vermelden onder **Wat OneUptime controleert** wat er wordt gecontroleerd. Een opslag waarvan de blootstelling op **Nog niet gecontroleerd** staat, is er een die OneUptime kan controleren en nog niet heeft gecontroleerd: een zoekcluster vóór zijn eerste inhoudsscan, of een opslag in een cloudaccount vóór de eerste keer dat de configuratie van zijn koppeling wordt gelezen.
 :::
 
 :::details Er verschijnen geen S3-buckets of BigQuery-datasets

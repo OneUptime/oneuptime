@@ -168,6 +168,15 @@ export const STORAGE_ARRAY_HARDWARE_KINDS: ReadonlyArray<string> = [
   StorageArrayResourceKind.Controller,
 ];
 
+// The fields a kind's list may open sorted by.
+export type StorageArrayKindSortField =
+  | "name"
+  | "status"
+  | "usedBytes"
+  | "capacityBytes"
+  | "readBytesPerSec"
+  | "writeBytesPerSec";
+
 /*
  * A kind of object only this platform has (StorageArrayResourceKind lists
  * the shared ones), with the words its tab, counts and lists use. Every
@@ -183,6 +192,10 @@ export interface StorageArrayKindDefinition {
   // What its tab's table lists, and what it says while it lists nothing.
   description: string;
   noItemsMessage: string;
+  // The order its list opens in (by name, A to Z, unless it says).
+  sortBy?:
+    | { field: StorageArrayKindSortField; descending?: boolean | undefined }
+    | undefined;
   /*
    * The columns its Inventory page shows (View/Inventory.tsx). Without
    * them the page shows every column a volume has, in a volume's words:
@@ -386,6 +399,15 @@ export const STORAGE_ARRAY_RECOVER_WHEN_ABSENT: StorageArrayAlertTemplateSpec["r
 export interface StorageArrayHeartbeat {
   templateId: string;
   metricName: string;
+  /*
+   * What Array Stopped Reporting says in this platform's words, when an
+   * API token and a scrape of every endpoint are not how the agent reads
+   * it (a PowerScale's SNMP community, and the one poll that sends its
+   * health): the template's description, and the incident's checklist.
+   * Left out, the template says what a Pure Storage array's says.
+   */
+  description?: string | undefined;
+  incidentDescription?: string | undefined;
 }
 
 /*
@@ -399,6 +421,12 @@ export interface StorageArrayInsightsSection {
   icon: IconProp;
   metricIds: Array<string>;
   groupByObject?: boolean | undefined;
+  /*
+   * The label to split every chart of the card by, for series of the whole
+   * array that are still told apart by one (a PowerScale protocol's
+   * `protocol`): what groupByObject does by each metric's object label.
+   */
+  groupByLabel?: string | undefined;
 }
 
 /*
@@ -479,8 +507,31 @@ export interface StorageArrayLatestReading {
   labelAttribute: string;
 }
 
+/*
+ * One panel of the Overview's charts, for a platform whose figures are not
+ * read and write pairs (StorageArrayGoldenCharts): its catalog metrics drawn
+ * together, each line split by a label when it says one (a PowerScale
+ * protocol's `protocol`, its nodes' `node`), so the busiest show first.
+ * Words are translation keys.
+ */
+export interface StorageArrayOverviewChart {
+  title: string;
+  description: string;
+  lines: ReadonlyArray<{
+    metricId: string;
+    legend?: string | undefined;
+    groupByLabel?: string | undefined;
+  }>;
+}
+
 export interface StorageArrayOverview {
   goldenCharts?: StorageArrayGoldenCharts | undefined;
+  /*
+   * The Overview's charts in panels of the platform's own, in place of the
+   * golden charts, with what the card says about them (a translation key).
+   */
+  charts?: ReadonlyArray<StorageArrayOverviewChart> | undefined;
+  chartsDescription?: string | undefined;
   // One series per open alert the array raised (value 1), with labels.
   alertMetricName?: string | undefined;
   /*
@@ -516,9 +567,15 @@ export interface StorageArrayOverview {
  * One table of an array's Hardware tab. The Dashboard draws a kind's
  * columns; `layout` picks another set for a kind a platform reports
  * differently (a FlashBlade's parts carry a slot and a health, not a
- * temperature). Words are translation keys.
+ * temperature; a PowerScale's sensors a reading and no health: `readings`
+ * shows each part's latest reading in its unit - a temperature, a fan's
+ * speed in its details' `rpm`, or its details' `reading` in their `unit` -
+ * and the part it belongs to, its groupName). Words are translation keys.
  */
-export type StorageArrayHardwareTableLayout = "default" | "slot-and-health";
+export type StorageArrayHardwareTableLayout =
+  | "default"
+  | "slot-and-health"
+  | "readings";
 
 export interface StorageArrayHardwareTable {
   kind: string;
@@ -800,6 +857,13 @@ export interface StorageArrayAgentConfig {
   exampleEndpoint: string;
   // The exporter sidecar it needs; null for an endpoint the array serves.
   exporterService: string | null;
+  /*
+   * Whether the collector itself talks TLS to the array, so the setup asks
+   * whether to verify its certificate. Left out, that is whenever there is
+   * no exporter (the collector scrapes the array's own HTTPS endpoint);
+   * false for a platform read another way, such as over SNMP.
+   */
+  talksTlsToArray?: boolean | undefined;
   // The array kind in sentences ("FlashArray").
   arrayNoun: string;
   /*

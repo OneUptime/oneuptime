@@ -677,6 +677,8 @@ export async function refuseWriteThatAsksAPerson(data: {
       reason: found.change.asksBecause,
       pageUrl,
       product: found.change.product,
+      // Ask AI is offered only where an action of its own makes the change.
+      byAskAi: Boolean(found.change.action),
     }),
   );
 }

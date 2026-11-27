@@ -25,6 +25,7 @@ import {
   AccountChange,
   AccountChangeKind,
   AccountChangeProvider,
+  AccountChangeSubject,
 } from "../../../../Utils/SecurityCase/AttackAccountChanges";
 
 /*
@@ -279,6 +280,7 @@ function change(data: Partial<AccountChange>): AccountChange {
   return {
     provider: AccountChangeProvider.Aws,
     kind: AccountChangeKind.Key,
+    subject: AccountChangeSubject.Account,
     account: USER,
     accountId: "",
     objectId: "",
@@ -287,6 +289,7 @@ function change(data: Partial<AccountChange>): AccountChange {
     ownerType: "",
     cloudAccountId: "123456789012",
     cloudConnectionId: "",
+    trustPolicies: [],
     eventName: "",
     eventUid: "cloudtrail:1",
     time: CHANGED_AT,

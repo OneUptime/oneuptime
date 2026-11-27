@@ -225,16 +225,15 @@ When working hours end, a schedule stops every running resource its tag picks th
 A schedule never stops production, or a resource whose environment nothing says. A resource is known not to be production when:
 
 - one of its tags says so, under a key such as `environment`, `env`, `stage`, `tier` or `deployment.environment`, with a word such as `dev`, `test`, `qa`, `staging` or `sandbox`;
-- its account is marked **Non-production** under **Environment** on the account's **Settings**;
-- or one of its labels says so, such as `Staging` or `env: dev`.
+- or its account is marked **Non-production** under **Environment** on the account's **Settings**.
 
-Production wins: a tag that says `prod`, `production` or `live`, or an account marked **Production**, keeps a resource running whatever else says. A resource's name is never read for it. Turn a schedule off and it stops nothing more, and starts what it stopped when its working hours begin; delete it and what it stopped is started at once.
+A OneUptime label never makes a resource non-production for a schedule. Renaming a label changes every resource that carries it at once, so a label such as `Staging` or `env: dev` is read only where a person approves the change, as **Apply** does. Production wins: a tag that says `prod`, `production` or `live`, an account marked **Production**, or a label such as `Production` or `env: prod` keeps a resource running whatever else says. A resource's name is never read for it. Each stop reads the resource again just before it is made. Turn a schedule off and it stops nothing more, and starts what it stopped when its working hours begin; delete it and what it stopped is started at once.
 
 ## AI rules for savings
 
 With **Enable AI** on, OneUptime AI proposes each saving it can make to the resource's owners after each read of the account's savings, and they approve or dismiss it under **Waiting for Approval**. Under **Cloud → Settings → Savings AI Rules**, a rule says what OneUptime AI does with the savings it matches, by the kind of change, the resource's environment and its cloud: **Off**, **Propose to the owner**, or **Act without asking**, up to a monthly limit. With no rule, every saving is proposed and none is made; with rules, only what a rule matches, and between rules that match, the more careful one wins.
 
-A rule acts without asking only on a resource known not to be production, only for a change that can be undone, only up to the smallest limit of the rules that match, and at most 10 times an hour in a project: everything else is proposed. A change made without asking is on the timelines with the rule that made it, and its owners can undo it. A saving dismissed or undone is not proposed again for 30 days.
+A rule acts without asking only on a resource known not to be production as a schedule reads it, by its tags or its account and never by its labels alone, only for a change that can be undone, only up to the smallest limit of the rules that match, and at most 10 times an hour in a project: everything else is proposed. The resource is read again just before the change is made, and one that is no longer known not to be production by then is proposed instead. A change made without asking is on the timelines with the rule that made it, and its owners can undo it. A saving dismissed or undone is not proposed again for 30 days.
 
 ## Budgets
 
@@ -481,7 +480,11 @@ OneUptime makes only a change of one step: a commitment, or a recommendation tha
 :::
 
 :::details A schedule leaves a resource running
-**See Resources** says why: it is production, nothing says it is not production, or its account's connection does not allow Savings actions. Tag it, for example `environment` = `dev`, or mark its account **Non-production**.
+**See Resources** says why: it is production, nothing says it is not production, only its labels say so, or its account's connection does not allow Savings actions. Tag it in your cloud, for example `environment` = `dev`, or mark its account **Non-production**.
+:::
+
+:::details A rule proposes a change it used to make without asking
+Its card says why. A rule makes a change without asking only on a resource that its tags or its account say is not production: one that only its labels call non-production is proposed to its owners instead. Tag it in your cloud, for example `environment` = `dev`, or mark its account **Non-production**.
 :::
 
 :::details A forecast has no likely range

@@ -22,6 +22,8 @@ import {
 } from "./McpClient";
 import McpClientError from "./McpClientError";
 import { McpHttpTransport } from "./McpHttpTransport";
+import { describeMcpToolForStatus } from "./McpToolFingerprint";
+import { ExternalMcpToolForStatus } from "../../../../Types/AI/ExternalMcpServer/ExternalMcpToolReadOnlyMark";
 
 /*
  * "TEST CONNECTION": connect to a server, read its tools, and say what was
@@ -33,17 +35,36 @@ import { McpHttpTransport } from "./McpHttpTransport";
  * tools and closes the session. It calls no tool.
  */
 export default class ExternalMcpServerCheck {
-  // The tools as the record keeps them: no schemas, every text held to its length.
+  /*
+   * The tools as the record keeps them: no schemas - the fingerprint of
+   * each one's definition, and the names of its arguments, stand for it -
+   * every text held to its length. What a Project Admin's read-only mark
+   * needs is worked out here, from the tool as the server sent it
+   * (describeMcpToolForStatus): whether the server marks it as a change,
+   * its fingerprint, and why it can never be marked, if it cannot.
+   */
   public static toStoredTools(
     tools: Array<McpToolDescription>,
   ): Array<ExternalMcpServerTool> {
     return readExternalMcpServerTools(
       tools.map((tool: McpToolDescription) => {
+        const status: ExternalMcpToolForStatus = describeMcpToolForStatus(tool);
+        const properties: unknown = tool.inputSchema["properties"];
+
         return {
           name: tool.name,
           title: tool.title,
           description: tool.description,
           readsOnly: tool.readsOnly,
+          serverMarksAsChange: status.serverMarksAsChange,
+          fingerprint: status.fingerprint,
+          markRefusal: status.markRefusal,
+          argumentNames:
+            properties &&
+            typeof properties === "object" &&
+            !Array.isArray(properties)
+              ? Object.keys(properties)
+              : [],
         };
       }),
     );

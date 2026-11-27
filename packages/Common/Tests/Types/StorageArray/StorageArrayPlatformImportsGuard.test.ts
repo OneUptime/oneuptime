@@ -285,6 +285,8 @@ describe("whatever loads first, every platform is there", () => {
       "purestorage.flashblade",
       "dell.powerstore",
       "netapp.ontap",
+      "dell.powermax",
+      "dell.powerscale",
     ]);
     expect(expected.extractors).toEqual(expected.systems);
     expect(expected.metrics).toBeGreaterThan(50);

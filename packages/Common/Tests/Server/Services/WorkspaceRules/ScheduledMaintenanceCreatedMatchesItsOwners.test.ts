@@ -33,14 +33,16 @@ jest.mock("../../../../Server/Utils/Logger");
  * chain opened its channels and posted its created message before it added
  * the owners picked on its form, its owner rules' owners and its label
  * rules' labels, so the rule did not match yet. Its creator, made its owner
- * as the create returns, missed it too. An event's owners are written to
+ * as the create returns, missed it too. An event's owners were written to
  * its feed and not posted, so the channel never heard of the event at all.
  *
  * Now the chain adds them first, waits a moment for its creator, and only
- * then opens channels and posts "Scheduled Maintenance Created". Driven
- * through the real ScheduledMaintenanceService create chain, rule matching,
- * channel creation, invites and messages against a fake Slack
- * (CreatedRecordWorld).
+ * then opens channels and posts "Scheduled Maintenance Created". Its owners
+ * are posted too since #11223, as every other kind's are: each follows
+ * "Scheduled Maintenance Created", in the order it was added
+ * (ScheduledMaintenanceOwnersReachChat.test.ts). Driven through the real
+ * ScheduledMaintenanceService create chain, rule matching, channel
+ * creation, invites and messages against a fake Slack (CreatedRecordWorld).
  */
 
 let world: CreatedRecordWorld;
@@ -102,6 +104,25 @@ function isCreated(post: string): boolean {
   return post.includes("Scheduled Maintenance SM-5 Created");
 }
 
+// "Added team Platform to the Scheduled Maintenance SM-5 as the owner."
+function isPlatformAdded(post: string): boolean {
+  return (
+    post.includes("Added team") &&
+    post.includes("Platform") &&
+    post.includes("Scheduled Maintenance SM-5")
+  );
+}
+
+// "Added Somebody to the Scheduled Maintenance SM-5 as the owner": a person.
+function isPersonAdded(post: string): boolean {
+  return (
+    post.includes("Added") &&
+    !post.includes("Added team") &&
+    post.includes("Scheduled Maintenance SM-5") &&
+    post.includes("as the owner")
+  );
+}
+
 describe("Scheduled Maintenance Owner is any of Platform, posting to an existing channel", () => {
   beforeEach(() => {
     postsToExistingChannel([ownedBy([PLATFORM_TEAM])]);
@@ -132,9 +153,10 @@ describe("Scheduled Maintenance Owner is any of Platform, posting to an existing
 
       const posts: Array<string> = existingChannelPosts();
 
-      // Its owners are in its feed, not in chat: the event's own message is all.
-      expect(posts).toHaveLength(1);
+      // Created first, then Platform, as its owner (#11223).
+      expect(posts).toHaveLength(2);
       expect(isCreated(posts[0]!)).toBe(true);
+      expect(isPlatformAdded(posts[1]!)).toBe(true);
     },
   );
 
@@ -145,8 +167,10 @@ describe("Scheduled Maintenance Owner is any of Platform, posting to an existing
 
     const posts: Array<string> = existingChannelPosts();
 
-    expect(posts).toHaveLength(1);
+    // Created first, then its creator, as its owner (#11223).
+    expect(posts).toHaveLength(2);
     expect(isCreated(posts[0]!)).toBe(true);
+    expect(isPersonAdded(posts[1]!)).toBe(true);
   });
 
   test("Scheduled Maintenance Created is posted there once, whatever adds Platform, however many times", async () => {
@@ -161,9 +185,11 @@ describe("Scheduled Maintenance Owner is any of Platform, posting to an existing
     expect(world.records.scheduledMaintenance.ownerTeams).toEqual([
       PLATFORM_TEAM,
     ]);
+    // And said once, after Created (#11223).
+    expect(existingChannelPosts().filter(isPlatformAdded)).toHaveLength(1);
   });
 
-  test("an event Platform does not own posts nothing there", async () => {
+  test("an event Platform does not own posts nothing there, its owners neither", async () => {
     await world.createScheduledMaintenance({
       ownersPicked: { users: [OWNER] },
     });
@@ -245,6 +271,9 @@ describe("a rule that opens a channel for Platform's maintenance events", () => 
     expect(posts.length).toBeGreaterThan(0);
     expect(isCreated(posts[0]!)).toBe(true);
     expect(posts.filter(isCreated)).toHaveLength(1);
+    // Then Platform, as its owner, once (#11223).
+    expect(posts.filter(isPlatformAdded)).toHaveLength(1);
+    expect(isPlatformAdded(posts[posts.length - 1]!)).toBe(true);
 
     // Platform's member joined the channel as it was set up.
     expect(world.slackUsersInvitedTo("C0NEW2")).toContain(
@@ -270,7 +299,7 @@ describe("every other rule hears of the maintenance event as before", () => {
     ];
   });
 
-  test("Scheduled Maintenance Created, once, in each channel", async () => {
+  test("REGRESSION (#11223): Scheduled Maintenance Created, once, in each channel, then its owners, each once", async () => {
     await world.createScheduledMaintenance({
       ownersPicked: { teams: [PLATFORM_TEAM] },
       creator: OWNER,
@@ -279,8 +308,10 @@ describe("every other rule hears of the maintenance event as before", () => {
     for (const channelId of [EXISTING_CHANNEL.id, "C0NEW2"]) {
       const posts: Array<string> = world.postsIn(channelId);
 
-      expect(posts).toHaveLength(1);
+      expect(posts).toHaveLength(3);
       expect(isCreated(posts[0]!)).toBe(true);
+      expect(isPlatformAdded(posts[1]!)).toBe(true);
+      expect(isPersonAdded(posts[2]!)).toBe(true);
     }
   });
 });
