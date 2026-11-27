@@ -49,6 +49,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * ------------------------------------------------------------------
@@ -1070,7 +1071,7 @@ integration(
       ];
 
       // Before: every window a range that holds both its ends.
-      const closed: jest.SpiedFunction<typeof TelemetryCheckWindow.from> = jest
+      const closed: SpyInstance<typeof TelemetryCheckWindow.from> = jest
         .spyOn(TelemetryCheckWindow, "from")
         .mockImplementation((startsAt: Date, endsAt: Date): InBetween<Date> => {
           return new InBetween<Date>(startsAt, endsAt);
