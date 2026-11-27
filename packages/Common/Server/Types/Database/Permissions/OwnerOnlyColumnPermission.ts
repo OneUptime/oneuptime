@@ -281,6 +281,38 @@ export default class OwnerOnlyColumnPermission {
     return isOwnerOnlyColumn(new modelType(), columnName);
   }
 
+  /*
+   * The columns a filter of the query names inside itself - each group of a
+   * FilterGroups (#11211) - held to what a filter on the column itself is
+   * held to (checkQueryPermission): a marked column is a predicate only for
+   * a read whose own query is pinned to the caller.
+   */
+  public static checkColumnsFilteredWithin<TBaseModel extends BaseModel>(data: {
+    modelType: DatabaseBaseModelType;
+    query: Query<TBaseModel>;
+    columns: Array<string>;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    if (OwnerOnlyColumnPermission.isPrivilegedInternalRead(data.props)) {
+      return;
+    }
+
+    const model: BaseModel = new data.modelType();
+
+    for (const columnName of data.columns) {
+      if (
+        isOwnerOnlyColumn(model, columnName) &&
+        !OwnerOnlyColumnPermission.isQueryPinnedToCurrentUser(
+          data.modelType,
+          data.query,
+          data.props,
+        )
+      ) {
+        throw OwnerOnlyColumnPermission.refusal(model, columnName);
+      }
+    }
+  }
+
   public static getOwnerOnlyColumnsOnModel(
     modelType: DatabaseBaseModelType,
   ): Array<string> {
