@@ -46,7 +46,8 @@ function indexOfOnly(haystack: string, needle: string): number {
 
 describe("App/Index.ts starts taking over the held messages of a killed App server", () => {
   const source: string = code(INDEX_PATH);
-  const START: string = "WorkspaceCreatedMessageFirst.takeOverForStoppedServers(";
+  const START: string =
+    "WorkspaceCreatedMessageFirst.takeOverForStoppedServers(";
 
   test("once, posting each with the rule service's poster of stored messages", () => {
     const start: number = indexOfOnly(source, START);
@@ -74,7 +75,10 @@ describe("App/Index.ts starts taking over the held messages of a killed App serv
       source,
       "const init: PromiseVoidFunction = async (): Promise<void> => {",
     );
-    const failed: number = indexOfOnly(source, 'logger.error("App Init Failed:"');
+    const failed: number = indexOfOnly(
+      source,
+      'logger.error("App Init Failed:"',
+    );
     const start: number = indexOfOnly(source, START);
 
     expect(init).toBeLessThan(start);

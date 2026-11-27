@@ -40,11 +40,13 @@ function everyField(): WorkspaceMarkdownNotification {
   return {
     projectId: PROJECT_ID,
     notificationFor: { incidentId: INCIDENT_ID },
-    feedInfoInMarkdown: "👤 Added **Valeria** to the Incident as **Incident Commander**.",
+    feedInfoInMarkdown:
+      "👤 Added **Valeria** to the Incident as **Incident Commander**.",
     notificationText: "Added Valeria as Incident Commander",
     markdownByWorkspaceType: {
       [WorkspaceType.Slack]: "Added <@U0VALERIA> as Incident Commander",
-      [WorkspaceType.MicrosoftTeams]: "Added <at>Valeria</at> as Incident Commander",
+      [WorkspaceType.MicrosoftTeams]:
+        "Added <at>Valeria</at> as Incident Commander",
     },
     mentionsByWorkspaceType: {
       [WorkspaceType.Slack]: [
@@ -216,7 +218,7 @@ describe("a stored message reads back as it was sent", () => {
     const message: WorkspaceMarkdownNotification = {
       ...everyField(),
       feedInfoInMarkdown:
-        "📝 **Note** by Zoë: `kubectl rollout undo` — 東京 eu-west-1 \"quoted\" \\ back\\slash\nsecond line",
+        '📝 **Note** by Zoë: `kubectl rollout undo` — 東京 eu-west-1 "quoted" \\ back\\slash\nsecond line',
     };
 
     expect(readBack(message).feedInfoInMarkdown).toBe(
@@ -292,9 +294,8 @@ describe("nothing more than the message is stored", () => {
   });
 
   test("what is stored is plain JSON: Valkey keeps it as text", () => {
-    const stored: JSONObject = WorkspaceMarkdownNotificationJSON.toJSON(
-      everyField(),
-    );
+    const stored: JSONObject =
+      WorkspaceMarkdownNotificationJSON.toJSON(everyField());
 
     expect(JSON.parse(JSON.stringify(stored))).toEqual(stored);
   });
@@ -303,7 +304,10 @@ describe("nothing more than the message is stored", () => {
 describe("a stored message that is not one is refused, not posted", () => {
   test.each([
     ["nothing at all", {}],
-    ["another kind of stored message", { somethingElse: { feedInfoInMarkdown: "x" } }],
+    [
+      "another kind of stored message",
+      { somethingElse: { feedInfoInMarkdown: "x" } },
+    ],
     ["a list", { workspaceMarkdownNotification: [] as unknown as JSONObject }],
     ["text", { workspaceMarkdownNotification: "a message" }],
   ])("%s", (_what: string, stored: JSONObject) => {
@@ -414,8 +418,10 @@ describe("a stored message that is not one is refused, not posted", () => {
 
   test("a field it does not store, found in what was stored, is not passed on", () => {
     const stored: JSONObject = storedWith((message: JSONObject): void => {
-      (message["workspaceNotification"] as JSONObject)["announcesRecord"] = true;
-      (message["workspaceNotification"] as JSONObject)["onPosted"] = "a function";
+      (message["workspaceNotification"] as JSONObject)["announcesRecord"] =
+        true;
+      (message["workspaceNotification"] as JSONObject)["onPosted"] =
+        "a function";
       (message["workspaceNotification"] as JSONObject)["somethingNew"] = 1;
     });
 

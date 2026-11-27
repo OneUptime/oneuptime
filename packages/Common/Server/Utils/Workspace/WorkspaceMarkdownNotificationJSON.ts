@@ -194,7 +194,9 @@ export default class WorkspaceMarkdownNotificationJSON {
   }
 
   // The record a stored message is about: every id in it an id.
-  private static notificationFor(value: JSONValue | undefined): NotificationFor {
+  private static notificationFor(
+    value: JSONValue | undefined,
+  ): NotificationFor {
     if (!this.isObject(value)) {
       throw new BadDataException(
         "A stored workspace message is about no record.",
@@ -202,7 +204,11 @@ export default class WorkspaceMarkdownNotificationJSON {
     }
 
     for (const [field, id] of Object.entries(value)) {
-      if (field.endsWith("Id") && id !== undefined && !(id instanceof ObjectID)) {
+      if (
+        field.endsWith("Id") &&
+        id !== undefined &&
+        !(id instanceof ObjectID)
+      ) {
         throw new BadDataException(
           `A stored workspace message's ${field} is not an id.`,
         );
@@ -235,7 +241,10 @@ export default class WorkspaceMarkdownNotificationJSON {
     ) as Array<WorkspaceNotificationField>) {
       const fieldValue: JSONValue | undefined = value[field];
 
-      if (!STORED_WORKSPACE_NOTIFICATION_FIELDS[field] || fieldValue === undefined) {
+      if (
+        !STORED_WORKSPACE_NOTIFICATION_FIELDS[field] ||
+        fieldValue === undefined
+      ) {
         continue;
       }
 

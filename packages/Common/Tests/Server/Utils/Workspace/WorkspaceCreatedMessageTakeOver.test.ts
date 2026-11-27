@@ -81,7 +81,9 @@ class FreezableValkey {
       }
 
       return await (
-        client.eval as unknown as (...evalArgs: Array<unknown>) => Promise<unknown>
+        client.eval as unknown as (
+          ...evalArgs: Array<unknown>
+        ) => Promise<unknown>
       ).apply(client, args);
     };
 
@@ -196,7 +198,10 @@ class Channel {
   }
 
   // Settles once `count` messages are in, or fails after `withinMs`.
-  public async waitFor(count: number, withinMs: number = 10_000): Promise<void> {
+  public async waitFor(
+    count: number,
+    withinMs: number = 10_000,
+  ): Promise<void> {
     if (this.heard.length >= count) {
       return;
     }
@@ -422,7 +427,9 @@ function indexKey(): string {
 }
 
 // The record's line, as its hash holds it: {} once it is gone.
-async function theLine(record: WorkspaceRecord): Promise<Record<string, string>> {
+async function theLine(
+  record: WorkspaceRecord,
+): Promise<Record<string, string>> {
   return await inspector.hgetall(lineKeyOf(record));
 }
 
@@ -444,10 +451,8 @@ async function theClaims(
 
 // Valkey's own time, as the index reads it.
 async function valkeyNow(): Promise<number> {
-  const [seconds, microseconds]: [string, string] = (await inspector.time()) as [
-    string,
-    string,
-  ];
+  const [seconds, microseconds]: [string, string] =
+    (await inspector.time()) as [string, string];
 
   return Number(seconds) * 1000 + Math.floor(Number(microseconds) / 1000);
 }
@@ -544,7 +549,11 @@ describe("each message waits in the line with what it says", () => {
 
     await serverA.first.hold(incident);
     expect(
-      await channel.keep(serverB, incident, "B: Added Valeria as Incident Commander"),
+      await channel.keep(
+        serverB,
+        incident,
+        "B: Added Valeria as Incident Commander",
+      ),
     ).toBe(true);
 
     const line: Record<string, string> = await theLine(incident);
@@ -552,7 +561,9 @@ describe("each message waits in the line with what it says", () => {
     expect(JSON.parse(line["message:1"]!)).toEqual({
       name: "B: Added Valeria as Incident Commander",
     });
-    expect(line["id:1"]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    expect(line["id:1"]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+    );
     expect(line["by:1"]).toBe(serverB.line.SERVER_ID);
     expect(serverA.line.SERVER_ID).not.toBe(serverB.line.SERVER_ID);
 
@@ -581,7 +592,11 @@ describe("each message waits in the line with what it says", () => {
     });
 
     expect(new Set(ids).size).toBe(4);
-    expect([1, 2, 3, 4].map((ticket: number) => line[`by:${ticket}`])).toEqual([
+    expect(
+      [1, 2, 3, 4].map((ticket: number) => {
+        return line[`by:${ticket}`];
+      }),
+    ).toEqual([
       serverA.line.SERVER_ID,
       serverB.line.SERVER_ID,
       serverA.line.SERVER_ID,
@@ -591,7 +606,12 @@ describe("each message waits in the line with what it says", () => {
     await serverA.first.postHeld(incident);
     await channel.waitFor(4);
 
-    expect(channel.posts()).toEqual(["A: first", "B: second", "A: third", "B: fourth"]);
+    expect(channel.posts()).toEqual([
+      "A: first",
+      "B: second",
+      "A: third",
+      "B: fourth",
+    ]);
   });
 
   test("a message about a record nobody is creating sends Valkey its one ask, as before: what it says is not even written", async () => {
@@ -760,7 +780,14 @@ describe("each message waits in the line with what it says", () => {
 
     // The first is being posted: what both wait with is still there.
     expect(Object.keys(await theLine(incident))).toEqual(
-      expect.arrayContaining(["message:1", "message:2", "id:1", "id:2", "by:1", "by:2"]),
+      expect.arrayContaining([
+        "message:1",
+        "message:2",
+        "id:1",
+        "id:2",
+        "by:1",
+        "by:2",
+      ]),
     );
 
     slow.finish();
@@ -923,8 +950,16 @@ describe("a server killed before its message's turn", () => {
     takesOver(serverB, channel);
 
     await serverA.first.hold(incident);
-    await channel.keep(serverB, incident, "B: Added Valeria as Incident Commander");
-    await channel.keep(serverA, incident, "A: Added team Platform as the owner");
+    await channel.keep(
+      serverB,
+      incident,
+      "B: Added Valeria as Incident Commander",
+    );
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
 
     // Killed outright: it never says anything again.
     serverB.valkey.freeze();
@@ -975,9 +1010,9 @@ describe("a server killed before its message's turn", () => {
       serverA.line.livesAtMostMs(serverA.first.HELD_FOR_AT_MOST_MS),
     );
     expect(left).toBeLessThanOrEqual(serverA.line.TAKEN_OVER_CLAIMED_FOR_MS);
-    expect(await inspector.get(`${lineKeyOf(incident)}:claim:${messageId}`)).toBe(
-      serverA.line.SERVER_ID,
-    );
+    expect(
+      await inspector.get(`${lineKeyOf(incident)}:claim:${messageId}`),
+    ).toBe(serverA.line.SERVER_ID);
   });
 
   test("not before its turn has stalled", async () => {
@@ -1087,7 +1122,10 @@ describe("a server killed before its message's turn", () => {
 
     await channel.waitFor(2);
 
-    expect(channel.postedBy()).toEqual(["A posted B: first", "A posted B: second"]);
+    expect(channel.postedBy()).toEqual([
+      "A posted B: first",
+      "A posted B: second",
+    ]);
   });
 
   test("the server holding the record is killed before its Created message: once the hold has run out, another server posts its messages, in order", async () => {
@@ -1102,7 +1140,11 @@ describe("a server killed before its message's turn", () => {
 
     const heldAt: number = Date.now();
     await serverA.first.hold(incident);
-    await channel.keep(serverA, incident, "A: Added team Platform as the owner");
+    await channel.keep(
+      serverA,
+      incident,
+      "A: Added team Platform as the owner",
+    );
     await channel.keep(serverA, incident, "A: Added Jane as an owner");
 
     // Killed with its chain half way: no "Incident Created", and no word.
@@ -1453,7 +1495,9 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     takesOver(serverA, channel);
 
     await serverA.first.hold(incident);
-    await channel.keep(serverB, incident, "B: being posted", { post: slow.post });
+    await channel.keep(serverB, incident, "B: being posted", {
+      post: slow.post,
+    });
     await channel.keep(serverA, incident, "A: after it");
 
     const letGo: Promise<void> = serverA.first.postHeld(incident);
@@ -1567,7 +1611,9 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     takesOver(serverA, channel);
 
     await serverA.first.hold(incident);
-    await channel.keep(serverB, incident, "B: a slow Slack", { post: slow.post });
+    await channel.keep(serverB, incident, "B: a slow Slack", {
+      post: slow.post,
+    });
     await channel.keep(serverA, incident, "A: after it");
 
     const letGo: Promise<void> = serverA.first.postHeld(incident);
@@ -1657,6 +1703,9 @@ describe("when Valkey cannot be asked", () => {
     channel.hear("A: Incident INC-42 Created", "A");
     await serverA.first.postHeld(incident);
 
-    expect(channel.posts()).toEqual(["A: Incident INC-42 Created", "A: kept here"]);
+    expect(channel.posts()).toEqual([
+      "A: Incident INC-42 Created",
+      "A: kept here",
+    ]);
   });
 });

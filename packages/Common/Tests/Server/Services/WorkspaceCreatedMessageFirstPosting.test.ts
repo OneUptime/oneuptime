@@ -237,12 +237,12 @@ describe("a kept message is stored with what it says, for another App server to 
 
   // What the hold is handed, as each message is kept.
   function keptInto(kept: Array<KeepInput>): void {
-    jest
-      .spyOn(WorkspaceCreatedMessageFirst, "keep")
-      .mockImplementation((async (data: KeepInput): Promise<boolean> => {
-        kept.push(data);
-        return true;
-      }) as never);
+    jest.spyOn(WorkspaceCreatedMessageFirst, "keep").mockImplementation((async (
+      data: KeepInput,
+    ): Promise<boolean> => {
+      kept.push(data);
+      return true;
+    }) as never);
   }
 
   // As Valkey keeps it: JSON text, read back.

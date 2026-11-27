@@ -1273,10 +1273,7 @@ export default class WorkspaceCreatedMessageLine {
     );
 
     for (const lineKey of due || []) {
-      if (
-        typeof lineKey !== "string" ||
-        !lineKey.startsWith(this.KEY_PREFIX)
-      ) {
+      if (typeof lineKey !== "string" || !lineKey.startsWith(this.KEY_PREFIX)) {
         continue;
       }
 

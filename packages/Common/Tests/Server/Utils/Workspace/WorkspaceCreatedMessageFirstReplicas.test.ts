@@ -473,7 +473,9 @@ async function theClaims(): Promise<Array<string>> {
     `${KEY_PREFIX}incidentId:*:claim:*`,
   );
 
-  return claims.length > 0 ? ((await inspector.mget(...claims)) as Array<string>) : [];
+  return claims.length > 0
+    ? ((await inspector.mget(...claims)) as Array<string>)
+    : [];
 }
 
 // Settles once `isSo` is, asked every 50 ms, or fails after `withinMs`.
