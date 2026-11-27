@@ -50,6 +50,10 @@ import {
   TRUSTED_PROXIES_TITLE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/SecurityTrustedProxiesCopy";
 import { TRUSTED_AUTOMATICALLY_CARD_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/TrustedProxies/SecurityTrustedAutomaticallyCard";
+import {
+  getProjectColumnsPermissionMessage,
+  getProjectColumnsUpdatePermissions,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/Settings/ProjectColumnEditGate";
 import { ACCESS_LOGS_CARD_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/TrustedProxies/SecurityAccessLogsCard";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -614,6 +618,70 @@ describe("Trusted Proxies", () => {
     expect(header(fold)).toHaveAttribute("aria-expanded", "true");
     await within(card()).findByText("Edit");
     expect(editButton()).toBeDisabled();
+  });
+
+  // #11049: a Security Admin edits the list as they flip the two switches beside it.
+  test("a Security Admin saves a list too, as they flip the switches beside it", async () => {
+    grant([...BASE_PERMISSIONS, Permission.SecurityAdmin]);
+
+    const fold: HTMLElement = await renderPage();
+    const dialog: HTMLElement = await openDialog(fold);
+
+    expect(editButton()).not.toBeDisabled();
+
+    await typeList(dialog, "203.0.113.0/24\n2001:db8::/48");
+    submit(dialog);
+
+    await waitFor(() => {
+      expect(updates).toEqual([
+        expect.objectContaining({
+          securityTrustedProxies: "203.0.113.0/24\n2001:db8::/48",
+        }),
+      ]);
+    });
+  });
+
+  test.each([
+    Permission.SecurityMember,
+    Permission.SecurityViewer,
+    Permission.EditProject,
+  ])(
+    "%s sees Edit locked, and is told the roles that may change it",
+    async (permission: Permission) => {
+      grant([...BASE_PERMISSIONS, permission]);
+
+      await renderPage(TRUSTED_PROXIES_CARD_KEY);
+      await within(card()).findByText("Edit");
+
+      expect(editButton()).toBeDisabled();
+      expect(
+        getProjectColumnsUpdatePermissions(["securityTrustedProxies"]),
+      ).toEqual([
+        Permission.ProjectOwner,
+        Permission.ProjectAdmin,
+        Permission.SecurityAdmin,
+      ]);
+      expect(
+        getProjectColumnsPermissionMessage(["securityTrustedProxies"]),
+      ).toContain("Security Admin");
+    },
+  );
+
+  test("a range too broad to be a proxy's is refused before it is sent, naming it", async () => {
+    const fold: HTMLElement = await renderPage();
+    const dialog: HTMLElement = await openDialog(fold);
+
+    await typeList(dialog, "203.0.113.0/24\n0.0.0.0/0");
+    submit(dialog);
+
+    expect(
+      await within(dialog).findByText(
+        "0.0.0.0/0 covers too much of the internet to be a proxy. List your proxy's own addresses or ranges, such as 203.0.113.0/24.",
+      ),
+    ).toBeInTheDocument();
+
+    await settle();
+    expect(updates).toEqual([]);
   });
 
   test("counts what a saved list holds, each address or range once", () => {

@@ -118,11 +118,11 @@ const TELEMETRY_INGESTION_BUDGET_COLUMN_ACCESS: BaseColumnAccessControl = {
    * update. Edit Incoming Request Secret is here for one column alone,
    * requireIncomingRequestSecret (issue #8502), the same way, and so is
    * Security Admin, for the hourly limit of automatic blocks
-   * (securityAutomaticResponseMaxBlocksPerHour, #10746) and the two
-   * switches of Security Events' Trusted Proxies: whether the project's own
-   * load balancers are trusted (securityTrustOwnLoadBalancers, #10546) and
-   * whether its access logs end with X-Forwarded-For
-   * (securityReadAccessLogForwardedFor, #10548).
+   * (securityAutomaticResponseMaxBlocksPerHour, #10746) and Security
+   * Events' Trusted Proxies: the list (securityTrustedProxies, #11049),
+   * whether the project's own load balancers are trusted
+   * (securityTrustOwnLoadBalancers, #10546) and whether its access logs end
+   * with X-Forwarded-For (securityReadAccessLogForwardedFor, #10548).
    */
   update: [
     Permission.ProjectOwner,
@@ -3201,8 +3201,14 @@ export default class Project extends TenantModel {
    * address the request only claims is never blamed
    * (Utils/SecurityEvent/ClientAddressTrust). Private, loopback and
    * link-local addresses are trusted without being listed. One address or
-   * range a line, at most MAX_TRUSTED_PROXIES; the server refuses anything
-   * else, and keeps each written one way (NetworkAddressBlock).
+   * range a line, at most MAX_TRUSTED_PROXIES, none wider than a proxy's
+   * (MIN_TRUSTED_PROXY_PREFIX_LENGTH); the server refuses anything else,
+   * and keeps each written one way (NetworkAddressBlock).
+   *
+   * A Security Admin edits it, as a Project Owner or Admin does (#11049),
+   * as they flip the two switches beside it: they run Security Events, and
+   * may already block any address or stop protecting one, so the list
+   * hands them nothing they could not do. Every change is in the audit log.
    */
   @ColumnAccessControl({
     create: [Permission.User],
@@ -3215,7 +3221,11 @@ export default class Project extends TenantModel {
       Permission.UnAuthorizedSsoUser,
       Permission.ProjectUser,
     ],
-    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+    update: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.SecurityAdmin,
+    ],
   })
   @TableColumn({
     required: false,

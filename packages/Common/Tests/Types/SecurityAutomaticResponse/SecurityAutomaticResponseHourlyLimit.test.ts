@@ -141,7 +141,7 @@ describe("the project's column", () => {
     expect(project.getUpdatePermissions()).toContain(Permission.SecurityAdmin);
   });
 
-  test("and to nothing else of the project but the Trusted Proxies switches: the only columns whose update names a Security Admin", () => {
+  test("and to nothing else of the project but Trusted Proxies: the only columns whose update names a Security Admin", () => {
     const columns: Dictionary<ColumnAccessControl> =
       project.getColumnAccessControlForAllColumns();
 
@@ -156,16 +156,17 @@ describe("the project's column", () => {
     );
 
     /*
-     * Beside it, the two switches of Security Events' Trusted Proxies a
-     * Security Admin flips (#10546, #10548): whether the project's own load
-     * balancers are trusted, and whether its access logs end with
-     * X-Forwarded-For.
+     * Beside it, Security Events' Trusted Proxies, which a Security Admin
+     * sets: the list (#11049) and its two switches (#10546, #10548) -
+     * whether the project's own load balancers are trusted, and whether its
+     * access logs end with X-Forwarded-For.
      */
     expect(named.sort()).toEqual(
       [
         column,
         "securityReadAccessLogForwardedFor",
         "securityTrustOwnLoadBalancers",
+        "securityTrustedProxies",
       ].sort(),
     );
 

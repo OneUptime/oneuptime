@@ -37,6 +37,11 @@ export const TRUSTED_PROXIES_TOO_MANY: string = translationKey(
   "Trusted Proxies holds at most {{max}} addresses and ranges. Use ranges, such as 203.0.113.0/24, for a block of addresses.",
 );
 
+// A range wider than any proxy's: trusted, anyone could choose the address they are blamed on.
+export const TRUSTED_PROXIES_TOO_BROAD: string = translationKey(
+  "{{entry}} covers too much of the internet to be a proxy. List your proxy's own addresses or ranges, such as 203.0.113.0/24.",
+);
+
 /*
  * Why the list cannot be saved as typed, in the reader's language, or null.
  * The server refuses the same lists, in English
@@ -58,6 +63,10 @@ export function getTrustedProxiesProblemText(
       return translator.translateTemplate(TRUSTED_PROXIES_TOO_LONG, {});
     case TrustedProxyListProblemKind.NotAnAddress:
       return translator.translateTemplate(TRUSTED_PROXIES_NOT_AN_ADDRESS, {
+        entry: problem.entry,
+      });
+    case TrustedProxyListProblemKind.TooBroad:
+      return translator.translateTemplate(TRUSTED_PROXIES_TOO_BROAD, {
         entry: problem.entry,
       });
     case TrustedProxyListProblemKind.TooMany:

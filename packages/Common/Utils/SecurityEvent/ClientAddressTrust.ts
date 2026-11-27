@@ -149,6 +149,49 @@ export const MAX_TRUSTED_PROXIES: number = 500;
 // The longest Trusted Proxies text saved: each entry is at most 100 characters.
 export const MAX_TRUSTED_PROXIES_TEXT_LENGTH: number = 64 * 1024;
 
+/*
+ * The broadest range listed as a proxy (#11049): a /8 of IPv4, a /16 of
+ * IPv6. Anything wider is most of the internet, never one proxy's: listed,
+ * every hop of an X-Forwarded-For would be trusted, its leftmost - what the
+ * sender wrote - would be the client, and anyone could choose the address
+ * an attack is blamed on. The widest ranges a CDN or a cloud's front ends
+ * publish are far narrower (Cloudflare's /13, Google's front ends' /16).
+ */
+export const MIN_TRUSTED_PROXY_PREFIX_LENGTH: Readonly<Record<4 | 6, number>> =
+  {
+    4: 8,
+    6: 16,
+  };
+
+/*
+ * The ranges wider than that which are nobody's on the internet - IPv6's
+ * unique local and link-local addresses - and so never too broad to list:
+ * their addresses are trusted unlisted anyway.
+ */
+const PRIVATE_RANGES_WIDER_THAN_A_PROXY: ReadonlyArray<NetworkAddressBlock> = [
+  "fc00::/7",
+  "fe80::/10",
+]
+  .map((range: string): NetworkAddressBlock | null => {
+    return NetworkAddressBlockUtil.parse(range);
+  })
+  .filter((block: NetworkAddressBlock | null): block is NetworkAddressBlock => {
+    return block !== null;
+  });
+
+// Whether a listed range is too broad to be a proxy's (MIN_TRUSTED_PROXY_PREFIX_LENGTH).
+export function isTooBroadToTrust(block: NetworkAddressBlock): boolean {
+  if (block.prefixLength >= MIN_TRUSTED_PROXY_PREFIX_LENGTH[block.family]) {
+    return false;
+  }
+
+  return !PRIVATE_RANGES_WIDER_THAN_A_PROXY.some(
+    (privateRange: NetworkAddressBlock): boolean => {
+      return NetworkAddressBlockUtil.containsBlock(privateRange, block);
+    },
+  );
+}
+
 const IPV4_MAPPED_PREFIX: string = "::ffff:";
 
 /*
@@ -242,6 +285,8 @@ export enum TrustedProxyListProblemKind {
   TooLong = "too-long",
   // An entry that is neither an address nor a range.
   NotAnAddress = "not-an-address",
+  // A range wider than any proxy's (MIN_TRUSTED_PROXY_PREFIX_LENGTH).
+  TooBroad = "too-broad",
   // More than MAX_TRUSTED_PROXIES addresses and ranges.
   TooMany = "too-many",
 }
@@ -251,6 +296,11 @@ export type TrustedProxyListProblem =
   | {
       kind: TrustedProxyListProblemKind.NotAnAddress;
       // The first such entry, cut to 60 characters.
+      entry: string;
+    }
+  | {
+      kind: TrustedProxyListProblemKind.TooBroad;
+      // The first such range, as it is kept.
       entry: string;
     }
   | { kind: TrustedProxyListProblemKind.TooMany; max: number };
@@ -284,6 +334,16 @@ export function getTrustedProxyListProblem(
     };
   }
 
+  const tooBroad: NetworkAddressBlock | undefined =
+    list.blocks.find(isTooBroadToTrust);
+
+  if (tooBroad) {
+    return {
+      kind: TrustedProxyListProblemKind.TooBroad,
+      entry: tooBroad.text,
+    };
+  }
+
   if (list.blocks.length > MAX_TRUSTED_PROXIES) {
     return {
       kind: TrustedProxyListProblemKind.TooMany,
@@ -313,16 +373,28 @@ export function getTrustedProxyListError(
       return "Trusted Proxies is too long. Use ranges, such as 203.0.113.0/24, for a block of addresses.";
     case TrustedProxyListProblemKind.NotAnAddress:
       return `"${problem.entry}" is not an IP address or a range. Write an address, such as 203.0.113.7, or a range, such as 203.0.113.0/24.`;
+    case TrustedProxyListProblemKind.TooBroad:
+      return `${problem.entry} covers too much of the internet to be a proxy. List your proxy's own addresses or ranges, such as 203.0.113.0/24.`;
     case TrustedProxyListProblemKind.TooMany:
       return `Trusted Proxies can hold ${problem.max} addresses and ranges. Use ranges, such as 203.0.113.0/24, for a block of addresses.`;
   }
 }
 
+/*
+ * A saved list as the scans trust it: each address and range, at most
+ * MAX_TRUSTED_PROXIES, and never one too broad to be a proxy's - a list
+ * saved before such ranges were refused trusts the rest of it, toward
+ * trusting less (#11049).
+ */
 export function toTrustedProxies(
   text: string | undefined | null,
 ): TrustedProxies {
   return {
-    blocks: readTrustedProxyList(text).blocks.slice(0, MAX_TRUSTED_PROXIES),
+    blocks: readTrustedProxyList(text)
+      .blocks.filter((block: NetworkAddressBlock): boolean => {
+        return !isTooBroadToTrust(block);
+      })
+      .slice(0, MAX_TRUSTED_PROXIES),
   };
 }
 
