@@ -195,7 +195,7 @@ Each path then shows under **Tables**: its newest object is when it last changed
 
 ## Troubleshooting
 
-- **The database shows Database Agent not ready.** The agent cannot read it now, and the database's page says why: the agent is off for Data Observability (`ONEUPTIME_DATA_OBSERVABILITY=true` turns it on), not heard from, too old (run its `install.sh` again), or its server is not PostgreSQL or MySQL.
+- **The database shows Database Agent not ready.** The agent cannot read it now, and the database's page says why: its server has no Database Agent connected, or the agent is off for Data Observability (`ONEUPTIME_DATA_OBSERVABILITY=true` turns it on), not heard from, too old (run its `install.sh` again), or on a server that is not PostgreSQL or MySQL.
 - **The database shows Failed.** Its message says why: a host OneUptime cannot reach, a login refused, a TLS mode the server does not accept. For a database inside your network, connect it through a probe. For Snowflake, Databricks, BigQuery, Athena, ClickHouse and Dataverse, it names what was being read, the service's own error code and message, and the request or query ID its support can trace, where it gives one. **Collect Now** tries again at once, and the page shows how it went.
 - **Tables show no last change.** The login cannot read the engine's statistics: grant what your engine's tab lists, or wait for a table's rows to change twice.
 - **A table is missing.** It is in a schema the login cannot use, or it is excluded on the database. Grant `USAGE` on its schema, or remove the exclusion.
