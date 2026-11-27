@@ -1046,15 +1046,15 @@ describe("the SSO guide", () => {
     expect(page).toContain(`:::details "${PROVIDER_EMAIL_NOT_VERIFIED_TITLE}"`);
   });
 
-  it("has the upgrade guide's other changes in 17 say it, and send the reader here (GHSA-8gwc-w386-fh6w)", () => {
+  it("has the upgrade guide's other changes in 18 say it, and send the reader here (GHSA-8gwc-w386-fh6w)", () => {
     // The guide wraps its notes: a line that goes on is indented.
     const upgrading: string = readPage("en", "installation/upgrading").replace(
       /\n +/g,
       " ",
     );
     const otherChanges: string = upgrading.slice(
-      upgrading.indexOf(":::details Read the other changes in 17"),
-      upgrading.indexOf("\n## Upgrading from OneUptime 15 → 16"),
+      upgrading.indexOf(":::details Read the other changes in 18"),
+      upgrading.indexOf("\n## Upgrading from OneUptime 16 → 17"),
     );
 
     expect(otherChanges).toContain(
