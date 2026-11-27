@@ -616,3 +616,206 @@ describe("what another App server would post a kept message from (#11235)", () =
     );
   });
 });
+
+/*
+ * A RECORD HELD AS IT IS WRITTEN (#11352): DatabaseService.create holds a
+ * new record's messages right after its INSERT (holdAsWritten), before its
+ * creator is made its owner; its create hook takes the hold over (hold),
+ * and a create that ends before that lets it go (letGoIfNotTaken).
+ */
+describe("a record held as it is written (#11352)", () => {
+  const KINDS: Array<[string, keyof WorkspaceRecord]> = [
+    ["Incident", "incidentId"],
+    ["Alert", "alertId"],
+    ["IncidentEpisode", "incidentEpisodeId"],
+    ["AlertEpisode", "alertEpisodeId"],
+    ["ScheduledMaintenance", "scheduledMaintenanceId"],
+    ["Monitor", "monitorId"],
+    ["OnCallDutyPolicy", "onCallDutyPolicyId"],
+  ];
+
+  // A record named by `field`, as a message names it, let go after the test.
+  function recordWith(
+    field: keyof WorkspaceRecord,
+    id: ObjectID,
+  ): WorkspaceRecord {
+    const record: WorkspaceRecord = {};
+    record[field] = id;
+    held.push(record);
+    return record;
+  }
+
+  test("the tables held as they are written are the seven kinds whose create posts a Created message", () => {
+    expect(WorkspaceCreatedMessageFirst.tablesHeldAsWritten().sort()).toEqual(
+      KINDS.map(([table]: [string, keyof WorkspaceRecord]): string => {
+        return table;
+      }).sort(),
+    );
+  });
+
+  test.each(KINDS)(
+    "a record of %s is held under %s, and its messages are kept",
+    async (table: string, field: keyof WorkspaceRecord) => {
+      const id: ObjectID = ObjectID.generate();
+      const record: WorkspaceRecord = recordWith(field, id);
+      const posted: Array<string> = [];
+
+      expect(
+        await WorkspaceCreatedMessageFirst.holdAsWritten({
+          tableName: table,
+          id: id,
+        }),
+      ).toEqual(record);
+      expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(true);
+      expect(
+        await WorkspaceCreatedMessageFirst.keep({
+          record: record,
+          post: message(posted, "Ana Lee added"),
+        }),
+      ).toBe(true);
+
+      await turns();
+      expect(posted).toEqual([]);
+    },
+  );
+
+  test.each([
+    ["a table whose create posts no Created message", "IncidentInternalNote"],
+    ["a team", "Team"],
+    ["no table", undefined],
+    ["a table named in another case", "incident"],
+  ])("%s is not held", async (_name: string, table: string | undefined) => {
+    expect(
+      await WorkspaceCreatedMessageFirst.holdAsWritten({
+        tableName: table,
+        id: ObjectID.generate(),
+      }),
+    ).toBeNull();
+  });
+
+  test("a record written with no id is not held", async () => {
+    expect(
+      await WorkspaceCreatedMessageFirst.holdAsWritten({
+        tableName: "Incident",
+        id: null,
+      }),
+    ).toBeNull();
+  });
+
+  test("a record held already is not the create's: it is not held again, nor let go by the create", async () => {
+    const id: ObjectID = ObjectID.generate();
+    const record: WorkspaceRecord = recordWith("incidentId", id);
+    const posted: Array<string> = [];
+
+    await WorkspaceCreatedMessageFirst.hold(record);
+    await WorkspaceCreatedMessageFirst.keep({
+      record: record,
+      post: message(posted, "kept"),
+    });
+
+    expect(
+      await WorkspaceCreatedMessageFirst.holdAsWritten({
+        tableName: "Incident",
+        id: id,
+      }),
+    ).toBeNull();
+
+    await WorkspaceCreatedMessageFirst.letGoIfNotTaken(record);
+
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(true);
+    expect(posted).toEqual([]);
+  });
+
+  test("a create that ends before its create chain took the hold lets it go: what it kept goes, once, in the order it was made", async () => {
+    const id: ObjectID = ObjectID.generate();
+    const record: WorkspaceRecord = recordWith("monitorId", id);
+    const posted: Array<string> = [];
+
+    await WorkspaceCreatedMessageFirst.holdAsWritten({
+      tableName: "Monitor",
+      id: id,
+    });
+
+    for (const name of ["Ana Lee added", "a note"]) {
+      await WorkspaceCreatedMessageFirst.keep({
+        record: record,
+        post: message(posted, name),
+      });
+    }
+
+    await WorkspaceCreatedMessageFirst.letGoIfNotTaken(record);
+
+    expect(posted).toEqual(["Ana Lee added", "a note"]);
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(false);
+
+    // Twice is once.
+    await WorkspaceCreatedMessageFirst.letGoIfNotTaken(record);
+    expect(posted).toEqual(["Ana Lee added", "a note"]);
+  });
+
+  test("its create chain takes the hold over: the create no longer lets it go, and the chain does once its Created message is out", async () => {
+    const id: ObjectID = ObjectID.generate();
+    const record: WorkspaceRecord = recordWith("alertEpisodeId", id);
+    const posted: Array<string> = [];
+
+    await WorkspaceCreatedMessageFirst.holdAsWritten({
+      tableName: "AlertEpisode",
+      id: id,
+    });
+    await WorkspaceCreatedMessageFirst.keep({
+      record: record,
+      post: message(posted, "Ana Lee added"),
+    });
+
+    // The chain begins: its hold call is the same hold, now the chain's.
+    await WorkspaceCreatedMessageFirst.hold(record);
+    await WorkspaceCreatedMessageFirst.letGoIfNotTaken(record);
+
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(true);
+    expect(posted).toEqual([]);
+
+    posted.push("Episode Created");
+    await WorkspaceCreatedMessageFirst.postHeld(record);
+
+    expect(posted).toEqual(["Episode Created", "Ana Lee added"]);
+  });
+
+  test("letting go a record nobody holds does nothing", async () => {
+    await expect(
+      WorkspaceCreatedMessageFirst.letGoIfNotTaken({
+        incidentId: ObjectID.generate(),
+      }),
+    ).resolves.toBeUndefined();
+    await expect(
+      WorkspaceCreatedMessageFirst.letGoIfNotTaken({}),
+    ).resolves.toBeUndefined();
+  });
+
+  test("a hold set as the record was written, that nobody lets go, is let go after five minutes as any is", async () => {
+    jest.useFakeTimers();
+
+    const id: ObjectID = ObjectID.generate();
+    const record: WorkspaceRecord = recordWith("onCallDutyPolicyId", id);
+    const posted: Array<string> = [];
+
+    await WorkspaceCreatedMessageFirst.holdAsWritten({
+      tableName: "OnCallDutyPolicy",
+      id: id,
+    });
+    await WorkspaceCreatedMessageFirst.keep({
+      record: record,
+      post: message(posted, "kept"),
+    });
+
+    jest.advanceTimersByTime(
+      WorkspaceCreatedMessageFirst.HELD_FOR_AT_MOST_MS - 1,
+    );
+    await settleMicrotasks();
+    expect(posted).toEqual([]);
+
+    jest.advanceTimersByTime(1);
+    await settleMicrotasks();
+    expect(posted).toEqual(["kept"]);
+    expect(WorkspaceCreatedMessageFirst.isHeld(record)).toBe(false);
+  });
+});
