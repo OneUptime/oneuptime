@@ -218,6 +218,14 @@ services:
       - XCP_NG_POOL_ID=<the other pool's UUID>
 ```
 
+### A pool a probe reads
+
+A pool OneUptime reads through a probe (Collection Method: Probe, on the pool's Settings) needs no XCP-ng Agent, but OneUptime AI still reaches it through this AI agent. Run the AI agent alone: put this directory's `docker-compose.yml` on a machine that reaches Xen Orchestra, with a `.env` beside it holding `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `XO_ADDRESS`, `XCP_NG_POOL_ID` and the tokens, and an `xo-ca.pem` holding the certificates Xen Orchestra's certificate chains to (for a publicly trusted one, a copy of the machine's CA bundle, such as `/etc/ssl/certs/ca-certificates.crt`). Then start it, and nothing else:
+
+```bash
+docker compose --profile xcp-ng-ai-agent up -d oneuptime-xcp-ng-ai-agent
+```
+
 ### Fixes
 
 Fixes are off until you allow them twice over: `ONEUPTIME_AI_ALLOW_WRITES=true` with a token for changes, `ONEUPTIME_AI_XO_WRITE_TOKEN`, of another user. The read token in its place is refused. The token for changes is used for the change itself and for nothing else, so a mistake in what OneUptime AI reads can never change anything. Give that user a copy of the built-in **VMs power state manager** role, which holds the privileges of the first two rows, add the others, and give it the copy on the pools it may fix:

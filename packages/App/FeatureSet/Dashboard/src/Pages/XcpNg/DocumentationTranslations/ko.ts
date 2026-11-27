@@ -60,6 +60,28 @@ const TRANSLATION: SetupGuideTranslation = {
     "| `XO_TLS_FINGERPRINT` | 설치 스크립트 | 에이전트가 그 인증서만 신뢰할 때 쓰는 Xen Orchestra 자체 인증서의 SHA-256 지문 |",
   "| `XO_CA_FILE` | Install script | A CA bundle that issued Xen Orchestra's certificate, which the script copies to `xo-ca.pem` |":
     "| `XO_CA_FILE` | 설치 스크립트 | Xen Orchestra의 인증서를 발급한 CA 번들로, 스크립트가 `xo-ca.pem`에 복사합니다 |",
+  "| `ONEUPTIME_AI_XO_READ_TOKEN` | No | A token of a Xen Orchestra user holding a copy of the built-in **Read only** role and nothing else: the XCP-ng AI agent runs when it is set, and reads with it |":
+    "| `ONEUPTIME_AI_XO_READ_TOKEN` | 아니요 | 기본 제공 **Read only** 역할의 사본만 가진 Xen Orchestra 사용자의 토큰. 설정하면 XCP-ng AI 에이전트가 실행되고 이 토큰으로 읽습니다 |",
+  "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | No | Only for fixes: a token of another user, whose role allows them. The AI agent changes nothing without it |":
+    "| `ONEUPTIME_AI_XO_WRITE_TOKEN` | 아니요 | 수정 전용: 수정을 허용하는 역할을 가진 다른 사용자의 토큰. 이것이 없으면 AI 에이전트는 아무것도 변경하지 않습니다 |",
+  "| `XCP_NG_POOL_ID` | No | The XAPI UUID of the pool the AI agent serves (default: the one pool its read token can see) |":
+    "| `XCP_NG_POOL_ID` | 아니요 | AI 에이전트가 담당하는 풀의 XAPI UUID(기본값: 읽기 토큰이 볼 수 있는 유일한 풀) |",
+  "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | No | Overrides `XCP_NG_POOL_ID` as the pool the AI agent registers as |":
+    "| `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | 아니요 | AI 에이전트가 등록할 풀로 `XCP_NG_POOL_ID`를 재정의합니다 |",
+  "| `ONEUPTIME_AI_INVESTIGATION` | No | `true` or `false`: whether OneUptime AI may run the AI agent's read-only commands while it investigates (default: on) |":
+    "| `ONEUPTIME_AI_INVESTIGATION` | 아니요 | `true` 또는 `false`: OneUptime AI가 조사하는 동안 AI 에이전트의 읽기 전용 명령을 실행해도 되는지 여부(기본값: 켜짐) |",
+  "| `ONEUPTIME_AI_FIXES` | No | `off`, `ask-for-approval`, `automatic` or `bypass-approval`: how OneUptime AI may apply a fix |":
+    "| `ONEUPTIME_AI_FIXES` | 아니요 | `off`, `ask-for-approval`, `automatic` 또는 `bypass-approval`: OneUptime AI가 수정을 적용하는 방식 |",
+  "| `ONEUPTIME_AI_ALLOW_WRITES` | No | `true` lets the AI agent apply fixes, with the token for changes. Anything else keeps it read-only |":
+    "| `ONEUPTIME_AI_ALLOW_WRITES` | 아니요 | `true`이면 AI 에이전트가 변경용 토큰으로 수정을 적용할 수 있습니다. 그 밖의 값이면 읽기 전용으로 유지됩니다 |",
+  "| `ONEUPTIME_AI_WRITE_TARGETS` | No | The `vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` or `schedule/<uuid>` a fix may touch, comma-separated (default: all) |":
+    "| `ONEUPTIME_AI_WRITE_TARGETS` | 아니요 | 수정이 건드릴 수 있는 대상(`vm/<uuid>`, `host/<uuid>`, `pbd/<uuid>` 또는 `schedule/<uuid>`), 쉼표로 구분(기본값: 모두) |",
+  "| `ONEUPTIME_AI_PROTECTED_TARGETS` | No | The same, for what OneUptime AI must never change: the VM the AI agent runs in, and Xen Orchestra's own |":
+    "| `ONEUPTIME_AI_PROTECTED_TARGETS` | 아니요 | 같은 형식으로, OneUptime AI가 절대 변경하면 안 되는 것: AI 에이전트가 실행되는 VM과 Xen Orchestra 자체의 VM |",
+  "| `LOG_LEVEL` | No | The AI agent's log level: `debug`, `info` (default), `warn` or `error` |":
+    "| `LOG_LEVEL` | 아니요 | AI 에이전트의 로그 수준: `debug`, `info`(기본값), `warn` 또는 `error` |",
+  "| `COMPOSE_PROFILES` | No | `xcp-ng-ai-agent` starts the AI agent; the install script writes it when the read token is set |":
+    "| `COMPOSE_PROFILES` | 아니요 | `xcp-ng-ai-agent`이면 AI 에이전트가 시작됩니다. 설치 스크립트는 읽기 토큰이 설정되어 있으면 이 값을 씁니다 |",
   "The agent checks Xen Orchestra's certificate against `xo-ca.pem`, next to `docker-compose.yml`.":
     "에이전트는 `docker-compose.yml` 옆의 `xo-ca.pem`으로 Xen Orchestra의 인증서를 검증합니다.",
   "The agent checks Xen Orchestra's certificate on every read, against `xo-ca.pem` and nothing else. That file holds one of three things:":

@@ -266,24 +266,55 @@ const composeFile: () => Record<string, any> = (): Record<string, any> => {
   return yaml.load(readAgentFile("docker-compose.yml")) as Record<string, any>;
 };
 
-// Variables the agent's compose service reads from .env: `${NAME}` and `${NAME:-x}`.
+/*
+ * Variables the compose file's services read from .env: `${NAME}` and
+ * `${NAME:-x}` - the collector's, and the XCP-ng AI agent's (#10998), which
+ * read the ones they share with the same default.
+ */
 const composeVariables: () => Map<string, string | null> = (): Map<
   string,
   string | null
 > => {
-  const environment: Array<string> =
-    composeFile()["services"][XCP_NG_AGENT_CONTAINER]["environment"];
   const variables: Map<string, string | null> = new Map();
-  for (const entry of environment) {
-    // The outer reference of `${XO_NAME:-${XO_ADDRESS}}` is XO_NAME.
-    const match: RegExpMatchArray | null = entry.match(
-      /^[A-Z0-9_]+=\$\{([A-Z0-9_]+)(?::-(.*))?\}$/,
-    );
-    if (match) {
-      variables.set(match[1]!, match[2] ?? null);
+  for (const service of Object.values(
+    composeFile()["services"] as Record<string, { environment: Array<string> }>,
+  )) {
+    for (const entry of service.environment) {
+      // The outer reference of `${XO_NAME:-${XO_ADDRESS}}` is XO_NAME.
+      const match: RegExpMatchArray | null = entry.match(
+        /^[A-Z0-9_]+=\$\{([A-Z0-9_]+)(?::-(.*))?\}$/,
+      );
+      if (match) {
+        const fallback: string | null = match[2] ?? null;
+        if (variables.has(match[1]!)) {
+          expect({ name: match[1], fallback }).toEqual({
+            name: match[1],
+            fallback: variables.get(match[1]!),
+          });
+        }
+        variables.set(match[1]!, fallback);
+      }
     }
   }
   return variables;
+};
+
+// The variables one service of the compose file reads from .env.
+const composeVariablesOf: (service: string) => Array<string> = (
+  service: string,
+): Array<string> => {
+  const environment: Array<string> =
+    composeFile()["services"][service]["environment"];
+  return environment
+    .map((entry: string): string | null => {
+      const match: RegExpMatchArray | null = entry.match(
+        /^[A-Z0-9_]+=\$\{([A-Z0-9_]+)(?::-.*)?\}$/,
+      );
+      return match ? match[1]! : null;
+    })
+    .filter((name: string | null): name is string => {
+      return name !== null;
+    });
 };
 
 // The rows of the guide's environment variable table.
@@ -315,6 +346,16 @@ const INSTALL_SCRIPT_ONLY: Array<string> = [
   "XO_TLS_FINGERPRINT",
   "XO_CA_FILE",
 ];
+
+/*
+ * What Docker Compose itself reads from .env: the profiles it starts, the
+ * XCP-ng AI agent's when install.sh was given a read token (#10998).
+ */
+const COMPOSE_ITSELF: Array<string> = ["COMPOSE_PROFILES"];
+
+// The XCP-ng AI agent's service, and the profile that starts it (#10998).
+const AI_AGENT_SERVICE: string = "oneuptime-xcp-ng-ai-agent";
+const AI_AGENT_PROFILE: string = "xcp-ng-ai-agent";
 
 describe("the connect method picker", () => {
   test("offers the install script and Docker Compose, in that order", () => {
@@ -1062,12 +1103,30 @@ describe("the Docker Compose install", () => {
         });
       }
     }
-    // XO_TLS_SERVER_NAME alone is left out: empty, it is XO_ADDRESS's host.
+    /*
+     * XO_TLS_SERVER_NAME is left out: empty, it is XO_ADDRESS's host. So is
+     * what the XCP-ng AI agent alone reads (#10998): it starts only once a
+     * read token and its profile are set, and each has a default.
+     */
+    const aiAgentOnly: Array<string> = composeVariablesOf(AI_AGENT_SERVICE)
+      .filter((name: string): boolean => {
+        return !composeVariablesOf(XCP_NG_AGENT_CONTAINER).includes(name);
+      })
+      .sort();
+    expect(aiAgentOnly.length).toBeGreaterThan(0);
+    for (const name of aiAgentOnly) {
+      expect({ name, fallback: variables.get(name) }).not.toEqual({
+        name,
+        fallback: null,
+      });
+    }
     expect(
-      Array.from(variables.keys()).filter((name: string): boolean => {
-        return !names.includes(name);
-      }),
-    ).toEqual(["XO_TLS_SERVER_NAME"]);
+      Array.from(variables.keys())
+        .filter((name: string): boolean => {
+          return !names.includes(name);
+        })
+        .sort(),
+    ).toEqual(["XO_TLS_SERVER_NAME", ...aiAgentOnly].sort());
   });
 
   test("shows the placeholder, and where to pick a key, until one is picked", () => {
@@ -1170,7 +1229,13 @@ describe("the environment variables table", () => {
         [
           ...Array.from(composeVariables().keys()),
           ...INSTALL_SCRIPT_ONLY,
+          ...COMPOSE_ITSELF,
         ].sort(),
+      );
+      // Compose reads its profiles with none set by default.
+      expect(rows.get("COMPOSE_PROFILES")!.required).toBe("No");
+      expect(rows.get("COMPOSE_PROFILES")!.description).toContain(
+        `\`${AI_AGENT_PROFILE}\``,
       );
       for (const name of INSTALL_SCRIPT_ONLY) {
         expect({ name, required: rows.get(name)!.required }).toEqual({
@@ -1203,7 +1268,8 @@ describe("the environment variables table", () => {
     const script: string = readAgentFile("install.sh");
     const rows: Map<string, { required: string; description: string }> =
       envTableRows(guideFor("install-script"));
-    expect(rows.size).toBe(10);
+    // The collector's ten, and the AI agent's eleven (#10998).
+    expect(rows.size).toBe(21);
     for (const name of rows.keys()) {
       if (name === "XO_SCHEME") {
         // A validated shape (https or http), so it stays bare.
@@ -1265,14 +1331,20 @@ describe("drift guards against agents/XcpNgAgent", () => {
     }
   });
 
-  test("the container the guide names is the compose file's one service", () => {
+  test("the container the guide names is the compose file's collector, and the AI agent starts only under its profile", () => {
     const services: Record<string, Record<string, unknown>> = composeFile()[
       "services"
     ];
-    expect(Object.keys(services)).toEqual([XCP_NG_AGENT_CONTAINER]);
+    expect(Object.keys(services)).toEqual([
+      XCP_NG_AGENT_CONTAINER,
+      AI_AGENT_SERVICE,
+    ]);
     expect(services[XCP_NG_AGENT_CONTAINER]!["container_name"]).toBe(
       XCP_NG_AGENT_CONTAINER,
     );
+    // A plain `docker compose up -d` starts the collector alone.
+    expect(services[XCP_NG_AGENT_CONTAINER]!["profiles"]).toBeUndefined();
+    expect(services[AI_AGENT_SERVICE]!["profiles"]).toEqual([AI_AGENT_PROFILE]);
   });
 
   test("runs the pinned collector, and its config reports that version as the agent's", () => {

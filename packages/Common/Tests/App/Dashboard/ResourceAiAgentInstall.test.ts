@@ -1258,6 +1258,16 @@ describe("what AI may do, set where the agent runs", () => {
       "may not be the read token",
     );
 
+    // Shipped under its profile, which a read token turns on.
+    expect(
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.XcpNgPool,
+        resourceId: "71000000-0000-4000-8000-000000000002",
+      }).whereText,
+    ).toBe(
+      "The XCP-ng agent's docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in /opt/oneuptime-xcp-ng-agent — it takes every variable below from the same .env. A pool a probe reads needs no XCP-ng agent: run this service on its own, as the XCP-ng agent's README says.",
+    );
+
     const unpinned: Array<{ name: string; description: string }> =
       getResourceAiAgentInstall({
         resourceType: AiResourceType.XcpNgPool,

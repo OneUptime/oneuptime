@@ -1236,6 +1236,12 @@ export function getResourceAiAgentInstall(data: {
           "Add this service to the {{collectorName}}'s docker-compose.yml — it takes every variable below from the same .env.",
           { collectorName: collectorName },
         );
+  } else if (data.resourceType === AiResourceType.XcpNgPool) {
+    // Shipped under a profile: it starts only once it has a token to read with.
+    whereText = translateTemplate(
+      "The {{collectorName}}'s docker-compose.yml ships this service under the xcp-ng-ai-agent profile, and its install.sh starts it once you give it a read-only Xen Orchestra token (ONEUPTIME_AI_XO_READ_TOKEN). For an older install, add it to the docker-compose.yml in {{directory}} — it takes every variable below from the same .env. A pool a probe reads needs no {{collectorName}}: run this service on its own, as the {{collectorName}}'s README says.",
+      { collectorName: collectorName, directory: spec.directory || "" },
+    );
   } else if (!spec.directory) {
     // Usually installed with install.sh (plain containers): that comes first.
     whereText = translateTemplate(
