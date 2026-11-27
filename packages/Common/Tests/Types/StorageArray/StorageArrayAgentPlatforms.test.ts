@@ -184,8 +184,10 @@ describe("each config of the table", () => {
       expect(text).toMatch(
         /key: storage\.system\s+value: "?\$\{env:STORAGE_SYSTEM\}"?/,
       );
-      // ...and reads the address the line names, and the token unless the
-      // exporter logs in with the line's user and password itself.
+      /*
+       * ...and reads the address the line names, and the token unless the
+       * exporter logs in with the line's user and password itself.
+       */
       expect(text).toContain(`\${env:${line.endpointVariable}}`);
       if (line.userVariable) {
         expect(text).not.toContain(`\${env:${line.tokenVariable}}`);
@@ -193,8 +195,10 @@ describe("each config of the table", () => {
         expect(text).toContain(`\${env:${line.tokenVariable}}`);
       }
 
-      // Every OneUptime serves it, and every other file it runs with, at
-      // /install/storage-array-agent/<file>, and each ships next to it.
+      /*
+       * Every OneUptime serves it, and every other file it runs with, at
+       * /install/storage-array-agent/<file>, and each ships next to it.
+       */
       const entry: InstallScriptEntry | null = getInstallScriptEntry(
         InstallScriptName.StorageArrayAgent,
       );

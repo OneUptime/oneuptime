@@ -227,10 +227,14 @@ function loadFirst(entryPoint: string): Loaded {
       ) as { default: never }
     ).default;
     const catalog: { getAllStorageArrayMetrics: () => Array<unknown> } =
-      jest.requireActual("../../../Types/Monitor/StorageArrayMetricCatalog");
+      jest.requireActual(
+        "../../../Types/Monitor/StorageArrayMetricCatalog",
+      ) as { getAllStorageArrayMetrics: () => Array<unknown> };
     const templates: {
       getAllStorageArrayAlertTemplates: () => Array<unknown>;
-    } = jest.requireActual("../../../Types/Monitor/StorageArrayAlertTemplates");
+    } = jest.requireActual(
+      "../../../Types/Monitor/StorageArrayAlertTemplates",
+    ) as { getAllStorageArrayAlertTemplates: () => Array<unknown> };
     const extractors: {
       getExtractors: () => ReadonlyArray<{ storageSystem: string } | undefined>;
     } = (
@@ -261,10 +265,11 @@ describe("whatever loads first, every platform is there", () => {
     "../../../Types/StorageArray/StorageArrayPlatformRegistry",
   );
 
-  test("the registry, loaded first, holds both platforms, their catalog, templates and extractors", () => {
+  test("the registry, loaded first, holds every shipped platform, their catalog, templates and extractors", () => {
     expect(expected.systems).toEqual([
       "purestorage.flasharray",
       "purestorage.flashblade",
+      "dell.powerstore",
     ]);
     expect(expected.extractors).toEqual(expected.systems);
     expect(expected.metrics).toBeGreaterThan(50);
