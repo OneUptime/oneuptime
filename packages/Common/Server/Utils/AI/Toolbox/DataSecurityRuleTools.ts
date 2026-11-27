@@ -29,6 +29,7 @@ import {
   DRAFT_DATA_SECURITY_RULE_TOOL_NAME,
   SAVE_DATA_SECURITY_RULE_TOOL_NAME,
 } from "../../../../Types/AI/AIDataSecurityActions";
+import { actionAlwaysAsks } from "../../../../Types/AI/AIAlwaysAskChanges";
 import { AIChatCitationTarget } from "../../../../Types/AI/AIChatTypes";
 import DataSensitivity from "../../../../Types/DataSecurity/DataSensitivity";
 import {
@@ -1105,9 +1106,13 @@ export const SaveDataSecurityRuleTool: ObservabilityTool = {
   buildActionTitle: (args: JSONObject): AIActionSentence => {
     return buildSaveTitle(readDataSecurityRuleDraft(args));
   },
-  // The person sees what their words became before anything is saved: it always asks.
+  /*
+   * The person sees what their words became before anything is saved: it
+   * always asks (Types/AI/AIAlwaysAskChanges, where a rule a record tool
+   * would make is refused on the MCP server too).
+   */
   asksInEveryMode: (): boolean => {
-    return true;
+    return actionAlwaysAsks(SAVE_DATA_SECURITY_RULE_TOOL_NAME);
   },
   prepareMutation: async (
     args: JSONObject,
