@@ -195,9 +195,11 @@ describe("ClaimedMonitor.fromRow", () => {
     expect(
       ClaimedMonitor.fromRow({ ...fullRow(), monitorId: null })._id,
     ).toBeUndefined();
-    expect(
-      ClaimedMonitor.fromRow({ ...fullRow(), monitorId: undefined })._id,
-    ).toBeUndefined();
+
+    // A row the statement handed back no monitor id for at all.
+    const withoutId: ClaimedMonitorRow = fullRow();
+    delete withoutId.monitorId;
+    expect(ClaimedMonitor.fromRow(withoutId)._id).toBeUndefined();
   });
 
   test("each call builds a monitor of its own: secrets filled into one never reach another", () => {
