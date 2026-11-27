@@ -381,7 +381,7 @@ En Slack- eller Microsoft Teams-kanal får en kort besked: totalen og dens ændr
 
 - Projektets personer og teams får den pr. e-mail via deres notifikationsindstillinger, hvor hver person kan slå cloudomkostningsrapporter fra. Hver person får de tal, de må læse: den, hvis adgang er begrænset af etiketter, får kun sine konti, og den, der ikke længere må læse projektets cloudomkostninger, udelades.
 - **E-mailadresser** uden for projektet, f.eks. din revisors, og Slack- og Microsoft Teams-kanaler kræver tilladelsen Cloudadministrator, eller Projektadministrator eller Projektejer, fordi OneUptime ikke kan vide, hvem der læser dem. De får rapporten, som den person, der tilføjede dem, må læse den, og holder op med at få den, hvis personen mister tilladelsen. En API-nøgle kan ikke angive dem.
-- Den, der må oprette de andre Cloud-poster, fra Cloudmedlem og op, kan oprette, ændre og slette rapporter. En Cloudseer kan læse dem.
+- Den, der må oprette de andre Cloud-poster, fra Cloudmedlem og op, kan oprette, ændre og slette rapporter. Den, der har Cloud på niveauet Seer, kan læse dem.
 
 En rapport går til højst 200 personer, 25 adresser og 10 kanaler af hver slags. **Seneste udsendelse** viser, hvornår den sidst blev sendt, og hvem den udelod og hvorfor.
 
