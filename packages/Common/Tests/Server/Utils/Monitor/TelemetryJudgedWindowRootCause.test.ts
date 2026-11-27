@@ -255,6 +255,42 @@ describe("the root cause of what a telemetry check opens", () => {
     );
   });
 
+  /*
+   * A check's window holds its start and not its end since #11334, and the
+   * root cause read in email, Slack and Teams says which end it held.
+   */
+  it("a window that leaves out its end says so, for the whole monitor and each series", async () => {
+    const leftOut: MonitorEvaluationWindow = { ...WINDOW, includesEnd: false };
+    const line: string =
+      "**Window Judged**: 2026-11-27 10:00:07 up to, but not including, 10:01:07 UTC";
+
+    const response: ProbeApiIngestResponse = await evaluate({
+      dataToProcess: ungrouped(3),
+      groupByAttributes: undefined,
+      judgedWindow: leftOut,
+    });
+
+    expect(response.rootCause).toContain(line);
+    expect(response.rootCause!.trimEnd().endsWith(line)).toBe(true);
+    expect(response.rootCause).not.toContain(WINDOW_LINE);
+
+    const groupedResponse: ProbeApiIngestResponse = await evaluate({
+      dataToProcess: grouped([
+        group({ "service.name": "checkout" }, 2),
+        group({ "service.name": "payments" }, 1),
+      ]),
+      groupByAttributes: ["service.name"],
+      judgedWindow: leftOut,
+    });
+
+    expect(groupedResponse.perSeriesMatches).toHaveLength(2);
+
+    for (const match of groupedResponse.perSeriesMatches as Array<PerSeriesCriteriaMatch>) {
+      expect(match.rootCause.trimEnd().endsWith(line)).toBe(true);
+      expect(match.rootCause.split("**Window Judged**").length).toBe(2);
+    }
+  });
+
   it("a check that meets no criteria writes no root cause at all", async () => {
     const response: ProbeApiIngestResponse = await evaluate({
       dataToProcess: ungrouped(0),
