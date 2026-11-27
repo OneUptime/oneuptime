@@ -1229,6 +1229,8 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: `stores/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]: `stores/${RouteParams.ModelID}/tables`,
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS]: `stores/${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]: `stores/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS]: `stores/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
   [PageMap.DATA_OBSERVABILITY_CHECKS]: "checks",
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
@@ -9617,6 +9619,20 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[
         PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS
       ]
     }`,
   ),

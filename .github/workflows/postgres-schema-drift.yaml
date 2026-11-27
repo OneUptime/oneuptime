@@ -5626,3 +5626,25 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest
           Tests/Server/Backup/PostgresBackupEnginePostgres.test.ts
           --selectProjects server --runInBand --forceExit
+
+      # A database's whole life in Data Observability (#11147, #11148), on
+      # clones of the migrated tables with their foreign keys: its settings
+      # never hold its connection string; renaming and reconnecting it, the
+      # connection Data Security samples with changed only by someone who may
+      # edit Data Security's stores; Remove taking its tables, checks and
+      # warehouse jobs and leaving Data Security's store, connection, issues
+      # and findings; Delete refused to someone who may only use Data
+      # Observability while Data Security relies on the store; and a Database
+      # Agent handed only its own server's due databases, as typed work with
+      # no statement, while the workers and the probes leave them alone.
+      - name: Test a database's life in Data Observability on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_DATA_OBSERVABILITY_LIFECYCLE_TESTS: "true"
+          DATA_OBSERVABILITY_LIFECYCLE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          DATA_OBSERVABILITY_LIFECYCLE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/DataObservability/DataObservabilityStoreLifecyclePostgres.test.ts
+          --forceExit

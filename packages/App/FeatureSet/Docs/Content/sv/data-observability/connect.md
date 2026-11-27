@@ -1,6 +1,6 @@
 # Anslut en databas
 
-Dataobserverbarhet läser varje databas med en inloggning som bara läser dess katalog: vilka tabeller och vyer den innehåller, deras kolumner, rader och storlek, och när de ändrades. Den här sidan anger det minsta som varje motor behöver, och hur du håller anslutningssträngen inom ditt nätverk med en sond.
+Dataobserverbarhet läser varje databas med en inloggning som bara läser dess katalog: vilka tabeller och vyer den innehåller, deras kolumner, rader och storlek, och när de ändrades. Den här sidan anger det minsta som varje motor behöver, hur du håller anslutningssträngen inom ditt nätverk med en sond eller med den Database Agent som du redan kör, och hur du senare ändrar, tar bort eller raderar en databas.
 
 ## Innan du börjar
 
@@ -13,12 +13,21 @@ Under **Dataobserverbarhet > Databaser** väljer du **Anslut en databas**, och s
 
 - **OneUptime ansluter**: klistra in en anslutningssträng. Den lagras krypterad, används bara av OneUptimes workers och visas aldrig igen.
 - **En sond i mitt nätverk ansluter**: välj en av dina sonder och ange namnet på den miljövariabel på sonden som innehåller anslutningssträngen, till exempel `ORDERS_DB_URL`. Anslutningssträngen lämnar aldrig ditt nätverk. Se [Anpassade sonder](/docs/probe/custom-probe).
+- **Min Database Agent ansluter**: välj den databasserver som dess [Database Agent](/docs/telemetry/databases) redan körs bredvid, och ange den databas på servern som ska läsas. Agenten läser den med inloggningar från sin egen miljö, så ingen inloggning sparas i OneUptime. Se [Via en Database Agent](#via-en-database-agent).
 
 En databas som redan är ansluten för Datasäkerhet övervakas också, utan något att ansluta, och detsamma gäller varje BigQuery-dataset som din [molnanslutning](/docs/telemetry/cloud-accounts) har hittat.
 
 ## Databaser du kan ansluta
 
 **Databaser du kan ansluta**, under **Databaser**, listar det som ditt projekt redan känner till och som ingen har anslutit: databaser som dina spår pratar med, sådana i dina molnkonton och sådana som databasövervakning bevakar. **Anslut** startar formuläret utifrån det som är känt om var och en, med en anslutningssträng att fylla i. **Dölj** hindrar en från att komma tillbaka. Ingenting läses förrän du ansluter den.
+
+## Via en Database Agent
+
+En Database Agent når redan sin databasserver och skickar dess mätvärden. Den kan även läsa serverns PostgreSQL-, MySQL- och MariaDB-databaser för Dataobserverbarhet, när dess ägare slår på det: lägg till `ONEUPTIME_DATA_OBSERVABILITY=true` i agentens `.env` och kör `docker compose up -d`. Tills dess listas agenten med **Dataobserverbarhet avstängd**, och en databas som är ansluten via den säger vad du ska göra.
+
+OneUptime talar om för agenten vilken databas den ska läsa och vilka kontroller som ska köras, var och en med sin typ och den tabell och de kolumner den läser. Det skickar aldrig en sats eller en inloggning. Agenten bygger varje sats själv, utifrån samma fasta former som OneUptimes egna collectorer använder, och kör var och en i en transaktion med enbart läsbehörighet och en gräns på 30 sekunder. Den kör en kontroll bara när varje tabell och kolumn som kontrollen nämner finns i katalogen som den just har läst, binder varje värde som kontrollen jämför med och skickar tillbaka ett tal per kontroll, aldrig en rad. Kontroller av typen **Anpassad SQL** och **Rader som misslyckas** körs bara där agentens ägare anger `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true`; på andra ställen säger de det, och alla andra kontroller körs.
+
+Agenten läser katalogen med `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME`, eller med collectorns inloggning, och kör kontroller med `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME`, eller med katalogens inloggning: ge var och en bara det som flikarna nedan listar för den. Agentens README listar alla variabler.
 
 ## En inloggning som bara kan läsa, per motor
 
@@ -162,6 +171,18 @@ Kontroller körs som SQL med enbart läsbehörighet mot miljöns TDS-endpoint, p
 
 Varje sats körs med enbart läsbehörighet, med en tidsgräns för satser och lås där motorn har sådana. En begäran som tillfälligt avvisas eller misslyckas hos Snowflake, Databricks, BigQuery, Athena, ClickHouse eller Dataverse, med en 429, en 503 eller tjänstens eget besked om att den är för upptagen, skickas igen, högst två gånger och inom en minuts väntan per insamling, och aldrig på ett sätt som skulle kunna köra en sats två gånger. Anslutningssträngen loggas aldrig och tas bort ur varje felmeddelande. En statistik som inloggningen inte får läsa utelämnas med en varning på databasen; insamlingen misslyckas aldrig på grund av det. Anslutningar till privata adresser nekas i OneUptime Cloud: använd en sond.
 
+## Hantera en databas
+
+Varje databas har en sida **Inställningar**: välj **Inställningar** på dess rad under **Databaser**, eller i dess meny.
+
+- **Redigera detaljer** byter namn på den. Datasäkerhet visar samma namn.
+- **Ändra anslutning** ger den en ny inloggning, en annan sond eller en Database Agent. En sparad anslutningssträng visas aldrig igen: lämna fältet tomt för att behålla den. Om du flyttar en databas till en Database Agent raderas dess sparade anslutningssträng, om inte Datasäkerhet tar stickprov av databasens innehåll med den.
+- **Sluta bevaka**, på dess **Översikt**, slutar läsa den ett tag och behåller dess tabeller och deras historik. **Bevaka igen** börjar igen.
+- **Ta bort från Dataobserverbarhet** slutar läsa den och glömmer dess tabeller, deras kontroller och deras historik. Datasäkerhet behåller databasen, dess anslutning och det som skanningarna hittade, och den erbjuds igen under **Databaser du kan ansluta**.
+- **Ta bort databas** raderar den från OneUptime, tillsammans med det som Dataobserverbarhet och Datasäkerhet har sparat om den. Bekräftelsen listar först vad som försvinner.
+
+En databas här är också ett datalager i Datasäkerhet. Så länge Datasäkerhet är beroende av den (den hittade databasen, någon lade till den där, eller den har fynd, problem, skanningar, ägare eller en post i registret över behandling om sig), kan bara den som får ta bort Datasäkerhets datalager ta bort den, och bara den som får redigera dem kan ändra anslutningen som Datasäkerhet tar stickprov av innehållet med. Inställningar säger det vid knappen det gäller. Monitorer som bevakar en databas behålls när den försvinner: ta bort dem under **Monitorer**.
+
 ## Läsrepliker
 
 En läsreplik i PostgreSQL eller SQL Server flyttar inte sina skrivräknare, så en tabell där kan se oförändrad ut medan den ändras. OneUptime ser att det är en replik, utelämnar räknarna, säger det på databasen och faller tillbaka på tabellens storlek och rader. Anslut primärservern där du kan, eller ange en [aktualitetskolumn](/docs/data-observability/table-health) för de tabeller som är viktiga.
@@ -174,6 +195,7 @@ Varje sökväg visas sedan under **Tabeller**: dess nyaste objekt är när den s
 
 ## Felsökning
 
+- **Databasen visar Database Agent inte redo.** Agenten kan inte läsa den nu, och databasens sida säger varför: dess server har ingen Database Agent ansluten, eller agenten är avstängd för Dataobserverbarhet (`ONEUPTIME_DATA_OBSERVABILITY=true` slår på den), har inte hörts av, är för gammal (kör dess `install.sh` igen) eller körs på en server som varken är PostgreSQL eller MySQL.
 - **Databasen visar Misslyckades.** Dess meddelande säger varför: en värd som OneUptime inte kan nå, en inloggning som nekades, ett TLS-läge som servern inte accepterar. Anslut en databas inuti ditt nätverk via en sond. För Snowflake, Databricks, BigQuery, Athena, ClickHouse och Dataverse anger meddelandet vad som lästes, tjänstens egna felkod och felmeddelande, och id:t för begäran eller frågan som tjänstens support kan spåra, om tjänsten ger ett. **Samla in nu** försöker igen direkt, och sidan visar hur det gick.
 - **Tabeller visar ingen senaste ändring.** Inloggningen kan inte läsa motorns statistik: bevilja det som fliken för din motor listar, eller vänta tills en tabells rader har ändrats två gånger.
 - **En tabell saknas.** Den ligger i ett schema som inloggningen inte får använda, eller så är den undantagen i databasen. Bevilja `USAGE` på dess schema, eller ta bort undantaget.
