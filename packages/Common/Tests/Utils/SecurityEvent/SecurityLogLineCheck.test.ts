@@ -502,9 +502,12 @@ describe("Forwarded By, on the event", () => {
       check(issueLine(PRIVATE_PROXY, [CLIENT, ...hops].join(", ")), sayingSo()),
     );
 
+    const forwardedBy: Array<string> = readForwardedBy(event);
+
     expect(event.principalIp).toBe(CLIENT);
-    expect(readForwardedBy(event)).toHaveLength(MAX_FORWARDED_BY);
-    expect(readForwardedBy(event).at(-1)).toBe(PRIVATE_PROXY);
+    expect(forwardedBy).toHaveLength(MAX_FORWARDED_BY);
+    // The connection's own address is last, whatever the header held.
+    expect(forwardedBy[forwardedBy.length - 1]).toBe(PRIVATE_PROXY);
   });
 
   test("an event that says no trusted proxy forwarded it says none, whatever the attribute holds", () => {

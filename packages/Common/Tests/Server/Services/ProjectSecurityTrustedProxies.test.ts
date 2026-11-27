@@ -258,6 +258,38 @@ describe("ProjectService.applySecurityTrustedProxyRules: what a project may stor
     }
   });
 
+  /*
+   * #11049: with 0.0.0.0/0 stored, every hop of an X-Forwarded-For was
+   * trusted, so its leftmost - what the sender wrote - was the client. The
+   * API refuses it as the card does, whoever saves it.
+   */
+  it("refuses a range too broad to be a proxy's, with the reason", () => {
+    for (const tooBroad of ["0.0.0.0/0", "128.0.0.0/1", "::/0", "2000::/3"]) {
+      expect(() => {
+        ProjectService.applySecurityTrustedProxyRules({
+          securityTrustedProxies: `203.0.113.0/24\n${tooBroad}`,
+        });
+      }).toThrow(
+        new BadDataException(
+          `${tooBroad} covers too much of the internet to be a proxy. List your proxy's own addresses or ranges, such as 203.0.113.0/24.`,
+        ),
+      );
+    }
+  });
+
+  it("keeps the widest ranges a proxy can have: a /8 of IPv4, a /16 of IPv6, and Google's front ends", () => {
+    const data: { securityTrustedProxies?: unknown } = {
+      securityTrustedProxies:
+        "35.0.0.0/8\n2600::/16\n35.191.0.0/16\n130.211.0.0/22\nfc00::/7",
+    };
+
+    ProjectService.applySecurityTrustedProxyRules(data);
+
+    expect(data.securityTrustedProxies).toBe(
+      "35.0.0.0/8\n2600::/16\n35.191.0.0/16\n130.211.0.0/22\nfc00::/7",
+    );
+  });
+
   it("refuses more proxies than a project may trust", () => {
     const many: Array<string> = [];
 
