@@ -113,6 +113,8 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   CephResource: LeftOut.Discovered,
   CloudAccount: LeftOut.Discovered,
   CloudApp: LeftOut.Discovered,
+  // A reservation, savings plan or committed use discount, read from its cloud (#11007): nobody creates one.
+  CloudCommitment: LeftOut.Discovered,
   DataAsset: LeftOut.Discovered,
   DataDashboard: LeftOut.Discovered,
   DataStore: LeftOut.Discovered,
@@ -135,6 +137,7 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   StorageArrayResource: LeftOut.Discovered,
   VMwareResource: LeftOut.Discovered,
   WorkspaceUserGroup: LeftOut.Discovered,
+  XcpNgResource: LeftOut.Discovered,
 
   // Parts of another record.
   AIConversation: LeftOut.PersonalOrOnePage,
@@ -162,6 +165,11 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
 
   // Rules.
   AIPostmortemRule: LeftOut.Rule,
+  /*
+   * An off-hours schedule (#11010) picks resources by a tag and acts by its
+   * hours; nothing picks a schedule by its name.
+   */
+  CloudOffHoursSchedule: LeftOut.Rule,
   AlertEpisodeLabelRule: LeftOut.Rule,
   AlertEpisodeOnCallRule: LeftOut.Rule,
   AlertEpisodeOwnerRule: LeftOut.Rule,
@@ -262,6 +270,8 @@ const LEFT_OUT: Readonly<Record<string, LeftOut>> = {
   WorkflowLabelRule: LeftOut.Rule,
   WorkflowOwnerRule: LeftOut.Rule,
   WorkspaceNotificationRule: LeftOut.Rule,
+  XcpNgPoolLabelRule: LeftOut.Rule,
+  XcpNgPoolOwnerRule: LeftOut.Rule,
 
   // Kept by one person, or on one page.
   ExceptionSavedView: LeftOut.PersonalOrOnePage,

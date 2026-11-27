@@ -2378,6 +2378,7 @@ describe("starting from a resource or a template", () => {
         CreateFromRecordKind.DockerHost,
         CreateFromRecordKind.PodmanHost,
         CreateFromRecordKind.VMwareVCenter,
+        CreateFromRecordKind.XcpNgPool,
         CreateFromRecordKind.OpenStackCloud,
         CreateFromRecordKind.StorageArray,
         CreateFromRecordKind.IoTFleet,
@@ -2398,7 +2399,7 @@ describe("starting from a resource or a template", () => {
     }
 
     expect(start).toContain(
-      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
+      "On the **Scheduled Maintenance** tab of a host, a Kubernetes, Proxmox, Ceph or Docker Swarm cluster, a Docker or Podman host, a vCenter, an XCP-ng pool, an OpenStack cloud, a storage array, an IoT fleet, a database, a cloud resource, a service or a network site, **Create Maintenance Event** opens the same form with that resource already picked under **Other Affected Resources**",
     );
   });
 
@@ -2472,16 +2473,18 @@ describe("what happens when an event is created", () => {
     );
   });
 
-  it("works through the steps in the page's order: chat, feed, state timeline, owners and labels, runbook rules, reminders", () => {
+  it("works through the steps in the page's order: state timeline, owners and labels, chat and feed, runbook rules, reminders (#11188)", () => {
     expect(
       inOrder(
         positionsIn(createSuccessSteps(EVENT_SERVICE), [
-          "this.handleScheduledMaintenanceWorkspaceOperationsAsync(",
-          "this.createScheduledMaintenanceFeedAsync(",
           "this.createScheduledMaintenanceStateTimelineAsync(",
           "this.addOwners(",
           "ScheduledMaintenanceOwnerRuleEngineService.applyRulesToScheduledMaintenance(",
           "ScheduledMaintenanceLabelRuleEngineService.applyRulesToScheduledMaintenance(",
+          "WorkspaceRuleOwnersOnCreate.waitForOwnersOfCreate(",
+          "this.handleScheduledMaintenanceWorkspaceOperationsAsync(",
+          "this.createScheduledMaintenanceFeedAsync(",
+          "WorkspaceCreatedMessageFirst.postHeld(",
           "RunbookRuleEngineService.applyRulesToScheduledMaintenance(",
           "this.refreshReminderSchedule({",
         ]),
@@ -2490,14 +2493,32 @@ describe("what happens when an event is created", () => {
     expect(
       inOrder(
         positionsIn(happens, [
-          "**Your chat tools hear of it.**",
           "**Its state timeline starts.**",
           "**Owners and labels are added**",
+          "**Your chat tools hear of it.**",
           "**Runbook rules start**",
           "**Reminders are scheduled**",
         ]),
       ),
     ).toBe(true);
+  });
+
+  it("matches the chat rules on the owners and labels it is created with, and posts what was said meanwhile after it (#11188)", () => {
+    const steps: string = createSuccessSteps(EVENT_SERVICE);
+
+    // Its creator, made its owner as the create returns, is waited for.
+    expect(EVENT_SERVICE).toContain(
+      "CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Create);",
+    );
+    expect(steps).toContain(
+      "eventType: NotificationRuleEventType.ScheduledMaintenance,",
+    );
+    // Everything else said about it waits for its created message.
+    expect(steps).toContain("await WorkspaceCreatedMessageFirst.hold({");
+    expect(EVENT_SERVICE).toContain("announcesRecord: true,");
+    expect(happens).toContain(
+      "The rules see the owners and labels the event was created with, so a rule that asks who owns an event, or how it is labelled, posts it too. Whatever was said about the event meanwhile, such as the owners just added, follows it in those channels.",
+    );
   });
 
   it("lets a Workspace rule create a channel for the event", () => {

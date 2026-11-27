@@ -205,10 +205,6 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     {
       "stampStatusCheckedAt Monitor": Why.Bookkeeping,
     },
-  "packages/App/FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor.ts":
-    {
-      "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
-    },
   /*
    * The owner notification jobs' take: a state change marked as told
    * (isOwnerNotified), by the run that tells its owners (issue #7974). And
@@ -225,6 +221,14 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/API/DataSecurityAPI.ts": {
     "(module) DataStore": Why.Bookkeeping,
     "(module) DataStoreFinding": Why.FollowOn,
+  },
+  /*
+   * Scrub It, which its route and Ask AI's action both press (#10378): the
+   * scrub rule is made through its own service and recorded there, and the
+   * finding marked scrubbed follows from it.
+   */
+  "packages/Common/Server/Utils/DataSecurity/DataSecurityButtons.ts": {
+    "DataSecurityButtons.scrubFinding DataStoreFinding": Why.FollowOn,
   },
   /*
    * A proposal of OneUptime AI's made or undone (#10364): the scrub rules
@@ -353,6 +357,12 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
      * records - and when a request kept once is split.
      */
     "Service.rewriteLatestIncomingRequestForReaders Monitor": Why.Derived,
+    /*
+     * When a telemetry monitor is next evaluated, moved onto its new
+     * interval after an edit to the interval - an edit the audit log
+     * records (#11060).
+     */
+    "Service.rescheduleTelemetryMonitor Monitor": Why.Bookkeeping,
   },
   "packages/Common/Server/Services/MonitorTestService.ts": {
     "Service.claimMonitorTestsForProbing MonitorTest": Why.Bookkeeping,
@@ -480,6 +490,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Services/WorkflowService.ts": {
     "Service.ensureIncomingEmailSecretKey Workflow": Why.Setup,
   },
+  "packages/Common/Server/Services/XcpNgPoolService.ts": {
+    "Service.attachLabels XcpNgPool": Why.Reported,
+  },
   "packages/Common/Server/Utils/AI/ResourceAccess/AiAgentResetAuditLog.ts": {
     "AiAgentResetAuditLog.record *": Why.Recorded,
   },
@@ -532,6 +545,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    */
   "packages/Common/Server/Utils/Activation/TelemetryMilestoneBackfill.ts": {
     "(module) ProjectMilestone": Why.Migration,
+  },
+  // Each commitment as the provider reports it, kept as each read arrives (#11011).
+  "packages/Common/Server/Utils/CloudConnection/CloudCommitmentWriter.ts": {
+    "CloudCommitmentWriter.write CloudCommitment": Why.Reported,
   },
   "packages/Common/Server/Utils/CloudConnection/CloudConnectionResourceSync.ts":
     {
@@ -683,6 +700,15 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       Why.Bookkeeping,
     "MonitorStatusTimelineReconciler.restoreMissingStatusTimelinesBatch MonitorStatusTimeline":
       Why.Bookkeeping,
+  },
+  /*
+   * The telemetry scheduler's stamps (MonitorTelemetryMonitor): when a
+   * monitor was last queued and is next due, and a monitor made due again
+   * when the queue refused its evaluation.
+   */
+  "packages/Common/Server/Utils/Monitor/TelemetryMonitorStamps.ts": {
+    "stampTelemetryMonitorsScheduled Monitor": Why.Bookkeeping,
+    "returnTelemetryMonitorsNotQueued Monitor": Why.Bookkeeping,
   },
   /*
    * The hourly age-out (#6389) forgetting the Hide from map preference of
@@ -841,7 +867,9 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
    * An erasure request (#10908) taking a person out of what Security Events
    * named them in: the request's creation is recorded, and an entry for
    * each write here would copy the person's name - what the request erases
-   * - into the audit log as the old value.
+   * - into the audit log as the old value. So would rewriting the
+   * fingerprint an alert or an incident a detection opened groups on
+   * (#11130): the old one is a fingerprint of the person.
    */
   "packages/Common/Server/Utils/SecurityEvent/UserVault/SecurityUserErasureRecords.ts":
     {
@@ -849,6 +877,10 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
       "SecurityUserErasureRecords.deleteEntityRisk SecurityEntityRisk":
         Why.FollowOn,
       "SecurityUserErasureRecords.withdrawPlaybookRuns SecurityPlaybookRun":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.rewriteSeriesFingerprints Alert":
+        Why.FollowOn,
+      "SecurityUserErasureRecords.rewriteSeriesFingerprints Incident":
         Why.FollowOn,
     },
   "packages/Common/Server/Utils/SecurityPlaybook/SecurityPlaybookActions.ts": {

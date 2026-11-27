@@ -34,6 +34,7 @@ import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "Common/Models/DatabaseModels/ProxmoxCluster";
 import OpenStackCloud from "Common/Models/DatabaseModels/OpenStackCloud";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import DockerSwarmCluster from "Common/Models/DatabaseModels/DockerSwarmCluster";
@@ -437,10 +438,11 @@ const advancedSection: FormFieldCollapsibleSection<Incident> =
  *
  * Together the two pickers offer what the incident's own Edit offers, split
  * the same way, so an incident declared from a Proxmox cluster's, a
- * vCenter's, a Ceph or Docker Swarm cluster's, a storage array's or an IoT
- * fleet's Incidents tab keeps it picked (Components/CreateFromRecord). Each
- * editor and its review step's read-only picker take the same list, so the
- * summary names every type the editor lets the user pick.
+ * vCenter's, an XCP-ng pool's, a Ceph or Docker Swarm cluster's, a storage
+ * array's or an IoT fleet's Incidents tab keeps it picked
+ * (Components/CreateFromRecord). Each editor and its review step's read-only
+ * picker take the same list, so the summary names every type the editor lets
+ * the user pick.
  */
 const MONITOR_RESOURCE_TYPES: Array<AffectedResourceType> = ["Monitor"];
 
@@ -453,6 +455,7 @@ const OTHER_AFFECTED_RESOURCE_TYPES: Array<AffectedResourceType> = [
   "ProxmoxCluster",
   "OpenStackCloud",
   "VMwareVCenter",
+  "XcpNgPool",
   "CephCluster",
   "StorageArray",
   "DockerSwarmCluster",
@@ -2285,6 +2288,7 @@ const IncidentCreate: FunctionComponent<
                         vmwareVCenters={
                           values.vmwareVCenters as Array<VMwareVCenter>
                         }
+                        xcpNgPools={values.xcpNgPools as Array<XcpNgPool>}
                         cephClusters={values.cephClusters as Array<CephCluster>}
                         storageArrays={
                           values.storageArrays as Array<StorageArray>
@@ -2332,6 +2336,7 @@ const IncidentCreate: FunctionComponent<
                           proxmoxClusters: payload.proxmoxClusters,
                           openStackClouds: payload.openStackClouds,
                           vmwareVCenters: payload.vmwareVCenters,
+                          xcpNgPools: payload.xcpNgPools,
                           cephClusters: payload.cephClusters,
                           storageArrays: payload.storageArrays,
                           dockerSwarmClusters: payload.dockerSwarmClusters,
@@ -2380,6 +2385,7 @@ const IncidentCreate: FunctionComponent<
                       item.proxmoxClusters,
                       item.openStackClouds,
                       item.vmwareVCenters,
+                      item.xcpNgPools,
                       item.cephClusters,
                       item.storageArrays,
                       item.dockerSwarmClusters,
@@ -2420,6 +2426,7 @@ const IncidentCreate: FunctionComponent<
                         vmwareVCenters={
                           item.vmwareVCenters as Array<VMwareVCenter>
                         }
+                        xcpNgPools={item.xcpNgPools as Array<XcpNgPool>}
                         cephClusters={item.cephClusters as Array<CephCluster>}
                         storageArrays={
                           item.storageArrays as Array<StorageArray>
@@ -2608,8 +2615,8 @@ const IncidentCreate: FunctionComponent<
                 /*
                  * Hidden registrations so ModelForm.getSelectFields includes
                  * kubernetesClusters/dockerHosts/podmanHosts/
-                 * proxmoxClusters/vmwareVCenters/cephClusters/storageArrays/
-                 * dockerSwarmClusters/iotFleets/databaseServers/
+                 * proxmoxClusters/vmwareVCenters/xcpNgPools/cephClusters/
+                 * storageArrays/dockerSwarmClusters/iotFleets/databaseServers/
                  * cloudResources/services on load and submit. (hosts is the
                  * Other Affected Resources picker's anchor, so it needs no
                  * registration of its own.)
@@ -2676,6 +2683,16 @@ const IncidentCreate: FunctionComponent<
                 },
                 {
                   field: { vmwareVCenters: true },
+                  stepId: "resources-affected",
+                  title: "",
+                  fieldType: FormFieldSchemaType.Text,
+                  required: false,
+                  showIf: () => {
+                    return false;
+                  },
+                },
+                {
+                  field: { xcpNgPools: true },
                   stepId: "resources-affected",
                   title: "",
                   fieldType: FormFieldSchemaType.Text,

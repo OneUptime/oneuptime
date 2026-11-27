@@ -1,3 +1,5 @@
+import MonitorMetricType from "../Monitor/MonitorMetricType";
+
 /*
  * Ping round-trip time of a network device, in ms.
  *
@@ -5,9 +7,10 @@
  * a network device that series is the SNMP walk's time (and is absent on a
  * ping-only poll), so the RTT needs a series of its own. It sits in the
  * `oneuptime.monitor.ping.*` namespace beside PacketLossPercent and Jitter,
- * which ARE reused from the Ping monitor. MonitorMetricType has no member
- * for it yet; this constant should graduate into that enum (and the device
- * metric catalog) rather than be duplicated.
+ * which ARE reused from the Ping monitor. It graduated into MonitorMetricType
+ * as IcmpResponseTime (issue #11071), which a Network Device monitor writes
+ * for itself too, so its ICMP Response Time criteria can be judged over a
+ * window; this name stays for the device's readers.
  *
  * Lives under Common/Types rather than next to the writer in
  * Common/Server/Utils because the dashboard reads the same series back (the
@@ -17,4 +20,4 @@
  * name, so its existing importers do not move.
  */
 export const NETWORK_DEVICE_PING_ROUND_TRIP_TIME_METRIC_NAME: string =
-  "oneuptime.monitor.ping.round.trip.time";
+  MonitorMetricType.IcmpResponseTime;

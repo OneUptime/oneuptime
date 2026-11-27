@@ -25,6 +25,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import { isCustomDataTypeId } from "../../../../Utils/DataSecurity/CustomDataTypeDetector";
 import { getDataTypePrefilter } from "../../../../Utils/DataSecurity/DetectorPrefilter";
 import { getBuiltInDetectorsOf } from "../../../../Utils/DataSecurity/Detectors/Index";
+import { QUERY_NAME_DATA_TYPE_ID } from "../../../../Utils/DataSecurity/QueryStringNames";
 import {
   classifyField,
   FieldClassification,
@@ -1120,6 +1121,8 @@ export function buildOccurrenceMatcher(data: {
     extraHints: data.options.extraHints,
     disabledDataTypeIds: data.options.disabledDataTypeIds,
     allowedValues: data.options.allowedValues,
+    // A person's name: one a URL's query parameter names too, as the scan found it (#11034).
+    readsQueryStringNames: data.dataTypeId === QUERY_NAME_DATA_TYPE_ID,
     /*
      * Every value at the place is one the model reads: the finding says
      * the model read the place, however short each of its values is.

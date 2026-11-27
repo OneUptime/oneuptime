@@ -1525,6 +1525,49 @@ export default class MonitorMetricUtil {
         metricRows: metricRows,
         metricNameServiceNameMap: metricNameServiceNameMap,
       });
+
+      /*
+       * A network device's ping on its own (issue #11071): only its poll
+       * says whether the ping answered (isReachable), because its IsOnline
+       * is the device's verdict - ping OR the SNMP walk. A Ping monitor's
+       * verdict is its IsOnline, and writes neither series.
+       */
+      if (typeof pingResponse.isReachable === "boolean") {
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.IcmpIsReachable,
+          value: pingResponse.isReachable ? 1 : 0,
+          description: translationKey(
+            "Whether the device answered its probe's ping (1 yes, 0 no)",
+          ),
+          unit: "",
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+
+        await this.pushMonitorMetric({
+          projectId: data.projectId,
+          monitorId: data.monitorId,
+          monitorName: data.monitorName,
+          probeName: data.probeName,
+          metricName: MonitorMetricType.IcmpResponseTime,
+          // No echo, no round trip: a gap, never a zero.
+          value: pingResponse.isReachable
+            ? pingResponse.avgRoundTripTimeInMs
+            : undefined,
+          description: translationKey(
+            "ICMP Response Time (in ms) of the device's ping",
+          ),
+          unit: "ms",
+          extraAttributes: extraAttributes,
+          metricRows: metricRows,
+          metricNameServiceNameMap: metricNameServiceNameMap,
+        });
+      }
     }
 
     if ((data.dataToProcess as ProbeMonitorResponse).isOnline !== undefined) {

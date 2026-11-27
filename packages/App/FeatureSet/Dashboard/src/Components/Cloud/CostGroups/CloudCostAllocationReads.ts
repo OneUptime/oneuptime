@@ -12,6 +12,7 @@ import {
   CloudCostAllocationInterval,
   CloudCostAllocationResult,
 } from "Common/Types/Cloud/CloudCostAllocation";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import {
   CloudCostRule,
   readCloudCostRules,
@@ -39,6 +40,8 @@ export interface CloudCostAllocationAsk {
   endDate: Date;
   interval?: CloudCostAllocationInterval | undefined;
   currency?: string | undefined;
+  // The cost basis shown (#11007): the project's when absent.
+  basis?: CloudCostBasis | undefined;
   cloudAccountIds?: Array<ObjectID> | undefined;
 }
 
@@ -46,6 +49,7 @@ export interface CloudCostGroupSpend {
   viewId: string;
   viewName: string;
   currency: string;
+  basis?: CloudCostBasis | null | undefined;
   interval: CloudCostAllocationInterval;
   start: string;
   lastDay: string;
@@ -68,6 +72,10 @@ function toBody(ask: CloudCostAllocationAsk): JSONObject {
 
   if (ask.currency) {
     body["currency"] = ask.currency;
+  }
+
+  if (ask.basis) {
+    body["basis"] = ask.basis;
   }
 
   if (ask.cloudAccountIds && ask.cloudAccountIds.length > 0) {
@@ -177,12 +185,16 @@ export function readGroupRules(group: CloudCostGroup): Array<CloudCostRule> {
 
 /*
  * The names the rule editor and a rule's sentence show for the records a
- * rule names, by their IDs in lower case.
+ * rule names, by their IDs in lower case. Every label is named, archived
+ * ones too, so a rule that names one still says which; the archived ones
+ * are never offered for a new pick (archivedLabels, Common/Utils/
+ * ArchivableValues).
  */
 export interface CloudCostRecordNames {
   teams: Map<string, string>;
   labels: Map<string, string>;
   clusters: Map<string, string>;
+  archivedLabels: Set<string>;
 }
 
 export async function fetchCloudCostRecordNames(): Promise<CloudCostRecordNames> {
@@ -202,7 +214,7 @@ export async function fetchCloudCostRecordNames(): Promise<CloudCostRecordNames>
     ModelAPI.getList<Label>({
       modelType: Label,
       query: {},
-      select: { _id: true, name: true },
+      select: { _id: true, name: true, isArchived: true },
       sort: { name: SortOrder.Ascending },
       skip: 0,
       limit: LIMIT_PER_PROJECT,
@@ -254,6 +266,15 @@ export async function fetchCloudCostRecordNames(): Promise<CloudCostRecordNames>
     ),
     clusters: byId(
       clusters.data as unknown as Array<{ _id?: string; name?: string }>,
+    ),
+    archivedLabels: new Set(
+      labels.data
+        .filter((label: Label): boolean => {
+          return Boolean(label._id) && Boolean(label.isArchived);
+        })
+        .map((label: Label): string => {
+          return String(label._id).toLowerCase();
+        }),
     ),
   };
 }

@@ -202,6 +202,7 @@ describe("which kinds are searched on the server", () => {
       EntityFilterModelType.PodmanHost,
       EntityFilterModelType.ProxmoxCluster,
       EntityFilterModelType.VMwareVCenter,
+      EntityFilterModelType.XcpNgPool,
       EntityFilterModelType.CephCluster,
       EntityFilterModelType.StorageArray,
       EntityFilterModelType.DockerSwarmCluster,

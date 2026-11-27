@@ -874,7 +874,11 @@ describe("the words behind it", () => {
   });
 
   test("the owner's answer, read", () => {
-    expect(readDeclaredCodeOwner(OWNER)).toEqual(OWNER);
+    // An answer that does not say whether any repository could take it: its list does (#11076).
+    expect(readDeclaredCodeOwner(OWNER)).toEqual({
+      ...OWNER,
+      hasRepository: true,
+    });
     expect(readDeclaredCodeOwner({ candidates: "none" })).toBeNull();
     expect(
       readDeclaredCodeOwner({

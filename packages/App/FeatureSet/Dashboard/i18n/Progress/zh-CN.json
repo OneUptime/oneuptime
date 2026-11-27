@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64795,
+    "keys": 66170,
     "untranslated": 8050
   },
   "sameAsEnglish": [
@@ -179,6 +179,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
@@ -221,6 +223,7 @@
     "mm",
     "name",
     "nova-compute",
+    "office-hours",
     "oneuptime",
     "oneuptime-check",
     "oneuptime-checks",
@@ -229,6 +232,7 @@
     "ops@example.com",
     "p95",
     "p95 {{latency}}",
+    "payments, search, platform-*",
     "prod, staging",
     "prod-.*",
     "prod-eu",

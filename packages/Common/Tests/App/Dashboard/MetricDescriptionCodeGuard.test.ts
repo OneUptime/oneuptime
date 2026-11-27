@@ -18,6 +18,7 @@ import { getAllPodmanMetrics } from "../../../Types/Monitor/PodmanMetricCatalog"
 import { getAllProxmoxMetrics } from "../../../Types/Monitor/ProxmoxMetricCatalog";
 import { getAllStorageArrayMetrics } from "../../../Types/Monitor/StorageArrayMetricCatalog";
 import { getAllVMwareMetrics } from "../../../Types/Monitor/VMwareMetricCatalog";
+import { getAllXcpNgMetrics } from "../../../Types/Monitor/XcpNgMetricCatalog";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 import { listSourceFiles, toRelativePath } from "../../ForeignHiddenRuleGuard";
 
@@ -95,6 +96,7 @@ const CATALOGS: Record<string, () => Array<CatalogEntry>> = {
   "ProxmoxMetricCatalog.ts": getAllProxmoxMetrics,
   "StorageArrayMetricCatalog.ts": getAllStorageArrayMetrics,
   "VMwareMetricCatalog.ts": getAllVMwareMetrics,
+  "XcpNgMetricCatalog.ts": getAllXcpNgMetrics,
 };
 
 // What a reader's code names a catalog by: its definition and its getters.
@@ -111,7 +113,13 @@ interface DescriptionRead {
   isDrawnAsCode: boolean;
 }
 
-const DEFINITION_REGEX: RegExp = /export interface (\w+MetricDefinition)\b/;
+/*
+ * The definition a catalog exports: declared there, or declared beside the
+ * platforms it reads and exported on as a type (StorageArrayMetricCatalog,
+ * since #11086 drew each storage platform's metrics from its own list).
+ */
+const DEFINITION_REGEX: RegExp =
+  /export (?:interface (\w+MetricDefinition)\b|type \{[^}]*?\b(\w+MetricDefinition)\b[^}]*\})/;
 
 const GETTER_REGEX: RegExp = /export function (\w+)\s*\(/g;
 
@@ -125,9 +133,11 @@ const readCatalogNames: (catalog: string) => CatalogNames = (
     "utf8",
   );
 
+  const definition: RegExpMatchArray | null = source.match(DEFINITION_REGEX);
+
   return {
     catalog: catalog,
-    definition: source.match(DEFINITION_REGEX)?.[1] || "",
+    definition: definition?.[1] || definition?.[2] || "",
     getters: Array.from(
       source.matchAll(GETTER_REGEX),
       (match: RegExpMatchArray): string => {

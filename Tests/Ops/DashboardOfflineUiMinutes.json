@@ -28,6 +28,7 @@
     "The status page and telemetry guided setups' looks at a status page the server refused and Try again, of 2026-11-20 (#10276: 2 tests, 7.7 s locally), are added to its minutes the same way, times 1.26: 4.5 to 4.7, until App Test's runs measure it.",
     "The RUM setup suite of 2026-11-20 (#6379, #6457, #6458: 44 tests, at 1280 and on a 390px touch screen) took 2.2 minutes locally, its bundle built, on a machine other work ran on: 2.2 minutes times 1.26, 2.8, until App Test's runs measure it.",
     "The dashboard full-screen suite of 2026-11-24 (#10409: 27 tests, at 1280 and on a 390px phone) took 3.75 minutes locally, its bundle built, on a machine other work ran on: 3.75 minutes times 1.26, 4.7, until App Test's runs measure it.",
+    "The XCP-ng pool pages suite of 2026-11-26 (#10995: 24 tests, at 1280 and on a 390px phone, in dark mode, German and Persian) took 59 s locally with CI=1, its bundle built, on a machine other work ran on: 0.98 minutes times 1.26, 1.2, until App Test's runs measure it.",
     "Tests/Ops/DashboardOfflineUiBudget holds every group of .github/workflows/test.app.yaml's dashboard-offline-ui to ending within 22 minutes on its run step's two lanes, its suites started at these minutes as RunUiSuites.js starts them."
   ],
   "measuredOn": "2026-11-17",
@@ -170,6 +171,7 @@
     "test-vmware-pages-ui": 2.6,
     "test-website-down-guided-setup-ui": 2.4,
     "test-workflow-builder-ui 1/2": 11.7,
-    "test-workflow-builder-ui 2/2": 15.6
+    "test-workflow-builder-ui 2/2": 15.6,
+    "test-xcp-ng-pages-ui": 1.2
   }
 }

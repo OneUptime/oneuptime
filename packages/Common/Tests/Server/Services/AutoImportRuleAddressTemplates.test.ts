@@ -59,6 +59,18 @@ jest.mock("../../../Server/Services/MonitorTemplateService", () => {
   return { __esModule: true, default: { findBy: jest.fn() } };
 });
 
+// The monitors whose steps watch a device (issue #10990): none, unless a test says.
+jest.mock("../../../Server/Services/MonitorNetworkDeviceService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findMonitorIdsWatching: jest.fn(async (): Promise<Array<string>> => {
+        return [];
+      }),
+    },
+  };
+});
+
 jest.mock("../../../Server/Infrastructure/Semaphore", () => {
   return { __esModule: true, default: { lock: jest.fn(), release: jest.fn() } };
 });

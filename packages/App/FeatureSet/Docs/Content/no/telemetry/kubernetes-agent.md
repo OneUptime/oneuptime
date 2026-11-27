@@ -471,14 +471,14 @@ Kubernetes-hendelser filtreres ikke etter navnerom i agenten: den sender alle, o
 
 Den godtar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` og `FATAL`. `WARN` beholder WARN, ERROR og FATAL og dropper INFO, DEBUG og TRACE; standardverdien (`""`) beholder alt. Den gjelder i begge loggmodusene (gjennom collectoren i `daemonset`-modus, inne i logg-taileren i `api`-modus), så en forhåndsinnstilling slår den aldri av bak ryggen din.
 
-Container-kjøretider registrerer ingen alvorlighetsgrad, så agenten leser en fra selve loggteksten (`[ERROR]`, `WARN:`, `"level":"info"`, …). Hva som skjer med en linje uten gjenkjennelig nivå, avhenger av loggmodusen, fordi de to modusene vet forskjellige ting:
+Container-kjøretider registrerer ingen alvorlighetsgrad, så agenten leser nivået hver linje nevner: et nivåord (`[ERROR]`, `WARN:`, `"level":"info"`, …), den første bokstaven i en klog-linje (`I`, `W`, `E`, `F`), PostgreSQLs `LOG:` eller pinos `"level":30`. Et unntaks traceback eller en panic teller som ERROR. Hva som skjer med en linje som ikke nevner noe nivå, avhenger av loggmodusen, fordi de to modusene vet forskjellige ting:
 
 | Modus | En linje uten nivå | Hvorfor |
 | --- | --- | --- |
-| `daemonset` | `stderr` teller som ERROR (beholdes), `stdout` som INFO (droppes av en WARN-terskel) | Container-kjøretiden registrerer hvilken strøm hver linje kom fra. |
+| `daemonset` | `stdout` teller som INFO (droppes av en WARN-terskel); `stderr` har ingen alvorlighetsgrad, vises som Uspesifisert og beholdes | Container-kjøretiden registrerer hvilken strøm hver linje kom fra. stdout er et programs vanlige utdata, men programmer skriver diagnostikken sin på alle nivåer til stderr, så en stderr-linje sier ingenting om nivået sitt. |
 | `api` | Beholdes alltid | Kubernetes-API-et `pods/log` slår sammen stdout og stderr til én strøm uten markør per linje, så i stedet for å gjette beholder agenten linjen. |
 
-Derfor dropper `api`-modus strengt mindre enn `daemonset`-modus, med vilje: en Python-traceback eller en `npm ERR!` har ikke noe alvorlighetsnøkkelord, og å slette den stille er nettopp feilen en terskel skal beskytte deg mot. I hybridmodus (`logs.windowsPods.enabled`) gjelder begge radene, etter nodens OS: Linux-poder følger `daemonset`, Windows-poder `api`.
+Derfor dropper `api`-modus strengt mindre enn `daemonset`-modus, med vilje: den kan ikke skille en stderr-linje som ikke nevner noe nivå, som en `npm ERR!`, fra vanlige utdata, og å slette den stille er nettopp feilen en terskel skal beskytte deg mot. I hybridmodus (`logs.windowsPods.enabled`) gjelder begge radene, etter nodens OS: Linux-poder følger `daemonset`, Windows-poder `api`.
 
 Hendelser over flere linjer settes sammen igjen før filtreringen i begge modusene, så en Java-stakksporing vurderes etter den første linjen og beholdes eller droppes i sin helhet.
 

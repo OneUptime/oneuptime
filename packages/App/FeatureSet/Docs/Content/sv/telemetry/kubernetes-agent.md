@@ -471,14 +471,14 @@ Kubernetes-händelser filtreras inte efter namespace i agenten: den skickar alla
 
 Den godtar `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR` och `FATAL`. `WARN` behåller WARN, ERROR och FATAL och släpper INFO, DEBUG och TRACE; standardvärdet (`""`) behåller allt. Det gäller i båda loggägena (via collectorn i `daemonset`-läge, inuti loggläsaren i `api`-läge), så ett preset stänger aldrig av det bakom din rygg.
 
-Containerkörtider registrerar ingen allvarlighetsgrad, så agenten läser en från själva loggtexten (`[ERROR]`, `WARN:`, `"level":"info"`, …). Vad som händer med en rad utan igenkännbar nivå beror på loggläget, eftersom de två lägena vet olika saker:
+Containerkörtider registrerar ingen allvarlighetsgrad, så agenten läser den nivå varje rad anger: ett nivåord (`[ERROR]`, `WARN:`, `"level":"info"`, …), den första bokstaven i en klog-rad (`I`, `W`, `E`, `F`), PostgreSQL:s `LOG:` eller pinos `"level":30`. Ett undantags traceback eller en panik räknas som ERROR. Vad som händer med en rad som inte anger någon nivå beror på loggläget, eftersom de två lägena vet olika saker:
 
 | Läge | En rad utan nivå | Varför |
 | --- | --- | --- |
-| `daemonset` | `stderr` räknas som ERROR (behålls), `stdout` som INFO (släpps av en WARN-tröskel) | Containerkörtiden registrerar vilken ström varje rad kom från. |
+| `daemonset` | `stdout` räknas som INFO (släpps av en WARN-tröskel); `stderr` har ingen allvarlighetsgrad, visas som Ospecificerad och behålls | Containerkörtiden registrerar vilken ström varje rad kom från. stdout är ett programs vanliga utdata, men program skriver sin diagnostik på alla nivåer till stderr, så en stderr-rad säger ingenting om sin nivå. |
 | `api` | Behålls alltid | Kubernetes-API:t `pods/log` slår ihop stdout och stderr till en ström utan markering per rad, så i stället för att gissa behåller agenten raden. |
 
-Därför släpper `api`-läget strikt mindre än `daemonset`-läget, med avsikt: en Python-traceback eller en `npm ERR!` har inget nyckelord för allvarlighetsgrad, och att tyst ta bort den är just det fel som en tröskel ska skydda dig mot. I hybridläge (`logs.windowsPods.enabled`) gäller båda raderna, efter nodens OS: Linux-poddar följer `daemonset`, Windows-poddar `api`.
+Därför släpper `api`-läget strikt mindre än `daemonset`-läget, med avsikt: det kan inte skilja en stderr-rad som inte anger någon nivå, som en `npm ERR!`, från vanliga utdata, och att tyst ta bort den är just det fel som en tröskel ska skydda dig mot. I hybridläge (`logs.windowsPods.enabled`) gäller båda raderna, efter nodens OS: Linux-poddar följer `daemonset`, Windows-poddar `api`.
 
 Händelser över flera rader sätts ihop igen före filtreringen i båda lägena, så en Java-stackspårning bedöms efter sin första rad och behålls eller släpps i sin helhet.
 

@@ -18,7 +18,13 @@ import SECRET_DETECTORS, {
   isGenericSecretValue,
   isPlaceholderSecret,
 } from "../../../Utils/DataSecurity/Detectors/SecretDetectors";
+import PercentDecodedText from "../../../Utils/DataSecurity/PercentDecodedText";
 import { sha256 } from "../../../Utils/DataSecurity/Sha256";
+import { findDetectorRanges } from "../../../Utils/DataSecurity/TextReadings";
+import {
+  findSensitiveValues,
+  TextMatch,
+} from "../../../Utils/DataSecurity/TextScanner";
 import { parsePattern } from "../../../Utils/LinearRegExp/Parser";
 import { SyntaxNode } from "../../../Utils/LinearRegExp/Syntax";
 import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
@@ -1734,4 +1740,144 @@ describe("SECRET_DETECTORS on megabytes", () => {
       expect(timed.inMs).toBeLessThan(1000);
     },
   );
+});
+
+/*
+ * A SECRET IN A PERCENT-ENCODED URL (#11031).
+ *
+ * A redirect, a callback, a proxied request carries a URL inside another
+ * URL's query string, its reserved characters escaped: a GitHub token
+ * after an encoded "=" (%3D), which its own look-behind refuses as
+ * written; an AWS secret whose "/" and "+" are %2F and %2B. Every secret
+ * detector reads such a text with its escapes read too, so each type's own
+ * examples, written into a redirect's URL whole and encoded, are found as
+ * the same value - on the characters it is written with, escapes and all.
+ */
+describe("a secret in a percent-encoded URL (#11031)", () => {
+  const ENCODED: Array<[string, string]> = Object.entries(CASES).flatMap(
+    ([dataTypeId, secretCase]: [string, SecretCase]): Array<
+      [string, string]
+    > => {
+      return secretCase.found.map(
+        ([text]: [string, string, DataConfidence]): [string, string] => {
+          return [dataTypeId, text];
+        },
+      );
+    },
+  );
+
+  function matchesOf(dataTypeId: string, text: string): Array<TextMatch> {
+    return findSensitiveValues(text).filter((match: TextMatch): boolean => {
+      return match.dataTypeId === dataTypeId;
+    });
+  }
+
+  test("every secret detector reads a text with its escapes read", () => {
+    for (const detector of SECRET_DETECTORS) {
+      expect([detector.dataTypeId, detector.readsPercentEncoded]).toEqual([
+        detector.dataTypeId,
+        true,
+      ]);
+    }
+  });
+
+  test.each(ENCODED)(
+    "%s: its example, written into a redirect's URL encoded, is found as the same value, on its written characters",
+    (dataTypeId: string, text: string) => {
+      const encoded: string = `GET /login?next=https%3A%2F%2Fapp.example.com%2Fcb%3Fstate%3D${encodeURIComponent(text)} HTTP/1.1`;
+      // What each plain finding reads as: an Azure SAS token is percent-encoded itself.
+      const plain: Array<string> = matchesOf(dataTypeId, text).map(
+        (match: TextMatch): string => {
+          return PercentDecodedText.readableOf(
+            text.slice(match.start, match.end),
+          );
+        },
+      );
+      // What each finding's written characters read as, its escapes read.
+      const found: Array<string> = matchesOf(dataTypeId, encoded).map(
+        (match: TextMatch): string => {
+          return PercentDecodedText.readableOf(
+            encoded.slice(match.start, match.end),
+          );
+        },
+      );
+
+      expect(plain.length).toBeGreaterThan(0);
+      expect(found).toEqual(expect.arrayContaining(plain));
+      expect(
+        findDetectorRanges(detectorsOf(dataTypeId), encoded).length,
+      ).toBeGreaterThan(0);
+    },
+  );
+
+  test("a GitHub token after an encoded = is found, on its own characters alone", () => {
+    const token: string = `ghp_${fake(ALNUM, 36)}`;
+    const text: string = `/login?next=https%3A%2F%2Fapp.example.com%2Fcb%3Ftoken%3D${token}&x=1`;
+    const found: Array<TextMatch> = matchesOf("github-token", text);
+
+    // As written, its look-behind refuses it after the "D" of %3D.
+    expect(scan("github-token", text)).toEqual([]);
+    expect(found).toHaveLength(1);
+    expect(text.slice(found[0]!.start, found[0]!.end)).toBe(token);
+    expect(found[0]!.confidence).toBe(DataConfidence.High);
+  });
+
+  test("an AWS secret whose / and + are escaped is found whole, escapes and all", () => {
+    const secret: string = fake(BASE64, 40, 3);
+    const encodedSecret: string = encodeURIComponent(secret);
+    const text: string = `GET /assume?aws_secret_access_key%3D${encodedSecret}&region=eu-west-1`;
+    const found: Array<TextMatch> = matchesOf("aws-secret-access-key", text);
+
+    expect(encodedSecret).not.toBe(secret);
+    expect(found).toHaveLength(1);
+    expect(text.slice(found[0]!.start, found[0]!.end)).toBe(encodedSecret);
+    expect(found[0]!.normalized).toBe(secret);
+  });
+
+  test("a Slack webhook's URL inside another URL's query string is found", () => {
+    const webhook: string = `https://hooks.slack.com/services/T${fake(UPPER_ALNUM, 8)}/B${fake(UPPER_ALNUM, 8)}/${fake(ALNUM, 24)}`;
+    const text: string = `{"redirect": "/notify?target=${encodeURIComponent(webhook)}"}`;
+
+    expect(matchesOf("slack-webhook-url", text)).toHaveLength(1);
+  });
+
+  test("a password in an encoded query string is found, its key kept", () => {
+    const text: string = `GET /r?next=%2Flogin%3Fuser%3Dsvc%26password%3D${fake(ALNUM, 14)}`;
+    const found: Array<TextMatch> = matchesOf("generic-secret", text);
+
+    expect(found).toHaveLength(1);
+    expect(text.slice(0, found[0]!.start)).toContain("password%3D");
+  });
+
+  test("what only reads like a secret once decoded is refused as before: a prefix with no key, a placeholder", () => {
+    for (const text of [
+      `GET /cb?state=token%3Dghp_${fake(ALNUM, 12)}`,
+      `GET /cb?state=token%3Dghp_${"x".repeat(36)}`,
+      `GET /cb?state=token%3D${encodeURIComponent("ghp_<your token>")}`,
+      "GET /assets/sk%5Flive%5Fbanner.png",
+    ]) {
+      expect(
+        findSensitiveValues(text).filter((match: TextMatch): boolean => {
+          return (
+            !match.isTestValue &&
+            (match.dataTypeId === "github-token" ||
+              match.dataTypeId === "stripe-secret-key")
+          );
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("a long text of escapes is read in time in line with its length", () => {
+    const text: string = `${"%3D%2F%2B".repeat(40_000)}ghp_${fake(ALNUM, 36)}`;
+    const timed: FastestRun<number> = fastestRun({
+      run: (): number => {
+        return findSensitiveValues(text).length;
+      },
+      limitInMs: 2000,
+    });
+
+    expect(timed.inMs).toBeLessThan(2000);
+    expect(timed.result).toBeGreaterThan(0);
+  });
 });

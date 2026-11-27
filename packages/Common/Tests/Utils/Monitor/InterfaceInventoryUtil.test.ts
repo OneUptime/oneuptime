@@ -263,6 +263,9 @@ describe("InterfaceInventoryUtil.planWalkUpsert — the update column set", () =
       outRateMbps: 7.654,
       utilizationPercent: 12.5,
       errorsPerSecond: 0.25,
+      // Not a Fibre Channel port: no port type, no reason.
+      fibreChannelPortType: null,
+      downReason: null,
       lastSeenAt: NOW,
     });
   });
@@ -293,6 +296,8 @@ describe("InterfaceInventoryUtil.planWalkUpsert — the update column set", () =
       outRateMbps: null,
       utilizationPercent: null,
       errorsPerSecond: null,
+      fibreChannelPortType: null,
+      downReason: null,
       lastSeenAt: NOW,
     });
   });
@@ -395,6 +400,8 @@ describe("InterfaceInventoryUtil.planWalkUpsert — the insert column set", () =
       isOperationallyUp: true,
       isAdministrativelyUp: false,
       speedInMbps: 1000,
+      fibreChannelPortType: null,
+      downReason: null,
       lastSeenAt: NOW,
     });
   });
@@ -414,6 +421,8 @@ describe("InterfaceInventoryUtil.planWalkUpsert — the insert column set", () =
       isOperationallyUp: true,
       isAdministrativelyUp: true,
       speedInMbps: null,
+      fibreChannelPortType: null,
+      downReason: null,
       lastSeenAt: NOW,
     });
   });
@@ -432,6 +441,8 @@ describe("InterfaceInventoryUtil.planWalkUpsert — the insert column set", () =
 
     expect(insertKeys).toEqual([
       "alias",
+      "downReason",
+      "fibreChannelPortType",
       "interfaceIndex",
       "interfaceType",
       "isAdministrativelyUp",
@@ -444,7 +455,9 @@ describe("InterfaceInventoryUtil.planWalkUpsert — the insert column set", () =
     ]);
     expect(updateKeys).toEqual([
       "alias",
+      "downReason",
       "errorsPerSecond",
+      "fibreChannelPortType",
       "inRateMbps",
       "interfaceIndex",
       "interfaceType",

@@ -15,6 +15,7 @@ import NetworkSiteService from "../../../Server/Services/NetworkSiteService";
 import PodmanHostService from "../../../Server/Services/PodmanHostService";
 import PodmanResourceService from "../../../Server/Services/PodmanResourceService";
 import ProxmoxResourceService from "../../../Server/Services/ProxmoxResourceService";
+import XcpNgResourceService from "../../../Server/Services/XcpNgResourceService";
 import ServiceLevelObjectiveService from "../../../Server/Services/ServiceLevelObjectiveService";
 import SpanService from "../../../Server/Services/SpanService";
 import StorageArrayResourceService from "../../../Server/Services/StorageArrayResourceService";
@@ -222,6 +223,16 @@ const SORTED_WIDGETS: Array<{
     service: VMwareResourceService,
   },
   {
+    resourceType: "xcp-ng-resource",
+    componentType: DashboardComponentType.XcpNgHostList,
+    service: XcpNgResourceService,
+  },
+  {
+    resourceType: "xcp-ng-resource",
+    componentType: DashboardComponentType.XcpNgVmList,
+    service: XcpNgResourceService,
+  },
+  {
     resourceType: "ceph-resource",
     componentType: DashboardComponentType.CephOsdList,
     service: CephResourceService,
@@ -276,6 +287,7 @@ const ALL_SERVICES: Array<ListService> = [
   PodmanResourceService,
   ProxmoxResourceService,
   VMwareResourceService,
+  XcpNgResourceService,
   CephResourceService,
   StorageArrayResourceService,
   DockerSwarmResourceService,

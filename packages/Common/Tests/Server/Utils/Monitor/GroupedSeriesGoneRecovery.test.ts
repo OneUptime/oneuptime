@@ -63,6 +63,7 @@ import {
 } from "../../../../Types/Monitor/Recommendation/RecommendationCriteriaBuilder";
 import { getStorageArrayAlertTemplateById } from "../../../../Types/Monitor/StorageArrayAlertTemplates";
 import { getVMwareAlertTemplateById } from "../../../../Types/Monitor/VMwareAlertTemplates";
+import { getXcpNgAlertTemplateById } from "../../../../Types/Monitor/XcpNgAlertTemplates";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeApiIngestResponse, {
   PerSeriesCriteriaMatch,
@@ -725,6 +726,45 @@ describe("A grouped criteria that counts missing data as zero, once every series
       ).toEqual([staying]);
       expect(openAlerts).toHaveLength(1);
       expectOffline();
+    });
+
+    /*
+     * XCP-ng's Host Offline tells its reader that a host taken out of the
+     * pool on purpose resolves its incident once Xen Orchestra stops
+     * reporting it. The pool's other hosts go on reporting, so the host's
+     * series is gone beside theirs, and that closes its own.
+     */
+    test("an XCP-ng host taken out of its pool closes its own Host Offline incident, as the incident says it will", async () => {
+      useMonitor(
+        MonitorType.XcpNg,
+        getXcpNgAlertTemplateById("xcp-ng-host-offline")!.getMonitorStep({
+          ...STEP_ARGS,
+          poolIdentifier: "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+        }),
+      );
+
+      const removed: JSONObject = {
+        "xcp_ng.id": "a1b2c3d4-0000-4000-8000-000000000001",
+      };
+      const running: JSONObject = {
+        "xcp_ng.id": "a1b2c3d4-0000-4000-8000-000000000002",
+      };
+
+      await ingest(check([buildSeries(removed, 0), buildSeries(running, 1)]));
+
+      expect(
+        openIncidents.map((incident: Incident) => {
+          return incident.seriesLabels;
+        }),
+      ).toEqual([removed]);
+      expect(openAlerts).toHaveLength(1);
+      expectOffline();
+
+      await ingest(check([buildSeries(running, 1)]));
+
+      expect(openIncidents).toHaveLength(0);
+      expect(openAlerts).toHaveLength(0);
+      expectOnline();
     });
 
     test("a criteria that opens records does not act on no series, whatever it reads a missing series as", async () => {

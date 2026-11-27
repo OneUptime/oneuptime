@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64795,
+    "keys": 66170,
     "untranslated": 8259
   },
   "sameAsEnglish": [
@@ -441,6 +441,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "Valkey",
     "Version",
@@ -530,6 +532,7 @@
     "nova-compute",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -543,6 +546,7 @@
     "p95 (ms)",
     "p95 {{latency}}",
     "p99 (ms)",
+    "payments, search, platform-*",
     "persistent volume",
     "persistent volume claim",
     "platform",

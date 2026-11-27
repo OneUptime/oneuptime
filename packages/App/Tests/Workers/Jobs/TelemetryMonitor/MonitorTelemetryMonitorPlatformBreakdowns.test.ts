@@ -41,6 +41,7 @@ import { MonitorStepOpenStackMonitorUtil } from "Common/Types/Monitor/MonitorSte
 import { MonitorStepVMwareMonitorUtil } from "Common/Types/Monitor/MonitorStepVMwareMonitor";
 import { MonitorStepCephMonitorUtil } from "Common/Types/Monitor/MonitorStepCephMonitor";
 import { MonitorStepDockerSwarmMonitorUtil } from "Common/Types/Monitor/MonitorStepDockerSwarmMonitor";
+import { MonitorStepXcpNgMonitorUtil } from "Common/Types/Monitor/MonitorStepXcpNgMonitor";
 
 /*
  * The platform monitors' "Affected Resources" breakdown and unit map.
@@ -99,6 +100,7 @@ import {
   monitorOpenStack,
   monitorProxmox,
   monitorVMware,
+  monitorXcpNg,
 } from "../../../../FeatureSet/Workers/Jobs/TelemetryMonitor/MonitorTelemetryMonitor";
 import { FoldedReadArgs, foldRowsAsSqlRead } from "./SqlGroupedFold";
 
@@ -1633,6 +1635,30 @@ describe("lowestMetricValue across every platform", () => {
       attributes: { ceph_daemon: "osd.1" },
       breakdowns: (response: MetricMonitorResponse) => {
         return response.cephResourceBreakdowns;
+      },
+    },
+    {
+      name: "XCP-ng",
+      monitor: monitorXcpNg,
+      step: (): MonitorStep => {
+        const step: MonitorStep = new MonitorStep();
+        step.setXcpNgMonitor({
+          ...MonitorStepXcpNgMonitorUtil.getDefault(),
+          poolIdentifier: "1e8b7c4a-3f2d-4b6e-9a1c-0d5e7f9b2a3c",
+          metricViewConfig: {
+            queryConfigs: [queryConfig({ alias: "a", metricName: "m" })],
+            formulaConfigs: [],
+          },
+        });
+        return step;
+      },
+      attributes: {
+        "xcp_ng.scope": "host",
+        "xcp_ng.id": "a1b2c3d4-0000-4000-8000-000000000001",
+        host_name: "xcp-host-01",
+      },
+      breakdowns: (response: MetricMonitorResponse) => {
+        return response.xcpNgResourceBreakdowns;
       },
     },
   ];

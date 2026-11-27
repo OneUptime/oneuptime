@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64795,
+    "keys": 66170,
     "untranslated": 8269
   },
   "sameAsEnglish": [
@@ -180,11 +180,15 @@
     "VM 102 · pve2",
     "VM CPU",
     "VM CPU Ready",
+    "VM IOPS",
+    "VM UUID",
     "VM vSAN IOPS",
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware VM",
     "VMware vCenter",
@@ -226,6 +230,7 @@
     "nova-compute",
     "ns",
     "null",
+    "office-hours",
     "oneuptime",
     "oneuptime-check",
     "oneuptime-checks",
@@ -237,6 +242,7 @@
     "p95 (ms)",
     "p95 {{latency}}",
     "p99 (ms)",
+    "payments, search, platform-*",
     "prod, staging",
     "prod-.*",
     "prod-eu",

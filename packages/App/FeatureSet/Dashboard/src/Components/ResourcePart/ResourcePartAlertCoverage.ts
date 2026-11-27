@@ -1,13 +1,5 @@
-import Monitor from "Common/Models/DatabaseModels/Monitor";
 import RecommendationDismissal from "Common/Models/DatabaseModels/RecommendationDismissal";
-import Includes from "Common/Types/BaseDatabase/Includes";
-import ListResult from "Common/Types/BaseDatabase/ListResult";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import MonitorRecommendationCatalog from "Common/Types/Monitor/Recommendation/MonitorRecommendationCatalog";
-import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import {
   MonitorRecommendation,
   MonitorRecommendationContext,
@@ -15,8 +7,7 @@ import {
 } from "Common/Types/Monitor/Recommendation/MonitorRecommendationTypes";
 import ObjectID from "Common/Types/ObjectID";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
-import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
-import MonitorRecommendationCreateUtil from "../Recommendations/MonitorRecommendationCreateUtil";
+import MonitorRecommendationCoverageApi from "../Recommendations/MonitorRecommendationCoverageApi";
 import RecommendationDismissalUtil from "../Recommendations/RecommendationDismissalUtil";
 import RecommendationFilterUtil from "../Recommendations/RecommendationFilterUtil";
 import {
@@ -93,30 +84,27 @@ export async function loadResourcePartAlertCoverage(data: {
     return [];
   }
 
-  const monitorTypes: Array<MonitorType> = Array.from(
-    new Set(
-      recommendations.map((recommendation: MonitorRecommendation) => {
-        return recommendation.monitorType;
-      }),
-    ),
-  );
+  const placeholderId: ObjectID = ObjectID.getZeroObjectID();
 
-  const [monitorList, dismissals]: [
-    ListResult<Monitor>,
+  /*
+   * Coverage is decided by the server, with a query over every monitor the
+   * reader may read (#11074): the part's page read the project's first
+   * 10,000 monitors of the types, so a monitor past them never covered it.
+   */
+  const [coveredMonitorIds, dismissals]: [
+    Map<string, ObjectID>,
     Array<RecommendationDismissal>,
   ] = await Promise.all([
-    ModelAPI.getList<Monitor>({
-      modelType: Monitor,
-      query: {
-        monitorType:
-          monitorTypes.length === 1
-            ? monitorTypes[0]!
-            : new Includes(monitorTypes),
+    MonitorRecommendationCoverageApi.getCoveredRecommendationMonitorIds({
+      recommendations: recommendations,
+      args: {
+        resourceIdentifier: data.resourceIdentifier,
+        onlineMonitorStatusId: placeholderId,
+        offlineMonitorStatusId: placeholderId,
+        defaultIncidentSeverityId: placeholderId,
+        defaultAlertSeverityId: placeholderId,
+        monitorName: data.resourceIdentifier,
       },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      select: { name: true, monitorSteps: true },
-      sort: { name: SortOrder.Ascending },
     }),
     RecommendationDismissalUtil.getDismissals({
       resourceType: data.resourceType,
@@ -125,35 +113,9 @@ export async function loadResourcePartAlertCoverage(data: {
     }),
   ]);
 
-  const placeholderId: ObjectID = ObjectID.getZeroObjectID();
-
   return RecommendationFilterUtil.buildViewModels({
     recommendations: recommendations,
-    coveredMonitorIds:
-      MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
-        recommendations: recommendations,
-        existingMonitors: monitorList.data
-          .filter((monitor: Monitor): boolean => {
-            return Boolean(monitor.id);
-          })
-          .map((monitor: Monitor) => {
-            return {
-              monitorId: monitor.id!,
-              monitorSteps:
-                MonitorRecommendationCreateUtil.getExistingMonitorSteps([
-                  monitor,
-                ]) as Array<MonitorStep>,
-            };
-          }),
-        args: {
-          resourceIdentifier: data.resourceIdentifier,
-          onlineMonitorStatusId: placeholderId,
-          offlineMonitorStatusId: placeholderId,
-          defaultIncidentSeverityId: placeholderId,
-          defaultAlertSeverityId: placeholderId,
-          monitorName: data.resourceIdentifier,
-        },
-      }),
+    coveredMonitorIds: coveredMonitorIds,
     dismissals: dismissals,
   });
 }

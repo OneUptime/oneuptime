@@ -285,6 +285,30 @@ export const VMWARE_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   },
 ];
 
+// XCP-ng (XcpNgAlertTemplates' categories).
+export const XCP_NG_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
+  {
+    category: "Availability",
+    label: "Availability",
+    icon: IconProp.Heartbeat,
+  },
+  {
+    category: "Host",
+    label: "Host",
+    icon: IconProp.ServerStack,
+  },
+  {
+    category: "VM",
+    label: "VM",
+    icon: IconProp.ComputerDesktop,
+  },
+  {
+    category: "Storage",
+    label: "Storage",
+    icon: IconProp.Database,
+  },
+];
+
 // Ceph.
 export const CEPH_TEMPLATE_CATEGORIES: Array<AlertTemplateCategory> = [
   {
@@ -514,6 +538,7 @@ export const ALERT_TEMPLATE_CATEGORIES_BY_RESOURCE_TYPE: Partial<
   [MonitorRecommendationResourceType.OpenStack]:
     OPENSTACK_RECOMMENDATION_CATEGORIES,
   [MonitorRecommendationResourceType.VMware]: VMWARE_TEMPLATE_CATEGORIES,
+  [MonitorRecommendationResourceType.XcpNg]: XCP_NG_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.Ceph]: CEPH_TEMPLATE_CATEGORIES,
   [MonitorRecommendationResourceType.StorageArray]:
     STORAGE_ARRAY_RECOMMENDATION_CATEGORIES,

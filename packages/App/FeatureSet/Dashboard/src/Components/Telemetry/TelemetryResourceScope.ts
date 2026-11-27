@@ -19,6 +19,7 @@ import ServerlessFunction from "Common/Models/DatabaseModels/ServerlessFunction"
 import Service from "Common/Models/DatabaseModels/Service";
 import StorageArray from "Common/Models/DatabaseModels/StorageArray";
 import VMwareVCenter from "Common/Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "Common/Models/DatabaseModels/XcpNgPool";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
 import Search from "Common/Types/BaseDatabase/Search";
@@ -116,6 +117,8 @@ const RESOURCE_KIND_TABLES: Record<
   proxmoxClusterId: { modelType: ProxmoxCluster, identifierField: null },
   openStackCloudId: { modelType: OpenStackCloud, identifierField: null },
   vmwareVCenterId: { modelType: VMwareVCenter, identifierField: null },
+  // A pool is found by its XAPI UUID too: its name follows Xen Orchestra.
+  xcpNgPoolId: { modelType: XcpNgPool, identifierField: "poolIdentifier" },
   cephClusterId: { modelType: CephCluster, identifierField: "fsid" },
   storageArrayId: { modelType: StorageArray, identifierField: "systemId" },
   serverlessFunctionId: {

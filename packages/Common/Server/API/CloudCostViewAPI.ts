@@ -5,10 +5,15 @@ import {
   CloudCostAllocationInterval,
   CloudCostAllocationResult,
 } from "../../Types/Cloud/CloudCostAllocation";
+import {
+  CloudCostBasis,
+  isCloudCostBasis,
+} from "../../Types/Cloud/CloudCostBasis";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotFoundException from "../../Types/Exception/NotFoundException";
 import { JSONObject } from "../../Types/JSON";
 import ObjectID from "../../Types/ObjectID";
+import ProductKey from "../../Types/Product/ProductKey";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CloudCostViewService, {
   Service as CloudCostViewServiceType,
@@ -21,6 +26,7 @@ import {
   NextFunction,
 } from "../Utils/Express";
 import Response from "../Utils/Response";
+import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import BaseAPI from "./BaseAPI";
 import CommonAPI from "./CommonAPI";
 
@@ -28,19 +34,23 @@ import CommonAPI from "./CommonAPI";
  * Cost views: the CRUD routes, and
  *
  *   POST /cloud-cost-view/:viewId/allocation
- *     { startDate, endDate, interval?, currency?, cloudAccountIds?,
+ *     { startDate, endDate, interval?, currency?, basis?, cloudAccountIds?,
  *       cloudCostGroupId?, compareWithPrevious? }
  *     What the view allocates in a window of whole UTC days, both ends
  *     included: each group's spend (its own, its line items, what it took
  *     of the shared groups and what it gave away), bucket by bucket, the
  *     unallocated spend and what it is made of, and the window before
- *     (CloudCostAllocation). Read as the caller may read the view, its
+ *     (CloudCostAllocation), on a cost basis - billed, amortized or net,
+ *     the project's when none is sent (#11007). Read as the caller may read the view, its
  *     groups and the costs - a project API key included, so finance can
  *     pull the month's chargeback from a script, the CLI or an AI agent.
  *
  *   POST /cloud-cost-view/:viewId/make-groups
  *     For a view made per tag value or owner team: makes the groups it is
- *     missing now, rather than at the hourly job (CloudCostViewSync).
+ *     missing now, rather than at the hourly job (CloudCostViewSync). It
+ *     writes them as the server, so it is refused while the server has
+ *     switched Cloud off (ServerProductRoutes), before anything is read;
+ *     the allocation only reads, and is left alone.
  */
 
 // An allocation's request body, read: refused with what to fix.
@@ -49,6 +59,7 @@ export function readAllocationBody(body: unknown): {
   endDate: Date;
   interval?: CloudCostAllocationInterval | undefined;
   currency?: string | undefined;
+  basis?: CloudCostBasis | undefined;
   cloudAccountIds?: Array<ObjectID> | undefined;
   groupId?: ObjectID | undefined;
   compareWithPrevious?: boolean | undefined;
@@ -86,6 +97,17 @@ export function readAllocationBody(body: unknown): {
     throw new BadDataException("Send interval as day or month.");
   }
 
+  const basis: unknown = data["basis"];
+
+  if (
+    basis !== undefined &&
+    basis !== null &&
+    basis !== "" &&
+    !isCloudCostBasis(basis)
+  ) {
+    throw new BadDataException("Send basis as billed, amortized or net.");
+  }
+
   const readId: (value: unknown, name: string) => ObjectID = (
     value: unknown,
     name: string,
@@ -118,6 +140,7 @@ export function readAllocationBody(body: unknown): {
       typeof data["currency"] === "string" && data["currency"].trim()
         ? data["currency"].trim()
         : undefined,
+    basis: isCloudCostBasis(basis) ? basis : undefined,
     cloudAccountIds: Array.isArray(accounts)
       ? accounts.map((id: unknown): ObjectID => {
           return readId(id, "each of cloudAccountIds");
@@ -158,6 +181,7 @@ export default class CloudCostViewAPI extends BaseAPI<
     this.router.post(
       `${path}/:viewId/make-groups`,
       UserMiddleware.getUserMiddleware,
+      ServerProductRoutes.refuseWhileOff(ProductKey.Cloud),
       async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
         try {
           await this.makeGroups(req, res);
@@ -199,6 +223,7 @@ export default class CloudCostViewAPI extends BaseAPI<
         endDate: body.endDate,
         interval: body.interval,
         currency: body.currency,
+        basis: body.basis,
         cloudAccountIds: body.cloudAccountIds,
         groupId: body.groupId,
         compareWithPrevious: body.compareWithPrevious,

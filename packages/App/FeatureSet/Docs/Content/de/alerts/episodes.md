@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > Um einmal pro Problem statt einmal pro Warnung zu alarmieren, legen Sie Bereitschaftsrichtlinien auf Ihre Gruppierungsregeln und lassen Sie sie bei den Warnungen weg: in den Kriterien des Monitors, im Erstellformular und in Ihren Bereitschaftsregeln für Warnungen.
 
-Auch die Eigentümer der Episode erfahren davon: **Warnungs-Episode erstellt**, **Status der Warnungs-Episode geändert** und **Warnung zur Warnungs-Episode hinzugefügt** sind standardmäßig per E-Mail eingeschaltet, unter **Benutzereinstellungen → Benachrichtigungseinstellungen** auf dem Tab **Warnungen**. Die **Episoden-Eigentümer** der Regel werden Eigentümer jeder Episode, die sie öffnet, und werden wie jeder andere Eigentümer benachrichtigt.
+Auch die Eigentümer der Episode erfahren davon: **Warnungs-Episode erstellt**, **Status der Warnungs-Episode geändert** und **Warnung zur Warnungs-Episode hinzugefügt** sind standardmäßig per E-Mail eingeschaltet, unter **Benutzereinstellungen → Benachrichtigungseinstellungen** auf dem Tab **Warnungen**. Die **Episoden-Eigentümer** der Regel werden Eigentümer jeder Episode, die sie öffnet, und werden wie jeder andere Eigentümer benachrichtigt. Sie werden hinzugefügt, bevor Slack und Microsoft Teams von der Episode erfahren, sodass eine Benachrichtigungsregel, die nach den Eigentümern einer Episode fragt, deren Erstellungsnachricht postet.
 
 ## Eine Episode von Hand erstellen
 
@@ -166,7 +166,7 @@ Füllen Sie unter **Episodendetails** den **Titel** aus und, wenn Sie möchten, 
 
 Wählen Sie unter **Bereitschaft & Eigentümer** eine **Bereitschaftsrichtlinie**, die beim Erstellen der Episode läuft, und ihre **Eigentümer**. Klicken Sie dann auf **Episode erstellen**.
 
-Jedes Team, in dem Sie Mitglied sind, ist unter **Eigentümer** nur einen Klick entfernt, und die Zusammenfassung nennt die Eigentümerregeln, die weitere hinzufügen.
+Jedes Team, in dem Sie Mitglied sind, ist unter **Eigentümer** nur einen Klick entfernt, und die Zusammenfassung nennt die Eigentümerregeln, die weitere hinzufügen. Die Eigentümer, die Sie wählen, die der Eigentümerregeln und die Beschriftungen der passenden Beschriftungsregeln werden hinzugefügt, bevor Slack und Microsoft Teams von der Episode erfahren, sodass auch eine Benachrichtigungsregel, die nach den Eigentümern oder Beschriftungen einer Episode fragt, sie postet.
 
 ### Die Warnungen hinzufügen
 

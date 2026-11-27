@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64795,
+    "keys": 66170,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -293,6 +293,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
@@ -366,6 +368,7 @@
     "npm test",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -379,6 +382,7 @@
     "p95",
     "p95 {{latency}}",
     "payment-.*",
+    "payments, search, platform-*",
     "pending\npaid\nrefunded",
     "prod, staging",
     "prod-.*",

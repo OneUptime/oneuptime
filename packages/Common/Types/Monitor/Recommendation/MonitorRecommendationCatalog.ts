@@ -99,6 +99,10 @@ import {
   getAllVMwareAlertTemplates,
 } from "../VMwareAlertTemplates";
 import {
+  XcpNgAlertTemplate,
+  getAllXcpNgAlertTemplates,
+} from "../XcpNgAlertTemplates";
+import {
   DataObservabilityAlertTemplate,
   getAllDataObservabilityAlertTemplates,
 } from "../DataObservabilityAlertTemplates";
@@ -160,6 +164,7 @@ export interface MonitorRecommendationResourceTypeDefinition {
     | "clusterIdentifier"
     | "cloudIdentifier"
     | "vcenterIdentifier"
+    | "poolIdentifier"
     | "hostIdentifier"
     | "fleetIdentifier"
     | "arrayIdentifier"
@@ -629,6 +634,31 @@ function getVMwareRecommendations(): Array<MonitorRecommendation> {
       getMonitorStep: (args: MonitorRecommendationArgs) => {
         return template.getMonitorStep({
           vcenterIdentifier: args.resourceIdentifier,
+          onlineMonitorStatusId: args.onlineMonitorStatusId,
+          offlineMonitorStatusId: args.offlineMonitorStatusId,
+          defaultIncidentSeverityId: args.defaultIncidentSeverityId,
+          defaultAlertSeverityId: args.defaultAlertSeverityId,
+          monitorName: args.monitorName,
+        });
+      },
+    });
+  });
+}
+
+/*
+ * Every XCP-ng pool is offered the same templates: what Xen Orchestra's
+ * OpenMetrics plugin reports is the same for every pool. The identifier is
+ * the pool's XAPI UUID (XcpNgPool.poolIdentifier), never its name.
+ */
+function getXcpNgRecommendations(): Array<MonitorRecommendation> {
+  return getAllXcpNgAlertTemplates().map((template: XcpNgAlertTemplate) => {
+    return normalize({
+      resourceType: MonitorRecommendationResourceType.XcpNg,
+      monitorType: MonitorType.XcpNg,
+      template: template,
+      getMonitorStep: (args: MonitorRecommendationArgs) => {
+        return template.getMonitorStep({
+          poolIdentifier: args.resourceIdentifier,
           onlineMonitorStatusId: args.onlineMonitorStatusId,
           offlineMonitorStatusId: args.offlineMonitorStatusId,
           defaultIncidentSeverityId: args.defaultIncidentSeverityId,
@@ -1387,6 +1417,14 @@ const RESOURCE_TYPE_DEFINITIONS: Array<MonitorRecommendationResourceTypeDefiniti
       identifierFieldName: "vcenterIdentifier",
       icon: IconProp.VMware,
       getRecommendations: getVMwareRecommendations,
+    },
+    {
+      resourceType: MonitorRecommendationResourceType.XcpNg,
+      monitorTypes: [MonitorType.XcpNg],
+      resourceLabel: "XCP-ng Pool",
+      identifierFieldName: "poolIdentifier",
+      icon: IconProp.XcpNg,
+      getRecommendations: getXcpNgRecommendations,
     },
     {
       resourceType: MonitorRecommendationResourceType.Ceph,

@@ -101,6 +101,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
       "the mustMatch and mustNotMatch patterns of the Data Security AI eval's own cases (DataSecurityEvalCases, written in code), held to the fix a model proposed: no project writes them",
   },
   {
+    file: "packages/Common/Server/Utils/AI/Toolbox/Serializer.ts",
+    count: 1,
+    builtFrom:
+      "a copy of one of its own redaction rules' pattern literals (REDACTION_RULES), with their flags, to read a tool result with its percent-escapes read (#11031): no project writes them",
+  },
+  {
     file: "packages/Common/Server/Utils/AnalyticsDatabase/Statement.ts",
     count: 1,
     builtFrom: "a count of spaces",
@@ -141,6 +147,12 @@ const LISTED: ReadonlyArray<ListedFile> = [
     file: "packages/Common/Server/Utils/VM/VMAPI.ts",
     count: 1,
     builtFrom: "a random slot marker of letters and digits",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    count: 1,
+    builtFrom:
+      "a scan warning's own template (SCAN_WARNINGS, written in code): its English escaped, each value a pattern of this file's, to read a stored warning back (#10930): no project writes them",
   },
   {
     file: "packages/Common/Types/Host/AndroidAgentPermissions.ts",
@@ -330,6 +342,12 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
     count: 1,
     builtFrom:
       "the law names a draft's text is read for (LAW_NAMES_IN_TEXT), each a pattern literal of words and section numbers (#10377)",
+  },
+  {
+    file: "packages/Common/Types/DataSecurity/ScanWarnings.ts",
+    count: 1,
+    builtFrom:
+      "a scan warning's own templates' patterns (SCAN_WARNINGS, written in code), handed a stored warning of at most MAX_READ_SCAN_WARNING_LENGTH characters (#10930)",
   },
   {
     file: "packages/Common/Types/NoBreakSpaces.ts",

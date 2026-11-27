@@ -226,6 +226,7 @@ function loadFirst(entryPoint: string): Loaded {
         "../../../Types/StorageArray/StorageArrayPlatformRegistry",
       ) as { default: never }
     ).default;
+    // jest.requireActual from @jest/globals answers unknown: named, as the registry is.
     const catalog: { getAllStorageArrayMetrics: () => Array<unknown> } =
       jest.requireActual(
         "../../../Types/Monitor/StorageArrayMetricCatalog",

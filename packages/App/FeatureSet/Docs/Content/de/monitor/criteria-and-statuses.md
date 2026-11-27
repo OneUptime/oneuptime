@@ -232,6 +232,14 @@ Wenn eine Auswertung für ihren Monitor zu lange dauert, warnt Sie ihre Zusammen
 
 Ein Zehntel lässt einem Monitor Raum, um das Zehnfache zu wachsen, bevor seine Prüfungen einander in die Quere kommen und in Rückstand geraten, sodass Sie es früh erfahren. Unter 5 Sekunden ist eine Prüfung in Ordnung, wie groß sie auch ist: 16.000 Reihen zu beurteilen dauert etwa 2,5 Sekunden. Über eine Minute belegt sie so lange einen Worker und die Datenbanken, die sie liest, unabhängig von ihrem Intervall. Um sie zu beschleunigen, grenzen Sie die Filter ihrer Abfragen ein, gruppieren Sie nach weniger Attributen oder prüfen Sie seltener.
 
+## Wann Telemetrie-Monitore prüfen
+
+Monitore, die Telemetrie lesen, etwa Logs-, Metriken-, Traces-, Kubernetes-, Host- und Docker-Monitore, werden nicht alle im selben Moment geprüft. Jeder hat seinen eigenen Moment in seinem Intervall, berechnet aus der ID des Monitors: Ein Monitor, der jede Minute geprüft wird, läuft in derselben Sekunde jeder Minute, einer, der alle 5 Minuten geprüft wird, im selben Moment jedes 5-Minuten-Abschnitts, und einer, der stündlich oder seltener geprüft wird, in den ersten 5 Minuten der Stunde oder des Tages, die sein Intervall nennt. Der Moment bleibt derselbe, wenn OneUptime neu startet, und auf jedem Server, sodass der Telemetriespeicher über die Minute verteilt nach und nach gelesen wird statt von allen Monitoren gleichzeitig.
+
+Jeder Monitor behält sein Intervall: Seine Prüfungen liegen genau so weit auseinander wie zuvor, und jede beurteilt das Zeitfenster, das endet, wenn sie läuft, sodass ein Fenster, das so lang ist wie das Intervall, weiterhin die ganze Zeit zwischen zwei Prüfungen abdeckt. Was sich verschiebt, ist, wann in seinem Intervall eine Prüfung läuft: bis zu ein Intervall später und nie mehr als 5 Minuten später. Ein Vorfall oder eine Warnung kann bis zu so viel später geöffnet werden, als wenn jede Prüfung zu Beginn ihres Intervalls liefe, und manchmal früher. Die **Übersicht** des Monitors zeigt, wann seine nächste Prüfung fällig ist.
+
+Ein neuer Monitor wird wenige Sekunden nach dem Erstellen geprüft und danach in seinem eigenen Moment. Wenn Sie das Intervall eines Monitors ändern, wechselt seine nächste Prüfung auf das neue Intervall. Direkt nach dem Upgrade auf eine Version von OneUptime, die Prüfungen verteilt, wird jeder Monitor noch einmal zu der Zeit geprüft, zu der ihn der alte Zeitplan fällig hatte, und von da an in seinem eigenen Moment.
+
 ## Die Kriterien eines Monitors ändern
 
 :::steps

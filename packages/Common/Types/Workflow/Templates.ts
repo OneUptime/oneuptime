@@ -2960,6 +2960,7 @@ const DYNAMICS_CASE_RESOURCE_LISTS: ReadonlyArray<DynamicsCaseResourceList> = [
   { relation: "proxmoxClusters", noun: "Proxmox cluster" },
   { relation: "openStackClouds", noun: "OpenStack cloud" },
   { relation: "vmwareVCenters", noun: "VMware vCenter" },
+  { relation: "xcpNgPools", noun: "XCP-ng pool" },
   { relation: "cephClusters", noun: "Ceph cluster" },
   { relation: "storageArrays", noun: "storage array" },
   { relation: "dockerSwarmClusters", noun: "Docker Swarm cluster" },

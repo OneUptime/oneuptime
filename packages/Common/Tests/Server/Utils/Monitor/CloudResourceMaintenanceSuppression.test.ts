@@ -111,6 +111,7 @@ function emptyMaintained(): MaintainedResourceKeys {
     vmwareVCenters: { ids: new Set<string>(), names: new Set<string>() },
     cephClusters: { ids: new Set<string>(), names: new Set<string>() },
     storageArrays: { ids: new Set<string>(), names: new Set<string>() },
+    xcpNgPools: { ids: new Set<string>(), names: new Set<string>() },
     dockerSwarmClusters: { ids: new Set<string>(), names: new Set<string>() },
     iotFleets: { ids: new Set<string>(), names: new Set<string>() },
     services: { ids: new Set<string>(), names: new Set<string>() },

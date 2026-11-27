@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64795,
+    "keys": 66170,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -369,6 +369,7 @@
     "npm test",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -388,6 +389,7 @@
     "p99 (ms)",
     "p99 {{duration}}",
     "payment-.*",
+    "payments, search, platform-*",
     "pending\npaid\nrefunded",
     "pod",
     "prod, staging",

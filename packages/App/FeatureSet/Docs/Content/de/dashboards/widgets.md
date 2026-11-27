@@ -197,6 +197,7 @@ Jedes dieser Widgets listet die Ressourcen, die ein Agent oder ein Collector an 
 | **Podman** | **Hosts**, **Container**, **Images**, **Netzwerke**, **Volumes** | Den Podman-Agent |
 | **Proxmox** | **Knoten**, **Gäste** | Den Proxmox-Agent |
 | **VMware** | **Hosts**, **Virtuelle Maschinen** | Den VMware-Agent oder ein vCenter, das Sie verbinden |
+| **XCP-ng** | **Hosts**, **VMs** | Den XCP-ng-Agent |
 | **Ceph** | **OSDs**, als Wand nach Zustand gefärbt, und **Pools** | Den Ceph-Agent |
 | **Speicher-Arrays** | **Volumes**, und **Hardware** als Wand nach Status gefärbt | Den Storage-Array-Agent |
 

@@ -301,6 +301,8 @@ export interface SecurityEntityRiskObservation {
   securityEventConnectionId?: string | undefined;
   // The name of the firing it is, from a rule's scheduled run (#10489): counted once.
   firingKey?: string | undefined;
+  // The names the same firing had before #11130: one counted under them is counted.
+  formerFiringKeys?: Array<string> | undefined;
 }
 
 function union(a: Array<string>, b: Array<string>): Array<string> {
@@ -366,13 +368,19 @@ export function addRiskObservation(
 
   /*
    * A firing the source counted already (#10489): a rule's run judged the
-   * same events again after its worker stopped. The entity's risk is as it
-   * was, the very list handed in.
+   * same events again after its worker stopped - counted under its name, or
+   * under the one it had before #11130. The entity's risk is as it was, the
+   * very list handed in.
    */
   if (
     existing &&
     isRiskContributionInWindow(existing, now) &&
-    hasTakenFiring(existing.firingKeys, observation.firingKey)
+    observation.firingKey &&
+    [observation.firingKey, ...(observation.formerFiringKeys || [])].some(
+      (firingKey: string): boolean => {
+        return hasTakenFiring(existing.firingKeys, firingKey);
+      },
+    )
   ) {
     return contributions;
   }

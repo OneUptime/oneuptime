@@ -678,3 +678,97 @@ describe("SnmpMonitor.query — an unreadable protocol surfaces as the monitor's
     expect(response?.failureCause).toMatch(/security level "bogus"/i);
   });
 });
+
+/*
+ * The SNMPv3 context a device is polled in (#11014): a Brocade chassis
+ * with Virtual Fabrics answers each logical switch in its own context
+ * ("VF:128"), and the same user in no context reads the default logical
+ * switch. The context rides the session's options, so every request of
+ * the poll - GET, GETNEXT, GETBULK - names it.
+ */
+describe("SnmpMonitor.createSnmpSession — the SNMPv3 context", () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function createdV3Options(): Record<string, unknown> {
+    const createV3Session: jest.Mock =
+      snmp.createV3Session as unknown as jest.Mock;
+
+    return (createV3Session.mock.calls[0] as Array<unknown>)[2] as Record<
+      string,
+      unknown
+    >;
+  }
+
+  test("a context is put on the session, trimmed", () => {
+    SnmpMonitorInternal.createSnmpSession(
+      buildConfig({ snmpV3Auth: buildV3Auth({ contextName: " VF:128 " }) }),
+      {},
+    );
+
+    expect(createdV3Options()["context"]).toBe("VF:128");
+  });
+
+  test("no context, or a blank one, leaves the session in the default context", () => {
+    SnmpMonitorInternal.createSnmpSession(buildConfig(), {});
+    expect(createdV3Options()["context"]).toBeUndefined();
+
+    jest.clearAllMocks();
+
+    SnmpMonitorInternal.createSnmpSession(
+      buildConfig({ snmpV3Auth: buildV3Auth({ contextName: "   " }) }),
+      {},
+    );
+    expect(createdV3Options()["context"]).toBeUndefined();
+  });
+
+  test("the context does not change who the probe authenticates as", () => {
+    SnmpMonitorInternal.createSnmpSession(
+      buildConfig({ snmpV3Auth: buildV3Auth({ contextName: "VF:20" }) }),
+      {},
+    );
+
+    expect(createdV3User()["name"]).toBe("monitoring");
+    expect(createdV3User()).not.toHaveProperty("contextName");
+  });
+
+  test("a v2c session never carries one", () => {
+    SnmpMonitorInternal.createSnmpSession(
+      buildConfig({
+        snmpVersion: SnmpVersion.V2c,
+        communityString: "public",
+        snmpV3Auth: buildV3Auth({ contextName: "VF:20" }),
+      }),
+      {},
+    );
+
+    const createSession: jest.Mock = snmp.createSession as unknown as jest.Mock;
+    const options: Record<string, unknown> = (
+      createSession.mock.calls[0] as Array<unknown>
+    )[2] as Record<string, unknown>;
+
+    expect(options["context"]).toBeUndefined();
+    expect(snmp.createV3Session).not.toHaveBeenCalled();
+  });
+
+  test("getV3ContextName reads it the same way", () => {
+    expect(
+      SnmpMonitor.getV3ContextName(
+        buildConfig({ snmpV3Auth: buildV3Auth({ contextName: "VF:20" }) }),
+      ),
+    ).toBe("VF:20");
+    expect(
+      SnmpMonitor.getV3ContextName(
+        buildConfig({
+          snmpV3Auth: buildV3Auth({
+            contextName: 42 as unknown as string,
+          }),
+        }),
+      ),
+    ).toBe("");
+    expect(
+      SnmpMonitor.getV3ContextName(buildConfig({ snmpV3Auth: undefined })),
+    ).toBe("");
+  });
+});

@@ -30,6 +30,7 @@ enum ServiceType {
   StorageArray = "StorageArray",
   DockerSwarmCluster = "DockerSwarmCluster",
   VMwareVCenter = "VMwareVCenter",
+  XcpNgPool = "XcpNgPool",
   IoTDevice = "IoTDevice",
   ServerlessFunction = "ServerlessFunction",
   CloudResource = "CloudResource",

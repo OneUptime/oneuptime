@@ -416,6 +416,11 @@ Para mostrar la captura de cada ejecución fallida, ponga la imagen dentro de un
 | `trapOid` | El OID del trap. Solo cuando un trap SNMP disparó la comprobación. | `string` |
 | `trapSourceIp` | La dirección de la que vino el trap. Solo cuando un trap SNMP disparó la comprobación. | `string` |
 | `trapVarbinds` | Los varbinds del trap, cada uno como `{oid, value}`. Solo cuando un trap SNMP disparó la comprobación. | `Array<Object>` |
+| `trapInterface` | La interfaz de la que trata el trap: el nombre que trae el trap o, si no, el que el último walk del dispositivo registró para su índice. Solo cuando un trap SNMP disparó la comprobación. | `string` |
+| `trapAlarmCounter` | En un trap de alarma RMON (una alarma de port-monitor de MDS), el contador que superó su umbral. Vacío para cualquier otro trap. | `string` |
+| `trapAlarmDirection` | En un trap de alarma RMON, `rising` o `falling`. Vacío para cualquier otro trap. | `string` |
+| `trapAlarmValue` | En un trap de alarma RMON, el valor del contador cuando superó su umbral. Vacío para cualquier otro trap. | `string` |
+| `trapAlarmThreshold` | En un trap de alarma RMON, el umbral que superó el contador. Vacío para cualquier otro trap. | `string` |
 
 Un dispositivo de red recibe un ping en cada sondeo y solo se recorre por SNMP cuando tiene credenciales, así que **`isOnline` es la única variable de las anteriores que rellena un dispositivo solo con ping**: todas las demás vienen del recorrido SNMP y, sin él, quedan tal como se escribieron. Empiece con `{{isOnline}}` y el nombre del dispositivo en las plantillas que puedan usarse para dispositivos sin credenciales. Consulte [Monitor de dispositivos de red](/docs/monitor/network-device-monitor#lo-que-hace-realmente-un-sondeo) para saber qué recoge cada tipo de sondeo.
 
@@ -452,7 +457,7 @@ Los nombres de serie en `metrics` contienen puntos, como `oneuptime.monitor.data
 
 ### Monitores de métricas e infraestructura
 
-Los monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, Ceph, Cabina de almacenamiento e IoT Device tienen una variable propia:
+Los monitores Metrics, Kubernetes, Docker, Host, Podman, Docker Swarm, Proxmox, OpenStack, VMware, XCP-ng, Ceph, Cabina de almacenamiento e IoT Device tienen una variable propia:
 
 | Variable | Qué contiene | Tipo |
 | --- | --- | --- |

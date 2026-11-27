@@ -9,6 +9,8 @@ jest.mock("isolated-vm", () => {
 import {
   AlertableMatch,
   DedupedRecordOutcome,
+  findOpenRecordOfMatch,
+  getMatchLookupFingerprints,
   openDedupedAlerts,
   openDedupedIncidents,
   pickSeverityByPrecedence,
@@ -285,6 +287,115 @@ describe("openDedupedIncidents", () => {
 
     expect(created).toBe(0);
     expect(outcomes).toEqual([]);
+  });
+});
+
+/*
+ * A detection's fingerprint was unkeyed until #11130: what was opened before
+ * still carries the old one, so a match names it as a former fingerprint,
+ * and the record open under it is the match's - nothing opens twice.
+ */
+describe("a record open under a fingerprint its match had before (#11130)", () => {
+  function withFormer(fingerprint: string, former: string): AlertableMatch {
+    return { ...buildMatch(fingerprint), formerFingerprints: [former] };
+  }
+
+  test("an alert open under the former fingerprint is the match's: none is opened, and the source is told it", async () => {
+    const openId: ObjectID = ObjectID.generate();
+    const open: Alert = new Alert(openId);
+    open.seriesFingerprint = "fp-1-unkeyed";
+    alertFindSpy.mockResolvedValue([open] as never);
+    const outcomes: Array<DedupedRecordOutcome> = [];
+
+    const created: number = await openDedupedAlerts({
+      projectId: PROJECT_ID,
+      alertSeverityId: SEVERITY_ID,
+      logLabel: "test",
+      matches: [withFormer("fp-1", "fp-1-unkeyed"), buildMatch("fp-2")],
+      onOutcome: (outcome: DedupedRecordOutcome): void => {
+        outcomes.push(outcome);
+      },
+    });
+
+    expect(created).toBe(1);
+    expect(
+      ((alertCreateSpy.mock.calls[0]![0] as JSONObject)["data"] as Alert)
+        .seriesFingerprint,
+    ).toBe("fp-2");
+    expect(outcomes[0]).toEqual({
+      fingerprint: "fp-1",
+      recordId: openId,
+      isNew: false,
+    });
+
+    const query: JSONObject = (alertFindSpy.mock.calls[0]![0] as JSONObject)[
+      "query"
+    ] as JSONObject;
+    expect((query["seriesFingerprint"] as Includes).values).toEqual([
+      "fp-1",
+      "fp-1-unkeyed",
+      "fp-2",
+    ]);
+  });
+
+  test("an incident open under the former fingerprint is the match's: none is declared", async () => {
+    const open: Incident = new Incident(ObjectID.generate());
+    open.seriesFingerprint = "fp-1-unkeyed";
+    incidentFindSpy.mockResolvedValue([open] as never);
+
+    const created: number = await openDedupedIncidents({
+      projectId: PROJECT_ID,
+      incidentSeverityId: SEVERITY_ID,
+      logLabel: "test",
+      matches: [withFormer("fp-1", "fp-1-unkeyed")],
+    });
+
+    expect(created).toBe(0);
+    expect(incidentCreateSpy).not.toHaveBeenCalled();
+  });
+
+  test("a new alert is opened under the current fingerprint, never a former one", async () => {
+    await openDedupedAlerts({
+      projectId: PROJECT_ID,
+      alertSeverityId: SEVERITY_ID,
+      logLabel: "test",
+      matches: [withFormer("fp-1", "fp-1-unkeyed")],
+    });
+
+    expect(
+      ((alertCreateSpy.mock.calls[0]![0] as JSONObject)["data"] as Alert)
+        .seriesFingerprint,
+    ).toBe("fp-1");
+  });
+
+  test("the record under the current fingerprint wins over one under a former", () => {
+    const current: Alert = new Alert(ObjectID.generate());
+    current.seriesFingerprint = "fp-1";
+    const former: Alert = new Alert(ObjectID.generate());
+    former.seriesFingerprint = "fp-1-unkeyed";
+
+    expect(
+      findOpenRecordOfMatch({
+        match: withFormer("fp-1", "fp-1-unkeyed"),
+        openRecords: [former, current],
+      }),
+    ).toBe(current);
+    expect(
+      findOpenRecordOfMatch({
+        match: buildMatch("fp-1"),
+        openRecords: [former],
+      }),
+    ).toBeUndefined();
+  });
+
+  test("the lookup names each fingerprint once", () => {
+    expect(
+      getMatchLookupFingerprints([
+        withFormer("a", "a-old"),
+        withFormer("a", "a-old"),
+        buildMatch("b"),
+      ]),
+    ).toEqual(["a", "a-old", "b"]);
   });
 });
 

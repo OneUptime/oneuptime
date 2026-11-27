@@ -2987,6 +2987,22 @@ const Icon: FunctionComponent<ComponentProps> = ({
         <rect x="15" y="7" width="3" height="6" rx="0.75" />
       </>,
     );
+  } else if (icon === IconProp.XcpNg) {
+    /*
+     * XCP-ng — a pool: Xen Orchestra on top, linked to the three hosts it
+     * manages. Drawn in the outlined house style (currentColor stroke) like
+     * the VMware mark, so it sits at 16px beside the other hypervisors
+     * without a filled brand mark.
+     */
+    return getSvgWrapper(
+      <>
+        <rect x="8" y="3" width="8" height="5" rx="1" />
+        <path strokeLinecap="round" d="M12 8v5M5.5 13v-2.5h13V13" />
+        <rect x="3" y="13" width="5" height="7" rx="1" />
+        <rect x="9.5" y="13" width="5" height="7" rx="1" />
+        <rect x="16" y="13" width="5" height="7" rx="1" />
+      </>,
+    );
   } else if (icon === IconProp.IoT) {
     // IoT — wireless/connectivity mark (reuses the Signal icon path).
     return getSvgWrapper(

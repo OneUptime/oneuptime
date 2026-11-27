@@ -4,9 +4,8 @@ import {
   MonitorRecommendationProjectDefaults,
   loadMonitorRecommendationProjectSetup,
 } from "../../Recommendations/MonitorRecommendationProjectSetup";
-import MonitorRecommendationCreateUtil, {
-  MonitorRecommendationCreatePlanItem,
-} from "../../Recommendations/MonitorRecommendationCreateUtil";
+import { MonitorRecommendationCreatePlanItem } from "../../Recommendations/MonitorRecommendationCreateUtil";
+import MonitorRecommendationCoverageApi from "../../Recommendations/MonitorRecommendationCoverageApi";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ProjectMilestone from "Common/Models/DatabaseModels/ProjectMilestone";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -17,8 +16,6 @@ import HTTPResponse from "Common/Types/API/HTTPResponse";
 import Includes from "Common/Types/BaseDatabase/Includes";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
-import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import {
   MonitorRecommendation,
@@ -29,7 +26,6 @@ import {
   buildServiceMonitorPlan,
   getTelemetryRecommendations,
 } from "Common/Utils/GuidedSetup/ServiceMonitorRecords";
-import MonitorRecommendationUtil from "Common/Types/Monitor/Recommendation/MonitorRecommendationUtil";
 import ObjectID from "Common/Types/ObjectID";
 import { FormType } from "Common/UI/Components/Forms/ModelForm";
 import API from "Common/UI/Utils/API/API";
@@ -171,7 +167,11 @@ export default class TelemetrySetupApi {
   /*
    * Which recommended monitors the service has already (made by this setup
    * or its Recommendations tab), by recommendation id: the tab's own
-   * coverage test (MonitorRecommendationUtil), so nothing is made twice.
+   * coverage test (MonitorRecommendationUtil), decided by the server with
+   * a query over every monitor the reader may read (#11074) - so nothing
+   * is made twice, however many monitors the project has. It read the
+   * first 10,000 monitors of each type, and offered again one a monitor
+   * past them covered.
    */
   public static async loadCoveredRecommendationIds(data: {
     service: TelemetrySetupService;
@@ -181,52 +181,13 @@ export default class TelemetrySetupApi {
     const setup: { defaults: MonitorRecommendationProjectDefaults } =
       await loadMonitorRecommendationProjectSetup(data.translator);
 
-    const monitorTypes: Array<MonitorType> = Array.from(
-      new Set<MonitorType>(
-        data.recommendations.map(
-          (recommendation: MonitorRecommendation): MonitorType => {
-            return recommendation.monitorType;
-          },
-        ),
-      ),
-    );
-
-    const lists: Array<ListResult<Monitor>> = await Promise.all(
-      monitorTypes.map(
-        async (monitorType: MonitorType): Promise<ListResult<Monitor>> => {
-          return await ModelAPI.getList<Monitor>({
-            modelType: Monitor,
-            query: { monitorType: monitorType },
-            limit: LIMIT_PER_PROJECT,
-            skip: 0,
-            select: { _id: true, name: true, monitorSteps: true },
-            sort: { name: SortOrder.Ascending },
-          });
-        },
-      ),
-    );
-
     const covered: Map<string, ObjectID> =
-      MonitorRecommendationUtil.getCoveredRecommendationMonitorIds({
-        recommendations: data.recommendations,
-        existingMonitors: lists
-          .flatMap((list: ListResult<Monitor>): Array<Monitor> => {
-            return list.data;
-          })
-          .filter((monitor: Monitor): boolean => {
-            return Boolean(monitor.id);
-          })
-          .map((monitor: Monitor) => {
-            return {
-              monitorId: monitor.id!,
-              monitorSteps:
-                MonitorRecommendationCreateUtil.getExistingMonitorSteps([
-                  monitor,
-                ]) as Array<MonitorStep>,
-            };
-          }),
-        args: buildArgs({ service: data.service, defaults: setup.defaults }),
-      });
+      await MonitorRecommendationCoverageApi.getCoveredRecommendationMonitorIds(
+        {
+          recommendations: data.recommendations,
+          args: buildArgs({ service: data.service, defaults: setup.defaults }),
+        },
+      );
 
     return Array.from(covered.keys());
   }

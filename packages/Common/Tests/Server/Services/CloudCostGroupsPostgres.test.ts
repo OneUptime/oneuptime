@@ -23,6 +23,7 @@ import CloudCostAllocationFacts from "../../../Server/Utils/CloudCost/CloudCostA
 import CloudCostViewSync from "../../../Server/Utils/CloudCost/CloudCostViewSync";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import { getCloudCostResourceKey } from "../../../Types/Cloud/CloudCost";
+import { CLOUD_COST_DEFAULT_BASIS } from "../../../Types/Cloud/CloudCostBasis";
 import {
   CloudCostLineItemKind,
   CloudCostLineItemRecurrence,
@@ -101,6 +102,8 @@ const FIXTURE_TABLES: Array<string> = [
   "CloudResourceOwnerTeam",
   "KubernetesCluster",
   "CloudApp",
+  // Left empty: a read asked for no cost basis is on the default one (#11007).
+  "CloudCostSetting",
 ];
 
 const KEPT_NOT_NULL: Array<string> = [
@@ -1140,6 +1143,8 @@ describePostgres("Cost groups against Postgres", () => {
       expect(read.group.id).toBe(payments.id!.toString().toLowerCase());
       expect(read.group.name).toBe("Payments");
       expect(read.group.total).toBe(0);
+      // Asked for no basis, a project with no Cost Settings yet reads the default.
+      expect(read.allocation.basis).toBe(CLOUD_COST_DEFAULT_BASIS);
       expect(query).toHaveBeenCalled();
 
       query.mockClear();

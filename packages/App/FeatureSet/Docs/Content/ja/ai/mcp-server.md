@@ -41,7 +41,7 @@ flowchart TB
 - **定期メンテナンス**: メンテナンスイベントを作成・管理します。
 - **テレメトリ**: ログ、メトリクス、トレース、例外、モニターログ、セキュリティイベントなどを照会します(読み取り専用)。
 
-58 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。インシデントとアラートの関連付けのように、作成後に変更できるフィールドがない種類のレコードには、更新ツールはありません。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。`openWorldHint` は、プロジェクトの外に届くツールに付きます。公開ステータスページのツール、ステータスページに表示されてその購読者に送られる変更（たとえば新しいインシデント、その状態の変更、公開メモ）、まだプロジェクトにいなくてもよい人にメールで送られる招待、そしてモニター、データストア、BI ツールを作成または変更するツールです。作成や変更のあと、OneUptime は指定されたアドレスにアクセスします。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
+59 種類のレコードについて作成・取得・一覧・更新・削除・件数のツールがあり、9 種類のテレメトリについて一覧と件数のツールがあり、インシデント対応用のツールもあります。インシデントとアラートの関連付けのように、作成後に変更できるフィールドがない種類のレコードには、更新ツールはありません。読み取り専用のツールには `readOnlyHint` が、何かを変更するすべてのツールには `destructiveHint` が付くため、クライアントは読み取り専用の呼び出しを自分で実行し、何かを変更する前にはあなたに確認できます。`openWorldHint` は、プロジェクトの外に届くツールに付きます。公開ステータスページのツール、ステータスページに表示されてその購読者に送られる変更（たとえば新しいインシデント、その状態の変更、公開メモ）、まだプロジェクトにいなくてもよい人にメールで送られる招待、そしてモニター、データストア、BI ツールを作成または変更するツールです。作成や変更のあと、OneUptime は指定されたアドレスにアクセスします。失敗したツール呼び出しは、MCP プロトコルのエラーではなく、`statusCode`、詳細、提案を含むツールの結果(`isError: true`)として返るため、エージェントは失敗を読んで自分で修正できます。
 
 ## 始める前に
 
@@ -359,6 +359,25 @@ curl https://oneuptime.com/mcp/tools
 
 これらは OAuth でサインインしたあなたとして動作するため、プロジェクトの API キーでは何かを作成する 8 つを使えません。クライアントはそれぞれの前にあなたに確認し、その回答で何が作成されたかを伝えます。権限、アドレス、プランの空きなど足りないものは、何かを作成する前に伝えられます。
 
+## データセキュリティのツール
+
+サーバーには [AI に質問 のデータセキュリティ操作](/docs/data-security/integrations#ai-に質問) もあり、それぞれ 1 回の呼び出しで使えます。どれも同じチェックの後、データセキュリティのボタンと同じ変更を、あなたとして、あなたの権限で行います。
+
+- **`query_data_security_proposals`**: OneUptime AI が提案し、人を待っているもの。リスクの高いものから順に並びます。`which: "data-types"` を指定すると、見つけたもののスキャンがまだ探していないデータタイプを返します。それぞれの名前、カテゴリー、機密度、証明方法、含まれるデータストアとフィールドで、値は含みません。何も変更しません
+- **`draft_data_security_rule`**: 「EU の個人データは EU 内にとどめる」のような文章から作成したデータ所在地・所有者・ラベルのルールと、今日一致するデータストア。何も変更しません
+- **`scrub_data_security_finding`**: テレメトリ内の検出事項に **スクラブ**
+- **`judge_data_security_finding`**: **確認**、または理由を添えて **機密ではない**、類似する検出事項にも同じ判断
+- **`change_data_security_issue`**: **再オープン**、**割り当て**、**リスクを受容**、または **問題ではない**
+- **`set_data_store_owners`**: データストアの所有者の追加または削除
+- **`save_data_security_rule`**: `draft_data_security_rule` が作成したルール
+- **`respond_on_data_store`**: **パブリックアクセスをブロック** など、データストアのクラウド接続を通じた対応操作
+- **`fix_data_security_issue_with_ai`**: **AI で修正**、誰かがレビューしてマージするプルリクエスト
+- **`decide_data_security_proposal`**: 提案を **承認** または **非表示**
+
+AI に質問 は、このうちいくつかの前に、何が変わるか、何が動作しなくなるか、何にコストがかかるかを示すカードで、すべてのモードで人に確認します。データストアへの対応、**機密ではない**、**リスクを受容**、**問題ではない**、データストアの所有者の変更、ルールの保存、提案の判断、何かが読んでいるスクラブ、そして重大な問題で誰かを呼び出すプロジェクトでの **確認** です。このサーバーはそのカードを表示できないため、これらを拒否し、理由と変更を行う OneUptime のページを示します。カードなしで実行されることはありません。
+
+それ以外は OAuth でサインインしたあなたとして動作します。プロジェクトの API キーはこれらを使えず、何も変更しない 2 つだけを使います。セルフホストのサーバーでは、`MCP_READ_ONLY=true` で何も変更しないツールだけが残り、`MCP_ALLOW_DESTRUCTIVE=false` ではデータストアの所有者の削除が拒否されます。削除すると所有者が消えるためです。
+
 ## テレメトリを照会する
 
 ログ、メトリクス、トレース(スパン)、例外、モニターログなどのテレメトリは、読み取り専用の `list_` と `count_` のツールとして提供されます(`list_logs`、`list_metrics`、`list_spans`、`list_exception_instances`、`list_monitor_logs` と、それぞれの `count_` の対)。テレメトリは OpenTelemetry で届くため、作成ツールはありません。
@@ -509,7 +528,7 @@ MCP サーバーはステートレスで、セッション ID の発行も追跡
 | セキュリティ | Security Case, Security Case Evidence, Security Case Note, Security Case Priority, Security Case Status, Security Case Task, Security Detection, Security Playbook |
 | データセキュリティ | Data Store, Data Store Finding, Data Store Access Entry, Data Security Identity, Data Flow, Data Security Issue, Data Security Scan, Data Security Setting, Check Setting, Compliance Setting, Custom Data Type, Residency Rule |
 | データオブザーバビリティ | Data Asset, Data Check, Data Observability Setting, Data Pipeline, Data Product, Data Reconciliation, BI Tool, BI Dashboard, Warehouse Job |
-| クラウド | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View |
+| クラウド | Cloud Budget, Cloud Cost Group, Cloud Cost Line Item, Cloud Cost View, Required Tag |
 
 | 分野 | 一覧と件数のツールだけがあるテレメトリ |
 | --- | --- |

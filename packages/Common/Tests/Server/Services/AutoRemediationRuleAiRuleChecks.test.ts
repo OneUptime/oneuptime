@@ -394,7 +394,7 @@ describe("AutoRemediationRuleService - what an AI rule matches", () => {
         );
 
         expect((error as Error).message).toBe(
-          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric, DataSecurityIssue.",
+          "Trigger Entity Type must be one of Incident, Alert, Profile, Trace, Exception, Log, Metric, DataSecurityIssue, CloudSaving.",
         );
       }
     });

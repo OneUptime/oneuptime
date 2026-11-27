@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64795,
+    "keys": 66170,
     "untranslated": 2320
   },
   "sameAsEnglish": [
@@ -486,6 +486,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID",
     "VMID {{vmid}}",
     "VMware vCenter",
@@ -583,6 +585,7 @@
     "npm test",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -599,6 +602,7 @@
     "p95 {{latency}}",
     "p99 (ms)",
     "payment-.*",
+    "payments, search, platform-*",
     "persistent volume claim",
     "pod",
     "pods",

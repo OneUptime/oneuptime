@@ -211,13 +211,78 @@ describe("a match as the value it reads as", () => {
     },
   );
 
-  test("any other pattern's match reads as it is written, escapes and digits and all", () => {
+  test("a key-targeted rule's value reads as it is written, escapes and digits and all", () => {
     for (const patternType of [
-      LogScrubPatternType.Custom,
       LogScrubPatternType.SensitiveKeys,
+      LogScrubPatternType.NamedKeys,
     ]) {
       expect(ScrubAction.asItReads("a%40b ４", patternType)).toBe("a%40b ４");
     }
+  });
+
+  // A Custom Regex rule reads a value's escapes and every script's digits (#11031, #11033).
+  test("a custom pattern's match reads with its escapes read and its digits in ASCII", () => {
+    expect(ScrubAction.asItReads("a%40b ４", LogScrubPatternType.Custom)).toBe(
+      "a@b 4",
+    );
+    // A token, put together where it is used: never written whole here.
+    const token: string = ["ghp", "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ"].join(
+      "_",
+    );
+
+    expect(
+      ScrubAction.asItReads(
+        token.replace(/_/g, "%5F"),
+        LogScrubPatternType.Custom,
+      ),
+    ).toBe(token);
+    expect(
+      ScrubAction.asItReads(
+        "DE٨٩٣٧٠٤٠٠٤٤٠٥٣٢٠١٣٠٠٠",
+        LogScrubPatternType.Custom,
+      ),
+    ).toBe("DE89370400440532013000");
+    // Written plainly, as it always read.
+    expect(
+      ScrubAction.asItReads("EMP-004211", LogScrubPatternType.Custom),
+    ).toBe("EMP-004211");
+  });
+
+  test("a custom pattern's match has the token, and the mask, of the value written plainly", () => {
+    const projectId: ObjectID = ObjectID.generate();
+    const token: string = ["ghp", "Zx8Kq2Lm9Pw4Rt6Hy3Nc8Vb5Jm1Df7Gs0AeQ"].join(
+      "_",
+    );
+    const plain: { hash: string; mask: string } = {
+      hash: ScrubAction.apply({
+        match: token,
+        action: LogScrubAction.Hash,
+        patternType: LogScrubPatternType.Custom,
+        projectId,
+      }),
+      mask: ScrubAction.mask(token, LogScrubPatternType.Custom),
+    };
+
+    for (const written of [
+      token.replace(/_/g, "%5F"),
+      token.replace("_", "%255F"),
+    ]) {
+      expect(
+        ScrubAction.apply({
+          match: written,
+          action: LogScrubAction.Hash,
+          patternType: LogScrubPatternType.Custom,
+          projectId,
+        }),
+      ).toBe(plain.hash);
+      expect(ScrubAction.mask(written, LogScrubPatternType.Custom)).toBe(
+        plain.mask,
+      );
+    }
+
+    expect(ScrubAction.mask("٣٤٥٦٧٨", LogScrubPatternType.Custom)).toBe(
+      ScrubAction.mask("345678", LogScrubPatternType.Custom),
+    );
   });
 
   test.each([

@@ -149,7 +149,7 @@ flowchart TB
 > [!TIP]
 > For å tilkalle én gang per problem i stedet for én gang per varsel legger du vaktpolicyer på grupperingsreglene dine og lar dem være borte fra varslene: fra monitorens kriterier, opprettelsesskjemaet og vaktreglene dine for varsler.
 
-Episodens eiere får også vite om det: **Varselepisode opprettet**, **Tilstand for varselepisode endret** og **Varsel lagt til i varselepisode** er slått på via e-post som standard under **Brukerinnstillinger → Varslingsinnstillinger** på fanen **Varsler**. Regelens **Episodeeiere** blir eiere av hver episode den åpner, og får beskjed som enhver annen eier.
+Episodens eiere får også vite om det: **Varselepisode opprettet**, **Tilstand for varselepisode endret** og **Varsel lagt til i varselepisode** er slått på via e-post som standard under **Brukerinnstillinger → Varslingsinnstillinger** på fanen **Varsler**. Regelens **Episodeeiere** blir eiere av hver episode den åpner, og får beskjed som enhver annen eier. De er på plass før Slack og Microsoft Teams får vite om episoden, slik at en varslingsregel som spør hvem som eier en episode, publiserer opprettelsesmeldingen dens.
 
 ## Opprett en episode manuelt
 
@@ -166,7 +166,7 @@ På **Episodedetaljer** fyller du ut **Tittel** og, hvis du vil, en **Varselsalv
 
 På **Vakt og eiere** velger du en **Vaktpolicy** som skal kjøre når episoden opprettes, og **Eiere**. Klikk deretter på **Opprett episode**.
 
-Hvert team du er medlem av, er bare ett klikk unna under **Eiere**, og sammendraget nevner eierreglene som legger til flere.
+Hvert team du er medlem av, er bare ett klikk unna under **Eiere**, og sammendraget nevner eierreglene som legger til flere. Eierne du velger, de som eierreglene legger til, og etikettene fra samsvarende etikettregler er på plass før Slack og Microsoft Teams får vite om episoden, slik at en varslingsregel som spør hvem som eier en episode, eller hvilke etiketter den har, også publiserer den.
 
 ### Legg til varslene
 

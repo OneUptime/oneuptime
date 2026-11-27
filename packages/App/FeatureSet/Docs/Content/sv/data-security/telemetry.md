@@ -111,7 +111,7 @@ Regeln namnges efter det den döljer, till exempel ”Data Security: Email addre
 | Varje annan datatyp som ett mönster hittar på egen hand, till exempel en GitHub-token | En regel av typen **Anpassad regex**, skapad av datatypens egna mönster. En hemlighet döljs helt. |
 | En av dina egna datatyper, med ett mönster | Det mönstret, bara i attributet där det hittades |
 | En datatyp som skiljs ut genom orden runt den, till exempel ett routingnummer | Dess form, bara i attributet där den hittades |
-| En datatyp som hittas utifrån fältets namn, till exempel en persons namn under `customer_name`, eller ett värde under en nyckel som nämner en hemlighet | En regel av typen **Namngivna attribut**, som döljer hela värdet i det attributet |
+| En datatyp som hittas utifrån fältets namn, till exempel en persons namn under `customer_name` eller under en URL:s parameter `full_name`, eller ett värde under en nyckel som nämner en hemlighet | En regel av typen **Namngivna attribut**, som döljer hela värdet i det attributet |
 | Ett värde under en nyckel som ser känslig ut, där inget smalare döljer det | En regel av typen **Känsliga attributnycklar**, som döljer hela värdet i varje sådant attribut |
 | Varje datatyp i ett mätvärdes attribut | En pipelineregel för mätvärden av typen **Maskera attribut** för tjänsten, som ersätter de av attributets värden som innehåller datatypen med `[REDACTED]`. För en IP-adress, en e-postadress eller ett kortnummer är dess filter **Matchar mönstertyp** med den typen, som hittar det som en regel för loggar eller spår med den **Mönstertyp** hittar, däribland IPv6-adresser och värden som är procentkodade eller i ett annat skriftsystem. För en annan datatyp är det typens eget mönster, och där inget mönster hittar datatypen ersätter regeln varje värde i attributet |
 
@@ -170,7 +170,7 @@ Innan OneUptime AI börjar läser Datasäkerhet om posterna som varje läcka set
 
 - **Ett span eller ett AI-anrop**: filen, raden och funktionen som dess attribut `code.*` nämner, och spannets namn.
 - **Ett undantag**: dess egna översta ramar, de i tjänstens kod.
-- **En loggrad**: filen, raden och funktionen som dess attribut nämner, när den har dem, dess loggare och raden som mall, där varje värde ersatts av namnet på sin typ, till exempel `User <Email address> signed up`.
+- **En loggrad**: filen, raden och funktionen som dess attribut nämner, när den har dem, dess loggare och raden som mall, där varje värde ersatts av namnet på sin typ, till exempel `User <Email address> signed up`, och varje ord som dess poster inte bevisar att koden skrev, till exempel en persons namn, av `<value>`: `Payment declined for Maria Gonzalez`, läst från en enda post, blir `Payment declined for <value>`. Ett spans namn och ett mätvärdes namn läses på samma sätt.
 - **Ett mätvärde**: mätvärdets namn.
 - **Varje läcka**: dess attributnyckel, till exempel `user.email`, som koden oftast skriver som den är.
 

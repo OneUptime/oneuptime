@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64795,
+    "keys": 66170,
     "untranslated": 8328
   },
   "sameAsEnglish": [
@@ -584,6 +584,8 @@
     "VM · esx-01",
     "VM · esx-02",
     "VM · esx-04",
+    "VM · xcp-host-1",
+    "VM · xcp-host-3",
     "VMID {{vmid}}",
     "VMware vCenter",
     "Valkey",
@@ -704,6 +706,7 @@
     "nova-compute",
     "ns",
     "null",
+    "office-hours",
     "ok",
     "oneuptime",
     "oneuptime-check",
@@ -720,6 +723,7 @@
     "p99 (ms)",
     "passkey",
     "passkeys",
+    "payments, search, platform-*",
     "per GB",
     "persistent volume",
     "persistent volume claim",
@@ -851,6 +855,7 @@
     "{{count}} hit",
     "{{count}} hits",
     "{{count}} host",
+    "{{count}} host is offline",
     "{{count}} hosts",
     "{{count}} hunt",
     "{{count}} hunts",
@@ -942,6 +947,7 @@
     "{{inQuorum}}/{{count}} mon in quorum",
     "{{inQuorum}}/{{count}} mons in quorum",
     "{{in}} in",
+    "{{location}} in {{store}}",
     "{{minutes}} min",
     "{{minutes}} min {{seconds}} s",
     "{{monitorName}} is offline",
@@ -951,6 +957,7 @@
     "{{rate}}/min",
     "{{rate}}/s",
     "{{size}} in {{duration}}",
+    "{{store}} in {{region}}",
     "{{subject}} is {{values}}.",
     "{{subject}} is {{value}}.",
     "{{subject}} was {{value}}",

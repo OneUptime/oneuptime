@@ -31,6 +31,7 @@ export enum RuleCriteriaSubject {
   ProxmoxClusters = "ProxmoxClusters",
   OpenStackClouds = "OpenStackClouds",
   VMwareVCenters = "VMwareVCenters",
+  XcpNgPools = "XcpNgPools",
   CephClusters = "CephClusters",
   CloudResources = "CloudResources",
   ServerlessFunctions = "ServerlessFunctions",
@@ -61,6 +62,12 @@ export enum RuleCriteriaSubject {
    * Security → AI's table, which passes this subject (#10364).
    */
   DataSecurityIssues = "DataSecurityIssues",
+  /*
+   * Nor this one: the AI rules for savings (an AI rule whose trigger is a
+   * cloud saving) are about the savings OneUptime could make, on Cloud →
+   * Settings → Savings AI Rules, which passes this subject (#11010).
+   */
+  CloudSavings = "CloudSavings",
 }
 
 /*
@@ -70,12 +77,14 @@ export enum RuleCriteriaSubject {
  * environments the apps on managed platforms run in on App Platforms', which
  * pass this subject to their tables (ruleCriteriaSubject), so their choice
  * reads "All cloud environments". And Data Security → AI's AI rules are
- * about Data Security issues, which no rule model is: "All issues".
+ * about Data Security issues, which no rule model is: "All issues"; the AI
+ * rules for savings about savings: "All savings".
  */
 export const RULE_CRITERIA_SUBJECTS_NAMED_BY_A_PAGE: ReadonlyArray<RuleCriteriaSubject> =
   [
     RuleCriteriaSubject.CloudEnvironments,
     RuleCriteriaSubject.DataSecurityIssues,
+    RuleCriteriaSubject.CloudSavings,
   ];
 
 /*
@@ -192,6 +201,8 @@ export const RULE_CRITERIA_SUBJECT_BY_MODEL: Readonly<
   VMwareVCenterOwnerRule: RuleCriteriaSubject.VMwareVCenters,
   WorkflowLabelRule: RuleCriteriaSubject.Workflows,
   WorkflowOwnerRule: RuleCriteriaSubject.Workflows,
+  XcpNgPoolLabelRule: RuleCriteriaSubject.XcpNgPools,
+  XcpNgPoolOwnerRule: RuleCriteriaSubject.XcpNgPools,
 };
 
 const SUBJECT_LOOKUP: Readonly<Record<string, RuleCriteriaSubject | null>> =

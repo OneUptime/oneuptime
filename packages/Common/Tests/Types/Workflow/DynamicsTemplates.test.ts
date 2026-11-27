@@ -915,6 +915,7 @@ describe.each(KINDS)(
           proxmoxClusters: { _id: true, name: true },
           openStackClouds: { _id: true, name: true },
           vmwareVCenters: { _id: true, name: true },
+          xcpNgPools: { _id: true, name: true },
           cephClusters: { _id: true, name: true },
           storageArrays: { _id: true, name: true },
           dockerSwarmClusters: { _id: true, name: true },

@@ -343,7 +343,7 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
     }
   });
 
-  test("the snmp-simulator quick start builds all five of its containers", () => {
+  test("the snmp-simulator quick start builds all eight of its containers", () => {
     const builds: Array<ImageBuild> = imageBuilds.filter(
       (build: ImageBuild): boolean => {
         return build.composeFile.startsWith(`${EXAMPLES_DIR}/snmp-simulator/`);
@@ -359,17 +359,23 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
       "switch-b",
       "sophos-xgs",
       "cambium-ap",
+      "brocade-g620",
+      "cisco-mds",
       "router-v3",
+      "san-switch-v3",
     ]);
 
     /*
-     * The four snmpsim agents - the two switches, the Sophos firewall and the
-     * Cambium access point - share the hand-written Dockerfile.
+     * The six snmpsim agents - the two switches, the Sophos firewall, the
+     * Cambium access point and the two SAN switches - share the hand-written
+     * Dockerfile.
      */
     expect(
       builds
         .filter((build: ImageBuild): boolean => {
-          return build.service !== "router-v3";
+          return (
+            build.service !== "router-v3" && build.service !== "san-switch-v3"
+          );
         })
         .map((build: ImageBuild): string => {
           return build.dockerfile;
@@ -379,7 +385,16 @@ describe("Every Dockerfile a compose file builds survives a fresh clone", () => 
       SNMP_SIMULATOR_DOCKERFILE,
       SNMP_SIMULATOR_DOCKERFILE,
       SNMP_SIMULATOR_DOCKERFILE,
+      SNMP_SIMULATOR_DOCKERFILE,
+      SNMP_SIMULATOR_DOCKERFILE,
     ]);
+
+    // The SNMPv3 notification sender has one of its own.
+    expect(
+      builds.find((build: ImageBuild): boolean => {
+        return build.service === "san-switch-v3";
+      })?.dockerfile,
+    ).toBe(path.join(SNMP_SIMULATOR_DIR, "Dockerfile.traps"));
 
     // The v3 router uses the separate net-snmp one.
     expect(
@@ -603,6 +618,9 @@ describe("The snmp-simulator quick start has every file it reads", () => {
     "data/switch-b/public.snmprec",
     "data/sophos-xgs/public.snmprec",
     "data/cambium-ap/public.snmprec",
+    "data/brocade-g620/public.snmprec",
+    "data/brocade-g620/fid20.snmprec",
+    "data/cisco-mds/public.snmprec",
     "snmpd.conf",
     "Dockerfile",
     "Dockerfile.snmpd",

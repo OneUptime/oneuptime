@@ -17,4 +17,11 @@ export default interface PingMonitorResponse {
    * packets sent in this check.
    */
   jitterInMs?: number | undefined;
+  /*
+   * Whether an echo came back: set on a network device's poll (issue
+   * #11071), whose response's own isOnline is the device's verdict - ping
+   * OR its SNMP walk - and so cannot say whether the ping answered. A Ping
+   * monitor's verdict is its response's isOnline; it leaves this unset.
+   */
+  isReachable?: boolean | undefined;
 }

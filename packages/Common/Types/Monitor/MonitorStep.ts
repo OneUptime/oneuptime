@@ -119,6 +119,9 @@ import MonitorStepCephMonitor, {
 import MonitorStepStorageArrayMonitor, {
   MonitorStepStorageArrayMonitorUtil,
 } from "./MonitorStepStorageArrayMonitor";
+import MonitorStepXcpNgMonitor, {
+  MonitorStepXcpNgMonitorUtil,
+} from "./MonitorStepXcpNgMonitor";
 import MonitorStepIoTMonitor, {
   MonitorStepIoTMonitorUtil,
 } from "./MonitorStepIoTMonitor";
@@ -300,6 +303,9 @@ export interface MonitorStepType {
   // VMware monitor
   vmwareMonitor?: MonitorStepVMwareMonitor | undefined;
 
+  // XCP-ng monitor
+  xcpNgMonitor?: MonitorStepXcpNgMonitor | undefined;
+
   // Docker Swarm monitor
   dockerSwarmMonitor?: MonitorStepDockerSwarmMonitor | undefined;
 
@@ -394,6 +400,7 @@ export default class MonitorStep extends DatabaseProperty {
       proxmoxMonitor: undefined,
       openstackMonitor: undefined,
       vmwareMonitor: undefined,
+      xcpNgMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
       storageArrayMonitor: undefined,
@@ -504,6 +511,7 @@ export default class MonitorStep extends DatabaseProperty {
       proxmoxMonitor: undefined,
       openstackMonitor: undefined,
       vmwareMonitor: undefined,
+      xcpNgMonitor: undefined,
       dockerSwarmMonitor: undefined,
       cephMonitor: undefined,
       storageArrayMonitor: undefined,
@@ -562,6 +570,7 @@ export default class MonitorStep extends DatabaseProperty {
       data.proxmoxMonitor?.metricViewConfig ||
       data.openstackMonitor?.metricViewConfig ||
       data.vmwareMonitor?.metricViewConfig ||
+      data.xcpNgMonitor?.metricViewConfig ||
       data.cephMonitor?.metricViewConfig ||
       data.storageArrayMonitor?.metricViewConfig
     );
@@ -902,6 +911,11 @@ export default class MonitorStep extends DatabaseProperty {
     return this;
   }
 
+  public setXcpNgMonitor(xcpNgMonitor: MonitorStepXcpNgMonitor): MonitorStep {
+    this.data!.xcpNgMonitor = xcpNgMonitor;
+    return this;
+  }
+
   public setDockerSwarmMonitor(
     dockerSwarmMonitor: MonitorStepDockerSwarmMonitor,
   ): MonitorStep {
@@ -970,6 +984,7 @@ export default class MonitorStep extends DatabaseProperty {
         proxmoxMonitor: undefined,
         openstackMonitor: undefined,
         vmwareMonitor: undefined,
+        xcpNgMonitor: undefined,
         dockerSwarmMonitor: undefined,
         cephMonitor: undefined,
         storageArrayMonitor: undefined,
@@ -1350,6 +1365,16 @@ export default class MonitorStep extends DatabaseProperty {
       }
     }
 
+    if (monitorType === MonitorType.XcpNg) {
+      if (!value.data.xcpNgMonitor) {
+        return "XCP-ng monitor configuration is required";
+      }
+
+      if (!value.data.xcpNgMonitor.poolIdentifier) {
+        return "XCP-ng pool is required";
+      }
+    }
+
     if (monitorType === MonitorType.DockerSwarm) {
       if (!value.data.dockerSwarmMonitor) {
         return "Docker Swarm monitor configuration is required";
@@ -1559,6 +1584,9 @@ export default class MonitorStep extends DatabaseProperty {
             : undefined,
           vmwareMonitor: this.data.vmwareMonitor
             ? MonitorStepVMwareMonitorUtil.toJSON(this.data.vmwareMonitor)
+            : undefined,
+          xcpNgMonitor: this.data.xcpNgMonitor
+            ? MonitorStepXcpNgMonitorUtil.toJSON(this.data.xcpNgMonitor)
             : undefined,
           dockerSwarmMonitor: this.data.dockerSwarmMonitor
             ? MonitorStepDockerSwarmMonitorUtil.toJSON(
@@ -1880,6 +1908,11 @@ export default class MonitorStep extends DatabaseProperty {
       vmwareMonitor: json["vmwareMonitor"]
         ? MonitorStepRollingTime.readSettings(
             json["vmwareMonitor"] as JSONObject,
+          )
+        : undefined,
+      xcpNgMonitor: json["xcpNgMonitor"]
+        ? MonitorStepRollingTime.readSettings(
+            json["xcpNgMonitor"] as JSONObject,
           )
         : undefined,
       dockerSwarmMonitor: json["dockerSwarmMonitor"]

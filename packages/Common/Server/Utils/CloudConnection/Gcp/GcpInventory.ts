@@ -1708,6 +1708,54 @@ export default class GcpInventoryClient {
   }
 
   /*
+   * Every asset of one type in one project, page by page, each as its
+   * resource's own data: a project's Compute Engine commitments
+   * (compute.googleapis.com/Commitment, GcpCommitmentInventory), read with
+   * the Cloud Asset Viewer role the connection already holds.
+   */
+  public async listAssetsOfType(data: {
+    projectId: string;
+    assetType: string;
+  }): Promise<{ resources: Array<JSONObject>; complete: boolean }> {
+    const resources: Array<JSONObject> = [];
+    let pageToken: string = "";
+
+    for (let page: number = 0; page < MAX_PAGES; page++) {
+      const query: string = buildQueryString([
+        ["contentType", "RESOURCE"],
+        ["assetTypes", data.assetType],
+        ["pageSize", PAGE_SIZE],
+        ["pageToken", pageToken],
+      ]);
+
+      const response: JSONObject = await this.get(
+        `${ASSET_BASE_URL}/projects/${encodeURIComponent(data.projectId)}/assets?${query}`,
+        "assets request",
+        "cloudasset.googleapis.com",
+      );
+
+      for (const raw of readArray(response["assets"])) {
+        const resource: JSONObject = readObject(readObject(raw)["resource"]);
+        const resourceData: JSONObject = readObject(resource["data"]);
+
+        if (Object.keys(resourceData).length > 0) {
+          resources.push(resourceData);
+        }
+      }
+
+      const next: string = readText(response["nextPageToken"]);
+
+      if (!next || next === pageToken) {
+        return { resources, complete: true };
+      }
+
+      pageToken = next;
+    }
+
+    return { resources, complete: false };
+  }
+
+  /*
    * Every active project the service account may see: for a connection that
    * reads a whole organization, whose roles were granted on it.
    */

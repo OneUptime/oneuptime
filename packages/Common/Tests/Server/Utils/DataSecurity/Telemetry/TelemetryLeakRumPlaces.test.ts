@@ -388,6 +388,51 @@ describe("the place a RUM record names", () => {
     expect(JSON.stringify(places)).not.toContain(EMAIL);
   });
 
+  test("read from one record, a name no detector names is masked in its line, its span's name and its page (#11098)", () => {
+    const logs: Array<TelemetryLeakPlace> = readLeakPlaces({
+      source: TelemetrySampleSource.RumLogs,
+      rows: [
+        {
+          readBody: "Payment declined for Ada Lovelace",
+          readUrlFull:
+            "https://shop.example.com/profile/ada-lovelace/settings?tab=billing",
+          readResolvedFrames: [
+            {
+              filePath: "src/checkout/payment.js",
+              functionName: "pay",
+              lineNumber: 8,
+            },
+          ],
+        },
+      ],
+      location: "logs.attributes.user.email",
+      templateOf,
+    });
+    const spans: Array<TelemetryLeakPlace> = readLeakPlaces({
+      source: TelemetrySampleSource.RumSpans,
+      rows: [
+        {
+          readName: "load profile of Grace Hopper",
+          readUrlPath: "/profile/grace-hopper",
+        },
+      ],
+      location: "spans.attributes.user.email",
+      templateOf,
+    });
+
+    expect(logs[0]).toMatchObject({
+      template: "Payment declined for <value>",
+      page: "/profile/<value>/settings",
+    });
+    expect(spans[0]).toMatchObject({
+      spanName: "load profile of <value>",
+      page: "/profile/<value>",
+    });
+    expect(JSON.stringify([...logs, ...spans])).not.toMatch(
+      /Ada|Lovelace|lovelace|Grace|Hopper|hopper/,
+    );
+  });
+
   test("a place's key: its file, then its template, its span - else the recorder call and the page, else the page", () => {
     expect(
       getTelemetryLeakPlaceKey({

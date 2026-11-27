@@ -176,6 +176,9 @@ describe("each cost's labels", () => {
         resourceId: RUN,
         currency: "EUR",
         amount: 12.5,
+        // Rows without amortized and net cells count their cost on each.
+        amortizedAmount: 12.5,
+        netAmount: 12.5,
         tags: { team: "checkout" },
       },
       {
@@ -186,6 +189,8 @@ describe("each cost's labels", () => {
         resourceId: "",
         currency: "EUR",
         amount: 3,
+        amortizedAmount: 3,
+        netAmount: 3,
       },
     ]);
   });

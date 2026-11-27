@@ -197,6 +197,7 @@ Cada uno de estos widgets lista los recursos que un agente o un colector comunic
 | **Podman** | **Hosts**, **Contenedores**, **Imágenes**, **Redes**, **Volúmenes** | El agente de Podman |
 | **Proxmox** | **Nodos**, **Invitados** | El agente de Proxmox |
 | **VMware** | **Hosts**, **Máquinas virtuales** | El agente de VMware, o un vCenter que conectes |
+| **XCP-ng** | **Hosts**, **VM** | El agente de XCP-ng |
 | **Ceph** | **OSD**, como un muro coloreado por estado, y **Pools** | El agente de Ceph |
 | **Cabinas de almacenamiento** | **Volúmenes**, y **Hardware** como un muro coloreado por estado | El agente de cabinas de almacenamiento |
 

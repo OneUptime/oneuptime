@@ -14,6 +14,11 @@ enum MonitorType {
   Proxmox = "Proxmox",
   OpenStack = "OpenStack",
   VMware = "VMware",
+  /*
+   * XCP-ng pools, read from Xen Orchestra (the XCP-ng Agent scrapes its
+   * OpenMetrics plugin). The value is stored on monitors; never rename it.
+   */
+  XcpNg = "XCP-ng",
   Ceph = "Ceph",
   StorageArray = "Storage Array",
   IoTDevice = "IoT Device",
@@ -119,6 +124,7 @@ const METRIC_BACKED_MONITOR_TYPES: ReadonlyArray<MonitorType> = [
   MonitorType.Proxmox,
   MonitorType.OpenStack,
   MonitorType.VMware,
+  MonitorType.XcpNg,
   MonitorType.Ceph,
   MonitorType.StorageArray,
   MonitorType.IoTDevice,
@@ -239,6 +245,7 @@ export class MonitorTypeHelper {
           MonitorType.Proxmox,
           MonitorType.OpenStack,
           MonitorType.VMware,
+          MonitorType.XcpNg,
           MonitorType.Ceph,
           MonitorType.StorageArray,
           MonitorType.IoTDevice,
@@ -306,7 +313,8 @@ export class MonitorTypeHelper {
   /*
    * The metric-backed types that watch one resource an agent reports on -
    * Host, Kubernetes, Docker, Podman, Docker Swarm, Proxmox, OpenStack, VMware,
-   * Ceph, Storage Array, IoT Device: every metric-backed type but Metrics.
+   * XCP-ng, Ceph, Storage Array, IoT Device: every metric-backed type but
+   * Metrics.
    *
    * Their data is scraped on a schedule, so a window with no data at all
    * means the agent (or the resource) stopped sending, never "all is
@@ -583,6 +591,30 @@ export class MonitorTypeHelper {
           "virtualization",
           "cluster",
           "resource pool",
+        ],
+      },
+      {
+        monitorType: MonitorType.XcpNg,
+        title: "XCP-ng",
+        description:
+          "Pool, host, VM and storage repository health, read from Xen Orchestra.",
+        icon: IconProp.XcpNg,
+        keywords: [
+          "xen",
+          "xenserver",
+          "xen orchestra",
+          "xo",
+          "xoa",
+          "xcp",
+          "xapi",
+          "vates",
+          "pool",
+          "hypervisor",
+          "vm",
+          "virtual machine",
+          "virtualization",
+          "storage repository",
+          "sr",
         ],
       },
       {
@@ -1166,6 +1198,7 @@ export class MonitorTypeHelper {
       MonitorType.Proxmox,
       MonitorType.OpenStack,
       MonitorType.VMware,
+      MonitorType.XcpNg,
       MonitorType.Ceph,
       MonitorType.StorageArray,
       MonitorType.IoTDevice,

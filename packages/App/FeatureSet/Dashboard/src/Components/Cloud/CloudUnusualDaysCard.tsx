@@ -22,6 +22,8 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
+import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
+import { CloudCostBasisPill } from "./CloudCostBasis";
 import { formatCloudMoney } from "./CloudCostWords";
 import { toReaderDay } from "./CloudDailySpendChart";
 import { CloudAccountRow } from "./UseCloudAccounts";
@@ -136,6 +138,8 @@ export interface ComponentProps {
   currency: string;
   // Over every account: each row names its account.
   showAccounts: boolean;
+  // The cost basis the days were found on, named on the card.
+  basis?: CloudCostBasis | undefined;
 }
 
 const CloudUnusualDaysCard: FunctionComponent<ComponentProps> = (
@@ -155,7 +159,13 @@ const CloudUnusualDaysCard: FunctionComponent<ComponentProps> = (
       : props.rows.slice(0, UNUSUAL_DAYS_SHOWN);
 
   return (
-    <Card title={UNUSUAL_DAYS_TITLE} description={UNUSUAL_DAYS_DESCRIPTION}>
+    <Card
+      title={UNUSUAL_DAYS_TITLE}
+      description={UNUSUAL_DAYS_DESCRIPTION}
+      rightElement={
+        props.basis ? <CloudCostBasisPill basis={props.basis} /> : undefined
+      }
+    >
       <div data-testid="cloud-unusual-days">
         <ul className="-mt-3 divide-y divide-gray-100">
           {shown.map((row: CloudUnusualDayRow): ReactElement => {
