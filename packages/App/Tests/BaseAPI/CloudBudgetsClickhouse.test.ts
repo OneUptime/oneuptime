@@ -48,7 +48,10 @@ import {
   CloudBudgetScope,
   getCloudBudgetCheckWindow,
 } from "Common/Types/Cloud/CloudBudget";
-import { daysInUtcMonth, projectCloudMonthCost } from "Common/Types/Cloud/CloudCost";
+import {
+  daysInUtcMonth,
+  projectCloudMonthCost,
+} from "Common/Types/Cloud/CloudCost";
 import { CloudCostSharedSplit } from "Common/Types/Cloud/CloudCostAllocation";
 import { CloudCostBasis } from "Common/Types/Cloud/CloudCostBasis";
 import {
@@ -707,9 +710,7 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
         scope: CloudBudgetScope.Filter,
         filterRules: EC2_EAST,
       });
-      const counts: (series: Series) => boolean = (
-        series: Series,
-      ): boolean => {
+      const counts: (series: Series) => boolean = (series: Series): boolean => {
         return series.name === "pay-api";
       };
 
@@ -785,10 +786,16 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
           scopeRead({
             scope: CloudBudgetScope.Filter,
             filterRules: [
-              { conditions: [condition(CloudCostRuleField.Service, ["Amazon S3"])] },
               {
                 conditions: [
-                  condition(CloudCostRuleField.Tag, ["search"], { key: "team" }),
+                  condition(CloudCostRuleField.Service, ["Amazon S3"]),
+                ],
+              },
+              {
+                conditions: [
+                  condition(CloudCostRuleField.Tag, ["search"], {
+                    key: "team",
+                  }),
                   condition(CloudCostRuleField.Service, ["Amazon Bedrock"]),
                 ],
               },
@@ -1024,9 +1031,10 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
     });
 
     test("a monthly budget reads this month and the week before it, and no history", async () => {
-      const readMonths: jest.SpiedFunction<
-        typeof CloudBudgetSpendReader.readMonths
-      > = jest.spyOn(CloudBudgetSpendReader, "readMonths");
+      const readMonths: ReturnType<typeof jest.spyOn> = jest.spyOn(
+        CloudBudgetSpendReader,
+        "readMonths",
+      ) as unknown as ReturnType<typeof jest.spyOn>;
       const figures: CloudBudgetFiguresRead = await CloudBudgetFigures.read({
         read: scopeRead({
           scope: CloudBudgetScope.Filter,
@@ -1046,9 +1054,9 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
       expect(readMonths).not.toHaveBeenCalled();
       expect(figures.forecast).toBeUndefined();
       expect(figures.window.spent).toBe(380);
-      expect(
-        Array.from(figures.dailyTotals.keys()).sort()[0],
-      ).toBe("2026-11-01");
+      expect(Array.from(figures.dailyTotals.keys()).sort()[0]).toBe(
+        "2026-11-01",
+      );
     });
 
     test("a yearly budget from April split by month: November against its own share, the year beside it", async () => {
@@ -1214,13 +1222,11 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
           written.push(data.data as JSONObject);
           return 1;
         });
-      jest
-        .spyOn(ProjectService, "findOneById")
-        .mockImplementation(async () => {
-          const project: Project = new Project();
-          project.name = "Acme";
-          return project;
-        });
+      jest.spyOn(ProjectService, "findOneById").mockImplementation(async () => {
+        const project: Project = new Project();
+        project.name = "Acme";
+        return project;
+      });
       jest.spyOn(AlertService, "findBy").mockResolvedValue([]);
       jest
         .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
@@ -1256,7 +1262,13 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
       jest
         .spyOn(CloudBudgetNotices, "plan")
         .mockImplementation(
-          async (data: { threshold: number; people: Array<User> }) => {
+          async (data: {
+            projectId: ObjectID;
+            budgetId: ObjectID;
+            windowKey: string;
+            threshold: number;
+            people: Array<User>;
+          }) => {
             planned.push({ threshold: data.threshold, people: data.people });
             return new OwnerNotificationDelivery();
           },
@@ -1288,8 +1300,9 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
       expect(cents(Number(state["spentThisPeriod"]))).toBe(990);
       expect(cents(Number(state["spentThisMonth"]))).toBe(494);
 
-      const alertState: CloudBudgetAlertState =
-        state["alertState"] as unknown as CloudBudgetAlertState;
+      const alertState: CloudBudgetAlertState = state[
+        "alertState"
+      ] as unknown as CloudBudgetAlertState;
       expect(alertState.month).toBe("2026-10/3");
       expect(alertState.thresholds).toEqual([80]);
       expect(alertState.alertIds).toEqual([]);
@@ -1364,7 +1377,7 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
       );
 
       expect(created).toHaveLength(1);
-      expect(created[0]!.title.toLowerCase()).toContain("on course");
+      expect((created[0]!.title || "").toLowerCase()).toContain("on course");
       expect(cents(Number(state["projectedThisPeriod"]))).toBe(
         cents(figures.period.projected),
       );
@@ -1378,7 +1391,20 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
         november: number,
       ): Array<number> => {
         // April to March; October (300) ran over at 496.
-        return [500, 500, 500, 500, 500, 500, 300, november, 1100, 500, 500, 500];
+        return [
+          500,
+          500,
+          500,
+          500,
+          500,
+          500,
+          300,
+          november,
+          1100,
+          500,
+          500,
+          500,
+        ];
       };
       const yearly: (november: number) => CloudBudget = (
         november: number,
@@ -1436,8 +1462,9 @@ integration("cloud budgets and forecasts against ClickHouse", () => {
       );
       expect(created[0]!.description).toContain("Amazon EC2 cost");
 
-      const state: CloudBudgetAlertState =
-        first["alertState"] as unknown as CloudBudgetAlertState;
+      const state: CloudBudgetAlertState = first[
+        "alertState"
+      ] as unknown as CloudBudgetAlertState;
       expect(state.month).toBe("2026-11");
       expect(state.anomalies).toEqual([`scope|${SPIKE_DAY}`]);
 

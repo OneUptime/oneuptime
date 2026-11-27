@@ -1521,9 +1521,10 @@ describe("Cloud Costs and Savings", () => {
   it("names the budget form's fields as the page draws them, its default thresholds, and when budgets are checked", () => {
     const budgets: string = source("budgets");
     // A title wrapped onto lines of its own reads as one line here.
-    const words: string = `${source("budgetWords")}\n${source("budgetScopeTarget")}`
-      .replace(/\(\s+/g, "(")
-      .replace(/,\s*\)/g, ")");
+    const words: string =
+      `${source("budgetWords")}\n${source("budgetScopeTarget")}`
+        .replace(/\(\s+/g, "(")
+        .replace(/,\s*\)/g, ")");
     const section: string = costsSection("Budgets");
 
     // The titles the form writes as they are.

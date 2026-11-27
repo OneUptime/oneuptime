@@ -315,7 +315,13 @@ describePostgres("Cloud budgets against Postgres", () => {
       await insert("Project", { _id: project.toString(), name: "Acme" });
     }
 
-    for (const id of [ADMIN_ID.toString(), FINANCE, PENDING, ANALYST, OUTSIDER]) {
+    for (const id of [
+      ADMIN_ID.toString(),
+      FINANCE,
+      PENDING,
+      ANALYST,
+      OUTSIDER,
+    ]) {
       await insert("User", { _id: id, email: `${id}@acme.test`, name: "A" });
     }
 
@@ -776,7 +782,10 @@ describePostgres("Cloud budgets against Postgres", () => {
   });
 
   describe("who a budget tells below 100%", () => {
-    function facts(budgetId: ObjectID, threshold: number): CloudBudgetNoticeFacts {
+    function facts(
+      budgetId: ObjectID,
+      threshold: number,
+    ): CloudBudgetNoticeFacts {
       return {
         budgetId,
         projectId: PROJECT_ID,
@@ -784,7 +793,8 @@ describePostgres("Cloud budgets against Postgres", () => {
         projectName: "Acme",
         threshold,
         title: `Cloud budget "Payments" passed ${threshold}%`,
-        description: "This quarter's spend for the Payments cost group is $990 of $1,200 (83%).",
+        description:
+          "This quarter's spend for the Payments cost group is $990 of $1,200 (83%).",
         budgetLink: "https://oneuptime.example/budget",
       };
     }
@@ -841,7 +851,13 @@ describePostgres("Cloud budgets against Postgres", () => {
           })
           .sort(),
       ).toEqual([ANALYST, FINANCE].sort());
-      expect(new Set(sent.map((entry) => entry.eventType))).toEqual(
+      expect(
+        new Set(
+          sent.map((entry: { eventType: string }): string => {
+            return entry.eventType;
+          }),
+        ),
+      ).toEqual(
         new Set([
           NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION,
         ]),
@@ -914,7 +930,11 @@ describePostgres("Cloud budgets against Postgres", () => {
         budgetId: budgetId.toString(),
         threshold: 90,
       });
-      expect(sent.map((entry) => entry.userId)).toEqual([FINANCE]);
+      expect(
+        sent.map((entry: { userId: string }): string => {
+          return entry.userId;
+        }),
+      ).toEqual([FINANCE]);
 
       // The gone budget's delivery is given up, never told.
       const statuses: Array<{ eventId: string; status: string }> =

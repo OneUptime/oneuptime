@@ -72,15 +72,6 @@ interface CapturedColumn<T> {
   isHiddenByDefault?: boolean;
 }
 
-interface CapturedFormField {
-  title: string;
-  stepId?: string;
-  required?: boolean;
-  collapsibleSection?: unknown;
-  customValidation?: (values: Record<string, unknown>) => string | null;
-  defaultValue?: unknown;
-}
-
 const ACCOUNT_ROW: string = "10000000-0000-4000-8000-0000000000b1";
 const RESOURCE_ROW: string = "10000000-0000-4000-8000-0000000000c1";
 

@@ -110,7 +110,6 @@ import React, {
  * (applyCloudCostGrowth), the same way the API applies one asked of it.
  */
 
-
 type ForecastScope = "all" | "account" | "group" | "service";
 
 // What the page asks the API for, from what is picked; null until picked.

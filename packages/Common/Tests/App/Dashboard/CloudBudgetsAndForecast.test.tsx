@@ -141,6 +141,7 @@ jest.mock(
 import CloudBudget from "../../../Models/DatabaseModels/CloudBudget";
 import Route from "../../../Types/API/Route";
 import {
+  CLOUD_BUDGET_PERIOD_LABELS,
   CloudBudgetPeriod,
   CloudBudgetPlanSplit,
   CloudBudgetScope,
@@ -188,7 +189,6 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Budgets/CloudForecastDetails";
 import { toPlannedBudget } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Budgets/CloudForecastSavePlan";
 import { getCloudBudgetPeriodLine } from "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/Budgets/CloudBudgetWords";
-import { CLOUD_BUDGET_PERIOD_LABELS } from "../../../Types/Cloud/CloudBudget";
 import { getGlobalTranslator } from "../../../UI/Utils/TranslateTemplate";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 
@@ -409,7 +409,12 @@ describe("Cloud > Budgets", () => {
         period: CloudBudgetPeriod.Year,
         planSplit: CloudBudgetPlanSplit.ByMonth,
       }),
-    ).toEqual(["Period", "First Month of the Year", "Budget Plan", "Monthly Plan"]);
+    ).toEqual([
+      "Period",
+      "First Month of the Year",
+      "Budget Plan",
+      "Monthly Plan",
+    ]);
     expect(shown("alerts", {})).toEqual([
       "Alert At",
       "Alert When On Course To Pass",
@@ -458,9 +463,9 @@ describe("Cloud > Budgets", () => {
     expect(drawn(column("Period").getElement!(budget()))).toHaveTextContent(
       "Monthly",
     );
-    expect(
-      drawn(column("Applies To").getElement!(budget())),
-    ).toHaveTextContent("All accounts");
+    expect(drawn(column("Applies To").getElement!(budget()))).toHaveTextContent(
+      "All accounts",
+    );
   });
 
   test("a yearly row split by month: this month against its share, the year beside it", async () => {
@@ -482,8 +487,10 @@ describe("Cloud > Budgets", () => {
       projectedThisPeriod: 6400,
     });
 
-    const figures: ReturnType<typeof getBudgetRowFigures> =
-      getBudgetRowFigures(yearly, NOW);
+    const figures: ReturnType<typeof getBudgetRowFigures> = getBudgetRowFigures(
+      yearly,
+      NOW,
+    );
     expect(figures).toMatchObject({
       amount: 400,
       spent: 494,
@@ -494,9 +501,9 @@ describe("Cloud > Budgets", () => {
 
     const cell: HTMLElement = drawn(column("This Period").getElement!(yearly));
     expect(cell).toHaveTextContent("This month: $494 of $400");
-    expect(within(cell).getByTestId("cloud-budget-year-line")).toHaveTextContent(
-      "This year: $3,918 of $6,000",
-    );
+    expect(
+      within(cell).getByTestId("cloud-budget-year-line"),
+    ).toHaveTextContent("This year: $3,918 of $6,000");
     expect(drawn(column("Status").getElement!(yearly))).toHaveTextContent(
       "Over budget",
     );
@@ -512,7 +519,9 @@ describe("Cloud > Budgets", () => {
       column("Applies To").getElement!(
         budget({
           scope: CloudBudgetScope.CostGroup,
-          cloudCostGroupId: new ObjectID("10000000-0000-4000-8000-0000000000d1"),
+          cloudCostGroupId: new ObjectID(
+            "10000000-0000-4000-8000-0000000000d1",
+          ),
           cloudCostGroup: {
             name: "Payments",
             cloudCostViewId: new ObjectID(
@@ -591,7 +600,9 @@ describe("Cloud > Budgets", () => {
       ),
     );
 
-    expect(within(cell).getByRole("link", { name: "web-prod" })).toHaveAttribute(
+    expect(
+      within(cell).getByRole("link", { name: "web-prod" }),
+    ).toHaveAttribute(
       "href",
       expect.stringContaining(
         "/cloud/accounts/10000000-0000-4000-8000-0000000000b1/costs",
@@ -622,7 +633,11 @@ describe("Cloud > Budgets", () => {
 
     const nothing: HTMLElement = drawn(
       column("This Period").getElement!(
-        budget({ monthlyAmount: 500, spentThisMonth: 0, projectedThisMonth: 0 }),
+        budget({
+          monthlyAmount: 500,
+          spentThisMonth: 0,
+          projectedThisMonth: 0,
+        }),
       ),
     );
     expect(nothing).toHaveTextContent("$0 of $500");
@@ -965,14 +980,16 @@ describe("Cloud > Forecast", () => {
       });
 
     expect(
-      series.map((entry: { seriesName: string; data: Array<{ y: number }> }) => {
-        return [
-          entry.seriesName,
-          entry.data.map((point: { y: number }): number => {
-            return point.y;
-          }),
-        ];
-      }),
+      series.map(
+        (entry: { seriesName: string; data: Array<{ y: number }> }) => {
+          return [
+            entry.seriesName,
+            entry.data.map((point: { y: number }): number => {
+              return point.y;
+            }),
+          ];
+        },
+      ),
     ).toEqual([
       ["Spent", [496, 494, 0, 0]],
       ["On course", [0, 474, 0, 0]],
@@ -997,7 +1014,10 @@ describe("Cloud > Forecast", () => {
       />,
     );
     const howMade: HTMLElement = screen.getByTestId("cloud-forecast-how-made");
-    expect(howMade).toHaveAttribute("data-method", CloudCostForecastMethod.Pace);
+    expect(howMade).toHaveAttribute(
+      "data-method",
+      CloudCostForecastMethod.Pace,
+    );
     expect(howMade).toHaveTextContent("Last week's pace");
     // One month, in the singular.
     expect(howMade).toHaveTextContent("Made from 1 full month");
@@ -1006,11 +1026,10 @@ describe("Cloud > Forecast", () => {
   });
 
   test("the page: the next twelve months with their range, next month, this month so far, and the trend", async () => {
-    const read: jest.SpiedFunction<
-      typeof CloudBudgetReads.fetchCloudCostForecast
-    > = jest
-      .spyOn(CloudBudgetReads, "fetchCloudCostForecast")
-      .mockResolvedValue(forecastResult(forecast()));
+    const read: jest.SpyInstance<any, any> = getJestSpyOn(
+      CloudBudgetReads,
+      "fetchCloudCostForecast",
+    ).mockResolvedValue(forecastResult(forecast()));
 
     await act(async () => {
       render(
@@ -1122,11 +1141,10 @@ describe("Cloud > Forecast", () => {
   });
 
   test("a cost group or a service is read only once one is picked", async () => {
-    const read: jest.SpiedFunction<
-      typeof CloudBudgetReads.fetchCloudCostForecast
-    > = jest
-      .spyOn(CloudBudgetReads, "fetchCloudCostForecast")
-      .mockResolvedValue(forecastResult(forecast()));
+    const read: jest.SpyInstance<any, any> = getJestSpyOn(
+      CloudBudgetReads,
+      "fetchCloudCostForecast",
+    ).mockResolvedValue(forecastResult(forecast()));
 
     await act(async () => {
       render(

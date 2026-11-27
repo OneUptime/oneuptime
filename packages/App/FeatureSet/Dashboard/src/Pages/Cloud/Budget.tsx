@@ -228,7 +228,11 @@ const CloudBudgetPage: FunctionComponent<
   }
 
   if (!budget) {
-    return <PageSkeleton />;
+    /*
+     * A budget deleted, or one the person may not read, is no item: the
+     * page's own read says why, rather than the page loading for ever.
+     */
+    return pageError ? <ErrorMessage message={pageError} /> : <PageSkeleton />;
   }
 
   const currency: string = page?.currency || budget.currency || "USD";
