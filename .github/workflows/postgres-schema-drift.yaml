@@ -5590,6 +5590,24 @@ jobs:
           Tests/Server/Services/XcpNgResourceWritesPostgres.test.ts
           --forceExit
 
+      # Which incidents pause a monitor (#11141), on copies of the migrated
+      # tables the services read and write: only an open incident declared
+      # by hand that holds its monitors and pauses monitoring pauses one,
+      # resolving it gives the monitor back, and paused time counts as the
+      # status the incident put the monitor in, as status pages read it.
+      - name: Test which incidents pause a monitor on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_INCIDENT_PAUSE_TESTS: "true"
+          MONITOR_INCIDENT_PAUSE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_INCIDENT_PAUSE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_INCIDENT_PAUSE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorIncidentPausePostgres.test.ts
+          --forceExit
+
       # The telemetry scheduler's stamps (#11060), on a "Monitor" table of
       # the columns its statements touch, in a schema of its own: every row
       # still due stamped once with its own next due time, by two schedulers
