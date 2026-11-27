@@ -170,7 +170,7 @@ Antes de que OneUptime AI empiece, Seguridad de datos vuelve a leer, dentro de O
 
 - **Un span o una llamada de IA**: el archivo, la línea y la función que nombran sus atributos `code.*`, y el nombre del span.
 - **Una excepción**: sus propios frames superiores, los del código del servicio.
-- **Una línea de registro**: el archivo, la línea y la función que nombran sus atributos, si los tiene, su logger, y la línea como plantilla, con cada valor sustituido por el nombre de su tipo, como `User <Email address> signed up`, y cada palabra que sus registros no demuestran que haya escrito el código, como el nombre de una persona, sustituida por `<value>`: `Payment declined for Maria Gonzalez`, leído de un solo registro, queda como `Payment declined for <value>`. El nombre de un span y el de una métrica se leen de la misma manera.
+- **Una línea de registro**: el archivo, la línea y la función que nombran sus atributos, si los tiene, su logger, y la línea como plantilla, con cada valor sustituido por el nombre de su tipo, como `User <Email address> signed up`, y cada palabra que no sea de las que usa el código para escribir líneas de registro, como el nombre de una persona o un nombre de usuario, sustituida por `<value>`, por muchos de sus registros que compartan la palabra: `Payment declined for Maria Gonzalez` queda como `Payment declined for <value>`, y `Ticket assigned to jdoe`, leído de todos los registros de la línea, queda como `Ticket assigned to <value>`. El nombre de un span y el de una métrica se leen de la misma manera.
 - **Una métrica**: el nombre de la métrica.
 - **Cualquier fuga**: su clave de atributo, como `user.email`, que el código suele escribir tal cual.
 

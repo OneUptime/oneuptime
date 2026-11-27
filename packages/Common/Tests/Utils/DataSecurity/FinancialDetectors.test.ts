@@ -774,6 +774,124 @@ describe("au-bsb", () => {
   });
 });
 
+/*
+ * #11200: a card's code, its expiry, a bank account number, a sort code, a
+ * BSB, a BIC and an IFSC read in every script's digits, as #11033 did for
+ * IBANs and routing numbers - the same code beside the same words, its
+ * digits in Arabic-Indic, Persian or fullwidth ones. And #11199: each in
+ * a URL, its words or its separators escaped, or written "+" as a form
+ * writes a space.
+ */
+function inScriptOf(text: string, zero: number): string {
+  return text.replace(/[0-9]/g, (digit: string): string => {
+    return String.fromCharCode(zero + Number(digit));
+  });
+}
+
+const ARABIC_INDIC: number = 0x0660;
+const PERSIAN: number = 0x06f0;
+const FULLWIDTH: number = 0xff10;
+
+describe("bank and card codes in another script's digits (#11200)", () => {
+  test("a card's security code, beside its words, in each script's digits", () => {
+    for (const zero of [ARABIC_INDIC, PERSIAN, FULLWIDTH]) {
+      expectFound(`cvv: ${inScriptOf("123", zero)}`, [
+        found("card-verification-code", inScriptOf("123", zero), H),
+      ]);
+      expectFound(`security code: ${inScriptOf("9876", zero)}`, [
+        found("card-verification-code", inScriptOf("9876", zero), H),
+      ]);
+    }
+
+    expectNothingOf("card-verification-code", [
+      `cvv ${inScriptOf("12", ARABIC_INDIC)}`,
+      `cvv ${inScriptOf("12345", PERSIAN)}`,
+      inScriptOf("123", FULLWIDTH),
+    ]);
+  });
+
+  test("a card's expiry, beside its words, in each script's digits", () => {
+    expectFound(`exp ${inScriptOf("04/27", ARABIC_INDIC)}`, [
+      found("card-expiration-date", inScriptOf("04/27", ARABIC_INDIC), H),
+    ]);
+    expectFound(`Expiry: ${inScriptOf("04 / 2027", FULLWIDTH)}`, [
+      found("card-expiration-date", inScriptOf("04 / 2027", FULLWIDTH), H),
+    ]);
+    expectNothingOf("card-expiration-date", [
+      `exp ${inScriptOf("13/27", PERSIAN)}`,
+      inScriptOf("04/27", ARABIC_INDIC),
+    ]);
+  });
+
+  test("a bank account number, a sort code and a BSB, beside their words", () => {
+    expectFound(`account number ${inScriptOf("12345679", ARABIC_INDIC)}`, [
+      found("bank-account-number", inScriptOf("12345679", ARABIC_INDIC), H),
+    ]);
+    expectFound(`sort code ${inScriptOf("40-47-84", PERSIAN)}`, [
+      found("uk-sort-code", inScriptOf("40-47-84", PERSIAN), H),
+    ]);
+    expectFound(`BSB ${inScriptOf("062-000", FULLWIDTH)}`, [
+      found("au-bsb", inScriptOf("062-000", FULLWIDTH), H),
+    ]);
+    expectNothingOf("bank-account-number", [
+      inScriptOf("12345679", ARABIC_INDIC),
+      `account number ${inScriptOf("1111111", PERSIAN)}`,
+    ]);
+    expectNothingOf("uk-sort-code", [
+      `sort code ${inScriptOf("00-00-00", ARABIC_INDIC)}`,
+    ]);
+  });
+
+  test("a BIC whose branch is in another script's digits is found whole, never cut at a digit", () => {
+    expectFound(`BIC: DEUTDEFF${inScriptOf("500", ARABIC_INDIC)}`, [
+      found("swift-bic", `DEUTDEFF${inScriptOf("500", ARABIC_INDIC)}`, H),
+    ]);
+    // Twelve characters, a digit of another script among them: no BIC, not even its first eight.
+    expectNothingOf("swift-bic", [
+      `swift LLISMKFC${inScriptOf("4", PERSIAN)}JGJ`,
+      `swift ${inScriptOf("4", PERSIAN)}DEUTDEFF`,
+    ]);
+  });
+
+  test("an IFSC whose branch is in another script's digits", () => {
+    expectFound(`IFSC: HDFC${inScriptOf("0000123", ARABIC_INDIC)}`, [
+      found("in-ifsc", `HDFC${inScriptOf("0000123", ARABIC_INDIC)}`, M),
+    ]);
+  });
+});
+
+describe("bank and card codes in a URL (#11199, #11200)", () => {
+  test("after their words escaped, or written as a form writes them", () => {
+    expectFound("POST /pay body=security+code=123&x=1", [
+      found("card-verification-code", "123", H),
+    ]);
+    expectFound("GET /pay?exp=04%2F27&step=2", [
+      found("card-expiration-date", "04%2F27", H),
+    ]);
+    expectFound("GET /pay?expiry+date=12%2F29&step=2", [
+      found("card-expiration-date", "12%2F29", H),
+    ]);
+    expectFound("GET /payout?bank+account=12345679&step=2", [
+      found("bank-account-number", "12345679", H),
+    ]);
+    expectFound("GET /payout?account%20number%3D12345679&step=2", [
+      found("bank-account-number", "12345679", H),
+    ]);
+    expectFound("GET /payout?sort+code=40-47-84&step=2", [
+      found("uk-sort-code", "40-47-84", H),
+    ]);
+    expectFound("GET /payout?routing+number=021000021&step=2", [
+      found("us-bank-routing-number", "021000021", H),
+    ]);
+  });
+
+  test("without their words, or a digit off, they are nothing", () => {
+    expectNothingOf("bank-account-number", ["GET /calc?q=12345679+1"]);
+    expectNothingOf("card-expiration-date", ["GET /pay?exp=13%2F27"]);
+    expectNothingOf("uk-sort-code", ["GET /pay?sort+code=40-47-8"]);
+  });
+});
+
 describe("bitcoin-address", () => {
   test("finds legacy and SegWit addresses whose checksums hold, High on their own", () => {
     expectFound("send to 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa", [

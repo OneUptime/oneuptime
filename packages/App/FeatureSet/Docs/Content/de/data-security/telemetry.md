@@ -170,7 +170,7 @@ Bevor OneUptime AI beginnt, liest Datensicherheit die Einträge, in denen jedes 
 
 - **Ein Span oder ein KI-Aufruf**: die Datei, Zeile und Funktion, die seine Attribute `code.*` nennen, und der Name des Spans.
 - **Eine Ausnahme**: ihre eigenen obersten Frames, die im Code des Dienstes.
-- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`, und jedes Wort, von dem ihre Einträge nicht nachweisen, dass der Code es geschrieben hat, etwa der Name einer Person, durch `<value>` ersetzt: `Payment declined for Maria Gonzalez`, aus einem einzigen Eintrag gelesen, wird zu `Payment declined for <value>`. Der Name eines Spans und der Name einer Metrik werden auf dieselbe Weise gelesen.
+- **Eine Logzeile**: die Datei, Zeile und Funktion, die ihre Attribute nennen, falls vorhanden, ihr Logger und die Zeile als Vorlage, jeder Wert durch den Namen seines Typs ersetzt, etwa `User <Email address> signed up`, und jedes Wort, das keines der Wörter ist, mit denen Code Logzeilen schreibt, etwa der Name einer Person oder ein Benutzername, durch `<value>` ersetzt, ganz gleich, wie viele ihrer Einträge das Wort gemeinsam haben: `Payment declined for Maria Gonzalez` wird zu `Payment declined for <value>`, und `Ticket assigned to jdoe`, aus allen Einträgen der Zeile gelesen, wird zu `Ticket assigned to <value>`. Der Name eines Spans und der Name einer Metrik werden auf dieselbe Weise gelesen.
 - **Eine Metrik**: der Name der Metrik.
 - **Jedes Leck**: sein Attributschlüssel, etwa `user.email`, den der Code meist unverändert schreibt.
 

@@ -382,6 +382,89 @@ describe("the pull request", () => {
     }
   });
 
+  /*
+   * #11204: a line read from several records of one file and line, aligned
+   * with different words, every one of them holding the same lower-case
+   * values - a username, a name in lower case, an email's local part, as
+   * one user's session or the one engineer every ticket goes to writes
+   * them. A word every record shares is no more the code's than one
+   * record's is: none reaches the agent or the pull request, even from an
+   * agent that quotes every template it was handed.
+   */
+  test("a line read from several records with values they all share: none is in the agent's request or the pull request", () => {
+    const namer: DataTypeNamer = DataTypeNamer.withoutCustomTypes();
+    const places: Array<TelemetryLeakPlace> = readLeakPlaces({
+      source: TelemetrySampleSource.Logs,
+      rows: ["urgent", "normal", "low"].map((priority: string) => {
+        return {
+          readFile1: "/usr/src/app/src/tickets.js",
+          readLine1: "44",
+          readBody: `Ticket assigned to oquarrington (ottilie quarrington, mailbox ottilie.q) with priority ${priority}`,
+        };
+      }),
+      location: "body",
+      templateOf: (text: string): string => {
+        return buildTelemetryLeakTemplate(text, {
+          nameOf: (dataTypeId: string): string => {
+            return namer.nameOf(dataTypeId);
+          },
+        });
+      },
+    });
+    const decision: TelemetryLeakFixDecision = decideTelemetryLeakFix([
+      {
+        ...leakOf({
+          signal: TelemetryLeakSignal.Logs,
+          location: "body",
+          key: undefined,
+          places,
+        }),
+      },
+    ]);
+    const context: TelemetryLeakFixTaskContext = fix({
+      leaks: decision.leaks,
+      placeCount: decision.placeCount,
+      strategy: decision.strategy,
+      startFiles: ["src/tickets.js"],
+    });
+    const request: string = buildTelemetryLeakFixRequest({
+      serviceName: context.serviceName,
+      strategy: decision.strategy,
+      placeCount: decision.placeCount,
+      leaks: decision.leaks,
+      redactionKeys: decision.redactionKeys,
+      redactionDataTypes: decision.redactionDataTypes,
+      startFiles: context.startFiles,
+    }).text;
+    const prompt: string = handler.buildPrompt(
+      details({ ...context, request }),
+      null,
+    );
+    // An agent that quotes every template it was handed, against its instructions.
+    const quoted: string = decision.leaks
+      .flatMap((leak: TelemetryLeakFixLeak): Array<string> => {
+        return leak.places.map((place: TelemetryLeakPlace): string => {
+          return place.template || "";
+        });
+      })
+      .join("\n");
+    const body: string = handler.buildPullRequestBody(
+      details({ ...context, request }),
+      `Masked the value at ${quoted}`,
+    );
+
+    expect(places).toHaveLength(1);
+    expect(places[0]!.recordCount).toBe(3);
+    expect(quoted).toContain("Ticket assigned to <value>");
+    expect(prompt).toContain("Ticket assigned to <value>");
+    // The line's file and number say where the code is, whatever the template keeps.
+    expect(request).toContain("src/tickets.js");
+
+    for (const sent of [request, prompt, body]) {
+      expect(sent).not.toMatch(/oquarrington|ottilie|quarrington/i);
+    }
+  });
+
   test("a secret is to be rotated, said on the pull request", () => {
     const body: string = handler.buildPullRequestBody(
       details(
