@@ -438,6 +438,7 @@ const CLOUD_SAVINGS_REASONS: Record<CloudSavingsAiReason, "asks" | "rule"> = {
   [CloudSavingsAiReason.RuleSaysSuggest]: "rule",
   [CloudSavingsAiReason.Production]: "asks",
   [CloudSavingsAiReason.EnvironmentNotKnown]: "asks",
+  [CloudSavingsAiReason.OnlyLabelsSayNonProduction]: "asks",
   [CloudSavingsAiReason.CannotBeUndone]: "asks",
   [CloudSavingsAiReason.OverLimit]: "rule",
   [CloudSavingsAiReason.CircuitBreaker]: "rule",
@@ -489,6 +490,8 @@ describe("every generated tool that could make an always-ask change refuses it",
         "DataSecuritySetting",
         "DataStore",
         "SecurityPlaybook",
+        // A label that says production, renamed or deleted (#11347).
+        "Label",
       ]),
     );
   });
@@ -684,7 +687,7 @@ describe("what OneUptime AI asks before whatever its rules say", () => {
     expect(
       unclassified(Object.values(CloudSavingsAiReason), CLOUD_SAVINGS_REASONS),
     ).toEqual([]);
-    // The reasons a person always approves are the three the savings engine asks for.
+    // The reasons a person always approves are the four the savings engine asks for.
     expect(
       Object.values(CloudSavingsAiReason).filter(
         (reason: CloudSavingsAiReason): boolean => {
@@ -694,6 +697,7 @@ describe("what OneUptime AI asks before whatever its rules say", () => {
     ).toEqual([
       CloudSavingsAiReason.Production,
       CloudSavingsAiReason.EnvironmentNotKnown,
+      CloudSavingsAiReason.OnlyLabelsSayNonProduction,
       CloudSavingsAiReason.CannotBeUndone,
     ]);
 
@@ -704,6 +708,43 @@ describe("what OneUptime AI asks before whatever its rules say", () => {
         return (tool.apiPath || "").startsWith("/cloud-savings");
       }),
     ).toEqual([]);
+  });
+
+  it("in cloud savings: nothing a tool here writes makes a resource non-production for a change nobody approves (#11347)", () => {
+    /*
+     * An off-hours schedule's stop and an AI rule's change made without
+     * asking read non-production only from the resource's cloud tags and
+     * its account's Environment (Types/Cloud/CloudResourceEnvironment). A
+     * tag is written in the cloud, and neither the resource, its account,
+     * what a schedule picks, a label rule nor a saving's row has a tool
+     * here, so the day one gets one this fails.
+     */
+    expectNoToolHere([
+      "CloudResource",
+      "CloudAccount",
+      "CloudOffHoursSchedule",
+      "CloudResourceLabelRule",
+      "CloudCostRecommendation",
+    ]);
+
+    /*
+     * A label may only say production to them, which holds a resource
+     * back: renaming such a label to a name that does not say production,
+     * or deleting it, lets go, and is held. Every other write of a label
+     * has its tool, as before.
+     */
+    heldChangesExist(["A label that says production renamed or deleted"]);
+    expect(hasToolsHere("Label")).toBe(true);
+    expect(
+      getToolPaths(ALWAYS_ASK_CHANGES)
+        .filter((each: ToolPath): boolean => {
+          return each.record.tableName === "Label";
+        })
+        .map((each: ToolPath): string => {
+          return each.tool.name;
+        })
+        .sort(),
+    ).toEqual(["delete_label", "update_label"]);
   });
 
   it("in remediation: the commands a policy keeps for a human have no tool here", () => {

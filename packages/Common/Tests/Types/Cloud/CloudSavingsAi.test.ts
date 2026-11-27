@@ -1,6 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import { CloudProvider } from "../../../Types/Cloud/CloudPlatform";
-import { CloudResourceEnvironment } from "../../../Types/Cloud/CloudResourceEnvironment";
+import {
+  CLOUD_NON_PRODUCTION_WORDS,
+  CloudResourceEnvironment,
+  getCloudResourceEnvironment,
+  getUnattendedCloudResourceEnvironment,
+} from "../../../Types/Cloud/CloudResourceEnvironment";
 import {
   CloudSavingsActionGroup,
   CloudSavingsActionKind,
@@ -20,6 +25,7 @@ import {
   CloudSavingsAiSaving,
   decideCloudSavingsAi,
   doesCloudSavingsAiRuleMatch,
+  getCloudSavingsAiEnvironmentReason,
   getCloudSavingsAiRuleAutonomy,
   getCloudSavingsAiRuleGroups,
   getCloudSavingsAiRuleLimit,
@@ -42,17 +48,26 @@ import RuleCriteria, {
  * and the hourly circuit breaker hold what is made without asking.
  */
 
-// An idle non-production AWS instance, worth 40 a month: the plainest saving.
+/*
+ * An idle non-production AWS instance, worth 40 a month: the plainest
+ * saving. What a change made without asking reads of its environment is
+ * what every sign says, unless a test says otherwise: a resource its tags
+ * or its account call non-production.
+ */
 function saving(
   overrides: Partial<CloudSavingsAiSaving> = {},
 ): CloudSavingsAiSaving {
+  const environment: CloudResourceEnvironment | string =
+    overrides.environment ?? CloudResourceEnvironment.NonProduction;
+
   return {
     provider: CloudProvider.AWS,
     kind: CloudSavingsActionKind.StopInstance,
-    environment: CloudResourceEnvironment.NonProduction,
     monthlySavings: 40,
     undo: CloudSavingsActionUndo.Undoable,
     ...overrides,
+    environment,
+    unattendedEnvironment: overrides.unattendedEnvironment ?? environment,
   };
 }
 
@@ -354,6 +369,255 @@ describe("decideCloudSavingsAi: what is never made without asking", () => {
 
     expect(decision.autonomy).toBe(CloudSavingsAiAutonomy.WithoutAsking);
     expect(decision.reason).toBe(CloudSavingsAiReason.RuleAllows);
+  });
+});
+
+/*
+ * #11347: a resource's environment was one reading, labels' names
+ * included, so renaming a label to "dev" let a rule act without asking on
+ * every resource that carried it. A change made without asking now reads
+ * non-production only from the cloud's tags and the account's setting.
+ */
+describe("decideCloudSavingsAi: what only a label calls non-production (#11347)", () => {
+  const acts: Array<CloudSavingsAiRuleFacts> = [rule("Acts on everything")];
+
+  // A resource with no environment tag, in an account nothing is said of.
+  function labelled(labelNames: Array<string>): Partial<CloudSavingsAiSaving> {
+    const signs: { labelNames: Array<string> } = { labelNames };
+
+    return {
+      environment: getCloudResourceEnvironment(signs).environment,
+      unattendedEnvironment:
+        getUnattendedCloudResourceEnvironment(signs).environment,
+    };
+  }
+
+  test("the gap: read with every sign as one, a label renamed to dev was made without asking", () => {
+    const signs: { labelNames: Array<string> } = { labelNames: ["dev"] };
+    // Before #11347, the decision read every sign's environment for both.
+    const asBefore: string = getCloudResourceEnvironment(signs).environment;
+
+    expect(
+      decide(acts, {
+        environment: asBefore,
+        unattendedEnvironment: asBefore,
+      }).autonomy,
+    ).toBe(CloudSavingsAiAutonomy.WithoutAsking);
+    // Now the same label is proposed: only its name said non-production.
+    expect(decide(acts, labelled(["dev"]))).toMatchObject({
+      autonomy: CloudSavingsAiAutonomy.Suggest,
+      reason: CloudSavingsAiReason.OnlyLabelsSayNonProduction,
+      ruleName: "Acts on everything",
+    });
+  });
+
+  test("whatever a resource's labels are named, a rule never makes a change to it without asking on them alone", () => {
+    for (const name of [
+      ...CLOUD_NON_PRODUCTION_WORDS,
+      "Staging",
+      "env: dev",
+      "environment=qa",
+      "stage: sandbox",
+      "deployment.environment: test",
+      "team-a",
+      "",
+    ]) {
+      const decision: CloudSavingsAiDecision = decide(acts, labelled([name]));
+
+      expect({ name, autonomy: decision.autonomy }).toEqual({
+        name,
+        autonomy: CloudSavingsAiAutonomy.Suggest,
+      });
+      expect([
+        CloudSavingsAiReason.OnlyLabelsSayNonProduction,
+        CloudSavingsAiReason.EnvironmentNotKnown,
+      ]).toContain(decision.reason);
+    }
+  });
+
+  test("a label that says production still says it: the change waits as production", () => {
+    for (const name of ["Production", "prod", "env: live", "environment=prd"]) {
+      expect(decide(acts, labelled([name, "dev"])).reason).toBe(
+        CloudSavingsAiReason.Production,
+      );
+    }
+  });
+
+  test("a rule for non-production still covers what only a label calls so: it is proposed, not left", () => {
+    const decision: CloudSavingsAiDecision = decide(
+      [
+        rule("Stop non-production", {
+          cloudSavingEnvironments: [CloudResourceEnvironment.NonProduction],
+        }),
+        rule("Leave production", {
+          cloudSavingEnvironments: [CloudResourceEnvironment.Production],
+          cloudSavingAutonomy: CloudSavingsAiAutonomy.Off,
+        }),
+      ],
+      labelled(["Staging"]),
+    );
+
+    expect(decision).toMatchObject({
+      autonomy: CloudSavingsAiAutonomy.Suggest,
+      reason: CloudSavingsAiReason.OnlyLabelsSayNonProduction,
+      ruleName: "Stop non-production",
+    });
+  });
+
+  test("what the tags or the account say is non-production is made without asking, as before", () => {
+    for (const signs of [
+      { tags: { environment: "dev" } },
+      { accountEnvironment: CloudResourceEnvironment.NonProduction },
+      { tags: { env: "staging" }, labelNames: ["team-a"] },
+      { accountEnvironment: "NonProduction", labelNames: ["QA"] },
+    ]) {
+      expect(
+        decide(acts, {
+          environment: getCloudResourceEnvironment(signs).environment,
+          unattendedEnvironment:
+            getUnattendedCloudResourceEnvironment(signs).environment,
+        }),
+      ).toMatchObject({
+        autonomy: CloudSavingsAiAutonomy.WithoutAsking,
+        reason: CloudSavingsAiReason.RuleAllows,
+      });
+    }
+  });
+
+  test("is made without asking exactly when both readings say non-production, whatever either says", () => {
+    const values: Array<string> = [
+      CloudResourceEnvironment.Production,
+      CloudResourceEnvironment.NonProduction,
+      CloudResourceEnvironment.Unknown,
+      "",
+      "nonproduction",
+    ];
+
+    for (const environment of values) {
+      for (const unattendedEnvironment of values) {
+        const decision: CloudSavingsAiDecision = decide(acts, {
+          environment,
+          unattendedEnvironment,
+        });
+        const both: boolean =
+          environment === CloudResourceEnvironment.NonProduction &&
+          unattendedEnvironment === CloudResourceEnvironment.NonProduction;
+
+        expect({
+          environment,
+          unattendedEnvironment,
+          made: decision.autonomy === CloudSavingsAiAutonomy.WithoutAsking,
+        }).toEqual({ environment, unattendedEnvironment, made: both });
+
+        if (
+          environment === CloudResourceEnvironment.Production ||
+          unattendedEnvironment === CloudResourceEnvironment.Production
+        ) {
+          expect(decision.reason).toBe(CloudSavingsAiReason.Production);
+        }
+      }
+    }
+  });
+
+  test("a rule that says Off or Suggest answers before the environment is read", () => {
+    expect(
+      decide(
+        [rule("Leave it", { cloudSavingAutonomy: CloudSavingsAiAutonomy.Off })],
+        labelled(["dev"]),
+      ).reason,
+    ).toBe(CloudSavingsAiReason.RuleSaysOff);
+    expect(
+      decide(
+        [
+          rule("Ask", {
+            cloudSavingAutonomy: CloudSavingsAiAutonomy.Suggest,
+          }),
+        ],
+        labelled(["dev"]),
+      ).reason,
+    ).toBe(CloudSavingsAiReason.RuleSaysSuggest);
+  });
+
+  test("the environment is read before the limit and the breaker", () => {
+    expect(
+      decide(
+        acts,
+        { ...labelled(["dev"]), monthlySavings: 1000000 },
+        CLOUD_SAVINGS_AI_CHANGES_WITHOUT_ASKING_PER_HOUR,
+      ).reason,
+    ).toBe(CloudSavingsAiReason.OnlyLabelsSayNonProduction);
+  });
+
+  test("with no rule, a resource only labels call non-production is proposed by the defaults, as every saving is", () => {
+    expect(decide([], labelled(["dev"]))).toEqual({
+      autonomy: CloudSavingsAiAutonomy.Suggest,
+      reason: CloudSavingsAiReason.Defaults,
+      fromDefaults: true,
+    });
+  });
+});
+
+describe("getCloudSavingsAiEnvironmentReason", () => {
+  test("production on either reading", () => {
+    for (const [environment, unattendedEnvironment] of [
+      [CloudResourceEnvironment.Production, CloudResourceEnvironment.Production],
+      [
+        CloudResourceEnvironment.NonProduction,
+        CloudResourceEnvironment.Production,
+      ],
+      [CloudResourceEnvironment.Production, CloudResourceEnvironment.Unknown],
+    ] as Array<[string, string]>) {
+      expect(
+        getCloudSavingsAiEnvironmentReason({
+          environment,
+          unattendedEnvironment,
+        }),
+      ).toBe(CloudSavingsAiReason.Production);
+    }
+  });
+
+  test("non-production on both: nothing keeps it from being made", () => {
+    expect(
+      getCloudSavingsAiEnvironmentReason({
+        environment: CloudResourceEnvironment.NonProduction,
+        unattendedEnvironment: CloudResourceEnvironment.NonProduction,
+      }),
+    ).toBeNull();
+  });
+
+  test("non-production on every sign's alone: only its labels say so", () => {
+    expect(
+      getCloudSavingsAiEnvironmentReason({
+        environment: CloudResourceEnvironment.NonProduction,
+        unattendedEnvironment: CloudResourceEnvironment.Unknown,
+      }),
+    ).toBe(CloudSavingsAiReason.OnlyLabelsSayNonProduction);
+  });
+
+  test("anything else is not known: never taken for non-production", () => {
+    for (const [environment, unattendedEnvironment] of [
+      [CloudResourceEnvironment.Unknown, CloudResourceEnvironment.Unknown],
+      [CloudResourceEnvironment.Unknown, CloudResourceEnvironment.NonProduction],
+      ["", ""],
+      ["NonProduction ", CloudResourceEnvironment.NonProduction],
+    ] as Array<[string, string]>) {
+      expect(
+        getCloudSavingsAiEnvironmentReason({
+          environment,
+          unattendedEnvironment,
+        }),
+      ).toBe(CloudSavingsAiReason.EnvironmentNotKnown);
+    }
+  });
+
+  test("its reasons are each one a person always approves, with a sentence that says why", () => {
+    expect(
+      CLOUD_SAVINGS_AI_REASON_SENTENCES[
+        CloudSavingsAiReason.OnlyLabelsSayNonProduction
+      ],
+    ).toBe(
+      "Proposed: only its OneUptime labels say the resource is not production, so a person approves.",
+    );
   });
 });
 

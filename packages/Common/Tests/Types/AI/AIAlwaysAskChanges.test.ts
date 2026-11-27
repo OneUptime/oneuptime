@@ -13,6 +13,7 @@ import {
   DATA_SECURITY_ISSUE_TABLE_NAME,
   DATA_STORE_FINDING_TABLE_NAME,
   LABEL_RULE_TERMS,
+  LABEL_TABLE_NAME,
   OWNER_RULE_TERMS,
   PLAYBOOK_REACH_COLUMNS,
   RESIDENCY_RULE_TERMS,
@@ -607,7 +608,9 @@ describe("what the list names is real", () => {
       }
 
       expect(change.card.length).toBeGreaterThan(0);
-      expect(["Data Security", "Security Events"]).toContain(change.product);
+      expect(["Data Security", "Security Events", "Project Settings"]).toContain(
+        change.product,
+      );
 
       for (const record of change.records) {
         expect(Object.values(AlwaysAskPage)).toContain(record.page);
@@ -751,12 +754,245 @@ describe("the refusal", () => {
   test("with no page known, names the product whose button the person presses", () => {
     expect(
       getAsksInEveryModeRefusal({
+        action: "update_data_store",
+        reason: undefined,
+        pageUrl: null,
+        product: "Data Security",
+      }),
+    ).toContain("with Data Security's own button or with Ask AI");
+    // A name ending in "s" takes an apostrophe alone.
+    expect(
+      getAsksInEveryModeRefusal({
         action: "update_security_playbook",
         reason: undefined,
         pageUrl: null,
         product: "Security Events",
       }),
-    ).toContain("with Security Events's own button or with Ask AI");
+    ).toContain("with Security Events' own button or with Ask AI");
+  });
+
+  test("a change no action of Ask AI's makes sends the person to the page's own controls alone", () => {
+    const withPage: string = getAsksInEveryModeRefusal({
+      action: "update_label",
+      reason: "Asks first in every mode: a test.",
+      pageUrl: "https://oneuptime.example/dashboard/p/settings/labels",
+      product: "Project Settings",
+      byAskAi: false,
+    });
+    const withoutPage: string = getAsksInEveryModeRefusal({
+      action: "delete_label",
+      reason: undefined,
+      pageUrl: null,
+      product: "Project Settings",
+      byAskAi: false,
+    });
+
+    expect(withPage).toBe(
+      `${ASKS_IN_EVERY_MODE_REFUSAL_PREFIX} Asks first in every mode: a test. An MCP client shows no card OneUptime can wait on, so update_label is not run here. Do it in OneUptime, on https://oneuptime.example/dashboard/p/settings/labels, with the page's own controls: the person makes it there.`,
+    );
+    expect(withoutPage).toBe(
+      `${ASKS_IN_EVERY_MODE_REFUSAL_PREFIX} An MCP client shows no card OneUptime can wait on, so delete_label is not run here. Do it in OneUptime, with Project Settings' own controls: the person makes it there.`,
+    );
+
+    for (const refusal of [withPage, withoutPage]) {
+      expect(refusal).not.toContain("Ask AI");
+      expect(refusal.startsWith(ASKS_IN_EVERY_MODE_REFUSAL_PREFIX)).toBe(true);
+    }
+  });
+
+  test("Ask AI is offered unless the change says no action of Ask AI's makes it", () => {
+    expect(
+      getAsksInEveryModeRefusal({
+        action: "x",
+        reason: undefined,
+        pageUrl: "https://oneuptime.example/dashboard/p/data-security/ai",
+        byAskAi: true,
+      }),
+    ).toBe(
+      getAsksInEveryModeRefusal({
+        action: "x",
+        reason: undefined,
+        pageUrl: "https://oneuptime.example/dashboard/p/data-security/ai",
+      }),
+    );
+  });
+});
+
+/*
+ * #11347: a label whose name says production holds every cloud resource
+ * it is on back from an off-hours schedule's stop and an AI rule's change
+ * made without asking. Renaming it to a name that does not say production,
+ * or deleting it, lets them all go: an agent asks a person first. Every
+ * other write of a label is the person's own edit, as before.
+ */
+describe("a label that says production renamed or deleted", () => {
+  const LABEL: string = LABEL_TABLE_NAME;
+
+  function update(
+    written: JSONObject,
+    stored: JSONObject | null | undefined,
+  ): Array<string> {
+    return findAlwaysAskChanges({
+      tableName: LABEL,
+      write: AlwaysAskWrite.Update,
+      data: written,
+      stored,
+    }).map((each: AlwaysAskWriteFound): string => {
+      return each.change.name;
+    });
+  }
+
+  function remove(stored: JSONObject | null | undefined): Array<string> {
+    return findAlwaysAskChanges({
+      tableName: LABEL,
+      write: AlwaysAskWrite.Delete,
+      data: undefined,
+      stored,
+    }).map((each: AlwaysAskWriteFound): string => {
+      return each.change.name;
+    });
+  }
+
+  const CHANGE: string = "A label that says production renamed or deleted";
+
+  test("a production label renamed to a name that does not say production lets go: asked", () => {
+    for (const [from, to] of [
+      ["Production", "dev"],
+      ["Production", "Customer facing"],
+      ["Production", "Production EU"],
+      ["prod", "staging"],
+      ["env: prod", "env: dev"],
+      ["environment=live", "team-a"],
+      ["PRD", ""],
+    ]) {
+      expect({ from, to, asked: update({ name: to }, { name: from }) }).toEqual(
+        { from, to, asked: [CHANGE] },
+      );
+    }
+  });
+
+  test("a production label deleted lets go: asked", () => {
+    for (const name of ["Production", "prod", "env: live", "environment=prd"]) {
+      expect({ name, asked: remove({ name }) }).toEqual({
+        name,
+        asked: [CHANGE],
+      });
+    }
+  });
+
+  test("a rename that still says production, or says it now, holds as before: the person's own edit", () => {
+    for (const [from, to] of [
+      ["Production", "prod"],
+      ["Production", "env: production"],
+      ["prod", "Production"],
+      ["team-a", "Production"],
+      ["dev", "prod"],
+    ]) {
+      expect({ from, to, asked: update({ name: to }, { name: from }) }).toEqual(
+        { from, to, asked: [] },
+      );
+    }
+  });
+
+  test("a label that does not say production, renamed to anything or deleted, lets nothing go", () => {
+    for (const [from, to] of [
+      ["team-a", "team-b"],
+      ["team-a", "dev"],
+      ["Staging", "dev"],
+      ["dev", "Customer facing"],
+      ["Production EU", "dev"],
+    ]) {
+      expect({ from, to, asked: update({ name: to }, { name: from }) }).toEqual(
+        { from, to, asked: [] },
+      );
+    }
+
+    for (const name of ["team-a", "dev", "Staging", "Production EU"]) {
+      expect({ name, asked: remove({ name }) }).toEqual({ name, asked: [] });
+    }
+  });
+
+  test("a label's colour, description or archiving names no name: never asked", () => {
+    for (const written of [
+      { color: "#ff0000" },
+      { description: "Customer facing services." },
+      { isArchived: true },
+    ]) {
+      expect(update(written, { name: "Production" })).toEqual([]);
+      expect(update(written, null)).toEqual([]);
+    }
+  });
+
+  test("a label that could not be read is taken to say production: a rename away from production, or a delete, asks", () => {
+    expect(update({ name: "dev" }, null)).toEqual([CHANGE]);
+    expect(update({ name: "dev" }, undefined)).toEqual([CHANGE]);
+    expect(remove(null)).toEqual([CHANGE]);
+    // A rename to a production name holds whatever the label was.
+    expect(update({ name: "Production" }, null)).toEqual([]);
+  });
+
+  test("a label made is never one: it holds nothing yet", () => {
+    for (const name of ["Production", "dev", "team-a"]) {
+      expect(
+        findAlwaysAskChanges({
+          tableName: LABEL,
+          write: AlwaysAskWrite.Create,
+          data: { name },
+        }),
+      ).toEqual([]);
+    }
+  });
+
+  test("asks wherever it is made, is no action of Ask AI's, and names Project Settings > Labels", () => {
+    const change: AlwaysAskChange | undefined = ALWAYS_ASK_CHANGES.find(
+      (each: AlwaysAskChange): boolean => {
+        return each.name === CHANGE;
+      },
+    );
+
+    expect(change).toBeDefined();
+    expect(change!.onlyWhen).toBeUndefined();
+    expect(change!.action).toBeUndefined();
+    expect(change!.madeByEveryCall).toBe(false);
+    expect(change!.product).toBe("Project Settings");
+    expect(
+      change!.records.map((record: AlwaysAskRecordWrite): string => {
+        return `${record.tableName}|${record.writes.join(",")}|${record.page}`;
+      }),
+    ).toEqual([
+      `Label|update|${AlwaysAskPage.Labels}`,
+      `Label|delete|${AlwaysAskPage.Labels}`,
+    ]);
+    expect(
+      writeAlwaysAsks({
+        tableName: LABEL,
+        write: AlwaysAskWrite.Update,
+        data: { name: "dev" },
+        stored: { name: "Production" },
+      }),
+    ).toBe(true);
+    expect(getAlwaysAskChangesOfTable(LABEL)).toHaveLength(2);
+  });
+
+  test("a delete of a record whose change names no column is held as before: every one", () => {
+    for (const tableName of ["DataStoreOwnerUser", "DataSecurityAiProposal"]) {
+      expect(
+        findAlwaysAskChanges({
+          tableName,
+          write: AlwaysAskWrite.Delete,
+          data: undefined,
+        }).length,
+      ).toBeGreaterThan(0);
+    }
+
+    // A delete of a record no change is about is never held.
+    expect(
+      findAlwaysAskChanges({
+        tableName: "Incident",
+        write: AlwaysAskWrite.Delete,
+        data: undefined,
+      }),
+    ).toEqual([]);
   });
 });
 
