@@ -15,6 +15,7 @@ import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connect
 import {
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
 } from "../../../Utils/SecurityCase/ResponsePlan/StepCheckWords";
 import {
@@ -24,11 +25,13 @@ import {
 } from "../../Helpers/DashboardLocales";
 
 /*
- * WHAT TO GRANT, SAID IN EVERY LANGUAGE AS ITS FORMS SAY IT (#10900, #10901).
+ * WHAT TO GRANT, SAID IN EVERY LANGUAGE AS ITS FORMS SAY IT (#10900, #10901,
+ * #11038).
  *
  * The Fix step "Undo what changed on the account" tells a person how to let
  * OneUptime read the rest back: turn on the AWS connection's Security case
- * checks, or add a Google Workspace scope. A person finds the setting by its
+ * checks - or, on, run its command again since they read roles too - or add
+ * a Google Workspace scope. A person finds the setting by its
  * name, so each language's lines name it as that language's AWS form titles
  * it; the scope is filled in whole, never translated; the setting says, as
  * every other setting that changes the command does in that language, that
@@ -82,7 +85,7 @@ function lastSentence(wording: string): string {
 describe("the step names the setting as each language's AWS form titles it", () => {
   const title: string = awsField(SECURITY_CASE_CHECKS_FIELD_KEY).title;
 
-  test("in every language, both AWS lines name it, the account filled in", () => {
+  test("in every language, each AWS line names it, the account filled in", () => {
     expect(title).toBe("Security case checks");
 
     for (const language of LANGUAGES) {
@@ -91,6 +94,7 @@ describe("the step names the setting as each language's AWS form titles it", () 
       for (const key of [
         CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
         CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+        CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
       ]) {
         const line: string = dashboardTranslator(language).translateTemplate(
           key,

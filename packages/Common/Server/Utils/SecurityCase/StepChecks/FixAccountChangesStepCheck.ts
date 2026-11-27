@@ -16,8 +16,10 @@ import {
   AccountChange,
   AccountChangeKind,
   AccountChangeProvider,
+  AccountChangeSubject,
   getAttackAccountChanges,
 } from "../../../../Utils/SecurityCase/AttackAccountChanges";
+import { AWS_EVERY_ACCOUNT } from "../../../../Utils/SecurityCase/AwsTrustPolicy";
 import { RESPONSE_STEP_KINDS } from "../../../../Utils/SecurityCase/ResponsePlan/ResponsePlanKeys";
 import {
   CHECK_ACCOUNT_CHANGES_ALL_UNDONE,
@@ -26,6 +28,7 @@ import {
   CHECK_ACCOUNT_CHANGES_CONFIRM_REST,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
   CHECK_ACCOUNT_CHANGES_FACT_NO_CONNECTION,
@@ -54,8 +57,21 @@ import {
   CHECK_ACCOUNT_CHANGE_POLICY_STILL,
   CHECK_ACCOUNT_CHANGE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_ROLE_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_GONE,
+  CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+  CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE,
+  CHECK_ACCOUNT_CHANGE_ROLE_POLICY_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_ROLE_POLICY_STILL,
+  CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE,
   CHECK_ACCOUNT_CHANGE_ROLE_STILL,
   CHECK_ACCOUNT_CHANGE_ROLE_UNDONE,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT,
+  CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_TRUST_STILL,
+  CHECK_ACCOUNT_CHANGE_TRUST_UNDONE,
   CHECK_COULD_NOT_CHECK,
   CHECK_PRODUCT_READ_FAILED,
   CHECK_PRODUCT_SAID,
@@ -68,6 +84,7 @@ import {
 import { GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE } from "../../SecurityEvent/Response/GoogleWorkspaceResponseClient";
 import {
   AccountChangeAnswer,
+  AccountChangeReader,
   AccountChangesReading,
 } from "./Evidence/AccountChangesState";
 import {
@@ -105,7 +122,12 @@ import {
  *               just now.
  *
  * Each line is marked by what it says (StepCheckFactMark): undone, still
- * there, to confirm, or how to let OneUptime read the rest.
+ * there, to confirm, or how to let OneUptime read the rest. An IAM role's
+ * change (#11038) is said as a role's, and a role still there or to
+ * confirm is followed by an unmarked line naming the outside AWS accounts
+ * it trusts - kept with its line, or left out with it. A line that says
+ * what to change in OneUptime links to where it is changed: the AWS
+ * connection's form, or Cloud → Connect to connect one (#11039).
  */
 
 export interface AccountChangesInput {
@@ -129,6 +151,8 @@ interface ReadChange {
   facts: AccountChangeFacts | null;
   error: string;
   hasConnection: boolean;
+  // An AWS change's: the connection that reaches its account (#11039).
+  reader?: AccountChangeReader | undefined;
 }
 
 const STILL_SENTENCES: Record<AccountChangeKind, string> = {
@@ -140,6 +164,8 @@ const STILL_SENTENCES: Record<AccountChangeKind, string> = {
   [AccountChangeKind.MfaDevice]: CHECK_ACCOUNT_CHANGE_MFA_STILL,
   [AccountChangeKind.Key]: CHECK_ACCOUNT_CHANGE_KEY_STILL,
   [AccountChangeKind.Account]: CHECK_ACCOUNT_CHANGE_ACCOUNT_STILL,
+  // Only a role has a trust policy.
+  [AccountChangeKind.Trust]: CHECK_ACCOUNT_CHANGE_TRUST_STILL,
 };
 
 const UNDONE_SENTENCES: Record<AccountChangeKind, string> = {
@@ -151,6 +177,7 @@ const UNDONE_SENTENCES: Record<AccountChangeKind, string> = {
   [AccountChangeKind.MfaDevice]: CHECK_ACCOUNT_CHANGE_MFA_UNDONE,
   [AccountChangeKind.Key]: CHECK_ACCOUNT_CHANGE_KEY_UNDONE,
   [AccountChangeKind.Account]: CHECK_ACCOUNT_CHANGE_ACCOUNT_UNDONE,
+  [AccountChangeKind.Trust]: CHECK_ACCOUNT_CHANGE_TRUST_UNDONE,
 };
 
 const CONFIRM_SENTENCES: Record<AccountChangeKind, string> = {
@@ -162,7 +189,38 @@ const CONFIRM_SENTENCES: Record<AccountChangeKind, string> = {
   [AccountChangeKind.MfaDevice]: CHECK_ACCOUNT_CHANGE_MFA_CONFIRM,
   [AccountChangeKind.Key]: CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
   [AccountChangeKind.Account]: CHECK_ACCOUNT_CHANGE_ACCOUNT_CONFIRM,
+  [AccountChangeKind.Trust]: CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM,
 };
+
+/*
+ * An IAM role's (#11038), by what the attack did to it: made it, set its
+ * trust policy, gave it a policy. A role is said as one, never as an
+ * account.
+ */
+const ROLE_SENTENCES: Record<
+  ChangeOutcome.Still | ChangeOutcome.Undone | ChangeOutcome.Confirm,
+  Partial<Record<AccountChangeKind, string>>
+> = {
+  [ChangeOutcome.Still]: {
+    [AccountChangeKind.Account]: CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+    [AccountChangeKind.Trust]: CHECK_ACCOUNT_CHANGE_TRUST_STILL,
+    [AccountChangeKind.Policy]: CHECK_ACCOUNT_CHANGE_ROLE_POLICY_STILL,
+  },
+  [ChangeOutcome.Undone]: {
+    [AccountChangeKind.Account]: CHECK_ACCOUNT_CHANGE_ROLE_MADE_UNDONE,
+    [AccountChangeKind.Trust]: CHECK_ACCOUNT_CHANGE_TRUST_UNDONE,
+    [AccountChangeKind.Policy]: CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE,
+  },
+  [ChangeOutcome.Confirm]: {
+    [AccountChangeKind.Account]: CHECK_ACCOUNT_CHANGE_ROLE_MADE_CONFIRM,
+    [AccountChangeKind.Trust]: CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM,
+    [AccountChangeKind.Policy]: CHECK_ACCOUNT_CHANGE_ROLE_POLICY_CONFIRM,
+  },
+};
+
+function isRoleChange(change: AccountChange): boolean {
+  return change.subject === AccountChangeSubject.Role;
+}
 
 // The most accounts' pages the evidence links to.
 const MAX_PROVIDER_LINKS: number = 5;
@@ -191,7 +249,26 @@ function readChange(answer: AccountChangeAnswer): ReadChange {
     facts,
     error: answer.error || "",
     hasConnection: answer.hasConnection,
+    reader: answer.reader,
   };
+}
+
+// The sentence a change is said in, by what was read of it: a role's as a role's (#11038).
+function sentenceOf(
+  change: AccountChange,
+  outcome: ChangeOutcome.Still | ChangeOutcome.Undone | ChangeOutcome.Confirm,
+): string {
+  const forAccounts: Record<AccountChangeKind, string> =
+    outcome === ChangeOutcome.Still
+      ? STILL_SENTENCES
+      : outcome === ChangeOutcome.Undone
+        ? UNDONE_SENTENCES
+        : CONFIRM_SENTENCES;
+
+  return (
+    (isRoleChange(change) ? ROLE_SENTENCES[outcome][change.kind] : "") ||
+    forAccounts[change.kind]
+  );
 }
 
 // A change as one line of the evidence, marked by what it says of the change.
@@ -205,25 +282,81 @@ export function describeAccountChange(
   };
 
   if (item.outcome === ChangeOutcome.Still) {
-    return sentence(STILL_SENTENCES[item.change.kind], values, {
+    return sentence(sentenceOf(item.change, ChangeOutcome.Still), values, {
       mark: StepCheckFactMark.NotDone,
     });
   }
 
   if (item.outcome === ChangeOutcome.Undone) {
-    return sentence(
+    const isGone: boolean = Boolean(
       item.facts?.isAccountGone &&
-        item.change.kind !== AccountChangeKind.Account
-        ? CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE
-        : UNDONE_SENTENCES[item.change.kind],
+        item.change.kind !== AccountChangeKind.Account,
+    );
+
+    return sentence(
+      isGone
+        ? isRoleChange(item.change)
+          ? CHECK_ACCOUNT_CHANGE_ROLE_GONE
+          : CHECK_ACCOUNT_CHANGE_ACCOUNT_GONE
+        : sentenceOf(item.change, ChangeOutcome.Undone),
       values,
       { mark: StepCheckFactMark.Done },
     );
   }
 
-  return sentence(CONFIRM_SENTENCES[item.change.kind], values, {
+  return sentence(sentenceOf(item.change, ChangeOutcome.Confirm), values, {
     mark: StepCheckFactMark.Confirm,
   });
+}
+
+/*
+ * Whom an IAM role trusts outside the account it is in, as its trust
+ * policy says now (#11038): the line under a role still there, or one to
+ * confirm, naming what a person checks. Unmarked - it says more of the
+ * line above it - and none when the role trusts nobody outside.
+ */
+export function describeRoleTrust(
+  item: Pick<ReadChange, "change" | "outcome" | "facts">,
+): SecurityCaseStepCheckSentence | null {
+  const trusted: Array<string> = item.facts?.trusted || [];
+
+  if (
+    !isRoleChange(item.change) ||
+    trusted.length === 0 ||
+    (item.outcome !== ChangeOutcome.Still &&
+      item.outcome !== ChangeOutcome.Confirm)
+  ) {
+    return null;
+  }
+
+  const values: Record<string, string> = {
+    account: item.change.account,
+    cloudAccount: item.change.cloudAccountId,
+    trusted: trusted[0]!,
+  };
+
+  if (trusted.includes(AWS_EVERY_ACCOUNT)) {
+    return sentence(CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT, {
+      account: item.change.account,
+    });
+  }
+
+  return trusted.length === 1
+    ? sentence(CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT, values)
+    : sentence(CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS, values, {
+        count: trusted.length,
+      });
+}
+
+// A change's lines: its own, and whom a role trusts under it.
+export function describeAccountChangeLines(
+  item: Pick<ReadChange, "change" | "outcome" | "facts">,
+): Array<SecurityCaseStepCheckSentence> {
+  const trust: SecurityCaseStepCheckSentence | null = describeRoleTrust(item);
+
+  return trust
+    ? [describeAccountChange(item), trust]
+    : [describeAccountChange(item)];
 }
 
 /*
@@ -232,15 +365,20 @@ export function describeAccountChange(
  * product cannot tell about.
  *
  *   - no connection to the product, or - AWS - none that reads the account
- *     the change was made in;
+ *     the change was made in: linked to Cloud → Connect (#11039);
  *   - a connection not given the read: an AWS connection whose Security
- *     case checks are off (#10900), a Google Workspace delegation without
- *     the group member scope (#10901);
+ *     case checks are off (#10900), or on with a command not run again
+ *     since they grant more (#11038), linked to that connection's form
+ *     (#11039); a Google Workspace delegation without the group member
+ *     scope (#10901);
  *   - a product that says the account holds something of the kind, but
- *     not which.
+ *     not which - but for a role's trust policy, whose own line says what
+ *     to confirm, and names whom it trusts.
  */
 export function confirmReasons(
-  confirms: Array<Pick<ReadChange, "change" | "facts" | "hasConnection">>,
+  confirms: Array<
+    Pick<ReadChange, "change" | "facts" | "hasConnection" | "reader">
+  >,
 ): Array<SecurityCaseStepCheckSentence> {
   const reasons: Array<SecurityCaseStepCheckSentence> = [];
   const said: Set<string> = new Set();
@@ -248,15 +386,20 @@ export function confirmReasons(
     key: string,
     template: string,
     values?: Record<string, string>,
+    link?: ResponseLink,
   ) => void = (
     key: string,
     template: string,
     values: Record<string, string> = {},
+    link?: ResponseLink,
   ): void => {
     if (!said.has(key)) {
       said.add(key);
       reasons.push(
-        sentence(template, values, { mark: StepCheckFactMark.HowToCheck }),
+        sentence(template, values, {
+          mark: StepCheckFactMark.HowToCheck,
+          link,
+        }),
       );
     }
   };
@@ -272,6 +415,7 @@ export function confirmReasons(
           `aws-connection:${cloudAccount}`,
           CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
           { cloudAccount },
+          { kind: ResponseLinkKind.OpenCloudConnection },
         );
       } else {
         once(
@@ -284,21 +428,40 @@ export function confirmReasons(
       }
     } else if (item.facts?.reason === AccountChangeUnknownReason.NotGranted) {
       if (isAws) {
-        once(
-          `aws-grant:${cloudAccount}`,
-          CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
-          { cloudAccount },
-        );
+        // The connection to edit, when the read names it; else Cloud → Connect.
+        const link: ResponseLink = item.reader
+          ? {
+              kind: ResponseLinkKind.OpenCloudConnection,
+              connectionId: item.reader.connectionId,
+            }
+          : { kind: ResponseLinkKind.OpenCloudConnection };
+
+        if (item.reader?.isChecking) {
+          once(
+            `aws-run-again:${cloudAccount}`,
+            CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
+            { cloudAccount },
+            link,
+          );
+        } else {
+          once(
+            `aws-grant:${cloudAccount}`,
+            CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+            { cloudAccount },
+            link,
+          );
+        }
       } else if (provider === AccountChangeProvider.GoogleWorkspace) {
         once("google-groups", CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS, {
           scope: GOOGLE_WORKSPACE_DIRECTORY_GROUP_MEMBER_SCOPE,
         });
       }
     } else if (
-      item.facts?.reason === AccountChangeUnknownReason.CannotTellWhich
+      item.facts?.reason === AccountChangeUnknownReason.CannotTellWhich &&
+      item.change.kind !== AccountChangeKind.Trust
     ) {
       once(
-        `which:${provider}:${item.change.account.toLowerCase()}`,
+        `which:${provider}:${item.change.subject}:${item.change.account.toLowerCase()}`,
         CHECK_ACCOUNT_CHANGES_FACT_CANNOT_TELL_WHICH,
         { provider, account: item.change.account },
       );
@@ -309,11 +472,35 @@ export function confirmReasons(
 }
 
 /*
+ * Lines as they go together: a marked line, and the unmarked ones under it
+ * that say more of it - whom a role trusts (#11038).
+ */
+function linesTogether(
+  facts: Array<SecurityCaseStepCheckSentence>,
+): Array<Array<SecurityCaseStepCheckSentence>> {
+  const together: Array<Array<SecurityCaseStepCheckSentence>> = [];
+
+  for (const fact of facts) {
+    const last: Array<SecurityCaseStepCheckSentence> | undefined =
+      together[together.length - 1];
+
+    if (!fact.mark && last) {
+      last.push(fact);
+    } else {
+      together.push([fact]);
+    }
+  }
+
+  return together;
+}
+
+/*
  * The facts of the step, in the order the card draws them - what is still
  * there, what a person confirms and how to let OneUptime read it, what is
  * undone - and within the facts a check keeps: past it, the undone ones go
  * first, then those to confirm, never what is still there nor how to let
- * OneUptime read the rest.
+ * OneUptime read the rest. A line and the unmarked ones under it are kept,
+ * or left out, together: never a role's trust without its role.
  */
 export function orderAccountChangeFacts(groups: {
   still: Array<SecurityCaseStepCheckSentence>;
@@ -327,12 +514,16 @@ export function orderAccountChangeFacts(groups: {
   ) => Array<SecurityCaseStepCheckSentence> = (
     facts: Array<SecurityCaseStepCheckSentence>,
   ): Array<SecurityCaseStepCheckSentence> => {
-    const kept: Array<SecurityCaseStepCheckSentence> = facts.slice(
-      0,
-      Math.max(0, room),
-    );
+    const kept: Array<SecurityCaseStepCheckSentence> = [];
 
-    room -= kept.length;
+    for (const lines of linesTogether(facts)) {
+      if (lines.length > room) {
+        break;
+      }
+
+      kept.push(...lines);
+      room -= lines.length;
+    }
 
     return kept;
   };
@@ -407,8 +598,8 @@ export function decideAccountChanges(
   };
 
   // What a person confirms, and how to let OneUptime read it back.
-  const confirmLines: Array<SecurityCaseStepCheckSentence> = confirm.map(
-    describeAccountChange,
+  const confirmLines: Array<SecurityCaseStepCheckSentence> = confirm.flatMap(
+    describeAccountChangeLines,
   );
   const howToCheck: Array<SecurityCaseStepCheckSentence> =
     confirmReasons(confirm);
@@ -419,7 +610,7 @@ export function decideAccountChanges(
   if (still.length > 0) {
     const facts: Array<SecurityCaseStepCheckSentence> = orderAccountChangeFacts(
       {
-        still: still.map(describeAccountChange),
+        still: still.flatMap(describeAccountChangeLines),
         confirm: confirmLines,
         howToCheck,
         undone: undoneLines,

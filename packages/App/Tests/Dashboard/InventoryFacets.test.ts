@@ -290,7 +290,9 @@ describe("Status facet", () => {
     expect(statusFacet.supportedOperators).toEqual(["is", "is_not"]);
     expect(statusFacet.queryField).toBe("inventoryStatus");
     expect(statusFacet.exclusiveWith).toBeUndefined();
-    expect(statusFacet.computeMatchingResourceIds).toBeUndefined();
+    // Its own column, answered by the server: nothing read first (#11211).
+    expect(statusFacet.toLinkedTo).toBeUndefined();
+    expect(statusFacet.toFilterGroups).toBeUndefined();
   });
 
   test.each(Object.values(InventoryLiveness))(

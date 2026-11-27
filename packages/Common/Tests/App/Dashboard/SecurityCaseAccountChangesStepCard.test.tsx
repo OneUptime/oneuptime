@@ -95,17 +95,28 @@ import ProjectUtil from "../../../UI/Utils/Project";
 import Realtime from "../../../UI/Utils/Realtime";
 import UserUtil from "../../../UI/Utils/User";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
+import { ResponseLinkKind } from "../../../Types/SecurityCase/SecurityCaseResponseLink";
 import {
   CHECK_ACCOUNT_CHANGES_ALL_UNDONE,
   CHECK_ACCOUNT_CHANGES_BACK,
+  CHECK_ACCOUNT_CHANGES_CANNOT_READ,
   CHECK_ACCOUNT_CHANGES_CONFIRM_REST,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
   CHECK_ACCOUNT_CHANGES_STILL_THERE,
   CHECK_ACCOUNT_CHANGE_GROUP_CONFIRM,
   CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
   CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
   CHECK_ACCOUNT_CHANGE_POLICY_STILL,
+  CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+  CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS,
+  CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT,
+  CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM,
+  CHECK_ACCOUNT_CHANGE_TRUST_STILL,
 } from "../../../Utils/SecurityCase/ResponsePlan/StepCheckWords";
 import {
   fixCaseMatches,
@@ -499,5 +510,313 @@ describe("a check written before its lines had marks", () => {
     ).toHaveLength(0);
     expect(list.querySelectorAll("li")).toHaveLength(5);
     expect(list.querySelector("svg")).toBeNull();
+  });
+});
+
+/*
+ * THE LINES THAT SAY WHAT TO GRANT LINK TO WHERE IT IS GRANTED (#11039):
+ * "edit its AWS connection ... turn on Security case checks" opens that
+ * connection's form on Cloud > Connect, and "No AWS connection reads the
+ * account" opens Cloud > Connect - routed through the Dashboard's own
+ * routes, and drawn only for a reader who may see the page: one who may
+ * change connections is taken to the form, one who may only see them to
+ * the page, and one who may not see Cloud > Connect gets the words alone,
+ * which name the menu path for someone who may.
+ */
+const CONNECTION_ID: string = "5d0c2a7e-0000-4000-8000-00000000c0de";
+const CONNECT_PAGE: string = `/dashboard/${PROJECT_ID}/cloud/connect`;
+
+const LOOKS_DONE_WITH_LINKS: SecurityCaseStepCheckEvidence = {
+  sentence: {
+    template: CHECK_ACCOUNT_CHANGES_CONFIRM_REST,
+    values: {},
+    count: 2,
+  },
+  facts: [
+    {
+      template: CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
+      values: {
+        account: "deploy-bot",
+        object: "AKIAEXAMPLE",
+        provider: "AWS",
+      },
+      mark: StepCheckFactMark.Confirm,
+    },
+    {
+      template: CHECK_ACCOUNT_CHANGE_KEY_CONFIRM,
+      values: {
+        account: "ci-bot",
+        object: "AKIAOTHER",
+        provider: "AWS",
+      },
+      mark: StepCheckFactMark.Confirm,
+    },
+    {
+      template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
+      values: { cloudAccount: "123456789012" },
+      mark: StepCheckFactMark.HowToCheck,
+      link: {
+        kind: ResponseLinkKind.OpenCloudConnection,
+        connectionId: CONNECTION_ID,
+      },
+    },
+    {
+      template: CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+      values: { cloudAccount: "210987654321" },
+      mark: StepCheckFactMark.HowToCheck,
+      link: { kind: ResponseLinkKind.OpenCloudConnection },
+    },
+    {
+      template: CHECK_ACCOUNT_CHANGE_GROUP_UNDONE,
+      values: {
+        account: "alice@acme.com",
+        object: "Admins",
+        provider: "Okta",
+      },
+      mark: StepCheckFactMark.Done,
+    },
+  ],
+  links: [],
+  docsPath: "/telemetry/security-cases#how-oneuptime-checks-a-step",
+  data: { changes: 3, stillThere: 0, undone: 1, toConfirm: 2 },
+};
+
+function readAs(permissions: Array<Permission>): void {
+  jest.spyOn(PermissionUtil, "getAllPermissions").mockImplementation(() => {
+    return [Permission.SecurityMember, ...permissions];
+  });
+  PermissionGate.clearPermissionPropsCache();
+}
+
+// Each line's own link, as drawn: its words and where it goes.
+function factLinks(step: HTMLElement): Array<[string, string]> {
+  return within(step)
+    .queryAllByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkFactLink)
+    .map((link: HTMLElement): [string, string] => {
+      return [(link.textContent || "").trim(), link.getAttribute("href") || ""];
+    });
+}
+
+describe("the lines that say what to grant link to where it is granted (#11039)", () => {
+  test("a reader who may change connections: the connection's form, and Cloud > Connect to connect one", async () => {
+    readAs([Permission.ProjectAdmin]);
+    stepChecks = [
+      check(SecurityCaseStepCheckState.LooksDone, LOOKS_DONE_WITH_LINKS),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(factLinks(step)).toEqual([
+      ["Edit Connection", `${CONNECT_PAGE}?connection=${CONNECTION_ID}`],
+      ["Open Cloud Connections", CONNECT_PAGE],
+    ]);
+    // Each after the words of its own line, which still read whole.
+    expect(lines(step)[2]).toEqual([
+      StepCheckFactMark.HowToCheck,
+      "To read IAM back in the account 123456789012, edit its AWS connection under Cloud → Connect, turn on Security case checks, and run the command it shows. Edit Connection",
+    ]);
+    expect(lines(step)[3]).toEqual([
+      StepCheckFactMark.HowToCheck,
+      "No AWS connection reads the account 210987654321, so OneUptime cannot read its IAM back. Connect it under Cloud → Connect, with Security case checks on. Open Cloud Connections",
+    ]);
+    // The other lines link nowhere; the step's own links are where they were.
+    expect(
+      within(step).queryAllByTestId(SECURITY_CASE_RESPONSE_TEST_IDS.checkLink),
+    ).toHaveLength(0);
+  });
+
+  test("a reader who may see connections but not change them: Cloud > Connect, where Edit says what it takes", async () => {
+    readAs([Permission.ProjectMember]);
+    stepChecks = [
+      check(SecurityCaseStepCheckState.LooksDone, LOOKS_DONE_WITH_LINKS),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(factLinks(step)).toEqual([
+      ["Open Cloud Connections", CONNECT_PAGE],
+      ["Open Cloud Connections", CONNECT_PAGE],
+    ]);
+  });
+
+  test("a reader who may not see Cloud > Connect gets no link: the words name the menu path, for someone who may", async () => {
+    stepChecks = [
+      check(SecurityCaseStepCheckState.LooksDone, LOOKS_DONE_WITH_LINKS),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(factLinks(step)).toEqual([]);
+    expect(lines(step)[2]).toEqual([
+      StepCheckFactMark.HowToCheck,
+      "To read IAM back in the account 123456789012, edit its AWS connection under Cloud → Connect, turn on Security case checks, and run the command it shows.",
+    ]);
+  });
+
+  test("checks on and refused all the same: run its command again, on the connection's form", async () => {
+    readAs([Permission.ProjectOwner]);
+    stepChecks = [
+      check(SecurityCaseStepCheckState.CannotTell, {
+        sentence: {
+          template: CHECK_ACCOUNT_CHANGES_CANNOT_READ,
+          values: {},
+          count: 1,
+        },
+        facts: [
+          {
+            template: CHECK_ACCOUNT_CHANGE_TRUST_CONFIRM,
+            values: { account: "Deploy", object: "", provider: "AWS" },
+            mark: StepCheckFactMark.Confirm,
+          },
+          {
+            template: CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
+            values: { cloudAccount: "123456789012" },
+            mark: StepCheckFactMark.HowToCheck,
+            link: {
+              kind: ResponseLinkKind.OpenCloudConnection,
+              connectionId: CONNECTION_ID,
+            },
+          },
+        ],
+        links: [],
+        docsPath: "/telemetry/security-cases#how-oneuptime-checks-a-step",
+        data: { changes: 1, stillThere: 0, undone: 0, toConfirm: 1 },
+      }),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(lines(step)).toEqual([
+      [
+        StepCheckFactMark.Confirm,
+        "Confirm the role Deploy in AWS trusts only whom you expect: the attack changed its trust policy.",
+      ],
+      [
+        StepCheckFactMark.HowToCheck,
+        "AWS refused OneUptime's read of IAM in the account 123456789012, though its AWS connection has Security case checks on. Edit the connection under Cloud → Connect and run the command it shows again. Edit Connection",
+      ],
+    ]);
+    expect(factLinks(step)).toEqual([
+      ["Edit Connection", `${CONNECT_PAGE}?connection=${CONNECTION_ID}`],
+    ]);
+  });
+});
+
+describe("an IAM role's changes (#11038)", () => {
+  test("a role still there, then whom it trusts outside its account on a line of its own under it, unmarked", async () => {
+    stepChecks = [
+      check(SecurityCaseStepCheckState.NotDone, {
+        sentence: {
+          template: CHECK_ACCOUNT_CHANGES_STILL_THERE,
+          values: {},
+          count: 2,
+        },
+        facts: [
+          {
+            template: CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+            values: { account: "backdoor", object: "", provider: "AWS" },
+            mark: StepCheckFactMark.NotDone,
+          },
+          {
+            template: CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNT,
+            values: {
+              account: "backdoor",
+              cloudAccount: "123456789012",
+              trusted: "444455556666",
+            },
+          },
+          {
+            template: CHECK_ACCOUNT_CHANGE_TRUST_STILL,
+            values: { account: "Deploy", object: "", provider: "AWS" },
+            mark: StepCheckFactMark.NotDone,
+          },
+          {
+            template: CHECK_ACCOUNT_CHANGE_TRUSTS_ACCOUNTS,
+            values: {
+              account: "Deploy",
+              cloudAccount: "123456789012",
+              trusted: "444455556666",
+            },
+            count: 3,
+          },
+          {
+            template: CHECK_ACCOUNT_CHANGE_ROLE_POLICY_UNDONE,
+            values: {
+              account: "Deploy",
+              object: "AdministratorAccess",
+              provider: "AWS",
+            },
+            mark: StepCheckFactMark.Done,
+          },
+        ],
+        links: [],
+        data: { changes: 3, stillThere: 2, undone: 1, toConfirm: 0 },
+      }),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(lines(step)).toEqual([
+      [
+        StepCheckFactMark.NotDone,
+        "The role backdoor the attack made is still in AWS.",
+      ],
+      [
+        "",
+        "The role backdoor trusts 444455556666, an AWS account outside 123456789012.",
+      ],
+      [
+        StepCheckFactMark.NotDone,
+        "The role Deploy still has the trust policy the attack set in AWS.",
+      ],
+      [
+        "",
+        "The role Deploy trusts 3 AWS accounts outside 123456789012, 444455556666 among them.",
+      ],
+      [
+        StepCheckFactMark.Done,
+        "The role Deploy no longer has the policy AdministratorAccess in AWS.",
+      ],
+    ]);
+
+    // The line under a role has no icon of its own: it says more of the line above.
+    const drawnLines: Array<HTMLElement> = within(step).getAllByTestId(
+      SECURITY_CASE_RESPONSE_TEST_IDS.checkFact,
+    );
+
+    expect(drawnLines[1]!.querySelector("svg")).toBeNull();
+    expect(drawnLines[0]!.querySelector("svg")).not.toBeNull();
+  });
+
+  test("every AWS account trusted is said as anyone in AWS", async () => {
+    stepChecks = [
+      check(SecurityCaseStepCheckState.NotDone, {
+        sentence: {
+          template: CHECK_ACCOUNT_CHANGES_STILL_THERE,
+          values: {},
+          count: 1,
+        },
+        facts: [
+          {
+            template: CHECK_ACCOUNT_CHANGE_ROLE_MADE_STILL,
+            values: { account: "backdoor", object: "", provider: "AWS" },
+            mark: StepCheckFactMark.NotDone,
+          },
+          {
+            template: CHECK_ACCOUNT_CHANGE_TRUSTS_EVERY_ACCOUNT,
+            values: { account: "backdoor" },
+          },
+        ],
+        links: [],
+        data: { changes: 1, stillThere: 1, undone: 0, toConfirm: 0 },
+      }),
+    ];
+
+    const step: HTMLElement = await drawn();
+
+    expect(lines(step)[1]).toEqual([
+      "",
+      "Anyone in AWS may assume the role backdoor: its trust policy trusts every AWS account.",
+    ]);
   });
 });

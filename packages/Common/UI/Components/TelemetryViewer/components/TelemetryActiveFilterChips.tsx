@@ -12,6 +12,7 @@ import Icon from "../../Icon/Icon";
 import IsolatedText from "../../IsolatedText/IsolatedText";
 import IconProp from "../../../../Types/Icon/IconProp";
 import LockedFilterChip from "./LockedFilterChip";
+import { getActiveFilterValueText } from "../ActiveFilterValueText";
 import { TelemetrySignal } from "../../../../Utils/Telemetry/LockedFilterSearch";
 import {
   FacetChipReading,
@@ -21,6 +22,10 @@ import {
 
 // A chip that leaves its value out, so a test can tell it from one that keeps it.
 export const EXCLUDED_FILTER_CHIP_TEST_ID: string = "excluded-filter-chip";
+
+// The value of a chip whose record is gone (#11213), as tests find it.
+export const FILTER_CHIP_NOT_FOUND_TEST_ID: string =
+  "filter-chip-value-not-found";
 
 export interface TelemetryActiveFilterChipsProps {
   filters: Array<ActiveFilter>;
@@ -90,7 +95,7 @@ const TelemetryActiveFilterChips: FunctionComponent<
           <LockedFilterChip
             key={chipKey}
             displayKey={filter.displayKey}
-            displayValue={filter.displayValue}
+            displayValue={getActiveFilterValueText(filter, translator)}
             lockedDetail={filter.lockedDetail}
             signal={props.signal}
           />
@@ -109,6 +114,12 @@ const TelemetryActiveFilterChips: FunctionComponent<
           isExcluded,
           translator,
         );
+        /*
+         * Its value as its telemetry wrote it, "No longer available" once
+         * every read of the record it names answered nothing, or its name
+         * marked archived (#11213).
+         */
+        const valueText: string = getActiveFilterValueText(filter, translator);
         return (
           <span
             key={chipKey}
@@ -140,8 +151,13 @@ const TelemetryActiveFilterChips: FunctionComponent<
              * way. In a span of the page's direction, so a value long enough
              * to wrap still wraps from the chip's side.
              */}
-            <span>
-              <IsolatedText text={filter.displayValue} />
+            <span
+              className={filter.isNotFound ? "italic text-gray-500" : undefined}
+              data-testid={
+                filter.isNotFound ? FILTER_CHIP_NOT_FOUND_TEST_ID : undefined
+              }
+            >
+              <IsolatedText text={valueText} />
             </span>
             <button
               type="button"
@@ -162,7 +178,7 @@ const TelemetryActiveFilterChips: FunctionComponent<
                     sentence,
                   );
                 }),
-                value: filter.displayValue,
+                value: valueText,
               })}
             >
               <Icon icon={IconProp.Close} className="h-2.5 w-2.5" />
