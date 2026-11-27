@@ -583,6 +583,16 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
   "packages/Common/Server/Utils/DataObservability/DataCheckIngest.ts": {
     "DataCheckIngest.recordResults DataCheck": Why.Reported,
   },
+  /*
+   * A database's Settings in Data Observability (#11147): a rename, a new
+   * connection, and Remove from Data Observability, each recorded as the
+   * person who made it.
+   */
+  "packages/Common/Server/Utils/DataObservability/DataObservabilityStoreSettings.ts":
+    {
+      "DataObservabilityStoreSettings.remove DataStore": Why.Recorded,
+      "DataObservabilityStoreSettings.update DataStore": Why.Recorded,
+    },
   "packages/Common/Server/Utils/DataObservability/DataProductCheck.ts": {
     "DataProductCheck.checkProduct DataProduct": Why.Reported,
   },

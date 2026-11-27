@@ -1438,7 +1438,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
       },
     ),
     ...decided(
-      "An AI agent's or a Runner's own, with its key: it reports on the work OneUptime handed it. OneUptime AI starts no work on a record of a product switched off, nor hands a code fix out while Code is (AIRunService), and no runbook starts from inside OneUptime while Runbooks is (RunbookStarter).",
+      "An AI agent's or a Runner's own, with its key: it reports on the work OneUptime handed it. OneUptime AI starts no work on a record of a product switched off, nor hands a code fix out while Code is (AIRunService), and no runbook starts from inside OneUptime while Runbooks is (RunbookStarter). A database server's agent takes the Data Observability reads its own server is due and reports what it read, as a probe does (ProbeIngest/DataObservability.ts): the server's infrastructure reading, never a person's write.",
       {
         "packages/Common/Server/API/AIAgentAPI.ts": 1,
         "packages/Common/Server/API/AIAgentCodeTaskAPI.ts": 1,
@@ -1449,7 +1449,7 @@ const CORE_FILES_DECIDED_WHOLE: Record<string, WholeFileDecision> =
         "packages/Common/Server/API/AIAgentTelemetryAPI.ts": 2,
         "packages/App/FeatureSet/Runbook/API/RunnerIngress.ts": 6,
         "packages/App/FeatureSet/Runbook/API/KubernetesAiAgentIngress.ts": 6,
-        "packages/App/FeatureSet/Runbook/API/ResourceAiAgentIngress.ts": 6,
+        "packages/App/FeatureSet/Runbook/API/ResourceAiAgentIngress.ts": 8,
       },
     ),
     ...decided(

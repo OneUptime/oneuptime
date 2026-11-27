@@ -664,7 +664,9 @@ const DataObservabilityRoutes: FunctionComponent<ComponentProps> = (
             <StoreSettingsPage
               {...props}
               pageRoute={
-                RouteMap[PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS] as Route
+                RouteMap[
+                  PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS
+                ] as Route
               }
             />
           }

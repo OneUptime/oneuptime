@@ -35,26 +35,23 @@ export function getDatabaseAgentOptions(
   agents: Array<DataObservabilityDatabaseAgent>,
   translator: Translator,
 ): Array<DropdownOption> {
-  return agents.map(
-    (agent: DataObservabilityDatabaseAgent): DropdownOption => {
-      const engine: string = getDatabaseAgentEngineName(agent.engine);
-      const state: string =
-        translator.translateText(DATABASE_AGENT_STATE_LABELS[agent.state]) ||
-        "";
+  return agents.map((agent: DataObservabilityDatabaseAgent): DropdownOption => {
+    const engine: string = getDatabaseAgentEngineName(agent.engine);
+    const state: string =
+      translator.translateText(DATABASE_AGENT_STATE_LABELS[agent.state]) || "";
 
-      return {
-        value: agent.databaseServerId,
-        label: agent.name || agent.databaseServerId,
-        isUserContent: true,
-        // Facts set apart, each already in the reader's words.
-        description: engine ? `${engine} · ${state}` : state,
-        isDescriptionUserContent: true,
-        // A server of an engine no agent reads for Data Observability cannot be chosen.
-        isDisabled:
-          agent.state === DataObservabilityAgentState.EngineNotSupported,
-      };
-    },
-  );
+    return {
+      value: agent.databaseServerId,
+      label: agent.name || agent.databaseServerId,
+      isUserContent: true,
+      // Facts set apart, each already in the reader's words.
+      description: engine ? `${engine} · ${state}` : state,
+      isDescriptionUserContent: true,
+      // A server of an engine no agent reads for Data Observability cannot be chosen.
+      isDisabled:
+        agent.state === DataObservabilityAgentState.EngineNotSupported,
+    };
+  });
 }
 
 function isCollector(
@@ -112,9 +109,12 @@ export function getDatabaseConnectionFields(data: {
       description: data.hasSavedConnection
         ? "Leave it empty to keep the saved connection string."
         : data.connectionExample
-          ? data.translator.translateTemplate("For this database: {{example}}", {
-              example: data.connectionExample,
-            })
+          ? data.translator.translateTemplate(
+              "For this database: {{example}}",
+              {
+                example: data.connectionExample,
+              },
+            )
           : "A URL such as postgres://reader:pw@db.internal:5432/orders, or JSON for Snowflake, BigQuery, Databricks, Athena or Dataverse. Docs show each format.",
       fieldType: FormFieldSchemaType.Password,
       required: (values: FormValues<JSONObject>): boolean => {

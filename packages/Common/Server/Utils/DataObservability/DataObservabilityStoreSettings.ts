@@ -301,7 +301,8 @@ export default class DataObservabilityStoreSettings {
     const ownChanges: JSONObject = {};
 
     if (nameValue !== undefined) {
-      const name: string = typeof nameValue === "string" ? nameValue.trim() : "";
+      const name: string =
+        typeof nameValue === "string" ? nameValue.trim() : "";
 
       if (!name) {
         throw new BadDataException("Give the database a name.");
@@ -521,7 +522,10 @@ export default class DataObservabilityStoreSettings {
       query: {
         _id: dataStoreId,
         projectId,
-        kind: new Includes([...DATA_OBSERVABILITY_KINDS, ...OBJECT_STORE_KINDS]),
+        kind: new Includes([
+          ...DATA_OBSERVABILITY_KINDS,
+          ...OBJECT_STORE_KINDS,
+        ]),
         tableHealthRemovedAt: QueryHelper.isNull(),
       },
       select: STORE_SELECT,
@@ -645,7 +649,10 @@ export default class DataObservabilityStoreSettings {
     const collector: unknown = value["collector"];
     const projectId: ObjectID = data.store.projectId!;
 
-    if (!data.store.kind || !DATA_OBSERVABILITY_KINDS.includes(data.store.kind)) {
+    if (
+      !data.store.kind ||
+      !DATA_OBSERVABILITY_KINDS.includes(data.store.kind)
+    ) {
       throw new BadDataException(
         "This database is read through the cloud connection that found it.",
       );
@@ -824,9 +831,7 @@ export default class DataObservabilityStoreSettings {
     }
 
     if (change.collector === DataObservabilityCollector.Probe) {
-      if (
-        store.scanProbeId?.toString() !== change.probe!.id!.toString()
-      ) {
+      if (store.scanProbeId?.toString() !== change.probe!.id!.toString()) {
         changes["scanProbeId"] = change.probe!.id!;
       }
 

@@ -111,7 +111,17 @@ export const DATABASE_AGENT_MAX_WARNINGS: number = 20;
 export const DATABASE_AGENT_MAX_WARNING_LENGTH: number = 300;
 
 // A character no name holds: control characters, NUL among them.
-const CONTROL_CHARACTER: RegExp = /[\u0000-\u001f\u007f]/;
+function hasControlCharacter(value: string): boolean {
+  for (let index: number = 0; index < value.length; index++) {
+    const code: number = value.charCodeAt(index);
+
+    if (code < 0x20 || code === 0x7f) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 const UUID: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -127,7 +137,7 @@ export function isDatabaseAgentDatabaseName(value: unknown): value is string {
     value.length > 0 &&
     value.length <= DATABASE_AGENT_MAX_DATABASE_NAME_LENGTH &&
     value.trim() === value &&
-    !CONTROL_CHARACTER.test(value) &&
+    !hasControlCharacter(value) &&
     !value.includes("/") &&
     !value.includes("\\")
   );
@@ -139,7 +149,7 @@ export function isDatabaseAgentIdentifier(value: unknown): value is string {
     typeof value === "string" &&
     value.length > 0 &&
     value.length <= DATABASE_AGENT_MAX_IDENTIFIER_LENGTH &&
-    !CONTROL_CHARACTER.test(value)
+    !hasControlCharacter(value)
   );
 }
 
@@ -531,7 +541,11 @@ export interface DatabaseAgentSnapshot {
   warnings: Array<string>;
   secondsSinceStatsReset: number | null;
   // The database read: its name, host and port. Never a login.
-  target: { databaseName: string | null; host: string | null; port: number | null };
+  target: {
+    databaseName: string | null;
+    host: string | null;
+    port: number | null;
+  };
   // Set when checks were due and the database was not too busy for them.
   checkResults?: Array<DatabaseAgentCheckResult> | undefined;
   // Set when view lineage was read this time.

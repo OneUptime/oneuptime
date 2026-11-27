@@ -7,11 +7,10 @@ import {
   DatabaseDriverFactory,
   NODE_DATABASE_DRIVERS,
 } from "../Executors/Database/DatabaseDrivers";
-import IngestClient, { IngestResponse } from "../IngestClient";
+import IngestClient, { INGEST_PATH, IngestResponse } from "../IngestClient";
 import { AgentLogger } from "../Logger";
 import { AgentIdentity, AgentSession } from "../Registration";
 import { waitAtMost } from "../Sleep";
-import { INGEST_PATH } from "../IngestClient";
 import {
   DATABASE_AGENT_POLL_INTERVAL_IN_MS,
   DATABASE_AGENT_RESULT_ROUTE,
@@ -75,7 +74,9 @@ export default class DataObservabilityCollector {
   private apiMissingUntil: number = 0;
   private hasSaidApiMissing: boolean = false;
 
-  public constructor(private readonly options: DataObservabilityCollectorOptions) {
+  public constructor(
+    private readonly options: DataObservabilityCollectorOptions,
+  ) {
     this.settings = resolveDataObservabilitySettings(options.env);
     this.drivers = options.drivers || NODE_DATABASE_DRIVERS;
     this.pollIntervalMs =
@@ -151,7 +152,11 @@ export default class DataObservabilityCollector {
   }
 
   private async round(): Promise<void> {
-    if (!this.isEnabled() || this.stopped || Date.now() < this.apiMissingUntil) {
+    if (
+      !this.isEnabled() ||
+      this.stopped ||
+      Date.now() < this.apiMissingUntil
+    ) {
       return;
     }
 

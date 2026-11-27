@@ -150,7 +150,9 @@ export function readDatabaseAgentFreshnessAge(
 }
 
 // A PostgreSQL relation's kind code, as a data asset kind.
-export function readPostgresRelationKind(relkind: unknown): DataAssetKind | null {
+export function readPostgresRelationKind(
+  relkind: unknown,
+): DataAssetKind | null {
   switch (String(relkind ?? "")) {
     case "r":
       return DataAssetKind.Table;
@@ -230,7 +232,10 @@ export function readDatabaseAgentColumnRow(
     table,
     column: {
       name,
-      dataType: readText(row["data_type"], DATABASE_AGENT_MAX_COLUMN_TYPE_LENGTH)
+      dataType: readText(
+        row["data_type"],
+        DATABASE_AGENT_MAX_COLUMN_TYPE_LENGTH,
+      )
         .trim()
         .toLowerCase(),
       isNullable: readNullable(row["is_nullable"]),
@@ -261,7 +266,10 @@ export function readPostgresTableRows(
     }
 
     tables.push({
-      schema: readText(row["table_schema"], DATABASE_AGENT_MAX_IDENTIFIER_LENGTH),
+      schema: readText(
+        row["table_schema"],
+        DATABASE_AGENT_MAX_IDENTIFIER_LENGTH,
+      ),
       name,
       kind,
       estimatedRows: readDatabaseAgentCount(row["estimated_rows"]),
@@ -309,7 +317,9 @@ export function readMySqlTableRows(
       schema,
       name,
       kind,
-      estimatedRows: isTable ? readDatabaseAgentCount(row["estimated_rows"]) : null,
+      estimatedRows: isTable
+        ? readDatabaseAgentCount(row["estimated_rows"])
+        : null,
       sizeInBytes: isTable ? readDatabaseAgentCount(row["size_bytes"]) : null,
       writeCount: counted?.writes ?? null,
       secondsSinceChange: isTable
@@ -470,8 +480,9 @@ export function assembleDatabaseAgentTables(data: {
       continue;
     }
 
-    const columns: Array<DatabaseAgentColumn> | undefined =
-      columnsByTable.get(getDatabaseAgentCatalogKey(raw.schema, raw.name));
+    const columns: Array<DatabaseAgentColumn> | undefined = columnsByTable.get(
+      getDatabaseAgentCatalogKey(raw.schema, raw.name),
+    );
 
     tables.push({
       ...raw,

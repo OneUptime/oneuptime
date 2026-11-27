@@ -370,7 +370,10 @@ export default class DataObservabilityAgentCollect {
       OneUptimeDate.getCurrentDate(),
     );
 
-    if (!snapshot || snapshot.engine !== getDatabaseAgentEngineOfKind(store.kind)) {
+    if (
+      !snapshot ||
+      snapshot.engine !== getDatabaseAgentEngineOfKind(store.kind)
+    ) {
       throw new BadDataException("The result is not a table health snapshot.");
     }
 

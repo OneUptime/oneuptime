@@ -124,13 +124,17 @@ describe("Data Observability on a Database Agent: its owner's settings", () => {
     assert.strictEqual(settingsOf(ON).runsChecks, true);
     assert.strictEqual(settingsOf(ON).runsCustomSql, false);
     assert.strictEqual(
-      settingsOf({ ...ON, ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL: "true" })
-        .runsCustomSql,
+      settingsOf({
+        ...ON,
+        ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL: "true",
+      }).runsCustomSql,
       true,
     );
     assert.strictEqual(
-      settingsOf({ ...ON, ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL: "yes" })
-        .runsCustomSql,
+      settingsOf({
+        ...ON,
+        ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL: "yes",
+      }).runsCustomSql,
       false,
     );
 
@@ -153,11 +157,13 @@ describe("Data Observability on a Database Agent: its owner's settings", () => {
     assert.strictEqual(redis.isOn, false);
     assert.match(redis.offReason || "", /PostgreSQL, MySQL and MariaDB/);
 
-    const noLogin: DataObservabilitySettings = resolveDataObservabilitySettings({
-      ...ON,
-      DATABASE_SYSTEM: "mysql",
-      DATABASE_ENDPOINT: "db:3306",
-    });
+    const noLogin: DataObservabilitySettings = resolveDataObservabilitySettings(
+      {
+        ...ON,
+        DATABASE_SYSTEM: "mysql",
+        DATABASE_ENDPOINT: "db:3306",
+      },
+    );
 
     assert.strictEqual(noLogin.isOn, false);
     assert.match(
@@ -222,7 +228,10 @@ describe("Data Observability on a Database Agent: its owner's settings", () => {
 const STORE_ID: string = "22222222-2222-4222-8222-222222222222";
 
 function checkOf(
-  fields: Partial<DatabaseAgentCheck> & { checkId: string; type: DataCheckType },
+  fields: Partial<DatabaseAgentCheck> & {
+    checkId: string;
+    type: DataCheckType;
+  },
 ): DatabaseAgentCheck {
   return {
     schemaName: "public",
@@ -257,10 +266,12 @@ function workOf(fields: Partial<DatabaseAgentWork> = {}): DatabaseAgentWork {
 }
 
 // A PostgreSQL catalog of one table, orders(id, status), and one number per check.
-function postgresResponder(
-  sql: string,
-): Array<SqlRow> {
-  if (sql.startsWith("SELECT n.nspname AS table_schema, c.relname AS table_name, c.relkind")) {
+function postgresResponder(sql: string): Array<SqlRow> {
+  if (
+    sql.startsWith(
+      "SELECT n.nspname AS table_schema, c.relname AS table_name, c.relkind",
+    )
+  ) {
     return [
       {
         table_schema: "public",
@@ -365,7 +376,10 @@ describe("Data Observability on a Database Agent: one collection, over scripted 
       const at: number = statements.indexOf(read);
 
       assert.strictEqual(statements[at - 2], "BEGIN READ ONLY");
-      assert.match(statements[at - 1] || "", /^SELECT set_config\('statement_timeout', \$1, true\)/);
+      assert.match(
+        statements[at - 1] || "",
+        /^SELECT set_config\('statement_timeout', \$1, true\)/,
+      );
       assert.strictEqual(statements[at + 1], "ROLLBACK");
     }
 
@@ -454,9 +468,15 @@ describe("Data Observability on a Database Agent: one collection, over scripted 
       return result.error;
     });
 
-    assert.match(errors[0] || "", /is not in public\.orders as the Database Agent read it/);
+    assert.match(
+      errors[0] || "",
+      /is not in public\.orders as the Database Agent read it/,
+    );
     assert.strictEqual(errors[1], CUSTOM_SQL_OFF_REFUSAL);
-    assert.match(errors[2] || "", /pg_catalog\.pg_authid is not in this database's catalog/);
+    assert.match(
+      errors[2] || "",
+      /pg_catalog\.pg_authid is not in this database's catalog/,
+    );
 
     for (const sql of connection.statements()) {
       assert.ok(!sql.includes("DELETE"), sql);
@@ -475,13 +495,19 @@ describe("Data Observability on a Database Agent: one collection, over scripted 
           }),
         ],
       }),
-      settings: settingsOf({ ...ON, ONEUPTIME_DATA_OBSERVABILITY_CHECKS: "false" }),
+      settings: settingsOf({
+        ...ON,
+        ONEUPTIME_DATA_OBSERVABILITY_CHECKS: "false",
+      }),
       drivers: new FakeDrivers(new FakeSqlConnection(postgresResponder)),
       target: { host: null, port: null },
     });
 
     assert.strictEqual(report.snapshot?.tables.length, 1);
-    assert.strictEqual(report.snapshot?.checkResults?.[0]?.error, CHECKS_OFF_REFUSAL);
+    assert.strictEqual(
+      report.snapshot?.checkResults?.[0]?.error,
+      CHECKS_OFF_REFUSAL,
+    );
   });
 
   test("MySQL: a read-only session with time limits, the database named, and each read in START TRANSACTION READ ONLY", async () => {
@@ -525,9 +551,18 @@ describe("Data Observability on a Database Agent: one collection, over scripted 
     ]);
     assert.deepStrictEqual(
       statements.filter((sql: string): boolean => {
-        return !sql.startsWith("SET SESSION") && sql !== "START TRANSACTION READ ONLY" && sql !== "ROLLBACK";
+        return (
+          !sql.startsWith("SET SESSION") &&
+          sql !== "START TRANSACTION READ ONLY" &&
+          sql !== "ROLLBACK"
+        );
       }),
-      [MYSQL_TABLES_SQL, MYSQL_COUNTERS_SQL, MYSQL_UPTIME_SQL, MYSQL_COLUMNS_SQL],
+      [
+        MYSQL_TABLES_SQL,
+        MYSQL_COUNTERS_SQL,
+        MYSQL_UPTIME_SQL,
+        MYSQL_COLUMNS_SQL,
+      ],
     );
   });
 
@@ -634,7 +669,9 @@ describe("Data Observability on a Database Agent: the loop", () => {
         ],
       },
     });
-    server.setDefault("/data-observability/result", { json: { accepted: true } });
+    server.setDefault("/data-observability/result", {
+      json: { accepted: true },
+    });
 
     await collectorOf({ ...BASE_ENV, ...ON }).tick();
 

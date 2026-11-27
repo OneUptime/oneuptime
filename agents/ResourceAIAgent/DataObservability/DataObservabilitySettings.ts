@@ -149,7 +149,9 @@ export function resolveDataObservabilitySettings(
     DATA_OBSERVABILITY_USERNAME_ENV,
     DATA_OBSERVABILITY_PASSWORD_ENV,
   ) || {
-    username: unescapeCollectorValue(readRaw(env, DATABASE_USERNAME_ENV).trim()),
+    username: unescapeCollectorValue(
+      readRaw(env, DATABASE_USERNAME_ENV).trim(),
+    ),
     password: unescapeCollectorValue(readRaw(env, DATABASE_PASSWORD_ENV)),
     source: `${DATABASE_USERNAME_ENV}/${DATABASE_PASSWORD_ENV}`,
   };

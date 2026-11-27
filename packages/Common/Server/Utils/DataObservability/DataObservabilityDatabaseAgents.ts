@@ -55,9 +55,9 @@ export function getDatabaseAgentKindOfEngine(
 export function getDatabaseAgentEngineOfKind(
   kind: string | null | undefined,
 ): DatabaseAgentEngine | null {
-  for (const engine of Object.keys(KIND_OF_ENGINE) as Array<
-    DatabaseAgentEngine
-  >) {
+  for (const engine of Object.keys(
+    KIND_OF_ENGINE,
+  ) as Array<DatabaseAgentEngine>) {
     if (KIND_OF_ENGINE[engine] === kind) {
       return engine;
     }

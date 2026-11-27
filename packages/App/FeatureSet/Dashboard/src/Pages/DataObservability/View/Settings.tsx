@@ -421,7 +421,10 @@ const StoreSettingsPage: FunctionComponent<
 const ImpactList: FunctionComponent<{
   lead?: string | undefined;
   sentences: Array<string>;
-}> = (props: { lead?: string | undefined; sentences: Array<string> }): ReactElement => {
+}> = (props: {
+  lead?: string | undefined;
+  sentences: Array<string>;
+}): ReactElement => {
   return (
     <div className="space-y-2 text-sm text-gray-600">
       {props.lead ? <p>{props.lead}</p> : <></>}
@@ -450,7 +453,9 @@ const ConnectionSummary: FunctionComponent<{
 
   if (connection.collector === DataObservabilityCollector.DatabaseAgent) {
     const serverName: string =
-      connection.databaseServer?.name || translator.translateText("its server") || "";
+      connection.databaseServer?.name ||
+      translator.translateText("its server") ||
+      "";
     const state: DataObservabilityAgentState =
       connection.agentState || DataObservabilityAgentState.NoAgent;
     const isReady: boolean = state === DataObservabilityAgentState.Ready;

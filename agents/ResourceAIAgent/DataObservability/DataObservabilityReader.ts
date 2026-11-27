@@ -342,9 +342,13 @@ async function readPostgresCatalog(
     tables: readPostgresTableRows(tableRows, isReplica),
     columns: columnRows
       .map(readDatabaseAgentColumnRow)
-      .filter((column: DatabaseAgentColumnRow | null): column is DatabaseAgentColumnRow => {
-        return column !== null;
-      }),
+      .filter(
+        (
+          column: DatabaseAgentColumnRow | null,
+        ): column is DatabaseAgentColumnRow => {
+          return column !== null;
+        },
+      ),
     warnings,
     secondsSinceStatsReset,
   };
@@ -382,9 +386,13 @@ async function readMySqlCatalog(
     tables: readMySqlTableRows(tableRows, counters),
     columns: columnRows
       .map(readDatabaseAgentColumnRow)
-      .filter((column: DatabaseAgentColumnRow | null): column is DatabaseAgentColumnRow => {
-        return column !== null;
-      }),
+      .filter(
+        (
+          column: DatabaseAgentColumnRow | null,
+        ): column is DatabaseAgentColumnRow => {
+          return column !== null;
+        },
+      ),
     warnings,
     secondsSinceStatsReset,
   };
@@ -404,7 +412,9 @@ async function readViewLineage(
 }> {
   try {
     const rows: Array<SqlRow> = await session.rows(
-      engine === "postgresql" ? POSTGRES_VIEW_LINEAGE_SQL : MYSQL_VIEW_LINEAGE_SQL,
+      engine === "postgresql"
+        ? POSTGRES_VIEW_LINEAGE_SQL
+        : MYSQL_VIEW_LINEAGE_SQL,
       [DATABASE_AGENT_MAX_LINEAGE_EDGES],
     );
 
@@ -624,13 +634,11 @@ export async function collectDatabase(data: {
       exclusions: work.exclusions,
     });
     const warnings: Array<string> = [...read.warnings, ...assembled.warnings];
-    const lineage:
-      | {
-          edges: Array<DatabaseAgentLineageEdge>;
-          isComplete: boolean;
-          warning: string | null;
-        }
-      | null = work.readsViewLineage
+    const lineage: {
+      edges: Array<DatabaseAgentLineageEdge>;
+      isComplete: boolean;
+      warning: string | null;
+    } | null = work.readsViewLineage
       ? await readViewLineage(catalogSession, settings.engine)
       : null;
 
@@ -735,11 +743,15 @@ export async function collectDatabase(data: {
         },
       ),
       isComplete: assembled.isComplete,
-      warnings: warnings.slice(0, DATABASE_AGENT_MAX_WARNINGS).map(
-        (warning: string): string => {
-          return maskSecrets(warning, secrets, DATABASE_AGENT_MAX_WARNING_LENGTH);
-        },
-      ),
+      warnings: warnings
+        .slice(0, DATABASE_AGENT_MAX_WARNINGS)
+        .map((warning: string): string => {
+          return maskSecrets(
+            warning,
+            secrets,
+            DATABASE_AGENT_MAX_WARNING_LENGTH,
+          );
+        }),
       secondsSinceStatsReset: read.secondsSinceStatsReset,
       target: {
         databaseName: work.databaseName,

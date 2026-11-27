@@ -698,10 +698,7 @@ export function getDatabaseAgentCheckRefusal(
     const referenceColumns: Set<string> | null =
       catalog.get(referenceKey) || null;
 
-    if (
-      referenceColumns &&
-      !referenceColumns.has(check.referenceColumnName)
-    ) {
+    if (referenceColumns && !referenceColumns.has(check.referenceColumnName)) {
       return `The column ${check.referenceColumnName} is not in ${describeTable(check.referenceSchemaName || "", check.referenceTableName)} as the Database Agent read it, so the check was not run.`;
     }
   }

@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import {
   DataCheckStatement,
   DataCheckTarget,
+  MAX_CUSTOM_SQL_LENGTH,
   buildDataCheckStatement,
   buildFreshnessStatement,
 } from "../../../Server/Utils/DataObservability/DataCheckSql";
@@ -20,7 +21,6 @@ import {
   readPostgresKind,
 } from "../../../Server/Utils/DataObservability/TableHealthCollector";
 import { MAX_CHECKS_PER_COLLECTION } from "../../../Server/Utils/DataObservability/DataCheckPlanner";
-import { MAX_CUSTOM_SQL_LENGTH } from "../../../Server/Utils/DataObservability/DataCheckSql";
 import {
   DataCheckType,
   DATA_CHECK_TYPES,
@@ -93,7 +93,8 @@ function agentCheckOf(target: DataCheckTarget): DatabaseAgentCheck {
     acceptedValues: target.acceptedValues || null,
     pattern: target.pattern || null,
     referenceSchemaName:
-      target.referenceTableName !== undefined && target.referenceTableName !== null
+      target.referenceTableName !== undefined &&
+      target.referenceTableName !== null
         ? target.referenceSchemaName || ""
         : null,
     referenceTableName: target.referenceTableName || null,
@@ -145,7 +146,10 @@ function targetsFor(schema: string): Array<DataCheckTarget> {
       target.referenceColumnName = "id";
     }
 
-    if (type === DataCheckType.CustomSql || type === DataCheckType.FailingRows) {
+    if (
+      type === DataCheckType.CustomSql ||
+      type === DataCheckType.FailingRows
+    ) {
       target.customSql = "SELECT COUNT(*) FROM orders WHERE amount > 25";
     }
 
@@ -174,7 +178,10 @@ describe("A Database Agent's statements are the server's", () => {
     test.each(targetsFor(schema))(
       `${engine}: %o is built alike on the agent and the server`,
       (target: DataCheckTarget) => {
-        const server: DataCheckStatement = buildDataCheckStatement(engine, target);
+        const server: DataCheckStatement = buildDataCheckStatement(
+          engine,
+          target,
+        );
         const agent: DatabaseAgentStatement = buildDatabaseAgentCheckStatement(
           engine,
           agentCheckOf(target),
@@ -186,8 +193,11 @@ describe("A Database Agent's statements are the server's", () => {
     );
 
     test(`${engine}: a freshness column is read alike`, () => {
-      const target: { schemaName: string; tableName: string; columnName: string } =
-        { schemaName: schema, tableName: "orders", columnName: "updated_at" };
+      const target: {
+        schemaName: string;
+        tableName: string;
+        columnName: string;
+      } = { schemaName: schema, tableName: "orders", columnName: "updated_at" };
 
       expect(buildDatabaseAgentFreshnessStatement(engine, target)).toEqual(
         buildFreshnessStatement(engine, target),
@@ -196,7 +206,11 @@ describe("A Database Agent's statements are the server's", () => {
 
     test(`${engine}: what the server refuses to build, the agent refuses too`, () => {
       for (const target of [
-        { ...targetsFor(schema)[0]!, type: DataCheckType.NullPercent, columnName: null },
+        {
+          ...targetsFor(schema)[0]!,
+          type: DataCheckType.NullPercent,
+          columnName: null,
+        },
         {
           schemaName: schema,
           tableName: "orders",
@@ -234,9 +248,13 @@ describe("A Database Agent's statements are the server's", () => {
           return buildDataCheckStatement(engine, target);
         }).toThrow();
         expect(() => {
-          return buildDatabaseAgentCheckStatement(engine, agentCheckOf(target), {
-            allowsCustomSql: true,
-          });
+          return buildDatabaseAgentCheckStatement(
+            engine,
+            agentCheckOf(target),
+            {
+              allowsCustomSql: true,
+            },
+          );
         }).toThrow(DatabaseAgentRefusal);
       }
     });
@@ -281,7 +299,9 @@ describe("A Database Agent's statements are the server's", () => {
 
     // A semicolon or a write word inside a string is no statement.
     expect(
-      checkDatabaseAgentCustomSql("SELECT COUNT(*) FROM t WHERE note = 'a; delete'"),
+      checkDatabaseAgentCustomSql(
+        "SELECT COUNT(*) FROM t WHERE note = 'a; delete'",
+      ),
     ).toBe("SELECT COUNT(*) FROM t WHERE note = 'a; delete'");
   });
 });
@@ -293,8 +313,16 @@ describe("A Database Agent reads what comes back as the server does", () => {
       isSegmented: boolean;
       rows: Array<Record<string, unknown>>;
     }> = [
-      { type: DataCheckType.RowCount, isSegmented: false, rows: [{ value: "5" }] },
-      { type: DataCheckType.NullPercent, isSegmented: false, rows: [{ value: null }] },
+      {
+        type: DataCheckType.RowCount,
+        isSegmented: false,
+        rows: [{ value: "5" }],
+      },
+      {
+        type: DataCheckType.NullPercent,
+        isSegmented: false,
+        rows: [{ value: null }],
+      },
       {
         type: DataCheckType.RowCount,
         isSegmented: true,
@@ -306,11 +334,18 @@ describe("A Database Agent reads what comes back as the server does", () => {
           { segment: "bad", value: "not a number" },
         ],
       },
-      { type: DataCheckType.CustomSql, isSegmented: false, rows: [{ count: "3" }] },
+      {
+        type: DataCheckType.CustomSql,
+        isSegmented: false,
+        rows: [{ count: "3" }],
+      },
       {
         type: DataCheckType.CustomSql,
         isSegmented: true,
-        rows: [{ region: "eu", total: 7 }, { region: null, total: "8" }],
+        rows: [
+          { region: "eu", total: 7 },
+          { region: null, total: "8" },
+        ],
       },
       { type: DataCheckType.Sum, isSegmented: false, rows: [] },
     ];
@@ -344,7 +379,13 @@ describe("A Database Agent reads what comes back as the server does", () => {
       expect(readPostgresRelationKind(relkind)).toBe(readPostgresKind(relkind));
     }
 
-    for (const type of ["BASE TABLE", "view", "SYSTEM VIEW", "SEQUENCE", null]) {
+    for (const type of [
+      "BASE TABLE",
+      "view",
+      "SYSTEM VIEW",
+      "SEQUENCE",
+      null,
+    ]) {
       expect(readMySqlTableKind(type)).toBe(readMySqlKind(type));
     }
   });
@@ -362,7 +403,10 @@ describe("A Database Agent reads what comes back as the server does", () => {
 
 describe("A check is judged against the catalog the agent read", () => {
   const catalog: DatabaseAgentCatalog = new Map([
-    [getDatabaseAgentCatalogKey("public", "orders"), new Set(["id", "status", "customer_id"])],
+    [
+      getDatabaseAgentCatalogKey("public", "orders"),
+      new Set(["id", "status", "customer_id"]),
+    ],
     [getDatabaseAgentCatalogKey("public", "customers"), new Set(["id"])],
     // Its columns were cut: read by name only.
     [getDatabaseAgentCatalogKey("public", "wide"), null],
@@ -381,10 +425,16 @@ describe("A check is judged against the catalog the agent read", () => {
   };
 
   test("what the catalog has may run", () => {
-    expect(getDatabaseAgentCheckRefusal(of({}), catalog, { allowsCustomSql: false })).toBeNull();
+    expect(
+      getDatabaseAgentCheckRefusal(of({}), catalog, { allowsCustomSql: false }),
+    ).toBeNull();
     expect(
       getDatabaseAgentCheckRefusal(
-        of({ type: DataCheckType.NullPercent, columnName: "status", segmentColumn: "id" }),
+        of({
+          type: DataCheckType.NullPercent,
+          columnName: "status",
+          segmentColumn: "id",
+        }),
         catalog,
         { allowsCustomSql: false },
       ),
@@ -404,7 +454,11 @@ describe("A check is judged against the catalog the agent read", () => {
     ).toBeNull();
     expect(
       getDatabaseAgentCheckRefusal(
-        of({ tableName: "wide", type: DataCheckType.NullPercent, columnName: "anything" }),
+        of({
+          tableName: "wide",
+          type: DataCheckType.NullPercent,
+          columnName: "anything",
+        }),
         catalog,
         { allowsCustomSql: false },
       ),
@@ -415,7 +469,10 @@ describe("A check is judged against the catalog the agent read", () => {
     for (const fields of [
       { tableName: "pg_authid", schemaName: "pg_catalog" },
       { tableName: "orders", schemaName: "other" },
-      { type: DataCheckType.NullPercent, columnName: 'status"; DROP TABLE orders; --' },
+      {
+        type: DataCheckType.NullPercent,
+        columnName: 'status"; DROP TABLE orders; --',
+      },
       { segmentColumn: "no_such_column" },
       {
         type: DataCheckType.OrphanCount,
@@ -451,22 +508,39 @@ describe("A check is judged against the catalog the agent read", () => {
       customSql: "SELECT 1",
     });
 
-    expect(getDatabaseAgentCheckRefusal(custom, catalog, { allowsCustomSql: false })).toBe(
-      CUSTOM_SQL_OFF_REFUSAL,
-    );
-    expect(getDatabaseAgentCheckRefusal(custom, catalog, { allowsCustomSql: true })).toBeNull();
+    expect(
+      getDatabaseAgentCheckRefusal(custom, catalog, { allowsCustomSql: false }),
+    ).toBe(CUSTOM_SQL_OFF_REFUSAL);
+    expect(
+      getDatabaseAgentCheckRefusal(custom, catalog, { allowsCustomSql: true }),
+    ).toBeNull();
   });
 
   test("a freshness column is judged the same way", () => {
-    const read: { tableKey: string; schemaName: string; tableName: string; columnName: string } =
-      { tableKey: "public.orders", schemaName: "public", tableName: "orders", columnName: "status" };
+    const read: {
+      tableKey: string;
+      schemaName: string;
+      tableName: string;
+      columnName: string;
+    } = {
+      tableKey: "public.orders",
+      schemaName: "public",
+      tableName: "orders",
+      columnName: "status",
+    };
 
     expect(getDatabaseAgentFreshnessRefusal(read, catalog)).toBeNull();
     expect(
-      getDatabaseAgentFreshnessRefusal({ ...read, columnName: "missing" }, catalog),
+      getDatabaseAgentFreshnessRefusal(
+        { ...read, columnName: "missing" },
+        catalog,
+      ),
     ).toEqual(expect.any(String));
     expect(
-      getDatabaseAgentFreshnessRefusal({ ...read, tableName: "missing" }, catalog),
+      getDatabaseAgentFreshnessRefusal(
+        { ...read, tableName: "missing" },
+        catalog,
+      ),
     ).toEqual(expect.any(String));
   });
 });
@@ -608,9 +682,14 @@ describe("The conversation is read strictly", () => {
       workVersion: DATABASE_AGENT_WORK_VERSION,
     });
     expect(
-      readDatabaseAgentDataObservabilityPosture({ isOn: "true", workVersion: 1 })?.isOn,
+      readDatabaseAgentDataObservabilityPosture({
+        isOn: "true",
+        workVersion: 1,
+      })?.isOn,
     ).toBe(false);
-    expect(readDatabaseAgentDataObservabilityPosture({ isOn: true })).toBeNull();
+    expect(
+      readDatabaseAgentDataObservabilityPosture({ isOn: true }),
+    ).toBeNull();
     expect(readDatabaseAgentDataObservabilityPosture(null)).toBeNull();
   });
 
@@ -713,9 +792,11 @@ describe("What a Database Agent reports is a probe's snapshot to the server", ()
     expect(read!.engine).toBe("postgresql");
     expect(read!.collectedAt).toBe("2026-11-26T11:59:00.000Z");
     // The excluded schema is left out on the agent.
-    expect(read!.tables.map((table: { name: string }) => {
-      return table.name;
-    })).toEqual(["orders"]);
+    expect(
+      read!.tables.map((table: { name: string }) => {
+        return table.name;
+      }),
+    ).toEqual(["orders"]);
     expect(read!.tables[0]!.columns).toEqual([
       { name: "id", dataType: "integer", isNullable: false, position: 1 },
       { name: "status", dataType: "text", isNullable: true, position: 2 },

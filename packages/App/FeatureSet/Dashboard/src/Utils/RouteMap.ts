@@ -9604,9 +9604,7 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
-      DataObservabilityRoutePath[
-        PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS
-      ]
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]
     }`,
   ),
 

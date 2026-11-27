@@ -129,7 +129,10 @@ function portOf(variable: string): number {
 function check(
   id: string,
   type: DataCheckType,
-  fields: Partial<DatabaseAgentCheck> & { tableName: string; schemaName: string },
+  fields: Partial<DatabaseAgentCheck> & {
+    tableName: string;
+    schemaName: string;
+  },
 ): DatabaseAgentCheck {
   return {
     checkId: id,
@@ -157,7 +160,9 @@ function checksFor(live: LiveEngine): Array<DatabaseAgentCheck> {
     tableName: "customers",
   };
   const userFunction: string =
-    live.engine === "postgresql" ? "current_user" : "SUBSTRING_INDEX(CURRENT_USER(), '@', 1)";
+    live.engine === "postgresql"
+      ? "current_user"
+      : "SUBSTRING_INDEX(CURRENT_USER(), '@', 1)";
 
   return [
     check(CHECK_IDS["rowCount"]!, DataCheckType.RowCount, orders),
@@ -321,7 +326,10 @@ function resultOf(
   return result;
 }
 
-function valueOf(snapshot: DatabaseAgentSnapshot | undefined, checkId: string): number {
+function valueOf(
+  snapshot: DatabaseAgentSnapshot | undefined,
+  checkId: string,
+): number {
   const result: DatabaseAgentCheckResult = resultOf(snapshot, checkId);
 
   assert.strictEqual(result.error, null, `check ${checkId}: ${result.error}`);
@@ -461,7 +469,9 @@ function mysqlLike(data: {
 
     try {
       const [rows] = await connection.query(sql);
-      return Array.isArray(rows) ? (rows as Array<Record<string, unknown>>) : [];
+      return Array.isArray(rows)
+        ? (rows as Array<Record<string, unknown>>)
+        : [];
     } finally {
       await connection.end();
     }
@@ -629,7 +639,10 @@ for (const live of ENGINES) {
 
         if (live.engine === "postgresql") {
           // pg_depend is every login's to read: the catalog login sees it.
-          assert.ok(readsOpenOrders(snapshot), JSON.stringify(snapshot?.lineage));
+          assert.ok(
+            readsOpenOrders(snapshot),
+            JSON.stringify(snapshot?.lineage),
+          );
           return;
         }
 
@@ -719,7 +732,9 @@ for (const live of ENGINES) {
         }
 
         // The table the break-out named is there, untouched.
-        const [row] = await live.admin("SELECT COUNT(*) AS rows_left FROM orders");
+        const [row] = await live.admin(
+          "SELECT COUNT(*) AS rows_left FROM orders",
+        );
         assert.strictEqual(Number(row?.["rows_left"]), 5);
       });
 
@@ -746,7 +761,10 @@ for (const live of ENGINES) {
           }),
         );
 
-        assert.strictEqual(valueOf(odd.snapshot, CHECK_IDS["nullPercent"]!), 50);
+        assert.strictEqual(
+          valueOf(odd.snapshot, CHECK_IDS["nullPercent"]!),
+          50,
+        );
       });
 
       test("the read-only transaction stops a query that writes, even one that reads like a SELECT", async () => {
@@ -806,7 +824,9 @@ for (const live of ENGINES) {
           await session.close();
         }
 
-        const [count] = await live.admin("SELECT COUNT(*) AS customers FROM customers");
+        const [count] = await live.admin(
+          "SELECT COUNT(*) AS customers FROM customers",
+        );
         assert.strictEqual(Number(count?.["customers"]), 3);
       });
 
@@ -867,9 +887,11 @@ for (const live of ENGINES) {
         );
 
         assert.ok(
-          !(excluded.snapshot?.tables || []).some((table: DatabaseAgentTable) => {
-            return table.name === "customers";
-          }),
+          !(excluded.snapshot?.tables || []).some(
+            (table: DatabaseAgentTable) => {
+              return table.name === "customers";
+            },
+          ),
         );
         assert.match(
           resultOf(excluded.snapshot, CHECK_IDS["formatMismatch"]!).error || "",
@@ -967,8 +989,10 @@ for (const live of ENGINES) {
 
           const asked: Array<{ body: Record<string, unknown> }> =
             server.requestsTo("/data-observability/work");
-          const reported: Array<{ body: Record<string, unknown>; rawBody: string }> =
-            server.requestsTo("/data-observability/result");
+          const reported: Array<{
+            body: Record<string, unknown>;
+            rawBody: string;
+          }> = server.requestsTo("/data-observability/result");
 
           assert.strictEqual(asked.length, 1);
           assert.deepStrictEqual(asked[0]!.body, {
@@ -1000,7 +1024,9 @@ for (const live of ENGINES) {
           }
 
           // The orders table is still there: what the server slipped in was never run.
-          const [row] = await live.admin("SELECT COUNT(*) AS rows_left FROM orders");
+          const [row] = await live.admin(
+            "SELECT COUNT(*) AS rows_left FROM orders",
+          );
           assert.strictEqual(Number(row?.["rows_left"]), 5);
         } finally {
           await server.stop();
