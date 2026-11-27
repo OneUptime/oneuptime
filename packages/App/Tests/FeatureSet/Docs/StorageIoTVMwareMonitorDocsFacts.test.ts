@@ -41,6 +41,7 @@ import {
   StorageArrayResourceFilter,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
+import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
@@ -1323,7 +1324,7 @@ describe("the Storage Array page against the form and the agent", () => {
       ["Host", "FlashArray only."],
       ["Pod", "FlashArray only."],
       ["Hardware Component", ""],
-      ["File System", "FlashBlade only."],
+      ["File System", "FlashBlade and PowerScale."],
       ["Bucket", "FlashBlade only."],
     ] as Array<[string, string]>) {
       // The form's title for a filter, by the filter's key...
@@ -1345,12 +1346,17 @@ describe("the Storage Array page against the form and the agent", () => {
           });
 
       expect(key).toBeDefined();
-      expect(platforms.includes(StorageSystem.PureStorageFlashArray)).toBe(
-        onlyOn !== "FlashBlade only.",
-      );
-      expect(platforms.includes(StorageSystem.PureStorageFlashBlade)).toBe(
-        onlyOn !== "FlashArray only.",
-      );
+      // What the row says it is offered on: nothing when every platform offers it.
+      const names: Array<string> = platforms.map((system: string): string => {
+        return StorageSystemUtil.getShortName(system as StorageSystem);
+      });
+      const offeredOn: string =
+        platforms.length === StorageArrayPlatformRegistry.getPlatforms().length
+          ? ""
+          : names.length === 1
+            ? `${names[0]} only.`
+            : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}.`;
+      expect({ title, offeredOn }).toEqual({ title, offeredOn: onlyOn });
 
       const row: Array<string> | undefined = rows.find(
         (cells: Array<string>): boolean => {

@@ -192,6 +192,8 @@ const STATUS_WORDS: Record<string, string> = {
   ready: translationKey("Ready"),
   enabled: translationKey("Enabled"),
   online: translationKey("Online"),
+  // A network port that is up (a PowerScale node's).
+  up: translationKey("Up"),
   critical: translationKey("Critical"),
   failed: translationKey("Failed"),
   missing: translationKey("Missing"),
