@@ -68,7 +68,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/UseCloudAccounts",
-    );
+    ) as Record<string, unknown>;
     return {
       __esModule: true,
       ...actual,
@@ -84,7 +84,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CloudCostBasis",
-    );
+    ) as Record<string, unknown>;
     return {
       __esModule: true,
       ...actual,
@@ -100,7 +100,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/Cloud/CostGroups/CloudCostAllocationReads",
-    );
+    ) as Record<string, unknown>;
     return {
       __esModule: true,
       ...actual,

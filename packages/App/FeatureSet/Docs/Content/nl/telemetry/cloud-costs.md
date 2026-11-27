@@ -321,7 +321,7 @@ oneuptime cloud-cost export --period last-month --file focus.csv
 
 ### Op een dashboard
 
-De widget **Cloudkosten** zet een totaal, een uitsplitsing of een trend van de uitgaven naast de services die ze maken. Zie [Dashboardwidgets](/docs/dashboards/widgets#cloudkosten).
+De widget **Cloudkosten** zet een totaal, een uitsplitsing of een trend van de uitgaven naast de services die ze maken. Zie [Dashboardwidgets](/docs/dashboards/widgets#kosten-van-de-cloud).
 
 ## Wat je in OneUptime ziet
 

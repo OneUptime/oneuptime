@@ -203,7 +203,7 @@ Jedes dieser Widgets listet die Ressourcen, die ein Agent oder ein Collector an 
 | **Speicher-Arrays** | **Volumes**, und **Hardware** als Wand nach Status gefärbt | Den Storage-Array-Agent |
 | **Cloud-Kosten** | **Cloud-Kosten**, eine Summe, eine Aufschlüsselung oder ein Trend der Ausgaben | Die Kosten, die Ihre [Cloud-Konten](/docs/telemetry/cloud-accounts) melden |
 
-Nutzen Sie sie für eine Seite, die den Zustand Ihrer Infrastruktur mit der Telemetrie der Workloads darauf verbindet. Das Widget Cloud-Kosten ist keine Liste: siehe [Cloud-Kosten](#cloud-kosten).
+Nutzen Sie sie für eine Seite, die den Zustand Ihrer Infrastruktur mit der Telemetrie der Workloads darauf verbindet. Das Widget Cloud-Kosten ist keine Liste: siehe [Kosten der Cloud](#kosten-der-cloud).
 
 ### Netzwerkkarte
 
@@ -217,7 +217,7 @@ Die Karte rahmt sich auf die Standorte ein, die sie gezeichnet hat — ein Besta
 
 Ein Standort erscheint nur, wenn er Koordinaten hat. Fügen Sie Breiten- und Längengrad am Standort hinzu (oder importieren Sie sie per CSV), um ihn anzuheften.
 
-## Cloud-Kosten
+## Kosten der Cloud
 
 ### Cloud-Kosten
 

@@ -203,7 +203,7 @@ Elk van deze widgets toont de resources die een agent of een collector aan OneUp
 | **Opslagarrays** | **Volumes**, en **Hardware** als muur gekleurd naar status | De Opslagarray-agent |
 | **Cloudkosten** | **Cloudkosten**, een totaal, een uitsplitsing of een trend van de uitgaven | De kosten die uw [cloudaccounts](/docs/telemetry/cloud-accounts) melden |
 
-Gebruik ze voor één pagina die de toestand van je infrastructuur combineert met de telemetrie van de workloads die erop draaien. De widget Cloudkosten is geen lijst: zie [Cloudkosten](#cloudkosten).
+Gebruik ze voor één pagina die de toestand van je infrastructuur combineert met de telemetrie van de workloads die erop draaien. De widget Cloudkosten is geen lijst: zie [Kosten van de cloud](#kosten-van-de-cloud).
 
 ### Network Map
 
@@ -217,7 +217,7 @@ Boven de kaart staat hoeveel sites er plat liggen, omdat een rood puntje van twe
 
 Een site verschijnt alleen als hij coördinaten heeft. Voeg breedte- en lengtegraad toe aan de site (of importeer ze uit een CSV) om hem vast te zetten.
 
-## Cloudkosten
+## Kosten van de cloud
 
 ### Cloudkosten
 

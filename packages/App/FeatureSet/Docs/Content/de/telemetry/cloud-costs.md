@@ -321,7 +321,7 @@ oneuptime cloud-cost export --period last-month --file focus.csv
 
 ### Auf einem Dashboard
 
-Das Widget **Cloud-Kosten** stellt eine Summe, eine Aufschlüsselung oder einen Trend der Ausgaben neben die Dienste, die sie verursachen. Siehe [Dashboard-Widgets](/docs/dashboards/widgets#cloud-kosten).
+Das Widget **Cloud-Kosten** stellt eine Summe, eine Aufschlüsselung oder einen Trend der Ausgaben neben die Dienste, die sie verursachen. Siehe [Dashboard-Widgets](/docs/dashboards/widgets#kosten-der-cloud).
 
 ## Was Sie in OneUptime sehen
 
