@@ -82,6 +82,10 @@ const XCP_NG_PAGE_KEYS: ReadonlyArray<string> = [
   "XCP_NG_POOL_VIEW_STORAGE_DETAIL",
   // The pool drawn as one map: Components/ResourceTopology.
   "XCP_NG_POOL_VIEW_TOPOLOGY",
+  // OneUptime AI on the pool, through its XCP-ng AI agent (#10998).
+  "XCP_NG_POOL_VIEW_AI_INSIGHTS",
+  "XCP_NG_POOL_VIEW_AI_LOGS",
+  "XCP_NG_POOL_VIEW_AI_AGENT",
   "XCP_NG_POOL_VIEW_INSIGHTS",
   "XCP_NG_POOL_VIEW_RECOMMENDATIONS",
   "XCP_NG_POOL_VIEW_METRICS",
@@ -160,8 +164,18 @@ describe("PageMap declares the product", () => {
     expect(pageMap).toContain(`${key} = "${key}"`);
   });
 
-  test("there is no AI agent page — XCP-ng pools have no resource AI agent yet (#10998)", () => {
-    expect(pageMap).not.toContain("XCP_NG_POOL_VIEW_AI_");
+  test("the pool's AI pages are its Insights, its Logs and its AI agent, and nothing else (#10998)", () => {
+    expect(
+      Array.from(pageMap.matchAll(/XCP_NG_POOL_VIEW_AI_[A-Z_]+(?= =)/g)).map(
+        (match: RegExpMatchArray): string => {
+          return match[0];
+        },
+      ),
+    ).toEqual([
+      "XCP_NG_POOL_VIEW_AI_INSIGHTS",
+      "XCP_NG_POOL_VIEW_AI_LOGS",
+      "XCP_NG_POOL_VIEW_AI_AGENT",
+    ]);
   });
 
   test("the product's keys come right after VMware's", () => {
@@ -369,10 +383,31 @@ describe("every route is actually mounted", () => {
     );
   });
 
-  test("there is no AI folder: XCP-ng pools have no resource AI agent yet", () => {
+  test("the AI folder holds the pool's three AI pages, each routed, two segments deep under ai/", () => {
     expect(
-      fs.existsSync(path.join(DASHBOARD_SRC, "Pages", "XcpNg", "View", "AI")),
-    ).toBe(false);
+      fs
+        .readdirSync(path.join(DASHBOARD_SRC, "Pages", "XcpNg", "View", "AI"))
+        .sort(),
+    ).toEqual(["Agent.tsx", "Insights.tsx", "Logs.tsx"]);
+
+    for (const [file, key, segment] of [
+      ["Insights", "XCP_NG_POOL_VIEW_AI_INSIGHTS", "insights"],
+      ["Logs", "XCP_NG_POOL_VIEW_AI_LOGS", "logs"],
+      ["Agent", "XCP_NG_POOL_VIEW_AI_AGENT", "agent"],
+    ] as const) {
+      expect(routes).toContain(`from "../Pages/XcpNg/View/AI/${file}"`);
+      expect(dense(routes)).toContain(`RouteMap[PageMap.${key}]`);
+      expect(dense(routes)).toMatch(
+        new RegExp(`RouteUtil\\.getLastPathForKey\\(PageMap\\.${key},2,?\\)`),
+      );
+      expect(readSource("Utils", "RouteMap.ts")).toContain(
+        `[PageMap.${key}]: \`\${RouteParams.ModelID}/ai/${segment}\``,
+      );
+      // Each is the generic page, for this kind of resource.
+      expect(
+        readSource("Pages", "XcpNg", "View", "AI", `${file}.tsx`),
+      ).toContain("getResourceAiAgentDescriptor(AiResourceType.XcpNgPool)");
+    }
   });
 
   test("AllRoutes exports the product", () => {
@@ -597,10 +632,21 @@ describe("the side menus reach the whole product", () => {
     expect(sideMenu).not.toContain("proxmoxClusters");
   });
 
-  test("the pool side menu has no AI section yet", () => {
-    expect(viewSideMenu).not.toContain('title="AI"');
-    expect(viewSideMenu).not.toContain("AI_AGENT");
-    expect(viewSideMenu).not.toContain("AI_INSIGHTS");
+  test("the pool side menu has its AI section, right after Basic, reaching the three AI pages (#10998)", () => {
+    expect(viewSideMenu).toContain('title="AI"');
+    expect(viewSideMenu.indexOf('title="AI"')).toBeGreaterThan(
+      viewSideMenu.indexOf('title="Basic"'),
+    );
+    expect(viewSideMenu.indexOf('title="AI"')).toBeLessThan(
+      viewSideMenu.indexOf('title="Observability"'),
+    );
+    for (const key of [
+      "XCP_NG_POOL_VIEW_AI_INSIGHTS",
+      "XCP_NG_POOL_VIEW_AI_LOGS",
+      "XCP_NG_POOL_VIEW_AI_AGENT",
+    ]) {
+      expect(viewSideMenu).toContain(`RouteMap[PageMap.${key}]`);
+    }
   });
 
   test("recommendations are the XCP-ng templates'", () => {
@@ -834,8 +880,9 @@ describe("no other product's concept leaked into the XCP-ng pages", () => {
         "vmware.vcenter.name",
         "CephCluster",
         "StorageArray",
-        "ResourceAiAgent",
-        "AiResourceType",
+        // The AI pages are the generic ones, for an XCP-ng pool and no other.
+        "AiResourceType.ProxmoxCluster",
+        "AiResourceType.OpenStackCloud",
       ]) {
         expect({
           relative,

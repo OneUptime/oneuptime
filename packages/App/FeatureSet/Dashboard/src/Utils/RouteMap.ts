@@ -522,6 +522,9 @@ export const XcpNgRoutePath: Dictionary<string> = {
   [PageMap.XCP_NG_POOL_VIEW_STORAGE]: `${RouteParams.ModelID}/storage`,
   [PageMap.XCP_NG_POOL_VIEW_STORAGE_DETAIL]: `${RouteParams.ModelID}/storage/${RouteParams.SubModelID}`,
   [PageMap.XCP_NG_POOL_VIEW_TOPOLOGY]: `${RouteParams.ModelID}/topology`,
+  [PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS]: `${RouteParams.ModelID}/ai/insights`,
+  [PageMap.XCP_NG_POOL_VIEW_AI_LOGS]: `${RouteParams.ModelID}/ai/logs`,
+  [PageMap.XCP_NG_POOL_VIEW_AI_AGENT]: `${RouteParams.ModelID}/ai/agent`,
   [PageMap.XCP_NG_POOL_VIEW_INSIGHTS]: `${RouteParams.ModelID}/insights`,
   [PageMap.XCP_NG_POOL_VIEW_RECOMMENDATIONS]: `${RouteParams.ModelID}/recommendations`,
   [PageMap.XCP_NG_POOL_VIEW_METRICS]: `${RouteParams.ModelID}/metrics`,
@@ -5890,6 +5893,24 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.XCP_NG_POOL_VIEW_TOPOLOGY]: new Route(
     `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
       XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_TOPOLOGY]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_AI_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_AI_LOGS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_POOL_VIEW_AI_AGENT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_POOL_VIEW_AI_AGENT]
     }`,
   ),
 

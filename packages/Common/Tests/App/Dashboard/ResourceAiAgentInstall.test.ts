@@ -89,13 +89,15 @@ const COLLECTOR_DIRECTORIES: Record<ComposeInstalledAiResourceType, string> = {
   [AiResourceType.DatabaseServer]: "DatabaseAgent",
   [AiResourceType.Host]: "HostAIAgent",
   [AiResourceType.OpenStackCloud]: "OpenStackAgent",
+  [AiResourceType.XcpNgPool]: "XcpNgAgent",
 };
 
 interface ComposeService {
   image?: string;
   container_name?: string;
   user?: string;
-  volumes?: Array<string>;
+  // A short "src:target:ro", or the long form (type: bind, ...).
+  volumes?: Array<string | Record<string, unknown>>;
   environment?: Array<string> | Record<string, string>;
   privileged?: boolean;
   pid?: string;
@@ -234,6 +236,7 @@ describe("the agent's service", () => {
       "oneuptime-database-ai-agent",
       "oneuptime-host-ai-agent",
       "oneuptime-openstack-ai-agent",
+      "oneuptime-xcp-ng-ai-agent",
     ]);
   });
 
@@ -601,7 +604,7 @@ describe("the snippet matches what the collectors ship", () => {
       }
 
       for (const volume of ours.volumes || []) {
-        expect(shipped.service.volumes || []).toContain(volume);
+        expect(shipped.service.volumes || []).toContainEqual(volume);
       }
     },
   );
@@ -1023,11 +1026,16 @@ describe("the write switch", () => {
       const commands: ResourceAiAgentWriteAccessCommands =
         getResourceAiAgentWriteAccessCommands(type);
 
-      // An OpenStack agent makes changes with a credential of their own, so it gets asked for one.
+      /*
+       * An OpenStack agent makes changes with a credential of their own, and
+       * an XCP-ng agent with a token of its own, so each gets asked for one.
+       */
       const credentialLines: string =
         type === AiResourceType.OpenStackCloud
           ? `\n${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV}=<the credential's ID>\n${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV}=<the credential's secret>`
-          : "";
+          : type === AiResourceType.XcpNgPool
+            ? "\nONEUPTIME_AI_XO_WRITE_TOKEN=<a token of the user whose role allows the fixes>"
+            : "";
 
       expect(commands.allTargetsEnv).toBe(
         `${RESOURCE_AI_ALLOW_WRITES_ENV}=true${credentialLines}`,
@@ -1212,6 +1220,83 @@ describe("what AI may do, set where the agent runs", () => {
       expect(resolved.warnings).toEqual([]);
     },
   );
+
+  test("an XCP-ng agent's variables say which tokens it reads with and changes with, and which pool it serves", () => {
+    const pinned: Array<{ name: string; value: string; description: string }> =
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.XcpNgPool,
+        resourceId: "71000000-0000-4000-8000-000000000002",
+        identity: "b7569d99-30f8-178a-7d94-801de3e29b5b",
+      }).variables;
+    const descriptionOf: (
+      variables: Array<{ name: string; description: string }>,
+      name: string,
+    ) => string | undefined = (
+      variables: Array<{ name: string; description: string }>,
+      name: string,
+    ): string | undefined => {
+      return variables.find((variable: { name: string }): boolean => {
+        return variable.name === name;
+      })?.description;
+    };
+
+    expect(
+      pinned.find((variable: { name: string }): boolean => {
+        return variable.name === "XCP_NG_POOL_ID";
+      })?.value,
+    ).toBe("b7569d99-30f8-178a-7d94-801de3e29b5b");
+    expect(descriptionOf(pinned, "XCP_NG_POOL_ID")).toBe(
+      "This pool's UUID, as Xen Orchestra reports it. The agent serves the pool with exactly this UUID.",
+    );
+    expect(descriptionOf(pinned, "ONEUPTIME_AI_XO_READ_TOKEN")).toContain(
+      "Read only role and nothing else",
+    );
+    expect(descriptionOf(pinned, "ONEUPTIME_AI_XO_WRITE_TOKEN")).toContain(
+      "stays read-only",
+    );
+    expect(descriptionOf(pinned, "ONEUPTIME_AI_XO_WRITE_TOKEN")).toContain(
+      "may not be the read token",
+    );
+
+    const unpinned: Array<{ name: string; description: string }> =
+      getResourceAiAgentInstall({
+        resourceType: AiResourceType.XcpNgPool,
+        resourceId: "71000000-0000-4000-8000-000000000002",
+      }).variables;
+
+    expect(descriptionOf(unpinned, "XCP_NG_POOL_ID")).toBe(
+      "Optional: the UUID of the pool the agent serves. Empty: the one pool its read token can see.",
+    );
+  });
+
+  test("an XCP-ng agent's snippet runs under its profile, hardened, trusting the collector's xo-ca.pem and never creating it", () => {
+    const service: ComposeService = snippetService(AiResourceType.XcpNgPool);
+    const raw: Record<string, unknown> = service as Record<string, unknown>;
+
+    expect(raw["profiles"]).toEqual(["xcp-ng-ai-agent"]);
+    expect(raw["cap_drop"]).toEqual(["ALL"]);
+    expect(raw["security_opt"]).toEqual(["no-new-privileges:true"]);
+    expect(service.user).toBe("1000:1000");
+    expect(service.volumes).toEqual([
+      {
+        type: "bind",
+        source: "./xo-ca.pem",
+        target: "/etc/oneuptime/xo-ca.pem",
+        read_only: true,
+        bind: { create_host_path: false },
+      },
+    ]);
+    expect(environmentOf(service)).toEqual(
+      expect.objectContaining({
+        XO_SCHEME: "${XO_SCHEME:-https}",
+        XO_ADDRESS: "${XO_ADDRESS}",
+        ONEUPTIME_AI_XO_READ_TOKEN: "${ONEUPTIME_AI_XO_READ_TOKEN:-}",
+        ONEUPTIME_AI_XO_WRITE_TOKEN: "${ONEUPTIME_AI_XO_WRITE_TOKEN:-}",
+      }),
+    );
+    // Never the collector's OpenMetrics secret.
+    expect(environmentOf(service)).not.toHaveProperty("XO_OPENMETRICS_SECRET");
+  });
 
   test("an OpenStack agent's variables say what fixes need, and its credential for them", () => {
     const variables: Array<{ name: string; description: string }> =

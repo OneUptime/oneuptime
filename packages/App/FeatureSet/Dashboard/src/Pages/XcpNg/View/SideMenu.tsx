@@ -51,9 +51,10 @@ export interface ComponentProps {
 
 /*
  * One pool's menu, its everyday pages first: what the pool is made of
- * (Basic), how it runs (Observability) and what happened to it (Activity),
- * then the Developer pages and, folded under Advanced, who owns it, its
- * settings, its history, its install guide and, last, Delete.
+ * (Basic), what OneUptime AI learned and did there and the XCP-ng AI agent
+ * it works through (AI), how it runs (Observability) and what happened to
+ * it (Activity), then the Developer pages and, folded under Advanced, who
+ * owns it, its settings, its history, its install guide and, last, Delete.
  * Common/Tests/App/Dashboard/XcpNgSideMenus.test.tsx pins it.
  */
 const XcpNgPoolSideMenu: FunctionComponent<ComponentProps> = (
@@ -180,6 +181,44 @@ const XcpNgPoolSideMenu: FunctionComponent<ComponentProps> = (
             ),
           }}
           icon={IconProp.FlowDiagram}
+        />
+      </SideMenuSection>
+
+      {/*
+       * Right after the first section, as on every resource with an AI agent:
+       * what OneUptime AI learned here (Insights), everything it did (Logs),
+       * and the XCP-ng AI agent it works through (with what AI may do).
+       */}
+      <SideMenuSection title="AI">
+        <SideMenuItem
+          link={{
+            title: "Insights",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.LightBulb}
+        />
+        <SideMenuItem
+          link={{
+            title: "Logs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.XCP_NG_POOL_VIEW_AI_LOGS] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.QueueList}
+        />
+        <SideMenuItem
+          link={{
+            title: "AI agent",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.XCP_NG_POOL_VIEW_AI_AGENT] as Route,
+              { modelId: props.modelId },
+            ),
+          }}
+          icon={IconProp.Automation}
         />
       </SideMenuSection>
 

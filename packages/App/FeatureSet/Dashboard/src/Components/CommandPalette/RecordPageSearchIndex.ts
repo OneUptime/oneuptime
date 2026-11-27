@@ -3381,6 +3381,22 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         title: "Topology",
       },
       {
+        page: PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS,
+        section: "AI",
+        title: "Insights",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_AI_LOGS,
+        section: "AI",
+        title: "Logs",
+      },
+      {
+        page: PageMap.XCP_NG_POOL_VIEW_AI_AGENT,
+        section: "AI",
+        title: "AI agent",
+        keywords: ["oneuptime ai", "xo-cli", "fixes", "remediation"],
+      },
+      {
         page: PageMap.XCP_NG_POOL_VIEW_INSIGHTS,
         section: "Observability",
         title: "Resource Usage",
