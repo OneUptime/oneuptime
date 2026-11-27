@@ -1446,11 +1446,10 @@ describePostgres(
           agentServer: serverId,
           agentDatabase: "orders",
         });
-        const failure: SpyInstance<
-          typeof TableHealthIngest.recordFailure
-        > = jest
-          .spyOn(TableHealthIngest, "recordFailure")
-          .mockResolvedValue(undefined as never);
+        const failure: SpyInstance<typeof TableHealthIngest.recordFailure> =
+          jest
+            .spyOn(TableHealthIngest, "recordFailure")
+            .mockResolvedValue(undefined as never);
 
         expect(await DataObservabilityAgentCollect.handOutWork(agent)).toEqual(
           [],
@@ -1476,11 +1475,10 @@ describePostgres(
           agentServer: otherServerId,
           agentDatabase: "billing",
         });
-        const recorded: SpyInstance<
-          typeof TableHealthIngest.recordSnapshot
-        > = jest
-          .spyOn(TableHealthIngest, "recordSnapshot")
-          .mockResolvedValue({ schemaChanges: 0 } as never);
+        const recorded: SpyInstance<typeof TableHealthIngest.recordSnapshot> =
+          jest
+            .spyOn(TableHealthIngest, "recordSnapshot")
+            .mockResolvedValue({ schemaChanges: 0 } as never);
         jest
           .spyOn(DataCheckIngest, "recordResults")
           .mockResolvedValue(undefined as never);
