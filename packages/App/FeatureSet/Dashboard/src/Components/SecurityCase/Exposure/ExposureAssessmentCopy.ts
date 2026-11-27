@@ -391,3 +391,7 @@ export const HIDE_TEXT: string = translationKey("Hide Text");
 export const UNSAVED_NOTICES: string = translationKey(
   "Your edits to a notice are not saved yet.",
 );
+// Why Export PDF and Export Markdown wait while a part is edited (#10955).
+export const EXPORT_WAITS_FOR_SAVE: string = translationKey(
+  "Save or cancel your edit first: the export holds each part as it was last saved.",
+);

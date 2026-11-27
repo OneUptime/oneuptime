@@ -66497,5 +66497,6 @@
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "Das Token wird aus OneUptime gelöscht. Die Metriken kommen weiter über das OpenMetrics-Geheimnis. Widerrufen Sie es auch in Xen Orchestra, wenn nichts anderes es verwendet.",
   "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root oder ein Active-Directory-Benutzer des Pools mit der XAPI-Rolle read-only. XAPI hat kein lokales Konto, das nur liest.",
   "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "Die interne Zusammenfassung in den Meldungen zur Datenschutzverletzung sagt, was wie lange und für wen exponiert war.",
-  "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "Schreiben Sie die interne Zusammenfassung in den Meldungen zur Datenschutzverletzung, oder lassen Sie OneUptime AI sie entwerfen."
+  "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "Schreiben Sie die interne Zusammenfassung in den Meldungen zur Datenschutzverletzung, oder lassen Sie OneUptime AI sie entwerfen.",
+  "Save or cancel your edit first: the export holds each part as it was last saved.": "Speichern oder verwerfen Sie zuerst Ihre Änderung: Der Export enthält jeden Teil so, wie er zuletzt gespeichert wurde."
 }

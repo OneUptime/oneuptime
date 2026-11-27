@@ -66497,5 +66497,6 @@
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "토큰이 OneUptime에서 삭제됩니다. 메트릭은 OpenMetrics 시크릿으로 계속 들어옵니다. 다른 곳에서 쓰지 않는다면 Xen Orchestra에서도 취소하세요.",
   "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root 또는 XAPI read-only 역할을 가진 풀의 Active Directory 사용자입니다. XAPI에는 읽기 전용 로컬 계정이 없습니다.",
   "The internal summary in Breach Notices says what was exposed, for how long and to whom.": "'침해 통지'의 내부 요약은 무엇이, 얼마 동안, 누구에게 노출되었는지 설명합니다.",
-  "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "'침해 통지'에서 내부 요약을 작성하거나 OneUptime AI에게 초안을 맡기세요."
+  "Write the internal summary in Breach Notices, or have OneUptime AI draft it.": "'침해 통지'에서 내부 요약을 작성하거나 OneUptime AI에게 초안을 맡기세요.",
+  "Save or cancel your edit first: the export holds each part as it was last saved.": "먼저 편집을 저장하거나 취소하세요. 내보내기에는 각 부분이 마지막으로 저장된 내용으로 담깁니다."
 }

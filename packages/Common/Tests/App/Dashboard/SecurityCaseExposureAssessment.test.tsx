@@ -76,6 +76,58 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownEditor", () => {
   };
 });
 
+// What Export Markdown and Export PDF hand the browser to download (#10955).
+const mockDownloads: Array<{
+  content: unknown;
+  filename: string;
+  mimeType?: string;
+}> = [];
+const mockPdfDownloads: Array<{
+  title: string;
+  markdown: string;
+  label: string;
+  exportedAt: Date;
+}> = [];
+let mockPdfFailure: Error | null = null;
+
+jest.mock("../../../UI/Utils/DownloadFile", () => {
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../UI/Utils/DownloadFile",
+  ) as Record<string, unknown>;
+
+  return {
+    ...actual,
+    __esModule: true,
+    default: (file: {
+      content: unknown;
+      filename: string;
+      mimeType?: string;
+    }): void => {
+      mockDownloads.push(file);
+    },
+  };
+});
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/CompliancePaperworkPdfDownload",
+  () => {
+    return {
+      downloadMarkdownPdf: async (file: {
+        title: string;
+        markdown: string;
+        label: string;
+        exportedAt: Date;
+      }): Promise<void> => {
+        if (mockPdfFailure) {
+          throw mockPdfFailure;
+        }
+
+        mockPdfDownloads.push(file);
+      },
+    };
+  },
+);
+
 import DataSecurityApi, {
   DataSecurityApiError,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityApi";
@@ -117,6 +169,7 @@ import { ImpactAssessmentSectionSource } from "../../../Types/DataSecurity/Impac
 import { JSONArray } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import { getDataStoreEntityValue } from "../../../Types/SecurityCase/SecurityEntity";
+import Toast from "../../../UI/Utils/Toast";
 
 const CASE_ID: ObjectID = new ObjectID("10377000-0000-4000-8000-0000000000c1");
 const STORE_ID: string = "10377000-0000-4000-8000-0000000000b1";
@@ -834,5 +887,197 @@ describe("the notices OneUptime AI drafted", () => {
     expect(
       screen.queryByTestId("security-case-exposure-places-change"),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * THE NOTICES AS ONE DOCUMENT (#10955): Export PDF in the Breach Notices
+ * card's header, Export Markdown in its ⋯, as the impact assessment's page
+ * has them. Each downloads the same document - drafts, "not legal advice"
+ * at its top - made only from what the cards show. Nothing is sent.
+ */
+describe("exporting the notices", () => {
+  const SAVED: Partial<StoredExposureAssessment> = {
+    sections: {
+      [ExposureDraftPart.Explanation]: {
+        part: ExposureDraftPart.Explanation,
+        markdown:
+          "Anyone on the internet could read the bucket, and reads were not logged, so treat the data as read.",
+        source: ImpactAssessmentSectionSource.Drafted,
+        factKeys: [],
+        draftedAt: DRAFTED_AT,
+      },
+      [ExposureDraftPart.PeopleNotice]: {
+        part: ExposureDraftPart.PeopleNotice,
+        markdown:
+          "We are writing to tell you that a list holding your email address was readable on the internet.",
+        source: ImpactAssessmentSectionSource.Edited,
+        factKeys: [],
+        editedAt: DRAFTED_AT,
+        editedByUserId: USER_ID,
+      },
+    },
+  };
+
+  function noticesCard(): HTMLElement {
+    // The card the notices sit in: its header holds the export buttons.
+    let node: HTMLElement | null = screen.getByTestId(
+      "security-case-exposure-notices",
+    );
+
+    while (
+      node &&
+      !within(node).queryByRole("button", { name: "Export PDF" })
+    ) {
+      node = node.parentElement;
+    }
+
+    expect(node).not.toBeNull();
+    return node!;
+  }
+
+  beforeEach(() => {
+    mockDownloads.length = 0;
+    mockPdfDownloads.length = 0;
+    mockPdfFailure = null;
+    reads.mockResolvedValue(
+      answerOf({
+        assessment: assessmentOf(SAVED),
+        editors: { [USER_ID]: "Ana Ortiz" },
+      }),
+    );
+  });
+
+  test("Export PDF is in the Breach Notices card's header, and downloads the drafts as one document, not legal advice at its top", async () => {
+    await renderCards();
+
+    const card: HTMLElement = noticesCard();
+    const exportPdf: HTMLElement = within(card).getByRole("button", {
+      name: "Export PDF",
+    });
+
+    // Not on the Was It a Breach? card: the notices are what is exported.
+    expect(
+      within(
+        screen.getByTestId("security-case-exposure-assessment"),
+      ).queryByRole("button", { name: "Export PDF" }),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(exportPdf);
+    });
+    await flush();
+
+    expect(mockPdfDownloads).toHaveLength(1);
+
+    const pdf: (typeof mockPdfDownloads)[number] = mockPdfDownloads[0]!;
+
+    expect(pdf.title).toBe("Draft Breach Notices: eu-customer-exports");
+    expect(pdf.label).toBe("eu-customer-exports breach notices");
+    expect(pdf.exportedAt).toBeInstanceOf(Date);
+    expect(
+      pdf.markdown.startsWith("# Draft Breach Notices: eu-customer-exports"),
+    ).toBe(true);
+    expect(pdf.markdown.split("\n")[4]).toContain("not legal advice");
+    expect(pdf.markdown).toContain("Nothing was sent");
+    expect(pdf.markdown).toContain(
+      "**GDPR Article 33: Notify the supervisory authority.**",
+    );
+    // Each part as a person last saved it.
+    expect(pdf.markdown).toContain(
+      "Anyone on the internet could read the bucket, and reads were not logged",
+    );
+    expect(pdf.markdown).toContain(
+      "We are writing to tell you that a list holding your email address",
+    );
+    expect(pdf.markdown).toContain("_Edited by Ana Ortiz on 2026-11-11._");
+    expect(mockDownloads).toHaveLength(0);
+  });
+
+  test("Export Markdown is in the card's ⋯, and downloads the same document as a Markdown file", async () => {
+    await renderCards();
+
+    const card: HTMLElement = noticesCard();
+
+    await act(async () => {
+      fireEvent.click(
+        within(card).getByRole("button", { name: "More options" }),
+      );
+    });
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole("menuitem", { name: "Export Markdown" }),
+      );
+    });
+
+    expect(mockDownloads).toHaveLength(1);
+
+    const file: (typeof mockDownloads)[number] = mockDownloads[0]!;
+
+    expect(file.filename.endsWith(".md")).toBe(true);
+    expect(file.filename).toContain("eu-customer-exports");
+    expect(file.mimeType).toBe("text/markdown;charset=utf-8;");
+    expect(String(file.content)).toContain(
+      "# Draft Breach Notices: eu-customer-exports",
+    );
+    expect(String(file.content)).toContain("not legal advice");
+    expect(mockPdfDownloads).toHaveLength(0);
+  });
+
+  test("while a part is being edited, both wait - the document holds what was saved - and say why", async () => {
+    await renderCards();
+
+    const id: string = `security-case-exposure-part-${ExposureDraftPart.Explanation}`;
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId(`${id}-edit`));
+    });
+    await act(async () => {
+      fireEvent.change(screen.getByTestId(`${id}-editor`), {
+        target: { value: "Words not saved yet, which no export may hold." },
+      });
+    });
+
+    const exportPdf: HTMLElement = within(noticesCard()).getByRole("button", {
+      name: "Export PDF",
+    });
+
+    expect(exportPdf).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(exportPdf);
+    });
+
+    expect(mockPdfDownloads).toHaveLength(0);
+  });
+
+  test("a PDF that cannot be made says why, and nothing is downloaded", async () => {
+    const shown: Array<string> = [];
+
+    jest.spyOn(Toast, "error").mockImplementation(((message: string): void => {
+      shown.push(message);
+    }) as never);
+    mockPdfFailure = new Error("The PDF engine could not load.");
+
+    await renderCards();
+
+    await act(async () => {
+      fireEvent.click(
+        within(noticesCard()).getByRole("button", { name: "Export PDF" }),
+      );
+    });
+    await flush();
+
+    expect(mockPdfDownloads).toHaveLength(0);
+    expect(shown.join(" ")).toContain("The PDF engine could not load.");
+  });
+
+  test("a case not assessed yet has no notices to export", async () => {
+    reads.mockResolvedValue(answerOf(NOT_ASSESSED));
+
+    await renderCards();
+
+    expect(screen.queryByRole("button", { name: "Export PDF" })).toBeNull();
   });
 });
