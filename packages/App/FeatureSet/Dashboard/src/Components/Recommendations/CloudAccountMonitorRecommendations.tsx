@@ -185,7 +185,6 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
   const [resources, setResources] = useState<
     Array<CloudAccountRecommendationResource>
   >([]);
-  const [resourceTotal, setResourceTotal] = useState<number>(0);
   // What covers each resource's recommendations already, as the server says (#11074).
   const [coveredMonitorIds, setCoveredMonitorIds] = useState<
     Map<string, ObjectID>
@@ -265,7 +264,6 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
 
       setSetup(projectSetup);
       setResources(read.resources);
-      setResourceTotal(read.total);
 
       await loadCoverage(read.resources);
     } catch (err) {
@@ -909,9 +907,8 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
           return gaps.byReason[reason].length > 0;
         },
       );
-    const isCut: boolean = resourceTotal > resources.length;
-
-    if (reasons.length === 0 && !isCut) {
+    // Every resource of the account is read (#11210): none is left out unread.
+    if (reasons.length === 0) {
       return <></>;
     }
 
@@ -977,19 +974,6 @@ const CloudAccountMonitorRecommendations: FunctionComponent<ComponentProps> = (
               </li>
             );
           })}
-          {isCut ? (
-            <li className="text-xs text-gray-600">
-              {translator.translateTemplate(
-                "Only the first {{shown}} of the account's {{total}} resources are read here.",
-                {
-                  shown: translator.formatNumber(resources.length),
-                  total: translator.formatNumber(resourceTotal),
-                },
-              )}
-            </li>
-          ) : (
-            <></>
-          )}
         </ul>
       </section>
     );

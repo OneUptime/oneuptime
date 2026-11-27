@@ -5365,7 +5365,11 @@ jobs:
       # Status column's rule exactly, a label's reader kept to theirs - and
       # the Teams list's Member chip through TeamMember, a person in 10,050
       # teams, one taken out of a team in none; the old reads shown
-      # stopping at 10,000.
+      # stopping at 10,000. #11210: a cloud account's recommendations read
+      # by the Dashboard's own loaders through the list routes - an
+      # account's 10,050 resources each weighed, a page at a time, and
+      # every dismissal of them read by the account's resources in a
+      # project whose first 10,040 dismissals are another account's.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 5
         working-directory: packages/Common
@@ -5395,6 +5399,7 @@ jobs:
           Tests/Server/API/AffectedResourceFilterPostgres.test.ts
           Tests/Server/API/MonitorRecommendationCoveragePostgres.test.ts
           Tests/Server/API/ListFiltersPastTheCapPostgres.test.ts
+          Tests/Server/API/CloudAccountRecommendationsPostgres.test.ts
           --forceExit
 
       # #11012 and #11013: required cloud tags and the host a VM is, on
