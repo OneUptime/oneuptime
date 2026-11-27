@@ -79,10 +79,10 @@ flowchart TB
 | 필드 | 탭 | 하는 일 |
 | --- | --- | --- |
 | **스토리지 어레이** | 모두 | 필수. 모든 쿼리를 `resource.storage.array.name` 으로 한정하므로, 둘 다 `vol-01` 이라는 볼륨을 가진 두 어레이가 섞이지 않습니다. |
-| **볼륨** | Custom Metric, 고급 | 볼륨 하나. FlashArray에서는 `name` 레이블로 지정하고(예: `vol-db-01`. 파드나 볼륨 그룹 안의 볼륨은 `pod::volume` 이나 `group/volume` 이라는 이름을 씀), ONTAP에서는 `volume` 레이블로 지정하는데, 이 레이블은 두 SVM이 같은 값을 가질 수 있습니다. |
+| **볼륨** | Custom Metric, 고급 | 볼륨 하나. FlashArray에서는 `name` 레이블로 지정하고(예: `vol-db-01`. 파드나 볼륨 그룹 안의 볼륨은 `pod::volume` 이나 `group/volume` 이라는 이름을 씀), ONTAP에서는 `volume` 레이블로 지정하는데, 이 레이블은 두 SVM이 같은 값을 가질 수 있습니다. PowerMax에서는 `volume` 레이블, 즉 장치 ID로 지정합니다(예: `00847`). |
 | **호스트** | Custom Metric, 고급 | FlashArray만. 어레이가 아는 호스트 하나를 `host` 레이블로(예: `esxi-01`). |
 | **파드** | Custom Metric, 고급 | FlashArray만. ActiveCluster 또는 ActiveDR 파드 하나를 `name` 레이블로, 복제 링크 시리즈에서는 `local_pod` 로. |
-| **하드웨어 구성 요소** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`, ONTAP에서는 시리즈가 그것을 가리키는 레이블(`node`, `disk`, `shelf` 또는 `port`). |
+| **하드웨어 구성 요소** | Custom Metric, 고급 | 하드웨어 구성 요소 하나(예: `CH0.BAY1`, `CT0`). FlashArray에서는 `component_name` 레이블, FlashBlade에서는 `name`, ONTAP에서는 시리즈가 그것을 가리키는 레이블(`node`, `disk`, `shelf` 또는 `port`), PowerMax에서는 `component`(`FA-1D` 같은 디렉터 또는 `FA-1D:4` 같은 포트). |
 | **파일 시스템** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 파일 시스템 하나. |
 | **버킷** | Custom Metric, 고급 | FlashBlade만. `name` 레이블로 객체 저장소 버킷 하나. |
 | **Storage Array Metric** | Custom Metric | [카탈로그](#수집되는-메트릭)의 메트릭 하나. 양식은 그 의미를 주는 레이블 필터를 추가하고, 메트릭이 설명하는 객체로 그룹화하므로, 각 볼륨, 호스트, 구성 요소가 따로 판단됩니다. |

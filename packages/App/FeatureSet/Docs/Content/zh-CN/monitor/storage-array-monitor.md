@@ -79,10 +79,10 @@ flowchart TB
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
 | **存储阵列** | 全部 | 必填。把每个查询限定到 `resource.storage.array.name`，因此两个都有名为 `vol-01` 的卷的阵列永远不会混在一起。 |
-| **卷** | Custom Metric、高级 | 一个卷：在 FlashArray 上按 `name` 标签，例如 `vol-db-01`(Pod 或卷组中的卷命名为 `pod::volume` 或 `group/volume`)；在 ONTAP 上按 `volume` 标签，两个 SVM 可以共用同一个卷名。 |
+| **卷** | Custom Metric、高级 | 一个卷：在 FlashArray 上按 `name` 标签，例如 `vol-db-01`(Pod 或卷组中的卷命名为 `pod::volume` 或 `group/volume`)；在 ONTAP 上按 `volume` 标签，两个 SVM 可以共用同一个卷名；在 PowerMax 上按 `volume` 标签，即其设备 ID，例如 `00847`。 |
 | **主机** | Custom Metric、高级 | 仅限 FlashArray。阵列所知的一台主机，按 `host` 标签，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、高级 | 仅限 FlashArray。一个 ActiveCluster 或 ActiveDR Pod，按 `name` 标签，在副本链接序列上则按 `local_pod`。 |
-| **硬件组件** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`，在 ONTAP 上则是其序列用来命名它的标签(`node`、`disk`、`shelf` 或 `port`)。 |
+| **硬件组件** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`，在 ONTAP 上则是其序列用来命名它的标签(`node`、`disk`、`shelf` 或 `port`)，在 PowerMax 上是 `component`，即导向器(例如 `FA-1D`)或端口(例如 `FA-1D:4`)。 |
 | **文件系统** | Custom Metric、高级 | 仅限 FlashBlade。一个文件系统，按 `name` 标签。 |
 | **存储桶** | Custom Metric、高级 | 仅限 FlashBlade。一个对象存储桶，按 `name` 标签。 |
 | **Storage Array Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。表单会添加赋予其含义的标签过滤器，并按它描述的对象分组，因此每个卷、主机或组件都会单独判断。 |

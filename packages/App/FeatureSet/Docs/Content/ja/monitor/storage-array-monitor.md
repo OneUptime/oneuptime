@@ -79,10 +79,10 @@ flowchart TB
 | フィールド | タブ | 動作 |
 | --- | --- | --- |
 | **ストレージアレイ** | すべて | 必須。すべてのクエリを `resource.storage.array.name` に限定するため、どちらも `vol-01` という名前のボリュームを持つ 2 つのアレイが混ざることはありません。 |
-| **ボリューム** | Custom Metric、詳細 | 1 つのボリューム。FlashArray では `name` ラベルで指定します (`vol-db-01` など。Pod やボリュームグループ内のボリュームは `pod::volume` や `group/volume` という名前になります)。ONTAP では `volume` ラベルで指定し、このラベルは 2 つの SVM で同じになることがあります。 |
+| **ボリューム** | Custom Metric、詳細 | 1 つのボリューム。FlashArray では `name` ラベルで指定します (`vol-db-01` など。Pod やボリュームグループ内のボリュームは `pod::volume` や `group/volume` という名前になります)。ONTAP では `volume` ラベルで指定し、このラベルは 2 つの SVM で同じになることがあります。PowerMax では `volume` ラベル (`00847` などのデバイス ID) で指定します。 |
 | **ホスト** | Custom Metric、詳細 | FlashArray のみ。アレイが認識している 1 つのホストを `host` ラベルで (`esxi-01` など)。 |
 | **Pod** | Custom Metric、詳細 | FlashArray のみ。1 つの ActiveCluster または ActiveDR Pod を `name` ラベルで、レプリカリンクのシリーズでは `local_pod` で。 |
-| **ハードウェアコンポーネント** | Custom Metric、詳細 | 1 つのハードウェアコンポーネント (`CH0.BAY1` や `CT0` など)。FlashArray では `component_name` ラベル、FlashBlade では `name`、ONTAP ではシリーズがそれを識別するラベル (`node`、`disk`、`shelf`、`port`)。 |
+| **ハードウェアコンポーネント** | Custom Metric、詳細 | 1 つのハードウェアコンポーネント (`CH0.BAY1` や `CT0` など)。FlashArray では `component_name` ラベル、FlashBlade では `name`、ONTAP ではシリーズがそれを識別するラベル (`node`、`disk`、`shelf`、`port`)、PowerMax では `component` (`FA-1D` などのディレクター、または `FA-1D:4` などのポート)。 |
 | **ファイルシステム** | Custom Metric、詳細 | FlashBlade のみ。`name` ラベルで 1 つのファイルシステム。 |
 | **バケット** | Custom Metric、詳細 | FlashBlade のみ。`name` ラベルで 1 つのオブジェクトストアのバケット。 |
 | **Storage Array Metric** | Custom Metric | [カタログ](#収集されるメトリクス) の 1 つのメトリクス。フォームはその意味を決めるラベルフィルターを追加し、説明するオブジェクトでグループ化するため、各ボリューム、ホスト、コンポーネントが個別に判定されます。 |

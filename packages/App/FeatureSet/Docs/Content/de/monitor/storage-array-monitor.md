@@ -79,10 +79,10 @@ Klicken Sie auf **Monitor erstellen**. OneUptime öffnet die Seite des Monitors 
 | Feld | Tab | Was es tut |
 | --- | --- | --- |
 | **Speicher-Array** | Alle | Erforderlich. Beschränkt jede Abfrage auf `resource.storage.array.name`, sodass zwei Arrays, die beide ein Volume namens `vol-01` haben, nie vermischt werden. |
-| **Volume** | Custom Metric, Erweitert | Ein Volume: bei einem FlashArray über das Label `name`, etwa `vol-db-01` (ein Volume in einem Pod oder einer Volume-Gruppe heißt `pod::volume` oder `group/volume`); bei ONTAP über das Label `volume`, das sich zwei SVMs teilen können. |
+| **Volume** | Custom Metric, Erweitert | Ein Volume: bei einem FlashArray über das Label `name`, etwa `vol-db-01` (ein Volume in einem Pod oder einer Volume-Gruppe heißt `pod::volume` oder `group/volume`); bei ONTAP über das Label `volume`, das sich zwei SVMs teilen können; bei einem PowerMax über das Label `volume`, seine Geräte-ID wie `00847`. |
 | **Host** | Custom Metric, Erweitert | Nur FlashArray. Ein Host, wie das Array ihn kennt, über das Label `host`, etwa `esxi-01`. |
 | **Pod** | Custom Metric, Erweitert | Nur FlashArray. Ein ActiveCluster- oder ActiveDR-Pod, über das Label `name` oder `local_pod` bei Serien von Replikationsverbindungen. |
-| **Hardwarekomponente** | Custom Metric, Erweitert | Eine Hardwarekomponente, etwa `CH0.BAY1` oder `CT0`: das Label `component_name` bei einem FlashArray, `name` bei einem FlashBlade und bei ONTAP das Label, mit dem ihre Serie sie benennt (`node`, `disk`, `shelf` oder `port`). |
+| **Hardwarekomponente** | Custom Metric, Erweitert | Eine Hardwarekomponente, etwa `CH0.BAY1` oder `CT0`: das Label `component_name` bei einem FlashArray, `name` bei einem FlashBlade, bei ONTAP das Label, mit dem ihre Serie sie benennt (`node`, `disk`, `shelf` oder `port`), und `component` bei einem PowerMax, ein Director wie `FA-1D` oder ein Port wie `FA-1D:4`. |
 | **Dateisystem** | Custom Metric, Erweitert | Nur FlashBlade. Ein Dateisystem, über das Label `name`. |
 | **Bucket** | Custom Metric, Erweitert | Nur FlashBlade. Ein Objektspeicher-Bucket, über das Label `name`. |
 | **Storage Array Metric** | Custom Metric | Eine Metrik aus dem [Katalog](#erfasste-metriken). Das Formular fügt den Label-Filter hinzu, der ihr ihre Bedeutung gibt, und gruppiert sie nach dem Objekt, das sie beschreibt, sodass jedes Volume, jeder Host oder jede Komponente einzeln beurteilt wird. |

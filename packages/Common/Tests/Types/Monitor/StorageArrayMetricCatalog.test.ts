@@ -521,9 +521,11 @@ const POWERMAX_SERIES: Record<string, SeriesLabels> = {
   powermax_srdf_group_response_time_usec: PM_SRDF_GROUP,
 };
 
-// Every shipped platform's series, label by label: Pure's and Dell
-// PowerStore's from their exporters, ONTAP's from Harvest, and Dell
-// PowerMax's as its probe writes them.
+/*
+ * Every shipped platform's series, label by label: Pure's and Dell
+ * PowerStore's from their exporters, ONTAP's from Harvest, and Dell
+ * PowerMax's as its probe writes them.
+ */
 const SERIES: Record<string, SeriesLabels> = {
   ...PURE_SERIES,
   ...POWERSTORE_SERIES,
@@ -956,9 +958,9 @@ describe("StorageArrayMetricCatalog - categories", () => {
     const platformsOf: Partial<
       Record<StorageArrayMetricCategory, Array<StorageSystem>>
     > = {
-    Volumes: [FA, PS, ONTAP, PM],
-    Hosts: [FA],
-    Replication: [FA, PS, ONTAP, PM],
+      Volumes: [FA, PS, ONTAP, PM],
+      Hosts: [FA],
+      Replication: [FA, PS, ONTAP, PM],
       "File Systems": [FB, PS],
       Buckets: [FB],
     };

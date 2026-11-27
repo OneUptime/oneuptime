@@ -79,10 +79,10 @@ Cliquez sur **Créer un moniteur**. OneUptime ouvre la page du moniteur et l'év
 | Champ | Onglet | Ce qu'il fait |
 | --- | --- | --- |
 | **Baie de stockage** | Tous | Obligatoire. Limite chaque requête à `resource.storage.array.name`, de sorte que deux baies qui ont toutes deux un volume nommé `vol-01` ne se mélangent jamais. |
-| **Volume** | Custom Metric, Avancé | Un volume : sur un FlashArray par le label `name`, comme `vol-db-01` (un volume dans un pod ou un groupe de volumes est nommé `pod::volume` ou `group/volume`) ; sur ONTAP par le label `volume`, que deux SVM peuvent partager. |
+| **Volume** | Custom Metric, Avancé | Un volume : sur un FlashArray par le label `name`, comme `vol-db-01` (un volume dans un pod ou un groupe de volumes est nommé `pod::volume` ou `group/volume`) ; sur ONTAP par le label `volume`, que deux SVM peuvent partager ; sur un PowerMax par le label `volume`, son ID de périphérique comme `00847`. |
 | **Hôte** | Custom Metric, Avancé | FlashArray uniquement. Un hôte tel que la baie le connaît, par le label `host`, comme `esxi-01`. |
 | **Pod** | Custom Metric, Avancé | FlashArray uniquement. Un pod ActiveCluster ou ActiveDR, par le label `name`, ou `local_pod` sur les séries de liens de réplication. |
-| **Composant matériel** | Custom Metric, Avancé | Un composant matériel, comme `CH0.BAY1` ou `CT0` : le label `component_name` sur un FlashArray, `name` sur un FlashBlade, et sur ONTAP le label par lequel sa série le nomme (`node`, `disk`, `shelf` ou `port`). |
+| **Composant matériel** | Custom Metric, Avancé | Un composant matériel, comme `CH0.BAY1` ou `CT0` : le label `component_name` sur un FlashArray, `name` sur un FlashBlade, sur ONTAP le label par lequel sa série le nomme (`node`, `disk`, `shelf` ou `port`), et `component` sur un PowerMax, un directeur comme `FA-1D` ou un port comme `FA-1D:4`. |
 | **Système de fichiers** | Custom Metric, Avancé | FlashBlade uniquement. Un système de fichiers, par le label `name`. |
 | **Bucket** | Custom Metric, Avancé | FlashBlade uniquement. Un bucket de stockage objet, par le label `name`. |
 | **Storage Array Metric** | Custom Metric | Une métrique du [catalogue](#métriques-collectées). Le formulaire ajoute le filtre de label qui lui donne son sens, et la regroupe par l'objet qu'elle décrit, de sorte que chaque volume, hôte ou composant est jugé séparément. |

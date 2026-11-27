@@ -79,10 +79,10 @@ Click **Create Monitor**. OneUptime opens the monitor's page and evaluates it ev
 | Field | Tab | What it does |
 | --- | --- | --- |
 | **Storage Array** | All | Required. Scopes every query to `resource.storage.array.name`, so two arrays that both have a volume called `vol-01` never mix. |
-| **Volume** | Custom Metric, Advanced | One volume: on a FlashArray by the `name` label, such as `vol-db-01` (a volume in a pod or a volume group is named `pod::volume` or `group/volume`); on ONTAP by the `volume` label, which two SVMs can share. |
+| **Volume** | Custom Metric, Advanced | One volume: on a FlashArray by the `name` label, such as `vol-db-01` (a volume in a pod or a volume group is named `pod::volume` or `group/volume`); on ONTAP by the `volume` label, which two SVMs can share; on a PowerMax by the `volume` label, its device ID such as `00847`. |
 | **Host** | Custom Metric, Advanced | FlashArray only. One host as the array knows it, by the `host` label, such as `esxi-01`. |
 | **Pod** | Custom Metric, Advanced | FlashArray only. One ActiveCluster or ActiveDR pod, by the `name` label, or `local_pod` on replica link series. |
-| **Hardware Component** | Custom Metric, Advanced | One hardware component, such as `CH0.BAY1` or `CT0`: the `component_name` label on a FlashArray, `name` on a FlashBlade, and on ONTAP the label its series names it by (`node`, `disk`, `shelf` or `port`). |
+| **Hardware Component** | Custom Metric, Advanced | One hardware component, such as `CH0.BAY1` or `CT0`: the `component_name` label on a FlashArray, `name` on a FlashBlade, on ONTAP the label its series names it by (`node`, `disk`, `shelf` or `port`), and `component` on a PowerMax, a director such as `FA-1D` or a port such as `FA-1D:4`. |
 | **File System** | Custom Metric, Advanced | FlashBlade only. One file system, by the `name` label. |
 | **Bucket** | Custom Metric, Advanced | FlashBlade only. One object store bucket, by the `name` label. |
 | **Storage Array Metric** | Custom Metric | One metric from the [catalog](#collected-metrics). The form adds the label filter that gives it its meaning, and groups it by the object it describes, so each volume, host or component is judged on its own. |

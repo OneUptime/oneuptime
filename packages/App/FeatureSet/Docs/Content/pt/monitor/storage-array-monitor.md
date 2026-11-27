@@ -79,10 +79,10 @@ Clique em **Criar monitor**. O OneUptime abre a página do monitor e o avalia a 
 | Campo | Aba | O que faz |
 | --- | --- | --- |
 | **Array de armazenamento** | Todas | Obrigatório. Restringe cada consulta a `resource.storage.array.name`, então dois arrays que têm um volume chamado `vol-01` nunca se misturam. |
-| **Volume** | Custom Metric, Avançado | Um volume: em um FlashArray pelo rótulo `name`, como `vol-db-01` (um volume em um pod ou em um grupo de volumes se chama `pod::volume` ou `group/volume`); no ONTAP pelo rótulo `volume`, que dois SVMs podem compartilhar. |
+| **Volume** | Custom Metric, Avançado | Um volume: em um FlashArray pelo rótulo `name`, como `vol-db-01` (um volume em um pod ou em um grupo de volumes se chama `pod::volume` ou `group/volume`); no ONTAP pelo rótulo `volume`, que dois SVMs podem compartilhar; em um PowerMax pelo rótulo `volume`, o seu ID de dispositivo, como `00847`. |
 | **Host** | Custom Metric, Avançado | Só FlashArray. Um host como o array o conhece, pelo rótulo `host`, como `esxi-01`. |
 | **Pod** | Custom Metric, Avançado | Só FlashArray. Um pod do ActiveCluster ou do ActiveDR, pelo rótulo `name`, ou `local_pod` nas séries de links de réplica. |
-| **Componente de hardware** | Custom Metric, Avançado | Um componente de hardware, como `CH0.BAY1` ou `CT0`: o rótulo `component_name` em um FlashArray, `name` em um FlashBlade e, no ONTAP, o rótulo pelo qual a série o identifica (`node`, `disk`, `shelf` ou `port`). |
+| **Componente de hardware** | Custom Metric, Avançado | Um componente de hardware, como `CH0.BAY1` ou `CT0`: o rótulo `component_name` em um FlashArray, `name` em um FlashBlade, no ONTAP o rótulo pelo qual a série o identifica (`node`, `disk`, `shelf` ou `port`), e `component` em um PowerMax, um diretor como `FA-1D` ou uma porta como `FA-1D:4`. |
 | **Sistema de arquivos** | Custom Metric, Avançado | Só FlashBlade. Um sistema de arquivos, pelo rótulo `name`. |
 | **Bucket** | Custom Metric, Avançado | Só FlashBlade. Um bucket de armazenamento de objetos, pelo rótulo `name`. |
 | **Storage Array Metric** | Custom Metric | Uma métrica do [catálogo](#métricas-coletadas). O formulário adiciona o filtro de rótulo que lhe dá significado, e a agrupa pelo objeto que ela descreve, então cada volume, host ou componente é avaliado separadamente. |

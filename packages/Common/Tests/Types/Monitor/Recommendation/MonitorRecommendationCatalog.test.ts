@@ -1380,37 +1380,37 @@ describe("MonitorRecommendationCatalog", () => {
     });
 
     it("the platforms' sets partition the whole catalog", () => {
-        // FlashArray, FlashBlade, PowerStore, ONTAP and, read by a probe, PowerMax.
-        const sets: Array<Array<string>> = [
-          StorageSystem.PureStorageFlashArray,
-          StorageSystem.PureStorageFlashBlade,
-          StorageSystem.DellPowerStore,
-          StorageSystem.NetAppOntap,
-          StorageSystem.DellPowerMax,
+      // FlashArray, FlashBlade, PowerStore, ONTAP and, read by a probe, PowerMax.
+      const sets: Array<Array<string>> = [
+        StorageSystem.PureStorageFlashArray,
+        StorageSystem.PureStorageFlashBlade,
+        StorageSystem.DellPowerStore,
+        StorageSystem.NetAppOntap,
+        StorageSystem.DellPowerMax,
       ].map((storageSystem: StorageSystem): Array<string> => {
         return storageArrayTemplateIds({ storageSystem });
       });
       const all: Array<string> = sets.flat();
 
-        // No template is two platforms'.
-        expect(new Set(all).size).toBe(all.length);
-        expect([...all].sort()).toEqual([...everyTemplateId()].sort());
-        // An ONTAP cluster is offered ONTAP's own, its heartbeat first.
-        const ontap: Array<string> = storageArrayTemplateIds({
-          storageSystem: StorageSystem.NetAppOntap,
-        });
-        expect(ontap[0]).toBe("netapp-cluster-stopped-reporting");
-        for (const id of ontap) {
-          expect(id.startsWith("netapp-")).toBe(true);
-        }
-        // A PowerMax PowerMax's own (#11004), its heartbeat first.
-        const powerMax: Array<string> = storageArrayTemplateIds({
-          storageSystem: StorageSystem.DellPowerMax,
-        });
-        expect(powerMax[0]).toBe("powermax-array-stopped-reporting");
-        for (const id of powerMax) {
-          expect(id.startsWith("powermax-")).toBe(true);
-        }
+      // No template is two platforms'.
+      expect(new Set(all).size).toBe(all.length);
+      expect([...all].sort()).toEqual([...everyTemplateId()].sort());
+      // An ONTAP cluster is offered ONTAP's own, its heartbeat first.
+      const ontap: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.NetAppOntap,
+      });
+      expect(ontap[0]).toBe("netapp-cluster-stopped-reporting");
+      for (const id of ontap) {
+        expect(id.startsWith("netapp-")).toBe(true);
+      }
+      // A PowerMax is offered PowerMax's own (#11004), its heartbeat first.
+      const powerMax: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.DellPowerMax,
+      });
+      expect(powerMax[0]).toBe("powermax-array-stopped-reporting");
+      for (const id of powerMax) {
+        expect(id.startsWith("powermax-")).toBe(true);
+      }
     });
 
     it("ignores context meant for other resource types", () => {

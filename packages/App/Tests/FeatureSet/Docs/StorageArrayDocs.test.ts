@@ -14,6 +14,7 @@ import { StorageArrayNameLabelKeys } from "Common/Server/Utils/Monitor/SeriesRes
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
 import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayPlatform } from "Common/Types/StorageArray/StorageArrayPlatform";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorStepStorageArrayMonitor from "Common/Types/Monitor/MonitorStepStorageArrayMonitor";
 import {
@@ -1088,6 +1089,11 @@ describe("Storage Array docs", (): void => {
        */
       const families: Array<string> = [];
       for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+        // A family is a platform's prefix and more: `purefa_volume_*`, `netapp_health_*`.
+        const prefix: string | undefined = platform.metricPrefix;
+        if (!prefix) {
+          continue;
+        }
         const collected: string = section(
           readPage(TELEMETRY_PAGE),
           platform.agentConfigs.length > 0
@@ -1097,7 +1103,7 @@ describe("Storage Array docs", (): void => {
         families.push(
           ...Array.from(collected.matchAll(/`([a-z]+_[A-Za-z_]+)(\*?)`/g))
             .filter((match: RegExpMatchArray): boolean => {
-              return (match[1] as string).startsWith(platform.metricPrefix);
+              return (match[1] as string).startsWith(prefix);
             })
             .map((match: RegExpMatchArray): string => {
               return `${match[1]}${match[2]}`;

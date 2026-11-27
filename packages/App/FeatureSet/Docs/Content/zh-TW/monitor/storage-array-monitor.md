@@ -79,10 +79,10 @@ flowchart TB
 | 欄位 | 索引標籤 | 作用 |
 | --- | --- | --- |
 | **儲存陣列** | 全部 | 必填。把每個查詢限定到 `resource.storage.array.name`，因此兩個都有名為 `vol-01` 之磁碟區的陣列永遠不會混在一起。 |
-| **磁碟區** | Custom Metric、進階 | 一個磁碟區：在 FlashArray 上依 `name` 標籤，例如 `vol-db-01`(Pod 或磁碟區群組中的磁碟區命名為 `pod::volume` 或 `group/volume`)；在 ONTAP 上依 `volume` 標籤，兩個 SVM 可以共用同一個磁碟區名稱。 |
+| **磁碟區** | Custom Metric、進階 | 一個磁碟區：在 FlashArray 上依 `name` 標籤，例如 `vol-db-01`(Pod 或磁碟區群組中的磁碟區命名為 `pod::volume` 或 `group/volume`)；在 ONTAP 上依 `volume` 標籤，兩個 SVM 可以共用同一個磁碟區名稱；在 PowerMax 上依 `volume` 標籤，即其裝置 ID，例如 `00847`。 |
 | **主機** | Custom Metric、進階 | 僅限 FlashArray。陣列所知的一台主機，依 `host` 標籤，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、進階 | 僅限 FlashArray。一個 ActiveCluster 或 ActiveDR Pod，依 `name` 標籤，在複本連結序列上則依 `local_pod`。 |
-| **硬體元件** | Custom Metric、進階 | 一個硬體元件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 標籤，在 FlashBlade 上是 `name`，在 ONTAP 上則是其序列用來命名它的標籤(`node`、`disk`、`shelf` 或 `port`)。 |
+| **硬體元件** | Custom Metric、進階 | 一個硬體元件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 標籤，在 FlashBlade 上是 `name`，在 ONTAP 上則是其序列用來命名它的標籤(`node`、`disk`、`shelf` 或 `port`)，在 PowerMax 上是 `component`，即導向器(例如 `FA-1D`)或連接埠(例如 `FA-1D:4`)。 |
 | **檔案系統** | Custom Metric、進階 | 僅限 FlashBlade。一個檔案系統，依 `name` 標籤。 |
 | **儲存貯體** | Custom Metric、進階 | 僅限 FlashBlade。一個物件儲存貯體，依 `name` 標籤。 |
 | **Storage Array Metric** | Custom Metric | [目錄](#收集的指標) 中的一個指標。表單會加入賦予其意義的標籤篩選器，並依它描述的物件分組，因此每個磁碟區、主機或元件都會單獨判斷。 |

@@ -79,10 +79,10 @@ Klicka på **Skapa monitor**. OneUptime öppnar monitorns sida och utvärderar d
 | Fält | Flik | Vad det gör |
 | --- | --- | --- |
 | **Lagringsarray** | Alla | Krävs. Begränsar varje fråga till `resource.storage.array.name`, så två arrayer som båda har en volym som heter `vol-01` blandas aldrig ihop. |
-| **Volym** | Custom Metric, Avancerad | En volym: på en FlashArray via etiketten `name`, som `vol-db-01` (en volym i en podd eller en volymgrupp heter `pod::volume` eller `group/volume`); på ONTAP via etiketten `volume`, som två SVM:ar kan dela. |
+| **Volym** | Custom Metric, Avancerad | En volym: på en FlashArray via etiketten `name`, som `vol-db-01` (en volym i en podd eller en volymgrupp heter `pod::volume` eller `group/volume`); på ONTAP via etiketten `volume`, som två SVM:ar kan dela; på en PowerMax via etiketten `volume`, dess enhets-ID, som `00847`. |
 | **Värd** | Custom Metric, Avancerad | Bara FlashArray. En värd så som arrayen känner den, via etiketten `host`, som `esxi-01`. |
 | **Podd** | Custom Metric, Avancerad | Bara FlashArray. En ActiveCluster- eller ActiveDR-podd, via etiketten `name`, eller `local_pod` på serier för replikalänkar. |
-| **Maskinvarukomponent** | Custom Metric, Avancerad | En hårdvarukomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på en FlashArray, `name` på en FlashBlade och på ONTAP den etikett som dess serie namnger den med (`node`, `disk`, `shelf` eller `port`). |
+| **Maskinvarukomponent** | Custom Metric, Avancerad | En hårdvarukomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på en FlashArray, `name` på en FlashBlade, på ONTAP den etikett som dess serie namnger den med (`node`, `disk`, `shelf` eller `port`) och `component` på en PowerMax, en director som `FA-1D` eller en port som `FA-1D:4`. |
 | **Filsystem** | Custom Metric, Avancerad | Bara FlashBlade. Ett filsystem, via etiketten `name`. |
 | **Bucket** | Custom Metric, Avancerad | Bara FlashBlade. En bucket för objektlagring, via etiketten `name`. |
 | **Storage Array Metric** | Custom Metric | Ett mätvärde från [katalogen](#insamlade-mätvärden). Formuläret lägger till etikettfiltret som ger det dess betydelse och grupperar det efter objektet det beskriver, så varje volym, värd eller komponent bedöms för sig. |

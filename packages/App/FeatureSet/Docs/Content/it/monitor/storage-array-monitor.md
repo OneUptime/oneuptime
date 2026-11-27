@@ -79,10 +79,10 @@ Fai clic su **Crea monitor**. OneUptime apre la pagina del monitor e lo valuta o
 | Campo | Scheda | Cosa fa |
 | --- | --- | --- |
 | **Array di storage** | Tutte | Obbligatorio. Limita ogni query a `resource.storage.array.name`, così due array che hanno entrambi un volume chiamato `vol-01` non si mescolano mai. |
-| **Volume** | Custom Metric, Avanzato | Un volume: su un FlashArray tramite l'etichetta `name`, come `vol-db-01` (un volume in un pod o in un gruppo di volumi si chiama `pod::volume` o `group/volume`); su ONTAP tramite l'etichetta `volume`, che due SVM possono condividere. |
+| **Volume** | Custom Metric, Avanzato | Un volume: su un FlashArray tramite l'etichetta `name`, come `vol-db-01` (un volume in un pod o in un gruppo di volumi si chiama `pod::volume` o `group/volume`); su ONTAP tramite l'etichetta `volume`, che due SVM possono condividere; su un PowerMax tramite l'etichetta `volume`, il suo ID di dispositivo, come `00847`. |
 | **Host** | Custom Metric, Avanzato | Solo FlashArray. Un host come lo conosce l'array, tramite l'etichetta `host`, come `esxi-01`. |
 | **Pod** | Custom Metric, Avanzato | Solo FlashArray. Un pod ActiveCluster o ActiveDR, tramite l'etichetta `name`, oppure `local_pod` sulle serie dei collegamenti di replica. |
-| **Componente hardware** | Custom Metric, Avanzato | Un componente hardware, come `CH0.BAY1` o `CT0`: l'etichetta `component_name` su un FlashArray, `name` su un FlashBlade, e su ONTAP l'etichetta con cui lo identifica la sua serie (`node`, `disk`, `shelf` o `port`). |
+| **Componente hardware** | Custom Metric, Avanzato | Un componente hardware, come `CH0.BAY1` o `CT0`: l'etichetta `component_name` su un FlashArray, `name` su un FlashBlade, su ONTAP l'etichetta con cui lo identifica la sua serie (`node`, `disk`, `shelf` o `port`), e `component` su un PowerMax, un director come `FA-1D` o una porta come `FA-1D:4`. |
 | **File system** | Custom Metric, Avanzato | Solo FlashBlade. Un file system, tramite l'etichetta `name`. |
 | **Bucket** | Custom Metric, Avanzato | Solo FlashBlade. Un bucket di object storage, tramite l'etichetta `name`. |
 | **Storage Array Metric** | Custom Metric | Una metrica del [catalogo](#metriche-raccolte). Il modulo aggiunge il filtro sull'etichetta che le dà il suo significato, e la raggruppa per l'oggetto che descrive, così ogni volume, host o componente viene valutato separatamente. |

@@ -105,10 +105,18 @@ function probeOf(
   return item;
 }
 
+/*
+ * What a test sets on a connection: any of its fields, and undefined for
+ * one it leaves unset (no address, no user name, no probe).
+ */
+type ConnectionFields = {
+  [Field in keyof StorageArrayConnection]?:
+    | StorageArrayConnection[Field]
+    | undefined;
+};
+
 // A connection the claim hands its probe: password, address, user and the project's own probe.
-function connection(
-  overrides: Partial<StorageArrayConnection> = {},
-): StorageArrayConnection {
+function connection(overrides: ConnectionFields = {}): StorageArrayConnection {
   const item: StorageArrayConnection = new StorageArrayConnection();
   Object.assign(
     item,
@@ -587,7 +595,7 @@ describe("a connection's collection, in words", () => {
     "%s: nothing reads it, whatever it last reported",
     (
       _name: string,
-      overrides: Partial<StorageArrayConnection>,
+      overrides: ConnectionFields,
       stop: StorageArrayCollectionStop,
       title: string,
     ) => {

@@ -79,10 +79,10 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
 | **Lagringsarray** | Alle | Påkrevd. Begrenser hver spørring til `resource.storage.array.name`, så to arrays som begge har et volum som heter `vol-01`, aldri blandes. |
-| **Volum** | Custom Metric, Avansert | Ett volum: på et FlashArray via etiketten `name`, som `vol-db-01` (et volum i en pod eller en volumgruppe heter `pod::volume` eller `group/volume`); på ONTAP via etiketten `volume`, som to SVM-er kan dele. |
+| **Volum** | Custom Metric, Avansert | Ett volum: på et FlashArray via etiketten `name`, som `vol-db-01` (et volum i en pod eller en volumgruppe heter `pod::volume` eller `group/volume`); på ONTAP via etiketten `volume`, som to SVM-er kan dele; på en PowerMax via etiketten `volume`, enhets-ID-en, som `00847`. |
 | **Vert** | Custom Metric, Avansert | Bare FlashArray. Én vert slik arrayet kjenner den, via etiketten `host`, som `esxi-01`. |
 | **Pod** | Custom Metric, Avansert | Bare FlashArray. Én ActiveCluster- eller ActiveDR-pod, via etiketten `name`, eller `local_pod` på serier for replikalenker. |
-| **Maskinvarekomponent** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade, og på ONTAP etiketten serien navngir den med (`node`, `disk`, `shelf` eller `port`). |
+| **Maskinvarekomponent** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade, på ONTAP etiketten serien navngir den med (`node`, `disk`, `shelf` eller `port`), og `component` på en PowerMax, en director som `FA-1D` eller en port som `FA-1D:4`. |
 | **Filsystem** | Custom Metric, Avansert | Bare FlashBlade. Ett filsystem, via etiketten `name`. |
 | **Bucket** | Custom Metric, Avansert | Bare FlashBlade. Én bucket for objektlagring, via etiketten `name`. |
 | **Storage Array Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). Skjemaet legger til etikettfilteret som gir den betydningen sin, og grupperer den etter objektet den beskriver, så hvert volum, hver vert eller hver komponent vurderes for seg. |
