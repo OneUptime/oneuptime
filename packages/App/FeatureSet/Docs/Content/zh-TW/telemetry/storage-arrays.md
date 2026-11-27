@@ -6,6 +6,7 @@ OneUptime Storage Array 代理程式會監控儲存陣列：容量和資料縮�
 - [安裝代理程式](#安裝代理程式): 先建立唯讀使用者，再使用安裝指令碼或 Docker Compose。
 - [代理程式收集的內容](#代理程式收集的內容): 每個端點，以及以它為基礎建立的頁面。
 - [監控多個陣列](#監控多個陣列): 每個陣列一個代理程式，都在同一台機器上。
+- [Dell PowerMax](#dell-powermax): 無需代理程式：探測器會讀取 Unisphere 背後的所有陣列。
 - [疑難排解](#疑難排解): 一個診斷指令碼，以及常見問題。
 :::
 
@@ -22,6 +23,8 @@ Storage Arrays 是一個對每個廠商都以相同方式運作的產品。它�
 | **NetApp ONTAP** 9.12.1 及更新版本（AFF、FAS、ASA、ONTAP Select、Cloud Volumes ONTAP），以及 **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11，由同一個 Compose 檔案以 `netapp-harvest` 服務執行：它使用唯讀使用者和密碼登入叢集的 REST API | `otel-collector-config.netapp-ontap.yaml` |
 
 ONTAP 沒有自己的指標端點，因此代理程式會在 Collector 旁邊執行 NetApp 的開放原始碼匯出器 Harvest。Harvest 讀取叢集的 REST API，並在 Compose 網路上提供它讀取到的內容，每個序列都命名為 `netapp_<object>_<counter>`；Collector 抓取它並將其傳送出去。Harvest 從不寫入叢集，其傳送給 NetApp 的 AutoSupport 報告也已關閉。
+
+**Dell PowerMax**（`dell.powermax`）無需代理程式：OneUptime 探測器會使用唯讀帳戶讀取 Unisphere for PowerMax 管理的所有陣列。請參閱 [Dell PowerMax](#dell-powermax)。
 
 Pure Storage 於 2026 年 2 月更名為 **Everpure**。FlashArray、FlashBlade 和 Purity 保留了原名，`purefa_*` 和 `purefb_*` 指標也沒有改名，因此本頁的所有內容都適用於以任一名稱銷售的陣列。
 
@@ -389,6 +392,54 @@ docker compose down
 
 在 PowerStore 上執行 `docker compose --profile powerstore down`，讓匯出器和 syslog 收集器也停止。
 
+## Dell PowerMax
+
+Dell PowerMax 無需代理程式。OneUptime 探測器每 5 分鐘會使用唯讀帳戶登入一次 Unisphere for PowerMax 的 REST API，並讀取該 Unisphere 管理的所有陣列。每個陣列都會以其 Symmetrix ID（例如 `000220200269`）出現在 **儲存陣列** 中，你可以重新命名它。密碼會加密儲存，不會再次顯示，而且只會傳送給你選擇的探測器。
+
+- **Unisphere for PowerMax 10.1 或更新版本**，管理執行 PowerMaxOS 10 或 5978 的陣列。從 Unisphere 10.3 起，唯讀帳戶也能看到連接埠和 SRDF 群組。
+- **一個能透過 TCP 8443 連線到 Unisphere 的探測器**，通常是位於 Unisphere 網路中的 [自訂探測器](/docs/probe/custom-probe)。在 OneUptime Cloud 上，共用探測器絕不會收到儲存密碼，因此請選擇你專案自己的探測器。
+- **一個具有 Monitor 角色的 Unisphere 使用者**，在它需要讀取的每個陣列上都具有該角色，如需效能資料還需 **PerfMonitor** 角色。不需要其他權限：OneUptime 絕不會變更陣列。
+
+:::steps
+### 建立唯讀使用者
+
+在 Unisphere for PowerMax 的 **Settings → Users and Groups** 下，建立一個本機使用者或選擇一個目錄使用者。在每個陣列上為其授予 **Monitor** 角色，如需效能資料再授予 **PerfMonitor**。
+
+### 檢查 Unisphere 是否收集效能資料
+
+在 **Settings → Performance → System Registrations** 下，檢查每個陣列的 **Diagnostic** 收集是否已開啟：未開啟時，OneUptime 會列出陣列的清單和警示，但不會繪製任何效能圖表。若要每 5 秒查看一個儲存群組，請同樣在那裡為其註冊 **Real Time**，每個陣列最多 100 個。
+
+### 連線 Unisphere
+
+前往 **產品 → 基礎設施 → 儲存陣列 → 連線**，然後按一下 **連線 Unisphere**。輸入你開啟 Unisphere 時使用的位址（例如 `https://unisphere.example.com:8443`）、使用者名稱和密碼，然後選擇探測器。
+
+### 測試連線
+
+**測試連線** 會讓探測器登入並讀取該帳戶能看到的內容：每個陣列、其儲存群組和磁碟區，以及 Unisphere 是否收集其效能資料。Unisphere 預設使用自我簽署憑證：測試會顯示該憑證，**信任此憑證** 會把它的 SHA-256 指紋填入表單。請先將該指紋與 Unisphere 本身的指紋核對，例如在探測器所在的機器上執行 `openssl s_client -connect unisphere.example.com:8443`。
+
+### 命名並連線
+
+為連線命名，或保留主機名稱，然後按一下 **連線**。幾分鐘內，它的頁面會顯示第一次收集以及它找到的每個陣列，每個陣列都連結到其在 **儲存陣列** 中的頁面。
+:::
+
+探測器會讀取 Unisphere 有文件說明的 REST 端點：傳統的 `/univmax/restapi` 用於陣列、容量、健康狀態、警示和儲存池，批次的 `/univmax/rest/v1` 用於儲存群組、磁碟區、導向器、連接埠、SRDF 群組和效能。每次呼叫都只是讀取。它會將讀取到的內容作為以下序列傳送，並把 Unisphere 的毫秒換算為微秒、把其每秒 MB 換算為每秒位元組數：
+
+| 序列 | 包含內容 |
+| --- | --- |
+| `powermax_array_*` | 陣列：其型號和微碼，可用、已用和已訂閱容量，資料縮減，健康分數，Unisphere 是否收集其效能，以及其 5 分鐘的回應時間、IOPS、輸送量、快取和忙碌程度數值 |
+| `powermax_alert_open` | Unisphere 為該陣列開啟的每個 Minor 及以上層級的警示對應一個序列，直到有人確認或清除它 |
+| `powermax_storage_group_*` | 每個儲存群組：其容量和磁碟區，其 5 分鐘的回應時間、IOPS 和輸送量，以及註冊即時收集時的 5 秒數值 |
+| `powermax_volume_*` | 儲存群組中的每個磁碟區：其容量，以及其儲存群組註冊即時收集時的數值 |
+| `powermax_srp_*` | 每個儲存資源池：其容量和回應時間 |
+| `powermax_director_*` | 每個導向器：其角色、狀態和忙碌程度，以及它未上線期間的 `powermax_director_offline` |
+| `powermax_port_*` | 每個連接埠：其通訊協定、速度、光功率等級和忙碌程度，以及有人依賴的連接埠停擺期間的 `powermax_port_offline` |
+| `powermax_srdf_group_*` | 每個 SRDF 群組：其遠端陣列和模式、落後和輸送量，以及它暫停或離線期間的 `powermax_srdf_group_not_healthy` |
+
+- **每 5 分鐘**，或者為了減輕忙碌的 Unisphere 的負擔改為每 10 分鐘（連線表單中的 **更多欄位**）：Unisphere 每 5 分鐘計算一次效能。
+- **只收集 Unisphere 自己管理的陣列。** 它透過 SRDF 看到的遠端陣列會列在連線的頁面上，並由其所在站台的 Unisphere 讀取：請把那個 Unisphere 也連線上。
+- **每個陣列最多 5,000 個儲存群組和 10,000 個磁碟區**，每次收集最多 200 則新警示（其餘的會在後續收集中送達）。清單被截斷時，連線的頁面會註明。
+- **Unisphere 10.1 和 10.2** 不會向唯讀帳戶列出連接埠或 SRDF 群組：探測器會逐一讀取導向器，從儲存群組中取得 SRDF 群組，並註明這一點。
+
 ## 疑難排解
 
 :::details 先執行診斷指令碼
@@ -446,6 +497,18 @@ OneUptime 依 `storage.array.name` 註冊儲存陣列，代理程式從 `STORAGE
 
 :::details 不透過代理程式傳送指標
 代理程式就是一個標準的 Collector 設定，因此你已經在執行的 Collector 也能完成同樣的工作：把抓取作業和 `resource` 處理器從隨附的設定複製到你自己的設定中。`storage.array.name` 資源屬性負責在 OneUptime 中註冊陣列，而刪除 `service.name` / `service.instance.id` 可以防止資料被歸到某個服務下：請兩者都保留，並保留 `scrape_endpoint` 標籤。
+:::
+
+:::details 測試連線提示 Unisphere 的憑證不受信任
+除非有人安裝了憑證授權單位簽發的憑證，否則 Unisphere for PowerMax 會使用自我簽署憑證。將測試顯示的指紋與 Unisphere 本身的指紋核對，然後按一下 **信任此憑證** 並再次測試。Unisphere 的憑證更新後，收集會以 **伺服器的憑證已變更** 停止，直到你信任新的憑證：在此之前不會傳送任何內容給 Unisphere。
+:::
+
+:::details 測試連線提示該帳戶無權讀取陣列
+對於在陣列上沒有角色的帳戶，Unisphere 會回傳 `403`。請在 **Settings → Users and Groups** 下為該使用者在每個陣列上授予 **Monitor** 角色，如需效能資料再授予 **PerfMonitor**。帳戶沒有角色的陣列會連同原因一起列在連線的頁面上，其他陣列照常讀取。
+:::
+
+:::details PowerMax 不顯示回應時間或 IOPS
+Unisphere 沒有為該陣列收集效能資料，或者該帳戶缺少 **PerfMonitor**：連線的頁面會說明是哪種情況。請在 **Settings → Performance → System Registrations** 下開啟 **Diagnostic** 收集。磁碟區的數值以及儲存群組每 5 秒的數值，還需要在那裡為該儲存群組註冊 **Real Time**。
 :::
 
 ## 後續步驟

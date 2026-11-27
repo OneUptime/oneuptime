@@ -159,7 +159,8 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
     }
     /*
      * Every shared kind, and each kind a platform defines for itself (a
-     * PowerStore's appliances), which no other platform reports.
+     * PowerStore's appliances, a PowerMax's storage groups), which no other
+     * platform reports.
      */
     const own: Array<string> = StorageArrayPlatformRegistry.getPlatforms()
       .flatMap(
@@ -177,6 +178,25 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
     expect([...covered].sort()).toEqual(
       [...StorageArrayResourceKindUtil.getAllKinds(), ...own].sort(),
     );
+    // Every shared kind is some platform's...
+    const shared: Set<string> = new Set(
+      Object.values(StorageArrayResourceKind) as Array<string>,
+    );
+    expect(
+      [...covered]
+        .filter((kind: string): boolean => {
+          return shared.has(kind);
+        })
+        .sort(),
+    ).toEqual([...StorageArrayResourceKindUtil.getAllKinds()].sort());
+    // ... and a kind only a platform has comes with its words.
+    for (const kind of covered) {
+      if (!shared.has(kind)) {
+        expect(StorageArrayPlatformRegistry.getKindDefinition(kind)).not.toBe(
+          null,
+        );
+      }
+    }
   });
 
   test.each([

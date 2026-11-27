@@ -24,6 +24,7 @@ import ReportPacketCaptureCapability from "./Jobs/PacketCapture/ReportCapability
 import SyncSnmpTrapReceiver from "./Jobs/SnmpTrap/SyncSnmpTrapReceiver";
 import FetchVMwareWork from "./Jobs/VMware/FetchVMwareWork";
 import FetchXcpNgWork from "./Jobs/XcpNg/FetchXcpNgWork";
+import FetchStorageArrayWork from "./Jobs/StorageArray/FetchStorageArrayWork";
 import FetchOpenStackWork from "./Jobs/OpenStack/FetchOpenStackWork";
 import FetchOpenStackChecks from "./Jobs/OpenStack/FetchOpenStackChecks";
 import ScanDataSecurityDatabases from "./Jobs/DataSecurity/ScanDatabases";
@@ -187,6 +188,9 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
        * tests people start from the dashboard.
        */
       FetchVMwareWork();
+
+      // Storage arrays read from their management server (#11004).
+      FetchStorageArrayWork();
 
       /*
        * XCP-ng pools this probe reads with the secrets saved in OneUptime -

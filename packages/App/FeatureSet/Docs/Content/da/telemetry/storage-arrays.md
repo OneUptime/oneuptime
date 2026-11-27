@@ -6,6 +6,7 @@ OneUptimes Lagerarray-agent overvåger lagerarrays: kapacitet og datareduktion, 
 - [Installér agenten](#installer-agenten): En skrivebeskyttet bruger, derefter installationsscriptet eller Docker Compose.
 - [Hvad agenten indsamler](#hvad-agenten-indsamler): Hvert endpoint og de sider, der bygges ud fra det.
 - [Overvågning af flere arrays](#overvågning-af-flere-arrays): Én agent pr. array, på én maskine.
+- [Dell PowerMax](#dell-powermax): Ingen agent: en sonde læser hvert array bag Unisphere.
 - [Fejlfinding](#fejlfinding): Et diagnosescript og de sædvanlige problemer.
 :::
 
@@ -22,6 +23,8 @@ Storage Arrays er et produkt, der virker på samme måde for alle leverandører.
 | **NetApp ONTAP** 9.12.1 og senere (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP) og **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, som den samme Compose-fil kører som tjenesten `netapp-harvest`: den logger ind på klyngens REST-API med en skrivebeskyttet bruger og en adgangskode | `otel-collector-config.netapp-ontap.yaml` |
 
 ONTAP har ikke sit eget metrik-endpoint, så agenten kører NetApps open source-exporter, Harvest, ved siden af collectoren. Harvest læser klyngens REST-API og leverer det, den har læst, på Compose-netværket, med hver serie navngivet `netapp_<object>_<counter>`; collectoren scraper Harvest og sender dataene videre. Harvest skriver aldrig til klyngen, og dens AutoSupport-rapport til NetApp er slået fra.
+
+**Dell PowerMax** (`dell.powermax`) kræver ingen agent: en OneUptime-sonde læser med en skrivebeskyttet konto hvert array, som en Unisphere for PowerMax administrerer. Se [Dell PowerMax](#dell-powermax).
 
 Pure Storage skiftede navn til **Everpure** i februar 2026. FlashArray, FlashBlade og Purity beholdt deres navne, og det gjorde metrikkerne `purefa_*` og `purefb_*` også, så alt på denne side gælder for arrays, der sælges under begge navne.
 
@@ -389,6 +392,54 @@ Slet derefter den skrivebeskyttede bruger og dens API-token på arrayet, hvis du
 
 På en PowerStore skal du køre `docker compose --profile powerstore down`, så eksportøren og syslog-collectoren også stopper.
 
+## Dell PowerMax
+
+En Dell PowerMax kræver ingen agent. En OneUptime-sonde logger hvert 5. minut ind via REST API i Unisphere for PowerMax med en skrivebeskyttet konto og læser hvert array, som den Unisphere administrerer. Hvert array vises i **Lagerarrays** under sit Symmetrix ID, f.eks. `000220200269`, og du kan omdøbe det. Adgangskoden gemmes krypteret, vises aldrig igen og sendes kun til den sonde, du vælger.
+
+- **Unisphere for PowerMax 10.1 eller nyere**, der administrerer arrays med PowerMaxOS 10 eller 5978. Fra Unisphere 10.3 ser en skrivebeskyttet konto også porte og SRDF-grupper.
+- **En sonde, der kan nå Unisphere på TCP 8443**, som regel en [brugerdefineret sonde](/docs/probe/custom-probe) i Unispheres netværk. På OneUptime Cloud modtager en delt sonde aldrig en lageradgangskode, så vælg en af dit projekts egne.
+- **En Unisphere-bruger med rollen Monitor** på hvert array, den skal læse, og rollen **PerfMonitor** til ydeevne. Mere behøver den ikke: OneUptime ændrer aldrig arrayet.
+
+:::steps
+### Opret den skrivebeskyttede bruger
+
+I Unisphere for PowerMax opretter du under **Settings → Users and Groups** en lokal bruger eller vælger en katalogbruger. Giv den rollen **Monitor** på hvert array og **PerfMonitor** til ydeevne.
+
+### Kontrollér, at Unisphere indsamler ydeevnedata
+
+Kontrollér under **Settings → Performance → System Registrations**, at indsamlingen **Diagnostic** er slået til for hvert array: uden den viser OneUptime arrayets inventar og advarsler, men tegner ingen ydeevnegrafer. For at se en lagergruppe hvert 5. sekund skal du også registrere den til **Real Time** der, op til 100 pr. array.
+
+### Forbind Unisphere
+
+Gå til **Produkter → Infrastruktur → Lagerarrays → Forbindelser**, og klik på **Forbind Unisphere**. Angiv den adresse, du åbner Unisphere på, f.eks. `https://unisphere.example.com:8443`, brugernavnet og adgangskoden, og vælg sonden.
+
+### Test forbindelsen
+
+**Test forbindelse** får sonden til at logge ind og læse, hvad kontoen kan se: hvert array, dets lagergrupper og volumener, og om Unisphere indsamler dets ydeevnedata. Unisphere signerer som standard sit eget certifikat: testen viser det, og **Stol på dette certifikat** sætter dets SHA-256-fingeraftryk ind i formularen. Sammenlign først fingeraftrykket med Unispheres eget, for eksempel med `openssl s_client -connect unisphere.example.com:8443` fra sondens maskine.
+
+### Navngiv og forbind
+
+Giv forbindelsen et navn, eller behold værtsnavnet, og klik på **Forbind**. Dens side viser den første indsamling inden for få minutter og hvert array, den fandt, hver med et link til sin side i **Lagerarrays**.
+:::
+
+Sonden læser Unispheres dokumenterede REST-endpoints: det klassiske `/univmax/restapi` til arrays, kapacitet, sundhed, advarsler og puljer og bulk-API'et `/univmax/rest/v1` til lagergrupper, volumener, directorer, porte, SRDF-grupper og ydeevne. Hvert kald er en læsning. Den sender det, den læser, som disse serier, med Unispheres millisekunder som mikrosekunder og dens MB pr. sekund som bytes pr. sekund:
+
+| Serier | Hvad de indeholder |
+| --- | --- |
+| `powermax_array_*` | Arrayet: dets model og mikrokode, brugbar, brugt og lovet kapacitet, datareduktion, sundhedsscorer, om Unisphere indsamler dets ydeevnedata, og dets 5-minutters svartider, IOPS, gennemløb, cache- og belastningstal |
+| `powermax_alert_open` | Én serie pr. advarsel, som Unisphere har åben for arrayet, Minor og opefter, indtil nogen bekræfter eller rydder den |
+| `powermax_storage_group_*` | Hver lagergruppe: dens kapacitet og volumener, dens 5-minutters svartider, IOPS og gennemløb og dens 5-sekunders tal, når den er registreret til realtid |
+| `powermax_volume_*` | Hvert volumen i en lagergruppe: dets kapacitet og dets tal, når dets lagergruppe er registreret til realtid |
+| `powermax_srp_*` | Hver lagerressourcepulje: dens kapacitet og svartid |
+| `powermax_director_*` | Hver director: dens rolle, status og belastningstal og `powermax_director_offline`, så længe den ikke er online |
+| `powermax_port_*` | Hver port: dens protokol, hastighed, lysniveauer og belastningstal og `powermax_port_offline`, så længe en port, som nogen er afhængig af, er nede |
+| `powermax_srdf_group_*` | Hver SRDF-gruppe: dens fjerne array og tilstande, dens forsinkelse og gennemløb og `powermax_srdf_group_not_healthy`, så længe den er suspenderet eller offline |
+
+- **Hvert 5. minut**, eller hvert 10. for at skåne en travl Unisphere (**Flere felter** i forbindelsens formular): Unisphere beregner ydeevne hvert 5. minut.
+- **Kun de arrays, som Unisphere selv administrerer.** De fjerne arrays, den ser via SRDF, vises på forbindelsens side og læses af den Unisphere, der står på deres eget site: forbind også den.
+- **Op til 5,000 lagergrupper og 10,000 volumener pr. array** og 200 nye advarsler pr. indsamling (resten kommer med de næste). Er en liste afkortet, fremgår det af forbindelsens side.
+- **Unisphere 10.1 og 10.2** viser ingen porte eller SRDF-grupper til en skrivebeskyttet konto: sonden læser directorerne én ad gangen, tager SRDF-grupperne fra lagergrupperne og siger det.
+
 ## Fejlfinding
 
 :::details Kør diagnosescriptet først
@@ -446,6 +497,18 @@ OneUptime registrerer et lagerarray ud fra dets `storage.array.name`, som agente
 
 :::details Send metrikker uden agenten
 Agenten er én almindelig collector-konfiguration, så collectors, du allerede kører, kan gøre det samme arbejde: Kopiér scrape-jobbene og processoren `resource` fra den medfølgende konfiguration ind i din egen. Ressourceattributten `storage.array.name` er det, der registrerer arrayet i OneUptime, og sletningerne af `service.name` / `service.instance.id` forhindrer, at dataene arkiveres under en tjeneste: Behold begge, og behold labels `scrape_endpoint`.
+:::
+
+:::details Forbindelsestesten siger, at der ikke er tillid til Unispheres certifikat
+Unisphere for PowerMax signerer sit eget certifikat, medmindre nogen har installeret et fra en certifikatudsteder. Sammenlign det fingeraftryk, testen viser, med Unispheres eget, klik derefter på **Stol på dette certifikat**, og test igen. Når Unispheres certifikat fornyes, stopper indsamlingen med **Serverens certifikat er ændret**, indtil du stoler på det nye: intet sendes til Unisphere før da.
+:::
+
+:::details Forbindelsestesten siger, at kontoen ikke må læse arrayene
+Unisphere svarer `403` for en konto uden en rolle på arrayet. Giv brugeren rollen **Monitor** på hvert array under **Settings → Users and Groups** og **PerfMonitor** til ydeevne. Et array, som kontoen ikke har nogen rolle på, vises på forbindelsens side med årsagen, og de andre læses.
+:::
+
+:::details En PowerMax viser ingen svartider eller IOPS
+Unisphere indsamler ingen ydeevnedata for arrayet, eller kontoen mangler **PerfMonitor**: forbindelsens side siger, hvilken af delene det er. Slå indsamlingen **Diagnostic** til under **Settings → Performance → System Registrations**. Et volumens tal og en lagergruppes tal hvert 5. sekund kræver, at lagergruppen også er registreret til **Real Time** der.
 :::
 
 ## Næste trin

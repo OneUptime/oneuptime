@@ -15,6 +15,8 @@ Den fungerer også med Dell PowerStore (`dell.powerstore`), ut fra Dells serier 
 
 OneUptime Storage Array Agent kjører på en maskin som kan nå arrayets administrasjonsgrensesnitt. Den leser arrayets målinger med et skrivebeskyttet API-token, merker dem med arrayets navn, `storage.array.name`, og plattformen, `storage.system`, og sender dem til OneUptime over OTLP. De første dataene registrerer arrayet.
 
+En Dell PowerMax (`dell.powermax`) trenger ingen agent: en OneUptime-sonde logger seg på Unisphere for PowerMax med en skrivebeskyttet konto hvert 5. minutt og sender hvert array den administrerer på samme måte, oppkalt etter sin Symmetrix ID til du gir det nytt navn ([Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax)).
+
 En lagringsarray-monitor er knyttet til ett array. Hvert minutt kjører den spørringen sin på det arrayets målinger og sammenligner resultatet med kriteriene sine.
 
 ```mermaid title="Fra et lagringsarray til en hendelse"
@@ -35,6 +37,7 @@ flowchart TB
 
 - **Installer Storage Array Agent** et sted der den kan nå arrayet over HTTPS, med API-tokenet til en bruker som har arrayets rolle **readonly**. [Veiledningen for Storage Array Agent](/docs/telemetry/storage-arrays) dekker brukeren, tokenet og installasjonen, gjennom `ONEUPTIME_URL`, `ONEUPTIME_TELEMETRY_INGESTION_KEY`, `STORAGE_ARRAY_NAME` og arrayets adresse og token (`PURE_FA_ENDPOINT` og `PURE_FA_API_TOKEN`, eller `PURE_FB_ENDPOINT` og `PURE_FB_API_TOKEN`), eller for ONTAP klyngens adresse og en skrivebeskyttet REST-bruker (`NETAPP_ONTAP_ENDPOINT`, `NETAPP_ONTAP_USERNAME` og `NETAPP_ONTAP_PASSWORD`).
 - **Sjekk at arrayet er registrert.** Det vises under **Produkter → Infrastruktur → Lagringsarrayer → Alle lagringsarrayer**, oppkalt etter agentens `STORAGE_ARRAY_NAME`, rundt et minutt etter den første avlesningen.
+- **For en Dell PowerMax** kobler du i stedet til den Unisphere for PowerMax som administrerer den, under **Produkter → Infrastruktur → Lagringsarrayer → Tilkoblinger**, som [Dell PowerMax](/docs/telemetry/storage-arrays#dell-powermax) forklarer.
 
 ## Opprett en lagringsarray-monitor
 
@@ -76,10 +79,10 @@ Klikk på **Opprett monitor**. OneUptime åpner monitorens side og evaluerer den
 | Felt | Fane | Hva det gjør |
 | --- | --- | --- |
 | **Lagringsarray** | Alle | Påkrevd. Begrenser hver spørring til `resource.storage.array.name`, så to arrays som begge har et volum som heter `vol-01`, aldri blandes. |
-| **Volum** | Custom Metric, Avansert | Ett volum: på et FlashArray via etiketten `name`, som `vol-db-01` (et volum i en pod eller en volumgruppe heter `pod::volume` eller `group/volume`); på ONTAP via etiketten `volume`, som to SVM-er kan dele. |
+| **Volum** | Custom Metric, Avansert | Ett volum: på et FlashArray via etiketten `name`, som `vol-db-01` (et volum i en pod eller en volumgruppe heter `pod::volume` eller `group/volume`); på ONTAP via etiketten `volume`, som to SVM-er kan dele; på en PowerMax via etiketten `volume`, enhets-ID-en, som `00847`. |
 | **Vert** | Custom Metric, Avansert | Bare FlashArray. Én vert slik arrayet kjenner den, via etiketten `host`, som `esxi-01`. |
 | **Pod** | Custom Metric, Avansert | Bare FlashArray. Én ActiveCluster- eller ActiveDR-pod, via etiketten `name`, eller `local_pod` på serier for replikalenker. |
-| **Maskinvarekomponent** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade, og på ONTAP etiketten serien navngir den med (`node`, `disk`, `shelf` eller `port`). |
+| **Maskinvarekomponent** | Custom Metric, Avansert | Én maskinvarekomponent, som `CH0.BAY1` eller `CT0`: etiketten `component_name` på et FlashArray, `name` på et FlashBlade, på ONTAP etiketten serien navngir den med (`node`, `disk`, `shelf` eller `port`), og `component` på en PowerMax, en director som `FA-1D` eller en port som `FA-1D:4`. |
 | **Filsystem** | Custom Metric, Avansert | Bare FlashBlade. Ett filsystem, via etiketten `name`. |
 | **Bucket** | Custom Metric, Avansert | Bare FlashBlade. Én bucket for objektlagring, via etiketten `name`. |
 | **Storage Array Metric** | Custom Metric | Én måling fra [katalogen](#innsamlede-målinger). Skjemaet legger til etikettfilteret som gir den betydningen sin, og grupperer den etter objektet den beskriver, så hvert volum, hver vert eller hver komponent vurderes for seg. |
@@ -107,9 +110,11 @@ Flere serier bærer tilstanden sin i en **etikett**, med en verdi som alltid er 
 | `purefa_host_connectivity_info` | `status`, med `details` | Vert |
 | `purefa_drive_capacity_bytes` | `component_status` (verdien er diskens kapasitet) | Disk |
 
-En serie som er filtrert til en dårlig tilstand, finnes bare så lenge noe er i den tilstanden, så ingen serie betyr sunt. Derfor er **Max over 0 utløser og 0 gjenoppretter** den riktige formen for dem, og slik er malene bygd: gjenopprettingskriteriene deres teller en manglende serie som null. Når det ikke er noen serier igjen i det hele tatt, gjenoppretter en slik mal bare hvis `purefa_info` eller `purefb_info` kom i samme vindu, så et array som har sluttet å rapportere, lukker ingenting.
+En serie som er filtrert til en dårlig tilstand, finnes bare så lenge noe er i den tilstanden, så ingen serie betyr sunt. Derfor er **Max over 0 utløser og 0 gjenoppretter** den riktige formen for dem, og slik er malene bygd: gjenopprettingskriteriene deres teller en manglende serie som null. Når det ikke er noen serier igjen i det hele tatt, gjenoppretter en slik mal bare hvis `purefa_info`, `purefb_info` eller `powermax_array_info` kom i samme vindu, så et array som har sluttet å rapportere, lukker ingenting.
 
-I monitorfiltre og grupperingsnøkler begynner agentens attributter med `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens Pures egne etiketter ikke gjør det (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
+En PowerMax' serier har én verdi hver og er oppkalt etter den: `powermax_array_response_time_usec` skiller lesinger fra skrivinger med `operation`. Tilstandsseriene finnes på samme måte bare mens noe er galt: `powermax_alert_open` mens Unisphere har et varsel åpent, `powermax_director_offline` mens en director ikke er online, `powermax_port_offline` mens en port noen er avhengig av, er nede, og `powermax_srdf_group_not_healthy` mens en SRDF-gruppe er suspendert eller frakoblet.
+
+I monitorfiltre og grupperingsnøkler begynner agentens attributter med `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens Pures egne etiketter ikke gjør det (`name`, `host`, `component_name`, `dimension`, `space`, `severity`), og det gjør heller ikke etikettene til PowerMax (`storage_group`, `volume`, `director`, `port_id`, `srdf_group`).
 
 ## Slik er seriene til PowerStore bygd opp
 
@@ -131,7 +136,7 @@ En tilstand som tall utløser når hver verdi i vinduet er under 1, og gjenoppre
 
 ## Ferdige varslingsmaler
 
-OneUptime leverer 67 maler — 12 for FlashArray, 8 for FlashBlade, 16 for PowerStore og 31 for ONTAP — og listen under **Hva det skal varsles om** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: målingsspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
+OneUptime leverer 80 maler — 12 for FlashArray, 8 for FlashBlade, 16 for PowerStore, 31 for ONTAP og 13 for PowerMax — og listen under **Hva det skal varsles om** tilbyr dem for arrayets plattform. Hver bygger en komplett monitor: målingsspørringen, etikettfiltrene, en gruppering på objektets egen etikett, et kriterium som utløser og et som gjenoppretter. Terskler er utgangspunkter du kan redigere.
 
 Et kriterium utløser bare når betingelsen gjelder for **hver** verdi i vinduet, unntatt i en EMS-mal for ONTAP: Harvest eksporterer en hendelse i én innsamling, så én verdi er nok. En monitor som utløste på en terskel for kapasitet, latens, etterslep eller forhold, gjenoppretter først 10 % forbi den, så en verdi som svinger rundt terskelen, ikke skifter fram og tilbake. Malene for varsler, maskinvare og tilkobling utløses når en tilstand har vist seg i hele vinduet på 5 minutter, og gjenoppretter omtrent 5 minutter etter at den er borte.
 
@@ -232,11 +237,29 @@ De egne varslene til en PowerStore kommer som logger, så malene deres er monito
 | LUN Offline | Tilgjengelighet | Kritisk | `netapp_lun_new_status`, Max per `lun`, `volume` og `svm`, siste 10 minutter | < 1 — en LUN er ikke online, og vertene har mistet disken; gjenoppretter ved ≥ 1 |
 | SVM Stopped | Tilgjengelighet | Advarsel | `netapp_svm_labels` filtrert til `state=stopped` og `type=data`, Max per `svm`, siste 10 minutter | > 0 — en data-SVM er stoppet; gjenoppretter når den kjører igjen. SVM-ene ONTAP beholder for seg selv, overvåkes aldri |
 
+### PowerMax
+
+| Mal | Kategori | Alvorlighetsgrad | Overvåker | Utløser når |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Tilgjengelighet | Kritisk | `powermax_array_info`, Count, siste 10 minutter | Ingen data i hele vinduet — sonden har sluttet å samle inn arrayet: tilkoblingen feiler (siden for den under **Tilkoblinger** sier hvorfor), sonden er frakoblet, eller Unisphere administrerer ikke lenger arrayet; gjenoppretter når data kommer inn igjen |
+| Critical Unisphere Alert | Arrayets helse | Kritisk | `powermax_alert_open` filtrert til `severity=critical`, Max per `description`, siste 10 minutter | > 0 — Unisphere har et åpent varsel med alvorlighetsgrad Critical eller Fatal for arrayet. Én hendelse per varsel; gjenoppretter når varselet bekreftes eller fjernes i Unisphere |
+| Warning Unisphere Alert | Arrayets helse | Advarsel | `powermax_alert_open` filtrert til `severity=warning`, Max per `description`, siste 10 minutter | > 0 — Unisphere har et åpent varsel med alvorlighetsgrad Warning eller Minor. Én hendelse per varsel; gjenoppretter når varselet bekreftes eller fjernes |
+| Performance Collection Off | Arrayets helse | Advarsel | `powermax_array_performance_collection`, Min, siste 15 minutter | < 1 — Unisphere samler ikke inn arrayets 5-minutters ytelsesdata, så ingen svartid, IOPS eller gjennomstrømning vises i grafer eller varsles på; gjenoppretter ved ≥ 1 |
+| Storage Resource Pool Above 80% | Kapasitet | Advarsel | `powermax_srp_capacity_used_percent`, Max per `srp`, siste 15 minutter | > 80 — poolens lagringsgrupper slutter å ta imot nye skrivinger når den blir full. Én hendelse per pool; gjenoppretter ved ≤ 72 |
+| Storage Resource Pool Above 90% | Kapasitet | Kritisk | `powermax_srp_capacity_used_percent`, Max per `srp`, siste 15 minutter | > 90 — skrivinger til lagringsgruppene feiler så snart den er full. Én hendelse per pool; gjenoppretter ved ≤ 81 |
+| Storage Group Response Time Above 5 ms | Ytelse | Advarsel | `powermax_storage_group_response_time_usec`, Avg per `storage_group`, siste 15 minutter | > 5000 µs (5 ms) — en PowerMax svarer normalt på godt under et millisekund. Én hendelse per lagringsgruppe; gjenoppretter ved ≤ 4500 |
+| High Read Response Time | Ytelse | Advarsel | `powermax_array_response_time_usec` filtrert til `operation=read`, Avg, siste 15 minutter | > 3000 µs (3 ms); gjenoppretter ved ≤ 2700 |
+| High Write Response Time | Ytelse | Advarsel | `powermax_array_response_time_usec` filtrert til `operation=write`, Avg, siste 15 minutter | > 3000 µs (3 ms) — synkron SRDF legger rundturen til det eksterne arrayet til hver skriving; gjenoppretter ved ≤ 2700 |
+| Director Not Online | Maskinvare | Kritisk | `powermax_director_offline`, Max per `component`, siste 10 minutter | > 0 — en director er ikke online, og arrayet kjører på de andre. Én hendelse per director; gjenoppretter når den er online igjen |
+| Port Down | Maskinvare | Advarsel | `powermax_port_offline`, Max per `component`, siste 10 minutter | > 0 — en port i en port group, masking view eller SRDF-gruppe er ikke oppe. Én hendelse per port; gjenoppretter når den er oppe igjen |
+| SRDF Group Suspended or Offline | Replikering | Kritisk | `powermax_srdf_group_not_healthy`, Max per `srdf_group`, siste 10 minutter | > 0 — gruppens kobling er frakoblet, eller parene er suspendert, splittet eller i failover, så den eksterne kopien holdes ikke oppdatert. Én hendelse per gruppe; gjenoppretter når den er synkron igjen |
+| SRDF/A Lag Above 2 Minutes | Replikering | Advarsel | `powermax_srdf_group_lag_seconds`, Avg per `srdf_group`, siste 15 minutter | > 120 (2 minutter) — en failover nå ville miste flere nylige skrivinger enn planlagt. Én hendelse per gruppe; gjenoppretter ved ≤ 108 |
+
 **Alvorlighetsgrad** er etiketten velgeren viser. Hendelsen og varselet en mal oppretter, starter på prosjektets mest alvorlige hendelses- og varslingsgrad; endre dem i kriteriet.
 
-- **Array Stopped Reporting** teller plattformens identitetsserie (`purefa_info` eller `purefb_info`), som hvert endepunkt agenten leser, eksporterer ved hver avlesning. Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
+- **Array Stopped Reporting** teller plattformens identitetsserie (`purefa_info` eller `purefb_info`, som hvert endepunkt agenten leser, eksporterer ved hver avlesning, eller `powermax_array_info`, som hver PowerMax-innsamling skriver). Når data stopper, har de andre malene ingenting å sammenligne og beholder sin siste status, så det er denne som sier fra.
 - **Åpne varsler og maskinvaretilstander bruker Max** av en serie som bare finnes så lenge varselet er åpent eller komponenten er i den tilstanden, så tilstanden krysser terskelen når den har vist seg i hele vinduet på 5 minutter.
-- **Hver mal per objekt grupperer på objektets egen etikett** (`summary`, `component_name`, `host`, `local_pod`, `name`), så det utløses én hendelse per berørt objekt, og hendelsen nevner det.
+- **Hver mal per objekt grupperer på objektets egen etikett** (`summary`, `component_name`, `host`, `local_pod`, `name` og på en PowerMax `description`, `component`, `srp`, `srdf_group` og `storage_group`), så det utløses én hendelse per berørt objekt, og hendelsen nevner det.
 - **Latensmaler bruker Avg** av arrayets eget gjennomsnitt per operasjon, og kapasitetsmaler **Maks.** av dets egen utnyttelsesprosent. Latenser er låst i mikrosekunder og kapasitet i prosent.
 - **Hardware Component Unhealthy bruker Min** per komponent: helsen er 1 når den er sunn, og faller til 0 når den ikke er det.
 
@@ -244,7 +267,7 @@ Det finnes ingen FlashArray-mal for latensen til hvert volum, fordi den riktige 
 
 ## Innsamlede målinger
 
-Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskjemaet tilbyr. Hver verdi er en gauge som arrayet selv beregner - latenser er mikrosekunder per operasjon, og gjennomstrømning er per sekund -, så det trengs ingen rateberegning. **Filter** er etikettfilteret som gir serien betydningen raden angir; skjemaet bruker det for deg.
+Agenten sender alt arrayet eksporterer, og en sonde alt den leser fra en PowerMax, i de samme enhetene (Unispheres millisekunder som mikrosekunder, MB per sekund som byte per sekund); seriene nedenfor er katalogen monitorskjemaet tilbyr. Hver verdi er en gauge som arrayet selv beregner - latenser er mikrosekunder per operasjon, og gjennomstrømning er per sekund -, så det trengs ingen rateberegning. **Filter** er etikettfilteret som gir serien betydningen raden angir; skjemaet bruker det for deg.
 
 ### Arrayets helse
 
@@ -257,6 +280,9 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | Åpne varsler i hvert av ONTAPs helsedelsystemer, etter `subsystem` |
 | `netapp_health_support_alerts` | — | ONTAP | `count` | Én serie per varsel som ONTAPs overvåking av systemhelse har åpent, så lenge det er åpent |
 | `netapp_ems_events` | — | ONTAP | `count` | Én serie per EMS-hendelse, i innsamlingen som hentet den; når en paret hendelse opphører, eksporteres den én gang til som 0 |
+| `powermax_alert_open` | — | PowerMax | `count` | Én serie per varsel Unisphere har åpent for arrayet (verdi 1): ikke bekreftet, ikke fjernet og Minor eller verre. Etiketten severity er critical (Critical og Fatal) eller warning (Warning og Minor); etikettene alert_type, object og description forteller hva det gjelder. Bekreft varselet i Unisphere, så forsvinner serien |
+| `powermax_array_health_score` | — | PowerMax | `score` | Unispheres helsescore for arrayet, fra 0 til 100, per health_metric: samlet og for hvert område den vurderer (kapasitet, konfigurasjon, ytelse, samsvar med tjenestenivå) |
+| `powermax_array_performance_collection` | — | PowerMax | `count` | 1 mens Unisphere samler inn 5-minutters ytelsesdata for arrayet, 0 mens det ikke skjer. Når det er slått av, viser OneUptime fortsatt arrayets inventar og varsler, men tegner ingen ytelsesgrafer. Slå det på i Unisphere under Settings > Performance > System Registrations |
 
 ### Kapasitet
 
@@ -285,6 +311,13 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `netapp_aggr_new_status` | — | ONTAP | — | 1 så lenge et aggregat er online |
 | `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | Hva dataene til hvert aggregat ville tatt uten lagringseffektivitet, snapshots og FlexClones holdt utenfor |
 | `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | Hva dataene til hvert aggregat tar på disk etter lagringseffektivitet |
+| `powermax_array_capacity_used_percent` | — | PowerMax | `%` | Andelen av arrayets brukbare kapasitet som er i bruk, i prosent, på tvers av lagringsressurspoolene |
+| `powermax_array_capacity_usable_bytes` | — | PowerMax | `bytes` | Arrayets brukbare kapasitet, i byte, slik Unisphere rapporterer den |
+| `powermax_array_capacity_used_bytes` | — | PowerMax | `bytes` | Den delen av arrayets brukbare kapasitet som er i bruk, i byte |
+| `powermax_array_capacity_subscribed_bytes` | — | PowerMax | `bytes` | Kapasiteten til alle thin-volumer på arrayet, i byte: det vertene har fått lovet, som kan overstige den brukbare kapasiteten |
+| `powermax_array_data_reduction_ratio` | — | PowerMax | `ratio` | Hvor mange ganger større dataene vertene skrev er enn plassen de tar etter komprimering og deduplisering, slik Unisphere rapporterer det |
+| `powermax_srp_capacity_used_percent` | — | PowerMax | `%` | Andelen av hver lagringsressurspools brukbare kapasitet som er i bruk, i prosent, etter etiketten srp. En pool som blir full, slutter å ta imot nye skrivinger for alle lagringsgruppene i den |
+| `powermax_srp_capacity_used_bytes` | — | PowerMax | `bytes` | Den delen av hver lagringsressurspools brukbare kapasitet som er i bruk, i byte, etter etiketten srp |
 
 ### Ytelse
 
@@ -330,6 +363,18 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | Skriveoperasjoner per sekund på volumene til hver SVM |
 | `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | Byte per sekund lest fra volumene til hver SVM |
 | `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | Byte per sekund skrevet til volumene på hver SVM |
+| `powermax_array_response_time_usec` | `operation=read` | PowerMax | `µs` | Gjennomsnittlig tid for en vertslesing på arrayet i mikrosekunder over Unispheres siste 5-minuttersintervall (operation read) |
+| `powermax_array_response_time_usec` | `operation=write` | PowerMax | `µs` | Gjennomsnittlig tid for en vertsskriving på arrayet i mikrosekunder over Unispheres siste 5-minuttersintervall (operation write) |
+| `powermax_array_read_iops` | — | PowerMax | `ops/s` | Vertslesinger per sekund på arrayet: Unispheres verts-IO-er ganger andelen lesinger |
+| `powermax_array_write_iops` | — | PowerMax | `ops/s` | Vertsskrivinger per sekund på arrayet: Unispheres verts-IO-er ganger andelen skrivinger |
+| `powermax_array_read_throughput_bytes` | — | PowerMax | `bytes/s` | Byte per sekund som verter leser fra arrayet |
+| `powermax_array_write_throughput_bytes` | — | PowerMax | `bytes/s` | Byte per sekund som verter skriver til arrayet |
+| `powermax_array_cache_hit_percent` | — | PowerMax | `%` | Andelen av verts-I/O som arrayet besvarte fra hurtigbufferen, i prosent |
+| `powermax_array_write_pending_percent` | — | PowerMax | `%` | Andelen av arrayets hurtigbuffer som holder skrivinger som ennå ikke er skrevet til stasjonene, i prosent. Nær grensen sin gjør arrayet vertsskrivinger tregere |
+| `powermax_array_frontend_busy_percent` | — | PowerMax | `%` | Hvor belastet directorene som betjener verter er, i prosent |
+| `powermax_array_backend_busy_percent` | — | PowerMax | `%` | Hvor belastet directorene som betjener stasjonene er, i prosent |
+| `powermax_array_srdf_busy_percent` | — | PowerMax | `%` | Hvor belastet directorene som replikerer til andre arrayer er, i prosent |
+| `powermax_srp_response_time_usec` | — | PowerMax | `µs` | Gjennomsnittlig tid for en I/O i hver lagringsressurspool i mikrosekunder etter etiketten srp |
 
 ### Volumer
 
@@ -384,6 +429,20 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `netapp_lun_write_ops` | — | ONTAP | `ops/s` | Skriveoperasjoner per sekund på hver LUN |
 | `netapp_lun_read_data` | — | ONTAP | `bytes/s` | Byte per sekund lest fra hver LUN |
 | `netapp_lun_write_data` | — | ONTAP | `bytes/s` | Byte per sekund skrevet til hver LUN |
+| `powermax_storage_group_response_time_usec` | — | PowerMax | `µs` | Gjennomsnittlig tid for en I/O for hver lagringsgruppe i mikrosekunder etter etiketten storage_group, over Unispheres siste 5-minuttersintervall |
+| `powermax_storage_group_read_response_time_usec` | — | PowerMax | `µs` | Gjennomsnittlig tid for en lesing for hver lagringsgruppe i mikrosekunder etter etiketten storage_group |
+| `powermax_storage_group_write_response_time_usec` | — | PowerMax | `µs` | Gjennomsnittlig tid for en skriving for hver lagringsgruppe i mikrosekunder etter etiketten storage_group |
+| `powermax_storage_group_iops` | — | PowerMax | `ops/s` | Verts-I/O-er per sekund for hver lagringsgruppe etter etiketten storage_group |
+| `powermax_storage_group_throughput_bytes` | — | PowerMax | `bytes/s` | Byte per sekund som verter leser og skriver for hver lagringsgruppe, etter etiketten storage_group |
+| `powermax_storage_group_used_bytes` | — | PowerMax | `bytes` | Kapasiteten volumene i hver lagringsgruppe bruker, i byte, etter etiketten storage_group |
+| `powermax_storage_group_host_io_limit_exceeded_percent` | — | PowerMax | `%` | Andelen av intervallet der hver lagringsgruppe ble holdt tilbake av verts-I/O-grensen sin, i prosent. Bare lagringsgrupper med en angitt grense rapporterer den |
+| `powermax_storage_group_realtime_read_response_time_usec` | — | PowerMax | `µs` | Svartid for lesinger for lagringsgruppene som er registrert for innsamling i sanntid i Unisphere, i mikrosekunder, hvert 5. sekund. Opptil 100 lagringsgrupper per array kan registreres |
+| `powermax_storage_group_realtime_write_response_time_usec` | — | PowerMax | `µs` | Svartid for skrivinger for lagringsgruppene som er registrert for innsamling i sanntid i Unisphere, i mikrosekunder, hvert 5. sekund |
+| `powermax_storage_group_realtime_iops` | — | PowerMax | `ops/s` | Verts-I/O-er per sekund for lagringsgruppene som er registrert for innsamling i sanntid, hvert 5. sekund |
+| `powermax_storage_group_realtime_throughput_bytes` | — | PowerMax | `bytes/s` | Byte per sekund for lagringsgruppene som er registrert for innsamling i sanntid, hvert 5. sekund |
+| `powermax_volume_response_time_usec` | — | PowerMax | `µs` | Gjennomsnittlig tid for en I/O for hvert volum i mikrosekunder etter etiketten volume. Unisphere rapporterer den bare for volumer i lagringsgrupper som er registrert for innsamling i sanntid |
+| `powermax_volume_iops` | — | PowerMax | `ops/s` | Verts-I/O-er per sekund for hvert volum etter etiketten volume, for volumer i lagringsgrupper som er registrert for innsamling i sanntid |
+| `powermax_volume_used_bytes` | — | PowerMax | `bytes` | Kapasiteten hvert volum bruker, i byte, etter etiketten volume |
 
 ### Verter
 
@@ -410,6 +469,10 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | Hvor mye den siste overføringen til hver relasjon sendte |
 | `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | Hvor mange av oppdateringene til hver relasjon som har mislyktes; tallet bare vokser |
 | `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | Én serie per relasjon som ONTAP rapporterer som usunn, med årsaken i `unhealthy_reason` |
+| `powermax_srdf_group_not_healthy` | — | PowerMax | `count` | Én serie per SRDF-gruppe der koblingen er frakoblet eller parene er suspendert, partisjonert, splittet, i failover eller ugyldige (verdi 1), med etikettene srdf_group, state og remote_symmetrix_id. Serien finnes ikke så lenge gruppen replikerer |
+| `powermax_srdf_group_lag_seconds` | — | PowerMax | `s` | Hvor langt den eksterne kopien av hver asynkrone SRDF-gruppe ligger etter, i sekunder, etter etiketten srdf_group. En failover nå ville miste skrivingene fra så lang tid |
+| `powermax_srdf_group_throughput_bytes` | — | PowerMax | `bytes/s` | Byte per sekund som hver SRDF-gruppe sender til sitt eksterne array, etter etiketten srdf_group |
+| `powermax_srdf_group_response_time_usec` | — | PowerMax | `µs` | Gjennomsnittlig tid før en replikert skriving når det eksterne arrayet, for hver SRDF-gruppe i mikrosekunder etter etiketten srdf_group |
 
 ### Maskinvare
 
@@ -463,6 +526,12 @@ Agenten sender alt arrayet eksporterer; seriene nedenfor er katalogen monitorskj
 | `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | Byte per sekund skrevet gjennom hver Fibre Channel-port |
 | `netapp_fcp_util_percent` | — | ONTAP | `%` | Hvor mye av hastigheten til hver Fibre Channel-port som er i bruk |
 | `netapp_fcp_link_failure` | — | ONTAP | `count` | Koblingsfeil hver Fibre Channel-port har talt det siste minuttet |
+| `powermax_director_offline` | — | PowerMax | `count` | Én serie per director som ikke er online (verdi 1), med etikettene director, role og status. Serien finnes ikke så lenge alle directorer er online |
+| `powermax_director_busy_percent` | — | PowerMax | `%` | Hvor belastet hver director er, i prosent, etter etiketten component (for eksempel FA-1D) |
+| `powermax_port_offline` | — | PowerMax | `count` | Én serie per port som betjener verter eller SRDF (i en port group, en masking view eller en SRDF-gruppe), men som ikke er oppe (verdi 1), med etikettene component, protocol og status. Porter som ingen bruker, utelates: de kan være slått av med vilje |
+| `powermax_port_busy_percent` | — | PowerMax | `%` | Hvor belastet hver port er, i prosent, etter etiketten component (for eksempel FA-1D:4) |
+| `powermax_port_read_throughput_bytes` | — | PowerMax | `bytes/s` | Byte per sekund lest gjennom hver port etter etiketten component |
+| `powermax_port_rx_power_milliwatts` | — | PowerMax | `mW` | Lyseffekten hver optiske port mottar, i milliwatt, etter etiketten component. En fallende verdi betyr en optikk eller kabel som holder på å svikte. Krever Unisphere 10.3 eller nyere |
 
 ### Filsystemer
 
@@ -581,8 +650,12 @@ En EMS-mal utløser bare så lenge en hendelse av sin type er i vinduet: Harvest
 Agenten leser volumer, verter og pods hvert 2. minutt, filsystemene og bucketene til et FlashBlade hvert 5. og FlashArray-kataloger hvert 30., så et vindu på 1 minutt inneholder kanskje ingen prøve. Bruk 5 minutter eller mer: 15 for filsystemer og buckets, 60 for kataloger.
 :::
 
+:::details En PowerMax-monitor viser ingen data
+En sonde leser en PowerMax hvert 5. minutt, så bruk et vindu på 10 minutter eller mer. Svartider, IOPS og gjennomstrømning krever Unispheres ytelsesinnsamling, som malen **Performance Collection Off** overvåker, og tallene for et volum krever at lagringsgruppen er registrert for sanntid i Unisphere. Tilkoblingens side under **Produkter → Infrastruktur → Lagringsarrayer → Tilkoblinger** sier hva den siste innsamlingen ikke kunne lese.
+:::
+
 :::details Hendelser utløses én gang for hele arrayet i stedet for én gang per volum
-Grupper spørringen etter objektets etikett: `name` for volumer, pods, kataloger, filsystemer og buckets, `host` for verter og `component_name` for FlashArray-maskinvare. Pures etiketter har ikke noe prefiks, så `resource.name` samsvarer ikke med noe.
+Grupper spørringen etter objektets etikett: `name` for volumer, pods, kataloger, filsystemer og buckets, `host` for verter og `component_name` for FlashArray-maskinvare; på en PowerMax `storage_group`, `volume`, `component` eller `srdf_group`. Pures og PowerMax' etiketter har ikke noe prefiks, så `resource.name` samsvarer ikke med noe.
 :::
 
 ## Neste steg
