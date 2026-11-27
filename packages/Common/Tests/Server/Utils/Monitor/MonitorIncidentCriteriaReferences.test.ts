@@ -22,8 +22,10 @@ import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDe
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import logger from "../../../../Server/Utils/Logger";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
+import MonitorIncidentEscalation from "../../../../Server/Utils/Monitor/MonitorIncidentEscalation";
 import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import Dictionary from "../../../../Types/Dictionary";
+import { CriteriaIncident } from "../../../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -256,6 +258,33 @@ describe("MonitorIncident drops criteria references the project cannot use", () 
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("passes the matching open incident to escalation without opening a duplicate", async () => {
+    const record: Incident = new Incident();
+    record._id = ObjectID.generate().toString();
+    record.createdCriteriaId = "criteria-1";
+    record.createdIncidentTemplateId = "incident-template-1";
+    jest.mocked(IncidentService.findBy).mockResolvedValue([record]);
+
+    const instance: MonitorCriteriaInstance = criteriaInstance({});
+    const action: CriteriaIncident = instance.data!.incidents![0]!;
+    action.escalationAfterMinutes = 5;
+    action.escalationSeverityId = ObjectID.generate();
+
+    const escalate: jest.SpiedFunction<typeof MonitorIncidentEscalation.apply> =
+      jest
+        .spyOn(MonitorIncidentEscalation, "apply")
+        .mockResolvedValue(undefined);
+    await openIncident(instance);
+
+    expect(escalate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        incidentId: record.id,
+        criteriaIncident: action,
+      }),
+    );
+    expect(createdIncidents).toHaveLength(0);
   });
 
   it("opens the incident with the usable on-call policies and logs the rest", async () => {
