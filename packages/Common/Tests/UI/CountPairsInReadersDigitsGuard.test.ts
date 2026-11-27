@@ -86,6 +86,11 @@ const NOT_A_COUNT: Record<string, string> = {
     "an amount of money, written by formatCloudMoney with the reader's translator",
   "packages/App/FeatureSet/Dashboard/src/Pages/Cloud/Budgets.tsx {{amount}}":
     "an amount of money, written by formatCloudMoney with the reader's translator",
+  // Cloud > Tags: the tagged spend of all the spend (#11012).
+  "packages/App/FeatureSet/Dashboard/src/Components/Cloud/CloudTagWords.ts {{covered}}":
+    "an amount of money, written by formatCloudMoney with the reader's translator",
+  "packages/App/FeatureSet/Dashboard/src/Components/Cloud/CloudTagWords.ts {{total}}":
+    "an amount of money, written by formatCloudMoney with the reader's translator",
 };
 
 /*
