@@ -578,21 +578,32 @@ describe("an ONTAP cluster", () => {
         }
       }
     }
+    /*
+     * A port that is down is no problem by itself - nothing may be cabled
+     * to it, as on a PowerStore - so its word is in no list: ONTAP's health
+     * monitor raises the ones that are (Ethernet Port Down).
+     */
+    const NEUTRAL: Array<string> = ["down"];
     for (const word of words) {
       expect({
         word,
         known:
+          NEUTRAL.includes(word) ||
           StorageArrayStatusUtil.isCritical(word) ||
           StorageArrayStatusUtil.isWarning(word) ||
           StorageArrayStatusUtil.isHealthy(word),
       }).toEqual({ word, known: true });
     }
+    expect({
+      problem:
+        StorageArrayStatusUtil.isCritical("down") ||
+        StorageArrayStatusUtil.isWarning("down"),
+    }).toEqual({ problem: false });
     // And the troubles of the day read as troubles.
     for (const word of [
       "broken",
       "error",
       "critical",
-      "down",
       "offline",
       "unhealthy",
     ]) {

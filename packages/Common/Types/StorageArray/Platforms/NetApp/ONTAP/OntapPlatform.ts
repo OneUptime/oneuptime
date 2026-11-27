@@ -517,7 +517,10 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
    * The extractor writes ONTAP's own words for a part's state: an
    * aggregate or volume online or offline, an SVM running or stopped, a
    * disk broken or spare, a shelf part normal or in error, a sensor's
-   * threshold state, a port up or down, a node healthy or not.
+   * threshold state, a port up or down, a node healthy or not. A port
+   * that is down is no problem by itself - nothing may be cabled to it, as
+   * on a PowerStore - and ONTAP's health monitor raises the ones that are
+   * (Ethernet Port Down).
    */
   componentStatuses: {
     critical: [
@@ -526,7 +529,6 @@ const NetAppOntapPlatform: StorageArrayPlatform = {
       "inconsistent",
       "broken",
       "error",
-      "down",
       "offlined_by_system",
     ],
     warning: [
