@@ -141,7 +141,7 @@ When several rules that investigate match, OneUptime AI may use every server any
 - **Enable AI stops every call.** With **Enable AI** off, OneUptime sends nothing to a server: no call of an investigation, a fix, Ask AI, Slack or Microsoft Teams, not even one a person already approved.
 - **The address is checked on every connection.** OneUptime never connects to its own or a link-local address. On OneUptime Cloud it also refuses private network addresses: use the server's public address. A self-hosted OneUptime reaches private addresses unless `DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES=true` is set. Redirects are not followed.
 - **Limits.** A project has at most 20 servers, and OneUptime reads at most 200 tools of each. Connecting times out after 20 seconds, listing the tools after 30 and a tool call after 60. An answer larger than 2 MB is refused. A run's calls to MCP servers count toward the project's limits per run, when it sets them.
-- **Every call is recorded.** Each call is a step of the run, shown in its activity (in Ask AI, among the answer's steps), and each change a fix makes is in the **Remediation** step with what the server answered. The model calls behind them are in **Project Settings → AI → AI Logs**.
+- **Every call is recorded.** Each call is a step of the run, shown in its activity (in Ask AI, among the answer's steps), and each change a fix makes is in the **Remediation** step with what the server answered. An answer in Slack or Microsoft Teams names each server and tool it read among its sources. The model calls behind them are in **Project Settings → AI → AI Logs**.
 
 ## Troubleshooting
 
