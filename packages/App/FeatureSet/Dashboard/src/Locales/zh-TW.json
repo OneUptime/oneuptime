@@ -66432,5 +66432,6 @@
   "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "讀取此連線的探測器。它需要透過 TCP 443 連到該位址，因此通常是您在同一網路中執行的探測器。",
   "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Xen Orchestra 的 OpenMetrics 外掛程式中的密鑰，位於 Settings > Plugins > openmetrics。已加密，不會再次顯示，只會傳送到您的探測器。",
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "該權杖會從 OneUptime 中刪除。指標會繼續透過 OpenMetrics 密鑰送達。如果沒有其他東西使用它，也請在 Xen Orchestra 中撤銷它。",
-  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root，或擁有 XAPI read-only 角色的資源池 Active Directory 使用者。XAPI 沒有唯讀的本機帳戶。"
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root，或擁有 XAPI read-only 角色的資源池 Active Directory 使用者。XAPI 沒有唯讀的本機帳戶。",
+  "XCP-ng alarms": "XCP-ng 警報"
 }

@@ -66432,5 +66432,6 @@
   "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "この接続を読み取るプローブ。TCP 443 でアドレスに到達する必要があるため、通常は同じネットワーク内で実行しているプローブです。",
   "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Xen Orchestra の OpenMetrics プラグインのシークレット（Settings > Plugins > openmetrics）。暗号化され、再表示されず、選択したプローブにのみ送信されます。",
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "トークンは OneUptime から削除されます。メトリクスは OpenMetrics シークレットを通じて引き続き届きます。ほかで使っていなければ、Xen Orchestra でも失効させてください。",
-  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root、または XAPI の read-only ロールを持つプールの Active Directory ユーザー。XAPI には読み取り専用のローカルアカウントがありません。"
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root、または XAPI の read-only ロールを持つプールの Active Directory ユーザー。XAPI には読み取り専用のローカルアカウントがありません。",
+  "XCP-ng alarms": "XCP-ng のアラーム"
 }

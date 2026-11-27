@@ -66432,5 +66432,6 @@
   "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "이 연결을 읽는 프로브입니다. TCP 443으로 주소에 접근해야 하므로 보통 같은 네트워크에서 실행하는 프로브입니다.",
   "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Xen Orchestra OpenMetrics 플러그인의 시크릿(Settings > Plugins > openmetrics). 암호화되어 다시 표시되지 않으며, 선택한 프로브에게만 전송됩니다.",
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "토큰이 OneUptime에서 삭제됩니다. 메트릭은 OpenMetrics 시크릿으로 계속 들어옵니다. 다른 곳에서 쓰지 않는다면 Xen Orchestra에서도 취소하세요.",
-  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root 또는 XAPI read-only 역할을 가진 풀의 Active Directory 사용자입니다. XAPI에는 읽기 전용 로컬 계정이 없습니다."
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root 또는 XAPI read-only 역할을 가진 풀의 Active Directory 사용자입니다. XAPI에는 읽기 전용 로컬 계정이 없습니다.",
+  "XCP-ng alarms": "XCP-ng 경보"
 }

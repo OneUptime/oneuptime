@@ -66432,5 +66432,6 @@
   "The probe that reads this connection. It has to reach the address on TCP 443, so it is usually one you run in the same network.": "Die Sonde, die diese Verbindung liest. Sie muss die Adresse über TCP 443 erreichen, daher ist es meist eine, die Sie im selben Netzwerk betreiben.",
   "The secret in Xen Orchestra's OpenMetrics plugin, under Settings > Plugins > openmetrics. Encrypted, never shown again, sent only to your probe.": "Das Geheimnis im OpenMetrics-Plugin von Xen Orchestra, unter Settings > Plugins > openmetrics. Verschlüsselt, nie wieder angezeigt, nur an Ihre Sonde gesendet.",
   "The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it.": "Das Token wird aus OneUptime gelöscht. Die Metriken kommen weiter über das OpenMetrics-Geheimnis. Widerrufen Sie es auch in Xen Orchestra, wenn nichts anderes es verwendet.",
-  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root oder ein Active-Directory-Benutzer des Pools mit der XAPI-Rolle read-only. XAPI hat kein lokales Konto, das nur liest."
+  "root, or an Active Directory user of the pool with XAPI's read-only role. XAPI has no read-only local account.": "root oder ein Active-Directory-Benutzer des Pools mit der XAPI-Rolle read-only. XAPI hat kein lokales Konto, das nur liest.",
+  "XCP-ng alarms": "XCP-ng-Alarme"
 }
