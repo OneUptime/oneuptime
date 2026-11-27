@@ -228,8 +228,15 @@ export const ACCESS_LOG_FORMAT_READS: string = translationKey(
   "Each line in it is read field by field: the address that connected from {{connection}}, X-Forwarded-For from {{forwardedFor}}.",
 );
 
+/*
+ * Said of a format with no X-Forwarded-For, such as ingress-nginx's
+ * upstreaminfo. Adding the header is advised only behind an HTTP proxy,
+ * which adds the client itself: behind a TCP-level one (a Network Load
+ * Balancer) the header is what the client wrote, and the private hop in
+ * front of the web server is trusted (#11389).
+ */
 export const ACCESS_LOG_FORMAT_NO_FORWARDED_FOR: string = translationKey(
-  "It logs no X-Forwarded-For, so each line's client is its {{connection}}. Add {{forwardedFor}} to read the client your load balancer forwarded.",
+  "It logs no X-Forwarded-For, so each line's client is its {{connection}}. If an Application Load Balancer or another HTTP proxy is in front, add {{forwardedFor}} to read the client it forwarded.",
 );
 
 // The dialog and its one field.

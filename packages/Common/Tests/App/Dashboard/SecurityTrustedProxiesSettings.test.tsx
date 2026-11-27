@@ -1304,7 +1304,7 @@ describe("Access Logs: Log Format", () => {
 
     await waitFor(() => {
       expect(formatRow()).toHaveTextContent(
-        `It logs no X-Forwarded-For, so each line's client is its $remote_addr. Add "$http_x_forwarded_for" to read the client your load balancer forwarded.`,
+        `It logs no X-Forwarded-For, so each line's client is its $remote_addr. If an Application Load Balancer or another HTTP proxy is in front, add "$http_x_forwarded_for" to read the client it forwarded.`,
       );
     });
   });
