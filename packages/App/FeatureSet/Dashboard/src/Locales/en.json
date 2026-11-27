@@ -67065,6 +67065,7 @@
   "{{name}} deleted": "{{name}} deleted",
   "{{name}} removed from Data Observability": "{{name}} removed from Data Observability",
   "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.",
+  "Data from {{start}} to {{end}}": "Data from {{start}} to {{end}}",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.",
   "Investigate with xo-cli": "Investigate with xo-cli",
   "One agent serves one pool: set XCP_NG_POOL_ID to this pool's UUID when its Xen Orchestra manages several. The agent trusts the xo-ca.pem the collector trusts, and reads Xen Orchestra over https only.": "One agent serves one pool: set XCP_NG_POOL_ID to this pool's UUID when its Xen Orchestra manages several. The agent trusts the xo-ca.pem the collector trusts, and reads Xen Orchestra over https only.",

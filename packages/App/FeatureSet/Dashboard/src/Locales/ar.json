@@ -67065,6 +67065,7 @@
   "{{name}} deleted": "تم حذف {{name}}",
   "{{name}} removed from Data Observability": "تمت إزالة {{name}} من قابلية ملاحظة البيانات",
   "{{server}} has no Database Agent connected. Install the Database Agent beside it, or choose another way to connect.": "لا يوجد وكيل قاعدة بيانات متصل لدى {{server}}. ثبّت وكيل قاعدة البيانات بجواره، أو اختر طريقة أخرى للاتصال.",
+  "Data from {{start}} to {{end}}": "البيانات: من {{start}} إلى {{end}}",
   "A token of a Xen Orchestra user holding a copy of the built-in Read only role and nothing else. Every read uses it, and the agent runs nothing until Xen Orchestra says the token can only read.": "رمز لمستخدم Xen Orchestra يحمل نسخة من الدور المدمج «Read only» ولا شيء غيره. تستخدمه كل عملية قراءة، ولا يشغّل الوكيل شيئًا حتى يؤكد Xen Orchestra أن الرمز يستطيع القراءة فقط.",
   "Investigate with xo-cli": "التحقيق باستخدام xo-cli",
   "One agent serves one pool: set XCP_NG_POOL_ID to this pool's UUID when its Xen Orchestra manages several. The agent trusts the xo-ca.pem the collector trusts, and reads Xen Orchestra over https only.": "يخدم كل وكيل تجمّعًا واحدًا: اضبط XCP_NG_POOL_ID على معرّف UUID لهذا التجمّع عندما يدير Xen Orchestra الخاص به عدة تجمّعات. ويثق الوكيل بملف xo-ca.pem نفسه الذي يثق به المجمّع، ولا يقرأ Xen Orchestra إلا عبر https.",
