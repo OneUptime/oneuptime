@@ -1209,6 +1209,7 @@ import { AddCloudCostBasesAndCommitments1809187721011 } from "./1809187721011-Ad
 import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
 import { AddDataStoreDataObservabilityRemovalAndAgent1809187741147 } from "./1809187741147-AddDataStoreDataObservabilityRemovalAndAgent";
 import { AddDataStoreDatabaseAgentIndexAndKey1809187741148 } from "./1809187741148-AddDataStoreDatabaseAgentIndexAndKey";
+import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
 
 export default [
   InitialMigration,
@@ -2422,4 +2423,5 @@ export default [
   AddSanSwitchFibreChannelColumns1809187731166,
   AddDataStoreDataObservabilityRemovalAndAgent1809187741147,
   AddDataStoreDatabaseAgentIndexAndKey1809187741148,
+  AddSecurityUserErasureRequestProgress1809187741160,
 ];

@@ -147,6 +147,19 @@ const DISCOVERED_RESOURCES: Array<DiscoveredResource> = [
     open: ["cloudPlatform", "cloudAccountId", "cloudRegion"],
     isAddedByCommand: true,
   },
+  {
+    /*
+     * An XCP-ng pool registers itself when the XCP-ng Agent, run from the
+     * Add guide's commands, sends its first batch from Xen Orchestra
+     * (#10995): found by its UUID, named as Xen Orchestra names it.
+     */
+    model: "XcpNgPool",
+    listPage: `${DASHBOARD}/Pages/XcpNg/Pools.tsx`,
+    label: "ModelTable: XCP-ng Pools",
+    service: "XcpNgPoolService.ts",
+    open: ["poolIdentifier"],
+    isAddedByCommand: true,
+  },
 ];
 
 const DISCOVERED_MODELS: ReadonlySet<string> = new Set<string>(

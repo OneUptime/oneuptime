@@ -2095,8 +2095,9 @@ describe("the Security Events page", () => {
       "? `[Detection] ${rule.name} — ${matchGroup.groupValue}`",
     );
     expect(evaluator).toContain(": `[Detection] ${rule.name}`;");
+    // The group's keyed fingerprint, and the unkeyed one it is found by too (#11130).
     expect(flat(evaluator)).toContain(
-      "fingerprint: this.buildFingerprint(rule.id!, matchGroup.groupValue),",
+      "...this.buildFingerprints(rule, matchGroup.groupValue),",
     );
     expect(evaluator).toContain("return openDedupedAlerts({");
     expect(evaluator).toContain(

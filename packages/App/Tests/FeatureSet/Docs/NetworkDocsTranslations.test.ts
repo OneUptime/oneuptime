@@ -126,6 +126,7 @@ const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
     "No name found",
     // The alert pack's criteria, named in English (NetworkDeviceAlertPack).
     "Device unreachable",
+    "SNMP walk failing",
     // The template and the policy the recommended policy creates, named in English.
     "Network device alert pack (recommended)",
     "Alert on every device",

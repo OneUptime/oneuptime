@@ -968,7 +968,7 @@ export const FixDataSecurityIssueWithAiTool: ObservabilityTool = {
 
     if (!issueId) {
       throw new BadDataException(
-        "dataSecurityIssueId must be an issue's ID. List issues with query_data_security_issues first.",
+        "The dataSecurityIssueId given is not an issue's ID. List issues with query_data_security_issues first.",
       );
     }
 

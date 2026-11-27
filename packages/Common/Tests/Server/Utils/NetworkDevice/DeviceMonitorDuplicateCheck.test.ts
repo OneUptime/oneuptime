@@ -12,15 +12,29 @@ jest.mock("../../../../Server/Infrastructure/Semaphore", () => {
   };
 });
 
+// The monitors whose steps watch a device (issue #10990): none, unless a test says.
+jest.mock("../../../../Server/Services/MonitorNetworkDeviceService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findMonitorIdsWatching: jest.fn(async (): Promise<Array<string>> => {
+        return [];
+      }),
+    },
+  };
+});
+
 import DeviceMonitorDuplicateCheck, {
   DEVICE_MONITOR_BUSY_REASON,
   DEVICE_MONITOR_FACTS_SELECT,
   DEVICE_MONITOR_LOCK_ACQUIRE_TIMEOUT_MS,
   DEVICE_MONITOR_LOCK_NAMESPACE,
   DEVICE_MONITOR_LOCK_TIMEOUT_MS,
+  WATCHING_MONITORS_READ_CHUNK_SIZE,
   deviceMonitorLockKey,
 } from "../../../../Server/Utils/NetworkDevice/DeviceMonitorDuplicateCheck";
 import Semaphore from "../../../../Server/Infrastructure/Semaphore";
+import MonitorNetworkDeviceService from "../../../../Server/Services/MonitorNetworkDeviceService";
 import MonitorService from "../../../../Server/Services/MonitorService";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import MonitorTemplate from "../../../../Models/DatabaseModels/MonitorTemplate";
@@ -73,6 +87,8 @@ const STATUS_ID: ObjectID = new ObjectID(
 const findByMock: jest.Mock = MonitorService.findBy as unknown as jest.Mock;
 const findOneByMock: jest.Mock =
   MonitorService.findOneBy as unknown as jest.Mock;
+const watchingMock: jest.Mock =
+  MonitorNetworkDeviceService.findMonitorIdsWatching as unknown as jest.Mock;
 const lockMock: jest.Mock = Semaphore.lock as unknown as jest.Mock;
 const releaseMock: jest.Mock = Semaphore.release as unknown as jest.Mock;
 
@@ -144,6 +160,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   findByMock.mockResolvedValue([]);
   findOneByMock.mockResolvedValue(null);
+  watchingMock.mockResolvedValue([]);
   lockMock.mockResolvedValue({ id: "device-lock" });
   releaseMock.mockResolvedValue(undefined);
 });
@@ -410,6 +427,245 @@ describe("the monitors a person tied to a device", () => {
         ),
       ).toBe(true);
     }
+  });
+});
+
+/*
+ * THE NETWORK DEVICE MONITORS WATCHING A DEVICE (OneUptime issue #10990).
+ *
+ * A Network Device monitor names its device in its steps, so nothing ties
+ * one a person made to the device. Made from a template - Create from
+ * template on the Monitors page - it is the device's monitor from that
+ * template all the same, and without it an import, an auto import rule or
+ * Create Monitors gave the device a second one. They are read through
+ * MonitorNetworkDevice, by the device, then by id in its project.
+ */
+describe("the Network Device monitors watching a device (#10990)", () => {
+  const NETWORK_DEVICE_TEMPLATE_ID: ObjectID = new ObjectID(
+    "cc000000-0000-4000-8000-000000000010",
+  );
+
+  function networkDeviceMonitor(data: {
+    name: string;
+    templateId?: ObjectID | undefined;
+  }): Monitor {
+    const item: Monitor = new Monitor();
+    item.id = ObjectID.generate();
+    item.name = data.name;
+    item.monitorType = MonitorType.NetworkDevice;
+
+    if (data.templateId) {
+      item.monitorTemplateId = data.templateId;
+    }
+
+    return item;
+  }
+
+  function networkDeviceTemplate(id: ObjectID): MonitorTemplate {
+    const item: MonitorTemplate = new MonitorTemplate();
+    item.id = id;
+    item.projectId = PROJECT_ID;
+    item.monitorType = MonitorType.NetworkDevice;
+    return item;
+  }
+
+  /*
+   * Each read answered as the database would: the ones made for the device,
+   * the ones tied to it, and the ones read by the ids the watching lookup
+   * answered with.
+   */
+  function answer(data: {
+    madeFor?: Array<Monitor>;
+    tiedTo?: Array<Monitor>;
+    watching?: Array<Monitor>;
+  }): void {
+    watchingMock.mockResolvedValue(
+      (data.watching || []).map((item: Monitor): string => {
+        return item.id!.toString();
+      }),
+    );
+
+    findByMock.mockImplementation(
+      async (args: {
+        query: Record<string, unknown>;
+      }): Promise<Array<Monitor>> => {
+        if (args.query["autoProvisionedNetworkDeviceId"]) {
+          return data.madeFor || [];
+        }
+
+        if (args.query["networkDeviceId"]) {
+          return data.tiedTo || [];
+        }
+
+        return data.watching || [];
+      },
+    );
+  }
+
+  it("are read by the device through MonitorNetworkDevice, then by id in its project, with what tells a duplicate", async () => {
+    const watcher: Monitor = networkDeviceMonitor({
+      name: "IRVLCRLANSWI02 health",
+      templateId: NETWORK_DEVICE_TEMPLATE_ID,
+    });
+    answer({ watching: [watcher] });
+
+    const monitors: Array<DeviceMonitorFacts> =
+      await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+        projectId: PROJECT_ID,
+        device: device(),
+      });
+
+    expect(watchingMock).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      deviceIds: [DEVICE_ID.toString()],
+    });
+    expect(monitors).toEqual([
+      expect.objectContaining({
+        id: watcher.id!.toString(),
+        monitorType: MonitorType.NetworkDevice,
+        monitorTemplateId: NETWORK_DEVICE_TEMPLATE_ID.toString(),
+      }),
+    ]);
+
+    const byId: Record<string, unknown> = findByMock.mock.calls[2]![0];
+    expect(byId).toMatchObject({
+      query: { projectId: PROJECT_ID },
+      select: DEVICE_MONITOR_FACTS_SELECT,
+      sort: { createdAt: SortOrder.Ascending },
+      limit: 1,
+      props: { isRoot: true },
+    });
+    expect((byId["query"] as Record<string, unknown>)["_id"]).toBeDefined();
+  });
+
+  it("come after the ones tied to it, each once, and the ones already read are not read again", async () => {
+    const madeFor: Monitor = networkDeviceMonitor({
+      name: "IRVLCRLANSWI02 - Enterprise Switch Monitoring",
+      templateId: NETWORK_DEVICE_TEMPLATE_ID,
+    });
+    const tied: Monitor = networkDeviceMonitor({ name: "uplink errors" });
+    const onlyWatching: Monitor = networkDeviceMonitor({ name: "CPU" });
+
+    answer({
+      madeFor: [madeFor],
+      tiedTo: [tied],
+      watching: [madeFor, tied, onlyWatching],
+    });
+
+    const monitors: Array<DeviceMonitorFacts> =
+      await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+        projectId: PROJECT_ID,
+        device: device(),
+      });
+
+    expect(
+      monitors.map((facts: DeviceMonitorFacts): string => {
+        return facts.name;
+      }),
+    ).toEqual([
+      "IRVLCRLANSWI02 - Enterprise Switch Monitoring",
+      "uplink errors",
+      "CPU",
+    ]);
+
+    // Only the one not read already is asked for by id.
+    expect(findByMock.mock.calls[2]![0].limit).toBe(1);
+  });
+
+  it("make a Network Device template's monitor a duplicate when one is from the same template", async () => {
+    answer({
+      watching: [
+        networkDeviceMonitor({
+          name: "IRVLCRLANSWI02 health",
+          templateId: NETWORK_DEVICE_TEMPLATE_ID,
+        }),
+      ],
+    });
+
+    const duplicate: DeviceMonitorFacts | null =
+      await DeviceMonitorDuplicateCheck.findDuplicate({
+        projectId: PROJECT_ID,
+        device: device(),
+        template: networkDeviceTemplate(NETWORK_DEVICE_TEMPLATE_ID),
+      });
+
+    expect(duplicate?.name).toBe("IRVLCRLANSWI02 health");
+  });
+
+  it("never make a Network Device template's monitor a duplicate when they are from another template or none", async () => {
+    answer({
+      watching: [
+        networkDeviceMonitor({ name: "uplink errors" }),
+        networkDeviceMonitor({
+          name: "Old Switch Health",
+          templateId: ALERT_PACK_TEMPLATE_ID,
+        }),
+      ],
+    });
+
+    expect(
+      await DeviceMonitorDuplicateCheck.findDuplicate({
+        projectId: PROJECT_ID,
+        device: device(),
+        template: networkDeviceTemplate(NETWORK_DEVICE_TEMPLATE_ID),
+      }),
+    ).toBeNull();
+  });
+
+  it("are read a chunk of ids at a time", async () => {
+    const watchers: Array<Monitor> = [];
+
+    for (
+      let index: number = 0;
+      index < 2 * WATCHING_MONITORS_READ_CHUNK_SIZE + 3;
+      index++
+    ) {
+      watchers.push(networkDeviceMonitor({ name: `watcher ${index}` }));
+    }
+
+    watchingMock.mockResolvedValue(
+      watchers.map((item: Monitor): string => {
+        return item.id!.toString();
+      }),
+    );
+
+    await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+      projectId: PROJECT_ID,
+      device: device(),
+    });
+
+    // Made for, tied to, then three reads by id.
+    expect(
+      findByMock.mock.calls.slice(2).map((call: Array<unknown>): number => {
+        return (call[0] as { limit: number }).limit;
+      }),
+    ).toEqual([
+      WATCHING_MONITORS_READ_CHUNK_SIZE,
+      WATCHING_MONITORS_READ_CHUNK_SIZE,
+      3,
+    ]);
+  });
+
+  it("ask nothing more when nothing watches the device", async () => {
+    await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+      projectId: PROJECT_ID,
+      device: device(),
+    });
+
+    expect(watchingMock).toHaveBeenCalledTimes(1);
+    expect(findByMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("are not asked about for a device not saved yet", async () => {
+    const unsaved: NetworkDevice = new NetworkDevice();
+    unsaved.projectId = PROJECT_ID;
+
+    await DeviceMonitorDuplicateCheck.readDeviceMonitors({
+      projectId: PROJECT_ID,
+      device: unsaved,
+    });
+
+    expect(watchingMock).not.toHaveBeenCalled();
   });
 });
 

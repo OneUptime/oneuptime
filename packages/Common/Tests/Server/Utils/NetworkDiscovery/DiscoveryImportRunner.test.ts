@@ -6,6 +6,7 @@ import DiscoveryImportRunner, {
   MAX_CONSECUTIVE_IDENTICAL_MONITOR_FAILURES,
   MAX_DISCOVERY_IMPORT_RESUMES,
   MONITOR_SKIPPED_AMBIGUOUS_DEVICE,
+  MONITOR_SKIPPED_DEVICE_GONE,
   MONITOR_SKIPPED_DEVICE_NOT_IMPORTED,
   MONITOR_SKIPPED_MONITOR_BACKED,
 } from "../../../../Server/Utils/NetworkDiscovery/DiscoveryImportRunner";
@@ -37,8 +38,10 @@ import {
   DiscoveryImportDeviceOutcome,
   DiscoveryImportHostResult,
   DiscoveryImportMonitorOutcome,
+  DiscoveryImportSource,
   DiscoveryImportStatus,
   DiscoveryImportView,
+  MAX_DEVICES_PER_MONITOR_CREATION,
   MAX_HOSTS_PER_DISCOVERY_IMPORT,
   isHostResultRetryable,
   readDiscoveryImportHostResults,
@@ -109,6 +112,8 @@ jest.mock("../../../../Server/Services/NetworkDeviceService", () => {
     default: {
       create: jest.fn(),
       findOneBy: jest.fn(),
+      // Create Monitors reads the selected devices as the person (#10990).
+      findBy: jest.fn(),
       getDevicesByHostnames: jest.fn(),
     },
   };
@@ -123,6 +128,18 @@ jest.mock("../../../../Server/Services/MonitorService", () => {
 
 jest.mock("../../../../Server/Services/MonitorTemplateService", () => {
   return { __esModule: true, default: { findOneBy: jest.fn() } };
+});
+
+// The monitors whose steps watch a device (issue #10990): none, unless a test says.
+jest.mock("../../../../Server/Services/MonitorNetworkDeviceService", () => {
+  return {
+    __esModule: true,
+    default: {
+      findMonitorIdsWatching: jest.fn(async (): Promise<Array<string>> => {
+        return [];
+      }),
+    },
+  };
 });
 
 jest.mock("../../../../Server/Infrastructure/Queue", () => {
@@ -288,6 +305,24 @@ interface FakeDatabase {
   refuseMonitors: Error | null;
   // Devices that appear at an address as soon as a create there fails.
   appearsOnFailure: Map<string, NetworkDevice>;
+  /*
+   * Devices by id, beside the ones by address: Create Monitors (issue
+   * #10990) names devices, and two at one address are two devices.
+   */
+  devicesById: Map<string, NetworkDevice>;
+  // Devices the person's labels or ownership keep from them.
+  unreadableDeviceIds: Set<string>;
+}
+
+// The values an `_id: QueryHelper.any([...])` filter names.
+function idsNamedBy(filter: unknown): Array<string> {
+  const parameters: Record<string, Array<string>> = ((
+    filter as { objectLiteralParameters?: Record<string, Array<string>> }
+  ).objectLiteralParameters as Record<string, Array<string>>) || {};
+
+  return (Object.values(parameters)[0] || []).map((id: string): string => {
+    return id.toLowerCase();
+  });
 }
 
 let db: FakeDatabase;
@@ -486,11 +521,35 @@ function installFakes(): void {
   (NetworkDeviceService.findOneBy as jest.Mock).mockImplementation(
     async (data: { query: Record<string, unknown> }) => {
       return (
-        Array.from(db.devicesByHostname.values()).find(
-          (device: NetworkDevice): boolean => {
-            return device.id?.toString() === String(data.query["_id"]);
-          },
-        ) || null
+        [
+          ...Array.from(db.devicesById.values()),
+          ...Array.from(db.devicesByHostname.values()),
+        ].find((device: NetworkDevice): boolean => {
+          return device.id?.toString() === String(data.query["_id"]);
+        }) || null
+      );
+    },
+  );
+
+  /*
+   * The selected devices, read as the person (Create Monitors, #10990): the
+   * ones of the project they may read, not archived.
+   */
+  (NetworkDeviceService.findBy as jest.Mock).mockImplementation(
+    async (data: { query: Record<string, unknown> }) => {
+      const ids: Array<string> = idsNamedBy(data.query["_id"]);
+
+      return Array.from(db.devicesById.values()).filter(
+        (device: NetworkDevice): boolean => {
+          const id: string = device.id!.toString().toLowerCase();
+
+          return (
+            ids.includes(id) &&
+            !db.unreadableDeviceIds.has(id) &&
+            device.projectId?.toString() === String(data.query["projectId"]) &&
+            !device.isArchived
+          );
+        },
       );
     },
   );
@@ -630,6 +689,8 @@ beforeEach(() => {
     refuseDeviceAt: new Map(),
     refuseMonitors: null,
     appearsOnFailure: new Map(),
+    devicesById: new Map(),
+    unreadableDeviceIds: new Set(),
   };
 
   personProps = propsWith(FULL_IMPORTER);
@@ -1143,7 +1204,21 @@ describe("importing the hosts", () => {
 
     expect(db.createdMonitors).toHaveLength(3);
     for (const created of db.createdMonitors) {
-      expect(created.props).toEqual({ isRoot: true, tenantId: PROJECT_ID });
+      /*
+       * Root, in the project, on the person's behalf: the database stamps
+       * them as the creator from these props (a creator a write in a project
+       * only names in its row is cleared), and none of their permissions
+       * ride along (OnBehalfOfProps).
+       */
+      expect(created.props).toMatchObject({
+        isRoot: true,
+        tenantId: PROJECT_ID,
+        userId: PERSON_ID,
+      });
+      expect(
+        (created.props as DatabaseCommonInteractionProps)
+          .userTenantAccessPermission,
+      ).toBeUndefined();
       expect(created.monitor.monitorType).toBe(MonitorType.NetworkDevice);
       expect(created.monitor.monitorTemplateId?.toString()).toBe(
         TEMPLATE_ID.toString(),
@@ -1471,7 +1546,11 @@ describe("a Ping, IP, Port or NTP template (issue #5145)", () => {
     }
 
     for (const create of monitorCreates()) {
-      expect(create.props).toEqual({ isRoot: true, tenantId: PROJECT_ID });
+      expect(create.props).toMatchObject({
+        isRoot: true,
+        tenantId: PROJECT_ID,
+        userId: PERSON_ID,
+      });
       // The probe that reached the address in the scan runs the check.
       expect(create.miscDataProps).toEqual({
         probes: [PROBE_ID.toString()],
@@ -3181,5 +3260,433 @@ describe("a scan's host at an address another site's device has (issue #9677)", 
       }),
     );
     expect(db.createdDevices).toHaveLength(0);
+  });
+});
+
+/*
+ * CREATE MONITORS FOR DEVICES ALREADY ADDED (OneUptime issue #10990).
+ *
+ * Network > Devices > Bulk Actions > Create Monitors: the selected devices -
+ * however they were added - each get the template's monitor, through the
+ * same import a scan's hosts go through, with nothing imported. A device
+ * that has a monitor the template's would duplicate keeps it; one that has
+ * other monitors gets the template's beside them; running it twice makes
+ * nothing twice. It asks the person to see the devices and to create
+ * monitors, never to create devices or to see scans.
+ */
+describe("Create Monitors for devices already added (issue #10990)", () => {
+  const MONITOR_CREATOR: Array<Permission> = [
+    Permission.ReadNetworkDevice,
+    Permission.CreateProjectMonitor,
+    Permission.ReadMonitorTemplate,
+  ];
+
+  // Two Meraki switches of the report, a monitor-backed camera.
+  const SWITCH_A: string = "aa100000-0000-4000-8000-000000000001";
+  const SWITCH_B: string = "aa100000-0000-4000-8000-000000000002";
+  const CAMERA: string = "aa100000-0000-4000-8000-000000000003";
+
+  function addDevice(data: {
+    id: string;
+    name: string;
+    hostname: string;
+    monitoringMethod?: NetworkDeviceMonitoringMethod | undefined;
+  }): NetworkDevice {
+    const device: NetworkDevice = new NetworkDevice();
+    device.id = new ObjectID(data.id);
+    device.projectId = PROJECT_ID;
+    device.name = data.name;
+    device.hostname = data.hostname;
+    device.probeId = PROBE_ID;
+    device.monitoringMethod =
+      data.monitoringMethod || NetworkDeviceMonitoringMethod.Probe;
+    device.isArchived = false;
+    db.devicesById.set(data.id, device);
+    return device;
+  }
+
+  beforeEach(() => {
+    db.scan = null;
+    personProps = propsWith(MONITOR_CREATOR);
+    addDevice({ id: SWITCH_A, name: "RRKLCRLANSWI01", hostname: "10.20.0.1" });
+    addDevice({ id: SWITCH_B, name: "RRKLCRLANSWI02", hostname: "10.20.0.2" });
+    addDevice({
+      id: CAMERA,
+      name: "LOBBY-CAM",
+      hostname: "10.20.0.9",
+      monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    });
+  });
+
+  async function createMonitors(
+    overrides: {
+      deviceIds?: unknown;
+      monitorTemplateId?: unknown;
+      props?: DatabaseCommonInteractionProps;
+    } = {},
+  ): Promise<NetworkDeviceDiscoveryImport> {
+    return await DiscoveryImportRunner.startFromDevices({
+      projectId: PROJECT_ID,
+      props: overrides.props || personProps,
+      deviceIds: overrides.deviceIds ?? [SWITCH_A, SWITCH_B],
+      monitorTemplateId: overrides.monitorTemplateId ?? TEMPLATE_ID.toString(),
+    });
+  }
+
+  function resultOf(
+    row: NetworkDeviceDiscoveryImport,
+    deviceId: string,
+  ): DiscoveryImportHostResult {
+    return resultsOf(row).find((result: DiscoveryImportHostResult): boolean => {
+      return result.existingDeviceId === deviceId;
+    })!;
+  }
+
+  test("records each device as already added, its monitor waiting, in the order selected, and queues the project's job", async () => {
+    const row: NetworkDeviceDiscoveryImport = await createMonitors({
+      deviceIds: [SWITCH_B, SWITCH_A, SWITCH_B],
+    });
+
+    expect(row.networkDeviceDiscoveryScanId).toBeUndefined();
+    expect(row.status).toBe(DiscoveryImportStatus.Queued);
+    expect(row.monitorTemplateName).toBe(db.template!.templateName);
+    expect(row.settings).toMatchObject({
+      alerting: DiscoveryImportAlerting.MonitorTemplate,
+      monitorTemplateId: TEMPLATE_ID.toString(),
+    });
+    expect(
+      resultsOf(row).map((result: DiscoveryImportHostResult) => {
+        return [
+          result.existingDeviceId,
+          result.deviceId,
+          result.name,
+          result.ipAddress,
+          result.device,
+          result.monitor,
+        ];
+      }),
+    ).toEqual([
+      [
+        SWITCH_B,
+        SWITCH_B,
+        "RRKLCRLANSWI02",
+        "10.20.0.2",
+        DiscoveryImportDeviceOutcome.AlreadyAdded,
+        DiscoveryImportMonitorOutcome.Pending,
+      ],
+      [
+        SWITCH_A,
+        SWITCH_A,
+        "RRKLCRLANSWI01",
+        "10.20.0.1",
+        DiscoveryImportDeviceOutcome.AlreadyAdded,
+        DiscoveryImportMonitorOutcome.Pending,
+      ],
+    ]);
+    expect(Queue.addJob).toHaveBeenCalledTimes(1);
+    expect(ActiveMonitorLimit.assertRoomFor).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+    });
+    expect(DiscoveryImportRunner.sourceOf(row)).toBe(
+      DiscoveryImportSource.Devices,
+    );
+  });
+
+  test("gives each device the template's monitor, made for it, and makes nothing on a second run", async () => {
+    const first: NetworkDeviceDiscoveryImport = await createMonitors();
+
+    await runAll();
+
+    expect(stored(first).status).toBe(DiscoveryImportStatus.Completed);
+    expect(db.createdDevices).toHaveLength(0);
+    expect(db.createdMonitors).toHaveLength(2);
+
+    for (const deviceId of [SWITCH_A, SWITCH_B]) {
+      const result: DiscoveryImportHostResult = resultOf(first, deviceId);
+      expect(result.monitor).toBe(DiscoveryImportMonitorOutcome.Created);
+
+      const made: Monitor = db.createdMonitors.find(
+        (created: { monitor: Monitor }): boolean => {
+          return (
+            created.monitor.autoProvisionedNetworkDeviceId?.toString() ===
+            deviceId
+          );
+        },
+      )!.monitor;
+
+      expect(made.monitorTemplateId?.toString()).toBe(TEMPLATE_ID.toString());
+      expect(result.monitorId).toBe(made.id!.toString());
+      // The person's: OneUptime writes the provenance after their own check.
+      expect(made.createdByUserId?.toString()).toBe(PERSON_ID.toString());
+    }
+
+    const second: NetworkDeviceDiscoveryImport = await createMonitors();
+
+    await runAll();
+
+    expect(db.createdMonitors).toHaveLength(2);
+    expect(
+      resultsOf(second).map((result: DiscoveryImportHostResult) => {
+        return result.monitor;
+      }),
+    ).toEqual([
+      DiscoveryImportMonitorOutcome.AlreadyThere,
+      DiscoveryImportMonitorOutcome.AlreadyThere,
+    ]);
+  });
+
+  test("a device with the template's monitor keeps it, and one with a monitor of another kind gets the template's too", async () => {
+    const existing: Monitor = new Monitor();
+    existing.id = ObjectID.generate();
+    db.monitors.set(monitorKey(SWITCH_A, TEMPLATE_ID), existing);
+
+    // A Ping monitor a person tied to the other switch (issue #9545).
+    const ping: Monitor = new Monitor();
+    ping.id = ObjectID.generate();
+    ping.monitorType = MonitorType.Ping;
+    ping.networkDeviceId = new ObjectID(SWITCH_B);
+    db.tiedMonitors.push(ping);
+
+    const row: NetworkDeviceDiscoveryImport = await createMonitors();
+
+    await runAll();
+
+    expect(resultOf(row, SWITCH_A)).toMatchObject({
+      monitor: DiscoveryImportMonitorOutcome.AlreadyThere,
+      monitorId: existing.id.toString(),
+    });
+    expect(resultOf(row, SWITCH_B).monitor).toBe(
+      DiscoveryImportMonitorOutcome.Created,
+    );
+    expect(db.createdMonitors).toHaveLength(1);
+  });
+
+  test("a device that takes its status from a bound monitor gets no Network Device monitor, and says why", async () => {
+    const row: NetworkDeviceDiscoveryImport = await createMonitors({
+      deviceIds: [CAMERA],
+    });
+
+    await runAll();
+
+    expect(resultOf(row, CAMERA)).toMatchObject({
+      device: DiscoveryImportDeviceOutcome.AlreadyAdded,
+      monitor: DiscoveryImportMonitorOutcome.Skipped,
+      monitorError: MONITOR_SKIPPED_MONITOR_BACKED,
+    });
+    expect(db.createdMonitors).toHaveLength(0);
+  });
+
+  test("a device deleted or archived since it was selected is skipped, and says so", async () => {
+    const row: NetworkDeviceDiscoveryImport = await createMonitors();
+
+    db.devicesById.delete(SWITCH_A);
+    db.devicesById.get(SWITCH_B)!.isArchived = true;
+
+    await runAll();
+
+    for (const deviceId of [SWITCH_A, SWITCH_B]) {
+      expect(resultOf(row, deviceId)).toMatchObject({
+        monitor: DiscoveryImportMonitorOutcome.Skipped,
+        monitorError: MONITOR_SKIPPED_DEVICE_GONE,
+      });
+    }
+
+    expect(db.createdMonitors).toHaveLength(0);
+  });
+
+  test("two devices at one address, in two sites, are two results and get a monitor each", async () => {
+    const branchSwitch: string = "aa100000-0000-4000-8000-000000000004";
+    addDevice({ id: branchSwitch, name: "BRANCH-SW", hostname: "10.20.0.1" });
+
+    const row: NetworkDeviceDiscoveryImport = await createMonitors({
+      deviceIds: [SWITCH_A, branchSwitch],
+    });
+
+    await runAll();
+
+    expect(resultsOf(row)).toHaveLength(2);
+    expect(resultOf(row, SWITCH_A).monitor).toBe(
+      DiscoveryImportMonitorOutcome.Created,
+    );
+    expect(resultOf(row, branchSwitch).monitor).toBe(
+      DiscoveryImportMonitorOutcome.Created,
+    );
+    expect(db.createdMonitors).toHaveLength(2);
+  });
+
+  test("gives monitors only to the devices the person may read", async () => {
+    db.unreadableDeviceIds.add(SWITCH_B);
+
+    const row: NetworkDeviceDiscoveryImport = await createMonitors();
+
+    expect(
+      resultsOf(row).map((result: DiscoveryImportHostResult) => {
+        return result.existingDeviceId;
+      }),
+    ).toEqual([SWITCH_A]);
+  });
+
+  test("refuses when the person may read none of the devices, or none is there any more", async () => {
+    db.unreadableDeviceIds.add(SWITCH_A);
+    db.unreadableDeviceIds.add(SWITCH_B);
+
+    await expect(createMonitors()).rejects.toThrow(
+      "None of the selected devices are in the Devices list any more. Refresh the list and select them again.",
+    );
+    expect(Queue.addJob).not.toHaveBeenCalled();
+  });
+
+  test("needs no right to create devices or to see scans: the right to see devices and create monitors", async () => {
+    await expect(createMonitors()).resolves.toBeDefined();
+
+    await expect(
+      createMonitors({
+        props: propsWith([
+          Permission.ReadNetworkDevice,
+          Permission.ReadMonitorTemplate,
+        ]),
+      }),
+    ).rejects.toThrow(NotAuthorizedException);
+
+    await expect(
+      createMonitors({
+        props: propsWith([
+          Permission.CreateProjectMonitor,
+          Permission.ReadMonitorTemplate,
+        ]),
+      }),
+    ).rejects.toThrow(
+      "You may not read this project's network devices, so you cannot give them monitors.",
+    );
+  });
+
+  test("the worker, too, asks only to see devices and to create monitors", async () => {
+    const row: NetworkDeviceDiscoveryImport = await createMonitors();
+
+    await runAll();
+
+    expect(stored(row).status).toBe(DiscoveryImportStatus.Completed);
+    expect(stored(row).error).toBeFalsy();
+  });
+
+  test("refuses no devices, too many, no template, and a template no device's monitor can be made from", async () => {
+    await expect(createMonitors({ deviceIds: [] })).rejects.toThrow(
+      "Select the devices to create monitors for.",
+    );
+    await expect(createMonitors({ deviceIds: ["not-an-id"] })).rejects.toThrow(
+      "Select the devices to create monitors for.",
+    );
+
+    const tooMany: Array<string> = [];
+
+    for (
+      let index: number = 0;
+      index <= MAX_DEVICES_PER_MONITOR_CREATION;
+      index++
+    ) {
+      tooMany.push(ObjectID.generate().toString());
+    }
+
+    await expect(createMonitors({ deviceIds: tooMany })).rejects.toThrow(
+      `Monitors are created for up to ${MAX_DEVICES_PER_MONITOR_CREATION.toLocaleString("en-US")} devices at a time`,
+    );
+
+    await expect(createMonitors({ monitorTemplateId: "" })).rejects.toThrow(
+      "Pick the monitor template to create the monitors from.",
+    );
+
+    db.template!.monitorType = MonitorType.Logs;
+
+    await expect(createMonitors()).rejects.toThrow(
+      DEVICE_MONITOR_TEMPLATE_TYPE_REFUSAL,
+    );
+    expect(Queue.addJob).not.toHaveBeenCalled();
+  });
+
+  test("tries again only the devices whose monitor failed, as Create Monitors", async () => {
+    db.refuseMonitors = new BadDataException(
+      "This project has reached its plan's limit of 10 active monitors.",
+    );
+
+    const first: NetworkDeviceDiscoveryImport = await createMonitors();
+
+    await runAll();
+
+    expect(
+      resultsOf(first).every((result: DiscoveryImportHostResult): boolean => {
+        return result.monitor === DiscoveryImportMonitorOutcome.Failed;
+      }),
+    ).toBe(true);
+
+    db.refuseMonitors = null;
+
+    const retried: NetworkDeviceDiscoveryImport =
+      await DiscoveryImportRunner.retry({
+        projectId: PROJECT_ID,
+        props: personProps,
+        importId: first.id!,
+      });
+
+    expect(DiscoveryImportRunner.sourceOf(retried)).toBe(
+      DiscoveryImportSource.Devices,
+    );
+
+    await runAll();
+
+    expect(
+      resultsOf(retried).map((result: DiscoveryImportHostResult) => {
+        return result.monitor;
+      }),
+    ).toEqual([
+      DiscoveryImportMonitorOutcome.Created,
+      DiscoveryImportMonitorOutcome.Created,
+    ]);
+  });
+
+  test("reads as Create Monitors to the Dashboard, with or without its hosts", async () => {
+    const row: NetworkDeviceDiscoveryImport = await createMonitors();
+
+    const view: DiscoveryImportView = DiscoveryImportRunner.toView({
+      row: stored(row),
+      userId: PERSON_ID,
+    });
+
+    expect(view.source).toBe(DiscoveryImportSource.Devices);
+    expect(view.scanId).toBe("");
+    expect(view.progress).toMatchObject({
+      hosts: 2,
+      devicesAlreadyAdded: 2,
+      monitorsRequested: 2,
+    });
+
+    // As the API reads it: without its hosts.
+    const withoutHosts: NetworkDeviceDiscoveryImport = Object.assign(
+      new NetworkDeviceDiscoveryImport(),
+      stored(row),
+    );
+    delete withoutHosts.hosts;
+
+    expect(DiscoveryImportRunner.sourceOf(withoutHosts)).toBe(
+      DiscoveryImportSource.Devices,
+    );
+  });
+
+  test("leaves a scan's import and the Discovered Devices list's as they were", async () => {
+    db.scan = scanWith([SWITCH]);
+
+    const fromScan: NetworkDeviceDiscoveryImport = await start({
+      props: propsWith(FULL_IMPORTER),
+      ipAddresses: ["10.0.0.1"],
+    });
+
+    expect(DiscoveryImportRunner.sourceOf(fromScan)).toBe(
+      DiscoveryImportSource.Scan,
+    );
+    expect(
+      DiscoveryImportRunner.sourceOf({
+        hosts: [],
+        results: [],
+      } as unknown as NetworkDeviceDiscoveryImport),
+    ).toBe(DiscoveryImportSource.DiscoveredDevices);
   });
 });

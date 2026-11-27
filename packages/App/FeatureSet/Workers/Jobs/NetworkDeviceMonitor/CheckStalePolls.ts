@@ -478,10 +478,13 @@ async function evaluate(
 
   for (const step of evaluation.steps) {
     /*
-     * A poll that found the device unreachable, and says why: no walk and
-     * no ping ran, so walk-based criteria see "not evaluated". Network
-     * Device monitors are not probe monitors (no MonitorProbe row is read
-     * or written), so the device's probe is named only when it has one.
+     * A poll that found the device unreachable, and says why: no walk ran,
+     * so walk-based criteria see "not evaluated", and no echo came back,
+     * so the ping's own criteria (issue #11071) judge it unreachable as the
+     * device's do - a step whose Offline is "Device Is Reachable (ICMP) is
+     * False" says so too. Network Device monitors are not probe monitors
+     * (no MonitorProbe row is read or written), so the device's probe is
+     * named only when it has one.
      */
     const response: ProbeMonitorResponse = {
       projectId: evaluation.monitor.projectId!,
@@ -491,6 +494,12 @@ async function evaluate(
         ? { probeId: evaluation.device.probeId }
         : {}),
       isOnline: false,
+      pingResponse: {
+        packetsSent: 0,
+        packetsReceived: 0,
+        packetLossPercent: 100,
+        isReachable: false,
+      },
       failureCause: evaluation.staleReason,
       monitoredAt: now,
       ingestedAt: now,

@@ -32,6 +32,10 @@ import OTelIngestService, {
   TelemetryServiceMetadata,
 } from "../../../../../Server/Services/OpenTelemetryIngestService";
 import { MAX_CONNECTOR_ERROR_MESSAGE_LENGTH } from "../../../../../Server/Utils/SecurityEvent/ConnectorErrorMessage";
+import DetectionFingerprint, {
+  DetectionFingerprintKind,
+} from "../../../../../Server/Utils/SecurityEvent/DetectionFingerprint";
+import MetricSeriesFingerprint from "../../../../../Utils/Metrics/MetricSeriesFingerprint";
 import logger from "../../../../../Server/Utils/Logger";
 import {
   DETECTION_FINDING_CLASS_NAME,
@@ -536,6 +540,56 @@ describe("ThreatIntelMatcher.evaluateFeed", () => {
     expect(alertCreateSpy).not.toHaveBeenCalled();
     // The finding is still written — findings are the searchable record.
     expect(result.findingsWritten).toBe(1);
+  });
+
+  test("its fingerprint is the indicator's keyed in the project (#11130), in the alert and the finding's id alike", async () => {
+    matchesSpy.mockResolvedValue([buildMatchGroup()] as never);
+
+    await ThreatIntelMatcher.evaluateFeed(buildFeed());
+
+    const keyed: string = DetectionFingerprint.of({
+      projectId: PROJECT_ID,
+      kind: DetectionFingerprintKind.ThreatIntel,
+      value: "evil.example",
+    });
+    const alert: Alert = (alertCreateSpy.mock.calls[0]![0] as JSONObject)[
+      "data"
+    ] as Alert;
+
+    expect(alert.seriesFingerprint).toBe(
+      `threat-intel:${FEED_ID.toString()}:${keyed}`,
+    );
+    expect(alert.seriesFingerprint).not.toContain(
+      MetricSeriesFingerprint.computeFingerprint({
+        indicatorValue: "evil.example",
+      }),
+    );
+
+    const row: JSONObject = (
+      insertRowsSpy.mock.calls[0]![0] as Array<JSONObject>
+    )[0]!;
+
+    expect(String(row["eventUid"])).toMatch(
+      new RegExp(
+        `^threat-intel:${FEED_ID.toString()}:threat-intel:${FEED_ID.toString()}:${keyed}:[0-9]+$`,
+      ),
+    );
+  });
+
+  test("an alert still open under the unkeyed fingerprint from before #11130 suppresses re-alerting", async () => {
+    matchesSpy.mockResolvedValue([buildMatchGroup()] as never);
+
+    const openAlert: Alert = new Alert();
+    openAlert.seriesFingerprint = `threat-intel:${FEED_ID.toString()}:${MetricSeriesFingerprint.computeFingerprint(
+      { indicatorValue: "evil.example" },
+    )}`;
+    alertFindSpy.mockResolvedValue([openAlert] as never);
+
+    const result: ThreatIntelMatchResult =
+      await ThreatIntelMatcher.evaluateFeed(buildFeed());
+
+    expect(result.alertsCreated).toBe(0);
+    expect(alertCreateSpy).not.toHaveBeenCalled();
   });
 
   test("severity partitioning: mixed-confidence matches resolve severities per partition", async () => {

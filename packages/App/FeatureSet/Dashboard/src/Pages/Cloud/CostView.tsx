@@ -67,6 +67,7 @@ import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Card from "Common/UI/Components/Card/Card";
+import RecordActivityLine from "Common/UI/Components/Detail/RecordActivityLine";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import {
@@ -312,6 +313,12 @@ const CloudCostViewPage: FunctionComponent<
             <></>
           )}
         </div>
+        {/* The view's line: its ID, who created it and who last changed it. */}
+        <RecordActivityLine
+          modelType={CloudCostView}
+          recordId={viewId}
+          className="mt-4 border-t border-gray-100 pt-3"
+        />
       </Card>
       <CloudCostBasisSwitch
         basis={basisChoice.basis}

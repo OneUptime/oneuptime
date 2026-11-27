@@ -388,9 +388,18 @@ describe("NetworkDeviceMonitor:CheckStalePolls", () => {
     expect(response.failureCause).toContain(
       "No poll of this device has arrived for 25 minutes",
     );
-    // No walk and no ping ran: walk criteria see "not evaluated".
+    // No walk ran: walk criteria see "not evaluated".
     expect(response.snmpResponse).toBeUndefined();
-    expect(response.pingResponse).toBeUndefined();
+    /*
+     * ...and no echo came back, so the ping's own checks judge it
+     * unreachable as the device's do (issue #11071).
+     */
+    expect(response.pingResponse).toEqual({
+      packetsSent: 0,
+      packetsReceived: 0,
+      packetLossPercent: 100,
+      isReachable: false,
+    });
 
     // Looked up by the device, in its project, with the monitor's creation time.
     expect(findMonitors).toHaveBeenCalledTimes(1);
@@ -398,6 +407,30 @@ describe("NetworkDeviceMonitor:CheckStalePolls", () => {
       deviceIds: [stale.id!.toString()],
       select: { createdAt: true },
     });
+  });
+
+  /*
+   * Issue #11071. A monitor whose Offline is "no answer to ping" - a fleet
+   * that always answers ping - says so when its polls stop too, rather
+   * than keeping the status of its last poll.
+   */
+  test("a monitor whose Offline is Device Is Reachable (ICMP) = False is evaluated as unreachable too", async () => {
+    const stale: NetworkDevice = device({ lastPolledAt: minutesAgo(25) });
+    devices = [stale];
+    monitors = [
+      monitorWith(
+        deviceStep({
+          deviceId: stale.id!.toString(),
+          checkOn: CheckOn.IcmpIsReachable,
+          filterType: FilterType.False,
+        }),
+      ),
+    ];
+
+    await tick();
+
+    expect(evaluated()).toHaveLength(1);
+    expect(evaluated()[0]!.pingResponse?.isReachable).toBe(false);
   });
 
   test("ONCE PER SPELL: the next runs leave it alone while the polls stay away", async () => {

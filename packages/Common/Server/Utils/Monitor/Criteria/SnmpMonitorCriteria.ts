@@ -24,6 +24,7 @@ import RmonAlarmTrapUtil, {
   RmonAlarm,
 } from "../../../../Utils/NetworkEvent/RmonAlarmTrap";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import PingMonitorResponse from "../../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import EvaluateOverTime, { OverTimeCriteriaValue } from "./EvaluateOverTime";
 import MonitorStepSeries, {
   MonitorStepSeriesScope,
@@ -366,6 +367,85 @@ export default class SnmpMonitorCriteria {
   }
 
   @CaptureSpan()
+  /*
+   * Whether the poll's ping answered (issue #11071): what the probe said,
+   * or - from a probe whose report predates that - an echo lost short of
+   * all of them.
+   */
+  public static isIcmpReachable(pingResponse: PingMonitorResponse): boolean {
+    if (typeof pingResponse.isReachable === "boolean") {
+      return pingResponse.isReachable;
+    }
+
+    return (
+      typeof pingResponse.packetLossPercent === "number" &&
+      pingResponse.packetLossPercent < 100
+    );
+  }
+
+  /*
+   * One of the ping's three checks (issue #11071), on this poll or over its
+   * window: reachable is true or false, response time and packet loss are
+   * numbers against the threshold. No ping, no verdict - and a ping that
+   * got no echo back has no response time to compare, which only the
+   * reachability check judges.
+   */
+  private static evaluateIcmp(input: {
+    criteriaFilter: CriteriaFilter;
+    threshold: number | string | undefined | null;
+    pingResponse: PingMonitorResponse | undefined;
+    overTimeValue: Array<number | boolean> | number | boolean | undefined;
+  }): string | null {
+    const checkOn: CheckOn = input.criteriaFilter.checkOn;
+
+    if (checkOn === CheckOn.IcmpIsReachable) {
+      const value: boolean | Array<boolean> | undefined =
+        (input.overTimeValue as Array<boolean> | undefined) ??
+        (input.pingResponse
+          ? SnmpMonitorCriteria.isIcmpReachable(input.pingResponse)
+          : undefined);
+
+      if (value === undefined) {
+        return null;
+      }
+
+      return CompareCriteria.compareCriteriaBoolean({
+        value: value,
+        criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    const threshold: number | null = CompareCriteria.convertToNumber(
+      input.threshold ?? undefined,
+    );
+
+    if (threshold === null || threshold === undefined) {
+      return null;
+    }
+
+    let value: number | Array<number> | undefined = input.overTimeValue as
+      | number
+      | Array<number>
+      | undefined;
+
+    if (value === undefined && input.pingResponse) {
+      value =
+        checkOn === CheckOn.IcmpResponseTime
+          ? input.pingResponse.avgRoundTripTimeInMs
+          : input.pingResponse.packetLossPercent;
+    }
+
+    if (value === undefined || value === null) {
+      return null;
+    }
+
+    return CompareCriteria.compareCriteriaNumbers({
+      value: value,
+      threshold: threshold,
+      criteriaFilter: input.criteriaFilter,
+    });
+  }
+
   public static async isMonitorInstanceCriteriaFilterMet(input: {
     dataToProcess: DataToProcess;
     criteriaFilter: CriteriaFilter;
@@ -575,6 +655,21 @@ export default class SnmpMonitorCriteria {
       return CompareCriteria.compareCriteriaBoolean({
         value: currentIsOnline,
         criteriaFilter: input.criteriaFilter,
+      });
+    }
+
+    /*
+     * The device's ping on its own (issue #11071), beside the walk: the
+     * probe pings on every poll, so "answers ping, SNMP failing" and
+     * "answers nothing" are two different findings. Judged on a ping-only
+     * poll too; not at all on one from a probe that ran no ping.
+     */
+    if (CriteriaFilterUtil.isIcmpCheckOn(input.criteriaFilter.checkOn)) {
+      return SnmpMonitorCriteria.evaluateIcmp({
+        criteriaFilter: input.criteriaFilter,
+        threshold: threshold,
+        pingResponse: dataToProcess.pingResponse,
+        overTimeValue: overTimeValue,
       });
     }
 

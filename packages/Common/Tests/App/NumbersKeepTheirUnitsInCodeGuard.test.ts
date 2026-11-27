@@ -103,6 +103,9 @@ const AS_WRITTEN: Readonly<Record<string, string>> = {
   "packages/Common/Server/Utils/RateLimit/WrongKeyLimit.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Alert/AlertOnCallRulesOnOwnerChange.ts":
     SERVER_LOG,
+  // That a new record's owners were not all in before its notification rules were matched (#11176).
+  "packages/Common/Server/Utils/Workspace/WorkspaceRuleOwnersOnCreate.ts":
+    SERVER_LOG,
   "packages/Common/Server/Utils/Telemetry/SpanExportQueue.ts": SERVER_LOG,
   "packages/Common/Server/Utils/Workspace/MicrosoftTeams/MicrosoftTeamsActivityDeduplicator.ts":
     SERVER_LOG,
@@ -1468,6 +1471,8 @@ const WORDS_AS_WRITTEN: Readonly<Record<string, string>> = {
     "a reminder's refusal, a translation key ShiftRemindersCard looks up whole and draws held",
   "packages/Common/Utils/Monitor/ProbeFailureCauses.ts":
     "a timeout as the probe writes it into a stored cause, read back by its English",
+  "packages/Common/Types/DataSecurity/ScanWarningDuration.ts":
+    "a duration as a scan writes it into a stored warning, read back by its English; a page draws it through formatScanDuration, held",
   "packages/Common/Utils/SecurityEvent/TelemetryScan/AuditLogSignals.ts":
     "a security signal's message, stored by the server's scan",
   "packages/Common/Utils/SecurityEvent/TelemetryScan/RumSignals.ts":

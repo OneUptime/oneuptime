@@ -135,6 +135,20 @@ export enum CheckOn {
    */
   SnmpIsOnline = "SNMP Device Is Online",
   /*
+   * The device's ping on its own (issue #11071). Its probe pings it on every
+   * poll, beside the SNMP walk, so the verdicts can be judged apart: a
+   * switch whose SNMP credentials broke still answers ping, and reads
+   * "reachable, SNMP failing" instead of offline. Not evaluated on a poll
+   * from a probe that ran no ping (one that predates ping-first polling).
+   *
+   *   - Reachable: an ICMP echo came back.
+   *   - Response time: the echoes' average round trip, when one came back.
+   *   - Packet loss: the share of the poll's echoes that did not.
+   */
+  IcmpIsReachable = "Device Is Reachable (ICMP)",
+  IcmpResponseTime = "ICMP Response Time (in ms)",
+  IcmpPacketLossPercent = "ICMP Packet Loss (in %)",
+  /*
    * The SNMP walk itself. Not evaluated at all on a poll that ran no walk
    * (a device without credentials), so "is False" means "the walk was
    * attempted and failed" - credentials, agent, or an ACL - never "there
@@ -761,6 +775,7 @@ export class CriteriaFilterUtil {
     if (
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.IcmpIsReachable ||
       checkOn === CheckOn.SnmpWalkIsSucceeding ||
       checkOn === CheckOn.SnmpInterfaceIsDown ||
       checkOn === CheckOn.SnmpTableRowIsUnhealthy ||
@@ -838,6 +853,7 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.IsRequestTimeout ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.SnmpIsOnline ||
+      checkOn === CheckOn.IcmpIsReachable ||
       checkOn === CheckOn.ExternalStatusPageIsOnline ||
       checkOn === CheckOn.DatabaseIsOnline ||
       checkOn === CheckOn.NtpIsOnline ||
@@ -1471,6 +1487,19 @@ export class CriteriaFilterUtil {
     }
   }
 
+  /*
+   * The checks of a network device's ping on its own (issue #11071): judged
+   * on every poll, a ping-only one included, and on none from a probe that
+   * ran no ping. One list, read by the form and the evaluator alike.
+   */
+  public static isIcmpCheckOn(checkOn: CheckOn | undefined): boolean {
+    return (
+      checkOn === CheckOn.IcmpIsReachable ||
+      checkOn === CheckOn.IcmpResponseTime ||
+      checkOn === CheckOn.IcmpPacketLossPercent
+    );
+  }
+
   // The transceiver CheckOns.
   public static isTransceiverCheckOn(checkOn: CheckOn | undefined): boolean {
     return (
@@ -1539,6 +1568,14 @@ export class CriteriaFilterUtil {
       checkOn === CheckOn.IsOnline ||
       checkOn === CheckOn.SnmpResponseTime ||
       checkOn === CheckOn.SnmpIsOnline ||
+      /*
+       * Every poll pings, so a window is the hold-down a fleet needs:
+       * "unreachable by ping for 5 minutes" rides out one lost burst of
+       * echoes (issue #11071).
+       */
+      checkOn === CheckOn.IcmpIsReachable ||
+      checkOn === CheckOn.IcmpResponseTime ||
+      checkOn === CheckOn.IcmpPacketLossPercent ||
       checkOn === CheckOn.DnsResponseTime ||
       checkOn === CheckOn.DnsIsOnline ||
       checkOn === CheckOn.ExternalStatusPageResponseTime ||

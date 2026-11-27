@@ -66,6 +66,8 @@ import MetricsViewConfig from "../../../Types/Metrics/MetricsViewConfig";
 import MetricUnitUtil from "../../../Utils/MetricUnitUtil";
 import MetricValueFormatter from "../../../Utils/Monitor/MetricValueFormatter";
 import SnmpTableCriteria from "./Criteria/SnmpTableCriteria";
+import SnmpMonitorCriteria from "./Criteria/SnmpMonitorCriteria";
+import PingMonitorResponse from "../../../Types/Monitor/PingMonitor/PingMonitorResponse";
 import SnmpOidRateUtil from "./SnmpOidRateUtil";
 import SnmpOidListUtil from "../../../Types/Monitor/SnmpMonitor/SnmpOidListUtil";
 import SnmpTransceiverCriteria from "./Criteria/SnmpTransceiverCriteria";
@@ -278,6 +280,13 @@ export default class MonitorCriteriaObservationBuilder {
         return MonitorCriteriaObservationBuilder.describeSnmpWalkIsSucceedingObservation(
           input,
         );
+      case CheckOn.IcmpIsReachable:
+      case CheckOn.IcmpResponseTime:
+      case CheckOn.IcmpPacketLossPercent:
+        return MonitorCriteriaObservationBuilder.describeIcmpObservation({
+          criteriaFilter: criteriaFilter,
+          dataToProcess: input.dataToProcess,
+        });
       case CheckOn.SnmpResponseTime:
         return MonitorCriteriaObservationBuilder.describeSnmpResponseTimeObservation(
           input,
@@ -2331,6 +2340,73 @@ export default class MonitorCriteriaObservationBuilder {
     }
 
     return "SNMP walk failed.";
+  }
+
+  /*
+   * The device's ping on its own (issue #11071): what this poll's echoes
+   * found, beside whatever the walk did. A probe that ran no ping (one that
+   * predates ping-first polling) recorded nothing to judge.
+   */
+  private static describeIcmpObservation(input: {
+    criteriaFilter: CriteriaFilter;
+    dataToProcess: DataToProcess;
+  }): string | null {
+    const probeResponse: ProbeMonitorResponse | null =
+      MonitorCriteriaDataExtractor.getProbeMonitorResponse(input.dataToProcess);
+    const ping: PingMonitorResponse | undefined = probeResponse?.pingResponse;
+
+    if (!ping) {
+      return "The device's ping was not recorded on this poll.";
+    }
+
+    const isReachable: boolean = SnmpMonitorCriteria.isIcmpReachable(ping);
+
+    if (input.criteriaFilter.checkOn === CheckOn.IcmpIsReachable) {
+      if (isReachable) {
+        return "Device answered ping (ICMP).";
+      }
+
+      /*
+       * The poll's cause is the ping's own only when no walk ran beside it
+       * (a ping-only poll, or no poll at all - NetworkDeviceStalePoll): a
+       * walk's cause, when there was a walk, is about SNMP.
+       */
+      const cause: string | undefined = probeResponse?.snmpResponse
+        ? undefined
+        : probeResponse?.failureCause || undefined;
+
+      if (cause && ProbeNetworkFailureUtil.isProbeSideCause(cause)) {
+        return `The device's ping could not be sent from this probe: ${cause}`;
+      }
+
+      return cause
+        ? `Device did not answer ping (ICMP): ${cause}`
+        : "Device did not answer ping (ICMP).";
+    }
+
+    if (input.criteriaFilter.checkOn === CheckOn.IcmpPacketLossPercent) {
+      const loss: string | null = MonitorCriteriaMessageFormatter.formatNumber(
+        ping.packetLossPercent,
+        { maximumFractionDigits: 2 },
+      );
+
+      return `ICMP packet loss was ${loss ?? ping.packetLossPercent}%.`;
+    }
+
+    if (
+      !isReachable ||
+      ping.avgRoundTripTimeInMs === null ||
+      ping.avgRoundTripTimeInMs === undefined
+    ) {
+      return "No echo came back, so the ping has no response time.";
+    }
+
+    const time: string | null = MonitorCriteriaMessageFormatter.formatNumber(
+      ping.avgRoundTripTimeInMs,
+      { maximumFractionDigits: 2 },
+    );
+
+    return `ICMP response time was ${time ?? ping.avgRoundTripTimeInMs}ms.`;
   }
 
   private static describeSnmpResponseTimeObservation(input: {
