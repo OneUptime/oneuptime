@@ -3,6 +3,7 @@ import Color from "Common/Types/Color";
 import { DataSecurityCheckStatus } from "Common/Types/DataSecurity/DataSecurityCheckCatalog";
 import {
   DataStorePostureFacts,
+  isPostureFactUnknowable,
   tlsVersionNumber,
 } from "Common/Types/DataSecurity/DataStorePosture";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -23,12 +24,21 @@ import React, { FunctionComponent, ReactElement } from "react";
  * have). A fact that does not apply to the store's kind is not recorded,
  * and is not listed. The checks that open issues read the same facts; this
  * shows them all, so a store with no issue still shows how it is set up.
+ *
+ * A store you run is asked at its own address (#11140), and some facts
+ * cannot be known from there - whether the internet reaches it, from inside
+ * your network: those read "Can't be checked", never Unknown, which says a
+ * read could not tell.
  */
+
+// A fact that cannot be known from where it was read (unknowableFacts).
+export const CANNOT_BE_CHECKED_STATUS: "Can't be checked" = "Can't be checked";
 
 export type PostureFactStatus =
   | DataSecurityCheckStatus.Pass
   | DataSecurityCheckStatus.Fail
-  | DataSecurityCheckStatus.Unknown;
+  | DataSecurityCheckStatus.Unknown
+  | typeof CANNOT_BE_CHECKED_STATUS;
 
 export interface PostureFactLine {
   key: string;
@@ -58,6 +68,17 @@ const BOOLEAN_FACTS: ReadonlyArray<BooleanFact> = [
   {
     key: "publicWrite",
     label: "Nobody on the internet can write to it",
+    safeWhen: false,
+  },
+  // Asked of a store you run at its own address, without credentials (#11140).
+  {
+    key: "anonymousRead",
+    label: "It asks for credentials before anyone reads it",
+    safeWhen: false,
+  },
+  {
+    key: "anonymousWrite",
+    label: "It asks for credentials before anyone changes it",
     safeWhen: false,
   },
   {
@@ -158,8 +179,9 @@ export function getPostureFactLines(
     lines.push({
       key: fact.key,
       label: fact.label,
-      status:
-        value === null || typeof value !== "boolean"
+      status: isPostureFactUnknowable(facts, fact.key)
+        ? CANNOT_BE_CHECKED_STATUS
+        : value === null || typeof value !== "boolean"
           ? DataSecurityCheckStatus.Unknown
           : value === fact.safeWhen
             ? DataSecurityCheckStatus.Pass
@@ -189,8 +211,9 @@ export function getPostureFactLines(
     lines.push({
       key: "minimumTlsVersion",
       label: MINIMUM_TLS_LABEL,
-      status:
-        facts.minimumTlsVersion === null
+      status: isPostureFactUnknowable(facts, "minimumTlsVersion")
+        ? CANNOT_BE_CHECKED_STATUS
+        : facts.minimumTlsVersion === null
           ? DataSecurityCheckStatus.Unknown
           : tlsVersionNumber(facts.minimumTlsVersion) >= 1.2
             ? DataSecurityCheckStatus.Pass
@@ -225,6 +248,13 @@ const STATUS_LOOK: Readonly<Record<PostureFactStatus, StatusLook>> = {
     text: "Unknown",
     color: Gray500,
     icon: IconProp.Help,
+    iconClassName: "text-gray-400",
+  },
+  // Not a failure, nor a read that failed: nothing there could tell.
+  [CANNOT_BE_CHECKED_STATUS]: {
+    text: CANNOT_BE_CHECKED_STATUS,
+    color: Gray500,
+    icon: IconProp.NoSymbol,
     iconClassName: "text-gray-400",
   },
 };
