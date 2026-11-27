@@ -36,6 +36,7 @@ import InitJob, {
   MONITOR_WAIT_WARNING_AFTER_MS,
   MONITOR_WAIT_WARNING_EVERY_MS,
   getMonitorCheckSlots,
+  getWorkerFetchOffsetsMs,
   getWorkersFetching,
   resetProbeWorkerRunState,
   whenMonitorChecksSettle,
@@ -301,7 +302,7 @@ async function runWorkers(count: number = 5): Promise<void> {
   const runs: Array<Promise<void>> = [];
 
   for (let worker: number = 1; worker <= count; worker++) {
-    runs.push(new FetchListAndProbe(`Worker ${worker}`).run());
+    runs.push(new FetchListAndProbe(`Worker ${worker}`, worker).run());
   }
 
   await Promise.all(runs);
@@ -408,19 +409,95 @@ describe("a probe checks every monitor that is due, not 50 a minute", () => {
     expect(checked).toHaveLength(0);
   });
 
-  test("each worker waits a random moment before its first fetch of the minute, and not between the fetches after it", async () => {
+  /*
+   * #11333: each worker asks at its own moment of the minute, the same every
+   * minute, its probe's five spread 9 s apart over the first 45 s. It used
+   * to wait a new random moment every minute.
+   */
+  test("each worker waits for its own moment of the minute before its first fetch, and not between the fetches after it", async () => {
     server.addMonitors(100);
+    const minuteStart: number = Date.UTC(2026, 10, 18, 9, 0, 0);
+    jest.spyOn(Date, "now").mockReturnValue(minuteStart);
 
     await runWorkers();
 
-    expect(sleepSpy).toHaveBeenCalledTimes(5);
+    const offsets: Array<number> = getWorkerFetchOffsetsMs();
 
-    for (const call of sleepSpy.mock.calls) {
-      expect(call[0]).toBeGreaterThanOrEqual(0);
-      expect(call[0]).toBeLessThanOrEqual(MONITOR_FETCH_STAGGER_MAX_MS);
+    expect(offsets).toHaveLength(5);
+    expect(offsets[0]).toBeGreaterThanOrEqual(0);
+    expect(offsets[0]).toBeLessThan(MONITOR_FETCH_STAGGER_MAX_MS / 5);
+
+    for (let index: number = 1; index < offsets.length; index++) {
+      expect(
+        Math.abs(
+          offsets[index]! -
+            offsets[index - 1]! -
+            MONITOR_FETCH_STAGGER_MAX_MS / 5,
+        ),
+      ).toBeLessThanOrEqual(1);
+      expect(offsets[index]).toBeLessThan(MONITOR_FETCH_STAGGER_MAX_MS);
     }
 
+    // At the minute's start, each worker waits its own whole moment, once.
+    expect(sleepSpy).toHaveBeenCalledTimes(5);
+    expect(
+      sleepSpy.mock.calls
+        .map((call: Array<unknown>): number => {
+          return call[0] as number;
+        })
+        .sort((a: number, b: number) => {
+          return a - b;
+        }),
+    ).toEqual(offsets);
+
     expect(server.asked.length).toBeGreaterThan(5);
+  });
+
+  test("a tick that fires late still asks at the worker's moment: it waits the rest", async () => {
+    const minuteStart: number = Date.UTC(2026, 10, 18, 9, 0, 0);
+    jest.spyOn(Date, "now").mockReturnValue(minuteStart + 700);
+
+    await runWorkers();
+
+    const waited: Array<number> = sleepSpy.mock.calls
+      .map((call: Array<unknown>): number => {
+        return call[0] as number;
+      })
+      .sort((a: number, b: number) => {
+        return a - b;
+      });
+
+    expect(waited).toEqual(
+      getWorkerFetchOffsetsMs().map((offset: number): number => {
+        return Math.max(0, offset - 700);
+      }),
+    );
+  });
+
+  test("a probe that starts after its workers' moments of the minute asks at once", async () => {
+    server.addMonitors(10);
+    const minuteStart: number = Date.UTC(2026, 10, 18, 9, 0, 0);
+    jest
+      .spyOn(Date, "now")
+      .mockReturnValue(minuteStart + MONITOR_FETCH_STAGGER_MAX_MS + 5000);
+
+    await runWorkers();
+
+    for (const call of sleepSpy.mock.calls) {
+      expect(call[0]).toBe(0);
+    }
+
+    expect(checked).toHaveLength(10);
+  });
+
+  test("the moments are the probe's own, drawn once: every minute's are the same", async () => {
+    const first: Array<number> = getWorkerFetchOffsetsMs();
+
+    for (let minute: number = 0; minute < 3; minute++) {
+      server.nextMinute();
+      await runWorkers();
+      expect(getWorkerFetchOffsetsMs()).toEqual(first);
+    }
   });
 });
 
