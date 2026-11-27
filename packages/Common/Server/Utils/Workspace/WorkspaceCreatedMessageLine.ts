@@ -48,9 +48,14 @@ import logger from "../Logger";
  *     claims it as its turn comes - and before it posts it out of turn, as
  *     it shuts down, or once it has waited as long as its line could live -
  *     and that claim lasts as long as a line can; a server that takes a
- *     message over claims it for TAKEN_OVER_CLAIMED_FOR_MS. So a server that
- *     is passed over and comes back, even long after, finds its message
+ *     message over claims it for TAKEN_OVER_CLAIMED_FOR_MS, with a claim
+ *     that names the take-over (over:<server>:<attempt>), never read as the
+ *     claim of the server that made the message, and the same when the take-
+ *     over is asked again after its answer was lost. So a server that is
+ *     passed over and comes back, even long after, finds its message
  *     claimed by the server that took it over, and never posts it again.
+ *     And a server never takes over a message of its own: it posts those
+ *     itself, in their turn.
  *   - A ticket whose turn has lasted STALLED_AFTER_MS, unclaimed, is taken
  *     over: a server that finds it claims it, posts it from what was stored
  *     of it, keeping the turn while it posts as its own server would have,
@@ -62,7 +67,12 @@ import logger from "../Logger";
  *     passed over, as before: it may have gone out, and is never posted
  *     twice. So is one nothing was stored of: a message too large to store
  *     (WorkspaceCreatedMessageFirst.MAX_STORED_MESSAGE_BYTES), or taken by
- *     a server that ran the code from before this.
+ *     a server that ran the code from before this. A server that takes
+ *     nothing over - one shutting down - passes no stored ticket over: it
+ *     leaves it for one that does. And one shutting down that cannot ask
+ *     Valkey whether its own stored message was taken over does not post
+ *     it blind: it asks again, and should it stop first, another server
+ *     posts it.
  *   - Every App server looks after the lines whose turn could have stalled
  *     (lookAfterStoppedServers), whether or not it has a message waiting in
  *     them: each line is in an index, a sorted set, under the time it is
@@ -327,10 +337,11 @@ const TURN_SCRIPT: string = [
   "local since = tonumber(redis.call('HGET', line, 'turnSince') or left)",
   "local stalled = since - left >= stalledMs",
   "local headId = redis.call('HGET', line, 'id:' .. head)",
-  "if ARGV[6] == '1' and headId and redis.call('HEXISTS', line, 'message:' .. head) == 1 then",
-  "  if stalled or isTakenAtOnce(head) then",
+  "if headId and redis.call('HEXISTS', line, 'message:' .. head) == 1 then",
+  "  if ARGV[6] == '1' and (stalled or isTakenAtOnce(head)) then",
   "    return {4, head, headId}",
   "  end",
+  // A server that takes nothing over - shutting down - leaves it for one that does.
   "  return {0}",
   "end",
   "if not stalled then",
@@ -350,13 +361,16 @@ const TURN_SCRIPT: string = [
 /*
  * KEYS: the line, the index, the stalled ticket's claim. ARGV: how long a
  * turn may last unposted and unkept; the stalled ticket; its message's id;
- * this server; how long a claim lasts.
+ * this server; how long a claim lasts; this take-over's claim, which its
+ * server never reads as its own (over:<server>:<attempt>).
  *
- * {0}: nothing to do now - the line moved on, or the turn is not stalled
- * after all. {1}: passed over - its server claimed it and stopped while it
- * posted it, or nothing of it is stored. {2, what is stored}: claimed for
- * this server, whose turn it now is: post it, keep the turn while posting,
- * then say it is done.
+ * {0}: nothing to do now - the line moved on, the turn is not stalled after
+ * all, or the ticket is this server's own, which this server posts itself.
+ * {1}: passed over - its server claimed it and stopped while it posted it,
+ * or nothing of it is stored. {2, what is stored}: claimed for this take-
+ * over - now, or by this same take-over asked again after its answer was
+ * lost - and this server's turn: post it, keep the turn while posting, then
+ * say it is done.
  */
 const TAKE_OVER_SCRIPT: string = [
   LINE_SCRIPT_HELPERS,
@@ -368,10 +382,20 @@ const TAKE_OVER_SCRIPT: string = [
   "if tonumber(redis.call('HGET', line, 'served')) ~= head - 1 or redis.call('HGET', line, 'id:' .. head) ~= ARGV[3] then",
   "  return {0}",
   "end",
+  "local by = redis.call('HGET', line, 'by:' .. head)",
+  // Never its own: the server that made it, which is this one, posts it in its turn.
+  "if by == ARGV[4] then",
+  "  return {0}",
+  "end",
+  "local message = redis.call('HGET', line, 'message:' .. head)",
+  "local claim = redis.call('GET', KEYS[3])",
+  "if claim and claim == ARGV[6] and message then",
+  "  return {2, message}",
+  "end",
   "local left = redis.call('PTTL', line)",
   "local since = tonumber(redis.call('HGET', line, 'turnSince') or left)",
   "local stalled = since - left >= stalledMs",
-  "if redis.call('EXISTS', KEYS[3]) == 1 then",
+  "if claim then",
   "  if not stalled then",
   "    return {0}",
   "  end",
@@ -382,14 +406,12 @@ const TAKE_OVER_SCRIPT: string = [
   "if not stalled and not isTakenAtOnce(head) then",
   "  return {0}",
   "end",
-  "local message = redis.call('HGET', line, 'message:' .. head)",
   "if not message then",
   "  moveTo(head, stalledMs)",
   "  return {1}",
   "end",
-  "redis.call('SET', KEYS[3], ARGV[4], 'PX', ARGV[5])",
-  "local by = redis.call('HGET', line, 'by:' .. head)",
-  "if by and by ~= ARGV[4] then",
+  "redis.call('SET', KEYS[3], ARGV[6], 'PX', ARGV[5])",
+  "if by then",
   "  redis.call('HSET', line, 'dead:' .. by, 1)",
   "end",
   "redis.call('HSET', line, 'posting:' .. head, ARGV[4], 'turnSince', redis.call('PTTL', line))",
@@ -538,6 +560,8 @@ interface Waiting {
   messageId: string;
   post: LinePost;
   postAtTheLatestAt: number;
+  // What it says is stored with its ticket: another server can post it.
+  isStored: boolean;
 }
 
 /*
@@ -568,14 +592,15 @@ class ServerLine {
 
   public add(
     ticket: number,
-    messageId: string,
+    message: { messageId: string; isStored: boolean },
     post: LinePost,
     postAtTheLatestAt: number,
   ): void {
     this.waiting.set(ticket, {
-      messageId: messageId,
+      messageId: message.messageId,
       post: post,
       postAtTheLatestAt: postAtTheLatestAt,
+      isStored: message.isStored,
     });
     this.wake();
     void this.run();
@@ -639,15 +664,27 @@ class ServerLine {
            * Out of its turn, while the line may still be there: posted, and
            * passed by in the line - unless another server took it over.
            */
-          this.waiting.delete(ticket);
-
-          if (
-            (await WorkspaceCreatedMessageLine.claim({
+          const isClaimed: boolean | null =
+            await WorkspaceCreatedMessageLine.claim({
               recordKey: this.key,
               messageId: waiting.messageId,
               heldForAtMostMs: this.heldForAtMostMs,
-            })) === false
-          ) {
+            });
+
+          if (isClaimed === null && waiting.isStored && !isOverdue) {
+            /*
+             * Valkey cannot be asked, and the line, with what this message
+             * says, can still be there: posted blind, it could be posted
+             * again by a server that takes it over. Asked again - and should
+             * this server stop first, another posts it.
+             */
+            await this.sleep(WorkspaceCreatedMessageLine.ASKED_EVERY_MS);
+            continue;
+          }
+
+          this.waiting.delete(ticket);
+
+          if (isClaimed === false) {
             continue;
           }
 
@@ -800,6 +837,13 @@ export default class WorkspaceCreatedMessageLine {
    */
   public static readonly TAKEN_OVER_CLAIMED_FOR_MS: number = 60 * 60 * 1000;
 
+  /*
+   * How many times a server asks to take a ticket over when Valkey does not
+   * answer: once claimed, the take-over is its own to post, so its answer
+   * is worth asking for again.
+   */
+  public static readonly TAKE_OVER_ASKED_AT_MOST_TIMES: number = 3;
+
   // How long a line can be there at most, for a hold that lasts `heldForAtMostMs`.
   public static livesAtMostMs(heldForAtMostMs: number): number {
     return heldForAtMostMs + this.RELEASED_FOR_AT_MOST_MS;
@@ -912,6 +956,8 @@ export default class WorkspaceCreatedMessageLine {
     recordKey: string;
     ticket: number;
     messageId: string;
+    // Whether what it says is stored with its ticket (store).
+    isStored: boolean;
     post: LinePost;
     isHeldHere: () => boolean;
     // How long a hold lasts at most: the line is gone that long after, at the latest.
@@ -930,7 +976,7 @@ export default class WorkspaceCreatedMessageLine {
 
     line.add(
       data.ticket,
-      data.messageId,
+      { messageId: data.messageId, isStored: data.isStored },
       data.post,
       Date.now() + this.livesAtMostMs(data.heldForAtMostMs),
     );
@@ -975,15 +1021,16 @@ export default class WorkspaceCreatedMessageLine {
   public static async postEverythingNow(): Promise<void> {
     this.stopLookingAfterStoppedServers();
 
-    if (lookingAfterLines) {
-      await lookingAfterLines;
-    }
-
     const lines: Array<ServerLine> = Array.from(LINES.values());
 
     for (const line of lines) {
       line.leaving = true;
       line.wake();
+    }
+
+    // The take-over under way, if any, is finished: its turn is this server's.
+    if (lookingAfterLines) {
+      await lookingAfterLines;
     }
 
     await Promise.all(
@@ -1092,25 +1139,46 @@ export default class WorkspaceCreatedMessageLine {
       return false;
     }
 
-    const answer: Array<unknown> | null = await this.runForList(
-      TAKE_OVER_SCRIPT,
-      [
-        ...this.lineKeys(data.recordKey),
-        this.claimKeyOf(data.recordKey, data.messageId),
-      ],
-      [
-        String(this.STALLED_AFTER_MS),
-        String(data.ticket),
-        data.messageId,
-        this.SERVER_ID,
-        String(
-          Math.max(
-            this.livesAtMostMs(data.heldForAtMostMs),
-            this.TAKEN_OVER_CLAIMED_FOR_MS,
+    /*
+     * This take-over's claim: never this server's own claim of a message it
+     * made, and the same each time it is asked, so an answer lost on the way
+     * back is the same take-over when asked again.
+     */
+    const claim: string = `over:${this.SERVER_ID}:${randomUUID()}`;
+    let answer: Array<unknown> | null = null;
+
+    for (
+      let attempt: number = 0;
+      attempt < this.TAKE_OVER_ASKED_AT_MOST_TIMES && !answer;
+      attempt++
+    ) {
+      if (attempt > 0) {
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, this.ASKED_EVERY_MS).unref?.();
+        });
+      }
+
+      answer = await this.runForList(
+        TAKE_OVER_SCRIPT,
+        [
+          ...this.lineKeys(data.recordKey),
+          this.claimKeyOf(data.recordKey, data.messageId),
+        ],
+        [
+          String(this.STALLED_AFTER_MS),
+          String(data.ticket),
+          data.messageId,
+          this.SERVER_ID,
+          String(
+            Math.max(
+              this.livesAtMostMs(data.heldForAtMostMs),
+              this.TAKEN_OVER_CLAIMED_FOR_MS,
+            ),
           ),
-        ),
-      ],
-    );
+          claim,
+        ],
+      );
+    }
 
     if (answer?.[0] === 1) {
       return true;

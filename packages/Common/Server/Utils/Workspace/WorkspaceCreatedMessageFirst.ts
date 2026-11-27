@@ -263,19 +263,19 @@ export default class WorkspaceCreatedMessageFirst {
 
     // What another App server posts it from, should this one stop before its turn.
     const stored: string | null = this.storedText(data.stored);
-
-    if (stored) {
-      await WorkspaceCreatedMessageLine.store(key, {
-        ticket: ticket,
-        messageId: messageId,
-        stored: stored,
-      });
-    }
+    const isStored: boolean = stored
+      ? await WorkspaceCreatedMessageLine.store(key, {
+          ticket: ticket,
+          messageId: messageId,
+          stored: stored,
+        })
+      : false;
 
     WorkspaceCreatedMessageLine.wait({
       recordKey: key,
       ticket: ticket,
       messageId: messageId,
+      isStored: isStored,
       post: data.post,
       isHeldHere: (): boolean => {
         return this.isHoldingLineHere(key);
@@ -332,6 +332,9 @@ export default class WorkspaceCreatedMessageFirst {
    * server's messages from then on.
    */
   public static async postEverythingHeldHere(): Promise<void> {
+    // A server shutting down takes over no other server's messages from now on.
+    WorkspaceCreatedMessageLine.stopLookingAfterStoppedServers();
+
     const deadline: number = Date.now() + this.SHUTDOWN_WAITS_AT_MOST_MS;
 
     while (

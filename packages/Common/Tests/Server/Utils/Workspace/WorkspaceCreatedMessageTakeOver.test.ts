@@ -62,6 +62,12 @@ class FreezableValkey {
   // Every script the server sent, with its keys and arguments.
   public sent: Array<Array<unknown>> = [];
 
+  /*
+   * The next answer to a script this matches is lost on its way back: the
+   * script ran in Valkey, and the server is told it could not ask.
+   */
+  public losingAnswerTo: ((script: string) => boolean) | null = null;
+
   private isFrozen: boolean = false;
   private thawWaiters: Array<() => void> = [];
   private readonly frozenClient: RedisClient;
@@ -80,11 +86,20 @@ class FreezableValkey {
         });
       }
 
-      return await (
+      const answer: unknown = await (
         client.eval as unknown as (
           ...evalArgs: Array<unknown>
         ) => Promise<unknown>
       ).apply(client, args);
+
+      if (this.losingAnswerTo?.(String(args[0]))) {
+        this.losingAnswerTo = null;
+        throw new Error(
+          "the connection dropped before Valkey's answer came back",
+        );
+      }
+
+      return answer;
     };
 
     this.frozenClient = { eval: evaluate } as unknown as RedisClient;
@@ -977,12 +992,19 @@ describe("a server killed before its message's turn", () => {
       "A posted A: Added team Platform as the owner",
     ]);
 
-    // Its claim names the server that took it over.
-    const claims: Record<string, string> = await theClaims(incident);
+    /*
+     * Its claim names the take-over by the server that took it over; the
+     * other's, the server that made it and posted it in its turn.
+     */
+    const claims: Array<string> = Object.values(await theClaims(incident));
 
-    expect(Object.values(claims).sort()).toEqual(
-      [serverA.line.SERVER_ID, serverA.line.SERVER_ID].sort(),
-    );
+    expect(claims).toHaveLength(2);
+    expect(claims).toContain(serverA.line.SERVER_ID);
+    expect(
+      claims.filter((claim: string): boolean => {
+        return claim.startsWith(`over:${serverA.line.SERVER_ID}:`);
+      }),
+    ).toHaveLength(1);
   });
 
   test("its message is claimed for TAKEN_OVER_CLAIMED_FOR_MS - far longer than any line lives - so its server finds the claim however late it comes back", async () => {
@@ -1012,9 +1034,13 @@ describe("a server killed before its message's turn", () => {
       serverA.line.livesAtMostMs(serverA.first.HELD_FOR_AT_MOST_MS),
     );
     expect(left).toBeLessThanOrEqual(serverA.line.TAKEN_OVER_CLAIMED_FOR_MS);
-    expect(
-      await inspector.get(`${lineKeyOf(incident)}:claim:${messageId}`),
-    ).toBe(serverA.line.SERVER_ID);
+
+    // The take-over's, by the server that took it over: never read as the claim of the server that made it.
+    const claim: string =
+      (await inspector.get(`${lineKeyOf(incident)}:claim:${messageId}`)) || "";
+
+    expect(claim.startsWith(`over:${serverA.line.SERVER_ID}:`)).toBe(true);
+    expect(claim).not.toBe(serverB.line.SERVER_ID);
   });
 
   test("not before its turn has stalled", async () => {
@@ -1554,23 +1580,213 @@ describe("what is never posted twice, nor posted where it should not be", () => 
     expect(channel.postedBy()).toEqual(["A posted A: after it"]);
   });
 
-  test("a server that does not take over passes a stopped server's turn over, as before", async () => {
+  test("a server that takes nothing over passes a stopped server's unstored message over, as before, and leaves a stored one for a server that takes it over", async () => {
+    connect(serverA, { stalledAfterMs: 300 });
+    connect(serverB, { stalledAfterMs: 300 });
+    connect(serverC, { stalledAfterMs: 300 });
+
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    await serverA.first.hold(incident);
+    await channel.keep(serverB, incident, "B: not stored", { stored: false });
+    await channel.keep(serverB, incident, "B: stored");
+    await channel.keep(serverA, incident, "A: after them");
+    serverB.valkey.freeze();
+
+    // A server shutting down, say: it takes nothing over.
+    const letGo: Promise<void> = serverA.first.postHeld(incident);
+
+    // Three times a stalled turn: the first is passed over, the second waits.
+    await pause(1000);
+    expect(channel.posts()).toEqual([]);
+    expect((await theLine(incident))["served"]).toBe("1");
+
+    // A server that takes over finds it.
+    takesOver(serverC, channel);
+    await letGo;
+    await channel.waitFor(2);
+    await pause(200);
+
+    expect(channel.postedBy()).toEqual([
+      "C posted B: stored",
+      "A posted A: after them",
+    ]);
+  });
+
+  test("a server shutting down takes nothing over from the moment it starts to", async () => {
+    connect(serverA, { stalledAfterMs: 300 });
+    connect(serverB, { stalledAfterMs: 300 });
+    connect(serverC, { stalledAfterMs: 300 });
+
+    // It has a hold of its own to let go, so its shutdown waits a while.
+    tune(serverA.first, "SHUTDOWN_WAITS_AT_MOST_MS", 1500);
+
+    const incident: WorkspaceRecord = newIncident();
+    const another: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverA, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(serverB, incident, "B: kept");
+    serverB.valkey.freeze();
+    await serverA.first.hold(another);
+
+    await serverA.first.postHeld(incident);
+    const shuttingDown: Promise<void> = shutDown(serverA);
+
+    // Its turn stalls three times over: the server shutting down takes nothing.
+    await pause(1000);
+    expect(channel.posts()).toEqual([]);
+
+    takesOver(serverC, channel);
+    await channel.waitFor(1);
+    await shuttingDown;
+
+    expect(channel.postedBy()).toEqual(["C posted B: kept"]);
+  });
+
+  test("a server shutting down that cannot ask Valkey whether its stored message was taken over does not post it blind: another server posts it, once", async () => {
     connect(serverA, { stalledAfterMs: 300 });
     connect(serverB, { stalledAfterMs: 300 });
 
     const incident: WorkspaceRecord = newIncident();
     const channel: Channel = new Channel();
 
+    takesOver(serverA, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(serverB, incident, "B: kept");
+    expect((await theLine(incident))["message:1"]).toBeDefined();
+
+    // It shuts down just as Valkey stops answering it.
+    disconnect(serverB);
+    const leaving: Promise<void> = shutDown(serverB);
+
+    await serverA.first.postHeld(incident);
+    await channel.waitFor(1);
+
+    // Valkey answers it again: its message was taken over, so it is not posted here.
+    connect(serverB, { stalledAfterMs: 300 });
+    await leaving;
+    await pause(200);
+
+    expect(channel.postedBy()).toEqual(["A posted B: kept"]);
+  });
+
+  test("a server never takes over a message of its own: it posts those itself", async () => {
+    connect(serverA, { stalledAfterMs: 300 });
+    connect(serverC, { stalledAfterMs: 300 });
+
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverA, channel);
+
+    await serverA.first.hold(incident);
+
+    // The first place in the line is this server's own, stored, and stalled - as while it is busy posting another.
+    expect(await inspector.hincrby(lineKeyOf(incident), "tickets", 1)).toBe(1);
+    await inspector.hset(
+      lineKeyOf(incident),
+      "id:1",
+      "00000000-0000-4000-8000-000000000011",
+      "by:1",
+      serverA.line.SERVER_ID,
+      "message:1",
+      JSON.stringify({ name: "A: its own" }),
+    );
+    await channel.keep(serverA, incident, "A: after it");
+    const letGo: Promise<void> = serverA.first.postHeld(incident);
+
+    // Three times a stalled turn: it does not take its own over.
+    await pause(1000);
+    expect(channel.posts()).toEqual([]);
+    expect(
+      await serverA.line.takeOver({
+        recordKey: recordKeyOf(incident),
+        ticket: 1,
+        messageId: "00000000-0000-4000-8000-000000000011",
+        heldForAtMostMs: serverA.first.HELD_FOR_AT_MOST_MS,
+      }),
+    ).toBe(false);
+    expect(
+      await inspector.exists(
+        `${lineKeyOf(incident)}:claim:00000000-0000-4000-8000-000000000011`,
+      ),
+    ).toBe(0);
+
+    // Another server may.
+    takesOver(serverC, channel);
+    await letGo;
+    await channel.waitFor(2);
+    await pause(200);
+
+    // Each once, in order: the next is A's own, or C's should C reach it first.
+    expect(channel.posts()).toEqual(["A: its own", "A: after it"]);
+    expect(channel.postedBy()[0]).toBe("C posted A: its own");
+  });
+
+  test("a take-over's claim is never read as the claim of the server that made the message: that server does not post it", async () => {
+    connect(serverA, { stalledAfterMs: 300 });
+    connect(serverB, { stalledAfterMs: 300 });
+
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverA, channel);
+
+    await serverA.first.hold(incident);
+    await channel.keep(serverB, incident, "B: kept");
+
+    // Claimed by a take-over in its name, as a take-over's claim is written.
+    const messageId: string = (await theLine(incident))["id:1"]!;
+    await inspector.set(
+      `${lineKeyOf(incident)}:claim:${messageId}`,
+      `over:${serverB.line.SERVER_ID}:an-attempt`,
+      "PX",
+      60_000,
+    );
+
+    await channel.keep(serverA, incident, "A: after it");
+    await serverA.first.postHeld(incident);
+    await serverB.line.drained(recordKeyOf(incident));
+    await channel.waitFor(1);
+    await pause(200);
+
+    // The claim, not a post of its own: the turn is passed over once it stalls.
+    expect(channel.postedBy()).toEqual(["A posted A: after it"]);
+  });
+
+  test("a take-over whose answer is lost on the way back is the same take-over when asked again: the message is posted, once", async () => {
+    connect(serverA, { stalledAfterMs: 300 });
+    connect(serverB, { stalledAfterMs: 300 });
+
+    const incident: WorkspaceRecord = newIncident();
+    const channel: Channel = new Channel();
+
+    takesOver(serverA, channel);
+
     await serverA.first.hold(incident);
     await channel.keep(serverB, incident, "B: kept");
     await channel.keep(serverA, incident, "A: after it");
     serverB.valkey.freeze();
 
+    // The take-over runs in Valkey, and its answer never reaches the server that asked.
+    serverA.valkey.losingAnswerTo = (script: string): boolean => {
+      return script.includes("if claim and claim == ARGV[6] and message then");
+    };
+
     await serverA.first.postHeld(incident);
-    await channel.waitFor(1);
+    await channel.waitFor(2);
     await pause(300);
 
-    expect(channel.postedBy()).toEqual(["A posted A: after it"]);
+    expect(serverA.valkey.losingAnswerTo).toBeNull();
+    expect(channel.postedBy()).toEqual([
+      "A posted B: kept",
+      "A posted A: after it",
+    ]);
   });
 
   test("while every server is up, nothing is taken over: each posts its own, however many look after the line", async () => {
