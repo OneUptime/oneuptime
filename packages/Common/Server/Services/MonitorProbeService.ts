@@ -814,6 +814,14 @@ export class Service extends ProjectReferencesService<MonitorProbe> {
    * The same index range as the claim's read, stopped at the cap. It was a
    * countBy over a join of all three tables, which visited every due row
    * on every scaling poll - the most when the probe was furthest behind.
+   *
+   * With thousands due, Postgres joins them to their monitors with a hash
+   * join, and the monitors' half of the rule is read from the Monitor
+   * model's partial index of the monitors that may be probed: their ids
+   * alone, 155 pages at 39,700 monitors. Before that index it read the
+   * whole of "Monitor" to do so, 9,925 of the count's 10,689 pages, and
+   * more with every monitor added to the install (OneUptime issue #11119).
+   * A probe with more due than the cap stops at the cap, by the same index.
    */
   public async countMonitorProbesDueForProbing(data: {
     probeId: ObjectID;

@@ -159,6 +159,18 @@ const EXPECTED_INDEXES: ReadonlyArray<{
     isUnique: false,
   },
   /*
+   * The monitors a probe may check now, which a probe's pending count joins
+   * its due monitor probes to (#11119: built online by
+   * AddMonitorProbeableIndex1809187791119). Its WHERE names only the pause
+   * flags, none of which the busiest writes move.
+   */
+  {
+    columns: "_id",
+    predicate:
+      '(("isArchived" = false) AND ("disableActiveMonitoring" = false) AND ("disableActiveMonitoringBecauseOfManualIncident" = false) AND ("disableActiveMonitoringBecauseOfScheduledMaintenanceEvent" = false) AND ("deletedAt" IS NULL))',
+    isUnique: false,
+  },
+  /*
    * The project and the name as it reads, which a project that requires
    * unique names looks a monitor's name up by (#10761:
    * IDX_MONITOR_PROJECT_NAME_KEY, built online by AddUniqueNameIndexes
