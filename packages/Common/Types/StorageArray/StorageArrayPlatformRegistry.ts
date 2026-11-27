@@ -1,5 +1,8 @@
 import {
   StorageArrayKindDefinition,
+  StorageArrayLogAlertTemplateSpec,
+  StorageArrayKindPage,
+  StorageArrayManagedDeployment,
   StorageArrayPlatform,
 } from "./StorageArrayPlatform";
 import StorageArrayResourceKind from "./StorageArrayResourceKind";
@@ -65,14 +68,6 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
       return `it defines the kind ${definition.kind}, which is not one of its kinds`;
     }
     worded.add(definition.kind);
-    for (const column of definition.listColumns || []) {
-      if (column.shows === "detail" && (!column.detail || !column.format)) {
-        return `a column of its ${definition.kind} list shows a detail without naming it and how it reads`;
-      }
-      if (column.shows !== "lastSeen" && !column.title) {
-        return `a column of its ${definition.kind} list has no title`;
-      }
-    }
   }
 
   const named: Array<[string, string]> = [];
@@ -82,6 +77,9 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
     for (const kind of endpointKinds) {
       named.push([kind, `its ${endpoint} endpoint`]);
     }
+  }
+  for (const kind of platform.exporterCompletedKinds || []) {
+    named.push([kind, "its exporter's complete lists"]);
   }
   for (const family of platform.metricFamilies) {
     if (family.kind) {
@@ -111,6 +109,14 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
   }
   for (const table of platform.hardwareTables) {
     named.push([table.kind, "its hardware tables"]);
+  }
+  for (const kind of Object.keys(platform.kindPages || {})) {
+    named.push([kind, "its kind pages"]);
+  }
+  for (const deployment of platform.managedDeployments || []) {
+    for (const kind of deployment.kinds) {
+      named.push([kind, `its ${deployment.osName} deployments`]);
+    }
   }
   for (const [kind, where] of named) {
     if (!kinds.has(kind)) {
@@ -159,9 +165,78 @@ function getShapeProblem(platform: StorageArrayPlatform): string | null {
       charted.push([line.metricId, "its overview"]);
     }
   }
+  for (const [kind, page] of Object.entries(platform.kindPages || {})) {
+    for (const chart of page?.part?.charts || []) {
+      charted.push([chart.metricId, `its ${kind} part page`]);
+    }
+  }
   for (const [id, where] of charted) {
     if (!metricIds.has(id)) {
       return `${where} charts the metric ${id}, which is not in its catalog`;
+    }
+  }
+
+  /*
+   * A log template opens one alert per group and closes it on its resolving
+   * line, so it needs lines to match, a group, a resolving line and a window
+   * (a Logs monitor resolves by a line only when it is grouped).
+   */
+  for (const template of platform.logAlertTemplates || []) {
+    if (Object.keys(template.attributes).length === 0) {
+      return `its log template ${template.id} matches every line`;
+    }
+    if (
+      template.groupByAttributes.length === 0 ||
+      template.groupByAttributes.some((key: string): boolean => {
+        return !key.trim() || key.length > 256;
+      })
+    ) {
+      return `its log template ${template.id} groups by no attribute it can name`;
+    }
+    if (Object.keys(template.resolvedByAttributes).length === 0) {
+      return `its log template ${template.id} has no line that resolves it`;
+    }
+    if (
+      !Number.isInteger(template.windowSeconds) ||
+      template.windowSeconds <= 0
+    ) {
+      return `its log template ${template.id} looks back no time`;
+    }
+  }
+
+  /*
+   * A part page offers to turn on the platform's own templates only: an id
+   * it does not have would be a card that turns nothing on.
+   */
+  const templateIds: Set<string> = new Set<string>([
+    platform.heartbeat.templateId,
+    ...platform.alertTemplates.map(
+      (template: StorageArrayPlatform["alertTemplates"][number]): string => {
+        return template.id;
+      },
+    ),
+  ]);
+  for (const [kind, page] of Object.entries(platform.kindPages || {})) {
+    for (const templateId of page?.part?.alerts?.templateIds || []) {
+      if (!templateIds.has(templateId)) {
+        return `its ${kind} part page offers the template ${templateId}, which is not one of its templates`;
+      }
+    }
+    if (page?.part && page.part.labels.length === 0) {
+      return `its ${kind} part page names no label its series name a part by`;
+    }
+  }
+
+  /*
+   * The open problems it reports are counted by the ingest, so the ingest
+   * must read their series.
+   */
+  const readByIngest: Set<string> = new Set<string>(
+    platform.snapshotMetricNames,
+  );
+  for (const problem of platform.overview.openProblems || []) {
+    if (!readByIngest.has(problem.metricName)) {
+      return `its open problems' series ${problem.metricName} is not one its ingest reads (snapshotMetricNames)`;
     }
   }
   return null;
@@ -247,13 +322,24 @@ export default class StorageArrayPlatformRegistry {
 
   /*
    * The words of a kind a platform declared for itself
-   * (StorageArrayPlatform.kindDefinitions), or null.
+   * (StorageArrayPlatform.kindDefinitions), or null. Two platforms can
+   * each have a kind of one name (an aggregate is NetApp's, and a test's
+   * platform's): the platform `storageSystem` names is asked first, then
+   * every platform in order.
    */
   public static getKindDefinition(
     kind: string | null | undefined,
+    storageSystem?: string | null | undefined,
   ): StorageArrayKindDefinition | null {
     if (!kind) {
       return null;
+    }
+    const own: StorageArrayPlatform | null =
+      StorageArrayPlatformRegistry.getPlatform(storageSystem);
+    for (const definition of own?.kindDefinitions || []) {
+      if (definition.kind === kind) {
+        return definition;
+      }
     }
     for (const platform of StorageArrayPlatformRegistry.platforms) {
       for (const definition of platform.kindDefinitions || []) {
@@ -263,6 +349,51 @@ export default class StorageArrayPlatformRegistry {
       }
     }
     return null;
+  }
+
+  /*
+   * What a kind's pages say and chart on the platform `storageSystem`
+   * names (StorageArrayPlatform.kindPages), or null: an array of a platform
+   * OneUptime does not know, or a kind its platform says nothing of, reads
+   * the pages' own words. Never indexes an object by the agent-supplied
+   * kind or value: `constructor` must not find Object.prototype's.
+   */
+  public static getKindPage(
+    storageSystem: string | null | undefined,
+    kind: string | null | undefined,
+  ): StorageArrayKindPage | null {
+    const platform: StorageArrayPlatform | null =
+      StorageArrayPlatformRegistry.getPlatform(storageSystem);
+    if (!platform || !kind || !platform.kindPages) {
+      return null;
+    }
+    if (!Object.prototype.hasOwnProperty.call(platform.kindPages, kind)) {
+      return null;
+    }
+    return platform.kindPages[kind] || null;
+  }
+
+  /*
+   * The managed deployment (StorageArrayManagedDeployment) an array of the
+   * platform `storageSystem` names is, by the osName its extractor wrote,
+   * or null for an array on hardware of its own.
+   */
+  public static getManagedDeployment(
+    storageSystem: string | null | undefined,
+    osName: string | null | undefined,
+  ): StorageArrayManagedDeployment | null {
+    if (!osName) {
+      return null;
+    }
+    const platform: StorageArrayPlatform | null =
+      StorageArrayPlatformRegistry.getPlatform(storageSystem);
+    return (
+      platform?.managedDeployments?.find(
+        (deployment: StorageArrayManagedDeployment): boolean => {
+          return deployment.osName === osName;
+        },
+      ) || null
+    );
   }
 
   /*
@@ -370,6 +501,9 @@ export default class StorageArrayPlatformRegistry {
       for (const template of other.alertTemplates) {
         takenTemplateIds.add(template.id);
       }
+      for (const template of other.logAlertTemplates || []) {
+        takenTemplateIds.add(template.id);
+      }
       for (const config of other.agentConfigs) {
         takenAgentConfigs.add(config.key);
       }
@@ -394,6 +528,11 @@ export default class StorageArrayPlatformRegistry {
       platform.heartbeat.templateId,
       ...platform.alertTemplates.map(
         (template: StorageArrayPlatform["alertTemplates"][number]): string => {
+          return template.id;
+        },
+      ),
+      ...(platform.logAlertTemplates || []).map(
+        (template: StorageArrayLogAlertTemplateSpec): string => {
           return template.id;
         },
       ),

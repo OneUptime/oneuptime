@@ -2,9 +2,12 @@ import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResou
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import StorageArrayStatusUtil from "Common/Types/StorageArray/StorageArrayStatusUtil";
 import {
   StorageArrayKindDefinition,
+  StorageArrayKindPage,
   StorageArrayLatencyReading,
+  StorageArrayPartLabel,
   StorageArrayPlatform,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -104,6 +107,15 @@ export const STORAGE_ARRAY_CAPACITY_USAGE_THRESHOLDS: StorageUsageThresholds = {
 export const STORAGE_ARRAY_REPLICATION_LAG_WARNING_MS: number = 60 * 1000;
 
 /*
+ * A part replicated on a schedule (a NetApp SnapMirror relationship, whose
+ * row keeps its schedule's interval in details.scheduleSeconds) is behind
+ * once its lag passes one and a half intervals: Active IQ Unified
+ * Manager's lag warning, and the line NetApp's SnapMirror Behind Schedule
+ * alert fires at.
+ */
+export const STORAGE_ARRAY_SCHEDULE_LAG_RATIO: number = 1.5;
+
+/*
  * The File System Near Full alert's line: less than this share of a file
  * system's provisioned size still available.
  */
@@ -150,37 +162,6 @@ const HEALTHY_STATUSES: ReadonlyArray<string> = [
 ];
 
 /*
- * And the words each platform writes of its own (its componentStatuses): a
- * PowerScale node's attention or offline, a drive's smartfail, a quota
- * that is full. No platform's word is another's with another meaning.
- */
-function isPlatformStatus(
-  normalized: string,
-  list: "critical" | "warning",
-): boolean {
-  return StorageArrayPlatformRegistry.getPlatforms().some(
-    (platform: StorageArrayPlatform): boolean => {
-      return platform.componentStatuses[list].includes(normalized);
-    },
-  );
-}
-
-function isCriticalStatus(normalized: string): boolean {
-  return (
-    CRITICAL_STATUSES.includes(normalized) ||
-    isPlatformStatus(normalized, "critical")
-  );
-}
-
-function isWarningStatus(normalized: string): boolean {
-  return (
-    !isCriticalStatus(normalized) &&
-    (WARNING_STATUSES.includes(normalized) ||
-      isPlatformStatus(normalized, "warning"))
-  );
-}
-
-/*
  * The array's status words as each language says them. A word the array
  * writes and this list lacks is drawn as the array writes it - a replica
  * link's Replicating, Baselining or Paused among them, as its tooltip
@@ -208,6 +189,35 @@ const STATUS_WORDS: Record<string, string> = {
   empty: translationKey("Empty"),
   unused: translationKey("Unused"),
   disabled: translationKey("Disabled"),
+  // NetApp ONTAP's words for its parts' states.
+  offline: translationKey("Offline"),
+  restricted: translationKey("Restricted"),
+  inconsistent: translationKey("Inconsistent"),
+  mixed: translationKey("Mixed"),
+  running: translationKey("Running"),
+  stopped: translationKey("Stopped"),
+  starting: translationKey("Starting"),
+  stopping: translationKey("Stopping"),
+  // An Ethernet port's link, never a machine that is down (MeaningKeys).
+  up: translationKey("Up (port link)"),
+  down: translationKey("Down (port link)"),
+  broken: translationKey("Broken"),
+  spare: translationKey("Spare"),
+  // A disk no node owns yet, never a case nobody has taken (MeaningKeys).
+  unassigned: translationKey("Unassigned (disk not owned by a node)"),
+  normal: translationKey("Normal"),
+  error: translationKey("Error"),
+  "critical-low": translationKey("Critical Low"),
+  "critical-high": translationKey("Critical High"),
+  "warning-low": translationKey("Warning Low"),
+  "warning-high": translationKey("Warning High"),
+  offlined_by_system: translationKey("Offlined by System"),
+  link_not_connected: translationKey("Link Not Connected"),
+  snapmirrored: translationKey("Snapmirrored"),
+  "broken-off": translationKey("Broken Off"),
+  uninitialized: translationKey("Uninitialized"),
+  idle: translationKey("Idle"),
+  transferring: translationKey("Transferring"),
 };
 
 // Why a part needs attention, by the status the array reports for it.
@@ -220,6 +230,27 @@ const STATUS_REASONS: Record<string, string> = {
   unknown: translationKey("Reports unknown"),
   unrecognized: translationKey("Reports unrecognized"),
   "not ready": translationKey("Reports not ready"),
+  offline: translationKey("Reports offline"),
+  inconsistent: translationKey("Reports inconsistent"),
+  broken: translationKey("Reports broken"),
+  error: translationKey("Reports an error"),
+  down: translationKey("Reports its link down"),
+  "critical-low": translationKey("Reads below its critical line"),
+  "critical-high": translationKey("Reads above its critical line"),
+  offlined_by_system: translationKey("Offlined by the system"),
+  restricted: translationKey("Reports restricted"),
+  mixed: translationKey("Reports mixed"),
+  stopped: translationKey("Reports stopped"),
+  unassigned: translationKey("Reports unassigned"),
+  "warning-low": translationKey("Reads below its warning line"),
+  "warning-high": translationKey("Reads above its warning line"),
+  link_not_connected: translationKey("Reports no link connected"),
+  starting: translationKey("Reports starting"),
+  stopping: translationKey("Reports stopping"),
+  unmounted: translationKey("Reports unmounted"),
+  relocating: translationKey("Reports relocating"),
+  onlining: translationKey("Reports coming online"),
+  offlining: translationKey("Reports going offline"),
 };
 
 // Why a part needs attention, for a status only its platform writes.
@@ -289,6 +320,64 @@ const STATUS_KINDS: ReadonlyArray<string> = [
   "Pod",
 ];
 
+// The kinds with a rule of their own, which a status alone never decides.
+const RULE_KINDS: ReadonlyArray<string> = [
+  "Host",
+  "Bucket",
+  "FileSystem",
+  "Directory",
+];
+
+/*
+ * Why a part needs attention in the platform's own words, kept by its
+ * extractor where the rows have no column for it (details.statusReason: a
+ * NetApp node's failed fan, a SnapMirror relationship's unhealthy reason,
+ * a disk's outage), drawn as written beside the status's own reason.
+ */
+const REASON_AS_WRITTEN: string = "{{reason}}";
+
+function withStatusReason(
+  row: StorageArrayPartRow,
+  assessment: StorageArrayAssessment,
+): StorageArrayAssessment {
+  const reason: unknown = (row.details || {})["statusReason"];
+  if (!assessment.severity || typeof reason !== "string" || !reason.trim()) {
+    return assessment;
+  }
+  return {
+    ...assessment,
+    reasons: [
+      ...assessment.reasons,
+      { text: REASON_AS_WRITTEN, values: { reason: reason.trim() } },
+    ],
+  };
+}
+
+// An assessment with one more warning: its tone stays red when it was.
+function withWarning(
+  assessment: StorageArrayAssessment,
+  reason: ResourceAttentionText,
+): StorageArrayAssessment {
+  const severity: ResourceAttentionSeverity = mergeResourceAttentionSeverity(
+    [assessment.severity, ResourceAttentionSeverity.Warning].filter(
+      (value: ResourceAttentionSeverity | null): boolean => {
+        return value !== null;
+      },
+    ) as Array<ResourceAttentionSeverity>,
+  ) as ResourceAttentionSeverity;
+  return {
+    severity: severity,
+    status: {
+      ...assessment.status,
+      tone:
+        assessment.status.tone === "danger"
+          ? "danger"
+          : toneOf(ResourceAttentionSeverity.Warning),
+    },
+    reasons: [...assessment.reasons, reason],
+  };
+}
+
 // The kinds a status of the array's can make a problem of.
 export const STORAGE_ARRAY_HARDWARE_KINDS: ReadonlyArray<StorageArrayPartKind> =
   ["Hardware", "Drive", "Controller", "NetworkInterface"];
@@ -312,6 +401,9 @@ const REASON_PATHS_LOST: string = translationKey(
   "No longer reaches the array through both controllers",
 );
 const REASON_LAG: string = translationKey("Replication {{lag}} behind");
+const REASON_LAG_PAST_SCHEDULE: string = translationKey(
+  "Replication {{lag}} behind, past its {{schedule}} schedule",
+);
 const REASON_FILE_SYSTEM_FULL: string = translationKey(
   "{{percent}} of its provisioned size used",
 );
@@ -605,15 +697,29 @@ function assessStatusPart(
   const word: { label: string; values?: Record<string, string> | undefined } =
     getStorageArrayStatusWord(normalized);
 
+  /*
+   * The words every platform shares, then every platform's own
+   * (StorageArrayStatusUtil): a NetApp aggregate offline is critical, a
+   * port down too, an SVM stopped a warning.
+   */
   let severity: ResourceAttentionSeverity | null = null;
   let tone: ResourcePartTone = "neutral";
-  if (isCriticalStatus(normalized)) {
+  if (
+    CRITICAL_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isCritical(normalized)
+  ) {
     severity = ResourceAttentionSeverity.Critical;
     tone = "danger";
-  } else if (isWarningStatus(normalized)) {
+  } else if (
+    WARNING_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isWarning(normalized)
+  ) {
     severity = ResourceAttentionSeverity.Warning;
     tone = "warning";
-  } else if (HEALTHY_STATUSES.includes(normalized)) {
+  } else if (
+    HEALTHY_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isHealthy(normalized)
+  ) {
     tone = "positive";
   }
 
@@ -691,13 +797,45 @@ export function assessStorageArrayPart(
     return assessHost(row);
   }
 
-  if (STATUS_KINDS.includes(kind) || getPlatformHardwareKind(kind)) {
+  /*
+   * A part of a kind whose state is the status the array writes, or of any
+   * other kind its platform writes a status for (a NetApp volume online or
+   * offline, an aggregate, an SVM, a LUN, a SnapMirror relationship):
+   * its word, and how bad it is by the platforms' lists.
+   */
+  if (
+    STATUS_KINDS.includes(kind) ||
+    (!RULE_KINDS.includes(kind) && normalizeStatus(row.status))
+  ) {
     const fromStatus: StorageArrayAssessment | null = assessStatusPart(row);
-    const assessment: StorageArrayAssessment = fromStatus || {
-      severity: null,
-      status: { label: STATUS_AVAILABLE, tone: "neutral" },
-      reasons: [],
-    };
+    const assessment: StorageArrayAssessment = withStatusReason(
+      row,
+      fromStatus || {
+        severity: null,
+        status: { label: STATUS_AVAILABLE, tone: "neutral" },
+        reasons: [],
+      },
+    );
+
+    // Replicated on a schedule: behind past one and a half intervals.
+    const lagMs: number | null = toStorageArrayNumber(row.replicationLagMs);
+    const scheduleSeconds: number | null = toStorageArrayNumber(
+      (row.details || {})["scheduleSeconds"],
+    );
+    if (
+      lagMs !== null &&
+      scheduleSeconds !== null &&
+      scheduleSeconds > 0 &&
+      lagMs > scheduleSeconds * 1000 * STORAGE_ARRAY_SCHEDULE_LAG_RATIO
+    ) {
+      return withWarning(assessment, {
+        text: REASON_LAG_PAST_SCHEDULE,
+        values: {
+          lag: formatStorageArrayLag(lagMs),
+          schedule: String((row.details || {})["schedule"] || ""),
+        },
+      });
+    }
 
     // A pod's worst replica link: more than a minute behind is a warning.
     if (kind === "Pod") {
@@ -973,6 +1111,22 @@ const HARDWARE_KIND_SPECIFICITY: ReadonlyArray<StorageArrayPartKind> = [
   "Hardware",
 ];
 
+/*
+ * How Needs attention names a part of a kind only its platform has (a
+ * NetApp aggregate or SVM): its platform's words for it, or null for a
+ * kind no platform describes.
+ */
+function getPlatformPartWords(
+  kind: string | null | undefined,
+  storageSystem: string | null | undefined,
+): { label: string; icon: IconProp } | null {
+  const definition: StorageArrayKindDefinition | null =
+    StorageArrayPlatformRegistry.getKindDefinition(kind, storageSystem);
+  return definition
+    ? { label: definition.singularLabel, icon: definition.icon }
+    : null;
+}
+
 export function getStorageArrayAttentionItems(data: {
   arrayName: string;
   array: StorageArrayState;
@@ -1011,9 +1165,11 @@ export function getStorageArrayAttentionItems(data: {
   const hardwareKindOf: Map<string, StorageArrayPartKind> = new Map();
 
   for (const row of data.parts) {
-    const platformKind: StorageArrayKindDefinition | null =
-      getPlatformHardwareKind(row.kind);
-    if (!isStorageArrayPartKind(row.kind) && !platformKind) {
+    const ownWords: { label: string; icon: IconProp } | null =
+      isStorageArrayPartKind(row.kind)
+        ? null
+        : getPlatformPartWords(row.kind, data.array.storageSystem);
+    if (!isStorageArrayPartKind(row.kind) && !ownWords) {
       continue;
     }
     const assessment: StorageArrayAssessment = assessStorageArrayPart(
@@ -1025,11 +1181,11 @@ export function getStorageArrayAttentionItems(data: {
     }
     const item: ResourceAttentionItem = {
       key: getStorageArrayAttentionKey(row),
-      kind: platformKind
-        ? platformKind.singularLabel
+      kind: ownWords
+        ? ownWords.label
         : STORAGE_ARRAY_KIND_LABELS[row.kind as StorageArrayPartKind],
-      icon: platformKind
-        ? platformKind.icon
+      icon: ownWords
+        ? ownWords.icon
         : KIND_ICONS[row.kind as StorageArrayPartKind],
       name: getStorageArrayPartName(row),
       severity: assessment.severity,
@@ -1038,13 +1194,14 @@ export function getStorageArrayAttentionItems(data: {
     };
 
     if (
-      platformKind ||
+      ownWords ||
       !STORAGE_ARRAY_HARDWARE_KINDS.includes(row.kind as StorageArrayPartKind)
     ) {
       items.push(item);
       continue;
     }
 
+    const partKind: StorageArrayPartKind = row.kind as StorageArrayPartKind;
     const physical: string = item.name.trim().toLowerCase();
     const earlier: ResourceAttentionItem | undefined =
       hardwareByName.get(physical);
@@ -1052,14 +1209,14 @@ export function getStorageArrayAttentionItems(data: {
       hardwareKindOf.get(physical);
     if (!earlier || !earlierKind) {
       hardwareByName.set(physical, item);
-      hardwareKindOf.set(physical, row.kind as StorageArrayPartKind);
+      hardwareKindOf.set(physical, partKind);
       items.push(item);
       continue;
     }
 
     // The more specific kind names the part; its reasons come first.
     const thisIsSpecific: boolean =
-      HARDWARE_KIND_SPECIFICITY.indexOf(row.kind as StorageArrayPartKind) <
+      HARDWARE_KIND_SPECIFICITY.indexOf(partKind) <
       HARDWARE_KIND_SPECIFICITY.indexOf(earlierKind);
     const first: ResourceAttentionItem = thisIsSpecific ? item : earlier;
     const second: ResourceAttentionItem = thisIsSpecific ? earlier : item;
@@ -1092,7 +1249,7 @@ export function getStorageArrayAttentionItems(data: {
       route: first.route || second.route,
     });
     if (thisIsSpecific) {
-      hardwareKindOf.set(physical, row.kind as StorageArrayPartKind);
+      hardwareKindOf.set(physical, partKind);
     }
   }
 
@@ -1163,8 +1320,21 @@ export function getStorageArrayTopologyHealth(
  */
 export function isStorageArrayIssueAbout(
   record: Pick<OpenIssueRecord, "seriesLabels">,
-  row: Pick<StorageArrayResource, "kind" | "externalId" | "name">,
+  row: Pick<StorageArrayResource, "kind" | "externalId" | "name"> &
+    Partial<Pick<StorageArrayResource, "groupName" | "details">>,
+  storageSystem?: string | null | undefined,
 ): boolean {
+  /*
+   * A part its platform names by labels of its own (a NetApp volume by its
+   * `volume` in its `svm`, StorageArrayKindPage.part.labels): about it when
+   * its series carries the part's own values of them.
+   */
+  const page: StorageArrayKindPage | null =
+    StorageArrayPlatformRegistry.getKindPage(storageSystem, row.kind);
+  if (page?.part?.labels.length) {
+    return isIssueAboutLabels(record, row, page.part.labels);
+  }
+
   const names: Array<string> = [row.externalId || "", row.name || ""].filter(
     (name: string): boolean => {
       return name.length > 0;
@@ -1186,4 +1356,52 @@ export function isStorageArrayIssueAbout(
   return names.some((name: string): boolean => {
     return sameName(label, name);
   });
+}
+
+// A row's value of one of the labels its platform names it by.
+export function getStorageArrayPartLabelValue(
+  row: Pick<StorageArrayResource, "externalId" | "name"> &
+    Partial<Pick<StorageArrayResource, "groupName" | "details">>,
+  from: StorageArrayPartLabel["from"],
+): string {
+  if (from === "externalId") {
+    return row.externalId || "";
+  }
+  if (from === "name") {
+    return row.name || row.externalId || "";
+  }
+  if (from === "groupName") {
+    return row.groupName || "";
+  }
+  const value: unknown = (row.details || {})[from.detail];
+  return typeof value === "string" ? value : "";
+}
+
+/*
+ * Whether a series names the part by its labels: the first, which names
+ * the part itself, must match, and every other one the part and the
+ * series both have (its SVM) too.
+ */
+function isIssueAboutLabels(
+  record: Pick<OpenIssueRecord, "seriesLabels">,
+  row: Pick<StorageArrayResource, "externalId" | "name"> &
+    Partial<Pick<StorageArrayResource, "groupName" | "details">>,
+  labels: ReadonlyArray<StorageArrayPartLabel>,
+): boolean {
+  let index: number = 0;
+  for (const label of labels) {
+    const expected: string = getStorageArrayPartLabelValue(row, label.from);
+    const actual: string | null = readSeriesLabel(
+      record.seriesLabels,
+      label.label,
+    );
+    if (index === 0 && (!expected || !actual)) {
+      return false;
+    }
+    if (expected && actual && !sameName(actual, expected)) {
+      return false;
+    }
+    index++;
+  }
+  return true;
 }

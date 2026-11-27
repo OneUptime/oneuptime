@@ -1,6 +1,6 @@
 # XCP-ng-agent
 
-De XCP-ng-agent van OneUptime bewaakt de XCP-ng-pools die een Xen Orchestra beheert: hun hosts, VM's, opslagrepository's en virtuele schijven. Het is een standaard OpenTelemetry Collector die de eigen OpenMetrics-plug-in van Xen Orchestra leest met het geheim van de plug-in en wat hij leest naar OneUptime stuurt, waar elke pool met zijn inventaris verschijnt. Geen wachtwoord van een pool of van Xen Orchestra bereikt ooit de agent. [XCP-ng-monitoren](/docs/monitor/xcp-ng-monitor) waarschuwen op wat er binnenkomt.
+De XCP-ng-agent van OneUptime bewaakt de XCP-ng-pools die een Xen Orchestra beheert: hun hosts, VM's, opslagrepository's en virtuele schijven. Het is een standaard OpenTelemetry Collector die de eigen OpenMetrics-plug-in van Xen Orchestra leest met het geheim van de plug-in en wat hij leest naar OneUptime stuurt, waar elke pool met zijn inventaris verschijnt. Geen wachtwoord van een pool of van Xen Orchestra bereikt ooit de agent. [XCP-ng-monitoren](/docs/monitor/xcp-ng-monitor) waarschuwen op wat er binnenkomt. Om dezelfde pools zonder iets te installeren vanaf een OneUptime-sonde te laten lezen, zie [XCP-ng zonder agent](/docs/telemetry/xcp-ng-agentless).
 
 :::cards
 - [De agent installeren](#de-agent-installeren): Zet de plug-in aan, en gebruik daarna het installatiescript of Docker Compose.
@@ -382,8 +382,8 @@ De agent is één standaardconfiguratie van de collector, dus een collector die 
 De OpenMetrics-plug-in van Xen Orchestra levert metrieken, dus een deel van waar je bij een XCP-ng-pool op let, zit er nog niet in:
 
 - **Alarmen**, behalve die van XOSTOR, de **HA-status**, de **pool-master**, **ontbrekende patches**, **back-ups** en **snapshots**, en de **linkstatus** van de fysieke interfaces van een host (PIF's). Die komen uit de REST API van Xen Orchestra, in [#10997](https://github.com/OneUptime/oneuptime/issues/10997).
-- **Pools zonder Xen Orchestra**, of achter een XOA zonder de Premium-licentie die de plug-in nodig heeft: die worden rechtstreeks via XAPI gelezen, in [#10999](https://github.com/OneUptime/oneuptime/issues/10999).
-- **Verbinden zonder agent**, vanaf een sonde van OneUptime, zoals bij VMware kan: [#10996](https://github.com/OneUptime/oneuptime/issues/10996).
+- **Pools zonder Xen Orchestra**, of achter een XOA zonder de Premium-licentie die de plug-in nodig heeft: een OneUptime-sonde leest ze rechtstreeks via XAPI ([#10999](https://github.com/OneUptime/oneuptime/issues/10999)), zie [XCP-ng zonder agent](/docs/telemetry/xcp-ng-agentless).
+- **Verbinden zonder agent**: een OneUptime-sonde leest zelf de plug-in van Xen Orchestra, zoals bij VMware kan ([#10996](https://github.com/OneUptime/oneuptime/issues/10996)), op dezelfde pagina.
 
 ## Volgende stappen
 

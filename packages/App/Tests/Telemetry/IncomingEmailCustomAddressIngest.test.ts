@@ -24,6 +24,10 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
       monitorResource: jest.fn(() => {
         return Promise.resolve({});
       }),
+      // Lists what a monitor that is not being checked received (#11141).
+      listNotEvaluated: jest.fn(() => {
+        return Promise.resolve();
+      }),
     },
   };
 });
@@ -100,6 +104,7 @@ import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import { MonitorPauseReason } from "Common/Utils/Monitor/MonitorPauseState";
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const SECRET: string = "b1946ac9-2492-4b0f-9b2f-ee9b6cbe36ba";
@@ -113,6 +118,9 @@ const PROJECT_ID: string = "3c6e0b8a-9c15-4f8b-a1d2-7e5f4c3b2a19";
 
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
+
+const listNotEvaluated: jest.Mock =
+  MonitorResourceUtil.listNotEvaluated as unknown as jest.Mock;
 
 const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 
@@ -230,6 +238,7 @@ const evaluatedPayload: EvaluatedPayloadFunction = (): JSONObject => {
 
 beforeEach(() => {
   monitorResource.mockClear();
+  listNotEvaluated.mockClear();
   updateColumns.mockClear();
   findOneBy.mockReset();
   getInboundDomain.mockReset();
@@ -299,6 +308,43 @@ describe("mail to a custom address", () => {
 
     expect(updateColumns).toHaveBeenCalledTimes(1);
     expect(monitorResource).not.toHaveBeenCalled();
+  });
+
+  /*
+   * #11141: the email is listed in the monitor's Logs as not evaluated,
+   * because its monitoring is turned off - and what is listed is the copy
+   * with the custom address masked, as everything else the email feeds.
+   */
+  it("lists a disabled monitor's email as not evaluated, with its custom address masked", async () => {
+    findOneBy.mockImplementation(() => {
+      return Promise.resolve(monitorFixture({ disabled: true }));
+    });
+
+    await processIncomingEmailFromQueue(customAddressJob());
+
+    expect(listNotEvaluated).toHaveBeenCalledTimes(1);
+
+    const input: {
+      dataToProcess: JSONObject;
+      reason: MonitorPauseReason;
+    } = listNotEvaluated.mock.calls[0]![0] as {
+      dataToProcess: JSONObject;
+      reason: MonitorPauseReason;
+    };
+
+    expect(input.reason).toBe(MonitorPauseReason.Disabled);
+    expect(input.dataToProcess["emailSubject"]).toBe(
+      "Nightly backups completed",
+    );
+    expect(input.dataToProcess["emailTo"]).toBe(`[REDACTED]@${DOMAIN}`);
+    expect(JSON.stringify(input.dataToProcess)).not.toContain(CUSTOM_ADDRESS);
+  });
+
+  it("lists nothing for a monitor that is being checked: its email is evaluated", async () => {
+    await processIncomingEmailFromQueue(customAddressJob());
+
+    expect(monitorResource).toHaveBeenCalledTimes(1);
+    expect(listNotEvaluated).not.toHaveBeenCalled();
   });
 });
 

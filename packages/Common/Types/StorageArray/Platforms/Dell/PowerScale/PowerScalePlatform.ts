@@ -6,6 +6,7 @@ import StorageSystem from "../../../StorageSystem";
 import {
   StorageArrayInsightsSection,
   StorageArrayKindDefinition,
+  StorageArrayKindPage,
   StorageArrayPlatform,
 } from "../../../StorageArrayPlatform";
 import POWERSCALE_METRICS from "./PowerScaleMetrics";
@@ -50,70 +51,6 @@ export const POWERSCALE_KIND_DEFINITIONS: Array<StorageArrayKindDefinition> = [
     noItemsMessage: translationKey(
       "No nodes in the inventory yet. They appear here a minute after the Storage Array Agent starts polling the cluster.",
     ),
-    listColumns: [
-      {
-        shows: "status",
-        title: translationKey("Health"),
-        description: translationKey(
-          "The health OneFS reports for the node: Healthy, Attention, Down or Invalid. Offline while the cluster lists it as offline.",
-        ),
-      },
-      {
-        shows: "type",
-        title: translationKey("Type"),
-        description: translationKey("A storage node or an accelerator."),
-      },
-      {
-        shows: "model",
-        // A node's hardware model, never an AI model's (#9838).
-        title: translationKey("Model (hardware model)"),
-        description: translationKey("The node's model, from its chassis."),
-      },
-      {
-        shows: "version",
-        title: translationKey("OneFS"),
-        description: translationKey("The OneFS version the node runs."),
-      },
-      {
-        shows: "detail",
-        detail: "cpuBusyPercent",
-        format: "percent",
-        title: translationKey("CPU"),
-        description: translationKey("Share of the node's CPU time in use."),
-      },
-      {
-        shows: "readBandwidth",
-        title: translationKey("Read"),
-        description: translationKey(
-          "Bytes read out of /ifs per second through the node.",
-        ),
-      },
-      {
-        shows: "writeBandwidth",
-        title: translationKey("Write"),
-        description: translationKey(
-          "Bytes written into /ifs per second through the node.",
-        ),
-      },
-      {
-        shows: "detail",
-        detail: "serialNumber",
-        format: "text",
-        title: translationKey("Serial Number"),
-        hiddenByDefault: true,
-      },
-      {
-        shows: "detail",
-        detail: "readOnly",
-        format: "yesNo",
-        title: translationKey("Read-Only"),
-        description: translationKey(
-          "Whether the node is in read-only mode, so clients connected to it cannot write.",
-        ),
-        hiddenByDefault: true,
-      },
-      { shows: "lastSeen" },
-    ],
   },
   {
     kind: POWERSCALE_QUOTA_KIND,
@@ -130,23 +67,115 @@ export const POWERSCALE_KIND_DEFINITIONS: Array<StorageArrayKindDefinition> = [
     noItemsMessage: translationKey(
       "No quotas yet. They appear here within five minutes of the Storage Array Agent starting, once the cluster has a quota.",
     ),
-    listColumns: [
+    // The largest first; the ten nearest their limit are on Resource Usage.
+    sortBy: { field: "usedBytes", descending: true },
+  },
+];
+
+/*
+ * The lists of PowerScale's own kinds (StorageArrayPlatform.kindPages,
+ * #11122): a node's health, model, OneFS version, CPU and throughput; a
+ * quota's state, kind, how much of its limit it uses and its limits.
+ */
+export const POWERSCALE_KIND_PAGES: Readonly<
+  Partial<Record<string, StorageArrayKindPage>>
+> = {
+  [POWERSCALE_NODE_KIND]: {
+    columns: [
       {
-        shows: "status",
+        type: "status",
+        title: translationKey("Health"),
+        description: translationKey(
+          "The health OneFS reports for the node: Healthy, Attention, Down or Invalid. Offline while the cluster lists it as offline.",
+        ),
+      },
+      {
+        type: "value",
+        id: "type",
+        title: translationKey("Type"),
+        description: translationKey("A storage node or an accelerator."),
+        value: { column: "componentType", format: "text" },
+      },
+      {
+        type: "value",
+        id: "model",
+        // A node's hardware model, never an AI model's (#9838).
+        title: translationKey("Model (hardware model)"),
+        description: translationKey("The node's model, from its chassis."),
+        value: { column: "model", format: "text" },
+      },
+      {
+        type: "value",
+        id: "onefs",
+        title: translationKey("OneFS"),
+        description: translationKey("The OneFS version the node runs."),
+        value: { column: "firmwareVersion", format: "text" },
+      },
+      {
+        type: "value",
+        id: "cpu",
+        title: translationKey("CPU"),
+        description: translationKey("Share of the node's CPU time in use."),
+        value: { detail: "cpuBusyPercent", format: "percent" },
+      },
+      {
+        type: "value",
+        id: "read",
+        title: translationKey("Read"),
+        description: translationKey(
+          "Bytes read out of /ifs per second through the node.",
+        ),
+        value: { column: "readBytesPerSec", format: "bytesPerSec" },
+      },
+      {
+        type: "value",
+        id: "write",
+        title: translationKey("Write"),
+        description: translationKey(
+          "Bytes written into /ifs per second through the node.",
+        ),
+        value: { column: "writeBytesPerSec", format: "bytesPerSec" },
+      },
+      {
+        type: "value",
+        id: "serialNumber",
+        title: translationKey("Serial Number"),
+        value: { detail: "serialNumber", format: "text" },
+        hiddenByDefault: true,
+      },
+      {
+        type: "value",
+        id: "readOnly",
+        title: translationKey("Read-Only"),
+        description: translationKey(
+          "Whether the node is in read-only mode, so clients connected to it cannot write.",
+        ),
+        value: { detail: "readOnly", format: "boolean" },
+        hiddenByDefault: true,
+      },
+      { type: "lastSeen" },
+    ],
+  },
+  [POWERSCALE_QUOTA_KIND]: {
+    columns: [
+      {
+        type: "status",
         title: translationKey("Status"),
         description: translationKey(
           "Where the quota stands against its limits: OK, Over Advisory Limit, Over Soft Limit, or Full at its hard limit.",
         ),
       },
       {
-        shows: "type",
+        type: "value",
+        id: "kind",
         title: translationKey("Kind"),
         description: translationKey(
           "A directory, user or group quota, or a default one for users or groups.",
         ),
+        value: { column: "componentType", format: "text" },
       },
       {
-        shows: "usage",
+        type: "usage",
         title: translationKey("Used"),
         description: translationKey(
           "How much of its limit the quota uses: of its hard limit, or of its soft limit when it has no hard one.",
@@ -156,74 +185,72 @@ export const POWERSCALE_KIND_DEFINITIONS: Array<StorageArrayKindDefinition> = [
         criticalPercent: 100,
       },
       {
-        shows: "detail",
-        detail: "hardLimitBytes",
-        format: "bytes",
+        type: "value",
+        id: "hardLimit",
         title: translationKey("Hard Limit"),
         description: translationKey(
           "Writes to the quota are refused at this size.",
         ),
+        value: { detail: "hardLimitBytes", format: "bytes" },
       },
       {
-        shows: "detail",
-        detail: "softLimitBytes",
-        format: "bytes",
+        type: "value",
+        id: "softLimit",
         title: translationKey("Soft Limit"),
         description: translationKey(
           "Past this size, writes are refused once the grace period ends.",
         ),
+        value: { detail: "softLimitBytes", format: "bytes" },
       },
       {
-        shows: "detail",
-        detail: "advisoryLimitBytes",
-        format: "bytes",
+        type: "value",
+        id: "advisoryLimit",
         title: translationKey("Advisory Limit"),
         description: translationKey("Past this size, OneFS only notifies."),
+        value: { detail: "advisoryLimitBytes", format: "bytes" },
         hiddenByDefault: true,
       },
       {
-        shows: "detail",
-        detail: "gracePeriodSeconds",
-        format: "seconds",
+        type: "value",
+        id: "gracePeriod",
         title: translationKey("Grace Period"),
         description: translationKey(
           "How long the quota may stay past its soft limit before writes are refused.",
         ),
+        value: { detail: "gracePeriodSeconds", format: "durationSeconds" },
         hiddenByDefault: true,
       },
       {
-        shows: "detail",
-        detail: "physicalBytes",
-        format: "bytes",
+        type: "value",
+        id: "withProtection",
         title: translationKey("With Protection"),
         description: translationKey(
           "What the quota holds, with the space its data protection takes.",
         ),
+        value: { detail: "physicalBytes", format: "bytes" },
         hiddenByDefault: true,
       },
       {
-        shows: "detail",
-        detail: "inodes",
-        format: "number",
+        type: "value",
+        id: "inodes",
         title: translationKey("Files and Directories"),
+        value: { detail: "inodes", format: "count" },
         hiddenByDefault: true,
       },
       {
-        shows: "detail",
-        detail: "includesSnapshots",
-        format: "yesNo",
+        type: "value",
+        id: "includesSnapshots",
         title: translationKey("Counts Snapshots"),
         description: translationKey(
           "Whether the quota counts the space its snapshots take.",
         ),
+        value: { detail: "includesSnapshots", format: "boolean" },
         hiddenByDefault: true,
       },
-      { shows: "lastSeen" },
+      { type: "lastSeen" },
     ],
-    // The largest first; the ten nearest their limit are on Resource Usage.
-    sortBy: { field: "usedBytes", descending: true },
   },
-];
+};
 
 /*
  * The statuses the extractor writes, lowercased: a node's health (healthy,
@@ -555,6 +582,7 @@ const DellPowerScalePlatform: StorageArrayPlatform = {
     listCounts: [POWERSCALE_NODE_KIND],
   },
   insightsSections: POWERSCALE_INSIGHTS_SECTIONS,
+  kindPages: POWERSCALE_KIND_PAGES,
   hardwareTables: [
     {
       kind: StorageArrayResourceKind.Drive,

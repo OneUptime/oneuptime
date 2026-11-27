@@ -23,7 +23,13 @@ import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import { JSONObject } from "../../../../Types/JSON";
 import { readOwnValue } from "../../../../Utils/LookupTable";
 import { INHERITED_PROPERTY_NAMES } from "../../../Helpers/InheritedNames";
+import {
+  getPureSnapshotMetricNames,
+  isLaterMetricName,
+} from "../../../Helpers/StorageArray/PureSlice";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import NetAppOntapPlatform from "../../../../Types/StorageArray/Platforms/NetApp/ONTAP/OntapPlatform";
+import { getRecordedSeriesLabels } from "../../../Helpers/StorageArray/NetAppHarvestRecordings";
 
 /*
  * The storage array snapshot scan, fed with synthetic OTLP datapoints in the
@@ -528,22 +534,57 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-/*
- * Pure's families of the allow-list: the platforms after Pure hold their
- * own (Dell PowerScale's in PowerScaleExtractor.test.ts).
- */
-const PURE_METRIC_NAME: RegExp = /^pure(fa|fb)_/;
-const PURE_SNAPSHOT_METRIC_NAMES: Array<string> = [
-  ...STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES,
-].filter((metricName: string): boolean => {
-  return PURE_METRIC_NAME.test(metricName);
-});
-
 describe("StorageArraySnapshotScan - the allow-list (the ingest gate)", () => {
+  /*
+   * ONTAP's families (#11001): what its extractor reads, each one the real
+   * NetApp Harvest served in Tests/Fixtures/NetAppHarvest - but its Health
+   * plugin's open problems a healthy stand-in never raised (an HA pair that
+   * cannot take over, an unhealthy node, an FC port, a LIF, a volume move,
+   * a ransomware attack, a license), which Harvest's own code declares.
+   */
+  const ONTAP_NEVER_RAISED: Array<string> = [
+    "netapp_health_ha_alerts",
+    "netapp_health_node_alerts",
+    "netapp_health_network_fc_port_alerts",
+    "netapp_health_lif_alerts",
+    "netapp_health_volume_move_alerts",
+    "netapp_health_volume_ransomware_alerts",
+    "netapp_health_license_alerts",
+  ];
+
+  test("every allow-listed ONTAP family is one NetApp Harvest serves", () => {
+    const recorded: Record<string, unknown> = getRecordedSeriesLabels();
+    expect(NetAppOntapPlatform.snapshotMetricNames.length).toBeGreaterThan(0);
+    for (const metricName of NetAppOntapPlatform.snapshotMetricNames) {
+      expect(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(true);
+      expect({
+        metricName,
+        served:
+          recorded[metricName] !== undefined ||
+          ONTAP_NEVER_RAISED.includes(metricName),
+      }).toEqual({ metricName, served: true });
+    }
+  });
+
+  /*
+   * Pure's families. A platform registered since adds its own to the gate
+   * (Dell PowerStore's: PowerStoreIngest.test.ts holds them to what Dell's
+   * exporter sends).
+   */
   test("every allow-listed Pure family is a real Pure exporter series", () => {
-    for (const metricName of PURE_SNAPSHOT_METRIC_NAMES) {
+    const pure: Array<string> = getPureSnapshotMetricNames();
+    expect(pure.length).toBeGreaterThan(0);
+    for (const metricName of pure) {
+      expect(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metricName)).toBe(true);
       expect(PURE_LABELS[metricName]).toBeDefined();
       expect(metricName).toMatch(/^pure(fa|fb)_[a-z0-9_]+$/);
+    }
+    // Every other family on the gate is a later platform's own.
+    for (const metricName of STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES) {
+      expect({
+        metricName,
+        pureOrLater: pure.includes(metricName) || isLaterMetricName(metricName),
+      }).toEqual({ metricName, pureOrLater: true });
     }
   });
 
@@ -553,9 +594,7 @@ describe("StorageArraySnapshotScan - the allow-list (the ingest gate)", () => {
         return !NOT_ALLOW_LISTED.includes(metricName);
       },
     );
-    expect([...PURE_SNAPSHOT_METRIC_NAMES].sort()).toEqual(
-      [...expected].sort(),
-    );
+    expect(getPureSnapshotMetricNames()).toEqual([...expected].sort());
   });
 
   test("chart-only performance families stay out of the Postgres mirror", () => {
@@ -2515,9 +2554,9 @@ describe("StorageArraySnapshotScan - the platform to write (resolveStorageArrayS
     expect(
       resolveStorageArraySystem({
         derived: undefined,
-        declared: "netapp.ontap",
+        declared: "hitachi.vsp",
       }),
-    ).toBe("netapp.ontap");
+    ).toBe("hitachi.vsp");
   });
 
   test("a known platform is never taken from the declaration alone", () => {

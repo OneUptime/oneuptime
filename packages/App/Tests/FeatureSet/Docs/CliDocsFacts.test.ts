@@ -55,6 +55,7 @@ import {
   CLI_ACTIONS,
   CLI_FIELDS_SUBCOMMAND,
   CLI_OPERATIONS,
+  CLI_RESOURCE_OWN_COMMANDS,
   CliAction,
   CliDeleteChoiceFlag,
   CliFieldFlag,
@@ -304,7 +305,10 @@ describe("the command reference", () => {
       )?.defaultValue,
     ).toBe("target");
 
-    // A resource's subcommands are Common's operations, fields and actions, each once.
+    /*
+     * A resource's subcommands are Common's operations, fields and actions,
+     * each once, and the commands a resource has of its own (#11009).
+     */
     expect(
       program.commands
         .filter((command: CliCommand): boolean => {
@@ -313,7 +317,12 @@ describe("the command reference", () => {
         .map((command: CliCommand): string => {
           return command.path.slice(RESOURCE_COMMAND.length + 1);
         }),
-    ).toEqual([...CLI_OPERATIONS, CLI_FIELDS_SUBCOMMAND, ...CLI_ACTIONS]);
+    ).toEqual([
+      ...CLI_OPERATIONS,
+      CLI_FIELDS_SUBCOMMAND,
+      ...CLI_ACTIONS,
+      ...Object.values(CLI_RESOURCE_OWN_COMMANDS).flat(),
+    ]);
     expect(Object.keys(operationRegisterFunctions())).toEqual([
       ...CLI_OPERATIONS,
     ]);

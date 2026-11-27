@@ -314,6 +314,17 @@ const OTHER_CONSOLES: Record<string, Array<string>> = {
     "Create User…",
     "Create API Token…",
     "Expires In",
+    /*
+     * ONTAP System Manager's, where the read-only REST role and user are
+     * made, and the CLI's login method (#11001).
+     */
+    "Roles",
+    "Add",
+    "REST API path",
+    "Read-Only",
+    "HTTP",
+    "Password",
+    "http",
   ],
   [SERVERLESS]: ["Key Vault Secrets User"],
   // A CloudWatch Metric Stream's output formats, and Azure's and Google Cloud's roles.
@@ -364,6 +375,9 @@ const NAMES: Record<string, Array<string>> = {
     "Pure Storage FlashArray",
     "Pure Storage FlashBlade",
     "Everpure",
+    "NetApp ONTAP",
+    "Amazon FSx for NetApp ONTAP",
+    "SnapMirror",
     "Dell PowerScale",
   ],
   [DATABASES]: [
@@ -426,6 +440,12 @@ const PROSE: Record<string, Array<string>> = {
   [QUEUES]: ["destination", "namespace"],
   // The two concepts the page defines, "**Fleet**: a group of devices".
   [IOT]: ["Fleet", "Device"],
+  /*
+   * ONTAP's Aggregates tab, which the Dashboard draws with a key of its own
+   * (Aggregates (disk aggregates), #11001): the bare Aggregates is
+   * OpenStack's host aggregate in some languages.
+   */
+  [STORAGE_ARRAYS]: ["Aggregates"],
 };
 
 /*
@@ -662,6 +682,8 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Hosts.",
     "Pods.",
     "File systems.",
+    "An ONTAP cluster's own objects.",
+    "ONTAP: Harvest polls the cluster, the collector scrapes Harvest.",
     // A PowerScale cluster, as the agent reads it (#11003).
     "Every node is polled at its own address.",
     "The cluster's own objects are read once, through the first node:",

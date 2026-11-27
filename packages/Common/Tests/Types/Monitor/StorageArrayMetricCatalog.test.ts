@@ -20,7 +20,14 @@ import {
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import AggregationType from "../../../Types/BaseDatabase/AggregationType";
 import MetricsAggregationType from "../../../Types/Metrics/MetricsAggregationType";
+import {
+  CapturedSeries,
+  parseOpenMetrics,
+} from "../../Helpers/StorageArray/OpenMetricsCapture";
 import { describe, expect, test } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import { getRecordedSeriesLabels } from "../../Helpers/StorageArray/NetAppHarvestRecordings";
 
 /*
  * The storage array metric catalog drives the monitor form's metric picker,
@@ -311,6 +318,147 @@ const PURE_SERIES: Record<string, SeriesLabels> = {
   purefb_buckets_object_count: { name: null, account: null },
 };
 
+/*
+ * Dell PowerStore's series, label by label, as Dell's exporter
+ * (powerstore-metrics-exporter v1.0.3) answered every path the agent scrapes
+ * (packages/Common/Tests/Fixtures/DellPowerStoreExporter: the recordings),
+ * and the two percents the agent divides out of them, which keep the
+ * labels of the series they are divided from. Dell's labels name objects,
+ * so every value is free-form.
+ */
+function readPowerStoreSeries(): Record<string, SeriesLabels> {
+  const directory: string = path.join(
+    __dirname,
+    "../../Fixtures/DellPowerStoreExporter/v1.0.3/bulk",
+  );
+  const series: Record<string, SeriesLabels> = {};
+  for (const file of fs.readdirSync(directory)) {
+    for (const one of parseOpenMetrics(
+      fs.readFileSync(path.join(directory, file), "utf8"),
+    )) {
+      const labels: SeriesLabels = series[one.name] || {};
+      for (const key of Object.keys((one as CapturedSeries).labels)) {
+        labels[key] = null;
+      }
+      series[one.name] = labels;
+    }
+  }
+  series["powerstore_cap_physical_used_percent"] = {
+    ...series["powerstore_cap_last_physical_used"]!,
+  };
+  series["powerstore_filesystem_logical_used_percent"] = {
+    ...series["powerstore_filesystem_logical_used"]!,
+  };
+  return series;
+}
+
+const POWERSTORE_SERIES: Record<string, SeriesLabels> = readPowerStoreSeries();
+
+/*
+ * ONTAP's series as the real NetApp Harvest 26.11 served them
+ * (Tests/Fixtures/NetAppHarvest/26.11.0), every label with the values the
+ * recordings hold, and those no recording happened to hold from Harvest's
+ * own code: its Health plugin's open problems a healthy stand-in cluster
+ * never raised (cmd/collectors/rest/plugins/health), and ONTAP's EMS
+ * severities.
+ */
+const ONTAP_DOCUMENTED_SERIES: Record<string, Record<string, Array<string>>> = {
+  netapp_health_ha_alerts: {
+    node: [],
+    takeover_possible: ["false"],
+    partner: [],
+    state_description: [],
+    partner_state: [],
+    severity: ["error"],
+  },
+  netapp_health_node_alerts: {
+    node: [],
+    healthy: ["false"],
+    severity: ["error"],
+  },
+  netapp_health_network_fc_port_alerts: {
+    node: [],
+    port: [],
+    state: [],
+    severity: ["error"],
+  },
+  netapp_health_lif_alerts: {
+    svm: [],
+    lif: [],
+    isHome: ["false"],
+    severity: ["warning"],
+  },
+  netapp_health_volume_move_alerts: {
+    svm: [],
+    volume: [],
+    movement_state: [],
+    severity: ["warning"],
+  },
+  netapp_health_volume_ransomware_alerts: {
+    volume: [],
+    anti_ransomware_attack_probability: [],
+    severity: ["error"],
+  },
+  netapp_health_license_alerts: {
+    name: [],
+    scope: [],
+    state: [],
+    severity: ["error"],
+  },
+};
+const ONTAP_DOCUMENTED_VALUES: Record<string, Record<string, Array<string>>> = {
+  netapp_ems_events: {
+    severity: [
+      "emergency",
+      "alert",
+      "error",
+      "notice",
+      "informational",
+      "debug",
+    ],
+  },
+};
+
+function getOntapSeries(): Record<string, SeriesLabels> {
+  const series: Record<string, SeriesLabels> = {};
+  const recorded: Record<
+    string,
+    Record<string, Array<string>>
+  > = getRecordedSeriesLabels();
+  for (const [name, labels] of Object.entries({
+    ...recorded,
+    ...ONTAP_DOCUMENTED_SERIES,
+  })) {
+    if (!name.startsWith("netapp_")) {
+      continue;
+    }
+    const entry: SeriesLabels = {};
+    for (const [label, values] of Object.entries({
+      cluster: [],
+      datacenter: [],
+      ...labels,
+    })) {
+      const documented: Array<string> =
+        ONTAP_DOCUMENTED_VALUES[name]?.[label] || [];
+      // A label with no value recorded or documented is free-form.
+      entry[label] =
+        values.length + documented.length > 0
+          ? Array.from(new Set([...values, ...documented]))
+          : null;
+    }
+    series[name] = entry;
+  }
+  return series;
+}
+
+// Every shipped platform's series, label by label: Pure's and Dell's from
+// their exporters, ONTAP's from Harvest.
+const SERIES: Record<string, SeriesLabels> = {
+  ...PURE_SERIES,
+  ...POWERSTORE_SERIES,
+  ...getOntapSeries(),
+};
+
 const ALL_METRICS: Array<StorageArrayMetricDefinition> =
   getAllStorageArrayMetrics();
 
@@ -322,14 +470,25 @@ const SERIES: Record<string, SeriesLabels | PowerScaleSeriesLabels> = {
 
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
-const PS: StorageSystem = StorageSystem.DellPowerScale;
+const PS: StorageSystem = StorageSystem.DellPowerStore;
+const ONTAP: StorageSystem = StorageSystem.NetAppOntap;
+const POWERSCALE: StorageSystem = StorageSystem.DellPowerScale;
 
-// The prefix a platform's catalog ids carry.
-const ID_PREFIXES: Record<string, string> = {
-  [FA]: "purefa-",
-  [FB]: "purefb-",
-  [PS]: "powerscale-",
+// Each platform's catalog ids and series names start with these.
+const PREFIXES: Record<string, { id: string; series: string }> = {
+  [FA]: { id: "purefa-", series: "purefa_" },
+  [FB]: { id: "purefb-", series: "purefb_" },
+  [PS]: { id: "powerstore-", series: "powerstore_" },
+  [ONTAP]: { id: "netapp-", series: "netapp_" },
+  [POWERSCALE]: { id: "powerscale-", series: "powerscale_" },
 };
+
+// Pure's entries: the ones whose names follow Pure's unit suffixes.
+const PURE_METRICS: Array<StorageArrayMetricDefinition> = ALL_METRICS.filter(
+  (metric: StorageArrayMetricDefinition): boolean => {
+    return metric.metricName.startsWith("pure");
+  },
+);
 
 function onlySystem(metric: StorageArrayMetricDefinition): StorageSystem {
   expect(metric.storageSystems).toHaveLength(1);
@@ -369,11 +528,15 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     );
     expect(new Set(ids).size).toBe(ids.length);
 
+    const prefixes: Record<string, string> = {
+      [FA]: "purefa-",
+      [FB]: "purefb-",
+      [ONTAP]: "netapp-",
+    };
     for (const metric of ALL_METRICS) {
-      const prefix: string | undefined = ID_PREFIXES[onlySystem(metric)];
-      expect(prefix).toBeDefined();
-      expect(metric.id).toMatch(/^[a-z0-9]+-[a-z0-9-]+$/);
-      expect(metric.id.startsWith(prefix!)).toBe(true);
+      const prefix: string = PREFIXES[onlySystem(metric)]!.id;
+      expect(metric.id).toMatch(/^[a-z]+-[a-z0-9-]+$/);
+      expect(metric.id.startsWith(prefix)).toBe(true);
     }
   });
 
@@ -386,14 +549,17 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     }
   });
 
-  test("every metric name is one the snapshot scan or its platform's series know", () => {
+  test("every metric name is one the snapshot scan or its platform's exporter knows", () => {
     for (const metric of ALL_METRICS) {
       expect(
         SERIES[metric.metricName] !== undefined ||
           STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(metric.metricName),
       ).toBe(true);
       // Every catalog metric is documented here, label by label.
-      expect(SERIES[metric.metricName]).toBeDefined();
+      expect({
+        metric: metric.id,
+        documented: SERIES[metric.metricName] !== undefined,
+      }).toEqual({ metric: metric.id, documented: true });
     }
   });
 
@@ -555,6 +721,48 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     }
   });
 
+  /*
+   * Dell's names say what they measure in words rather than units: its
+   * latencies are microseconds, its space bytes, its rates per second.
+   */
+  const powerStoreUnit: (name: string) => string = (name: string): string => {
+    if (name.endsWith("_latency")) {
+      return "µs";
+    }
+    if (name.endsWith("_iops")) {
+      return "ops/s";
+    }
+    if (
+      name.endsWith("_bandwidth") ||
+      name.endsWith("_bytes_rx_ps") ||
+      name.endsWith("_bytes_tx_ps")
+    ) {
+      return "bytes/s";
+    }
+    if (name.endsWith("_count_ps") || name.endsWith("_error_ps")) {
+      return "errors/s";
+    }
+    if (
+      name.endsWith("_percent") ||
+      name.endsWith("_cpu_utilization") ||
+      name === "powerstore_wear_metrics_by_drive"
+    ) {
+      return "%";
+    }
+    if (
+      name.endsWith("_data_reduction") ||
+      name.endsWith("_efficiency_ratio")
+    ) {
+      return "ratio";
+    }
+    const bytesSuffix: RegExp = /_(size|used|provisioned|total)$/;
+    if (bytesSuffix.test(name)) {
+      return "bytes";
+    }
+    // States (1 while healthy) and the cluster's identity.
+    return "count";
+  };
+
   test("units follow the metric name's own unit suffix", () => {
     const expectedUnit: (
       metric: StorageArrayMetricDefinition,
@@ -562,6 +770,9 @@ describe("StorageArrayMetricCatalog - every entry", () => {
       metric: StorageArrayMetricDefinition,
     ): string | undefined => {
       const name: string = metric.metricName;
+      if (name.startsWith(PREFIXES[PS]!.series)) {
+        return powerStoreUnit(name);
+      }
       if (name.endsWith("_latency_usec")) {
         return "µs";
       }
@@ -631,7 +842,12 @@ describe("StorageArrayMetricCatalog - every entry", () => {
       return "count";
     };
 
-    for (const metric of ALL_METRICS) {
+    // ONTAP's follow Harvest's names (NetAppOntapCatalog.test.ts).
+    // And PowerScale's, whose names end in their units as Pure's do.
+    for (const metric of [
+      ...PURE_METRICS,
+      ...getStorageArrayMetricsForSystem(POWERSCALE),
+    ]) {
       expect({ id: metric.id, unit: metric.unit }).toEqual({
         id: metric.id,
         unit: expectedUnit(metric),
@@ -679,28 +895,32 @@ describe("StorageArrayMetricCatalog - categories", () => {
     expect(total).toBe(ALL_METRICS.length);
   });
 
-  test("platform-specific categories hold only that platform's metrics", () => {
-    for (const category of [
-      "Volumes",
-      "Hosts",
-      "Replication",
-    ] as Array<StorageArrayMetricCategory>) {
-      for (const metric of getStorageArrayMetricsByCategory(category)) {
-        expect(onlySystem(metric)).toBe(FA);
-      }
-    }
-    for (const category of [
-      "File Systems",
-      "Buckets",
-    ] as Array<StorageArrayMetricCategory>) {
-      for (const metric of getStorageArrayMetricsByCategory(category)) {
-        expect(onlySystem(metric)).toBe(FB);
+  test("platform-specific categories hold only the metrics of the platforms that have the objects", () => {
+    const platformsOf: Partial<
+      Record<StorageArrayMetricCategory, Array<StorageSystem>>
+    > = {
+      Volumes: [FA, PS, ONTAP],
+      Hosts: [FA],
+      Replication: [FA, PS, ONTAP],
+      "File Systems": [FB, PS],
+      Buckets: [FB],
+    };
+    for (const [category, systems] of Object.entries(platformsOf)) {
+      for (const metric of getStorageArrayMetricsByCategory(
+        category as StorageArrayMetricCategory,
+      )) {
+        expect({ metric: metric.id, system: onlySystem(metric) }).toEqual({
+          metric: metric.id,
+          system: systems!.includes(onlySystem(metric))
+            ? onlySystem(metric)
+            : `<one of ${systems!.join(", ")}>`,
+        });
       }
     }
   });
 
-  test("both platforms cover alerts, capacity, performance and hardware", () => {
-    for (const system of [FA, FB]) {
+  test("every platform covers alerts, capacity, performance and hardware", () => {
+    for (const system of [FA, FB, PS, ONTAP]) {
       const covered: Set<string> = new Set(
         getStorageArrayMetricsForSystem(system).map(
           (m: StorageArrayMetricDefinition) => {
@@ -863,30 +1083,32 @@ describe("StorageArrayMetricCatalog - getStorageArrayMetric (filter-aware lookup
 });
 
 describe("StorageArrayMetricCatalog - per-platform picker", () => {
-  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerScale PowerScale's", () => {
+  test("each platform sees only its own metrics: a FlashArray FlashArray's, a FlashBlade FlashBlade's, a PowerStore PowerStore's, a PowerScale PowerScale's, an ONTAP cluster ONTAP's", () => {
     let total: number = 0;
-    for (const [system, prefix] of [
-      [FA, "purefa_"],
-      [FB, "purefb_"],
-      [PS, "powerscale_"],
-    ] as Array<[StorageSystem, string]>) {
+    for (const system of [FA, FB, PS, ONTAP, POWERSCALE]) {
       const metrics: Array<StorageArrayMetricDefinition> =
         getStorageArrayMetricsForSystem(system);
       expect(metrics.length).toBeGreaterThan(0);
       for (const metric of metrics) {
         expect(metric.storageSystems).toContain(system);
-        expect(metric.metricName.startsWith(prefix)).toBe(true);
+        expect(metric.metricName.startsWith(PREFIXES[system]!.series)).toBe(
+          true,
+        );
       }
       total += metrics.length;
     }
     expect(total).toBe(ALL_METRICS.length);
+    // ONTAP's catalog: every series the docs' tables name.
+    expect(getStorageArrayMetricsForSystem(ONTAP)).toHaveLength(87);
+    // PowerScale's catalog: every series its templates and pages read.
+    expect(getStorageArrayMetricsForSystem(POWERSCALE)).toHaveLength(28);
   });
 
   test.each([
     ["null", null],
     ["undefined", undefined],
     ["the empty string", ""],
-    ["an unknown platform", "netapp.ontap"],
+    ["an unknown platform", "hitachi.vsp"],
     ["an alias rather than the canonical value", "purefa"],
   ])(
     "%s gets the whole catalog, so the picker is never empty",
@@ -907,6 +1129,13 @@ describe("StorageArrayMetricCatalog - object labels (resource filters and per-ob
     [StorageArrayResourceScope.Hardware, FB, "name"],
     [StorageArrayResourceScope.FileSystem, FB, "name"],
     [StorageArrayResourceScope.Bucket, FB, "name"],
+    [StorageArrayResourceScope.Array, PS, null],
+    [StorageArrayResourceScope.Volume, PS, "name"],
+    [StorageArrayResourceScope.Hardware, PS, "name"],
+    [StorageArrayResourceScope.FileSystem, PS, "name"],
+    [StorageArrayResourceScope.Array, ONTAP, null],
+    [StorageArrayResourceScope.Volume, ONTAP, "volume"],
+    [StorageArrayResourceScope.Hardware, ONTAP, "node"],
   ])(
     "%s on %s is named by %p",
     (
@@ -1018,10 +1247,18 @@ describe("StorageArrayMetricCatalog - object labels (resource filters and per-ob
         onlySystem(metric),
         metric.metricName,
       );
-      if (metric.defaultResourceScope === StorageArrayResourceScope.Array) {
+      if (
+        metric.defaultResourceScope === StorageArrayResourceScope.Array &&
+        !metric.objectLabel
+      ) {
         expect(label).toBeNull();
         continue;
       }
+      /*
+       * An array-wide metric with an object label of its own is one series
+       * per part of the array no scope names (a PowerStore appliance, its
+       * NAS servers): its charts and monitors split by that label.
+       */
       expect({ id: metric.id, label }).toEqual({
         id: metric.id,
         label:

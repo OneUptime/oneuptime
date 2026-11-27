@@ -66,8 +66,13 @@ export class MailService extends BaseService {
 
     const { ccEmails, replyToEmail, ...envelope }: Email = mail;
 
+    /*
+     * The envelope as JSON: the files it carries (a cost report's CSV,
+     * EmailAttachment) are plain objects of text, read back by the mail
+     * API (readEmailAttachments).
+     */
     const body: JSONObject = {
-      ...envelope,
+      ...(envelope as unknown as JSONObject),
       toEmail: mail.toEmail.toString(),
     };
 

@@ -42,6 +42,11 @@ import {
   getSetupGuideMarkdown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import StorageSystem from "../../../Types/StorageArray/StorageSystem";
+import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
+import {
+  StorageArrayAgentConfig,
+  StorageArrayPlatform as StorageArrayPlatformDefinition,
+} from "../../../Types/StorageArray/StorageArrayPlatform";
 
 /*
  * The Storage Array Agent guide asks which array it is for — a FlashArray
@@ -309,7 +314,7 @@ describe("the platform picker", () => {
     expect(DEFAULT_STORAGE_ARRAY_PLATFORM).toBe("flasharray");
     expect(resolveStorageArrayPlatform(undefined)).toBe("flasharray");
     expect(resolveStorageArrayPlatform(null)).toBe("flasharray");
-    expect(resolveStorageArrayPlatform("netapp")).toBe("flasharray");
+    expect(resolveStorageArrayPlatform("hitachi")).toBe("flasharray");
     expect(resolveStorageArrayPlatform("flashblade")).toBe("flashblade");
     expect(resolveStorageArrayPlatform("flasharray-exporter")).toBe(
       "flasharray-exporter",
@@ -324,7 +329,7 @@ describe("the platform picker", () => {
       getStorageArrayPlatformForSystem(StorageSystem.PureStorageFlashArray),
     ).toBe("flasharray");
     expect(getStorageArrayPlatformForSystem(undefined)).toBeUndefined();
-    expect(getStorageArrayPlatformForSystem("netapp.ontap")).toBeUndefined();
+    expect(getStorageArrayPlatformForSystem("hitachi.vsp")).toBeUndefined();
   });
 
   test("every platform is one shipped config, one storage.system value and one compose profile", () => {
@@ -1047,11 +1052,63 @@ describe("drift guards against agents/StorageArrayAgent", () => {
         read.add(variable);
       }
     }
-    for (const match of readAgentFile("docker-compose.yml").matchAll(
-      /\$\{([A-Z0-9_]+)(?::-[^}]*)?\}/g,
+    /*
+     * The compose services this guide's platforms run: every service no
+     * profile holds back, and each exporter under one of their profiles. A
+     * service only another platform's profile starts (Dell PowerStore's
+     * exporter and syslog collector, under `powerstore`) reads that
+     * platform's variables, which this Pure guide does not document: that
+     * platform's own guide does (#11123).
+     */
+    const guideProfiles: Set<string> = new Set(
+      PLATFORMS.map((platform: StorageArrayPlatform): string => {
+        return STORAGE_ARRAY_PLATFORM_SETTINGS[platform].composeProfile;
+      }).filter((profile: string): boolean => {
+        return profile !== "";
+      }),
+    );
+    const otherProfiles: Set<string> = new Set();
+    for (const service of Object.values(
+      compose()["services"] as Record<string, Record<string, unknown>>,
     )) {
-      read.add(match[1]!);
+      const profiles: Array<string> | undefined = service["profiles"] as
+        | Array<string>
+        | undefined;
+      if (
+        profiles &&
+        !profiles.some((profile: string): boolean => {
+          return guideProfiles.has(profile);
+        })
+      ) {
+        profiles.forEach((profile: string) => {
+          otherProfiles.add(profile);
+        });
+        continue;
+      }
+      for (const match of JSON.stringify(service).matchAll(
+        /\$\{([A-Z0-9_]+)(?::-[^}]*)?\}/g,
+      )) {
+        read.add(match[1]!);
+      }
     }
+    // The services left out are each a registered platform's, by its profile.
+    const platformProfiles: Set<string> = new Set(
+      StorageArrayPlatformRegistry.getPlatforms().flatMap(
+        (platform: StorageArrayPlatformDefinition): Array<string> => {
+          return platform.agentConfigs.map(
+            (config: StorageArrayAgentConfig): string => {
+              return config.composeProfile || "";
+            },
+          );
+        },
+      ),
+    );
+    expect(
+      Array.from(otherProfiles).filter((profile: string): boolean => {
+        return !platformProfiles.has(profile);
+      }),
+    ).toEqual([]);
+    expect(otherProfiles.has("powerstore")).toBe(true);
 
     expect(new Set(envTableRows(guideFor("flasharray")).keys())).toEqual(read);
   });

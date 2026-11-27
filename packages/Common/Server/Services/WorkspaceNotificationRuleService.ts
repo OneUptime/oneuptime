@@ -144,6 +144,8 @@ import WorkspaceRecordOwners, {
   OwnedRecordKey,
 } from "../Utils/Workspace/WorkspaceRecordOwners";
 import WorkspaceCreatedMessageFirst from "../Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceMarkdownNotificationJSON from "../Utils/Workspace/WorkspaceMarkdownNotificationJSON";
+import { JSONObject } from "../../Types/JSON";
 import NotificationRuleConditionIds from "../Utils/Workspace/NotificationRuleConditionIds";
 import WorkspacePostedMessages from "../Utils/Workspace/WorkspacePostedMessages";
 import WorkspacePostedMessage from "../../Types/Workspace/WorkspacePostedMessage";
@@ -2111,8 +2113,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
    * the one that does - its Created message - and is posted right after it,
    * in the order it was made (WorkspaceCreatedMessageFirst): the record's
    * channels hear of the record first, then of what happened to it - on
-   * whichever App server the message is made (#11198). Asked before
-   * anything else, so the messages keep the order they were made in.
+   * whichever App server the message is made (#11198). It waits with what
+   * it says, so another App server posts it should this one be killed
+   * before its turn (#11235). Asked before anything else, so the messages
+   * keep the order they were made in.
    */
   @CaptureSpan()
   public async sendWorkspaceMarkdownNotification(
@@ -2125,12 +2129,33 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         post: (): Promise<void> => {
           return this.postWorkspaceMarkdownNotification(data);
         },
+        stored: (): JSONObject => {
+          return WorkspaceMarkdownNotificationJSON.toJSON(data);
+        },
       }))
     ) {
       return;
     }
 
     await this.postWorkspaceMarkdownNotification(data);
+  }
+
+  /*
+   * A message another App server kept for a record's Created message, and
+   * was killed before posting (#11235): posted here, in its turn in the
+   * record's line, from what that server stored of it - wherever the
+   * record's rules send it now, as that server would have. The server that
+   * takes it over calls this (WorkspaceCreatedMessageFirst.
+   * takeOverForStoppedServers, which App/Index.ts starts). Throws when what
+   * was stored is not a message: it is not posted.
+   */
+  @CaptureSpan()
+  public async postStoredWorkspaceMarkdownNotification(
+    stored: JSONObject,
+  ): Promise<void> {
+    await this.postWorkspaceMarkdownNotification(
+      WorkspaceMarkdownNotificationJSON.fromJSON(stored),
+    );
   }
 
   @CaptureSpan()

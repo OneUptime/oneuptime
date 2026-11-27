@@ -178,7 +178,7 @@ Ett chassi med Virtual Fabrics svarar för varje logisk switch i en egen SNMPv3-
 
 ### Brocade-traps
 
-Fabric OS skickar sina traps över SNMPv3. Lägg med `snmpconfig --set snmpv3` till proben som trap-mottagare för användaren som OneUptime frågar med, på UDP-port 162: proben tar emot SNMPv3-traps från användarna av de enheter den frågar (se [SNMPv3-traps och informs](/docs/monitor/network-device-monitor#snmpv3-traps-och-informs)), och varje logisk switchs traps nämner dess kontext, så de utlöses bara på dess enhet. En uppgradering av Fabric OS kan stänga av enskilda traps igen: kontrollera dem med `snmpconfig --show mibCapability` efter en uppgradering, och slå på en igen med `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn`.
+Fabric OS skickar sina traps över SNMPv3. Lägg med `snmpconfig --set snmpv3` till sonden som trap-mottagare för användaren som OneUptime frågar med, på UDP-port 162: sonden tar emot SNMPv3-traps från användarna av de enheter den frågar (se [SNMPv3-traps och informs](/docs/monitor/network-device-monitor#snmpv3-traps-och-informs)), och varje logisk switchs traps nämner dess kontext, så de utlöses bara på dess enhet. En uppgradering av Fabric OS kan stänga av enskilda traps igen: kontrollera dem med `snmpconfig --show mibCapability` efter en uppgradering, och slå på en igen med `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn`.
 
 De rekommenderade larmen på en Brocade-switch inkluderar ett för varje fabric-händelse som spelar roll: **Inter-switch link down** (en E-Port som går offline), **Fabric segmented**, **Fabric reconfigured**, **Zone configuration changed**, **MAPS alert** och **Field-replaceable unit changed**.
 
@@ -199,7 +199,7 @@ En MDS delar Ciscos enterprise-nummer med alla andra Cisco-enheter, så OneUptim
 
 :::steps
 1. Lägg till en SNMPv3-användare med bara läsbehörighet: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`. Rollen `network-operator` läser och kan inte ändra något.
-2. Skicka traps till proben som den användaren: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
+2. Skicka traps till sonden som den användaren: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
 3. Slå på de traps som är avstängda som standard: `snmp-server enable traps zone`, `snmp-server enable traps vsan`, `snmp-server enable traps fcdomain`, `snmp-server enable traps fspf` och, för optiken, `snmp-server enable traps link cisco-xcvr-mon-status-chg`.
 4. Lägg till switchen i OneUptime med dess hanteringsadress och den användaren: mallen **Cisco MDS 9000 (SAN switches)** tillämpas på samma sätt.
 :::

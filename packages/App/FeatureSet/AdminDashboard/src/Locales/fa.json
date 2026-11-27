@@ -4622,5 +4622,14 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "این قالب مانیتور نوع مانیتور ندارد، پس مانیتورهایش همگام‌سازی نمی‌شوند. قالب را با یک نوع مانیتور دوباره بسازید.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "تنظیمات همگام‌سازی قالب به نوع مانیتور قالب نیاز دارد. اول نوع مانیتور را انتخاب کنید و سپس تنظیمات همگام‌سازی را دوباره انتخاب کنید.",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "قالب مانیتور نمی‌تواند «{{field}}» را همگام‌سازی کند. از میان تنظیمات همگام‌سازی قالب که قالب ارائه می‌دهد انتخاب کنید و سپس دوباره ذخیره کنید.",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "هنوز هیچ فرد تازه‌ای نمی‌تواند وارد شود. در «پروژه‌های پیوست‌شده» پروژه‌ای را همراه با تیم‌هایی که به آن‌ها می‌پیوندند پیوست کنید."
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "هنوز هیچ فرد تازه‌ای نمی‌تواند وارد شود. در «پروژه‌های پیوست‌شده» پروژه‌ای را همراه با تیم‌هایی که به آن‌ها می‌پیوندند پیوست کنید.",
+  "This issue does not exist, or you cannot read it.": "این مسئله وجود ندارد، یا نمی‌توانید آن را بخوانید.",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "این مسئله از قبل ۱۰ درخواست کشش پیوندداده‌شده دارد. پیش از پیوند دادن یکی دیگر، یکی را بردارید.",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "این مسئله کنار گذاشته شده است: ریسک آن پذیرفته شده، یا مسئله نیست. برای پیوند دادن درخواست کششی که آن را اصلاح می‌کند، آن را دوباره باز کنید.",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} از قبل به این مسئله پیوند داده شده است.",
+  "All XCP-ng pools": "همه استخرهای XCP-ng",
+  "Only XCP-ng pools that match conditions": "فقط آن دسته از استخرهای XCP-ng که با شرط‌ها مطابقت دارند",
+  "All savings": "همه صرفه‌جویی‌ها",
+  "Only savings that match conditions": "فقط آن دسته از صرفه‌جویی‌ها که با شرط‌ها مطابقت دارند",
+  "XCP-ng Pool": "استخر XCP-ng"
 }

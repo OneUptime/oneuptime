@@ -1,6 +1,6 @@
 # स्टोरेज ऐरे एजेंट
 
-OneUptime Storage Array एजेंट स्टोरेज ऐरे की निगरानी करता है: क्षमता और डेटा रिडक्शन, लेटेंसी, IOPS और बैंडविड्थ, वॉल्यूम, होस्ट, पॉड और रेप्लिकेशन, हार्डवेयर का स्वास्थ्य, फ़ाइल सिस्टम, बकेट और कोटा। यह एक मानक OpenTelemetry Collector है, जो केवल-पढ़ने वाले उपयोगकर्ता के API टोकन से ऐरे के OpenMetrics एंडपॉइंट स्क्रैप करता है, या SNMP पर किसी Dell PowerScale क्लस्टर के नोड पोल करता है, हर मेट्रिक पर आपके ऐरे की पहचान लगाता है और उसे OneUptime को भेजता है। [स्टोरेज ऐरे मॉनिटर](/docs/monitor/storage-array-monitor) जो आता है उस पर अलर्ट करते हैं।
+OneUptime Storage Array एजेंट स्टोरेज ऐरे की निगरानी करता है: क्षमता और डेटा रिडक्शन, लेटेंसी, IOPS और बैंडविड्थ, वॉल्यूम, होस्ट, पॉड और रेप्लिकेशन, हार्डवेयर का स्वास्थ्य, फ़ाइल सिस्टम और बकेट, और NetApp ONTAP पर उसके एग्रीगेट, SVM, LUN और SnapMirror संबंध। यह एक मानक OpenTelemetry Collector है, जो केवल-पढ़ने वाले उपयोगकर्ता के API टोकन से ऐरे के OpenMetrics एंडपॉइंट स्क्रैप करता है (या, ONTAP के लिए, अपने बगल में चलने वाला NetApp का अपना Harvest एक्सपोर्टर), हर मेट्रिक पर आपके ऐरे की पहचान लगाता है और उसे OneUptime को भेजता है। [स्टोरेज ऐरे मॉनिटर](/docs/monitor/storage-array-monitor) जो आता है उस पर अलर्ट करते हैं।
 
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): एक केवल-पढ़ने वाला उपयोगकर्ता, फिर इंस्टॉल स्क्रिप्ट या Docker Compose।
@@ -19,7 +19,11 @@ Storage Arrays एक ऐसा उत्पाद है जो हर वे�
 | **Pure Storage FlashArray**, Purity//FA 6.7 और बाद का | `purestorage.flasharray` | ऐरे का अपना OpenMetrics एंडपॉइंट (`https://<array>/metrics/...?namespace=purefa`): कलेक्टर के बगल में कुछ नहीं चलता | `otel-collector-config.yaml` (डिफ़ॉल्ट) |
 | **Pure Storage FlashArray**, पुराना Purity//FA | `purestorage.flasharray` | Pure का FlashArray OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fa-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure का FlashBlade OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fb-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Dell का PowerStore Metrics Exporter, जिसे वही Compose फ़ाइल `powerstore-exporter` सेवा के रूप में बनाती और चलाती है; क्लस्टर के अलर्ट syslog से उसकी `powerstore-syslog` सेवा पर आते हैं | `otel-collector-config.powerstore.yaml` |
+| **NetApp ONTAP** 9.12.1 और बाद का (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), और **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, जिसे वही Compose फ़ाइल `netapp-harvest` सेवा के रूप में चलाती है: यह केवल-पढ़ने वाले उपयोगकर्ता और पासवर्ड से क्लस्टर के REST API में लॉग इन करता है | `otel-collector-config.netapp-ontap.yaml` |
 | **Dell PowerScale** (Isilon), OneFS 8.0 और बाद का | `dell.powerscale` | हर नोड SNMP पर (Dell का ISILON-MIB), कलेक्टर के अपने SNMP रिसीवर से: कलेक्टर के बगल में कुछ नहीं चलता | `otel-collector-config.powerscale.yaml` |
+
+ONTAP का अपना कोई मेट्रिक्स एंडपॉइंट नहीं है, इसलिए एजेंट कलेक्टर के बगल में NetApp का ओपन-सोर्स एक्सपोर्टर, Harvest, चलाता है। Harvest क्लस्टर का REST API पढ़ता है और जो पढ़ा उसे Compose नेटवर्क पर देता है, हर सीरीज़ `netapp_<object>_<counter>` नाम से; कलेक्टर उसे स्क्रैप करता है और आगे भेजता है। Harvest क्लस्टर पर कभी कुछ नहीं लिखता, और NetApp को जाने वाली उसकी AutoSupport रिपोर्ट बंद रहती है।
 
 Pure Storage ने फ़रवरी 2026 में अपना नाम बदलकर **Everpure** कर लिया। FlashArray, FlashBlade और Purity के नाम वही रहे, और `purefa_*` और `purefb_*` मेट्रिक्स के भी, इसलिए इस पेज की हर बात दोनों में से किसी भी नाम से बेचे गए ऐरे पर लागू होती है।
 
@@ -30,7 +34,13 @@ flowchart TB
     collector["कलेक्टर"] -->|"FlashArray,<br/>Purity//FA 6.7+"| array["ऐरे,<br/>पोर्ट 443"]
     collector -->|"पुराना FlashArray,<br/>FlashBlade"| exporter["Pure का एक्सपोर्टर"]
     exporter -->|"API टोकन"| array
+    collector -->|"ONTAP"| harvest["NetApp Harvest"]
+    harvest -->|"केवल-पढ़ने वाला उपयोगकर्ता,<br/>REST API"| cluster["क्लस्टर,<br/>पोर्ट 443"]
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 एक एजेंट एक ऐरे की निगरानी करता है: हर ऐरे के लिए एक एजेंट चलाएँ ([कई ऐरे की निगरानी](#कई-ऐरे-की-निगरानी) देखें)। ऐरे अपने पहले डेटा के साथ खुद को रजिस्टर करता है, उस नाम से जिसे एजेंट हर मेट्रिक पर `storage.array.name` के रूप में लगाता है।
@@ -38,7 +48,8 @@ flowchart TB
 ## शुरू करने से पहले
 
 - Docker Compose v2 प्लगइन के साथ Docker Engine 20.10 या बाद का, ऐसी मशीन पर जो HTTPS (TCP 443) पर ऐरे के प्रबंधन इंटरफ़ेस तक पहुँच सके।
-- ऐरे पर एक एडमिनिस्ट्रेटर खाता, ताकि बिल्ट-इन **readonly** भूमिका वाला एक उपयोगकर्ता और उसके लिए एक API टोकन बनाया जा सके।
+- ऐरे पर एक एडमिनिस्ट्रेटर खाता, ताकि बिल्ट-इन **readonly** भूमिका वाला एक उपयोगकर्ता और उसके लिए एक API टोकन बनाया जा सके। ONTAP पर एक क्लस्टर एडमिनिस्ट्रेटर (Amazon FSx for NetApp ONTAP पर `fsxadmin`), ताकि पासवर्ड वाला एक केवल-पढ़ने वाला REST उपयोगकर्ता बनाया जा सके।
+- Dell PowerStore के लिए, एक x86-64 मशीन (Dell अपना एक्सपोर्टर केवल x86-64 के लिए बनाता है) और एजेंट के लिए एक PowerStore उपयोगकर्ता: देखें [Dell PowerStore](#dell-powerstore)।
 - एक इंजेशन कुंजी। **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** के अंतर्गत एक बनाएँ और उसका मान कॉपी करें।
 
 ### एजेंट कहाँ चलाएँ
@@ -66,6 +77,27 @@ pureadmin create --api-token oneuptime
 3. नए उपयोगकर्ता के ⋮ मेनू से **Create API Token…** चुनें, **Expires In** खाली छोड़ें, और टोकन कॉपी करें।
 @tab FlashBlade
 इसी तरह **readonly** भूमिका वाला एक उपयोगकर्ता और उसके लिए एक API टोकन बनाएँ: FlashBlade GUI की उपयोगकर्ता सेटिंग्स में, या Purity//FB CLI में `pureadmin` से। बिना स्थानीय उपयोगकर्ताओं वाले रिलीज़ पर, किसी डायरेक्टरी सेवा (LDAP या Active Directory) का ऐसा खाता उपयोग करें जिसका समूह readonly भूमिका से मैप होता हो। FlashBlade API टोकन `T-` से शुरू होते हैं।
+@tab ONTAP CLI
+एडमिनिस्ट्रेटर के रूप में क्लस्टर के प्रबंधन पते पर SSH करें। पहला कमांड एक REST भूमिका बनाता है जो हर API पढ़ सकती है और कुछ नहीं; दूसरा एक HTTP उपयोगकर्ता बनाता है जिसके पास वह भूमिका है, और उसका पासवर्ड पूछता है:
+
+```bash
+security login rest-role create -role oneuptime-readonly -api /api -access readonly
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role oneuptime-readonly
+```
+
+एजेंट इसी उपयोगकर्ता और पासवर्ड से लॉग इन करता है। इसमें कोई API टोकन शामिल नहीं है।
+@tab ONTAP System Manager
+1. _Cluster → Settings → Users and Roles_ खोलें।
+2. **Roles** के अंतर्गत **Add** चुनें, भूमिका का नाम `oneuptime-readonly` रखें, **REST API path** के रूप में `/api` दर्ज करें और **Read-Only** एक्सेस चुनें।
+3. **Users** के अंतर्गत **Add** चुनें, उपयोगकर्ता का नाम `oneuptime` रखें, उसे नई भूमिका दें, **Password** के साथ **HTTP** लॉगिन विधि जोड़ें, और पासवर्ड सेट करें।
+@tab Amazon FSx for NetApp ONTAP
+`fsxadmin` के रूप में फ़ाइल सिस्टम के प्रबंधन एंडपॉइंट (उसका DNS नाम या IP, FSx कंसोल से) पर SSH करें, और FSx की पहले से तय केवल-पढ़ने वाली भूमिका के साथ उपयोगकर्ता बनाएँ। कमांड उसका पासवर्ड पूछता है:
+
+```bash
+security login create -user-or-group-name oneuptime -application http -authentication-method password -role fsxadmin-readonly
+```
+
+फ़ाइल सिस्टम का हार्डवेयर AWS चलाता है, इसलिए FSx डिस्क, शेल्फ़ या सेंसर के बारे में किसी के सवालों का जवाब नहीं देता: ऐरे का **हार्डवेयर** पेज उसके नोड और पोर्ट दिखाता है और यही बताता है।
 :::
 
 ### जाँचें कि FlashArray अपने मेट्रिक्स खुद देता है या नहीं
@@ -76,7 +108,7 @@ Pure नेटिव OpenMetrics एंडपॉइंट को **Purity//FA 6.
 curl -k 'https://<array>/metrics/array?namespace=purefa' --header 'Authorization: Bearer <api-token>' | grep purefa_info
 ```
 
-`purefa_info{...} 1` पंक्ति का अर्थ है कि ऐरे अपने मेट्रिक्स नेटिव रूप से देता है: डिफ़ॉल्ट कॉन्फ़िगरेशन उपयोग करें। `404` का अर्थ है कि नहीं देता: एक्सपोर्टर कॉन्फ़िगरेशन उपयोग करें, जो कलेक्टर के बगल में Pure का एक्सपोर्टर चलाता है। Pure ने वह एक्सपोर्टर डेप्रिकेट कर दिया है, इसलिए ऐरे अपग्रेड होते ही नेटिव कॉन्फ़िगरेशन पर जाएँ। FlashBlade हमेशा Pure के FlashBlade एक्सपोर्टर से होकर जाता है, इसलिए उसके लिए यह चरण छोड़ दें।
+`purefa_info{...} 1` पंक्ति का अर्थ है कि ऐरे अपने मेट्रिक्स नेटिव रूप से देता है: डिफ़ॉल्ट कॉन्फ़िगरेशन उपयोग करें। `404` का अर्थ है कि नहीं देता: एक्सपोर्टर कॉन्फ़िगरेशन उपयोग करें, जो कलेक्टर के बगल में Pure का एक्सपोर्टर चलाता है। Pure ने वह एक्सपोर्टर डेप्रिकेट कर दिया है, इसलिए ऐरे अपग्रेड होते ही नेटिव कॉन्फ़िगरेशन पर जाएँ। FlashBlade हमेशा Pure के FlashBlade एक्सपोर्टर से होकर जाता है, और ONTAP क्लस्टर NetApp Harvest से होकर, इसलिए उनके लिए यह चरण छोड़ दें।
 
 ### एजेंट इंस्टॉल करें और शुरू करें
 
@@ -91,7 +123,7 @@ curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-स्क्रिप्ट पूछती है कि यह कौन-सा ऐरे है (नेटिव मेट्रिक्स देने वाला FlashArray, पुराने Purity//FA वाला FlashArray, FlashBlade, या PowerScale क्लस्टर), फिर आपका OneUptime URL, इंजेशन कुंजी, ऐरे का नाम, ऐरे का प्रबंधन पता और केवल-पढ़ने वाले उपयोगकर्ता का API टोकन (बिना दिखाए पढ़ा जाता है)। यह `/opt/oneuptime-storage-array-agent` में इंस्टॉल करती है, Compose फ़ाइल और सभी कलेक्टर कॉन्फ़िगरेशन डाउनलोड करती है, मेल खाते कॉन्फ़िगरेशन और Compose प्रोफ़ाइल के साथ `0600` अनुमति वाली एक `.env` फ़ाइल लिखती है, और Docker Compose से एजेंट शुरू करती है। यह हर मान को वैसे ही Docker Compose के लिए उद्धरण चिह्नों में रखती है जैसे आपने टाइप किया। इसे फिर से चलाने पर यह दोबारा पूछने के बजाय मौजूदा `.env` की हर चीज़ फिर से उपयोग करती है, और आपकी संपादित फ़ाइल को बदलने से पहले उसे `<file>.bak.<timestamp>` के रूप में रख लेती है।
+स्क्रिप्ट पूछती है कि यह कौन-सा ऐरे है (नेटिव मेट्रिक्स देने वाला FlashArray, पुराने Purity//FA वाला FlashArray, FlashBlade, या NetApp ONTAP क्लस्टर), फिर आपका OneUptime URL, इंजेशन कुंजी, ऐरे का नाम, ऐरे का प्रबंधन पता और केवल-पढ़ने वाले उपयोगकर्ता का API टोकन, या ONTAP के लिए केवल-पढ़ने वाले उपयोगकर्ता का नाम और पासवर्ड (बिना दिखाए पढ़ा जाता है)। यह `/opt/oneuptime-storage-array-agent` में इंस्टॉल करती है, Compose फ़ाइल, हर कलेक्टर कॉन्फ़िगरेशन और Harvest की चारों फ़ाइलें डाउनलोड करती है, मेल खाते कॉन्फ़िगरेशन और Compose प्रोफ़ाइल के साथ `0600` अनुमति वाली एक `.env` फ़ाइल लिखती है, और Docker Compose से एजेंट शुरू करती है। यह हर मान को वैसे ही Docker Compose के लिए उद्धरण चिह्नों में रखती है जैसे आपने टाइप किया। इसे फिर से चलाने पर यह दोबारा पूछने के बजाय मौजूदा `.env` की हर चीज़ फिर से उपयोग करती है, और आपकी संपादित फ़ाइल को बदलने से पहले उसे `<file>.bak.<timestamp>` के रूप में रख लेती है।
 @tab Docker Compose
 `docker-compose.yml` और तीन `otel-collector-config*.yaml` फ़ाइलें अपने OneUptime से एक नए फ़ोल्डर में डाउनलोड करें:
 
@@ -118,9 +150,45 @@ PURE_FB_API_TOKEN=
 POWERSCALE_ENDPOINT=
 POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
 
-पुराने Purity//FA वाले FlashArray के लिए `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` और `COMPOSE_PROFILES=flasharray-exporter` सेट करें। FlashBlade के लिए `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` और `COMPOSE_PROFILES=flashblade` सेट करें, और `PURE_FB_ENDPOINT` और `PURE_FB_API_TOKEN` भरें (`PURE_FA_*` जोड़ी के बजाय)। PowerScale क्लस्टर की `.env` [Dell PowerScale](#dell-powerscale) में है। एजेंट शुरू करें:
+Dell PowerStore के लिए `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` और `powerstore-syslog.yaml` भी डाउनलोड करें, `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` और `COMPOSE_PROFILES=powerstore` सेट करें, और `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` और `POWERSTORE_PASSWORD` भरें, पासवर्ड सिंगल कोट्स में।
+
+पुराने Purity//FA वाले FlashArray के लिए `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` और `COMPOSE_PROFILES=flasharray-exporter` सेट करें। FlashBlade के लिए `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` और `COMPOSE_PROFILES=flashblade` सेट करें, और `PURE_FB_ENDPOINT` और `PURE_FB_API_TOKEN` भरें (`PURE_FA_*` जोड़ी के बजाय)।
+
+NetApp ONTAP क्लस्टर या Amazon FSx for NetApp ONTAP के लिए ONTAP कॉन्फ़िगरेशन और Harvest की चारों फ़ाइलें भी डाउनलोड करें:
+
+```bash
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.netapp-ontap.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest.yml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-rest.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-keyperf.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/netapp-harvest-restperf.yaml
+```
+
+और यह `.env` उपयोग करें। पासवर्ड को यहाँ की तरह एकल उद्धरण चिह्नों में रखें: तब Docker Compose उसे ठीक वैसा ही पढ़ता है जैसा लिखा है, उसमें जो भी हो। जिस पासवर्ड में `'` हो, वह इसके बजाय दोहरे उद्धरण चिह्नों में जाता है, जिसमें `\"`, `\\` और `$$` क्रमशः `"`, `\` और `$` की जगह लिखे जाते हैं:
+
+```bash title=".env"
+ONEUPTIME_URL=YOUR_ONEUPTIME_URL
+ONEUPTIME_TELEMETRY_INGESTION_KEY=YOUR_TELEMETRY_INGESTION_TOKEN
+STORAGE_ARRAY_NAME=ontap-prod-01
+STORAGE_SYSTEM=netapp.ontap
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.netapp-ontap.yaml
+COMPOSE_PROFILES=netapp-ontap
+NETAPP_ONTAP_ENDPOINT=ontap-prod-01.example.com
+NETAPP_ONTAP_USERNAME=oneuptime
+NETAPP_ONTAP_PASSWORD='YOUR_READ_ONLY_USER_PASSWORD'
+STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+```
+
+एजेंट शुरू करें:
 
 ```bash
 docker compose up -d
@@ -134,7 +202,7 @@ docker compose ps
 docker logs -f oneuptime-storage-array-agent
 ```
 
-`docker compose ps` कलेक्टर (`oneuptime-storage-array-agent`) और, एक्सपोर्टर कॉन्फ़िगरेशन के साथ, एक्सपोर्टर (`pure-fa-exporter` या `pure-fb-exporter`) दिखाता है। कलेक्टर शुरू होने के बाद उसके लॉग में यह पंक्ति दिखनी चाहिए:
+`docker compose ps` कलेक्टर (`oneuptime-storage-array-agent`) और, एक्सपोर्टर कॉन्फ़िगरेशन के साथ, एक्सपोर्टर (`pure-fa-exporter`, `pure-fb-exporter` या `netapp-harvest`) दिखाता है। कलेक्टर शुरू होने के बाद उसके लॉग में यह पंक्ति दिखनी चाहिए:
 
 ```text
 Everything is ready. Begin running and processing data.
@@ -142,8 +210,18 @@ Everything is ready. Begin running and processing data.
 
 ### OneUptime में ऐरे ढूँढें
 
-**उत्पाद → बुनियादी ढांचा → स्टोरेज ऐरे → सभी स्टोरेज ऐरे** खोलें। पहले स्क्रैप के बाद (लगभग एक मिनट) ऐरे अपनी क्षमता, परफ़ॉर्मेंस, खुले अलर्ट और हार्डवेयर के साथ वहाँ होता है। वॉल्यूम, होस्ट और पॉड 2 मिनट के भीतर आते हैं, FlashBlade के फ़ाइल सिस्टम और बकेट 5 मिनट के भीतर, और FlashArray की डायरेक्टरी 30 मिनट के भीतर। ऐरे का **टोपोलॉजी** पेज उसके होस्ट, वॉल्यूम, फ़ाइल सिस्टम और हार्डवेयर एक मैप पर दिखाता है: देखें [टोपोलॉजी](/docs/telemetry/topology#किसी-संसाधन-का-अपना-मैप-खोलें)।
+**उत्पाद → बुनियादी ढांचा → स्टोरेज ऐरे → सभी स्टोरेज ऐरे** खोलें। पहले स्क्रैप के बाद (लगभग एक मिनट) ऐरे अपनी क्षमता, परफ़ॉर्मेंस, खुले अलर्ट और हार्डवेयर के साथ वहाँ होता है। वॉल्यूम, होस्ट और पॉड 2 मिनट के भीतर आते हैं, FlashBlade के फ़ाइल सिस्टम और बकेट 5 मिनट के भीतर, और FlashArray की डायरेक्टरी 30 मिनट के भीतर। ONTAP क्लस्टर तब दिखता है जब Harvest उसे पढ़ लेता है, और उसकी पूरी इन्वेंटरी लगभग 3 मिनट के भीतर, जितने अंतराल पर Harvest उसका कॉन्फ़िगरेशन पोल करता है। ऐरे का **टोपोलॉजी** पेज उसके होस्ट, वॉल्यूम, फ़ाइल सिस्टम और हार्डवेयर एक मैप पर दिखाता है: देखें [टोपोलॉजी](/docs/telemetry/topology#किसी-संसाधन-का-अपना-मैप-खोलें)।
 :::
+
+## Dell PowerStore
+
+एजेंट Dell के PowerStore Metrics Exporter, रिलीज़ `powerstore-metrics-exporter_v1.0.3`, के ज़रिए PowerStore क्लस्टर पढ़ता है। Dell इसे इमेज नहीं, बाइनरी के रूप में प्रकाशित करता है, इसलिए `powerstore-exporter` सेवा पहली बार शुरू होने पर `powerstore-exporter.Dockerfile` से Dell की दस्तावेज़ित इमेज बनाती है और बाइनरी का SHA-256 जाँचती है; उस बिल्ड को एक बार `quay.io` और `github.com` चाहिए।
+
+PowerStore में API टोकन नहीं होते, इसलिए Dell का एक्सपोर्टर उपयोगकर्ता नाम और पासवर्ड से लॉग इन करता है। PowerStore Manager में _Settings → Users_ के अंतर्गत केवल एजेंट के लिए एक लोकल उपयोगकर्ता जोड़ें, **Storage Operator** भूमिका के साथ: एक्सपोर्टर प्रदर्शन PowerStore के पाँच मिनट के बल्क मेट्रिक्स आर्काइव से पढ़ता है, जिसे वह खुद चालू करता है और जो PowerStoreOS 4.1 और बाद के संस्करणों में ज़रूरी है, और Dell का README कहता है कि Operator भूमिका इसे चालू नहीं कर सकती। पुराने PowerStoreOS पर, `POWERSTORE_BULK_METRICS=false` के साथ केवल-पढ़ने वाली **Operator** भूमिका काफ़ी है। पासवर्ड केवल एक्सपोर्टर `.env` से पढ़ता है।
+
+Dell का एक्सपोर्टर कोई अलर्ट नहीं पढ़ता, इसलिए क्लस्टर अपने अलर्ट खुद भेजता है: `powerstore-syslog` सेवा पोर्ट 5514 पर, TCP और UDP से, उसका रिमोट syslog लेती है और हर लाइन को ऐरे के **लॉग** पेज पर रखती है, PowerStore के रिकॉर्ड को एट्रिब्यूट्स (`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`) में और Dell के इवेंट कोड से निकली गंभीरता (`powerstore.alert.severity`) के साथ। PowerStore Manager में _Settings → Security → Remote Logging_ खोलें, इस मशीन को पोर्ट 5514 पर जोड़ें, और इसके फ़ायरवॉल में वह पोर्ट खोलें। पोर्ट 6514 पर TLS के ज़रिए syslog `powerstore-syslog.yaml` में बताया गया है।
+
+Dell का एक्सपोर्टर न होस्ट रिपोर्ट करता है न रेप्लिकेशन सेशन, इसलिए इस संस्करण में दोनों में से कोई नहीं है।
 
 ## एनवायरनमेंट वेरिएबल
 
@@ -154,13 +232,23 @@ Everything is ready. Begin running and processing data.
 | `ONEUPTIME_URL` | हाँ | आपका OneUptime URL, जैसे `https://oneuptime.com` या आपका सेल्फ़-होस्टेड इंस्टेंस। अगर इंस्टेंस सिर्फ़ HTTP पर है तो `http://` और उसका पोर्ट उपयोग करें। |
 | `ONEUPTIME_TELEMETRY_INGESTION_KEY` | हाँ | **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से इंजेशन कुंजी। |
 | `STORAGE_ARRAY_NAME` | हाँ | वह नाम जिससे ऐरे OneUptime में रजिस्टर होता है, हर मेट्रिक पर `storage.array.name` रिसोर्स एट्रिब्यूट के रूप में लगाया गया। इसे स्थिर रखें: बाद में बदलने से एक दूसरा ऐरे रजिस्टर होता है। इसके बिना कलेक्टर शुरू होने से इनकार करता है। |
-| `STORAGE_SYSTEM` | नहीं | प्लेटफ़ॉर्म, `storage.system` रिसोर्स एट्रिब्यूट के रूप में लगाया गया: `purestorage.flasharray`, `purestorage.flashblade` या `dell.powerscale`। डिफ़ॉल्ट `purestorage.flasharray` है। |
-| `STORAGE_ARRAY_COLLECTOR_CONFIG` | नहीं | साथ आने वाला कौन-सा कलेक्टर कॉन्फ़िगरेशन चलता है: `otel-collector-config.yaml` (FlashArray, नेटिव: डिफ़ॉल्ट), `otel-collector-config.flasharray-exporter.yaml` (पुराना FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade) या `otel-collector-config.powerscale.yaml` (PowerScale)। |
-| `COMPOSE_PROFILES` | नहीं | वह एक्सपोर्टर शुरू करता है जिसे चुना गया कॉन्फ़िगरेशन स्क्रैप करता है: नेटिव FlashArray कॉन्फ़िगरेशन के लिए खाली, बाकी दोनों के लिए `flasharray-exporter` या `flashblade`। |
+| `STORAGE_SYSTEM` | नहीं | प्लेटफ़ॉर्म, `storage.system` रिसोर्स एट्रिब्यूट के रूप में लगाया गया: `purestorage.flasharray`, `purestorage.flashblade` या `netapp.ontap`। डिफ़ॉल्ट `purestorage.flasharray` है। |
+| `STORAGE_ARRAY_COLLECTOR_CONFIG` | नहीं | साथ आने वाला कौन-सा कलेक्टर कॉन्फ़िगरेशन चलता है: `otel-collector-config.yaml` (FlashArray, नेटिव: डिफ़ॉल्ट), `otel-collector-config.flasharray-exporter.yaml` (पुराना FlashArray), `otel-collector-config.flashblade.yaml` (FlashBlade) या `otel-collector-config.netapp-ontap.yaml` (ONTAP)। |
+| `COMPOSE_PROFILES` | नहीं | वह एक्सपोर्टर शुरू करता है जिसे चुना गया कॉन्फ़िगरेशन स्क्रैप करता है: नेटिव FlashArray कॉन्फ़िगरेशन के लिए खाली, बाकी के लिए `flasharray-exporter`, `flashblade` या `netapp-ontap`। |
 | `PURE_FA_ENDPOINT` | FlashArray | FlashArray का प्रबंधन पता: होस्ट नाम या IP, `https://` के बिना। |
 | `PURE_FA_API_TOKEN` | FlashArray | readonly भूमिका वाले FlashArray उपयोगकर्ता का API टोकन। |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade का प्रबंधन पता: होस्ट नाम या IP, `https://` के बिना। |
 | `PURE_FB_API_TOKEN` | FlashBlade | readonly भूमिका वाले FlashBlade उपयोगकर्ता का API टोकन। |
+| `POWERSTORE_ENDPOINT` | PowerStore | PowerStore क्लस्टर का मैनेजमेंट पता: होस्ट नाम या IP, `https://` के बिना। |
+| `POWERSTORE_USERNAME` | PowerStore | वह PowerStore उपयोगकर्ता जिसके रूप में Dell का एक्सपोर्टर लॉग इन करता है। |
+| `POWERSTORE_PASSWORD` | PowerStore | उस उपयोगकर्ता का पासवर्ड। इसे केवल एक्सपोर्टर पढ़ता है। |
+| `POWERSTORE_BULK_METRICS` | नहीं | `true` प्रदर्शन PowerStore के बल्क मेट्रिक्स आर्काइव से पढ़ता है; `false` हर ऑब्जेक्ट को एक-एक करके पढ़ता है। डिफ़ॉल्ट `true` है। |
+| `POWERSTORE_API_VERSION` | नहीं | PowerStoreOS 3.6 और बाद के लिए `v3`, वरना `v1`। डिफ़ॉल्ट `v3` है। |
+| `POWERSTORE_REQUEST_LIMIT` | नहीं | एक्सपोर्टर एक साथ क्लस्टर को कितने अनुरोध भेजता है। डिफ़ॉल्ट `16` है। |
+| `POWERSTORE_SYSLOG_PORT` | नहीं | वह पोर्ट जिस पर यह मशीन क्लस्टर का syslog लेती है, TCP और UDP। डिफ़ॉल्ट `5514` है। |
+| `NETAPP_ONTAP_ENDPOINT` | ONTAP | क्लस्टर का प्रबंधन पता (FSx पर, फ़ाइल सिस्टम का प्रबंधन एंडपॉइंट): होस्ट नाम या IP, `https://` के बिना। |
+| `NETAPP_ONTAP_USERNAME` | ONTAP | केवल-पढ़ने वाला REST उपयोगकर्ता, जैसे `oneuptime`। |
+| `NETAPP_ONTAP_PASSWORD` | ONTAP | उसका पासवर्ड। इसे सिर्फ़ Harvest पढ़ता है, ठीक वैसा ही जैसा लिखा है। |
 | `POWERSCALE_NODES` | PowerScale | सभी नोड के पते, कॉमा से अलग किए हुए, कभी SmartConnect ज़ोन का नाम नहीं। इंस्टॉल स्क्रिप्ट इससे नीचे दिए पोल लिखती है। |
 | `POWERSCALE_ENDPOINT` | PowerScale | वह नोड जिसके ज़रिए क्लस्टर का अपना स्वास्थ्य, क्षमता और कोटा पढ़े जाते हैं: `POWERSCALE_NODES` में पहला। |
 | `POWERSCALE_SNMP_RECEIVERS` | PowerScale | कलेक्टर जो पोल चलाता है: `snmp/cluster`, `snmp/quotas`, फिर `snmp/node-1` और आगे, हर नोड के लिए एक। |
@@ -173,7 +261,7 @@ Everything is ready. Begin running and processing data.
 | `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 उपयोगकर्ता का प्रमाणीकरण पासवर्ड। |
 | `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | नहीं | `DES`, `AES`, `AES192`, `AES256`, `AES192C` या `AES256C`। डिफ़ॉल्ट `AES` है। |
 | `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 उपयोगकर्ता का गोपनीयता पासवर्ड, `auth_priv` स्तर पर। |
-| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | नहीं | `true` नेटिव एंडपॉइंट पर ऐरे का सेल्फ़-साइन्ड सर्टिफ़िकेट स्वीकार करता है; `false` उसे सत्यापित करता है। डिफ़ॉल्ट `true` है। Pure के एक्सपोर्टर ऐरे का सर्टिफ़िकेट कभी सत्यापित नहीं करते, इसलिए यह उन पर लागू नहीं होता। |
+| `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | नहीं | `true` नेटिव एंडपॉइंट पर और Harvest में ऐरे का सेल्फ़-साइन्ड सर्टिफ़िकेट स्वीकार करता है; `false` उसे सत्यापित करता है। डिफ़ॉल्ट `true` है। Pure के एक्सपोर्टर ऐरे का सर्टिफ़िकेट कभी सत्यापित नहीं करते, इसलिए यह उन पर लागू नहीं होता। |
 
 ## एजेंट कैसे स्क्रैप करता है
 
@@ -181,11 +269,13 @@ Everything is ready. Begin running and processing data.
 - **हर जॉब अपनी सीरीज़ पर `scrape_endpoint: <endpoint>` लेबल लगाता है।** हर एंडपॉइंट `purefa_info` या `purefb_info` भी एक्सपोर्ट करता है, इसलिए OneUptime जानता है कि कोई बैच किन फ़ैमिली की पूरी सूची है: इसी तरह हटाया गया वॉल्यूम, होस्ट, पॉड, फ़ाइल सिस्टम या बकेट बना रहने के बजाय इन्वेंटरी से निकल जाता है। लेबल वैसे ही रखें जैसे वे आते हैं।
 - **प्रति-वॉल्यूम और प्रति-होस्ट लेटेंसी तीन आयाम रखती है।** हर वॉल्यूम और होस्ट अपनी लेटेंसी अधिकतम सोलह `dimension` में एक्सपोर्ट करता है। एक `metric_relabel_configs` नियम `usec_per_read_op`, `usec_per_write_op` और `usec_per_mirrored_write_op` रखता है और QoS दर सीमा, क्यू, SAN और सेवा-समय का ब्योरा हटा देता है, जो बड़े ऐरे की सीरीज़ को कई गुना कर देता है। `purefa_array_performance_latency_usec` पर पूरे ऐरे का ब्योरा रखा जाता है। प्रति-वॉल्यूम ब्योरा भी रखने के लिए नियम हटा दें।
 - **API टोकन एक Bearer टोकन है।** नेटिव कॉन्फ़िगरेशन इसे सीधे ऐरे को भेजता है; एक्सपोर्टर कॉन्फ़िगरेशन इसे सिर्फ़ Compose नेटवर्क पर एक्सपोर्टर को भेजते हैं, और एक्सपोर्टर के पोर्ट कभी प्रकाशित नहीं होते।
+- **PowerStore हर 5 मिनट।** Dell का एक्सपोर्टर क्लस्टर के हर हिस्से को `/metrics/<cluster>/<part>` पर देता है: कॉन्फ़िग `cluster` को हर 60 सेकंड पढ़ता है, जो उसकी हार्टबीट है, और `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas` और `file` को हर 5 मिनट, क्योंकि PowerStore इन्हें पाँच मिनट के सैंपल में निकालता है।
 - **कोई `send_batch_max_size` नहीं।** OneUptime हर अनुरोध के एक पूरे स्क्रैप से इन्वेंटरी फिर से बनाता है, इसलिए साथ आने वाला `batch` प्रोसेसर किसी स्क्रैप को कभी कई एक्सपोर्ट में नहीं बाँटता। batch सेटिंग्स को वैसे ही रखें जैसी वे आती हैं।
+- **ONTAP: Harvest क्लस्टर को पोल करता है, कलेक्टर Harvest को स्क्रैप करता है।** Harvest क्लस्टर का कॉन्फ़िगरेशन और स्थिति हर 3 मिनट में, उसका परफ़ॉर्मेंस हर मिनट (लेटेंसी प्रति ऑपरेशन माइक्रोसेकंड में, ऑपरेशन और बाइट प्रति सेकंड) और उसके EMS इवेंट हर 3 मिनट में पढ़ता है, और हर चीज़ का नवीनतम मान `netapp-harvest:12990` पर देता है, जिसे कलेक्टर हर 60 सेकंड में `scrape_endpoint: harvest` लेबल के साथ स्क्रैप करता है। तीनों `netapp-harvest-*.yaml` फ़ाइलें Harvest को उतने तक सीमित रखती हैं जितना OneUptime पढ़ता है। Harvest की अपनी `netapp_metadata_*` सीरीज़ बताती हैं कि उसने किन ऑब्जेक्ट की पूरी सूची बनाई, इसलिए हटाया गया वॉल्यूम इन्वेंटरी से निकल जाता है, जबकि जिस ऑब्जेक्ट को Harvest पढ़ नहीं सका, वह अपनी पिछली गिनती बनाए रखता है। कलेक्टर Harvest के अपने बारे में लिए गए माप और प्रति-डिस्क परफ़ॉर्मेंस सीरीज़ हटा देता है, और हर SnapMirror संबंध के शेड्यूल को `netapp_snapmirror_schedule_seconds` में बदल देता है (घंटे भर वाला शेड्यूल 3600 है), जिससे SnapMirror Behind Schedule लैग की तुलना करता है।
 
 ## एजेंट क्या इकट्ठा करता है
 
-Pure की सिमैंटिक कन्वेंशन FlashArray के नेटिव एंडपॉइंट और दोनों एक्सपोर्टर में साझा हैं। हर मान एक गेज है जिसे ऐरे खुद निकालता है (लेटेंसी प्रति ऑपरेशन माइक्रोसेकंड में, थ्रूपुट प्रति सेकंड), इसलिए किसी दर की गणना की ज़रूरत नहीं, और ऑब्जेक्ट के नाम **डेटापॉइंट लेबल** से तय होते हैं: वॉल्यूम, पॉड, डायरेक्टरी, फ़ाइल सिस्टम और बकेट के लिए `name`, होस्ट के लिए `host`, FlashArray हार्डवेयर के लिए `component_name`। एजेंट `storage.array.name` और `storage.system` रिसोर्स एट्रिब्यूट जोड़ता है, इसलिए OneUptime सब कुछ आपके ऐरे के अंतर्गत रखता है:
+Pure की सिमैंटिक कन्वेंशन FlashArray के नेटिव एंडपॉइंट और दोनों एक्सपोर्टर में साझा हैं; ONTAP की कन्वेंशन Harvest की हैं, जिनका वर्णन तालिका के बाद है। हर मान एक गेज है जिसे ऐरे खुद निकालता है (लेटेंसी प्रति ऑपरेशन माइक्रोसेकंड में, थ्रूपुट प्रति सेकंड), इसलिए किसी दर की गणना की ज़रूरत नहीं, और ऑब्जेक्ट के नाम **डेटापॉइंट लेबल** से तय होते हैं: वॉल्यूम, पॉड, डायरेक्टरी, फ़ाइल सिस्टम और बकेट के लिए `name`, होस्ट के लिए `host`, FlashArray हार्डवेयर के लिए `component_name`। एजेंट `storage.array.name` और `storage.system` रिसोर्स एट्रिब्यूट जोड़ता है, इसलिए OneUptime सब कुछ आपके ऐरे के अंतर्गत रखता है:
 
 | एंडपॉइंट | मेट्रिक फ़ैमिली | OneUptime इनसे क्या बनाता है |
 | --- | --- | --- |
@@ -197,11 +287,21 @@ Pure की सिमैंटिक कन्वेंशन FlashArray के 
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBlade का नाम, Purity वर्शन और सिस्टम ID; क्षमता और डेटा रिडक्शन; खुले अलर्ट की गिनती; ऐरे का स्वास्थ्य; **हार्डवेयर** पेज |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | **फ़ाइल सिस्टम** पेज: प्रोविज़न किया गया और उपयोग किया गया स्पेस, डेटा रिडक्शन, प्रति फ़ाइल सिस्टम लेटेंसी, IOPS और बैंडविड्थ |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | **बकेट** पेज: प्रति बकेट स्पेस, कोटा, ऑब्जेक्ट की गिनती और परफ़ॉर्मेंस, खाते के अनुसार समूहित |
+| PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | क्लस्टर का नाम और स्थिति; **अप्लायंस** पेज: हर अप्लायंस की क्षमता, डेटा रिडक्शन, लेटेंसी, IOPS और बैंडविड्थ |
+| PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | **हार्डवेयर** पेज: नोड, फ़ैन, पावर सप्लाई, बैटरी, ड्राइव और फ़्रंट-एंड पोर्ट, हर एक अपने अप्लायंस के साथ |
+| PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | **वॉल्यूम**, **वॉल्यूम समूह**, **NAS सर्वर** और **फ़ाइल सिस्टम** पेज |
+| ONTAP, Harvest के ज़रिए | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | क्लस्टर का नाम, रिलीज़ और UUID; उसकी क्षमता (उसके डेटा एग्रीगेट की क्षमता का योग) और डेटा रिडक्शन; **वॉल्यूम** पेज; **एग्रीगेट**, **SVM**, **LUN** और **SnapMirror** पेज, हर ऑब्जेक्ट का अपना पेज |
+| ONTAP हार्डवेयर, Harvest के ज़रिए | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | **हार्डवेयर** पेज: नोड, डिस्क, शेल्फ़ और उनकी पावर सप्लाई, पंखे, मॉड्यूल और सेंसर, नोड के सेंसर, और Ethernet और Fibre Channel पोर्ट |
+| ONTAP की खुली समस्याएँ और इवेंट | `netapp_health_*`, `netapp_ems_events` | खुले अलर्ट की गिनती और **सक्रिय अलर्ट** कार्ड (ख़राब डिस्क, शेल्फ़ की ख़राबियाँ, HA टेकओवर, बंद पोर्ट, सिस्टम हेल्थ अलर्ट), और EMS टेम्पलेट |
 | PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | क्लस्टर का नाम, OneFS वर्शन, स्वास्थ्य और नोड की गिनती; `/ifs` की क्षमता; पूरे क्लस्टर में थ्रूपुट, नेटवर्क और CPU |
 | PowerScale `snmp/quotas` | `powerscale_quota_*` | **कोटा** पेज: हर कोटा का उपयोग, उसकी सीमाएँ और वह उनके कितने करीब है |
 | PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | **नोड** पेज: हर नोड का स्वास्थ्य, CPU, थ्रूपुट और प्रोटोकॉल प्रदर्शन; **हार्डवेयर** पेज: उसकी ड्राइव, सेंसर और पोर्ट |
 
+ONTAP पर हर सीरीज़ Harvest की है: ऑब्जेक्ट का नाम उसके लेबल से तय होता है (`volume` अपने `svm` के भीतर, `aggr`, `lun`, `node`, `disk`, `shelf`, और SnapMirror संबंध के लिए `destination_location`), स्थिति या तो 1 या 0 वाली `netapp_*_new_status` होती है या ऐसी `netapp_*_labels` सीरीज़ जिसके लेबल उसे बताते हैं, और हर खुली समस्या एक `netapp_health_*_alerts` सीरीज़ होती है जो समस्या के रहने तक मौजूद रहती है।
+
 **सभी स्टोरेज ऐरे** का **स्वास्थ्य** कॉलम ऐरे के नवीनतम डेटा में ऐरे के अपने अलर्ट और हार्डवेयर को पढ़ता है: **गंभीर** जब तक वह कोई खुला गंभीर अलर्ट बताता है, या कोई हार्डवेयर कंपोनेंट, ड्राइव या कंट्रोलर जो गंभीर, विफल, गायब या अस्वस्थ हो; **चेतावनी** जब तक वह कोई खुला चेतावनी अलर्ट बताता है, या कोई डिग्रेड या अज्ञात कंपोनेंट; बाकी समय **OK**; और एजेंट डिस्कनेक्ट रहने तक **अज्ञात**। ऐरे का **अवलोकन** इससे ज़्यादा परखता है, जैसा अगला सेक्शन बताता है। मॉनिटर मानदंड में ऐरे के एट्रिब्यूट पर `resource.` प्रीफ़िक्स लगता है (`resource.storage.array.name`, `resource.storage.system`), जबकि डेटापॉइंट लेबल बिना प्रीफ़िक्स रहते हैं (`name`, `host`, `dimension`, `space`)।
+
+PowerStore का स्वास्थ्य उसके हार्डवेयर का स्वास्थ्य है, क्योंकि उसके अलर्ट लॉग के रूप में आते हैं। एजेंट `powerstore_cap_physical_used_percent` और `powerstore_filesystem_logical_used_percent` खुद निकालता है, और नोड की स्थिति को Healthy रहने तक 1 पढ़ता है।
 
 ## ऐरे के पेज क्या दिखाते हैं
 
@@ -212,10 +312,15 @@ Pure की सिमैंटिक कन्वेंशन FlashArray के 
 - **होस्ट।** जो होस्ट अब दोनों कंट्रोलर से ऐरे तक नहीं पहुँचता, उसे देखने की ज़रूरत है, कारण के साथ: केवल एक कंट्रोलर से, असमान पथों से, या बिना किसी पथ के।
 - **Pod।** जिस Pod के रेप्लिका लिंक को ऐरे अस्वस्थ बताता है, वह गंभीर है, और जो एक मिनट से ज़्यादा पीछे है, उसे देखने की ज़रूरत है।
 - **फ़ाइल सिस्टम।** जिस FlashBlade फ़ाइल सिस्टम में प्रोविज़न किए आकार का 10% से कम बचा हो, उसे देखने की ज़रूरत है।
+- **ONTAP क्लस्टर के अपने ऑब्जेक्ट।** जिस वॉल्यूम, एग्रीगेट या LUN को ONTAP ऑफ़लाइन बताता है, ख़राब डिस्क, त्रुटि वाला शेल्फ़ पुर्ज़ा, अपनी गंभीर सीमा पार कर चुका नोड सेंसर और बंद पड़ा पोर्ट गंभीर हैं; रुके हुए SVM, ख़राब पंखे या पावर सप्लाई वाले नोड और अपनी चेतावनी सीमा पार कर चुके सेंसर को देखने की ज़रूरत है, कारण ONTAP के अपने शब्दों में। जिस SnapMirror संबंध को ONTAP अस्वस्थ बताता है, वह गंभीर है, और जो अपने शेड्यूल के डेढ़ अंतराल से ज़्यादा पीछे है, उसे देखने की ज़रूरत है।
 
-**होस्ट**, **रेप्लिकेशन** और **फ़ाइल सिस्टम** सूचियाँ उन्हीं नियमों से हर हिस्से की स्थिति बताती हैं, और कारण उसके नीचे। होस्ट और फ़ाइल सिस्टम का अपना पेज बताता है कि उसमें किस पर ध्यान देने की ज़रूरत है और ऐरे के कौन से अलर्ट उस पर नज़र रखते हैं, बाकी को चालू करने के लिए एक कदम के साथ, और हर हिस्से का पेज, वॉल्यूम और बकेट का भी, बताता है कि उस पर क्या खुला है। एजेंट डिस्कनेक्ट रहने तक स्वास्थ्य **स्वास्थ्य: अज्ञात** दिखाता है: ऐरे की आख़िरी रिपोर्ट अब सच नहीं है। ऊपर की हर सीमा वही है जिस पर उसका अलर्ट टेम्पलेट चलता है, जैसा [स्टोरेज ऐरे मॉनिटर](/docs/monitor/storage-array-monitor) उन्हें सूचीबद्ध करता है।
+**होस्ट**, **रेप्लिकेशन** और **फ़ाइल सिस्टम** सूचियाँ उन्हीं नियमों से हर हिस्से की स्थिति बताती हैं, और कारण उसके नीचे, और ONTAP क्लस्टर की **वॉल्यूम**, **एग्रीगेट**, **SVM**, **LUN** और **SnapMirror** सूचियाँ भी, जिनकी हर पंक्ति अपना एक पेज खोलती है: उसकी स्थिति, किस पर ध्यान देने की ज़रूरत है, उस पर क्या खुला है, क्लस्टर के कौन से अलर्ट उस पर नज़र रखते हैं, ONTAP उसके बारे में क्या बताता है, और उसके चार्ट। हर प्लेटफ़ॉर्म के पेज उसी के शब्दों में बात करते हैं: ONTAP वॉल्यूम अपना SVM, अपना एग्रीगेट और यह दिखाता है कि वह कितना भरा है, और उसका पेज ONTAP की सीरीज़ के चार्ट दिखाता है। Amazon FSx for NetApp ONTAP पर **हार्डवेयर** पेज नोड और पोर्ट दिखाता है और बताता है कि डिस्क या शेल्फ़ क्यों नहीं हैं। होस्ट और फ़ाइल सिस्टम का अपना पेज बताता है कि उसमें किस पर ध्यान देने की ज़रूरत है और ऐरे के कौन से अलर्ट उस पर नज़र रखते हैं, बाकी को चालू करने के लिए एक कदम के साथ, और हर हिस्से का पेज, वॉल्यूम और बकेट का भी, बताता है कि उस पर क्या खुला है। एजेंट डिस्कनेक्ट रहने तक स्वास्थ्य **स्वास्थ्य: अज्ञात** दिखाता है: ऐरे की आख़िरी रिपोर्ट अब सच नहीं है। ऊपर की हर सीमा वही है जिस पर उसका अलर्ट टेम्पलेट चलता है, जैसा [स्टोरेज ऐरे मॉनिटर](/docs/monitor/storage-array-monitor) उन्हें सूचीबद्ध करता है।
+
+PowerStore पर, **अप्लायंस**, **वॉल्यूम समूह** और **NAS सर्वर** टैब वे हिस्से दिखाते हैं जो केवल PowerStore में होते हैं, और **हार्डवेयर** पेज हर हिस्से का अप्लायंस बताता है, क्योंकि हर अप्लायंस अपने हिस्सों के नाम एक जैसे रखता है।
 
 ## वैकल्पिक — ऐरे का syslog भेजें
+
+PowerStore का syslog कलेक्टर जैसा भेजा गया है वैसा ही चलता है (देखें [Dell PowerStore](#dell-powerstore)): यह सेक्शन Pure के ऐरे के लिए है।
 
 डिफ़ॉल्ट रूप से एजेंट सिर्फ़ मेट्रिक्स भेजता है, इसलिए ऐरे का **लॉग** पेज खाली रहता है। ऐरे अपने अलर्ट और ऑडिट इवेंट syslog के रूप में आगे भेजते हैं, और साथ आने वाले हर कलेक्टर कॉन्फ़िगरेशन में कमेंट किया हुआ `syslog` रिसीवर जोड़ा है (पोर्ट 5514 पर TCP और UDP, RFC 3164), जो कमेंट की हुई `logs` पाइपलाइन से जुड़ा है, जो `storage.array.name` लगाती है ताकि लॉग आपके ऐरे पर पहुँचें।
 
@@ -258,6 +363,8 @@ processors:
 
 एक एजेंट एक ऐरे पढ़ता है। एक ही मशीन से कई ऐरे की निगरानी के लिए, हर एक को अपने `.env` के साथ उसके अपने फ़ोल्डर में इंस्टॉल करें, जैसे `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, और हर एक को अपना `container_name` दें, उसकी `docker-compose.yml` में (जैसे `oneuptime-storage-array-agent-fa02`): दो कंटेनर एक नाम साझा नहीं कर सकते। फ़ोल्डर को डायग्नोस्टिक स्क्रिप्ट को `-d` से दें।
 
+दूसरे PowerStore एजेंट को भी अपना syslog पोर्ट चाहिए: `POWERSTORE_SYSLOG_PORT` को, जैसे `5515`, उसकी `.env` में सेट करें।
+
 ## systemd सेवा के रूप में चलाएँ
 
 एजेंट को मशीन के साथ शुरू करने और विफल होने पर फिर से शुरू करने के लिए उसकी systemd यूनिट इंस्टॉल करें। यह मानती है कि एजेंट `/opt/oneuptime-storage-array-agent` में है, जहाँ इंस्टॉल स्क्रिप्ट उसे रखती है:
@@ -272,14 +379,14 @@ sudo systemctl enable --now oneuptime-storage-array-agent
 
 एजेंट अपनी फ़ाइलों द्वारा पिन किए गए कलेक्टर वर्शन को अपने **एजेंट संस्करण** के रूप में बताता है। जब वह इस OneUptime रिलीज़ के पिन किए वर्शन से पुराना होता है, तो ऐरे के **अवलोकन** पर उसके बगल में एक चेतावनी चिह्न दिखता है। ये कमांड देखने के लिए उसे चुनें। जो एजेंट उसकी फ़ाइलों के वर्शन बताने से पहले इंस्टॉल हुआ था, वह इस तरह अपग्रेड होने तक कोई वर्शन नहीं दिखाता।
 
-कलेक्टर इमेज `docker-compose.yml` में पिन है और उसके कॉन्फ़िगरेशन उसके बगल की फ़ाइलें हैं, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml` और कलेक्टर कॉन्फ़िगरेशन ताज़ा करती है (आपकी संपादित फ़ाइल `<file>.bak.<timestamp>` के रूप में रखी जाती है), और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `/opt/oneuptime-storage-array-agent` के बाहर इंस्टॉल किए गए एजेंट को अपना फ़ोल्डर चाहिए: `INSTALL_DIR=<folder> bash install.sh`।
+कलेक्टर इमेज `docker-compose.yml` में पिन है और उसके कॉन्फ़िगरेशन उसके बगल की फ़ाइलें हैं, इसलिए सिर्फ़ पुल करने से एजेंट आगे नहीं बढ़ता। `install.sh` फिर से चलाएँ: यह आपकी मौजूदा `.env` का हर मान दोबारा उपयोग करती है (कुछ भी फिर से नहीं पूछा जाता), `docker-compose.yml`, हर कलेक्टर कॉन्फ़िगरेशन और Harvest की फ़ाइलें ताज़ा करती है (आपकी संपादित फ़ाइल `<file>.bak.<timestamp>` के रूप में रखी जाती है), और एजेंट दोबारा बनाती है ताकि कलेक्टर अपना नया कॉन्फ़िगरेशन पढ़े। `/opt/oneuptime-storage-array-agent` के बाहर इंस्टॉल किए गए एजेंट को अपना फ़ोल्डर चाहिए: `INSTALL_DIR=<folder> bash install.sh`।
 
 ```bash
 curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
 bash install.sh
 ```
 
-इसके बजाय Docker Compose से इंस्टॉल किया था? एजेंट के फ़ोल्डर में Compose फ़ाइल और कलेक्टर कॉन्फ़िगरेशन फिर से डाउनलोड करें (और उनमें किए गए बदलाव फिर से करें), फिर इमेज पुल करें और एजेंट दोबारा बनाएँ:
+इसके बजाय Docker Compose से इंस्टॉल किया था? एजेंट के फ़ोल्डर में Compose फ़ाइल और कलेक्टर कॉन्फ़िगरेशन फिर से डाउनलोड करें (ONTAP के लिए ONTAP कॉन्फ़िगरेशन और Harvest की चारों फ़ाइलें भी, और उनमें किए गए बदलाव फिर से करें), फिर इमेज पुल करें और एजेंट दोबारा बनाएँ:
 
 ```bash
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
@@ -291,6 +398,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+PowerStore एजेंट `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` और `powerstore-syslog.yaml` भी फिर से डाउनलोड करता है; नई रिलीज़ जब उसका टैग बदलती है, तो `docker compose up` एक्सपोर्टर की इमेज फिर से बनाता है।
+
 ## एजेंट अनइंस्टॉल करना
 
 ```bash
@@ -298,7 +407,9 @@ cd /opt/oneuptime-storage-array-agent
 docker compose down
 ```
 
-फिर, अगर अब ज़रूरत नहीं है, तो ऐरे पर केवल-पढ़ने वाला उपयोगकर्ता और उसका API टोकन हटा दें, या PowerScale की कम्युनिटी या SNMPv3 उपयोगकर्ता।
+फिर, अगर अब ज़रूरत नहीं है, तो ऐरे पर केवल-पढ़ने वाला उपयोगकर्ता और उसका API टोकन हटा दें। ONTAP पर `security login delete -user-or-group-name oneuptime -application http -authentication-method password` चलाएँ, फिर `security login rest-role delete -role oneuptime-readonly -api /api`।
+
+PowerStore पर `docker compose --profile powerstore down` चलाएँ, ताकि एक्सपोर्टर और syslog कलेक्टर भी रुक जाएँ।
 
 ## Dell PowerScale
 
@@ -402,8 +513,16 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 ऐरे डिफ़ॉल्ट रूप से एक सेल्फ़-साइन्ड सर्टिफ़िकेट पेश करते हैं, जिस पर कोई Docker इमेज भरोसा नहीं करती। या तो `STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true` सेट करें (निजी प्रबंधन नेटवर्क पर व्यावहारिक विकल्प), या ऐरे पर ऐसे CA का सर्टिफ़िकेट इंस्टॉल करें जिस पर कलेक्टर इमेज भरोसा करती है।
 :::
 
-:::details pure-fa-exporter या pure-fb-exporter रिज़ॉल्व नहीं होता
-एक्सपोर्टर नहीं चल रहा: `COMPOSE_PROFILES` को `STORAGE_ARRAY_COLLECTOR_CONFIG` से मेल खाना चाहिए (FlashArray एक्सपोर्टर कॉन्फ़िगरेशन के लिए `flasharray-exporter`, FlashBlade कॉन्फ़िगरेशन के लिए `flashblade`)। `.env` ठीक करें और `docker compose up -d` चलाएँ; इसके बाद `docker compose ps` एक्सपोर्टर दिखाता है।
+:::details pure-fa-exporter, pure-fb-exporter या netapp-harvest रिज़ॉल्व नहीं होता
+एक्सपोर्टर नहीं चल रहा: `COMPOSE_PROFILES` को `STORAGE_ARRAY_COLLECTOR_CONFIG` से मेल खाना चाहिए (FlashArray एक्सपोर्टर कॉन्फ़िगरेशन के लिए `flasharray-exporter`, FlashBlade कॉन्फ़िगरेशन के लिए `flashblade`, ONTAP कॉन्फ़िगरेशन के लिए `netapp-ontap`)। `.env` ठीक करें और `docker compose up -d` चलाएँ; इसके बाद `docker compose ps` एक्सपोर्टर दिखाता है।
+:::
+
+:::details ONTAP: Harvest लॉग इन नहीं कर पाता, या कोई ऑब्जेक्ट गायब है
+Harvest का लॉग पढ़ें: `docker compose logs netapp-harvest`। `401` या `Unauthorized` का अर्थ है कि क्लस्टर ने उपयोगकर्ता या उसका पासवर्ड अस्वीकार कर दिया: जाँचें कि उपयोगकर्ता के पास **http** लॉगिन विधि और केवल-पढ़ने वाली REST भूमिका है (`security login show -user-or-group-name oneuptime`), `.env` ठीक करें और `docker compose up -d` चलाएँ। किसी एक ऑब्जेक्ट पर `403` या `not authorized` का अर्थ है कि भूमिका उस API तक नहीं पहुँचती; ऊपर वाली भूमिका पूरे `/api` तक पहुँचती है। Amazon FSx for NetApp ONTAP पर FSx डिस्क, शेल्फ़ और सेंसर के बारे में यही जवाब देता है, चाहे कोई भी पूछे: यह अपेक्षित है, और **हार्डवेयर** पेज यही बताता है। `connection refused` या `no such host` का अर्थ है गलत `NETAPP_ONTAP_ENDPOINT`: यह क्लस्टर का प्रबंधन पता है (FSx पर, प्रबंधन एंडपॉइंट), किसी नोड या SVM का नहीं। डायग्नोस्टिक स्क्रिप्ट भी यह सब जाँचती है।
+:::
+
+:::details PowerStore कुछ नहीं भेजता
+`docker compose logs powerstore-exporter` से एक्सपोर्टर का लॉग पढ़ें: `401` का मतलब गलत उपयोगकर्ता नाम या पासवर्ड है, और `403` अगर `latest_five_min_metrics` पर मिले तो इसका मतलब है कि उपयोगकर्ता की भूमिका बल्क मेट्रिक्स आर्काइव चालू नहीं कर सकती (उसे **Storage Operator** दें, या 4.1 से पुराने PowerStoreOS पर `POWERSTORE_BULK_METRICS=false` सेट करें)। शुरू होने के बाद जवाब देने से पहले एक्सपोर्टर को एक मिनट चाहिए। **लॉग** पेज पर कोई अलर्ट नहीं: क्लस्टर की _Remote Logging_ सेटिंग, पोर्ट 5514 पर फ़ायरवॉल और `docker compose logs powerstore-syslog` जाँचें।
 :::
 
 :::details कोई PowerScale क्लस्टर या नोड कुछ नहीं भेजता

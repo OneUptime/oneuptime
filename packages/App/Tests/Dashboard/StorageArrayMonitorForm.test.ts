@@ -120,41 +120,41 @@ const monitorStepSource: string = readSource("MonitorStep.tsx");
 /*
  * Every key of StorageArrayResourceFilters, restated as a total Record so
  * adding a filter to the Common interface fails to compile here until the
- * form is taught about it. The value is the datapoint label the filter
- * equality-filters on, and the platforms it is offered for; the form's
- * field description must name the label so the user can see exactly what
- * they are filtering on.
+ * form is taught about it. The value is, per platform that offers the
+ * filter, the datapoint label it equality-filters on as its description
+ * names it, so the user can see exactly what they are filtering on. ONTAP
+ * names a volume by `volume`, and a hardware part by the label its series
+ * names it by (#11001).
  */
 const RESOURCE_FILTER_LABELS: Record<
   keyof Required<StorageArrayResourceFilters>,
-  { label: string; storageSystems: Array<StorageSystem> }
+  Partial<Record<StorageSystem, string>>
 > = {
   volumeName: {
-    label: "`name`",
-    storageSystems: [StorageSystem.PureStorageFlashArray],
+    [StorageSystem.PureStorageFlashArray]: "`name`",
+    [StorageSystem.DellPowerStore]: "`name`",
+    [StorageSystem.NetAppOntap]: "`volume`",
   },
   hostName: {
-    label: "`host`",
-    storageSystems: [StorageSystem.PureStorageFlashArray],
+    [StorageSystem.PureStorageFlashArray]: "`host`",
   },
   podName: {
-    label: "`local_pod`",
-    storageSystems: [StorageSystem.PureStorageFlashArray],
+    [StorageSystem.PureStorageFlashArray]: "`local_pod`",
   },
   componentName: {
-    label: "`component_name`",
-    storageSystems: [
-      StorageSystem.PureStorageFlashArray,
-      StorageSystem.PureStorageFlashBlade,
-    ],
+    [StorageSystem.PureStorageFlashArray]: "`component_name`",
+    [StorageSystem.PureStorageFlashBlade]: "`component_name`",
+    [StorageSystem.DellPowerStore]: "`name`",
+    [StorageSystem.NetAppOntap]: "the node, disk, shelf or port label",
+    [StorageSystem.DellPowerScale]: "`node`",
   },
   fileSystemName: {
-    label: "`name`",
-    storageSystems: [StorageSystem.PureStorageFlashBlade],
+    [StorageSystem.PureStorageFlashBlade]: "`name`",
+    [StorageSystem.DellPowerStore]: "`name`",
+    [StorageSystem.DellPowerScale]: "`quota`",
   },
   bucketName: {
-    label: "`name`",
-    storageSystems: [StorageSystem.PureStorageFlashBlade],
+    [StorageSystem.PureStorageFlashBlade]: "`name`",
   },
 };
 
@@ -172,35 +172,6 @@ const ALL_FILTER_KEYS: Array<keyof StorageArrayResourceFilters> = Object.keys(
 interface FilterOffering {
   storageSystem: string;
   description: string;
-}
-
-/*
- * The scope each filter narrows to, so a platform outside the shared words
- * above is held to the object label its own series carry (a PowerScale's
- * hardware filter names `node`, its file system filter `quota`).
- */
-const FILTER_SCOPES: Record<
-  keyof Required<StorageArrayResourceFilters>,
-  StorageArrayResourceScope
-> = {
-  volumeName: StorageArrayResourceScope.Volume,
-  hostName: StorageArrayResourceScope.Host,
-  podName: StorageArrayResourceScope.Pod,
-  componentName: StorageArrayResourceScope.Hardware,
-  fileSystemName: StorageArrayResourceScope.FileSystem,
-  bucketName: StorageArrayResourceScope.Bucket,
-};
-
-function expectedLabel(
-  key: keyof StorageArrayResourceFilters,
-  storageSystem: string,
-): string {
-  const shared: { label: string; storageSystems: Array<StorageSystem> } =
-    RESOURCE_FILTER_LABELS[key];
-  if ((shared.storageSystems as Array<string>).includes(storageSystem)) {
-    return shared.label;
-  }
-  return `\`${getStorageArrayObjectLabel(FILTER_SCOPES[key], storageSystem as StorageSystem)}\``;
 }
 
 function filterOfferings(key: string): Array<FilterOffering> {
@@ -229,9 +200,14 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
       // ...and each platform that offers it says which label it maps to.
       expect(filterOfferings(key).length).toBeGreaterThan(0);
       for (const offering of filterOfferings(key)) {
-        expect(offering.description).toContain(
-          expectedLabel(key, offering.storageSystem),
-        );
+        const label: string | undefined =
+          RESOURCE_FILTER_LABELS[key][offering.storageSystem as StorageSystem];
+        expect({
+          key,
+          system: offering.storageSystem,
+          known: Boolean(label),
+        }).toEqual({ key, system: offering.storageSystem, known: true });
+        expect(offering.description).toContain(label!);
       }
     },
   );
@@ -244,16 +220,16 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
           return offering.storageSystem;
         },
       );
-      const systems: Array<StorageSystem> =
-        RESOURCE_FILTER_LABELS[key].storageSystems;
       for (const system of [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
+        StorageSystem.DellPowerStore,
+        StorageSystem.NetAppOntap,
       ]) {
         expect({ key, system, offered: offeredOn.includes(system) }).toEqual({
           key,
           system,
-          offered: systems.includes(system),
+          offered: Boolean(RESOURCE_FILTER_LABELS[key][system]),
         });
       }
     },
@@ -310,28 +286,34 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
         getStorageArrayObjectLabel(scope, StorageSystem.PureStorageFlashBlade),
       ).toBe("name");
     }
-    // Pure's hardware field names both of its platforms' labels...
-    const pure: Array<string> = [
-      StorageSystem.PureStorageFlashArray,
-      StorageSystem.PureStorageFlashBlade,
-    ];
-    for (const offering of filterOfferings("componentName")) {
-      if (pure.includes(offering.storageSystem)) {
-        expect(offering.description).toContain("`name` on a FlashBlade");
-      }
-    }
-    // ...and a PowerScale's names its nodes' label, the one its series carry.
+    // Pure's hardware field names both Pure platforms' labels.
+    for (const offering of filterOfferings("componentName").filter(
+      (candidate: FilterOffering): boolean => {
+        return candidate.storageSystem.startsWith("purestorage.");
+      },
+    )) {
+      expect(offering.description).toContain("`name` on a FlashBlade");
+    // A PowerScale's names its nodes' label, the one its series carry.
     expect(
       getStorageArrayObjectLabel(
         StorageArrayResourceScope.Hardware,
         StorageSystem.DellPowerScale,
       ),
     ).toBe("node");
-    for (const offering of filterOfferings("componentName")) {
-      if (offering.storageSystem === StorageSystem.DellPowerScale) {
-        expect(offering.description).toContain("`node`");
-      }
     }
+    // ONTAP: a volume by `volume`, a hardware part by its node (#11001).
+    expect(
+      getStorageArrayObjectLabel(
+        StorageArrayResourceScope.Volume,
+        StorageSystem.NetAppOntap,
+      ),
+    ).toBe("volume");
+    expect(
+      getStorageArrayObjectLabel(
+        StorageArrayResourceScope.Hardware,
+        StorageSystem.NetAppOntap,
+      ),
+    ).toBe("node");
   });
 
   test("writes each field back under its own key, spreading the rest", () => {
@@ -522,9 +504,15 @@ describe("StorageArrayMonitorStepForm custom metrics", () => {
         metric.metricName,
       );
       if (metric.defaultResourceScope === StorageArrayResourceScope.Array) {
+        /*
+         * An array-wide series is grouped by nothing, unless its entry
+         * names the object it describes: ONTAP's aggregates, SVMs, LUNs,
+         * SnapMirror relationships, health subsystems and EMS messages,
+         * kinds with no scope of their own (#11001).
+         */
         expect({ id: metric.id, label }).toEqual({
           id: metric.id,
-          label: null,
+          label: metric.objectLabel || null,
         });
       } else {
         expect({ id: metric.id, hasLabel: Boolean(label) }).toEqual({

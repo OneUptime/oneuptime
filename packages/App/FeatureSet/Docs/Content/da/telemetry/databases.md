@@ -454,8 +454,19 @@ Dens egne variabler, i samme `.env` (compose-filen sender dem kun til AI-agenten
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | Et PEM-CA-bundt, monteret i containeren (se de udkommenterede `volumes` for `oneuptime-database-ai-agent`), som serverens certifikat verificeres mod, når `DATABASE_TLS_INSECURE=false` |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | collectorens identitet | Registrerer AI-agenten som en anden database end collectorens: dens id i OneUptime eller `<engine>\|<address>:<port>`. Lad den være tom |
 | `LOG_LEVEL` | `info` | AI-agentens logniveau: `debug`, `info`, `warn` eller `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` lader agenten læse serverens databaser for Dataobservabilitet; alt andet lader det være slået fra |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | overvågningsloginnet | Det login, Dataobservabilitet læser kataloget med. Skrives, som det er: dets `$` fordobles ikke |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | Det logins adgangskode; sæt den i enkelte anførselstegn |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` kører intet datatjek: kun kataloget |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | katalogloginnet | Det login, datatjek læser rækker med |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | Det logins adgangskode; sæt den i enkelte anførselstegn |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` kører tjek af typen Brugerdefineret SQL og Fejlende rækker |
 
 Hvad den må køre, hvordan rettelser fungerer, og hvordan du fejlfinder den: [Infrastructure AI Agents](/docs/ai/infrastructure-ai-agents#databaseservere).
+
+### Dataobservabilitet via samme agent
+
+Den samme agent kan læse serverens PostgreSQL-, MySQL- og MariaDB-databaser for [Dataobservabilitet](/docs/data-observability/index): deres tabeller og kolonner, friskhed og volumen, skemaændringer og de tjek, du opsætter. Den læser skrivebeskyttet, med logins fra sit eget miljø og sætninger, den selv bygger, og sender ingen række og intet login tilbage. Den er slået fra, indtil du sætter `ONEUPTIME_DATA_OBSERVABILITY=true` i samme `.env`. [Forbind en database](/docs/data-observability/connect#via-en-database-agent) forklarer, hvordan du vælger agenten, og hvilke logins du skal give den.
 
 ## Kubernetes
 

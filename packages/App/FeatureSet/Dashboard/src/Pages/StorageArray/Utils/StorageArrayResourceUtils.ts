@@ -33,6 +33,7 @@ import {
   getReadingDirection,
   setApartInSentence,
 } from "Common/Types/ReadingDirection";
+import StorageArrayStatusUtil from "Common/Types/StorageArray/StorageArrayStatusUtil";
 
 /*
  * Shared helpers for the Storage Array list/detail pages. The pages read
@@ -118,53 +119,83 @@ function normalizeStatus(status: string | null | undefined): string {
 }
 
 /*
- * The words a platform writes of its own (its componentStatuses): a
- * PowerScale node's attention or offline, a drive's smartfail, a quota that
- * is full. No platform's word is another's with another meaning.
+ * The lists above are the words every platform shares. A platform whose
+ * parts report in other words (a NetApp aggregate offline, a port down)
+ * adds its own (StorageArrayPlatform.componentStatuses), and a status is
+ * read against every platform's (StorageArrayStatusUtil).
  */
-function isPlatformResourceStatus(
-  normalized: string,
-  list: "critical" | "warning",
-): boolean {
-  return StorageArrayPlatformRegistry.getPlatforms().some(
-    (platform: StorageArrayPlatform): boolean => {
-      return platform.componentStatuses[list].includes(normalized);
-    },
-  );
-}
-
 export function isCriticalResourceStatus(
   status: string | null | undefined,
 ): boolean {
-  const normalized: string = normalizeStatus(status);
   return (
-    CRITICAL_RESOURCE_STATUSES.includes(normalized) ||
-    isPlatformResourceStatus(normalized, "critical")
+    CRITICAL_RESOURCE_STATUSES.includes(normalizeStatus(status)) ||
+    StorageArrayStatusUtil.isCritical(status)
   );
 }
 
 export function isUnhealthyResourceStatus(
   status: string | null | undefined,
 ): boolean {
-  const normalized: string = normalizeStatus(status);
   return (
-    UNHEALTHY_RESOURCE_STATUSES.includes(normalized) ||
-    isPlatformResourceStatus(normalized, "critical") ||
-    isPlatformResourceStatus(normalized, "warning")
+    UNHEALTHY_RESOURCE_STATUSES.includes(normalizeStatus(status)) ||
+    StorageArrayStatusUtil.isCritical(status) ||
+    StorageArrayStatusUtil.isWarning(status)
   );
 }
 
+/*
+ * Whether any platform the registry holds writes this status in a list of
+ * its own (StorageArrayPlatform.componentStatuses): a PowerStore node's
+ * prepare_failed is critical, a NAS server not started needs attention
+ * and one started is fine.
+ */
+function isPlatformStatus(
+  normalized: string,
+  list: "critical" | "warning" | "healthy",
+): boolean {
+  return StorageArrayPlatformRegistry.getPlatforms().some(
+    (platform: StorageArrayPlatform): boolean => {
+      return (platform.componentStatuses[list] || []).includes(normalized);
+    },
+  );
+}
+
+/*
+ * A status's pill: the shipped words above first, so Pure's read as they
+ * always did, then the words a platform declares for its parts.
+ */
 export function getResourceStatusBadgeType(
   status: string | null | undefined,
 ): StatusBadgeType {
   const normalized: string = normalizeStatus(status);
-  if (isCriticalResourceStatus(normalized)) {
+  if (
+    CRITICAL_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isCritical(normalized)
+  ) {
     return StatusBadgeType.Danger;
   }
-  if (isUnhealthyResourceStatus(normalized)) {
+  if (
+    WARNING_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isWarning(normalized)
+  ) {
     return StatusBadgeType.Warning;
   }
-  if (HEALTHY_RESOURCE_STATUSES.includes(normalized)) {
+  if (
+    HEALTHY_RESOURCE_STATUSES.includes(normalized) ||
+    StorageArrayStatusUtil.isHealthy(normalized)
+  ) {
+    return StatusBadgeType.Success;
+  }
+  if (!normalized) {
+    return StatusBadgeType.Neutral;
+  }
+  if (isPlatformStatus(normalized, "critical")) {
+    return StatusBadgeType.Danger;
+  }
+  if (isPlatformStatus(normalized, "warning")) {
+    return StatusBadgeType.Warning;
+  }
+  if (isPlatformStatus(normalized, "healthy")) {
     return StatusBadgeType.Success;
   }
   return StatusBadgeType.Neutral;

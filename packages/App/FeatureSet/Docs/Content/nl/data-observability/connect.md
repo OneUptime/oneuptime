@@ -1,6 +1,6 @@
 # Een database koppelen
 
-Data-observability leest elke database met een login die alleen de catalogus ervan leest: welke tabellen en views erin staan, hun kolommen, rijen en grootte, en wanneer ze zijn gewijzigd. Deze pagina geeft wat elke engine minimaal nodig heeft, en hoe je de verbindingsreeks met een sonde binnen je netwerk houdt.
+Data-observability leest elke database met een login die alleen de catalogus ervan leest: welke tabellen en views erin staan, hun kolommen, rijen en grootte, en wanneer ze zijn gewijzigd. Deze pagina geeft wat elke engine minimaal nodig heeft, hoe je de verbindingsreeks binnen je netwerk houdt met een sonde of met de Database Agent die je al draait, en hoe je een database later wijzigt, uit Data Observability haalt of verwijdert.
 
 ## Voordat je begint
 
@@ -13,12 +13,21 @@ Kies op **Data Observability > Databases** de knop **Een database koppelen**, en
 
 - **OneUptime maakt verbinding**: plak een verbindingsreeks. Die wordt versleuteld opgeslagen, alleen door de workers van OneUptime gebruikt en nooit meer getoond.
 - **Een sonde in mijn netwerk maakt verbinding**: kies een van je sondes en geef de naam op van de omgevingsvariabele op de sonde die de verbindingsreeks bevat, zoals `ORDERS_DB_URL`. De verbindingsreeks verlaat je netwerk nooit. Zie [Aangepaste sondes](/docs/probe/custom-probe).
+- **Mijn Database Agent maakt verbinding**: kies de databaseserver waarnaast zijn [Database Agent](/docs/telemetry/databases) al draait, en geef de database daarop op die gelezen moet worden. De agent leest hem met logins uit zijn eigen omgeving, dus er wordt geen login in OneUptime opgeslagen. Zie [Via een Database Agent](#via-een-database-agent).
 
 Een database die al voor Gegevensbeveiliging is gekoppeld, wordt ook bewaakt, zonder dat je iets hoeft te koppelen, net als elke BigQuery-dataset die je [cloudkoppeling](/docs/telemetry/cloud-accounts) heeft gevonden.
 
 ## Databases die je kunt koppelen
 
 **Databases die u kunt koppelen**, onder **Databases**, toont wat je project al kent en niemand heeft gekoppeld: databases waarmee je traces praten, databases in je cloudaccounts en databases die Database Monitoring bewaakt. **Koppelen** start het formulier vanuit wat van elk bekend is, met een verbindingsreeks om in te vullen. **Verbergen** voorkomt dat er een terugkomt. Er wordt niets gelezen totdat je hem koppelt.
+
+## Via een Database Agent
+
+Een Database Agent bereikt zijn databaseserver al en stuurt de metrics ervan. Hij kan de PostgreSQL-, MySQL- en MariaDB-databases van die server ook voor Data Observability lezen, zodra de eigenaar dat inschakelt: voeg `ONEUPTIME_DATA_OBSERVABILITY=true` toe aan de `.env` van de agent en voer `docker compose up -d` uit. Tot die tijd staat de agent in de lijst met **Data Observability uit**, en een database die via hem is gekoppeld, zegt wat je moet doen.
+
+OneUptime vertelt de agent welke database hij moet lezen en welke controles aan de beurt zijn, elk met zijn type en de tabel en kolommen die hij leest. Het stuurt nooit een statement of een login. De agent bouwt elk statement zelf, uit dezelfde vaste vormen die de eigen collectors van OneUptime gebruiken, en voert elk uit in een alleen-lezen transactie met een limiet van 30 seconden. Hij voert een controle alleen uit wanneer elke tabel en kolom die ze noemt in de catalogus staat die hij net heeft gelezen, bindt elke waarde waarmee de controle vergelijkt, en stuurt per controle één getal terug, nooit een rij. Controles van het type **Aangepaste SQL** en **Mislukte rijen** draaien alleen waar de eigenaar van de agent `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true` instelt; elders melden ze dat, en draait elke andere controle.
+
+De agent leest de catalogus met `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME`, of met de login van de collector, en voert controles uit met `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME`, of met de login van de catalogus: geef elk alleen wat de tabbladen hieronder ervoor opsommen. De README van de agent somt elke variabele op.
 
 ## Een alleen-lezen login per engine
 
@@ -162,6 +171,18 @@ Controles draaien als alleen-lezen SQL op het TDS-endpoint van de omgeving, op p
 
 Elk statement draait alleen-lezen, met een statement- en lock-time-out waar de engine die heeft. Een verzoek dat bij Snowflake, Databricks, BigQuery, Athena, ClickHouse of Dataverse even wordt geweigerd of mislukt, met een 429, een 503 of een eigen antwoord dat het er te druk is, wordt opnieuw verstuurd, hoogstens twee keer en binnen een minuut wachttijd per verzamelronde, en nooit op een manier waardoor een statement twee keer zou kunnen draaien. De verbindingsreeks wordt nooit gelogd en uit elke foutmelding gehaald. Een statistiek die de login niet mag lezen, wordt weggelaten met een waarschuwing op de database; de verzamelronde mislukt er nooit door. Verbindingen met privéadressen worden geweigerd op OneUptime Cloud: gebruik een sonde.
 
+## Een database beheren
+
+Elke database heeft een pagina **Instellingen**: kies **Instellingen** in de rij ervan onder **Databases**, of in het menu ervan.
+
+- **Details bewerken** geeft hem een andere naam. Gegevensbeveiliging toont dezelfde naam.
+- **Verbinding wijzigen** geeft hem een nieuwe login, een andere sonde of een Database Agent. Een opgeslagen verbindingsreeks wordt nooit meer getoond: laat het veld leeg om hem te behouden. Wanneer je een database naar een Database Agent overzet, wordt de opgeslagen verbindingsreeks gewist, tenzij Gegevensbeveiliging er steekproeven van de inhoud van de database mee neemt.
+- **Stoppen met bewaken**, op het **Overzicht** ervan, stopt een tijd met lezen en behoudt de tabellen en hun geschiedenis. **Opnieuw bewaken** begint weer.
+- **Verwijderen uit Data Observability** stopt met lezen en vergeet de tabellen, hun controles en hun geschiedenis. Gegevensbeveiliging behoudt de database, de verbinding ervan en wat de scans hebben gevonden, en hij wordt opnieuw aangeboden onder **Databases die u kunt koppelen**.
+- **Database verwijderen** verwijdert hem uit OneUptime, samen met wat Data Observability en Gegevensbeveiliging ervan bewaren. De bevestiging somt eerst op wat er verdwijnt.
+
+Een database hier is ook een gegevensopslag van Gegevensbeveiliging. Zolang Gegevensbeveiliging erop steunt (het heeft de database gevonden, iemand heeft hem daar toegevoegd, of er horen bevindingen, problemen, scans, eigenaren of een vermelding in het verwerkingsregister bij), kan alleen iemand die gegevensopslagen van Gegevensbeveiliging mag verwijderen hem verwijderen, en kan alleen iemand die ze mag bewerken de verbinding wijzigen waarmee Gegevensbeveiliging steekproeven van de inhoud neemt. Instellingen zegt dat bij de betreffende knop. Monitoren die een database bewaken, blijven bestaan als hij verdwijnt: verwijder ze in **Monitoren**.
+
 ## Read replica's
 
 Een read replica van PostgreSQL of SQL Server verhoogt haar schrijftellers niet, dus een tabel daar kan ongewijzigd lijken terwijl ze wijzigt. OneUptime ziet dat het een replica is, laat de tellers weg, meldt dat op de database en valt terug op de grootte en rijen van de tabel. Koppel waar mogelijk de primary, of geef een [freshness-kolom](/docs/data-observability/table-health) op voor de tabellen die ertoe doen.
@@ -174,6 +195,7 @@ Elk pad verschijnt dan onder **Tabellen**: het nieuwste object is het moment van
 
 ## Probleemoplossing
 
+- **De database toont Database Agent niet gereed.** De agent kan hem nu niet lezen, en de pagina van de database zegt waarom: er is geen Database Agent verbonden met zijn server, of de agent staat uit voor Data Observability (`ONEUPTIME_DATA_OBSERVABILITY=true` zet hem aan), heeft niets van zich laten horen, is te oud (voer zijn `install.sh` opnieuw uit) of staat op een server die geen PostgreSQL of MySQL is.
 - **De database toont Mislukt.** De melding zegt waarom: een host die OneUptime niet kan bereiken, een geweigerde login, een TLS-modus die de server niet accepteert. Koppel een database binnen je netwerk via een sonde. Bij Snowflake, Databricks, BigQuery, Athena, ClickHouse en Dataverse noemt de melding wat er werd gelezen, de eigen foutcode en foutmelding van de dienst, en het verzoek- of query-ID dat de support van de dienst kan terugvinden, als de dienst er een geeft. **Nu verzamelen** probeert het meteen opnieuw, en de pagina laat zien hoe het is gegaan.
 - **Tabellen tonen geen laatste wijziging.** De login kan de statistieken van de engine niet lezen: verleen wat het tabblad van je engine opsomt, of wacht tot de rijen van een tabel twee keer zijn gewijzigd.
 - **Er ontbreekt een tabel.** Die staat in een schema dat de login niet mag gebruiken, of is op de database uitgesloten. Verleen `USAGE` op het schema, of verwijder de uitsluiting.

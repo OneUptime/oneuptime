@@ -99,7 +99,34 @@ const SHIPPED_CONFIGS: ReadonlyArray<string> = [
   "otel-collector-config.yaml",
   "otel-collector-config.flasharray-exporter.yaml",
   "otel-collector-config.flashblade.yaml",
+  // NetApp ONTAP, through NetApp Harvest (#11001).
+  "otel-collector-config.netapp-ontap.yaml",
 ];
+
+/*
+ * Dell PowerStore's (#11002): its collector config, which scrapes Dell's
+ * exporter at /metrics/<cluster>/<part>, and its syslog collector's.
+ */
+const POWERSTORE_CONFIG: string = "otel-collector-config.powerstore.yaml";
+const POWERSTORE_CONFIGS: ReadonlyArray<string> = [
+  POWERSTORE_CONFIG,
+  "powerstore-syslog.yaml",
+];
+
+/*
+ * The one endpoint NetApp Harvest serves a whole cluster on: its job reads
+ * /metrics and labels the series `harvest`, and ingest learns which
+ * objects a scrape listed from Harvest's own metadata series (#11001).
+ */
+const HARVEST_ENDPOINT: string = "harvest";
+
+// Each platform's heartbeat template: Array Stopped Reporting.
+const HEARTBEAT_TEMPLATE_IDS: ReadonlyArray<string> =
+  StorageArrayPlatformRegistry.getPlatforms().map(
+    (platform: StorageArrayPlatform): string => {
+      return platform.heartbeat.templateId;
+    },
+  );
 
 const FENCE_LINE: RegExp = /^\s*```/;
 /* The opening fence of a mermaid diagram. */
@@ -126,7 +153,10 @@ interface ScrapeJob {
   job_name: string;
   metrics_path: string;
   scrape_interval: string;
-  static_configs: Array<{ labels: { scrape_endpoint: string } }>;
+  static_configs: Array<{
+    targets: Array<string>;
+    labels: { scrape_endpoint: string };
+  }>;
 }
 
 function pageFile(language: string, relative: string): string {
@@ -261,8 +291,10 @@ function pinnedFilters(metric: StorageArrayMetricDefinition): Array<string> {
  * reads for itself (the config to mount, the profile to start).
  */
 /*
- * The address and token variables of install.sh's PLATFORMS table (#11000):
- * each line's fourth and fifth |-separated fields, each once, in order.
+ * The variables of install.sh's PLATFORMS table (#11000): each line's
+ * address, token, user and optional settings - its fourth, fifth, tenth and
+ * twelfth |-separated fields, the last two space-separated lists ("-" for
+ * none) - each once, in order, as the script writes them.
  */
 function platformVariables(): Array<string> {
   const table: RegExpMatchArray | null = readAgentFile("install.sh").match(
@@ -274,9 +306,11 @@ function platformVariables(): Array<string> {
   const names: Array<string> = [];
   for (const line of (table as RegExpMatchArray)[1]!.split("\n")) {
     const fields: Array<string> = line.split("|");
-    for (const name of [fields[3], fields[4]]) {
-      if (name && !names.includes(name)) {
-        names.push(name);
+    for (const field of [fields[3], fields[4], fields[9], fields[11]]) {
+      for (const name of (field || "").split(" ")) {
+        if (name && name !== "-" && !names.includes(name)) {
+          names.push(name);
+        }
       }
     }
   }
@@ -713,16 +747,16 @@ describe("Storage Array docs", (): void => {
         }).length;
       };
 
-      // Each platform's count, in the registry's order: "12 for FlashArray, 8 for FlashBlade and 13 for PowerScale".
-      const counts: Array<string> = StorageSystemUtil.getAllSystems().map(
+      // "12 for FlashArray, 8 for FlashBlade, 16 for PowerStore and 31 for ONTAP".
+      const perPlatform: Array<string> = StorageSystemUtil.getAllSystems().map(
         (system: StorageSystem): string => {
           return `${count(system)} for ${platformName(system)}`;
         },
       );
       expect(intro).toContain(
-        `OneUptime ships ${templates.length} templates — ${counts
+        `OneUptime ships ${templates.length} templates — ${perPlatform
           .slice(0, -1)
-          .join(", ")} and ${counts[counts.length - 1]}`,
+          .join(", ")} and ${perPlatform[perPlatform.length - 1]}`,
       );
 
       for (const template of templates) {
@@ -815,8 +849,10 @@ describe("Storage Array docs", (): void => {
         /*
          * Array Stopped Reporting compares a count below 0, which only its
          * Trigger no-data policy can satisfy, so its row says so in words.
+         * (ONTAP's other Availability templates, an aggregate, volume or
+         * LUN offline and an SVM stopped, read a state like any other.)
          */
-        if (template.category === "Availability") {
+        if (HEARTBEAT_TEMPLATE_IDS.includes(template.id)) {
           expect(shape.fire.filterType).toBe(FilterType.LessThan);
           expect(shape.fire.value).toBe(0);
           expect(shape.recover.filterType).toBe(
@@ -905,7 +941,7 @@ describe("Storage Array docs", (): void => {
         "## Environment variables",
       );
 
-      for (const config of SHIPPED_CONFIGS) {
+      for (const config of [...SHIPPED_CONFIGS, ...POWERSTORE_CONFIGS]) {
         const variables: Array<string> = Array.from(
           readAgentFile(config).matchAll(/\$\{env:([A-Z0-9_]+)\}/g),
         ).map((match: RegExpMatchArray): string => {
@@ -989,13 +1025,32 @@ describe("Storage Array docs", (): void => {
       expect(markdown).toContain("Defaults to `purestorage.flasharray`");
       expect(markdown).toContain("Defaults to `true`");
 
-      for (const service of ["pure-fa-exporter", "pure-fb-exporter"]) {
+      for (const service of [
+        "pure-fa-exporter",
+        "pure-fb-exporter",
+        "powerstore-exporter",
+        "powerstore-syslog",
+        "netapp-harvest",
+      ]) {
         expect(compose).toContain(`  ${service}:\n`);
         expect(markdown).toContain(`\`${service}\``);
       }
-      for (const profile of ["flasharray-exporter", "flashblade"]) {
+      for (const profile of [
+        "flasharray-exporter",
+        "flashblade",
+        "powerstore",
+        "netapp-ontap",
+      ]) {
         expect(compose).toContain(`profiles: ["${profile}"]`);
         expect(markdown).toContain(`COMPOSE_PROFILES=${profile}`);
+      }
+      // A PowerStore's files, the ones install.sh downloads beside the configs.
+      for (const file of [
+        POWERSTORE_CONFIG,
+        "powerstore-exporter.Dockerfile",
+        "powerstore-syslog.yaml",
+      ]) {
+        expect(markdown).toContain(`\`${file}\``);
       }
     });
 
@@ -1010,8 +1065,16 @@ describe("Storage Array docs", (): void => {
           const endpoint: string =
             job.static_configs[0]!.labels.scrape_endpoint;
 
-          expect(job.metrics_path).toBe(`/metrics/${endpoint}`);
-          expect(scrapes).toContain(`\`/metrics/${endpoint}\``);
+          if (endpoint === HARVEST_ENDPOINT) {
+            // Harvest serves the whole cluster on one path, on the compose network.
+            expect(job.metrics_path).toBe("/metrics");
+            expect(scrapes).toContain(
+              `\`${job.static_configs[0]!.targets[0]}\``,
+            );
+          } else {
+            expect(job.metrics_path).toBe(`/metrics/${endpoint}`);
+            expect(scrapes).toContain(`\`/metrics/${endpoint}\``);
+          }
           expect({
             job: job.job_name,
             stated: scrapes.includes(spokenDuration(job.scrape_interval)),
@@ -1021,6 +1084,26 @@ describe("Storage Array docs", (): void => {
 
       expect(scrapes).toContain("`scrape_endpoint: <endpoint>`");
       expect(scrapes).toContain("`send_batch_max_size`");
+
+      // A PowerStore: Dell's exporter names the cluster in every path.
+      expect(scrapes).toContain("`/metrics/<cluster>/<part>`");
+      for (const job of scrapeJobs(POWERSTORE_CONFIG)) {
+        const part: string = job.metrics_path.replace(
+          "/metrics/${env:POWERSTORE_ENDPOINT}/",
+          "",
+        );
+        expect(job.metrics_path).toBe(
+          `/metrics/\${env:POWERSTORE_ENDPOINT}/${part}`,
+        );
+        expect({
+          job: job.job_name,
+          named: scrapes.includes(`\`${part}\``),
+        }).toEqual({ job: job.job_name, named: true });
+        expect({
+          job: job.job_name,
+          stated: scrapes.includes(spokenDuration(job.scrape_interval)),
+        }).toEqual({ job: job.job_name, stated: true });
+      }
     });
 
     it("names every catalog metric's family on the what-gets-collected table", (): void => {
@@ -1028,21 +1111,17 @@ describe("Storage Array docs", (): void => {
         readPage(TELEMETRY_PAGE),
         "## What the agent collects",
       );
-      // Every platform's families, by its metric prefix (purefa_, purefb_, powerscale_).
-      const prefixes: Array<string> =
-        StorageArrayPlatformRegistry.getPlatforms()
-          .map((platform: StorageArrayPlatform): string => {
-            return platform.metricPrefix || "";
-          })
-          .filter((prefix: string): boolean => {
-            return prefix.length > 0;
-          });
-      const family: RegExp = new RegExp(
-        `\`((?:${prefixes.join("|")})[a-z0-9_]+)(\\*?)\``,
-        "g",
-      );
+      // A family is a platform's prefix and more: `purefa_volume_*`, `netapp_health_*`.
+      const prefixes: string = StorageArrayPlatformRegistry.getPlatforms()
+        .map((platform: StorageArrayPlatform): string => {
+          return platform.metricPrefix || "";
+        })
+        .filter(Boolean)
+        .join("|");
       const families: Array<string> = Array.from(
-        collected.matchAll(family),
+        collected.matchAll(
+          new RegExp(`\`((?:${prefixes})[A-Za-z_]*)(\\*?)\``, "g"),
+        ),
       ).map((match: RegExpMatchArray): string => {
         return `${match[1]}${match[2]}`;
       });

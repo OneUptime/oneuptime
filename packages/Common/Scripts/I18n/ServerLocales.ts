@@ -122,6 +122,16 @@ export const DASHBOARD_SHARED_TEXT_SOURCES: ReadonlyArray<string> = [
    * language on the reader's account.
    */
   "packages/Common/Types/Database/SharedNameMarks.ts",
+  /*
+   * A scheduled cloud cost report (#11009): its email, chat message and
+   * text say what the Reports page's preview says, in the language on the
+   * reader's account - and the period's name ("the week before") the
+   * report's own words take.
+   */
+  "packages/Common/Types/Cloud/CloudCostReportWords.ts",
+  "packages/Common/Types/Cloud/CloudCostReport.ts",
+  // The cost basis a report names, as Costs names it (#11007).
+  "packages/Common/Types/Cloud/CloudCostBasis.ts",
 ];
 
 export const DASHBOARD_LOCALES_DIRECTORY: string = path.join(

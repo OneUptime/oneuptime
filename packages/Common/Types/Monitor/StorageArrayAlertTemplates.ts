@@ -9,7 +9,7 @@ import {
   buildStoppedReportingCriteriaInstances,
   buildUnhealthyCriteriaInstance,
 } from "./Recommendation/RecommendationCriteriaBuilder";
-import { FilterType } from "./CriteriaFilter";
+import { EvaluateOverTimeType, FilterType } from "./CriteriaFilter";
 import MonitorStepStorageArrayMonitor from "./MonitorStepStorageArrayMonitor";
 import RollingTime from "../RollingTime/RollingTime";
 import MetricsAggregationType from "../Metrics/MetricsAggregationType";
@@ -18,6 +18,7 @@ import StorageSystemUtil from "../StorageArray/StorageSystemUtil";
 import StorageArrayPlatformRegistry from "../StorageArray/StorageArrayPlatformRegistry";
 import {
   StorageArrayAlertTemplateCategory,
+  StorageArrayAlertTemplateRatio,
   StorageArrayAlertTemplateSeverity,
   StorageArrayAlertTemplateSpec,
   StorageArrayPlatform,
@@ -125,13 +126,19 @@ export function buildStorageArrayOfflineCriteriaInstance(args: {
   metricAlias: string;
   filterType: FilterType;
   value: number;
+  // Any reading of the window, not all of them (an event's).
+  onAnyReading?: boolean | undefined;
   incidentTitle?: string;
   incidentDescription?: string;
   criteriaName?: string;
   criteriaDescription?: string;
 }): MonitorCriteriaInstance {
+  const { onAnyReading, ...criteria } = args;
   return buildUnhealthyCriteriaInstance({
-    ...args,
+    ...criteria,
+    ...(onAnyReading
+      ? { metricAggregationType: EvaluateOverTimeType.AnyValue }
+      : {}),
     resourceNoun: "storage array",
   });
 }
@@ -161,6 +168,8 @@ export function buildStorageArrayMonitorConfig(args: {
   aggregationType: MetricsAggregationType;
   attributes?: Record<string, string>;
   groupByAttributeKey?: string | undefined;
+  // The labels the object is named within (StorageArrayAlertTemplateSpec).
+  scopeAttributeKeys?: ReadonlyArray<string> | undefined;
   /*
    * The series' display unit. Defaults to the unit the catalog gives the
    * metric (for its label filters: Pure puts several quantities on one
@@ -171,6 +180,11 @@ export function buildStorageArrayMonitorConfig(args: {
    * reads values in the same catalog units, so nothing is rescaled.
    */
   legendUnit?: string | undefined;
+  /*
+   * A second query of the same objects, and the quotient the criteria
+   * read instead (StorageArrayAlertTemplateSpec.ratioTo).
+   */
+  ratioTo?: StorageArrayAlertTemplateRatio | undefined;
 }): MonitorStepStorageArrayMonitor {
   const legendUnit: string | undefined =
     args.legendUnit ??
@@ -179,6 +193,92 @@ export function buildStorageArrayMonitorConfig(args: {
       metricName: args.metricName,
       attributes: args.attributes,
     });
+
+  const queryConfig: (query: {
+    metricAlias: string;
+    metricName: string;
+    attributes?: Record<string, string> | undefined;
+    aggregationType: MetricsAggregationType;
+    legendUnit: string | undefined;
+  }) => MonitorStepStorageArrayMonitor["metricViewConfig"]["queryConfigs"][number] = (query: {
+    metricAlias: string;
+    metricName: string;
+    attributes?: Record<string, string> | undefined;
+    aggregationType: MetricsAggregationType;
+    legendUnit: string | undefined;
+  }): MonitorStepStorageArrayMonitor["metricViewConfig"]["queryConfigs"][number] => {
+    return {
+      metricAliasData: {
+        metricVariable: query.metricAlias,
+        title: query.metricAlias,
+        description: query.metricAlias,
+        legend: query.metricAlias,
+        legendUnit: query.legendUnit,
+      },
+      metricQueryData: {
+        filterData: {
+          metricName: query.metricName,
+          attributes: query.attributes || {},
+          aggegationType: query.aggregationType,
+          aggregateBy: {},
+        },
+        ...(args.groupByAttributeKey
+          ? {
+              groupByAttributeKeys: [
+                args.groupByAttributeKey,
+                ...(args.scopeAttributeKeys || []),
+              ],
+            }
+          : {}),
+      },
+    };
+  };
+
+  if (args.ratioTo) {
+    const ratio: StorageArrayAlertTemplateRatio = args.ratioTo;
+    return {
+      arrayIdentifier: args.arrayIdentifier,
+      storageSystem: args.storageSystem,
+      resourceFilters: {},
+      metricViewConfig: {
+        queryConfigs: [
+          queryConfig({
+            metricAlias: args.metricAlias,
+            metricName: args.metricName,
+            attributes: args.attributes,
+            aggregationType: args.aggregationType,
+            legendUnit: legendUnit,
+          }),
+          queryConfig({
+            metricAlias: ratio.metricAlias,
+            metricName: ratio.metricName,
+            attributes: ratio.attributes,
+            aggregationType: ratio.aggregationType,
+            legendUnit: PlatformMetricUnitUtil.getMetricUnit({
+              platform: "storageArray",
+              metricName: ratio.metricName,
+              attributes: ratio.attributes,
+            }),
+          }),
+        ],
+        formulaConfigs: [
+          {
+            metricAliasData: {
+              metricVariable: ratio.formulaAlias,
+              title: ratio.formulaAlias,
+              description: ratio.formulaAlias,
+              legend: ratio.formulaAlias,
+              legendUnit: ratio.unit || undefined,
+            },
+            metricFormulaData: {
+              metricFormula: `${args.metricAlias} / ${ratio.metricAlias}`,
+            },
+          },
+        ],
+      },
+      rollingTime: args.rollingTime,
+    };
+  }
 
   return {
     arrayIdentifier: args.arrayIdentifier,
@@ -202,7 +302,12 @@ export function buildStorageArrayMonitorConfig(args: {
               aggregateBy: {},
             },
             ...(args.groupByAttributeKey
-              ? { groupByAttributeKeys: [args.groupByAttributeKey] }
+              ? {
+                  groupByAttributeKeys: [
+                    args.groupByAttributeKey,
+                    ...(args.scopeAttributeKeys || []),
+                  ],
+                }
               : {}),
           },
         },
@@ -236,15 +341,19 @@ function singleQueryTemplate(
           aggregationType: spec.aggregationType,
           ...(spec.attributes ? { attributes: spec.attributes } : {}),
           groupByAttributeKey: spec.groupByAttributeKey,
+          scopeAttributeKeys: spec.scopeAttributeKeys,
+          ratioTo: spec.ratioTo,
         }),
         offlineCriteriaInstance: buildStorageArrayOfflineCriteriaInstance({
           offlineMonitorStatusId: args.offlineMonitorStatusId,
           incidentSeverityId: args.defaultIncidentSeverityId,
           alertSeverityId: args.defaultAlertSeverityId,
           monitorName: args.monitorName,
-          metricAlias: spec.metricAlias,
+          // A ratio template's criteria read the quotient.
+          metricAlias: spec.ratioTo?.formulaAlias || spec.metricAlias,
           filterType: spec.fire.filterType,
           value: spec.fire.value,
+          onAnyReading: spec.fire.onAnyReading,
           incidentTitle: `${spec.incidentTitle} - ${args.monitorName}`,
           incidentDescription: spec.incidentDescription,
           criteriaName: spec.criteriaName,
@@ -252,7 +361,7 @@ function singleQueryTemplate(
         }),
         onlineCriteriaInstance: buildStorageArrayOnlineCriteriaInstance({
           onlineMonitorStatusId: args.onlineMonitorStatusId,
-          metricAlias: spec.metricAlias,
+          metricAlias: spec.ratioTo?.formulaAlias || spec.metricAlias,
           filterType: spec.recover.filterType,
           value: spec.recover.value,
           isBinaryMetric: spec.recover.isBinaryMetric,
@@ -278,14 +387,20 @@ function arrayStoppedReportingTemplate(data: {
   infoMetricName: string;
   description?: string | undefined;
   incidentDescription?: string | undefined;
+  /*
+   * What the agent logs in with, in a sentence: "API token" (the default)
+   * or "password", for a platform whose agent logs in with a user.
+   */
+  credential?: string | undefined;
 }): StorageArrayAlertTemplate {
+  const credential: string = data.credential || "API token";
   return {
     id: data.id,
     name: "Array Stopped Reporting",
     summary: "The array sends no data for 10 minutes.",
     description:
       data.description ||
-      `Alert when the ${data.platformName} sends no data for ten minutes: the Storage Array Agent stopped, lost its route to OneUptime or had its token revoked, or the array stopped answering it (down, unreachable, or its read-only API token no longer works). Reads ${data.infoMetricName}, which every endpoint the agent scrapes exports on every scrape.`,
+      `Alert when the ${data.platformName} sends no data for ten minutes: the Storage Array Agent stopped, lost its route to OneUptime or had its token revoked, or the array stopped answering it (down, unreachable, or its read-only ${credential} no longer works). Reads ${data.infoMetricName}, which every endpoint the agent scrapes exports on every scrape.`,
     category: "Availability",
     severity: "Critical",
     storageSystems: [data.storageSystem],
@@ -312,7 +427,7 @@ function arrayStoppedReportingTemplate(data: {
           incidentTitle: `[Storage Array] Array Stopped Reporting - ${args.monitorName}`,
           incidentDescription:
             data.incidentDescription ||
-            `OneUptime has received no data from this ${data.platformName} for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the array's management address answers from the agent's machine, whether the read-only user's API token still works, whether the Storage Array Agent's containers are running and what the collector's log says, and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.`,
+            `OneUptime has received no data from this ${data.platformName} for ten minutes, so its other monitors have nothing to evaluate either. Check, in order: whether the array's management address answers from the agent's machine, whether the read-only user's ${credential} still works, whether the Storage Array Agent's containers are running and what the collector's log says, and whether the agent can reach OneUptime with its token. The incident resolves on its own once data arrives again.`,
           criteriaName: "Array Stopped Reporting - No data for 10 minutes",
           criteriaDescription: `Triggers when the array sends no ${data.infoMetricName} data for the whole ten-minute window.`,
         }),
@@ -347,6 +462,13 @@ function getPlatformTemplates(
         infoMetricName: platform.heartbeat.metricName,
         description: platform.heartbeat.description,
         incidentDescription: platform.heartbeat.incidentDescription,
+        credential: platform.agentConfigs.some(
+          (config: StorageArrayPlatform["agentConfigs"][number]): boolean => {
+            return Boolean(config.userVariable);
+          },
+        )
+          ? "password"
+          : undefined,
       }),
       ...platform.alertTemplates.map(
         (spec: StorageArrayAlertTemplateSpec): StorageArrayAlertTemplate => {

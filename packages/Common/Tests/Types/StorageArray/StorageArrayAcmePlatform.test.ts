@@ -386,11 +386,21 @@ describe("Acme's inventory and counts", () => {
         FLASHARRAY,
       ),
     ).toBe(false);
+    /*
+     * In its own words, asked on its platform: ONTAP has an Aggregate too
+     * (#11001), worded by a key of its own.
+     */
     expect(
-      StorageArrayResourceKindUtil.getSingularLabel(ACME_AGGREGATE_KIND),
+      StorageArrayPlatformRegistry.getKindDefinition(
+        ACME_AGGREGATE_KIND,
+        ACME_STORAGE_SYSTEM,
+      )?.singularLabel,
     ).toBe("Aggregate");
     expect(
-      StorageArrayResourceKindUtil.getPluralLabel(ACME_AGGREGATE_KIND),
+      StorageArrayPlatformRegistry.getKindDefinition(
+        ACME_AGGREGATE_KIND,
+        ACME_STORAGE_SYSTEM,
+      )?.pluralLabel,
     ).toBe("Aggregates");
     // A shared kind keeps the shared words.
     expect(
@@ -531,13 +541,18 @@ describe("Acme's monitors", () => {
           .metricQueryData as unknown as JSONObject
       )["filterData"],
     ).toMatchObject({ metricName: "acme_info", aggegationType: "Count" });
-    // A storage array monitor's heartbeat is any platform's.
-    expect(ResourceHeartbeatUtil.getForMonitorStep(step)?.metricNames).toEqual([
-      "purefa_info",
-      "purefb_info",
-      "powerscale_cluster_health",
-      "acme_info",
-    ]);
+    // A storage array monitor's heartbeat is any platform's, Acme's last.
+    const heartbeats: Array<string> | undefined =
+      ResourceHeartbeatUtil.getForMonitorStep(step)?.metricNames;
+    expect(heartbeats).toEqual(
+      StorageArrayPlatformRegistry.getPlatforms().map(
+        (platform: { heartbeat: { metricName: string } }): string => {
+          return platform.heartbeat.metricName;
+        },
+      ),
+    );
+    expect(heartbeats?.slice(0, 2)).toEqual(["purefa_info", "purefb_info"]);
+    expect(heartbeats?.[heartbeats.length - 1]).toBe("acme_info");
   });
 
   test("Recommendations offers an Acme array its templates, and no Pure array them", () => {

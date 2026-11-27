@@ -168,8 +168,6 @@ const AUDIT_LOGS_TITLE: string = "Audit Logs";
 type NoAuditLogsReason =
   // Its records are not audited: there is nothing to list.
   | { kind: "NotAudited"; model: { new (): BaseModel }; why: string }
-  // Another product's read-only view of a record whose page has one.
-  | { kind: "ReadOnlyViewOf"; menu: string; page: PageMap; why: string }
   // No layout draws it.
   | { kind: "DrawnNowhere"; why: string };
 
@@ -181,12 +179,6 @@ const VIEW_MENUS_WITHOUT_AUDIT_LOGS: Readonly<
     model: User,
     why: "A person is not one project's record, so is not audited: who added them to a team or took them off it is on that team's Audit Logs page, and their own notification setup is theirs alone.",
   },
-  "Pages/DataObservability/View/SideMenu.tsx": {
-    kind: "ReadOnlyViewOf",
-    menu: "Pages/DataSecurity/StoreView/SideMenu.tsx",
-    page: PageMap.DATA_SECURITY_STORE_VIEW_AUDIT_LOGS,
-    why: "A database here is Data Security's data store, read through Data Observability's own route: nothing about it is changed from these pages, and its history is on its Audit Logs page in Data Security.",
-  },
   "Pages/StatusPages/View/AnnouncementSideMenu.tsx": {
     kind: "DrawnNowhere",
     why: "Rendered by no layout: an announcement's pages use Pages/StatusPages/AnnouncementSideMenu.tsx, which has the page.",
@@ -197,10 +189,14 @@ const VIEW_MENUS_WITHOUT_AUDIT_LOGS: Readonly<
  * The view pages of a resource drawn in a second product: an App Platforms
  * environment is a CloudResource row, as a cloud resource is, and its
  * project-wide entries open Cloud's page, which forwards it to App
- * Platforms (Utils/CloudResourceViewPages).
+ * Platforms (Utils/CloudResourceViewPages). A database in Data Observability
+ * is a DataStore row, as Data Security's data store is: its Audit Logs page
+ * lists the same entries as Data Security's, and the project's log opens
+ * them on Data Security's page.
  */
 const SECOND_PRODUCT_VIEWS: Readonly<Record<string, string>> = {
   [PageMap.APP_PLATFORMS_ENVIRONMENT_VIEW]: "Cloud Resource",
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: "Data Store",
 };
 
 const RENDERS_SIDE_MENU: RegExp =
@@ -210,9 +206,6 @@ const RENDERS_SIDE_MENU: RegExp =
 const TAKES_MODEL_ID: RegExp = /modelId:\s*ObjectID/;
 
 const TYPESCRIPT_SOURCE: RegExp = /\.tsx?$/;
-
-// The pages through which a menu changes or deletes its record.
-const CHANGES_THE_RECORD: RegExp = /\/(settings|owners|delete)$/;
 
 function sourceFilesUnder(dir: string): Array<string> {
   const files: Array<string> = [];
@@ -518,6 +511,7 @@ describe("every resource's view menu has an Audit Logs page", () => {
         "Pages/Cloud/View/SideMenu.tsx",
         "Pages/AppPlatforms/View/SideMenu.tsx",
         "Pages/Serverless/View/SideMenu.tsx",
+        "Pages/DataObservability/View/SideMenu.tsx",
         "Pages/DataObservability/TableView/SideMenu.tsx",
         "Pages/DataPipeline/View/SideMenu.tsx",
         "Pages/DataProduct/View/SideMenu.tsx",
@@ -566,39 +560,6 @@ describe("the view menus without one", () => {
 
     expect(new reason.model().enableAuditLogOn).toBeUndefined();
   });
-
-  test.each(
-    Object.keys(VIEW_MENUS_WITHOUT_AUDIT_LOGS).filter(
-      (name: string): boolean => {
-        return VIEW_MENUS_WITHOUT_AUDIT_LOGS[name]!.kind === "ReadOnlyViewOf";
-      },
-    ),
-  )(
-    "%s: the record's own page in its product has the Audit Logs page",
-    async (name: string) => {
-      const reason: NoAuditLogsReason = VIEW_MENUS_WITHOUT_AUDIT_LOGS[name]!;
-
-      if (reason.kind !== "ReadOnlyViewOf") {
-        throw new Error(name);
-      }
-
-      // Read-only: nothing on its menu changes or deletes the record.
-      await renderMenuAt(menuNamed(name), PROJECT_HOME);
-      expect(
-        allLinks().filter((link: MenuLink): boolean => {
-          return CHANGES_THE_RECORD.test(link.href);
-        }),
-      ).toEqual([]);
-      cleanup();
-
-      await renderMenuAt(menuNamed(reason.menu), PROJECT_HOME);
-      expect(
-        allLinks().find((link: MenuLink): boolean => {
-          return link.title === AUDIT_LOGS_TITLE;
-        })?.href,
-      ).toBe(hrefOf(reason.page));
-    },
-  );
 
   test.each(
     Object.keys(VIEW_MENUS_WITHOUT_AUDIT_LOGS).filter(

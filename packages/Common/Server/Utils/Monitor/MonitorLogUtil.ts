@@ -132,6 +132,12 @@ export default class MonitorLogUtil {
      * (MonitorStoredCheck.boundSeries).
      */
     seriesActedOn?: ReadonlySet<string> | undefined;
+    /*
+     * A result the monitor received while it was not being checked, listed
+     * as not evaluated (MonitorNotEvaluated, #11141): no evaluation to time,
+     * and no check result for the project's first.
+     */
+    isNotEvaluated?: boolean | undefined;
   }): void {
     if (!data.monitorId) {
       return;
@@ -145,24 +151,26 @@ export default class MonitorLogUtil {
       return;
     }
 
-    /*
-     * The evaluation ends here: its summary says, on this entry, how long it
-     * took, how many series it judged and how often its monitor is
-     * evaluated (#10317). Now, not once the row is queued below.
-     */
-    MonitorEvaluationClock.end(data.dataToProcess);
+    if (!data.isNotEvaluated) {
+      /*
+       * The evaluation ends here: its summary says, on this entry, how long
+       * it took, how many series it judged and how often its monitor is
+       * evaluated (#10317). Now, not once the row is queued below.
+       */
+      MonitorEvaluationClock.end(data.dataToProcess);
 
-    /*
-     * The project's first check result (issue #6830). Every stored result
-     * comes through here, and only once monitorResource() has accepted it:
-     * past an archived, disabled or missing monitor, a probe not assigned to
-     * it and a blocked project, which are refused before any is stored.
-     * After the first, a memo lookup.
-     */
-    ProjectMilestoneService.reachInBackground({
-      projectId: data.projectId,
-      milestone: ActivationMilestone.FirstCheckResultReceived,
-    });
+      /*
+       * The project's first check result (issue #6830). Every stored result
+       * comes through here, and only once monitorResource() has accepted it:
+       * past an archived, disabled or missing monitor, a probe not assigned
+       * to it and a blocked project, which are refused before any is stored.
+       * After the first, a memo lookup.
+       */
+      ProjectMilestoneService.reachInBackground({
+        projectId: data.projectId,
+        milestone: ActivationMilestone.FirstCheckResultReceived,
+      });
+    }
 
     // Fire-and-forget: fetch retention config then enqueue
     this.getRetentionDays()

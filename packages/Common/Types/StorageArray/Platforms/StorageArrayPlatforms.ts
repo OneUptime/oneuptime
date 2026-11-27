@@ -1,6 +1,8 @@
 import { StorageArrayPlatform } from "../StorageArrayPlatform";
 import PureStorageFlashArrayPlatform from "./PureStorage/FlashArray/FlashArrayPlatform";
 import PureStorageFlashBladePlatform from "./PureStorage/FlashBlade/FlashBladePlatform";
+import DellPowerStorePlatform from "./Dell/PowerStore/PowerStorePlatform";
+import NetAppOntapPlatform from "./NetApp/ONTAP/OntapPlatform";
 import DellPowerScalePlatform from "./Dell/PowerScale/PowerScalePlatform";
 
 /*
@@ -17,5 +19,7 @@ export const BUILT_IN_STORAGE_ARRAY_PLATFORMS: ReadonlyArray<StorageArrayPlatfor
   [
     PureStorageFlashArrayPlatform,
     PureStorageFlashBladePlatform,
+    DellPowerStorePlatform,
+    NetAppOntapPlatform,
     DellPowerScalePlatform,
   ];

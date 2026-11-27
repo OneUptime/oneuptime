@@ -7,6 +7,8 @@ import {
   getInventoryTypePluralLabel,
 } from "../Inventory/InventoryTypeCatalog";
 import { metaForEntityType } from "../Topology/TopologyMeta";
+import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
+import { StorageArrayKindDefinition } from "Common/Types/StorageArray/StorageArrayPlatform";
 
 /*
  * What every kind of part on a resource topology is called, how it looks,
@@ -38,6 +40,17 @@ export interface ResourceTopologyKindInfo {
 export const SECTION_KIND: string = "section";
 
 export const ENTITY_KIND_PREFIX: string = "entity:";
+
+/*
+ * A kind of storage array part only one platform has (a NetApp aggregate,
+ * SVM, LUN or SnapMirror relationship) is `storage.kind:<kind>`, and its
+ * words and icon are its platform's (StorageArrayPlatform.kindDefinitions).
+ */
+export const STORAGE_ARRAY_KIND_PREFIX: string = "storage.kind:";
+
+export function storageArrayPlatformKind(kind: string): string {
+  return `${STORAGE_ARRAY_KIND_PREFIX}${kind}`;
+}
 
 export function entityKind(entityType: string): string {
   return `${ENTITY_KIND_PREFIX}${entityType}`;
@@ -810,6 +823,24 @@ export function getResourceTopologyKind(
 
   if (known) {
     return known;
+  }
+
+  if (kind.startsWith(STORAGE_ARRAY_KIND_PREFIX)) {
+    const definition: StorageArrayKindDefinition | null =
+      StorageArrayPlatformRegistry.getKindDefinition(
+        kind.substring(STORAGE_ARRAY_KIND_PREFIX.length),
+      );
+    if (definition) {
+      return {
+        label: definition.singularLabel,
+        plural: definition.pluralLabel,
+        icon: definition.icon,
+        color: "#d97706",
+        // Beside the volumes and pods they hold or replicate.
+        order: 19,
+      };
+    }
+    return UNKNOWN_KIND;
   }
 
   if (kind.startsWith(ENTITY_KIND_PREFIX)) {

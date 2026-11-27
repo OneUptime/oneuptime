@@ -24,6 +24,7 @@ import {
   FlashBladeEndpoint,
   PURE_CAPTURE_TIME_MS,
 } from "../../../../Helpers/StorageArray/PureStorageCaptures";
+import { getPureSnapshotMetricNames } from "../../../../Helpers/StorageArray/PureSlice";
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -60,14 +61,14 @@ const GOLDEN_PATH: string = path.join(
 const ARRAY_ID: string = "5a7e0000-0000-4000-8000-0000000011a0";
 
 /*
- * Pure's families of the scan's allow-list: the platforms after Pure add
- * theirs (Dell PowerScale's powerscale_*), which a Pure array never sends.
+ * The series the scan reads for a Pure array: the list holds every shipped
+ * platform's (NetApp ONTAP's too, since #11001), and a Pure array's are
+ * Pure's prefixes'.
  */
-const PURE_METRIC_NAME: RegExp = /^pure(fa|fb)_/;
 const PURE_SNAPSHOT_METRIC_NAMES: Set<string> = new Set(
   Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES).filter(
-    (metricName: string): boolean => {
-      return PURE_METRIC_NAME.test(metricName);
+    (name: string): boolean => {
+      return name.startsWith("purefa_") || name.startsWith("purefb_");
     },
   ),
 );
@@ -403,7 +404,7 @@ function computeGolden(): Omit<GoldenFile, "note"> {
     ["a FlashArray batch with no declaration", "purestorage.flasharray", null],
     ["no Pure series, declared FlashArray", null, "purestorage.flasharray"],
     ["no Pure series, declared FlashBlade", null, "purestorage.flashblade"],
-    ["no Pure series, another platform declared", null, "netapp.ontap"],
+    ["no Pure series, another platform declared", null, "hitachi.vsp"],
     ["no Pure series, nothing declared", null, null],
   ];
   const systemResolution: Record<string, string | null> = {};
@@ -418,7 +419,8 @@ function computeGolden(): Omit<GoldenFile, "note"> {
   }
 
   return {
-    snapshotMetricNames: Array.from(PURE_SNAPSHOT_METRIC_NAMES).sort(),
+    // Pure's own: a platform registered since reads series of its own.
+    snapshotMetricNames: getPureSnapshotMetricNames(),
     componentStatuses,
     systemResolution,
     cases,
@@ -498,8 +500,8 @@ describe("a Pure Storage array's metrics become what they became before #11000",
         return !STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES.has(name);
       });
 
-    // Every family the scan reads is in the captures at least once.
-    expect(new Set(read)).toEqual(PURE_SNAPSHOT_METRIC_NAMES);
+    // Every family the scan reads for Pure is in the captures at least once.
+    expect(new Set(read)).toEqual(new Set(getPureSnapshotMetricNames()));
     expect(passedOver.length).toBeGreaterThan(0);
   });
 });

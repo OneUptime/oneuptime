@@ -107,6 +107,7 @@ Listan visar varje sorts post som du kan arbeta med, och dess kommando, till exe
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Arbetar med en sorts post | [Resursoperationer](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Listar en resurs fält och de flaggor som sätter dem | [Resursoperationer](/docs/cli/resource-operations#se-en-resurs-fält) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Gör det som instrumentpanelens knappar gör på incidenter, larm och schemalagt underhåll | [Resursoperationer](/docs/cli/resource-operations#bekräfta-lös-och-lägg-till-anteckningar) |
+| `oneuptime <resource> breakdown`, `export` | Delar upp en periods molnutgifter, eller exporterar dem som en FOCUS 1.2-fil, för `cloud-cost` | [Rapporter och exporter](/docs/telemetry/cloud-costs#rapporter-och-exporter) |
 | `oneuptime resources` | Listar sorterna av poster med deras kommandon | [Kommandoreferens](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Skriver ut CLI:ns version | [Kommandoreferens](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Visar hjälpen för ett kommando | [Få hjälp](#få-hjälp) |

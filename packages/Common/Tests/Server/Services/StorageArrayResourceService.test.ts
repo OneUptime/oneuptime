@@ -25,6 +25,7 @@ import StorageArrayResourceService, {
   ParsedStorageArrayResource,
   StorageArrayInventorySummary,
   UNHEALTHY_HARDWARE_STATUSES,
+  getUnhealthyHardwareStatuses,
 } from "../../../Server/Services/StorageArrayResourceService";
 import {
   isCriticalComponentStatus,
@@ -843,25 +844,54 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
     // One physical part is several rows under one name — count names.
     expect(sql).toContain('COUNT(DISTINCT lower(h."externalId"))');
     expect(sql).toContain('GROUP BY "kind"');
-    // The shipped words and kinds first, then each platform's own (#11003).
+    /*
+     * Every registered platform's words for a part that is not well, and
+     * every platform's hardware kinds: the shipped ones first, then those a
+     * platform declares of its own (PowerStore's node states and a NAS
+     * server not started; a PowerScale node in attention, a smartfailing
+     * drive; a PowerScale's nodes as hardware).
+     */
+    const statuses: Array<string> = getUnhealthyHardwareStatuses();
     expect(params).toEqual([
       PROJECT_ID.toString(),
       ARRAY_ID.toString(),
-      getUnhealthyHardwareStatuses(),
+      statuses,
       getHardwareKinds(),
     ]);
-    expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
-    const statuses: Array<string> = getUnhealthyHardwareStatuses();
     expect(statuses.slice(0, UNHEALTHY_HARDWARE_STATUSES.length)).toEqual(
       UNHEALTHY_HARDWARE_STATUSES,
     );
-    // A PowerScale node in attention and a smartfailing drive are unhealthy.
-    expect(statuses).toEqual(
-      expect.arrayContaining(["attention", "offline", "smartfail", "dead"]),
-    );
+    expect(
+      statuses.slice(
+        UNHEALTHY_HARDWARE_STATUSES.length,
+        UNHEALTHY_HARDWARE_STATUSES.length + 6,
+      ),
+    ).toEqual([
+      "prepare_failed",
+      "disconnected",
+      "uninitialized",
+      "initializing",
+      "trigger_update",
+      "not started",
+    ]);
+    expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
+    // An ONTAP disk is broken, a shelf part in error; a PowerScale drive smartfails.
+    for (const word of [
+      "broken",
+      "error",
+      "down",
+      "offline",
+      "attention",
+      "smartfail",
+      "dead",
+    ]) {
+      expect(statuses).toContain(word);
+    }
+    for (const word of ["healthy", "normal", "online", "spare", "up"]) {
+      expect(statuses).not.toContain(word);
+    }
     const kinds: Array<string> = getHardwareKinds();
     expect(kinds.slice(0, HARDWARE_KINDS.length)).toEqual(HARDWARE_KINDS);
-    // A PowerScale's nodes are hardware too.
     expect(kinds).toContain("Node");
   });
 

@@ -56,13 +56,20 @@ export interface ComponentProps {
   dataTestId?: string | undefined;
 }
 
-const CertificateDetails: FunctionComponent<{
+/*
+ * The certificate an address presented, and "Trust this certificate". The
+ * hint says where to compare the fingerprint first: vCenter's by default,
+ * another product's (Xen Orchestra, an XCP-ng host) when it hands its own.
+ */
+export interface CertificateDetailsProps {
   certificate: VMwarePresentedCertificate;
   onTrust?: (() => void) | undefined;
-}> = (props: {
-  certificate: VMwarePresentedCertificate;
-  onTrust?: (() => void) | undefined;
-}): ReactElement => {
+  trustHint?: string | undefined;
+}
+
+const CertificateDetails: FunctionComponent<CertificateDetailsProps> = (
+  props: CertificateDetailsProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
 
   const rows: Array<{ label: string; value: string }> = [
@@ -120,9 +127,11 @@ const CertificateDetails: FunctionComponent<{
             onClick={props.onTrust}
           />
           <span className="text-xs text-gray-500">
-            {translator.translateText(
-              "Check the fingerprint against vCenter's certificate first: in the vSphere Client, Administration > Certificates.",
-            )}
+            {props.trustHint
+              ? translator.translateText(props.trustHint)
+              : translator.translateText(
+                  "Check the fingerprint against vCenter's certificate first: in the vSphere Client, Administration > Certificates.",
+                )}
           </span>
         </div>
       ) : (
