@@ -262,7 +262,12 @@ const ExternalMcpServerToolList: FunctionComponent<ComponentProps> = (
                   tone={readsOnly ? PillTone.Success : PillTone.Warning}
                   className="w-fit shrink-0"
                 />
-                {actions}
+                {/* The buttons wrap together: on a phone, as a pair under the pill. */}
+                {actions.length > 0 ? (
+                  <div className="flex items-center gap-1">{actions}</div>
+                ) : (
+                  <></>
+                )}
               </div>
             </li>
           );
