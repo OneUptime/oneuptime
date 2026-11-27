@@ -107,6 +107,7 @@ oneuptime resources
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | با یک نوع رکورد کار می‌کند | [عملیات روی منابع](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | فیلدهای یک منبع و پرچم‌هایی را که آن‌ها را تنظیم می‌کنند فهرست می‌کند | [عملیات روی منابع](/docs/cli/resource-operations#دیدن-فیلدهای-یک-منبع) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | روی حادثه‌ها، هشدارها و تعمیر و نگهداری زمان‌بندی‌شده همان کاری را می‌کند که دکمه‌های داشبورد می‌کنند | [عملیات روی منابع](/docs/cli/resource-operations#تأیید-رفع-و-افزودن-یادداشت) |
+| `oneuptime <resource> breakdown`, `export` | هزینهٔ ابری یک دوره را تفکیک می‌کند، یا آن را به‌صورت فایل FOCUS 1.2 خروجی می‌گیرد، برای `cloud-cost` | [گزارش‌ها و خروجی‌ها](/docs/telemetry/cloud-costs#گزارشها-و-خروجیها) |
 | `oneuptime resources` | انواع رکورد را همراه با دستورهایشان فهرست می‌کند | [مرجع دستورها](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | نسخهٔ CLI را چاپ می‌کند | [مرجع دستورها](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | راهنمای یک دستور را نشان می‌دهد | [گرفتن راهنما](#گرفتن-راهنما) |

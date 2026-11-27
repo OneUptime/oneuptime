@@ -117,7 +117,7 @@ Terminez la vérification comme l'e-mail vous l'indique.
 Si un autre e-mail est arrivé depuis, la carte n'affiche plus l'e-mail de vérification. Ouvrez **Journaux de surveillance**, trouvez l'e-mail de vérification par son objet dans la colonne **E-mail**, et cliquez sur **Voir le résumé** sur cette ligne.
 
 > [!IMPORTANT]
-> **Vos critères le voient aussi.** L'e-mail de vérification est évalué comme n'importe quel autre e-mail. Une formulation comme "if you received this in error" correspond au critère par défaut `error` et marque le moniteur hors ligne. Pour l'éviter, désactivez **Vérifier ce moniteur** dans la carte **Surveillance** de la page **Paramètres** du moniteur pendant la vérification (une confirmation vous est demandée). Un moniteur dont la surveillance est désactivée enregistre quand même l'e-mail, et la carte **Résumé du moniteur** l'affiche toujours. Mais il n'évalue rien, donc l'e-mail n'a pas de ligne dans **Journaux de surveillance** : lisez-le avant l'arrivée d'un autre e-mail. Quand vous avez terminé, cliquez sur **Activer la surveillance** dans le bandeau en haut des pages du moniteur, ou réactivez l'interrupteur.
+> **Vos critères le voient aussi.** L'e-mail de vérification est évalué comme n'importe quel autre e-mail. Une formulation comme "if you received this in error" correspond au critère par défaut `error` et marque le moniteur hors ligne. Pour l'éviter, désactivez **Vérifier ce moniteur** dans la carte **Surveillance** de la page **Paramètres** du moniteur pendant la vérification (une confirmation vous est demandée). Un moniteur dont la surveillance est désactivée enregistre quand même l'e-mail, et la carte **Résumé du moniteur** l'affiche toujours. Mais il n'évalue rien : la ligne de l'e-mail dans **Journaux de surveillance** indique qu'il n'a pas été évalué, et **Voir le résumé** sur cette ligne affiche l'e-mail entier. Quand vous avez terminé, cliquez sur **Activer la surveillance** dans le bandeau en haut des pages du moniteur, ou réactivez l'interrupteur.
 
 **La vérification appartient à l'adresse.** Si vous [réinitialisez ou personnalisez l'adresse](#réinitialiser-ou-personnaliser-ladresse-e-mail), le service voit un nouveau destinataire, et vous devez vérifier à nouveau.
 
@@ -186,6 +186,8 @@ L'adresse du moniteur lui-même est masquée avant qu'un critère ne lise l'e-ma
 Toutes ces comparaisons ignorent la casse. Un filtre dont la valeur est vide ne correspond jamais.
 
 ### Filtres temporels (E-mail reçu)
+
+Le tableau de bord en anglais écrit ces conditions « Recieved ».
 
 | Condition de filtre | Description | Exemple |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -310,7 +312,9 @@ Cliquez sur **Afficher plus de détails** pour voir le reste :
 
 ### E-mails précédents
 
-La carte n'affiche que l'e-mail le plus récent. Chaque e-mail que le moniteur évalue est aussi écrit dans **Journaux de surveillance** : la colonne **E-mail** affiche son objet et son expéditeur, et **Voir le résumé** sur sa ligne affiche l'e-mail entier comme le fait la carte. Un moniteur dont la surveillance est désactivée n'évalue rien : les e-mails qu'il reçoit n'ont donc pas de ligne. Si l'un de vos critères vérifie **E-mail reçu**, le moniteur écrit aussi une ligne à chaque vérification d'e-mail manquant. La colonne **E-mail** indique "Scheduled check" sur ces lignes, et leur **Voir le résumé** affiche l'e-mail le plus récent au moment de la vérification, ou "No email yet" si aucun n'était arrivé. Les journaux de surveillance sont conservés un jour par défaut. Sur un serveur auto-hébergé, un administrateur peut changer cela avec **Rétention des journaux du moniteur (jours)** dans les paramètres du tableau de bord d'administration.
+La carte n'affiche que l'e-mail le plus récent. Chaque e-mail que le moniteur évalue est aussi écrit dans **Journaux de surveillance** : la colonne **E-mail** affiche son objet et son expéditeur, et **Voir le résumé** sur sa ligne affiche l'e-mail entier comme le fait la carte. Un moniteur qui n'est pas vérifié — sa surveillance désactivée, ou mise en pause par un incident ou un événement de maintenance — n'évalue rien : chaque e-mail qu'il reçoit a donc une ligne qui indique qu'il n'a pas été évalué, et pourquoi. Si l'un de vos critères vérifie **E-mail reçu**, le moniteur écrit aussi une ligne à chaque vérification d'e-mail manquant. La colonne **E-mail** indique "Scheduled check" sur ces lignes, et leur **Voir le résumé** affiche l'e-mail le plus récent au moment de la vérification, ou "No email yet" si aucun n'était arrivé.
+
+Les journaux de surveillance sont conservés un jour par défaut. Sur un serveur auto-hébergé, un administrateur peut changer cela avec **Rétention des journaux du moniteur (jours)** dans les paramètres du tableau de bord d'administration.
 
 ## Configuration auto-hébergée
 

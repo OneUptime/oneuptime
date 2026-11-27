@@ -233,6 +233,60 @@ async function incidentWithScreenshot(): Promise<EmailMessage> {
   };
 }
 
+// A cost report's figures, attached as the report sends them (#11009).
+const COST_REPORT_CSV: string =
+  '"service","key","amount"\n"Amazon EC2","Amazon EC2","1200"\n"Résumé, ""q"" x","x","0.5"\n';
+const COST_REPORT_CSV_NAME: string =
+  "cloud-costs-by-service-billed-2026-11-16-to-2026-11-22.csv";
+
+function costReportWithCsv(): EmailMessage {
+  return {
+    toEmail: new Email("finance@example.test"),
+    subject: "Weekly cloud costs: Nov 16 - 22, 2026",
+    isSubjectLiteral: true,
+    templateType: EmailTemplateType.CloudCostReport,
+    vars: {
+      reportName: "Weekly cloud costs",
+      costsUrl: "https://oneuptime.example.test/dashboard/p/cloud/costs",
+      report: {
+        title: "Weekly cloud costs",
+        lead: "What every account cost from Nov 16, 2026 to Nov 22, 2026.",
+        totalLabel: "Total",
+        total: "$1,200",
+        change: "20% more than the week before",
+        changeTone: "up",
+        previous: "$1,000 the week before",
+        stats: [],
+        hasStats: false,
+        sections: [
+          {
+            title: "Rose the most",
+            rows: [
+              {
+                name: "Amazon EC2",
+                value: "$700.00",
+                hint: "+$200.00",
+                isUp: true,
+                isDown: false,
+              },
+            ],
+          },
+        ],
+        notes: ["The figures are attached as a CSV."],
+        buttonText: "Open Costs",
+        why: "This report is sent to this address from Acme on OneUptime.",
+      },
+    },
+    attachments: [
+      {
+        fileName: COST_REPORT_CSV_NAME,
+        mimeType: "text/csv",
+        contentBase64: Buffer.from(COST_REPORT_CSV, "utf8").toString("base64"),
+      },
+    ],
+  } as EmailMessage;
+}
+
 // One inline image, as the service that took the email received it.
 interface ArrivedImage {
   contentId: string;
@@ -242,10 +296,42 @@ interface ArrivedImage {
   isInline: boolean;
 }
 
+// One file attached for the reader to open, as the service received it (#11009).
+interface ArrivedFile {
+  fileName: string;
+  mimeType: string;
+  bytes: Buffer;
+}
+
 // An email, as the service that took it received it.
 interface ArrivedEmail {
   html: string;
   inlineImages: Array<ArrivedImage>;
+  files: Array<ArrivedFile>;
+}
+
+// An attachment as each reader below reads it: an inline image, or a file.
+function splitArrived(
+  html: string,
+  attachments: Array<ArrivedImage>,
+): ArrivedEmail {
+  return {
+    html,
+    inlineImages: attachments.filter((attachment: ArrivedImage): boolean => {
+      return attachment.isInline;
+    }),
+    files: attachments
+      .filter((attachment: ArrivedImage): boolean => {
+        return !attachment.isInline;
+      })
+      .map((attachment: ArrivedImage): ArrivedFile => {
+        return {
+          fileName: attachment.fileName,
+          mimeType: attachment.mimeType,
+          bytes: attachment.bytes,
+        };
+      }),
+  };
 }
 
 let sendGrid: FakeSendGrid;
@@ -365,9 +451,9 @@ function arrivedOverSendGrid(): ArrivedEmail {
     },
   );
 
-  return {
-    html: html?.value || "",
-    inlineImages: (json.attachments || []).map(
+  return splitArrived(
+    html?.value || "",
+    (json.attachments || []).map(
       (attachment: Record<string, unknown>): ArrivedImage => {
         return {
           contentId: String(attachment["content_id"]),
@@ -378,15 +464,15 @@ function arrivedOverSendGrid(): ArrivedEmail {
         };
       },
     ),
-  };
+  );
 }
 
 function arrivedOverMicrosoftGraph(): ArrivedEmail {
   const json: GraphSendMailJson = lastRequest(graph).json as GraphSendMailJson;
 
-  return {
-    html: json.message.body.content,
-    inlineImages: (json.message.attachments || []).map(
+  return splitArrived(
+    json.message.body.content,
+    (json.message.attachments || []).map(
       (attachment: Record<string, unknown>): ArrivedImage => {
         return {
           contentId: String(attachment["contentId"]),
@@ -397,16 +483,16 @@ function arrivedOverMicrosoftGraph(): ArrivedEmail {
         };
       },
     ),
-  };
+  );
 }
 
 function arrivedOverAmazonSes(): ArrivedEmail {
   const json: AmazonSesSendEmailJson = lastRequest(ses)
     .json as AmazonSesSendEmailJson;
 
-  return {
-    html: json.Content.Simple.Body.Html?.Data || "",
-    inlineImages: (json.Content.Simple.Attachments || []).map(
+  return splitArrived(
+    json.Content.Simple.Body.Html?.Data || "",
+    (json.Content.Simple.Attachments || []).map(
       (attachment: Record<string, unknown>): ArrivedImage => {
         return {
           contentId: String(attachment["ContentId"]),
@@ -417,16 +503,16 @@ function arrivedOverAmazonSes(): ArrivedEmail {
         };
       },
     ),
-  };
+  );
 }
 
 function arrivedOverPostmark(): ArrivedEmail {
   const json: PostmarkEmailJson = lastRequest(postmark)
     .json as PostmarkEmailJson;
 
-  return {
-    html: json.HtmlBody,
-    inlineImages: (json.Attachments || []).map(
+  return splitArrived(
+    json.HtmlBody,
+    (json.Attachments || []).map(
       (attachment: Record<string, unknown>): ArrivedImage => {
         const contentId: string = String(attachment["ContentID"] || "");
 
@@ -442,15 +528,15 @@ function arrivedOverPostmark(): ArrivedEmail {
         };
       },
     ),
-  };
+  );
 }
 
 function arrivedOverResend(): ArrivedEmail {
   const json: ResendEmailJson = lastRequest(resend).json as ResendEmailJson;
 
-  return {
-    html: json.html || "",
-    inlineImages: (json.attachments || []).map(
+  return splitArrived(
+    json.html || "",
+    (json.attachments || []).map(
       (attachment: Record<string, unknown>): ArrivedImage => {
         return {
           contentId: String(attachment["content_id"]),
@@ -461,7 +547,7 @@ function arrivedOverResend(): ArrivedEmail {
         };
       },
     ),
-  };
+  );
 }
 
 // A MIME message as a mail client reads it: the HTML, and its inline images.
@@ -474,6 +560,19 @@ function arrivedAsMime(data: string): ArrivedEmail {
 
   return {
     html: html ? html.body.toString("utf8") : "",
+    files: allMimeEntities(message)
+      .filter((part: MimeEntity): boolean => {
+        return (part.headers.get("content-disposition") || "").startsWith(
+          "attachment",
+        );
+      })
+      .map((part: MimeEntity): ArrivedFile => {
+        return {
+          fileName: part.parameters.get("name") || "",
+          mimeType: part.type,
+          bytes: part.body,
+        };
+      }),
     inlineImages: allMimeEntities(message)
       .filter((part: MimeEntity): boolean => {
         return part.type.startsWith("image/");
@@ -758,6 +857,26 @@ describe.each(Object.values(TRANSPORT_CASES))(
       // The image itself, never its data: URL, which Gmail and Outlook hide.
       expect(arrived.html).not.toContain("data:image");
       expect(arrived.html).toContain("Password");
+    });
+
+    test("a cost report's figures go as a CSV file of its own, beside the logo (#11009)", async () => {
+      const arrived: ArrivedEmail = await transport.send(costReportWithCsv());
+
+      expect(arrived.files).toEqual([
+        {
+          fileName: COST_REPORT_CSV_NAME,
+          mimeType: "text/csv",
+          bytes: Buffer.from(COST_REPORT_CSV, "utf8"),
+        },
+      ]);
+      // The logo still the one inline image, where the HTML points.
+      expect(
+        arrived.inlineImages.map((image: ArrivedImage) => {
+          return image.fileName;
+        }),
+      ).toEqual([EMAIL_LOGO_FILE_NAME]);
+      expect(arrived.html).toContain("$1,200");
+      expect(arrived.html).toContain("Open Costs");
     });
 
     test("an on-call page with a screenshot: the logo, then the screenshot, each where the HTML points", async () => {

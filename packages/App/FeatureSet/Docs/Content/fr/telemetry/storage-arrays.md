@@ -18,6 +18,7 @@ Storage Arrays est un produit qui fonctionne de la même façon pour chaque fabr
 | **Pure Storage FlashArray**, Purity//FA 6.7 et ultérieur | `purestorage.flasharray` | L'endpoint OpenMetrics propre à la baie (`https://<array>/metrics/...?namespace=purefa`) : rien ne tourne à côté du collecteur | `otel-collector-config.yaml` (par défaut) |
 | **Pure Storage FlashArray**, Purity//FA plus ancien | `purestorage.flasharray` | L'exporteur OpenMetrics FlashArray de Pure, que le même fichier Compose exécute comme service `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | L'exporteur OpenMetrics FlashBlade de Pure, que le même fichier Compose exécute comme service `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Le PowerStore Metrics Exporter de Dell, que le même fichier Compose construit et exécute comme service `powerstore-exporter` ; les alertes du cluster arrivent par syslog à son service `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
 
 Pure Storage a pris le nom **Everpure** en février 2026. FlashArray, FlashBlade et Purity ont gardé leur nom, tout comme les métriques `purefa_*` et `purefb_*` : tout ce qui figure sur cette page s'applique donc aux baies vendues sous l'un ou l'autre nom.
 
@@ -27,6 +28,10 @@ flowchart TB
     collector -->|"FlashArray ancien,<br/>FlashBlade"| exporter["Exporteur de Pure"]
     exporter -->|"Jeton d'API"| array
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 Un agent surveille une baie : exécutez un agent par baie (voir [Surveiller plusieurs baies](#surveiller-plusieurs-baies)). La baie s'enregistre avec ses premières données, sous le nom que l'agent appose sur chaque métrique en tant que `storage.array.name`.
@@ -35,6 +40,7 @@ Un agent surveille une baie : exécutez un agent par baie (voir [Surveiller plus
 
 - Docker Engine 20.10 ou ultérieur avec le plugin Docker Compose v2, sur une machine qui peut joindre l'interface d'administration de la baie en HTTPS (TCP 443).
 - Un compte administrateur sur la baie, pour créer un utilisateur avec le rôle intégré **readonly** et un jeton d'API pour lui.
+- Pour un Dell PowerStore, une machine x86-64 (Dell ne construit son exportateur que pour x86-64) et un utilisateur PowerStore pour l'agent : voir [Dell PowerStore](#dell-powerstore).
 - Une clé d'ingestion. Créez-en une sous **Paramètres du projet → Télémétrie & APM → Clés d'ingestion** et copiez sa valeur.
 
 ### Où exécuter l'agent
@@ -112,7 +118,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+Pour un Dell PowerStore, téléchargez aussi `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` et `powerstore-syslog.yaml`, définissez `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` et `COMPOSE_PROFILES=powerstore`, et renseignez `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` et `POWERSTORE_PASSWORD`, le mot de passe entre apostrophes.
 
 Pour une FlashArray sous un Purity//FA plus ancien, définissez `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` et `COMPOSE_PROFILES=flasharray-exporter`. Pour une FlashBlade, définissez `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` et `COMPOSE_PROFILES=flashblade`, et renseignez `PURE_FB_ENDPOINT` et `PURE_FB_API_TOKEN` à la place de la paire `PURE_FA_*`. Démarrez l'agent :
 
@@ -139,6 +154,16 @@ Everything is ready. Begin running and processing data.
 Ouvrez **Produits → Infrastructure → Baies de stockage → Toutes les baies de stockage**. Après la première collecte (une minute environ), la baie est là avec sa capacité, ses performances, ses alertes ouvertes et son matériel. Les volumes, hôtes et pods suivent en moins de 2 minutes, les systèmes de fichiers et buckets d'une FlashBlade en moins de 5, et les répertoires FlashArray en moins de 30. La page **Topologie** de la baie dessine ses hôtes, volumes, systèmes de fichiers et son matériel sur une seule carte : voir [Topologie](/docs/telemetry/topology#ouvrir-la-carte-propre-à-une-ressource).
 :::
 
+## Dell PowerStore
+
+L'agent lit un cluster PowerStore via le PowerStore Metrics Exporter de Dell, version `powerstore-metrics-exporter_v1.0.3`. Dell le publie comme binaire, pas comme image, si bien que le service `powerstore-exporter` construit à son premier démarrage l'image que documente Dell à partir de `powerstore-exporter.Dockerfile`, en vérifiant le SHA-256 du binaire ; cette construction a besoin une fois de `quay.io` et `github.com`.
+
+L'exportateur de Dell se connecte avec un nom d'utilisateur et un mot de passe, car PowerStore n'a pas de jetons d'API. Dans PowerStore Manager, ajoutez sous _Settings → Users_ un utilisateur local réservé à l'agent, avec le rôle **Storage Operator** : l'exportateur lit les performances dans l'archive de métriques en masse de cinq minutes de PowerStore, qu'il active lui-même et qu'exigent PowerStoreOS 4.1 et versions ultérieures, et le README de Dell indique que le rôle Operator ne peut pas l'activer. Sur un PowerStoreOS plus ancien, le rôle en lecture seule **Operator** suffit avec `POWERSTORE_BULK_METRICS=false`. Seul l'exportateur lit le mot de passe, depuis `.env`.
+
+L'exportateur de Dell ne lit aucune alerte, alors le cluster envoie les siennes : le service `powerstore-syslog` reçoit son syslog distant sur le port 5514, en TCP et UDP, et classe chaque ligne sur la page **Journaux** de la baie avec l'enregistrement de PowerStore en attributs (`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`) et une gravité tirée des codes d'événement de Dell (`powerstore.alert.severity`). Dans PowerStore Manager, ouvrez _Settings → Security → Remote Logging_, ajoutez cette machine sur le port 5514 et ouvrez le port dans son pare-feu. Le syslog sur TLS au port 6514 est décrit dans `powerstore-syslog.yaml`.
+
+L'exportateur de Dell ne remonte ni hôtes ni sessions de réplication, donc cette version n'en a pas.
+
 ## Variables d'environnement
 
 Le script d'installation les écrit dans `/opt/oneuptime-storage-array-agent/.env` ; une installation Docker Compose les lit dans le `.env` situé à côté de `docker-compose.yml`. Après en avoir modifié une, exécutez `docker compose up -d` dans ce dossier.
@@ -155,6 +180,13 @@ Le script d'installation les écrit dans `/opt/oneuptime-storage-array-agent/.en
 | `PURE_FA_API_TOKEN` | FlashArray | Le jeton d'API de l'utilisateur FlashArray doté du rôle readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | L'adresse d'administration de la FlashBlade : un nom d'hôte ou une IP, sans `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | Le jeton d'API de l'utilisateur FlashBlade doté du rôle readonly. |
+| `POWERSTORE_ENDPOINT` | PowerStore | L'adresse de gestion du cluster PowerStore : un nom d'hôte ou une IP, sans `https://`. |
+| `POWERSTORE_USERNAME` | PowerStore | L'utilisateur PowerStore avec lequel l'exportateur de Dell se connecte. |
+| `POWERSTORE_PASSWORD` | PowerStore | Le mot de passe de cet utilisateur. Seul l'exportateur le lit. |
+| `POWERSTORE_BULK_METRICS` | Non | `true` lit les performances dans l'archive de métriques en masse de PowerStore ; `false` lit chaque objet un par un. Vaut `true` par défaut. |
+| `POWERSTORE_API_VERSION` | Non | `v3` pour PowerStoreOS 3.6 et versions ultérieures, ou `v1`. Vaut `v3` par défaut. |
+| `POWERSTORE_REQUEST_LIMIT` | Non | Le nombre de requêtes que l'exportateur envoie au cluster à la fois. Vaut `16` par défaut. |
+| `POWERSTORE_SYSLOG_PORT` | Non | Le port sur lequel cette machine reçoit le syslog du cluster, en TCP et UDP. Vaut `5514` par défaut. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Non | `true` accepte le certificat auto-signé de la baie sur l'endpoint natif ; `false` le vérifie. Par défaut `true`. Les exporteurs de Pure ne vérifient jamais le certificat de la baie : ce réglage ne s'applique donc pas à eux. |
 
 ## Comment l'agent collecte
@@ -163,6 +195,7 @@ Le script d'installation les écrit dans `/opt/oneuptime-storage-array-agent/.en
 - **Chaque job étiquette ses séries avec `scrape_endpoint: <endpoint>`.** Chaque endpoint exporte aussi `purefa_info` ou `purefb_info` : OneUptime sait ainsi de quelles familles un lot est la liste complète. C'est ainsi qu'un volume, un hôte, un pod, un système de fichiers ou un bucket supprimé quitte l'inventaire au lieu d'y traîner. Conservez les labels tels que livrés.
 - **La latence par volume et par hôte garde trois dimensions.** Chaque volume et chaque hôte exporte sa latence selon jusqu'à seize `dimension`s. Une règle `metric_relabel_configs` garde `usec_per_read_op`, `usec_per_write_op` et `usec_per_mirrored_write_op` et supprime la ventilation par limite de débit QoS, file d'attente, SAN et temps de service, qui multiplie les séries d'une grande baie. La ventilation à l'échelle de la baie sur `purefa_array_performance_latency_usec` est conservée. Supprimez la règle pour garder aussi la ventilation par volume.
 - **Le jeton d'API est un jeton Bearer.** La configuration native l'envoie à la baie elle-même ; les configurations à exporteur l'envoient à l'exporteur uniquement via le réseau Compose, et les ports des exporteurs ne sont jamais publiés.
+- **Un PowerStore toutes les 5 minutes.** L'exportateur de Dell sert chaque partie du cluster à `/metrics/<cluster>/<part>` : la configuration lit `cluster` toutes les 60 secondes, son signal de vie, et `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas` et `file` toutes les 5 minutes, car PowerStore les calcule par échantillons de cinq minutes.
 - **Pas de `send_batch_max_size`.** OneUptime reconstruit l'inventaire à partir d'une collecte entière par requête : le processeur `batch` fourni ne répartit donc jamais une collecte entre plusieurs exports. Conservez les réglages de batch tels que livrés.
 
 ## Ce que collecte l'agent
@@ -179,8 +212,13 @@ Les conventions sémantiques de Pure sont communes à l'endpoint FlashArray nati
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | Le nom, la version de Purity et l'ID système de la FlashBlade ; la capacité et la réduction de données ; le nombre d'alertes ouvertes ; la santé de la baie ; la page **Matériel** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | La page **Systèmes de fichiers** : espace provisionné et utilisé, réduction de données, latence, IOPS et bande passante par système de fichiers |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | La page **Buckets** : espace, quota, nombre d'objets et performances par bucket, regroupés par compte |
+| PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | Le nom et l'état du cluster ; la page **Appliances** : capacité, réduction des données, latence, IOPS et bande passante de chaque appliance |
+| PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | La page **Matériel** : nœuds, ventilateurs, alimentations, batteries, disques et ports frontaux, chacun avec son appliance |
+| PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | Les pages **Volumes**, **Groupes de volumes**, **Serveurs NAS** et **Systèmes de fichiers** |
 
 La colonne **Santé** de **Toutes les baies de stockage** lit les alertes et le matériel de la baie elle-même dans ses dernières données : **Critique** tant qu'elle signale une alerte critique ouverte, ou un composant matériel, un disque ou un contrôleur critique, en panne, manquant ou défaillant ; **Avertissement** tant qu'elle signale une alerte d'avertissement ouverte, ou un composant dégradé ou inconnu ; **OK** sinon ; et **Inconnu** tant que l'agent est déconnecté. La **Vue d'ensemble** de la baie en juge davantage, comme le dit la section suivante. Dans les critères de moniteur, les attributs de la baie prennent un préfixe `resource.` (`resource.storage.array.name`, `resource.storage.system`), tandis que les labels de point de données restent nus (`name`, `host`, `dimension`, `space`).
+
+L'état d'un PowerStore est celui de son matériel, car ses alertes arrivent sous forme de journaux. L'agent calcule lui-même `powerstore_cap_physical_used_percent` et `powerstore_filesystem_logical_used_percent`, et lit l'état d'un nœud comme 1 tant qu'il est Healthy.
 
 ## Ce que montrent les pages de la baie
 
@@ -194,7 +232,11 @@ La **Vue d'ensemble** de la baie indique sa santé, **Sain**, **Dégradé** ou *
 
 Les listes **Hôtes**, **Réplication** et **Systèmes de fichiers** indiquent l'état de chaque élément selon les mêmes règles, avec la raison en dessous. La page d'un hôte et celle d'un système de fichiers disent ce qui demande de l'attention et quelles alertes de la baie le surveillent, avec un geste pour activer les autres, et la page de chaque élément, celle d'un volume et d'un bucket aussi, dit ce qui est ouvert dessus. Tant que l'agent est déconnecté, la santé affiche **Santé inconnue** : le dernier rapport de la baie n'est plus la vérité. Chaque seuil ci-dessus est celui où se déclenche son modèle d'alerte, comme le liste le [moniteur de baie de stockage](/docs/monitor/storage-array-monitor).
 
+Sur un PowerStore, les onglets **Appliances**, **Groupes de volumes** et **Serveurs NAS** listent les parties que seul un PowerStore possède, et la page **Matériel** nomme l'appliance de chaque partie, car chaque appliance nomme ses parties de la même façon.
+
 ## Facultatif — Envoyer le syslog de la baie
+
+Le collecteur syslog d'un PowerStore tourne tel qu'il est livré (voir [Dell PowerStore](#dell-powerstore)) : cette section concerne les baies de Pure.
 
 Par défaut, l'agent n'envoie que des métriques : la page **Journaux** de la baie reste donc vide. Les baies transfèrent leurs alertes et leurs événements d'audit en syslog, et chaque configuration fournie du collecteur contient une paire de récepteurs `syslog` commentée (TCP et UDP sur le port 5514, RFC 3164), reliée à un pipeline `logs` commenté qui appose `storage.array.name` pour que les journaux arrivent sur votre baie.
 
@@ -237,6 +279,8 @@ Le collecteur ne lit sa configuration qu'au démarrage : exécutez `docker compo
 
 Un agent lit une baie. Pour en surveiller plusieurs depuis la même machine, installez chacune dans son propre dossier avec son propre `.env`, comme `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, et donnez à chacune son propre `container_name` dans son `docker-compose.yml` (comme `oneuptime-storage-array-agent-fa02`) : deux conteneurs ne peuvent pas partager un nom. Passez le dossier au script de diagnostic avec `-d`.
 
+Un deuxième agent PowerStore a aussi besoin de son propre port syslog : définissez `POWERSTORE_SYSLOG_PORT`, par exemple `5515`, dans son `.env`.
+
 ## Exécuter comme service systemd
 
 Pour démarrer l'agent avec la machine et le relancer en cas d'échec, installez son unité systemd. Elle suppose que l'agent se trouve dans `/opt/oneuptime-storage-array-agent`, là où le script d'installation le place :
@@ -269,6 +313,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+Un agent PowerStore télécharge aussi à nouveau `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` et `powerstore-syslog.yaml` ; `docker compose up` reconstruit l'image de l'exportateur quand une nouvelle version déplace son tag.
+
 ## Désinstaller l'agent
 
 ```bash
@@ -277,6 +323,8 @@ docker compose down
 ```
 
 Supprimez ensuite l'utilisateur en lecture seule et son jeton d'API sur la baie si vous n'en avez plus besoin.
+
+Sur un PowerStore, exécutez `docker compose --profile powerstore down`, pour que l'exportateur et le collecteur syslog s'arrêtent aussi.
 
 ## Dépannage
 
@@ -315,6 +363,10 @@ Les baies présentent par défaut un certificat auto-signé, auquel aucune image
 
 :::details pure-fa-exporter ou pure-fb-exporter ne se résout pas
 L'exporteur ne tourne pas : `COMPOSE_PROFILES` doit correspondre à `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` pour la configuration avec l'exporteur FlashArray, `flashblade` pour la configuration FlashBlade). Corrigez `.env` et exécutez `docker compose up -d` ; `docker compose ps` liste alors l'exporteur.
+:::
+
+:::details Un PowerStore n'envoie rien
+Lisez le journal de l'exportateur avec `docker compose logs powerstore-exporter` : un `401` signifie un nom d'utilisateur ou un mot de passe erroné, et un `403` sur `latest_five_min_metrics` signifie que le rôle de l'utilisateur ne peut pas activer l'archive de métriques en masse (donnez-lui **Storage Operator**, ou définissez `POWERSTORE_BULK_METRICS=false` sur un PowerStoreOS antérieur à 4.1). L'exportateur a besoin d'une minute après son démarrage avant de répondre. Aucune alerte sur la page **Journaux** : vérifiez les réglages _Remote Logging_ du cluster, le pare-feu sur le port 5514 et `docker compose logs powerstore-syslog`.
 :::
 
 :::details Des volumes ou hôtes supprimés restent dans l'inventaire

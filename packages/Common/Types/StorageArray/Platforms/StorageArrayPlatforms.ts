@@ -1,6 +1,7 @@
 import { StorageArrayPlatform } from "../StorageArrayPlatform";
 import PureStorageFlashArrayPlatform from "./PureStorage/FlashArray/FlashArrayPlatform";
 import PureStorageFlashBladePlatform from "./PureStorage/FlashBlade/FlashBladePlatform";
+import DellPowerStorePlatform from "./Dell/PowerStore/PowerStorePlatform";
 
 /*
  * Every storage platform OneUptime ships: a new one is its folder beside
@@ -13,4 +14,8 @@ import PureStorageFlashBladePlatform from "./PureStorage/FlashBlade/FlashBladePl
  * one a page reads an array of a platform OneUptime cannot tell as.
  */
 export const BUILT_IN_STORAGE_ARRAY_PLATFORMS: ReadonlyArray<StorageArrayPlatform> =
-  [PureStorageFlashArrayPlatform, PureStorageFlashBladePlatform];
+  [
+    PureStorageFlashArrayPlatform,
+    PureStorageFlashBladePlatform,
+    DellPowerStorePlatform,
+  ];

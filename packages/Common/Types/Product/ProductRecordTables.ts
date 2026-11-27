@@ -643,6 +643,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     // Commitments, and the cost bases' setting (#11007).
     "CloudCommitment",
     "CloudCostSetting",
+    // Scheduled cost reports (#11009).
+    "CloudCostReport",
     "CloudCostRecommendation",
     "CloudOffHoursSchedule",
     "CloudSavingsAction",

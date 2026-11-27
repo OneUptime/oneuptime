@@ -31,7 +31,25 @@ export type MonitorEvaluationEventType =
    * which were skipped before this one: more were waiting than a monitor
    * keeps, or evaluating them failed every time (#10582).
    */
-  | "requests-skipped";
+  | "requests-skipped"
+  /*
+   * A request, an email or an agent's report that reached the monitor
+   * while it was not being checked - paused by an incident declared by hand
+   * or by scheduled maintenance, turned off, or archived - and so was not
+   * evaluated: listed in its log rather than dropped without a trace
+   * (MonitorNotEvaluated, #11141).
+   */
+  | "not-evaluated";
+
+/*
+ * Why a "not-evaluated" event's result was not evaluated: the reason the
+ * monitor was not being checked (MonitorPauseState's MonitorPauseReason).
+ */
+export type MonitorEvaluationNotEvaluatedReason =
+  | "Archived"
+  | "Disabled"
+  | "ManualIncident"
+  | "ScheduledMaintenance";
 
 export type MonitorEvaluationCriteriaSkipCause =
   | "disabled"
@@ -139,6 +157,8 @@ export interface MonitorEvaluationEvent {
   seriesFingerprint?: string | undefined;
   // A "grouping" event's note, for the Dashboard to word (see above).
   grouping?: MonitorEvaluationGroupingNote | undefined;
+  // A "not-evaluated" event's reason, for the Dashboard to word and link.
+  notEvaluatedReason?: MonitorEvaluationNotEvaluatedReason | undefined;
 }
 
 /*

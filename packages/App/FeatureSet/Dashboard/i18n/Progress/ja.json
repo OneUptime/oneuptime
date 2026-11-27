@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 66393,
+    "keys": 66654,
     "untranslated": 1442
   },
   "sameAsEnglish": [
@@ -208,6 +208,7 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
+    "PowerStore",
     "Powered by OneUptime",
     "PromQL",
     "Proxmox ID",

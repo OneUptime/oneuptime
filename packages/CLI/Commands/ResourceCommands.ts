@@ -30,6 +30,7 @@ import { printResourceFields } from "../Utils/ResourceFieldsTable";
 import { describeResource } from "../Utils/ResourceFields";
 import { getParentOptions } from "../Utils/CommandOptions";
 import { registerActionCommands } from "./ActionCommands";
+import { registerCloudCostCommands } from "./CloudCostCommands";
 import { DatabaseBaseModelType } from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import {
   CLI_FIELDS_SUBCOMMAND,
@@ -728,6 +729,8 @@ export function addResourceSubcommands(resourceCmd: Command): void {
 
   registerFieldsCommand(resourceCmd, resource);
   registerActionCommands(resourceCmd, resource);
+  // Cloud costs broken down and exported (#11009).
+  registerCloudCostCommands(resourceCmd, resource);
   addFieldFlagsWhenRun(resourceCmd, resource);
 }
 

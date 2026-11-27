@@ -13,7 +13,9 @@
  *   - with a small limit of its own: a request waits for the slot an
  *     answered request gives back; a probe that hangs up while it waits never
  *     reaches the handler and frees its place; one that hangs up while its
- *     request runs gives the slot back; a refused request is answered busy;
+ *     request runs gives the slot back; one that hangs up while its request
+ *     is still being authenticated takes no slot at all; a refused request
+ *     is answered busy;
  *   - the real /monitor/list, /probe/network-device/list and
  *     /monitor/pending-count routers, mounted where the app mounts them, with
  *     the services stood in for: they claim when there is room, and when the
@@ -263,6 +265,14 @@ describe("the probe scheduling limit over a real connection", () => {
   // The requests the handler is holding, by label, until the test answers.
   let held: Map<string, () => void>;
   let reachedHandler: Array<string>;
+  /*
+   * The requests held in the stand-in for ProbeAuthorization, by label, as a
+   * slow database or Valkey holds them there, until the test lets them on.
+   */
+  let inAuthorization: Map<string, () => void>;
+  let passedAuthorization: Array<string>;
+  // The requests whose probe hung up before their answer, as the server saw it.
+  let hungUp: Array<string>;
 
   async function start(limits: Partial<KeyedConcurrencyLimits>): Promise<{
     origin: string;
@@ -274,15 +284,37 @@ describe("the probe scheduling limit over a real connection", () => {
     });
     held = new Map<string, () => void>();
     reachedHandler = [];
+    inAuthorization = new Map<string, () => void>();
+    passedAuthorization = [];
+    hungUp = [];
 
     const app: ExpressApplication = createExpressApp();
     app.use(ExpressJson());
     app.post(
       "/work",
-      (req: ExpressRequest, _res: ExpressResponse, next: NextFunction) => {
+      async (
+        req: ExpressRequest,
+        res: ExpressResponse,
+        next: NextFunction,
+      ): Promise<void> => {
+        const label: string = String(req.body["label"]);
+
+        res.once("close", (): void => {
+          if (!res.writableFinished) {
+            hungUp.push(label);
+          }
+        });
+
+        if (req.body["holdInAuthorization"]) {
+          await new Promise<void>((resolve: () => void) => {
+            inAuthorization.set(label, resolve);
+          });
+        }
+
         (req as unknown as { probe: Probe }).probe = new Probe(
           new ObjectID(PROBE_ID),
         );
+        passedAuthorization.push(label);
         next();
       },
       ProbeSchedulingMiddleware.limit(
@@ -308,6 +340,9 @@ describe("the probe scheduling limit over a real connection", () => {
   }
 
   afterEach(async () => {
+    for (const letOn of inAuthorization.values()) {
+      letOn();
+    }
     for (const answer of held.values()) {
       answer();
     }
@@ -418,6 +453,60 @@ describe("the probe scheduling limit over a real connection", () => {
     });
     held.get("next")!();
     expect((await next).status).toBe(200);
+  });
+
+  /*
+   * A probe gives up on its own deadline (45 s by default) while its request
+   * is still being authenticated - ProbeAuthorization waiting on a slow
+   * database or Valkey - so by the time the request reaches the limit, its
+   * "close" has been and gone. A slot taken for it then is never given
+   * back: nothing is left to say the answer went. Once every slot of an App
+   * process went that way, that process answered every probe busy until it
+   * was restarted, and no probe was handed a monitor.
+   */
+  test("a probe that hangs up while its request is still being authenticated takes no slot, and its request never runs", async () => {
+    const { origin } = await start({});
+
+    const controller: AbortController = new AbortController();
+    const gone: Promise<unknown> = post(
+      origin,
+      "/work",
+      { label: "gone", holdInAuthorization: true },
+      controller.signal,
+    ).catch((error: unknown): unknown => {
+      return error;
+    });
+    await eventually((): boolean => {
+      return inAuthorization.has("gone");
+    });
+
+    controller.abort();
+    await gone;
+    await eventually((): boolean => {
+      return hungUp.includes("gone");
+    });
+
+    // Authenticated only now, after its probe has gone.
+    inAuthorization.get("gone")!();
+    await eventually((): boolean => {
+      return passedAuthorization.includes("gone");
+    });
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(resolve, 50);
+    });
+
+    expect(limiter.runningCount()).toBe(0);
+    expect(limiter.waitingCount()).toBe(0);
+    expect(reachedHandler).toEqual([]);
+
+    // The process's one slot is free: the next probe request runs at once.
+    const next: Promise<Answer> = post(origin, "/work", { label: "next" });
+    await eventually((): boolean => {
+      return held.has("next");
+    });
+    held.get("next")!();
+    expect((await next).body).toEqual({ devices: [{ handled: "next" }] });
+    expect(reachedHandler).toEqual(["next"]);
   });
 
   test("refused: a probe that declares retryWhenBusy gets a 429 with Retry-After, an older probe the empty batch", async () => {

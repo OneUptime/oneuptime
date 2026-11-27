@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 66393,
+    "keys": 66654,
     "untranslated": 8258
   },
   "sameAsEnglish": [
@@ -308,6 +308,7 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "PowerStore",
     "Powered by OneUptime",
     "Principal",
     "Problem",

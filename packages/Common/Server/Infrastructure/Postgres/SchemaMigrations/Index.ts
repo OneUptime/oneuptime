@@ -1210,7 +1210,9 @@ import { AddXcpNgConnections1809187730000 } from "./1809187730000-AddXcpNgConnec
 import { AddXcpNgPoolConnectionKey1809187730010 } from "./1809187730010-AddXcpNgPoolConnectionKey";
 import { AddSanSwitchFibreChannelColumns1809187731166 } from "./1809187731166-AddSanSwitchFibreChannelColumns";
 import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
-import { AddXcpNgPoolEventsAndBackups1809187750000 } from "./1809187750000-AddXcpNgPoolEventsAndBackups";
+import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-AddKeepMonitoringDuringIncidents";
+import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostReports";
+import { AddXcpNgPoolEventsAndBackups1809187770997 } from "./1809187770997-AddXcpNgPoolEventsAndBackups";
 
 export default [
   InitialMigration,
@@ -2425,5 +2427,7 @@ export default [
   AddXcpNgPoolConnectionKey1809187730010,
   AddSanSwitchFibreChannelColumns1809187731166,
   AddSecurityUserErasureRequestProgress1809187741160,
-  AddXcpNgPoolEventsAndBackups1809187750000,
+  AddKeepMonitoringDuringIncidents1809187751141,
+  AddCloudCostReports1809187761009,
+  AddXcpNgPoolEventsAndBackups1809187770997,
 ];

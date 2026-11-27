@@ -47,6 +47,11 @@ import {
 } from "../../../../Types/Monitor/StorageArrayAlertTemplates";
 import StorageSystem from "../../../../Types/StorageArray/StorageSystem";
 import {
+  StorageArrayLogAlertTemplate,
+  getAllStorageArrayLogAlertTemplates,
+  getStorageArrayLogAlertTemplatesForSystem,
+} from "../../../../Types/Monitor/StorageArrayLogAlertTemplates";
+import {
   getAllServiceAlertTemplates,
   getLanguagesWithServiceAlertTemplates,
   getServiceAlertTemplates,
@@ -264,8 +269,15 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.StorageArray,
-    monitorTypes: [MonitorType.StorageArray],
-    templateCount: getAllStorageArrayAlertTemplates().length,
+    /*
+     * The metric templates, and the alerts a platform's array sends as logs
+     * (StorageArrayLogAlertTemplates: a PowerStore's syslog), which are Logs
+     * monitors scoped to the array.
+     */
+    monitorTypes: [MonitorType.StorageArray, MonitorType.Logs],
+    templateCount:
+      getAllStorageArrayAlertTemplates().length +
+      getAllStorageArrayLogAlertTemplates().length,
     /*
      * Zero, and deliberately so — see RESOURCE_TYPES_WITHOUT_CONTEXT_FREE_SUBSET.
      * An array whose platform is not known yet is offered nothing.
@@ -1260,15 +1272,74 @@ describe("MonitorRecommendationCatalog", () => {
       });
     }
 
+    // A platform's metric templates, then the ones over its logs.
     function idsFor(system: StorageSystem): Array<string> {
-      return getAllStorageArrayAlertTemplates()
-        .filter((template: StorageArrayAlertTemplate) => {
-          return template.storageSystems.includes(system);
-        })
-        .map((template: StorageArrayAlertTemplate) => {
-          return template.id;
-        });
+      return [
+        ...getAllStorageArrayAlertTemplates()
+          .filter((template: StorageArrayAlertTemplate) => {
+            return template.storageSystems.includes(system);
+          })
+          .map((template: StorageArrayAlertTemplate) => {
+            return template.id;
+          }),
+        ...getStorageArrayLogAlertTemplatesForSystem(system).map(
+          (template: StorageArrayLogAlertTemplate) => {
+            return template.id;
+          },
+        ),
+      ];
     }
+
+    // Every template of the catalog: metric and log.
+    function everyTemplateId(): Array<string> {
+      return [
+        ...getAllStorageArrayAlertTemplates().map(
+          (template: StorageArrayAlertTemplate) => {
+            return template.id;
+          },
+        ),
+        ...getAllStorageArrayLogAlertTemplates().map(
+          (template: StorageArrayLogAlertTemplate) => {
+            return template.id;
+          },
+        ),
+      ];
+    }
+
+    it("offers a PowerStore its metric templates, then the ones over the alerts it sends by syslog", () => {
+      const ids: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.DellPowerStore,
+      });
+
+      expect(ids).toEqual(idsFor(StorageSystem.DellPowerStore));
+      expect(ids.slice(-3)).toEqual([
+        "powerstore-critical-alert",
+        "powerstore-major-alert",
+        "powerstore-port-link-down",
+      ]);
+      for (const id of ids) {
+        expect(id.startsWith("powerstore-")).toBe(true);
+      }
+      const logs: Array<MonitorRecommendation> =
+        MonitorRecommendationCatalog.getRecommendations(
+          MonitorRecommendationResourceType.StorageArray,
+          { storageSystem: StorageSystem.DellPowerStore },
+        ).filter((recommendation: MonitorRecommendation) => {
+          return recommendation.monitorType === MonitorType.Logs;
+        });
+      expect(
+        logs.map((recommendation: MonitorRecommendation) => {
+          return recommendation.templateId;
+        }),
+      ).toEqual(ids.slice(-3));
+      // A Pure array sends no such logs: it is offered none.
+      for (const system of [
+        StorageSystem.PureStorageFlashArray,
+        StorageSystem.PureStorageFlashBlade,
+      ]) {
+        expect(getStorageArrayLogAlertTemplatesForSystem(system)).toEqual([]);
+      }
+    });
 
     it("offers a FlashArray only the FlashArray templates", () => {
       const ids: Array<string> = storageArrayTemplateIds({
@@ -1314,26 +1385,19 @@ describe("MonitorRecommendationCatalog", () => {
       ).toBe(getAllStorageArrayAlertTemplates().length);
     });
 
-    it("the two platforms' sets partition the whole catalog", () => {
-      const flashArray: Array<string> = storageArrayTemplateIds({
-        storageSystem: StorageSystem.PureStorageFlashArray,
+    it("the platforms' sets partition the whole catalog", () => {
+      const sets: Array<Array<string>> = [
+        StorageSystem.PureStorageFlashArray,
+        StorageSystem.PureStorageFlashBlade,
+        StorageSystem.DellPowerStore,
+      ].map((storageSystem: StorageSystem): Array<string> => {
+        return storageArrayTemplateIds({ storageSystem });
       });
-      const flashBlade: Array<string> = storageArrayTemplateIds({
-        storageSystem: StorageSystem.PureStorageFlashBlade,
-      });
+      const all: Array<string> = sets.flat();
 
-      expect(
-        flashArray.filter((id: string) => {
-          return flashBlade.includes(id);
-        }),
-      ).toEqual([]);
-      expect([...flashArray, ...flashBlade].sort()).toEqual(
-        getAllStorageArrayAlertTemplates()
-          .map((template: StorageArrayAlertTemplate) => {
-            return template.id;
-          })
-          .sort(),
-      );
+      // No template is two platforms'.
+      expect(new Set(all).size).toBe(all.length);
+      expect([...all].sort()).toEqual([...everyTemplateId()].sort());
     });
 
     it("ignores context meant for other resource types", () => {
@@ -1352,10 +1416,12 @@ describe("MonitorRecommendationCatalog", () => {
           MonitorRecommendationResourceType.StorageArray,
         );
 
-      expect(all.length).toBe(getAllStorageArrayAlertTemplates().length);
+      expect(all.length).toBe(everyTemplateId().length);
 
       for (const recommendation of all) {
-        expect(recommendation.monitorType).toBe(MonitorType.StorageArray);
+        expect([MonitorType.StorageArray, MonitorType.Logs]).toContain(
+          recommendation.monitorType,
+        );
         expect(
           MonitorRecommendationCatalog.getRecommendationById(
             recommendation.recommendationId,
@@ -1377,6 +1443,18 @@ describe("MonitorRecommendationCatalog", () => {
           monitorName: "pure-prod-01",
         });
 
+        if (recommendation.monitorType === MonitorType.Logs) {
+          // A log template reads the array's own lines only.
+          expect(
+            step.data!.logMonitor!.attributes["resource.storage.array.name"],
+          ).toBe("pure-prod-01");
+          expect(
+            step.data!.logMonitor!.resolvedByAttributes![
+              "resource.storage.array.name"
+            ],
+          ).toBe("pure-prod-01");
+          continue;
+        }
         expect(step.data!.storageArrayMonitor!.arrayIdentifier).toBe(
           "pure-prod-01",
         );
