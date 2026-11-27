@@ -303,10 +303,7 @@ function isInsideAnEscape(text: string, at: number): boolean {
  * Whether a range of a text starts or ends inside a "%XX" escape: what a
  * detector finds in it as written, gluing an escape's hex digits to the
  * characters beside it - %2212345678901%22 written in a URL holds
- * 2212345678901 as written, its quote's "22" first (#11199). Never the
- * value: the escape is one character, and the text as its escapes read
- * holds the value without it, placed on the characters it is written
- * with. A detector that reads that reading finds no candidate so.
+ * 2212345678901 as written, its quote's "22" first (#11199).
  */
 export function cutsAnEscape(
   text: string,
@@ -314,6 +311,28 @@ export function cutsAnEscape(
   end: number,
 ): boolean {
   return isInsideAnEscape(text, start) || isInsideAnEscape(text, end);
+}
+
+/*
+ * Whether a candidate of a number's detector - one that reads a text as a
+ * URL's query string reads it (readsPlusAsSpace) - is a run of digits
+ * glued to an escape's hex digits as written (cutsAnEscape): no number,
+ * nor the value's either. The escape is one character, and the text as
+ * its escapes read holds the value without it, placed on the characters
+ * it is written with, which the detector reads too. The scanner and the
+ * rules built on the detectors (findDetectorRanges) both leave such a
+ * candidate, so a finding and its rule agree. An IP address detector's,
+ * which reads no query string's "+", is taken as it always was, and its
+ * rule hides it too: 99%2001::1 may be a percent sign glued to an address
+ * as much as an escape.
+ */
+export function isGluedToAnEscape(
+  detector: ReadingNeeds,
+  text: string,
+  start: number,
+  end: number,
+): boolean {
+  return Boolean(detector.readsPlusAsSpace) && cutsAnEscape(text, start, end);
 }
 
 /*
@@ -461,15 +480,9 @@ export function findDetectorRanges(
         const writtenStart: number = reading.toWritten(start);
         const writtenEnd: number = reading.toWritten(end);
 
-        // Glued to an escape's hex digits as written: the escapes' reading places it right.
-        if (
-          detector.readsPercentEncoded &&
-          cutsAnEscape(text, writtenStart, writtenEnd)
-        ) {
-          continue;
+        if (!isGluedToAnEscape(detector, text, writtenStart, writtenEnd)) {
+          found.push([writtenStart, writtenEnd]);
         }
-
-        found.push([writtenStart, writtenEnd]);
       }
     }
   }

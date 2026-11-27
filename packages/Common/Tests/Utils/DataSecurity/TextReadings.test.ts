@@ -351,14 +351,42 @@ describe("cutsAnEscape", () => {
     expect(cutsAnEscape("100%x 12", 4, 8)).toBe(false);
   });
 
-  test("a card glued to an escape's digits as written is no card; the escapes' reading finds it whole", () => {
-    // "22" of %22 and a Mastercard's fourteen digits would be sixteen: 2225... as written.
+  test("a card glued to an escape's digits as written is no card, to the scanner and the detectors' ranges alike", () => {
+    // "22" of %22 and fourteen digits are sixteen as written: 2225..., a Mastercard's shape.
     const text: string = "q=%7B%22n%22%3A%2225042970296403%22%7D";
 
-    expect(findDetectorRanges(CARD_NUMBER_DETECTORS, text)).toEqual([]);
     expect(
       findSensitiveValues(text, { detectors: CARD_NUMBER_DETECTORS }),
     ).toEqual([]);
+    expect(findDetectorRanges(CARD_NUMBER_DETECTORS, text)).toEqual([]);
+  });
+
+  test("an IP address glued to an escape is taken as written, by the scanner and its rule alike", () => {
+    // 99%2001::1: a percent sign glued to an address, or an escape - read as written too (#10467).
+    const text: string = "load 99%2001::1";
+
+    expect(
+      textsOf(text, findDetectorRanges(IP_ADDRESS_DETECTORS, text)),
+    ).toEqual(["2001::1"]);
+    expect(
+      findSensitiveValues(text, { detectors: IP_ADDRESS_DETECTORS }).map(
+        (match: TextMatch): string => {
+          return text.slice(match.start, match.end);
+        },
+      ),
+    ).toEqual(["2001::1"]);
+  });
+
+  test("a card the escapes' reading holds whole is found there, on its written characters", () => {
+    const text: string = "q=%7B%22n%22%3A%224539148803436467%22%7D";
+
+    expect(
+      findSensitiveValues(text, { detectors: CARD_NUMBER_DETECTORS }).map(
+        (match: TextMatch): string => {
+          return text.slice(match.start, match.end);
+        },
+      ),
+    ).toEqual(["4539148803436467"]);
   });
 });
 

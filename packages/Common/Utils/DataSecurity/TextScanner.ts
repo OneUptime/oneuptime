@@ -15,7 +15,7 @@ import {
   findQueryStringNames,
   QUERY_NAME_DATA_TYPE_ID,
 } from "./QueryStringNames";
-import { cutsAnEscape, TextReading, TextReadings } from "./TextReadings";
+import { isGluedToAnEscape, TextReading, TextReadings } from "./TextReadings";
 
 /*
  * FINDING SENSITIVE VALUES IN TEXT.
@@ -386,9 +386,10 @@ interface WindowCandidate {
  * reading it asks for - with its percent-escapes read, as a URL's query
  * string reads it, with every script's digits read by their values -
  * placed on the characters they are written with (detectorReadingsFor).
- * `readings` reads the window once for every detector that asks. One that
- * reads the escapes takes no candidate glued to an escape's hex digits as
- * written (cutsAnEscape, #11199): the escapes' reading holds the value.
+ * `readings` reads the window once for every detector that asks. A
+ * number's detector takes no candidate glued to an escape's hex digits as
+ * written (isGluedToAnEscape, #11199): the escapes' reading holds the
+ * value.
  */
 function windowCandidates(
   detector: ScanDetector,
@@ -411,7 +412,7 @@ function windowCandidates(
       const start: number = reading.toWritten(raw.start);
       const end: number = reading.toWritten(raw.end);
 
-      if (detector.readsPercentEncoded && cutsAnEscape(window, start, end)) {
+      if (isGluedToAnEscape(detector, window, start, end)) {
         continue;
       }
 
