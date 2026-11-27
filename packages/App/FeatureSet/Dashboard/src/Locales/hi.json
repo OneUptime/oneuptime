@@ -67356,7 +67356,7 @@
   "Connect Xen Orchestra": "Xen Orchestra कनेक्ट करें",
   "Delta": "डेल्टा",
   "Event Read Status": "इवेंट पढ़ने की स्थिति",
-  "Event State": "इवेंट की स्थिति",
+  "Alarm and Backup Reading Progress": "अलार्म और बैकअप पढ़ने की प्रगति",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "इस XCP-ng पूल के साथ जो कुछ हुआ - यह कैसे और क्यों बना, इसका मालिक कौन है, XAPI और Xen Orchestra ने इसके बारे में क्या बताया, और तब से हर बदलाव।",
   "External authentication did not start on a host": "एक होस्ट पर बाहरी प्रमाणीकरण शुरू नहीं हुआ",
   "External authentication differs across the pool": "पूल में बाहरी प्रमाणीकरण एक जैसा नहीं है",
@@ -67728,5 +67728,7 @@
   "{{count}} storage groups_one": "{{count}} स्टोरेज समूह",
   "{{count}} storage resource pool": "{{count}} स्टोरेज रिसोर्स पूल",
   "{{count}} storage resource pools": "{{count}} स्टोरेज रिसोर्स पूल",
-  "{{count}} storage resource pools_one": "{{count}} स्टोरेज रिसोर्स पूल"
+  "{{count}} storage resource pools_one": "{{count}} स्टोरेज रिसोर्स पूल",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "OneUptime द्वारा सुलझाया गया: जिस तिमाही में यह क्लाउड बजट अलर्ट बना था, वह ख़त्म हो गई है।",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "OneUptime द्वारा सुलझाया गया: जिस साल में यह क्लाउड बजट अलर्ट बना था, वह ख़त्म हो गया है।"
 }

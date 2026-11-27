@@ -67356,7 +67356,7 @@
   "Connect Xen Orchestra": "Conectar Xen Orchestra",
   "Delta": "Delta",
   "Event Read Status": "Estado de lectura de los eventos",
-  "Event State": "Estado de los eventos",
+  "Alarm and Backup Reading Progress": "Progreso de lectura de alarmas y copias de seguridad",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "Todo lo que le ha pasado a este pool de XCP-ng: cómo y por qué se creó, quién es su propietario, lo que XAPI y Xen Orchestra dijeron de él y cada cambio desde entonces.",
   "External authentication did not start on a host": "La autenticación externa no se inició en un host",
   "External authentication differs across the pool": "La autenticación externa no es igual en todo el pool",
@@ -67728,5 +67728,7 @@
   "{{count}} storage groups_one": "{{count}} grupo de almacenamiento",
   "{{count}} storage resource pool": "{{count}} pool de recursos de almacenamiento",
   "{{count}} storage resource pools": "{{count}} pools de recursos de almacenamiento",
-  "{{count}} storage resource pools_one": "{{count}} pool de recursos de almacenamiento"
+  "{{count}} storage resource pools_one": "{{count}} pool de recursos de almacenamiento",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "Resuelta por OneUptime: terminó el trimestre en que se generó esta alerta de presupuesto de nube.",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Resuelta por OneUptime: terminó el año en que se generó esta alerta de presupuesto de nube."
 }

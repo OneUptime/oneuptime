@@ -67356,7 +67356,7 @@
   "Connect Xen Orchestra": "Anslut Xen Orchestra",
   "Delta": "Delta",
   "Event Read Status": "Lässtatus för händelser",
-  "Event State": "Händelsestatus",
+  "Alarm and Backup Reading Progress": "Läsförlopp för larm och säkerhetskopior",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "Allt som har hänt med den här XCP-ng-poolen - hur och varför den skapades, vem som äger den, vad XAPI och Xen Orchestra har rapporterat om den, och varje ändring sedan dess.",
   "External authentication did not start on a host": "Extern autentisering startade inte på en värd",
   "External authentication differs across the pool": "Extern autentisering skiljer sig inom poolen",
@@ -67728,5 +67728,7 @@
   "{{count}} storage groups_one": "{{count}} lagringsgrupp",
   "{{count}} storage resource pool": "{{count}} lagringsresurspool",
   "{{count}} storage resource pools": "{{count}} lagringsresurspooler",
-  "{{count}} storage resource pools_one": "{{count}} lagringsresurspool"
+  "{{count}} storage resource pools_one": "{{count}} lagringsresurspool",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "Löst av OneUptime: kvartalet då det här molnbudgetlarmet skapades är slut.",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Löst av OneUptime: året då det här molnbudgetlarmet skapades är slut."
 }

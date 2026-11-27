@@ -67356,7 +67356,7 @@
   "Connect Xen Orchestra": "Подключить Xen Orchestra",
   "Delta": "Delta",
   "Event Read Status": "Состояние чтения событий",
-  "Event State": "Состояние событий",
+  "Alarm and Backup Reading Progress": "Ход чтения аварийных сигналов и резервных копий",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "Всё, что произошло с этим пулом XCP-ng: как и почему он был создан, кому он принадлежит, что о нём сообщили XAPI и Xen Orchestra, и каждое изменение с тех пор.",
   "External authentication did not start on a host": "Внешняя аутентификация не запустилась на хосте",
   "External authentication differs across the pool": "Внешняя аутентификация различается в пуле",
@@ -67467,7 +67467,7 @@
   "VMs no backup job with an enabled schedule has backed up since OneUptime started reading this pool's backups. A VM only backed up by hand, or not at all, is counted here.": "ВМ, которые ни одно задание резервного копирования с включённым расписанием не копировало с тех пор, как OneUptime начал считывать резервные копии этого пула. ВМ, которую копируют только вручную или не копируют вовсе, учитывается здесь.",
   "VMs whose last backup by a Xen Orchestra backup job succeeded, as Xen Orchestra's backup logs say. Control domains are never backed up and are left out.": "ВМ, последнее резервное копирование которых заданием Xen Orchestra завершилось успешно, по журналам резервного копирования Xen Orchestra. Управляющие домены никогда не копируются и не учитываются.",
   "VMs whose last backup failed or was interrupted. Each one is listed with Xen Orchestra's words for why, and its job; the VM is backed up again on the job's next run.": "ВМ, последнее резервное копирование которых завершилось сбоем или было прервано. Каждая указана с объяснением Xen Orchestra и своим заданием; ВМ будет скопирована снова при следующем запуске задания.",
-  "View VMs": "Показать ВМ",
+  "View VMs": "Просмотр: ВМ",
   "Whether HA could restart every protected VM if one more host failed. Read through the pool's XAPI, it is XAPI's own plan; through Xen Orchestra, which does not report the plan, it needs a host up and enabled besides the one that fails.": "Сможет ли HA перезапустить каждую защищённую ВМ, если откажет ещё один хост. При чтении через XAPI пула это собственный план XAPI; через Xen Orchestra, которая не сообщает план, нужен ещё один работающий и включённый хост помимо отказавшего.",
   "Whether XCP-ng restarts this pool's protected VMs on another host when theirs fails, and whether it still could, as a probe last read it.": "Перезапускает ли XCP-ng защищённые ВМ этого пула на другом хосте при отказе их хоста и смог бы ли сделать это сейчас, по последнему чтению зонда.",
   "Whether XCP-ng's high availability is on for this pool: when a host fails, it restarts the pool's protected VMs on the others.": "Включена ли высокая доступность XCP-ng для этого пула: при отказе хоста она перезапускает защищённые ВМ пула на остальных.",
@@ -67728,5 +67728,7 @@
   "{{count}} storage groups_one": "{{count}} группа хранения",
   "{{count}} storage resource pool": "{{count}} пул ресурсов хранения",
   "{{count}} storage resource pools": "Пулов ресурсов хранения: {{count}}",
-  "{{count}} storage resource pools_one": "{{count}} пул ресурсов хранения"
+  "{{count}} storage resource pools_one": "{{count}} пул ресурсов хранения",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "Устранено OneUptime: квартал, в котором было создано это оповещение об облачном бюджете, закончился.",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Устранено OneUptime: год, в котором было создано это оповещение об облачном бюджете, закончился."
 }

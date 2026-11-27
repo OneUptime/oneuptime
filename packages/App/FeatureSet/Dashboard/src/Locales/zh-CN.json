@@ -67356,7 +67356,7 @@
   "Connect Xen Orchestra": "连接 Xen Orchestra",
   "Delta": "增量",
   "Event Read Status": "事件读取状态",
-  "Event State": "事件状态",
+  "Alarm and Backup Reading Progress": "告警和备份的读取进度",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "此 XCP-ng 资源池发生过的一切——它是如何以及为何创建的、归谁所有、XAPI 和 Xen Orchestra 对它报告了什么，以及此后的每一次更改。",
   "External authentication did not start on a host": "主机上的外部身份验证未启动",
   "External authentication differs across the pool": "资源池中的外部身份验证不一致",
@@ -67728,5 +67728,7 @@
   "{{count}} storage groups_one": "{{count}} 个存储组",
   "{{count}} storage resource pool": "{{count}} 个存储资源池",
   "{{count}} storage resource pools": "{{count}} 个存储资源池",
-  "{{count}} storage resource pools_one": "{{count}} 个存储资源池"
+  "{{count}} storage resource pools_one": "{{count}} 个存储资源池",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "已由 OneUptime 解决：此云预算警报触发时所在的季度已结束。",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "已由 OneUptime 解决：此云预算警报触发时所在的年度已结束。"
 }

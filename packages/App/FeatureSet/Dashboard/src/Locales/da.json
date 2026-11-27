@@ -67356,7 +67356,7 @@
   "Connect Xen Orchestra": "Forbind Xen Orchestra",
   "Delta": "Delta",
   "Event Read Status": "Læsestatus for hændelser",
-  "Event State": "Hændelsesstatus",
+  "Alarm and Backup Reading Progress": "Læsefremskridt for alarmer og backups",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "Alt, hvad der er sket med denne XCP-ng-pool - hvordan og hvorfor den blev oprettet, hvem der ejer den, hvad XAPI og Xen Orchestra har meldt om den, og hver ændring siden.",
   "External authentication did not start on a host": "Ekstern godkendelse startede ikke på en vært",
   "External authentication differs across the pool": "Ekstern godkendelse er forskellig i poolen",
@@ -67467,7 +67467,7 @@
   "VMs no backup job with an enabled schedule has backed up since OneUptime started reading this pool's backups. A VM only backed up by hand, or not at all, is counted here.": "VM'er, som intet backupjob med en aktiveret plan har taget backup af, siden OneUptime begyndte at læse denne pools backups. En VM, der kun får taget backup manuelt eller slet ikke, tælles her.",
   "VMs whose last backup by a Xen Orchestra backup job succeeded, as Xen Orchestra's backup logs say. Control domains are never backed up and are left out.": "VM'er, hvis seneste backup ved et backupjob i Xen Orchestra lykkedes ifølge Xen Orchestras backuplogfiler. Kontroldomæner får aldrig taget backup og er udeladt.",
   "VMs whose last backup failed or was interrupted. Each one is listed with Xen Orchestra's words for why, and its job; the VM is backed up again on the job's next run.": "VM'er, hvis seneste backup mislykkedes eller blev afbrudt. Hver vises med Xen Orchestras forklaring og sit job; der tages backup af VM'en igen ved jobbets næste kørsel.",
-  "View VMs": "Se VM'er",
+  "View VMs": "Vis VM'er",
   "Whether HA could restart every protected VM if one more host failed. Read through the pool's XAPI, it is XAPI's own plan; through Xen Orchestra, which does not report the plan, it needs a host up and enabled besides the one that fails.": "Om HA kunne genstarte hver beskyttet VM, hvis endnu en vært gik ned. Læst via poolens XAPI er det XAPI's egen plan; via Xen Orchestra, som ikke rapporterer planen, kræver det en vært, der er oppe og aktiveret, ud over den, der går ned.",
   "Whether XCP-ng restarts this pool's protected VMs on another host when theirs fails, and whether it still could, as a probe last read it.": "Om XCP-ng genstarter denne pools beskyttede VM'er på en anden vært, når deres går ned, og om den stadig kunne, som en sonde senest læste det.",
   "Whether XCP-ng's high availability is on for this pool: when a host fails, it restarts the pool's protected VMs on the others.": "Om XCP-ng's høje tilgængelighed er slået til for denne pool: når en vært går ned, genstarter den poolens beskyttede VM'er på de andre.",
@@ -67728,5 +67728,7 @@
   "{{count}} storage groups_one": "{{count}} lagergruppe",
   "{{count}} storage resource pool": "{{count}} lagerressourcepulje",
   "{{count}} storage resource pools": "{{count}} lagerressourcepuljer",
-  "{{count}} storage resource pools_one": "{{count}} lagerressourcepulje"
+  "{{count}} storage resource pools_one": "{{count}} lagerressourcepulje",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "Løst af OneUptime: det kvartal, hvor denne cloudbudgetadvarsel blev udløst, er slut.",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Løst af OneUptime: det år, hvor denne cloudbudgetadvarsel blev udløst, er slut."
 }

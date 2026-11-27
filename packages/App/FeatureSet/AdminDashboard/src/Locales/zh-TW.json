@@ -2768,6 +2768,7 @@
   "Deleting an IoT fleet also deletes its device registry, so registered devices can no longer sign in.": "刪除 IoT 裝置群也會刪除其裝置登錄，已登錄的裝置將無法再登入。",
   "Deleting a database also deletes the endpoints it is reached at.": "刪除資料庫也會刪除連線到它所用的端點。",
   "Deleting a cloud connection stops OneUptime reading the account. Its resources stay, with their metrics.": "刪除雲端連線後，OneUptime 會停止讀取該帳戶。其資源及指標會保留。",
+  "Deleting a storage array connection stops OneUptime reading the arrays behind it, and deletes its saved password and connection tests. Its arrays stay, with their metrics.": "刪除儲存陣列連線後，OneUptime 將停止讀取其背後的陣列，並刪除其已儲存的密碼和連線測試。其陣列及指標會保留。",
   "True": "是",
   "False": "否",
   "Key": "鍵",

@@ -67356,7 +67356,7 @@
   "Connect Xen Orchestra": "Koble til Xen Orchestra",
   "Delta": "Delta",
   "Event Read Status": "Lesestatus for hendelser",
-  "Event State": "Hendelsesstatus",
+  "Alarm and Backup Reading Progress": "Lesefremdrift for alarmer og sikkerhetskopier",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "Alt som har skjedd med denne XCP-ng-poolen - hvordan og hvorfor den ble opprettet, hvem som eier den, hva XAPI og Xen Orchestra har meldt om den, og hver endring siden.",
   "External authentication did not start on a host": "Ekstern autentisering startet ikke på en vert",
   "External authentication differs across the pool": "Ekstern autentisering er ulik i poolen",
@@ -67595,7 +67595,7 @@
   "No probe picked the work up.": "Ingen sonde tok oppgaven.",
   "No storage groups in the inventory yet. They appear a few minutes after the probe first reads this array from Unisphere.": "Ingen lagringsgrupper i inventaret ennå. De vises noen minutter etter at sonden først leser dette arrayet fra Unisphere.",
   "No storage resource pools in the inventory yet. They appear a few minutes after the probe first reads this array from Unisphere.": "Ingen lagringsressurspooler i inventaret ennå. De vises noen minutter etter at sonden først leser dette arrayet fra Unisphere.",
-  "One series per SRDF group whose link is offline or whose pairs are suspended, partitioned, split, failed over or invalid (value 1), with its srdf_group, state and remote_symmetrix_id labels. The series is absent while the group replicates.": "Én serie per SRDF-gruppe der koblingen er frakoblet eller parene er suspendert, partisjonert, splittet, i failover eller ugyldige (verdi 1), med etikettene srdf_group, state og remote_symmetrix_id. Serien finnes ikke så lenge gruppen replikerer.",
+  "One series per SRDF group whose link is offline or whose pairs are suspended, partitioned, split, failed over or invalid (value 1), with its srdf_group, state and remote_symmetrix_id labels. The series is absent while the group replicates.": "Én serie per SRDF-gruppe der koblingen er offline eller parene er suspendert, partisjonert, splittet, i failover eller ugyldige (verdi 1), med etikettene srdf_group, state og remote_symmetrix_id. Serien finnes ikke så lenge gruppen replikerer.",
   "One series per alert Unisphere has open for the array (value 1): not acknowledged, not cleared, and Minor or worse. Its severity label is critical (Critical and Fatal) or warning (Warning and Minor); its alert_type, object and description labels say what it is about. Acknowledge the alert in Unisphere and the series goes away.": "Én serie per varsel Unisphere har åpent for arrayet (verdi 1): ikke bekreftet, ikke fjernet og Minor eller verre. Etiketten severity er critical (Critical og Fatal) eller warning (Warning og Minor); etikettene alert_type, object og description forteller hva det gjelder. Bekreft varselet i Unisphere, så forsvinner serien.",
   "One series per director that is not online (value 1), with its director, role and status labels. The series is absent while every director is online.": "Én serie per director som ikke er online (verdi 1), med etikettene director, role og status. Serien finnes ikke så lenge alle directorer er online.",
   "One series per port that serves hosts or SRDF (in a port group, a masking view or an SRDF group) but is not up (value 1), with its component, protocol and status labels. Ports nobody uses are left out: they may be off on purpose.": "Én serie per port som betjener verter eller SRDF (i en port group, en masking view eller en SRDF-gruppe), men som ikke er oppe (verdi 1), med etikettene component, protocol og status. Porter som ingen bruker, utelates: de kan være slått av med vilje.",
@@ -67728,5 +67728,7 @@
   "{{count}} storage groups_one": "{{count}} lagringsgruppe",
   "{{count}} storage resource pool": "{{count}} lagringsressurspool",
   "{{count}} storage resource pools": "{{count}} lagringsressurspooler",
-  "{{count}} storage resource pools_one": "{{count}} lagringsressurspool"
+  "{{count}} storage resource pools_one": "{{count}} lagringsressurspool",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "Løst av OneUptime: kvartalet dette skybudsjettvarselet ble opprettet i, er over.",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Løst av OneUptime: året dette skybudsjettvarselet ble opprettet i, er over."
 }

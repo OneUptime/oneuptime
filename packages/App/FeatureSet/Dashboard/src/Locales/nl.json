@@ -67356,7 +67356,7 @@
   "Connect Xen Orchestra": "Xen Orchestra koppelen",
   "Delta": "Delta",
   "Event Read Status": "Leesstatus van de gebeurtenissen",
-  "Event State": "Status van de gebeurtenissen",
+  "Alarm and Backup Reading Progress": "Leesvoortgang van alarmen en back-ups",
   "Everything that has happened to this XCP-ng pool - how and why it was created, who owns it, what XAPI and Xen Orchestra said of it, and every change since.": "Alles wat er met deze XCP-ng-pool is gebeurd - hoe en waarom hij is aangemaakt, wie de eigenaar is, wat XAPI en Xen Orchestra erover meldden, en elke wijziging sindsdien.",
   "External authentication did not start on a host": "Externe verificatie is op een host niet gestart",
   "External authentication differs across the pool": "Externe verificatie verschilt binnen de pool",
@@ -67728,5 +67728,7 @@
   "{{count}} storage groups_one": "{{count}} opslaggroep",
   "{{count}} storage resource pool": "{{count}} opslagresourcepool",
   "{{count}} storage resource pools": "{{count}} opslagresourcepools",
-  "{{count}} storage resource pools_one": "{{count}} opslagresourcepool"
+  "{{count}} storage resource pools_one": "{{count}} opslagresourcepool",
+  "Resolved by OneUptime: the quarter this cloud budget alert was raised in is over.": "Opgelost door OneUptime: het kwartaal waarin deze cloudbudgetwaarschuwing werd aangemaakt, is voorbij.",
+  "Resolved by OneUptime: the year this cloud budget alert was raised in is over.": "Opgelost door OneUptime: het jaar waarin deze cloudbudgetwaarschuwing werd aangemaakt, is voorbij."
 }
