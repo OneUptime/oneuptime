@@ -191,7 +191,7 @@ export function isMadeByNobody(action: CloudSavingsAction): boolean {
 export function hasTakenAStep(
   progress: CloudSavingsProgress | undefined | null,
 ): boolean {
-  return Boolean(progress) && Object.keys(progress as object).length > 0;
+  return Object.keys(progress || {}).length > 0;
 }
 
 /*
@@ -491,7 +491,10 @@ export default class CloudSavingsActionRunner {
       return action;
     }
 
-    const held: CloudSavingsAction = { ...action, ...set } as CloudSavingsAction;
+    const held: CloudSavingsAction = {
+      ...action,
+      ...set,
+    } as CloudSavingsAction;
 
     if (!isSchedule) {
       await writeCloudSavingsFeed({

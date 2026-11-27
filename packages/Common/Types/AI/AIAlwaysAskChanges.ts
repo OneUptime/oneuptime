@@ -366,7 +366,10 @@ function letsGoOfProduction(
   written: JSONObject,
   stored: JSONObject | null,
 ): boolean {
-  if (written["name"] !== undefined && doesLabelSayProduction(written["name"])) {
+  if (
+    written["name"] !== undefined &&
+    doesLabelSayProduction(written["name"])
+  ) {
     return false;
   }
 

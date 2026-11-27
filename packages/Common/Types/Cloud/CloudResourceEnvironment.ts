@@ -330,7 +330,9 @@ export const CLOUD_UNATTENDED_NON_PRODUCTION_SOURCES: ReadonlyArray<CloudEnviron
 type EnvironmentSign = [CloudResourceEnvironment, CloudEnvironmentSource];
 
 // What each sign says, in the order a reading names the one that decided it.
-function readSigns(data: CloudResourceEnvironmentSigns): Array<EnvironmentSign> {
+function readSigns(
+  data: CloudResourceEnvironmentSigns,
+): Array<EnvironmentSign> {
   return [
     [readEnvironmentFromTags(data.tags), CloudEnvironmentSource.Tag],
     [

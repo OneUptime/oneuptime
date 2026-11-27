@@ -560,7 +560,10 @@ describe("decideCloudSavingsAi: what only a label calls non-production (#11347)"
 describe("getCloudSavingsAiEnvironmentReason", () => {
   test("production on either reading", () => {
     for (const [environment, unattendedEnvironment] of [
-      [CloudResourceEnvironment.Production, CloudResourceEnvironment.Production],
+      [
+        CloudResourceEnvironment.Production,
+        CloudResourceEnvironment.Production,
+      ],
       [
         CloudResourceEnvironment.NonProduction,
         CloudResourceEnvironment.Production,
@@ -597,7 +600,10 @@ describe("getCloudSavingsAiEnvironmentReason", () => {
   test("anything else is not known: never taken for non-production", () => {
     for (const [environment, unattendedEnvironment] of [
       [CloudResourceEnvironment.Unknown, CloudResourceEnvironment.Unknown],
-      [CloudResourceEnvironment.Unknown, CloudResourceEnvironment.NonProduction],
+      [
+        CloudResourceEnvironment.Unknown,
+        CloudResourceEnvironment.NonProduction,
+      ],
       ["", ""],
       ["NonProduction ", CloudResourceEnvironment.NonProduction],
     ] as Array<[string, string]>) {

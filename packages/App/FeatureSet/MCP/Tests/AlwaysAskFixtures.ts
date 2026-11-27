@@ -32,10 +32,9 @@ export const LABEL_ID: string = "11347000-0000-4000-8000-000000000019";
  * A label as the API holds it (#11347): its name says production, so it
  * holds the cloud resources it is on back from what nobody approves.
  */
-export function holdsLabel(name: string): (
-  api: FakeOneUptimeApi,
-  apiPathOf: ApiPathOf,
-) => void {
+export function holdsLabel(
+  name: string,
+): (api: FakeOneUptimeApi, apiPathOf: ApiPathOf) => void {
   return (api: FakeOneUptimeApi, apiPathOf: ApiPathOf): void => {
     api.holds(apiPathOf("Label"), LABEL_ID, { projectId: PROJECT_ID, name });
   };
@@ -428,7 +427,8 @@ export const ORDINARY_WRITES: ReadonlyArray<OrdinaryWrite> = [
     prepare: holdsLabel("Team A"),
   },
   {
-    label: "Rename a label to dev, which a schedule never reads as non-production",
+    label:
+      "Rename a label to dev, which a schedule never reads as non-production",
     tableName: "Label",
     operation: "update",
     args: { id: LABEL_ID, name: "dev" },

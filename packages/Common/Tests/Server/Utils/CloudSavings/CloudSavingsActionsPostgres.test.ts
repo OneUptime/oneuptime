@@ -2114,14 +2114,13 @@ describePostgres("acting on savings, against Postgres", () => {
       expect((await feedOf(world)).resource).toEqual(["SavingsActionProposed"]);
 
       // Its owner may still approve it, and it is made, as them.
-      const result: CloudSavingsActionResult = await CloudSavingsActions.approve(
-        {
+      const result: CloudSavingsActionResult =
+        await CloudSavingsActions.approve({
           props: world.owner.props,
           projectId: world.projectId,
           actionId: new ObjectID((await actionsOf(world))[0]!._id),
           runner: runner(fake, now),
-        },
-      );
+        });
 
       expect(result.status).toBe(CloudSavingsActionStatus.Applied);
       expect(fake.writes()).toEqual(["ec2:StopInstances"]);

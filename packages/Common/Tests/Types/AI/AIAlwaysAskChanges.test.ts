@@ -608,9 +608,11 @@ describe("what the list names is real", () => {
       }
 
       expect(change.card.length).toBeGreaterThan(0);
-      expect(["Data Security", "Security Events", "Project Settings"]).toContain(
-        change.product,
-      );
+      expect([
+        "Data Security",
+        "Security Events",
+        "Project Settings",
+      ]).toContain(change.product);
 
       for (const record of change.records) {
         expect(Object.values(AlwaysAskPage)).toContain(record.page);

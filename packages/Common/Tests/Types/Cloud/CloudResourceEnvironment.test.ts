@@ -310,15 +310,16 @@ describe("what a change nobody approves reads (#11347)", () => {
 
   test("the issue's two renames: Production to dev, and any label to dev", () => {
     // "Production" renamed to "dev": every sign read it non-production after.
-    expect(getCloudResourceEnvironment({ labelNames: ["dev"] }).environment).toBe(
-      CloudResourceEnvironment.NonProduction,
-    );
+    expect(
+      getCloudResourceEnvironment({ labelNames: ["dev"] }).environment,
+    ).toBe(CloudResourceEnvironment.NonProduction);
     expect(
       getUnattendedCloudResourceEnvironment({ labelNames: ["Production"] })
         .environment,
     ).toBe(CloudResourceEnvironment.Production);
     expect(
-      getUnattendedCloudResourceEnvironment({ labelNames: ["dev"] }).environment,
+      getUnattendedCloudResourceEnvironment({ labelNames: ["dev"] })
+        .environment,
     ).toBe(CloudResourceEnvironment.Unknown);
 
     // "team-a", on a resource nothing else is said of, renamed to "dev".

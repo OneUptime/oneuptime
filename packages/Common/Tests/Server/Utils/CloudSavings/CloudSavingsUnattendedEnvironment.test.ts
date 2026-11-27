@@ -217,8 +217,12 @@ function sorted(
 }
 
 // A model with a row's values, as a service hands one back.
-function modelOf<T extends object>(ModelClass: { new (): T }, row: Row): T {
-  return Object.assign(new ModelClass(), row);
+function modelOf<T>(ModelClass: { new (): T }, row: Row): T {
+  const model: T = new ModelClass();
+
+  Object.assign(model as unknown as Row, row);
+
+  return model;
 }
 
 // Every service call the flows make, answered from rows held here.
@@ -303,16 +307,15 @@ class SavingsTables {
       skip?: unknown;
       limit?: unknown;
     };
-    const tables: SavingsTables = this;
-    const one: <T extends object>(
+    const one: <T>(
       ModelClass: { new (): T },
       name: string,
-    ) => (data: Read) => Promise<T | null> = <T extends object>(
+    ) => (data: Read) => Promise<T | null> = <T>(
       ModelClass: { new (): T },
       name: string,
     ): ((data: Read) => Promise<T | null>) => {
       return async (data: Read): Promise<T | null> => {
-        const row: Row | undefined = tables.find(name, {
+        const row: Row | undefined = this.find(name, {
           ...data,
           limit: 1,
         })[0];
@@ -320,28 +323,28 @@ class SavingsTables {
         return row ? modelOf(ModelClass, row) : null;
       };
     };
-    const many: <T extends object>(
+    const many: <T>(
       ModelClass: { new (): T },
       name: string,
-    ) => (data: Read) => Promise<Array<T>> = <T extends object>(
+    ) => (data: Read) => Promise<Array<T>> = <T>(
       ModelClass: { new (): T },
       name: string,
     ): ((data: Read) => Promise<Array<T>>) => {
       return async (data: Read): Promise<Array<T>> => {
-        return tables.find(name, data).map((row: Row): T => {
+        return this.find(name, data).map((row: Row): T => {
           return modelOf(ModelClass, row);
         });
       };
     };
-    const byId: <T extends object>(
+    const byId: <T>(
       ModelClass: { new (): T },
       name: string,
-    ) => (data: { id: unknown }) => Promise<T | null> = <T extends object>(
+    ) => (data: { id: unknown }) => Promise<T | null> = <T>(
       ModelClass: { new (): T },
       name: string,
     ): ((data: { id: unknown }) => Promise<T | null>) => {
       return async (data: { id: unknown }): Promise<T | null> => {
-        const row: Row | undefined = tables.get(name, data.id);
+        const row: Row | undefined = this.get(name, data.id);
 
         return row && !row["deletedAt"] ? modelOf(ModelClass, row) : null;
       };
@@ -377,23 +380,23 @@ class SavingsTables {
     jest.spyOn(CloudResourceService, "findOneBy").mockImplementation((async (
       data: Read,
     ): Promise<CloudResource | null> => {
-      if (tables.failResourceReads > 0) {
-        tables.failResourceReads--;
+      if (this.failResourceReads > 0) {
+        this.failResourceReads--;
         throw new Error("The database could not be read.");
       }
 
-      const row: Row | undefined = tables.find("CloudResource", {
+      const row: Row | undefined = this.find("CloudResource", {
         ...data,
         limit: 1,
       })[0];
 
-      return row ? tables.resourceOf(row) : null;
+      return row ? this.resourceOf(row) : null;
     }) as never);
     jest.spyOn(CloudResourceService, "findBy").mockImplementation((async (
       data: Read,
     ): Promise<Array<CloudResource>> => {
-      return tables.find("CloudResource", data).map((row: Row) => {
-        return tables.resourceOf(row);
+      return this.find("CloudResource", data).map((row: Row) => {
+        return this.resourceOf(row);
       });
     }) as never);
     jest
@@ -420,7 +423,7 @@ class SavingsTables {
         id: unknown;
         data: Row;
       }): Promise<void> => {
-        tables.update("CloudOffHoursSchedule", data.id, data.data);
+        this.update("CloudOffHoursSchedule", data.id, data.data);
       }) as never);
     jest
       .spyOn(CloudSavingsActionService, "findBy")
@@ -437,25 +440,23 @@ class SavingsTables {
       .mockImplementation(
         byId(CloudSavingsAction, "CloudSavingsAction") as never,
       );
-    jest
-      .spyOn(CloudSavingsActionService, "countBy")
-      .mockImplementation((async (data: Read): Promise<PositiveNumber> => {
-        return new PositiveNumber(
-          tables.find("CloudSavingsAction", data).length,
-        );
-      }) as never);
+    jest.spyOn(CloudSavingsActionService, "countBy").mockImplementation((async (
+      data: Read,
+    ): Promise<PositiveNumber> => {
+      return new PositiveNumber(this.find("CloudSavingsAction", data).length);
+    }) as never);
     jest
       .spyOn(CloudSavingsActionService, "create")
       .mockImplementation((async (data: {
         data: CloudSavingsAction;
       }): Promise<CloudSavingsAction> => {
-        const id: string = tables.insert("CloudSavingsAction", {
+        const id: string = this.insert("CloudSavingsAction", {
           ...data.data,
-          createdAt: tables.clock(),
+          createdAt: this.clock(),
         });
-        const row: Row = tables.get("CloudSavingsAction", id)!;
+        const row: Row = this.get("CloudSavingsAction", id)!;
 
-        tables.onActionCreated?.(row);
+        this.onActionCreated?.(row);
 
         return modelOf(CloudSavingsAction, row);
       }) as never);
@@ -468,7 +469,7 @@ class SavingsTables {
         whileFirstApprovedBy?: string | null | undefined;
         whileNextStepAtOrBefore?: Date | undefined;
       }): Promise<number> => {
-        const row: Row | undefined = tables.get(
+        const row: Row | undefined = this.get(
           "CloudSavingsAction",
           data.actionId,
         );
@@ -506,7 +507,7 @@ class SavingsTables {
       .mockImplementation((async (data: {
         feedInfoInMarkdown: string;
       }): Promise<void> => {
-        tables.feed.push({
+        this.feed.push({
           table: "CloudResourceFeed",
           markdown: data.feedInfoInMarkdown,
         });
@@ -516,7 +517,7 @@ class SavingsTables {
       .mockImplementation((async (data: {
         feedInfoInMarkdown: string;
       }): Promise<void> => {
-        tables.feed.push({
+        this.feed.push({
           table: "CloudAccountFeed",
           markdown: data.feedInfoInMarkdown,
         });
@@ -527,7 +528,7 @@ class SavingsTables {
         cloudResourceId?: ObjectID | undefined;
       }): Promise<CloudResourceOwners> => {
         const owners: Array<string> =
-          (tables.get("CloudResource", data.cloudResourceId)?.[
+          (this.get("CloudResource", data.cloudResourceId)?.[
             "ownerUserIds"
           ] as Array<string>) || [];
 
@@ -820,7 +821,9 @@ function readAsBefore(): void {
       "getCloudResourceEnvironmentReadings",
     )
     .mockImplementation(
-      (signs: CloudResourceEnvironmentSigns): CloudResourceEnvironmentReadings => {
+      (
+        signs: CloudResourceEnvironmentSigns,
+      ): CloudResourceEnvironmentReadings => {
         const reading: CloudResourceEnvironmentReading =
           getCloudResourceEnvironment(signs);
 
@@ -874,7 +877,8 @@ describe("an AI rule that acts without asking, and a label renamed", () => {
     expect(actionOn(world, PROD_INSTANCE)).toMatchObject({
       status: CloudSavingsActionStatus.Proposed,
       environment: CloudResourceEnvironment.Production,
-      summary: CLOUD_SAVINGS_AI_REASON_SENTENCES[CloudSavingsAiReason.Production],
+      summary:
+        CLOUD_SAVINGS_AI_REASON_SENTENCES[CloudSavingsAiReason.Production],
     });
   });
 
@@ -1149,7 +1153,8 @@ describe("an unattended change is read again at the moment it acts", () => {
       status: CloudSavingsActionStatus.Proposed,
       environment: CloudResourceEnvironment.Production,
       nextStepAt: null,
-      summary: CLOUD_SAVINGS_AI_REASON_SENTENCES[CloudSavingsAiReason.Production],
+      summary:
+        CLOUD_SAVINGS_AI_REASON_SENTENCES[CloudSavingsAiReason.Production],
     });
     expect(
       tables.feed.map((line: { markdown: string }): string => {
@@ -1247,7 +1252,9 @@ describe("an unattended change is read again at the moment it acts", () => {
 
     expect(fake.calls).toEqual([]);
     expect(actionOn(world, DEV_INSTANCE)?.["summary"]).toBe(
-      CLOUD_SAVINGS_AI_REASON_SENTENCES[CloudSavingsAiReason.EnvironmentNotKnown],
+      CLOUD_SAVINGS_AI_REASON_SENTENCES[
+        CloudSavingsAiReason.EnvironmentNotKnown
+      ],
     );
   });
 
@@ -1317,9 +1324,9 @@ describe("an unattended change is read again at the moment it acts", () => {
     expect((await evaluate(world, now)).madeWithoutAsking).toBe(1);
     await CloudSavingsActionRunner.runDue(runner(fake, now));
     expect(fake.writes()).toEqual(["ec2:StopInstances"]);
-    expect(hasTakenAStep(actionOn(world, DEV_INSTANCE)?.["progress"] as never)).toBe(
-      true,
-    );
+    expect(
+      hasTakenAStep(actionOn(world, DEV_INSTANCE)?.["progress"] as never),
+    ).toBe(true);
 
     // A label that says production, between the stop and the resize.
     tables.update("CloudResource", resourceId, {
