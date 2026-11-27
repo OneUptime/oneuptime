@@ -114,8 +114,11 @@ import ModelType from "../Types/ModelType";
  * 100% - which took the answer past 313,500 to 314,246, so an agent makes a
  * quarterly budget for a cost group as people do. They are generated and
  * say each thing once; the amount's description was cut by 101 bytes first.
+ * 320,500 the same day: Cloud Cost Report's six tools (#11009) took the
+ * answer to 319,980 with no word here, so an agent schedules a cost report
+ * as people do. They are generated too, with nothing on them to cut.
  */
-const MAX_TOOLS_LIST_BYTES: number = 315_000;
+const MAX_TOOLS_LIST_BYTES: number = 320_500;
 
 // The most any one tool may take of it.
 const MAX_TOOL_BYTES: number = 5_000;

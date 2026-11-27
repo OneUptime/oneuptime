@@ -1698,6 +1698,8 @@ describe("the real source roots", () => {
       "keys packages/Common/Types/Cloud/CloudSavingsAction.ts",
       "keys packages/Common/Types/Cloud/CloudResourceEnvironment.ts",
       "keys packages/Common/Types/Cloud/CloudSavingsAi.ts",
+      "keys packages/Common/Types/Cloud/CloudCostReport.ts",
+      "keys packages/Common/Types/Cloud/CloudCostReportWords.ts",
       // A managed device's status, as Inventory > Managed Devices draws it - not the server's.
       "keys packages/Common/Types/DeviceManagement/ManagedDeviceStatus.ts",
       // The monitor pages' shared helpers: hero, uptime, metric groups.

@@ -1359,6 +1359,9 @@
   "/dashboard/:projectId/cloud/savings": [
     "cloud"
   ],
+  "/dashboard/:projectId/cloud/reports": [
+    "cloud"
+  ],
   "/dashboard/:projectId/cloud/schedules": [
     "cloud"
   ],
@@ -1504,6 +1507,9 @@
     "vmware"
   ],
   "/dashboard/:projectId/xcp-ng": [
+    "xcp-ng"
+  ],
+  "/dashboard/:projectId/xcp-ng/connections": [
     "xcp-ng"
   ],
   "/dashboard/:projectId/xcp-ng/documentation": [

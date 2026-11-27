@@ -7682,6 +7682,27 @@
     "kind": "page"
   },
   {
+    "title": "Reports",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "cost reports",
+      "cloud cost reports",
+      "scheduled reports",
+      "weekly cost report",
+      "monthly cost report",
+      "showback",
+      "chargeback",
+      "finops review",
+      "cost email",
+      "focus export"
+    ],
+    "path": "/dashboard/:projectId/cloud/reports",
+    "kind": "page"
+  },
+  {
     "title": "Schedules",
     "where": [
       "Cloud",
@@ -8343,6 +8364,23 @@
       "XCP-ng"
     ],
     "path": "/dashboard/:projectId/xcp-ng",
+    "kind": "page"
+  },
+  {
+    "title": "Connections",
+    "where": [
+      "XCP-ng"
+    ],
+    "keywords": [
+      "xen orchestra",
+      "xapi",
+      "pool master",
+      "probe",
+      "without an agent",
+      "agentless",
+      "connect xen orchestra"
+    ],
+    "path": "/dashboard/:projectId/xcp-ng/connections",
     "kind": "page"
   },
   {

@@ -92,6 +92,8 @@ describe("the Cloud product menu", () => {
       { title: "Forecast", href: `${CLOUD}/forecast` },
       // The required tags and how much of the spend carries them (#11012).
       { title: "Tags", href: `${CLOUD}/tags` },
+      // The costs sent on a schedule, by email, Slack or Microsoft Teams (#11009).
+      { title: "Reports", href: `${CLOUD}/reports` },
     ]);
     // The rules, then the cost basis the pages open on and when commitments alert.
     expect(linksIn("Settings")).toEqual([
