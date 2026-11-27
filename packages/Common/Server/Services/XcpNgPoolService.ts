@@ -1055,7 +1055,10 @@ export class Service extends ProjectReferencesService<Model> {
     // The project's reference checks first, as every service's update runs them.
     await super.onBeforeUpdate(updateBy);
 
-    const onUpdate: OnUpdate<Model> = { updateBy: updateBy, carryForward: null };
+    const onUpdate: OnUpdate<Model> = {
+      updateBy: updateBy,
+      carryForward: null,
+    };
     const data: Record<string, unknown> = updateBy.data as unknown as Record<
       string,
       unknown
