@@ -42,6 +42,8 @@ import RelationIdUtil from "../Utils/Database/RelationIdUtil";
 import ProjectCountLimit from "../Utils/Database/ProjectCountLimit";
 import StatusPage from "../../Models/DatabaseModels/StatusPage";
 import StatusPageResource from "../../Models/DatabaseModels/StatusPageResource";
+import StatusPageIncidentCategory from "../../Models/DatabaseModels/StatusPageIncidentCategory";
+import StatusPageIncidentCategoryService from "./StatusPageIncidentCategoryService";
 import Model from "../../Models/DatabaseModels/StatusPageSubscriber";
 import StatusPageSubscriberNotificationTemplate from "../../Models/DatabaseModels/StatusPageSubscriberNotificationTemplate";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -795,6 +797,10 @@ export class Service extends ProjectReferencesService<Model> {
         data.data.statusPageResources,
       ),
       shownToVisitorsOnly: statusPageSignUps.has(data.data),
+    });
+    await this.assertIncidentCategoriesOnPage({
+      statusPageId: data.data.statusPageId,
+      value: data.data.statusPageIncidentCategories,
     });
 
     const projectId: ObjectID = data.data.projectId;
@@ -1577,6 +1583,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     // The resources it adds are its page's. See checkResourcesOnPages.
     await this.checkResourcesOnPages(updateBy);
+    await this.checkIncidentCategoriesOnPages(updateBy);
 
     // A contact changed to one its page does not take is refused.
     await this.checkContactsAllowedOnPages(updateBy);
@@ -1662,6 +1669,67 @@ export class Service extends ProjectReferencesService<Model> {
       named: named,
       shownToVisitorsOnly: manageSubscriptionPageUpdates.has(updateBy),
     });
+  }
+
+  private async checkIncidentCategoriesOnPages(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const value: unknown = (
+      updateBy.data as unknown as JSONObject | undefined
+    )?.["statusPageIncidentCategories"];
+    if (!Array.isArray(value)) {
+      return;
+    }
+
+    const subscribers: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      { _id: true, statusPageId: true },
+    );
+    for (const subscriber of subscribers) {
+      if (subscriber.statusPageId) {
+        await this.assertIncidentCategoriesOnPage({
+          statusPageId: subscriber.statusPageId,
+          value: value,
+        });
+      }
+    }
+  }
+
+  private async assertIncidentCategoriesOnPage(data: {
+    statusPageId: ObjectID;
+    value: unknown;
+  }): Promise<void> {
+    if (!Array.isArray(data.value) || data.value.length === 0) {
+      return;
+    }
+
+    const ids: Array<string> = data.value.map((item: unknown): string => {
+      const namedId: string | undefined =
+        StatusPageSubscriberResources.getNamedIds([item])[0];
+      if (!namedId || !ObjectID.isValidUUID(namedId)) {
+        throw new BadDataException(
+          "Incident category selections must contain valid IDs.",
+        );
+      }
+      return namedId;
+    });
+    const uniqueIds: Array<string> = [...new Set(ids)];
+    const categories: Array<StatusPageIncidentCategory> =
+      await StatusPageIncidentCategoryService.findBy({
+        query: {
+          _id: QueryHelper.any(uniqueIds),
+          statusPageId: data.statusPageId,
+        },
+        select: { _id: true, statusPageId: true },
+        skip: 0,
+        limit: uniqueIds.length,
+        props: { isRoot: true },
+      });
+    if (categories.length !== uniqueIds.length) {
+      throw new BadDataException(
+        "Incident categories must belong to this status page.",
+      );
+    }
   }
 
   /*
@@ -2464,6 +2532,8 @@ export class Service extends ProjectReferencesService<Model> {
         isSubscribedToAllResources: true,
         statusPageEventTypes: true,
         isSubscribedToAllEventTypes: true,
+        statusPageIncidentCategories: { _id: true, statusPageId: true },
+        isSubscribedToAllIncidentCategories: true,
       },
     });
   }
@@ -4136,6 +4206,8 @@ export class Service extends ProjectReferencesService<Model> {
         },
         isSubscribedToAllEventTypes: true,
         statusPageEventTypes: true,
+        isSubscribedToAllIncidentCategories: true,
+        statusPageIncidentCategories: { _id: true, statusPageId: true },
         // Every sender puts this subscriber's unsubscribe link in its message.
         unsubscribeToken: true,
         /*
@@ -4565,6 +4637,8 @@ export class Service extends ProjectReferencesService<Model> {
     statusPageResources: Array<StatusPageResource>;
     statusPage: StatusPage;
     eventType: StatusPageEventType;
+    incidentCategoryIds?: Array<ObjectID> | undefined;
+    isIncidentWithoutMonitors?: boolean | undefined;
   }): boolean {
     /*
      * Ids only: the subscriber carries its unsubscribe token, which is a
@@ -4591,6 +4665,7 @@ export class Service extends ProjectReferencesService<Model> {
     if (
       data.statusPage.allowSubscribersToChooseResources &&
       !data.subscriber.isSubscribedToAllResources &&
+      !data.isIncidentWithoutMonitors &&
       !(
         data.eventType === StatusPageEventType.Announcement &&
         data.statusPageResources.length === 0
@@ -4695,6 +4770,25 @@ export class Service extends ProjectReferencesService<Model> {
       }
     }
 
+    if (
+      data.statusPage.allowSubscribersToChooseIncidentCategories &&
+      data.subscriber.isSubscribedToAllIncidentCategories === false &&
+      (data.incidentCategoryIds?.length || 0) > 0
+    ) {
+      const subscriberCategoryIds: Set<string> = new Set(
+        (data.subscriber.statusPageIncidentCategories || []).map(
+          (category: StatusPageIncidentCategory): string => {
+            return category.id?.toString() || "";
+          },
+        ),
+      );
+      shouldSendNotification =
+        shouldSendNotification &&
+        data.incidentCategoryIds!.some((categoryId: ObjectID): boolean => {
+          return subscriberCategoryIds.has(categoryId.toString());
+        });
+    }
+
     logger.debug(
       `Final decision on shouldSendNotification: ${shouldSendNotification}`,
       {} as LogAttributes,
@@ -4741,6 +4835,7 @@ export class Service extends ProjectReferencesService<Model> {
         subscriberEmailNotificationFooterText: true,
         enableCustomSubscriberEmailNotificationFooterText: true,
         allowSubscribersToChooseEventTypes: true,
+        allowSubscribersToChooseIncidentCategories: true,
         smtpConfig: PROJECT_SMTP_CONFIG_SEND_SELECT,
         /*
          * The page's Twilio config, with every number it sends from - its SMS

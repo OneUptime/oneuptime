@@ -451,6 +451,7 @@ import StatusPageDomain from "./StatusPageDomain";
 import StatusPageFooterLink from "./StatusPageFooterLink";
 import StatusPageGroup from "./StatusPageGroup";
 import StatusPageHeaderLink from "./StatusPageHeaderLink";
+import StatusPageIncidentCategory from "./StatusPageIncidentCategory";
 import StatusPageHistoryChartBarColorRule from "./StatusPageHistoryChartBarColorRule";
 import StatusPageOwnerTeam from "./StatusPageOwnerTeam";
 import StatusPageOwnerUser from "./StatusPageOwnerUser";
@@ -1034,6 +1035,7 @@ const AllModelTypes: Array<{
   StatusPageSubscriberNotificationTemplateStatusPage,
   StatusPageFooterLink,
   StatusPageHeaderLink,
+  StatusPageIncidentCategory,
   StatusPagePrivateUser,
   StatusPagePrivateUserSession,
   StatusPageHistoryChartBarColorRule,

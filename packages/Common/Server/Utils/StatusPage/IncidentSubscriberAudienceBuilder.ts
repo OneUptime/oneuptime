@@ -254,6 +254,7 @@ export default class IncidentSubscriberAudienceBuilder {
      */
     const resolved: ResolvedIncidentStatusPages =
       await IncidentStatusPageScope.resolvePagesForIncidents({
+        includeMonitorlessIncidents: true,
         incidents: [incident],
         includePrivateIncidents: true,
       });
@@ -342,6 +343,7 @@ export default class IncidentSubscriberAudienceBuilder {
 
     const resolved: ResolvedIncidentStatusPages =
       await IncidentStatusPageScope.resolvePagesForDraftIncident({
+        includeMonitorlessIncidents: true,
         monitorIds: monitorIds.map((id: string): ObjectID => {
           return new ObjectID(id);
         }),
@@ -479,11 +481,8 @@ export default class IncidentSubscriberAudienceBuilder {
       });
 
     /*
-     * Pages the incident is limited to that its monitors do not reach. With
-     * no monitor at all that is every one of them: a status page shows an
-     * incident through its monitors. The dashboard warns about them under
-     * the status page picker, and the audience summary names them - it no
-     * longer says "no monitors are attached" on its own.
+     * Selected pages that the incident does not reach. A monitorless incident
+     * reaches its selected pages directly, subject to the usual page checks.
      */
     const selectedNotListingMonitorIds: Array<string> =
       data.inputs.scopedStatusPageIds.filter((id: string): boolean => {

@@ -1472,6 +1472,9 @@ import StatusPageHeaderLinkService, {
 import StatusPageHistoryChartBarColorRuleService, {
   Service as StatusPageHistoryChartBarColorRuleServiceType,
 } from "Common/Server/Services/StatusPageHistoryChartBarColorRuleService";
+import StatusPageIncidentCategoryService, {
+  Service as StatusPageIncidentCategoryServiceType,
+} from "Common/Server/Services/StatusPageIncidentCategoryService";
 import StatusPageOwnerTeamService, {
   Service as StatusPageOwnerTeamServiceType,
 } from "Common/Server/Services/StatusPageOwnerTeamService";
@@ -1953,6 +1956,7 @@ import TelemetrySourceMap from "Common/Models/DatabaseModels/TelemetrySourceMap"
 import TelemetryDsym from "Common/Models/DatabaseModels/TelemetryDsym";
 import IoTDeviceCredential from "Common/Models/DatabaseModels/IoTDeviceCredential";
 import StatusPageHistoryChartBarColorRule from "Common/Models/DatabaseModels/StatusPageHistoryChartBarColorRule";
+import StatusPageIncidentCategory from "Common/Models/DatabaseModels/StatusPageIncidentCategory";
 import StatusPageOwnerTeam from "Common/Models/DatabaseModels/StatusPageOwnerTeam";
 import StatusPageOwnerUser from "Common/Models/DatabaseModels/StatusPageOwnerUser";
 import StatusPagePrivateUser from "Common/Models/DatabaseModels/StatusPagePrivateUser";
@@ -5987,6 +5991,17 @@ const BaseAPIFeatureSet: FeatureSet = {
       new BaseAPI<StatusPageHeaderLink, StatusPageHeaderLinkServiceType>(
         StatusPageHeaderLink,
         StatusPageHeaderLinkService,
+      ).getRouter(),
+    );
+
+    app.use(
+      `/${APP_NAME.toLocaleLowerCase()}`,
+      new BaseAPI<
+        StatusPageIncidentCategory,
+        StatusPageIncidentCategoryServiceType
+      >(
+        StatusPageIncidentCategory,
+        StatusPageIncidentCategoryService,
       ).getRouter(),
     );
 

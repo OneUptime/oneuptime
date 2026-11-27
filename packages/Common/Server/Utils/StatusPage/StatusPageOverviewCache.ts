@@ -310,6 +310,7 @@ export const STATUS_PAGE_CONFIGURATION_TABLES: ReadonlyArray<string> = [
   "StatusPageResource",
   "StatusPageMonitorRule",
   "StatusPageHeaderLink",
+  "StatusPageIncidentCategory",
   "StatusPageFooterLink",
   "StatusPageSSO",
 ];

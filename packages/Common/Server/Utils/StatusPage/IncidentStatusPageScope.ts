@@ -18,6 +18,8 @@ import IncidentService from "../../Services/IncidentService";
 import StatusPageResourceService from "../../Services/StatusPageResourceService";
 import StatusPageSubscriberService from "../../Services/StatusPageSubscriberService";
 import Query from "../../Types/Database/Query";
+import QueryIdCondition from "../Database/QueryIdCondition";
+import { FindOperator } from "typeorm";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
 import Sort from "../../Types/Database/Sort";
@@ -41,10 +43,9 @@ import StatusPageVisibilityQuery from "./StatusPageVisibilityQuery";
  *
  * - Incident.statusPages. A scoped incident (isScopedToStatusPages) reaches
  *   only the pages it is limited to AMONG the pages its monitors reach. The
- *   two sets intersect: a scope never puts an incident on a page that does
- *   not list its monitors. A scope whose pages have all been deleted is a
- *   scope to nothing - the incident reaches no page at all, rather than every
- *   page its monitors reach.
+ *   two sets intersect when monitors are attached. With no monitors, the
+ *   incident list and subscriber jobs use the selected pages directly. A
+ *   scope whose pages have all been deleted reaches no page.
  * - StatusPage.onlyShowScopedIncidents. Such a page never reaches an unscoped
  *   incident, so an incident a monitor, Slack, Teams, the API or AI created
  *   on a monitor shared by many pages reaches none of them until someone
@@ -180,6 +181,7 @@ export default class IncidentStatusPageScope {
   public static async resolvePagesForIncidents(data: {
     incidents: Array<Incident>;
     resourceSelect?: Select<StatusPageResource> | undefined;
+    includeMonitorlessIncidents?: boolean | undefined;
     includePrivateIncidents?: boolean | undefined;
   }): Promise<ResolvedIncidentStatusPages> {
     const incidentIds: Array<string> = [];
@@ -228,6 +230,7 @@ export default class IncidentStatusPageScope {
     return this.resolvePagesForReaches({
       reaches: reaches,
       resourceSelect: data.resourceSelect,
+      includeMonitorlessIncidents: data.includeMonitorlessIncidents,
     });
   }
 
@@ -240,6 +243,7 @@ export default class IncidentStatusPageScope {
     monitorIds: Array<ObjectID>;
     statusPageIds?: Array<ObjectID | string> | undefined;
     resourceSelect?: Select<StatusPageResource> | undefined;
+    includeMonitorlessIncidents?: boolean | undefined;
   }): Promise<ResolvedIncidentStatusPages> {
     const statusPageIds: Array<string> =
       IncidentScopeAddedPagesNotification.normalizeStatusPageIds(
@@ -254,6 +258,7 @@ export default class IncidentStatusPageScope {
         },
       ],
       resourceSelect: data.resourceSelect,
+      includeMonitorlessIncidents: data.includeMonitorlessIncidents,
     });
   }
 
@@ -322,6 +327,7 @@ export default class IncidentStatusPageScope {
   public static async resolvePagesForReaches(data: {
     reaches: Array<IncidentStatusPageReach>;
     resourceSelect?: Select<StatusPageResource> | undefined;
+    includeMonitorlessIncidents?: boolean | undefined;
   }): Promise<ResolvedIncidentStatusPages> {
     const resourceSelect: Select<StatusPageResource> = {
       ...(data.resourceSelect || SUBSCRIBER_NOTIFICATION_RESOURCE_SELECT),
@@ -361,6 +367,7 @@ export default class IncidentStatusPageScope {
       });
     }
 
+    const monitorlessPageIds: Set<string> = new Set();
     for (const reach of data.reaches) {
       if (reach.scopedStatusPageIds === null) {
         continue;
@@ -370,8 +377,16 @@ export default class IncidentStatusPageScope {
         reach.monitorIds,
       );
 
-      // Scoped to nothing, or on no monitor: it reaches no page to look up.
-      if (reach.scopedStatusPageIds.length === 0 || monitorIds.length === 0) {
+      if (reach.scopedStatusPageIds.length === 0) {
+        continue;
+      }
+
+      if (monitorIds.length === 0) {
+        if (data.includeMonitorlessIncidents) {
+          for (const id of reach.scopedStatusPageIds) {
+            monitorlessPageIds.add(id);
+          }
+        }
         continue;
       }
 
@@ -384,7 +399,7 @@ export default class IncidentStatusPageScope {
       });
     }
 
-    const candidateStatusPageIds: Array<string> = [];
+    const candidateStatusPageIds: Array<string> = [...monitorlessPageIds];
 
     for (const batch of batches) {
       for (const resource of batch.resources) {
@@ -498,10 +513,10 @@ export default class IncidentStatusPageScope {
       const resources: Array<StatusPageResource> | undefined =
         reachedResources.get(statusPageId);
 
-      if (resources && resources.length > 0) {
+      if (resources?.length || monitorlessPageIds.has(statusPageId)) {
         statusPages.push(statusPage);
         // Keyed as the subscriber jobs look pages up: by the page's own _id.
-        statusPageToResources[statusPage._id || statusPageId] = resources;
+        statusPageToResources[statusPage._id || statusPageId] = resources || [];
         continue;
       }
 
@@ -555,7 +570,8 @@ export default class IncidentStatusPageScope {
    * for working out which episodes a page shows, which the episode's own
    * switches decide - but a private incident never is.
    *
-   * The two halves are disjoint. They are merged, sorted by `sort` as the
+   * The incident list may also ask for explicitly scoped incidents with no
+   * monitors. Each query is disjoint. The results are sorted by `sort` as the
    * database would have, and cut to `skip` and `limit` - each half is read up
    * to skip + limit rows, so the cut sees every row that can make the page.
    * Sort keys must be top-level columns; any the caller did not select are
@@ -570,6 +586,7 @@ export default class IncidentStatusPageScope {
     skip?: number | undefined;
     props: DatabaseCommonInteractionProps;
     includeHiddenIncidents?: boolean | undefined;
+    includeMonitorlessIncidents?: boolean | undefined;
   }): Promise<Array<Incident>> {
     const skip: number = Math.max(0, data.skip || 0);
     const limit: number = Math.max(0, data.limit);
@@ -596,6 +613,7 @@ export default class IncidentStatusPageScope {
         statusPage: data.statusPage,
         query: data.query,
         includeHiddenIncidents: data.includeHiddenIncidents,
+        includeMonitorlessIncidents: data.includeMonitorlessIncidents,
       }).map((query: Query<Incident>): Promise<Array<Incident>> => {
         return IncidentService.findBy({
           query: query,
@@ -646,6 +664,7 @@ export default class IncidentStatusPageScope {
     sort?: Sort<Incident> | undefined;
     props: DatabaseCommonInteractionProps;
     includeHiddenIncidents?: boolean | undefined;
+    includeMonitorlessIncidents?: boolean | undefined;
   }): Promise<Incident | null> {
     const incidents: Array<Incident> = await this.findIncidentsForStatusPage({
       statusPage: data.statusPage,
@@ -656,6 +675,7 @@ export default class IncidentStatusPageScope {
       skip: 0,
       props: data.props,
       includeHiddenIncidents: data.includeHiddenIncidents,
+      includeMonitorlessIncidents: data.includeMonitorlessIncidents,
     });
 
     return incidents[0] || null;
@@ -772,6 +792,7 @@ export default class IncidentStatusPageScope {
     statusPage: StatusPageScopeTarget;
     query: Query<Incident>;
     includeHiddenIncidents?: boolean | undefined;
+    includeMonitorlessIncidents?: boolean | undefined;
   }): Array<Query<Incident>> {
     const statusPageId: string | undefined = this.getStatusPageId(
       data.statusPage,
@@ -789,19 +810,37 @@ export default class IncidentStatusPageScope {
 
     const queries: Array<Query<Incident>> = [];
 
-    if (!this.showsOnlyScopedIncidents(data.statusPage)) {
-      queries.push({
-        ...query,
-        isScopedToStatusPages: false,
-      } as Query<Incident>);
-    }
-
-    queries.push({
+    const scopedQuery: Query<Incident> = {
       ...query,
       isScopedToStatusPages: true,
       // An id list on an entity-array column becomes a join-table filter.
       statusPages: [statusPageId],
-    } as unknown as Query<Incident>);
+    } as unknown as Query<Incident>;
+    const canReadMonitoredIncidents: boolean =
+      !data.includeMonitorlessIncidents ||
+      !Array.isArray(query.monitors) ||
+      query.monitors.length > 0;
+
+    if (canReadMonitoredIncidents) {
+      if (!this.showsOnlyScopedIncidents(data.statusPage)) {
+        queries.push({ ...query, isScopedToStatusPages: false });
+      }
+      queries.push(scopedQuery);
+    }
+
+    if (data.includeMonitorlessIncidents && query.monitors !== undefined) {
+      const monitorlessQuery: Query<Incident> = { ...scopedQuery };
+      delete monitorlessQuery.monitors;
+      queries.push(
+        QueryIdCondition.withIdCondition(
+          monitorlessQuery,
+          QueryHelper.noEntitiesInManyToMany({
+            joinTableName: "IncidentMonitor",
+            ownerColumnName: "incidentId",
+          }) as FindOperator<unknown>,
+        ),
+      );
+    }
 
     return queries;
   }

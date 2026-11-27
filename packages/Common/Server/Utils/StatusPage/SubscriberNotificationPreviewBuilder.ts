@@ -279,7 +279,7 @@ export default class SubscriberNotificationPreviewBuilder {
   }
 
   /*
-   * Why nothing will be sent, in the order the jobs find it out: no monitor,
+   * Why nothing will be sent, in the order the jobs find it out: no scope or monitor,
    * an incident hidden from status pages, a draft that will be private or
    * does not notify - and, when no status page is sent the email, whether a
    * page shows the incident all the same.
@@ -302,7 +302,7 @@ export default class SubscriberNotificationPreviewBuilder {
      */
     isShownOnAnyStatusPage: boolean;
   }): SubscriberNotificationPreviewNothingSentReason | null {
-    if (!data.audience.hasMonitors) {
+    if (!data.audience.hasMonitors && !data.audience.isScoped) {
       return SubscriberNotificationPreviewNothingSentReason.NoMonitors;
     }
 

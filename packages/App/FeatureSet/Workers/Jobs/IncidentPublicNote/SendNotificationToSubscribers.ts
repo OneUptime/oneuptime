@@ -66,6 +66,7 @@ import SubscriberNotificationRunLimit, {
   SubscriberNotificationProjectSlot,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
+import getIncidentNotificationCategoryIds from "Common/Server/Utils/StatusPage/IncidentNotificationCategoryIds";
 import Email from "Common/Types/Email";
 import SubscriberNotificationTrigger from "Common/Types/StatusPage/SubscriberNotificationTrigger";
 import SubscriberUpdateNotification from "Common/Types/StatusPage/SubscriberUpdateNotification";
@@ -365,10 +366,12 @@ const notifySubscribersOfIncidentPublicNote: (data: {
         // Whether a status page shows it (StatusPageVisibility): visible, and not private.
         isVisibleOnStatusPage: true,
         isPrivate: true,
+        isScopedToStatusPages: true,
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         // {{incidentLabels}} and the custom fields (IncidentTemplateVariableBuilder).
         labels: {
+          _id: true,
           name: true,
         },
         customFields: true,
@@ -393,7 +396,10 @@ const notifySubscribersOfIncidentPublicNote: (data: {
       return;
     }
 
-    if (!incident.monitors || incident.monitors.length === 0) {
+    if (
+      !incident.isScopedToStatusPages &&
+      (!incident.monitors || incident.monitors.length === 0)
+    ) {
       logger.debug(
         `Incident ${incident.id} has no monitors; marking public note ${incidentPublicNote.id} as Skipped.`,
         {
@@ -458,6 +464,7 @@ const notifySubscribersOfIncidentPublicNote: (data: {
      */
     const resolvedStatusPages: ResolvedIncidentStatusPages =
       await IncidentStatusPageScope.resolvePagesForIncidents({
+        includeMonitorlessIncidents: true,
         incidents: [incident],
       });
 
@@ -685,6 +692,9 @@ const notifySubscribersOfIncidentPublicNote: (data: {
           );
         };
 
+        const incidentCategoryIds: Array<ObjectID> =
+          await getIncidentNotificationCategoryIds(incident, statuspage);
+
         /*
          * Every subscriber of the page, read in batches past LIMIT_MAX, a
          * bounded number at a time, each message awaited and counted sent or
@@ -711,6 +721,8 @@ const notifySubscribersOfIncidentPublicNote: (data: {
                   statusPageToResources[statuspage._id!] || [],
                 statusPage: statuspage,
                 eventType: StatusPageEventType.Incident,
+                incidentCategoryIds,
+                isIncidentWithoutMonitors: !incident.monitors?.length,
               });
 
             if (!shouldNotifySubscriber) {

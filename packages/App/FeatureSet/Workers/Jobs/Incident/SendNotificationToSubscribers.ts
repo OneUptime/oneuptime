@@ -65,6 +65,7 @@ import SubscriberNotificationRunLimit, {
   SubscriberNotificationProjectSlot,
 } from "Common/Server/Utils/StatusPage/SubscriberNotificationRunLimit";
 import SubscriberNotificationFanOut from "Common/Server/Utils/StatusPage/SubscriberNotificationFanOut";
+import getIncidentNotificationCategoryIds from "Common/Server/Utils/StatusPage/IncidentNotificationCategoryIds";
 import FeedMarkdown, {
   mdText,
   MarkdownText,
@@ -165,6 +166,7 @@ RunCron(
           // Whether a status page shows it (StatusPageVisibility): visible, and not private.
           isVisibleOnStatusPage: true,
           isPrivate: true,
+          isScopedToStatusPages: true,
           monitors: {
             _id: true,
           },
@@ -180,6 +182,7 @@ RunCron(
           version: true,
           // {{incidentLabels}} and the custom fields (IncidentTemplateVariableBuilder).
           labels: {
+            _id: true,
             name: true,
           },
           customFields: true,
@@ -281,7 +284,10 @@ RunCron(
             `Incident ${incident.id} status set to InProgress for subscriber notifications.`,
           );
 
-          if (!incident.monitors || incident.monitors.length === 0) {
+          if (
+            !incident.isScopedToStatusPages &&
+            (!incident.monitors || incident.monitors.length === 0)
+          ) {
             logger.debug(
               `Incident ${incident.id} has no monitors attached; marking subscriber notifications as Skipped.`,
             );
@@ -349,6 +355,7 @@ RunCron(
            */
           const resolvedStatusPages: ResolvedIncidentStatusPages =
             await IncidentStatusPageScope.resolvePagesForIncidents({
+              includeMonitorlessIncidents: true,
               incidents: [incident],
             });
 
@@ -591,6 +598,9 @@ RunCron(
                   ? mdText`${FeedMarkdown.join(pageTemplateVariables.customFieldsMarkdownLines, "\n")}\n`
                   : FeedMarkdown.empty();
 
+              const incidentCategoryIds: Array<ObjectID> =
+                await getIncidentNotificationCategoryIds(incident, statuspage);
+
               /*
                * Every subscriber of the page, read in batches past LIMIT_MAX,
                * a bounded number at a time, each message awaited and counted
@@ -618,6 +628,8 @@ RunCron(
                         statusPageToResources[statuspage._id!] || [],
                       statusPage: statuspage,
                       eventType: StatusPageEventType.Incident,
+                      incidentCategoryIds,
+                      isIncidentWithoutMonitors: !incident.monitors?.length,
                     });
 
                   if (!shouldNotifySubscriber) {
@@ -1211,6 +1223,7 @@ async function requeueForStatusPagesAddedWhileSending(data: {
   try {
     const current: ResolvedIncidentStatusPages =
       await IncidentStatusPageScope.resolvePagesForIncidents({
+        includeMonitorlessIncidents: true,
         incidents: [data.incident],
       });
 
