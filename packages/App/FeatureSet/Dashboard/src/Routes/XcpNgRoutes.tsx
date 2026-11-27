@@ -15,6 +15,8 @@ import XcpNgSettingsOwnerRules from "../Pages/XcpNg/Settings/OwnerRules";
 import XcpNgSettingsLabelRules from "../Pages/XcpNg/Settings/LabelRules";
 import XcpNgRulesAuditLogs from "../Pages/XcpNg/Settings/RulesAuditLogs";
 import XcpNgArchived from "../Pages/XcpNg/Archived";
+import XcpNgConnections from "../Pages/XcpNg/Connections";
+import XcpNgConnectionView from "../Pages/XcpNg/ConnectionView";
 import XcpNgPoolOverview from "../Pages/XcpNg/View/Index";
 import XcpNgPoolHosts from "../Pages/XcpNg/View/Hosts";
 import XcpNgPoolHostDetail from "../Pages/XcpNg/View/HostDetail";
@@ -43,8 +45,9 @@ import { DeveloperDocsScope } from "../Components/DeveloperDocs/DeveloperDocsPag
 
 /*
  * The XCP-ng product: the product's own pages (every pool, the archived
- * ones, the install guide and the owner and label rules) under one layout,
- * and one pool's pages under its own. A pool's hosts, VMs and storage
+ * ones, the connections a probe reads and each one's page, the install
+ * guide and the owner and label rules) under one layout, and one pool's
+ * pages under its own. A pool's hosts, VMs and storage
  * repositories each have a page of their own, keyed by the object's XAPI
  * UUID, so their routes take two trailing path segments ("hosts/:uuid"),
  * never one that would shadow the list.
@@ -132,6 +135,24 @@ const XcpNgRoutes: FunctionComponent<ComponentProps> = (
             <XcpNgArchived
               {...props}
               pageRoute={RouteMap[PageMap.XCP_NG_POOLS_ARCHIVED] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={XcpNgRoutePath[PageMap.XCP_NG_CONNECTIONS] || ""}
+          element={
+            <XcpNgConnections
+              {...props}
+              pageRoute={RouteMap[PageMap.XCP_NG_CONNECTIONS] as Route}
+            />
+          }
+        />
+        <PageRoute
+          path={XcpNgRoutePath[PageMap.XCP_NG_CONNECTION_VIEW] || ""}
+          element={
+            <XcpNgConnectionView
+              {...props}
+              pageRoute={RouteMap[PageMap.XCP_NG_CONNECTION_VIEW] as Route}
             />
           }
         />

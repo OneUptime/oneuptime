@@ -408,6 +408,12 @@ import "./Jobs/StorageArray/CleanupStaleResources";
 // XCP-ng pool disconnection sweeper + inventory cleanup.
 import "./Jobs/XcpNg/CleanupStaleResources";
 
+// XCP-ng connections read from a probe: connection tests no probe answers.
+import "./Jobs/XcpNg/ExpireConnectionTests";
+
+// XCP-ng connections read from a probe: API tokens about to expire.
+import "./Jobs/XcpNg/WarnExpiringApiTokens";
+
 // Docker Swarm cluster disconnection sweeper + inventory cleanup.
 import "./Jobs/DockerSwarm/CleanupStaleResources";
 

@@ -7,6 +7,7 @@ import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveRe
 import ResourceDetailsCard from "../../../Components/TelemetryResource/ResourceDetailsCard";
 import TelemetryResourceMoreSettings from "../../../Components/TelemetryResource/TelemetryResourceMoreSettings";
 import AgentVersion from "../../../Components/AgentVersion/AgentVersion";
+import XcpNgPoolDataCollectionCard from "../../../Components/XcpNg/XcpNgPoolDataCollectionCard";
 import { AgentKind } from "../../../Components/AgentVersion/AgentKind";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
@@ -97,6 +98,8 @@ const XcpNgPoolSettings: FunctionComponent<
           },
         ]}
       />
+      {/* The XCP-ng Agent, or a probe through one of the connections. */}
+      <XcpNgPoolDataCollectionCard modelId={modelId} />
       <TelemetryResourceMoreSettings<XcpNgPool>
         modelType={XcpNgPool}
         modelId={modelId}

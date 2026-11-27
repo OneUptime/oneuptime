@@ -574,6 +574,8 @@ export const PRODUCT_RECORD_TABLES: Readonly<
     "StorageArrayResource",
   ],
   [ProductKey.XcpNg]: [
+    "XcpNgConnection",
+    "XcpNgConnectionTest",
     "XcpNgPool",
     "XcpNgPoolFeed",
     "XcpNgPoolLabelRule",
