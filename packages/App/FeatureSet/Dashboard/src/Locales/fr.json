@@ -67288,5 +67288,21 @@
   "XCP-ng Pool Master Changed": "Maître du pool XCP-ng changé",
   "XCP-ng Pool High Availability Changed": "Haute disponibilité du pool XCP-ng modifiée",
   "XCP-ng Pool Backup Failed": "Sauvegarde du pool XCP-ng en échec",
-  "XCP-ng alarms": "Alarmes XCP-ng"
+  "XCP-ng alarms": "Alarmes XCP-ng",
+  "AWS refused OneUptime's read of IAM in the account {{cloudAccount}}, though its AWS connection has Security case checks on. Edit the connection under Cloud → Connect and run the command it shows again.": "AWS refused OneUptime's read of IAM in the account {{cloudAccount}}, though its AWS connection has Security case checks on. Edit the connection under Cloud → Connect and run the command it shows again.",
+  "Anyone in AWS may assume the role {{account}}: its trust policy trusts every AWS account.": "Anyone in AWS may assume the role {{account}}: its trust policy trusts every AWS account.",
+  "Confirm the role {{account}} in {{provider}} trusts only whom you expect: the attack changed its trust policy.": "Confirm the role {{account}} in {{provider}} trusts only whom you expect: the attack changed its trust policy.",
+  "Confirm the role {{account}} no longer has the policy {{object}} in {{provider}}.": "Confirm the role {{account}} no longer has the policy {{object}} in {{provider}}.",
+  "Confirm the role {{account}} the attack made is gone from {{provider}}.": "Confirm the role {{account}} the attack made is gone from {{provider}}.",
+  "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.": "Lets a security case read back what an attack changed on an IAM user or role: a user's keys, password, policies, groups and MFA, and a role's policies and whom it trusts. The command changes with it.",
+  "The role {{account}} in {{provider}} no longer trusts the outside accounts the attack's trust policy let in.": "The role {{account}} in {{provider}} no longer trusts the outside accounts the attack's trust policy let in.",
+  "The role {{account}} no longer exists in {{provider}}, so nothing the attack gave it is left.": "The role {{account}} no longer exists in {{provider}}, so nothing the attack gave it is left.",
+  "The role {{account}} no longer has the policy {{object}} in {{provider}}.": "The role {{account}} no longer has the policy {{object}} in {{provider}}.",
+  "The role {{account}} still has the policy {{object}} in {{provider}}.": "The role {{account}} still has the policy {{object}} in {{provider}}.",
+  "The role {{account}} still has the trust policy the attack set in {{provider}}.": "The role {{account}} still has the trust policy the attack set in {{provider}}.",
+  "The role {{account}} the attack made is gone from {{provider}}.": "The role {{account}} the attack made is gone from {{provider}}.",
+  "The role {{account}} the attack made is still in {{provider}}.": "The role {{account}} the attack made is still in {{provider}}.",
+  "The role {{account}} trusts {{count}} AWS accounts outside {{cloudAccount}}, {{trusted}} among them.": "The role {{account}} trusts {{count}} AWS accounts outside {{cloudAccount}}, {{trusted}} among them.",
+  "The role {{account}} trusts {{count}} AWS accounts outside {{cloudAccount}}, {{trusted}} among them._one": "The role {{account}} trusts {{count}} AWS account outside {{cloudAccount}}: {{trusted}}.",
+  "The role {{account}} trusts {{trusted}}, an AWS account outside {{cloudAccount}}.": "The role {{account}} trusts {{trusted}}, an AWS account outside {{cloudAccount}}."
 }
