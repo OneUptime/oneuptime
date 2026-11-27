@@ -325,12 +325,18 @@ function getComparedColumns(tableName: string): Array<string> {
   return Array.from(columns);
 }
 
-// An id as the API answers with it: text, or { _type: "ObjectID", value }.
-function readId(value: JSONValue | undefined): string | null {
+/*
+ * An id as the API answers with it, once its answer is read
+ * (HTTPResponse deserializes it): an ObjectID, text, or the
+ * { _type: "ObjectID", value } it is sent as.
+ */
+export function readId(value: unknown): string | null {
   const text: unknown =
-    value && typeof value === "object" && !Array.isArray(value)
-      ? (value as JSONObject)["value"] || (value as JSONObject)["_id"]
-      : value;
+    value instanceof ObjectID
+      ? value.toString()
+      : value && typeof value === "object" && !Array.isArray(value)
+        ? (value as JSONObject)["value"] || (value as JSONObject)["_id"]
+        : value;
 
   return typeof text === "string" && ObjectID.isValidUUID(text) ? text : null;
 }
@@ -391,9 +397,7 @@ async function readProjectId(data: {
   record: JSONObject | null;
 }): Promise<string | null> {
   if (data.credential.type === McpCredentialType.OAuth) {
-    return readId(
-      data.credential.principal.grant.projectId?.toString() as JSONValue,
-    );
+    return readId(data.credential.principal.grant.projectId);
   }
 
   const fromRecord: string | null = readId(data.record?.["projectId"]);
