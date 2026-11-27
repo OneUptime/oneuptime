@@ -141,10 +141,16 @@ const DataStoreSettings: FunctionComponent<
   );
   const scanContentDescription: string =
     exposureCheck === DataStoreExposureCheck.CloudApi
-      ? "Sample this store's content to find sensitive data in it. Its configuration is checked either way."
+      ? translationKey(
+          "Sample this store's content to find sensitive data in it. Its configuration is checked either way.",
+        )
       : exposureCheck === DataStoreExposureCheck.Endpoint
-        ? "Sample its content for sensitive data. Whether it answers without credentials is asked with each scan, so it stops with them."
-        : "Sample this store's content to find sensitive data in it.";
+        ? translationKey(
+            "Sample its content for sensitive data. Whether it answers without credentials is asked with each scan, so it stops with them.",
+          )
+        : translationKey(
+            "Sample this store's content to find sensitive data in it.",
+          );
 
   // The two switches few stores need: folded under More fields.
   const treatmentMoreFields: FormFieldCollapsibleSection<DataStore> =
