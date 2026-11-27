@@ -435,18 +435,19 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
    */
   const publicName: string = (statusPage?.pageTitle || "").trim();
 
-  const links: Array<Link> = (
-    (JSONFunctions.getJSONValueInPath(
-      masterPageData || {},
-      "headerLinks",
-    ) as Array<JSONObject>) || []
-  ).map((link: JSONObject) => {
-    return {
-      title: link["title"] as string,
-      to: link["link"] as URL,
-      openInNewTab: true,
-    };
-  });
+  const headerLinks: Array<JSONObject> =
+    (masterPageData?.["headerLinks"] as Array<JSONObject>) || [];
+  const links: Array<Link> = headerLinks
+    .filter((link: JSONObject) => {
+      return Boolean(link["link"]);
+    })
+    .map((link: JSONObject) => {
+      return {
+        title: link["title"] as string,
+        to: link["link"] as URL,
+        openInNewTab: true,
+      };
+    });
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -502,6 +503,7 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
         <NavBar
           isPrivateStatusPage={props.isPrivateStatusPage}
           show={true}
+          headerLinks={headerLinks}
           isPreview={props.isPreview}
           enableEmailSubscribers={props.enableEmailSubscribers}
           enableSMSSubscribers={props.enableSMSSubscribers}

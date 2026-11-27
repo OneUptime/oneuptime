@@ -8363,15 +8363,18 @@ export default class StatusPageAPI extends BaseAPI<
       await StatusPageHeaderLinkService.findBy({
         query: {
           statusPageId: data.statusPageId,
+          isHidden: false,
         },
         select: {
           _id: true,
           link: true,
           title: true,
+          navigationPath: true,
           order: true,
         },
         sort: {
           order: SortOrder.Ascending,
+          createdAt: SortOrder.Ascending,
         },
         limit: LIMIT_PER_PROJECT,
         skip: 0,

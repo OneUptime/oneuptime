@@ -1,3 +1,4 @@
+import { AddStatusPageNavigationViews1809187741200 } from "./1809187741200-AddStatusPageNavigationViews";
 import { AddAIInvestigationDecision1793700000000 } from "./1793700000000-AddAIInvestigationDecision";
 import { RemoveMonitorDescriptionLengthLimit1793800000000 } from "./1793800000000-RemoveMonitorDescriptionLengthLimit";
 import { AddEnterpriseEditionFirstSeenAt1793900000000 } from "./1793900000000-AddEnterpriseEditionFirstSeenAt";
@@ -2420,4 +2421,5 @@ export default [
   AddCloudCostBasesAndCommitments1809187721011,
   AddSanSwitchFibreChannelColumns1809187731166,
   AddSecurityUserErasureRequestProgress1809187741160,
+  AddStatusPageNavigationViews1809187741200,
 ];

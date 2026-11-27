@@ -1,6 +1,8 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
+import { JSONObject } from "Common/Types/JSON";
+import { STATUS_PAGE_NAVIGATION_PATH } from "Common/Models/DatabaseModels/StatusPageHeaderLink";
 import IconProp from "Common/Types/Icon/IconProp";
 import NavBar from "Common/UI/Components/Navbar/NavBar";
 import NavBarItem from "Common/UI/Components/Navbar/NavBarItem";
@@ -14,9 +16,11 @@ import React, {
   useRef,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router-dom";
 
 export interface ComponentProps {
   show: boolean;
+  headerLinks?: Array<JSONObject>;
   isPreview: boolean;
   isPrivateStatusPage: boolean;
   enableEmailSubscribers: boolean;
@@ -47,6 +51,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const { t } = useTranslation();
+  const { search } = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
   const mobileNavRef: React.RefObject<HTMLDivElement> =
     useRef<HTMLDivElement>(null);
@@ -134,15 +139,23 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
    */
   const navItems: Array<NavItem> = [];
 
+  const category: string | null = new URLSearchParams(search).get("category");
+
   const addNavItem: AddNavItemFunction = (item: {
     id: string;
     title: string;
     icon: IconProp;
     route: Route;
   }): void => {
+    const isCurrentPath: boolean = Navigation.isOnThisPage(item.route);
     navItems.push({
       ...item,
-      isActive: Navigation.isOnThisPage(item.route),
+      // A destination without a query clears the current filter on click.
+      route:
+        isCurrentPath && category
+          ? new Route(`${item.route.toString()}?`)
+          : item.route,
+      isActive: isCurrentPath,
     });
   };
 
@@ -183,6 +196,39 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         PageMap.SCHEDULED_EVENT_LIST,
         PageMap.PREVIEW_SCHEDULED_EVENT_LIST,
       ),
+    });
+  }
+
+  for (const link of props.headerLinks || []) {
+    const path: string = (link["navigationPath"] as string) || "";
+    if (!STATUS_PAGE_NAVIGATION_PATH.test(path)) {
+      continue;
+    }
+
+    const [pathname, query] = path.split("?") as [string, string?];
+    // The built-in tab already knows whether this list is visible and its preview route.
+    const destination: NavItem | undefined = navItems.find((item: NavItem) => {
+      return item.route.toString().split("?")[0]?.endsWith(pathname);
+    });
+    if (!destination) {
+      continue;
+    }
+
+    const isActive: boolean =
+      destination.isActive &&
+      new URLSearchParams(query).get("category") === category;
+    if (isActive) {
+      destination.isActive = false;
+    }
+
+    navItems.push({
+      id: `status-view-${link["_id"]}`,
+      title: link["title"] as string,
+      icon: destination.icon,
+      route: query
+        ? new Route(`${destination.route.toString().split("?")[0]}?${query}`)
+        : destination.route,
+      isActive,
     });
   }
 
@@ -280,6 +326,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
                       icon={item.icon}
                       exact={true}
                       route={item.route}
+                      isActive={item.isActive}
                       onClick={() => {
                         return setIsMobileMenuOpen(false);
                       }}
@@ -293,7 +340,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <NavBar className="mt-5 max-md:hidden justify-between rounded-lg bg-white px-5 py-2 text-center shadow md:flex">
+      <NavBar className="mt-5 max-md:hidden flex-wrap justify-between rounded-lg bg-white px-5 py-2 text-center shadow md:flex">
         {navItems.map((item: NavItem) => {
           return (
             <NavBarItem
@@ -304,6 +351,7 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
               icon={item.icon}
               exact={true}
               route={item.route}
+              isActive={item.isActive}
             />
           );
         })}
