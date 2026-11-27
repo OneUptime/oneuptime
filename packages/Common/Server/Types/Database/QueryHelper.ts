@@ -1253,6 +1253,88 @@ export default class QueryHelper {
   }
 
   /**
+   * The records a condition this class writes is not true of: false, or
+   * unknown - NULL, where it compares an empty column (`status = 'x'` of a
+   * row with no status). For "none of these", which keeps the records whose
+   * column is empty, as a list's "is not" does (FilterGroups' NoneOf,
+   * #11211). notCondition's counterpart for a condition that can be NULL:
+   * NOT of NULL is NULL, which drops the row.
+   */
+  public static isNotTrue(
+    condition: FindWhereProperty<any>,
+  ): FindWhereProperty<any> {
+    const getSql: (alias: string) => string = QueryHelper.getRawSql(condition);
+
+    return Raw(
+      (alias: string) => {
+        return `(${getSql(alias)} IS NOT TRUE)`;
+      },
+      (condition as unknown as FindOperator<unknown>).objectLiteralParameters ||
+        {},
+    );
+  }
+
+  /**
+   * THE RECORDS A LINK TABLE LINKS TO ONE OF `values` (LinkedTo, #11211).
+   * Applied to the record's primary id: the ids a row of `tableName` names
+   * in `recordColumnName` beside one of `values` in `linkedColumnName` - a
+   * team, through a TeamMember row naming one of the people picked. A link
+   * row marked deleted links nothing. With `isNoneOf`, the records no such
+   * row names, those with no link rows at all among them.
+   *
+   * One uncorrelated subquery, through the link table's index on the
+   * linked column: it reads the same in a SELECT, an UPDATE and a DELETE,
+   * and joins nothing into the read. A link row naming no record is left
+   * out of it, so NOT IN is never asked about an empty id. No values link
+   * nothing: no record, or (isNoneOf) every record.
+   */
+  public static linkedThroughTable(data: {
+    values: Array<string | ObjectID>;
+    tableName: string;
+    recordColumnName: string;
+    linkedColumnName: string;
+    deleteDateColumnName?: string | null | undefined;
+    isNoneOf?: boolean | undefined;
+  }): FindWhereProperty<any> {
+    const values: Array<string> = data.values.map(
+      (value: string | ObjectID): string => {
+        return value.toString();
+      },
+    );
+
+    if (values.length === 0) {
+      return Raw(() => {
+        return data.isNoneOf ? `TRUE = TRUE` : `TRUE = FALSE`;
+      }, {});
+    }
+
+    const valuesRid: string = Text.generateRandomText(10);
+    const table: string = QueryHelper.escapeIdentifier(data.tableName);
+    // The link table's own alias, so its columns are never read as the outer row's.
+    const linkAlias: string = `link${Text.generateRandomText(10)}`;
+    const recordColumn: string = QueryHelper.escapeIdentifier(
+      data.recordColumnName,
+    );
+    const linkedColumn: string = QueryHelper.escapeIdentifier(
+      data.linkedColumnName,
+    );
+    const notDeleted: string = data.deleteDateColumnName
+      ? ` AND "${linkAlias}"."${QueryHelper.escapeIdentifier(
+          data.deleteDateColumnName,
+        )}" IS NULL`
+      : "";
+
+    return Raw(
+      (alias: string) => {
+        return `(${alias} ${data.isNoneOf ? "NOT IN" : "IN"} (SELECT "${linkAlias}"."${recordColumn}" FROM "${table}" "${linkAlias}" WHERE "${linkAlias}"."${linkedColumn}" IN (:...${valuesRid}) AND "${linkAlias}"."${recordColumn}" IS NOT NULL${notDeleted}))`;
+      },
+      {
+        [valuesRid]: values,
+      },
+    );
+  }
+
+  /**
    * A flag that is off: FALSE, or never set. For a record kept unless it is
    * marked - an incident that is not private (ReadAudiencePermission) - as
    * a condition other conditions of this class can hold.

@@ -4963,6 +4963,29 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Telemetry/ExceptionPrivateFingerprintPostgres.test.ts --forceExit
 
+      # The duplicates a failed lookup made before #11027 whose error never
+      # happened again (#11113): the old fallback's leftovers shown as two in
+      # the list, then MergeBackExceptionsSplitByFailedLookups through its own
+      # statements, the heal and the merge - a provable duplicate merged back
+      # with every count, seen time, state and timeline; lookalikes it cannot
+      # prove left as two; a second run changing nothing; and a table of many
+      # exceptions finishing across runs. Occurrences stood in (the
+      # ClickHouse read runs in its own suite). Clones the migrated
+      # TelemetryException, TelemetryExceptionActivity and DataMigrations
+      # into an isolated schema.
+      - name: Test merging back the duplicates a failed lookup made on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_EXCEPTION_MERGE_TESTS: "true"
+          EXCEPTION_MERGE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          EXCEPTION_MERGE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          EXCEPTION_MERGE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/MergeBackExceptionsSplitByFailedLookupsPostgres.test.ts
+          --forceExit
+
       # A key used only over OTLP gRPC shows as used (#7887), end to end: the
       # production gRPC server on a loopback port, a real client's OTLP
       # export, the key resolved from Postgres and its lastUsedAt written by
@@ -5122,6 +5145,27 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Workers/DataMigrations/EndOnCallTimeLogsOfDeletedPoliciesPostgres.test.ts
+          --forceExit
+
+      # #11037: Sensitive file served, added on upgrade to each project that
+      # runs every other recommended rule and has none of it - on, opening
+      # cases, created by nobody and marked as added by OneUptime, which the
+      # Overview's own read then names - and to no project that turned a
+      # recommended rule off, deleted one, or has the rule already (off,
+      # renamed, or by its name alone). More projects than a page, a second
+      # run and two at once. Clones the migrated DetectionRule table into an
+      # isolated schema. An App suite, so in shard 3, which installs App.
+      - name: Test adding Sensitive file served to the projects that run every other recommended rule on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_SENSITIVE_FILE_SERVED_ROLLOUT_TESTS: "true"
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/AddSensitiveFileServedToRecommendedRulesPostgres.test.ts
           --forceExit
 
       # Archiving the values records pick from, on migrated Postgres: the two
@@ -5382,7 +5426,18 @@ jobs:
       # column, a label's reader kept to their incidents, and a saved pick
       # named by its id, archived or gone. #11074: which recommended
       # monitors a resource has, answered past the project's 10,000th
-      # monitor.
+      # monitor. #11211: the Databases list's Engine Metrics chip and All
+      # Environments' Status chip answered in the list's own query (one
+      # FilterGroups) - 10,050 databases and environments of a status
+      # listed, counted and paged, every subset of statuses matching the
+      # Status column's rule exactly, a label's reader kept to theirs - and
+      # the Teams list's Member chip through TeamMember, a person in 10,050
+      # teams, one taken out of a team in none; the old reads shown
+      # stopping at 10,000. #11210: a cloud account's recommendations read
+      # by the Dashboard's own loaders through the list routes - an
+      # account's 10,050 resources each weighed, a page at a time, and
+      # every dismissal of them read by the account's resources in a
+      # project whose first 10,040 dismissals are another account's.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 5
         working-directory: packages/Common
@@ -5411,6 +5466,8 @@ jobs:
           Tests/Server/API/FixWithAiRepositorySearchPostgres.test.ts
           Tests/Server/API/AffectedResourceFilterPostgres.test.ts
           Tests/Server/API/MonitorRecommendationCoveragePostgres.test.ts
+          Tests/Server/API/ListFiltersPastTheCapPostgres.test.ts
+          Tests/Server/API/CloudAccountRecommendationsPostgres.test.ts
           --forceExit
 
       # #11012 and #11013: required cloud tags and the host a VM is, on

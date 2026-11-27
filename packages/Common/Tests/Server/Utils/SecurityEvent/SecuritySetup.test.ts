@@ -67,6 +67,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import PositiveNumber from "../../../../Types/PositiveNumber";
 import {
   DetectionRuleLibraryEntry,
+  SENSITIVE_FILE_SERVED_RULE_ID,
   SETUP_TEST_DETECTION_RULE_ID,
   getDetectionRuleLibraryEntry,
   getRecommendedDetectionRules,
@@ -306,6 +307,13 @@ describe("SecuritySetup.getStatus", () => {
       enabledRules: 2,
       recommendedRules: recommended.length,
       recommendedRulesOn: 1,
+      // The first two are the project's, one of them off: every other one is named.
+      recommendedRulesNotAdded: recommended
+        .slice(2)
+        .map((entry: DetectionRuleLibraryEntry): string => {
+          return entry.id;
+        }),
+      rulesAddedByOneUptime: [],
       threatIntelFeeds: 1,
       openCases: 3,
       enabledPlaybooks: 4,
@@ -379,6 +387,142 @@ describe("SecuritySetup.getStatus", () => {
     expect(status.lastEventAt).toBeNull();
     expect(status.enabledRules).toBe(0);
     expect(status.recommendedRulesOn).toBe(0);
+    // Rules it may not read are never said to be missing (#11037).
+    expect(status.recommendedRulesNotAdded).toEqual([]);
+    expect(status.rulesAddedByOneUptime).toEqual([]);
+  });
+
+  /*
+   * #11037: a project that turned on the recommended rules before
+   * Sensitive file served was one is told which rule it does not have, and
+   * one OneUptime added it to is told that OneUptime did.
+   */
+  function installEmptyPipeline(rules: Array<DetectionRule>): {
+    rulesRead: ReturnType<typeof jest.spyOn>;
+  } {
+    jest.spyOn(OneUptimeDate, "getCurrentDate").mockReturnValue(NOW);
+    jest
+      .spyOn(SecurityEventConnectionService, "countBy")
+      .mockResolvedValue(count(0));
+    jest
+      .spyOn(SecurityLogSourceService, "findOneBy")
+      .mockResolvedValue({ isEnabled: true } as never);
+    jest
+      .spyOn(SecurityTelemetrySourceService, "countBy")
+      .mockResolvedValue(count(0));
+    jest.spyOn(SecurityEventService, "countBy").mockResolvedValue(count(0));
+    jest.spyOn(SecurityEventService, "findBy").mockResolvedValue([]);
+    const rulesRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DetectionRuleService, "findBy")
+      .mockResolvedValue(rules as never);
+    jest.spyOn(ThreatIntelFeedService, "countBy").mockResolvedValue(count(0));
+    jest.spyOn(SecurityCaseService, "countBy").mockResolvedValue(count(0));
+    jest.spyOn(SecurityPlaybookService, "countBy").mockResolvedValue(count(1));
+    jest
+      .spyOn(SecurityEventDestinationService, "countBy")
+      .mockResolvedValue(count(0));
+    jest
+      .spyOn(SecurityTelemetrySourceService, "findOneBy")
+      .mockResolvedValue(null);
+    jest.spyOn(LogScrubRuleService, "findBy").mockResolvedValue([]);
+    jest.spyOn(TraceScrubRuleService, "findBy").mockResolvedValue([]);
+
+    return { rulesRead };
+  }
+
+  function recommendedRule(
+    entry: DetectionRuleLibraryEntry,
+    index: number,
+    addedByOneUptimeAt?: Date,
+  ): DetectionRule {
+    const model: DetectionRule = rule({
+      name: entry.title,
+      isEnabled: true,
+      sigmaRuleYaml: entry.sigmaRuleYaml,
+      idSuffix: String(index).padStart(4, "0"),
+    });
+
+    if (addedByOneUptimeAt) {
+      model.addedByOneUptimeAt = addedByOneUptimeAt;
+    }
+
+    return model;
+  }
+
+  test("a project that turned on every recommended rule before Sensitive file served was one is told it does not have it", async () => {
+    const recommended: Array<DetectionRuleLibraryEntry> =
+      getRecommendedDetectionRules();
+    const { rulesRead } = installEmptyPipeline(
+      recommended
+        .filter((entry: DetectionRuleLibraryEntry): boolean => {
+          return entry.id !== SENSITIVE_FILE_SERVED_RULE_ID;
+        })
+        .map(
+          (entry: DetectionRuleLibraryEntry, index: number): DetectionRule => {
+            return recommendedRule(entry, index);
+          },
+        ),
+    );
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    expect(status.recommendedRulesOn).toBe(recommended.length - 1);
+    expect(status.recommendedRulesNotAdded).toEqual([
+      SENSITIVE_FILE_SERVED_RULE_ID,
+    ]);
+    expect(status.rulesAddedByOneUptime).toEqual([]);
+
+    // One read of the rules, as before, with when OneUptime added each.
+    expect(rulesRead).toHaveBeenCalledTimes(1);
+    expect(
+      (rulesRead.mock.calls[0]![0] as { select: JSONObject }).select,
+    ).toEqual({
+      _id: true,
+      name: true,
+      sigmaRuleYaml: true,
+      isEnabled: true,
+      addedByOneUptimeAt: true,
+    });
+  });
+
+  test("a project OneUptime added it to is told so, for a month", async () => {
+    const recommended: Array<DetectionRuleLibraryEntry> =
+      getRecommendedDetectionRules();
+    const addedAt: Date = new Date(NOW.getTime() - 3 * 24 * 60 * 60 * 1000);
+    const rules: Array<DetectionRule> = recommended.map(
+      (entry: DetectionRuleLibraryEntry, index: number): DetectionRule => {
+        return recommendedRule(
+          entry,
+          index,
+          entry.id === SENSITIVE_FILE_SERVED_RULE_ID ? addedAt : undefined,
+        );
+      },
+    );
+
+    installEmptyPipeline(rules);
+
+    const status: SecuritySetupStatus = await SecuritySetup.getStatus({
+      projectId: PROJECT_ID,
+      props: PROPS,
+    });
+
+    const served: DetectionRule = rules.find((candidate: DetectionRule) => {
+      return candidate.addedByOneUptimeAt !== undefined;
+    })!;
+
+    expect(status.recommendedRulesNotAdded).toEqual([]);
+    expect(status.recommendedRulesOn).toBe(recommended.length);
+    expect(status.rulesAddedByOneUptime).toEqual([
+      {
+        ruleId: served.id!.toString(),
+        libraryRuleId: SENSITIVE_FILE_SERVED_RULE_ID,
+        name: "Sensitive file served",
+        addedAt: addedAt.toISOString(),
+      },
+    ]);
   });
 });
 

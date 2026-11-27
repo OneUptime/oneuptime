@@ -3225,7 +3225,8 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
 
   /*
    * The list's filter for those pairs (#11026): beside Assigned to me, only
-   * while the project has a split exception left to merge, with how many;
+   * while the project has a split exception left to merge, with how many of
+   * them the list holds in its status, time range and filters (#11116);
    * each pair once, by the one the rule split off; the chart and the
    * sidebar's counts narrowed with it; kept by saved views and links.
    */
@@ -3243,7 +3244,7 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     const troubleshooting: string = section(page, "## Troubleshooting");
 
     expect(troubleshooting).toContain(
-      "**Unmerge** undoes it.\n\nTo list only those pairs, turn on **Split by a scrub rule** beside **Assigned to me**: it lists each pair once, by the exception the rule split off, and the chart and the sidebar's counts then cover only those exceptions. It appears while the project has a pair left to merge, with how many, and saved views and links keep it.\n\n",
+      "**Unmerge** undoes it.\n\nTo list only those pairs, turn on **Split by a scrub rule** beside **Assigned to me**: it lists each pair once, by the exception the rule split off, and the chart and the sidebar's counts then cover only those exceptions. It appears while the project has a pair left to merge, with how many of them the list holds in its status, time range and filters, and saved views and links keep it.\n\n",
     );
 
     // Its words, right after Assigned to me, with how many.
@@ -3254,7 +3255,13 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
     expect(viewer).toContain("translator.formatNumber(splitExceptionCount)");
     // While the project has one: counted once, merged ones left out.
     expect(viewer).toContain(
-      "offersSplitFilter && (splitByScrubRule || (splitExceptionCount || 0) > 0);",
+      "offersSplitFilter && (splitByScrubRule || projectHasSplitExceptions === true);",
+    );
+    expect(viewer).toContain("setProjectHasSplitExceptions(count > 0);");
+    // How many of them the list holds: its own query, with the filter on.
+    expect(viewer).toContain("void countSplitExceptionsInList(query).then(");
+    expect(splitPairs).toContain(
+      'const query: Query<TelemetryException> = { ...listQuery }; (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull();',
     );
     expect(splitPairs).toContain(
       'const query: Query<TelemetryException> = {}; const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId(); if (projectId) { query.projectId = projectId; } (query as Record<string, unknown>)["splitFromTelemetryExceptionId"] = new NotNull();',
@@ -3304,10 +3311,35 @@ describe("Exception Tracking (telemetry/exceptions)", () => {
       "Common/Server/Utils/Telemetry/TelemetryExceptionSplitHeal.ts",
     );
     const flat: string = exceptionUtil.replace(/\s+/g, " ");
+    const sweep: string = readPackageFile(
+      "App/FeatureSet/Workers/DataMigrations/MergeBackExceptionsSplitByFailedLookups.ts",
+    ).replace(/\s+/g, " ");
+    const migrations: string = readPackageFile(
+      "App/FeatureSet/Workers/DataMigrations/Index.ts",
+    );
+    const workers: string = readPackageFile("App/FeatureSet/Workers/Index.ts");
 
     expect(troubleshooting).toContain(
-      "When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second one alerting as a new exception, is merged back into the first by its next occurrence: the older one is kept, nothing alerts, and **Unmerge** undoes it.\n:::",
+      "When OneUptime can't read which exception an occurrence belongs to, it tries again and counts the occurrence once it can: it never makes a second exception for an error it already has. An exception an earlier version of OneUptime made twice that way, the second one alerting as a new exception, is merged back into the first by its next occurrence, or after an upgrade when its error never happens again: the older one is kept, nothing alerts, and **Unmerge** undoes it. A pair OneUptime can't prove is one error, such as one whose text a scrub rule changed, stays two: merge them from **Similar exceptions**.\n:::",
     );
+
+    /*
+     * After an upgrade when its error never happens again (#11113): a data
+     * migration, and a job that goes on with it, through the same heal.
+     */
+    expect(migrations).toContain(
+      "new MergeBackExceptionsSplitByFailedLookups(),",
+    );
+    expect(workers).toContain(
+      'import "./Jobs/TelemetryException/MergeBackExceptionsSplitByFailedLookups";',
+    );
+    expect(sweep).toContain("return TelemetryExceptionSplitHeal.heal(pair);");
+    expect(sweep).toContain("ExceptionUtil.splitByFailedLookupOf({");
+    // Proven by its own stored text: its fingerprint is that text's v1.
+    expect(sweep).toContain("ExceptionUtil.getFingerprint({");
+    expect(sweep).toContain("}) !== data.fingerprint");
+    // One it cannot prove stays two: its occurrences leading elsewhere too.
+    expect(sweep).toContain("return OccurrenceVerdict.Disagree;");
 
     // Tried again, then held: the occurrence's exception unknown, nothing made.
     expect(flat).toContain(

@@ -275,9 +275,9 @@ cat oneuptime-key.json && rm oneuptime-key.json
 
 ## Проверки кейсов безопасности
 
-В AWS то же подключение может позволить [кейсу безопасности](/docs/telemetry/security-cases#как-oneuptime-проверяет-шаг) проверить, что изменения, которые атака внесла у пользователя IAM, отменены: созданный ею ключ доступа, заданный ею пароль консоли, политики, которые она прикрепила или записала, группы, в которые она добавила пользователя, включённое ею устройство MFA и созданного ею пользователя. В разделе **Дополнительные поля** для **Проверки кейсов безопасности** выбрано **Выключено**, пока вы его не включите, и команда, которую показывает форма, меняется вместе с этим выбором. Каждое действие только читает, и ни одно не читает секретов: идентификатор ключа доступа и то, активен ли он, но никогда сам ключ, и то, что пароль консоли задан, но никогда сам пароль.
+В AWS то же подключение может позволить [кейсу безопасности](/docs/telemetry/security-cases#как-oneuptime-проверяет-шаг) проверить, что изменения, которые атака внесла у пользователя или роли IAM, отменены: созданный ею ключ доступа, заданный ею пароль консоли, политики, которые она прикрепила или записала, группы, в которые она добавила пользователя, включённое ею устройство MFA, созданных ею пользователя или роль и политику доверия, которую она задала роли. В разделе **Дополнительные поля** для **Проверки кейсов безопасности** выбрано **Выключено**, пока вы его не включите, и команда, которую показывает форма, меняется вместе с этим выбором. Каждое действие только читает, и ни одно не читает секретов: идентификатор ключа доступа и то, активен ли он, но никогда сам ключ, и то, что пароль консоли задан, но никогда сам пароль.
 
-| Что кейс читает о каждом пользователе, названном в его событиях CloudTrail | Действия |
+| Что кейс читает о каждом пользователе и каждой роли, названных в его событиях CloudTrail | Действия |
 | --- | --- |
 | Пользователь или то, что его больше нет | `iam:GetUser` |
 | Его ключи доступа и то, активен ли каждый | `iam:ListAccessKeys` |
@@ -285,11 +285,13 @@ cat oneuptime-key.json && rm oneuptime-key.json
 | Его управляемые политики и имена его встроенных политик | `iam:ListAttachedUserPolicies`, `iam:ListUserPolicies` |
 | Группы, в которых он состоит | `iam:ListGroupsForUser` |
 | Его устройства MFA | `iam:ListMFADevices` |
+| Роль, кому доверяет её политика доверия, или то, что роли больше нет | `iam:GetRole` |
+| Управляемые политики роли и имена её встроенных политик | `iam:ListAttachedRolePolicies`, `iam:ListRolePolicies` |
 
 Команда для роли добавляет ещё одной строкой отдельную встроенную политику, `OneUptimeSecurityCaseChecks`, а StackSet организации добавляет её в роль каждого аккаунта:
 
 ```bash
-aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 ```
 
 С **Ключ доступа** политика назначается группе с тем же именем, `OneUptimeSecurityCaseChecks`, в которую входит пользователь:
@@ -298,12 +300,12 @@ aws iam put-role-policy --role-name "$ROLE" --policy-name OneUptimeSecurityCaseC
 aws iam create-user --user-name OneUptimeReadOnly > /dev/null 2>&1 || true
 aws iam put-user-policy --user-name OneUptimeReadOnly --policy-name OneUptimeReadOnly --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["cloudwatch:GetMetricData","cloudwatch:ListMetrics","tag:GetResources","iam:ListAccountAliases","cloudformation:ListResources","ec2:DescribeInstances","ec2:DescribeVolumes","ec2:DescribeVpcs","ec2:DescribeSubnets","ec2:DescribeSecurityGroups","ec2:DescribeNatGateways","ec2:DescribeAddresses","autoscaling:DescribeAutoScalingGroups","elasticloadbalancing:Describe*","ecs:ListClusters","ecs:DescribeClusters","ecs:ListServices","ecs:DescribeServices","eks:ListClusters","eks:DescribeCluster","lambda:ListFunctions","rds:DescribeDBInstances","rds:DescribeDBClusters","elasticache:DescribeReplicationGroups","sqs:ListQueues","sqs:GetQueueAttributes","sns:ListTopics","sns:GetTopicAttributes","sns:ListSubscriptionsByTopic","dynamodb:ListTables","dynamodb:DescribeTable","kinesis:ListStreams","kinesis:DescribeStreamSummary","states:ListStateMachines","states:DescribeStateMachine","cloudfront:ListDistributions","elasticfilesystem:DescribeFileSystems","es:ListDomainNames","es:DescribeDomains","apprunner:ListServices","apprunner:DescribeService","elasticbeanstalk:DescribeEnvironments","wafv2:ListWebACLs","wafv2:GetWebACL","network-firewall:ListFirewalls","globalaccelerator:ListAccelerators","cognito-idp:ListUserPools","appsync:ListGraphqlApis","sagemaker:ListEndpoints","cloudtrail:LookupEvents","health:DescribeEvent*","ce:GetCostAndUsage*","ce:GetSavingsPlans*","ce:GetReservation*","savingsplans:DescribeSavingsPlans","cost-optimization-hub:ListRecommendations","cost-optimization-hub:GetRecommendation","rds:DescribeEvents","autoscaling:DescribeScalingActivities","ec2:DescribeInstanceStatus","ecs:DescribeTaskDefinition","lambda:GetFunctionConfiguration","lambda:GetFunctionConcurrency","lambda:GetAlias","servicequotas:ListServiceQuotas","logs:DescribeLogGroups","logs:FilterLogEvents"],"Resource":"*"},{"Effect":"Allow","Action":["apigateway:GET"],"Resource":["arn:aws:apigateway:*::/restapis*","arn:aws:apigateway:*::/apis*"]}]}'
 aws iam create-group --group-name OneUptimeSecurityCaseChecks > /dev/null 2>&1 || true
-aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices"],"Resource":"*"}]}'
+aws iam put-group-policy --group-name OneUptimeSecurityCaseChecks --policy-name OneUptimeSecurityCaseChecks --policy-document '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["iam:GetUser","iam:ListAccessKeys","iam:GetLoginProfile","iam:ListAttachedUserPolicies","iam:ListUserPolicies","iam:ListGroupsForUser","iam:ListMFADevices","iam:GetRole","iam:ListAttachedRolePolicies","iam:ListRolePolicies"],"Resource":"*"}]}'
 aws iam add-user-to-group --user-name OneUptimeReadOnly --group-name OneUptimeSecurityCaseChecks
 aws iam create-access-key --user-name OneUptimeReadOnly
 ```
 
-Кейс проверяет изменение только через подключение, которое достаёт до аккаунта, где изменение сделано, и ничего не спрашивает у IAM через подключение, у которого для **Проверки кейсов безопасности** выбрано **Выключено**: он называет такие изменения, чтобы вы подтвердили их сами, и предлагает включить этот параметр. **Выключено** ничего не добавляет, поэтому то, что выдала предыдущая команда, остаётся на месте, пока вы это не удалите командой `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`.
+Кейс проверяет изменение только через подключение, которое достаёт до аккаунта, где изменение сделано, и ничего не спрашивает у IAM через подключение, у которого для **Проверки кейсов безопасности** выбрано **Выключено**: он называет такие изменения, чтобы вы подтвердили их сами, и предлагает включить этот параметр. **Выключено** ничего не добавляет, поэтому то, что выдала предыдущая команда, остаётся на месте, пока вы это не удалите командой `aws iam delete-role-policy --role-name <your role> --policy-name OneUptimeSecurityCaseChecks`. Команда, выполненная до того, как параметр стал читать роли, даёт только чтение пользователя: выполните команду подключения снова, а пока вы этого не сделали, кейс называет свои изменения ролей, чтобы вы подтвердили их сами, и предлагает её выполнить.
 
 ## Что читает OneUptime
 

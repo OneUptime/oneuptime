@@ -30,6 +30,12 @@ export interface FakeMcpTool {
   title?: string | undefined;
   description?: string | undefined;
   readOnly?: boolean | undefined;
+  /*
+   * Annotations sent as they are, in place of readOnly's: a server that
+   * marks a tool destructive (destructiveHint), or writes mcp-go's
+   * defaults out for every tool.
+   */
+  annotations?: JSONObject | undefined;
   inputSchema?: JSONObject | undefined;
   // The tools/call result; a throw answers with a JSON-RPC error.
   handler?:
@@ -661,9 +667,11 @@ export default class FakeMcpServer {
               type: "object",
               properties: {},
             },
-            ...(tool.readOnly !== undefined
-              ? { annotations: { readOnlyHint: tool.readOnly } }
-              : {}),
+            ...(tool.annotations !== undefined
+              ? { annotations: tool.annotations }
+              : tool.readOnly !== undefined
+                ? { annotations: { readOnlyHint: tool.readOnly } }
+                : {}),
           };
         }),
         ...(next < tools.length ? { nextCursor: String(next) } : {}),

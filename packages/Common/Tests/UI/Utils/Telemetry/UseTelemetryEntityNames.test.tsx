@@ -37,7 +37,9 @@ jest.mock("../../../../UI/Utils/ModelAPI/ModelAPI", () => {
 });
 
 import useTelemetryEntityNames, {
+  TelemetryEntityLookup,
   UseTelemetryEntityNamesOptions,
+  useTelemetryEntityLookup,
 } from "../../../../UI/Utils/Telemetry/UseTelemetryEntityNames";
 import TelemetryEntityNameResolver, {
   TelemetryEntityNameMap,
@@ -122,6 +124,7 @@ interface ResolveSpy {
   ) => unknown;
   mockResolvedValue: (value: TelemetryEntityNameMap) => unknown;
   mockRejectedValue: (value: Error) => unknown;
+  mockRestore: () => void;
 }
 
 interface ConsoleSpy {
@@ -162,11 +165,54 @@ beforeEach(() => {
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
-  resolveSpy = jest.spyOn(
-    TelemetryEntityNameResolver,
-    "resolve",
-  ) as unknown as ResolveSpy;
-  resolveSpy.mockResolvedValue({});
+  /*
+   * The hook asks the resolver's lookup (the names and the ids settled as
+   * naming nothing, #11213). These tests say what the names are; the ids
+   * not found are useTelemetryEntityLookup's tests' to say.
+   */
+  let answer: (
+    args: ResolveArgs,
+  ) => Promise<TelemetryEntityNameMap> = (): Promise<TelemetryEntityNameMap> => {
+    return Promise.resolve({});
+  };
+  const lookupSpy: {
+    mock: { calls: Array<Array<unknown>> };
+    mockRestore: () => void;
+  } = jest
+    .spyOn(TelemetryEntityNameResolver, "lookup")
+    .mockImplementation((async (
+      args: ResolveArgs,
+    ): Promise<{ names: TelemetryEntityNameMap; notFound: Array<string> }> => {
+      return { names: await answer(args), notFound: [] };
+    }) as never) as unknown as {
+    mock: { calls: Array<Array<unknown>> };
+    mockRestore: () => void;
+  };
+  resolveSpy = {
+    mock: lookupSpy.mock,
+    // The real resolver again, for the suites that go end to end.
+    mockRestore: (): void => {
+      lookupSpy.mockRestore();
+    },
+    mockImplementation: (
+      fn: (args: ResolveArgs) => Promise<TelemetryEntityNameMap>,
+    ): unknown => {
+      answer = fn;
+      return resolveSpy;
+    },
+    mockResolvedValue: (value: TelemetryEntityNameMap): unknown => {
+      answer = (): Promise<TelemetryEntityNameMap> => {
+        return Promise.resolve(value);
+      };
+      return resolveSpy;
+    },
+    mockRejectedValue: (value: Error): unknown => {
+      answer = (): Promise<TelemetryEntityNameMap> => {
+        return Promise.reject(value);
+      };
+      return resolveSpy;
+    },
+  };
   consoleErrorSpy = jest.spyOn(console, "error") as unknown as ConsoleSpy;
 });
 
@@ -817,5 +863,184 @@ describe("useTelemetryEntityNames — end to end through the resolver", () => {
     });
     expect(result.current).toEqual({});
     expect(getListMock).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * useTelemetryEntityLookup: the names, and the ids every read settled as
+ * naming nothing (#11213) - what a chip a link or a saved view brought,
+ * naming a deleted service, reads "No longer available" by.
+ */
+describe("useTelemetryEntityLookup - the ids every read answered nothing for", () => {
+  const GONE_ID: string = "dead0000-0000-4000-8000-00000000dead";
+
+  type Lookup = { names: TelemetryEntityNameMap; notFound: Array<string> };
+
+  let lookupAnswer: (args: ResolveArgs) => Promise<Lookup>;
+
+  beforeEach(() => {
+    (resolveSpy as unknown as { mockRestore: () => void }).mockRestore();
+    lookupAnswer = (): Promise<Lookup> => {
+      return Promise.resolve({ names: {}, notFound: [] });
+    };
+    jest.spyOn(TelemetryEntityNameResolver, "lookup").mockImplementation(((
+      args: ResolveArgs,
+    ): Promise<Lookup> => {
+      return lookupAnswer(args);
+    }) as never);
+  });
+
+  const renderLookup: (initialProps: HookProps) => {
+    result: { current: TelemetryEntityLookup };
+    rerender: (props: HookProps) => void;
+  } = (
+    initialProps: HookProps,
+  ): {
+    result: { current: TelemetryEntityLookup };
+    rerender: (props: HookProps) => void;
+  } => {
+    return renderHook(
+      (props: HookProps): TelemetryEntityLookup => {
+        return useTelemetryEntityLookup(props.ids, props.options);
+      },
+      { initialProps },
+    );
+  };
+
+  test("nothing is gone while the lookup is in flight", async () => {
+    const response: Deferred<Lookup> = deferred();
+    lookupAnswer = (): Promise<Lookup> => {
+      return response.promise;
+    };
+
+    const { result } = renderLookup({ ids: [GONE_ID] });
+
+    expect(result.current.notFound.size).toBe(0);
+
+    await act(async () => {
+      response.resolve({ names: {}, notFound: [GONE_ID] });
+      await flushPromises();
+    });
+
+    expect(Array.from(result.current.notFound)).toEqual([GONE_ID]);
+  });
+
+  test("the names and the ids gone come back together, a named one never among the gone", async () => {
+    lookupAnswer = (): Promise<Lookup> => {
+      return Promise.resolve({ names: SERVICE_MAP, notFound: [GONE_ID] });
+    };
+
+    const { result } = renderLookup({ ids: [SERVICE_ID, GONE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(result.current.names).toEqual(SERVICE_MAP);
+    expect(result.current.notFound.has(GONE_ID)).toBe(true);
+    expect(result.current.notFound.has(SERVICE_ID)).toBe(false);
+  });
+
+  test("an id no longer asked for is dropped from the gone", async () => {
+    lookupAnswer = (args: ResolveArgs): Promise<Lookup> => {
+      return Promise.resolve({
+        names: {},
+        notFound: args.ids.includes(GONE_ID) ? [GONE_ID] : [],
+      });
+    };
+
+    const { result, rerender } = renderLookup({ ids: [GONE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(result.current.notFound.has(GONE_ID)).toBe(true);
+
+    rerender({ ids: [SERVICE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(result.current.notFound.size).toBe(0);
+  });
+
+  test("a later lookup that could not settle it takes it off: it may be there", async () => {
+    let settled: boolean = true;
+    lookupAnswer = (): Promise<Lookup> => {
+      return Promise.resolve({
+        names: {},
+        notFound: settled ? [GONE_ID] : [],
+      });
+    };
+
+    const { result, rerender } = renderLookup({ ids: [GONE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(result.current.notFound.has(GONE_ID)).toBe(true);
+
+    settled = false;
+    rerender({ ids: [GONE_ID, SERVICE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(result.current.notFound.has(GONE_ID)).toBe(false);
+  });
+
+  test("a lookup that fails says nothing is gone", async () => {
+    lookupAnswer = (): Promise<Lookup> => {
+      return Promise.reject(new Error("offline"));
+    };
+
+    const { result } = renderLookup({ ids: [GONE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(result.current.notFound.size).toBe(0);
+    expect(result.current.names).toEqual({});
+  });
+
+  test("the same answer twice is the same set: what a page derives from it is not rebuilt", async () => {
+    lookupAnswer = (): Promise<Lookup> => {
+      return Promise.resolve({ names: {}, notFound: [GONE_ID] });
+    };
+
+    const { result, rerender } = renderLookup({ ids: [GONE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    const first: ReadonlySet<string> = result.current.notFound;
+
+    rerender({ ids: [GONE_ID, SERVICE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(result.current.notFound).toBe(first);
+  });
+
+  test("useTelemetryEntityNames is the lookup's names alone", async () => {
+    lookupAnswer = (): Promise<Lookup> => {
+      return Promise.resolve({ names: SERVICE_MAP, notFound: [GONE_ID] });
+    };
+
+    const { result } = renderNames({ ids: [SERVICE_ID, GONE_ID] });
+
+    await act(async () => {
+      await flushPromises();
+    });
+
+    expect(result.current).toEqual(SERVICE_MAP);
   });
 });

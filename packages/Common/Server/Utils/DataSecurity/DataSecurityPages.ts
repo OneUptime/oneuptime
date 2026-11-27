@@ -57,6 +57,17 @@ export const SECURITY_PLAYBOOK_PAGE_PATHS: {
 };
 
 /*
+ * Project Settings > Labels, where a label is renamed or deleted
+ * (Dashboard/src/Utils/RouteMap: SettingsRoutePath): a refusal of a write
+ * that lets go of what a production label holds back names it (#11347).
+ */
+export const SETTINGS_PAGE_PATHS: {
+  labels: string;
+} = {
+  labels: "/dashboard/:projectId/settings/labels",
+};
+
+/*
  * A page, as Ask AI's cards and chips open it: a Dashboard page by its
  * route template and its English title (AIChatCitationTargetType
  * .DashboardPage), which the chip names in the reader's language.
@@ -212,6 +223,11 @@ export function getAlwaysAskPageTarget(data: {
       return getDataSecurityPageTarget({
         path: DATA_SECURITY_PAGE_PATHS.ai,
         title: "AI",
+      });
+    case AlwaysAskPage.Labels:
+      return getDataSecurityPageTarget({
+        path: SETTINGS_PAGE_PATHS.labels,
+        title: "Labels",
       });
     default:
       return null;

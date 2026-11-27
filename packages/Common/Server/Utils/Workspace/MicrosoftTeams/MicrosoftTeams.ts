@@ -5363,6 +5363,12 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             projectId: projectId,
             botName: MicrosoftTeamsCommands.getBotName(turnContext),
           }),
+          /*
+           * The project's external MCP servers, for the person who asked:
+           * their tools that read, as their linked OneUptime account may
+           * (#11082).
+           */
+          offersExternalMcpServers: true,
           pageContext: await WorkspaceAiContext.getChannelRecord({
             projectId: projectId,
             channelId: MicrosoftTeamsPage.getChannelId(activity),

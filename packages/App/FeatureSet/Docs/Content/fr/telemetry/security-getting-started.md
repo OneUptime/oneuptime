@@ -50,6 +50,8 @@ flowchart LR
 
 En haut de **Vue d'ensemble**, sous ce qui attend quelqu'un, chaque partie montre ses chiffres : les sources et leurs événements des dernières 24 heures, les règles actives, les dossiers ouverts et les playbooks qui répondent. Une partie non configurée le dit et ouvre la page où la configurer.
 
+En dessous, **Vue d'ensemble** nomme chaque règle recommandée que votre projet n'a pas encore, avec ce qu'elle détecte et **Activer**, qui l'ajoute comme le fait la Bibliothèque de règles. Une règle qui devient recommandée plus tard s'y affiche aussi. Dans un projet où toutes les autres règles recommandées étaient activées, la mise à niveau a activé **Sensitive file served**, et **Vue d'ensemble** le signale pendant un mois, avec **Désactiver**.
+
 ## Trouver des événements de sécurité dans vos journaux
 
 La carte **Vos journaux**, en haut de **Connexions**, ne demande aucune installation. Avec **Trouver des événements de sécurité dans vos journaux** activé, OneUptime lit chaque minute les nouveaux journaux du projet et transforme les lignes qu'il reconnaît en événements de sécurité :
