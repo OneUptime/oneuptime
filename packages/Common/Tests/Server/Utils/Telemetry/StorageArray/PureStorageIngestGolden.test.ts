@@ -60,19 +60,6 @@ const GOLDEN_PATH: string = path.join(
 
 const ARRAY_ID: string = "5a7e0000-0000-4000-8000-0000000011a0";
 
-/*
- * The series the scan reads for a Pure array: the list holds every shipped
- * platform's (NetApp ONTAP's too, since #11001), and a Pure array's are
- * Pure's prefixes'.
- */
-const PURE_SNAPSHOT_METRIC_NAMES: Set<string> = new Set(
-  Array.from(STORAGE_ARRAY_SNAPSHOT_METRIC_NAMES).filter(
-    (name: string): boolean => {
-      return name.startsWith("purefa_") || name.startsWith("purefb_");
-    },
-  ),
-);
-
 interface CapturedBatchSeries {
   series: CapturedSeries;
   jobLabels: Record<string, string>;

@@ -4,7 +4,6 @@ import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageSystemUtil from "../../../Types/StorageArray/StorageSystemUtil";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { StorageArrayKindDefinition } from "../../../Types/StorageArray/StorageArrayPlatform";
-import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 import { OntapKind } from "../../../Types/StorageArray/Platforms/NetApp/NetApp";
 import { describe, expect, test } from "@jest/globals";
 
@@ -134,7 +133,8 @@ describe("StorageArrayResourceKindUtil.getKindsForSystem", () => {
   });
 
   test("every known platform reports at least one kind, and every kind belongs to a platform", () => {
-    const covered: Set<StorageArrayResourceKind> = new Set();
+    // The shared kinds, and the ones a platform defines for itself, by name.
+    const covered: Set<string> = new Set();
     for (const system of StorageSystemUtil.getAllSystems()) {
       const kinds: Array<string> =
         StorageArrayResourceKindUtil.getKindsForSystem(system);
