@@ -1081,9 +1081,12 @@ jobs:
       # assignments, two days of answered Test Monitor runs - on the migrated
       # tables and their indexes, and reads the plan of each statement a
       # probe's requests run: the monitor claim reads its probe's due rows by
-      # index and in proportion to the batch, its check for what it stepped
-      # over goes by key lookups, and the Test Monitor claim reads only the
-      # unanswered tests' partial index. A table read whole fails it.
+      # index and in proportion to the batch and hands back their monitors
+      # with them, its check for what it stepped over goes by key lookups,
+      # a probe's pending count reads the probeable monitors' partial index
+      # instead of the whole Monitor table (#11119), and the Test Monitor
+      # claim reads only the unanswered tests' partial index. A table read
+      # whole fails it.
       - name: Test the probe dispatch statements' plans on migrated Postgres
         if: matrix.shard == 2
         working-directory: packages/Common
@@ -1095,6 +1098,25 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/ProbeDispatchQueryPlansPostgres.test.ts --forceExit
+
+      # Seeds an isolated schema with 40,000 Website monitors on two probes,
+      # all due, 1 in 100 paused, on the migrated tables and their indexes,
+      # and has both probes' workers claim at once (#11119, #11120): every
+      # monitor that may be probed is handed out once, to its own probe,
+      # with the monitor the read after the claim used to hand out, to the
+      # byte; each probe's pending count is exact and never reads the whole
+      # Monitor table, also while the other probe claims.
+      - name: Test two probes claiming at once at 40,000 assignments on migrated Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROBE_DISPATCH_SCALE_TESTS: "true"
+          PROBE_DISPATCH_SCALE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROBE_DISPATCH_SCALE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROBE_DISPATCH_SCALE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProbeDispatchTwoProbesAtScalePostgres.test.ts --forceExit
 
       # Checks the migrated MonitorProbe and NetworkDevice tables' indexes and
       # fillfactor, then clones them (with Project, Probe and Monitor) into an
