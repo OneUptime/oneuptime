@@ -125,6 +125,8 @@ async function updated(
   const result: OnUpdate<DataStore> = await hooks().update({
     query: { _id: ObjectID.generate() },
     data: { connectionString } as never,
+    limit: 1,
+    skip: 0,
     props,
   });
 

@@ -45,7 +45,8 @@ function input(
     environment: DataStoreEnvironment.Production,
     sensitivity: DataSensitivity.Restricted,
     dataTypeIds: ["us-ssn"],
-    dataCategories: [DataCategory.Personal],
+    // A US social security number is a government ID.
+    dataCategories: [DataCategory.GovernmentId],
     posture: {
       readAt: "2026-11-27T10:00:00Z",
       readFrom: DataStorePostureReadFrom.Network,

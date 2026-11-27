@@ -104,11 +104,14 @@ function readClusters(): Array<Cluster> {
   const clusters: Array<Cluster> = [];
   const env: NodeJS.ProcessEnv = process.env;
 
-  const add: (cluster: Omit<Cluster, "url"> & { url?: string }) => void = (
-    cluster: Omit<Cluster, "url"> & { url?: string },
+  // A cluster is tested only when its address is set in the environment.
+  type MaybeCluster = Omit<Cluster, "url"> & { url?: string | undefined };
+
+  const add: (cluster: MaybeCluster) => void = (
+    cluster: MaybeCluster,
   ): void => {
     if (cluster.url) {
-      clusters.push(cluster as Cluster);
+      clusters.push({ ...cluster, url: cluster.url });
     }
   };
 
