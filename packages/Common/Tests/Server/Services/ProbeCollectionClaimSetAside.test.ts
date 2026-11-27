@@ -584,7 +584,8 @@ const CLAIMS: Array<ClaimUnderTest> = [
      * aside, even where the probe scans its content: the agent's claim reads
      * the same due time.
      */
-    isProbesRow: 'ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL',
+    isProbesRow:
+      'ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL',
     joins: [
       'LEFT JOIN "Project" p ON ds."projectId" = p."_id"',
       'LEFT JOIN "Probe" pr ON ds."scanProbeId" = pr."_id"',
@@ -1070,7 +1071,11 @@ describe("the probe never sets aside or makes due a store a Database Agent reads
 
   test("the oldest due rows it looks at are the probe's own, never an agent's", async () => {
     const sql: string = await setAsideStatement();
-    const oldestDue: string = between(sql, '"oldestDue" AS (', SET_ASIDE_MARKER);
+    const oldestDue: string = between(
+      sql,
+      '"oldestDue" AS (',
+      SET_ASIDE_MARKER,
+    );
 
     expect(oldestDue).toContain(
       'FROM "DataStore" ds WHERE ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL AND ds."nextTableHealthCollectionAt" <= $2',
@@ -1079,7 +1084,11 @@ describe("the probe never sets aside or makes due a store a Database Agent reads
 
   test("what it moves is judged the probe's again, under its lock", async () => {
     const sql: string = await setAsideStatement();
-    const unclaimable: string = between(sql, SET_ASIDE_MARKER, '"setAside" AS (');
+    const unclaimable: string = between(
+      sql,
+      SET_ASIDE_MARKER,
+      '"setAside" AS (',
+    );
 
     expect(unclaimable).toContain(
       'AND ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL AND ds."nextTableHealthCollectionAt" <= $2 AND (',
@@ -1088,7 +1097,11 @@ describe("the probe never sets aside or makes due a store a Database Agent reads
 
   test("a store with no due time is made due only when it is the probe's", async () => {
     const sql: string = await setAsideStatement();
-    const unscheduled: string = between(sql, '"unscheduled" AS (', '"madeDue" AS (');
+    const unscheduled: string = between(
+      sql,
+      '"unscheduled" AS (',
+      '"madeDue" AS (',
+    );
 
     expect(unscheduled).toContain(
       'WHERE ds."scanProbeId" = $1 AND ds."tableHealthDatabaseServerId" IS NULL AND ds."nextTableHealthCollectionAt" IS NULL',

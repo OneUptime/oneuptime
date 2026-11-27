@@ -34,6 +34,9 @@ const AGENT_DIRECTORY: string = path.resolve(
 // A collector config's file name, as the agent ships each.
 const COLLECTOR_CONFIG: RegExp = /^otel-collector-config[a-z0-9.-]*\.yaml$/;
 
+// An exporter's own config file, which it may read the array's login from.
+const YAML_FILE: RegExp = /\.ya?ml$/;
+
 interface TableLine {
   config: string;
   system: string;
@@ -218,7 +221,7 @@ describe("each config of the table", () => {
         expect(text).not.toContain(`\${env:${line.tokenVariable}}`);
         const exporterFiles: string = line.otherFiles
           .filter((file: string): boolean => {
-            return /\.ya?ml$/.test(file);
+            return YAML_FILE.test(file);
           })
           .map((file: string): string => {
             return readAgentFile(file);

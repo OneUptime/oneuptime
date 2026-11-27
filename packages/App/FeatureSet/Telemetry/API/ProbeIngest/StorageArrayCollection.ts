@@ -116,12 +116,11 @@ export async function queueStorageArrayCollectionMetrics(data: {
     return 0;
   }
 
-  const identifiers: Array<string> = StorageArrayProbeMetrics.getArrayIdentifiers(
-    {
+  const identifiers: Array<string> =
+    StorageArrayProbeMetrics.getArrayIdentifiers({
       resourceMetrics: data.report.resourceMetrics,
       collector: collector,
-    },
-  );
+    });
 
   const namesByIdentifier: Map<string, string> =
     await StorageArrayConnectionService.getArrayNamesBySystemId({

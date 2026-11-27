@@ -618,7 +618,10 @@ describe("the Proxmox, Ceph, VMware and Storage Array agents report the collecto
         Object.fromEntries(
           (COLLECTOR_SERVICES[dir] || []).map(
             (name: string): [string, string] => {
-              return [name, `otel/opentelemetry-collector-contrib:${collector}`];
+              return [
+                name,
+                `otel/opentelemetry-collector-contrib:${collector}`,
+              ];
             },
           ),
         ),
