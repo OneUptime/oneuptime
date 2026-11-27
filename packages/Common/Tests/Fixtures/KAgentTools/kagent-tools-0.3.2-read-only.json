@@ -1,0 +1,3944 @@
+{
+  "serverInfo": {
+    "name": "kagent-tools-server",
+    "version": "0.3.2"
+  },
+  "protocolVersion": "2025-11-25",
+  "capabilities": {
+    "logging": {},
+    "tools": {
+      "listChanged": true
+    }
+  },
+  "tools": [
+    {
+      "description": "Check the logs of the Argo Rollouts Gateway API plugin",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "The namespace of the plugin resources"
+          },
+          "timeout": {
+            "type": "integer",
+            "description": "Timeout for log collection in seconds"
+          }
+        }
+      },
+      "name": "argo_check_plugin_logs",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List rollouts or experiments",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "The namespace of the rollout"
+          },
+          "type": {
+            "type": "string",
+            "description": "What to list: rollouts or experiments"
+          }
+        }
+      },
+      "name": "argo_rollouts_list",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Verify that the Argo Rollouts controller is installed and running",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "The namespace where Argo Rollouts is installed"
+          },
+          "label": {
+            "type": "string",
+            "description": "The label of the Argo Rollouts controller pods"
+          }
+        }
+      },
+      "name": "argo_verify_argo_rollouts_controller_install",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Verify that the kubectl Argo Rollouts plugin is installed",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "argo_verify_kubectl_plugin_install",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Display the encryption state for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_display_encryption_state",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Display policy node information for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "labels": {
+            "type": "string",
+            "description": "The labels to get policy node information for"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get policy node information for"
+          }
+        }
+      },
+      "name": "cilium_display_policy_node_information",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Display selectors for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_display_selectors",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Manage the FQDN cache for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string",
+            "description": "The command to perform on the FQDN cache (list, clean, or a specific command)"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to manage the FQDN cache for"
+          }
+        }
+      },
+      "name": "cilium_fqdn_cache",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get BPF map for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "map_name": {
+            "type": "string",
+            "description": "The name of the BPF map"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the BPF map command on"
+          }
+        }
+      },
+      "name": "cilium_get_bpf_map",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the status of the Cilium daemon for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "show_all_addresses": {
+            "type": "boolean",
+            "description": "Whether to show all addresses"
+          },
+          "show_all_clusters": {
+            "type": "boolean",
+            "description": "Whether to show all clusters"
+          },
+          "show_all_controllers": {
+            "type": "boolean",
+            "description": "Whether to show all controllers"
+          },
+          "show_health": {
+            "type": "boolean",
+            "description": "Whether to show health"
+          },
+          "show_all_nodes": {
+            "type": "boolean",
+            "description": "Whether to show all nodes"
+          },
+          "show_all_redirects": {
+            "type": "boolean",
+            "description": "Whether to show all redirects"
+          },
+          "brief": {
+            "type": "boolean",
+            "description": "Whether to show a brief status"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the daemon status for"
+          }
+        }
+      },
+      "name": "cilium_get_daemon_status",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List the details of an endpoint in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "endpoint_id": {
+            "type": "string",
+            "description": "The ID of the endpoint to get details for"
+          },
+          "labels": {
+            "type": "string",
+            "description": "The labels of the endpoint to get details for"
+          },
+          "output_format": {
+            "type": "string",
+            "description": "The output format of the endpoint details (json, yaml, jsonpath)"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the endpoint details for"
+          }
+        }
+      },
+      "name": "cilium_get_endpoint_details",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the health of an endpoint in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "endpoint_id": {
+            "type": "string",
+            "description": "The ID of the endpoint to get health for"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the endpoint health for"
+          }
+        }
+      },
+      "name": "cilium_get_endpoint_health",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the logs of an endpoint in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "endpoint_id": {
+            "type": "string",
+            "description": "The ID of the endpoint to get logs for"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the endpoint logs for"
+          }
+        }
+      },
+      "name": "cilium_get_endpoint_logs",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the list of all endpoints in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_get_endpoints_list",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the details of an identity in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "identity_id": {
+            "type": "string",
+            "description": "The ID of the identity to get details for"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the identity details for"
+          }
+        }
+      },
+      "name": "cilium_get_identity_details",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get a key from the kvstore for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key in the kvstore"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the kvstore command on"
+          }
+        }
+      },
+      "name": "cilium_get_kv_store_key",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get a PCAP recorder for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "recorder_id": {
+            "type": "string",
+            "description": "The ID of the PCAP recorder"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the PCAP recorder command on"
+          }
+        }
+      },
+      "name": "cilium_get_pcap_recorder",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get information about a service in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "description": "The ID of the service to get information about"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the service information for"
+          }
+        }
+      },
+      "name": "cilium_get_service_information",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List BGP peers",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_list_bgp_peers",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List BGP routes",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_list_bgp_routes",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List BPF map events for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "map_name": {
+            "type": "string",
+            "description": "The name of the BPF map"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the BPF map command on"
+          }
+        }
+      },
+      "name": "cilium_list_bpf_map_events",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List BPF maps for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_list_bpf_maps",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List cluster nodes for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_list_cluster_nodes",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List the Envoy configuration for a resource in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource_name": {
+            "type": "string",
+            "description": "The name of the resource to get the Envoy configuration for"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the Envoy configuration for"
+          }
+        }
+      },
+      "name": "cilium_list_envoy_config",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List all identities in the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_list_identities",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List the IP addresses for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_list_ip_addresses",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List local redirect policies for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_list_local_redirect_policies",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List metrics for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "match_pattern": {
+            "type": "string",
+            "description": "The match pattern to filter metrics by"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the metrics for"
+          }
+        }
+      },
+      "name": "cilium_list_metrics",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List node IDs for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_list_node_ids",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List PCAP recorders for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_list_pcap_recorders",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List services for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "show_cluster_mesh_affinity": {
+            "type": "boolean",
+            "description": "Whether to show cluster mesh affinity"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the services for"
+          }
+        }
+      },
+      "name": "cilium_list_services",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List XDP CIDR filters for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_list_xdp_cidr_filters",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Request debugging information for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_request_debugging_information",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Show cluster mesh status",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_show_cluster_mesh_status",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Show Cilium configuration options",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "list_all": {
+            "type": "boolean",
+            "description": "Whether to list all configuration options"
+          },
+          "list_read_only": {
+            "type": "boolean",
+            "description": "Whether to list read-only configuration options"
+          },
+          "list_options": {
+            "type": "boolean",
+            "description": "Whether to list options"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to show the configuration options for"
+          }
+        }
+      },
+      "name": "cilium_show_configuration_options",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Show the DNS names for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_show_dns_names",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Show Cilium features status",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_show_features_status",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Show the IP cache information for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cidr": {
+            "type": "string",
+            "description": "The CIDR of the IP to get cache information for"
+          },
+          "labels": {
+            "type": "string",
+            "description": "The labels of the IP to get cache information for"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to get the IP cache information for"
+          }
+        }
+      },
+      "name": "cilium_show_ip_cache_information",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Show load information for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to run the command on"
+          }
+        }
+      },
+      "name": "cilium_show_load_information",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the status and version of Cilium installation",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "cilium_status_and_version",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Validate Cilium network policies for the cluster",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "enable_k8s": {
+            "type": "boolean",
+            "description": "Whether to enable k8s API discovery"
+          },
+          "enable_k8s_api_discovery": {
+            "type": "boolean",
+            "description": "Whether to enable k8s API discovery"
+          },
+          "node_name": {
+            "type": "string",
+            "description": "The name of the node to validate the Cilium network policies for"
+          }
+        }
+      },
+      "name": "cilium_validate_cilium_network_policies",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Returns the current date and time in ISO 8601 format.",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "datetime_get_current_time",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get extended information about a Helm release",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the release"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "The namespace of the release"
+          },
+          "resource": {
+            "type": "string",
+            "description": "The resource to get (all, hooks, manifest, notes, values)"
+          }
+        }
+      },
+      "name": "helm_get_release",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List Helm releases in a namespace",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "The namespace to list releases from"
+          },
+          "all_namespaces": {
+            "type": "boolean",
+            "description": "List releases from all namespaces"
+          },
+          "all": {
+            "type": "boolean",
+            "description": "Show all releases without any filter applied"
+          },
+          "uninstalled": {
+            "type": "boolean",
+            "description": "List uninstalled releases"
+          },
+          "uninstalling": {
+            "type": "boolean",
+            "description": "List uninstalling releases"
+          },
+          "failed": {
+            "type": "boolean",
+            "description": "List failed releases"
+          },
+          "deployed": {
+            "type": "boolean",
+            "description": "List deployed releases"
+          },
+          "pending": {
+            "type": "boolean",
+            "description": "List pending releases"
+          },
+          "filter": {
+            "type": "string",
+            "description": "A regular expression to filter releases by"
+          },
+          "output": {
+            "type": "string",
+            "description": "The output format (e.g., 'json', 'yaml', 'table')"
+          }
+        }
+      },
+      "name": "helm_list_releases",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Update information of available charts locally from chart repositories",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "helm_repo_update",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Analyze Istio cluster configuration for issues",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to analyze"
+          },
+          "all_namespaces": {
+            "type": "boolean",
+            "description": "Analyze all namespaces"
+          }
+        }
+      },
+      "name": "istio_analyze_cluster_configuration",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Generate Istio manifest for a given profile",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "description": "Istio configuration profile (ambient, default, demo, minimal, empty)"
+          }
+        }
+      },
+      "name": "istio_generate_manifest",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Generate a waypoint resource YAML",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace for the waypoint resource"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the waypoint resource"
+          },
+          "traffic_type": {
+            "type": "string",
+            "description": "Traffic type for the waypoint (all, service, workload)"
+          }
+        }
+      },
+      "name": "istio_generate_waypoint",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List all waypoints in the mesh",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to list waypoints in"
+          },
+          "all_namespaces": {
+            "type": "boolean",
+            "description": "List waypoints in all namespaces"
+          }
+        }
+      },
+      "name": "istio_list_waypoints",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get specific proxy configuration for a single pod",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pod_name": {
+            "type": "string",
+            "description": "Name of the pod to get proxy configuration for"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the pod"
+          },
+          "config_type": {
+            "type": "string",
+            "description": "Type of configuration (all, bootstrap, cluster, ecds, listener, log, route, secret)"
+          }
+        }
+      },
+      "name": "istio_proxy_config",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get Envoy proxy status for pods, retrieves last sent and acknowledged xDS sync from Istiod to each Envoy in the mesh",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pod_name": {
+            "type": "string",
+            "description": "Name of the pod to get proxy status for"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the pod"
+          }
+        }
+      },
+      "name": "istio_proxy_status",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List remote clusters registered with Istio",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "istio_remote_clusters",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get Istio version information",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "short": {
+            "type": "boolean",
+            "description": "Return short version output"
+          }
+        }
+      },
+      "name": "istio_version",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the status of a waypoint resource",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the waypoint"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the waypoint resource"
+          }
+        }
+      },
+      "name": "istio_waypoint_status",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the ztunnel configuration for a namespace",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to get ztunnel configuration for"
+          },
+          "config_type": {
+            "type": "string",
+            "description": "Type of ztunnel configuration (all, workloads, services)"
+          }
+        }
+      },
+      "name": "istio_ztunnel_config",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Describe a Kubernetes resource in detail",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource_type": {
+            "type": "string",
+            "description": "Type of resource (deployment, service, pod, node, etc.)"
+          },
+          "resource_name": {
+            "type": "string",
+            "description": "Name of the resource"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the resource (optional)"
+          }
+        }
+      },
+      "name": "k8s_describe_resource",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Generate a Kubernetes resource YAML from a description. Supported resource_type values: argo_analysis_template, istio_auth_policy, istio_virtual_service, gateway_api_gateway, gateway_api_gateway_class, gateway_api_grpc_route, gateway_api_reference_grant, gateway_api_http_route, argo_rollout",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource_description": {
+            "type": "string",
+            "description": "Detailed description of the resource to generate"
+          },
+          "resource_type": {
+            "type": "string",
+            "description": "Type of resource to generate"
+          }
+        }
+      },
+      "name": "k8s_generate_resource",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get available Kubernetes API resources",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "k8s_get_available_api_resources",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get cluster configuration details",
+      "inputSchema": {
+        "type": "object"
+      },
+      "name": "k8s_get_cluster_configuration",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get events from a Kubernetes namespace",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to get events from (default: default)"
+          }
+        }
+      },
+      "name": "k8s_get_events",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get logs from a Kubernetes pod",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pod_name": {
+            "type": "string",
+            "description": "Name of the pod"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the pod (default: default)"
+          },
+          "container": {
+            "type": "string",
+            "description": "Container name (for multi-container pods)"
+          },
+          "tail_lines": {
+            "type": "integer",
+            "description": "Number of lines to show from the end (default: 50)"
+          },
+          "previous": {
+            "type": "boolean",
+            "description": "Return logs from the previous, terminated container instance (kubectl logs --previous)"
+          }
+        }
+      },
+      "name": "k8s_get_pod_logs",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get the YAML representation of a Kubernetes resource",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource_type": {
+            "type": "string",
+            "description": "Type of resource"
+          },
+          "resource_name": {
+            "type": "string",
+            "description": "Name of the resource"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the resource (optional)"
+          }
+        }
+      },
+      "name": "k8s_get_resource_yaml",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List Kubernetes resources with kubectl. Scope: with neither all_namespaces nor namespace set, this queries ONLY the namespace this tool runs in, not the cluster - set all_namespaces=true to survey the cluster. Images: the wide output has a CONTAINERS/IMAGES column for workloads (deployment, daemonset, statefulset, replicaset, job, cronjob) but NOT for pods, so a pod listing is never a source of image versions; read them from a workload listing or use k8s_get_resource_yaml for the authoritative spec. Node versions (kubelet, container runtime): resource_type=node.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource_type": {
+            "type": "string",
+            "description": "Type of resource (pod, service, deployment, etc.)"
+          },
+          "resource_name": {
+            "type": "string",
+            "description": "Name of specific resource (optional)"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to query (optional)"
+          },
+          "all_namespaces": {
+            "type": "boolean",
+            "description": "Query all namespaces"
+          },
+          "output": {
+            "type": "string",
+            "description": "Output format (json, yaml, wide)"
+          }
+        }
+      },
+      "name": "k8s_get_resources",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Wait for a condition on Kubernetes resources (kubectl wait). Blocks until the condition is met or the timeout elapses.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "resource_type": {
+            "type": "string",
+            "description": "Type of resource (pod, deployment, job, etc.)"
+          },
+          "condition": {
+            "type": "string",
+            "description": "Condition to wait for, passed to --for. Examples: 'condition=Ready', 'condition=Available', 'delete', 'create', \"jsonpath={.status.phase}=Running\""
+          },
+          "resource_name": {
+            "type": "string",
+            "description": "Name of a specific resource. Omit to target by selector or all"
+          },
+          "selector": {
+            "type": "string",
+            "description": "Label selector to target resources, e.g. 'app=nginx'"
+          },
+          "all": {
+            "type": "boolean",
+            "description": "Wait on all resources of the type in the namespace"
+          },
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the resource (default: default)"
+          },
+          "timeout": {
+            "type": "string",
+            "description": "Max wait duration, e.g. '30s', '5m'. 0 waits forever (default: 30s)"
+          }
+        }
+      },
+      "name": "k8s_wait",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Check if Kubescape operator is installed and operational. Verifies namespace, operator pods, storage pods, CRDs, and scan data availability.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace to check (default: kubescape)"
+          }
+        }
+      },
+      "name": "kubescape_check_health",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "healthy": {
+            "type": "boolean"
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "details": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "status"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "status",
+                "message"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "summary": {
+            "type": "string"
+          },
+          "recommendations": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "healthy",
+          "summary"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get detailed runtime behavior profile for a specific workload. Shows what processes run, what files are accessed, what system calls are made, and what capabilities are used per container. Compare with CVE findings to prioritize remediation - focus on vulnerabilities affecting actively used components.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the profile"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the application profile"
+          }
+        }
+      },
+      "name": "kubescape_get_application_profile",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "containers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "execs": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "args": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "envs": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "argsRequired": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "opens": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "flags": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "flags"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "syscalls": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "capabilities": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "endpoints": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "endpoint": {
+                        "type": "string"
+                      },
+                      "methods": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "internal": {
+                        "type": "boolean"
+                      },
+                      "direction": {
+                        "type": "string"
+                      },
+                      "headers": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        }
+                      }
+                    },
+                    "required": [
+                      "internal"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "seccomp_profile": {
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "spec": {
+                      "type": "object",
+                      "properties": {
+                        "disabled": {
+                          "type": "boolean"
+                        },
+                        "baseProfileName": {
+                          "type": "string"
+                        },
+                        "defaultAction": {
+                          "type": "string"
+                        },
+                        "architectures": {
+                          "type": [
+                            "null",
+                            "array"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "listenerPath": {
+                          "type": "string"
+                        },
+                        "listenerMetadata": {
+                          "type": "string"
+                        },
+                        "syscalls": {
+                          "type": [
+                            "null",
+                            "array"
+                          ],
+                          "items": {
+                            "type": [
+                              "null",
+                              "object"
+                            ],
+                            "properties": {
+                              "names": {
+                                "type": [
+                                  "null",
+                                  "array"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "action": {
+                                "type": "string"
+                              },
+                              "errnoRet": {
+                                "type": "integer"
+                              },
+                              "args": {
+                                "type": [
+                                  "null",
+                                  "array"
+                                ],
+                                "items": {
+                                  "type": [
+                                    "null",
+                                    "object"
+                                  ],
+                                  "properties": {
+                                    "index": {
+                                      "type": "integer"
+                                    },
+                                    "value": {
+                                      "type": "integer"
+                                    },
+                                    "valueTwo": {
+                                      "type": "integer"
+                                    },
+                                    "op": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "index",
+                                    "op"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": [
+                              "names",
+                              "action"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "flags": {
+                          "type": [
+                            "null",
+                            "array"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "defaultAction"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "name",
+                "execs",
+                "opens",
+                "syscalls",
+                "capabilities",
+                "endpoints"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "init_containers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "execs": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "args": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "envs": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "argsRequired": {
+                        "type": "boolean"
+                      }
+                    },
+                    "additionalProperties": false
+                  }
+                },
+                "opens": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "path": {
+                        "type": "string"
+                      },
+                      "flags": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "flags"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "syscalls": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "capabilities": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "endpoints": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "endpoint": {
+                        "type": "string"
+                      },
+                      "methods": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "internal": {
+                        "type": "boolean"
+                      },
+                      "direction": {
+                        "type": "string"
+                      },
+                      "headers": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        }
+                      }
+                    },
+                    "required": [
+                      "internal"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "seccomp_profile": {
+                  "type": [
+                    "null",
+                    "object"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "path": {
+                      "type": "string"
+                    },
+                    "spec": {
+                      "type": "object",
+                      "properties": {
+                        "disabled": {
+                          "type": "boolean"
+                        },
+                        "baseProfileName": {
+                          "type": "string"
+                        },
+                        "defaultAction": {
+                          "type": "string"
+                        },
+                        "architectures": {
+                          "type": [
+                            "null",
+                            "array"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "listenerPath": {
+                          "type": "string"
+                        },
+                        "listenerMetadata": {
+                          "type": "string"
+                        },
+                        "syscalls": {
+                          "type": [
+                            "null",
+                            "array"
+                          ],
+                          "items": {
+                            "type": [
+                              "null",
+                              "object"
+                            ],
+                            "properties": {
+                              "names": {
+                                "type": [
+                                  "null",
+                                  "array"
+                                ],
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "action": {
+                                "type": "string"
+                              },
+                              "errnoRet": {
+                                "type": "integer"
+                              },
+                              "args": {
+                                "type": [
+                                  "null",
+                                  "array"
+                                ],
+                                "items": {
+                                  "type": [
+                                    "null",
+                                    "object"
+                                  ],
+                                  "properties": {
+                                    "index": {
+                                      "type": "integer"
+                                    },
+                                    "value": {
+                                      "type": "integer"
+                                    },
+                                    "valueTwo": {
+                                      "type": "integer"
+                                    },
+                                    "op": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "required": [
+                                    "index",
+                                    "op"
+                                  ],
+                                  "additionalProperties": false
+                                }
+                              }
+                            },
+                            "required": [
+                              "names",
+                              "action"
+                            ],
+                            "additionalProperties": false
+                          }
+                        },
+                        "flags": {
+                          "type": [
+                            "null",
+                            "array"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "defaultAction"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "name",
+                "execs",
+                "opens",
+                "syscalls",
+                "capabilities",
+                "endpoints"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "annotations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "namespace",
+          "name",
+          "containers",
+          "init_containers",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get detailed configuration security scan results for a specific workload, including failed controls and remediation guidance.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the scan (default: kubescape)"
+          },
+          "manifest_name": {
+            "type": "string",
+            "description": "Name of the configuration scan manifest"
+          }
+        }
+      },
+      "name": "kubescape_get_configuration_scan",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get detailed network connections for a specific workload. Shows all observed ingress and egress traffic with DNS names, IPs, ports, and protocols. Use this to verify if a workload with a vulnerability is actually exposed to the network.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the network neighborhood"
+          },
+          "name": {
+            "type": "string",
+            "description": "Name of the network neighborhood"
+          }
+        }
+      },
+      "name": "kubescape_get_network_neighborhood",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "containers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "ingress": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "identifier": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "dns": {
+                        "type": "string"
+                      },
+                      "ports": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "protocol": {
+                              "type": "string"
+                            },
+                            "port": {
+                              "type": [
+                                "null",
+                                "integer"
+                              ],
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "protocol",
+                            "port"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "ip_address": {
+                        "type": "string"
+                      },
+                      "pod_selector": {
+                        "type": [
+                          "null",
+                          "object"
+                        ],
+                        "properties": {
+                          "matchLabels": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "matchExpressions": {
+                            "type": [
+                              "null",
+                              "array"
+                            ],
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "operator": {
+                                  "type": "string"
+                                },
+                                "values": {
+                                  "type": [
+                                    "null",
+                                    "array"
+                                  ],
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "operator"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "namespace_selector": {
+                        "type": [
+                          "null",
+                          "object"
+                        ],
+                        "properties": {
+                          "matchLabels": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "matchExpressions": {
+                            "type": [
+                              "null",
+                              "array"
+                            ],
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "operator": {
+                                  "type": "string"
+                                },
+                                "values": {
+                                  "type": [
+                                    "null",
+                                    "array"
+                                  ],
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "operator"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "identifier",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "egress": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "identifier": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "dns": {
+                        "type": "string"
+                      },
+                      "ports": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "protocol": {
+                              "type": "string"
+                            },
+                            "port": {
+                              "type": [
+                                "null",
+                                "integer"
+                              ],
+                              "minimum": -2147483648,
+                              "maximum": 2147483647
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "protocol",
+                            "port"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "ip_address": {
+                        "type": "string"
+                      },
+                      "pod_selector": {
+                        "type": [
+                          "null",
+                          "object"
+                        ],
+                        "properties": {
+                          "matchLabels": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "matchExpressions": {
+                            "type": [
+                              "null",
+                              "array"
+                            ],
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "operator": {
+                                  "type": "string"
+                                },
+                                "values": {
+                                  "type": [
+                                    "null",
+                                    "array"
+                                  ],
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "operator"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      },
+                      "namespace_selector": {
+                        "type": [
+                          "null",
+                          "object"
+                        ],
+                        "properties": {
+                          "matchLabels": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "type": "string"
+                            }
+                          },
+                          "matchExpressions": {
+                            "type": [
+                              "null",
+                              "array"
+                            ],
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "key": {
+                                  "type": "string"
+                                },
+                                "operator": {
+                                  "type": "string"
+                                },
+                                "values": {
+                                  "type": [
+                                    "null",
+                                    "array"
+                                  ],
+                                  "items": {
+                                    "type": "string"
+                                  }
+                                }
+                              },
+                              "required": [
+                                "key",
+                                "operator"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "additionalProperties": false
+                      }
+                    },
+                    "required": [
+                      "identifier",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "name",
+                "ingress",
+                "egress"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "annotations": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "labels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "namespace",
+          "name",
+          "containers",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get detailed information about a specific CVE in a vulnerability manifest, including affected packages and fix information.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the manifest (default: kubescape)"
+          },
+          "manifest_name": {
+            "type": "string",
+            "description": "Name of the vulnerability manifest"
+          },
+          "cve_id": {
+            "type": "string",
+            "description": "CVE identifier (e.g., CVE-2023-12345)"
+          }
+        }
+      },
+      "name": "kubescape_get_vulnerability_details",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "matches": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "vulnerability": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "dataSource": {
+                      "type": "string"
+                    },
+                    "namespace": {
+                      "type": "string"
+                    },
+                    "severity": {
+                      "type": "string"
+                    },
+                    "urls": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "description": {
+                      "type": "string"
+                    },
+                    "cvss": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "version": {
+                            "type": "string"
+                          },
+                          "vector": {
+                            "type": "string"
+                          },
+                          "metrics": {
+                            "type": "object",
+                            "properties": {
+                              "baseScore": {
+                                "type": "number"
+                              },
+                              "exploitabilityScore": {
+                                "type": [
+                                  "null",
+                                  "number"
+                                ]
+                              },
+                              "impactScore": {
+                                "type": [
+                                  "null",
+                                  "number"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "baseScore"
+                            ],
+                            "additionalProperties": false
+                          },
+                          "vendorMetadata": {
+                            "type": [
+                              "null",
+                              "array"
+                            ],
+                            "items": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 255
+                            }
+                          }
+                        },
+                        "required": [
+                          "version",
+                          "vector",
+                          "metrics"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "fix": {
+                      "type": "object",
+                      "properties": {
+                        "versions": {
+                          "type": [
+                            "null",
+                            "array"
+                          ],
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "state": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "versions",
+                        "state"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "advisories": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "link": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "link"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "dataSource",
+                    "urls",
+                    "cvss",
+                    "fix",
+                    "advisories"
+                  ],
+                  "additionalProperties": false
+                },
+                "relatedVulnerabilities": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "dataSource": {
+                        "type": "string"
+                      },
+                      "namespace": {
+                        "type": "string"
+                      },
+                      "severity": {
+                        "type": "string"
+                      },
+                      "urls": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "description": {
+                        "type": "string"
+                      },
+                      "cvss": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "version": {
+                              "type": "string"
+                            },
+                            "vector": {
+                              "type": "string"
+                            },
+                            "metrics": {
+                              "type": "object",
+                              "properties": {
+                                "baseScore": {
+                                  "type": "number"
+                                },
+                                "exploitabilityScore": {
+                                  "type": [
+                                    "null",
+                                    "number"
+                                  ]
+                                },
+                                "impactScore": {
+                                  "type": [
+                                    "null",
+                                    "number"
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "baseScore"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "vendorMetadata": {
+                              "type": [
+                                "null",
+                                "array"
+                              ],
+                              "items": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 255
+                              }
+                            }
+                          },
+                          "required": [
+                            "version",
+                            "vector",
+                            "metrics"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "dataSource",
+                      "urls",
+                      "cvss"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "matchDetails": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "type": "string"
+                      },
+                      "matcher": {
+                        "type": "string"
+                      },
+                      "searchedBy": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        }
+                      },
+                      "found": {
+                        "type": [
+                          "null",
+                          "array"
+                        ],
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 255
+                        }
+                      }
+                    },
+                    "required": [
+                      "type",
+                      "matcher"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "artifact": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "locations": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          },
+                          "layerID": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "path"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "language": {
+                      "type": "string"
+                    },
+                    "licenses": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "cpes": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "purl": {
+                      "type": "string"
+                    },
+                    "upstreams": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "name"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "metadataType": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": [
+                        "null",
+                        "array"
+                      ],
+                      "items": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 255
+                      }
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "version",
+                    "type",
+                    "locations",
+                    "language",
+                    "licenses",
+                    "cpes",
+                    "purl",
+                    "upstreams"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "vulnerability",
+                "relatedVulnerabilities",
+                "matchDetails",
+                "artifact"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "matches"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List ApplicationProfiles showing runtime behavior of workloads. These profiles capture: executed processes (Execs), file access patterns (Opens), system calls (Syscalls), Linux capabilities used, and HTTP endpoints. Use this data to prioritize vulnerability findings - a CVE in an unused package is lower priority than one in an actively running process. Requires 'capabilities.runtimeObservability=enable' in Kubescape Helm chart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Filter by namespace (optional, defaults to all namespaces)"
+          }
+        }
+      },
+      "name": "kubescape_list_application_profiles",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "application_profiles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "namespace": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "containers_count": {
+                  "type": "integer"
+                },
+                "init_containers_count": {
+                  "type": "integer"
+                },
+                "ephemeral_containers_count": {
+                  "type": "integer"
+                },
+                "total_execs": {
+                  "type": "integer"
+                },
+                "total_opens": {
+                  "type": "integer"
+                },
+                "total_syscalls": {
+                  "type": "integer"
+                },
+                "total_capabilities": {
+                  "type": "integer"
+                },
+                "total_endpoints": {
+                  "type": "integer"
+                },
+                "created_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "namespace",
+                "name",
+                "containers_count",
+                "init_containers_count",
+                "ephemeral_containers_count",
+                "total_execs",
+                "total_opens",
+                "total_syscalls",
+                "total_capabilities",
+                "total_endpoints",
+                "created_at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "total_count": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "application_profiles",
+          "total_count",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List configuration security scan results from Kubescape operator. Shows workloads that have been scanned for security misconfigurations.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Filter by namespace (optional, defaults to all namespaces)"
+          }
+        }
+      },
+      "name": "kubescape_list_configuration_scans",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "configuration_scans": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "namespace": {
+                  "type": "string"
+                },
+                "manifest_name": {
+                  "type": "string"
+                },
+                "created_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "namespace",
+                "manifest_name",
+                "created_at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "total_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "configuration_scans",
+          "total_count"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List NetworkNeighborhoods showing actual network communication patterns of workloads. These capture: ingress connections (who talks TO the workload), egress connections (who the workload talks TO), including DNS names, IP addresses, ports, and protocols. Use this to understand attack surface and prioritize network-related security findings. Requires 'capabilities.runtimeObservability=enable' in Kubescape Helm chart.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Filter by namespace (optional, defaults to all namespaces)"
+          }
+        }
+      },
+      "name": "kubescape_list_network_neighborhoods",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "network_neighborhoods": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "namespace": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "containers_count": {
+                  "type": "integer"
+                },
+                "total_ingress": {
+                  "type": "integer"
+                },
+                "total_egress": {
+                  "type": "integer"
+                },
+                "created_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "namespace",
+                "name",
+                "containers_count",
+                "total_ingress",
+                "total_egress",
+                "created_at"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "total_count": {
+            "type": "integer"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "network_neighborhoods",
+          "total_count",
+          "description"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List all CVEs/vulnerabilities found in a specific vulnerability manifest. Returns severity summary and vulnerability details.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Namespace of the manifest (default: kubescape)"
+          },
+          "manifest_name": {
+            "type": "string",
+            "description": "Name of the vulnerability manifest"
+          }
+        }
+      },
+      "name": "kubescape_list_vulnerabilities",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "manifest_name": {
+            "type": "string"
+          },
+          "namespace": {
+            "type": "string"
+          },
+          "total_count": {
+            "type": "integer"
+          },
+          "severity_summary": {
+            "type": "object",
+            "properties": {
+              "Critical": {
+                "type": "integer"
+              },
+              "High": {
+                "type": "integer"
+              },
+              "Medium": {
+                "type": "integer"
+              },
+              "Low": {
+                "type": "integer"
+              },
+              "Unknown": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "Critical",
+              "High",
+              "Medium",
+              "Low",
+              "Unknown"
+            ],
+            "additionalProperties": false
+          },
+          "vulnerabilities": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "severity": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "data_source": {
+                  "type": "string"
+                },
+                "fix_state": {
+                  "type": "string"
+                },
+                "fix_versions": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "severity",
+                "description",
+                "data_source"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "manifest_name",
+          "namespace",
+          "total_count",
+          "severity_summary",
+          "vulnerabilities"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "List vulnerability manifests from Kubescape operator, at image or workload level. This is an index only: it does NOT report how many vulnerabilities each manifest contains, and an entry appearing here says nothing about whether that image is clean. To get vulnerability counts and severities for a manifest, call kubescape_list_vulnerabilities with its manifest_name.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "namespace": {
+            "type": "string",
+            "description": "Filter by namespace (optional, defaults to all namespaces)"
+          },
+          "level": {
+            "type": "string",
+            "description": "Type of manifests to list: 'image', 'workload', or 'both' (default: both)"
+          }
+        }
+      },
+      "name": "kubescape_list_vulnerability_manifests",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "vulnerability_manifests": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "namespace": {
+                  "type": "string"
+                },
+                "manifest_name": {
+                  "type": "string"
+                },
+                "image_level": {
+                  "type": "boolean"
+                },
+                "workload_level": {
+                  "type": "boolean"
+                },
+                "image_id": {
+                  "type": "string"
+                },
+                "image_tag": {
+                  "type": "string"
+                },
+                "workload_id": {
+                  "type": "string"
+                },
+                "workload_container_name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "namespace",
+                "manifest_name",
+                "image_level",
+                "workload_level",
+                "image_id",
+                "image_tag",
+                "workload_id",
+                "workload_container_name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "total_count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "vulnerability_manifests",
+          "total_count"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Echo input and return all HTTP headers received with the MCP request for debugging.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "echo": {
+            "type": "string",
+            "description": "Optional value to echo back in the inspect response"
+          }
+        }
+      },
+      "name": "mcp_inspect",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "echo": {
+            "type": "string",
+            "description": "The echo value supplied by the caller"
+          },
+          "headers": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "HTTP header name"
+                },
+                "values": {
+                  "type": [
+                    "null",
+                    "array"
+                  ],
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "All values received for this HTTP header"
+                }
+              },
+              "required": [
+                "name",
+                "values"
+              ],
+              "additionalProperties": false
+            },
+            "description": "HTTP headers received with the MCP request"
+          }
+        },
+        "required": [
+          "echo",
+          "headers"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get all available labels from Prometheus",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prometheus_url": {
+            "type": "string",
+            "description": "Prometheus server URL (default: PROMETHEUS_URL, else http://localhost:9090)"
+          }
+        }
+      },
+      "name": "prometheus_label_names_tool",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Generate a PromQL query",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query_description": {
+            "type": "string",
+            "description": "A string describing the query to generate"
+          }
+        }
+      },
+      "name": "prometheus_promql_tool",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Execute a PromQL range query against Prometheus",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "PromQL query to execute"
+          },
+          "start": {
+            "type": "string",
+            "description": "Start time (Unix timestamp or relative time)"
+          },
+          "end": {
+            "type": "string",
+            "description": "End time (Unix timestamp or relative time)"
+          },
+          "step": {
+            "type": "string",
+            "description": "Query resolution step (default: 15s)"
+          },
+          "prometheus_url": {
+            "type": "string",
+            "description": "Prometheus server URL (default: PROMETHEUS_URL, else http://localhost:9090)"
+          }
+        }
+      },
+      "name": "prometheus_query_range_tool",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Execute a PromQL query against Prometheus",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "PromQL query to execute"
+          },
+          "prometheus_url": {
+            "type": "string",
+            "description": "Prometheus server URL (default: PROMETHEUS_URL, else http://localhost:9090)"
+          }
+        }
+      },
+      "name": "prometheus_query_tool",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "description": "Get all Prometheus targets and their status",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "prometheus_url": {
+            "type": "string",
+            "description": "Prometheus server URL (default: PROMETHEUS_URL, else http://localhost:9090)"
+          }
+        }
+      },
+      "name": "prometheus_targets_tool",
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "output": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "output"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

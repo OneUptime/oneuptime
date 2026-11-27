@@ -346,8 +346,9 @@ const CloudSavingsAiRulesTable: FunctionComponent = (): ReactElement | null => {
           fieldType: FormFieldSchemaType.Dropdown,
           dropdownOptions: AUTONOMY_OPTIONS,
           required: true,
+          // A label never makes a resource non-production for a change made without asking (#11347).
           description:
-            "Production, and resources nothing says are not production, are always proposed, whatever this says.",
+            "Production, and resources only their labels or nothing say are not production, are always proposed, whatever this says.",
         },
         {
           field: { cloudSavingMonthlyLimit: true },

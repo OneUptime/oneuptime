@@ -134,6 +134,8 @@ const RESOURCE_FILTER_LABELS: Record<
     [StorageSystem.PureStorageFlashArray]: "`name`",
     [StorageSystem.DellPowerStore]: "`name`",
     [StorageSystem.NetAppOntap]: "`volume`",
+    // A PowerMax volume by its device ID (#11004).
+    [StorageSystem.DellPowerMax]: "`volume`",
   },
   hostName: {
     [StorageSystem.PureStorageFlashArray]: "`host`",
@@ -146,10 +148,14 @@ const RESOURCE_FILTER_LABELS: Record<
     [StorageSystem.PureStorageFlashBlade]: "`component_name`",
     [StorageSystem.DellPowerStore]: "`name`",
     [StorageSystem.NetAppOntap]: "the node, disk, shelf or port label",
+    // A PowerMax director or port (#11004).
+    [StorageSystem.DellPowerMax]: "`component`",
+    [StorageSystem.DellPowerScale]: "`node`",
   },
   fileSystemName: {
     [StorageSystem.PureStorageFlashBlade]: "`name`",
     [StorageSystem.DellPowerStore]: "`name`",
+    [StorageSystem.DellPowerScale]: "`quota`",
   },
   bucketName: {
     [StorageSystem.PureStorageFlashBlade]: "`name`",
@@ -223,6 +229,7 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
         StorageSystem.PureStorageFlashBlade,
         StorageSystem.DellPowerStore,
         StorageSystem.NetAppOntap,
+        StorageSystem.DellPowerMax,
       ]) {
         expect({ key, system, offered: offeredOn.includes(system) }).toEqual({
           key,
@@ -292,6 +299,13 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
     )) {
       expect(offering.description).toContain("`name` on a FlashBlade");
     }
+    // A PowerScale's names its nodes' label, the one its series carry.
+    expect(
+      getStorageArrayObjectLabel(
+        StorageArrayResourceScope.Hardware,
+        StorageSystem.DellPowerScale,
+      ),
+    ).toBe("node");
     // ONTAP: a volume by `volume`, a hardware part by its node (#11001).
     expect(
       getStorageArrayObjectLabel(
@@ -305,6 +319,19 @@ describe("StorageArrayMonitorStepForm resource filters", () => {
         StorageSystem.NetAppOntap,
       ),
     ).toBe("node");
+    // PowerMax: a volume by `volume`, a director or a port by `component` (#11004).
+    expect(
+      getStorageArrayObjectLabel(
+        StorageArrayResourceScope.Volume,
+        StorageSystem.DellPowerMax,
+      ),
+    ).toBe("volume");
+    expect(
+      getStorageArrayObjectLabel(
+        StorageArrayResourceScope.Hardware,
+        StorageSystem.DellPowerMax,
+      ),
+    ).toBe("component");
   });
 
   test("writes each field back under its own key, spreading the rest", () => {
@@ -498,8 +525,9 @@ describe("StorageArrayMonitorStepForm custom metrics", () => {
         /*
          * An array-wide series is grouped by nothing, unless its entry
          * names the object it describes: ONTAP's aggregates, SVMs, LUNs,
-         * SnapMirror relationships, health subsystems and EMS messages,
-         * kinds with no scope of their own (#11001).
+         * SnapMirror relationships, health subsystems and EMS messages, and a
+         * PowerMax's storage groups, pools and SRDF groups (#11004) - kinds
+         * with no scope of their own (#11001).
          */
         expect({ id: metric.id, label }).toEqual({
           id: metric.id,

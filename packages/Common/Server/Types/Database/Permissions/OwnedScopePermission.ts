@@ -17,6 +17,7 @@ import BaseModel, {
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import LIMIT_MAX from "../../../../Types/Database/LimitMax";
 import MultiSearch from "../../../../Types/BaseDatabase/MultiSearch";
+import FilterGroups from "../../../../Types/BaseDatabase/FilterGroups";
 import { FindWhereProperty } from "../../../../Types/BaseDatabase/Query";
 import DatabaseCommonInteractionProps from "../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import DatabaseCommonInteractionPropsUtil, {
@@ -958,6 +959,15 @@ export default class OwnedScopePermission {
       if (value instanceof MultiSearch) {
         for (const field of value.fields || []) {
           named.add(field);
+        }
+
+        continue;
+      }
+
+      // Each column a group of the filter compares (#11211).
+      if (value instanceof FilterGroups) {
+        for (const column of value.columns) {
+          named.add(column);
         }
 
         continue;

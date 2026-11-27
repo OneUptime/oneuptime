@@ -1,0 +1,10 @@
+# Laid over the agent's PowerScale config by record-capture.sh: the same
+# receivers and processors, with what the agent would send to OneUptime
+# written to a file instead.
+exporters:
+  file:
+    path: /capture/otlp.jsonl
+service:
+  pipelines:
+    metrics:
+      exporters: [file]

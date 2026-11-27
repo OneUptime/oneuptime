@@ -1,9 +1,8 @@
 import Log from "../../Models/AnalyticsModels/Log";
-import InBetween from "../BaseDatabase/InBetween";
 import Includes from "../BaseDatabase/Includes";
 import Query from "../BaseDatabase/Query";
 import Search from "../BaseDatabase/Search";
-import OneUptimeDate from "../Date";
+import TelemetryCheckWindow from "./TelemetryCheckWindow";
 import Dictionary from "../Dictionary";
 import { JSONObject } from "../JSON";
 import LogSeverity from "../Log/LogSeverity";
@@ -110,13 +109,12 @@ export class MonitorStepLogMonitorUtil {
       query.body = new Search(monitorStepLogMonitor.body);
     }
 
+    // Its start and not its end, as every check's window (TelemetryCheckWindow).
     if (monitorStepLogMonitor.lastXSecondsOfLogs) {
-      const endDate: Date = evaluateUntil || OneUptimeDate.getCurrentDate();
-      const startDate: Date = OneUptimeDate.addRemoveSeconds(
-        endDate,
-        monitorStepLogMonitor.lastXSecondsOfLogs * -1,
+      query.time = TelemetryCheckWindow.ofSeconds(
+        monitorStepLogMonitor.lastXSecondsOfLogs,
+        evaluateUntil,
       );
-      query.time = new InBetween(startDate, endDate);
     }
 
     return query;

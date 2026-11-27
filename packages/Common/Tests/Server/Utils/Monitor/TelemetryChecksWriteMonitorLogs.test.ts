@@ -717,6 +717,38 @@ describe("a check's row says which window of telemetry it judged", () => {
     );
   });
 
+  // #11334: a check's window holds its start and not its end, and its row says so.
+  test("keeps which end the window held, as the evaluation job said it", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]), {
+      judgedWindow: { startsAt, endsAt, includesEnd: false },
+    });
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    expect(evaluation.judgedWindow!.includesEnd).toBe(false);
+    expect(new Date(evaluation.judgedWindow!.endsAt).toISOString()).toBe(
+      endsAt.toISOString(),
+    );
+  });
+
+  test("a window handed over without saying which end it held keeps none: it reads as both", async () => {
+    setUpMetricMonitor(MonitorType.Metrics);
+
+    await MonitorResourceUtil.monitorResource(metricCheck([95, 40]), {
+      judgedWindow: { startsAt, endsAt },
+    });
+
+    const evaluation: MonitorEvaluationSummary = evaluationOf(
+      readBack((await loggedRows())[0]!),
+    );
+
+    expect(Object.keys(evaluation.judgedWindow!)).not.toContain("includesEnd");
+  });
+
   test("a check that matched nothing says it too", async () => {
     setUpMetricMonitor(MonitorType.Metrics);
 

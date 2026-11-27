@@ -218,13 +218,23 @@ describe("Next Content Scan, in words", () => {
       "a kind OneUptime cannot sample",
       workerFacts({ kind: DataStoreKind.AwsDynamoDbTable }),
       "Not scanned",
-      "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+      "OneUptime cannot sample this kind of store's content yet.",
     ],
+    // A kind nothing samples, from a probe as from a worker (#11140).
     [
-      "a kind a probe does not sample",
+      "a kind nothing samples, from a probe",
       probeFacts({ kind: DataStoreKind.MongoDb }),
       "Not scanned",
-      "A probe scans PostgreSQL, MySQL and SQL Server databases only. Scan this store from OneUptime's workers in its Settings.",
+      "OneUptime cannot sample this kind of store's content yet.",
+    ],
+    [
+      "a cloud's store set to scan from a probe",
+      probeFacts({
+        kind: DataStoreKind.AwsS3Bucket,
+        provider: DataStoreProvider.Aws,
+      }),
+      "Not scanned",
+      "A probe scans only stores you run: PostgreSQL, MySQL, SQL Server, Elasticsearch and OpenSearch. Scan this store from OneUptime's workers in its Settings.",
     ],
     [
       "no probe connection variable",
@@ -393,7 +403,7 @@ describe("Scan Now, which never says a scan started that will not run", () => {
         kind: DataStoreKind.MongoDb,
         provider: DataStoreProvider.SelfManaged,
       }),
-      "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.",
+      "OneUptime cannot sample this kind of store's content yet.",
     ],
     [
       "an archived store from OneUptime's workers in a project that scans no content",
@@ -577,9 +587,9 @@ describe("the server's Scan Now refusals are the page's words", () => {
  */
 describe("why a store's Scan Content switch can do nothing", () => {
   const UNSAMPLED: string =
-    "OneUptime cannot sample this kind of store's content yet. Its configuration is still checked.";
+    "OneUptime cannot sample this kind of store's content yet.";
   const NOT_FROM_A_PROBE: string =
-    "A probe scans PostgreSQL, MySQL and SQL Server databases only. Scan this store from OneUptime's workers in its Settings.";
+    "A probe scans only stores you run: PostgreSQL, MySQL, SQL Server, Elasticsearch and OpenSearch. Scan this store from OneUptime's workers in its Settings.";
 
   test.each([
     [
@@ -609,6 +619,7 @@ describe("why a store's Scan Content switch can do nothing", () => {
       { kind: DataStoreKind.MongoDb, provider: DataStoreProvider.SelfManaged },
       UNSAMPLED,
     ],
+    // Nothing samples it, a probe no more than a worker (#11140).
     [
       "a MongoDB database from a probe",
       {
@@ -616,7 +627,24 @@ describe("why a store's Scan Content switch can do nothing", () => {
         provider: DataStoreProvider.SelfManaged,
         scanProbeId: "66666666-6666-4666-8666-666666666666",
       },
-      NOT_FROM_A_PROBE,
+      UNSAMPLED,
+    ],
+    [
+      "an Elasticsearch cluster from a probe",
+      {
+        kind: DataStoreKind.Elasticsearch,
+        provider: DataStoreProvider.SelfManaged,
+        scanProbeId: "66666666-6666-4666-8666-666666666666",
+      },
+      undefined,
+    ],
+    [
+      "an OpenSearch cluster from OneUptime's workers",
+      {
+        kind: DataStoreKind.OpenSearch,
+        provider: DataStoreProvider.SelfManaged,
+      },
+      undefined,
     ],
     [
       "an S3 bucket set to scan from a probe",

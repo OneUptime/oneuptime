@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import { QueryRunner } from "typeorm";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
-import { AddProjectSecurityAccessLogFormat1809187791048 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187791048-AddProjectSecurityAccessLogFormat";
+import { AddProjectSecurityAccessLogFormat1809187791129 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809187791129-AddProjectSecurityAccessLogFormat";
 import Project from "../../../../Models/DatabaseModels/Project";
 import TableColumnType from "../../../../Types/Database/TableColumnType";
 
@@ -36,18 +36,18 @@ function timestampOf(migration: unknown): number {
   );
 }
 
-describe("AddProjectSecurityAccessLogFormat1809187791048", () => {
+describe("AddProjectSecurityAccessLogFormat1809187791129", () => {
   test("adds the column to Project, as generated, and nothing else", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProjectSecurityAccessLogFormat1809187791048().up(runner);
+        return new AddProjectSecurityAccessLogFormat1809187791129().up(runner);
       }),
     ).toEqual([`ALTER TABLE "Project" ADD "securityAccessLogFormat" text`]);
   });
 
   test("no default, index, key or update: no row of Project is rewritten", async () => {
     for (const statement of await statementsOf((runner: QueryRunner) => {
-      return new AddProjectSecurityAccessLogFormat1809187791048().up(runner);
+      return new AddProjectSecurityAccessLogFormat1809187791129().up(runner);
     })) {
       expect(statement).not.toMatch(
         /CREATE (UNIQUE )?INDEX|FOREIGN KEY|UPDATE |DEFAULT|NOT NULL/i,
@@ -69,7 +69,7 @@ describe("AddProjectSecurityAccessLogFormat1809187791048", () => {
   test("down drops what up added", async () => {
     expect(
       await statementsOf((runner: QueryRunner) => {
-        return new AddProjectSecurityAccessLogFormat1809187791048().down(
+        return new AddProjectSecurityAccessLogFormat1809187791129().down(
           runner,
         );
       }),
@@ -81,19 +81,19 @@ describe("AddProjectSecurityAccessLogFormat1809187791048", () => {
 
     expect(
       registered.filter((candidate: unknown): boolean => {
-        return candidate === AddProjectSecurityAccessLogFormat1809187791048;
+        return candidate === AddProjectSecurityAccessLogFormat1809187791129;
       }),
     ).toHaveLength(1);
 
     const position: number = registered.indexOf(
-      AddProjectSecurityAccessLogFormat1809187791048,
+      AddProjectSecurityAccessLogFormat1809187791129,
     );
 
     expect(
       Math.max(...registered.slice(0, position).map(timestampOf)),
-    ).toBeLessThan(timestampOf(AddProjectSecurityAccessLogFormat1809187791048));
-    expect(new AddProjectSecurityAccessLogFormat1809187791048().name).toBe(
-      "AddProjectSecurityAccessLogFormat1809187791048",
+    ).toBeLessThan(timestampOf(AddProjectSecurityAccessLogFormat1809187791129));
+    expect(new AddProjectSecurityAccessLogFormat1809187791129().name).toBe(
+      "AddProjectSecurityAccessLogFormat1809187791129",
     );
   });
 });

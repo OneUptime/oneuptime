@@ -381,7 +381,7 @@ const CREDENTIAL_SETTINGS: Record<string, string> = {
   ApiKey:
     "An API key is itself a credential: a permission row that names one grants that key what it lists.",
   ExternalMcpServer:
-    "An outside MCP server's sign-in (a bearer token, header values or an OAuth client secret): an investigation or auto remediation rule that names one lets OneUptime AI use that server's tools with it.",
+    "An outside MCP server's sign-in (a bearer token, header values or an OAuth client secret): an investigation or auto remediation rule that names one lets OneUptime AI use that server's tools with it, and a read-only mark that names one lets OneUptime AI call one of those tools without asking.",
   SecurityEventConnection:
     "A security tool's key (a Google SecOps service account, an API token): a threat-intel feed that names one reads that tool's indicators with it.",
   ThreatIntelFeed:
@@ -410,6 +410,11 @@ const CREDENTIAL_REFERENCES: Array<[string, string, string]> = [
   ["AIPostmortemRule", "llmProvider", "LlmProvider"],
   // The provider a repository's production reviews read its pull requests with.
   ["CodeRepository", "productionReviewLlmProvider", "LlmProvider"],
+  /*
+   * A Project Admin's word that one of a server's tools only reads (#11081):
+   * only someone who may read the project's servers names one.
+   */
+  ["ExternalMcpToolReadOnlyMark", "externalMcpServer", "ExternalMcpServer"],
 ];
 
 /*

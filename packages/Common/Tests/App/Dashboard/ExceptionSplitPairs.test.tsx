@@ -26,12 +26,18 @@ import {
   SPLIT_FROM_ONE_SELECT,
   SPLIT_ONE_SELECT,
   countSplitExceptions,
+  countSplitExceptionsInList,
+  forgetRememberedSplitExceptions,
   getOccurrenceFingerprints,
+  getSplitExceptionsHintKey,
+  getSplitExceptionsInListQuery,
   getSplitExceptionsQuery,
   getSplitPairExceptionIds,
   idOf,
   readSplitExceptionFingerprints,
   readSplitPairExceptionIds,
+  recallSplitExceptions,
+  rememberSplitExceptions,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionSplitPairs";
 import { MAX_SCOPED_FINGERPRINTS } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionsAttributeScope";
 import TelemetryException from "../../../Models/DatabaseModels/TelemetryException";
@@ -40,6 +46,8 @@ import Includes from "../../../Types/BaseDatabase/Includes";
 import NotNull from "../../../Types/BaseDatabase/NotNull";
 import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import ObjectID from "../../../Types/ObjectID";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import LocalStorage from "../../../UI/Utils/LocalStorage";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
 import { Translator } from "../../../UI/Utils/TranslateTemplate";
@@ -591,9 +599,11 @@ describe("what the filter for a project's split pairs reads", () => {
     expect(reads()).toHaveLength(1);
   });
 
-  test("a read that fails is no fingerprint at all, never every exception", async () => {
+  test("a read that fails says so, either of the two, and is never read as no fingerprint (#11116)", async () => {
     listMock.mockRejectedValue(new Error("Server Error"));
-    expect(await readSplitExceptionFingerprints()).toEqual([]);
+    await expect(readSplitExceptionFingerprints()).rejects.toThrow(
+      "Server Error",
+    );
 
     listMock.mockReset();
     listMock.mockImplementation(async (args: ReadArgs) => {
@@ -602,7 +612,149 @@ describe("what the filter for a project's split pairs reads", () => {
       }
       return { data: [withFingerprint(SPLIT_ID, "fp-split")], count: 1 };
     });
-    expect(await readSplitExceptionFingerprints()).toEqual([]);
+    await expect(readSplitExceptionFingerprints()).rejects.toThrow(
+      "Server Error",
+    );
+  });
+
+  test("the toggle's figure is counted with the list's own query, the filter on, nothing of it lost (#11116)", async () => {
+    countMock.mockResolvedValue(4);
+    const window: InBetween<Date> = new InBetween<Date>(
+      new Date("2026-11-20T00:00:00.000Z"),
+      new Date("2026-11-27T00:00:00.000Z"),
+    );
+    const listQuery: Record<string, unknown> = {
+      projectId: new ObjectID(PROJECT_ID),
+      isResolved: false,
+      isArchived: false,
+      lastSeenAt: window,
+      assignToUserId: new ObjectID("77777777-7777-4777-8777-777777777777"),
+    };
+
+    expect(await countSplitExceptionsInList(listQuery as never)).toBe(4);
+
+    const args: ReadArgs = countMock.mock.calls[0]![0];
+    expect(args.modelType).toBe(TelemetryException);
+    expect(args.query["splitFromTelemetryExceptionId"]).toBeInstanceOf(NotNull);
+    const rest: Record<string, unknown> = { ...args.query };
+    delete rest["splitFromTelemetryExceptionId"];
+    expect(rest).toEqual(listQuery);
+    // The list's query itself is left as it was.
+    expect(listQuery).not.toHaveProperty("splitFromTelemetryExceptionId");
+    // With the filter on already, the count is the list's own.
+    expect(
+      getSplitExceptionsInListQuery({
+        ...listQuery,
+        splitFromTelemetryExceptionId: new NotNull(),
+      } as never),
+    ).toEqual({ ...listQuery, splitFromTelemetryExceptionId: new NotNull() });
+  });
+
+  test("a figure that cannot be counted is null", async () => {
+    countMock.mockRejectedValue(new Error("Server Error"));
+
+    expect(await countSplitExceptionsInList({} as never)).toBeNull();
+  });
+});
+
+describe("whether a project has a pair, remembered (#11116)", () => {
+  const PROJECT: ObjectID = new ObjectID(
+    "11111111-1111-4111-8111-111111111111",
+  );
+  const OTHER: ObjectID = new ObjectID("22222222-2222-4222-8222-222222222222");
+
+  beforeEach(() => {
+    forgetRememberedSplitExceptions();
+    window.localStorage.clear();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("nothing remembered: nothing says", () => {
+    expect(recallSplitExceptions(PROJECT)).toBeNull();
+    expect(recallSplitExceptions(null)).toBeNull();
+    expect(recallSplitExceptions(undefined)).toBeNull();
+  });
+
+  test("what the last count said, for each project alone", () => {
+    rememberSplitExceptions(PROJECT, true);
+    rememberSplitExceptions(OTHER, false);
+
+    expect(recallSplitExceptions(PROJECT)).toBe(true);
+    expect(recallSplitExceptions(OTHER)).toBe(false);
+    expect(
+      recallSplitExceptions(
+        new ObjectID("33333333-3333-4333-8333-333333333333"),
+      ),
+    ).toBeNull();
+  });
+
+  test("kept in the browser for the next page load, under the project's own key", () => {
+    rememberSplitExceptions(PROJECT, true);
+    forgetRememberedSplitExceptions();
+
+    expect(getSplitExceptionsHintKey(PROJECT.toString())).toBe(
+      "exceptions-split-by-scrub-rule-11111111-1111-4111-8111-111111111111",
+    );
+    expect(
+      window.localStorage.getItem(
+        getSplitExceptionsHintKey(PROJECT.toString()),
+      ),
+    ).toBe("true");
+    expect(recallSplitExceptions(PROJECT)).toBe(true);
+
+    rememberSplitExceptions(PROJECT, false);
+    forgetRememberedSplitExceptions();
+    expect(recallSplitExceptions(PROJECT)).toBe(false);
+  });
+
+  test("an id however it is written is the same project's", () => {
+    rememberSplitExceptions(
+      new ObjectID("AAAAAAAA-1111-4111-8111-111111111111"),
+      true,
+    );
+    forgetRememberedSplitExceptions();
+
+    expect(
+      recallSplitExceptions(
+        new ObjectID("aaaaaaaa-1111-4111-8111-111111111111"),
+      ),
+    ).toBe(true);
+  });
+
+  test("anything else the browser holds under the key says nothing", () => {
+    for (const value of ["yes", "1", "{}", "null", ""]) {
+      window.localStorage.setItem(
+        getSplitExceptionsHintKey(PROJECT.toString()),
+        value,
+      );
+      forgetRememberedSplitExceptions();
+      expect(recallSplitExceptions(PROJECT)).toBeNull();
+    }
+  });
+
+  test("a browser that keeps nothing remembers for the visit, and nothing throws", () => {
+    jest.spyOn(LocalStorage, "getItem").mockImplementation(() => {
+      throw new Error("SecurityError");
+    });
+    jest.spyOn(LocalStorage, "setItem").mockImplementation(() => {
+      throw new Error("QuotaExceededError");
+    });
+
+    expect(recallSplitExceptions(PROJECT)).toBeNull();
+    expect(() => {
+      rememberSplitExceptions(PROJECT, true);
+    }).not.toThrow();
+    expect(recallSplitExceptions(PROJECT)).toBe(true);
+  });
+
+  test("with no project, nothing is kept", () => {
+    rememberSplitExceptions(null, true);
+    rememberSplitExceptions(undefined, true);
+
+    expect(window.localStorage.length).toBe(0);
   });
 });
 

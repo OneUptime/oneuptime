@@ -370,16 +370,6 @@ const useResourceOwners: <TResource extends BaseModel>(
   const [facetDynamicOptions, setFacetDynamicOptions] = useState<{
     [facetKey: string]: Array<FilterChipDropdownOption>;
   }>({});
-  /*
-   * For facets with `computeMatchingResourceIds`, the resolver's result is
-   * cached here keyed by facet.key. `null` means "not yet computed / no
-   * selection" (don't constrain). An empty array means "selection produced
-   * no matches" (force empty result set).
-   */
-  const [facetMatchingIds, setFacetMatchingIds] = useState<{
-    [facetKey: string]: Array<string> | null;
-  }>({});
-
   useEffect(() => {
     const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
     if (!projectId) {
@@ -432,94 +422,6 @@ const useResourceOwners: <TResource extends BaseModel>(
       cancelled = true;
     };
   }, []);
-
-  /*
-   * Pre-fetch matching parent IDs for facets that filter across multiple
-   * relationship fields (e.g. "Affected Resources"). Re-runs whenever the
-   * facet's selection or operator changes. We track per-facet to keep each
-   * resolver independent.
-   */
-  useEffect(() => {
-    const projectId: ObjectID | null = ProjectUtil.getCurrentProjectId();
-    if (!projectId) {
-      return;
-    }
-    const multiFieldFacets: Array<ResourceFacet> = extraFacets.filter(
-      (f: ResourceFacet) => {
-        return Boolean(f.computeMatchingResourceIds);
-      },
-    );
-    if (multiFieldFacets.length === 0) {
-      return;
-    }
-
-    let cancelled: boolean = false;
-
-    const run: () => Promise<void> = async (): Promise<void> => {
-      for (const facet of multiFieldFacets) {
-        const selected: Array<string> = facetSelections[facet.key] || [];
-        const op: FilterOperator = facetOperators[facet.key] || "is";
-
-        if (
-          selected.length === 0 ||
-          op === "is_empty" ||
-          op === "is_not_empty"
-        ) {
-          /*
-           * Nothing selected (or operator that doesn't take values) — clear
-           * any cached IDs so the merged query stops constraining on this
-           * facet. Using a functional setter so concurrent facet updates
-           * don't clobber each other.
-           */
-          setFacetMatchingIds((prev: { [k: string]: Array<string> | null }) => {
-            if (prev[facet.key] === null || prev[facet.key] === undefined) {
-              return prev;
-            }
-            const next: { [k: string]: Array<string> | null } = { ...prev };
-            next[facet.key] = null;
-            return next;
-          });
-          continue;
-        }
-
-        try {
-          const ids: Array<string> = await facet.computeMatchingResourceIds!(
-            projectId,
-            selected,
-            op,
-          );
-          if (cancelled) {
-            return;
-          }
-          setFacetMatchingIds((prev: { [k: string]: Array<string> | null }) => {
-            return { ...prev, [facet.key]: ids };
-          });
-        } catch (err) {
-          // eslint-disable-next-line no-console
-          console.error(
-            `[useResourceOwners] Failed to compute matching IDs for facet "${facet.key}":`,
-            err,
-          );
-          if (cancelled) {
-            return;
-          }
-          /*
-           * Treat error as "no matches" so the chip's filter is still applied
-           * visibly rather than silently dropped.
-           */
-          setFacetMatchingIds((prev: { [k: string]: Array<string> | null }) => {
-            return { ...prev, [facet.key]: [] };
-          });
-        }
-      }
-    };
-
-    run();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [facetSelections, facetOperators]);
 
   const onResourcesFetched: (resources: Array<TResource>) => void = (
     resources: Array<TResource>,
@@ -800,18 +702,6 @@ const useResourceOwners: <TResource extends BaseModel>(
     } as Query<TResource>;
 
     /*
-     * Several filters (any facet with `computeMatchingResourceIds`) narrow on
-     * `_id`. They can't each write to `_id` directly — the last one
-     * would win. So we collect every contributing set first, then combine:
-     *   - "is" sets are intersected (a row must be in all of them)
-     *   - "is_not" sets are unioned and subtracted from the intersection,
-     *     or expressed as IncludesNone when there are no positive sets
-     */
-    const SENTINEL_EMPTY_ID: string = "00000000-0000-0000-0000-000000000000";
-    const positiveIdSets: Array<Set<string>> = [];
-    const negativeIdSets: Array<Set<string>> = [];
-
-    /*
      * Owner: one filter under "owners" that the server answers in this very
      * query, through the owner tables' indexes (OwnerFacetQuery, OwnedBy) -
      * people and teams as picked, a team never standing for its members.
@@ -847,41 +737,6 @@ const useResourceOwners: <TResource extends BaseModel>(
       const selected: Array<string> = facetSelections[facet.key] || [];
       const field: string = facet.queryField || facet.key;
 
-      // Multi-field facet: contributes to the _id intersection, not a column.
-      if (facet.computeMatchingResourceIds) {
-        if (op === "is_empty" || op === "is_not_empty") {
-          /*
-           * Not meaningful for resolver-based facets — disable in chip via
-           * supportedOperators. Skip if it slips through.
-           */
-          continue;
-        }
-        if (selected.length === 0) {
-          continue;
-        }
-        const ids: Array<string> | null | undefined =
-          facetMatchingIds[facet.key];
-        if (ids === null || ids === undefined) {
-          /*
-           * Resolver hasn't returned yet — leave the query unconstrained
-           * for this facet rather than briefly showing a wrong result.
-           */
-          continue;
-        }
-        if (ids.length === 0) {
-          if (op !== "is_not") {
-            positiveIdSets.push(new Set([SENTINEL_EMPTY_ID]));
-          }
-          continue;
-        }
-        if (op === "is_not") {
-          negativeIdSets.push(new Set(ids));
-        } else {
-          positiveIdSets.push(new Set(ids));
-        }
-        continue;
-      }
-
       /*
        * Which column this chip writes, and what — including how it combines
        * with a chip that already wrote the same column. See FacetColumnQuery;
@@ -902,48 +757,6 @@ const useResourceOwners: <TResource extends BaseModel>(
 
       (merged as unknown as Record<string, unknown>)[columnQuery.field] =
         columnQuery.value;
-    }
-
-    // Combine the collected _id sets.
-    if (positiveIdSets.length > 0) {
-      let combined: Set<string> = new Set(positiveIdSets[0]);
-      for (let i: number = 1; i < positiveIdSets.length; i++) {
-        combined = new Set(
-          [...combined].filter((id: string) => {
-            return positiveIdSets[i]!.has(id);
-          }),
-        );
-      }
-      for (const neg of negativeIdSets) {
-        combined = new Set(
-          [...combined].filter((id: string) => {
-            return !neg.has(id);
-          }),
-        );
-      }
-      if (combined.size === 0) {
-        (merged as unknown as Record<string, unknown>)["_id"] = new Includes([
-          new ObjectID(SENTINEL_EMPTY_ID),
-        ]);
-      } else {
-        (merged as unknown as Record<string, unknown>)["_id"] = new Includes(
-          [...combined].map((id: string) => {
-            return new ObjectID(id);
-          }),
-        );
-      }
-    } else if (negativeIdSets.length > 0) {
-      const union: Set<string> = new Set();
-      for (const neg of negativeIdSets) {
-        for (const id of neg) {
-          union.add(id);
-        }
-      }
-      (merged as unknown as Record<string, unknown>)["_id"] = new IncludesNone(
-        [...union].map((id: string) => {
-          return new ObjectID(id);
-        }),
-      );
     }
 
     return merged;
@@ -1088,7 +901,6 @@ const useResourceOwners: <TResource extends BaseModel>(
     setOwnerOperator("is");
     setLabelOperator("is");
     setFacetOperators({});
-    setFacetMatchingIds({});
   }, []);
 
   /*
@@ -1530,10 +1342,6 @@ const useResourceOwners: <TResource extends BaseModel>(
     setOwnerOperator(parsed.ownerOperator);
     setLabelOperator(parsed.labelOperator);
     setFacetOperators(parsed.facetOperators);
-
-    if (!state) {
-      setFacetMatchingIds({});
-    }
   };
 
   /*

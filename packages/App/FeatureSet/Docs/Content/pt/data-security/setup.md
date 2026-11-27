@@ -1,11 +1,12 @@
 # Configurar a Segurança de dados
 
-A Segurança de dados lê só o que você permite. Cada conexão de nuvem é lida em um de três níveis, um banco de dados que você executa é lido com uma string de conexão que você fornece, e a telemetria não precisa de nada. Esta página diz o que cada escolha permite que o OneUptime leia, as permissões exatas que ela concede e o que o OneUptime guarda do que lê.
+A Segurança de dados lê só o que você permite. Cada conexão de nuvem é lida em um de três níveis, um banco de dados ou um cluster de busca que você executa é lido com uma string de conexão que você fornece, e a telemetria não precisa de nada. Esta página diz o que cada escolha permite que o OneUptime leia, as permissões exatas que ela concede e o que o OneUptime guarda do que lê.
 
 :::cards
 - [Escolha um nível](#escolha-um-nível-para-cada-conexão): Desativado, Somente configuração, ou Configuração e amostras de conteúdo.
 - [O que cada nível concede](#o-que-cada-nível-concede): As ações da AWS, e as funções do Azure e do Google Cloud.
-- [Varrer um banco de dados que você executa](#varrer-um-banco-de-dados-que-você-executa): Uma string de conexão somente leitura, ou uma sonda na sua rede.
+- [Varrer um repositório que você executa](#varrer-um-repositório-que-você-executa): Uma string de conexão somente leitura, ou uma sonda na sua rede.
+- [O que o OneUptime verifica em um repositório que você executa](#o-que-o-oneuptime-verifica-em-um-repositório-que-você-executa): Se ele responde sem credenciais, perguntado de onde a varredura dele é executada.
 - [O que o OneUptime guarda](#o-que-o-oneuptime-guarda): Contagens, locais e amostras mascaradas, nunca um valor.
 - [Deixe a Segurança de dados fechar uma exposição](#deixe-a-segurança-de-dados-fechar-uma-exposição): As únicas gravações que uma conexão pode receber, desativadas até você ativá-las.
 :::
@@ -173,17 +174,75 @@ Uma varredura lê um pouco de um repositório, dentro dos limites do projeto, e 
 - **Buckets e contêineres** são amostrados por tipo, não por quantidade. Os nomes dos objetos são listados primeiro, no máximo dez vezes mais do que a varredura pode ler e nunca mais de 200.000. Cada nome vira o seu padrão, com datas, UUIDs, sequências hexadecimais longas e números transformados em `*`, então `exports/2026-10-27/users-0001.csv` vira `exports/*/users-*.csv`. Os objetos mais recentes de cada padrão são lidos, um de cada antes de um segundo de qualquer um, e no máximo 5 de um mesmo padrão. Cada objeto é lido desde o início: no máximo **Bytes por objeto** dele, e **Bytes por varredura** no total. Uma varredura amostra no máximo 10 contêineres de uma conta de armazenamento do Azure.
 - **Os arquivos são lidos pelo que são.** CSV e TSV por coluna, JSON e JSON lines por caminho, `.env`, `.ini`, `.properties`, TOML e YAML por chave, XML e HTML pelo texto, arquivos do Word, Excel e PowerPoint pelo texto e pelas células, e qualquer outra coisa como texto livre. Um arquivo gzip é descompactado primeiro. Imagens, Parquet, Avro, PDF e outros formatos binários não são lidos, e a varredura diz isso.
 - **Datasets e bancos de dados** são lidos tabela por tabela: no máximo **Tabelas por varredura** tabelas, e **Linhas por tabela** linhas de cada uma.
+- **Os clusters de busca** são lidos índice por índice, como um banco de dados é lido tabela por tabela: no máximo **Tabelas por varredura** índices, e **Linhas por tabela** documentos de cada um, os mais recentes primeiro quando o índice tem um `@timestamp`. Um fluxo de dados é lido como um só índice, e índices cujos nomes só diferem por datas ou números, como `logs-2026.11.26` e `logs-2026.11.27`, como um só, no mais recente que tem documentos. Os índices do próprio cluster, cujo nome começa com um ponto, não são lidos. Toda solicitação é um GET, então a varredura não consegue gravar no cluster, seja lá o que o usuário dele possa fazer.
 
 Cada varredura guarda um registro do que leu, por nome: os objetos, tabelas ou serviços, nunca o conteúdo deles. O que ela não conseguiu ler - uma requisição que a nuvem recusou, o prazo, o limite de bytes - vira um aviso na varredura, e a varredura é marcada como **Concluído parcialmente**.
 
 A **Visão geral** de um repositório diz quando o conteúdo dele é varrido da próxima vez. **Próxima varredura de conteúdo** é a hora em que algo o varre, **Previsto agora** enquanto ele espera a vez, e **Atrasado** quando está pendente há uma hora. Caso contrário, diz por que nada o varrerá: **Desativado** enquanto **Varrer conteúdo** estiver desativado para o repositório ou o projeto, ou enquanto o repositório não for mais encontrado; **Sem varredura** quando o OneUptime não consegue tirar amostras desse tipo de repositório, ou a sonda dele não consegue varrê-lo; e **Aguardando** enquanto a sonda dele estiver desconectada. A telemetria de um serviço é varrida **A cada hora**, com a varredura de telemetria do projeto. **Varrer agora** fica desativado, com o motivo, para um repositório que nada varreria. Uma varredura em andamento quando a varredura de conteúdo é desativada, ou quando o projeto é suspenso, não guarda nada do que encontrou.
 
-## Varrer um banco de dados que você executa
+## Varrer um repositório que você executa
 
-A Segurança de dados amostra bancos de dados PostgreSQL, MySQL e SQL Server, de uma de duas formas. Um banco de dados que o produto Database monitora, ou um com que os seus serviços se comunicam no mapa de serviços, já é um repositório. Um banco de dados que nenhuma varredura encontra, adicione você mesmo como repositório.
+A Segurança de dados amostra bancos de dados PostgreSQL, MySQL e SQL Server, e clusters Elasticsearch e OpenSearch, de uma de duas formas. Um banco de dados que o produto Database monitora, ou um com que os seus serviços se comunicam no mapa de serviços, já é um repositório. Adicione você mesmo qualquer outro, com **Adicionar um repositório que você executa** em **Repositórios de dados**: assim que você escolhe o **Tipo** dele, o formulário diz o que o OneUptime vai verificar nele e o que não consegue verificar, e pede só o que esse tipo lê. Um tipo que o OneUptime não amostra, como MongoDB ou Redis, não recebe string de conexão: ele é listado com os proprietários, os rótulos e a sensibilidade dele, e a exposição dele indica **Não verificável**.
 
-- **A partir dos workers do OneUptime.** Nas **Configurações** do repositório, defina **String de conexão** como uma que só possa ler, como `postgresql://reader:password@db.internal:5432/app`. Ela é criptografada em repouso e nunca é retornada pela API. Use para ela um usuário de banco de dados que possa ler e não faça mais nada.
-- **A partir de uma sonda na sua rede.** Escolha a sonda em **Varrer a partir da sonda**, e informe em **Variável de conexão da sonda** o nome da variável de ambiente, nessa sonda, que contém a string de conexão. A sonda lê o banco de dados de dentro da sua rede e envia de volta só o que encontrou: a string de conexão nunca chega ao OneUptime. Veja [Sondas personalizadas](/docs/probe/custom-probe) para executar uma sonda.
+- **A partir dos workers do OneUptime.** Nas **Configurações** do repositório, defina **String de conexão** como uma que só possa ler, como `postgresql://reader:password@db.internal:5432/app`, ou `https://reader:password@search.internal:9200` para um cluster de busca. Ela é criptografada em repouso e nunca é retornada pela API. Use para ela um usuário que possa ler e não faça mais nada. No OneUptime Cloud, os workers só alcançam endereços na internet.
+- **A partir de uma sonda na sua rede.** Escolha a sonda em **Varrer a partir da sonda**, e informe em **Variável de conexão da sonda** o nome da variável de ambiente, nessa sonda, que contém a string de conexão. A sonda lê o repositório de dentro da sua rede e envia de volta só o que encontrou: a string de conexão nunca chega ao OneUptime. Veja [Sondas personalizadas](/docs/probe/custom-probe) para executar uma sonda. Uma sonda de uma versão anterior só recebe bancos de dados: atualize-a para que ela varra um cluster de busca.
+
+### A string de conexão de um cluster de busca
+
+Elasticsearch e OpenSearch não têm uma string de conexão própria, então o OneUptime usa o endereço do cluster, do jeito que o curl o alcança, com um usuário somente leitura nele, ou uma chave de API do Elasticsearch depois dele, escrita `id:key` ou como o valor codificado que o Elasticsearch fornece:
+
+```text
+https://reader:password@search.internal:9200
+https://search.internal:9200?api_key=<id>:<key>
+https://reader:password@search.internal:9200?verify_certificate=false
+```
+
+`verify_certificate=false` aceita um certificado que nenhuma autoridade assinou, como o que o Elasticsearch cria na primeira vez que inicia: use isso só em uma rede de confiança. Nada mais pode vir depois do endereço. Para um cluster cujo certificado a sua própria autoridade assinou, informe o endereço como JSON, com o certificado dessa autoridade:
+
+```json
+{
+  "url": "https://search.internal:9200",
+  "username": "reader",
+  "password": "password",
+  "caCertificate": "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----"
+}
+```
+
+`apiKey` ocupa o lugar de `username` e `password`, e `"verifyCertificate": false` o lugar do certificado.
+
+Dê ao usuário uma função que possa ler e não faça mais nada. No Elasticsearch:
+
+```bash
+curl -u elastic -X PUT "https://search.internal:9200/_security/role/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster":["monitor"],"indices":[{"names":["*"],"privileges":["read","view_index_metadata","monitor"]}]}'
+```
+
+No OpenSearch, com o plugin de segurança dele:
+
+```bash
+curl -u admin -X PUT "https://search.internal:9200/_plugins/_security/api/roles/oneuptime_reader" \
+  -H "Content-Type: application/json" \
+  -d '{"cluster_permissions":["cluster_monitor"],"index_permissions":[{"index_patterns":["*"],"allowed_actions":["read","indices_monitor","indices:admin/mappings/get","indices:admin/data_stream/get"]}]}'
+```
+
+Depois dê essa função, e só essa função, a um usuário. Restrinja `*` aos índices a varrer.
+
+### O que o OneUptime verifica em um repositório que você executa
+
+Um repositório de uma conta de nuvem é verificado a partir das configurações que a nuvem dele guarda. Um repositório que você executa não tem nenhuma que o OneUptime consiga ler, então um cluster Elasticsearch ou OpenSearch é verificado a partir do que ele responde no próprio endereço. A cada varredura de conteúdo, de onde a varredura é executada, ele é consultado sem credenciais:
+
+| Perguntado | O que indica |
+| --- | --- |
+| Quem está perguntando: `/_security/_authenticate` no Elasticsearch, `/_plugins/_security/authinfo` no OpenSearch | Se ele pede credenciais |
+| Uma busca que não retorna documentos, só se há algum | Se qualquer um que o alcance pode ler os documentos dele |
+| O endereço dele por HTTP simples, quando a string de conexão dele é HTTPS | Se ele aceita conexões sem TLS |
+
+Nada é gravado nele, então não dá para perguntar a um cluster com usuários e funções se o usuário anônimo dele pode gravar: essa linha da **Configuração** dele indica **Não verificável**. Um sem nenhum controle de acesso aceita toda solicitação, gravações também. Um cluster que responde a qualquer um falha em [Qualquer pessoa que o alcance pode lê-lo sem credenciais](/docs/data-security/checks-and-issues#exposição).
+
+De onde a varredura é executada decide o que mais se pode saber. Os workers do OneUptime Cloud só alcançam endereços na internet, então um cluster que eles varrem é acessível pela internet, e a exposição dele diz isso. A partir de uma sonda, ou de um OneUptime que você hospeda, a varredura é executada dentro de uma rede, e dali não dá para saber se a internet alcança o cluster: a exposição dele indica **Desconhecido**, e a **Visão geral** dele diz por quê. A criptografia em repouso, os backups e o registro de acessos dele são coisa dos servidores dele, não são visíveis a partir do endereço e não são verificados.
+
+Um banco de dados que você executa é amostrado, não consultado, e como ele pode ser alcançado não é verificado: a exposição dele indica **Não verificável**, como a de um tipo que o OneUptime não amostra. Até um repositório ser verificado pela primeira vez, a exposição dele indica **Ainda não verificado**, então um repositório esperando a primeira verificação nunca é confundido com um que não pode ser verificado.
 
 ## O que o OneUptime guarda
 
@@ -244,11 +303,15 @@ As configurações da Segurança de dados são um único conjunto por projeto, n
 ## Solução de problemas
 
 :::details Um repositório diz que o conteúdo dele não foi varrido
-A varredura diz por quê: "A varredura de conteúdo precisa da permissão de conteúdo da conexão, ou de uma string de conexão para um banco de dados." Defina a conexão do repositório como **Configuração e amostras de conteúdo** e execute o comando dela de novo, ou dê ao banco de dados uma string de conexão. Confira também se **Varrer conteúdo** está ativado para o repositório e nas configurações do projeto.
+A varredura diz por quê: "A varredura de conteúdo precisa da permissão de conteúdo da conexão, ou de uma string de conexão para um repositório que você executa." Defina a conexão do repositório como **Configuração e amostras de conteúdo** e execute o comando dela de novo, ou dê ao repositório que você executa uma string de conexão. Confira também se **Varrer conteúdo** está ativado para o repositório e nas configurações do projeto.
 :::
 
 :::details Uma verificação diz que não consegue determinar
 Um fato que o leitor não conseguiu ler - uma permissão que a função não tem, uma API que não está ativada - é desconhecido, nunca presumido. A verificação dele informa que não consegue determinar, e um problema que ela abriu continua aberto: ninguém pode concluir que um problema foi corrigido porque o OneUptime não conseguiu olhar. Os avisos da leitura da configuração dizem o que ela não conseguiu ler. Execute o comando da conexão de novo para conceder o que falta.
+:::
+
+:::details A exposição de um repositório indica Não verificável
+O OneUptime não tem como ler como um repositório desse tipo pode ser alcançado: um banco de dados que você executa, ou um tipo que ele não amostra. Não é uma falha, e nenhum problema é aberto por isso. As **Configurações** dele dizem o que é verificado nele, em **O que o OneUptime verifica**. Um repositório cuja exposição indica **Ainda não verificado** é um que o OneUptime pode verificar e ainda não verificou: um cluster de busca antes da primeira varredura de conteúdo dele, ou um repositório de uma conta de nuvem antes da primeira leitura da configuração da conexão dele.
 :::
 
 :::details Nenhum bucket do S3 nem dataset do BigQuery aparece

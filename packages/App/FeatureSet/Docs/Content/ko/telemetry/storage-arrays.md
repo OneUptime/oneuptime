@@ -4,8 +4,10 @@ OneUptime Storage Array 에이전트는 스토리지 어레이를 모니터링�
 
 :::cards
 - [에이전트 설치](#에이전트-설치): 읽기 전용 사용자, 그다음 설치 스크립트 또는 Docker Compose.
+- [Dell PowerScale](#dell-powerscale): 클러스터의 SNMP, 모든 노드 폴링, 그리고 페이지에 표시되는 내용.
 - [에이전트가 수집하는 항목](#에이전트가-수집하는-것): 모든 엔드포인트와, 그것으로 만드는 페이지.
 - [여러 어레이 모니터링](#여러-어레이-모니터링): 어레이마다 에이전트 하나, 머신 한 대에서.
+- [Dell PowerMax](#dell-powermax): 에이전트 불필요. 프로브가 Unisphere 뒤의 모든 어레이를 읽습니다.
 - [문제 해결](#문제-해결): 진단 스크립트와 일반적인 문제.
 :::
 
@@ -20,10 +22,15 @@ Storage Arrays는 모든 벤더에서 같은 방식으로 동작하는 제품입
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure의 FlashBlade OpenMetrics 익스포터. 같은 Compose 파일이 `pure-fb-exporter` 서비스로 실행합니다 | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | Dell의 PowerStore Metrics Exporter. 같은 Compose 파일이 `powerstore-exporter` 서비스로 빌드하고 실행합니다. 클러스터의 경고는 syslog로 `powerstore-syslog` 서비스에 도착합니다 | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 이상(AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP) 및 **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11. 같은 Compose 파일이 `netapp-harvest` 서비스로 실행하며, 읽기 전용 사용자와 암호로 클러스터의 REST API에 로그인합니다 | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 이상 | `dell.powerscale` | 각 노드를 SNMP로(Dell의 ISILON-MIB), Collector 자체의 SNMP 리시버로 읽습니다. Collector 옆에서 실행되는 것은 없습니다 | `otel-collector-config.powerscale.yaml` |
 
 ONTAP에는 자체 메트릭 엔드포인트가 없으므로, 에이전트는 NetApp의 오픈 소스 익스포터인 Harvest를 Collector 옆에서 실행합니다. Harvest는 클러스터의 REST API를 읽고 읽은 내용을 Compose 네트워크에서 제공하며, 모든 시리즈의 이름은 `netapp_<object>_<counter>` 형식입니다. Collector는 이를 스크레이프해 전달합니다. Harvest는 클러스터에 절대 쓰지 않으며, NetApp으로 보내는 AutoSupport 보고는 꺼져 있습니다.
 
+**Dell PowerMax**(`dell.powermax`)에는 에이전트가 필요 없습니다. OneUptime 프로브가 읽기 전용 계정으로 Unisphere for PowerMax가 관리하는 모든 어레이를 읽습니다. [Dell PowerMax](#dell-powermax)를 참고하세요.
+
 Pure Storage는 2026년 2월에 이름을 **Everpure**로 바꿨습니다. FlashArray, FlashBlade, Purity는 이름을 유지했고 `purefa_*` 및 `purefb_*` 메트릭도 그대로이므로, 이 페이지의 모든 내용은 어느 이름으로 판매된 어레이에도 적용됩니다.
+
+**Dell PowerScale** 클러스터는 다른 방식으로 읽습니다. 에이전트는 읽기 전용 커뮤니티 또는 SNMPv3 사용자로 각 노드를 SNMP로 폴링하며, API 토큰은 쓰지 않습니다. SNMP를 켜는 방법부터 페이지에 표시되는 내용까지는 [Dell PowerScale](#dell-powerscale)에서 다룹니다. 아래 설치 단계는 Pure Storage용입니다.
 
 ```mermaid title="어레이에서 OneUptime까지"
 flowchart TB
@@ -143,6 +150,8 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 POWERSTORE_ENDPOINT=
 POWERSTORE_PASSWORD=
@@ -211,9 +220,9 @@ Everything is ready. Begin running and processing data.
 
 에이전트는 Dell의 PowerStore Metrics Exporter(릴리스 `powerstore-metrics-exporter_v1.0.3`)를 통해 PowerStore 클러스터를 읽습니다. Dell은 이를 이미지가 아닌 바이너리로 배포하므로, `powerstore-exporter` 서비스는 처음 시작할 때 Dell이 문서화한 이미지를 `powerstore-exporter.Dockerfile`로 빌드하고 바이너리의 SHA-256을 확인합니다. 이 빌드에는 한 번만 `quay.io`와 `github.com`이 필요합니다.
 
-PowerStore에는 API 토큰이 없으므로 Dell의 익스포터는 사용자 이름과 비밀번호로 로그인합니다. PowerStore Manager의 _Settings → Users_에서 에이전트 전용 로컬 사용자를 **Storage Operator** 역할로 추가하세요. 익스포터는 PowerStore의 5분 단위 대량 메트릭 아카이브에서 성능을 읽는데, 이 아카이브는 익스포터가 직접 켜고 PowerStoreOS 4.1 이상에서는 필수이며, Dell의 README에 따르면 Operator 역할로는 켤 수 없습니다. 이전 PowerStoreOS에서는 `POWERSTORE_BULK_METRICS=false`와 함께 읽기 전용 **Operator** 역할로 충분합니다. 비밀번호는 익스포터만 `.env`에서 읽습니다.
+PowerStore에는 API 토큰이 없으므로 Dell의 익스포터는 사용자 이름과 비밀번호로 로그인합니다. PowerStore Manager의 *Settings → Users*에서 에이전트 전용 로컬 사용자를 **Storage Operator** 역할로 추가하세요. 익스포터는 PowerStore의 5분 단위 대량 메트릭 아카이브에서 성능을 읽는데, 이 아카이브는 익스포터가 직접 켜고 PowerStoreOS 4.1 이상에서는 필수이며, Dell의 README에 따르면 Operator 역할로는 켤 수 없습니다. 이전 PowerStoreOS에서는 `POWERSTORE_BULK_METRICS=false`와 함께 읽기 전용 **Operator** 역할로 충분합니다. 비밀번호는 익스포터만 `.env`에서 읽습니다.
 
-Dell의 익스포터는 경고를 읽지 않으므로 클러스터가 직접 보냅니다. `powerstore-syslog` 서비스가 포트 5514에서 TCP와 UDP로 원격 syslog를 받아 각 줄을 어레이의 **로그** 페이지에 기록하며, PowerStore의 레코드는 속성(`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`)에, Dell의 이벤트 코드에 따른 심각도는 (`powerstore.alert.severity`)에 담습니다. PowerStore Manager에서 _Settings → Security → Remote Logging_을 열고 이 머신을 포트 5514로 추가한 뒤 방화벽에서 그 포트를 여세요. 포트 6514의 TLS syslog는 `powerstore-syslog.yaml`에 설명되어 있습니다.
+Dell의 익스포터는 경고를 읽지 않으므로 클러스터가 직접 보냅니다. `powerstore-syslog` 서비스가 포트 5514에서 TCP와 UDP로 원격 syslog를 받아 각 줄을 어레이의 **로그** 페이지에 기록하며, PowerStore의 레코드는 속성(`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`)에, Dell의 이벤트 코드에 따른 심각도는 (`powerstore.alert.severity`)에 담습니다. PowerStore Manager에서 *Settings → Security → Remote Logging*을 열고 이 머신을 포트 5514로 추가한 뒤 방화벽에서 그 포트를 여세요. 포트 6514의 TLS syslog는 `powerstore-syslog.yaml`에 설명되어 있습니다.
 
 Dell의 익스포터는 호스트도 복제 세션도 보고하지 않으므로 이 버전에는 둘 다 없습니다.
 
@@ -243,6 +252,18 @@ Dell의 익스포터는 호스트도 복제 세션도 보고하지 않으므로 
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | 클러스터 관리 주소(FSx에서는 파일 시스템의 관리 엔드포인트). 호스트 이름 또는 IP이며 `https://`는 붙이지 않습니다. |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | 읽기 전용 REST 사용자(예: `oneuptime`). |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | 그 사용자의 암호. Harvest만 쓴 그대로 읽습니다. |
+| `POWERSCALE_NODES` | PowerScale | 모든 노드의 주소(쉼표로 구분). SmartConnect 영역 이름은 쓰지 않습니다. 설치 스크립트는 이 값으로 아래 폴링을 씁니다. |
+| `POWERSCALE_ENDPOINT` | PowerScale | 클러스터 자체의 상태, 용량, 할당량을 읽을 때 거치는 노드로, `POWERSCALE_NODES`의 첫 번째 노드입니다. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Collector가 실행하는 폴링: `snmp/cluster`, `snmp/quotas`, 그다음 `snmp/node-1`부터 노드마다 하나씩. |
+| `POWERSCALE_NODE_<n>` | PowerScale | 노드 `<n>`의 주소로, `1`부터 `252`까지입니다. IPv6 주소는 `[fd00::11]`처럼 대괄호로 묶습니다. |
+| `POWERSCALE_SNMP_VERSION` | 아니요 | `v2c` 또는 `v3`. 기본값은 `v2c`입니다. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | 클러스터의 읽기 전용 커뮤니티. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | 클러스터의 SNMPv3 읽기 전용 사용자. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | 아니요 | `auth_priv`, `auth_no_priv` 또는 `no_auth_no_priv`. 기본값은 `auth_priv`입니다. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | 아니요 | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` 또는 `SHA512`로, `isi snmp settings view`에 표시되는 그대로입니다. 기본값은 `SHA`입니다. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 사용자의 인증 비밀번호. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | 아니요 | `DES`, `AES`, `AES192`, `AES256`, `AES192C` 또는 `AES256C`. 기본값은 `AES`입니다. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 사용자의 개인정보 보호 비밀번호로, `auth_priv` 수준에서 씁니다. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 아니요 | `true`는 네이티브 엔드포인트와 Harvest에서 어레이의 자체 서명 인증서를 받아들이고, `false`는 이를 검증합니다. 기본값은 `true`입니다. Pure의 익스포터는 어레이의 인증서를 검증하지 않으므로 익스포터에는 적용되지 않습니다. |
 
 ## 에이전트의 스크레이프 방식
@@ -275,6 +296,9 @@ Pure의 시맨틱 규칙은 FlashArray 네이티브 엔드포인트와 두 익�
 | ONTAP, Harvest 경유 | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | 클러스터의 이름, 릴리스, UUID. 용량(데이터 애그리게이트의 합계)과 데이터 절감. **볼륨** 페이지. **애그리게이트**, **SVM**, **LUN**, **SnapMirror** 페이지와 객체마다의 페이지 |
 | ONTAP 하드웨어, Harvest 경유 | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | **하드웨어** 페이지: 노드, 디스크, 쉘프와 그 전원 공급 장치, 팬, 모듈, 센서, 노드의 센서, Ethernet 및 Fibre Channel 포트 |
 | ONTAP의 열린 문제와 이벤트 | `netapp_health_*`, `netapp_ems_events` | 열린 경고 수와 **활성 경고** 카드(손상된 디스크, 쉘프 장애, HA 테이크오버, 다운된 포트, 시스템 상태 경고), 그리고 EMS 템플릿 |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | 클러스터의 이름, OneFS 버전, 상태, 노드 수. `/ifs`의 용량. 클러스터 전체의 처리량, 네트워크, CPU |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | **쿼터** 페이지: 각 할당량의 사용량, 한도, 한도에 얼마나 가까운지 |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | **노드** 페이지: 각 노드의 상태, CPU, 처리량, 프로토콜 성능. **하드웨어** 페이지: 그 노드의 드라이브, 센서, 포트 |
 
 ONTAP에서는 모든 시리즈가 Harvest의 것입니다. 객체는 레이블로 이름이 붙습니다. `volume`(그 `svm` 안에서), `aggr`, `lun`, `node`, `disk`, `shelf`, SnapMirror 관계는 `destination_location`입니다. 상태는 1 또는 0인 `netapp_*_new_status`이거나 레이블이 상태를 알려 주는 `netapp_*_labels` 시리즈이며, 열린 문제는 각각 계속되는 동안에만 존재하는 `netapp_health_*_alerts` 시리즈입니다.
 
@@ -372,6 +396,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -388,6 +413,121 @@ docker compose down
 그런 다음 더 이상 필요하지 않다면 어레이에서 읽기 전용 사용자와 그 API 토큰을 삭제하세요. ONTAP에서는 `security login delete -user-or-group-name oneuptime -application http -authentication-method password`를 실행한 다음 `security login rest-role delete -role oneuptime-readonly -api /api`를 실행하세요.
 
 PowerStore에서는 `docker compose --profile powerstore down`을 실행해 익스포터와 syslog 수집기도 멈추게 하세요.
+
+## Dell PowerMax
+
+Dell PowerMax에는 에이전트가 필요 없습니다. OneUptime 프로브가 5분마다 읽기 전용 계정으로 Unisphere for PowerMax의 REST API에 로그인하여, 그 Unisphere가 관리하는 모든 어레이를 읽습니다. 각 어레이는 **스토리지 어레이**에 Symmetrix ID(예: `000220200269`)로 표시되며, 이름은 바꿀 수 있습니다. 비밀번호는 암호화되어 저장되고, 다시는 표시되지 않으며, 선택한 프로브에만 전송됩니다.
+
+- **Unisphere for PowerMax 10.1 이상**으로, PowerMaxOS 10 또는 5978을 실행하는 어레이를 관리해야 합니다. Unisphere 10.3부터는 읽기 전용 계정도 포트와 SRDF 그룹을 볼 수 있습니다.
+- **TCP 8443으로 Unisphere에 연결할 수 있는 프로브**. 보통 Unisphere 네트워크에 있는 [사용자 지정 프로브](/docs/probe/custom-probe)입니다. OneUptime Cloud에서는 공유 프로브가 스토리지 비밀번호를 받지 않으므로, 프로젝트 자체의 프로브를 선택하세요.
+- **Monitor 역할을 가진 Unisphere 사용자**: 읽을 각 어레이에서 이 역할이 있어야 하며, 성능을 보려면 **PerfMonitor** 역할도 필요합니다. 그 이상은 필요 없습니다. OneUptime은 어레이를 절대 변경하지 않습니다.
+
+:::steps
+### 읽기 전용 사용자 만들기
+
+Unisphere for PowerMax의 **Settings → Users and Groups**에서 로컬 사용자를 만들거나 디렉터리 사용자를 선택합니다. 각 어레이에서 **Monitor** 역할을, 성능용으로 **PerfMonitor**를 부여합니다.
+
+### Unisphere가 성능을 수집하는지 확인하기
+
+**Settings → Performance → System Registrations**에서 각 어레이에 **Diagnostic** 수집이 켜져 있는지 확인합니다. 꺼져 있으면 OneUptime은 어레이의 인벤토리와 경고는 표시하지만 성능 차트는 그리지 않습니다. 스토리지 그룹을 5초마다 보려면 같은 곳에서 **Real Time**에도 등록하세요(어레이당 최대 100개).
+
+### Unisphere 연결하기
+
+**제품 → 인프라 → 스토리지 어레이 → 연결**로 이동하여 **Unisphere 연결**을 클릭합니다. Unisphere를 여는 주소(예: `https://unisphere.example.com:8443`), 사용자 이름과 비밀번호를 입력하고 프로브를 선택합니다.
+
+### 연결 테스트하기
+
+**연결 테스트**를 누르면 프로브가 로그인하여 계정이 볼 수 있는 것을 읽습니다. 각 어레이, 그 스토리지 그룹과 볼륨, 그리고 Unisphere가 성능을 수집하는지 여부입니다. Unisphere는 기본적으로 자체 서명 인증서를 씁니다. 테스트가 그 인증서를 보여 주고, **이 인증서 신뢰**를 누르면 SHA-256 지문이 양식에 입력됩니다. 먼저 지문을 Unisphere 자체의 지문과 비교하세요. 예를 들어 프로브의 머신에서 `openssl s_client -connect unisphere.example.com:8443`을 실행합니다.
+
+### 이름을 지정하고 연결하기
+
+연결에 이름을 지정하거나 호스트 이름을 그대로 두고 **연결**을 클릭합니다. 연결 페이지에는 몇 분 안에 첫 수집과 찾은 모든 어레이가 표시되며, 각 어레이는 **스토리지 어레이**의 해당 페이지로 연결됩니다.
+:::
+
+프로브는 Unisphere의 문서화된 REST 엔드포인트를 읽습니다. 어레이, 용량, 상태, 경고, 풀에는 기존 `/univmax/restapi`를, 스토리지 그룹, 볼륨, 디렉터, 포트, SRDF 그룹, 성능에는 대량 조회용 `/univmax/rest/v1`을 씁니다. 모든 호출은 읽기입니다. 읽은 내용은 다음 시리즈로 보내며, Unisphere의 밀리초는 마이크로초로, 초당 MB는 초당 바이트로 바꿉니다:
+
+| 시리즈 | 담긴 내용 |
+| --- | --- |
+| `powermax_array_*` | 어레이: 모델과 마이크로코드, 사용 가능·사용 중·구독된 용량, 데이터 절감, 상태 점수, Unisphere의 성능 수집 여부, 그리고 5분 단위 응답 시간, IOPS, 처리량, 캐시, 사용률 |
+| `powermax_alert_open` | Unisphere가 어레이에 대해 열어 둔 Minor 이상 경고마다 시리즈 하나. 누군가 인지하거나 해제할 때까지 유지 |
+| `powermax_storage_group_*` | 각 스토리지 그룹: 용량과 볼륨, 5분 단위 응답 시간, IOPS, 처리량, 그리고 실시간 수집에 등록된 경우 5초 단위 값 |
+| `powermax_volume_*` | 스토리지 그룹의 각 볼륨: 용량, 그리고 해당 스토리지 그룹이 실시간 수집에 등록된 경우의 값 |
+| `powermax_srp_*` | 각 스토리지 리소스 풀: 용량과 응답 시간 |
+| `powermax_director_*` | 각 디렉터: 역할, 상태, 사용률, 그리고 온라인이 아닌 동안의 `powermax_director_offline` |
+| `powermax_port_*` | 각 포트: 프로토콜, 속도, 광 레벨, 사용률, 그리고 누군가 사용하는 포트가 다운된 동안의 `powermax_port_offline` |
+| `powermax_srdf_group_*` | 각 SRDF 그룹: 원격 어레이와 모드, 지연과 처리량, 그리고 일시 중단되거나 오프라인인 동안의 `powermax_srdf_group_not_healthy` |
+
+- **5분마다**, 또는 바쁜 Unisphere의 부담을 줄이려면 10분마다(연결 양식의 **추가 필드**). Unisphere는 5분마다 성능을 계산합니다.
+- **Unisphere가 직접 관리하는 어레이만.** SRDF로 보이는 원격 어레이는 연결 페이지에 나열되며, 해당 사이트의 Unisphere가 읽습니다. 그 Unisphere도 연결하세요.
+- **어레이당 스토리지 그룹 최대 5,000개와 볼륨 최대 10,000개**, 그리고 수집당 새 경고 200개(나머지는 다음 수집에서 들어옵니다). 목록이 잘리면 연결 페이지에 그렇게 표시됩니다.
+- **Unisphere 10.1과 10.2**는 읽기 전용 계정에 포트나 SRDF 그룹을 보여 주지 않습니다. 프로브는 디렉터를 하나씩 읽고, SRDF 그룹은 스토리지 그룹에서 가져오며, 그 사실을 표시합니다.
+
+## Dell PowerScale
+
+에이전트는 Dell PowerScale(Isilon) 클러스터를 SNMP로, Dell의 ISILON-MIB에서, Collector 자체의 SNMP 리시버로 읽습니다. API 토큰이 필요 없고, Collector 옆에서 실행되는 것도 없습니다. 클러스터 하나가 스토리지 어레이 하나이며, 그 노드, 할당량, 드라이브, 센서, 포트가 인벤토리입니다.
+
+- **각 노드는 자체 주소로 폴링합니다.** 노드는 자신의 드라이브, 센서, 포트에 대해서만 SNMP에 응답하므로, 에이전트는 에이전트가 닿는 네트워크에서 각 노드의 주소로 폴링합니다. SmartConnect 영역 이름은 쓰지 않습니다. 영역 이름은 각 폴링을 자신이 고른 아무 노드에나 넘기기 때문입니다. 클러스터에는 노드가 최대 252개 있습니다.
+- **클러스터 자체의 객체는 첫 번째 노드를 거쳐 한 번만 읽습니다:** 상태, 용량, 처리량, CPU, 노드 수는 60초마다(`snmp/cluster`), SmartQuotas는 5분마다(`snmp/quotas`) 읽습니다. 각 노드의 상태, CPU, 프로토콜 성능(NFS, SMB, S3, HDFS 등), 드라이브, 센서, 포트는 그 노드에서 60초마다 읽습니다(`snmp/node-<n>`).
+- **OneFS가 텍스트나 다른 단위로 주는 측정값**(센서 측정값, 0.1% 단위의 CPU, 비트 단위의 처리량)은 Collector가 보내기 전에 숫자로 바꾸므로, 모든 차트와 템플릿이 단순한 게이지를 읽습니다.
+
+### 클러스터에서 SNMP 켜기
+
+관리자로 아무 노드에나 SSH로 접속합니다. OneFS는 SNMP 설정을 클러스터 전체에 적용합니다. 클러스터가 이미 다른 도구를 위해 SNMP에 응답하고 있다면 에이전트에도 같은 읽기 전용 커뮤니티나 SNMPv3 사용자를 주고 이 단계를 건너뛰세요. 그렇지 않으면 OneFS 기본값인 `I$ilonpublic`이 아닌 자체 읽기 전용 커뮤니티로 SNMP 서비스와 SNMP v2c를 켜세요:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+또는 모든 폴링을 인증하고 암호화하는 SNMPv3를 켜세요. OneFS에는 SNMPv3 읽기 전용 사용자가 하나 있으며, 이름을 바꾸기 전까지는 `general`입니다. 공백 없이 8자 이상의 비밀번호를 지정하세요:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view`는 사용자의 인증 및 개인정보 보호 프로토콜을 포함한 설정을 보여 줍니다. 에이전트 머신에서 모든 노드로 가는 UDP 161을 허용하고, `isi network interfaces list`로 노드 주소를 나열하세요.
+
+### PowerScale 클러스터에 에이전트 설치
+
+PowerScale 구성으로 설치 스크립트를 실행하세요:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+스크립트는 OneUptime URL, 수집 키, 클러스터 이름을 묻고, 이어서 모든 노드의 주소(쉼표로 구분)와 SNMP 버전을, 그다음 읽기 전용 커뮤니티 또는 SNMPv3 사용자와 그 비밀번호 두 개를 묻습니다. 각각 화면에 표시하지 않고 읽습니다. 프로토콜이 SHA와 AES가 아닌 사용자는 `POWERSCALE_SNMP_AUTH_PROTOCOL`과 `POWERSCALE_SNMP_PRIVACY_PROTOCOL`을 `bash install.sh` 앞에 붙여야 하고, 개인정보 보호가 없는 사용자는 `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`가 필요합니다. 스크립트는 노드마다 폴링 하나씩을 `.env`에 씁니다:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+클러스터에 노드가 추가되면 `POWERSCALE_NODES`에 주소를 추가하고(`.env` 안), `install.sh`를 다시 실행하세요. 노드의 폴링을 쓰고 에이전트를 다시 만듭니다. Docker Compose라면 `docker-compose.yml`과 `otel-collector-config.powerscale.yaml`을 내려받고, 빠른 시작의 `.env`에서 `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG`, `POWERSCALE_*` 줄을 이 줄들로 바꾸세요. `troubleshoot.sh`는 머신에 `snmpget`이 있으면 그것으로 각 노드에 클러스터 이름을 묻습니다.
+
+### PowerScale의 페이지에 표시되는 내용
+
+클러스터의 **개요**는 OneFS 자체의 상태를 그대로 가져오고, 노드와 할당량을 세며, 각 프로토콜의 지연 시간과 부하, 처리량, 가장 바쁜 노드, 사용된 용량을 그립니다. **노드**에는 각 노드가 상태, 모델, OneFS 버전, CPU, 처리량과 함께 나열되고, **쿼터**에는 각 할당량이 한도를 얼마나 쓰는지와 함께 큰 순서대로 나열됩니다. **하드웨어**에는 각 노드의 드라이브, 팬, 온도 및 전원 센서와 그 측정값, 포트가 나열됩니다. 용량은 `/ifs`의 용량이며, OneFS가 가상 핫 스페어용으로 남겨 두는 공간은 사용 중으로 셉니다. 쓰기에 쓸 수 없기 때문입니다.
+
+### 에이전트가 아직 읽지 않는 것
+
+- **OneFS의 이벤트와 스토리지 풀.** SNMP는 둘 다 전달하지 않습니다. 이 둘은 OneFS API에서 나오며, OneUptime 프로브가 읽을 예정입니다([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). 그때까지는 이벤트를 SNMP 트랩으로 [사용자 지정 프로브](/docs/probe/custom-probe)에 보내고, 클러스터의 노드를 그 프로브에 [네트워크 디바이스](/docs/monitor/network-device-monitor)로 추가하세요. 트랩은 UDP 162로 들어오며, **SNMP 트랩 수신(트랩 OID)** 조건으로 경고할 수 있습니다. SNMPv3 트랩이라면 네트워크 디바이스에 클러스터의 SNMPv3 사용자를 지정하세요([SNMPv3 트랩과 inform](/docs/monitor/network-device-monitor#snmpv3-트랩과-inform)). 클러스터에서 채널을 만들고 그 채널로 경고를 보내세요:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **데이터 절감**은 OneFS가 API로만 보고하므로, 같은 프로브로 제공됩니다.
 
 ## 문제 해결
 
@@ -436,6 +576,10 @@ Harvest의 로그를 확인하세요: `docker compose logs netapp-harvest`. `401
 `docker compose logs powerstore-exporter`로 익스포터의 로그를 읽으세요. `401`은 사용자 이름이나 비밀번호가 틀렸다는 뜻이고, `403`이 `latest_five_min_metrics`에서 반환되면 사용자의 역할이 대량 메트릭 아카이브를 켤 수 없다는 뜻입니다(**Storage Operator**를 부여하거나, 4.1보다 오래된 PowerStoreOS에서는 `POWERSTORE_BULK_METRICS=false`를 설정하세요). 익스포터는 시작 후 응답하기까지 1분이 걸립니다. **로그** 페이지에 경고가 없다면 클러스터의 _Remote Logging_ 설정, 포트 5514의 방화벽, `docker compose logs powerstore-syslog`를 확인하세요.
 :::
 
+:::details PowerScale 클러스터나 노드가 아무것도 보내지 않음
+Collector 로그에 `Error scraping metrics`와 `request timeout`이 나오면, 이름이 표시된 노드가 에이전트 머신에서 보낸 SNMP에 응답하지 않는 것입니다. 에이전트가 쓰는 버전의 SNMP가 꺼져 있거나, 커뮤니티 또는 SNMPv3 사용자가 클러스터의 것이 아니거나, UDP 161이 차단된 경우입니다. `bash troubleshoot.sh`는 `snmpget`으로 각 노드에 묻습니다. 응답은 하지만 **노드**에 없는 노드는 `POWERSCALE_NODES`에 없는 것입니다. 추가하고 `install.sh`를 다시 실행하세요.
+:::
+
 :::details 삭제한 볼륨이나 호스트가 인벤토리에 남아 있음
 OneUptime은 엔드포인트의 전체 스크레이프에 더 이상 객체가 없으면 그 객체를 제거하며, 이를 `scrape_endpoint` 레이블로 알아봅니다. 함께 제공된 Collector 구성을 직접 만든 구성으로 바꿨다면 그 스크레이프 작업에 `scrape_endpoint` 레이블을 유지하세요. 그렇지 않으면 객체는 오래되어야만 인벤토리에서 빠집니다.
 :::
@@ -446,6 +590,18 @@ OneUptime은 스토리지 어레이를 `storage.array.name`으로 등록하며, 
 
 :::details 에이전트 없이 메트릭 보내기
 에이전트는 표준 Collector 구성 하나이므로, 이미 운영 중인 Collector로도 같은 일을 할 수 있습니다. 스크레이프 작업과 `resource` 프로세서를 함께 제공되는 구성에서 자신의 구성으로 복사하세요. `storage.array.name` 리소스 속성이 OneUptime에 어레이를 등록하고, `service.name` / `service.instance.id` 삭제는 데이터가 서비스 아래로 정리되지 않게 합니다. 둘 다 유지하고, `scrape_endpoint` 레이블도 유지하세요.
+:::
+
+:::details 연결 테스트에서 Unisphere의 인증서를 신뢰할 수 없다고 표시됨
+Unisphere for PowerMax는 누군가 인증 기관의 인증서를 설치하지 않는 한 자체 서명 인증서를 씁니다. 테스트에 표시된 지문을 Unisphere 자체의 지문과 비교한 다음 **이 인증서 신뢰**를 클릭하고 다시 테스트하세요. Unisphere의 인증서가 갱신되면 새 인증서를 신뢰할 때까지 수집이 **서버의 인증서가 변경되었습니다** 상태로 멈추며, 그 전에는 Unisphere로 아무것도 보내지 않습니다.
+:::
+
+:::details 연결 테스트에서 계정이 어레이를 읽을 수 없다고 표시됨
+Unisphere는 어레이에 대한 역할이 없는 계정에 `403`을 반환합니다. **Settings → Users and Groups**에서 사용자에게 각 어레이의 **Monitor** 역할을, 성능용으로 **PerfMonitor**를 부여하세요. 계정에 역할이 없는 어레이는 그 이유와 함께 연결 페이지에 나열되고, 나머지 어레이는 읽힙니다.
+:::
+
+:::details PowerMax에 응답 시간이나 IOPS가 표시되지 않음
+Unisphere가 어레이의 성능을 수집하지 않거나, 계정에 **PerfMonitor**가 없습니다. 어느 쪽인지는 연결 페이지에 표시됩니다. **Settings → Performance → System Registrations**에서 **Diagnostic** 수집을 켜세요. 볼륨의 값과 스토리지 그룹의 5초 단위 값을 보려면 그 스토리지 그룹을 같은 곳에서 **Real Time**에도 등록해야 합니다.
 :::
 
 ## 다음 단계

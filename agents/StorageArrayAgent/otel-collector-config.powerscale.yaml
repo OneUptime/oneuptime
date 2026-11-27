@@ -1,0 +1,947 @@
+receivers:
+  # Dell PowerScale (Isilon, OneFS): the collector polls the cluster over
+  # SNMP and reads Dell's ISILON-MIB (enterprises.12124) and IF-MIB. Nothing
+  # runs next to the collector, and nothing on the cluster changes: OneFS
+  # answers SNMP read-only, with v2c on by default (SNMPv3 is a setting, see
+  # README.md).
+  #
+  # A PowerScale cluster is one storage array. Its objects come in two kinds,
+  # which is why there are three receivers here and a slot per node below:
+  #
+  #   - the cluster's own objects (health, capacity, the online and offline
+  #     nodes, /ifs throughput, quotas) are the same on every node, so they
+  #     are read once, through the node at POWERSCALE_ENDPOINT
+  #     (snmp/cluster every minute, snmp/quotas every five);
+  #   - a node's objects (its health, drives, sensors, ports and protocol
+  #     performance) describe only the node that answers, as Dell's MIB
+  #     defines them, so every node is polled at its own address: the
+  #     snmp/node-<n> slots below, one per node listed in POWERSCALE_NODES
+  #     (install.sh writes POWERSCALE_NODE_<n> and POWERSCALE_SNMP_RECEIVERS
+  #     from it). With no list, snmp/node reads the node at
+  #     POWERSCALE_ENDPOINT alone.
+  #
+  # Use a node's own address, not the SmartConnect zone name: SmartConnect
+  # hands each lookup to a different node, and the cluster's SmartConnect
+  # service address does not answer SNMP.
+  #
+  # Every receiver stamps its series `scrape_endpoint: cluster`, `quotas` or
+  # `node`. The cluster's series list every configured node and the quotas
+  # scrape lists every quota, so OneUptime knows a batch is the COMPLETE list
+  # of nodes or quotas: that is how a deleted quota leaves the inventory.
+  # Keep the labels as shipped.
+  snmp/cluster:
+    endpoint: "udp://${env:POWERSCALE_ENDPOINT}:161"
+    version: "${env:POWERSCALE_SNMP_VERSION:-v2c}"
+    community: "${env:POWERSCALE_SNMP_COMMUNITY}"
+    user: "${env:POWERSCALE_SNMP_USER:-}"
+    security_level: "${env:POWERSCALE_SNMP_SECURITY_LEVEL:-auth_priv}"
+    auth_type: "${env:POWERSCALE_SNMP_AUTH_PROTOCOL:-SHA}"
+    auth_password: "${env:POWERSCALE_SNMP_AUTH_PASSWORD:-}"
+    privacy_type: "${env:POWERSCALE_SNMP_PRIVACY_PROTOCOL:-AES}"
+    privacy_password: "${env:POWERSCALE_SNMP_PRIVACY_PASSWORD:-}"
+    collection_interval: 60s
+    timeout: 10s
+    resource_attributes:
+      powerscale.cluster.name:
+        scalar_oid: "1.3.6.1.4.1.12124.1.1.1.0" # clusterName
+      powerscale.cluster.guid:
+        scalar_oid: "1.3.6.1.4.1.12124.1.1.3.0" # clusterGUID
+      # Comma-separated logical node numbers (LNNs).
+      powerscale.cluster.configured_nodes:
+        scalar_oid: "1.3.6.1.4.1.12124.1.1.5.0" # configuredNodes
+      powerscale.cluster.online_nodes:
+        scalar_oid: "1.3.6.1.4.1.12124.1.1.6.0" # onlineNodes
+      powerscale.cluster.offline_nodes:
+        scalar_oid: "1.3.6.1.4.1.12124.1.1.7.0" # offlineNodes
+      # "<node> <id> Isilon OneFS v9.11.0.0": the OneFS version.
+      powerscale.system.description:
+        scalar_oid: "1.3.6.1.2.1.1.1.0" # sysDescr
+      # Read onto the capacity series so the collector can work out how full
+      # the cluster is (powerscale_ifs_used_percent, below).
+      powerscale.ifs.available_bytes:
+        scalar_oid: "1.3.6.1.4.1.12124.1.3.3.0" # ifsAvailableBytes
+    attributes:
+      scrape_endpoint:
+        enum: [cluster]
+    metrics:
+      # 0 ok, 1 attn (attention), 2 down, 3 invalid.
+      powerscale_cluster_health:
+        unit: "1"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.1.2.0" # clusterHealth
+            resource_attributes: &cluster_identity
+              - powerscale.cluster.name
+              - powerscale.cluster.guid
+              - powerscale.cluster.configured_nodes
+              - powerscale.cluster.online_nodes
+              - powerscale.cluster.offline_nodes
+              - powerscale.system.description
+            attributes:
+              - name: scrape_endpoint
+                value: cluster
+      powerscale_cluster_nodes:
+        unit: "{node}"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.1.4.0" # nodeCount
+            resource_attributes: *cluster_identity
+            attributes:
+              - name: scrape_endpoint
+                value: cluster
+      powerscale_ifs_total_bytes:
+        unit: "By"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.3.1.0" # ifsTotalBytes
+            resource_attributes:
+              - powerscale.cluster.name
+              - powerscale.ifs.available_bytes
+      powerscale_ifs_used_bytes:
+        unit: "By"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.3.2.0" # ifsUsedBytes
+            resource_attributes: &cluster_name
+              - powerscale.cluster.name
+      # Free space left for writes: ifsFreeBytes less the virtual hot spare
+      # reserve.
+      powerscale_ifs_available_bytes:
+        unit: "By"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.3.3.0" # ifsAvailableBytes
+            resource_attributes: *cluster_name
+      powerscale_ifs_free_bytes:
+        unit: "By"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.3.4.0" # ifsFreeBytes
+            resource_attributes: *cluster_name
+      # Read and write throughput of /ifs: OneFS reports bits per second
+      # (out of /ifs is reads); the collector turns them into bytes below.
+      powerscale_cluster_ifs_read_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.2.1.4.0" # clusterIfsOutBitsPerSecond
+            resource_attributes: *cluster_name
+      powerscale_cluster_ifs_write_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.2.1.2.0" # clusterIfsInBitsPerSecond
+            resource_attributes: *cluster_name
+      powerscale_cluster_network_in_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.2.2.2.0" # clusterNetworkInBitsPerSecond
+            resource_attributes: *cluster_name
+      powerscale_cluster_network_out_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.2.2.4.0" # clusterNetworkOutBitsPerSecond
+            resource_attributes: *cluster_name
+      # Idle CPU per mil, averaged over the nodes; the collector turns it into
+      # the busy percentage below.
+      powerscale_cluster_cpu_busy_percent:
+        unit: "%"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.1.2.3.5.0" # clusterCPUIdlePct
+            resource_attributes: *cluster_name
+
+  # Every directory, user and group quota (SmartQuotas), with its usage and
+  # thresholds, every five minutes: a cluster with thousands of quotas is
+  # slow to walk. The thresholds ride on the usage series as labels, so the
+  # collector can say how near its limit each quota is (below).
+  snmp/quotas:
+    endpoint: "udp://${env:POWERSCALE_ENDPOINT}:161"
+    version: "${env:POWERSCALE_SNMP_VERSION:-v2c}"
+    community: "${env:POWERSCALE_SNMP_COMMUNITY}"
+    user: "${env:POWERSCALE_SNMP_USER:-}"
+    security_level: "${env:POWERSCALE_SNMP_SECURITY_LEVEL:-auth_priv}"
+    auth_type: "${env:POWERSCALE_SNMP_AUTH_PROTOCOL:-SHA}"
+    auth_password: "${env:POWERSCALE_SNMP_AUTH_PASSWORD:-}"
+    privacy_type: "${env:POWERSCALE_SNMP_PRIVACY_PROTOCOL:-AES}"
+    privacy_password: "${env:POWERSCALE_SNMP_PRIVACY_PASSWORD:-}"
+    collection_interval: 300s
+    timeout: 60s
+    attributes:
+      path:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.5" # quotaPath
+      # 0 default-user, 1 user, 2 default-group, 3 group, 4 directory.
+      type:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.2" # quotaType
+      # The user or group ID of a user or group quota, else 0.
+      id:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.3" # quotaID
+      includes_snapshots:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.4" # quotaIncludesSnapshotUsage
+      includes_overhead:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.16" # quotaIncludesOverhead
+      hard_defined:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.6" # quotaHardThresholdDefined
+      hard_limit:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.7" # quotaHardThreshold
+      soft_defined:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.8" # quotaSoftThresholdDefined
+      soft_limit:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.9" # quotaSoftThreshold
+      advisory_defined:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.10" # quotaAdvisoryThresholdDefined
+      advisory_limit:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.11" # quotaAdvisoryThreshold
+      # Seconds a soft limit may be exceeded before writes are refused.
+      grace_period:
+        oid: "1.3.6.1.4.1.12124.1.12.1.1.12" # quotaGracePeriod
+      scrape_endpoint:
+        enum: [quotas]
+    metrics:
+      powerscale_quota_usage_bytes:
+        unit: "By"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.1.12.1.1.13" # quotaUsage
+            attributes:
+              - name: path
+              - name: type
+              - name: id
+              - name: includes_snapshots
+              - name: includes_overhead
+              - name: hard_defined
+              - name: hard_limit
+              - name: soft_defined
+              - name: soft_limit
+              - name: advisory_defined
+              - name: advisory_limit
+              - name: grace_period
+              - name: scrape_endpoint
+                value: quotas
+      # The same usage with the data protection (FlexProtect) overhead.
+      powerscale_quota_physical_bytes:
+        unit: "By"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.1.12.1.1.14" # quotaUsageWithOverhead
+            attributes: &quota_identity
+              - name: path
+              - name: type
+              - name: id
+      powerscale_quota_inodes:
+        unit: "{inode}"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.1.12.1.1.15" # quotaInodeUsage
+            attributes: *quota_identity
+
+  # One node's own objects: its health, /ifs and network throughput, CPU,
+  # protocol performance, chassis, drives, fans, sensors and ports. This is
+  # the template every snmp/node-<n> slot below copies; with no node list it
+  # reads the node at POWERSCALE_ENDPOINT itself.
+  snmp/node: &powerscale_node
+    endpoint: "udp://${env:POWERSCALE_ENDPOINT}:161"
+    version: "${env:POWERSCALE_SNMP_VERSION:-v2c}"
+    community: "${env:POWERSCALE_SNMP_COMMUNITY}"
+    user: "${env:POWERSCALE_SNMP_USER:-}"
+    security_level: "${env:POWERSCALE_SNMP_SECURITY_LEVEL:-auth_priv}"
+    auth_type: "${env:POWERSCALE_SNMP_AUTH_PROTOCOL:-SHA}"
+    auth_password: "${env:POWERSCALE_SNMP_AUTH_PASSWORD:-}"
+    privacy_type: "${env:POWERSCALE_SNMP_PRIVACY_PROTOCOL:-AES}"
+    privacy_password: "${env:POWERSCALE_SNMP_PRIVACY_PASSWORD:-}"
+    collection_interval: 60s
+    timeout: 10s
+    resource_attributes:
+      # The node's host name: <cluster>-<logical node number> unless renamed.
+      powerscale.node.name:
+        scalar_oid: "1.3.6.1.4.1.12124.2.1.1.0" # nodeName
+      powerscale.system.description:
+        scalar_oid: "1.3.6.1.2.1.1.1.0" # sysDescr
+    attributes:
+      scrape_endpoint:
+        enum: [node]
+      protocol:
+        oid: "1.3.6.1.4.1.12124.2.2.10.1.1" # protocolName
+      bay:
+        oid: "1.3.6.1.4.1.12124.2.52.1.1" # diskBay
+      logical_number:
+        oid: "1.3.6.1.4.1.12124.2.52.1.2" # diskLogicalNumber
+      chassis:
+        oid: "1.3.6.1.4.1.12124.2.52.1.3" # diskChassisNumber
+      device:
+        oid: "1.3.6.1.4.1.12124.2.52.1.4" # diskDeviceName
+      # HEALTHY, L3, SMARTFAIL, DEAD, REPLACE, STALLED, EMPTY, NEW, ...
+      status:
+        oid: "1.3.6.1.4.1.12124.2.52.1.5" # diskStatus
+      model:
+        oid: "1.3.6.1.4.1.12124.2.52.1.6" # diskModel
+      serial:
+        oid: "1.3.6.1.4.1.12124.2.52.1.7" # diskSerialNumber
+      firmware:
+        oid: "1.3.6.1.4.1.12124.2.52.1.8" # diskFirmwareVersion
+      perf_bay:
+        oid: "1.3.6.1.4.1.12124.2.2.52.1.1" # diskPerfBay
+      chassis_configuration:
+        oid: "1.3.6.1.4.1.12124.2.51.1.2" # chassisConfigNumber
+      chassis_serial:
+        oid: "1.3.6.1.4.1.12124.2.51.1.3" # chassisSerialNumber
+      chassis_model:
+        oid: "1.3.6.1.4.1.12124.2.51.1.4" # chassisModel
+      fan:
+        oid: "1.3.6.1.4.1.12124.2.53.1.2" # fanName
+      fan_description:
+        oid: "1.3.6.1.4.1.12124.2.53.1.3" # fanDescription
+      sensor:
+        oid: "1.3.6.1.4.1.12124.2.54.1.2" # tempSensorName
+      sensor_description:
+        oid: "1.3.6.1.4.1.12124.2.54.1.3" # tempSensorDescription
+      # A string in the MIB ("31.0"): the collector makes it the value below.
+      reading:
+        oid: "1.3.6.1.4.1.12124.2.54.1.4" # tempSensorValue
+      power_sensor:
+        oid: "1.3.6.1.4.1.12124.2.55.1.2" # powerSensorName
+      power_sensor_description:
+        oid: "1.3.6.1.4.1.12124.2.55.1.3" # powerSensorDescription
+      power_reading:
+        oid: "1.3.6.1.4.1.12124.2.55.1.4" # powerSensorValue
+      interface:
+        oid: "1.3.6.1.2.1.31.1.1.1.1" # ifName
+      interface_type:
+        oid: "1.3.6.1.2.1.2.2.1.3" # ifType
+      admin_status:
+        oid: "1.3.6.1.2.1.2.2.1.7" # ifAdminStatus
+      speed_mbps:
+        oid: "1.3.6.1.2.1.31.1.1.1.15" # ifHighSpeed
+    metrics:
+      # 0 ok, 1 attn (attention), 2 down, 3 invalid.
+      powerscale_node_health:
+        unit: "1"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.2.1.2.0" # nodeHealth
+            resource_attributes: &node_identity
+              - powerscale.node.name
+              - powerscale.system.description
+            attributes:
+              - name: scrape_endpoint
+                value: node
+      # 0 storage, 1 accelerator.
+      powerscale_node_type:
+        unit: "1"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.2.1.3.0" # nodeType
+            resource_attributes: *node_identity
+      # 1 while the node is read-only.
+      powerscale_node_read_only:
+        unit: "1"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.2.1.4.0" # readOnly
+            resource_attributes: *node_identity
+      powerscale_node_ifs_read_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.1.4.0" # nodeIfsOutBitsPerSecond
+            resource_attributes: *node_identity
+      powerscale_node_ifs_write_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.1.2.0" # nodeIfsInBitsPerSecond
+            resource_attributes: *node_identity
+      powerscale_node_network_in_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.2.2.0" # nodeNetworkInBitsPerSecond
+            resource_attributes: *node_identity
+      powerscale_node_network_out_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.2.4.0" # nodeNetworkOutBitsPerSecond
+            resource_attributes: *node_identity
+      powerscale_node_cpu_busy_percent:
+        unit: "%"
+        gauge:
+          value_type: int
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.3.5.0" # nodeCPUIdle, per mil
+            resource_attributes: *node_identity
+      # Per protocol on this node (nfs3, nfs4, smb1, smb2, hdfs, http, ftp,
+      # nlm, siq, ...): operations per second over the last five seconds,
+      # throughput (bits per second, made bytes below) and latency in
+      # microseconds.
+      powerscale_protocol_operations_per_second:
+        unit: "{operation}/s"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.10.1.3" # protocolOpsPerSecond
+            resource_attributes: *node_identity
+            attributes:
+              - name: protocol
+      powerscale_protocol_in_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.10.1.8" # inBitsPerSecond
+            resource_attributes: *node_identity
+            attributes:
+              - name: protocol
+      powerscale_protocol_out_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.10.1.13" # outBitsPerSecond
+            resource_attributes: *node_identity
+            attributes:
+              - name: protocol
+      powerscale_protocol_latency_microseconds:
+        unit: "us"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.10.1.16" # latencyAverage
+            resource_attributes: *node_identity
+            attributes:
+              - name: protocol
+      powerscale_protocol_latency_max_microseconds:
+        unit: "us"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.10.1.15" # latencyMax
+            resource_attributes: *node_identity
+            attributes:
+              - name: protocol
+      # The chassis that make up the node, with model and serial number; the
+      # value is its blue service light (-1 none, 0 off, 1 on).
+      powerscale_chassis_service_light:
+        unit: "1"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.51.1.5" # chassisUnitIDLEDOn
+            resource_attributes: *node_identity
+            attributes:
+              - name: chassis_configuration
+              - name: chassis_serial
+              - name: chassis_model
+      # One series per drive bay, with the drive's status and identity.
+      powerscale_drive_size_bytes:
+        unit: "By"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.52.1.9" # diskSizeBytes
+            resource_attributes: *node_identity
+            attributes:
+              - name: bay
+              - name: logical_number
+              - name: chassis
+              - name: device
+              - name: status
+              - name: model
+              - name: serial
+              - name: firmware
+      powerscale_drive_operations_per_second:
+        unit: "{operation}/s"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.52.1.3" # diskPerfOpsPerSecond
+            resource_attributes: *node_identity
+            attributes:
+              - name: perf_bay
+      powerscale_drive_in_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.52.1.4" # diskPerfInBitsPerSecond
+            resource_attributes: *node_identity
+            attributes:
+              - name: perf_bay
+      powerscale_drive_out_bytes_per_second:
+        unit: "By/s"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.2.52.1.5" # diskPerfOutBitsPerSecond
+            resource_attributes: *node_identity
+            attributes:
+              - name: perf_bay
+      powerscale_fan_speed_rpm:
+        unit: "{rpm}"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.53.1.4" # fanSpeed
+            resource_attributes: *node_identity
+            attributes:
+              - name: fan
+              - name: fan_description
+      # The sensor's number, until the collector replaces it with the reading.
+      powerscale_temperature_celsius:
+        unit: "Cel"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.54.1.1" # tempSensorNumber
+            resource_attributes: *node_identity
+            attributes:
+              - name: sensor
+              - name: sensor_description
+              - name: reading
+      # Volts or amps, by the sensor (its description says which).
+      powerscale_power_sensor_reading:
+        unit: "1"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.4.1.12124.2.55.1.1" # powerSensorNumber
+            resource_attributes: *node_identity
+            attributes:
+              - name: power_sensor
+              - name: power_sensor_description
+              - name: power_reading
+      # 1 up, 2 down, 3 testing, 5 dormant, 6 not present, 7 lower layer down.
+      powerscale_interface_status:
+        unit: "1"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.8" # ifOperStatus
+            resource_attributes: *node_identity
+            attributes:
+              - name: interface
+              - name: interface_type
+              - name: admin_status
+              - name: speed_mbps
+
+  # One slot per node, each a copy of snmp/node at the node's own address.
+  # install.sh fills POWERSCALE_NODE_<n> from POWERSCALE_NODES and puts the
+  # slots it filled in POWERSCALE_SNMP_RECEIVERS; a slot no node fills is
+  # not in the pipeline and never runs. OneFS clusters have up to 252 nodes.
+  # POWERSCALE NODE SLOTS BEGIN
+  snmp/node-1: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_1:-127.0.0.1}:161" }
+  snmp/node-2: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_2:-127.0.0.1}:161" }
+  snmp/node-3: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_3:-127.0.0.1}:161" }
+  snmp/node-4: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_4:-127.0.0.1}:161" }
+  snmp/node-5: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_5:-127.0.0.1}:161" }
+  snmp/node-6: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_6:-127.0.0.1}:161" }
+  snmp/node-7: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_7:-127.0.0.1}:161" }
+  snmp/node-8: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_8:-127.0.0.1}:161" }
+  snmp/node-9: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_9:-127.0.0.1}:161" }
+  snmp/node-10: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_10:-127.0.0.1}:161" }
+  snmp/node-11: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_11:-127.0.0.1}:161" }
+  snmp/node-12: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_12:-127.0.0.1}:161" }
+  snmp/node-13: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_13:-127.0.0.1}:161" }
+  snmp/node-14: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_14:-127.0.0.1}:161" }
+  snmp/node-15: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_15:-127.0.0.1}:161" }
+  snmp/node-16: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_16:-127.0.0.1}:161" }
+  snmp/node-17: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_17:-127.0.0.1}:161" }
+  snmp/node-18: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_18:-127.0.0.1}:161" }
+  snmp/node-19: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_19:-127.0.0.1}:161" }
+  snmp/node-20: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_20:-127.0.0.1}:161" }
+  snmp/node-21: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_21:-127.0.0.1}:161" }
+  snmp/node-22: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_22:-127.0.0.1}:161" }
+  snmp/node-23: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_23:-127.0.0.1}:161" }
+  snmp/node-24: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_24:-127.0.0.1}:161" }
+  snmp/node-25: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_25:-127.0.0.1}:161" }
+  snmp/node-26: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_26:-127.0.0.1}:161" }
+  snmp/node-27: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_27:-127.0.0.1}:161" }
+  snmp/node-28: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_28:-127.0.0.1}:161" }
+  snmp/node-29: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_29:-127.0.0.1}:161" }
+  snmp/node-30: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_30:-127.0.0.1}:161" }
+  snmp/node-31: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_31:-127.0.0.1}:161" }
+  snmp/node-32: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_32:-127.0.0.1}:161" }
+  snmp/node-33: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_33:-127.0.0.1}:161" }
+  snmp/node-34: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_34:-127.0.0.1}:161" }
+  snmp/node-35: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_35:-127.0.0.1}:161" }
+  snmp/node-36: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_36:-127.0.0.1}:161" }
+  snmp/node-37: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_37:-127.0.0.1}:161" }
+  snmp/node-38: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_38:-127.0.0.1}:161" }
+  snmp/node-39: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_39:-127.0.0.1}:161" }
+  snmp/node-40: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_40:-127.0.0.1}:161" }
+  snmp/node-41: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_41:-127.0.0.1}:161" }
+  snmp/node-42: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_42:-127.0.0.1}:161" }
+  snmp/node-43: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_43:-127.0.0.1}:161" }
+  snmp/node-44: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_44:-127.0.0.1}:161" }
+  snmp/node-45: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_45:-127.0.0.1}:161" }
+  snmp/node-46: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_46:-127.0.0.1}:161" }
+  snmp/node-47: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_47:-127.0.0.1}:161" }
+  snmp/node-48: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_48:-127.0.0.1}:161" }
+  snmp/node-49: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_49:-127.0.0.1}:161" }
+  snmp/node-50: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_50:-127.0.0.1}:161" }
+  snmp/node-51: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_51:-127.0.0.1}:161" }
+  snmp/node-52: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_52:-127.0.0.1}:161" }
+  snmp/node-53: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_53:-127.0.0.1}:161" }
+  snmp/node-54: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_54:-127.0.0.1}:161" }
+  snmp/node-55: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_55:-127.0.0.1}:161" }
+  snmp/node-56: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_56:-127.0.0.1}:161" }
+  snmp/node-57: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_57:-127.0.0.1}:161" }
+  snmp/node-58: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_58:-127.0.0.1}:161" }
+  snmp/node-59: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_59:-127.0.0.1}:161" }
+  snmp/node-60: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_60:-127.0.0.1}:161" }
+  snmp/node-61: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_61:-127.0.0.1}:161" }
+  snmp/node-62: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_62:-127.0.0.1}:161" }
+  snmp/node-63: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_63:-127.0.0.1}:161" }
+  snmp/node-64: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_64:-127.0.0.1}:161" }
+  snmp/node-65: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_65:-127.0.0.1}:161" }
+  snmp/node-66: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_66:-127.0.0.1}:161" }
+  snmp/node-67: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_67:-127.0.0.1}:161" }
+  snmp/node-68: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_68:-127.0.0.1}:161" }
+  snmp/node-69: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_69:-127.0.0.1}:161" }
+  snmp/node-70: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_70:-127.0.0.1}:161" }
+  snmp/node-71: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_71:-127.0.0.1}:161" }
+  snmp/node-72: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_72:-127.0.0.1}:161" }
+  snmp/node-73: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_73:-127.0.0.1}:161" }
+  snmp/node-74: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_74:-127.0.0.1}:161" }
+  snmp/node-75: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_75:-127.0.0.1}:161" }
+  snmp/node-76: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_76:-127.0.0.1}:161" }
+  snmp/node-77: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_77:-127.0.0.1}:161" }
+  snmp/node-78: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_78:-127.0.0.1}:161" }
+  snmp/node-79: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_79:-127.0.0.1}:161" }
+  snmp/node-80: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_80:-127.0.0.1}:161" }
+  snmp/node-81: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_81:-127.0.0.1}:161" }
+  snmp/node-82: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_82:-127.0.0.1}:161" }
+  snmp/node-83: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_83:-127.0.0.1}:161" }
+  snmp/node-84: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_84:-127.0.0.1}:161" }
+  snmp/node-85: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_85:-127.0.0.1}:161" }
+  snmp/node-86: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_86:-127.0.0.1}:161" }
+  snmp/node-87: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_87:-127.0.0.1}:161" }
+  snmp/node-88: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_88:-127.0.0.1}:161" }
+  snmp/node-89: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_89:-127.0.0.1}:161" }
+  snmp/node-90: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_90:-127.0.0.1}:161" }
+  snmp/node-91: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_91:-127.0.0.1}:161" }
+  snmp/node-92: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_92:-127.0.0.1}:161" }
+  snmp/node-93: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_93:-127.0.0.1}:161" }
+  snmp/node-94: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_94:-127.0.0.1}:161" }
+  snmp/node-95: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_95:-127.0.0.1}:161" }
+  snmp/node-96: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_96:-127.0.0.1}:161" }
+  snmp/node-97: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_97:-127.0.0.1}:161" }
+  snmp/node-98: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_98:-127.0.0.1}:161" }
+  snmp/node-99: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_99:-127.0.0.1}:161" }
+  snmp/node-100: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_100:-127.0.0.1}:161" }
+  snmp/node-101: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_101:-127.0.0.1}:161" }
+  snmp/node-102: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_102:-127.0.0.1}:161" }
+  snmp/node-103: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_103:-127.0.0.1}:161" }
+  snmp/node-104: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_104:-127.0.0.1}:161" }
+  snmp/node-105: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_105:-127.0.0.1}:161" }
+  snmp/node-106: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_106:-127.0.0.1}:161" }
+  snmp/node-107: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_107:-127.0.0.1}:161" }
+  snmp/node-108: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_108:-127.0.0.1}:161" }
+  snmp/node-109: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_109:-127.0.0.1}:161" }
+  snmp/node-110: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_110:-127.0.0.1}:161" }
+  snmp/node-111: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_111:-127.0.0.1}:161" }
+  snmp/node-112: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_112:-127.0.0.1}:161" }
+  snmp/node-113: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_113:-127.0.0.1}:161" }
+  snmp/node-114: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_114:-127.0.0.1}:161" }
+  snmp/node-115: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_115:-127.0.0.1}:161" }
+  snmp/node-116: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_116:-127.0.0.1}:161" }
+  snmp/node-117: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_117:-127.0.0.1}:161" }
+  snmp/node-118: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_118:-127.0.0.1}:161" }
+  snmp/node-119: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_119:-127.0.0.1}:161" }
+  snmp/node-120: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_120:-127.0.0.1}:161" }
+  snmp/node-121: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_121:-127.0.0.1}:161" }
+  snmp/node-122: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_122:-127.0.0.1}:161" }
+  snmp/node-123: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_123:-127.0.0.1}:161" }
+  snmp/node-124: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_124:-127.0.0.1}:161" }
+  snmp/node-125: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_125:-127.0.0.1}:161" }
+  snmp/node-126: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_126:-127.0.0.1}:161" }
+  snmp/node-127: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_127:-127.0.0.1}:161" }
+  snmp/node-128: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_128:-127.0.0.1}:161" }
+  snmp/node-129: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_129:-127.0.0.1}:161" }
+  snmp/node-130: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_130:-127.0.0.1}:161" }
+  snmp/node-131: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_131:-127.0.0.1}:161" }
+  snmp/node-132: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_132:-127.0.0.1}:161" }
+  snmp/node-133: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_133:-127.0.0.1}:161" }
+  snmp/node-134: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_134:-127.0.0.1}:161" }
+  snmp/node-135: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_135:-127.0.0.1}:161" }
+  snmp/node-136: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_136:-127.0.0.1}:161" }
+  snmp/node-137: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_137:-127.0.0.1}:161" }
+  snmp/node-138: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_138:-127.0.0.1}:161" }
+  snmp/node-139: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_139:-127.0.0.1}:161" }
+  snmp/node-140: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_140:-127.0.0.1}:161" }
+  snmp/node-141: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_141:-127.0.0.1}:161" }
+  snmp/node-142: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_142:-127.0.0.1}:161" }
+  snmp/node-143: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_143:-127.0.0.1}:161" }
+  snmp/node-144: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_144:-127.0.0.1}:161" }
+  snmp/node-145: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_145:-127.0.0.1}:161" }
+  snmp/node-146: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_146:-127.0.0.1}:161" }
+  snmp/node-147: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_147:-127.0.0.1}:161" }
+  snmp/node-148: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_148:-127.0.0.1}:161" }
+  snmp/node-149: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_149:-127.0.0.1}:161" }
+  snmp/node-150: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_150:-127.0.0.1}:161" }
+  snmp/node-151: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_151:-127.0.0.1}:161" }
+  snmp/node-152: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_152:-127.0.0.1}:161" }
+  snmp/node-153: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_153:-127.0.0.1}:161" }
+  snmp/node-154: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_154:-127.0.0.1}:161" }
+  snmp/node-155: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_155:-127.0.0.1}:161" }
+  snmp/node-156: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_156:-127.0.0.1}:161" }
+  snmp/node-157: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_157:-127.0.0.1}:161" }
+  snmp/node-158: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_158:-127.0.0.1}:161" }
+  snmp/node-159: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_159:-127.0.0.1}:161" }
+  snmp/node-160: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_160:-127.0.0.1}:161" }
+  snmp/node-161: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_161:-127.0.0.1}:161" }
+  snmp/node-162: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_162:-127.0.0.1}:161" }
+  snmp/node-163: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_163:-127.0.0.1}:161" }
+  snmp/node-164: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_164:-127.0.0.1}:161" }
+  snmp/node-165: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_165:-127.0.0.1}:161" }
+  snmp/node-166: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_166:-127.0.0.1}:161" }
+  snmp/node-167: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_167:-127.0.0.1}:161" }
+  snmp/node-168: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_168:-127.0.0.1}:161" }
+  snmp/node-169: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_169:-127.0.0.1}:161" }
+  snmp/node-170: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_170:-127.0.0.1}:161" }
+  snmp/node-171: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_171:-127.0.0.1}:161" }
+  snmp/node-172: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_172:-127.0.0.1}:161" }
+  snmp/node-173: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_173:-127.0.0.1}:161" }
+  snmp/node-174: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_174:-127.0.0.1}:161" }
+  snmp/node-175: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_175:-127.0.0.1}:161" }
+  snmp/node-176: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_176:-127.0.0.1}:161" }
+  snmp/node-177: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_177:-127.0.0.1}:161" }
+  snmp/node-178: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_178:-127.0.0.1}:161" }
+  snmp/node-179: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_179:-127.0.0.1}:161" }
+  snmp/node-180: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_180:-127.0.0.1}:161" }
+  snmp/node-181: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_181:-127.0.0.1}:161" }
+  snmp/node-182: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_182:-127.0.0.1}:161" }
+  snmp/node-183: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_183:-127.0.0.1}:161" }
+  snmp/node-184: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_184:-127.0.0.1}:161" }
+  snmp/node-185: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_185:-127.0.0.1}:161" }
+  snmp/node-186: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_186:-127.0.0.1}:161" }
+  snmp/node-187: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_187:-127.0.0.1}:161" }
+  snmp/node-188: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_188:-127.0.0.1}:161" }
+  snmp/node-189: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_189:-127.0.0.1}:161" }
+  snmp/node-190: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_190:-127.0.0.1}:161" }
+  snmp/node-191: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_191:-127.0.0.1}:161" }
+  snmp/node-192: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_192:-127.0.0.1}:161" }
+  snmp/node-193: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_193:-127.0.0.1}:161" }
+  snmp/node-194: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_194:-127.0.0.1}:161" }
+  snmp/node-195: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_195:-127.0.0.1}:161" }
+  snmp/node-196: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_196:-127.0.0.1}:161" }
+  snmp/node-197: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_197:-127.0.0.1}:161" }
+  snmp/node-198: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_198:-127.0.0.1}:161" }
+  snmp/node-199: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_199:-127.0.0.1}:161" }
+  snmp/node-200: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_200:-127.0.0.1}:161" }
+  snmp/node-201: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_201:-127.0.0.1}:161" }
+  snmp/node-202: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_202:-127.0.0.1}:161" }
+  snmp/node-203: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_203:-127.0.0.1}:161" }
+  snmp/node-204: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_204:-127.0.0.1}:161" }
+  snmp/node-205: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_205:-127.0.0.1}:161" }
+  snmp/node-206: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_206:-127.0.0.1}:161" }
+  snmp/node-207: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_207:-127.0.0.1}:161" }
+  snmp/node-208: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_208:-127.0.0.1}:161" }
+  snmp/node-209: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_209:-127.0.0.1}:161" }
+  snmp/node-210: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_210:-127.0.0.1}:161" }
+  snmp/node-211: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_211:-127.0.0.1}:161" }
+  snmp/node-212: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_212:-127.0.0.1}:161" }
+  snmp/node-213: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_213:-127.0.0.1}:161" }
+  snmp/node-214: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_214:-127.0.0.1}:161" }
+  snmp/node-215: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_215:-127.0.0.1}:161" }
+  snmp/node-216: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_216:-127.0.0.1}:161" }
+  snmp/node-217: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_217:-127.0.0.1}:161" }
+  snmp/node-218: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_218:-127.0.0.1}:161" }
+  snmp/node-219: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_219:-127.0.0.1}:161" }
+  snmp/node-220: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_220:-127.0.0.1}:161" }
+  snmp/node-221: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_221:-127.0.0.1}:161" }
+  snmp/node-222: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_222:-127.0.0.1}:161" }
+  snmp/node-223: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_223:-127.0.0.1}:161" }
+  snmp/node-224: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_224:-127.0.0.1}:161" }
+  snmp/node-225: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_225:-127.0.0.1}:161" }
+  snmp/node-226: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_226:-127.0.0.1}:161" }
+  snmp/node-227: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_227:-127.0.0.1}:161" }
+  snmp/node-228: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_228:-127.0.0.1}:161" }
+  snmp/node-229: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_229:-127.0.0.1}:161" }
+  snmp/node-230: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_230:-127.0.0.1}:161" }
+  snmp/node-231: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_231:-127.0.0.1}:161" }
+  snmp/node-232: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_232:-127.0.0.1}:161" }
+  snmp/node-233: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_233:-127.0.0.1}:161" }
+  snmp/node-234: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_234:-127.0.0.1}:161" }
+  snmp/node-235: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_235:-127.0.0.1}:161" }
+  snmp/node-236: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_236:-127.0.0.1}:161" }
+  snmp/node-237: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_237:-127.0.0.1}:161" }
+  snmp/node-238: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_238:-127.0.0.1}:161" }
+  snmp/node-239: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_239:-127.0.0.1}:161" }
+  snmp/node-240: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_240:-127.0.0.1}:161" }
+  snmp/node-241: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_241:-127.0.0.1}:161" }
+  snmp/node-242: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_242:-127.0.0.1}:161" }
+  snmp/node-243: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_243:-127.0.0.1}:161" }
+  snmp/node-244: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_244:-127.0.0.1}:161" }
+  snmp/node-245: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_245:-127.0.0.1}:161" }
+  snmp/node-246: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_246:-127.0.0.1}:161" }
+  snmp/node-247: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_247:-127.0.0.1}:161" }
+  snmp/node-248: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_248:-127.0.0.1}:161" }
+  snmp/node-249: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_249:-127.0.0.1}:161" }
+  snmp/node-250: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_250:-127.0.0.1}:161" }
+  snmp/node-251: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_251:-127.0.0.1}:161" }
+  snmp/node-252: { <<: *powerscale_node, endpoint: "udp://${env:POWERSCALE_NODE_252:-127.0.0.1}:161" }
+  # POWERSCALE NODE SLOTS END
+
+processors:
+  # What ISILON-MIB reports in a shape no chart or monitor can read, made
+  # plain gauges, and the identity the receivers read as resource
+  # attributes moved onto each series, where OneUptime reads it:
+  transform/powerscale:
+    error_mode: ignore
+    metric_statements:
+      - context: metric
+        statements:
+          - copy_metric(name="powerscale_ifs_used_percent") where metric.name == "powerscale_ifs_total_bytes"
+          - copy_metric(name="powerscale_cluster_offline_nodes") where metric.name == "powerscale_cluster_nodes"
+          - copy_metric(name="powerscale_quota_used_percent") where metric.name == "powerscale_quota_usage_bytes"
+      - context: datapoint
+        statements:
+          # Which cluster and node a series describes.
+          - set(datapoint.attributes["cluster"], resource.attributes["powerscale.cluster.name"]) where resource.attributes["powerscale.cluster.name"] != nil
+          - set(datapoint.attributes["cluster_guid"], resource.attributes["powerscale.cluster.guid"]) where resource.attributes["powerscale.cluster.guid"] != nil
+          - set(datapoint.attributes["configured_nodes"], resource.attributes["powerscale.cluster.configured_nodes"]) where resource.attributes["powerscale.cluster.configured_nodes"] != nil
+          - set(datapoint.attributes["online_nodes"], resource.attributes["powerscale.cluster.online_nodes"]) where resource.attributes["powerscale.cluster.online_nodes"] != nil
+          - set(datapoint.attributes["offline_nodes"], resource.attributes["powerscale.cluster.offline_nodes"]) where resource.attributes["powerscale.cluster.offline_nodes"] != nil
+          - set(datapoint.attributes["system_description"], resource.attributes["powerscale.system.description"]) where resource.attributes["powerscale.system.description"] != nil
+          - set(datapoint.attributes["node"], resource.attributes["powerscale.node.name"]) where resource.attributes["powerscale.node.name"] != nil
+          # One name per drive and per quota, which their alerts are grouped
+          # by: "ps-prod-2 bay 3"; a directory quota's path, or the path and
+          # whose quota it is ("/ifs/home (user 2001)").
+          - set(datapoint.attributes["drive"], Concat([datapoint.attributes["node"], datapoint.attributes["bay"]], " bay ")) where datapoint.attributes["node"] != nil and datapoint.attributes["bay"] != nil
+          - set(datapoint.attributes["drive"], Concat([datapoint.attributes["node"], datapoint.attributes["perf_bay"]], " bay ")) where datapoint.attributes["node"] != nil and datapoint.attributes["perf_bay"] != nil
+          - set(datapoint.attributes["quota"], datapoint.attributes["path"]) where IsMatch(metric.name, "^powerscale_quota_") and datapoint.attributes["type"] == "4"
+          - set(datapoint.attributes["quota"], Concat([datapoint.attributes["path"], " (user ", datapoint.attributes["id"], ")"], "")) where IsMatch(metric.name, "^powerscale_quota_") and datapoint.attributes["type"] == "1"
+          - set(datapoint.attributes["quota"], Concat([datapoint.attributes["path"], " (group ", datapoint.attributes["id"], ")"], "")) where IsMatch(metric.name, "^powerscale_quota_") and datapoint.attributes["type"] == "3"
+          - set(datapoint.attributes["quota"], Concat([datapoint.attributes["path"], " (default user)"], "")) where IsMatch(metric.name, "^powerscale_quota_") and datapoint.attributes["type"] == "0"
+          - set(datapoint.attributes["quota"], Concat([datapoint.attributes["path"], " (default group)"], "")) where IsMatch(metric.name, "^powerscale_quota_") and datapoint.attributes["type"] == "2"
+          - set(datapoint.attributes["quota"], Concat([datapoint.attributes["path"], " (", datapoint.attributes["type"], ")"], "")) where IsMatch(metric.name, "^powerscale_quota_") and datapoint.attributes["quota"] == nil and datapoint.attributes["path"] != nil and datapoint.attributes["type"] != nil
+          # How full the cluster is: the share of its capacity no longer
+          # available for writes (used, and the virtual hot spare reserve).
+          - set(datapoint.value_double, (Double(datapoint.value_int) - Double(resource.attributes["powerscale.ifs.available_bytes"])) * 100.0 / Double(datapoint.value_int)) where metric.name == "powerscale_ifs_used_percent" and datapoint.value_int > 0 and resource.attributes["powerscale.ifs.available_bytes"] != nil
+          # How many configured nodes are offline.
+          - set(datapoint.value_int, Len(Split(datapoint.attributes["offline_nodes"], ","))) where metric.name == "powerscale_cluster_offline_nodes" and datapoint.attributes["offline_nodes"] != nil and datapoint.attributes["offline_nodes"] != ""
+          - set(datapoint.value_int, 0) where metric.name == "powerscale_cluster_offline_nodes" and (datapoint.attributes["offline_nodes"] == nil or datapoint.attributes["offline_nodes"] == "")
+          # How near its limit a quota is: its usage as a share of its hard
+          # limit, or of its soft limit when it has no hard one.
+          - set(datapoint.attributes["limit"], "hard") where metric.name == "powerscale_quota_used_percent" and datapoint.attributes["hard_defined"] == "1" and datapoint.attributes["hard_limit"] != "0"
+          - set(datapoint.attributes["limit"], "soft") where metric.name == "powerscale_quota_used_percent" and datapoint.attributes["limit"] == nil and datapoint.attributes["soft_defined"] == "1" and datapoint.attributes["soft_limit"] != "0"
+          - set(datapoint.value_double, Double(datapoint.value_int) * 100.0 / Double(datapoint.attributes["hard_limit"])) where metric.name == "powerscale_quota_used_percent" and datapoint.attributes["limit"] == "hard"
+          - set(datapoint.value_double, Double(datapoint.value_int) * 100.0 / Double(datapoint.attributes["soft_limit"])) where metric.name == "powerscale_quota_used_percent" and datapoint.attributes["limit"] == "soft"
+          # Bits per second, as OneFS reports throughput, to bytes.
+          - set(datapoint.value_double, Double(datapoint.value_int) / 8.0) where IsMatch(metric.name, "^powerscale_.*_bytes_per_second$")
+          # Idle CPU per mil to busy percent.
+          - set(datapoint.value_double, 100.0 - Double(datapoint.value_int) / 10.0) where IsMatch(metric.name, "^powerscale_(cluster|node)_cpu_busy_percent$")
+          # Sensor readings, which the MIB gives as strings. A sensor with no
+          # number to read ("N/A") keeps its `reading` label and is dropped.
+          - set(datapoint.value_double, Double(datapoint.attributes["reading"])) where metric.name == "powerscale_temperature_celsius" and IsMatch(datapoint.attributes["reading"], "^-?[0-9]+(\\.[0-9]+)?$")
+          - delete_key(datapoint.attributes, "reading") where metric.name == "powerscale_temperature_celsius" and IsMatch(datapoint.attributes["reading"], "^-?[0-9]+(\\.[0-9]+)?$")
+          - set(datapoint.value_double, Double(datapoint.attributes["power_reading"])) where metric.name == "powerscale_power_sensor_reading" and IsMatch(datapoint.attributes["power_reading"], "^-?[0-9]+(\\.[0-9]+)?$")
+          - delete_key(datapoint.attributes, "power_reading") where metric.name == "powerscale_power_sensor_reading" and IsMatch(datapoint.attributes["power_reading"], "^-?[0-9]+(\\.[0-9]+)?$")
+      - context: metric
+        statements:
+          - set(metric.unit, "%") where metric.name == "powerscale_ifs_used_percent" or metric.name == "powerscale_quota_used_percent"
+          - set(metric.unit, "{node}") where metric.name == "powerscale_cluster_offline_nodes"
+      - context: resource
+        statements:
+          - delete_matching_keys(resource.attributes, "^powerscale\\.")
+  # What the transform could not make a number of: a quota with no limit, a
+  # sensor with no reading, a capacity OneFS did not report. And the
+  # loopback interface, which is no port.
+  filter/powerscale:
+    error_mode: ignore
+    metrics:
+      datapoint:
+        - metric.name == "powerscale_quota_used_percent" and datapoint.attributes["limit"] == nil
+        - metric.name == "powerscale_ifs_used_percent" and datapoint.value_int != 0
+        - metric.name == "powerscale_temperature_celsius" and datapoint.attributes["reading"] != nil
+        - metric.name == "powerscale_power_sensor_reading" and datapoint.attributes["power_reading"] != nil
+        - metric.name == "powerscale_interface_status" and datapoint.attributes["interface_type"] == "24"
+  # Stamp every metric with the array's identity. OneUptime auto-registers
+  # the storage array from `storage.array.name`, and every Storage Arrays
+  # page and monitor scopes on it — this attribute is what makes the data
+  # appear under the Storage Arrays section of the dashboard. Keep it
+  # stable: changing it later registers a brand-new array.
+  resource:
+    attributes:
+      - key: storage.array.name
+        value: "${env:STORAGE_ARRAY_NAME}"
+        action: upsert
+      # The platform: dell.powerscale for this config.
+      - key: storage.system
+        value: "${env:STORAGE_SYSTEM}"
+        action: upsert
+      # Shown as the agent version on the array's page, with a sign when
+      # a newer one is out. Keep it in step with the collector image
+      # docker-compose.yml pins.
+      - key: oneuptime.agent.version
+        value: "0.165.0"
+        action: upsert
+      # Optional: promote resource attributes to project labels on the
+      # array — oneuptime.label.<dimension>=<value> becomes the label
+      # <dimension>:<value> (see README.md, "Auto-tag with Project Labels").
+      # - key: oneuptime.label.env
+      #   value: production
+      #   action: upsert
+      # OneUptime routes a batch by service.name first. The SNMP receiver
+      # sets none, but a service.name added here would register a phantom
+      # Service instead of routing this data to the storage array, so the
+      # two are deleted as in every Storage Array Agent config. Do not
+      # remove these two deletes.
+      - key: service.name
+        action: delete
+      - key: service.instance.id
+        action: delete
+  batch:
+    timeout: 10s
+    # Large enough to hold a whole poll of a big cluster. There is
+    # deliberately NO send_batch_max_size: a poll must never be split across
+    # exports, because OneUptime reads a whole poll per request to rebuild
+    # the inventory (the node and quota lists, their counts) — a split poll
+    # would make objects vanish and counts drop until the next one.
+    send_batch_size: 8192
+  memory_limiter:
+    check_interval: 5s
+    # A cluster with many nodes and thousands of quotas returns large polls;
+    # 512 MiB leaves ample headroom.
+    limit_mib: 512
+    spike_limit_mib: 128
+
+exporters:
+  otlphttp:
+    endpoint: "${env:ONEUPTIME_URL}/otlp"
+    headers:
+      x-oneuptime-token: "${env:ONEUPTIME_TELEMETRY_INGESTION_KEY}"
+
+service:
+  pipelines:
+    metrics:
+      # The receivers that run: install.sh writes the list (the cluster, the
+      # quotas, and a slot per node). With none, the node at
+      # POWERSCALE_ENDPOINT alone.
+      receivers: ${env:POWERSCALE_SNMP_RECEIVERS:-[snmp/cluster, snmp/quotas, snmp/node]}
+      processors: [memory_limiter, transform/powerscale, filter/powerscale, resource, batch]
+      exporters: [otlphttp]

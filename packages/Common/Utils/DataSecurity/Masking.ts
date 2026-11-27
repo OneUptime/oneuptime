@@ -3,6 +3,7 @@ import {
   DataTypeInfo,
   getBuiltInDataType,
 } from "../../Types/DataSecurity/DataTypeCatalog";
+import { digitsOnly } from "./Detector";
 
 /*
  * MASKED EVIDENCE: ENOUGH OF A VALUE TO RECOGNISE IT, NEVER ENOUGH TO USE IT.
@@ -91,8 +92,14 @@ export function maskEmail(email: string): string {
   );
 }
 
+/*
+ * A card's last four digits, each read by its value whatever its script:
+ * a card Data Security finds in fullwidth or Arabic-Indic digits
+ * (４１１１－１１１１－１１１１－１１１１, #10960, #11115) keeps them too, as
+ * ASCII digits.
+ */
 export function maskCardNumber(value: string): string {
-  const digits: string = value.replace(/[^0-9]/g, "");
+  const digits: string = digitsOnly(value);
 
   return "**** **** **** " + digits.slice(-4);
 }

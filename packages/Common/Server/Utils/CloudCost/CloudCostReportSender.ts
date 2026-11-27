@@ -33,9 +33,12 @@ import EmailTemplateType from "../../../Types/Email/EmailTemplateType";
 import { JSONObject } from "../../../Types/JSON";
 import NotificationSettingEventType from "../../../Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "../../../Types/ObjectID";
+import PermissionScope from "../../../Types/Database/AccessControl/PermissionScope";
+import { UserPermission } from "../../../Types/Permission";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import { SMSMessage } from "../../../Types/SMS/SMS";
 import { Translator } from "../../../Types/Translator";
+import { buildNotificationSms } from "../../../Utils/Sms/NotificationSms";
 import WorkspaceMessagePayload, {
   WorkspaceMessageBlock,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
@@ -184,17 +187,51 @@ export class CloudCostReportSender {
   }
 
   /*
-   * Two people whose permissions in the project are the same read the same
-   * figures: their report is worked out once.
+   * Two people whose permission rows in the project are the same read the
+   * same figures, so their report is worked out once. The rows are read as
+   * the rule reads them - each row's permission, scope, team, block and
+   * labels, in one order - so the same rows in another order share it. A
+   * row scoped to Owned reaches what the person owns, not only what the
+   * row's team owns, so with one the person is part of the key: their
+   * report is never anyone else's.
    */
   public static getAccessKey(
     props: DatabaseCommonInteractionProps,
     projectId: ObjectID,
   ): string {
-    return JSON.stringify(
-      props.userTenantAccessPermission?.[projectId.toString()]?.permissions ||
-        [],
+    const rows: Array<UserPermission> =
+      (props.userTenantAccessPermission?.[projectId.toString()]?.permissions as
+        | Array<UserPermission>
+        | undefined) || [];
+
+    const canonical: Array<string> = rows
+      .map((row: UserPermission): string => {
+        return JSON.stringify([
+          row.permission,
+          row.scope || null,
+          row.teamId?.toString() || null,
+          Boolean(row.isBlockPermission),
+          (row.labelIds || [])
+            .map((labelId: ObjectID): string => {
+              return labelId.toString();
+            })
+            .sort(),
+        ]);
+      })
+      .sort();
+
+    const reachesWhatThePersonOwns: boolean = rows.some(
+      (row: UserPermission): boolean => {
+        return row.scope === PermissionScope.Owned;
+      },
     );
+
+    return JSON.stringify({
+      isRoot: Boolean(props.isRoot),
+      isMasterAdmin: Boolean(props.isMasterAdmin),
+      person: reachesWhatThePersonOwns ? props.userId?.toString() || "" : null,
+      rows: canonical,
+    });
   }
 
   /*
@@ -702,7 +739,7 @@ export class CloudCostReportSender {
     );
 
     const sms: SMSMessage = {
-      message: `${text.shortText} ${text.costsUrl}`,
+      message: buildNotificationSms(`${text.shortText} ${text.costsUrl}`),
     };
     const call: CallRequestMessage = {
       data: [{ sayMessage: text.shortText }],

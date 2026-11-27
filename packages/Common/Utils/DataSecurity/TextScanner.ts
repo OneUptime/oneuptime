@@ -1,6 +1,7 @@
 import DataConfidence, {
   DATA_CONFIDENCE_RANK,
 } from "../../Types/DataSecurity/DataConfidence";
+import { anyWordNear } from "./ContextWords";
 import { CONTEXT_AFTER, CONTEXT_BEFORE, DataTypeDetector } from "./Detector";
 import BUILT_IN_DETECTORS from "./Detectors/Index";
 import {
@@ -15,7 +16,17 @@ import {
   findQueryStringNames,
   QUERY_NAME_DATA_TYPE_ID,
 } from "./QueryStringNames";
-import { TextReading, TextReadings } from "./TextReadings";
+import {
+  contextReachOf,
+  holdsWordsOf,
+  isGluedToAnEscape,
+  isWordNear,
+  TextReading,
+  TextReadings,
+} from "./TextReadings";
+
+// Whether a word is a word of a text: read where the scanner and the rules both read it.
+export { containsWord } from "./ContextWords";
 
 /*
  * FINDING SENSITIVE VALUES IN TEXT.
@@ -35,12 +46,17 @@ import { TextReading, TextReadings } from "./TextReadings";
  *
  * A detector that reads percent-encoded text (readsPercentEncoded - the IP
  * address and email ones, #10467, #10935) also reads each window with its
- * escapes read, and one that reads every script's digits
+ * escapes read, one that reads every script's digits
  * (readsDigitsOfEveryScript - the card ones, #10960) with each script's
- * digits read by their values (TextReadings): a candidate found there is
- * validated as it reads and placed on the characters it is written with, so
- * it is judged by the words around it as written, and kept by the window it
- * starts in like any other.
+ * digits read by their values, one that reads a value written in groups
+ * (readsPlusAsSpace - a card, an IBAN, a national ID, a date of birth,
+ * #11199) as a URL's query string reads it, a "+" for a space, and one of
+ * a number (readsFullwidthForms, #11115) with its fullwidth signs and
+ * separators read as ASCII, ＋８１ ３－１２３４－５６７８ as Japanese text
+ * types one (TextReadings): a candidate found there is validated as it
+ * reads and placed on the characters it is written with, so it is judged
+ * by the words around it as written and as it reads, and kept by the
+ * window it starts in like any other.
  *
  * A person's name has no pattern: it is found by the names-and-addresses
  * model in what it read (`recognized`), and - in a scan that runs every
@@ -232,91 +248,6 @@ function lower(confidence: DataConfidence): DataConfidence {
     : DataConfidence.Low;
 }
 
-function isWordCharacter(code: number): boolean {
-  return (
-    (code >= 48 && code <= 57) ||
-    (code >= 97 && code <= 122) ||
-    (code >= 65 && code <= 90)
-  );
-}
-
-/*
- * Whether `word` appears in `text` as a word: not inside a longer one, so
- * "pan" is found in "card pan:" and not in "company". Both are lower case.
- */
-export function containsWord(text: string, word: string): boolean {
-  let from: number = 0;
-
-  for (;;) {
-    const index: number = text.indexOf(word, from);
-
-    if (index < 0) {
-      return false;
-    }
-
-    const before: number = index > 0 ? text.charCodeAt(index - 1) : 32;
-    const afterIndex: number = index + word.length;
-    const after: number =
-      afterIndex < text.length ? text.charCodeAt(afterIndex) : 32;
-    const wordStartsWithLetter: boolean = isWordCharacter(word.charCodeAt(0));
-    const wordEndsWithLetter: boolean = isWordCharacter(
-      word.charCodeAt(word.length - 1),
-    );
-
-    if (
-      (!wordStartsWithLetter || !isWordCharacter(before)) &&
-      (!wordEndsWithLetter || !isWordCharacter(after))
-    ) {
-      return true;
-    }
-
-    from = index + 1;
-  }
-}
-
-function anyWordNear(
-  lowerText: string,
-  start: number,
-  end: number,
-  words: ReadonlyArray<string> | undefined,
-  before: number,
-  after: number,
-): boolean {
-  if (!words || words.length === 0) {
-    return false;
-  }
-
-  const around: string = lowerText.slice(
-    Math.max(0, start - before),
-    Math.min(lowerText.length, end + after),
-  );
-
-  for (const word of words) {
-    if (containsWord(around, word)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function anyWordIn(
-  lowerText: string,
-  words: ReadonlyArray<string> | undefined,
-): boolean {
-  if (!words) {
-    return false;
-  }
-
-  for (const word of words) {
-    if (lowerText.includes(word)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 function rawCandidates(
   detector: ScanDetector,
   text: string,
@@ -380,9 +311,13 @@ interface WindowCandidate {
 
 /*
  * A detector's candidates in a window: as it is written and in each
- * reading it asks for - with its percent-escapes read, with every script's
- * digits read by their values - placed on the characters they are written
- * with. `readings` reads the window once for every detector that asks.
+ * reading it asks for - with its percent-escapes read, as a URL's query
+ * string reads it, with every script's digits read by their values -
+ * placed on the characters they are written with (detectorReadingsFor).
+ * `readings` reads the window once for every detector that asks. A
+ * number's detector takes no candidate glued to an escape's hex digits as
+ * written (isGluedToAnEscape, #11199): the escapes' reading holds the
+ * value.
  */
 function windowCandidates(
   detector: ScanDetector,
@@ -390,8 +325,9 @@ function windowCandidates(
   lowerOf: (reading: TextReading) => string,
 ): Array<WindowCandidate> {
   const found: Array<WindowCandidate> = [];
+  const window: string = readings.written.text;
 
-  for (const reading of readings.readingsFor(detector)) {
+  for (const reading of readings.detectorReadingsFor(detector)) {
     if (
       !passesQuickCheck(detector, reading.text, (): string => {
         return lowerOf(reading);
@@ -401,9 +337,16 @@ function windowCandidates(
     }
 
     for (const raw of rawCandidates(detector, reading.text)) {
+      const start: number = reading.toWritten(raw.start);
+      const end: number = reading.toWritten(raw.end);
+
+      if (isGluedToAnEscape(detector, window, start, end)) {
+        continue;
+      }
+
       found.push({
-        start: reading.toWritten(raw.start),
-        end: reading.toWritten(raw.end),
+        start,
+        end,
         value: raw.value,
         reading,
         readingStart: raw.start,
@@ -423,31 +366,21 @@ function scanWindow(
   options: TextScanOptions,
   detectors: ReadonlyArray<ScanDetector>,
 ): Array<Candidate> {
-  const lowerWindow: string = window.toLowerCase();
   const candidates: Array<Candidate> = [];
   // The window's readings, each read the first time a detector asks for it.
   const readings: TextReadings = new TextReadings(window);
   // Each reading in lower case, made the first time its words are read.
-  const lowerReadings: Map<TextReading, string> = new Map([
-    [readings.written, lowerWindow],
-  ]);
   const lowerOf: (reading: TextReading) => string = (
     reading: TextReading,
   ): string => {
-    let lower: string | undefined = lowerReadings.get(reading);
-
-    if (lower === undefined) {
-      lower = reading.text.toLowerCase();
-      lowerReadings.set(reading, lower);
-    }
-
-    return lower;
+    return readings.lowerCaseOf(reading);
   };
 
   /*
    * Whether words sit near a candidate: in the window as written, or in
    * the reading it was found in - "aws%20secret%20access%20key%3A" reads
-   * "aws secret access key:" (#11031).
+   * "aws secret access key:" (#11031). The rules built on the detectors
+   * judge a candidate that needs its words the same way (isWordNear).
    */
   const isNear: (
     raw: WindowCandidate,
@@ -460,18 +393,15 @@ function scanWindow(
     before: number,
     after: number,
   ): boolean => {
-    return (
-      anyWordNear(lowerWindow, raw.start, raw.end, words, before, after) ||
-      (raw.reading !== readings.written &&
-        anyWordNear(
-          lowerOf(raw.reading),
-          raw.readingStart,
-          raw.readingEnd,
-          words,
-          before,
-          after,
-        ))
-    );
+    return isWordNear({
+      readings,
+      reading: raw.reading,
+      start: raw.readingStart,
+      end: raw.readingEnd,
+      words,
+      before,
+      after,
+    });
   };
 
   for (const detector of detectors) {
@@ -482,16 +412,16 @@ function scanWindow(
     const hinted: boolean = Boolean(
       options.hintedDataTypeIds?.has(detector.dataTypeId),
     );
-    const decoded: TextReading | null = detector.readsPercentEncoded
-      ? readings.getPercentDecoded()
-      : null;
 
-    // A type that needs context, in a window holding none of its words, as written or decoded.
+    /*
+     * A type that needs context, in a window holding none of its words -
+     * as written, with its escapes read, as a query string reads it
+     * (date+of+birth, #11199), or with its fullwidth forms read (#11115).
+     */
     if (
       detector.requiresContext &&
       !hinted &&
-      !anyWordIn(lowerWindow, detector.keywords) &&
-      !(decoded && anyWordIn(lowerOf(decoded), detector.keywords))
+      !holdsWordsOf(readings, detector)
     ) {
       continue;
     }
@@ -513,10 +443,9 @@ function scanWindow(
         continue;
       }
 
-      const before: number = detector.contextBefore ?? CONTEXT_BEFORE;
-      const after: number = detector.contextAfter ?? CONTEXT_AFTER;
+      const reach: { before: number; after: number } = contextReachOf(detector);
       const hasContext: boolean =
-        hinted || isNear(raw, detector.keywords, before, after);
+        hinted || isNear(raw, detector.keywords, reach.before, reach.after);
 
       if (detector.requiresContext && !hasContext) {
         continue;

@@ -270,6 +270,7 @@ export const INSTALL_SCRIPTS: ReadonlyArray<InstallScriptEntry> = [
       "netapp-harvest-rest.yaml",
       "netapp-harvest-keyperf.yaml",
       "netapp-harvest-restperf.yaml",
+      "otel-collector-config.powerscale.yaml",
       "systemd/oneuptime-storage-array-agent.service",
       TROUBLESHOOT_SCRIPT_FILE,
     ],

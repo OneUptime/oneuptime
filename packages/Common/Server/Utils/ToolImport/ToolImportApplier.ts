@@ -106,6 +106,10 @@ import OnCallDutyPolicyScheduleLayerUserService from "../../Services/OnCallDutyP
 import OnCallDutyPolicyScheduleOwnerTeamService from "../../Services/OnCallDutyPolicyScheduleOwnerTeamService";
 import OnCallDutyPolicyScheduleService from "../../Services/OnCallDutyPolicyScheduleService";
 import OnCallDutyPolicyService from "../../Services/OnCallDutyPolicyService";
+import CreateBy from "../../Types/Database/CreateBy";
+import CreatedNotificationHold, {
+  OwnersAddedBy,
+} from "../Notification/CreatedNotificationHold";
 import ServiceOwnerTeamService from "../../Services/ServiceOwnerTeamService";
 import ServiceService from "../../Services/ServiceService";
 import StatusPageGroupService from "../../Services/StatusPageGroupService";
@@ -1576,82 +1580,128 @@ class ApplyRun {
       policy.description = source.description;
     }
 
+    /*
+     * The owner teams the policy is given are added once it exists, after
+     * its escalation rules: its notification rules wait a moment for them
+     * before they are matched, so a rule naming one of them posts its
+     * "On-Call Policy Created" (WorkspaceRuleOwnersOnCreate, #11224). Told
+     * once they are in - also when a create or a part fails.
+     */
+    const isAddingOwnersAfter: boolean =
+      (source.ownerTeamSourceIds || []).length > 0;
+    const policyCreate: { createBy: CreateBy<OnCallDutyPolicy> | null } = {
+      createBy: null,
+    };
+
     const { created } = await this.createNamed<OnCallDutyPolicy>({
       name: source.name,
       notes: notes,
       create: async (name: string): Promise<OnCallDutyPolicy> => {
         policy.name = name;
 
-        return await OnCallDutyPolicyService.create({
+        const createBy: CreateBy<OnCallDutyPolicy> = {
           data: policy,
           props: this.input.props,
-        });
+        };
+
+        if (isAddingOwnersAfter) {
+          CreatedNotificationHold.willAddOwners(createBy, OwnersAddedBy.Caller);
+        }
+
+        try {
+          const made: OnCallDutyPolicy =
+            await OnCallDutyPolicyService.create(createBy);
+          policyCreate.createBy = createBy;
+          return made;
+        } catch (error) {
+          // A name taken, or a refusal: nothing was made to wait for them.
+          if (isAddingOwnersAfter) {
+            await CreatedNotificationHold.ownersAreIn(
+              createBy,
+              OwnersAddedBy.Caller,
+            );
+          }
+
+          throw error;
+        }
       },
     });
 
     const policyId: string = created.id!.toString();
-    const record: ToolImportRecord = await this.remember(item, policyId, false);
+    let record: ToolImportRecord | undefined = undefined;
 
-    let order: number = 1;
+    try {
+      record = await this.remember(item, policyId, false);
 
-    for (const level of levels) {
-      if (!pagesSomeone(level)) {
-        notes.push(
-          makeToolImportNote(ToolImportNoteCode.PolicyLevelLeftOut, {
-            level: level.position,
-          }),
+      let order: number = 1;
+
+      for (const level of levels) {
+        if (!pagesSomeone(level)) {
+          notes.push(
+            makeToolImportNote(ToolImportNoteCode.PolicyLevelLeftOut, {
+              level: level.position,
+            }),
+          );
+          continue;
+        }
+
+        const rule: OnCallDutyPolicyEscalationRule =
+          new OnCallDutyPolicyEscalationRule();
+        rule.projectId = this.input.projectId;
+        rule.onCallDutyPolicyId = created.id!;
+        rule.escalateAfterInMinutes = Math.max(
+          1,
+          Math.round(level.level.escalateAfterMinutes),
         );
-        continue;
+        rule.order = order;
+
+        await OnCallDutyPolicyEscalationRuleService.create({
+          data: rule,
+          props: this.input.props,
+          miscDataProps: {
+            users: level.userIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+            teams: level.teamIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+            onCallSchedules: level.scheduleIds.map((id: string): ObjectID => {
+              return new ObjectID(id);
+            }),
+          },
+        });
+
+        order++;
       }
 
-      const rule: OnCallDutyPolicyEscalationRule =
-        new OnCallDutyPolicyEscalationRule();
-      rule.projectId = this.input.projectId;
-      rule.onCallDutyPolicyId = created.id!;
-      rule.escalateAfterInMinutes = Math.max(
-        1,
-        Math.round(level.level.escalateAfterMinutes),
-      );
-      rule.order = order;
+      for (const team of this.resolveOwnerTeams(
+        source.ownerTeamSourceIds,
+        notes,
+      )) {
+        const owner: OnCallDutyPolicyOwnerTeam =
+          new OnCallDutyPolicyOwnerTeam();
+        owner.projectId = this.input.projectId;
+        owner.onCallDutyPolicyId = created.id!;
+        owner.teamId = new ObjectID(team.id);
+        this.markImportedOwnerTold(owner);
 
-      await OnCallDutyPolicyEscalationRuleService.create({
-        data: rule,
-        props: this.input.props,
-        miscDataProps: {
-          users: level.userIds.map((id: string): ObjectID => {
-            return new ObjectID(id);
-          }),
-          teams: level.teamIds.map((id: string): ObjectID => {
-            return new ObjectID(id);
-          }),
-          onCallSchedules: level.scheduleIds.map((id: string): ObjectID => {
-            return new ObjectID(id);
-          }),
-        },
-      });
-
-      order++;
-    }
-
-    for (const team of this.resolveOwnerTeams(
-      source.ownerTeamSourceIds,
-      notes,
-    )) {
-      const owner: OnCallDutyPolicyOwnerTeam = new OnCallDutyPolicyOwnerTeam();
-      owner.projectId = this.input.projectId;
-      owner.onCallDutyPolicyId = created.id!;
-      owner.teamId = new ObjectID(team.id);
-      this.markImportedOwnerTold(owner);
-
-      await this.addPart(notes, team.name, async () => {
-        await OnCallDutyPolicyOwnerTeamService.create({
-          data: owner,
-          props: this.input.props,
+        await this.addPart(notes, team.name, async () => {
+          await OnCallDutyPolicyOwnerTeamService.create({
+            data: owner,
+            props: this.input.props,
+          });
         });
-      });
+      }
+    } finally {
+      if (isAddingOwnersAfter && policyCreate.createBy) {
+        await CreatedNotificationHold.ownersAreIn(
+          policyCreate.createBy,
+          OwnersAddedBy.Caller,
+        );
+      }
     }
 
-    await this.complete(record);
+    await this.complete(record!);
     this.resolve(item.kind, item.sourceId, [policyId]);
     this.report(
       item,

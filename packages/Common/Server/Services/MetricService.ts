@@ -47,6 +47,8 @@ import TelemetryRowRetention from "../Utils/Telemetry/TelemetryRowRetention";
 import { getEntityBudget } from "../Utils/Telemetry/EntityRegistry";
 import { EntityScopeQueryValue } from "../Utils/AnalyticsDatabase/StatementGenerator";
 import Includes from "../../Types/BaseDatabase/Includes";
+import InBetween from "../../Types/BaseDatabase/InBetween";
+import MinuteRollupRange from "../Utils/AnalyticsDatabase/MinuteRollupRange";
 import EqualTo from "../../Types/BaseDatabase/EqualTo";
 import InventoryItemService from "./InventoryItemService";
 import InventoryItem from "../../Models/DatabaseModels/InventoryItem";
@@ -2521,6 +2523,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   private tryBuildMinuteAggregateMVStatement(
     aggregateBy: AggregateBy<Metric>,
   ): { statement: Statement; columns: Array<string> } | null {
+    // A check's window is read exactly: whole minutes only (MinuteRollupRange).
+    if (!this.canRollupServe(aggregateBy)) {
+      return null;
+    }
+
     const aggType: AggregationType = aggregateBy.aggregationType;
     const supported: ReadonlyArray<AggregationType> = [
       AggregationType.Sum,
@@ -2636,7 +2643,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       .append(` as time`);
     statement.append(SQL` FROM ${databaseName}.MetricItemAggMV1m`);
     statement.append(
-      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime ${this.getRollupEndOperator(aggregateBy)} toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );
     statement.append(SQL` `).append(nonTimeWhere);
 
@@ -2734,6 +2741,11 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
   private tryBuildEntityAggregateMVStatement(
     aggregateBy: AggregateBy<Metric>,
   ): { statement: Statement; columns: Array<string> } | null {
+    // A check's window is read exactly: whole minutes only (MinuteRollupRange).
+    if (!this.canRollupServe(aggregateBy)) {
+      return null;
+    }
+
     const aggType: AggregationType = aggregateBy.aggregationType;
     const supported: ReadonlyArray<AggregationType> = [
       AggregationType.Sum,
@@ -2863,7 +2875,7 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
     statement.append(SQL` FROM ${databaseName}.`);
     statement.append(resolved.route.tableName);
     statement.append(
-      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime <= toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
+      ` WHERE bucketTime >= toDateTime('${this.formatDateTime(aggregateBy.startTimestamp!)}') AND bucketTime ${this.getRollupEndOperator(aggregateBy)} toDateTime('${this.formatDateTime(aggregateBy.endTimestamp!)}')${this.getRetentionReadFilter()}`,
     );
     statement.append(` AND ${resolved.route.keyColumn}`);
     if (resolved.keys.length === 1) {
@@ -3292,6 +3304,37 @@ export class MetricService extends AnalyticsDatabaseService<Metric> {
       out[k] = v;
     }
     return out as typeof query;
+  }
+
+  // The read's time range, when it has one: what a rollup is asked to serve.
+  private getTimeRange(
+    aggregateBy: AggregateBy<Metric>,
+  ): InBetween<Date | string | number> | null {
+    const time: unknown = (
+      aggregateBy.query as unknown as Record<string, unknown> | undefined
+    )?.["time"];
+
+    return time instanceof InBetween ? time : null;
+  }
+
+  /*
+   * Whether a one-minute rollup may serve the read: a range that holds both
+   * its ends always, a telemetry check's window only when both its ends are
+   * whole minutes (MinuteRollupRange, issue #11334).
+   */
+  private canRollupServe(aggregateBy: AggregateBy<Metric>): boolean {
+    const range: InBetween<Date | string | number> | null =
+      this.getTimeRange(aggregateBy);
+
+    return !range || MinuteRollupRange.canServe(range);
+  }
+
+  // How a rollup read compares its buckets with the read's end.
+  private getRollupEndOperator(aggregateBy: AggregateBy<Metric>): "<" | "<=" {
+    const range: InBetween<Date | string | number> | null =
+      this.getTimeRange(aggregateBy);
+
+    return range ? MinuteRollupRange.getEndOperator(range) : "<=";
   }
 
   private stripTimeFromQuery(query: unknown): typeof query {

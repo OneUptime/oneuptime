@@ -6,7 +6,9 @@ import {
   digitsOnly,
   hasDigit,
   isPlaceholderDigits,
+  withEveryReading,
 } from "../Detector";
+import { DIGITS_BEYOND_ASCII_CLASS } from "../DigitReadings";
 import {
   base58Check,
   base58Version,
@@ -232,6 +234,19 @@ const groupedCardDetector: DataTypeDetector = {
    * then read the ASCII digits the values make.
    */
   readsDigitsOfEveryScript: true,
+  /*
+   * And in a URL, its groups apart by an escaped space or a "+" as a
+   * query string writes one (#11199): card=4539%201488%200343%206467,
+   * card=4539+1488+0343+6467 - placed on the characters it is written
+   * with, escapes and "+"s and all.
+   */
+  readsPercentEncoded: true,
+  readsPlusAsSpace: true,
+  /*
+   * And typed wholly in fullwidth, its groups apart by fullwidth hyphens
+   * or ideographic spaces (#11115): ４１１１－１１１１－１１１１－１１１１.
+   */
+  readsFullwidthForms: true,
 };
 
 const grouped19DigitCardDetector: DataTypeDetector = {
@@ -264,8 +279,11 @@ const contiguousCardDetector: DataTypeDetector = {
   specificity: 3,
   isTestValue: isTestCardNumber,
   fieldValuePattern: /^[0-9][0-9 -]{10,22}[0-9]$/,
-  // In another script's digits too (#10960), as groupedCardDetector.
+  // In another script's digits (#10960), in a URL (#11199) and in fullwidth (#11115), as groupedCardDetector.
   readsDigitsOfEveryScript: true,
+  readsPercentEncoded: true,
+  readsPlusAsSpace: true,
+  readsFullwidthForms: true,
 };
 
 /*
@@ -504,8 +522,18 @@ const BIC_COUNTRY_CODES: ReadonlySet<string> = new Set(
   ).split(" "),
 );
 
-const BIC_PATTERN: RegExp =
-  /(?<![A-Za-z0-9])[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?(?![A-Za-z0-9])/g;
+/*
+ * Never cut at a digit of another script: a BIC read in every script's
+ * digits (#11200) whose branch is in Arabic-Indic ones - DEUTDEFF٥٠٠ - is
+ * the whole code, never its first eight letters alone, and twelve
+ * characters with such a digit among them are no BIC at all. (It needs
+ * its words, so no Scrub It rule is made of it, whose pattern this would
+ * make too long.)
+ */
+const BIC_PATTERN: RegExp = new RegExp(
+  `(?<![A-Za-z0-9${DIGITS_BEYOND_ASCII_CLASS}])[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}(?:[A-Z0-9]{3})?(?![A-Za-z0-9${DIGITS_BEYOND_ASCII_CLASS}])`,
+  "g",
+);
 
 const bicDetector: DataTypeDetector = {
   dataTypeId: "swift-bic",
@@ -666,24 +694,31 @@ const ethereumDetector: DataTypeDetector = {
 };
 
 /*
- * An IBAN and a US routing number in every script's digits too
- * (readsDigitsOfEveryScript, #11033), as a card is (#10960): DE٨٩ ٣٧٠٤ ...
- * is the IBAN its mod 97 proves, and a routing number's ABA check digit
- * proves one beside its word. The card's own detectors read so already.
+ * Every number and code of a card or a bank read however it is written
+ * (withEveryReading), as a card is: in every script's digits (#11033,
+ * #11200) - DE٨٩ ٣٧٠٤ ... is the IBAN its mod 97 proves, a routing
+ * number's ABA check digit proves one beside its word, and a card's code,
+ * its expiry, a bank account number, a sort code, a BSB, a BIC or an IFSC
+ * is the same code in Arabic-Indic or fullwidth digits, beside the same
+ * words - and in a URL (#11199): an IBAN with %20 or "+" between its
+ * groups, iban=DE44+5001+0517+5407+3249+31, a code after its words written
+ * so, security+code=123, exp=04%2F27. The card's own detectors read so
+ * already. Not a wallet's address: base58, bech32 or hex, never typed in
+ * groups, nor in another script's digits.
  */
 export const FINANCIAL_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   groupedCardDetector,
   grouped19DigitCardDetector,
   contiguousCardDetector,
-  cardSecurityCodeDetector,
-  cardExpiryDetector,
-  { ...ibanDetector, readsDigitsOfEveryScript: true },
-  bankAccountDetector,
-  bicDetector,
-  { ...routingNumberDetector, readsDigitsOfEveryScript: true },
-  sortCodeDetector,
-  ifscDetector,
-  bsbDetector,
+  withEveryReading(cardSecurityCodeDetector),
+  withEveryReading(cardExpiryDetector),
+  withEveryReading(ibanDetector),
+  withEveryReading(bankAccountDetector),
+  withEveryReading(bicDetector),
+  withEveryReading(routingNumberDetector),
+  withEveryReading(sortCodeDetector),
+  withEveryReading(ifscDetector),
+  withEveryReading(bsbDetector),
   bitcoinLegacyDetector,
   bitcoinBech32Detector,
   ethereumDetector,

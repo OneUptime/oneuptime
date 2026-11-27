@@ -313,6 +313,13 @@ beforeEach(() => {
   jest
     .spyOn(API, "fetch")
     .mockImplementation(fetchMock as unknown as typeof API.fetch);
+  // No tool is marked read-only (#11081: ExternalMcpToolMarks.test.tsx).
+  jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+    data: [],
+    count: 0,
+    skip: 0,
+    limit: 0,
+  } as never);
 });
 
 afterEach(() => {

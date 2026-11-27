@@ -44,7 +44,7 @@ Mensen horen bij een project via **teams**, en de machtigingen van een team bepa
 
 Een **monitor** controleert één ding dat u draait en beslist of het werkt. De meeste monitoren worden gecontroleerd door **sondes**: machines die de controle volgens een schema uitvoeren, zoals een pagina opvragen, een API aanroepen, een host pingen of een database bevragen. OneUptime Cloud draait sondes in meerdere regio's, een zelf-gehoste installatie draait haar eigen, en u kunt aangepaste sondes in uw netwerk toevoegen. Andere monitoren lezen juist wat u verstuurt: de telemetrie van uw applicaties, of de gegevens die een agent vanaf uw servers, Kubernetes-clusters en overige infrastructuur doorgeeft.
 
-De **criteria** van een monitor bepalen wat elk resultaat betekent. Ze worden op volgorde bekeken, en de eerste die past kan de status van de monitor wijzigen, een incident melden, een waarschuwing aanmaken, of alle drie. Elk nieuw project heeft drie monitorstatussen: **Operationeel**, **Verminderd** en **Offline**.
+De **criteria** van een monitor bepalen wat elk resultaat betekent. Ze worden op volgorde bekeken, en de eerste die past kan de status van de monitor wijzigen, een incident melden, een waarschuwing aanmaken, of alle drie. Een criterium dat geen status wijzigt, laat de status over aan het volgende criterium dat past en hem wijzigt. Elk nieuw project heeft drie monitorstatussen: **Operationeel**, **Verminderd** en **Offline**.
 
 :::cards
 - [Een monitor maken](/docs/monitor/create-monitor): Een type kiezen, zeggen wat er gecontroleerd wordt en hoe vaak.

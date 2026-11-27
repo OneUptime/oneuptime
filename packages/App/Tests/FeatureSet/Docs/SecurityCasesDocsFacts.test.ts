@@ -277,9 +277,11 @@ import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 import SecurityCaseStepCheckState, {
   SECURITY_CASE_STEP_CHECK_STATES,
 } from "Common/Types/SecurityCase/SecurityCaseStepCheckState";
+import { AWS_IAM_ROLE_CHANGES } from "Common/Utils/SecurityCase/AttackAccountChanges";
 import {
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NOT_GRANTED,
   CHECK_ACCOUNT_CHANGES_FACT_AWS_NO_CONNECTION,
+  CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN,
   CHECK_ACCOUNT_CHANGES_FACT_GOOGLE_GROUPS,
   STEP_CHECK_CONFIRM,
   STEP_CHECK_DOCS_LINK,
@@ -1073,7 +1075,7 @@ describe("Security Cases and Playbooks docs", () => {
       `A connection with **${setting}** off is asked nothing, so no refused call shows in your CloudTrail`,
     );
     expect(checks).toContain(
-      "each change is marked undone, still there or yours to confirm, beside how to let OneUptime read the rest.",
+      "each change is marked undone, still there or yours to confirm, beside how to let OneUptime read the rest, which links to the connection's form under Cloud → Connect, or to Cloud → Connect to connect the account, if you can see it.",
     );
 
     // The step's own lines name the setting, and the scope, as the docs do.
@@ -1097,6 +1099,38 @@ describe("Security Cases and Playbooks docs", () => {
     );
     expect(google).toContain(
       "Without it, the case names each such change for you to confirm, and says which scope to add.",
+    );
+  });
+
+  it("says the account changes' check reads an attack's IAM role changes as the reader does, and that OneUptime never changes a role (#11038)", () => {
+    const checks: string = flat(section(page, "How OneUptime checks a step"));
+    const undo: Array<string> | undefined = rowsOf(
+      "How OneUptime checks a step",
+      1,
+    ).find((row: Array<string>): boolean => {
+      return row[0] === "Undo what changed on the account";
+    });
+
+    // Each of the role calls the step reads, named for what it does to a role.
+    expect(Object.keys(AWS_IAM_ROLE_CHANGES)).toEqual([
+      "CreateRole",
+      "UpdateAssumeRolePolicy",
+      "AttachRolePolicy",
+      "PutRolePolicy",
+    ]);
+    expect(undo![1]).toContain(
+      "and, in AWS, the roles it made, gave a policy or made trust someone else, each read back in Okta, Microsoft Entra ID, Google Workspace or AWS IAM.",
+    );
+    // The trust policy, held to the ones the attack set, as readIamTrust holds it.
+    expect(checks).toContain(
+      "the role's trust policy now is held to the ones the attack set: undone once the role trusts none of the outside accounts they let in, still there while it is the last one the attack set, and yours to confirm otherwise.",
+    );
+    expect(checks).toContain(
+      "The step names the outside accounts the role trusts. OneUptime never deletes or edits a role.",
+    );
+    // The line the step says what to run again in is the one its words say.
+    expect(CHECK_ACCOUNT_CHANGES_FACT_AWS_RUN_AGAIN).toContain(
+      "run the command it shows again.",
     );
   });
 
@@ -3100,7 +3134,7 @@ describe("Connect a Cloud Account's Security case checks section", () => {
     >;
 
     expect(table[0]).toEqual([
-      "What the case reads of each user its CloudTrail events name",
+      "What the case reads of each user and role its CloudTrail events name",
       "Actions",
     ]);
     expect(
@@ -3108,6 +3142,29 @@ describe("Connect a Cloud Account's Security case checks section", () => {
         return codeSpans(row[1] as string);
       }),
     ).toEqual([...AWS_SECURITY_CASE_CHECKS_ACTIONS]);
+    // A role's (#11038): the role and whom it trusts, then its two lists.
+    expect(table.slice(-2)).toEqual([
+      [
+        "The role, whom its trust policy trusts, or that it is gone",
+        "`iam:GetRole`",
+      ],
+      [
+        "The role's managed policies, and its inline policies' names",
+        "`iam:ListAttachedRolePolicies`, `iam:ListRolePolicies`",
+      ],
+    ]);
+  });
+
+  it("says what a role's change reads, and that a command run before the role reads grants a user's alone (#11038)", () => {
+    expect(flat(checks)).toContain(
+      "check that what an attack changed on an IAM user or role was undone",
+    );
+    expect(flat(checks)).toContain(
+      "the user or role it made, and the trust policy it set on a role.",
+    );
+    expect(flat(checks)).toContain(
+      "A command run before the setting read roles grants a user's reads alone: run the connection's command again, and until you do, a case names its role changes for you to confirm and says to run it.",
+    );
   });
 
   it("shows the role's line and the access key's command word for word, as the form shows them", () => {
