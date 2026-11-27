@@ -253,9 +253,82 @@ export const OTHER_LOGGER_WORDS: Array<LogSeverityWord> = [
   },
 ];
 
+/*
+ * logrus's four letters, which its text formatter writes when it colours a
+ * level (issue #11226), each at the level it cuts short.
+ */
+export const LOGRUS_WORDS: Array<LogSeverityWord> = (
+  [
+    ["trac", 1, LogSeverity.Trace],
+    ["debu", 5, LogSeverity.Debug],
+    ["erro", 17, LogSeverity.Error],
+    ["fata", 21, LogSeverity.Fatal],
+    ["pani", 21, LogSeverity.Fatal],
+  ] as Array<[string, number, LogSeverity]>
+).map(
+  ([word, severityNumber, severity]: [
+    string,
+    number,
+    LogSeverity,
+  ]): LogSeverityWord => {
+    return {
+      word,
+      severityNumber,
+      severity,
+      source: "logrus's coloured four letters",
+    };
+  },
+);
+
+/*
+ * Go's log/slog between its four names (issue #11226): a level that is no
+ * name is written as the name below it and the distance, and OpenTelemetry's
+ * slog bridge numbers it as the slog level plus 9. Written out, not
+ * computed, so a change to the rule fails here.
+ */
+export const SLOG_OFFSET_WORDS: Array<LogSeverityWord> = (
+  [
+    ["DEBUG-4", 1, LogSeverity.Trace],
+    ["DEBUG-3", 2, LogSeverity.Trace],
+    ["DEBUG-2", 3, LogSeverity.Trace],
+    ["DEBUG-1", 4, LogSeverity.Trace],
+    ["DEBUG+1", 6, LogSeverity.Debug],
+    ["DEBUG+2", 7, LogSeverity.Debug],
+    ["DEBUG+3", 8, LogSeverity.Debug],
+    ["INFO+1", 10, LogSeverity.Information],
+    ["INFO+2", 11, LogSeverity.Information],
+    ["INFO+3", 12, LogSeverity.Information],
+    ["WARN+1", 14, LogSeverity.Warning],
+    ["WARN+2", 15, LogSeverity.Warning],
+    ["WARN+3", 16, LogSeverity.Warning],
+    ["ERROR+1", 18, LogSeverity.Error],
+    ["ERROR+2", 19, LogSeverity.Error],
+    ["ERROR+3", 20, LogSeverity.Error],
+    ["ERROR+4", 21, LogSeverity.Fatal],
+    ["ERROR+5", 22, LogSeverity.Fatal],
+    ["ERROR+6", 23, LogSeverity.Fatal],
+    ["ERROR+7", 24, LogSeverity.Fatal],
+  ] as Array<[string, number, LogSeverity]>
+).map(
+  ([word, severityNumber, severity]: [
+    string,
+    number,
+    LogSeverity,
+  ]): LogSeverityWord => {
+    return {
+      word,
+      severityNumber,
+      severity,
+      source: "Go's log/slog: its level plus 9, as its OpenTelemetry bridge",
+    };
+  },
+);
+
 export const LOG_SEVERITY_WORDS: Array<LogSeverityWord> = [
   ...SHORT_NAME_WORDS,
   ...OTHER_LOGGER_WORDS,
+  ...LOGRUS_WORDS,
+  ...SLOG_OFFSET_WORDS,
 ];
 
 // A word the way different senders write it: any case, spaces around it.

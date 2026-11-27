@@ -104,14 +104,55 @@ const {
 } = require("./Utils/StanzaSeverity.js");
 
 /** The chain, in the order the operators must appear in the list. */
-const SEVERITY_CHAIN_IDS = [
-  "severity-router",
+/**
+ * The router's routes, in the order they must be tried. Order is meaning
+ * here: stanza takes the FIRST route whose expression holds, so a reader that
+ * knows exactly where a format keeps its level (klog's letter, an
+ * exception's header, pino's top-level number, the formats of issue #11226
+ * that keep it in a place of their own) goes before the general read, which
+ * would otherwise find a level field further along the same line; slog's
+ * levels between its names come after it, so a line the general read reads
+ * keeps that level; the stdout fallback is last.
+ */
+const ROUTE_OUTPUTS = [
   "parse-klog-severity",
   "add-exception-severity",
   "add-warning-severity",
   "parse-numeric-severity",
+  "parse-mongodb-severity",
+  "parse-cnpg-severity",
+  "parse-clef-severity",
+  "add-clef-information",
+  "parse-redis-severity",
+  "parse-nest-severity",
+  "parse-logrus-severity",
+  "parse-mysql-severity",
+  "parse-jul-severity",
+  "parse-sidekiq-severity",
+  "parse-php-severity",
+  "parse-gitea-severity",
   "parse-severity-from-body",
+  "parse-slog-severity",
   "add-fallback-severity",
+];
+
+/** The level each `add` operator writes. */
+const ADDED_LEVELS = {
+  "add-exception-severity": "ERROR",
+  "add-warning-severity": "WARN",
+  "add-clef-information": "INFO",
+  "add-fallback-severity": "INFO",
+};
+
+/** The readers that lift a text with a regex_parser. */
+const REGEX_READERS = ROUTE_OUTPUTS.filter((id) => {
+  return !Object.prototype.hasOwnProperty.call(ADDED_LEVELS, id);
+});
+
+/** The chain, in the order the operators must appear in the list. */
+const SEVERITY_CHAIN_IDS = [
+  "severity-router",
+  ...ROUTE_OUTPUTS,
   "severity-parser",
   "remove-severity-attr",
   "severity-unspecified",
@@ -120,38 +161,14 @@ const SEVERITY_CHAIN_IDS = [
 /** The type each of those operators must be. */
 const OPERATOR_TYPES = {
   "severity-router": "router",
-  "parse-klog-severity": "regex_parser",
-  "add-exception-severity": "add",
-  "add-warning-severity": "add",
-  "parse-numeric-severity": "regex_parser",
-  "parse-severity-from-body": "regex_parser",
-  "add-fallback-severity": "add",
+  ...Object.fromEntries(
+    ROUTE_OUTPUTS.map((id) => {
+      return [id, REGEX_READERS.includes(id) ? "regex_parser" : "add"];
+    }),
+  ),
   "severity-parser": "severity_parser",
   "remove-severity-attr": "remove",
   "severity-unspecified": "noop",
-};
-
-/**
- * The router's routes, in the order they must be tried. Order is meaning
- * here: stanza takes the FIRST route whose expression holds, so a reader that
- * knows exactly where a format keeps its level (klog's letter, an
- * exception's header, pino's top-level number) goes before the general read,
- * which would otherwise find a level field further along the same line.
- */
-const ROUTE_OUTPUTS = [
-  "parse-klog-severity",
-  "add-exception-severity",
-  "add-warning-severity",
-  "parse-numeric-severity",
-  "parse-severity-from-body",
-  "add-fallback-severity",
-];
-
-/** The level each `add` operator writes. */
-const ADDED_LEVELS = {
-  "add-exception-severity": "ERROR",
-  "add-warning-severity": "WARN",
-  "add-fallback-severity": "INFO",
 };
 
 /** The scratch attribute the chain writes and must clean up again. */
@@ -272,6 +289,27 @@ const PATHOLOGICAL = {
   digitsColon: (n) => `${"1:".repeat(n)}x`,
   quotes: (n) => `${'" '.repeat(n)}x`,
   celeryProcess: (n) => `INFO/${"A".repeat(n)}`,
+  // The readers of issue #11226.
+  mongoDate: (n) => `{"t":{"$date":"${"x".repeat(n)}`,
+  cnpgPairs: (n) =>
+    `{"level":"info","ts":"x","logger":"postgres","msg":"record",${'"a":"b",'.repeat(n)}`,
+  clefRenders: (n) => `{"@t":"x","@mt":"y","@r":[${'"a",'.repeat(n)}`,
+  clefEscapes: (n) => `{"@t":"x","@mt":"${'\\"'.repeat(n)}`,
+  redisPrefix: (n) => `${"1:M ".repeat(n)}x`,
+  nestSpaces: (n) => `[Nest] 1  - 1${" ".repeat(n)}x`,
+  nestDigits: (n) => `[Nest] 1  - ${"1 ".repeat(n)}x`,
+  nestColours: (n) => `[Nest] 1  - 1 ${"\u001b[0m".repeat(n)}x`,
+  logrusBracket: (n) => `\u001b[31mERRO\u001b[0m[${"a".repeat(n)}`,
+  mysqlPrefix: (n) => `${"2026-11-27T20:39:32.776965Z 0 ".repeat(n)}x`,
+  julLevels: (n) => `${"FINE".repeat(n)}: x`,
+  sidekiqPairs: (n) => `pid=1 tid=a${" k=v".repeat(n)} x`,
+  sidekiqEquals: (n) => `pid=1 tid=a k=${"=".repeat(n)}`,
+  phpSpaces: (n) => `PHP Warning:${" ".repeat(n)}`,
+  giteaToken: (n) => `2026/11/27 20:44:55 ${"a".repeat(n)}`,
+  giteaParens: (n) => `2026/11/27 20:44:55 ${"()".repeat(n)}x`,
+  slogLevels: (n) => " level=ERROR+".repeat(n),
+  slogQuotes: (n) => `{${'"level":"INFO+'.repeat(n)}`,
+  kitchenTimes: (n) => `${"8:50PM ".repeat(n)}x`,
 };
 
 describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
@@ -470,19 +508,46 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    * would admit lines the parser cannot parse (leaving them Unspecified, with
    * an error logged for each) or reject lines that carry a level.
    */
-  test.each([
-    "parse-klog-severity",
-    "parse-numeric-severity",
-    "parse-severity-from-body",
-  ])("the route to %s uses its parser's pattern", (id) => {
-    expect(routePattern(operators, id)).toBe(
-      parserPattern(operators, id).replace("(?P<severity_text>", "("),
-    );
-    expect(byId.get(id).parse_from).toBe("body");
-    // parse_to is left at its default (`attributes`), which MERGES the
-    // capture into the attribute map rather than replacing it, so
-    // log.iostream and log.file.path survive the parser.
-    expect(byId.get(id).parse_to).toBeUndefined();
+  test.each(REGEX_READERS)(
+    "the route to %s uses its parser's pattern",
+    (id) => {
+      expect(routePattern(operators, id)).toBe(
+        parserPattern(operators, id).replace("(?P<severity_text>", "("),
+      );
+      expect(byId.get(id).parse_from).toBe("body");
+      // parse_to is left at its default (`attributes`), which MERGES the
+      // capture into the attribute map rather than replacing it, so
+      // log.iostream and log.file.path survive the parser.
+      expect(byId.get(id).parse_to).toBeUndefined();
+    },
+  );
+
+  /*
+   * Collector 0.96.0, which a --reuse-values upgrade keeps, still expands a
+   * bare $NAME in any string of its config as an environment variable
+   * (0.165.0 expands only ${...}). MongoDB's reader once matched `\$date`:
+   * on 0.96.0 that reached RE2 as a lone backslash and an empty variable, and
+   * every MongoDB line went unread there, and only there. A literal dollar is
+   * written [$], which no collector expands.
+   */
+  test("no pattern holds a $ that collector 0.96.0 expands as a variable", () => {
+    const strings = chain()
+      .flatMap((operator) => {
+        return [
+          operator.regex,
+          ...(operator.routes || []).map((route) => {
+            return route.expr;
+          }),
+        ];
+      })
+      .filter(Boolean);
+
+    expect(strings.length).toBeGreaterThan(30);
+    expect(
+      strings.filter((text) => {
+        return /\$[A-Za-z_{]/.test(text);
+      }),
+    ).toEqual([]);
   });
 
   test("every route's pattern compiles", () => {
@@ -507,17 +572,13 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    */
   test("every text the chain can produce resolves to a real severity number", () => {
     const texts = [
-      ...[
-        "parse-klog-severity",
-        "parse-numeric-severity",
-        "parse-severity-from-body",
-      ].flatMap((id) => {
+      ...REGEX_READERS.flatMap((id) => {
         return severityKeywordsFromRegex(parserPattern(operators, id));
       }),
       ...Object.values(ADDED_LEVELS),
     ];
 
-    expect(texts.length).toBeGreaterThan(40);
+    expect(texts.length).toBeGreaterThan(100);
 
     const unresolved = texts.filter((text) => {
       return resolveSeverityNumber(text, severityParser) === 0;
@@ -533,11 +594,7 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
    * lands on "Unspecified" and the Logs page cannot filter it.
    */
   test("every number the chain can emit survives OneUptime ingest as a real level", () => {
-    const texts = [
-      "parse-klog-severity",
-      "parse-numeric-severity",
-      "parse-severity-from-body",
-    ].flatMap((id) => {
+    const texts = REGEX_READERS.flatMap((id) => {
       return severityKeywordsFromRegex(parserPattern(operators, id));
     });
 
@@ -597,6 +654,40 @@ describe.each([...CONFIGS.keys()])("%s: the severity chain", (source) => {
       ERROR: "Error",
       WARN: "Warning",
       INFO: "Information",
+      // Issue #11226's formats: MongoDB's letters, Redis's symbols in
+      // their order, Gitea's letters, logrus's four letters, NestJS's and
+      // Serilog's Verbose, java.util.logging's lower levels, MySQL's System,
+      // PHP's error types, Go's log/slog between its names.
+      D1: "Debug",
+      D5: "Debug",
+      ".": "Debug",
+      "-": "Debug",
+      "*": "Information",
+      "#": "Warning",
+      T: "Trace",
+      D: "Debug",
+      TRAC: "Trace",
+      DEBU: "Debug",
+      ERRO: "Error",
+      FATA: "Fatal",
+      PANI: "Fatal",
+      Verbose: "Debug",
+      FINEST: "Trace",
+      FINER: "Debug",
+      FINE: "Debug",
+      CONFIG: "Debug",
+      System: "Information",
+      "Fatal error": "Fatal",
+      "Parse error": "Fatal",
+      "Recoverable fatal error": "Error",
+      Deprecated: "Warning",
+      "DEBUG-4": "Trace",
+      "DEBUG+2": "Debug",
+      "INFO+2": "Information",
+      "WARN+1": "Warning",
+      "ERROR+1": "Error",
+      "ERROR+4": "Fatal",
+      "ERROR+7": "Fatal",
     };
 
     for (const [text, severity] of Object.entries(expected)) {

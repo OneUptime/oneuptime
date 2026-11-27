@@ -163,6 +163,40 @@ export const LOG_SEVERITY_NUMBER_BY_TEXT: ReadonlyMap<string, number> = new Map<
   ["FAIL", 17],
   ["FTL", 21],
   ["PNC", 21],
+  /*
+   * logrus's four letters, which its text formatter writes when it colours
+   * a level (issue #11226): TRAC, DEBU, ERRO, FATA and PANI (its INFO and
+   * WARN are above). A logrus panic is above its fatal, both FATAL here.
+   */
+  ["TRAC", 1],
+  ["DEBU", 5],
+  ["ERRO", 17],
+  ["FATA", 21],
+  ["PANI", 21],
+  /*
+   * Go's log/slog between its four names (issue #11226). slog.Level's
+   * String writes a level that is no name as the name below it and the
+   * distance, DEBUG-4 to ERROR+7 (DEBUG is -4, INFO 0, WARN 4, ERROR 8), and
+   * OpenTelemetry's own slog bridge numbers a level as itself plus 9: so
+   * ERROR+4, the level slog's users give a fatal or a critical log, is
+   * FATAL (21), and ERROR+7 is FATAL4 (24), the last SeverityNumber.
+   */
+  ...(
+    [
+      ["DEBUG", -4, [-4, -3, -2, -1, 1, 2, 3]],
+      ["INFO", 0, [1, 2, 3]],
+      ["WARN", 4, [1, 2, 3]],
+      ["ERROR", 8, [1, 2, 3, 4, 5, 6, 7]],
+    ] as Array<[string, number, Array<number>]>
+  ).flatMap(
+    ([name, level, offsets]: [string, number, Array<number>]): Array<
+      [string, number]
+    > => {
+      return offsets.map((offset: number): [string, number] => {
+        return [`${name}${offset > 0 ? "+" : ""}${offset}`, level + offset + 9];
+      });
+    },
+  ),
 ]);
 
 /*

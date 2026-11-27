@@ -25,11 +25,35 @@ const { LOG_SEVERITY_NUMBER_BY_TEXT, logSeverityFromNumber } = loadCommonModule(
  * keyed.
  */
 const READER_TOKENS = new Map([
-  // klog and glog's first letter.
+  // klog and glog's first letter (MongoDB's "s" and Gitea's [X] use them too).
   ["I", { number: 9, reader: "parse-klog-severity" }],
   ["W", { number: 13, reader: "parse-klog-severity" }],
   ["E", { number: 17, reader: "parse-klog-severity" }],
   ["F", { number: 21, reader: "parse-klog-severity" }],
+  // Gitea's trace and debug letters.
+  ["T", { number: 1, reader: "parse-gitea-severity" }],
+  ["D", { number: 5, reader: "parse-gitea-severity" }],
+  // MongoDB's debug verbosities, all DEBUG (CloudWatch reads PostgreSQL's
+  // DEBUG1 to DEBUG5 so too).
+  ["D1", { number: 5, reader: "parse-mongodb-severity" }],
+  ["D2", { number: 5, reader: "parse-mongodb-severity" }],
+  ["D3", { number: 5, reader: "parse-mongodb-severity" }],
+  ["D4", { number: 5, reader: "parse-mongodb-severity" }],
+  ["D5", { number: 5, reader: "parse-mongodb-severity" }],
+  // Redis's and Valkey's symbols, in their order: debug, verbose (above its
+  // debug), notice (syslog's INFO2), warning.
+  [".", { number: 5, reader: "parse-redis-severity" }],
+  ["-", { number: 6, reader: "parse-redis-severity" }],
+  ["*", { number: 10, reader: "parse-redis-severity" }],
+  ["#", { number: 13, reader: "parse-redis-severity" }],
+  // MySQL 8's [System]: startup and shutdown, informational.
+  ["SYSTEM", { number: 9, reader: "parse-mysql-severity" }],
+  // PHP's error types: a fatal or parse error stops the script; a
+  // deprecation is a warning, as Python's and Node's are.
+  ["FATAL ERROR", { number: 21, reader: "parse-php-severity" }],
+  ["PARSE ERROR", { number: 21, reader: "parse-php-severity" }],
+  ["RECOVERABLE FATAL ERROR", { number: 17, reader: "parse-php-severity" }],
+  ["DEPRECATED", { number: 13, reader: "parse-php-severity" }],
   // pino and bunyan's numbers.
   ["10", { number: 1, reader: "parse-numeric-severity" }],
   ["20", { number: 5, reader: "parse-numeric-severity" }],
@@ -37,8 +61,9 @@ const READER_TOKENS = new Map([
   ["40", { number: 13, reader: "parse-numeric-severity" }],
   ["50", { number: 17, reader: "parse-numeric-severity" }],
   ["60", { number: 21, reader: "parse-numeric-severity" }],
-  // PostgreSQL's informational level, in capitals only: as a level field's
-  // value "log" is console.log's word, which the table leaves unread.
+  // PostgreSQL's (and NestJS's) informational level, in capitals only: as a
+  // level field's value "log" is console.log's word, which the table leaves
+  // unread.
   ["LOG", { number: 9, reader: "parse-severity-from-body" }],
 ]);
 

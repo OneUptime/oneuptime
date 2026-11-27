@@ -288,6 +288,80 @@ describe("LogSeverity", () => {
       },
     );
 
+    // Issue #11226: logrus's four letters, which it writes when it colours a level.
+    test.each([
+      ["TRAC", 1, LogSeverity.Trace],
+      ["DEBU", 5, LogSeverity.Debug],
+      ["ERRO", 17, LogSeverity.Error],
+      ["FATA", 21, LogSeverity.Fatal],
+      ["PANI", 21, LogSeverity.Fatal],
+    ])(
+      "logrus's %s -> %i (%s)",
+      (word: string, severityNumber: number, severity: LogSeverity) => {
+        expect(logSeverityNumberFromText(word)).toBe(severityNumber);
+        expect(logSeverityNumberFromText(word.toLowerCase())).toBe(
+          severityNumber,
+        );
+        expect(normalizeLogSeverity(word)).toBe(severity);
+      },
+    );
+
+    /*
+     * Issue #11226: Go's log/slog writes a level between its four names as
+     * the name below it and the distance (DEBUG is -4, INFO 0, WARN 4,
+     * ERROR 8), and OpenTelemetry's slog bridge numbers a level as itself
+     * plus 9, which these are.
+     */
+    test.each([
+      ["DEBUG-4", 1],
+      ["DEBUG-3", 2],
+      ["DEBUG-2", 3],
+      ["DEBUG-1", 4],
+      ["DEBUG+1", 6],
+      ["DEBUG+2", 7],
+      ["DEBUG+3", 8],
+      ["INFO+1", 10],
+      ["INFO+2", 11],
+      ["INFO+3", 12],
+      ["WARN+1", 14],
+      ["WARN+2", 15],
+      ["WARN+3", 16],
+      ["ERROR+1", 18],
+      ["ERROR+2", 19],
+      ["ERROR+3", 20],
+      ["ERROR+4", 21],
+      ["ERROR+5", 22],
+      ["ERROR+6", 23],
+      ["ERROR+7", 24],
+    ])("slog's %s -> %i, its level plus 9", (word: string, n: number) => {
+      const name: string = word.replace(/[+-]\d$/, "");
+      const slogLevel: number = { DEBUG: -4, INFO: 0, WARN: 4, ERROR: 8 }[
+        name
+      ] as number;
+
+      expect(logSeverityNumberFromText(word)).toBe(n);
+      expect(logSeverityNumberFromText(word.toLowerCase())).toBe(n);
+      expect(slogLevel + Number(word.slice(name.length)) + 9).toBe(n);
+    });
+
+    test("names no slog level past OpenTelemetry's numbers, nor one slog never writes", () => {
+      for (const word of [
+        "DEBUG-5",
+        "ERROR+8",
+        "ERROR+0",
+        "INFO-1",
+        "WARN-2",
+        "INFO+4",
+        "DEBUG+4",
+        "ERROR+ 4",
+      ]) {
+        expect({ word, n: logSeverityNumberFromText(word) }).toEqual({
+          word,
+          n: 0,
+        });
+      }
+    });
+
     test("knows no word Datadog, Sentry or a console write that is no logger's level", () => {
       for (const word of ["ok", "success", "log", "unknown"]) {
         expect(logSeverityNumberFromText(word)).toBe(0);

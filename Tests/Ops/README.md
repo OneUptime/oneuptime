@@ -362,16 +362,29 @@ reader that knows where its format keeps the level, then a severity parser.
    warnings name a category: `/app/x.py:3: DeprecationWarning: …`.
 4. **`parse-numeric-severity`** — pino and bunyan write the level as a number
    among the top-level fields: `{"level":30,…}`.
-5. **`parse-severity-from-body`** — a level word, believed only where a level
+5. **The formats that keep the level in a place of their own** (issue
+   #11226), each read there and nowhere else, so a word that is a level only
+   in its own format (`System`, `Fine`, a `#`) is read in no other line:
+   MongoDB's `"s"` (`parse-mongodb-severity`), CloudNativePG's wrapped
+   PostgreSQL record, whose `error_severity` wins over the wrapper's `level`
+   (`parse-cnpg-severity`), Serilog's compact JSON `@l`
+   (`parse-clef-severity`, and `add-clef-information` for the Information it
+   writes no `@l` for), Redis's and Valkey's symbol, NestJS's ConsoleLogger,
+   logrus with colours, MySQL 8's `[System]`, java.util.logging's `FINEST` to
+   `CONFIG`, Sidekiq 7, PHP's error log and Gitea's `[I]`.
+6. **`parse-severity-from-body`** — a level word, believed only where a level
    sits: in the line's **preamble** (punctuation, digits, word tokens that end
    on a structural delimiter, colour codes, and a time at the very start, read
    with its letters: RFC 3339's `T` and `Z`, a zone such as `UTC` or `GMT`,
-   ctime's day and month), or as the value of a **level field** (`level`,
-   `lvl`, `severity`, `levelname`, `level_name`, `log.level`, hclog's `@level`,
-   Serilog's `@l`, …). Prose is not preamble: `Connection error, retrying`
-   stops at `Connection `. The preamble branch is anchored, so it beats a level
-   field further along the line.
-6. **`add-fallback-severity`** — a line nothing read, on stdout: INFO.
+   ctime's day and month, zerolog's `3:04PM`), or as the value of a **level
+   field** (`level`, `lvl`, `severity`, `levelname`, `level_name`,
+   `log.level`, hclog's `@level`, Serilog's `@l`, …). Prose is not preamble:
+   `Connection error, retrying` stops at `Connection `. The preamble branch is
+   anchored, so it beats a level field further along the line.
+7. **`parse-slog-severity`** — Go's log/slog between its four names,
+   `level=ERROR+4`, at its level plus 9 as OpenTelemetry's slog bridge numbers
+   it; after the general read, so a line that one reads keeps that level.
+8. **`add-fallback-severity`** — a line nothing read, on stdout: INFO.
 
 A line nothing read on **stderr** has no severity at all (the router's default,
 `severity-unspecified`). stderr carries every level of a program's diagnostics
@@ -401,11 +414,13 @@ validate` only proves each operator is well-formed. So the suite holds it to:
   real `LogSeverity`: stanza's built-in preset knows trace/debug/info/warn/
   warning/error/err/fatal and nothing else, and an unmapped text leaves the
   record **Unspecified** rather than erroring.
-- **Behaviour.** The corpus in `Utils/LogSeverityCorpus.js` — 209 log lines:
-  61 captured from the programs themselves (Vault, the collector,
-  kube-state-metrics, PostgreSQL, Prometheus, nginx, Python, Node, Logback and
-  java.util.logging), the rest in their documented layouts, this suite's
-  corpus from before #10972 among them — goes through each
+- **Behaviour.** The corpus in `Utils/LogSeverityCorpus.js` — 311 log lines:
+  162 captured from the programs themselves (Vault, the collector,
+  kube-state-metrics, PostgreSQL, Prometheus, nginx, Python, Node, Logback,
+  java.util.logging, and for #11226 and #11228 MongoDB, Redis, NestJS, logrus,
+  slog, zerolog, MySQL 8.4, Sidekiq 7 and 8, PHP, Gitea, Serilog and
+  CloudNativePG in a kind cluster), the rest in their documented layouts, this
+  suite's corpus from before #10972 among them — goes through each
   config's own operators the way stanza runs them (`classify` in
   `Utils/StanzaSeverity.js`), and each line must be read by the reader the
   corpus names and stored at its level. Prose that merely mentions a level word
@@ -419,6 +434,10 @@ validate` only proves each operator is well-formed. So the suite holds it to:
   quadratic or exponential. Every reader must stay cheap on thirty-odd
   pathological shapes at a size where a quadratic one takes seconds.
 - **Lockstep.** The four configs carry one identical chain.
+- **Expansion.** No pattern holds a `$` followed by a name: collector 0.96.0,
+  which `--reuse-values` keeps, still expands a bare `$NAME` as an
+  environment variable, so MongoDB's `\$date` read nothing there. A literal
+  dollar is `[$]`.
 
 `agent-log-severity-behaviour.sh` runs the same corpus through the real
 collector.

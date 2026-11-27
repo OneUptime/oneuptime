@@ -366,56 +366,70 @@ function topLevelAlternatives(source) {
   return alternatives;
 }
 
-/**
- * The texts one alternative of a severity_text group can capture. The groups
- * in these configs use three shapes, and anything else is refused rather than
- * guessed at:
- *
- *   WORD          a literal keyword ("WARNING");
- *   (?-i:WORD)    a keyword matched in this case only ("LOG");
- *   [CLASS]tail   one character of a class, then a literal: klog's [IWEF] and
- *                 pino's [1-6]0.
- */
-function expandSeverityAlternative(alternative) {
-  if (/^[A-Za-z0-9]+$/.test(alternative)) {
-    return [alternative];
+/** The characters a character class's body names: ranges and single ones. */
+function classMembers(body) {
+  const members = [];
+
+  for (let index = 0; index < body.length; index++) {
+    if (body[index + 1] === "-" && body[index + 2] !== undefined) {
+      for (
+        let code = body.charCodeAt(index);
+        code <= body.charCodeAt(index + 2);
+        code++
+      ) {
+        members.push(String.fromCharCode(code));
+      }
+      index += 2;
+    } else {
+      members.push(body[index]);
+    }
   }
 
+  return members;
+}
+
+/**
+ * The texts one alternative of a severity_text group can capture. The groups
+ * in these configs use these shapes, and anything else is refused rather
+ * than guessed at:
+ *
+ *   WORD            a literal: letters, digits, spaces and hyphens, and an
+ *                   escaped + or . ("WARNING", "Fatal error", "DEBUG\+");
+ *   (?-i:WORD)      a keyword matched in this case only ("LOG");
+ *   head[CLASS]tail one character of a class between two literals: klog's
+ *                   [IWEF], pino's [1-6]0, Redis's [.*#-], MongoDB's
+ *                   D[1-5], slog's ERROR\+[1-7].
+ */
+function expandSeverityAlternative(alternative) {
   const caseOnly = /^\(\?-i:([A-Za-z0-9|]+)\)$/.exec(alternative);
 
   if (caseOnly) {
     return caseOnly[1].split("|");
   }
 
-  const classed = /^\[([^\]]+)\]([A-Za-z0-9]*)$/.exec(alternative);
+  const LITERAL = String.raw`(?:[A-Za-z0-9 -]|\\[+.])*`;
+  const shape = new RegExp(
+    `^(${LITERAL})(?:\\[([^\\]]+)\\])?(${LITERAL})$`,
+  ).exec(alternative);
 
-  if (classed) {
-    const members = [];
-    const body = classed[1];
-
-    for (let index = 0; index < body.length; index++) {
-      if (body[index + 1] === "-" && body[index + 2] !== undefined) {
-        for (
-          let code = body.charCodeAt(index);
-          code <= body.charCodeAt(index + 2);
-          code++
-        ) {
-          members.push(String.fromCharCode(code));
-        }
-        index += 2;
-      } else {
-        members.push(body[index]);
-      }
-    }
-
-    return members.map((member) => {
-      return member + classed[2];
-    });
+  if (!shape) {
+    throw new Error(
+      `cannot list what this severity_text alternative captures: ${alternative}`,
+    );
   }
 
-  throw new Error(
-    `cannot list what this severity_text alternative captures: ${alternative}`,
-  );
+  const literal = (text) => {
+    return text.replace(/\\([+.])/g, "$1");
+  };
+  const [, head, body, tail] = shape;
+
+  if (body === undefined) {
+    return [literal(head)];
+  }
+
+  return classMembers(body).map((member) => {
+    return literal(head) + member + literal(tail);
+  });
 }
 
 /**

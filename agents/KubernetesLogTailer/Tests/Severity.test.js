@@ -10,6 +10,23 @@ const fs = require("node:fs");
 const path = require("node:path");
 const OTLPBatcherModule = require("../build/dist/OTLPBatcher");
 
+/*
+ * What a reader's severity_text group can capture, listed as the Ops suites
+ * list it (Tests/Ops/Utils/StanzaSeverity.js), so both read one listing.
+ */
+const { severityKeywordsFromRegex } = require(
+  path.join(
+    __dirname,
+    "..",
+    "..",
+    "..",
+    "Tests",
+    "Ops",
+    "Utils",
+    "StanzaSeverity.js",
+  ),
+);
+
 const deriveSeverity = OTLPBatcherModule.deriveSeverity;
 const severityTextToNumber = OTLPBatcherModule.severityTextToNumber;
 const SEVERITY_READERS = OTLPBatcherModule.SEVERITY_READERS;
@@ -408,12 +425,14 @@ const severityParserMapping = () => {
       continue;
     }
 
-    const aliasMatch = /^\s*-\s*"?([^"\s]+)"?\s*$/.exec(line);
+    // A quoted alias (a number, or a symbol YAML would read otherwise), or
+    // a plain one, which may hold spaces ("fatal error").
+    const aliasMatch = /^\s*-\s*(?:"([^"]+)"|([^"\s][^"]*?))\s*$/.exec(line);
 
     assert.notEqual(aliasMatch, null, `unparsed mapping line: ${line}`);
     assert.notEqual(level, null, `alias before any level: ${line}`);
 
-    aliases[aliasMatch[1].toLowerCase()] = level;
+    aliases[(aliasMatch[1] ?? aliasMatch[2]).toLowerCase()] = level;
   }
 
   assert.ok(Object.keys(aliases).length > 0, "mapping: block is empty");
@@ -452,22 +471,7 @@ const textsOf = (reader) => {
     return [reader.level];
   }
 
-  if (reader.id === "parse-klog-severity") {
-    return ["I", "W", "E", "F"];
-  }
-
-  if (reader.id === "parse-numeric-severity") {
-    return ["10", "20", "30", "40", "50", "60"];
-  }
-
-  const start =
-    reader.pattern.indexOf("(?P<severity_text>") + "(?P<severity_text>".length;
-  const end = reader.pattern.indexOf(")(?:$|", start);
-
-  return reader.pattern
-    .slice(start, end)
-    .replace("(?-i:LOG)", "LOG")
-    .split("|");
+  return severityKeywordsFromRegex(reader.pattern);
 };
 
 test("every text a reader produces gets the number the collector chain gives it", () => {
@@ -510,6 +514,15 @@ test("every text a reader produces gets the number the collector chain gives it"
  */
 test("every reader is linear on pathological input", () => {
   const bodies = [
+    // The readers of issue #11226.
+    `[Nest] 1  - 1${" ".repeat(30000)}x`,
+    `[Nest] 1  - ${"1 ".repeat(15000)}x`,
+    `pid=1 tid=a${" k=v".repeat(10000)} x`,
+    `{"@t":"x","@mt":"y","@r":[${'"a",'.repeat(10000)}`,
+    `{"level":"info","ts":"x","logger":"postgres","msg":"record",${'"a":"b",'.repeat(5000)}`,
+    `2026/11/27 20:44:55 ${"()".repeat(15000)}x`,
+    " level=ERROR+".repeat(5000),
+    `${"8:50PM ".repeat(5000)}x`,
     "\u001b[0m".repeat(30000) + "x",
     "0Z -".repeat(30000),
     "2026-11-23T18:58:14.670Z,".repeat(5000),
