@@ -85,6 +85,7 @@ export const CriteriaIncidentSchema: ZodSchema = Zod.object({
   incidentSeverityId: Zod.any().optional(),
   escalationAfterMinutes: Zod.number().int().positive().optional(),
   escalationSeverityId: Zod.any().optional(),
+  incidentLifecycleKey: Zod.string().trim().max(100).optional(),
   autoResolveIncident: Zod.boolean().optional(),
   remediationNotes: Zod.string().optional(),
   id: Zod.string(),

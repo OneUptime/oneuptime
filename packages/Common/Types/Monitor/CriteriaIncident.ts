@@ -11,6 +11,7 @@ export interface CriteriaIncident {
   incidentSeverityId?: ObjectID | undefined;
   escalationAfterMinutes?: number | undefined;
   escalationSeverityId?: ObjectID | undefined;
+  incidentLifecycleKey?: string | undefined;
   autoResolveIncident?: boolean | undefined;
   remediationNotes?: string | undefined;
   id: string;

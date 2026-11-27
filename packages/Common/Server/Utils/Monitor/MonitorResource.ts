@@ -25,6 +25,7 @@ import IncomingMonitorRequest from "../../../Types/Monitor/IncomingMonitor/Incom
 import IncomingEmailMonitorRequest from "../../../Types/Monitor/IncomingEmailMonitor/IncomingEmailMonitorRequest";
 import MonitorCriteria from "../../../Types/Monitor/MonitorCriteria";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
+import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
 import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorSteps from "../../../Types/Monitor/MonitorSteps";
 import MonitorType, {
@@ -1919,6 +1920,29 @@ export default class MonitorResourceUtil {
         const isPerSeriesEvaluation: boolean =
           response.perSeriesMatches !== undefined;
 
+        // A lifecycle is shared only by whole-monitor criteria of this check step.
+        const linkedIncidentCriteriaById:
+          | Dictionary<MonitorCriteriaInstance>
+          | undefined =
+          !isPerSeriesEvaluation &&
+          criteriaFanOut.length === 1 &&
+          monitor.monitorType !== MonitorType.IncomingEmail &&
+          matchedCriteriaInstance.data?.createIncidents &&
+          matchedCriteriaInstance.data.incidents?.some(
+            (action: CriteriaIncident) => {
+              return Boolean(action.incidentLifecycleKey);
+            },
+          )
+            ? Object.fromEntries(
+                (
+                  monitorStep.data?.monitorCriteria?.data
+                    ?.monitorCriteriaInstanceArray || []
+                ).map((criterion: MonitorCriteriaInstance) => {
+                  return [criterion.data?.id?.toString() || "", criterion];
+                }),
+              )
+            : undefined;
+
         /*
          * Every series breaching anything on this tick, and the same
          * broken out per criteria.
@@ -2215,6 +2239,7 @@ export default class MonitorResourceUtil {
                     : undefined,
                 disableSeriesAbsenceResolution,
                 criteriaInstancesById: criteriaInstanceMap,
+                linkedIncidentCriteriaById,
                 keepResponseContent:
                   MonitorRecordEvidence.keepsResponseContent(monitor),
                 monitorStep: monitorStep,
@@ -2346,6 +2371,7 @@ export default class MonitorResourceUtil {
                   })
                 : everyEmail.incidents,
               openIncidents,
+              linkedIncidentCriteriaById,
               suppressedSeriesFingerprints,
               dependencySuppression,
               disableSeriesAbsenceResolution,
