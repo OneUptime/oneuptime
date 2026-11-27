@@ -571,7 +571,7 @@ export default class XcpNgPool extends BaseModel {
   @TableColumn({
     type: TableColumnType.ObjectID,
     required: false,
-    canReadOnRelationQuery: true,
+    // Read on the pool itself, as a vCenter's collection probe is: no relation's label.
     title: "XCP-ng Connection ID",
     description:
       "ID of the XCP-ng connection a probe reads this pool through. Empty for a pool the XCP-ng Agent reads.",

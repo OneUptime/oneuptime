@@ -89,6 +89,13 @@ interface WiderOnPurpose {
 const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
   {
     reason:
+      "The XCP-ng connection a connection test is of (#10996, #10999): whoever may test one creates or edits connections (Create XCP-ng Pool, Edit XCP-ng Pool), and reads through the test what its form shows them of the connection - its name, kind, address and description - as a vCenter's test reads its vCenter. Its secrets never: they are encrypted, write-only and no relation's (EncryptedColumnsStayOffRelations).",
+    columns: {
+      XcpNgConnection: ["address", "connectionType", "description", "name"],
+    },
+  },
+  {
+    reason:
       "Which store a data asset, a data alert or a warehouse job is in, or a data security issue, finding, access, flow or scan is about: its name, its kind, its environment and whether it is still there. Data Observability's readers (Viewer, Project Member, the Telemetry tiers) read that much of the stores their tables are in - the name and the kind are copied onto every data asset for them - and a custom role given one of Data Security's records reads which store it is on. Nothing the store holds, how exposed it is, what its issues are or where it lives in a cloud: those follow the store's own read through every relation (#10281).",
     columns: {
       DataStore: ["environment", "isArchived", "kind", "name"],
@@ -426,6 +433,8 @@ const WIDER_ON_PURPOSE: Array<WiderOnPurpose> = [
       XcpNgPool: [
         "agentLastSeenAt",
         "agentVersion",
+        // Agent or probe, as a vCenter's collectionMethod is (#10996).
+        "collectionMethod",
         "description",
         "lastSeenAt",
         "name",
