@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 64602,
+    "keys": 64795,
     "untranslated": 8056
   },
   "sameAsEnglish": [
@@ -135,6 +135,7 @@
     "Podman Compose",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "PowerStore",
     "Powered by OneUptime",
     "PromQL",
     "Proxmox ID",
