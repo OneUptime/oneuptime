@@ -218,7 +218,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "`isi snmp settings view` shows the settings, with the user's authentication and privacy protocols. Allow UDP 161 from the agent's machine to every node, and list the nodes' addresses with `isi network interfaces list`.":
     "`isi snmp settings view` zeigt die Einstellungen an, mit den Authentifizierungs- und Verschlüsselungsprotokollen des Benutzers. Erlauben Sie UDP 161 vom Rechner des Agenten zu jedem Knoten und listen Sie die Adressen der Knoten mit `isi network interfaces list` auf.",
   "- **every node's address**, separated by commas: each node's own address, never the SmartConnect zone name, since a node answers only for its own drives, sensors and ports":
-    "- der **Adresse jedes Knotens**, durch Kommas getrennt: jeweils der eigenen Adresse des Knotens, nie dem Namen der SmartConnect-Zone, da ein Knoten nur für seine eigenen Laufwerke, Sensoren und Ports antwortet",
+    "- den **Adressen aller Knoten**, durch Kommas getrennt: jeweils der eigenen Adresse des Knotens, nie dem Namen der SmartConnect-Zone, da ein Knoten nur für seine eigenen Laufwerke, Sensoren und Ports antwortet",
   "- the **SNMP version**, then the read-only **community**, or the SNMPv3 **user** and its two passwords, each read without echo":
     "- der **SNMP-Version**, dann der Nur-Lese-**Community** oder dem SNMPv3-**Benutzer** und seinen beiden Passwörtern, die es jeweils einliest, ohne sie anzuzeigen",
   "A user whose protocols are not SHA and AES needs `POWERSCALE_SNMP_AUTH_PROTOCOL` and `POWERSCALE_SNMP_PRIVACY_PROTOCOL` in front of `bash install.sh`, and a user without privacy `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.":
@@ -238,7 +238,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Yes | `otel-collector-config.powerscale.yaml` |":
     "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Ja | `otel-collector-config.powerscale.yaml` |",
   "| `POWERSCALE_NODES` | Yes | Every node's address, separated by commas. The install script writes the polls below from it |":
-    "| `POWERSCALE_NODES` | Ja | Die Adresse jedes Knotens, durch Kommas getrennt. Das Installationsskript schreibt daraus die Abfragen darunter |",
+    "| `POWERSCALE_NODES` | Ja | Die Adressen aller Knoten, durch Kommas getrennt. Das Installationsskript schreibt daraus die Abfragen darunter |",
   "| `POWERSCALE_ENDPOINT` | Yes | The node the cluster's own health, capacity and quotas are read through: the first in `POWERSCALE_NODES` |":
     "| `POWERSCALE_ENDPOINT` | Ja | Der Knoten, über den Zustand, Kapazität und Kontingente des Clusters selbst gelesen werden: der erste in `POWERSCALE_NODES` |",
   "| `POWERSCALE_SNMP_RECEIVERS` | Yes | The polls the collector runs: `snmp/cluster`, `snmp/quotas`, then `snmp/node-<n>` for each node |":

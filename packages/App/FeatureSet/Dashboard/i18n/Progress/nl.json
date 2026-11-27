@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66155,
     "untranslated": 8328
   },
   "sameAsEnglish": [
@@ -354,6 +354,7 @@
     "Offline",
     "Ok",
     "OnCallDutyPolicy",
+    "OneFS",
     "Online",
     "Open cursors",
     "OpenSearch",
@@ -402,6 +403,7 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "Postmortem",
+    "PowerScale",
     "Powered by OneUptime",
     "Principal",
     "Privacy",

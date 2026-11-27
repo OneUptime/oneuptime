@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66155,
     "untranslated": 8269
   },
   "sameAsEnglish": [
@@ -111,6 +111,7 @@
     "OR",
     "OSD",
     "OnCallDutyPolicy",
+    "OneFS",
     "OpenSearch",
     "OpenShift",
     "OpenStack ID",
@@ -129,6 +130,7 @@
     "Podman Compose",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "PowerScale",
     "Powered by OneUptime",
     "PromQL",
     "Proxmox ID",

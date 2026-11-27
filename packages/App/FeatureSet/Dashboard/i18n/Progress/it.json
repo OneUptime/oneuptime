@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66155,
     "untranslated": 8245
   },
   "sameAsEnglish": [
@@ -258,6 +258,7 @@
     "Ok",
     "On {{count}} appliance",
     "OnCallDutyPolicy",
+    "OneFS",
     "Online",
     "OpenSearch",
     "OpenShift",
@@ -297,6 +298,7 @@
     "Pools",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "PowerScale",
     "Powered by OneUptime",
     "Principal",
     "Privacy",
@@ -608,6 +610,7 @@
     "{{count}} pod",
     "{{count}} pool",
     "{{count}} query",
+    "{{count}} quota",
     "{{count}} replica",
     "{{count}} repository",
     "{{count}} rollback",

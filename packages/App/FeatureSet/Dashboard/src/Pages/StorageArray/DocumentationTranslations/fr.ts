@@ -218,7 +218,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "`isi snmp settings view` shows the settings, with the user's authentication and privacy protocols. Allow UDP 161 from the agent's machine to every node, and list the nodes' addresses with `isi network interfaces list`.":
     "`isi snmp settings view` affiche les paramètres, avec les protocoles d'authentification et de confidentialité de l'utilisateur. Autorisez UDP 161 depuis la machine de l'agent vers chaque nœud, et listez les adresses des nœuds avec `isi network interfaces list`.",
   "- **every node's address**, separated by commas: each node's own address, never the SmartConnect zone name, since a node answers only for its own drives, sensors and ports":
-    "- l'**adresse de chaque nœud**, séparées par des virgules : l'adresse propre de chaque nœud, jamais le nom de la zone SmartConnect, car un nœud ne répond que pour ses propres disques, capteurs et ports",
+    "- les **adresses de tous les nœuds**, séparées par des virgules : l'adresse propre de chaque nœud, jamais le nom de la zone SmartConnect, car un nœud ne répond que pour ses propres disques, capteurs et ports",
   "- the **SNMP version**, then the read-only **community**, or the SNMPv3 **user** and its two passwords, each read without echo":
     "- la **version SNMP**, puis la **communauté** en lecture seule, ou l'**utilisateur** SNMPv3 et ses deux mots de passe, chacun lu sans être affiché",
   "A user whose protocols are not SHA and AES needs `POWERSCALE_SNMP_AUTH_PROTOCOL` and `POWERSCALE_SNMP_PRIVACY_PROTOCOL` in front of `bash install.sh`, and a user without privacy `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.":
@@ -238,7 +238,7 @@ const TRANSLATION: SetupGuideTranslation = {
   "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Yes | `otel-collector-config.powerscale.yaml` |":
     "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Oui | `otel-collector-config.powerscale.yaml` |",
   "| `POWERSCALE_NODES` | Yes | Every node's address, separated by commas. The install script writes the polls below from it |":
-    "| `POWERSCALE_NODES` | Oui | L'adresse de chaque nœud, séparées par des virgules. Le script d'installation en tire les interrogations ci-dessous |",
+    "| `POWERSCALE_NODES` | Oui | Les adresses de tous les nœuds, séparées par des virgules. Le script d'installation en tire les interrogations ci-dessous |",
   "| `POWERSCALE_ENDPOINT` | Yes | The node the cluster's own health, capacity and quotas are read through: the first in `POWERSCALE_NODES` |":
     "| `POWERSCALE_ENDPOINT` | Oui | Le nœud par lequel sont lus la santé, la capacité et les quotas du cluster lui-même : le premier de `POWERSCALE_NODES` |",
   "| `POWERSCALE_SNMP_RECEIVERS` | Yes | The polls the collector runs: `snmp/cluster`, `snmp/quotas`, then `snmp/node-<n>` for each node |":

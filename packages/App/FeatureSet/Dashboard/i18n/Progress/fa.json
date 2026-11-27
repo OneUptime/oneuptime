@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66155,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -189,6 +189,7 @@
     "Object Storage",
     "Ollama",
     "OnCallDutyPolicy",
+    "OneFS",
     "OpenSearch",
     "OpenShift",
     "OpenStack-Ansible",
@@ -214,6 +215,7 @@
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
     "Postmark",
+    "PowerScale",
     "Powered by OneUptime",
     "PromQL",
     "Provision State",

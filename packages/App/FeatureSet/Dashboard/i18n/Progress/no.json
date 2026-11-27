@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66155,
     "untranslated": 8315
   },
   "sameAsEnglish": [
@@ -204,6 +204,7 @@
     "Object Gateways",
     "Offline",
     "OnCallDutyPolicy",
+    "OneFS",
     "Online",
     "OpenSearch",
     "OpenShift",
@@ -241,6 +242,7 @@
     "Portugal (+351)",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "PowerScale",
     "Powered by OneUptime",
     "Problem",
     "PromQL",

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66155,
     "untranslated": 1442
   },
   "sameAsEnglish": [
@@ -180,6 +180,7 @@
     "OS",
     "OSD",
     "Ollama",
+    "OneFS",
     "OpenAI",
     "OpenInference",
     "OpenLLMetry",
@@ -208,6 +209,7 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
+    "PowerScale",
     "Powered by OneUptime",
     "PromQL",
     "Proxmox ID",
