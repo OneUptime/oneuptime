@@ -8,7 +8,6 @@ import FieldCollector, {
 import { MAX_FIELD_VALUES } from "../../../../Utils/DataSecurity/FieldClassifier";
 import { ModelRecognitions } from "../../../../Utils/DataSecurity/Model/RecognizedEntity";
 import { toPathPattern } from "../../../../Utils/DataSecurity/PathPattern";
-import escapeRegExp from "../../../../Utils/RegExpEscape";
 import {
   mergeShadowCounts,
   ShadowCounts,
@@ -528,10 +527,44 @@ export function groupIndices(data: {
  * characters - or one field of it, "index.field" or "index › field",
  * compared without regard to case.
  */
-function toGlob(text: string): RegExp {
-  const escaped: string = text.split("*").map(escapeRegExp).join(".*");
+/*
+ * Whether a name matches a glob whose * is any run of characters, without
+ * regard to case: walked part by part, so no pattern is built from what a
+ * person wrote and nothing can backtrack.
+ */
+export function matchesGlob(name: string, glob: string): boolean {
+  const text: string = name.toLowerCase();
+  const parts: Array<string> = glob.toLowerCase().split("*");
 
-  return new RegExp(`^${escaped}$`, "i");
+  if (parts.length === 1) {
+    return text === parts[0];
+  }
+
+  const first: string = parts[0]!;
+  const last: string = parts[parts.length - 1]!;
+
+  if (
+    !text.startsWith(first) ||
+    !text.endsWith(last) ||
+    text.length < first.length + last.length
+  ) {
+    return false;
+  }
+
+  let at: number = first.length;
+  const end: number = text.length - last.length;
+
+  for (const part of parts.slice(1, -1)) {
+    const found: number = text.indexOf(part, at);
+
+    if (found < 0 || found + part.length > end) {
+      return false;
+    }
+
+    at = found + part.length;
+  }
+
+  return true;
 }
 
 export interface SearchExclusions {
@@ -549,7 +582,6 @@ export function readSearchExclusions(
     .filter((exclusion: string): boolean => {
       return exclusion.length > 0;
     });
-  const globs: Array<RegExp> = lines.map(toGlob);
 
   const namesOf: (group: IndexGroup) => Array<string> = (
     group: IndexGroup,
@@ -559,9 +591,9 @@ export function readSearchExclusions(
 
   return {
     isGroupExcluded: (group: IndexGroup): boolean => {
-      return globs.some((glob: RegExp): boolean => {
+      return lines.some((glob: string): boolean => {
         return namesOf(group).some((name: string): boolean => {
-          return glob.test(name);
+          return matchesGlob(name, glob);
         });
       });
     },

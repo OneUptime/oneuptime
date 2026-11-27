@@ -7,7 +7,6 @@ import {
 import StoreDataTypeList from "../../Components/DataSecurity/StoreDataTypeList";
 import { getDataStoreEnvironmentTitle } from "../../Components/DataSecurity/DataSecurityCatalogTerms";
 import {
-  SELF_MANAGED_STORE_KIND_OPTIONS,
   STORE_ENVIRONMENT_OPTIONS,
   STORE_EXPOSURE_OPTIONS,
   STORE_KIND_OPTIONS,
@@ -18,8 +17,8 @@ import StoreNameCell, {
   StoreLastCheckedCell,
   getDataStoreRoute,
 } from "../../Components/DataSecurity/StoreNameCell";
-import StoreCoverageList from "../../Components/DataSecurity/StoreCoverageList";
 import {
+  getStoreKindField,
   getStoreScanMethodFields,
   keepScanFieldsTheKindReads,
 } from "../../Components/DataSecurity/StoreScanMethodFields";
@@ -223,39 +222,8 @@ const DataSecurityDataStores: FunctionComponent<
             placeholder: "orders-db",
             validation: { minLength: 1 },
           },
-          {
-            field: { kind: true },
-            title: "Kind",
-            // The model's own words name buckets and logs, which nobody adds here.
-            description: "What it runs, such as PostgreSQL or Elasticsearch.",
-            fieldType: FormFieldSchemaType.Dropdown,
-            dropdownOptions: SELF_MANAGED_STORE_KIND_OPTIONS,
-            required: true,
-            placeholder: "Choose what it runs",
-            // What OneUptime will and will not check on it, once a kind is picked (#11140).
-            getFooterElement: (
-              values: FormValues<DataStore>,
-            ): ReactElement | undefined => {
-              if (!values.kind) {
-                return undefined;
-              }
-
-              return (
-                <div
-                  className="mt-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-3"
-                  data-testid="data-store-kind-coverage"
-                >
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
-                    {translator.translateText("What OneUptime checks on it")}
-                  </p>
-                  <StoreCoverageList
-                    kind={values.kind}
-                    isScannedFromProbe={Boolean(values.scanProbe)}
-                  />
-                </div>
-              );
-            },
-          },
+          // What it runs, and what OneUptime checks on it once picked (#11140).
+          getStoreKindField({ translator }),
           {
             field: { environment: true },
             title: "Environment",

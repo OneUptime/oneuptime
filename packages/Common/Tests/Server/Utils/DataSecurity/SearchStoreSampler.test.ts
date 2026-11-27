@@ -4,6 +4,7 @@ import {
   buildSearchPath,
   groupIndices,
   IndexGroup,
+  matchesGlob,
   ListedDataStream,
   MAX_DOCUMENTS_PER_INDEX,
   readDataStreams,
@@ -571,6 +572,35 @@ describe("readSearchExclusions", () => {
     expect(
       exclusions.isGroupExcluded({ ...group, name: "axb1", target: "axb1" }),
     ).toBe(false);
+  });
+});
+
+describe("matchesGlob", () => {
+  test("a star is any run of characters, a name is matched whole, case aside", () => {
+    expect(matchesGlob("logs-2026.11.26", "logs-*")).toBe(true);
+    expect(matchesGlob("logs-2026.11.26", "*")).toBe(true);
+    expect(matchesGlob("logs-2026.11.26", "*.26")).toBe(true);
+    expect(matchesGlob("logs-2026.11.26", "logs-*-11-*")).toBe(false);
+    expect(matchesGlob("logs-2026.11.26", "logs*11*26")).toBe(true);
+    expect(matchesGlob("Customers", "customers")).toBe(true);
+    expect(matchesGlob("customers-eu", "customers")).toBe(false);
+    expect(matchesGlob("ab", "a*b*c")).toBe(false);
+    // The two ends may not share their characters.
+    expect(matchesGlob("aba", "ab*ba")).toBe(false);
+    expect(matchesGlob("abba", "ab*ba")).toBe(true);
+  });
+
+  test("dots, brackets and question marks are their own characters", () => {
+    expect(matchesGlob("a.b[1]?", "a.b[1]?")).toBe(true);
+    expect(matchesGlob("axb1", "a.b[1]")).toBe(false);
+    expect(matchesGlob("a.b", "a?b")).toBe(false);
+  });
+
+  test("a long name and a glob of many stars are read in one walk", () => {
+    const name: string = "a".repeat(5000);
+
+    expect(matchesGlob(name, `${"*a".repeat(200)}*b`)).toBe(false);
+    expect(matchesGlob(name, `${"*a".repeat(200)}*`)).toBe(true);
   });
 });
 

@@ -58,6 +58,7 @@ import { declaredDataStoreKey } from "../../../../Types/DataSecurity/DataStoreKe
 import {
   DataStoreExposure,
   DataStorePostureFacts,
+  DataStorePostureReadFrom,
 } from "../../../../Types/DataSecurity/DataStorePosture";
 import * as CheckCatalog from "../../../../Types/DataSecurity/DataSecurityCheckCatalog";
 import { ResidencyRuleInput } from "../../../../Types/DataSecurity/DataSecurityResidency";
@@ -692,8 +693,9 @@ describe("DataSecurityEvaluator.evaluateStore", () => {
           { readAt: NOW.toISOString(), publicRead: false },
           DataStoreExposure.Private,
         ],
-        [{ publicRead: true }, DataStoreExposure.Unknown],
-        [undefined, DataStoreExposure.Unknown],
+        // Nothing read yet of a bucket its connection reads (#11140).
+        [{ publicRead: true }, DataStoreExposure.NotChecked],
+        [undefined, DataStoreExposure.NotChecked],
       ];
 
     for (const [index, [posture, exposure]] of cases.entries()) {
@@ -914,6 +916,101 @@ describe("DataSecurityEvaluator.evaluateStore", () => {
       "Plain-text passwords in public.users.password.",
     );
     expect(checkRunOf("orders-db").input.plaintextPasswordFields).toEqual([]);
+  });
+
+  test("a store's exposure before anything reads it is its kind's: not checked yet, not checkable, or OneUptime's own", async () => {
+    const cases: Array<[DataStoreKind, DataStorePostureFacts | undefined, DataStoreExposure]> =
+      [
+        [DataStoreKind.Elasticsearch, undefined, DataStoreExposure.NotChecked],
+        [DataStoreKind.OpenSearch, undefined, DataStoreExposure.NotChecked],
+        [DataStoreKind.PostgreSql, undefined, DataStoreExposure.CannotBeChecked],
+        [DataStoreKind.MongoDb, undefined, DataStoreExposure.CannotBeChecked],
+        [DataStoreKind.AwsAthena, undefined, DataStoreExposure.CannotBeChecked],
+        [DataStoreKind.TelemetryLogs, undefined, DataStoreExposure.Private],
+        // Asked at its own address from inside the network: the internet's reach cannot be told.
+        [
+          DataStoreKind.Elasticsearch,
+          {
+            readAt: NOW.toISOString(),
+            readFrom: DataStorePostureReadFrom.Network,
+            anonymousRead: false,
+            anonymousWrite: false,
+            publicRead: false,
+            publicWrite: false,
+            publicNetworkAccess: null,
+            openToAllAddresses: null,
+            unknowableFacts: ["publicNetworkAccess", "openToAllAddresses"],
+          },
+          DataStoreExposure.Unknown,
+        ],
+        // Reached by OneUptime Cloud's servers, over the internet.
+        [
+          DataStoreKind.OpenSearch,
+          {
+            readAt: NOW.toISOString(),
+            readFrom: DataStorePostureReadFrom.Internet,
+            anonymousRead: false,
+            anonymousWrite: false,
+            publicRead: false,
+            publicWrite: false,
+            publicNetworkAccess: true,
+            openToAllAddresses: null,
+          },
+          DataStoreExposure.InternetReachable,
+        ],
+      ];
+
+    for (const [index, [kind, posture, exposure]] of cases.entries()) {
+      const store: DataStore = storeOf({
+        name: `store-${index}`,
+        kind,
+        storeKey: `manual:store-${index}`,
+        posture,
+      });
+
+      await evaluateOne({ store, facts: factsOf({ findings: [EMAIL_HIGH] }) });
+
+      expect(summaryOf(store)["exposure"]).toBe(exposure);
+    }
+  });
+
+  test("a store asked at its own address never has its readers counted: who holds access to it was not read", async () => {
+    const readers: Set<string> = new Set(["reader-a", "reader-b"]);
+    const store: DataStore = storeOf({
+      name: "search-cluster",
+      kind: DataStoreKind.Elasticsearch,
+      storeKey: "manual:search-cluster",
+      posture: {
+        readAt: NOW.toISOString(),
+        readFrom: DataStorePostureReadFrom.Network,
+        anonymousRead: false,
+        anonymousWrite: false,
+      },
+    });
+
+    await evaluateOne({
+      store,
+      facts: factsOf({
+        findings: [
+          { dataTypeId: "credit-card-number", confidence: DataConfidence.High },
+        ],
+        readers,
+        unusedReaders: new Map([["reader-b", "reader-b"]]),
+      }),
+    });
+
+    expect(checkRunOf("search-cluster").input.readerCount).toBeNull();
+    expect(checkRunOf("search-cluster").input.unusedReaderNames).toBeNull();
+    expect(checkOn("search-cluster", "many-readers")?.result.status).toBe(
+      CheckCatalog.DataSecurityCheckStatus.Unknown,
+    );
+    expect(checkOn("search-cluster", "unused-access")?.result.status).toBe(
+      CheckCatalog.DataSecurityCheckStatus.Unknown,
+    );
+    // What it answered is checked: it asks for credentials.
+    expect(
+      checkOn("search-cluster", "readable-without-credentials")?.result.status,
+    ).toBe(CheckCatalog.DataSecurityCheckStatus.Pass);
   });
 
   test("readers are counted once the store's configuration has been read, and not before", async () => {

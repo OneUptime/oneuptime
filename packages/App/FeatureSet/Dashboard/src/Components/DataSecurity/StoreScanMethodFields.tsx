@@ -5,8 +5,12 @@ import {
   isSearchEngineDataStoreKind,
   PROBE_SCANNABLE_DATA_STORE_KINDS,
 } from "Common/Types/DataSecurity/DataStoreKind";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "Common/UI/Components/Forms/Types/Field";
 import Fields from "Common/UI/Components/Forms/Types/Fields";
+import StoreCoverageList from "./StoreCoverageList";
+import { SELF_MANAGED_STORE_KIND_OPTIONS } from "./StoreFieldOptions";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -78,6 +82,48 @@ export function keepScanFieldsTheKindReads(
   }
 
   return item;
+}
+
+/*
+ * The Add form's Kind: what a store you run runs, and, once one is picked,
+ * what OneUptime will and will not check on it, and why (#11140) - before
+ * anyone fills in a connection string a kind would never read.
+ */
+export function getStoreKindField(data: {
+  translator: Translator;
+}): Field<DataStore> {
+  return {
+    field: { kind: true },
+    title: "Kind",
+    // The model's own words name buckets and logs, which nobody adds here.
+    description: "What it runs, such as PostgreSQL or Elasticsearch.",
+    fieldType: FormFieldSchemaType.Dropdown,
+    dropdownOptions: SELF_MANAGED_STORE_KIND_OPTIONS,
+    required: true,
+    placeholder: "Choose what it runs",
+    getFooterElement: (
+      values: FormValues<DataStore>,
+    ): ReactElement | undefined => {
+      if (!values.kind) {
+        return undefined;
+      }
+
+      return (
+        <div
+          className="mt-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-3"
+          data-testid="data-store-kind-coverage"
+        >
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">
+            {data.translator.translateText("What OneUptime checks on it")}
+          </p>
+          <StoreCoverageList
+            kind={values.kind}
+            isScannedFromProbe={Boolean(values.scanProbe)}
+          />
+        </div>
+      );
+    },
+  };
 }
 
 export function getStoreScanMethodFields(data: {
