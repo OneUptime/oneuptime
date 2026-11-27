@@ -600,6 +600,12 @@ const EVENT_LIBRARY: Record<
     description:
       "A scheduled hunt that names you, or a team you are on, finds security events.",
   },
+  // A cloud budget's early threshold, below 100%: told, never paged (#11008).
+  [NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION]: {
+    label: "Cloud budget passes a threshold",
+    description:
+      "A cloud budget that names you, or a team you are on, passes one of its thresholds below 100%. No alert is raised and nobody is paged.",
+  },
   [NotificationSettingEventType.SEND_CLOUD_COST_REPORT_NOTIFICATION]: {
     label: "Cloud cost report",
     description:
@@ -929,6 +935,18 @@ const monitoring: Array<SectionDef> = [
     [
       NotificationSettingEventType.SEND_SERVICE_OR_INFRASTRUCTURE_OWNER_ADDED_NOTIFICATION,
     ],
+  ),
+  /*
+   * Cloud budgets (#11008): a budget that names the person, or a team they
+   * are on, passes an early threshold. From 100% the budget alerts, and
+   * they hear of it as the alert's owners.
+   */
+  buildSection(
+    translationKey("Cloud Budgets"),
+    translationKey(
+      "Notify me when a cloud budget that names me, or a team I am on, passes a threshold below 100%.",
+    ),
+    [NotificationSettingEventType.SEND_CLOUD_BUDGET_THRESHOLD_NOTIFICATION],
   ),
   /*
    * Scheduled cloud cost reports (#11009): the report itself, sent to the

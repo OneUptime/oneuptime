@@ -1,3 +1,8 @@
+import {
+  CloudBudgetCheckWindow,
+  CloudBudgetPeriod,
+  getCloudBudgetCheckWindow,
+} from "Common/Types/Cloud/CloudBudget";
 import { readCloudBudgetThresholds } from "Common/Types/Cloud/CloudCost";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 
@@ -75,4 +80,65 @@ export function getCloudBudgetStatus(data: {
   }
 
   return { label: BUDGET_WITHIN, tone: "positive", percentSpent };
+}
+
+/*
+ * WHAT A BUDGET'S ROW IS OF (#11008): the figures its bar and its status
+ * are worked out from - its period so far against its amount, or, a
+ * yearly budget split by month, this month against its share - and its
+ * period's, for the line a split year's row adds under them. From what the
+ * server last worked out: this month's and the period's figures.
+ */
+export interface CloudBudgetRowFigures {
+  amount: number;
+  spent: number;
+  projected: number;
+  isPlanMonth: boolean;
+  period: CloudBudgetPeriod;
+  periodAmount: number;
+  periodSpent: number;
+  periodProjected: number;
+}
+
+export function getCloudBudgetRowFigures(data: {
+  period: unknown;
+  fiscalYearStartMonth: unknown;
+  monthlyAmount: unknown;
+  planSplit: unknown;
+  monthlyPlan: unknown;
+  spentThisMonth: unknown;
+  projectedThisMonth: unknown;
+  spentThisPeriod: unknown;
+  projectedThisPeriod: unknown;
+  now: Date;
+}): CloudBudgetRowFigures {
+  const window: CloudBudgetCheckWindow = getCloudBudgetCheckWindow({
+    period: data.period,
+    fiscalYearStartMonth: data.fiscalYearStartMonth,
+    amount: Number(data.monthlyAmount) || 0,
+    planSplit: data.planSplit,
+    monthlyPlan: data.monthlyPlan,
+    now: data.now,
+  });
+  const isMonthly: boolean = window.period.period === CloudBudgetPeriod.Month;
+  const monthSpent: number = Number(data.spentThisMonth) || 0;
+  const monthProjected: number = Number(data.projectedThisMonth) || 0;
+  // A monthly budget checked before periods were kept only its month's.
+  const periodSpent: number = isMonthly
+    ? monthSpent
+    : Number(data.spentThisPeriod) || 0;
+  const periodProjected: number = isMonthly
+    ? monthProjected
+    : Number(data.projectedThisPeriod) || 0;
+
+  return {
+    amount: window.amount,
+    spent: window.isPlanMonth ? monthSpent : periodSpent,
+    projected: window.isPlanMonth ? monthProjected : periodProjected,
+    isPlanMonth: window.isPlanMonth,
+    period: window.period.period,
+    periodAmount: Number(data.monthlyAmount) || 0,
+    periodSpent,
+    periodProjected,
+  };
 }

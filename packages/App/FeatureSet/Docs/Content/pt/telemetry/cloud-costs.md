@@ -1,6 +1,6 @@
 # Custos e economias da nuvem
 
-Uma conta de nuvem conectada também diz quanto custa e como poderia custar menos. O OneUptime lê os custos de cada dia do próprio faturamento da sua nuvem e as recomendações do próprio recomendador da sua nuvem, mostra-os em **Nuvem → Gastos → Custos** e **Nuvem → Gastos → Economias**, lista seus Savings Plans, reservas e descontos por compromisso de uso em **Nuvem → Gastos → Compromissos**, e alerta antes que um mês custe mais do que o orçamento em **Nuvem → Gastos → Orçamentos**. Quando você permite, ele também aplica as economias que um proprietário aprova, para recursos que não são de produção fora do horário de trabalho e confere cada alteração na fatura.
+Uma conta de nuvem conectada também diz quanto custa e como poderia custar menos. O OneUptime lê os custos de cada dia do próprio faturamento da sua nuvem e as recomendações do próprio recomendador da sua nuvem, mostra-os em **Nuvem → Gastos → Custos** e **Nuvem → Gastos → Economias**, lista seus Savings Plans, reservas e descontos por compromisso de uso em **Nuvem → Gastos → Compromissos**, avisa você em **Nuvem → Gastos → Orçamentos** antes que um mês, um trimestre ou um ano custe mais do que o orçamento, e prevê os próximos meses em **Nuvem → Gastos → Previsão**. Quando você permite, ele também aplica as economias que um proprietário aprova, para recursos que não são de produção fora do horário de trabalho e confere cada alteração na fatura.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer e Cost Optimization Hub, cada um ativado uma vez.
@@ -11,7 +11,8 @@ Uma conta de nuvem conectada também diz quanto custa e como poderia custar meno
 - [Aplicar economias](#aplicar-economias): Aplique uma economia com a aprovação do proprietário, e desfaça-a.
 - [Agendamentos fora do horário](#agendamentos-fora-do-horário): Pare recursos que não são de produção à noite e nos fins de semana.
 - [Regras de IA para economias](#regras-de-ia-para-economias): Propostas para os proprietários, ou alterações dentro de um limite.
-- [Orçamentos](#orçamentos): Um alerta quando os gastos de um mês ultrapassam uma parte do orçamento.
+- [Orçamentos](#orçamentos): O orçamento de um mês, de um trimestre ou de um ano para qualquer conta, grupo de custos ou serviço.
+- [Previsões](#previsões): Quanto os próximos 12 meses estão a caminho de custar, e com que certeza.
 - [Tags obrigatórias](#tags-obrigatórias): Quanto dos seus gastos tem as tags que você exige, e os recursos novos sem elas.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Faturamento da nuvem,<br/>lido duas vezes por dia"] --> costs["Custos"]
     rec["Recomendador da nuvem,<br/>lido uma vez por dia"] --> savings["Economias"]
     costs --> budgets["Orçamentos que alertam"]
+    costs --> forecast["Previsões"]
+    forecast --> budgets
     costs --> overview["Visão geral da Nuvem"]
     savings --> overview
 ```
@@ -238,14 +241,26 @@ Uma regra só age sem perguntar em um recurso que se sabe que não é produção
 :::steps
 ### Criar um orçamento
 
-Em **Nuvem → Gastos → Orçamentos**, crie um orçamento: o **Valor mensal**, a **Conta** a que ele se aplica, ou nenhuma para todas as contas, e a **Base de custo** que ele conta, ou nenhuma para a do projeto.
+Em **Nuvem → Gastos → Orçamentos**, crie um orçamento e escolha a que ele **Aplica-se a**: todas as contas, uma **Conta**, um **Grupo de custos** conforme suas regras distribuem os gastos, ou os serviços, regiões e tags que um **Filtro** nomeia, escrito como as regras de um grupo de custos. Deixe a **Base de custo** em branco para contar a do projeto.
+
+### Diga quanto pode custar
+
+O **Período** é um mês, um trimestre ou um ano, e o **Valor** é quanto um período pode custar. Trimestres e anos começam no **Primeiro mês do ano**: a partir de abril, um ano vai de abril a março. O **Plano do orçamento** de um ano pode dividir o valor igualmente entre os meses, ou dar a cada mês o seu em um **Plano mensal**. Cada mês fica então preso à própria parcela, e um mês tranquilo nunca recebe alerta pelo gasto de um mês movimentado.
 
 ### Escolher quando ele alerta
 
-**Alertar em** recebe as partes do orçamento em que alertar, em porcentagem: 80 e 100 para começar. **Alertar se estiver a caminho de ultrapassar** também alerta, uma vez por mês, quando o ritmo da última semana levaria o mês além do orçamento. **Alertar em dias incomuns** também alerta no dia seguinte a um dia que custou muito mais que o normal: veja [Dias incomuns](#dias-incomuns). **Severidade do alerta** e **Políticas de plantão** dizem quão graves são os alertas e quem é acionado.
+**Alertar em** recebe as parcelas do orçamento em que agir, em porcentagem: 80 e 100 para começar. **Alertar se estiver a caminho de ultrapassar** também alerta, uma vez por período, quando o período está a caminho de custar mais que o orçamento. **Alertar em dias incomuns** também alerta no dia seguinte a um dia que custou muito mais que o normal: consulte [Dias incomuns](#dias-incomuns). **Severidade do alerta** diz a gravidade dos alertas.
+
+### Escolha quem é avisado
+
+As pessoas e equipes em **Notificar** são avisadas por e-mail e chat quando o gasto ultrapassa uma parcela abaixo de 100%, sem alerta, então ninguém é acionado por um gasto dentro do orçamento. **Avisar a equipe do grupo de custos** também avisa a equipe à qual o grupo de custos pertence. A partir de 100%, um alerta é criado, elas são donas dele, e as **Políticas de plantão** são acionadas. Um orçamento sem ninguém para avisar cria um alerta a cada parcela.
 :::
 
-Um orçamento é verificado após cada leitura dos custos e a cada hora. Quando os gastos do mês passam de um limite, um alerta é gerado para ele, o mais alto quando uma leitura passa de vários de uma vez, e um mês novo resolve os alertas do mês passado. Um orçamento conta só as contas faturadas na moeda dele, na base dele: um orçamento amortizado não dispara por um compromisso pago adiantado, que um faturado conta no dia da compra.
+Um orçamento é verificado após cada leitura dos custos e a cada hora. Quando o gasto do período ultrapassa uma parcela, as pessoas a notificar são avisadas, ou a partir de 100% um alerta é criado, uma vez para a mais alta quando uma leitura ultrapassa várias de uma vez, e um novo período resolve os alertas do anterior. Um ano dividido por mês é verificado um mês por vez, contra a parcela daquele mês. Um orçamento só conta as contas faturadas na sua moeda, na sua base: um orçamento amortizado não é disparado por um compromisso comprado antecipadamente, que um orçamento faturado conta no dia da compra.
+
+Um período está a caminho de ultrapassar o orçamento quando o que custou até agora, o restante deste mês no ritmo da última semana completa e os meses seguintes de um trimestre ou de um ano conforme a [previsão](#previsões) somam mais que o orçamento.
+
+A linha de cada orçamento diz o que ele conta, o período e o período até agora: em um ano dividido por mês, este mês contra a sua parcela, com o ano ao lado. A página dele mostra o período mês a mês contra a parcela de cada mês, este mês dia a dia, o que mais custou e quem é avisado. A página de um orçamento anual pode salvar a previsão como o plano dele.
 
 Agentes de IA podem criar e alterar orçamentos pelo [servidor MCP](/docs/ai/mcp-server), e scripts com o comando `oneuptime cloud-budget` da CLI: veja [Operações de recursos](/docs/cli/resource-operations).
 
@@ -253,7 +268,41 @@ Agentes de IA podem criar e alterar orçamentos pelo [servidor MCP](/docs/ai/mcp
 
 Após cada leitura, cada um dos últimos 14 dias completos de uma conta é comparado com os 14 dias anteriores. Um dia é incomum quando um serviço custou o dobro do seu dia habitual ou mais, ou a conta inteira uma vez e meia o seu dia habitual ou mais. Nos dois casos, precisa ser pelo menos 10 a mais que o normal, na moeda da conta, e pelo menos 5% do dia habitual da conta, para que alguns centavos nunca contem como um pico. O valor habitual de um dia é a mediana dos 14 dias anteriores, então um pico isolado o move pouco, e uma conta só é avaliada quando tem uma semana de custos.
 
-**Nuvem → Gastos → Custos** marca os dias incomuns no gasto diário, acima das barras deles, e os lista abaixo. Em todas as contas, cada marca abre os **Custos** da conta dela. Um orçamento que inclui a conta gera um alerta para cada conta e dia, no dia seguinte, nomeando cada serviço que subiu. Um pico que dura vários dias é avisado no dia em que começou, e um dia de mais de uma semana atrás não é avisado. Um orçamento criado antes de esses alertas existirem não os gera até que você o edite e os ative.
+**Nuvem → Gastos → Custos** marca os dias incomuns no gasto diário, acima das barras, e os lista abaixo. Em todas as contas, cada marca abre os **Custos** da sua conta. Um orçamento mensal para todas as contas ou uma cria um alerta para cada conta e dia, no dia seguinte, nomeando cada serviço que subiu. Qualquer outro orçamento compara o que conta com o próprio dia normal da mesma forma. Um pico que dura dias é informado no dia em que começou, e um dia de mais de uma semana atrás não é informado. Um orçamento criado antes desses alertas não os cria até que você o edite e os ative.
+
+## Previsões
+
+**Nuvem → Gastos → Previsão** diz quanto o gasto está a caminho de custar em cada um dos próximos 12 meses, para tudo, uma conta, um grupo de custos ou um serviço, na base de custo que você escolher. Ela diz como cada previsão é feita, a partir dos meses completos de custos que o OneUptime guarda, um ano ou um pouco mais:
+
+- **Este mês** é o que ele custou até agora, com cada dia que falta na média dos últimos sete dias completos, como um orçamento o projeta.
+- **Com menos de 3 meses completos**, cada mês seguinte prolonga esse ritmo, sem faixa provável: foi lido pouco demais para distinguir uma tendência de um ponto fora da curva.
+- **A partir de 3 meses completos**, uma tendência passa pelo dia médio de cada mês: a mediana das inclinações entre cada par de meses, então um mês estranho quase não a move.
+- **A partir de 12 meses completos**, cada mês do calendário também guarda quanto ficou acima ou abaixo da tendência no ano passado, então um pico de dezembro também é previsto para o dezembro seguinte.
+
+Cada mês seguinte tem uma faixa provável, onde ele deve cair 8 vezes em 10, a partir de quanto os meses passados se afastaram da tendência, e nunca mais estreita que 5% para cada lado. Ela se alarga quanto mais distante o mês e quanto menos meses estão por trás da previsão. A partir de 12 meses completos, cada faixa é ainda mais larga, porque um ano mostra cada mês do calendário só uma vez. Uma previsão não é uma promessa: um novo serviço, uma migração ou uma mudança de preço movem os próximos meses de formas que nenhum mês passado mostra.
+
+**Simulação** faz cada mês seguinte crescer ou diminuir a partir do mês que você escolher, pela parcela que digitar, como 20% a partir de janeiro. **Salvar como plano do orçamento** transforma os próximos doze meses no plano de um orçamento anual, em um orçamento novo ou em um que você já tem, com cada mês mantido na parcela prevista.
+
+## Orçamentos e previsões na API
+
+Os orçamentos são um recurso da API (`cloud-budget`), com comandos de CLI e ferramentas MCP como todo recurso. O `scope` de um orçamento é `allAccounts`, `account` (com `cloudAccountId`), `costGroup` (com `cloudCostGroupId`) ou `filter` (com `filterRules`, escrito como as regras de um grupo de custos). O `period` é `month`, `quarter` ou `year`, a partir de `fiscalYearStartMonth`, de 1 a 12. O `planSplit` de um ano é `none`, `equal` ou `byMonth`, com os doze meses em `monthlyPlan`, na ordem do ano fiscal.
+
+Para ler o período de um orçamento mês a mês, os dias deste mês e o que mais custou, como a página dele faz:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Para prever um escopo, de 1 a 24 meses à frente, com uma simulação opcional:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+O `forecast` da resposta tem o `method` (`pace`, `trend` ou `trendAndSeason`), os meses de onde foi feita e cada mês com o `amount` e, nos seguintes, o `low` e o `high`. Envie `basis` como `billed`, `amortized` ou `net` para prever nessa base; sem ele, a previsão fica na do projeto, e o `basis` da resposta diz qual. O gasto de um orçamento fica na própria base.
 
 ## Para onde vai o dinheiro
 
@@ -389,6 +438,8 @@ O widget **Custo de nuvem** coloca um total, um detalhamento ou uma tendência d
 - **Os custos de uma conta.** Os **Custos** de uma conta mostram o mesmo só para a conta, com os compromissos e as formas de gastar menos dela.
 - **Tags obrigatórias.** **Nuvem → Gastos → Tags** mostra quanto dos gastos e dos recursos tem suas tags obrigatórias, e as **Tags** de uma conta mostram o mesmo só para aquela conta.
 - **O custo de um recurso.** A página de um recurso mostra quanto ele custou este mês e nos últimos 30 dias quando a nuvem dele o fatura pelo nome, com as formas de gastar menos dele e o ajuste de tamanho dele.
+- **Cada orçamento.** **Nuvem → Gastos → Orçamentos** lista cada orçamento com o que ele conta, o período e o período até agora, e cada um abre a sua página.
+- **Os próximos meses.** **Nuvem → Gastos → Previsão** desenha os meses de onde uma previsão foi feita, este mês a caminho e os próximos 12, com como ela foi feita.
 - **O que foi economizado.** **Nuvem → Gastos → Economias** começa pelo que as alterações feitas economizaram neste mês, conforme a fatura, pelas alterações aguardando aprovação e as feitas, e pelas horas em que os agendamentos pararam recursos.
 
 ## Solução de problemas
@@ -431,6 +482,14 @@ O OneUptime só faz alterações de uma etapa: um compromisso, ou uma recomenda�
 
 :::details Um agendamento deixa um recurso em execução
 **Ver recursos** diz por quê: é produção, nada indica que não é produção, ou a conexão da conta dele não permite ações de economia. Adicione uma tag, por exemplo `environment` = `dev`, ou marque a conta dele como **Não produção**.
+:::
+
+:::details Uma previsão não tem faixa provável
+Ela foi feita com menos de 3 meses completos de custos, então cada mês seguinte prolonga o ritmo da última semana completa e nenhuma faixa é dada. A faixa chega assim que o terceiro mês completo é lido. A primeira leitura de uma conexão volta ao início do mês retrasado.
+:::
+
+:::details Alguém foi avisado de um orçamento, mas nenhum alerta veio
+Abaixo de 100%, um orçamento que nomeia pessoas ou equipes a notificar as avisa e não cria alerta, então ninguém é acionado. A partir de 100% ele cria um alerta, e as políticas de plantão dele são acionadas. Um orçamento sem ninguém para avisar cria um alerta a cada parcela.
 :::
 
 :::details Este mês está mais baixo do que no console da sua nuvem

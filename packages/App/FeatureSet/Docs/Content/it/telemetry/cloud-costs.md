@@ -1,6 +1,6 @@
 # Costi e risparmi del cloud
 
-Un account cloud collegato dice anche quanto costa e come potrebbe costare meno. OneUptime legge i costi di ogni giorno dalla fatturazione del tuo cloud e le raccomandazioni del motore di raccomandazione del tuo cloud, li mostra in **Cloud → Spesa → Costi** e **Cloud → Spesa → Risparmi**, elenca i tuoi Savings Plans, le prenotazioni e gli sconti per impegno di utilizzo in **Cloud → Spesa → Impegni**, e avvisa prima che un mese costi più del suo budget in **Cloud → Spesa → Budget**. Se glielo permetti, realizza anche i risparmi approvati da un proprietario, ferma le risorse non di produzione fuori dall'orario di lavoro e verifica ogni modifica sulla fattura.
+Un account cloud collegato dice anche quanto costa e come potrebbe costare meno. OneUptime legge i costi di ogni giorno dalla fatturazione del tuo cloud e le raccomandazioni del motore di raccomandazione del tuo cloud, li mostra in **Cloud → Spesa → Costi** e **Cloud → Spesa → Risparmi**, elenca i tuoi Savings Plans, le prenotazioni e gli sconti per impegno di utilizzo in **Cloud → Spesa → Impegni**, ti avvisa in **Cloud → Spesa → Budget** prima che un mese, un trimestre o un anno costi più del suo budget, e prevede i prossimi mesi in **Cloud → Spesa → Previsione**. Se glielo permetti, realizza anche i risparmi approvati da un proprietario, ferma le risorse non di produzione fuori dall'orario di lavoro e verifica ogni modifica sulla fattura.
 
 :::cards
 - [Amazon Web Services](#amazon-web-services): Cost Explorer e Cost Optimization Hub, ciascuno attivato una volta.
@@ -11,7 +11,8 @@ Un account cloud collegato dice anche quanto costa e come potrebbe costare meno.
 - [Realizzare i risparmi](#realizzare-i-risparmi): Applica un risparmio con l'approvazione del suo proprietario, e annullalo.
 - [Pianificazioni fuori orario](#pianificazioni-fuori-orario): Ferma le risorse non di produzione di notte e nei fine settimana.
 - [Regole IA per i risparmi](#regole-ia-per-i-risparmi): Proposte per i proprietari, o modifiche entro un limite.
-- [Budget](#budget): Un avviso quando la spesa di un mese supera una quota del suo budget.
+- [Budget](#budget): Il budget di un mese, di un trimestre o di un anno per qualsiasi account, gruppo di costi o servizio.
+- [Previsioni](#previsioni): Quanto i prossimi 12 mesi sono in rotta per costare, e con quanta certezza.
 - [Tag obbligatori](#tag-obbligatori): Quanta parte della tua spesa porta i tag che richiedi, e le nuove risorse che non li hanno.
 :::
 
@@ -22,6 +23,8 @@ flowchart TB
     bill["Fatturazione del cloud,<br/>letta due volte al giorno"] --> costs["Costi"]
     rec["Raccomandazioni del cloud,<br/>lette una volta al giorno"] --> savings["Risparmi"]
     costs --> budgets["Budget che avvisano"]
+    costs --> forecast["Previsioni"]
+    forecast --> budgets
     costs --> overview["Panoramica di Cloud"]
     savings --> overview
 ```
@@ -238,14 +241,26 @@ Una regola agisce senza chiedere solo su una risorsa nota per non essere di prod
 :::steps
 ### Creare un budget
 
-In **Cloud → Spesa → Budget**, crea un budget: il suo **Importo mensile**, l'**Account** a cui si riferisce, o nessuno per tutti gli account, e la **Base di costo** che conta, o nessuna per quella del progetto.
+In **Cloud → Spesa → Budget**, crea un budget e scegli a cosa **Si applica a**: tutti gli account, un **Account**, un **Gruppo di costi** come le sue regole ripartiscono la spesa, o i servizi, le regioni e i tag che un **Filtro** nomina, scritto come le regole di un gruppo di costi. Lascia vuota la sua **Base di costo** per contare quella del progetto.
+
+### Indica quanto può costare
+
+Il suo **Periodo** è un mese, un trimestre o un anno, e il suo **Importo** è quanto può costare un periodo. Trimestri e anni iniziano nel **Primo mese dell'anno**: da aprile, un anno va da aprile a marzo. Il **Piano di budget** di un anno può dividere il suo importo equamente tra i suoi mesi, o dare a ogni mese il suo in un **Piano mensile**. Ogni mese è allora tenuto alla sua quota, così un mese tranquillo non riceve mai avvisi per la spesa di un mese intenso.
 
 ### Scegliere quando avvisa
 
-**Avvisa al** prende le quote del budget a cui avvisare, in percentuale: 80 e 100 per iniziare. **Avvisa se si avvia al superamento** avvisa anche, una volta al mese, quando il ritmo dell'ultima settimana porterebbe il mese oltre il budget. **Avvisa nei giorni insoliti** avvisa anche il giorno dopo un giorno costato molto più del solito: vedi [Giorni insoliti](#giorni-insoliti). **Gravità avviso** e **Policy di reperibilità** dicono quanto sono gravi gli avvisi e chi viene chiamato.
+**Avvisa al** prende le quote del budget a cui agire, in percentuale: 80 e 100 per cominciare. **Avvisa se si avvia al superamento** avvisa anche, una volta per periodo, quando il periodo è in rotta per costare più del budget. **Avvisa nei giorni insoliti** avvisa anche il giorno dopo un giorno che è costato molto più del solito: vedi [Giorni insoliti](#giorni-insoliti). **Gravità avviso** dice quanto sono gravi i suoi avvisi.
+
+### Scegli chi viene informato
+
+Le persone e i team in **Notifica** vengono informati via e-mail e chat quando la spesa supera una quota sotto il 100%, senza avviso, così nessuno viene chiamato per una spesa entro il budget. **Informa il team del gruppo di costi** informa anche il team a cui appartiene il gruppo di costi. Dal 100% viene creato un avviso, ne sono proprietari, e le **Policy di reperibilità** vengono chiamate. Un budget senza nessuno da informare crea un avviso a ogni quota.
 :::
 
-Un budget viene controllato dopo ogni lettura dei costi e ogni ora. Quando la spesa del mese supera una soglia, viene generato un avviso per essa, la più alta se una lettura ne supera diverse insieme, e un nuovo mese risolve gli avvisi del mese scorso. Un budget conta solo gli account fatturati nella sua valuta, sulla sua base: un budget ammortizzato non scatta per un impegno acquistato in anticipo, che uno fatturato conta il giorno dell'acquisto.
+Un budget viene verificato dopo ogni lettura dei costi e ogni ora. Quando la spesa del periodo supera una quota, le persone da notificare vengono informate, o dal 100% viene creato un avviso, una volta per la più alta quando una lettura ne supera più d'una insieme, e un nuovo periodo risolve gli avvisi del periodo precedente. Un anno diviso per mese viene verificato un mese alla volta, rispetto alla quota di quel mese. Un budget conta solo gli account fatturati nella sua valuta, sulla sua base: un budget ammortizzato non scatta per un impegno acquistato in anticipo, che un budget fatturato conta il giorno dell'acquisto.
+
+Un periodo è in rotta per superare il budget quando quanto è costato finora, il resto di questo mese al ritmo dell'ultima settimana intera e i mesi successivi di un trimestre o di un anno secondo la [previsione](#previsioni) superano insieme il budget.
+
+La riga di ogni budget dice cosa conta, il suo periodo e il periodo finora: per un anno diviso per mese, questo mese rispetto alla sua quota, con l'anno accanto. La sua pagina mostra il periodo mese per mese rispetto alla quota di ogni mese, questo mese giorno per giorno, cosa è costato di più e chi viene informato. La pagina di un budget annuale può salvare la sua previsione come suo piano.
 
 Gli agenti IA possono creare e modificare i budget tramite il [server MCP](/docs/ai/mcp-server), e gli script con il comando `oneuptime cloud-budget` della CLI: vedi [Operazioni sulle risorse](/docs/cli/resource-operations).
 
@@ -253,7 +268,41 @@ Gli agenti IA possono creare e modificare i budget tramite il [server MCP](/docs
 
 Dopo ogni lettura, ciascuno degli ultimi 14 giorni completi di un account viene confrontato con i 14 giorni precedenti. Un giorno è insolito quando un servizio è costato il doppio del suo giorno abituale o più, o l'intero account una volta e mezza il suo giorno abituale o più. In entrambi i casi servono almeno 10 in più del solito, nella valuta dell'account, e almeno il 5% del giorno abituale dell'account, così che pochi centesimi non contino mai come un picco. Il valore abituale di un giorno è la mediana dei 14 giorni precedenti, quindi un picco isolato lo sposta poco, e un account viene giudicato solo quando ha una settimana di costi.
 
-**Cloud → Spesa → Costi** segna i giorni insoliti sulla spesa giornaliera, sopra le loro barre, e li elenca sotto. Su tutti gli account, ogni segno apre i **Costi** del suo account. Un budget che include l'account genera un avviso per ogni account e giorno, il giorno dopo, nominando ogni servizio che è salito. Un picco che dura più giorni viene segnalato il giorno in cui è iniziato, e un giorno di più di una settimana fa non viene segnalato. Un budget creato prima che esistessero questi avvisi non li genera finché non lo modifichi e li attivi.
+**Cloud → Spesa → Costi** segna i giorni insoliti sulla spesa giornaliera, sopra le loro barre, e li elenca sotto. Su tutti gli account, ogni segno apre i **Costi** del suo account. Un budget mensile per tutti gli account o per uno crea un avviso per ogni account e giorno, il giorno dopo, nominando ogni servizio salito. Ogni altro budget misura ciò che conta sul proprio giorno abituale allo stesso modo. Un picco che dura giorni viene segnalato il giorno in cui è iniziato, e un giorno di più di una settimana fa non viene segnalato. Un budget creato prima di questi avvisi non li crea finché non lo modifichi e li attivi.
+
+## Previsioni
+
+**Cloud → Spesa → Previsione** dice quanto la spesa è in rotta per costare in ciascuno dei prossimi 12 mesi, per tutto, un account, un gruppo di costi o un servizio, sulla base di costo che scegli. Dice come viene fatta ogni previsione, dai mesi interi di costi che OneUptime conserva, un anno o poco più:
+
+- **Questo mese** è quanto è costato finora, con ogni giorno che resta alla media degli ultimi sette giorni interi, come lo proietta un budget.
+- **Con meno di 3 mesi interi**, ogni mese successivo prosegue quel ritmo, senza intervallo probabile: è stato letto troppo poco per distinguere una tendenza da un picco isolato.
+- **Da 3 mesi interi**, una tendenza passa per il giorno medio di ogni mese: la mediana delle pendenze tra ogni coppia di mesi, così un mese anomalo la sposta appena.
+- **Da 12 mesi interi**, ogni mese del calendario conserva anche quanto è stato sopra o sotto la tendenza l'anno scorso, così un picco di dicembre viene previsto anche per il dicembre successivo.
+
+Ogni mese successivo ha un intervallo probabile, in cui dovrebbe cadere 8 volte su 10, ricavato da quanto i mesi passati si sono scostati dalla loro tendenza, e mai più stretto del 5% per lato. Si allarga quanto più un mese è lontano e quanti meno mesi ha alle spalle la previsione. Da 12 mesi interi, ogni intervallo è ancora più ampio, perché un anno mostra ogni mese del calendario una sola volta. Una previsione non è una promessa: un nuovo servizio, una migrazione o un cambio di prezzo muovono i prossimi mesi in modi che nessun mese passato mostra.
+
+**Simulazione** fa crescere o calare ogni mese successivo dal mese che scegli, della quota che digiti, come il 20% da gennaio. **Salva come piano di budget** fa dei prossimi dodici mesi il piano di un budget annuale, in un budget nuovo o in uno esistente, con ogni mese tenuto alla sua quota prevista.
+
+## Budget e previsioni nell'API
+
+I budget sono una risorsa dell'API (`cloud-budget`), con comandi CLI e strumenti MCP come ogni risorsa. Lo `scope` di un budget è `allAccounts`, `account` (con `cloudAccountId`), `costGroup` (con `cloudCostGroupId`) o `filter` (con `filterRules`, scritto come le regole di un gruppo di costi). Il suo `period` è `month`, `quarter` o `year`, da `fiscalYearStartMonth`, da 1 a 12. Il `planSplit` di un anno è `none`, `equal` o `byMonth`, con i suoi dodici mesi in `monthlyPlan`, nell'ordine dell'anno fiscale.
+
+Per leggere il periodo di un budget mese per mese, i giorni di questo mese e cosa è costato di più, come fa la sua pagina:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/<budget ID>/spend" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>"
+```
+
+Per prevedere un ambito, da 1 a 24 mesi in avanti, con una simulazione facoltativa:
+
+```bash
+curl -X POST "https://oneuptime.com/api/cloud-budget/forecast" \
+  -H "apikey: <API key>" -H "tenantid: <project ID>" -H "Content-Type: application/json" \
+  -d '{"scope": "costGroup", "cloudCostGroupId": "<group ID>", "monthsAhead": 12, "growth": {"percent": 20, "fromMonth": "2027-01"}}'
+```
+
+Il `forecast` della risposta ha il suo `method` (`pace`, `trend` o `trendAndSeason`), i mesi da cui è stata fatta e ogni mese con il suo `amount` e, per quelli successivi, il suo `low` e il suo `high`. Invia `basis` come `billed`, `amortized` o `net` per prevedere su quella base; senza, la previsione è su quella del progetto, e il `basis` della risposta dice quale. La spesa di un budget è sulla sua base.
 
 ## Dove vanno i soldi
 
@@ -389,6 +438,8 @@ Il widget **Costo cloud** mette un totale, un dettaglio o una tendenza della spe
 - **I costi di un account.** I **Costi** di un account mostrano lo stesso per il solo account, con i suoi impegni e i suoi modi per spendere meno.
 - **Tag obbligatori.** **Cloud → Spesa → Tag** mostra quanta parte della spesa e delle risorse porta i tuoi tag obbligatori, e i **Tag** di un account mostrano lo stesso per quel solo account.
 - **Il costo di una risorsa.** La pagina di una risorsa mostra quanto è costata questo mese e negli ultimi 30 giorni quando il suo cloud la fattura per nome, con i suoi modi per spendere meno e il suo ridimensionamento.
+- **Ogni budget.** **Cloud → Spesa → Budget** elenca ogni budget con ciò che conta, il suo periodo e il periodo finora, e ognuno apre la sua pagina.
+- **I prossimi mesi.** **Cloud → Spesa → Previsione** disegna i mesi da cui è stata fatta una previsione, questo mese in rotta e i prossimi 12, con come è stata fatta.
 - **Cosa è stato risparmiato.** **Cloud → Spesa → Risparmi** si apre su quanto le modifiche effettuate hanno fatto risparmiare questo mese, secondo la fattura, sulle modifiche in attesa di approvazione e quelle effettuate, e sulle ore in cui le pianificazioni hanno fermato le risorse.
 
 ## Risoluzione dei problemi
@@ -431,6 +482,14 @@ OneUptime fa solo modifiche in un passaggio: un impegno, o una raccomandazione c
 
 :::details Una pianificazione lascia una risorsa in esecuzione
 **Vedi le risorse** dice perché: è di produzione, nulla indica che non sia di produzione, o la connessione del suo account non consente le azioni di risparmio. Aggiungi un tag, ad esempio `environment` = `dev`, oppure segna il suo account come **Non di produzione**.
+:::
+
+:::details Una previsione non ha un intervallo probabile
+È stata fatta da meno di 3 mesi interi di costi, quindi ogni mese successivo prosegue il ritmo dell'ultima settimana intera e non viene dato alcun intervallo. L'intervallo arriva appena viene letto il terzo mese intero. La prima lettura di una connessione risale all'inizio del mese prima di quello scorso.
+:::
+
+:::details Qualcuno è stato informato di un budget ma non è arrivato alcun avviso
+Sotto il 100%, un budget che nomina persone o team da notificare li informa e non crea alcun avviso, così nessuno viene chiamato. Dal 100% crea un avviso, e le sue policy di reperibilità vengono chiamate. Un budget senza nessuno da informare crea un avviso a ogni quota.
 :::
 
 :::details Questo mese è più basso che nella console del tuo cloud

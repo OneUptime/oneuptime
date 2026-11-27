@@ -1214,6 +1214,8 @@ import { AddDataStoreDatabaseAgentIndexAndKey1809187741148 } from "./18091877411
 import { AddSecurityUserErasureRequestProgress1809187741160 } from "./1809187741160-AddSecurityUserErasureRequestProgress";
 import { AddKeepMonitoringDuringIncidents1809187751141 } from "./1809187751141-AddKeepMonitoringDuringIncidents";
 import { AddCloudCostReports1809187761009 } from "./1809187761009-AddCloudCostReports";
+import { AddCloudBudgetScopesPeriodsAndPlans1809187771008 } from "./1809187771008-AddCloudBudgetScopesPeriodsAndPlans";
+import { AddCloudBudgetCostGroupIndexAndKey1809187771018 } from "./1809187771018-AddCloudBudgetCostGroupIndexAndKey";
 
 export default [
   InitialMigration,
@@ -2432,4 +2434,6 @@ export default [
   AddSecurityUserErasureRequestProgress1809187741160,
   AddKeepMonitoringDuringIncidents1809187751141,
   AddCloudCostReports1809187761009,
+  AddCloudBudgetScopesPeriodsAndPlans1809187771008,
+  AddCloudBudgetCostGroupIndexAndKey1809187771018,
 ];
