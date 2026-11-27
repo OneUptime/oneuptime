@@ -321,7 +321,7 @@ Les dépenses ne sont bien réparties que si elles portent les bonnes étiquette
 :::steps
 ### Exiger une étiquette
 
-Choisissez **Exiger une étiquette** et saisissez sa **Clé d'étiquette**. Sous **Valeurs autorisées**, listez les valeurs qu'elle peut prendre, séparées par des virgules, ou laissez vide pour accepter n'importe quelle valeur. Choisissez un **Compte** pour n'exiger l'étiquette que dans ce compte. Une **Description**, sous **Plus de champs**, dit dans les e-mails à quoi sert l'étiquette.
+Choisissez **Exiger une étiquette** et saisissez sa **Clé de balise**. Sous **Valeurs autorisées**, listez les valeurs qu'elle peut prendre, séparées par des virgules, ou laissez vide pour accepter n'importe quelle valeur. Choisissez un **Compte** pour n'exiger l'étiquette que dans ce compte. Une **Description**, sous **Plus de champs**, dit dans les e-mails à quoi sert l'étiquette.
 
 ### Lire la couverture
 

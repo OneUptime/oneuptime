@@ -107,9 +107,15 @@ import ModelType from "../Types/ModelType";
  * argument's values, no argument repeats its enum, no ID says it is an ID),
  * which took the answer to 312,574. The budget is that and a small margin,
  * not the 315,000 the Required Tag tools set. Cloud Tag Setting, the one
- * row of who is told about an untagged resource, has no tools.
+ * row of who is told about an untagged resource, has no tools. 315,000 on
+ * 2026-11-27: Cloud Budget's create and update took twelve fields more
+ * (#11008) - what a budget counts (a scope, a cost group, a filter), its
+ * period, fiscal year and plan, its own unusual day, and who is told below
+ * 100% - which took the answer past 313,500 to 314,246, so an agent makes a
+ * quarterly budget for a cost group as people do. They are generated and
+ * say each thing once; the amount's description was cut by 101 bytes first.
  */
-const MAX_TOOLS_LIST_BYTES: number = 313_500;
+const MAX_TOOLS_LIST_BYTES: number = 315_000;
 
 // The most any one tool may take of it.
 const MAX_TOOL_BYTES: number = 5_000;
