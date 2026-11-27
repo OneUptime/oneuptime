@@ -6,6 +6,7 @@ Overvåk XCP-ng-pooler uten å installere noe: En OneUptime-sonde leser dem, ent
 - [Før du begynner](#før-du-begynner): En sonde som når Xen Orchestra eller poolen, og skrivebeskyttet tilgang.
 - [Koble til Xen Orchestra](#koble-til-xen-orchestra): Hver pool den administrerer, via én tilkobling.
 - [Koble til en pool uten Xen Orchestra](#koble-til-en-pool-uten-xen-orchestra): Én pool, lest fra masteren.
+- [Alarmer, HA og sikkerhetskopier](#alarmer-ha-og-sikkerhetskopier): Hva en sonde leser utover målingene, og varslene den tilbyr.
 - [Feilsøking](#feilsøking): Hva hver melding betyr, og hva som løser den.
 :::
 
@@ -22,7 +23,7 @@ flowchart TB
 
 Hvert minutt leser sonden hver tilkobling og sender det den leste, til OneUptime:
 
-- **Xen Orchestra**: Sonden leser OpenMetrics-pluginen til Xen Orchestra med pluginens hemmelighet, akkurat slik XCP-ng-agenten gjør, så hver pool Xen Orchestra administrerer, kommer med de samme seriene.
+- **Xen Orchestra**: Sonden leser OpenMetrics-pluginen til Xen Orchestra med pluginens hemmelighet, akkurat slik XCP-ng-agenten gjør, så hver pool Xen Orchestra administrerer, kommer med de samme seriene. Med et API-token leser den også hver pools alarmer, HA og sikkerhetskopier fra REST-API-et til Xen Orchestra.
 - **En pools XAPI**: Sonden logger inn på poolmasteren og gjør de lesingene som pluginen til Xen Orchestra selv gjør: poolens poster og målingene for hver vert som kjører, lest fra den verten. Den gjør dem om til de samme seriene som pluginen leverer, så poolen leses akkurat slik den ville blitt lest via Xen Orchestra. Den legger også poolens XAPI-meldinger, som en VM som krasjet eller en vert HA mistet, i poolens feed.
 
 Hver pool registrerer seg etter UUID ved første lesing, slik agentens pooler gjør, og vises under **XCP-ng → Alle pooler**.
@@ -35,7 +36,7 @@ Hver pool registrerer seg etter UUID ved første lesing, slik agentens pooler gj
 | Hva den leser | Hver pool Xen Orchestra administrerer | Én pool | Hver pool Xen Orchestra administrerer |
 | Hva den trenger | OpenMetrics-pluginens hemmelighet, og eventuelt et skrivebeskyttet API-token | En konto i poolen: root, eller en Active Directory-bruker med rollen read-only | OpenMetrics-pluginens hemmelighet |
 | Hvor hemmelighetene lagres | Kryptert i OneUptime, bare sendt til sonden | Kryptert i OneUptime, bare sendt til sonden | I agentens fil `.env` |
-| XAPI-meldinger i poolens feed | Ikke med | Med | Ikke med |
+| Alarmer, HA og sikkerhetskopier | Alle tre, og manglende oppdateringer, med et API-token | Alarmer og HA, uten sikkerhetskopier | Ikke med |
 
 Alle tre sender de samme seriene. En pool leses av én av dem om gangen, så historikken forblir én linje uansett hvem som leser den.
 
@@ -118,11 +119,28 @@ En lagret hemmelighet sendes bare til adressen, via sonden og til sertifikatet d
 
 ## API-tokenet
 
-Et API-token er valgfritt: Målingene kommer via pluginens hemmelighet. Med et token kontrollerer hver lesing det høyst én gang i timen:
+Et API-token er valgfritt: Målingene kommer via pluginens hemmelighet, og tokenet leser hver pools alarmer, HA og sikkerhetskopier. Med et token kontrollerer hver lesing det høyst én gang i timen:
 
 - **Det bare leser.** Et token der brukeren er administrator, eller der rollen kan endre noe, består ikke testen og vises som et problem på siden for tilkoblingen. OneUptime lagrer bare skrivebeskyttede tokener.
 - **Det leser det OneUptime trenger.** Xen Orchestra svarer på en liste en bruker ikke kan lese, med en tom liste, så tokenet må kunne lese alarmer, meldinger og logger for sikkerhetskopier. Den innebygde rollen **Read only** leser alle tre.
 - **Når det utløper.** Xen Orchestra glemmer et token i det øyeblikket det utløper. To uker før sier siden for tilkoblingen og feeden for hver pool den leser, fra om det. Opprett et nytt token for den samme brukeren, og skriv det inn under **Rediger tilkobling**.
+
+## Alarmer, HA og sikkerhetskopier
+
+I tillegg til målingene leser en sonde det XCP-ng og Xen Orchestra rapporterer om hver pool. Hva den leser, avhenger av tilkoblingen:
+
+| | Xen Orchestra, med et API-token | En pools XAPI |
+|---|---|---|
+| XAPI-meldinger og alarmer | Leses | Leses |
+| HA og poolmasteren | Leses | Leses, med HAs egen plan |
+| Sikkerhetskopieringsjobber og kjøringene deres | Leses | Leses ikke: Sikkerhetskopier hører til Xen Orchestra |
+| Manglende oppdateringer | Leses hver sjette time, der abonnementet til Xen Orchestra omfatter dem | Leses ikke: Xen Orchestra finner dem selv |
+
+En Xen Orchestra-tilkobling uten API-token leser bare målingene, slik XCP-ng-agenten gjør.
+
+- **På poolens sider.** Poolens **Oversikt** viser HA-tilstanden og de siste kjøringene for hver sikkerhetskopieringsjobb, siden til en vert de manglende oppdateringene og siden til en VM den siste sikkerhetskopien. Meldinger med prioritet 1 til 4, et bytte av master, HA som slås på eller av eller ikke lenger tåler en vertssvikt, og mislykkede sikkerhetskopieringskjøringer havner i poolens **Feed**, og hver melding og hver sikkerhetskopieringskjøring er en post på siden **Logger** for poolen.
+- **Som varsler.** Poolens **Anbefalinger** tilbyr en mal for hver under **XCP-ng-alarmer** og **Sikkerhetskopier**: VM Crashed, HA Host Failed, HA State File Lost, HA Protected VM Restart Failed, Storage Failed to Plug, Storage GC Out of Space, XAPI Alarm, Pool Master Changed og Backup Job Failed. [XCP-ng-monitoren](/docs/monitor/xcp-ng-monitor) legger til HA Cannot Tolerate a Host Failure og VM Not Backed Up.
+- **Fra og med første lesing.** Det XAPI sa før en pools første lesing, rapporteres ikke, og hver melding rapporteres bare én gang. Den første lesingen av loggene for sikkerhetskopier ser en uke og en dag tilbake, så de siste kjøringene for hver jobb vises med en gang.
 
 ## Referanse
 
@@ -132,6 +150,8 @@ Et API-token er valgfritt: Målingene kommer via pluginens hemmelighet. Med et t
 | Lesinger samtidig | 4 per sonde | En lesing som er tregere enn intervallet, hoppes over og stables aldri. |
 | Største lesing | Omtrent 48 MiB | Større Xen Orchestra-instanser trenger XCP-ng-agenten. |
 | XAPI-meldinger | 200 per lesing | Fra det øyeblikket poolen er tilkoblet, hver levert én gang, den eldste først. |
+| Sikkerhetskopieringskjøringer | 20 per lesing | Den første lesingen ser en uke og en dag tilbake. På en kjøring som Xen Orchestra fortsatt oppgir som ventende etter tre dager, ventes det ikke lenger. |
+| Manglende oppdateringer | Hver 6. time | Via Xen Orchestra, for opptil 100 verter per kontroll. |
 | Tilkoblingstest | 90 sekunder til start | En test ingen sonde plukker opp i tide, eller som varer lenger enn 150 sekunder, besvares som mislykket. |
 
 ## Feilsøking
@@ -189,7 +209,7 @@ Sondens nettverk kan ikke nå adressen på TCP 443. Tillat det i brannmuren, ell
 :::
 
 :::details Sonden plukket ikke opp dette
-Sonden er frakoblet, eller kjører en OneUptime-versjon som er eldre enn lesing av XCP-ng. Kontroller i tabellen **Egendefinerte sonder** at den er tilkoblet, og oppdater den.
+Sonden er offline, eller kjører en OneUptime-versjon som er eldre enn lesing av XCP-ng. Kontroller i tabellen **Egendefinerte sonder** at den er tilkoblet, og oppdater den.
 :::
 
 :::details Denne tilkoblingen er for stor til å leses fra en sonde

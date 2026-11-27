@@ -222,8 +222,25 @@ export interface MonitorEvaluationSeries {
   rows: Array<MonitorEvaluationSeriesRow>;
 }
 
+/*
+ * The stretch of telemetry a check judged: from startsAt up to endsAt, the
+ * time the check was due (issue #11248), or where the ingest queue was
+ * while it was more than a minute behind. A late check judges the window it
+ * was due to, not the one before it ran.
+ */
+export interface MonitorEvaluationWindow {
+  startsAt: Date;
+  endsAt: Date;
+}
+
 export default interface MonitorEvaluationSummary {
   evaluatedAt: Date;
+  /*
+   * The window of telemetry the check judged, for a telemetry monitor's
+   * check (logs, metrics, traces, Kubernetes ...). Absent for a check that
+   * judges no window - a probe's, a request's - and from older summaries.
+   */
+  judgedWindow?: MonitorEvaluationWindow | undefined;
   criteriaResults: Array<MonitorEvaluationCriteriaResult>;
   events: Array<MonitorEvaluationEvent>;
   /*

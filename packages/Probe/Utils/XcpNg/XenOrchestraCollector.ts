@@ -11,11 +11,15 @@ import {
 } from "./XcpNgCollectionErrors";
 import {
   XcpNgEndpoint,
+  XcpNgTransport,
   XcpNgTransportHandle,
   createXcpNgTransport,
   resolveXcpNgAddress,
 } from "./XcpNgHttp";
 import XcpNgOtlpBuilder, { XcpNgOtlpBuildResult } from "./XcpNgOtlpBuilder";
+import XenOrchestraEventsReader, {
+  XO_EVENTS_READ_BUDGET_IN_MS,
+} from "./XenOrchestraEventsReader";
 import XenOrchestraClient, {
   XO_NO_CONNECTED_HOSTS,
   XenOrchestraPluginState,
@@ -23,6 +27,10 @@ import XenOrchestraClient, {
 import { AppVersion } from "Common/Server/EnvironmentConfig";
 import XcpNgCollectionErrorCode from "Common/Types/XcpNg/XcpNgCollectionError";
 import XcpNgConnectionType from "Common/Types/XcpNg/XcpNgConnectionType";
+import {
+  XcpNgEventsJobState,
+  XcpNgEventsReport,
+} from "Common/Types/XcpNg/XcpNgPoolEvents";
 import {
   XCP_NG_COLLECTION_MAX_PAYLOAD_BYTES,
   XcpNgApiTokenSummary,
@@ -371,6 +379,29 @@ export default class XenOrchestraCollector {
           settingsVersion: job.settingsVersion,
           dependencies: dependencies,
         });
+
+        /*
+         * The pools' alarms, HA, master, backups and patches (#10997), from
+         * where the server says reading stands - over the same verified
+         * connection, with the same token, only if it is read-only.
+         */
+        if (job.events) {
+          report.events = await XenOrchestraCollector.readEvents({
+            transport: handle.transport,
+            where: where,
+            token: job.apiToken,
+            job: job,
+            poolIds: summary.pools.map((pool: XcpNgPoolSummary): string => {
+              return pool.poolId;
+            }),
+            tokenSummary: summary.apiToken,
+            budgetInMs: Math.min(XO_EVENTS_READ_BUDGET_IN_MS, budgetInMs),
+            dependencies: dependencies,
+          });
+          for (const warning of report.events.warnings) {
+            warnings.push(warning);
+          }
+        }
       }
 
       report.status = "Succeeded";
@@ -395,6 +426,44 @@ export default class XenOrchestraCollector {
     }
 
     return XenOrchestraCollector.finish(report, startedAt, dependencies);
+  }
+
+  /*
+   * The events read, which never fails the collection: the metrics already
+   * came through, and whatever went wrong is said in the report's problems
+   * - read again next time, from the same watermarks.
+   */
+  private static async readEvents(data: {
+    transport: XcpNgTransport;
+    where: string;
+    token: string;
+    job: XcpNgCollectionJob;
+    poolIds: Array<string>;
+    tokenSummary: XcpNgApiTokenSummary;
+    budgetInMs: number;
+    dependencies: XenOrchestraCollectorDependencies;
+  }): Promise<XcpNgEventsReport> {
+    try {
+      return await XenOrchestraEventsReader.read({
+        transport: data.transport,
+        where: data.where,
+        token: data.token,
+        state: data.job.events as XcpNgEventsJobState,
+        poolIds: data.poolIds,
+        tokenSummary: data.tokenSummary,
+        now: data.dependencies.now,
+        budgetInMs: data.budgetInMs,
+      });
+    } catch (error) {
+      const problem: string = `Reading alarms and backups from Xen Orchestra at ${data.where} failed: ${
+        error instanceof Error ? error.message : String(error)
+      }`;
+      return {
+        pools: [],
+        problems: { messages: problem, backups: problem },
+        warnings: [],
+      };
+    }
   }
 
   /*

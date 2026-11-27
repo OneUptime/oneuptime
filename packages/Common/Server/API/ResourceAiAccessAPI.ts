@@ -107,6 +107,7 @@ import ResourceAiAgentService from "../Services/ResourceAiAgentService";
 import RunnerJobService from "../Services/RunnerJobService";
 import OpenStackCloudService from "../Services/OpenStackCloudService";
 import VMwareVCenterService from "../Services/VMwareVCenterService";
+import XcpNgPoolService from "../Services/XcpNgPoolService";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
 import logger from "../Utils/Logger";
@@ -128,6 +129,7 @@ import {
   OpenStackCloudNameLabelKeys,
   ProxmoxClusterNameLabelKeys,
   VMwareVCenterNameLabelKeys,
+  XcpNgPoolIdentifierLabelKeys,
 } from "../Utils/Monitor/SeriesResourceLabels";
 import ResourceCommandJobRunner, {
   RESOURCE_COMMAND_CLAIM_TIMEOUT_MS,
@@ -283,6 +285,12 @@ export const RESOURCE_AI_ACCESS_KINDS: Readonly<
     service: OpenStackCloudService,
     subjectRelation: "openStackClouds",
     scopeLabelKeys: [...OpenStackCloudNameLabelKeys],
+  },
+  [AiResourceType.XcpNgPool]: {
+    service: XcpNgPoolService,
+    subjectRelation: "xcpNgPools",
+    // The pool's UUID, which the pool's own telemetry carries.
+    scopeLabelKeys: [...XcpNgPoolIdentifierLabelKeys],
   },
   [AiResourceType.VMwareVCenter]: {
     service: VMwareVCenterService,

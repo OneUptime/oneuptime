@@ -6,6 +6,7 @@ Monitore pools do XCP-ng sem instalar nada: uma sonda do OneUptime os lê, seja 
 - [Antes de começar](#antes-de-começar): uma sonda que alcance o Xen Orchestra ou o pool, e acesso somente leitura.
 - [Conectar o Xen Orchestra](#conectar-o-xen-orchestra): todos os pools que ele gerencia, por meio de uma só conexão.
 - [Conectar um pool sem Xen Orchestra](#conectar-um-pool-sem-xen-orchestra): um só pool, lido do mestre dele.
+- [Alarmes, HA e backups](#alarmes-ha-e-backups): o que uma sonda lê além das métricas, e os alertas que ela oferece.
 - [Solução de problemas](#solução-de-problemas): o que cada mensagem significa e o que a resolve.
 :::
 
@@ -22,7 +23,7 @@ flowchart TB
 
 A cada minuto, a sonda lê cada conexão e envia o que leu ao OneUptime:
 
-- **Xen Orchestra**: a sonda lê o plugin OpenMetrics do Xen Orchestra com o segredo do plugin, exatamente como o agente XCP-ng, então cada pool que o Xen Orchestra gerencia chega com as mesmas séries.
+- **Xen Orchestra**: a sonda lê o plugin OpenMetrics do Xen Orchestra com o segredo do plugin, exatamente como o agente XCP-ng, então cada pool que o Xen Orchestra gerencia chega com as mesmas séries. Com um token de API, ela também lê os alarmes, o HA e os backups de cada pool pela API REST do Xen Orchestra.
 - **A XAPI de um pool**: a sonda entra no mestre do pool e faz as leituras que o próprio plugin do Xen Orchestra faz: os registros do pool e as métricas de cada host em execução, lidas nesse host. Ela as transforma nas mesmas séries que o plugin serve, então o pool é lido exatamente como seria pelo Xen Orchestra. Ela também publica no feed do pool as mensagens da XAPI do pool, como uma VM que travou ou um host que o HA perdeu.
 
 Cada pool se registra pelo UUID dele na primeira leitura, como os pools do agente, e aparece em **XCP-ng → Todos os pools**.
@@ -35,7 +36,7 @@ Cada pool se registra pelo UUID dele na primeira leitura, como os pools do agent
 | O que ele lê | Todos os pools que o Xen Orchestra gerencia | Um só pool | Todos os pools que o Xen Orchestra gerencia |
 | Do que precisa | O segredo do plugin OpenMetrics e, opcionalmente, um token de API somente leitura | Uma conta do pool: root, ou um usuário do Active Directory com a função read-only | O segredo do plugin OpenMetrics |
 | Onde os segredos ficam | Criptografados no OneUptime, enviados só para a sonda | Criptografados no OneUptime, enviados só para a sonda | No arquivo `.env` do agente |
-| Mensagens da XAPI no feed do pool | Não incluídas | Incluídas | Não incluídas |
+| Alarmes, HA e backups | Os três, e os patches ausentes, com um token de API | Alarmes e HA, sem backups | Não incluídos |
 
 Os três enviam as mesmas séries. Um pool é lido por um deles de cada vez, para que o histórico dele continue sendo uma só linha, seja quem for que o leia.
 
@@ -118,11 +119,28 @@ Um segredo salvo só é enviado para o endereço, pela sonda e para o certificad
 
 ## O token de API
 
-Um token de API é opcional: as métricas chegam pelo segredo do plugin. Com um token, cada leitura o verifica no máximo uma vez por hora:
+Um token de API é opcional: as métricas chegam pelo segredo do plugin, e o token lê os alarmes, o HA e os backups de cada pool. Com um token, cada leitura o verifica no máximo uma vez por hora:
 
 - **Ele só lê.** Um token cujo usuário é administrador, ou cuja função pode alterar algo, falha no teste e aparece como um problema na página da conexão. O OneUptime guarda apenas tokens somente leitura.
 - **Ele lê o que o OneUptime precisa.** O Xen Orchestra responde com uma lista vazia a uma lista que um usuário não pode ler, então o token precisa ler alarmes, mensagens e logs de backup. A função interna **Read only** lê os três.
 - **Quando ele expira.** O Xen Orchestra esquece um token no momento em que ele expira. Duas semanas antes, a página da conexão e o feed de cada pool que ela lê avisam. Crie um novo token para o mesmo usuário e informe-o em **Editar conexão**.
+
+## Alarmes, HA e backups
+
+Além das métricas, uma sonda lê o que o XCP-ng e o Xen Orchestra informam sobre cada pool. O que ela lê depende da conexão:
+
+| | Xen Orchestra, com um token de API | A XAPI de um pool |
+|---|---|---|
+| Mensagens e alarmes da XAPI | Lidos | Lidos |
+| O HA e o mestre do pool | Lidos | Lidos, com o próprio plano do HA |
+| Jobs de backup e suas execuções | Lidos | Não lidos: os backups são do Xen Orchestra |
+| Patches ausentes | Lidos a cada seis horas, se a assinatura do Xen Orchestra os incluir | Não lidos: quem os calcula é o Xen Orchestra |
+
+Uma conexão do Xen Orchestra sem token de API lê só as métricas, como o agente XCP-ng.
+
+- **Nas páginas do pool.** A **Visão geral** do pool mostra o estado do HA e as últimas execuções de cada job de backup; a página de um host, os patches ausentes dele; e a página de uma VM, o último backup dela. Mensagens de prioridade 1 a 4, uma troca de mestre, o HA ligado, desligado ou que não consegue mais tolerar a falha de um host, e execuções de backup com falha vão para o **Feed** do pool, e cada mensagem e cada execução de backup é uma entrada na página **Registros** do pool.
+- **Como alertas.** As **Recomendações** do pool oferecem, em **Alarmes do XCP-ng** e **Backups**, um modelo para cada um: VM Crashed, HA Host Failed, HA State File Lost, HA Protected VM Restart Failed, Storage Failed to Plug, Storage GC Out of Space, XAPI Alarm, Pool Master Changed e Backup Job Failed. O [monitor de XCP-ng](/docs/monitor/xcp-ng-monitor) acrescenta HA Cannot Tolerate a Host Failure e VM Not Backed Up.
+- **Desde a primeira leitura.** O que a XAPI disse antes da primeira leitura de um pool não é sinalizado, e cada mensagem é sinalizada uma só vez. A primeira leitura dos logs de backup olha uma semana e um dia para trás, então as últimas execuções de cada job aparecem na hora.
 
 ## Referência
 
@@ -132,6 +150,8 @@ Um token de API é opcional: as métricas chegam pelo segredo do plugin. Com um 
 | Leituras ao mesmo tempo | 4 por sonda | Uma leitura mais lenta que o intervalo dela é pulada, nunca empilhada. |
 | Maior leitura | Cerca de 48 MiB | Xen Orchestras maiores precisam do agente XCP-ng. |
 | Mensagens da XAPI | 200 por leitura | Desde o momento em que o pool é conectado, cada uma entregue uma vez, a mais antiga primeiro. |
+| Execuções de backup | 20 por leitura | A primeira leitura olha uma semana e um dia para trás. Uma execução que o Xen Orchestra ainda dá como pendente depois de três dias deixa de ser aguardada. |
+| Patches ausentes | A cada 6 horas | Pelo Xen Orchestra, para até 100 hosts por verificação. |
 | Teste de conexão | 90 segundos para começar | Um teste que nenhuma sonda pega a tempo, ou que dura mais de 150 segundos, é dado como falho. |
 
 ## Solução de problemas

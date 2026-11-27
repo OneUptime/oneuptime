@@ -2,6 +2,9 @@ import ComponentProps from "../Pages/PageComponentProps";
 import XcpNgLayout from "../Pages/XcpNg/Layout";
 import XcpNgPoolViewLayout from "../Pages/XcpNg/View/Layout";
 import XcpNgPoolTopology from "../Pages/XcpNg/View/Topology";
+import XcpNgPoolAiAgent from "../Pages/XcpNg/View/AI/Agent";
+import XcpNgPoolAiInsights from "../Pages/XcpNg/View/AI/Insights";
+import XcpNgPoolAiLogs from "../Pages/XcpNg/View/AI/Logs";
 import PageMap from "../Utils/PageMap";
 import RouteMap, { RouteUtil, XcpNgRoutePath } from "../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -262,6 +265,48 @@ const XcpNgRoutes: FunctionComponent<ComponentProps> = (
             <XcpNgPoolTopology
               {...props}
               pageRoute={RouteMap[PageMap.XCP_NG_POOL_VIEW_TOPOLOGY] as Route}
+            />
+          }
+        />
+
+        {/* AI: Insights, Logs, and the pool's XCP-ng AI agent */}
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS,
+            2,
+          )}
+          element={
+            <XcpNgPoolAiInsights
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.XCP_NG_POOL_VIEW_AI_INSIGHTS] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.XCP_NG_POOL_VIEW_AI_LOGS,
+            2,
+          )}
+          element={
+            <XcpNgPoolAiLogs
+              {...props}
+              pageRoute={RouteMap[PageMap.XCP_NG_POOL_VIEW_AI_LOGS] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={RouteUtil.getLastPathForKey(
+            PageMap.XCP_NG_POOL_VIEW_AI_AGENT,
+            2,
+          )}
+          element={
+            <XcpNgPoolAiAgent
+              {...props}
+              pageRoute={RouteMap[PageMap.XCP_NG_POOL_VIEW_AI_AGENT] as Route}
             />
           }
         />

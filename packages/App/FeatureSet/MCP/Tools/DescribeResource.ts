@@ -38,6 +38,7 @@ import {
   SelectableFieldsInfo,
 } from "../Services/SelectFieldGenerator";
 import ModelType from "../Types/ModelType";
+import { describeWritesThatAskAPerson } from "./AlwaysAskWrites";
 
 export interface DescribableResource {
   name: string;
@@ -343,6 +344,20 @@ function buildUsage(
   ) {
     usage["owners"] =
       `The create tool takes ${OWNER_USERS_ON_CREATE_KEY} and ${OWNER_TEAMS_ON_CREATE_KEY} beside the fields: the IDs of the users and teams who own it from the start, who are told it was created. A caller who may not add them is refused before anything is saved. Owners added later may miss the created notification.`;
+  }
+
+  /*
+   * What its tools refuse because OneUptime asks a person first, in every
+   * mode (Tools/AlwaysAskWrites, #11177): said here, where an agent reads
+   * a resource's fields, and not on the tools, whose words every client
+   * loads.
+   */
+  if (resource.modelType === ModelType.Database) {
+    const asks: string | null = describeWritesThatAskAPerson(resource.name);
+
+    if (asks) {
+      usage["asksAPerson"] = asks;
+    }
   }
 
   /*

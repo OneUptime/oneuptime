@@ -11,6 +11,12 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/MetricDescriptions/XcpNgMetricDescriptions";
 import { XCP_NG_SR_NEAR_FULL_PERCENT } from "../../../Types/Monitor/XcpNgAlertTemplates";
 import { XcpNgSeries } from "../../../Types/XcpNg/XcpNgTelemetry";
+import { XCP_NG_PATCH_CHECK_INTERVAL_MS } from "../../../Types/XcpNg/XcpNgPoolEvents";
+import {
+  XCP_NG_BACKUP_GRACE_SHARE,
+  XCP_NG_BACKUP_MIN_GRACE_SECONDS,
+} from "../../../Utils/XcpNg/XcpNgBackupOverdue";
+import { XO_POOL_FIELDS } from "../../../Utils/XcpNg/XenOrchestraRest";
 
 /*
  * The words behind every (i) on the XCP-ng pages. The shared rules make
@@ -54,8 +60,9 @@ describe("XCP-ng metric descriptions follow the house rules", () => {
     }
   });
 
-  test("the pages' every part has a text: thirty of them", () => {
-    expect(ALL).toHaveLength(30);
+  test("the pages' every part has a text: forty of them", () => {
+    // Thirty, and ten for what a probe reads beyond the metrics (#10997).
+    expect(ALL).toHaveLength(40);
   });
 
   test("the products are named as they name themselves, never shortened", () => {
@@ -215,5 +222,38 @@ describe("the lists say what each cell shows when there is nothing to report", (
     expect(D.hostStatus).toContain(
       "Unknown means the pool master could not reach it",
     );
+  });
+});
+
+describe("what a probe reads beyond the metrics says what the reading does", () => {
+  test("a VM is overdue after its interval and a quarter more, an hour at least, as the alert fires", () => {
+    expect(XCP_NG_BACKUP_GRACE_SHARE).toBe(0.25);
+    expect(XCP_NG_BACKUP_MIN_GRACE_SECONDS).toBe(60 * 60);
+    expect(D.backupsOverdue).toContain(
+      "plus a quarter of it (an hour at least)",
+    );
+    expect(D.backupsOverdue).toContain("The VM Not Backed Up alert");
+  });
+
+  test("missing patches are checked every six hours", () => {
+    expect(XCP_NG_PATCH_CHECK_INTERVAL_MS).toBe(6 * 60 * 60 * 1000);
+    expect(D.hostMissingPatches).toContain("every six hours");
+  });
+
+  test("only the pool's XAPI reports HA's plan: Xen Orchestra is not asked for it", () => {
+    expect(XO_POOL_FIELDS.split(",")).toEqual([
+      "id",
+      "name_label",
+      "HA_enabled",
+      "master",
+    ]);
+    expect(D.haHostFailuresToTolerate).toContain(
+      "Only the pool's XAPI reports them",
+    );
+    expect(D.haSurvivesHostFailure).toContain("which does not report the plan");
+  });
+
+  test("a control domain is never backed up, and never counted", () => {
+    expect(D.backupsLastOk).toContain("Control domains are never backed up");
   });
 });

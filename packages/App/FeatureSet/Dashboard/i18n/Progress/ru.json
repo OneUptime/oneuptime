@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8281
+    "keys": 67248,
+    "untranslated": 8269
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -49,6 +49,7 @@
     "DNSSEC",
     "DSR-1042",
     "Database Agent",
+    "Delta",
     "DeploymentConfigs",
     "Docker CLI",
     "Docker Compose",
@@ -181,6 +182,7 @@
     "Valkey",
     "Vital",
     "WAF",
+    "XAPI",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

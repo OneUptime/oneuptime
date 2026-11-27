@@ -1,0 +1,37 @@
+[
+  {
+    "cron": "0 10 * * *",
+    "enabled": true,
+    "jobId": "59af07fc-e82c-43b5-8137-026832f30166",
+    "name": "Every day at 10:00",
+    "timezone": "UTC",
+    "userId": "d558dd75-c928-45f6-b8e3-4375bdda59f8",
+    "id": "1c7cfc78-a006-4942-aab6-b4c825ce9a4e"
+  },
+  {
+    "cron": "0 11 * * 3",
+    "enabled": true,
+    "jobId": "d33f3dc1-92b4-469c-ad58-4c2a106a4721",
+    "name": "Wednesdays",
+    "timezone": "UTC",
+    "userId": "d558dd75-c928-45f6-b8e3-4375bdda59f8",
+    "id": "cf7249f8-d20b-494f-97f4-b1f32f94e780"
+  },
+  {
+    "cron": "30 10 * * *",
+    "enabled": true,
+    "jobId": "b50f95fd-f6b7-4027-87b6-6a02c7dcd5f5",
+    "timezone": "UTC",
+    "userId": "d558dd75-c928-45f6-b8e3-4375bdda59f8",
+    "id": "d1f79c6b-90f7-49f4-9adb-bcb85f236dea"
+  },
+  {
+    "cron": "0 0 1 * *",
+    "enabled": false,
+    "jobId": "e680c14c-ab52-45c8-bb0e-bd4ca12ea8f9",
+    "name": "Monthly, retired",
+    "timezone": "Europe/Paris",
+    "userId": "d558dd75-c928-45f6-b8e3-4375bdda59f8",
+    "id": "ada358a4-1087-4ad4-9863-42b68bd711c2"
+  }
+]

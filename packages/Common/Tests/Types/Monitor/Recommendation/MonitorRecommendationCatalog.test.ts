@@ -39,6 +39,7 @@ import {
 } from "../../../../Types/Monitor/RumAlertTemplates";
 import { getAllVMwareAlertTemplates } from "../../../../Types/Monitor/VMwareAlertTemplates";
 import { getAllXcpNgAlertTemplates } from "../../../../Types/Monitor/XcpNgAlertTemplates";
+import { getAllXcpNgEventAlertTemplates } from "../../../../Types/Monitor/XcpNgEventAlertTemplates";
 import {
   StorageArrayAlertTemplate,
   getAllStorageArrayAlertTemplates,
@@ -250,9 +251,14 @@ const MODULE_EXPECTATIONS: Array<ModuleExpectation> = [
   },
   {
     resourceType: MonitorRecommendationResourceType.XcpNg,
-    monitorTypes: [MonitorType.XcpNg],
-    templateCount: getAllXcpNgAlertTemplates().length,
-    contextFreeTemplateCount: getAllXcpNgAlertTemplates().length,
+    // Metric templates, and the Logs monitors over what XCP-ng says (#10997).
+    monitorTypes: [MonitorType.XcpNg, MonitorType.Logs],
+    templateCount:
+      getAllXcpNgAlertTemplates().length +
+      getAllXcpNgEventAlertTemplates().length,
+    contextFreeTemplateCount:
+      getAllXcpNgAlertTemplates().length +
+      getAllXcpNgEventAlertTemplates().length,
     identifierFieldName: "poolIdentifier",
   },
   {

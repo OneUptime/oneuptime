@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8315
+    "keys": 67248,
+    "untranslated": 8303
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -83,6 +83,7 @@
     "Data",
     "Database",
     "Database Agent",
+    "Delta",
     "DeploymentConfigs",
     "Desktop",
     "Diagram",
@@ -120,6 +121,7 @@
     "Florida",
     "Fluent Bit",
     "Format",
+    "Full",
     "GKE Autopilot",
     "Gateway",
     "Gemini for Google Workspace",
@@ -364,6 +366,7 @@
     "Web",
     "Web, iOS, Android, React Native",
     "Webhook",
+    "XAPI",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",
     "[\"iframe.payment\", \".id-document\"]",

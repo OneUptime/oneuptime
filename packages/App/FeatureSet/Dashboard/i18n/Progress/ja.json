@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 1442
+    "keys": 67248,
+    "untranslated": 1434
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -300,6 +300,7 @@
     "Webhook",
     "Webhook URL",
     "WhatsApp: ",
+    "XAPI",
     "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

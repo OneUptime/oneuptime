@@ -3,6 +3,7 @@ import DatabaseService from "../../Services/DatabaseService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import logger from "../Logger";
 import VMwareProbeCollectionStore from "../VMware/VMwareProbeCollectionStore";
+import XcpNgProbeEvents from "./XcpNgProbeEvents";
 import XcpNgConnection from "../../../Models/DatabaseModels/XcpNgConnection";
 import { SubscriptionStatusUtil } from "../../../Types/Billing/SubscriptionStatus";
 import ColumnLength from "../../../Types/Database/ColumnLength";
@@ -201,6 +202,8 @@ export default class XcpNgProbeCollectionStore {
       },
       select: {
         _id: true,
+        // Whose pools' events the job reads (#10997).
+        projectId: true,
         name: true,
         connectionType: true,
         address: true,
@@ -236,6 +239,26 @@ export default class XcpNgProbeCollectionStore {
         jobs.push(job);
       }
     }
+
+    /*
+     * Where reading each connection's pools' alarms and backups stands
+     * (#10997): the server keeps it, so whichever probe reads next goes on
+     * from there.
+     */
+    const projectIdByConnectionId: Map<string, ObjectID> = new Map();
+    for (const connection of connections) {
+      if (connection._id && connection.projectId) {
+        projectIdByConnectionId.set(
+          connection._id.toString(),
+          connection.projectId,
+        );
+      }
+    }
+    await XcpNgProbeEvents.attachEventsJobs({
+      jobs: jobs,
+      projectIdByConnectionId: projectIdByConnectionId,
+      now: currentDate,
+    });
 
     return jobs;
   }

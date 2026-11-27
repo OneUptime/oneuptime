@@ -9,6 +9,7 @@ import AlertService from "../../../Server/Services/AlertService";
 import AutoRemediationSuggestionService from "../../../Server/Services/AutoRemediationSuggestionService";
 import CephClusterService from "../../../Server/Services/CephClusterService";
 import OpenStackCloudService from "../../../Server/Services/OpenStackCloudService";
+import XcpNgPoolService from "../../../Server/Services/XcpNgPoolService";
 import DatabaseServerService from "../../../Server/Services/DatabaseServerService";
 import DockerHostService from "../../../Server/Services/DockerHostService";
 import DockerSwarmClusterService from "../../../Server/Services/DockerSwarmClusterService";
@@ -340,6 +341,14 @@ const KINDS: Array<Kind> = [
     editPermission: Permission.EditOpenStackCloud,
     subjectRelation: "openStackClouds",
     sentenceName: "OpenStack cloud",
+  },
+  {
+    resourceType: AiResourceType.XcpNgPool,
+    service: XcpNgPoolService,
+    readPermission: Permission.ReadXcpNgPool,
+    editPermission: Permission.EditXcpNgPool,
+    subjectRelation: "xcpNgPools",
+    sentenceName: "XCP-ng pool",
   },
 ];
 
@@ -1205,7 +1214,7 @@ describe("ResourceAiAccessAPI", () => {
       );
 
       expect((result.thrownToNext as Error).message).toBe(
-        "resourceType is required and must be one of DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host, AwsAccount, AzureSubscription, GoogleCloudProject, OpenStackCloud.",
+        "resourceType is required and must be one of DockerHost, PodmanHost, DockerSwarmCluster, ProxmoxCluster, VMwareVCenter, CephCluster, DatabaseServer, Host, AwsAccount, AzureSubscription, GoogleCloudProject, OpenStackCloud, XcpNgPool.",
       );
     });
   });
@@ -3737,6 +3746,7 @@ describe("ResourceAiAccessAPI", () => {
       [AiResourceType.AzureSubscription]: "cloud.account.id",
       [AiResourceType.GoogleCloudProject]: "cloud.account.id",
       [AiResourceType.OpenStackCloud]: "openstack.cloud.name",
+      [AiResourceType.XcpNgPool]: "xcp_ng.pool.id",
     };
 
     const INSIGHTS: AiActivityInsights = {

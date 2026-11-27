@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8328
+    "keys": 67248,
+    "untranslated": 8316
   },
   "sameAsEnglish": [
     " is",
@@ -153,6 +153,7 @@
     "Deadline: {{date}}",
     "Deadlocks",
     "Debug",
+    "Delta",
     "DeploymentConfigs",
     "Desktop",
     "Details",
@@ -375,6 +376,7 @@
     "PVC",
     "Passkeys",
     "Passthrough",
+    "Patches",
     "Path traversal",
     "Payload",
     "Pebibytes",
@@ -625,6 +627,7 @@
     "Workflows ({{count}})",
     "Workloads",
     "Workspaces",
+    "XAPI",
     "Zone",
     "Zones",
     "[\".customer-name\", \"#invoice-total\"]",

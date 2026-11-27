@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 66171,
-    "untranslated": 8056
+    "keys": 67248,
+    "untranslated": 8044
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -211,6 +211,7 @@
     "Vital",
     "WAF",
     "WAF ID",
+    "XAPI",
     "Zabbix URL",
     "[\".customer-name\", \"#invoice-total\"]",
     "[\"ResizeObserver loop\", \"third-party-tag\\\\.js\"]",

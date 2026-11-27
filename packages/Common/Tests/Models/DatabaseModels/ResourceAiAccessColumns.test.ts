@@ -11,6 +11,7 @@ import KubernetesCluster from "../../../Models/DatabaseModels/KubernetesCluster"
 import PodmanHost from "../../../Models/DatabaseModels/PodmanHost";
 import ProxmoxCluster from "../../../Models/DatabaseModels/ProxmoxCluster";
 import VMwareVCenter from "../../../Models/DatabaseModels/VMwareVCenter";
+import XcpNgPool from "../../../Models/DatabaseModels/XcpNgPool";
 import DatabaseRequestType from "../../../Server/Types/BaseDatabase/DatabaseRequestType";
 import ColumnPermissions from "../../../Server/Types/Database/Permissions/ColumnPermission";
 import TablePermission from "../../../Server/Types/Database/Permissions/TablePermission";
@@ -153,6 +154,13 @@ const CASES: Array<ResourceCase> = [
     noun: "OpenStack cloud",
     edit: Permission.EditOpenStackCloud,
     read: Permission.ReadOpenStackCloud,
+  },
+  {
+    type: AiResourceType.XcpNgPool,
+    model: XcpNgPool,
+    noun: "XCP-ng pool",
+    edit: Permission.EditXcpNgPool,
+    read: Permission.ReadXcpNgPool,
   },
 ];
 
