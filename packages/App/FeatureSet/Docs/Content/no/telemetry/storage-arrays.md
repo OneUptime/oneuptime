@@ -18,6 +18,7 @@ Storage Arrays er et produkt som fungerer likt for alle leverandører. Det støt
 | **Pure Storage FlashArray**, Purity//FA 6.7 og nyere | `purestorage.flasharray` | Arrayets eget OpenMetrics-endepunkt (`https://<array>/metrics/...?namespace=purefa`): ingenting kjører ved siden av collectoren | `otel-collector-config.yaml` (standard) |
 | **Pure Storage FlashArray**, eldre Purity//FA | `purestorage.flasharray` | Pures FlashArray OpenMetrics-eksportør, som den samme Compose-filen kjører som tjenesten `pure-fa-exporter` | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pures FlashBlade OpenMetrics-eksportør, som den samme Compose-filen kjører som tjenesten `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Dells PowerStore Metrics Exporter, som den samme Compose-filen bygger og kjører som tjenesten `powerstore-exporter`; klyngens varsler kommer via syslog til tjenesten `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
 
 Pure Storage endret navn til **Everpure** i februar 2026. FlashArray, FlashBlade og Purity beholdt navnene sine, og det gjorde også målingene `purefa_*` og `purefb_*`, så alt på denne siden gjelder arrayer som selges under begge navnene.
 
@@ -27,6 +28,10 @@ flowchart TB
     collector -->|"eldre FlashArray,<br/>FlashBlade"| exporter["Pures eksportør"]
     exporter -->|"API-token"| array
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 Én agent overvåker ett array: Kjør én agent per array (se [Overvåke flere arrayer](#overvåke-flere-arrayer)). Arrayet registrerer seg med de første dataene sine, under navnet agenten stempler på hver måling som `storage.array.name`.
@@ -35,6 +40,7 @@ flowchart TB
 
 - Docker Engine 20.10 eller nyere med Docker Compose v2-pluginen, på en maskin som når arrayets administrasjonsgrensesnitt over HTTPS (TCP 443).
 - En administratorkonto på arrayet, for å opprette en bruker med den innebygde rollen **readonly** og et API-token for den.
+- For en Dell PowerStore en x86-64-maskin (Dell bygger eksportøren sin bare for x86-64) og en PowerStore-bruker for agenten: se [Dell PowerStore](#dell-powerstore).
 - En inntaksnøkkel. Opprett en under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler** og kopier verdien.
 
 ### Hvor du kjører agenten
@@ -112,7 +118,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+For en Dell PowerStore laster du også ned `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` og `powerstore-syslog.yaml`, setter `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` og `COMPOSE_PROFILES=powerstore`, og fyller inn `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` og `POWERSTORE_PASSWORD`, passordet i enkle anførselstegn.
 
 For en FlashArray med eldre Purity//FA setter du `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` og `COMPOSE_PROFILES=flasharray-exporter`. For en FlashBlade setter du `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` og `COMPOSE_PROFILES=flashblade`, og fyller inn `PURE_FB_ENDPOINT` og `PURE_FB_API_TOKEN` i stedet for paret `PURE_FA_*`. Start agenten:
 
@@ -139,6 +154,16 @@ Everything is ready. Begin running and processing data.
 Åpne **Produkter → Infrastruktur → Lagringsarrayer → Alle lagringsarrayer**. Etter den første scrapen (omtrent ett minutt) er arrayet der med kapasitet, ytelse, åpne varsler og maskinvare. Volumer, verter og pods følger innen 2 minutter, en FlashBlades filsystemer og buckets innen 5, og FlashArray-kataloger innen 30. Arrayets side **Topologi** tegner vertene, volumene, filsystemene og maskinvaren på ett kart: se [Topologi](/docs/telemetry/topology#åpne-en-ressurs-sitt-eget-kart).
 :::
 
+## Dell PowerStore
+
+Agenten leser en PowerStore-klynge gjennom Dells PowerStore Metrics Exporter, versjon `powerstore-metrics-exporter_v1.0.3`. Dell publiserer den som binærfil, ikke som image, så tjenesten `powerstore-exporter` bygger ved første oppstart imaget Dell dokumenterer fra `powerstore-exporter.Dockerfile` og kontrollerer binærfilens SHA-256; det bygget trenger `quay.io` og `github.com` én gang.
+
+Dells eksportør logger på med brukernavn og passord, siden PowerStore ikke har API-tokener. Legg i PowerStore Manager under _Settings → Users_ til en lokal bruker bare for agenten, med rollen **Storage Operator**: eksportøren leser ytelsen fra PowerStores femminutters arkiv med massemålinger, som den slår på selv og som PowerStoreOS 4.1 og nyere krever, og ifølge Dells README kan ikke rollen Operator slå det på. På en eldre PowerStoreOS holder den skrivebeskyttede rollen **Operator** med `POWERSTORE_BULK_METRICS=false`. Bare eksportøren leser passordet, fra `.env`.
+
+Dells eksportør leser ingen varsler, så klyngen sender sine egne: tjenesten `powerstore-syslog` tar imot fjern-sysloggen på port 5514, via TCP og UDP, og legger hver linje på arrayets side **Logger** med PowerStores post i attributter (`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`) og en alvorlighetsgrad fra Dells hendelseskoder (`powerstore.alert.severity`). Åpne _Settings → Security → Remote Logging_ i PowerStore Manager, legg til denne maskinen på port 5514, og åpne porten i brannmuren. Syslog over TLS på port 6514 er beskrevet i `powerstore-syslog.yaml`.
+
+Dells eksportør rapporterer ingen verter og ingen replikeringsøkter, så denne versjonen har ingen.
+
 ## Miljøvariabler
 
 Installasjonsskriptet skriver disse til `/opt/oneuptime-storage-array-agent/.env`; en Docker Compose-installasjon leser dem fra `.env` ved siden av `docker-compose.yml`. Etter at du har endret en, kjør `docker compose up -d` i den mappen.
@@ -155,6 +180,13 @@ Installasjonsskriptet skriver disse til `/opt/oneuptime-storage-array-agent/.env
 | `PURE_FA_API_TOKEN` | FlashArray | API-tokenet til FlashArray-brukeren med rollen readonly. |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBladens administrasjonsadresse: et vertsnavn eller en IP, uten `https://`. |
 | `PURE_FB_API_TOKEN` | FlashBlade | API-tokenet til FlashBlade-brukeren med rollen readonly. |
+| `POWERSTORE_ENDPOINT` | PowerStore | Administrasjonsadressen til PowerStore-klyngen: et vertsnavn eller en IP, uten `https://`. |
+| `POWERSTORE_USERNAME` | PowerStore | PowerStore-brukeren Dells eksportør logger på som. |
+| `POWERSTORE_PASSWORD` | PowerStore | Passordet til den brukeren. Bare eksportøren leser det. |
+| `POWERSTORE_BULK_METRICS` | Nei | `true` leser ytelsen fra PowerStores arkiv med massemålinger; `false` leser hvert objekt for seg. Standard er `true`. |
+| `POWERSTORE_API_VERSION` | Nei | `v3` for PowerStoreOS 3.6 og nyere, eller `v1`. Standard er `v3`. |
+| `POWERSTORE_REQUEST_LIMIT` | Nei | Hvor mange forespørsler eksportøren sender klyngen samtidig. Standard er `16`. |
+| `POWERSTORE_SYSLOG_PORT` | Nei | Porten denne maskinen tar imot klyngens syslog på, via TCP og UDP. Standard er `5514`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Nei | `true` godtar arrayets selvsignerte sertifikat på det native endepunktet; `false` verifiserer det. Standard er `true`. Pures eksportører verifiserer aldri arrayets sertifikat, så det gjelder ikke for dem. |
 
 ## Slik scraper agenten
@@ -163,6 +195,7 @@ Installasjonsskriptet skriver disse til `/opt/oneuptime-storage-array-agent/.env
 - **Hver jobb merker seriene sine med `scrape_endpoint: <endpoint>`.** Hvert endepunkt eksporterer også `purefa_info` eller `purefb_info`, så OneUptime vet hvilke familier en batch er den fullstendige listen over: Det er slik et slettet volum, en vert, en pod, et filsystem eller en bucket forlater inventaret i stedet for å bli hengende. Behold etikettene slik de leveres.
 - **Latens per volum og per vert beholder tre dimensjoner.** Hvert volum og hver vert eksporterer latensen sin i opptil seksten `dimension`-er. En regel `metric_relabel_configs` beholder `usec_per_read_op`, `usec_per_write_op` og `usec_per_mirrored_write_op` og dropper oppdelingen etter QoS-hastighetsgrense, kø, SAN og tjenestetid, som mangedobler seriene i et stort array. Den arrayomfattende oppdelingen på `purefa_array_performance_latency_usec` beholdes. Slett regelen for også å beholde oppdelingen per volum.
 - **API-tokenet er et Bearer-token.** Den native konfigurasjonen sender det til selve arrayet; eksportørkonfigurasjonene sender det bare til eksportøren over Compose-nettverket, og eksportørenes porter publiseres aldri.
+- **En PowerStore hvert 5. minutt.** Dells eksportør leverer hver del av klyngen på `/metrics/<cluster>/<part>`: konfigurasjonen leser `cluster` hvert 60. sekund, hjerteslaget, og `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas` og `file` hvert 5. minutt, siden PowerStore beregner dem i femminuttersprøver.
 - **Ingen `send_batch_max_size`.** OneUptime bygger inventaret på nytt fra én hel scrape per forespørsel, så den medfølgende prosessoren `batch` deler aldri en scrape over flere eksporter. Behold batch-innstillingene slik de leveres.
 
 ## Hva agenten samler inn
@@ -179,8 +212,13 @@ Pures semantiske konvensjoner deles av det native FlashArray-endepunktet og begg
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBladens navn, Purity-versjon og system-ID; kapasitet og datareduksjon; antall åpne varsler; arrayets tilstand; siden **Maskinvare** |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | Siden **Filsystemer**: tildelt og brukt plass, datareduksjon, latens, IOPS og båndbredde per filsystem |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | Siden **Buckets**: plass, kvote, antall objekter og ytelse per bucket, gruppert etter konto |
+| PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | Klyngens navn og tilstand; siden **Appliances**: kapasitet, datareduksjon, forsinkelse, IOPS og båndbredde for hver appliance |
+| PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | Siden **Maskinvare**: noder, vifter, strømforsyninger, batterier, disker og frontendporter, hver med sin appliance |
+| PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | Sidene **Volumer**, **Volumgrupper**, **NAS-servere** og **Filsystemer** |
 
 Kolonnen **Helse** under **Alle lagringsarrayer** leser arrayets egne varsler og maskinvare i de nyeste dataene: **Kritisk** så lenge det rapporterer et åpent kritisk varsel, eller en maskinvarekomponent, disk eller kontroller som er kritisk, har feilet, mangler eller er usunn; **Advarsel** så lenge det rapporterer et åpent advarselsvarsel, eller en degradert eller ukjent komponent; ellers **OK**; og **Ukjent** mens agenten er frakoblet. Arrayets **Oversikt** vurderer mer, som neste avsnitt sier. I monitorkriterier får arrayets attributter prefikset `resource.` (`resource.storage.array.name`, `resource.storage.system`), mens datapunktetikettene står uten prefiks (`name`, `host`, `dimension`, `space`).
+
+Helsen til en PowerStore er maskinvarens, siden varslene kommer som logger. Agenten beregner selv `powerstore_cap_physical_used_percent` og `powerstore_filesystem_logical_used_percent`, og leser tilstanden til en node som 1 mens den er Healthy.
 
 ## Hva arrayets sider viser
 
@@ -194,7 +232,11 @@ Arrayets **Oversikt** sier tilstanden, **Feilfri**, **Redusert** eller **Ikke fe
 
 Listene **Verter**, **Replikering** og **Filsystemer** sier tilstanden til hver del etter de samme reglene, med årsaken under. Den egne siden til en vert og et filsystem sier hva ved den som trenger oppmerksomhet og hvilke av arrayets varsler som overvåker den, med ett steg for å slå på resten, og siden til hver del, også et volums og en buckets, sier hva som er åpent på den. Mens agenten er frakoblet, viser tilstanden **Tilstand ukjent**: arrayets siste rapport er ikke lenger sannheten. Hver grense ovenfor er den varselmalen utløses ved, slik [lagringsarray-monitoren](/docs/monitor/storage-array-monitor) lister dem.
 
+På en PowerStore viser fanene **Appliances**, **Volumgrupper** og **NAS-servere** delene bare en PowerStore har, og siden **Maskinvare** navngir appliancen til hver del, siden hver appliance navngir delene sine likt.
+
 ## Valgfritt — Send arrayets syslog
+
+Syslog-collectoren til en PowerStore kjører slik den leveres (se [Dell PowerStore](#dell-powerstore)): denne delen gjelder Pures arrayer.
 
 Som standard sender agenten bare målinger, så arrayets side **Logger** forblir tom. Arrayer videresender varslene og revisjonshendelsene sine som syslog, og hver medfølgende collector-konfigurasjon har et utkommentert mottakerpar `syslog` (TCP og UDP på port 5514, RFC 3164), koblet til en utkommentert pipeline `logs` som stempler `storage.array.name`, så loggene havner på arrayet ditt.
 
@@ -237,6 +279,8 @@ Collectoren leser konfigurasjonen bare når den starter: Kjør `docker compose r
 
 Én agent leser ett array. For å overvåke flere fra samme maskin installerer du hver i sin egen mappe med sin egen `.env`, for eksempel `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, og gir hver sitt eget `container_name` i sin `docker-compose.yml` (for eksempel `oneuptime-storage-array-agent-fa02`): To containere kan ikke dele et navn. Send mappen til diagnoseskriptet med `-d`.
 
+En annen PowerStore-agent trenger også sin egen syslog-port: sett `POWERSTORE_SYSLOG_PORT`, for eksempel `5515`, i dens `.env`.
+
 ## Kjør som en systemd-tjeneste
 
 For å starte agenten sammen med maskinen og starte den på nytt når den feiler, installer systemd-enheten dens. Den forutsetter at agenten ligger i `/opt/oneuptime-storage-array-agent`, der installasjonsskriptet legger den:
@@ -269,6 +313,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+En PowerStore-agent laster også ned `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` og `powerstore-syslog.yaml` på nytt; `docker compose up` bygger eksportørens image på nytt når en ny versjon flytter taggen.
+
 ## Avinstallere agenten
 
 ```bash
@@ -277,6 +323,8 @@ docker compose down
 ```
 
 Slett deretter den skrivebeskyttede brukeren og API-tokenet dens på arrayet hvis du ikke lenger trenger dem.
+
+På en PowerStore kjører du `docker compose --profile powerstore down`, så også eksportøren og syslog-collectoren stopper.
 
 ## Feilsøking
 
@@ -315,6 +363,10 @@ Arrayer presenterer som standard et selvsignert sertifikat, som ingen Docker-ima
 
 :::details pure-fa-exporter eller pure-fb-exporter kan ikke slås opp
 Eksportøren kjører ikke: `COMPOSE_PROFILES` må samsvare med `STORAGE_ARRAY_COLLECTOR_CONFIG` (`flasharray-exporter` for FlashArray-eksportørkonfigurasjonen, `flashblade` for FlashBlade-konfigurasjonen). Rett `.env` og kjør `docker compose up -d`; `docker compose ps` viser da eksportøren.
+:::
+
+:::details En PowerStore sender ingenting
+Les eksportørens logg med `docker compose logs powerstore-exporter`: en `401` betyr feil brukernavn eller passord, og en `403` på `latest_five_min_metrics` betyr at brukerens rolle ikke kan slå på arkivet med massemålinger (gi den **Storage Operator**, eller sett `POWERSTORE_BULK_METRICS=false` på en PowerStoreOS eldre enn 4.1). Eksportøren trenger et minutt etter oppstart før den svarer. Ingen varsler på siden **Logger**: sjekk klyngens innstillinger for _Remote Logging_, brannmuren på port 5514 og `docker compose logs powerstore-syslog`.
 :::
 
 :::details Slettede volumer eller verter blir værende i inventaret

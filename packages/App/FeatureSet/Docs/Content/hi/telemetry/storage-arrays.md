@@ -18,6 +18,7 @@ Storage Arrays एक ऐसा उत्पाद है जो हर वे�
 | **Pure Storage FlashArray**, Purity//FA 6.7 और बाद का | `purestorage.flasharray` | ऐरे का अपना OpenMetrics एंडपॉइंट (`https://<array>/metrics/...?namespace=purefa`): कलेक्टर के बगल में कुछ नहीं चलता | `otel-collector-config.yaml` (डिफ़ॉल्ट) |
 | **Pure Storage FlashArray**, पुराना Purity//FA | `purestorage.flasharray` | Pure का FlashArray OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fa-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure का FlashBlade OpenMetrics एक्सपोर्टर, जिसे वही Compose फ़ाइल `pure-fb-exporter` सेवा के रूप में चलाती है | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Dell का PowerStore Metrics Exporter, जिसे वही Compose फ़ाइल `powerstore-exporter` सेवा के रूप में बनाती और चलाती है; क्लस्टर के अलर्ट syslog से उसकी `powerstore-syslog` सेवा पर आते हैं | `otel-collector-config.powerstore.yaml` |
 
 Pure Storage ने फ़रवरी 2026 में अपना नाम बदलकर **Everpure** कर लिया। FlashArray, FlashBlade और Purity के नाम वही रहे, और `purefa_*` और `purefb_*` मेट्रिक्स के भी, इसलिए इस पेज की हर बात दोनों में से किसी भी नाम से बेचे गए ऐरे पर लागू होती है।
 
@@ -27,6 +28,10 @@ flowchart TB
     collector -->|"पुराना FlashArray,<br/>FlashBlade"| exporter["Pure का एक्सपोर्टर"]
     exporter -->|"API टोकन"| array
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 एक एजेंट एक ऐरे की निगरानी करता है: हर ऐरे के लिए एक एजेंट चलाएँ ([कई ऐरे की निगरानी](#कई-ऐरे-की-निगरानी) देखें)। ऐरे अपने पहले डेटा के साथ खुद को रजिस्टर करता है, उस नाम से जिसे एजेंट हर मेट्रिक पर `storage.array.name` के रूप में लगाता है।
@@ -35,6 +40,7 @@ flowchart TB
 
 - Docker Compose v2 प्लगइन के साथ Docker Engine 20.10 या बाद का, ऐसी मशीन पर जो HTTPS (TCP 443) पर ऐरे के प्रबंधन इंटरफ़ेस तक पहुँच सके।
 - ऐरे पर एक एडमिनिस्ट्रेटर खाता, ताकि बिल्ट-इन **readonly** भूमिका वाला एक उपयोगकर्ता और उसके लिए एक API टोकन बनाया जा सके।
+- Dell PowerStore के लिए, एक x86-64 मशीन (Dell अपना एक्सपोर्टर केवल x86-64 के लिए बनाता है) और एजेंट के लिए एक PowerStore उपयोगकर्ता: देखें [Dell PowerStore](#dell-powerstore)।
 - एक इंजेशन कुंजी। **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** के अंतर्गत एक बनाएँ और उसका मान कॉपी करें।
 
 ### एजेंट कहाँ चलाएँ
@@ -112,7 +118,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+Dell PowerStore के लिए `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` और `powerstore-syslog.yaml` भी डाउनलोड करें, `STORAGE_SYSTEM=dell.powerstore`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` और `COMPOSE_PROFILES=powerstore` सेट करें, और `POWERSTORE_ENDPOINT`, `POWERSTORE_USERNAME` और `POWERSTORE_PASSWORD` भरें, पासवर्ड सिंगल कोट्स में।
 
 पुराने Purity//FA वाले FlashArray के लिए `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` और `COMPOSE_PROFILES=flasharray-exporter` सेट करें। FlashBlade के लिए `STORAGE_SYSTEM=purestorage.flashblade`, `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` और `COMPOSE_PROFILES=flashblade` सेट करें, और `PURE_FB_ENDPOINT` और `PURE_FB_API_TOKEN` भरें (`PURE_FA_*` जोड़ी के बजाय)। एजेंट शुरू करें:
 
@@ -139,6 +154,16 @@ Everything is ready. Begin running and processing data.
 **उत्पाद → बुनियादी ढांचा → स्टोरेज ऐरे → सभी स्टोरेज ऐरे** खोलें। पहले स्क्रैप के बाद (लगभग एक मिनट) ऐरे अपनी क्षमता, परफ़ॉर्मेंस, खुले अलर्ट और हार्डवेयर के साथ वहाँ होता है। वॉल्यूम, होस्ट और पॉड 2 मिनट के भीतर आते हैं, FlashBlade के फ़ाइल सिस्टम और बकेट 5 मिनट के भीतर, और FlashArray की डायरेक्टरी 30 मिनट के भीतर। ऐरे का **टोपोलॉजी** पेज उसके होस्ट, वॉल्यूम, फ़ाइल सिस्टम और हार्डवेयर एक मैप पर दिखाता है: देखें [टोपोलॉजी](/docs/telemetry/topology#किसी-संसाधन-का-अपना-मैप-खोलें)।
 :::
 
+## Dell PowerStore
+
+एजेंट Dell के PowerStore Metrics Exporter, रिलीज़ `powerstore-metrics-exporter_v1.0.3`, के ज़रिए PowerStore क्लस्टर पढ़ता है। Dell इसे इमेज नहीं, बाइनरी के रूप में प्रकाशित करता है, इसलिए `powerstore-exporter` सेवा पहली बार शुरू होने पर `powerstore-exporter.Dockerfile` से Dell की दस्तावेज़ित इमेज बनाती है और बाइनरी का SHA-256 जाँचती है; उस बिल्ड को एक बार `quay.io` और `github.com` चाहिए।
+
+PowerStore में API टोकन नहीं होते, इसलिए Dell का एक्सपोर्टर उपयोगकर्ता नाम और पासवर्ड से लॉग इन करता है। PowerStore Manager में _Settings → Users_ के अंतर्गत केवल एजेंट के लिए एक लोकल उपयोगकर्ता जोड़ें, **Storage Operator** भूमिका के साथ: एक्सपोर्टर प्रदर्शन PowerStore के पाँच मिनट के बल्क मेट्रिक्स आर्काइव से पढ़ता है, जिसे वह खुद चालू करता है और जो PowerStoreOS 4.1 और बाद के संस्करणों में ज़रूरी है, और Dell का README कहता है कि Operator भूमिका इसे चालू नहीं कर सकती। पुराने PowerStoreOS पर, `POWERSTORE_BULK_METRICS=false` के साथ केवल-पढ़ने वाली **Operator** भूमिका काफ़ी है। पासवर्ड केवल एक्सपोर्टर `.env` से पढ़ता है।
+
+Dell का एक्सपोर्टर कोई अलर्ट नहीं पढ़ता, इसलिए क्लस्टर अपने अलर्ट खुद भेजता है: `powerstore-syslog` सेवा पोर्ट 5514 पर, TCP और UDP से, उसका रिमोट syslog लेती है और हर लाइन को ऐरे के **लॉग** पेज पर रखती है, PowerStore के रिकॉर्ड को एट्रिब्यूट्स (`powerstore.alert.id`, `powerstore.alert.state`, `powerstore.event.code`) में और Dell के इवेंट कोड से निकली गंभीरता (`powerstore.alert.severity`) के साथ। PowerStore Manager में _Settings → Security → Remote Logging_ खोलें, इस मशीन को पोर्ट 5514 पर जोड़ें, और इसके फ़ायरवॉल में वह पोर्ट खोलें। पोर्ट 6514 पर TLS के ज़रिए syslog `powerstore-syslog.yaml` में बताया गया है।
+
+Dell का एक्सपोर्टर न होस्ट रिपोर्ट करता है न रेप्लिकेशन सेशन, इसलिए इस संस्करण में दोनों में से कोई नहीं है।
+
 ## एनवायरनमेंट वेरिएबल
 
 इंस्टॉल स्क्रिप्ट इन्हें `/opt/oneuptime-storage-array-agent/.env` में लिखती है; Docker Compose इंस्टॉल इन्हें `.env` से पढ़ता है, जो `docker-compose.yml` के बगल में है। किसी एक को बदलने के बाद उस फ़ोल्डर में `docker compose up -d` चलाएँ।
@@ -155,6 +180,13 @@ Everything is ready. Begin running and processing data.
 | `PURE_FA_API_TOKEN` | FlashArray | readonly भूमिका वाले FlashArray उपयोगकर्ता का API टोकन। |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade का प्रबंधन पता: होस्ट नाम या IP, `https://` के बिना। |
 | `PURE_FB_API_TOKEN` | FlashBlade | readonly भूमिका वाले FlashBlade उपयोगकर्ता का API टोकन। |
+| `POWERSTORE_ENDPOINT` | PowerStore | PowerStore क्लस्टर का मैनेजमेंट पता: होस्ट नाम या IP, `https://` के बिना। |
+| `POWERSTORE_USERNAME` | PowerStore | वह PowerStore उपयोगकर्ता जिसके रूप में Dell का एक्सपोर्टर लॉग इन करता है। |
+| `POWERSTORE_PASSWORD` | PowerStore | उस उपयोगकर्ता का पासवर्ड। इसे केवल एक्सपोर्टर पढ़ता है। |
+| `POWERSTORE_BULK_METRICS` | नहीं | `true` प्रदर्शन PowerStore के बल्क मेट्रिक्स आर्काइव से पढ़ता है; `false` हर ऑब्जेक्ट को एक-एक करके पढ़ता है। डिफ़ॉल्ट `true` है। |
+| `POWERSTORE_API_VERSION` | नहीं | PowerStoreOS 3.6 और बाद के लिए `v3`, वरना `v1`। डिफ़ॉल्ट `v3` है। |
+| `POWERSTORE_REQUEST_LIMIT` | नहीं | एक्सपोर्टर एक साथ क्लस्टर को कितने अनुरोध भेजता है। डिफ़ॉल्ट `16` है। |
+| `POWERSTORE_SYSLOG_PORT` | नहीं | वह पोर्ट जिस पर यह मशीन क्लस्टर का syslog लेती है, TCP और UDP। डिफ़ॉल्ट `5514` है। |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | नहीं | `true` नेटिव एंडपॉइंट पर ऐरे का सेल्फ़-साइन्ड सर्टिफ़िकेट स्वीकार करता है; `false` उसे सत्यापित करता है। डिफ़ॉल्ट `true` है। Pure के एक्सपोर्टर ऐरे का सर्टिफ़िकेट कभी सत्यापित नहीं करते, इसलिए यह उन पर लागू नहीं होता। |
 
 ## एजेंट कैसे स्क्रैप करता है
@@ -163,6 +195,7 @@ Everything is ready. Begin running and processing data.
 - **हर जॉब अपनी सीरीज़ पर `scrape_endpoint: <endpoint>` लेबल लगाता है।** हर एंडपॉइंट `purefa_info` या `purefb_info` भी एक्सपोर्ट करता है, इसलिए OneUptime जानता है कि कोई बैच किन फ़ैमिली की पूरी सूची है: इसी तरह हटाया गया वॉल्यूम, होस्ट, पॉड, फ़ाइल सिस्टम या बकेट बना रहने के बजाय इन्वेंटरी से निकल जाता है। लेबल वैसे ही रखें जैसे वे आते हैं।
 - **प्रति-वॉल्यूम और प्रति-होस्ट लेटेंसी तीन आयाम रखती है।** हर वॉल्यूम और होस्ट अपनी लेटेंसी अधिकतम सोलह `dimension` में एक्सपोर्ट करता है। एक `metric_relabel_configs` नियम `usec_per_read_op`, `usec_per_write_op` और `usec_per_mirrored_write_op` रखता है और QoS दर सीमा, क्यू, SAN और सेवा-समय का ब्योरा हटा देता है, जो बड़े ऐरे की सीरीज़ को कई गुना कर देता है। `purefa_array_performance_latency_usec` पर पूरे ऐरे का ब्योरा रखा जाता है। प्रति-वॉल्यूम ब्योरा भी रखने के लिए नियम हटा दें।
 - **API टोकन एक Bearer टोकन है।** नेटिव कॉन्फ़िगरेशन इसे सीधे ऐरे को भेजता है; एक्सपोर्टर कॉन्फ़िगरेशन इसे सिर्फ़ Compose नेटवर्क पर एक्सपोर्टर को भेजते हैं, और एक्सपोर्टर के पोर्ट कभी प्रकाशित नहीं होते।
+- **PowerStore हर 5 मिनट।** Dell का एक्सपोर्टर क्लस्टर के हर हिस्से को `/metrics/<cluster>/<part>` पर देता है: कॉन्फ़िग `cluster` को हर 60 सेकंड पढ़ता है, जो उसकी हार्टबीट है, और `appliance`, `capacity`, `hardware`, `port`, `volume`, `volumeGroup`, `nas` और `file` को हर 5 मिनट, क्योंकि PowerStore इन्हें पाँच मिनट के सैंपल में निकालता है।
 - **कोई `send_batch_max_size` नहीं।** OneUptime हर अनुरोध के एक पूरे स्क्रैप से इन्वेंटरी फिर से बनाता है, इसलिए साथ आने वाला `batch` प्रोसेसर किसी स्क्रैप को कभी कई एक्सपोर्ट में नहीं बाँटता। batch सेटिंग्स को वैसे ही रखें जैसी वे आती हैं।
 
 ## एजेंट क्या इकट्ठा करता है
@@ -179,8 +212,13 @@ Pure की सिमैंटिक कन्वेंशन FlashArray के 
 | FlashBlade `/metrics/array` | `purefb_info`, `purefb_alerts_open`, `purefb_array_space_*`, `purefb_array_performance_*`, `purefb_hardware_health` | FlashBlade का नाम, Purity वर्शन और सिस्टम ID; क्षमता और डेटा रिडक्शन; खुले अलर्ट की गिनती; ऐरे का स्वास्थ्य; **हार्डवेयर** पेज |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`, `purefb_file_systems_performance_*` | **फ़ाइल सिस्टम** पेज: प्रोविज़न किया गया और उपयोग किया गया स्पेस, डेटा रिडक्शन, प्रति फ़ाइल सिस्टम लेटेंसी, IOPS और बैंडविड्थ |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`, `purefb_buckets_quota_space_bytes`, `purefb_buckets_object_count`, `purefb_buckets_performance_*`, `purefb_object_store_accounts_*` | **बकेट** पेज: प्रति बकेट स्पेस, कोटा, ऑब्जेक्ट की गिनती और परफ़ॉर्मेंस, खाते के अनुसार समूहित |
+| PowerStore `cluster`, `appliance`, `capacity` | `powerstore_cluster`, `powerstore_metro_*`, `powerstore_appliance`, `powerstore_perf_*`, `powerstore_cap_*` | क्लस्टर का नाम और स्थिति; **अप्लायंस** पेज: हर अप्लायंस की क्षमता, डेटा रिडक्शन, लेटेंसी, IOPS और बैंडविड्थ |
+| PowerStore `hardware`, `port` | `powerstore_hardware_*`, `powerstore_wear_metrics_by_drive`, `powerstore_fc_port_*`, `powerstore_eth_port_*`, `powerstore_metricFcPort_*`, `powerstore_metricEthPort_*` | **हार्डवेयर** पेज: नोड, फ़ैन, पावर सप्लाई, बैटरी, ड्राइव और फ़्रंट-एंड पोर्ट, हर एक अपने अप्लायंस के साथ |
+| PowerStore `volume`, `volumeGroup`, `nas`, `file` | `powerstore_volume_*`, `powerstore_metricVolume_*`, `powerstore_volumegroup_*`, `powerstore_metricVg_*`, `powerstore_nas_server_operational_status`, `powerstore_metricNas_*`, `powerstore_filesystem_*`, `powerstore_metricFilesystem_*` | **वॉल्यूम**, **वॉल्यूम समूह**, **NAS सर्वर** और **फ़ाइल सिस्टम** पेज |
 
 **सभी स्टोरेज ऐरे** का **स्वास्थ्य** कॉलम ऐरे के नवीनतम डेटा में ऐरे के अपने अलर्ट और हार्डवेयर को पढ़ता है: **गंभीर** जब तक वह कोई खुला गंभीर अलर्ट बताता है, या कोई हार्डवेयर कंपोनेंट, ड्राइव या कंट्रोलर जो गंभीर, विफल, गायब या अस्वस्थ हो; **चेतावनी** जब तक वह कोई खुला चेतावनी अलर्ट बताता है, या कोई डिग्रेड या अज्ञात कंपोनेंट; बाकी समय **OK**; और एजेंट डिस्कनेक्ट रहने तक **अज्ञात**। ऐरे का **अवलोकन** इससे ज़्यादा परखता है, जैसा अगला सेक्शन बताता है। मॉनिटर मानदंड में ऐरे के एट्रिब्यूट पर `resource.` प्रीफ़िक्स लगता है (`resource.storage.array.name`, `resource.storage.system`), जबकि डेटापॉइंट लेबल बिना प्रीफ़िक्स रहते हैं (`name`, `host`, `dimension`, `space`)।
+
+PowerStore का स्वास्थ्य उसके हार्डवेयर का स्वास्थ्य है, क्योंकि उसके अलर्ट लॉग के रूप में आते हैं। एजेंट `powerstore_cap_physical_used_percent` और `powerstore_filesystem_logical_used_percent` खुद निकालता है, और नोड की स्थिति को Healthy रहने तक 1 पढ़ता है।
 
 ## ऐरे के पेज क्या दिखाते हैं
 
@@ -194,7 +232,11 @@ Pure की सिमैंटिक कन्वेंशन FlashArray के 
 
 **होस्ट**, **रेप्लिकेशन** और **फ़ाइल सिस्टम** सूचियाँ उन्हीं नियमों से हर हिस्से की स्थिति बताती हैं, और कारण उसके नीचे। होस्ट और फ़ाइल सिस्टम का अपना पेज बताता है कि उसमें किस पर ध्यान देने की ज़रूरत है और ऐरे के कौन से अलर्ट उस पर नज़र रखते हैं, बाकी को चालू करने के लिए एक कदम के साथ, और हर हिस्से का पेज, वॉल्यूम और बकेट का भी, बताता है कि उस पर क्या खुला है। एजेंट डिस्कनेक्ट रहने तक स्वास्थ्य **स्वास्थ्य: अज्ञात** दिखाता है: ऐरे की आख़िरी रिपोर्ट अब सच नहीं है। ऊपर की हर सीमा वही है जिस पर उसका अलर्ट टेम्पलेट चलता है, जैसा [स्टोरेज ऐरे मॉनिटर](/docs/monitor/storage-array-monitor) उन्हें सूचीबद्ध करता है।
 
+PowerStore पर, **अप्लायंस**, **वॉल्यूम समूह** और **NAS सर्वर** टैब वे हिस्से दिखाते हैं जो केवल PowerStore में होते हैं, और **हार्डवेयर** पेज हर हिस्से का अप्लायंस बताता है, क्योंकि हर अप्लायंस अपने हिस्सों के नाम एक जैसे रखता है।
+
 ## वैकल्पिक — ऐरे का syslog भेजें
+
+PowerStore का syslog कलेक्टर जैसा भेजा गया है वैसा ही चलता है (देखें [Dell PowerStore](#dell-powerstore)): यह सेक्शन Pure के ऐरे के लिए है।
 
 डिफ़ॉल्ट रूप से एजेंट सिर्फ़ मेट्रिक्स भेजता है, इसलिए ऐरे का **लॉग** पेज खाली रहता है। ऐरे अपने अलर्ट और ऑडिट इवेंट syslog के रूप में आगे भेजते हैं, और साथ आने वाले हर कलेक्टर कॉन्फ़िगरेशन में कमेंट किया हुआ `syslog` रिसीवर जोड़ा है (पोर्ट 5514 पर TCP और UDP, RFC 3164), जो कमेंट की हुई `logs` पाइपलाइन से जुड़ा है, जो `storage.array.name` लगाती है ताकि लॉग आपके ऐरे पर पहुँचें।
 
@@ -237,6 +279,8 @@ processors:
 
 एक एजेंट एक ऐरे पढ़ता है। एक ही मशीन से कई ऐरे की निगरानी के लिए, हर एक को अपने `.env` के साथ उसके अपने फ़ोल्डर में इंस्टॉल करें, जैसे `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`, और हर एक को अपना `container_name` दें, उसकी `docker-compose.yml` में (जैसे `oneuptime-storage-array-agent-fa02`): दो कंटेनर एक नाम साझा नहीं कर सकते। फ़ोल्डर को डायग्नोस्टिक स्क्रिप्ट को `-d` से दें।
 
+दूसरे PowerStore एजेंट को भी अपना syslog पोर्ट चाहिए: `POWERSTORE_SYSLOG_PORT` को, जैसे `5515`, उसकी `.env` में सेट करें।
+
 ## systemd सेवा के रूप में चलाएँ
 
 एजेंट को मशीन के साथ शुरू करने और विफल होने पर फिर से शुरू करने के लिए उसकी systemd यूनिट इंस्टॉल करें। यह मानती है कि एजेंट `/opt/oneuptime-storage-array-agent` में है, जहाँ इंस्टॉल स्क्रिप्ट उसे रखती है:
@@ -269,6 +313,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+PowerStore एजेंट `otel-collector-config.powerstore.yaml`, `powerstore-exporter.Dockerfile` और `powerstore-syslog.yaml` भी फिर से डाउनलोड करता है; नई रिलीज़ जब उसका टैग बदलती है, तो `docker compose up` एक्सपोर्टर की इमेज फिर से बनाता है।
+
 ## एजेंट अनइंस्टॉल करना
 
 ```bash
@@ -277,6 +323,8 @@ docker compose down
 ```
 
 फिर, अगर अब ज़रूरत नहीं है, तो ऐरे पर केवल-पढ़ने वाला उपयोगकर्ता और उसका API टोकन हटा दें।
+
+PowerStore पर `docker compose --profile powerstore down` चलाएँ, ताकि एक्सपोर्टर और syslog कलेक्टर भी रुक जाएँ।
 
 ## समस्या निवारण
 
@@ -315,6 +363,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 
 :::details pure-fa-exporter या pure-fb-exporter रिज़ॉल्व नहीं होता
 एक्सपोर्टर नहीं चल रहा: `COMPOSE_PROFILES` को `STORAGE_ARRAY_COLLECTOR_CONFIG` से मेल खाना चाहिए (FlashArray एक्सपोर्टर कॉन्फ़िगरेशन के लिए `flasharray-exporter`, FlashBlade कॉन्फ़िगरेशन के लिए `flashblade`)। `.env` ठीक करें और `docker compose up -d` चलाएँ; इसके बाद `docker compose ps` एक्सपोर्टर दिखाता है।
+:::
+
+:::details PowerStore कुछ नहीं भेजता
+`docker compose logs powerstore-exporter` से एक्सपोर्टर का लॉग पढ़ें: `401` का मतलब गलत उपयोगकर्ता नाम या पासवर्ड है, और `403` अगर `latest_five_min_metrics` पर मिले तो इसका मतलब है कि उपयोगकर्ता की भूमिका बल्क मेट्रिक्स आर्काइव चालू नहीं कर सकती (उसे **Storage Operator** दें, या 4.1 से पुराने PowerStoreOS पर `POWERSTORE_BULK_METRICS=false` सेट करें)। शुरू होने के बाद जवाब देने से पहले एक्सपोर्टर को एक मिनट चाहिए। **लॉग** पेज पर कोई अलर्ट नहीं: क्लस्टर की _Remote Logging_ सेटिंग, पोर्ट 5514 पर फ़ायरवॉल और `docker compose logs powerstore-syslog` जाँचें।
 :::
 
 :::details हटाए गए वॉल्यूम या होस्ट इन्वेंटरी में बने रहते हैं
