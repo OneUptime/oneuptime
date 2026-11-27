@@ -19,11 +19,19 @@ import StorageArrayResource from "Common/Models/DatabaseModels/StorageArrayResou
 import StorageArrayResourceKind from "Common/Types/StorageArray/StorageArrayResourceKind";
 import StorageArrayResourceKindUtil from "Common/Types/StorageArray/StorageArrayResourceKindUtil";
 import StorageArrayPlatformRegistry from "Common/Types/StorageArray/StorageArrayPlatformRegistry";
-import { StorageArrayHardwareTable } from "Common/Types/StorageArray/StorageArrayPlatform";
+import {
+  StorageArrayHardwareTable,
+  StorageArrayManagedDeployment,
+} from "Common/Types/StorageArray/StorageArrayPlatform";
+import Select from "Common/Types/BaseDatabase/Select";
+import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
+import { getStorageArrayKindColumns } from "../../../Components/StorageArray/StorageArrayKindView";
 import Columns from "Common/UI/Components/ModelTable/Columns";
 import StorageArrayResourceTable from "../../../Components/StorageArray/StorageArrayResourceTable";
 import StorageArrayResourceColumns from "../../../Components/StorageArray/StorageArrayResourceColumns";
-import StorageArrayResourceUtils from "../Utils/StorageArrayResourceUtils";
+import StorageArrayResourceUtils, {
+  INVENTORY_SELECT,
+} from "../Utils/StorageArrayResourceUtils";
 import { STORAGE_ARRAY_METRIC_DESCRIPTIONS } from "../../../Components/MetricDescriptions/StorageArrayMetricDescriptions";
 import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
 
@@ -41,10 +49,18 @@ import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
  *     (kind=Hardware), laid out by slot and health;
  *   - a PowerStore: nodes, fans, power supplies and batteries
  *     (kind=Hardware), drives (kind=Drive) and front-end ports
- *     (kind=NetworkInterface), each with the appliance it is in.
+ *     (kind=NetworkInterface), each with the appliance it is in;
+ *   - an ONTAP cluster: nodes (kind=Controller), disks (kind=Drive),
+ *     shelves, their parts and the nodes' sensors (kind=Hardware, one
+ *     table each by componentType) and ports (kind=NetworkInterface), in
+ *     ONTAP's words and with its columns (the table's words, columns and
+ *     componentTypes).
  *
- * The columns are this page's, by kind: a kind it has no columns for (one
- * a platform declares for itself) gets its type, status and model.
+ * The columns are this page's, by kind, unless the platform draws the
+ * table itself: a kind it has no columns for (one a platform declares for
+ * itself) gets its type, status and model. A deployment whose hardware
+ * its vendor or cloud runs (Amazon FSx for NetApp ONTAP) leaves out the
+ * tables it reports nothing for, and says so.
  */
 
 function textCell(text: string): ReactElement {
@@ -266,6 +282,8 @@ interface HardwareTableWords {
   name: string;
   singularName: string;
   pluralName: string;
+  // The table's title, where it is not its plural name.
+  title?: string | undefined;
 }
 
 // A kind's table words: the shared kinds' here, a platform's own from it.
@@ -292,7 +310,18 @@ const HARDWARE_TABLE_WORDS: Record<string, HardwareTableWords> = {
   },
 };
 
-function getHardwareTableWords(kind: string): HardwareTableWords {
+function getHardwareTableWords(
+  table: StorageArrayHardwareTable,
+): HardwareTableWords {
+  const kind: string = table.kind;
+  if (table.words) {
+    return {
+      name: table.words.pluralName,
+      singularName: table.words.singularName,
+      pluralName: table.words.pluralName,
+      title: table.words.title,
+    };
+  }
   if (Object.prototype.hasOwnProperty.call(HARDWARE_TABLE_WORDS, kind)) {
     return HARDWARE_TABLE_WORDS[kind]!;
   }
@@ -328,6 +357,9 @@ function getHardwareColumns(
 function getKindColumns(
   table: StorageArrayHardwareTable,
 ): Columns<StorageArrayResource> {
+  if (table.columns) {
+    return getStorageArrayKindColumns(table.columns);
+  }
   if (
     table.kind === StorageArrayResourceKind.Hardware &&
     table.layout === "slot-and-health"
@@ -406,6 +438,7 @@ const StorageArrayHardware: FunctionComponent<
         select: {
           name: true,
           storageSystem: true,
+          osName: true,
         },
       });
       setStorageArray(item);
@@ -433,15 +466,36 @@ const StorageArrayHardware: FunctionComponent<
     return <ErrorMessage message="Storage array not found." />;
   }
 
+  /*
+   * A deployment whose hardware its vendor or cloud runs reports none of
+   * some tables' parts (an FSx file system has no disks or shelves): those
+   * are left out, and the page says why instead of showing them empty.
+   */
+  const deployment: StorageArrayManagedDeployment | null =
+    StorageArrayPlatformRegistry.getManagedDeployment(
+      storageArray.storageSystem,
+      storageArray.osName,
+    );
   const tables: ReadonlyArray<StorageArrayHardwareTable> =
     StorageArrayPlatformRegistry.getPlatformOrDefault(
       storageArray.storageSystem,
-    ).hardwareTables;
+    ).hardwareTables.filter((table: StorageArrayHardwareTable): boolean => {
+      return !deployment || !deployment.kinds.includes(table.kind);
+    });
 
   return (
     <Fragment>
+      {deployment ? (
+        <Alert
+          type={AlertType.INFO}
+          dataTestId="storage-array-hardware-managed-note"
+          title={deployment.note}
+        />
+      ) : (
+        <></>
+      )}
       {tables.map((table: StorageArrayHardwareTable): ReactElement => {
-        const words: HardwareTableWords = getHardwareTableWords(table.kind);
+        const words: HardwareTableWords = getHardwareTableWords(table);
         return (
           <StorageArrayResourceTable
             key={table.tableId}
@@ -451,9 +505,17 @@ const StorageArrayHardware: FunctionComponent<
             name={words.name}
             singularName={words.singularName}
             pluralName={words.pluralName}
-            title={words.pluralName}
+            title={words.title || words.pluralName}
             description={table.description}
             noItemsMessage={table.noItemsMessage}
+            componentTypes={table.componentTypes}
+            // What a platform's own columns read is any of the row's values.
+            {...(table.columns
+              ? {
+                  selectMoreFields:
+                    INVENTORY_SELECT as Select<StorageArrayResource>,
+                }
+              : {})}
             columns={getHardwareColumns(table)}
           />
         );

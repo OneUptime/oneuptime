@@ -3,7 +3,15 @@ import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import DataAssetService from "../../Services/DataAssetService";
 import DataCheckService from "../../Services/DataCheckService";
 import QueryHelper from "../../Types/Database/QueryHelper";
-import { DataCheckType } from "../../../Types/DataObservability/DataCheckType";
+import {
+  DataCheckType,
+  isQueryCheckType,
+} from "../../../Types/DataObservability/DataCheckType";
+import {
+  DatabaseAgentCheck,
+  DatabaseAgentEngine,
+  DatabaseAgentFreshnessRead,
+} from "../../../Utils/DataObservability/DatabaseAgent/DatabaseAgentWork";
 import ObjectID from "../../../Types/ObjectID";
 import { DatabaseEngine } from "../DataSecurity/Content/DatabaseSampler";
 import DataObservabilitySettingService, {
@@ -101,14 +109,28 @@ async function readMaskedColumns(data: {
   return masked;
 }
 
+/*
+ * The checks a Database Agent runs (#11148): each as its type and the names
+ * it reads, never a statement - the agent builds the one it runs, from its
+ * own copy of the shapes (DatabaseAgentStatements). A check the server's
+ * builder refuses is refused here as for a probe, with the same reason.
+ * No sample of failing rows goes to an agent: a check run there reports its
+ * number, never a row.
+ */
+export interface DataCheckAgentPlan {
+  checks: Array<DatabaseAgentCheck>;
+  refused: Array<DataCheckRunResult>;
+  freshnessReads: Array<DatabaseAgentFreshnessRead>;
+  waitWhenBusy: boolean;
+}
+
 export default class DataCheckPlanner {
-  public static async planDueChecks(data: {
+  // The store's due checks, as many as one collection runs.
+  private static async readDueChecks(data: {
     dataStoreId: ObjectID;
-    engine: DatabaseEngine;
     now: Date;
-  }): Promise<DataCheckPlan> {
-    const plan: DataCheckPlan = { planned: [], refused: [] };
-    const checks: Array<DataCheck> = await DataCheckService.findBy({
+  }): Promise<Array<DataCheck>> {
+    return await DataCheckService.findBy({
       query: {
         dataStoreId: data.dataStoreId,
         isEnabled: true,
@@ -134,10 +156,15 @@ export default class DataCheckPlanner {
       skip: 0,
       props: { isRoot: true },
     });
+  }
 
-    const freshnessAssets: Array<DataAsset> = await DataAssetService.findBy({
+  // The store's tables whose change time comes from a column of their own.
+  private static async readFreshnessAssets(
+    dataStoreId: ObjectID,
+  ): Promise<Array<DataAsset>> {
+    return await DataAssetService.findBy({
       query: {
-        dataStoreId: data.dataStoreId,
+        dataStoreId,
         isDropped: false,
         freshnessColumn: QueryHelper.notNull(),
       },
@@ -151,6 +178,172 @@ export default class DataCheckPlanner {
       skip: 0,
       props: { isRoot: true },
     });
+  }
+
+  // The tables of these checks, by id.
+  private static async readAssetsOf(
+    checks: Array<DataCheck>,
+  ): Promise<Map<string, DataAsset>> {
+    const assetIds: Array<string> = Array.from(
+      new Set(
+        checks
+          .map((check: DataCheck): string => {
+            return check.dataAssetId?.toString() || "";
+          })
+          .filter(Boolean),
+      ),
+    );
+
+    if (assetIds.length === 0) {
+      return new Map();
+    }
+
+    const assets: Array<DataAsset> = await DataAssetService.findBy({
+      query: { _id: QueryHelper.any(assetIds) },
+      select: { _id: true, schemaName: true, name: true, isDropped: true },
+      limit: assetIds.length,
+      skip: 0,
+      props: { isRoot: true },
+    });
+
+    return new Map(
+      assets.map((asset: DataAsset): [string, DataAsset] => {
+        return [asset.id!.toString(), asset];
+      }),
+    );
+  }
+
+  // A check as a target of the server's builder: its table as the catalog has it.
+  private static targetOf(check: DataCheck, asset: DataAsset): DataCheckTarget {
+    const reference: { schema: string; table: string } | null =
+      check.referenceTableKey ? splitTableKey(check.referenceTableKey) : null;
+
+    return {
+      type: check.checkType as DataCheckType,
+      schemaName: asset.schemaName || "",
+      tableName: asset.name!,
+      columnName: check.columnName,
+      segmentColumn: check.segmentColumn,
+      acceptedValues: check.acceptedValues,
+      pattern: check.pattern,
+      referenceSchemaName: reference?.schema,
+      referenceTableName: reference?.table,
+      referenceColumnName: check.referenceColumnName,
+      customSql: check.customSql,
+      samplePercent: check.samplePercent,
+    };
+  }
+
+  /*
+   * The due checks of a store a Database Agent reads (#11148), as the agent
+   * is handed them: typed, never a statement. See DataCheckAgentPlan.
+   */
+  public static async planDueChecksForAgent(data: {
+    dataStoreId: ObjectID;
+    engine: DatabaseAgentEngine;
+    now: Date;
+  }): Promise<DataCheckAgentPlan> {
+    const plan: DataCheckAgentPlan = {
+      checks: [],
+      refused: [],
+      freshnessReads: [],
+      waitWhenBusy: false,
+    };
+    const checks: Array<DataCheck> = await this.readDueChecks(data);
+    const freshnessAssets: Array<DataAsset> = await this.readFreshnessAssets(
+      data.dataStoreId,
+    );
+
+    if (checks.length === 0 && freshnessAssets.length === 0) {
+      return plan;
+    }
+
+    const projectId: ObjectID = (checks[0]?.projectId ||
+      freshnessAssets[0]?.projectId)!;
+    const setting: DataObservabilitySetting =
+      await DataObservabilitySettingService.getOrCreateForProject(projectId);
+
+    plan.waitWhenBusy = setting.waitWhenDatabaseIsBusy !== false;
+    plan.freshnessReads = freshnessAssets
+      .filter((asset: DataAsset): boolean => {
+        return Boolean(asset.name && asset.freshnessColumn);
+      })
+      .map((asset: DataAsset): DatabaseAgentFreshnessRead => {
+        return {
+          tableKey: getDataTableKey(asset.schemaName || "", asset.name!),
+          schemaName: asset.schemaName || "",
+          tableName: asset.name!,
+          columnName: asset.freshnessColumn!,
+        };
+      });
+
+    const assetById: Map<string, DataAsset> = await this.readAssetsOf(checks);
+
+    for (const check of checks) {
+      const checkId: string = check.id!.toString();
+      const asset: DataAsset | undefined = assetById.get(
+        check.dataAssetId?.toString() || "",
+      );
+
+      if (!asset || asset.isDropped || !asset.name) {
+        plan.refused.push({
+          checkId,
+          values: [],
+          error: "The table is no longer in its database.",
+        });
+        continue;
+      }
+
+      const target: DataCheckTarget = this.targetOf(check, asset);
+
+      try {
+        // Refused here as for a probe, with the same reason; built again, and judged, on the agent.
+        buildDataCheckStatement(data.engine, target);
+      } catch (error) {
+        plan.refused.push({
+          checkId,
+          values: [],
+          error: error instanceof Error ? error.message : String(error),
+        });
+        continue;
+      }
+
+      plan.checks.push({
+        checkId,
+        type: target.type,
+        schemaName: target.schemaName,
+        tableName: target.tableName,
+        columnName: target.columnName || null,
+        segmentColumn: target.segmentColumn || null,
+        acceptedValues: target.acceptedValues || null,
+        pattern: target.pattern || null,
+        referenceSchemaName:
+          target.referenceTableName !== undefined &&
+          target.referenceTableName !== null
+            ? target.referenceSchemaName || ""
+            : null,
+        referenceTableName: target.referenceTableName || null,
+        referenceColumnName: target.referenceColumnName || null,
+        customSql: isQueryCheckType(target.type)
+          ? target.customSql || null
+          : null,
+        samplePercent: target.samplePercent || null,
+      });
+    }
+
+    return plan;
+  }
+
+  public static async planDueChecks(data: {
+    dataStoreId: ObjectID;
+    engine: DatabaseEngine;
+    now: Date;
+  }): Promise<DataCheckPlan> {
+    const plan: DataCheckPlan = { planned: [], refused: [] };
+    const checks: Array<DataCheck> = await this.readDueChecks(data);
+    const freshnessAssets: Array<DataAsset> = await this.readFreshnessAssets(
+      data.dataStoreId,
+    );
 
     if (checks.length === 0 && freshnessAssets.length === 0) {
       return plan;
@@ -178,27 +371,7 @@ export default class DataCheckPlanner {
       return plan;
     }
 
-    const assetIds: Array<string> = Array.from(
-      new Set(
-        checks
-          .map((check: DataCheck): string => {
-            return check.dataAssetId?.toString() || "";
-          })
-          .filter(Boolean),
-      ),
-    );
-    const assets: Array<DataAsset> = await DataAssetService.findBy({
-      query: { _id: QueryHelper.any(assetIds) },
-      select: { _id: true, schemaName: true, name: true, isDropped: true },
-      limit: assetIds.length,
-      skip: 0,
-      props: { isRoot: true },
-    });
-    const assetById: Map<string, DataAsset> = new Map(
-      assets.map((asset: DataAsset): [string, DataAsset] => {
-        return [asset.id!.toString(), asset];
-      }),
-    );
+    const assetById: Map<string, DataAsset> = await this.readAssetsOf(checks);
 
     for (const check of checks) {
       const checkId: string = check.id!.toString();
@@ -215,24 +388,8 @@ export default class DataCheckPlanner {
         continue;
       }
 
-      const reference: { schema: string; table: string } | null =
-        check.referenceTableKey ? splitTableKey(check.referenceTableKey) : null;
-
       try {
-        const target: DataCheckTarget = {
-          type: check.checkType as DataCheckType,
-          schemaName: asset.schemaName || "",
-          tableName: asset.name,
-          columnName: check.columnName,
-          segmentColumn: check.segmentColumn,
-          acceptedValues: check.acceptedValues,
-          pattern: check.pattern,
-          referenceSchemaName: reference?.schema,
-          referenceTableName: reference?.table,
-          referenceColumnName: check.referenceColumnName,
-          customSql: check.customSql,
-          samplePercent: check.samplePercent,
-        };
+        const target: DataCheckTarget = this.targetOf(check, asset);
         const statement: DataCheckStatement = buildDataCheckStatement(
           data.engine,
           target,

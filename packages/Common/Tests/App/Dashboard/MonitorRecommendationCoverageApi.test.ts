@@ -31,7 +31,13 @@ import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
  * A page's questions are sent in requests the server takes - a cloud
  * account's thousands of resources in several - and a refusal fails the
  * whole answer, so a page never offers again what it could not tell.
+ *
+ * Every other suite is answered without a request (Tests/jest.setup.ts);
+ * this one tests the real client, and the requests it sends.
  */
+jest.unmock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Recommendations/MonitorRecommendationCoverageApi",
+);
 
 const FINGERPRINT: string = JSON.stringify([
   "web-1",

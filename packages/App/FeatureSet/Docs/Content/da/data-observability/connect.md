@@ -1,6 +1,6 @@
 # Forbind en database
 
-Dataobservabilitet læser hver database med et login, der kun læser dens katalog: hvilke tabeller og views den indeholder, deres kolonner, rækker og størrelse, og hvornår de blev ændret. Denne side viser det mindste, hver motor har brug for, og hvordan du holder forbindelsesstrengen inden for dit netværk med en sonde.
+Dataobservabilitet læser hver database med et login, der kun læser dens katalog: hvilke tabeller og views den indeholder, deres kolonner, rækker og størrelse, og hvornår de blev ændret. Denne side viser det mindste, hver motor har brug for, hvordan du holder forbindelsesstrengen inden for dit netværk med en sonde eller med den Database Agent, du allerede kører, og hvordan du senere ændrer, fjerner eller sletter en database.
 
 ## Før du begynder
 
@@ -13,12 +13,21 @@ Under **Dataobservabilitet > Databaser** vælger du **Forbind en database** og d
 
 - **OneUptime forbinder**: indsæt en forbindelsesstreng. Den gemmes krypteret, bruges kun af OneUptimes workers og vises aldrig igen.
 - **En sonde i mit netværk forbinder**: vælg en af dine sonder, og angiv navnet på den miljøvariabel på sonden, der indeholder forbindelsesstrengen, f.eks. `ORDERS_DB_URL`. Forbindelsesstrengen forlader aldrig dit netværk. Se [Brugerdefinerede sonder](/docs/probe/custom-probe).
+- **Min Database Agent forbinder**: vælg den databaseserver, som dens [Database Agent](/docs/telemetry/databases) allerede kører ved siden af, og angiv den database på den, der skal læses. Agenten læser den med logins fra sit eget miljø, så intet login gemmes i OneUptime. Se [Via en Database Agent](#via-en-database-agent).
 
 En database, der allerede er forbundet til Datasikkerhed, overvåges også, uden at du skal forbinde noget, og det samme gælder hvert BigQuery-datasæt, som din [cloudforbindelse](/docs/telemetry/cloud-accounts) har fundet.
 
 ## Databaser, du kan forbinde
 
 **Databaser, du kan forbinde** under **Databaser** viser det, dit projekt allerede kender til, og som ingen har forbundet: databaser, dine spor taler med, databaser i dine cloudkonti og databaser, som Databaseovervågning overvåger. **Forbind** starter formularen ud fra det, der er kendt om hver, med en forbindelsesstreng at udfylde. **Skjul** forhindrer, at en kommer tilbage. Intet læses, før du forbinder den.
+
+## Via en Database Agent
+
+En Database Agent når allerede sin databaseserver og sender dens metrikker. Den kan også læse serverens PostgreSQL-, MySQL- og MariaDB-databaser for Dataobservabilitet, når dens ejer slår det til: tilføj `ONEUPTIME_DATA_OBSERVABILITY=true` til agentens `.env`, og kør `docker compose up -d`. Indtil da vises agenten med **Dataobservabilitet slået fra**, og en database, der er forbundet via den, fortæller, hvad du skal gøre.
+
+OneUptime fortæller agenten, hvilken database den skal læse, og hvilke tjek der skal køres, hvert med sin type og den tabel og de kolonner, det læser. Den sender aldrig en sætning eller et login. Agenten bygger selv hver sætning ud fra de samme faste former, som OneUptimes egne collectorer bruger, og kører hver i en skrivebeskyttet transaktion med en grænse på 30 sekunder. Den kører kun et tjek, når hver tabel og kolonne, det nævner, findes i det katalog, den lige har læst, binder hver værdi, tjekket sammenligner med, og sender ét tal pr. tjek tilbage, aldrig en række. Tjek af typen **Brugerdefineret SQL** og **Fejlende rækker** kører kun, hvor agentens ejer sætter `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true`; andre steder siger de det, og alle andre tjek kører.
+
+Agenten læser kataloget med `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` eller collectorens login og kører tjek med `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` eller katalogets login: giv hvert kun det, fanerne nedenfor viser for det. Agentens README viser alle variabler.
 
 ## Et skrivebeskyttet login pr. motor
 
@@ -162,6 +171,18 @@ Tjek kører som skrivebeskyttet SQL på miljøets TDS-endpoint, på port 1433 el
 
 Hver sætning kører skrivebeskyttet, med en tidsgrænse for sætninger og låse, hvor motoren har dem. En anmodning, der et øjeblik afvises eller fejler hos Snowflake, Databricks, BigQuery, Athena, ClickHouse eller Dataverse, med en 429, en 503 eller tjenestens eget svar om, at den har for travlt, sendes igen, højst to gange og inden for et minuts ventetid pr. indsamling, og aldrig på en måde, der kunne køre en sætning to gange. Forbindelsesstrengen logges aldrig og fjernes fra hver fejlmeddelelse. En statistik, som login ikke må læse, udelades med en advarsel på databasen; indsamlingen mislykkes aldrig af den grund. Forbindelser til private adresser afvises på OneUptime Cloud: brug en sonde.
 
+## Administrer en database
+
+Hver database har en side **Indstillinger**: vælg **Indstillinger** på dens række under **Databaser** eller i dens menu.
+
+- **Rediger detaljer** omdøber den. Datasikkerhed viser det samme navn.
+- **Skift forbindelse** giver den et nyt login, en anden sonde eller en Database Agent. En gemt forbindelsesstreng vises aldrig igen: lad feltet være tomt for at beholde den. Flyttes en database til en Database Agent, slettes dens gemte forbindelsesstreng, medmindre Datasikkerhed tager stikprøver af databasens indhold med den.
+- **Stop overvågning** på dens **Oversigt** holder op med at læse den et stykke tid og beholder dens tabeller og deres historik. **Overvåg igen** starter igen.
+- **Fjern fra Dataobservabilitet** holder op med at læse den og glemmer dens tabeller, deres tjek og deres historik. Datasikkerhed beholder databasen, dens forbindelse og det, scanningerne fandt, og den tilbydes igen under **Databaser, du kan forbinde**.
+- **Slet database** sletter den fra OneUptime sammen med det, Dataobservabilitet og Datasikkerhed gemmer om den. Bekræftelsen viser først, hvad der forsvinder.
+
+En database her er også et datalager i Datasikkerhed. Så længe Datasikkerhed er afhængig af den (den fandt databasen, nogen tilføjede den dér, eller den har fund, problemer, scanninger, ejere eller en post i fortegnelsen over behandlingsaktiviteter om den), kan kun en, der må slette Datasikkerheds datalagre, slette den, og kun en, der må redigere dem, kan ændre den forbindelse, som Datasikkerhed tager stikprøver af indholdet med. Indstillinger siger det ved den pågældende knap. Monitorer, der overvåger en database, bevares, når den forsvinder: slet dem under **Monitorer**.
+
 ## Læsereplikaer
 
 En PostgreSQL- eller SQL Server-læsereplika flytter ikke sine skrivetællere, så en tabel dér kan se uændret ud, mens den ændrer sig. OneUptime ser, at det er en replika, udelader tællerne, siger det på databasen og falder tilbage til tabellens størrelse og rækker. Forbind primærdatabasen, hvor du kan, eller angiv en [friskhedskolonne](/docs/data-observability/table-health) for de tabeller, der betyder noget.
@@ -174,6 +195,7 @@ Hver sti vises derefter under **Tabeller**: dens nyeste objekt er, hvornår den 
 
 ## Fejlfinding
 
+- **Databasen viser Database Agent ikke klar.** Agenten kan ikke læse den lige nu, og databasens side siger hvorfor: dens server har ingen Database Agent forbundet, eller agenten er slået fra for Dataobservabilitet (`ONEUPTIME_DATA_OBSERVABILITY=true` slår den til), har ikke givet lyd fra sig, er for gammel (kør dens `install.sh` igen) eller kører på en server, der hverken er PostgreSQL eller MySQL.
 - **Databasen viser Mislykkedes.** Dens meddelelse siger hvorfor: en vært, OneUptime ikke kan nå, et afvist login, en TLS-tilstand, serveren ikke accepterer. Forbind en database inde i dit netværk via en sonde. For Snowflake, Databricks, BigQuery, Athena, ClickHouse og Dataverse nævner meddelelsen, hvad der blev læst, tjenestens egen fejlkode og fejlmeddelelse og det anmodnings- eller forespørgsels-id, som tjenestens support kan spore, hvis tjenesten giver et. **Indsaml nu** prøver igen med det samme, og siden viser, hvordan det gik.
 - **Tabeller viser ingen seneste ændring.** Login kan ikke læse motorens statistik: giv det, som fanen for din motor viser, eller vent, til en tabels rækker har ændret sig to gange.
 - **En tabel mangler.** Den ligger i et skema, som login ikke må bruge, eller den er udelukket på databasen. Giv `USAGE` på dens skema, eller fjern udelukkelsen.

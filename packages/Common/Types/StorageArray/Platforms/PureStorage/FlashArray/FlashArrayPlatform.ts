@@ -15,6 +15,7 @@ import {
 } from "../PureStorage";
 import FLASHARRAY_METRICS from "./FlashArrayMetrics";
 import FLASHARRAY_ALERT_TEMPLATES from "./FlashArrayAlertTemplates";
+import FLASHARRAY_KIND_PAGES from "./FlashArrayKindPages";
 
 // The High Read and High Write Latency alerts' line (5 ms).
 export const FLASHARRAY_LATENCY_WARNING_USEC: number = 5000;
@@ -351,6 +352,7 @@ const PureStorageFlashArrayPlatform: StorageArrayPlatform = {
       ),
     },
   ],
+  kindPages: FLASHARRAY_KIND_PAGES,
 
   agentConfigs: [
     {

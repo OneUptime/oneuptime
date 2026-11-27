@@ -44,6 +44,8 @@ enum EmailTemplateType {
    * ProbeMajorReleaseNotice).
    */
   ProbeMajorReleaseBehind = "ProbeMajorReleaseBehind.hbs",
+  // A cloud budget passed an early threshold (#11008).
+  CloudBudgetThresholdPassed = "CloudBudgetThresholdPassed.hbs",
   AIAgentConnectionStatusChange = "AIAgentConnectionStatusChange.hbs",
   AIAgentOwnerAdded = "AIAgentOwnerAdded.hbs",
   ConfirmStatusPageSubscription = "ConfirmStatusPageSubscription.hbs",

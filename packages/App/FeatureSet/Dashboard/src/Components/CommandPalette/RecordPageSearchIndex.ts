@@ -3890,6 +3890,16 @@ export const RECORD_PAGE_SEARCH_KINDS: ReadonlyArray<RecordPageSearchKind> = [
         section: "Database",
         title: "Recommendations",
       },
+      {
+        page: PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS,
+        section: "Advanced",
+        title: "Settings",
+      },
+      {
+        page: PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS,
+        section: "Advanced",
+        title: "Audit Logs",
+      },
     ],
   },
   {

@@ -52,6 +52,9 @@ import Profiling from "Common/Server/Utils/Profiling";
 import StartupGate from "Common/Server/Utils/StartupGate";
 import QueueWorker from "Common/Server/Infrastructure/QueueWorker";
 import InstanceReceivingHeartbeat from "Common/Server/Utils/Telemetry/InstanceReceivingHeartbeat";
+import WorkspaceCreatedMessageFirst from "Common/Server/Utils/Workspace/WorkspaceCreatedMessageFirst";
+import WorkspaceNotificationRuleService from "Common/Server/Services/WorkspaceNotificationRuleService";
+import { JSONObject } from "Common/Types/JSON";
 import {
   ClusterKeyWarning,
   DatastorePasswordWarning,
@@ -373,6 +376,21 @@ const init: PromiseVoidFunction = async (): Promise<void> => {
      * (QueueWorker).
      */
     QueueWorker.startProcessingJobs();
+
+    /*
+     * A new record's other messages wait in Valkey for its Created message,
+     * with what they say (WorkspaceCreatedMessageFirst). From now on this
+     * server also posts those of another App server that was killed before
+     * posting them - an OOM kill, a lost node - each in its turn and once
+     * (#11235).
+     */
+    WorkspaceCreatedMessageFirst.takeOverForStoppedServers(
+      (stored: JSONObject): Promise<void> => {
+        return WorkspaceNotificationRuleService.postStoredWorkspaceMarkdownNotification(
+          stored,
+        );
+      },
+    );
 
     /*
      * Record, from now on, that OneUptime is receiving: the time between the

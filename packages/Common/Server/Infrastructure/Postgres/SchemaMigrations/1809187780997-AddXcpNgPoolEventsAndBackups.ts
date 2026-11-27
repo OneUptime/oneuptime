@@ -16,10 +16,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * the catalogue, never rewrites a row or holds a long lock. Null means "not
  * read", which the pages draw as unknown.
  */
-export class AddXcpNgPoolEventsAndBackups1809187770997
+export class AddXcpNgPoolEventsAndBackups1809187780997
   implements MigrationInterface
 {
-  public name: string = "AddXcpNgPoolEventsAndBackups1809187770997";
+  public name: string = "AddXcpNgPoolEventsAndBackups1809187780997";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

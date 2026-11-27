@@ -15,6 +15,7 @@ import {
 import {
   act,
   cleanup,
+  fireEvent,
   render,
   screen,
   waitFor,
@@ -118,10 +119,18 @@ jest.mock(
     return mockStub("metric-card");
   },
 );
+// The charts a part page asks for (#11122): what the tests read.
+let mockMetricTabs: Array<Record<string, unknown>> = [];
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceMetricsTab",
   () => {
-    return mockStub("metrics-tab");
+    return {
+      __esModule: true,
+      default: (props: Record<string, unknown>): React.ReactElement => {
+        mockMetricTabs.push(props);
+        return <div data-testid="metrics-tab" />;
+      },
+    };
   },
 );
 jest.mock(
@@ -153,6 +162,9 @@ jest.mock(
 
 import StorageArrayOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Index";
 import StorageArrayInventory from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Inventory";
+import StorageArrayVolumes from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/Volumes";
+import StorageArrayVolumeDetail from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/VolumeDetail";
+import MetricQueryConfigData from "../../../Types/Metrics/MetricQueryConfigData";
 import {
   InventoryMenuItem,
   PlatformKindMenuItem,
@@ -267,6 +279,7 @@ beforeEach(() => {
   mockParts = [aggregate("aggr1", 700), aggregate("aggr2", 50)];
   mockLastParam = "";
   mockListQueries = [];
+  mockMetricTabs = [];
   jest
     .spyOn(ProjectUtil, "getCurrentProjectId")
     .mockReturnValue(new ObjectID(PROJECT_ID));
@@ -329,6 +342,7 @@ describe("an Acme array's menu", () => {
     const routes: StorageArrayPartRoutes = getStorageArrayPartRoutes(
       new ObjectID(ARRAY_ID),
     );
+    // Acme draws no page per part: its parts link to their kind's tab.
     expect(routes.getPartRoute(ACME_AGGREGATE_KIND, "aggr1").toString()).toBe(
       `${BASE}/inventory/${ACME_AGGREGATE_KIND}`,
     );
@@ -338,14 +352,17 @@ describe("an Acme array's menu", () => {
     expect(routes.getPartRoute("Drive", "CH0.BAY1").toString()).toBe(
       `${BASE}/hardware`,
     );
-    // A kind no platform defines, or a name Object has, opens the array.
-    for (const kind of ["Lun", "constructor", "toString"]) {
+    /*
+     * A kind no platform defines, or a name Object has, opens the array
+     * (a Lun is ONTAP's since #11001, so a Qtree stands in for it).
+     */
+    for (const kind of ["Qtree", "constructor", "toString"]) {
       expect(routes.getPartRoute(kind, "x").toString()).toBe(BASE);
     }
   });
 
   test("a Pure array gets no tab of that kind: every kind of theirs has a page", () => {
-    for (const system of [FLASHARRAY, FLASHBLADE, "netapp.ontap", null]) {
+    for (const system of [FLASHARRAY, FLASHBLADE, "hitachi.vsp", null]) {
       expect(getPlatformKindMenuItems(system)).toEqual([]);
     }
   });
@@ -373,13 +390,18 @@ describe("an Acme array's counts", () => {
   });
 
   test("its kind is worded and drawn from its definition", () => {
-    expect(getStorageArrayKindWords(ACME_AGGREGATE_KIND)).toEqual({
+    expect(
+      getStorageArrayKindWords(ACME_AGGREGATE_KIND, ACME_STORAGE_SYSTEM),
+    ).toEqual({
       count: { one: "{{count}} aggregate", other: "{{count}} aggregates" },
       icon: IconProp.Database,
     });
-    expect(getStorageArrayInventoryTileWords(ACME_AGGREGATE_KIND).title).toBe(
-      "Aggregates",
-    );
+    expect(
+      getStorageArrayInventoryTileWords(
+        ACME_AGGREGATE_KIND,
+        ACME_STORAGE_SYSTEM,
+      ).title,
+    ).toBe("Aggregates");
     // No ranked lists are written for it.
     expect(getStorageArrayTopListWords(ACME_AGGREGATE_KIND)).toBeNull();
   });
@@ -394,6 +416,86 @@ describe("an Acme array's counts", () => {
     expect(document.body).toHaveTextContent("2 aggregates");
     // Nothing of Pure's is said about it.
     expect(document.body).not.toHaveTextContent(/Purity|FlashArray|FlashBlade/);
+  });
+});
+
+/*
+ * #11122: a shared kind's pages read the array's platform. Acme writes its
+ * volumes' list and page (AcmePlatform.kindPages), so an Acme volume is
+ * described, listed, detailed and charted in Acme's words, on Acme's own
+ * metric, with nothing of Pure's.
+ */
+describe("an Acme volume's pages, in Acme's words and on Acme's metric (#11122)", () => {
+  function acmeVolume(name: string, usedBytes: number): Row {
+    return {
+      ...aggregate(name, usedBytes),
+      kind: StorageArrayResourceKind.Volume,
+      externalId: name,
+      name: name,
+    };
+  }
+
+  test("its page charts Acme's own metric, scoped to the volume, and says nothing of Pure's", async () => {
+    mockParts = [acmeVolume("vol-acme-01", 7 * 1024 ** 3)];
+    mockLastParam = "vol-acme-01";
+    render(<StorageArrayVolumeDetail {...PAGE_PROPS} />);
+    await settle();
+
+    expect(
+      await screen.findByText("What Acme reports about this volume."),
+    ).toBeInTheDocument();
+    expect(document.body).toHaveTextContent("vol-acme-01");
+
+    fireEvent.click(screen.getByRole("tab", { name: /Metrics/ }));
+    await settle();
+    const queries: Array<MetricQueryConfigData> = (mockMetricTabs[
+      mockMetricTabs.length - 1
+    ]?.["queryConfigs"] || []) as Array<MetricQueryConfigData>;
+    expect(
+      queries.map((query: MetricQueryConfigData): string => {
+        return String(query.metricQueryData.filterData.metricName);
+      }),
+    ).toEqual(["acme_volume_used_bytes"]);
+    expect(queries[0]!.metricQueryData.filterData.attributes).toMatchObject({
+      volume: "vol-acme-01",
+    });
+    expect(document.body).toHaveTextContent(
+      "How much this volume holds, as Acme reports it.",
+    );
+    expect(document.body).not.toHaveTextContent(
+      /Purity|FlashArray|FlashBlade|purefa|purefb/,
+    );
+    expect(JSON.stringify(queries)).not.toMatch(/purefa|purefb/);
+  });
+
+  test("its list is described and drawn in Acme's words, with none of a FlashArray's columns", async () => {
+    mockParts = [acmeVolume("vol-acme-01", 7 * 1024 ** 3)];
+    render(<StorageArrayVolumes {...PAGE_PROPS} />);
+    await settle();
+
+    expect(
+      await screen.findByText(
+        "The volumes of this Acme array and how much each holds.",
+      ),
+    ).toBeInTheDocument();
+    expect(await screen.findByText("vol-acme-01")).toBeInTheDocument();
+    expect(screen.queryByText("Pod / Group")).not.toBeInTheDocument();
+    expect(document.body).not.toHaveTextContent(/FlashArray|FlashBlade/);
+  });
+
+  test("a FlashArray's volume pages are its own, as before", () => {
+    expect(
+      StorageArrayPlatformRegistry.getKindPage(FLASHARRAY, "Volume")?.part
+        ?.charts[0]?.metricId,
+    ).toMatch(/^purefa-/);
+    expect(
+      StorageArrayPlatformRegistry.getKindPage(
+        ACME_STORAGE_SYSTEM,
+        "Volume",
+      )?.part?.charts.map((chart: { metricId: string }): string => {
+        return chart.metricId;
+      }),
+    ).toEqual(["acme-volume-used"]);
   });
 });
 
@@ -439,18 +541,20 @@ describe("an Acme array's inventory page", () => {
   test("a kind no platform defines still lists, under its own name", async () => {
     mockParts = [
       {
-        ...aggregate("lun-7", 9),
-        kind: "Lun",
-        externalId: "lun-7",
-        name: "lun-7",
+        ...aggregate("qtree-7", 9),
+        kind: "Qtree",
+        externalId: "qtree-7",
+        name: "qtree-7",
       },
     ];
-    mockLastParam = "Lun";
+    mockLastParam = "Qtree";
     render(<StorageArrayInventory {...PAGE_PROPS} />);
     await settle();
 
-    expect(await screen.findByText("lun-7")).toBeInTheDocument();
-    expect(within(document.body).getAllByText("Lun").length).toBeGreaterThan(0);
+    expect(await screen.findByText("qtree-7")).toBeInTheDocument();
+    expect(within(document.body).getAllByText("Qtree").length).toBeGreaterThan(
+      0,
+    );
   });
 });
 

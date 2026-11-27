@@ -454,8 +454,19 @@ sudo systemctl enable --now oneuptime-database-agent
 | `ONEUPTIME_AI_DATABASE_CA_FILE` | — | یک بسته CA با قالب PEM که در کانتینر mount شده است (`volumes` توضیح‌شده `oneuptime-database-ai-agent` را ببینید)، تا وقتی `DATABASE_TLS_INSECURE=false` است گواهی سرور در برابر آن بررسی شود |
 | `ONEUPTIME_AI_AGENT_RESOURCE_NAME` | هویت کالکتور | عامل هوش مصنوعی را به‌عنوان پایگاه داده‌ای جز پایگاه داده کالکتور ثبت می‌کند: id آن در OneUptime، یا `<engine>\|<address>:<port>`. آن را خالی بگذارید |
 | `LOG_LEVEL` | `info` | سطح لاگ عامل هوش مصنوعی: `debug`، `info`، `warn` یا `error` |
+| `ONEUPTIME_DATA_OBSERVABILITY` | — | `true` به عامل اجازه می‌دهد پایگاه‌های داده این سرور را برای مشاهده‌پذیری داده بخواند؛ هر مقدار دیگری آن را خاموش نگه می‌دارد |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME` | حساب ورود پایش | حساب ورودی که مشاهده‌پذیری داده کاتالوگ را با آن می‌خواند. همان‌طور که هست نوشته می‌شود: `$`های آن دوتایی نمی‌شوند |
+| `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_PASSWORD` | — | گذرواژه آن حساب؛ آن را در نقل‌قول تکی بگذارید |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS` | `true` | `false` هیچ بررسی داده‌ای اجرا نمی‌کند: فقط کاتالوگ |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME` | حساب ورود کاتالوگ | حساب ورودی که بررسی‌های داده سطرها را با آن می‌خوانند |
+| `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_PASSWORD` | — | گذرواژه آن حساب؛ آن را در نقل‌قول تکی بگذارید |
+| `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL` | `false` | `true` بررسی‌های SQL سفارشی و ردیف‌های ناموفق را اجرا می‌کند |
 
 چه چیزی می‌تواند اجرا کند، اصلاح‌ها چگونه کار می‌کنند و چگونه عیب‌یابی‌اش کنید: [عامل‌های AI زیرساخت](/docs/ai/infrastructure-ai-agents#سرورهای-پایگاه-داده).
+
+### مشاهده‌پذیری داده از راه همین عامل
+
+همین عامل می‌تواند پایگاه‌های داده PostgreSQL، MySQL و MariaDB این سرور را برای [مشاهده‌پذیری داده](/docs/data-observability/index) بخواند: جدول‌ها و ستون‌هایشان، تازگی و حجم، تغییرات طرح‌واره، و بررسی‌هایی که تنظیم می‌کنید. به‌صورت فقط‌خواندنی می‌خواند، با حساب‌های ورود محیط خودش و دستورهایی که خودش می‌سازد، و هیچ سطر و هیچ حساب ورودی را برنمی‌گرداند. تا وقتی `ONEUPTIME_DATA_OBSERVABILITY=true` را در همان `.env` تنظیم نکنید خاموش است. [اتصال یک پایگاه داده](/docs/data-observability/connect#از-راه-database-agent) می‌گوید چگونه عامل را انتخاب کنید و کدام حساب‌های ورود را به آن بدهید.
 
 ## Kubernetes
 
