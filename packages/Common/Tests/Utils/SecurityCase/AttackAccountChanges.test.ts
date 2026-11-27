@@ -22,6 +22,14 @@ import {
   CLOUD_AUDIT_ACCOUNT_ATTRIBUTE,
   CLOUD_AUDIT_CONNECTION_ATTRIBUTE,
 } from "../../../Server/Utils/SecurityEvent/CloudAudit/CloudAuditSecurityEvents";
+import {
+  ATTACH_ROLE_POLICY_RECORD,
+  CREATE_ROLE_RECORD,
+  PUT_ROLE_POLICY_RECORD,
+  RECORDED_ACCOUNT,
+  UPDATE_ASSUME_ROLE_POLICY_RECORD,
+  readRecordedEvent,
+} from "../../Helpers/AwsIamRoleRecords";
 
 /*
  * What an attack changed on accounts, read from a case's events (#10603):
@@ -952,6 +960,8 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
     '{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Principal":{"AWS":"arn:aws:iam::444455556666:root"},"Action":"sts:AssumeRole"}]}';
 
   test("a backdoor role, a role made to trust someone else and a role given more power are each a change - before #11038 the step never listed them", () => {
+    const read: Array<{ eventName: string; read: boolean }> = [];
+
     for (const [eventName, fields] of [
       [
         "CreateRole",
@@ -983,11 +993,39 @@ describe("AWS CloudTrail's IAM role calls (#11038)", () => {
         },
       ],
     ] as Array<[string, Record<string, string>]>) {
-      expect({
+      read.push({
         eventName,
         read: readAccountChange(cloudTrail(eventName, fields)) !== null,
-      }).toEqual({ eventName, read: true });
+      });
     }
+
+    expect(read).toEqual([
+      { eventName: "CreateRole", read: true },
+      { eventName: "UpdateAssumeRolePolicy", read: true },
+      { eventName: "AttachRolePolicy", read: true },
+      { eventName: "PutRolePolicy", read: true },
+    ]);
+  });
+
+  test("a case of AWS's own recorded role calls lists each as a change to its role - before #11038 it listed none", () => {
+    expect(
+      getAttackAccountChanges({
+        matches: null,
+        keptEvents: [
+          CREATE_ROLE_RECORD,
+          UPDATE_ASSUME_ROLE_POLICY_RECORD,
+          ATTACH_ROLE_POLICY_RECORD,
+          PUT_ROLE_POLICY_RECORD,
+        ].map(readRecordedEvent),
+      }).map((change: AccountChange): [string, string, string] => {
+        return [change.eventName, change.account, change.cloudAccountId];
+      }),
+    ).toEqual([
+      ["CreateRole", "TestRole", RECORDED_ACCOUNT],
+      ["UpdateAssumeRolePolicy", "S3AccessForEC2Instances", RECORDED_ACCOUNT],
+      ["AttachRolePolicy", "ReadOnlyRole", RECORDED_ACCOUNT],
+      ["PutRolePolicy", "S3Access", RECORDED_ACCOUNT],
+    ]);
   });
 
   test.each([
