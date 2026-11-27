@@ -52,6 +52,11 @@ const EVERY_SCRIPT_RUNS: string = DIGIT_ZEROS.map((zero: number): string => {
   return String.fromCharCode(zero + 4).repeat(12) + " ";
 }).join("");
 
+const IDEOGRAPHIC_SPACE: string = "　";
+
+// Every fullwidth form a number is read with, beside no digit, then a letter: CJK prose.
+const FORMS_BESIDE_NO_DIGIT: string = `（）－＋．／${IDEOGRAPHIC_SPACE}あ`;
+
 const EMAIL_CASES: Array<[string, string]> = [
   ["at signs without end", repeat("@", LENGTH)],
   ["letters and at signs", repeat("a@", LENGTH)],
@@ -102,6 +107,23 @@ const CARD_CASES: Array<[string, string]> = [
   ["escapes glued to digits without end", repeat("%2212", LENGTH)],
   ["'+' runs between digits without end", repeat("4++", LENGTH)],
   ["Arabic-Indic digits typed into a form", repeat("٤+", LENGTH)],
+  // #11115: a number's fullwidth forms, read as ASCII beside a digit.
+  [
+    "fullwidth hyphens between fullwidth digits without end",
+    repeat("４－", LENGTH),
+  ],
+  [
+    "ideographic spaces between digits without end",
+    repeat(`4${IDEOGRAPHIC_SPACE}`, LENGTH),
+  ],
+  [
+    "cards typed wholly in fullwidth back to back",
+    repeat(`４５３２－０１５１－１２８３－０３６６${IDEOGRAPHIC_SPACE}`, LENGTH),
+  ],
+  [
+    "fullwidth forms beside no digit without end",
+    repeat(FORMS_BESIDE_NO_DIGIT, LENGTH),
+  ],
 ];
 
 const PHONE_CASES: Array<[string, string]> = [
@@ -137,6 +159,51 @@ const PHONE_CASES: Array<[string, string]> = [
     "numbers a form wrote back to back",
     repeat("phone=%2B44+20+7946+0958&", LENGTH),
   ],
+  // #11115: a number typed wholly in fullwidth, its signs and separators too.
+  ["fullwidth plus signs before digits without end", repeat("＋４", LENGTH)],
+  ["fullwidth hyphens between digits without end", repeat("４－", LENGTH)],
+  ["digits in fullwidth parentheses without end", repeat("（４）", LENGTH)],
+  [
+    "a fullwidth plus sign and groups without end",
+    "＋４４" + repeat(`${IDEOGRAPHIC_SPACE}１２`, LENGTH),
+  ],
+  [
+    "numbers typed wholly in fullwidth back to back",
+    repeat(
+      `＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８${IDEOGRAPHIC_SPACE}`,
+      LENGTH,
+    ),
+  ],
+  [
+    "fullwidth signs escaped in a URL without end",
+    repeat("%EF%BC%8B%EF%BC%94%EF%BC%8D", LENGTH),
+  ],
+  [
+    "fullwidth forms beside no digit without end",
+    repeat(FORMS_BESIDE_NO_DIGIT, LENGTH),
+  ],
+  // #11114: a national number, judged by the words beside it.
+  [
+    "phone words and national numbers back to back",
+    repeat("tel 02012345678 ", LENGTH),
+  ],
+  [
+    "phone words without end, then a number",
+    repeat("tel ", LENGTH) + "02012345678",
+  ],
+  ["a phone word, then digits without end", "tel " + repeat("2", LENGTH)],
+  [
+    "words that hold a phone word, and national numbers, back to back",
+    repeat("telemetry 02012345678 callback ", LENGTH),
+  ],
+  [
+    "national numbers back to back beside no phone word",
+    repeat("order 02012345678 ", LENGTH),
+  ],
+  [
+    "phone words escaped in a URL, and numbers, back to back",
+    repeat("%74%65%6C%3D02012345678&", LENGTH),
+  ],
 ];
 
 const SSN_CASES: Array<[string, string]> = [
@@ -159,6 +226,37 @@ const SSN_CASES: Array<[string, string]> = [
   [
     "Social Security numbers with %20 back to back",
     repeat("536%2022%208731&", LENGTH),
+  ],
+  // #11115
+  ["fullwidth groups and hyphens without end", repeat("５３６－", LENGTH)],
+  [
+    "Social Security numbers typed wholly in fullwidth back to back",
+    repeat(`５３６－２２－８７３１${IDEOGRAPHIC_SPACE}`, LENGTH),
+  ],
+  [
+    "fullwidth forms beside no digit without end",
+    repeat(FORMS_BESIDE_NO_DIGIT, LENGTH),
+  ],
+  // #11114: nine digits in a row, judged by the words beside them.
+  [
+    "SSN words and nine digits back to back",
+    repeat("SSN 536221234 ", LENGTH),
+  ],
+  ["an SSN word, then digits without end", "ssn " + repeat("5", LENGTH)],
+  [
+    "SSN words without end, then nine digits",
+    repeat("ssn ", LENGTH) + "536221234",
+  ],
+  [
+    "words of an SSN apart by ideographic spaces, and nine digits, back to back",
+    repeat(
+      `social${IDEOGRAPHIC_SPACE}security${IDEOGRAPHIC_SPACE}５３６２２１２３４${IDEOGRAPHIC_SPACE}`,
+      LENGTH,
+    ),
+  ],
+  [
+    "nine digits back to back beside no SSN word",
+    repeat("ref 536221234 ", LENGTH),
   ],
 ];
 
@@ -356,6 +454,38 @@ describe("a Phone Number and an SSN rule over a long text of them", () => {
     const left: string = "to [P] and [P], ssn [S] at +51.507217; ";
 
     expect(scrubbed).toBe(repeat(left, left.length * 1000));
+  });
+});
+
+describe("a Phone Number and an SSN rule over a long text of numbers typed in fullwidth or beside their words (#11114, #11115)", () => {
+  test("hide every one, and keep the rest", () => {
+    // Further apart than any word's reach (32 or 64 characters before, 8 or 32 after).
+    const apart: string = ` ${"x".repeat(70)} `;
+    const unit: string = `電話：＋８１${IDEOGRAPHIC_SPACE}３－１２３４－５６７８ tel 02012345678${apart}order 02012345678${apart}SSN 536221234${apart}ref 536221234${apart}ssn ５３６－２２－８７３１${apart}`;
+    const text: string = repeat(unit, unit.length * 1000);
+    const phone: ScrubRegExp = compileBuiltInScrubPattern(
+      LogScrubPatternType.PhoneNumber,
+    )!;
+    const ssn: ScrubRegExp = compileBuiltInScrubPattern(
+      LogScrubPatternType.SSN,
+    )!;
+    const timed: FastestRun<string> = fastestRun({
+      run: (): string => {
+        return ssn.replace(
+          phone.replace(text, (): string => {
+            return "[P]";
+          }),
+          (): string => {
+            return "[S]";
+          },
+        );
+      },
+      limitInMs: LIMIT_IN_MS,
+    });
+    const left: string = `電話：[P] tel [P]${apart}order 02012345678${apart}SSN [S]${apart}ref 536221234${apart}ssn [S]${apart}`;
+
+    expect(timed.inMs).toBeLessThan(LIMIT_IN_MS);
+    expect(timed.result).toBe(repeat(left, left.length * 1000));
   });
 });
 
