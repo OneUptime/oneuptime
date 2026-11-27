@@ -1202,7 +1202,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
 
       expect(inputOf(view, "incidentMonitors")["hint"]).toEqual({
         type: "plain_text",
-        text: "A monitor you pick here pauses its checks until the incident is resolved.",
+        text: "A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
       });
 
       // Whether there is anything to offer: one host read, as the member, in the project.
@@ -1240,7 +1240,7 @@ describe("declaring an incident from Slack, linked to what it is about", () => {
       // The Monitors field still says what a pick there does.
       expect(inputOf(view, "incidentMonitors")["hint"]).toEqual({
         type: "plain_text",
-        text: "A monitor you pick here pauses its checks until the incident is resolved.",
+        text: "A monitor you pick here pauses its checks until the incident is resolved, unless it is set to keep monitoring during incidents.",
       });
     });
 

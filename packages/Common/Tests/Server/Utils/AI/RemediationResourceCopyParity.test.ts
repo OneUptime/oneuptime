@@ -317,6 +317,18 @@ describe("the undo every persona recommends is a safe change the policy accepts"
       AiResourceType.OpenStackCloud,
       "openstack network agent set --enable f1fe06bd-337d-4ee0-b1df-3284823c1490",
     ],
+    [
+      AiResourceType.XcpNgPool,
+      "xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/start",
+    ],
+    [
+      AiResourceType.XcpNgPool,
+      "xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/resume",
+    ],
+    [
+      AiResourceType.XcpNgPool,
+      "xo-cli rest post vms/613f541c-4bed-fc77-7ca8-2db6b68f079c/actions/unpause",
+    ],
   ];
 
   it.each(SAMPLE_UNDOS)(

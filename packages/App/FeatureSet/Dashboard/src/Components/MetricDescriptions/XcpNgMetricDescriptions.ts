@@ -62,7 +62,18 @@ export type XcpNgMetric =
   | "vmsTableMemory"
   | "vmsTableUptime"
   // Storage list.
-  | "storageTableUsed";
+  | "storageTableUsed"
+  // A probe's read of Xen Orchestra (#10997): backups, HA, the master, patches.
+  | "backupsLastOk"
+  | "backupsLastFailed"
+  | "backupsOverdue"
+  | "backupsNotScheduled"
+  | "haEnabled"
+  | "haSurvivesHostFailure"
+  | "haHostFailuresToTolerate"
+  | "poolMaster"
+  | "hostMissingPatches"
+  | "vmLastBackup";
 
 export const XCP_NG_METRIC_DESCRIPTIONS: Record<XcpNgMetric, string> = {
   // Pool overview - tiles.
@@ -169,5 +180,37 @@ export const XCP_NG_METRIC_DESCRIPTIONS: Record<XcpNgMetric, string> = {
   // Storage list.
   storageTableUsed: translationKey(
     "Space used on each storage repository compared with its size, as XAPI reports it, at the latest report.",
+  ),
+
+  // A probe's read of Xen Orchestra.
+  backupsLastOk: translationKey(
+    "VMs whose last backup by a Xen Orchestra backup job succeeded, as Xen Orchestra's backup logs say. Control domains are never backed up and are left out.",
+  ),
+  backupsLastFailed: translationKey(
+    "VMs whose last backup failed or was interrupted. Each one is listed with Xen Orchestra's words for why, and its job; the VM is backed up again on the job's next run.",
+  ),
+  backupsOverdue: translationKey(
+    "VMs a scheduled backup job backs up that have had no good backup for longer than the longest gap between that job's runs, plus a quarter of it (an hour at least). The VM Not Backed Up alert fires on the same rule.",
+  ),
+  backupsNotScheduled: translationKey(
+    "VMs no backup job with an enabled schedule has backed up since OneUptime started reading this pool's backups. A VM only backed up by hand, or not at all, is counted here.",
+  ),
+  haEnabled: translationKey(
+    "Whether XCP-ng's high availability is on for this pool: when a host fails, it restarts the pool's protected VMs on the others.",
+  ),
+  haSurvivesHostFailure: translationKey(
+    "Whether HA could restart every protected VM if one more host failed. Read through the pool's XAPI, it is XAPI's own plan; through Xen Orchestra, which does not report the plan, it needs a host up and enabled besides the one that fails.",
+  ),
+  haHostFailuresToTolerate: translationKey(
+    "How many host failures HA is set to tolerate, and how many its current plan covers. Only the pool's XAPI reports them: through Xen Orchestra this shows a dash.",
+  ),
+  poolMaster: translationKey(
+    "The host that runs the pool's XAPI and coordinates the others. If it fails, HA makes another host the master; the pool's feed says when that happens.",
+  ),
+  hostMissingPatches: translationKey(
+    "Updates the host has not installed yet, as Xen Orchestra checks them every six hours. On the Xen Orchestra Appliance, the check needs a plan that includes it.",
+  ),
+  vmLastBackup: translationKey(
+    "How the VM's last backup by a Xen Orchestra backup job ended, when, and by which job, from Xen Orchestra's backup logs.",
   ),
 };

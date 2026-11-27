@@ -99,7 +99,7 @@ SHELL ["/bin/bash", "-c"]
 # kubectl is only supported within one minor of the API server, and each
 # release is built with the Go of its day, so a stale pin means version-skew
 # warnings on every "Test access" and a block of Go stdlib CVEs in image
-# scans that no rebuild fixes. v1.36.6 (go1.26.10) covers 1.35-1.37 servers.
+# scans that no rebuild fixes. v1.36.7 (go1.26.11) covers 1.35-1.37 servers.
 # Bump KUBECTL_VERSION and both digests together, at least once per
 # Kubernetes minor release and whenever a patch release clears findings an
 # image scan reports in it (dl.k8s.io publishes kubectl.sha256 next to each
@@ -107,8 +107,10 @@ SHELL ["/bin/bash", "-c"]
 #
 # The command policy's comments and tests (packages/Common/Utils/
 # AiRemediation) name v1.36.4, the binary its kubectl behaviours were checked
-# with. kubectl's own code has changed since only in `kubectl cp`, which the
-# policy refuses (v1.36.6 changed nothing but its Go); re-check them when a bump
+# with. kubectl's own code has changed since only in `kubectl cp` and in
+# `kubectl proxy`'s default --reject-paths, two commands the policy refuses
+# (v1.36.6 changed nothing but its Go; v1.36.7 changed its Go and added the
+# node proxy's run path to those reject paths); re-check them when a bump
 # changes more than that.
 #
 # kubectl 1.33+ reads a kuberc preferences file (aliases, default flags).
@@ -116,9 +118,9 @@ SHELL ["/bin/bash", "-c"]
 # KUBECTL_KUBERC=false, an empty private HOME) and the argv guard refuses
 # --kuberc, so a preferences file can never rewrite an approved argv.
 ARG TARGETARCH
-ARG KUBECTL_VERSION=v1.36.6
-ARG KUBECTL_SHA256_AMD64=29818b6729dc9262b692307470d0558d027725e738be5dd47c760261868a2634
-ARG KUBECTL_SHA256_ARM64=35507ef408c3d38849e5d3203e18f8e861db822aa664101a9ced0869edd06046
+ARG KUBECTL_VERSION=v1.36.7
+ARG KUBECTL_SHA256_AMD64=b08f96b43904747897fe569b3c51056b00ddfc67847f6db1bf9fe0c9583a2d26
+ARG KUBECTL_SHA256_ARM64=4e83edb4cc75beae9dc7cfb42be71899d5397a7b6a2384fbe1ae163d4f544aaf
 RUN set -euo pipefail \
   && arch="${TARGETARCH:-amd64}" \
   && case "${arch}" in \

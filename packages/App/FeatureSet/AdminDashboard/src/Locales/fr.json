@@ -4622,5 +4622,14 @@
   "This monitor template has no monitor type, so its monitors cannot be synced. Create the template again with a monitor type.": "Ce modèle de moniteur n'a pas de type de moniteur : ses moniteurs ne peuvent donc pas être synchronisés. Recréez le modèle avec un type de moniteur.",
   "Template sync settings need the template's monitor type. Choose the monitor type first, then choose the sync settings again.": "Les paramètres de synchronisation du modèle nécessitent le type de moniteur du modèle. Choisissez d'abord le type de moniteur, puis choisissez à nouveau les paramètres de synchronisation.",
   "A monitor template cannot sync \"{{field}}\". Choose from the template sync settings the template offers, then save again.": "Un modèle de moniteur ne peut pas synchroniser « {{field}} ». Choisissez parmi les paramètres de synchronisation que propose le modèle, puis enregistrez à nouveau.",
-  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Les nouvelles personnes ne peuvent pas encore se connecter. Associez un projet, avec les équipes qu'elles rejoignent, dans « Projets associés »."
+  "Nobody new can sign in yet. Attach a project, with the teams they join, under Attached Projects.": "Les nouvelles personnes ne peuvent pas encore se connecter. Associez un projet, avec les équipes qu'elles rejoignent, dans « Projets associés ».",
+  "This issue does not exist, or you cannot read it.": "Ce problème n'existe pas, ou vous ne pouvez pas le lire.",
+  "This issue has 10 pull requests linked already. Take one off before you link another.": "Ce problème a déjà 10 pull requests liées. Retirez-en une avant d'en lier une autre.",
+  "This issue was set aside: its risk was accepted, or it is not an issue. Reopen it to link the pull request that fixes it.": "Ce problème a été mis de côté : son risque a été accepté, ou ce n'est pas un problème. Rouvrez-le pour lier la pull request qui le corrige.",
+  "{{pullRequest}} is linked to this issue already.": "{{pullRequest}} est déjà liée à ce problème.",
+  "All XCP-ng pools": "Tous les pools XCP-ng",
+  "Only XCP-ng pools that match conditions": "Uniquement les pools XCP-ng qui correspondent aux conditions",
+  "All savings": "Toutes les économies",
+  "Only savings that match conditions": "Uniquement les économies qui correspondent aux conditions",
+  "XCP-ng Pool": "Pool XCP-ng"
 }

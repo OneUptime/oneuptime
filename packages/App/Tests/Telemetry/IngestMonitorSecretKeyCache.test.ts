@@ -9,7 +9,9 @@
  * What must hold: a key is looked up once and then not again while kept;
  * every report - looked up or kept - has its key checked; a key that finds
  * no monitor is never kept, and one that no longer finds its monitor is
- * forgotten; a paused incoming request monitor is never kept.
+ * forgotten; a paused incoming request monitor is never kept. A paused
+ * server monitor is found by its key all the same (#11141): MonitorResource
+ * lists its report as not evaluated before it refuses it.
  *
  * MonitorResource, the monitor lookup and the arrival store are mocked at
  * their module boundary; Redis is a map.
@@ -21,6 +23,10 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
     default: {
       monitorResource: jest.fn(() => {
         return Promise.resolve({});
+      }),
+      // Lists what a monitor that is not being checked received (#11141).
+      listNotEvaluated: jest.fn(() => {
+        return Promise.resolve();
       }),
     },
   };
@@ -134,7 +140,12 @@ import Monitor from "Common/Models/DatabaseModels/Monitor";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ExceptionMessages from "Common/Types/Exception/ExceptionMessages";
 import { JSONObject } from "Common/Types/JSON";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  MONITOR_PAUSE_FLAGS_SELECT,
+  MonitorPauseReason,
+} from "Common/Utils/Monitor/MonitorPauseState";
 import {
   afterEach,
   beforeEach,
@@ -150,6 +161,8 @@ const PROJECT_ID: string = "8c3f2e4a-5d6b-4c7f-a01b-2c3d4e5f6a7b";
 
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
+const listNotEvaluated: jest.Mock =
+  MonitorResourceUtil.listNotEvaluated as unknown as jest.Mock;
 const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 
 let redis: Map<string, string>;
@@ -262,7 +275,13 @@ describe("a server agent's reports", () => {
     }
   });
 
-  test("the lookup still asks only for an enabled server monitor of an active project", async () => {
+  /*
+   * #11141: it used to ask only for an enabled one, so a paused monitor's
+   * report was refused as a monitor that does not exist. It asks for a
+   * server monitor of an active project, checked or not: MonitorResource
+   * lists a paused one's report as not evaluated, then refuses it.
+   */
+  test("the lookup asks for a server monitor of an active project, whether or not it is being checked", async () => {
     await processServerMonitorFromQueue(serverReport());
 
     const lookup: { query: Record<string, unknown> } = findOneBy.mock
@@ -275,8 +294,41 @@ describe("a server agent's reports", () => {
         "project",
       ]),
     );
-    expect(MonitorService.getEnabledMonitorQuery).toHaveBeenCalled();
+    expect(lookup.query["monitorType"]).toBe(MonitorType.Server);
+
+    for (const pauseFlag of Object.keys(MONITOR_PAUSE_FLAGS_SELECT)) {
+      expect(lookup.query).not.toHaveProperty(pauseFlag);
+    }
+
+    expect(MonitorService.getEnabledMonitorQuery).not.toHaveBeenCalled();
   });
+
+  test.each(Object.values(MonitorPauseReason))(
+    "a monitor paused as %s is found by its key, and its report goes to the evaluation, which lists and refuses it",
+    async (reason: MonitorPauseReason) => {
+      findOneBy.mockResolvedValue(
+        activeMonitor({
+          isArchived: reason === MonitorPauseReason.Archived,
+          disableActiveMonitoring: reason === MonitorPauseReason.Disabled,
+          disableActiveMonitoringBecauseOfManualIncident:
+            reason === MonitorPauseReason.ManualIncident,
+          disableActiveMonitoringBecauseOfScheduledMaintenanceEvent:
+            reason === MonitorPauseReason.ScheduledMaintenance,
+        }) as never,
+      );
+
+      await processServerMonitorFromQueue(serverReport());
+
+      expect(monitorResource).toHaveBeenCalledTimes(1);
+      expect(evaluatedMonitorId(0)).toBe(MONITOR_ID);
+      expect(optionsOfEvaluation(0).secretKey).toEqual({
+        column: "serverMonitorSecretKey",
+        value: SECRET_KEY,
+      });
+      // The ingest lists nothing itself: MonitorResource does, as it refuses.
+      expect(listNotEvaluated).not.toHaveBeenCalled();
+    },
+  );
 
   test("a key that finds no monitor is not kept, and is looked up again", async () => {
     findOneBy.mockResolvedValue(null as never);
@@ -381,6 +433,15 @@ describe("an incoming request monitor's requests", () => {
     expect(redis.size).toBe(0);
     expect(findOneBy).toHaveBeenCalledTimes(2);
     expect(monitorResource).not.toHaveBeenCalled();
+
+    // #11141: skipped from the evaluation, each is listed as not evaluated.
+    expect(listNotEvaluated).toHaveBeenCalledTimes(2);
+
+    for (const call of listNotEvaluated.mock.calls) {
+      expect((call[0] as { reason: MonitorPauseReason }).reason).toBe(
+        MonitorPauseReason.Disabled,
+      );
+    }
   });
 
   test("a key that finds no monitor is not kept", async () => {

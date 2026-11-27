@@ -23,6 +23,8 @@ import {
   RESOURCE_AI_WRITE_TARGETS_ENV,
   RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV,
   RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV,
+  RESOURCE_AI_XO_READ_TOKEN_ENV,
+  RESOURCE_AI_XO_WRITE_TOKEN_ENV,
 } from "./Common/Types/ResourceAiAgent/ResourceAiAccess";
 import ResourceCommandPolicy from "./Common/Utils/AiRemediation/Resource/ResourceCommandPolicy";
 import { ResourceToolPolicy } from "./Common/Utils/AiRemediation/Resource/ResourceCommandPolicyCore";
@@ -324,6 +326,33 @@ export function describeWhatWritesStillNeed(data: {
     if (!id || !secret) {
       needs.push(
         `Changes use a credential of their own: set ${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_ID_ENV} and ${RESOURCE_AI_OPENSTACK_WRITE_CREDENTIAL_SECRET_ENV}.`,
+      );
+    }
+  }
+
+  /*
+   * An XCP-ng agent reads with a token Xen Orchestra keeps read-only, so a
+   * change needs a token of its own, of a user whose role allows fixes.
+   */
+  if (data.resourceType === AiResourceType.XcpNgPool) {
+    const writeToken: string = readTrimmed(
+      data.env,
+      RESOURCE_AI_XO_WRITE_TOKEN_ENV,
+    );
+
+    /*
+     * Worded with no colon after a token's name: the output redactor reads
+     * "<name>: <value>" with a credential-like name as a secret.
+     */
+    if (!writeToken) {
+      needs.push(
+        `Changes use a Xen Orchestra token of their own, so set ${RESOURCE_AI_XO_WRITE_TOKEN_ENV} to a token of a user whose role allows the fixes (the XCP-ng Agent's README lists them).`,
+      );
+    } else if (
+      writeToken === readTrimmed(data.env, RESOURCE_AI_XO_READ_TOKEN_ENV)
+    ) {
+      needs.push(
+        `${RESOURCE_AI_XO_WRITE_TOKEN_ENV} is the read token, which Xen Orchestra keeps read-only, so set it to a token of another user, whose role allows the fixes.`,
       );
     }
   }
@@ -704,6 +733,63 @@ function resolveCloudIdentity(
   return resolved;
 }
 
+// A pool's XAPI UUID, any case (Xen Orchestra and OneUptime show it in lower case).
+const XCP_NG_POOL_ID_PATTERN: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/*
+ * An XCP-ng pool's identity: its XAPI UUID, the identity the XCP-ng Agent
+ * reports (xcp_ng.pool.id), from XCP_NG_POOL_ID or
+ * RESOURCE_AI_AGENT_RESOURCE_NAME_ENV, in lower case. Unset is no problem:
+ * the executor asks Xen Orchestra for the one pool it manages. A name is a
+ * problem, never looked up: pools are matched by UUID, and a name would
+ * make a pool of its own.
+ */
+function resolveXcpNgPoolIdentity(
+  env: NodeJS.ProcessEnv,
+  info: AiResourceTypeInfo,
+  override: string,
+): ResolvedIdentity {
+  const resolved: ResolvedIdentity = {
+    identifier: null,
+    source: null,
+    resourceId: null,
+    details: {},
+    problems: [],
+    warnings: [],
+  };
+
+  if (override) {
+    resolved.identifier = override;
+    resolved.source = RESOURCE_AI_AGENT_RESOURCE_NAME_ENV;
+  } else {
+    for (const name of info.identityEnvVars) {
+      const value: string = readTrimmed(env, name);
+
+      if (value) {
+        resolved.identifier = value;
+        resolved.source = name;
+        break;
+      }
+    }
+  }
+
+  if (resolved.identifier === null) {
+    return resolved;
+  }
+
+  if (!XCP_NG_POOL_ID_PATTERN.test(resolved.identifier)) {
+    resolved.problems.push(
+      `${resolved.source}="${resolved.identifier.slice(0, 64)}" is not a pool's UUID. Set it to the XAPI UUID of the pool this agent serves (on the pool's Settings in OneUptime, or in Xen Orchestra), or leave it unset when Xen Orchestra manages one pool: the agent then asks Xen Orchestra which.`,
+    );
+    resolved.identifier = null;
+    return resolved;
+  }
+
+  resolved.identifier = resolved.identifier.toLowerCase();
+  return resolved;
+}
+
 /*
  * Which resource this agent registers as: RESOURCE_AI_AGENT_RESOURCE_NAME_ENV
  * when set, else the type's collector variables (identityEnvVars). A type
@@ -725,6 +811,8 @@ export function resolveIdentity(
 
   if (type === AiResourceType.DatabaseServer) {
     resolved = resolveDatabaseIdentity(env, override);
+  } else if (type === AiResourceType.XcpNgPool) {
+    resolved = resolveXcpNgPoolIdentity(env, info, override);
   } else if (cloud) {
     resolved = resolveCloudIdentity(env, type, cloud, override);
   } else if (override) {

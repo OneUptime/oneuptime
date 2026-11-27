@@ -131,7 +131,7 @@ probes:
 
 ### 按探测器所等待的内容自动扩缩容
 
-应用端口上的 `/metrics/probe-scheduling` 汇总了每个应用 Pod 过去一分钟的情况。除 CPU 和内存外，用 KEDA 按其 `queueDepth` 扩缩应用 Pod，并在监视器分发延迟时发出告警：
+应用端口上的 `/metrics/probe-scheduling` 汇总了每个应用 Pod 过去一分钟的情况。除 CPU 和内存外，用 KEDA 按其 `queueDepth` 扩缩应用 Pod，并在监视器分发延迟时发出警报：
 
 ```yaml
 keda:

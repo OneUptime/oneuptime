@@ -1,11 +1,13 @@
 # 存储阵列监控
 
-存储阵列监视器监视一个存储阵列，并在阵列自身发出警报、空间不足、变慢、丢失硬件或主机路径，或复制落后时通知你。它支持 Pure Storage FlashArray 和 Pure Storage FlashBlade，读取阵列自身导出的指标——Pure 的 `purefa_*` 和 `purefb_*` 序列——这些指标由 OneUptime Storage Array Agent 采集。
+存储阵列监视器监视一个存储阵列，并在阵列自身发出警报、空间不足、变慢、丢失硬件或主机路径，或复制落后时通知你。它支持 Pure Storage FlashArray、Pure Storage FlashBlade 和 NetApp ONTAP（包括 Amazon FSx for NetApp ONTAP），读取 OneUptime Storage Array Agent 采集的指标：Pure 的 `purefa_*` 和 `purefb_*` 序列，以及 NetApp Harvest 从 ONTAP 集群读取的 `netapp_*` 序列。
+
+它也适用于 Dell PowerStore（`dell.powerstore`），基于 Dell 的 `powerstore_*` 序列。
 
 :::cards
 - [创建监视器](#创建存储阵列监视器): 在仪表板中的六个步骤。
-- [模板](#预置警报模板): 二十个现成的警报，每个卷、主机或组件一个事件。
-- [Pure 序列的工作方式](#pure-序列的结构): 一个指标名称，多个数值。
+- [模板](#预置警报模板): 现成的警报，每个卷、主机、专用设备或组件一个事件。
+- [Pure 序列的工作方式](#pure-序列的结构): 一个指标名称，多个数值。ONTAP 的序列[另有一节专门介绍](#ontap-序列的结构)。
 - [指标](#采集的指标): 监视器可以据以警报的每个序列。
 :::
 
@@ -31,7 +33,7 @@ flowchart TB
 
 ## 开始之前
 
-- **安装 Storage Array Agent**，安装在能通过 HTTPS 访问阵列的位置，并使用拥有阵列 **readonly** 角色的用户的 API 令牌。[Storage Array Agent 指南](/docs/telemetry/storage-arrays) 介绍了用户、令牌和安装，涉及 `ONEUPTIME_URL`、`ONEUPTIME_TELEMETRY_INGESTION_KEY`、`STORAGE_ARRAY_NAME`，以及阵列的地址和令牌(`PURE_FA_ENDPOINT` 和 `PURE_FA_API_TOKEN`，或 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`)。
+- **安装 Storage Array Agent**，安装在能通过 HTTPS 访问阵列的位置，并使用拥有阵列 **readonly** 角色的用户的 API 令牌。[Storage Array Agent 指南](/docs/telemetry/storage-arrays) 介绍了用户、令牌和安装，涉及 `ONEUPTIME_URL`、`ONEUPTIME_TELEMETRY_INGESTION_KEY`、`STORAGE_ARRAY_NAME`，以及阵列的地址和令牌(`PURE_FA_ENDPOINT` 和 `PURE_FA_API_TOKEN`，或 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`)，对于 ONTAP 则涉及集群的地址和一个只读 REST 用户(`NETAPP_ONTAP_ENDPOINT`、`NETAPP_ONTAP_USERNAME` 和 `NETAPP_ONTAP_PASSWORD`)。
 - **确认阵列已注册。** 在第一次采集后大约一分钟，它会以代理的 `STORAGE_ARRAY_NAME` 命名，出现在 **产品 → 基础设施 → 存储阵列 → 所有存储阵列** 下。
 
 ## 创建存储阵列监视器
@@ -74,10 +76,10 @@ flowchart TB
 | 字段 | 选项卡 | 作用 |
 | --- | --- | --- |
 | **存储阵列** | 全部 | 必填。把每个查询限定到 `resource.storage.array.name`，因此两个都有名为 `vol-01` 的卷的阵列永远不会混在一起。 |
-| **卷** | Custom Metric、高级 | 仅限 FlashArray。一个卷，按 `name` 标签，例如 `vol-db-01`。Pod 或卷组中的卷命名为 `pod::volume` 或 `group/volume`。 |
+| **卷** | Custom Metric、高级 | 一个卷：在 FlashArray 上按 `name` 标签，例如 `vol-db-01`(Pod 或卷组中的卷命名为 `pod::volume` 或 `group/volume`)；在 ONTAP 上按 `volume` 标签，两个 SVM 可以共用同一个卷名。 |
 | **主机** | Custom Metric、高级 | 仅限 FlashArray。阵列所知的一台主机，按 `host` 标签，例如 `esxi-01`。 |
 | **Pod** | Custom Metric、高级 | 仅限 FlashArray。一个 ActiveCluster 或 ActiveDR Pod，按 `name` 标签，在副本链接序列上则按 `local_pod`。 |
-| **硬件组件** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`。 |
+| **硬件组件** | Custom Metric、高级 | 一个硬件组件，例如 `CH0.BAY1` 或 `CT0`：在 FlashArray 上是 `component_name` 标签，在 FlashBlade 上是 `name`，在 ONTAP 上则是其序列用来命名它的标签(`node`、`disk`、`shelf` 或 `port`)。 |
 | **文件系统** | Custom Metric、高级 | 仅限 FlashBlade。一个文件系统，按 `name` 标签。 |
 | **存储桶** | Custom Metric、高级 | 仅限 FlashBlade。一个对象存储桶，按 `name` 标签。 |
 | **Storage Array Metric** | Custom Metric | [目录](#采集的指标) 中的一个指标。表单会添加赋予其含义的标签过滤器，并按它描述的对象分组，因此每个卷、主机或组件都会单独判断。 |
@@ -85,7 +87,9 @@ flowchart TB
 | **时间范围** | 全部 | 查询读取的滚动窗口，从 **Past 1 Minute** 到 **Past 365 Days**。新监视器从 **过去 5 分钟** 开始；文件系统或存储桶的自定义指标从 **过去 15 分钟** 开始；模板会设置自己的值。 |
 | **选择指标** | 高级 | 查询构建器：**指标**、**聚合方式**、**按属性过滤**、**分组依据**，以及用于合并查询的 **添加指标** 和 **添加公式**。 |
 
-代理每 60 秒读取一次阵列端点，每 2 分钟读取一次卷、主机和 Pod，因此 5 分钟的窗口中总会有样本。它每 5 分钟读取一次 FlashBlade 的文件系统和存储桶(所以用 15 分钟)，每 30 分钟读取一次 FlashArray 目录：请给目录监视器设置 60 分钟的窗口。
+代理每 60 秒读取一次阵列端点，每 2 分钟读取一次卷、主机和 Pod，因此 5 分钟的窗口中总会有样本。它每 5 分钟读取一次 FlashBlade 的文件系统和存储桶(所以用 15 分钟)，每 30 分钟读取一次 FlashArray 目录：请给目录监视器设置 60 分钟的窗口。在 ONTAP 上，Harvest 每分钟读取一次集群的性能，每 3 分钟读取一次其配置、状态和 EMS 事件，因此 5 分钟的窗口中总会有样本。
+
+它每 5 分钟读取一次 PowerStore，每 60 秒读取一次其集群状态：为 PowerStore 监视器设置 15 分钟的窗口。
 
 ## Pure 序列的结构
 
@@ -107,11 +111,29 @@ Pure 把多个数值放在 **一个** 指标名称上，并用一个标签区分
 
 在监视器过滤器和分组键中，代理的属性以 `resource.` 开头(`resource.storage.array.name`、`resource.storage.system`)，而 Pure 自己的标签不以它开头(`name`、`host`、`component_name`、`dimension`、`space`、`severity`)。
 
+## PowerStore 序列的结构
+
+Dell 的导出器每个指标名称只写一个值，因此 PowerStore 序列不需要标签过滤器。其标签标识对象：`appliance_id` 是专用设备，`name` 是部件、卷或文件系统，而 `volume_id`、`fc_port_id`、`eth_port_id`、`nas_id` 或 `volume_group_id` 是性能序列的对象。其状态序列在健康时为 1，否则为 0，因此模板在低于 1 时触发。它自己的警报通过 syslog 到达，其模板（日志监视器）列在下面的表格之后。
+
+## ONTAP 序列的结构
+
+NetApp Harvest 把每个序列命名为 `netapp_<object>_<counter>`，并用标签命名对象：卷用 `volume`(位于其 `svm` 中)，聚合用 `aggr`，LUN 用 `lun`(位于其 `volume` 和 `svm` 中)，节点用 `node`，磁盘用 `disk`，磁盘架用 `shelf`，SnapMirror 关系用 `destination_location`。延迟以每次操作的微秒计，`_ops` 为每秒操作数，`_data` 为每秒字节数。
+
+ONTAP 的状态有三种表示方式：
+
+| 序列 | 状态 | 每个序列对应 |
+| --- | --- | --- |
+| `netapp_*_new_status` | 1 表示健康、在线、正常或正在运行，0 表示不是 | 一个对象，每次轮询都有 |
+| `netapp_health_*_alerts` | 值为 1，其标签中带有 `severity`(`error` 或 `warning`)和原因 | 一个未解决的问题：已损坏的磁盘、磁盘架故障、无法接管其配对节点的节点、已断开的端口、系统健康警报 |
+| `netapp_ems_events` | 值为 1，带有 `message`、`severity` 和该事件的参数 | 一个 EMS 事件，只在收集到它的那一次轮询中存在；成对事件被清除时会以 0 再导出一次 |
+
+以数值表示的状态在窗口中的每个读数都低于 1 时触发，一旦有读数重新为 1 就恢复。未解决的问题在其序列存在时触发，在序列消失后恢复，前提是 `netapp_cluster_new_status` 仍在到达，因此已停止的代理不会关闭任何内容。EMS 事件在其唯一的读数上触发，并在它处于模板的一小时窗口内期间保持打开；一小时内没有再出现同类事件时恢复。
+
 ## 预置警报模板
 
-OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBlade——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
+OneUptime 提供 67 个模板——12 个用于 FlashArray，8 个用于 FlashBlade，16 个用于 PowerStore，31 个用于 ONTAP——**警报内容** 列表会提供适用于阵列平台的那些模板。每个模板都会构建一个完整的监视器：指标查询、其标签过滤器、按对象自身标签的分组、一个触发条件和一个恢复条件。阈值是可以编辑的起点。
 
-只有当条件对窗口中的 **每个** 值都成立时，条件才会触发。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。警报、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。
+只有当条件对窗口中的 **每个** 值都成立时，条件才会触发，但 ONTAP EMS 模板的条件除外：Harvest 只在一次轮询中导出某个事件，因此一个读数就够了。在容量、延迟、滞后或比率阈值上触发的监视器，只有越过阈值 10% 后才会恢复，因此在阈值附近徘徊的值不会来回切换。警报、硬件和连接模板在某个状态在其整个 5 分钟窗口内都出现后才会触发，并在状态消失约 5 分钟后恢复。
 
 ### FlashArray
 
@@ -143,6 +165,73 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | High Read Latency | 性能 | 警告 | `purefb_array_performance_latency_usec` 过滤到 `dimension=usec_per_read_op` 和 `protocol=all`，Avg，过去 10 分钟 | > 10000 µs (10 ms)，跨所有协议；≤ 9000 时恢复 |
 | File System Near Full | 文件系统 | 警告 | `purefb_file_systems_space_bytes` 过滤到 `space=available_ratio`，按 `name` 取 Min，过去 15 分钟 | < 0.1 — 文件系统预配大小的剩余不足 10%。每个文件系统一个事件；≥ 0.11 时恢复 |
 
+### PowerStore
+
+| 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 严重 | `powerstore_cluster`，Count，过去 10 分钟 | 整个窗口内都没有数据 — 代理、Dell 的导出器或集群不再响应；再次收到数据时恢复 |
+| Capacity Above 80% | 容量 | 警告 | `powerstore_cap_physical_used_percent`，按 `appliance_id` 取 Max，过去 15 分钟 | > 80 — 某台专用设备的容量正在填满；≤ 72 时恢复 |
+| Capacity Above 90% | 容量 | 严重 | `powerstore_cap_physical_used_percent`，按 `appliance_id` 取 Max，过去 15 分钟 | > 90 — 某台专用设备即将拒绝写入；≤ 81 时恢复 |
+| High Read Latency | 性能 | 警告 | `powerstore_perf_avg_read_latency`，按 `appliance_id` 取 Avg，过去 15 分钟 | > 5000 µs (5 ms)；≤ 4500 时恢复 |
+| High Write Latency | 性能 | 警告 | `powerstore_perf_avg_write_latency`，按 `appliance_id` 取 Avg，过去 15 分钟 | > 5000 µs (5 ms)；≤ 4500 时恢复 |
+| Drive Failed | 硬件 | 严重 | `powerstore_hardware_Drive_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个驱动器发生故障或被移除；≥ 1 时恢复 |
+| Node Unhealthy | 硬件 | 严重 | `powerstore_hardware_node_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个节点不是 Healthy；≥ 1 时恢复 |
+| Power Supply Unhealthy | 硬件 | 警告 | `powerstore_hardware_Power_Supply_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个电源发生故障或断电；≥ 1 时恢复 |
+| Fan Unhealthy | 硬件 | 警告 | `powerstore_hardware_Fan_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个风扇发生故障；≥ 1 时恢复 |
+| Battery Unhealthy | 硬件 | 警告 | `powerstore_hardware_Battery_state`，按 `name` 取 Min，过去 10 分钟 | < 1 — 某个电池备份模块出现故障；≥ 1 时恢复 |
+| Drive Wearing Out | 硬件 | 警告 | `powerstore_wear_metrics_by_drive`，按 `name` 取 Min，过去 15 分钟 | < 10 — 某个驱动器剩余的耐久度不足 10%；≥ 11 时恢复 |
+| NAS Server Not Started | 文件系统 | 警告 | `powerstore_nas_server_operational_status`，按 `name` 取 Max，过去 10 分钟 | < 1 — 某个 NAS 服务器已停止或已降级；≥ 1 时恢复 |
+| Volume Not Ready | 阵列健康状况 | 警告 | `powerstore_volume_state`，按 `name` 取 Max，过去 15 分钟 | < 1 — 某个卷处于离线状态；≥ 1 时恢复 |
+| File System Near Full | 文件系统 | 警告 | `powerstore_filesystem_logical_used_percent`，按 `name` 取 Max，过去 15 分钟 | > 90 — 某个文件系统快满了；≤ 81 时恢复 |
+| Cluster Not Configured | 阵列健康状况 | 警告 | `powerstore_cluster`，Max，过去 10 分钟 | < 1 — 集群不是 Configured；≥ 1 时恢复 |
+| Metro Witness Not Connected | 复制 | 警告 | `powerstore_metro_witness_status`，按 `name` 取 Min，过去 10 分钟 | > 0 — 某个 Metro Witness 未连接；再次变为 OK 时恢复 |
+
+### 通过 syslog 的 PowerStore 警报
+
+PowerStore 自己的警报以日志形式到达，因此其模板是 **日志** 监视器，在阵列的 **建议** 页面的 **阵列警报** 下提供。每个模板为每条 PowerStore 警报打开一个警报，按 `powerstore.resource.name` 和 `powerstore.alert.id` 分组，并在 PowerStore 清除该警报时将其解决：
+
+| 模板 | 严重性 | 在包含以下内容的行上打开 | 在以下内容上解决 |
+| --- | --- | --- | --- |
+| Critical Array Alert | 严重 | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | 警告 | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | 警告 | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
+
+### ONTAP
+
+| 模板 | 类别 | 严重程度 | 监视内容 | 触发条件 |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | 可用性 | 严重 | `netapp_cluster_new_status`，Count，过去 10 分钟 | 整个窗口内都没有数据 — 代理或 Harvest 已停止，或者集群不再响应 Harvest；再次收到数据时恢复 |
+| Cluster Not Healthy | 阵列健康状况 | 警告 | `netapp_cluster_new_status`，Max，过去 10 分钟 | < 1 — ONTAP 报告集群不健康；≥ 1 时恢复 |
+| System Health Alert | 阵列健康状况 | 警告 | `netapp_health_support_alerts`，按 `name` 取 Max，过去 5 分钟 | > 0 — ONTAP 的系统健康监视器发出了警报(缺少通往磁盘架的路径、节点连接问题)。每个警报一个事件；ONTAP 清除它时恢复 |
+| Emergency EMS Event | 阵列健康状况 | 严重 | `netapp_ems_events` 过滤到 `severity=emergency`，按 `message` 取 Max，过去 1 小时，任一读数 | > 0 — ONTAP 记录了一个紧急级 EMS 事件。每种 EMS 事件各一个事件；一小时内没有再出现同类事件时恢复 |
+| Alert EMS Event | 阵列健康状况 | 严重 | `netapp_ems_events` 过滤到 `severity=alert`，按 `message` 取 Max，过去 1 小时，任一读数 | > 0 — ONTAP 记录了一个警报级 EMS 事件(风扇故障)；一小时内没有再出现同类事件时恢复 |
+| Disk Out of Service | 硬件 | 警告 | `netapp_ems_events` 过滤到 `message=disk.outOfService`，按 `disk` 取 Max，过去 1 小时，任一读数 | > 0 — ONTAP 使某个磁盘停止服务；一小时内没有再出现同类事件时恢复 |
+| Node Panic | 硬件 | 严重 | `netapp_ems_events` 过滤到 `message=sk.panic`，按 `node` 取 Max，过去 1 小时，任一读数 | > 0 — 某个节点发生 panic 并重启，其配对节点接管了它的存储；一小时内没有再出现同类事件时恢复 |
+| Aggregate Above 80% | 容量 | 警告 | `netapp_aggr_space_used_percent`，按 `aggr` 取 Max，过去 15 分钟 | > 80；≤ 72 时恢复 |
+| Aggregate Above 90% | 容量 | 严重 | `netapp_aggr_space_used_percent`，按 `aggr` 取 Max，过去 5 分钟 | > 90 — 其上的卷无法再增长；≤ 81 时恢复 |
+| Volume Above 90% | 容量 | 警告 | `netapp_volume_size_used_percent`，按 `volume` 和 `svm` 取 Max，过去 15 分钟 | > 90；≤ 81 时恢复 |
+| Volume Above 98% | 容量 | 严重 | `netapp_volume_size_used_percent`，按 `volume` 和 `svm` 取 Max，过去 5 分钟 | > 98 — 客户端会收到空间不足错误，其中的 LUN 可能会离线；≤ 88.2 时恢复 |
+| High Read Latency | 性能 | 警告 | `netapp_cluster_read_latency`，Avg，过去 15 分钟 | > 10000 µs (10 ms)；≤ 9000 时恢复 |
+| High Write Latency | 性能 | 警告 | `netapp_cluster_write_latency`，Avg，过去 15 分钟 | > 10000 µs (10 ms)；≤ 9000 时恢复 |
+| Volume Latency Above 20 ms | 性能 | 警告 | `netapp_volume_read_latency`，按 `volume` 和 `svm` 取 Avg，过去 15 分钟 | > 20000 µs；≤ 18000 时恢复 |
+| Node Not Healthy | 硬件 | 严重 | `netapp_node_new_status`，按 `node` 取 Max，过去 10 分钟 | < 1 — ONTAP 报告节点不健康；≥ 1 时恢复 |
+| Takeover Not Possible | 硬件 | 严重 | `netapp_health_ha_alerts`，按 `node` 取 Max，过去 5 分钟 | > 0 — 某个节点无法接管其 HA 配对节点，因此一旦发生故障，该配对节点的存储就会离线；能够再次接管时恢复 |
+| Disk Failed | 硬件 | 严重 | `netapp_health_disk_alerts` 过滤到 `container_type=broken`，按 `disk` 取 Max，过去 5 分钟 | > 0 — 某个磁盘已损坏；更换后恢复 |
+| Shelf Fault | 硬件 | 严重 | `netapp_health_shelf_alerts` 过滤到 `severity=error`，按 `shelf` 取 Max，过去 5 分钟 | > 0 — ONTAP 报告某个磁盘架出现错误(电源、模块、路径)；ONTAP 清除它时恢复 |
+| Node Fan Failed | 硬件 | 警告 | `netapp_node_failed_fan`，按 `node` 取 Max，过去 10 分钟 | > 0 个故障风扇；≤ 0 时恢复 |
+| Node Power Supply Failed | 硬件 | 严重 | `netapp_node_failed_power`，按 `node` 取 Max，过去 10 分钟 | > 0 个故障电源；≤ 0 时恢复 |
+| Shelf Power Supply Failed | 硬件 | 严重 | `netapp_shelf_psu_status`，按 `shelf` 取 Max，过去 10 分钟 | < 1 — 某个磁盘架的电源不正常；≥ 1 时恢复 |
+| Shelf Fan Failed | 硬件 | 警告 | `netapp_shelf_fan_status`，按 `shelf` 取 Max，过去 10 分钟 | < 1 — 某个磁盘架的风扇不正常；≥ 1 时恢复 |
+| Ethernet Port Down | 硬件 | 警告 | `netapp_health_network_ethernet_port_alerts`，按 `port` 和 `node` 取 Max，过去 5 分钟 | > 0 — 某个已启用的以太网端口已断开；其链路恢复正常时恢复 |
+| FC Port Link Failures | 硬件 | 警告 | `netapp_fcp_link_failure`，按 `port` 和 `node` 取 Max，过去 15 分钟 | > 0 — 某个光纤通道端口的链路在窗口内发生故障；≤ 0 时恢复 |
+| SnapMirror Behind Schedule | 复制 | 警告 | `netapp_snapmirror_lag_time` 除以 `netapp_snapmirror_schedule_seconds`，按 `destination_location` 取 Max，过去 15 分钟 | > 1.5 — 某个关系落后超过一个半计划间隔(每小时一次的计划为 90 分钟)；≤ 1.35 时恢复 |
+| SnapMirror Relationship Unhealthy | 复制 | 严重 | `netapp_snapmirror_labels` 过滤到 `healthy=false`，按 `destination_location` 取 Max，过去 5 分钟 | > 0 — ONTAP 报告该关系不健康，原因在其 `unhealthy_reason` 标签中；ONTAP 报告其健康时恢复 |
+| SnapMirror Lag Above 1 Day | 复制 | 警告 | `netapp_snapmirror_lag_time`，按 `destination_location` 取 Max，过去 15 分钟 | > 86400 s，无论其计划如何；≤ 77760 时恢复 |
+| Aggregate Offline | 可用性 | 严重 | `netapp_aggr_new_status`，按 `aggr` 取 Max，过去 10 分钟 | < 1 — 某个聚合不在线，因此其所有卷都无法访问；≥ 1 时恢复 |
+| Volume Offline | 可用性 | 警告 | `netapp_volume_new_status`，按 `volume` 和 `svm` 取 Max，过去 10 分钟 | < 1 — 某个卷不在线；≥ 1 时恢复 |
+| LUN Offline | 可用性 | 严重 | `netapp_lun_new_status`，按 `lun`、`volume` 和 `svm` 取 Max，过去 10 分钟 | < 1 — 某个 LUN 不在线，其主机已失去该磁盘；≥ 1 时恢复 |
+| SVM Stopped | 可用性 | 警告 | `netapp_svm_labels` 过滤到 `state=stopped` 和 `type=data`，按 `svm` 取 Max，过去 10 分钟 | > 0 — 某个数据 SVM 已停止；再次运行时恢复。ONTAP 留给自己使用的 SVM 从不被监视 |
+
 **严重程度** 是选择器显示的标签。模板创建的事件和警报以项目中最严重的事件和警报严重程度开始；可以在条件中修改。
 
 - **Array Stopped Reporting** 统计平台的标识序列(`purefa_info` 或 `purefb_info`)，代理采集的每个端点在每次采集时都会导出该序列。数据中断时，其他模板没有可比较的数据，会保持最后的状态，因此要靠这个模板告诉你。
@@ -151,7 +240,7 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 - **延迟模板使用 Avg**，对阵列自身计算的每次操作平均值取平均；容量模板对阵列自身的利用率百分比取 **最大**。延迟固定以微秒为单位，容量固定以百分比为单位。
 - **Hardware Component Unhealthy 按组件使用 Min**：组件健康时其健康值为 1，不健康时降到 0。
 
-没有针对每个卷延迟的模板，因为合适的阈值取决于工作负载：请从目录中按 `name` 分组自行构建。容量预测需要的是增长趋势而不是阈值，而驱动器磨损没有可以警报的序列。
+没有针对每个卷延迟的 FlashArray 模板，因为合适的阈值取决于工作负载：请从目录中按 `name` 分组自行构建。容量预测需要的是增长趋势而不是阈值，而驱动器磨损没有可以警报的序列。
 
 ## 采集的指标
 
@@ -163,6 +252,11 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | 阵列上每个未关闭的警报一个序列(值为 1)，带有标签 `severity`(`critical`、`warning`、`info`、`hidden`)、`category`、`code`、`component_type` 和 `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | FlashBlade 上每个未关闭的警报一个序列(值为 1)，带有标签 `severity`(`info`、`warning`、`critical`)、`code`、`component_name`、`component_type`、`summary` 和 `kburl`(Pure 知识库文章) |
+| `powerstore_cluster` | — | PowerStore | `count` | PowerStore 集群为 Configured（已组建并在提供服务）时为 1，处于其他任何状态时为 0：Configuring、Expanding、Removing、Clustering_Failed 或 Unconfigured。 |
+| `netapp_cluster_new_status` | — | ONTAP | — | ONTAP 报告集群健康时为 1；也用来表明代理仍在读取集群 |
+| `netapp_cluster_subsystem_outstanding_alerts` | — | ONTAP | `count` | ONTAP 每个健康子系统中未关闭的警报，按 `subsystem` 区分 |
+| `netapp_health_support_alerts` | — | ONTAP | `count` | ONTAP 系统健康监视器中每个未关闭的警报一个序列，在警报未关闭期间存在 |
+| `netapp_ems_events` | — | ONTAP | `count` | 每个 EMS 事件一个序列，只在收集到它的那次轮询中存在；成对事件被清除时会以 0 再导出一次 |
 
 ### 容量
 
@@ -176,6 +270,21 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | FlashBlade 可用容量中已使用的比例 |
 | `purefb_array_space_bytes` | `type=array`、`space=empty` | FlashBlade | `bytes` | FlashBlade 未使用的容量 |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | 整个 FlashBlade 的数据缩减 |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | 每台专用设备物理容量的使用比例，以百分比表示：物理已用除以物理总量，来自 PowerStore 的每日空间汇总。PowerStore 从 70% 起发出自己的容量警报。按 appliance_id 分组。 |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | 每台专用设备的可用物理容量，以字节为单位。 |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | 每台专用设备使用的物理容量，以字节为单位，为重复数据删除和压缩之后的值。观察其趋势，预测专用设备何时写满。 |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | 每台专用设备上预配的逻辑容量，以字节为单位：其所含每个卷、文件系统和 vVol 的大小，可能远高于其物理容量。 |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | 主机写入每台专用设备的数据，以字节为单位，为重复数据删除和压缩之前的值。 |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | 每台专用设备上的重复数据删除和压缩效果，例如 3.4:1 记为 3.4。持续下降表示新写入的数据缩减效果差：加密或已压缩的数据。 |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | 每台专用设备的总体效率：数据缩减加上快照和精简配置节省的空间。 |
+| `netapp_aggr_space_used_percent` | — | ONTAP | `%` | 每个聚合可用空间中已使用的比例——按 `aggr` 分组 |
+| `netapp_aggr_space_total` | — | ONTAP | `bytes` | 每个聚合的可用空间；集群的容量是它们的总和 |
+| `netapp_aggr_space_used` | — | ONTAP | `bytes` | 每个聚合已使用或已预留的空间 |
+| `netapp_aggr_space_available` | — | ONTAP | `bytes` | 每个聚合上剩余的空间——关注其趋势可以预测它何时写满 |
+| `netapp_aggr_inode_used_percent` | — | ONTAP | `%` | 每个聚合中已用文件(inode)的比例 |
+| `netapp_aggr_new_status` | — | ONTAP | — | 聚合在线时为 1 |
+| `netapp_aggr_logical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | 每个聚合的数据在没有存储效率时会占用的空间，不计快照和 FlexClone |
+| `netapp_aggr_physical_used_wo_snapshots_flexclones` | — | ONTAP | `bytes` | 每个聚合的数据经过存储效率处理后在磁盘上占用的空间 |
 
 ### 性能
 
@@ -197,6 +306,30 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`、`protocol=all` | FlashBlade | `ops/s` | 所有协议的每秒写操作数 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有协议的每秒读取字节数 |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`、`protocol=all` | FlashBlade | `bytes/s` | 所有协议的每秒写入字节数 |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | 每台专用设备上读取的平均延迟，以微秒为单位，基于 PowerStore 最近的五分钟样本。PowerStore 的读取通常远低于 1 ms 即可完成。 |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | 每台专用设备上写入的平均延迟，以微秒为单位。 |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | 每台专用设备上每秒的读取操作数。 |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | 每台专用设备上每秒的写入操作数。 |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 每台专用设备上每秒读取的字节数。 |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 每台专用设备上每秒写入的字节数。 |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | 每台专用设备专用于存储 I/O 的 CPU 核心中处于繁忙状态的比例，以百分比表示。持续偏高意味着该专用设备已接近其能承受的负载。 |
+| `netapp_cluster_read_latency` | — | ONTAP | `µs` | 整个集群的读取平均延迟 |
+| `netapp_cluster_write_latency` | — | ONTAP | `µs` | 整个集群的写入平均延迟 |
+| `netapp_cluster_read_ops` | — | ONTAP | `ops/s` | 整个集群的每秒读操作数 |
+| `netapp_cluster_write_ops` | — | ONTAP | `ops/s` | 整个集群的每秒写操作数 |
+| `netapp_cluster_total_ops` | — | ONTAP | `ops/s` | 整个集群的每秒全部操作数，包括元数据操作 |
+| `netapp_cluster_read_data` | — | ONTAP | `bytes/s` | 整个集群每秒读取的字节数 |
+| `netapp_cluster_write_data` | — | ONTAP | `bytes/s` | 整个集群每秒写入的字节数 |
+| `netapp_aggr_read_latency` | — | ONTAP | `µs` | 每个聚合的读取平均延迟 |
+| `netapp_aggr_write_latency` | — | ONTAP | `µs` | 每个聚合的写入平均延迟 |
+| `netapp_aggr_read_ops` | — | ONTAP | `ops/s` | 每个聚合的每秒读操作数 |
+| `netapp_aggr_write_ops` | — | ONTAP | `ops/s` | 每个聚合的每秒写操作数 |
+| `netapp_svm_vol_read_latency` | — | ONTAP | `µs` | 每个 SVM 的卷的读取平均延迟 |
+| `netapp_svm_vol_write_latency` | — | ONTAP | `µs` | 每个 SVM 的卷的写入平均延迟 |
+| `netapp_svm_vol_read_ops` | — | ONTAP | `ops/s` | 每个 SVM 的卷的每秒读操作数 |
+| `netapp_svm_vol_write_ops` | — | ONTAP | `ops/s` | 每个 SVM 的卷的每秒写操作数 |
+| `netapp_svm_vol_read_data` | — | ONTAP | `bytes/s` | 每秒从每个 SVM 的卷读取的字节数 |
+| `netapp_svm_vol_write_data` | — | ONTAP | `bytes/s` | 每秒写入每个 SVM 的卷的字节数 |
 
 ### 卷
 
@@ -211,6 +344,46 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | 主机看到的每个卷的大小 |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | 每个卷在数据缩减后占用的物理空间 |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | 每个卷的数据缩减比 |
+| `powerstore_volume_state` | — | PowerStore | `count` | 卷为 Ready 时为 1，为 Initializing、Offline 或正在销毁时为 0。按 name 分组，找出主机无法访问的卷。 |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | 主机看到的每个卷的大小，以字节为单位。 |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | 主机写入每个卷的数据，以字节为单位，为重复数据删除和压缩之前的值。 |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | 每个卷的平均读取延迟，以微秒为单位。按 volume_id 分组（它包含卷的名称），找出慢的卷。 |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | 每个卷的平均写入延迟，以微秒为单位。 |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | 每个卷每秒的读取操作数。 |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | 每个卷每秒的写入操作数。 |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | 每秒从每个卷读取的字节数。 |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | 每秒写入每个卷的字节数。 |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | 为每个卷组中各卷预配的容量，以字节为单位。按 name 分组。 |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | 主机写入每个卷组中各卷的数据，以字节为单位，为重复数据删除和压缩之前的值。 |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | 每个卷组中各卷的平均读取延迟，以微秒为单位。按 volume_group_id 分组，它包含卷组的名称。 |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | 每个卷组中各卷的平均写入延迟，以微秒为单位。 |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | 每个卷组中各卷每秒的读写操作数。 |
+| `netapp_svm_new_status` | — | ONTAP | — | SVM 正在运行时为 1——按 `svm` 分组 |
+| `netapp_svm_labels` | `state=stopped`、`type=data` | ONTAP | — | 每个已停止的数据 SVM 一个序列 |
+| `netapp_volume_size_used_percent` | — | ONTAP | `%` | 每个卷空间中已使用的比例，以 `volume show` 的报告为准——按 `volume` 和 `svm` 分组 |
+| `netapp_volume_size_total` | — | ONTAP | `bytes` | 每个卷的可用大小，不含其快照预留空间 |
+| `netapp_volume_size_used` | — | ONTAP | `bytes` | 每个卷已使用的空间 |
+| `netapp_volume_size_available` | — | ONTAP | `bytes` | 每个卷中剩余的空间 |
+| `netapp_volume_snapshots_size_used` | — | ONTAP | `bytes` | 每个卷的快照占用的空间 |
+| `netapp_volume_inode_used_percent` | — | ONTAP | `%` | 每个卷中已用文件(inode)的比例 |
+| `netapp_volume_sis_total_saved_percent` | — | ONTAP | `%` | 重复数据删除和压缩为每个卷的数据节省的比例 |
+| `netapp_volume_new_status` | — | ONTAP | — | 卷在线时为 1 |
+| `netapp_volume_read_latency` | — | ONTAP | `µs` | 每个卷的读取平均延迟 |
+| `netapp_volume_write_latency` | — | ONTAP | `µs` | 每个卷的写入平均延迟 |
+| `netapp_volume_read_ops` | — | ONTAP | `ops/s` | 每个卷的每秒读操作数 |
+| `netapp_volume_write_ops` | — | ONTAP | `ops/s` | 每个卷的每秒写操作数 |
+| `netapp_volume_read_data` | — | ONTAP | `bytes/s` | 每秒从每个卷读取的字节数 |
+| `netapp_volume_write_data` | — | ONTAP | `bytes/s` | 每秒写入每个卷的字节数 |
+| `netapp_lun_size_used_percent` | — | ONTAP | `%` | 每个 LUN 的大小中已被其主机写入的比例 |
+| `netapp_lun_size` | — | ONTAP | `bytes` | 每个 LUN 向其主机呈现的大小 |
+| `netapp_lun_size_used` | — | ONTAP | `bytes` | 每个 LUN 在其卷中占用的空间 |
+| `netapp_lun_new_status` | — | ONTAP | — | LUN 在线时为 1 |
+| `netapp_lun_avg_read_latency` | — | ONTAP | `µs` | 每个 LUN 的读取平均延迟 |
+| `netapp_lun_avg_write_latency` | — | ONTAP | `µs` | 每个 LUN 的写入平均延迟 |
+| `netapp_lun_read_ops` | — | ONTAP | `ops/s` | 每个 LUN 的每秒读操作数 |
+| `netapp_lun_write_ops` | — | ONTAP | `ops/s` | 每个 LUN 的每秒写操作数 |
+| `netapp_lun_read_data` | — | ONTAP | `bytes/s` | 每秒从每个 LUN 读取的字节数 |
+| `netapp_lun_write_data` | — | ONTAP | `bytes/s` | 每秒写入每个 LUN 的字节数 |
 
 ### 主机
 
@@ -230,6 +403,13 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | 每条 Pod 副本链接的平均复制滞后 |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | 每个 Pod 的复制流量，带有标签 `direction` 和 `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | 每个 ActiveCluster Pod 的镜像写平均延迟 |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | 每个 Metro Witness 的状态：0 OK，1 部分连接，2 已断开，3 正在删除，4 正在初始化。大于 0 时，Metro 会话可能无法自行故障转移。 |
+| `netapp_snapmirror_lag_time` | — | ONTAP | `s` | 每个 SnapMirror 关系的目标落后于其源多少 |
+| `netapp_snapmirror_schedule_seconds` | — | ONTAP | `s` | 每个关系的计划多久传输一次；代理根据计划的名称写入该值 |
+| `netapp_snapmirror_last_transfer_duration` | — | ONTAP | `s` | 每个关系上次传输的耗时 |
+| `netapp_snapmirror_last_transfer_size` | — | ONTAP | `bytes` | 每个关系上次传输发送的数据量 |
+| `netapp_snapmirror_update_failed_count` | — | ONTAP | `count` | 每个关系失败的更新次数；只增不减 |
+| `netapp_snapmirror_labels` | `healthy=false` | ONTAP | — | ONTAP 报告为不健康的每个关系一个序列，原因在 `unhealthy_reason` 中 |
 
 ### 硬件
 
@@ -240,6 +420,49 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | 每个驱动器的原始容量，带有其 `component_status`(`healthy`、`failed`、`missing`、`recovering`、`unhealthy`、`empty`……)和类型标签 |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | 每个以太网和光纤通道接口上的每秒错误数——持续出错通常意味着线缆、光模块或交换机端口有问题 |
 | `purefb_hardware_health` | — | FlashBlade | — | 每个硬件组件(刀片、交换模块、电源、风扇……)的健康状况：1 = 健康，2 = 未使用，0 = 不健康。按 `name` 取最小值 |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 专用设备的节点为 Healthy 时为 1，处于其他任何状态时为 0，状态由其 state 标签给出（Failed、Disconnected、Initializing...）。按 name 和 appliance_id 分组。 |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 驱动器为 Healthy 时为 1，发生故障、被移除或未就绪时为 0。按 name 分组，每个驱动器触发一个事件。 |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | 每个驱动器剩余的写入耐久度比例，以百分比表示。接近 0 的驱动器已接近寿命终点：请计划更换。 |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 节点的风扇模块为 Healthy 时为 1，发生故障或被移除时为 0。 |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 节点的电源为 Healthy 时为 1，发生故障、失去输入电源或断开连接时为 0。 |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 节点的电池备份模块为 Healthy 时为 1，出现故障或断开连接时为 0。 |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 光纤通道端口链路启动时为 1，断开时为 0；未连接任何线缆的端口始终处于断开状态。按 fc_port_id 分组，它包含端口的名称。 |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 以太网端口链路启动时为 1，断开时为 0。按 eth_port_id 分组，它包含端口的名称。 |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | 经过每个光纤通道端口的读取的平均延迟，以微秒为单位。 |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | 经过每个光纤通道端口的写入的平均延迟，以微秒为单位。 |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | 每秒经过每个光纤通道端口的读写操作数。 |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | 每秒经过每个光纤通道端口读取和写入的字节数。 |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | 每个光纤通道端口每秒收到的 CRC 无效的帧数。持续出现错误通常意味着线缆、光模块或交换机端口有问题。 |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | 每个光纤通道端口每秒的链路故障数。出现任何一次都值得检查该端口的线缆、光模块和交换机。 |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | 每个以太网端口每秒接收的字节数。 |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | 每个以太网端口每秒发送的字节数。 |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | 每个以太网端口每秒收到的带 CRC 错误的数据包数。持续出现错误通常意味着线缆、光模块或交换机端口有问题。 |
+| `netapp_node_new_status` | — | ONTAP | — | ONTAP 报告节点健康时为 1——按 `node` 分组 |
+| `netapp_node_avg_processor_busy` | — | ONTAP | `%` | 每个节点处理器的繁忙程度 |
+| `netapp_node_failed_fan` | — | ONTAP | `count` | 每个节点的故障风扇 |
+| `netapp_node_failed_power` | — | ONTAP | `count` | 每个节点的故障电源 |
+| `netapp_node_uptime` | — | ONTAP | `s` | 每个节点已运行的时长；数值下降表示重启或交还 |
+| `netapp_disk_new_status` | — | ONTAP | — | 磁盘未报告中断时为 1——按 `disk` 分组 |
+| `netapp_health_disk_alerts` | — | ONTAP | `count` | ONTAP 报告为已损坏或未分配的每个磁盘一个序列，在该状态持续期间存在 |
+| `netapp_shelf_new_status` | — | ONTAP | — | 磁盘架在线时为 1 |
+| `netapp_health_shelf_alerts` | — | ONTAP | `count` | ONTAP 在磁盘架上报告的每个故障一个序列，在故障持续期间存在 |
+| `netapp_shelf_psu_status` | — | ONTAP | — | 磁盘架电源正常时为 1 |
+| `netapp_shelf_fan_status` | — | ONTAP | — | 磁盘架风扇正常时为 1 |
+| `netapp_shelf_temperature_status` | — | ONTAP | — | 磁盘架温度传感器在其阈值范围内时为 1 |
+| `netapp_shelf_temperature_reading` | — | ONTAP | `°C` | 每个磁盘架温度传感器的读数 |
+| `netapp_environment_sensor_status` | — | ONTAP | — | 节点的环境传感器在其阈值范围内时为 1 |
+| `netapp_health_node_alerts` | — | ONTAP | `count` | ONTAP 报告为不健康的每个节点一个序列，在该状态持续期间存在 |
+| `netapp_health_ha_alerts` | — | ONTAP | `count` | 无法接管其 HA 配对节点的每个节点一个序列，在无法接管期间存在 |
+| `netapp_net_port_status` | — | ONTAP | — | 以太网端口链路正常时为 1 |
+| `netapp_health_network_ethernet_port_alerts` | — | ONTAP | `count` | 每个已断开的已启用以太网端口一个序列，在断开期间存在 |
+| `netapp_nic_rx_bytes` | — | ONTAP | `bytes/s` | 每个以太网端口每秒接收的字节数 |
+| `netapp_nic_tx_bytes` | — | ONTAP | `bytes/s` | 每个以太网端口每秒发送的字节数 |
+| `netapp_nic_util_percent` | — | ONTAP | `%` | 每个以太网端口的速率已使用了多少 |
+| `netapp_nic_rx_total_errors` | — | ONTAP | `count` | 每个以太网端口在最近一分钟内计数的接收错误 |
+| `netapp_fcp_read_data` | — | ONTAP | `bytes/s` | 每秒通过每个光纤通道端口读取的字节数 |
+| `netapp_fcp_write_data` | — | ONTAP | `bytes/s` | 每秒通过每个光纤通道端口写入的字节数 |
+| `netapp_fcp_util_percent` | — | ONTAP | `%` | 每个光纤通道端口的速率已使用了多少 |
+| `netapp_fcp_link_failure` | — | ONTAP | `count` | 每个光纤通道端口在最近一分钟内计数的链路故障 |
 
 ### 文件系统
 
@@ -249,6 +472,17 @@ OneUptime 提供 20 个模板——12 个用于 FlashArray，8 个用于 FlashBl
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | 每个文件系统的写入平均延迟 |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | 每个文件系统占用的物理空间 |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | 每个文件系统预配大小中仍然空闲的比例，从 0 到 1——接近 0 时它即将用满配额 |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | NAS 服务器为 Started 时为 1，为 Stopped、Starting、Stopping、已故障转移或 Degraded（在没有备份节点的情况下运行）时为 0。按 name 分组。 |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | 每个 NAS 服务器处理的读取的平均延迟，以微秒为单位。按 nas_id 分组，它包含服务器的名称。 |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | 每个 NAS 服务器处理的写入的平均延迟，以微秒为单位。 |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | 每个 NAS 服务器每秒处理的读写操作数。 |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | 每个文件系统大小的使用比例，以百分比表示：逻辑已用除以预配大小。按 name 分组。 |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | 客户端看到的每个文件系统的大小，以字节为单位。 |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | 客户端写入每个文件系统的数据，以字节为单位。 |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | 从每个文件系统读取的平均延迟，以微秒为单位。按 name 分组。 |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | 写入每个文件系统的平均延迟，以微秒为单位。 |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | 每个文件系统每秒的读取操作数。 |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | 每个文件系统每秒的写入操作数。 |
 
 ### 存储桶
 
@@ -323,7 +557,7 @@ monitor_steps = [{
 }]
 ```
 
-`arrayIdentifier` 是阵列的 `storage.array.name`——即代理启动时使用的 `STORAGE_ARRAY_NAME`——而不是它的 OneUptime ID。`storageSystem` 是 `purestorage.flasharray` 或 `purestorage.flashblade`。它决定表单显示哪个目录和哪些模板，以及硬件过滤器读取 `component_name` 还是 `name`。
+`arrayIdentifier` 是阵列的 `storage.array.name`——即代理启动时使用的 `STORAGE_ARRAY_NAME`——而不是它的 OneUptime ID。`storageSystem` 是 `purestorage.flasharray`、`purestorage.flashblade` 或 `netapp.ontap`。它决定表单显示哪个目录和哪些模板，以及卷过滤器或硬件过滤器读取哪个标签。
 
 ## 故障排查
 
@@ -337,6 +571,10 @@ monitor_steps = [{
 
 :::details 延迟监视器的读数不对
 Pure 把读、写、镜像写、SAN、队列和 QoS 数值放在同一个指标名称上，只用 `dimension` 标签区分，而没有 `dimension` 过滤器的查询会把它们全部平均。请像模板和表单的目录那样，按一个维度过滤。按卷和按主机的序列只保留 `usec_per_read_op`、`usec_per_write_op` 和 `usec_per_mirrored_write_op`：代理为节省序列丢弃了其余部分，只有阵列级的 `purefa_array_performance_latency_usec` 保留全部。
+:::
+
+:::details 基于 EMS 事件的 ONTAP 模板从不触发
+只有当同类事件位于其窗口内时，EMS 模板才会触发：Harvest 只在收集到某个事件的那次轮询中导出它一次。请检查代理的 Harvest 是否运行 `Ems` 收集器(随附配置默认运行)，以及该事件是否在 Harvest 的默认列表中：`sk.panic`、`disk.outOfService` 以及警报级和紧急级事件都在其中。持续存在的 ONTAP 故障(已损坏的磁盘、磁盘架错误、无法接管其配对节点的节点)也会由对应的未解决问题模板监视，该模板会一直保持打开，直到 ONTAP 清除该故障。
 :::
 
 :::details 1 分钟的窗口没有显示数据

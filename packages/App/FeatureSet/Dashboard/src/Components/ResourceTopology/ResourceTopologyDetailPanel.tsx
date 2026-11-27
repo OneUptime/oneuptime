@@ -11,6 +11,7 @@ import { translateRecordName } from "Common/Utils/DefaultRecordNames";
 import { StateListType } from "Common/Utils/StateOrder";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import RouteParams from "../../Utils/RouteParams";
 import {
   ResourceTopologyFact,
   ResourceTopologyGraph,
@@ -57,13 +58,16 @@ export interface ComponentProps {
 }
 
 export function routeForTopologyLink(link: ResourceTopologyLinkTarget): Route {
-  const route: Route = RouteUtil.populateRouteParams(
+  const populated: Route = RouteUtil.populateRouteParams(
     RouteMap[link.page] as Route,
     {
       modelId: link.modelId,
       ...(link.subModelId ? { subModelId: link.subModelId } : {}),
     },
   );
+  const route: Route = link.partId
+    ? populated.addRouteParam(RouteParams.PartID, link.partId)
+    : populated;
   return link.queryParams && Object.keys(link.queryParams).length > 0
     ? route.addQueryParams(link.queryParams)
     : route;

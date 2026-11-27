@@ -1,6 +1,7 @@
 import Dictionary from "../Dictionary";
 import Email from "../Email";
 import { JSONObject } from "../JSON";
+import { EmailAttachment } from "./EmailAttachment";
 import EmailTemplateType from "./EmailTemplateType";
 
 export interface EmailEnvelope {
@@ -36,6 +37,15 @@ export interface EmailEnvelope {
    * the subject sent; the server's own email log always does.
    */
   projectLogSubject?: string | undefined;
+  /*
+   * Files sent with the email (#11009): a scheduled cloud cost report's
+   * figures as a CSV. Small text files only (EmailAttachment): read back by
+   * the internal mail API with readEmailAttachments, and sent by every mail
+   * transport as its API documents a file attachment. An email that carries
+   * one is never held back in a rollup. Left out, the email carries none,
+   * as every email always has.
+   */
+  attachments?: Array<EmailAttachment> | undefined;
 }
 
 export default interface EmailMessage extends EmailEnvelope {

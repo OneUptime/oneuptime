@@ -11,9 +11,10 @@ import { addDeveloperSideMenuSection } from "../../Components/DeveloperDocs/Deve
 import { DeveloperDocsScope } from "../../Components/DeveloperDocs/DeveloperDocsPages";
 
 /*
- * The XCP-ng product's menu: every pool and how to connect one, open; the
- * owner and label rules (set up once) folded under Settings; the archived
- * pools folded under Advanced; and the Developer pages.
+ * The XCP-ng product's menu: every pool, the connections a probe reads and
+ * how to connect one, open; the owner and label rules (set up once) folded
+ * under Settings; the archived pools folded under Advanced; and the
+ * Developer pages.
  * Common/Tests/App/Dashboard/XcpNgSideMenus.test.tsx pins it.
  */
 const XcpNgSideMenu: FunctionComponent = (): ReactElement => {
@@ -29,6 +30,19 @@ const XcpNgSideMenu: FunctionComponent = (): ReactElement => {
             ),
           },
           icon: IconProp.List,
+        },
+        /*
+         * The Xen Orchestras and pools a probe reads, with no agent to run
+         * (#10996, #10999).
+         */
+        {
+          link: {
+            title: "Connections",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.XCP_NG_CONNECTIONS] as Route,
+            ),
+          },
+          icon: IconProp.Link,
         },
         {
           link: {

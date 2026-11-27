@@ -1,0 +1,75 @@
+# NetApp Harvest, as the OneUptime Storage Array Agent runs it for a NetApp
+# ONTAP cluster (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP or Amazon
+# FSx for NetApp ONTAP).
+#
+# docker-compose.yml runs Harvest as the `netapp-harvest` service
+# (COMPOSE_PROFILES=netapp-ontap) with this file as its config. Harvest logs
+# in to the cluster's REST API with the read-only user, polls it, and serves
+# what it read as Prometheus metrics on port 12990 of the compose network,
+# which otel-collector-config.netapp-ontap.yaml scrapes every 60 seconds.
+# Nothing is published on this machine.
+#
+# Every value comes from .env (install.sh writes it, mode 600: it holds the
+# password). Harvest replaces each dollar-brace variable in this file with
+# the variable of its environment before it reads the file, and docker-
+# compose.yml hands Harvest only the five it needs. Each one is a literal
+# block (|2-), so a password with quotes, a colon, a # or a backslash in it
+# reaches the cluster exactly as typed. Keep the indentation as shipped: the
+# value must be indented exactly six spaces.
+#
+# Keep this file as shipped. install.sh replaces it on every re-run (a copy
+# you edited is kept as netapp-harvest.yml.bak.<time>).
+
+# Harvest's own AutoSupport sends NetApp a daily report about this Harvest
+# (its version, the cluster's model and how many objects it reads) and
+# writes it to disk first. The agent sends nothing to anyone but your
+# OneUptime, and Harvest's container is read-only, so it is off.
+Tools:
+  autosupport_disabled: true
+
+Exporters:
+  prometheus:
+    exporter: Prometheus
+    port: 12990
+    # Every series is named netapp_<object>_<counter> (netapp_volume_size_used),
+    # so none can clash with another exporter's node_* or volume_* series,
+    # and OneUptime reads them as this cluster's.
+    global_prefix: netapp_
+    # HELP and TYPE lines. Harvest sends no units: OneUptime keeps its own.
+    add_meta_tags: true
+
+Pollers:
+  # One poller, one cluster. Its name appears on Harvest's own metadata series
+  # only; OneUptime names the cluster from STORAGE_ARRAY_NAME.
+  ontap:
+    # Harvest labels every series with the datacenter it is given.
+    datacenter: |2-
+      ${STORAGE_ARRAY_NAME}
+    # The cluster's management address: host name or IP, no https://.
+    addr: |2-
+      ${NETAPP_ONTAP_ENDPOINT}
+    auth_style: basic_auth
+    # The read-only user (README.md, "Prepare the cluster"): an HTTP login
+    # with a read-only REST role, on Amazon FSx for NetApp ONTAP too (fsxadmin
+    # creates it there).
+    username: |2-
+      ${NETAPP_ONTAP_USERNAME}
+    password: |2-
+      ${NETAPP_ONTAP_PASSWORD}
+    # Clusters ship a self-signed certificate, so the certificate is not
+    # verified unless STORAGE_ARRAY_INSECURE_SKIP_VERIFY is "false".
+    use_insecure_tls: ${STORAGE_ARRAY_INSECURE_SKIP_VERIFY}
+    # Only the objects OneUptime reads, each from the collector that reads it
+    # best (netapp-harvest-rest.yaml, -keyperf.yaml and -restperf.yaml, which
+    # docker-compose.yml mounts as Harvest's oneuptime.yaml templates), and
+    # Harvest's default list of EMS events.
+    collectors:
+      - Rest:
+          - oneuptime.yaml
+      - KeyPerf:
+          - oneuptime.yaml
+      - RestPerf:
+          - oneuptime.yaml
+      - Ems
+    exporters:
+      - prometheus

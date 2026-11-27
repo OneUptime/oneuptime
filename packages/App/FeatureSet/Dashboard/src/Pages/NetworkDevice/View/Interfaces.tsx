@@ -259,7 +259,7 @@ const NetworkDeviceInterfaces: FunctionComponent<
 
     return (
       <Pill
-        text={translator.translateText(title) || title}
+        text={title}
         tone={
           SnmpFibreChannelUtil.isInterSwitchLink(item.fibreChannelPortType)
             ? PillTone.Info

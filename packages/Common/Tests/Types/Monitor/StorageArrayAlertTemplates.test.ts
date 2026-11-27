@@ -41,6 +41,7 @@ import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import ObjectID from "../../../Types/ObjectID";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
+import { getRecordedSeriesLabels } from "../../Helpers/StorageArray/NetAppHarvestRecordings";
 
 /*
  * Lock in the storage array alert-template contracts. Same two layers as
@@ -62,6 +63,24 @@ import { describe, expect, test } from "@jest/globals";
 
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
+const PS: StorageSystem = StorageSystem.DellPowerStore;
+const ONTAP: StorageSystem = StorageSystem.NetAppOntap;
+
+// Every shipped platform, with what its template ids and texts are made of.
+const PLATFORMS: Array<{
+  system: StorageSystem;
+  templatePrefix: string;
+  words: RegExp;
+}> = [
+  { system: FA, templatePrefix: "purefa-", words: /FlashArray|purefa_/ },
+  { system: FB, templatePrefix: "purefb-", words: /FlashBlade|purefb_/ },
+  {
+    system: PS,
+    templatePrefix: "powerstore-",
+    words: /PowerStore|powerstore_/,
+  },
+  { system: ONTAP, templatePrefix: "netapp-", words: /ONTAP|netapp_/ },
+];
 
 /*
  * The labels of every series a template reads, from the exporters'
@@ -172,7 +191,109 @@ const SERIES_LABELS: Record<string, Record<string, Array<string> | null>> = {
       "provisioned",
     ],
   },
+  /*
+   * Dell's powerstore-metrics-exporter v1.0.3 (its prometheus.NewDesc calls,
+   * as packages/Common/Tests/Fixtures/DellPowerStoreExporter records them):
+   * every series also carries the cluster's address as IP. The two percents
+   * are the agent's own, divided from Dell's used and total series with
+   * their labels.
+   */
+  powerstore_cluster: {
+    IP: null,
+    global_id: null,
+    management_address: null,
+    master_appliance_id: null,
+    name: null,
+  },
+  powerstore_cap_physical_used_percent: { IP: null, appliance_id: null },
+  powerstore_perf_avg_read_latency: {
+    IP: null,
+    appliance_id: null,
+    appliance_name: null,
+  },
+  powerstore_perf_avg_write_latency: {
+    IP: null,
+    appliance_id: null,
+    appliance_name: null,
+  },
+  powerstore_hardware_Drive_state: { IP: null, appliance_id: null, name: null },
+  powerstore_hardware_node_state: {
+    IP: null,
+    appliance_id: null,
+    name: null,
+    serial_number: null,
+    state: null,
+  },
+  powerstore_hardware_Power_Supply_state: {
+    IP: null,
+    appliance_id: null,
+    name: null,
+  },
+  powerstore_hardware_Fan_state: { IP: null, appliance_id: null, name: null },
+  powerstore_hardware_Battery_state: {
+    IP: null,
+    appliance_id: null,
+    name: null,
+  },
+  powerstore_wear_metrics_by_drive: {
+    IP: null,
+    appliance_id: null,
+    name: null,
+  },
+  powerstore_nas_server_operational_status: { IP: null, name: null },
+  powerstore_volume_state: { IP: null, appliance_id: null, name: null },
+  powerstore_filesystem_logical_used_percent: { IP: null, name: null },
+  powerstore_metro_witness_status: { IP: null, name: null, witness_addr: null },
 };
+
+/*
+ * ONTAP's series as the real NetApp Harvest 26.11 served them
+ * (Tests/Fixtures/NetAppHarvest/26.11.0): every label, with every value
+ * the recordings hold. What no recording holds is Harvest's own word: the
+ * labels its Health plugin sets on an HA alert (no recorded cluster had
+ * one), ONTAP's EMS severities and the events of Harvest's default EMS
+ * list a template watches.
+ */
+const ONTAP_DOCUMENTED_SERIES: Record<string, Record<string, Array<string>>> = {
+  netapp_health_ha_alerts: {
+    cluster: [],
+    datacenter: [],
+    node: [],
+    partner: [],
+    partner_state: [],
+    state_description: [],
+    takeover_possible: ["false"],
+    severity: ["error"],
+  },
+};
+const ONTAP_DOCUMENTED_VALUES: Record<string, Record<string, Array<string>>> = {
+  netapp_ems_events: {
+    severity: [
+      "emergency",
+      "alert",
+      "error",
+      "notice",
+      "informational",
+      "debug",
+    ],
+    message: ["sk.panic", "disk.outOfService", "monitor.fan.failed"],
+  },
+};
+for (const [name, labels] of Object.entries({
+  ...getRecordedSeriesLabels(),
+  ...ONTAP_DOCUMENTED_SERIES,
+})) {
+  if (!name.startsWith("netapp_")) {
+    continue;
+  }
+  const entry: Record<string, Array<string>> = {};
+  for (const [label, values] of Object.entries(labels)) {
+    entry[label] = Array.from(
+      new Set([...values, ...(ONTAP_DOCUMENTED_VALUES[name]?.[label] || [])]),
+    );
+  }
+  SERIES_LABELS[name] = entry;
+}
 
 /*
  * Series that carry the state in a LABEL with the value 1 (or a drive's
@@ -185,6 +306,15 @@ const STATE_IN_A_LABEL_METRICS: Set<string> = new Set<string>([
   "purefa_hw_component_status",
   "purefa_drive_capacity_bytes",
   "purefa_host_connectivity_info",
+  // ONTAP's open problems (Harvest's Health plugin), events and labels.
+  "netapp_health_support_alerts",
+  "netapp_health_ha_alerts",
+  "netapp_health_disk_alerts",
+  "netapp_health_shelf_alerts",
+  "netapp_health_network_ethernet_port_alerts",
+  "netapp_ems_events",
+  "netapp_snapmirror_labels",
+  "netapp_svm_labels",
 ]);
 
 /*
@@ -195,6 +325,27 @@ const STATE_IN_A_LABEL_METRICS: Set<string> = new Set<string>([
  */
 const BINARY_FLAG_METRICS: Set<string> = new Set<string>([
   "purefb_hardware_health",
+  /*
+   * Dell's state series: 1 while the part, volume or NAS server is in its
+   * healthy state, 0 in any other (the node's after the agent reads its
+   * state label). A dead band would put recovery at an unreachable 1.1.
+   */
+  "powerstore_hardware_Drive_state",
+  "powerstore_hardware_node_state",
+  "powerstore_hardware_Power_Supply_state",
+  "powerstore_hardware_Fan_state",
+  "powerstore_hardware_Battery_state",
+  "powerstore_nas_server_operational_status",
+  "powerstore_volume_state",
+  "powerstore_cluster",
+  // Harvest's states: 1 healthy, up, online, running or normal, 0 not.
+  "netapp_cluster_new_status",
+  "netapp_node_new_status",
+  "netapp_aggr_new_status",
+  "netapp_volume_new_status",
+  "netapp_lun_new_status",
+  "netapp_shelf_psu_status",
+  "netapp_shelf_fan_status",
 ]);
 
 interface Threshold {
@@ -213,6 +364,14 @@ interface TemplateExpectation {
   metricName: string;
   attributes: Record<string, string>;
   groupBy: string | null;
+  // The labels the object is named within, grouped by after groupBy.
+  scope?: Array<string> | undefined;
+  // A second query, and the quotient the criteria read.
+  ratio?:
+    | { alias: string; metricName: string; formulaAlias: string }
+    | undefined;
+  // An event's: it fires on any reading of the window past the line.
+  fireOnAnyReading?: boolean | undefined;
   fire: Threshold;
   recoverFilterType: FilterType;
   treatNoDataAsZero: boolean;
@@ -266,6 +425,14 @@ function capacityTemplate(
   };
 }
 
+// Each platform's identity series: its heartbeat.
+const HEARTBEAT_METRIC: Record<string, string> = {
+  [FA]: "purefa_info",
+  [FB]: "purefb_info",
+  [PS]: "powerstore_cluster",
+  [ONTAP]: "netapp_cluster_new_status",
+};
+
 // The heartbeat: the platform's identity series, counted over the whole array.
 function stoppedReportingTemplate(
   id: string,
@@ -279,7 +446,7 @@ function stoppedReportingTemplate(
     rollingTime: RollingTime.Past10Minutes,
     aggregation: MetricsAggregationType.Count,
     alias: "samples_received",
-    metricName: system === FA ? "purefa_info" : "purefb_info",
+    metricName: HEARTBEAT_METRIC[system]!,
     attributes: {},
     groupBy: null,
     // A count is never negative: this fires only through its no-data policy.
@@ -288,6 +455,420 @@ function stoppedReportingTemplate(
     treatNoDataAsZero: false,
   };
 }
+
+// ONTAP's state as a 0/1 number: every reading of the window bad.
+function ontapState(
+  id: string,
+  category: StorageArrayAlertTemplateCategory,
+  severity: "Critical" | "Warning",
+  alias: string,
+  metricName: string,
+  groupBy: string | null,
+  scope?: Array<string>,
+): TemplateExpectation {
+  return {
+    id,
+    system: ONTAP,
+    category,
+    severity,
+    rollingTime: RollingTime.Past10Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias,
+    metricName,
+    attributes: {},
+    groupBy,
+    scope,
+    fire: { filterType: FilterType.LessThan, value: 1 },
+    recoverFilterType: FilterType.GreaterThanOrEqualTo,
+    treatNoDataAsZero: false,
+  };
+}
+
+// One series per open problem: there while ONTAP reports it.
+function ontapOpenProblem(
+  id: string,
+  category: StorageArrayAlertTemplateCategory,
+  severity: "Critical" | "Warning",
+  alias: string,
+  metricName: string,
+  attributes: Record<string, string>,
+  groupBy: string,
+  options?: { scope?: Array<string>; rollingTime?: RollingTime },
+): TemplateExpectation {
+  return {
+    id,
+    system: ONTAP,
+    category,
+    severity,
+    rollingTime: options?.rollingTime || RollingTime.Past5Minutes,
+    aggregation: MetricsAggregationType.Max,
+    alias,
+    metricName,
+    attributes,
+    groupBy,
+    scope: options?.scope,
+    fire: { filterType: FilterType.GreaterThan, value: 0 },
+    recoverFilterType: FilterType.EqualTo,
+    treatNoDataAsZero: true,
+  };
+}
+
+// An EMS event: exported for the one poll that collected it.
+function ontapEvent(
+  id: string,
+  category: StorageArrayAlertTemplateCategory,
+  severity: "Critical" | "Warning",
+  alias: string,
+  attributes: Record<string, string>,
+  groupBy: string,
+): TemplateExpectation {
+  return {
+    ...ontapOpenProblem(
+      id,
+      category,
+      severity,
+      alias,
+      "netapp_ems_events",
+      attributes,
+      groupBy,
+    ),
+    rollingTime: RollingTime.Past1Hour,
+    fireOnAnyReading: true,
+  };
+}
+
+// A reading above a line, recovered below it.
+function ontapAbove(
+  id: string,
+  category: StorageArrayAlertTemplateCategory,
+  severity: "Critical" | "Warning",
+  rollingTime: RollingTime,
+  aggregation: MetricsAggregationType,
+  alias: string,
+  metricName: string,
+  groupBy: string | null,
+  value: number,
+  scope?: Array<string>,
+): TemplateExpectation {
+  return {
+    id,
+    system: ONTAP,
+    category,
+    severity,
+    rollingTime,
+    aggregation,
+    alias,
+    metricName,
+    attributes: {},
+    groupBy,
+    scope,
+    fire: { filterType: FilterType.GreaterThan, value },
+    recoverFilterType: FilterType.LessThanOrEqualTo,
+    treatNoDataAsZero: false,
+  };
+}
+
+const ONTAP_EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
+  stoppedReportingTemplate("netapp-cluster-stopped-reporting", ONTAP),
+  ontapState(
+    "netapp-cluster-not-healthy",
+    "Array Health",
+    "Warning",
+    "cluster_healthy",
+    "netapp_cluster_new_status",
+    null,
+  ),
+  ontapOpenProblem(
+    "netapp-system-health-alert",
+    "Array Health",
+    "Warning",
+    "system_health_alerts",
+    "netapp_health_support_alerts",
+    {},
+    "name",
+  ),
+  ontapEvent(
+    "netapp-emergency-ems-event",
+    "Array Health",
+    "Critical",
+    "emergency_events",
+    { severity: "emergency" },
+    "message",
+  ),
+  ontapEvent(
+    "netapp-alert-ems-event",
+    "Array Health",
+    "Critical",
+    "alert_events",
+    { severity: "alert" },
+    "message",
+  ),
+  ontapEvent(
+    "netapp-disk-out-of-service",
+    "Hardware",
+    "Warning",
+    "disk_out_of_service_events",
+    { message: "disk.outOfService" },
+    "disk",
+  ),
+  ontapEvent(
+    "netapp-node-panic",
+    "Hardware",
+    "Critical",
+    "node_panic_events",
+    { message: "sk.panic" },
+    "node",
+  ),
+  ontapAbove(
+    "netapp-aggregate-nearly-full",
+    "Capacity",
+    "Warning",
+    RollingTime.Past15Minutes,
+    MetricsAggregationType.Max,
+    "aggregate_used_percent",
+    "netapp_aggr_space_used_percent",
+    "aggr",
+    80,
+  ),
+  ontapAbove(
+    "netapp-aggregate-full",
+    "Capacity",
+    "Critical",
+    RollingTime.Past5Minutes,
+    MetricsAggregationType.Max,
+    "aggregate_used_percent",
+    "netapp_aggr_space_used_percent",
+    "aggr",
+    90,
+  ),
+  ontapAbove(
+    "netapp-volume-nearly-full",
+    "Capacity",
+    "Warning",
+    RollingTime.Past15Minutes,
+    MetricsAggregationType.Max,
+    "volume_used_percent",
+    "netapp_volume_size_used_percent",
+    "volume",
+    90,
+    ["svm"],
+  ),
+  ontapAbove(
+    "netapp-volume-full",
+    "Capacity",
+    "Critical",
+    RollingTime.Past5Minutes,
+    MetricsAggregationType.Max,
+    "volume_used_percent",
+    "netapp_volume_size_used_percent",
+    "volume",
+    98,
+    ["svm"],
+  ),
+  ontapAbove(
+    "netapp-read-latency-high",
+    "Performance",
+    "Warning",
+    RollingTime.Past15Minutes,
+    MetricsAggregationType.Avg,
+    "read_latency_usec",
+    "netapp_cluster_read_latency",
+    null,
+    10000,
+  ),
+  ontapAbove(
+    "netapp-write-latency-high",
+    "Performance",
+    "Warning",
+    RollingTime.Past15Minutes,
+    MetricsAggregationType.Avg,
+    "write_latency_usec",
+    "netapp_cluster_write_latency",
+    null,
+    10000,
+  ),
+  ontapAbove(
+    "netapp-volume-latency-high",
+    "Performance",
+    "Warning",
+    RollingTime.Past15Minutes,
+    MetricsAggregationType.Avg,
+    "volume_read_latency_usec",
+    "netapp_volume_read_latency",
+    "volume",
+    20000,
+    ["svm"],
+  ),
+  ontapState(
+    "netapp-node-not-healthy",
+    "Hardware",
+    "Critical",
+    "node_healthy",
+    "netapp_node_new_status",
+    "node",
+  ),
+  ontapOpenProblem(
+    "netapp-takeover-not-possible",
+    "Hardware",
+    "Critical",
+    "takeover_not_possible",
+    "netapp_health_ha_alerts",
+    {},
+    "node",
+  ),
+  ontapOpenProblem(
+    "netapp-disk-failed",
+    "Hardware",
+    "Critical",
+    "broken_disks",
+    "netapp_health_disk_alerts",
+    { container_type: "broken" },
+    "disk",
+  ),
+  ontapOpenProblem(
+    "netapp-shelf-fault",
+    "Hardware",
+    "Critical",
+    "shelf_faults",
+    "netapp_health_shelf_alerts",
+    { severity: "error" },
+    "shelf",
+  ),
+  ontapAbove(
+    "netapp-node-fan-failed",
+    "Hardware",
+    "Warning",
+    RollingTime.Past10Minutes,
+    MetricsAggregationType.Max,
+    "failed_fans",
+    "netapp_node_failed_fan",
+    "node",
+    0,
+  ),
+  ontapAbove(
+    "netapp-node-power-supply-failed",
+    "Hardware",
+    "Critical",
+    RollingTime.Past10Minutes,
+    MetricsAggregationType.Max,
+    "failed_power_supplies",
+    "netapp_node_failed_power",
+    "node",
+    0,
+  ),
+  ontapState(
+    "netapp-shelf-power-supply-failed",
+    "Hardware",
+    "Critical",
+    "shelf_power_supply_normal",
+    "netapp_shelf_psu_status",
+    "shelf",
+  ),
+  ontapState(
+    "netapp-shelf-fan-failed",
+    "Hardware",
+    "Warning",
+    "shelf_fan_normal",
+    "netapp_shelf_fan_status",
+    "shelf",
+  ),
+  ontapOpenProblem(
+    "netapp-ethernet-port-down",
+    "Hardware",
+    "Warning",
+    "ethernet_ports_down",
+    "netapp_health_network_ethernet_port_alerts",
+    {},
+    "port",
+    { scope: ["node"] },
+  ),
+  ontapAbove(
+    "netapp-fc-port-link-failures",
+    "Hardware",
+    "Warning",
+    RollingTime.Past15Minutes,
+    MetricsAggregationType.Max,
+    "fc_link_failures",
+    "netapp_fcp_link_failure",
+    "port",
+    0,
+    ["node"],
+  ),
+  {
+    ...ontapAbove(
+      "netapp-snapmirror-behind-schedule",
+      "Replication",
+      "Warning",
+      RollingTime.Past15Minutes,
+      MetricsAggregationType.Max,
+      "lag_seconds",
+      "netapp_snapmirror_lag_time",
+      "destination_location",
+      1.5,
+    ),
+    ratio: {
+      alias: "schedule_seconds",
+      metricName: "netapp_snapmirror_schedule_seconds",
+      formulaAlias: "lag_over_schedule",
+    },
+  },
+  ontapOpenProblem(
+    "netapp-snapmirror-unhealthy",
+    "Replication",
+    "Critical",
+    "unhealthy_relationships",
+    "netapp_snapmirror_labels",
+    { healthy: "false" },
+    "destination_location",
+  ),
+  ontapAbove(
+    "netapp-snapmirror-lag-day",
+    "Replication",
+    "Warning",
+    RollingTime.Past15Minutes,
+    MetricsAggregationType.Max,
+    "lag_seconds",
+    "netapp_snapmirror_lag_time",
+    "destination_location",
+    86400,
+  ),
+  ontapState(
+    "netapp-aggregate-offline",
+    "Availability",
+    "Critical",
+    "aggregate_online",
+    "netapp_aggr_new_status",
+    "aggr",
+  ),
+  ontapState(
+    "netapp-volume-offline",
+    "Availability",
+    "Warning",
+    "volume_online",
+    "netapp_volume_new_status",
+    "volume",
+    ["svm"],
+  ),
+  ontapState(
+    "netapp-lun-offline",
+    "Availability",
+    "Critical",
+    "lun_online",
+    "netapp_lun_new_status",
+    "lun",
+    ["volume", "svm"],
+  ),
+  ontapOpenProblem(
+    "netapp-svm-stopped",
+    "Availability",
+    "Warning",
+    "stopped_svms",
+    "netapp_svm_labels",
+    { state: "stopped", type: "data" },
+    "svm",
+    { rollingTime: RollingTime.Past10Minutes },
+  ),
+];
 
 const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
   stoppedReportingTemplate("purefa-array-stopped-reporting", FA),
@@ -453,7 +1034,183 @@ const EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     recoverFilterType: FilterType.GreaterThanOrEqualTo,
     treatNoDataAsZero: false,
   },
+  ...getPowerStoreTemplates(),
+  ...ONTAP_EXPECTED_TEMPLATES,
 ];
+
+/*
+ * Dell PowerStore's: one incident per appliance for its space and latency,
+ * per part, volume, NAS server, file system and witness for theirs.
+ * PowerStore samples every five minutes, so every window holds two samples
+ * or more. Its own alerts arrive as logs (StorageArrayLogAlertTemplates).
+ */
+function getPowerStoreTemplates(): Array<TemplateExpectation> {
+  const perAppliance: (
+    id: string,
+    data: Partial<TemplateExpectation>,
+  ) => TemplateExpectation = (
+    id: string,
+    data: Partial<TemplateExpectation>,
+  ): TemplateExpectation => {
+    return {
+      id,
+      system: PS,
+      category: "Capacity",
+      severity: "Warning",
+      rollingTime: RollingTime.Past15Minutes,
+      aggregation: MetricsAggregationType.Max,
+      alias: "",
+      metricName: "",
+      attributes: {},
+      groupBy: "appliance_id",
+      fire: { filterType: FilterType.GreaterThan, value: 0 },
+      recoverFilterType: FilterType.LessThanOrEqualTo,
+      treatNoDataAsZero: false,
+      ...data,
+    };
+  };
+  // A 1-while-healthy state, one incident per object.
+  const unhealthy: (
+    id: string,
+    data: Partial<TemplateExpectation>,
+  ) => TemplateExpectation = (
+    id: string,
+    data: Partial<TemplateExpectation>,
+  ): TemplateExpectation => {
+    return {
+      id,
+      system: PS,
+      category: "Hardware",
+      severity: "Warning",
+      rollingTime: RollingTime.Past10Minutes,
+      aggregation: MetricsAggregationType.Min,
+      alias: "",
+      metricName: "",
+      attributes: {},
+      groupBy: "name",
+      fire: { filterType: FilterType.LessThan, value: 1 },
+      recoverFilterType: FilterType.GreaterThanOrEqualTo,
+      treatNoDataAsZero: false,
+      ...data,
+    };
+  };
+  return [
+    stoppedReportingTemplate("powerstore-array-stopped-reporting", PS),
+    perAppliance("powerstore-capacity-high", {
+      alias: "capacity_used_percent",
+      metricName: "powerstore_cap_physical_used_percent",
+      fire: { filterType: FilterType.GreaterThan, value: 80 },
+    }),
+    perAppliance("powerstore-capacity-critical", {
+      severity: "Critical",
+      alias: "capacity_used_percent",
+      metricName: "powerstore_cap_physical_used_percent",
+      fire: { filterType: FilterType.GreaterThan, value: 90 },
+    }),
+    perAppliance("powerstore-read-latency-high", {
+      category: "Performance",
+      aggregation: MetricsAggregationType.Avg,
+      alias: "read_latency_usec",
+      metricName: "powerstore_perf_avg_read_latency",
+      // 5 ms, in the series' own microseconds.
+      fire: { filterType: FilterType.GreaterThan, value: 5000 },
+    }),
+    perAppliance("powerstore-write-latency-high", {
+      category: "Performance",
+      aggregation: MetricsAggregationType.Avg,
+      alias: "write_latency_usec",
+      metricName: "powerstore_perf_avg_write_latency",
+      fire: { filterType: FilterType.GreaterThan, value: 5000 },
+    }),
+    unhealthy("powerstore-drive-unhealthy", {
+      severity: "Critical",
+      alias: "drive_healthy",
+      metricName: "powerstore_hardware_Drive_state",
+    }),
+    unhealthy("powerstore-node-unhealthy", {
+      severity: "Critical",
+      alias: "node_healthy",
+      metricName: "powerstore_hardware_node_state",
+    }),
+    unhealthy("powerstore-power-supply-unhealthy", {
+      alias: "power_supply_healthy",
+      metricName: "powerstore_hardware_Power_Supply_state",
+    }),
+    unhealthy("powerstore-fan-unhealthy", {
+      alias: "fan_healthy",
+      metricName: "powerstore_hardware_Fan_state",
+    }),
+    unhealthy("powerstore-battery-unhealthy", {
+      alias: "battery_healthy",
+      metricName: "powerstore_hardware_Battery_state",
+    }),
+    unhealthy("powerstore-drive-endurance-low", {
+      rollingTime: RollingTime.Past15Minutes,
+      alias: "endurance_remaining_percent",
+      metricName: "powerstore_wear_metrics_by_drive",
+      // Below 10% of its rated endurance left.
+      fire: { filterType: FilterType.LessThan, value: 10 },
+    }),
+    unhealthy("powerstore-nas-server-not-started", {
+      category: "File Systems",
+      aggregation: MetricsAggregationType.Max,
+      alias: "nas_server_started",
+      metricName: "powerstore_nas_server_operational_status",
+    }),
+    unhealthy("powerstore-volume-not-ready", {
+      category: "Array Health",
+      rollingTime: RollingTime.Past15Minutes,
+      aggregation: MetricsAggregationType.Max,
+      alias: "volume_ready",
+      metricName: "powerstore_volume_state",
+    }),
+    {
+      id: "powerstore-file-system-near-full",
+      system: PS,
+      category: "File Systems",
+      severity: "Warning",
+      rollingTime: RollingTime.Past15Minutes,
+      aggregation: MetricsAggregationType.Max,
+      alias: "file_system_used_percent",
+      metricName: "powerstore_filesystem_logical_used_percent",
+      attributes: {},
+      groupBy: "name",
+      fire: { filterType: FilterType.GreaterThan, value: 90 },
+      recoverFilterType: FilterType.LessThanOrEqualTo,
+      treatNoDataAsZero: false,
+    },
+    unhealthy("powerstore-cluster-not-configured", {
+      category: "Array Health",
+      aggregation: MetricsAggregationType.Max,
+      alias: "cluster_configured",
+      metricName: "powerstore_cluster",
+      groupBy: null,
+    }),
+    {
+      id: "powerstore-metro-witness-not-ok",
+      system: PS,
+      category: "Replication",
+      severity: "Warning",
+      rollingTime: RollingTime.Past10Minutes,
+      aggregation: MetricsAggregationType.Min,
+      alias: "witness_state",
+      metricName: "powerstore_metro_witness_status",
+      attributes: {},
+      groupBy: "name",
+      // 0 is OK; any other state, held for the whole window, fires.
+      fire: { filterType: FilterType.GreaterThan, value: 0 },
+      recoverFilterType: FilterType.EqualTo,
+      treatNoDataAsZero: false,
+    },
+  ];
+}
+
+// The expectation of one template, by its id.
+function expectationOf(id: string): TemplateExpectation {
+  return EXPECTED_TEMPLATES.find((t: TemplateExpectation): boolean => {
+    return t.id === id;
+  })!;
+}
 
 function buildArgs(): StorageArrayAlertTemplateArgs {
   return {
@@ -555,6 +1312,8 @@ const TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
 const STOPPED_REPORTING_IDS: Array<string> = [
   "purefa-array-stopped-reporting",
   "purefb-array-stopped-reporting",
+  "powerstore-array-stopped-reporting",
+  "netapp-cluster-stopped-reporting",
 ];
 
 const PER_OBJECT_TEMPLATE_CASES: Array<[string, StorageArrayAlertTemplate]> =
@@ -579,30 +1338,41 @@ describe("StorageArrayAlertTemplates - registry", () => {
     );
   });
 
-  test("ships twenty templates: twelve FlashArray, eight FlashBlade, each led by its heartbeat", () => {
-    expect(ALL_TEMPLATES).toHaveLength(20);
+  test("ships sixty-seven templates: twelve FlashArray, eight FlashBlade, sixteen PowerStore, thirty-one ONTAP, each led by its heartbeat", () => {
+    expect(ALL_TEMPLATES).toHaveLength(67);
     expect(getStorageArrayAlertTemplatesForSystem(FA)).toHaveLength(12);
     expect(getStorageArrayAlertTemplatesForSystem(FB)).toHaveLength(8);
+    expect(getStorageArrayAlertTemplatesForSystem(PS)).toHaveLength(16);
+    expect(getStorageArrayAlertTemplatesForSystem(ONTAP)).toHaveLength(31);
     expect(getStorageArrayAlertTemplatesForSystem(FA)[0]!.id).toBe(
       "purefa-array-stopped-reporting",
     );
     expect(getStorageArrayAlertTemplatesForSystem(FB)[0]!.id).toBe(
       "purefb-array-stopped-reporting",
     );
+    expect(getStorageArrayAlertTemplatesForSystem(PS)[0]!.id).toBe(
+      "powerstore-array-stopped-reporting",
+    );
+    expect(getStorageArrayAlertTemplatesForSystem(ONTAP)[0]!.id).toBe(
+      "netapp-cluster-stopped-reporting",
+    );
   });
 
   test("every template id carries its platform's prefix", () => {
     for (const template of ALL_TEMPLATES) {
-      expect(template.id).toMatch(
-        systemOf(template) === FA
-          ? /^purefa-[a-z0-9-]+$/
-          : /^purefb-[a-z0-9-]+$/,
+      const platform: { templatePrefix: string } | undefined = PLATFORMS.find(
+        (candidate: { system: StorageSystem }): boolean => {
+          return candidate.system === systemOf(template);
+        },
       );
+      expect(platform).toBeDefined();
+      expect(template.id.startsWith(platform!.templatePrefix)).toBe(true);
+      expect(template.id).toMatch(/^[a-z0-9-]+$/);
     }
   });
 
   test("template names are unique within a platform", () => {
-    for (const system of [FA, FB]) {
+    for (const system of [FA, FB, PS, ONTAP]) {
       const names: Array<string> = getStorageArrayAlertTemplatesForSystem(
         system,
       ).map((t: StorageArrayAlertTemplate) => {
@@ -650,7 +1420,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
   });
 
   test("getStorageArrayAlertTemplatesForSystem returns only that platform's templates", () => {
-    for (const system of [FA, FB]) {
+    for (const system of [FA, FB, PS, ONTAP]) {
       for (const template of getStorageArrayAlertTemplatesForSystem(system)) {
         expect(template.storageSystems).toEqual([system]);
       }
@@ -661,7 +1431,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
     ["null", null],
     ["undefined", undefined],
     ["the empty string", ""],
-    ["an unknown platform", "netapp.ontap"],
+    ["an unknown platform", "hitachi.vsp"],
   ])(
     "an array whose platform is %s gets every template",
     (_: string, system: string | null | undefined) => {
@@ -688,6 +1458,7 @@ describe("StorageArrayAlertTemplates - registry", () => {
     expect(new Set(names).size).toBe(names.length);
     expect(names).toContain("Capacity Above 80% (FlashArray)");
     expect(names).toContain("Capacity Above 80% (FlashBlade)");
+    expect(names).toContain("Capacity Above 80% (PowerStore)");
     // The platform's own list keeps the plain names.
     expect(
       getStorageArrayAlertTemplatesForSystem(FA).map(
@@ -702,8 +1473,8 @@ describe("StorageArrayAlertTemplates - registry", () => {
     );
   });
 
-  test("both platforms cover alerts, capacity, latency and hardware", () => {
-    for (const system of [FA, FB]) {
+  test("every platform covers alerts, capacity, latency and hardware", () => {
+    for (const system of [FA, FB, PS, ONTAP]) {
       const categories: Set<string> = new Set(
         getStorageArrayAlertTemplatesForSystem(system).map(
           (t: StorageArrayAlertTemplate) => {
@@ -742,8 +1513,13 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
       expect(monitor.arrayIdentifier).toBe(args.arrayIdentifier);
       expect(monitor.storageSystem).toBe(systemOf(template));
       expect(monitor.resourceFilters).toEqual({});
-      expect(monitor.metricViewConfig.queryConfigs).toHaveLength(1);
-      expect(monitor.metricViewConfig.formulaConfigs).toEqual([]);
+      if (expectationOf(template.id).ratio) {
+        expect(monitor.metricViewConfig.queryConfigs).toHaveLength(2);
+        expect(monitor.metricViewConfig.formulaConfigs).toHaveLength(1);
+      } else {
+        expect(monitor.metricViewConfig.queryConfigs).toHaveLength(1);
+        expect(monitor.metricViewConfig.formulaConfigs).toEqual([]);
+      }
 
       // Only the storage array sub-config is populated.
       expect(step.data?.cephMonitor).toBeUndefined();
@@ -850,11 +1626,16 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
     "%s resolves every criteria alias",
     (_id: string, template: StorageArrayAlertTemplate) => {
       const step: MonitorStep = template.getMonitorStep(buildArgs());
-      const aliases: Set<string> = new Set(
-        queryConfigsOf(step).map((queryConfig: any) => {
+      const aliases: Set<string> = new Set([
+        ...queryConfigsOf(step).map((queryConfig: any) => {
           return queryConfig.metricAliasData.metricVariable;
         }),
-      );
+        ...(
+          step.data?.storageArrayMonitor?.metricViewConfig.formulaConfigs || []
+        ).map((formula: any) => {
+          return formula.metricAliasData.metricVariable;
+        }),
+      ]);
       for (const instance of getCriteriaInstances(step)) {
         for (const filter of filtersOf(instance)) {
           expect(aliases).toContain(filter.metricMonitorOptions?.metricAlias);
@@ -904,7 +1685,7 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
           filterData.attributes,
         )!;
 
-        expect(groupBys.length).toBeLessThanOrEqual(1);
+        expect(groupBys.length).toBeLessThanOrEqual(3);
         for (const key of groupBys) {
           expect(key.startsWith("resource.")).toBe(false);
           expect(Object.keys(SERIES_LABELS[filterData.metricName]!)).toContain(
@@ -919,13 +1700,17 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
            * A per-object metric must fire one incident per object, grouped
            * by the very label a resource filter on it would use.
            */
-          expect(groupBys).toEqual([
+          expect(groupBys[0]).toEqual(
             getStorageArrayObjectLabel(
               definition.defaultResourceScope,
               systemOf(template),
               filterData.metricName,
             ),
-          ]);
+          );
+          // Then the labels its name is unique within (an ONTAP volume's svm).
+          expect(groupBys.slice(1)).toEqual(
+            expectationOf(template.id).scope || [],
+          );
         }
       }
 
@@ -983,11 +1768,27 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
   );
 
   test.each(TEMPLATE_CASES)(
-    "%s evaluates sustained over the whole window, not on a single sample",
+    "%s evaluates sustained over the whole window, not on a single sample (an event fires on its one)",
     (_id: string, template: StorageArrayAlertTemplate) => {
-      for (const instance of getCriteriaInstances(
+      const [offline, ...rest] = getCriteriaInstances(
         template.getMonitorStep(buildArgs()),
-      )) {
+      );
+      /*
+       * An ONTAP EMS event is a series for the one Harvest poll that
+       * collected it: it could never cover the window, so it fires on any
+       * reading. Every recovery is sustained.
+       */
+      const onAnyReading: boolean = Boolean(
+        expectationOf(template.id).fireOnAnyReading,
+      );
+      for (const filter of filtersOf(offline!)) {
+        expect(filter.metricMonitorOptions?.metricAggregationType).toBe(
+          onAnyReading
+            ? EvaluateOverTimeType.AnyValue
+            : EvaluateOverTimeType.AllValues,
+        );
+      }
+      for (const instance of rest) {
         for (const filter of filtersOf(instance)) {
           expect(filter.metricMonitorOptions?.metricAggregationType).toBe(
             EvaluateOverTimeType.AllValues,
@@ -1046,11 +1847,7 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
   test.each(PER_OBJECT_TEMPLATE_CASES)(
     "%s fires on a breached window and recovers on a healthy one",
     (_id: string, template: StorageArrayAlertTemplate) => {
-      const expectation: TemplateExpectation = EXPECTED_TEMPLATES.find(
-        (t: TemplateExpectation) => {
-          return t.id === template.id;
-        },
-      )!;
+      const expectation: TemplateExpectation = expectationOf(template.id);
       const [offline, online] = getCriteriaInstances(
         template.getMonitorStep(buildArgs()),
       ) as [MonitorCriteriaInstance, MonitorCriteriaInstance];
@@ -1120,11 +1917,18 @@ describe("StorageArrayAlertTemplates - enumerated invariants (every template)", 
         fireInstance.data?.name || "",
         fireInstance.data?.description || "",
       ];
-      const otherPlatform: RegExp =
-        systemOf(template) === FA ? /FlashBlade|purefb_/ : /FlashArray|purefa_/;
+      const otherPlatforms: Array<RegExp> = PLATFORMS.filter(
+        (platform: { system: StorageSystem }): boolean => {
+          return platform.system !== systemOf(template);
+        },
+      ).map((platform: { words: RegExp }): RegExp => {
+        return platform.words;
+      });
 
       for (const text of texts) {
-        expect(text).not.toMatch(otherPlatform);
+        for (const otherPlatform of otherPlatforms) {
+          expect(text).not.toMatch(otherPlatform);
+        }
         // Cloned from Ceph: no Ceph, Proxmox or vSphere vocabulary.
         expect(text).not.toMatch(/ceph|proxmox|pve|vcenter|vsphere|osd\b/i);
       }
@@ -1156,8 +1960,28 @@ describe("StorageArrayAlertTemplates - spec table expectations", () => {
       expect(monitor.rollingTime).toBe(tc.rollingTime);
 
       const queryConfigs: Array<any> = queryConfigsOf(step);
-      expect(queryConfigs).toHaveLength(1);
+      expect(queryConfigs).toHaveLength(tc.ratio ? 2 : 1);
       const queryConfig: any = queryConfigs[0];
+      if (tc.ratio) {
+        expect(queryConfigs[1].metricAliasData.metricVariable).toBe(
+          tc.ratio.alias,
+        );
+        expect(queryConfigs[1].metricQueryData.filterData.metricName).toBe(
+          tc.ratio.metricName,
+        );
+        // Both grouped alike, so the quotient is one object's.
+        expect(queryConfigs[1].metricQueryData.groupByAttributeKeys).toEqual(
+          queryConfig.metricQueryData.groupByAttributeKeys,
+        );
+        expect(
+          monitor.metricViewConfig.formulaConfigs[0]!.metricFormulaData
+            .metricFormula,
+        ).toBe(`${tc.alias} / ${tc.ratio.alias}`);
+        expect(
+          monitor.metricViewConfig.formulaConfigs[0]!.metricAliasData
+            .metricVariable,
+        ).toBe(tc.ratio.formulaAlias);
+      }
       expect(queryConfig.metricAliasData.metricVariable).toBe(tc.alias);
       expect(queryConfig.metricQueryData.filterData.metricName).toBe(
         tc.metricName,
@@ -1171,6 +1995,7 @@ describe("StorageArrayAlertTemplates - spec table expectations", () => {
       if (tc.groupBy) {
         expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual([
           tc.groupBy,
+          ...(tc.scope || []),
         ]);
       } else {
         // Ungrouped: the key is absent, not an empty list.
@@ -1185,8 +2010,10 @@ describe("StorageArrayAlertTemplates - spec table expectations", () => {
       ];
       expect(offline.data?.filterCondition).toBe(FilterCondition.Any);
       expect(filtersOf(offline)).toHaveLength(1);
+      // A ratio template's criteria read the quotient.
+      const criteriaAlias: string = tc.ratio?.formulaAlias || tc.alias;
       expect(filtersOf(offline)[0]!.metricMonitorOptions?.metricAlias).toBe(
-        tc.alias,
+        criteriaAlias,
       );
       expect(filtersOf(offline)[0]!.filterType).toBe(tc.fire.filterType);
       expect(filtersOf(offline)[0]!.value).toBe(tc.fire.value);
@@ -1194,7 +2021,7 @@ describe("StorageArrayAlertTemplates - spec table expectations", () => {
       expect(online.data?.filterCondition).toBe(FilterCondition.Any);
       expect(filtersOf(online)).toHaveLength(1);
       const recover: CriteriaFilter = filtersOf(online)[0]!;
-      expect(recover.metricMonitorOptions?.metricAlias).toBe(tc.alias);
+      expect(recover.metricMonitorOptions?.metricAlias).toBe(criteriaAlias);
       expect(recover.filterType).toBe(tc.recoverFilterType);
       /*
        * The table states the FIRING threshold; the recovery threshold is
@@ -1258,8 +2085,13 @@ describe("StorageArrayAlertTemplates - FlashBlade hardware health code (regressi
     expect(queryConfig.metricQueryData.groupByAttributeKeys).toEqual(["name"]);
   });
 
-  test("it is the only binary-coded template, and the only `< 1` threshold", () => {
-    for (const other of ALL_TEMPLATES) {
+  test("it is Pure's only binary-coded template, and Pure's only `< 1` threshold", () => {
+    // Dell's and ONTAP's state series are binary too: their rows above pin them.
+    for (const other of ALL_TEMPLATES.filter(
+      (template: StorageArrayAlertTemplate): boolean => {
+        return systemOf(template) !== PS && systemOf(template) !== ONTAP;
+      },
+    )) {
       const step: MonitorStep = other.getMonitorStep(buildArgs());
       const usesLessThanOne: boolean = filtersOf(
         getCriteriaInstances(step)[0]!,

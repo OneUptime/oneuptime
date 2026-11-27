@@ -18,10 +18,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import OneUptimeDate from "Common/Types/Date";
 import {
-  DataObservabilityCollector,
   DataObservabilitySourceSuggestion,
   DataObservabilityStoreSummary,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
+import { getStoreCollectorLine } from "../../Components/DataObservability/StoreCollectorWords";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
@@ -44,13 +44,16 @@ import { ErrorInSentence } from "Common/UI/Components/ErrorMessage/ErrorSentence
 
 /*
  * The databases whose tables are watched, with who collects each - OneUptime,
- * or a probe in the customer's network - how the last collection went and
+ * a probe in the customer's network, or the Database Agent beside the
+ * database (#11148) - how the last collection went and
  * why one failed. Connect a Database adds one; Collect Now reads one again
  * without waiting for its next turn, and the row says how that went when
  * it ends (useCollectNow); Recommended Alerts opens the monitors
  * recommended for its tables. Each says whether any of its alerts is on: a
  * database with none tells nobody when its tables break, so its button is
  * Set Up Alerts instead - and a database just connected opens there.
+ * Settings renames it, changes how it is reached, removes it from Data
+ * Observability or deletes it, where it was added (#11147).
  * Below them, the databases the project already knows of that nobody has
  * connected.
  */
@@ -191,14 +194,7 @@ const DataObservabilityStoresPage: FunctionComponent<
                         <div className="text-xs text-gray-500">
                           {store.kind}
                           <InlineSeparator />
-                          {store.collector === DataObservabilityCollector.Probe
-                            ? translator.translateTemplate(
-                                "Collected by probe {{probe}}",
-                                { probe: store.probeName || "" },
-                              )
-                            : translator.translateText(
-                                "Collected by OneUptime",
-                              )}
+                          {getStoreCollectorLine(store, translator)}
                           {store.collectedAt ? <InlineSeparator /> : null}
                           {store.collectedAt
                             ? translator.translateTemplate(
@@ -275,6 +271,23 @@ const DataObservabilityStoresPage: FunctionComponent<
                           disabled={!store.isTableHealthEnabled}
                           onClick={() => {
                             void collection.collectNow(store);
+                          }}
+                        />
+                        {/*
+                         * Renamed, reconnected, removed or deleted where it was
+                         * added (#11147).
+                         */}
+                        <Button
+                          title="Settings"
+                          buttonStyle={ButtonStyleType.OUTLINE}
+                          icon={IconProp.Settings}
+                          onClick={() => {
+                            Navigation.navigate(
+                              storeRoute(
+                                store,
+                                PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS,
+                              ),
+                            );
                           }}
                         />
                       </div>

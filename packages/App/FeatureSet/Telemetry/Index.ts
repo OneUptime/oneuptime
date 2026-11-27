@@ -38,6 +38,7 @@ import ProbeIngestAPI from "./API/ProbeIngest/Probe";
 import ProbeIngestSyslogAPI from "./API/ProbeIngest/Syslog";
 import ProbeIngestNetworkFlowAPI from "./API/ProbeIngest/NetworkFlow";
 import ProbeIngestVMwareCollectionAPI from "./API/ProbeIngest/VMwareCollection";
+import ProbeIngestXcpNgCollectionAPI from "./API/ProbeIngest/XcpNgCollection";
 import ProbeIngestOpenStackCollectionAPI from "./API/ProbeIngest/OpenStackCollection";
 import ProbeIngestOpenStackChecksAPI from "./API/ProbeIngest/OpenStackChecks";
 import ProbeIngestDataSecurityAPI from "./API/ProbeIngest/DataSecurity";
@@ -195,6 +196,7 @@ const TelemetryFeatureSet: FeatureSet = {
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestSyslogAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestNetworkFlowAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestVMwareCollectionAPI);
+      app.use(PROBE_INGEST_PREFIXES, ProbeIngestXcpNgCollectionAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestOpenStackCollectionAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestOpenStackChecksAPI);
       app.use(PROBE_INGEST_PREFIXES, ProbeIngestDataSecurityAPI);

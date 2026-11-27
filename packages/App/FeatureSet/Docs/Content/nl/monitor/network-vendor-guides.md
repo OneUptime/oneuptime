@@ -178,7 +178,7 @@ Een chassis met Virtual Fabrics antwoordt voor elke logische switch in een eigen
 
 ### Brocade-traps
 
-Fabric OS verstuurt zijn traps via SNMPv3. Voeg met `snmpconfig --set snmpv3` de probe toe als trapontvanger voor de gebruiker waarmee OneUptime pollt, op UDP-poort 162: de probe neemt de SNMPv3-traps aan van de gebruikers van de apparaten die hij pollt (zie [SNMPv3-traps en informs](/docs/monitor/network-device-monitor#snmpv3-traps-en-informs)), en de traps van elke logische switch noemen zijn context, zodat ze alleen op zijn apparaat afgaan. Een upgrade van Fabric OS kan afzonderlijke traps weer uitzetten: controleer ze na een upgrade met `snmpconfig --show mibCapability`, en zet er een weer aan met `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn`.
+Fabric OS verstuurt zijn traps via SNMPv3. Voeg met `snmpconfig --set snmpv3` de sonde toe als trapontvanger voor de gebruiker waarmee OneUptime pollt, op UDP-poort 162: de sonde neemt de SNMPv3-traps aan van de gebruikers van de apparaten die hij pollt (zie [SNMPv3-traps en informs](/docs/monitor/network-device-monitor#snmpv3-traps-en-informs)), en de traps van elke logische switch noemen zijn context, zodat ze alleen op zijn apparaat afgaan. Een upgrade van Fabric OS kan afzonderlijke traps weer uitzetten: controleer ze na een upgrade met `snmpconfig --show mibCapability`, en zet er een weer aan met `snmpconfig --enable mibCapability -mib_name SW-MIB -trap_name swFCPortScn`.
 
 De aanbevolen meldingen op een Brocade-switch bevatten er een voor elke fabric-gebeurtenis die ertoe doet: **Inter-switch link down** (een E-Port die offline gaat), **Fabric segmented**, **Fabric reconfigured**, **Zone configuration changed**, **MAPS alert** en **Field-replaceable unit changed**.
 
@@ -199,7 +199,7 @@ Een MDS deelt het enterprisenummer van Cisco met elk ander Cisco-apparaat, dus O
 
 :::steps
 1. Voeg een SNMPv3-gebruiker met alleen leesrechten toe: `snmp-server user oneuptime network-operator auth sha <auth-passphrase> priv aes-128 <priv-passphrase>`. De rol `network-operator` leest en kan niets wijzigen.
-2. Stuur traps als die gebruiker naar de probe: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
+2. Stuur traps als die gebruiker naar de sonde: `snmp-server host <probe-address> traps version 3 priv oneuptime`.
 3. Zet de traps aan die standaard uit staan: `snmp-server enable traps zone`, `snmp-server enable traps vsan`, `snmp-server enable traps fcdomain`, `snmp-server enable traps fspf` en, voor de optieken, `snmp-server enable traps link cisco-xcvr-mon-status-chg`.
 4. Voeg in OneUptime de switch toe met zijn beheeradres en die gebruiker: de sjabloon **Cisco MDS 9000 (SAN switches)** wordt op dezelfde manier toegepast.
 :::

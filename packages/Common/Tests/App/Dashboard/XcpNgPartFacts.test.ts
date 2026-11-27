@@ -3,6 +3,7 @@ import XcpNgResource from "../../../Models/DatabaseModels/XcpNgResource";
 import XcpNgResourceKind from "../../../Types/XcpNg/XcpNgResourceKind";
 import { Translator, createTranslator } from "../../../Types/Translator";
 import { getAllXcpNgAlertTemplates } from "../../../Types/Monitor/XcpNgAlertTemplates";
+import { getAllXcpNgEventAlertTemplates } from "../../../Types/Monitor/XcpNgEventAlertTemplates";
 import {
   XCP_NG_HOST_ALERT_TEMPLATE_IDS,
   XCP_NG_MAX_TAGS,
@@ -580,11 +581,13 @@ describe("the busiest", () => {
 
 describe("the recommended alerts each part's page lists", () => {
   test("are templates the pool offers, each kind's own", () => {
-    const ids: Array<string> = getAllXcpNgAlertTemplates().map(
-      (template: { id: string }): string => {
-        return template.id;
-      },
-    );
+    // The metric templates, and the alerts on what XAPI says (#10997).
+    const ids: Array<string> = [
+      ...getAllXcpNgAlertTemplates(),
+      ...getAllXcpNgEventAlertTemplates(),
+    ].map((template: { id: string }): string => {
+      return template.id;
+    });
     for (const id of [
       ...XCP_NG_HOST_ALERT_TEMPLATE_IDS,
       ...XCP_NG_VM_ALERT_TEMPLATE_IDS,
