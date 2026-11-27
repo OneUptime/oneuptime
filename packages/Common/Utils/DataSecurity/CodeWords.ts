@@ -1,33 +1,34 @@
 /*
- * THE WORDS CODE WRITES ITS LOG LINES WITH (#11098).
+ * THE WORDS CODE WRITES ITS LOG LINES WITH (#11098, #11204).
  *
  * A telemetry leak's place carries the text its records hold - a log
  * line, an exception's message, a span's name, a page - as a template
  * (TelemetryLeakTemplate), every value a detector finds replaced by its
- * type's name. A word no detector names - a person's name, a free-text
- * value with no digit in it - is told from the code's own words only by
- * the records: of two records of one line of code read with different
+ * type's name. A word no detector names - a person's name, a username, a
+ * free-text value with no digit in it - is told from the code's own words
+ * by no record: of two records of one line of code read with different
  * words, the words that differ are values (alignTelemetryLeakTemplates,
- * #10367). One record, or records that all read alike, tell nothing: in
- * "Payment declined for Ada Lovelace" read once, "Ada Lovelace" is a word
- * of the code's as much as "Payment" is.
+ * #10367), but the words they share need not be the code's. In "Payment
+ * declined for Ada Lovelace" read once, "Ada Lovelace" is a word of the
+ * code's as much as "Payment" is; and "Ticket reassigned to jdoe" read
+ * from every record of a line - one user's session, one engineer every
+ * ticket goes to - holds "jdoe" in each.
  *
- * So such a template keeps a word only when it is one code writes log
- * lines with: a word of this vocabulary - English's own small words, the
- * verbs and nouns log lines, messages and span names are made of, and
+ * So a template keeps a word only when it is one code writes log lines
+ * with: a word of this vocabulary - English's own small words, the verbs
+ * and nouns log lines, messages and span names are made of, and
  * technology's names - read with its inflections ("declined", "retries",
  * "handler") and as the parts of an identifier ("PaymentService",
- * "user_id", "order.created"). Every other word is masked. It is no list
- * of names to take out, which could never be whole: a word is kept for
- * being known, never for being unknown.
+ * "user_id", "order.created"). Every other word is masked, however many
+ * records share it. It is no list of names to take out, which could never
+ * be whole: a word is kept for being known, never for being unknown.
  *
  * A person's name is written capitalized. So a capitalized word in the
  * middle of a sentence ("for Grace Brown") is kept only when it names a
- * technology (Stripe, Redis, PostgreSQL), however many records read it -
- * an aligned template too, where a name every record holds would read
- * as one of the code's words. And the vocabulary's words that are also
- * people's names (NAME_LIKE_WORDS: "will", "page", "price") are kept only
- * in lower case, or as part of an identifier with a word that is not.
+ * technology (Stripe, Redis, PostgreSQL), however many records read it.
+ * And the vocabulary's words that are also people's names
+ * (NAME_LIKE_WORDS: "will", "page", "price") are kept only in lower case,
+ * or as part of an identifier with a word that is not.
  *
  * The vocabulary holds no person's name but those, and no word that says
  * something about a person - their health, beliefs, family or body:
@@ -984,44 +985,5 @@ export function isCodeWord(word: string, place: WordPlace): boolean {
     parts.every((part: string): boolean => {
       return part.length === 1;
     })
-  );
-}
-
-// What a name never holds: a digit, an "_".
-const DIGIT_OR_UNDERSCORE: RegExp = /[0-9_]/;
-
-// A lower-case letter before a capital: an identifier's turn of case.
-const TURN_OF_CASE: RegExp = /[a-z][A-Z]/;
-
-/*
- * Whether a word is written as a person's name is: its first letter a
- * capital and its others not, in the middle of a sentence, and no
- * technology's name - "for Grace Brown", "for José", "for O'Brien". An
- * identifier ("PaymentService"), a word in capitals, and one with a digit
- * or an "_" in it are code's.
- */
-export function isWrittenAsName(word: string, place: WordPlace): boolean {
-  if (!word || place.atSentenceStart || DIGIT_OR_UNDERSCORE.test(word)) {
-    return false;
-  }
-
-  const first: string = word[0]!;
-
-  // A capital letter, of any script.
-  if (first === first.toLowerCase() || word === word.toUpperCase()) {
-    return false;
-  }
-
-  // processPayment's turn of case: an identifier, not a name.
-  if (TURN_OF_CASE.test(word)) {
-    return false;
-  }
-
-  const lower: string = word.toLowerCase();
-  const firstPart: string = identifierParts(word)[0] || "";
-
-  return (
-    !TECHNOLOGY_NAMES.has(lower) &&
-    !TECHNOLOGY_NAMES.has(firstPart.toLowerCase())
   );
 }

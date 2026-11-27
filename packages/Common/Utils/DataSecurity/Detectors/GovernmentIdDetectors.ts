@@ -6,6 +6,7 @@ import {
   digitsOnly,
   hasDigit,
   isPlaceholderDigits,
+  withEveryReading,
 } from "../Detector";
 import {
   decimalStringMod,
@@ -265,10 +266,11 @@ function isCaSin(digits: string): boolean {
 /*
  * US Social Security number as AAA-GG-SSSS: the SSA's area, group and
  * serial rules, and nothing else - no check digit. The groups make it worth
- * showing (Low) even with no word around it. In every script's digits too
- * (#11030): ١٢٣-٤٥-٦٧٨٩ is the same number.
+ * showing (Low) even with no word around it. However it is written
+ * (withEveryReading): in every script's digits (#11030), ١٢٣-٤٥-٦٧٨٩ is the
+ * same number, and in a URL (#11199), its groups apart by %20 or "+".
  */
-const US_SSN_GROUPED_DETECTOR: DataTypeDetector = {
+const US_SSN_GROUPED_DETECTOR: DataTypeDetector = withEveryReading({
   dataTypeId: "us-ssn",
   quickCheck: hasDigit,
   pattern: US_SSN_GROUPED_PATTERN,
@@ -278,8 +280,7 @@ const US_SSN_GROUPED_DETECTOR: DataTypeDetector = {
   confidenceWithoutContext: DataConfidence.Low,
   specificity: 1,
   isTestValue: US_SSN_SAMPLES,
-  readsDigitsOfEveryScript: true,
-};
+});
 
 /*
  * WHAT DATA SECURITY CALLS A SOCIAL SECURITY NUMBER ON ITS OWN: one in its
@@ -2959,13 +2960,16 @@ const PASSPORT_NUMBER_DETECTOR: DataTypeDetector = {
 };
 
 /*
- * Every government ID read in every script's digits too
- * (readsDigitsOfEveryScript, #11033), as a card is (#10960) and a Social
- * Security number is (#11030): a TC Kimlik in Arabic-Indic digits, a CPF
- * in fullwidth ones, a passport number in Persian ones. A number is the
- * same number whatever script its digits are written in - its check digit,
- * its birth date and the words it needs around it prove it the same way -
- * and it is placed on the very characters it is written with.
+ * Every government ID read however it is written (withEveryReading), as a
+ * card is: in every script's digits (#11033, as a card is, #10960, and a
+ * Social Security number, #11030) - a TC Kimlik in Arabic-Indic digits, a
+ * CPF in fullwidth ones, a passport number in Persian ones - and in a URL
+ * (#11199): an Aadhaar number with %20 between its groups, a SIN with "+"
+ * between them as a query string writes a space, a passport number after
+ * passport+number=. A number is the same number however it is written -
+ * its check digit, its birth date and the words it needs around it prove
+ * it the same way - and it is placed on the very characters it is written
+ * with.
  */
 export const GOVERNMENT_ID_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   ...NORTH_AMERICA,
@@ -2977,8 +2981,6 @@ export const GOVERNMENT_ID_DETECTORS: ReadonlyArray<DataTypeDetector> = [
   ...ASIA,
   ...OCEANIA_AND_RUSSIA,
   PASSPORT_NUMBER_DETECTOR,
-].map((detector: DataTypeDetector): DataTypeDetector => {
-  return { ...detector, readsDigitsOfEveryScript: true };
-});
+].map(withEveryReading);
 
 export default GOVERNMENT_ID_DETECTORS;

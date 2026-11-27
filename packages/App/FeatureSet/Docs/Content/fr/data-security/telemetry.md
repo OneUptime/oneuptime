@@ -170,7 +170,7 @@ Avant que OneUptime AI ne commence, la Sécurité des données relit, dans OneUp
 
 - **Un span ou un appel d'IA** : le fichier, la ligne et la fonction que nomment ses attributs `code.*`, et le nom du span.
 - **Une exception** : ses propres frames du haut de la pile, celles du code du service.
-- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`, et chaque mot dont ses enregistrements ne prouvent pas que le code l'a écrit, comme le nom d'une personne, remplacé par `<value>` : `Payment declined for Maria Gonzalez`, lu dans un seul enregistrement, devient `Payment declined for <value>`. Le nom d'un span et le nom d'une métrique sont lus de la même façon.
+- **Une ligne de journal** : le fichier, la ligne et la fonction que nomment ses attributs, s'il y en a, son journaliseur, et la ligne comme modèle, chaque valeur remplacée par le nom de son type, par exemple `User <Email address> signed up`, et chaque mot qui n'est pas de ceux avec lesquels le code écrit des lignes de journal, comme le nom d'une personne ou un nom d'utilisateur, remplacé par `<value>`, quel que soit le nombre de ses enregistrements qui partagent ce mot : `Payment declined for Maria Gonzalez` devient `Payment declined for <value>`, et `Ticket assigned to jdoe`, lu dans tous les enregistrements de la ligne, devient `Ticket assigned to <value>`. Le nom d'un span et le nom d'une métrique sont lus de la même façon.
 - **Une métrique** : le nom de la métrique.
 - **Toute fuite** : sa clé d'attribut, par exemple `user.email`, que le code écrit généralement telle quelle.
 

@@ -212,7 +212,9 @@ const redactEmailAddresses: (
  * runs: an all-numeric 16-char OTel span id would collide with those and
  * break the search_logs → get_trace pivot. In any script's digits too, each
  * read by its value, as Data Security reads a card (#10960): ４１１１ １１１１
- * １１１１ １１１１ is hidden as written.
+ * １１１１ １１１１ is hidden as written. And in a URL, as Data Security reads a
+ * card there (#11199): card=4111%201111%201111%201111, and
+ * card=4111+1111+1111+1111 as a query string writes its spaces.
  */
 const SERIALIZER_CARD_PATTERN: RegExp = /\b\d{4}[ -]\d{4}[ -]\d{4}[ -]\d{4}\b/g;
 
@@ -227,7 +229,11 @@ const redactCardNumbers: (
     text,
     findInEveryReading({
       text,
-      needs: { readsDigitsOfEveryScript: true },
+      needs: {
+        readsDigitsOfEveryScript: true,
+        readsPercentEncoded: true,
+        readsPlusAsSpace: true,
+      },
       findIn: (reading: string): Array<TextRange> => {
         return scrubRegExpFromBuiltIn(SERIALIZER_CARD_PATTERN).matchRanges(
           reading,

@@ -34,7 +34,11 @@ import {
 import { isFreeTextFieldName } from "Common/Utils/DataSecurity/FreeTextFieldNames";
 import DataConfidence from "Common/Types/DataSecurity/DataConfidence";
 import { readableForModel } from "Common/Utils/DataSecurity/Model/ModelTextReading";
-import { maskUnprovenWords } from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
+import {
+  alignTelemetryLeakTemplates,
+  maskUnprovenWords,
+} from "Common/Utils/DataSecurity/TelemetryLeakTemplate";
+import { getBuiltInDetectorsOf } from "Common/Utils/DataSecurity/Detectors/Index";
 import { readScanWarning } from "Common/Types/DataSecurity/ScanWarnings";
 import ObjectID from "Common/Types/ObjectID";
 import {
@@ -229,6 +233,7 @@ import { ALL_CUSTOM_DATA_TYPE_VALIDATORS } from "Common/Utils/DataSecurity/Custo
 import {
   CONTEXT_AFTER,
   CONTEXT_BEFORE,
+  DataTypeDetector,
 } from "Common/Utils/DataSecurity/Detector";
 import {
   MAX_FIELD_VALUES,
@@ -4254,6 +4259,11 @@ describe("What a value is read as, and what a leak's template keeps", () => {
       ["４１１１ １１１１ １１１１ １１１１", "credit-card-number"],
       ["张伟@example.com", "email-address"],
       ["почта@пример.рф", "email-address"],
+      // #11199: a URL's query string as a form writes it.
+      ["4111+1111+1111+1111", "credit-card-number"],
+      ["DE44%205001%200517%205407%203249%2031", "iban"],
+      ["SW1A+2AA", "postal-code"],
+      ["10+Downing+Street", "postal-address"],
     ] as Array<[string, string]>) {
       expect(paragraph).toContain(`\`${value}\``);
       expect({ value, found: foundWhole(value, dataTypeId) }).toEqual({
@@ -4261,6 +4271,63 @@ describe("What a value is read as, and what a leak's template keeps", () => {
         found: value,
       });
     }
+
+    // A date of birth needs its words: the date after them, as it is written.
+    expect(paragraph).toContain("`dob=12%2F03%2F1985`");
+    expect(foundWhole("dob=12%2F03%2F1985", "date-of-birth")).toBe(
+      "12%2F03%2F1985",
+    );
+  });
+
+  /*
+   * #11033, #11200: each type the paragraph says is read in any script's
+   * digits is - every one of its detectors reads every script's digits -
+   * and each is read in a URL's query string as a form writes it (#11199).
+   */
+  it("reads every type the paragraph names in any script's digits, and in a URL as a form writes it", () => {
+    const paragraph: string = lineOf(
+      DATA_TYPES,
+      "A value is also read as people write it.",
+    );
+    const named: Array<[string, string]> = [
+      ["a card number", "credit-card-number"],
+      ["a card's security code or expiry date", "card-verification-code"],
+      ["a card's security code or expiry date", "card-expiration-date"],
+      ["a phone number", "phone-number"],
+      ["a US Social Security number", "us-ssn"],
+      ["an IBAN", "iban"],
+      ["a routing number", "us-bank-routing-number"],
+      ["a bank account number", "bank-account-number"],
+      ["a sort code", "uk-sort-code"],
+      ["a BSB", "au-bsb"],
+      ["a BIC", "swift-bic"],
+      ["an IFSC", "in-ifsc"],
+      ["a national ID number", "br-cpf"],
+      ["a health ID number such as an NHS number", "uk-nhs-number"],
+      ["a postcode", "postal-code"],
+      ["a date of birth", "date-of-birth"],
+    ];
+
+    for (const [words, dataTypeId] of named) {
+      expect(paragraph).toContain(words);
+
+      for (const detector of getBuiltInDetectorsOf(dataTypeId)) {
+        expect({
+          dataTypeId,
+          digits: detector.readsDigitsOfEveryScript,
+          url: detector.readsPlusAsSpace && detector.readsPercentEncoded,
+        }).toEqual({ dataTypeId, digits: true, url: true });
+      }
+    }
+
+    // A street address is words, read in a URL as a form writes them.
+    expect(
+      getBuiltInDetectorsOf("postal-address").every(
+        (detector: DataTypeDetector): boolean => {
+          return Boolean(detector.readsPlusAsSpace);
+        },
+      ),
+    ).toBe(true);
   });
 
   it("finds a person's name under a URL's query parameter named for one, High, and leaves one named name to the model (#11034)", () => {
@@ -4303,22 +4370,52 @@ describe("What a value is read as, and what a leak's template keeps", () => {
     );
   });
 
-  it("masks every word a line read from one record does not prove is the code's, as the page's example (#11098)", () => {
+  it("masks every word that is not one code writes log lines with, however many records share it, as the page's examples (#11098, #11204)", () => {
     const bullet: string = lineOf(TELEMETRY, "- **A log line**:");
 
     expect(bullet).toContain(
-      "`Payment declined for Maria Gonzalez`, read from one record, is `Payment declined for <value>`",
+      "`Payment declined for Maria Gonzalez` is `Payment declined for <value>`",
     );
+    expect(maskUnprovenWords("Payment declined for Maria Gonzalez")).toBe(
+      "Payment declined for <value>",
+    );
+    // Read from every record of the line: the records aligned, then masked, as a leak's places are.
+    expect(bullet).toContain(
+      "`Ticket assigned to jdoe`, read from every record of the line, is `Ticket assigned to <value>`",
+    );
+    const reads: Array<string> = [
+      "Ticket assigned to jdoe",
+      "Ticket assigned to jdoe",
+      "Ticket assigned to jdoe",
+    ];
+    const aligned: Map<string, string> = alignTelemetryLeakTemplates(reads);
+
+    for (const read of reads) {
+      expect(maskUnprovenWords(aligned.get(read) || read)).toBe(
+        "Ticket assigned to <value>",
+      );
+    }
+
+    // The AI page says the same of what Fix leaks in the code is handed (#11204).
+    expect(english(AI)).toContain(
+      "each word that isn't one code writes log lines with as `<value>`, however many records share it",
+    );
+    // Aligned reads of one line, a value they share: masked as one read's would be.
+    const differing: Map<string, string> = alignTelemetryLeakTemplates([
+      "Ticket assigned to jdoe with priority urgent",
+      "Ticket assigned to jdoe with priority low",
+    ]);
+
     expect(
-      maskUnprovenWords("Payment declined for Maria Gonzalez", {
-        isAligned: false,
-      }),
-    ).toBe("Payment declined for <value>");
+      maskUnprovenWords(
+        differing.get("Ticket assigned to jdoe with priority urgent") || "",
+      ),
+    ).toBe("Ticket assigned to <value> with priority <value>");
     // The page's other example keeps every word: each is the code's.
     expect(bullet).toContain("`User <Email address> signed up`");
-    expect(
-      maskUnprovenWords("User <Email address> signed up", { isAligned: false }),
-    ).toBe("User <Email address> signed up");
+    expect(maskUnprovenWords("User <Email address> signed up")).toBe(
+      "User <Email address> signed up",
+    );
   });
 });
 
