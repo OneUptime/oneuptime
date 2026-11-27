@@ -1,4 +1,5 @@
 import ProbeCapability from "Common/Types/Probe/ProbeCapability";
+import ProbeFetchMoments from "Common/Utils/Probe/ProbeFetchMoments";
 // One seeded stream, so two runs ask alike.
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 
@@ -10,7 +11,9 @@ import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
  * FetchMonitorTest.ts, which this mirrors and must keep mirroring:
  *
  *   - monitors: at every minute (and at start), each of `workers` workers
- *     that is not still fetching waits a random 0..staggerMaxMs, then asks
+ *     that is not still fetching waits for its own moment of the minute -
+ *     the replica's workers spread evenly over the first staggerMaxMs, the
+ *     same moments every minute (ProbeFetchMoments, #11333) - then asks
  *     /monitor/list for as many monitors as it has room for (at most
  *     `fetchLimit`, at least half of it: MonitorCheckSlots), starts a check
  *     of each, and asks again while it is handed a full batch. A short batch
@@ -35,7 +38,10 @@ export interface SimulatedProbeFleetOptions {
   // PROBE_MONITOR_FETCH_LIMIT.
   fetchLimit: number;
   checkMs: { min: number; max: number };
-  // MONITOR_FETCH_STAGGER_MAX_MS (45 s in the probe); 0 starts at once.
+  /*
+   * MONITOR_FETCH_STAGGER_MAX_MS (45 s in the probe): how far into the
+   * minute a replica's workers ask; 0 asks at once.
+   */
   staggerMaxMs: number;
   appOrigins: Array<string>;
   // The probe's API timeout (PROBE_API_REQUEST_TIMEOUT_IN_MS).
@@ -155,6 +161,8 @@ interface Answer {
 
 class SimulatedProbeReplica {
   private slots: CheckSlots;
+  // Each worker's moment of the minute, drawn once as the replica starts.
+  private workerOffsetsMs: Array<number>;
   private workersFetching: Set<number> = new Set<number>();
   private backOffUntil: Map<string, number> = new Map<string, number>();
   private testFetchInFlight: boolean = false;
@@ -171,6 +179,19 @@ class SimulatedProbeReplica {
     this.slots = new CheckSlots(
       fleet.options.workersPerReplica * fleet.options.fetchLimit,
     );
+    /*
+     * Drawn only with a stagger: with none (the benchmark's default) every
+     * worker asks at once, as before, and the seeded stream the checks'
+     * durations come from is the one it always was.
+     */
+    this.workerOffsetsMs =
+      fleet.options.staggerMaxMs > 0
+        ? ProbeFetchMoments.getWorkerOffsetsMs({
+            workers: fleet.options.workersPerReplica,
+            spreadMs: fleet.options.staggerMaxMs,
+            random: fleet.random(),
+          })
+        : [];
   }
 
   public stop(): void {
@@ -207,7 +228,7 @@ class SimulatedProbeReplica {
 
       this.workersFetching.add(worker);
 
-      this.runWorker()
+      this.runWorker(worker)
         .catch((): void => {
           // A worker's failure ends its minute, as the probe's does.
         })
@@ -232,11 +253,17 @@ class SimulatedProbeReplica {
     return true;
   }
 
-  private async runWorker(): Promise<void> {
+  private async runWorker(worker: number): Promise<void> {
     const options: SimulatedProbeFleetOptions = this.fleet.options;
 
-    if (options.staggerMaxMs > 0) {
-      await this.sleep(this.fleet.random() * options.staggerMaxMs);
+    // Its own moment of the minute, as the probe's worker waits for it.
+    const waitMs: number = ProbeFetchMoments.getWaitMs({
+      offsetMs: this.workerOffsetsMs[worker - 1] ?? 0,
+      nowMs: Date.now(),
+    });
+
+    if (waitMs > 0) {
+      await this.sleep(waitMs);
     }
 
     for (;;) {
