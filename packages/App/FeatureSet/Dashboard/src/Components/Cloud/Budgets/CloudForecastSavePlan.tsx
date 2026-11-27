@@ -173,7 +173,12 @@ const CloudForecastSavePlan: FunctionComponent<ComponentProps> = (
   };
   const budgetOptions: Array<DropdownOption> = yearlyBudgets.map(
     (budget: CloudBudget): DropdownOption => {
-      return { label: budget.name || "", value: budget.id!.toString() };
+      return {
+        label: budget.name || "",
+        value: budget.id!.toString(),
+        // A budget's name, as its owner wrote it.
+        isUserContent: true,
+      };
     },
   );
 

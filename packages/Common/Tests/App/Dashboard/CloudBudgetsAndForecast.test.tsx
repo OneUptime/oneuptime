@@ -337,7 +337,8 @@ describe("Cloud > Budgets", () => {
       modelType: CloudBudget,
       id: "cloud-budgets-table",
       isCreateable: true,
-      isEditable: true,
+      // Edited in one place, its own page's Edit (ResourceDetailsOnePlaceGuard).
+      isEditable: false,
       isDeleteable: true,
       isViewable: true,
       rowSwitch: { column: "isEnabled" },

@@ -62,6 +62,8 @@ export interface ResolvedTelemetryEntity {
   entityType: ServiceType;
   // Human label for the entity's type, e.g. "RUM Application".
   typeLabel: string;
+  // The record is archived: a chip naming it says so (#11213).
+  isArchived?: boolean | undefined;
 }
 
 export type TelemetryEntityNameMap = Record<string, ResolvedTelemetryEntity>;
@@ -333,6 +335,102 @@ export const getTelemetryEntityDisplay: (data: {
   };
 };
 
+/*
+ * A CHIP THAT NAMES AN ENTITY GONE, OR ARCHIVED (#11213).
+ *
+ * A chip a link or a saved view brought holds an id, and once the record
+ * behind it is deleted - or out of the reader's reach - nothing names it,
+ * so the chip read as the raw id. What the chip is drawn as, beside its
+ * name: NotFound once every table it was looked up in has answered without
+ * it (TelemetryEntityLookupResult.notFound) and nothing else named it, so
+ * the chip reads "No longer available" (getActiveFilterValueText); never
+ * while a read is in flight, never after one failed. Archived when the
+ * record it names is: "{{name}} (archived)". The chip keeps its id, so it
+ * still filters as saved, and is taken out like any other.
+ */
+export interface TelemetryEntityChipMarks {
+  isNotFound?: true | undefined;
+  isArchived?: true | undefined;
+}
+
+export const getTelemetryEntityChipMarks: (data: {
+  id: string;
+  // A name for it from somewhere else: a loaded service, a facet's server name.
+  knownName?: string | undefined;
+  // Whether that somewhere else says it is archived.
+  isKnownArchived?: boolean | undefined;
+  names?: TelemetryEntityNameMap | undefined;
+  // The ids the lookup settled as naming nothing.
+  notFound?: ReadonlySet<string> | undefined;
+}) => TelemetryEntityChipMarks = (data: {
+  id: string;
+  knownName?: string | undefined;
+  isKnownArchived?: boolean | undefined;
+  names?: TelemetryEntityNameMap | undefined;
+  notFound?: ReadonlySet<string> | undefined;
+}): TelemetryEntityChipMarks => {
+  const id: string = (data.id || "").trim();
+
+  if ((data.knownName || "").trim()) {
+    return data.isKnownArchived ? { isArchived: true } : {};
+  }
+
+  const resolved: ResolvedTelemetryEntity | undefined = data.names?.[id];
+
+  if (resolved) {
+    return resolved.isArchived ? { isArchived: true } : {};
+  }
+
+  return id && data.notFound?.has(id) ? { isNotFound: true } : {};
+};
+
+/*
+ * A chip with its marks set as `marks` says, and none it no longer has:
+ * a chip named since it was marked gone is gone no more.
+ */
+export const withTelemetryEntityChipMarks: <
+  T extends {
+    isNotFound?: boolean | undefined;
+    isArchived?: boolean | undefined;
+  },
+>(
+  chip: T,
+  marks: TelemetryEntityChipMarks,
+) => T = <
+  T extends {
+    isNotFound?: boolean | undefined;
+    isArchived?: boolean | undefined;
+  },
+>(
+  chip: T,
+  marks: TelemetryEntityChipMarks,
+): T => {
+  // Nothing to say, and nothing said before: the chip as it came.
+  if (
+    !marks.isNotFound &&
+    !marks.isArchived &&
+    chip.isNotFound === undefined &&
+    chip.isArchived === undefined
+  ) {
+    return chip;
+  }
+
+  const marked: T = { ...chip };
+
+  delete marked.isNotFound;
+  delete marked.isArchived;
+
+  if (marks.isNotFound) {
+    marked.isNotFound = true;
+  }
+
+  if (marks.isArchived) {
+    marked.isArchived = true;
+  }
+
+  return marked;
+};
+
 const readNameFromModel: (
   model: BaseModel,
   nameFields: Array<string>,
@@ -352,12 +450,53 @@ const readNameFromModel: (
   return undefined;
 };
 
+// Whether a table's records can be archived: then a read says which are.
+const ARCHIVED_COLUMN: string = "isArchived";
+
+const hasArchivedColumn: (modelType: {
+  new (): BaseModel;
+}) => boolean = (modelType: { new (): BaseModel }): boolean => {
+  return Boolean(new modelType().getTableColumnMetadata(ARCHIVED_COLUMN));
+};
+
 const CACHE_TTL_IN_MS: number = 60 * 1000;
 export const MISS_CACHE_TTL_IN_MS: number = 20 * 1000;
 
 interface CacheEntry {
   entity: ResolvedTelemetryEntity;
   expiresAt: number;
+}
+
+/*
+ * An id looked up and not found: until when the miss is kept, and whether
+ * every table it was looked up in answered (settled) - one whose table
+ * failed (a role that may not read hosts) may still be in that table, so
+ * it is never said to be gone.
+ */
+interface MissEntry {
+  expiresAt: number;
+  isSettled: boolean;
+}
+
+// What a lookup found: the names, and the ids that name nothing it may read.
+export interface TelemetryEntityLookupResult {
+  names: TelemetryEntityNameMap;
+  /*
+   * The ids every table they were looked up in answered without - deleted,
+   * or out of the reader's reach (#11213). An id a failed read left
+   * unanswered is in neither list.
+   */
+  notFound: Array<string>;
+}
+
+/*
+ * One table's answer: the entities it named, the ids of every row it held
+ * (one with no name is there all the same), and whether it failed.
+ */
+interface TableAnswer {
+  entities: Array<ResolvedTelemetryEntity>;
+  presentIds: Array<string>;
+  isFailed: boolean;
 }
 
 export default class TelemetryEntityNameResolver {
@@ -375,8 +514,11 @@ export default class TelemetryEntityNameResolver {
    * across every table again each time a live view's id set changes. The
    * TTL is short so a resource created a moment ago still shows up soon.
    */
-  private static missCache: Record<string, number> = {};
-  private static inFlight: Record<string, Promise<TelemetryEntityNameMap>> = {};
+  private static missCache: Record<string, MissEntry> = {};
+  private static inFlight: Record<
+    string,
+    Promise<TelemetryEntityLookupResult>
+  > = {};
 
   public static clearCache(): void {
     TelemetryEntityNameResolver.cache = {};
@@ -403,9 +545,22 @@ export default class TelemetryEntityNameResolver {
     typeHints?: Record<string, ServiceType | undefined> | undefined;
     entityTypes?: Array<ServiceType> | undefined;
   }): Promise<TelemetryEntityNameMap> {
+    return (await TelemetryEntityNameResolver.lookup(data)).names;
+  }
+
+  /*
+   * resolve(), and the ids it settled as naming nothing (#11213): every
+   * table each was looked up in answered, and none named it.
+   */
+  public static async lookup(data: {
+    ids: Array<ObjectID | string | null | undefined>;
+    projectId: ObjectID | string | null | undefined;
+    typeHints?: Record<string, ServiceType | undefined> | undefined;
+    entityTypes?: Array<ServiceType> | undefined;
+  }): Promise<TelemetryEntityLookupResult> {
     const projectId: string = data.projectId ? data.projectId.toString() : "";
     if (!projectId) {
-      return {};
+      return { names: {}, notFound: [] };
     }
 
     const uniqueIds: Array<string> = Array.from(
@@ -428,7 +583,7 @@ export default class TelemetryEntityNameResolver {
     ).sort();
 
     if (uniqueIds.length === 0) {
-      return {};
+      return { names: {}, notFound: [] };
     }
 
     const allowedTypes: Array<ServiceType> = (
@@ -461,13 +616,13 @@ export default class TelemetryEntityNameResolver {
       hints,
     });
 
-    const pending: Promise<TelemetryEntityNameMap> | undefined =
+    const pending: Promise<TelemetryEntityLookupResult> | undefined =
       TelemetryEntityNameResolver.inFlight[requestKey];
     if (pending) {
       return pending;
     }
 
-    const promise: Promise<TelemetryEntityNameMap> =
+    const promise: Promise<TelemetryEntityLookupResult> =
       TelemetryEntityNameResolver.resolveUncached({
         projectId,
         ids: uniqueIds,
@@ -494,7 +649,7 @@ export default class TelemetryEntityNameResolver {
     allowedTypes: Array<ServiceType>;
     allowUnknown: boolean;
     hints: Record<string, ServiceType>;
-  }): Promise<TelemetryEntityNameMap> {
+  }): Promise<TelemetryEntityLookupResult> {
     const result: TelemetryEntityNameMap = {};
     const now: number = Date.now();
     let unresolved: Array<string> = [];
@@ -503,6 +658,10 @@ export default class TelemetryEntityNameResolver {
     const missKeyFor: (id: string) => string = (id: string): string => {
       return `${data.projectId}:${id}:${data.allowedTypes.join("|")}`;
     };
+    // Ids a recent lookup settled as naming nothing: gone, still.
+    const knownMissing: Array<string> = [];
+    // Ids a table that failed to answer was asked about.
+    const unanswered: Set<string> = new Set<string>();
 
     for (const id of data.ids) {
       if (data.allowUnknown && id === data.projectId) {
@@ -531,21 +690,71 @@ export default class TelemetryEntityNameResolver {
         }
       }
 
-      const missExpiresAt: number | undefined =
+      const miss: MissEntry | undefined =
         TelemetryEntityNameResolver.missCache[missKeyFor(id)];
-      if (missExpiresAt !== undefined && missExpiresAt > now) {
+      if (miss !== undefined && miss.expiresAt > now) {
+        if (miss.isSettled) {
+          knownMissing.push(id);
+        }
         continue;
       }
 
       unresolved.push(id);
     }
 
-    const rememberMisses: () => void = (): void => {
-      const expiresAt: number = Date.now() + MISS_CACHE_TTL_IN_MS;
-      for (const id of unresolved) {
-        TelemetryEntityNameResolver.missCache[missKeyFor(id)] = expiresAt;
+    // Ids a table answered with a row that has no name: there, unnamed.
+    const present: Set<string> = new Set<string>();
+
+    const queryType: (
+      entityType: ServiceType,
+      ids: Array<string>,
+    ) => Promise<Array<ResolvedTelemetryEntity>> = async (
+      entityType: ServiceType,
+      ids: Array<string>,
+    ): Promise<Array<ResolvedTelemetryEntity>> => {
+      const answer: TableAnswer = await TelemetryEntityNameResolver.queryType({
+        entityType,
+        ids,
+        projectId: data.projectId,
+      });
+
+      if (answer.isFailed) {
+        for (const id of ids) {
+          unanswered.add(id);
+        }
       }
+
+      for (const id of answer.presentIds) {
+        present.add(id);
+      }
+
+      return answer.entities;
     };
+
+    // What the lookup settled: every id asked that no table named or failed on.
+    const settle: () => TelemetryEntityLookupResult =
+      (): TelemetryEntityLookupResult => {
+        const expiresAt: number = Date.now() + MISS_CACHE_TTL_IN_MS;
+        const notFound: Array<string> = [...knownMissing];
+        // A lookup that asked no table settles nothing.
+        const asksATable: boolean = data.allowedTypes.length > 0;
+
+        for (const id of unresolved) {
+          const isSettled: boolean =
+            asksATable && !unanswered.has(id) && !present.has(id);
+
+          TelemetryEntityNameResolver.missCache[missKeyFor(id)] = {
+            expiresAt,
+            isSettled,
+          };
+
+          if (isSettled) {
+            notFound.push(id);
+          }
+        }
+
+        return { names: result, notFound: notFound.sort() };
+      };
 
     const absorb: (entities: Array<ResolvedTelemetryEntity>) => void = (
       entities: Array<ResolvedTelemetryEntity>,
@@ -576,11 +785,7 @@ export default class TelemetryEntityNameResolver {
       const hinted: Array<Array<ResolvedTelemetryEntity>> = await Promise.all(
         Array.from(hintedByType.entries()).map(
           ([entityType, ids]: [ServiceType, Array<string>]) => {
-            return TelemetryEntityNameResolver.queryType({
-              entityType,
-              ids,
-              projectId: data.projectId,
-            });
+            return queryType(entityType, ids);
           },
         ),
       );
@@ -588,12 +793,11 @@ export default class TelemetryEntityNameResolver {
     }
 
     if (unresolved.length === 0) {
-      return result;
+      return settle();
     }
 
     if (data.allowedTypes.length === 0) {
-      rememberMisses();
-      return result;
+      return settle();
     }
 
     /*
@@ -611,54 +815,49 @@ export default class TelemetryEntityNameResolver {
     // 2. Service first — the common case resolves in a single request.
     const [firstType, ...otherTypes] = data.allowedTypes;
     if (firstType) {
-      absorb(
-        await TelemetryEntityNameResolver.queryType({
-          entityType: firstType,
-          ids: idsNotHintedTo(firstType),
-          projectId: data.projectId,
-        }),
-      );
+      absorb(await queryType(firstType, idsNotHintedTo(firstType)));
     }
 
     if (unresolved.length === 0) {
-      return result;
+      return settle();
     }
 
     if (otherTypes.length === 0) {
-      rememberMisses();
-      return result;
+      return settle();
     }
 
     // 3. Everything else in parallel for what is still unresolved.
     const rest: Array<Array<ResolvedTelemetryEntity>> = await Promise.all(
       otherTypes.map((entityType: ServiceType) => {
-        return TelemetryEntityNameResolver.queryType({
-          entityType,
-          ids: idsNotHintedTo(entityType),
-          projectId: data.projectId,
-        });
+        return queryType(entityType, idsNotHintedTo(entityType));
       }),
     );
     absorb(rest.flat());
-    rememberMisses();
 
-    return result;
+    return settle();
   }
 
   private static async queryType(data: {
     entityType: ServiceType;
     ids: Array<string>;
     projectId: string;
-  }): Promise<Array<ResolvedTelemetryEntity>> {
+  }): Promise<TableAnswer> {
     const config: TelemetryEntityTypeConfig =
       TELEMETRY_ENTITY_TYPES[data.entityType];
     if (!config.modelType || data.ids.length === 0) {
-      return [];
+      return { entities: [], presentIds: [], isFailed: false };
     }
 
     const select: Record<string, true> = { _id: true };
     for (const field of config.nameFields) {
       select[field] = true;
+    }
+
+    // An archived record's chip says so (#11213).
+    const readsArchived: boolean = hasArchivedColumn(config.modelType);
+
+    if (readsArchived) {
+      select[ARCHIVED_COLUMN] = true;
     }
 
     try {
@@ -676,11 +875,13 @@ export default class TelemetryEntityNameResolver {
 
       const requested: Set<string> = new Set(data.ids);
       const entities: Array<ResolvedTelemetryEntity> = [];
+      const presentIds: Array<string> = [];
       for (const model of list.data || []) {
         const id: string | undefined = model.id?.toString();
         if (!id || !requested.has(id)) {
           continue;
         }
+        presentIds.push(id);
         const name: string | undefined = readNameFromModel(
           model,
           config.nameFields,
@@ -693,12 +894,17 @@ export default class TelemetryEntityNameResolver {
           name,
           entityType: data.entityType,
           typeLabel: config.label,
+          ...(readsArchived &&
+          (model as unknown as Record<string, unknown>)[ARCHIVED_COLUMN] ===
+            true
+            ? { isArchived: true }
+            : {}),
         });
       }
-      return entities;
+      return { entities, presentIds, isFailed: false };
     } catch {
       // Non-critical: e.g. no read permission on this table.
-      return [];
+      return { entities: [], presentIds: [], isFailed: true };
     }
   }
 }

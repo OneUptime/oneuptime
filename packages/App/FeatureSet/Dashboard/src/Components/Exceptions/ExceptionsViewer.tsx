@@ -224,7 +224,10 @@ import { EveryMatch } from "Common/UI/Components/BulkUpdate/BulkSelectAll";
 import { writeTelemetryViewerUrlState } from "../../Utils/TelemetryViewerUrlState";
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
-import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  TelemetryEntityLookup,
+  useTelemetryEntityLookup,
+} from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import TelemetryFirstStepsEmptyState from "../Telemetry/TelemetryFirstStepsEmptyState";
 import { useReportTelemetryDataShown } from "../Telemetry/TelemetryFirstRunHost";
 import useProjectHasExceptions from "./useProjectHasExceptions";
@@ -2724,10 +2727,16 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     });
   }, [scopeEntityId, props.scopeEntityType, entityChipRefs]);
 
-  const entityNames: TelemetryEntityNameMap = useTelemetryEntityNames(
+  /*
+   * The names, and the ids every read answered nothing for: a chip a link
+   * or a saved view brought naming a deleted service reads "No longer
+   * available", never its id (#11213).
+   */
+  const entityLookup: TelemetryEntityLookup = useTelemetryEntityLookup(
     entityChipIds,
     { typeHints: entityTypeHints },
   );
+  const entityNames: TelemetryEntityNameMap = entityLookup.names;
 
   /*
    * Read-only chips for prop-level scoping (e.g. service view page), merged
@@ -2765,6 +2774,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
         facetDisplayNames: facetDisplayNames[chip.facetKey],
         scopeEntityId,
         scopeEntityType: props.scopeEntityType,
+        notFound: entityLookup.notFound,
       });
     };
 
@@ -2824,6 +2834,7 @@ const ExceptionsViewer: FunctionComponent<ExceptionsViewerProps> = (
     activeFilters,
     facetConfigs,
     entityNames,
+    entityLookup.notFound,
     facetDisplayNames,
   ]);
 

@@ -9,6 +9,7 @@ import {
   SET_DATA_STORE_OWNERS_TOOL_NAME,
 } from "./AIDataSecurityActions";
 import { AI_DATA_SECURITY_ACTION_ASKS_BECAUSE } from "./AIDataSecurityActionWords";
+import { doesLabelSayProduction } from "../Cloud/CloudResourceEnvironment";
 import { toStoredBoolean } from "../Database/BooleanColumnValue";
 import DataSecurityIssueStatus from "../DataSecurity/DataSecurityIssueStatus";
 import { isExcludedAlready } from "../DataSecurity/DataSecurityScanTuning";
@@ -59,6 +60,13 @@ import {
  * field of the same records keeps working: Assign and Reopen, a finding
  * made sensitive again, a rule renamed, a data type turned back on, a step
  * that waits for approval.
+ *
+ * Not every change here is Data Security's. A label whose name says
+ * production holds every cloud resource it is on back from what nobody
+ * approves - an off-hours schedule's stop, an AI rule's change made
+ * without asking (#11347) - and renaming it to a name that does not, or
+ * deleting it, lets every one of them go at once. Text an attacker writes
+ * could talk an agent into that too, so it is held here like the rest.
  *
  * React- and server-free.
  */
@@ -114,6 +122,8 @@ export enum AlwaysAskPage {
   DataStore = "DataStore",
   // A security playbook's page, by the playbook; the playbooks for a new one.
   SecurityPlaybook = "SecurityPlaybook",
+  // Project Settings > Labels, where a label is renamed or deleted.
+  Labels = "Labels",
 }
 
 // One record's writes that make a change.
@@ -124,7 +134,8 @@ export interface AlwaysAskRecordWrite {
   /*
    * The columns whose values make it, when only some do: a write that
    * names none of them is the person's ordinary edit. Left out, every such
-   * write makes the change.
+   * write makes the change. A delete names no column - it takes them all -
+   * so it is judged by what the record holds (comparesWith) instead.
    */
   columns?: ReadonlyArray<string> | undefined;
   /*
@@ -341,6 +352,31 @@ export function isStepGuardedByApproval(
     RESPONSE_ON_A_STORE_STEPS.includes(step.action)
   );
 }
+
+/*
+ * Whether a label's write lets go of the cloud resources its name holds
+ * back (#11347): a rename of a label whose name says production
+ * ("Production", "prod", "env: live") to one that does not, or its delete.
+ * A rename that still says production ("Production" to "prod") holds them
+ * as before, and one to a production name holds more; a label never says
+ * non-production to what nobody approves, so a rename to "dev" lets
+ * nothing go. A label that could not be read is taken to say production.
+ */
+function letsGoOfProduction(
+  written: JSONObject,
+  stored: JSONObject | null,
+): boolean {
+  if (
+    written["name"] !== undefined &&
+    doesLabelSayProduction(written["name"])
+  ) {
+    return false;
+  }
+
+  return stored === null || doesLabelSayProduction(stored["name"]);
+}
+
+export const LABEL_TABLE_NAME: string = "Label";
 
 // When and whether a playbook runs: what puts its steps to work on more cases.
 export const PLAYBOOK_REACH_COLUMNS: ReadonlyArray<string> = [
@@ -731,6 +767,44 @@ export const ALWAYS_ASK_CHANGES: ReadonlyArray<AlwaysAskChange> = [
     asksBecause:
       "Asks first in every mode: a containment step, or a response on a data store, waits for a person's approval in the playbook's run unless a person turns that off in OneUptime.",
   },
+  {
+    /*
+     * A label whose name says production holds every cloud resource it is
+     * on back from an off-hours schedule's stop and an AI rule's change
+     * made without asking, whatever the resource's tags and account say
+     * (#11347). Renamed to a name that does not say production, or
+     * deleted, it lets every one of them go at once, with no resource in
+     * sight: a person does that on Project Settings > Labels. Ask AI has
+     * no action that renames or deletes a label.
+     */
+    name: "A label that says production renamed or deleted",
+    madeByEveryCall: false,
+    card: "the person's own edit, on Project Settings > Labels",
+    product: "Project Settings",
+    records: [
+      {
+        tableName: LABEL_TABLE_NAME,
+        writes: [AlwaysAskWrite.Update],
+        columns: ["name"],
+        comparesWith: ["name"],
+        makesIt: letsGoOfProduction,
+        written:
+          'an update of name, of a label whose name says production (such as "Production", "prod" or "env: live"), to a name that does not',
+        page: AlwaysAskPage.Labels,
+      },
+      {
+        tableName: LABEL_TABLE_NAME,
+        writes: [AlwaysAskWrite.Delete],
+        columns: ["name"],
+        comparesWith: ["name"],
+        makesIt: letsGoOfProduction,
+        written: "a delete of a label whose name says production",
+        page: AlwaysAskPage.Labels,
+      },
+    ],
+    asksBecause:
+      "Asks first in every mode: a label whose name says production holds the cloud resources it is on back from off-hours schedules and from AI rules that act without asking.",
+  },
 ];
 
 // The Ask AI actions that ask in every mode for at least one change.
@@ -757,12 +831,13 @@ export interface AlwaysAskWriteFound {
  * that ask wherever they are made come first, so a change that asks only
  * where something holds never stands in front of one that always asks.
  * `data` is the write's columns as its route reads them
- * (Server/Utils/Database/CrudRouteWrites); a delete has none. `stored` is
- * the record as it is now, for a change that compares the write with it
- * (comparesWith): a create holds nothing, and an update whose record was
- * not read is judged as if it could make the change. A change that asks
- * only where something holds (onlyWhen) is found here too: the caller
- * reads whether it holds.
+ * (Server/Utils/Database/CrudRouteWrites); a delete has none, so a record
+ * write that names its columns is judged for a delete by what the record
+ * holds. `stored` is the record as it is now, for a change that compares
+ * the write with it (comparesWith): a create holds nothing, and an update
+ * or a delete whose record was not read is judged as if it could make the
+ * change. A change that asks only where something holds (onlyWhen) is
+ * found here too: the caller reads whether it holds.
  */
 export function findAlwaysAskChanges(data: {
   tableName: string;
@@ -784,8 +859,10 @@ export function findAlwaysAskChanges(data: {
         continue;
       }
 
+      // A delete takes every column: what makes it is what the record holds.
       if (
         record.columns &&
+        data.write !== AlwaysAskWrite.Delete &&
         !record.columns.some((column: string): boolean => {
           return columns[column] !== undefined;
         })
@@ -907,11 +984,30 @@ export function getAsksInEveryModeRefusal(data: {
   pageUrl: string | null;
   // Whose button the person presses where no page is known: Data Security's, unless said.
   product?: string | undefined;
+  /*
+   * Whether an action of Ask AI's makes the change behind its card: left
+   * out, one does. A change none makes - a playbook's step run with
+   * nobody's approval, a label renamed - is made with the page's own
+   * controls, and the refusal sends the person to those alone.
+   */
+  byAskAi?: boolean | undefined;
 }): string {
   const reason: string = data.reason ? ` ${data.reason}` : "";
-  const where: string = data.pageUrl
-    ? ` Do it in OneUptime, on ${data.pageUrl}, with the page's own button or with Ask AI there, which shows the change on a card for the person to approve.`
-    : ` Do it in OneUptime, with ${data.product || DATA_SECURITY_PRODUCT}'s own button or with Ask AI, which shows the change on a card for the person to approve.`;
+  const product: string = data.product || DATA_SECURITY_PRODUCT;
+  // "Data Security's", and "Security Events'", "Project Settings'".
+  const owned: string = product.endsWith("s") ? `${product}'` : `${product}'s`;
+  const byAskAi: boolean = data.byAskAi !== false;
+  let where: string;
+
+  if (data.pageUrl) {
+    where = byAskAi
+      ? ` Do it in OneUptime, on ${data.pageUrl}, with the page's own button or with Ask AI there, which shows the change on a card for the person to approve.`
+      : ` Do it in OneUptime, on ${data.pageUrl}, with the page's own controls: the person makes it there.`;
+  } else {
+    where = byAskAi
+      ? ` Do it in OneUptime, with ${owned} own button or with Ask AI, which shows the change on a card for the person to approve.`
+      : ` Do it in OneUptime, with ${owned} own controls: the person makes it there.`;
+  }
 
   return `${ASKS_IN_EVERY_MODE_REFUSAL_PREFIX}${reason} An MCP client shows no card OneUptime can wait on, so ${data.action} is not run here.${where}`;
 }

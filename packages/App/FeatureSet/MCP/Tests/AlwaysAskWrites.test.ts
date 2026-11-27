@@ -58,9 +58,12 @@ import {
   readFailure,
   signedInMember,
 } from "./AlwaysAskHarness";
+import * as fs from "fs";
+import * as path from "path";
 import {
   FINDING_ID,
   ISSUE_ID,
+  LABEL_ID,
   NOTE_STEP,
   ORDINARY_WRITES,
   OrdinaryWrite,
@@ -68,6 +71,7 @@ import {
   RULE_ID,
   SETTING_ID,
   STORE_ID,
+  holdsLabel,
   pagesForCriticalIssues,
   pagesNobody,
   suspendStep,
@@ -104,6 +108,7 @@ import {
   getDataSecurityActionApiKeyRefusal,
 } from "Common/Types/AI/AIDataSecurityActions";
 import { AI_DATA_SECURITY_ACTION_ASKS_BECAUSE } from "Common/Types/AI/AIDataSecurityActionWords";
+import { SETTINGS_PAGE_PATHS } from "Common/Server/Utils/DataSecurity/DataSecurityPages";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
@@ -1203,5 +1208,190 @@ describe("oneuptime_describe_resource says what a resource's tools refuse", () =
   it("says nothing for a resource none of whose writes ask", () => {
     expect(usageOf("Incident", "Incident")["asksAPerson"]).toBeUndefined();
     expect(describeWritesThatAskAPerson("Monitor")).toBeNull();
+  });
+
+  it("a label's: a production label renamed to a name that does not say production, or deleted", () => {
+    const asks: string = String(usageOf("Label", "Label")["asksAPerson"]);
+    const change: string = "A label that says production renamed or deleted";
+
+    expect(asks).toContain(`${change}: an update of name`);
+    expect(asks).toContain(
+      `${change}: a delete of a label whose name says production`,
+    );
+    expect(asks).toContain("do not retry one or make it another way");
+  });
+});
+
+/*
+ * #11347: a label whose name says production holds every cloud resource
+ * it is on back from an off-hours schedule's stop and an AI rule's change
+ * made without asking. update_label renaming it to a name that does not
+ * say production, and delete_label deleting it, let every one of them go:
+ * refused, with Project Settings > Labels, where the person makes it.
+ */
+describe("a label that says production, renamed or deleted, is the person's to do", () => {
+  const UPDATE_LABEL: McpToolInfo = toolOf("Label", OneUptimeOperation.Update);
+  const DELETE_LABEL: McpToolInfo = toolOf("Label", OneUptimeOperation.Delete);
+  const LABELS_PAGE: string = `${DASHBOARD}/${PROJECT_ID}/settings/labels`;
+  const CHANGE: string = "A label that says production renamed or deleted";
+
+  function readsOfLabel(): Array<string> {
+    return api
+      .readsSent()
+      .map((request: SentRequest): string => {
+        return request.path;
+      })
+      .filter((path: string): boolean => {
+        return path.startsWith("/api/label/");
+      });
+  }
+
+  it("update_label renaming Production to dev is refused, read as the caller first, and names the Labels page", async () => {
+    holdsLabel("Production")(api, apiPathOf);
+
+    const answer: ToolAnswer = await call(UPDATE_LABEL, {
+      id: LABEL_ID,
+      name: "dev",
+    });
+    const { error, suggestion }: { error: string; suggestion: string } =
+      readFailure(answer);
+
+    expect(answer.isError).toBe(true);
+    expect(error.startsWith(ASKS_IN_EVERY_MODE_REFUSAL_PREFIX)).toBe(true);
+    expect(error).toContain(reasonOf(CHANGE));
+    expect(error).toContain(LABELS_PAGE);
+    expect(error).toContain("so update_label is not run here");
+    // No action of Ask AI's renames a label: the page's own controls do.
+    expect(error).not.toContain("Ask AI");
+    expect(suggestion).toBe(ASKS_IN_EVERY_MODE_SUGGESTION);
+    expect(readsOfLabel()).toEqual([`/api/label/${LABEL_ID}/get-item`]);
+    expect(writesTo("Label")).toEqual([]);
+  });
+
+  it("delete_label of a production label is refused, judged by the name it holds", async () => {
+    holdsLabel("env: prod")(api, apiPathOf);
+
+    const answer: ToolAnswer = await call(DELETE_LABEL, { id: LABEL_ID });
+
+    expect(answer.isError).toBe(true);
+    expect(readFailure(answer).error).toContain(LABELS_PAGE);
+    expect(readFailure(answer).error).toContain(
+      "so delete_label is not run here",
+    );
+    expect(writesTo("Label")).toEqual([]);
+  });
+
+  it("is refused for a project API key as for a signed-in member", async () => {
+    holdsLabel("Production")(api, apiPathOf);
+
+    const renamed: ToolAnswer = await call(
+      UPDATE_LABEL,
+      { id: LABEL_ID, name: "Customer facing" },
+      projectApiKey(),
+    );
+
+    await connected.close();
+
+    const deleted: ToolAnswer = await call(
+      DELETE_LABEL,
+      { id: LABEL_ID },
+      projectApiKey(),
+    );
+
+    for (const answer of [renamed, deleted]) {
+      expect(answer.isError).toBe(true);
+      expect(readFailure(answer).error).toContain(LABELS_PAGE);
+    }
+
+    expect(api.readsSent()[0]?.headers["APIKey"]).toBeDefined();
+    expect(writesTo("Label")).toEqual([]);
+  });
+
+  it("a label that cannot be read is refused a rename away from production and a delete: never let go unseen", async () => {
+    api.refusedReads.push("/api/label/");
+
+    const renamed: ToolAnswer = await call(UPDATE_LABEL, {
+      id: LABEL_ID,
+      name: "dev",
+    });
+
+    await connected.close();
+
+    const deleted: ToolAnswer = await call(DELETE_LABEL, { id: LABEL_ID });
+
+    expect(renamed.isError).toBe(true);
+    expect(deleted.isError).toBe(true);
+    expect(writesTo("Label")).toEqual([]);
+  });
+
+  it("a rename to a name that says production is sent at once, with nothing read: it holds as much or more", async () => {
+    holdsLabel("Production")(api, apiPathOf);
+
+    const answer: ToolAnswer = await call(UPDATE_LABEL, {
+      id: LABEL_ID,
+      name: "prod",
+    });
+
+    expect(answer.isError).toBeFalsy();
+    expect(readsOfLabel()).toEqual([]);
+    expect(writesTo("Label")).toHaveLength(1);
+  });
+
+  it("any other label's rename or delete is sent as it always was, once its name is read", async () => {
+    holdsLabel("Staging")(api, apiPathOf);
+
+    const renamed: ToolAnswer = await call(UPDATE_LABEL, {
+      id: LABEL_ID,
+      name: "dev",
+    });
+
+    await connected.close();
+
+    const deleted: ToolAnswer = await call(DELETE_LABEL, { id: LABEL_ID });
+
+    expect(renamed.isError).toBeFalsy();
+    expect(deleted.isError).toBeFalsy();
+    expect(
+      writesTo("Label").map((write: RecordWrite): string => {
+        return write.write;
+      }),
+    ).toEqual([AlwaysAskWrite.Update, AlwaysAskWrite.Delete]);
+  });
+
+  it("a write of a production label's other fields is sent with nothing read", async () => {
+    holdsLabel("Production")(api, apiPathOf);
+
+    const answer: ToolAnswer = await call(UPDATE_LABEL, {
+      id: LABEL_ID,
+      description: "Customer facing.",
+      isArchived: true,
+    });
+
+    expect(answer.isError).toBeFalsy();
+    expect(readsOfLabel()).toEqual([]);
+    expect(writesTo("Label")).toHaveLength(1);
+  });
+
+  it("the Labels page it names is the Dashboard's own", () => {
+    const routeMap: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        "..",
+        "..",
+        "Dashboard",
+        "src",
+        "Utils",
+        "RouteMap.ts",
+      ),
+      "utf8",
+    );
+
+    expect(SETTINGS_PAGE_PATHS.labels).toBe(
+      "/dashboard/:projectId/settings/labels",
+    );
+    expect(routeMap).toContain('[PageMap.SETTINGS_LABELS]: "labels"');
+    expect(routeMap).toMatch(
+      /\[PageMap\.SETTINGS_LABELS\]: new Route\(\s*`\/dashboard\/\$\{RouteParams\.ProjectID\}\/settings\/\$\{\s*SettingsRoutePath\[PageMap\.SETTINGS_LABELS\]\s*\}`/,
+    );
   });
 });

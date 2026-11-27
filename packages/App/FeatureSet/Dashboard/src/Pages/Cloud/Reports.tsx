@@ -110,6 +110,18 @@ export const CHANNELS_COUNT: PluralTemplate = {
 };
 export const GROUP_TEAMS: string = translationKey("each group's team");
 export const NOBODY: string = translationKey("Nobody yet");
+/*
+ * What a report covers, with the account, cost view or cost group it
+ * names: one sentence each, so a language words the scope around the name
+ * as it needs ("A cost view: By team").
+ */
+export const SCOPE_WITH_NAME: Readonly<
+  Partial<Record<CloudCostReportScope, string>>
+> = {
+  [CloudCostReportScope.Account]: translationKey("One account: {{name}}"),
+  [CloudCostReportScope.CostGroup]: translationKey("A cost group: {{name}}"),
+  [CloudCostReportScope.CostView]: translationKey("A cost view: {{name}}"),
+};
 export const SEND_TO_TITLE: string = translationKey("Send To");
 export const SEND_TO_DESCRIPTION: string = translationKey(
   "People and teams of this project. Each gets the figures they may read.",
@@ -240,7 +252,7 @@ export function getRecipientsText(
     : translator.translateText(NOBODY) || NOBODY;
 }
 
-// What a report covers, in a line: "Cost view: By team · Last week".
+// What a report covers, in a line: "A cost view: By team · Last week".
 export function getCoversText(
   report: CloudCostReport,
   translator: Translator,
@@ -255,16 +267,20 @@ export function getCoversText(
         : scope === CloudCostReportScope.CostGroup
           ? report.cloudCostGroup?.name || ""
           : "";
-  const scopeLabel: string =
-    translator.translateText(CLOUD_COST_REPORT_SCOPE_LABELS[scope]) ||
-    CLOUD_COST_REPORT_SCOPE_LABELS[scope];
+  const withName: string | undefined = name
+    ? SCOPE_WITH_NAME[scope]
+    : undefined;
+  const scopeLabel: string = withName
+    ? translator.translateTemplate(withName, { name })
+    : translator.translateText(CLOUD_COST_REPORT_SCOPE_LABELS[scope]) ||
+      CLOUD_COST_REPORT_SCOPE_LABELS[scope];
   const periodLabel: string = report.period
     ? translator.translateText(
         CLOUD_COST_REPORT_PERIOD_LABELS[report.period],
       ) || CLOUD_COST_REPORT_PERIOD_LABELS[report.period]
     : "";
 
-  return [name ? `${scopeLabel}: ${name}` : scopeLabel, periodLabel]
+  return [scopeLabel, periodLabel]
     .filter((part: string): boolean => {
       return Boolean(part);
     })

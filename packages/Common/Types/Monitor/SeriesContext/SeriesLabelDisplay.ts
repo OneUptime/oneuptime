@@ -273,6 +273,14 @@ const FriendlyLabelNames: Record<string, string> = {
   local_pod: "Pod",
   summary: "Alert Summary",
   appliance_id: "Appliance",
+  /*
+   * Dell PowerScale names a node by `node` (above), a drive bay by
+   * `drive` ("ps-prod-2 bay 5"), a quota by `quota` (its path, and whose
+   * quota it is) and a protocol's figures by `protocol` (nfs3, smb2, ...).
+   */
+  drive: "Drive",
+  quota: "Quota",
+  protocol: "Protocol",
 
   // --- IoT ---
   "iot.fleet.name": "Fleet",
@@ -438,6 +446,9 @@ const LabelPriority: Record<string, number> = {
   local_pod: 25,
   summary: 25,
   appliance_id: 25,
+  drive: 25,
+  quota: 25,
+  protocol: 25,
   host: 30,
   "device.id": 25,
   "device.name": 25,

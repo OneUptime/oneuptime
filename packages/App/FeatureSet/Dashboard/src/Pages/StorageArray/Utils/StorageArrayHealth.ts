@@ -8,6 +8,7 @@ import {
   StorageArrayKindPage,
   StorageArrayLatencyReading,
   StorageArrayPartLabel,
+  StorageArrayPlatform,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import {
@@ -156,6 +157,8 @@ const HEALTHY_STATUSES: ReadonlyArray<string> = [
   "enabled",
   "online",
   "replicating",
+  // A network port that is up (a PowerScale node's).
+  "up",
 ];
 
 /*
@@ -247,6 +250,9 @@ const STATUS_REASONS: Record<string, string> = {
   onlining: translationKey("Reports coming online"),
   offlining: translationKey("Reports going offline"),
 };
+
+// Why a part needs attention, for a status only its platform writes.
+const REASON_STATUS_AS_WRITTEN: string = translationKey("Reports {{status}}");
 
 // The part kinds the rules read, as the inventory writes them.
 export type StorageArrayPartKind =
@@ -719,7 +725,16 @@ function assessStatusPart(
   return {
     severity: severity,
     status: { label: word.label, values: word.values, tone: tone },
-    reasons: severity && reason ? [{ text: reason }] : [],
+    reasons: !severity
+      ? []
+      : reason
+        ? [{ text: reason }]
+        : [
+            {
+              text: REASON_STATUS_AS_WRITTEN,
+              values: { status: formatStorageArrayStatus(normalized) },
+            },
+          ],
   };
 }
 
@@ -1049,6 +1064,27 @@ export function isStorageArrayPartKind(
   return Boolean(kind && kind in KIND_ICONS);
 }
 
+/*
+ * A kind a platform has of its own whose status decides its hardware
+ * health (its hardwareKinds: a PowerScale node), with the platform's words
+ * for it; null for any other kind.
+ */
+export function getPlatformHardwareKind(
+  kind: string | null | undefined,
+): StorageArrayKindDefinition | null {
+  if (!kind || isStorageArrayPartKind(kind)) {
+    return null;
+  }
+  const isHardware: boolean = StorageArrayPlatformRegistry.getPlatforms().some(
+    (platform: StorageArrayPlatform): boolean => {
+      return (platform.hardwareKinds || []).includes(kind);
+    },
+  );
+  return isHardware
+    ? StorageArrayPlatformRegistry.getKindDefinition(kind)
+    : null;
+}
+
 export function getStorageArrayPartName(row: StorageArrayPartRow): string {
   return row.name || row.externalId || "";
 }
@@ -1238,6 +1274,16 @@ export function getStorageArrayHardwareItems(
       return STORAGE_ARRAY_KIND_LABELS[kind];
     }),
   );
+  // And each platform's own hardware kinds (a PowerScale's nodes).
+  for (const platform of StorageArrayPlatformRegistry.getPlatforms()) {
+    for (const kind of platform.hardwareKinds || []) {
+      const definition: StorageArrayKindDefinition | null =
+        getPlatformHardwareKind(kind);
+      if (definition) {
+        kinds.add(definition.singularLabel);
+      }
+    }
+  }
   return items.filter((item: ResourceAttentionItem): boolean => {
     return kinds.has(item.kind);
   });

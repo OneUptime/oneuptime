@@ -69,7 +69,7 @@ import useResourceOwners, {
 } from "../../Components/ResourceOwners/useResourceOwners";
 import { FilterOperator } from "../../Components/ResourceOwners/FilterChipDropdown";
 import {
-  computeTeamIdsForMembers,
+  buildTeamMemberFilter,
   loadProjectUserOptions,
   resolveProjectUserOptions,
 } from "../../Components/ResourceOwners/ProjectUserFacetOptions";
@@ -249,12 +249,11 @@ const Teams: FunctionComponent<PageComponentProps> = (
       supportedOperators: ["is", "is_not"],
       loadOptions: loadProjectUserOptions,
       resolveOptions: resolveProjectUserOptions,
-      computeMatchingResourceIds: (
-        projectId: ObjectID,
-        values: Array<string>,
-      ): Promise<Array<string>> => {
-        return computeTeamIdsForMembers(projectId, values);
-      },
+      /*
+       * The teams one of them is in, or none of them is, through their
+       * TeamMember rows: answered in the list's own query (#11211).
+       */
+      toLinkedTo: buildTeamMemberFilter,
     },
     {
       key: "createdByUser",

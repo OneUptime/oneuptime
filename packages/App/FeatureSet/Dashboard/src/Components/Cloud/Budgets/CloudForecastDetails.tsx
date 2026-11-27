@@ -115,7 +115,7 @@ export const CloudForecastMonths: FunctionComponent<MonthsProps> = (
 
   return (
     <div data-testid="cloud-forecast-months">
-      <div className="hidden grid-cols-3 gap-4 border-b border-gray-200 pb-2 text-xs font-medium uppercase text-gray-500 sm:grid">
+      <div className="max-sm:hidden grid-cols-3 gap-4 border-b border-gray-200 pb-2 text-xs font-medium uppercase text-gray-500 sm:grid">
         <span>{translator.translateText(MONTH_COLUMN)}</span>
         <span>{translator.translateText(FORECAST_ON_COURSE_ROW_TITLE)}</span>
         <span>{translator.translateText(LIKELY_RANGE)}</span>

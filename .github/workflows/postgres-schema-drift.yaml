@@ -4028,6 +4028,30 @@ jobs:
           Tests/Server/Services/OpenStackProbeCollectionSqlPostgres.test.ts
           Tests/Server/Services/OpenStackCheckSqlPostgres.test.ts --forceExit
 
+      # Clones the migrated Project, Probe, StorageArrayConnection and
+      # StorageArrayConnectionTest tables into an isolated schema and runs
+      # storage array collection's hand-written SQL (issue #11004, Dell
+      # PowerMax through Unisphere): a probe claims only its own due
+      # connections of live projects (one statement, FOR NO KEY UPDATE SKIP
+      # LOCKED, the tenancy backstop, the subscription rule), moved on by
+      # their interval rule, what nothing may read set aside; two claims
+      # never share one, a row another writer holds is skipped, and - while
+      # a claim's locks are held - a row that names a connection is still
+      # written; a report writes only the current settings' status; and a
+      # connection test is claimed once - its password wiped as it is handed
+      # out - answered only by its probe, and expired with the reason.
+      - name: Test storage array probe collection's SQL on migrated Postgres
+        if: matrix.shard == 4
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_STORAGE_ARRAY_PROBE_COLLECTION_TESTS: "true"
+          STORAGE_ARRAY_PROBE_COLLECTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          STORAGE_ARRAY_PROBE_COLLECTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          STORAGE_ARRAY_PROBE_COLLECTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/StorageArrayProbeCollectionSqlPostgres.test.ts --forceExit
+
       # Clones the migrated Project, Probe, DataSecuritySetting and DataStore
       # tables into an isolated schema and runs the probes' data store claims
       # (issue #7390): Data Security's content scans and Data Observability's
@@ -5123,6 +5147,27 @@ jobs:
           Tests/Workers/DataMigrations/EndOnCallTimeLogsOfDeletedPoliciesPostgres.test.ts
           --forceExit
 
+      # #11037: Sensitive file served, added on upgrade to each project that
+      # runs every other recommended rule and has none of it - on, opening
+      # cases, created by nobody and marked as added by OneUptime, which the
+      # Overview's own read then names - and to no project that turned a
+      # recommended rule off, deleted one, or has the rule already (off,
+      # renamed, or by its name alone). More projects than a page, a second
+      # run and two at once. Clones the migrated DetectionRule table into an
+      # isolated schema. An App suite, so in shard 3, which installs App.
+      - name: Test adding Sensitive file served to the projects that run every other recommended rule on migrated Postgres
+        if: matrix.shard == 3
+        working-directory: packages/App
+        env:
+          RUN_POSTGRES_SENSITIVE_FILE_SERVED_ROLLOUT_TESTS: "true"
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          SENSITIVE_FILE_SERVED_ROLLOUT_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Workers/DataMigrations/AddSensitiveFileServedToRecommendedRulesPostgres.test.ts
+          --forceExit
+
       # Archiving the values records pick from, on migrated Postgres: the two
       # migrations on tables that already hold values (every value comes out
       # live, the keys to who archived one are added online and cleared when
@@ -5381,7 +5426,18 @@ jobs:
       # column, a label's reader kept to their incidents, and a saved pick
       # named by its id, archived or gone. #11074: which recommended
       # monitors a resource has, answered past the project's 10,000th
-      # monitor.
+      # monitor. #11211: the Databases list's Engine Metrics chip and All
+      # Environments' Status chip answered in the list's own query (one
+      # FilterGroups) - 10,050 databases and environments of a status
+      # listed, counted and paged, every subset of statuses matching the
+      # Status column's rule exactly, a label's reader kept to theirs - and
+      # the Teams list's Member chip through TeamMember, a person in 10,050
+      # teams, one taken out of a team in none; the old reads shown
+      # stopping at 10,000. #11210: a cloud account's recommendations read
+      # by the Dashboard's own loaders through the list routes - an
+      # account's 10,050 resources each weighed, a page at a time, and
+      # every dismissal of them read by the account's resources in a
+      # project whose first 10,040 dismissals are another account's.
       - name: Test the pickers' server searches and the lists' "is not" on migrated Postgres
         if: matrix.shard == 5
         working-directory: packages/Common
@@ -5410,6 +5466,8 @@ jobs:
           Tests/Server/API/FixWithAiRepositorySearchPostgres.test.ts
           Tests/Server/API/AffectedResourceFilterPostgres.test.ts
           Tests/Server/API/MonitorRecommendationCoveragePostgres.test.ts
+          Tests/Server/API/ListFiltersPastTheCapPostgres.test.ts
+          Tests/Server/API/CloudAccountRecommendationsPostgres.test.ts
           --forceExit
 
       # #11012 and #11013: required cloud tags and the host a VM is, on

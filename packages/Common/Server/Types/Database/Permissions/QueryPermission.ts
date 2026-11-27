@@ -8,6 +8,10 @@ import OwnerOnlyColumnPermission from "./OwnerOnlyColumnPermission";
 import RelationListPermission from "./RelationListPermission";
 import TablePermission from "./TablePermission";
 import OwnedByFilter, { OwnerTable, OwnerTablesOfKind } from "../OwnedByFilter";
+import LinkedToLinkTables, { LinkTableRelation } from "../LinkedToLinkTables";
+import FilterGroups, {
+  FILTER_GROUPS_QUERY_KEY,
+} from "../../../../Types/BaseDatabase/FilterGroups";
 import BaseModel, {
   DatabaseBaseModelType,
 } from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -522,6 +526,26 @@ export default class QueryPermission {
         for (const relation of Object.keys(
           (query[key] as unknown as LinkedTo).relations,
         )) {
+          /*
+           * A relation kept in a table of its own (a team's members,
+           * LinkedToLinkTables, #11211) reads that table: held to its read.
+           */
+          const linkTable: LinkTableRelation | null = LinkedToLinkTables.get(
+            modelType,
+            relation,
+          );
+
+          if (linkTable) {
+            QueryPermission.checkLinkTableRelationPermission({
+              relation: relation,
+              linkTable: linkTable,
+              held: held,
+              props: props,
+            });
+
+            continue;
+          }
+
           if (excludedColumnNames.includes(relation)) {
             continue;
           }
@@ -542,6 +566,55 @@ export default class QueryPermission {
             );
           }
         }
+
+        continue;
+      }
+
+      /*
+       * THE RECORDS ONE OF SEVERAL FILTERS MATCHES (FilterGroups, under
+       * "filterGroups", #11211) is no column either: each group filters
+       * the record's own columns, so each column a group names is held to
+       * what a filter on that column itself is - a column of the record,
+       * which the caller may read, a marked one only on a read pinned to
+       * the caller (OwnerOnlyColumnPermission).
+       */
+      if (query[key] instanceof FilterGroups) {
+        if (key !== FILTER_GROUPS_QUERY_KEY) {
+          throw new BadDataException(
+            `A filter of several groups goes under "${FILTER_GROUPS_QUERY_KEY}", not "${key}".`,
+          );
+        }
+
+        const columns: Array<string> = (query[key] as unknown as FilterGroups)
+          .columns;
+
+        for (const column of columns) {
+          if (!tableColumns.includes(column)) {
+            throw new BadDataException(
+              `Invalid column on ${model.singularName} - ${column}. Column does not exist.`,
+            );
+          }
+
+          if (
+            !excludedColumnNames.includes(column) &&
+            !canReadOnTheseColumns.columns.includes(column)
+          ) {
+            throw new NotAuthorizedException(
+              ColumnRefusalMessage.getQueryRefusal({
+                column: column,
+                permissions:
+                  model.getColumnAccessControlFor(column)?.read || [],
+              }),
+            );
+          }
+        }
+
+        OwnerOnlyColumnPermission.checkColumnsFilteredWithin({
+          modelType: modelType,
+          query: query,
+          columns: columns,
+          props: props,
+        });
 
         continue;
       }
@@ -570,6 +643,84 @@ export default class QueryPermission {
         props: props,
         isReadPinnedToCaller: isReadPinnedToCaller,
       });
+    }
+  }
+
+  /*
+   * A FILTER THROUGH A LINK TABLE IS A READ OF THE LINK TABLE (#11211).
+   *
+   * `{ linkedTo: LinkedTo({ relations: { members: [...] } }) }` on a list of
+   * teams matches the teams some people are in, which is what TeamMember
+   * holds (LinkedToLinkTables): a row naming the team beside one of them.
+   * So it is held to what listing those rows by the same people would be
+   * held to: the table's read permission, no block on it, and the read of
+   * the two columns it compares - by one of their own read permissions,
+   * never by CurrentUser alone, which reads only the caller's own rows of a
+   * person's records (canFilterOrOrderByRelatedColumn, #9895) - and none of
+   * them read only on the records the caller's teams own. The link rows are
+   * read through the record they name, so the records this query reaches
+   * are already the ones whose links the caller may read.
+   */
+  private static checkLinkTableRelationPermission(data: {
+    relation: string;
+    linkTable: LinkTableRelation;
+    held: HeldPermissions;
+    props: DatabaseCommonInteractionProps;
+  }): void {
+    const linkModelType: DatabaseBaseModelType = data.linkTable
+      .modelType as DatabaseBaseModelType;
+    const linkModel: BaseModel = new linkModelType();
+
+    TablePermission.checkTableLevelPermissions(
+      linkModelType,
+      data.props,
+      DatabaseRequestType.Read,
+    );
+
+    TablePermission.checkTableLevelBlockPermissions(
+      linkModelType,
+      data.props,
+      DatabaseRequestType.Read,
+    );
+
+    const keptToOwners: Array<string> =
+      OwnedScopePermission.getColumnsKeptToOwners(linkModelType, data.props);
+
+    for (const column of [
+      data.linkTable.recordColumnName,
+      data.linkTable.linkedColumnName,
+    ]) {
+      if (keptToOwners.includes(column)) {
+        throw new NotAuthorizedException(
+          OwnedScopePermission.getColumnKeptToOwnersRefusal(
+            linkModelType,
+            column,
+          ),
+        );
+      }
+
+      if (
+        !QueryPermission.mayReadRelatedColumnByItsOwnRead({
+          relatedModelType: linkModelType,
+          relatedModel: linkModel,
+          column: column,
+          held: data.held,
+          props: data.props,
+        })
+      ) {
+        throw new NotAuthorizedException(
+          ColumnRefusalMessage.getRelationQueryRefusal({
+            column: column,
+            relatedModelName:
+              linkModel.singularName || linkModel.tableName || "",
+            relationColumn: data.relation,
+            permissions: QueryPermission.getRelatedFilterPermissions(
+              linkModel,
+              column,
+            ),
+          }),
+        );
+      }
     }
   }
 

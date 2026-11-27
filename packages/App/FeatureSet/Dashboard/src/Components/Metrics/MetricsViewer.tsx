@@ -110,7 +110,10 @@ import {
 import ServiceType from "Common/Types/Telemetry/ServiceType";
 import IconProp from "Common/Types/Icon/IconProp";
 import { TelemetryEntityNameMap } from "Common/UI/Utils/Telemetry/TelemetryEntityNames";
-import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
+import {
+  TelemetryEntityLookup,
+  useTelemetryEntityLookup,
+} from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";
 import {
   MetricsEntityLookup,
   buildMetricsActiveFilterChips,
@@ -2162,10 +2165,16 @@ const MetricsViewer: FunctionComponent<Props> = (
     });
   }, [serviceIds, props.scopeEntityType, activeFilters]);
 
-  const entityNameMap: TelemetryEntityNameMap = useTelemetryEntityNames(
+  /*
+   * The names, and the ids every read answered nothing for: a chip a link
+   * or a saved view brought naming a deleted service reads "No longer
+   * available", never its id (#11213).
+   */
+  const entityNamesLookup: TelemetryEntityLookup = useTelemetryEntityLookup(
     entityLookup.ids,
     { typeHints: entityLookup.typeHints },
   );
+  const entityNameMap: TelemetryEntityNameMap = entityNamesLookup.names;
 
   // Read-only chips for prop-level scoping (e.g. service view page)
   const mergedActiveFilters: Array<ActiveFilter> = useMemo(() => {
@@ -2184,6 +2193,7 @@ const MetricsViewer: FunctionComponent<Props> = (
       activeFilters,
       facetConfigs,
       nameMap: entityNameMap,
+      notFound: entityNamesLookup.notFound,
     });
   }, [
     serviceIds,
@@ -2196,6 +2206,7 @@ const MetricsViewer: FunctionComponent<Props> = (
     activeFilters,
     facetConfigs,
     entityNameMap,
+    entityNamesLookup.notFound,
   ]);
 
   // Row click → navigate to metric viewer

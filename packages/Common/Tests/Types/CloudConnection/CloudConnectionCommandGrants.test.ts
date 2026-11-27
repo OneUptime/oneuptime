@@ -112,8 +112,9 @@ import { JSONObject, JSONValue } from "../../../Types/JSON";
  *     oneuptimeCloudArmorBlocklist custom role - security policies,
  *     their operations, the project's tier and its address groups - and
  *     the Compute Engine and Network Security APIs it calls;
- *   - Security case checks (#10900, AWS only): the seven reads a security
- *     case makes of an IAM user its CloudTrail events name, in a policy
+ *   - Security case checks (#10900, #11038, AWS only): the ten reads a
+ *     security case makes of an IAM user or role its CloudTrail events
+ *     name, in a policy
  *     of their own - a group of their own for the access key's user - and
  *     nothing else.
  *
@@ -839,7 +840,7 @@ function awsNeeds(
             })
           : []),
         ...awsWafStatements(choice),
-        // Each acts on an IAM user and nothing else, so on every one.
+        // Each acts on an IAM user or role and nothing else, so on every one.
         ...(checksCases(choice)
           ? AWS_SECURITY_CASE_CHECKS_ACTIONS.map((action: string): string => {
               return `${action} on *`;
@@ -1122,9 +1123,9 @@ describe("every way the form writes a command, with every choice", () => {
             : choice.dataSecurity === "configuration"
               ? ", and its data stores' configuration"
               : "",
-          // Reading IAM users back only reads: the role still "can only read".
+          // Reading IAM users and roles back only reads: the role still "can only read".
           checksCases(choice)
-            ? ", and which keys, console passwords, policies, groups and MFA devices its IAM users have"
+            ? ", and which keys, console passwords, policies, groups and MFA devices its IAM users have, and which policies its IAM roles have and whom they trust"
             : "",
           mayAlso.length > 0 ? `; it may also ${mayAlso.join(", and ")}` : "",
           ".",
@@ -1144,7 +1145,7 @@ describe("every way the form writes a command, with every choice", () => {
         }).split(LINE_BREAK)[1]!,
       )["Description"],
     ).toBe(
-      "OneUptime: a role that can only read this account's metrics, resources, changes and health events, and which keys, console passwords, policies, groups and MFA devices its IAM users have.",
+      "OneUptime: a role that can only read this account's metrics, resources, changes and health events, and which keys, console passwords, policies, groups and MFA devices its IAM users have, and which policies its IAM roles have and whom they trust.",
     );
 
     // A role that may only fix data stores says so as it always has.

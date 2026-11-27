@@ -164,14 +164,17 @@ describe("ExceptionsViewer names every entity chip", () => {
     );
   });
 
-  test("resolves names with ONE useTelemetryEntityNames call", () => {
+  test("resolves names with ONE useTelemetryEntityLookup call", () => {
     expect(EXCEPTIONS_VIEWER).toContain(
-      'import useTelemetryEntityNames from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
+      'import { TelemetryEntityLookup, useTelemetryEntityLookup, } from "Common/UI/Utils/Telemetry/UseTelemetryEntityNames";',
     );
-    expect(count(EXCEPTIONS_VIEWER, "useTelemetryEntityNames(")).toBe(1);
+    expect(count(EXCEPTIONS_VIEWER, "useTelemetryEntityLookup(")).toBe(1);
+    expect(count(EXCEPTIONS_VIEWER, "useTelemetryEntityNames(")).toBe(0);
     expect(EXCEPTIONS_VIEWER).toContain(
-      "useTelemetryEntityNames( entityChipIds, { typeHints: entityTypeHints }, )",
+      "useTelemetryEntityLookup( entityChipIds, { typeHints: entityTypeHints }, )",
     );
+    // A chip naming a deleted service reads "No longer available" (#11213).
+    expect(EXCEPTIONS_VIEWER).toContain("notFound: entityLookup.notFound,");
   });
 
   test("the ids cover the page scope, the host's stored scope and the user's chips", () => {

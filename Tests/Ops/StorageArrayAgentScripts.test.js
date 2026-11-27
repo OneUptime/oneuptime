@@ -51,6 +51,7 @@ const CONFIG_FILES = [
   "otel-collector-config.flashblade.yaml",
   "otel-collector-config.powerstore.yaml",
   "otel-collector-config.netapp-ontap.yaml",
+  "otel-collector-config.powerscale.yaml",
 ];
 const HARVEST_FILES = [
   "netapp-harvest.yml",
@@ -206,6 +207,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       NETAPP_ONTAP_ENDPOINT: "''",
       NETAPP_ONTAP_USERNAME: "''",
       NETAPP_ONTAP_PASSWORD: "''",
+      POWERSCALE_ENDPOINT: "''",
+      POWERSCALE_SNMP_COMMUNITY: "''",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
     });
     // It holds the array's API token.
@@ -427,6 +430,8 @@ describe("agents/StorageArrayAgent/install.sh", () => {
       NETAPP_ONTAP_USERNAME: "'oneuptime'",
       // Single-quoted: Compose hands Harvest exactly what was typed.
       NETAPP_ONTAP_PASSWORD: `'${ONTAP_PASSWORD}'`,
+      POWERSCALE_ENDPOINT: "''",
+      POWERSCALE_SNMP_COMMUNITY: "''",
       STORAGE_ARRAY_INSECURE_SKIP_VERIFY: "true",
     });
     // It holds the user's password, read without echo.
