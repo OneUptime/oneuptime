@@ -159,13 +159,14 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
         noun: entry.config.arrayNoun,
         /*
          * Only an agent that talks to the array itself asks about its TLS:
-         * the collector, or an exporter that checks the array's certificate
-         * (NetApp Harvest).
+         * the collector, which does unless its platform says it does not
+         * (talksTlsToArray: PowerScale's SNMP), or an exporter that checks
+         * the array's certificate (NetApp Harvest).
          */
         tlsToArray:
           (entry.config.talksTlsToArray ??
-            entry.config.exporterService === null ||
-              entry.config.exporterChecksCertificate)
+            entry.config.exporterService === null) ||
+          entry.config.exporterChecksCertificate
             ? "yes"
             : "no",
         // An exporter that logs in itself: its user, and the files it runs with.
