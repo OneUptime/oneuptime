@@ -117,12 +117,18 @@ const AGENT_FILES: Array<AgentFilesPin> = [
     version: "0.165.0",
     digest: "6f85610e3234a120f556258a67fff2b5c083508ed98346923737088e17f90d18",
   },
+  /*
+   * Its files first ship in 18.0.0 (17.3.0 has no XCP-ng agent), so a change
+   * before that release is still the files 0.165.0 ships as: XO_NAME's
+   * default quiet when XO_ADDRESS is unset (Tests/Ops/ComposeQuietStart),
+   * which a running agent reads the same.
+   */
   {
     kind: AgentKind.XcpNgAgent,
     directory: "XcpNgAgent",
     files: ["docker-compose.yml", "otel-collector-config.yaml"],
     version: "0.165.0",
-    digest: "ff1bdf6e487fa6384123be9fddc065503d5efafb175ad147cee61ee8dcb9604f",
+    digest: "12267f47894fd07eb839472dc1e6a16d55b15dba0a59436a3c03b941c91b89d4",
   },
 ];
 
@@ -274,18 +280,18 @@ describe("a pinned-collector agent's files report the version they shipped as", 
  * started again at the collector's. Any set of files of the 0.161 line runs
  * that collector, so it must show a sign.
  */
-describe("the Docker Swarm agent after #5076's config change, the task labels and the swarm's state", () => {
-  test("its files report 0.165.1 and run collector 0.165.0", () => {
-    const compose: string = fs.readFileSync(
-      path.join(REPO_ROOT, "agents", "DockerSwarmAgent", "docker-compose.yml"),
-      "utf8",
-    );
 /*
  * Then each container line's level read in the formats programs write it
  * in, and a stderr line nothing reads left Unspecified (0.165.1, #10972): a
  * Swarm on 0.165.0 still calls its INFO and WARN lines Errors, and must show
  * a sign.
  */
+describe("the Docker Swarm agent after #5076's config change, the task labels and the swarm's state", () => {
+  test("its files report 0.165.1 and run collector 0.165.0", () => {
+    const compose: string = fs.readFileSync(
+      path.join(REPO_ROOT, "agents", "DockerSwarmAgent", "docker-compose.yml"),
+      "utf8",
+    );
 
     expect(DOCKER_SWARM_AGENT_VERSION).toBe("0.165.1");
     expect(DOCKER_SWARM_AGENT_COLLECTOR_VERSION).toBe("0.165.0");
@@ -304,13 +310,13 @@ describe("the Docker Swarm agent after #5076's config change, the task labels an
       "0.161.2",
       "0.161.3",
       "0.161.4",
+      "0.165.0",
     ]) {
       expect(
         getAgentVersionState({
           kind: AgentKind.DockerSwarmAgent,
           agentVersion: agentVersion,
           serverVersion: "14.0.95",
-      "0.165.0",
         }),
       ).toEqual({
         status: AgentVersionStatus.Outdated,
