@@ -2,9 +2,11 @@
 
 مانیتور آرایه ذخیره‌سازی یک آرایه ذخیره‌سازی را زیر نظر می‌گیرد و وقتی آرایه خودش هشداری می‌دهد، فضایش تمام می‌شود، کند می‌شود، سخت‌افزار یا مسیری به یک میزبان را از دست می‌دهد، یا در همتاسازی عقب می‌افتد به شما خبر می‌دهد. با Pure Storage FlashArray و Pure Storage FlashBlade کار می‌کند و متریک‌هایی را می‌خواند که خود آرایه صادر می‌کند – سری‌های `purefa_*` و `purefb_*` در Pure – و عامل آرایه ذخیره‌سازی در OneUptime آن‌ها را جمع می‌کند.
 
+با Dell PowerStore (`dell.powerstore`) هم کار می‌کند، بر پایه سری‌های `powerstore_*` از Dell.
+
 :::cards
 - [ساخت مانیتور](#ساخت-یک-مانیتور-آرایه-ذخیرهسازی): شش گام در داشبورد.
-- [قالب‌ها](#قالبهای-هشدار-آماده): بیست هشدار آماده، یک حادثه به ازای هر حجم، میزبان یا قطعه.
+- [قالب‌ها](#قالبهای-هشدار-آماده): هشدارهای آماده، یک حادثه به ازای هر حجم، میزبان، دستگاه اختصاصی یا قطعه.
 - [سری‌های Pure چگونه کار می‌کنند](#سریهای-pure-چگونه-شکل-گرفتهاند): یک نام متریک، چند رقم.
 - [متریک‌ها](#متریکهای-جمعآوریشده): هر سری که مانیتور می‌تواند بر پایه‌اش هشدار دهد.
 :::
@@ -87,6 +89,8 @@ flowchart TB
 
 عامل نقطه پایانی آرایه را هر ۶۰ ثانیه، و حجم‌ها، میزبان‌ها و پادها را هر ۲ دقیقه می‌خواند، پس پنجره ۵ دقیقه‌ای همیشه یک نمونه دارد. سیستم‌های فایل و باکت‌های FlashBlade را هر ۵ دقیقه می‌خواند، از همین رو ۱۵، و پوشه‌های FlashArray را هر ۳۰ دقیقه: به مانیتور پوشه پنجره‌ای ۶۰ دقیقه‌ای بدهید.
 
+یک PowerStore را هر ۵ دقیقه، و وضعیت خوشه آن را هر ۶۰ ثانیه می‌خواند: به مانیتور PowerStore پنجره‌ای ۱۵ دقیقه‌ای بدهید.
+
 ## سری‌های Pure چگونه شکل گرفته‌اند
 
 Pure چند رقم را روی **یک** نام متریک می‌گذارد و آن‌ها را با یک برچسب از هم جدا می‌کند:
@@ -107,9 +111,13 @@ Pure چند رقم را روی **یک** نام متریک می‌گذارد و �
 
 در فیلترها و کلیدهای گروه‌بندی مانیتور، ویژگی‌های عامل با `resource.` شروع می‌شوند (`resource.storage.array.name`، `resource.storage.system`)، در حالی که برچسب‌های خود Pure این‌طور نیستند (`name`، `host`، `component_name`، `dimension`، `space`، `severity`).
 
+## ساختار سری‌های PowerStore
+
+صادرکننده Dell برای هر نام متریک یک مقدار می‌نویسد، پس یک سری PowerStore به فیلتر برچسب نیاز ندارد. برچسب‌هایش شیء را نام می‌برند: `appliance_id` یک دستگاه اختصاصی، `name` یک بخش، حجم یا سامانه فایل، و `volume_id`، `fc_port_id`، `eth_port_id`، `nas_id` یا `volume_group_id` شیء یک سری کارایی. سری‌های وضعیت آن تا وقتی سالم است 1 و در غیر این صورت 0 هستند، پس قالب‌ها زیر 1 فعال می‌شوند. هشدارهای خود آن با syslog می‌رسند، و قالب‌های آن‌ها، مانیتورهای لاگ، پس از جدول آن در پایین آمده‌اند.
+
 ## قالب‌های هشدار آماده
 
-OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای FlashArray و ۸ قالب برای FlashBlade – و فهرست **هشدار برای چه** قالب‌های پلتفرم آرایه را ارائه می‌دهد. هر کدام یک مانیتور کامل می‌سازد: پرس‌وجوی متریک، فیلترهای برچسب آن، یک گروه‌بندی بر پایه برچسب خود شیء، یک معیار که فعال می‌شود و یکی که بهبود می‌یابد. آستانه‌ها نقطه شروع‌اند و می‌توانید ویرایششان کنید.
+OneUptime در مجموع ۳۶ قالب دارد – ۱۲ قالب برای FlashArray، ۸ قالب برای FlashBlade و ۱۶ قالب برای PowerStore – و فهرست **هشدار برای چه** قالب‌های پلتفرم آرایه را ارائه می‌دهد. هر کدام یک مانیتور کامل می‌سازد: پرس‌وجوی متریک، فیلترهای برچسب آن، یک گروه‌بندی بر پایه برچسب خود شیء، یک معیار که فعال می‌شود و یکی که بهبود می‌یابد. آستانه‌ها نقطه شروع‌اند و می‌توانید ویرایششان کنید.
 
 یک معیار فقط وقتی فعال می‌شود که شرط برای **همه** مقدارهای پنجره‌اش برقرار باشد. مانیتوری که بر پایه آستانه ظرفیت، تأخیر، عقب‌ماندگی یا نسبت فعال شده، فقط ۱۰٪ آن‌سوی آن بهبود می‌یابد، تا مقداری که حول آستانه نوسان دارد مدام جابه‌جا نشود. قالب‌های هشدار، سخت‌افزار و اتصال وقتی فعال می‌شوند که وضعیتی در تمام پنجره ۵ دقیقه‌ای‌شان دیده شده باشد، و حدود ۵ دقیقه پس از برطرف شدن آن بهبود می‌یابند.
 
@@ -143,6 +151,37 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | High Read Latency | کارایی | هشدار | `purefb_array_performance_latency_usec` با فیلتر `dimension=usec_per_read_op` و `protocol=all`، Avg، ۱۰ دقیقه گذشته | > ۱۰۰۰۰ µs (۱۰ ms) در همه پروتکل‌ها؛ در ≤ ۹۰۰۰ بهبود می‌یابد |
 | File System Near Full | سامانه‌های فایل | هشدار | `purefb_file_systems_space_bytes` با فیلتر `space=available_ratio`، Min به ازای هر `name`، ۱۵ دقیقه گذشته | < ۰٫۱ – کمتر از ۱۰٪ اندازه تأمین‌شده یک سیستم فایل باقی مانده است. یک حادثه به ازای هر سیستم فایل؛ در ≥ ۰٫۱۱ بهبود می‌یابد |
 
+### PowerStore
+
+| قالب | دسته | شدت | چه چیزی را پایش می‌کند | چه وقت فعال می‌شود |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | در دسترس بودن | بحرانی | `powerstore_cluster`، Count، ۱۰ دقیقه گذشته | در تمام پنجره هیچ داده‌ای نیست – عامل، صادرکننده Dell یا خوشه دیگر پاسخ نمی‌دهد؛ با رسیدن دوباره داده بهبود می‌یابد |
+| Capacity Above 80% | ظرفیت | هشدار | `powerstore_cap_physical_used_percent`، Max به ازای هر `appliance_id`، ۱۵ دقیقه گذشته | > ۸۰ – ظرفیت یک دستگاه اختصاصی در حال پر شدن است؛ در ≤ ۷۲ بهبود می‌یابد |
+| Capacity Above 90% | ظرفیت | بحرانی | `powerstore_cap_physical_used_percent`، Max به ازای هر `appliance_id`، ۱۵ دقیقه گذشته | > ۹۰ – یک دستگاه اختصاصی نزدیک رد کردن نوشتن‌هاست؛ در ≤ ۸۱ بهبود می‌یابد |
+| High Read Latency | کارایی | هشدار | `powerstore_perf_avg_read_latency`، Avg به ازای هر `appliance_id`، ۱۵ دقیقه گذشته | > ۵۰۰۰ µs (۵ ms)؛ در ≤ ۴۵۰۰ بهبود می‌یابد |
+| High Write Latency | کارایی | هشدار | `powerstore_perf_avg_write_latency`، Avg به ازای هر `appliance_id`، ۱۵ دقیقه گذشته | > ۵۰۰۰ µs (۵ ms)؛ در ≤ ۴۵۰۰ بهبود می‌یابد |
+| Drive Failed | سخت‌افزار | بحرانی | `powerstore_hardware_Drive_state`، Min به ازای هر `name`، ۱۰ دقیقه گذشته | < ۱ – یک درایو خراب یا برداشته شده است؛ در ≥ ۱ بهبود می‌یابد |
+| Node Unhealthy | سخت‌افزار | بحرانی | `powerstore_hardware_node_state`، Min به ازای هر `name`، ۱۰ دقیقه گذشته | < ۱ – یک گره Healthy نیست؛ در ≥ ۱ بهبود می‌یابد |
+| Power Supply Unhealthy | سخت‌افزار | هشدار | `powerstore_hardware_Power_Supply_state`، Min به ازای هر `name`، ۱۰ دقیقه گذشته | < ۱ – یک منبع تغذیه خراب شده یا برقش قطع شده است؛ در ≥ ۱ بهبود می‌یابد |
+| Fan Unhealthy | سخت‌افزار | هشدار | `powerstore_hardware_Fan_state`، Min به ازای هر `name`، ۱۰ دقیقه گذشته | < ۱ – یک فن خراب شده است؛ در ≥ ۱ بهبود می‌یابد |
+| Battery Unhealthy | سخت‌افزار | هشدار | `powerstore_hardware_Battery_state`، Min به ازای هر `name`، ۱۰ دقیقه گذشته | < ۱ – یک ماژول باتری پشتیبان دچار خطا شده است؛ در ≥ ۱ بهبود می‌یابد |
+| Drive Wearing Out | سخت‌افزار | هشدار | `powerstore_wear_metrics_by_drive`، Min به ازای هر `name`، ۱۵ دقیقه گذشته | < ۱۰ – کمتر از ۱۰٪ از دوام یک درایو باقی مانده است؛ در ≥ ۱۱ بهبود می‌یابد |
+| NAS Server Not Started | سامانه‌های فایل | هشدار | `powerstore_nas_server_operational_status`، Max به ازای هر `name`، ۱۰ دقیقه گذشته | < ۱ – یک سرور NAS متوقف شده یا افت کارکرد دارد؛ در ≥ ۱ بهبود می‌یابد |
+| Volume Not Ready | سلامت آرایه | هشدار | `powerstore_volume_state`، Max به ازای هر `name`، ۱۵ دقیقه گذشته | < ۱ – یک حجم آفلاین است؛ در ≥ ۱ بهبود می‌یابد |
+| File System Near Full | سامانه‌های فایل | هشدار | `powerstore_filesystem_logical_used_percent`، Max به ازای هر `name`، ۱۵ دقیقه گذشته | > ۹۰ – یک سامانه فایل تقریباً پر است؛ در ≤ ۸۱ بهبود می‌یابد |
+| Cluster Not Configured | سلامت آرایه | هشدار | `powerstore_cluster`، Max، ۱۰ دقیقه گذشته | < ۱ – خوشه Configured نیست؛ در ≥ ۱ بهبود می‌یابد |
+| Metro Witness Not Connected | تکثیر | هشدار | `powerstore_metro_witness_status`، Min به ازای هر `name`، ۱۰ دقیقه گذشته | > ۰ – یک Metro Witness متصل نیست؛ وقتی دوباره OK شود بهبود می‌یابد |
+
+### هشدارهای PowerStore، با syslog
+
+هشدارهای خود PowerStore به‌صورت لاگ می‌رسند، پس قالب‌های آن‌ها مانیتورهای **لاگ‌ها** هستند که در صفحه **توصیه‌ها** آرایه زیر **هشدارهای آرایه** پیشنهاد می‌شوند. هر کدام به ازای هر هشدار PowerStore یک هشدار باز می‌کند، گروه‌بندی‌شده بر اساس `powerstore.resource.name` و `powerstore.alert.id`، و وقتی PowerStore آن هشدار را پاک کند آن را حل می‌کند:
+
+| قالب | شدت | باز می‌شود روی خطی با | حل می‌شود با |
+| --- | --- | --- | --- |
+| Critical Array Alert | بحرانی | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | هشدار | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | هشدار | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
+
 **شدت** برچسبی است که فهرست انتخاب نشان می‌دهد. حادثه و هشداری که یک قالب می‌سازد از شدیدترین شدت حادثه و هشدار پروژه شما شروع می‌شوند؛ آن‌ها را در معیارها تغییر دهید.
 
 - **Array Stopped Reporting** سری هویتی پلتفرم (`purefa_info` یا `purefb_info`) را می‌شمارد، که هر نقطه پایانی‌ای که عامل می‌خراشد در هر خراش صادر می‌کند. وقتی داده قطع شود، قالب‌های دیگر چیزی برای مقایسه ندارند و آخرین وضعیت خود را نگه می‌دارند، پس این همان قالبی است که به شما خبر می‌دهد.
@@ -163,6 +202,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | یک سری به ازای هر هشدار باز روی آرایه (مقدار ۱)، با برچسب‌های `severity` (`critical`، `warning`، `info`، `hidden`)، `category`، `code`، `component_type` و `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | یک سری به ازای هر هشدار باز روی FlashBlade (مقدار ۱)، با برچسب‌های `severity` (`info`، `warning`، `critical`)، `code`، `component_name`، `component_type`، `summary` و `kburl` (مقاله پایگاه دانش Pure) |
+| `powerstore_cluster` | — | PowerStore | `count` | 1 تا وقتی خوشه PowerStore در وضعیت Configured (تشکیل‌شده و در حال سرویس‌دهی) است، 0 در هر وضعیت دیگر: Configuring، Expanding، Removing، Clustering_Failed یا Unconfigured. |
 
 ### ظرفیت
 
@@ -176,6 +216,13 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | سهم ظرفیت قابل استفاده FlashBlade که در حال استفاده است |
 | `purefb_array_space_bytes` | `type=array`، `space=empty` | FlashBlade | `bytes` | ظرفیت استفاده‌نشده FlashBlade |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | کاهش داده در سراسر FlashBlade |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | سهم مصرف‌شده از ظرفیت فیزیکی هر دستگاه اختصاصی، به درصد: مصرف فیزیکی آن تقسیم بر کل ظرفیت فیزیکی آن، از جمع‌بندی روزانه فضای PowerStore. PowerStore هشدارهای ظرفیت خودش را از 70% صادر می‌کند. بر اساس appliance_id گروه‌بندی کنید. |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | ظرفیت فیزیکی قابل استفاده هر دستگاه اختصاصی به بایت. |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | ظرفیت فیزیکی که هر دستگاه اختصاصی مصرف می‌کند، به بایت، پس از حذف داده‌های تکراری و فشرده‌سازی. روند آن را دنبال کنید تا پیش‌بینی کنید یک دستگاه اختصاصی کی پر می‌شود. |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | ظرفیت منطقی تأمین‌شده روی هر دستگاه اختصاصی به بایت: اندازه همه حجم‌ها، سامانه‌های فایل و vVolهایی که در خود دارد، که می‌تواند بسیار بیشتر از ظرفیت فیزیکی آن باشد. |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | داده‌ای که میزبان‌ها در هر دستگاه اختصاصی نوشته‌اند، به بایت، پیش از حذف داده‌های تکراری و فشرده‌سازی. |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | حذف داده‌های تکراری و فشرده‌سازی روی هر دستگاه اختصاصی، برای نمونه 3.4 برای 3.4:1. افت پایدار یعنی داده تازه‌نوشته‌شده به‌خوبی کاهش نمی‌یابد: داده رمزگذاری‌شده یا از پیش فشرده‌شده. |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | کارایی کلی هر دستگاه اختصاصی: کاهش داده همراه با صرفه‌جویی ناشی از اسنپ‌شات‌ها و تأمین نازک. |
 
 ### کارایی
 
@@ -197,6 +244,13 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`، `protocol=all` | FlashBlade | `ops/s` | عملیات نوشتن در ثانیه در همه پروتکل‌ها |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`، `protocol=all` | FlashBlade | `bytes/s` | بایت خوانده‌شده در ثانیه در همه پروتکل‌ها |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`، `protocol=all` | FlashBlade | `bytes/s` | بایت نوشته‌شده در ثانیه در همه پروتکل‌ها |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | میانگین تأخیر یک خواندن روی هر دستگاه اختصاصی، به میکروثانیه، در آخرین نمونه پنج‌دقیقه‌ای PowerStore. خواندن‌های PowerStore معمولاً خیلی کمتر از 1 ms کامل می‌شوند. |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | میانگین تأخیر یک نوشتن روی هر دستگاه اختصاصی، به میکروثانیه. |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | عملیات خواندن در ثانیه روی هر دستگاه اختصاصی. |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | عملیات نوشتن در ثانیه روی هر دستگاه اختصاصی. |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | بایت‌های خوانده‌شده در ثانیه روی هر دستگاه اختصاصی. |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | بایت‌های نوشته‌شده در ثانیه روی هر دستگاه اختصاصی. |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | سهم مشغول از هسته‌های CPU که هر دستگاه اختصاصی به I/O ذخیره‌سازی اختصاص می‌دهد، به درصد. مقادیر بالای پایدار یعنی دستگاه اختصاصی به باری که می‌تواند پاسخ دهد نزدیک است. |
 
 ### حجم‌ها
 
@@ -211,6 +265,20 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | اندازه هر حجم آن‌طور که میزبان‌ها می‌بینند |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | فضای فیزیکی که هر حجم پس از کاهش داده مصرف می‌کند |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | نسبت کاهش داده هر حجم |
+| `powerstore_volume_state` | — | PowerStore | `count` | 1 تا وقتی یک حجم Ready است، 0 تا وقتی Initializing، Offline یا در حال حذف است. برای یافتن حجمی که میزبان‌ها به آن دسترسی ندارند بر اساس name گروه‌بندی کنید. |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | اندازه هر حجم از دید میزبان‌ها، به بایت. |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | داده‌ای که میزبان‌ها در هر حجم نوشته‌اند، به بایت، پیش از حذف داده‌های تکراری و فشرده‌سازی. |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | میانگین تأخیر خواندن هر حجم به میکروثانیه. برای یافتن حجم کند بر اساس volume_id گروه‌بندی کنید، که نام حجم را در خود دارد. |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | میانگین تأخیر نوشتن هر حجم به میکروثانیه. |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | عملیات خواندن در ثانیه هر حجم. |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | عملیات نوشتن در ثانیه هر حجم. |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | بایت‌های خوانده‌شده در ثانیه از هر حجم. |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | بایت‌های نوشته‌شده در ثانیه در هر حجم. |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | ظرفیت تأمین‌شده برای حجم‌های هر گروه حجم، به بایت. بر اساس name گروه‌بندی کنید. |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | داده‌ای که میزبان‌ها در حجم‌های هر گروه حجم نوشته‌اند، به بایت، پیش از حذف داده‌های تکراری و فشرده‌سازی. |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | میانگین تأخیر خواندن در حجم‌های هر گروه حجم، به میکروثانیه. بر اساس volume_group_id گروه‌بندی کنید، که نام گروه را در خود دارد. |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | میانگین تأخیر نوشتن در حجم‌های هر گروه حجم، به میکروثانیه. |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | عملیات خواندن و نوشتن در ثانیه در حجم‌های هر گروه حجم. |
 
 ### میزبان‌ها
 
@@ -230,6 +298,7 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | میانگین عقب‌ماندگی همتاسازی هر پیوند replica پاد |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | ترافیک همتاسازی هر پاد، با برچسب‌های `direction` و `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | میانگین تأخیر نوشتن آینه‌ای هر پاد ActiveCluster |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | وضعیت هر Metro Witness: 0 OK، 1 تا حدی متصل، 2 قطع، 3 در حال حذف، 4 در حال راه‌اندازی. بالای 0، ممکن است یک نشست Metro خودبه‌خود failover نکند. |
 
 ### سخت‌افزار
 
@@ -240,6 +309,23 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | ظرفیت خام هر درایو، با برچسب `component_status` آن (`healthy`، `failed`، `missing`، `recovering`، `unhealthy`، `empty`، ...) و نوعش |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | خطاها در ثانیه روی هر رابط Ethernet و Fibre Channel – خطاهای پایدار معمولاً یعنی کابل، ماژول نوری یا پورت سوئیچ خراب |
 | `purefb_hardware_health` | — | FlashBlade | — | سلامت هر قطعه سخت‌افزاری (bladeها، ماژول‌های fabric، منابع تغذیه، فن‌ها، ...): ۱ = سالم، ۲ = بی‌استفاده، ۰ = ناسالم. کمینه را به ازای هر `name` بگیرید |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 1 تا وقتی گره یک دستگاه اختصاصی Healthy است، 0 در هر وضعیت دیگری که برچسب state آن نام می‌برد (Failed، Disconnected، Initializing...). بر اساس name و appliance_id گروه‌بندی کنید. |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 1 تا وقتی یک درایو Healthy است، 0 وقتی خراب شده، برداشته شده یا آماده نیست. برای ایجاد یک حادثه به ازای هر درایو بر اساس name گروه‌بندی کنید. |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | سهم باقی‌مانده از دوام نوشتن هر درایو، به درصد. درایوی نزدیک 0 به پایان عمر خود نزدیک است: تعویض آن را برنامه‌ریزی کنید. |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 1 تا وقتی ماژول فن یک گره Healthy است، 0 وقتی خراب شده یا برداشته شده است. |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 1 تا وقتی منبع تغذیه یک گره Healthy است، 0 وقتی خراب شده، برق ورودی را از دست داده یا قطع شده است. |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 1 تا وقتی ماژول باتری پشتیبان یک گره Healthy است، 0 وقتی دچار خطا شده یا قطع شده است. |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 1 تا وقتی لینک یک پورت Fibre Channel برقرار است، 0 تا وقتی قطع است؛ پورتی که کابلی به آن وصل نیست همیشه قطع است. بر اساس fc_port_id گروه‌بندی کنید، که نام پورت را در خود دارد. |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 1 تا وقتی لینک یک پورت Ethernet برقرار است، 0 تا وقتی قطع است. بر اساس eth_port_id گروه‌بندی کنید، که نام پورت را در خود دارد. |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | میانگین تأخیر یک خواندن از طریق هر پورت Fibre Channel، به میکروثانیه. |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | میانگین تأخیر یک نوشتن از طریق هر پورت Fibre Channel، به میکروثانیه. |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | عملیات خواندن و نوشتن در ثانیه از طریق هر پورت Fibre Channel. |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | بایت‌های خوانده و نوشته‌شده در ثانیه از طریق هر پورت Fibre Channel. |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | فریم‌های دریافت‌شده با CRC نامعتبر در ثانیه روی هر پورت Fibre Channel. خطاهای پایدار معمولاً یعنی کابل، ماژول نوری یا پورت سوئیچ معیوب است. |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | خرابی‌های لینک در ثانیه روی هر پورت Fibre Channel. هر کدام ارزش بررسی کابل، ماژول نوری و سوئیچ پورت را دارد. |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | بایت‌های دریافت‌شده در ثانیه روی هر پورت Ethernet. |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | بایت‌های ارسال‌شده در ثانیه روی هر پورت Ethernet. |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | بسته‌های دریافت‌شده با خطای CRC در ثانیه روی هر پورت Ethernet. خطاهای پایدار معمولاً یعنی کابل، ماژول نوری یا پورت سوئیچ معیوب است. |
 
 ### سامانه‌های فایل
 
@@ -249,6 +335,17 @@ OneUptime در مجموع ۲۰ قالب دارد – ۱۲ قالب برای Flas
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | میانگین تأخیر نوشتن هر سیستم فایل |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | فضای فیزیکی که هر سیستم فایل مصرف می‌کند |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | سهمی از اندازه تأمین‌شده هر سیستم فایل که هنوز در دسترس است، از ۰ تا ۱ – نزدیک ۰ یعنی در آستانه پر کردن سهمیه‌اش است |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | 1 تا وقتی یک سرور NAS در وضعیت Started است، 0 تا وقتی Stopped، Starting، Stopping، failover‌شده یا Degraded (در حال کار بدون گره پشتیبانش) است. بر اساس name گروه‌بندی کنید. |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | میانگین تأخیر یک خواندن که هر سرور NAS پاسخ می‌دهد، به میکروثانیه. بر اساس nas_id گروه‌بندی کنید، که نام سرور را در خود دارد. |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | میانگین تأخیر یک نوشتن که هر سرور NAS پاسخ می‌دهد، به میکروثانیه. |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | عملیات خواندن و نوشتن در ثانیه که هر سرور NAS پاسخ می‌دهد. |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | سهم مصرف‌شده از اندازه هر سامانه فایل، به درصد: مصرف منطقی آن تقسیم بر اندازه تأمین‌شده آن. بر اساس name گروه‌بندی کنید. |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | اندازه هر سامانه فایل از دید کلاینت‌ها، به بایت. |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | داده‌ای که کلاینت‌ها در هر سامانه فایل نوشته‌اند، به بایت. |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | میانگین تأخیر یک خواندن از هر سامانه فایل، به میکروثانیه. بر اساس name گروه‌بندی کنید. |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | میانگین تأخیر یک نوشتن در هر سامانه فایل، به میکروثانیه. |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | عملیات خواندن در ثانیه هر سامانه فایل. |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | عملیات نوشتن در ثانیه هر سامانه فایل. |
 
 ### باکت‌ها
 

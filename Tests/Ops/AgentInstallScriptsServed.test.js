@@ -123,10 +123,12 @@ function assignment(block, name) {
  * configs/<engine>.yaml.
  */
 /*
- * The collector configs of the Storage Array agent's PLATFORMS table
- * (#11000): one line per platform, its config the first |-separated field.
+ * One |-separated field of each line of the Storage Array agent's PLATFORMS
+ * table (#11000): one line per platform, its collector config the first
+ * field, the other files it runs with the eleventh (space-separated, "-"
+ * for none).
  */
-function platformTableConfigs(script) {
+function platformTableField(script, index) {
   const table = /^PLATFORMS="\n([\s\S]*?)\n"$/m.exec(script);
   expect(table).not.toBeNull();
   return table[1]
@@ -135,8 +137,18 @@ function platformTableConfigs(script) {
       return line.trim() !== "";
     })
     .map((line) => {
-      return line.split("|")[0];
+      return line.split("|")[index];
     });
+}
+
+function platformTableConfigs(script) {
+  return platformTableField(script, 0);
+}
+
+function platformTableOtherFiles(script) {
+  return platformTableField(script, 10).flatMap((field) => {
+    return field === "-" ? [] : field.split(" ");
+  });
 }
 
 function fetchedFiles(entry) {
@@ -159,6 +171,11 @@ function fetchedFiles(entry) {
           // Its PLATFORMS table's collector configs: each line's first field.
           for (const config of platformTableConfigs(script)) {
             files.add(config);
+          }
+        } else if (file === "$PLATFORM_FILES") {
+          // The other files a platform runs with: each line's eleventh.
+          for (const other of platformTableOtherFiles(script)) {
+            files.add(other);
           }
         } else {
           files.add(file);

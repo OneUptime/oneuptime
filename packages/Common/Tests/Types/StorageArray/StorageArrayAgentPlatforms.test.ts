@@ -44,6 +44,9 @@ interface TableLine {
   noun: string;
   menu: string;
   readHow: string;
+  userVariable: string;
+  otherFiles: Array<string>;
+  optionalVariables: Array<string>;
 }
 
 interface ComposeFile {
@@ -66,7 +69,12 @@ function installTable(): Array<TableLine> {
     })
     .map((line: string): TableLine => {
       const fields: Array<string> = line.split("|");
-      expect({ line, fields: fields.length }).toEqual({ line, fields: 9 });
+      expect({ line, fields: fields.length }).toEqual({ line, fields: 12 });
+      const list: (field: string) => Array<string> = (
+        field: string,
+      ): Array<string> => {
+        return field === "-" ? [] : field.split(" ");
+      };
       return {
         config: fields[0]!,
         system: fields[1]!,
@@ -77,6 +85,9 @@ function installTable(): Array<TableLine> {
         noun: fields[6]!,
         menu: fields[7]!,
         readHow: fields[8]!,
+        userVariable: fields[9] === "-" ? "" : fields[9]!,
+        otherFiles: list(fields[10]!),
+        optionalVariables: list(fields[11]!),
       };
     });
 }
@@ -137,11 +148,26 @@ describe("install.sh's PLATFORMS table and the registry's agent configs", () => 
         noun: entry.config.arrayNoun,
         // Only a collector that talks to the array itself asks about its TLS.
         tlsToArray: entry.config.exporterService === null ? "yes" : "no",
+        // An exporter that logs in itself: its user, and the files it runs with.
+        userVariable: entry.config.userVariable || "",
+        otherFiles: [...(entry.config.otherFiles || [])],
       });
       expect(line!.menu).not.toBe("");
       expect(line!.readHow).not.toBe("");
     },
   );
+
+  test("only an exporter logs in with a user, and the collector never reads its password", () => {
+    for (const entry of REGISTERED) {
+      if (!entry.config.userVariable) {
+        continue;
+      }
+      expect(entry.config.exporterService).not.toBeNull();
+      const config: string = readAgentFile(entry.config.collectorConfigFile);
+      expect(config).not.toContain(`\${env:${entry.config.tokenVariable}}`);
+      expect(config).not.toContain(`\${env:${entry.config.userVariable}}`);
+    }
+  });
 });
 
 describe("each config of the table", () => {
@@ -158,15 +184,29 @@ describe("each config of the table", () => {
       expect(text).toMatch(
         /key: storage\.system\s+value: "?\$\{env:STORAGE_SYSTEM\}"?/,
       );
-      // ...and reads the address and token the line names.
+      /*
+       * ...and reads the address the line names, and the token unless the
+       * exporter logs in with the line's user and password itself.
+       */
       expect(text).toContain(`\${env:${line.endpointVariable}}`);
-      expect(text).toContain(`\${env:${line.tokenVariable}}`);
+      if (line.userVariable) {
+        expect(text).not.toContain(`\${env:${line.tokenVariable}}`);
+      } else {
+        expect(text).toContain(`\${env:${line.tokenVariable}}`);
+      }
 
-      // Every OneUptime serves it at /install/storage-array-agent/<config>.
+      /*
+       * Every OneUptime serves it, and every other file it runs with, at
+       * /install/storage-array-agent/<file>, and each ships next to it.
+       */
       const entry: InstallScriptEntry | null = getInstallScriptEntry(
         InstallScriptName.StorageArrayAgent,
       );
       expect(entry?.files).toContain(config);
+      for (const file of line.otherFiles) {
+        expect(entry?.files).toContain(file);
+        expect(fs.existsSync(path.join(AGENT_DIRECTORY, file))).toBe(true);
+      }
     },
   );
 

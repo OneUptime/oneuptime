@@ -28,6 +28,10 @@ jest.mock("Common/Server/Utils/Monitor/MonitorResource", () => {
       monitorResource: jest.fn(() => {
         return Promise.resolve({});
       }),
+      // Lists what a monitor that is not being checked received (#11141).
+      listNotEvaluated: jest.fn(() => {
+        return Promise.resolve();
+      }),
     },
   };
 });
@@ -140,6 +144,7 @@ import HTTPMethod from "Common/Types/API/HTTPMethod";
 import IncomingMonitorRequest from "Common/Types/Monitor/IncomingMonitor/IncomingMonitorRequest";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import { MonitorPauseReason } from "Common/Utils/Monitor/MonitorPauseState";
 import {
   afterEach,
   beforeEach,
@@ -165,6 +170,8 @@ const NEWEST_ARRIVAL: Date = new Date("2026-10-05T12:27:30.000Z");
 
 const monitorResource: jest.Mock =
   MonitorResourceUtil.monitorResource as unknown as jest.Mock;
+const listNotEvaluated: jest.Mock =
+  MonitorResourceUtil.listNotEvaluated as unknown as jest.Mock;
 const findOneBy: jest.Mock = MonitorService.findOneBy as unknown as jest.Mock;
 const trackMock: jest.Mock =
   IncomingRequestReceivedAtStore.track as unknown as jest.Mock;
@@ -409,20 +416,40 @@ describe("processIncomingRequestJobFromQueue", () => {
     });
 
     /*
-     * An unknown monitor, or one that is archived, disabled, or paused by a
-     * manually created incident or a maintenance event, fails in a way the
-     * telemetry worker completes the job on. That is final, so the request
-     * is cleared, and the error still reaches the worker so it is handled as
-     * before.
+     * An unknown monitor fails in a way the telemetry worker completes the
+     * job on. That is final, so the request is cleared, and the error still
+     * reaches the worker so it is handled as before.
+     */
+    test("clears the request and passes the error on when the monitor is not found", async () => {
+      getLatest.mockResolvedValue(stored(NEWEST_ID, newestRequest()) as never);
+      monitorResource.mockRejectedValueOnce(
+        new BadDataException(ExceptionMessages.MonitorNotFound) as never,
+      );
+
+      await expect(
+        processIncomingRequestJobFromQueue(requestJob()),
+      ).rejects.toThrow(ExceptionMessages.MonitorNotFound);
+
+      expect(clearIfUnchanged).toHaveBeenCalledWith({
+        secretKey: SECRET_KEY,
+        payloadId: NEWEST_ID,
+      });
+    });
+
+    /*
+     * #11141: a monitor archived, disabled, or paused by a manually created
+     * incident or a maintenance event since its key was kept is refused by
+     * MonitorResource, which listed the request as not evaluated first. The
+     * request is done with: cleared, and the job completes - the refusal no
+     * longer reaches the worker.
      */
     test.each([
-      ExceptionMessages.MonitorNotFound,
       ExceptionMessages.MonitorDisabled,
       ExceptionMessages.MonitorArchived,
       ExceptionMessages.MonitorDisabledBecauseOfManualIncident,
       ExceptionMessages.MonitorDisabledBecauseOfScheduledMaintenanceEvent,
     ])(
-      "clears the request and passes the error on when the monitor fails with '%s'",
+      "clears the request and completes when the monitor is refused as not being checked ('%s')",
       async (message: string) => {
         getLatest.mockResolvedValue(
           stored(NEWEST_ID, newestRequest()) as never,
@@ -433,8 +460,10 @@ describe("processIncomingRequestJobFromQueue", () => {
 
         await expect(
           processIncomingRequestJobFromQueue(requestJob()),
-        ).rejects.toThrow(message);
+        ).resolves.toBeUndefined();
 
+        expect(monitorResource).toHaveBeenCalledTimes(1);
+        expect(clearIfUnchanged).toHaveBeenCalledTimes(1);
         expect(clearIfUnchanged).toHaveBeenCalledWith({
           secretKey: SECRET_KEY,
           payloadId: NEWEST_ID,
@@ -483,6 +512,23 @@ describe("processIncomingRequestJobFromQueue", () => {
         secretKey: SECRET_KEY,
         payloadId: NEWEST_ID,
       });
+
+      // #11141: the request it evaluated is listed as not evaluated, and why.
+      expect(listNotEvaluated).toHaveBeenCalledTimes(1);
+
+      const listed: {
+        dataToProcess: IncomingMonitorRequest;
+        reason: MonitorPauseReason;
+      } = listNotEvaluated.mock.calls[0]![0] as {
+        dataToProcess: IncomingMonitorRequest;
+        reason: MonitorPauseReason;
+      };
+
+      expect(listed.reason).toBe(MonitorPauseReason.Disabled);
+      expect(listed.dataToProcess.requestBody).toEqual(
+        alertmanager("resolved"),
+      );
+      expect(listed.dataToProcess.requestMethod).toBe(HTTPMethod.GET);
     });
 
     /*

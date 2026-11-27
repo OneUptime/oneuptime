@@ -778,7 +778,14 @@ export function deriveStorageArraySnapshotExtras(
     extras.unhealthyHardwareCount = unhealthyHardware;
   }
 
-  if (snap.sawAlerts && sawAnyHardware) {
+  /*
+   * A platform that reports its alerts in no metric (a PowerStore's arrive
+   * as syslog: overview.alertMetricName unset) has no alert list a batch
+   * could complete, so its hardware alone decides its health.
+   */
+  const reportsAlertsAsMetrics: boolean =
+    !platform || Boolean(platform.overview.alertMetricName);
+  if ((snap.sawAlerts || !reportsAlertsAsMetrics) && sawAnyHardware) {
     if (snap.criticalAlertKeys.size > 0 || criticalHardware) {
       extras.healthStatus = StorageArrayHealthStatus.Critical;
     } else if (snap.warningAlertKeys.size > 0 || unhealthyHardware > 0) {

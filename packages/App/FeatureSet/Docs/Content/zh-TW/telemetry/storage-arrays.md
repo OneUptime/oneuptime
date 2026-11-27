@@ -18,6 +18,7 @@ Storage Arrays 是一個對每個廠商都以相同方式運作的產品。它�
 | **Pure Storage FlashArray**，Purity//FA 6.7 及更新版本 | `purestorage.flasharray` | 陣列自己的 OpenMetrics 端點（`https://<array>/metrics/...?namespace=purefa`）：Collector 旁邊不需要執行任何東西 | `otel-collector-config.yaml`（預設） |
 | **Pure Storage FlashArray**，較舊的 Purity//FA | `purestorage.flasharray` | Pure 的 FlashArray OpenMetrics 匯出器，由同一個 Compose 檔案以 `pure-fa-exporter` 服務執行 | `otel-collector-config.flasharray-exporter.yaml` |
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure 的 FlashBlade OpenMetrics 匯出器，由同一個 Compose 檔案以 `pure-fb-exporter` 服務執行 | `otel-collector-config.flashblade.yaml` |
+| **Dell PowerStore** | `dell.powerstore` | Dell 的 PowerStore Metrics Exporter，由同一個 Compose 檔案以 `powerstore-exporter` 服務建置並執行；叢集的警示透過 syslog 送達其 `powerstore-syslog` 服務 | `otel-collector-config.powerstore.yaml` |
 
 Pure Storage 於 2026 年 2 月更名為 **Everpure**。FlashArray、FlashBlade 和 Purity 保留了原名，`purefa_*` 和 `purefb_*` 指標也沒有改名，因此本頁的所有內容都適用於以任一名稱銷售的陣列。
 
@@ -27,6 +28,10 @@ flowchart TB
     collector -->|"較舊的 FlashArray，<br/>FlashBlade"| exporter["Pure 的匯出器"]
     exporter -->|"API 權杖"| array
     collector -->|"OTLP"| oneuptime["OneUptime"]
+    collector -->|"PowerStore"| dell["Dell's exporter"]
+    dell -->|"user and password"| array
+    array -->|"syslog, port 5514"| syslog["Syslog collector"]
+    syslog -->|"OTLP"| oneuptime
 ```
 
 一個代理程式監控一個陣列：請為每個陣列執行一個代理程式（請參閱 [監控多個陣列](#監控多個陣列)）。陣列會隨其第一批資料自行註冊，名稱就是代理程式以 `storage.array.name` 加到每個指標上的名稱。
@@ -35,6 +40,7 @@ flowchart TB
 
 - Docker Engine 20.10 或更新版本，帶 Docker Compose v2 外掛程式，所在機器能透過 HTTPS（TCP 443）連線到陣列的管理介面。
 - 陣列上的一個管理員帳戶，用於建立具有內建 **readonly** 角色的使用者及其 API 權杖。
+- 若是 Dell PowerStore，需要一台 x86-64 機器（Dell 只為 x86-64 建置其匯出器）和一個供代理程式使用的 PowerStore 使用者：請參閱 [Dell PowerStore](#dell-powerstore)。
 - 一把擷取金鑰。在 **專案設定 → 遙測與 APM → 擷取金鑰** 下建立一把並複製其值。
 
 ### 在哪裡執行代理程式
@@ -112,7 +118,16 @@ PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
+POWERSTORE_ENDPOINT=
+POWERSTORE_PASSWORD=
+POWERSTORE_USERNAME=
+POWERSTORE_BULK_METRICS=
+POWERSTORE_API_VERSION=
+POWERSTORE_REQUEST_LIMIT=
+POWERSTORE_SYSLOG_PORT=
 ```
+
+若是 Dell PowerStore，還要下載 `otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile` 和 `powerstore-syslog.yaml`，設定 `STORAGE_SYSTEM=dell.powerstore`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerstore.yaml` 和 `COMPOSE_PROFILES=powerstore`，並填入 `POWERSTORE_ENDPOINT`、`POWERSTORE_USERNAME` 和 `POWERSTORE_PASSWORD`，密碼放在單引號中。
 
 對於執行較舊 Purity//FA 的 FlashArray，請設定 `STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flasharray-exporter.yaml` 和 `COMPOSE_PROFILES=flasharray-exporter`。對於 FlashBlade，請設定 `STORAGE_SYSTEM=purestorage.flashblade`、`STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.flashblade.yaml` 和 `COMPOSE_PROFILES=flashblade`，並填入 `PURE_FB_ENDPOINT` 和 `PURE_FB_API_TOKEN`，而不是 `PURE_FA_*` 這一組。啟動代理程式：
 
@@ -139,6 +154,16 @@ Everything is ready. Begin running and processing data.
 開啟 **產品 → 基礎設施 → 儲存陣列 → 所有儲存陣列**。第一次抓取之後（大約一分鐘），陣列就會出現，帶有它的容量、效能、未結的警示和硬體。磁碟區、主機和 Pod 會在 2 分鐘內出現，FlashBlade 的檔案系統和儲存貯體在 5 分鐘內出現，FlashArray 目錄在 30 分鐘內出現。陣列的 **拓撲** 頁面將其主機、磁碟區、檔案系統和硬體繪製在一張地圖上：請參閱 [拓撲](/docs/telemetry/topology#開啟資源自己的地圖)。
 :::
 
+## Dell PowerStore
+
+代理程式透過 Dell 的 PowerStore Metrics Exporter（版本 `powerstore-metrics-exporter_v1.0.3`）讀取 PowerStore 叢集。Dell 將它以二進位檔而非映像檔的形式發布，因此 `powerstore-exporter` 服務在第一次啟動時會依 `powerstore-exporter.Dockerfile` 建置 Dell 文件中描述的映像檔，並驗證二進位檔的 SHA-256；這次建置需要存取一次 `quay.io` 和 `github.com`。
+
+PowerStore 沒有 API 權杖，因此 Dell 的匯出器以使用者名稱和密碼登入。在 PowerStore Manager 的 _Settings → Users_ 下，新增一個僅供代理程式使用的本機使用者，角色為 **Storage Operator**：匯出器從 PowerStore 的五分鐘大量指標封存讀取效能資料，此封存由匯出器自行開啟，PowerStoreOS 4.1 及更新版本需要它，而根據 Dell 的 README，Operator 角色無法開啟它。在較舊的 PowerStoreOS 上，唯讀的 **Operator** 角色搭配 `POWERSTORE_BULK_METRICS=false` 就足夠。只有匯出器會從 `.env` 讀取密碼。
+
+Dell 的匯出器不讀取警示，因此由叢集自行傳送：`powerstore-syslog` 服務在連接埠 5514 上透過 TCP 和 UDP 接收其遠端 syslog，並把每一行記錄到陣列的 **日誌** 頁面，PowerStore 的記錄放在屬性中（`powerstore.alert.id`、`powerstore.alert.state`、`powerstore.event.code`），嚴重性取自 Dell 的事件代碼（`powerstore.alert.severity`）。在 PowerStore Manager 中開啟 _Settings → Security → Remote Logging_，新增這台機器的連接埠 5514，並在其防火牆中開放該連接埠。連接埠 6514 上透過 TLS 的 syslog 在 `powerstore-syslog.yaml` 中有說明。
+
+Dell 的匯出器不回報主機和複寫工作階段，因此此版本兩者都沒有。
+
 ## 環境變數
 
 安裝指令碼會把這些變數寫入 `/opt/oneuptime-storage-array-agent/.env`；Docker Compose 安裝會從 `.env`（位於 `docker-compose.yml` 旁邊）中讀取它們。變更其中一個後，請在該資料夾中執行 `docker compose up -d`。
@@ -155,6 +180,13 @@ Everything is ready. Begin running and processing data.
 | `PURE_FA_API_TOKEN` | FlashArray | 具有 readonly 角色的 FlashArray 使用者的 API 權杖。 |
 | `PURE_FB_ENDPOINT` | FlashBlade | FlashBlade 的管理位址：主機名稱或 IP，不含 `https://`。 |
 | `PURE_FB_API_TOKEN` | FlashBlade | 具有 readonly 角色的 FlashBlade 使用者的 API 權杖。 |
+| `POWERSTORE_ENDPOINT` | PowerStore | PowerStore 叢集的管理位址：主機名稱或 IP，不含 `https://`。 |
+| `POWERSTORE_USERNAME` | PowerStore | Dell 的匯出器登入時使用的 PowerStore 使用者。 |
+| `POWERSTORE_PASSWORD` | PowerStore | 該使用者的密碼。只有匯出器會讀取它。 |
+| `POWERSTORE_BULK_METRICS` | 否 | `true` 從 PowerStore 的大量指標封存讀取效能資料；`false` 逐一讀取每個物件。預設為 `true`。 |
+| `POWERSTORE_API_VERSION` | 否 | PowerStoreOS 3.6 及更新版本用 `v3`，否則用 `v1`。預設為 `v3`。 |
+| `POWERSTORE_REQUEST_LIMIT` | 否 | 匯出器同時向叢集傳送的要求數。預設為 `16`。 |
+| `POWERSTORE_SYSLOG_PORT` | 否 | 這台機器透過 TCP 和 UDP 接收叢集 syslog 的連接埠。預設為 `5514`。 |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 否 | `true` 會在原生端點上接受陣列的自我簽署憑證；`false` 則會驗證它。預設為 `true`。Pure 的匯出器從不驗證陣列的憑證，因此它不適用於匯出器。 |
 
 ## 代理程式如何抓取
@@ -163,6 +195,7 @@ Everything is ready. Begin running and processing data.
 - **每個作業都會為其序列加上 `scrape_endpoint: <endpoint>` 標籤。** 每個端點也會匯出 `purefa_info` 或 `purefb_info`，因此 OneUptime 知道一個批次是哪些指標系列的完整清單：已刪除的磁碟區、主機、Pod、檔案系統或儲存貯體正是這樣離開清單，而不是一直滯留。請保持這些標籤與隨附時一致。
 - **依磁碟區和依主機的延遲保留三個維度。** 每個磁碟區和主機最多以十六個 `dimension` 匯出其延遲。一條 `metric_relabel_configs` 規則會保留 `usec_per_read_op`、`usec_per_write_op` 和 `usec_per_mirrored_write_op`，並捨棄 QoS 速率限制、佇列、SAN 和服務時間的細分，這些細分會使大型陣列的序列數成倍增加。`purefa_array_performance_latency_usec` 上的陣列層級細分會保留。刪除該規則即可同時保留依磁碟區的細分。
 - **API 權杖是 Bearer 權杖。** 原生設定會把它傳送給陣列本身；匯出器設定只透過 Compose 網路把它傳送給匯出器，而匯出器的連接埠從不發布。
+- **PowerStore 每 5 分鐘一次。** Dell 的匯出器在 `/metrics/<cluster>/<part>` 提供叢集的每個部分：設定每 60 秒讀取一次 `cluster`（即其心跳），每 5 分鐘讀取一次 `appliance`、`capacity`、`hardware`、`port`、`volume`、`volumeGroup`、`nas` 和 `file`，因為 PowerStore 以五分鐘樣本計算它們。
 - **沒有 `send_batch_max_size`。** OneUptime 每個要求都會根據一次完整的抓取重建清單，因此隨附的 `batch` 處理器從不把一次抓取拆分到多次匯出中。請保持隨附的 batch 設定不變。
 
 ## 代理程式收集的內容
@@ -179,8 +212,13 @@ Pure 的語意慣例由 FlashArray 原生端點和兩個匯出器共用。每個
 | FlashBlade `/metrics/array` | `purefb_info`、`purefb_alerts_open`、`purefb_array_space_*`、`purefb_array_performance_*`、`purefb_hardware_health` | FlashBlade 的名稱、Purity 版本和系統 ID；容量和資料縮減；未結的警示數；陣列的健康狀態；**硬體** 頁面 |
 | FlashBlade `/metrics/filesystems` | `purefb_file_systems_space_*`、`purefb_file_systems_performance_*` | **檔案系統** 頁面：每個檔案系統的佈建空間和已用空間、資料縮減、延遲、IOPS 和頻寬 |
 | FlashBlade `/metrics/objectstore` | `purefb_buckets_space_*`、`purefb_buckets_quota_space_bytes`、`purefb_buckets_object_count`、`purefb_buckets_performance_*`、`purefb_object_store_accounts_*` | **儲存貯體** 頁面：每個儲存貯體的空間、配額、物件數和效能，依帳戶分組 |
+| PowerStore `cluster`、`appliance`、`capacity` | `powerstore_cluster`、`powerstore_metro_*`、`powerstore_appliance`、`powerstore_perf_*`、`powerstore_cap_*` | 叢集的名稱和狀態；**專用設備** 頁面：每台專用設備的容量、資料縮減、延遲、IOPS 和頻寬 |
+| PowerStore `hardware`、`port` | `powerstore_hardware_*`、`powerstore_wear_metrics_by_drive`、`powerstore_fc_port_*`、`powerstore_eth_port_*`、`powerstore_metricFcPort_*`、`powerstore_metricEthPort_*` | **硬體** 頁面：節點、風扇、電源供應器、電池、磁碟機和前端連接埠，每個都附上其專用設備 |
+| PowerStore `volume`、`volumeGroup`、`nas`、`file` | `powerstore_volume_*`、`powerstore_metricVolume_*`、`powerstore_volumegroup_*`、`powerstore_metricVg_*`、`powerstore_nas_server_operational_status`、`powerstore_metricNas_*`、`powerstore_filesystem_*`、`powerstore_metricFilesystem_*` | **磁碟區**、**磁碟區群組**、**NAS 伺服器** 和 **檔案系統** 頁面 |
 
 **所有儲存陣列** 的 **健康狀況** 欄讀取陣列最新資料中陣列本身的警示和硬體：當它回報未結的嚴重警示，或有硬體元件、磁碟機或控制器處於嚴重、故障、遺失或不健康狀態時為 **嚴重**；當它回報未結的警告警示，或有降級或狀態不明的元件時為 **警告**；否則為 **OK**；代理程式中斷連線期間為 **未知**。陣列的 **概覽** 會判斷更多內容，如下一節所述。在監控條件中，陣列的屬性要加上 `resource.` 前置詞（`resource.storage.array.name`、`resource.storage.system`），而資料點標籤保持原樣（`name`、`host`、`dimension`、`space`）。
+
+PowerStore 的警示以日誌形式送達，因此 PowerStore 的健康狀況就是其硬體的健康狀況。代理程式自行計算 `powerstore_cap_physical_used_percent` 和 `powerstore_filesystem_logical_used_percent`，並在節點為 Healthy 時將其狀態讀作 1。
 
 ## 陣列頁面顯示的內容
 
@@ -194,7 +232,11 @@ Pure 的語意慣例由 FlashArray 原生端點和兩個匯出器共用。每個
 
 **主機**、**複寫** 和 **檔案系統** 清單依同樣的規則顯示每個部分的狀態，並在下方說明原因。主機和檔案系統各自的頁面會說明其中需要注意的內容以及監看它的陣列警示，只需一步即可開啟其餘警示；每個部分的頁面，包括磁碟區和儲存貯體的頁面，都會說明其上未解決的項目。代理程式中斷連線期間，健康狀態顯示為 **健康狀態不明**：陣列的最後一次回報已不再正確。上面的每條門檻都是其警示範本觸發的門檻，[儲存陣列監控](/docs/monitor/storage-array-monitor)中列出了它們。
 
+在 PowerStore 上，**專用設備**、**磁碟區群組** 和 **NAS 伺服器** 索引標籤列出只有 PowerStore 才有的部分，**硬體** 頁面會標出每個元件所屬的專用設備，因為每台專用設備為元件取的名稱都相同。
+
 ## 選用 — 傳送陣列的 syslog
+
+PowerStore 的 syslog 收集器依隨附設定執行（請參閱 [Dell PowerStore](#dell-powerstore)）：本節適用於 Pure 的陣列。
 
 預設情況下，代理程式只傳送指標，因此陣列的 **日誌** 頁面會保持空白。陣列會把它們的警示和稽核事件以 syslog 轉送，而每個隨附的 Collector 設定中都有一對已註解的 `syslog` 接收器（連接埠 5514 上的 TCP 和 UDP，RFC 3164），連接到一個已註解的 `logs` 管線，該管線會加上 `storage.array.name`，讓日誌落到你的陣列上。
 
@@ -237,6 +279,8 @@ Collector 只在啟動時讀取其設定：請執行 `docker compose restart one
 
 一個代理程式讀取一個陣列。要從同一台機器監控多個陣列，請把每個代理程式安裝到各自的資料夾中，並使用各自的 `.env`，例如 `INSTALL_DIR=/opt/oneuptime-storage-array-agent-fa02 bash install.sh`，並為每個代理程式設定各自的 `container_name`（位於其 `docker-compose.yml` 中，例如 `oneuptime-storage-array-agent-fa02`）：兩個容器不能同名。用 `-d` 把資料夾傳給診斷指令碼。
 
+第二個 PowerStore 代理程式也需要自己的 syslog 連接埠：將 `POWERSTORE_SYSLOG_PORT` 設為例如 `5515`，寫在其 `.env` 中。
+
 ## 以 systemd 服務執行
 
 要讓代理程式隨機器啟動並在失敗時重新啟動，請安裝它的 systemd 單元。該單元假設代理程式位於 `/opt/oneuptime-storage-array-agent`，也就是安裝指令碼放置它的位置：
@@ -269,6 +313,8 @@ docker compose pull
 docker compose up -d --force-recreate
 ```
 
+PowerStore 代理程式也會重新下載 `otel-collector-config.powerstore.yaml`、`powerstore-exporter.Dockerfile` 和 `powerstore-syslog.yaml`；當新版本移動了標記時，`docker compose up` 會重新建置匯出器的映像檔。
+
 ## 解除安裝代理程式
 
 ```bash
@@ -277,6 +323,8 @@ docker compose down
 ```
 
 接著，如果不再需要，請在陣列上刪除唯讀使用者及其 API 權杖。
+
+在 PowerStore 上執行 `docker compose --profile powerstore down`，讓匯出器和 syslog 收集器也停止。
 
 ## 疑難排解
 
@@ -315,6 +363,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 
 :::details 無法解析 pure-fa-exporter 或 pure-fb-exporter
 匯出器沒有執行：`COMPOSE_PROFILES` 必須與 `STORAGE_ARRAY_COLLECTOR_CONFIG` 相符（FlashArray 匯出器設定用 `flasharray-exporter`，FlashBlade 設定用 `flashblade`）。修正 `.env` 並執行 `docker compose up -d`；之後 `docker compose ps` 會列出匯出器。
+:::
+
+:::details PowerStore 什麼也沒有傳送
+用 `docker compose logs powerstore-exporter` 查看匯出器的日誌：`401` 表示使用者名稱或密碼錯誤，`403` 出現在 `latest_five_min_metrics` 上則表示該使用者的角色無法開啟大量指標封存（授予 **Storage Operator**，或在早於 4.1 的 PowerStoreOS 上設定 `POWERSTORE_BULK_METRICS=false`）。匯出器啟動後需要一分鐘才會回應。**日誌** 頁面上沒有警示：請檢查叢集的 _Remote Logging_ 設定、連接埠 5514 上的防火牆和 `docker compose logs powerstore-syslog`。
 :::
 
 :::details 已刪除的磁碟區或主機仍留在清單中

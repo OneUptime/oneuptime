@@ -7,6 +7,8 @@ import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentService from "../../../Server/Services/IncidentService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../Server/Services/MonitorStatusService";
+import MonitorStatusTimelineService from "../../../Server/Services/MonitorStatusTimelineService";
+import MonitorIncidentPause from "../../../Server/Utils/Monitor/MonitorIncidentPause";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import URL from "../../../Types/API/URL";
@@ -787,6 +789,36 @@ describe("IncidentService: editing the monitors of an open incident", () => {
   test("a manual incident stops probing its monitors when one is added", async () => {
     disableActiveMonitoringSpy.mockRestore();
 
+    /*
+     * Each monitor is worked out from the incidents that pause it
+     * (MonitorIncidentPause, #11141): neither is paused yet, and this
+     * incident - open, declared by hand, holding its monitors - pauses both.
+     * Which incidents pause a monitor is read against Postgres in
+     * MonitorIncidentPausePostgres; here the answer is given.
+     */
+    jest.spyOn(MonitorService, "findOneById").mockImplementation(((findBy: {
+      id: ObjectID;
+    }): Promise<Monitor> => {
+      const monitor: Monitor = monitorStub(findBy.id.toString());
+      monitor.projectId = projectId;
+      monitor.keepMonitoringDuringIncidents = false;
+      monitor.disableActiveMonitoring = false;
+      monitor.disableActiveMonitoringBecauseOfManualIncident = false;
+      return Promise.resolve(monitor);
+    }) as never);
+    jest
+      .spyOn(MonitorIncidentPause, "findIncidentsPausing")
+      .mockImplementation((): Promise<Array<Incident>> => {
+        const incident: Incident = new Incident(new ObjectID(INCIDENT_ID));
+        incident.projectId = projectId;
+        incident.changeMonitorStatusToId = new ObjectID(OFFLINE);
+        return Promise.resolve([incident]);
+      });
+    // Nothing to mark: it puts them in its status (Offline).
+    jest
+      .spyOn(MonitorStatusTimelineService, "findOneBy")
+      .mockResolvedValue(null as never);
+
     await runUpdate({
       monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
       changeMonitorStatusTo: { _id: OFFLINE },
@@ -900,10 +932,37 @@ describe("IncidentService: editing the monitors of an open incident", () => {
 
     expect(statusChanges()).toEqual([[[MONITOR_A, MONITOR_B], DEGRADED]]);
     expect(markMonitorsActive).not.toHaveBeenCalled();
-    expect(disableActiveMonitoring).not.toHaveBeenCalled();
+    /*
+     * Its monitors are worked out again after the status (#11141): paused
+     * time left out of uptime counts again once the incident puts them in
+     * a status.
+     */
+    expect(disableActiveMonitoring).toHaveBeenCalledTimes(1);
+    expect(String(disableActiveMonitoring.mock.calls[0]![0])).toBe(INCIDENT_ID);
     expect(feedMarkdownFor()).toContain(
       "**🔄 Monitor Status Changed**:\n- **From** Offline to Degraded",
     );
+  });
+
+  test("the pause is worked out after the status is put on the monitors (#11141)", async () => {
+    storedIncidents = [storedIncident({ monitorIds: [MONITOR_A] })];
+
+    const order: Array<string> = [];
+    changeMonitorStatus.mockImplementation((): Promise<void> => {
+      order.push("status");
+      return Promise.resolve();
+    });
+    disableActiveMonitoring.mockImplementation((): Promise<void> => {
+      order.push("pause");
+      return Promise.resolve();
+    });
+
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
+      changeMonitorStatusTo: { _id: OFFLINE },
+    });
+
+    expect(order).toEqual(["status", "pause"]);
   });
 
   test("changing the status and adding a monitor puts all of them in the new status at once", async () => {
@@ -1188,7 +1247,8 @@ describe("IncidentService: an update that sends the monitor status without the m
 
     expect(statusChanges()).toEqual([[[MONITOR_A, MONITOR_B], DEGRADED]]);
     expect(markMonitorsActive).not.toHaveBeenCalled();
-    expect(disableActiveMonitoring).not.toHaveBeenCalled();
+    // Worked out again after the status, once (#11141).
+    expect(disableActiveMonitoring).toHaveBeenCalledTimes(1);
     expect(feedMarkdownFor()).toContain("**From** Offline to Degraded");
     expect(feedMarkdownFor()).not.toContain("Monitors Removed");
   });
@@ -1549,5 +1609,64 @@ describe("IncidentService: an update that matches several incidents", () => {
     expect(feedMarkdownFor(SECOND_INCIDENT_ID)).toContain(
       `**🗑️ Monitors Removed**:\n- [search-api](${monitorLink(MONITOR_C)})\n`,
     );
+  });
+});
+
+/*
+ * Pause Monitoring switched (#11141), or the status the incident puts its
+ * monitors in taken away: its monitors are worked out again, as their open
+ * incidents now say - paused or resumed, their time counted or left out -
+ * once per update, whatever else it sends.
+ */
+describe("IncidentService: an update that switches Pause Monitoring or clears the monitor status", () => {
+  test("switching Pause Monitoring off works the incident's monitors out again", async () => {
+    await runUpdate({ pauseMonitoring: false });
+
+    expect(disableActiveMonitoring).toHaveBeenCalledTimes(1);
+    expect(String(disableActiveMonitoring.mock.calls[0]![0])).toBe(INCIDENT_ID);
+    expect(statusChanges()).toEqual([]);
+    expect(markMonitorsActive).not.toHaveBeenCalled();
+  });
+
+  test("switching it back on does too", async () => {
+    await runUpdate({ pauseMonitoring: true });
+
+    expect(disableActiveMonitoring).toHaveBeenCalledTimes(1);
+  });
+
+  test("taking the monitor status away works them out again: no status may leave their paused time out", async () => {
+    await runUpdate({ changeMonitorStatusToId: null });
+
+    expect(disableActiveMonitoring).toHaveBeenCalledTimes(1);
+    expect(String(disableActiveMonitoring.mock.calls[0]![0])).toBe(INCIDENT_ID);
+  });
+
+  test("an update that adds a monitor and switches Pause Monitoring works them out once", async () => {
+    await runUpdate({
+      monitors: [{ _id: MONITOR_A }, { _id: MONITOR_B }],
+      pauseMonitoring: false,
+    });
+
+    expect(disableActiveMonitoring).toHaveBeenCalledTimes(1);
+  });
+
+  test("an update of anything else leaves the monitors alone", async () => {
+    await runUpdate({ title: "Payments are slow" });
+
+    expect(disableActiveMonitoring).not.toHaveBeenCalled();
+    expect(statusChanges()).toEqual([]);
+  });
+
+  test("the same status sent again is no change of the pause", async () => {
+    await runUpdate({ changeMonitorStatusTo: { _id: OFFLINE } });
+
+    expect(disableActiveMonitoring).not.toHaveBeenCalled();
+  });
+
+  test("a failure working them out never fails the update", async () => {
+    disableActiveMonitoring.mockRejectedValue(new Error("Redis is down"));
+
+    await expect(runUpdate({ pauseMonitoring: false })).resolves.not.toThrow();
+    expect(disableActiveMonitoring).toHaveBeenCalledTimes(1);
   });
 });

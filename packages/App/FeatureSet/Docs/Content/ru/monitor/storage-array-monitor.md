@@ -2,9 +2,11 @@
 
 Монитор системы хранения следит за одним массивом хранения и сообщает, когда массив сам поднимает оповещение, у него заканчивается место, он замедляется, теряет оборудование или путь к хосту либо отстаёт с репликацией. Он работает с Pure Storage FlashArray и Pure Storage FlashBlade и читает метрики, которые экспортирует сам массив, — серии Pure `purefa_*` и `purefb_*`, — а собирает их OneUptime Storage Array Agent.
 
+Он также работает с Dell PowerStore (`dell.powerstore`), по сериям Dell `powerstore_*`.
+
 :::cards
 - [Создайте монитор](#создание-монитора-системы-хранения): Шесть шагов в панели управления.
-- [Шаблоны](#готовые-шаблоны-оповещений): Двадцать готовых оповещений, по инциденту на том, хост или компонент.
+- [Шаблоны](#готовые-шаблоны-оповещений): Готовые оповещения, по инциденту на том, хост, специализированное устройство или компонент.
 - [Как устроены серии Pure](#как-устроены-серии-pure): Одно имя метрики, много показателей.
 - [Метрики](#собираемые-метрики): Все серии, по которым монитор может создавать оповещения.
 :::
@@ -87,6 +89,8 @@ flowchart TB
 
 Агент читает конечную точку массива каждые 60 секунд, а тома, хосты и поды — каждые 2 минуты, поэтому в 5-минутном окне всегда есть выборка. Файловые системы и бакеты FlashBlade он читает каждые 5 минут, отсюда 15, а каталоги FlashArray — каждые 30 минут: дайте монитору каталогов окно в 60 минут.
 
+Он читает PowerStore каждые 5 минут, а состояние её кластера — каждые 60 секунд: дайте монитору PowerStore окно в 15 минут.
+
 ## Как устроены серии Pure
 
 Pure помещает несколько показателей в **одно** имя метрики и различает их меткой:
@@ -107,9 +111,13 @@ Pure помещает несколько показателей в **одно** 
 
 В фильтрах монитора и ключах группировки атрибуты агента начинаются с `resource.` (`resource.storage.array.name`, `resource.storage.system`), а собственные метки Pure — нет (`name`, `host`, `component_name`, `dimension`, `space`, `severity`).
 
+## Как устроены серии PowerStore
+
+Экспортёр Dell пишет одно значение на имя метрики, поэтому серии PowerStore не нужен фильтр по меткам. Её метки называют объект: `appliance_id` — специализированное устройство, `name` — часть, том или файловую систему, а `volume_id`, `fc_port_id`, `eth_port_id`, `nas_id` или `volume_group_id` — объект серии производительности. Её серии состояния равны 1, пока всё исправно, и 0 в остальных случаях, поэтому шаблоны срабатывают ниже 1. Её собственные оповещения приходят по syslog, а их шаблоны, мониторы журналов, перечислены после её таблицы ниже.
+
 ## Готовые шаблоны оповещений
 
-OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8 для FlashBlade, — и список **О чём оповещать** предлагает те, что подходят для платформы массива. Каждый строит полный монитор: запрос метрики, её фильтры по меткам, группировку по собственной метке объекта, критерий, который срабатывает, и критерий, который восстанавливает. Пороги — это отправные точки, которые можно изменить.
+OneUptime поставляет 36 шаблонов — 12 для FlashArray, 8 для FlashBlade и 16 для PowerStore, — и список **О чём оповещать** предлагает те, что подходят для платформы массива. Каждый строит полный монитор: запрос метрики, её фильтры по меткам, группировку по собственной метке объекта, критерий, который срабатывает, и критерий, который восстанавливает. Пороги — это отправные точки, которые можно изменить.
 
 Критерий срабатывает, только когда условие выполняется для **каждого** значения в его окне. Монитор, сработавший на пороге ёмкости, задержки, отставания или коэффициента, восстанавливается только на 10 % дальше этого порога, поэтому значение, колеблющееся у порога, не переключает состояние туда и обратно. Шаблоны оповещений, оборудования и подключений срабатывают, когда состояние видно на протяжении всего их 5-минутного окна, и восстанавливаются примерно через 5 минут после того, как оно исчезло.
 
@@ -143,6 +151,37 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | High Read Latency | Производительность | Предупреждение | `purefb_array_performance_latency_usec` с фильтром `dimension=usec_per_read_op` и `protocol=all`, Avg, последние 10 минут | > 10000 мкс (10 мс) по всем протоколам; восстанавливается при ≤ 9000 |
 | File System Near Full | Файловые системы | Предупреждение | `purefb_file_systems_space_bytes` с фильтром `space=available_ratio`, Min по `name`, последние 15 минут | < 0.1 — осталось меньше 10 % выделенного размера файловой системы. Один инцидент на файловую систему; восстанавливается при ≥ 0.11 |
 
+### PowerStore
+
+| Шаблон | Категория | Серьёзность | Что отслеживает | Срабатывает, когда |
+| --- | --- | --- | --- | --- |
+| Array Stopped Reporting | Доступность | Критический | `powerstore_cluster`, Count, последние 10 минут | Нет данных за всё окно — агент, экспортёр Dell или кластер перестали отвечать; восстанавливается, когда данные приходят снова |
+| Capacity Above 80% | Ёмкость | Предупреждение | `powerstore_cap_physical_used_percent`, Max по `appliance_id`, последние 15 минут | > 80 — ёмкость специализированного устройства заполняется; восстанавливается при ≤ 72 |
+| Capacity Above 90% | Ёмкость | Критический | `powerstore_cap_physical_used_percent`, Max по `appliance_id`, последние 15 минут | > 90 — специализированное устройство близко к отказу в записи; восстанавливается при ≤ 81 |
+| High Read Latency | Производительность | Предупреждение | `powerstore_perf_avg_read_latency`, Avg по `appliance_id`, последние 15 минут | > 5000 µs (5 ms); восстанавливается при ≤ 4500 |
+| High Write Latency | Производительность | Предупреждение | `powerstore_perf_avg_write_latency`, Avg по `appliance_id`, последние 15 минут | > 5000 µs (5 ms); восстанавливается при ≤ 4500 |
+| Drive Failed | Оборудование | Критический | `powerstore_hardware_Drive_state`, Min по `name`, последние 10 минут | < 1 — накопитель отказал или извлечён; восстанавливается при ≥ 1 |
+| Node Unhealthy | Оборудование | Критический | `powerstore_hardware_node_state`, Min по `name`, последние 10 минут | < 1 — узел не в состоянии Healthy; восстанавливается при ≥ 1 |
+| Power Supply Unhealthy | Оборудование | Предупреждение | `powerstore_hardware_Power_Supply_state`, Min по `name`, последние 10 минут | < 1 — блок питания отказал или потерял питание; восстанавливается при ≥ 1 |
+| Fan Unhealthy | Оборудование | Предупреждение | `powerstore_hardware_Fan_state`, Min по `name`, последние 10 минут | < 1 — вентилятор отказал; восстанавливается при ≥ 1 |
+| Battery Unhealthy | Оборудование | Предупреждение | `powerstore_hardware_Battery_state`, Min по `name`, последние 10 минут | < 1 — в модуле резервного питания от батареи неисправность; восстанавливается при ≥ 1 |
+| Drive Wearing Out | Оборудование | Предупреждение | `powerstore_wear_metrics_by_drive`, Min по `name`, последние 15 минут | < 10 — у накопителя осталось меньше 10 % ресурса; восстанавливается при ≥ 11 |
+| NAS Server Not Started | Файловые системы | Предупреждение | `powerstore_nas_server_operational_status`, Max по `name`, последние 10 минут | < 1 — NAS-сервер остановлен или работает в состоянии деградации; восстанавливается при ≥ 1 |
+| Volume Not Ready | Состояние системы хранения | Предупреждение | `powerstore_volume_state`, Max по `name`, последние 15 минут | < 1 — том в состоянии offline; восстанавливается при ≥ 1 |
+| File System Near Full | Файловые системы | Предупреждение | `powerstore_filesystem_logical_used_percent`, Max по `name`, последние 15 минут | > 90 — файловая система почти заполнена; восстанавливается при ≤ 81 |
+| Cluster Not Configured | Состояние системы хранения | Предупреждение | `powerstore_cluster`, Max, последние 10 минут | < 1 — кластер не в состоянии Configured; восстанавливается при ≥ 1 |
+| Metro Witness Not Connected | Репликация | Предупреждение | `powerstore_metro_witness_status`, Min по `name`, последние 10 минут | > 0 — Metro-свидетель не подключён; восстанавливается, когда он снова в состоянии OK |
+
+### Оповещения PowerStore по syslog
+
+Собственные оповещения PowerStore приходят журналами, поэтому их шаблоны — это мониторы типа **Журналы**, которые предлагаются на странице **Рекомендации** массива в разделе **Оповещения массива**. Каждый открывает одно оповещение на оповещение PowerStore, сгруппированное по `powerstore.resource.name` и `powerstore.alert.id`, и разрешает его, когда PowerStore снимает оповещение:
+
+| Шаблон | Важность | Открывается на строке с | Разрешается по |
+| --- | --- | --- | --- |
+| Critical Array Alert | Критический | `powerstore.alert.severity=Critical` | `powerstore.alert.state=Cleared` |
+| Major Array Alert | Предупреждение | `powerstore.alert.severity=Major` | `powerstore.alert.state=Cleared` |
+| Port Link Down | Предупреждение | `powerstore.event.code=0x00307404` | `powerstore.alert.state=Cleared` |
+
 **Серьёзность** — это метка, которую показывает список выбора. Инцидент и оповещение, которые создаёт шаблон, начинаются с самой высокой серьёзности инцидентов и оповещений вашего проекта; измените их в критерии.
 
 - **Array Stopped Reporting** считает серию идентификации платформы (`purefa_info` или `purefb_info`), которую каждая конечная точка, опрашиваемая агентом, экспортирует при каждом считывании. Когда данные перестают поступать, остальным шаблонам не с чем сравнивать, и они сохраняют свой последний статус, поэтому сообщает об этом именно этот шаблон.
@@ -163,6 +202,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | --- | --- | --- | --- | --- |
 | `purefa_alerts_open` | — | FlashArray | `count` | Одна серия на каждое открытое оповещение массива (значение 1) с метками `severity` (`critical`, `warning`, `info`, `hidden`), `category`, `code`, `component_type` и `summary` |
 | `purefb_alerts_open` | — | FlashBlade | `count` | Одна серия на каждое открытое оповещение FlashBlade (значение 1) с метками `severity` (`info`, `warning`, `critical`), `code`, `component_name`, `component_type`, `summary` и `kburl` (статья базы знаний Pure) |
+| `powerstore_cluster` | — | PowerStore | `count` | 1, пока кластер PowerStore в состоянии Configured (сформирован и обслуживает), 0 в любом другом состоянии: Configuring, Expanding, Removing, Clustering_Failed или Unconfigured. |
 
 ### Ёмкость
 
@@ -176,6 +216,13 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefb_array_space_utilization` | `type=array` | FlashBlade | `%` | Доля полезной ёмкости FlashBlade, которая используется |
 | `purefb_array_space_bytes` | `type=array`, `space=empty` | FlashBlade | `bytes` | Неиспользуемая ёмкость FlashBlade |
 | `purefb_array_space_data_reduction_ratio` | `type=array` | FlashBlade | `ratio` | Сокращение данных по всему FlashBlade |
+| `powerstore_cap_physical_used_percent` | — | PowerStore | `%` | Доля используемой физической ёмкости каждого специализированного устройства, в процентах: физически использованное, делённое на всю физическую ёмкость, по ежедневной сводке пространства PowerStore. PowerStore сам выдаёт оповещения о ёмкости начиная с 70 %. Сгруппируйте по appliance_id. |
+| `powerstore_cap_last_physical_total` | — | PowerStore | `bytes` | Полезная физическая ёмкость каждого специализированного устройства в байтах. |
+| `powerstore_cap_last_physical_used` | — | PowerStore | `bytes` | Физическая ёмкость, которую использует каждое специализированное устройство, в байтах, после дедупликации и сжатия. Следите за трендом, чтобы предсказать, когда устройство заполнится. |
+| `powerstore_cap_last_logical_provisioned` | — | PowerStore | `bytes` | Логическая ёмкость, выделенная на каждом специализированном устройстве, в байтах: размер всех томов, файловых систем и vVol на нём, который может намного превышать его физическую ёмкость. |
+| `powerstore_cap_last_logical_used` | — | PowerStore | `bytes` | Данные, записанные хостами на каждое специализированное устройство, в байтах, до дедупликации и сжатия. |
+| `powerstore_cap_last_data_reduction` | — | PowerStore | `ratio` | Дедупликация и сжатие на каждом специализированном устройстве, например 3.4 для 3.4:1. Устойчивое падение означает, что новые данные плохо сокращаются: это зашифрованные или уже сжатые данные. |
+| `powerstore_cap_last_efficiency_ratio` | — | PowerStore | `ratio` | Общая эффективность каждого специализированного устройства: сокращение данных вместе с экономией от снимков и тонкого выделения ресурсов. |
 
 ### Производительность
 
@@ -197,6 +244,13 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefb_array_performance_throughput_iops` | `dimension=writes_per_sec`, `protocol=all` | FlashBlade | `ops/s` | Операций записи в секунду по всем протоколам |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=read_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Байт прочитано в секунду по всем протоколам |
 | `purefb_array_performance_bandwidth_bytes` | `dimension=write_bytes_per_sec`, `protocol=all` | FlashBlade | `bytes/s` | Байт записано в секунду по всем протоколам |
+| `powerstore_perf_avg_read_latency` | — | PowerStore | `µs` | Средняя задержка чтения на каждом специализированном устройстве, в микросекундах, по последней пятиминутной выборке PowerStore. Чтения PowerStore обычно завершаются намного быстрее 1 ms. |
+| `powerstore_perf_avg_write_latency` | — | PowerStore | `µs` | Средняя задержка записи на каждом специализированном устройстве, в микросекундах. |
+| `powerstore_perf_avg_read_iops` | — | PowerStore | `ops/s` | Операции чтения в секунду на каждом специализированном устройстве. |
+| `powerstore_perf_avg_write_iops` | — | PowerStore | `ops/s` | Операции записи в секунду на каждом специализированном устройстве. |
+| `powerstore_perf_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Байты, прочитанные за секунду на каждом специализированном устройстве. |
+| `powerstore_perf_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Байты, записанные за секунду на каждом специализированном устройстве. |
+| `powerstore_perf_avg_io_workload_cpu_utilization` | — | PowerStore | `%` | Доля занятых ядер CPU, которые каждое специализированное устройство выделяет под ввод-вывод хранилища, в процентах. Устойчиво высокие значения означают, что устройство близко к пределу нагрузки, которую оно может обслужить. |
 
 ### Тома
 
@@ -211,6 +265,20 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefa_volume_space_bytes` | `space=total_provisioned` | FlashArray | `bytes` | Размер каждого тома, как его видят хосты |
 | `purefa_volume_space_bytes` | `space=total_physical` | FlashArray | `bytes` | Физическое место, которое занимает каждый том после сокращения данных |
 | `purefa_volume_space_data_reduction_ratio` | — | FlashArray | `ratio` | Коэффициент сокращения данных каждого тома |
+| `powerstore_volume_state` | — | PowerStore | `count` | 1, пока том Ready, 0, пока он Initializing, Offline или удаляется. Сгруппируйте по name, чтобы найти том, до которого не могут достучаться хосты. |
+| `powerstore_volume_size` | — | PowerStore | `bytes` | Размер каждого тома, каким его видят хосты, в байтах. |
+| `powerstore_volume_logical_used` | — | PowerStore | `bytes` | Данные, записанные хостами в каждый том, в байтах, до дедупликации и сжатия. |
+| `powerstore_metricVolume_avg_read_latency` | — | PowerStore | `µs` | Средняя задержка чтения каждого тома в микросекундах. Сгруппируйте по volume_id, где хранится имя тома, чтобы найти медленный том. |
+| `powerstore_metricVolume_avg_write_latency` | — | PowerStore | `µs` | Средняя задержка записи каждого тома в микросекундах. |
+| `powerstore_metricVolume_avg_read_iops` | — | PowerStore | `ops/s` | Операции чтения в секунду каждого тома. |
+| `powerstore_metricVolume_avg_write_iops` | — | PowerStore | `ops/s` | Операции записи в секунду каждого тома. |
+| `powerstore_metricVolume_avg_read_bandwidth` | — | PowerStore | `bytes/s` | Байты, прочитанные за секунду с каждого тома. |
+| `powerstore_metricVolume_avg_write_bandwidth` | — | PowerStore | `bytes/s` | Байты, записанные за секунду в каждый том. |
+| `powerstore_volumegroup_logical_provisioned` | — | PowerStore | `bytes` | Ёмкость, выделенная томам каждой группы томов, в байтах. Сгруппируйте по name. |
+| `powerstore_volumegroup_logical_used` | — | PowerStore | `bytes` | Данные, записанные хостами в тома каждой группы томов, в байтах, до дедупликации и сжатия. |
+| `powerstore_metricVg_avg_read_latency` | — | PowerStore | `µs` | Средняя задержка чтения по томам каждой группы томов, в микросекундах. Сгруппируйте по volume_group_id, где хранится имя группы. |
+| `powerstore_metricVg_avg_write_latency` | — | PowerStore | `µs` | Средняя задержка записи по томам каждой группы томов, в микросекундах. |
+| `powerstore_metricVg_avg_total_iops` | — | PowerStore | `ops/s` | Операции чтения и записи в секунду по томам каждой группы томов. |
 
 ### Хосты
 
@@ -230,6 +298,7 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefa_pod_replica_links_lag_average_msec` | — | FlashArray | `ms` | Среднее отставание репликации каждой связи реплик пода |
 | `purefa_pod_performance_replication_bandwidth_bytes` | `direction=total` | FlashArray | `bytes/s` | Трафик репликации каждого пода с метками `direction` и `dimension` |
 | `purefa_pod_performance_latency_usec` | `dimension=usec_per_mirrored_write_op` | FlashArray | `µs` | Средняя задержка зеркалированной записи каждого пода ActiveCluster |
+| `powerstore_metro_witness_status` | — | PowerStore | `count` | Состояние каждого Metro-свидетеля: 0 OK, 1 частично подключён, 2 отключён, 3 удаляется, 4 инициализируется. Выше 0 сеанс Metro может не переключиться на резерв сам. |
 
 ### Оборудование
 
@@ -240,6 +309,23 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefa_drive_capacity_bytes` | — | FlashArray | `bytes` | Сырая ёмкость каждого диска с меткой его `component_status` (`healthy`, `failed`, `missing`, `recovering`, `unhealthy`, `empty`, ...) и типом |
 | `purefa_network_interface_performance_errors` | `dimension=total_errors_per_sec` | FlashArray | `errors/s` | Ошибок в секунду на каждом интерфейсе Ethernet и Fibre Channel — постоянные ошибки обычно означают плохой кабель, оптику или порт коммутатора |
 | `purefb_hardware_health` | — | FlashBlade | — | Состояние каждого аппаратного компонента (блейды, модули фабрики, блоки питания, вентиляторы, ...): 1 = исправен, 2 = не используется, 0 = неисправен. Берите минимум по `name` |
+| `powerstore_hardware_node_state` | — | PowerStore | `count` | 1, пока узел специализированного устройства Healthy, 0 в любом другом состоянии, которое называет его метка state (Failed, Disconnected, Initializing...). Сгруппируйте по name и appliance_id. |
+| `powerstore_hardware_Drive_state` | — | PowerStore | `count` | 1, пока накопитель Healthy, 0, когда он отказал, извлечён или не готов. Сгруппируйте по name, чтобы открывать по инциденту на накопитель. |
+| `powerstore_wear_metrics_by_drive` | — | PowerStore | `%` | Доля оставшегося ресурса записи каждого накопителя, в процентах. Накопитель около 0 близок к концу срока службы: запланируйте его замену. |
+| `powerstore_hardware_Fan_state` | — | PowerStore | `count` | 1, пока модуль вентиляторов узла Healthy, 0, когда он отказал или извлечён. |
+| `powerstore_hardware_Power_Supply_state` | — | PowerStore | `count` | 1, пока блок питания узла Healthy, 0, когда он отказал, потерял входное питание или отключён. |
+| `powerstore_hardware_Battery_state` | — | PowerStore | `count` | 1, пока модуль резервного питания от батареи узла Healthy, 0, когда в нём неисправность или он отключён. |
+| `powerstore_fc_port_is_link_up` | — | PowerStore | `count` | 1, пока связь на порту Fibre Channel установлена, 0, пока её нет, а у порта без подключённого кабеля её нет всегда. Сгруппируйте по fc_port_id, где хранится имя порта. |
+| `powerstore_eth_port_is_link_up` | — | PowerStore | `count` | 1, пока связь на порту Ethernet установлена, 0, пока её нет. Сгруппируйте по eth_port_id, где хранится имя порта. |
+| `powerstore_metricFcPort_avg_read_latency` | — | PowerStore | `µs` | Средняя задержка чтения через каждый порт Fibre Channel, в микросекундах. |
+| `powerstore_metricFcPort_avg_write_latency` | — | PowerStore | `µs` | Средняя задержка записи через каждый порт Fibre Channel, в микросекундах. |
+| `powerstore_metricFcPort_avg_total_iops` | — | PowerStore | `ops/s` | Операции чтения и записи в секунду через каждый порт Fibre Channel. |
+| `powerstore_metricFcPort_avg_total_bandwidth` | — | PowerStore | `bytes/s` | Байты, прочитанные и записанные за секунду через каждый порт Fibre Channel. |
+| `powerstore_metricFcPort_avg_invalid_crc_count_ps` | — | PowerStore | `errors/s` | Кадры с неверной CRC, полученные за секунду на каждом порту Fibre Channel. Устойчивые ошибки обычно означают плохой кабель, оптику или порт коммутатора. |
+| `powerstore_metricFcPort_avg_link_failure_count_ps` | — | PowerStore | `errors/s` | Сбои связи за секунду на каждом порту Fibre Channel. Любой из них — повод проверить кабель, оптику и коммутатор порта. |
+| `powerstore_metricEthPort_avg_bytes_rx_ps` | — | PowerStore | `bytes/s` | Байты, полученные за секунду на каждом порту Ethernet. |
+| `powerstore_metricEthPort_avg_bytes_tx_ps` | — | PowerStore | `bytes/s` | Байты, переданные за секунду на каждом порту Ethernet. |
+| `powerstore_metricEthPort_avg_pkt_rx_crc_error_ps` | — | PowerStore | `errors/s` | Пакеты с ошибкой CRC, полученные за секунду на каждом порту Ethernet. Устойчивые ошибки обычно означают плохой кабель, оптику или порт коммутатора. |
 
 ### Файловые системы
 
@@ -249,6 +335,17 @@ OneUptime поставляет 20 шаблонов — 12 для FlashArray и 8
 | `purefb_file_systems_performance_latency_usec` | `dimension=usec_per_write_op` | FlashBlade | `µs` | Средняя задержка записи каждой файловой системы |
 | `purefb_file_systems_space_bytes` | `space=total_physical` | FlashBlade | `bytes` | Физическое место, которое занимает каждая файловая система |
 | `purefb_file_systems_space_bytes` | `space=available_ratio` | FlashBlade | `ratio` | Доля выделенного размера каждой файловой системы, которая ещё свободна, от 0 до 1 — около 0 файловая система вот-вот исчерпает свою квоту |
+| `powerstore_nas_server_operational_status` | — | PowerStore | `count` | 1, пока NAS-сервер в состоянии Started, 0, пока он Stopped, Starting, Stopping, переключён на резервный узел или Degraded (работает без своего резервного узла). Сгруппируйте по name. |
+| `powerstore_metricNas_avg_read_latency` | — | PowerStore | `µs` | Средняя задержка чтения, обслуживаемого каждым NAS-сервером, в микросекундах. Сгруппируйте по nas_id, где хранится имя сервера. |
+| `powerstore_metricNas_avg_write_latency` | — | PowerStore | `µs` | Средняя задержка записи, обслуживаемой каждым NAS-сервером, в микросекундах. |
+| `powerstore_metricNas_avg_total_iops` | — | PowerStore | `ops/s` | Операции чтения и записи в секунду, обслуживаемые каждым NAS-сервером. |
+| `powerstore_filesystem_logical_used_percent` | — | PowerStore | `%` | Доля используемого размера каждой файловой системы, в процентах: логически использованное, делённое на выделенный размер. Сгруппируйте по name. |
+| `powerstore_filesystem_logical_provisioned` | — | PowerStore | `bytes` | Размер каждой файловой системы, каким его видят клиенты, в байтах. |
+| `powerstore_filesystem_logical_used` | — | PowerStore | `bytes` | Данные, записанные клиентами в каждую файловую систему, в байтах. |
+| `powerstore_metricFilesystem_avg_read_latency` | — | PowerStore | `µs` | Средняя задержка чтения из каждой файловой системы, в микросекундах. Сгруппируйте по name. |
+| `powerstore_metricFilesystem_avg_write_latency` | — | PowerStore | `µs` | Средняя задержка записи в каждую файловую систему, в микросекундах. |
+| `powerstore_metricFilesystem_avg_read_iops` | — | PowerStore | `ops/s` | Операции чтения в секунду каждой файловой системы. |
+| `powerstore_metricFilesystem_avg_write_iops` | — | PowerStore | `ops/s` | Операции записи в секунду каждой файловой системы. |
 
 ### Бакеты
 

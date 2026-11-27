@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 66171,
     "untranslated": 8293
   },
   "sameAsEnglish": [
@@ -263,6 +263,7 @@
     "Portugal (+351)",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "PowerStore",
     "Powered by OneUptime",
     "PromQL",
     "Prompt",
