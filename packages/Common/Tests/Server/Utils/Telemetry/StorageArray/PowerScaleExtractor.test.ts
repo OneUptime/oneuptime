@@ -313,6 +313,9 @@ describe("its nodes", () => {
     // A port nobody cabled is down: no problem by itself, as on a PowerStore.
     expect(isUnhealthyComponentStatus("down", system)).toBe(false);
     expect(isUnhealthyComponentStatus("up", system)).toBe(false);
+    // A health OneFS cannot tell needs a look, never more.
+    expect(isUnhealthyComponentStatus("unknown", system)).toBe(true);
+    expect(isCriticalComponentStatus("unknown", system)).toBe(false);
   });
 });
 
@@ -844,12 +847,12 @@ describe("series by series", () => {
     expect(f.snapshot().sawAlerts).toBe(true);
   });
 
-  test("a node OneFS reports down is offline, as the cluster's list of offline nodes says; attention and invalid as OneFS words them", () => {
+  test("a node OneFS reports down is offline, as the cluster's list of offline nodes says; invalid is unknown, attention OneFS's own word", () => {
     for (const [health, status] of [
       [0, "healthy"],
       [1, "attention"],
       [2, "offline"],
-      [3, "invalid"],
+      [3, "unknown"],
     ] as Array<[number, string]>) {
       const f: Feed = newFeed();
       f.feed("powerscale_node_health", { node: "lab-2" }, health);

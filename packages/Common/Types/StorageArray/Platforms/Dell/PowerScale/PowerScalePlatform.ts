@@ -254,17 +254,18 @@ export const POWERSCALE_KIND_PAGES: Readonly<
 
 /*
  * The statuses the extractor writes, lowercased: a node's health (healthy,
- * attention, invalid, and offline for a node OneFS reports down or the
- * cluster lists as offline), a drive's status as OneFS reports it
+ * attention, unknown for one OneFS reports invalid, and offline for a node
+ * OneFS reports down or the cluster lists as offline), a drive's status as
+ * OneFS reports it
  * (healthy, l3, smartfail, dead, replace, stalled, empty, new, ...), a
  * port's state (up, down, disabled) and where a quota stands against its
  * limits (ok, over_advisory_limit, over_soft_limit, full).
  *
  * The pages word a status without asking which platform wrote it
  * (StorageArrayStatusUtil), so these agree with the other platforms' words:
- * a node out of the cluster is offline, as an ONTAP aggregate is, and a
- * port's link that is down is no problem by itself, as on a PowerStore -
- * many ports are never cabled.
+ * a node out of the cluster is offline, as an ONTAP aggregate is, a health
+ * nobody can tell is unknown, and a port's link that is down is no problem
+ * by itself, as on a PowerStore - many ports are never cabled.
  */
 export const POWERSCALE_COMPONENT_STATUSES: StorageArrayPlatform["componentStatuses"] =
   {
@@ -273,7 +274,6 @@ export const POWERSCALE_COMPONENT_STATUSES: StorageArrayPlatform["componentStatu
       "attention",
       "over_soft_limit",
       "over_advisory_limit",
-      "invalid",
       "smartfail",
       "replace",
       "sed_error",

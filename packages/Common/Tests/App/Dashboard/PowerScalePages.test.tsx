@@ -375,6 +375,8 @@ describe("a PowerScale cluster's words for its parts", () => {
     expect(part("attention").severity).toBe("warning");
     // A node OneFS reports down is written offline (PowerScaleExtractor).
     expect(part("offline").severity).toBe("critical");
+    // And one whose health OneFS reports invalid, unknown: amber, never red.
+    expect(part("unknown").severity).toBe("warning");
     expect(part("ok").severity).toBeNull();
   });
 

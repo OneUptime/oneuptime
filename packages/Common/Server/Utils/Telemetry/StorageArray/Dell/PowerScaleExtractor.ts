@@ -44,14 +44,18 @@ const HEALTH_STATUSES: Record<number, string> = {
 };
 
 /*
- * A node's status by its health. A node OneFS reports down is out of the
- * cluster: offline, the word the cluster's own list of offline nodes gives
- * it, and the one every platform's pages draw red. Down is a port's word,
- * whose link nobody may have cabled (POWERSCALE_COMPONENT_STATUSES).
+ * A node's status by its health, in the words every platform's pages share
+ * (StorageArrayStatusUtil reads them without asking which platform wrote
+ * one). A node OneFS reports down is out of the cluster: offline, the word
+ * the cluster's own list of offline nodes gives it, red. Down is a port's
+ * word, whose link nobody may have cabled. A health OneFS reports invalid
+ * is one it cannot tell: unknown, amber, as LibreNMS and Checkmk read it -
+ * invalid is a PowerMax SRDF pair's word, and critical there.
  */
 const NODE_STATUSES: Record<number, string> = {
   ...HEALTH_STATUSES,
   2: "offline",
+  3: "unknown",
 };
 
 // ISILON-MIB quotaType.
