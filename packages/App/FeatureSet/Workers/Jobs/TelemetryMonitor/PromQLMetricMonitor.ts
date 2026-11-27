@@ -4,7 +4,7 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
-import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
+import TelemetryCheckWindow from "Common/Types/Monitor/TelemetryCheckWindow";
 import MetricMonitorResponse from "Common/Types/Monitor/MetricMonitor/MetricMonitorResponse";
 import MetricSeriesResult from "Common/Types/Monitor/MetricMonitor/MetricSeriesResult";
 import MonitorStepMetricMonitor, {
@@ -274,7 +274,7 @@ export const monitorPromQLMetric: (
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       input.metricMonitor.rollingTime || RollingTime.Past1Minute,
       input.evaluateUntil,
     );

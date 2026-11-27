@@ -504,16 +504,21 @@ class KeyPredicateBuilder {
     if (value instanceof InBetween) {
       const start: unknown = value.startValue;
       const end: unknown = value.endValue;
+      // A range that leaves out its end (InBetween.includesEnd) stops before it.
+      const endOperator: string = value.includesEnd ? "<=" : "<";
 
       if (isNumericValue(start) && isNumericValue(end)) {
         return this.join(
-          [this.compareNumeric(">=", start), this.compareNumeric("<=", end)],
+          [
+            this.compareNumeric(">=", start),
+            this.compareNumeric(endOperator, end),
+          ],
           "AND",
         );
       }
 
       return this.join(
-        [this.compareText(">=", start), this.compareText("<=", end)],
+        [this.compareText(">=", start), this.compareText(endOperator, end)],
         "AND",
       );
     }

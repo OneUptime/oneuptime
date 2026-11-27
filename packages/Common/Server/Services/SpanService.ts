@@ -32,6 +32,7 @@ import ModelPermission, {
 import Query from "../Types/AnalyticsDatabase/Query";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import BadDataException from "../../Types/Exception/BadDataException";
+import MinuteRollupRange from "../Utils/AnalyticsDatabase/MinuteRollupRange";
 
 /**
  * Columns the proj_hist_by_minute projection can answer with. If a count
@@ -174,10 +175,11 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
    *
    * Trade-off: time bounds get rounded to the minute, so the count can be
    * inflated by spans that started in the same minute as the boundary, and
-   * the projection cannot apply the retention read filter either. That is
-   * fine for a threshold, which is what the projection serves. An exact
+   * the projection cannot apply the retention read filter either. An exact
    * count is a total the traces explorer prints beside its list, where an
    * extra minute of spans reads as a wrong total — so it reads the table.
+   * So is a telemetry check's window (MinuteRollupRange): rounded, a Traces
+   * check counted the minute it shared with the next check twice (#11334).
    */
   public override toCountStatement(countBy: CountBy<Span>): Statement {
     if (countBy.exact) {
@@ -239,16 +241,25 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       return null;
     }
 
+    // A check's window is counted exactly: whole minutes only.
+    if (!MinuteRollupRange.canServe(startTimeFilter)) {
+      return null;
+    }
+
     const statement: Statement = SQL`SELECT count() AS count FROM ${databaseName}.${this.model.tableName} WHERE projectId = ${{
       type: TableColumnType.ObjectID,
       value: projectId,
     }} AND toStartOfMinute(startTime) >= toStartOfMinute(${{
       type: TableColumnType.Date,
       value: startValue,
-    }}) AND toStartOfMinute(startTime) <= toStartOfMinute(${{
-      type: TableColumnType.Date,
-      value: endValue,
-    }})`;
+    }}) AND toStartOfMinute(startTime) `;
+    statement.append(MinuteRollupRange.getEndOperator(startTimeFilter));
+    statement.append(
+      SQL` toStartOfMinute(${{
+        type: TableColumnType.Date,
+        value: endValue,
+      }})`,
+    );
 
     if (query["isRootSpan"] !== undefined) {
       statement.append(
@@ -461,6 +472,11 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       return null;
     }
 
+    // A check's window is read exactly: whole minutes only (MinuteRollupRange).
+    if (!MinuteRollupRange.canServe(startTimeFilter)) {
+      return null;
+    }
+
     if (!this.database) {
       this.useDefaultDatabase();
     }
@@ -508,7 +524,11 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
       }} AND toStartOfMinute(s.startTime) >= toStartOfMinute(${{
         type: TableColumnType.Date,
         value: startValue,
-      }}) AND toStartOfMinute(s.startTime) <= toStartOfMinute(${{
+      }}) AND toStartOfMinute(s.startTime) `,
+    );
+    statement.append(MinuteRollupRange.getEndOperator(startTimeFilter));
+    statement.append(
+      SQL` toStartOfMinute(${{
         type: TableColumnType.Date,
         value: endValue,
       }})`,
@@ -711,12 +731,14 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
   }
 
   /*
-   * The groups the monitor's spans were in between `since` and `until`,
-   * the most recently seen first, at most `limit`: what a grouped monitor
-   * expects to keep hearing from (TraceGroupAbsence). A group whose every
-   * value is empty is none - a span that names no install is no install.
-   * With `contextAttributes`, each group carries the last value its spans
-   * gave each of them (a quiet device's name and model, #9925).
+   * The groups the monitor's spans were in from `since` up to `until`, not
+   * included, the most recently seen first, at most `limit`: what a grouped
+   * monitor expects to keep hearing from (TraceGroupAbsence). `until` is
+   * where the check's window starts, and the window holds its start
+   * (TelemetryCheckWindow), so the two never share a span. A group whose
+   * every value is empty is none - a span that names no install is no
+   * install. With `contextAttributes`, each group carries the last value its
+   * spans gave each of them (a quiet device's name and model, #9925).
    */
   @CaptureSpan()
   public async findRecentAttributeGroups(input: {
@@ -731,7 +753,9 @@ export class SpanService extends AnalyticsDatabaseService<Span> {
     const query: Query<Span> = await this.readableQuery({
       query: {
         ...input.query,
-        startTime: new InBetween(input.since, input.until),
+        startTime: new InBetween(input.since, input.until, {
+          includesEnd: false,
+        }),
       },
       props: input.props,
     });

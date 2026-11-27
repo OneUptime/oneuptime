@@ -125,7 +125,7 @@ import MonitorStepMetricMonitor, {
 import AggregationInterval from "Common/Types/BaseDatabase/AggregationInterval";
 import MetricWholeWindow from "Common/Utils/Metrics/MetricWholeWindow";
 import MetricLatestReading from "Common/Utils/Metrics/MetricLatestReading";
-import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
+import TelemetryCheckWindow from "Common/Types/Monitor/TelemetryCheckWindow";
 import RollingTime from "Common/Types/RollingTime/RollingTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -887,14 +887,22 @@ export const processTelemetryMonitorEvaluationFromQueue: (
     });
   }
 
-  // Its log entry and the root cause of what it opens say which window it judged.
+  /*
+   * Its log entry and the root cause of what it opens say which window it
+   * judged, and that it held its start and not its end, as every read of
+   * the check did (TelemetryCheckWindow, #11334).
+   */
+  const judgedWindow: InBetween<Date> = TelemetryCheckWindow.from(
+    new Date(plan.evaluateUntil.getTime() - Math.max(0, windowInMs)),
+    plan.evaluateUntil,
+  );
+
   await MonitorResourceUtil.monitorResource(response, {
     evaluationStartedAtMs: evaluationStartedAtMs,
     judgedWindow: {
-      startsAt: new Date(
-        plan.evaluateUntil.getTime() - Math.max(0, windowInMs),
-      ),
-      endsAt: plan.evaluateUntil,
+      startsAt: judgedWindow.startValue,
+      endsAt: judgedWindow.endValue,
+      includesEnd: judgedWindow.includesEnd,
     },
   });
 };
@@ -2174,6 +2182,8 @@ export const monitorLlm: MonitorLlmFunction = async (data: {
     projectId: data.projectId,
     startTime: window.startValue,
     endTime: window.endValue,
+    // Its start and not its end, as every check's window (TelemetryCheckWindow).
+    includesEnd: window.includesEnd,
     serviceIds:
       config.telemetryServiceIds.length > 0
         ? config.telemetryServiceIds
@@ -2460,7 +2470,7 @@ export const monitorMetric: MonitorMetricFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       metricMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -2974,7 +2984,7 @@ export const monitorKubernetes: MonitorKubernetesFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       kubernetesMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -3255,7 +3265,7 @@ export const monitorDocker: MonitorDockerFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       dockerMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -3443,7 +3453,7 @@ export const monitorHost: MonitorHostFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       hostMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -3638,7 +3648,7 @@ export const monitorPodman: MonitorPodmanFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       podmanMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -3833,7 +3843,7 @@ export const monitorProxmox: MonitorProxmoxFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       proxmoxMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -4071,7 +4081,7 @@ export const monitorOpenStack: MonitorOpenStackFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       openstackMonitorConfig.rollingTime || RollingTime.Past15Minutes,
       data.evaluateUntil,
     );
@@ -4317,7 +4327,7 @@ export const monitorVMware: MonitorVMwareFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       vmwareMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -4552,7 +4562,7 @@ export const monitorXcpNg: MonitorXcpNgFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       xcpNgMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -4775,7 +4785,7 @@ export const monitorIoT: MonitorIoTFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       iotMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -5036,7 +5046,7 @@ export const monitorDockerSwarm: MonitorDockerSwarmFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       dockerSwarmMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -5348,7 +5358,7 @@ export const monitorCeph: MonitorCephFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       cephMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -5579,7 +5589,7 @@ export const monitorStorageArray: MonitorStorageArrayFunction = async (data: {
   }
 
   const startAndEndDate: InBetween<Date> =
-    RollingTimeUtil.convertToStartAndEndDate(
+    TelemetryCheckWindow.ofRollingTime(
       storageArrayMonitorConfig.rollingTime || RollingTime.Past1Minute,
       data.evaluateUntil,
     );
@@ -5844,11 +5854,9 @@ export const monitorLogs: MonitorLogsFunction = async (data: {
      * groups still open, and told which ones a log has closed.
      */
     if (MonitorStepLogMonitorUtil.isResolvedByLog(logQuery)) {
+      // The same window as the logs it counts: the same clock read.
       const resolvedByQuery: Query<Log> =
-        MonitorStepLogMonitorUtil.toResolvedByQuery(
-          logQuery,
-          data.evaluateUntil,
-        );
+        MonitorStepLogMonitorUtil.toResolvedByQuery(logQuery, evaluateUntil);
       resolvedByQuery.projectId = data.projectId;
 
       return monitorUnresolvedLogGroups({
