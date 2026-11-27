@@ -21,6 +21,7 @@ import {
 } from "../../../Types/Cloud/CloudCostReport";
 import {
   CloudCostReportText,
+  CloudCostReportTextRow,
   formatCloudCostDays,
   formatCloudCostMoney,
   formatCloudCostMonth,
@@ -535,9 +536,11 @@ describe("the report as written", () => {
     );
     expect(text.sections[0]!.title).toBe("By cost group");
     expect(
-      text.sections[0]!.rows.map((row: { name: string; tone?: string }) => {
-        return [row.name, row.tone];
-      }),
+      text.sections[0]!.rows.map(
+        (row: CloudCostReportTextRow): Array<string | undefined> => {
+          return [row.name, row.tone];
+        },
+      ),
     ).toEqual([
       ["Payments", "up"],
       ["Data", "flat"],
