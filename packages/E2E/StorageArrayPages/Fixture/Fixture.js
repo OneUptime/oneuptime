@@ -599,7 +599,13 @@ function matches(record, query) {
 }
 
 const store = {
-  StorageArray: [flashArray, flashBlade, acmeArray, ontapCluster, fsxFileSystem],
+  StorageArray: [
+    flashArray,
+    flashBlade,
+    acmeArray,
+    ontapCluster,
+    fsxFileSystem,
+  ],
   StorageArrayResource: inventory,
   IncidentState: [
     { _id: uuid("50000000", 1), name: "Identified", order: 1 },
@@ -1074,6 +1080,19 @@ async function handleApi(method, options) {
   // When OneUptime itself was not receiving: never, here.
   if (method === "POST" && parsed.pathname.endsWith("/receiving-gaps")) {
     return ok({ gaps: [] });
+  }
+
+  /*
+   * Which recommended monitors the project has made already: the server
+   * answers it (POST /monitor/recommendation-coverage, 5776fa137e4) for the
+   * Recommendations badge and a part's alerts card. This project has made
+   * none, so every template reads "not set up", as before.
+   */
+  if (
+    method === "POST" &&
+    parsed.pathname.endsWith("/monitor/recommendation-coverage")
+  ) {
+    return ok({ covered: {} });
   }
 
   /*
