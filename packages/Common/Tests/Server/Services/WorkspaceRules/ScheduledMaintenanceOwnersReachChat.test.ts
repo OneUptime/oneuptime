@@ -202,6 +202,29 @@ describe("the owners an event is created with follow Scheduled Maintenance Creat
     ]);
   });
 
+  test("REGRESSION (#11223): a recurring event's template owners, copied on once its create returns, follow Created, and a rule naming them matches it", async () => {
+    world.rules = [
+      makeRule({
+        name: "Platform's maintenance",
+        eventType: NotificationRuleEventType.ScheduledMaintenance,
+        filters: [ownedBy([PLATFORM_TEAM])],
+        createsChannel: false,
+        existingChannels: EXISTING_CHANNEL.name,
+      }),
+    ];
+
+    // ScheduleRecurringEvents says the template's owners come right after the create.
+    await world.createScheduledMaintenance({
+      callerAdds: { teams: [PLATFORM_TEAM], users: [OWNER] },
+    });
+
+    expect(said(EXISTING_CHANNEL.id)).toEqual([
+      "Created",
+      "Ana Lee added",
+      "Platform added",
+    ]);
+  });
+
   test("an event created with no owners: Scheduled Maintenance Created alone", async () => {
     await world.createScheduledMaintenance();
 
