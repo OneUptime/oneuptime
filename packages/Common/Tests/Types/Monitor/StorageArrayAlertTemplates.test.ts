@@ -892,6 +892,7 @@ const ONTAP_EXPECTED_TEMPLATES: Array<TemplateExpectation> = [
     "svm",
     { rollingTime: RollingTime.Past10Minutes },
   ),
+];
 
 // A Dell PowerScale template: a code or a level, never a state label.
 function powerScaleTemplate(

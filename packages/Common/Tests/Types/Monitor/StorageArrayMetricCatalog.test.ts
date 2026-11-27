@@ -451,22 +451,20 @@ function getOntapSeries(): Record<string, SeriesLabels> {
   return series;
 }
 
-// Every shipped platform's series, label by label: Pure's and Dell's from
-// their exporters, ONTAP's from Harvest.
-const SERIES: Record<string, SeriesLabels> = {
+/*
+ * Every shipped platform's series, label by label: Pure's and Dell's
+ * PowerStore's from their exporters, ONTAP's from Harvest, and Dell
+ * PowerScale's from the agent's collector config.
+ */
+const SERIES: Record<string, SeriesLabels | PowerScaleSeriesLabels> = {
   ...PURE_SERIES,
   ...POWERSTORE_SERIES,
   ...getOntapSeries(),
+  ...POWERSCALE_SERIES,
 };
 
 const ALL_METRICS: Array<StorageArrayMetricDefinition> =
   getAllStorageArrayMetrics();
-
-// Every platform's series, label by label.
-const SERIES: Record<string, SeriesLabels | PowerScaleSeriesLabels> = {
-  ...PURE_SERIES,
-  ...POWERSCALE_SERIES,
-};
 
 const FA: StorageSystem = StorageSystem.PureStorageFlashArray;
 const FB: StorageSystem = StorageSystem.PureStorageFlashBlade;
@@ -528,11 +526,6 @@ describe("StorageArrayMetricCatalog - every entry", () => {
     );
     expect(new Set(ids).size).toBe(ids.length);
 
-    const prefixes: Record<string, string> = {
-      [FA]: "purefa-",
-      [FB]: "purefb-",
-      [ONTAP]: "netapp-",
-    };
     for (const metric of ALL_METRICS) {
       const prefix: string = PREFIXES[onlySystem(metric)]!.id;
       expect(metric.id).toMatch(/^[a-z]+-[a-z0-9-]+$/);
@@ -842,8 +835,10 @@ describe("StorageArrayMetricCatalog - every entry", () => {
       return "count";
     };
 
-    // ONTAP's follow Harvest's names (NetAppOntapCatalog.test.ts).
-    // And PowerScale's, whose names end in their units as Pure's do.
+    /*
+     * ONTAP's follow Harvest's names (NetAppOntapCatalog.test.ts). And
+     * PowerScale's, whose names end in their units as Pure's do.
+     */
     for (const metric of [
       ...PURE_METRICS,
       ...getStorageArrayMetricsForSystem(POWERSCALE),

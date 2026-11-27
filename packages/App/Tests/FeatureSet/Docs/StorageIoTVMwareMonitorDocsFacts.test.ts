@@ -41,7 +41,6 @@ import {
   StorageArrayResourceFilter,
 } from "Common/Types/StorageArray/StorageArrayPlatform";
 import StorageSystem from "Common/Types/StorageArray/StorageSystem";
-import StorageSystemUtil from "Common/Types/StorageArray/StorageSystemUtil";
 import {
   VMwareAlertTemplate,
   getAllVMwareAlertTemplates,
@@ -1362,8 +1361,9 @@ describe("the Storage Array page against the form and the agent", () => {
         title,
         platforms: platforms
           .filter((system: string): boolean => {
-            return [flashArray, flashBlade, ontap].includes(
-              system as StorageSystem,
+            // Each const is narrowed to its own member, so the list is read as strings.
+            return ([flashArray, flashBlade, ontap] as Array<string>).includes(
+              system,
             );
           })
           .sort(),

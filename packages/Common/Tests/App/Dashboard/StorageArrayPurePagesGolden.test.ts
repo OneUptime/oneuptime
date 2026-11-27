@@ -166,6 +166,17 @@ function pureFilterFields(value: JSONValue): JSONValue {
     });
 }
 
+/*
+ * Pure Storage's picker options. The picker also offers a Dell PowerScale
+ * since #11003, whose guide is its own (PowerScaleSetupGuide.test.ts).
+ */
+const PURE_OPTIONS: Array<SetupGuideOption<StorageArrayPlatform>> =
+  STORAGE_ARRAY_PLATFORMS.filter(
+    (option: SetupGuideOption<StorageArrayPlatform>): boolean => {
+      return option.key !== "powerscale";
+    },
+  );
+
 async function computeGolden(): Promise<JSONObject> {
   const bySystem: JSONObject = {};
 
