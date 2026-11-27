@@ -740,7 +740,12 @@ describe("compileBuiltInScrubPattern", () => {
     }
   });
 
-  test("the phone and SSN detectors it hides are the scanner's own, every one that needs no word beside the value", () => {
+  /*
+   * #11114: every one of them, those that need a word beside the value
+   * too - a national number, nine digits in a row - which a rule judges by
+   * the words in the value it reads, as the scanner does.
+   */
+  test("the phone and SSN detectors it hides are the scanner's own, every one, and those that need a word beside the value among them", () => {
     for (const [dataTypeId, detectors] of [
       ["phone-number", PHONE_NUMBER_DETECTORS],
       ["us-ssn", US_SSN_DETECTORS],
@@ -749,17 +754,28 @@ describe("compileBuiltInScrubPattern", () => {
         ...getBuiltInDetectorsOf(dataTypeId),
       ];
 
+      expect(scanners).toEqual([...detectors]);
       expect(
-        scanners.filter((detector: DataTypeDetector) => {
-          return !detector.requiresContext;
+        scanners.some((detector: DataTypeDetector) => {
+          return detector.requiresContext === true;
         }),
-      ).toEqual([...detectors]);
+      ).toBe(true);
       expect(
         scanners.every((detector: DataTypeDetector) => {
-          return detector.readsDigitsOfEveryScript === true;
+          return (
+            detector.readsDigitsOfEveryScript === true &&
+            detector.readsFullwidthForms === true
+          );
         }),
       ).toBe(true);
     }
+
+    // The very phone detectors the scanner runs, not copies of them.
+    getBuiltInDetectorsOf("phone-number").forEach(
+      (detector: DataTypeDetector, index: number): void => {
+        expect(detector).toBe(PHONE_NUMBER_DETECTORS[index]);
+      },
+    );
 
     expect(
       getBuiltInDetectorsOf("phone-number").every(
