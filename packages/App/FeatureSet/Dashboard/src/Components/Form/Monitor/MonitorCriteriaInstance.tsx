@@ -77,6 +77,7 @@ export interface ComponentProps {
   alertSeverityDropdownOptions: Array<DropdownOption>;
   userDropdownOptions: Array<DropdownOption>;
   incidentRoleOptions?: Array<IncidentRoleOption> | undefined;
+  criteriaInstances?: Array<MonitorCriteriaInstance> | undefined;
   monitorType: MonitorType;
   monitorStep: MonitorStep;
   /*
@@ -768,8 +769,15 @@ const MonitorCriteriaInstanceElement: FunctionComponent<ComponentProps> = (
                 }
                 userDropdownOptions={props.userDropdownOptions}
                 incidentRoleOptions={props.incidentRoleOptions}
+                criteriaInstances={props.criteriaInstances}
+                currentCriteriaId={monitorCriteriaInstance.data?.id}
                 monitorType={props.monitorType}
                 seriesAttributeKeys={seriesAttributeKeys}
+                allowSeverityEscalation={
+                  props.monitorType !== MonitorType.IncomingEmail &&
+                  seriesAttributeKeys.length === 0 &&
+                  !incidentGrouping?.groupByJSONPath
+                }
                 onChange={(value: Array<CriteriaIncident>) => {
                   monitorCriteriaInstance.setIncidents(value);
                   if (props.onChange) {

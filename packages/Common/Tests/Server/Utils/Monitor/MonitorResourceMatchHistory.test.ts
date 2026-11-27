@@ -34,6 +34,7 @@ import Probe, {
 } from "../../../../Models/DatabaseModels/Probe";
 import InBetween from "../../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../../Types/Date";
+import Dictionary from "../../../../Types/Dictionary";
 import FilterCondition from "../../../../Types/Filter/FilterCondition";
 import { JSONObject } from "../../../../Types/JSON";
 import {
@@ -453,6 +454,64 @@ describe("MonitorResourceUtil.monitorResource: a Response Body check that waits 
 
     expect(response.criteriaMetId).toBe("offline");
     expect(offlineIncidentRequests()).toBe(1);
+  });
+
+  test("the picked base rule and linked outage rule have the same lifecycle scope for resolution and creation", async () => {
+    const { monitor, step } = websiteMonitor();
+    const probeId: ObjectID = addProbe();
+    const [offline, slow]: Array<MonitorCriteriaInstance> =
+      step.data!.monitorCriteria.data!.monitorCriteriaInstanceArray;
+    for (const rule of [offline!, slow!]) {
+      rule.data!.createIncidents = true;
+      rule.data!.incidents = [
+        {
+          id: ObjectID.generate().toString(),
+          title: "Website performance",
+          description: "",
+          incidentSeverityId: ObjectID.generate(),
+        },
+      ];
+    }
+
+    offline!.data!.incidents![0]!.linkedIncidentActionId =
+      slow!.data!.incidents![0]!.id;
+    const slowResponse: ProbeApiIngestResponse = await ingest({
+      monitor,
+      step,
+      probeId,
+      body: HEALTHY_PAGE,
+    });
+    expect(slowResponse.criteriaMetId).toBe("online");
+
+    jest.mocked(MonitorService.findOneById).mockResolvedValue(monitor);
+    const response: ProbeApiIngestResponse =
+      await MonitorResourceUtil.monitorResource({
+        ...probeResult({ monitor, step, probeId, body: "" }),
+        isOnline: false,
+        responseCode: 0,
+      } as ProbeMonitorResponse);
+
+    expect(response.criteriaMetId).toBe("offline");
+    const scope: Dictionary<MonitorCriteriaInstance> = {
+      offline: offline!,
+      online: slow!,
+    };
+    expect(
+      MonitorIncident.checkOpenIncidentsAndCloseIfResolved,
+    ).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ linkedIncidentCriteriaById: scope }),
+    );
+    expect(
+      MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus,
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({ linkedIncidentCriteriaById: scope }),
+    );
+    expect(
+      MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({ linkedIncidentCriteriaById: scope }),
+    );
   });
 
   test("every probe result writes the body check's result, and only once", async () => {

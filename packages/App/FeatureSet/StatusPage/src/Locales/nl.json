@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "Incidenten",
+    "severityChanged": "Ernst gewijzigd van {{from}} naar {{to}}",
     "singular": "Incident",
     "active": "Actieve incidenten",
     "noneDescription": "Als een incident de diensten op deze pagina raakt, wordt het hier gemeld.",

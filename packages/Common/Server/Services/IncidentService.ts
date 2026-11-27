@@ -6283,6 +6283,8 @@ ${FeedMarkdown.asMarkdown(incident.remediationNotes || "No remediation notes pro
          * changes hears of one even when the title changed with it.
          */
         const updateKinds: Array<NotificationRuleUpdateKind> = [];
+        let severityChangedFromName: string | undefined;
+        let severityChangedToName: string | undefined;
         /*
          * Written to follow the name of whoever made the change - the
          * person or the API key the entry names, which its message opens
@@ -6399,6 +6401,21 @@ ${postmortemStatus.name}
             });
 
           if (incidentSeverity) {
+            severityChangedToName = incidentSeverity.name;
+
+            const severityIdBeforeUpdate: string | null | undefined = (
+              onUpdate.carryForward as UpdateCarryForward | undefined
+            )?.[incidentId.toString()]?.severityIdBeforeUpdate;
+            if (severityIdBeforeUpdate) {
+              const previousSeverity: IncidentSeverity | null =
+                await IncidentSeverityService.findOneBy({
+                  query: { _id: new ObjectID(severityIdBeforeUpdate) },
+                  select: { name: true },
+                  props: { isRoot: true },
+                });
+              severityChangedFromName = previousSeverity?.name;
+            }
+
             feedInfoInMarkdown += mdText`\n\n**⚠️ Incident Severity**:
 ${incidentSeverity.name}
 `;
@@ -6729,6 +6746,8 @@ ${incidentSeverity.name}
             incidentId: incidentId,
             projectId: onUpdate.updateBy.props.tenantId as ObjectID,
             incidentFeedEventType: IncidentFeedEventType.IncidentUpdated,
+            incidentSeverityChangedFromName: severityChangedFromName,
+            incidentSeverityChangedToName: severityChangedToName,
             displayColor: Gray500,
             feedInfoInMarkdown: feedInfoInMarkdown,
             userId: createdByUserId || undefined,

@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "Incidents",
+    "severityChanged": "Gravité passée de {{from}} à {{to}}",
     "singular": "Incident",
     "active": "Incidents actifs",
     "noneDescription": "Lorsqu'un incident touche les services de cette page, il est publié ici.",

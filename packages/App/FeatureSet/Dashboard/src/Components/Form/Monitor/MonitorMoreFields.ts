@@ -43,6 +43,8 @@ export const MonitorMoreFieldsTitles: {
   autoResolveIncident: string;
   showIncidentOnStatusPage: string;
   privateIncident: string;
+  linkedIncidentAction: string;
+  legacyIncidentLifecycleKey: string;
   autoResolveAlert: string;
   privateAlert: string;
   remediationNotes: string;
@@ -62,6 +64,8 @@ export const MonitorMoreFieldsTitles: {
   autoResolveIncident: translationKey("Auto Resolve Incident"),
   showIncidentOnStatusPage: translationKey("Show Incident on Status Page"),
   privateIncident: translationKey("Private Incident"),
+  linkedIncidentAction: translationKey("Link to incident action"),
+  legacyIncidentLifecycleKey: translationKey("Legacy incident lifecycle key"),
   autoResolveAlert: translationKey("Auto Resolve Alert"),
   privateAlert: translationKey("Private Alert"),
   remediationNotes: translationKey("Remediation Notes"),
@@ -247,7 +251,10 @@ export const getIncidentMoreFieldsItems: (
     | "remediationNotes"
     | "showIncidentOnStatusPage"
     | "isPrivate"
+    | "incidentLifecycleKey"
+    | "linkedIncidentActionId"
   >,
+  includeIncidentLifecycleKey?: boolean | undefined,
 ) => Array<FoldedSectionItem> = (
   incident: Pick<
     CriteriaIncident,
@@ -255,9 +262,12 @@ export const getIncidentMoreFieldsItems: (
     | "remediationNotes"
     | "showIncidentOnStatusPage"
     | "isPrivate"
+    | "incidentLifecycleKey"
+    | "linkedIncidentActionId"
   >,
+  includeIncidentLifecycleKey?: boolean | undefined,
 ): Array<FoldedSectionItem> => {
-  return [
+  const items: Array<FoldedSectionItem> = [
     switchItem(
       MonitorMoreFieldsTitles.autoResolveIncident,
       "autoResolveIncident",
@@ -281,6 +291,26 @@ export const getIncidentMoreFieldsItems: (
       isSet: Boolean(incident.remediationNotes?.trim()),
     }),
   ];
+
+  if (includeIncidentLifecycleKey) {
+    items.push(
+      foldedSectionItem(MonitorMoreFieldsTitles.linkedIncidentAction, {
+        key: "linkedIncidentActionId",
+        isSet: Boolean(incident.linkedIncidentActionId),
+      }),
+    );
+
+    if (incident.incidentLifecycleKey?.trim()) {
+      items.push(
+        foldedSectionItem(MonitorMoreFieldsTitles.legacyIncidentLifecycleKey, {
+          key: "incidentLifecycleKey",
+          isSet: true,
+        }),
+      );
+    }
+  }
+
+  return items;
 };
 
 // A monitor rule's alert More fields, by the same rule.

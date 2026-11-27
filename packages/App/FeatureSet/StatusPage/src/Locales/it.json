@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "Incidenti",
+    "severityChanged": "Gravità modificata da {{from}} a {{to}}",
     "singular": "Incidente",
     "active": "Incidenti attivi",
     "noneDescription": "Quando un incidente riguarda i servizi di questa pagina, viene pubblicato qui.",

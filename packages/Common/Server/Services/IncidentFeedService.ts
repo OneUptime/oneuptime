@@ -117,6 +117,8 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
     feedInfoInMarkdown: string;
     incidentFeedEventType: IncidentFeedEventType;
     projectId: ObjectID;
+    incidentSeverityChangedFromName?: string | undefined;
+    incidentSeverityChangedToName?: string | undefined;
     moreInformationInMarkdown?: string | undefined;
     displayColor?: Color | undefined;
     userId?: ObjectID | undefined;
@@ -202,6 +204,14 @@ export class Service extends ProjectReferencesService<IncidentFeed> {
       incidentFeed.incidentId = data.incidentId;
       incidentFeed.feedInfoInMarkdown = data.feedInfoInMarkdown;
       incidentFeed.incidentFeedEventType = data.incidentFeedEventType;
+      if (data.incidentSeverityChangedFromName) {
+        incidentFeed.incidentSeverityChangedFromName =
+          data.incidentSeverityChangedFromName;
+      }
+      if (data.incidentSeverityChangedToName) {
+        incidentFeed.incidentSeverityChangedToName =
+          data.incidentSeverityChangedToName;
+      }
       incidentFeed.projectId = data.projectId;
 
       if (data.aiRunId) {

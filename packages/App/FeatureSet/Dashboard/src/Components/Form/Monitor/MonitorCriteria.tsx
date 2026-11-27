@@ -497,6 +497,10 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                     incidentRoleOptions={
                                       props.incidentRoleOptions
                                     }
+                                    criteriaInstances={
+                                      monitorCriteria.data
+                                        ?.monitorCriteriaInstanceArray || []
+                                    }
                                     value={i}
                                     isFirstCriteria={index === 0}
                                     onDelete={() => {

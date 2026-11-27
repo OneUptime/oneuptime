@@ -10,6 +10,7 @@ import PublicMessageRateLimit, {
 } from "../Utils/RateLimit/PublicMessageRateLimit";
 import AcmeChallengeService from "../Services/AcmeChallengeService";
 import IncidentEpisodeService from "../Services/IncidentEpisodeService";
+import IncidentFeedService from "../Services/IncidentFeedService";
 import IncidentEpisodeMemberService from "../Services/IncidentEpisodeMemberService";
 import IncidentEpisodePublicNoteService from "../Services/IncidentEpisodePublicNoteService";
 import IncidentEpisodeStateTimelineService from "../Services/IncidentEpisodeStateTimelineService";
@@ -98,6 +99,7 @@ import PositiveNumber from "../../Types/PositiveNumber";
 import AcmeChallenge from "../../Models/DatabaseModels/AcmeChallenge";
 import Incident from "../../Models/DatabaseModels/Incident";
 import IncidentEpisode from "../../Models/DatabaseModels/IncidentEpisode";
+import IncidentFeed from "../../Models/DatabaseModels/IncidentFeed";
 import IncidentEpisodeMember from "../../Models/DatabaseModels/IncidentEpisodeMember";
 import IncidentEpisodePublicNote from "../../Models/DatabaseModels/IncidentEpisodePublicNote";
 import IncidentEpisodeStateTimeline from "../../Models/DatabaseModels/IncidentEpisodeStateTimeline";
@@ -5021,6 +5023,33 @@ export default class StatusPageAPI extends BaseAPI<
       });
     }
 
+    let incidentSeverityChanges: Array<IncidentFeed> = [];
+    if (
+      incidentId &&
+      incidentsOnStatusPage.some((id: ObjectID): boolean => {
+        return id.toString() === incidentId.toString();
+      })
+    ) {
+      incidentSeverityChanges = await IncidentFeedService.findBy({
+        query: {
+          incidentId: incidentId,
+          projectId: statusPage.projectId!,
+          incidentSeverityChangedToName: QueryHelper.notEquals(""),
+        },
+        select: {
+          _id: true,
+          incidentId: true,
+          postedAt: true,
+          incidentSeverityChangedFromName: true,
+          incidentSeverityChangedToName: true,
+        },
+        sort: { postedAt: SortOrder.Descending },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: { isRoot: true },
+      });
+    }
+
     // The project's incident states: where its resolved state sits.
     const incidentStates: Array<IncidentState> =
       await this.getIncidentStatesForStatusPage(statusPage.projectId!);
@@ -5069,6 +5098,10 @@ export default class StatusPageAPI extends BaseAPI<
       incidentStateTimelines: BaseModel.toJSONArray(
         incidentStateTimelines,
         IncidentStateTimeline,
+      ),
+      incidentSeverityChanges: BaseModel.toJSONArray(
+        incidentSeverityChanges,
+        IncidentFeed,
       ),
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
     };

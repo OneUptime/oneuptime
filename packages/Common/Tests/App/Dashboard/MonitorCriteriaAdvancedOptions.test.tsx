@@ -8,10 +8,13 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/CriteriaAdvancedOptions";
 import MonitorCriteriaAlertForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorCriteriaAlertForm";
 import MonitorCriteriaIncidentForm from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorCriteriaIncidentForm";
+import { getLinkedIncidentActionOptions } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorCriteriaIncidentLinks";
+import { DropdownOption } from "../../../UI/Components/Dropdown/Dropdown";
 import { CriteriaAlert } from "../../../Types/Monitor/CriteriaAlert";
 import { CriteriaIncident } from "../../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../Types/Monitor/MonitorType";
+import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
 import {
   getByTextOutsideFoldedHeaders,
@@ -80,21 +83,233 @@ function alert(overrides: Partial<CriteriaAlert>): CriteriaAlert {
   };
 }
 
+function criteriaInstance(
+  id: string,
+  name: string,
+  incidents: Array<CriteriaIncident>,
+): MonitorCriteriaInstance {
+  const criteria: MonitorCriteriaInstance = new MonitorCriteriaInstance();
+  criteria.data = {
+    id: id,
+    name: name,
+    description: "",
+    monitorStatusId: ObjectID.generate(),
+    filterCondition: FilterCondition.All,
+    filters: [],
+    incidents: incidents,
+    alerts: [],
+    createIncidents: true,
+    createAlerts: false,
+  };
+  return criteria;
+}
+
 const DROPDOWNS: {
   userDropdownOptions: [];
 } = {
   userDropdownOptions: [],
 };
 
-function renderIncidentForm(initialValue?: CriteriaIncident): void {
+function renderIncidentForm(
+  initialValue?: CriteriaIncident,
+  allowSeverityEscalation: boolean = false,
+  onChange?: (value: CriteriaIncident) => void,
+  criteriaInstances: Array<MonitorCriteriaInstance> = [],
+  currentCriteriaId?: string,
+  incidentSeverityDropdownOptions: Array<DropdownOption> = [],
+): void {
   render(
     <MonitorCriteriaIncidentForm
       initialValue={initialValue}
-      incidentSeverityDropdownOptions={[]}
+      incidentSeverityDropdownOptions={incidentSeverityDropdownOptions}
+      allowSeverityEscalation={allowSeverityEscalation}
+      criteriaInstances={criteriaInstances}
+      currentCriteriaId={currentCriteriaId}
+      onChange={onChange}
       {...DROPDOWNS}
     />,
   );
 }
+
+describe("monitor criteria severity escalation settings", () => {
+  test("are available only to standard monitor criteria and start folded", () => {
+    renderIncidentForm(undefined, true);
+
+    const section: HTMLElement = screen.getByTestId(
+      "monitor-criteria-severity-escalation",
+    );
+
+    expect(section).toBeInTheDocument();
+    expect(section).toHaveAttribute("data-collapsed", "true");
+  });
+
+  test("are not shown when the incident form is used without monitor criteria", () => {
+    renderIncidentForm();
+
+    expect(
+      screen.queryByTestId("monitor-criteria-severity-escalation"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("monitor-criteria-incident-lifecycle-key"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("links to a sibling action and clears legacy grouping", () => {
+    const majorSeverityId: ObjectID = ObjectID.generate();
+    const minorSeverityId: ObjectID = ObjectID.generate();
+    const fastAction: CriteriaIncident = incident({
+      id: "fast-action",
+      title: "Storefront is offline",
+      incidentSeverityId: majorSeverityId,
+      incidentLifecycleKey: "legacy-outage",
+    });
+    const slowAction: CriteriaIncident = incident({
+      id: "slow-action",
+      title: "Storefront may be offline",
+      incidentSeverityId: minorSeverityId,
+    });
+    const currentCriteria: MonitorCriteriaInstance = criteriaInstance(
+      "fast-criteria",
+      "Offline now",
+      [fastAction],
+    );
+    const targetCriteria: MonitorCriteriaInstance = criteriaInstance(
+      "slow-criteria",
+      "Offline for five minutes",
+      [slowAction],
+    );
+    const values: Array<CriteriaIncident> = [];
+    renderIncidentForm(
+      fastAction,
+      true,
+      (value: CriteriaIncident) => {
+        values.push(value);
+      },
+      [currentCriteria, targetCriteria],
+      "fast-criteria",
+      [
+        { value: majorSeverityId.toString(), label: "Major" },
+        { value: minorSeverityId.toString(), label: "Minor" },
+      ],
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "More fields" }));
+    expect(
+      screen.getByTestId("monitor-criteria-legacy-lifecycle-key"),
+    ).toBeInTheDocument();
+
+    const comboboxes: Array<HTMLElement> = screen.getAllByRole("combobox");
+    const pickerInput: HTMLElement = comboboxes[comboboxes.length - 1]!;
+
+    fireEvent.keyDown(pickerInput, { key: "ArrowDown", code: "ArrowDown" });
+    const targetLabel: string =
+      "Criteria 2: Offline for five minutes — Storefront may be offline (Minor)";
+    fireEvent.click(screen.getByText(targetLabel));
+
+    expect(values[values.length - 1]?.linkedIncidentActionId).toBe(
+      "slow-action",
+    );
+    expect(values[values.length - 1]?.incidentLifecycleKey).toBeUndefined();
+
+    const clearIndicator: HTMLElement | null =
+      document.querySelector<HTMLElement>(".ou-select__clear-indicator");
+    expect(clearIndicator).not.toBeNull();
+    fireEvent.mouseDown(clearIndicator as HTMLElement, { button: 0 });
+
+    expect(values[values.length - 1]?.linkedIncidentActionId).toBeUndefined();
+    expect(values[values.length - 1]?.incidentLifecycleKey).toBeUndefined();
+  });
+
+  test("offers one criterion's action as a shared anchor while excluding same-criteria and outgoing links", () => {
+    const minorSeverityId: ObjectID = ObjectID.generate();
+    const target: CriteriaIncident = incident({
+      id: "target-action",
+      incidentSeverityId: minorSeverityId,
+    });
+    const sameCriteriaAction: CriteriaIncident = incident({
+      id: "same-criteria-action",
+      incidentSeverityId: minorSeverityId,
+    });
+    const outgoingAction: CriteriaIncident = incident({
+      id: "outgoing-action",
+      incidentSeverityId: minorSeverityId,
+      linkedIncidentActionId: "another-anchor",
+    });
+    const currentAction: CriteriaIncident = incident({
+      id: "current-action",
+    });
+    const currentCriteria: MonitorCriteriaInstance = criteriaInstance(
+      "current-criteria",
+      "Current",
+      [currentAction, sameCriteriaAction],
+    );
+    const targetCriteria: MonitorCriteriaInstance = criteriaInstance(
+      "target-criteria",
+      "Target",
+      [target],
+    );
+    const outgoingCriteria: MonitorCriteriaInstance = criteriaInstance(
+      "outgoing-criteria",
+      "Already linked",
+      [outgoingAction],
+    );
+    const anotherChildCriteria: MonitorCriteriaInstance = criteriaInstance(
+      "another-child",
+      "Another child",
+      [
+        incident({
+          id: "another-child-action",
+          linkedIncidentActionId: "target-action",
+        }),
+      ],
+    );
+
+    const options: Array<DropdownOption> = getLinkedIncidentActionOptions({
+      criteriaInstances: [
+        currentCriteria,
+        targetCriteria,
+        outgoingCriteria,
+        anotherChildCriteria,
+      ],
+      currentCriteriaId: "current-criteria",
+      currentIncident: currentAction,
+      severityOptions: [{ value: minorSeverityId.toString(), label: "Minor" }],
+    });
+
+    expect(
+      options.map((option: DropdownOption) => {
+        return option.value;
+      }),
+    ).toEqual(["target-action"]);
+    expect(options[0]?.label).toContain(
+      "Target — Storefront is offline (Minor)",
+    );
+  });
+
+  test("keeps a missing selected target visible with a clear path", () => {
+    const currentAction: CriteriaIncident = incident({
+      id: "current-action",
+      linkedIncidentActionId: "deleted-action",
+    });
+
+    const options: Array<DropdownOption> = getLinkedIncidentActionOptions({
+      criteriaInstances: [
+        criteriaInstance("current-criteria", "Current", [currentAction]),
+      ],
+      currentCriteriaId: "current-criteria",
+      currentIncident: currentAction,
+      severityOptions: [],
+    });
+
+    expect(options).toEqual([
+      expect.objectContaining({
+        value: "deleted-action",
+        label: "Linked incident action is unavailable",
+        isDisabled: true,
+      }),
+    ]);
+  });
+});
 
 function renderAlertForm(initialValue?: CriteriaAlert): void {
   render(

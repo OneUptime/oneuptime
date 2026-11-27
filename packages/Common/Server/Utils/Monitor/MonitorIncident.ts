@@ -81,6 +81,8 @@ import CreatedNotificationHold, {
 } from "../Notification/CreatedNotificationHold";
 import CreateBy from "../../Types/Database/CreateBy";
 import MonitorOpenRecords from "./MonitorOpenRecords";
+import MonitorIncidentEscalation from "./MonitorIncidentEscalation";
+import MonitorIncidentLifecycle from "./MonitorIncidentLifecycle";
 import { EventLoopBudget } from "../EventLoop";
 
 export default class MonitorIncident {
@@ -137,6 +139,9 @@ export default class MonitorIncident {
      * to "the criteria that raised it".
      */
     criteriaInstancesById?: Dictionary<MonitorCriteriaInstance> | undefined;
+    linkedIncidentCriteriaById?:
+      | Dictionary<MonitorCriteriaInstance>
+      | undefined;
     /*
      * Whether the monitor keeps response content on its records
      * (Monitor.keepResponseContent): the state timeline's copy of a check
@@ -179,6 +184,7 @@ export default class MonitorIncident {
         incidentNumber: true,
         incidentNumberWithPrefix: true,
         currentIncidentStateId: true,
+        incidentSeverityId: true,
         seriesFingerprint: true,
         seriesLabels: true,
       },
@@ -191,7 +197,35 @@ export default class MonitorIncident {
 
     const resolvedIncidentIds: Set<string> = new Set<string>();
 
+    const lifecycleKeys: Map<CriteriaIncident, string> =
+      MonitorIncidentLifecycle.keysForCriteria(
+        input.linkedIncidentCriteriaById,
+      );
+    const activeLifecycleKeys: Set<string> = new Set<string>();
+    if (
+      input.linkedIncidentCriteriaById &&
+      input.criteriaInstance?.data?.createIncidents
+    ) {
+      for (const action of input.criteriaInstance.data.incidents || []) {
+        const key: string | undefined = lifecycleKeys.get(action);
+        if (key) {
+          activeLifecycleKeys.add(key);
+        }
+      }
+    }
+
     for (const openIncident of openIncidents) {
+      const lifecycleKey: string | undefined = activeLifecycleKeys.size
+        ? MonitorIncidentLifecycle.keyOfIncident(
+            openIncident,
+            input.linkedIncidentCriteriaById,
+            lifecycleKeys,
+          )
+        : undefined;
+      if (lifecycleKey && activeLifecycleKeys.has(lifecycleKey)) {
+        continue;
+      }
+
       const shouldClose: boolean = this.shouldCloseIncident({
         openIncident,
         autoResolveCriteriaInstanceIdIncidentIdsDictionary:
@@ -535,6 +569,9 @@ export default class MonitorIncident {
      * up front and hands the survivors here.
      */
     openIncidents?: Array<Incident> | undefined;
+    linkedIncidentCriteriaById?:
+      | Dictionary<MonitorCriteriaInstance>
+      | undefined;
     /**
      * Per-criteria breaching fingerprints, forwarded to the resolve pass
      * when this method runs it itself. See
@@ -621,6 +658,7 @@ export default class MonitorIncident {
               check: input.dataToProcess,
             }),
             breachingSeriesFingerprints,
+            linkedIncidentCriteriaById: input.linkedIncidentCriteriaById,
             breachingSeriesFingerprintsByCriteriaId:
               input.breachingSeriesFingerprintsByCriteriaId,
             disableSeriesAbsenceResolution:
@@ -787,8 +825,41 @@ export default class MonitorIncident {
       );
     }
 
+    const lifecycleKeys: Map<CriteriaIncident, string> =
+      MonitorIncidentLifecycle.keysForCriteria(
+        input.linkedIncidentCriteriaById,
+      );
+    const handledLifecycleKeys: Set<string> = new Set<string>();
+    const openByLifecycle: Map<string, Incident> = new Map<string, Incident>();
+
+    if (input.linkedIncidentCriteriaById && !input.matchesPerSeries) {
+      for (const incident of openIncidents) {
+        const key: string | undefined = MonitorIncidentLifecycle.keyOfIncident(
+          incident,
+          input.linkedIncidentCriteriaById,
+          lifecycleKeys,
+        );
+        if (key && !openByLifecycle.has(key)) {
+          openByLifecycle.set(key, incident);
+        }
+      }
+    }
+
     for (const criteriaIncident of input.criteriaInstance.data?.incidents ||
       []) {
+      const lifecycleKey: string | undefined =
+        input.linkedIncidentCriteriaById && !input.matchesPerSeries
+          ? lifecycleKeys.get(criteriaIncident)
+          : undefined;
+
+      if (lifecycleKey) {
+        // A matching criterion's first action for this key determines severity.
+        if (handledLifecycleKeys.has(lifecycleKey)) {
+          continue;
+        }
+        handledLifecycleKeys.add(lifecycleKey);
+      }
+
       for (const seriesMatch of seriesToProcess) {
         // Outside the catch below: a lost lock stops every series.
         await input.keepEvaluationLock?.();
@@ -889,15 +960,21 @@ export default class MonitorIncident {
            * once its template has one it must still be found, or a second
            * incident would open beside it while the first is still open.
            */
-          const alreadyOpenIncident: Incident | undefined = (
-            openIncidentsBySeries.get(seriesFingerprint) || []
-          ).find((incident: Incident) => {
-            return (
-              !incident.createdIncidentTemplateId ||
-              incident.createdIncidentTemplateId ===
-                (criteriaIncident.id?.toString() || undefined)
+          const linkedIncident: Incident | undefined = lifecycleKey
+            ? openByLifecycle.get(lifecycleKey)
+            : undefined;
+
+          const alreadyOpenIncident: Incident | undefined =
+            linkedIncident ||
+            (openIncidentsBySeries.get(seriesFingerprint) || []).find(
+              (incident: Incident) => {
+                return (
+                  !incident.createdIncidentTemplateId ||
+                  incident.createdIncidentTemplateId ===
+                    (criteriaIncident.id?.toString() || undefined)
+                );
+              },
             );
-          });
 
           const hasAlreadyOpenIncident: boolean = Boolean(alreadyOpenIncident);
 
@@ -912,6 +989,31 @@ export default class MonitorIncident {
           );
 
           if (hasAlreadyOpenIncident) {
+            if (linkedIncident && criteriaIncident.incidentSeverityId) {
+              await MonitorIncidentLifecycle.applySeverity({
+                monitor: input.monitor,
+                incident: linkedIncident,
+                severityId: criteriaIncident.incidentSeverityId,
+                keepEvaluationLock: input.keepEvaluationLock,
+              });
+            } else if (
+              !lifecycleKey &&
+              alreadyOpenIncident?.id &&
+              criteriaId &&
+              criteriaIncident.id &&
+              alreadyOpenIncident.createdIncidentTemplateId ===
+                criteriaIncident.id.toString() &&
+              !seriesFingerprint &&
+              !input.matchesPerSeries
+            ) {
+              await MonitorIncidentEscalation.apply({
+                monitor: input.monitor,
+                incidentId: alreadyOpenIncident.id,
+                criteriaIncident,
+                keepEvaluationLock: input.keepEvaluationLock,
+              });
+            }
+
             /*
              * Use the open incident's already-rendered title when
              * available — the template (`criteriaIncident.title`) still

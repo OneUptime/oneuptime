@@ -6,7 +6,11 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
-import Input from "Common/UI/Components/Input/Input";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
+import Input, { InputType } from "Common/UI/Components/Input/Input";
 import FieldLabelElement from "Common/UI/Components/Forms/Fields/FieldLabel";
 import React, {
   FunctionComponent,
@@ -22,15 +26,20 @@ import OwnersPicker, {
 import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
 import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import { MORE_FIELDS_SECTION_TITLE } from "Common/UI/Components/FoldedSection/FoldedSectionTitles";
+import {
+  getIncidentMoreFieldsItems,
+  MonitorMoreFieldsTitles,
+} from "./MonitorMoreFields";
+import { getLinkedIncidentActionOptions } from "./MonitorCriteriaIncidentLinks";
 import Checkbox from "Common/UI/Components/Checkbox/Checkbox";
 import MarkdownEditor from "Common/UI/Components/Markdown.tsx/MarkdownEditor";
 import ObjectID from "Common/Types/ObjectID";
 import MonitorType from "Common/Types/Monitor/MonitorType";
+import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import TemplateVariablesModal from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesModal";
 import TemplateVariablesCatalog from "Common/UI/Components/MonitorTemplateVariables/TemplateVariablesCatalog";
 import { TemplateVariableGroups } from "Common/Types/Template/TemplateVariable";
 import MonitorCriteriaTemplateCopy from "./MonitorCriteriaTemplateCopy";
-import { getIncidentMoreFieldsItems } from "./MonitorMoreFields";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import IncidentRoleFormField from "../../Incident/IncidentRoleFormField";
@@ -67,6 +76,10 @@ export interface ComponentProps {
    * the template variables modal exposes them as per-series labels.
    */
   seriesAttributeKeys?: Array<string> | undefined;
+  /** Only standard monitor criteria support time-based incident escalation. */
+  allowSeverityEscalation?: boolean | undefined;
+  criteriaInstances?: Array<MonitorCriteriaInstance> | undefined;
+  currentCriteriaId?: string | undefined;
 }
 
 const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
@@ -112,12 +125,65 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
   const hasNotifications: boolean = Boolean(
     criteriaIncident.onCallPolicyIds?.length,
   );
+  const hasSeverityEscalation: boolean = Boolean(
+    criteriaIncident.escalationAfterMinutes &&
+      criteriaIncident.escalationSeverityId,
+  );
+  const hasIncidentLifecycleKey: boolean = Boolean(
+    criteriaIncident.incidentLifecycleKey?.trim(),
+  );
+  const linkedIncidentActionOptions: Array<DropdownOption> = useMemo(() => {
+    return getLinkedIncidentActionOptions({
+      criteriaInstances: props.criteriaInstances || [],
+      currentCriteriaId: props.currentCriteriaId,
+      currentIncident: criteriaIncident,
+      severityOptions: props.incidentSeverityDropdownOptions,
+    });
+  }, [
+    props.criteriaInstances,
+    props.currentCriteriaId,
+    criteriaIncident,
+    props.incidentSeverityDropdownOptions,
+  ]);
+  const isLinkedIncidentActionAnchor: boolean = Boolean(
+    props.criteriaInstances?.some((criteria: MonitorCriteriaInstance) => {
+      return (
+        criteria.data?.id !== props.currentCriteriaId &&
+        criteria.data?.incidents?.some((action: CriteriaIncident) => {
+          return action.linkedIncidentActionId === criteriaIncident.id;
+        })
+      );
+    }),
+  );
+  const escalationSeverityOptions: Array<DropdownOption> = useMemo(() => {
+    const startingSeverityIndex: number =
+      props.incidentSeverityDropdownOptions.findIndex(
+        (option: DropdownOption) => {
+          return (
+            option.value === criteriaIncident.incidentSeverityId?.toString()
+          );
+        },
+      );
+
+    /*
+     * MonitorSteps supplies severities in their configured rank order:
+     * lower order numbers are more severe. Offer only higher severities.
+     */
+    return startingSeverityIndex < 0
+      ? []
+      : props.incidentSeverityDropdownOptions.slice(0, startingSeverityIndex);
+  }, [
+    props.incidentSeverityDropdownOptions,
+    criteriaIncident.incidentSeverityId,
+  ]);
   /*
    * The More fields section's options, by name, the ones the user chose
    * as chips: a default rule's auto-resolve does not count.
    */
-  const moreFieldsItems: Array<FoldedSectionItem> =
-    getIncidentMoreFieldsItems(criteriaIncident);
+  const moreFieldsItems: Array<FoldedSectionItem> = getIncidentMoreFieldsItems(
+    criteriaIncident,
+    props.allowSeverityEscalation,
+  );
   /*
    * Who the rule names for each role, as the role picker holds it. Set only
    * for roles the project still has: a row for a deleted role names nobody
@@ -212,10 +278,35 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
              */
             isClearable={false}
             onChange={(value: DropdownValue | Array<DropdownValue> | null) => {
-              updateField(
-                "incidentSeverityId",
-                value ? new ObjectID(value.toString()) : undefined,
-              );
+              const severityId: ObjectID | undefined = value
+                ? new ObjectID(value.toString())
+                : undefined;
+              const startingSeverityIndex: number =
+                props.incidentSeverityDropdownOptions.findIndex(
+                  (option: DropdownOption) => {
+                    return option.value === severityId?.toString();
+                  },
+                );
+              const escalationSeverityIndex: number =
+                props.incidentSeverityDropdownOptions.findIndex(
+                  (option: DropdownOption) => {
+                    return (
+                      option.value ===
+                      criteriaIncident.escalationSeverityId?.toString()
+                    );
+                  },
+                );
+
+              setCriteriaIncident({
+                ...criteriaIncident,
+                incidentSeverityId: severityId,
+                escalationSeverityId:
+                  startingSeverityIndex >= 0 &&
+                  escalationSeverityIndex >= 0 &&
+                  escalationSeverityIndex < startingSeverityIndex
+                    ? criteriaIncident.escalationSeverityId
+                    : undefined,
+              });
             }}
             placeholder="Select Severity"
           />
@@ -271,6 +362,82 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
           />
         </div>
       </FoldedSection>
+
+      {props.allowSeverityEscalation &&
+        !hasIncidentLifecycleKey &&
+        !criteriaIncident.linkedIncidentActionId && (
+          <FoldedSection
+            title="Severity escalation"
+            description="Raise this incident if the monitor stays offline continuously. The monitor must remain offline and this criterion must still match."
+            badge={hasSeverityEscalation ? "Configured" : undefined}
+            defaultCollapsed={!hasSeverityEscalation}
+            dataTestId="monitor-criteria-severity-escalation"
+          >
+            <div className="space-y-4">
+              <div>
+                <FieldLabelElement
+                  title="Escalate after (minutes)"
+                  description="Time the monitor must stay offline before the incident severity changes."
+                />
+                <Input
+                  type={InputType.NUMBER}
+                  inputMode="numeric"
+                  value={
+                    criteriaIncident.escalationAfterMinutes?.toString() || ""
+                  }
+                  placeholder="e.g., 5"
+                  ariaLabel="Escalate after (minutes)"
+                  dataTestId="monitor-criteria-escalation-after-minutes"
+                  onChange={(value: string) => {
+                    if (!value) {
+                      setCriteriaIncident({
+                        ...criteriaIncident,
+                        escalationAfterMinutes: undefined,
+                        escalationSeverityId: undefined,
+                      });
+                      return;
+                    }
+
+                    const minutes: number = Number(value);
+                    updateField(
+                      "escalationAfterMinutes",
+                      Number.isInteger(minutes) && minutes > 0
+                        ? minutes
+                        : undefined,
+                    );
+                  }}
+                />
+              </div>
+              <div>
+                <FieldLabelElement
+                  title="Escalate to severity"
+                  description="Choose the severity to apply when the offline period reaches this time."
+                />
+                <Dropdown
+                  value={props.incidentSeverityDropdownOptions.find(
+                    (option: DropdownOption) => {
+                      return (
+                        option.value ===
+                        criteriaIncident.escalationSeverityId?.toString()
+                      );
+                    },
+                  )}
+                  options={escalationSeverityOptions}
+                  isClearable={true}
+                  onChange={(
+                    value: DropdownValue | Array<DropdownValue> | null,
+                  ) => {
+                    updateField(
+                      "escalationSeverityId",
+                      value ? new ObjectID(value.toString()) : undefined,
+                    );
+                  }}
+                  placeholder="Select Severity"
+                />
+              </div>
+            </div>
+          </FoldedSection>
+        )}
 
       {/*
        * Incident Roles - collapsible. The declare form's role picker, with
@@ -365,11 +532,82 @@ const MonitorCriteriaIncidentForm: FunctionComponent<ComponentProps> = (
         dataTestId="criteria-incident-more-fields"
       >
         <div className="space-y-4">
+          {props.allowSeverityEscalation && (
+            <div>
+              <FieldLabelElement
+                title={MonitorMoreFieldsTitles.linkedIncidentAction}
+                description="Choose an incident action from another criterion. The first matching criterion sets the shared incident’s severity. For example, link an Offline Major action to a Degraded Minor action."
+              />
+              {hasIncidentLifecycleKey && (
+                <p
+                  className="mt-1 text-xs text-gray-500"
+                  data-testid="monitor-criteria-legacy-lifecycle-key"
+                >
+                  This action still uses saved legacy lifecycle grouping.
+                  Selecting this picker removes that grouping.
+                </p>
+              )}
+              {hasIncidentLifecycleKey &&
+                !criteriaIncident.linkedIncidentActionId && (
+                  <Button
+                    title="Clear legacy lifecycle grouping"
+                    buttonStyle={ButtonStyleType.LINK}
+                    buttonSize={ButtonSize.Small}
+                    onClick={() => {
+                      setCriteriaIncident({
+                        ...criteriaIncident,
+                        incidentLifecycleKey: undefined,
+                      });
+                    }}
+                  />
+                )}
+              {isLinkedIncidentActionAnchor && (
+                <p
+                  className="mt-1 text-xs text-gray-500"
+                  data-testid="monitor-criteria-incident-anchor-note"
+                >
+                  This action is already an anchor for another criterion. Keep
+                  it as an anchor; clear any outgoing link to keep the lifecycle
+                  direct.
+                </p>
+              )}
+              <Dropdown
+                value={linkedIncidentActionOptions.find(
+                  (option: DropdownOption) => {
+                    return (
+                      option.value === criteriaIncident.linkedIncidentActionId
+                    );
+                  },
+                )}
+                options={linkedIncidentActionOptions}
+                isClearable={true}
+                dataTestId="monitor-criteria-linked-incident-action"
+                onChange={(
+                  value: DropdownValue | Array<DropdownValue> | null,
+                ) => {
+                  setCriteriaIncident({
+                    ...criteriaIncident,
+                    linkedIncidentActionId: value
+                      ? value.toString()
+                      : undefined,
+                    incidentLifecycleKey: undefined,
+                  });
+                }}
+                placeholder="Select an incident action"
+              />
+            </div>
+          )}
+
           <div>
             <Checkbox
               value={criteriaIncident.autoResolveIncident || false}
               title="Auto Resolve Incident"
-              description="Automatically resolve this incident when this criteria is no longer met"
+              description={
+                criteriaIncident.linkedIncidentActionId ||
+                isLinkedIncidentActionAnchor
+                  ? "If this action opens the incident, resolve it when none of the linked criteria match."
+                  : "Automatically resolve this incident when this criteria is no longer met"
+              }
               onChange={(value: boolean) => {
                 updateField("autoResolveIncident", value);
               }}

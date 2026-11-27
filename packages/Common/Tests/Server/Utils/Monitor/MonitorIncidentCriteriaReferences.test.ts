@@ -16,14 +16,20 @@ import Label from "../../../../Models/DatabaseModels/Label";
 import Monitor from "../../../../Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "../../../../Models/DatabaseModels/OnCallDutyPolicy";
 import IncidentService from "../../../../Server/Services/IncidentService";
+import IncidentStateTimelineService from "../../../../Server/Services/IncidentStateTimelineService";
+import IncidentStateTimeline from "../../../../Models/DatabaseModels/IncidentStateTimeline";
+import UpdateOneBy from "../../../../Server/Types/Database/UpdateOneBy";
 import IncidentSeverityService from "../../../../Server/Services/IncidentSeverityService";
 import LabelService from "../../../../Server/Services/LabelService";
 import NetworkDeviceOwnerUserService from "../../../../Server/Services/NetworkDeviceOwnerUserService";
 import OnCallDutyPolicyService from "../../../../Server/Services/OnCallDutyPolicyService";
 import logger from "../../../../Server/Utils/Logger";
 import MonitorIncident from "../../../../Server/Utils/Monitor/MonitorIncident";
+import MonitorIncidentEscalation from "../../../../Server/Utils/Monitor/MonitorIncidentEscalation";
+import MonitorIncidentLifecycle from "../../../../Server/Utils/Monitor/MonitorIncidentLifecycle";
 import MonitorResourceContextUtil from "../../../../Server/Utils/Monitor/MonitorResourceContext";
 import Dictionary from "../../../../Types/Dictionary";
+import { CriteriaIncident } from "../../../../Types/Monitor/CriteriaIncident";
 import MonitorCriteriaInstance from "../../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
@@ -256,6 +262,219 @@ describe("MonitorIncident drops criteria references the project cannot use", () 
 
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+
+  it("passes the matching open incident to escalation without opening a duplicate", async () => {
+    const record: Incident = new Incident();
+    record._id = ObjectID.generate().toString();
+    record.createdCriteriaId = "criteria-1";
+    record.createdIncidentTemplateId = "incident-template-1";
+    jest.mocked(IncidentService.findBy).mockResolvedValue([record]);
+
+    const instance: MonitorCriteriaInstance = criteriaInstance({});
+    const action: CriteriaIncident = instance.data!.incidents![0]!;
+    action.escalationAfterMinutes = 5;
+    action.escalationSeverityId = ObjectID.generate();
+
+    const escalate: jest.SpiedFunction<typeof MonitorIncidentEscalation.apply> =
+      jest
+        .spyOn(MonitorIncidentEscalation, "apply")
+        .mockResolvedValue(undefined);
+    await openIncident(instance);
+
+    expect(escalate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        incidentId: record.id,
+        criteriaIncident: action,
+      }),
+    );
+    expect(createdIncidents).toHaveLength(0);
+  });
+
+  it.each([false, true])(
+    "keeps one picked incident across checks and recovery (starts offline: %s)",
+    async (startsOffline: boolean) => {
+      const majorId: ObjectID = ObjectID.generate();
+      const openStateId: ObjectID = ObjectID.generate();
+      const resolvedStateId: ObjectID = ObjectID.generate();
+      const slow: MonitorCriteriaInstance = criteriaInstance({});
+      const offline: MonitorCriteriaInstance = criteriaInstance({});
+      offline.data!.id = "offline";
+      offline.data!.incidents![0]!.id = "offline-template";
+      offline.data!.incidents![0]!.incidentSeverityId = majorId;
+      offline.data!.incidents![0]!.linkedIncidentActionId =
+        slow.data!.incidents![0]!.id;
+      for (const criterion of [slow, offline]) {
+        criterion.data!.incidents![0]!.autoResolveIncident = true;
+      }
+
+      registerRecords(IncidentSeverityService, [
+        withProject(new IncidentSeverity(), SEVERITY_ID.toString(), PROJECT_ID),
+        withProject(new IncidentSeverity(), majorId.toString(), PROJECT_ID),
+      ]);
+      const update: jest.SpiedFunction<typeof IncidentService.updateOneBy> =
+        jest
+          .spyOn(IncidentService, "updateOneBy")
+          .mockImplementation(
+            async (write: UpdateOneBy<Incident>): Promise<number> => {
+              createdIncidents[0]!.incidentSeverityId =
+                write.data.incidentSeverityId;
+              return 1;
+            },
+          );
+
+      jest
+        .spyOn(IncidentStateTimelineService, "getResolvedStateIdForProject")
+        .mockResolvedValue(resolvedStateId);
+      const resolve: jest.SpiedFunction<
+        typeof IncidentStateTimelineService.create
+      > = jest
+        .spyOn(IncidentStateTimelineService, "create")
+        .mockResolvedValue(new IncidentStateTimeline());
+
+      const linkedIncidentCriteriaById: Dictionary<MonitorCriteriaInstance> = {
+        "criteria-1": slow,
+        offline,
+      };
+      const autoResolveCriteriaInstanceIdIncidentIdsDictionary: Dictionary<
+        Array<string>
+      > = {
+        "criteria-1": ["incident-template-1"],
+        offline: ["offline-template"],
+      };
+
+      const initialCriteria: MonitorCriteriaInstance = startsOffline
+        ? offline
+        : slow;
+      for (const criterion of [initialCriteria, offline, offline, slow]) {
+        await MonitorIncident.criteriaMetCreateIncidentsAndUpdateMonitorStatus({
+          monitor: monitor(),
+          rootCause: "Availability changed",
+          dataToProcess,
+          criteriaInstance: criterion,
+          linkedIncidentCriteriaById,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+          props: {},
+        });
+
+        expect(createdIncidents).toHaveLength(1);
+        expect(resolve).not.toHaveBeenCalled();
+        createdIncidents[0]!.currentIncidentStateId = openStateId;
+        jest.mocked(IncidentService.findBy).mockResolvedValue(createdIncidents);
+      }
+
+      const incident: Incident = createdIncidents[0]!;
+      expect(
+        update.mock.calls.map(([write]: [UpdateOneBy<Incident>]) => {
+          return [write.query._id, write.data.incidentSeverityId];
+        }),
+      ).toEqual(
+        startsOffline
+          ? [[incident.id, SEVERITY_ID]]
+          : [
+              [incident.id, majorId],
+              [incident.id, SEVERITY_ID],
+            ],
+      );
+      expect(incident.createdCriteriaId).toBe(initialCriteria.data!.id);
+
+      const remaining: Array<Incident> =
+        await MonitorIncident.checkOpenIncidentsAndCloseIfResolved({
+          monitorId: MONITOR_ID,
+          projectId: PROJECT_ID,
+          rootCause: "Monitor recovered",
+          dataToProcess,
+          criteriaInstance: null,
+          linkedIncidentCriteriaById,
+          autoResolveCriteriaInstanceIdIncidentIdsDictionary,
+        });
+      expect(remaining).toEqual([]);
+      expect(resolve).toHaveBeenCalledTimes(1);
+      expect(resolve.mock.calls[0]![0].data.incidentId).toEqual(incident.id);
+    },
+  );
+
+  it("uses the picked action ID and leaves other actions independent", () => {
+    const source: MonitorCriteriaInstance = criteriaInstance({});
+    const target: MonitorCriteriaInstance = criteriaInstance({});
+    target.data!.id = "target";
+    target.data!.incidents![0]!.id = "picked";
+    source.data!.incidents![0]!.linkedIncidentActionId = "picked";
+    const unrelated: CriteriaIncident = {
+      ...target.data!.incidents![0]!,
+      id: "unrelated",
+    };
+    target.data!.incidents!.push(unrelated);
+
+    const keys: Map<CriteriaIncident, string> =
+      MonitorIncidentLifecycle.keysForCriteria({
+        "criteria-1": source,
+        target,
+      });
+    expect(keys.get(source.data!.incidents![0]!)).toBe(
+      keys.get(target.data!.incidents![0]!),
+    );
+    expect(keys.get(unrelated)).toBeUndefined();
+    expect(keys.size).toBe(2);
+
+    target.data!.name = "Renamed criterion";
+    target.data!.incidents![0]!.title = "Renamed incident action";
+    expect(
+      MonitorIncidentLifecycle.keysForCriteria({
+        target,
+        "criteria-1": source,
+      }).get(source.data!.incidents![0]!),
+    ).toBe(keys.get(source.data!.incidents![0]!));
+
+    target.data!.incidents!.shift();
+    expect(
+      MonitorIncidentLifecycle.keysForCriteria({
+        target,
+        "criteria-1": source,
+      }).size,
+    ).toBe(0);
+  });
+
+  it("still resolves a saved prototype key", () => {
+    const source: MonitorCriteriaInstance = criteriaInstance({});
+    source.data!.incidents![0]!.incidentLifecycleKey = "saved";
+    expect(
+      MonitorIncidentLifecycle.keysForCriteria({ "criteria-1": source }).size,
+    ).toBe(1);
+  });
+
+  it("keeps the incident and uses the project default when the linked severity was archived", async () => {
+    const record: Incident = withProject(
+      new Incident(),
+      ObjectID.generate().toString(),
+      PROJECT_ID,
+    );
+    record.incidentSeverityId = SEVERITY_ID;
+    record.currentIncidentStateId = ObjectID.generate();
+    const fallback: IncidentSeverity = withProject(
+      new IncidentSeverity(),
+      ObjectID.generate().toString(),
+      PROJECT_ID,
+    );
+
+    jest
+      .mocked(IncidentSeverityService.findOneBy)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(fallback);
+    jest.spyOn(IncidentService, "updateOneBy").mockResolvedValue(1);
+
+    await MonitorIncidentLifecycle.applySeverity({
+      monitor: monitor(),
+      incident: record,
+      severityId: ObjectID.generate(),
+    });
+
+    expect(IncidentService.updateOneBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ _id: record.id }),
+        data: { incidentSeverityId: fallback.id },
+      }),
+    );
   });
 
   it("opens the incident with the usable on-call policies and logs the rest", async () => {

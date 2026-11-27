@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "事件",
+    "severityChanged": "严重程度从{{from}}更改为{{to}}",
     "singular": "事件",
     "active": "活动事件",
     "noneDescription": "当事件影响此页面上的服务时，会在这里发布。",

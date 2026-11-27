@@ -117,6 +117,7 @@
   },
   "incidents": {
     "title": "Incidenter",
+    "severityChanged": "Allvarlighetsgraden ändrades från {{from}} till {{to}}",
     "singular": "Incident",
     "active": "Aktiva incidenter",
     "noneDescription": "När en incident påverkar tjänsterna på den här sidan publiceras den här.",
