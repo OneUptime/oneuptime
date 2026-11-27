@@ -39,8 +39,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "- s'il faut vérifier le certificat de la baie : répondez **N**, sauf si la baie porte un certificat d'une autorité de certification à laquelle vous faites confiance (les baies sont livrées avec un certificat auto-signé)",
   "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the API token) and starts the agent with Docker Compose.":
     "Il s'installe dans `/opt/oneuptime-storage-array-agent`, écrit un fichier `.env` que vous seul pouvez lire (il contient le jeton d'API) et démarre l'agent avec Docker Compose.",
-  "Download the compose file and the three collector configs from this OneUptime into a new folder:":
-    "Téléchargez le fichier compose et les trois configurations du collecteur depuis ce OneUptime dans un nouveau dossier :",
+  "Download the compose file and the collector configs from this OneUptime into a new folder:":
+    "Téléchargez le fichier compose et les configurations du collecteur depuis ce OneUptime dans un nouveau dossier :",
   "Create a `.env` file next to them:":
     "Créez un fichier `.env` à côté d'eux :",
   "- Replace `my-storage-array` with a name for this array, such as `fa-prod-01`. It is how the array appears in OneUptime, so keep it stable: a new name registers a new storage array.":
@@ -126,8 +126,8 @@ const TRANSLATION: SetupGuideTranslation = {
     "**Mise à niveau** : l'image du collecteur est figée dans `docker-compose.yml` et ses configurations sont des fichiers à côté ; récupérer l'image ne suffit donc pas à faire avancer l'agent. Relancez le script d'installation. Il réutilise chaque valeur de votre `.env` existant (rien n'est redemandé), télécharge les derniers `docker-compose.yml` et configurations du collecteur (un fichier que vous avez modifié est gardé à côté du nouveau sous le nom `<file>.bak.<timestamp>`) et recrée l'agent avec eux :",
   "An agent installed outside `/opt/oneuptime-storage-array-agent` (a second array's, say) needs its folder: `INSTALL_DIR=<folder> bash install.sh`.":
     "Un agent installé ailleurs que dans `/opt/oneuptime-storage-array-agent` (celui d'une deuxième baie, par exemple) a besoin de son dossier : `INSTALL_DIR=<folder> bash install.sh`.",
-  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the three collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
-    "Installé plutôt avec Docker Compose ? Dans le dossier de l'agent, téléchargez à nouveau le fichier compose et les trois configurations du collecteur ; votre `.env` reste, et une modification que vous avez faite à l'un d'eux est à refaire :",
+  "Installed it with Docker Compose instead? In the agent's folder, download the compose file and the collector configs again; your `.env` stays, and a change you made to any of them has to be made again:":
+    "Installé plutôt avec Docker Compose ? Dans le dossier de l'agent, téléchargez à nouveau le fichier compose et les configurations du collecteur ; votre `.env` reste, et une modification que vous avez faite à l'un d'eux est à refaire :",
   "Then pull the images and recreate the agent, so the collector reads its new config:":
     "Récupérez ensuite les images et recréez l'agent, pour que le collecteur lise sa nouvelle configuration :",
   "The config reports the collector version it pins as the array's **Agent Version**. When this OneUptime pins a newer one, a warning sign beside it opens these commands.":
@@ -207,6 +207,76 @@ const TRANSLATION: SetupGuideTranslation = {
     "| **Systèmes de fichiers** (`/metrics/filesystems`) | Espace, réduction des données et performances par système de fichiers |",
   "| **Object store** (`/metrics/objectstore`) | Space, quota, object counts and performance per bucket |":
     "| **Magasin d'objets** (`/metrics/objectstore`) | Espace, quota, nombre d'objets et performances par bucket |",
+  "Docker Engine 20.10+ with the Docker Compose v2 plugin, on a machine that reaches every node of the cluster on UDP 161 (SNMP)":
+    "Docker Engine 20.10 ou version ultérieure avec le plugin Docker Compose v2, sur une machine qui joint chaque nœud du cluster en UDP 161 (SNMP)",
+  "An administrator account on the cluster, to turn on SNMP and set the agent's read-only community or SNMPv3 user":
+    "Un compte administrateur sur le cluster, pour activer SNMP et définir la communauté en lecture seule ou l'utilisateur SNMPv3 de l'agent",
+  "SSH to any node as an administrator: OneFS applies SNMP settings to the whole cluster. If the cluster already answers SNMP for another tool, give the agent the same community or user and skip this step. Otherwise, turn on SNMP v2c with a read-only community of your own, not OneFS's default `I$ilonpublic`:":
+    "Connectez-vous en SSH à n'importe quel nœud en tant qu'administrateur : OneFS applique les paramètres SNMP à tout le cluster. Si le cluster répond déjà en SNMP pour un autre outil, donnez à l'agent la même communauté ou le même utilisateur et passez cette étape. Sinon, activez SNMP v2c avec une communauté en lecture seule qui vous est propre, et non la communauté par défaut de OneFS, `I$ilonpublic` :",
+  "Or turn on SNMPv3, which authenticates and encrypts every poll. OneFS has one SNMPv3 read-only user, `general` until you rename it: give it passwords of at least eight characters, without spaces:":
+    "Ou activez SNMPv3, qui authentifie et chiffre chaque interrogation. OneFS a un seul utilisateur SNMPv3 en lecture seule, `general` tant que vous ne le renommez pas : donnez-lui des mots de passe d'au moins huit caractères, sans espaces :",
+  "`isi snmp settings view` shows the settings, with the user's authentication and privacy protocols. Allow UDP 161 from the agent's machine to every node, and list the nodes' addresses with `isi network interfaces list`.":
+    "`isi snmp settings view` affiche les paramètres, avec les protocoles d'authentification et de confidentialité de l'utilisateur. Autorisez UDP 161 depuis la machine de l'agent vers chaque nœud, et listez les adresses des nœuds avec `isi network interfaces list`.",
+  "- **every node's address**, separated by commas: each node's own address, never the SmartConnect zone name, since a node answers only for its own drives, sensors and ports":
+    "- l'**adresse de chaque nœud**, séparées par des virgules : l'adresse propre de chaque nœud, jamais le nom de la zone SmartConnect, car un nœud ne répond que pour ses propres disques, capteurs et ports",
+  "- the **SNMP version**, then the read-only **community**, or the SNMPv3 **user** and its two passwords, each read without echo":
+    "- la **version SNMP**, puis la **communauté** en lecture seule, ou l'**utilisateur** SNMPv3 et ses deux mots de passe, chacun lu sans être affiché",
+  "A user whose protocols are not SHA and AES needs `POWERSCALE_SNMP_AUTH_PROTOCOL` and `POWERSCALE_SNMP_PRIVACY_PROTOCOL` in front of `bash install.sh`, and a user without privacy `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.":
+    "Un utilisateur dont les protocoles ne sont pas SHA et AES a besoin de `POWERSCALE_SNMP_AUTH_PROTOCOL` et `POWERSCALE_SNMP_PRIVACY_PROTOCOL` devant `bash install.sh`, et un utilisateur sans confidentialité, de `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`.",
+  "It installs to `/opt/oneuptime-storage-array-agent`, writes a `.env` file only you can read (it holds the community or the SNMPv3 passwords), with one poll per node, and starts the agent with Docker Compose. When the cluster gains a node, add its address to `POWERSCALE_NODES` in that file and run `bash install.sh` again.":
+    "Il s'installe dans `/opt/oneuptime-storage-array-agent`, écrit un fichier `.env` que vous seul pouvez lire (il contient la communauté ou les mots de passe SNMPv3), avec une interrogation par nœud, et démarre l'agent avec Docker Compose. Quand le cluster gagne un nœud, ajoutez son adresse à `POWERSCALE_NODES` dans ce fichier et exécutez à nouveau `bash install.sh`.",
+  "- Replace `my-storage-array` with a name for this cluster, such as `ps-prod`. It is how the cluster appears in OneUptime, so keep it stable: a new name registers a new storage array.":
+    "- Remplacez `my-storage-array` par un nom pour ce cluster, par exemple `ps-prod`. C'est sous ce nom que le cluster apparaît dans OneUptime, gardez-le donc stable : un nouveau nom enregistre une nouvelle baie de stockage.",
+  "- List every node in `POWERSCALE_NODES` and give each its own `POWERSCALE_NODE_<n>` and `snmp/node-<n>` in `POWERSCALE_SNMP_RECEIVERS`, up to 252, after `snmp/cluster` and `snmp/quotas`. An IPv6 address goes in brackets, such as `[fd00::11]`.":
+    "- Listez chaque nœud dans `POWERSCALE_NODES` et donnez à chacun son propre `POWERSCALE_NODE_<n>` et son propre `snmp/node-<n>` dans `POWERSCALE_SNMP_RECEIVERS`, jusqu'à 252, après `snmp/cluster` et `snmp/quotas`. Une adresse IPv6 s'écrit entre crochets, par exemple `[fd00::11]`.",
+  "- For SNMPv3, set `POWERSCALE_SNMP_VERSION=v3`, `POWERSCALE_SNMP_USER`, `POWERSCALE_SNMP_AUTH_PASSWORD` and `POWERSCALE_SNMP_PRIVACY_PASSWORD` instead of the community. Run `chmod 600 .env`: it holds the community or the passwords.":
+    "- Pour SNMPv3, définissez `POWERSCALE_SNMP_VERSION=v3`, `POWERSCALE_SNMP_USER`, `POWERSCALE_SNMP_AUTH_PASSWORD` et `POWERSCALE_SNMP_PRIVACY_PASSWORD` au lieu de la communauté. Exécutez `chmod 600 .env` : le fichier contient la communauté ou les mots de passe.",
+  "| `STORAGE_ARRAY_NAME` | Yes | The name this cluster registers under in OneUptime, stamped on every metric as `storage.array.name`. Keep it stable — changing it registers a new storage array |":
+    "| `STORAGE_ARRAY_NAME` | Oui | Le nom sous lequel ce cluster s'enregistre dans OneUptime, apposé sur chaque métrique comme `storage.array.name`. Gardez-le stable : le changer enregistre une nouvelle baie de stockage |",
+  "| `STORAGE_SYSTEM` | Yes | `dell.powerscale` |":
+    "| `STORAGE_SYSTEM` | Oui | `dell.powerscale` |",
+  "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Yes | `otel-collector-config.powerscale.yaml` |":
+    "| `STORAGE_ARRAY_COLLECTOR_CONFIG` | Oui | `otel-collector-config.powerscale.yaml` |",
+  "| `POWERSCALE_NODES` | Yes | Every node's address, separated by commas. The install script writes the polls below from it |":
+    "| `POWERSCALE_NODES` | Oui | L'adresse de chaque nœud, séparées par des virgules. Le script d'installation en tire les interrogations ci-dessous |",
+  "| `POWERSCALE_ENDPOINT` | Yes | The node the cluster's own health, capacity and quotas are read through: the first in `POWERSCALE_NODES` |":
+    "| `POWERSCALE_ENDPOINT` | Oui | Le nœud par lequel sont lus la santé, la capacité et les quotas du cluster lui-même : le premier de `POWERSCALE_NODES` |",
+  "| `POWERSCALE_SNMP_RECEIVERS` | Yes | The polls the collector runs: `snmp/cluster`, `snmp/quotas`, then `snmp/node-<n>` for each node |":
+    "| `POWERSCALE_SNMP_RECEIVERS` | Oui | Les interrogations que le collecteur exécute : `snmp/cluster`, `snmp/quotas`, puis `snmp/node-<n>` pour chaque nœud |",
+  "| `POWERSCALE_NODE_<n>` | Yes | Node `<n>`'s address, from 1 to 252 |":
+    "| `POWERSCALE_NODE_<n>` | Oui | L'adresse du nœud `<n>`, de 1 à 252 |",
+  "| `POWERSCALE_SNMP_VERSION` | No | `v2c` (default) or `v3` |":
+    "| `POWERSCALE_SNMP_VERSION` | Non | `v2c` (par défaut) ou `v3` |",
+  "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | The cluster's read-only community |":
+    "| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | La communauté en lecture seule du cluster |",
+  "| `POWERSCALE_SNMP_USER` | SNMPv3 | The cluster's SNMPv3 read-only user |":
+    "| `POWERSCALE_SNMP_USER` | SNMPv3 | L'utilisateur SNMPv3 en lecture seule du cluster |",
+  "| `POWERSCALE_SNMP_SECURITY_LEVEL` | No | `auth_priv` (default), `auth_no_priv` or `no_auth_no_priv` |":
+    "| `POWERSCALE_SNMP_SECURITY_LEVEL` | Non | `auth_priv` (par défaut), `auth_no_priv` ou `no_auth_no_priv` |",
+  "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | No | `SHA` (default), `MD5`, `SHA224`, `SHA256`, `SHA384` or `SHA512` |":
+    "| `POWERSCALE_SNMP_AUTH_PROTOCOL` | Non | `SHA` (par défaut), `MD5`, `SHA224`, `SHA256`, `SHA384` ou `SHA512` |",
+  "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | The SNMPv3 user's authentication password |":
+    "| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | Le mot de passe d'authentification de l'utilisateur SNMPv3 |",
+  "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | No | `AES` (default), `DES`, `AES192`, `AES256`, `AES192C` or `AES256C` |":
+    "| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | Non | `AES` (par défaut), `DES`, `AES192`, `AES256`, `AES192C` ou `AES256C` |",
+  "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | The SNMPv3 user's privacy password |":
+    "| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | Le mot de passe de confidentialité de l'utilisateur SNMPv3 |",
+  "- **One collector, no exporter.** The collector's own SNMP receiver reads Dell's ISILON-MIB; nothing else runs beside it.":
+    "- **Un collecteur, aucun exportateur.** Le récepteur SNMP propre au collecteur lit l'ISILON-MIB de Dell ; rien d'autre ne tourne à côté.",
+  "- **The cluster's objects once, through `POWERSCALE_ENDPOINT`:** its health, capacity, throughput and node counts every 60 seconds (`snmp/cluster`), and its SmartQuotas every 5 minutes (`snmp/quotas`).":
+    "- **Les objets du cluster une seule fois, par `POWERSCALE_ENDPOINT` :** sa santé, sa capacité, son débit et ses nombres de nœuds toutes les 60 secondes (`snmp/cluster`), et ses SmartQuotas toutes les 5 minutes (`snmp/quotas`).",
+  "- **Each node's from the node:** its health, CPU, protocol performance, drives, sensors and ports every 60 seconds (`snmp/node-<n>`).":
+    "- **Ceux de chaque nœud, par le nœud lui-même :** sa santé, son CPU, les performances de ses protocoles, ses disques, capteurs et ports toutes les 60 secondes (`snmp/node-<n>`).",
+  "- **Every poll labels its series `scrape_endpoint: <poll>`**, so OneUptime knows which objects a batch is the complete list of — that is how a deleted quota leaves the inventory. Keep the labels as shipped.":
+    "- **Chaque interrogation étiquette ses séries `scrape_endpoint: <poll>`**, pour que OneUptime sache de quels objets un lot est la liste complète : c'est ainsi qu'un quota supprimé quitte l'inventaire. Gardez les labels tels qu'ils sont livrés.",
+  "The full config, one SNMP receiver per node slot, is `otel-collector-config.powerscale.yaml` in the agent's folder:":
+    "La configuration complète, un récepteur SNMP par emplacement de nœud, est `otel-collector-config.powerscale.yaml` dans le dossier de l'agent :",
+  "Then turn SNMP off on the cluster, or change the agent's community or SNMPv3 passwords, if nothing else polls it.":
+    "Désactivez ensuite SNMP sur le cluster, ou changez la communauté ou les mots de passe SNMPv3 de l'agent, si rien d'autre ne l'interroge.",
+  "`troubleshoot.sh` checks the whole chain — the container runtime, the node addresses and the community or SNMPv3 user in `.env`, each node with `snmpget` when the machine has it, array-name stamping, collector self-metrics — and asks OneUptime directly whether it accepts your ingestion key.":
+    "`troubleshoot.sh` vérifie toute la chaîne (environnement d'exécution des conteneurs, adresses des nœuds et communauté ou utilisateur SNMPv3 dans `.env`, chaque nœud avec `snmpget` quand la machine l'a, apposition du nom de la baie, métriques propres du collecteur) et demande directement à OneUptime s'il accepte votre clé d'ingestion.",
+  "`Error scraping metrics` with `request timeout` in `docker logs oneuptime-storage-array-agent` names a node that does not answer SNMP from this machine: SNMP is off for the version the agent uses, the community or SNMPv3 user is not the cluster's, or UDP 161 is blocked on the way. A node that answers but is missing from the cluster's nodes is not in `POWERSCALE_NODES`: add it and run `bash install.sh` again.":
+    "`Error scraping metrics` avec `request timeout` dans `docker logs oneuptime-storage-array-agent` désigne un nœud qui ne répond pas en SNMP depuis cette machine : SNMP est désactivé pour la version qu'utilise l'agent, la communauté ou l'utilisateur SNMPv3 n'est pas celui du cluster, ou UDP 161 est bloqué en chemin. Un nœud qui répond mais qui manque parmi les nœuds du cluster n'est pas dans `POWERSCALE_NODES` : ajoutez-le et exécutez à nouveau `bash install.sh`.",
 };
 
 export default TRANSLATION;

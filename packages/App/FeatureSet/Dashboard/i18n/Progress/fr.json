@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 65322,
+    "keys": 65631,
     "untranslated": 4753
   },
   "sameAsEnglish": [
@@ -419,6 +419,7 @@
     "Oman",
     "OnCallDutyPolicy",
     "OnCallDutyPolicy ID",
+    "OneFS",
     "OpenAI",
     "OpenInference",
     "OpenLLMetry",
@@ -470,6 +471,7 @@
     "Position",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
+    "PowerScale",
     "Powered by OneUptime",
     "Principal",
     "Production",
@@ -823,6 +825,8 @@
     "{{count}} pods",
     "{{count}} pool",
     "{{count}} pools",
+    "{{count}} quota",
+    "{{count}} quotas",
     "{{count}} rotation",
     "{{count}} rotations",
     "{{count}} s",
