@@ -69,6 +69,7 @@ describe("StorageSystem enum", () => {
       ["DellPowerStore", "dell.powerstore"],
       ["NetAppOntap", "netapp.ontap"],
       ["DellPowerMax", "dell.powermax"],
+      ["DellPowerScale", "dell.powerscale"],
     ]);
   });
 
@@ -79,6 +80,7 @@ describe("StorageSystem enum", () => {
       StorageSystem.DellPowerStore,
       StorageSystem.NetAppOntap,
       StorageSystem.DellPowerMax,
+      StorageSystem.DellPowerScale,
     ]);
   });
 
@@ -312,6 +314,21 @@ describe("StorageSystemUtil display helpers", () => {
     expect(StorageSystemUtil.getMetricPrefix(StorageSystem.NetAppOntap)).toBe(
       "netapp_",
     );
+  });
+
+  test("display, short and vendor names of Dell PowerScale", () => {
+    expect(StorageSystemUtil.getDisplayName(StorageSystem.DellPowerScale)).toBe(
+      "Dell PowerScale",
+    );
+    expect(StorageSystemUtil.getShortName(StorageSystem.DellPowerScale)).toBe(
+      "PowerScale",
+    );
+    expect(StorageSystemUtil.getVendorName(StorageSystem.DellPowerScale)).toBe(
+      "Dell",
+    );
+    expect(
+      StorageSystemUtil.getMetricPrefix(StorageSystem.DellPowerScale),
+    ).toBe("powerscale_");
   });
 
   test("display, short and vendor names of the launch platforms", () => {

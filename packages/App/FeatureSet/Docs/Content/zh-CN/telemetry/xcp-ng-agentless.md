@@ -18,7 +18,7 @@ flowchart TB
     P -->|"HTTPS，<br/>OpenMetrics 插件"| XO["Xen Orchestra"]
     P -->|"HTTPS，XAPI<br/>只读"| M["资源池主节点<br/>及其主机"]
     P -->|"与 XCP-ng 代理<br/>发送的相同<br/>指标"| OU
-    OU --> V["XCP-ng 页面、<br/>监视器和告警"]
+    OU --> V["XCP-ng 页面、<br/>监视器和警报"]
 ```
 
 探测器每分钟读取每个连接，并将读取到的内容发送到 OneUptime：

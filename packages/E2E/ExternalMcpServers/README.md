@@ -44,11 +44,20 @@ The suite drives the pages the way a person does:
   1280px), a list with a long name and a long address still shows every
   row's status in full, and a server's page keeps External MCP Servers
   marked in the menu; a server with many tools (`?servers=many`) lists ten
-  on its page, and Show all opens the rest.
+  on its page, and Show all opens the rest;
+- a kAgent server whose tools say nothing about themselves
+  (`?page=view&server=kagent&servers=kagent`): a Project Owner marks a tool
+  read-only through a dialog that says what marking means before anything
+  is sent, and only the server and the tool are sent; a marked tool says
+  who marked it, a mark the server's change outdated says so and offers
+  Mark Again, Remove Mark takes a mark away, a tool that can never be
+  marked says why, nothing marks several at once, and a Viewer sees the
+  marks with no button - also at phone width and in dark mode.
 
-`Fixture/Fixture.js` records every create (`creates`), edit (`edits`), switch
-(`updates`), delete (`deletes`) and Test request (`tests`, with its path, body
-and headers) on `window.__externalMcpServersFixture.state`, so the assertions
+`Fixture/Fixture.js` records every create (`creates`), read-only mark
+(`marks`), edit (`edits`), switch (`updates`), delete (`deletes`) and Test
+request (`tests`, with its path, body and headers) on
+`window.__externalMcpServersFixture.state`, so the assertions
 check what the pages sent as well as what they drew. The query string steers
 it - see the comment at the top of `Fixture/Fixture.js`. Screenshots of each
 state are written to `output/playwright/external-mcp-servers-ui/`.

@@ -78,6 +78,7 @@ export type StorageArrayMetric =
   // Hardware (Pages/StorageArray/View/Hardware.tsx)
   | "hardwareStatusColumn"
   | "hardwareTemperatureColumn"
+  | "hardwareReadingColumn"
   | "driveStatusColumn"
   | "driveCapacityColumn"
   | "controllerStatusColumn"
@@ -223,6 +224,9 @@ export const STORAGE_ARRAY_METRIC_DESCRIPTIONS: Record<
   ),
   hardwareTemperatureColumn: translationKey(
     "Latest temperature reading of the component's sensor in degrees Celsius, reported for sensors and the parts that carry one.",
+  ),
+  hardwareReadingColumn: translationKey(
+    "The sensor's latest reading in its unit: a temperature in degrees Celsius, a fan's speed in revolutions per minute, a power sensor's volts or amps.",
   ),
   driveStatusColumn: translationKey(
     "The drive's latest status: Healthy and Empty are fine; Failed, Missing, Unrecognized and Unhealthy need a person; Recovering and Updating are temporary.",

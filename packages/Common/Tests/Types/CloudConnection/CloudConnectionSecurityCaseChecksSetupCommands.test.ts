@@ -29,23 +29,27 @@ import {
   getCloudConnectionCommandSettings,
   getCloudConnectionSetupCommand,
 } from "../../../Types/CloudConnection/CloudConnectionSetupCommands";
+import { CloudSavingsActionsAccess } from "../../../Types/Cloud/CloudSavingsAction";
+import { getAwsSavingsActionsPolicyDocument } from "../../../Types/CloudConnection/CloudSavingsActionsAccess";
 import { JSONObject } from "../../../Types/JSON";
 import { describe, expect, test } from "@jest/globals";
 
 /*
- * SECURITY CASE CHECKS (#10900): what a security case may read of the IAM
- * users an attack changed, granted on a setting of its own.
+ * SECURITY CASE CHECKS (#10900, #11038): what a security case may read of
+ * the IAM users and roles an attack changed, granted on a setting of its
+ * own.
  *
  * Off - every connection until someone turns it on - the commands are the
  * ones connections had before it, byte for byte. On, they add one policy,
- * OneUptimeSecurityCaseChecks: the seven reads the step "Undo what changed
- * on the account" makes of a user (held to the calls it makes by
+ * OneUptimeSecurityCaseChecks: the ten reads the step "Undo what changed
+ * on the account" makes of a user or a role (held to the calls it makes by
  * CloudConnectionCommandNeeds.test.ts), each a Get or a List, none that
- * reads a secret. A role takes it as a fifth inline policy, every member
- * account's role through the organization's StackSet, and the access key's
- * user - whose own inline policies are full - through a group of the same
- * name. Every inline policy a role may hold still fits what IAM allows,
- * with every setting on.
+ * reads a secret or a policy's document, none that writes. A role takes
+ * it as a fifth inline policy, every member account's role through the
+ * organization's StackSet, and the access key's user - whose own inline
+ * policies are full - through a group of the same name. Every inline
+ * policy a role may hold still fits what IAM allows, with every setting
+ * on, Savings actions' included.
  */
 
 const PROJECT: string = "11111111-1111-4111-8111-111111111111";
@@ -70,6 +74,7 @@ function everyRolePolicy(
     getAwsDataSecurityResponsePolicyDocument("block"),
     getAwsWafBlocklistPolicyDocument("rule", EXTERNAL_ID),
     getAwsSecurityCaseChecksPolicyDocument(securityCaseChecks),
+    getAwsSavingsActionsPolicyDocument(CloudSavingsActionsAccess.Resize),
   ].filter((document: string): boolean => {
     return document.length > 0;
   });
@@ -85,7 +90,7 @@ function linesOf(command: string): Array<string> {
 }
 
 describe("the policy", () => {
-  test("is the seven reads a security case makes of a user, on every user, and nothing else", () => {
+  test("is the ten reads a security case makes of a user or a role, on every one, and nothing else", () => {
     expect(AWS_SECURITY_CASE_CHECKS_POLICY_NAME).toBe(
       "OneUptimeSecurityCaseChecks",
     );
@@ -97,6 +102,10 @@ describe("the policy", () => {
       "iam:ListUserPolicies",
       "iam:ListGroupsForUser",
       "iam:ListMFADevices",
+      // A role's (#11038): the role and whom it trusts, its managed and its inline policies.
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies",
+      "iam:ListRolePolicies",
     ]);
     expect(getAwsSecurityCaseChecksPolicy("on")).toEqual({
       Version: "2012-10-17",
@@ -145,11 +154,32 @@ describe("the policy", () => {
       "iam:GenerateCredentialReport",
       "iam:GetCredentialReport",
       "iam:GetAccountAuthorizationDetails",
+      // A role's inline policy is read by its name alone, never its document (#11038).
+      "iam:GetRolePolicy",
+      "iam:ListRoles",
     ]) {
       expect({ secret, granted: actions.includes(secret) }).toEqual({
         secret,
         granted: false,
       });
+    }
+  });
+
+  test("never writes to a role: OneUptime deletes and edits nothing, the undoing is a person's (#11038)", () => {
+    for (const write of [
+      "iam:DeleteRole",
+      "iam:UpdateAssumeRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:DeleteRolePolicy",
+      "iam:PutRolePolicy",
+      "iam:UpdateRole",
+      "iam:TagRole",
+      "iam:PassRole",
+    ]) {
+      expect({
+        write,
+        granted: AWS_SECURITY_CASE_CHECKS_ACTIONS.includes(write),
+      }).toEqual({ write, granted: false });
     }
   });
 
@@ -180,21 +210,43 @@ describe("the policy", () => {
 
   test("fits what IAM allows: every inline policy a role may hold together, a group's, and the access key's user keeps its own", () => {
     const every: Array<string> = everyRolePolicy("on");
+    const total: number = every.reduce(
+      (sum: number, document: string): number => {
+        return sum + iamLength(document);
+      },
+      0,
+    );
 
-    // The read-only, Data Security's two, the blocklist's and this one.
-    expect(every).toHaveLength(5);
-    // A role's inline policies may total 10,240 characters.
-    expect(
-      every.reduce((total: number, document: string): number => {
-        return total + iamLength(document);
-      }, 0),
-    ).toBeLessThan(10240);
-    // A group's may total 5,120.
+    // The read-only, Data Security's two, the blocklist's, this one and Savings actions'.
+    expect(every).toHaveLength(6);
+    // A role's inline policies may total 10,240 characters: with every setting on, about half of it.
+    expect(total).toBeLessThan(10240);
+    expect(total).toBeLessThan(6000);
+    // The role reads (#11038) add 68 characters to this policy, which stays small.
+    expect(iamLength(getAwsSecurityCaseChecksPolicyDocument("on"))).toBe(307);
+    // A group's may total 5,120: the access key's user takes this policy through its own group.
     expect(
       iamLength(getAwsSecurityCaseChecksPolicyDocument("on")),
     ).toBeLessThan(5120);
     // The access key's user keeps its 2,048 for the read-only policy, as before.
     expect(iamLength(getAwsReadOnlyPolicyDocument())).toBeLessThan(2048);
+  });
+
+  test("every inline policy a role may hold fits whichever of them a connection turns on", () => {
+    const documents: Array<string> = everyRolePolicy("on");
+
+    // Each subset: a connection turns its settings on one by one.
+    for (let mask: number = 0; mask < 1 << documents.length; mask++) {
+      const total: number = documents
+        .filter((_: string, index: number): boolean => {
+          return (mask & (1 << index)) !== 0;
+        })
+        .reduce((sum: number, document: string): number => {
+          return sum + iamLength(document);
+        }, 0);
+
+      expect({ mask, fits: total < 10240 }).toEqual({ mask, fits: true });
+    }
   });
 });
 
@@ -312,7 +364,7 @@ describe("the organization's StackSet", () => {
     );
     // It only reads, so the role still "can only read".
     expect(on.Description).toBe(
-      "OneUptime: a role that can only read this account's metrics, resources, changes and health events, and which keys, console passwords, policies, groups and MFA devices its IAM users have.",
+      "OneUptime: a role that can only read this account's metrics, resources, changes and health events, and which keys, console passwords, policies, groups and MFA devices its IAM users have, and which policies its IAM roles have and whom they trust.",
     );
     // CloudFormation holds a description to 1,024 characters.
     expect(on.Description.length).toBeLessThanOrEqual(1024);

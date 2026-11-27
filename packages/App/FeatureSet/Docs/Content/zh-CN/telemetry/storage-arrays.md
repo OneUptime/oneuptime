@@ -4,6 +4,7 @@ OneUptime Storage Array 代理监控存储阵列：容量和数据缩减、延�
 
 :::cards
 - [安装代理](#安装代理): 先创建只读用户，再使用安装脚本或 Docker Compose。
+- [Dell PowerScale](#dell-powerscale): 集群上的 SNMP、逐个轮询的每个节点，以及其页面显示的内容。
 - [代理收集的内容](#代理采集的内容): 每个端点，以及基于它构建的页面。
 - [监控多个阵列](#监控多个阵列): 每个阵列一个代理，都在同一台机器上。
 - [Dell PowerMax](#dell-powermax): 无需代理：探测器读取 Unisphere 背后的所有阵列。
@@ -21,12 +22,15 @@ Storage Arrays 是一个对每个厂商都以相同方式工作的产品。它�
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | Pure 的 FlashBlade OpenMetrics 导出器，由同一个 Compose 文件作为 `pure-fb-exporter` 服务运行 | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | Dell 的 PowerStore Metrics Exporter，由同一个 Compose 文件作为 `powerstore-exporter` 服务构建并运行；集群的警报通过 syslog 到达其 `powerstore-syslog` 服务 | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 及更高版本（AFF、FAS、ASA、ONTAP Select、Cloud Volumes ONTAP），以及 **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11，由同一个 Compose 文件作为 `netapp-harvest` 服务运行：它使用只读用户和密码登录集群的 REST API | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale**（Isilon），OneFS 8.0 及更高版本 | `dell.powerscale` | 通过 SNMP 读取每个节点（Dell 的 ISILON-MIB），使用 Collector 自带的 SNMP 接收器：Collector 旁边不需要运行任何东西 | `otel-collector-config.powerscale.yaml` |
 
 ONTAP 没有自己的指标端点，因此代理会在 Collector 旁边运行 NetApp 的开源导出器 Harvest。Harvest 读取集群的 REST API，并在 Compose 网络上提供它读取到的内容，每个序列都命名为 `netapp_<object>_<counter>`；Collector 抓取它并将其发送出去。Harvest 从不写入集群，其发送给 NetApp 的 AutoSupport 报告也已关闭。
 
 **Dell PowerMax**（`dell.powermax`）无需代理：OneUptime 探测器使用只读帐户读取 Unisphere for PowerMax 管理的所有阵列。请参阅 [Dell PowerMax](#dell-powermax)。
 
 Pure Storage 于 2026 年 2 月更名为 **Everpure**。FlashArray、FlashBlade 和 Purity 保留了原名，`purefa_*` 和 `purefb_*` 指标也没有改名，因此本页的所有内容都适用于以任一名称销售的阵列。
+
+**Dell PowerScale** 集群的读取方式不同：代理通过 SNMP 轮询它的每个节点，使用只读团体字符串或 SNMPv3 用户，不需要 API 令牌。[Dell PowerScale](#dell-powerscale) 一节从启用 SNMP 一直讲到其页面显示的内容；下面的安装步骤适用于 Pure Storage。
 
 ```mermaid title="从阵列到 OneUptime"
 flowchart TB
@@ -146,6 +150,8 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 POWERSTORE_ENDPOINT=
 POWERSTORE_PASSWORD=
@@ -246,6 +252,18 @@ Dell 的导出器不报告主机和复制会话，因此此版本两者都没有
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | 集群管理地址（在 FSx 上为文件系统的管理端点）：主机名或 IP，不带 `https://`。 |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | 只读 REST 用户，例如 `oneuptime`。 |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | 该用户的密码。只有 Harvest 会读取它，并完全按原样读取。 |
+| `POWERSCALE_NODES` | PowerScale | 每个节点的地址，以逗号分隔，绝不是 SmartConnect 区域名称。安装脚本据此写入下面的轮询。 |
+| `POWERSCALE_ENDPOINT` | PowerScale | 读取集群自身健康状况、容量和配额所经由的节点：`POWERSCALE_NODES` 中的第一个。 |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Collector 运行的轮询：`snmp/cluster`、`snmp/quotas`，然后是 `snmp/node-1` 及之后各项，每个节点一个。 |
+| `POWERSCALE_NODE_<n>` | PowerScale | 节点 `<n>` 的地址，从 `1` 到 `252`。IPv6 地址要放在方括号中，例如 `[fd00::11]`。 |
+| `POWERSCALE_SNMP_VERSION` | 否 | `v2c` 或 `v3`。默认为 `v2c`。 |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | 集群的只读团体字符串。 |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | 集群的 SNMPv3 只读用户。 |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | 否 | `auth_priv`、`auth_no_priv` 或 `no_auth_no_priv`。默认为 `auth_priv`。 |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | 否 | `MD5`、`SHA`、`SHA224`、`SHA256`、`SHA384` 或 `SHA512`，与 `isi snmp settings view` 显示的一致。默认为 `SHA`。 |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | SNMPv3 用户的认证密码。 |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | 否 | `DES`、`AES`、`AES192`、`AES256`、`AES192C` 或 `AES256C`。默认为 `AES`。 |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | SNMPv3 用户的隐私密码，用于 `auth_priv` 级别。 |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | 否 | `true` 在原生端点上和 Harvest 中接受阵列的自签名证书；`false` 则验证它。默认为 `true`。Pure 的导出器从不验证阵列的证书，因此它对导出器不适用。 |
 
 ## 代理如何抓取
@@ -278,6 +296,9 @@ Pure 的语义约定由 FlashArray 原生端点和两个导出器共享；ONTAP 
 | ONTAP，通过 Harvest | `netapp_cluster_*`、`netapp_node_*`、`netapp_aggr_*`、`netapp_svm_*`、`netapp_volume_*`、`netapp_lun_*`、`netapp_snapmirror_*` | 集群的名称、版本和 UUID；其容量（其各数据聚合的总和）和数据缩减；**卷** 页面；**聚合**、**SVM**、**LUN** 和 **SnapMirror** 页面，每个对象一个页面 |
 | ONTAP 硬件，通过 Harvest | `netapp_disk_*`、`netapp_shelf_*`、`netapp_environment_sensor_*`、`netapp_net_port_*`、`netapp_nic_*`、`netapp_fcp_*` | **硬件** 页面：节点、磁盘、磁盘架及其电源、风扇、模块和传感器，节点的传感器，以及以太网和光纤通道端口 |
 | ONTAP 的未解决问题和事件 | `netapp_health_*`、`netapp_ems_events` | 未关闭的警报数和 **活动警报** 卡片（已损坏的磁盘、磁盘架故障、HA 接管、已断开的端口、系统健康警报），以及 EMS 模板 |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`、`powerscale_ifs_*` | 集群的名称、OneFS 版本、健康状况和节点数；`/ifs` 的容量；整个集群的吞吐量、网络和 CPU |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | **配额** 页面：每个配额的用量、其限制，以及它离限制有多近 |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`、`powerscale_protocol_*`、`powerscale_drive_*`、`powerscale_fan_*`、`powerscale_temperature_*`、`powerscale_power_sensor_*`、`powerscale_interface_*`、`powerscale_chassis_*` | **节点** 页面：每个节点的健康状况、CPU、吞吐量和协议性能；**硬件** 页面：它的驱动器、传感器和端口 |
 
 在 ONTAP 上，每个序列都来自 Harvest：对象由其标签命名（`volume` 位于其 `svm` 中，以及 `aggr`、`lun`、`node`、`disk`、`shelf`，SnapMirror 关系则用 `destination_location`），状态是一个值为 1 或 0 的 `netapp_*_new_status`，或是由其标签说明状态的 `netapp_*_labels` 序列，而每个未解决的问题都是一个在问题持续期间存在的 `netapp_health_*_alerts` 序列。
 
@@ -375,6 +396,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -440,6 +462,73 @@ Dell PowerMax 无需代理。OneUptime 探测器每 5 分钟使用只读帐户�
 - **每个阵列最多 5,000 个存储组和 10,000 个卷**，每次采集最多 200 条新警报（其余的在后续采集中到达）。列表被截断时，连接的页面会注明。
 - **Unisphere 10.1 和 10.2** 不向只读帐户列出端口或 SRDF 组：探测器会逐个读取导向器，从存储组中获取 SRDF 组，并注明这一点。
 
+## Dell PowerScale
+
+代理通过 SNMP 读取 Dell PowerScale（Isilon）集群，数据来自 Dell 的 ISILON-MIB，使用 Collector 自带的 SNMP 接收器：不需要 API 令牌，Collector 旁边也不运行任何东西。一个集群就是一个存储阵列，它的节点、配额、驱动器、传感器和端口就是它的清单。
+
+- **每个节点都通过它自己的地址轮询。** 节点只为它自己的驱动器、传感器和端口应答 SNMP，因此代理按每个节点在代理可达网络上的地址轮询它，绝不使用 SmartConnect 区域名称，因为该区域会把每次轮询交给它选中的任意节点。一个集群最多有 252 个节点。
+- **集群自身的对象通过第一个节点读取一次：** 每 60 秒读取其健康状况、容量、吞吐量、CPU 和节点数（`snmp/cluster`），每 5 分钟读取其 SmartQuotas（`snmp/quotas`）。每个节点的健康状况、CPU、协议性能（NFS、SMB、S3、HDFS 等）、驱动器、传感器和端口每 60 秒从该节点本身读取（`snmp/node-<n>`）。
+- **OneFS 以文本或其他单位给出的读数**（传感器读数、以十分之一百分点为单位的 CPU、以比特为单位的吞吐量）会在发送前由 Collector 转换为数字，因此每个图表和模板读取的都是普通的 gauge。
+
+### 在集群上启用 SNMP
+
+以管理员身份通过 SSH 登录任意节点：OneFS 会将 SNMP 设置应用到整个集群。如果集群已经为其他工具响应 SNMP，请为代理提供相同的只读团体字符串或 SNMPv3 用户，并跳过此步骤。否则，请启用 SNMP 服务，并使用你自己的只读团体字符串启用 SNMP v2c，不要使用 OneFS 默认的 `I$ilonpublic`：
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+或者启用 SNMPv3，它会对每次轮询进行认证和加密。OneFS 只有一个 SNMPv3 只读用户，在你重命名之前名为 `general`：为它设置至少八个字符且不含空格的密码：
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` 会显示设置，包括该用户的认证协议和隐私协议。允许从代理所在机器到每个节点的 UDP 161，并用 `isi network interfaces list` 列出各节点的地址。
+
+### 在 PowerScale 集群上安装代理
+
+使用 PowerScale 配置运行安装脚本：
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+脚本会询问你的 OneUptime URL、摄取密钥和集群的名称，然后询问每个节点的地址（以逗号分隔）和 SNMP 版本，再询问只读团体字符串，或 SNMPv3 用户及其两个密码，每一项读取时都不回显。如果用户的协议不是 SHA 和 AES，需要把 `POWERSCALE_SNMP_AUTH_PROTOCOL` 和 `POWERSCALE_SNMP_PRIVACY_PROTOCOL` 放在 `bash install.sh` 前面；不使用隐私保护的用户则需要 `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`。脚本会为每个节点写入一项轮询到 `.env` 中：
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+集群新增节点时，请把它的地址加入 `POWERSCALE_NODES`（在 `.env` 中），然后再次运行 `install.sh`：它会写入该节点的轮询并重新创建代理。使用 Docker Compose 时，请下载 `docker-compose.yml` 和 `otel-collector-config.powerscale.yaml`，并把这些行放进快速开始的 `.env`，替换其中的 `STORAGE_SYSTEM`、`STORAGE_ARRAY_COLLECTOR_CONFIG` 和 `POWERSCALE_*` 行。`troubleshoot.sh` 会用 `snmpget`（如果机器上有）向每个节点查询集群的名称。
+
+### PowerScale 的页面显示的内容
+
+集群的 **概览** 从 OneFS 自身报告的健康状况中获取其健康状况，统计其节点和配额，并绘制每个协议的延迟和负载、吞吐量、最繁忙的节点和已用容量。**节点** 列出每个节点及其健康状况、型号、OneFS 版本、CPU 和吞吐量；**配额** 列出每个配额及其已用掉的限制比例，最大的排在最前；**硬件** 列出每个节点的驱动器、风扇、温度和电源传感器及其读数，以及端口。容量是 `/ifs` 的容量，OneFS 为虚拟热备预留的空间计为已用：它不可用于写入。
+
+### 代理暂时还不读取的内容
+
+- **OneFS 的事件及其存储池。** SNMP 两者都不传送：它们来自 OneFS API，将由 OneUptime 探测器读取（[#11249](https://github.com/OneUptime/oneuptime/issues/11249)）。在此之前，请把事件作为 SNMP Trap 发送到 [自定义探测器](/docs/probe/custom-probe)，并把集群的节点作为 [网络设备](/docs/monitor/network-device-monitor) 添加到该探测器：Trap 到达 UDP 162，**收到的 SNMP Trap（Trap OID）** 条件会据此发出警报。对于 SNMPv3 Trap，请为这些网络设备设置集群的 SNMPv3 用户（[SNMPv3 Trap 和 Inform](/docs/monitor/network-device-monitor#snmpv3-trap-和-inform)）。在集群上创建通道并向它发送一条警报：
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **数据缩减** 由 OneFS 仅通过其 API 报告，将随同一个探测器一起提供。
+
 ## 故障排查
 
 :::details 先运行诊断脚本
@@ -485,6 +574,10 @@ bash troubleshoot.sh    # add -d <dir> if you installed outside /opt/oneuptime-s
 
 :::details PowerStore 什么也没有发送
 用 `docker compose logs powerstore-exporter` 查看导出器的日志：`401` 表示用户名或密码错误，`403` 出现在 `latest_five_min_metrics` 上则表示该用户的角色无法开启批量指标存档（授予 **Storage Operator**，或在早于 4.1 的 PowerStoreOS 上设置 `POWERSTORE_BULK_METRICS=false`）。导出器启动后需要一分钟才会响应。**日志** 页面上没有警报：检查集群的 _Remote Logging_ 设置、端口 5514 上的防火墙和 `docker compose logs powerstore-syslog`。
+:::
+
+:::details PowerScale 集群或节点没有发送任何数据
+Collector 日志中的 `Error scraping metrics`（附带 `request timeout`）指出了一个不响应来自代理所在机器的 SNMP 请求的节点：代理所用版本的 SNMP 已关闭、团体字符串或 SNMPv3 用户不属于该集群，或者 UDP 161 被阻断。`bash troubleshoot.sh` 会用 `snmpget` 询问每个节点。能响应却不在 **节点** 中的节点，就是不在 `POWERSCALE_NODES` 中：添加它，然后再次运行 `install.sh`。
 :::
 
 :::details 已删除的卷或主机仍留在清单中

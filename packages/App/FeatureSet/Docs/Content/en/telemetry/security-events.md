@@ -394,9 +394,9 @@ A request for a file that holds secrets, such as `/.env`, `/.git/config`, `/.aws
 - A type that is no web page, such as `text/plain` or `application/octet-stream`: the file itself.
 - A web page, or JSON for a file that is not JSON: your site's own page.
 - Nothing in it: nothing was taken.
-- A size and no type, as a web server's access log records it: the file itself when no other path got that size and your site answers 404 for the paths it does not have, and your site's own page when the same size answered two different paths. When nothing tells, the request is no event.
+- A size and no type, as a web server's access log records it: the file itself when no other path got that size and your site answers 404 for the paths it does not have, and your site's own page when the same size answered two different paths. A request with nothing beside it, such as a scanner's lone `/.env`, is judged by what your site answered in the last day. When nothing tells, the request is no event.
 
-A served file is Critical, and the Rule Library's **Sensitive file served** opens a case on it, with steps to take the file down and rotate what it holds. Every one of these requests counts toward **Scanning for sensitive files** too, a single-page app's included. An admin page your site serves, such as WordPress's, is never one, and `wp-config.php` that WordPress ran is your site's own. Cloudflare's firewall events do not say what your origin sent, so a request Cloudflare let through counts toward scanning only. An event's panel says what your site sent under **What happened next**.
+A served file is Critical, and the Rule Library's **Sensitive file served** opens a case on it, with steps to take the file down and rotate what it holds. Every one of these requests counts toward **Scanning for sensitive files** too, a single-page app's included. An admin page your site serves, such as WordPress's, is never one, and `wp-config.php` that WordPress ran is your site's own. Cloudflare's firewall events do not say what your origin sent, so a request Cloudflare let through counts toward scanning only. An event's panel says what your site sent under **What happened next**. A project that turned on the recommended rules before **Sensitive file served** was one, and runs every other one, got it on upgrade, and **Overview** says so.
 
 ### Campaigns
 

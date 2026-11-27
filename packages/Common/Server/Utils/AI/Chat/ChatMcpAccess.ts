@@ -7,7 +7,7 @@ import ObjectID from "../../../../Types/ObjectID";
 import ExternalMcpServerService from "../../../Services/ExternalMcpServerService";
 import logger from "../../Logger";
 import CallerPermission from "../../Permission/CallerPermission";
-import McpRunToolkit from "../Mcp/McpRunToolkit";
+import McpRunToolkit, { McpRunChatApp } from "../Mcp/McpRunToolkit";
 import { ChatExtraTool } from "./ChatAgentRunner";
 import ToolOutputPager from "./ToolOutputPager";
 
@@ -45,6 +45,14 @@ import ToolOutputPager from "./ToolOutputPager";
  * Servers that are off are named in the prompt, so a question about one is
  * answered with why it cannot be used. Nothing here throws: a lookup that
  * fails leaves the turn answering from OneUptime's own data.
+ *
+ * OneUptime AI's answers in Slack and Microsoft Teams have them too (issue
+ * #11082, buildForChatAppAnswer), for the person who asked there - the
+ * OneUptime account their chat account is linked to, as every answer there
+ * is read: someone whose account is not linked is asked to link it and gets
+ * no answer at all - and only the tools that read: a chat app shows no card,
+ * so nothing that may change something is offered, and the answer says
+ * where it can be.
  */
 
 // The heading every turn's section about the servers starts with.
@@ -178,6 +186,105 @@ export default class ChatMcpAccess {
     } catch (error) {
       logger.error(
         `AI: could not offer the project's external MCP servers in a chat turn; it answers from OneUptime's data only: ${error}`,
+      );
+
+      return null;
+    }
+  }
+
+  /*
+   * The servers' tools and the prompt's section about them, for one answer
+   * OneUptime AI posts to Slack or Microsoft Teams (issue #11082), for the
+   * person who asked there: their linked OneUptime account, held to what
+   * reading the project's External MCP Servers takes, as Ask AI holds them
+   * (mayUseServers). Only the tools that read - by their server's word, or
+   * a Project Admin's mark that holds - are offered and called: a chat app
+   * shows no card to approve anything else on, so the answer never has
+   * call_mcp_tool_with_approval, and says that Ask AI in the Dashboard can
+   * use the others. Enable AI and the answer's limits hold as in every run
+   * (McpRunToolkit). Null when the project has no server, or they cannot be
+   * read.
+   */
+  public static async buildForChatAppAnswer(data: {
+    projectId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    chatApp: McpRunChatApp;
+    // The answer's pager: the servers' long answers page with it.
+    outputPager: ToolOutputPager;
+  }): Promise<ChatMcpServers | null> {
+    try {
+      const [onServers, offServers]: [
+        Array<ExternalMcpServer>,
+        Array<ExternalMcpServer>,
+      ] = await Promise.all([
+        ExternalMcpServerService.findServersForRun({
+          projectId: data.projectId,
+          allowance: EVERY_EXTERNAL_MCP_SERVER,
+        }),
+        ExternalMcpServerService.findBy({
+          query: { projectId: data.projectId, isEnabled: false },
+          select: { _id: true, name: true, projectId: true },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: { isRoot: true },
+        }),
+      ]);
+
+      if (onServers.length === 0 && offServers.length === 0) {
+        return null;
+      }
+
+      if (
+        !this.mayUseServers({ projectId: data.projectId, props: data.props })
+      ) {
+        return {
+          extraTools: [],
+          instructions: EXTERNAL_MCP_SERVERS_OUT_OF_REACH_SECTION,
+          close: async (): Promise<void> => {},
+        };
+      }
+
+      const offLine: string = this.buildTurnedOffLine(offServers);
+
+      const toolkit: McpRunToolkit = new McpRunToolkit({
+        projectId: data.projectId,
+        servers: onServers,
+        purpose: "chatApp",
+        chatApp: data.chatApp,
+        props: data.props,
+        outputPager: data.outputPager,
+      });
+
+      if (!toolkit.hasServers()) {
+        return {
+          extraTools: [],
+          instructions: [
+            EXTERNAL_MCP_SERVERS_SECTION_HEADING,
+            offLine,
+            "You cannot use them: when the person asks about one, or for one of its tools, say that it is turned off for OneUptime AI, and that a Project Admin can turn it on on the server's page.",
+          ].join("\n"),
+          close: async (): Promise<void> => {},
+        };
+      }
+
+      return {
+        // Long answers are paged: read on with read_tool_output.
+        extraTools: [
+          ...toolkit.buildTools(),
+          data.outputPager.buildReadTool(),
+        ] as Array<ChatExtraTool>,
+        instructions: [toolkit.buildPersonaAddendum(), offLine]
+          .filter((section: string): boolean => {
+            return section.length > 0;
+          })
+          .join("\n"),
+        close: async (): Promise<void> => {
+          await toolkit.close();
+        },
+      };
+    } catch (error) {
+      logger.error(
+        `AI: could not offer the project's external MCP servers in a ${data.chatApp.name} answer; it answers from OneUptime's data only: ${error}`,
       );
 
       return null;

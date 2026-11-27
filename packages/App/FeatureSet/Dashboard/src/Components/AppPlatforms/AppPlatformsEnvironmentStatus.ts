@@ -1,14 +1,14 @@
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
-import EqualToOrNull from "Common/Types/BaseDatabase/EqualToOrNull";
+import FilterGroups, {
+  FilterGroup,
+  FilterGroupsMatch,
+} from "Common/Types/BaseDatabase/FilterGroups";
 import IsNull from "Common/Types/BaseDatabase/IsNull";
+import NotEqualOrNull from "Common/Types/BaseDatabase/NotEqualOrNull";
 import NotNull from "Common/Types/BaseDatabase/NotNull";
 import Query from "Common/Types/BaseDatabase/Query";
-import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
-import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import IconProp from "Common/Types/Icon/IconProp";
-import ObjectID from "Common/Types/ObjectID";
 import { translationKey } from "Common/Types/Translator";
-import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import {
   FilterChipDropdownOption,
   FilterOperator,
@@ -29,12 +29,16 @@ import { ResourceFacet } from "../ResourceOwners/ResourceFacet";
  *     added, waiting for its first data). Grey, not red: nothing broke yet.
  *
  * The status is two columns, so the list's Status chip cannot write one
- * column: it resolves the statuses picked to environments by id
- * (ResourceFacet's computeMatchingResourceIds), with these rules as
- * queries. A row that has never reported stores no status (NULL), so "not
- * connected" is "disconnected" or nothing (EqualToOrNull). The tile counts
- * the waiting ones by the same query, and links to the list with the chip
- * set to Disconnected while any are (AppPlatformsListRoutes).
+ * column: each status is a group of conditions on both, and the statuses
+ * picked are one FilterGroups the server answers in the list's own query
+ * (#11211). The chip read each status's environments' ids first - the
+ * first 10,000 - and filtered the list by them, so a status with more
+ * environments than that listed and counted only some of them. A row that
+ * has never reported stores no status (NULL), so "not connected" is
+ * anything but "connected", none included (NotEqualOrNull): the three
+ * split every environment between them, as the Status column does. The
+ * tile counts the waiting ones by the same query, and links to the list
+ * with the chip set to Disconnected while any are (AppPlatformsListRoutes).
  *
  * React-free, and free of the route map, so App's tests can read it.
  */
@@ -97,63 +101,44 @@ export function buildCloudEnvironmentStatusQuery(
       return { otelCollectorStatus: "connected" } as Query<CloudResource>;
     case CloudEnvironmentStatus.Disconnected:
       return {
-        otelCollectorStatus: new EqualToOrNull("disconnected"),
+        otelCollectorStatus: new NotEqualOrNull("connected"),
         lastSeenAt: new NotNull(),
       } as Query<CloudResource>;
     default:
       return {
-        otelCollectorStatus: new EqualToOrNull("disconnected"),
+        otelCollectorStatus: new NotEqualOrNull("connected"),
         lastSeenAt: new IsNull(),
       } as Query<CloudResource>;
   }
 }
 
 /*
- * The ids of the project's listed environments whose status is one of
- * `values` (CloudEnvironmentStatus values; any other is ignored), the
- * statuses unioned. [] when none matches.
+ * The Status chip's filter: the environments whose status is one of
+ * `values` ("is") or none of them ("is not"), as one FilterGroups for the
+ * list's own query (CloudEnvironmentStatus values; any other is left out).
+ * Null when no status is picked, and the chip filters nothing.
  */
-export async function computeCloudEnvironmentIdsForStatuses(
-  projectId: ObjectID,
+export function buildCloudEnvironmentStatusFilter(
   values: Array<string>,
-): Promise<Array<string>> {
+  operator: FilterOperator,
+): FilterGroups | null {
   const statuses: Array<CloudEnvironmentStatus> = Array.from(
     new Set(values.filter(isCloudEnvironmentStatus)),
   );
 
-  const results: Array<ListResult<CloudResource>> = await Promise.all(
-    statuses.map(
-      (status: CloudEnvironmentStatus): Promise<ListResult<CloudResource>> => {
-        return ModelAPI.getList<CloudResource>({
-          modelType: CloudResource,
-          query: {
-            projectId: projectId,
-            isArchived: false,
-            cloudResourceKind: CloudResourceKind.Environment,
-            ...buildCloudEnvironmentStatusQuery(status),
-          } as Query<CloudResource>,
-          select: { _id: true },
-          sort: {},
-          skip: 0,
-          limit: LIMIT_PER_PROJECT,
-        });
-      },
-    ),
-  );
-
-  const ids: Set<string> = new Set<string>();
-
-  for (const result of results) {
-    for (const row of result.data || []) {
-      const id: string = row._id ? row._id.toString() : "";
-
-      if (id) {
-        ids.add(id);
-      }
-    }
+  if (statuses.length === 0) {
+    return null;
   }
 
-  return Array.from(ids);
+  return new FilterGroups({
+    match:
+      operator === "is_not"
+        ? FilterGroupsMatch.NoneOf
+        : FilterGroupsMatch.AnyOf,
+    groups: statuses.map((status: CloudEnvironmentStatus): FilterGroup => {
+      return buildCloudEnvironmentStatusQuery(status) as unknown as FilterGroup;
+    }),
+  });
 }
 
 const STATUS_OPTIONS: Array<FilterChipDropdownOption> = [
@@ -181,12 +166,7 @@ export const ENVIRONMENT_STATUS_FACET_OPERATORS: Array<FilterOperator> = [
 ];
 
 // All Environments' Status chip.
-export function getEnvironmentStatusFacet(
-  resolve: (
-    projectId: ObjectID,
-    values: Array<string>,
-  ) => Promise<Array<string>> = computeCloudEnvironmentIdsForStatuses,
-): ResourceFacet {
+export function getEnvironmentStatusFacet(): ResourceFacet {
   return {
     key: ENVIRONMENT_STATUS_FACET_KEY,
     label: ENVIRONMENT_STATUS_FACET_LABEL,
@@ -194,11 +174,6 @@ export function getEnvironmentStatusFacet(
     isMultiSelect: true,
     options: STATUS_OPTIONS,
     supportedOperators: ENVIRONMENT_STATUS_FACET_OPERATORS,
-    computeMatchingResourceIds: (
-      projectId: ObjectID,
-      values: Array<string>,
-    ): Promise<Array<string>> => {
-      return resolve(projectId, values);
-    },
+    toFilterGroups: buildCloudEnvironmentStatusFilter,
   };
 }

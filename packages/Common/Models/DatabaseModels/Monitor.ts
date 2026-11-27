@@ -2801,7 +2801,7 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     isDefaultValueColumn: true,
-    canReadOnRelationQuery: true,
+    // Read on the monitor itself (its settings, the pause): no relation's label.
     title: "Keep Monitoring During Incidents",
     description:
       "Keep checking this monitor while an incident declared by hand is open on it. Off, such an incident pauses its checks until the incident is resolved.",

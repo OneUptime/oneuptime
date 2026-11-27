@@ -3,16 +3,32 @@ import {
   EXTERNAL_MCP_SERVER_TOOLS_COPY,
   EXTERNAL_MCP_SERVER_TOOLS_SHOWN,
   EXTERNAL_MCP_SERVER_TOOL_COUNT,
+  EXTERNAL_MCP_TOOL_MARK_COPY,
+  EXTERNAL_MCP_TOOL_MARK_HINT,
   ExternalMcpServerStatusKind,
   getExternalMcpServerStatus,
   readStoredExternalMcpServerTools,
 } from "./ExternalMcpServerCopy";
 import TableSkeleton from "Common/UI/Components/Skeleton/TableSkeleton";
 import ExternalMcpServerStatus from "./ExternalMcpServerStatus";
-import ExternalMcpServerToolList from "./ExternalMcpServerToolList";
+import ExternalMcpServerToolList, {
+  ExternalMcpToolMarkActions,
+} from "./ExternalMcpServerToolList";
 import { getExternalMcpServerTestGate } from "./ExternalMcpServerTestApi";
+import {
+  ExternalMcpToolRow,
+  countExternalMcpToolsServerMarksAsChange,
+  countExternalMcpToolsToMark,
+  getExternalMcpToolMarkGate,
+  getExternalMcpToolRows,
+  readExternalMcpToolMarks,
+  removeExternalMcpToolMark,
+} from "./ExternalMcpToolMarks";
+import MarkExternalMcpToolModal from "./MarkExternalMcpToolModal";
 import TestExternalMcpServerModal from "./TestExternalMcpServerModal";
 import ExternalMcpServer from "Common/Models/DatabaseModels/ExternalMcpServer";
+import ExternalMcpToolReadOnlyMark from "Common/Models/DatabaseModels/ExternalMcpToolReadOnlyMark";
+import Toast from "Common/UI/Utils/Toast";
 import { EXTERNAL_MCP_SERVER_TRANSPORT_TITLES } from "Common/Types/AI/ExternalMcpServer/ExternalMcpServerTransport";
 import { ExternalMcpServerTool } from "Common/Types/AI/ExternalMcpServer/ExternalMcpServerTool";
 import OneUptimeDate from "Common/Types/Date";
@@ -42,6 +58,13 @@ import React, {
  * offers, each with whether it only reads, as OneUptime last read them.
  * "Test connection" connects again and reads them anew; the card shows what
  * the test found once it closes.
+ *
+ * For a Project Owner or Admin, each tool its server says nothing about
+ * can be marked read-only, one at a time, through a dialog that says what
+ * that means first; a marked one shows who marked it and when, and can
+ * have its mark taken away (issue #11081). Over the list, a line says how
+ * many tools could be marked - or, when the server marks all the others as
+ * changes, that none can.
  */
 
 export interface ComponentProps {
@@ -73,9 +96,18 @@ const ExternalMcpServerToolsCard: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const [server, setServer] = useState<ExternalMcpServer | null>(null);
+  const [marks, setMarks] = useState<Array<ExternalMcpToolReadOnlyMark>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [isTesting, setIsTesting] = useState<boolean>(false);
+  // The tool the mark dialog is open for.
+  const [toolToMark, setToolToMark] = useState<ExternalMcpServerTool | null>(
+    null,
+  );
+  // The tool whose mark is being taken away.
+  const [removingToolName, setRemovingToolName] = useState<string | undefined>(
+    undefined,
+  );
 
   // Only the latest read may land: a test can finish while one is running.
   const currentRead: React.MutableRefObject<number> = useRef<number>(0);
@@ -90,17 +122,24 @@ const ExternalMcpServerToolsCard: FunctionComponent<ComponentProps> = (
       }
 
       try {
-        const item: ExternalMcpServer | null = await ModelAPI.getItem({
-          modelType: ExternalMcpServer,
-          id: props.serverId,
-          select: SERVER_SELECT,
-        });
+        const [item, serverMarks]: [
+          ExternalMcpServer | null,
+          Array<ExternalMcpToolReadOnlyMark>,
+        ] = await Promise.all([
+          ModelAPI.getItem({
+            modelType: ExternalMcpServer,
+            id: props.serverId,
+            select: SERVER_SELECT,
+          }),
+          readExternalMcpToolMarks(props.serverId),
+        ]);
 
         if (read !== currentRead.current) {
           return;
         }
 
         setServer(item);
+        setMarks(serverMarks);
         setError("");
       } catch (err) {
         if (read !== currentRead.current) {
@@ -154,6 +193,94 @@ const ExternalMcpServerToolsCard: FunctionComponent<ComponentProps> = (
           },
         ]
       : [];
+
+  /*
+   * Marking a tool read-only, and taking a mark away, are for whoever may
+   * create marks - a Project Owner or Admin, as the server asks it. Anyone
+   * else sees each tool's status and who marked it, and no buttons: a
+   * locked button on every row of a 200-tool list says nothing new.
+   */
+  const markGate: PermissionGateResult = getExternalMcpToolMarkGate();
+
+  const removeMark: (row: ExternalMcpToolRow) => void = (
+    row: ExternalMcpToolRow,
+  ): void => {
+    const markId: ObjectID | undefined = row.mark?.id || undefined;
+
+    if (!markId) {
+      return;
+    }
+
+    setRemovingToolName(row.tool.name);
+
+    removeExternalMcpToolMark(markId)
+      .then(async () => {
+        Toast.success(
+          translator.translateTemplate(
+            EXTERNAL_MCP_TOOL_MARK_COPY.removedToast,
+            { tool: row.tool.name },
+          ),
+        );
+        await load(true);
+      })
+      .catch((err: unknown) => {
+        Toast.error(
+          `${translator.translateText(EXTERNAL_MCP_TOOL_MARK_COPY.removeFailed)} ${API.getFriendlyMessage(err)}`,
+        );
+      })
+      .finally(() => {
+        setRemovingToolName(undefined);
+      });
+  };
+
+  const markActions: ExternalMcpToolMarkActions | undefined = markGate.isAllowed
+    ? {
+        onMark: (tool: ExternalMcpServerTool): void => {
+          setToolToMark(tool);
+        },
+        onRemoveMark: removeMark,
+        busyToolName: removingToolName,
+      }
+    : undefined;
+
+  // Over the list, for whoever may mark: what can be marked, or why nothing can.
+  const getMarkHint: (
+    rows: Array<ExternalMcpToolRow>,
+  ) => ReactElement | null = (
+    rows: Array<ExternalMcpToolRow>,
+  ): ReactElement | null => {
+    if (!markActions) {
+      return null;
+    }
+
+    const toMark: number = countExternalMcpToolsToMark(rows);
+
+    if (toMark > 0) {
+      return (
+        <p
+          className="text-sm text-gray-600"
+          data-testid="external-mcp-server-tool-mark-hint"
+        >
+          {translator.translatePlural(EXTERNAL_MCP_TOOL_MARK_HINT, toMark)}
+        </p>
+      );
+    }
+
+    if (countExternalMcpToolsServerMarksAsChange(rows) > 0) {
+      return (
+        <p
+          className="text-sm text-gray-600"
+          data-testid="external-mcp-server-tool-mark-none"
+        >
+          {translator.translateText(
+            EXTERNAL_MCP_TOOL_MARK_COPY.serverMarksChange,
+          )}
+        </p>
+      );
+    }
+
+    return null;
+  };
 
   const getBody: () => ReactElement = (): ReactElement => {
     if (isLoading) {
@@ -257,10 +384,17 @@ const ExternalMcpServerToolsCard: FunctionComponent<ComponentProps> = (
             {translator.translateText(EXTERNAL_MCP_SERVER_TOOLS_COPY.noTools)}
           </p>
         ) : (
-          <ExternalMcpServerToolList
-            tools={stored.tools}
-            shownCount={EXTERNAL_MCP_SERVER_TOOLS_SHOWN}
-          />
+          <>
+            {getMarkHint(
+              getExternalMcpToolRows({ tools: stored.tools, marks }),
+            ) || <></>}
+            <ExternalMcpServerToolList
+              tools={stored.tools}
+              shownCount={EXTERNAL_MCP_SERVER_TOOLS_SHOWN}
+              marks={marks}
+              markActions={markActions}
+            />
+          </>
         )}
       </div>
     );
@@ -279,6 +413,7 @@ const ExternalMcpServerToolsCard: FunctionComponent<ComponentProps> = (
       {isTesting ? (
         <TestExternalMcpServerModal
           externalMcpServerId={props.serverId.toString()}
+          marks={marks}
           onTested={() => {
             // The test kept what it found on the server: show it.
             load(true).catch(() => {
@@ -287,6 +422,24 @@ const ExternalMcpServerToolsCard: FunctionComponent<ComponentProps> = (
           }}
           onClose={() => {
             setIsTesting(false);
+          }}
+        />
+      ) : (
+        <></>
+      )}
+
+      {toolToMark ? (
+        <MarkExternalMcpToolModal
+          externalMcpServerId={props.serverId}
+          tool={toolToMark}
+          onClose={() => {
+            setToolToMark(null);
+          }}
+          onMarked={() => {
+            setToolToMark(null);
+            load(true).catch(() => {
+              // load answers every failure itself.
+            });
           }}
         />
       ) : (

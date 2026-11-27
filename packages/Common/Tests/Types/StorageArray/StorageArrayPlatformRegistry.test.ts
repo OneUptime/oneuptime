@@ -35,10 +35,13 @@ import {
  * rules, so a new platform is checked here without a test of its own.
  */
 
+import DellPowerScalePlatform from "../../../Types/StorageArray/Platforms/Dell/PowerScale/PowerScalePlatform";
+
 const FLASHARRAY: string = StorageSystem.PureStorageFlashArray;
 const FLASHBLADE: string = StorageSystem.PureStorageFlashBlade;
 const POWERSTORE: string = StorageSystem.DellPowerStore;
 const ONTAP: string = StorageSystem.NetAppOntap;
+const POWERSCALE: string = StorageSystem.DellPowerScale;
 
 afterEach(() => {
   // Each test that registers a platform leaves the registry as shipped.
@@ -58,13 +61,14 @@ function systemsOf(
 }
 
 describe("the shipped platforms", () => {
-  test("are Pure Storage's FlashArray and FlashBlade, then Dell's PowerStore, NetApp ONTAP and Dell PowerMax, in that order", () => {
+  test("are Pure Storage's FlashArray and FlashBlade, then Dell's PowerStore, NetApp ONTAP and Dell PowerMax, then Dell's PowerScale, in that order", () => {
     expect(systemsOf(StorageArrayPlatformRegistry.getPlatforms())).toEqual([
       FLASHARRAY,
       FLASHBLADE,
       POWERSTORE,
       ONTAP,
       StorageSystem.DellPowerMax,
+      POWERSCALE,
     ]);
     expect(BUILT_IN_STORAGE_ARRAY_PLATFORMS).toEqual([
       PureStorageFlashArrayPlatform,
@@ -72,6 +76,7 @@ describe("the shipped platforms", () => {
       DellPowerStorePlatform,
       NetAppOntapPlatform,
       DellPowerMaxPlatform,
+      DellPowerScalePlatform,
     ]);
   });
 
@@ -398,8 +403,9 @@ describe.each(
     }
     /*
      * A platform's hardware may be a kind of its own (a PowerMax's
-     * directors): the inventory summary and the snapshot read every
-     * platform's hardwareKinds (StorageArrayResourceService.getHardwareKinds).
+     * directors, a PowerScale's nodes): the inventory summary and the
+     * snapshot read every platform's hardwareKinds
+     * (StorageArrayResourceService.getHardwareKinds).
      */
     if (platform.hardwareKinds) {
       for (const kind of platform.hardwareKinds) {
@@ -471,6 +477,7 @@ describe("registering a platform at runtime", () => {
       POWERSTORE,
       ONTAP,
       StorageSystem.DellPowerMax,
+      POWERSCALE,
       ACME_STORAGE_SYSTEM,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 1);
@@ -515,6 +522,7 @@ describe("registering a platform at runtime", () => {
       POWERSTORE,
       ONTAP,
       StorageSystem.DellPowerMax,
+      POWERSCALE,
     ]);
     expect(StorageArrayPlatformRegistry.getVersion()).toBe(before + 2);
     expect(
@@ -949,6 +957,32 @@ describe("what registration refuses", () => {
         },
       },
       "its overview charts the metric acme-capacity-used, which is not in its catalog",
+    ],
+    [
+      "an overview panel that draws no line",
+      {
+        overview: {
+          ...ACME_PLATFORM.overview,
+          charts: [{ title: "Latency", description: "Latency.", lines: [] }],
+        },
+      },
+      "its overview's Latency chart draws no line",
+    ],
+    [
+      "an overview panel of a metric not in its catalog",
+      {
+        overview: {
+          ...ACME_PLATFORM.overview,
+          charts: [
+            {
+              title: "Latency",
+              description: "Latency.",
+              lines: [{ metricId: "powerscale-protocol-latency" }],
+            },
+          ],
+        },
+      },
+      "its overview charts the metric powerscale-protocol-latency, which is not in its catalog",
     ],
   ] as Array<[string, Partial<StorageArrayPlatform>, string]>)(
     "%s",

@@ -57,6 +57,18 @@ export interface AccountChangeAnswer {
   error?: string | undefined;
   // The project has a connection that reads this product's changes back.
   hasConnection: boolean;
+  /*
+   * An AWS change's (#11039): the cloud connection that reaches the account
+   * it was made in, when one does - the one a person edits to let OneUptime
+   * read it back - and whether its Security case checks are on: on, a read
+   * AWS refused means its command was not run again since.
+   */
+  reader?: AccountChangeReader | undefined;
+}
+
+export interface AccountChangeReader {
+  connectionId: string;
+  isChecking: boolean;
 }
 
 export interface AccountChangesReading {

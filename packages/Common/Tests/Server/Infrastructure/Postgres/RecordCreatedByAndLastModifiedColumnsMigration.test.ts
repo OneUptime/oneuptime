@@ -186,6 +186,17 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
       };
     },
   ),
+  // XCP-ng connections and their tests, read by a probe (#10996, #10999).
+  ...["XcpNgConnection", "XcpNgConnectionTest"].map(
+    (table: string): { table: string; migration: string } => {
+      return { table, migration: "1809187730000-AddXcpNgConnections.ts" };
+    },
+  ),
+  // Scheduled cloud cost reports (#11009).
+  {
+    table: "CloudCostReport",
+    migration: "1809187761009-AddCloudCostReports.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(

@@ -4,6 +4,7 @@ L'agent Baie de stockage de OneUptime surveille les baies de stockage : capacit�
 
 :::cards
 - [Installer l'agent](#installer-lagent): Un utilisateur en lecture seule, puis le script d'installation ou Docker Compose.
+- [Dell PowerScale](#dell-powerscale): SNMP sur le cluster, chaque nœud interrogé, et ce que montrent ses pages.
 - [Ce que l'agent collecte](#ce-que-collecte-lagent): Chaque endpoint, et les pages construites à partir de lui.
 - [Surveiller plusieurs baies](#surveiller-plusieurs-baies): Un agent par baie, sur une seule machine.
 - [Dell PowerMax](#dell-powermax): Aucun agent : une sonde lit chaque baie derrière Unisphere.
@@ -21,12 +22,15 @@ Storage Arrays est un produit qui fonctionne de la même façon pour chaque fabr
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | L'exporteur OpenMetrics FlashBlade de Pure, que le même fichier Compose exécute comme service `pure-fb-exporter` | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | Le PowerStore Metrics Exporter de Dell, que le même fichier Compose construit et exécute comme service `powerstore-exporter` ; les alertes du cluster arrivent par syslog à son service `powerstore-syslog` | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 et ultérieur (AFF, FAS, ASA, ONTAP Select, Cloud Volumes ONTAP), et **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11, que le même fichier Compose exécute comme service `netapp-harvest` : il se connecte à l'API REST du cluster avec un utilisateur en lecture seule et son mot de passe | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale** (Isilon), OneFS 8.0 et ultérieur | `dell.powerscale` | Chaque nœud en SNMP (l'ISILON-MIB de Dell), avec le récepteur SNMP propre au collecteur : rien ne tourne à côté du collecteur | `otel-collector-config.powerscale.yaml` |
 
 ONTAP n'a pas d'endpoint de métriques qui lui soit propre : l'agent exécute donc à côté du collecteur l'exporteur open source de NetApp, Harvest. Harvest lit l'API REST du cluster et sert ce qu'il a lu sur le réseau Compose, chaque série étant nommée `netapp_<object>_<counter>` ; le collecteur les collecte et les transmet. Harvest n'écrit jamais sur le cluster, et son rapport AutoSupport à NetApp est désactivé.
 
 **Dell PowerMax** (`dell.powermax`) n'a besoin d'aucun agent : une sonde OneUptime lit, avec un compte en lecture seule, chaque baie que gère un Unisphere for PowerMax. Voir [Dell PowerMax](#dell-powermax).
 
 Pure Storage a pris le nom **Everpure** en février 2026. FlashArray, FlashBlade et Purity ont gardé leur nom, tout comme les métriques `purefa_*` et `purefb_*` : tout ce qui figure sur cette page s'applique donc aux baies vendues sous l'un ou l'autre nom.
+
+Un cluster **Dell PowerScale** se lit autrement : l'agent interroge chacun de ses nœuds en SNMP, avec une communauté en lecture seule ou un utilisateur SNMPv3 et sans jeton d'API. [Dell PowerScale](#dell-powerscale) le couvre de l'activation de SNMP jusqu'à ce que montrent ses pages ; les étapes d'installation ci-dessous sont celles de Pure Storage.
 
 ```mermaid title="De la baie à OneUptime"
 flowchart TB
@@ -146,6 +150,8 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 POWERSTORE_ENDPOINT=
 POWERSTORE_PASSWORD=
@@ -246,6 +252,18 @@ Le script d'installation les écrit dans `/opt/oneuptime-storage-array-agent/.en
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | L'adresse d'administration du cluster (sur FSx, l'endpoint d'administration du système de fichiers) : un nom d'hôte ou une IP, sans `https://`. |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | L'utilisateur REST en lecture seule, comme `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | Son mot de passe. Seul Harvest le lit, exactement tel qu'il est écrit. |
+| `POWERSCALE_NODES` | PowerScale | Les adresses de tous les nœuds, séparées par des virgules, jamais le nom de la zone SmartConnect. Le script d'installation en tire les interrogations ci-dessous. |
+| `POWERSCALE_ENDPOINT` | PowerScale | Le nœud par lequel sont lus la santé, la capacité et les quotas du cluster lui-même : le premier de `POWERSCALE_NODES`. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | Les interrogations que le collecteur exécute : `snmp/cluster`, `snmp/quotas`, puis `snmp/node-1` et les suivantes, une par nœud. |
+| `POWERSCALE_NODE_<n>` | PowerScale | L'adresse du nœud `<n>`, de `1` à `252`. Une adresse IPv6 s'écrit entre crochets, par exemple `[fd00::11]`. |
+| `POWERSCALE_SNMP_VERSION` | Non | `v2c` ou `v3`. Par défaut `v2c`. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | La communauté en lecture seule du cluster. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | L'utilisateur SNMPv3 en lecture seule du cluster. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | Non | `auth_priv`, `auth_no_priv` ou `no_auth_no_priv`. Par défaut `auth_priv`. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | Non | `MD5`, `SHA`, `SHA224`, `SHA256`, `SHA384` ou `SHA512`, tel que `isi snmp settings view` l'affiche. Par défaut `SHA`. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | Le mot de passe d'authentification de l'utilisateur SNMPv3. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | Non | `DES`, `AES`, `AES192`, `AES256`, `AES192C` ou `AES256C`. Par défaut `AES`. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | Le mot de passe de confidentialité de l'utilisateur SNMPv3, au niveau `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | Non | `true` accepte le certificat auto-signé de la baie sur l'endpoint natif et dans Harvest ; `false` le vérifie. Par défaut `true`. Les exporteurs de Pure ne vérifient jamais le certificat de la baie : ce réglage ne s'applique donc pas à eux. |
 
 ## Comment l'agent collecte
@@ -278,6 +296,9 @@ Les conventions sémantiques de Pure sont communes à l'endpoint FlashArray nati
 | ONTAP, via Harvest | `netapp_cluster_*`, `netapp_node_*`, `netapp_aggr_*`, `netapp_svm_*`, `netapp_volume_*`, `netapp_lun_*`, `netapp_snapmirror_*` | Le nom, la version et l'UUID du cluster ; sa capacité (la somme de ses agrégats de données) et sa réduction de données ; la page **Volumes** ; les pages **Agrégats**, **SVM**, **LUN** et **SnapMirror**, une page par objet |
 | Matériel ONTAP, via Harvest | `netapp_disk_*`, `netapp_shelf_*`, `netapp_environment_sensor_*`, `netapp_net_port_*`, `netapp_nic_*`, `netapp_fcp_*` | La page **Matériel** : nœuds, disques, tiroirs, leurs alimentations, ventilateurs, modules et capteurs, les capteurs des nœuds, et les ports Ethernet et Fibre Channel |
 | Problèmes ouverts et événements d'ONTAP | `netapp_health_*`, `netapp_ems_events` | Le nombre d'alertes ouvertes et la carte **Alertes actives** (disques défectueux, défauts de tiroir, basculement HA, ports hors service, alertes de santé du système), et les modèles EMS |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`, `powerscale_ifs_*` | Le nom, la version de OneFS, la santé et les nombres de nœuds du cluster ; la capacité de `/ifs` ; le débit, le réseau et le CPU sur l'ensemble du cluster |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | La page **Quotas** : l'utilisation de chaque quota, ses limites et à quel point il en est proche |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`, `powerscale_protocol_*`, `powerscale_drive_*`, `powerscale_fan_*`, `powerscale_temperature_*`, `powerscale_power_sensor_*`, `powerscale_interface_*`, `powerscale_chassis_*` | La page **Nœuds** : la santé, le CPU, le débit et les performances des protocoles de chaque nœud ; la page **Matériel** : ses disques, capteurs et ports |
 
 Sur ONTAP, chaque série est celle de Harvest : un objet est nommé par ses labels (`volume` au sein de son `svm`, `aggr`, `lun`, `node`, `disk`, `shelf`, `destination_location` pour une relation SnapMirror), un état est un `netapp_*_new_status` valant 1 ou 0 ou une série `netapp_*_labels` dont les labels le disent, et chaque problème ouvert est une série `netapp_health_*_alerts` qui existe tant qu'il dure.
 
@@ -375,6 +396,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -440,6 +462,73 @@ La sonde lit les endpoints REST documentés d'Unisphere : le classique `/univmax
 - **Jusqu'à 5,000 groupes de stockage et 10,000 volumes par baie**, et 200 nouvelles alertes par collecte (les autres arrivent dans les suivantes). Une liste tronquée est signalée comme telle sur la page de la connexion.
 - **Unisphere 10.1 et 10.2** ne listent ni ports ni groupes SRDF pour un compte en lecture seule : la sonde lit les directeurs un par un, prend les groupes SRDF dans les groupes de stockage, et le signale.
 
+## Dell PowerScale
+
+L'agent lit un cluster Dell PowerScale (Isilon) en SNMP, à partir de l'ISILON-MIB de Dell, avec le récepteur SNMP propre au collecteur : aucun jeton d'API, et rien ne tourne à côté du collecteur. Un cluster est une baie de stockage, et ses nœuds, quotas, disques, capteurs et ports forment son inventaire.
+
+- **Chaque nœud est interrogé à sa propre adresse.** Un nœud ne répond en SNMP que pour ses propres disques, capteurs et ports : l'agent interroge donc chaque nœud par son adresse sur le réseau que l'agent joint, jamais par le nom de la zone SmartConnect, qui confie chaque interrogation au nœud de son choix. Un cluster compte jusqu'à 252 nœuds.
+- **Les objets du cluster lui-même sont lus une seule fois, par le premier nœud :** sa santé, sa capacité, son débit, son CPU et ses nombres de nœuds toutes les 60 secondes (`snmp/cluster`), et ses SmartQuotas toutes les 5 minutes (`snmp/quotas`). La santé, le CPU, les performances des protocoles (NFS, SMB, S3, HDFS et les autres), les disques, capteurs et ports de chaque nœud sont lus sur le nœud lui-même toutes les 60 secondes (`snmp/node-<n>`).
+- **Les mesures que OneFS donne sous forme de texte ou dans d'autres unités** (mesures des capteurs, CPU en dixièmes de pour cent, débit en bits) sont converties en nombres par le collecteur avant l'envoi, de sorte que chaque graphique et chaque modèle lit une jauge simple.
+
+### Activer SNMP sur le cluster
+
+Connectez-vous en SSH à n'importe quel nœud en tant qu'administrateur : OneFS applique les paramètres SNMP à tout le cluster. Si le cluster répond déjà en SNMP pour un autre outil, donnez à l'agent la même communauté en lecture seule ou le même utilisateur SNMPv3 et passez cette étape. Sinon, activez le service SNMP et SNMP v2c avec une communauté en lecture seule qui vous est propre, et non la communauté par défaut de OneFS, `I$ilonpublic` :
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+Ou activez SNMPv3, qui authentifie et chiffre chaque interrogation. OneFS a un seul utilisateur SNMPv3 en lecture seule, `general` tant que vous ne le renommez pas : donnez-lui des mots de passe d'au moins huit caractères, sans espaces :
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` affiche les paramètres, avec les protocoles d'authentification et de confidentialité de l'utilisateur. Autorisez UDP 161 depuis la machine de l'agent vers chaque nœud, et listez les adresses des nœuds avec `isi network interfaces list`.
+
+### Installer l'agent sur un cluster PowerScale
+
+Exécutez le script d'installation avec la configuration PowerScale :
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+Le script demande votre URL OneUptime, la clé d'ingestion et un nom pour le cluster, puis les adresses de tous les nœuds, séparées par des virgules, et la version SNMP, puis la communauté en lecture seule, ou l'utilisateur SNMPv3 et ses deux mots de passe, chacun lu sans écho. Un utilisateur dont les protocoles ne sont pas SHA et AES a besoin de `POWERSCALE_SNMP_AUTH_PROTOCOL` et `POWERSCALE_SNMP_PRIVACY_PROTOCOL` devant `bash install.sh`, et un utilisateur sans confidentialité, de `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`. Le script écrit une interrogation par nœud dans `.env` :
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+Quand le cluster gagne un nœud, ajoutez son adresse à `POWERSCALE_NODES` dans `.env` et relancez `install.sh` : il écrit l'interrogation du nœud et recrée l'agent. Avec Docker Compose, téléchargez `docker-compose.yml` et `otel-collector-config.powerscale.yaml`, et mettez ces lignes dans le `.env` du démarrage rapide à la place de ses lignes `STORAGE_SYSTEM`, `STORAGE_ARRAY_COLLECTOR_CONFIG` et `POWERSCALE_*`. `troubleshoot.sh` demande à chaque nœud le nom du cluster avec `snmpget` quand la machine l'a.
+
+### Ce que montrent les pages d'un PowerScale
+
+La **Vue d'ensemble** du cluster prend sa santé de celle que signale OneFS, compte ses nœuds et ses quotas, et trace la latence et la charge de chaque protocole, le débit, les nœuds les plus chargés et la capacité utilisée. **Nœuds** liste chaque nœud avec sa santé, son modèle, sa version de OneFS, son CPU et son débit ; **Quotas** liste chaque quota avec la part de sa limite qu'il utilise, le plus grand en premier ; **Matériel** liste les disques de chaque nœud, ses ventilateurs et ses capteurs de température et d'alimentation avec leurs mesures, ainsi que ses ports. La capacité est celle de `/ifs`, et l'espace que OneFS réserve aux disques de secours virtuels (virtual hot spares) compte comme utilisé : il n'est pas disponible pour les écritures.
+
+### Ce que l'agent ne lit pas encore
+
+- **Les événements de OneFS et ses pools de stockage.** SNMP ne transporte ni les uns ni les autres : ils viennent de l'API de OneFS, qu'une sonde OneUptime lira ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). En attendant, envoyez les événements sous forme de traps SNMP à une [sonde personnalisée](/docs/probe/custom-probe), et ajoutez-y les nœuds du cluster comme [équipements réseau](/docs/monitor/network-device-monitor) : les traps arrivent sur UDP 162, et les critères **Trap SNMP reçu (OID du trap)** alertent sur eux. Pour les traps SNMPv3, donnez aux équipements réseau l'utilisateur SNMPv3 du cluster ([Traps et informs SNMPv3](/docs/monitor/network-device-monitor#traps-et-informs-snmpv3)). Sur le cluster, créez le canal et envoyez-y une alerte :
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **Réduction des données**, que OneFS ne signale que par son API, arrive avec la même sonde.
+
 ## Dépannage
 
 :::details Exécutez d'abord le script de diagnostic
@@ -485,6 +574,10 @@ Lisez le journal de Harvest : `docker compose logs netapp-harvest`. Un `401` ou 
 
 :::details Un PowerStore n'envoie rien
 Lisez le journal de l'exportateur avec `docker compose logs powerstore-exporter` : un `401` signifie un nom d'utilisateur ou un mot de passe erroné, et un `403` sur `latest_five_min_metrics` signifie que le rôle de l'utilisateur ne peut pas activer l'archive de métriques en masse (donnez-lui **Storage Operator**, ou définissez `POWERSTORE_BULK_METRICS=false` sur un PowerStoreOS antérieur à 4.1). L'exportateur a besoin d'une minute après son démarrage avant de répondre. Aucune alerte sur la page **Journaux** : vérifiez les réglages _Remote Logging_ du cluster, le pare-feu sur le port 5514 et `docker compose logs powerstore-syslog`.
+:::
+
+:::details Un cluster ou un nœud PowerScale n'envoie rien
+`Error scraping metrics` avec `request timeout` dans le journal du collecteur désigne un nœud qui ne répond pas en SNMP depuis la machine de l'agent : SNMP est désactivé pour la version qu'utilise l'agent, la communauté ou l'utilisateur SNMPv3 n'est pas celui du cluster, ou UDP 161 est bloqué. `bash troubleshoot.sh` interroge chaque nœud avec `snmpget`. Un nœud qui répond mais qui manque dans **Nœuds** n'est pas dans `POWERSCALE_NODES` : ajoutez-le et relancez `install.sh`.
 :::
 
 :::details Des volumes ou hôtes supprimés restent dans l'inventaire

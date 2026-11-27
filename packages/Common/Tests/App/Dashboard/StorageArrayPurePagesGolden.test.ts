@@ -13,6 +13,7 @@ import StorageSystem from "../../../Types/StorageArray/StorageSystem";
 import StorageArrayPlatformRegistry from "../../../Types/StorageArray/StorageArrayPlatformRegistry";
 // A registered platform; the setup guide's StorageArrayPlatform is a key.
 import { StorageArrayPlatform as RegisteredPlatform } from "../../../Types/StorageArray/StorageArrayPlatform";
+import { SetupGuideOption } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import { JSONObject, JSONValue } from "../../../Types/JSON";
 import { getInventoryMenuItems } from "../../../../App/FeatureSet/Dashboard/src/Pages/StorageArray/View/SideMenu";
 import {
@@ -32,6 +33,7 @@ import {
   STORAGE_ARRAY_PLATFORMS,
   STORAGE_ARRAY_PLATFORM_SETTINGS,
   StorageArrayPlatform,
+  StorageArrayWholeConfigPlatform,
   getStorageArrayEnvFile,
   getStorageArrayInstallScriptCommand,
   getStorageArrayPlatformForSystem,
@@ -167,6 +169,17 @@ function pureFilterFields(value: JSONValue): JSONValue {
     });
 }
 
+/*
+ * Pure Storage's picker options. The picker also offers a Dell PowerScale
+ * since #11003, whose guide is its own (PowerScaleSetupGuide.test.ts).
+ */
+const PURE_OPTIONS: Array<SetupGuideOption<StorageArrayPlatform>> =
+  STORAGE_ARRAY_PLATFORMS.filter(
+    (option: SetupGuideOption<StorageArrayPlatform>): boolean => {
+      return option.key !== "powerscale";
+    },
+  );
+
 async function computeGolden(): Promise<JSONObject> {
   const bySystem: JSONObject = {};
 
@@ -240,11 +253,14 @@ async function computeGolden(): Promise<JSONObject> {
   const fileSystemReads: JSONValue = asJson(mockReadings);
 
   const guides: JSONObject = {};
-  for (const option of STORAGE_ARRAY_PLATFORMS) {
+  for (const option of PURE_OPTIONS) {
     const platform: StorageArrayPlatform = option.key;
     guides[platform] = {
       settings: asJson(STORAGE_ARRAY_PLATFORM_SETTINGS[platform]),
-      collectorConfigLength: STORAGE_ARRAY_COLLECTOR_CONFIGS[platform].length,
+      collectorConfigLength:
+        STORAGE_ARRAY_COLLECTOR_CONFIGS[
+          platform as StorageArrayWholeConfigPlatform
+        ].length,
       guideForAnArray: asJson(
         getStorageArraySetupGuide({
           oneuptimeUrl: "https://oneuptime.example.com",
@@ -314,7 +330,7 @@ async function computeGolden(): Promise<JSONObject> {
     projectId: PROJECT_ID,
     bySystem,
     fileSystemReads,
-    picker: asJson(STORAGE_ARRAY_PLATFORMS),
+    picker: asJson(PURE_OPTIONS),
     defaultPlatform: DEFAULT_STORAGE_ARRAY_PLATFORM,
     resolved,
     agentFiles: STORAGE_ARRAY_AGENT_FILES,

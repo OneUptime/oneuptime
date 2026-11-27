@@ -1,13 +1,21 @@
 import { describe, expect, test } from "@jest/globals";
 import {
+  CLOUD_NON_PRODUCTION_SOURCES,
   CLOUD_NON_PRODUCTION_WORDS,
   CLOUD_PRODUCTION_WORDS,
   CLOUD_RESOURCE_ENVIRONMENT_LABELS,
+  CLOUD_UNATTENDED_NON_PRODUCTION_SOURCES,
   CloudEnvironmentSource,
   CloudResourceEnvironment,
+  CloudResourceEnvironmentReadings,
+  CloudResourceEnvironmentSigns,
   combineEnvironments,
+  doesLabelSayProduction,
   getCloudResourceEnvironment,
+  getCloudResourceEnvironmentReadings,
+  getUnattendedCloudResourceEnvironment,
   isKnownNonProduction,
+  isNonProductionOnlyByLabels,
   readEnvironmentFromLabels,
   readEnvironmentFromTags,
   readEnvironmentWord,
@@ -181,6 +189,309 @@ describe("a resource's environment, from all its signs", () => {
       environment: CloudResourceEnvironment.NonProduction,
       source: CloudEnvironmentSource.Label,
     });
+  });
+});
+
+/*
+ * #11347: renaming one label changed what OneUptime believed of every
+ * resource that carried it. What nobody approves - an off-hours schedule's
+ * stop, an AI rule's change made without asking - now reads non-production
+ * only from the cloud's tags and the account's setting; a label may still
+ * say production.
+ */
+describe("what a change nobody approves reads (#11347)", () => {
+  test("a label never says non-production to it", () => {
+    for (const labelNames of [
+      ["dev"],
+      ["Staging"],
+      ["env: dev"],
+      ["environment=qa"],
+      ["QA", "team-a"],
+    ]) {
+      expect(getUnattendedCloudResourceEnvironment({ labelNames })).toEqual({
+        environment: CloudResourceEnvironment.Unknown,
+        source: CloudEnvironmentSource.None,
+      });
+      // A person approving still reads it, and is told where it came from.
+      expect(getCloudResourceEnvironment({ labelNames })).toEqual({
+        environment: CloudResourceEnvironment.NonProduction,
+        source: CloudEnvironmentSource.Label,
+      });
+    }
+  });
+
+  test("a label still says production to it, whatever the tags and the account say", () => {
+    expect(
+      getUnattendedCloudResourceEnvironment({
+        tags: { environment: "dev" },
+        accountEnvironment: CloudResourceEnvironment.NonProduction,
+        labelNames: ["Production"],
+      }),
+    ).toEqual({
+      environment: CloudResourceEnvironment.Production,
+      source: CloudEnvironmentSource.Label,
+    });
+  });
+
+  test("the cloud's tags and the account's setting say non-production to it, as before", () => {
+    expect(
+      getUnattendedCloudResourceEnvironment({ tags: { env: "staging" } }),
+    ).toEqual({
+      environment: CloudResourceEnvironment.NonProduction,
+      source: CloudEnvironmentSource.Tag,
+    });
+    expect(
+      getUnattendedCloudResourceEnvironment({
+        accountEnvironment: CloudResourceEnvironment.NonProduction,
+        labelNames: ["dev"],
+      }),
+    ).toEqual({
+      environment: CloudResourceEnvironment.NonProduction,
+      source: CloudEnvironmentSource.Account,
+    });
+  });
+
+  test("production from a tag or the account still wins over everything", () => {
+    for (const signs of [
+      { tags: { env: "prod" }, labelNames: ["dev"] },
+      {
+        accountEnvironment: CloudResourceEnvironment.Production,
+        tags: { env: "dev" },
+        labelNames: ["Staging"],
+      },
+    ]) {
+      expect(getUnattendedCloudResourceEnvironment(signs).environment).toBe(
+        CloudResourceEnvironment.Production,
+      );
+    }
+  });
+
+  test("renaming a label never makes a resource non-production to it: every name, on every resource its tags and account say nothing of", () => {
+    const names: Array<string> = [
+      ...CLOUD_PRODUCTION_WORDS,
+      ...CLOUD_NON_PRODUCTION_WORDS,
+      ...CLOUD_NON_PRODUCTION_WORDS.map((word: string): string => {
+        return `env: ${word}`;
+      }),
+      ...CLOUD_NON_PRODUCTION_WORDS.map((word: string): string => {
+        return `Environment=${word.toUpperCase()}`;
+      }),
+      "Production EU",
+      "team-a",
+      "",
+    ];
+
+    // A label renamed to any of these: what is read of the resource after.
+    for (const name of names) {
+      for (const otherLabels of [[], ["team-b"], ["dev"], ["Staging", "qa"]]) {
+        for (const signs of [
+          {},
+          { tags: { Team: "web" } },
+          { accountEnvironment: CloudResourceEnvironment.Unknown },
+          { accountEnvironment: "Mostly non-production" },
+        ]) {
+          const read: CloudResourceEnvironment =
+            getUnattendedCloudResourceEnvironment({
+              ...signs,
+              labelNames: [name, ...otherLabels],
+            }).environment;
+
+          expect({ name, otherLabels, read }).toEqual({
+            name,
+            otherLabels,
+            read: doesLabelSayProduction(name)
+              ? CloudResourceEnvironment.Production
+              : CloudResourceEnvironment.Unknown,
+          });
+        }
+      }
+    }
+  });
+
+  test("the issue's two renames: Production to dev, and any label to dev", () => {
+    // "Production" renamed to "dev": every sign read it non-production after.
+    expect(
+      getCloudResourceEnvironment({ labelNames: ["dev"] }).environment,
+    ).toBe(CloudResourceEnvironment.NonProduction);
+    expect(
+      getUnattendedCloudResourceEnvironment({ labelNames: ["Production"] })
+        .environment,
+    ).toBe(CloudResourceEnvironment.Production);
+    expect(
+      getUnattendedCloudResourceEnvironment({ labelNames: ["dev"] })
+        .environment,
+    ).toBe(CloudResourceEnvironment.Unknown);
+
+    // "team-a", on a resource nothing else is said of, renamed to "dev".
+    expect(
+      getUnattendedCloudResourceEnvironment({ labelNames: ["team-a"] })
+        .environment,
+    ).toBe(CloudResourceEnvironment.Unknown);
+    expect(
+      isKnownNonProduction(
+        getUnattendedCloudResourceEnvironment({ labelNames: ["dev"] })
+          .environment,
+      ),
+    ).toBe(false);
+  });
+
+  test("on a resource its tags call non-production, only a label that says production holds it back: so renaming that one lets go, which an agent asks a person about first", () => {
+    const tags: Record<string, string> = { environment: "dev" };
+
+    expect(
+      getUnattendedCloudResourceEnvironment({
+        tags,
+        labelNames: ["Production"],
+      }).environment,
+    ).toBe(CloudResourceEnvironment.Production);
+    expect(
+      getUnattendedCloudResourceEnvironment({
+        tags,
+        labelNames: ["Customer facing"],
+      }).environment,
+    ).toBe(CloudResourceEnvironment.NonProduction);
+    // A rename that still says production holds it as before.
+    expect(
+      getUnattendedCloudResourceEnvironment({ tags, labelNames: ["prod"] })
+        .environment,
+    ).toBe(CloudResourceEnvironment.Production);
+  });
+
+  test("both readings, read once, are the two readings", () => {
+    for (const tags of [{}, { env: "dev" }, { env: "prod" }, { Team: "web" }]) {
+      for (const accountEnvironment of [
+        undefined,
+        "Mostly prod",
+        ...Object.values(CloudResourceEnvironment),
+      ]) {
+        for (const labelNames of [
+          [],
+          ["dev"],
+          ["Production"],
+          ["dev", "Production"],
+          ["team-a"],
+        ]) {
+          const signs: CloudResourceEnvironmentSigns = {
+            tags,
+            accountEnvironment,
+            labelNames,
+          };
+          const readings: CloudResourceEnvironmentReadings =
+            getCloudResourceEnvironmentReadings(signs);
+
+          expect(readings).toEqual({
+            reading: getCloudResourceEnvironment(signs),
+            unattended: getUnattendedCloudResourceEnvironment(signs),
+          });
+
+          // Production on every sign alike, in both readings.
+          expect(
+            readings.unattended.environment ===
+              CloudResourceEnvironment.Production,
+          ).toBe(
+            readings.reading.environment ===
+              CloudResourceEnvironment.Production,
+          );
+
+          // Non-production to a change nobody approves only from a tag or the account.
+          if (
+            readings.unattended.environment ===
+            CloudResourceEnvironment.NonProduction
+          ) {
+            expect([
+              CloudEnvironmentSource.Tag,
+              CloudEnvironmentSource.Account,
+            ]).toContain(readings.unattended.source);
+            expect(readings.reading).toEqual(readings.unattended);
+          }
+
+          // The two differ only where a label's non-production is the only one.
+          expect(isNonProductionOnlyByLabels(readings.reading)).toBe(
+            readings.reading.environment !== readings.unattended.environment,
+          );
+
+          if (isNonProductionOnlyByLabels(readings.reading)) {
+            expect(readings.unattended).toEqual({
+              environment: CloudResourceEnvironment.Unknown,
+              source: CloudEnvironmentSource.None,
+            });
+          }
+        }
+      }
+    }
+  });
+
+  test("the signs each reading takes non-production from", () => {
+    expect(CLOUD_NON_PRODUCTION_SOURCES).toEqual([
+      CloudEnvironmentSource.Tag,
+      CloudEnvironmentSource.Account,
+      CloudEnvironmentSource.Label,
+    ]);
+    expect(CLOUD_UNATTENDED_NON_PRODUCTION_SOURCES).toEqual([
+      CloudEnvironmentSource.Tag,
+      CloudEnvironmentSource.Account,
+    ]);
+  });
+});
+
+describe("whether a reading's non-production is its labels' alone", () => {
+  test("only a non-production a label gave", () => {
+    expect(
+      isNonProductionOnlyByLabels({
+        environment: CloudResourceEnvironment.NonProduction,
+        source: CloudEnvironmentSource.Label,
+      }),
+    ).toBe(true);
+
+    for (const reading of [
+      {
+        environment: CloudResourceEnvironment.NonProduction,
+        source: CloudEnvironmentSource.Tag,
+      },
+      {
+        environment: CloudResourceEnvironment.NonProduction,
+        source: CloudEnvironmentSource.Account,
+      },
+      {
+        environment: CloudResourceEnvironment.Production,
+        source: CloudEnvironmentSource.Label,
+      },
+      {
+        environment: CloudResourceEnvironment.Unknown,
+        source: CloudEnvironmentSource.None,
+      },
+    ]) {
+      expect(isNonProductionOnlyByLabels(reading)).toBe(false);
+    }
+  });
+});
+
+describe("whether a label's name says production", () => {
+  test.each([
+    ["Production", true],
+    ["prod", true],
+    ["PRD", true],
+    ["live", true],
+    ["env: prod", true],
+    ["environment=production", true],
+    ["Production EU", false],
+    ["prod-eu", false],
+    ["owner: prod", false],
+    ["dev", false],
+    ["Staging", false],
+    ["", false],
+  ])("%s: %s", (name: string, says: boolean) => {
+    expect(doesLabelSayProduction(name)).toBe(says);
+    // As a resource's labels are read.
+    expect(
+      readEnvironmentFromLabels([name]) === CloudResourceEnvironment.Production,
+    ).toBe(says);
+  });
+
+  test("a name that is not text says nothing", () => {
+    for (const name of [undefined, null, 3, {}, ["Production"]]) {
+      expect(doesLabelSayProduction(name)).toBe(false);
+    }
   });
 });
 

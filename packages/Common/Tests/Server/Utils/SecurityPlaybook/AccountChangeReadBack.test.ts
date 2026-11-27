@@ -26,6 +26,7 @@ import {
   AccountChange,
   AccountChangeKind,
   AccountChangeProvider,
+  AccountChangeSubject,
 } from "../../../../Utils/SecurityCase/AttackAccountChanges";
 import {
   FAKE_ADMIN_EMAIL,
@@ -89,6 +90,7 @@ function change(data: Partial<AccountChange>): AccountChange {
   return {
     provider: AccountChangeProvider.Okta,
     kind: AccountChangeKind.Group,
+    subject: AccountChangeSubject.Account,
     account: "alice@acme.com",
     accountId: "",
     objectId: "",
@@ -97,6 +99,7 @@ function change(data: Partial<AccountChange>): AccountChange {
     ownerType: "",
     cloudAccountId: "",
     cloudConnectionId: "",
+    trustPolicies: [],
     eventName: "",
     eventUid: "event-1",
     time: "2026-11-17T19:30:00.000Z",

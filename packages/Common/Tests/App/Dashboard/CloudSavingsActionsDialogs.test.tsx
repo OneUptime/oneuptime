@@ -56,6 +56,7 @@ import CloudSavingsApplyModal, {
   APPLY_ASK_BUTTON,
   APPLY_BUTTON,
   APPLY_IN_CLOUD_BUTTON,
+  APPLY_ONLY_LABELS,
   APPLY_PULL_REQUEST_BUTTON,
   APPLY_WAITS,
   APPLY_YOU_APPROVE,
@@ -186,6 +187,45 @@ describe("Apply, for a saving OneUptime makes", () => {
       screen.getByTestId("cloud-savings-apply-approvers"),
     ).toHaveTextContent(APPLY_YOU_APPROVE);
     expect(submitButton()).toHaveTextContent(APPLY_BUTTON);
+  });
+
+  test("a resource only its labels call non-production says no schedule or rule acts on it unasked, and still applies (#11347)", async () => {
+    await openApply(
+      offerOf({
+        environment: CloudResourceEnvironment.NonProduction,
+        environmentSource: CloudEnvironmentSource.Label,
+      }),
+    );
+
+    expect(
+      screen.getByTestId("cloud-savings-apply-only-labels"),
+    ).toHaveTextContent(APPLY_ONLY_LABELS);
+    expect(APPLY_ONLY_LABELS).toBe(
+      "Only its labels say it is not production, so no off-hours schedule stops it and no AI rule changes it without asking. Tag it in your cloud, or mark its account non-production.",
+    );
+    expect(screen.getByText("from its labels")).toBeInTheDocument();
+    // A person may still apply it: they see where it came from.
+    expect(submitButton()).toHaveTextContent(APPLY_BUTTON);
+    expect(submitButton()).not.toBeDisabled();
+  });
+
+  test("a resource its tags, its account or nothing describes says nothing of labels", async () => {
+    for (const [environment, environmentSource] of [
+      [CloudResourceEnvironment.NonProduction, CloudEnvironmentSource.Tag],
+      [CloudResourceEnvironment.NonProduction, CloudEnvironmentSource.Account],
+      [CloudResourceEnvironment.Production, CloudEnvironmentSource.Label],
+      [CloudResourceEnvironment.Unknown, CloudEnvironmentSource.None],
+    ] as Array<[CloudResourceEnvironment, CloudEnvironmentSource]>) {
+      await openApply(offerOf({ environment, environmentSource }));
+
+      expect({
+        environment,
+        environmentSource,
+        says: screen.queryByTestId("cloud-savings-apply-only-labels") !== null,
+      }).toEqual({ environment, environmentSource, says: false });
+
+      cleanup();
+    }
   });
 
   test("an approver's Apply makes it at once, as them, with the final snapshot asked for", async () => {
@@ -503,6 +543,14 @@ describe("what an off-hours schedule picks", () => {
           environment: CloudResourceEnvironment.Unknown,
           skipReason: CloudOffHoursSkipReason.EnvironmentNotKnown,
         },
+        {
+          cloudResourceId: "r-4",
+          name: "orders-staging",
+          resourceType: "EC2 instance",
+          provider: CloudProvider.AWS,
+          environment: CloudResourceEnvironment.NonProduction,
+          skipReason: CloudOffHoursSkipReason.OnlyLabelsSayNonProduction,
+        },
       ],
       isCapped: false,
     } as unknown as CloudOffHoursPreview);
@@ -511,13 +559,18 @@ describe("what an off-hours schedule picks", () => {
       "cloud-off-hours-preview-row",
     );
 
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(4);
     expect(rows[0]).toHaveTextContent("orders-dev");
     expect(rows[0]).toHaveTextContent("Stopped off hours");
     expect(rows[1]).toHaveTextContent("Left running: it is production.");
     expect(rows[2]).toHaveTextContent(
       "Left running: nothing says it is not production.",
     );
+    // #11347: a schedule never reads a label as non-production.
+    expect(rows[3]).toHaveTextContent(
+      "Left running: only its labels say it is not production. Tag it environment=dev in your cloud, or mark its account non-production.",
+    );
+    expect(rows[3]).not.toHaveTextContent("Stopped off hours");
     expect(
       screen.queryByText("Only the first 500 resources are listed."),
     ).toBeNull();

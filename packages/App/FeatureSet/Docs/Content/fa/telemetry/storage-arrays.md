@@ -4,6 +4,7 @@
 
 :::cards
 - [نصب عامل](#نصب-عامل): یک کاربر فقط‌خواندنی، سپس اسکریپت نصب یا Docker Compose.
+- [Dell PowerScale](#dell-powerscale): SNMP روی خوشه، پرس‌وجو از هر گره، و آنچه صفحه‌هایش نشان می‌دهند.
 - [آنچه عامل گردآوری می‌کند](#آنچه-عامل-گردآوری-میکند): هر نقطه پایانی، و صفحه‌هایی که از آن ساخته می‌شوند.
 - [پایش چند آرایه](#پایش-چند-آرایه): یک عامل برای هر آرایه، روی یک ماشین.
 - [Dell PowerMax](#dell-powermax): بدون عامل: یک پراب همه آرایه‌های پشت Unisphere را می‌خواند.
@@ -21,12 +22,15 @@ Storage Arrays محصولی است که برای هر سازنده‌ای به �
 | **Pure Storage FlashBlade** | `purestorage.flashblade` | صادرکننده OpenMetrics مخصوص FlashBlade از Pure، که همان فایل Compose آن را به‌صورت سرویس `pure-fb-exporter` اجرا می‌کند | `otel-collector-config.flashblade.yaml` |
 | **Dell PowerStore** | `dell.powerstore` | صادرکننده PowerStore Metrics Exporter از Dell، که همان فایل Compose آن را به‌صورت سرویس `powerstore-exporter` می‌سازد و اجرا می‌کند؛ هشدارهای خوشه با syslog به سرویس `powerstore-syslog` آن می‌رسند | `otel-collector-config.powerstore.yaml` |
 | **NetApp ONTAP** 9.12.1 و بعد از آن (AFF، FAS، ASA، ONTAP Select، Cloud Volumes ONTAP)، و **Amazon FSx for NetApp ONTAP** | `netapp.ontap` | [NetApp Harvest](https://github.com/NetApp/harvest) 26.11، که همان فایل Compose آن را به‌صورت سرویس `netapp-harvest` اجرا می‌کند: با یک کاربر فقط‌خواندنی و گذرواژه به REST API خوشه وارد می‌شود | `otel-collector-config.netapp-ontap.yaml` |
+| **Dell PowerScale** (Isilon)، OneFS 8.0 و بعد از آن | `dell.powerscale` | هر گره از راه SNMP (ISILON-MIB متعلق به Dell)، با گیرنده SNMP خود کالکتور: چیزی کنار کالکتور اجرا نمی‌شود | `otel-collector-config.powerscale.yaml` |
 
 ONTAP نقطه پایانی متریک ویژه خودش را ندارد، پس عامل صادرکننده متن‌باز NetApp، یعنی Harvest، را کنار کالکتور اجرا می‌کند. Harvest از REST API خوشه می‌خواند و آنچه خوانده را روی شبکه Compose ارائه می‌کند، با نام `netapp_<object>_<counter>` برای هر سری؛ کالکتور آن را برداشت می‌کند و به OneUptime می‌فرستد. Harvest هرگز چیزی روی خوشه نمی‌نویسد، و گزارش AutoSupport آن به NetApp خاموش است.
 
 برای **Dell PowerMax** (`dell.powermax`) به عامل نیازی نیست: یک پراب OneUptime با یک حساب فقط‌خواندنی همه آرایه‌هایی را می‌خواند که یک Unisphere for PowerMax مدیریت می‌کند. [Dell PowerMax](#dell-powermax) را ببینید.
 
 Pure Storage در فوریه ۲۰۲۶ نام خود را به **Everpure** تغییر داد. FlashArray، FlashBlade و Purity نام‌هایشان را نگه داشتند، و متریک‌های `purefa_*` و `purefb_*` هم همین‌طور، پس همه‌چیز در این صفحه درباره آرایه‌هایی که با هر یک از این دو نام فروخته شده‌اند صدق می‌کند.
+
+یک خوشه **Dell PowerScale** به روش دیگری خوانده می‌شود: عامل از هر یک از گره‌هایش از راه SNMP، با یک community فقط‌خواندنی یا کاربر SNMPv3 و بدون توکن API، پرس‌وجو می‌کند. [Dell PowerScale](#dell-powerscale) از روشن کردن SNMP تا آنچه صفحه‌هایش نشان می‌دهند را پوشش می‌دهد؛ گام‌های نصب زیر مخصوص Pure Storage است.
 
 ```mermaid title="از آرایه تا OneUptime"
 flowchart TB
@@ -146,6 +150,8 @@ PURE_FA_ENDPOINT=fa-prod-01.example.com
 PURE_FA_API_TOKEN=YOUR_READ_ONLY_API_TOKEN
 PURE_FB_ENDPOINT=
 PURE_FB_API_TOKEN=
+POWERSCALE_ENDPOINT=
+POWERSCALE_SNMP_COMMUNITY=
 STORAGE_ARRAY_INSECURE_SKIP_VERIFY=true
 POWERSTORE_ENDPOINT=
 POWERSTORE_PASSWORD=
@@ -246,6 +252,18 @@ Everything is ready. Begin running and processing data.
 | `NETAPP_ONTAP_ENDPOINT` | ONTAP | نشانی مدیریتی خوشه (روی FSx، نقطه پایانی مدیریتی سیستم فایل): یک نام میزبان یا IP، بدون `https://`. |
 | `NETAPP_ONTAP_USERNAME` | ONTAP | کاربر REST فقط‌خواندنی، مانند `oneuptime`. |
 | `NETAPP_ONTAP_PASSWORD` | ONTAP | گذرواژه آن کاربر. فقط Harvest آن را می‌خواند، دقیقاً همان‌طور که نوشته شده است. |
+| `POWERSCALE_NODES` | PowerScale | نشانی همه گره‌ها، جداشده با ویرگول، هرگز نام زُن SmartConnect. اسکریپت نصب پرس‌وجوهای زیر را از روی آن می‌نویسد. |
+| `POWERSCALE_ENDPOINT` | PowerScale | گره‌ای که سلامت، ظرفیت و سهمیه‌های خود خوشه از راه آن خوانده می‌شوند: نخستین گره در `POWERSCALE_NODES`. |
+| `POWERSCALE_SNMP_RECEIVERS` | PowerScale | پرس‌وجوهایی که کالکتور اجرا می‌کند: `snmp/cluster`، `snmp/quotas`، سپس `snmp/node-1` و بعدی‌ها، یکی برای هر گره. |
+| `POWERSCALE_NODE_<n>` | PowerScale | نشانی گره `<n>`، از `1` تا `252`. نشانی IPv6 درون کروشه می‌آید، مانند `[fd00::11]`. |
+| `POWERSCALE_SNMP_VERSION` | خیر | `v2c` یا `v3`. پیش‌فرض آن `v2c` است. |
+| `POWERSCALE_SNMP_COMMUNITY` | SNMP v2c | community فقط‌خواندنی خوشه. |
+| `POWERSCALE_SNMP_USER` | SNMPv3 | کاربر فقط‌خواندنی SNMPv3 خوشه. |
+| `POWERSCALE_SNMP_SECURITY_LEVEL` | خیر | `auth_priv`، `auth_no_priv` یا `no_auth_no_priv`. پیش‌فرض آن `auth_priv` است. |
+| `POWERSCALE_SNMP_AUTH_PROTOCOL` | خیر | `MD5`، `SHA`، `SHA224`، `SHA256`، `SHA384` یا `SHA512`، همان‌طور که `isi snmp settings view` نشان می‌دهد. پیش‌فرض آن `SHA` است. |
+| `POWERSCALE_SNMP_AUTH_PASSWORD` | SNMPv3 | گذرواژه احراز هویت کاربر SNMPv3. |
+| `POWERSCALE_SNMP_PRIVACY_PROTOCOL` | خیر | `DES`، `AES`، `AES192`، `AES256`، `AES192C` یا `AES256C`. پیش‌فرض آن `AES` است. |
+| `POWERSCALE_SNMP_PRIVACY_PASSWORD` | SNMPv3 | گذرواژه حریم خصوصی کاربر SNMPv3، در سطح `auth_priv`. |
 | `STORAGE_ARRAY_INSECURE_SKIP_VERIFY` | خیر | `true` گواهی خودامضای آرایه را روی نقطه پایانی بومی و در Harvest می‌پذیرد؛ `false` آن را اعتبارسنجی می‌کند. پیش‌فرض آن `true` است. صادرکننده‌های Pure هرگز گواهی آرایه را اعتبارسنجی نمی‌کنند، پس این متغیر بر آن‌ها اثری ندارد. |
 
 ## عامل چگونه برداشت می‌کند
@@ -278,6 +296,9 @@ Everything is ready. Begin running and processing data.
 | ONTAP، از راه Harvest | `netapp_cluster_*`، `netapp_node_*`، `netapp_aggr_*`، `netapp_svm_*`، `netapp_volume_*`، `netapp_lun_*`، `netapp_snapmirror_*` | نام، نسخه و UUID خوشه؛ ظرفیت آن (مجموع ظرفیت اگریگیت‌های داده‌اش) و کاهش داده؛ صفحه **حجم‌ها**؛ صفحه‌های **اگریگیت‌ها**، **SVMها**، **LUNها** و **SnapMirror**، یک صفحه برای هر شیء |
 | سخت‌افزار ONTAP، از راه Harvest | `netapp_disk_*`، `netapp_shelf_*`، `netapp_environment_sensor_*`، `netapp_net_port_*`، `netapp_nic_*`، `netapp_fcp_*` | صفحه **سخت‌افزار**: گره‌ها، دیسک‌ها، قفسه‌های دیسک و منابع تغذیه، فن‌ها، ماژول‌ها و حسگرهای آن‌ها، حسگرهای گره‌ها، و پورت‌های Ethernet و Fibre Channel |
 | مشکل‌های باز و رویدادهای ONTAP | `netapp_health_*`، `netapp_ems_events` | شمار هشدارهای باز و کارت **هشدارهای فعال** (دیسک‌های خراب، خطاهای قفسه دیسک، بر عهده گرفتن کار در HA، پورت‌های قطع، هشدارهای سلامت سامانه)، و الگوهای هشدار EMS |
+| PowerScale `snmp/cluster` | `powerscale_cluster_*`، `powerscale_ifs_*` | نام خوشه، نسخه OneFS، سلامت و شمار گره‌ها؛ ظرفیت `/ifs`؛ توان عملیاتی، شبکه و CPU در کل خوشه |
+| PowerScale `snmp/quotas` | `powerscale_quota_*` | صفحه **سهمیه‌ها**: مصرف هر سهمیه، حدهای آن و اینکه چقدر به آن‌ها نزدیک است |
+| PowerScale `snmp/node-<n>` | `powerscale_node_*`، `powerscale_protocol_*`، `powerscale_drive_*`، `powerscale_fan_*`، `powerscale_temperature_*`، `powerscale_power_sensor_*`، `powerscale_interface_*`، `powerscale_chassis_*` | صفحه **گره‌ها**: سلامت، CPU، توان عملیاتی و کارایی پروتکل‌های هر گره؛ صفحه **سخت‌افزار**: درایوها، حسگرها و پورت‌های آن |
 
 روی ONTAP هر سری از آنِ Harvest است: هر شیء با برچسب‌هایش نام‌گذاری می‌شود (`volume` درون `svm` خودش، `aggr`، `lun`، `node`، `disk`، `shelf`، و `destination_location` برای یک رابطه SnapMirror)، هر وضعیت یا یک `netapp_*_new_status` با مقدار ۱ یا ۰ است یا یک سری `netapp_*_labels` که برچسب‌هایش آن را می‌گویند، و هر مشکل باز یک سری `netapp_health_*_alerts` است که تا وقتی مشکل ادامه دارد وجود دارد.
 
@@ -375,6 +396,7 @@ curl -fsSLO https://oneuptime.com/install/storage-array-agent/docker-compose.yml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flasharray-exporter.yaml
 curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.flashblade.yaml
+curl -fsSLO https://oneuptime.com/install/storage-array-agent/otel-collector-config.powerscale.yaml
 docker compose pull
 docker compose up -d --force-recreate
 ```
@@ -440,6 +462,73 @@ docker compose down
 - **تا ۵,۰۰۰ گروه ذخیره‌سازی و ۱۰,۰۰۰ حجم برای هر آرایه**، و ۲۰۰ هشدار تازه در هر جمع‌آوری (بقیه در جمع‌آوری‌های بعدی می‌آیند). اگر فهرستی کوتاه شده باشد، صفحه اتصال این را می‌گوید.
 - **Unisphere 10.1 و 10.2** به یک حساب فقط‌خواندنی هیچ پورت یا گروه SRDF نشان نمی‌دهند: پراب دایرکتورها را یکی‌یکی می‌خواند، گروه‌های SRDF را از گروه‌های ذخیره‌سازی برمی‌گیرد، و این را می‌گوید.
 
+## Dell PowerScale
+
+عامل یک خوشه Dell PowerScale (Isilon) را از راه SNMP، از ISILON-MIB متعلق به Dell، با گیرنده SNMP خود کالکتور می‌خواند: بدون توکن API، و چیزی کنار کالکتور اجرا نمی‌شود. یک خوشه یک آرایه ذخیره‌سازی است، و گره‌ها، سهمیه‌ها، درایوها، حسگرها و پورت‌هایش موجودی آن‌اند.
+
+- **از هر گره در نشانی خودش پرس‌وجو می‌شود.** هر گره فقط برای درایوها، حسگرها و پورت‌های خودش به SNMP پاسخ می‌دهد، پس عامل از هر گره با نشانی آن در شبکه‌ای که عامل به آن دسترسی دارد پرس‌وجو می‌کند، هرگز با نام زُن SmartConnect، که هر پرس‌وجو را به هر گره‌ای که خودش انتخاب کند می‌سپارد. یک خوشه حداکثر ۲۵۲ گره دارد.
+- **اشیای خود خوشه یک بار، از راه نخستین گره، خوانده می‌شوند:** سلامت، ظرفیت، توان عملیاتی، CPU و شمار گره‌های آن هر ۶۰ ثانیه (`snmp/cluster`)، و SmartQuotas آن هر ۵ دقیقه (`snmp/quotas`). سلامت، CPU، کارایی پروتکل‌ها (NFS، SMB، S3، HDFS و بقیه)، درایوها، حسگرها و پورت‌های هر گره هر ۶۰ ثانیه از خود گره خوانده می‌شوند (`snmp/node-<n>`).
+- **خوانش‌هایی که OneFS به‌صورت متن یا با یکاهای دیگر می‌دهد** (خوانش حسگرها، CPU به دهم درصد، توان عملیاتی به بیت) پیش از ارسال به دست کالکتور به عدد تبدیل می‌شوند، پس هر نمودار و هر قالب یک gauge ساده را می‌خواند.
+
+### روشن کردن SNMP روی خوشه
+
+با SSH و به‌عنوان مدیر به هر گره‌ای وصل شوید: OneFS تنظیمات SNMP را روی کل خوشه اعمال می‌کند. اگر خوشه از پیش برای ابزار دیگری به SNMP پاسخ می‌دهد، همان community فقط‌خواندنی یا کاربر SNMPv3 را به عامل بدهید و از این مرحله بگذرید. در غیر این صورت، سرویس SNMP و SNMP v2c را با یک community فقط‌خواندنی از آنِ خودتان روشن کنید، نه community پیش‌فرض OneFS یعنی `I$ilonpublic`:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v1-v2c-access yes -c '<read-only-community>'
+```
+
+یا SNMPv3 را روشن کنید که هر پرس‌وجو را احراز هویت و رمزگذاری می‌کند. OneFS یک کاربر فقط‌خواندنی SNMPv3 دارد که تا وقتی نامش را تغییر ندهید `general` است: به آن گذرواژه‌هایی با دست‌کم هشت نویسه و بدون فاصله بدهید:
+
+```bash
+isi snmp settings modify --service yes
+isi snmp settings modify --snmp-v3-access yes -u '<read-only-user>' --snmp-v3-password '<authentication-password>' --snmp-v3-priv-password '<privacy-password>'
+```
+
+`isi snmp settings view` تنظیمات را همراه با پروتکل‌های احراز هویت و حریم خصوصی کاربر نشان می‌دهد. UDP 161 را از ماشین عامل به همه گره‌ها مجاز کنید و نشانی گره‌ها را با `isi network interfaces list` فهرست کنید.
+
+### نصب عامل روی یک خوشه PowerScale
+
+اسکریپت نصب را با پیکربندی PowerScale اجرا کنید:
+
+```bash
+curl -fsSL https://oneuptime.com/install/storage-array-agent -o install.sh
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml bash install.sh
+```
+
+اسکریپت نشانی OneUptime شما، کلید دریافت داده و نامی برای خوشه را می‌پرسد، سپس نشانی همه گره‌ها، جداشده با ویرگول، و نسخه SNMP را، و سپس community فقط‌خواندنی، یا کاربر SNMPv3 و دو گذرواژه آن را، که هر کدام بی‌نمایش خوانده می‌شود. کاربری که پروتکل‌هایش SHA و AES نیستند، به `POWERSCALE_SNMP_AUTH_PROTOCOL` و `POWERSCALE_SNMP_PRIVACY_PROTOCOL` پیش از `bash install.sh` نیاز دارد، و کاربر بدون حریم خصوصی به `POWERSCALE_SNMP_SECURITY_LEVEL=auth_no_priv`. اسکریپت برای هر گره یک پرس‌وجو در `.env` می‌نویسد:
+
+```bash title=".env"
+STORAGE_SYSTEM=dell.powerscale
+STORAGE_ARRAY_COLLECTOR_CONFIG=otel-collector-config.powerscale.yaml
+POWERSCALE_ENDPOINT='10.20.0.11'
+POWERSCALE_SNMP_COMMUNITY='YOUR_READ_ONLY_COMMUNITY'
+POWERSCALE_SNMP_VERSION='v2c'
+POWERSCALE_NODES='10.20.0.11,10.20.0.12,10.20.0.13'
+POWERSCALE_SNMP_RECEIVERS='[snmp/cluster, snmp/quotas, snmp/node-1, snmp/node-2, snmp/node-3]'
+POWERSCALE_NODE_1='10.20.0.11'
+POWERSCALE_NODE_2='10.20.0.12'
+POWERSCALE_NODE_3='10.20.0.13'
+```
+
+وقتی گره‌ای به خوشه اضافه می‌شود، نشانی آن را به `POWERSCALE_NODES` در `.env` بیفزایید و `install.sh` را دوباره اجرا کنید: پرس‌وجوی آن گره را می‌نویسد و عامل را دوباره می‌سازد. با Docker Compose، `docker-compose.yml` و `otel-collector-config.powerscale.yaml` را دانلود کنید، و این خط‌ها را در `.env` راه‌اندازی سریع، به‌جای خط‌های `STORAGE_SYSTEM`، `STORAGE_ARRAY_COLLECTOR_CONFIG` و `POWERSCALE_*` آن بگذارید. `troubleshoot.sh` وقتی ماشین `snmpget` را داشته باشد، نام خوشه را با آن از هر گره می‌پرسد.
+
+### آنچه صفحه‌های یک PowerScale نشان می‌دهند
+
+**نمای کلی** خوشه سلامت آن را از سلامتی که خود OneFS گزارش می‌دهد می‌گیرد، گره‌ها و سهمیه‌هایش را می‌شمارد، و تأخیر و بار هر پروتکل، توان عملیاتی، پرکارترین گره‌ها و ظرفیت مصرف‌شده را رسم می‌کند. **گره‌ها** هر گره را با سلامت، مدل، نسخه OneFS، CPU و توان عملیاتی آن فهرست می‌کند؛ **سهمیه‌ها** هر سهمیه را با اینکه چه مقدار از حدش را مصرف می‌کند، بزرگ‌ترین اول، فهرست می‌کند؛ **سخت‌افزار** درایوهای هر گره، فن‌ها و حسگرهای دما و برق آن را با خوانش‌هایشان، و پورت‌هایش را فهرست می‌کند. ظرفیت همان ظرفیت `/ifs` است، و فضایی که OneFS برای یدک‌های داغ مجازی کنار می‌گذارد مصرف‌شده به حساب می‌آید: برای نوشتن در دسترس نیست.
+
+### آنچه عامل هنوز نمی‌خواند
+
+- **رویدادهای OneFS و استخرهای ذخیره‌سازی آن.** ‏SNMP هیچ‌کدام را منتقل نمی‌کند: این‌ها از API خود OneFS می‌آیند، که یک پراب OneUptime آن را خواهد خواند ([#11249](https://github.com/OneUptime/oneuptime/issues/11249)). تا آن زمان، رویدادها را به‌صورت تله‌های SNMP به یک [پراب سفارشی](/docs/probe/custom-probe) بفرستید و گره‌های خوشه را به‌عنوان [دستگاه‌های شبکه](/docs/monitor/network-device-monitor) به آن بیفزایید: تله‌ها روی UDP 162 می‌رسند، و معیارهای **دریافت SNMP Trap (Trap OID)** بر پایه آن‌ها هشدار می‌دهند. برای تله‌های SNMPv3، کاربر SNMPv3 خوشه را به دستگاه‌های شبکه بدهید ([تله‌ها و informهای SNMPv3](/docs/monitor/network-device-monitor#تلهها-و-informهای-snmpv3)). روی خوشه، کانال را بسازید و یک هشدار به آن بفرستید:
+
+```bash
+isi event channels create oneuptime snmp --host <probe-address> --community '<trap-community>' --use-snmp-trap true
+isi event alerts modify <alert> --channel oneuptime
+```
+
+- **کاهش داده**، که OneFS فقط از راه API خود گزارش می‌دهد، با همان پراب می‌آید.
+
 ## رفع اشکال
 
 :::details نخست اسکریپت تشخیصی را اجرا کنید
@@ -485,6 +574,10 @@ Purity//FA آن نقطه پایانی بومی OpenMetrics ندارد. `install.
 
 :::details یک PowerStore هیچ چیزی نمی‌فرستد
 لاگ صادرکننده را با `docker compose logs powerstore-exporter` بخوانید: `401` یعنی نام کاربری یا گذرواژه اشتباه است، و `403` روی `latest_five_min_metrics` یعنی نقش کاربر نمی‌تواند بایگانی متریک‌های انبوه را روشن کند (نقش **Storage Operator** را به آن بدهید، یا روی PowerStoreOS قدیمی‌تر از 4.1 مقدار `POWERSTORE_BULK_METRICS=false` را تنظیم کنید). صادرکننده پس از شروع یک دقیقه زمان لازم دارد تا پاسخ دهد. هیچ هشداری در صفحه **لاگ‌ها** نیست: تنظیمات _Remote Logging_ خوشه، دیوار آتش روی پورت 5514 و `docker compose logs powerstore-syslog` را بررسی کنید.
+:::
+
+:::details یک خوشه یا گره PowerScale هیچ چیزی نمی‌فرستد
+`Error scraping metrics` همراه با `request timeout` در لاگ کالکتور گره‌ای را نام می‌برد که از ماشین عامل به SNMP پاسخ نمی‌دهد: SNMP برای نسخه‌ای که عامل به کار می‌برد خاموش است، community یا کاربر SNMPv3 از آنِ خوشه نیست، یا UDP 161 مسدود است. `bash troubleshoot.sh` از هر گره با `snmpget` می‌پرسد. گره‌ای که پاسخ می‌دهد اما در **گره‌ها** نیست، در `POWERSCALE_NODES` نیامده است: آن را بیفزایید و `install.sh` را دوباره اجرا کنید.
 :::
 
 :::details حجم‌ها یا میزبان‌های حذف‌شده در موجودی می‌مانند

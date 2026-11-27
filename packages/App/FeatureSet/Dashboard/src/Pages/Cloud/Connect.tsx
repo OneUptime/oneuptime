@@ -6,6 +6,11 @@ import {
   getCloudConnectionAwsRoleSetup,
 } from "../../Components/Cloud/Connect/CloudConnectApi";
 import CloudConnectionFormModal from "../../Components/Cloud/Connect/CloudConnectionFormModal";
+import {
+  CLOUD_CONNECT_CLOUD_QUERY_PARAM,
+  CLOUD_CONNECT_CONNECTION_QUERY_PARAM,
+  isCloudConnectionIdInLink,
+} from "../../Components/Cloud/Connect/CloudConnectRoutes";
 import CloudConnectionTiles from "../../Components/Cloud/Connect/CloudConnectionTiles";
 import CloudConnectionsTable from "../../Components/Cloud/Connect/CloudConnectionsTable";
 import CloudConnection from "Common/Models/DatabaseModels/CloudConnection";
@@ -52,10 +57,12 @@ import React, {
  * logs through Pub/Sub - within minutes, between reads. A link with
  * ?cloud=aws (azure, gcp) opens that cloud's
  * form at once, so the empty All Resources page can send people straight
- * to it.
+ * to it. A link with ?connection=<id> opens that connection's form to edit
+ * it, for someone who may: a security case's step links there to turn
+ * Security case checks on for the AWS connection it means (#11039).
  */
 
-export const CLOUD_QUERY_PARAM: string = "cloud";
+export const CLOUD_QUERY_PARAM: string = CLOUD_CONNECT_CLOUD_QUERY_PARAM;
 
 // The project's connections, for the tiles' counts; undefined when the read fails.
 async function readCloudConnections(
@@ -75,6 +82,30 @@ async function readCloudConnections(
     return result.data;
   } catch {
     return undefined;
+  }
+}
+
+/*
+ * The connection a link names, as its form edits it - its name, its cloud
+ * and its settings, never its credentials - or null: gone, not a cloud's,
+ * or not readable.
+ */
+async function readLinkedConnection(
+  connectionId: string,
+): Promise<CloudConnection | null> {
+  try {
+    const connection: CloudConnection | null =
+      await ModelAPI.getItem<CloudConnection>({
+        modelType: CloudConnection,
+        id: new ObjectID(connectionId),
+        select: { _id: true, name: true, provider: true, config: true },
+      });
+
+    return connection && isCloudConnectionProvider(connection.provider)
+      ? connection
+      : null;
+  } catch {
+    return null;
   }
 }
 
@@ -145,6 +176,49 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
   }, [refreshCounter, knownVersion, disableTelemetryForThisProject]);
 
   /*
+   * A link naming a connection opens its form to edit it, once it is read
+   * (#11039) - for someone who may change it. Anyone else sees the list,
+   * whose Edit says what it takes; a connection gone since opens nothing.
+   */
+  useEffect(() => {
+    const linked: string | null = Navigation.getQueryStringByName(
+      CLOUD_CONNECT_CONNECTION_QUERY_PARAM,
+    );
+
+    if (
+      disableTelemetryForThisProject ||
+      !updateGate.isAllowed ||
+      !isCloudConnectionIdInLink(linked)
+    ) {
+      return;
+    }
+
+    let isCurrent: boolean = true;
+
+    void readLinkedConnection(linked).then(
+      (connection: CloudConnection | null) => {
+        if (isCurrent && connection && connection.provider) {
+          const provider: CloudProvider = connection.provider;
+
+          setFormState(
+            (
+              current:
+                | { provider: CloudProvider; connection?: CloudConnection }
+                | undefined,
+            ) => {
+              return current || { provider, connection };
+            },
+          );
+        }
+      },
+    );
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [disableTelemetryForThisProject]);
+
+  /*
    * Whether this OneUptime can sign in to an AWS role, asked once: the AWS
    * form offers a role only then. A failed ask is read as "no", and the
    * form offers an access key.
@@ -207,8 +281,14 @@ const CloudConnectPage: FunctionComponent<PageComponentProps> = (
     setFormState(undefined);
 
     // A form opened from a link is not opened again by a refresh.
-    if (Navigation.getQueryStringByName(CLOUD_QUERY_PARAM)) {
-      Navigation.setQueryString({ [CLOUD_QUERY_PARAM]: "" });
+    if (
+      Navigation.getQueryStringByName(CLOUD_QUERY_PARAM) ||
+      Navigation.getQueryStringByName(CLOUD_CONNECT_CONNECTION_QUERY_PARAM)
+    ) {
+      Navigation.setQueryString({
+        [CLOUD_QUERY_PARAM]: "",
+        [CLOUD_CONNECT_CONNECTION_QUERY_PARAM]: "",
+      });
     }
   };
 

@@ -1385,14 +1385,27 @@ describe("MonitorRecommendationCatalog", () => {
       );
     });
 
+    it("offers a PowerScale cluster exactly the PowerScale set", () => {
+      const ids: Array<string> = storageArrayTemplateIds({
+        storageSystem: StorageSystem.DellPowerScale,
+      });
+
+      expect(ids).toEqual(idsFor(StorageSystem.DellPowerScale));
+      expect(ids).toHaveLength(13);
+      for (const id of ids) {
+        expect(id.startsWith("powerscale-")).toBe(true);
+      }
+    });
+
     it("the platforms' sets partition the whole catalog", () => {
-      // FlashArray, FlashBlade, PowerStore, ONTAP and, read by a probe, PowerMax.
+      // FlashArray, FlashBlade, PowerStore, ONTAP, PowerMax (read by a probe) and PowerScale.
       const sets: Array<Array<string>> = [
         StorageSystem.PureStorageFlashArray,
         StorageSystem.PureStorageFlashBlade,
         StorageSystem.DellPowerStore,
         StorageSystem.NetAppOntap,
         StorageSystem.DellPowerMax,
+        StorageSystem.DellPowerScale,
       ].map((storageSystem: StorageSystem): Array<string> => {
         return storageArrayTemplateIds({ storageSystem });
       });
