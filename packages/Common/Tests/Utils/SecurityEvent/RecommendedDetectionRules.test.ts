@@ -201,7 +201,7 @@ describe("whether a project runs every other recommended rule", () => {
     const rules: Array<ProjectRuleState> = allRecommendedBut(
       SENSITIVE_FILE_SERVED_RULE_ID,
     ).map((rule: DetectionRule): ProjectRuleState => {
-      return { name: rule.name, sigmaRuleYaml: rule.sigmaRuleYaml };
+      return { name: rule.name!, sigmaRuleYaml: rule.sigmaRuleYaml! };
     });
 
     expect(

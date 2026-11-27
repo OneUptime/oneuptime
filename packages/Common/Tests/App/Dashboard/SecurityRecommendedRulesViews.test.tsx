@@ -32,6 +32,7 @@ import {
   getDetectionRuleLibraryEntry,
   getRecommendedDetectionRules,
 } from "../../../Types/SecurityEvent/DetectionRuleLibrary";
+import LocalStorage from "../../../UI/Utils/LocalStorage";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
 import ProjectUtil from "../../../UI/Utils/Project";
@@ -542,10 +543,10 @@ describe("what a reader dismissed, kept in this browser", () => {
   });
 
   test("a storage that cannot be read or written dismisses nothing for good, and never fails the card", () => {
-    jest.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+    jest.spyOn(LocalStorage, "getItem").mockImplementation(() => {
       throw new Error("blocked");
     });
-    jest.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    jest.spyOn(LocalStorage, "setItem").mockImplementation(() => {
       throw new Error("blocked");
     });
 

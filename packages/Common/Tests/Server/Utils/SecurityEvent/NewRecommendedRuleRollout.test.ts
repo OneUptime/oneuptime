@@ -257,15 +257,8 @@ describe("a project left as it chose", () => {
     })!.isEnabled = false;
 
     giveEveryOther(projectId(2));
-    store.set(
-      projectId(2).toString(),
-      rulesOf(projectId(2)).filter(
-        (rule: DetectionRule, index: number): boolean => {
-          // Its last recommended rule deleted; the sibling kept, so it is read.
-          return index !== rulesOf(projectId(2)).length - 1;
-        },
-      ),
-    );
+    // Its last recommended rule deleted; the sibling kept, so it is read.
+    store.set(projectId(2).toString(), rulesOf(projectId(2)).slice(0, -1));
 
     const summary: NewRecommendedRuleRolloutSummary = await rollOut();
 

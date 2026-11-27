@@ -40,9 +40,12 @@ import logger from "../Logger";
  *     facts (writeSensitiveFileMemory).
  *
  * Re-reading the last day's security events instead would read every event
- * the project stored that day - millions for a busy one - once a minute
- * while a single-page app is being scanned: the attributes a request's
- * answer is in are no column an index narrows.
+ * the project stored that day, once a minute while a single-page app is
+ * being scanned: the attributes a request's answer is in are no column an
+ * index narrows. Measured for #11036 on ClickHouse 26.7, a day of 1,000,000
+ * security events, 2% of them requests for sensitive files spread through
+ * it, made that read scan 911,624 rows and 307 MB, with about 150 MB of
+ * memory, each time.
  *
  * Never a reason to fail a scan, and never a reason to call an answer the
  * file: a memory that cannot be read or kept - no cache, a value of another
