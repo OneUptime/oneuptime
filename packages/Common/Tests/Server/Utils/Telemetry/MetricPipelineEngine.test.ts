@@ -630,6 +630,12 @@ describe("a Matches Pattern Type filter", () => {
     ["a card in fullwidth digits", "４５３２ ０１５１ １２８３ ０３６６"],
     ["a card in Arabic-Indic digits", "٤٥٣٢٠١٥١١٢٨٣٠٣٦٦"],
     ["an American Express card", "3782 822463 10005"],
+    // #11199: in a URL, with %20 or a form's "+" between its groups.
+    [
+      "a card in a URL, %20 between its groups",
+      "/pay?card=4532%200151%201283%200366",
+    ],
+    ["a card typed into a form", "/pay?card=4532+0151+1283+0366"],
   ])("creditCard redacts %s: %s", (_label: string, value: string) => {
     expect(leftOf(redactWhere("card", "creditCard"), "card", value)).toBe(
       "[REDACTED]",
@@ -653,6 +659,8 @@ describe("a Matches Pattern Type filter", () => {
     ["one in an encoded URL", "/callback?phone=%2B49%2030%2081234567"],
     ["one in Arabic-Indic digits", "+٤٩ ٣٠ ٨١٢٣٤٥٦٧"],
     ["a North American one in fullwidth digits", "(４１５) ３２１-８７３１"],
+    // #11199: as a form writes one, its own "+" escaped.
+    ["one a form wrote", "/callback?phone=%2B49+30+81234567"],
   ])("phoneNumber redacts %s: %s", (_label: string, value: string) => {
     expect(leftOf(redactWhere("caller", "phoneNumber"), "caller", value)).toBe(
       "[REDACTED]",
@@ -673,6 +681,8 @@ describe("a Matches Pattern Type filter", () => {
     ["one set apart by dots", "536.22.8731"],
     ["one set apart by spaces", "536 22 8731"],
     ["one in Arabic-Indic digits", "٥٣٦-٢٢-٨٧٣١"],
+    // #11199
+    ["one typed into a form", "/verify?ssn=536+22+8731"],
   ])("ssn redacts %s: %s", (_label: string, value: string) => {
     expect(leftOf(redactWhere("ssn", "ssn"), "ssn", value)).toBe("[REDACTED]");
   });
@@ -794,6 +804,37 @@ describe("a rule that hides matches its pattern in every reading of a value", ()
         hidingRule(MetricPipelineRuleType.RedactAttribute, IBAN_PATTERN),
       ])!.attributes,
     ).toEqual({ url: "[REDACTED]" });
+  });
+
+  // #11199: a value a form wrote, its spaces "+", is read with its spaces.
+  test("an IBAN typed into a form, + between its groups, is hidden by its grouped pattern", () => {
+    const grouped: string = "\\b[A-Z]{2}[0-9]{2}(?: [0-9]{4}){4} [0-9]{2}\\b";
+
+    for (const url of [
+      "/payout?iban=DE89+3704+0044+0532+0130+00",
+      "/payout?iban=DE89%203704%200044%200532%200130%2000",
+    ]) {
+      expect(
+        run(rowOf({ url }), [
+          hidingRule(MetricPipelineRuleType.RedactAttribute, grouped),
+        ])!.attributes,
+      ).toEqual({ url: "[REDACTED]" });
+    }
+
+    // A Filter rule reads it as written alone: its grouped pattern matches nothing there.
+    expect(
+      run(rowOf({ url: "/payout?iban=DE89+3704+0044+0532+0130+00" }), [
+        ruleOf(MetricPipelineRuleType.Filter, {
+          filters: [
+            attributeIs(
+              "url",
+              MetricPipelineRuleFilterConditionType.MatchesRegex,
+              grouped,
+            ),
+          ],
+        }),
+      ]),
+    ).toBeNull();
   });
 
   test("a value written plainly matches as it always did, and one with nothing to find never does", () => {
