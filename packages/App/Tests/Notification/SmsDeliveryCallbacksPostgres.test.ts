@@ -67,7 +67,7 @@ jest.mock("Common/Server/Utils/Telemetry/AppMetrics", () => {
     default: new Proxy(
       {},
       {
-        get: (_target: object, name: string | symbol) => {
+        get: (_target: Record<string, unknown>, name: string | symbol) => {
           if (name === "getNotificationDeliveryCounter") {
             return recorder;
           }
@@ -159,6 +159,10 @@ const TABLES: ReadonlyArray<string> = [
 
 const DASHES: RegExp = /-/g;
 
+// A status callback URL's SMS log id and token.
+const STATUS_CALLBACK_PATH: RegExp =
+  /\/notification\/sms\/status-callback\/([^/?#]+)\/([^/?#]+)/;
+
 const PUBLIC_ORIGIN: string = "https://oneuptime.example.com";
 
 // The project's own Twilio account, as Twilio knows it.
@@ -238,9 +242,7 @@ describePostgres("an SMS's delivery, as Twilio reports it (Postgres)", () => {
       created[created.length - 1]!["statusCallback"],
     );
     const match: RegExpExecArray | null =
-      (/\/notification\/sms\/status-callback\/([^/?#]+)\/([^/?#]+)/).exec(
-        statusCallback,
-      );
+      STATUS_CALLBACK_PATH.exec(statusCallback);
 
     expect(match).not.toBeNull();
 
