@@ -215,7 +215,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Resource Type",
     description:
-      "The kind of resource that turned the framework off: KubernetesCluster, DockerHost, PodmanHost, DatabaseServer, CloudResource or Service.",
+      "The kind of resource that turned the framework off.",
   })
   @Column({
     type: ColumnType.ShortText,
@@ -230,7 +230,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Resource ID",
-    description: "The ID of the resource that turned the framework off.",
+    description: "The resource that turned the framework off.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -247,7 +247,7 @@ export default class DataSecurityComplianceSetting extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Framework",
     description:
-      "The compliance framework this setting changes for the resource: GDPR, CCPA, HIPAA, PCI DSS, SOC 2, ISO 27001, NIST CSF, LGPD or DPDP, or for a Kubernetes cluster PSS Baseline, PSS Restricted or CIS Kubernetes.",
+      "The compliance framework this setting changes for the resource. The Kubernetes frameworks are a Kubernetes cluster's only.",
   })
   @Column({
     type: ColumnType.ShortText,
