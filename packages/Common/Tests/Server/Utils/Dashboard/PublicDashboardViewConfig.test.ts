@@ -2359,6 +2359,16 @@ describe("what a visitor is served, in every shape and at every depth (issue #63
       // The saved funnel or retention table it reads (issue #6630).
       [DashboardComponentType.ProductAnalyticsFunnel]: ["savedViewId"],
       [DashboardComponentType.ProductAnalyticsRetention]: ["savedViewId"],
+      // What a Cloud Cost widget covers and draws (#11009).
+      [DashboardComponentType.CloudCost]: [
+        "display",
+        "scope",
+        "cloudAccountId",
+        "cloudCostGroupId",
+        "cloudCostViewId",
+        "breakdownBy",
+        "basis",
+      ],
     };
 
     interface ExpectedWidget {

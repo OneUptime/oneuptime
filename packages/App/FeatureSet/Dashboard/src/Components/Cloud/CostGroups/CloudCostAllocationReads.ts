@@ -60,33 +60,22 @@ export interface CloudCostGroupSpend {
   group: CloudCostAllocationGroupResult;
 }
 
+// What is asked, and only what is set: the server reads the rest as its defaults.
 function toBody(ask: CloudCostAllocationAsk): JSONObject {
-  const body: JSONObject = {
+  return {
     startDate: ask.startDate.toISOString(),
     endDate: ask.endDate.toISOString(),
+    ...(ask.interval ? { interval: ask.interval } : {}),
+    ...(ask.currency ? { currency: ask.currency } : {}),
+    ...(ask.basis ? { basis: ask.basis } : {}),
+    ...(ask.cloudAccountIds && ask.cloudAccountIds.length > 0
+      ? {
+          cloudAccountIds: ask.cloudAccountIds.map((id: ObjectID): string => {
+            return id.toString();
+          }),
+        }
+      : {}),
   };
-
-  if (ask.interval) {
-    body["interval"] = ask.interval;
-  }
-
-  if (ask.currency) {
-    body["currency"] = ask.currency;
-  }
-
-  if (ask.basis) {
-    body["basis"] = ask.basis;
-  }
-
-  if (ask.cloudAccountIds && ask.cloudAccountIds.length > 0) {
-    body["cloudAccountIds"] = ask.cloudAccountIds.map(
-      (id: ObjectID): string => {
-        return id.toString();
-      },
-    );
-  }
-
-  return body;
 }
 
 async function post<T>(route: string, data: JSONObject): Promise<T> {

@@ -450,7 +450,14 @@ export class Service extends ProjectReferencesService<Model> {
       );
     }
 
-    if (data["connectionString"] !== undefined) {
+    /*
+     * A person's connection string is one Data Security can sample with.
+     * OneUptime's own writes are Data Observability's (DataObservabilityAPI):
+     * Snowflake's, BigQuery's or Databricks' JSON, a ClickHouse or MongoDB
+     * URL - read by its workers, never sampled by Data Security, and refused
+     * here before, so connecting a known Snowflake store failed.
+     */
+    if (data["connectionString"] !== undefined && !updateBy.props.isRoot) {
       data["connectionString"] = Service.readConnectionString(
         data["connectionString"],
       );

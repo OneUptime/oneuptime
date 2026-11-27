@@ -113,6 +113,26 @@ export function getDataObservabilityBreadcrumbs(
         "Recommendations",
       ],
     ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS,
+      [
+        "Project",
+        "Data Observability",
+        "Databases",
+        "View Database",
+        "Settings",
+      ],
+    ),
+    ...BuildBreadcrumbLinksByTitles(
+      PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS,
+      [
+        "Project",
+        "Data Observability",
+        "Databases",
+        "View Database",
+        "Audit Logs",
+      ],
+    ),
     ...BuildBreadcrumbLinksByTitles(PageMap.DATA_OBSERVABILITY_PIPELINES, [
       "Project",
       "Data Observability",

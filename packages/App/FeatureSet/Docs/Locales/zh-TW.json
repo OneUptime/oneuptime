@@ -424,6 +424,7 @@
     "Podman Agent": "Podman 代理程式",
     "Proxmox Agent": "Proxmox 代理程式",
     "XCP-ng Agent": "XCP-ng 代理程式",
+    "XCP-ng Without an Agent": "免代理程式的 XCP-ng",
     "Ceph Agent": "Ceph 代理程式",
     "Storage Array Agent": "儲存陣列代理程式",
     "Docker Swarm Agent": "Docker Swarm 代理程式",

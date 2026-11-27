@@ -107,6 +107,7 @@ Listen viser hver type post du kan jobbe med, og kommandoen dens, for eksempel `
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Jobber med én type post | [Ressursoperasjoner](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Lister feltene til en ressurs og flaggene som setter dem | [Ressursoperasjoner](/docs/cli/resource-operations#se-feltene-til-en-ressurs) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Gjør det knappene i dashbordet gjør på hendelser, varsler og planlagt vedlikehold | [Ressursoperasjoner](/docs/cli/resource-operations#bekreft-løs-og-legg-til-notater) |
+| `oneuptime <resource> breakdown`, `export` | Deler opp skyforbruket i en periode, eller eksporterer det som en FOCUS 1.2-fil, for `cloud-cost` | [Rapporter og eksporter](/docs/telemetry/cloud-costs#rapporter-og-eksporter) |
 | `oneuptime resources` | Lister typene poster med kommandoene deres | [Kommandoreferanse](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Skriver ut CLI-ens versjon | [Kommandoreferanse](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Viser hjelpen til en kommando | [Få hjelp](#få-hjelp) |

@@ -373,6 +373,7 @@
     "production, staging",
     "public-.*",
     "pve-production",
+    "root",
     "security-alerts",
     "sensor-001",
     "sk-...",

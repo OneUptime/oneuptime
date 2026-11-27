@@ -272,7 +272,7 @@ Forbrug er kun så godt fordelt som de tags, det har. Under **Cloud → Forbrug 
 :::steps
 ### Kræv et tag
 
-Vælg **Kræv et tag**, og angiv dets **Tag-nøgle**. Under **Tilladte værdier** angiver du de værdier, det må have, adskilt med kommaer, eller lader feltet stå tomt for at tillade enhver værdi. Vælg en **Konto** for kun at kræve tagget i den konto. En **Beskrivelse** under **Flere felter** fortæller i e-mailene, hvad tagget er til.
+Vælg **Kræv et tag**, og angiv dets **Mærkenøgle**. Under **Tilladte værdier** angiver du de værdier, det må have, adskilt med kommaer, eller lader feltet stå tomt for at tillade enhver værdi. Vælg en **Konto** for kun at kræve tagget i den konto. En **Beskrivelse** under **Flere felter** fortæller i e-mailene, hvad tagget er til.
 
 ### Læs dækningen
 
@@ -313,11 +313,79 @@ OneUptime foreslår kun en værdi, når tagget tillader den:
 
 Kommandoen sætter tagget i ét trin fra din clouds egen shell: `aws resourcegroupstaggingapi tag-resources` på AWS, `az tag update --operation Merge` på Azure og `gcloud ... add-labels` eller `--update-labels` for Compute Engine-VM'er og -diske, Cloud Storage-buckets og Cloud SQL-instanser på Google Cloud.
 
+## Rapporter og eksporter
+
+### Omkostningsrapporter
+
+**Cloud → Forbrug → Rapporter** sender efter en tidsplan, hvad skyerne koster, pr. e-mail og til Slack- eller Microsoft Teams-kanaler, så de, der skal bruge tallene, får dem uden at åbne OneUptime. En rapport har:
+
+- **Dækker**: alle konti, én konto, en omkostningsgruppe eller en omkostningsvisning med alle dens grupper.
+- **Periode**: sidste uge (mandag til søndag), sidste måned eller måneden til dato. Hver sammenlignes med perioden før: ugen før, måneden før eller sidste måned til samme dag.
+- **Omkostningsgrundlag**: faktureret, amortiseret eller netto. Tomt er det projektets, som Omkostninger åbner med. Rapporten siger altid, hvilket grundlag den bruger.
+- **Tidsplan**: hver uge eller hver måned, på en dag og et tidspunkt i en tidszone, efter de samme regler som opsummeringerne i Slack og Microsoft Teams. En ny ugentlig rapport sendes næste mandag kl. 09:00 i din tidszone, en månedlig den 1., og senere rapporter beholder den dag og det tidspunkt hele året.
+
+E-mailen siger, hvad perioden kostede i forhold til perioden før, de budgetter, den tæller med i (hver måned til dato, på budgettets eget grundlag), de tjenester, der steg og faldt mest, en omkostningsvisnings grupper og det, ingen gruppe tager, de usædvanlige dage, de største ventende besparelser og hvor meget af forbruget forpligtelser dækker. Tallene er vedhæftet som CSV. **Åbn Omkostninger** åbner **Omkostninger** på præcis rapportens dage, grundlag og visning, så rapportens tal og sidens er de samme. Konti, der faktureres i en anden valuta, holdes uden for tallene, og rapporten nævner dem.
+
+En Slack- eller Microsoft Teams-kanal får en kort besked: totalen og dens ændring, budgettet, de første linjer af rapportens lister og **Åbn Omkostninger**.
+
+### Hvem der får en rapport
+
+- Projektets personer og teams får den pr. e-mail via deres notifikationsindstillinger, hvor hver person kan slå cloudomkostningsrapporter fra. Hver person får de tal, de må læse: den, hvis adgang er begrænset af etiketter, får kun sine konti, og den, der ikke længere må læse projektets cloudomkostninger, udelades.
+- **E-mailadresser** uden for projektet, f.eks. din revisors, og Slack- og Microsoft Teams-kanaler kræver tilladelsen Cloudadministrator, eller Projektadministrator eller Projektejer, fordi OneUptime ikke kan vide, hvem der læser dem. De får rapporten, som den person, der tilføjede dem, må læse den, og holder op med at få den, hvis personen mister tilladelsen. En API-nøgle kan ikke angive dem.
+- Den, der må oprette de andre Cloud-poster, fra Cloudmedlem og op, kan oprette, ændre og slette rapporter. En Cloudseer kan læse dem.
+
+En rapport går til højst 200 personer, 25 adresser og 10 kanaler af hver slags. **Seneste udsendelse** viser, hvornår den sidst blev sendt, og hvem den udelod og hvorfor.
+
+### Et afsnit til hvert team
+
+En rapport over en omkostningsvisning kan sende hver gruppe sit eget afsnit med **Send hver gruppes team dets afsnit**. Medlemmerne af hver gruppes team, angivet på gruppen, får deres gruppes forbrug i forhold til perioden før, de tjenester i den, der steg og faldt mest, og dens usædvanlige dage. En delt gruppe har intet eget afsnit: dens omkostninger ligger i de grupper, den fordeles mellem. Rapportens egne personer, teams og adresser får alle grupper. Den, der er med i to gruppers teams, får begge afsnit. Én månedlig rapport over en omkostningsvisning på denne måde er månedens showback.
+
+### Forhåndsvisning og Send mig en kopi
+
+**Forhåndsvisning** viser, hvad en rapport siger nu, som du må læse den, og som e-mailen viser den, og hvem den seneste udsendelse udelod og hvorfor. **Send mig en kopi** mailer den til dig nu.
+
+### Download CSV
+
+**Download CSV** gemmer det, et kort viser: **Hvor pengene går hen** på **Omkostninger**, i enhver opdeling og i forhold til perioden før, hver dags forbrug, anbefalingerne under **Besparelser** og en omkostningsgruppes side. Filnavnet siger, hvad den indeholder, hvad den er opdelt efter, visningen og kontoen, omkostningsgrundlaget og dagene, f.eks. `cloud-costs-by-service-amortized-2026-11-01-to-2026-11-30.csv`. Tal er almindelige tal, og en tekst, som et regneark ville læse som en formel, begynder med en apostrof.
+
+### FOCUS
+
+**Eksportér FOCUS** på **Omkostninger** downloader alle periodens omkostninger som en FOCUS 1.2-fil, FinOps Open Cost and Usage Specification i version 1.2, som økonomiværktøjer læser. En fil rummer højst 93 dage og hver valuta, konti faktureres i, hver linje i sin egen.
+
+Filen har hver kolonne, FOCUS 1.2 gør obligatorisk, og de betingede, som OneUptime har data til: `RegionId`, `RegionName`, `ResourceId`, `ResourceName`, `SubAccountId`, `SubAccountName` og `Tags`. Den har en linje for hver omkostning, OneUptime gemmer: en dag, en konto, en tjeneste, en region og, hvor skyen nævner den, en ressource.
+
+- `BilledCost` er det, skyen fakturerede, og `EffectiveCost` det, det kostede med forpligtelser fordelt over det, de dækker.
+- Det, skyen trak fra, dens kreditter, refusioner og rabatter, er en linje for sig med `ChargeCategory` sat til `Credit`. Filens `EffectiveCost` lagt sammen er nettoomkostningen.
+- `ChargeCategory` er `Tax` for de omkostninger, AWS fakturerer under sin Tax-tjeneste, og `Usage` for resten.
+- `BillingAccountId` er den konto, forbindelsen læser regningen fra: en AWS-organisations administrationskonto, en Google Cloud-faktureringskonto eller Azure-abonnementet, da Azure-faktureringskontoen ikke læses. `SubAccountId` er AWS-kontoen, Azure-abonnementet eller Google Cloud-projektet.
+- Datoer er hele UTC-dage, hvor slutningen af opkrævningsperioden og af faktureringsperioden ikke er med. Faktureringsperioden er kalendermåneden.
+
+Det, FOCUS 1.2 beder om, men OneUptime ikke læser, er tomt eller sat lig, som specifikationen tillader. `PricingQuantity` og `PricingUnit` er tomme, fordi omkostningerne læses pr. dag, tjeneste, region og ressource, ikke pr. forbrugstype. `ListCost` og `ContractedCost` er lig med `BilledCost`, som FOCUS beder om, når enhedspriser ikke kendes. Et køb, f.eks. en reservations forudbetaling, er forbruget af den tjeneste, det blev købt til. Der er ingen kolonner for SKU'er, forpligtelsesrabatter, kapacitetsreservationer eller fakturaer. FOCUS 1.3 og 1.4 tilføjer kolonner, som en læser af 1.2 klarer sig uden.
+
+### Fra API'et og CLI'en
+
+API'et svarer med en opdeling, ikke kun omkostningernes linjer, så et økonomisystem kan hente månedens viderefakturering:
+
+- `POST /api/cloud-cost/breakdown` med `by` (`service`, `region`, `account`, `resource`, `environment`, `app`, `tag` med en `tagKey` eller `group` med en `cloudCostViewId`), en `period` (`this-month`, `last-month`, `last-week`, `last-30-days`) eller en `startDate` og en `endDate`, og eventuelt `cloudAccountIds`, `currency`, `basis` og `compareWithPrevious`. Svaret er periodens total og hver andel med perioden før ved siden af, eller med `"format": "csv"` den CSV, som **Download CSV** giver.
+- `POST /api/cloud-cost/export` med en `period` eller en `startDate` og en `endDate` svarer med FOCUS-filen.
+
+Begge læser, som nøglen må læse omkostningerne. Fra [CLI'en](/docs/cli/command-reference):
+
+```bash
+oneuptime cloud-cost breakdown --by group --view <view-id> --period last-month
+oneuptime cloud-cost export --period last-month --file focus.csv
+```
+
+### På et dashboard
+
+Widgetten **Cloudomkostning** sætter en total, en opdeling eller en tendens for forbruget ved siden af de tjenester, der bruger pengene. Se [Dashboard-widgets](/docs/dashboards/widgets#cloudomkostninger).
+
 ## Det, du ser i OneUptime
 
 - **Clouds oversigt.** **Cloud → Oversigt** viser månedens forbrug over for sidste måneds på samme dag, de dyreste tjenester og de største måder at bruge mindre på, ved siden af det, der kræver opmærksomhed.
 - **Hver dags forbrug.** **Cloud → Forbrug → Omkostninger** tegner hver af de sidste 30 dage og markerer de dage, der kostede langt mere end normalt, viser de dage og opdeler en periode efter tjeneste, region, konto, ressource, miljø i app-platforme, app eller tag, faktureret, amortiseret eller netto. De konti, hvis omkostninger ikke læses, vises nedenunder, hver med årsagen.
 - **Hver forpligtelse.** **Cloud → Forbrug → Forpligtelser** viser hver med, hvornår den udløber, og hvor meget af den der bruges, dem, der snart udløber, med hvad der skal fornyes, og hvad der skal købes.
+- **Rapporter.** **Cloud → Forbrug → Rapporter** viser hver planlagt rapport med det, den dækker, hvornår den sendes næste gang, og hvordan den seneste udsendelse gik.
 - **En kontos omkostninger.** En kontos **Omkostninger** viser det samme for kontoen alene, med dens forpligtelser og dens måder at bruge mindre på.
 - **Påkrævede tags.** **Cloud → Forbrug → Tags** viser, hvor meget af forbruget og ressourcerne der har dine påkrævede tags, og en kontos **Tags** viser det samme for kontoen alene.
 - **En ressources omkostning.** En ressources side viser, hvad den har kostet i denne måned og de sidste 30 dage, når dens cloud fakturerer den ved navn, med dens måder at bruge mindre på og dens størrelsestilpasning.

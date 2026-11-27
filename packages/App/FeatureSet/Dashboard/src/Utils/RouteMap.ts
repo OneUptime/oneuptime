@@ -542,6 +542,8 @@ export const XcpNgRoutePath: Dictionary<string> = {
   [PageMap.XCP_NG_SETTINGS_RULES_AUDIT_LOGS]: "settings/rules-audit-logs",
   [PageMap.XCP_NG_SETTINGS_LABEL_RULE_VIEW]: `settings/label-rules/${RouteParams.ModelID}`,
   [PageMap.XCP_NG_POOLS_ARCHIVED]: `archived`,
+  [PageMap.XCP_NG_CONNECTIONS]: `connections`,
+  [PageMap.XCP_NG_CONNECTION_VIEW]: `connections/${RouteParams.ModelID}`,
 };
 
 export const IoTRoutePath: Dictionary<string> = {
@@ -804,6 +806,7 @@ export const CloudRoutePath: Dictionary<string> = {
   [PageMap.CLOUD_COMMITMENTS]: `commitments`,
   [PageMap.CLOUD_SCHEDULES]: `schedules`,
   [PageMap.CLOUD_BUDGETS]: `budgets`,
+  [PageMap.CLOUD_REPORTS]: `reports`,
   [PageMap.CLOUD_SETTINGS_COSTS]: `settings/costs`,
   [PageMap.CLOUD_COST_GROUPS]: `cost-groups`,
   [PageMap.CLOUD_COST_VIEW]: `cost-groups/${RouteParams.ModelID}`,
@@ -1231,6 +1234,8 @@ export const DataObservabilityRoutePath: Dictionary<string> = {
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW]: `stores/${RouteParams.ModelID}`,
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_TABLES]: `stores/${RouteParams.ModelID}/tables`,
   [PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS]: `stores/${RouteParams.ModelID}/recommendations`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]: `stores/${RouteParams.ModelID}/settings`,
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS]: `stores/${RouteParams.ModelID}/audit-logs`,
   [PageMap.DATA_OBSERVABILITY_SCHEMA_CHANGES]: "schema-changes",
   [PageMap.DATA_OBSERVABILITY_CHECKS]: "checks",
   [PageMap.DATA_OBSERVABILITY_PIPELINES]: "pipelines",
@@ -6018,6 +6023,18 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.XCP_NG_CONNECTIONS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_CONNECTIONS]
+    }`,
+  ),
+
+  [PageMap.XCP_NG_CONNECTION_VIEW]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/xcp-ng/${
+      XcpNgRoutePath[PageMap.XCP_NG_CONNECTION_VIEW]
+    }`,
+  ),
+
   // IoT
 
   [PageMap.IOT_ROOT]: new Route(`/dashboard/${RouteParams.ProjectID}/iot/*`),
@@ -7301,6 +7318,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.CLOUD_BUDGETS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/cloud/${
       CloudRoutePath[PageMap.CLOUD_BUDGETS]
+    }`,
+  ),
+
+  [PageMap.CLOUD_REPORTS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/cloud/${
+      CloudRoutePath[PageMap.CLOUD_REPORTS]
     }`,
   ),
 
@@ -9607,6 +9630,20 @@ const RouteMap: Dictionary<Route> = {
     `/dashboard/${RouteParams.ProjectID}/data-observability/${
       DataObservabilityRoutePath[
         PageMap.DATA_OBSERVABILITY_STORE_VIEW_RECOMMENDATIONS
+      ]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[PageMap.DATA_OBSERVABILITY_STORE_VIEW_SETTINGS]
+    }`,
+  ),
+
+  [PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/data-observability/${
+      DataObservabilityRoutePath[
+        PageMap.DATA_OBSERVABILITY_STORE_VIEW_AUDIT_LOGS
       ]
     }`,
   ),

@@ -1,6 +1,6 @@
 # Conectar um banco de dados
 
-A Observabilidade de dados lê cada banco de dados com um login que só lê o catálogo dele: quais tabelas e views ele contém, as colunas, linhas e o tamanho delas, e quando mudaram. Esta página mostra o mínimo de que cada mecanismo precisa, e como manter a string de conexão dentro da sua rede com uma sonda.
+A Observabilidade de dados lê cada banco de dados com um login que só lê o catálogo dele: quais tabelas e views ele contém, as colunas, linhas e o tamanho delas, e quando mudaram. Esta página mostra o mínimo de que cada mecanismo precisa, como manter a string de conexão dentro da sua rede com uma sonda ou com o Database Agent que você já executa, e como alterar, remover ou excluir um banco de dados depois.
 
 ## Antes de começar
 
@@ -13,12 +13,21 @@ Em **Observabilidade de dados > Bancos de dados**, escolha **Conectar um banco d
 
 - **O OneUptime conecta**: cole uma string de conexão. Ela é armazenada criptografada, usada apenas pelos workers do OneUptime e nunca mais é exibida.
 - **Uma sonda na minha rede conecta**: escolha uma das suas sondas e informe o nome da variável de ambiente, na sonda, que contém a string de conexão, como `ORDERS_DB_URL`. A string de conexão nunca sai da sua rede. Veja [Sondas personalizadas](/docs/probe/custom-probe).
+- **Meu Database Agent conecta**: escolha o servidor de banco de dados ao lado do qual o [Database Agent](/docs/telemetry/databases) dele já roda e informe o banco de dados a ler nesse servidor. O agente o lê com logins do próprio ambiente, então nenhum login é salvo no OneUptime. Veja [Por meio de um Database Agent](#por-meio-de-um-database-agent).
 
 Um banco de dados já conectado para a Segurança de dados também é observado, sem nada para conectar, assim como cada dataset do BigQuery que a sua [conexão de nuvem](/docs/telemetry/cloud-accounts) encontrou.
 
 ## Bancos de dados que você pode conectar
 
 **Bancos de dados que você pode conectar**, em **Bancos de dados**, lista o que o seu projeto já conhece e ninguém conectou: bancos de dados com os quais os seus traces conversam, os das suas contas de nuvem e os que o Monitoramento de banco de dados acompanha. **Conectar** inicia o formulário a partir do que se sabe de cada um, com uma string de conexão para preencher. **Dispensar** impede que um volte. Nada é lido até que você o conecte.
+
+## Por meio de um Database Agent
+
+Um Database Agent já alcança o servidor de banco de dados dele e envia as métricas desse servidor. Ele também pode ler os bancos de dados PostgreSQL, MySQL e MariaDB desse servidor para a Observabilidade de dados, assim que o responsável por ele ativar isso: adicione `ONEUPTIME_DATA_OBSERVABILITY=true` ao `.env` do agente e execute `docker compose up -d`. Até lá, o agente aparece com **Observabilidade de dados desativada**, e um banco de dados conectado por meio dele diz o que fazer.
+
+O OneUptime informa ao agente qual banco de dados ler e quais verificações estão pendentes, cada uma com o seu tipo e a tabela e as colunas que lê. Ele nunca envia uma instrução nem um login. O agente monta cada instrução sozinho, a partir das mesmas formas fixas que os coletores do próprio OneUptime usam, e executa cada uma em uma transação somente leitura com limite de 30 segundos. Ele só executa uma verificação quando cada tabela e coluna que ela cita está no catálogo que ele acabou de ler, vincula cada valor com o qual a verificação compara e devolve um número por verificação, nunca uma linha. As verificações **SQL personalizado** e **Linhas com falha** só rodam onde o responsável pelo agente define `ONEUPTIME_DATA_OBSERVABILITY_ALLOW_CUSTOM_SQL=true`; nos outros lugares elas avisam isso, e todas as demais verificações rodam.
+
+O agente lê o catálogo com `ONEUPTIME_DATA_OBSERVABILITY_DATABASE_USERNAME`, ou com o login do coletor, e executa as verificações com `ONEUPTIME_DATA_OBSERVABILITY_CHECKS_USERNAME`, ou com o login do catálogo: conceda a cada um só o que as abas abaixo listam para ele. O README do agente lista todas as variáveis.
 
 ## Um login somente leitura, por mecanismo
 
@@ -162,6 +171,18 @@ As verificações rodam como SQL somente leitura no endpoint TDS do ambiente, na
 
 Toda instrução roda em modo somente leitura, com um tempo limite de instrução e de bloqueio onde o mecanismo os tem. Quando o Snowflake, o Databricks, o BigQuery, o Athena, o ClickHouse ou o Dataverse recusa uma requisição ou falha nela momentaneamente, com um 429, um 503 ou a própria resposta de que está ocupado demais, ela é enviada de novo, no máximo duas vezes e com até um minuto de espera por coleta, e nunca de um jeito que possa rodar uma instrução duas vezes. A string de conexão nunca é registrada em log e é retirada de toda mensagem de erro. Uma estatística que o login não pode ler fica de fora, com um aviso no banco de dados; a coleta nunca falha por causa disso. Conexões a endereços privados são recusadas no OneUptime Cloud: use uma sonda.
 
+## Gerenciar um banco de dados
+
+Cada banco de dados tem uma página **Configurações**: escolha **Configurações** na linha dele em **Bancos de dados** ou no menu dele.
+
+- **Editar detalhes** o renomeia. A Segurança de dados mostra o mesmo nome.
+- **Alterar conexão** dá a ele um novo login, outra sonda ou um Database Agent. Uma string de conexão salva nunca mais é exibida: deixe o campo vazio para mantê-la. Passar um banco de dados para um Database Agent exclui a string de conexão salva dele, a menos que a Segurança de dados amostre o conteúdo do banco de dados com ela.
+- **Parar de monitorar**, na **Visão geral** dele, deixa de lê-lo por um tempo e mantém as tabelas e o histórico delas. **Monitorar novamente** recomeça.
+- **Remover da Observabilidade de dados** deixa de lê-lo e esquece as tabelas dele, as verificações delas e o histórico delas. A Segurança de dados mantém o banco de dados, a conexão dele e o que as varreduras encontraram, e ele volta a ser oferecido em **Bancos de dados que você pode conectar**.
+- **Excluir banco de dados** o exclui do OneUptime, com o que a Observabilidade de dados e a Segurança de dados guardam dele. A confirmação lista antes o que será excluído.
+
+Um banco de dados aqui também é um repositório de dados da Segurança de dados. Enquanto a Segurança de dados depender dele (ela encontrou o banco de dados, alguém o adicionou lá, ou ele tem descobertas, problemas, varreduras, proprietários ou um registro de tratamento associados), só quem pode excluir repositórios de dados da Segurança de dados pode excluí-lo, e só quem pode editá-los pode alterar a conexão com a qual a Segurança de dados amostra o conteúdo. As configurações avisam isso junto ao botão correspondente. Os monitores que observam um banco de dados são mantidos quando ele sai: exclua-os em **Monitores**.
+
 ## Réplicas de leitura
 
 Uma réplica de leitura do PostgreSQL ou do SQL Server não move os seus contadores de escrita, então uma tabela nela pode parecer inalterada enquanto muda. O OneUptime percebe que é uma réplica, deixa os contadores de fora, avisa no banco de dados e recorre ao tamanho e às linhas da tabela. Conecte o primário sempre que possível, ou informe uma [coluna de freshness](/docs/data-observability/table-health) para as tabelas que importam.
@@ -174,6 +195,7 @@ Cada caminho passa então a aparecer em **Tabelas**: o objeto mais recente dele 
 
 ## Solução de problemas
 
+- **O banco de dados aparece como Database Agent não pronto.** O agente não consegue lê-lo agora, e a página do banco de dados diz por quê: o servidor dele não tem nenhum Database Agent conectado, ou o agente está desativado para a Observabilidade de dados (`ONEUPTIME_DATA_OBSERVABILITY=true` o ativa), não dá sinal, é antigo demais (execute o `install.sh` dele de novo) ou está em um servidor que não é PostgreSQL nem MySQL.
 - **O banco de dados aparece como Falhou.** A mensagem dele diz por quê: um host que o OneUptime não consegue alcançar, um login recusado, um modo TLS que o servidor não aceita. Para um banco de dados dentro da sua rede, conecte-o por meio de uma sonda. No caso de Snowflake, Databricks, BigQuery, Athena, ClickHouse e Dataverse, a mensagem informa o que estava sendo lido, o código e a mensagem de erro do próprio serviço e o ID da requisição ou da consulta que o suporte dele pode rastrear, quando o serviço fornece um. **Coletar agora** tenta de novo imediatamente, e a página mostra como foi.
 - **As tabelas não mostram a última alteração.** O login não consegue ler as estatísticas do mecanismo: conceda o que a aba do seu mecanismo lista, ou espere as linhas de uma tabela mudarem duas vezes.
 - **Uma tabela está faltando.** Ela está em um esquema que o login não pode usar, ou está excluída no banco de dados. Conceda `USAGE` no esquema dela, ou remova a exclusão.

@@ -27,6 +27,7 @@ Beginnen Sie mit der Frage, die die Kachel beantworten soll:
 | Kommen Personen durch einen Ablauf, und kommen sie wieder? | **Trichter** oder **Benutzerbindung** |
 | In welchem Zustand sind unsere Cluster und Hosts? | Ein Widget der Gruppe Infrastruktur |
 | Wo auf der Welt ist unser Netzwerk, und was ist ausgefallen? | **Netzwerkkarte** |
+| Was kosten unsere Clouds, und welches Team gibt es aus? | **Cloud-Kosten** |
 | Eine Überschrift, eine Notiz, die Uhrzeit in einem anderen Büro? | **Text** oder **Uhr** |
 | Daten außerhalb von OneUptime? | Ein Widget der Gruppe External Data Sources |
 | Etwas, das kein Widget abdeckt? | **HTML**, sobald Sie sicher sind, dass kein anderes Widget es kann |
@@ -200,8 +201,9 @@ Jedes dieser Widgets listet die Ressourcen, die ein Agent oder ein Collector an 
 | **XCP-ng** | **Hosts**, **VMs** | Den XCP-ng-Agent |
 | **Ceph** | **OSDs**, als Wand nach Zustand gefärbt, und **Pools** | Den Ceph-Agent |
 | **Speicher-Arrays** | **Volumes**, und **Hardware** als Wand nach Status gefärbt | Den Storage-Array-Agent |
+| **Cloud-Kosten** | **Cloud-Kosten**, eine Summe, eine Aufschlüsselung oder ein Trend der Ausgaben | Die Kosten, die Ihre [Cloud-Konten](/docs/telemetry/cloud-accounts) melden |
 
-Nutzen Sie sie für eine Seite, die den Zustand Ihrer Infrastruktur mit der Telemetrie der Workloads darauf verbindet.
+Nutzen Sie sie für eine Seite, die den Zustand Ihrer Infrastruktur mit der Telemetrie der Workloads darauf verbindet. Das Widget Cloud-Kosten ist keine Liste: siehe [Kosten der Cloud](#kosten-der-cloud).
 
 ### Netzwerkkarte
 
@@ -214,6 +216,19 @@ Die Karte rahmt sich auf die Standorte ein, die sie gezeichnet hat — ein Besta
 **Einstellungen**: Titel, Karten- oder Listenansicht, maximal gezeichnete Standorte, ob Standortnamen angezeigt werden, und Filter nach Standorttyp und Status. Standortnamen verschwinden automatisch, wenn die Karte zu voll wird, um sie zu lesen; der Tooltip nennt trotzdem jede Markierung.
 
 Ein Standort erscheint nur, wenn er Koordinaten hat. Fügen Sie Breiten- und Längengrad am Standort hinzu (oder importieren Sie sie per CSV), um ihn anzuheften.
+
+## Kosten der Cloud
+
+### Cloud-Kosten
+
+Was Ihre Clouds kosten, neben den Diensten, die es ausgeben, für den Zeitbereich des Dashboards. Es liest dieselben Zahlen wie **Cloud → Ausgaben → Kosten** und die Seite einer Kostengruppe, für dieselben Tage.
+
+- **Deckt ab**: alle Konten, ein **Konto**, eine **Kostengruppe** oder eine **Kostenansicht**. Wählen Sie das Konto, die Gruppe oder die Ansicht in der Einstellung darunter.
+- **Anzeigen**: eine Summe gegenüber dem Zeitraum davor, eine Aufschlüsselung ihrer größten Teile oder ein Trend der Ausgaben jedes Tages.
+- **Aufschlüsseln nach**: Dienste, Regionen, Konten oder Ressourcen. Die Aufschlüsselung einer Kostenansicht listet ihre Gruppen und was keine Gruppe übernimmt.
+- **Kostenbasis**: abgerechnet, amortisiert oder netto. Leer ist es die des Projekts, mit der Kosten öffnet.
+
+Die Zahlen sind in der Währung, in der die meisten Ihrer Konten abgerechnet werden. Es zu sehen erfordert dasselbe wie Kosten zu sehen: Jeder Betrachter sieht, was er lesen darf. Ein öffentliches Dashboard zeigt nur seinen Titel. Siehe [Cloud-Kosten und Einsparungen](/docs/telemetry/cloud-costs#berichte-und-exporte) für Berichte und Exporte derselben Zahlen.
 
 ## Externe Datenquellen
 
@@ -250,7 +265,7 @@ Die Dashboard-Vorlagen öffnen ihre Listen von Hosts, Knoten, Pods, Swarm-Dienst
 
 Ein [öffentliches Dashboard](/docs/dashboards/sharing) zeichnet die meisten Widgets für seine Besucher, jedes zeigt nur, wofür es eingerichtet wurde. Einige können ohne angemeldete Sitzung nicht angezeigt werden:
 
-- **Protokolldiagramm**, **Trace-Diagramm**, **Trace-Tabelle**, **Sicherheitsereignisse**, **Fluss der Sicherheitsereignisse**, **Trichter** und **Benutzerbindung** sagen an ihrer Stelle, dass sie auf öffentlichen Dashboards nicht verfügbar sind.
+- **Protokolldiagramm**, **Trace-Diagramm**, **Trace-Tabelle**, **Sicherheitsereignisse**, **Fluss der Sicherheitsereignisse**, **Trichter**, **Benutzerbindung** und **Cloud-Kosten** sagen an ihrer Stelle, dass sie auf öffentlichen Dashboards nicht verfügbar sind.
 - Die Widgets der Gruppe External Data Sources zeigen ihre Daten, wenn sie **Metriken dieses Projekts (PromQL)** lesen, nie ihre Abfragen. Ein Widget mit externer Datenquelle wird aus einem öffentlichen Dashboard ganz weggelassen.
 
 ## Wenn ein Widget nicht angezeigt werden kann

@@ -336,6 +336,7 @@ describe("WidgetCatalog", () => {
         "Ceph",
         "Storage Arrays",
         "Network",
+        "Cloud Costs",
       ]);
     });
 

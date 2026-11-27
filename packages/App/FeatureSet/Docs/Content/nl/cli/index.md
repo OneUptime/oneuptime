@@ -107,6 +107,7 @@ De lijst toont elk soort record waarmee je kunt werken, en de opdracht ervan, zo
 | `oneuptime <resource> list`, `get`, `create`, `update`, `delete`, `count` | Werkt met één soort record | [Bewerkingen op bronnen](/docs/cli/resource-operations) |
 | `oneuptime <resource> fields` | Toont de velden van een bron en de vlaggen die ze instellen | [Bewerkingen op bronnen](/docs/cli/resource-operations#de-velden-van-een-bron-bekijken) |
 | `oneuptime <resource> acknowledge`, `resolve`, `start`, `end`, `add-note` | Doet wat de knoppen van het dashboard doen bij incidenten, waarschuwingen en gepland onderhoud | [Bewerkingen op bronnen](/docs/cli/resource-operations#bevestigen-oplossen-en-notities-toevoegen) |
+| `oneuptime <resource> breakdown`, `export` | Splitst de clouduitgaven van een periode uit, of exporteert ze als FOCUS 1.2-bestand, voor `cloud-cost` | [Rapporten en exports](/docs/telemetry/cloud-costs#rapporten-en-exports) |
 | `oneuptime resources` | Toont de soorten records, met hun opdrachten | [Opdrachtreferentie](/docs/cli/command-reference#oneuptime-resources) |
 | `oneuptime version` | Drukt de versie van de CLI af | [Opdrachtreferentie](/docs/cli/command-reference#oneuptime-version) |
 | `oneuptime help [command]` | Toont de hulp van een opdracht | [Hulp krijgen](#hulp-krijgen) |

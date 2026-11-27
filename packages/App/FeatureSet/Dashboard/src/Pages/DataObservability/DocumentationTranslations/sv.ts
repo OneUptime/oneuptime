@@ -32,8 +32,11 @@ Använd en **skrivskyddad inloggning**. Välj **Anslut en databas** i översikte
 
 - **OneUptime ansluter**: klistra in en anslutningssträng. Den lagras krypterad och visas aldrig igen.
 - **En sond i mitt nätverk ansluter**: välj en av projektets sonder och ange den miljövariabel på sonden som innehåller anslutningssträngen (till exempel \`ORDERS_DB_URL\`). Anslutningssträngen lämnar aldrig ditt nätverk. Uppdatera sonden till den senaste versionen först.
+- **Min Database Agent ansluter**: välj den databasserver som dess Database Agent körs bredvid, och ange den databas på servern som ska läsas. Agenten läser den med egna inloggningar, så ingen sparas i OneUptime. Den läser PostgreSQL, MySQL och MariaDB så snart dess ägare anger \`ONEUPTIME_DATA_OBSERVABILITY=true\` där den körs.
 
 En databas som redan är ansluten för Datasäkerhet bevakas också.
+
+En databas **Inställningar**, i dess meny, byter namn på den (**Redigera detaljer**), ger den en annan inloggning, en annan sond eller en Database Agent (**Ändra anslutning**), slutar läsa den och glömmer dess tabeller och kontroller medan Datasäkerhet behåller den (**Ta bort från Dataobserverbarhet**), eller raderar den från OneUptime (**Ta bort databas**). Så länge Datasäkerhet är beroende av en databas kan bara den som får ta bort Datasäkerhets datalager ta bort den.
 
 **Databaser du kan ansluta**, på samma sida, listar det som ditt projekt redan känner till och som ingen har anslutit: databaser som dina spårningar pratar med, databaser i dina molnkonton och databaser som Databasövervakning bevakar. **Anslut** fyller i formuläret i förväg med det som är känt om var och en. Inget läses förrän du ansluter den.
 

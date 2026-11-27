@@ -206,17 +206,29 @@ describe("the XCP-ng product side menu", () => {
     ]);
   });
 
-  test("the XCP-ng section reaches every pool and the install guide", async () => {
+  test("the XCP-ng section reaches every pool, the connections a probe reads and the install guide", async () => {
     await renderMenu(<XcpNgSideMenu />);
 
     expect(linksIn("XCP-ng")).toEqual([
       { title: "All Pools", href: routeFor(PageMap.XCP_NG_POOLS) },
+      { title: "Connections", href: routeFor(PageMap.XCP_NG_CONNECTIONS) },
       {
         title: "Documentation",
         href: routeFor(PageMap.XCP_NG_DOCUMENTATION),
       },
     ]);
-    expect(iconCountIn("XCP-ng")).toBe(2);
+    expect(iconCountIn("XCP-ng")).toBe(3);
+  });
+
+  test("a connection's own page marks Connections", async () => {
+    goTo(
+      routeFor(PageMap.XCP_NG_CONNECTIONS) +
+        "/9e8d7c6b-2222-4a1b-9c0d-000000000001",
+    );
+
+    await renderMenu(<XcpNgSideMenu />);
+
+    expect(activeLinkTitles()).toEqual(["Connections"]);
   });
 
   test("the list's own page marks All Pools", async () => {
@@ -310,12 +322,12 @@ describe("the XCP-ng product side menu", () => {
     const productPages: Array<string> = [
       PageMap.XCP_NG_POOLS,
       ...Object.keys(XcpNgRoutePath).filter((key: string): boolean => {
-        // A pool's pages, and a rule's own view page, are not menu entries.
+        // A pool's pages, and a rule's or a connection's own page, are not menu entries.
         return !XcpNgRoutePath[key]!.includes(":id");
       }),
     ];
 
-    expect(productPages).toHaveLength(6);
+    expect(productPages).toHaveLength(7);
     for (const key of productPages) {
       expect(hrefs).toContain(routeFor(key));
     }
@@ -403,7 +415,7 @@ describe("one XCP-ng pool's side menu", () => {
     ]);
   });
 
-  test("Advanced holds who owns it, its settings, its history, its install guide and Delete", async () => {
+  test("Advanced holds who owns it, its settings, its install guide, its history and Delete", async () => {
     await renderPoolMenu();
 
     expect(linksIn("Advanced")).toEqual([
@@ -413,12 +425,12 @@ describe("one XCP-ng pool's side menu", () => {
         href: poolRoute(PageMap.XCP_NG_POOL_VIEW_SETTINGS),
       },
       {
-        title: "Audit Logs",
-        href: poolRoute(PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS),
-      },
-      {
         title: "Documentation",
         href: poolRoute(PageMap.XCP_NG_POOL_VIEW_DOCUMENTATION),
+      },
+      {
+        title: "Audit Logs",
+        href: poolRoute(PageMap.XCP_NG_POOL_VIEW_AUDIT_LOGS),
       },
       {
         title: "Delete Pool",
