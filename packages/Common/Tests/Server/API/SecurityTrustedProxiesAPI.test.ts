@@ -146,7 +146,11 @@ beforeEach(() => {
   readLoadBalancers = getJestSpyOn(
     SecurityOwnLoadBalancers,
     "read",
-  ).mockResolvedValue({ loadBalancers: [GATEWAY], isComplete: true });
+  ).mockResolvedValue({
+    loadBalancers: [GATEWAY],
+    isComplete: true,
+    googleFrontEnds: null,
+  });
 });
 
 afterEach(() => {
@@ -184,6 +188,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
           addresses: ["20.50.1.7"],
         },
       ],
+      googleFrontEnds: null,
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });
@@ -192,6 +197,44 @@ describe("POST /security-trusted-proxies/automatic", () => {
       props: MEMBER,
     });
     expect(Response.setNoCacheHeaders).toHaveBeenCalled();
+  });
+
+  test("Google's front ends, with the load balancers that bring them and what keeps them untrusted (#11047)", async () => {
+    readLoadBalancers.mockResolvedValue({
+      loadBalancers: [GATEWAY],
+      isComplete: true,
+      googleFrontEnds: {
+        ranges: ["35.191.0.0/16", "130.211.0.0/22", "2600:2d00:1:1::/64"],
+        broughtBy: [{ name: "shop-https", where: "Google Cloud shop" }],
+        withheldBy: [{ name: "db", where: "Google Cloud shop" }],
+        isWithheldForIncompleteRead: false,
+        isTrusted: false,
+      },
+    });
+
+    const { sent } = await ask();
+
+    expect(readAutomaticTrustedProxies(sent as never).googleFrontEnds).toEqual({
+      ranges: ["35.191.0.0/16", "130.211.0.0/22", "2600:2d00:1:1::/64"],
+      broughtBy: [{ name: "shop-https", where: "Google Cloud shop" }],
+      withheldBy: [{ name: "db", where: "Google Cloud shop" }],
+      isWithheldForIncompleteRead: false,
+      isTrusted: false,
+    });
+  });
+
+  test("a reader who may not read cloud resources is told nothing of Google's front ends either", async () => {
+    readLoadBalancers.mockRejectedValue(
+      new NotAuthorizedException(
+        "You do not have permission to read cloud resources.",
+      ),
+    );
+
+    const { sent } = await ask();
+
+    expect(
+      readAutomaticTrustedProxies(sent as never).googleFrontEnds,
+    ).toBeNull();
   });
 
   test("never names the cloud resource a load balancer was read from", async () => {
@@ -228,6 +271,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
     expect(sent).toEqual({
       edges: [{ name: "Cloudflare", rangeCount: 2 }],
       loadBalancers: [],
+      googleFrontEnds: null,
       areLoadBalancersRead: false,
       areLoadBalancersComplete: true,
     });
@@ -237,6 +281,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
     readLoadBalancers.mockResolvedValue({
       loadBalancers: [GATEWAY],
       isComplete: false,
+      googleFrontEnds: null,
     });
 
     const { sent } = await ask();
@@ -264,6 +309,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
           addresses: ["20.50.1.7"],
         },
       ],
+      googleFrontEnds: null,
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });
@@ -276,6 +322,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
     readLoadBalancers.mockResolvedValue({
       loadBalancers: [],
       isComplete: true,
+      googleFrontEnds: null,
     });
 
     const { sent } = await ask();
@@ -283,6 +330,7 @@ describe("POST /security-trusted-proxies/automatic", () => {
     expect(sent).toEqual({
       edges: [],
       loadBalancers: [],
+      googleFrontEnds: null,
       areLoadBalancersRead: true,
       areLoadBalancersComplete: true,
     });

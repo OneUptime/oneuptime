@@ -127,6 +127,31 @@ export const OWN_LOAD_BALANCERS_NOT_TRUSTED: string = translationKey(
   "Not trusted while the switch is off.",
 );
 
+/*
+ * Google's front ends (#11047), on a line of the list with the load
+ * balancers that bring them - or what keeps them untrusted.
+ */
+export const GOOGLE_FRONT_ENDS_TITLE: string = translationKey(
+  "Google's front ends",
+);
+
+export const GOOGLE_FRONT_ENDS_FOR: string = translationKey(
+  "For {{loadBalancers}}",
+);
+
+export const GOOGLE_FRONT_ENDS_WITHHELD: { one: string; other: string } = {
+  one: translationKey(
+    "Not trusted: {{loadBalancers}} is a TCP or SSL proxy load balancer, which passes on what a client writes.",
+  ),
+  other: translationKey(
+    "Not trusted: {{loadBalancers}} are TCP or SSL proxy load balancers, which pass on what a client writes.",
+  ),
+};
+
+export const GOOGLE_FRONT_ENDS_UNREAD: string = translationKey(
+  "Not trusted while not every load balancer is listed.",
+);
+
 // The ranges every project trusts.
 export const ALWAYS_TRUSTED_TITLE: string = translationKey("Private addresses");
 
@@ -184,6 +209,7 @@ export const TRUSTED_PROXIES_TEST_IDS: Readonly<{
   automatic: string;
   ownLoadBalancersSwitch: string;
   ownLoadBalancers: string;
+  googleFrontEnds: string;
   alwaysTrusted: string;
   edges: string;
   neverTrusted: string;
@@ -194,6 +220,7 @@ export const TRUSTED_PROXIES_TEST_IDS: Readonly<{
   automatic: "security-trusted-automatically",
   ownLoadBalancersSwitch: "security-trust-own-load-balancers",
   ownLoadBalancers: "security-own-load-balancers",
+  googleFrontEnds: "security-google-front-ends",
   alwaysTrusted: "security-always-trusted-proxies",
   edges: "security-trusted-edges",
   neverTrusted: "security-never-trusted-proxies",

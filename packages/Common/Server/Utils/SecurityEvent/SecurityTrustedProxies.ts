@@ -20,7 +20,9 @@ import logger from "../Logger";
 import SecurityEdgeRanges, {
   SecurityEdge,
 } from "../SecurityBlocklist/SecurityEdgeRanges";
-import SecurityOwnLoadBalancers from "./SecurityOwnLoadBalancers";
+import SecurityOwnLoadBalancers, {
+  SecurityOwnLoadBalancerBlocks,
+} from "./SecurityOwnLoadBalancers";
 
 /*
  * THE PROXIES A PROJECT TRUSTS TO SAY WHO ITS CLIENT WAS (#10416), as the
@@ -38,7 +40,12 @@ import SecurityOwnLoadBalancers from "./SecurityOwnLoadBalancers";
  *     SecurityOwnLoadBalancers), unless it turned that off
  *     (Project.securityTrustOwnLoadBalancers). Never its hosts, nodes or
  *     probes: they forward nobody, and trusted, whatever ran on them could
- *     name any client.
+ *     name any client;
+ *   - with them, Google's front ends, which a connected Google Cloud
+ *     project's global external Application Load Balancer reaches the app
+ *     from, unless something of the project's that passes a client's
+ *     request on as sent connects from them too (#11047,
+ *     SecurityOwnLoadBalancers.readGoogleFrontEnds).
  *
  * With them, whether its access logs end with X-Forwarded-For
  * (Project.securityReadAccessLogForwardedFor, #10548), which only the
@@ -163,11 +170,20 @@ export default class SecurityTrustedProxies {
     }
 
     try {
-      const ownBlocks: Array<NetworkAddressBlock> =
-        await SecurityOwnLoadBalancers.getTrustedBlocks(projectId);
+      /*
+       * Their own addresses, and Google's front ends when a Google Cloud
+       * Application Load Balancer of the project's brings them (#11047):
+       * the same switch turns both off.
+       */
+      const own: SecurityOwnLoadBalancerBlocks =
+        await SecurityOwnLoadBalancers.getTrusted(projectId);
 
       return {
-        sources: { ...withEdges, ownLoadBalancers: ownBlocks },
+        sources: {
+          ...withEdges,
+          ownLoadBalancers: own.loadBalancers,
+          googleFrontEnds: own.googleFrontEnds,
+        },
         isComplete: true,
       };
     } catch (error) {

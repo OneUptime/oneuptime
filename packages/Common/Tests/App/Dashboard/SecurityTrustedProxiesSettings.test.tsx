@@ -34,6 +34,10 @@ import {
   ALWAYS_TRUSTED_DESCRIPTION,
   ALWAYS_TRUSTED_TITLE,
   CONNECTIONS_MORE_SETTINGS_DESCRIPTION,
+  GOOGLE_FRONT_ENDS_FOR,
+  GOOGLE_FRONT_ENDS_TITLE,
+  GOOGLE_FRONT_ENDS_UNREAD,
+  GOOGLE_FRONT_ENDS_WITHHELD,
   NEVER_TRUSTED_DESCRIPTION,
   NEVER_TRUSTED_TITLE,
   OWN_LOAD_BALANCERS_MORE,
@@ -228,6 +232,7 @@ const FOUND: AutomaticTrustedProxies = {
       addresses: ["2001:db8::20"],
     },
   ],
+  googleFrontEnds: null,
   areLoadBalancersRead: true,
   areLoadBalancersComplete: true,
 };
@@ -741,6 +746,152 @@ describe("Trusted Automatically", () => {
       OWN_LOAD_BALANCERS_NOT_TRUSTED,
     );
     expect(ownLoadBalancers()).not.toHaveTextContent(OWN_LOAD_BALANCERS_MORE);
+  });
+
+  /*
+   * #11047: Google's front ends, on the last line of the list, with the
+   * Google Cloud Application Load Balancers that bring them - or what keeps
+   * them untrusted. The switch turns them off with the rest.
+   */
+  describe("Google's front ends", () => {
+    const BROUGHT: AutomaticTrustedProxies = {
+      ...FOUND,
+      loadBalancers: [
+        ...FOUND.loadBalancers,
+        {
+          kind: OwnLoadBalancerKind.GoogleCloudApplicationLoadBalancer,
+          name: "shop-https",
+          where: "Google Cloud shop",
+          addresses: ["34.120.1.2"],
+        },
+      ],
+      googleFrontEnds: {
+        ranges: ["35.191.0.0/16", "130.211.0.0/22", "2600:2d00:1:1::/64"],
+        broughtBy: [
+          { name: "shop-https", where: "Google Cloud shop" },
+          { name: "blog-https", where: "Google Cloud shop" },
+        ],
+        withheldBy: [],
+        isWithheldForIncompleteRead: false,
+        isTrusted: true,
+      },
+    };
+
+    async function googleRow(): Promise<HTMLElement> {
+      return await screen.findByTestId(
+        TRUSTED_PROXIES_TEST_IDS.googleFrontEnds,
+      );
+    }
+
+    test("are listed after your load balancers, with the ones that bring them", async () => {
+      automaticAnswer = automaticTrustedProxiesToJSON(BROUGHT);
+
+      await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+      const row: HTMLElement = await googleRow();
+      const rows: Array<HTMLElement> = await loadBalancerRows();
+
+      expect(row).toHaveTextContent(
+        "35.191.0.0/16, 130.211.0.0/22, 2600:2d00:1:1::/64",
+      );
+      expect(row).toHaveTextContent(
+        `${GOOGLE_FRONT_ENDS_TITLE} · For shop-https, blog-https`,
+      );
+      expect(row).toHaveAttribute("data-trusted", "true");
+      // Last, after every load balancer's own line.
+      for (const loadBalancer of rows) {
+        expect(isBefore(loadBalancer, row)).toBe(true);
+      }
+      expect(ownLoadBalancers()).not.toHaveTextContent(
+        OWN_LOAD_BALANCERS_NOT_TRUSTED,
+      );
+    });
+
+    test("a TCP or SSL proxy load balancer keeps them untrusted, and says which", async () => {
+      automaticAnswer = automaticTrustedProxiesToJSON({
+        ...BROUGHT,
+        googleFrontEnds: {
+          ...BROUGHT.googleFrontEnds!,
+          withheldBy: [{ name: "db", where: "Google Cloud shop" }],
+          isTrusted: false,
+        },
+      });
+
+      await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+      const row: HTMLElement = await googleRow();
+
+      expect(row).toHaveTextContent(
+        `${GOOGLE_FRONT_ENDS_TITLE} · Not trusted: db is a TCP or SSL proxy load balancer, which passes on what a client writes.`,
+      );
+      expect(row).toHaveAttribute("data-trusted", "false");
+    });
+
+    test("several of them say so in the plural", async () => {
+      automaticAnswer = automaticTrustedProxiesToJSON({
+        ...BROUGHT,
+        googleFrontEnds: {
+          ...BROUGHT.googleFrontEnds!,
+          withheldBy: [
+            { name: "db", where: "Google Cloud shop" },
+            { name: "mail", where: "Google Cloud shop" },
+          ],
+          isTrusted: false,
+        },
+      });
+
+      await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+      expect(await googleRow()).toHaveTextContent(
+        "Not trusted: db, mail are TCP or SSL proxy load balancers, which pass on what a client writes.",
+      );
+    });
+
+    test("a list cut short keeps them untrusted, and says why", async () => {
+      automaticAnswer = automaticTrustedProxiesToJSON({
+        ...BROUGHT,
+        areLoadBalancersComplete: false,
+        googleFrontEnds: {
+          ...BROUGHT.googleFrontEnds!,
+          isWithheldForIncompleteRead: true,
+          isTrusted: false,
+        },
+      });
+
+      await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+      expect(await googleRow()).toHaveTextContent(
+        `${GOOGLE_FRONT_ENDS_TITLE} · ${GOOGLE_FRONT_ENDS_UNREAD}`,
+      );
+    });
+
+    test("with the switch off, they are not trusted with the rest", async () => {
+      automaticAnswer = automaticTrustedProxiesToJSON(BROUGHT);
+      trustsOwnLoadBalancers = false;
+
+      await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+
+      await googleRow();
+
+      expect(ownLoadBalancers()).toHaveTextContent(
+        OWN_LOAD_BALANCERS_NOT_TRUSTED,
+      );
+    });
+
+    test("a project none of whose load balancers brings them shows no such line", async () => {
+      await renderPage(TRUSTED_AUTOMATICALLY_CARD_KEY);
+      await loadBalancerRows();
+
+      expect(
+        screen.queryByTestId(TRUSTED_PROXIES_TEST_IDS.googleFrontEnds),
+      ).toBeNull();
+    });
+
+    test("words each of its sentences once, for every language to word", () => {
+      expect(GOOGLE_FRONT_ENDS_FOR).toBe("For {{loadBalancers}}");
+      expect(GOOGLE_FRONT_ENDS_WITHHELD.one).toContain("{{loadBalancers}}");
+      expect(GOOGLE_FRONT_ENDS_WITHHELD.other).toContain("{{loadBalancers}}");
+    });
   });
 
   test("says what every project trusts, each edge you connected, and what is never trusted", async () => {

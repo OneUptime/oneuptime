@@ -30,7 +30,10 @@ import NormalizedSecurityEvent from "../../../../Types/SecurityEvent/NormalizedS
 import { SECURITY_REQUEST_ATTRIBUTES } from "../../../../Types/SecurityEvent/SecurityEventRequestOutcome";
 import { SecurityLogLineCheckResult } from "../../../../Types/SecurityEvent/SecurityLogLineCheck";
 import ServiceType from "../../../../Types/Telemetry/ServiceType";
-import { AZURE_PUBLIC_IP_ADDRESS_TYPE } from "../../../../Utils/SecurityEvent/OwnLoadBalancers";
+import {
+  AZURE_PUBLIC_IP_ADDRESS_TYPE,
+  GCP_FORWARDING_RULE_TYPE,
+} from "../../../../Utils/SecurityEvent/OwnLoadBalancers";
 import { TrustedProxySource } from "../../../../Utils/SecurityEvent/TrustedProxySources";
 import { getJestSpyOn } from "../../../Spy";
 import {
@@ -75,6 +78,8 @@ const LISTED_PROXY: string = "203.0.113.10";
 const CLOUDFLARE_ADDRESS: string = "104.16.1.1";
 const GATEWAY_ADDRESS: string = "20.50.1.7";
 const UNTRUSTED_HOST: string = "203.0.113.50";
+const GOOGLE_LB: string = "34.120.1.2";
+const GOOGLE_FRONT_END: string = "35.191.7.8";
 
 // The issue's line: a SQL injection, behind `first`, forwarded for `forwardedFor`.
 function combinedLine(first: string, forwardedFor: string = CLIENT): string {
@@ -113,6 +118,25 @@ const GATEWAY: CloudResource = resource({
       kind: CloudRelationshipKind.AttachedTo,
       target:
         "/subscriptions/1111/resourceGroups/web/providers/Microsoft.Network/applicationGateways/web-agw",
+    },
+  ],
+});
+
+// The project's Google Cloud global external Application Load Balancer.
+const GOOGLE_ALB: CloudResource = resource({
+  name: "shop-https",
+  cloudResourceType: GCP_FORWARDING_RULE_TYPE,
+  providerResourceId:
+    "//compute.googleapis.com/projects/shop/global/forwardingRules/shop-https",
+  cloudProperties: {
+    IPAddress: GOOGLE_LB,
+    loadBalancingScheme: "EXTERNAL_MANAGED",
+  },
+  cloudRelationships: [
+    {
+      kind: CloudRelationshipKind.RoutesTo,
+      target: "//compute.googleapis.com/projects/shop/global/urlMaps/shop",
+      targetType: "https_lb_rule",
     },
   ],
 });
@@ -471,5 +495,54 @@ describe("a project that cannot be read", () => {
     const { stored } = await bothName(combinedLine(LISTED_PROXY));
 
     expect(stored.principalIp).toBe(LISTED_PROXY);
+  });
+});
+
+// Google's front ends are trusted with the load balancer that brings them (#11047).
+describe("Google's front ends", () => {
+  test("behind the project's global external Application Load Balancer: both name the client", async () => {
+    useProject({
+      project: { securityReadAccessLogForwardedFor: true },
+      inventory: [GOOGLE_ALB],
+    });
+
+    const { stored, checked } = await bothName(
+      combinedLine(GOOGLE_FRONT_END, `${CLIENT}, ${GOOGLE_LB}`),
+    );
+
+    expect(stored).toEqual({
+      principalIp: CLIENT,
+      trust: "trusted-proxy",
+      claimed: "",
+      forwardedBy: `${GOOGLE_LB}, ${GOOGLE_FRONT_END}`,
+    });
+    expect(checked.trustedProxies).toEqual([
+      {
+        address: GOOGLE_LB,
+        source: TrustedProxySource.OwnLoadBalancer,
+        edgeName: "",
+      },
+      {
+        address: GOOGLE_FRONT_END,
+        source: TrustedProxySource.GoogleFrontEnd,
+        edgeName: "",
+      },
+    ]);
+  });
+
+  test("with Your Load Balancers off: both name the front end", async () => {
+    useProject({
+      project: {
+        securityReadAccessLogForwardedFor: true,
+        securityTrustOwnLoadBalancers: false,
+      },
+      inventory: [GOOGLE_ALB],
+    });
+
+    const { stored } = await bothName(
+      combinedLine(GOOGLE_FRONT_END, `${CLIENT}, ${GOOGLE_LB}`),
+    );
+
+    expect(stored.principalIp).toBe(GOOGLE_FRONT_END);
   });
 });

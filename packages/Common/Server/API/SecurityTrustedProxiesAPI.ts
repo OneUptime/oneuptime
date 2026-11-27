@@ -26,6 +26,7 @@ import ProductKey from "../../Types/Product/ProductKey";
 import {
   AUTOMATIC_TRUSTED_PROXIES_PATH,
   AutomaticTrustedEdge,
+  AutomaticTrustedGoogleFrontEnds,
   AutomaticTrustedLoadBalancer,
   AutomaticTrustedProxies,
   automaticTrustedProxiesToJSON,
@@ -49,7 +50,10 @@ import {
  *     (SecurityOwnLoadBalancers), whether or not the project trusts them
  *     now: the switch beside them says that (Project
  *     .securityTrustOwnLoadBalancers), and the page reads it as it reads
- *     the rest of the project.
+ *     the rest of the project;
+ *   - Google's front ends, with the Google Cloud Application Load
+ *     Balancers that bring them and anything that keeps them untrusted
+ *     (#11047), read as the load balancers are.
  *
  * A signed-in member of the project in the tenantid header. The load
  * balancers are read as the caller reads: one who may not read cloud
@@ -135,6 +139,7 @@ router.post(
         CommonAPI.assertAuthenticatedProjectMember(props);
 
       let loadBalancers: Array<AutomaticTrustedLoadBalancer> = [];
+      let googleFrontEnds: AutomaticTrustedGoogleFrontEnds | null = null;
       let areLoadBalancersRead: boolean = true;
       let areLoadBalancersComplete: boolean = true;
 
@@ -155,6 +160,17 @@ router.post(
           },
         );
         areLoadBalancersComplete = read.isComplete;
+        // Google's front ends, read as the load balancers that bring them are (#11047).
+        googleFrontEnds = read.googleFrontEnds
+          ? {
+              ranges: read.googleFrontEnds.ranges,
+              broughtBy: read.googleFrontEnds.broughtBy,
+              withheldBy: read.googleFrontEnds.withheldBy,
+              isWithheldForIncompleteRead:
+                read.googleFrontEnds.isWithheldForIncompleteRead,
+              isTrusted: read.googleFrontEnds.isTrusted,
+            }
+          : null;
       } catch (error) {
         logger.debug(
           `SecurityTrustedProxiesAPI: could not list the load balancers of project ${projectId.toString()} for this reader. ${String(error)}`,
@@ -165,6 +181,7 @@ router.post(
       const proxies: AutomaticTrustedProxies = {
         edges: await readEdges(projectId),
         loadBalancers,
+        googleFrontEnds,
         areLoadBalancersRead,
         areLoadBalancersComplete,
       };
