@@ -43,6 +43,17 @@ const HEALTH_STATUSES: Record<number, string> = {
   3: "invalid",
 };
 
+/*
+ * A node's status by its health. A node OneFS reports down is out of the
+ * cluster: offline, the word the cluster's own list of offline nodes gives
+ * it, and the one every platform's pages draw red. Down is a port's word,
+ * whose link nobody may have cabled (POWERSCALE_COMPONENT_STATUSES).
+ */
+const NODE_STATUSES: Record<number, string> = {
+  ...HEALTH_STATUSES,
+  2: "offline",
+};
+
 // ISILON-MIB quotaType.
 const QUOTA_TYPES: Record<string, string> = {
   "0": "default-user",
@@ -379,7 +390,7 @@ function readNode(series: StorageArraySeries, node: string): void {
   }
   switch (series.metricName) {
     case "powerscale_node_health":
-      patch.status = HEALTH_STATUSES[Math.trunc(series.value)] || "unknown";
+      patch.status = NODE_STATUSES[Math.trunc(series.value)] || "unknown";
       break;
     case "powerscale_node_type":
       patch.componentType =

@@ -47,7 +47,7 @@ services:
     environment:
       # Defaults for the two optional settings (an empty value in .env
       # counts as unset). The platform, stamped as storage.system:
-      # purestorage.flasharray, purestorage.flashblade, dell.powerstore or
+      # purestorage.flasharray, purestorage.flashblade, dell.powerstore,
       # netapp.ontap or dell.powerscale.
       - STORAGE_SYSTEM=${STORAGE_SYSTEM:-purestorage.flasharray}
       # Arrays ship a self-signed certificate, so the collector does not

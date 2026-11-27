@@ -875,11 +875,14 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
       "not started",
     ]);
     expect(HARDWARE_KINDS).toEqual(["Hardware", "Drive", "Controller"]);
-    // An ONTAP disk is broken, a shelf part in error; a PowerScale drive smartfails.
+    /*
+     * An ONTAP disk is broken, a shelf part in error; a PowerScale node
+     * offline, a drive smartfailing. A port's link that is down is no
+     * problem by itself, on any platform.
+     */
     for (const word of [
       "broken",
       "error",
-      "down",
       "offline",
       "attention",
       "smartfail",
@@ -887,7 +890,7 @@ describe("StorageArrayResourceService.getInventorySummary", () => {
     ]) {
       expect(statuses).toContain(word);
     }
-    for (const word of ["healthy", "normal", "online", "spare", "up"]) {
+    for (const word of ["healthy", "normal", "online", "spare", "up", "down"]) {
       expect(statuses).not.toContain(word);
     }
     const kinds: Array<string> = getHardwareKinds();

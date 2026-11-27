@@ -304,13 +304,15 @@ describe("its nodes", () => {
     expect(node.details).toEqual({ lnn: 3 });
   });
 
-  test("offline and down are critical, attention a warning, healthy neither", () => {
+  test("offline is critical, attention a warning; healthy and a port's link up or down neither", () => {
     const system: string = StorageSystem.DellPowerScale;
     expect(isCriticalComponentStatus("offline", system)).toBe(true);
-    expect(isCriticalComponentStatus("down", system)).toBe(true);
     expect(isUnhealthyComponentStatus("attention", system)).toBe(true);
     expect(isCriticalComponentStatus("attention", system)).toBe(false);
     expect(isUnhealthyComponentStatus("healthy", system)).toBe(false);
+    // A port nobody cabled is down: no problem by itself, as on a PowerStore.
+    expect(isUnhealthyComponentStatus("down", system)).toBe(false);
+    expect(isUnhealthyComponentStatus("up", system)).toBe(false);
   });
 });
 
@@ -840,6 +842,22 @@ describe("series by series", () => {
     expect(f.rows()).toHaveLength(0);
     expect(f.snapshot().completeKinds.has(POWERSCALE_NODE_KIND)).toBe(false);
     expect(f.snapshot().sawAlerts).toBe(true);
+  });
+
+  test("a node OneFS reports down is offline, as the cluster's list of offline nodes says; attention and invalid as OneFS words them", () => {
+    for (const [health, status] of [
+      [0, "healthy"],
+      [1, "attention"],
+      [2, "offline"],
+      [3, "invalid"],
+    ] as Array<[number, string]>) {
+      const f: Feed = newFeed();
+      f.feed("powerscale_node_health", { node: "lab-2" }, health);
+      expect({ health, status: f.rows()[0]!.status }).toEqual({
+        health,
+        status,
+      });
+    }
   });
 
   test("a node's health beyond OneFS's four codes is unknown, and a renamed node keeps its own name", () => {

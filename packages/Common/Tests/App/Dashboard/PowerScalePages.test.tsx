@@ -373,9 +373,38 @@ describe("a PowerScale cluster's words for its parts", () => {
       } as never);
     };
     expect(part("attention").severity).toBe("warning");
+    // A node OneFS reports down is written offline (PowerScaleExtractor).
     expect(part("offline").severity).toBe("critical");
-    expect(part("down").severity).toBe("critical");
     expect(part("ok").severity).toBeNull();
+  });
+
+  test("a port whose link is up is fine; one that is down is no problem by itself, as on a PowerStore", () => {
+    const port: (status: string) => StorageArrayAssessment = (
+      status: string,
+    ): StorageArrayAssessment => {
+      return assessStorageArrayPart({
+        kind: StorageArrayResourceKind.NetworkInterface,
+        name: "ps-prod-4 mce1",
+        status,
+      } as never);
+    };
+    // Worded as a port's link, never as a machine that is down (MeaningKeys).
+    expect(port("up")).toMatchObject({
+      severity: null,
+      status: { label: "Up (port link)", tone: "positive" },
+    });
+    expect(port("down")).toMatchObject({
+      severity: null,
+      status: { label: "Down (port link)", tone: "neutral" },
+      reasons: [],
+    });
+    const badge: (status: string) => StatusBadgeType = (
+      status: string,
+    ): StatusBadgeType => {
+      return StorageArrayResourceUtils.getResourceStatusBadgeType(status);
+    };
+    expect(badge("up")).toBe(StatusBadgeType.Success);
+    expect(badge("down")).toBe(StatusBadgeType.Neutral);
   });
 
   test("a smartfailing drive needs a look and a dead one is critical", () => {
