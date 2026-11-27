@@ -17,6 +17,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import ServerProductRoutes from "../Utils/ServerProducts/ServerProductRoutes";
 import ProductKey from "../../Types/Product/ProductKey";
+import { MonitorTemplateLinkResult } from "../../Types/Monitor/MonitorTemplateChange";
 
 /*
  * A sync's `fields` that is not a list of setting names (#7711): an API
@@ -46,6 +47,18 @@ function readSyncFields(req: ExpressRequest): Array<string> | undefined {
     }
   }
   return raw as Array<string>;
+}
+
+/*
+ * A yes or no a link or an unlink is asked with (issues #11260, #11266):
+ * Link's "bring the template's settings", Unlink's "clear the template's
+ * criteria". Only `true` says yes; anything else - left out, as every client
+ * before sent it - keeps what the route always did.
+ */
+function readSwitch(req: ExpressRequest, name: string): boolean {
+  return (
+    (req.body as Record<string, unknown> | undefined)?.[name] === true
+  );
 }
 
 export default class MonitorTemplateAPI extends BaseAPI<
@@ -151,13 +164,20 @@ export default class MonitorTemplateAPI extends BaseAPI<
 
           CommonAPI.assertTenantScoped(props);
 
-          await MonitorTemplateService.linkMonitor({
-            monitorTemplateId,
-            monitorId,
-            props,
-          });
+          const result: MonitorTemplateLinkResult =
+            await MonitorTemplateService.linkMonitor({
+              monitorTemplateId,
+              monitorId,
+              props,
+              applyTemplateSettings: readSwitch(
+                req,
+                "applyTemplateSettings",
+              ),
+            });
 
-          return Response.sendEmptySuccessResponse(req, res);
+          return Response.sendJsonObjectResponse(req, res, {
+            ...result,
+          });
         } catch (e) {
           next(e);
         }
@@ -186,13 +206,17 @@ export default class MonitorTemplateAPI extends BaseAPI<
 
           CommonAPI.assertTenantScoped(props);
 
-          await MonitorTemplateService.unlinkMonitor({
-            monitorTemplateId,
-            monitorId,
-            props,
-          });
+          const result: MonitorTemplateLinkResult =
+            await MonitorTemplateService.unlinkMonitor({
+              monitorTemplateId,
+              monitorId,
+              props,
+              clearTemplateSettings: readSwitch(req, "clearTemplateSettings"),
+            });
 
-          return Response.sendEmptySuccessResponse(req, res);
+          return Response.sendJsonObjectResponse(req, res, {
+            ...result,
+          });
         } catch (e) {
           next(e);
         }

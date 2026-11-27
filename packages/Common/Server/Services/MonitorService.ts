@@ -133,6 +133,13 @@ import OwnerRuleAssignment, {
 } from "../Utils/Rules/OwnerRuleAssignment";
 import HostAddressUtil from "../../Utils/HostAddressUtil";
 import DeviceMonitorTemplateUtil from "../../Utils/Monitor/DeviceMonitorTemplateUtil";
+import MonitorTemplateChangeProvenance, {
+  TemplateChangeProvenancePatch,
+} from "../../Utils/Monitor/MonitorTemplateChangeProvenance";
+import {
+  DEVICE_HAS_HIDDEN_MONITOR_OF_TEMPLATE_REFUSAL,
+  getDeviceHasMonitorOfTemplateRefusal,
+} from "../../Utils/Monitor/MonitorTemplateLinkRefusal";
 import MonitorDeviceLink, {
   MONITOR_MADE_FOR_DEVICE_STAYS_ITS_OWN,
 } from "../Utils/NetworkDevice/MonitorDeviceLink";
@@ -320,6 +327,61 @@ export class Service extends ProjectReferencesService<Model> {
         "Monitor template type must match the monitor type.",
       );
     }
+  }
+
+  /*
+   * A monitor made for a network device moves to a template only when the
+   * device has no other monitor made for it linked to that template: Monitor's
+   * unique (device, template) index would refuse the write with a database
+   * error (issues #11260, #11266). The other monitor is named when the caller
+   * may read it, so they can find it and keep the one they want; read as
+   * OneUptime first, as the index sees every row.
+   */
+  private async assertDeviceHasNoMonitorOfTemplate(data: {
+    projectId: ObjectID | undefined;
+    networkDeviceId: ObjectID;
+    monitorTemplateId: ObjectID;
+    monitorId: ObjectID | null;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    const query: Query<Model> = {
+      ...(data.projectId ? { projectId: data.projectId } : {}),
+      autoProvisionedNetworkDeviceId: data.networkDeviceId,
+      monitorTemplateId: data.monitorTemplateId,
+      ...(data.monitorId
+        ? { _id: QueryHelper.notEquals(data.monitorId.toString()) }
+        : {}),
+    } as Query<Model>;
+
+    const other: Model | null = await this.findOneBy({
+      query: query,
+      select: { _id: true },
+      props: { isRoot: true },
+    });
+
+    if (!other || !other.id) {
+      return;
+    }
+
+    let otherName: string = "";
+
+    try {
+      const readable: Model | null = await this.findOneBy({
+        query: { _id: other.id.toString() },
+        select: { _id: true, name: true },
+        props: data.props,
+      });
+
+      otherName = readable?.name?.trim() || "";
+    } catch {
+      // Not the caller's to read: refused without its name, below.
+    }
+
+    throw new BadDataException(
+      otherName
+        ? getDeviceHasMonitorOfTemplateRefusal(otherName)
+        : DEVICE_HAS_HIDDEN_MONITOR_OF_TEMPLATE_REFUSAL,
+    );
   }
 
   public getMonitorDestinationInfo(monitor: Model): MonitorDestinationInfo {
@@ -1072,17 +1134,34 @@ export class Service extends ProjectReferencesService<Model> {
         }
 
         if (isMonitorTemplateWritten) {
-          if (monitor.autoProvisionedNetworkDeviceId) {
-            const storedTemplateId: string =
-              monitor.monitorTemplateId?.toString() || "";
-            const writtenTemplateId: string =
-              writtenMonitorTemplateId?.toString() || "";
-
-            if (storedTemplateId !== writtenTemplateId) {
-              throw new BadDataException(
-                "An auto-provisioned monitor cannot be relinked or unlinked from its template. Delete it and let the intended rule recreate it, or create a manual monitor instead.",
-              );
-            }
+          /*
+           * A monitor made for a network device moves to another template,
+           * or off its template, as any monitor does (issues #11260,
+           * #11266). It used to be refused: the import, the auto import rule
+           * or the alert policy that made it knew it only by its template,
+           * and would have made the old template's monitor for the device
+           * again, or a policy deleted this one. It keeps the template it
+           * was created from now (Monitor.createdFromMonitorTemplateId,
+           * written once the write is permitted: onUpdatePermitted), which
+           * every one of them reads. A device has one monitor from each
+           * template, though - Monitor's unique (device, template) index -
+           * so one it has already is named, rather than a database error.
+           */
+          if (
+            monitor.autoProvisionedNetworkDeviceId &&
+            writtenMonitorTemplateId &&
+            !MonitorTemplateChangeProvenance.isSameTemplate(
+              monitor.monitorTemplateId,
+              writtenMonitorTemplateId,
+            )
+          ) {
+            await this.assertDeviceHasNoMonitorOfTemplate({
+              projectId: monitor.projectId,
+              networkDeviceId: monitor.autoProvisionedNetworkDeviceId,
+              monitorTemplateId: writtenMonitorTemplateId,
+              monitorId: monitor.id,
+              props: updateBy.props,
+            });
           }
 
           if (writtenMonitorTemplateId) {
@@ -1952,6 +2031,27 @@ export class Service extends ProjectReferencesService<Model> {
 
     const data: Model = onCreate.createBy.data;
 
+    /*
+     * The template a monitor is created from, kept when a person moves it to
+     * another or unlinks it (Monitor.createdFromMonitorTemplateId, issues
+     * #11260, #11266): what every import, auto import rule and alert policy
+     * that makes a device's monitor from a template reads. Under either of
+     * its names: onBeforeCreate refused two that disagree. A value only
+     * OneUptime's own create can have given is kept (a person's was taken
+     * out of the create before its hooks: ColumnsOnlyOneUptimeWrites).
+     */
+    const monitorTemplateId: ObjectID | null = RelationIdUtil.readConsistent(
+      data as unknown as Record<string, unknown>,
+      MONITOR_TEMPLATE_RELATION_KEYS,
+      "Monitor Template",
+    );
+
+    if (monitorTemplateId && !data.createdFromMonitorTemplateId) {
+      data.createdFromMonitorTemplateId = new ObjectID(
+        monitorTemplateId.toString(),
+      );
+    }
+
     // Under either of its names: onBeforeCreate refused two that disagree.
     if (
       !RelationIdUtil.readConsistent(
@@ -1976,12 +2076,13 @@ export class Service extends ProjectReferencesService<Model> {
   ): Promise<void> {
     await super.onUpdatePermitted(updateBy);
 
-    if (
-      !RelationIdUtil.isWritten(
-        Object.keys(updateBy.data || {}),
-        NETWORK_DEVICE_KEYS,
-      )
-    ) {
+    const updateDataKeys: Array<string> = Object.keys(updateBy.data || {});
+
+    if (RelationIdUtil.isWritten(updateDataKeys, MONITOR_TEMPLATE_RELATION_KEYS)) {
+      await this.keepWhatTheTemplateChangeLeaves(updateBy);
+    }
+
+    if (!RelationIdUtil.isWritten(updateDataKeys, NETWORK_DEVICE_KEYS)) {
       return;
     }
 
@@ -1996,6 +2097,104 @@ export class Service extends ProjectReferencesService<Model> {
         payload: payload,
         props: updateBy.props,
       });
+  }
+
+  /*
+   * A write that moves monitors to another template, or off their template,
+   * keeps what an import, an auto import rule and an alert policy read of
+   * them (MonitorTemplateChangeProvenance, issues #11260, #11266): the
+   * template each was created from, and - for a person's write - each lets
+   * go of its alert policy. Written once every check has passed, so a write
+   * that is refused keeps nothing, and in the same statement as the move
+   * when every monitor it writes keeps the same: that is every write of one
+   * monitor (the dashboard's, the API's, a bulk change's). A write of several
+   * monitors that keep different things has each kept by itself first, one
+   * statement per monitor, so no monitor is ever on its new template without
+   * them.
+   */
+  private async keepWhatTheTemplateChangeLeaves(
+    updateBy: UpdateBy<Model>,
+  ): Promise<void> {
+    const writtenMonitorTemplateId: ObjectID | null =
+      RelationIdUtil.readConsistent(
+        updateBy.data as unknown as Record<string, unknown>,
+        MONITOR_TEMPLATE_RELATION_KEYS,
+        "Monitor Template",
+      );
+
+    const monitors: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      {
+        _id: true,
+        monitorTemplateId: true,
+        createdFromMonitorTemplateId: true,
+        networkAlertPolicyId: true,
+      },
+    );
+
+    const patches: Array<{
+      monitorId: ObjectID;
+      patch: TemplateChangeProvenancePatch;
+    }> = monitors.flatMap(
+      (
+        monitor: Model,
+      ): Array<{ monitorId: ObjectID; patch: TemplateChangeProvenancePatch }> => {
+        if (!monitor.id) {
+          return [];
+        }
+
+        return [
+          {
+            monitorId: monitor.id,
+            patch: MonitorTemplateChangeProvenance.getPatch({
+              stored: monitor,
+              writtenMonitorTemplateId: writtenMonitorTemplateId,
+              isOneUptimesOwnWrite: Boolean(updateBy.props.isRoot),
+            }),
+          },
+        ];
+      },
+    );
+
+    if (
+      patches.every(
+        (entry: { patch: TemplateChangeProvenancePatch }): boolean => {
+          return MonitorTemplateChangeProvenance.isEmpty(entry.patch);
+        },
+      )
+    ) {
+      return;
+    }
+
+    const firstPatch: TemplateChangeProvenancePatch = patches[0]!.patch;
+
+    if (
+      patches.every(
+        (entry: { patch: TemplateChangeProvenancePatch }): boolean => {
+          return MonitorTemplateChangeProvenance.areEqual(
+            entry.patch,
+            firstPatch,
+          );
+        },
+      )
+    ) {
+      Object.assign(
+        updateBy.data as unknown as Record<string, unknown>,
+        firstPatch,
+      );
+      return;
+    }
+
+    for (const entry of patches) {
+      if (MonitorTemplateChangeProvenance.isEmpty(entry.patch)) {
+        continue;
+      }
+
+      await this.updateColumnsByIdWithoutHooks({
+        id: entry.monitorId,
+        data: entry.patch as PartialEntity<Model>,
+      });
+    }
   }
 
   /*

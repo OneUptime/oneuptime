@@ -50,6 +50,17 @@ import MonitorStepsValuesUtil from "../../Utils/Monitor/MonitorStepsValuesUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
+import MonitorTemplateChangeProvenance from "../../Utils/Monitor/MonitorTemplateChangeProvenance";
+import MonitorCriteriaClear from "../../Utils/Monitor/MonitorCriteriaClear";
+import {
+  MonitorTemplateChangeOutcome,
+  MonitorTemplateLinkResult,
+} from "../../Types/Monitor/MonitorTemplateChange";
+import MonitorCriteriaReplaced, {
+  CriteriaReplacedBecause,
+} from "../Utils/Monitor/MonitorCriteriaReplaced";
+import { MonitorTurnedOffResult } from "../Utils/Monitor/MonitorTurnedOff";
+import logger, { LogAttributes } from "../Utils/Logger";
 
 export interface SyncLinkedMonitorsResult {
   totalLinkedMonitors: number;
@@ -1089,24 +1100,25 @@ export class Service extends ProjectReferencesService<Model> {
     });
   }
 
-  /**
-   * Link an existing monitor to this template. The monitor must be in the same
-   * project AND have the same monitorType as the template — anything else is
-   * rejected, so a user can't (e.g.) link an API monitor to a Server-monitor
-   * template and then sync incompatible criteria onto it.
+  /*
+   * The template a link or an unlink is about, read once as the person: its
+   * project and type, and, for a link that brings its settings, the settings
+   * (as a sync reads them), with its name for what a resolve says.
    */
-  @CaptureSpan()
-  public async linkMonitor(data: {
+  public async readTemplateToLinkOrUnlink(data: {
     monitorTemplateId: ObjectID;
-    monitorId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<void> {
+  }): Promise<Model> {
     const template: Model | null = await this.findOneById({
       id: data.monitorTemplateId,
       select: {
         _id: true,
         projectId: true,
         monitorType: true,
+        templateName: true,
+        monitorSteps: true,
+        monitoringInterval: true,
+        minimumProbeAgreement: true,
       },
       props: data.props,
     });
@@ -1121,12 +1133,59 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(TEMPLATE_WITHOUT_TYPE_REFUSAL);
     }
 
+    return template;
+  }
+
+  /**
+   * Link an existing monitor to this template. The monitor must be in the same
+   * project AND have the same monitorType as the template — anything else is
+   * rejected, so a user can't (e.g.) link an API monitor to a Server-monitor
+   * template and then sync incompatible criteria onto it.
+   *
+   * A monitor linked to another template moves to this one, and so does one
+   * an import, an auto import rule or an alert policy made for a network
+   * device (issues #11260, #11266): it keeps the template it was created
+   * from, so the rule that made it never makes it again
+   * (MonitorTemplateChangeProvenance).
+   *
+   * `applyTemplateSettings` brings the template's criteria and step
+   * settings (except the fields it protects, and each device monitor's own
+   * device or address), its monitoring interval and its minimum probe
+   * agreement onto the monitor in the same write, as Sync from Template
+   * does; the monitor's name, description, labels, owners and custom field
+   * values stay, and so does its history. The open incidents and alerts its
+   * old criteria raised and would have resolved on their own are resolved
+   * then: nothing else could (MonitorCriteriaReplaced). Left out, the
+   * monitor keeps its settings until a sync, as before.
+   *
+   * `template` is the template already read (readTemplateToLinkOrUnlink), so
+   * a change of many monitors reads it once.
+   */
+  @CaptureSpan()
+  public async linkMonitor(data: {
+    monitorTemplateId: ObjectID;
+    monitorId: ObjectID;
+    props: DatabaseCommonInteractionProps;
+    applyTemplateSettings?: boolean | undefined;
+    template?: Model | undefined;
+  }): Promise<MonitorTemplateLinkResult> {
+    const template: Model =
+      data.template ||
+      (await this.readTemplateToLinkOrUnlink({
+        monitorTemplateId: data.monitorTemplateId,
+        props: data.props,
+      }));
+
     const monitor: Monitor | null = await MonitorService.findOneById({
       id: data.monitorId,
       select: {
         _id: true,
         projectId: true,
         monitorType: true,
+        name: true,
+        monitorTemplateId: true,
+        monitorSteps: true,
+        autoProvisionedNetworkDeviceId: true,
       },
       props: data.props,
     });
@@ -1136,7 +1195,7 @@ export class Service extends ProjectReferencesService<Model> {
     }
     if (
       !monitor.projectId ||
-      monitor.projectId.toString() !== template.projectId.toString()
+      monitor.projectId.toString() !== template.projectId!.toString()
     ) {
       throw new BadDataException(MONITOR_IN_ANOTHER_PROJECT_REFUSAL);
     }
@@ -1144,36 +1203,108 @@ export class Service extends ProjectReferencesService<Model> {
       throw new BadDataException(
         getMonitorTypeMismatchRefusal({
           monitorType: monitor.monitorType || "",
-          templateType: template.monitorType,
+          templateType: template.monitorType!,
         }),
       );
     }
 
+    const isLinkedAlready: boolean =
+      MonitorTemplateChangeProvenance.isSameTemplate(
+        monitor.monitorTemplateId,
+        template.id,
+      );
+
+    if (isLinkedAlready && !data.applyTemplateSettings) {
+      return {
+        outcome: MonitorTemplateChangeOutcome.Unchanged,
+        resolvedIncidentCount: 0,
+        resolvedAlertCount: 0,
+      };
+    }
+
+    const updateData: Partial<Monitor> = {};
+
+    if (!isLinkedAlready) {
+      updateData.monitorTemplateId = template.id!;
+    }
+
+    if (data.applyTemplateSettings) {
+      updateData.monitorSteps = this.buildMonitorStepsUpdate(template, monitor);
+
+      if (template.monitoringInterval !== undefined) {
+        updateData.monitoringInterval = template.monitoringInterval;
+      }
+
+      if (template.minimumProbeAgreement !== undefined) {
+        updateData.minimumProbeAgreement = template.minimumProbeAgreement;
+      }
+    }
+
     await MonitorService.updateOneById({
       id: data.monitorId,
-      data: {
-        monitorTemplateId: template.id!,
-      } as any,
+      data: updateData as any,
       props: data.props,
     });
+
+    const resolved: { incidents: number; alerts: number } = data
+      .applyTemplateSettings
+      ? await this.resolveWhatRemovedCriteriaLeftOpen({
+          monitor: monitor,
+          stepsAfter: updateData.monitorSteps,
+          templateName: template.templateName || "",
+          because: CriteriaReplacedBecause.LinkedToTemplate,
+        })
+      : { incidents: 0, alerts: 0 };
+
+    return {
+      outcome: MonitorTemplateChangeOutcome.Changed,
+      resolvedIncidentCount: resolved.incidents,
+      resolvedAlertCount: resolved.alerts,
+    };
   }
 
   /**
    * Detach a monitor from this template. The monitor must currently be linked
    * to *this* template — passing a monitor linked elsewhere (or unlinked) is
    * rejected so a stale UI can't accidentally clear someone else's link.
+   * Without a template (`monitorTemplateId` left out: Unlink from Template on
+   * the Monitors list), the monitor is unlinked from whichever it is linked
+   * to, and one linked to none is left as it is.
+   *
+   * Every monitor can be unlinked, one an import, an auto import rule or an
+   * alert policy made for a network device too (issues #11260, #11266): it
+   * keeps the template it was created from, so the rule that made it never
+   * makes it again (MonitorTemplateChangeProvenance). Its history, labels,
+   * owners and incidents stay either way. Two ways, as the person chooses:
+   *
+   *   - keep its settings (the default): it keeps the template's criteria
+   *     and settings as its own, and keeps checking and alerting with them;
+   *     it no longer gets the template's updates;
+   *   - `clearTemplateSettings`: the template's criteria are removed from it
+   *     (MonitorCriteriaClear), so it raises no incidents or alerts and sets
+   *     no status until it is linked to a template again or given criteria
+   *     of its own, and what those criteria opened and would have resolved
+   *     on their own is resolved (MonitorCriteriaReplaced). It keeps
+   *     checking: its device, address or URL, and the rest of its steps,
+   *     stay.
    */
   @CaptureSpan()
   public async unlinkMonitor(data: {
-    monitorTemplateId: ObjectID;
+    monitorTemplateId?: ObjectID | undefined;
     monitorId: ObjectID;
     props: DatabaseCommonInteractionProps;
-  }): Promise<void> {
+    clearTemplateSettings?: boolean | undefined;
+    // The template's name, read once by a change of many monitors.
+    templateName?: string | undefined;
+  }): Promise<MonitorTemplateLinkResult> {
     const monitor: Monitor | null = await MonitorService.findOneById({
       id: data.monitorId,
       select: {
         _id: true,
+        projectId: true,
+        name: true,
         monitorTemplateId: true,
+        monitorSteps: true,
       },
       props: data.props,
     });
@@ -1181,20 +1312,121 @@ export class Service extends ProjectReferencesService<Model> {
     if (!monitor) {
       throw new BadDataException(MONITOR_NOT_FOUND_REFUSAL);
     }
-    if (
-      !monitor.monitorTemplateId ||
-      monitor.monitorTemplateId.toString() !== data.monitorTemplateId.toString()
-    ) {
-      throw new BadDataException(MONITOR_NOT_LINKED_REFUSAL);
+
+    if (data.monitorTemplateId) {
+      if (
+        !monitor.monitorTemplateId ||
+        monitor.monitorTemplateId.toString() !==
+          data.monitorTemplateId.toString()
+      ) {
+        throw new BadDataException(MONITOR_NOT_LINKED_REFUSAL);
+      }
+    } else if (!monitor.monitorTemplateId) {
+      return {
+        outcome: MonitorTemplateChangeOutcome.Unchanged,
+        resolvedIncidentCount: 0,
+        resolvedAlertCount: 0,
+      };
     }
+
+    const templateId: ObjectID = monitor.monitorTemplateId;
+
+    const updateData: Partial<Monitor> = {
+      monitorTemplateId: null as unknown as ObjectID,
+    };
+
+    const isClearing: boolean = Boolean(
+      data.clearTemplateSettings &&
+        monitor.monitorSteps &&
+        MonitorCriteriaClear.hasCriteria(monitor.monitorSteps),
+    );
+
+    if (isClearing) {
+      updateData.monitorSteps = MonitorCriteriaClear.clearCriteria(
+        monitor.monitorSteps!,
+      );
+    }
+
+    // What the resolves say: read before the write, which is what unlinks.
+    const templateName: string = isClearing
+      ? data.templateName ?? (await this.readTemplateName(templateId))
+      : "";
 
     await MonitorService.updateOneById({
       id: data.monitorId,
-      data: {
-        monitorTemplateId: null,
-      } as any,
+      data: updateData as any,
       props: data.props,
     });
+
+    const resolved: { incidents: number; alerts: number } = isClearing
+      ? await this.resolveWhatRemovedCriteriaLeftOpen({
+          monitor: monitor,
+          stepsAfter: updateData.monitorSteps,
+          templateName: templateName,
+          because: CriteriaReplacedBecause.ClearedOnUnlink,
+        })
+      : { incidents: 0, alerts: 0 };
+
+    return {
+      outcome: MonitorTemplateChangeOutcome.Changed,
+      resolvedIncidentCount: resolved.incidents,
+      resolvedAlertCount: resolved.alerts,
+    };
+  }
+
+  // A template's name as OneUptime reads it, for a resolve's root cause.
+  private async readTemplateName(monitorTemplateId: ObjectID): Promise<string> {
+    const template: Model | null = await this.findOneById({
+      id: monitorTemplateId,
+      select: { _id: true, templateName: true },
+      props: { isRoot: true },
+    });
+
+    return template?.templateName || "";
+  }
+
+  /*
+   * Once a link brought a template's criteria, or an unlink cleared them:
+   * what the criteria the monitor lost would have resolved on their own
+   * (MonitorCriteriaReplaced). Never fails the change already written.
+   */
+  private async resolveWhatRemovedCriteriaLeftOpen(data: {
+    monitor: Monitor;
+    stepsAfter: MonitorSteps | undefined;
+    templateName: string;
+    because: CriteriaReplacedBecause;
+  }): Promise<{ incidents: number; alerts: number }> {
+    if (!data.monitor.id || !data.monitor.projectId) {
+      return { incidents: 0, alerts: 0 };
+    }
+
+    try {
+      const result: MonitorTurnedOffResult =
+        await MonitorCriteriaReplaced.resolveWhatRemovedCriteriaLeftOpen({
+          monitorId: data.monitor.id,
+          projectId: data.monitor.projectId,
+          monitorName: data.monitor.name || "",
+          templateName: data.templateName,
+          stepsBefore: data.monitor.monitorSteps,
+          stepsAfter: data.stepsAfter,
+          because: data.because,
+        });
+
+      return {
+        incidents: result.resolvedIncidentIds.length,
+        alerts: result.resolvedAlertIds.length,
+      };
+    } catch (error) {
+      logger.error(
+        `Monitor template: resolving what monitor ${data.monitor.id.toString()}'s old criteria left open failed: ${error}`,
+        {
+          projectId: data.monitor.projectId.toString(),
+          monitorId: data.monitor.id.toString(),
+        } as LogAttributes,
+      );
+
+      return { incidents: 0, alerts: 0 };
+    }
   }
 }
 export default new Service();

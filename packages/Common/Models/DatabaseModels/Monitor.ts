@@ -1703,7 +1703,7 @@ export default class Monitor extends BaseModel {
     modelType: MonitorTemplate,
     title: "Monitor Template",
     description:
-      "Template this monitor was created from. Used to sync configuration changes from the template to monitors created from it.",
+      "The template this monitor is linked to. The template's sync buttons copy its configuration onto the monitors linked to it.",
   })
   @ManyToOne(
     () => {
@@ -1754,7 +1754,7 @@ export default class Monitor extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Monitor Template ID",
     description:
-      "ID of the Monitor Template this monitor was created from. Null for monitors not created from a template.",
+      "ID of the Monitor Template this monitor is linked to. Null for a monitor linked to no template.",
   })
   @Column({
     type: ColumnType.ObjectID,
@@ -1762,6 +1762,62 @@ export default class Monitor extends BaseModel {
     transformer: ObjectID.getDatabaseTransformer(),
   })
   public monitorTemplateId?: ObjectID = undefined;
+
+  /*
+   * THE TEMPLATE THIS MONITOR WAS CREATED FROM (issues #11260, #11266),
+   * kept when a person links it to another template or unlinks it.
+   *
+   * An import, an auto import rule and a network alert policy each know the
+   * monitor they made for a device by the template they made it from. That
+   * was Monitor Template alone, so moving the monitor to a better template,
+   * or unlinking it, would have had the rule make the old template's monitor
+   * for the device again - a second monitor beside the one moved - and a
+   * policy delete the moved one and make it again. So linking or unlinking
+   * one was refused, and the only way to a new template was to delete every
+   * monitor and lose its history.
+   *
+   * This keeps the answer instead. The shared duplicate rule
+   * (Utils/Monitor/DeviceMonitorDuplicates) counts a device's monitor as
+   * the one from this template too, so nothing makes that template's monitor
+   * for the device again, and nothing undoes what the person chose.
+   *
+   * OneUptime's alone to write: a create from a template stamps it
+   * (MonitorService), and so does the first change of Monitor Template on a
+   * monitor made before it was recorded, with the template it leaves. Empty
+   * on a monitor made from no template, and on one made before this was
+   * recorded that is still linked to the template it was made from - which
+   * Monitor Template then says. No foreign key: a deleted template is named
+   * by no rule, policy or import, so its id here holds nothing back.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadProjectMonitor,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.ObjectID,
+    required: false,
+    canReadOnRelationQuery: true,
+    title: "Created From Monitor Template ID",
+    description:
+      "ID of the Monitor Template this monitor was created from, kept when it is linked to another template or unlinked. Imports, auto import rules and alert policies never make that template's monitor again for the device this monitor checks. Empty for a monitor made from no template, and for one made before this was recorded that is still linked to its template.",
+    serverOwned: ServerOwned.Always,
+  })
+  @Column({
+    type: ColumnType.ObjectID,
+    nullable: true,
+    transformer: ObjectID.getDatabaseTransformer(),
+  })
+  public createdFromMonitorTemplateId?: ObjectID = undefined;
 
   @ColumnAccessControl({
     create: [],
