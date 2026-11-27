@@ -186,6 +186,12 @@ const MADE_WITH_THE_COLUMNS: ReadonlyArray<{
       };
     },
   ),
+  // Each project's share of a global probe's refused SNMPv3 traps (#11173).
+  {
+    table: "GlobalProbeSnmpTrapReport",
+    migration:
+      "1809187791172-AddGlobalProbeSnmpTrapReportsAndDeviceEngineIds.ts",
+  },
 ];
 
 const MIGRATIONS_FOLDER: string = path.resolve(
