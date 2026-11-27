@@ -18,12 +18,15 @@ import InvestigationNotice, {
   noticeFailedIcon,
 } from "../AI/InvestigationNotice";
 import CodeBlockerNotice from "../Code/CodeBlockerNotice";
+import CodeRepositorySearchField from "../Code/CodeRepositorySearchField";
 import { CODE_TASK_HIDDEN_SENTENCE } from "../Code/CodeTaskHiddenCopy";
+import { TELEMETRY_AI_FIX_COPY } from "../TelemetryAi/TelemetryAiFixCopy";
 import { AUTOMATIC_REMEDIATION_SETTINGS_PAGES } from "../AiAccess/AutomaticRemediationNote";
 import { AUTOMATIC_REMEDIATION_SETTINGS_LINKS } from "../AiAccess/AutomaticRemediationLine";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import RunbookExecution from "Common/Models/DatabaseModels/RunbookExecution";
+import { CodeRepositoryListGroup } from "Common/Types/AI/CodeTask";
 import Route from "Common/Types/API/Route";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -43,15 +46,18 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { isPickRefusal } from "Common/Utils/Suggestions/CodeFixRepositoryPick";
 import { FinishedFixOutcome } from "Common/Utils/Suggestions/CodeFixSuggestion";
 import {
   AutomaticCodeFixBlocker,
   InvestigationCodeFixSuggestion,
+  PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES,
 } from "Common/Utils/Suggestions/InvestigationCodeFixSuggestion";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import React, {
   FunctionComponent,
   ReactElement,
+  useId,
   useRef,
   useState,
 } from "react";
@@ -74,6 +80,21 @@ const AI_RULES_LINK_TEXT: Record<RemediationTryAgainSignal, string> = {
 
 const LINK_CLASS_NAME: string =
   "min-w-0 break-words rounded text-sm font-medium leading-6 text-indigo-600 hover:text-indigo-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
+
+/*
+ * The pick and the button, one under the other: the whole width the step
+ * gives the next step on a phone, a column of its own from sm up - as the
+ * trace page's Fix performance with AI lays out its pick.
+ */
+export const REMEDIATION_CODE_FIX_PICK_CLASS_NAME: string =
+  "flex w-full flex-col gap-2 sm:w-72";
+
+export const REMEDIATION_CODE_FIX_REPOSITORY_TEST_ID: string =
+  "remediation-code-fix-repository";
+
+// The repository field itself: its search box, or its value once picked.
+export const REMEDIATION_CODE_FIX_REPOSITORY_PICKER_TEST_ID: string =
+  "remediation-code-fix-repository-picker";
 
 /*
  * THE FIX IN THE CODE, ON THE REMEDIATION STEP (block 43).
@@ -100,8 +121,24 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  // The repository the person picked, when the step asks for one.
+  const [pickedRepositoryId, setPickedRepositoryId] = useState<string>("");
+  const repositoryLabelId: string = `remediation-code-fix-repository-${useId()}`;
   const isCreatingRef: React.MutableRefObject<boolean> = useRef<boolean>(false);
   const suggestion: InvestigationCodeFixSuggestion = props.suggestion;
+
+  /*
+   * Several repositories the person may use in Code are connected, and the
+   * record's monitor names none of them (#11209): the person picks the one
+   * that holds the code before the pull request opens, or the run would
+   * find none to work in. The suggestion's list says only that a pick is
+   * asked for; the pick is searched on the server among the connected
+   * repositories they may ask OneUptime AI to work in - the ones the fix
+   * accepts.
+   */
+  const needsRepositoryPick: boolean =
+    suggestion.offer === SuggestionOffer.Act &&
+    (suggestion.repositories || []).length > 1;
   /*
    * On a private record's page, why the reader may not open the pull
    * request, when they may not: in place of Open fix pull request.
@@ -121,7 +158,11 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
     : null;
 
   const openPullRequest: () => Promise<void> = async (): Promise<void> => {
-    if (isCreatingRef.current || !props.investigationRunId) {
+    if (
+      isCreatingRef.current ||
+      !props.investigationRunId ||
+      (needsRepositoryPick && !pickedRepositoryId)
+    ) {
       return;
     }
 
@@ -139,6 +180,8 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
             subjectType: props.signal,
             subjectId: props.subjectId,
             investigationRunId: props.investigationRunId,
+            // In the repository the person picked, when the step asked.
+            ...(needsRepositoryPick ? { repositoryId: pickedRepositoryId } : {}),
           },
           headers: ModelAPI.getCommonHeaders(),
         });
@@ -149,7 +192,28 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
 
       props.onChanged();
     } catch (error) {
-      setCreateError(API.getFriendlyMessage(error));
+      const reason: string = API.getFriendlyMessage(error);
+
+      /*
+       * A pick the server refused as one the person cannot make - no longer
+       * connected, or no longer theirs to read or ask OneUptime AI in - is
+       * no pick: the step waits for another, and the search no longer
+       * offers it.
+       */
+      if (isPickRefusal(reason)) {
+        setPickedRepositoryId("");
+      }
+
+      setCreateError(reason);
+
+      /*
+       * A pick asked for that the step did not know to ask: a repository
+       * was connected after it read the choices. It reads them again, so
+       * the picker is drawn beside why.
+       */
+      if (reason.includes(PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES[props.signal])) {
+        props.onChanged();
+      }
     } finally {
       isCreatingRef.current = false;
       setIsCreating(false);
@@ -241,6 +305,52 @@ const RemediationCodeFix: FunctionComponent<ComponentProps> = (
           reason={lockReason}
           testId="remediation-code-fix-locked"
         />
+      );
+    } else if (suggestion.offer === SuggestionOffer.Act && needsRepositoryPick) {
+      // Which repository holds the code, then the pull request.
+      action = (
+        <div className={REMEDIATION_CODE_FIX_PICK_CLASS_NAME}>
+          <div
+            className="w-full"
+            data-testid={REMEDIATION_CODE_FIX_REPOSITORY_TEST_ID}
+          >
+            <p
+              className="mb-1 text-sm font-medium text-gray-700"
+              id={repositoryLabelId}
+            >
+              {translator.translateText(TELEMETRY_AI_FIX_COPY.pickRepository)}
+            </p>
+            <CodeRepositorySearchField
+              value={pickedRepositoryId || null}
+              group={CodeRepositoryListGroup.Connected}
+              isAskableOnly={true}
+              isClearable={false}
+              placeholder={TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder}
+              emptyListText={TELEMETRY_AI_FIX_COPY.noAskableRepository}
+              ariaLabelledby={repositoryLabelId}
+              dataTestId={REMEDIATION_CODE_FIX_REPOSITORY_PICKER_TEST_ID}
+              onChange={(repositoryId: string | null) => {
+                setPickedRepositoryId(repositoryId || "");
+              }}
+            />
+          </div>
+          <div>
+            <Button
+              title={REMEDIATION_CODE_FIX_COPY.openPullRequest}
+              icon={IconProp.Code}
+              buttonStyle={ButtonStyleType.NORMAL}
+              buttonSize={ButtonSize.Small}
+              isLoading={isCreating}
+              disabled={!props.investigationRunId || !pickedRepositoryId}
+              dataTestId="remediation-code-fix-open"
+              onClick={() => {
+                openPullRequest().catch(() => {
+                  // handled inside openPullRequest
+                });
+              }}
+            />
+          </div>
+        </div>
       );
     } else if (suggestion.offer === SuggestionOffer.Act) {
       action = (

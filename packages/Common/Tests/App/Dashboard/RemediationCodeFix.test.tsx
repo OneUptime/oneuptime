@@ -16,12 +16,29 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
-import RemediationCodeFix from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationCodeFix";
+import RemediationCodeFix, {
+  REMEDIATION_CODE_FIX_PICK_CLASS_NAME,
+  REMEDIATION_CODE_FIX_REPOSITORY_PICKER_TEST_ID,
+  REMEDIATION_CODE_FIX_REPOSITORY_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationCodeFix";
 import {
   REMEDIATION_CODE_FIX_AUTOMATIC_REASONS,
   REMEDIATION_CODE_FIX_COPY,
   REMEDIATION_CODE_FIX_REASONS_WITH_SETTINGS_LINK,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AutoRemediation/RemediationStepCopy";
+import { CodeRepositoriesQuery } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
+import { TELEMETRY_AI_FIX_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/TelemetryAi/TelemetryAiFixCopy";
+import {
+  FakeCodeRepository,
+  answerRepositoriesById,
+  answerRepositoriesQuery,
+} from "./CodeRepositoriesServer";
+import {
+  PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+  PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE,
+  PICKED_REPOSITORY_NOT_FOUND_MESSAGE,
+} from "../../../Utils/Suggestions/CodeFixRepositoryPick";
+import { PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES } from "../../../Utils/Suggestions/InvestigationCodeFixSuggestion";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { CodeTaskBlockerType } from "../../../Types/AI/CodeTask";
@@ -47,6 +64,40 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * used to stop with a debug line, so a project with fixing on and no
  * repository saw nothing happen at all.
  */
+
+/*
+ * The connected repositories the person may read, as Code's routes answer
+ * the step's repository search (#11209).
+ */
+const codeRepositories: {
+  items: Array<FakeCodeRepository>;
+  reads: Array<CodeRepositoriesQuery>;
+} = { items: [], reads: [] };
+
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi",
+  () => {
+    return {
+      __esModule: true,
+      default: {
+        getRepositories: async (query: CodeRepositoriesQuery) => {
+          codeRepositories.reads.push(query);
+
+          return answerRepositoriesQuery({
+            repositories: codeRepositories.items,
+            query,
+          });
+        },
+        getRepositoriesById: async (ids: Array<string>) => {
+          return answerRepositoriesById({
+            repositories: codeRepositories.items,
+            ids,
+          });
+        },
+      },
+    };
+  },
+);
 
 const SUBJECT_ID: string = "0193c0de-1111-4aaa-8bbb-000000000101";
 const RUN_ID: string = "0193c0de-2222-4aaa-8bbb-000000000102";
@@ -468,4 +519,347 @@ describe("why OneUptime AI did not open it on its own", () => {
       );
     },
   );
+});
+
+/*
+ * A REPOSITORY TO PICK BEFORE THE PULL REQUEST OPENS (#11209).
+ *
+ * The pull request is a code task on the person's behalf, made only in a
+ * repository they may use in Code. When several of theirs are connected
+ * and the record's monitor names none of them, the server says so (the
+ * suggestion's `repositories`) and the step asks which holds the code - in
+ * the words a trace's Fix performance with AI asks it - from a search of
+ * those on the server. The run would otherwise find no repository to work
+ * in when it starts.
+ */
+describe("a repository to pick before the pull request opens", () => {
+  const REPOSITORIES: Array<{ id: string; name: string }> = [
+    { id: "51000000-0000-4000-8000-000000000002", name: "billing" },
+    { id: "51000000-0000-4000-8000-000000000001", name: "checkout-api" },
+  ];
+
+  beforeEach(() => {
+    codeRepositories.reads = [];
+    codeRepositories.items = [
+      ...REPOSITORIES,
+      // Not connected: no pick may name it.
+      { id: "51000000-0000-4000-8000-000000000009", name: "archive-site" },
+      // Connected, but not one the person may ask OneUptime AI in.
+      { id: "51000000-0000-4000-8000-000000000008", name: "vault" },
+    ].map((repository: { id: string; name: string }): FakeCodeRepository => {
+      return {
+        id: repository.id,
+        name: repository.name,
+        organizationName: "acme",
+        repositoryName: repository.name,
+        isConnected: repository.name !== "archive-site",
+        canAsk: repository.name !== "vault",
+        provider: "GitHub",
+        stats: {
+          working: 0,
+          waitingForYou: 0,
+          openPullRequests: 0,
+          taskCount: 0,
+        },
+      };
+    });
+  });
+
+  function withRepositories(
+    overrides: Partial<InvestigationCodeFixSuggestion> = {},
+  ): InvestigationCodeFixSuggestion {
+    return suggestion({
+      offer: SuggestionOffer.Act,
+      automaticBlocker: AutomaticCodeFixBlocker.FixOff,
+      repositories: REPOSITORIES,
+      ...overrides,
+    });
+  }
+
+  function picker(): HTMLElement {
+    return screen.getByTestId(REMEDIATION_CODE_FIX_REPOSITORY_TEST_ID);
+  }
+
+  function openButton(): HTMLElement {
+    return screen.getByTestId("remediation-code-fix-open");
+  }
+
+  async function open(): Promise<void> {
+    await act(async () => {
+      fireEvent.focus(within(picker()).getByRole("combobox"));
+    });
+  }
+
+  async function pick(name: string): Promise<void> {
+    await open();
+
+    const option: HTMLElement = await screen.findByRole("option", {
+      name: new RegExp(name),
+    });
+
+    await act(async () => {
+      fireEvent.click(option);
+    });
+  }
+
+  async function press(): Promise<void> {
+    await act(async (): Promise<void> => {
+      fireEvent.click(openButton());
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  }
+
+  test("it asks which repository holds the code, in the words a trace's fix asks it", () => {
+    renderRow({ suggestion: withRepositories() });
+
+    expect(picker()).toHaveTextContent(TELEMETRY_AI_FIX_COPY.pickRepository);
+    expect(within(picker()).getByRole("combobox")).toHaveAttribute(
+      "placeholder",
+      TELEMETRY_AI_FIX_COPY.pickRepositoryPlaceholder,
+    );
+    // The question names the box for a screen reader.
+    expect(within(picker()).getByRole("combobox")).toHaveAccessibleName(
+      TELEMETRY_AI_FIX_COPY.pickRepository,
+    );
+    expect(
+      within(picker()).getByTestId(
+        REMEDIATION_CODE_FIX_REPOSITORY_PICKER_TEST_ID,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  test("the pick comes first, then the button under it, in one column", () => {
+    renderRow({ suggestion: withRepositories() });
+
+    const column: HTMLElement = picker().parentElement as HTMLElement;
+    for (const name of REMEDIATION_CODE_FIX_PICK_CLASS_NAME.split(" ")) {
+      expect(column).toHaveClass(name);
+    }
+    expect(
+      picker().compareDocumentPosition(openButton()) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The sentence and why it was not opened on its own stay as they were.
+    expect(screen.getByTestId("remediation-code-fix-text")).toHaveTextContent(
+      REMEDIATION_CODE_FIX_COPY.recommended,
+    );
+  });
+
+  test("the pull request waits for the pick, and nothing is asked", async () => {
+    renderRow({ suggestion: withRepositories() });
+
+    expect(openButton()).toBeDisabled();
+
+    await press();
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("picked, the pull request opens in the pick - the run and the record as before", async () => {
+    postSpy.mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { aiRunId: AI_RUN_ID }, {}) as never,
+    );
+    renderRow({ suggestion: withRepositories() });
+
+    await pick("checkout-api");
+    expect(openButton()).toBeEnabled();
+
+    await press();
+
+    expect(postSpy).toHaveBeenCalledTimes(1);
+    expect((postSpy.mock.calls[0]![0] as { data: JSONObject }).data).toEqual({
+      subjectType: "incident",
+      subjectId: SUBJECT_ID,
+      investigationRunId: RUN_ID,
+      repositoryId: "51000000-0000-4000-8000-000000000001",
+    });
+    expect(onChanged).toHaveBeenCalledTimes(1);
+  });
+
+  test("an alert's pick is posted with the alert", async () => {
+    postSpy.mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { aiRunId: AI_RUN_ID }, {}) as never,
+    );
+    renderRow({ signal: "alert", suggestion: withRepositories() });
+
+    await pick("billing");
+    await press();
+
+    expect((postSpy.mock.calls[0]![0] as { data: JSONObject }).data).toEqual(
+      expect.objectContaining({
+        subjectType: "alert",
+        repositoryId: "51000000-0000-4000-8000-000000000002",
+      }),
+    );
+  });
+
+  test("opened, it lists the connected repositories the person may ask OneUptime AI to work in - the ones the route takes", async () => {
+    renderRow({ suggestion: withRepositories() });
+
+    await open();
+    await screen.findByRole("option", { name: /billing/ });
+
+    const options: Array<HTMLElement> = screen.getAllByRole("option");
+
+    expect(
+      options.map((option: HTMLElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual([
+      expect.stringContaining("billing"),
+      expect.stringContaining("checkout-api"),
+    ]);
+    expect(codeRepositories.reads[codeRepositories.reads.length - 1]).toEqual(
+      expect.objectContaining({ group: "connected", askableOnly: true }),
+    );
+  });
+
+  test.each([
+    ["no longer one the person may read", PICKED_REPOSITORY_NOT_FOUND_MESSAGE],
+    [
+      "no longer one the person may ask OneUptime AI to work in",
+      PICKED_REPOSITORY_NOT_ASKABLE_MESSAGE,
+    ],
+    ["no longer connected", PICKED_REPOSITORY_NOT_CONNECTED_MESSAGE],
+  ])(
+    "a pick the server refused as %s is dropped, said, and the button waits for another",
+    async (_name: string, refusal: string) => {
+      postSpy.mockResolvedValue(
+        new HTTPErrorResponse(422, { message: refusal }, {}) as never,
+      );
+      jest.spyOn(API, "getFriendlyMessage").mockReturnValue(refusal);
+      renderRow({ suggestion: withRepositories() });
+
+      await pick("checkout-api");
+      await press();
+
+      expect(screen.getByTestId("remediation-code-fix-error")).toHaveTextContent(
+        refusal,
+      );
+      expect(openButton()).toBeDisabled();
+      expect(within(picker()).queryByText("checkout-api")).toBeNull();
+      expect(onChanged).not.toHaveBeenCalled();
+    },
+  );
+
+  test("any other refusal keeps the pick, to try again", async () => {
+    const credits: string = "This project's AI credits are used up.";
+    postSpy.mockResolvedValue(
+      new HTTPErrorResponse(400, { message: credits }, {}) as never,
+    );
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue(credits);
+    renderRow({ suggestion: withRepositories() });
+
+    await pick("checkout-api");
+    await press();
+
+    expect(screen.getByTestId("remediation-code-fix-error")).toHaveTextContent(
+      credits,
+    );
+    expect(openButton()).toBeEnabled();
+    expect(within(picker()).getByText("checkout-api")).toBeInTheDocument();
+  });
+
+  test.each([
+    ["incident", PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES.incident],
+    ["alert", PICK_A_REPOSITORY_FOR_THE_CODE_FIX_MESSAGES.alert],
+  ])(
+    "a second repository connected since the step read the %s's choices: why, and the choices read again for the picker",
+    async (signal: string, askForPick: string) => {
+      postSpy.mockResolvedValue(
+        new HTTPErrorResponse(400, { message: askForPick }, {}) as never,
+      );
+      jest.spyOn(API, "getFriendlyMessage").mockReturnValue(askForPick);
+      // Read before then: one repository was theirs, so no pick was asked.
+      renderRow({
+        signal: signal as "incident" | "alert",
+        suggestion: suggestion({
+          offer: SuggestionOffer.Act,
+          automaticBlocker: AutomaticCodeFixBlocker.FixOff,
+        }),
+      });
+
+      await press();
+
+      expect(
+        screen.getByTestId("remediation-code-fix-error"),
+      ).toHaveTextContent(askForPick);
+      // The step reads the suggestion again: its choices bring the picker.
+      expect(onChanged).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("any other refusal does not read the choices again", async () => {
+    postSpy.mockResolvedValue(
+      new HTTPErrorResponse(400, { message: "No." }, {}) as never,
+    );
+    jest.spyOn(API, "getFriendlyMessage").mockReturnValue("No.");
+    renderRow({ suggestion: withRepositories({ repositories: [] }) });
+
+    await press();
+
+    expect(onChanged).not.toHaveBeenCalled();
+  });
+
+  test("no repositories to pick from: no picker, and the pull request names none", async () => {
+    postSpy.mockResolvedValue(
+      new HTTPResponse<JSONObject>(200, { aiRunId: AI_RUN_ID }, {}) as never,
+    );
+    renderRow({ suggestion: withRepositories({ repositories: [] }) });
+
+    expect(
+      screen.queryByTestId(REMEDIATION_CODE_FIX_REPOSITORY_TEST_ID),
+    ).toBeNull();
+    expect(openButton()).toBeEnabled();
+
+    await press();
+
+    expect(
+      (postSpy.mock.calls[0]![0] as { data: JSONObject }).data,
+    ).not.toHaveProperty("repositoryId");
+  });
+
+  test("one repository is no choice: no picker", () => {
+    renderRow({
+      suggestion: withRepositories({ repositories: [REPOSITORIES[0]!] }),
+    });
+
+    expect(
+      screen.queryByTestId(REMEDIATION_CODE_FIX_REPOSITORY_TEST_ID),
+    ).toBeNull();
+    expect(openButton()).toBeEnabled();
+  });
+
+  test.each([
+    ["a set-up step", { offer: SuggestionOffer.SetUp }],
+    [
+      "a pull request being written",
+      { offer: SuggestionOffer.InProgress, aiRunId: AI_RUN_ID },
+    ],
+    [
+      "one that did its work",
+      {
+        offer: SuggestionOffer.Done,
+        aiRunId: AI_RUN_ID,
+        fixOutcome: FinishedFixOutcome.Fixed,
+      },
+    ],
+  ])(
+    "%s draws no picker, whatever the suggestion lists",
+    (_name: string, overrides: Partial<InvestigationCodeFixSuggestion>) => {
+      renderRow({ suggestion: withRepositories(overrides) });
+
+      expect(
+        screen.queryByTestId(REMEDIATION_CODE_FIX_REPOSITORY_TEST_ID),
+      ).toBeNull();
+    },
+  );
+
+  test("without the run it would be written from, the button waits even once picked", async () => {
+    renderRow({ suggestion: withRepositories(), investigationRunId: null });
+
+    await pick("checkout-api");
+
+    expect(openButton()).toBeDisabled();
+  });
 });
