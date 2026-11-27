@@ -153,7 +153,7 @@ flowchart TB
 :::
 
 :::details این Xen Orchestra افزونهٔ OpenMetrics ندارد
-این افزونه به Xen Orchestra نسخهٔ 6.9 یا بالاتر و در Xen Orchestra Appliance به مجوز Premium نیاز دارد. بدون آن، به‌جایش هر استخر را از راه XAPI آن متصل کنید.
+این افزونه به Xen Orchestra نسخهٔ 6.9 یا بالاتر و در Xen Orchestra Appliance به پروانهٔ Premium نیاز دارد. بدون آن، به‌جایش هر استخر را از راه XAPI آن متصل کنید.
 :::
 
 :::details هیچ استخری متصل نیست

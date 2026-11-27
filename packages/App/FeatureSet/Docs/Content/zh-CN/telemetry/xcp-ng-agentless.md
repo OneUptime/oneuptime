@@ -1,6 +1,6 @@
 # 无需代理的 XCP-ng
 
-无需安装任何东西即可监控 XCP-ng 资源池：由 OneUptime 探测器读取它们，要么通过管理它们的 Xen Orchestra，要么对于没有 Xen Orchestra 的资源池，直接从资源池主节点上的 XAPI 读取。每个资源池都会获得与 [XCP-ng 代理](/docs/telemetry/xcp-ng) 发送的资源池相同的页面、[XCP-ng 监控器](/docs/monitor/xcp-ng-monitor) 和模板。没有需要安装、升级或保持运行的代理。
+无需安装任何东西即可监控 XCP-ng 资源池：由 OneUptime 探测器读取它们，要么通过管理它们的 Xen Orchestra，要么对于没有 Xen Orchestra 的资源池，直接从资源池主节点上的 XAPI 读取。每个资源池都会获得与 [XCP-ng 代理](/docs/telemetry/xcp-ng) 发送的资源池相同的页面、[XCP-ng 监视器](/docs/monitor/xcp-ng-monitor) 和模板。没有需要安装、升级或保持运行的代理。
 
 :::cards
 - [开始之前](#开始之前)：一个能访问 Xen Orchestra 或资源池的探测器，以及只读访问权限。
@@ -17,7 +17,7 @@ flowchart TB
     P -->|"HTTPS，<br/>OpenMetrics 插件"| XO["Xen Orchestra"]
     P -->|"HTTPS，XAPI<br/>只读"| M["资源池主节点<br/>及其主机"]
     P -->|"与 XCP-ng 代理<br/>发送的相同<br/>指标"| OU
-    OU --> V["XCP-ng 页面、<br/>监控器和告警"]
+    OU --> V["XCP-ng 页面、<br/>监视器和告警"]
 ```
 
 探测器每分钟读取每个连接，并将读取到的内容发送到 OneUptime：
@@ -199,7 +199,7 @@ OneUptime 只保存只读令牌。请为一个只拥有内置 **Read only** 角�
 ## 后续步骤
 
 :::cards
-- [XCP-ng 监控器](/docs/monitor/xcp-ng-monitor)：针对资源池、主机、虚拟机和存储库发出告警。
+- [XCP-ng 监视器](/docs/monitor/xcp-ng-monitor)：针对资源池、主机、虚拟机和存储库发出告警。
 - [自定义探测器](/docs/probe/custom-probe)：在资源池所在网络中运行探测器。
 - [XCP-ng 代理](/docs/telemetry/xcp-ng)：改用代理读取 Xen Orchestra。
 :::

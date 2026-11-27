@@ -636,7 +636,7 @@ const XcpNgConnectionStatusCard: FunctionComponent<ComponentProps> = (
       {isRemovingToken ? (
         <ConfirmModal
           title="Remove the API Token"
-          description="The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke the token in Xen Orchestra too if nothing else uses it."
+          description="The token is deleted from OneUptime. Metrics keep coming through the OpenMetrics secret. Revoke it in Xen Orchestra too if nothing else uses it."
           submitButtonText="Remove Token"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isSaving}

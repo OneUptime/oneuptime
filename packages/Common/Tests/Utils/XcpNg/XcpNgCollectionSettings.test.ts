@@ -39,8 +39,9 @@ describe("XcpNgCollectionSettings.getIntervalRefusal", () => {
   test.each([[0], [61], [1.5], [-1], ["5"], [null], [Number.NaN]])(
     "refuses %p",
     (value: unknown) => {
+      // The figure keeps its unit on its line: a no-break space joins them.
       expect(XcpNgCollectionSettings.getIntervalRefusal(value)).toContain(
-        "1 to 60 minutes",
+        "1 to 60\u00a0minutes",
       );
     },
   );

@@ -214,7 +214,7 @@ export default class XcpNgConnection extends BaseModel {
     canReadOnRelationQuery: true,
     title: "Name",
     description:
-      "Name of this connection in OneUptime: the Xen Orchestra, or the pool, it reads. Defaults to the host name of its address. For a Xen Orchestra, every pool it reports shows it as the Xen Orchestra it is read from.",
+      "Name of this connection in OneUptime, shown on every pool it reads. Defaults to the host name of its address.",
     example: "xo-paris",
   })
   @Column({
